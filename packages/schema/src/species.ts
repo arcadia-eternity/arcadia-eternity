@@ -12,7 +12,6 @@ export const LearnableSkillSchema = Type.Object({
 export const SpeciesSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   num: Type.Number({ default: 0 }),
-  assetRef: Type.Optional(Type.String()),
   presentation: Type.Optional(ContentPresentationSchema),
   element: Type.Union(
     Object.values(Element).map(v => Type.Literal(v)),
@@ -66,6 +65,8 @@ export type LearnableSkill = Static<typeof LearnableSkillSchema>
 
 export type SpeciesSchemaType = Static<typeof SpeciesSchema>
 
-export const SpeciesDataSetSchema = Type.Array(SpeciesSchema)
+/** Editable rules exclude display metadata; runtime UI schemas above accept the resolved view. */
+export const SpeciesDefinitionSchema = Type.Omit(SpeciesSchema, ['presentation'])
+export const SpeciesDataSetSchema = Type.Array(SpeciesDefinitionSchema)
 
 export type SpeciesDataSet = Static<typeof SpeciesDataSetSchema>

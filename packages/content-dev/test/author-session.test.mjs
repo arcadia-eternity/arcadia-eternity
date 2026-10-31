@@ -99,4 +99,22 @@ test('MCP uses the same file versions and diagnostics, and execution is opt-in',
   assert.match(stale.content[0].text, /REVISION_CONFLICT/)
   const query = await client.callTool({ name: 'content_query', arguments: { search: 'hit' } })
   assert.equal(query.structuredContent.result.items[0].record.power, 70)
+  const created = await client.callTool({
+    name: 'content_apply',
+    arguments: {
+      changes: [
+        { kind: 'create-record', file: 'data/marks/shared.json', expectedVersion: null, record: { id: 'shared' } },
+        {
+          kind: 'locale',
+          file: 'locales/en/mark.json',
+          expectedVersion: null,
+          id: 'shared',
+          record: { name: 'Shared' },
+        },
+      ],
+    },
+  })
+  assert.equal(created.isError, undefined)
+  assert.equal(created.structuredContent.result.complete, true)
+  assert.equal(JSON.parse(await readFile(join(root, 'locales/en/mark.json'), 'utf8')).shared.name, 'Shared')
 })

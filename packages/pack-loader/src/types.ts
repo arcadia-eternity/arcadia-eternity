@@ -1,4 +1,4 @@
-import type { PackManifest, AssetManifest } from '@arcadia-eternity/schema'
+import type { PackManifest, AssetManifest, PresentationManifest } from '@arcadia-eternity/schema'
 
 export type PackSource = 'node-fs' | 'http'
 
@@ -48,8 +48,8 @@ export interface PackLockfile {
 }
 
 export interface AssetConflict {
-  kind: 'assetUri' | 'mapping'
-  scope: 'assets' | 'species' | 'marks' | 'skills'
+  kind: 'assetUri'
+  scope: 'assets'
   key: string
   previous: string
   next: string
@@ -71,6 +71,7 @@ export interface PackMetadataResult {
   locales?: LocaleBundles
   lockfile?: PackLockfile
   lockfileIssues?: string[]
+  presentation?: PresentationManifest[]
   assets?: AssetManifest[]
   assetConflicts?: AssetConflict[]
   source: PackSource

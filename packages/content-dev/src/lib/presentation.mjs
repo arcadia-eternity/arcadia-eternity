@@ -36,25 +36,29 @@ export function resourceReferences(presentation) {
     if (battle.fallback !== undefined) refs.push(battle.fallback)
   }
   for (const ref of refs) {
-    if (typeof ref === 'string' && ref.length && (remote(ref) || validAssetPath(ref))) continue
+    if (typeof ref === 'string' && validResourceId(ref)) continue
     if (
       ref &&
       typeof ref === 'object' &&
       !Array.isArray(ref) &&
       typeof ref.namespace === 'string' &&
       ref.namespace &&
-      typeof ref.path === 'string' &&
-      validAssetPath(ref.path) &&
-      Object.keys(ref).every(key => ['namespace', 'path'].includes(key))
+      typeof ref.id === 'string' &&
+      validResourceId(ref.id) &&
+      Object.keys(ref).every(key => ['namespace', 'id'].includes(key))
     )
       continue
     throw new Error(`Invalid presentation resource: ${JSON.stringify(ref)}`)
   }
   return refs
 }
-function validAssetPath(value) {
+export const validResourceId = value => typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$/.test(value)
+export function validAssetPath(value) {
   return (
-    value.startsWith('assets/') &&
+    typeof value === 'string' &&
+    !value.startsWith('/') &&
+    !value.includes(':') &&
+    !value.split('/').some(part => ['node_modules', '.git', '.arcadia', 'dist'].includes(part)) &&
     !value.includes('\\') &&
     !value.includes('\0') &&
     value.split('/').every(part => part && part !== '.' && part !== '..')
@@ -81,52 +85,115 @@ async function files(root, directory) {
   }
   return output
 }
-function metadata(id, bytes, mime) {
-  if (!bytes.length || bytes.length > maximumBytes) throw new Error(`Resource size invalid: ${id}`)
-  return {
-    kind: 'file',
-    id,
-    source: id,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
-    bytes: bytes.length,
-    mime,
-  }
+export function bindingPresentation(binding) {
+  const { id: _id, target: _target, ...presentation } = binding
+  return presentation
 }
-/** Remote URLs are declarations only: no downloads, copies, or byte cache. */
-export async function buildPresentation(root, sources) {
+export function validateBinding(binding, sources) {
+  if (
+    !binding.target ||
+    !['species', 'skills', 'marks'].includes(binding.target.kind) ||
+    typeof binding.target.id !== 'string' ||
+    Object.keys(binding.target).some(key => !['kind', 'id'].includes(key))
+  )
+    throw new Error(`Invalid presentation target: ${binding.id}`)
+  if (
+    !sources.some(
+      source => source.kind === binding.target.kind && source.records.some(row => row.id === binding.target.id),
+    )
+  )
+    throw new Error(`Missing presentation target: ${binding.target.kind}/${binding.target.id}`)
+  return resourceReferences(bindingPresentation(binding))
+}
+/** Read only declared files. References are IDs; locations never become resource identities. */
+export async function buildPresentation(root, sources, { includeLocales = true } = {}) {
   const resources = []
-  for (const file of await files(root, join(root, 'assets'))) {
-    const id = relative(root, file).split('\\').join('/')
-    const mime = mimeTypes[extname(file).toLowerCase()]
-    if (!mime) throw new Error(`Unsupported asset file: ${id}`)
-    const info = await lstat(file)
-    if (info.size > maximumBytes) throw new Error(`Resource exceeds 64 MiB: ${id}`)
-    resources.push(metadata(id, await readFile(file), mime))
-  }
-  const urls = new Set()
-  const byId = new Map(resources.map(resource => [resource.id, resource]))
+  const definitions = sources.filter(source => source.kind === 'resources')
+  for (const source of definitions)
+    for (const record of source.records) {
+      const { id, source: location, kind, name: _name } = record
+      if (
+        !validResourceId(id) ||
+        !['image', 'audio', 'swf'].includes(kind) ||
+        typeof location !== 'string' ||
+        Object.keys(record).some(key => !['id', 'source', 'kind', 'name', 'tags'].includes(key)) ||
+        (record.name !== undefined && typeof record.name !== 'string') ||
+        (record.tags !== undefined && (!Array.isArray(record.tags) || record.tags.some(tag => typeof tag !== 'string')))
+      )
+        throw new Error(`${relative(root, source.file)}: Invalid resource definition ${id}`)
+      const url = remote(location) ? new URL(location) : undefined
+      if (url && (url.username || url.password)) throw new Error(`Resource URL must not contain credentials: ${id}`)
+      const mime = mimeTypes[extname(url ? url.pathname : location).toLowerCase()]
+      if (
+        !mime ||
+        (kind === 'image'
+          ? !mime.startsWith('image/')
+          : kind === 'audio'
+            ? !mime.startsWith('audio/')
+            : mime !== 'application/x-shockwave-flash')
+      )
+        throw new Error(`Resource type does not match source: ${id}`)
+      if (url) {
+        resources.push({ kind: 'http', id, source: location, mime, ...(record.tags ? { tags: record.tags } : {}) })
+        continue
+      }
+      if (!validAssetPath(location)) throw new Error(`Invalid resource path: ${id}`)
+      let path = root
+      for (const part of location.split('/')) {
+        path = join(path, part)
+        if ((await lstat(path)).isSymbolicLink()) throw new Error(`Resource must not use symbolic links: ${id}`)
+      }
+      const info = await lstat(path)
+      if (!info.isFile() || !info.size || info.size > maximumBytes) throw new Error(`Resource size invalid: ${id}`)
+      const bytes = await readFile(path)
+      if (!bytes.length || bytes.length > maximumBytes) throw new Error(`Resource size invalid: ${id}`)
+      resources.push({
+        kind: 'file',
+        id,
+        source: location,
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        bytes: bytes.length,
+        mime,
+        ...(record.tags ? { tags: record.tags } : {}),
+      })
+    }
+  const ids = new Set(resources.map(row => row.id))
+  const kinds = new Map(definitions.flatMap(source => source.records).map(row => [row.id, row.kind]))
+  const bindings = []
+  const targets = new Set()
   for (const source of sources)
     for (const record of source.records) {
-      let refs
+      if (
+        !['presentations', 'resources'].includes(source.kind) &&
+        ['presentation', 'assetRef', 'iconRef', 'sfxRef'].some(key => key in record)
+      )
+        throw new Error(
+          `${relative(root, source.file)}: Move presentation into data/presentations and resources into data/resources`,
+        )
+      if (source.kind !== 'presentations') continue
       try {
-        refs = resourceReferences(record.presentation)
+        const refs = validateBinding(record, sources)
+        const target = JSON.stringify([record.target.kind, record.target.id])
+        if (targets.has(target)) throw new Error(`Duplicate presentation target: ${target}`)
+        targets.add(target)
+        for (const ref of refs) if (typeof ref === 'string' && !ids.has(ref)) throw new Error(`Missing resource ${ref}`)
+        const kindOf = ref => (typeof ref === 'string' ? kinds.get(ref) : undefined)
+        const presentation = bindingPresentation(record)
+        for (const [slot, ref] of Object.entries(presentation)) {
+          if (slot === 'battle') {
+            if (kindOf(ref.source) && kindOf(ref.source) !== (ref.renderer === 'image' ? 'image' : 'swf'))
+              throw new Error('Battle resource type mismatch')
+            if (kindOf(ref.fallback) && kindOf(ref.fallback) !== 'image') throw new Error('Fallback must be an image')
+          } else if (kindOf(ref) && kindOf(ref) !== (['sfx', 'cry', 'music'].includes(slot) ? 'audio' : 'image'))
+            throw new Error(`Resource type mismatch: ${slot}`)
+        }
+        bindings.push(record)
       } catch (error) {
         throw new Error(`${relative(root, source.file)}: ${error.message}`, { cause: error })
       }
-      for (const ref of refs)
-        if (typeof ref === 'string') {
-          if (remote(ref)) urls.add(ref)
-          else if (!byId.has(ref)) throw new Error(`${relative(root, source.file)}: Missing resource ${ref}`)
-        }
     }
-  for (const url of [...urls].sort(compare)) {
-    const parsed = new URL(url)
-    if (parsed.username || parsed.password) throw new Error(`Resource URL must not contain credentials: ${url}`)
-    const mime = mimeTypes[extname(parsed.pathname).toLowerCase()]
-    resources.push({ kind: 'http', id: url, source: url, ...(mime ? { mime } : {}) })
-  }
   const locales = {}
-  for (const file of await files(root, join(root, 'locales'))) {
+  for (const file of includeLocales ? await files(root, join(root, 'locales')) : []) {
     const path = relative(join(root, 'locales'), file).split('\\').join('/')
     const match = /^([A-Za-z0-9-]+)\/([A-Za-z0-9_-]+)\.(json|ya?ml)$/.exec(path)
     if (!match) throw new Error(`Expected locales/<language>/<namespace>.json|yaml: ${path}`)
@@ -163,5 +230,11 @@ export async function buildPresentation(root, sources) {
     if (Object.hasOwn(target, namespace)) throw new Error(`Duplicate locale namespace: ${path}`)
     target[namespace] = value
   }
-  return { version: 1, defaultLocale: 'zh-CN', resources: resources.sort((a, b) => compare(a.id, b.id)), locales }
+  return {
+    version: 2,
+    bindings: bindings.sort((a, b) => compare(a.id, b.id)),
+    defaultLocale: 'zh-CN',
+    resources: resources.sort((a, b) => compare(a.id, b.id)),
+    locales,
+  }
 }

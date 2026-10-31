@@ -161,6 +161,8 @@ export class PackTransport {
       try {
         const assetManifestRaw = await this.fetchText(url)
         const assetManifest = JSON.parse(assetManifestRaw) as AssetManifest
+        if ('mappings' in assetManifest)
+          throw new Error('Legacy asset mappings are unsupported; migrate to presentation v2')
         const dependencies = assetManifest.dependencies ?? []
         for (const depRef of dependencies) {
           await walk(depRef, url)
@@ -194,11 +196,6 @@ export class PackTransport {
   protected detectAssetConflicts(loaded: AssetLoadRecord[]): AssetConflict[] {
     const conflicts: AssetConflict[] = []
     const assetUriById = new Map<string, string>()
-    const mappingByScope = {
-      species: new Map<string, string>(),
-      marks: new Map<string, string>(),
-      skills: new Map<string, string>(),
-    }
 
     for (const item of loaded) {
       const { manifest, url } = item
@@ -217,35 +214,6 @@ export class PackTransport {
           })
         }
         assetUriById.set(asset.id, asset.uri)
-      }
-
-      const mappingSources: Array<{
-        scope: 'species' | 'marks' | 'skills'
-        mapping?: Record<string, string>
-      }> = [
-        { scope: 'species', mapping: manifest.mappings?.species },
-        { scope: 'marks', mapping: manifest.mappings?.marks },
-        { scope: 'skills', mapping: manifest.mappings?.skills },
-      ]
-      for (const source of mappingSources) {
-        if (!source.mapping) continue
-        const scoped = mappingByScope[source.scope]
-        for (const [key, next] of Object.entries(source.mapping)) {
-          const previous = scoped.get(key)
-          if (previous !== undefined && previous !== next) {
-            conflicts.push({
-              kind: 'mapping',
-              scope: source.scope,
-              key,
-              previous,
-              next,
-              manifestId: manifest.id,
-              manifestVersion: manifest.version,
-              manifestUrl: url,
-            })
-          }
-          scoped.set(key, next)
-        }
       }
     }
     return conflicts
@@ -578,6 +546,8 @@ export class PackTransport {
         try {
           const raw = await this.readNodeText(assetPath)
           const assetManifest = JSON.parse(raw) as AssetManifest
+          if ('mappings' in assetManifest)
+            throw new Error('Legacy asset mappings are unsupported; migrate to presentation v2')
           for (const dep of assetManifest.dependencies ?? []) {
             await walk(dep, assetPath)
           }

@@ -32,10 +32,3 @@ learnable_skills:
         id: rest
     level: 1
     hidden: false
-# Each display usage can have a different image, regardless of num.
-presentation:
-  icon: assets/pets/frostling-icon.png
-  portrait: assets/pets/frostling-portrait.png
-  battle:
-    renderer: image
-    source: assets/pets/frostling-battle.png

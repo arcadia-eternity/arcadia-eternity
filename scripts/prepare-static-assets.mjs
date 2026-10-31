@@ -1,3 +1,4 @@
+import { readContentSources } from '../packages/content-dev/src/lib/content.mjs'
 import { createHash } from 'node:crypto'
 import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -15,30 +16,13 @@ export function assetPath(url) {
 }
 
 export async function collectOfficialAssetUrls(repositoryRoot = root) {
-  const manifest = JSON.parse(await readFile(path.join(repositoryRoot, 'packs/base/assets/assets.json'), 'utf8'))
-  const urls = new Set(manifest.assets.map(asset => asset.uri))
-  for (const name of ['mark_image', 'skill_sound', 'music', 'background']) {
-    const text = await readFile(path.join(repositoryRoot, `resource/${name}.yaml`), 'utf8')
-    for (const match of text.matchAll(/https:\/\/[^'"\s]+/g)) urls.add(match[0])
-  }
-  for (const asset of manifest.assets) {
-    if (asset.type !== 'petSwf') continue
-    const num = /\/(\d+)\.swf$/.exec(asset.uri)?.[1]
-    if (!num) throw new Error(`Official pet animation has no numeric ID: ${asset.uri}`)
-    urls.add(`${resourceOrigin}/png/pet/${num}.png`)
-    urls.add(`${resourceOrigin}/png/petIcon/${num}.png`)
-  }
-  for (const file of [
-    'png/traitMark/inc.png',
-    'png/markImage/ability.png',
-    'png/markImage/emblem.png',
-    'sound/skill/01_1_003.mp3',
-    'sound/battle/ko.mp3',
-    ...['damage', 'damage_blue', 'damage_red', 'miss', 'absorb'].map(name => `png/damage/${name}.png`),
-    ...['minus', ...Array.from({ length: 10 }, (_, i) => i)].map(name => `png/damageNumber/${name}.png`),
-    ...Array.from({ length: 22 }, (_, i) => `png/petElementIcon/${i + 1}.png`),
-  ])
-    urls.add(`${resourceOrigin}/${file}`)
+  const sources = await readContentSources(path.join(repositoryRoot, 'packs/base'))
+  const urls = new Set(
+    sources
+      .filter(source => source.kind === 'resources')
+      .flatMap(source => source.records.map(row => row.source))
+      .filter(source => /^https?:/.test(source)),
+  )
   return [...urls].sort()
 }
 

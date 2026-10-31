@@ -1,3 +1,4 @@
+# Skill behavior; presentation lives in data/presentations.
 id: strike
 element: Normal
 category: Physical
@@ -11,6 +12,3 @@ behaviors:
         projectId: example-content-pack
         kind: behavior
         id: apply-slow
-# The server publishes this URL; build/setup do not fetch the sound.
-presentation:
-  sfx: https://seer2-resource.yuuinih.com/sound/skill/01_1_003.mp3

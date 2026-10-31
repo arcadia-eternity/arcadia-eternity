@@ -61,7 +61,7 @@ type WorkspacePackManifest = {
   paths?: Record<string, unknown>
   data?: Record<string, unknown>
   locales?: Record<string, unknown>
-  assetsRef?: unknown
+  presentation?: unknown
   [key: string]: unknown
 }
 
@@ -113,15 +113,8 @@ function collectManifestFilePaths(manifest: WorkspacePackManifest): string[] {
     }
   }
 
-  const assetRefs = Array.isArray(manifest.assetsRef)
-    ? toStringArray(manifest.assetsRef)
-    : typeof manifest.assetsRef === 'string'
-      ? [manifest.assetsRef]
-      : []
-  for (const sourceFile of assetRefs) {
-    if (isRemotePath(sourceFile)) continue
-    output.add(normalizeRelativePath(sourceFile))
-  }
+  if (typeof manifest.presentation === 'string' && !isRemotePath(manifest.presentation))
+    output.add(normalizeRelativePath(manifest.presentation))
 
   return [...output].filter(path => path.length > 0).sort((a, b) => a.localeCompare(b))
 }

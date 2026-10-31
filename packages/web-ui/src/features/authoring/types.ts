@@ -12,7 +12,7 @@ export interface SourceRecord {
   kind: string
   file: string
   index: number | null
-  version: string
+  version: string | null
   record: ContentRow
   sharedFields?: SharedField[]
   line?: number
@@ -25,6 +25,7 @@ export interface SourceFile {
   error?: string
 }
 export interface SourceAsset extends SourceFile {
+  id: string
   references: { file: string; kind: string; id: string }[]
 }
 export interface LocaleText {
@@ -33,7 +34,7 @@ export interface LocaleText {
 }
 export interface LocaleSource {
   file: string
-  version: string
+  version: string | null
   language: string
   namespace: string
   entries: Record<string, LocaleText>
@@ -50,7 +51,8 @@ export interface AuthorDiagnostic {
 export interface AuthorSnapshot {
   root: string
   name: string
-  project: { projectId: string; namespace: string; sdkApi: number }
+  project: { projectId: string; namespace: string; sdkApi?: number }
+  capabilities?: { sourceEditing: boolean; structuredSaving: boolean; localeEditing: boolean }
   records: SourceRecord[]
   files: SourceFile[]
   assets: SourceAsset[]

@@ -1,3 +1,5 @@
+import { readContentSources } from '../packages/content-dev/src/lib/content.mjs'
+import { buildPresentation } from '../packages/content-dev/src/lib/presentation.mjs'
 import { rolldown } from 'rolldown'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -23,6 +25,13 @@ export function identifyBaseEnvironmentArtifact(code, core) {
 export async function buildBaseEnvironmentArtifact() {
   const root = fileURLToPath(new URL('../', import.meta.url))
   const dir = resolve(root, 'packs/base/dist')
+  const presentation = await buildPresentation(
+    resolve(root, 'packs/base'),
+    await readContentSources(resolve(root, 'packs/base')),
+    { includeLocales: false },
+  )
+  await mkdir(dir, { recursive: true })
+  await writeFile(resolve(dir, 'presentation.json'), JSON.stringify(presentation, null, 2) + '\n')
   const core = JSON.parse(await readFile(resolve(root, 'packages/battle/dist/environment-build.json'), 'utf8'))
   const bundle = await rolldown({ cwd: root, input: resolve(root, 'packs/base/native.ts'), platform: 'browser' })
   try {

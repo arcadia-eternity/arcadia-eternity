@@ -56,10 +56,14 @@ test('the installed package includes local artwork, remote declarations and both
   assert.ok(remote.some(resource => resource.mime === 'application/x-shockwave-flash'))
   assert.ok(remote.some(resource => resource.mime === 'audio/mpeg'))
   for (const resource of remote) {
-    assert.equal(resource.id, resource.source)
+    assert.notEqual(resource.id, resource.source)
     assert.equal('sha256' in resource, false)
     assert.equal('bytes' in resource, false)
   }
+  assert.equal(presentation.manifest.version, 2)
+  assert.equal(presentation.manifest.bindings.length, 5)
+  for (const kind of ['species', 'skills', 'marks'])
+    assert.ok(example.environment.data[kind].every(row => !('presentation' in row)))
   assert.equal(presentation.manifest.defaultLocale, 'zh-CN')
   for (const [language, name] of [
     ['zh-CN', '霜击'],

@@ -27,15 +27,15 @@ it('uses bundled placeholders and silence for remote same-ID content with undecl
   expect(localLookup).not.toHaveBeenCalled()
 })
 
-it('keeps explicit server media references and local trusted/offline fallback behavior', () => {
+it('uses explicit presentation in every scope without filename or numeric-ID inference', () => {
   const species = parseWithErrors(SpeciesSchema, { id: 'pet_dilan', num: 1 })
   const skill = parseWithErrors(SkillSchema, { id: 'skill_qili' })
   const content = { species: [species], skills: [skill], marks: [] }
   setServerContentText(content)
-  expect(resolveSkillSfxUrl({ ...skill, sfxRef: 'https://server.test/declared.mp3' }, vi.fn())).toBe(
+  expect(resolveSkillSfxUrl({ ...skill, presentation: { sfx: 'https://server.test/declared.mp3' } }, vi.fn())).toBe(
     'https://server.test/declared.mp3',
   )
-  expect(resolveMarkIconUrl({ id: 'mark', iconRef: 'https://server.test/declared.png' }, vi.fn())).toBe(
+  expect(resolveMarkIconUrl({ id: 'mark', presentation: { icon: 'https://server.test/declared.png' } }, vi.fn())).toBe(
     'https://server.test/declared.png',
   )
   expect(
@@ -45,8 +45,8 @@ it('keeps explicit server media references and local trusted/offline fallback be
     }),
   ).toMatchObject({ customSwfUrl: 'https://server.test/declared.swf' })
   setServerContentText(content, false)
-  expect(resolveSkillSfxUrl(skill, () => '/trusted.mp3')).toBe('/trusted.mp3')
-  expect(resolveMarkIconUrl({ id: 'mark' }, () => '/trusted.png')).toBe('/trusted.png')
-  expect(resolveSpeciesSpriteAsset(species)).toEqual({ swfNum: 1 })
-  expect(resolveSpeciesPortraitUrl(species)).toContain('/png/pet/1.png')
+  expect(resolveSkillSfxUrl(skill, () => '/trusted.mp3')).toBe('')
+  expect(resolveMarkIconUrl({ id: 'mark' }, () => '/trusted.png')).toBe(unknownPet)
+  expect(resolveSpeciesSpriteAsset(species)).toEqual({ swfNum: 0, customImageUrl: unknownPet })
+  expect(resolveSpeciesPortraitUrl(species)).toBe(unknownPet)
 })

@@ -156,12 +156,8 @@ export default defineConfig(({ mode }) => {
             dest: '.',
           },
           {
-            src: '../../packs/base/assets/**/*',
-            dest: 'assets',
-            rename: (fileName: string, fileExtension: string, fullPath: string) => {
-              const relativePath = path.relative(path.resolve(__dirname, '../../packs/base/assets'), fullPath)
-              return relativePath.replace(/\\/g, '/')
-            },
+            src: '../../packs/base/dist/presentation.json',
+            dest: 'dist',
           },
           // 复制脚本文件（优先复制JavaScript文件）
           {

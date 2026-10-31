@@ -6,12 +6,14 @@
 <pack-root>/
   pack.json
   assets/
-    assets.json
     *.png|*.jpg|*.webp|*.mp3|...
   data/
     mark*.yaml
     skill*.yaml
     groups/<group>/species.*.yaml
+    presentations/*.yaml
+    resources/*.yaml
+  dist/presentation.json  # generated display manifest v2
   src/effects/
     *.ts
   locales/
@@ -30,7 +32,7 @@ For this repository's built-in pack package:
 - `version`: pack version
 - `engine`: must be `"seer2-v2"`
 - `layoutVersion`: currently `1`
-- `assetsRef`: optional asset reference (`assets` directory, `assets.json`, or URL)
+- `presentation`: generated display manifest path (`dist/presentation.json`)
 - `paths.dataDir`: base dir for `data.*` file lists
 - `paths.localesDir`: base dir for locale files
 - `dependencies`: dependent pack list, loaded before current pack
@@ -38,22 +40,13 @@ For this repository's built-in pack package:
 - `data.effects`: empty in the native base pack; retained for legacy manifest compatibility
 - `locales`: locale -> namespace list (namespace maps to `<localesDir>/<locale>/<namespace>.yaml`)
 
-## Assets Manifests (optional but recommended)
+## Presentation and resources
 
-Used for resource distribution (sprite/sfx/ui/bgm), and can be consumed directly by Web/Tauri runtime.
+Source definitions live in `data/presentations/` and `data/resources/`. Presentation records target content by kind and ID; slots reference stable resource IDs. Resource definitions own locations and media kinds. Gameplay records contain no paths or presentation fields.
 
-When `assetsRef` points to a directory (for example `assets`), loader will:
+The base build emits `dist/presentation.json` version 2. HTTP resources remain declarations. `loadMetadata` returns this separately from rules and locales; display consumers join it by content ID. Source movement does not change IDs. Changing a media location only updates its resource definition.
 
-- prefer `assets/assets.json` as the default manifest
-- also load additional `*.json` manifests in that directory (sorted, default first)
-- keep non-manifest static files (images/audio) available for direct `iconRef/sfxRef/assetRef` usage
-
-Recommended fields:
-
-- `id`, `version`, `engine`
-- `dependencies`: optional asset-manifest refs (loader resolves deps first)
-- `assets`: resource entries
-- `mappings`: species/marks/skills mapping table
+The previous `assets.json` mappings and duplicated resource YAML maps have been migrated. See [the presentation contract](../../docs/v4/content-presentation.md).
 
 Dependency item format:
 
@@ -69,7 +62,7 @@ Hosts construct `NativePackLoader` with the selected content package's build ide
 - `loadMetadata(packRef)`: read editable species, skill, and mark data for layer composition or resource inspection
 - `fromMetadata(data)`: validate and assemble composed or unsaved metadata
 
-File loading also returns locale bundles, asset manifests, and lockfile diagnostics. Native effects are maintained in TypeScript; legacy effect YAML is kept only in regression fixtures.
+File loading also returns locale bundles, presentation manifests, and lockfile diagnostics. Native effects are maintained in TypeScript; legacy effect YAML is kept only in regression fixtures.
 
 ## npm Pack Resolution
 
@@ -95,6 +88,6 @@ pnpm --filter @arcadia-eternity/data-pack-base run generate:lockfile
 Current generator behavior:
 
 - emits pnpm-like `importers` and `packages`
-- records both `pack.json` and `assets.json` as separate package nodes
+- records the `pack.json` package node; presentation metadata is generated separately
 - uses `workspace:` source refs when package metadata is available
 - computes `sha512-*` integrity from local manifest content

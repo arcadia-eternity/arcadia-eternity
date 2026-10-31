@@ -32,7 +32,7 @@ export function resourcePaths(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(resourcePaths)
   if (!object(value) || Object.hasOwn(value, 'namespace')) return []
   return Object.entries(value)
-    .filter(([key]) => !['renderer', 'mime', 'kind'].includes(key))
+    .filter(([key]) => !['renderer', 'mime', 'kind', 'id', 'target'].includes(key))
     .flatMap(([, child]) => resourcePaths(child))
 }
 export function referenceTarget(
@@ -59,6 +59,12 @@ export function referenceValue(entry: Json, key: string): Json | undefined {
 }
 export function references(row: SourceRecord, projectId: string) {
   const found: { kind: string; id: string }[] = []
+  if (row.kind === 'presentations') {
+    const target = row.record.target
+    if (object(target) && typeof target.kind === 'string' && typeof target.id === 'string')
+      found.push({ kind: target.kind, id: target.id })
+    found.push(...resourcePaths(row.record).map(id => ({ kind: 'resources', id })))
+  }
   for (const [key, kind] of [
     ['learnable_skills', 'skills'],
     ['ability', 'marks'],
@@ -73,7 +79,21 @@ export function references(row: SourceRecord, projectId: string) {
       if (target) found.push(target)
     }
   }
-  return found
+  // Effects can carry mark/skill references in parameters. Only explicit local references
+  // are interpreted; ordinary strings inside arbitrary parameters are not guessed as IDs.
+  function visit(value: Json) {
+    if (Array.isArray(value)) value.forEach(visit)
+    else if (object(value)) {
+      if (object(value.$ref)) {
+        const target = referenceTarget(value, '', projectId)
+        if (target?.kind) found.push(target)
+      } else Object.values(value).forEach(visit)
+    }
+  }
+  visit(row.record)
+  return found.filter(
+    (target, index) => found.findIndex(other => other.kind === target.kind && other.id === target.id) === index,
+  )
 }
 export function consumers(rows: SourceRecord[], target: { kind: string; id: string }, projectId: string) {
   return rows.filter(row =>

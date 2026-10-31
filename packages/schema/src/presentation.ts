@@ -3,7 +3,7 @@ import { Type, type Static } from '@sinclair/typebox'
 export const ResourceReferenceSchema = Type.Union([
   Type.String({ minLength: 1 }),
   Type.Object(
-    { namespace: Type.String({ minLength: 1 }), path: Type.String({ minLength: 1 }) },
+    { namespace: Type.String({ minLength: 1 }), id: Type.String({ minLength: 1 }) },
     { additionalProperties: false },
   ),
 ])
@@ -39,6 +39,7 @@ export const PresentationResourceSchema = Type.Union([
   Type.Object(
     {
       kind: Type.Literal('file'),
+      tags: Type.Optional(Type.Array(Type.String())),
       id: Type.String({ minLength: 1 }),
       source: Type.String({ minLength: 1 }),
       sha256: Type.String({ pattern: '^[a-f0-9]{64}$' }),
@@ -50,6 +51,7 @@ export const PresentationResourceSchema = Type.Union([
   Type.Object(
     {
       kind: Type.Literal('http'),
+      tags: Type.Optional(Type.Array(Type.String())),
       id: Type.String({ minLength: 1 }),
       source: Type.String({ pattern: '^https?://' }),
       mime: Type.Optional(ResourceMimeSchema),
@@ -58,9 +60,36 @@ export const PresentationResourceSchema = Type.Union([
   ),
 ])
 
+export const ResourceDefinitionSchema = Type.Object(
+  {
+    id: Type.String({ pattern: '^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$' }),
+    kind: Type.Union([Type.Literal('image'), Type.Literal('audio'), Type.Literal('swf')]),
+    source: Type.String({ minLength: 1 }),
+    name: Type.Optional(Type.String()),
+    tags: Type.Optional(Type.Array(Type.String())),
+  },
+  { additionalProperties: false },
+)
+export const PresentationBindingSchema = Type.Object(
+  {
+    id: Type.String({ minLength: 1 }),
+    target: Type.Object(
+      {
+        kind: Type.Union([Type.Literal('species'), Type.Literal('skills'), Type.Literal('marks')]),
+        id: Type.String({ minLength: 1 }),
+      },
+      { additionalProperties: false },
+    ),
+    ...ContentPresentationSchema.properties,
+  },
+  { additionalProperties: false },
+)
+export const ResourceDataSetSchema = Type.Array(ResourceDefinitionSchema)
+export const PresentationDataSetSchema = Type.Array(PresentationBindingSchema)
 export const PresentationManifestSchema = Type.Object(
   {
-    version: Type.Literal(1),
+    version: Type.Literal(2),
+    bindings: PresentationDataSetSchema,
     defaultLocale: Type.String({ minLength: 1 }),
     resources: Type.Array(PresentationResourceSchema, { maxItems: 4096 }),
     locales: Type.Record(Type.String(), Type.Record(Type.String(), Type.Record(Type.String(), Type.Unknown()))),

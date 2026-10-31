@@ -1082,7 +1082,7 @@ function starterTemplateFiles(packId, version) {
       version,
       engine: 'seer2-v2',
       layoutVersion: 1,
-      assetsRef: 'assets',
+      presentation: 'presentation.json',
       paths: {
         dataDir: 'data',
         localesDir: 'locales',
@@ -1101,25 +1101,15 @@ function starterTemplateFiles(packId, version) {
     2,
   )
 
-  const assetsJson = JSON.stringify(
-    {
-      id: `${packId}.assets`,
-      version,
-      engine: 'seer2-v2',
-      assets: [],
-      mappings: {
-        species: {},
-        marks: {},
-        skills: {},
-      },
-    },
+  const presentationJson = JSON.stringify(
+    { version: 2, defaultLocale: 'zh-CN', bindings: [], resources: [], locales: {} },
     null,
     2,
   )
 
   return [
     ['pack.json', packJson],
-    ['assets/assets.json', assetsJson],
+    ['presentation.json', presentationJson],
     [
       'data/effect.yaml',
       '- id: effect_template_power_up\n  trigger: OnDamage\n  priority: 0\n  apply:\n    type: addPower\n    target: useSkillContext\n    value: 10\n',
@@ -1729,6 +1719,19 @@ function setupIpcHandlers() {
         } else {
           const session = await manager.session(input.id)
           switch (input.action) {
+            case 'import-asset': {
+              await session.workspace.assertWritable()
+              const choice = await dialog.showOpenDialog(mainWindow, {
+                title: '导入素材到当前内容包',
+                properties: ['openFile'],
+                filters: [
+                  { name: '图片、音频与动画', extensions: ['png', 'jpg', 'jpeg', 'webp', 'mp3', 'ogg', 'swf'] },
+                ],
+              })
+              requireLocalBattleCaller(event)
+              result = choice.canceled ? null : await manager.importAsset(input.id, choice.filePaths[0])
+              break
+            }
             case 'snapshot':
               result = await session.workspace.snapshot()
               break
@@ -1767,6 +1770,7 @@ function setupIpcHandlers() {
               )
               break
             case 'sdk':
+              await session.workspace.assertWritable()
               result = await (await manager.api()).connectDevelopmentSdk(session.workspace.root)
               break
             case 'connection':
@@ -1774,6 +1778,7 @@ function setupIpcHandlers() {
                 session.workspace.root,
                 input.execute === true,
                 manager.env,
+                session.workspace.readOnly,
               )
               break
             default:

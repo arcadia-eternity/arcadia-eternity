@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
+import { constants } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { cp, lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { copyFile, cp, lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, basename, relative, isAbsolute, resolve, sep } from 'node:path'
 
 /** Local source projects are separate from installed packages and multiplayer server projects. */
@@ -132,6 +133,7 @@ export class AuthorWorkspaces {
   }
   async openExternal(id, file, editor, line = 1, column = 1) {
     const session = await this.session(id)
+    await session.workspace.assertWritable()
     const target = file ? await session.workspace.path(file) : session.workspace.root
     if (!['code', 'codium', 'cursor', 'zed'].includes(editor)) throw new Error('请选择受支持的外部编辑器')
     if (![line, column].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error('行列位置无效')
@@ -144,6 +146,24 @@ export class AuthorWorkspaces {
       child.once('error', () => reject(new Error('无法打开编辑器，请检查命令是否可用，或选择显示文件夹')))
       child.once('exit', code => (code === 0 ? resolve() : reject(new Error('编辑器未能打开文件，请使用显示文件夹'))))
     })
+  }
+  async importAsset(id, source) {
+    const session = await this.session(id)
+    await session.workspace.assertWritable()
+    const info = await lstat(source)
+    if (
+      !info.isFile() ||
+      info.isSymbolicLink() ||
+      info.size > 64 * 1024 * 1024 ||
+      !/\.(png|jpe?g|webp|mp3|ogg|swf)$/i.test(source)
+    )
+      throw new Error('请选择不超过 64 MiB 的图片、音频或 SWF 文件')
+    const file = `assets/imports/${randomUUID().slice(0, 8)}-${basename(source)}`
+    const target = await session.workspace.path(file, { create: true })
+    await mkdir(dirname(target), { recursive: true })
+    await session.workspace.path(file, { create: true })
+    await copyFile(source, target, constants.COPYFILE_EXCL)
+    return { file, name: basename(source) }
   }
   async close() {
     await Promise.allSettled([...this.#sessions.keys()].map(id => this.release(id)))

@@ -47,6 +47,32 @@ test('MCP connection includes the desktop supplied npm runtime', () => {
   const config = authorConnection('/project', true, { ARCADIA_NPM_CLI: '/bundled/npm-cli.js' })
   assert.equal(config.mcpServers.arcadia.env.ARCADIA_NPM_CLI, '/bundled/npm-cli.js')
   assert.ok(config.mcpServers.arcadia.args.includes('--execute'))
+  const readOnly = authorConnection('/base', true, {}, true)
+  assert.ok(readOnly.mcpServers.arcadia.args.includes('--read-only'))
+  assert.ok(!readOnly.mcpServers.arcadia.args.includes('--execute'))
+})
+
+test('base projects reject desktop asset imports, editor launches and source-writing jobs', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'author-readonly-'))
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({
+      name: '@arcadia-eternity/data-pack-base',
+      arcadia: { projectId: 'arcadia-eternity.base', namespace: 'base' },
+    }),
+  )
+  const manager = new AuthorWorkspaces({ root: join(root, '.arcadia'), api: async () => api })
+  t.after(async () => {
+    await manager.close()
+    await rm(root, { recursive: true, force: true })
+  })
+  const entry = await manager.add(root)
+  await assert.rejects(manager.importAsset(entry.id, '/does-not-exist.png'), { code: 'WRITE_DISABLED' })
+  await assert.rejects(manager.openExternal(entry.id, 'package.json', 'code'), { code: 'WRITE_DISABLED' })
+  const session = await manager.session(entry.id)
+  for (const kind of ['check', 'test', 'demo', 'pack'])
+    await assert.rejects(session.jobs.start({ kind }), { code: 'WRITE_DISABLED' })
+  assert.equal((await session.describe()).capabilities.codeExecution, false)
 })
 test('source export preserves dotfile configuration and its revision without dependencies', async t => {
   const temporary = await mkdtemp(join(tmpdir(), 'author-export-'))

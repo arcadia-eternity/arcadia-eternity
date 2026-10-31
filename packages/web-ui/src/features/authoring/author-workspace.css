@@ -13,15 +13,94 @@
   border: 1px solid var(--author-border);
   border-radius: 14px;
   max-width: 1440px;
-  margin: 24px auto;
+  margin: 8px auto;
   overflow: hidden;
   font-size: 14px;
 }
+.recent-objects,
+.selection-bar .tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.recent-objects {
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.recent-objects button {
+  padding: 4px 8px;
+}
+.selection-bar {
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--author-soft);
+  border-radius: 10px;
+}
+.selection-bar p {
+  margin: 8px 0;
+}
+.object-library.catalog {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.library-entry {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(100px, 0.4fr);
+  align-items: center;
+  gap: 12px;
+  background: var(--author-panel);
+  border: 1px solid var(--author-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.library-entry .content-card {
+  border: 0;
+  background: transparent;
+}
+.library-entry small {
+  overflow-wrap: anywhere;
+}
+.create-object {
+  display: grid;
+  gap: 18px;
+  max-width: 640px;
+}
+.create-object label {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.create-object input,
+.create-object select {
+  width: 100%;
+}
+.create-object button {
+  justify-self: start;
+}
+.locale-object {
+  padding: 20px;
+  margin-top: 20px;
+  border: 1px solid var(--author-border);
+  border-radius: 12px;
+  background: var(--author-panel);
+}
+@media (max-width: 600px) {
+  .library-entry {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+  .library-entry > small {
+    grid-column: 2;
+  }
+  .locale-object {
+    padding: 12px;
+  }
+}
 .app-header {
-  padding: 20px 24px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   flex-wrap: wrap;
   background: var(--author-panel);
   border-bottom: 1px solid var(--author-border);
@@ -33,11 +112,15 @@
   flex: 1;
   flex-wrap: wrap;
 }
-.brand > a {
-  letter-spacing: 0.1em;
+.app-header button,
+.app-header select {
+  padding: 6px 10px;
 }
-.brand .project-name {
-  font-size: 13px;
+.brand .project-switch {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .app-header a {
   color: inherit;
@@ -65,6 +148,17 @@ summary {
   flex-wrap: wrap;
   gap: 8px;
 }
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.notice button {
+  padding: 0 6px;
+  background: transparent;
+  border: 0;
+}
 .project-settings .tools {
   margin-top: 14px;
 }
@@ -76,30 +170,13 @@ summary {
 .tools small {
   overflow-wrap: anywhere;
 }
-.savebar {
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--author-border);
-  background: var(--author-panel);
-}
-.savebar strong {
-  font-weight: 500;
-}
-.savebar small {
-  display: block;
-  margin-top: 4px;
-}
 .workspace {
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
   min-height: 620px;
 }
 .sidebar {
-  padding: 24px 12px;
+  padding: 16px 12px;
   border-right: 1px solid var(--author-border);
 }
 .sidebar > small {
@@ -143,7 +220,7 @@ summary {
   display: block;
 }
 .workspace-content {
-  padding: 28px;
+  padding: 16px 24px;
   min-width: 0;
 }
 .page-heading {
@@ -152,7 +229,7 @@ summary {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 .page-heading p {
   margin: 6px 0 0;
@@ -262,7 +339,8 @@ small,
   display: block;
   margin-top: 6px;
 }
-.content-card p {
+.content-card p,
+.content-card .author-description {
   font-size: 13px;
   color: var(--author-muted);
   display: -webkit-box;
@@ -452,10 +530,11 @@ input[type='checkbox'] {
   .workspace-content {
     padding: 18px;
   }
-  .app-header,
-  .project-settings,
-  .savebar {
-    padding: 14px 18px;
+  .app-header {
+    padding: 8px 12px;
+  }
+  .project-settings {
+    padding: 12px 18px;
   }
   .asset-layout {
     grid-template-columns: 1fr;
@@ -466,7 +545,7 @@ input[type='checkbox'] {
   .form-panel {
     padding: 16px;
   }
-  .savebar .tools {
+  .save-actions {
     width: 100%;
   }
   .page-heading input {
@@ -476,4 +555,20 @@ input[type='checkbox'] {
   h1 {
     font-size: 22px;
   }
+}
+
+.author-page button:not(:disabled),
+.author-page summary {
+  cursor: pointer;
+}
+.author-page button:not(:disabled):hover {
+  background: var(--author-soft);
+}
+.author-page button:disabled {
+  cursor: not-allowed;
+}
+
+.object-title {
+  display: flex;
+  align-items: center;
 }

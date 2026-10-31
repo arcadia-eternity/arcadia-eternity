@@ -12,7 +12,6 @@ export const ignoreStageStrategySchema = StringEnum(Object.values(IgnoreStageStr
 export const SkillSchema = Type.Object({
   presentation: Type.Optional(ContentPresentationSchema),
   id: Type.String({ minLength: 1 }),
-  sfxRef: Type.Optional(Type.String()),
   element: Type.Union(
     Object.values(Element).map(v => Type.Literal(v)),
     {
@@ -51,6 +50,8 @@ export const SkillSchema = Type.Object({
 
 export type SkillSchemaType = Static<typeof SkillSchema>
 
-export const SkillDataSetSchema = Type.Array(SkillSchema)
+/** Editable rules exclude display metadata; runtime UI schemas above accept the resolved view. */
+export const SkillDefinitionSchema = Type.Omit(SkillSchema, ['presentation'])
+export const SkillDataSetSchema = Type.Array(SkillDefinitionSchema)
 
 export type SkillDataSet = Static<typeof SkillDataSetSchema>

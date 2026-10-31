@@ -89,7 +89,7 @@ export async function prepareServerEnvironment(
         : owner.includes(':')
           ? owner.slice(0, owner.indexOf(':'))
           : ''
-    const resourceId = typeof reference === 'object' ? reference.path : reference
+    const resourceId = typeof reference === 'object' ? reference.id : reference
     const projectId = descriptor.packages.find(pkg => pkg.namespace === namespace)?.projectId
     if (!projectId) {
       if (typeof reference !== 'string') throw new Error('内容资源命名空间无效')
@@ -124,17 +124,14 @@ export async function prepareServerEnvironment(
     ...(content.locales ? { locales: content.locales } : {}),
     species: content.species.map(item => ({
       ...item,
-      assetRef: resourceUrl(item.id, item.assetRef),
       presentation: presentation(item.id, item.presentation),
     })),
     skills: content.skills.map(item => ({
       ...item,
-      sfxRef: resourceUrl(item.id, item.sfxRef),
       presentation: presentation(item.id, item.presentation),
     })),
     marks: content.marks.map(item => ({
       ...item,
-      iconRef: resourceUrl(item.id, item.iconRef),
       presentation: presentation(item.id, item.presentation),
     })),
   }

@@ -4,6 +4,7 @@ import YAML from 'yaml'
 import { isDeepStrictEqual } from 'node:util'
 
 export const contentKinds = ['species', 'skills', 'marks', 'behaviors']
+export const sourceKinds = [...contentKinds, 'presentations', 'resources']
 
 async function filesIn(directory) {
   let entries
@@ -27,15 +28,23 @@ async function filesIn(directory) {
 /** Editable source files; each file may hold one record or an array of records. */
 export async function readContentSources(root) {
   const directory = join(root, 'data')
+  const base = await readFile(join(root, 'pack.json'), 'utf8')
+    .then(JSON.parse)
+    .catch(error => {
+      if (error.code === 'ENOENT') return undefined
+      throw error
+    })
   const entries = await readdir(directory, { withFileTypes: true })
   for (const entry of entries) {
-    if (entry.isDirectory() && !entry.name.startsWith('.') && !contentKinds.includes(entry.name))
+    if (!base && entry.isDirectory() && !entry.name.startsWith('.') && !sourceKinds.includes(entry.name))
       throw new Error(`Unknown content directory: data/${entry.name}`)
   }
   const sources = []
-  for (const kind of contentKinds) {
+  for (const kind of sourceKinds) {
     const ids = new Map()
-    for (const file of await filesIn(join(directory, kind))) {
+    for (const file of base && contentKinds.includes(kind)
+      ? (base.data[kind] ?? []).map(file => join(directory, file))
+      : await filesIn(join(directory, kind))) {
       const name = relative(root, file)
       const text = await readFile(file, 'utf8')
       let document, value

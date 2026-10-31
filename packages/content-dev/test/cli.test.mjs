@@ -74,7 +74,14 @@ test('pack checks the generated presentation entry and refuses missing npm media
       }),
     )
     await writeFile(join(root, 'assets/icon.png'), Buffer.from('image'))
-    await writeFile(join(root, 'data/species/pet.yaml'), 'id: pet\npresentation:\n  icon: assets/icon.png\n')
+    await writeFile(join(root, 'data/species/pet.yaml'), 'id: pet\n')
+    await mkdir(join(root, 'data/presentations'))
+    await mkdir(join(root, 'data/resources'))
+    await writeFile(
+      join(root, 'data/presentations/pet.yaml'),
+      'id: pet-display\ntarget: {kind: species, id: pet}\nicon: icon\n',
+    )
+    await writeFile(join(root, 'data/resources/icon.yaml'), 'id: icon\nkind: image\nsource: assets/icon.png\n')
     await writeFile(join(root, 'locales/zh-CN/species.yaml'), 'pet:\n  name: 精灵\n')
     const manifest = {
       name: '@test/media-pack',

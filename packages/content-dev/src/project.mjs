@@ -5,12 +5,16 @@ import { createRequire } from 'node:module'
 import { WorkspaceError } from './workspace.mjs'
 const require = createRequire(import.meta.url)
 const moduleRoot = fileURLToPath(new URL('../', import.meta.url))
-export function authorConnection(root, execute = false, env = process.env) {
+export function authorConnection(root, execute = false, env = process.env, readOnly = false) {
   return {
     mcpServers: {
       arcadia: {
         command: process.execPath,
-        args: [fileURLToPath(new URL('./mcp.mjs', import.meta.url)), root, ...(execute ? ['--execute'] : [])],
+        args: [
+          fileURLToPath(new URL('./mcp.mjs', import.meta.url)),
+          root,
+          ...(readOnly ? ['--read-only'] : execute ? ['--execute'] : []),
+        ],
         env: {
           ELECTRON_RUN_AS_NODE: '1',
           ...(env.ARCADIA_NPM_CLI ? { ARCADIA_NPM_CLI: env.ARCADIA_NPM_CLI } : {}),

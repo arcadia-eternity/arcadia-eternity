@@ -35,7 +35,7 @@ test(
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
       await page.getByLabel('新项目名称').fill('寒霜工作区验收')
       await page.getByRole('button', { name: '从模板创建项目', exact: true }).click()
-      await page.getByLabel('显示名称', { exact: true }).waitFor()
+      await page.getByRole('heading', { name: '内容库', exact: true }).waitFor()
       const projects = await page.evaluate(async () => (await window.arcadiaDesktop.author({ action: 'list' })).result)
       assert.equal(projects.length, 1)
       const project = projects[0]
@@ -59,7 +59,7 @@ test(
       await save(2)
       const file = join(project.directory, 'data/skills/strike.yaml')
       assert.match(await readFile(file, 'utf8'), /power: 63/)
-      assert.match(await readFile(file, 'utf8'), /# The server publishes/)
+      assert.match(await readFile(file, 'utf8'), /# Skill behavior/)
       assert.match(await readFile(join(project.directory, 'locales/zh-CN/skill.yaml'), 'utf8'), /name: 霜击改/)
       await page.getByLabel('威力', { exact: true }).fill('70')
       await writeFile(file, (await readFile(file, 'utf8')).replace('power: 63', 'power: 80'))
@@ -95,10 +95,7 @@ test(
       await page.getByLabel('显示名称', { exact: true }).fill('霜冻减速')
       await save(1)
       await category('资源').click()
-      await page
-        .locator('.resource-list')
-        .getByRole('button', { name: /^slow.png/ })
-        .click()
+      await page.locator('.resource-list').getByRole('button', { name: /^slow/ }).click()
       await page.locator('.media-preview img').waitFor()
       assert.equal(
         await page.locator('.media-preview img').evaluate(image => image.complete && image.naturalWidth > 0),

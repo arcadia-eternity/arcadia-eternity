@@ -29,6 +29,7 @@ export class AuthorJobs {
     workspace.on('change', this.#changed)
   }
   async start({ kind, sourceRevision }) {
+    if (this.workspace.assertWritable) await this.workspace.assertWritable()
     if (this.#closed) throw new WorkspaceError('WORKSPACE_CLOSED', '任务宿主已关闭')
     if (!['check', 'test', 'demo', 'pack'].includes(kind)) throw new WorkspaceError('TASK_INVALID', '不支持的作者任务')
     if (kind !== 'check' && !this.execute) throw new WorkspaceError('EXECUTION_DISABLED', '此会话未启用项目代码执行')

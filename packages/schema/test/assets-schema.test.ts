@@ -31,17 +31,10 @@ describe('asset schemas', () => {
           uri: 'https://example.com/sfx/001.mp3',
         },
       ],
-      mappings: {
-        species: {
-          species_demo: 'pet.custom.001',
-        },
-        skills: {
-          skill_demo: 'skill.sfx.001',
-        },
-      },
     }
 
     expect(Value.Check(AssetManifestSchema, manifest)).toBe(true)
+    expect(Value.Check(AssetManifestSchema, { ...manifest, mappings: { species: { pet: 'image' } } })).toBe(false)
   })
 
   test('validates asset lock', () => {

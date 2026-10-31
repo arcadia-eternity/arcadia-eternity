@@ -12,6 +12,7 @@ const props = defineProps<{
   language: string
   sharedFields: SharedField[]
   available: boolean
+  readOnly?: boolean
   marks: DescriptionMark[]
 }>()
 const emit = defineEmits<{
@@ -21,7 +22,7 @@ const emit = defineEmits<{
 }>()
 const textarea = ref<HTMLTextAreaElement>(),
   pickingMark = ref(false)
-const locked = (field: string) => !props.available || sharedAt(props.sharedFields, [field])
+const locked = (field: string) => props.readOnly || !props.available || sharedAt(props.sharedFields, [field])
 const variables = computed(() =>
   Object.keys(descriptionValues(props.record)).filter(
     key => !key.includes('.') && !['id', 'name', 'description'].includes(key),

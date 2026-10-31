@@ -30,8 +30,9 @@ packs/<folder>/
       species.yaml
       webui.yaml
       battle.yaml
-  assets/
-    assets.json
+  data/presentations/
+  data/resources/
+  dist/presentation.json
 ```
 
 ## 4. 加载策略
@@ -51,13 +52,9 @@ packs/<folder>/
 - 其余包按 `id` 排序加载。
 - 后加载对象覆盖先加载对象（同 `id` 的 effect/mark/skill/species 采用后者）。
 
-## 6. assetsRef 规则
+## 6. 资源与表现
 
-- `assetsRef` 支持：
-  - 单文件 JSON
-  - 目录（读取目录下所有 `*.json`，`assets.json` 优先）
-  - 数组（顺序加载）
-- 目录中允许包含图片、音频等资源文件，URL 相对 `assets.json` 或包根解析。
+`pack.json.presentation` 指向生成的表现清单 v2。规则、表现关联与资源定义分别维护；用途字段使用稳定资源 ID，素材路径只在资源定义中填写。基础包与 UGC 可将规则和素材放在同一个包中。详见 [表现格式](v4/content-presentation.md)。
 
 ## 7. 内置模板
 
@@ -66,7 +63,7 @@ packs/<folder>/
   - `pack.json`
   - `data/*.yaml`（effect/mark/skill/species）
   - `locales/zh-CN/*.yaml`
-  - `assets/assets.json`
+  - `presentation.json`（空的 v2 表现清单）
 - 通过 Tauri 命令创建：
   - `list_pack_templates`
   - `list_workspace_packs`

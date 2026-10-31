@@ -40,9 +40,9 @@ tool(
 )
 tool(
   'content_query',
-  'Search content, source files, asset usages or diagnostics. Results are paginated.',
+  'Search rules, separate presentations/resources, source files, asset usages or diagnostics. Presentation targets use content IDs; media slots use stable resource IDs. Results are paginated.',
   {
-    kind: z.enum(['content', 'assets', 'files', 'locales', 'diagnostics']).optional(),
+    kind: z.enum(['content', 'presentations', 'resources', 'assets', 'files', 'locales', 'diagnostics']).optional(),
     search: z.string().max(200).optional(),
     offset: z.number().int().min(0).optional(),
     limit: z.number().int().min(1).max(100).optional(),
@@ -59,7 +59,7 @@ tool(
   undefined,
   true,
 )
-if (!flags.includes('--read-only'))
+if (!session.workspace.readOnly)
   tool(
     'source_apply',
     'Save one source file only if its version still matches. Null expects a new file. Re-read on conflict; no automatic merge.',
@@ -73,17 +73,20 @@ if (!flags.includes('--read-only'))
     },
     'write',
   )
-if (!flags.includes('--read-only'))
+if (!session.workspace.readOnly)
   tool(
     'content_apply',
-    'Save reviewed existing content records or name/description entries. Query sources first. Keeps YAML sharing read-only, checks source versions and groups edits per file. Inspect complete and every result; partial writes are not rolled back.',
+    'Save reviewed records or name/description entries. create-record uses a new data file and expectedVersion:null; new locale files also use null. Query sources first. Keeps YAML sharing read-only, checks versions and groups edits per file. Inspect complete and every result; partial writes are not rolled back.',
     {
       changes: z
         .array(
           z.object({
-            kind: z.enum(['record', 'locale']),
+            kind: z.enum(['record', 'locale', 'create-record']),
             file: z.string().max(1000),
-            expectedVersion: z.string().regex(/^[a-f0-9]{64}$/),
+            expectedVersion: z
+              .string()
+              .regex(/^[a-f0-9]{64}$/)
+              .nullable(),
             index: z.number().int().min(0).nullable().optional(),
             id: z.string().optional(),
             record: z.record(z.unknown()),
@@ -100,6 +103,7 @@ for (const [name, kind] of [
   ['preview_start', 'demo'],
   ['package_build', 'pack'],
 ]) {
+  if (session.workspace.readOnly) continue
   if (kind !== 'check' && !flags.includes('--execute')) continue
   tool(
     name,

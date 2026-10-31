@@ -7,7 +7,8 @@ const { loadMetadata, load, packRef, workspace } = vi.hoisted(() => ({
   packRef: vi.fn(),
   workspace: vi.fn(),
 }))
-vi.mock('@arcadia-eternity/pack-loader/native', () => ({
+vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
+  ...(await importOriginal<typeof import('@arcadia-eternity/pack-loader/native')>()),
   NativePackLoader: class {
     loadMetadata = loadMetadata
   },
@@ -34,7 +35,15 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 const result = (name: string) => ({
-  assets: [{ assets: [{ id: 'arena', type: 'uiImage', uri: `http://localhost/${name}.png` }] }],
+  presentation: [
+    {
+      version: 2,
+      bindings: [],
+      defaultLocale: 'zh-CN',
+      locales: {},
+      resources: [{ id: 'arena', kind: 'http', source: `http://localhost/${name}.png`, tags: ['background'] }],
+    },
+  ],
 })
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -43,7 +52,7 @@ beforeEach(() => {
   packRef.mockReset().mockResolvedValue('http://localhost/packs/base/pack.json')
   workspace.mockReset().mockResolvedValue([])
 })
-it('shares pending metadata and all five base-resource reads between simultaneous consumers', async () => {
+it('shares pending metadata without requesting retired resource mapping files', async () => {
   const pending = deferred<ReturnType<typeof result>>()
   loadMetadata.mockReturnValue(pending.promise)
   const store = useResourceStore(),
@@ -53,7 +62,7 @@ it('shares pending metadata and all five base-resource reads between simultaneou
   pending.resolve(result('shared'))
   await Promise.all([first, second])
   expect(loadMetadata).toHaveBeenCalledTimes(1)
-  expect(load).toHaveBeenCalledTimes(5)
+  expect(load).not.toHaveBeenCalled()
 })
 it('late metadata success cannot replace resources loaded after reset', async () => {
   const pending = deferred<ReturnType<typeof result>>()
@@ -96,16 +105,16 @@ it('whenReady consumers follow forceReload without waiting for the cancelled loa
   await Promise.resolve()
   expect(store.background.byId.arena).toBe('http://localhost/fresh.png')
 })
-it('reset promptly rejects old owners and late base reads cannot start stale metadata loads', async () => {
-  const pending = deferred<Record<string, string>>()
-  load.mockImplementationOnce(() => pending.promise)
+it('reset promptly rejects old owners and late pack resolution cannot start stale metadata loads', async () => {
+  const pending = deferred<string>()
+  packRef.mockReturnValueOnce(pending.promise)
   const store = useResourceStore(),
     owner = store.initialize().catch(error => error)
-  await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(5))
+  await vi.waitFor(() => expect(packRef).toHaveBeenCalledTimes(1))
   store.reset()
   expect((await owner).name).toBe('AbortError')
   await store.whenReady()
-  pending.resolve({ stale: 'http://localhost/stale.png' })
+  pending.resolve('http://localhost/stale/pack.json')
   await Promise.resolve()
   await Promise.resolve()
   expect(loadMetadata).toHaveBeenCalledTimes(1)
@@ -160,7 +169,7 @@ it('workspace toggles preserve base resources and reuse unchanged layers', async
   await store.applyWorkspacePackToggle({ folderName: 'addon', enabled: true })
   expect(store.background.byId.arena).toBe('http://localhost/addon.png')
   expect(loadMetadata).toHaveBeenCalledTimes(3)
-  expect(load).toHaveBeenCalledTimes(5)
+  expect(load).not.toHaveBeenCalled()
 })
 it('late workspace toggles cannot replace a reset scope', async () => {
   const base = { folderName: 'base', id: 'arcadia-eternity.base', enabled: true }

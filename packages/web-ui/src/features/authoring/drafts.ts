@@ -9,7 +9,7 @@ export const localeKey = (source: LocaleSource, id: string) =>
   JSON.stringify(['locale', source.language, source.namespace, id])
 export interface DraftSource {
   file: string
-  version: string
+  version: string | null
   index: number | null
   value: Record<string, Json>
   sharedFields: SharedField[]
@@ -22,6 +22,7 @@ export interface AuthorDraft extends DraftSource {
   language?: string
   namespace?: string
   base: Record<string, Json>
+  created?: boolean
   latest?: DraftSource
 }
 const recordSource = (row: SourceRecord): DraftSource => ({
@@ -71,6 +72,12 @@ export function useAuthorDrafts() {
       value: clone(record),
     })
   }
+  function createRecord(row: SourceRecord) {
+    const key = recordKey(row)
+    if (drafts[key]) throw new Error('此对象已有草稿')
+    const source = recordSource(row)
+    put({ ...source, key, type: 'record', kind: row.kind, id: row.record.id, created: true, base: {}, latest: source })
+  }
   function editLocale(source: LocaleSource, id: string, kind: string, text: LocaleText) {
     const key = localeKey(source, id),
       current = localeSource(source, id)
@@ -93,13 +100,27 @@ export function useAuthorDrafts() {
     for (const draft of pending.value) {
       if (draft.type === 'record') {
         const matches = snapshot.records.filter(row => row.kind === draft.kind && row.record.id === draft.id)
-        draft.latest = matches.length === 1 ? recordSource(matches[0]!) : undefined
+        draft.latest = draft.created
+          ? !matches.length && !snapshot.files.some(file => file.file === draft.file)
+            ? { file: draft.file, version: null, index: null, value: {}, sharedFields: [] }
+            : undefined
+          : matches.length === 1
+            ? recordSource(matches[0]!)
+            : undefined
       } else {
         const sources = snapshot.localeSources.filter(
           source => source.language === draft.language && source.namespace === draft.namespace,
         )
         const objects = snapshot.records.filter(row => row.kind === draft.kind && row.record.id === draft.id)
-        draft.latest = sources.length === 1 && objects.length === 1 ? localeSource(sources[0]!, draft.id) : undefined
+        const creating = drafts[recordKey({ kind: draft.kind, record: { id: draft.id } })]?.created
+        draft.latest =
+          objects.length + Number(!!creating) === 1
+            ? sources.length === 1
+              ? localeSource(sources[0]!, draft.id)
+              : !sources.length && draft.version === null && !snapshot.files.some(file => file.file === draft.file)
+                ? { file: draft.file, version: null, index: null, value: {}, sharedFields: [] }
+                : undefined
+            : undefined
       }
     }
   }
@@ -133,7 +154,7 @@ export function useAuthorDrafts() {
   }
   function payload() {
     return pending.value.map(draft => ({
-      kind: draft.type,
+      kind: draft.created ? 'create-record' : draft.type,
       file: draft.file,
       expectedVersion: draft.version,
       index: draft.index,
@@ -141,5 +162,5 @@ export function useAuthorDrafts() {
       record: clone(draft.value),
     }))
   }
-  return { drafts, pending, conflicts, editRecord, editLocale, sync, reconcile, clear, payload }
+  return { drafts, pending, conflicts, createRecord, editRecord, editLocale, sync, reconcile, clear, payload }
 }

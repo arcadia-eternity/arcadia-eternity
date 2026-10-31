@@ -16,6 +16,3 @@ behaviors:
         projectId: example-content-pack
         kind: behavior
         id: speed-penalty
-# The same icon is used by battle marks and rich-text mark references.
-presentation:
-  icon: assets/marks/slow.png

@@ -11,10 +11,11 @@ const props = defineProps<{
   kind: string
   records: SourceRecord[]
   projectId: string
-  assets: string[]
+  assets: { id: string; source: string; kind: string; name?: string }[]
   sharedFields?: SharedField[]
   section?: 'base' | 'references' | 'media' | 'all'
   hideIdentity?: boolean
+  readOnly?: boolean
   labels?: Record<string, string>
 }>()
 const emit = defineEmits<{
@@ -22,9 +23,10 @@ const emit = defineEmits<{
   external: [line?: number, column?: number]
   navigate: [kind: string, id: string]
   preview: [file: string]
+  create: [type: string, slot: string]
 }>()
 const visible = (section: string) => !props.section || props.section === 'all' || props.section === section
-const locked = (path: string) => sharedAt(props.sharedFields ?? [], path.split('.'))
+const locked = (path: string) => props.readOnly || sharedAt(props.sharedFields ?? [], path.split('.'))
 const get = (path: string) => atField(props.record, path.split('.'))
 const text = (path: string) => {
   const value = get(path)
@@ -32,6 +34,7 @@ const text = (path: string) => {
 }
 const list = (key: string) => (Array.isArray(props.record[key]) ? (props.record[key] as Json[]) : [])
 function change(path: string, value: Json | undefined) {
+  if (path === 'battle.source' && value === undefined) path = 'battle'
   if (locked(path)) return
   const record = clone(props.record)
   setField(record, path.split('.'), value)
@@ -146,36 +149,29 @@ function addReference(id: string) {
 }
 const mediaOptions = computed(() =>
   props.assets
-    .filter(file => {
-      const path = file.split('?')[0] ?? file
-      return /cry|sfx/.test(mediaPick.value)
-        ? /\.(mp3|ogg)$/i.test(path)
+    .filter(asset =>
+      /cry|sfx/.test(mediaPick.value)
+        ? asset.kind === 'audio'
         : mediaPick.value === 'battle.source'
-          ? /\.(png|jpe?g|webp|swf)$/i.test(path)
-          : /\.(png|jpe?g|webp)$/i.test(path)
-    })
-    .map(file => ({
-      id: file,
-      label: file.split('/').at(-1)?.split('?')[0] || file,
-      detail: /^https?:/.test(file) ? '远程资源 · ' + file : file,
-    })),
+          ? ['image', 'swf'].includes(asset.kind)
+          : asset.kind === 'image',
+    )
+    .map(asset => ({ id: asset.id, label: asset.name || asset.id, detail: asset.source })),
 )
-function chooseMedia(file: string) {
-  const path = `presentation.${mediaPick.value}`
+function chooseMedia(id: string) {
+  const path = mediaPick.value
   if (locked(path)) return
   selectionError.value = ''
-  if (mediaPick.value === 'battle.source') {
-    const renderer = /\.swf(?:\?|$)/i.test(file) ? 'seer2-swf' : 'image'
-    if (locked('presentation.battle.renderer') && text('presentation.battle.renderer') !== renderer) {
+  if (path === 'battle.source') {
+    const renderer = props.assets.find(asset => asset.id === id)?.kind === 'swf' ? 'seer2-swf' : 'image'
+    if (locked('battle.renderer') && text('battle.renderer') !== renderer) {
       selectionError.value = '此资源需要另一种战斗表现方式，但该设置来自共享配置，请在外部修改。'
       return
     }
     const record = clone(props.record)
-    const presentation = object(record.presentation) ? record.presentation : {}
-    const battle = object(presentation.battle) ? presentation.battle : {}
-    record.presentation = { ...presentation, battle: { ...battle, source: file, renderer } }
+    record.battle = { ...(object(record.battle) ? record.battle : {}), source: id, renderer }
     emit('change', record)
-  } else change(path, file)
+  } else change(path, id)
   mediaPick.value = ''
 }
 function learning(index: number, key: string, value: Json) {
@@ -275,8 +271,15 @@ const media = computed(() =>
           <strong>{{
             { learnable_skills: '学习技能', ability: '特性', emblem: '纹章', behaviors: '效果' }[key]
           }}</strong
-          ><button :disabled="locked(key)" @click="pickReference(key)">
+          ><button v-if="!readOnly" :disabled="locked(key)" @click="pickReference(key)">
             关联已有{{ key === 'learnable_skills' ? '技能' : key === 'behaviors' ? '效果' : '印记' }}…
+          </button>
+          <button
+            v-if="kind === 'species' && !readOnly"
+            :disabled="locked(key)"
+            @click="emit('create', key === 'learnable_skills' ? 'skills' : key, key)"
+          >
+            新建并关联
           </button>
         </header>
         <div v-for="(item, index) in list(key)" :key="index" class="reference">
@@ -305,6 +308,7 @@ const media = computed(() =>
             ></template
           >
           <button
+            v-if="!readOnly"
             :disabled="locked(key)"
             @click="
               change(
@@ -325,15 +329,15 @@ const media = computed(() =>
           @cancel="picking = false"
         />
       </section>
-      <p class="hint">编辑关联内容会影响它的所有使用者。效果代码可在外部编辑器修改。</p>
+      <p v-if="!readOnly" class="hint">编辑关联内容会影响它的所有使用者。效果代码可在外部编辑器修改。</p>
     </template>
     <template v-if="visible('media')">
       <h3>形象与声音</h3>
       <label v-if="kind === 'species'"
         >战斗表现<select
-          :disabled="locked('presentation.battle.renderer')"
-          :value="text('presentation.battle.renderer')"
-          @change="change('presentation.battle.renderer', ($event.target as HTMLSelectElement).value)"
+          :disabled="locked('battle.renderer')"
+          :value="text('battle.renderer')"
+          @change="change('battle.renderer', ($event.target as HTMLSelectElement).value)"
         >
           <option value="">请选择</option>
           <option value="image">图片</option>
@@ -344,16 +348,13 @@ const media = computed(() =>
         <header>
           <strong>{{ label }}</strong>
           <div class="tools">
-            <button
-              v-if="typeof get(`presentation.${key}`) === 'string'"
-              @click="emit('preview', String(get(`presentation.${key}`)))"
-            >
+            <button v-if="typeof get(`${key}`) === 'string'" @click="emit('preview', String(get(`${key}`)))">
               预览</button
-            ><button :disabled="locked(`presentation.${key}`)" @click="mediaPick = key">选择已有资源…</button
+            ><button :disabled="locked(`${key}`)" @click="mediaPick = key">选择已有资源…</button
             ><button
-              v-if="get(`presentation.${key}`) !== undefined"
-              :disabled="locked(`presentation.${key}`)"
-              @click="change(`presentation.${key}`, undefined)"
+              v-if="get(`${key}`) !== undefined"
+              :disabled="locked(`${key}`)"
+              @click="change(`${key}`, undefined)"
             >
               清除关联
             </button>
@@ -361,8 +362,9 @@ const media = computed(() =>
         </header>
         <p class="hint">
           {{
-            text(`presentation.${key}`)?.split('/').at(-1) ||
-            (object(get(`presentation.${key}`)) ? '跨包资源引用' : '尚未关联')
+            props.assets.find(asset => asset.id === text(`${key}`))?.name ||
+            text(`${key}`) ||
+            (object(get(`${key}`)) ? '跨包资源引用' : '尚未关联')
           }}
         </p>
         <ChoicePicker
@@ -374,7 +376,7 @@ const media = computed(() =>
         />
       </section>
     </template>
-    <button class="external" @click="emit('external')">在外部编辑器打开源文件 ↗</button>
+    <button v-if="!readOnly" class="external" @click="emit('external')">在外部编辑器打开源文件 ↗</button>
   </fieldset>
 </template>
 <style scoped>
@@ -462,6 +464,12 @@ button {
   border-radius: 8px;
   background: var(--author-panel, #fff);
   color: inherit;
+}
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:not(:disabled):hover {
+  background: var(--author-soft, #eef3ee);
 }
 button:disabled {
   opacity: 0.5;

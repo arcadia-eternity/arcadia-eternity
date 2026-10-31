@@ -1,3 +1,4 @@
+import { presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
@@ -43,7 +44,7 @@ export class ServerEnvironmentRegistry {
       const base = await loadStandaloneBase()
       const runtime = createStandaloneRuntime(base)
       const id = digest(runtime.identity)
-      const content = this.publicContent(runtime, base.data, base.assets)
+      const content = this.publicContent(runtime, base.data, base.presentation)
       content.locales = this.contentLocales([], base.locales, content)
       this.publish({
         runtime,
@@ -73,7 +74,7 @@ export class ServerEnvironmentRegistry {
   private publicContent(
     runtime: StandaloneRuntime,
     data: Parameters<typeof createStandaloneRuntime>[0]['data'],
-    assets: NativePackLoadResult['assets'],
+    manifests: NativePackLoadResult['presentation'],
   ): ServerEnvironmentContent {
     const text = (raw: unknown) => {
       const record = raw as Record<string, unknown>
@@ -89,7 +90,6 @@ export class ServerEnvironmentRegistry {
           parsed.id,
           {
             ...text(raw),
-            ...(parsed.assetRef ? { assetRef: parsed.assetRef } : {}),
             ...(parsed.presentation ? { presentation: parsed.presentation } : {}),
           },
         ] as const
@@ -105,46 +105,18 @@ export class ServerEnvironmentRegistry {
         const mark = parseWithErrors(MarkSchema, raw)
         return {
           id: mark.id,
-          ...(mark.iconRef ? { iconRef: mark.iconRef } : {}),
           tags: mark.tags ?? [],
           ...(mark.presentation ? { presentation: mark.presentation } : {}),
           ...text(raw),
         }
       }),
     }
-    // Export the prepared base asset mappings too. A clean player never has to consult its own same-ID catalog.
-    for (const manifest of assets ?? []) {
-      const byId = new Map(manifest.assets.map(entry => [entry.id, entry]))
-      for (const species of result.species) {
-        if (species.id.includes(':') || species.presentation || species.assetRef) continue
-        const mapped = byId.get(manifest.mappings?.species?.[species.id] ?? species.id)
-        const portrait = `https://seer2-resource.yuuinih.com/png/pet/${species.num}.png`
-        species.presentation = {
-          icon: portrait,
-          portrait,
-          battle: {
-            renderer: 'seer2-swf',
-            source:
-              mapped?.type === 'petSwf'
-                ? mapped.uri
-                : `https://seer2-pet-resource.yuuinih.com/public/fight/${species.num}.swf`,
-            fallback: portrait,
-          },
-        }
+    const presentations = presentationIndex(manifests)
+    for (const kind of ['species', 'skills', 'marks'] as const)
+      for (const row of result[kind]) {
+        const presentation = presentations.get(`${kind}:${row.id}`)
+        if (presentation) row.presentation = presentation
       }
-      for (const skill of result.skills) {
-        if (skill.id.includes(':') || skill.presentation || skill.sfxRef) continue
-        const mapped = byId.get(manifest.mappings?.skills?.[skill.id] ?? skill.id)
-        if (mapped?.type === 'skillSfx') skill.presentation = { sfx: mapped.uri }
-      }
-      for (const mark of result.marks) {
-        if (mark.id.includes(':') || mark.presentation || mark.iconRef) continue
-        const mapped = byId.get(manifest.mappings?.marks?.[mark.id] ?? mark.id)
-        mark.presentation = {
-          icon: mapped?.type === 'markIcon' ? mapped.uri : 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png',
-        }
-      }
-    }
     return result
   }
 
@@ -252,7 +224,14 @@ export class ServerEnvironmentRegistry {
       const files = new Map(
         prepared.presentation.flatMap(pkg => pkg.resources.map(asset => [asset.sha256, asset.file] as const)),
       )
-      const content = this.publicContent(runtime, prepared.data, base.assets)
+      const content = this.publicContent(runtime, prepared.data, base.presentation)
+      for (const pkg of prepared.presentation)
+        for (const binding of pkg.manifest.bindings) {
+          const { id: _id, target, ...presentation } = binding
+          const owner = content[target.kind].find(row => row.id === `${pkg.namespace}:${target.id}`)
+          if (!owner) throw new EnvironmentError('PRESENTATION_TARGET')
+          owner.presentation = presentation
+        }
       content.locales = this.contentLocales(prepared.presentation, base.locales, content)
       const descriptor: ServerEnvironmentDescriptor = {
         id,

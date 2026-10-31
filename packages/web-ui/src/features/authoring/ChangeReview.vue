@@ -31,7 +31,9 @@ const rows = computed(() =>
       <header>
         <div>
           <h3>{{ title(draft) }}</h3>
-          <small>{{ draft.type === 'locale' ? `名称与描述 · ${draft.language}` : '内容定义' }}</small>
+          <small>{{
+            draft.type === 'locale' ? `名称与描述 · ${draft.language}` : draft.created ? '新建内容' : '内容定义'
+          }}</small>
         </div>
         <span>{{ fields.length }} 项修改</span>
       </header>
@@ -40,11 +42,11 @@ const rows = computed(() =>
       </p>
       <template v-if="mode === 'conflict'">
         <p v-if="!draft.latest" class="warning" role="alert">
-          来源已缺失、无法解析或存在重复对象。草稿已保留，请在外部恢复或整理后继续；不会重新创建旧文件。<button
-            @click="emit('external')"
-          >
-            打开项目
-          </button>
+          {{
+            draft.created
+              ? '新建位置或标识已被占用。草稿已保留，不会覆盖外部内容。'
+              : '来源已缺失、无法解析或存在重复对象。草稿已保留，请在外部恢复或整理后继续；不会重新创建旧文件。'
+          }}<button @click="emit('external')">打开项目</button>
         </p>
         <p v-else-if="draft.latest.file !== draft.file || draft.latest.index !== draft.index" class="warning">
           对象的来源位置已改变。完成核对后，草稿将使用新的位置。

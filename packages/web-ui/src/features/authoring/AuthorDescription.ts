@@ -22,6 +22,7 @@ export default defineComponent({
     language: { type: String, required: true },
     context: { type: Object as PropType<Record<string, unknown>>, required: true },
     marks: { type: Array as PropType<DescriptionMark[]>, default: () => [] },
+    interactive: { type: Boolean, default: true },
   },
   emits: ['mark'],
   setup(props, { emit }) {
@@ -32,6 +33,7 @@ export default defineComponent({
           { class: 'author-description' },
           formatRichDescription(props.text, props.language, descriptionValues(props.context), id => {
             const mark = props.marks.find(mark => mark.id === id || mark.reference === id)
+            if (!props.interactive) return h('span', mark?.name ?? id)
             return h('button', { type: 'button', onClick: () => emit('mark', mark?.id ?? id) }, mark?.name ?? id)
           }),
         )

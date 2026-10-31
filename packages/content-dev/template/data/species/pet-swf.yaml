@@ -34,10 +34,3 @@ learnable_skills:
         id: rest
     level: 1
     hidden: false
-presentation:
-  icon: https://seer2-resource.yuuinih.com/png/pet/1.png
-  portrait: https://seer2-resource.yuuinih.com/png/pet/1.png
-  battle:
-    renderer: seer2-swf
-    source: https://seer2-pet-resource.yuuinih.com/public/fight/1.swf
-    fallback: assets/pets/frostling-battle.png

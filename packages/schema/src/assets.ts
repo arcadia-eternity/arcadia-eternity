@@ -24,20 +24,16 @@ export const AssetEntrySchema = Type.Object({
   meta: Type.Optional(Type.Record(Type.String({ minLength: 1 }), Type.Unknown())),
 })
 
-export const AssetMappingsSchema = Type.Object({
-  species: Type.Optional(Type.Record(Type.String({ minLength: 1 }), Type.String({ minLength: 1 }))),
-  marks: Type.Optional(Type.Record(Type.String({ minLength: 1 }), Type.String({ minLength: 1 }))),
-  skills: Type.Optional(Type.Record(Type.String({ minLength: 1 }), Type.String({ minLength: 1 }))),
-})
-
-export const AssetManifestSchema = Type.Object({
-  id: Type.String({ minLength: 1 }),
-  version: Type.String({ minLength: 1 }),
-  engine: AssetEngineSchema,
-  dependencies: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
-  assets: Type.Array(AssetEntrySchema),
-  mappings: Type.Optional(AssetMappingsSchema),
-})
+export const AssetManifestSchema = Type.Object(
+  {
+    id: Type.String({ minLength: 1 }),
+    version: Type.String({ minLength: 1 }),
+    engine: AssetEngineSchema,
+    dependencies: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+    assets: Type.Array(AssetEntrySchema),
+  },
+  { additionalProperties: false },
+)
 
 export const AssetLockEntrySchema = Type.Object({
   id: Type.String({ minLength: 1 }),

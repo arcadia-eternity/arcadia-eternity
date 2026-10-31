@@ -76,18 +76,22 @@ test('builds separate media/locales metadata without fetching any HTTP source', 
       join(root, 'locales/zh-CN/species.yaml'),
       'pet:\n  name: 火猫\n  description: 当前体力 <heal>{hp}</heal>\n',
     )
+    await mkdir(join(root, 'data/presentations'))
+    await mkdir(join(root, 'data/resources'))
     await writeFile(
-      join(root, 'data/species/pet.json'),
+      join(root, 'data/resources/media.json'),
+      JSON.stringify([
+        { id: 'icon', kind: 'image', source: 'assets/pets/icon.png' },
+        { id: 'swf', kind: 'swf', source: 'http://127.0.0.1:1/never-download.swf' },
+      ]),
+    )
+    await writeFile(
+      join(root, 'data/presentations/pet.json'),
       JSON.stringify({
-        id: 'pet',
-        presentation: {
-          icon: 'assets/pets/icon.png',
-          battle: {
-            renderer: 'seer2-swf',
-            source: 'http://127.0.0.1:1/never-download.swf',
-            fallback: 'assets/pets/icon.png',
-          },
-        },
+        id: 'pet-display',
+        target: { kind: 'species', id: 'pet' },
+        icon: 'icon',
+        battle: { renderer: 'seer2-swf', source: 'swf', fallback: 'icon' },
       }),
     )
     await build(root)
@@ -96,22 +100,49 @@ test('builds separate media/locales metadata without fetching any HTTP source', 
     assert.equal(result.resources[0].bytes, image.length)
     assert.deepEqual(result.resources[1], {
       kind: 'http',
-      id: 'http://127.0.0.1:1/never-download.swf',
+      id: 'swf',
       source: 'http://127.0.0.1:1/never-download.swf',
       mime: 'application/x-shockwave-flash',
     })
     assert.equal(result.locales['zh-CN'].species.pet.name, '火猫')
     assert.equal(
-      JSON.parse(await readFile(join(root, 'dist/content.json'), 'utf8')).data.species[0].presentation.battle.renderer,
-      'seer2-swf',
+      JSON.parse(await readFile(join(root, 'dist/content.json'), 'utf8')).data.species[0].presentation,
+      undefined,
     )
+    assert.equal(result.bindings[0].battle.source, 'swf')
     await build(root, '--check')
     await writeFile(
-      join(root, 'data/species/pet.json'),
-      JSON.stringify({ id: 'pet', presentation: { icon: 'assets/missing.png' } }),
+      join(root, 'data/presentations/pet.json'),
+      JSON.stringify({ id: 'pet-display', target: { kind: 'species', id: 'pet' }, icon: 'missing' }),
     )
     await assert.rejects(build(root), error => /pet.json.*Missing resource/.test(error.stderr))
     assert.deepEqual(JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8')), result)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('resource relocation changes display metadata only and inline legacy fields are rejected', async () => {
+  const root = await fixture()
+  try {
+    for (const directory of ['data/resources', 'data/presentations', 'art'])
+      await mkdir(join(root, directory), { recursive: true })
+    await writeFile(join(root, 'art/icon.png'), Buffer.from('image'))
+    await writeFile(join(root, 'data/resources/icon.yaml'), 'id: icon\nkind: image\nsource: art/icon.png\n')
+    await writeFile(
+      join(root, 'data/presentations/pet.yaml'),
+      'id: pet-display\ntarget: {kind: species, id: pet}\nicon: icon\n',
+    )
+    await build(root)
+    const before = await readFile(join(root, 'dist/content.json'), 'utf8')
+    const binding = JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8')).bindings
+    await rename(join(root, 'art/icon.png'), join(root, 'art/moved.png'))
+    await writeFile(join(root, 'data/resources/icon.yaml'), 'id: icon\nkind: image\nsource: art/moved.png\n')
+    await build(root)
+    assert.equal(await readFile(join(root, 'dist/content.json'), 'utf8'), before)
+    assert.deepEqual(JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8')).bindings, binding)
+    await writeFile(join(root, 'data/species/pet.json'), JSON.stringify({ id: 'pet', assetRef: 'old' }))
+    await assert.rejects(build(root), error => /Move presentation/.test(error.stderr))
   } finally {
     await rm(root, { recursive: true, force: true })
   }

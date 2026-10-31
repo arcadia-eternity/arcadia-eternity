@@ -14,7 +14,7 @@ it('publishes remote URLs without downloading and streams package files without 
     expect(first.remoteResources).toEqual([
       {
         projectId: 'example-slow',
-        id: 'http://127.0.0.1:1/not-fetched.swf',
+        id: 'animation',
         url: 'http://127.0.0.1:1/not-fetched.swf',
         mime: 'application/x-shockwave-flash',
       },
@@ -32,7 +32,7 @@ it('publishes remote URLs without downloading and streams package files without 
     const builtin = app.environments.list().find(entry => !entry.packages.length)!
     const official = app.environments.content(builtin.id)
     expect(official.locales?.bundles['zh-CN'].species.pet_dilan).toMatchObject({ name: '迪兰' })
-    const resource = first.resources.find(asset => asset.id === 'assets/icon.png')!
+    const resource = first.resources.find(asset => asset.id === 'icon')!
     const response = await fetch(`${base}${resource.url}`)
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(response.headers.get('content-type')).toContain('image/png')

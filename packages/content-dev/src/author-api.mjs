@@ -17,7 +17,7 @@ export async function openAuthorSession(directory, options = {}) {
         name: snapshot.name,
         project: snapshot.project,
         sourceRevision: await workspace.revision(),
-        capabilities: { ...snapshot.capabilities, codeExecution: jobs.execute },
+        capabilities: { ...snapshot.capabilities, codeExecution: !workspace.readOnly && jobs.execute },
         diagnostics: snapshot.diagnostics,
       }
     },
@@ -32,7 +32,9 @@ export async function openAuthorSession(directory, options = {}) {
               ? snapshot.localeSources
               : kind === 'diagnostics'
                 ? snapshot.diagnostics
-                : snapshot.records
+                : ['presentations', 'resources'].includes(kind)
+                  ? snapshot.records.filter(row => row.kind === kind)
+                  : snapshot.records
       const filtered = rows.filter(row => JSON.stringify(row).toLowerCase().includes(search.toLowerCase()))
       return { total: filtered.length, offset, items: filtered.slice(offset, offset + Math.min(limit, 100)) }
     },

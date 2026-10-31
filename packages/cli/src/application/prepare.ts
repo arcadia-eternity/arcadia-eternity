@@ -41,7 +41,13 @@ export async function prepareContent(
         },
         approval,
       )
-      return { ...loaded, ...prepared, npm: { installationDigest: prepared.installation.digest } }
+      return {
+        ...loaded,
+        ...prepared,
+        // Native pack metadata uses manifests; npm presentation also includes private captured files.
+        presentation: loaded.presentation,
+        npm: { installationDigest: prepared.installation.digest },
+      }
     }
     if (approvalFile) throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
     if (!workFile) return loaded

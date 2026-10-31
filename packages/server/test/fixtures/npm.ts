@@ -32,12 +32,22 @@ export async function createNpmFixture(options: { presentation?: boolean; remote
       await writeFile(
         join(source, 'dist/presentation.json'),
         JSON.stringify({
-          version: 1,
+          version: 2,
+          bindings: [
+            {
+              id: 'pet-display',
+              target: { kind: 'species', id: 'pet' },
+              icon: 'icon',
+              portrait: 'icon',
+              battle: { renderer: 'seer2-swf', source: 'animation', fallback: 'icon' },
+            },
+            { id: 'mark-display', target: { kind: 'marks', id: 'slow' }, icon: 'icon' },
+          ],
           defaultLocale: 'zh-CN',
           resources: [
             {
               kind: 'file',
-              id: 'assets/icon.png',
+              id: 'icon',
               source: 'assets/icon.png',
               sha256,
               bytes: asset.length,
@@ -45,7 +55,7 @@ export async function createNpmFixture(options: { presentation?: boolean; remote
             },
             {
               kind: 'http',
-              id: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
+              id: 'animation',
               source: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
               mime: 'application/x-shockwave-flash',
             },
@@ -75,18 +85,6 @@ export async function createNpmFixture(options: { presentation?: boolean; remote
         item.name = `${kind} name`
         item.description = `${kind} description`
       }
-    }
-    if (options.presentation) {
-      content.data.species[0].presentation = {
-        icon: 'assets/icon.png',
-        portrait: 'assets/icon.png',
-        battle: {
-          renderer: 'seer2-swf',
-          source: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
-          fallback: 'assets/icon.png',
-        },
-      }
-      content.data.marks[0].presentation = { icon: 'assets/icon.png' }
     }
     content.assets = [{ id: 'icon', variant: 'default', mime: 'image/png', bytes: asset.length, sha256 }]
     await writeFile(join(source, 'content.json'), JSON.stringify(content))

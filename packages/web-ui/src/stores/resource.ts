@@ -1,9 +1,8 @@
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 // src/stores/Resource.ts
 import { defineStore } from 'pinia'
-import { GameDataLoader } from '@/utils/gameLoader'
-import type { AssetManifest, MarkImageSchemaType } from '@arcadia-eternity/schema'
-import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
+import type { PresentationManifest } from '@arcadia-eternity/schema'
+import { NativePackLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
@@ -236,30 +235,8 @@ export const useResourceStore = defineStore('Resource', {
           const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
           if (!isCurrent()) return
           applyRuntimeAssetBase(packRef)
-          const loader = new GameDataLoader({
-            devBasePath: '/resource',
-            prodBaseUrl: import.meta.env.VITE_API_BASE || '/resource',
-          })
           const packLoader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
-
-          const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound, rawPetSwf] = await Promise.all([
-            this.loadMarkImage(loader),
-            this.loadBackGround(loader),
-            this.loadMusic(loader),
-            this.loadSkillSound(loader),
-            this.loadPetSwf(loader),
-          ])
-
-          if (!isCurrent()) return
-          const baseLayer: ResourceLayer = {
-            markImage: this.toStringRecord(rawMarkImage),
-            background: this.toStringRecord(rawBackGround),
-            music: this.toStringRecord(rawMusic),
-            skillSound: this.toStringRecord(rawSkillSound),
-            petSwf: this.toStringRecord(rawPetSwf),
-            petSound: {},
-          }
-
+          const baseLayer = createEmptyLayer()
           if (isWorkspacePackRef(packRef)) {
             const enabledPacks = await this.loadEnabledWorkspacePacks()
             if (!isCurrent()) return
@@ -287,7 +264,7 @@ export const useResourceStore = defineStore('Resource', {
           }
 
           const merged = cloneLayer(baseLayer)
-          mergeLayer(merged, this.buildAssetLayer(packResult.assets ?? []))
+          mergeLayer(merged, this.buildPresentationLayer(packResult.presentation ?? []))
 
           this.workspaceRuntime = emptyWorkspaceRuntime()
           this.applyLayerToState(merged)
@@ -452,7 +429,7 @@ export const useResourceStore = defineStore('Resource', {
         console.warn(`Pack lockfile issues detected in workspace pack ${folderName}`, packResult.lockfileIssues)
       }
 
-      return this.buildAssetLayer(packResult.assets ?? [])
+      return this.buildPresentationLayer(packResult.presentation ?? [])
     },
 
     rebuildFromWorkspaceLayers() {
@@ -476,66 +453,23 @@ export const useResourceStore = defineStore('Resource', {
       this.petSound = this.normalizeRecordData(layer.petSound)
     },
 
-    buildAssetLayer(manifests: AssetManifest[]): ResourceLayer {
+    buildPresentationLayer(manifests: PresentationManifest[]): ResourceLayer {
       const layer = createEmptyLayer()
-      const entries = manifests.flatMap(manifest => manifest.assets)
-      const entryById = new Map(entries.map(entry => [entry.id, entry]))
-
-      for (const manifest of manifests) {
-        const speciesMap = manifest.mappings?.species ?? {}
-        for (const [speciesId, assetId] of Object.entries(speciesMap)) {
-          const entry = entryById.get(assetId)
-          if (!entry) continue
-          if (entry.type === 'petSwf') {
-            layer.petSwf[speciesId] = entry.uri
-          }
-        }
-
-        const markMap = manifest.mappings?.marks ?? {}
-        for (const [markId, assetId] of Object.entries(markMap)) {
-          const entry = entryById.get(assetId)
-          if (!entry) continue
-          if (entry.type === 'markIcon') {
-            layer.markImage[markId] = entry.uri
-          }
-        }
-
-        const skillMap = manifest.mappings?.skills ?? {}
-        for (const [skillId, assetId] of Object.entries(skillMap)) {
-          const entry = entryById.get(assetId)
-          if (!entry) continue
-          if (entry.type === 'skillSfx') {
-            layer.skillSound[skillId] = entry.uri
-          }
-        }
+      for (const [key, presentation] of presentationIndex(manifests)) {
+        const separator = key.indexOf(':')
+        const kind = key.slice(0, separator),
+          id = key.slice(separator + 1)
+        if (kind === 'species') {
+          if (presentation.battle?.renderer === 'seer2-swf') layer.petSwf[id] = String(presentation.battle.source)
+          if (presentation.cry) layer.petSound[id] = String(presentation.cry)
+        } else if (kind === 'marks' && presentation.icon) layer.markImage[id] = String(presentation.icon)
+        else if (kind === 'skills' && presentation.sfx) layer.skillSound[id] = String(presentation.sfx)
       }
-
-      for (const entry of entries) {
-        if (entry.type === 'petSwf' && !layer.petSwf[entry.id]) {
-          layer.petSwf[entry.id] = entry.uri
+      for (const manifest of manifests)
+        for (const resource of manifest.resources) {
+          if (resource.tags?.includes('background')) layer.background[resource.id] = resource.source
+          if (resource.tags?.includes('music')) layer.music[resource.id] = resource.source
         }
-        if (entry.type === 'petSfx') {
-          const byPrefix = /^petSound:num:(\d+)$/.exec(entry.id)
-          if (byPrefix?.[1]) {
-            layer.petSound[byPrefix[1]] = entry.uri
-          } else if (/^\d+$/.test(entry.id)) {
-            layer.petSound[entry.id] = entry.uri
-          }
-        }
-        if (entry.type === 'markIcon' && !layer.markImage[entry.id]) {
-          layer.markImage[entry.id] = entry.uri
-        }
-        if (entry.type === 'skillSfx' && !layer.skillSound[entry.id]) {
-          layer.skillSound[entry.id] = entry.uri
-        }
-        if (entry.type === 'uiImage' && !layer.background[entry.id]) {
-          layer.background[entry.id] = entry.uri
-        }
-        if (entry.type === 'bgm' && !layer.music[entry.id]) {
-          layer.music[entry.id] = entry.uri
-        }
-      }
-
       return layer
     },
 
@@ -561,52 +495,6 @@ export const useResourceStore = defineStore('Resource', {
       validate(this.skillSound, '技能音效')
       validate(this.petSwf, '精灵动画')
       validate(this.petSound, '精灵音效')
-    },
-
-    toStringRecord(input: unknown): Record<string, string> {
-      if (!input || typeof input !== 'object' || Array.isArray(input)) {
-        return {}
-      }
-
-      const output: Record<string, string> = {}
-      for (const [key, value] of Object.entries(input)) {
-        if (typeof value === 'string') {
-          output[key] = value
-        }
-      }
-      return output
-    },
-
-    async loadMarkImage(loader: GameDataLoader): Promise<MarkImageSchemaType> {
-      const data = await loader.load<MarkImageSchemaType>('mark_image')
-      return data
-    },
-
-    async loadBackGround(loader: GameDataLoader): Promise<Record<string, string>> {
-      const data = await loader.load<Record<string, string>>('background')
-      return data
-    },
-
-    async loadMusic(loader: GameDataLoader): Promise<Record<string, string>> {
-      const data = await loader.load<Record<string, string>>('music')
-      return data
-    },
-
-    async loadSkillSound(loader: GameDataLoader): Promise<Record<string, string>> {
-      const data = await loader.load<Record<string, string>>('skill_sound')
-      return data
-    },
-
-    async loadPetSwf(loader: GameDataLoader): Promise<Record<string, string>> {
-      try {
-        const data = await loader.load<Record<string, string>>('pet_swf')
-        if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-          return data
-        }
-        return {}
-      } catch {
-        return {}
-      }
     },
   },
 })

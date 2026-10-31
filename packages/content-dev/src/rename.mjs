@@ -34,12 +34,19 @@ const root = resolve('.')
 const packagePath = resolve('package.json')
 const manifest = JSON.parse(await readFile(packagePath, 'utf8'))
 const oldId = manifest.arcadia.projectId
+const oldNamespace = manifest.arcadia.namespace
 const sources = await readContentSources(root)
 function rewrite(value) {
   if (Array.isArray(value)) return value.map(rewrite)
   if (!value || typeof value !== 'object') return value
   const result = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, rewrite(child)]))
   if (result.$ref?.projectId === oldId) result.$ref.projectId = options['--project-id']
+  if (
+    result.namespace === oldNamespace &&
+    typeof result.id === 'string' &&
+    Object.keys(result).every(key => ['namespace', 'id'].includes(key))
+  )
+    result.namespace = options['--namespace']
   return result
 }
 manifest.name = options['--name']
@@ -62,6 +69,9 @@ const changes = sources.map(source => {
   YAML.visit(source.document, { Alias: (_key, alias) => aliases.get(alias) })
   YAML.visit(source.document, {
     Map(_key, node) {
+      const namespace = node.get('namespace', true)
+      if (YAML.isScalar(namespace) && namespace.value === oldNamespace && node.has('id') && node.items.length === 2)
+        namespace.value = options['--namespace']
       const reference = node.get('$ref', true)
       if (!YAML.isMap(reference)) return
       const project = reference.get('projectId', true)

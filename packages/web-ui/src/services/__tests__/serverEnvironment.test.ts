@@ -26,7 +26,7 @@ const descriptor: ServerEnvironmentDescriptor = {
 }
 const { effect: _effect, ...skill } = parseWithErrors(SkillSchema, { id: 'sample:strike' })
 const content = {
-  species: [parseWithErrors(SpeciesSchema, { id: 'sample:pet', assetRef: 'icon' })],
+  species: [parseWithErrors(SpeciesSchema, { id: 'sample:pet', presentation: { icon: 'icon' } })],
   skills: [skill],
   marks: [],
 }
@@ -53,7 +53,7 @@ describe('server environment display readiness', () => {
       resourcesReady: true,
     })
     expect(vi.mocked(request).mock.calls.some(([url]) => String(url).includes('/assets/'))).toBe(false)
-    expect(result.content.species[0].assetRef).toBe(`https://server-a.test${descriptor.resources[0].url}`)
+    expect(result.content.species[0].presentation?.icon).toBe(`https://server-a.test${descriptor.resources[0].url}`)
     expect(vi.mocked(request).mock.calls.map(([url]) => String(url))).toContain(
       'https://server-b.test/api/v1/environments',
     )
@@ -68,19 +68,16 @@ describe('server environment display readiness', () => {
   })
   it('resolves separate image/SWF purposes and server-approved HTTP references without fetching them', async () => {
     const catalog = structuredClone(descriptor)
-    catalog.remoteResources = [
-      { projectId: 'sample-pack', id: 'https://media.test/pet.swf', url: 'https://media.test/pet.swf' },
-    ]
+    catalog.remoteResources = [{ projectId: 'sample-pack', id: 'pet-animation', url: 'https://media.test/pet.swf' }]
     const displayed = {
       ...content,
       species: [
         {
           ...content.species[0],
-          assetRef: undefined,
           presentation: {
             icon: 'icon',
             portrait: 'icon',
-            battle: { renderer: 'seer2-swf', source: 'https://media.test/pet.swf', fallback: 'icon' },
+            battle: { renderer: 'seer2-swf', source: 'pet-animation', fallback: 'icon' },
           },
         },
       ],
@@ -100,17 +97,17 @@ describe('server environment display readiness', () => {
   })
   it('rejects undeclared UGC references while preserving official display references', async () => {
     for (const assetRef of ['https://external.test/image.png', '../unchecked.png', 'unknown']) {
-      const displayed = { ...content, species: [{ ...content.species[0], assetRef }] }
+      const displayed = { ...content, species: [{ ...content.species[0], presentation: { icon: assetRef } }] }
       await expect(
         prepareServerEnvironment('https://server-a.test', descriptor, fake(bytes, displayed)),
       ).rejects.toThrow('内容资源未在服务器目录声明')
     }
     const official = {
       ...content,
-      species: [{ ...content.species[0], id: 'pet_official', assetRef: 'https://official.test/pet.png' }],
+      species: [{ ...content.species[0], id: 'pet_official', presentation: { icon: 'https://official.test/pet.png' } }],
     }
     const result = await prepareServerEnvironment('https://server-a.test', descriptor, fake(bytes, official))
-    expect(result.content.species[0].assetRef).toBe('https://official.test/pet.png')
+    expect(result.content.species[0].presentation?.icon).toBe('https://official.test/pet.png')
   })
 })
 
@@ -138,7 +135,10 @@ it('rejects missing definitions, server effect payloads, unsupported renderers a
 
 it('rejects non-HTTP core references and excessive metadata nesting before readiness', async () => {
   for (const assetRef of ['javascript:alert(1)', 'file:///tmp/a.png', '/local-workspace.png']) {
-    const invalid = { ...content, species: [{ ...content.species[0], id: 'pet_core', assetRef }] }
+    const invalid = {
+      ...content,
+      species: [{ ...content.species[0], id: 'pet_core', presentation: { icon: assetRef } }],
+    }
     await expect(prepareServerEnvironment('https://server.test', descriptor, fake(bytes, invalid))).rejects.toThrow()
   }
   let nested: unknown = 'value'

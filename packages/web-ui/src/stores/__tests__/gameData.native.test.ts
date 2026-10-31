@@ -11,7 +11,8 @@ import { useGameDataStore } from '../gameData'
 import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
 const { loadMetadata } = vi.hoisted(() => ({ loadMetadata: vi.fn() }))
-vi.mock('@arcadia-eternity/pack-loader/native', () => ({
+vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
+  ...(await importOriginal<typeof import('@arcadia-eternity/pack-loader/native')>()),
   NativePackLoader: class {
     loadMetadata = loadMetadata
   },
@@ -32,7 +33,13 @@ const read = (kind: 'marks' | 'skills' | 'species') =>
     parse(readFileSync(new URL(`data/${file}`, root), 'utf8'), { merge: true }),
   )
 const data = { marks: read('marks'), skills: read('skills'), species: read('species') }
-const baseResult = () => ({ pack: manifest, data: structuredClone(data), errors: [], source: 'http' })
+const baseResult = () => ({
+  pack: manifest,
+  data: structuredClone(data),
+  presentation: [JSON.parse(readFileSync(new URL('dist/presentation.json', root), 'utf8'))],
+  errors: [],
+  source: 'http',
+})
 
 beforeEach(() => {
   setActivePinia(createPinia())

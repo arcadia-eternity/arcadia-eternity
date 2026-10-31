@@ -36,7 +36,7 @@ export interface ServerEnvironmentContent {
   locales?: ServerContentLocales
   species: (SpeciesSchemaType & ContentDisplayText)[]
   skills: (Omit<SkillSchemaType, 'effect'> & ContentDisplayText)[]
-  marks: (Pick<MarkSchemaType, 'id' | 'iconRef' | 'tags'> & ContentDisplayText)[]
+  marks: (Pick<MarkSchemaType, 'id' | 'tags'> & ContentDisplayText)[]
 }
 
 /** Client assertion of protocol/display readiness, never a code-admission credential. */

@@ -5,7 +5,12 @@ import {
   type BehaviorDefinition,
 } from '@arcadia-eternity/battle/v4'
 import { prepareWorkEnvironment, type WorkRelease } from './works'
-import type { PackManifest } from '@arcadia-eternity/schema'
+import {
+  type PackManifest,
+  type PresentationManifest,
+  PresentationManifestSchema,
+  parseWithErrors,
+} from '@arcadia-eternity/schema'
 import YAML from 'yaml'
 import { PackTransport, type AssetLoadRecord } from './transport'
 import type { PackMetadataResult, PackLoaderOptions, PackSource, LocaleBundles } from './types'
@@ -43,6 +48,7 @@ interface MetadataPack {
   readData(file: string): Promise<unknown[]>
   readLocale(file: string): Promise<unknown>
   assets: AssetLoadRecord[]
+  presentation?: PresentationManifest
 }
 
 /** Load transport metadata against the trusted host's compiled effect directory. */
@@ -171,6 +177,7 @@ export class NativePackLoader extends PackTransport {
       lockfileIssues,
       locales,
       assets: assets.map(asset => asset.manifest),
+      presentation: packs.flatMap(pack => (pack.presentation ? [pack.presentation] : [])),
       assetConflicts: this.detectAssetConflicts(assets),
     }
     return {
@@ -192,7 +199,7 @@ export class NativePackLoader extends PackTransport {
         order.set(item.path, item)
       }
     }
-    const { resolve } = await import('node:path')
+    const { resolve, dirname } = await import('node:path')
     const packs: MetadataPack[] = []
     let lockfile: Awaited<ReturnType<typeof this.loadLockfileFromNodeFs>>
     for (const item of order.values()) {
@@ -221,6 +228,12 @@ export class NativePackLoader extends PackTransport {
         },
         readLocale: async file => YAML.parse(await this.readNodeText(resolve(item.localesRoot, file)), { merge: true }),
         assets,
+        presentation: item.manifest.presentation
+          ? parseWithErrors(
+              PresentationManifestSchema,
+              JSON.parse(await this.readNodeText(resolve(dirname(item.path), item.manifest.presentation))),
+            )
+          : undefined,
       })
     }
     return { packs, lockfile }
@@ -241,6 +254,12 @@ export class NativePackLoader extends PackTransport {
         raw: item.manifestRaw,
         readData: file => this.fetchArray(new URL(file, item.dataRoot).toString()),
         readLocale: file => this.fetchObject(new URL(file, localesRoot).toString()),
+        presentation: item.manifest.presentation
+          ? parseWithErrors(
+              PresentationManifestSchema,
+              await this.fetchObject(new URL(item.manifest.presentation, item.manifestUrl).toString()),
+            )
+          : undefined,
         assets: (await this.loadAssetsFromManifest(item.manifest, item.manifestUrl, transportOptions, errors)).records,
       })
     }

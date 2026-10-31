@@ -1,134 +1,57 @@
-# 内容展示、素材与语言
+# 内容表现与资源引用（v2）
 
-2026-10-28 内容展示合同，2026-10-29 按 #250／#254 更新远程游玩边界。后续实施记录列在文末。
+一个内容包可以同时携带规则、表现、素材和多语言。源数据分开维护，工作台按对象 ID 组合展示。战斗规则产物 `dist/content.json` 不包含表现配置或素材位置。
 
-## 职责
+## 作者源文件
 
-内容包是服主 npm 安装和分享单位。服务器执行效果代码、规则及依赖；远程玩家只取得同一准备结果导出的公开精灵、技能、印记、内容语言和表现引用，不下载／导入 TS、JS 模块或 npm 执行依赖。客户端使用自身发布的界面与固定核心协议，UGC 不能注册消息、操作、组件、脚本或任意调用。摘要用于身份和完整性，不证明素材安全，也不建立资源缓存。
+- `data/species/`、`data/skills/`、`data/marks/`：规则定义。
+- `data/presentations/`：表现定义。`id` 是稳定的表现记录标识；`target.kind` 为 `species | skills | marks`，`target.id` 是本包对象 ID。同一对象最多一个表现定义。
+- `data/resources/`：资源定义。`id` 是包内稳定标识，`kind` 为 `image | audio | swf`，`source` 为包根目录相对路径或 HTTP(S) URL，可选 `name` 为作者界面名称。可选 `tags` 中的 `background`、`music` 用于全局背景／音乐列表。
+- `locales/<language>/<namespace>.yaml`：名称与 ICU 描述，通过内容 ID 关联。
 
-服务器选择内容不等于替玩家授予素材页面或原生权限。SWF 是可执行媒体，浏览器及桌面分别采用 #252／#253 的隔离播放器；播放器细节与验收以这两项的文档和测试为准。玩家无需逐个素材重复授权。该决定替代原有“服务器信任 SWF，所以不另建隔离播放器”的约定。
+以上分类内支持子目录、JSON/YAML、单记录和记录数组；不要求每个对象拆成三个文件。素材可以放在包内任意普通目录，`assets/` 是默认导入位置。禁止路径穿越、符号链接及依赖、构建、内部工作目录。
 
-## 作者文件
-
-源项目使用 `data/`、`src/`、`assets/`、`locales/<language>/<namespace>.json|yaml`。素材文件夹可自由组织；文件路径相对包根目录。精灵、技能、印记的 `presentation` 声明用途：`icon`、`portrait`、`battle`、`cry`、`sfx`、`background`、`music`。`battle` 显式声明 `renderer: image | seer2-swf`、`source` 和可选 `fallback`，不用后缀推断播放器。
-
-本包资源用路径字符串，远程来源支持 HTTP/HTTPS。跨包使用 `{ namespace, path }` 并要求实际 npm 依赖关系。工具生成包内资源的摘要、大小、媒体类型和索引，作者不手填重复清单。HTTP/HTTPS 来源只记录 URL，不在构建或准备环境时下载，也不生成伪造的文件摘要。普通远程 URL 可能变化；固定环境仅固定它的引用，不承诺外链字节不变。
-
-发布物包含 `dist/content.json`、`dist/presentation.json`、效果构建产物、包内素材及所需语言文件。`package.json.arcadia.presentation` 指向生成索引。工具检查 npm `files` 不遗漏实际运行文件。源文件保留与项目备份继续使用同一项目，不另建浏览器 UGC 仓库。
-
-## 服务器
-
-用户随后明确要求：**不做任何资源缓存**。不建立资源磁盘库、内容寻址缓存、远程代理缓存、客户端共享下载缓存或预取全部素材。
-
-准备环境时读取包索引，流式校验包内文件，直接使用固定环境私有包副本中的文件路径；此副本是已有运行环境隔离机制，不另建素材副本。远程引用只公布 URL，客户端按需直连。服务器决定公开哪些引用；客户端仍限制实际接收字节、协议、媒体格式及适用尺寸，SWF 另按隔离播放边界处理。
-
-沿用 `/api/v1/environments/{id}/assets/{hash}` 直接流式分发对应环境的包内文件，支持正确媒体类型、HEAD 和 Range。内容、索引及文件响应使用 `Cache-Control: no-store`，不启用 ETag/不可变缓存。远程源站的响应头由源站负责；客户端主动获取资源时指定 `cache: no-store`。资源只在当前组件/播放器使用期间持有，卸载即释放。
-
-## 客户端
-
-组件按内容 ID 和用途获取素材。服务器、环境各自持有展示状态；切服/退房清理引用、取消旧请求，不能污染官方内容。索引先加载，图鉴/组队图片和音频按需加载；对局只准备所需展示资源，不下载整个环境全部素材。图片交给受限按需加载器，SWF 交给隔离播放器；静态图可作为动画失败的回退。
-
-## 远程目录准备（#250）
-
-沿用 `/api/v1/environments`、`/{id}/content` 和 `/{id}/assets/{hash}`。内置环境与 npm 环境都从服务器同一准备结果导出完整公开目录，包含官方和自定义定义、官方内容语言以及包语言；公开技能／印记不包含效果或服务端执行配置。服务器拒绝超过 16 MiB 的公开内容／描述索引。环境 `resourceRevision` 覆盖公开内容及表现索引。现有房间租约保留原目录和包内文件，新准备结果只供新环境选择。
-
-客户端在接纳前检查完整必需字段、重复 ID、学习技能／特性／纹章引用闭合、语言命名空间和已发布的播放器类型。缺失数据、未知播放器及非法资源声明明确失败；不把客户端同名官方定义补到远程目录。远程内容缺少名称时显示内容 ID，缺少描述时显示空文本；登录、菜单和权限等 UI 语言仍由客户端负责。语言只进入瞬时内容覆盖层，不写入客户端 i18next 官方语言包。
-
-准备结果分别报告 `catalog: ready`、`compatibility: compatible`、`media: on-demand`。为保持既有准入协议，线上的 `resourcesReady` 是目录与显示兼容就绪的旧字段名，不能解释为素材已下载、解码、播放或听见声音。必需元数据错误阻止 Ready／Start；非必需媒体失败按消费组件错误／回退处理。
-
-目录身份包括服务器地址、服务器身份／启动实例、固定环境 ID 和资源版本。切服、退房、取消匹配与环境变化取消请求；代次和身份检查阻止迟到结果覆盖当前目录。加载的内容覆盖整个远程目录，离开后恢复原有本地数据。
-
-当前接收限制：单个元数据响应 16 MiB，资源默认 64 MiB，远程单次声音 16 MiB；按实际流式接收字节计数，不相信 MIME、Content-Length 或服务端摘要。请求最长 20 秒并与调用者取消信号组合；仅 HTTP(S)，禁止 URL 用户名／密码和跳转，不发送凭据和 referrer。索引最多 256 个环境、每环境 256 个包、各 4096 个包内／远程素材；内容每类最多 20000 条，JSON 最大嵌套 16、总节点 500000、单字符串 16384 字符。图片从 PNG／JPEG／WebP 字节头检查尺寸，单边不超过 8192、像素不超过 16777216；不支持 SVG 和动画图片的远程按需解码。实际图片解码仍由浏览器完成并报告失败。SWF 解压、播放器 CPU／内存等限制由独立播放器合同负责，不能用上述图片或下载限制代替。
-
-## 文本
-
-i18next/i18next-vue 保留语言加载、选择、回退与 Vue 响应能力。游戏描述交给 FormatJS `intl-messageformat` 处理一次：命名变量、条件和受控语义标签，渲染为 Vue 节点；不再叠加 Markdown/任意 HTML。中文先完整实现，语言包可扩展其他语言。实体引用与动态图标由客户端注册的组件处理。
-
-定义值、实例公开值和针对目标的预估分别建模；数值与效果尽可能共用参数和函数。浏览器不下载执行 UGC TS；额外预估由服务器按观看者权限提供，不能泄露隐藏信息。通用伤害预估的实现需要独立场景验收，不能把当前层数插值计作预估完成。
-
-## 验收
-
-真实 npm 包内图片、远程 URL、SWF 声明、独立头像/立绘/战斗形象、音频和双语言描述进入服务器与客户端；验证直接文件分发、Range、无缓存响应、包内完整性失败、远程零预下载、当前值刷新、跨包引用和环境切换。现有官方静态玩法保持可用。无需旧载荷自动迁移。
-
-## 作者示例
-
-```json
-{
-  "files": ["dist", "assets", "locales", "data", "src"],
-  "arcadia": {
-    "formatVersion": 1,
-    "projectId": "my-pack",
-    "namespace": "my-pack",
-    "content": "dist/content.json",
-    "presentation": "dist/presentation.json"
-  }
-}
+```yaml
+# data/presentations/puni.yaml
+id: puni-display
+target: { kind: species, id: pet_puni }
+icon: puni-icon
+portrait: puni-portrait
+battle:
+  renderer: image
+  source: puni-portrait
 ```
 
 ```yaml
-# data/species/pet.yaml（省略其他战斗字段）
-id: pet
-presentation:
-  icon: assets/pets/icon.webp
-  portrait: assets/pets/portrait.webp
-  battle:
-    renderer: seer2-swf
-    source: https://example.com/pet.swf
-    fallback: assets/pets/portrait.webp
-  cry: assets/sounds/pet.ogg
+# data/resources/puni.yaml
+- id: puni-icon
+  kind: image
+  source: assets/puni/icon.png
+- id: puni-portrait
+  kind: image
+  source: assets/puni/portrait.png
 ```
 
-```yaml
-# locales/zh-CN/mark.yaml
-shield:
-  name: 护盾
-  description: 抵挡 <shield>{stack}</shield> 点伤害。
-```
+表现用途包含 `icon`、`portrait`、`cry`、`sfx`、`background`、`music`，以及 `battle.renderer/source/fallback`。`renderer` 显式为 `image` 或 `seer2-swf`；回退必须是图片。用途引用资源 ID，不直接填写文件路径或 URL。跨包引用用 `{ namespace: other-pack, id: shared-icon }`，由安装后的 npm 依赖图验证可访问性。
 
-`arcadia-content build` 生成两个 JSON 索引；`arcadia-content pack` 还检查 npm 实际收录列表，拒绝遗漏展示索引或包内素材的产物。语言 namespace 为 `species`、`skill`、`mark`、`mark_ability`、`mark_emblem`、`mark_global`，键为本包内容的局部 ID；服务器添加 namespace 前缀，不覆盖其他包或官方文本。
+## 构建与加载
 
-富文本支持 `<damage>`、`<heal>`、`<shield>`、`<buff>`、`<debuff>`、`<rage>`、`<strong>`、`<emphasis>`；`<mark>my-pack:shield</mark>` 生成名称、图标和悬浮解释。`{power}`、`{stack}` 等使用当前界面提供的公开实例值，也可使用 `{skill.power}`、`{mark.stack}`。ICU 条件／复数由 FormatJS 处理。缺少上下文或错误模板显示原文及格式错误标识，避免虚构实际战斗数值。
+构建生成 `dist/presentation.json`，其 `version` 为 2，包含 `bindings`、`resources`、`locales`、`defaultLocale`。本地资源记录保留稳定 ID，并生成 source/SHA-256/bytes/MIME；远程资源只声明 URL，不下载、代理或缓存。未被引用的已声明素材也保留。
 
-远程资源由浏览器以 `fetch(..., { cache: 'no-store', credentials: 'omit' })` 在使用时获取，资源源站需允许客户端跨域读取；浏览器 HTTPS 页面仍受混合内容规则约束。Blob URL 只属于当前挂载的消费组件，切换来源／卸载时取消请求并释放，不用于共享或持久缓存。SWF 的受击／完成事件只通过核心定义的有限播放接口影响表现，不影响权威战斗状态。对局准备不预加载整个环境或预热后备精灵。
+包清单的 `arcadia.presentation` 指向该产物；npm 的 `files` 必须包含产物和全部已声明的本地素材。基础包通过 `pack.json.presentation` 引用同格式的产物，由基础包构建生成。
 
-## 印记资源
+加载器检查对象目标、重复关联、依赖可访问性和文件完整性。浏览器获取服务器批准的表现目录，在 UI 边界解析资源 ID；实际图片、声音、SWF 由使用它的组件按需加载。固定环境保持自己的资源版本。
 
-普通状态、特性、纹章和全局印记都使用同一 `presentation.icon` 声明：
+## 工作台与外部修改
 
-```yaml
-# data/marks/burn.yaml
-id: burn
-tags: [status]
-presentation:
-  icon: assets/marks/burn.webp
-```
+对象页面的“形象与声音”修改独立表现草稿；资源导入复制文件并创建独立资源定义草稿。选择资源写入 ID。资源页面可查看反向引用并修改素材位置。
 
-`icon` 也接受 HTTP/HTTPS URL 或依赖包的 `{ namespace, path }` 引用。战斗印记、技能关联印记说明、图鉴卡片／详情、基础字段选择器及富文本中的印记引用均从当前环境的印记定义取图，不只查官方 `markImage` 表。远程目录缺少图标时使用客户端随包的通用占位图；不根据相同内容 ID、特性／纹章标签或数字编号查找本地官方媒体。远程技能音效、叫声及胜利声音缺少显式声明时保持静音。官方媒体也由服务器显式导出后才作为远程内容加载。本地可信／离线内容继续保留原有官方回退。
+移动规则或资源定义文件时，ID 不变即可重新扫描定位。仅移动素材文件时会产生缺失诊断，作者在资源定义更新 `source` 后，原有对象关联继续有效。缺失引用保留，不猜测重绑。资源名、路径和内容哈希都不是身份。
 
-## 本轮实施与验证
+表现、资源、规则和语言共用文件版本检查、改动核对、部分保存结果和 YAML 锚点保护。外部修改不会自动覆盖未保存输入。基础包在工作台只读。
 
-已实现作者资源／语言索引生成与打包检查、跨包资源引用检查、包内文件直接流式分发（HEAD/Range/no-store）、远程零预下载、客户端按用途加载与当前消费实例释放、服务器语言覆盖的清理／回退、FormatJS 语义文本和公开实例值，以及各印记入口的自定义图标。真实浏览器已验证实际图片解码、图标重新挂载重新请求、双语言与层数更新、印记引用悬浮和退房清理。
+## 格式迁移
 
-资源不建立服务端磁盘库或客户端共享缓存。现有 npm 环境私有副本用于运行隔离，不新增资源副本。连接服务器时跳过旧桌面 SWF 缓存与备用精灵预热；原有独立官方离线功能不在本轮删除范围。
+旧 `assets.json.mappings`、`assetRef/iconRef/sfxRef` 和规则记录内的 `presentation` 不再作为作者源格式。基础包、内置模板与独立模板仓库已改为分离定义。显示目录中的派生 `presentation` 仍供游戏组件使用，它不回写规则源文件。
 
-尚未把通用目标伤害预估、任意 TS 效果的展示值提供器、图集／序列帧适配器或完整素材上传编辑器计作完成。当前动态描述消费界面已有的技能／印记公开字段。远程 SWF 本轮验证了声明、显式播放器选择及按需加载接入；不把图片浏览器验收冒充新增任意 SWF 格式的播放验收。
-
-本地验证：前端 50 文件／356 项通过，服务端 110 项通过（另 14 项既有跳过），加载器 61 项通过，作者工具 16 项通过，Schema 15 项通过（另 6 项既有跳过）。真实 Microsoft Edge 浏览器用实际 npm 包与 HTTP 文件完成图片解码、印记悬浮、语言／实例值更新、重挂载重新请求及离房清理。网页生产构建、根／服务端类型检查和修改文件 lint 通过；前端完整类型检查仍有 5 项既有错误，未计为通过。上述均为本地验证，不代表 CI、公开 SDK 发行或生产部署。
-
-## 2026-10-29 资源同步补齐
-
-新增完整目录校验、官方内容语言／素材引用导出、内容命名空间限制、内置服务器环境准备、目录与媒体状态区分、取消／迟到响应保护，以及按实际字节和图片尺寸的按需加载限制。既有房间环境固定、无全量素材预取与无缓存分发继续复用。验收以本次自动测试和集成记录为准；本节不宣称干净浏览器／签名桌面跨平台双玩家与 SWF 隔离验收已经全部完成。
-
-## SWF 播放隔离（#252 / #253）
-
-共享播放合同为 `src/services/swf/protocol.ts`：仅容器／影片字节、有限状态、朝向／尺寸、停止／释放；输出就绪、状态列表、命中／完成和有限错误。每个事件绑定实例、加载任务和单调序号。父端检查 schema、状态白名单、长度、频率和生命周期；回调只驱动既有表现队列，不新增对战协议或权威结果来源。
-
-浏览器把固定 `public/swf-player.html` 作为 `sandbox="allow-scripts"` 的 `srcdoc` 装入，始终不授予 `allow-same-origin`。父页面必须部署 `Content-Security-Policy: frame-src 'none'`（同时在 HTML 内设置该 meta 策略）；这允许初始 srcdoc，但阻止被攻陷子页面导航到网络目标。子页面 CSP 为 default-src none，脚本仅固定 bootstrap 和内部 blob，连接仅 blob，禁止表单、子框架、worker、对象。专用 MessageChannel 仅由当前 iframe 的 WindowProxy 转交；不以 `origin=null`、随机 ID 或全局 message 广播作为权限证明。
-
-父端按需以 no-store、omit credentials、拒绝重定向读取当前环境声明的影片；大小上限 16 MiB，FWS/CWS 声明和实际解压上限 64 MiB。固定 petContainer 也走字节，子影片 URL 仅为子页面从获批字节创建的 blob；没有 URL 代理接口。固定随客户端分发的 Ruffle 0.2.0-nightly.2026.3.15 的五个 JS/WASM 文件以有限字节传入，播放器内用 blob 装配，不存在 CDN 回退。运行文件名重写显式匹配该版本，升级需要重跑兼容测试。播放结束和切换释放 blob、通道、iframe 和请求。
-
-安装版本实测 `allowNetworking: none` 会使原容器的 ExternalInterface 不可用，因此采用 all，并由浏览器 CSP／桌面宿主网络拦截执行边界。配置开关本身不构成断网保证。加载 12 秒超时后拆除播放器并允许静态图回退；已有动画任务仍有绝对等待上限。`maxExecutionDuration: 5` 是 Ruffle 脚本执行提示，不是硬 CPU／内存限制；解码、WASM、GPU 和同步桥接可能影响浏览器主线程。iframe 不承诺独立进程或硬资源隔离，主线程完全卡死时父页面计时器也不能提供实时恢复保证。
-
-2026-10-29 验证：Chrome 中原作 fight/1.swf 与 fight/2.swf 通过原网络路径按需读取，固定容器加载 blob 子影片，返回 11 个状态；物理攻击产生 hit／complete，受击产生 complete，切换精灵与反向配置成功。音频上下文 running，观察到音源 start（未进行物理听音）。独立安全测试将整个播放器页面视为已被攻陷，验证父 DOM／存储／桌面桥、fetch／图片／弹窗和异步自身 HTTP、表单、meta 刷新、blob 和 data 导航被拒绝；输入测试覆盖错误归属、旧任务、重放、卸载后回调和超长事件。该记录不代表完成恶意 SWF 文件集、完整原作双玩家对战、全部代表素材（除上述两只）、跨浏览器或资源耗尽验收；这些仍需专项验收。
-
-复跑兼容验证：启动 Web Vite 开发服务，然后执行 `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 PLAYWRIGHT_CHROME_CHANNEL=chrome node packages/web-ui/scripts/verify-swf-browser.mjs`。脚本无需账号，直接按需读取原网络素材；生成包含状态、回调、音频观察的 JSON 报告。记录见 `docs/v4/validation/swf-browser-2026-10-29.json`。浏览器边界回归为 `packages/web-ui/e2e/swf-isolation.spec.ts`；共享端口异常与生命周期回归在 `src/services/swf/__tests__`。
+旧包必须迁移并重新构建；不能仅将旧产物版本号改为 2。模板首次安装的上游提交需要与此协议一起发布；本地开发可用新生成的 SDK 物料执行 `setup --sdk-dir`。

@@ -64,7 +64,7 @@ try {
       await build()
       const manifest = JSON.parse(await readFile(resolve('package.json'), 'utf8'))
       const presentation = JSON.parse(await readFile(resolve('dist/presentation.json'), 'utf8'))
-      if (presentation.resources.length || Object.keys(presentation.locales).length) {
+      if (presentation.bindings.length || presentation.resources.length || Object.keys(presentation.locales).length) {
         if (manifest.arcadia?.presentation !== 'dist/presentation.json')
           throw new Error('Set arcadia.presentation to dist/presentation.json before packing media/locales')
         const npm = await resolveNpmInvocation(['pack', '--dry-run', '--ignore-scripts', '--json'])

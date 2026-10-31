@@ -1,6 +1,6 @@
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
-import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
+import { NativePackLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
@@ -448,6 +448,7 @@ export const useGameDataStore = defineStore('gameData', {
         enforceLockfile: true,
       })
 
+      const presentations = presentationIndex(result.presentation)
       // Build sourceFile mapping: kind → recordId → relativePath
       const sourceFiles: Record<string, Record<string, string>> = {}
       if (result.pack) {
@@ -482,9 +483,24 @@ export const useGameDataStore = defineStore('gameData', {
 
       return {
         folderName,
-        species: this.normalizeData(result.data.species.map(raw => parseWithErrors(SpeciesSchema, raw))).byId,
-        skills: this.normalizeData(result.data.skills.map(raw => parseWithErrors(SkillSchema, raw))).byId,
-        marks: this.normalizeData(result.data.marks.map(raw => parseWithErrors(MarkSchema, raw))).byId,
+        species: this.normalizeData(
+          result.data.species.map(raw => ({
+            ...parseWithErrors(SpeciesSchema, raw),
+            presentation: presentations.get(`species:${parseWithErrors(SpeciesSchema, raw).id}`),
+          })),
+        ).byId,
+        skills: this.normalizeData(
+          result.data.skills.map(raw => ({
+            ...parseWithErrors(SkillSchema, raw),
+            presentation: presentations.get(`skills:${parseWithErrors(SkillSchema, raw).id}`),
+          })),
+        ).byId,
+        marks: this.normalizeData(
+          result.data.marks.map(raw => ({
+            ...parseWithErrors(MarkSchema, raw),
+            presentation: presentations.get(`marks:${parseWithErrors(MarkSchema, raw).id}`),
+          })),
+        ).byId,
         effects: {},
         sourceFiles,
       }
@@ -499,9 +515,25 @@ export const useGameDataStore = defineStore('gameData', {
         enforceLockfile: true,
       })
       if (!isCurrent()) return
-      this.species = this.normalizeData(result.data.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
-      this.skills = this.normalizeData(result.data.skills.map(raw => parseWithErrors(SkillSchema, raw)))
-      this.marks = this.normalizeData(result.data.marks.map(raw => parseWithErrors(MarkSchema, raw)))
+      const presentations = presentationIndex(result.presentation)
+      this.species = this.normalizeData(
+        result.data.species.map(raw => ({
+          ...parseWithErrors(SpeciesSchema, raw),
+          presentation: presentations.get(`species:${parseWithErrors(SpeciesSchema, raw).id}`),
+        })),
+      )
+      this.skills = this.normalizeData(
+        result.data.skills.map(raw => ({
+          ...parseWithErrors(SkillSchema, raw),
+          presentation: presentations.get(`skills:${parseWithErrors(SkillSchema, raw).id}`),
+        })),
+      )
+      this.marks = this.normalizeData(
+        result.data.marks.map(raw => ({
+          ...parseWithErrors(MarkSchema, raw),
+          presentation: presentations.get(`marks:${parseWithErrors(MarkSchema, raw).id}`),
+        })),
+      )
       this.effects = { byId: {}, allIds: [] }
       this.refreshNativeEffectReferences()
 

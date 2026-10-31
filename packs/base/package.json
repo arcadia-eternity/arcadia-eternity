@@ -6,7 +6,6 @@
   "type": "module",
   "description": "Arcadia Eternity base content and trusted native effects",
   "arcadiaEternityPack": "pack.json",
-  "arcadiaEternityAssets": "assets/assets.json",
   "scripts": {
     "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml",
     "build": "run-s clear build:code build:types",
