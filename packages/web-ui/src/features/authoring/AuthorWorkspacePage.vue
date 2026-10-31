@@ -2,6 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import ObjectIcon from './ObjectIcon.vue'
+import ContentTraits from './ContentTraits.vue'
+import { skillCategories } from './traits'
 import RecordForm from './RecordForm.vue'
 import LocaleFields from './LocaleFields.vue'
 import ChangeReview from './ChangeReview.vue'
@@ -14,7 +16,7 @@ import AuthorDescription, { descriptionProblem } from './AuthorDescription'
 import { useAuthorDrafts, isConflict, recordKey, reviewToken, type AuthorDraft } from './drafts'
 import { atField, clone, object, setField, sharedAt, sharedFieldsUnder } from './fields'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
-import { consumers, resourcePaths, textSource } from './catalog'
+import { createCatalogIndex, textSource } from './catalog'
 import {
   authorCall,
   type AuthorSnapshot,
@@ -27,7 +29,7 @@ import {
 
 const projects = ref<SourceProject[]>([]),
   project = ref<SourceProject>(),
-  snapshot = ref<AuthorSnapshot>()
+  snapshot = shallowRef<AuthorSnapshot>()
 const store = useAuthorDrafts(),
   { drafts, pending, conflicts } = store
 const busy = ref(false),
@@ -56,7 +58,8 @@ const languageInput = ref('')
 const projectSettingsOpen = ref(false)
 const readOnly = computed(() => snapshot.value?.capabilities?.sourceEditing === false)
 const libraryLimit = ref(60)
-watch([tab, search], () => {
+const skillCategory = ref('all')
+watch([tab, search, skillCategory], () => {
   libraryLimit.value = 60
 })
 const assistantProposals = shallowRef<ReviewedProposal[]>([])
@@ -181,9 +184,30 @@ const rows = computed(() =>
     row =>
       ['species', 'skills', 'marks'].includes(row.kind) &&
       (tab.value === 'all' || objectType(row) === tab.value) &&
+      (tab.value !== 'skills' || skillCategory.value === 'all' || row.record.category === skillCategory.value) &&
       `${label(row)} ${row.record.id}`.toLocaleLowerCase().includes(search.value.toLocaleLowerCase()),
   ),
 )
+const skillCounts = computed(() => {
+  const counts: Record<string, number> = { all: 0 }
+  for (const row of effectiveRecords.value) {
+    if (row.kind !== 'skills') continue
+    counts.all!++
+    const category = String(row.record.category)
+    counts[category] = (counts[category] ?? 0) + 1
+  }
+  return counts
+})
+const contentCounts = computed(() => {
+  const counts: Record<string, number> = { all: 0 }
+  for (const row of effectiveRecords.value) {
+    if (!['species', 'skills', 'marks'].includes(row.kind)) continue
+    counts.all!++
+    const type = objectType(row)
+    counts[type] = (counts[type] ?? 0) + 1
+  }
+  return counts
+})
 const currentLocaleSource = computed(() => (selected.value ? localeSourceFor(selected.value, locale.value) : undefined))
 function localeSourceFor(row: SourceRecord, language: string) {
   return localeFor(
@@ -243,29 +267,24 @@ const marks = computed(() =>
       reference: `${snapshot.value?.project.namespace}:${row.record.id}`,
     })),
 )
-const usedBy = computed(() =>
-  selected.value
-    ? consumers(
-        effectiveRecords.value,
-        { kind: selected.value.kind, id: selected.value.record.id },
-        projectId.value,
-      ).filter(row => ['species', 'skills', 'marks'].includes(row.kind))
-    : [],
-)
+const catalogIndex = computed(() => createCatalogIndex(effectiveRecords.value, projectId.value))
+const fileVersions = computed(() => new Map(snapshot.value?.files.map(file => [file.file, file.modified])))
+function contentConsumers(row: SourceRecord) {
+  return catalogIndex.value
+    .consumers(row.kind, row.record.id)
+    .filter(row => ['species', 'skills', 'marks'].includes(row.kind))
+}
+const usedBy = computed(() => (selected.value ? contentConsumers(selected.value) : []))
 const impacts = computed(() =>
   Object.fromEntries(
-    pending.value.map(draft => [draft.key, consumers(effectiveRecords.value, draft, projectId.value).map(label)]),
+    pending.value.map(draft => [draft.key, catalogIndex.value.consumers(draft.kind, draft.id).map(label)]),
   ),
 )
 function iconSource(owner: SourceRecord) {
-  const binding = effectiveRecords.value.find(
-    row =>
-      row.kind === 'presentations' &&
-      object(row.record.target) &&
-      row.record.target.kind === owner.kind &&
-      row.record.target.id === owner.record.id,
-  )
-  return assets.value.find(row => row.kind === 'image' && row.id === binding?.record.icon)?.source
+  const binding = catalogIndex.value.presentation(owner.kind, owner.record.id)
+  const id = binding?.record.icon
+  const resource = typeof id === 'string' ? catalogIndex.value.record('resources', id)?.record : undefined
+  return resource?.kind === 'image' && typeof resource.source === 'string' ? resource.source : undefined
 }
 const resourceRows = computed(() => effectiveRecords.value.filter(row => row.kind === 'resources'))
 const assets = computed(() =>
@@ -282,27 +301,19 @@ const visibleAssets = computed(() =>
   ),
 )
 const assetRecord = computed(() => resourceRows.value.find(row => row.record.id === selectedAssetId.value))
-const assetUsers = computed(() =>
-  assetRecord.value
-    ? effectiveRecords.value
-        .filter(row => row.kind === 'presentations' && resourcePaths(row.record).includes(assetRecord.value!.record.id))
-        .flatMap(row => {
-          const target = row.record.target
-          return object(target)
-            ? effectiveRecords.value.filter(owner => owner.kind === target.kind && owner.record.id === target.id)
-            : []
-        })
-    : [],
-)
+const assetUsers = computed(() => {
+  if (!assetRecord.value) return []
+  const owners = catalogIndex.value.consumers('resources', assetRecord.value.record.id).flatMap(row => {
+    const target = row.record.target
+    if (row.kind !== 'presentations' || !object(target)) return []
+    const owner = catalogIndex.value.record(String(target.kind), String(target.id))
+    return owner ? [owner] : []
+  })
+  return [...new Set(owners)]
+})
 const currentMedia = computed<SourceRecord>(() => {
   const owner = selected.value
-  const found = effectiveRecords.value.find(
-    row =>
-      row.kind === 'presentations' &&
-      object(row.record.target) &&
-      row.record.target.kind === owner?.kind &&
-      row.record.target.id === owner?.record.id,
-  )
+  const found = owner ? catalogIndex.value.presentation(owner.kind, owner.record.id) : undefined
   if (found) return found
   const id = `${owner?.kind}.${owner?.record.id}`
   return {
@@ -438,6 +449,7 @@ function switchTab(key: string) {
   if (key === 'assistant' && !assistantContext.value) assistantKeys.value = picked.value.slice()
   if (key === 'locales') localeScope.value = null
   tab.value = key
+  skillCategory.value = 'all'
   selectedId.value = ''
   screen.value = 'editor'
   history.value = []
@@ -1017,12 +1029,7 @@ onBeforeUnmount(() => {
             :aria-pressed="tab === key && screen === 'editor'"
             @click="switchTab(key)"
           >
-            {{ title
-            }}<span v-if="Object.hasOwn(contentTypes, key)">{{
-              effectiveRecords.filter(
-                row => ['species', 'skills', 'marks'].includes(row.kind) && (key === 'all' || objectType(row) === key),
-              ).length
-            }}</span>
+            {{ title }}<span v-if="Object.hasOwn(contentTypes, key)">{{ contentCounts[key] ?? 0 }}</span>
           </button>
         </nav>
         <details v-if="dirty" open class="draft-list">
@@ -1221,7 +1228,10 @@ onBeforeUnmount(() => {
                   {{ labels[`${tab}:${selectedId}`] || currentRecord.name || selectedId
                   }}<span v-if="currentDraft" class="badge">草稿</span>
                 </h1>
-                <small>{{ contentTypes[objectType(selected)] }} · {{ currentRecord.element || '内容对象' }}</small>
+                <div class="object-metadata">
+                  <small>{{ contentTypes[objectType(selected)] }}</small>
+                  <ContentTraits :kind="selected.kind" :record="currentRecord" />
+                </div>
               </div>
               <div class="tools">
                 <button v-if="!readOnly" @click="openAssistant([recordKey(selected)])">请 AI 帮忙</button
@@ -1326,6 +1336,16 @@ onBeforeUnmount(() => {
                 新建内容
               </button>
             </header>
+            <nav v-if="tab === 'skills'" class="skill-categories" aria-label="技能类别">
+              <button
+                v-for="(title, category) in { all: '全部技能', ...skillCategories }"
+                :key="category"
+                :aria-pressed="skillCategory === category"
+                @click="skillCategory = category"
+              >
+                {{ title }} <span>{{ skillCounts[category] ?? 0 }}</span>
+              </button>
+            </nav>
             <div v-if="pickedRows.length" class="selection-bar">
               <strong>已选 {{ pickedRows.length }} 项</strong>
               <p>{{ pickedRows.map(label).join('、') }}</p>
@@ -1355,9 +1375,12 @@ onBeforeUnmount(() => {
                       :kind="row.kind"
                       :source="iconSource(row)"
                       :project="project?.id"
-                      :revision="snapshot?.files.find(file => file.file === iconSource(row))?.modified"
+                      :revision="fileVersions.get(iconSource(row) ?? '')"
                     /><strong>{{ label(row) }}</strong></span
-                  ><small>{{ contentTypes[objectType(row)] }}{{ drafts[recordKey(row)] ? ' · 有草稿' : '' }}</small>
+                  ><span class="object-metadata"
+                    ><small>{{ contentTypes[objectType(row)] }}{{ drafts[recordKey(row)] ? ' · 有草稿' : '' }}</small>
+                    <ContentTraits :kind="row.kind" :record="row.record"
+                  /></span>
                   <AuthorDescription
                     :text="
                       localized(row, locale).description ||
@@ -1370,12 +1393,7 @@ onBeforeUnmount(() => {
                     :interactive="false"
                   />
                 </button>
-                <small>{{
-                  consumers(effectiveRecords, { kind: row.kind, id: row.record.id }, projectId)
-                    .filter(row => ['species', 'skills', 'marks'].includes(row.kind))
-                    .map(label)
-                    .join('、') || '独立内容'
-                }}</small>
+                <small>{{ contentConsumers(row).map(label).join('、') || '独立内容' }}</small>
               </article>
             </div>
             <button v-if="rows.length > libraryLimit" @click="libraryLimit += 60">
@@ -1397,7 +1415,7 @@ onBeforeUnmount(() => {
           <div class="asset-layout">
             <div class="resource-list">
               <button
-                v-for="resource in visibleAssets"
+                v-for="resource in visibleAssets.slice(0, libraryLimit)"
                 :key="resource.id"
                 :aria-pressed="selectedAssetId === resource.id"
                 @click="attempt(() => readAsset(resource.source, resource.id))"
@@ -1405,13 +1423,12 @@ onBeforeUnmount(() => {
                 <strong>{{ resource.name }}</strong
                 ><small
                   >{{ /^https?:/.test(resource.source) ? '远程资源' : '项目资源' }} ·
-                  {{
-                    effectiveRecords.filter(
-                      row => row.kind === 'presentations' && resourcePaths(row.record).includes(resource.id),
-                    ).length
-                  }}
+                  {{ catalogIndex.consumers('resources', resource.id).length }}
                   处使用</small
                 >
+              </button>
+              <button v-if="visibleAssets.length > libraryLimit" @click="libraryLimit += 60">
+                显示更多资源（{{ libraryLimit }} / {{ visibleAssets.length }}）
               </button>
             </div>
             <section v-if="asset" class="asset-detail">

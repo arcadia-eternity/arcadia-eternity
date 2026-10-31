@@ -15,6 +15,9 @@ import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
 import { ContentLibrary } from './content-library.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
+import { protectStandardStreams } from './stdio.mjs'
+
+protectStandardStreams()
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')

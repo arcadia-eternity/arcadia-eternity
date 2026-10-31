@@ -100,6 +100,39 @@ export function consumers(rows: SourceRecord[], target: { kind: string; id: stri
     references(row, projectId).some(reference => reference.kind === target.kind && reference.id === target.id),
   )
 }
+
+/** Rebuild on source/draft changes, not for each card and each navigation render. */
+export function createCatalogIndex(rows: SourceRecord[], projectId: string) {
+  const key = (kind: string, id: string) => JSON.stringify([kind, id])
+  const records = new Map<string, SourceRecord>()
+  const bindings = new Map<string, SourceRecord>()
+  const users = new Map<string, SourceRecord[]>()
+  for (const row of rows) {
+    const identity = key(row.kind, row.record.id)
+    if (!records.has(identity)) records.set(identity, row)
+    const target = row.record.target
+    if (
+      row.kind === 'presentations' &&
+      object(target) &&
+      typeof target.kind === 'string' &&
+      typeof target.id === 'string'
+    ) {
+      const owner = key(target.kind, target.id)
+      if (!bindings.has(owner)) bindings.set(owner, row)
+    }
+    for (const target of references(row, projectId)) {
+      const identity = key(target.kind, target.id)
+      const list = users.get(identity) ?? []
+      list.push(row)
+      users.set(identity, list)
+    }
+  }
+  return {
+    record: (kind: string, id: string) => records.get(key(kind, id)),
+    presentation: (kind: string, id: string) => bindings.get(key(kind, id)),
+    consumers: (kind: string, id: string) => users.get(key(kind, id)) ?? [],
+  }
+}
 const fieldNames: Record<string, string> = {
   name: '名称',
   description: '描述',

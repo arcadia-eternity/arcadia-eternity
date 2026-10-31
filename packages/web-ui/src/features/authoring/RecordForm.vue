@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Element } from '@arcadia-eternity/const'
+import ElementIcon from '@/components/battle/ElementIcon.vue'
+import { isElement, elementName, skillCategories } from './traits'
 import ChoicePicker from './ChoicePicker.vue'
 import { fieldLabel, referenceTarget, referenceValue } from './catalog'
 import { atField, clone, object, setField, sharedAt } from './fields'
@@ -210,22 +212,29 @@ const media = computed(() =>
             @input="change('name', ($event.target as HTMLInputElement).value)"
         /></label>
         <label v-if="kind !== 'marks'"
-          >属性<select
-            :disabled="locked('element')"
-            :value="text('element')"
-            @change="change('element', ($event.target as HTMLSelectElement).value)"
-          >
-            <option v-for="element in Object.values(Element)" :key="element">{{ element }}</option>
-          </select></label
+          >属性<span class="element-select">
+            <ElementIcon v-if="isElement(record.element)" :element="record.element" :size="24" aria-hidden="true" />
+            <select
+              aria-label="属性"
+              :disabled="locked('element')"
+              :value="text('element')"
+              @change="change('element', ($event.target as HTMLSelectElement).value)"
+            >
+              <option v-for="element in Object.values(Element)" :key="element" :value="element">
+                {{ elementName(element) }}
+              </option>
+            </select></span
+          ></label
         >
         <label v-if="kind === 'skills'"
           >类别<select
+            aria-label="类别"
             :disabled="locked('category')"
             :value="text('category')"
             @change="change('category', ($event.target as HTMLSelectElement).value)"
           >
-            <option v-for="category in ['Physical', 'Special', 'Status', 'Climax']" :key="category">
-              {{ category }}
+            <option v-for="(label, category) in skillCategories" :key="category" :value="category">
+              {{ label }}
             </option>
           </select></label
         >

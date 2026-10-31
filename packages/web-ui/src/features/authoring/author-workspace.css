@@ -572,3 +572,32 @@ input[type='checkbox'] {
   display: flex;
   align-items: center;
 }
+
+.author-page .element-select,
+.author-page .object-metadata {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.author-page .element-select select {
+  flex: 1;
+  min-width: 0;
+}
+.author-page .object-metadata {
+  flex-wrap: wrap;
+}
+.author-page .skill-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.author-page .skill-categories button[aria-pressed='true'] {
+  background: var(--author-soft);
+  color: var(--author-accent);
+  border-color: var(--author-accent);
+}
+.author-page .skill-categories span {
+  color: var(--author-muted);
+  margin-left: 4px;
+}

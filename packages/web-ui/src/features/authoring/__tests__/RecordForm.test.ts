@@ -17,6 +17,21 @@ const form = (record: ContentRow, sharedFields: SharedField[], kind = 'marks') =
   })
 
 describe('shared YAML fields', () => {
+  it('shows the existing element icon while localized choices retain their schema values', async () => {
+    const wrapper = form({ id: 'hit', element: 'Water', category: 'Physical' }, [], 'skills')
+    try {
+      expect(wrapper.get('.element-icon').attributes('alt')).toBe('Water')
+      await wrapper.get('select[aria-label="属性"]').setValue('Fire')
+      expect(wrapper.emitted('change')?.[0]?.[0]).toMatchObject({ element: 'Fire', category: 'Physical' })
+      await wrapper.get('select[aria-label="类别"]').setValue('Special')
+      expect(wrapper.emitted('change')?.[1]?.[0]).toMatchObject({ element: 'Water', category: 'Special' })
+      expect(wrapper.get('option[value="Special"]').text()).toBe('特攻')
+      await wrapper.setProps({ record: { id: 'hit', element: 'Fire', category: 'Special' } })
+      expect(wrapper.get('.element-icon').attributes('alt')).toBe('Fire')
+    } finally {
+      wrapper.unmount()
+    }
+  })
   it('keeps shared values visible, allows an independent edit and locates the source definition', async () => {
     const wrapper = form({ id: 'burn', name: 'Burn', config: { duration: 3, maxStacks: 6, stackable: true } }, [
       shared(['config']),
