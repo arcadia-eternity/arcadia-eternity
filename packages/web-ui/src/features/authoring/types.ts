@@ -49,6 +49,7 @@ export interface AuthorDiagnostic {
   column?: number
 }
 export interface AuthorSnapshot {
+  version?: string
   root: string
   name: string
   project: { projectId: string; namespace: string; sdkApi?: number }
@@ -61,6 +62,8 @@ export interface AuthorSnapshot {
   diagnostics: AuthorDiagnostic[]
 }
 export interface SourceProject {
+  readOnly?: boolean
+  published?: boolean
   id: string
   directory: string
   name: string

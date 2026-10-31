@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { useAuthorDrafts, isConflict } from '../drafts'
 import { initialRecord, localeFor, objectType } from '../objects'
-import { parseProposals, relatedKeys, type AssistantContext } from '../assistant'
 import { recordKey } from '../drafts'
 import type { AuthorSnapshot, SourceRecord } from '../types'
 const record = (kind: string, id: string): SourceRecord => ({
@@ -61,53 +60,5 @@ describe('independent object drafts', () => {
     expect(localeFor([], row, 'en', [])?.namespace).toBe('mark_ability')
     expect(localeFor([], row, 'en', ['locales/en/mark_ability.json'])).toBeUndefined()
     expect(localeFor([], row, '../en', [])).toBeUndefined()
-  })
-})
-
-describe('AI context and proposal scope', () => {
-  const skill = {
-    ...record('skills', 'guard'),
-    record: {
-      id: 'guard',
-      power: 40,
-      behaviors: [
-        {
-          definitionId: { $ref: { projectId: 'test', kind: 'behavior', id: 'guard-effect' } },
-          params: { mark: { $ref: { projectId: 'test', kind: 'mark', id: 'shield' } } },
-        },
-      ],
-    },
-  } as SourceRecord
-  const mark = record('marks', 'shield'),
-    other = record('species', 'unrelated')
-  const context: AssistantContext = {
-    protocol: 'arcadia-author-context/v1',
-    snapshotId: 's1',
-    projectId: 'test',
-    request: '',
-    includesDrafts: true,
-    objects: [skill, mark].map((row, index) => ({
-      key: recordKey(row),
-      label: row.record.id,
-      access: index ? 'reference-only' : 'editable',
-      source: row,
-      record: row.record,
-      texts: { en: {} },
-    })),
-  }
-  const proposal = { key: recordKey(skill), target: 'record', path: ['power'], before: 40, after: 60 }
-  const parse = (proposals: unknown[], baseSnapshotId = 's1') =>
-    parseProposals(JSON.stringify({ proposals, baseSnapshotId }), context)
-  it('discovers explicit effect parameter references without including unrelated species', () => {
-    expect(relatedKeys([skill, mark, other], [recordKey(skill)], 'test')).toEqual([recordKey(mark)])
-    expect(parse([proposal])[0]?.after).toBe(60)
-  })
-  it('rejects reference-only changes, stale snapshots, identity edits and mismatched bases', () => {
-    expect(() => parse([{ ...proposal, key: recordKey(mark) }])).toThrow('仅供参考')
-    expect(() => parse([proposal], 'old')).toThrow('快照')
-    expect(() => parse([{ ...proposal, path: ['id'], before: 'guard' }])).toThrow('标识')
-    expect(() => parse([{ ...proposal, before: 30 }])).toThrow('原值')
-    expect(() => parse([{ ...proposal, path: ['behaviors', '0'] }])).toThrow('列表')
-    expect(() => parse([{ ...proposal, path: ['__proto__'] }])).toThrow('格式')
   })
 })

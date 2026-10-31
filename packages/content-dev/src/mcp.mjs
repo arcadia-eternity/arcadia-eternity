@@ -6,13 +6,25 @@ import { openAuthorSession } from './author-api.mjs'
 import { diagnostic } from './workspace.mjs'
 
 const [directory, ...flags] = process.argv.slice(2)
-if (!directory || flags.some(flag => !['--execute', '--read-only'].includes(flag))) {
-  process.stderr.write('Usage: arcadia-content-mcp <project-directory> [--execute] [--read-only]\n')
+let contextFile
+const options = new Set()
+for (let index = 0; index < flags.length; index++) {
+  const flag = flags[index]
+  if (flag === '--context-file' && flags[index + 1] && !flags[index + 1].startsWith('--')) contextFile = flags[++index]
+  else if (['--execute', '--read-only', '--published'].includes(flag)) options.add(flag)
+  else options.add('invalid')
+}
+if (!directory || options.has('invalid')) {
+  process.stderr.write(
+    'Usage: arcadia-content-mcp <project-directory> [--execute] [--read-only] [--context-file <file>] [--published]\n',
+  )
   process.exit(1)
 }
 const session = await openAuthorSession(directory, {
-  execute: flags.includes('--execute'),
-  readOnly: flags.includes('--read-only'),
+  execute: options.has('--execute'),
+  readOnly: options.has('--read-only'),
+  contextFile,
+  published: options.has('--published'),
 })
 const server = new McpServer({ name: 'arcadia-content-authoring', version: '0.1.0' })
 const outputSchema = { result: z.unknown() }
@@ -39,6 +51,14 @@ tool(
   true,
 )
 tool(
+  'workspace_context',
+  'Read live desktop context: current view, focused object/resource, language, unsaved drafts and external conflicts. No selection is required. Context is not an edit scope or authorization; follow the user request and query related content as needed. Draft values are unsaved and are not source revisions. Disconnected/expired context must not be treated as current. Re-read source versions before writes; external edits are reconciled by the desktop.',
+  {},
+  'context',
+  undefined,
+  true,
+)
+tool(
   'content_query',
   'Search rules, separate presentations/resources, source files, asset usages or diagnostics. Presentation targets use content IDs; media slots use stable resource IDs. Results are paginated.',
   {
@@ -53,7 +73,7 @@ tool(
 )
 tool(
   'source_read',
-  'Read one project source file and its current version. Generated directories are excluded.',
+  'Read one project source file and its current version. Generated directories are excluded except in read-only published-package sessions.',
   { file: z.string().max(1000) },
   'read',
   undefined,
@@ -104,7 +124,7 @@ for (const [name, kind] of [
   ['package_build', 'pack'],
 ]) {
   if (session.workspace.readOnly) continue
-  if (kind !== 'check' && !flags.includes('--execute')) continue
+  if (kind !== 'check' && !options.has('--execute')) continue
   tool(
     name,
     kind === 'demo'

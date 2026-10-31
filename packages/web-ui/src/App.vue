@@ -68,7 +68,6 @@
             人机对战
           </el-button>
           <el-button type="info" icon="Document" @click="router.push('/local-battle-reports')">本地战报</el-button>
-          <el-button v-if="isDesktop" @click="router.push('/creator')">创作</el-button>
           <el-button @click="router.push('/content')">内容包</el-button>
           <!-- 房间状态显示 -->
           <el-button
@@ -145,13 +144,6 @@
             <el-icon><MagicStick /></el-icon>
             <span>人机对战</span>
           </router-link>
-          <router-link
-            v-if="isDesktop"
-            to="/creator"
-            @click="showMobileMenu = false"
-            class="flex items-center gap-4 px-6 py-4 text-gray-600"
-            >创作</router-link
-          >
           <router-link
             to="/storage"
             @click="showMobileMenu = false"
@@ -390,7 +382,7 @@
     </div>
     <OfflineResources v-if="isStaticMode" />
 
-    <main class="flex-1 overflow-auto relative">
+    <main class="flex-1 min-h-0 overflow-auto relative">
       <router-view v-slot="{ Component }">
         <component :is="Component" class="w-full" :key="$route.path" />
       </router-view>

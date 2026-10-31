@@ -70,12 +70,9 @@ test(
   { skip: !enabled, timeout: 120000 },
   async () => {
     await desktop(async ({ app, page, expect }) => {
-      const base = fileURLToPath(new URL('../../../../packs/base', import.meta.url))
-      await app.evaluate(({ dialog }, file) => {
-        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
-      }, base)
-      await page.getByRole('button', { name: '打开项目', exact: true }).click()
-      await expect(page.getByRole('heading', { name: '内容库', exact: true })).toBeVisible()
+      await page.goto((process.env.ARCADIA_AUTHOR_TEST_ORIGIN || 'http://127.0.0.1:5183') + '/content')
+      await page.getByRole('button', { name: '浏览内容（只读）', exact: true }).click()
+      await expect(page.getByRole('heading', { name: '精灵', exact: true })).toBeVisible()
       await expect(page.locator('.content-card')).toHaveCount(60, { timeout: 30000 })
       const cdp = process.env.ARCADIA_AUTHOR_PROFILE ? await page.context().newCDPSession(page) : undefined
       if (cdp) {
@@ -126,10 +123,26 @@ test(
         return icon instanceof HTMLImageElement && icon.complete && icon.naturalWidth > 0
       })
       await page.screenshot({ path: '/tmp/arcadia-author-skill-categories.png' })
-      await page.locator('.content-card').first().click()
+      await page.locator('.content-card').nth(15).click()
+      const scroll = await page.locator('.object-library').evaluate(node => node.scrollTop)
+      assert.ok(scroll > 0)
       await expect(page.locator('.page-heading .element-icon')).toBeVisible()
       await expect(page.locator('.record-form .element-icon')).toBeVisible()
       await expect(page.getByLabel('属性', { exact: true })).toBeDisabled()
+      const navigation = page.getByRole('navigation', { name: '内容分类' })
+      await navigation.getByRole('button', { name: /^精灵/ }).click()
+      await navigation.getByRole('button', { name: /^技能/ }).click()
+      await expect(page.getByLabel('属性', { exact: true })).toBeDisabled()
+      await expect(categories.getByRole('button', { name: /^必杀/ })).toHaveAttribute('aria-pressed', 'true')
+      await expect.poll(() => page.locator('.object-library').evaluate(node => node.scrollTop)).toBe(scroll)
+      // Search spans object types without changing the list or forcing a file-oriented view.
+      await page.getByRole('searchbox', { name: '搜索内容' }).fill('pet_abao')
+      await expect(page.locator('.library-entry[data-kind=species]')).toHaveCount(1)
+      await page.locator('.library-entry[data-kind=species] .content-card').click()
+      await expect(page.getByRole('button', { name: '技能、特性与纹章', exact: true })).toBeVisible()
+      await expect(page.getByRole('searchbox', { name: '搜索内容' })).toHaveValue('pet_abao')
+      await page.getByRole('button', { name: '← 返回上一项', exact: true }).click()
+      await expect(page.getByLabel('威力', { exact: true })).toBeDisabled()
       await page
         .getByRole('navigation', { name: '内容分类' })
         .getByRole('button', { name: '资源', exact: true })

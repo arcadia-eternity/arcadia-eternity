@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import ObjectIcon from './ObjectIcon.vue'
 import ContentTraits from './ContentTraits.vue'
 import { skillCategories } from './traits'
@@ -8,13 +8,11 @@ import RecordForm from './RecordForm.vue'
 import LocaleFields from './LocaleFields.vue'
 import ChangeReview from './ChangeReview.vue'
 import SourceMediaPreview from './SourceMediaPreview.vue'
-import AssistantPanel from './AssistantPanel.vue'
 import { contentTypes, objectType, initialRecord, localeFor } from './objects'
-import { relatedKeys, type AssistantContext, type AssistantProposal, type ReviewedProposal } from './assistant'
 import { readResourceBytes } from '@/services/resourceTransport'
 import AuthorDescription, { descriptionProblem } from './AuthorDescription'
 import { useAuthorDrafts, isConflict, recordKey, reviewToken, type AuthorDraft } from './drafts'
-import { atField, clone, object, setField, sharedAt, sharedFieldsUnder } from './fields'
+import { clone, object, sharedAt, sharedFieldsUnder } from './fields'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
 import { createCatalogIndex, textSource } from './catalog'
 import {
@@ -37,12 +35,13 @@ const busy = ref(false),
   notice = ref(''),
   name = ref(''),
   search = ref('')
-const tab = ref('all'),
+const route = useRoute()
+const router = useRouter()
+const tab = ref('species'),
   selectedId = ref(''),
   section = ref<'base' | 'references' | 'media'>('base')
 const screen = ref<'editor' | 'save' | 'conflict' | 'discard' | 'create'>('editor')
-const picked = ref<string[]>([]),
-  recent = ref<string[]>([]),
+const recent = ref<string[]>([]),
   localeScope = ref<string[] | null>(null)
 const newType = ref('skills'),
   newName = ref(''),
@@ -51,9 +50,6 @@ const newType = ref('skills'),
 const createRelation = ref<{ row: SourceRecord; slot: string }>()
 const copyFrom = ref<ContentRow>()
 const copyMediaFrom = ref<ContentRow>()
-const assistantKeys = ref<string[]>([]),
-  assistantSession = ref(0),
-  assistantContext = ref<AssistantContext>()
 const languageInput = ref('')
 const projectSettingsOpen = ref(false)
 const readOnly = computed(() => snapshot.value?.capabilities?.sourceEditing === false)
@@ -62,14 +58,51 @@ const skillCategory = ref('all')
 watch([tab, search, skillCategory], () => {
   libraryLimit.value = 60
 })
-const assistantProposals = shallowRef<ReviewedProposal[]>([])
 const locale = ref(localStorage.getItem('arcadia-author-locale') || 'zh-CN')
 const editor = ref(localStorage.getItem('arcadia-author-editor') || 'code'),
   assistantExecution = ref(false)
 const jobs = ref<AuthorJob[]>([]),
   choices = ref<Record<string, string>>({}),
   reviewed = ref<Record<string, string>>({})
-const history = ref<{ kind: string; id: string; section: 'base' | 'references' | 'media' }[]>([])
+type ViewState = {
+  kind: string
+  id: string
+  recordKind: string
+  section: 'base' | 'references' | 'media'
+  search: string
+  category: string
+  scroll: number
+  limit: number
+}
+const history = ref<ViewState[]>([])
+const categoryViews = new Map<string, ViewState>()
+const objectList = ref<HTMLElement>()
+function captureView(): ViewState {
+  return {
+    kind: tab.value,
+    id: selectedId.value,
+    recordKind: selectedKind.value,
+    section: section.value,
+    search: search.value,
+    category: skillCategory.value,
+    scroll: objectList.value?.scrollTop ?? 0,
+    limit: libraryLimit.value,
+  }
+}
+async function restoreView(view: ViewState) {
+  lastFocused.value = view.id ? { kind: view.recordKind, id: view.id } : undefined
+  selectedKind.value = view.recordKind
+  tab.value = view.kind
+  selectedId.value = view.id
+  section.value = view.section
+  search.value = view.search
+  skillCategory.value = view.category
+  await nextTick()
+  libraryLimit.value = view.limit
+  await nextTick()
+  if (objectList.value) objectList.value.scrollTop = view.scroll
+}
+const selectedKind = ref('species')
 const selectedAssetId = ref('')
 const asset = ref<{ file: string; bytes: Uint8Array }>(),
   assetLoading = ref(false)
@@ -80,13 +113,10 @@ const tabs: Record<string, string> = {
   locales: '多语言',
   effects: '效果代码',
   tests: '检查与运行',
-  assistant: 'AI 协作',
-  tools: '工具接入',
+  tools: '外部助手',
 }
 const visibleTabs = computed(() =>
-  Object.fromEntries(
-    Object.entries(tabs).filter(([key]) => !readOnly.value || !['assistant', 'tests', 'effects'].includes(key)),
-  ),
+  Object.fromEntries(Object.entries(tabs).filter(([key]) => !readOnly.value || !['tests', 'effects'].includes(key))),
 )
 let epoch = 0,
   mediaEpoch = 0,
@@ -119,9 +149,9 @@ const effectiveRecords = computed<SourceRecord[]>(() =>
 )
 const selected = computed<SourceRecord | undefined>(() => {
   const found =
-    snapshot.value?.records.filter(row => row.kind === tab.value && row.record.id === selectedId.value) ?? []
+    snapshot.value?.records.filter(row => row.kind === selectedKind.value && row.record.id === selectedId.value) ?? []
   if (found.length === 1) return found[0]
-  const draft = drafts[keyFor(tab.value, selectedId.value)]
+  const draft = drafts[keyFor(selectedKind.value, selectedId.value)]
   return draft
     ? {
         kind: draft.kind,
@@ -179,15 +209,25 @@ function label(row: SourceRecord) {
 const labels = computed(() =>
   Object.fromEntries(effectiveRecords.value.map(row => [`${row.kind}:${row.record.id}`, label(row)])),
 )
-const rows = computed(() =>
-  effectiveRecords.value.filter(
+const resultType = (row: SourceRecord) => (row.kind === 'resources' ? '资源' : contentTypes[objectType(row)])
+const rows = computed(() => {
+  const searching = !!search.value.trim()
+  const results = effectiveRecords.value.filter(
     row =>
-      ['species', 'skills', 'marks'].includes(row.kind) &&
-      (tab.value === 'all' || objectType(row) === tab.value) &&
-      (tab.value !== 'skills' || skillCategory.value === 'all' || row.record.category === skillCategory.value) &&
-      `${label(row)} ${row.record.id}`.toLocaleLowerCase().includes(search.value.toLocaleLowerCase()),
-  ),
-)
+      (searching ? ['species', 'skills', 'marks', 'resources'] : ['species', 'skills', 'marks']).includes(row.kind) &&
+      (searching || objectType(row) === tab.value) &&
+      (searching ||
+        tab.value !== 'skills' ||
+        skillCategory.value === 'all' ||
+        row.record.category === skillCategory.value) &&
+      `${label(row)} ${row.record.id}`.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase()),
+  )
+  if (searching) {
+    const order = [...Object.keys(contentTypes), 'resources']
+    results.sort((a, b) => order.indexOf(objectType(a)) - order.indexOf(objectType(b)))
+  }
+  return results
+})
 const skillCounts = computed(() => {
   const counts: Record<string, number> = { all: 0 }
   for (const row of effectiveRecords.value) {
@@ -199,10 +239,9 @@ const skillCounts = computed(() => {
   return counts
 })
 const contentCounts = computed(() => {
-  const counts: Record<string, number> = { all: 0 }
+  const counts: Record<string, number> = {}
   for (const row of effectiveRecords.value) {
     if (!['species', 'skills', 'marks'].includes(row.kind)) continue
-    counts.all!++
     const type = objectType(row)
     counts[type] = (counts[type] ?? 0) + 1
   }
@@ -224,23 +263,14 @@ const localeRows = computed(() =>
       (localeScope.value === null || localeScope.value.includes(recordKey(row))),
   ),
 )
-const pickedRows = computed(() => effectiveRecords.value.filter(row => picked.value.includes(recordKey(row))))
 const recentRows = computed(() =>
   recent.value.flatMap(key => effectiveRecords.value.find(row => recordKey(row) === key) ?? []),
-)
-const assistantEntries = computed(() =>
-  effectiveRecords.value
-    .filter(row => ['species', 'skills', 'marks', 'presentations', 'resources'].includes(row.kind))
-    .map(row => ({
-      key: recordKey(row),
-      label: `${row.kind === 'presentations' ? '表现 · ' : row.kind === 'resources' ? '资源 · ' : ''}${label(row)}`,
-    })),
 )
 const currentLocaleDraft = computed(() =>
   pending.value.find(
     draft =>
       draft.type === 'locale' &&
-      draft.kind === tab.value &&
+      draft.kind === selectedKind.value &&
       draft.id === selectedId.value &&
       draft.language === locale.value,
   ),
@@ -368,6 +398,89 @@ const selectedSources = computed(() => [
   ),
 ])
 
+const lastFocused = ref<{ kind: string; id: string }>()
+const contextError = ref('')
+let contextTimer: ReturnType<typeof setTimeout>
+let contextHeartbeat: ReturnType<typeof setInterval>
+const workbenchContext = computed(() => {
+  const focus = lastFocused.value
+  const row = focus ? catalogIndex.value.record(focus.kind, focus.id) : undefined
+  return {
+    project: snapshot.value?.project,
+    packageVersion: snapshot.value?.version,
+    published: !!project.value?.published,
+    readOnly: readOnly.value,
+    view: {
+      category: tab.value,
+      section: section.value,
+      screen: screen.value,
+      search: search.value,
+      skillCategory: skillCategory.value,
+    },
+    language: locale.value,
+    localeScope: tab.value === 'locales' ? localeScope.value : undefined,
+    creation:
+      screen.value === 'create'
+        ? {
+            type: newType.value,
+            id: newId.value,
+            name: newName.value,
+            relation: createRelation.value
+              ? {
+                  kind: createRelation.value.row.kind,
+                  id: createRelation.value.row.record.id,
+                  slot: createRelation.value.slot,
+                }
+              : null,
+          }
+        : undefined,
+    focus: row
+      ? {
+          kind: row.kind,
+          id: row.record.id,
+          name: label(row),
+          source: { file: row.file, version: row.version, index: row.index, sharedFields: row.sharedFields ?? [] },
+          record: row.record,
+          text: localized(row, locale.value),
+          visible:
+            tab.value === 'assets'
+              ? row.kind === 'resources'
+              : selected.value?.kind === row.kind && selectedId.value === row.record.id,
+        }
+      : null,
+    drafts: pending.value.map(draft => ({
+      kind: draft.kind,
+      id: draft.id,
+      type: draft.type,
+      language: draft.language,
+      file: draft.file,
+      expectedVersion: draft.version,
+      created: !!draft.created,
+      base: draft.base,
+      value: draft.value,
+      conflict: isConflict(draft),
+      latest: isConflict(draft) ? (draft.latest ?? null) : undefined,
+    })),
+  }
+})
+async function publishContext() {
+  const id = project.value?.id
+  if (disposed || !id || !snapshot.value) return
+  try {
+    await authorCall({ action: 'context', id, state: workbenchContext.value })
+    if (!disposed && id === project.value?.id) contextError.value = ''
+  } catch (cause) {
+    if (!disposed && id === project.value?.id) contextError.value = String(cause)
+  }
+}
+watch(
+  () => JSON.stringify(workbenchContext.value),
+  () => {
+    clearTimeout(contextTimer)
+    contextTimer = setTimeout(() => void publishContext(), 200)
+  },
+)
+
 async function action<T>(input: Record<string, unknown>) {
   return authorCall<T>({ id: project.value?.id, ...input })
 }
@@ -424,39 +537,54 @@ async function openProject(next: SourceProject) {
   epoch++
   mediaEpoch++
   mediaController?.abort()
+  clearTimeout(contextTimer)
+  lastFocused.value = undefined
   project.value = next
   projectSettingsOpen.value = false
   snapshot.value = undefined
   selectedId.value = ''
   asset.value = undefined
+  selectedAssetId.value = ''
+  assetLoading.value = false
   jobs.value = []
   history.value = []
-  picked.value = []
   recent.value = []
   localeScope.value = null
-  assistantContext.value = undefined
-  assistantKeys.value = []
-  assistantProposals.value = []
   screen.value = 'editor'
   store.clear()
   if (previous && previous !== next.id) await authorCall({ action: 'close', id: previous })
   await refresh()
-  tab.value = 'all'
+  categoryViews.clear()
+  search.value = ''
+  skillCategory.value = 'all'
+  const lastTab = localStorage.getItem(`arcadia-author-tab:${next.id}`) || 'species'
+  tab.value = Object.hasOwn(contentTypes, lastTab) ? lastTab : 'species'
   localStorage.setItem('arcadia-author-project', next.id)
+  if (route.params.projectId !== next.id) await router.replace({ name: 'Creator', params: { projectId: next.id } })
 }
 function switchTab(key: string) {
+  if (key === tab.value && screen.value === 'editor') return
+  if (Object.hasOwn(contentTypes, tab.value)) categoryViews.set(tab.value, captureView())
   notice.value = ''
-  if (key === 'assistant' && !assistantContext.value) assistantKeys.value = picked.value.slice()
   if (key === 'locales') localeScope.value = null
-  tab.value = key
-  skillCategory.value = 'all'
-  selectedId.value = ''
+  if (key === 'assets')
+    lastFocused.value = selectedAssetId.value ? { kind: 'resources', id: selectedAssetId.value } : undefined
   screen.value = 'editor'
   history.value = []
-  search.value = ''
   error.value = ''
+  const previous = categoryViews.get(key)
+  if (previous) void restoreView(previous)
+  else {
+    tab.value = key
+    selectedId.value = ''
+    search.value = ''
+    skillCategory.value = 'all'
+  }
+  if (project.value && Object.hasOwn(contentTypes, key))
+    localStorage.setItem(`arcadia-author-tab:${project.value.id}`, key)
 }
-function navigate(kind: string, id: string) {
+function navigate(kind: string, id: string, fromList = false) {
+  if (selected.value?.kind === kind && selectedId.value === id && screen.value === 'editor') return
   if (kind === 'presentations') {
     const target = effectiveRecords.value.find(row => row.kind === kind && row.record.id === id)?.record.target
     if (object(target)) {
@@ -480,22 +608,30 @@ function navigate(kind: string, id: string) {
     error.value = '未找到唯一的内容对象，请检查外部引用、重复 ID 或依赖。'
     return
   }
-  history.value.push({ kind: tab.value, id: selectedId.value, section: section.value })
+  history.value.push(captureView())
   recent.value = [recordKey(row), ...recent.value.filter(key => key !== recordKey(row))].slice(0, 6)
-  tab.value = kind
+  if (Object.hasOwn(contentTypes, tab.value)) categoryViews.set(tab.value, captureView())
+  if (!fromList) {
+    search.value = ''
+    if (row.kind === 'skills' && row.record.category !== skillCategory.value) skillCategory.value = 'all'
+  }
+  if (!fromList) tab.value = objectType(row)
+  selectedKind.value = row.kind
   selectedId.value = id
+  lastFocused.value = { kind: row.kind, id }
   section.value = 'base'
   screen.value = 'editor'
-  search.value = ''
   error.value = ''
+}
+function returnToList() {
+  selectedId.value = ''
+  lastFocused.value = undefined
+  history.value = []
 }
 function back() {
   const previous = history.value.pop()
-  if (previous) {
-    tab.value = previous.kind
-    selectedId.value = previous.id
-    section.value = previous.section
-  } else selectedId.value = ''
+  if (previous) void restoreView(previous)
+  else returnToList()
   screen.value = 'editor'
 }
 function editRecord(record: ContentRow) {
@@ -508,7 +644,7 @@ function editRecord(record: ContentRow) {
 function editText(text: LocaleText) {
   if (readOnly.value) return
   if (selected.value && currentLocaleSource.value) {
-    store.editLocale(currentLocaleSource.value, selectedId.value, tab.value, text)
+    store.editLocale(currentLocaleSource.value, selectedId.value, selectedKind.value, text)
     if (snapshot.value) store.sync(snapshot.value)
   }
 }
@@ -532,15 +668,11 @@ function languageFields(row: SourceRecord) {
   )
 }
 function openLocales(keys: string[]) {
-  history.value.push({ kind: tab.value, id: selectedId.value, section: section.value })
+  history.value.push(captureView())
   localeScope.value = keys
   tab.value = 'locales'
   selectedId.value = ''
   screen.value = 'editor'
-}
-function togglePick(row: SourceRecord, checked: boolean) {
-  const key = recordKey(row)
-  picked.value = checked ? [...new Set([...picked.value, key])] : picked.value.filter(value => value !== key)
 }
 function suggestFile() {
   const kind = ['ability', 'emblem'].includes(newType.value) ? 'marks' : newType.value
@@ -624,91 +756,6 @@ function createObject() {
   store.sync(snapshot.value)
   navigate(kind, row.record.id)
   notice.value = '已创建草稿；名称、关联和内容定义会一起进入保存核对。'
-}
-function openAssistant(keys: string[]) {
-  assistantKeys.value = keys
-  assistantProposals.value = []
-  assistantContext.value = undefined
-  assistantSession.value++
-  tab.value = 'assistant'
-  selectedId.value = ''
-  screen.value = 'editor'
-}
-function prepareAssistant(options: { keys: string[]; related: boolean; drafts: boolean; request: string }) {
-  if (!snapshot.value || !options.keys.length) throw new Error('请先选择协作内容')
-  const keys = [...new Set(options.keys)]
-  const extra = options.related ? relatedKeys(effectiveRecords.value, keys, projectId.value) : []
-  const objects = [...keys, ...extra].map(key => {
-    const matches = (options.drafts ? effectiveRecords.value : snapshot.value!.records).filter(
-      row => recordKey(row) === key,
-    )
-    if (matches.length !== 1) throw new Error('范围中有新建草稿或重复对象，请包含草稿并检查来源')
-    const row = matches[0]!,
-      draft = options.drafts ? drafts[key] : undefined
-    return {
-      key,
-      label: label(row),
-      access: keys.includes(key) ? ('editable' as const) : ('reference-only' as const),
-      source: {
-        file: draft?.file ?? row.file,
-        version: draft ? draft.version : row.version,
-        index: draft?.index ?? row.index,
-        sharedFields: draft?.sharedFields ?? row.sharedFields,
-      },
-      record: clone(row.record),
-      texts: Object.fromEntries(
-        languages.value.map(language => [
-          language,
-          options.drafts
-            ? clone(localized(row, language))
-            : clone(textSource(snapshot.value!.localeSources, row, language)?.entries[row.record.id] ?? {}),
-        ]),
-      ),
-    }
-  })
-  assistantContext.value = {
-    protocol: 'arcadia-author-context/v1',
-    snapshotId: crypto.randomUUID(),
-    projectId: projectId.value,
-    request: options.request,
-    includesDrafts: options.drafts,
-    objects,
-  }
-}
-function proposalRow(proposal: AssistantProposal) {
-  const matches = effectiveRecords.value.filter(row => recordKey(row) === proposal.key)
-  if (matches.length !== 1) throw new Error('对象来源已缺失或不唯一，建议尚未采用')
-  return matches[0]!
-}
-function proposalValue(proposal: AssistantProposal) {
-  const row = effectiveRecords.value.find(row => recordKey(row) === proposal.key)
-  return row
-    ? atField(
-        proposal.target === 'record' ? row.record : (localized(row, proposal.language!) as Record<string, Json>),
-        proposal.path,
-      )
-    : undefined
-}
-function applyProposal(proposal: AssistantProposal) {
-  if (readOnly.value) throw new Error('此内容包为只读')
-  if (!assistantContext.value?.objects.some(row => row.key === proposal.key && row.access === 'editable'))
-    throw new Error('该对象不在本次可修改范围内')
-  const row = proposalRow(proposal)
-  if (proposal.target === 'record') {
-    const shared = [...(row.sharedFields ?? []), ...(drafts[proposal.key]?.sharedFields ?? [])]
-    if (sharedAt(shared, proposal.path)) throw new Error('该字段来自共享 YAML，请在外部编辑器处理')
-    const record = clone(row.record)
-    setField(record, proposal.path, proposal.after)
-    store.editRecord(row, record)
-  } else {
-    const source = localeSourceFor(row, proposal.language!)
-    if (!source || sharedAt(sharedFieldsUnder(source.sharedFields, [row.record.id]), proposal.path))
-      throw new Error('该语言字段不可写，请在外部编辑器处理')
-    const text = clone(localized(row, proposal.language!)) as Record<string, Json>
-    setField(text, proposal.path, proposal.after)
-    store.editLocale(source, row.record.id, row.kind, text)
-  }
-  if (snapshot.value) store.sync(snapshot.value)
 }
 async function importAsset() {
   const result = await action<{ file: string; name: string } | null>({ action: 'import-asset' })
@@ -805,6 +852,7 @@ async function external(file?: string, line?: number, column?: number) {
   await action({ action: 'editor', file, editor: editor.value, line, column })
 }
 async function copyConnection() {
+  await publishContext()
   const config = await action({ action: 'connection', execute: assistantExecution.value })
   await navigator.clipboard.writeText(JSON.stringify(config, null, 2))
   notice.value = '已复制 MCP 配置。'
@@ -816,6 +864,8 @@ async function start(kind: string) {
 }
 async function readAsset(file: string, resourceId?: string) {
   selectedAssetId.value = resourceId ?? assets.value.find(row => row.source === file)?.id ?? ''
+  if (tab.value === 'assets')
+    lastFocused.value = selectedAssetId.value ? { kind: 'resources', id: selectedAssetId.value } : undefined
   const id = project.value?.id,
     request = ++mediaEpoch
   mediaController?.abort()
@@ -838,7 +888,7 @@ async function readAsset(file: string, resourceId?: string) {
   }
 }
 async function preview(file: string, resourceId?: string) {
-  if (selected.value) history.value.push({ kind: tab.value, id: selectedId.value, section: section.value })
+  if (Object.hasOwn(contentTypes, tab.value)) history.value.push(captureView())
   tab.value = 'assets'
   screen.value = 'editor'
   search.value = ''
@@ -862,6 +912,7 @@ watch(pendingFiles, (next, previous) => {
 onBeforeRouteLeave(() => !busy.value && (!dirty.value || window.confirm('离开将丢弃未保存的草稿，继续吗？')))
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload)
+  contextHeartbeat = setInterval(() => void publishContext(), 30000)
   unsubscribe = window.arcadiaDesktop?.onAuthorChanged?.(event => {
     if (event.id !== project.value?.id) return
     clearTimeout(refreshTimer)
@@ -885,7 +936,12 @@ onMounted(async () => {
   await attempt(async () => {
     projects.value = await authorCall({ action: 'list' })
     const last = projects.value.find(row => row.id === localStorage.getItem('arcadia-author-project'))
-    if (last) await openProject(last)
+    const requested =
+      typeof route.params.projectId === 'string'
+        ? projects.value.find(row => row.id === route.params.projectId)
+        : undefined
+    if (route.params.projectId && !requested) throw new Error('此源项目不存在，请从内容包列表重新打开。')
+    if (requested || last) await openProject((requested || last)!)
   })
 })
 onBeforeUnmount(() => {
@@ -895,6 +951,8 @@ onBeforeUnmount(() => {
   mediaController?.abort()
   unsubscribe?.()
   clearInterval(timer)
+  clearInterval(contextHeartbeat)
+  clearTimeout(contextTimer)
   clearTimeout(refreshTimer)
   window.removeEventListener('beforeunload', beforeUnload)
   if (project.value) void action({ action: 'close' }).catch(() => {})
@@ -905,7 +963,7 @@ onBeforeUnmount(() => {
   <main class="author-page">
     <header class="app-header">
       <div class="brand">
-        <strong>创作</strong>
+        <router-link to="/content">内容包</router-link><span aria-hidden="true">/</span>
         <button
           v-if="project"
           class="project-switch"
@@ -915,6 +973,7 @@ onBeforeUnmount(() => {
           {{ project.name }} ▾
         </button>
         <span v-if="readOnly" class="badge">只读</span>
+        <small v-if="project?.published">已安装 {{ snapshot?.version }}</small>
       </div>
       <label v-if="project"
         >内容语言<select v-model="locale" :disabled="busy">
@@ -995,7 +1054,8 @@ onBeforeUnmount(() => {
           </select></label
         ><button v-if="!readOnly" :disabled="busy" @click="attempt(() => external())">打开编辑器</button
         ><button :disabled="busy" @click="attempt(() => action({ action: 'show' }))">显示项目文件夹</button
-        ><button :disabled="busy || dirty" @click="attempt(() => action({ action: 'export' }))">导出源项目</button
+        ><button :disabled="busy || dirty" @click="attempt(() => action({ action: 'export' }))">
+          {{ project.published ? '导出包目录' : '导出源项目' }}</button
         ><button
           v-if="!readOnly"
           :disabled="busy"
@@ -1146,13 +1206,7 @@ onBeforeUnmount(() => {
                 :disabled="!!createRelation || !!copyFrom"
                 @change="suggestFile"
               >
-                <option
-                  v-for="(title, key) in contentTypes"
-                  v-show="key !== 'all'"
-                  :key="key"
-                  :value="key"
-                  :disabled="key === 'all'"
-                >
+                <option v-for="(title, key) in contentTypes" :key="key" :value="key">
                   {{ title }}
                 </option>
               </select></label
@@ -1174,8 +1228,7 @@ onBeforeUnmount(() => {
               <p>{{ localeScope ? `所选 ${localeRows.length} 项内容` : '整个内容包' }} · {{ locale }}</p>
             </div>
             <div class="tools">
-              <button v-if="localeScope" @click="localeScope = null">显示整个内容包</button
-              ><button v-if="!readOnly" @click="openAssistant(localeRows.map(recordKey))">请 AI 协作</button>
+              <button v-if="localeScope" @click="localeScope = null">显示整个内容包</button>
             </div>
           </header>
           <form
@@ -1218,14 +1271,93 @@ onBeforeUnmount(() => {
           <button v-if="localeRows.length > libraryLimit" @click="libraryLimit += 60">显示更多</button>
           <p v-if="!localeRows.length" class="hint">没有选择可编辑文本的对象。</p>
         </template>
-        <template v-else-if="Object.hasOwn(contentTypes, tab)">
-          <template v-if="selected && currentRecord"
-            ><button class="back-link" @click="back">← {{ history.length ? '返回上一项' : tabs[tab] }}</button>
+        <div
+          v-else-if="Object.hasOwn(contentTypes, tab)"
+          class="object-workspace"
+          :class="{ 'has-selection': !!selected }"
+        >
+          <section class="object-browser" aria-label="对象列表">
+            <header class="page-heading">
+              <div>
+                <h1>{{ search.trim() ? '搜索结果' : tabs[tab] }}</h1>
+              </div>
+              <input v-model="search" type="search" aria-label="搜索内容" placeholder="搜索包内名称或 ID" />
+              <button v-if="!readOnly" class="primary" @click="beginCreate(tab)">新建内容</button>
+            </header>
+            <nav v-if="tab === 'skills' && !search.trim()" class="skill-categories" aria-label="技能类别">
+              <button
+                v-for="(title, category) in { all: '全部技能', ...skillCategories }"
+                :key="category"
+                :aria-pressed="skillCategory === category"
+                @click="skillCategory = category"
+              >
+                {{ title }} <span>{{ skillCounts[category] ?? 0 }}</span>
+              </button>
+            </nav>
+            <div ref="objectList" class="catalog object-library">
+              <template v-for="(row, index) in rows.slice(0, libraryLimit)" :key="recordKey(row) + row.file">
+                <h2
+                  v-if="search.trim() && (!index || objectType(rows[index - 1]!) !== objectType(row))"
+                  class="search-group"
+                >
+                  {{ resultType(row) }}
+                </h2>
+                <article
+                  :data-kind="row.kind"
+                  class="library-entry"
+                  :class="{ active: selected?.kind === row.kind && selectedId === row.record.id }"
+                >
+                  <button
+                    class="content-card"
+                    :aria-pressed="selected?.kind === row.kind && selectedId === row.record.id"
+                    @click="navigate(row.kind, row.record.id, true)"
+                  >
+                    <span class="object-title"
+                      ><ObjectIcon
+                        v-if="row.kind === 'species' || row.kind === 'marks'"
+                        :kind="row.kind"
+                        :source="iconSource(row)"
+                        :project="project?.id"
+                        :revision="fileVersions.get(iconSource(row) ?? '')"
+                      /><strong>{{ label(row) }}</strong></span
+                    ><span class="object-metadata"
+                      ><small v-if="drafts[recordKey(row)]">有草稿</small>
+                      <ContentTraits :kind="row.kind" :record="row.record"
+                    /></span>
+                    <AuthorDescription
+                      v-if="localized(row, locale).description || localized(row, defaultLanguage).description"
+                      :text="localized(row, locale).description || localized(row, defaultLanguage).description || ''"
+                      :language="localized(row, locale).description ? locale : defaultLanguage"
+                      :context="row.record"
+                      :marks="marks"
+                      :interactive="false"
+                      compact
+                    />
+                    <span v-if="row.kind === 'skills'" class="skill-numbers"
+                      >威力 {{ row.record.power ?? '—' }} · 怒气 {{ row.record.rage ?? '—' }}</span
+                    >
+                  </button>
+                </article>
+              </template>
+              <button v-if="rows.length > libraryLimit" @click="libraryLimit += 60">
+                显示更多（{{ libraryLimit }} / {{ rows.length }}）
+              </button>
+              <p v-if="!rows.length" class="hint">没有匹配内容。可以新建独立对象，或在外部添加后自动刷新。</p>
+            </div>
+          </section>
+          <section v-if="selected && currentRecord" class="object-inspector" aria-label="对象编辑">
+            <button class="browser-back" @click="returnToList">返回列表</button
+            ><button class="back-link" @click="back">← {{ history.length ? '返回上一项' : '返回列表' }}</button>
             <header class="page-heading">
               <div>
                 <h1>
-                  <ObjectIcon :kind="selected.kind" :source="iconSource(selected)" :project="project?.id" />
-                  {{ labels[`${tab}:${selectedId}`] || currentRecord.name || selectedId
+                  <ObjectIcon
+                    v-if="selected.kind !== 'skills'"
+                    :kind="selected.kind"
+                    :source="iconSource(selected)"
+                    :project="project?.id"
+                  />
+                  {{ labels[`${selectedKind}:${selectedId}`] || currentRecord.name || selectedId
                   }}<span v-if="currentDraft" class="badge">草稿</span>
                 </h1>
                 <div class="object-metadata">
@@ -1234,11 +1366,10 @@ onBeforeUnmount(() => {
                 </div>
               </div>
               <div class="tools">
-                <button v-if="!readOnly" @click="openAssistant([recordKey(selected)])">请 AI 帮忙</button
-                ><button @click="openLocales([recordKey(selected)])">多语言</button
+                <button @click="openLocales([recordKey(selected)])">多语言</button
                 ><button v-if="!readOnly" @click="beginCreate(objectType(selected), undefined, true)">
-                  创建独立副本</button
-                ><button @click="section = 'base'">预览名称与描述</button>
+                  创建独立副本
+                </button>
               </div>
             </header>
             <div v-if="usedBy.length" class="used-by">
@@ -1248,35 +1379,12 @@ onBeforeUnmount(() => {
               </button>
             </div>
             <div class="tabs" role="group" aria-label="对象详情">
-              <button :aria-pressed="section === 'base'" @click="section = 'base'">基本资料</button
+              <button :aria-pressed="section === 'base'" @click="section = 'base'">规则与资料</button
               ><button :aria-pressed="section === 'references'" @click="section = 'references'">
-                {{ tab === 'species' ? '技能、特性与纹章' : '效果引用' }}</button
+                {{ selected.kind === 'species' ? '技能、特性与纹章' : '效果引用' }}</button
               ><button :aria-pressed="section === 'media'" @click="section = 'media'">形象与声音</button>
             </div>
             <fieldset :disabled="busy" class="editor-fields">
-              <LocaleFields
-                v-if="section === 'base'"
-                :read-only="readOnly"
-                :text="currentText"
-                :fallback="fallbackText"
-                :record="currentRecord"
-                :language="locale"
-                :shared-fields="localeShared"
-                :available="!!currentLocaleSource"
-                :marks="marks"
-                @change="editText"
-                @external="
-                  (line, column) =>
-                    attempt(() =>
-                      external(
-                        currentLocaleDraft?.file ?? currentLocaleSource?.file,
-                        line ?? currentLocaleSource?.locations?.[selectedId]?.line,
-                        column ?? currentLocaleSource?.locations?.[selectedId]?.column,
-                      ),
-                    )
-                "
-                @navigate="navigate"
-              />
               <div class="form-panel">
                 <RecordForm
                   :read-only="readOnly"
@@ -1310,6 +1418,29 @@ onBeforeUnmount(() => {
                   "
                 />
               </div>
+              <LocaleFields
+                v-if="section === 'base'"
+                :read-only="readOnly"
+                :text="currentText"
+                :fallback="fallbackText"
+                :record="currentRecord"
+                :language="locale"
+                :shared-fields="localeShared"
+                :available="!!currentLocaleSource"
+                :marks="marks"
+                @change="editText"
+                @external="
+                  (line, column) =>
+                    attempt(() =>
+                      external(
+                        currentLocaleDraft?.file ?? currentLocaleSource?.file,
+                        line ?? currentLocaleSource?.locations?.[selectedId]?.line,
+                        column ?? currentLocaleSource?.locations?.[selectedId]?.column,
+                      ),
+                    )
+                "
+                @navigate="navigate"
+              />
             </fieldset>
             <details class="source-details">
               <summary>来源详情与对象标识</summary>
@@ -1317,91 +1448,10 @@ onBeforeUnmount(() => {
               <p v-for="file in selectedSources" :key="file">
                 {{ file }} <button @click="attempt(() => external(file))">打开 ↗</button>
               </p>
-            </details></template
-          >
-          <template v-else
-            ><header class="page-heading">
-              <div>
-                <h1>{{ tab === 'all' ? '内容库' : tabs[tab] }}</h1>
-                <p>
-                  {{
-                    readOnly
-                      ? '基础内容只读；可以查看资料、语言与引用关系。'
-                      : '独立创建与编辑任意对象；多选内容可一起处理语言和 AI 协作。'
-                  }}
-                </p>
-              </div>
-              <input v-model="search" type="search" aria-label="搜索内容" placeholder="搜索名称或 ID" />
-              <button v-if="!readOnly" class="primary" @click="beginCreate(tab === 'all' ? 'skills' : tab)">
-                新建内容
-              </button>
-            </header>
-            <nav v-if="tab === 'skills'" class="skill-categories" aria-label="技能类别">
-              <button
-                v-for="(title, category) in { all: '全部技能', ...skillCategories }"
-                :key="category"
-                :aria-pressed="skillCategory === category"
-                @click="skillCategory = category"
-              >
-                {{ title }} <span>{{ skillCounts[category] ?? 0 }}</span>
-              </button>
-            </nav>
-            <div v-if="pickedRows.length" class="selection-bar">
-              <strong>已选 {{ pickedRows.length }} 项</strong>
-              <p>{{ pickedRows.map(label).join('、') }}</p>
-              <div class="tools">
-                <button v-if="!readOnly" @click="openAssistant(pickedRows.map(recordKey))">请 AI 协作</button
-                ><button @click="openLocales(pickedRows.map(recordKey))">
-                  {{ readOnly ? '查看所选语言' : '编辑所选语言' }}</button
-                ><button @click="picked = []">取消选择</button>
-              </div>
-            </div>
-            <div class="catalog object-library">
-              <article
-                v-for="row in rows.slice(0, libraryLimit)"
-                :key="recordKey(row) + row.file"
-                class="library-entry"
-              >
-                <label class="pick-object"
-                  ><input
-                    type="checkbox"
-                    :aria-label="`选择${label(row)}`"
-                    :checked="picked.includes(recordKey(row))"
-                    @change="togglePick(row, ($event.target as HTMLInputElement).checked)"
-                /></label>
-                <button class="content-card" @click="navigate(row.kind, row.record.id)">
-                  <span class="object-title"
-                    ><ObjectIcon
-                      :kind="row.kind"
-                      :source="iconSource(row)"
-                      :project="project?.id"
-                      :revision="fileVersions.get(iconSource(row) ?? '')"
-                    /><strong>{{ label(row) }}</strong></span
-                  ><span class="object-metadata"
-                    ><small>{{ contentTypes[objectType(row)] }}{{ drafts[recordKey(row)] ? ' · 有草稿' : '' }}</small>
-                    <ContentTraits :kind="row.kind" :record="row.record"
-                  /></span>
-                  <AuthorDescription
-                    :text="
-                      localized(row, locale).description ||
-                      localized(row, defaultLanguage).description ||
-                      '查看资料与引用关系'
-                    "
-                    :language="localized(row, locale).description ? locale : defaultLanguage"
-                    :context="row.record"
-                    :marks="marks"
-                    :interactive="false"
-                  />
-                </button>
-                <small>{{ contentConsumers(row).map(label).join('、') || '独立内容' }}</small>
-              </article>
-            </div>
-            <button v-if="rows.length > libraryLimit" @click="libraryLimit += 60">
-              显示更多（{{ libraryLimit }} / {{ rows.length }}）
-            </button>
-            <p v-if="!rows.length" class="hint">没有匹配内容。可以新建独立对象，或在外部添加后自动刷新。</p></template
-          >
-        </template>
+            </details>
+          </section>
+          <p v-if="!selected" class="inspector-empty">选择一项内容，查看或编辑它的规则、关联和资源。</p>
+        </div>
         <template v-else-if="tab === 'assets'"
           ><button v-if="history.length" class="back-link" @click="back">← 返回内容</button>
           <header class="page-heading">
@@ -1468,29 +1518,16 @@ onBeforeUnmount(() => {
             <p v-else class="hint">{{ assetLoading ? '正在读取资源…' : '选择一项资源进行预览' }}</p>
           </div></template
         >
-        <AssistantPanel
-          v-else-if="tab === 'assistant'"
-          v-model:proposals="assistantProposals"
-          :key="assistantSession"
-          :entries="assistantEntries"
-          :initial-keys="assistantKeys"
-          :context="assistantContext"
-          :labels="labels"
-          :project-id="projectId"
-          :value="proposalValue"
-          :apply="applyProposal"
-          @prepare="options => attempt(async () => prepareAssistant(options))"
-        />
         <template v-else-if="tab === 'tools'"
           ><header class="page-heading">
             <div>
-              <h1>外部工具接入</h1>
-              <p>MCP 读取已保存源文件；AI 协作页可另行交接所选对象的草稿快照。</p>
+              <h1>连接外部助手</h1>
+              <p>在外部 AI 工具连接此内容包，即可读取查看位置与未保存修改，无需先勾选协作范围。</p>
               <p>
                 {{
                   readOnly
                     ? '此包的 MCP 连接仅提供读取，不提供修改或运行项目的工具。'
-                    : '下方 MCP 配置授权访问整个源项目；AI 协作页中的选择仅限定交接内容与建议导入范围。'
+                    : '助手可以按需要查找关联内容。当前查看位置是上下文，不限制你的创作任务范围。'
                 }}
               </p>
             </div>
@@ -1504,6 +1541,7 @@ onBeforeUnmount(() => {
               打开项目 Skill ↗
             </button>
           </div>
+          <p v-if="contextError" class="error" role="alert">上下文同步失败：{{ contextError }}</p>
           <p class="hint">源文件发生变化时，草稿会保留并进入核对流程。代码与文件整理继续使用外部工具。</p></template
         >
         <template v-else

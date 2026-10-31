@@ -44,13 +44,14 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '开发服务工作区' },
   },
   {
-    path: '/creator',
+    path: '/content/edit/:projectId?',
+    alias: '/creator',
     name: 'Creator',
     component: () =>
       isDesktop
         ? import('@/features/authoring/AuthorWorkspacePage.vue')
         : import('@/features/content/LocalContentOnlyPage.vue'),
-    meta: { title: '创作工作台' },
+    meta: { title: '编辑内容包' },
   },
   {
     path: '/creator/drafts',

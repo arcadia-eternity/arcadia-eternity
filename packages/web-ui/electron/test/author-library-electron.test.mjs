@@ -8,7 +8,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url'
 const require = createRequire(import.meta.url)
 
 test(
-  'object library creates independent content, scopes AI and languages, and preserves reviewed saves',
+  'unified content workspace edits independent objects, exposes live MCP context and preserves reviewed saves',
   {
     timeout: 120000,
     skip: process.env.ARCADIA_AUTHOR_GUI_TEST !== '1',
@@ -26,15 +26,16 @@ test(
     const env = { ...process.env, ARCADIA_ELECTRON_DEV_SERVER_URL: origin }
     delete env.ELECTRON_RUN_AS_NODE
     delete env.NODE_TEST_CONTEXT
-    let app, page
+    let app, page, client
     try {
       app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
       page = await app.firstWindow()
       page.setDefaultTimeout(15000)
-      await page.goto(origin + '/creator')
-      await page.getByLabel('新项目名称').fill('独立对象验收')
-      await page.getByRole('button', { name: '从模板创建项目', exact: true }).click()
-      await page.getByRole('heading', { name: '内容库', exact: true }).waitFor()
+      await page.goto(origin + '/content')
+      await page.getByRole('button', { name: '新建内容包', exact: true }).click()
+      await page.getByLabel('内容包名称', { exact: true }).fill('独立对象验收')
+      await page.getByRole('button', { name: '创建并打开', exact: true }).click()
+      await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       await expect(page.locator('.project-settings')).toHaveCount(0)
       await expect(page.locator('.savebar')).toHaveCount(0)
       const toolbar = await page.locator('.app-header').boundingBox()
@@ -57,52 +58,55 @@ test(
       await assert.rejects(readFile(join(project.directory, 'data/marks/radiance.yaml')))
       await save(2)
       assert.match(await readFile(join(project.directory, 'data/marks/radiance.yaml'), 'utf8'), /id: radiance/)
+      await expect(category(/^全部内容/)).toHaveCount(0)
+      await expect(page.locator('.pick-object')).toHaveCount(0)
       await category(/^技能/).click()
-      await page.getByLabel('选择霜击', { exact: true }).check()
+      await page.locator('.content-card').filter({ hasText: '霜击' }).click()
+      await expect(page.getByRole('region', { name: '对象列表' })).toBeVisible()
+      await expect(page.locator('.content-card .object-icon')).toHaveCount(0)
+      await page.getByLabel('威力', { exact: true }).fill('77')
+      // Navigation retains the draft; translation is an object field, not the meaning of selection.
       await category(/^印记/).click()
-      await page.getByLabel('选择光辉印记', { exact: true }).check()
-      await page.getByRole('button', { name: '编辑所选语言', exact: true }).click()
-      await expect(page.locator('.locale-object')).toHaveCount(2)
+      await page.locator('.content-card').filter({ hasText: '光辉印记' }).click()
+      await page.getByRole('region', { name: '对象编辑' }).getByRole('button', { name: '多语言', exact: true }).click()
       await page.getByLabel('添加编辑语言', { exact: true }).fill('en')
       await page.getByRole('button', { name: '切换语言', exact: true }).click()
-      const markLocale = page
-        .locator('.locale-object')
-        .filter({ has: page.getByRole('heading', { name: '光辉印记', exact: true }) })
-      await markLocale.getByLabel('显示名称', { exact: true }).fill('Radiance')
-      await page.getByRole('button', { name: '请 AI 协作', exact: true }).click()
-      await page.getByLabel('附带直接关联内容，仅供参考').check()
-      await page.getByRole('button', { name: '准备协作内容', exact: true }).click()
-      const context = JSON.parse(await page.locator('.assistant-panel details pre').textContent())
-      assert.equal(context.objects.filter(row => row.access === 'editable').length, 2)
-      assert.ok(
-        context.objects.filter(row => row.access === 'editable').every(row => JSON.parse(row.key)[1] !== 'species'),
+      await page.getByLabel('显示名称', { exact: true }).fill('Radiance')
+      await page.getByLabel('描述', { exact: true }).fill('A shared radiant mark.')
+      const config = await page.evaluate(
+        async id => (await window.arcadiaDesktop.author({ action: 'connection', id })).result,
+        project.id,
       )
-      const skill = context.objects.find(row => JSON.parse(row.key)[1] === 'skills')
-      const mark = context.objects.find(row => row.record.id === 'radiance')
-      const reference = context.objects.find(row => row.access === 'reference-only')
-      assert.ok(reference)
-      const upload = async proposals =>
-        page.getByLabel('导入 AI 建议文件').setInputFiles({
-          name: 'suggestions.json',
-          mimeType: 'application/json',
-          buffer: Buffer.from(JSON.stringify({ baseSnapshotId: context.snapshotId, proposals })),
-        })
-      await upload([{ key: reference.key, target: 'record', path: ['id'], before: reference.record.id, after: 'nope' }])
-      await expect(page.locator('.assistant-panel [role=alert]')).toContainText('范围之外')
-      await upload([
-        { key: skill.key, target: 'record', path: ['power'], before: skill.record.power, after: 77 },
-        { key: mark.key, target: 'locale', language: 'en', path: ['description'], after: 'A shared radiant mark.' },
-      ])
-      // Pending suggestions survive leaving the page without widening their scope.
+      const requireAuthor = createRequire(new URL('../../../content-dev/package.json', import.meta.url))
+      const { Client } = await import(requireAuthor.resolve('@modelcontextprotocol/sdk/client/index.js'))
+      const { StdioClientTransport } = await import(requireAuthor.resolve('@modelcontextprotocol/sdk/client/stdio.js'))
+      client = new Client({ name: 'workbench-gui', version: '1' })
+      await client.connect(new StdioClientTransport({ ...config.mcpServers.arcadia, stderr: 'pipe' }))
+      const context = async () =>
+        (await client.callTool({ name: 'workspace_context', arguments: {} })).structuredContent.result
+      await expect.poll(async () => (await context()).state?.drafts.length).toBe(2)
+      assert.equal((await context()).state.language, 'en')
+      assert.equal((await context()).state.drafts.find(row => row.kind === 'skills').value.power, 77)
       await category(/^技能/).click()
-      await category('AI 协作').click()
-      await expect(page.getByRole('button', { name: '采用到草稿', exact: true })).toHaveCount(2)
-      await page.getByRole('button', { name: '采用到草稿', exact: true }).first().click()
-      await page.getByRole('button', { name: '采用到草稿', exact: true }).click()
-      const skillFile = join(project.directory, skill.source.file)
-      assert.doesNotMatch(await readFile(skillFile, 'utf8'), /power: 77/)
-      // External edits after adopting a suggestion still require normal reconciliation.
-      await writeFile(skillFile, (await readFile(skillFile, 'utf8')).replace(/power: \d+/, 'power: 81'))
+      await expect(page.getByLabel('威力', { exact: true })).toHaveValue('77')
+      await expect.poll(async () => (await context()).state?.focus?.id).toBe('strike')
+      // An external AI writes the disk version; it cannot silently overwrite the unsaved form.
+      const file = 'data/skills/strike.yaml'
+      const source = (await client.callTool({ name: 'source_read', arguments: { file } })).structuredContent.result
+      assert.match(source.text, /power: 40/)
+      const write = await client.callTool({
+        name: 'source_apply',
+        arguments: {
+          file,
+          expectedVersion: source.version,
+          text: source.text.replace('power: 40', 'power: 81'),
+        },
+      })
+      assert.equal(write.isError, undefined)
+      const skillFile = join(project.directory, file)
+      await page.getByRole('button', { name: '核对外部变化', exact: true }).waitFor()
+      await expect(page.getByLabel('威力', { exact: true })).toHaveValue('77')
+      await expect.poll(async () => (await context()).state?.drafts.some(row => row.conflict)).toBe(true)
       await page.getByRole('button', { name: '核对外部变化', exact: true }).click()
       await page.getByLabel('这一项保留哪个值？').selectOption('draft')
       await page.getByRole('button', { name: '按选择更新草稿', exact: true }).click()
@@ -173,7 +177,7 @@ test(
       assert.equal(await readFile(join(project.directory, 'data/presentations/main.yaml'), 'utf8'), mediaBefore)
       assert.equal(await readFile(join(project.directory, 'data/species/pet.yaml'), 'utf8'), speciesBefore)
       await expect(page.locator('.asset-detail')).toContainText('Frostling')
-      await category(/^全部内容/).click()
+      await category(/^技能/).click()
       await page.screenshot({ path: '/tmp/arcadia-author-library.png', fullPage: true })
       await page.setViewportSize({ width: 390, height: 844 })
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true)
@@ -198,7 +202,9 @@ test(
       await page.locator('.project-switch').click()
       await page.getByRole('button', { name: '打开项目', exact: true }).click()
       await expect(page.locator('.app-header .badge')).toHaveText('只读')
+      await expect.poll(async () => (await context()).connected).toBe(false)
       await expect(page.getByRole('button', { name: '新建内容', exact: true })).toHaveCount(0)
+      await category(/^技能/).click()
       await page.locator('.content-card').filter({ hasText: '基础打击' }).click()
       await expect(page.getByLabel('威力', { exact: true })).toBeDisabled()
       await expect(page.getByLabel('显示名称', { exact: true })).toBeDisabled()
@@ -213,12 +219,12 @@ test(
         )
         assert.equal(result.error?.code, 'WRITE_DISABLED')
       }
-      const config = await page.evaluate(
+      const baseConfig = await page.evaluate(
         async id => (await window.arcadiaDesktop.author({ action: 'connection', id, execute: true })).result,
         baseEntry.id,
       )
-      assert.ok(config.mcpServers.arcadia.args.includes('--read-only'))
-      assert.ok(!config.mcpServers.arcadia.args.includes('--execute'))
+      assert.ok(baseConfig.mcpServers.arcadia.args.includes('--read-only'))
+      assert.ok(!baseConfig.mcpServers.arcadia.args.includes('--execute'))
       assert.match(await readFile(join(base, 'data/skill.yaml'), 'utf8'), /power: 40/)
       await page.screenshot({ path: '/tmp/arcadia-author-base-readonly.png', fullPage: true })
     } catch (error) {
@@ -231,6 +237,7 @@ test(
       )
       throw error
     } finally {
+      await client?.close().catch(() => {})
       if (app) {
         await app
           .evaluate(({ BrowserWindow }) => {

@@ -1,65 +1,142 @@
 .author-page {
   color-scheme: light dark;
-  --author-bg: light-dark(#f8faf8, #191f1b);
-  --author-panel: light-dark(#fff, #222a25);
-  --author-soft: light-dark(#eef3ee, #2c382f);
-  --author-border: light-dark(#dce4dd, #3a473e);
-  --author-muted: light-dark(#647267, #a8b7ac);
-  --author-accent: light-dark(#285c46, #a4d7bb);
-  --author-danger: light-dark(#a33b22, #ffb59a);
-  --author-text: light-dark(#26352c, #e2eae4);
+  --author-bg: light-dark(#f5f7fa, var(--ae-bg-base));
+  --author-panel: light-dark(#fff, var(--ae-bg-surface));
+  --author-soft: light-dark(#edf2f8, var(--ae-bg-elevated));
+  --author-border: light-dark(#dce2ea, var(--ae-border-default));
+  --author-muted: light-dark(#647184, var(--ae-text-secondary));
+  --author-accent: light-dark(#2467c8, var(--ae-accent-primary));
+  --author-accent-hover: light-dark(#1d55a6, var(--ae-accent-primary-hover));
+  --author-on-accent: light-dark(#fff, var(--ae-bg-base));
+  --author-danger: light-dark(#b42318, var(--ae-error));
+  --author-text: light-dark(#243042, var(--ae-text-primary));
   color: var(--author-text);
   background: var(--author-bg);
-  border: 1px solid var(--author-border);
-  border-radius: 14px;
-  max-width: 1440px;
-  margin: 8px auto;
-  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
   font-size: 14px;
 }
-.recent-objects,
-.selection-bar .tools {
+.recent-objects {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-}
-.recent-objects {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-size: 12px;
 }
 .recent-objects button {
   padding: 4px 8px;
 }
-.selection-bar {
-  padding: 16px;
-  margin-bottom: 20px;
-  background: var(--author-soft);
-  border-radius: 10px;
+.object-workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  gap: 20px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
-.selection-bar p {
-  margin: 8px 0;
+.object-browser {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.object-browser .page-heading {
+  gap: 8px;
+}
+.object-browser .page-heading h1 {
+  font-size: 18px;
+}
+.object-browser .page-heading input {
+  width: 100%;
+  max-width: none;
+  order: 3;
 }
 .object-library.catalog {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
 }
 .library-entry {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) minmax(100px, 0.4fr);
-  align-items: center;
-  gap: 12px;
-  background: var(--author-panel);
-  border: 1px solid var(--author-border);
-  border-radius: 10px;
-  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  min-width: 0;
+}
+.library-entry.active {
+  border-color: var(--author-accent);
+  background: var(--author-soft);
 }
 .library-entry .content-card {
+  width: 100%;
+  padding: 10px 12px;
   border: 0;
   background: transparent;
+  display: grid;
+  gap: 5px;
 }
-.library-entry small {
-  overflow-wrap: anywhere;
+.library-entry .content-card strong {
+  font-size: 15px;
+}
+.search-group {
+  margin: 12px 10px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--author-muted);
+}
+.skill-numbers {
+  font-size: 12px;
+  color: var(--author-muted);
+}
+.object-inspector {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding: 0 8px 24px 0;
+}
+.object-inspector h1 {
+  font-size: 21px;
+}
+.inspector-empty {
+  padding: 40px 20px;
+  color: var(--author-muted);
+  text-align: center;
+}
+.browser-back {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .object-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .object-workspace.has-selection .object-browser {
+    display: none;
+  }
+  .object-inspector {
+    max-height: none;
+  }
+  .object-library.catalog {
+    max-height: none;
+  }
+  .browser-back {
+    display: inline-block;
+    margin: 0 8px 12px 0;
+  }
+  .inspector-empty {
+    display: none;
+  }
 }
 .create-object {
   display: grid;
@@ -87,10 +164,7 @@
 }
 @media (max-width: 600px) {
   .library-entry {
-    grid-template-columns: 24px minmax(0, 1fr);
-  }
-  .library-entry > small {
-    grid-column: 2;
+    grid-template-columns: minmax(0, 1fr);
   }
   .locale-object {
     padding: 12px;
@@ -172,10 +246,13 @@ summary {
 }
 .workspace {
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
-  min-height: 620px;
+  grid-template-columns: 145px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
 }
 .sidebar {
+  min-height: 0;
+  overflow: auto;
   padding: 16px 12px;
   border-right: 1px solid var(--author-border);
 }
@@ -220,9 +297,27 @@ summary {
   display: block;
 }
 .workspace-content {
-  padding: 16px 24px;
+  padding: 16px;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
+.workspace-content > :not(.object-workspace),
+.author-page > :not(.workspace),
+.object-browser > :not(.object-library) {
+  flex-shrink: 0;
+}
+.project-settings {
+  max-height: 40%;
+  overflow: auto;
+}
+.diagnostics {
+  max-height: 25%;
+  overflow: auto;
+}
+
 .page-heading {
   display: flex;
   justify-content: space-between;
@@ -472,7 +567,7 @@ button:disabled {
 }
 button.primary {
   background: var(--author-accent);
-  color: var(--author-panel);
+  color: var(--author-on-accent);
   border-color: var(--author-accent);
 }
 input,
@@ -502,11 +597,12 @@ input[type='checkbox'] {
 }
 @media (max-width: 760px) {
   .author-page {
-    margin: 8px;
-    border-radius: 10px;
+    margin: 0;
+    border-radius: 0;
   }
   .workspace {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
   .sidebar {
     border-right: 0;
@@ -563,6 +659,10 @@ input[type='checkbox'] {
 }
 .author-page button:not(:disabled):hover {
   background: var(--author-soft);
+}
+.author-page button.primary:not(:disabled):hover {
+  background: var(--author-accent-hover);
+  border-color: var(--author-accent-hover);
 }
 .author-page button:disabled {
   cursor: not-allowed;

@@ -1,4 +1,5 @@
 import { AuthorWorkspace, WorkspaceError } from './workspace.mjs'
+import { readWorkbenchContext } from './workbench-context.mjs'
 import { AuthorJobs } from './jobs.mjs'
 export { createSourceProject, connectDevelopmentSdk, authorConnection } from './project.mjs'
 
@@ -40,6 +41,8 @@ export async function openAuthorSession(directory, options = {}) {
     },
     async call(operation, input = {}) {
       switch (operation) {
+        case 'context':
+          return readWorkbenchContext(options.contextFile, workspace.root)
         case 'describe':
           return this.describe()
         case 'query':

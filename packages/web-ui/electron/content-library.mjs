@@ -196,6 +196,15 @@ export class ContentLibrary {
     }
     return dir
   }
+  async sourceDirectory(id) {
+    await this.#load()
+    const entry = this.#entry(id)
+    const root = await this.#directory(id)
+    const directory = join(root, 'node_modules', entry.name)
+    const resolved = await realpath(directory)
+    if (resolved !== directory) throw new Error('安装内容目录已改变')
+    return resolved
+  }
   #entry(id) {
     const entry = this.#state.installed.find(item => item.id === id)
     if (!entry) throw new Error('未安装此内容包')

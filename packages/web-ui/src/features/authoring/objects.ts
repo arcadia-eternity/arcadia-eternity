@@ -2,7 +2,6 @@ import type { ContentRow, LocaleSource, SourceRecord } from './types'
 import { namespaces } from './catalog'
 
 export const contentTypes: Record<string, string> = {
-  all: '全部内容',
   species: '精灵',
   skills: '技能',
   marks: '印记',

@@ -1700,7 +1700,15 @@ function setupIpcHandlers() {
       const manager = getAuthorWorkspaces()
       let result
       if (input.action === 'list') result = await manager.list()
-      else if (input.action === 'create') result = await manager.create(input.name)
+      else if (input.action === 'browse-package') {
+        const directory =
+          input.packageId === 'official'
+            ? app.isPackaged
+              ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
+              : path.dirname(require.resolve('@arcadia-eternity/data-pack-base/package.json'))
+            : await getContentLibrary().sourceDirectory(input.packageId)
+        result = await manager.add(directory, { readOnly: true, published: input.packageId !== 'official' })
+      } else if (input.action === 'create') result = await manager.create(input.name)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
           title: '打开内容包源项目',
@@ -1735,6 +1743,9 @@ function setupIpcHandlers() {
               result = choice.canceled ? null : await manager.importAsset(input.id, choice.filePaths[0])
               break
             }
+            case 'context':
+              result = await manager.setContext(input.id, input.state)
+              break
             case 'snapshot':
               result = await session.workspace.snapshot()
               break
@@ -1782,6 +1793,8 @@ function setupIpcHandlers() {
                 input.execute === true,
                 manager.env,
                 session.workspace.readOnly,
+                manager.contextFile(input.id),
+                session.workspace.published,
               )
               break
             default:

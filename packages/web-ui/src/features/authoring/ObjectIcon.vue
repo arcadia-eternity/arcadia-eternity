@@ -55,8 +55,7 @@ onBeforeUnmount(() => {
       stroke-linecap="round"
       stroke-linejoin="round"
     >
-      <path v-if="kind === 'skills'" d="M13 2 4 14h7l-1 8 10-13h-7z" />
-      <template v-else-if="kind === 'species'">
+      <template v-if="kind === 'species'">
         <ellipse cx="8" cy="7" rx="2" ry="3" />
         <ellipse cx="16" cy="7" rx="2" ry="3" />
         <path d="M7 13c-6 5-2 9 2 7 2-1 4-1 6 0 4 2 8-2 2-7-3-3-7-3-10 0Z" />

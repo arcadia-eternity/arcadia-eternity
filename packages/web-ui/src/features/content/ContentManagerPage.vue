@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { authorCall, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
@@ -29,6 +31,29 @@ interface PackageView {
   builtin?: boolean
   local?: InstalledContentPackage
   error?: string
+}
+const router = useRouter()
+const sourceProjects = ref<SourceProject[]>([])
+const creating = ref(false)
+const projectName = ref('')
+const canAuthor = !!window.arcadiaDesktop?.author
+async function openSource(project: SourceProject) {
+  await router.push({ name: 'Creator', params: { projectId: project.id } })
+}
+async function createSource() {
+  await run(async () => {
+    const project = await authorCall<SourceProject>({ action: 'create', name: projectName.value })
+    await openSource(project)
+  })
+}
+async function chooseSource() {
+  await run(async () => {
+    const project = await authorCall<SourceProject | null>({ action: 'open' })
+    if (project) await openSource(project)
+  })
+}
+async function browsePackage(id: string) {
+  await run(async () => openSource(await authorCall<SourceProject>({ action: 'browse-package', packageId: id })))
 }
 const api = window.arcadiaDesktop
 const local = !!api?.listContentPackages && !!api?.contentPackageAction
@@ -314,6 +339,14 @@ watch(
   { immediate: true },
 )
 onMounted(() => {
+  if (canAuthor)
+    void authorCall<SourceProject[]>({ action: 'list' })
+      .then(rows => {
+        if (!disposed) sourceProjects.value = rows
+      })
+      .catch(cause => {
+        error.value = String(cause)
+      })
   if (local) {
     loading.value = true
     void poll().finally(() => {
@@ -348,7 +381,7 @@ onBeforeUnmount(() => {
         <template v-if="local"
           ><p class="nav-label">本机内容包</p>
           <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
-            已安装 <span>{{ (snapshot?.packages.length ?? 0) + 1 }}</span></button
+            本机内容 <span>{{ (snapshot?.packages.length ?? 0) + 1 }}</span></button
           ><button :aria-current="mode === 'enabled' ? 'page' : undefined" @click="changeMode('enabled')">
             已启用 <span>{{ activeIds.length + 1 }}</span></button
           ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
@@ -370,6 +403,33 @@ onBeforeUnmount(() => {
         <p v-if="readonly && !room" class="context-note">尚未进入房间</p>
         <p v-if="readonly && room" class="context-note">房间 {{ room.config.roomCode }}</p>
         <p v-if="readonly && roomError" class="message error" role="alert">{{ roomError }}</p>
+        <section v-if="canAuthor && mode === 'installed'" class="source-projects" aria-label="本地源项目">
+          <header>
+            <h2>本地项目</h2>
+            <button :disabled="busy" @click="chooseSource">打开项目文件夹</button>
+            <button :disabled="busy" @click="creating = !creating">新建内容包</button>
+          </header>
+          <form v-if="creating" class="source-create" @submit.prevent="createSource">
+            <label
+              >内容包名称<input v-model="projectName" required maxlength="80" placeholder="给新内容包起个名字"
+            /></label>
+            <button class="primary" :disabled="busy || !projectName.trim()">创建并打开</button>
+            <button type="button" @click="creating = false">取消</button>
+          </form>
+          <div class="source-project-list">
+            <button
+              v-for="project in sourceProjects.filter(
+                row => !row.readOnly && row.name.toLowerCase().includes(query.toLowerCase()),
+              )"
+              :key="project.id"
+              @click="openSource(project)"
+            >
+              <strong>{{ project.name }}</strong
+              ><small>{{ project.readOnly === false ? '源项目 · 可编辑' : '源项目' }}</small>
+            </button>
+          </div>
+          <p class="context-note">在这里编辑源项目；构建并安装后，才能在对战中使用新版本。</p>
+        </section>
         <div class="columns">
           <div class="package-list">
             <p v-if="loading || (readonly && roomLoading)" class="list-note" role="status">正在读取内容包…</p>
@@ -432,6 +492,14 @@ onBeforeUnmount(() => {
                         : '已安装，未启用'
               }}
             </p>
+            <button
+              v-if="canAuthor && mode !== 'room'"
+              class="primary"
+              :disabled="busy"
+              @click="browsePackage(selected.id)"
+            >
+              浏览内容（只读）
+            </button>
             <div class="detail-tabs" role="tablist" aria-label="包详情">
               <button
                 v-for="tab in ['overview', 'dependencies', 'impact'] as const"
@@ -1002,5 +1070,48 @@ summary {
     padding: 20px;
     max-height: calc(100dvh - 24px);
   }
+}
+</style>
+
+<style scoped>
+.source-projects {
+  margin: 16px 0 24px;
+  padding: 16px;
+  border: 1px solid var(--content-border, #7f8b8033);
+  border-radius: 12px;
+}
+.source-projects header,
+.source-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.source-projects h2 {
+  font-size: 16px;
+  margin: 0 auto 0 0;
+}
+.source-create {
+  margin-top: 12px;
+}
+.source-create label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.source-project-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.source-project-list button {
+  text-align: left;
+  padding: 12px;
+}
+.source-project-list small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.7;
 }
 </style>

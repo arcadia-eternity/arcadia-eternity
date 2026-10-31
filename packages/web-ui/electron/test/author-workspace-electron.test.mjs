@@ -35,7 +35,7 @@ test(
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
       await page.getByLabel('新项目名称').fill('寒霜工作区验收')
       await page.getByRole('button', { name: '从模板创建项目', exact: true }).click()
-      await page.getByRole('heading', { name: '内容库', exact: true }).waitFor()
+      await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       const projects = await page.evaluate(async () => (await window.arcadiaDesktop.author({ action: 'list' })).result)
       assert.equal(projects.length, 1)
       const project = projects[0]

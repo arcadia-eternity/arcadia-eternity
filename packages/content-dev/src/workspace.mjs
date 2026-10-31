@@ -101,10 +101,11 @@ export class AuthorWorkspace extends EventEmitter {
     super()
     this.root = root
   }
-  static async open(directory, { watch = true, readOnly = false } = {}) {
+  static async open(directory, { watch = true, readOnly = false, published = false } = {}) {
     const workspace = new AuthorWorkspace(await realpath(directory))
     const manifest = JSON.parse((await workspace.read('package.json')).text)
-    workspace.readOnly = readOnly || isBaseManifest(manifest)
+    workspace.published = published
+    workspace.readOnly = readOnly || published || isBaseManifest(manifest)
     if (isBaseManifest(manifest) && !manifest.arcadia) {
       const pack = JSON.parse((await workspace.read('pack.json')).text)
       if (pack.id !== baseProjectId) fail('PROJECT_INVALID', '基础包身份不一致', 'pack.json')
@@ -123,7 +124,7 @@ export class AuthorWorkspace extends EventEmitter {
         ignored: path =>
           relative(workspace.root, path)
             .split(sep)
-            .some(part => ignored.has(part) || part.endsWith('.tgz')),
+            .some(part => (ignored.has(part) && !(workspace.published && part === 'dist')) || part.endsWith('.tgz')),
         atomic: true,
         awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 },
         followSymlinks: false,
@@ -157,7 +158,11 @@ export class AuthorWorkspace extends EventEmitter {
     )
       fail('PATH_INVALID', '需要项目内相对路径')
     const parts = file.split('/')
-    if (parts.some(part => !part || part === '.' || part === '..' || ignored.has(part)))
+    if (
+      parts.some(
+        part => !part || part === '.' || part === '..' || (ignored.has(part) && !(this.published && part === 'dist')),
+      )
+    )
       fail('PATH_INVALID', '此路径不是可编辑源文件', file)
     if ((await realpath(this.root)) !== this.root) fail('PATH_INVALID', '项目目录已改变，请重新打开')
     let current = this.root
@@ -187,7 +192,8 @@ export class AuthorWorkspace extends EventEmitter {
       for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
         a.name.localeCompare(b.name),
       )) {
-        if (ignored.has(entry.name) || entry.name.endsWith('.tgz')) continue
+        if ((ignored.has(entry.name) && !(this.published && entry.name === 'dist')) || entry.name.endsWith('.tgz'))
+          continue
         const file = prefix + entry.name
         if (entry.isSymbolicLink()) {
           result.push({ file, error: '不支持符号链接' })
@@ -230,7 +236,56 @@ export class AuthorWorkspace extends EventEmitter {
       ids = new Set()
     const locales = {},
       localeSources = []
-    for (const entry of files) {
+    if (this.published) {
+      // Published views follow the declared runtime artifacts, even when stale raw sources ship alongside them.
+      const content = await this.read(manifest.arcadia.content)
+      const data = JSON.parse(content.text).data
+      safeValue(data)
+      if (!object(data)) fail('SOURCE_INVALID', '安装包缺少内容数据', content.file)
+      const add = (kind, record, source, index) => {
+        if (!object(record) || typeof record.id !== 'string') fail('SOURCE_INVALID', '安装内容缺少 ID', source.file)
+        records.push({ kind, record, file: source.file, version: source.version, index, sharedFields: [] })
+      }
+      for (const kind of ['species', 'skills', 'marks', 'behaviors']) {
+        if (data[kind] !== undefined && !Array.isArray(data[kind]))
+          fail('SOURCE_INVALID', '安装内容需要数组', content.file)
+        for (const [index, record] of (data[kind] ?? []).entries()) add(kind, record, content, index)
+      }
+      if (manifest.arcadia.presentation) {
+        const source = await this.read(manifest.arcadia.presentation)
+        const presentation = JSON.parse(source.text)
+        safeValue(presentation)
+        if (presentation.version !== 2) fail('SOURCE_INVALID', '安装包需要 v2 表现格式', source.file)
+        for (const [index, record] of (presentation.bindings ?? []).entries())
+          add('presentations', record, source, index)
+        for (const [index, resource] of (presentation.resources ?? []).entries()) {
+          const kind = resource.mime?.startsWith('image/')
+            ? 'image'
+            : resource.mime?.startsWith('audio/')
+              ? 'audio'
+              : 'swf'
+          add(
+            'resources',
+            { id: resource.id, kind, source: resource.source, ...(resource.tags ? { tags: resource.tags } : {}) },
+            source,
+            index,
+          )
+        }
+        for (const [language, namespaces] of Object.entries(presentation.locales ?? {})) {
+          for (const [namespace, entries] of Object.entries(namespaces)) {
+            localeSources.push({
+              file: source.file,
+              version: source.version,
+              language,
+              namespace,
+              entries,
+              sharedFields: [],
+            })
+          }
+        }
+      }
+    }
+    for (const entry of this.published ? [] : files) {
       if (entry.error) {
         diagnostics.push({ code: 'PATH_INVALID', severity: 'error', file: entry.file, message: entry.error })
         continue
@@ -376,6 +431,7 @@ export class AuthorWorkspace extends EventEmitter {
       root: this.root,
       project,
       name: this.baseProject ? '基础包' : manifest.name,
+      version: manifest.version,
       records,
       files,
       assets,

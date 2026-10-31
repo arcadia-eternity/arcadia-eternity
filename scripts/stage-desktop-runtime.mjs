@@ -245,7 +245,7 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
     await cp(npmRoot, join(runtime, 'runtime/npm'), { recursive: true, verbatimSymlinks: true })
     const pack = join(runtime, 'packs/base')
     await mkdir(pack, { recursive: true })
-    for (const entry of ['pack.json', 'pack-lock.yaml', 'data', 'locales', 'assets', 'dist'])
+    for (const entry of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'assets', 'dist'])
       await cp(join(repo, 'packs/base', entry), join(pack, entry), { recursive: true, verbatimSymlinks: true })
     // This absolute build-machine store path is not needed by Node and is not relocatable.
     await rm(join(runtime, 'node_modules/.modules.yaml'), { force: true })
