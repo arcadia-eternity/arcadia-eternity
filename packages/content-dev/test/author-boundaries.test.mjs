@@ -29,6 +29,27 @@ test('close waits for a preparing job and prevents it from starting', async () =
   await Promise.all([closing, rejected])
   assert.deepEqual(jobs.list(), [])
 })
+test('a receipt write failure prevents the task from starting', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'author-receipt-failure-'))
+  await mkdir(join(root, '.arcadia'))
+  await writeFile(join(root, '.arcadia/author-jobs'), 'blocked')
+  const workspace = new EventEmitter()
+  workspace.root = root
+  workspace.revision = async () => 'revision'
+  let inspected = false
+  workspace.snapshot = async () => {
+    inspected = true
+    return { diagnostics: [] }
+  }
+  const jobs = new AuthorJobs(workspace)
+  t.after(async () => {
+    await jobs.close()
+    await rm(root, { recursive: true, force: true })
+  })
+  await assert.rejects(jobs.start({ kind: 'check' }))
+  assert.equal(inspected, false)
+  assert.deepEqual(jobs.list(), [])
+})
 test('SDK parent symlinks cannot redirect writes outside a project', async t => {
   const temporary = await mkdtemp(join(tmpdir(), 'author-sdk-boundary-'))
   t.after(() => rm(temporary, { recursive: true, force: true }))

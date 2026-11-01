@@ -4,6 +4,7 @@ import { isNavigationFailure, useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { connectAuthorPreview } from '@/services/authorPreview'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
 
 const route = useRoute(),
   router = useRouter(),
@@ -13,6 +14,11 @@ const error = ref('')
 let disposed = false,
   transferred = false,
   cleanup: (() => Promise<void>) | undefined
+let ownedSystem: IBattleSystem | undefined
+async function discard() {
+  await cleanup?.()
+  if (ownedSystem && battle.battleInterface === ownedSystem) await battle.resetBattleWithoutSurrender()
+}
 onMounted(async () => {
   try {
     await data.whenReady()
@@ -20,6 +26,7 @@ onMounted(async () => {
     const prepared = await connectAuthorPreview(endpoint, cause => {
       battle.errorMessage = cause.message
     })
+    ownedSystem = prepared.system
     const restore = data.useLocalBattleContent(prepared.content)
     const stop = prepared.system.cleanup.bind(prepared.system)
     prepared.system.cleanup = async () => {
@@ -47,13 +54,14 @@ onMounted(async () => {
       throw new Error('无法进入战斗界面，请重新打开试玩。')
     }
   } catch (cause) {
-    await cleanup?.()
+    transferred = false
+    await discard()
     if (!disposed) error.value = cause instanceof Error ? cause.message : String(cause)
   }
 })
 onBeforeUnmount(() => {
   disposed = true
-  if (!transferred) void cleanup?.()
+  if (!transferred) void discard()
 })
 </script>
 

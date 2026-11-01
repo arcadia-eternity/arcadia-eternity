@@ -172,12 +172,14 @@ export class AuthorWorkspaces {
     this.#contextQueue = next
     return next
   }
-  async release(id) {
+  async release(id, { preservePreviews = false } = {}) {
     const session = this.#sessions.get(id)
-    this.#sessions.delete(id)
+    const retained = session && preservePreviews && (await session).jobs.hasLivePreviews
+    if (!retained) this.#sessions.delete(id)
     await this.#contextQueue.catch(() => {})
     await rm(this.contextFile(id), { force: true })
-    if (session) await (await session).close()
+    if (retained) (await session).workspace.clearDirty()
+    else if (session) await (await session).close()
   }
   async forget(id) {
     await this.release(id)

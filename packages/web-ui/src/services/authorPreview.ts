@@ -62,6 +62,8 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
       }
     } catch (error) {
       if (!disposed) onFailure(error instanceof Error ? error : new Error(String(error)))
+    } finally {
+      polling = false
     }
   }
   const system: IBattleSystem = {

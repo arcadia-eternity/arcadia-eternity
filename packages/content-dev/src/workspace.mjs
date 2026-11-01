@@ -453,6 +453,9 @@ export class AuthorWorkspace extends EventEmitter {
     if (dirty) this.#dirty.add(file)
     else this.#dirty.delete(file)
   }
+  clearDirty() {
+    this.#dirty.clear()
+  }
   async asset(file) {
     if (!file.startsWith('assets/') && !(await this.snapshot()).assets.some(row => row.file === file))
       fail('PATH_INVALID', '请选择项目声明的素材', file)

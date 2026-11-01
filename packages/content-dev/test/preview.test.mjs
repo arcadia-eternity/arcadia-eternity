@@ -8,6 +8,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import { JobJournal } from '../src/job-journal.mjs'
 
 async function finish(session, kind) {
   let job = await session.jobs.start({ kind })
@@ -153,6 +155,9 @@ test(
     assert.equal(preview.state, 'succeeded', preview.output)
     assert.equal(preview.sourceRevision, tested.sourceRevision)
     assert.equal(preview.result.candidate.integrity, tested.result.candidate.integrity)
+    const journal = new JobJournal(root)
+    for (let i = 0; i < 31; i++)
+      await journal.save({ ...checked, jobId: randomUUID(), createdAt: Date.now() + i }, false)
     const receipt = await peer.call('job', { jobId: preview.jobId })
     assert.deepEqual(receipt.result.preview, preview.result.preview)
     const cli = spawn(
@@ -226,3 +231,50 @@ test('a killed CLI owner leaves an interrupted receipt and its preview child exi
   }
   assert.fail('preview child must stop after its owner disconnects')
 })
+
+test(
+  'ordinary player inputs may omit IDs and a peer can stop a CLI-owned preview cleanly',
+  { timeout: 45000 },
+  async t => {
+    const temporary = await mkdtemp(join(tmpdir(), 'arcadia-preview-cli-')),
+      root = join(temporary, 'pack')
+    await createSourceProject(root, 'preview-cli')
+    const config = join(root, 'arcadia.config.mjs')
+    await writeFile(config, (await readFile(config, 'utf8')).replace(/\s+id: String\(side\)\.repeat\(21\),/, ''))
+    const child = spawn(
+      process.execPath,
+      [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'workspace', root, 'preview', '--execute'],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    )
+    let peer,
+      output = ''
+    const exited = new Promise(resolve => child.once('exit', resolve))
+    t.after(async () => {
+      child.kill('SIGKILL')
+      await peer?.close()
+      await rm(temporary, { recursive: true, force: true })
+    })
+    const ready = await new Promise((resolve, reject) => {
+      child.stdout.on('data', chunk => {
+        output += chunk
+        if (output.includes('\n')) {
+          try {
+            resolve(JSON.parse(output.split('\n')[0]).result)
+          } catch (error) {
+            reject(error)
+          }
+        }
+      })
+      child.once('exit', code => {
+        if (code) reject(new Error(`preview owner exited: ${code}`))
+      })
+    })
+    const opened = await command(ready.result.preview.endpoint, 'open')
+    assert.ok(opened.state.players.every(player => typeof player.id === 'string' && player.id.length === 21))
+    await command(ready.result.preview.endpoint, 'ready')
+    peer = await openAuthorSession(root, { execute: true, watch: false })
+    await peer.call('cancel', { jobId: ready.jobId })
+    assert.equal(await exited, 0, output)
+    assert.equal(JSON.parse(output.trim().split('\n').at(-1)).result.state, 'cancelled')
+  },
+)

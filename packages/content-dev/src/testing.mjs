@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { randomBytes } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -97,7 +98,10 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
     if (process.env.ARCADIA_AUTHOR_RESULT === '1') console.log(`ARCADIA_RESULT=${JSON.stringify({ candidate })}`)
     function createBattle(seed = 'content-pack-template', { ai = false } = {}) {
       const namespace = manifest.arcadia.namespace
-      const input = config.players({ namespace, manifest })
+      const input = config.players({ namespace, manifest }).map(player => ({
+        ...player,
+        id: player.id ?? randomBytes(16).toString('base64url').slice(0, 21),
+      }))
       const players = environment.content.parsePlayers(input, {
         aiPlayerIds: ai ? [input[1]?.id] : [],
       })

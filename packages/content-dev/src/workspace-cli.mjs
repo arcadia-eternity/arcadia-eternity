@@ -23,12 +23,11 @@ export async function workspaceCli(args) {
       if (job.state !== 'succeeded' || job.stale) process.exitCode = 1
       if (operation === 'preview' && job.state === 'succeeded' && !job.stale) {
         console.log(JSON.stringify({ result: job }))
-        if (!session.jobs.closed)
-          await new Promise(resolve => {
-            const stopped = () => resolve()
-            process.once('SIGINT', stopped)
-            process.once('SIGTERM', stopped)
-          })
+        while (!session.jobs.closed && session.jobs.get(job.jobId).state === 'succeeded')
+          await new Promise(resolve => setTimeout(resolve, 100))
+        const final = session.jobs.get(job.jobId)
+        console.log(JSON.stringify({ result: final }))
+        if (final.state === 'failed') process.exitCode = 1
         return
       }
     } else {

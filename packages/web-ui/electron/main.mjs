@@ -1762,7 +1762,7 @@ function setupIpcHandlers() {
       } else {
         if (typeof input.id !== 'string') throw new Error('项目标识无效')
         if (input.action === 'forget') result = await manager.forget(input.id)
-        else if (input.action === 'close') result = await manager.release(input.id)
+        else if (input.action === 'close') result = await manager.release(input.id, { preservePreviews: true })
         else if (input.action === 'export') {
           const choice = await dialog.showSaveDialog(mainWindow, {
             title: '导出完整源项目到新目录',

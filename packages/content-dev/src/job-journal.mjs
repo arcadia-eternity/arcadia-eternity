@@ -64,7 +64,10 @@ export class JobJournal {
       }
       records.push(receipt)
     }
-    return records.sort((a, b) => (a.job.createdAt ?? 0) - (b.job.createdAt ?? 0)).slice(-30)
+    const ordered = records.sort((a, b) => (a.job.createdAt ?? 0) - (b.job.createdAt ?? 0))
+    const active = receipt => receipt.live || ['queued', 'running'].includes(receipt.job.state)
+    const history = new Set(ordered.filter(receipt => !active(receipt)).slice(-30))
+    return ordered.filter(receipt => active(receipt) || history.has(receipt))
   }
   async requestCancel(id) {
     await writeFileAtomic(this.file(id, 'cancel'), '', { mode: 0o600 })

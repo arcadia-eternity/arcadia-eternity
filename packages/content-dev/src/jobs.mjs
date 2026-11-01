@@ -40,6 +40,9 @@ export class AuthorJobs {
   get closed() {
     return this.#closed
   }
+  get hasLivePreviews() {
+    return this.#previews.size > 0
+  }
   async initialize() {
     await this.refresh()
     this.#timer = setInterval(() => {
@@ -113,12 +116,13 @@ export class AuthorJobs {
           await this.#journal?.remove(id)
         }
       }
+      await this.#checkpoint()
       control.done = this.#run(control).finally(() => {
         this.#active = undefined
       })
-      await this.#checkpoint()
       return this.get(jobId)
     } catch (error) {
+      this.#jobs.delete(jobId)
       this.#active = undefined
       throw error
     } finally {

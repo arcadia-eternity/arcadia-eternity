@@ -137,6 +137,22 @@ test(
       })
       assert.equal(await preview.evaluate(() => typeof window.arcadiaDesktop), 'undefined')
       await expect(preview.locator('body')).toContainText('霜击')
+      await page.getByRole('link', { name: '内容包', exact: true }).click()
+      await page.waitForURL(/\/content$/)
+      const beforeReload = await preview.evaluate(() =>
+        window.__APP_DEBUG__.pinia._s.get('battle').battleInterface.getState(undefined, true),
+      )
+      await preview.reload()
+      await preview.waitForURL(/\/battle\?authorPreview=/)
+      await preview.getByTestId('skill-button').filter({ hasText: '霜击' }).waitFor()
+      assert.deepEqual(
+        await preview.evaluate(() =>
+          window.__APP_DEBUG__.pinia._s.get('battle').battleInterface.getState(undefined, true),
+        ),
+        beforeReload,
+      )
+      await page.goBack()
+      await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       let turns = 0
       while (turns++ < 40) {
         await preview.waitForFunction(() => {
