@@ -1,5 +1,4 @@
 import { shallowRef } from 'vue'
-import MarkdownIt from 'markdown-it'
 import i18next, { type PostProcessorModule } from 'i18next'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 
@@ -19,7 +18,7 @@ export function serverText(
   id: string,
   field: 'name' | 'description',
   language = contentLanguage.value,
-): { value: string; rich: boolean } | undefined {
+): string | undefined {
   if (!contentNamespaces.has(namespace)) return undefined
   const content = activeContent.value
   const locales = content?.locales
@@ -29,13 +28,13 @@ export function serverText(
     for (const ns of namespace === 'mark' ? ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] : [namespace]) {
       const entry = locales?.bundles[locale]?.[ns]?.[id]
       if (entry && typeof entry === 'object' && typeof Reflect.get(entry, field) === 'string')
-        return { value: Reflect.get(entry, field), rich: true }
+        return Reflect.get(entry, field)
     }
   }
   const value = text.value.get(`${kind}/${id}.${field}`)
-  if (value !== undefined) return { value, rich: false }
+  if (value !== undefined) return value
   const rows = kind === 'species' ? content?.species : kind === 'skill' ? content?.skills : content?.marks
-  if (rows?.some(row => row.id === id)) return { value: field === 'name' ? id : '', rich: false }
+  if (rows?.some(row => row.id === id)) return field === 'name' ? id : ''
   return undefined
 }
 
@@ -71,19 +70,13 @@ export const serverContentText: PostProcessorModule = {
     for (const key of keys) {
       for (const namespace of namespaces) {
         const match = /^(.*)\.(name|description)$/.exec(key)
-        const replacement = match && serverText(namespace, match[1], match[2] as 'name' | 'description', language)
-        if (replacement) return replacement.value
+        const replacement = match
+          ? serverText(namespace, match[1], match[2] as 'name' | 'description', language)
+          : undefined
+        if (replacement !== undefined) return replacement
         if (match && activeContent.value && contentNamespaces.has(namespace)) return match[2] === 'name' ? match[1] : ''
       }
     }
     return value
   },
-}
-
-const safeMarkdown = new MarkdownIt({ html: false })
-/** Keep official formatting, while author text cannot introduce executable HTML. */
-export function renderContentDescription(markdown: MarkdownIt, value: string, namespace: string, id: string): string {
-  return (activeContent.value || text.value.has(`${namespace}/${id}.description`) ? safeMarkdown : markdown).render(
-    value,
-  )
 }

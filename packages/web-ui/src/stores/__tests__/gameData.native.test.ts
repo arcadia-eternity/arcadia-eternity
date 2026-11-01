@@ -5,8 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parse } from 'yaml'
 import i18next from 'i18next'
 import { computed } from 'vue'
-import MarkdownIt from 'markdown-it'
-import { serverContentText, renderContentDescription, serverText, isRemoteContentActive } from '@/i18n/serverContent'
+import { serverContentText, serverText, isRemoteContentActive } from '@/i18n/serverContent'
 import { useGameDataStore } from '../gameData'
 import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
@@ -62,14 +61,14 @@ it('trial display restores exact prior records and text, including the connected
     marks: [],
   })
   expect(isRemoteContentActive()).toBe(false)
-  expect(serverText('species', 'trial:pet', 'name')?.value).toBe('试战内容')
+  expect(serverText('species', 'trial:pet', 'name')).toBe('试战内容')
   release()
   release()
   expect(store.species).toBe(room)
   expect(isRemoteContentActive()).toBe(true)
   expect(store.serverFallback).toBe(fallback)
   expect(store.species.byId['trial:pet']).toBeUndefined()
-  expect(serverText('species', 'room:pet', 'name')?.value).toBe('房间内容')
+  expect(serverText('species', 'room:pet', 'name')).toBe('房间内容')
   expect(serverText('species', 'trial:pet', 'name')).toBeUndefined()
   store.clearServerEnvironment()
   expect(store.species).toBe(official)
@@ -197,21 +196,12 @@ it('displays active server names and descriptions without modifying official loc
   const species = { ...data.species[0], id: 'ugc:pet', learnable_skills: [], ability: [], emblem: [] }
   const name = computed(() => i18n.t('ugc:pet.name', { ns: 'species', nsSeparator: false }))
   store.applyServerEnvironment({
-    species: [{ ...species, name: '作者名称', description: '<b>plain</b> {{value}}' }],
+    species: [{ ...species, name: '作者名称', description: '威力 <damage>{power}</damage>' }],
     skills: [{ ...data.skills[0], id: 'ugc:skill', name: '技能名称' }],
     marks: [{ id: 'ugc:mark', description: '印记说明' }],
   })
   expect(name.value).toBe('作者名称')
-  const html = renderContentDescription(
-    new MarkdownIt({ html: true }),
-    '<img src=x onerror=alert(1)> **safe** [bad](javascript:alert(1))',
-    'species',
-    'ugc:pet',
-  )
-  expect(html).not.toContain('<img')
-  expect(html).not.toContain('<a')
-  expect(html).toContain('<strong>safe</strong>')
-  expect(i18n.t('ugc:pet.description', { ns: 'species' })).toBe('<b>plain</b> {{value}}')
+  expect(i18n.t('ugc:pet.description', { ns: 'species' })).toBe('威力 <damage>{power}</damage>')
   expect(i18n.t('ugc:skill.name', { ns: 'skill' })).toBe('技能名称')
   expect(i18n.t('ugc:mark.description', { ns: ['mark', 'mark_ability'] })).toBe('印记说明')
   store.applyServerEnvironment({ species: [{ ...species, name: '另一个服务器' }], skills: [], marks: [] })

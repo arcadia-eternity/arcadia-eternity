@@ -91,27 +91,12 @@ mark_meimeng:
 mark_tingzhi:
   name: 停滞
   description: 无法行动
-mark_tiaobo:
-  name: 挑拨
-  description: 攻击技能无法造成伤害 被攻击会消失
-mark_fengbi:
-  name: 封闭
-  description: 无法使用属性技能
-mark_jingu2:
-  name: 禁锢
-  description: 物攻技能Miss
 mark_shixiao:
   name: 失效
   description: 特攻技能Miss
 mark_pibei:
   name: 疲惫
   description: ''
-mark_tuisuo:
-  name: 退缩
-  description: 无法行动
-mark_tingdun:
-  name: 停顿
-  description: 无法行动
 mark_jinbi:
   name: 禁闭
   description: 无法行动
@@ -166,27 +151,12 @@ mark_shashi:
 mark_xingshi:
   name: 星噬
   description: 每层每回合失去8点体力 最多5层
-mark_shixue2:
-  name: 失血
-  description: 每回合失去300点体力
 mark_zhongshang:
   name: 重伤
   description: 结束时失去200点体力 换场保留
 mark_shixuechong:
   name: 嗜血虫
   description: 每层每回合被对手吸收10点体力 最多10层
-mark_hunya_chanrao:
-  name: 魂压缠绕
-  description: 每回合失去最大体力的1/8 物防值降低25% 对上古系无效
-mark_xuedu:
-  name: 血毒
-  description: 每回合失去最大体力的13% 体力＜1/2时无效
-mark_liuyan:
-  name: 流言
-  description: 每回合失去15点体力 受到特攻伤害增加25% 换场继承
-mark_cishang:
-  name: 刺伤
-  description: 受到物攻失去自身最大体力的13%
 mark_ruodianjihao:
   name: 弱点记号
   description: 每个减少自身25点速度值 最多2个
@@ -208,12 +178,6 @@ mark_zengzhong:
 mark_fantan:
   name: 反弹
   description: 反弹受到伤害的25%
-mark_tezengshang:
-  name: 特伤增加
-  description: 特攻伤害增加{stack}%
-mark_wuzengshang:
-  name: 物伤增加
-  description: 物攻伤害增加{stack}%
 mark_shuiwenzhenji:
   name: 水纹震击
   description: 暴击率提升5%
@@ -259,9 +223,6 @@ mark_weilibianhua:
 mark_shanbi:
   name: 闪避
   description: 闪避攻击
-mark_shuxingbizhong:
-  name: 属性必中
-  description: 属性技能必中
 mark_wulicao:
   name: 无力草
   description: 造成特攻伤害减半
@@ -637,9 +598,6 @@ mark_huohuanzhixin:
 mark_zhenkongzhixin:
   name: 真空之心
   description: ''
-mark_guangzhiquan:
-  name: 光之泉
-  description: 使下个非必杀技能不消耗怒气
 mark_guangwushentong:
   name: 光武神通
   description: 记录受到伤害的50% 下个技能附加层数点伤害值并消耗该印记

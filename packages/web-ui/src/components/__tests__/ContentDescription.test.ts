@@ -71,28 +71,33 @@ it('formats reactive public values and switches language while keeping official 
   }
 })
 
-it('treats values as text and displays invalid templates without executable HTML', () => {
-  const apply = (description: string) =>
-    setServerContentText({
-      species: [],
-      skills: [],
-      marks: [],
-      locales: { defaultLocale: 'zh-CN', bundles: { 'zh-CN': { skill: { 'demo:skill': { description } } } } },
+it.each(['locales', 'inline'])(
+  'treats %s values as text and displays invalid templates without executable HTML',
+  source => {
+    const apply = (description: string) =>
+      setServerContentText({
+        species: [],
+        skills: [],
+        marks: source === 'inline' ? [{ id: 'demo:mark', description }] : [],
+        ...(source === 'locales'
+          ? { locales: { defaultLocale: 'zh-CN', bundles: { 'zh-CN': { mark: { 'demo:mark': { description } } } } } }
+          : {}),
+      })
+    apply('<damage>{name}</damage>')
+    const wrapper = mount(ContentDescription, {
+      global: { plugins: [[I18NextVue, { i18next }]] },
+      props: { namespace: 'mark', contentId: 'demo:mark', context: { name: '<img src=x onerror=bad()>' } },
     })
-  apply('<damage>{name}</damage>')
-  const wrapper = mount(ContentDescription, {
-    global: { plugins: [[I18NextVue, { i18next }]] },
-    props: { namespace: 'skill', contentId: 'demo:skill', context: { name: '<img src=x onerror=bad()>' } },
-  })
-  expect(wrapper.find('img').exists()).toBe(false)
-  expect(wrapper.text()).toBe('<img src=x onerror=bad()>')
-  wrapper.unmount()
-  apply('<script>alert(1)</script>')
-  const broken = mount(ContentDescription, {
-    global: { plugins: [[I18NextVue, { i18next }]] },
-    props: { namespace: 'skill', contentId: 'demo:skill' },
-  })
-  expect(broken.find('script').exists()).toBe(false)
-  expect(broken.attributes('data-format-error')).toBe('true')
-  broken.unmount()
-})
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.text()).toBe('<img src=x onerror=bad()>')
+    wrapper.unmount()
+    apply('<script>alert(1)</script>')
+    const broken = mount(ContentDescription, {
+      global: { plugins: [[I18NextVue, { i18next }]] },
+      props: { namespace: 'mark', contentId: 'demo:mark' },
+    })
+    expect(broken.find('script').exists()).toBe(false)
+    expect(broken.attributes('data-format-error')).toBe('true')
+    broken.unmount()
+  },
+)

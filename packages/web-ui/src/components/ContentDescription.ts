@@ -1,7 +1,6 @@
 import { defineComponent, h, type PropType } from 'vue'
 import { useTranslation } from 'i18next-vue'
-import MarkdownIt from 'markdown-it'
-import { serverText, renderContentDescription, contentLanguage } from '@/i18n/serverContent'
+import { serverText, contentLanguage } from '@/i18n/serverContent'
 import {
   descriptionMarkKind,
   descriptionStyles,
@@ -28,12 +27,7 @@ const ContentDescription = defineComponent({
     const data = useGameDataStore()
     const resources = useResourceStore()
     return () => {
-      const authored = serverText(props.namespace, props.contentId, 'description', contentLanguage.value)
-      const value = authored?.value ?? props.fallback
-      if (authored && !authored.rich)
-        return h('div', {
-          innerHTML: renderContentDescription(new MarkdownIt({ html: true }), value, props.namespace, props.contentId),
-        })
+      const value = serverText(props.namespace, props.contentId, 'description', contentLanguage.value) ?? props.fallback
       try {
         return h(
           'div',
@@ -50,7 +44,7 @@ const ContentDescription = defineComponent({
               }),
             )
             const description =
-              serverText('mark', id, 'description')?.value ??
+              serverText('mark', id, 'description') ??
               String(
                 i18next.t(`${id}.description`, {
                   ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],

@@ -1189,8 +1189,6 @@ const validationStore = useValidationStore()
 const { importTeamConfig, moveToStorage, deletePet } = usePetManagement()
 const { exportTeamConfig } = useTeamExport()
 
-// 创建markdown-it实例
-
 // 移动端检测
 const { isMobile } = useMobile()
 

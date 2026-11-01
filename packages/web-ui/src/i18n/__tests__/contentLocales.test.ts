@@ -13,22 +13,51 @@ import ContentDescription from '@/components/ContentDescription'
 
 const root = resolve(import.meta.dirname, '../../../../../')
 const namespaces = /^(species|skill|mark(?:_ability|_emblem|_global)?)\.(json|ya?ml)$/
-function descriptions(directory: string): Array<{ file: string; language: string; id: string; text: string }> {
+function descriptions(
+  directory: string,
+): Array<{ file: string; namespace: string; language: string; id: string; text: string }> {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const file = join(directory, entry.name)
     if (entry.isDirectory()) return descriptions(file)
-    if (!namespaces.test(entry.name)) return []
+    const namespace = namespaces.exec(entry.name)?.[1]
+    if (!namespace) return []
     const rows = YAML.parse(readFileSync(file, 'utf8')) as Record<string, { description?: string }>
-    return Object.entries(rows).flatMap(([id, row]) =>
-      typeof row.description === 'string'
-        ? [{ file: relative(root, file), language: directory.split(/[\\/]/).at(-1)!, id, text: row.description }]
-        : [],
-    )
+    return Object.entries(rows).map(([id, row]) => ({
+      file: relative(root, file),
+      namespace,
+      language: directory.split(/[\\/]/).at(-1)!,
+      id,
+      text: row.description ?? '',
+    }))
   })
 }
 const base = descriptions(join(root, 'packs/base/locales'))
 const template = descriptions(join(root, 'packages/content-dev/template/locales'))
 const official = (id: string) => base.find(row => row.id === id)!.text
+
+it('keeps every official content translation attached to a declared object', () => {
+  const manifest = JSON.parse(readFileSync(join(root, 'packs/base/pack.json'), 'utf8')) as {
+    data: Record<string, string[]>
+  }
+  const ids = Object.fromEntries(
+    ['species', 'skills', 'marks'].map(kind => [
+      kind,
+      new Set(
+        manifest.data[kind].flatMap(file => {
+          const value = YAML.parse(readFileSync(join(root, 'packs/base/data', file), 'utf8'), { merge: true })
+          return (Array.isArray(value) ? value : [value]).map((row: { id: string }) => row.id)
+        }),
+      ),
+    ]),
+  )
+  const orphaned = base
+    .filter(
+      row =>
+        !ids[row.namespace.startsWith('mark') ? 'marks' : row.namespace === 'skill' ? 'skills' : 'species'].has(row.id),
+    )
+    .map(row => `${row.file} → ${row.id}`)
+  expect(orphaned, orphaned.join('\n')).toEqual([])
+})
 
 it.each([
   ['skill_ruodiangongji', 'markName', '弱点记号'],

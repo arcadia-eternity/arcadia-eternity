@@ -1149,12 +1149,6 @@ skill_kongjuzhinian:
 skill_yingren:
   name: 影刃
   description: 对手具有恐惧之念时增加50点威力
-skill_anying:
-  name: 暗影
-  description: 先出手时使对手失明
-skill_anyingqie:
-  name: 暗影切
-  description: 先出手时威力2倍
 skill_heian:
   name: 黑暗
   description: 【95】使对手获得15点命中下降
@@ -2474,9 +2468,6 @@ skill_quzhuhanyi:
 skill_houtuiti:
   name: 后腿踢
   description: 5%弱化对手物防1级
-skill_yiling:
-  name: 毅力
-  description: 强化自身物攻1级
 skill_yigenfasi:
   name: 一根发丝
   description: 使自身获得喷嚏
