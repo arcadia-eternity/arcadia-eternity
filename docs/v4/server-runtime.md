@@ -1,6 +1,6 @@
 # 单进程房间与身份
 
-本轮落实 #200 的服务端基础重构。[#235](https://github.com/arcadia-eternity/arcadia-eternity/pull/235) 已合并 G3 基础实现，Better Auth 验证层接入由 [#237](https://github.com/arcadia-eternity/arcadia-eternity/issues/237) 跟进；UGC 不在本轮范围内。
+当前服务端使用单进程房间与独立席位授权。G3 基础由 [PR #235](https://github.com/arcadia-eternity/arcadia-eternity/pull/235) 合并，Better Auth 验证层由 [PR #238](https://github.com/arcadia-eternity/arcadia-eternity/pull/238) 合并。UGC 固定环境与公开目录见[npm 内容包](npm-content.md)和[客户端边界](client-server-boundaries.md)。
 
 ## 合并与上线门槛
 

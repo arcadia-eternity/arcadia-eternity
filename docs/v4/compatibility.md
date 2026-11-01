@@ -21,7 +21,7 @@
 | 技能结束   | SkillUseEnd 效果在技能 finally 的印记清理后派发；try 之前的早期失败不派发                                                          | `automatic-stack-consumption.test.ts`                                      |
 | 临时效果   | 绑定最近 Skill、其次 Turn、否则当前阶段；阶段 finally 清理；加入效果不重派当前触发器                                               | `temporary-effects.test.ts`、`random-temporary-effect.test.ts`             |
 
-变身恢复使用切换前当前 HP 比例，原生印记采用 suppression 保留身份与来源清理。完整状态约定见[快照](v1-snapshots.md)。V2 基线的已知差异见[基线指南](battle-baseline.md)。
+变身恢复使用切换前当前 HP 比例，原生印记采用 suppression 保留身份与来源清理。完整状态约定见[快照](v1-snapshots.md)。V2 历史基线的查询方式见[迁移与历史资料](migration.md)。
 
 ## 顺序与路径决策
 

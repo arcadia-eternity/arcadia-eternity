@@ -55,4 +55,4 @@ await restored.resumeBattle()
 
 核心回归在 `snapshot.test.ts`、`initial-snapshot.test.ts`、`timer-runtime.test.ts`、`native-battle-system.test.ts` 及作者绑定测试中。`pnpm verify:battle-v4-waiting-snapshots` 检查强制/奖励换宠及队伍预选等待点的真实 Node/Chrome 双向 JSON 恢复，对照完整后续事件、状态及 RNG。`pnpm verify:battle-v4-hosts` 检查既有 Node/Browser 快照交换；`pnpm verify:battle-v4-native-pack` 检查真实 Node/Chrome 的内容加载、定时续战和新目录恢复。
 
-跨版本领域迁移与自定义闭包适配需要显式扩展协议。阶段过程断点、活跃临时效果、阶段绑定修饰器及排队/依赖阶段快照不在本轮范围内。完整私房服务恢复还依赖存储、鉴权和传输验收。
+跨版本领域迁移与自定义闭包适配需要显式扩展协议。阶段过程断点、活跃临时效果、阶段绑定修饰器及排队/依赖阶段快照不在支持范围内。在线服务当前只支持重连仍存活的进程；持久检查点与跨进程恢复尚未接入，由 #224／#244 跟踪，见[服务端运行时](server-runtime.md)。

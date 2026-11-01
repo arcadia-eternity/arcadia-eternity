@@ -76,7 +76,8 @@ tools/
 
 ## 📚 相关文档
 
-- [Fly.io CI/CD 配置指南](../docs/flyio-cicd-setup.md)
+- [当前单进程运行与生产配置](../docs/v4/server-runtime.md)
+- [版本与发行工作流](../docs/VERSION_MANAGEMENT.md)
 - [Fly.io 访问令牌文档](https://fly.io/docs/security/tokens/)
 
 ## 🆘 故障排除

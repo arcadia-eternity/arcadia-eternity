@@ -24,11 +24,11 @@ await system.submitAction(selection)
 
 ## 各宿主入口
 
-| 宿主             | 入口与约定                                                                                                       | 主要检查                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 服务端           | 单进程服务器创建原生 V4 对战，不支持恢复旧 V2 对局                                                               | `pnpm test:server-native`、`pnpm typecheck:server-native`、`pnpm lint:server-native`                    |
-| 浏览器本地与 P2P | `packages/web-ui/src/services/nativeBattleFactory.ts` 捕获当前元数据，含未保存编辑；P2P 等待异步构造完成后初始化 | `pnpm test:web-native`、`pnpm typecheck:web-native`、`pnpm lint:web-native`、`pnpm test:web-native:e2e` |
-| CLI 本地         | `bin/native-local-battle.ts` 加载原生内容并通过现有控制台接口运行；输入仍为 YAML/JSON 队伍草稿                   | `pnpm test:cli-native`、`pnpm build:cli`                                                                |
+| 宿主             | 入口与约定                                                                                                                              | 主要检查                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 服务端           | 单进程服务器创建原生 V4 对战，不支持恢复旧 V2 对局                                                                                      | `pnpm test:server-native`、`pnpm typecheck:server-native`、`pnpm lint:server-native`                    |
+| 本地与非 UGC P2P | `packages/web-ui/src/services/nativeBattleFactory.ts` 捕获本次启动的元数据；旧草稿试战使用独立快照，非 UGC P2P 等待异步构造完成后初始化 | `pnpm test:web-native`、`pnpm typecheck:web-native`、`pnpm lint:web-native`、`pnpm test:web-native:e2e` |
+| CLI 本地         | `bin/native-local-battle.ts` 加载原生内容并通过现有控制台接口运行；输入仍为 YAML/JSON 队伍草稿                                          | `pnpm test:cli-native`、`pnpm build:cli`                                                                |
 
 各入口每场分配新的精灵/技能实例，保留队伍元数据与显式 HP。AI 使用已有 `AIPlayer`，通过 `Battle.setSelection` 提交动作，参与日志、等待通知与计时。队伍草稿即使来自同一文件，也不复用战斗实例身份。
 
@@ -38,14 +38,12 @@ await system.submitAction(selection)
 
 预选过程通过原生宿主快照保存双方选择/确认状态及原计时期限；恢复不重发预选开始或清空已确认选择。预选结束后的正常等待点恢复所选阵容，不重开预选。浏览器预选输入复制 pet-ID 数组，避免保留 Vue 代理或调用方可变引用。
 
-## 服务端恢复
+## 在线重连与恢复边界
 
-创建原生对战后，在发布本地实例前，先将完整初始快照、runtime kind、可信构建身份及内容 revision 保存到 Redis/房间元数据，至少一处成功。只保存队伍草稿会重建不同实例 ID，无法重放引用旧技能 ID 的动作日志。
+当前单进程服务器在内存中持有房间和战斗。页面刷新与短时断线可凭有效会话重连仍存活的进程；停机、崩溃、升级会结束房间。服务端不写 Redis 检查点或在线动作日志，也不从初始快照自动重放恢复，详见[服务端运行时](server-runtime.md)。
 
-旧 V2 对局不支持恢复。损坏的原生描述明确失败。原生恢复校验构建与内容身份，优先使用不超前于日志及未完成阶段基线的兼容检查点；无法使用时回到同一原生初始快照再重放已接受动作。恢复失败保留原 bootstrap 与日志。
-
-激活房间前重新读取已保存记录，避免临时 waiting-room 数据覆盖 bootstrap。重连窗口恢复后保持原绝对期限；动作重放等待真实输入边界。详细快照边界见[快照指南](v1-snapshots.md)。
+核心与本地宿主的快照仍支持[列出的等待点](v1-snapshots.md)，恢复时校验可信构建、内容身份和绑定工厂。CLI 使用自己的[离线 replay 合同](cli.md)。持久检查点与跨进程在线恢复继续由 #224／#244 跟踪。
 
 ## 验收范围
 
-库的 Node/Chrome HTTP 探针使用 `pnpm verify:battle-v4-native-pack`，覆盖完整动作脚本、新目录恢复、AI、计时/动画与重连期限，并拒绝效果 DSL 请求。浏览器页面与真实私房服务分别验收：完整私房流程需要可用的鉴权、存储和网络服务，内存传输与本地页面回归不代替该流程。
+库的 Node/Chrome HTTP 探针使用 `pnpm verify:battle-v4-native-pack`，覆盖完整动作脚本、新目录恢复、AI、计时/动画与重连期限，并拒绝效果 DSL 请求。浏览器页面与真实私房服务分别验收：私房流程需要实际单进程服务和双客户端；完整网络异常与结束后再开局矩阵继续归 #211。UGC 对战由服务器执行，网页不安装或执行 npm 内容包。

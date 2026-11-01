@@ -1,32 +1,27 @@
 # 文档导航
 
-V4 的入口、内容维护和恢复约定从 [V4 指南](v4/direct-v1-port.md) 开始阅读。
+当前实现以 V4 为准，从 [V4 战斗指南](v4/direct-v1-port.md) 开始。重构进度与未完成验收统一记录在 [4.0 总览 #200](https://github.com/arcadia-eternity/arcadia-eternity/issues/200)。
 
-内容描述遵循[固定配色约定](v4/content-presentation.md#固定配色约定)。[描述引用的后续规范方向](v4/content-presentation.md#描述引用的后续规范方向)记录联想与检查的待设计范围。
+| 工作                                  | 文档                                                                                                                                         |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 选择测试与跨宿主检查                  | [测试指南](testing-guide.md)                                                                                                                 |
+| 从旧版本迁移、查询已删除文档          | [V4 迁移与历史资料](v4/migration.md)                                                                                                         |
+| 官方内容文件、系列归属与批量整理      | [内容结构](v4/content-structure.md)                                                                                                          |
+| 创建 npm 内容包、桌面工作台与外部助手 | [作者入门](v4/ugc-authoring-start.md)、[工具链职责](v4/ugc-toolchain-design.md)                                                              |
+| TypeScript 效果、参数与持续取值       | [Effect SDK](v4/effect-sdk.md)、[效果编写](v4/effect-authoring.md)                                                                           |
+| 行为定义、独立使用与已有模板          | [行为使用](v4/behavior-uses.md)、[模板目录](v4/ugc-effect-catalog.md)                                                                        |
+| 包安装、版本选择与源码编辑边界        | [内容管理](v4/content-management.md)、[管理界面](v4/content-manager-design.md)                                                               |
+| npm 依赖、准入、环境与项目导出        | [npm 内容包](v4/npm-content.md)                                                                                                              |
+| 资源、表现、语言与描述配色            | [内容表现](v4/content-presentation.md)                                                                                                       |
+| 本机候选与草稿试战                    | [候选预览](v4/development-preview.md)、[试战生命周期](v4/local-trial-lifecycle.md)                                                           |
+| 旧作品文件与命名空间兼容              | [作品数据](v4/ugc-works.md)                                                                                                                  |
+| Node、浏览器、CLI 与服务端接入        | [宿主接入](v4/native-hosts.md)、[CLI](v4/cli.md)                                                                                             |
+| 快照、内容身份与行为兼容              | [快照](v4/v1-snapshots.md)、[兼容约定](v4/compatibility.md)                                                                                  |
+| 服务端运行、普通匹配与身份            | [单进程服务端](v4/server-runtime.md)、[账号提供商](v4/account-provider-design.md)                                                            |
+| 配套网页、桌面选服与公开内容同步      | [客户端边界](v4/client-server-boundaries.md)、[部署](v4/paired-web-deployment.md)                                                            |
+| 静态离线网页与桌面本机宿主            | [静态网页](v4/static-web.md)、[桌面宿主](v4/desktop-ugc-host.md)                                                                             |
+| SWF 桌面播放器                        | [隔离与合成](v4/swf-desktop-isolation.md)                                                                                                    |
+| 战斗数值显示与动画维护                | [修改器显示](MODIFIER_UI_USAGE_EXAMPLE.md)、[属性评估](ATTRIBUTE_EVALUATION_STRATEGIES.md)、[动画生命周期](animation-state-machine-audit.md) |
+| 版本和发行工作流                      | [版本管理](VERSION_MANAGEMENT.md)                                                                                                            |
 
-| 主题                            | 入口                                                                                                                         |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| 内容文件、系列归属与批量整理    | [内容结构](v4/content-structure.md)                                                                                          |
-| TypeScript 效果、参数与持续取值 | [效果编写](v4/effect-authoring.md)                                                                                           |
-| 行为定义、独立使用与预设        | [行为使用](v4/behavior-uses.md)                                                                                              |
-| 组合型 UGC 与官方效果模板       | [官方效果模板目录](v4/ugc-effect-catalog.md)                                                                                 |
-| Node、浏览器、CLI 与服务端接入  | [宿主接入](v4/native-hosts.md)                                                                                               |
-| 快照边界、内容身份与恢复        | [快照](v4/v1-snapshots.md)                                                                                                   |
-| V1 参考与显式行为修正           | [兼容约定](v4/compatibility.md)                                                                                              |
-| V2 golden 的维护                | [回归基线](v4/battle-baseline.md)                                                                                            |
-| 历史 DSL 示例                   | [Config 修饰](ConfigModifierDSLExamples.md)、[阶段修饰](PhaseAwareDSLExamples.md)、[标签配置](TaggedConfigSystemExamples.md) |
-| Modifier 界面                   | [使用示例](MODIFIER_UI_USAGE_EXAMPLE.md)                                                                                     |
-| 本机创作、作品身份与分享        | [UGC 作品与命名空间](v4/ugc-works.md)                                                                                        |
-| 通用内容包格式                  | [Pack Spec](pack-spec.md)、[lockfile](pack-lockfile-v2.md)                                                                   |
-| 当前服务端运行与部署            | [单进程房间与身份](v4/server-runtime.md)                                                                                     |
-| 服务端账号与持久化              | [账号提供商设计](v4/account-provider-design.md)                                                                              |
-| 测试入口                        | [测试指南](testing-guide.md)、[V4 检查命令](v4/direct-v1-port.md#验证)                                                       |
-
-历史 DSL 示例与旧迁移计划对应其原版本；修改 V4 时，以本指南链接的当前约定及源码为准。历史提交、逐批实现过程和旧验证输出可从 Git 查询。
-
-## 历史服务端文档
-
-以下文档记录已退出默认服务端的集群与战报方案，仅供追溯旧实现；当前服务端部署、账号配置和停机语义以[单进程房间与身份](v4/server-runtime.md)为准。
-
-- 旧集群：[部署指南](cluster-deployment.md)、[端口配置](cluster-port-configuration.md)、[运行失败矩阵](server-runtime-failure-matrix.md)。
-- 旧战报：[战报系统](battle-report-system.md)、[故障排查](battle-reports-troubleshooting.md)。
+历史 DSL、V2 基线、Redis/gRPC 集群及旧包分发方案已退出当前文档集，追溯方式见迁移指南。测试仍使用的来源映射、candidate JSON 与验证记录保留在 [validation](v4/validation/README.md)；当次测试和 CI 才能说明当前验证结果。

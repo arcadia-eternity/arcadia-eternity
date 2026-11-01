@@ -2,15 +2,17 @@
 
 V4 从 V1 的 Battle、Player、Pet、Skill、Mark 和 Phase 领域模型直接移植，随后加入同步响应值、可恢复 RNG、可信 TypeScript 效果与宿主适配。初始来源为 `c086289812885e7a4903b181e2b8989e201452b8`；行为比较还参考后期 V1，差异见[兼容约定](compatibility.md)。
 
+当前文档导航见 [docs 目录](../README.md)，旧文档与数据兼容见[迁移指南](migration.md)。
+
 ## 从哪里开始
 
-| 工作                         | 文档                                                        | 实现入口                                    |
-| ---------------------------- | ----------------------------------------------------------- | ------------------------------------------- |
-| 修改官方数据、效果及目录归属 | [内容结构](content-structure.md)                            | `packs/base/pack.json`、`packs/base/src/`   |
-| 编写效果与配置参数           | [效果编写](effect-authoring.md)                             | `packages/battle/src/v4/content/authoring/` |
-| 在宿主中创建对战             | [宿主接入](native-hosts.md)                                 | `packages/battle/src/v4-host/`              |
-| 保存、恢复及续战             | [快照](v1-snapshots.md)                                     | `packages/battle/src/v4/snapshot.ts`        |
-| 维护历史行为比较             | [兼容约定](compatibility.md)、[V2 基线](battle-baseline.md) | `packages/battle/test/v4/`                  |
+| 工作                         | 文档                                                   | 实现入口                                    |
+| ---------------------------- | ------------------------------------------------------ | ------------------------------------------- |
+| 修改官方数据、效果及目录归属 | [内容结构](content-structure.md)                       | `packs/base/pack.json`、`packs/base/src/`   |
+| 编写效果与配置参数           | [效果编写](effect-authoring.md)                        | `packages/battle/src/v4/content/authoring/` |
+| 在宿主中创建对战             | [宿主接入](native-hosts.md)                            | `packages/battle/src/v4-host/`              |
+| 保存、恢复及续战             | [快照](v1-snapshots.md)                                | `packages/battle/src/v4/snapshot.ts`        |
+| 维护历史行为比较             | [兼容约定](compatibility.md)、[历史资料](migration.md) | `packages/battle/test/v4/`                  |
 
 公共内核入口为 `@arcadia-eternity/battle/v4`，宿主接口为 `/v4/host`，作者 API 为 `/v4/authoring`。默认 battle 包入口也导出 V4；旧 V2 引擎、旧编辑器及专属回归已移除。服务端新对战、浏览器本地/P2P 构造和 CLI 本地对战使用原生入口，具体选择与恢复规则见宿主指南。
 
@@ -41,4 +43,4 @@ pnpm verify:battle-v4-native-pack
 
 ## 验收边界
 
-原生入口已接入各宿主；逐效果的行为及依赖闭包验收、完整私房联机恢复仍需分别完成。有限 UGC 编译器、不可变环境和作者 API 各有独立合同，可信 TypeScript 回调不能作为上传代码沙箱。快照支持的等待点与实时资源恢复范围见快照指南。
+原生入口已接入各宿主；逐效果的行为及依赖闭包验收、完整私房联机恢复仍需分别完成。npm 内容包、固定环境和作者 API 各有独立合同；代码在管理员批准的 Node／Electron／CLI 宿主执行，网页只消费公开目录与资源。可信 TypeScript 回调具有宿主进程权限。快照支持的等待点与实时资源恢复范围见快照指南。
