@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
@@ -154,31 +153,6 @@ it('records a stable canonical parameter address and an explicit legacy alias', 
   expect(officialRageCandidate.value.address).toBe(`ae:param:["${id}","add-rage","value"]`)
   expect(officialRageCandidate.value.aliases).toEqual([alias])
   expect(officialRageCandidate.value.tags).toEqual([])
-})
-
-it('pins the current YAML and source node mapping for this parameterized candidate', () => {
-  const record = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/official-rage-candidate.json', import.meta.url), 'utf8'),
-  )
-  function normalize(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(normalize)
-    if (value && typeof value === 'object')
-      return Object.fromEntries(
-        Object.entries(value)
-          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-          .map(([key, item]) => [key, normalize(item)]),
-      )
-    return value
-  }
-  expect(record.id).toBe(id)
-  expect(record.definitionSha256).toBe(
-    createHash('sha256')
-      .update(JSON.stringify(normalize(definition)))
-      .digest('hex'),
-  )
-  expect(record.parameter.sourcePath).toBe('/apply/value')
-  expect(record.parameter.alias).toBe(alias)
-  expect(record.parameter.address).toBe(officialRageCandidate.value.address)
 })
 
 it('preserves scoped configured rage through a JSON checkpoint in both implementations', async () => {

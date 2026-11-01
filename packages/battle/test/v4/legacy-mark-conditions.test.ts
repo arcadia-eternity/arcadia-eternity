@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { Conditions, EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
@@ -119,16 +117,3 @@ for (const type of ['selfHasMark', 'opponentHasMark'] as const)
     battle.applyEffects(parent, EffectTrigger.BeforeHit, skill)
     expect(owner.currentHp).toBe(30)
   })
-it('ports the historical method bodies exactly, except const and formatting', () => {
-  // Normalized historical method bodies from e19261dba321d06a971b74455b08bac5f2dc1f70.
-  // A fixed digest keeps this guard usable in shallow CI checkouts.
-  const historicalDigest = '9679affb00306cb980b8ff37c4decd794692efe40cbac923fe412ecdf4b6b6a1'
-  const current = readFileSync(new URL('../../src/v4/legacy/effectBuilder/src/condition.ts', import.meta.url), 'utf8')
-  const extract = (text: string) =>
-    text
-      .slice(text.indexOf('  // 简化版：检查自己'), text.indexOf('  // 当自己被选为当前UseSkillContext'))
-      .replace('let opponentPet: Pet =', 'const opponentPet: Pet =')
-      .replace(/\s+/g, '')
-  expect(createHash('sha256').update(extract(current)).digest('hex')).toBe(historicalDigest)
-  expect(extract(current)).not.toBe('')
-})

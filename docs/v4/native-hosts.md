@@ -2,9 +2,9 @@
 
 ## 构造与内容身份
 
-内容加载示例见[内容结构](content-structure.md)。`NativePackLoader` 接收可信构建身份与内容工厂，传输层处理文件/HTTP、manifest、资源与 lockfile；元数据中的 Effect ID 连接编译后的 TS。原生加载不读取旧效果 DSL，缺失引用或不匹配 revision 会在发布目录前失败。
+内容加载示例见[内容结构](content-structure.md)。`NativePackLoader` 接收可信构建身份与内容工厂，传输层处理文件/HTTP、manifest、资源与 lockfile；元数据中的 Effect ID 连接编译后的 TS。缺失引用会在发布目录前失败。
 
-原生 revision 包含可信代码构建身份、按序的包身份和元数据。元数据的表示及顺序变化也会改变 revision；资源 URL、locale 展示和图片不改变可执行内容身份。`expectedRevision` 可用于固定恢复版本。构建身份由可信本地构建提供。
+原生 revision 包含可信代码构建身份、按序的包身份和元数据。元数据的表示及顺序变化也会改变 revision；资源 URL、locale 展示和图片不改变可执行内容身份。可通过 `revision` 指定环境标识，加载器不再将它作为内容校验和比较。构建身份由可信本地构建提供。
 
 ```ts
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
@@ -26,7 +26,7 @@ await system.submitAction(selection)
 
 | 宿主             | 入口与约定                                                                                                                              | 主要检查                                                                                                |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 服务端           | 单进程服务器创建原生 V4 对战，不支持恢复旧 V2 对局                                                                                      | `pnpm test:server-native`、`pnpm typecheck:server-native`、`pnpm lint:server-native`                    |
+| 服务端           | 单进程服务器创建原生 V4 对战                                                                                                            | `pnpm test:server-native`、`pnpm typecheck:server-native`、`pnpm lint:server-native`                    |
 | 本地与非 UGC P2P | `packages/web-ui/src/services/nativeBattleFactory.ts` 捕获本次启动的元数据；旧草稿试战使用独立快照，非 UGC P2P 等待异步构造完成后初始化 | `pnpm test:web-native`、`pnpm typecheck:web-native`、`pnpm lint:web-native`、`pnpm test:web-native:e2e` |
 | CLI 本地         | `bin/native-local-battle.ts` 加载原生内容并通过现有控制台接口运行；输入仍为 YAML/JSON 队伍草稿                                          | `pnpm test:cli-native`、`pnpm build:cli`                                                                |
 
@@ -42,7 +42,7 @@ await system.submitAction(selection)
 
 当前单进程服务器在内存中持有房间和战斗。页面刷新与短时断线可凭有效会话重连仍存活的进程；停机、崩溃、升级会结束房间。服务端不写 Redis 检查点或在线动作日志，也不从初始快照自动重放恢复，详见[服务端运行时](server-runtime.md)。
 
-核心与本地宿主的快照仍支持[列出的等待点](v1-snapshots.md)，恢复时校验可信构建、内容身份和绑定工厂。CLI 使用自己的[离线 replay 合同](cli.md)。持久检查点与跨进程在线恢复继续由 #224／#244 跟踪。
+核心与本地宿主的快照仍支持[列出的等待点](v1-snapshots.md)，恢复时使用所选内容目录和绑定工厂。CLI 使用自己的[离线 replay 合同](cli.md)。持久检查点与跨进程在线恢复继续由 #224／#244 跟踪。
 
 ## 验收范围
 

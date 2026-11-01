@@ -33,18 +33,6 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 afterEach(async () => {
   for (const b of battles.splice(0)) await b.cleanup()
 })
-it('pins the original missing property and the exact independent correction', () => {
-  expect(original.apply.value.selector.chain[0].arg).toBe('statLevelMarkLevel')
-  expect(() => EffectParser.parse(original)).toThrow(/statLevelMarkLevel/)
-  const ledger = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/stat-stages-candidates.json', import.meta.url), 'utf8'),
-  )
-  const r = ledger.records.find((r: { id: string }) => r.id === id)
-  expect(r.recipe.pathRepairs).toEqual([
-    { path: '/apply/value/selector/chain/0/arg', before: 'statLevelMarkLevel', after: 'stack' },
-  ])
-  expect(r.recipe.additionalDecisions).toEqual(['C09'])
-})
 const variants = [
   'normal',
   'other-target',

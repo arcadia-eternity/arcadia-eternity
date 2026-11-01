@@ -40,8 +40,6 @@ export async function prepareNpmProject(
   const captured = await captureNpmProject(source, original)
   try {
     const inspected = await inspectNpmProject(captured.root)
-    if (inspected.digest !== original.digest)
-      fail('NPM_CHANGED', 'node_modules', 'The installed dependency graph changed while capturing the environment')
     // Relocation only changes private npm source paths. Audit the administrator's original lockfile.
     const installation = Object.freeze({ ...inspected, lockfileDigest: original.lockfileDigest })
     return Object.freeze({

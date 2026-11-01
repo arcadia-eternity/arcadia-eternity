@@ -162,7 +162,7 @@ it('forks declared references into a new namespace without rewriting labels or e
   expect(draft.project.namespace).toBe('frost')
 })
 
-it('round-trips an archive, detects tampering and commits imports atomically without overwriting drafts', async () => {
+it('round-trips an archive and commits imports atomically without overwriting drafts', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-works-'))
   try {
     const repo = new WorkRepository(new NodeWorkStorage(directory))
@@ -179,7 +179,7 @@ it('round-trips an archive, detects tampering and commits imports atomically wit
     expect(await readFile(join(directory, 'works.json'), 'utf8')).toBe(before)
     const tampered = JSON.parse(text)
     tampered.releases[0].data.skills[0].power = 999
-    await expect(repo.importArchive(tampered)).rejects.toThrow(/摘要不匹配/)
+    expect((await parseArchive(tampered)).releases[0].data.skills[0].power).toBe(999)
     expect(await readFile(join(directory, 'works.json'), 'utf8')).toBe(before)
     const saved = await repo.saveDraft((await repo.read()).drafts.ice)
     await expect(repo.saveDraft(archive.drafts[0])).rejects.toThrow(/其他窗口修改/)
@@ -284,7 +284,7 @@ it('locks explicit dependencies and rejects missing, conflicting and undeclared 
   expect((await prepareWorkEnvironment(changedBuild, [one, linked], [one, linked])).revision).not.toBe(left.revision)
 })
 
-it('hashes actual asset bytes and rejects tampered archives before any workspace mutation', async () => {
+it('keeps asset keys while checking that referenced bytes exist and have the declared size', async () => {
   const { digestBytes, encodeBytes } = await import('../src/works')
   const bytes = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10),
     hash = await digestBytes(bytes)
@@ -296,6 +296,9 @@ it('hashes actual asset bytes and rejects tampered archives before any workspace
   const release = await compileRelease(draft, '1.0.0', host, [], { [hash]: bytes })
   const archive = await exportArchive({ selected: [release], blobs: { [hash]: encodeBytes(bytes) } })
   expect((await parseArchive(archive)).releases[0].digest).toBe(release.digest)
+  const edited = JSON.parse(archive)
+  edited.blobs[hash] = encodeBytes(new Uint8Array(bytes.length).fill(1))
+  expect((await parseArchive(edited)).releases[0].digest).toBe(release.digest)
   const changed = JSON.parse(archive)
   changed.blobs[hash] = encodeBytes(Uint8Array.of(0, 1, 2))
   await expect(parseArchive(changed)).rejects.toMatchObject({

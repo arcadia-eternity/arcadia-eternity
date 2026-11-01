@@ -39,7 +39,6 @@ import { WebRTCPeerTransport as BrowserWebRTCPeerTransport } from '@/p2p/webRtcP
 import { ServerRelayPeerTransport } from '@/p2p/relayPeerTransport'
 import type { PeerTransport } from '@arcadia-eternity/p2p-transport'
 import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
-import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { listServerEnvironments, prepareServerEnvironment } from '@/services/serverEnvironment'
 import { useServerStateStore } from '@/stores/serverState'
 
@@ -180,11 +179,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const expectedRuntime = () => {
     const runtime = authStore.serverInfo?.runtime
     if (!runtime || runtime.kind !== 'native-v4') throw new Error('服务器没有提供可用的原生对战版本')
-    if (
-      runtime.coreBuildId !== nativeBuildIdentity.coreBuildId ||
-      runtime.registryBuildId !== nativeBuildIdentity.registryBuildId
-    )
-      throw new Error('网页和服务器的对战版本不同，请刷新网页后重试')
     return runtime
   }
 

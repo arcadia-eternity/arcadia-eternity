@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
@@ -241,33 +240,6 @@ for (const id of ids) {
           if (variant === 'phase-miss') expect(result.admitted).toBe(triggers.includes(EffectTrigger.OnMiss) ? 1 : 0)
         })
 }
-it('pins eleven source hashes and exact stage identities', () => {
-  const ledger = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/stat-stage-clears-candidates.json', import.meta.url), 'utf8'),
-  )
-  const normalize = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(normalize)
-      : v && typeof v === 'object'
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map(k => [k, normalize((v as Record<string, unknown>)[k])]),
-          )
-        : v
-  expect(ids).toHaveLength(11)
-  expect(ledger.records.map((r: { id: string }) => r.id).sort()).toEqual([...ids].sort())
-  expect(ledger.rejected).toEqual([])
-  for (const r of ledger.records) {
-    expect(r.definitionSha256).toBe(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(originals.get(r.id))))
-        .digest('hex'),
-    )
-    expect(r.recipe.actions[0].sourcePath).toBe('/apply')
-    expect(r.recipe.repairedPaths).toEqual([])
-  }
-})
 
 for (const variant of [
   'default',

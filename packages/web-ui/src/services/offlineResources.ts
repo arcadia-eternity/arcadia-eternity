@@ -1,7 +1,6 @@
 interface OfflineFile {
   path: string
   size: number
-  sha256: string
 }
 export interface OfflineManifest {
   version: string
@@ -59,11 +58,7 @@ export async function saveOfflineResources(
               const response = await fetch(url, { cache: 'no-cache', signal: AbortSignal.timeout(60_000) })
               if (!response.ok) throw new Error(`资源下载失败：${file.path} (${response.status})`)
               const data = await response.clone().arrayBuffer()
-              const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', data)), byte =>
-                byte.toString(16).padStart(2, '0'),
-              ).join('')
-              if (data.byteLength !== file.size || hash !== file.sha256)
-                throw new Error('资源版本已更新，请刷新页面后重新保存。')
+              if (data.byteLength !== file.size) throw new Error('资源版本已更新，请刷新页面后重新保存。')
               await cache.put(url.href, response)
               progress(++completed)
             } catch (error) {

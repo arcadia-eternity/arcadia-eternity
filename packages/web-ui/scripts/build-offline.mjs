@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -15,14 +15,14 @@ async function inventory(directory, prefix = '') {
       !relative.endsWith('.map')
     ) {
       const data = await readFile(path)
-      files.push({ path: relative, size: data.byteLength, sha256: createHash('sha256').update(data).digest('hex') })
+      files.push({ path: relative, size: data.byteLength })
     }
   }
   return files
 }
 export async function buildOffline(dist = resolve(import.meta.dirname, '../dist')) {
   const files = await inventory(dist)
-  const version = createHash('sha256').update(JSON.stringify(files)).digest('hex').slice(0, 20)
+  const version = randomUUID()
   const worker = `offline-worker-${version}.js`
   const manifest = { version, worker, bytes: files.reduce((sum, file) => sum + file.size, 0), files }
   await writeFile(resolve(dist, 'offline-manifest.json'), JSON.stringify(manifest))

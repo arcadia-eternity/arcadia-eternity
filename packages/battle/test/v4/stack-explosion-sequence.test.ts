@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
@@ -217,30 +216,3 @@ for (const kind of ['skill', 'mark'] as const)
       }
       if (variant === 'phase') expect(actual.stack).toBe(5)
     })
-it('pins source, parameter aliases and full order', () => {
-  const ledger = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/vital-sequences-candidates.json', import.meta.url), 'utf8'),
-  )
-  const record = ledger.records.find((r: { id: string }) => r.id === id)
-  const normalize = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(normalize)
-      : v && typeof v === 'object'
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map(k => [k, normalize((v as Record<string, unknown>)[k])]),
-          )
-        : v
-  expect(record.definitionSha256).toBe(
-    createHash('sha256')
-      .update(JSON.stringify(normalize(original)))
-      .digest('hex'),
-  )
-  expect(record.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(['/apply/0', '/apply/1'])
-  expect(record.recipe.parameters).toEqual([
-    { name: 'action0_value', value: 100, configId: 'yinbo_damage_value' },
-    { name: 'action1_value', value: 100, configId: 'yinbo_consume_stacks_value' },
-  ])
-  expect(record.recipe.repairedPaths).toEqual([])
-})

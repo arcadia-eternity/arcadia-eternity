@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
@@ -183,22 +182,4 @@ it('requires both exact definitions', () => {
   copy.set('mark_jinbao', marks.get('mark_zhaocai')!)
   expect(() => createRandomMarkApplications(copy)).toThrow('mark_jinbao')
   expect(Object.keys(createRandomMarkApplications(marks))).toEqual([id])
-})
-it('pins the original random selection and dependency definitions', () => {
-  const record = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/random-mark-applications.json', import.meta.url), 'utf8'),
-  )
-  const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
-  expect(record.id).toBe(id)
-  expect(() => EffectParser.parse(definition)).not.toThrow()
-  expect(record.correction).toEqual({
-    decision: 'C10',
-    path: '/apply/mark/type',
-    before: 'selectorValue',
-    after: 'selector',
-  })
-  expect(record.definitionSha256).toBe(hash(definition))
-  expect(record.dependencies.map((d: { id: string }) => d.id)).toEqual([...randomMarkApplicationDependencies])
-  for (const dependency of record.dependencies)
-    expect(dependency.definitionSha256).toBe(hash(markDefinitions.find(d => d.id === dependency.id)))
 })

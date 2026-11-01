@@ -51,4 +51,4 @@ pnpm web:dev
 
 ## 开发文档
 
-从[文档导航](docs/README.md)或[V4 指南](docs/v4/direct-v1-port.md)开始。内容包作者见[创建并测试 TypeScript 内容包](docs/v4/ugc-authoring-start.md)，旧版本迁移见[迁移与历史资料](docs/v4/migration.md)。
+从[文档导航](docs/README.md)或[V4 指南](docs/v4/direct-v1-port.md)开始。内容包作者见[创建并测试 TypeScript 内容包](docs/v4/ugc-authoring-start.md)。

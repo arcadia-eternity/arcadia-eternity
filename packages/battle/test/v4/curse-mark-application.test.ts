@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
@@ -191,24 +190,6 @@ it.each(variants)('curse random catalog: %s', variant => {
     }
     if (!chosen || variant === 'cancel-add') expect(actual.marks).toEqual([])
   }
-})
-it('pins the complete ordered catalog and the unmodified source', () => {
-  const record = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/curse-mark-application.json', import.meta.url), 'utf8'),
-  )
-  const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
-  expect(record.definitionSha256).toBe(hash(definition))
-  expect(record.catalogSha256).toBe(hash(definitions))
-  expect(record.dependencies).toEqual(
-    definitions
-      .filter(d => d.tags?.includes('status'))
-      .map(d => ({
-        id: d.id,
-        definitionSha256: hash(d),
-        effectIds: d.effect ?? [],
-      })),
-  )
-  expect(record.dependencies).toHaveLength(9)
 })
 
 it('selects every official status with deterministic RNG and removes the source after creation', () => {

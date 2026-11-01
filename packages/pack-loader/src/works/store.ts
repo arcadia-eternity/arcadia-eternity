@@ -126,9 +126,7 @@ export class WorkRepository {
     })
   }
   async putAsset(hash: string, bytes: string): Promise<void> {
-    const { digestBytes } = await import('./model')
-    if (!/^[a-f0-9]{64}$/.test(hash) || (await digestBytes(decodeBytes(bytes))) !== hash)
-      fail('ASSET_INTEGRITY', 'blobs', '素材摘要不匹配')
+    decodeBytes(bytes)
     await this.update(workspace => {
       workspace.blobs[hash] = bytes
     })

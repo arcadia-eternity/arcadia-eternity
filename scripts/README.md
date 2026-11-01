@@ -11,8 +11,5 @@
 | `verify-behavior-uses.mjs`     | 在 Node 和 Chrome 验证独立原生行为与模板恢复（`--templates`） |
 | `verify-native-content.mjs`    | 检查原生内容目录及浏览器构建                                  |
 | `verify-native-pack.mjs`       | 检查原生内容加载、完整对战与恢复                              |
-| `verify-v1-port.mjs`           | 检查保留的 V1 核心移植来源                                    |
-| `verify-v1-hosts.mjs`          | 检查历史对照在 Node 和 Chrome 中的一致性                      |
-| `run-v1-battle.ts`             | 运行历史对照示例                                              |
-
-旧 DSL 转 TypeScript 的一次性转换工具已经移除。修改效果时直接编辑原生 TypeScript，并运行对应行为回归；固定的历史数据与候选记录继续供测试使用。
+| `verify-v1-hosts.mjs`          | 验证 Node 和 Chrome 中的执行与恢复                            |
+| `run-v1-battle.ts`             | 运行战斗示例                                                  |

@@ -41,7 +41,7 @@ it('keeps HTTP resources as declarations without any network request or material
   expect(request).not.toHaveBeenCalled()
 })
 
-it('checks package-file integrity and requires an installed dependency for cross-package media', async () => {
+it('checks resource sizes and dependency visibility while permitting same-size edits', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-presentation-'))
   roots.push(root)
   const consumer = pkg('consumer'),
@@ -68,6 +68,8 @@ it('checks package-file integrity and requires an installed dependency for cross
   consumer.dependencies.provider = provider.location
   expect((await preparePresentation(root, [consumer, provider]))[1].resources[0].file).toBe(file)
   await writeFile(file, 'modified')
+  expect((await preparePresentation(root, [consumer, provider]))[1].resources[0].file).toBe(file)
+  await writeFile(file, 'larger modified resource')
   await expect(preparePresentation(root, [consumer, provider])).rejects.toThrow('RESOURCE_INTEGRITY')
 })
 

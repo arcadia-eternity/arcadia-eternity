@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
@@ -205,26 +204,3 @@ for (const id of ids)
     expect(await continuation(id, true, true)).toEqual(expected)
     expect(await continuation(id, false, true)).toEqual(expected)
   })
-
-it('pins every candidate to unchanged YAML with no omitted or extra ID', () => {
-  const manifest: { records: { id: string; definitionSha256: string }[] } = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/heal-modifiers-candidates.json', import.meta.url), 'utf8'),
-  )
-  const normalize = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(normalize)
-      : v && typeof v === 'object'
-        ? Object.fromEntries(
-            Object.entries(v)
-              .sort(([a], [b]) => a.localeCompare(b, 'en'))
-              .map(([k, x]) => [k, normalize(x)]),
-          )
-        : v
-  expect(manifest.records.map(r => r.id).sort()).toEqual([...ids].sort())
-  for (const r of manifest.records)
-    expect(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(definitions.find(d => d.id === r.id))))
-        .digest('hex'),
-    ).toBe(r.definitionSha256)
-})

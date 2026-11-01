@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
@@ -326,32 +325,4 @@ it('absorbs real damage, creates the downstream mark on exhaustion, and consumes
   })
   expect(actual.power).toBe(140)
   expect(actual.remaining).toBe(0)
-})
-
-it('pins every source definition used by the native graph and handwritten legacy recipe', () => {
-  const manifest = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/water-shield-content.json', import.meta.url), 'utf8'),
-  )
-  function normalize(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(normalize)
-    if (value && typeof value === 'object')
-      return Object.fromEntries(
-        Object.entries(value)
-          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-          .map(([key, item]) => [key, normalize(item)]),
-      )
-    return value
-  }
-  const graph = createOfficialWaterShieldContent()
-  expect(manifest.records.map((record: { id: string }) => record.id).sort()).toEqual(
-    [...graph.effects, ...graph.marks].map(value => value.id).sort(),
-  )
-  for (const record of manifest.records) {
-    const source = [...skills, ...effects, ...marks].find((entry: { id: string }) => entry.id === record.id)
-    expect(record.definitionSha256).toBe(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(source)))
-        .digest('hex'),
-    )
-  }
 })

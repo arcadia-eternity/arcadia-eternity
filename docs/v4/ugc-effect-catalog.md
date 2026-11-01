@@ -168,7 +168,7 @@
 - 属性模板的固定值与百分比共用 `operation` 选择；百分比数值按 100 为一倍，普通属性贡献不额外取整。每层贡献、比例治疗按说明向下取整。威力倍率 1.5 表示原来的 1.5 倍。命中和暴击修正使用百分点。
 - 所有模板的引用和结构选择都在装配时固定，运行参数修改不能偷偷切换对象、字段或引用；数值参数保留范围校验。更改结构选择应重新装配内容。
 - 伤害收益读取结算伤害 `damageResult`，可能超过目标剩余生命。伤害修正在物理/特殊伤害计算阶段生效，不覆盖绕过该阶段的效果伤害。
-- 普通基础包入口拒绝数据规则和替换官方模板定义；引擎原有规则编译／展开 API 已移除。需要新机制的作者仍通过可信 TypeScript 安装流程扩展。
+- 普通基础包入口拒绝数据规则和替换官方模板定义。需要新机制的作者仍通过可信 TypeScript 安装流程扩展。
 
 ### 数据与官方实现复用
 
@@ -205,7 +205,6 @@ pnpm typecheck:battle-v4
 pnpm lint:battle-v4
 pnpm test:battle-v4 test/v4/official-template-contracts.test.ts test/v4/official-template-behavior.test.ts
 pnpm verify:battle-v4-templates
-pnpm verify:battle-v4-source
 ```
 
 历史实现与验证数字从 Git 查询，当前结果以实际命令和 CI 为准。模板生命周期通过不代表正式 SDK 发行或所有宿主产品验收已完成。

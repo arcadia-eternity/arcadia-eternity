@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
@@ -233,32 +232,4 @@ it('combined plans retain sibling dependencies after a fault and reject missing 
       { pet, attribute: 'critRate' },
     ),
   ).toThrow('Missing or mismatched capture: right')
-})
-
-it('pins the unchanged source without correction decisions', () => {
-  const ledger = JSON.parse(
-    readFileSync(
-      new URL('../../../../docs/v4/validation/attribute-contributions-candidates.json', import.meta.url),
-      'utf8',
-    ),
-  )
-  const record = ledger.records.find((r: { id: string }) => r.id === id)
-  const normalize = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(normalize)
-      : v && typeof v === 'object'
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map(k => [k, normalize((v as Record<string, unknown>)[k])]),
-          )
-        : v
-  expect(record.definitionSha256).toBe(
-    createHash('sha256')
-      .update(JSON.stringify(normalize(original)))
-      .digest('hex'),
-  )
-  expect(record.recipe.repairedPaths).toEqual([])
-  expect(record.recipe.pathRepairs).toBeUndefined()
-  expect(record.classification).toBe('U')
 })

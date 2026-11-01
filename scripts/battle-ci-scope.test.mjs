@@ -92,9 +92,6 @@ test('client, database and P2P changes cover server and browser without offline 
 })
 
 for (const path of [
-  'docs/v4/validation/official-shield-candidate.json',
-  'docs/v4/examples/ugc-healing.json',
-  'docs/v4/v1-port-provenance.json',
   'scripts/verify-v1-hosts.mjs',
   'scripts/verify-waiting-snapshots.mjs',
   'scripts/verify-behavior-uses.mjs',

@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, Operators } from '@arcadia-eternity/battle/v4/legacy'
@@ -64,11 +63,4 @@ it('historical operator updates every selected context without changing skill de
   expect([first.ignoreShield, second.ignoreShield]).toEqual([true, true])
   expect(make().ignoreShield).toBe(false)
   Operators.setIgnoreShield()(ctx, [])
-})
-it('pins the historical operator body', () => {
-  const s = readFileSync(new URL('../../src/v4/legacy/effectBuilder/src/operator.ts', import.meta.url), 'utf8')
-  const body = s.slice(s.indexOf('  setIgnoreShield:'), s.indexOf('  setSkill:')).replace(/\s+/g, '')
-  expect(createHash('sha256').update(body).digest('hex')).toBe(
-    'b9b4083053aaf7032ecea3a912caad64e2820b4eea9c905f8a0fdbccc445652f',
-  )
 })

@@ -44,8 +44,6 @@ UGC 新效果直接以 TypeScript 编写，经 npm 产物安装和宿主准入�
 
 目标选择、数值计算、捕获／跟随与属性贡献由本文的原生作者 API 提供。复用通过普通 TS 函数和类型化配置完成；不继续建设通用模板目录、效果表单或可展开规则。
 
-旧数据规则编译器、能力注册表、Rule Graph、规则包环境与相关 JSON 示例已移除。原生作者直接使用 `defineEffect`、`compileEffect`、目标选择和操作 API；复用行为通过 `defineNativeBehavior` 导出，不经过第二套规则语言。
-
 作品通过 `NativePackLoader.fromWorks`／共同环境准备流程解析精确依赖、校验可信导出与参数，冻结运行目录。当前 Release 摘要基于规范化源载荷，并非旧规则展开结果或全部有效默认值归一化后的语义；该合同的剩余工作见 #243。归档传输摘要、Release 摘要和环境摘要分别表达不同身份。
 
 执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。效果执行入口、SDK 动作组合和受计费的值计算均参与计数；具体计费位置见 [SDK 预算合同](effect-sdk.md#执行预算与失败)。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/v4/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
@@ -54,7 +52,7 @@ creator 与 CLI 已接入作品运行；完整宿主体验、Mod 安装准入、
 
 ## 维护与检查
 
-修改行为直接编辑 TS，调整相应机制或完整战斗回归；历史 YAML 与 candidate JSON 只作比较输入。类型负向测试、持续值、参数、领域关系和 JSON 恢复的回归入口分别位于作者设计目录与 `packages/battle/test/v4/`。常用命令统一见 [V4 验证](direct-v1-port.md#验证)。
+修改行为直接编辑 TS，调整相应机制或完整战斗回归。类型负向测试、持续值、参数、领域关系和 JSON 恢复的回归入口分别位于作者设计目录与 `packages/battle/test/v4/`。常用命令统一见 [V4 验证](direct-v1-port.md#验证)。
 
 ## 模板的持有者贡献与转移
 

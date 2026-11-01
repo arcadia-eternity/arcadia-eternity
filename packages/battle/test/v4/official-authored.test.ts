@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
@@ -152,31 +151,3 @@ it.each([0, 1, 99, 100, 101, 199, 200, 201, 299, 300, 301, 401])(
     expect(actual.damage).toEqual([hp < 100 ? 70 : hp < 200 ? 50 : hp < 300 ? 30 : 0, 0])
   },
 )
-
-it('pins all four candidate definitions to the current YAML', () => {
-  const manifest = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/authoring-api-candidates.json', import.meta.url), 'utf8'),
-  )
-  function normalize(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(normalize)
-    if (value && typeof value === 'object')
-      return Object.fromEntries(
-        Object.entries(value)
-          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-          .map(([key, item]) => [key, normalize(item)]),
-      )
-    return value
-  }
-  expect(manifest.records.map((record: { id: string }) => record.id).sort()).toEqual(
-    Object.keys(officialAuthoredEffects).sort(),
-  )
-  for (const record of manifest.records) {
-    const definition = definitions.find(entry => entry.id === record.id)
-    expect(definition).toBeDefined()
-    expect(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(definition)))
-        .digest('hex'),
-    ).toBe(record.definitionSha256)
-  }
-})

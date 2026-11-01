@@ -83,6 +83,7 @@ beforeEach(() => {
   reactive(mocks.client).serverUrl = 'https://server-a.test'
   mocks.auth.serverUrl = 'https://server-a.test'
   mocks.auth.serverGeneration = 0
+  mocks.auth.serverInfo.runtime.kind = 'native-v4'
   mocks.auth.checkServerUrl.mockImplementation((value: string) => value)
   mocks.auth.setServerUrl.mockImplementation((value: string) => {
     mocks.auth.serverUrl = value
@@ -232,9 +233,10 @@ it('discards an old catalog response after the active connection changes', async
 
 for (const spectator of [false, true])
   it(`releases the seat if a ${spectator ? 'spectator' : 'player'} joins an incompatible P2P room`, async () => {
+    mocks.auth.serverInfo.runtime.kind = 'unsupported'
     const store = usePrivateRoomStore()
     const joining = spectator ? store.joinAsSpectator('ABC123') : store.joinRoom('ABC123')
-    await expect(joining).rejects.toThrow('网页和服务器的对战版本不同')
+    await expect(joining).rejects.toThrow('服务器没有提供可用的原生对战版本')
     expect(mocks.client.leavePrivateRoom).toHaveBeenCalledOnce()
     expect(store.currentRoom).toBeNull()
   })

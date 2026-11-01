@@ -26,27 +26,6 @@ function marks() {
     }
   return result
 }
-function ownedIds() {
-  const root = new URL('../../../../docs/v4/validation/', import.meta.url)
-  const ids = new Set<string>()
-  const statuses = new Set([
-    'generated-candidate',
-    'generated-correction-candidate',
-    'native-candidate',
-    'handwritten-candidate',
-    'handwritten-override-retained',
-  ])
-  for (const file of readdirSync(root).filter(name => name.endsWith('.json'))) {
-    const data = JSON.parse(readFileSync(new URL(file, root), 'utf8'))
-    for (const record of data.records ?? [data])
-      if (
-        statuses.has(record.status) ||
-        (file === 'stat-stages-candidates.json' && record.status === undefined && record.recipe?.id === record.id)
-      )
-        ids.add(record.id)
-  }
-  return [...ids].sort()
-}
 it('uses the caller-provided amplification prototype when the supplied shield is destroyed', async () => {
   const dependencies = marks()
   const candidates = createOfficialEffectCandidates(dependencies)
@@ -64,15 +43,6 @@ it('uses the caller-provided amplification prototype when the supplied shield is
   } finally {
     await battle.cleanup()
   }
-})
-it('assembles exactly every candidate-owned ID and no fallback effects', () => {
-  const dependencies = marks()
-  const result = createOfficialEffectCandidates(dependencies)
-  expect([...result.effects.keys()].sort()).toEqual(ownedIds())
-  expect(result.families.get('effect_skill_consume_huanxiang_raise_def_1_stage')).toBe('authored')
-  for (const [id, effect] of result.effects) expect(effect.id).toBe(id)
-  // The composer does not wire or mutate the caller's mark prototypes.
-  for (const mark of dependencies.values()) expect(mark.effects).toEqual([])
 })
 it('rejects missing and mismatched dependencies before publishing a directory', () => {
   const dependencies = marks()

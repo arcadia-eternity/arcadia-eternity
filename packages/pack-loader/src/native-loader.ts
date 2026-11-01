@@ -20,7 +20,7 @@ export type NativeContentFactory = (data: ContentPrototypeData, revision: string
 export interface NativePackLoaderOptions {
   source?: PackSource
   enforceLockfile?: boolean
-  expectedRevision?: string
+  revision?: string
 }
 export interface NativeContentResult {
   runtime: 'native-v4'
@@ -80,9 +80,9 @@ export class NativePackLoader extends PackTransport {
   /** Use the caller's current metadata, including unsaved editor changes, with the same trusted code identity. */
   async fromMetadata(
     data: ContentPrototypeData,
-    options: { packs?: { id: string; version: string }[]; expectedRevision?: string } = {},
+    options: { packs?: { id: string; version: string }[]; revision?: string } = {},
   ): Promise<NativeContentResult> {
-    return this.createContent(data, options.packs ?? [], options.expectedRevision)
+    return this.createContent(data, options.packs ?? [], options.revision)
   }
 
   /** Selected immutable works share one resolver and environment identity across all hosts. */
@@ -107,12 +107,12 @@ export class NativePackLoader extends PackTransport {
   private async createContent(
     data: ContentPrototypeData,
     packs: { id: string; version: string }[],
-    expectedRevision?: string,
+    suppliedRevision?: string,
   ): Promise<NativeContentResult> {
     const captured = structuredClone(data)
-    const revision = `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
-    if (expectedRevision !== undefined && revision !== expectedRevision)
-      throw new Error('Native content revision mismatch')
+    const revision =
+      suppliedRevision ??
+      `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
     return {
       runtime: 'native-v4',
       packs: structuredClone(packs),
@@ -123,11 +123,11 @@ export class NativePackLoader extends PackTransport {
   }
 
   async load(packRef = 'builtin:base', options: NativePackLoaderOptions = {}): Promise<NativePackLoadResult> {
-    const expectedRevision = options.expectedRevision
+    const revision = options.revision
     const { metadata, identities } = await this.loadMetadataBatch(packRef, options)
     // Source URLs and presentation assets do not change executable content identity.
     // Metadata order and its JSON representation are part of this versioned contract.
-    const authority = await this.createContent(metadata.data, identities, expectedRevision)
+    const authority = await this.createContent(metadata.data, identities, revision)
     return { ...metadata, ...authority }
   }
 

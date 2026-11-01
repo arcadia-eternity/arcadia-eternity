@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
@@ -158,12 +157,10 @@ export async function stageAuthorSdk(output) {
         basename(filename) !== filename
       )
         throw new Error(`Invalid npm pack output for ${name}`)
-      const contents = await readFile(join(artifacts, filename))
       records.push({
         name,
         version: manifest.version,
         filename,
-        sha256: createHash('sha256').update(contents).digest('hex'),
       })
     }
     const index = {

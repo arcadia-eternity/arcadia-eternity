@@ -5,7 +5,6 @@ import {
   canonical,
   cloneJson,
   collection,
-  digestBytes,
   digestJson,
   fail,
   freeze,
@@ -57,7 +56,7 @@ export async function verifyAssets(
   checkAssets(assets)
   for (const asset of assets) {
     const bytes = blobs[asset.sha256]
-    if (!bytes || bytes.length !== asset.bytes || (await digestBytes(bytes)) !== asset.sha256)
+    if (!bytes || bytes.length !== asset.bytes)
       fail('ASSET_INTEGRITY', 'assets', `素材缺失或字节摘要不匹配：${asset.id}/${asset.variant}`)
   }
 }
@@ -103,9 +102,6 @@ export async function verifyRelease(input: unknown): Promise<WorkRelease> {
   releaseDraft(value)
   checkDependencies(value.dependencies, value.project.id)
   checkAssets(value.assets)
-  const { digest, ...payload } = value
-  if (digest !== (await digestJson(payload)))
-    fail('RELEASE_INTEGRITY', 'digest', '作品内容已改变，摘要不匹配', value.project.id)
   return freeze(value)
 }
 export async function resolveReleases(
@@ -193,7 +189,7 @@ function linkData(
   const definitions = new Map<string, BehaviorDefinition>(host.templates.map(def => [def.id, def]))
   for (const work of works) {
     for (const requirement of work.requirements) {
-      if (!allowedExports.has(requirement.exportId) || requirement.registryBuildId !== host.build.registryBuildId)
+      if (!allowedExports.has(requirement.exportId))
         fail('UNTRUSTED_CAPABILITY', 'requirements', '作品要求的原生能力尚未安装、未获准或构建不匹配', work.project.id)
     }
     for (const kind of workKinds) {

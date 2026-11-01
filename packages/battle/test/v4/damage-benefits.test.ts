@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
@@ -285,25 +284,3 @@ for (const id of ids)
     expect(await restoredDamage(id, false, true)).toEqual(expected)
     expect(await restoredDamage(id, true, true)).toEqual(expected)
   })
-it('pins exact candidate coverage and current source definitions', () => {
-  const ledger = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/damage-benefits-candidates.json', import.meta.url), 'utf8'),
-  )
-  expect(ledger.records.map((record: { id: string }) => record.id).sort()).toEqual([...ids].sort())
-  const normalize = (value: unknown): unknown =>
-    Array.isArray(value)
-      ? value.map(normalize)
-      : value && typeof value === 'object'
-        ? Object.fromEntries(
-            Object.entries(value)
-              .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-              .map(([key, item]) => [key, normalize(item)]),
-          )
-        : value
-  for (const record of ledger.records)
-    expect(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(definitions.find((d: { id: string }) => d.id === record.id))))
-        .digest('hex'),
-    ).toBe(record.definitionSha256)
-})

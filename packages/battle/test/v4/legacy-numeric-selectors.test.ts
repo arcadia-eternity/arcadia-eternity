@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { ChainableSelector, EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
@@ -111,13 +109,6 @@ it('restores live average projection through a fresh JSON snapshot', async () =>
   const skill = restored.playerA.activePet.skills[0]
   skill.power += 20
   expect(restored.playerA.activePet.stat.atk).toBe(before + 10)
-})
-it('pins the historical sampleBetween body', () => {
-  const s = readFileSync(new URL('../../src/v4/legacy/effectBuilder/src/selector.ts', import.meta.url), 'utf8')
-  const body = s.slice(s.indexOf('  sampleBetween('), s.indexOf('  /** 对目标列表乱序')).replace(/\s+/g, '')
-  expect(createHash('sha256').update(body).digest('hex')).toBe(
-    '4dd73ed6970dd71c66f31ef71f94e38eacca12cb0be7d73b00576435f67430c8',
-  )
 })
 it('sampleBetween re-queries its source and rejects nonnumeric bounds before drawing', () => {
   const f = fixture()

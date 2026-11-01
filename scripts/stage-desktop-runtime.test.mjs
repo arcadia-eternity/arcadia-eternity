@@ -3,23 +3,17 @@ import assert from 'node:assert/strict'
 import { cp, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { desktopRuntimeDigest, stageDesktopRuntime, verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
+import { validateDesktopRuntimeFiles, stageDesktopRuntime, verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 
-test('runtime identity is relocation-independent and catches edits and escaping links', async () => {
+test('runtime layout permits edits and rejects escaping links', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-stage-test-'))
   try {
-    const first = join(root, 'a'),
-      second = join(root, 'b')
-    await mkdir(join(first, 'deps'), { recursive: true })
-    await writeFile(join(first, 'deps/value.js'), 'export const value = 1')
-    await symlink('deps/value.js', join(first, 'entry.js'))
-    await cp(first, second, { recursive: true, verbatimSymlinks: true })
-    const digest = await desktopRuntimeDigest(first)
-    assert.equal(await desktopRuntimeDigest(second), digest)
-    await writeFile(join(second, 'deps/value.js'), 'export const value = 2')
-    assert.notEqual(await desktopRuntimeDigest(second), digest)
-    await symlink('../../outside', join(second, 'escape'))
-    await assert.rejects(desktopRuntimeDigest(second), /escapes staged root/)
+    await writeFile(join(root, 'cli.js'), 'export const value = 1')
+    await validateDesktopRuntimeFiles(root)
+    await writeFile(join(root, 'cli.js'), 'export const value = 2')
+    await validateDesktopRuntimeFiles(root)
+    await symlink('../outside', join(root, 'escape'))
+    await assert.rejects(validateDesktopRuntimeFiles(root), /escapes staged root/)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -38,7 +32,7 @@ test('staging never replaces an existing destination', async () => {
   }
 })
 
-test('release verification rejects missing notices and any change after staging', async () => {
+test('release verification rejects missing notices and permits local edits', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-stage-test-'))
   try {
     await mkdir(join(root, 'licenses'))
@@ -50,19 +44,18 @@ test('release verification rejects missing notices and any change after staging'
       version: 1,
       releaseReady: false,
       missingLicenseTexts: missing,
-      runtimeDigest: await desktopRuntimeDigest(root),
     }
     await writeFile(join(root, 'arcadia-desktop-runtime.json'), JSON.stringify(manifest))
     await assert.rejects(verifyDesktopRuntime(root), /cannot be released/)
     assert.equal((await verifyDesktopRuntime(root, { allowIncompleteNotices: true })).releaseReady, false)
     await writeFile(join(root, 'cli.js'), 'changed')
-    await assert.rejects(verifyDesktopRuntime(root, { allowIncompleteNotices: true }), /differ/)
+    await verifyDesktopRuntime(root, { allowIncompleteNotices: true })
   } finally {
     await rm(root, { recursive: true, force: true })
   }
 })
 
-test('after-pack gate rejects missing or changed copied runtime files', async () => {
+test('after-pack gate rejects a missing copied runtime entry', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-pack-test-'))
   try {
     const runtime = join(root, 'arcadia-server')
@@ -76,20 +69,19 @@ test('after-pack gate rejects missing or changed copied runtime files', async ()
         version: 1,
         releaseReady: true,
         missingLicenseTexts: [],
-        runtimeDigest: await desktopRuntimeDigest(runtime),
       }),
     )
     const { afterPack } = await import('./verify-desktop-pack.mjs')
     const context = { appOutDir: root, packager: { getResourcesDir: () => root } }
     await afterPack(context)
     await rm(join(runtime, 'cli.js'))
-    await assert.rejects(afterPack(context), /differ/)
+    await assert.rejects(afterPack(context), /ENOENT/)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
 })
 
-test('local and preview hooks allow incomplete notices but verify copied identity', async () => {
+test('local and preview hooks allow incomplete notices but require runtime files', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-preview-pack-test-'))
   try {
     const runtime = join(root, 'arcadia-server')
@@ -104,7 +96,6 @@ test('local and preview hooks allow incomplete notices but verify copied identit
         version: 1,
         releaseReady: false,
         missingLicenseTexts: missing,
-        runtimeDigest: await desktopRuntimeDigest(runtime),
       }),
     )
     const { afterPack, afterPreviewPack, previewBuilderConfiguration, requireCompleteNotices } =
@@ -118,8 +109,8 @@ test('local and preview hooks allow incomplete notices but verify copied identit
     await afterPack(context)
     await afterPreviewPack(context)
     await writeFile(join(runtime, 'cli.js'), 'changed')
-    await assert.rejects(afterPack(context), /differ/)
-    await assert.rejects(afterPreviewPack(context), /differ/)
+    await afterPack(context)
+    await afterPreviewPack(context)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

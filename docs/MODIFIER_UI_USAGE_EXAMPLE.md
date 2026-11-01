@@ -15,7 +15,7 @@
 </ModifiedValue>
 ```
 
-组件使用文字颜色表示修正。样式入口为 [modifierStyles.ts](../packages/web-ui/src/utils/modifierStyles.ts)，当前实现没有旧文档所述的发光或脉冲动画。
+组件使用文字颜色表示修正。样式入口为 [modifierStyles.ts](../packages/web-ui/src/utils/modifierStyles.ts)。
 
 修改后运行相关测试：
 

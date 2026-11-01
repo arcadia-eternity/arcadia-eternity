@@ -14,7 +14,7 @@ node dist/cli.js battle local --player1 testteam.yaml --player2 testteam2.yaml -
 
 `local` and `validate` delegate to the corresponding new commands. Strict validation is always enabled; the old `--load-scripts` switch is rejected. `--pack-ref` selects a local manifest, `builtin:base`, `builtin:workspace` (default), or an installed `npm:` reference. Relative command paths use the caller's working directory; relative manifest paths use the manifest directory. Built-in discovery starts at the installed loader/CLI location; `ARCADIA_PACKS_DIR` can select an explicit pack directory. Each workspace entry and dependency retains its original lock validation; duplicate pack identities or duplicate definitions fail explicitly.
 
-For offline relocation, copy `dist/` and the selected `packs/` metadata (manifest, lock, data, locales and asset manifests) together. The command tests run that layout in a temporary directory without `node_modules`, source files or network access. The bundled offline commands contain no service runtime dependencies. Existing `online`, `server` and P2P commands remain lazy legacy entries and require their existing service dependencies; the single-process server migration remains #210.
+For offline relocation, copy `dist/` and the selected `packs/` metadata (manifest, lock, data, locales and asset manifests) together. The command tests run that layout in a temporary directory without `node_modules`, source files or network access. The bundled offline commands contain no service runtime dependencies. The `online`, `server` and P2P commands load their service dependencies on demand.
 
 ## Results and limits
 

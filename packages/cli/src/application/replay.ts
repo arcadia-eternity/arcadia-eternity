@@ -1,5 +1,4 @@
 import { isDeepStrictEqual } from 'node:util'
-import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { NativePlayerSchema } from '@arcadia-eternity/battle/v4'
 import { createLoader } from './prepare'
 import { runBattle } from './run'
@@ -62,8 +61,6 @@ export async function replay(value: unknown, signal: AbortSignal, npmEnvironment
       )
     if (!value.environment.npm && npmEnvironment)
       throw new CliError('REPLAY_NPM', 'This replay does not use an npm environment', 3)
-    if (!isDeepStrictEqual(value.environment.build, npmEnvironment?.build ?? nativeBuildIdentity))
-      throw new CliError('REPLAY_BUILD', 'Replay requires a different trusted build', 3)
     const works = value.environment.works
     const loaded =
       npmEnvironment ??
@@ -71,10 +68,8 @@ export async function replay(value: unknown, signal: AbortSignal, npmEnvironment
         ? await createLoader().fromWorks(works.base, works.selected, works.installed)
         : await createLoader().fromMetadata(value.environment.data, {
             packs: value.environment.packs,
-            expectedRevision: value.environment.revision,
+            revision: value.environment.revision,
           }))
-    if (loaded.revision !== value.environment.revision)
-      throw new CliError('REPLAY_ENVIRONMENT', 'Replay environment revision mismatch', 3)
     if ((works || npmEnvironment) && (!('data' in loaded) || !isDeepStrictEqual(loaded.data, value.environment.data)))
       throw new CliError('REPLAY_ENVIRONMENT', 'Replay compiled data mismatch', 3)
     const run = await runBattle(loaded.content, value.spec, {

@@ -1,12 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setup } from '../src/setup.mjs'
 
-test('setup rejects incomplete or corrupted development archives before installing anything', async () => {
+test('setup rejects incomplete manifests and unsafe archive paths before installation', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-tool-setup-'))
   try {
     await mkdir(join(root, 'sdk'))
@@ -21,7 +20,6 @@ test('setup rejects incomplete or corrupted development archives before installi
       records.push({
         name: `@arcadia-eternity/${name}`,
         filename: `${name}.tgz`,
-        sha256: createHash('sha256').update(bytes).digest('hex'),
       })
     }
     const index = {
@@ -35,9 +33,9 @@ test('setup rejects incomplete or corrupted development archives before installi
     await writeFile(manifest, JSON.stringify(index))
     const args = ['--sdk-dir', join(root, 'sdk'), '--offline']
     await assert.rejects(setup(args, root), /Missing SDK packages: @arcadia-eternity\/content-dev/)
-    index.packages[0].sha256 = '0'.repeat(64)
+    index.packages[0].filename = '../battle.tgz'
     await writeFile(manifest, JSON.stringify(index))
-    await assert.rejects(setup(args, root), /checksum mismatch: battle.tgz/)
+    await assert.rejects(setup(args, root), /Unexpected or duplicated SDK archive/)
     assert.equal(await readFile(join(root, '.arcadia/sdk-installed.json'), 'utf8'), 'previous installation')
     await assert.rejects(setup(['--offline'], root), /Prepare an SDK first/)
     await assert.rejects(setup(['--sdk-dir'], root), /incomplete option/)

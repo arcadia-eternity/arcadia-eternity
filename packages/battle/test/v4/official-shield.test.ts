@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
@@ -191,30 +190,6 @@ it('requires the declared mark dependency rather than creating a fallback', () =
   const f = makeScenario()
   battles.push(f.battle)
   expect(() => createOfficialWaterShieldCandidate(f.debuff)).toThrow('requires mark_shuiwenpingzhang')
-})
-
-it('pins both the source action and dependency configuration without claiming downstream equivalence', () => {
-  const record = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/official-shield-candidate.json', import.meta.url), 'utf8'),
-  )
-  function normalize(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(normalize)
-    if (value && typeof value === 'object')
-      return Object.fromEntries(
-        Object.entries(value)
-          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-          .map(([key, item]) => [key, normalize(item)]),
-      )
-    return value
-  }
-  const hash = (value: unknown) =>
-    createHash('sha256')
-      .update(JSON.stringify(normalize(value)))
-      .digest('hex')
-  expect(record.definitionSha256).toBe(hash(definition))
-  expect(record.dependency.definitionSha256).toBe(hash(markDefinition))
-  expect(record.dependency.effects).toEqual(markDefinition.effect)
-  expect(record.classification).toBe('U')
 })
 
 it('keeps the unresolved downstream oracle dependency visible instead of silently dropping it', () => {

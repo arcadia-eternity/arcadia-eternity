@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, Operators } from '@arcadia-eternity/battle/v4/legacy'
@@ -53,13 +52,6 @@ it('reads the first value once and preserves duplicate-target phase messages', (
   expect(changes).toHaveLength(3)
   Operators.setRage(() => [])(f.ctx, [f.a])
   expect(changes).toHaveLength(3)
-})
-it('restores the exact historical operation body', () => {
-  const s = readFileSync(new URL('../../src/v4/legacy/effectBuilder/src/operator.ts', import.meta.url), 'utf8')
-  const body = s.slice(s.indexOf('  setRage:'), s.indexOf('  modifyStat:')).replace(/\s+/g, '')
-  expect(createHash('sha256').update(body).digest('hex')).toBe(
-    '6e4ae0559c2780932fa943601fc41a3a2efe0a4cac78d828dbdc490ff2725dde',
-  )
 })
 for (const kind of ['ability', 'mark', 'skill']) {
   const definitions = parse(

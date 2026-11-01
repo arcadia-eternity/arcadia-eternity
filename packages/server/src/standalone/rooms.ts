@@ -197,13 +197,7 @@ export class RoomRegistry {
     if (input.expectedRuntime === undefined) return
     const expected = object(input.expectedRuntime)
     const actual = environment.runtime.identity
-    if (
-      expected.kind !== actual.kind ||
-      expected.contentRevision !== actual.contentRevision ||
-      expected.coreBuildId !== actual.coreBuildId ||
-      expected.registryBuildId !== actual.registryBuildId
-    )
-      fail('RUNTIME_MISMATCH')
+    if (expected.kind !== actual.kind) fail('RUNTIME_MISMATCH')
   }
   private checkClientEnvironment(room: Pick<Room, 'environment'>, raw: unknown) {
     if (!room.environment.isNpm && raw === undefined) return

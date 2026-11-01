@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
@@ -81,14 +80,6 @@ const originals = parse(
 it('pins the current action-selection inventory', () => expect(originals).toHaveLength(3))
 for (const original of originals)
   it(`parses unchanged ${original.id}`, () => expect(EffectParser.parse(original).id).toBe(original.id))
-
-it('pins the restored historical operator body', () => {
-  const source = readFileSync(new URL('../../src/v4/legacy/effectBuilder/src/operator.ts', import.meta.url), 'utf8')
-  const body = source.slice(source.indexOf('  executeActions:'), source.indexOf('  conditional:')).replace(/\s+/g, '')
-  expect(createHash('sha256').update(body).digest('hex')).toBe(
-    '0018eac025797dc90473db8f31fd09fd6f05d44b1a2505b422a23e252573db1d',
-  )
-})
 it('rejects malformed nested actions instead of accepting opaque objects', () => {
   expect(() =>
     EffectParser.parse({

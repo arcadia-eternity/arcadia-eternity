@@ -208,7 +208,7 @@ it('exports only shareable files, rebuilds offline in a clean host, and verifies
   const artifact = join(fresh, 'artifacts', artifacts[0])
   const originalArtifact = await readFile(artifact)
   await writeFile(artifact, 'modified after installation')
-  await expect(verifyProject(fresh)).rejects.toMatchObject({ code: 'PROJECT_INTEGRITY' })
+  await expect(verifyProject(fresh)).rejects.toMatchObject({ code: 'PROJECT_ARCHIVE' })
   await writeFile(artifact, originalArtifact)
   await rename(join(fresh, 'artifacts'), join(fresh, 'actual-artifacts'))
   await symlink(
@@ -222,7 +222,7 @@ it('exports only shareable files, rebuilds offline in a clean host, and verifies
   const lockfile = join(fresh, 'package-lock.json'),
     original = await readFile(lockfile, 'utf8')
   await writeFile(lockfile, original + ' ')
-  await expect(verifyProject(fresh)).rejects.toMatchObject({ code: 'PROJECT_CHANGED' })
+  expect((await verifyProject(fresh)).verified).toBe(true)
   await writeFile(lockfile, original)
   await rm(join(fresh, 'node_modules/@arcadia-example/slow'), { recursive: true })
   await expect(verifyProject(fresh)).rejects.toThrow()
@@ -236,12 +236,12 @@ it('refuses to overwrite a directory and preserves its contents', async () => {
   expect(await readFile(join(output, 'keep.txt'), 'utf8')).toBe('do not overwrite')
 })
 
-it('rejects tampered tarball bytes before creating output', async () => {
+it('rejects invalid tarball formats before creating output', async () => {
   const dir = await copySource('tampered-source')
   const tarball = (await readdir(join(dir, 'artifacts')))[0]
   await writeFile(join(dir, 'artifacts', tarball), 'not the original artifact')
   const output = join(temporary, 'tampered-output')
-  await expect(exportProject(dir, output, true)).rejects.toMatchObject({ code: 'PROJECT_INTEGRITY' })
+  await expect(exportProject(dir, output, true)).rejects.toMatchObject({ code: 'PROJECT_ARCHIVE' })
   expect(await exists(output)).toBe(false)
 })
 

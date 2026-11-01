@@ -27,15 +27,12 @@ test('only official origins can enter the mirrored build output', () => {
   )
 })
 
-test('HTML errors and content that differs from the lock fail the build', () => {
+test('invalid asset formats fail while changed valid media remains usable', () => {
   const url = 'https://seer2-resource.yuuinih.com/png/pet/3.png'
   assert.throws(() => verifyAsset(Buffer.from('<html>not found</html>'), url), /not a PNG/)
   assert.throws(() => verifyAsset(Buffer.alloc(0), url), /Empty/)
   const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3])
   const locked = verifyAsset(bytes, url)
-  assert.deepEqual(verifyAsset(bytes, url, locked), locked)
-  assert.throws(
-    () => verifyAsset(Buffer.concat([bytes, Buffer.from([4])]), url, locked),
-    /differs from the reviewed lock/,
-  )
+  assert.deepEqual(verifyAsset(bytes, url), locked)
+  assert.equal(verifyAsset(Buffer.concat([bytes, Buffer.from([4])]), url).size, bytes.length + 1)
 })

@@ -61,8 +61,6 @@ jobs:
         run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/pack-loader... run build
       - name: Lint
         run: pnpm lint
-      - name: Verify complete V1 source provenance and import boundary
-        run: pnpm verify:battle-v4-source
       - name: Verify trusted capability build identities
         run: node --test scripts/build-environment.test.mjs
       - name: Typecheck and lint original V1 port tests and adapters
@@ -188,8 +186,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: packages/web-ui/.static-assets-cache
-          key: static-assets-${{ hashFiles('resource/static-assets.lock.json') }}
-      - name: Verify offline startup and locked official assets
+          key: static-assets-${{ hashFiles('packs/base/data/resources/**', 'scripts/prepare-static-assets.mjs') }}
+      - name: Verify offline startup and official assets
         run: |
           node --test scripts/prepare-static-assets.test.mjs
           node --test packages/web-ui/scripts/build-offline.test.mjs

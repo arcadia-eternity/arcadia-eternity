@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 
-// Local packaging permits incomplete notices but still checks staged identity.
+// Local packaging permits incomplete notices while checking the runtime layout.
 export async function beforePack() {
   const staged = fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url))
   await verifyDesktopRuntime(staged, { allowIncompleteNotices: true })
@@ -19,8 +19,7 @@ export async function requireCompleteNotices(root) {
   return verifyDesktopRuntime(root)
 }
 
-// Preview builds explicitly use separate hooks; integrity and copied resources
-// are still checked, while the manifest records the incomplete notices.
+// Preview hooks check required files and contained paths, and record incomplete notices.
 export async function beforePreviewPack() {
   const staged = fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url))
   await verifyDesktopRuntime(staged, { allowIncompleteNotices: true })

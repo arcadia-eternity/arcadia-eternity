@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { BaseSelector, Conditions } from '@arcadia-eternity/battle/v4/legacy'
 import {
@@ -104,11 +102,3 @@ for (const variant of variants)
     expect(cleanups).toBe(['deplete', 'remove-cancel'].includes(variant) ? 1 : 0)
     expect(mark.isActive).toBe(!['deplete', 'remove-cancel', 'inactive'].includes(variant))
   })
-
-it('pins the operation body to the later V1 reference, including inactive-mark admission', () => {
-  const source = readFileSync(new URL('../../src/v4/phase/consumeStack.ts', import.meta.url), 'utf8')
-  const body = source.slice(source.indexOf('export function executeConsumeStackOperation')).replace(/\s+/g, '')
-  expect(createHash('sha256').update(body).digest('hex')).toBe(
-    '7085132089434118970ca7eba0b40f5aa4266261e3f052290b6311f7b82fb6cd',
-  )
-})

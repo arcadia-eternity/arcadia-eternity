@@ -209,7 +209,7 @@ packages:
     const local = await loader.load('builtin:base', { enforceLockfile: true })
     const remote = await loader.load(origin, {
       source: 'http',
-      expectedRevision: local.revision,
+      revision: local.revision,
       enforceLockfile: true,
     })
     expect(remote.runtime).toBe('native-v4')
@@ -232,12 +232,10 @@ packages:
     expect(requests).toContain('locales/zh-CN/skill.yaml')
   })
 
-  it('rejects a revision from another trusted code build', async () => {
+  it('accepts a caller-provided revision across native code builds', async () => {
     const initial = await new NativePackLoader(build, createOfficialContent).load('builtin:base')
     const other = new NativePackLoader({ ...build, registryBuildId: 'c'.repeat(64) }, createOfficialContent)
-    await expect(other.load('builtin:base', { expectedRevision: initial.revision })).rejects.toThrow(
-      'revision mismatch',
-    )
+    expect((await other.load('builtin:base', { revision: initial.revision })).revision).toBe(initial.revision)
   })
 
   it('copies the trusted build identity before any asynchronous load', async () => {

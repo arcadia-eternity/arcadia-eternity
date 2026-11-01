@@ -147,16 +147,18 @@ it('rejects missing references, ignored script switches and clobbering input pat
   await invoke(battle('--out', same, '--replay-out', same), 2)
 })
 
-it('rejects changed build/content, malformed or reordered inputs, unused inputs and altered results', async () => {
+it('ignores build labels and rejects malformed content, reordered inputs and altered results', async () => {
   const file = output('original')
   await invoke(battle('--team-selection', '--replay-out', file))
   const original = JSON.parse(await readFile(file, 'utf8')) as Replay
+  const relabeled = structuredClone(original)
+  relabeled.environment.build = { ...relabeled.environment.build, coreBuildId: '0'.repeat(64) }
+  const relabeledPath = output('relabeled')
+  await writeFile(relabeledPath, JSON.stringify(relabeled))
+  expect((await invoke(['battle', 'replay', relabeledPath, '--json'])).json().verified).toBe(true)
   const mutations: ((r: Replay) => void)[] = [
     r => {
       r.version = 2 as 1
-    },
-    r => {
-      r.environment.build = { ...r.environment.build, coreBuildId: '0'.repeat(64) }
     },
     r => {
       r.environment.data = { ...r.environment.data, skills: [] }

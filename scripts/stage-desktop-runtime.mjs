@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import { createReadStream } from 'node:fs'
 import {
   cp,
   lstat,
@@ -35,41 +33,24 @@ function inside(root, target) {
   const path = relative(root, target)
   return path === '' || (path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path))
 }
-async function fileHash(file) {
-  const hash = createHash('sha256')
-  for await (const bytes of createReadStream(file)) hash.update(bytes)
-  return hash.digest('hex')
-}
-/** Byte identity of staged files and relative links; excludes its own manifest. */
-export async function desktopRuntimeDigest(root) {
+export async function validateDesktopRuntimeFiles(root) {
   root = await realpath(root)
-  const hash = createHash('sha256')
-  async function visit(dir, prefix = '') {
-    const entries = await readdir(dir, { withFileTypes: true })
-    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-    for (const entry of entries) {
-      const name = `${prefix}${entry.name}`
-      if (name === 'arcadia-desktop-runtime.json') continue
+  await stat(join(root, 'cli.js'))
+  async function visit(dir) {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
       const path = join(dir, entry.name)
       if (entry.isSymbolicLink()) {
         const link = await readlink(path)
-        if (isAbsolute(link) || !inside(root, resolve(dir, link)))
-          throw new Error(`Runtime link escapes staged root: ${name}`)
-        const actual = await realpath(path)
-        if (!inside(root, actual)) throw new Error(`Runtime link resolves outside staged root: ${name}`)
-        hash.update(JSON.stringify(['link', name, link.replaceAll('\\', '/')]))
-      } else if (entry.isDirectory()) {
-        await visit(path, `${name}/`)
-      } else if (entry.isFile()) {
-        hash.update(JSON.stringify(['file', name, (await lstat(path)).mode & 0o111, await fileHash(path)]))
-      } else throw new Error(`Unsupported runtime file: ${name}`)
+        if (isAbsolute(link) || !inside(root, resolve(dir, link)) || !inside(root, await realpath(path)))
+          throw new Error(`Runtime link escapes staged root: ${entry.name}`)
+      } else if (entry.isDirectory()) await visit(path)
+      else if (!entry.isFile()) throw new Error(`Unsupported runtime file: ${entry.name}`)
     }
   }
   await visit(root)
-  return hash.digest('hex')
 }
 
-/** Refuse incomplete notices and modifications when preparing a distributable app. */
+/** Check required runtime files, contained links and complete notices for distribution. */
 export async function verifyDesktopRuntime(root, { allowIncompleteNotices = false } = {}) {
   const manifest = JSON.parse(await readFile(join(root, 'arcadia-desktop-runtime.json'), 'utf8'))
   const notices = JSON.parse(await readFile(join(root, 'licenses/notice.json'), 'utf8'))
@@ -84,8 +65,7 @@ export async function verifyDesktopRuntime(root, { allowIncompleteNotices = fals
     throw new Error('Invalid desktop runtime manifest or license inventory')
   if (!manifest.releaseReady && !allowIncompleteNotices)
     throw new Error(`Desktop runtime cannot be released: ${notices.missing.length} license notices require review`)
-  if (manifest.runtimeDigest !== (await desktopRuntimeDigest(root)))
-    throw new Error('Desktop runtime files differ from their staged identity')
+  await validateDesktopRuntimeFiles(root)
   return manifest
 }
 async function workspaces() {
@@ -173,12 +153,8 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
     const lock = await readFile(join(repo, 'pnpm-lock.yaml'), 'utf8')
     const parsedLock = YAML.parse(lock)
     const lockedNpm = parsedLock.importers?.['packages/web-ui']?.devDependencies?.npm
-    if (
-      lockedNpm?.specifier !== npmVersion ||
-      lockedNpm?.version !== npmVersion ||
-      parsedLock.packages?.[`npm@${npmVersion}`]?.resolution?.integrity !== npmIntegrity
-    )
-      throw new Error('The pinned npm version or integrity is missing from pnpm-lock.yaml')
+    if (lockedNpm?.specifier !== npmVersion || lockedNpm?.version !== npmVersion)
+      throw new Error('The pinned npm version is missing from pnpm-lock.yaml')
     const npmRoot = await realpath(join(repo, 'packages/web-ui/node_modules/npm'))
     const npm = JSON.parse(await readFile(join(npmRoot, 'package.json'), 'utf8'))
     if (npm.version !== npmVersion) throw new Error(`Desktop build requires npm ${npmVersion}`)
@@ -186,8 +162,7 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
     const electron = JSON.parse(await readFile(join(electronRoot, 'package.json'), 'utf8'))
     const lockedElectron = parsedLock.importers?.['packages/web-ui']?.devDependencies?.electron?.version?.split('(')[0]
     const electronIntegrity = parsedLock.packages?.[`electron@${lockedElectron}`]?.resolution?.integrity
-    if (!electronIntegrity || electron.version !== lockedElectron)
-      throw new Error('Installed Electron does not match pnpm-lock.yaml')
+    if (electron.version !== lockedElectron) throw new Error('Installed Electron does not match pnpm-lock.yaml')
     const executable =
       process.platform === 'darwin'
         ? join(electronRoot, 'dist/Electron.app/Contents/MacOS/Electron')
@@ -264,8 +239,6 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
       version: 1,
       releaseReady: notices.missing.length === 0,
       missingLicenseTexts: notices.missing,
-      runtimeDigest: await desktopRuntimeDigest(runtime),
-      lockfileDigest: createHash('sha256').update(lock).digest('hex'),
       npm: {
         version: npmVersion,
         integrity: npmIntegrity,

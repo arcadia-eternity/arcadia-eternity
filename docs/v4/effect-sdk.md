@@ -101,4 +101,4 @@ pnpm exec tsc -p examples/ugc/slow/tsconfig.json
 node --test examples/ugc/slow/test/slow.test.mjs
 ```
 
-本地 SDK 物料仍用 `node scripts/stage-author-sdk.mjs /absolute/new-directory` 生成，先构建依赖包。同宿主构建的包和类型一起安装，清单记录 SDK API 版本、核心／SDK 构建身份和各包产物哈希，用于核对物料；本工具不发布 npm，也不声明已完成正式发行。
+本地 SDK 物料仍用 `node scripts/stage-author-sdk.mjs /absolute/new-directory` 生成，先构建依赖包。同宿主构建的包和类型一起安装，清单记录 SDK API 版本、核心／SDK 构建标识；安装时检查所需包与 API 版本；本工具不发布 npm，也不声明已完成正式发行。

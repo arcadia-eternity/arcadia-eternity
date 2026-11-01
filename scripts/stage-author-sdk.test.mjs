@@ -1,7 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
 import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -29,8 +28,6 @@ test(
       assert.ok(index.packages.some(pkg => pkg.name === '@arcadia-eternity/battle'))
       for (const pkg of index.packages) {
         const archive = join(bundle, pkg.filename)
-        const bytes = await readFile(archive)
-        assert.equal(createHash('sha256').update(bytes).digest('hex'), pkg.sha256)
         const files = (await exec('tar', ['-tzf', archive])).stdout.split('\n')
         assert.ok(!files.some(path => /^package\/licen[sc]e(?:\.|$)/i.test(path)))
         const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)

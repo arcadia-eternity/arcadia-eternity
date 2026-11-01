@@ -1,5 +1,4 @@
 import { readContentSources } from '../packages/content-dev/src/lib/content.mjs'
-import { createHash } from 'node:crypto'
 import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -26,7 +25,7 @@ export async function collectOfficialAssetUrls(repositoryRoot = root) {
   return [...urls].sort()
 }
 
-export function verifyAsset(bytes, url, expected) {
+export function verifyAsset(bytes, url) {
   if (!bytes.length) throw new Error(`Empty official asset: ${url}`)
   const extension = path.extname(new URL(url).pathname)
   if (extension === '.png' && !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
@@ -42,11 +41,7 @@ export function verifyAsset(bytes, url, expected) {
   ) {
     throw new Error(`Official asset is not MP3 audio: ${url}`)
   }
-  const sha256 = createHash('sha256').update(bytes).digest('hex')
-  if (expected && (expected.sha256 !== sha256 || expected.size !== bytes.length)) {
-    throw new Error(`Official asset differs from the reviewed lock: ${url}`)
-  }
-  return { size: bytes.length, sha256 }
+  return { size: bytes.length }
 }
 
 async function download(url) {
@@ -65,17 +60,8 @@ export async function prepareStaticAssets({
   repositoryRoot = root,
   output = path.join(repositoryRoot, 'packages/web-ui/dist/official-assets'),
   cache = path.join(repositoryRoot, 'packages/web-ui/.static-assets-cache'),
-  updateLock = false,
 } = {}) {
   const urls = await collectOfficialAssetUrls(repositoryRoot)
-  const lockPath = path.join(repositoryRoot, 'resource/static-assets.lock.json')
-  const lock = updateLock ? {} : JSON.parse(await readFile(lockPath, 'utf8')).assets
-  if (!updateLock && JSON.stringify(Object.keys(lock).sort()) !== JSON.stringify(urls)) {
-    throw new Error(
-      'Official asset inventory changed. Review sources and update resource/static-assets.lock.json explicitly.',
-    )
-  }
-  const nextLock = {}
   const errors = []
   let cursor = 0
   let completed = 0
@@ -90,15 +76,15 @@ export async function prepareStaticAssets({
           let bytes
           try {
             bytes = await readFile(cachedPath)
-            verifyAsset(bytes, url, lock[url])
+            verifyAsset(bytes, url)
           } catch {
             bytes = await download(url)
-            verifyAsset(bytes, url, lock[url])
+            verifyAsset(bytes, url)
             await mkdir(path.dirname(cachedPath), { recursive: true })
             await writeFile(`${cachedPath}.tmp`, bytes)
             await rename(`${cachedPath}.tmp`, cachedPath)
           }
-          nextLock[url] = verifyAsset(bytes, url, lock[url])
+          verifyAsset(bytes, url)
           const target = path.join(output, relative)
           await mkdir(path.dirname(target), { recursive: true })
           await copyFile(cachedPath, target)
@@ -113,14 +99,11 @@ export async function prepareStaticAssets({
   )
   if (errors.length)
     throw new Error(`Official static assets are incomplete (${errors.length} failures):\n${errors.join('\n')}`)
-  const sortedLock = Object.fromEntries(urls.map(url => [url, nextLock[url]]))
-  if (updateLock) await writeFile(lockPath, `${JSON.stringify({ version: 1, assets: sortedLock }, null, 2)}\n`)
   console.log(`Official assets ready: ${urls.length} files, ${(totalBytes / 1024 / 1024).toFixed(1)} MiB`)
   return { files: urls.length, bytes: totalBytes }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  const unknown = process.argv.slice(2).filter(arg => arg !== '--update-lock')
-  if (unknown.length) throw new Error(`Unknown arguments: ${unknown.join(' ')}`)
-  await prepareStaticAssets({ updateLock: process.argv.includes('--update-lock') })
+  if (process.argv.length > 2) throw new Error('prepare-static-assets does not accept arguments')
+  await prepareStaticAssets()
 }

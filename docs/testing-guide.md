@@ -13,7 +13,6 @@ pnpm build:package
 pnpm typecheck:battle-v4
 pnpm lint:battle-v4
 pnpm test:battle-v4
-pnpm verify:battle-v4-source
 pnpm verify:battle-v4-hosts
 pnpm verify:battle-v4-waiting-snapshots
 pnpm verify:battle-v4-behaviors
@@ -28,7 +27,7 @@ pnpm verify:battle-v4-native-pack
 pnpm test:battle-v4 test/v4/port.test.ts
 ```
 
-作者辅助 API 设计用例另有 `pnpm typecheck:effect-authoring-design` 和 `pnpm test:effect-authoring-design`。候选记录与历史 oracle 的用途见 [validation](v4/validation/README.md)，并行设置与 CI 触发规则见[测试性能说明](v4/testing-performance.md)。
+作者辅助 API 设计用例另有 `pnpm typecheck:effect-authoring-design` 和 `pnpm test:effect-authoring-design`。并行设置与 CI 触发规则见[测试性能说明](v4/testing-performance.md)。
 
 ## 服务端、CLI 和内容工具
 
@@ -79,5 +78,3 @@ node --test packages/web-ui/electron/test/*.test.mjs
 ## 全仓检查与维护
 
 `pnpm test` 顺序执行全仓类型检查和各包的 `test:run`；`pnpm test:types`、`pnpm test:run` 和 `pnpm test:watch` 可分别运行。`pnpm lint` 与 `pnpm format:check` 为根目录检查。新增或移除入口时同步对应脚本、本指南和 CI。
-
-旧 V2、Redis 集群、rules 包及 ranked E2E 入口已移除。历史命令从 Git 查询，当前验证使用本指南列出的入口。

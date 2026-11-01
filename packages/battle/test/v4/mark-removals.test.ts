@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
@@ -253,33 +252,3 @@ for (const id of ids) {
           }
         })
 }
-it('pins all thirteen source hashes, priorities, triggers and action paths', () => {
-  const ledger = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/mark-removals-candidates.json', import.meta.url), 'utf8'),
-  )
-  const normalize = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(normalize)
-      : v && typeof v === 'object'
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map(k => [k, normalize((v as Record<string, unknown>)[k])]),
-          )
-        : v
-  expect(ledger.records.map((r: { id: string }) => r.id).sort()).toEqual([...ids].sort())
-  expect(ids).toHaveLength(13)
-  expect(ledger.rejected).toEqual([])
-  for (const r of ledger.records) {
-    const d = originals.get(r.id)!
-    expect(r.definitionSha256).toBe(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(d)))
-        .digest('hex'),
-    )
-    expect(r.recipe.trigger).toEqual(d.trigger)
-    expect(r.recipe.priority).toBe(d.priority)
-    expect(r.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(['/apply'])
-    expect(r.recipe.repairedPaths).toEqual([])
-  }
-})

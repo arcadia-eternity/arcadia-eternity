@@ -1,17 +1,6 @@
 # 可选账号提供商设计
 
-状态：G3 设计及实施依据。两条登录／恢复路径为**邮箱一次性验证码 + GitHub App 用户授权**；GitHub 是唯一第三方登录提供商，原通用 OIDC 不在运行配置中。[#235](https://github.com/arcadia-eternity/arcadia-eternity/pull/235) 已合并 G3 基础实现，本轮按 [#237](https://github.com/arcadia-eternity/arcadia-eternity/issues/237) 接入 Better Auth 1.7.12 验证层。真实 SMTP 和 GitHub 登录仍未验收；维护者于 2026-10-24 免除了它们对 #235 合并的阻塞，并非验证通过。本文保留提交 `c09d044d` 的旧账号实现调查；只读核对过现有 Supabase 项目的表清单，没有读取玩家记录、执行迁移或部署。G4 排位及战绩、在线录像分别留在 [#233](https://github.com/arcadia-eternity/arcadia-eternity/issues/233) 和 [#234](https://github.com/arcadia-eternity/arcadia-eternity/issues/234) 后期实施；UGC 不在本轮范围内。
-
-## 旧系统实际提供了什么
-
-旧系统没有通用账号提供商，也没有 OAuth/OIDC。`players.id` 同时充当本地玩家 UID 和数据库主键；每个游客在 `players` 中建一行，但不取得能证明该 ID 归属的凭据。邮箱验证码可把一行 `players` 标记为已注册，之后按该邮箱找回玩家 ID 并签发自有 JWT。Supabase 在这里主要是 PostgreSQL 数据库，而非登录提供商。
-
-- [旧游客接口](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/app/routes/authRoutes.ts#L94-L125)创建数据库玩家，但[旧 `smartAuth`](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/app/middlewares/smartAuthMiddleware.ts#L28-L83)对未注册玩家直接接受请求中的 `playerId`；不能继承“报出 UID 即有权操作”的判断。
-- [旧邮箱路由](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/app/routes/emailInheritanceRoutes.ts#L443-L596)负责邮箱验证码绑定与恢复，[旧 `AuthService`](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/domain/auth/services/authService.ts)签发 JWT。可保留“凭独立证明恢复”的产品语义，凭证实现必须重做。
-- [`players.email`](../../packages/database/sql/01_create_tables.sql)唯一且与 `is_registered` 绑定，没有外部身份表；邮箱不应继续占据通用账号模型的中心。
-- [旧 `petStorage.ts`](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/web-ui/src/stores/petStorage.ts#L165-L279)把宠物队伍保存在浏览器 `localStorage`；旧“找回玩家 ID”并不等于恢复本地宠物或队伍。
-
-旧验证码由 `Math.random()` 生成并以明文保存，使用过程是先查询、后标记；旧 JWT 撤销使用进程内集合。仓库中的旧 RLS 策略还包含 `auth.uid() IS NULL` 放行写入的条件，[#195](https://github.com/arcadia-eternity/arcadia-eternity/issues/195)也提出了相关疑问。这是源码风险，不能据此断言生产数据库已经部署了同样的策略。旧 SQL、旧 JWT 和旧验证码实现均不能直接接回新服务端。
+账号支持邮箱一次性验证码与 GitHub App 用户授权，验证层使用 Better Auth 1.7.12；真实 SMTP 投递与 GitHub 回调需在部署环境验收。
 
 ## 官方数据库与不接 OAuth 的登录
 

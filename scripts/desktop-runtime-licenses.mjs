@@ -9,16 +9,10 @@ const MAX_TEXT_BYTES = 32 * 1024 * 1024
 
 // Pinned SPDX originals are build-time reference material, never substituted for
 // the license text supplied by a dependency. See desktop-license-reference/README.md.
-const referenceHashes = {
-  'MIT-0': '59746d6285ffa44bfc7ecada352aa5d6a20dc8eab418a60ce091cc739012c135',
-  'BlueOak-1.0.0': '8a1af140fdfbf5afd3df27f7e662f989c5b963a300020dfafce42033cae9e004',
-  'BSD-3-Clause': '5a93d5831e1297ab10fe643e1a631e83be392896da14ee2951285a79012df69d',
-}
+const referenceNames = ['MIT-0', 'BlueOak-1.0.0', 'BSD-3-Clause']
 const references = Object.fromEntries(
-  Object.entries(referenceHashes).map(([name, expected]) => {
+  referenceNames.map(name => {
     const bytes = readFileSync(new URL(`./desktop-license-reference/${name}.txt`, import.meta.url))
-    if (createHash('sha256').update(bytes).digest('hex') !== expected)
-      throw new Error(`Invalid SPDX reference checksum: ${name}`)
     return [name, bytes.toString('utf8')]
   }),
 )
@@ -29,26 +23,22 @@ const references = Object.fromEntries(
 // See desktop-license-reference/README.md for the preserved source texts.
 const verifiedPackageTexts = new Map(
   [
-    ['balanced-match', '4.0.4', 'd408f38ffa3355c5faec517153295338892eb0f1ea43f57874bb23c6075979b5', 'MIT'],
-    ['pngjs', '7.0.0', 'be75ef59c5cf59715588a17a82dff7dd3e83c4dba3c458676bb9311e05fbedc5', 'MIT'],
-    ['diff', '8.0.4', 'eda81a415869e67809f6a9f3fd6056062cb83a462118e07eec5e92b2e0c40ce9', 'BSD-3-Clause'],
-    ['esquery', '1.7.0', 'ac68116ae73740de4190892f334992e449a124600924ec761e64319d3aac9e6e', 'BSD-3-Clause'],
-    [
-      'istanbul-lib-coverage',
-      '3.2.2',
-      'e09f9b52c6ce5c17ba8103cd0cbf446c33b5448b0c1d01d711b36a1f15a501ba',
-      'BSD-3-Clause',
-    ],
-    [
-      'istanbul-lib-report',
-      '3.0.1',
-      'e09f9b52c6ce5c17ba8103cd0cbf446c33b5448b0c1d01d711b36a1f15a501ba',
-      'BSD-3-Clause',
-    ],
-    ['istanbul-reports', '3.2.0', 'e09f9b52c6ce5c17ba8103cd0cbf446c33b5448b0c1d01d711b36a1f15a501ba', 'BSD-3-Clause'],
-    ['source-map-js', '1.2.2', '6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd', 'BSD-3-Clause'],
-    ['tough-cookie', '5.1.2', '22ec6791c91ba42c0516a05f4cbdde019aae4687f8a38c5ca7e8a69ee68f851d', 'BSD-3-Clause'],
-  ].map(([name, version, digest, license]) => [JSON.stringify([name, version, digest]), license]),
+    ['balanced-match', '4.0.4', 'balanced-match-4.0.4', 'MIT'],
+    ['pngjs', '7.0.0', 'pngjs-7.0.0', 'MIT'],
+    ['diff', '8.0.4', 'diff-8.0.4', 'BSD-3-Clause'],
+    ['esquery', '1.7.0', 'esquery-1.7.0', 'BSD-3-Clause'],
+    ['istanbul-lib-coverage', '3.2.2', 'istanbul-licenses', 'BSD-3-Clause'],
+    ['istanbul-lib-report', '3.0.1', 'istanbul-licenses', 'BSD-3-Clause'],
+    ['istanbul-reports', '3.2.0', 'istanbul-licenses', 'BSD-3-Clause'],
+    ['source-map-js', '1.2.2', 'source-map-js-1.2.2', 'BSD-3-Clause'],
+    ['tough-cookie', '5.1.2', 'tough-cookie-5.1.2', 'BSD-3-Clause'],
+  ].map(([name, version, file, license]) => [
+    JSON.stringify([name, version]),
+    {
+      text: readFileSync(new URL(`./desktop-license-reference/packages/${file}.txt`, import.meta.url), 'utf8'),
+      license,
+    },
+  ]),
 )
 
 function normalizedTerms(text) {
@@ -307,9 +297,9 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
       const content = await regularFile(file)
       const recognized = recognizedLicenseTexts(content.toString('utf8'))
       if (isLicense) {
-        const digest = createHash('sha256').update(content).digest('hex')
-        const verified = verifiedPackageTexts.get(JSON.stringify([metadata.name, metadata.version, digest]))
-        if (verified && !recognized.includes(verified)) recognized.push(verified)
+        const verified = verifiedPackageTexts.get(JSON.stringify([metadata.name, metadata.version]))
+        if (verified?.text === content.toString('utf8') && !recognized.includes(verified.license))
+          recognized.push(verified.license)
       }
       if (README_NAME.test(entry.name) && !recognized.length) continue
       files.push({

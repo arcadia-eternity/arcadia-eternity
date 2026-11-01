@@ -13,19 +13,13 @@ Publish the entire `packages/web-ui/dist/` directory to a static HTTP(S) host. A
 
 `build:static` builds workspace dependencies, enables `VITE_STATIC_MODE=1`, bundles the application with relative URLs, copies official assets and generates the offline manifest and worker. The static entry opens local battle configuration; account and room routes are excluded. Ordinary `build`/`build-only` retain the existing online product. Direct local pages in that build no longer wait for server connection.
 
-Official content and the compiled TypeScript effects remain part of the existing native loader. The 1,039 official media files are copied to `official-assets/`; they are real portraits, animations, icons, backgrounds and audio. `resource/static-assets.lock.json` pins their byte sizes and SHA256 hashes. The build downloads missing files from the two existing official resource origins and reuses `packages/web-ui/.static-assets-cache/` on later builds. It fails on a missing file or a hash mismatch. Binary assets are not checked into Git.
+Official content and compiled TypeScript effects use the native loader. Official media is copied to `official-assets/` from the declared resource origins; valid cached files may be reused on later builds. Files are checked for a supported format and successful download. Binary assets are not checked into Git.
 
-To deliberately refresh upstream media, review the changed sources, then run:
-
-```sh
-node scripts/prepare-static-assets.mjs --update-lock
-```
-
-Commit the reviewed lock changes with the corresponding content changes. Normal builds never update the lock. Build-time downloads require internet access on a cold machine; a completed distribution has no runtime dependency on those resource hosts. Custom user pack URLs keep their original semantics and are not part of this official offline package; cross-host user storage and sharing remain #214/#217.
+Build-time downloads require internet access on a cold machine; a completed distribution has no runtime dependency on those resource hosts. Custom user pack URLs keep their original semantics and are not part of the official offline package.
 
 ## Offline and storage behavior
 
-The browser can play immediately from the static host. “保存离线资源” explicitly saves the complete build, displays its size and progress, and enables reload without a network connection. Saving requires HTTPS or localhost and browser Cache Storage/Service Worker support. Every saved file is checked against the build manifest before the cache is marked ready. A failed download, version mismatch or quota failure does not report success, and the current page can continue playing. Previous complete caches are replaced only after a new complete build and worker are ready.
+The browser can play immediately from the static host. “保存离线资源” explicitly saves the complete build, displays its size and progress, and enables reload without a network connection. Saving requires HTTPS or localhost and browser Cache Storage/Service Worker support. Every saved file is checked for its declared size before the cache is marked ready. A failed download, version mismatch or quota failure does not report success, and the current page can continue playing. Previous complete caches are replaced only after a new complete build and worker are ready.
 
 The worker is scoped to the mounted directory and only handles listed static files. It never caches game APIs, login data or third-party content. While online, the static host remains the source of responses; saved responses provide the offline fallback. Updating a published build requires saving its resources again to refresh the offline copy. Keep pages from a previous release online until their current match ends.
 

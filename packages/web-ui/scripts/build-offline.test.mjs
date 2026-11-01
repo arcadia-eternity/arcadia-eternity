@@ -28,8 +28,8 @@ test('offline builds exclude host configuration and stale worker output, retaini
       first.bytes,
       first.files.reduce((sum, file) => sum + file.size, 0),
     )
-    assert.equal((await buildOffline(dist)).version, first.version)
-    await writeFile(join(dist, 'assets/battle.js'), 'console.log("updated")')
+    assert.notEqual((await buildOffline(dist)).version, first.version)
+    await writeFile(join(dist, 'assets/battle.js'), 'console.log("edit")')
     const updated = await buildOffline(dist)
     assert.notEqual(updated.version, first.version)
     const worker = await readFile(join(dist, updated.worker), 'utf8')

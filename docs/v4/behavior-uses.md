@@ -102,7 +102,7 @@ const native = defineNativeBehavior({
 
 `copyBehaviorUse` 为一次使用生成新 useId；`copyBehaviorDefinition` 复制静态定义，不会复制或生成原生实现。作品 Fork 则由作品层生成新 projectId 和 namespace，改写显式内部引用、保留外部依赖。可信 TS 闭包中的硬编码引用无法自动改写，含自定义原生导出的作品不能宣称自动 Fork 成功。
 
-行为定义仅接受原生导出。旧 Rule Graph、规则编译／封装／展开、能力注册表和独立规则包环境已移除；目录不再接受 compiledPacks 或规则 registry 参数。作品编译只允许已安装且获准的原生导出，普通基础包入口仍禁止替换官方模板。
+行为定义使用原生导出。作品编译只允许已安装且获准的原生导出，普通基础包入口仍禁止替换官方模板。
 
 目标选择、数值计算、捕获／跟随与持续绑定继续由可信 TS Authoring API 提供。普通玩家不需要通过展开模板来编辑这些实现细节。
 

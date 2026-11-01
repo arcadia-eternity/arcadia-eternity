@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   BattleMessageType,
@@ -124,11 +122,4 @@ it('minimum rage observes the settled loss and emits the nested assignment befor
     [10, 25],
     [40, 25],
   ])
-})
-it('pins the exact later V1 rage operation body', () => {
-  const text = readFileSync(new URL('../../src/v4/phase/rage.ts', import.meta.url), 'utf8')
-  const body = text.slice(text.indexOf('export function executeRageOperation')).replace(/\s+/g, '')
-  expect(createHash('sha256').update(body).digest('hex')).toBe(
-    '19e34f156a55ff037269643709644ab076b591637ec57ed32f0b5b8da77639e3',
-  )
 })

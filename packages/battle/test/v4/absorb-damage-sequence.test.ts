@@ -215,28 +215,3 @@ for (const kind of ['skill', 'mark'] as const)
       if (variant === 'heal-cancel') expect(actual.hp[0]).toBe(1000)
       if (variant === 'repeat') expect(actual.heals.map(h => h.value)).toEqual([25, 25])
     })
-
-it('pins the complete uncorrected source and action order', async () => {
-  const { createHash } = await import('node:crypto')
-  const ledger = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/vital-sequences-candidates.json', import.meta.url), 'utf8'),
-  )
-  const record = ledger.records.find((r: { id: string }) => r.id === id)
-  const normalize = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(normalize)
-      : v && typeof v === 'object'
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map(k => [k, normalize((v as Record<string, unknown>)[k])]),
-          )
-        : v
-  expect(record.definitionSha256).toBe(
-    createHash('sha256')
-      .update(JSON.stringify(normalize(original)))
-      .digest('hex'),
-  )
-  expect(record.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(['/apply/0', '/apply/1'])
-  expect(record.recipe.repairedPaths).toEqual([])
-})

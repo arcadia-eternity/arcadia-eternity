@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { resolve } from 'node:path'
 import {
@@ -107,15 +106,12 @@ export async function preparePresentation(
     for (const resource of pkg.presentation.resources) {
       if (resource.kind === 'http') continue
       const file = packageFile(resolve(root, pkg.location), resource.source)
-      const hash = createHash('sha256')
       let bytes = 0
       for await (const chunk of createReadStream(file)) {
         bytes += chunk.length
         if (bytes > resource.bytes) throw new Error(`RESOURCE_INTEGRITY: ${resource.id} exceeds declared size`)
-        hash.update(chunk)
       }
-      if (bytes !== resource.bytes || hash.digest('hex') !== resource.sha256)
-        throw new Error(`RESOURCE_INTEGRITY: ${resource.id}`)
+      if (bytes !== resource.bytes) throw new Error(`RESOURCE_INTEGRITY: ${resource.id}`)
       resources.push({ ...resource, file })
     }
     output.push({

@@ -63,7 +63,7 @@ export async function verifyNativePackHost(
       if (battle.currentTurn !== 2 || battle.getActionLog().length !== 5)
         throw new Error('Native AI did not complete two turns')
       await system.cleanup()
-      content = (await loader.load(packRef, { source: 'http', expectedRevision: initial.revision })).content
+      content = (await loader.load(packRef, { source: 'http', revision: initial.revision })).content
       const players = content.parsePlayers(teams)
       battle = content.createBattle(players[0], players[1], config)
       system = new LocalBattleSystemV4(battle, authority())
@@ -100,7 +100,7 @@ export async function verifyNativePackHost(
       const fresh = await loader.load(packRef, {
         source: 'http',
         enforceLockfile: true,
-        expectedRevision: initial.revision,
+        revision: initial.revision,
       })
       content = fresh.content
       const players = input.teams.map(team => content.parsePlayer(team))

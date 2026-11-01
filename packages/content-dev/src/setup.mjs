@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-import { createHash } from 'node:crypto'
 import { spawn, execFileSync } from 'node:child_process'
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
-import { createRequire } from 'node:module'
-import { pathToFileURL, fileURLToPath } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 export async function setup(args = process.argv.slice(2), root = process.cwd()) {
   root = resolve(root)
@@ -93,10 +91,6 @@ export async function setup(args = process.argv.slice(2), root = process.cwd()) 
       if (!required.delete(pkg.name) || basename(pkg.filename) !== pkg.filename || !pkg.filename.endsWith('.tgz'))
         throw new Error(`Unexpected or duplicated SDK archive: ${pkg.name}`)
       const file = join(sdkDirectory, pkg.filename)
-      const digest = createHash('sha256')
-        .update(await readFile(file))
-        .digest('hex')
-      if (digest !== pkg.sha256) throw new Error(`SDK archive checksum mismatch: ${pkg.filename}`)
       archives.push(file)
     }
     if (required.size) throw new Error(`Missing SDK packages: ${[...required].join(', ')}`)
@@ -110,15 +104,6 @@ export async function setup(args = process.argv.slice(2), root = process.cwd()) 
       ...(options.offline ? ['--offline'] : []),
       ...archives,
     ])
-    const require = createRequire(join(root, 'package.json'))
-    const { nativeBuildIdentity } = await import(
-      pathToFileURL(require.resolve('@arcadia-eternity/battle/v4/build')).href
-    )
-    if (
-      nativeBuildIdentity.coreBuildId !== index.build.coreBuildId ||
-      nativeBuildIdentity.registryBuildId !== index.build.registryBuildId
-    )
-      throw new Error('Installed SDK build differs from the archive manifest.')
     await writeFile(
       join(state, 'sdk-installed.json'),
       JSON.stringify(

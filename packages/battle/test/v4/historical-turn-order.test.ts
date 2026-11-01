@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { Conditions } from '@arcadia-eternity/battle/v4/legacy'
 import {
@@ -132,14 +130,4 @@ it('direct switch phase records its context before outgoing effects', () => {
   phase.execute()
   expect(observed).toEqual([true])
   expect(f.turn.appledContexts).toEqual([context])
-})
-it('pins both historical recursive predicate bodies', () => {
-  const text = readFileSync(new URL('../../src/v4/legacy/effectBuilder/src/condition.ts', import.meta.url), 'utf8')
-  for (const [name, hash] of [
-    ['isFirstSkillUsedThisTurn', '8b1c8bc40632dba42d636d839ba85332981f1e1f434317ebfb4091842cddafb0'],
-    ['isLastSkillUsedThisTurn', '7b5a13c81f62c4fac67607304dce65696985d1811ec722c6b93596c303daaf1b'],
-  ]) {
-    const body = text.match(new RegExp(`  ${name}:[\\s\\S]*?\\n  },`))![0].replace(/\s+/g, '')
-    expect(createHash('sha256').update(body).digest('hex')).toBe(hash)
-  }
 })

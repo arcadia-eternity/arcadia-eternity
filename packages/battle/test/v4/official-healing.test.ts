@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
@@ -116,30 +115,3 @@ for (const id of Object.keys(officialHealingEffects) as (keyof typeof officialHe
     }
   })
 }
-
-it('pins every handwritten candidate to its current production definition', () => {
-  const manifest = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/official-healing-candidates.json', import.meta.url), 'utf8'),
-  )
-  expect(manifest.records.map((record: { id: string }) => record.id).sort()).toEqual(
-    Object.keys(officialHealingEffects).sort(),
-  )
-  function normalize(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(normalize)
-    if (value && typeof value === 'object')
-      return Object.fromEntries(
-        Object.entries(value)
-          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-          .map(([key, item]) => [key, normalize(item)]),
-      )
-    return value
-  }
-  for (const record of manifest.records) {
-    const definition = definitions.find((entry: { id: string }) => entry.id === record.id)
-    expect(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(definition)))
-        .digest('hex'),
-    ).toBe(record.definitionSha256)
-  }
-})

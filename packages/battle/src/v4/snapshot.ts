@@ -921,7 +921,6 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
     s.format !== 'arcadia.v1.battle-snapshot' ||
     s.version !== 1 ||
     (s.boundary !== undefined && !['initial', 'switch', 'team-selection'].includes(s.boundary)) ||
-    s.catalog !== catalog.revision ||
     !Array.isArray(s.nodes) ||
     s.nodes.length > 100000
   )

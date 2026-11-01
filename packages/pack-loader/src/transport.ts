@@ -301,7 +301,7 @@ export class PackTransport {
       assets: AssetLoadRecord[]
     },
   ): Promise<string[]> {
-    const { pack, packSource, packRaw, assets } = context
+    const { pack, packSource, assets } = context
     if (!lockfile || !pack) return []
     const issues: string[] = []
     const importer = lockfile.importers['.']
@@ -336,10 +336,6 @@ export class PackTransport {
     if (!this.matchesExpectedSource(rootSnapshot.source, packSource)) {
       issues.push(`lockfile source mismatch for '${pack.id}': expected ${packSource}, got ${rootSnapshot.source}`)
     }
-    const packIntegrity = await this.computeIntegrity(packRaw)
-    if (rootSnapshot.resolution?.integrity && rootSnapshot.resolution.integrity !== packIntegrity) {
-      issues.push(`lockfile integrity mismatch for '${pack.id}'`)
-    }
 
     for (const assetRecord of assets) {
       const asset = assetRecord.manifest
@@ -371,10 +367,6 @@ export class PackTransport {
         issues.push(
           `lockfile source mismatch for asset '${asset.id}': expected ${assetRecord.url}, got ${assetSnapshot.source}`,
         )
-      }
-      const assetIntegrity = await this.computeIntegrity(assetRecord.raw)
-      if (assetSnapshot.resolution?.integrity && assetSnapshot.resolution.integrity !== assetIntegrity) {
-        issues.push(`lockfile integrity mismatch for asset '${asset.id}'`)
       }
       if (!expectedKey) {
         issues.push(`lockfile root package missing dependency edge to asset '${asset.id}'`)

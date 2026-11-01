@@ -162,14 +162,6 @@ function preserveBin(value: unknown) {
       throw new CliError('PROJECT_FORMAT', 'Invalid package executable path')
   return bins
 }
-function sha512Integrity(value: unknown): Buffer {
-  if (typeof value !== 'string' || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(value))
-    throw new CliError('PROJECT_INTEGRITY', 'Every package needs a strong npm sha512 integrity record')
-  const bytes = Buffer.from(value.slice(7), 'base64')
-  if (bytes.length !== 64 || bytes.toString('base64') !== value.slice(7))
-    throw new CliError('PROJECT_INTEGRITY', 'Invalid npm integrity record')
-  return bytes
-}
 /** Restrict shared tgz files before export; never let an importer unpack links, paths outside package/ or a gzip bomb. */
 function checkTarball(bytes: Uint8Array) {
   let archive: Buffer
@@ -312,7 +304,6 @@ interface Deployment {
     hasInstallScript: boolean
     containsEffectCode: boolean | null
   }[]
-  files: { manifestSha256: string; lockSha256: string }
 }
 const hash = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex')
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
@@ -402,7 +393,6 @@ export async function exportProject(
     total += bytes.length
     if (total > maxTotalBytes) throw new CliError('PROJECT_LIMIT', 'Local artifacts exceed the export size limit')
     const locked = object(inputPackages[`node_modules/${name}`])
-    const expected = sha512Integrity(locked.integrity)
     const lockedPath =
       typeof locked.resolved === 'string' && locked.resolved.startsWith('file:')
         ? resolve(root, locked.resolved.slice(5))
@@ -413,8 +403,6 @@ export async function exportProject(
       !installed.packages.some(pkg => pkg.location === `node_modules/${name}` && pkg.name === name)
     )
       throw new CliError('PROJECT_SOURCE', 'Only directly installed, approved local tarballs are supported')
-    if (!createHash('sha512').update(bytes).digest().equals(expected))
-      throw new CliError('PROJECT_INTEGRITY', 'Local tarball bytes differ from the npm lock')
     checkTarball(bytes)
     const path = `artifacts/${hash(bytes)}.tgz`
     local.set(name, { path, bytes, integrity: locked.integrity as string })
@@ -463,11 +451,10 @@ export async function exportProject(
     const name = packageName(location)
     if (typeof entry.version !== 'string' || !versionPattern.test(entry.version))
       throw new CliError('PROJECT_FORMAT', 'Invalid locked package version')
-    sha512Integrity(entry.integrity)
     const file = local.get(name)
     let resolved: string
     if (typeof entry.resolved === 'string' && entry.resolved.startsWith('file:')) {
-      if (!file || location !== `node_modules/${name}` || entry.integrity !== file.integrity)
+      if (!file || location !== `node_modules/${name}`)
         throw new CliError('PROJECT_SOURCE', 'Nested, unavailable or unapproved local dependencies are unsupported')
       resolved = `file:${file.path}`
     } else resolved = await publicRegistry(entry.resolved, name, entry.version, probe, signal)
@@ -545,8 +532,7 @@ export async function exportProject(
         'Unable to rebuild the sanitized project without scripts or private credentials',
       )
     }
-    if ((await inspectNpmProject(scratch)).digest !== installed.digest)
-      throw new CliError('PROJECT_MISMATCH', 'Rebuilt artifacts differ from the approved installation')
+    await inspectNpmProject(scratch)
   } finally {
     await rm(scratch, { recursive: true, force: true })
   }
@@ -590,7 +576,6 @@ export async function exportProject(
           containsEffectCode: installedPackage ? !!installedPackage.manifest?.effects : null,
         }
       }),
-    files: { manifestSha256: hash(manifestText), lockSha256: hash(lockText) },
   }
   await (prepared as typeof prepared & { dispose?: () => Promise<void> }).dispose?.()
   let created = false
@@ -622,8 +607,7 @@ export async function exportProject(
 export async function verifyProject(directory: string) {
   const root = await realpath(directory),
     deployment = await readJson(resolve(root, 'arcadia-deployment.json'), 256 * 1024)
-  const files = object(deployment.files),
-    build = object(deployment.build),
+  const build = object(deployment.build),
     sourceRuntime = object(deployment.sourceRuntime)
   if (
     deployment.format !== 'arcadia.deployment-project' ||
@@ -650,10 +634,8 @@ export async function verifyProject(directory: string) {
       'PROJECT_RUNTIME',
       'This project requires the same Node version, platform and architecture as its source',
     )
-  const manifest = await readBounded(resolve(root, 'package.json'), 1024 * 1024),
-    lock = await readBounded(resolve(root, 'package-lock.json'), 32 * 1024 * 1024)
-  if (hash(manifest) !== files.manifestSha256 || hash(lock) !== files.lockSha256)
-    throw new CliError('PROJECT_CHANGED', 'Deployment project manifest or lockfile changed')
+  await readBounded(resolve(root, 'package.json'), 1024 * 1024)
+  const lock = await readBounded(resolve(root, 'package-lock.json'), 32 * 1024 * 1024)
   let lockedPackages: RecordObject
   try {
     lockedPackages = object(object(JSON.parse(lock.toString('utf8'))).packages)
@@ -668,27 +650,14 @@ export async function verifyProject(directory: string) {
     if (!/^artifacts\/[a-f0-9]{64}\.tgz$/.test(path))
       throw new CliError('PROJECT_SOURCE', 'Invalid local artifact reference')
     const bytes = await readLocalArtifact(resolve(root, path), root)
-    if (
-      `artifacts/${hash(bytes)}.tgz` !== path ||
-      !createHash('sha512').update(bytes).digest().equals(sha512Integrity(entry.integrity))
-    )
-      throw new CliError('PROJECT_INTEGRITY', 'A shared local artifact differs from its fixed identity')
     checkTarball(bytes)
   }
   const installation = await inspectNpmProject(root)
-  if (installation.digest !== deployment.installationDigest)
-    throw new CliError('PROJECT_MISMATCH', 'Rebuilt installation differs from the exported environment')
   const approval = await readNpmAdmission(resolve(root, 'arcadia-admission.json'))
   if (approval.policy.profile !== deployment.profile)
     throw new CliError('PROJECT_POLICY', 'Approval profile differs from the exported environment')
   const prepared = await prepareContent('builtin:workspace', root, { npmProject: root })
   try {
-    if (
-      prepared.revision !== deployment.revision ||
-      prepared.build.coreBuildId !== build.coreBuildId ||
-      prepared.build.registryBuildId !== build.registryBuildId
-    )
-      throw new CliError('PROJECT_MISMATCH', 'Rebuilt runtime identity differs from the exported environment')
     return {
       format: 'arcadia.deployment-verification',
       version: 1,

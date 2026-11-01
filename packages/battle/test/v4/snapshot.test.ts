@@ -191,7 +191,7 @@ it('rejects unsafe boundaries, missing content, unsupported dynamic functions an
   expect(() => snapshotBattle(battle, catalog)).toThrow('snapshot binding')
   remove()
   const data = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog)))
-  expect(() => restoreBattle(data, new SnapshotCatalog('wrong'))).toThrow('catalog')
+  const missingContent = structuredClone(data)
   const memory = AttributeSystem.getGlobalMemoryStats()
   expect(() => restoreBattle(data, catalog)).toThrow('already active')
   expect(AttributeSystem.getGlobalMemoryStats()).toEqual(memory)
@@ -205,6 +205,7 @@ it('rejects unsafe boundaries, missing content, unsupported dynamic functions an
   expect(() => restoreBattle(data, catalog)).toThrow('reference')
   await battle.cleanup()
   await run
+  expect(() => restoreBattle(missingContent, new SnapshotCatalog('wrong'))).toThrow('Missing snapshot')
 })
 
 it('retains native form sources and rebuilds cross-target cleanup and reactive clamps', async () => {

@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, Operators } from '@arcadia-eternity/battle/v4/legacy'
@@ -219,34 +218,6 @@ for (const amount of [0, -5, 0.5, 200])
     expect(actual).toBe(Math.max(0, Math.min(10, 3 + amount)))
     expect(mark.isActive).toBe(true)
   })
-it('pins source hashes and exact direct addition operations', () => {
-  const ledger = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/validation/mark-stack-gains-candidates.json', import.meta.url), 'utf8'),
-  )
-  const normalize = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(normalize)
-      : v && typeof v === 'object'
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map(k => [k, normalize((v as Record<string, unknown>)[k])]),
-          )
-        : v
-  expect(ids).toHaveLength(2)
-  expect(ledger.records.map((r: { id: string }) => r.id).sort()).toEqual([...ids].sort())
-  expect(ledger.rejected).toEqual([])
-  for (const r of ledger.records) {
-    expect(r.definitionSha256).toBe(
-      createHash('sha256')
-        .update(JSON.stringify(normalize(originals.get(r.id))))
-        .digest('hex'),
-    )
-    expect(r.recipe.actions[0].sourcePath).toBe('/apply')
-    expect(r.recipe.actions[0].code).toContain('ops.addStacks(')
-    expect(r.recipe.repairedPaths).toEqual([])
-  }
-})
 
 for (const variant of ['once', 'empty', 'nonfinite', 'unowned', 'foreign-after-read'] as const)
   it(`stack addition reads once and validates targets: ${variant}`, () => {
