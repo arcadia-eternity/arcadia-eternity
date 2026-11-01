@@ -4,7 +4,7 @@ import { NativePackLoader, presentationIndex } from '@arcadia-eternity/pack-load
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
-import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
+import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import YAML from 'yaml'
 import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
@@ -22,7 +22,6 @@ interface WorkspaceGameDataLayer {
   species: Record<string, SpeciesSchemaType>
   skills: Record<string, SkillSchemaType>
   marks: Record<string, MarkSchemaType>
-  effects: Record<string, Effect>
   sourceFiles: Record<string, Record<string, string>>
 }
 
@@ -45,10 +44,6 @@ interface GameDataState {
     byId: Record<string, MarkSchemaType>
     allIds: string[]
   }
-  effects: {
-    byId: Record<string, Effect>
-    allIds: string[]
-  }
   nativeEffectIds: string[]
   loaded: boolean
   gameDataLoaded: boolean
@@ -56,15 +51,7 @@ interface GameDataState {
   workspaceRuntime: WorkspaceRuntimeState
   serverFallback: Pick<
     GameDataState,
-    | 'species'
-    | 'skills'
-    | 'marks'
-    | 'effects'
-    | 'nativeEffectIds'
-    | 'workspaceRuntime'
-    | 'loaded'
-    | 'gameDataLoaded'
-    | 'error'
+    'species' | 'skills' | 'marks' | 'nativeEffectIds' | 'workspaceRuntime' | 'loaded' | 'gameDataLoaded' | 'error'
   > | null
 }
 
@@ -136,10 +123,6 @@ export const useGameDataStore = defineStore('gameData', {
       byId: {},
       allIds: [],
     },
-    effects: {
-      byId: {},
-      allIds: [],
-    },
     nativeEffectIds: [],
     gameDataLoaded: false,
     workspaceRuntime: emptyWorkspaceRuntime(),
@@ -150,11 +133,9 @@ export const useGameDataStore = defineStore('gameData', {
     speciesList: state => state.species.allIds.map(id => state.species.byId[id]),
     skillList: state => state.skills.allIds.map(id => state.skills.byId[id]),
     marksList: state => state.marks.allIds.map(id => state.marks.byId[id]),
-    effectsList: state => state.effects.allIds.map(id => state.effects.byId[id]),
     getSpecies: state => (id: string) => state.species.byId[id],
     getSkill: state => (id: string) => state.skills.byId[id],
     getMark: state => (id: string) => state.marks.byId[id],
-    getEffect: state => (id: string) => state.effects.byId[id],
     getRecordSourceFile:
       state =>
       (kind: string, recordId: string): string | null => {
@@ -176,7 +157,6 @@ export const useGameDataStore = defineStore('gameData', {
         species: this.species,
         skills: this.skills,
         marks: this.marks,
-        effects: this.effects,
         nativeEffectIds: this.nativeEffectIds,
         workspaceRuntime: this.workspaceRuntime,
         loaded: this.loaded,
@@ -225,7 +205,6 @@ export const useGameDataStore = defineStore('gameData', {
       this.species = { byId: {}, allIds: [] }
       this.skills = { byId: {}, allIds: [] }
       this.marks = { byId: {}, allIds: [] }
-      this.effects = { byId: {}, allIds: [] }
       this.nativeEffectIds = []
       this.workspaceRuntime = emptyWorkspaceRuntime()
       this.serverFallback = null
@@ -241,7 +220,6 @@ export const useGameDataStore = defineStore('gameData', {
         species: this.species,
         skills: this.skills,
         marks: this.marks,
-        effects: this.effects,
         nativeEffectIds: this.nativeEffectIds,
         workspaceRuntime: this.workspaceRuntime,
         loaded: this.loaded,
@@ -251,7 +229,6 @@ export const useGameDataStore = defineStore('gameData', {
       this.species = species
       this.skills = skills
       this.marks = marks
-      this.effects = { byId: {}, allIds: [] }
       this.nativeEffectIds = []
       this.workspaceRuntime = emptyWorkspaceRuntime()
       this.loaded = true
@@ -269,7 +246,6 @@ export const useGameDataStore = defineStore('gameData', {
       this.species = previous.species
       this.skills = previous.skills
       this.marks = previous.marks
-      this.effects = previous.effects
       this.nativeEffectIds = previous.nativeEffectIds
       this.workspaceRuntime = previous.workspaceRuntime
       this.loaded = previous.loaded
@@ -452,7 +428,7 @@ export const useGameDataStore = defineStore('gameData', {
       // Build sourceFile mapping: kind → recordId → relativePath
       const sourceFiles: Record<string, Record<string, string>> = {}
       if (result.pack) {
-        const kinds = ['species', 'skills', 'marks', 'effects'] as const
+        const kinds = ['species', 'skills', 'marks'] as const
         const manifestUrl = toAbsoluteHttpUrl(packRef)
         const dataRoot = resolveDirectoryUrl(result.pack.paths?.dataDir ?? '.', manifestUrl)
         const dataDir = result.pack.paths?.dataDir
@@ -501,7 +477,6 @@ export const useGameDataStore = defineStore('gameData', {
             presentation: presentations.get(`marks:${parseWithErrors(MarkSchema, raw).id}`),
           })),
         ).byId,
-        effects: {},
         sourceFiles,
       }
     },
@@ -534,7 +509,6 @@ export const useGameDataStore = defineStore('gameData', {
           presentation: presentations.get(`marks:${parseWithErrors(MarkSchema, raw).id}`),
         })),
       )
-      this.effects = { byId: {}, allIds: [] }
       this.refreshNativeEffectReferences()
 
       this.workspaceRuntime = emptyWorkspaceRuntime()
@@ -554,12 +528,10 @@ export const useGameDataStore = defineStore('gameData', {
       const speciesById: Record<string, SpeciesSchemaType> = {}
       const skillsById: Record<string, SkillSchemaType> = {}
       const marksById: Record<string, MarkSchemaType> = {}
-      const effectsById: Record<string, Effect> = {}
       const mergedSourceFiles: Record<string, Record<string, string>> = {
         species: {},
         skills: {},
         marks: {},
-        effects: {},
       }
 
       for (const folderName of this.workspaceRuntime.order) {
@@ -568,8 +540,7 @@ export const useGameDataStore = defineStore('gameData', {
         Object.assign(speciesById, layer.species)
         Object.assign(skillsById, layer.skills)
         Object.assign(marksById, layer.marks)
-        Object.assign(effectsById, layer.effects)
-        for (const kind of ['species', 'skills', 'marks', 'effects']) {
+        for (const kind of ['species', 'skills', 'marks']) {
           Object.assign(mergedSourceFiles[kind], layer.sourceFiles?.[kind])
         }
       }
@@ -577,7 +548,6 @@ export const useGameDataStore = defineStore('gameData', {
       this.species = this.normalizeRecordData(speciesById)
       this.skills = this.normalizeRecordData(skillsById)
       this.marks = this.normalizeRecordData(marksById)
-      this.effects = this.normalizeRecordData(effectsById)
       this.refreshNativeEffectReferences()
       this.validateDataIntegrity()
     },
@@ -637,7 +607,6 @@ export const useGameDataStore = defineStore('gameData', {
       validate(this.species, '物种')
       validate(this.skills, '技能')
       validate(this.marks, '标记')
-      validate(this.effects, '效果')
 
       this.validateCrossReferences(errors)
 
@@ -654,7 +623,7 @@ export const useGameDataStore = defineStore('gameData', {
         const skill = this.skills.byId[skillId]
         if (skill?.effect && Array.isArray(skill.effect)) {
           skill.effect.forEach((effectId: string) => {
-            if (!this.effects.byId[effectId] && !nativeEffects.has(effectId)) {
+            if (!nativeEffects.has(effectId)) {
               errors.push(`技能 ${skillId} 引用了不存在的效果 ${effectId}`)
             }
           })
@@ -665,7 +634,7 @@ export const useGameDataStore = defineStore('gameData', {
         const mark = this.marks.byId[markId]
         if (mark?.effect && Array.isArray(mark.effect)) {
           mark.effect.forEach((effectId: string) => {
-            if (!this.effects.byId[effectId] && !nativeEffects.has(effectId)) {
+            if (!nativeEffects.has(effectId)) {
               errors.push(`标记 ${markId} 引用了不存在的效果 ${effectId}`)
             }
           })

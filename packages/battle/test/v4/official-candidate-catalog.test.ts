@@ -1,30 +1,24 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { parse } from 'yaml'
-import { beforeAll, expect, it } from 'vitest'
-import { MarkParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  ConfigSystem,
   BaseMark,
+  ConfigSystem,
+  createContentCatalog,
   EffectContext,
   EffectTrigger,
-  TurnContext,
   RemoveMarkContext,
+  TurnContext,
   setGlobalLogger,
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
-import { makeScenario } from './scenario'
 import { createOfficialEffectCandidates } from '@arcadia-eternity/data-pack-base/native'
+import { beforeAll, expect, it } from 'vitest'
+import { makeScenario } from './scenario'
+import { loadBaseMetadata } from './base-metadata'
 
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 function marks() {
-  const result = new Map<string, BaseMark>()
-  const root = new URL('../../../../packs/base/data/', import.meta.url)
-  for (const name of readdirSync(root).filter(name => /^mark(?:_.*)?\.yaml$/.test(name)))
-    for (const raw of parse(readFileSync(new URL(name, root), 'utf8'), { merge: true })) {
-      expect(result.has(raw.id)).toBe(false)
-      result.set(raw.id, MarkParser.parse({ ...raw, effect: [] }))
-    }
-  return result
+  const metadata = loadBaseMetadata('marks').map(raw => ({ ...(raw as object), effect: [] }))
+  const catalog = createContentCatalog({ marks: metadata, skills: [], species: [] }, 'candidate-dependencies')
+  return new Map(catalog.marks.map(mark => [mark.id, mark]))
 }
 it('uses the caller-provided amplification prototype when the supplied shield is destroyed', async () => {
   const dependencies = marks()

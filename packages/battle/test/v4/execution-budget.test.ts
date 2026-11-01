@@ -1,16 +1,15 @@
-import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
-  defineNativeEffect,
   BattleMessageType,
+  compileBehaviorUse,
+  defineNativeEffect,
   EffectTrigger,
-  TurnContext,
   ExecutionBudgetExceeded,
   executionBudgetPolicy,
   setGlobalLogger,
+  TurnContext,
   type Battle,
   type effectId,
 } from '@arcadia-eternity/battle/v4'
-import { makeScenario } from './scenario'
 import {
   actions,
   codeEffectDefinition,
@@ -19,7 +18,8 @@ import {
   ops,
   targets,
 } from '@arcadia-eternity/battle/v4/authoring'
-import { compileBehaviorUse } from '@arcadia-eternity/battle/v4'
+import { afterEach, beforeAll, expect, it } from 'vitest'
+import { makeScenario } from './scenario'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))

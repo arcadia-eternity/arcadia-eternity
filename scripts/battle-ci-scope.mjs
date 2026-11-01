@@ -7,7 +7,7 @@ const jobPackages = {
   headless: ['battle', 'data-pack-base', 'pack-loader'],
   // The CLI typecheck also resolves its lazy client/console/server imports.
   // Keep database changes under server coverage after the direct dependency was removed.
-  server: ['server', 'console', 'client', 'database', 'cli', 'cli-validator', 'p2p-transport'],
+  server: ['server', 'console', 'client', 'database', 'cli', 'p2p-transport'],
   browser: ['web-ui'],
   cli: ['cli', 'content-dev'],
 }

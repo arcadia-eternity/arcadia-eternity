@@ -51,7 +51,6 @@
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/content-dev": "workspace:^",
     "@arcadia-eternity/data-pack-base": "workspace:^",
-    "@arcadia-eternity/data-repository": "workspace:^",
     "@arcadia-eternity/database": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/p2p-transport": "workspace:^",

@@ -1,9 +1,6 @@
-import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
-import { DataRepository } from '@arcadia-eternity/battle/v4/legacy'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import {
-  AttributeSystem,
   AIPlayer,
+  AttributeSystem,
   BattleMessageType,
   BattleStatus,
   PhaseState,
@@ -13,8 +10,10 @@ import {
   type baseMarkId,
   type baseSkillId,
 } from '@arcadia-eternity/battle/v4'
-import input from '../fixtures/official-switch.input.json'
+import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { createOfficialContent, type OfficialPrototypeData } from '@arcadia-eternity/data-pack-base/native'
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import input from '../fixtures/official-switch.input.json'
 import { loadBasePrototypeData } from './base-metadata'
 
 const data: OfficialPrototypeData = loadBasePrototypeData()
@@ -37,11 +36,7 @@ afterEach(async () => {
   }
 })
 
-it('loads every native definition and wires canonical metadata without touching the legacy singleton', () => {
-  const repository = DataRepository.getInstance()
-  const before = [repository.effects, repository.marks, repository.skills, repository.species].map(items => [
-    ...items.entries(),
-  ])
+it('loads every native definition and wires canonical metadata without mutating the input', () => {
   const raw = JSON.stringify(data)
   const directory = content()
   expect([directory.effects.length, directory.marks.length, directory.skills.length, directory.species.length]).toEqual(
@@ -56,22 +51,6 @@ it('loads every native definition and wires canonical metadata without touching 
   expect(Object.isFrozen(directory.marks[0].effects)).toBe(true)
   expect(Object.isFrozen(directory.marks[0].config)).toBe(true)
   expect(JSON.stringify(data)).toBe(raw)
-  expect(
-    [repository.effects, repository.marks, repository.skills, repository.species].map(items => [...items.entries()]),
-  ).toEqual(before)
-})
-
-it('does not consult the legacy singleton while loading, parsing teams or constructing a native battle', () => {
-  const singleton = vi.spyOn(DataRepository, 'getInstance').mockImplementation(() => {
-    throw new Error('Unexpected legacy singleton access')
-  })
-  try {
-    const directory = content()
-    const [a, b] = input.teams.map(team => directory.parsePlayer(team))
-    battles.push(directory.createBattle(a, b, { timerConfig: { enabled: false } }))
-  } finally {
-    singleton.mockRestore()
-  }
 })
 
 it('validates a whole player creation batch before allocating instances', () => {

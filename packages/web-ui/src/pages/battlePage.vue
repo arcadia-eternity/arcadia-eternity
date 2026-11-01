@@ -97,7 +97,6 @@ import { useRoute, useRouter } from 'vue-router'
 // Props 定义
 interface Props {
   replayMode?: boolean
-  battleRecordId?: string
   localReportId?: string
   enableDeveloperMode?: boolean
   spectatorMode?: boolean
@@ -105,7 +104,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   replayMode: false,
-  battleRecordId: undefined,
   localReportId: undefined,
   enableDeveloperMode: false,
   spectatorMode: false,
@@ -343,12 +341,11 @@ const trainingModeConfig = computed(() => {
 
     // 模式排除检查
     isNotReplayMode: !isReplayMode.value && !props.replayMode,
-    isNotBattleReport: !props.battleRecordId && !props.localReportId,
+    isNotBattleReport: !props.localReportId,
 
     // 获取当前模式描述
     get currentMode() {
       if (props.replayMode || isReplayMode.value) return 'replay'
-      if (props.battleRecordId) return 'battle-report'
       if (props.localReportId) return 'local-battle-report'
       if (props.enableDeveloperMode) return 'local-battle'
       return 'normal-battle'
@@ -910,16 +907,9 @@ const isReplayFullyLoaded = ref(false)
 const resourceAttempt = ref(0)
 
 async function loadReplayData() {
-  let record
-  if (props.localReportId) {
-    record = battleReportStore.loadLocalBattleReport(props.localReportId)?.battleRecord
-  } else {
-    const id = props.battleRecordId || String(route.params.id || '')
-    if (!id) throw new Error('缺少战报 ID')
-    await battleReportStore.fetchBattleRecord(id)
-    record = battleReportStore.currentBattleRecord
-  }
-  if (!record) throw new Error('战报加载失败，请重试或返回战报列表')
+  if (!props.localReportId) throw new Error('缺少本地战报 ID')
+  const record = battleReportStore.loadLocalBattleReport(props.localReportId)?.battleRecord
+  if (!record) throw new Error('本地战报加载失败，请返回本地战报列表')
   if (battleDisposed) return
   store.initReplayMode(record.battle_messages, record.final_state as BattleState, record.player_a_id)
 }
@@ -1064,18 +1054,7 @@ const goBackFromReplay = async () => {
     await exitFullscreen()
   }
 
-  // 根据当前路由判断返回到哪里
-  if (props.localReportId) {
-    // 本地战报回放，返回到本地战报管理页面
-    router.push('/local-battle-reports')
-  } else if (props.battleRecordId || route.params.id) {
-    // 在线战报回放，返回到战报详情页面
-    const battleId = props.battleRecordId || route.params.id
-    router.push(`/battle-reports/${battleId}`)
-  } else {
-    // 其他情况，返回到战报列表
-    router.push('/battle-reports')
-  }
+  router.push('/local-battle-reports')
 }
 
 // 战斗结束后的导航函数 - 先退出全屏再跳转
@@ -2214,7 +2193,7 @@ onUnmounted(async () => {
 
 // 监听加载状态变化
 watch(
-  [() => battleReportStore.loading.battleRecord, () => store.replaySnapshots.length],
+  [() => store.replaySnapshots.length],
   async () => {
     if (isReplayMode.value) {
       await checkReplayLoadingStatus()
@@ -2623,7 +2602,7 @@ watch(
                 @click="goBackFromReplay"
                 class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
               >
-                {{ props.localReportId ? '返回本地战报' : '返回详情' }}
+                返回本地战报
               </button>
 
               <!-- 播放控制 -->

@@ -37,7 +37,6 @@ const { verifyV1, createCheckpointProbe, resumeCheckpointProbe } = await import(
 const result = await verifyV1()
 assert.equal(result.fullBattle.turn, 4)
 assert.equal(result.fullBattle.winner, 'A')
-assert.equal(result.originalDsl.attackRatio, 1.5)
 const payload = await createCheckpointProbe()
 await writeFile(`${dir}/checkpoint.json`, JSON.stringify(payload))
 const { spawn } = await import('node:child_process')
@@ -79,7 +78,7 @@ await writeFile(`${dir}/graphs.json`, JSON.stringify(graphs, null, 2))
 await writeFile(`${dir}/node-result.json`, JSON.stringify(result, null, 2))
 await writeFile(
   `${dir}/index.html`,
-  `<!doctype html><meta charset="utf-8"><title>Original V1 host check</title><pre id="result">Running</pre><script type="module">
+  `<!doctype html><meta charset="utf-8"><title>Battle Core host check</title><pre id="result">Running</pre><script type="module">
 import { verifyV1, resumeCheckpointProbe } from './browser.mjs';
 try { const result = await verifyV1();
 const checkpoint = await (await fetch('./checkpoint.json')).json();
@@ -91,7 +90,7 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
 )
 console.log(
   JSON.stringify({
-    node: { turns: result.fullBattle.turn, winner: result.fullBattle.winner, originalDsl: result.originalDsl },
+    node: { turns: result.fullBattle.turn, winner: result.fullBattle.winner },
     modules: Object.fromEntries(Object.entries(graphs).map(([k, v]) => [k, v.length])),
   }),
 )
@@ -149,7 +148,6 @@ if (process.argv.includes('--browser')) {
         minified: true,
         nodeCheckpointRestored: true,
         matchesNode: true,
-        originalDsl: result.originalDsl,
       }),
     )
   } finally {

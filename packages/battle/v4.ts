@@ -14,7 +14,7 @@ export { ExecutionBudgetExceeded, executionBudgetPolicy } from './src/v4/executi
 export {
   PlayerSchema as NativePlayerSchema,
   type PlayerSchemaType as NativePlayerSchemaType,
-} from './src/v4/legacy/schema/player'
+} from './src/v4/content/schema/player'
 
 export * as effectAuthoring from './src/v4/content/authoring'
 export * as effectSdk from './v4-authoring'

@@ -1,5 +1,4 @@
-import type { SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
-import type { OperatorDSL } from '@arcadia-eternity/schema'
+import type { SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { EffectMarkRelation } from '@arcadia-eternity/data-pack-base/native'
 
 export interface SkillMarkRelation {
@@ -20,7 +19,6 @@ export interface SkillMarkAnalysis {
 export class SkillMarkRelationService {
   private skillsData: Record<string, SkillSchemaType> = {}
   private marksData: Record<string, MarkSchemaType> = {}
-  private effectsData: Record<string, Effect> = {}
 
   // 缓存分析结果
   private analysisCache = new Map<string, SkillMarkAnalysis>()
@@ -28,12 +26,10 @@ export class SkillMarkRelationService {
   constructor(
     skillsData: Record<string, SkillSchemaType>,
     marksData: Record<string, MarkSchemaType>,
-    effectsData: Record<string, Effect>,
     private nativeEffectRelations: Readonly<Record<string, readonly EffectMarkRelation[]>> = {},
   ) {
     this.skillsData = skillsData
     this.marksData = marksData
-    this.effectsData = effectsData
   }
 
   /**
@@ -55,20 +51,14 @@ export class SkillMarkRelationService {
     // 1. 基于effects分析
     if (skill.effect && skill.effect.length > 0) {
       for (const effectId of skill.effect) {
-        const effect = this.effectsData[effectId]
-        if (effect) {
-          const effectRelations = this.analyzeEffectForMarks(effectId, effect)
-          relations.push(...effectRelations)
-        } else {
-          for (const relation of this.nativeEffectRelations[effectId] ?? []) {
-            if (relation.markId !== 'unknown' && !this.marksData[relation.markId]) continue
-            const presentation = {
-              adds: { confidence: 0.9, description: `通过效果 ${effectId} 添加印记` },
-              removes: { confidence: 0.8, description: `通过效果 ${effectId} 移除印记` },
-              consumes: { confidence: 0.7, description: `通过效果 ${effectId} 消耗印记层数` },
-            }[relation.relationType]
-            relations.push({ ...relation, ...presentation, source: 'effect', effectId })
-          }
+        for (const relation of this.nativeEffectRelations[effectId] ?? []) {
+          if (relation.markId !== 'unknown' && !this.marksData[relation.markId]) continue
+          const presentation = {
+            adds: { confidence: 0.9, description: `通过效果 ${effectId} 添加印记` },
+            removes: { confidence: 0.8, description: `通过效果 ${effectId} 移除印记` },
+            consumes: { confidence: 0.7, description: `通过效果 ${effectId} 消耗印记层数` },
+          }[relation.relationType]
+          relations.push({ ...relation, ...presentation, source: 'effect', effectId })
         }
       }
     }
@@ -92,92 +82,6 @@ export class SkillMarkRelationService {
     // 缓存结果
     this.analysisCache.set(skillId, analysis)
     return analysis
-  }
-
-  /**
-   * 分析单个effect中的印记操作
-   */
-  private analyzeEffectForMarks(effectId: string, effect: Effect): SkillMarkRelation[] {
-    const relations: SkillMarkRelation[] = []
-
-    if (!effect.apply) return relations
-
-    // 处理单个或多个apply操作
-    const applies = Array.isArray(effect.apply) ? effect.apply : [effect.apply]
-
-    for (const apply of applies) {
-      const markRelations = this.extractMarkFromOperator(apply, effectId)
-      relations.push(...markRelations)
-    }
-
-    return relations
-  }
-
-  /**
-   * 从操作符中提取印记信息
-   */
-  private extractMarkFromOperator(operator: OperatorDSL, effectId: string): SkillMarkRelation[] {
-    const relations: SkillMarkRelation[] = []
-
-    switch (operator.type) {
-      case 'addMark':
-        if (operator.mark && typeof operator.mark === 'object' && 'value' in operator.mark) {
-          const markId = operator.mark.value as string
-          if (this.marksData[markId]) {
-            relations.push({
-              markId,
-              relationType: 'adds',
-              confidence: 0.9,
-              source: 'effect',
-              effectId,
-              description: `通过效果 ${effectId} 添加印记`,
-            })
-          }
-        }
-        break
-
-      case 'consumeStacks':
-        // 这种情况通常是消耗当前印记的层数，需要从context推断
-        relations.push({
-          markId: 'unknown', // 需要运行时确定
-          relationType: 'consumes',
-          confidence: 0.7,
-          source: 'effect',
-          effectId,
-          description: `通过效果 ${effectId} 消耗印记层数`,
-        })
-        break
-
-      case 'destroyMark':
-        // 销毁印记操作
-        relations.push({
-          markId: 'unknown', // 需要运行时确定
-          relationType: 'removes',
-          confidence: 0.8,
-          source: 'effect',
-          effectId,
-          description: `通过效果 ${effectId} 移除印记`,
-        })
-        break
-
-      case 'conditional':
-        // 递归处理条件操作
-        if ('then' in operator && operator.then) {
-          const thenApplies = Array.isArray(operator.then) ? operator.then : [operator.then]
-          for (const thenApply of thenApplies) {
-            relations.push(...this.extractMarkFromOperator(thenApply, effectId))
-          }
-        }
-        if ('else' in operator && operator.else) {
-          const elseApplies = Array.isArray(operator.else) ? operator.else : [operator.else]
-          for (const elseApply of elseApplies) {
-            relations.push(...this.extractMarkFromOperator(elseApply, effectId))
-          }
-        }
-        break
-    }
-
-    return relations
   }
 
   /**
@@ -253,12 +157,10 @@ export class SkillMarkRelationService {
   updateData(
     skillsData: Record<string, SkillSchemaType>,
     marksData: Record<string, MarkSchemaType>,
-    effectsData: Record<string, Effect>,
     nativeEffectRelations = this.nativeEffectRelations,
   ): void {
     this.skillsData = skillsData
     this.marksData = marksData
-    this.effectsData = effectsData
     this.nativeEffectRelations = nativeEffectRelations
     this.clearCache()
   }

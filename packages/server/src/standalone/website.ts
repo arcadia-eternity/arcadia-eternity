@@ -40,7 +40,6 @@ export function mountPairedWebsite(app: Express, directory: string): void {
     '/download',
     '/local-battle',
     '/local-battle-reports',
-    '/battle-reports',
     '/room',
     '/battle',
     '/content',
@@ -56,7 +55,7 @@ export function mountPairedWebsite(app: Express, directory: string): void {
       !req.accepts('html') ||
       !(
         routes.has(req.path.replace(/\/$/, '') || '/') ||
-        /^\/(?:room\/[^/]+|dex\/(?:species|skill|mark)\/[^/]+|dex\/type-chart|battle-reports\/[^/]+(?:\/preview)?|players\/[^/]+\/battles|local-battle-reports\/[^/]+\/play)$/.test(
+        /^\/(?:room\/[^/]+|dex\/(?:species|skill|mark)\/[^/]+|dex\/type-chart|local-battle-reports\/[^/]+\/play)$/.test(
           req.path,
         )
       )

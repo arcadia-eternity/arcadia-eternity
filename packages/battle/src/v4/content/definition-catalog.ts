@@ -22,14 +22,14 @@ import {
   type BehaviorOwner,
   type NativeBehaviorExport,
 } from './behaviors'
-import { MarkParser } from '../legacy/parser/mark'
-import { SkillParser } from '../legacy/parser/skill'
-import { SpeciesParser } from '../legacy/parser/species'
-import { PlayerParser } from '../legacy/parser/player'
-import { MarkSchema } from '../legacy/schema/mark'
-import { SkillSchema } from '../legacy/schema/skill'
-import { PlayerSchema } from '../legacy/schema/player'
-import { SpeciesSchema } from '../legacy/schema/species'
+import { MarkParser } from './parsers/mark'
+import { SkillParser } from './parsers/skill'
+import { SpeciesParser } from './parsers/species'
+import { PlayerParser } from './parsers/player'
+import { MarkSchema } from './schema/mark'
+import { SkillSchema } from './schema/skill'
+import { PlayerSchema } from './schema/player'
+import { SpeciesSchema } from './schema/species'
 
 /** Serializable metadata shared by file adapters, editors and trusted content packages. */
 export interface ContentPrototypeData {

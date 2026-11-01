@@ -137,7 +137,6 @@ const skillMarkRelations = computed(() => {
   const relationService = new SkillMarkRelationService(
     gameDataStore.skills.byId,
     gameDataStore.marks.byId,
-    gameDataStore.effects.byId,
     officialEffectMarkRelations,
   )
 

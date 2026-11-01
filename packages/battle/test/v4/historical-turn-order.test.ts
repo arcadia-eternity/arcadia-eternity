@@ -1,21 +1,17 @@
-import { afterEach, beforeAll, expect, it } from 'vitest'
-import { Conditions } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  EffectContext,
+  AttackTargetOpinion,
+  defineNativeEffect,
   EffectTrigger,
+  setGlobalLogger,
+  SkillPhase,
+  SwitchPetContext,
+  SwitchPetPhase,
   TurnContext,
   UseSkillContext,
-  DamageContext,
-  SwitchPetContext,
-  SkillPhase,
-  SwitchPetPhase,
-  AttackTargetOpinion,
-  effectAuthoring,
-  defineNativeEffect,
-  setGlobalLogger,
   type Battle,
   type effectId,
 } from '@arcadia-eternity/battle/v4'
+import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -34,63 +30,7 @@ function fixture() {
   const use = new UseSkillContext(turn, f.a, f.a.activePet, AttackTargetOpinion.opponent, skill)
   return { ...f, turn, skill, use }
 }
-for (const kind of ['direct', 'damage', 'nested-effect', 'missing'] as const)
-  for (const position of ['first', 'last', 'empty'] as const)
-    it(`${kind}/${position} queries historical ancestors without capturing the previous turn view`, () => {
-      const f = fixture()
-      const rival = new UseSkillContext(
-        f.turn,
-        f.b,
-        f.b.activePet,
-        AttackTargetOpinion.opponent,
-        f.b.activePet.skills[0],
-      )
-      if (position !== 'empty') {
-        const order = position === 'first' ? [f.use, rival] : [rival, f.use]
-        f.turn.appledContexts.push(...order)
-        f.turn.contexts.push(...[...order].reverse())
-      }
-      const damage = new DamageContext(f.use, f.a.activePet, f.b.activePet, 10)
-      const parent =
-        kind === 'direct'
-          ? f.use
-          : kind === 'damage'
-            ? damage
-            : kind === 'nested-effect'
-              ? new EffectContext(damage, EffectTrigger.OnDamage, f.skill)
-              : f.turn
-      const ctx = new EffectContext(parent, EffectTrigger.BeforeEffect, f.skill)
-      const answers: boolean[][] = []
-      const { compileEffect, defineEffect, conditions } = effectAuthoring
-      const effect = compileEffect(
-        defineEffect({
-          id: 'fixture/order-query',
-          triggers: [EffectTrigger.BeforeEffect],
-          apply(frame) {
-            answers.push([conditions.firstSkillThisTurn(frame), conditions.lastSkillThisTurn(frame)])
-          },
-        }),
-      )
-      const fire = () => {
-        f.battle.executionBudget.run(0, () => effect.innerApply(ctx))
-        expect(answers.at(-1)).toEqual([
-          Conditions.isFirstSkillUsedThisTurn()(ctx),
-          Conditions.isLastSkillUsedThisTurn()(ctx),
-        ])
-      }
-      fire()
-      expect(answers[0]).toEqual([
-        kind !== 'missing' && position === 'first',
-        kind !== 'missing' && position === 'last',
-      ])
-      f.turn.appledContexts.reverse()
-      f.turn.contexts.reverse()
-      fire()
-      expect(answers[1]).toEqual([
-        kind !== 'missing' && position === 'last',
-        kind !== 'missing' && position === 'first',
-      ])
-    })
+
 for (const denied of [false, true])
   it(`direct skill phase records its attempt before hooks, denied=${denied}`, () => {
     const f = fixture()

@@ -1,25 +1,25 @@
-import { EffectTrigger } from '../../v4'
-import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import {
   BehaviorCompilationError,
   behaviorEffectId,
-  parameterAddress,
   createContentCatalog,
   defineNativeBehavior,
+  parameterAddress,
   setGlobalLogger,
   type Battle,
 } from '@arcadia-eternity/battle/v4'
-import { defineEffect, stringParam, targets, ops } from '@arcadia-eternity/battle/v4/authoring'
+import { defineEffect, ops, stringParam, targets } from '@arcadia-eternity/battle/v4/authoring'
 import {
+  createOfficialContent,
   officialEffectTemplates,
   officialTemplateDefinitions,
   withOfficialTemplates,
-  createOfficialContent,
 } from '@arcadia-eternity/data-pack-base/native'
-import { SkillSchema } from '../../src/v4/legacy/schema/skill'
-import { MarkSchema } from '../../src/v4/legacy/schema/mark'
-import { templateData, templateCatalog, templateFixture, useTemplate } from './official-template-fixture'
+import { afterEach, beforeAll, expect, it, vi } from 'vitest'
+import { MarkSchema } from '../../src/v4/content/schema/mark'
+import { SkillSchema } from '../../src/v4/content/schema/skill'
+import { EffectTrigger } from '../../v4'
 import { loadBasePrototypeData } from './base-metadata'
+import { templateCatalog, templateData, templateFixture, useTemplate } from './official-template-fixture'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))

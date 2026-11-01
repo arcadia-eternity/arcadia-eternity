@@ -25,11 +25,6 @@
       "import": "./dist/v4.js",
       "default": "./dist/v4.js"
     },
-    "./v4/legacy": {
-      "types": "./dist/types/v4-legacy.d.ts",
-      "import": "./dist/v4-legacy.js",
-      "default": "./dist/v4-legacy.js"
-    },
     "./v4/host": {
       "types": "./dist/types/v4-host.d.ts",
       "import": "./dist/v4-host.js",

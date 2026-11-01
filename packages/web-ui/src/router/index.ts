@@ -14,10 +14,7 @@ import { isDesktop, isStaticMode } from '@/utils/env'
 import { captureOAuthCallbackAtBoot } from '@/services/serverSession'
 
 // 战报相关组件
-const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
-const BattleRecordDetail = () => import('@/components/battleReport/BattleRecordDetail.vue')
 const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
-const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
 const routes: RouteRecordRaw[] = [
   {
     path: '/content',
@@ -174,47 +171,6 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // 战报相关路由
-  {
-    path: '/battle-reports',
-    name: 'BattleReports',
-    component: BattleRecordList,
-    meta: {
-      title: '战报记录',
-      serverOnly: true,
-    },
-  },
-  {
-    path: '/battle-reports/:id',
-    name: 'BattleReportDetail',
-    component: BattleRecordDetail,
-    meta: {
-      title: '战报详情',
-      serverOnly: true,
-    },
-  },
-  {
-    path: '/battle-reports/:id/preview',
-    name: 'BattleReportPreview',
-    component: BattleView,
-    props: route => ({
-      replayMode: true,
-      battleRecordId: route.params.id,
-    }),
-    meta: {
-      title: '战报预览',
-      serverOnly: true,
-    },
-  },
-  {
-    path: '/players/:playerId/battles',
-    name: 'PlayerBattleRecords',
-    component: PlayerBattleRecords,
-    meta: {
-      title: '玩家战报',
-      serverOnly: true,
-    },
-  },
   // 本地战报相关路由
   {
     path: '/local-battle-reports',

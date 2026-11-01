@@ -13,7 +13,7 @@
 | [api.ts](api.ts)                                  | 转向正式实现的作者入口                                 |
 | [type-tests.ts](type-tests.ts)                    | 正向类型推导及必须失败的用法                           |
 
-历史比较输入在 `packages/battle/test/v4/fixtures/effect-regression/`。示例使用真实 V4 对象、调度与属性系统；与官方效果的对照测试和生产内容注册分别维护。
+示例使用真实 V4 对象、调度与属性系统。官方效果由原生 TypeScript 内容注册。
 
 ## 检查
 

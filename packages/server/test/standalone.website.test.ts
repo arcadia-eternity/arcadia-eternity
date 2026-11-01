@@ -31,7 +31,7 @@ it('serves config and deep links while missing service/resource paths remain err
   const address = server.address() as { port: number }
   const base = `http://127.0.0.1:${address.port}`
   expect(await (await fetch(`${base}/arcadia-client.json`)).json()).toEqual({ schemaVersion: 1, backendOrigin: '/' })
-  for (const path of ['/', '/room/invite', '/team-builder', '/dex/species/pet', '/battle-reports/id/preview']) {
+  for (const path of ['/', '/room/invite', '/team-builder', '/dex/species/pet', '/local-battle-reports/id/play']) {
     const response = await fetch(`${base}${path}`, { headers: { Accept: 'text/html' } })
     expect(response.status, path).toBe(200)
     expect(await response.text()).toContain('paired site')
@@ -43,6 +43,9 @@ it('serves config and deep links while missing service/resource paths remain err
     '/assets/missing.swf',
     '/resource/missing.png',
     '/unknown',
+    '/battle-reports',
+    '/battle-reports/id/preview',
+    '/players/id/battles',
   ]) {
     const response = await fetch(`${base}${path}`, { headers: { Accept: 'text/html' } })
     expect(response.status, path).toBe(404)

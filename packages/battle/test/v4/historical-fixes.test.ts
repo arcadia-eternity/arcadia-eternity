@@ -1,22 +1,20 @@
-import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   BaseSkill,
   DamageContext,
   DamageType,
-  RageContext,
   Effect,
-  type effectId,
   EffectContext,
   EffectTrigger,
-  Gender,
   HealContext,
   PhaseState,
+  RageContext,
   StatTypeWithoutHp,
   TurnContext,
   setGlobalLogger,
   type Battle,
+  type effectId,
 } from '@arcadia-eternity/battle/v4'
-import { DataRepository, PetParser } from '@arcadia-eternity/battle/v4/legacy'
+import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 const battles: Battle[] = []
 function fixture() {
@@ -30,27 +28,6 @@ function context(battle: Battle) {
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
-})
-it('honors parsed maxHp and explicit gender through real Pet initialization', () => {
-  const { a, b, battle } = fixture()
-  const base = { ...a.activePet.base, id: 'pet_fixture' as typeof a.activePet.base.id }
-  DataRepository.getInstance().species.set(base.id, base)
-  DataRepository.getInstance().skills.set(a.activePet.skills[0].base.id, a.activePet.skills[0].base)
-  const pet = PetParser.parse({
-    name: 'override',
-    species: base.id,
-    level: 50,
-    evs: a.activePet.evs,
-    ivs: a.activePet.ivs,
-    nature: a.activePet.nature,
-    skills: [a.activePet.skills[0].base.id],
-    maxHp: 37,
-    gender: Gender.Male,
-  })
-  pet.setOwner(b, battle.emitter)
-  expect(pet.stat.maxHp).toBe(37)
-  expect(pet.currentHp).toBe(37)
-  expect(pet.gender).toBe(Gender.Male)
 })
 it('keeps a stat-stage mark and modifier attached when the level changes sign', () => {
   const { a, battle } = fixture(),

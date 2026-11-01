@@ -134,7 +134,6 @@ describe('native game metadata', () => {
       145, 966, 416,
     ])
     expect(store.nativeEffectIds).toHaveLength(1065)
-    expect(store.effects.allIds).toEqual([])
     expect(store.nativeEffectIds).toContain('effect_skill_consume_huanxiang_raise_def_1_stage')
     expect(fetch).not.toHaveBeenCalled()
   })
@@ -147,7 +146,6 @@ describe('native game metadata', () => {
     const errors: string[] = []
     store.validateCrossReferences(errors)
     expect(errors).toEqual([`技能 ${id} 引用了不存在的效果 effect_unknown`])
-    expect(store.effects.byId).toEqual({})
   })
 
   it('merges overlay metadata before resolving native effects and preserves nested source paths', async () => {

@@ -1,14 +1,14 @@
-import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   BattleMessageType,
   SnapshotCatalog,
-  snapshotBattle,
   restoreBattle,
   setGlobalLogger,
+  snapshotBattle,
   type Battle,
   type BattleMessage,
   type PlayerSelection,
 } from '@arcadia-eternity/battle/v4'
+import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 
 const battles: Battle[] = []
@@ -97,78 +97,6 @@ it('round trips a real V1 turn checkpoint including partial input and completes 
   expect(restored.victor?.id).toBe('A')
   expect(restored.currentTurn).toBe(4)
 })
-
-it('preserves live DSL bindings, stat-stage state, scoped config and a second generation save', async () => {
-  const { EffectParser } = await import('@arcadia-eternity/battle/v4/legacy')
-  const {
-    EffectContext,
-    EffectTrigger,
-    TurnContext,
-    StatTypeWithoutHp,
-    ConfigModifier,
-    ConfigModifierType,
-    ConfigDurationType,
-  } = await import('@arcadia-eternity/battle/v4')
-  const { battle, debuff } = makeScenario()
-  battles.push(battle)
-  const effect = EffectParser.parse({
-    id: 'saved-dynamic',
-    trigger: 'TurnStart',
-    priority: 0,
-    apply: {
-      type: 'addDynamicAttributeModifier',
-      target: 'self',
-      stat: 'atk',
-      modifierType: 'override',
-      observableValue: {
-        base: 'opponent',
-        chain: [
-          { type: 'selectAttribute$', arg: 'def' },
-          { type: 'multiply', arg: 2 },
-        ],
-      },
-    },
-  })
-  battle.playerA.activePet.skills[0].effects.push(effect)
-  const catalog = new SnapshotCatalog('dynamic/1')
-  for (const pet of [...battle.playerA.team, ...battle.playerB.team])
-    for (const skill of pet.skills) for (const e of skill.effects) catalog.registerEffect(e.id, e)
-  for (const e of debuff.effects) catalog.registerEffect(e.id, e)
-  const ready = prompt(battle),
-    run = battle.startBattle().catch(() => {})
-  await ready
-  battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnStart)
-  const ctx = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, battle.playerA.activePet.skills[0])
-  battle.playerB.activePet.addStatStage(ctx, StatTypeWithoutHp.def, 1)
-  battle.configSystem.registerTaggedConfig('persist', 10, ['saved'])
-  battle.configSystem.addScopedConfigModifier(
-    'persist',
-    new ConfigModifier(ConfigDurationType.binding, 'scoped', 7, ConfigModifierType.delta, 0),
-    battle.playerA,
-  )
-  expect(battle.playerA.activePet.stat.atk).toBe(battle.playerB.activePet.stat.def * 2)
-  const payload = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog)))
-  await battle.cleanup()
-  await run
-  const restored = restoreBattle(payload, catalog)
-  battles.push(restored)
-  expect(restored.configSystem.get('persist', restored.playerA.activePet)).toBe(17)
-  expect(restored.playerB.activePet.marks[0].stack).toBe(1)
-  restored.playerB.activePet.attributeSystem.updateBaseValue('def', 77)
-  expect(restored.playerA.activePet.stat.atk).toBe(231) // floor((77 * 1.5) * 2)
-  const next = JSON.parse(JSON.stringify(snapshotBattle(restored, catalog)))
-  await restored.cleanup()
-  const twice = restoreBattle(next, catalog)
-  battles.push(twice)
-  expect(twice.playerA.activePet.stat.atk).toBe(231)
-  const remove = new (await import('@arcadia-eternity/battle/v4')).RemoveMarkContext(
-    new TurnContext(twice),
-    twice.playerB.activePet.marks[0],
-  )
-  twice.removeMark(remove)
-  expect(twice.playerA.activePet.stat.atk).toBe(154)
-})
-
 it('rejects unsafe boundaries, missing content, unsupported dynamic functions and malformed references', async () => {
   const { Modifier, DurationType, derived, Signal, AttributeSystem } = await import('@arcadia-eternity/battle/v4')
   const { battle, debuff } = makeScenario()

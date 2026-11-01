@@ -95,9 +95,6 @@ importers:
       '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:packages/battle
-      '@arcadia-eternity/cli-validator':
-        specifier: workspace:^
-        version: link:packages/cli-validator
       '@arcadia-eternity/client':
         specifier: workspace:^
         version: link:packages/client
@@ -110,9 +107,6 @@ importers:
       '@arcadia-eternity/data-pack-base':
         specifier: workspace:^
         version: link:packs/base
-      '@arcadia-eternity/data-repository':
-        specifier: workspace:^
-        version: link:packages/dataRepository
       '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:packages/interface
@@ -327,12 +321,6 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.11)(jsdom@25.0.1(supports-color@7.2.0))(vite@8.3.3(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.8.4))
 
-  packages/cli-validator:
-    dependencies:
-      '@arcadia-eternity/data-repository':
-        specifier: workspace:*
-        version: link:../dataRepository
-
   packages/client:
     dependencies:
       '@arcadia-eternity/const':
@@ -423,15 +411,6 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
-
-  packages/dataRepository:
-    dependencies:
-      '@arcadia-eternity/const':
-        specifier: workspace:^
-        version: link:../const
-      '@arcadia-eternity/schema':
-        specifier: workspace:^
-        version: link:../schema
 
   packages/database:
     dependencies:
@@ -626,9 +605,6 @@ importers:
       '@arcadia-eternity/data-pack-base':
         specifier: workspace:^
         version: link:../../packs/base
-      '@arcadia-eternity/data-repository':
-        specifier: workspace:^
-        version: link:../dataRepository
       '@arcadia-eternity/database':
         specifier: workspace:^
         version: link:../database

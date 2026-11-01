@@ -11,7 +11,6 @@
     "v4.ts",
     "v4-authoring.ts",
     "v4-host.ts",
-    "v4-legacy.ts",
     "src/v4/**/*.ts",
     "src/v4-host/**/*.ts",
     "src/v4/**/*.json",
