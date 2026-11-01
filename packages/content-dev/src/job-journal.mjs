@@ -30,14 +30,20 @@ export class JobJournal {
     }
     const records = []
     for (const name of names.filter(name => idPattern.test(name.slice(0, -5)) && name.endsWith('.json'))) {
-      const file = join(this.directory, name),
+      const file = join(this.directory, name)
+      let info
+      try {
         info = await lstat(file)
+      } catch (error) {
+        if (error.code === 'ENOENT') continue
+        throw error
+      }
       if (!info.isFile() || info.isSymbolicLink() || info.size > 2 * 1024 * 1024) continue
       let receipt
       try {
         receipt = JSON.parse(await readFile(file, 'utf8'))
       } catch (error) {
-        if (error instanceof SyntaxError) continue
+        if (error instanceof SyntaxError || error.code === 'ENOENT') continue
         throw error
       }
       if (

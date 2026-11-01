@@ -31,6 +31,22 @@ const command = async (endpoint, method, ...args) => {
   return data.result
 }
 
+test('cross-entry reads tolerate concurrently pruned history and retain live candidates', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-preview-history-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const journal = new JobJournal(root),
+    activeId = randomUUID(),
+    completed = []
+  await journal.save({ jobId: activeId, createdAt: 1, state: 'succeeded', diagnostics: [] }, true)
+  for (let i = 0; i < 60; i++) {
+    const id = randomUUID()
+    completed.push(id)
+    await journal.save({ jobId: id, createdAt: i + 2, state: 'succeeded', diagnostics: [] }, false)
+  }
+  const [records] = await Promise.all([journal.read(), Promise.all(completed.map(id => journal.remove(id)))])
+  assert.ok(records.some(receipt => receipt.job.jobId === activeId && receipt.live))
+})
+
 test(
   'captured preview survives source edits and failed/cancelled candidates, serves media, and completes a real battle',
   { timeout: 120000 },
