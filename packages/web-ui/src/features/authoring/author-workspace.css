@@ -592,7 +592,6 @@ input[type='checkbox'] {
 }
 .author-page :deep(.author-description button) {
   padding: 1px 5px;
-  color: var(--author-accent);
   border-color: var(--author-border);
 }
 @media (max-width: 760px) {

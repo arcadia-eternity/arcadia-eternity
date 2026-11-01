@@ -2,7 +2,12 @@ import { defineComponent, h, type PropType } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import MarkdownIt from 'markdown-it'
 import { serverText, renderContentDescription, contentLanguage } from '@/i18n/serverContent'
-import { descriptionValues, formatRichDescription } from '@/i18n/richDescription'
+import {
+  descriptionMarkKind,
+  descriptionStyles,
+  descriptionValues,
+  formatRichDescription,
+} from '@/i18n/richDescription'
 import { useGameDataStore } from '@/stores/gameData'
 import { useResourceStore } from '@/stores/resource'
 import { resolveMarkIconUrl } from '@/utils/resourceResolver'
@@ -35,6 +40,8 @@ const ContentDescription = defineComponent({
           { class: 'content-description' },
           formatRichDescription(value, i18next.language || 'zh-CN', descriptionValues(props.context), id => {
             const mark = data.getMark(id)
+            const kind = descriptionMarkKind(mark?.tags)
+            const appearance = { class: descriptionStyles[kind], 'data-description-kind': kind }
             const name = String(
               i18next.t(`${id}.name`, {
                 ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
@@ -51,25 +58,29 @@ const ContentDescription = defineComponent({
                   defaultValue: '',
                 }),
               )
-            if (props.depth >= 2) return h('span', { class: 'text-cyan-400' }, name)
+            if (props.depth >= 2) return h('span', appearance, name)
             return h(
               Tooltip,
               { portal: true },
               {
                 trigger: () =>
-                  h('span', { class: 'inline-flex items-center gap-1 text-cyan-400', tabindex: 0 }, [
-                    ...(mark
-                      ? [
-                          h(ResourceImage, {
-                            src: resolveMarkIconUrl(mark, resources.getMarkImage),
-                            uncached: !!mark.presentation?.icon,
-                            class: 'inline-block h-[1em] w-[1em]',
-                            alt: '',
-                          }),
-                        ]
-                      : []),
-                    name,
-                  ]),
+                  h(
+                    'span',
+                    { ...appearance, class: ['inline-flex items-center gap-1', appearance.class], tabindex: 0 },
+                    [
+                      ...(mark
+                        ? [
+                            h(ResourceImage, {
+                              src: resolveMarkIconUrl(mark, resources.getMarkImage),
+                              uncached: !!mark.presentation?.icon,
+                              class: 'inline-block h-[1em] w-[1em]',
+                              alt: '',
+                            }),
+                          ]
+                        : []),
+                      name,
+                    ],
+                  ),
                 default: () => [
                   h('strong', name),
                   h(ContentDescription, {

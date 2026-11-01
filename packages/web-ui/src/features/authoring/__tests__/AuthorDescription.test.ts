@@ -3,6 +3,32 @@ import { describe, expect, it } from 'vitest'
 import AuthorDescription from '../AuthorDescription'
 
 describe('author description mark references', () => {
+  it.each([
+    [[], 'markName'],
+    [['status'], 'status'],
+    [['exceptional'], 'status'],
+    [['xinzhiyinji_tag'], 'markName'],
+  ] as const)('keeps %j in its display category and preserves navigation', async (tags, kind) => {
+    const wrapper = mount(AuthorDescription, {
+      props: {
+        text: '<mark>demo:mark</mark>',
+        language: 'zh-CN',
+        context: {},
+        marks: [{ id: 'mark', reference: 'demo:mark', name: '测试印记', tags }],
+      },
+    })
+    try {
+      expect(wrapper.get('button').attributes('data-description-kind')).toBe(kind)
+      await wrapper.get('button').trigger('click')
+      expect(wrapper.emitted('mark')).toEqual([['mark']])
+      await wrapper.setProps({ interactive: false })
+      expect(wrapper.get('span').attributes('data-description-kind')).toBe(kind)
+      expect(wrapper.find('button').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it.each(['slow', 'my-pack:slow'])('resolves %s to the local mark and its translated name', async id => {
     const wrapper = mount(AuthorDescription, {
       props: {

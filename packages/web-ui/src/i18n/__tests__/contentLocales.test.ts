@@ -31,6 +31,25 @@ const template = descriptions(join(root, 'packages/content-dev/template/locales'
 const official = (id: string) => base.find(row => row.id === id)!.text
 
 it.each([
+  ['skill_ruodiangongji', 'markName', '弱点记号'],
+  ['skill_xuehongyinji', 'markName', '血红印记'],
+  ['skill_fangqing', 'markName', '晴天'],
+  ['skill_lirendaoye', 'status', '流血'],
+  ['skill_chaozhongliangongji', 'status', '瘫痪'],
+  ['skill_wuxianbingjie', 'guaranteedHit', '必中'],
+])('preserves the semantic highlight of %s', (id, kind, text) => {
+  const wrapper = mount(AuthorDescription, {
+    props: { text: official(id), language: 'zh-CN', context: {} },
+  })
+  try {
+    expect(wrapper.get(`[data-description-kind="${kind}"]`).text()).toBe(text)
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it.each([
   ['base pack', base],
   ['author template', template],
 ] as const)('renders every %s description with the production formatter', (_name, rows) => {

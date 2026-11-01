@@ -1,7 +1,11 @@
 import { IntlMessageFormat, type PrimitiveType, type FormatXMLElementFn } from 'intl-messageformat'
 import { h, type VNode } from 'vue'
 
+/** Shared palette: follow the fixed color convention in docs/v4/content-presentation.md. */
 export const descriptionStyles: Record<string, string> = {
+  markName: 'text-cyan-700 dark:text-cyan-300',
+  status: 'text-orange-700 dark:text-orange-300',
+  guaranteedHit: 'text-lime-700 dark:text-lime-300',
   damage: 'text-orange-400',
   heal: 'text-green-400',
   shield: 'text-cyan-400',
@@ -12,8 +16,15 @@ export const descriptionStyles: Record<string, string> = {
   emphasis: 'italic',
 }
 
+/** Adverse and exceptional are one display category, not a reclassification of battle rules. */
+export function descriptionMarkKind(tags: readonly string[] = []): 'markName' | 'status' {
+  return tags.some(tag => tag === 'status' || tag === 'exceptional') ? 'status' : 'markName'
+}
+
 /** Validate every branch, including tags hidden behind an inactive ICU select/plural option. */
 export function compileRichDescription(template: string, language: string): IntlMessageFormat {
+  if (/\[(?:[\da-f]{6}|[\da-f]{8})\][\s\S]*?\[-\]/i.test(template))
+    throw new Error('Legacy description color markup: use semantic tags')
   const message = new IntlMessageFormat(template, language)
   function check(elements: ReturnType<IntlMessageFormat['getAst']>) {
     for (const element of elements) {
@@ -40,8 +51,10 @@ export function formatRichDescription(
   // Definitions have no live stack. Keep its placeholder in catalogs/previews instead of inventing a battle value.
   const handlers: Record<string, PrimitiveType | VNode | FormatXMLElementFn<VNode>> = { stack: '{stack}', ...values }
   for (const [tag, className] of Object.entries(descriptionStyles))
-    handlers[tag] = chunks => h('span', { class: className }, chunks)
-  handlers.mark = chunks => reference?.(chunks.join('').trim()) ?? h('span', chunks)
+    handlers[tag] = chunks => h('span', { class: className, 'data-description-kind': tag }, chunks)
+  handlers.mark = chunks =>
+    reference?.(chunks.join('').trim()) ??
+    h('span', { class: descriptionStyles.markName, 'data-description-kind': 'markName' }, chunks)
   const output = compileRichDescription(template, language).format<VNode>(handlers)
   return Array.isArray(output) ? output : [output]
 }

@@ -5,6 +5,7 @@ import i18next from 'i18next'
 import I18NextVue from 'i18next-vue'
 import { setServerContentText, serverContentText } from '@/i18n/serverContent'
 import ContentDescription from '../ContentDescription'
+import { useGameDataStore } from '@/stores/gameData'
 
 beforeEach(async () => {
   setActivePinia(createPinia())
@@ -12,6 +13,26 @@ beforeEach(async () => {
   await i18next.init({ lng: 'zh-CN', resources: {}, postProcess: ['serverContentText'] })
 })
 afterEach(() => setServerContentText(null))
+
+it.each([[], ['status'], ['exceptional'], ['xinzhiyinji_tag']].map(tags => ({ tags })))(
+  'styles mark references from their own tags: $tags',
+  ({ tags }) => {
+    useGameDataStore().marks.byId['demo:mark'] = { id: 'demo:mark', tags }
+    const wrapper = mount(ContentDescription, {
+      global: {
+        plugins: [[I18NextVue, { i18next }]],
+        stubs: { Tooltip: { template: '<div><slot name="trigger" /></div>' } },
+      },
+      props: { namespace: 'skill', contentId: 'demo:skill', fallback: '<mark>demo:mark</mark>' },
+    })
+    try {
+      const kind = tags.includes('status') || tags.includes('exceptional') ? 'status' : 'markName'
+      expect(wrapper.get('[tabindex="0"]').attributes('data-description-kind')).toBe(kind)
+    } finally {
+      wrapper.unmount()
+    }
+  },
+)
 
 it('formats reactive public values and switches language while keeping official bundles untouched', async () => {
   setServerContentText({

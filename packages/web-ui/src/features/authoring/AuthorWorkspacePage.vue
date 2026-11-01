@@ -295,6 +295,9 @@ const marks = computed(() =>
       id: row.record.id,
       name: label(row),
       reference: `${snapshot.value?.project.namespace}:${row.record.id}`,
+      tags: Array.isArray(row.record.tags)
+        ? row.record.tags.filter((tag): tag is string => typeof tag === 'string')
+        : [],
     })),
 )
 const catalogIndex = computed(() => createCatalogIndex(effectiveRecords.value, projectId.value))

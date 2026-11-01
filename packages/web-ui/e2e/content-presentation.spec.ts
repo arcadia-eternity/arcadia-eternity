@@ -22,6 +22,7 @@ test('a real npm environment renders media and reactive bilingual rich text with
       harness,
       `<!doctype html><html><body><div id="app"></div><script type="module">
       import { createApp, h, ref } from 'vue';
+      import '/src/styles.css';
       import { createPinia } from 'pinia';
       import i18next from 'i18next';
       import I18NextVue from 'i18next-vue';
@@ -41,6 +42,7 @@ test('a real npm environment renders media and reactive bilingual rich text with
         h(ContentDescription, { namespace: 'skill', contentId: 'example-slow:strike', context: { skill: { power: 40 } }, id: 'skill-description' }),
         h(ContentDescription, { namespace: 'mark', contentId: 'example-slow:slow', context: { mark: { stack: stack.value } }, id: 'description' }),
         h(ContentDescription, { namespace: 'skill', contentId: 'skill_ruodiangongji', id: 'official-skill-description' }),
+        h(ContentDescription, { namespace: 'skill', contentId: 'skill_tahuochongzhuang', id: 'official-status-description' }),
         h(ContentDescription, { namespace: 'mark', contentId: 'mark_liuxie', context: { mark: { stack: stack.value } }, id: 'official-mark-description' }),
         show.value ? h(PetIcon, { species, id: species.num, style: 'width:64px;height:64px', 'data-testid': 'custom-icon' }) : null,
         h(PetSprite, { num: 0, imageUrl: species.presentation.portrait, uncached: true }),
@@ -61,8 +63,19 @@ test('a real npm environment renders media and reactive bilingual rich text with
     await page.goto('/test-results/content-presentation.html')
     await expect(page.locator('#description')).toHaveText('剩余 35 层')
     await expect(page.locator('#official-skill-description')).toHaveText('暴击率增加5% 使对手获得1个弱点记号')
-    await expect(page.locator('#official-skill-description strong, #official-skill-description .font-bold')).toHaveText(
-      '弱点记号',
+    await expect(page.locator('#official-skill-description [data-description-kind="markName"]')).toHaveText('弱点记号')
+    const ordinary = page.locator('#official-skill-description [data-description-kind="markName"]')
+    const status = page.locator('#official-status-description [data-description-kind="status"]')
+    await expect(status).toHaveText('烧伤')
+    await page.emulateMedia({ colorScheme: 'light' })
+    const ordinaryLight = await ordinary.evaluate(element => getComputedStyle(element).color)
+    const statusLight = await status.evaluate(element => getComputedStyle(element).color)
+    expect(ordinaryLight).not.toBe(statusLight)
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await expect.poll(() => ordinary.evaluate(element => getComputedStyle(element).color)).not.toBe(ordinaryLight)
+    await expect.poll(() => status.evaluate(element => getComputedStyle(element).color)).not.toBe(statusLight)
+    expect(await ordinary.evaluate(element => getComputedStyle(element).color)).not.toBe(
+      await status.evaluate(element => getComputedStyle(element).color),
     )
     await expect(page.locator('#official-mark-description')).toHaveText('回合结束时受到35点伤害')
     await expect(page.locator('[data-format-error]')).toHaveCount(0)

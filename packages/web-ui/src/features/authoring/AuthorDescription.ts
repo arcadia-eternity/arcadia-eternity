@@ -1,10 +1,17 @@
 import { defineComponent, h, type PropType } from 'vue'
-import { compileRichDescription, descriptionValues, formatRichDescription } from '@/i18n/richDescription'
+import {
+  compileRichDescription,
+  descriptionMarkKind,
+  descriptionStyles,
+  descriptionValues,
+  formatRichDescription,
+} from '@/i18n/richDescription'
 
 export interface DescriptionMark {
   id: string
   name: string
   reference?: string
+  tags?: readonly string[]
 }
 
 export function descriptionProblem(template: string, language: string) {
@@ -34,8 +41,14 @@ export default defineComponent({
           { class: 'author-description' },
           formatRichDescription(text, props.language, descriptionValues(props.context), id => {
             const mark = props.marks.find(mark => mark.id === id || mark.reference === id)
-            if (!props.interactive) return h('span', mark?.name ?? id)
-            return h('button', { type: 'button', onClick: () => emit('mark', mark?.id ?? id) }, mark?.name ?? id)
+            const kind = descriptionMarkKind(mark?.tags)
+            const appearance = { class: descriptionStyles[kind], 'data-description-kind': kind }
+            if (!props.interactive) return h('span', appearance, mark?.name ?? id)
+            return h(
+              'button',
+              { ...appearance, type: 'button', onClick: () => emit('mark', mark?.id ?? id) },
+              mark?.name ?? id,
+            )
           }),
         )
       } catch (error) {
