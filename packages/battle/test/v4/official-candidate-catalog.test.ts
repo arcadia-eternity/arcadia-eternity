@@ -15,7 +15,7 @@ import { makeScenario } from './scenario'
 import { loadBaseMetadata } from './base-metadata'
 
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
-function marks() {
+function marks(): Map<string, BaseMark> {
   const metadata = loadBaseMetadata('marks').map(raw => ({ ...(raw as object), effect: [] }))
   const catalog = createContentCatalog({ marks: metadata, skills: [], species: [] }, 'candidate-dependencies')
   return new Map(catalog.marks.map(mark => [mark.id, mark]))
