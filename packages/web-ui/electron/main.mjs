@@ -82,6 +82,48 @@ let creatorWorkStorage
 let contentProjects
 let contentLibrary
 let authorWorkspaces
+const authorPreviewWindows = new Map()
+async function openAuthorPreview(id, job) {
+  if (job.kind !== 'preview' || job.state !== 'succeeded' || !job.result?.preview?.endpoint)
+    throw new Error('请先为当前源项目准备可用的画面试玩')
+  const key = `${id}:${job.jobId}`
+  const previous = authorPreviewWindows.get(key)
+  if (previous && !previous.isDestroyed()) {
+    previous.focus()
+    return
+  }
+  const isolated = session.fromPartition(`author-preview-${randomUUID()}`, { cache: false })
+  if (!devServerUrl) registerClientProtocol(isolated, rendererDistDir)
+  isolated.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
+  isolated.setPermissionCheckHandler(() => false)
+  const window = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    webPreferences: {
+      session: isolated,
+      preload: path.join(__dirname, 'preview-preload.cjs'),
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+    },
+  })
+  authorPreviewWindows.set(key, window)
+  protectDesktopNavigation(window, rendererUrl)
+  window.on('closed', () => {
+    authorPreviewWindows.delete(key)
+    void isolated.closeAllConnections()
+    void isolated.clearStorageData()
+  })
+  const url = new URL('/content/preview', rendererUrl)
+  url.searchParams.set('endpoint', job.result.preview.endpoint)
+  try {
+    await window.loadURL(url.href)
+  } catch (error) {
+    window.destroy()
+    throw error
+  }
+}
 function getAuthorWorkspaces() {
   authorWorkspaces ??= new AuthorWorkspaces({
     root: path.join(app.getPath('userData'), 'ugc'),
@@ -101,6 +143,7 @@ function getAuthorWorkspaces() {
     },
     env: {
       ...process.env,
+      ARCADIA_PREVIEW_CLIENT_URL: rendererUrl,
       ...(app.isPackaged
         ? { ARCADIA_NPM_CLI: path.join(process.resourcesPath, 'arcadia-server/runtime/npm/bin/npm-cli.js') }
         : {}),
@@ -1756,13 +1799,18 @@ function setupIpcHandlers() {
               session.workspace.setDirty(input.file, input.dirty === true)
               break
             case 'jobs':
+              await session.jobs.refresh()
               result = session.jobs.list()
               break
             case 'start':
               result = await session.jobs.start({ kind: input.kind })
               break
+            case 'preview-open':
+              await session.jobs.refresh()
+              result = await openAuthorPreview(input.id, session.jobs.get(input.jobId))
+              break
             case 'cancel':
-              result = session.jobs.cancel(input.jobId)
+              result = await session.call('cancel', { jobId: input.jobId })
               break
             case 'media':
               result = await session.workspace.asset(input.file)
@@ -2100,6 +2148,9 @@ app.on('before-quit', event => {
       () => contentLibrary?.close(),
       () => contentProjects?.close(),
       () => authorWorkspaces?.close(),
+      () => {
+        for (const window of authorPreviewWindows.values()) window.destroy()
+      },
       () => localBattleHost.stop(),
       () => stopLocalServer(),
     ],

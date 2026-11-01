@@ -9,6 +9,7 @@
     "build": "arcadia-content build",
     "rename": "arcadia-content rename",
     "demo": "npm run build && arcadia-content demo",
+    "preview": "npm run build && arcadia-content preview",
     "pack": "arcadia-content pack"
   }
 }
@@ -17,6 +18,10 @@
 Commands use the caller's working directory. `check` checks `tsconfig.json` and recursive JSON/YAML sources in `data/{species,skills,marks,behaviors}`. `build` compiles TypeScript and generates `dist/content.json`. `rename --name ... --project-id ... --namespace ...` changes local structured references while preserving foreign references, content IDs and YAML comments. `pack` checks, builds and runs `npm pack --ignore-scripts`.
 
 `demo` loads `arcadia.config.mjs`, whose default export supplies `players({ namespace, manifest })`: two ordinary player input records understood by the battle SDK. It packs the project, installs the artifact in a temporary npm project and runs a deterministic local battle using each player's first skill. It fails on effect errors or if the battle exceeds 40 turns. The configuration and behavioral assertions belong to the content pack.
+
+`workspace <directory> preview --execute` and MCP `preview_start` capture saved sources, build and install the candidate, and keep a loopback Node host running for the existing full battle client. The first configured player is interactive and the second is AI. The result supplies `preview.endpoint`, `preview.clientPath` and, when `ARCADIA_PREVIEW_CLIENT_URL` is set, `preview.url`. The desktop opens the same candidate in an isolated window. `arcadia-content preview` serves an already built project; stop it with Ctrl+C.
+
+Task receipts live in `.arcadia/author-jobs`, outside exports and source revisions. `workspace <directory> job --execute` and `cancel --execute` accept `{ "jobId": "..." }` on stdin; MCP uses `job_get` and `job_cancel`. These operations work across author sessions. A stopped owner becomes `interrupted` on the next query. New candidates never replace older preview processes, failed preparations keep existing previews, and changed source marks old receipts stale. At most four preview processes are retained per session. Closing the owning session terminates its previews and releases temporary files. This journal restores task status, not live processes or battle saves after a host restart.
 
 Tests can import `prepareContentPack`, `attack`, `nextTurn`, `cancelled` and `runBattle` from `@arcadia-eternity/content-dev/testing`. `prepareContentPack(root = process.cwd(), { offline = true, cache })` loads that config and returns the installed `environment`, `manifest`, packed `files`, `createBattle(seed)`, `track(battle)` and async `dispose()`. The harness admits code only in the temporary local-development project. It uses the normal npm cache by default; `cache` selects an explicit cache directory. It defaults to offline artifact installation; packs with runtime dependencies need a populated cache or an explicit `{ offline: false }`.
 

@@ -95,9 +95,12 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
       environmentRevision: environment.revision,
     }
     if (process.env.ARCADIA_AUTHOR_RESULT === '1') console.log(`ARCADIA_RESULT=${JSON.stringify({ candidate })}`)
-    function createBattle(seed = 'content-pack-template') {
+    function createBattle(seed = 'content-pack-template', { ai = false } = {}) {
       const namespace = manifest.arcadia.namespace
-      const players = environment.content.parsePlayers(config.players({ namespace, manifest }))
+      const input = config.players({ namespace, manifest })
+      const players = environment.content.parsePlayers(input, {
+        aiPlayerIds: ai ? [input[1]?.id] : [],
+      })
       if (players.length !== 2) throw new Error('The demo requires exactly two players')
       const battle = environment.content.createBattle(players[0], players[1], {
         rngSeed: seed,

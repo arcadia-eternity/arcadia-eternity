@@ -25,6 +25,7 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
+    "@arcadia-eternity/schema": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "chokidar": "^6.0.0",
     "typescript": "catalog:",

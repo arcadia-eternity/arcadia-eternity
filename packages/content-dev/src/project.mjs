@@ -27,6 +27,7 @@ export function authorConnection(
         env: {
           ELECTRON_RUN_AS_NODE: '1',
           ...(env.ARCADIA_NPM_CLI ? { ARCADIA_NPM_CLI: env.ARCADIA_NPM_CLI } : {}),
+          ...(env.ARCADIA_PREVIEW_CLIENT_URL ? { ARCADIA_PREVIEW_CLIENT_URL: env.ARCADIA_PREVIEW_CLIENT_URL } : {}),
         },
       },
     },

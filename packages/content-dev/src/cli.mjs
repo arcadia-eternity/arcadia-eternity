@@ -13,6 +13,7 @@ const help = `arcadia-content <command>
   build     Compile TypeScript and assemble content/media/locales metadata
   rename    Change package/project/namespace identities and local references
   demo      Run the battle configured in arcadia.config.mjs
+  preview   Prepare a local candidate for the full battle client; stop with Ctrl+C
   pack      Check, build and create an npm content package
   setup     Install the pinned development SDK and tool
   workspace <directory> <operation> [--execute]  Structured author operations
@@ -53,13 +54,14 @@ try {
     await setup(args)
   } else if (command === 'rename') await run(process.execPath, [modulePath('./rename.mjs'), ...args])
   else {
-    if (!['check', 'build', 'demo', 'pack'].includes(command) || args.length)
+    if (!['check', 'build', 'demo', 'preview', 'pack'].includes(command) || args.length)
       throw new Error(`Unknown command or option.\n${help}`)
     if (command === 'check') {
       await data(true)
       await types(true)
     } else if (command === 'build') await build()
     else if (command === 'demo') await import('./demo.mjs')
+    else if (command === 'preview') await (await import('./preview.mjs')).previewCommand()
     else {
       await build()
       const manifest = JSON.parse(await readFile(resolve('package.json'), 'utf8'))

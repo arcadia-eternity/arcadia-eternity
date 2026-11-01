@@ -11,6 +11,8 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
 
   // 需要有效对战的页面
   if (to.meta.requiresBattle) {
+    if (typeof to.query.authorPreview === 'string' && !store.battleInterface)
+      return { name: 'AuthorPreview', query: { endpoint: to.query.authorPreview } }
     const isPrivateRoomBattle = to.query.privateRoom === 'true'
     const isServerBattle = typeof to.query.roomId === 'string' && to.query.roomId.length > 0
     const isP2PBattle = to.query.p2p === 'true'
@@ -28,6 +30,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
     if (from.name === 'LocalBattle') {
       return true
     }
+    if (from.name === 'AuthorPreview' && store.battleInterface) return true
     if (from.name === 'PrivateRoom') {
       ElMessage.warning('无效的私人房间战斗参数')
       return '/'

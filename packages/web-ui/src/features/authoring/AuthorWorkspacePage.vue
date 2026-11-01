@@ -106,7 +106,13 @@ const selectedKind = ref('species')
 const selectedAssetId = ref('')
 const asset = ref<{ file: string; bytes: Uint8Array }>(),
   assetLoading = ref(false)
-const jobTitles: Record<string, string> = { check: '检查', test: '场景测试', demo: '演示对战', pack: '打包' }
+const jobTitles: Record<string, string> = {
+  check: '检查',
+  test: '场景测试',
+  demo: '演示对战',
+  preview: '画面试玩',
+  pack: '打包',
+}
 const tabs: Record<string, string> = {
   ...contentTypes,
   assets: '资源',
@@ -1560,6 +1566,7 @@ onBeforeUnmount(() => {
             <button :disabled="busy || running || dirty" @click="attempt(() => start('check'))">检查内容与类型</button
             ><button :disabled="busy || running || dirty" @click="attempt(() => start('test'))">运行场景测试</button
             ><button :disabled="busy || running || dirty" @click="attempt(() => start('demo'))">运行演示对战</button
+            ><button :disabled="busy || running || dirty" @click="attempt(() => start('preview'))">准备画面试玩</button
             ><button :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">构建内容包</button>
           </div>
           <div class="file-links">
@@ -1571,13 +1578,22 @@ onBeforeUnmount(() => {
             <header>
               <h3>{{ jobTitles[job.kind] || job.kind }} · {{ job.state }}</h3>
               <button
-                v-if="['queued', 'running'].includes(job.state)"
+                v-if="
+                  ['queued', 'running'].includes(job.state) || (job.kind === 'preview' && job.state === 'succeeded')
+                "
                 @click="attempt(() => action({ action: 'cancel', jobId: job.jobId }))"
               >
                 取消
               </button>
             </header>
             <p v-if="job.stale" class="error">源码已变化，此结果对应旧修订。</p>
+            <button
+              v-if="job.result?.preview && job.state === 'succeeded'"
+              :disabled="busy"
+              @click="attempt(() => action({ action: 'preview-open', jobId: job.jobId }))"
+            >
+              {{ job.stale ? '打开旧候选画面' : '打开战斗画面' }}
+            </button>
             <p v-for="(item, index) in job.diagnostics" :key="index" class="error">
               {{ item.message }}
               <button v-if="item.file" @click="attempt(() => external(item.file, item.line, item.column))">

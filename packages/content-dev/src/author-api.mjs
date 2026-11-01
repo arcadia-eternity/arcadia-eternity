@@ -7,6 +7,7 @@ export { createSourceProject, connectDevelopmentSdk, authorConnection } from './
 export async function openAuthorSession(directory, options = {}) {
   const workspace = await AuthorWorkspace.open(directory, options)
   const jobs = new AuthorJobs(workspace, options)
+  await jobs.initialize()
   return {
     workspace,
     jobs,
@@ -60,8 +61,13 @@ export async function openAuthorSession(directory, options = {}) {
         case 'start':
           return jobs.start(input)
         case 'job':
+          await jobs.refresh()
           return jobs.get(input.jobId)
+        case 'jobs':
+          await jobs.refresh()
+          return jobs.list()
         case 'cancel':
+          await jobs.refresh()
           return jobs.cancel(input.jobId)
         default:
           throw new WorkspaceError('OPERATION_INVALID', '不支持的作者操作')

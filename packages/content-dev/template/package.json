@@ -17,6 +17,7 @@
     "build": "arcadia-content build",
     "test": "npm run build && node --test test/*.test.mjs",
     "demo": "npm run build && arcadia-content demo",
+    "preview": "npm run build && arcadia-content preview",
     "pack": "arcadia-content pack",
     "workspace": "arcadia-content workspace . describe",
     "mcp": "arcadia-content-mcp ."

@@ -120,15 +120,15 @@ if (!session.workspace.readOnly)
 for (const [name, kind] of [
   ['check_start', 'check'],
   ['test_start', 'test'],
-  ['preview_start', 'demo'],
+  ['preview_start', 'preview'],
   ['package_build', 'pack'],
 ]) {
   if (session.workspace.readOnly) continue
   if (kind !== 'check' && !options.has('--execute')) continue
   tool(
     name,
-    kind === 'demo'
-      ? 'Build, install an isolated real package and run its configured headless demonstration battle. Does not start multiplayer hosting.'
+    kind === 'preview'
+      ? 'Build and install a captured npm candidate, then keep a local Node battle host ready for the full client. Poll job_get for preview.url or preview.clientPath. job_cancel stops it; new candidates do not replace existing battles.'
       : `Start ${kind}; poll job_get for actual output and stale-source state.`,
     {
       sourceRevision: z

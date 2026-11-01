@@ -78,6 +78,7 @@ export interface AuthorJob {
   diagnostics: AuthorDiagnostic[]
   result?: {
     candidate?: { integrity: string; sdkApi: number; build: { coreBuildId: string; registryBuildId: string } }
+    preview?: { endpoint: string; clientPath: string; url?: string }
   }
 }
 export async function authorCall<T>(input: Record<string, unknown>): Promise<T> {

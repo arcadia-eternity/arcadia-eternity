@@ -5,7 +5,7 @@ export async function workspaceCli(args) {
   const [directory, operation = 'describe', ...flags] = args
   if (!directory || flags.some(flag => flag !== '--execute'))
     throw new Error(
-      'Usage: arcadia-content workspace <directory> <describe|query|read|write|save|check|test|demo|pack> [--execute]. JSON input on stdin for query/read/write/save.',
+      'Usage: arcadia-content workspace <directory> <describe|query|read|write|save|check|test|demo|preview|pack> [--execute]. JSON input on stdin for query/read/write/save.',
     )
   const session = await openAuthorSession(directory, { watch: false, execute: flags.includes('--execute') })
   const cancel = () => session.close()
@@ -13,7 +13,7 @@ export async function workspaceCli(args) {
   process.once('SIGINT', cancel)
   try {
     let result
-    if (['check', 'test', 'demo', 'pack'].includes(operation)) {
+    if (['check', 'test', 'demo', 'preview', 'pack'].includes(operation)) {
       let job = await session.jobs.start({ kind: operation })
       while (['queued', 'running'].includes(job.state)) {
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -21,6 +21,16 @@ export async function workspaceCli(args) {
       }
       result = job
       if (job.state !== 'succeeded' || job.stale) process.exitCode = 1
+      if (operation === 'preview' && job.state === 'succeeded' && !job.stale) {
+        console.log(JSON.stringify({ result: job }))
+        if (!session.jobs.closed)
+          await new Promise(resolve => {
+            const stopped = () => resolve()
+            process.once('SIGINT', stopped)
+            process.once('SIGTERM', stopped)
+          })
+        return
+      }
     } else {
       let input = ''
       if (operation !== 'describe')

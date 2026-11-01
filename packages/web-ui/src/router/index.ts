@@ -17,6 +17,12 @@ import { captureOAuthCallbackAtBoot } from '@/services/serverSession'
 const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
 const routes: RouteRecordRaw[] = [
   {
+    path: '/content/preview',
+    name: 'AuthorPreview',
+    component: () => import('@/features/authoring/AuthorPreviewPage.vue'),
+    meta: { title: '内容包试玩' },
+  },
+  {
     path: '/content',
     name: 'ContentManager',
     component: () => import('@/features/content/ContentManagerPage.vue'),

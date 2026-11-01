@@ -135,7 +135,10 @@ const emitter = mitt<AnimationEvents>()
 const route = useRoute()
 const router = useRouter()
 const isLocalBattle = computed(
-  () => !props.replayMode && props.enableDeveloperMode && route.query.privateRoom !== 'true',
+  () =>
+    !props.replayMode &&
+    (props.enableDeveloperMode || typeof route.query.authorPreview === 'string') &&
+    route.query.privateRoom !== 'true',
 )
 const store = useBattleStore()
 const battleReportStore = useBattleReportStore()
@@ -1063,6 +1066,10 @@ const navigateToLobbyWithMatching = async () => {
     await exitFullscreen()
   }
   if (route.query.matchmaking === 'true') await usePrivateRoomStore().leaveRoom()
+  if (typeof route.query.authorPreview === 'string') {
+    await router.push({ name: 'AuthorPreview', query: { endpoint: route.query.authorPreview } })
+    return
+  }
   router.push(isLocalBattle.value ? '/local-battle' : { name: 'Lobby', query: { startMatching: 'true' } })
 }
 

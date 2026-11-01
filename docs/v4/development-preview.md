@@ -1,5 +1,13 @@
 # 本机内容包预览
 
+## 单人画面试玩
+
+源项目工作台在“检查与运行”中提供“准备画面试玩”，准备完成后打开独立战斗窗口。CLI `arcadia-content workspace /path/to/source preview --execute` 和 MCP `preview_start` 使用同一个流程：复制已保存源文件到独立构建目录，打包并安装真实 npm 产物，启动仅监听 `127.0.0.1` 的 Node 战斗宿主。第一位配置玩家可操作，第二位由 AI 操作；队伍来自 `arcadia.config.mjs`。客户端使用现有完整战斗页，接收公开内容、按需媒体与战斗消息。
+
+任务返回 `preview.endpoint` 和 `preview.clientPath`；设置 `ARCADIA_PREVIEW_CLIENT_URL` 后同时返回完整客户端地址。桌面自动配置这个地址，并在无管理能力、独立存储的窗口内打开试玩。候选绑定源修订与 npm 包身份；保存新源码不替换已有候选，新候选失败或取消不影响旧对局。任务记录共享到 `.arcadia/author-jobs`，支持其他 CLI／MCP／桌面入口查询及取消。任务宿主退出后，新会话显示 interrupted；重新运行以创建候选，运行进程和临时安装不跨重启保留。
+
+## 联机服务器候选
+
 这个流程从一个明确的 npm 内容包源码目录准备独立候选，然后由管理员检查并准入，最后启动一个新的本机服务器。源码目录必须已经配置好构建工具和依赖；目前 Arcadia SDK 尚未作为公共 npm 包发布，不能假设新项目能在干净主机上直接安装 SDK。有关源码编辑界面见 [本机开发工作区](./development-workspace.md)。
 
 以下示例需要已经构建的 `dist/cli.js`。在仓库根目录执行，将 `/path/to/source` 和 `/path/to/new-candidate` 换成本机路径。候选目录必须不存在，且不在源码目录中。

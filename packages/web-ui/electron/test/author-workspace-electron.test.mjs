@@ -123,6 +123,38 @@ test(
       assert.ok(jobs.some(job => job.kind === 'demo' && job.output.includes('Winner:')))
       assert.equal((await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())).status, 'idle')
       assert.equal(await page.locator('.monaco-editor').count(), 0)
+      await page.getByRole('button', { name: '准备画面试玩', exact: true }).click()
+      await page.getByRole('heading', { name: '画面试玩 · succeeded', exact: true }).waitFor({ timeout: 45000 })
+      const openedPreview = app.waitForEvent('window')
+      await page.getByRole('button', { name: '打开战斗画面', exact: true }).click()
+      const preview = await openedPreview
+      await preview.waitForURL(/\/battle\?authorPreview=/, { timeout: 45000 })
+      const errors = []
+      preview.on('pageerror', error => errors.push(error.message))
+      await preview.waitForFunction(() => {
+        const store = window.__APP_DEBUG__?.pinia._s.get('battle')
+        return store?.battleState?.players?.[0]?.pets?.length > 0 || store?.availableActions?.length > 0
+      })
+      assert.equal(await preview.evaluate(() => typeof window.arcadiaDesktop), 'undefined')
+      await expect(preview.locator('body')).toContainText('霜击')
+      let turns = 0
+      while (turns++ < 40) {
+        await preview.waitForFunction(() => {
+          const store = window.__APP_DEBUG__.pinia._s.get('battle')
+          return store.isBattleEnd || (store.availableActions.length > 0 && !store.waitingForResponse)
+        })
+        const ended = await preview.evaluate(() => {
+          const store = window.__APP_DEBUG__.pinia._s.get('battle')
+          return store.isBattleEnd
+        })
+        if (ended) break
+        await preview.getByTestId('skill-button').filter({ hasText: '霜击' }).click()
+      }
+      assert.ok(turns < 40, 'graphical preview must finish with a real winner')
+      assert.deepEqual(errors, [])
+      if (process.env.ARCADIA_PREVIEW_SCREENSHOT)
+        await preview.screenshot({ path: process.env.ARCADIA_PREVIEW_SCREENSHOT, fullPage: true })
+      await preview.close()
       await category(/^精灵/).click()
       await page.locator('.content-card').filter({ hasText: '霜团' }).click()
       if (process.env.ARCADIA_AUTHOR_SCREENSHOT)
@@ -130,6 +162,17 @@ test(
       await page.setViewportSize({ width: 390, height: 844 })
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true)
     } catch (error) {
+      if (app)
+        for (const surface of app.windows()) {
+          console.error(
+            'Surface',
+            surface.url(),
+            await surface
+              .locator('body')
+              .innerText()
+              .catch(() => 'unavailable'),
+          )
+        }
       console.error(
         await page
           ?.locator('.job pre')
