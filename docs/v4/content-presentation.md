@@ -34,6 +34,14 @@ battle:
 
 表现用途包含 `icon`、`portrait`、`cry`、`sfx`、`background`、`music`，以及 `battle.renderer/source/fallback`。`renderer` 显式为 `image` 或 `seer2-swf`；回退必须是图片。用途引用资源 ID，不直接填写文件路径或 URL。跨包引用用 `{ namespace: other-pack, id: shared-icon }`，由安装后的 npm 依赖图验证可访问性。
 
+## 描述格式与检查
+
+内容描述统一使用 ICU：变量写 `{power}`、`{stack}` 等扁平名称，支持 `plural` / `select`；不使用 `{{mark.stack}}`、点路径或 HTML 属性。允许的语义标签为 `damage`、`heal`、`shield`、`buff`、`debuff`、`rage`、`strong`、`emphasis`，印记引用写 `<mark>namespace:id</mark>`。名称仍是普通文本。
+
+战斗界面用实例的真实 `{stack}`；工作台、图鉴等只有定义时保留 `{stack}` 占位，不把初始值当作当前战斗层数。非法语法或未支持的标签会显示诊断，包含当前未选中的 `plural` / `select` 分支。
+
+运行 `pnpm --filter @arcadia-eternity/web-ui test:content-locales` 检查基础包及内置模板所有语言的描述，并验证工作台、游戏的实际渲染路径。浏览器 CI 自动执行此检查，失败信息包含源文件和对象 ID；基础包、模板或渲染代码变动都会触发。
+
 ## 构建与加载
 
 构建生成 `dist/presentation.json`，其 `version` 为 2，包含 `bindings`、`resources`、`locales`、`defaultLocale`。本地资源记录保留稳定 ID，并生成 source/SHA-256/bytes/MIME；远程资源只声明 URL，不下载、代理或缓存。未被引用的已声明素材也保留。

@@ -12,6 +12,24 @@ export const descriptionStyles: Record<string, string> = {
   emphasis: 'italic',
 }
 
+/** Validate every branch, including tags hidden behind an inactive ICU select/plural option. */
+export function compileRichDescription(template: string, language: string): IntlMessageFormat {
+  const message = new IntlMessageFormat(template, language)
+  function check(elements: ReturnType<IntlMessageFormat['getAst']>) {
+    for (const element of elements) {
+      if ('children' in element) {
+        if (element.value !== 'mark' && !Object.hasOwn(descriptionStyles, element.value))
+          throw new Error(`Unsupported description tag: <${element.value}>`)
+        check(element.children)
+      } else if ('options' in element) {
+        for (const option of Object.values(element.options)) check(option.value)
+      }
+    }
+  }
+  check(message.getAst())
+  return message
+}
+
 /** The message is parsed for this render only. Neither templates nor rendered resource values are cached. */
 export function formatRichDescription(
   template: string,
@@ -19,11 +37,12 @@ export function formatRichDescription(
   values: Record<string, PrimitiveType>,
   reference?: (id: string) => VNode,
 ): Array<string | VNode> {
-  const handlers: Record<string, PrimitiveType | VNode | FormatXMLElementFn<VNode>> = { ...values }
+  // Definitions have no live stack. Keep its placeholder in catalogs/previews instead of inventing a battle value.
+  const handlers: Record<string, PrimitiveType | VNode | FormatXMLElementFn<VNode>> = { stack: '{stack}', ...values }
   for (const [tag, className] of Object.entries(descriptionStyles))
     handlers[tag] = chunks => h('span', { class: className }, chunks)
   handlers.mark = chunks => reference?.(chunks.join('').trim()) ?? h('span', chunks)
-  const output = new IntlMessageFormat(template, language).format<VNode>(handlers)
+  const output = compileRichDescription(template, language).format<VNode>(handlers)
   return Array.isArray(output) ? output : [output]
 }
 
@@ -35,7 +54,6 @@ export function descriptionValues(context: Record<string, unknown>): Record<stri
     else if (value && typeof value === 'object')
       for (const [field, scalar] of Object.entries(value))
         if (typeof scalar === 'string' || typeof scalar === 'number' || typeof scalar === 'boolean') {
-          output[`${key}.${field}`] = scalar
           output[field] ??= scalar
         }
   }

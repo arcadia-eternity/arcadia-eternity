@@ -6,34 +6,34 @@ mark_shuiliangbaohe:
   description: ''
 stat_stage_atk_down:
   name: 攻击力下降
-  description: 攻击等级{{mark.stack}}
+  description: 攻击等级{stack}
 stat_stage_def_down:
   name: 防御力下降
-  description: 防御等级{{mark.stack}}
+  description: 防御等级{stack}
 stat_stage_spa_down:
   name: 特攻下降
-  description: 特攻等级{{mark.stack}}
+  description: 特攻等级{stack}
 stat_stage_spd_down:
   name: 特防下降
-  description: 特防等级{{mark.stack}}
+  description: 特防等级{stack}
 stat_stage_spe_down:
   name: 速度下降
-  description: 速度等级{{mark.stack}}
+  description: 速度等级{stack}
 stat_stage_atk_up:
   name: 攻击力提升
-  description: 攻击等级{{mark.stack}}
+  description: 攻击等级{stack}
 stat_stage_def_up:
   name: 防御力提升
-  description: 防御等级{{mark.stack}}
+  description: 防御等级{stack}
 stat_stage_spa_up:
   name: 特攻提升
-  description: 特攻等级{{mark.stack}}
+  description: 特攻等级{stack}
 stat_stage_spd_up:
   name: 特防提升
-  description: 特防等级{{mark.stack}}
+  description: 特防等级{stack}
 stat_stage_spe_up:
   name: 速度提升
-  description: 速度等级{{mark.stack}}
+  description: 速度等级{stack}
 mark_meihuo:
   name: 魅惑
   description: 无法行动
@@ -129,7 +129,7 @@ mark_zhongdu:
   description: 每回合失去最大体力的1/8 恢复量降低15%
 mark_liuxie:
   name: 流血
-  description: 回合结束时受到{{mark.stack}}点伤害
+  description: 回合结束时受到{stack}点伤害
 mark_exin:
   name: 恶心
   description: 命中率降低50%
@@ -192,7 +192,7 @@ mark_ruodianjihao:
   description: 每个减少自身25点速度值 最多2个
 mark_yishang:
   name: 易伤
-  description: 受到伤害增加{{mark.stack}}%
+  description: 受到伤害增加{stack}%
 mark_jishengzhadan:
   name: 寄生炸弹
   description: 结束时失去300点体力 换场消失
@@ -210,10 +210,10 @@ mark_fantan:
   description: 反弹受到伤害的25%
 mark_tezengshang:
   name: 特伤增加
-  description: 特攻伤害增加{{mark.stack}}%
+  description: 特攻伤害增加{stack}%
 mark_wuzengshang:
   name: 物伤增加
-  description: 物攻伤害增加{{mark.stack}}%
+  description: 物攻伤害增加{stack}%
 mark_shuiwenzhenji:
   name: 水纹震击
   description: 暴击率提升5%
@@ -222,13 +222,13 @@ mark_xuanyun:
   description: 速度值减少50点
 mark_yinghua:
   name: 硬化
-  description: 受到物攻伤害{{mark.stack}}%
+  description: 受到物攻伤害{stack}%
 mark_rouhua:
   name: 柔化
-  description: 受到特攻伤害{{mark.stack}}%
+  description: 受到特攻伤害{stack}%
 mark_mingzhongxiajiang:
   name: 命中下降
-  description: 命中率降低{{mark.stack}}%
+  description: 命中率降低{stack}%
 mark_yanggong:
   name: 佯攻强化
   description: 增加非佯攻的攻击技能50点威力
@@ -237,7 +237,7 @@ mark_bizhong:
   description: 所有技能必中
 mark_shanghaizengjia:
   name: 伤害增加
-  description: 伤害增加{{mark.stack}}%
+  description: 伤害增加{stack}%
 mark_busi:
   name: 不死
   description: 受到致死打击时保留1点体力
@@ -252,10 +252,10 @@ mark_shoushangfanbei:
   description: ''
 mark_mingzhongtisheng:
   name: 命中提升
-  description: 命中率提升{{mark.stack}}%
+  description: 命中率提升{stack}%
 mark_weilibianhua:
   name: 威力变化
-  description: 攻击技能威力增加{{mark.stack}}点
+  description: 攻击技能威力增加{stack}点
 mark_shanbi:
   name: 闪避
   description: 闪避攻击
@@ -273,7 +273,7 @@ mark_tanxingzhifang:
   description: 抵挡自身体重的物攻伤害 生效使自身获得体重降低
 mark_tizhongjiangdi:
   name: 体重降低
-  description: 基础体重值降低{{mark.stack}}%
+  description: 基础体重值降低{stack}%
 mark_fanshe:
   name: 反射
   description: 反弹受到伤害的1.5倍
@@ -288,7 +288,7 @@ mark_judushenti:
   description: 受到攻击时50%使对手中毒
 mark_yuansuzhufu:
   name: 元素祝福
-  description: 受到伤害增加{{mark.stack}}%
+  description: 受到伤害增加{stack}%
 mark_xingzhili:
   name: 星之力
   description: 免疫自身技能的副作用
@@ -309,7 +309,7 @@ mark_xueruoshuipao:
   description: 每层增加30点受到伤害 最多2层
 mark_suijixianzhi:
   name: 随机先制
-  description: 20%先制+1 必定生效{{mark.stack}}次
+  description: 20%先制+1 必定生效{stack}次
 mark_mianyiyichang:
   name: 免疫异常
   description: 免疫异常
@@ -324,16 +324,16 @@ mark_houkongfan:
   description: 闪避物攻 受到特攻伤害2倍
 mark_xingzhihui:
   name: 星之辉
-  description: 技能触发率提升{{mark.stack}}%
+  description: 技能触发率提升{stack}%
 mark_kongqichuliang:
   name: 空气储量
-  description: 剩余{{mark.stack}}点空气值
+  description: 剩余{stack}点空气值
 mark_yinbo:
   name: 音波值
   description: 达到100点时发生爆炸 造成额外的100点伤害
 mark_zaoyin:
   name: 噪音
-  description: 下一次使用技能减少{{mark.stack}}点命中率
+  description: 下一次使用技能减少{stack}点命中率
 mark_aideminyi:
   name: 爱的名义
   description: 使自身所有技能必中
@@ -345,7 +345,7 @@ mark_huifu_1_16:
   description: 每回合恢复最大体力的1/16
 mark_xinlingzhiyue:
   name: 心灵制约
-  description: 每次获得怒气不超过{{mark.stack}}点
+  description: 每次获得怒气不超过{stack}点
 mark_jingyangshengxi:
   name: 静养生息
   description: 每回合增加10点怒气
@@ -354,28 +354,28 @@ mark_yinzhiwang:
   description: 无法闪避
 mark_zhifanghudun:
   name: 脂肪护盾【🛡️】
-  description: 抵挡{{mark.stack}}点伤害
+  description: 抵挡{stack}点伤害
 mark_kongqihudun:
   name: 空气护盾【🛡️】
-  description: 抵挡{{mark.stack}}点伤害
+  description: 抵挡{stack}点伤害
 mark_shuiwenpingzhang:
   name: 水纹屏障【🛡️】
-  description: 抵挡{{mark.stack}}点伤害 护盾破裂后下一个技能的威力翻倍
+  description: 抵挡{stack}点伤害 护盾破裂后下一个技能的威力翻倍
 mark_yinbopingzhang:
   name: 音波屏障【🛡️】
-  description: 抵挡{{mark.stack}}点伤害
+  description: 抵挡{stack}点伤害
 mark_shoudaoshanghaijianshao:
   name: 受到伤害减少
-  description: 受到伤害减少{{mark.stack}}%
+  description: 受到伤害减少{stack}%
 mark_shoudaoshanghaizengjia:
   name: 受到伤害增加
-  description: 受到伤害增加{{mark.stack}}%
+  description: 受到伤害增加{stack}%
 mark_wulishanghaizengjia:
   name: 物理伤害增加
-  description: 造成物理伤害增加{{mark.stack}}%
+  description: 造成物理伤害增加{stack}%
 mark_teshushanghaizengjia:
   name: 特殊伤害增加
-  description: 造成特殊伤害增加{{mark.stack}}%
+  description: 造成特殊伤害增加{stack}%
 mark_shoufashanghaizengjia:
   name: 伤害增加
   description: 造成伤害增加10%
@@ -411,7 +411,7 @@ mark_first_turn_after_switch:
   description: 替换上场后的第一个回合 使特定技能触发额外的效果
 mark_xukongtizhi:
   name: 虚空体质
-  description: 增加{{mark.stack}}%闪避率 成功闪避则消耗所有虚空体质并使自身获得虚空感应
+  description: 增加{stack}%闪避率 成功闪避则消耗所有虚空体质并使自身获得虚空感应
 mark_xukongganying:
   name: 虚空感应
   description: 使特定的技能 触发额外的效果
@@ -447,10 +447,10 @@ mark_shandianwaiyi:
   description: 受到特攻伤害降低30点 受到物攻50%使对手麻痹
 mark_bingningzhiqi:
   name: 冰凝之气
-  description: 受到伤害增加50% 具有冰冻时效果2倍 剩余{{mark.stack}}次
+  description: 受到伤害增加50% 具有冰冻时效果2倍 剩余{stack}次
 mark_bingshuangzhixing:
   name: 冰霜之星
-  description: 下一次造成伤害减少{{mark.stack}}点
+  description: 下一次造成伤害减少{stack}点
 mark_hanbingjia:
   name: 寒冰甲
   description: 抵挡＜60点的伤害
@@ -477,7 +477,7 @@ mark_guanghuilingyu:
   description: 增加自身恢复量40%
 mark_pofang:
   name: 破防
-  description: 受到伤害增加{{mark.stack}}%
+  description: 受到伤害增加{stack}%
 mark_hongbaoshi:
   name: 红宝石
   description: 使下一个蓝宝石之力附加200点固伤
@@ -492,7 +492,7 @@ mark_shahezhili:
   description: 造成伤害增加35%
 mark_shazhiwang:
   name: 沙之网
-  description: 受到特攻伤害减少{{mark.stack}}点
+  description: 受到特攻伤害减少{stack}点
 mark_xuli:
   name: 蓄力
   description: 每层增加攻击技能20点威力 最多5层
@@ -516,10 +516,10 @@ mark_shuangrenzhuiji:
   description: 使双刃斩连击数+2
 mark_baiya:
   name: 白牙
-  description: 使白牙破附加{{mark.stack}}点伤害
+  description: 使白牙破附加{stack}点伤害
 mark_heiya:
   name: 黑牙
-  description: 使黑牙破附加{{mark.stack}}点伤害
+  description: 使黑牙破附加{stack}点伤害
 mark_gongshoujianbei:
   name: 攻守兼备
   description: 受到伤害改变百分比
@@ -600,10 +600,10 @@ mark_jinbao:
   description: 受到伤害减少25%
 mark_xunjie:
   name: 迅捷
-  description: 先制+{{mark.stack}}
+  description: 先制+{stack}
 mark_chihuan:
   name: 迟缓
-  description: 先制-{{mark.stack}}
+  description: 先制-{stack}
 mark_qianggong:
   name: 强攻
   description: 物攻值增加35点 最多3层
@@ -651,7 +651,7 @@ mark_lingtongchuanda:
   description: 受到伤害＜75点时减少对手15点怒气
 mark_guanghudun:
   name: 光护盾【🛡️】
-  description: 抵挡{{mark.stack}}点伤害
+  description: 抵挡{stack}点伤害
 mark_hanshuangpingzhang:
   name: 寒霜屏障
   description: 抵挡必杀伤害
@@ -660,7 +660,7 @@ mark_yihuopingzhang:
   description: 受到火系伤害减半
 mark_lache:
   name: 拉扯
-  description: 速度值下降{{mark.stack}}点
+  description: 速度值下降{stack}点
 mark_anhunqu:
   name: 安魂曲
   description: 回合开始时清空自身怒气 换场失效
@@ -684,10 +684,10 @@ mark_dongqifuti:
   description: 暴击率增加10%
 mark_hanbinghujia:
   name: 寒冰护甲【🛡️】
-  description: 抵挡{{mark.stack}}点伤害
+  description: 抵挡{stack}点伤害
 mark_fansheguike:
   name: 反射龟壳【🛡️】
-  description: 反弹特攻伤害 最多{{mark.stack}}点
+  description: 反弹特攻伤害 最多{stack}点
 mark_huijiachifan:
   name: 回家吃饭
   description: 每回合恢复自身最大体力的1/6 被攻击时强化自身物防1级并失效

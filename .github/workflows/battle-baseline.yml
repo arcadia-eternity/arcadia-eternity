@@ -159,6 +159,8 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build browser dependencies
         run: pnpm --filter '@arcadia-eternity/web-ui^...' run build
+      - name: Verify content locale syntax and real description rendering
+        run: pnpm --filter @arcadia-eternity/web-ui run test:content-locales
       - name: Build browser application and generate auto-import lint globals
         run: pnpm --filter @arcadia-eternity/web-ui run build-only
       - name: Check native browser construction and transport types
@@ -179,6 +181,8 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup
         run: pnpm test:web-native:e2e
+      - name: Verify official and UGC descriptions in a real browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-presentation.spec.ts
       - name: Verify ordinary matchmaking and authoritative friend rooms
         run: PLAYWRIGHT_ONLINE=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/matchmaking-online.spec.ts e2e/server-room-online.spec.ts
       - uses: actions/cache@v4

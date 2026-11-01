@@ -25,6 +25,8 @@ export async function createNpmFixture(options: { presentation?: boolean; remote
     manifest.files.push('icon.png')
     manifest.arcadia.assets = { [sha256]: 'icon.png' }
     if (options.presentation) {
+      // Presentation v2 owns these resources; do not also publish the legacy icon/default entry.
+      delete manifest.arcadia.assets
       await mkdir(join(source, 'assets'), { recursive: true })
       await writeFile(join(source, 'assets/icon.png'), asset)
       manifest.files.push('assets')
@@ -86,7 +88,9 @@ export async function createNpmFixture(options: { presentation?: boolean; remote
         item.description = `${kind} description`
       }
     }
-    content.assets = [{ id: 'icon', variant: 'default', mime: 'image/png', bytes: asset.length, sha256 }]
+    content.assets = options.presentation
+      ? []
+      : [{ id: 'icon', variant: 'default', mime: 'image/png', bytes: asset.length, sha256 }]
     await writeFile(join(source, 'content.json'), JSON.stringify(content))
     const packed = await exec('npm', ['pack', '--ignore-scripts', '--json'], { cwd: source })
     await mkdir(directory)

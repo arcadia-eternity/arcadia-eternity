@@ -25,7 +25,7 @@ const ContentDescription = defineComponent({
     return () => {
       const authored = serverText(props.namespace, props.contentId, 'description', contentLanguage.value)
       const value = authored?.value ?? props.fallback
-      if (!authored?.rich)
+      if (authored && !authored.rich)
         return h('div', {
           innerHTML: renderContentDescription(new MarkdownIt({ html: true }), value, props.namespace, props.contentId),
         })

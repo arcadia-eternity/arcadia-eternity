@@ -40,6 +40,8 @@ test('a real npm environment renders media and reactive bilingual rich text with
       createApp({ setup: () => () => h('main', [
         h(ContentDescription, { namespace: 'skill', contentId: 'example-slow:strike', context: { skill: { power: 40 } }, id: 'skill-description' }),
         h(ContentDescription, { namespace: 'mark', contentId: 'example-slow:slow', context: { mark: { stack: stack.value } }, id: 'description' }),
+        h(ContentDescription, { namespace: 'skill', contentId: 'skill_ruodiangongji', id: 'official-skill-description' }),
+        h(ContentDescription, { namespace: 'mark', contentId: 'mark_liuxie', context: { mark: { stack: stack.value } }, id: 'official-mark-description' }),
         show.value ? h(PetIcon, { species, id: species.num, style: 'width:64px;height:64px', 'data-testid': 'custom-icon' }) : null,
         h(PetSprite, { num: 0, imageUrl: species.presentation.portrait, uncached: true }),
         h('button', { onClick: () => stack.value = 12 }, 'change stack'),
@@ -58,6 +60,12 @@ test('a real npm environment renders media and reactive bilingual rich text with
     })
     await page.goto('/test-results/content-presentation.html')
     await expect(page.locator('#description')).toHaveText('剩余 35 层')
+    await expect(page.locator('#official-skill-description')).toHaveText('暴击率增加5% 使对手获得1个弱点记号')
+    await expect(page.locator('#official-skill-description strong, #official-skill-description .font-bold')).toHaveText(
+      '弱点记号',
+    )
+    await expect(page.locator('#official-mark-description')).toHaveText('回合结束时受到35点伤害')
+    await expect(page.locator('[data-format-error]')).toHaveCount(0)
     await expect(page.locator('#name')).toHaveText('展示精灵')
     await expect
       .poll(() =>
@@ -74,8 +82,11 @@ test('a real npm environment renders media and reactive bilingual rich text with
     await page.getByRole('button', { name: 'change stack' }).hover()
     await page.getByRole('button', { name: 'change stack' }).click()
     await expect(page.locator('#description')).toHaveText('剩余 12 层')
+    await expect(page.locator('#official-mark-description')).toHaveText('回合结束时受到12点伤害')
     await page.getByRole('button', { name: 'English', exact: true }).click()
     await expect(page.locator('#name')).toHaveText('Display pet')
+    await expect(page.locator('#official-mark-description')).toHaveText('回合结束时受到12点伤害')
+    await expect(page.locator('[data-format-error]')).toHaveCount(0)
     const before = mediaRequests.length
     await page.getByRole('button', { name: 'toggle icon' }).click()
     await expect(page.getByTestId('custom-icon')).toHaveCount(0)

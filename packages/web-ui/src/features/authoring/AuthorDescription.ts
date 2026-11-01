@@ -1,6 +1,5 @@
 import { defineComponent, h, type PropType } from 'vue'
-import { IntlMessageFormat } from 'intl-messageformat'
-import { descriptionValues, formatRichDescription } from '@/i18n/richDescription'
+import { compileRichDescription, descriptionValues, formatRichDescription } from '@/i18n/richDescription'
 
 export interface DescriptionMark {
   id: string
@@ -10,7 +9,7 @@ export interface DescriptionMark {
 
 export function descriptionProblem(template: string, language: string) {
   try {
-    new IntlMessageFormat(template, language)
+    compileRichDescription(template, language)
     return ''
   } catch (error) {
     return error instanceof Error ? error.message : String(error)
@@ -28,8 +27,7 @@ export default defineComponent({
   emits: ['mark'],
   setup(props, { emit }) {
     return () => {
-      // Base-pack summaries include legacy font wrappers; display their text without introducing HTML rendering.
-      const text = props.compact ? props.text.replace(/<\/?font\b[^>]*>/gi, '') : props.text
+      const text = props.text
       try {
         return h(
           'div',

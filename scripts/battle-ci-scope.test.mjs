@@ -24,6 +24,7 @@ for (const path of [
 for (const path of [
   'packages/battle/src/v4/battle.ts',
   'packs/base/data/species.yaml',
+  'packs/base/locales/zh-CN/mark.yaml',
   'packages/const/src/index.ts',
   'packages/pack-loader/src/native-loader.ts',
   'pnpm-lock.yaml',
@@ -218,7 +219,11 @@ test('workflow command writes explicit GitHub outputs for manual runs and an emp
   }
 })
 
-for (const path of ['packages/content-dev/src/cli.mjs', 'packages/content-dev/test/setup.test.mjs']) {
+for (const path of [
+  'packages/content-dev/src/cli.mjs',
+  'packages/content-dev/test/setup.test.mjs',
+  'packages/content-dev/template/locales/en/skill.yaml',
+]) {
   test(`content developer tooling covers its server, desktop and CLI consumers: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, server: true, browser: true, cli: true })
   })
