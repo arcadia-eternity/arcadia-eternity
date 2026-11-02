@@ -1,0 +1,266 @@
+import { randomUUID } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
+import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import { WorkspaceError } from './workspace.mjs'
+import { playersFromTeams } from './project-teams.mjs'
+
+const operations = new Set(['create', 'read', 'events', 'action', 'reset', 'close'])
+const idPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/
+const fail = (code, message) => {
+  throw new WorkspaceError(code, message)
+}
+
+function setup(input) {
+  if (
+    !Array.isArray(input.teamIds) ||
+    input.teamIds.length !== 2 ||
+    input.teamIds.some(id => typeof id !== 'string' || !idPattern.test(id))
+  )
+    fail('BATTLE_INPUT_INVALID', '请选择两个已保存的项目队伍标识')
+  if (typeof input.seed !== 'string' || !input.seed.length || input.seed.length > 200)
+    fail('BATTLE_INPUT_INVALID', '自动调试需要 1–200 字符的固定随机种子')
+  return { teamIds: [...input.teamIds], seed: input.seed }
+}
+
+/** Independent battles over the captured candidate. Never receives the human preview's host or drafts. */
+export class PreviewAutomation {
+  #sessions = new Map()
+  #queue = Promise.resolve()
+  #closed = false
+  constructor(prepared, { readTeams = async () => prepared.teams } = {}) {
+    this.prepared = prepared
+    this.readTeams = readTeams
+  }
+  call(operation, input = {}) {
+    if (!operations.has(operation))
+      return Promise.reject(new WorkspaceError('BATTLE_OPERATION_INVALID', '不支持的战斗调试操作'))
+    if (!input || typeof input !== 'object' || Array.isArray(input))
+      return Promise.reject(new WorkspaceError('BATTLE_INPUT_INVALID', '战斗参数需要对象'))
+    const next = this.#queue
+      .catch(() => {})
+      .then(async () => {
+        if (this.#closed) fail('BATTLE_HOST_CLOSED', '试玩宿主已关闭')
+        return this.#call(operation, input)
+      })
+    this.#queue = next
+    return next
+  }
+  async #create(input, previous) {
+    const config = setup(input)
+    const teams = await this.readTeams()
+    const players = playersFromTeams(teams, config.teamIds)
+    const teamVersions = Object.fromEntries(config.teamIds.map(id => [id, teams.find(team => team.id === id).version]))
+    const battle = this.prepared.createBattle(config.seed, {
+      ai: true,
+      players,
+      // IDs from the saved teams are deterministic and local to this separate battle.
+      runtimeIds: false,
+      battleOptions: { timerConfig: { enabled: false } },
+    })
+    const entry = {
+      ...config,
+      teamVersions,
+      sessionId: previous?.sessionId ?? randomUUID(),
+      revision: previous ? previous.revision + 1 : 0,
+      playerId: battle.playerA.id,
+      battle,
+      system: new LocalBattleSystemV4(battle, this.prepared.environment.content),
+      events: [],
+      cursor: previous?.cursor ?? 0,
+      eventFloor: previous?.cursor ?? 0,
+    }
+    entry.unsubscribe = entry.system.BattleEvent(
+      message => {
+        entry.events.push({ cursor: ++entry.cursor, revision: entry.revision, message })
+        if (entry.events.length > 4096) entry.eventFloor = entry.events.shift().cursor
+      },
+      { showHidden: true },
+    )
+    try {
+      await this.#bounded(entry, () => entry.system.ready())
+      entry.lastState = await entry.system.getState(undefined, true)
+      return entry
+    } catch (error) {
+      await this.#dispose(entry)
+      throw error
+    }
+  }
+  async #bounded(entry, action) {
+    let timer
+    try {
+      return await Promise.race([
+        action(),
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () => reject(new WorkspaceError('BATTLE_TIMEOUT', '战斗未到达下一个决策点；此自动调试对局已关闭')),
+            10000,
+          )
+        }),
+      ])
+    } catch (error) {
+      if (error.code === 'BATTLE_TIMEOUT') {
+        if (this.#sessions.get(entry.sessionId) === entry) this.#sessions.delete(entry.sessionId)
+        await this.#dispose(entry)
+      }
+      throw error
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  async #dispose(entry) {
+    try {
+      await entry.system.cleanup()
+    } finally {
+      this.prepared.untrack(entry.battle)
+    }
+  }
+  async #read(entry) {
+    let pending
+    if (!entry.failure) {
+      try {
+        pending = await this.#bounded(entry, () => entry.system.waitForPendingDecision())
+        entry.lastState = await entry.system.getState(undefined, true)
+      } catch (error) {
+        if (error.code === 'BATTLE_TIMEOUT') throw error
+        // Keep revision and evidence discoverable after engine failure so reset/close remain version checked.
+        entry.failure = { code: error.code ?? 'BATTLE_EXECUTION_FAILED', message: error.message }
+        await this.#dispose(entry)
+      }
+    }
+    const failure = entry.failure
+    return {
+      sessionId: entry.sessionId,
+      revision: entry.revision,
+      seed: entry.seed,
+      teamIds: [...entry.teamIds],
+      teamVersions: { ...entry.teamVersions },
+      playerId: entry.playerId,
+      state: entry.lastState,
+      stateCurrent: !failure,
+      ...(failure ? { failure } : {}),
+      selections: failure ? [] : pending.selections[0],
+      cursor: entry.cursor,
+    }
+  }
+  async #call(operation, input) {
+    if (operation === 'create') {
+      if (this.#sessions.size >= 4) fail('BATTLE_SESSION_LIMIT', '请先关闭一个自动调试对局（最多四个）')
+      const entry = await this.#create(input)
+      this.#sessions.set(entry.sessionId, entry)
+      return this.#read(entry)
+    }
+    const entry = this.#sessions.get(input.sessionId)
+    if (!entry) fail('BATTLE_SESSION_UNKNOWN', '自动调试对局不存在或已关闭；用户试玩不接受此操作')
+    if (operation === 'read') return this.#read(entry)
+    if (operation === 'events') {
+      const afterCursor = input.afterCursor ?? 0,
+        limit = input.limit ?? 50
+      if (
+        !Number.isSafeInteger(afterCursor) ||
+        afterCursor < 0 ||
+        afterCursor > entry.cursor ||
+        !Number.isInteger(limit) ||
+        limit < 1 ||
+        limit > 100
+      )
+        fail('BATTLE_INPUT_INVALID', '事件游标无效，条数须为 1–100')
+      if (afterCursor < entry.eventFloor)
+        fail('BATTLE_EVENTS_EXPIRED', '事件已过期或对局已重置，请重新读取状态并采用最新游标')
+      const events = []
+      let size = 0
+      for (const event of entry.events) {
+        if (event.cursor <= afterCursor) continue
+        const bytes = Buffer.byteLength(JSON.stringify(event))
+        if (size + bytes > 128 * 1024) {
+          if (!events.length) fail('BATTLE_EVENT_TOO_LARGE', '单条事件超过 128 KiB，请读取战斗状态')
+          break
+        }
+        events.push(event)
+        size += bytes
+        if (events.length === limit) break
+      }
+      const nextCursor = events.at(-1)?.cursor ?? afterCursor
+      return {
+        sessionId: entry.sessionId,
+        revision: entry.revision,
+        events,
+        nextCursor,
+        cursor: entry.cursor,
+        hasMore: nextCursor < entry.cursor,
+      }
+    }
+    if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision !== entry.revision)
+      fail('BATTLE_REVISION_CONFLICT', '对局已改变，请重新读取状态与可用行动；不能重放旧操作')
+    if (operation === 'close') {
+      await this.#dispose(entry)
+      this.#sessions.delete(entry.sessionId)
+      return { sessionId: entry.sessionId, revision: entry.revision + 1, closed: true }
+    }
+    if (operation === 'reset') {
+      // Invalid replacement inputs leave this automation battle intact as well.
+      const replacement = await this.#create(
+        { seed: input.seed ?? entry.seed, teamIds: input.teamIds ?? entry.teamIds },
+        entry,
+      )
+      await this.#dispose(entry)
+      this.#sessions.set(entry.sessionId, replacement)
+      return this.#read(replacement)
+    }
+    const current = await this.#read(entry)
+    if (!current.selections.some(selection => isDeepStrictEqual(selection, input.selection)))
+      fail('BATTLE_ACTION_INVALID', '请选择当前返回的可用行动；不能操作对手或用户的对局')
+    entry.revision++
+    try {
+      await this.#bounded(entry, () => entry.system.submitAction(input.selection))
+    } catch (error) {
+      if (error.code === 'BATTLE_TIMEOUT') throw error
+      // Submission may already have changed the battle before failing. Never offer replay with the old revision.
+      entry.failure = { code: error.code ?? 'BATTLE_EXECUTION_FAILED', message: error.message }
+      await this.#dispose(entry)
+    }
+    return this.#read(entry)
+  }
+  async close() {
+    this.#closed = true
+    await this.#queue.catch(() => {})
+    await Promise.allSettled([...this.#sessions.values()].map(entry => this.#dispose(entry)))
+    this.#sessions.clear()
+  }
+}
+
+/** The caller resolves endpoint from its bound project's preview receipt; no arbitrary host or method is accepted. */
+export async function callPreviewControl(endpoint, operation, input = {}) {
+  if (!operations.has(operation)) fail('BATTLE_OPERATION_INVALID', '不支持的战斗调试操作')
+  let url
+  try {
+    url = new URL(endpoint)
+  } catch {
+    fail('PREVIEW_UNAVAILABLE', '试玩地址无效，请重新准备')
+  }
+  if (
+    url.protocol !== 'http:' ||
+    url.hostname !== '127.0.0.1' ||
+    !url.port ||
+    !/^\/[a-f0-9]{48}$/.test(url.pathname) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  )
+    fail('PREVIEW_UNAVAILABLE', '需要此项目的本机试玩宿主')
+  let response
+  try {
+    response = await fetch(`${url.href}/automation/${operation}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+      signal: AbortSignal.timeout(15000),
+      redirect: 'error',
+    })
+  } catch {
+    fail('PREVIEW_UNAVAILABLE', '试玩宿主不可用或请求超时；请查询任务并重新读取对局，不要直接重放行动')
+  }
+  const data = await response.json()
+  if (!response.ok) fail(data.code ?? 'BATTLE_CONTROL_FAILED', data.error ?? '战斗调试失败')
+  return data.result
+}

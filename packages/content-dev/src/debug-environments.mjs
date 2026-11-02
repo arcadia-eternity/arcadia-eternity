@@ -1,52 +1,50 @@
 import { WorkspaceError } from './workspace.mjs'
+import { z } from 'zod'
 const idPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const packagePattern = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
 const fail = message => {
   throw new WorkspaceError('ENVIRONMENT_INVALID', message)
 }
+export const EnvironmentDocumentSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    id: z
+      .string()
+      .regex(idPattern)
+      .refine(value => value !== 'default', 'default 是内置环境'),
+    name: z
+      .string()
+      .min(1)
+      .max(80)
+      .refine(value => !!value.trim())
+      .transform(value => value.trim()),
+    packages: z.record(
+      z.string().regex(packagePattern),
+      z
+        .string()
+        .min(1)
+        .refine(
+          value => !!value.trim() && !/(?:file:|link:|workspace:|\/|\\)/.test(value),
+          '额外 npm 包需要可共享的注册表版本约束',
+        ),
+    ),
+    sources: z
+      .array(z.string().regex(packagePattern))
+      .max(20)
+      .refine(value => new Set(value).size === value.length, '源码包标识不能重复'),
+  })
+  .strict()
 export function environmentDocument(value) {
-  if (
-    !value ||
-    value.schemaVersion !== 1 ||
-    !idPattern.test(value.id) ||
-    value.id === 'default' ||
-    typeof value.name !== 'string' ||
-    !value.name.trim() ||
-    value.name.length > 80
-  )
-    fail('环境需要独立标识及名称')
-  if (
-    !value.packages ||
-    typeof value.packages !== 'object' ||
-    Array.isArray(value.packages) ||
-    !Array.isArray(value.sources) ||
-    value.sources.length > 20
-  )
-    fail('环境需要 npm 包声明与本机源码包标识列表')
-  if (Object.keys(value).some(key => !['schemaVersion', 'id', 'name', 'packages', 'sources'].includes(key)))
-    fail('环境包含未知字段')
-  for (const [name, spec] of Object.entries(value.packages)) {
-    if (
-      !packagePattern.test(name) ||
-      typeof spec !== 'string' ||
-      !spec.trim() ||
-      /(?:file:|link:|workspace:|\/|\\)/.test(spec)
-    )
-      fail('额外 npm 包需要可共享的注册表版本约束；本机源码请使用源码包映射')
-  }
-  if (
-    value.sources.some(name => typeof name !== 'string' || !packagePattern.test(name)) ||
-    new Set(value.sources).size !== value.sources.length
-  )
-    fail('源码包标识无效或重复')
-  return { schemaVersion: 1, id: value.id, name: value.name.trim(), packages: value.packages, sources: value.sources }
+  const parsed = EnvironmentDocumentSchema.safeParse(value)
+  if (!parsed.success) fail(`环境配置无效：${parsed.error.issues[0].message}`)
+  return parsed.data
 }
 export class DebugEnvironments {
   constructor(workspace) {
     this.workspace = workspace
   }
   file(id) {
-    if (!idPattern.test(id) || id === 'default') fail('环境标识无效')
+    if (typeof id !== 'string' || !idPattern.test(id) || id === 'default') fail('环境标识无效')
     return `debug/environments/${id}.json`
   }
   async list() {

@@ -7,12 +7,26 @@ import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { prepareContentPack } from './testing.mjs'
+import { PreviewAutomation } from './preview-control.mjs'
+import { AuthorWorkspace } from './workspace.mjs'
+import { ProjectTeams } from './project-teams.mjs'
 
 /** A captured npm candidate, with rules executed only in this local Node process.
  * The existing client consumes public metadata and IBattleSystem messages.
  */
 export async function startPreview(root, { clientUrl, signal, ...environmentOptions } = {}) {
   const prepared = await prepareContentPack(root, environmentOptions)
+  const automation = new PreviewAutomation(prepared, {
+    async readTeams() {
+      // Candidate rules stay fixed; every new automated battle uses saved teams from the source project.
+      const workspace = await AuthorWorkspace.open(environmentOptions.lockRoot ?? root, { watch: false })
+      try {
+        return await new ProjectTeams(workspace).list()
+      } finally {
+        await workspace.close()
+      }
+    },
+  })
   const token = randomBytes(24).toString('hex')
   let endpoint,
     system,
@@ -200,7 +214,10 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
         body += chunk
         if (Buffer.byteLength(body) > 2 * 1024 * 1024) return json(413, { error: 'REQUEST_TOO_LARGE' })
       }
-      const { args = [] } = JSON.parse(body || '{}')
+      const input = JSON.parse(body || '{}')
+      if (route.startsWith('automation/'))
+        return json(200, { result: await automation.call(route.slice('automation/'.length), input) })
+      const { args = [] } = input
       if (!Array.isArray(args)) throw new Error('INVALID_ARGUMENTS')
       if (route === 'configure') {
         if (!Array.isArray(args[0]) || args[0].length !== 2) throw new Error('请配置双方测试队伍')
@@ -222,7 +239,10 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
       if (!methods.has(route) || !system) return json(400, { error: 'PREVIEW_NOT_ACTIVE' })
       return json(200, { result: (await system[route](...args)) ?? null })
     } catch (error) {
-      json(400, { error: error.message })
+      json(error.code === 'BATTLE_REVISION_CONFLICT' ? 409 : 400, {
+        error: error.message,
+        ...(error.code ? { code: error.code } : {}),
+      })
     }
   })
   async function close() {
@@ -234,6 +254,7 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
       unsubscribe?.()
       detachTimers.forEach(detach => detach())
       await system?.cleanup()
+      await automation.close()
       await prepared.dispose()
     })()
     return closing

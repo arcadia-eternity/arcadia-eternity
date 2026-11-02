@@ -15,6 +15,7 @@ import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
 import { ContentLibrary } from './content-library.mjs'
 import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
+import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
@@ -162,6 +163,7 @@ function getAuthorWorkspaces() {
       ),
     notify: event => {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:author-changed', event)
+      notifyAuthorPreviewChange(authorPreviewWindows.values(), authorPreviewProjects, event)
     },
     env: {
       ...process.env,

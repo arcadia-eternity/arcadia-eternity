@@ -21,7 +21,7 @@ const document = (entry: TeamDocument): TeamDocument =>
       return pet
     }),
   })
-type Editable = Omit<TeamDraft, 'team'> & { team: PetSchemaType[] }
+type Editable = Omit<TeamDraft, 'team'> & { team: PetSchemaType[]; conflict?: boolean }
 function editable(entry: ProjectTeam, dirty = false): Editable {
   return { ...copy(entry), dirty, team: entry.team.map(pet => ({ ...copy(pet), id: nanoid() })) }
 }
@@ -47,6 +47,7 @@ export async function createProjectTeamLibrary(
     for (const entry of draft.entries.filter(entry => entry.dirty)) {
       const index = entries.value.findIndex(item => item.id === entry.id)
       const restored = editable(entry, true)
+      restored.conflict = (saved.find(item => item.id === entry.id)?.version ?? null) !== entry.version
       if (index < 0) entries.value.push(restored)
       else entries.value[index] = restored
     }
@@ -90,7 +91,7 @@ export async function createProjectTeamLibrary(
   const options = computed(() =>
     entries.value.map(entry => ({
       id: entry.id,
-      name: `${entry.name}${entry.dirty ? ' *' : ''}`,
+      name: `${entry.name}${entry.conflict ? '（文件已变更）' : entry.dirty ? ' *' : ''}`,
       size: entry.team.length,
     })),
   )
@@ -152,30 +153,69 @@ export async function createProjectTeamLibrary(
     entry.dirty = true
     persist()
   }
+  let fileOperation = 0
   async function save(side: number) {
+    fileOperation++
     const entry = current(side),
       snapshot = document(entry)
     const result = await storage.files!.save({ document: snapshot, expectedVersion: entry.version })
+    fileOperation++
+    entry.conflict = false
     entry.version = result.version
     entry.dirty = JSON.stringify(document(entry)) !== JSON.stringify(snapshot)
     persist()
   }
   async function remove(side: number) {
+    fileOperation++
     const entry = current(side)
     if (entries.value.length <= 1) throw new Error('请至少保留一套测试队伍')
     if (entry.version !== null) await storage.files!.remove({ id: entry.id, expectedVersion: entry.version })
+    fileOperation++
     entries.value = entries.value.filter(item => item.id !== entry.id)
     selected.value = selected.value.map(id => (id === entry.id ? entries.value[0]!.id : id)) as [string, string]
     persist()
   }
   let reloading = false
   async function reload(side: number) {
+    fileOperation++
     const entry = current(side)
     const latest = (await storage.list()).find(item => item.id === entry.id)
     if (!latest) throw new Error('项目文件已删除；可复制草稿为新队伍再保存')
+    fileOperation++
     reloading = true
     try {
       entries.value.splice(entries.value.indexOf(entry), 1, editable(latest))
+    } finally {
+      reloading = false
+    }
+    persist()
+  }
+  let disposed = false
+  let refreshSequence = 0
+  async function refresh() {
+    const sequence = ++refreshSequence
+    const operation = fileOperation
+    const latest = await storage.list()
+    // A save/reload that happened during this read owns the newer state.
+    if (disposed || sequence !== refreshSequence || operation !== fileOperation) return
+    reloading = true
+    try {
+      const byId = new Map(latest.map(entry => [entry.id, entry]))
+      entries.value = entries.value.flatMap(entry => {
+        const saved = byId.get(entry.id)
+        byId.delete(entry.id)
+        if (entry.dirty) {
+          entry.conflict = (saved?.version ?? null) !== entry.version
+          return [entry]
+        }
+        if (!saved) {
+          // Keep a selected deleted team recoverable without silently switching either side.
+          if (selected.value.includes(entry.id)) return [{ ...entry, dirty: true, conflict: true }]
+          return []
+        }
+        return [saved.version === entry.version ? entry : editable(saved)]
+      })
+      entries.value.push(...[...byId.values()].map(entry => editable(entry)))
     } finally {
       reloading = false
     }
@@ -196,7 +236,10 @@ export async function createProjectTeamLibrary(
   )
   persist()
   return {
-    dispose: stop,
+    dispose() {
+      disposed = true
+      stop()
+    },
     entries,
     selected,
     names,
@@ -207,6 +250,7 @@ export async function createProjectTeamLibrary(
     persist,
     create,
     rename,
+    refresh,
     files: storage.files ? { save, remove, reload } : undefined,
     current,
     flush: () => pending,

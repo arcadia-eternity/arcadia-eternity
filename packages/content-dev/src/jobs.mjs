@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { StringDecoder } from 'node:string_decoder'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { cp, mkdir, mkdtemp, rm, symlink, readFile } from 'node:fs/promises'
@@ -9,6 +10,69 @@ import { JobJournal } from './job-journal.mjs'
 
 const cli = fileURLToPath(new URL('./cli.mjs', import.meta.url))
 const terminal = new Set(['succeeded', 'failed', 'cancelled', 'interrupted'])
+const outputLimit = 1024 * 1024
+const queryError = message => {
+  throw new WorkspaceError('TASK_QUERY_INVALID', message)
+}
+function integer(value, minimum, maximum, name) {
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) queryError(`${name} 超出范围`)
+  return value
+}
+function outputRange(job) {
+  const text = typeof job.output === 'string' ? job.output : ''
+  // Receipts written by older versions have no cursor; their retained output starts at zero.
+  const end = Number.isSafeInteger(job.outputCursor) ? Math.max(job.outputCursor, text.length) : text.length
+  return { text, start: end - text.length, end }
+}
+function resultSummary(result) {
+  if (!result || typeof result !== 'object') return undefined
+  const summary = {}
+  for (const key of [
+    'candidate',
+    'preview',
+    'environmentLock',
+    'sourceRevisions',
+    'filename',
+    'integrity',
+    'shasum',
+    'winner',
+    'turns',
+    'environmentRevision',
+    'packageName',
+  ])
+    if (result[key] !== undefined) summary[key] = structuredClone(result[key])
+  if (Array.isArray(result.files)) summary.fileCount = result.files.length
+  return summary
+}
+function jobSummary(job, details = false) {
+  const { start, end } = outputRange(job)
+  const summary = {
+    jobId: job.jobId,
+    kind: job.kind,
+    state: job.state,
+    phase: job.phase ?? job.state,
+    stale: !!job.stale,
+    sourceRevision: job.sourceRevision,
+    contentRevision: job.contentRevision,
+    environmentId: job.environmentId,
+    createdAt: job.createdAt,
+    ...(job.finishedAt ? { finishedAt: job.finishedAt } : {}),
+    diagnosticCount: job.diagnostics.length,
+    outputStartCursor: start,
+    outputCursor: end,
+  }
+  if (details) {
+    summary.diagnostics = job.diagnostics.slice(0, 100).map(item => ({
+      ...item,
+      message: typeof item.message === 'string' ? item.message.slice(0, 4000) : item.message,
+    }))
+    summary.diagnosticsTruncated =
+      job.diagnostics.length > 100 || job.diagnostics.some(item => item.message?.length > 4000)
+    const result = resultSummary(job.result)
+    if (result) summary.result = result
+  }
+  return summary
+}
 /** Fixed author commands; no renderer or MCP-provided executable strings. */
 export class AuthorJobs {
   #jobs = new Map()
@@ -20,6 +84,7 @@ export class AuthorJobs {
   #journal
   #sync = Promise.resolve()
   #timer
+  #waiters = new Set()
   constructor(workspace, { execute = false, env = process.env, executable = process.execPath } = {}) {
     this.workspace = workspace
     this.execute = execute
@@ -38,6 +103,7 @@ export class AuthorJobs {
           !(job.kind === 'preview' && (file?.startsWith('debug/teams/') || file === job.result?.environmentLock?.file))
         )
           job.stale = true
+      this.#notify()
     }
     workspace.on('change', this.#changed)
     if (!workspace.readOnly && workspace.root) this.#journal = new JobJournal(workspace.root)
@@ -99,12 +165,22 @@ export class AuthorJobs {
           job.kind === 'preview'
             ? job.contentRevision !== contentRevision || !(await this.#dependenciesCurrent(job))
             : job.sourceRevision !== revision
-    for (const receipt of await this.#journal.read()) {
+    await this.#refreshReceipts({ revision, contentRevision })
+  }
+  async #refreshReceipts(revisions) {
+    if (!this.#journal) return
+    const receipts = await this.#journal.read()
+    const present = new Set(receipts.map(receipt => receipt.job.jobId))
+    for (const [id, control] of this.#jobs) if (!control.controller && !present.has(id)) this.#jobs.delete(id)
+    for (const receipt of receipts) {
       if (this.#jobs.get(receipt.job.jobId)?.controller) continue
-      receipt.job.stale ||=
-        receipt.job.kind === 'preview'
-          ? receipt.job.contentRevision !== contentRevision || !(await this.#dependenciesCurrent(receipt.job))
-          : receipt.job.sourceRevision !== revision
+      receipt.job.stale ||= this.#jobs.get(receipt.job.jobId)?.job.stale ?? false
+      if (revisions)
+        receipt.job.stale ||=
+          receipt.job.kind === 'preview'
+            ? receipt.job.contentRevision !== revisions.contentRevision ||
+              !(await this.#dependenciesCurrent(receipt.job))
+            : receipt.job.sourceRevision !== revisions.revision
       this.#jobs.set(receipt.job.jobId, { job: receipt.job, live: receipt.live })
     }
   }
@@ -143,8 +219,10 @@ export class AuthorJobs {
             environmentId === 'default' ? undefined : `debug/environments/${environmentId}.package-lock.json`,
         }),
         state: 'queued',
+        phase: 'queued',
         stale: false,
         output: '',
+        outputCursor: 0,
         diagnostics: [],
         createdAt: Date.now(),
       }
@@ -179,6 +257,87 @@ export class AuthorJobs {
   list() {
     return [...this.#jobs.keys()].map(id => this.get(id)).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
   }
+  /** Compact task discovery; listing never switches or replaces a desktop preview. */
+  async queryJobs({ offset = 0, limit = 20, state, kind } = {}) {
+    integer(offset, 0, Number.MAX_SAFE_INTEGER, 'offset')
+    integer(limit, 1, 100, 'limit')
+    if (state !== undefined && !['queued', 'running', ...terminal].includes(state)) queryError('任务状态无效')
+    if (kind !== undefined && !['check', 'test', 'demo', 'preview', 'pack'].includes(kind)) queryError('任务类型无效')
+    await this.refresh()
+    const rows = [...this.#jobs.values()]
+      .map(({ job }) => job)
+      .filter(job => (!state || job.state === state) && (!kind || job.kind === kind))
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0) || a.jobId.localeCompare(b.jobId))
+    return {
+      total: rows.length,
+      offset,
+      nextOffset: offset + limit < rows.length ? offset + limit : null,
+      items: rows.slice(offset, offset + limit).map(job => jobSummary(job)),
+    }
+  }
+  /** Wait for changes without repeatedly hashing every project file. */
+  async queryJob({ jobId, waitMs = 0, afterCursor, includeOutput = false, limit = 16384 } = {}) {
+    integer(waitMs, 0, 10000, 'waitMs')
+    integer(limit, 1, 65536, 'limit')
+    if (afterCursor !== undefined) integer(afterCursor, 0, Number.MAX_SAFE_INTEGER, 'afterCursor')
+    if (typeof includeOutput !== 'boolean') queryError('includeOutput 需要布尔值')
+    await this.refresh()
+    let job = this.get(jobId)
+    if (afterCursor !== undefined && afterCursor > outputRange(job).end) queryError('日志游标超出当前输出')
+    const observed = JSON.stringify(jobSummary(job, true))
+    const deadline = Date.now() + waitMs
+    while (
+      !this.#closed &&
+      !terminal.has(job.state) &&
+      (afterCursor === undefined || outputRange(job).end <= afterCursor) &&
+      JSON.stringify(jobSummary(job, true)) === observed &&
+      Date.now() < deadline
+    ) {
+      await this.#wait(Math.min(250, deadline - Date.now()))
+      // Peer receipts are checkpointed by their owner. This does not mutate peer tasks.
+      await this.#refreshReceipts()
+      job = this.get(jobId)
+    }
+    const summary = jobSummary(job, true)
+    if (includeOutput) summary.output = this.#output(jobId, afterCursor ?? 0, limit)
+    return summary
+  }
+  async readJobOutput({ jobId, cursor = 0, limit = 16384 } = {}) {
+    integer(cursor, 0, Number.MAX_SAFE_INTEGER, 'cursor')
+    integer(limit, 1, 65536, 'limit')
+    await this.#refreshReceipts()
+    return this.#output(jobId, cursor, limit)
+  }
+  #output(jobId, cursor, limit) {
+    const { text, start, end } = outputRange(this.get(jobId))
+    if (cursor > end) queryError('日志游标超出当前输出')
+    const first = Math.max(cursor, start)
+    const nextCursor = Math.min(first + limit, end)
+    return {
+      jobId,
+      text: text.slice(first - start, nextCursor - start),
+      cursor: first,
+      nextCursor,
+      endCursor: end,
+      truncated: cursor < start,
+      hasMore: nextCursor < end,
+      unit: 'utf16',
+    }
+  }
+  #notify() {
+    for (const wake of this.#waiters) wake()
+  }
+  #wait(milliseconds) {
+    return new Promise(resolve => {
+      const wake = () => {
+        clearTimeout(timer)
+        this.#waiters.delete(wake)
+        resolve()
+      }
+      const timer = setTimeout(wake, milliseconds)
+      this.#waiters.add(wake)
+    })
+  }
   cancel(jobId) {
     const control = this.#jobs.get(jobId)
     if (!control) throw new WorkspaceError('TASK_UNKNOWN', '任务不存在')
@@ -190,6 +349,7 @@ export class AuthorJobs {
     if (!terminal.has(control.job.state) || this.#previews.has(jobId)) {
       control.controller.abort()
       if (this.#previews.has(jobId)) control.job.state = 'cancelled'
+      this.#notify()
     }
     return this.get(jobId)
   }
@@ -200,6 +360,8 @@ export class AuthorJobs {
     let capture
     try {
       job.state = 'running'
+      job.phase = 'preparing'
+      this.#notify()
       if (job.kind === 'preview') {
         capture = await mkdtemp(join(tmpdir(), 'arcadia-author-candidate-'))
         for (const entry of await this.workspace.files()) {
@@ -266,10 +428,17 @@ export class AuthorJobs {
       job.finishedAt = new Date().toISOString()
       if (capture && !this.#previews.has(job.jobId)) await rm(capture, { recursive: true, force: true })
       job.state = state
+      job.phase = state === 'succeeded' && job.kind === 'preview' ? 'ready' : 'finished'
+      this.#notify()
     }
   }
   async #process(args, job, signal, preview = false, capture) {
     if (signal.aborted) throw new WorkspaceError('TASK_CANCELLED', '任务已取消')
+    job.phase =
+      { check: 'checking', build: 'building', pack: 'packing', preview: 'starting-preview', demo: 'running-demo' }[
+        args[1]
+      ] ?? 'testing'
+    this.#notify()
     await new Promise((resolve, reject) => {
       const child = spawn(this.executable, args, {
         cwd: capture ?? this.workspace.root,
@@ -300,9 +469,11 @@ export class AuthorJobs {
       if (signal.aborted) abort()
       let buffer = '',
         ready = false
-      const output = chunk => {
-        const text = chunk.toString()
-        job.output = (job.output + text).slice(-1024 * 1024)
+      const output = text => {
+        if (!text) return
+        job.outputCursor = outputRange(job).end + text.length
+        job.output = (job.output + text).slice(-outputLimit)
+        this.#notify()
         if (!preview || ready) return
         buffer += text
         let newline
@@ -329,8 +500,11 @@ export class AuthorJobs {
             finished = resolve
           }),
         )
-      child.stdout.on('data', output)
-      child.stderr.on('data', output)
+      for (const stream of [child.stdout, child.stderr]) {
+        const decoder = new StringDecoder('utf8')
+        stream.on('data', chunk => output(decoder.write(chunk)))
+        stream.on('end', () => output(decoder.end()))
+      }
       child.once('error', reject)
       child.once('close', code => {
         if (preview) {
@@ -342,6 +516,7 @@ export class AuthorJobs {
           })
           if (ready) {
             job.state = signal.aborted ? 'cancelled' : 'failed'
+            this.#notify()
             if (!signal.aborted)
               job.diagnostics.push(diagnostic(new WorkspaceError('PREVIEW_EXITED', '试玩进程已退出，请重新准备')))
           }
@@ -390,6 +565,7 @@ export class AuthorJobs {
   }
   async close() {
     this.#closed = true
+    this.#notify()
     this.workspace.off('change', this.#changed)
     await this.#starting
     clearInterval(this.#timer)

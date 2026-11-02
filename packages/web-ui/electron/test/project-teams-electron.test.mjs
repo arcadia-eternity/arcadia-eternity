@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { mkdtemp, readFile, writeFile, rm, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 const require = createRequire(import.meta.url)
 
@@ -25,11 +26,25 @@ test(
     const env = { ...process.env, ARCADIA_ELECTRON_DEV_SERVER_URL: origin }
     delete env.ELECTRON_RUN_AS_NODE
     delete env.NODE_TEST_CONTEXT
-    let app
+    let app, mcp
+    const sdkRequire = createRequire(new URL('../../../content-dev/package.json', import.meta.url))
+    const { Client } = await import(sdkRequire.resolve('@modelcontextprotocol/sdk/client/index.js'))
+    const { StdioClientTransport } = await import(sdkRequire.resolve('@modelcontextprotocol/sdk/client/stdio.js'))
+    const call = async (name, args = {}) => {
+      const response = await mcp.callTool({ name, arguments: args })
+      assert.notEqual(response.isError, true, JSON.stringify(response))
+      return response.structuredContent.result
+    }
+    const saveTeam = async (id, change) => {
+      const { version, ...document } = (await call('team_list')).items.find(team => team.id === id)
+      return call('team_save', { document: { ...document, ...change }, expectedVersion: version })
+    }
     const launch = async () => {
       app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
       const page = await app.firstWindow()
       page.setDefaultTimeout(15000)
+      await page.waitForURL(url => url.origin === origin)
+      await page.waitForFunction(() => !!window.__APP_DEBUG__ && !!window.arcadiaDesktop)
       return page
     }
     const stop = async () => {
@@ -40,6 +55,14 @@ test(
       let page = await launch()
       const project = await page.evaluate(
         async () => (await window.arcadiaDesktop.author({ action: 'create', name: '项目队伍验收' })).result,
+      )
+      mcp = new Client({ name: 'live-preview-test', version: '1' })
+      await mcp.connect(
+        new StdioClientTransport({
+          command: process.execPath,
+          args: [fileURLToPath(new URL('../../../content-dev/src/mcp.mjs', import.meta.url)), project.directory],
+          stderr: 'pipe',
+        }),
       )
       await page.goto(`${origin}/content/edit/${project.id}`)
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
@@ -61,6 +84,17 @@ test(
       await expect(preview.getByRole('region', { name: '当前队伍操作' })).toContainText('Orange')
       await preview.getByRole('button', { name: '编辑我方队伍', exact: true }).click()
       await expect(preview.getByRole('region', { name: '当前队伍操作' })).toContainText('Blue')
+      // A real stdio MCP save must reach the already focused page through its project watcher.
+      await preview.bringToFront()
+      await preview.evaluate(() => {
+        window.__previewFocusCount = 0
+        window.addEventListener('focus', () => window.__previewFocusCount++)
+      })
+      await saveTeam('orange', { name: 'MCP即刻队伍' })
+      await expect(preview.getByLabel('对方队伍', { exact: true }).locator('option:checked')).toContainText(
+        'MCP即刻队伍',
+      )
+      assert.equal(await preview.evaluate(() => window.__previewFocusCount), 0)
       const errors = []
       preview.on('pageerror', error => errors.push(error.message))
       await preview.getByLabel('精灵名称', { exact: true }).fill('已保存项目精灵')
@@ -80,7 +114,10 @@ test(
       preview = await open()
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
       assert.equal(YAML.parse(await readFile(file, 'utf8')).team[0].name, '已保存项目精灵')
-      await writeFile(file, (await readFile(file, 'utf8')).replace('name: Blue', 'name: Git外部队伍'))
+      await saveTeam('blue', { name: 'Git外部队伍' })
+      // The conflict is visible before Save, without reopening or refocusing the page.
+      await expect(preview.locator('.save-status')).toContainText('项目文件已在外部修改')
+      await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
       await preview.getByRole('button', { name: '保存队伍', exact: true }).click()
       await expect(preview.getByRole('alert').filter({ hasText: '文件已在外部修改' })).toBeVisible()
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
@@ -117,6 +154,20 @@ test(
       await preview.getByRole('button', { name: /真实双包环境.*已准备/ }).click()
       await preview.getByRole('button', { name: '管理环境', exact: true }).click()
       await preview.getByLabel('环境名称', { exact: true }).fill('真实双包环境改名')
+      const { version: environmentVersion, ...environmentDocument } = (await call('environment_list')).items.find(
+        environment => environment.name === '真实双包环境',
+      )
+      await call('environment_save', {
+        document: { ...environmentDocument, name: 'MCP环境变更' },
+        expectedVersion: environmentVersion,
+      })
+      await expect(preview.getByRole('status').filter({ hasText: '环境文件已在外部修改' })).toBeVisible()
+      await expect(preview.getByLabel('环境名称', { exact: true })).toHaveValue('真实双包环境改名')
+      await expect(preview.getByRole('button', { name: '开始对战', exact: true })).toBeDisabled()
+      await preview.getByRole('button', { name: '取消', exact: true }).click()
+      await preview.getByRole('button', { name: '管理环境', exact: true }).click()
+      await expect(preview.getByLabel('环境名称', { exact: true })).toHaveValue('MCP环境变更')
+      await preview.getByLabel('环境名称', { exact: true }).fill('真实双包环境改名')
       await preview.getByRole('button', { name: '保存环境配置', exact: true }).click()
       await expect(preview.getByRole('button', { name: '开始对战', exact: true })).toBeDisabled()
       const updatedEnvironment = app.waitForEvent('window', { timeout: 45000 })
@@ -131,6 +182,15 @@ test(
       )
       assert.equal(players[0].team[0].name, '重启保留的草稿')
       assert.equal(players[1].team[0].name, '重启保留的草稿')
+      await saveTeam(selected, { name: 'MCP战斗中修改' })
+      assert.deepEqual(
+        await preview.evaluate(
+          async () =>
+            (await window.__APP_DEBUG__.pinia._s.get('battle').battleInterface.getState(undefined, true)).players,
+        ),
+        players,
+        'MCP saved-team changes must not replace active battle players',
+      )
       const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
       assert.equal(new Set(ids).size, ids.length)
       assert.equal(await preview.evaluate(() => window.__APP_DEBUG__.pinia._s.has('petStorage')), false)
@@ -161,6 +221,7 @@ test(
       await expect(preview.getByRole('status').filter({ hasText: 'orange' })).toBeVisible()
       await expect(preview.getByRole('button', { name: '复制当前队伍', exact: true })).toBeEnabled()
     } finally {
+      await mcp?.close().catch(() => {})
       if (app) {
         await app.evaluate(({ app }) => app.exit(0)).catch(() => {})
         await app.close().catch(() => {})

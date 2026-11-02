@@ -6,6 +6,11 @@ contextBridge.exposeInMainWorld('arcadiaRemotePlay', {
 
 // Only project-bound team operations; no arbitrary source path or generic author IPC.
 contextBridge.exposeInMainWorld('arcadiaAuthorPreview', {
+  onChanged: listener => {
+    const handler = (_event, change) => listener(change)
+    ipcRenderer.on('author-preview:changed', handler)
+    return () => ipcRenderer.removeListener('author-preview:changed', handler)
+  },
   environment: (action, input) => ipcRenderer.invoke('author-preview:environment', action, input),
   teams: {
     list: () => ipcRenderer.invoke('author-preview:teams', 'list'),

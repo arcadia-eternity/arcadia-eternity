@@ -4,6 +4,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { openAuthorSession } from './author-api.mjs'
 import { diagnostic } from './workspace.mjs'
+import { identifier, version, record, outputSchemas, jobKind, jobState, referenceTopics } from './mcp-contracts.mjs'
+import { TeamDocumentSchema } from './project-teams.mjs'
+import { EnvironmentDocumentSchema } from './debug-environments.mjs'
 
 const [directory, ...flags] = process.argv.slice(2)
 let contextFile
@@ -27,15 +30,25 @@ const session = await openAuthorSession(directory, {
   published: options.has('--published'),
 })
 const server = new McpServer({ name: 'arcadia-content-authoring', version: '0.1.0' })
-const outputSchema = { result: z.unknown() }
 function tool(name, description, inputSchema, operation, transform = input => input, readOnly = false) {
   server.registerTool(
     name,
-    { description, inputSchema, outputSchema, annotations: { readOnlyHint: readOnly } },
+    {
+      description,
+      inputSchema,
+      outputSchema: { result: outputSchemas[operation] },
+      annotations: { readOnlyHint: readOnly, ...(readOnly ? { destructiveHint: false, idempotentHint: true } : {}) },
+    },
     async input => {
       try {
-        const result = await session.call(operation, transform(input))
-        return { content: [{ type: 'text', text: JSON.stringify({ result }) }], structuredContent: { result } }
+        const value = await session.call(operation, transform(input))
+        const { image, ...metadata } = operation === 'asset-inspect' ? value : {}
+        const result = operation === 'asset-inspect' ? metadata : value
+        return {
+          ...(operation === 'save' && !result.complete ? { isError: true } : {}),
+          content: [{ type: 'text', text: JSON.stringify({ result }) }, ...(image ? [image] : [])],
+          structuredContent: { result },
+        }
       } catch (error) {
         return { isError: true, content: [{ type: 'text', text: JSON.stringify({ error: diagnostic(error) }) }] }
       }
@@ -60,10 +73,17 @@ tool(
 )
 tool(
   'content_query',
-  'Search rules, separate presentations/resources, source files, asset usages or diagnostics. Presentation targets use content IDs; media slots use stable resource IDs. Results are paginated.',
+  'Find content by stable ID or localized name. Defaults to concise project summaries; detail:full includes records for editing. Locales paginate individual entries. Dependency/all scope reads declared installed content without executing code; dependencies are read-only and their file paths belong to that dependency, not the bound project. Use file/version/index from full project rows for saves, never a translated name as identity.',
   {
     kind: z.enum(['content', 'presentations', 'resources', 'assets', 'files', 'locales', 'diagnostics']).optional(),
     search: z.string().max(200).optional(),
+    id: z.string().max(200).optional(),
+    contentKind: z.enum(['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources']).optional(),
+    locale: z.string().max(80).optional(),
+    namespace: z.string().max(200).optional(),
+    packageName: z.string().max(200).optional(),
+    scope: z.enum(['project', 'dependencies', 'all']).optional(),
+    detail: z.enum(['summary', 'full']).optional(),
     offset: z.number().int().min(0).optional(),
     limit: z.number().int().min(1).max(100).optional(),
   },
@@ -148,16 +168,194 @@ for (const [name, kind] of [
     input => ({ ...input, kind }),
   )
 }
-tool('job_get', 'Read bounded task output, diagnostics and final state.', { jobId: z.string() }, 'job', undefined, true)
+tool(
+  'job_list',
+  'Discover current and retained project jobs across author sessions. Compact results omit logs. Reading never selects a task or opens a window.',
+  {
+    offset: z.number().int().min(0).optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+    state: jobState.optional(),
+    kind: jobKind.optional(),
+  },
+  'jobs-query',
+  undefined,
+  true,
+)
+tool(
+  'job_get',
+  'Read task status, phase, diagnostics and candidate metadata. Logs are omitted by default. waitMs waits briefly for a change; afterCursor is the previously observed outputCursor. includeOutput returns only a bounded log chunk.',
+  {
+    jobId: z.string(),
+    waitMs: z.number().int().min(0).max(10000).optional(),
+    afterCursor: z.number().int().min(0).optional(),
+    includeOutput: z.boolean().optional(),
+    limit: z.number().int().min(1).max(65536).optional(),
+  },
+  'job-query',
+  undefined,
+  true,
+)
+tool(
+  'job_output',
+  'Read an incremental log chunk using UTF-16 code-unit cursors. Pass nextCursor on the next call. truncated reports a lost log prefix; hasMore means more retained output is available.',
+  {
+    jobId: z.string(),
+    cursor: z.number().int().min(0).optional(),
+    limit: z.number().int().min(1).max(65536).optional(),
+  },
+  'job-output',
+  undefined,
+  true,
+)
 tool(
   'job_cancel',
   'Cancel a task and terminate its child process group; source files are retained.',
   { jobId: z.string() },
-  'cancel',
+  'cancel-query',
 )
+tool(
+  'team_list',
+  'Read saved project test teams and versions. These are not the user’s unsaved team drafts or current battle players.',
+  {},
+  'team-list',
+  undefined,
+  true,
+)
+tool(
+  'environment_list',
+  'Read saved named battle environments and versions. Reading or saving an environment does not select it in the desktop.',
+  {},
+  'environment-list',
+  undefined,
+  true,
+)
+if (!session.workspace.readOnly) {
+  tool(
+    'team_save',
+    'Save a project team against its file version; null creates a new team. Does not overwrite desktop drafts, change selections or replace a running match. Conflicting user drafts remain available for reconciliation.',
+    {
+      document: TeamDocumentSchema,
+      expectedVersion: version.nullable(),
+    },
+    'team-save',
+  )
+  tool(
+    'team_remove',
+    'Delete a saved project team only if its version matches. Existing battles and desktop drafts keep their copied values; automatic tests referencing this team will fail until updated.',
+    {
+      id: identifier,
+      expectedVersion: version,
+    },
+    'team-remove',
+  )
+  tool(
+    'environment_save',
+    'Save a named environment against its version; null creates it. Does not install dependencies or change the user’s selected environment. Prepare a new preview to use the changed configuration.',
+    {
+      document: EnvironmentDocumentSchema,
+      expectedVersion: version.nullable(),
+    },
+    'environment-save',
+  )
+}
+tool(
+  'author_reference',
+  'Read the actual SDK schemas or focused authoring guidance. Schema notes distinguish normalized runtime definitions from source references. Description guidance covers current supported semantics, not future generic reference protocols.',
+  {
+    topic: z.enum(referenceTopics),
+  },
+  'reference',
+  undefined,
+  true,
+)
+tool(
+  'asset_inspect',
+  'Inspect one declared project resource by ID. Local supported images may be returned inline when includeImage is true. HTTP resources return metadata only and are never fetched or cached. Audio/SWF are not executed.',
+  {
+    id: z.string().min(1).max(200),
+    includeImage: z.boolean().optional(),
+  },
+  'asset-inspect',
+  undefined,
+  true,
+)
+
+if (!session.workspace.readOnly && options.has('--execute')) {
+  const battle = (name, description, schema, operation, readOnly = false) =>
+    tool(name, description, { jobId: z.string(), ...schema }, 'battle', input => ({ ...input, operation }), readOnly)
+  const identity = { sessionId: z.string() }
+  const mutation = { ...identity, expectedRevision: z.number().int().min(0) }
+  battle(
+    'battle_create',
+    'Create an isolated automation battle on an existing preview candidate using the latest saved team files and a fixed seed. Team-only edits do not require rebuilding the candidate. Never operates on the human preview battle or unsaved team drafts. At most four automation battles per preview.',
+    {
+      teamIds: z.tuple([identifier, identifier]),
+      seed: z.string().min(1).max(200),
+    },
+    'create',
+  )
+  battle(
+    'battle_read',
+    'Read an automation battle state, revision and available selections. Use returned selections for actions; this does not read or change the human preview battle.',
+    identity,
+    'read',
+    true,
+  )
+  battle(
+    'battle_events',
+    'Read bounded automation battle events after a cursor. Expired cursors are explicit errors; read state again to recover.',
+    {
+      ...identity,
+      afterCursor: z.number().int().min(0).optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+    },
+    'events',
+    true,
+  )
+  battle(
+    'battle_action',
+    'Submit one legal selection to an automation battle at the observed revision. Concurrent/stale actions are rejected. The user’s manual match is unaffected.',
+    {
+      ...mutation,
+      selection: record,
+    },
+    'action',
+  )
+  battle(
+    'battle_reset',
+    'Reset only the named automation battle, checking its revision. Omit teams/seed to reuse its team IDs and seed; reset reads their latest saved files. Never resets the human match.',
+    {
+      ...mutation,
+      teamIds: z.tuple([identifier, identifier]).optional(),
+      seed: z.string().min(1).max(200).optional(),
+    },
+    'reset',
+  )
+  battle(
+    'battle_close',
+    'Release one isolated automation battle after checking its revision. Keeps the preview host and human match running.',
+    mutation,
+    'close',
+  )
+}
 server.registerResource('workspace', 'arcadia://workspace/summary', { mimeType: 'application/json' }, async uri => ({
   contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await session.describe()) }],
 }))
+for (const topic of referenceTopics)
+  server.registerResource(
+    `reference-${topic}`,
+    `arcadia://authoring/${topic}`,
+    { mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(await session.call('reference', { topic })),
+        },
+      ],
+    }),
+  )
 let closing = false
 async function close() {
   if (closing) return

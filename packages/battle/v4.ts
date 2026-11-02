@@ -18,6 +18,10 @@ export {
 
 export * as effectAuthoring from './src/v4/content/authoring'
 export * as effectSdk from './v4-authoring'
+/** Parser contracts after package references have been linked to runtime IDs. */
+export { SpeciesSchema as NativeSpeciesSchema } from './src/v4/content/schema/species'
+export { SkillSchema as NativeSkillSchema } from './src/v4/content/schema/skill'
+export { MarkSchema as NativeMarkSchema } from './src/v4/content/schema/mark'
 export {
   createContentCatalog,
   type ContentPrototypeData,

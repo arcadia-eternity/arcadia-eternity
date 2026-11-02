@@ -8,7 +8,7 @@ import { createContentCatalog } from '@arcadia-eternity/battle/v4'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
 import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import { AuthorWorkspace } from './workspace.mjs'
-import { ProjectTeams } from './project-teams.mjs'
+import { ProjectTeams, playersFromTeams } from './project-teams.mjs'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { DebugEnvironments } from './debug-environments.mjs'
@@ -148,16 +148,7 @@ export async function prepareBattleEnvironment(
     }
     const teamLibrary = await new ProjectTeams(workspace).list()
     function loadTeams(ids) {
-      if (!Array.isArray(ids) || ids.length !== 2) throw new Error('测试必须显式指定两个项目队伍标识')
-      return ids.map((id, side) => {
-        const entry = teamLibrary.find(team => team.id === id)
-        if (!entry) throw new Error(`TEAM_MISSING: ${id}`)
-        return {
-          id: String(side).repeat(21),
-          name: entry.name,
-          team: entry.team.map((pet, index) => ({ ...structuredClone(pet), id: `p${side}${index}`.padEnd(21, '0') })),
-        }
-      })
+      return playersFromTeams(teamLibrary, ids)
     }
     const candidate = {
       packageName: manifest.name,
@@ -184,6 +175,7 @@ export async function prepareBattleEnvironment(
       files,
       dispose,
       track: battle => battles.add(battle),
+      untrack: battle => battles.delete(battle),
     }
   } catch (error) {
     await dispose()

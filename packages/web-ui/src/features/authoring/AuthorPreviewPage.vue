@@ -66,9 +66,49 @@ const environmentDraft = ref<DebugEnvironment>({
   version: null,
 })
 const packageText = ref('')
+let environmentRead = 0
 async function loadEnvironments() {
-  if (window.arcadiaAuthorPreview) environments.value = await window.arcadiaAuthorPreview.environment('list')
+  if (!window.arcadiaAuthorPreview) return
+  const request = ++environmentRead
+  const latest = await window.arcadiaAuthorPreview.environment('list')
+  if (!disposed && request === environmentRead) environments.value = latest
 }
+let refreshPending = false
+let refreshing = false
+let refreshTimer: ReturnType<typeof setTimeout> | undefined
+let stopProjectChanges: (() => void) | undefined
+function refreshProject() {
+  if (disposed || !window.arcadiaAuthorPreview) return
+  refreshPending = true
+  if (refreshTimer || refreshing || busy.value || loading.value) return
+  refreshTimer = setTimeout(() => {
+    refreshTimer = undefined
+    void drainProjectChanges()
+  }, 30)
+}
+async function drainProjectChanges() {
+  if (disposed || busy.value || loading.value || refreshing || !refreshPending) return
+  refreshPending = false
+  refreshing = true
+  try {
+    await Promise.all([loadEnvironments(), library.value?.refresh()])
+  } catch (cause) {
+    if (!disposed) error.value = cause instanceof Error ? cause.message : String(cause)
+  } finally {
+    refreshing = false
+    if (refreshPending) refreshProject()
+  }
+}
+watch([busy, loading], () => {
+  if (refreshPending) refreshProject()
+})
+const environmentConflict = computed(
+  () =>
+    managingEnvironment.value &&
+    (environments.value.find(item => item.id === environmentDraft.value.id)?.version ?? null) !==
+      environmentDraft.value.version,
+)
+
 function editEnvironment(create = false) {
   const current = environments.value.find(item => item.id === environmentId.value)
   environmentDraft.value =
@@ -148,6 +188,7 @@ const environmentName = computed(
 )
 const saveStatus = computed(() => {
   if (!library.value?.files) return '修改自动暂存于此浏览器'
+  if (currentTeam.value?.conflict) return '项目文件已在外部修改，草稿保留；请重新载入或复制为新队伍'
   if (currentTeam.value?.dirty) return currentTeam.value.version ? '有修改未保存到项目' : '新队伍 · 尚未保存到项目'
   return '已保存到项目'
 })
@@ -193,11 +234,16 @@ async function teamAction(action: 'save' | 'remove' | 'reload') {
     busy.value = false
   }
 }
-const renameDraft = ref<{ id: string; name: string }>()
+const renameDraft = ref<{ id: string; name: string; version: string | null }>()
+const renameConflict = computed(() => {
+  if (!renameDraft.value) return false
+  const entry = library.value?.entries.value.find(entry => entry.id === renameDraft.value!.id)
+  return !entry || entry.conflict || entry.version !== renameDraft.value.version
+})
 function renameTeam() {
   const entry = library.value?.current(side.value)
   if (entry) {
-    renameDraft.value = { id: entry.id, name: entry.name }
+    renameDraft.value = { id: entry.id, name: entry.name, version: entry.version }
     moreActions.value = false
     void nextTick(() => {
       renameInput.value?.focus()
@@ -206,7 +252,7 @@ function renameTeam() {
   }
 }
 function saveTeamName() {
-  if (!renameDraft.value || !library.value) return
+  if (!renameDraft.value || !library.value || renameConflict.value) return
   try {
     library.value.rename(renameDraft.value.id, renameDraft.value.name)
     renameDraft.value = undefined
@@ -230,6 +276,13 @@ async function launch(reconfigure = false) {
   busy.value = true
   error.value = ''
   try {
+    if (reconfigure) {
+      await loadEnvironments()
+      await library.value?.refresh()
+      if (disposed) return
+      if (!environmentReady.value) throw new Error('所选环境配置已改变，请重新准备后再开始对战。')
+      if (problems.value.length) throw new Error(problems.value.join('；'))
+    }
     if (reconfigure)
       await configureAuthorPreview(endpoint, players.value, battleOptions(battleConfig.value, timerConfig.value))
     const prepared = await connectAuthorPreview(endpoint, cause => {
@@ -271,6 +324,13 @@ async function launch(reconfigure = false) {
   }
 }
 onMounted(async () => {
+  window.addEventListener('focus', refreshProject)
+  stopProjectChanges = window.arcadiaAuthorPreview?.onChanged?.(change => {
+    // Saved source changes affect the next launch, never the currently running match.
+    if (!change.file || (!change.file.startsWith('debug/teams/') && !change.file.startsWith('debug/environments/')))
+      sourceMappingChanged.value = true
+    refreshProject()
+  })
   try {
     if (!window.arcadiaAuthorPreview) await data.whenReady()
     // Refreshing a running battle reconnects directly; opening a debug window starts at setup.
@@ -311,6 +371,9 @@ onMounted(async () => {
 })
 onBeforeUnmount(() => {
   disposed = true
+  window.removeEventListener('focus', refreshProject)
+  stopProjectChanges?.()
+  if (refreshTimer) clearTimeout(refreshTimer)
   stopPlayers?.()
   library.value?.dispose()
   restoreSetup?.()
@@ -399,6 +462,9 @@ onBeforeUnmount(() => {
           }}
         </p>
         <form v-if="managingEnvironment" class="environment-form" @submit.prevent="saveEnvironment">
+          <p v-if="environmentConflict" class="notice warning" role="status">
+            环境文件已在外部修改，当前输入保留。请取消后重新打开环境，核对最新配置。
+          </p>
           <label>环境名称<input v-model="environmentDraft.name" required maxlength="80" :disabled="busy" /></label>
           <label
             >额外 npm 包<textarea v-model="packageText" rows="3" placeholder="每行填写：包名=版本" :disabled="busy" />
@@ -504,8 +570,11 @@ onBeforeUnmount(() => {
         <label
           >队伍名称<input ref="renameInput" v-model="renameDraft.name" required maxlength="80" :disabled="busy"
         /></label>
-        <button type="submit" class="save-button" :disabled="busy">确认名称</button>
+        <button type="submit" class="save-button" :disabled="busy || renameConflict">确认名称</button>
         <button type="button" @click="renameDraft = undefined">取消</button>
+        <p v-if="renameConflict" role="status" class="notice warning">
+          队伍文件已在外部修改，输入的名称已保留。请取消后重新打开重命名，核对最新队伍。
+        </p>
       </form>
       <p v-if="!library?.files" class="browser-note">浏览器草稿仅保存在本机。要写入项目，请使用本地客户端。</p>
     </div>

@@ -9,6 +9,7 @@ import chokidar from 'chokidar'
 import writeFileAtomic from 'write-file-atomic'
 import { resourceReferences, bindingPresentation, validResourceId, validAssetPath } from './lib/presentation.mjs'
 import { yamlSharing, recordSharing, changedSharedField, sharingSignature } from './lib/yaml-sharing.mjs'
+import { withSourceLock } from './source-lock.mjs'
 
 const ignored = new Set(['node_modules', 'dist', '.git', '.arcadia', '.DS_Store', 'Thumbs.db'])
 const kinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources']
@@ -466,7 +467,9 @@ export class AuthorWorkspace extends EventEmitter {
     return { file, bytes, version: hash(bytes) }
   }
   async #serialize(file, action) {
-    const pending = (this.#queues.get(file) ?? Promise.resolve()).catch(() => {}).then(action)
+    const pending = (this.#queues.get(file) ?? Promise.resolve())
+      .catch(() => {})
+      .then(() => withSourceLock(this.root, file, action))
     this.#queues.set(file, pending)
     try {
       return await pending
@@ -492,6 +495,7 @@ export class AuthorWorkspace extends EventEmitter {
     await this.assertWritable()
     if (typeof text !== 'string' || Buffer.byteLength(text) > textLimit)
       fail('SOURCE_TOO_LARGE', '源文本超过大小限制', file)
+    await this.path(file, { create: true })
     return this.#serialize(file, async () => {
       const path = await this.path(file, { create: true })
       await this.#check(file, expectedVersion, fromForm)
@@ -505,9 +509,11 @@ export class AuthorWorkspace extends EventEmitter {
     })
   }
   async remove({ file, expectedVersion }) {
+    await this.assertWritable()
+    await this.path(file, { create: true })
     return this.#serialize(file, async () => {
-      const path = await this.path(file)
       await this.#check(file, expectedVersion, false)
+      const path = await this.path(file)
       await unlink(path)
       this.emit('change', { type: 'unlink', file })
     })

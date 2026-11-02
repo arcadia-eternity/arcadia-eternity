@@ -97,7 +97,7 @@ test('MCP uses the same file versions and diagnostics, and execution is opt-in',
   })
   assert.equal(stale.isError, true)
   assert.match(stale.content[0].text, /REVISION_CONFLICT/)
-  const query = await client.callTool({ name: 'content_query', arguments: { search: 'hit' } })
+  const query = await client.callTool({ name: 'content_query', arguments: { search: 'hit', detail: 'full' } })
   assert.equal(query.structuredContent.result.items[0].record.power, 70)
   const created = await client.callTool({
     name: 'content_apply',

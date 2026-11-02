@@ -1,6 +1,7 @@
 import YAML from 'yaml'
 import { PetSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { WorkspaceError } from './workspace.mjs'
+import { z } from 'zod'
 
 const validId = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const petKeys = Object.keys(PetSchema.properties).filter(key => key !== 'id')
@@ -8,28 +9,59 @@ const invalid = message => {
   throw new WorkspaceError('TEAM_INVALID', message)
 }
 
+/** Team envelope and portable pet fields are shared with author reference discovery. */
+export const teamEnvelopeSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    id: z.string().regex(validId),
+    name: z
+      .string()
+      .min(1)
+      .max(80)
+      .refine(value => !!value.trim())
+      .transform(value => value.trim()),
+    team: z.array(z.unknown()).max(6),
+  })
+  .strict()
+export const portablePetSchema = {
+  ...PetSchema,
+  properties: Object.fromEntries(petKeys.map(key => [key, PetSchema.properties[key]])),
+  required: PetSchema.required.filter(key => key !== 'id'),
+  additionalProperties: false,
+}
+const portablePetInputSchema = z.record(z.unknown()).transform((value, context) => {
+  try {
+    if (Object.keys(value).some(key => !petKeys.includes(key))) throw new Error('精灵配置包含运行时编号或未知字段')
+    const parsed = parseWithErrors(PetSchema, { ...value, id: '0'.repeat(21) })
+    return Object.fromEntries(petKeys.filter(key => parsed[key] !== undefined).map(key => [key, parsed[key]]))
+  } catch (error) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: error.message })
+    return z.NEVER
+  }
+})
+export const TeamDocumentSchema = teamEnvelopeSchema.extend({ team: z.array(portablePetInputSchema).max(6) })
+
 /** Portable team documents contain configurations, never battle or editor identities. */
 export function teamDocument(value) {
-  if (
-    !value ||
-    value.schemaVersion !== 1 ||
-    !validId.test(value.id) ||
-    typeof value.name !== 'string' ||
-    !value.name.trim() ||
-    value.name.length > 80 ||
-    !Array.isArray(value.team) ||
-    value.team.length > 6
-  )
-    invalid('测试队伍需要稳定标识、名称及最多六只精灵')
-  if (Object.keys(value).some(key => !['schemaVersion', 'id', 'name', 'team'].includes(key)))
-    invalid('测试队伍包含未知字段')
-  const team = value.team.map(pet => {
-    if (!pet || Object.keys(pet).some(key => !petKeys.includes(key))) invalid('精灵配置包含运行时编号或未知字段')
-    const parsed = parseWithErrors(PetSchema, { ...pet, id: '0'.repeat(21) })
-    return Object.fromEntries(petKeys.filter(key => parsed[key] !== undefined).map(key => [key, parsed[key]]))
-  })
-  return { schemaVersion: 1, id: value.id, name: value.name.trim(), team }
+  const parsed = TeamDocumentSchema.safeParse(value)
+  if (!parsed.success) invalid(`测试队伍配置无效：${parsed.error.issues[0].message}`)
+  return parsed.data
 }
+
+/** Copy saved team documents into independent players with deterministic, battle-local identities. */
+export function playersFromTeams(teamLibrary, ids) {
+  if (!Array.isArray(ids) || ids.length !== 2) throw new Error('测试必须显式指定两个项目队伍标识')
+  return ids.map((id, side) => {
+    const entry = teamLibrary.find(team => team.id === id)
+    if (!entry) throw new Error(`TEAM_MISSING: ${id}`)
+    return {
+      id: String(side).repeat(21),
+      name: entry.name,
+      team: entry.team.map((pet, index) => ({ ...structuredClone(pet), id: `p${side}${index}`.padEnd(21, '0') })),
+    }
+  })
+}
+
 export class ProjectTeams {
   constructor(workspace) {
     this.workspace = workspace

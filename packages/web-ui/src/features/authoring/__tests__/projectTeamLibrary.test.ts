@@ -127,3 +127,42 @@ it('renames a captured team identity even if the selected side changes before co
   expect(library.entries.value.find(entry => entry.id === id)?.name).toBe('Renamed team')
   expect(library.current(0).name).toBe(defaults[1]!.name)
 })
+
+it('refreshes clean files while retaining dirty drafts, selected identities and trainer names', async () => {
+  const { bridge } = fixture()
+  const library = await createProjectTeamLibrary(bridge, defaults)
+  await library.files!.save(0)
+  await library.files!.save(1)
+  const selected = [...library.selected.value]
+  library.names.value[0] = 'My trainer'
+  library.rename(selected[0]!, 'Unsaved user draft')
+  const files = await bridge.list()
+  await bridge.files!.save({ document: { ...files[0]!, name: 'AI edit' }, expectedVersion: files[0]!.version })
+  await bridge.files!.save({ document: { ...files[1]!, name: 'AI clean edit' }, expectedVersion: files[1]!.version })
+  await bridge.files!.save({
+    document: { schemaVersion: 1, id: 'new-ai-team', name: 'New AI team', team: [] },
+    expectedVersion: null,
+  })
+  await library.refresh()
+  expect(library.current(0).name).toBe('Unsaved user draft')
+  expect(library.current(1).name).toBe('AI clean edit')
+  expect(library.current(1).dirty).toBe(false)
+  expect(library.selected.value).toEqual(selected)
+  expect(library.names.value[0]).toBe('My trainer')
+  expect(library.entries.value.some(entry => entry.id === 'new-ai-team')).toBe(true)
+  await expect(library.files!.save(0)).rejects.toThrow('REVISION_CONFLICT')
+  library.dispose()
+})
+
+it('keeps a selected externally deleted team recoverable without selecting a replacement', async () => {
+  const { bridge } = fixture()
+  const library = await createProjectTeamLibrary(bridge, defaults)
+  await library.files!.save(0)
+  const entry = library.current(0)
+  await bridge.files!.remove({ id: entry.id, expectedVersion: entry.version! })
+  await library.refresh()
+  expect(library.current(0).id).toBe(entry.id)
+  expect(library.current(0).dirty).toBe(true)
+  await expect(library.files!.save(0)).rejects.toThrow('REVISION_CONFLICT')
+  library.dispose()
+})

@@ -188,11 +188,44 @@ test(
     assert.equal(checked.state, 'succeeded')
     const tested = await wait(await call('test_start'))
     assert.equal(tested.state, 'succeeded', tested.output)
-    assert.match(tested.output, /# pass 4/)
+    assert.match((await call('job_output', { jobId: tested.jobId })).text, /# pass 4/)
     const preview = await wait(await call('preview_start'))
     assert.equal(preview.state, 'succeeded', preview.output)
     assert.equal(preview.sourceRevision, tested.sourceRevision)
     assert.equal(preview.result.candidate.integrity, tested.result.candidate.integrity)
+    const originalTeam = (await call('team_list')).items.find(team => team.id === 'blue')
+    const savedTeam = await call('team_save', {
+      document: { schemaVersion: 1, id: 'mcp-new', name: 'MCP new team', team: originalTeam.team },
+      expectedVersion: null,
+    })
+    const automation = await call('battle_create', {
+      jobId: preview.jobId,
+      teamIds: ['mcp-new', 'orange'],
+      seed: 'mcp-check',
+    })
+    assert.equal(automation.teamVersions['mcp-new'], savedTeam.version)
+    assert.equal(automation.state.players[0].name, 'MCP new team')
+    assert.equal((await call('job_get', { jobId: preview.jobId })).stale, false)
+    const advanced = await call('battle_action', {
+      jobId: preview.jobId,
+      sessionId: automation.sessionId,
+      expectedRevision: automation.revision,
+      selection: automation.selections[0],
+    })
+    assert.equal(advanced.revision, automation.revision + 1)
+    const events = await call('battle_events', {
+      jobId: preview.jobId,
+      sessionId: automation.sessionId,
+      afterCursor: 0,
+      limit: 2,
+    })
+    assert.ok(events.events.length > 0)
+    const stopped = await call('battle_close', {
+      jobId: preview.jobId,
+      sessionId: automation.sessionId,
+      expectedRevision: advanced.revision,
+    })
+    assert.equal(stopped.closed, true)
     const journal = new JobJournal(root)
     for (let i = 0; i < 31; i++)
       await journal.save({ ...checked, jobId: randomUUID(), createdAt: Date.now() + i }, false)

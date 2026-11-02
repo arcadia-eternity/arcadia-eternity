@@ -231,6 +231,7 @@ declare global {
   interface Window {
     arcadiaDesktop?: ArcadiaDesktopApi
     arcadiaAuthorPreview?: {
+      onChanged?(listener: (change: { type: string; file?: string }) => void): () => void
       environment: import('@/features/authoring/debugEnvironment').DebugEnvironmentBridge
       teams: import('@/components/team/library').ProjectTeamStorage
       returnToEditor(): void
