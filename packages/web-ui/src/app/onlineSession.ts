@@ -1,4 +1,5 @@
 interface OnlineRoomSession {
+  allowConnect?: () => boolean
   isConnected: () => boolean
   isOnlineRoute: () => boolean
   connect: () => Promise<void>
@@ -7,7 +8,11 @@ interface OnlineRoomSession {
 }
 
 export async function connectAndResumeOnlineRoom(session: OnlineRoomSession): Promise<void> {
-  if (!session.isConnected()) await session.connect()
+  if (!session.isOnlineRoute()) return
+  if (!session.isConnected()) {
+    if (session.allowConnect?.() === false) return
+    await session.connect()
+  }
   // Slow connection or room requests must not replace a local battle opened
   // while waiting. Returning to an online page still checks an existing socket.
   if (!session.isOnlineRoute()) return

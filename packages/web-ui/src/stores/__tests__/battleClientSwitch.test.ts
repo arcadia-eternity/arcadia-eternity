@@ -161,3 +161,23 @@ it('does not connect a replacement socket after a former session request resolve
   await expect(first).rejects.toThrow('连接已取消')
   expect(mocks.instances[1].currentState.status).toBe('disconnected')
 })
+
+it('shares an in-flight connection across manual and automatic requests', async () => {
+  const store = useBattleClientStore()
+  store.initialize()
+  let finish!: () => void
+  mocks.auth.ensureSession.mockImplementation(
+    () =>
+      new Promise<void>(resolve => {
+        finish = resolve
+      }),
+  )
+  const first = store.connect()
+  const second = store.connect()
+  expect(store.isConnecting).toBe(true)
+  await vi.waitFor(() => expect(finish).toBeDefined())
+  finish()
+  await Promise.all([first, second])
+  expect(mocks.auth.ensureSession).toHaveBeenCalledTimes(1)
+  expect(store.isConnecting).toBe(false)
+})

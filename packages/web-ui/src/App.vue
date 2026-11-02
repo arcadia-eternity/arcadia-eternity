@@ -413,6 +413,7 @@ import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import { useConnectionSettingsStore } from '@/stores/connectionSettings'
 import { autoCheckForUpdates } from '@/utils/version'
 import { createAppBootstrap } from '@/app/bootstrap'
 import { connectAndResumeOnlineRoom } from '@/app/onlineSession'
@@ -577,6 +578,7 @@ const handleServerSessionInvalidated = (event: Event) => {
   if (router.currentRoute.value.path.startsWith('/room/') || wasOnlineBattle) void router.replace('/')
 }
 
+const connectionSettings = useConnectionSettingsStore()
 const localInitializationComplete = ref(false)
 const needsOnlineConnection = computed(() => {
   const route = router.currentRoute.value
@@ -590,6 +592,7 @@ let onlineConnection: Promise<void> | null = null
 async function connectOnlineRoute() {
   if (!localInitializationComplete.value || !needsOnlineConnection.value || onlineConnection) return
   onlineConnection = connectAndResumeOnlineRoom({
+    allowConnect: () => connectionSettings.shouldAutoConnect,
     isConnected: () => battleClientStore.isConnected,
     isOnlineRoute: () => needsOnlineConnection.value,
     connect: () => battleClientStore.connect(),
@@ -605,7 +608,17 @@ async function connectOnlineRoute() {
   }
 }
 
-watch([localInitializationComplete, needsOnlineConnection], () => void connectOnlineRoute())
+watch(
+  [localInitializationComplete, needsOnlineConnection, () => connectionSettings.shouldAutoConnect],
+  () => void connectOnlineRoute(),
+)
+// Manual connections also restore the room, even when automatic connection is disabled.
+watch(
+  () => battleClientStore.isConnected,
+  connected => {
+    if (connected) void connectOnlineRoute()
+  },
+)
 
 // Local data and identity are ready independently of the optional room server.
 onMounted(async () => {

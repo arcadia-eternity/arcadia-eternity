@@ -9,33 +9,13 @@
       <p class="text-sm text-gray-600 mt-1">
         当前地址：<span data-testid="current-server-address">{{ battleClientStore.serverUrl }}</span>
       </p>
-      <div v-if="canSelectBackend()" class="flex flex-col sm:flex-row gap-2 mt-3">
-        <el-input
-          v-model="serverAddress"
-          :disabled="switchingServer"
-          placeholder="例如 http://localhost:8102"
-          aria-label="服务器地址"
-          data-testid="server-address-input"
-          @keyup.enter="connectServer"
-        />
-        <el-button
-          type="primary"
-          :disabled="switchingServer || !serverAddress.trim()"
-          :loading="switchingServer"
-          data-testid="connect-server-button"
-          @click="connectServer"
-          >打开联机窗口</el-button
-        >
-        <el-button
-          v-if="canStartLocalServer"
-          :disabled="switchingServer"
-          data-testid="start-local-server-button"
-          @click="startLocalServer"
+      <div v-if="canSelectBackend() && canStartLocalServer" class="flex flex-col sm:flex-row gap-2 mt-3">
+        <el-button :disabled="switchingServer" data-testid="start-local-server-button" @click="startLocalServer"
           >由本机托管联机对战</el-button
         >
       </div>
-      <p v-if="canSelectBackend()" class="text-xs text-gray-500 mt-2">
-        远程服务器在独立联机窗口中打开。本机托管会离开当前房间；正在进行的对局也会终止。
+      <p v-if="canSelectBackend() && canStartLocalServer" class="text-xs text-gray-500 mt-2">
+        本机托管会离开当前房间；正在进行的对局也会终止。
       </p>
       <p v-if="serverSwitchError" role="alert" class="text-sm text-red-700 mt-2">{{ serverSwitchError }}</p>
     </section>
@@ -242,7 +222,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
@@ -267,17 +247,10 @@ const joinRoomCode = ref('')
 const joinRoomPassword = ref('')
 const battleOptions = ref(createDefaultRoomBattleOptions())
 const roomConfig = ref({ password: '', p2pTransport: 'auto' as 'auto' | 'webrtc' | 'relay' })
-const serverAddress = ref(battleClientStore.serverUrl)
 const serverSwitchError = ref('')
 const serverSwitchPending = ref(false)
 const switchingServer = computed(() => serverSwitchPending.value || privateRoomStore.isSwitchingServer)
 const canStartLocalServer = !!window.arcadiaDesktop?.selectAndStartLocalBattle
-watch(
-  () => battleClientStore.serverUrl,
-  address => {
-    serverAddress.value = address
-  },
-)
 
 async function confirmServerSwitch(): Promise<boolean> {
   const room = privateRoomStore.currentRoom
@@ -295,21 +268,6 @@ async function confirmServerSwitch(): Promise<boolean> {
     return true
   } catch {
     return false
-  }
-}
-
-async function connectServer() {
-  const address = serverAddress.value.trim()
-  if (!address || switchingServer.value) return
-  serverSwitchPending.value = true
-  serverSwitchError.value = ''
-  try {
-    if (!window.arcadiaDesktop?.openRemotePlay) throw new Error('当前桌面版本不支持远程联机窗口')
-    await window.arcadiaDesktop.openRemotePlay({ url: address })
-  } catch (error) {
-    serverSwitchError.value = error instanceof Error ? error.message : String(error)
-  } finally {
-    serverSwitchPending.value = false
   }
 }
 

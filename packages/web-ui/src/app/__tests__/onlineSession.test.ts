@@ -57,3 +57,31 @@ describe('online room recovery across local navigation', () => {
     expect(session.resumeActiveBattle).not.toHaveBeenCalled()
   })
 })
+
+it('does not connect or look up rooms when automatic connection is disabled', async () => {
+  const session = {
+    allowConnect: () => false,
+    isConnected: () => false,
+    isOnlineRoute: () => true,
+    connect: vi.fn(async () => {}),
+    checkCurrentRoom: vi.fn(async () => null),
+    resumeActiveBattle: vi.fn(async () => {}),
+  }
+  await connectAndResumeOnlineRoom(session)
+  expect(session.connect).not.toHaveBeenCalled()
+  expect(session.checkCurrentRoom).not.toHaveBeenCalled()
+})
+
+it('recovers a manually connected room with automatic connection disabled', async () => {
+  const session = {
+    allowConnect: () => false,
+    isConnected: () => true,
+    isOnlineRoute: () => true,
+    connect: vi.fn(async () => {}),
+    checkCurrentRoom: vi.fn(async () => ({ roomCode: 'manual' })),
+    resumeActiveBattle: vi.fn(async () => {}),
+  }
+  await connectAndResumeOnlineRoom(session)
+  expect(session.connect).not.toHaveBeenCalled()
+  expect(session.resumeActiveBattle).toHaveBeenCalledOnce()
+})

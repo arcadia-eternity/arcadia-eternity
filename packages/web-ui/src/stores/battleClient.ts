@@ -199,7 +199,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     registerPendingHandlers()
   }
 
-  const connect = async () => {
+  const performConnect = async () => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
@@ -229,7 +229,32 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     assertCurrent()
   }
 
+  const connectionError = ref('')
+  const isConnecting = ref(false)
+  let connectionTask: Promise<void> | null = null
+  const connect = (): Promise<void> => {
+    if (connectionTask) return connectionTask
+    isConnecting.value = true
+    connectionError.value = ''
+    const task = performConnect()
+      .catch(error => {
+        if (connectionTask === task) connectionError.value = error instanceof Error ? error.message : '连接失败，请重试'
+        throw error
+      })
+      .finally(() => {
+        if (connectionTask === task) {
+          connectionTask = null
+          isConnecting.value = false
+        }
+      })
+    connectionTask = task
+    return task
+  }
+
   const disconnect = () => {
+    connectionTask = null
+    isConnecting.value = false
+    connectionError.value = ''
     connectionGeneration++
     for (const controller of warmupControllers) controller.abort()
     warmupControllers.clear()
@@ -541,6 +566,8 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     replaceServer,
     resetState,
     markInitComplete,
+    isConnecting,
+    connectionError,
     joinMatchmaking,
     cancelMatchmaking,
     sendplayerSelection,
