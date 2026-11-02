@@ -166,6 +166,23 @@ for (const blockedAccess of ['methods', 'object'] as const) {
   })
 }
 
+test('team selection ignores pending roster hover events and keeps the starter selectable', async ({ page }) => {
+  await page.goto(localPage)
+  await configureSinglePetBattle(page)
+  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+  const team = page.getByRole('heading', { name: '完整队伍', exact: true }).locator('..')
+  await expect(team).toBeVisible()
+  const rosterPet = page.locator('.battle-roster--left').getByRole('button', { name: '休罗斯', exact: true })
+  // Model an enter event queued while the loading/team overlay was taking control.
+  await rosterPet.locator('..').dispatchEvent('mouseenter')
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+  await team.getByText('休罗斯', { exact: true }).click()
+  await page.getByRole('button', { name: '确认', exact: true }).click()
+  await expect(page.getByTestId('battle-command-dock')).toBeVisible()
+  await rosterPet.hover()
+  await expect(page.getByRole('tooltip').first()).toContainText('休罗斯')
+})
+
 test('a missing bundled runtime shows a recoverable startup error without using a remote fallback', async ({
   page,
   context,

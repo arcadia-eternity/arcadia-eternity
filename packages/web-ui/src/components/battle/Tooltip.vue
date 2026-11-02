@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick, useTemplateRef } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, useTemplateRef, inject } from 'vue'
 import { Z_INDEX } from '@/constants/zIndex'
+import { battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
 
 interface Props {
   portal?: boolean
@@ -20,11 +21,15 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{ 'update:show': [value: boolean] }>()
+const tooltipsDisabled = inject(battleTooltipsDisabledKey, ref(false))
 function dismiss() {
   showTooltip.value = false
   emit('update:show', false)
 }
-const showTooltip = ref(props.show || false)
+function disableLeavingTooltip(element: Element) {
+  element.setAttribute('inert', '')
+}
+const showTooltip = ref(!!props.show && !tooltipsDisabled.value)
 const tooltipRef = useTemplateRef('tooltipRef')
 const triggerRef = useTemplateRef('triggerRef')
 const portalPoint = ref({ x: 0, y: 0 })
@@ -123,6 +128,7 @@ const arrowClasses = computed(() => {
 let closeTimer: ReturnType<typeof setTimeout> | undefined
 function toggleTooltip(show: boolean) {
   clearTimeout(closeTimer)
+  if (tooltipsDisabled.value) return
   if (props.trigger !== 'hover') return
   if (!show && props.interactive) {
     closeTimer = setTimeout(() => {
@@ -139,8 +145,8 @@ watch(
   () => props.show,
   newShow => {
     if (newShow !== undefined) {
-      showTooltip.value = newShow
-      if (newShow) {
+      showTooltip.value = newShow && !tooltipsDisabled.value
+      if (showTooltip.value) {
         nextTick(() => {
           adjustTooltipPosition()
         })
@@ -148,6 +154,14 @@ watch(
     }
   },
 )
+
+// Portaled details must close when an overlay takes control of the battle.
+watch(tooltipsDisabled, disabled => {
+  if (disabled) {
+    clearTimeout(closeTimer)
+    dismiss()
+  }
+})
 
 // 监听窗口大小变化，重新调整位置
 let resizeObserver: ResizeObserver | null = null
@@ -186,9 +200,9 @@ onUnmounted(() => {
 
     <!-- 直接使用CSS定位的tooltip -->
     <Teleport to="body" :disabled="!portal">
-      <transition name="fade">
+      <transition name="fade" @before-leave="disableLeavingTooltip">
         <div
-          v-if="showTooltip"
+          v-if="showTooltip && !tooltipsDisabled"
           ref="tooltipRef"
           :class="tooltipClasses"
           :style="tooltipStyle"
@@ -244,5 +258,9 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.fade-leave-active {
+  pointer-events: none;
 }
 </style>

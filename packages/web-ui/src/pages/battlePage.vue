@@ -37,6 +37,7 @@ import { useResourceStore } from '@/stores/resource'
 import { resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { logMessagesKey } from '@/symbol/battlelog'
+import { battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
 import {
   BattleMessageType,
   BattleStatus as BattleStatusEnum,
@@ -909,6 +910,13 @@ const {
 } = preparation
 const isReplayFullyLoaded = ref(false)
 const resourceAttempt = ref(0)
+
+provide(
+  battleTooltipsDisabledKey,
+  computed(
+    () => !isFullyLoaded.value || (showTeamSelectionPanel.value && !isSpectatorMode.value) || showCustomConfirm.value,
+  ),
+)
 
 async function loadReplayData() {
   if (!props.localReportId) throw new Error('缺少本地战报 ID')

@@ -1,7 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
 import Tooltip from '../Tooltip.vue'
+import { battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
 
 vi.stubGlobal(
   'ResizeObserver',
@@ -16,6 +17,57 @@ afterEach(() => {
 })
 
 describe('battle detail portal', () => {
+  it('makes a fading detail inert as soon as an overlay closes it', async () => {
+    const disabled = ref(false)
+    const wrapper = mount(Tooltip, {
+      attachTo: document.body,
+      props: { portal: true, show: true, interactive: true },
+      global: { provide: { [battleTooltipsDisabledKey as symbol]: disabled }, stubs: { transition: false } },
+      slots: { trigger: '<button>精灵</button>', default: '精灵详情' },
+    })
+    try {
+      const detail = document.body.querySelector('[role="tooltip"]')!
+      disabled.value = true
+      await nextTick()
+      expect(document.body.contains(detail)).toBe(true)
+      expect(detail.hasAttribute('inert')).toBe(true)
+      expect(detail.classList.contains('fade-leave-active')).toBe(true)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('closes existing portal details and suppresses new ones while a battle overlay is active', async () => {
+    const disabled = ref(false)
+    const wrapper = mount(Tooltip, {
+      attachTo: document.body,
+      props: { portal: true, interactive: true },
+      global: { provide: { [battleTooltipsDisabledKey as symbol]: disabled } },
+      slots: { trigger: '<button>精灵</button>', default: '精灵详情' },
+    })
+    try {
+      await wrapper.get('.relative.inline-block').trigger('mouseenter')
+      expect(document.body.querySelector('[role="tooltip"]')).not.toBeNull()
+
+      disabled.value = true
+      await nextTick()
+      expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
+      expect(wrapper.emitted('update:show')).toEqual([[false]])
+
+      await wrapper.get('.relative.inline-block').trigger('mouseenter')
+      await wrapper.setProps({ show: true })
+      expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
+
+      disabled.value = false
+      await nextTick()
+      expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
+      await wrapper.get('.relative.inline-block').trigger('mouseenter')
+      expect(document.body.querySelector('[role="tooltip"]')).not.toBeNull()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('renders outside a scrolling card strip and keeps details within the viewport', async () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       return {
