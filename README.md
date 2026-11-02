@@ -52,3 +52,7 @@ pnpm web:dev
 ## 开发文档
 
 从[文档导航](docs/README.md)或[V4 指南](docs/v4/direct-v1-port.md)开始。内容包作者见[创建并测试 TypeScript 内容包](docs/v4/ugc-authoring-start.md)。
+
+## 许可证
+
+本仓库采用 [MIT 许可证](LICENSE)。第三方依赖和外部游戏资源遵循各自的许可与版权声明。

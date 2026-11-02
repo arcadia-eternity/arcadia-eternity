@@ -52,7 +52,7 @@ npm install --save-exact @arcadia-eternity/data-pack-base@4.0.0-preview.1
 - `@arcadia-eternity/content-dev`
 - `@arcadia-eternity/data-pack-base`
 
-`content-dev` 包含 CLI、MCP、测试工具、工作区接口与创作模板。`battle` 另带构建身份和浏览器运行时实际打入的第三方许可证。包清单原有的 MIT 许可在各包 `LICENSE` 中提供；根仓库的 MPL-2.0 不作为这些包的 MIT 文本。基础数据包包含官方规则数据、多语言、表现清单和原生效果；外部资源保持 URL，不预下载。基础包的旧开发 `pack-lock.yaml` 含本机路径，不进入 npm 包；安装版本由使用者的 npm lockfile 固定。客户端和服务器不在本次发布范围。
+`content-dev` 包含 CLI、MCP、测试工具、工作区接口与创作模板。`battle` 另带构建身份和浏览器运行时实际打入的第三方许可证。仓库与各自有包统一采用 MIT 许可证，完整文本和版权署名见根目录及各包的 `LICENSE`。基础数据包包含官方规则数据、多语言、表现清单和原生效果；外部资源保持 URL，不预下载。基础包的旧开发 `pack-lock.yaml` 含本机路径，不进入 npm 包；安装版本由使用者的 npm lockfile 固定。客户端和服务器不在本次发布范围。
 
 ## 发布流程
 

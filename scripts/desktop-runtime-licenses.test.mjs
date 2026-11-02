@@ -23,11 +23,7 @@ async function fixture() {
   const repositoryLicense = join(root, 'project-license')
   const electronLicense = join(root, 'electron-license')
   const electronNotices = join(root, 'electron-notices')
-  await writeFile(
-    repositoryLicense,
-    'Mozilla Public License Version 2.0\n2.1. Grants\nDisclaimer of Warranty\n10. Versions of the License\n' +
-      'project license text\n'.repeat(700),
-  )
+  await writeFile(repositoryLicense, await readFile(new URL('../LICENSE', import.meta.url)))
   await writeFile(electronLicense, 'Electron MIT license\n' + 'license text\n'.repeat(10))
   await writeFile(electronNotices, 'Chromium third-party notices\n' + 'notice text\n'.repeat(10))
   async function pkg(path, name, license, files = {}, extra = {}) {
@@ -73,12 +69,12 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
     await f.pkg('node_modules/.pnpm/combined/node_modules/combined', 'combined', 'MIT AND Apache-2.0', {
       LICENSE: mit,
     })
-    await f.pkg('node_modules/@arcadia-eternity/mismatch', '@arcadia-eternity/mismatch', 'MIT')
-    await f.pkg('node_modules/@arcadia-eternity/mpl-mismatch', '@arcadia-eternity/mpl-mismatch', 'MIT', {
-      LICENSE: await readFile(f.options.repositoryLicense),
+    await f.pkg('node_modules/@arcadia-eternity/mismatch', '@arcadia-eternity/mismatch', 'BSD-2-Clause')
+    await f.pkg('node_modules/@arcadia-eternity/bsd-mismatch', '@arcadia-eternity/bsd-mismatch', 'MIT', {
+      LICENSE: bsd,
     })
     await f.pkg('node_modules/@arcadia-eternity/base', '@arcadia-eternity/base', undefined)
-    await f.pkg('node_modules/@arcadia-eternity/mpl', '@arcadia-eternity/mpl', 'MPL-2.0')
+    await f.pkg('node_modules/@arcadia-eternity/mit', '@arcadia-eternity/mit', 'MIT')
     await f.pkg('node_modules/.pnpm/mismatch/node_modules/mismatch', 'mismatch', 'MIT', { LICENSE: bsd })
     await f.pkg('runtime/npm', 'npm', 'Artistic-2.0', {
       LICENSE:
@@ -91,8 +87,8 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
       result.missing.map(record => record.name),
       [
         '@arcadia-eternity/base',
+        '@arcadia-eternity/bsd-mismatch',
         '@arcadia-eternity/mismatch',
-        '@arcadia-eternity/mpl-mismatch',
         'combined',
         'd',
         'e',
@@ -115,7 +111,7 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
       'https://example.test/owner/project.git',
     )
     assert.equal(
-      result.packages.find(record => record.name === '@arcadia-eternity/mpl').files[0].source,
+      result.packages.find(record => record.name === '@arcadia-eternity/mit').files[0].source,
       'repository:LICENSE',
     )
     assert.equal(
@@ -123,7 +119,7 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
       'unmatched-or-unsupported-declaration',
     )
     assert.equal(
-      result.missing.find(record => record.name === '@arcadia-eternity/mpl-mismatch').reason,
+      result.missing.find(record => record.name === '@arcadia-eternity/bsd-mismatch').reason,
       'unmatched-or-unsupported-declaration',
     )
   } finally {

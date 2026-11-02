@@ -258,7 +258,7 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
 
   const project = await preserve(resolve(repositoryLicense), 'repository:LICENSE')
   const projectText = (await regularFile(resolve(repositoryLicense))).toString('utf8')
-  const projectLicense = recognizedLicenseTexts(projectText).includes('MPL-2.0') ? 'MPL-2.0' : null
+  const projectLicense = recognizedLicenseTexts(projectText).includes('MIT') ? 'MIT' : null
   const electron = [
     await preserve(resolve(electronLicense), 'electron:LICENSE'),
     await preserve(resolve(electronNotices), 'electron:LICENSES.chromium.html'),
@@ -308,7 +308,7 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
       })
       if (isLicense || README_NAME.test(entry.name)) for (const license of recognized) evidence.add(license)
     }
-    // The repository MPL text applies only when it does not contradict an explicit package declaration.
+    // The repository MIT text applies only when it does not contradict an explicit package declaration.
     if (!evidence.size && origin === 'workspace' && projectLicense && declared === projectLicense) {
       files.push(project)
       evidence.add(projectLicense)

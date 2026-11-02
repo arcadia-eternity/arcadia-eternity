@@ -22,7 +22,7 @@ node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-ser
 
 默认离线使用已缓存依赖；需要获取缺失依赖时可显式加 `--online`。输出目录必须不存在，脚本不会覆盖已有目录。发生错误时检查输出目录；若存在未完成的目录，应手动移除或选用新目录，清单在所有文件完成后才写入。当前 staging 仅在 macOS 上验证，Windows staging 会明确拒绝；Linux 尚未验证。
 
-Electron Builder 会在打包前检查 staging 清单，并在打包后重新核对复制结果；运行 `pnpm --filter @arcadia-eternity/web-ui build:desktop` 会先构建、准备运行时再打包，且不会自动发布。本地打包允许许可证资料待补，清单仍记录待核对项目和 `releaseReady: false`；仍检查运行入口、路径边界与清单结构。当前自有包按 MIT 声明，版权署名暂未填写；仓库根目录的 MPL 文本不会被当作自有包的 MIT 许可证。部分第三方包的许可证文本或声明也待核对。
+Electron Builder 会在打包前检查 staging 清单，并在打包后重新核对复制结果；运行 `pnpm --filter @arcadia-eternity/web-ui build:desktop` 会先构建、准备运行时再打包，且不会自动发布。本地打包允许许可证资料待补，清单仍记录待核对项目和 `releaseReady: false`；仍检查运行入口、路径边界与清单结构。仓库与各自有包统一采用 MIT 许可证，版权署名为 Arcadia Eternity contributors；桌面打包会收录根目录的完整 MIT 文本，并用于声明一致且未携带独立许可证文本的自有包。部分第三方包的许可证文本或声明也待核对。
 
 需要检查完整许可证资料时，可在 staging 完成后运行 `node scripts/verify-desktop-pack.mjs --require-complete-notices`；缺少许可证或必要运行文件时该命令会失败。`electron:pack:publish` 同样先执行这项检查，发布仍需单独执行。直接运行 staging 脚本时，不加 `--allow-incomplete-notices` 也会要求清单完整。
 
