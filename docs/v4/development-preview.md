@@ -10,7 +10,7 @@
 
 CLI `arcadia-content workspace /path/to/source preview --execute` 和 MCP `preview_start` 使用同一个候选准备流程：复制已保存源文件到独立构建目录，打包并安装真实 npm 产物，启动仅监听 `127.0.0.1` 的 Node 战斗宿主。客户端接收公开内容、按需媒体与战斗消息。
 
-任务返回 `preview.endpoint` 和 `preview.clientPath`；设置 `ARCADIA_PREVIEW_CLIENT_URL` 后同时返回完整客户端地址。桌面自动配置这个地址，并在无管理能力、独立存储的窗口内打开试玩。候选绑定源修订与 npm 包身份；保存新源码不替换已有候选，新候选失败或取消不影响旧对局。任务记录共享到 `.arcadia/author-jobs`，支持其他 CLI／MCP／桌面入口查询及取消。任务宿主退出后，新会话显示 interrupted；重新运行以创建候选，运行进程和临时安装不跨重启保留。
+任务返回 `preview.endpoint` 和 `preview.clientPath`；设置 `ARCADIA_PREVIEW_CLIENT_URL` 后同时返回完整客户端地址。桌面自动配置这个地址，并在无管理能力、独立存储的窗口内打开试玩。候选绑定源修订与 npm 包身份；保存源码本身不替换已有对局。桌面全局只保留一个试玩，准备新版或其他项目试玩前会关闭旧窗口，停止旧宿主并释放临时队伍。新版本准备失败后可重试。任务记录共享到 `.arcadia/author-jobs`，支持其他 CLI／MCP／桌面入口查询及取消。任务宿主退出后，新会话显示 interrupted；重新运行以创建候选，运行进程和临时安装不跨重启保留。
 
 ## 联机服务器候选
 

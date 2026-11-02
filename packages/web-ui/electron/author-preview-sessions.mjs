@@ -4,7 +4,7 @@ import { registerClientProtocol } from './client-protocol.mjs'
 /** Reopening a candidate retains its scratch teams, without sharing the personal profile. */
 export function createAuthorPreviewSessions({ directory, development }) {
   const sessions = new Map()
-  return key => {
+  const get = key => {
     if (sessions.has(key)) return sessions.get(key)
     const isolated = session.fromPartition(`author-preview-${key}`, { cache: false })
     if (!development) registerClientProtocol(isolated, directory)
@@ -13,4 +13,13 @@ export function createAuthorPreviewSessions({ directory, development }) {
     sessions.set(key, isolated)
     return isolated
   }
+  get.clear = async () => {
+    for (const isolated of sessions.values()) {
+      await isolated.closeAllConnections()
+      await isolated.clearStorageData()
+      if (!development) isolated.protocol.unhandle('arcadia-client')
+    }
+    sessions.clear()
+  }
+  return get
 }

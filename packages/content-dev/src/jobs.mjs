@@ -322,6 +322,15 @@ export class AuthorJobs {
       })
     })
   }
+  /** Stop previews owned by this host and wait for their processes and temporary files to be released. */
+  async stopPreviews() {
+    await this.#starting
+    const previews = [...this.#jobs.values()].filter(({ job, controller }) => job.kind === 'preview' && controller)
+    const released = [...this.#previews.values()]
+    for (const { job } of previews) this.cancel(job.jobId)
+    await Promise.allSettled(previews.map(control => control.done))
+    await Promise.allSettled([...released, ...this.#previews.values()])
+  }
   async close() {
     this.#closed = true
     this.workspace.off('change', this.#changed)

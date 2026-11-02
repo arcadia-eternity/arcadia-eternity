@@ -24,6 +24,10 @@ test(
     app.setPath('userData', ${JSON.stringify(join(root, 'data'))});
     app.whenReady().then(async () => {
     const sessions = createAuthorPreviewSessions({directory:${JSON.stringify(root)}, development:false});
+    globalThis.clearCandidates = async () => {
+      for (const win of BrowserWindow.getAllWindows()) win.destroy();
+      await sessions.clear();
+    };
     globalThis.openCandidate = async key => {
       const win = new BrowserWindow({show:false,webPreferences:{session:sessions(key),sandbox:true,contextIsolation:true}});
       await win.loadURL('arcadia-client://app/content/preview');
@@ -55,6 +59,10 @@ test(
       const another = app.waitForEvent('window')
       await app.evaluate(() => globalThis.openCandidate('second'))
       assert.equal(await (await another).evaluate(() => localStorage.getItem('test-teams')), null)
+      await app.evaluate(() => globalThis.clearCandidates())
+      const replaced = app.waitForEvent('window')
+      await app.evaluate(() => globalThis.openCandidate('first'))
+      assert.equal(await (await replaced).evaluate(() => localStorage.getItem('test-teams')), null)
     } finally {
       if (app) {
         await app.evaluate(({ app }) => app.exit(0)).catch(() => {})

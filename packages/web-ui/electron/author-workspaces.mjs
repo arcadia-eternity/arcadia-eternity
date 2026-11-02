@@ -246,6 +246,9 @@ export class AuthorWorkspaces {
     await copyFile(source, target, constants.COPYFILE_EXCL)
     return { file, name: basename(source) }
   }
+  async stopPreviews() {
+    for (const pending of this.#sessions.values()) await (await pending).jobs.stopPreviews()
+  }
   async close() {
     await Promise.allSettled([...this.#sessions.keys()].map(id => this.release(id)))
     await this.#queue

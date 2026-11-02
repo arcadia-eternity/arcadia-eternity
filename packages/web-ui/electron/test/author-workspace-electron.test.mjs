@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url)
 test(
   'desktop source workflow edits real files, preserves external conflicts and runs the actual pack tests',
   {
-    timeout: 120000,
+    timeout: 180000,
     skip: process.env.ARCADIA_AUTHOR_GUI_TEST !== '1',
   },
   async () => {
@@ -112,8 +112,8 @@ test(
       await page.getByLabel('显示名称', { exact: true }).fill('霜击')
       await save(1)
       await expect(category('检查与运行')).toHaveCount(0)
-      const runPanel = page.getByRole('region', { name: '运行记录', exact: true })
-      const toggleRuns = runPanel.getByRole('button', { name: /运行记录/ })
+      const runPanel = page.getByRole('region', { name: '输出', exact: true })
+      const toggleRuns = runPanel.getByRole('button', { name: /输出/ })
       const run = async name => {
         await page.getByText('更多操作', { exact: true }).click()
         await page.getByRole('button', { name, exact: true }).click()
@@ -136,6 +136,13 @@ test(
       await page.getByRole('heading', { name: '场景测试 · 已完成', exact: true }).waitFor({ timeout: 45000 })
       await run('无界面演示对战')
       await page.getByRole('heading', { name: '演示对战 · 已完成', exact: true }).waitFor({ timeout: 45000 })
+      // Each task replaces the visible result; historical outputs and launch links stay out of the UI.
+      await expect(runPanel.locator('article')).toHaveCount(1)
+      await expect(runPanel.getByRole('heading', { name: '场景测试 · 已完成', exact: true })).toHaveCount(0)
+      await expect(runPanel.getByRole('heading', { name: '检查 · 未完成', exact: true })).toHaveCount(0)
+      await expect(runPanel.locator('pre')).toContainText('Winner:')
+      await expect(runPanel.locator('pre')).not.toContainText('ARCADIA_RESULT=')
+      await expect(runPanel.getByText('运行输出与来源', { exact: true })).toHaveCount(0)
       const jobs = await page.evaluate(
         async id => (await window.arcadiaDesktop.author({ action: 'jobs', id })).result,
         project.id,
@@ -164,6 +171,7 @@ test(
       const scratchReturn = preview.waitForEvent('close')
       await preview.getByRole('button', { name: '返回编辑器', exact: true }).click()
       await scratchReturn
+      await expect(page.getByRole('button', { name: /^(打开试玩|打开之前的试玩|结束试玩)$/ })).toHaveCount(0)
       await expect(page.getByLabel('威力', { exact: true })).toHaveValue('70')
       const scratchReopen = app.waitForEvent('window')
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()
@@ -286,6 +294,22 @@ test(
         { id: project.id, jobId: previewsBefore[0].jobId },
       )
       assert.deepEqual(staleOpen, { opened: false })
+      // Preparing a replacement closes even an open old window before starting the new host.
+      const oldWindow = app.waitForEvent('window')
+      await page.evaluate(
+        async ({ id, jobId }) => window.arcadiaDesktop.author({ action: 'preview-open', id, jobId }),
+        { id: project.id, jobId: previewsBefore[0].jobId },
+      )
+      const previousWindow = await oldWindow
+      await previousWindow.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
+      await writeFile(invalidSource, 'export const invalid: string = 123\n')
+      const previousClosed = previousWindow.waitForEvent('close')
+      await page.getByRole('button', { name: '调试试玩', exact: true }).click()
+      await previousClosed
+      await runPanel.getByRole('heading', { name: '画面试玩 · 未完成', exact: true }).waitFor({ timeout: 45000 })
+      await assert.rejects(fetch(previewsBefore[0].result.preview.endpoint + '/content'))
+      assert.equal(app.windows().length, 1)
+      await rm(invalidSource)
       const updatedWindow = app.waitForEvent('window', { timeout: 45000 })
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()
       preview = await updatedWindow
@@ -296,13 +320,52 @@ test(
           (await window.arcadiaDesktop.author({ action: 'jobs', id })).result.filter(job => job.kind === 'preview'),
         project.id,
       )
-      assert.equal(previewsAfter.length, 2)
+      assert.equal(previewsAfter.filter(job => job.state === 'succeeded').length, 1)
       assert.equal(previewsAfter.find(job => job.jobId === previewsBefore[0].jobId).stale, true)
-      const oldContent = await (await fetch(previewsBefore[0].result.preview.endpoint + '/content')).json()
-      assert.equal(oldContent.content.skills.find(skill => skill.id.endsWith(':strike')).power, 70)
+      assert.equal(previewsAfter.find(job => job.jobId === previewsBefore[0].jobId).state, 'cancelled')
+      await assert.rejects(fetch(previewsBefore[0].result.preview.endpoint + '/content'))
       const updatedReturn = preview.waitForEvent('close')
       await preview.getByRole('button', { name: '返回编辑器', exact: true }).click()
       await updatedReturn
+      // More than four successive source revisions must never exhaust old-preview slots.
+      let priorEndpoint = previewsAfter.find(job => job.state === 'succeeded').result.preview.endpoint
+      for (const power of [72, 73, 74, 75]) {
+        await page.getByLabel('威力', { exact: true }).fill(String(power))
+        await save(1)
+        const nextWindow = app.waitForEvent('window', { timeout: 45000 })
+        await page.getByRole('button', { name: '调试试玩', exact: true }).click()
+        preview = await nextWindow
+        await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
+        await assert.rejects(fetch(priorEndpoint + '/content'))
+        const live = await page.evaluate(
+          async id =>
+            (await window.arcadiaDesktop.author({ action: 'jobs', id })).result.filter(
+              job => job.kind === 'preview' && job.state === 'succeeded',
+            ),
+          project.id,
+        )
+        assert.equal(live.length, 1)
+        assert.equal(app.windows().length, 2)
+        priorEndpoint = live[0].result.preview.endpoint
+        const closed = preview.waitForEvent('close')
+        await preview.getByRole('button', { name: '返回编辑器', exact: true }).click()
+        await closed
+      }
+      // The singleton also spans projects, rather than allowing one host per project.
+      const secondProject = await page.evaluate(
+        async () => (await window.arcadiaDesktop.author({ action: 'create', name: '单试玩跨项目验收' })).result,
+      )
+      await page.goto(origin + '/content/edit/' + secondProject.id)
+      await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
+      const otherWindow = app.waitForEvent('window', { timeout: 45000 })
+      await page.getByRole('button', { name: '调试试玩', exact: true }).click()
+      preview = await otherWindow
+      await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
+      await assert.rejects(fetch(priorEndpoint + '/content'))
+      assert.equal(app.windows().length, 2)
+      const otherClosed = preview.waitForEvent('close')
+      await preview.getByRole('button', { name: '返回编辑器', exact: true }).click()
+      await otherClosed
       await category(/^精灵/).click()
       await page.locator('.content-card').filter({ hasText: '霜团' }).click()
       if (process.env.ARCADIA_AUTHOR_SCREENSHOT)

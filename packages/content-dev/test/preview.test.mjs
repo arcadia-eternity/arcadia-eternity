@@ -132,7 +132,12 @@ test(
     await assert.rejects(command(endpoint, 'configure', invalid))
     assert.deepEqual(await command(endpoint, 'getState', undefined, true), configured)
     await command(endpoint, 'cleanup')
-    session.jobs.cancel(first.jobId)
+    await session.jobs.stopPreviews()
+    assert.equal(session.jobs.hasLivePreviews, false)
+    assert.equal(session.jobs.get(first.jobId).state, 'cancelled')
+    assert.equal(session.jobs.get(second.jobId).state, 'cancelled')
+    await assert.rejects(fetch(`${endpoint}/content`))
+    await assert.rejects(fetch(`${second.result.preview.endpoint}/content`))
     session.jobs.cancel(second.jobId)
   },
 )

@@ -390,6 +390,14 @@ function editAssetSource(event: Event) {
 const files = computed(() => snapshot.value?.files.filter(row => row.file.startsWith('src/')) ?? [])
 const testFiles = computed(() => snapshot.value?.files.filter(row => /^(test|tests)\//.test(row.file)) ?? [])
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
+const latestJob = computed(() => jobs.value[0])
+const latestOutput = computed(() =>
+  (latestJob.value?.output ?? '')
+    .split('\n')
+    .filter(line => !/^(?:# )?ARCADIA_RESULT=/.test(line))
+    .join('\n')
+    .trim(),
+)
 const latestPreview = computed(() => jobs.value.find(job => job.kind === 'preview'))
 const activePreview = computed(() =>
   jobs.value.find(job => job.kind === 'preview' && job.state === 'succeeded' && job.result?.preview),
@@ -398,21 +406,20 @@ const previewStatus = computed(() => {
   if (dirty.value) return '有未保存修改 · 保存后可试玩'
   if (latestPreview.value && ['queued', 'running'].includes(latestPreview.value.state))
     return '正在准备试玩，可继续编辑'
-  if (latestPreview.value?.state === 'failed') return '试玩准备失败 · 在底部运行记录中查看原因'
+  if (latestPreview.value?.state === 'failed')
+    return latestJob.value?.jobId === latestPreview.value.jobId
+      ? '试玩准备失败 · 在底部输出中查看原因'
+      : '上次试玩准备失败 · 可重新调试'
   if (activePreview.value?.stale) return '内容已更新 · 下次调试会使用最新内容'
   if (activePreview.value) return '调试窗口已就绪 · 可配置双方测试队伍'
   return '配置测试队伍，试玩已保存的内容'
 })
 let jobsLoaded = false
 function updateJobs(result: AuthorJob[]) {
-  // The first poll establishes history; only new failures should reopen a collapsed panel.
-  if (
-    result.some(job => {
-      const previous = jobs.value.find(old => old.jobId === job.jobId)
-      return job.state === 'failed' && previous?.state !== 'failed' && (jobsLoaded || previous)
-    })
-  )
-    runPanelOpen.value = true
+  // Ignore persisted failures on first load and failures from tasks no longer displayed.
+  const latest = result[0]
+  const previous = jobs.value.find(job => job.jobId === latest?.jobId)
+  if (latest?.state === 'failed' && previous?.state !== 'failed' && (jobsLoaded || previous)) runPanelOpen.value = true
   jobsLoaded = true
   jobs.value = result
 }
@@ -1657,61 +1664,55 @@ onBeforeUnmount(() => {
               </button>
             </div>
           </details>
+          <details v-if="testFiles.length" class="source-details">
+            <summary>测试源文件</summary>
+            <div class="file-links">
+              <button v-for="file in testFiles" :key="file.file" @click="attempt(() => external(file.file))">
+                {{ file.file }} ↗
+              </button>
+            </div>
+          </details>
         </template>
       </section>
     </div>
-    <section v-if="project && !readOnly" class="run-panel" aria-label="运行记录">
+    <section v-if="project && !readOnly" class="run-panel" aria-label="输出">
       <button
         class="run-panel-toggle"
         :aria-expanded="runPanelOpen"
         aria-controls="author-run-output"
         @click="runPanelOpen = !runPanelOpen"
       >
-        <span>{{ runPanelOpen ? '▾' : '▸' }} 运行记录</span>
-        <small v-if="jobs[0]"
-          >{{ jobTitles[jobs[0].kind] || jobs[0].kind }} · {{ jobStates[jobs[0].state] || jobs[0].state }}</small
+        <span>{{ runPanelOpen ? '▾' : '▸' }} 输出</span>
+        <small v-if="latestJob"
+          >{{ jobTitles[latestJob.kind] || latestJob.kind }} ·
+          {{ jobStates[latestJob.state] || latestJob.state }}</small
         >
       </button>
       <div v-show="runPanelOpen" id="author-run-output" class="run-panel-body">
-        <p v-if="!jobs.length" class="hint">还没有运行记录。可从上方“更多操作”检查内容或运行测试。</p>
-        <details v-if="testFiles.length" class="source-details">
-          <summary>测试源文件</summary>
-          <div class="file-links">
-            <button v-for="file in testFiles" :key="file.file" @click="attempt(() => external(file.file))">
-              {{ file.file }} ↗
-            </button>
-          </div>
-        </details>
-        <article v-for="job in jobs" :key="job.jobId" class="job">
+        <p v-if="!latestJob" class="hint">还没有任务输出。可从上方“更多操作”检查内容或运行测试。</p>
+        <article v-if="latestJob" :key="latestJob.jobId" class="job">
           <header>
-            <h3>{{ jobTitles[job.kind] || job.kind }} · {{ jobStates[job.state] || job.state }}</h3>
+            <h3>
+              {{ jobTitles[latestJob.kind] || latestJob.kind }} · {{ jobStates[latestJob.state] || latestJob.state }}
+            </h3>
             <button
-              v-if="['queued', 'running'].includes(job.state) || (job.kind === 'preview' && job.state === 'succeeded')"
-              @click="attempt(() => action({ action: 'cancel', jobId: job.jobId }))"
+              v-if="['queued', 'running'].includes(latestJob.state)"
+              :disabled="busy"
+              @click="attempt(() => action({ action: 'cancel', jobId: latestJob.jobId }))"
             >
-              {{ job.kind === 'preview' && job.state === 'succeeded' ? '结束试玩' : '停止' }}
+              停止
             </button>
           </header>
-          <p v-if="job.stale" class="error">内容已更新。此记录使用的是修改前的内容。</p>
-          <button
-            v-if="job.result?.preview && job.state === 'succeeded'"
-            :disabled="busy"
-            @click="attempt(() => action({ action: 'preview-open', jobId: job.jobId }))"
-          >
-            {{ job.stale ? '打开之前的试玩' : '打开试玩' }}
-          </button>
-          <p v-for="(item, index) in job.diagnostics" :key="index" class="error">
+          <p v-if="latestJob.stale" class="hint">内容已修改，请重新运行。</p>
+          <p v-for="(item, index) in latestJob.diagnostics" :key="index" class="error">
             {{ item.message }}
             <button v-if="item.file" @click="attempt(() => external(item.file, item.line, item.column))">
               打开位置
             </button>
           </p>
-          <details>
-            <summary>运行输出与来源</summary>
-            <small>源修订 {{ job.sourceRevision.slice(0, 12) }}</small>
-            <p v-if="job.result?.candidate">内容包 {{ job.result.candidate.integrity }}</p>
-            <pre>{{ job.output || '等待输出…' }}</pre>
-          </details>
+          <pre>{{
+            latestOutput || (['queued', 'running'].includes(latestJob.state) ? '等待输出…' : '没有额外输出。')
+          }}</pre>
         </article>
       </div>
     </section>

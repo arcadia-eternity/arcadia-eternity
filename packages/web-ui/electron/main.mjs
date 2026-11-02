@@ -84,6 +84,12 @@ let contentProjects
 let contentLibrary
 let authorWorkspaces
 const authorPreviewWindows = new Map()
+let previewOperation = Promise.resolve()
+function withPreviewOperation(operation) {
+  const next = previewOperation.catch(() => {}).then(operation)
+  previewOperation = next
+  return next
+}
 const previewSession = createAuthorPreviewSessions({ directory: rendererDistDir, development: !!devServerUrl })
 ipcMain.on('author-preview:return', event => {
   const window = [...authorPreviewWindows.values()].find(window =>
@@ -1817,18 +1823,27 @@ function setupIpcHandlers() {
               result = session.jobs.list()
               break
             case 'start':
-              result = await session.jobs.start({ kind: input.kind })
+              result =
+                input.kind === 'preview'
+                  ? await withPreviewOperation(async () => {
+                      for (const window of authorPreviewWindows.values()) window.destroy()
+                      await manager.stopPreviews()
+                      await previewSession.clear()
+                      return session.jobs.start({ kind: 'preview' })
+                    })
+                  : await session.jobs.start({ kind: input.kind })
               break
             case 'preview-open': {
-              await session.jobs.refresh()
-              const job = session.jobs.get(input.jobId)
-              // The main action follows current source; history can explicitly open older candidates.
-              if (input.requireCurrent && (job.stale || job.state !== 'succeeded')) {
-                result = { opened: false }
-                break
-              }
-              await openAuthorPreview(input.id, job)
-              result = { opened: true }
+              result = await withPreviewOperation(async () => {
+                await session.jobs.refresh()
+                const job = session.jobs.get(input.jobId)
+                // Recheck source freshness at the actual window-open boundary.
+                if (input.requireCurrent && (job.stale || job.state !== 'succeeded')) return { opened: false }
+                for (const [key, window] of authorPreviewWindows)
+                  if (key !== `${input.id}:${input.jobId}`) window.destroy()
+                await openAuthorPreview(input.id, job)
+                return { opened: true }
+              })
               break
             }
             case 'cancel':

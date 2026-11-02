@@ -525,10 +525,6 @@ small,
   justify-content: space-between;
   gap: 12px;
 }
-.job details p {
-  overflow-wrap: anywhere;
-  font-size: 12px;
-}
 .job pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

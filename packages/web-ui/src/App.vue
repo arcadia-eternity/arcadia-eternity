@@ -387,7 +387,7 @@
         <component :is="Component" class="w-full" :key="$route.path" />
       </router-view>
 
-      <!-- 编辑工作区的底栏用于运行记录，避免浮动版本信息遮挡。 -->
+      <!-- 编辑工作区的底栏用于任务输出，避免浮动版本信息遮挡。 -->
       <div v-if="!isMobile && $route.name !== 'Creator'" class="fixed bottom-4 left-4 z-30 pointer-events-none">
         <div class="pointer-events-auto">
           <VersionInfo />
