@@ -1,4 +1,5 @@
-import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
+import { Type } from '@sinclair/typebox'
+import { PlayerSchema, PetSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import type { NativeWebBattleConfig } from './nativeBattleFactory'
 import { nanoid } from 'nanoid'
 import type { BattleMessage, Events } from '@arcadia-eternity/const'
@@ -48,12 +49,13 @@ export async function loadAuthorPreviewSetup(value: string) {
     content: ServerEnvironmentContent
     players: PlayerSchemaType[]
     active: boolean
-    candidate?: { environmentId?: string }
+    warning?: string
+    candidate?: { environmentId?: string; environmentConfigVersion?: string | null }
   }>(previewEndpoint(value), 'content')
   validateEnvironmentContent(result.content)
   if (!Array.isArray(result.players) || result.players.length !== 2) throw new Error('项目需要配置双方默认队伍')
   const players = result.players.map(player =>
-    parseWithErrors(PlayerSchema, {
+    parseWithErrors(Type.Object({ ...PlayerSchema.properties, team: Type.Array(PetSchema, { maxItems: 6 }) }), {
       ...player,
       id: player.id ?? nanoid(),
       team: player.team.map(pet => ({ ...pet, id: pet.id ?? nanoid() })),

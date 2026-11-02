@@ -17,7 +17,7 @@ import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { connectAuthorPreview, loadAuthorPreviewSetup, configureAuthorPreview } from '@/services/authorPreview'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
-import { createPreviewTeamDelegate } from './previewTeamDelegate'
+import { createPreviewTeamDelegate, createPreviewPet } from './previewTeamDelegate'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 
 const route = useRoute(),
@@ -37,6 +37,16 @@ let defaults: PlayerSchemaType[] = []
 const environments = ref<DebugEnvironment[]>([])
 const environmentId = ref('default')
 const preparedEnvironmentId = ref('default')
+const preparedEnvironmentVersion = ref<string | null>(null)
+const sourceMappingChanged = ref(false)
+const setupWarning = ref('')
+const environmentReady = computed(
+  () =>
+    environmentId.value === preparedEnvironmentId.value &&
+    !sourceMappingChanged.value &&
+    (environments.value.find(item => item.id === environmentId.value)?.version ?? null) ===
+      preparedEnvironmentVersion.value,
+)
 const battleConfig = ref(createBattleConfiguration())
 const timerConfig = ref({ ...DEFAULT_TIMER_CONFIG, enabled: false })
 const managingEnvironment = ref(false)
@@ -99,6 +109,7 @@ async function saveEnvironment() {
 async function addSource() {
   try {
     const source = await window.arcadiaAuthorPreview!.environment!('add-source')
+    if (source?.changed) sourceMappingChanged.value = true
     if (source && !environmentDraft.value.sources.includes(source.name))
       environmentDraft.value.sources.push(source.name)
   } catch (cause) {
@@ -173,7 +184,7 @@ async function discard() {
   if (ownedSystem && battle.battleInterface === ownedSystem) await battle.resetBattleWithoutSurrender()
 }
 async function launch(reconfigure = false) {
-  if (busy.value) return
+  if (busy.value || (reconfigure && !environmentReady.value)) return
   if (reconfigure && active.value && !window.confirm('重新开始会结束当前测试对局，使用这里的队伍配置。继续吗？')) return
   busy.value = true
   error.value = ''
@@ -232,10 +243,14 @@ onMounted(async () => {
     await loadEnvironments()
     environmentId.value = setup.candidate?.environmentId ?? 'default'
     preparedEnvironmentId.value = environmentId.value
+    preparedEnvironmentVersion.value = setup.candidate?.environmentConfigVersion ?? null
+    setupWarning.value = setup.warning ?? ''
     defaults = setup.players
     active.value = setup.active
     if (window.arcadiaAuthorPreview?.teams) {
-      const project = await createProjectTeamLibrary(window.arcadiaAuthorPreview.teams, defaults)
+      const project = await createProjectTeamLibrary(window.arcadiaAuthorPreview.teams, defaults, () =>
+        createPreviewPet(data.speciesList[0]),
+      )
       if (disposed) return
       library.value = project
       stopPlayers = watch(
@@ -294,16 +309,14 @@ onBeforeUnmount(() => {
       <div class="debug-actions">
         <button v-if="!library" :disabled="busy" @click="resetTeams">恢复项目默认</button>
         <button v-if="active" :disabled="busy" @click="launch()">继续当前对局</button>
-        <button
-          class="start"
-          :disabled="busy || !!problems.length || environmentId !== preparedEnvironmentId"
-          @click="launch(true)"
-        >
+        <button class="start" :disabled="busy || !!problems.length || !environmentReady" @click="launch(true)">
           {{ busy ? '正在准备…' : active ? '按当前配置重新开始' : '开始对战' }}
         </button>
       </div>
     </header>
     <p v-if="error || library?.error.value" class="debug-error" role="alert">{{ error || library?.error.value }}</p>
+    <p v-if="setupWarning" class="team-sides" role="status">{{ setupWarning }}</p>
+    <p v-if="!environmentReady" class="team-sides" role="status">所选环境尚未准备或配置已改变，请先准备所选环境。</p>
     <ul v-if="problems.length" class="debug-error" role="alert">
       <li v-for="problem in problems" :key="problem">{{ problem }}</li>
     </ul>

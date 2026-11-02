@@ -121,3 +121,48 @@ behaviors:
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test(
+  'renaming a real template updates portable team references and keeps foreign references and comments',
+  { timeout: 30000 },
+  async t => {
+    const { createSourceProject } = await import('../src/author-api.mjs')
+    const { prepareContentPack } = await import('../src/testing.mjs')
+    const { setGlobalLogger } = await import('@arcadia-eternity/battle/v4')
+    setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
+    const root = await mkdtemp(join(tmpdir(), 'arcadia-team-rename-'))
+    const project = join(root, 'project')
+    let prepared
+    t.after(async () => {
+      await prepared?.dispose()
+      await rm(root, { recursive: true, force: true })
+    })
+    await createSourceProject(project, 'before-rename')
+    const blue = YAML.parse(await readFile(join(project, 'debug/teams/blue.yaml'), 'utf8'))
+    const custom = structuredClone(blue)
+    custom.id = 'foreign-references'
+    custom.team[0].name = 'before-rename:pet'
+    custom.team[0].skills.push('foreign:skill')
+    custom.team[0].ability = 'foreign:trait'
+    custom.team[0].emblem = 'before-rename:emblem'
+    const customFile = join(project, 'debug/teams/foreign-references.yaml')
+    await writeFile(customFile, '# keep team comment\n' + YAML.stringify(custom))
+    await exec(
+      process.execPath,
+      [script, '--name', '@me/renamed', '--project-id', 'renamed', '--namespace', 'renamed'],
+      { cwd: project },
+    )
+    const renamed = YAML.parse(await readFile(customFile, 'utf8'))
+    assert.match(await readFile(customFile, 'utf8'), /# keep team comment/)
+    assert.equal(renamed.id, custom.id)
+    assert.equal(renamed.team[0].name, 'before-rename:pet')
+    assert.equal(renamed.team[0].species, 'renamed:pet')
+    assert.deepEqual(renamed.team[0].skills, ['renamed:strike', 'renamed:rest', 'foreign:skill'])
+    assert.equal(renamed.team[0].ability, 'foreign:trait')
+    assert.equal(renamed.team[0].emblem, 'renamed:emblem')
+    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'build'], { cwd: project })
+    prepared = await prepareContentPack(project)
+    assert.equal(prepared.defaultPlayers()[0].team[0].species, 'renamed:pet')
+    assert.doesNotThrow(() => prepared.createBattle('renamed-team'))
+  },
+)

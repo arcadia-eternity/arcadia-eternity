@@ -27,7 +27,11 @@ function editable(entry: ProjectTeam, dirty = false): Editable {
 }
 
 /** Project files, local drafts and launch snapshots have distinct ownership. */
-export async function createProjectTeamLibrary(bridge: ProjectTeamBridge, defaults: PlayerSchemaType[]) {
+export async function createProjectTeamLibrary(
+  bridge: ProjectTeamBridge,
+  defaults: PlayerSchemaType[],
+  fallbackPet?: () => PetSchemaType | undefined,
+) {
   const saved = await bridge('list')
   const draft = await bridge('draft-read')
   const entries = ref<Editable[]>(saved.map(entry => editable(entry)))
@@ -115,7 +119,7 @@ export async function createProjectTeamLibrary(bridge: ProjectTeamBridge, defaul
       persist: changed,
       createPet: () => {
         const template = current(side).team[0] ?? defaults[side]?.team[0]
-        return template ? { ...copy(template), id: nanoid() } : undefined
+        return template ? { ...copy(template), id: nanoid() } : fallbackPet?.()
       },
       removePet(id, done) {
         current(side).team = current(side).team.filter(pet => pet.id !== id)

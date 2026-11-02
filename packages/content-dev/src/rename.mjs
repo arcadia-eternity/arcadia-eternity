@@ -2,6 +2,8 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import YAML from 'yaml'
+import { AuthorWorkspace } from './workspace.mjs'
+import { teamDocument } from './project-teams.mjs'
 import { readContentSources } from './lib/content.mjs'
 
 const args = process.argv.slice(2)
@@ -36,6 +38,15 @@ const manifest = JSON.parse(await readFile(packagePath, 'utf8'))
 const oldId = manifest.arcadia.projectId
 const oldNamespace = manifest.arcadia.namespace
 const sources = await readContentSources(root)
+const workspace = await AuthorWorkspace.open(root, { watch: false })
+for (const { file } of await workspace.files()) {
+  if (!/^debug\/teams\/[^/]+\.yaml$/.test(file)) continue
+  const source = await workspace.read(file)
+  const document = YAML.parseDocument(source.text)
+  if (document.errors.length) throw document.errors[0]
+  teamDocument(document.toJS())
+  sources.push({ kind: 'project-team', file: resolve(file), document, version: source.version, relative: file })
+}
 function rewrite(value) {
   if (Array.isArray(value)) return value.map(rewrite)
   if (!value || typeof value !== 'object') return value
@@ -69,6 +80,15 @@ const changes = sources.map(source => {
   YAML.visit(source.document, { Alias: (_key, alias) => aliases.get(alias) })
   YAML.visit(source.document, {
     Map(_key, node) {
+      if (source.kind === 'project-team') {
+        const update = value => {
+          if (YAML.isScalar(value) && typeof value.value === 'string' && value.value.startsWith(`${oldNamespace}:`))
+            value.value = options['--namespace'] + value.value.slice(oldNamespace.length)
+        }
+        for (const key of ['species', 'ability', 'emblem']) update(node.get(key, true))
+        const skills = node.get('skills', true)
+        if (YAML.isSeq(skills)) skills.items.forEach(update)
+      }
       const namespace = node.get('namespace', true)
       if (YAML.isScalar(namespace) && namespace.value === oldNamespace && node.has('id') && node.items.length === 2)
         namespace.value = options['--namespace']
@@ -78,10 +98,15 @@ const changes = sources.map(source => {
       if (YAML.isScalar(project) && project.value === oldId) project.value = options['--project-id']
     },
   })
-  return { file: source.file, text: String(source.document) }
+  return { file: source.file, text: String(source.document), version: source.version, relative: source.relative }
 })
 await writeFile(packagePath, JSON.stringify(manifest, null, 2) + '\n')
-for (const change of changes) await writeFile(change.file, change.text)
+for (const change of changes) {
+  if (change.relative)
+    await workspace.write({ file: change.relative, expectedVersion: change.version, text: change.text })
+  else await writeFile(change.file, change.text)
+}
+await workspace.close()
 console.log(
   `Renamed to ${manifest.name}. Update repository metadata before publishing. Keep projectId and namespace stable after sharing.`,
 )

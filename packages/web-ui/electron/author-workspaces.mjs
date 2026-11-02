@@ -150,6 +150,7 @@ export class AuthorWorkspaces {
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
       }
+      const changed = mappings[manifest.name] !== root
       mappings[manifest.name] = root
       await mkdir(dirname(file), { recursive: true })
       const info = await lstat(dirname(file))
@@ -164,7 +165,7 @@ export class AuthorWorkspaces {
       } finally {
         await rm(temporary, { force: true })
       }
-      return { name: manifest.name }
+      return { name: manifest.name, changed }
     })
   }
   // Drafts live in the application profile, independently of disposable candidate Sessions.

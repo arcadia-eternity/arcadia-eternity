@@ -13,5 +13,5 @@ export interface DebugEnvironmentBridge {
     input: { document: Omit<DebugEnvironment, 'version'>; expectedVersion: string | null },
   ): Promise<DebugEnvironment>
   (action: 'prepare', input: { environmentId: string }): Promise<{ preparing: boolean }>
-  (action: 'add-source'): Promise<{ name: string } | null>
+  (action: 'add-source'): Promise<{ name: string; changed: boolean } | null>
 }

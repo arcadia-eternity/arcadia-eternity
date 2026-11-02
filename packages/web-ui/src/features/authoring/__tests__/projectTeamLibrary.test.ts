@@ -87,3 +87,10 @@ it('retains dirty bases after Git edits and offers explicit reload instead of si
   await reopened.reload(0)
   expect(reopened.current(0).name).toBe('Git team')
 })
+
+it('can add pets to an entirely empty project library from the prepared catalog', async () => {
+  const { bridge } = fixture()
+  const empty = defaults.map(player => ({ ...player, team: [] }))
+  const library = await createProjectTeamLibrary(bridge, empty, () => structuredClone(defaults[0]!.team[0]!))
+  expect(library.editors[0]!.createPet()?.species).toBe('sample:pet')
+})

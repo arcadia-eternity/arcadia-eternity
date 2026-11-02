@@ -95,6 +95,14 @@ test(
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
       await expect(preview.getByLabel('对方队伍', { exact: true })).toHaveValue(selected)
       assert.equal(app.windows().length, 2)
+      await preview.getByRole('button', { name: '管理环境', exact: true }).click()
+      await preview.getByLabel('环境名称', { exact: true }).fill('真实双包环境改名')
+      await preview.getByRole('button', { name: '保存环境配置', exact: true }).click()
+      await expect(preview.getByRole('button', { name: '开始对战', exact: true })).toBeDisabled()
+      const updatedEnvironment = app.waitForEvent('window', { timeout: 45000 })
+      await preview.getByRole('button', { name: '准备所选环境', exact: true }).click()
+      preview = await updatedEnvironment
+      await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
       await preview.getByRole('button', { name: '开始对战', exact: true }).click()
       await preview.waitForURL(/\/battle\?authorPreview=/)
       const players = await preview.evaluate(
@@ -121,8 +129,16 @@ test(
       await page.goto(`${origin}/content/edit/${project.id}`)
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       preview = await open()
-      await expect(preview.locator('.team-sides').filter({ hasText: '已准备：' })).toContainText('真实双包环境')
+      await expect(preview.locator('.team-sides').filter({ hasText: '已准备：' })).toContainText('真实双包环境改名')
       await expect(preview.getByLabel('我方队伍', { exact: true })).toHaveValue(selected)
+      const orangeFile = join(project.directory, 'debug/teams/orange.yaml')
+      await rm(orangeFile)
+      const afterDeletion = app.waitForEvent('window', { timeout: 45000 })
+      await preview.getByRole('button', { name: '准备所选环境', exact: true }).click()
+      preview = await afterDeletion
+      await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
+      await expect(preview.getByRole('status').filter({ hasText: 'orange' })).toBeVisible()
+      await expect(preview.getByRole('button', { name: '复制当前队伍', exact: true })).toBeEnabled()
     } finally {
       if (app) {
         await app.evaluate(({ app }) => app.exit(0)).catch(() => {})

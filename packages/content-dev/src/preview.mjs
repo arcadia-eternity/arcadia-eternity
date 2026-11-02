@@ -89,11 +89,26 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
       }
     return result
   }
+  function manualSetup() {
+    try {
+      return { players: prepared.defaultPlayers() }
+    } catch (error) {
+      if (!error.message.startsWith('TEAM_MISSING:')) throw error
+      const ids = Object.keys(prepared.teamVersions)
+      const players = ids.length
+        ? prepared.loadTeams([ids[0], ids[1] ?? ids[0]])
+        : [0, 1].map(side => ({ id: String(side).repeat(21), name: side === 0 ? '我方' : '对方', team: [] }))
+      return {
+        players,
+        warning: `默认队伍 ${error.message.slice('TEAM_MISSING:'.length).trim()} 已不存在。请从项目库选择队伍；自动测试仍按项目配置检查默认队伍。`,
+      }
+    }
+  }
   async function reset(players, options = {}) {
     // Validate and construct first: a bad test team must not destroy the current match.
     const battle = prepared.createBattle(options.rngSeed ?? 'author-preview', {
       ai: true,
-      players,
+      players: players ?? manualSetup().players,
       runtimeIds: true,
       battleOptions: options,
     })
@@ -157,7 +172,7 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
         return json(200, {
           content: publicContent(),
           candidate: prepared.candidate,
-          players: prepared.defaultPlayers(),
+          ...manualSetup(),
           active: !!system,
         })
       if (request.method === 'GET' && route === 'events') {

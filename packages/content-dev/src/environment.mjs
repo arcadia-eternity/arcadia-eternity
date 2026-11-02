@@ -168,6 +168,7 @@ export async function prepareBattleEnvironment(
       build: nativeBuildIdentity,
       environmentRevision: environment.revision,
       environmentId,
+      environmentConfigVersion: selected.version,
     }
     if (process.env.ARCADIA_AUTHOR_RESULT === '1')
       console.log(`ARCADIA_RESULT=${JSON.stringify({ candidate, environmentLock, sourceRevisions })}`)

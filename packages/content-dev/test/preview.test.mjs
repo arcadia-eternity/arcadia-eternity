@@ -322,3 +322,42 @@ test(
     assert.equal(JSON.parse(output.trim().split('\n').at(-1)).result.state, 'cancelled')
   },
 )
+
+test(
+  'missing configured teams leave manual project management available while automatic defaults still fail',
+  { timeout: 30000 },
+  async t => {
+    const { prepareContentPack } = await import('../src/testing.mjs')
+    const { startPreview } = await import('../src/preview.mjs')
+    const root = await mkdtemp(join(tmpdir(), 'arcadia-missing-preview-team-'))
+    const project = join(root, 'project')
+    await createSourceProject(project, 'missing-default-team')
+    const session = await openAuthorSession(project, { execute: true, watch: false })
+    let preview, automatic
+    t.after(async () => {
+      await preview?.close()
+      await automatic?.dispose()
+      await session.close()
+      await rm(root, { recursive: true, force: true })
+    })
+    await finish(session, 'demo')
+    const orange = (await session.teams.list()).find(team => team.id === 'orange')
+    await session.teams.remove({ id: orange.id, expectedVersion: orange.version })
+    automatic = await prepareContentPack(project)
+    assert.throws(() => automatic.defaultPlayers(), /TEAM_MISSING: orange/)
+    preview = await startPreview(project)
+    const setup = await (await fetch(preview.endpoint + '/content')).json()
+    assert.match(setup.warning, /orange/)
+    assert.equal(setup.players.length, 2)
+    assert.equal(setup.players[0].team[0].species, setup.players[1].team[0].species)
+    const blue = (await session.teams.list()).find(team => team.id === 'blue')
+    await session.teams.remove({ id: blue.id, expectedVersion: blue.version })
+    await preview.close()
+    preview = await startPreview(project)
+    const empty = await (await fetch(preview.endpoint + '/content')).json()
+    assert.deepEqual(
+      empty.players.map(player => player.team),
+      [[], []],
+    )
+  },
+)
