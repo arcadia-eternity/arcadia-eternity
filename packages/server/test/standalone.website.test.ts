@@ -30,7 +30,11 @@ it('serves config and deep links while missing service/resource paths remain err
   await new Promise<void>(resolve => server!.listen(0, '127.0.0.1', resolve))
   const address = server.address() as { port: number }
   const base = `http://127.0.0.1:${address.port}`
-  expect(await (await fetch(`${base}/arcadia-client.json`)).json()).toEqual({ schemaVersion: 1, backendOrigin: '/' })
+  expect(await (await fetch(`${base}/arcadia-client.json`)).json()).toEqual({
+    schemaVersion: 1,
+    backendOrigin: '/',
+    autoConnect: true,
+  })
   for (const path of ['/', '/room/invite', '/team-builder', '/dex/species/pet', '/local-battle-reports/id/play']) {
     const response = await fetch(`${base}${path}`, { headers: { Accept: 'text/html' } })
     expect(response.status, path).toBe(200)
@@ -60,4 +64,15 @@ it('fails explicitly for missing or incompatible distribution files', async () =
   expect(() => mountPairedWebsite(express(), directory)).toThrow('incompatible')
   await rm(join(directory, 'arcadia-web-manifest.json'))
   expect(() => mountPairedWebsite(express(), directory)).toThrow()
+})
+
+it('publishes a disabled deployment default without caching it', async () => {
+  const app = express()
+  mountPairedWebsite(app, directory, false)
+  server = createServer(app)
+  await new Promise<void>(resolve => server!.listen(0, '127.0.0.1', resolve))
+  const { port } = server.address() as { port: number }
+  const response = await fetch(`http://127.0.0.1:${port}/arcadia-client.json`)
+  expect(response.headers.get('cache-control')).toBe('no-store')
+  expect(await response.json()).toEqual({ schemaVersion: 1, backendOrigin: '/', autoConnect: false })
 })

@@ -32,13 +32,16 @@ function buildCommitHash(): string {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const backendOrigin = process.env.VITE_BACKEND_ORIGIN ?? loadEnv(mode, process.cwd()).VITE_BACKEND_ORIGIN ?? '/'
+  const env = loadEnv(mode, process.cwd())
+  const backendOrigin = process.env.VITE_BACKEND_ORIGIN ?? env.VITE_BACKEND_ORIGIN ?? '/'
+  const autoConnect = process.env.VITE_AUTO_CONNECT ?? env.VITE_AUTO_CONNECT ?? 'true'
+  if (!['true', 'false'].includes(autoConnect)) throw new Error('VITE_AUTO_CONNECT must be true or false')
   if (backendOrigin !== '/') {
     const origin = new URL(backendOrigin)
     if (!['http:', 'https:'].includes(origin.protocol) || origin.origin !== backendOrigin)
       throw new Error('VITE_BACKEND_ORIGIN must be / or an exact HTTP(S) origin')
   }
-  const deploymentConfig = JSON.stringify({ schemaVersion: 1, backendOrigin })
+  const deploymentConfig = JSON.stringify({ schemaVersion: 1, backendOrigin, autoConnect: autoConnect === 'true' })
   return {
     base: process.env.VITE_STATIC_MODE === '1' ? './' : '/',
     define: {

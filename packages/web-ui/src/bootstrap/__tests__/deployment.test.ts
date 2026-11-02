@@ -89,3 +89,29 @@ it('manager permits only the exact host reported by its main process', async () 
   await deployment.authorizeLocalBackend()
   expect(() => deployment.checkBackendSelection('http://127.0.0.1:9999')).toThrow()
 })
+
+it.each([undefined, true, false])('loads the deployment automatic connection default: %s', async autoConnect => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schemaVersion: 1,
+            backendOrigin: '/',
+            autoConnect,
+          }),
+        ),
+    ),
+  )
+  const deployment = await import('../deployment')
+  await deployment.loadDeploymentConfig()
+  expect(deployment.getDefaultAutoConnect()).toBe(autoConnect ?? true)
+})
+
+it.each(['false', 0, null])('rejects an invalid automatic connection default: %s', async autoConnect => {
+  const { parseDeploymentConfig } = await import('../deployment')
+  expect(() =>
+    parseDeploymentConfig({ schemaVersion: 1, backendOrigin: '/', autoConnect }, 'https://site.test'),
+  ).toThrow('布尔值')
+})

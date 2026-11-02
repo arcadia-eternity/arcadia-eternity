@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import express, { type Express } from 'express'
 
 /** The server only serves a website explicitly built for this distribution contract. */
-export function mountPairedWebsite(app: Express, directory: string): void {
+export function mountPairedWebsite(app: Express, directory: string, autoConnect = true): void {
   const root = resolve(directory)
   const manifest = JSON.parse(readFileSync(resolve(root, 'arcadia-web-manifest.json'), 'utf8')) as {
     schemaVersion?: number
@@ -22,7 +22,9 @@ export function mountPairedWebsite(app: Express, directory: string): void {
     res.setHeader('Content-Security-Policy', "frame-src 'none'")
     next()
   })
-  app.get('/arcadia-client.json', (_req, res) => res.json({ schemaVersion: 1, backendOrigin: '/' }))
+  app.get('/arcadia-client.json', (_req, res) =>
+    res.set('Cache-Control', 'no-store').json({ schemaVersion: 1, backendOrigin: '/', autoConnect }),
+  )
   app.use((req, res, next) => {
     if (/^\/(?:api|socket\.io|health)(?:\/|$)/.test(req.path)) {
       res.status(404).json({ code: 'NOT_FOUND' })

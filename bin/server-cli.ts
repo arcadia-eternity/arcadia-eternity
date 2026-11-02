@@ -33,6 +33,11 @@ export async function runServerCli(args: string[]): Promise<number> {
     .option('--server-id <id>', 'Stable identity of this server', process.env.SERVER_ID || 'arcadia-local')
     .option('--headless', 'Serve API and Socket.IO without the paired website', process.env.ARCADIA_HEADLESS === '1')
     .option('--web-root <directory>', 'Paired website build directory', process.env.ARCADIA_WEB_ROOT)
+    .option(
+      '--web-auto-connect <boolean>',
+      'Default automatic connection for paired website visitors',
+      process.env.ARCADIA_WEB_AUTO_CONNECT ?? 'true',
+    )
     .option('--public-origin <origin>', 'Externally visible paired site origin', process.env.PUBLIC_ORIGIN)
     .option('--npm-project <directories...>', 'Prepare approved npm installations for room selection')
     .option('--development-project <directory>', 'Enable local authoring of one configured project')
@@ -46,10 +51,13 @@ export async function runServerCli(args: string[]): Promise<number> {
       corsOrigin: string
       headless: boolean
       webRoot?: string
+      webAutoConnect: string
       publicOrigin?: string
       npmProject?: string[]
       developmentProject?: string
     }>()
+    if (!['true', 'false'].includes(options.webAutoConnect))
+      throw new InvalidArgumentError('--web-auto-connect / ARCADIA_WEB_AUTO_CONNECT must be true or false')
     const corsOrigins = options.corsOrigin
       .split(',')
       .map(value => value.trim())
@@ -175,6 +183,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     if (options.publicOrigin && !corsOrigins.includes(options.publicOrigin)) corsOrigins.push(options.publicOrigin)
     server = createSingleProcessApp({
       webRoot,
+      webAutoConnect: options.webAutoConnect === 'true',
       desktopLocal: desktopControl,
       publicOrigin: options.publicOrigin,
       port: options.port,

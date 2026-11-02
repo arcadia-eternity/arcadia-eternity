@@ -24,12 +24,34 @@ docker run --rm -p 8102:8102 -e SERVER_ID=my-community arcadia-community
 服务端动态提供 `/arcadia-client.json`：
 
 ```json
-{ "schemaVersion": 1, "backendOrigin": "/" }
+{ "schemaVersion": 1, "backendOrigin": "/", "autoConnect": true }
 ```
 
 这会在浏览器启动、导入应用和初始化服务前解析为当前站点 origin。API、Socket.IO 与环境素材由同一监听器提供。房间邀请保留本站点地址，房间路径、图鉴和战报路径刷新均返回 SPA；未知 API、Socket.IO 和资源路径返回错误，不被替换成 HTML。网页和环境资源继续使用 `no-store`，没有为发行物引入 UGC 预下载。
 
 TLS 反向代理必须显式设置公开 origin，例如 `PUBLIC_ORIGIN=https://play.example.com`。公共监听器允许精确 HTTP(S) origins，以及发行客户端固定来源 `arcadia-client://app`；拒绝通配符、其他自定义 scheme 与 `null`。默认允许这个固定桌面来源；显式设置 `CORS_ORIGIN` / `--cors-origin` 时使用管理员给定的完整列表（可排除桌面来源）。这个来源不代表可信身份，也不授予内容执行或本机权限。同源 HTTP 直连默认允许本站 origin；前后端分离时通过 `CORS_ORIGIN` 列出实际配套站点。Socket.IO WebSocket 握手使用相同来源判定。CORS 只控制浏览器跨源访问，不授予内容执行或桌面权限。
+
+## 自动连接默认值
+
+`autoConnect` 是部署者提供的默认值，省略时为 `true`。网页在用户未设置过时使用该默认值；顶部“连接设置”中保存的用户选择优先。本地桌面主窗口和纯离线模式始终不自动连接。关闭自动连接不会终止已有连接，也不改变已建立会话的断线恢复。
+
+服务器自带网页可在启动时关闭默认自动连接，无须重新构建网页：
+
+```sh
+ARCADIA_WEB_AUTO_CONNECT=false node dist/cli.js server
+# 或使用启动参数；参数优先于环境变量
+node dist/cli.js server --web-auto-connect false
+```
+
+环境变量和参数只接受 `true` 或 `false`。嵌入式宿主可传入 `createSingleProcessApp({ webRoot, webAutoConnect: false })`。更新配置并重启后，新加载网页会读取新的默认值；已有的用户选择不会被覆盖。
+
+独立部署的网页由网页服务器提供 `/arcadia-client.json`。可在构建时设置 `VITE_AUTO_CONNECT=false`，或者发布时修改配置文件：
+
+```json
+{ "schemaVersion": 1, "backendOrigin": "https://api.example.com", "autoConnect": false }
+```
+
+`--headless` 后端不提供网页配置，因此分离部署须在网页托管端设置该默认值；仅修改 headless 进程的 `ARCADIA_WEB_AUTO_CONNECT` 不会改变独立网页。
 
 ## 独立网页与 headless
 

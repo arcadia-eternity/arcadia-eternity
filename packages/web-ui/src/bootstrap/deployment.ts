@@ -2,6 +2,7 @@
 export interface DeploymentConfig {
   schemaVersion: 1
   backendOrigin: string
+  autoConnect?: boolean
 }
 let config: DeploymentConfig | undefined
 let desktopSelection = false
@@ -12,6 +13,8 @@ export function parseDeploymentConfig(value: unknown, siteOrigin: string): Deplo
   const input = value as Record<string, unknown>
   if (input.schemaVersion !== 1 || typeof input.backendOrigin !== 'string' || !input.backendOrigin.trim())
     throw new Error('客户端部署配置版本或服务器地址无效')
+  if (input.autoConnect !== undefined && typeof input.autoConnect !== 'boolean')
+    throw new Error('自动连接默认值必须是布尔值')
   const url = new URL(input.backendOrigin, siteOrigin)
   if (
     !['http:', 'https:'].includes(url.protocol) ||
@@ -24,7 +27,7 @@ export function parseDeploymentConfig(value: unknown, siteOrigin: string): Deplo
     throw new Error('部署服务器地址必须是 HTTP 或 HTTPS 主机地址')
   if (new URL(siteOrigin).protocol === 'https:' && url.protocol !== 'https:')
     throw new Error('HTTPS 站点必须配对 HTTPS 服务器')
-  return { schemaVersion: 1, backendOrigin: url.origin }
+  return { schemaVersion: 1, backendOrigin: url.origin, autoConnect: input.autoConnect as boolean | undefined }
 }
 
 export async function loadDeploymentConfig(): Promise<void> {
@@ -57,6 +60,11 @@ export async function loadDeploymentConfig(): Promise<void> {
 export function getBackendOrigin(): string {
   if (!config) throw new Error('客户端部署配置尚未加载')
   return config.backendOrigin
+}
+
+export function getDefaultAutoConnect(): boolean {
+  if (!config) throw new Error('客户端部署配置尚未加载')
+  return config.autoConnect ?? true
 }
 
 export function canSelectBackend(): boolean {

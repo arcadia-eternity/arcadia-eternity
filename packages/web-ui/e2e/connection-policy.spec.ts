@@ -39,3 +39,31 @@ test('opting out survives navigation and reload while manual connection remains 
   await page.getByRole('button', { name: '连接服务器', exact: true }).click()
   await expect.poll(() => healthRequests).toBeGreaterThan(0)
 })
+
+for (const mode of ['same-origin', 'separate-backend']) {
+  test(`deployment can disable automatic connection without a saved user preference: ${mode}`, async ({
+    page,
+    baseURL,
+  }) => {
+    const backend = mode === 'same-origin' ? new URL(baseURL!).origin : 'http://127.0.0.1:8199'
+    let healthRequests = 0
+    await page.route('**/arcadia-client.json', route =>
+      route.fulfill({
+        json: { schemaVersion: 1, backendOrigin: backend, autoConnect: false },
+      }),
+    )
+    await page.route(`${backend}/health`, route => {
+      healthRequests++
+      return route.fulfill({ status: 503 })
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: '未连接 · 连接设置' }).click()
+    await expect(page.getByRole('switch')).not.toBeChecked()
+    expect(healthRequests).toBe(0)
+    await page.reload()
+    await page.getByRole('button', { name: '未连接 · 连接设置' }).click()
+    expect(healthRequests).toBe(0)
+    await page.getByText('进入联机页面时自动连接', { exact: true }).click()
+    await expect.poll(() => healthRequests).toBeGreaterThan(0)
+  })
+}

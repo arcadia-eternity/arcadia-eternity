@@ -26,6 +26,8 @@ export interface SingleProcessAppOptions extends RoomOptions {
   desktopLocal?: boolean
   /** Omit for a headless host. Missing or incompatible website fails startup. */
   webRoot?: string
+  /** Default for visitors without a saved client preference. */
+  webAutoConnect?: boolean
   publicOrigin?: string
   port?: number
   host?: string
@@ -462,7 +464,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       res.sendStatus(204)
     })
   }
-  if (options.webRoot) mountPairedWebsite(app, options.webRoot)
+  if (options.webRoot) mountPairedWebsite(app, options.webRoot, options.webAutoConnect)
   app.use((_req, res) => {
     res.status(404).json({ code: 'NOT_FOUND' })
   })
