@@ -387,8 +387,8 @@
         <component :is="Component" class="w-full" :key="$route.path" />
       </router-view>
 
-      <!-- 桌面端版本信息 - 固定在左下角 -->
-      <div v-if="!isMobile" class="fixed bottom-4 left-4 z-30 pointer-events-none">
+      <!-- 编辑工作区的底栏用于运行记录，避免浮动版本信息遮挡。 -->
+      <div v-if="!isMobile && $route.name !== 'Creator'" class="fixed bottom-4 left-4 z-30 pointer-events-none">
         <div class="pointer-events-auto">
           <VersionInfo />
         </div>

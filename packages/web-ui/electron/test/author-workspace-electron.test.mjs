@@ -111,10 +111,30 @@ test(
       await page.getByRole('button', { name: '← 返回上一项', exact: true }).click()
       await page.getByLabel('显示名称', { exact: true }).fill('霜击')
       await save(1)
-      await category('检查与运行').click()
-      await page.getByRole('button', { name: '运行场景测试', exact: true }).click()
+      await expect(category('检查与运行')).toHaveCount(0)
+      const runPanel = page.getByRole('region', { name: '运行记录', exact: true })
+      const toggleRuns = runPanel.getByRole('button', { name: /运行记录/ })
+      const run = async name => {
+        await page.getByText('更多操作', { exact: true }).click()
+        await page.getByRole('button', { name, exact: true }).click()
+      }
+      // Failed runs reveal their diagnostics without replacing the selected editor.
+      const invalidSource = join(project.directory, 'src/__invalid.ts')
+      await writeFile(invalidSource, 'export const invalid: string = 123\n')
+      await run('检查内容与类型')
+      await toggleRuns.click()
+      await expect(toggleRuns).toHaveAttribute('aria-expanded', 'false')
+      await runPanel.getByRole('heading', { name: '检查 · 未完成', exact: true }).waitFor({ timeout: 45000 })
+      await expect(toggleRuns).toHaveAttribute('aria-expanded', 'true')
+      await expect(page.getByLabel('威力', { exact: true })).toHaveValue('70')
+      await toggleRuns.click()
+      // Later polling of the same historical failure must respect the user's collapse.
+      await page.waitForTimeout(1500)
+      await expect(toggleRuns).toHaveAttribute('aria-expanded', 'false')
+      await rm(invalidSource)
+      await run('运行场景测试')
       await page.getByRole('heading', { name: '场景测试 · 已完成', exact: true }).waitFor({ timeout: 45000 })
-      await page.getByRole('button', { name: '运行演示对战', exact: true }).click()
+      await run('无界面演示对战')
       await page.getByRole('heading', { name: '演示对战 · 已完成', exact: true }).waitFor({ timeout: 45000 })
       const jobs = await page.evaluate(
         async id => (await window.arcadiaDesktop.author({ action: 'jobs', id })).result,
@@ -126,7 +146,10 @@ test(
       // The main play action prepares and opens in one click, without leaving the selected object.
       await category(/^技能/).click()
       await page.locator('.content-card').filter({ hasText: '霜击' }).click()
-      await expect(page.getByRole('region', { name: '试玩控制' }).getByRole('button')).toHaveCount(1)
+      await toggleRuns.click()
+      await expect(
+        page.getByRole('region', { name: '试玩控制' }).getByRole('button', { name: '调试试玩', exact: true }),
+      ).toHaveCount(1)
       const personalStorageBefore = await page.evaluate(() => localStorage.getItem('petStorage'))
       const openedPreview = app.waitForEvent('window', { timeout: 45000 })
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()
@@ -189,7 +212,6 @@ test(
       assert.equal(page.url(), editorUrl)
       await page.goBack()
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
-      await category('检查与运行').click()
       const reopened = app.waitForEvent('window')
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()
       preview = await reopened

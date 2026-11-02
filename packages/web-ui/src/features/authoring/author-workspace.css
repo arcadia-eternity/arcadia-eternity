@@ -245,6 +245,7 @@ summary {
   overflow-wrap: anywhere;
 }
 .workspace {
+  isolation: isolate;
   display: grid;
   grid-template-columns: 145px minmax(0, 1fr);
   flex: 1;
@@ -715,4 +716,59 @@ input[type='checkbox'] {
   margin: 0;
   color: var(--author-muted);
   font-size: 12px;
+}
+
+.run-actions {
+  position: relative;
+}
+.run-actions summary {
+  cursor: pointer;
+  padding: 8px;
+}
+.run-actions-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 10;
+  display: grid;
+  gap: 6px;
+  width: 190px;
+  padding: 10px;
+  border: 1px solid var(--author-border);
+  border-radius: 8px;
+  background: var(--author-panel);
+  box-shadow: 0 4px 12px #0002;
+}
+.run-actions-menu small {
+  color: var(--author-muted);
+}
+.run-panel {
+  isolation: isolate;
+  flex: none;
+  min-height: 0;
+  border-top: 1px solid var(--author-border);
+  background: var(--author-panel);
+}
+.author-page .run-panel-toggle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 16px;
+  text-align: left;
+}
+.run-panel-toggle small {
+  color: var(--author-muted);
+}
+.run-panel-body {
+  max-height: 35vh;
+  overflow: auto;
+  padding: 0 16px;
+}
+.run-panel .job {
+  padding: 12px;
+  margin: 8px 0;
 }
