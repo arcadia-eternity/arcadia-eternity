@@ -51,13 +51,25 @@ test(
         return preview
       }
       let preview = await open()
+      // Keep the common path compact; make the edited side and persistence state explicit.
+      await expect(preview.getByRole('button', { name: '管理环境', exact: true })).toHaveCount(0)
+      await expect(preview.getByRole('button', { name: '删除队伍', exact: true })).toHaveCount(0)
+      await expect(preview.getByRole('button', { name: '保存队伍', exact: true })).toBeDisabled()
+      const editorBox = await preview.getByLabel('精灵名称', { exact: true }).boundingBox()
+      assert.ok(editorBox.y < 550, 'pet editing should be visible on the initial desktop viewport')
+      await preview.getByRole('button', { name: '编辑对方队伍', exact: true }).click()
+      await expect(preview.getByRole('region', { name: '当前队伍操作' })).toContainText('Orange')
+      await preview.getByRole('button', { name: '编辑我方队伍', exact: true }).click()
+      await expect(preview.getByRole('region', { name: '当前队伍操作' })).toContainText('Blue')
       const errors = []
       preview.on('pageerror', error => errors.push(error.message))
       await preview.getByLabel('精灵名称', { exact: true }).fill('已保存项目精灵')
+      await expect(preview.getByRole('status').filter({ hasText: '有修改未保存到项目' })).toBeVisible()
       await preview.getByRole('button', { name: '保存队伍', exact: true }).click()
       const file = join(project.directory, 'debug/teams/blue.yaml')
       await expect.poll(async () => YAML.parse(await readFile(file, 'utf8')).team[0].name).toBe('已保存项目精灵')
       assert.equal(YAML.parse(await readFile(file, 'utf8')).team[0].id, undefined)
+      await expect(preview.getByRole('status').filter({ hasText: '已保存到项目' })).toBeVisible()
       await preview.getByLabel('精灵名称', { exact: true }).fill('重启保留的草稿')
       // Close immediately: persistence cannot depend on the editor's save debounce.
       await preview.close()
@@ -73,7 +85,6 @@ test(
       await expect(preview.getByRole('alert').filter({ hasText: '文件已在外部修改' })).toBeVisible()
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
       await preview.getByRole('button', { name: '复制当前队伍', exact: true }).click()
-      await preview.getByRole('button', { name: '重命名', exact: true }).click()
       await preview.getByLabel('队伍名称', { exact: true }).fill('客户端重命名副本')
       await preview.getByRole('button', { name: '确认名称', exact: true }).click()
       await expect(preview.getByLabel('我方队伍', { exact: true }).locator('option:checked')).toContainText(
@@ -83,6 +94,7 @@ test(
       await expect.poll(async () => (await readdir(join(project.directory, 'debug/teams'))).length).toBe(3)
       const selected = await preview.getByLabel('我方队伍', { exact: true }).inputValue()
       await preview.getByLabel('对方队伍', { exact: true }).selectOption(selected)
+      await expect(preview.getByText('双方使用同一套队伍，编辑会同步应用到双方。')).toBeVisible()
       // A real extra-source environment is prepared through the same singleton owner.
       const other = await page.evaluate(
         async () => (await window.arcadiaDesktop.author({ action: 'create', name: '协作源码包' })).result,
@@ -90,6 +102,7 @@ test(
       await app.evaluate(({ dialog }, directory) => {
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] })
       }, other.directory)
+      await preview.getByRole('button', { name: /当前包与正式依赖/ }).click()
       await preview.getByRole('button', { name: '新建环境', exact: true }).click()
       await preview.getByLabel('环境名称', { exact: true }).fill('真实双包环境')
       await preview.getByRole('button', { name: '添加本机源码包', exact: true }).click()
@@ -101,6 +114,7 @@ test(
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
       await expect(preview.getByLabel('对方队伍', { exact: true })).toHaveValue(selected)
       assert.equal(app.windows().length, 2)
+      await preview.getByRole('button', { name: /真实双包环境.*已准备/ }).click()
       await preview.getByRole('button', { name: '管理环境', exact: true }).click()
       await preview.getByLabel('环境名称', { exact: true }).fill('真实双包环境改名')
       await preview.getByRole('button', { name: '保存环境配置', exact: true }).click()
@@ -135,7 +149,8 @@ test(
       await page.goto(`${origin}/content/edit/${project.id}`)
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       preview = await open()
-      await expect(preview.locator('.team-sides').filter({ hasText: '已准备：' })).toContainText('真实双包环境改名')
+      await expect(preview.getByRole('button', { name: /真实双包环境改名.*已准备/ })).toBeVisible()
+      await preview.getByRole('button', { name: /真实双包环境改名.*已准备/ }).click()
       await expect(preview.getByLabel('我方队伍', { exact: true })).toHaveValue(selected)
       const orangeFile = join(project.directory, 'debug/teams/orange.yaml')
       await rm(orangeFile)

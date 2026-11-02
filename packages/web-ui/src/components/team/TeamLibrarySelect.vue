@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { TeamLibraryDelegate } from './library'
-const props = defineProps<{ delegate: TeamLibraryDelegate; label: string }>()
+const props = defineProps<{ delegate: TeamLibraryDelegate; label: string; disabled?: boolean }>()
 const delegate = props.delegate
 </script>
 <template>
   <label class="team-library-select"
     >{{ label }}
-    <select v-model="delegate.selected.value" :aria-label="label">
+    <select v-model="delegate.selected.value" :aria-label="label" :disabled="disabled">
       <option v-for="entry in delegate.entries.value" :key="entry.id" :value="entry.id">
         {{ entry.name }} · {{ entry.size }} 只
       </option>

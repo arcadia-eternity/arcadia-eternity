@@ -10,7 +10,8 @@ const require = createRequire(import.meta.url)
 test(
   'desktop source workflow edits real files, preserves external conflicts and runs the actual pack tests',
   {
-    timeout: 180000,
+    // This workflow builds and installs multiple real content revisions in isolated hosts.
+    timeout: 300000,
     skip: process.env.ARCADIA_AUTHOR_GUI_TEST !== '1',
   },
   async () => {
@@ -177,7 +178,7 @@ test(
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()
       preview = await scratchReopen
       await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
-      await expect(preview.getByRole('button', { name: '我方 · 2 只', exact: true })).toBeVisible()
+      await expect(preview.getByLabel('我方队伍', { exact: true }).locator('option:checked')).toContainText('2 只')
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('测试首发')
       await expect(preview.getByLabel('等级', { exact: true })).toHaveValue('95')
       assert.equal(await preview.evaluate(() => window.__APP_DEBUG__.pinia._s.has('petStorage')), false)
@@ -262,7 +263,7 @@ test(
       await preview.getByRole('button', { name: '继续当前对局', exact: true }).click()
       await expect(preview.locator('.battle-result')).toContainText('胜利！')
       await preview.locator('.preview-header').getByRole('button', { name: '调整队伍', exact: true }).click()
-      await preview.getByRole('button', { name: '对方（AI） · 1 只', exact: true }).click()
+      await preview.getByRole('button', { name: '编辑对方队伍', exact: true }).click()
       await preview.getByLabel('精灵名称', { exact: true }).fill('测试对手')
       await preview.getByLabel('等级', { exact: true }).fill('60')
       await preview.getByRole('button', { name: '开始对战', exact: true }).click()
@@ -314,6 +315,7 @@ test(
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()
       preview = await updatedWindow
       await preview.getByRole('button', { name: '开始对战', exact: true }).click()
+      await preview.getByTestId('skill-button').filter({ hasText: '霜击' }).waitFor({ timeout: 45000 })
       await expect(preview.getByTestId('skill-button').filter({ hasText: '霜击' })).toContainText('71')
       const previewsAfter = await page.evaluate(
         async id =>
@@ -375,6 +377,7 @@ test(
       // The same editor still exposes personal collection capabilities on the ordinary page.
       await page.setViewportSize({ width: 1280, height: 800 })
       await page.goto(origin + '/team-builder')
+      await page.getByRole('button', { name: '清理所有数据', exact: true }).waitFor({ timeout: 45000 })
       await expect(page.getByRole('button', { name: '清理所有数据', exact: true })).toBeVisible()
       await expect(page.getByRole('link', { name: '仓库管理', exact: true })).toBeVisible()
       await page.getByRole('button', { name: '添加精灵', exact: true }).click()

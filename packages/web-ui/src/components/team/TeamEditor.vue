@@ -104,7 +104,10 @@
     </div>
 
     <!-- 队伍规则验证状态 -->
-    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3">
+    <div
+      v-if="!compact || !teamValidationResult.isValid || teamValidationResult.warnings.length"
+      class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3"
+    >
       <!-- 验证中状态 -->
       <div v-if="isValidating" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
         <div class="flex items-center space-x-3">
@@ -337,6 +340,7 @@
                             Lv.{{ pet.level }}
                           </span>
                           <span
+                            v-if="!compact"
                             class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
                           >
                             #{{ pet.id.slice(-4) }}
