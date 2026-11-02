@@ -1,3 +1,5 @@
+import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
+import { nanoid } from 'nanoid'
 import type { BattleMessage } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
@@ -20,6 +22,48 @@ export function previewEndpoint(value: string): string {
   return url.href.replace(/\/$/, '')
 }
 
+async function previewRequest<T>(
+  endpoint: string,
+  route: string,
+  args?: unknown[],
+  signal = new AbortController().signal,
+): Promise<T> {
+  const response = await fetch(`${endpoint}/${route}`, {
+    method: args ? 'POST' : 'GET',
+    ...(args ? { body: JSON.stringify({ args }), headers: { 'content-type': 'application/json' } } : {}),
+    cache: 'no-store',
+    credentials: 'omit',
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+  })
+  const data = await response.json()
+  if (!response.ok) throw new Error(data.error ?? `试玩连接失败（${response.status}）`)
+  return args ? (data.result as T) : (data as T)
+}
+
+export async function loadAuthorPreviewSetup(value: string) {
+  const result = await previewRequest<{
+    content: ServerEnvironmentContent
+    players: PlayerSchemaType[]
+    active: boolean
+  }>(previewEndpoint(value), 'content')
+  validateEnvironmentContent(result.content)
+  if (!Array.isArray(result.players) || result.players.length !== 2) throw new Error('项目需要配置双方默认队伍')
+  const players = result.players.map(player =>
+    parseWithErrors(PlayerSchema, {
+      ...player,
+      id: player.id ?? nanoid(),
+      team: player.team.map(pet => ({ ...pet, id: pet.id ?? nanoid() })),
+    }),
+  )
+  return { ...result, players }
+}
+
+export async function configureAuthorPreview(value: string, players: PlayerSchemaType[]) {
+  return previewRequest(previewEndpoint(value), 'configure', [players])
+}
+
 export async function connectAuthorPreview(value: string, onFailure: (error: Error) => void = () => {}) {
   const endpoint = previewEndpoint(value)
   const controller = new AbortController()
@@ -27,23 +71,10 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
     polling = false,
     disposed = false
   const listeners = new Set<(message: BattleMessage) => void>()
-  async function request<T>(route: string, args?: unknown[], signal = controller.signal): Promise<T> {
-    const response = await fetch(`${endpoint}/${route}`, {
-      method: args ? 'POST' : 'GET',
-      ...(args ? { body: JSON.stringify({ args }), headers: { 'content-type': 'application/json' } } : {}),
-      cache: 'no-store',
-      credentials: 'omit',
-      redirect: 'error',
-      referrerPolicy: 'no-referrer',
-      signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
-    })
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error ?? `试玩连接失败（${response.status}）`)
-    return args ? (data.result as T) : (data as T)
-  }
+  const request = <T>(route: string, args?: unknown[]) => previewRequest<T>(endpoint, route, args, controller.signal)
   const { content } = await request<{ content: ServerEnvironmentContent }>('content')
   validateEnvironmentContent(content)
-  const initial = await request<{ cursor: number }>('open', [])
+  const initial = await request<{ cursor: number; outcome?: { winner: string | null } }>('open', [])
   cursor = initial.cursor
   const call = <T>(method: string, ...args: unknown[]) => request<T>(method, args)
   async function poll() {
@@ -96,8 +127,8 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
       disposed = true
       controller.abort()
       listeners.clear()
-      await request('cleanup', [], new AbortController().signal).catch(() => {})
+      await previewRequest(endpoint, 'cleanup', []).catch(() => {})
     },
   }
-  return { system, content }
+  return { system, content, outcome: initial.outcome }
 }

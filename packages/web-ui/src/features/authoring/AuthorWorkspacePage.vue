@@ -106,6 +106,15 @@ const selectedKind = ref('species')
 const selectedAssetId = ref('')
 const asset = ref<{ file: string; bytes: Uint8Array }>(),
   assetLoading = ref(false)
+const jobStates: Record<string, string> = {
+  queued: '排队中',
+  running: '进行中',
+  succeeded: '已完成',
+  failed: '未完成',
+  cancelled: '已停止',
+  interrupted: '已中断',
+}
+const autoOpenPreview = ref('')
 const jobTitles: Record<string, string> = {
   check: '检查',
   test: '场景测试',
@@ -384,6 +393,32 @@ const files = computed(
     ) ?? [],
 )
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
+const latestPreview = computed(() => jobs.value.find(job => job.kind === 'preview'))
+const activePreview = computed(() =>
+  jobs.value.find(job => job.kind === 'preview' && job.state === 'succeeded' && job.result?.preview),
+)
+const previewStatus = computed(() => {
+  if (dirty.value) return '有未保存修改 · 保存后可试玩'
+  if (latestPreview.value && ['queued', 'running'].includes(latestPreview.value.state))
+    return '正在准备试玩，可继续编辑'
+  if (latestPreview.value?.state === 'failed') return '试玩准备失败 · 在检查与运行中查看原因'
+  if (activePreview.value?.stale) return '内容已更新 · 现有试玩仍使用之前的内容'
+  if (activePreview.value) return '调试窗口已就绪 · 可配置双方测试队伍'
+  return '配置测试队伍，试玩已保存的内容'
+})
+watch(jobs, async result => {
+  if (disposed || !autoOpenPreview.value) return
+  const job = result.find(row => row.jobId === autoOpenPreview.value)
+  if (!job || ['queued', 'running'].includes(job.state)) return
+  autoOpenPreview.value = ''
+  if (job.state !== 'succeeded') return
+  const id = project.value?.id
+  try {
+    await authorCall({ action: 'preview-open', id, jobId: job.jobId })
+  } catch (cause) {
+    if (!disposed && project.value?.id === id) error.value = String(cause)
+  }
+})
 const validation = computed(() =>
   pending.value.flatMap(draft => {
     const issues: string[] = []
@@ -548,6 +583,7 @@ async function openProject(next: SourceProject) {
   mediaController?.abort()
   clearTimeout(contextTimer)
   lastFocused.value = undefined
+  autoOpenPreview.value = ''
   project.value = next
   projectSettingsOpen.value = false
   snapshot.value = undefined
@@ -870,6 +906,11 @@ async function start(kind: string) {
   if (dirty.value) throw new Error('请先保存草稿，运行任务读取的是磁盘内容。')
   const job = await action<AuthorJob>({ action: 'start', kind })
   jobs.value = [job, ...jobs.value.filter(row => row.jobId !== job.jobId)]
+  return job
+}
+async function playPreview() {
+  const job = await start('preview')
+  autoOpenPreview.value = job.jobId
 }
 async function readAsset(file: string, resourceId?: string) {
   selectedAssetId.value = resourceId ?? assets.value.find(row => row.source === file)?.id ?? ''
@@ -1008,6 +1049,25 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </header>
+    <section v-if="project && !readOnly" class="play-toolbar" aria-label="试玩控制">
+      <p role="status">{{ previewStatus }}</p>
+      <button
+        v-if="activePreview"
+        :disabled="busy"
+        @click="attempt(() => action({ action: 'preview-open', jobId: activePreview!.jobId }))"
+      >
+        {{ activePreview.stale ? '打开之前的调试' : '打开调试窗口' }}
+      </button>
+      <button class="primary" :disabled="busy || running || dirty" @click="attempt(playPreview)">
+        {{
+          running && latestPreview && ['queued', 'running'].includes(latestPreview.state)
+            ? '正在准备…'
+            : activePreview
+              ? '用最新内容调试'
+              : '调试试玩'
+        }}
+      </button>
+    </section>
     <details v-if="!project || projectSettingsOpen" class="project-settings" open>
       <summary>{{ project ? '项目与外部工具' : '打开内容包源项目' }}</summary>
       <div class="tools">
@@ -1566,33 +1626,36 @@ onBeforeUnmount(() => {
             <button :disabled="busy || running || dirty" @click="attempt(() => start('check'))">检查内容与类型</button
             ><button :disabled="busy || running || dirty" @click="attempt(() => start('test'))">运行场景测试</button
             ><button :disabled="busy || running || dirty" @click="attempt(() => start('demo'))">运行演示对战</button
-            ><button :disabled="busy || running || dirty" @click="attempt(() => start('preview'))">准备画面试玩</button
             ><button :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">构建内容包</button>
           </div>
-          <div class="file-links">
-            <button v-for="file in files" :key="file.file" @click="attempt(() => external(file.file))">
-              {{ file.file }} ↗
-            </button>
-          </div>
+          <details v-if="files.length" class="source-details" :open="tab === 'effects'">
+            <summary>{{ tab === 'effects' ? '效果源文件' : '测试源文件' }}</summary>
+            <div class="file-links">
+              <button v-for="file in files" :key="file.file" @click="attempt(() => external(file.file))">
+                {{ file.file }} ↗
+              </button>
+            </div>
+          </details>
+          <h2 v-if="tab === 'tests' && jobs.length">运行记录</h2>
           <article v-for="job in tab === 'tests' ? jobs : []" :key="job.jobId" class="job">
             <header>
-              <h3>{{ jobTitles[job.kind] || job.kind }} · {{ job.state }}</h3>
+              <h3>{{ jobTitles[job.kind] || job.kind }} · {{ jobStates[job.state] || job.state }}</h3>
               <button
                 v-if="
                   ['queued', 'running'].includes(job.state) || (job.kind === 'preview' && job.state === 'succeeded')
                 "
                 @click="attempt(() => action({ action: 'cancel', jobId: job.jobId }))"
               >
-                取消
+                {{ job.kind === 'preview' && job.state === 'succeeded' ? '结束试玩' : '停止' }}
               </button>
             </header>
-            <p v-if="job.stale" class="error">源码已变化，此结果对应旧修订。</p>
+            <p v-if="job.stale" class="error">内容已更新。此记录使用的是修改前的内容。</p>
             <button
               v-if="job.result?.preview && job.state === 'succeeded'"
               :disabled="busy"
               @click="attempt(() => action({ action: 'preview-open', jobId: job.jobId }))"
             >
-              {{ job.stale ? '打开旧候选画面' : '打开战斗画面' }}
+              {{ job.stale ? '打开之前的试玩' : '打开试玩' }}
             </button>
             <p v-for="(item, index) in job.diagnostics" :key="index" class="error">
               {{ item.message }}

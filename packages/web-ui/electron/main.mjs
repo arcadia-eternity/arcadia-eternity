@@ -14,6 +14,7 @@ import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-prot
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
 import { ContentLibrary } from './content-library.mjs'
+import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
@@ -83,6 +84,19 @@ let contentProjects
 let contentLibrary
 let authorWorkspaces
 const authorPreviewWindows = new Map()
+const previewSession = createAuthorPreviewSessions({ directory: rendererDistDir, development: !!devServerUrl })
+ipcMain.on('author-preview:return', event => {
+  const window = [...authorPreviewWindows.values()].find(window =>
+    isTrustedDesktopRequest(event, window.webContents, rendererUrl),
+  )
+  if (!window) return
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  }
+  window.close()
+})
 async function openAuthorPreview(id, job) {
   if (job.kind !== 'preview' || job.state !== 'succeeded' || !job.result?.preview?.endpoint)
     throw new Error('请先为当前源项目准备可用的画面试玩')
@@ -92,13 +106,13 @@ async function openAuthorPreview(id, job) {
     previous.focus()
     return
   }
-  const isolated = session.fromPartition(`author-preview-${randomUUID()}`, { cache: false })
-  if (!devServerUrl) registerClientProtocol(isolated, rendererDistDir)
-  isolated.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
-  isolated.setPermissionCheckHandler(() => false)
+  const isolated = previewSession(key)
   const window = new BrowserWindow({
     width: 1280,
     height: 800,
+    show: false,
+    backgroundColor: '#09131f',
+    title: '内容包试玩',
     webPreferences: {
       session: isolated,
       preload: path.join(__dirname, 'preview-preload.cjs'),
@@ -108,12 +122,12 @@ async function openAuthorPreview(id, job) {
       webSecurity: true,
     },
   })
+  window.once('ready-to-show', () => window.show())
   authorPreviewWindows.set(key, window)
   protectDesktopNavigation(window, rendererUrl)
   window.on('closed', () => {
     authorPreviewWindows.delete(key)
     void isolated.closeAllConnections()
-    void isolated.clearStorageData()
   })
   const url = new URL('/content/preview', rendererUrl)
   url.searchParams.set('endpoint', job.result.preview.endpoint)
@@ -1811,6 +1825,7 @@ function setupIpcHandlers() {
               break
             case 'cancel':
               result = await session.call('cancel', { jobId: input.jobId })
+              authorPreviewWindows.get(`${input.id}:${input.jobId}`)?.close()
               break
             case 'media':
               result = await session.workspace.asset(input.file)

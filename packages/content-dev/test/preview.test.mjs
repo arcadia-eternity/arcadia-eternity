@@ -114,6 +114,23 @@ test(
     assert.ok(turns > 0 && turns < 40)
     const messages = await (await fetch(`${endpoint}/events?after=0`)).json()
     assert.ok(messages.events.length > 0)
+    const reopened = await command(endpoint, 'open')
+    assert.deepEqual(
+      reopened.outcome,
+      messages.events.findLast(event => event.message.type === 'BATTLE_END').message.data,
+    )
+    const teams = structuredClone(catalog.players)
+    teams[0].team[0].level = 65
+    teams[0].team[0].name = '独立测试首发'
+    await command(endpoint, 'configure', teams)
+    const configured = await command(endpoint, 'getState', undefined, true)
+    assert.equal(configured.players[0].team[0].level, 65)
+    assert.equal(configured.players[0].team[0].name, '独立测试首发')
+    assert.deepEqual((await (await fetch(`${endpoint}/content`)).json()).players, catalog.players)
+    const invalid = structuredClone(teams)
+    invalid[0].team[0].species = 'missing:pet'
+    await assert.rejects(command(endpoint, 'configure', invalid))
+    assert.deepEqual(await command(endpoint, 'getState', undefined, true), configured)
     await command(endpoint, 'cleanup')
     session.jobs.cancel(first.jobId)
     session.jobs.cancel(second.jobId)

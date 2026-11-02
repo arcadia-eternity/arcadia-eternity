@@ -1,9 +1,10 @@
 import { mount, flushPromises } from '@vue/test-utils'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 
 const context = vi.hoisted(() => ({
   failInitialization: false,
+  whenReady: vi.fn(async () => {}),
   stop: vi.fn(async () => {}),
   restore: vi.fn(),
   replace: vi.fn(async () => {
@@ -17,14 +18,14 @@ const context = vi.hoisted(() => ({
   },
 }))
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: { endpoint: 'http://127.0.0.1:8123/' + 'a'.repeat(48) } }),
+  useRoute: () => ({ query: { endpoint: 'http://127.0.0.1:8123/' + 'a'.repeat(48), resume: 'true' } }),
   useRouter: () => ({ replace: context.replace }),
   isNavigationFailure: () => false,
 }))
 vi.mock('@/stores/battle', () => ({ useBattleStore: () => context.battle }))
 vi.mock('@/stores/gameData', () => ({
   useGameDataStore: () => ({
-    whenReady: async () => {},
+    whenReady: context.whenReady,
     useLocalBattleContent: () => context.restore,
   }),
 }))
@@ -34,7 +35,18 @@ vi.mock('@/services/authorPreview', () => ({
     system: { cleanup: context.stop, getState: async () => ({ players: [{ id: 'player' }] }) },
   }),
 }))
+vi.mock('@/components/battle/BattleLoading.vue', () => ({
+  default: {
+    props: ['error'],
+    emits: ['exit', 'retry'],
+    template: `<div><p v-if="error" role="alert">{{ error }}</p><button @click="$emit('exit')">返回</button></div>`,
+  },
+}))
 import AuthorPreviewPage from '../AuthorPreviewPage.vue'
+
+afterEach(() => {
+  delete window.arcadiaAuthorPreview
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -67,3 +79,18 @@ it.each([true, false])(
     }
   },
 )
+
+it('isolated previews skip base content loading and return to the existing editor on failure', async () => {
+  const returnToEditor = vi.fn()
+  window.arcadiaAuthorPreview = { returnToEditor }
+  context.failInitialization = true
+  const wrapper = mount(AuthorPreviewPage)
+  try {
+    await flushPromises()
+    expect(context.whenReady).not.toHaveBeenCalled()
+    await wrapper.get('button').trigger('click')
+    expect(returnToEditor).toHaveBeenCalledOnce()
+  } finally {
+    wrapper.unmount()
+  }
+})

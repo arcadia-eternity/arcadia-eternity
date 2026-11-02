@@ -86,12 +86,13 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
       }
     return result
   }
-  async function reset() {
+  async function reset(players) {
+    // Validate and construct first: a bad test team must not destroy the current match.
+    const battle = prepared.createBattle('author-preview', { ai: true, players })
     unsubscribe?.()
     await system?.cleanup()
     events = []
     sequence = 0
-    const battle = prepared.createBattle('author-preview', { ai: true })
     system = new LocalBattleSystemV4(battle, prepared.environment.content)
     unsubscribe = system.BattleEvent(
       message => {
@@ -124,7 +125,12 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
       }
       const route = url.pathname.slice(token.length + 2)
       if (request.method === 'GET' && route === 'content')
-        return json(200, { content: publicContent(), candidate: prepared.candidate })
+        return json(200, {
+          content: publicContent(),
+          candidate: prepared.candidate,
+          players: prepared.defaultPlayers(),
+          active: !!system,
+        })
       if (request.method === 'GET' && route === 'events') {
         const after = Number(url.searchParams.get('after'))
         if (!Number.isSafeInteger(after) || after < 0 || after < (events[0]?.cursor ?? 1) - 1)
@@ -148,9 +154,14 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
       }
       const { args = [] } = JSON.parse(body || '{}')
       if (!Array.isArray(args)) throw new Error('INVALID_ARGUMENTS')
+      if (route === 'configure') {
+        if (!Array.isArray(args[0]) || args[0].length !== 2) throw new Error('请配置双方测试队伍')
+        return json(200, { result: await reset(args[0]) })
+      }
       if (route === 'open') {
         const state = system ? await system.getState(undefined, true) : await reset()
-        return json(200, { result: { state, cursor: sequence } })
+        const outcome = events.findLast(event => event.message.type === 'BATTLE_END')?.message.data
+        return json(200, { result: { state, cursor: sequence, outcome } })
       }
       if (route === 'cleanup') {
         unsubscribe?.()

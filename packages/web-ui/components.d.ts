@@ -94,6 +94,7 @@ declare module 'vue' {
     SkillButton: typeof import('./src/components/battle/SkillButton.vue')['default']
     SkillDetail: typeof import('./src/components/dex/SkillDetail.vue')['default']
     SpeciesDetail: typeof import('./src/components/dex/SpeciesDetail.vue')['default']
+    TeamEditor: typeof import('./src/components/team/TeamEditor.vue')['default']
     TeamSelectionPanel: typeof import('./src/components/battle/TeamSelectionPanel.vue')['default']
     TeamSelector: typeof import('./src/components/TeamSelector.vue')['default']
     Tooltip: typeof import('./src/components/battle/Tooltip.vue')['default']

@@ -135,10 +135,12 @@ export type LocalBattleHostStatus =
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
-  author?: (input: Record<string, unknown>) => Promise<{ result?: unknown; error?: { code: string; message: string; file?: string } }>
+  author?: (
+    input: Record<string, unknown>,
+  ) => Promise<{ result?: unknown; error?: { code: string; message: string; file?: string } }>
   onAuthorChanged?: (callback: (event: { id: string; file?: string; type: string }) => void) => () => void
-  getBackendConfig(): Promise<{schemaVersion:1;backendOrigin:string}>
-  openRemotePlay(input: {url:string}): Promise<unknown>
+  getBackendConfig(): Promise<{ schemaVersion: 1; backendOrigin: string }>
+  openRemotePlay(input: { url: string }): Promise<unknown>
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
   selectContentPackageFile?: (options: {
     offline?: boolean
@@ -228,8 +230,11 @@ export interface ContentProjectAction {
 declare global {
   interface Window {
     arcadiaDesktop?: ArcadiaDesktopApi
+    arcadiaAuthorPreview?: {
+      returnToEditor(): void
+    }
     arcadiaRemotePlay?: {
-      getBootConfig(): Promise<{schemaVersion:1;mode:'remote-play';backendOrigin:string;sessionId:string}>
+      getBootConfig(): Promise<{ schemaVersion: 1; mode: 'remote-play'; backendOrigin: string; sessionId: string }>
       close(): Promise<void>
     }
   }

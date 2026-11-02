@@ -134,6 +134,7 @@ const emitter = mitt<AnimationEvents>()
 
 const route = useRoute()
 const router = useRouter()
+const previewReturnLabel = window.arcadiaAuthorPreview ? '返回编辑器' : '返回内容包'
 const isLocalBattle = computed(
   () =>
     !props.replayMode &&
@@ -288,7 +289,7 @@ const rightPetRef = useTemplateRef('rightPetRef')
 const leftStatusRef = useTemplateRef('leftStatusRef')
 const rightStatusRef = useTemplateRef('rightStatusRef')
 // 移除了 useElementBounding 相关代码，现在使用固定坐标系统
-const showBattleEndUI = ref(false)
+const showBattleEndUI = ref(!props.replayMode && store.isBattleEnd)
 const showKoBanner = ref(false) // 新增：控制KO横幅显示
 const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板引用
 
@@ -1076,6 +1077,11 @@ const navigateToLobbyWithMatching = async () => {
 const navigateToHome = async () => {
   if (isFullscreen.value) {
     await exitFullscreen()
+  }
+  if (typeof route.query.authorPreview === 'string') {
+    if (window.arcadiaAuthorPreview) window.arcadiaAuthorPreview.returnToEditor()
+    else await router.push('/content')
+    return
   }
   router.push(isLocalBattle.value ? '/local-battle' : '/')
 }
@@ -2752,7 +2758,13 @@ watch(
                   class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
                   @click="navigateToHome"
                 >
-                  {{ isLocalBattle ? '返回人机对战' : '返回大厅' }}
+                  {{
+                    typeof route.query.authorPreview === 'string'
+                      ? previewReturnLabel
+                      : isLocalBattle
+                        ? '返回人机对战'
+                        : '返回大厅'
+                  }}
                 </button>
               </div>
             </div>

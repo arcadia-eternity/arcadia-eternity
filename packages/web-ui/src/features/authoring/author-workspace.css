@@ -700,3 +700,19 @@ input[type='checkbox'] {
   color: var(--author-muted);
   margin-left: 4px;
 }
+
+.play-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--author-border);
+  background: var(--author-panel);
+}
+.play-toolbar p {
+  flex: 1 1 220px;
+  margin: 0;
+  color: var(--author-muted);
+  font-size: 12px;
+}

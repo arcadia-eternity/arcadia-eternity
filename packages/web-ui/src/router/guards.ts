@@ -12,7 +12,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
   // 需要有效对战的页面
   if (to.meta.requiresBattle) {
     if (typeof to.query.authorPreview === 'string' && !store.battleInterface)
-      return { name: 'AuthorPreview', query: { endpoint: to.query.authorPreview } }
+      return { name: 'AuthorPreview', query: { endpoint: to.query.authorPreview, resume: 'true' } }
     const isPrivateRoomBattle = to.query.privateRoom === 'true'
     const isServerBattle = typeof to.query.roomId === 'string' && to.query.roomId.length > 0
     const isP2PBattle = to.query.p2p === 'true'

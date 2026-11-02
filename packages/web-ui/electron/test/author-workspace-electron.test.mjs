@@ -113,9 +113,9 @@ test(
       await save(1)
       await category('检查与运行').click()
       await page.getByRole('button', { name: '运行场景测试', exact: true }).click()
-      await page.getByRole('heading', { name: '场景测试 · succeeded', exact: true }).waitFor({ timeout: 45000 })
+      await page.getByRole('heading', { name: '场景测试 · 已完成', exact: true }).waitFor({ timeout: 45000 })
       await page.getByRole('button', { name: '运行演示对战', exact: true }).click()
-      await page.getByRole('heading', { name: '演示对战 · succeeded', exact: true }).waitFor({ timeout: 45000 })
+      await page.getByRole('heading', { name: '演示对战 · 已完成', exact: true }).waitFor({ timeout: 45000 })
       const jobs = await page.evaluate(
         async id => (await window.arcadiaDesktop.author({ action: 'jobs', id })).result,
         project.id,
@@ -123,11 +123,33 @@ test(
       assert.ok(jobs.some(job => job.kind === 'demo' && job.output.includes('Winner:')))
       assert.equal((await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())).status, 'idle')
       assert.equal(await page.locator('.monaco-editor').count(), 0)
-      await page.getByRole('button', { name: '准备画面试玩', exact: true }).click()
-      await page.getByRole('heading', { name: '画面试玩 · succeeded', exact: true }).waitFor({ timeout: 45000 })
-      const openedPreview = app.waitForEvent('window')
-      await page.getByRole('button', { name: '打开战斗画面', exact: true }).click()
-      const preview = await openedPreview
+      // The main play action prepares and opens in one click, without leaving the selected object.
+      await category(/^技能/).click()
+      await page.locator('.content-card').filter({ hasText: '霜击' }).click()
+      const personalStorageBefore = await page.evaluate(() => localStorage.getItem('petStorage'))
+      const openedPreview = app.waitForEvent('window', { timeout: 45000 })
+      await page.getByRole('button', { name: '调试试玩', exact: true }).click()
+      let preview = await openedPreview
+      await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
+      await expect(preview.getByRole('button', { name: '移入仓库', exact: true })).toHaveCount(0)
+      await preview.getByLabel('精灵名称', { exact: true }).fill('测试首发')
+      await preview.getByLabel('等级', { exact: true }).fill('95')
+      await preview.getByRole('button', { name: '添加精灵', exact: true }).click()
+      await preview.getByLabel('精灵名称', { exact: true }).fill('测试替补')
+      // Scratch configuration survives returning before a match has even started.
+      const scratchReturn = preview.waitForEvent('close')
+      await preview.getByRole('button', { name: '返回编辑器', exact: true }).click()
+      await scratchReturn
+      await expect(page.getByLabel('威力', { exact: true })).toHaveValue('70')
+      const scratchReopen = app.waitForEvent('window')
+      await page.getByRole('button', { name: '打开调试窗口', exact: true }).click()
+      preview = await scratchReopen
+      await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
+      await expect(preview.getByRole('button', { name: '我方 · 2 只', exact: true })).toBeVisible()
+      await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('测试首发')
+      await expect(preview.getByLabel('等级', { exact: true })).toHaveValue('95')
+      assert.equal(await preview.evaluate(() => window.__APP_DEBUG__.pinia._s.has('petStorage')), false)
+      await preview.getByRole('button', { name: '开始对战', exact: true }).click()
       await preview.waitForURL(/\/battle\?authorPreview=/, { timeout: 45000 })
       const errors = []
       preview.on('pageerror', error => errors.push(error.message))
@@ -136,6 +158,12 @@ test(
         return store?.battleState?.players?.[0]?.pets?.length > 0 || store?.availableActions?.length > 0
       })
       assert.equal(await preview.evaluate(() => typeof window.arcadiaDesktop), 'undefined')
+      const configured = await preview.evaluate(
+        () => window.__APP_DEBUG__.pinia._s.get('battle').battleState.players[0],
+      )
+      assert.equal(configured.team.length, 2)
+      assert.equal(configured.team[0].name, '测试首发')
+      assert.equal(configured.team[0].level, 95)
       await expect(preview.locator('body')).toContainText('霜击')
       await page.getByRole('link', { name: '内容包', exact: true }).click()
       await page.waitForURL(/\/content$/)
@@ -151,8 +179,29 @@ test(
         ),
         beforeReload,
       )
+      // Returning during a battle preserves both the editor and this candidate's state.
+      const editorUrl = page.url()
+      await expect(preview.getByRole('button', { name: '队伍编辑', exact: true })).toHaveCount(0)
+      const closedPreview = preview.waitForEvent('close')
+      await preview.getByRole('button', { name: '返回编辑器', exact: true }).click()
+      await closedPreview
+      assert.equal(page.url(), editorUrl)
       await page.goBack()
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
+      await category('检查与运行').click()
+      const reopened = app.waitForEvent('window')
+      await page.getByRole('button', { name: '打开调试窗口', exact: true }).click()
+      preview = await reopened
+      await preview.getByRole('button', { name: '继续当前对局', exact: true }).click()
+      await preview.waitForURL(/\/battle\?authorPreview=/, { timeout: 45000 })
+      await preview.getByTestId('skill-button').filter({ hasText: '霜击' }).waitFor()
+      assert.deepEqual(
+        await preview.evaluate(() =>
+          window.__APP_DEBUG__.pinia._s.get('battle').battleInterface.getState(undefined, true),
+        ),
+        beforeReload,
+      )
+      preview.on('pageerror', error => errors.push(error.message))
       let turns = 0
       while (turns++ < 40) {
         await preview.waitForFunction(() => {
@@ -170,13 +219,50 @@ test(
       assert.deepEqual(errors, [])
       if (process.env.ARCADIA_PREVIEW_SCREENSHOT)
         await preview.screenshot({ path: process.env.ARCADIA_PREVIEW_SCREENSHOT, fullPage: true })
-      await preview.close()
+      await expect(preview.getByRole('button', { name: '返回人机对战', exact: true })).toHaveCount(0)
+      const returned = preview.waitForEvent('close')
+      await preview.locator('.battle-result').getByRole('button', { name: '返回编辑器', exact: true }).click()
+      await returned
+      await expect(page.getByRole('button', { name: '用最新内容调试', exact: true })).toBeVisible()
+      // A completed match also restores its outcome rather than an inert battle screen.
+      const endedPreview = app.waitForEvent('window')
+      await page.getByRole('button', { name: '打开调试窗口', exact: true }).click()
+      preview = await endedPreview
+      await preview.getByRole('button', { name: '继续当前对局', exact: true }).click()
+      await expect(preview.locator('.battle-result')).toContainText('胜利！')
+      await preview.locator('.preview-header').getByRole('button', { name: '调整队伍', exact: true }).click()
+      await preview.getByRole('button', { name: '对方（AI） · 1 只', exact: true }).click()
+      await preview.getByLabel('精灵名称', { exact: true }).fill('测试对手')
+      await preview.getByLabel('等级', { exact: true }).fill('60')
+      await preview.getByRole('button', { name: '开始对战', exact: true }).click()
+      await preview.getByTestId('skill-button').filter({ hasText: '霜击' }).waitFor()
+      const opponent = await preview.evaluate(() => window.__APP_DEBUG__.pinia._s.get('battle').battleState.players[1])
+      assert.equal(opponent.team[0].name, '测试对手')
+      assert.equal(opponent.team[0].level, 60)
+      await preview.getByRole('button', { name: '结束并调整队伍', exact: true }).click()
+      await preview.getByRole('button', { name: '确定', exact: true }).click()
+      await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
+      const finishedReturn = preview.waitForEvent('close')
+      await preview.locator('.preview-header').getByRole('button', { name: '返回编辑器', exact: true }).click()
+      await finishedReturn
+      assert.equal(await page.evaluate(() => localStorage.getItem('petStorage')), personalStorageBefore)
       await category(/^精灵/).click()
       await page.locator('.content-card').filter({ hasText: '霜团' }).click()
       if (process.env.ARCADIA_AUTHOR_SCREENSHOT)
         await page.screenshot({ path: process.env.ARCADIA_AUTHOR_SCREENSHOT, fullPage: true })
       await page.setViewportSize({ width: 390, height: 844 })
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true)
+      // The same editor still exposes personal collection capabilities on the ordinary page.
+      await page.setViewportSize({ width: 1280, height: 800 })
+      await page.goto(origin + '/team-builder')
+      await expect(page.getByRole('button', { name: '清理所有数据', exact: true })).toBeVisible()
+      await expect(page.getByRole('link', { name: '仓库管理', exact: true })).toBeVisible()
+      await page.getByRole('button', { name: '添加精灵', exact: true }).click()
+      await page.getByLabel('精灵名称', { exact: true }).fill('个人编队回归')
+      await page.getByRole('button', { name: '保存', exact: true }).click()
+      await page.reload()
+      await expect(page.getByRole('button', { name: '移入仓库', exact: true }).last()).toBeVisible()
+      await expect(page.locator('body')).toContainText('个人编队回归')
     } catch (error) {
       if (app)
         for (const surface of app.windows()) {

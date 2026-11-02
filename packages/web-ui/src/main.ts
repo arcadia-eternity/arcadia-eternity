@@ -7,6 +7,7 @@ import Particles from '@tsparticles/vue3'
 import { loadFull } from 'tsparticles'
 
 import App from './App.vue'
+import AuthorPreviewShell from './features/authoring/AuthorPreviewShell.vue'
 import router from './router'
 import { initI18n } from './i18n/i18n'
 import i18next from 'i18next'
@@ -26,7 +27,7 @@ async function bootstrap() {
   // Editing teams and other web pages can mount while the optional animation runtime loads.
   if (isStaticMode) await animationRuntime
 
-  const app = createApp(App)
+  const app = createApp(window.arcadiaAuthorPreview ? AuthorPreviewShell : App)
   const pinia = createPinia()
   initI18n()
   pinia.use(createPersistedState({ storage: localDataStorage }))

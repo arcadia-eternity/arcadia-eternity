@@ -96,9 +96,11 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
       environmentRevision: environment.revision,
     }
     if (process.env.ARCADIA_AUTHOR_RESULT === '1') console.log(`ARCADIA_RESULT=${JSON.stringify({ candidate })}`)
-    function createBattle(seed = 'content-pack-template', { ai = false } = {}) {
-      const namespace = manifest.arcadia.namespace
-      const input = config.players({ namespace, manifest }).map(player => ({
+    function defaultPlayers() {
+      return structuredClone(config.players({ namespace: manifest.arcadia.namespace, manifest }))
+    }
+    function createBattle(seed = 'content-pack-template', { ai = false, players: supplied } = {}) {
+      const input = (supplied ?? defaultPlayers()).map(player => ({
         ...player,
         id: player.id ?? randomBytes(16).toString('base64url').slice(0, 21),
       }))
@@ -106,6 +108,8 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
         aiPlayerIds: ai ? [input[1]?.id] : [],
       })
       if (players.length !== 2) throw new Error('The demo requires exactly two players')
+      const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
+      if (new Set(ids).size !== ids.length) throw new Error('玩家和精灵的编号不能重复')
       const battle = environment.content.createBattle(players[0], players[1], {
         rngSeed: seed,
         timerConfig: { enabled: false },
@@ -119,6 +123,7 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
       manifest,
       files,
       createBattle,
+      defaultPlayers,
       dispose,
       track: battle => battles.add(battle),
     }
