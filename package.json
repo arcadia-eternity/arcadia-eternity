@@ -59,7 +59,9 @@
     "lint:server-standalone": "pnpm exec eslint --config eslint.config.server-standalone.js 'packages/server/src/standalone/**/*.ts' packages/server/test/standalone*.ts packages/server/test/sessionIdentity.test.ts packages/server/test/account*.test.ts packages/server/test/provider*.test.ts",
     "build:server": "pnpm --filter @arcadia-eternity/server... --if-present build",
     "test:content-dev": "pnpm --filter @arcadia-eternity/content-dev test:run",
-    "build:web-distribution": "pnpm --filter @arcadia-eternity/web-ui build-only && node scripts/stage-paired-website.mjs"
+    "build:web-distribution": "pnpm --filter @arcadia-eternity/web-ui build-only && node scripts/stage-paired-website.mjs",
+    "pack:ugc": "node scripts/release-author-sdk.mjs pack",
+    "verify:ugc-release": "node scripts/release-author-sdk.mjs verify"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

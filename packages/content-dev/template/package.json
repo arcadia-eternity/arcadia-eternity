@@ -23,11 +23,11 @@
     "mcp": "arcadia-content-mcp ."
   },
   "devDependencies": {
-    "@arcadia-eternity/battle": "1.0.0",
-    "@arcadia-eternity/pack-loader": "1.0.0",
+    "@arcadia-eternity/battle": "4.0.0-preview.1",
+    "@arcadia-eternity/pack-loader": "4.0.0-preview.1",
     "@types/node": "25.6.0",
     "typescript": "6.0.3",
-    "@arcadia-eternity/content-dev": "0.1.0"
+    "@arcadia-eternity/content-dev": "4.0.0-preview.1"
   },
   "arcadia": {
     "formatVersion": 1,

@@ -1,8 +1,7 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
-  "version": "1.0.0",
+  "version": "4.0.0-preview.1",
   "license": "MIT",
-  "private": true,
   "type": "module",
   "description": "Arcadia Eternity base content and trusted native effects",
   "arcadiaEternityPack": "pack.json",
@@ -19,13 +18,13 @@
   "files": [
     "pack.json",
     "assets/**/*",
-    "pack-lock.yaml",
     "data/**/*",
     "locales/**/*",
     "PACK_FORMAT.md",
     "DATA_README.md",
     "dist/**/*",
-    "content-groups.yaml"
+    "content-groups.yaml",
+    "LICENSE"
   ],
   "exports": {
     "./native": {
@@ -44,5 +43,14 @@
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@sinclair/typebox": "catalog:"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git",
+    "directory": "packs/base"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "preview"
   }
 }

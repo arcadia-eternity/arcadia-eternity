@@ -1,7 +1,6 @@
 {
   "name": "@arcadia-eternity/content-dev",
-  "version": "0.1.0",
-  "private": true,
+  "version": "4.0.0-preview.1",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -16,7 +15,8 @@
     "./workspace": "./dist/author-api.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "node build.mjs",
@@ -33,5 +33,14 @@
     "write-file-atomic": "^8.0.0",
     "yaml": "catalog:",
     "zod": "3.25.76"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git",
+    "directory": "packages/content-dev"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "preview"
   }
 }

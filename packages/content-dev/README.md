@@ -33,9 +33,13 @@ Forms display shared values read-only and can open their definition in an extern
 
 Source-text editing (external editors and version-checked CLI/MCP writes) remains available for intentionally changing sharing. External changes invalidate stale form saves. Unresolved aliases, cycles and excessive alias expansion produce diagnostics without rewriting the source. This does not add cross-file YAML anchors, automatic shared edits, or detach/override actions to forms. Localized names/descriptions resolve sharing when read, edited and built; shared text fields remain read-only in forms.
 
-## Before npm publication
+## GitHub Packages installation
 
-The tool and SDK are not published npm releases. Build and stage them from a trusted checkout:
+The author tool and its six SDK dependencies are released together as `4.0.0-preview.1` on GitHub Packages (dist-tag `preview`). Configure `@arcadia-eternity:registry=https://npm.pkg.github.com`, authenticate with a GitHub token with `read:packages`, then install the exact tool, battle and pack-loader versions in your author project. See [release and installation instructions](../../docs/v4/ugc-npm-release.md). These packages are not published to npmjs.org.
+
+## Local development SDK
+
+For an unpublished host build, build and stage packages from a trusted checkout:
 
 ```sh
 pnpm --filter @arcadia-eternity/content-dev... run build
@@ -46,7 +50,7 @@ node /path/to/main-repo/packages/content-dev/src/setup.mjs --sdk-dir /new/author
 
 The installer checks the seven required archives and SDK API version, installs the tool and SDK together without changing the pack's package metadata or creating a lockfile, and records the installation under `.arcadia/`.
 
-The template's initial `setup` entry fetches this repository's `src/setup.mjs` from the exact revision in `arcadia-sdk.json`. This standalone installer uses only Node built-ins. It builds the pinned source with its lockfile, stages the development tool and SDK, and installs them. There is no copied installer in the template. After installation, `npm exec --offline -- arcadia-content setup --sdk-dir ... --offline` supports cached/offline updates. Once these packages are formally released, normal npm installation can replace the initial source bootstrap.
+The optional source-bootstrap `setup:source` entry in the independent template fetches this repository's `src/setup.mjs` from the exact revision in `arcadia-sdk.json`. This standalone installer uses only Node built-ins. It builds the pinned source with its lockfile, stages the development tool and SDK, and installs them. There is no copied installer in the template. After installation, `npm exec --offline -- arcadia-content setup --sdk-dir ... --offline` supports cached/offline updates. Normal template installation uses the registry release and a standard npm lockfile; the source bootstrap remains available for local SDK development.
 
 ## Object drafts and reviewed saves
 

@@ -1,3 +1,4 @@
+import { bundledNotices } from './build-battle-environment.mjs'
 import { readContentSources } from '../packages/content-dev/src/lib/content.mjs'
 import { buildPresentation } from '../packages/content-dev/src/lib/presentation.mjs'
 import { rolldown } from 'rolldown'
@@ -41,6 +42,7 @@ export async function buildBaseEnvironmentArtifact() {
     const code = output[0].code
     const identity = identifyBaseEnvironmentArtifact(code, core)
     await mkdir(dir, { recursive: true })
+    await writeFile(resolve(dir, 'THIRD_PARTY_NOTICES.md'), await bundledNotices(Object.keys(output[0].modules)))
     await writeFile(resolve(dir, 'environment-runtime.mjs'), code)
     await writeFile(resolve(dir, 'environment-build.json'), JSON.stringify(identity, null, 2) + '\n')
     await writeFile(
