@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import type { PeerTransportSignal } from '../src/peerTransport'
 import { WebRTCPeerTransport } from '../src/webRtcPeerTransport'
 
 class FakeRTCDataChannel {
@@ -124,8 +125,8 @@ describe('WebRTCPeerTransport', () => {
   test('host emits offer and peer answers through signaling', async () => {
     const host = new WebRTCPeerTransport({ localPeerId: 'host' })
     const peer = new WebRTCPeerTransport({ localPeerId: 'peer' })
-    const hostSignals: Array<{ kind: string; payload: unknown }> = []
-    const peerSignals: Array<{ kind: string; payload: unknown }> = []
+    const hostSignals: PeerTransportSignal[] = []
+    const peerSignals: PeerTransportSignal[] = []
 
     host.onLocalSignal(signal => hostSignals.push(signal))
     peer.onLocalSignal(signal => peerSignals.push(signal))
@@ -150,8 +151,8 @@ describe('WebRTCPeerTransport', () => {
     const host = new WebRTCPeerTransport({ localPeerId: 'host' })
     const peer = new WebRTCPeerTransport({ localPeerId: 'peer' })
     const received: Array<{ type: string; payload: unknown }> = []
-    const hostSignals: Array<{ kind: string; payload: unknown }> = []
-    const peerSignals: Array<{ kind: string; payload: unknown }> = []
+    const hostSignals: PeerTransportSignal[] = []
+    const peerSignals: PeerTransportSignal[] = []
 
     host.onLocalSignal(signal => hostSignals.push(signal))
     peer.onLocalSignal(signal => peerSignals.push(signal))
@@ -174,8 +175,8 @@ describe('WebRTCPeerTransport', () => {
     const host = new WebRTCPeerTransport({ localPeerId: 'host' })
     const peer = new WebRTCPeerTransport({ localPeerId: 'peer' })
     const received: Array<{ type: string; payload: unknown }> = []
-    const hostSignals: Array<{ kind: string; payload: unknown }> = []
-    const peerSignals: Array<{ kind: string; payload: unknown }> = []
+    const hostSignals: PeerTransportSignal[] = []
+    const peerSignals: PeerTransportSignal[] = []
 
     host.onLocalSignal(signal => hostSignals.push(signal))
     peer.onLocalSignal(signal => peerSignals.push(signal))
