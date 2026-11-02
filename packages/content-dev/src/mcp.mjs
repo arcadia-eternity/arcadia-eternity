@@ -270,7 +270,7 @@ tool(
 )
 tool(
   'asset_inspect',
-  'Inspect one declared project resource by ID. Local supported images may be returned inline when includeImage is true. HTTP resources return metadata only and are never fetched or cached. Audio/SWF are not executed.',
+  'Inspect one declared project resource by ID. Local images up to 2 MiB may be returned as standard image content when includeImage is true. MIME follows the filename; decoding/display is handled by the client. No dimensions or image integrity validation are provided. HTTP resources return metadata only and are never fetched or cached. Audio/SWF are not executed.',
   {
     id: z.string().min(1).max(200),
     includeImage: z.boolean().optional(),

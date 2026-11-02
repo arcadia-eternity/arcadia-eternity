@@ -22,7 +22,7 @@ async function fixture(t, records) {
   })
   return { root, workspace }
 }
-const image = { id: 'icon', kind: 'image', source: 'assets/icon.bin' }
+const image = { id: 'icon', kind: 'image', source: 'assets/icon.png' }
 
 test('local declared images expose actual metadata and optional bounded native MCP content', async t => {
   const { root, workspace } = await fixture(t, [image])
@@ -32,8 +32,9 @@ test('local declared images expose actual metadata and optional bounded native M
   const metadata = await inspectAsset(workspace, { id: 'icon' })
   assert.equal(metadata.image, undefined)
   assert.equal(metadata.metadata.mimeType, 'image/png')
-  assert.equal(metadata.metadata.width, png.readUInt32BE(16))
-  assert.equal(metadata.metadata.height, png.readUInt32BE(20))
+  assert.equal(metadata.metadata.bytes, png.length)
+  assert.equal(metadata.metadata.width, undefined)
+  assert.equal(metadata.metadata.height, undefined)
   const result = await inspectAsset(workspace, { id: 'icon', includeImage: true })
   assert.equal(result.image.type, 'image')
   assert.equal(result.image.mimeType, 'image/png')
@@ -42,12 +43,11 @@ test('local declared images expose actual metadata and optional bounded native M
   assert.equal(await workspace.revision(), before)
 })
 
-test('inspection refuses undeclared IDs, ambiguous resources, invalid bytes and paths', async t => {
+test('inspection refuses undeclared IDs, ambiguous resources and invalid paths', async t => {
   const { root, workspace } = await fixture(t, [image, { id: 'outside', kind: 'image', source: '../outside.png' }])
   await writeFile(join(root, image.source), 'not a picture')
   await assert.rejects(inspectAsset(workspace, { id: 'missing' }), { code: 'RESOURCE_UNKNOWN' })
   await assert.rejects(inspectAsset(workspace, { id: 'assets/icon.bin' }), { code: 'RESOURCE_INVALID' })
-  await assert.rejects(inspectAsset(workspace, { id: 'icon' }), { code: 'RESOURCE_IMAGE_INVALID' })
   await assert.rejects(inspectAsset(workspace, { id: 'outside' }), { code: 'PATH_INVALID' })
   await writeFile(join(root, 'data/resources/duplicate.json'), JSON.stringify(image))
   await assert.rejects(inspectAsset(workspace, { id: 'icon' }), { code: 'RESOURCE_AMBIGUOUS' })
@@ -80,21 +80,44 @@ test('remote resources remain URLs and audio/SWF are inspected without execution
   await assert.rejects(inspectAsset(workspace, { id: 'swf', includeImage: true }), { code: 'NOT_IMAGE' })
 })
 
-test('size and dimension limits keep metadata available and incomplete images cannot be embedded', async t => {
+test('large images keep metadata available without reading image content', async t => {
+  const { root, workspace } = await fixture(t, [image])
+  await writeFile(join(root, image.source), Buffer.alloc(imageByteLimit + 1))
+  workspace.asset = () => assert.fail('oversized images must not be read')
+  const result = await inspectAsset(workspace, { id: 'icon' })
+  assert.equal(result.metadata.reason, 'IMAGE_TOO_LARGE')
+  assert.equal(result.metadata.bytes, imageByteLimit + 1)
+  assert.equal(result.metadata.imageAvailable, false)
+  await assert.rejects(inspectAsset(workspace, { id: 'icon', includeImage: true }), { code: 'IMAGE_TOO_LARGE' })
+})
+
+test('image bytes pass through unchanged and decoding is left to the MCP client', async t => {
   const { root, workspace } = await fixture(t, [image])
   const png = await readFile(new URL('../template/assets/marks/slow.png', import.meta.url))
-  const large = Buffer.alloc(imageByteLimit + 1)
-  png.copy(large)
-  await writeFile(join(root, image.source), large)
-  assert.equal((await inspectAsset(workspace, { id: 'icon' })).metadata.reason, 'IMAGE_TOO_LARGE')
-  await assert.rejects(inspectAsset(workspace, { id: 'icon', includeImage: true }), { code: 'IMAGE_TOO_LARGE' })
-  const dimensions = Buffer.from(png)
-  dimensions.writeUInt32BE(10000, 16)
-  await writeFile(join(root, image.source), dimensions)
-  assert.equal((await inspectAsset(workspace, { id: 'icon' })).metadata.reason, 'IMAGE_DIMENSIONS_EXCEEDED')
-  await assert.rejects(inspectAsset(workspace, { id: 'icon', includeImage: true }), {
-    code: 'IMAGE_DIMENSIONS_EXCEEDED',
+  const truncated = png.subarray(0, png.length - 12)
+  await writeFile(join(root, image.source), truncated)
+  const result = await inspectAsset(workspace, { id: 'icon', includeImage: true })
+  assert.equal(result.image.mimeType, 'image/png')
+  assert.deepEqual(Buffer.from(result.image.data, 'base64'), truncated)
+  assert.equal(result.metadata.width, undefined)
+  assert.equal(result.metadata.height, undefined)
+})
+
+test('MIME follows filenames and unknown formats remain metadata only', async t => {
+  const records = [
+    { id: 'gif', kind: 'image', source: 'assets/animation.GIF' },
+    { id: 'unknown', kind: 'image', source: 'assets/icon.bin' },
+    { id: 'mismatch', kind: 'audio', source: 'assets/audio.png' },
+  ]
+  const { root, workspace } = await fixture(t, records)
+  for (const record of records) await writeFile(join(root, record.source), 'content supplied by the author')
+  assert.equal((await inspectAsset(workspace, { id: 'gif', includeImage: true })).image.mimeType, 'image/gif')
+  const unknown = await inspectAsset(workspace, { id: 'unknown' })
+  assert.equal(unknown.metadata.mimeType, 'application/octet-stream')
+  assert.equal(unknown.metadata.reason, 'IMAGE_FORMAT_UNKNOWN')
+  assert.equal(unknown.metadata.imageAvailable, false)
+  await assert.rejects(inspectAsset(workspace, { id: 'unknown', includeImage: true }), {
+    code: 'IMAGE_FORMAT_UNKNOWN',
   })
-  await writeFile(join(root, image.source), png.subarray(0, png.length - 12))
-  await assert.rejects(inspectAsset(workspace, { id: 'icon', includeImage: true }), { code: 'RESOURCE_IMAGE_INVALID' })
+  await assert.rejects(inspectAsset(workspace, { id: 'mismatch' }), { code: 'RESOURCE_KIND_MISMATCH' })
 })

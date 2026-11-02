@@ -78,7 +78,9 @@ test('MCP exposes typed discovery, shared team/environment saves and native imag
   const image = await client.callTool({ name: 'asset_inspect', arguments: { id: 'icon', includeImage: true } })
   assert.notEqual(image.isError, true, JSON.stringify(image))
   assert.equal(image.content[1].type, 'image')
-  assert.equal(image.structuredContent.result.metadata.width, 1)
+  assert.equal(image.content[1].mimeType, 'image/png')
+  assert.deepEqual(Buffer.from(image.content[1].data, 'base64'), await readFile(join(root, 'assets/icon.png')))
+  assert.equal(image.structuredContent.result.metadata.width, undefined)
   assert.equal(image.structuredContent.result.image, undefined)
   const team = { schemaVersion: 1, id: 'blue', name: 'Blue', team: [] }
   const saved = await call('team_save', { document: team, expectedVersion: null })
