@@ -4,6 +4,7 @@ import type { IBattleSystem } from '@arcadia-eternity/interface'
 
 const context = vi.hoisted(() => ({
   failInitialization: false,
+  query: {} as Record<string, string>,
   whenReady: vi.fn(async () => {}),
   stop: vi.fn(async () => {}),
   restore: vi.fn(),
@@ -18,7 +19,7 @@ const context = vi.hoisted(() => ({
   },
 }))
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: { endpoint: 'http://127.0.0.1:8123/' + 'a'.repeat(48), resume: 'true' } }),
+  useRoute: () => ({ query: context.query }),
   useRouter: () => ({ replace: context.replace }),
   isNavigationFailure: () => false,
 }))
@@ -29,7 +30,15 @@ vi.mock('@/stores/gameData', () => ({
     useLocalBattleContent: () => context.restore,
   }),
 }))
+vi.mock('@/components/team/TeamEditor.vue', () => ({ default: { props: ['delegate'], template: '<div />' } }))
+vi.mock('@/utils/basicTeamValidation', () => ({ validateBasicTeam: () => [] }))
 vi.mock('@/services/authorPreview', () => ({
+  loadAuthorPreviewSetup: async () => ({
+    content: { species: [], skills: [], marks: [] },
+    players: [0, 1].map(side => ({ id: String(side).repeat(21), name: `Side ${side}`, team: [] })),
+    active: false,
+    candidate: { environmentId: 'named-cli-preview', environmentConfigVersion: 'prepared-config-hash' },
+  }),
   connectAuthorPreview: async () => ({
     content: { species: [], skills: [], marks: [] },
     system: { cleanup: context.stop, getState: async () => ({ players: [{ id: 'player' }] }) },
@@ -50,6 +59,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  context.query = { endpoint: 'http://127.0.0.1:8123/' + 'a'.repeat(48), resume: 'true' }
   context.battle.battleInterface = null
   context.battle.initBattle.mockImplementation(async (system: IBattleSystem) => {
     context.battle.battleInterface = system
@@ -90,6 +100,18 @@ it('isolated previews skip base content loading and return to the existing edito
     expect(context.whenReady).not.toHaveBeenCalled()
     await wrapper.get('button').trigger('click')
     expect(returnToEditor).toHaveBeenCalledOnce()
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it('allows a captured named CLI environment in a browser without project-management capabilities', async () => {
+  delete context.query.resume
+  const wrapper = mount(AuthorPreviewPage)
+  try {
+    await flushPromises()
+    expect(wrapper.get('button.start').attributes('disabled')).toBeUndefined()
+    expect(wrapper.text()).not.toContain('所选环境尚未准备或配置已改变')
   } finally {
     wrapper.unmount()
   }

@@ -44,8 +44,9 @@ const environmentReady = computed(
   () =>
     environmentId.value === preparedEnvironmentId.value &&
     !sourceMappingChanged.value &&
-    (environments.value.find(item => item.id === environmentId.value)?.version ?? null) ===
-      preparedEnvironmentVersion.value,
+    (!window.arcadiaAuthorPreview?.environment ||
+      (environments.value.find(item => item.id === environmentId.value)?.version ?? null) ===
+        preparedEnvironmentVersion.value),
 )
 const battleConfig = ref(createBattleConfiguration())
 const timerConfig = ref({ ...DEFAULT_TIMER_CONFIG, enabled: false })
