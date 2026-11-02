@@ -84,6 +84,7 @@ let contentProjects
 let contentLibrary
 let authorWorkspaces
 const authorPreviewWindows = new Map()
+const authorPreviewProjects = new WeakMap()
 let previewOperation = Promise.resolve()
 function withPreviewOperation(operation) {
   const next = previewOperation.catch(() => {}).then(operation)
@@ -130,6 +131,7 @@ async function openAuthorPreview(id, job) {
   })
   window.once('ready-to-show', () => window.show())
   authorPreviewWindows.set(key, window)
+  authorPreviewProjects.set(window.webContents, id)
   protectDesktopNavigation(window, rendererUrl)
   window.on('closed', () => {
     authorPreviewWindows.delete(key)
@@ -1749,6 +1751,55 @@ function setupIpcHandlers() {
       requireLocalBattleCaller(event)
       return handler(event, ...args)
     })
+  ipcMain.handle('author-preview:environment', async (event, action, input) => {
+    const window = [...authorPreviewWindows.values()].find(window =>
+      isTrustedDesktopRequest(event, window.webContents, rendererUrl),
+    )
+    if (!window) throw new Error('Unauthorized preview frame')
+    const id = authorPreviewProjects.get(window.webContents),
+      manager = getAuthorWorkspaces()
+    if (action === 'list' || action === 'save') return manager.debugEnvironments(id, action, input)
+    if (action === 'add-source') {
+      const choice = await dialog.showOpenDialog(window, { title: '选择额外测试源码包', properties: ['openDirectory'] })
+      if (window.isDestroyed() || !isTrustedDesktopRequest(event, window.webContents, rendererUrl))
+        throw new Error('Preview closed')
+      return choice.canceled ? null : manager.mapDebugSource(id, choice.filePaths[0])
+    }
+    if (action !== 'prepare' || typeof input?.environmentId !== 'string') throw new Error('环境操作无效')
+    // Reply before destroying the caller; the job and output remain owned by the editor.
+    setImmediate(() => {
+      void withPreviewOperation(async () => {
+        const session = await manager.session(id)
+        for (const candidate of authorPreviewWindows.values()) candidate.destroy()
+        await manager.stopPreviews()
+        await previewSession.clear()
+        await manager.previewEnvironment(id, input.environmentId)
+        const started = await session.jobs.start({ kind: 'preview', environmentId: input.environmentId })
+        let job = started
+        while (['queued', 'running'].includes(job.state)) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          job = session.jobs.get(started.jobId)
+        }
+        if (job.state === 'succeeded') await openAuthorPreview(id, job)
+        else if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show()
+          mainWindow.focus()
+        }
+      }).catch(error => {
+        console.error('环境准备失败', error)
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+      })
+    })
+    return { preparing: true }
+  })
+  ipcMain.handle('author-preview:teams', async (event, action, input) => {
+    const window = [...authorPreviewWindows.values()].find(window =>
+      isTrustedDesktopRequest(event, window.webContents, rendererUrl),
+    )
+    if (!window) throw new Error('Unauthorized preview frame')
+    // Identity comes from the owning window; the renderer cannot choose a project or path.
+    return getAuthorWorkspaces().teamLibrary(authorPreviewProjects.get(window.webContents), action, input)
+  })
   ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
   ipcMain.handle('remote-play:close', event => remotePlay.close(event))
   handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url))
@@ -1829,7 +1880,10 @@ function setupIpcHandlers() {
                       for (const window of authorPreviewWindows.values()) window.destroy()
                       await manager.stopPreviews()
                       await previewSession.clear()
-                      return session.jobs.start({ kind: 'preview' })
+                      return session.jobs.start({
+                        kind: 'preview',
+                        environmentId: await manager.previewEnvironment(input.id),
+                      })
                     })
                   : await session.jobs.start({ kind: input.kind })
               break

@@ -9,6 +9,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import YAML from 'yaml'
 import { JobJournal } from '../src/job-journal.mjs'
 
 async function finish(session, kind) {
@@ -278,7 +279,12 @@ test(
       root = join(temporary, 'pack')
     await createSourceProject(root, 'preview-cli')
     const config = join(root, 'arcadia.config.mjs')
-    await writeFile(config, (await readFile(config, 'utf8')).replace(/\s+id: String\(side\)\.repeat\(21\),/, ''))
+    const team = YAML.parse(await readFile(join(root, 'debug/teams/blue.yaml'), 'utf8')).team
+    await writeFile(
+      config,
+      `export default { players: () => ${JSON.stringify([0, 1].map(side => ({ name: `Side ${side}`, team: team.map((pet, index) => ({ ...pet, id: `p${side}${index}`.padEnd(21, '0') })) })))} }`,
+    )
+
     const child = spawn(
       process.execPath,
       [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'workspace', root, 'preview', '--execute'],

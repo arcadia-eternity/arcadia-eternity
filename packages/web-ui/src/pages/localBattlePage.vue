@@ -2,283 +2,18 @@
   <div class="max-w-4xl w-full mx-auto p-6 min-h-[calc(100vh-60px)] flex flex-col justify-start gap-6">
     <h1 class="text-3xl font-bold text-center text-gray-800">本地对战</h1>
 
-    <div
-      v-if="workbenchLaunchPayload"
-      class="bg-blue-50 border border-blue-200 rounded-md px-4 py-3 text-sm text-blue-800"
-    >
-      已载入组合工作台配置：关联资源 {{ workbenchLaunchPayload.resources.length }} 个。
-    </div>
-
-    <div
-      v-if="trialLaunch"
-      role="status"
-      class="bg-blue-50 border border-blue-200 rounded-md px-4 py-3 text-sm text-blue-800"
-    >
-      已载入 UGC 草稿快照：{{ trialLaunch.title }}。临时队伍仅用于本次试战，不会覆盖已保存队伍。
-      <router-link to="/creator" class="underline ml-2">返回创作</router-link>
-    </div>
-
     <!-- 战斗配置面板 -->
     <div class="bg-gray-50 rounded-lg p-6 shadow-lg border border-gray-200">
       <h2 class="text-xl font-semibold text-center text-gray-700 mb-6">战斗配置</h2>
 
-      <!-- 队伍选择配置 -->
-      <div class="mb-6 p-4 bg-white rounded-md border border-gray-200">
-        <h3 class="text-lg font-medium text-gray-600 mb-4 pb-2 border-b-2 border-green-500">队伍选择</h3>
-
-        <!-- 玩家1队伍选择 -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-600 mb-2">玩家1队伍:</label>
-          <select
-            v-model="selectedPlayer1TeamIndex"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option v-for="(team, index) in availableTeams" :key="index" :value="battleTeams.indexOf(team)">
-              {{ team.name }} ({{ team.pets.length }}只精灵)
-            </option>
-          </select>
-          <!-- <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input
-              type="checkbox"
-              v-model="useAI"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            允许AI接管
-          </label> -->
-        </div>
-
-        <!-- 玩家2队伍选择 -->
-        <div class="mb-3">
-          <label class="block text-sm font-medium text-gray-600 mb-2">玩家2队伍:</label>
-          <select
-            v-model="selectedPlayer2TeamIndex"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option v-for="(team, index) in availableTeams" :key="index" :value="battleTeams.indexOf(team)">
-              {{ team.name }} ({{ team.pets.length }}只精灵)
-            </option>
-          </select>
-        </div>
+      <div class="mb-6 p-4 bg-white rounded-md border border-gray-200 flex flex-col gap-3">
+        <p>对战环境：当前已准备的本地内容</p>
+        <TeamLibrarySelect :delegate="teamSelectors[0]!" label="玩家1队伍" />
+        <TeamLibrarySelect :delegate="teamSelectors[1]!" label="玩家2队伍（AI）" />
+        <router-link to="/team-builder" class="text-blue-600">管理个人编队</router-link>
       </div>
 
-      <!-- 基础配置 -->
-      <div class="mb-6 p-4 bg-white rounded-md border border-gray-200">
-        <h3 class="text-lg font-medium text-gray-600 mb-4 pb-2 border-b-2 border-blue-500">基础设置</h3>
-        <div class="mb-3 flex items-center">
-          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input
-              type="checkbox"
-              v-model="battleConfig.allowFaintSwitch"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            允许击破奖励切换
-          </label>
-        </div>
-        <!-- 暂时隐藏显示隐藏信息选项 -->
-        <!-- <div class="mb-3 flex items-center">
-          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input
-              type="checkbox"
-              v-model="battleConfig.showHidden"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            显示隐藏信息
-          </label>
-        </div> -->
-        <div class="mb-3 flex items-center">
-          <label class="flex items-center gap-2 text-sm text-gray-600">
-            随机数种子 (可选):
-            <input
-              type="number"
-              v-model.number="battleConfig.rngSeed"
-              placeholder="留空使用随机种子"
-              class="ml-2 px-3 py-1.5 border border-gray-300 rounded-md text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </label>
-        </div>
-      </div>
-
-      <!-- 计时器配置 -->
-      <div class="mb-6 p-4 bg-white rounded-md border border-gray-200">
-        <h3 class="text-lg font-medium text-gray-600 mb-4 pb-2 border-b-2 border-blue-500">计时器设置</h3>
-        <div class="mb-3 flex items-center">
-          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input
-              type="checkbox"
-              v-model="timerConfig.enabled"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            启用计时器系统
-          </label>
-        </div>
-
-        <template v-if="timerConfig.enabled">
-          <div class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="enableTurnTimeLimit"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              启用每回合时间限制
-            </label>
-          </div>
-          <div v-if="enableTurnTimeLimit" class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600">
-              每回合时间限制 (秒):
-              <input
-                type="number"
-                v-model.number="timerConfig.turnTimeLimit"
-                min="5"
-                max="300"
-                class="ml-2 px-3 py-1.5 border border-gray-300 rounded-md text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </label>
-          </div>
-          <div class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="enableTotalTimeLimit"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              启用总思考时间限制
-            </label>
-          </div>
-          <div v-if="enableTotalTimeLimit" class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600">
-              总思考时间限制 (秒):
-              <input
-                type="number"
-                v-model.number="timerConfig.totalTimeLimit"
-                min="60"
-                max="3600"
-                class="ml-2 px-3 py-1.5 border border-gray-300 rounded-md text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </label>
-          </div>
-          <div class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="timerConfig.animationPauseEnabled"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              动画期间暂停计时器
-            </label>
-          </div>
-          <div class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600">
-              最大动画时长 (毫秒):
-              <input
-                type="number"
-                v-model.number="timerConfig.maxAnimationDuration"
-                min="1000"
-                max="60000"
-                class="ml-2 px-3 py-1.5 border border-gray-300 rounded-md text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </label>
-          </div>
-        </template>
-      </div>
-
-      <!-- 团队选择配置 -->
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">团队选择配置</h3>
-
-        <div class="mb-3 flex items-center">
-          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input
-              type="checkbox"
-              v-model="battleConfig.teamSelection.enabled"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            启用团队选择
-          </label>
-        </div>
-
-        <template v-if="battleConfig.teamSelection.enabled">
-          <div class="mb-3">
-            <label class="block text-sm text-gray-600 mb-1">选择模式:</label>
-            <select
-              v-model="battleConfig.teamSelection.mode"
-              class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="VIEW_ONLY">仅查看模式</option>
-              <option value="TEAM_SELECTION">团队选择模式</option>
-              <option value="FULL_TEAM">全队参战模式</option>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">最大队伍大小:</label>
-              <input
-                type="number"
-                v-model.number="battleConfig.teamSelection.maxTeamSize"
-                min="1"
-                max="12"
-                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">最小队伍大小:</label>
-              <input
-                type="number"
-                v-model.number="battleConfig.teamSelection.minTeamSize"
-                min="1"
-                :max="battleConfig.teamSelection.maxTeamSize"
-                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="block text-sm text-gray-600 mb-1">选择时间限制 (秒):</label>
-            <input
-              type="number"
-              v-model.number="battleConfig.teamSelection.timeLimit"
-              min="10"
-              max="300"
-              class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="battleConfig.teamSelection.allowStarterSelection"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              允许选择首发精灵
-            </label>
-          </div>
-
-          <div class="mb-3 flex items-center">
-            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="battleConfig.teamSelection.showOpponentTeam"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              显示对手队伍
-            </label>
-          </div>
-
-          <div class="mb-3">
-            <label class="block text-sm text-gray-600 mb-1">队伍信息可见性:</label>
-            <select
-              v-model="battleConfig.teamSelection.teamInfoVisibility"
-              class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="HIDDEN">隐藏</option>
-              <option value="BASIC">基础信息</option>
-              <option value="FULL">完整信息</option>
-            </select>
-          </div>
-        </template>
-      </div>
+      <BattleOptionsEditor v-model:battle-config="battleConfig" v-model:timer-config="timerConfig" />
 
       <!-- 预设配置按钮 -->
       <div class="flex gap-3 justify-center mt-6 pt-6 border-t border-gray-200">
@@ -313,7 +48,7 @@
     <div class="text-center">
       <button
         @click="startLocalBattle"
-        :disabled="isLoading || (!!route.query.trialKey && !trialLaunch)"
+        :disabled="isLoading"
         class="px-6 py-3 text-lg font-medium text-white bg-blue-500 border-none rounded-md cursor-pointer transition-colors duration-200 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
         {{ isLoading ? '资源加载中...' : '开始本地对战' }}
@@ -328,18 +63,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, onBeforeUnmount, reactive, watch, computed } from 'vue'
+import BattleOptionsEditor from '@/components/battle/BattleOptionsEditor.vue'
+import TeamLibrarySelect from '@/components/team/TeamLibrarySelect.vue'
+import type { TeamLibraryDelegate } from '@/components/team/library'
+import { battleOptions, createBattleConfiguration } from '@/services/battleConfiguration'
+import { ref, shallowRef, onBeforeUnmount, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { type NativeWebBattleConfig } from '@/services/nativeBattleFactory'
 import { useGameDataStore } from '@/stores/gameData'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
-import { readBattleWorkbenchLaunch, type BattleWorkbenchLaunchPayload } from '@/utils/battleWorkbenchLaunch'
 
-import { LocalBattleSession, takeCreatorTrialLaunch } from '@/services/localBattleSession'
-import { getDesktopApi } from '@/utils/env'
+import { LocalBattleSession } from '@/services/localBattleSession'
 
 const router = useRouter()
 const route = useRoute()
@@ -349,13 +85,9 @@ const petStorage = usePetStorageStore()
 const dataStore = useGameDataStore()
 const errorMessage = ref<string | null>(null)
 const isLoading = ref(true)
-const workbenchLaunchPayload = ref<BattleWorkbenchLaunchPayload | null>(null)
 
 const localSession = shallowRef(new LocalBattleSession())
-const trialLaunch = computed(() => localSession.value.trial)
-const battleTeams = computed(() =>
-  trialLaunch.value ? [...trialLaunch.value.teams, ...petStorage.teams] : petStorage.teams,
-)
+const battleTeams = computed(() => petStorage.teams)
 onBeforeUnmount(() => {
   void localSession.value.releaseConfiguration().catch(error => console.warn('本地对战清理失败', error))
 })
@@ -369,20 +101,27 @@ const availableTeams = computed(() => {
   return battleTeams.value.filter(team => team.pets.length > 0)
 })
 
-const validTeamIndexSet = computed(() => {
-  const output = new Set<number>()
-  battleTeams.value.forEach((team, index) => {
-    if (team.pets.length > 0) {
-      output.add(index)
-    }
-  })
-  return output
-})
+const teamChoices = computed(() =>
+  availableTeams.value.map(team => ({
+    id: String(battleTeams.value.indexOf(team)),
+    name: team.name,
+    size: team.pets.length,
+  })),
+)
+const teamSelectors: TeamLibraryDelegate[] = [selectedPlayer1TeamIndex, selectedPlayer2TeamIndex].map(selected => ({
+  entries: teamChoices,
+  selected: computed({
+    get: () => String(selected.value),
+    set: value => {
+      selected.value = Number(value)
+    },
+  }),
+}))
 
 // 初始化队伍选择的函数
 const initializeTeamSelection = () => {
   // 设置玩家1为当前队伍
-  selectedPlayer1TeamIndex.value = trialLaunch.value ? 0 : petStorage.currentTeamIndex
+  selectedPlayer1TeamIndex.value = petStorage.currentTeamIndex
 
   // 设置玩家2为不同的队伍（如果有的话）
   const validTeams = availableTeams.value
@@ -402,89 +141,12 @@ function parseQueryBoolean(value: unknown): boolean {
   return value === '1' || value.toLowerCase() === 'true'
 }
 
-function applyWorkbenchLaunchPayload(payload: BattleWorkbenchLaunchPayload): void {
-  workbenchLaunchPayload.value = payload
-
-  if (validTeamIndexSet.value.has(payload.selectedPlayer1TeamIndex)) {
-    selectedPlayer1TeamIndex.value = payload.selectedPlayer1TeamIndex
-  }
-  if (validTeamIndexSet.value.has(payload.selectedPlayer2TeamIndex)) {
-    selectedPlayer2TeamIndex.value = payload.selectedPlayer2TeamIndex
-  }
-
-  battleConfig.allowFaintSwitch = payload.battleConfig.allowFaintSwitch
-  battleConfig.showHidden = payload.battleConfig.showHidden
-  battleConfig.rngSeed = payload.battleConfig.rngSeed
-  battleConfig.teamSelection = {
-    ...payload.battleConfig.teamSelection,
-  }
-
-  Object.assign(timerConfig, {
-    ...DEFAULT_TIMER_CONFIG,
-    ...payload.timerConfig,
-  })
-
-  enableTurnTimeLimit.value = typeof timerConfig.turnTimeLimit === 'number'
-  enableTotalTimeLimit.value = typeof timerConfig.totalTimeLimit === 'number'
-}
-
 // 战斗配置
-interface BattleConfig {
-  allowFaintSwitch: boolean
-  showHidden: boolean
-  rngSeed?: number
-  teamSelection: {
-    enabled: boolean
-    mode: 'VIEW_ONLY' | 'TEAM_SELECTION' | 'FULL_TEAM'
-    maxTeamSize: number
-    minTeamSize: number
-    allowStarterSelection: boolean
-    showOpponentTeam: boolean
-    teamInfoVisibility: 'HIDDEN' | 'BASIC' | 'FULL'
-    timeLimit: number
-  }
-}
-
-const battleConfig = reactive<BattleConfig>({
-  allowFaintSwitch: true,
-  showHidden: true,
-  rngSeed: undefined,
-  teamSelection: {
-    enabled: false,
-    mode: 'TEAM_SELECTION',
-    maxTeamSize: 6,
-    minTeamSize: 1,
-    allowStarterSelection: true,
-    showOpponentTeam: false,
-    teamInfoVisibility: 'HIDDEN',
-    timeLimit: 60,
-  },
-})
+const battleConfig = ref(createBattleConfiguration())
 
 // 计时器配置
-const timerConfig = reactive<TimerConfig>({
+const timerConfig = ref<TimerConfig>({
   ...DEFAULT_TIMER_CONFIG,
-})
-
-// 时间限制启用状态
-const enableTurnTimeLimit = ref(!!DEFAULT_TIMER_CONFIG.turnTimeLimit)
-const enableTotalTimeLimit = ref(!!DEFAULT_TIMER_CONFIG.totalTimeLimit)
-
-// 监听时间限制启用状态变化
-watch(enableTurnTimeLimit, enabled => {
-  if (!enabled) {
-    timerConfig.turnTimeLimit = undefined
-  } else if (!timerConfig.turnTimeLimit) {
-    timerConfig.turnTimeLimit = 30 // 默认30秒
-  }
-})
-
-watch(enableTotalTimeLimit, enabled => {
-  if (!enabled) {
-    timerConfig.totalTimeLimit = undefined
-  } else if (!timerConfig.totalTimeLimit) {
-    timerConfig.totalTimeLimit = 1500 // 默认25分钟
-  }
 })
 
 // 预设配置
@@ -593,14 +255,12 @@ const loadPreset = (presetName: keyof typeof presets) => {
   const preset = presets[presetName]
 
   // 更新战斗配置
-  Object.assign(battleConfig, preset.battle)
+  Object.assign(battleConfig.value, preset.battle)
 
   // 更新计时器配置
-  Object.assign(timerConfig, preset.timer)
+  Object.assign(timerConfig.value, preset.timer)
 
   // 更新时间限制启用状态
-  enableTurnTimeLimit.value = preset.enableTurnTimeLimit
-  enableTotalTimeLimit.value = preset.enableTotalTimeLimit
 }
 
 async function initializeLocalBattle() {
@@ -612,33 +272,10 @@ async function initializeLocalBattle() {
   if (localSession.value !== session || session.state === 'disposed') return
   isLoading.value = true
   errorMessage.value = null
-  const trialKey = typeof route.query.trialKey === 'string' ? route.query.trialKey : ''
-  if (trialKey) {
-    const trial = getDesktopApi() ? takeCreatorTrialLaunch(trialKey) : null
-    if (!trial) {
-      errorMessage.value = '试战快照已失效，请回到创作页重新准备试战'
-      isLoading.value = false
-      return
-    }
-    void session.dispose()
-    localSession.value = trial
-    timerConfig.enabled = false
-  }
   const owner = localSession.value
   const isCurrent = () => localSession.value === owner && owner.state !== 'disposed'
   // 初始化队伍选择
   initializeTeamSelection()
-
-  // 如果从组合工作台跳转，优先套用控制器配置
-  const launchKey = typeof route.query.launchKey === 'string' ? route.query.launchKey : ''
-  if (!trialLaunch.value && parseQueryBoolean(route.query.workbench) && launchKey.length > 0) {
-    const payload = readBattleWorkbenchLaunch(launchKey)
-    if (payload) {
-      applyWorkbenchLaunchPayload(payload)
-    } else {
-      errorMessage.value = '组合工作台启动参数无效或已过期'
-    }
-  }
 
   if (dataStore.loaded || dataStore.gameDataLoaded) {
     dataStore.gameDataLoaded = true
@@ -666,7 +303,6 @@ const startLocalBattle = async () => {
     return
   }
 
-  if (route.query.trialKey && !trialLaunch.value) return
   isLoading.value = true
   errorMessage.value = null
   const session = localSession.value
@@ -713,42 +349,12 @@ const startLocalBattle = async () => {
       }
     }
 
-    // 构建战斗选项
-    const battleOptions: NativeWebBattleConfig = {
-      allowFaintSwitch: battleConfig.allowFaintSwitch,
-      showHidden: battleConfig.showHidden,
-      timerConfig: { ...timerConfig },
-      ai: {
-        enabled: true,
-        players: ['playerB'],
-      },
-    }
-
-    // 添加随机数种子（如果设置了）
-    if (battleConfig.rngSeed !== undefined && battleConfig.rngSeed !== null) {
-      battleOptions.rngSeed = battleConfig.rngSeed
-    }
-
-    // 添加团队选择配置
-    if (battleConfig.teamSelection.enabled) {
-      battleOptions.teamSelection = {
-        enabled: true,
-        config: {
-          mode: battleConfig.teamSelection.mode,
-          maxTeamSize: battleConfig.teamSelection.maxTeamSize,
-          minTeamSize: battleConfig.teamSelection.minTeamSize,
-          allowStarterSelection: battleConfig.teamSelection.allowStarterSelection,
-          showOpponentTeam: battleConfig.teamSelection.showOpponentTeam,
-          teamInfoVisibility: battleConfig.teamSelection.teamInfoVisibility,
-          timeLimit: battleConfig.teamSelection.timeLimit,
-        },
-      }
-    }
+    const options = battleOptions(battleConfig.value, timerConfig.value)
 
     await session.start(
-      { name: trialLaunch.value ? player1Team.name : playerStore.name, team: player1Team.pets },
+      { name: playerStore.name, team: player1Team.pets },
       { name: `${player2Team.name} (AI)`, team: player2Team.pets },
-      battleOptions,
+      options,
       { data: dataStore, battle: battleStore, navigate: () => router.push('/battle?dev=true') },
     )
   } catch (error) {

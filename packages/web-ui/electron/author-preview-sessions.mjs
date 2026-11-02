@@ -1,7 +1,7 @@
 import { session } from 'electron'
 import { registerClientProtocol } from './client-protocol.mjs'
 
-/** Reopening a candidate retains its scratch teams, without sharing the personal profile. */
+/** Candidate Sessions isolate renderer state. Project teams and drafts are owned by the project bridge. */
 export function createAuthorPreviewSessions({ directory, development }) {
   const sessions = new Map()
   const get = key => {

@@ -1,6 +1,7 @@
 import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
+import type { NativeWebBattleConfig } from './nativeBattleFactory'
 import { nanoid } from 'nanoid'
-import type { BattleMessage } from '@arcadia-eternity/const'
+import type { BattleMessage, Events } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { validateEnvironmentContent } from './serverContentValidation'
@@ -47,6 +48,7 @@ export async function loadAuthorPreviewSetup(value: string) {
     content: ServerEnvironmentContent
     players: PlayerSchemaType[]
     active: boolean
+    candidate?: { environmentId?: string }
   }>(previewEndpoint(value), 'content')
   validateEnvironmentContent(result.content)
   if (!Array.isArray(result.players) || result.players.length !== 2) throw new Error('项目需要配置双方默认队伍')
@@ -60,8 +62,12 @@ export async function loadAuthorPreviewSetup(value: string) {
   return { ...result, players }
 }
 
-export async function configureAuthorPreview(value: string, players: PlayerSchemaType[]) {
-  return previewRequest(previewEndpoint(value), 'configure', [players])
+export async function configureAuthorPreview(
+  value: string,
+  players: PlayerSchemaType[],
+  options: NativeWebBattleConfig = {},
+) {
+  return previewRequest(previewEndpoint(value), 'configure', [players, options])
 }
 
 export async function connectAuthorPreview(value: string, onFailure: (error: Error) => void = () => {}) {
@@ -70,6 +76,7 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
   let cursor = 0,
     polling = false,
     disposed = false
+  const timerListeners = new Map<keyof Events, Set<(data: never) => void>>()
   const listeners = new Set<(message: BattleMessage) => void>()
   const request = <T>(route: string, args?: unknown[]) => previewRequest<T>(endpoint, route, args, controller.signal)
   const { content } = await request<{ content: ServerEnvironmentContent }>('content')
@@ -82,12 +89,15 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
     polling = true
     try {
       while (!disposed) {
-        const batch = await request<{ cursor: number; events: { cursor: number; message: BattleMessage }[] }>(
-          `events?after=${cursor}`,
-        )
+        const batch = await request<{
+          cursor: number
+          events: { cursor: number; message?: BattleMessage; timer?: { type: keyof Events; data: unknown } }[]
+        }>(`events?after=${cursor}`)
         for (const entry of batch.events) {
           cursor = entry.cursor
-          for (const listener of listeners) listener(entry.message)
+          if (entry.message) for (const listener of listeners) listener(entry.message)
+          if (entry.timer)
+            for (const listener of timerListeners.get(entry.timer.type) ?? []) listener(entry.timer.data as never)
         }
         await new Promise<void>(resolve => setTimeout(resolve, 75))
       }
@@ -117,9 +127,17 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
     getTimerConfig: () => call('getTimerConfig'),
     startAnimation: (...args) => call('startAnimation', ...args),
     endAnimation: (...args) => call('endAnimation', ...args),
-    // Preview timers are disabled by the Node host.
-    onTimerEvent: () => () => {},
-    offTimerEvent() {},
+    onTimerEvent(type, handler) {
+      let handlers = timerListeners.get(type)
+      if (!handlers) timerListeners.set(type, (handlers = new Set()))
+      handlers.add(handler)
+      return () => {
+        handlers.delete(handler)
+      }
+    },
+    offTimerEvent(type, handler) {
+      timerListeners.get(type)?.delete(handler)
+    },
     createRuntimeSnapshot: () => call('createRuntimeSnapshot'),
     restoreRuntimeSnapshot: (...args) => call('restoreRuntimeSnapshot', ...args),
     async cleanup() {
@@ -127,6 +145,7 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
       disposed = true
       controller.abort()
       listeners.clear()
+      timerListeners.clear()
       await previewRequest(endpoint, 'cleanup', []).catch(() => {})
     },
   }

@@ -1,3 +1,5 @@
+import { DebugEnvironments } from './debug-environments.mjs'
+import { ProjectTeams } from './project-teams.mjs'
 import { AuthorWorkspace, WorkspaceError } from './workspace.mjs'
 import { readWorkbenchContext } from './workbench-context.mjs'
 import { AuthorJobs } from './jobs.mjs'
@@ -11,6 +13,8 @@ export async function openAuthorSession(directory, options = {}) {
   return {
     workspace,
     jobs,
+    teams: new ProjectTeams(workspace),
+    environments: new DebugEnvironments(workspace),
     async describe() {
       const snapshot = await workspace.snapshot()
       return {

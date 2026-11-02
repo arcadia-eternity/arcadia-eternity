@@ -99,6 +99,107 @@ export class AuthorWorkspaces {
       return entry
     })
   }
+  async previewEnvironment(id, environmentId) {
+    if (!(await this.list()).some(entry => entry.id === id)) throw new Error('源项目不存在')
+    const file = join(this.root, 'state', `preview-environment-${id}.json`)
+    return this.#mutate(async () => {
+      if (environmentId === undefined) {
+        try {
+          return JSON.parse(await readFile(file, 'utf8')).environmentId
+        } catch (error) {
+          if (error.code === 'ENOENT') return 'default'
+          throw error
+        }
+      }
+      if (typeof environmentId !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId))
+        throw new Error('环境标识无效')
+      await mkdir(dirname(file), { recursive: true })
+      const temporary = `${file}.${randomUUID()}.tmp`
+      try {
+        await writeFile(temporary, JSON.stringify({ environmentId }))
+        await rename(temporary, file)
+      } finally {
+        await rm(temporary, { force: true })
+      }
+      return environmentId
+    })
+  }
+  async debugEnvironments(id, action, input) {
+    const session = await this.session(id)
+    if (action === 'list') return session.environments.list()
+    if (action === 'save') return session.environments.save(input)
+    throw new Error('不支持的环境操作')
+  }
+  async mapDebugSource(id, directory) {
+    const session = await this.session(id)
+    await session.workspace.assertWritable()
+    const root = await realpath(directory)
+    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+    if (!manifest.arcadia?.projectId || typeof manifest.name !== 'string') throw new Error('请选择 npm 内容包源项目')
+    const file = join(session.workspace.root, '.arcadia/debug-sources.json')
+    try {
+      const info = await lstat(dirname(file))
+      if (info.isSymbolicLink() || !info.isDirectory()) throw new Error('本机源码映射目录必须是普通目录')
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    return this.#mutate(async () => {
+      let mappings = {}
+      try {
+        mappings = JSON.parse(await readFile(file, 'utf8'))
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error
+      }
+      mappings[manifest.name] = root
+      await mkdir(dirname(file), { recursive: true })
+      const info = await lstat(dirname(file))
+      if (info.isSymbolicLink() || !info.isDirectory()) throw new Error('本机源码映射目录必须是普通目录')
+      await writeFile(join(dirname(file), '.gitignore'), '*\n', { flag: 'wx' }).catch(error => {
+        if (error.code !== 'EEXIST') throw error
+      })
+      const temporary = `${file}.${randomUUID()}.tmp`
+      try {
+        await writeFile(temporary, JSON.stringify(mappings, null, 2))
+        await rename(temporary, file)
+      } finally {
+        await rm(temporary, { force: true })
+      }
+      return { name: manifest.name }
+    })
+  }
+  // Drafts live in the application profile, independently of disposable candidate Sessions.
+  async teamLibrary(id, action, input = {}) {
+    const session = await this.session(id)
+    if (action === 'list') return session.teams.list()
+    if (action === 'save') return session.teams.save(input)
+    if (action === 'remove') return session.teams.remove(input)
+    const file = join(this.root, 'state', `teams-${id}.json`)
+    if (action === 'draft-read') {
+      return this.#mutate(async () => {
+        try {
+          return JSON.parse(await readFile(file, 'utf8'))
+        } catch (error) {
+          if (error.code === 'ENOENT') return null
+          throw error
+        }
+      })
+    }
+    if (action === 'draft-write') {
+      if (!input || input.schemaVersion !== 1 || Buffer.byteLength(JSON.stringify(input)) > 2 * 1024 * 1024)
+        throw new Error('测试编队草稿无效或过大')
+      return this.#mutate(async () => {
+        await mkdir(dirname(file), { recursive: true })
+        const temporary = `${file}.${randomUUID()}.tmp`
+        try {
+          await writeFile(temporary, JSON.stringify(input))
+          await rename(temporary, file)
+        } finally {
+          await rm(temporary, { force: true })
+        }
+      })
+    }
+    throw new Error('不支持的项目队伍操作')
+  }
   async create(name) {
     if (typeof name !== 'string' || !name.trim() || name.length > 80) throw new Error('请输入 1–80 个字符的项目名称')
     const directory = join(this.root, 'projects', `pack-${randomUUID().slice(0, 12)}`)

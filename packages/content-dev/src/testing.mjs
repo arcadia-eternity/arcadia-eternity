@@ -1,136 +1,47 @@
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
-import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { promisify } from 'node:util'
-import {
-  AttackTargetOpinion,
-  BattleMessageType,
-  TurnContext,
-  UseSkillContext,
-  createContentCatalog,
-} from '@arcadia-eternity/battle/v4'
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
-import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
-
-const exec = promisify(execFile)
-async function npm(args, options) {
-  const invocation = await resolveNpmInvocation(args)
-  return exec(invocation.file, invocation.args, options)
-}
-
-/** Pack and install exactly what a consuming server receives. Approval is limited to this local demo. */
-export async function prepareContentPack(root = process.cwd(), { offline = true, cache } = {}) {
+import { prepareBattleEnvironment } from './environment.mjs'
+export { prepareBattleEnvironment } from './environment.mjs'
+import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/v4'
+/** Existing package scenarios use the default environment with declared dependencies only. */
+export async function prepareContentPack(root = process.cwd(), options = {}) {
   root = resolve(root)
   const { default: config } = await import(pathToFileURL(join(root, 'arcadia.config.mjs')).href)
-  if (typeof config?.players !== 'function')
+  if (!config?.teams && typeof config?.players !== 'function')
     throw new Error('arcadia.config.mjs must export a players({ namespace }) function')
-  const temporary = await mkdtemp(join(tmpdir(), 'arcadia-pack-template-'))
-  const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-  const cacheArgs = cache ? ['--cache', resolve(cache)] : []
-  const battles = new Set()
-  let environment
-  async function dispose() {
-    for (const battle of battles) await battle.cleanup()
-    await environment?.dispose()
-    await rm(temporary, { recursive: true, force: true })
+  const prepared = await prepareBattleEnvironment(root, options)
+  const { manifest, environment } = prepared
+  function defaultPlayers() {
+    if (config.teams) return prepared.loadTeams(config.teams)
+    return structuredClone(config.players({ namespace: manifest.arcadia.namespace, manifest }))
   }
-  try {
-    const result = await npm(['pack', '--json', '--ignore-scripts', '--pack-destination', temporary, ...cacheArgs], {
-      cwd: root,
+  function createBattle(
+    seed = 'content-pack-template',
+    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},
+  ) {
+    const input = (supplied ?? defaultPlayers()).map(player => ({
+      ...player,
+      id: (runtimeIds ? undefined : player.id) ?? randomBytes(16).toString('base64url').slice(0, 21),
+      team: player.team.map(pet => ({
+        ...pet,
+        id: runtimeIds ? randomBytes(16).toString('base64url').slice(0, 21) : pet.id,
+      })),
+    }))
+    const players = environment.content.parsePlayers(input, { aiPlayerIds: ai ? [input[1]?.id] : [] })
+    if (players.length !== 2) throw new Error('The demo requires exactly two players')
+    const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
+    if (new Set(ids).size !== ids.length) throw new Error('玩家和精灵的编号不能重复')
+    const battle = environment.content.createBattle(players[0], players[1], {
+      ...battleOptions,
+      rngSeed: seed,
+      timerConfig: battleOptions.timerConfig ?? { enabled: false },
     })
-    const packed = JSON.parse(result.stdout)[0]
-    const files = packed.files.map(file => file.path)
-    assert.ok(files.includes(manifest.arcadia.content))
-    if (manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects))
-    assert.ok(
-      !files.some(file => /^(?:\.arcadia|\.github|node_modules|test|scripts)\//.test(file)),
-      'the package must contain content, not a developer workspace',
-    )
-    const installation = join(temporary, 'server-project')
-    await mkdir(installation)
-    await writeFile(
-      join(installation, 'package.json'),
-      JSON.stringify({
-        name: 'arcadia-template-demo-server',
-        version: '1.0.0',
-        private: true,
-        dependencies: {
-          [manifest.name]: `file:${join(temporary, packed.filename)}`,
-        },
-      }),
-    )
-    await npm(
-      [
-        'install',
-        ...(offline ? ['--offline'] : []),
-        '--ignore-scripts',
-        '--omit=dev',
-        '--no-audit',
-        '--no-fund',
-        ...cacheArgs,
-      ],
-      { cwd: installation },
-    )
-    environment = await prepareNpmProject(
-      installation,
-      {
-        build: nativeBuildIdentity,
-        base: { marks: [], skills: [], species: [] },
-        templates: [],
-        createContent: (data, revision, registrations) =>
-          createContentCatalog(data, revision, undefined, registrations),
-      },
-      { policy: { profile: 'local-development' } },
-    )
-    const candidate = {
-      packageName: manifest.name,
-      version: manifest.version,
-      integrity: packed.integrity,
-      shasum: packed.shasum,
-      sdkApi: manifest.arcadia.sdkApi,
-      build: nativeBuildIdentity,
-      environmentRevision: environment.revision,
-    }
-    if (process.env.ARCADIA_AUTHOR_RESULT === '1') console.log(`ARCADIA_RESULT=${JSON.stringify({ candidate })}`)
-    function defaultPlayers() {
-      return structuredClone(config.players({ namespace: manifest.arcadia.namespace, manifest }))
-    }
-    function createBattle(seed = 'content-pack-template', { ai = false, players: supplied } = {}) {
-      const input = (supplied ?? defaultPlayers()).map(player => ({
-        ...player,
-        id: player.id ?? randomBytes(16).toString('base64url').slice(0, 21),
-      }))
-      const players = environment.content.parsePlayers(input, {
-        aiPlayerIds: ai ? [input[1]?.id] : [],
-      })
-      if (players.length !== 2) throw new Error('The demo requires exactly two players')
-      const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
-      if (new Set(ids).size !== ids.length) throw new Error('玩家和精灵的编号不能重复')
-      const battle = environment.content.createBattle(players[0], players[1], {
-        rngSeed: seed,
-        timerConfig: { enabled: false },
-      })
-      battles.add(battle)
-      return battle
-    }
-    return {
-      environment,
-      candidate,
-      manifest,
-      files,
-      createBattle,
-      defaultPlayers,
-      dispose,
-      track: battle => battles.add(battle),
-    }
-  } catch (error) {
-    await dispose()
-    throw error
+    prepared.track(battle)
+    return battle
   }
+  return { ...prepared, createBattle, defaultPlayers }
 }
 
 export function attack(battle) {

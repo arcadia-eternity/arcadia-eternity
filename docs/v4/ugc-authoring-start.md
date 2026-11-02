@@ -16,7 +16,7 @@
 
 在独立仓库开发时，使用组织下的 [content-pack-template](https://github.com/arcadia-eternity/content-pack-template)，点击 **Use this template** 创建自己的包，然后运行 `npm run setup`、`npm test` 和 `npm run demo`。
 
-保存草稿后，点击常驻工具栏的“调试试玩”。准备完成会打开独立调试窗口，先调整双方测试队伍，再点击“开始对战”。队伍默认复制 `arcadia.config.mjs` 的配置，也可修改精灵、等级、技能、性格、特性、纹章和首发顺序；第一位玩家手动操作，对手由 AI 控制。测试队伍与个人编队分开，仅在该候选的临时会话中保留，不写入仓库或源文件。
+保存草稿后，点击常驻工具栏的“调试试玩”。准备完成会打开独立调试窗口，先调整双方测试队伍，再点击“开始对战”。模板从 `debug/teams/*.yaml` 读取 `arcadia.config.mjs` 指定的默认队伍，旧项目仍支持 `players()`，也可修改精灵、等级、技能、性格、特性、纹章和首发顺序；第一位玩家手动操作，对手由 AI 控制。测试队伍与个人编队分开；双方共用项目多队伍库，修改自动暂存为本机草稿，点击“保存队伍”才写入 `debug/teams/*.yaml`，由作者决定 Git 提交。关窗、重启或准备新版会保留草稿和选择。外部文件改变时，保存报冲突，可重新载入项目文件，或复制草稿为新队伍后保存。
 
 “返回编辑器”回到原来的编辑位置；再次打开调试窗口可以继续对局。战斗中“结束并调整队伍”回到测试配置，确认后可以重新开局。编辑源码不会替换正在玩的版本；顶部统一使用“调试试玩”：已保存内容未变时复用现有窗口，变化后自动准备最新候选。客户端全局只保留一个试玩；准备新版本或切换项目试玩前，会结束旧对局并关闭旧窗口。
 
@@ -24,7 +24,7 @@
 
 CLI 使用 `arcadia-content workspace /path/to/pack preview --execute`；MCP 使用 `preview_start` 并通过 `job_get` 读取结果。`result.preview` 提供本机宿主 endpoint、客户端路径，以及配置了 `ARCADIA_PREVIEW_CLIENT_URL` 时的完整地址。桌面复制的 MCP 配置自动提供配套客户端地址。独立 CLI 可以设置该变量为本机配套网页地址。任务会保持试玩宿主运行，Ctrl+C 或 `job_cancel` 停止；其他入口可以通过相同项目的任务 ID 查询和取消。取消保留源码，异常退出的任务在重新打开后显示 interrupted。
 
-模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects.ts`，演示队伍放在 `arcadia.config.mjs`。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-dev`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
+模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects.ts`，演示队伍放在 `debug/teams/*.yaml`，由 `arcadia.config.mjs` 的 `teams` 引用。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-dev`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
 
 SDK 和工具尚未正式发布到 npm；模板首次安装从 `arcadia-sdk.json` 指定的主仓库提交载入安装器，并构建、安装本地开发物料。后续使用本地工具命令。工具物料用 `node scripts/stage-author-sdk.mjs /new/sdk-dir` 生成，包含工具和 SDK 的完整依赖。
 

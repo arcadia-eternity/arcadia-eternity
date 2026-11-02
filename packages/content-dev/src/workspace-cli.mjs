@@ -3,18 +3,26 @@ import { diagnostic } from './workspace.mjs'
 
 export async function workspaceCli(args) {
   const [directory, operation = 'describe', ...flags] = args
-  if (!directory || flags.some(flag => flag !== '--execute'))
+  let execute = false,
+    environmentId
+  for (let index = 0; index < flags.length; index++) {
+    if (flags[index] === '--execute') execute = true
+    else if (flags[index] === '--environment' && operation === 'preview' && flags[index + 1])
+      environmentId = flags[++index]
+    else throw new Error('Unknown workspace option; use --execute or preview --environment <id>')
+  }
+  if (!directory)
     throw new Error(
-      'Usage: arcadia-content workspace <directory> <describe|query|read|write|save|check|test|demo|preview|pack> [--execute]. JSON input on stdin for query/read/write/save.',
+      'Usage: arcadia-content workspace <directory> <operation> [--execute] [--environment <id>]. JSON input on stdin for query/read/write/save.',
     )
-  const session = await openAuthorSession(directory, { watch: false, execute: flags.includes('--execute') })
+  const session = await openAuthorSession(directory, { watch: false, execute })
   const cancel = () => session.close()
   process.once('SIGTERM', cancel)
   process.once('SIGINT', cancel)
   try {
     let result
     if (['check', 'test', 'demo', 'preview', 'pack'].includes(operation)) {
-      let job = await session.jobs.start({ kind: operation })
+      let job = await session.jobs.start({ kind: operation, ...(environmentId ? { environmentId } : {}) })
       while (['queued', 'running'].includes(job.state)) {
         await new Promise(resolve => setTimeout(resolve, 100))
         job = session.jobs.get(job.jobId)

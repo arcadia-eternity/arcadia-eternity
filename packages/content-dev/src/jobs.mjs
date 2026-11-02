@@ -1,10 +1,10 @@
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rm, symlink, readFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
-import { WorkspaceError, diagnostic } from './workspace.mjs'
+import { AuthorWorkspace, WorkspaceError, diagnostic } from './workspace.mjs'
 import { JobJournal } from './job-journal.mjs'
 
 const cli = fileURLToPath(new URL('./cli.mjs', import.meta.url))
@@ -31,8 +31,13 @@ export class AuthorJobs {
       ),
     )
     this.executable = executable
-    this.#changed = () => {
-      for (const { job } of this.#jobs.values()) if (terminal.has(job.state)) job.stale = true
+    this.#changed = ({ file } = {}) => {
+      for (const { job } of this.#jobs.values())
+        if (
+          terminal.has(job.state) &&
+          !(job.kind === 'preview' && (file?.startsWith('debug/teams/') || file === job.result?.environmentLock?.file))
+        )
+          job.stale = true
     }
     workspace.on('change', this.#changed)
     if (!workspace.readOnly && workspace.root) this.#journal = new JobJournal(workspace.root)
@@ -64,19 +69,46 @@ export class AuthorJobs {
       })
     return this.#sync
   }
+  async #dependenciesCurrent(job) {
+    const revisions = Object.entries(job.result?.sourceRevisions ?? {})
+    if (!revisions.length) return true
+    try {
+      const mappings = JSON.parse(await readFile(join(this.workspace.root, '.arcadia/debug-sources.json'), 'utf8'))
+      for (const [name, revision] of revisions) {
+        if (typeof mappings[name] !== 'string') return false
+        const source = await AuthorWorkspace.open(mappings[name], { watch: false })
+        try {
+          if ((await source.revision({ contentOnly: true })) !== revision) return false
+        } finally {
+          await source.close()
+        }
+      }
+      return true
+    } catch {
+      return false
+    }
+  }
   async refresh() {
     await this.#checkpoint()
     if (!this.#journal) return
     const revision = await this.workspace.revision()
+    const contentRevision = await this.workspace.revision({ contentOnly: true })
     for (const { job } of this.#jobs.values())
-      if (terminal.has(job.state)) job.stale ||= job.sourceRevision !== revision
+      if (terminal.has(job.state))
+        job.stale ||=
+          job.kind === 'preview'
+            ? job.contentRevision !== contentRevision || !(await this.#dependenciesCurrent(job))
+            : job.sourceRevision !== revision
     for (const receipt of await this.#journal.read()) {
       if (this.#jobs.get(receipt.job.jobId)?.controller) continue
-      receipt.job.stale ||= receipt.job.sourceRevision !== revision
+      receipt.job.stale ||=
+        receipt.job.kind === 'preview'
+          ? receipt.job.contentRevision !== contentRevision || !(await this.#dependenciesCurrent(receipt.job))
+          : receipt.job.sourceRevision !== revision
       this.#jobs.set(receipt.job.jobId, { job: receipt.job, live: receipt.live })
     }
   }
-  async start({ kind, sourceRevision }) {
+  async start({ kind, sourceRevision, environmentId = 'default' }) {
     if (this.workspace.assertWritable) await this.workspace.assertWritable()
     if (this.#closed) throw new WorkspaceError('WORKSPACE_CLOSED', '任务宿主已关闭')
     if (!['check', 'test', 'demo', 'preview', 'pack'].includes(kind))
@@ -85,6 +117,8 @@ export class AuthorJobs {
     if (this.#active) throw new WorkspaceError('TASK_BUSY', '请等待或取消当前任务')
     if (kind === 'preview' && this.#previews.size >= 4)
       throw new WorkspaceError('PREVIEW_LIMIT', '请先停止一个旧试玩，再准备新候选')
+    if (typeof environmentId !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId))
+      throw new WorkspaceError('ENVIRONMENT_INVALID', '环境标识无效')
     const jobId = randomUUID()
     // Reserve before fingerprinting so concurrent starts cannot race.
     this.#active = jobId
@@ -101,6 +135,13 @@ export class AuthorJobs {
         jobId,
         kind,
         sourceRevision: revision,
+        contentRevision: await this.workspace.revision({ contentOnly: true }),
+        environmentId,
+        preparationRevision: await this.workspace.revision({
+          contentOnly: true,
+          excludeFile:
+            environmentId === 'default' ? undefined : `debug/environments/${environmentId}.package-lock.json`,
+        }),
         state: 'queued',
         stale: false,
         output: '',
@@ -173,7 +214,7 @@ export class AuthorJobs {
           join(capture, 'node_modules'),
           process.platform === 'win32' ? 'junction' : 'dir',
         )
-        if ((await this.workspace.revision()) !== job.sourceRevision)
+        if ((await this.workspace.revision({ contentOnly: true })) !== job.contentRevision)
           throw new WorkspaceError('PREVIEW_STALE', '复制候选期间源码已改变，请重试')
       }
       if (job.kind === 'check') {
@@ -201,7 +242,18 @@ export class AuthorJobs {
     } finally {
       clearTimeout(timeout)
       try {
-        job.stale = (await this.workspace.revision()) !== job.sourceRevision
+        if (job.kind === 'preview' && job.result?.environmentLock) {
+          const expected = job.result.environmentLock
+          const actual = await this.workspace.read(expected.file)
+          const revision = await this.workspace.revision({ contentOnly: true, excludeFile: expected.file })
+          if (actual.version === expected.version && revision === job.preparationRevision)
+            job.contentRevision = await this.workspace.revision({ contentOnly: true })
+        }
+        job.stale =
+          job.kind === 'preview'
+            ? (await this.workspace.revision({ contentOnly: true })) !== job.contentRevision ||
+              !(await this.#dependenciesCurrent(job))
+            : (await this.workspace.revision()) !== job.sourceRevision
         if (job.stale && job.kind === 'preview') {
           controller.abort()
           state = 'failed'
@@ -221,7 +273,12 @@ export class AuthorJobs {
     await new Promise((resolve, reject) => {
       const child = spawn(this.executable, args, {
         cwd: capture ?? this.workspace.root,
-        env: { ...this.env, ELECTRON_RUN_AS_NODE: '1', ARCADIA_AUTHOR_RESULT: '1' },
+        env: {
+          ...this.env,
+          ELECTRON_RUN_AS_NODE: '1',
+          ARCADIA_AUTHOR_RESULT: '1',
+          ...(preview ? { ARCADIA_DEBUG_ENVIRONMENT: job.environmentId, ARCADIA_DEBUG_ROOT: this.workspace.root } : {}),
+        },
         stdio: ['ignore', 'pipe', 'pipe', ...(preview ? ['ipc'] : [])],
         windowsHide: true,
         detached: process.platform !== 'win32',

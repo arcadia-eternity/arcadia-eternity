@@ -213,26 +213,3 @@ export class LocalBattleSession {
     return attempt
   }
 }
-
-const pending = new Map<string, { session: LocalBattleSession; timer: ReturnType<typeof setTimeout> }>()
-/** One-use navigation ticket; unclaimed snapshots expire and are actually released. */
-export function createCreatorTrialLaunch(input: CreatorTrialInput): string {
-  while (pending.size >= 4) void takeCreatorTrialLaunch(pending.keys().next().value!)?.dispose()
-  const key = crypto.randomUUID(),
-    session = new LocalBattleSession(input)
-  const timer = setTimeout(
-    () => {
-      void takeCreatorTrialLaunch(key)?.dispose()
-    },
-    30 * 60 * 1000,
-  )
-  pending.set(key, { session, timer })
-  return key
-}
-export function takeCreatorTrialLaunch(key: string): LocalBattleSession | null {
-  const entry = pending.get(key)
-  if (!entry) return null
-  pending.delete(key)
-  clearTimeout(entry.timer)
-  return entry.session
-}

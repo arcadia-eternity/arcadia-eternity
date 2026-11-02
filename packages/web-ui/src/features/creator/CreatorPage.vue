@@ -18,13 +18,11 @@ import {
   type WorkRecord,
   type WorkWorkspace,
   type WorkArchive,
-  type NativeWorkSelection,
 } from '@arcadia-eternity/pack-loader/native'
 import { createWorkRepository } from '@/services/workStorage'
 import { loadCreatorBase, defaultRecord, referenceOptions, releaseLock, workHost } from './content'
 import BehaviorEditor from './BehaviorEditor.vue'
 import { selectLearnableSkills } from './records'
-import TrialBattle from './TrialBattle.vue'
 import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 const workspace = shallowRef<WorkWorkspace>(emptyWorkspace())
 const draft = ref<WorkDraft>()
@@ -41,10 +39,6 @@ const kind = ref<'species' | 'skill' | 'mark'>('skill'),
   activeId = ref(''),
   releaseVersion = ref('1.0.0')
 const pendingImport = shallowRef<WorkArchive>()
-const preview = shallowRef<{
-  selection: NativeWorkSelection
-  species: { id: string; label: string; skills: string[]; ability?: string; emblem?: string }[]
-}>()
 let repository: ReturnType<typeof createWorkRepository>
 const installed = computed(() => Object.values(workspace.value.releases))
 const records = computed(() => draft.value?.data[collection[kind.value]] ?? [])
@@ -93,26 +87,15 @@ async function save() {
   await refresh()
   notice.value = '草稿已保存到本机'
 }
-async function saveBeforeTrial() {
-  if (busy.value) throw new Error('作品正在处理中，请稍后再开始试战')
-  busy.value = true
-  try {
-    await save()
-  } finally {
-    busy.value = false
-  }
-}
 async function open(id: string) {
   await save()
   draft.value = clone(workspace.value.drafts[id])
   activeId.value = ''
-  preview.value = undefined
 }
 async function create() {
   await save()
   draft.value = createDraft(crypto.randomUUID(), title.value, namespace.value)
   activeId.value = ''
-  preview.value = undefined
   await save()
 }
 async function fork() {
@@ -120,7 +103,6 @@ async function fork() {
   const copy = forkDraft(clone(draft.value), crypto.randomUUID(), namespace.value)
   draft.value = await repository.saveDraft(copy)
   await refresh()
-  preview.value = undefined
 }
 function add() {
   if (!draft.value) return
@@ -157,32 +139,8 @@ async function trial() {
       .filter(lock => lock.projectId !== release.project.id)
       .map(lock => workspace.value.releases[`${lock.projectId}@${lock.version}`]),
   ]
-  const environment = await prepareWorkEnvironment(workHost(base.value), selected, installed.value)
-  const names = new Map(
-    draft.value!.data.species.map(item => [
-      runtimeId(draft.value!.project.namespace, item.id),
-      String(item.name ?? item.id),
-    ]),
-  )
-  const species = environment.data.species as {
-    id: string
-    learnable_skills: { skill_id: string }[]
-    ability: string[]
-    emblem: string[]
-  }[]
-  preview.value = {
-    selection: { base: clone(base.value), selected, installed: environment.releases },
-    species: species
-      .filter(item => names.has(item.id))
-      .map(item => ({
-        id: item.id,
-        label: names.get(item.id)!,
-        skills: item.learnable_skills.map(skill => skill.skill_id),
-        ...(item.ability[0] ? { ability: item.ability[0] } : {}),
-        ...(item.emblem[0] ? { emblem: item.emblem[0] } : {}),
-      })),
-  }
-  notice.value = '校验通过，已固定本次试战内容'
+  await prepareWorkEnvironment(workHost(base.value), selected, installed.value)
+  notice.value = '组合内容校验通过。源码项目的调试请从编辑内容包入口开始。'
 }
 async function download(mode: 'draft' | 'release' | 'selection', key?: string) {
   const selected = key
@@ -287,7 +245,7 @@ onMounted(() => {
           <div class="toolbar">
             <h2>{{ draft.project.title }}</h2>
             <button @click="run(save)">保存草稿</button><button @click="run(() => download('draft'))">导出草稿</button
-            ><button @click="run(trial)">校验并准备试战</button>
+            ><button @click="run(trial)">校验组合内容</button>
           </div>
           <div class="fields">
             <label>作品标题<input v-model="draft.project.title" maxlength="200" /></label
@@ -475,22 +433,15 @@ onMounted(() => {
             <label>固定版本号<input v-model="releaseVersion" placeholder="1.0.0" /></label
             ><button @click="run(publish)">创建固定版本</button>
           </div>
-          <TrialBattle
-            v-if="preview"
-            :key="preview.selection.selected[0].digest"
-            :before-launch="saveBeforeTrial"
-            :selection="preview.selection"
-            :species="preview.species"
-          />
         </section>
         <section v-else class="panel">
           <h2>从一份作品开始</h2>
-          <p>在左侧创建作品或导入好友分享的文件。未完成的内容可以保存为草稿，发布和试战前会检查引用及效果参数。</p>
+          <p>在左侧创建作品或导入好友分享的文件。未完成的内容可以保存为草稿，发布前会检查引用及效果参数。</p>
         </section>
       </div>
       <section class="panel releases">
         <h2>已安装的固定版本</h2>
-        <p>启用的版本将加入试战环境；导出的组合可在其他客户端及命令行中加载。</p>
+        <p>启用的版本将加入导出组合；导出的组合可在其他客户端及命令行中加载。</p>
         <button :disabled="!workspace.selected.length" @click="run(() => download('selection'))">导出启用组合</button>
         <p v-if="!installed.length">暂无。创建固定版本后，即可导出作品及其依赖。</p>
         <div v-for="(release, key) in workspace.releases" :key="key" class="release-row">

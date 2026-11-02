@@ -231,6 +231,8 @@ declare global {
   interface Window {
     arcadiaDesktop?: ArcadiaDesktopApi
     arcadiaAuthorPreview?: {
+      environment?: import('@/features/authoring/debugEnvironment').DebugEnvironmentBridge
+      teams?: import('@/components/team/library').ProjectTeamBridge
       returnToEditor(): void
     }
     arcadiaRemotePlay?: {

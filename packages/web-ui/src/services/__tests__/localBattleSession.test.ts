@@ -4,12 +4,7 @@ import type { BattleState } from '@arcadia-eternity/const'
 import { createDraft } from '@arcadia-eternity/pack-loader/native'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
-import {
-  createCreatorTrialLaunch,
-  takeCreatorTrialLaunch,
-  LocalBattleSession,
-  type CreatorTrialInput,
-} from '../localBattleSession'
+import { LocalBattleSession, type CreatorTrialInput } from '../localBattleSession'
 import type { createNativeWebBattleSession } from '../nativeBattleFactory'
 
 type Prepared = Awaited<ReturnType<typeof createNativeWebBattleSession>>
@@ -216,18 +211,4 @@ it('restores display and detaches the store even when native cleanup fails', asy
   expect(target.data.species).toBe(original)
   expect(target.battle.battleInterface).toBeNull()
   expect(native.system.cleanup).toHaveBeenCalledOnce()
-})
-
-it('navigation tickets are single-use and unclaimed snapshots actually expire', async () => {
-  vi.useFakeTimers()
-  const key = createCreatorTrialLaunch(input())
-  const claimed = takeCreatorTrialLaunch(key)!
-  sessions.push(claimed)
-  expect(claimed.trial?.title).toBe('原稿')
-  expect(takeCreatorTrialLaunch(key)).toBeNull()
-  expect(vi.getTimerCount()).toBe(0)
-  const expired = createCreatorTrialLaunch(input())
-  await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
-  expect(takeCreatorTrialLaunch(expired)).toBeNull()
-  expect(vi.getTimerCount()).toBe(0)
 })

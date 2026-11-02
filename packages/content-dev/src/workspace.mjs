@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { lstat, mkdir, readdir, readFile, realpath } from 'node:fs/promises'
+import { lstat, mkdir, readdir, readFile, realpath, unlink } from 'node:fs/promises'
 import { dirname, extname, isAbsolute, join, relative, sep } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
@@ -210,9 +210,10 @@ export class AuthorWorkspace extends EventEmitter {
     await walk(this.root)
     return result
   }
-  async revision() {
+  async revision({ contentOnly = false, excludeFile } = {}) {
     const hashes = []
     for (const entry of await this.files()) {
+      if (entry.file === excludeFile || (contentOnly && entry.file.startsWith('debug/teams/'))) continue
       if (entry.error) fail('PATH_INVALID', entry.error, entry.file)
       const digest = createHash('sha256')
       for await (const chunk of createReadStream(await this.path(entry.file))) digest.update(chunk)
@@ -501,6 +502,14 @@ export class AuthorWorkspace extends EventEmitter {
       if (fromForm) this.#dirty.delete(file)
       this.emit('change', { type: 'change', file })
       return { file, version: hash(text) }
+    })
+  }
+  async remove({ file, expectedVersion }) {
+    return this.#serialize(file, async () => {
+      const path = await this.path(file)
+      await this.#check(file, expectedVersion, false)
+      await unlink(path)
+      this.emit('change', { type: 'unlink', file })
     })
   }
   async saveRecord({ file, expectedVersion, index = null, record }) {

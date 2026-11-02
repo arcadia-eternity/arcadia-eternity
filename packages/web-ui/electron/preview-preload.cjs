@@ -4,7 +4,9 @@ contextBridge.exposeInMainWorld('arcadiaRemotePlay', {
   getBootConfig: async () => ({ schemaVersion: 1, backendOrigin: 'http://offline.invalid' }),
 })
 
-// A fixed return action only; author/file APIs stay in the editor window.
+// Only project-bound team operations; no arbitrary source path or generic author IPC.
 contextBridge.exposeInMainWorld('arcadiaAuthorPreview', {
+  environment: (action, input) => ipcRenderer.invoke('author-preview:environment', action, input),
+  teams: (action, input) => ipcRenderer.invoke('author-preview:teams', action, input),
   returnToEditor: () => ipcRenderer.send('author-preview:return'),
 })

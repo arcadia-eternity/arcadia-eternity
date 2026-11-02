@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { createServer } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import { createReadStream } from 'node:fs'
@@ -9,12 +11,13 @@ import { prepareContentPack } from './testing.mjs'
 /** A captured npm candidate, with rules executed only in this local Node process.
  * The existing client consumes public metadata and IBattleSystem messages.
  */
-export async function startPreview(root, { clientUrl, signal } = {}) {
-  const prepared = await prepareContentPack(root)
+export async function startPreview(root, { clientUrl, signal, ...environmentOptions } = {}) {
+  const prepared = await prepareContentPack(root, environmentOptions)
   const token = randomBytes(24).toString('hex')
   let endpoint,
     system,
     unsubscribe,
+    detachTimers = [],
     closed = false,
     closing
   let events = [],
@@ -86,14 +89,21 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
       }
     return result
   }
-  async function reset(players) {
+  async function reset(players, options = {}) {
     // Validate and construct first: a bad test team must not destroy the current match.
-    const battle = prepared.createBattle('author-preview', { ai: true, players })
+    const battle = prepared.createBattle(options.rngSeed ?? 'author-preview', {
+      ai: true,
+      players,
+      runtimeIds: true,
+      battleOptions: options,
+    })
     unsubscribe?.()
+    detachTimers.forEach(detach => detach())
+    detachTimers = []
     await system?.cleanup()
     events = []
     sequence = 0
-    system = new LocalBattleSystemV4(battle, prepared.environment.content)
+    system = new LocalBattleSystemV4(battle, prepared.environment.content, { teamSelection: options.teamSelection })
     unsubscribe = system.BattleEvent(
       message => {
         events.push({ cursor: ++sequence, message })
@@ -101,6 +111,25 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
         if (events.length > 4096) events.shift()
       },
       { viewerId: battle.playerA.id, showHidden: false },
+    )
+    detachTimers = [
+      'timerStart',
+      'timerUpdate',
+      'timerPause',
+      'timerResume',
+      'timerTimeout',
+      'teamSelectionTimerStart',
+      'teamSelectionTimerStop',
+      'teamSelectionTimeout',
+      'timerSnapshot',
+      'timerStateChange',
+      'animationStart',
+      'animationEnd',
+    ].map(type =>
+      system.onTimerEvent(type, data => {
+        events.push({ cursor: ++sequence, timer: { type, data } })
+        if (events.length > 4096) events.shift()
+      }),
     )
     return system.getState(undefined, true)
   }
@@ -156,15 +185,17 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
       if (!Array.isArray(args)) throw new Error('INVALID_ARGUMENTS')
       if (route === 'configure') {
         if (!Array.isArray(args[0]) || args[0].length !== 2) throw new Error('请配置双方测试队伍')
-        return json(200, { result: await reset(args[0]) })
+        return json(200, { result: await reset(args[0], args[1]) })
       }
       if (route === 'open') {
         const state = system ? await system.getState(undefined, true) : await reset()
-        const outcome = events.findLast(event => event.message.type === 'BATTLE_END')?.message.data
+        const outcome = events.findLast(event => event.message?.type === 'BATTLE_END')?.message.data
         return json(200, { result: { state, cursor: sequence, outcome } })
       }
       if (route === 'cleanup') {
         unsubscribe?.()
+        detachTimers.forEach(detach => detach())
+        detachTimers = []
         await system?.cleanup()
         system = undefined
         return json(200, { result: null })
@@ -182,6 +213,7 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
       server.closeAllConnections()
       await new Promise(resolve => server.close(resolve))
       unsubscribe?.()
+      detachTimers.forEach(detach => detach())
       await system?.cleanup()
       await prepared.dispose()
     })()
@@ -203,6 +235,8 @@ export async function startPreview(root, { clientUrl, signal } = {}) {
       endpoint,
       clientPath,
       candidate: prepared.candidate,
+      environmentLock: prepared.environmentLock,
+      sourceRevisions: prepared.sourceRevisions,
       ...(clientUrl ? { url: new URL(clientPath, clientUrl).href } : {}),
       close,
       get closed() {
@@ -226,9 +260,15 @@ export async function previewCommand() {
     const preview = await startPreview(process.cwd(), {
       clientUrl: process.env.ARCADIA_PREVIEW_CLIENT_URL,
       signal: controller.signal,
+      environmentId: process.env.ARCADIA_DEBUG_ENVIRONMENT ?? 'default',
+      offline: !process.env.ARCADIA_DEBUG_ENVIRONMENT || process.env.ARCADIA_DEBUG_ENVIRONMENT === 'default',
+      lockRoot: process.env.ARCADIA_DEBUG_ROOT,
+      sources: process.env.ARCADIA_DEBUG_ROOT ? await readSourceMappings(process.env.ARCADIA_DEBUG_ROOT) : {},
     })
-    const { endpoint, clientPath, candidate, url } = preview
-    console.log(`ARCADIA_RESULT=${JSON.stringify({ preview: { endpoint, clientPath, url }, candidate })}`)
+    const { endpoint, clientPath, candidate, environmentLock, sourceRevisions, url } = preview
+    console.log(
+      `ARCADIA_RESULT=${JSON.stringify({ preview: { endpoint, clientPath, url }, candidate, environmentLock, sourceRevisions })}`,
+    )
     if (!controller.signal.aborted)
       await new Promise(resolve => controller.signal.addEventListener('abort', resolve, { once: true }))
     await preview.close()
@@ -236,5 +276,14 @@ export async function previewCommand() {
     process.removeListener('SIGINT', stop)
     process.removeListener('SIGTERM', stop)
     process.removeListener('disconnect', stop)
+  }
+}
+
+async function readSourceMappings(root) {
+  try {
+    return JSON.parse(await readFile(join(root, '.arcadia/debug-sources.json'), 'utf8'))
+  } catch (error) {
+    if (error.code === 'ENOENT') return {}
+    throw error
   }
 }

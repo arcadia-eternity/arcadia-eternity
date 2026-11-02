@@ -149,3 +149,7 @@ pnpm test:battle-v4
 ```
 
 npm 测试实际打包、离线安装与 `npm ci` 重建；验证原生效果、重复刷新、参数修改、来源清理、等待点恢复、自然到期、普通库多版本、内容冲突、额外依赖拒绝和旧环境保留。CLI 测试编译示例 TS、打包、安装、准入，完成真实战斗并在另一进程按原环境回放。
+
+## 作者调试与包测试环境
+
+`@arcadia-eternity/content-dev/testing` 的 `prepareBattleEnvironment` 复用上述真实 npm 环境准备能力，`prepareContentPack` 在其上保留包级默认队伍和战斗接口。默认环境只安装当前包与正式依赖；命名组合环境另行声明测试共存的包，不能给内容提供未声明的跨包引用权限。配置、队伍、npm 锁与本机源码映射的边界见[项目队伍与对战环境](project-battle-workflow.md)。

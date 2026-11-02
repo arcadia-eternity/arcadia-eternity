@@ -131,6 +131,14 @@ for (const [name, kind] of [
       ? 'Build and install a captured npm candidate, then keep a local Node battle host ready for the full client. Poll job_get for preview.url or preview.clientPath. job_cancel stops it; new candidates do not replace existing battles.'
       : `Start ${kind}; poll job_get for actual output and stale-source state.`,
     {
+      ...(kind === 'preview'
+        ? {
+            environmentId: z
+              .string()
+              .regex(/^[a-z0-9][a-z0-9_-]{0,79}$/)
+              .optional(),
+          }
+        : {}),
       sourceRevision: z
         .string()
         .regex(/^[a-f0-9]{64}$/)
