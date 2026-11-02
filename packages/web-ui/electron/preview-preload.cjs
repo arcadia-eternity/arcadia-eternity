@@ -7,6 +7,14 @@ contextBridge.exposeInMainWorld('arcadiaRemotePlay', {
 // Only project-bound team operations; no arbitrary source path or generic author IPC.
 contextBridge.exposeInMainWorld('arcadiaAuthorPreview', {
   environment: (action, input) => ipcRenderer.invoke('author-preview:environment', action, input),
-  teams: (action, input) => ipcRenderer.invoke('author-preview:teams', action, input),
+  teams: {
+    list: () => ipcRenderer.invoke('author-preview:teams', 'list'),
+    readDraft: () => ipcRenderer.invoke('author-preview:teams', 'draft-read'),
+    writeDraft: draft => ipcRenderer.invoke('author-preview:teams', 'draft-write', draft),
+    files: {
+      save: input => ipcRenderer.invoke('author-preview:teams', 'save', input),
+      remove: input => ipcRenderer.invoke('author-preview:teams', 'remove', input),
+    },
+  },
   returnToEditor: () => ipcRenderer.send('author-preview:return'),
 })

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { connectAuthorPreview, previewEndpoint } from '../authorPreview'
+import { connectAuthorPreview, previewEndpoint, loadAuthorPreviewSetup } from '../authorPreview'
 
 const endpoint = 'http://127.0.0.1:8123/' + 'a'.repeat(48)
 afterEach(() => vi.unstubAllGlobals())
@@ -55,4 +55,26 @@ describe('author preview transport', () => {
       await system.cleanup()
     }
   })
+})
+
+it('requires the current project library and draft identity in setup metadata', async () => {
+  const setup = {
+    content: { species: [], skills: [], marks: [] },
+    players: [0, 1].map(side => ({ id: String(side).repeat(21), name: `Side ${side}`, team: [] })),
+    teams: [{ schemaVersion: 1, id: 'blue', name: 'Blue', team: [], version: 'b'.repeat(64) }],
+    draftKey: 'c'.repeat(64),
+    active: false,
+    candidate: { environmentId: 'default', environmentConfigVersion: null },
+  }
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify(setup))),
+  )
+  expect((await loadAuthorPreviewSetup(endpoint)).teams).toEqual(setup.teams)
+  const { teams: _teams, ...incomplete } = setup
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify(incomplete))),
+  )
+  await expect(loadAuthorPreviewSetup(endpoint)).rejects.toThrow('试玩配置无效')
 })

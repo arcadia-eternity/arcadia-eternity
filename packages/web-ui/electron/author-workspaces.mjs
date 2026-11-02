@@ -24,23 +24,20 @@ export class AuthorWorkspaces {
           if (error.code !== 'ENOENT') throw error
           entries = []
         }
-        if (!Array.isArray(entries)) throw new Error('源项目登记损坏，请恢复备份')
-        let upgraded = false
-        // Older registrations predate read-only metadata; inspect identity without scanning content or executing code.
-        for (const entry of entries.filter(entry => typeof entry.readOnly !== 'boolean')) {
-          let probe
-          try {
-            probe = await (await this.api()).openAuthorSession(entry.directory, { watch: false })
-            entry.readOnly = probe.workspace.readOnly
-            upgraded = true
-          } catch {
-            // Missing directories remain registered so the user can locate their projects.
-          } finally {
-            await probe?.close()
-          }
-        }
-        if (upgraded) await this.#save(entries)
-        else this.#entries = entries
+        if (
+          !Array.isArray(entries) ||
+          entries.some(
+            entry =>
+              !entry ||
+              typeof entry.id !== 'string' ||
+              typeof entry.directory !== 'string' ||
+              typeof entry.name !== 'string' ||
+              typeof entry.readOnly !== 'boolean' ||
+              typeof entry.published !== 'boolean',
+          )
+        )
+          throw new Error('源项目登记格式无效，请恢复备份')
+        this.#entries = entries
       })().catch(error => {
         this.#loading = undefined
         throw error

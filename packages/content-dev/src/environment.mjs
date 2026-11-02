@@ -178,6 +178,7 @@ export async function prepareBattleEnvironment(
       environmentLock,
       sourceRevisions,
       loadTeams,
+      teams: teamLibrary,
       teamVersions: Object.fromEntries(teamLibrary.map(team => [team.id, team.version])),
       manifest,
       files,

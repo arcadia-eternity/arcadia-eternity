@@ -1,5 +1,6 @@
 import { Type } from '@sinclair/typebox'
 import { PlayerSchema, PetSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
+import type { ProjectTeam } from '@/components/team/library'
 import type { NativeWebBattleConfig } from './nativeBattleFactory'
 import { nanoid } from 'nanoid'
 import type { BattleMessage, Events } from '@arcadia-eternity/const'
@@ -49,11 +50,35 @@ export async function loadAuthorPreviewSetup(value: string) {
     content: ServerEnvironmentContent
     players: PlayerSchemaType[]
     active: boolean
+    teams: ProjectTeam[]
+    draftKey: string
     warning?: string
-    candidate?: { environmentId?: string; environmentConfigVersion?: string | null }
+    candidate: { environmentId: string; environmentConfigVersion: string | null }
   }>(previewEndpoint(value), 'content')
   validateEnvironmentContent(result.content)
   if (!Array.isArray(result.players) || result.players.length !== 2) throw new Error('项目需要配置双方默认队伍')
+  if (
+    !Array.isArray(result.teams) ||
+    !/^[a-f0-9]{64}$/.test(result.draftKey) ||
+    typeof result.candidate?.environmentId !== 'string' ||
+    !(
+      result.candidate.environmentConfigVersion === null ||
+      typeof result.candidate.environmentConfigVersion === 'string'
+    )
+  )
+    throw new Error('项目试玩配置无效，请重新准备当前项目')
+  const teams = result.teams.map(team =>
+    parseWithErrors(
+      Type.Object({
+        schemaVersion: Type.Literal(1),
+        id: Type.String({ pattern: '^[a-z0-9][a-z0-9_-]{0,79}$' }),
+        name: Type.String({ minLength: 1, maxLength: 80 }),
+        team: Type.Array(Type.Omit(PetSchema, ['id']), { maxItems: 6 }),
+        version: Type.Union([Type.String({ pattern: '^[a-f0-9]{64}$' }), Type.Null()]),
+      }),
+      team,
+    ),
+  )
   const players = result.players.map(player =>
     parseWithErrors(Type.Object({ ...PlayerSchema.properties, team: Type.Array(PetSchema, { maxItems: 6 }) }), {
       ...player,
@@ -61,7 +86,7 @@ export async function loadAuthorPreviewSetup(value: string) {
       team: player.team.map(pet => ({ ...pet, id: pet.id ?? nanoid() })),
     }),
   )
-  return { ...result, players }
+  return { ...result, players, teams }
 }
 
 export async function configureAuthorPreview(

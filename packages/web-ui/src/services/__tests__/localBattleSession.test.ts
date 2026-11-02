@@ -1,26 +1,14 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { BattleState } from '@arcadia-eternity/const'
-import { createDraft } from '@arcadia-eternity/pack-loader/native'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
-import { LocalBattleSession, type CreatorTrialInput } from '../localBattleSession'
+import { LocalBattleSession } from '../localBattleSession'
 import type { createNativeWebBattleSession } from '../nativeBattleFactory'
 
 type Prepared = Awaited<ReturnType<typeof createNativeWebBattleSession>>
 const emptyData = { marks: [], skills: [], species: [] }
 const player = { name: 'test', team: [] }
-function input(): CreatorTrialInput {
-  const draft = createDraft('trial', '原稿', 'trial')
-  const release = { ...draft, format: 'arcadia.work-release' as const, releaseVersion: '1.0.0', digest: 'test' }
-  return {
-    selection: { base: emptyData, selected: [release], installed: [release] },
-    teams: [
-      { name: 'temporary A', pets: [] },
-      { name: 'temporary B', pets: [] },
-    ],
-  }
-}
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>(done => {
@@ -60,8 +48,8 @@ function destination() {
   return { data, battle, navigate: vi.fn(async () => {}) }
 }
 const sessions: LocalBattleSession[] = []
-function session(snapshot = input(), factory: typeof createNativeWebBattleSession = vi.fn(async () => prepared())) {
-  const value = new LocalBattleSession(snapshot, factory)
+function session(factory: typeof createNativeWebBattleSession = vi.fn(async () => prepared())) {
+  const value = new LocalBattleSession(factory)
   sessions.push(value)
   return value
 }
@@ -71,27 +59,28 @@ afterEach(async () => {
   vi.useRealTimers()
 })
 
-it('owns an immutable snapshot, transfers to the battle, and releases temporary display exactly once', async () => {
-  const snapshot = input(),
-    native = prepared(),
-    factory = vi.fn(async () => native)
-  const value = session(snapshot, factory),
-    target = destination()
-  const original = target.data.species
+it('captures player and option inputs, transfers to battle, and releases its runtime exactly once', async () => {
+  const native = prepared(),
+    factory = vi.fn<typeof createNativeWebBattleSession>(async () => native)
+  const value = session(factory),
+    target = destination(),
+    original = target.data.species
   const restore = vi.spyOn(target.data, 'useLocalBattleContent')
-  snapshot.selection.selected[0].project.title = '后续编辑'
-  snapshot.teams[0].name = 'modified saved team'
-  expect(value.trial?.title).toBe('原稿')
-  expect(value.trial?.teams[0].name).toBe('temporary A')
-  expect(Object.isFrozen(value.trial?.teams[0])).toBe(true)
+  const first = { name: 'Player A', team: [] },
+    second = { name: 'Player B', team: [] }
+  const config = { timerConfig: { enabled: false } }
   target.navigate.mockImplementation(async () => {
     await value.releaseConfiguration()
   })
-  await expect(value.start(player, player, {}, target)).resolves.toBe(true)
+  const starting = value.start(first, second, config, target)
+  first.name = 'later edit'
+  config.timerConfig.enabled = true
+  await expect(starting).resolves.toBe(true)
+  expect(factory.mock.calls[0]?.[0].name).toBe('Player A')
+  expect(factory.mock.calls[0]?.[3]?.timerConfig?.enabled).toBe(false)
   expect(value.state).toBe('active')
-  expect(value.trial).toBeUndefined()
   expect(native.system.cleanup).not.toHaveBeenCalled()
-  expect(restore).toHaveBeenCalledOnce()
+  expect(restore).not.toHaveBeenCalled()
   const system = target.battle.battleInterface!
   await target.battle.resetBattleWithoutSurrender()
   await system.cleanup()
@@ -103,9 +92,8 @@ it('owns an immutable snapshot, transfers to the battle, and releases temporary 
 
 it('releases an abandoned configuration and refuses to launch it later', async () => {
   const factory = vi.fn(async () => prepared()),
-    value = session(input(), factory)
+    value = session(factory)
   await value.releaseConfiguration()
-  expect(value.trial).toBeUndefined()
   await expect(value.start(player, player, {}, destination())).rejects.toThrow('重新准备')
   expect(factory).not.toHaveBeenCalled()
 })
@@ -113,17 +101,13 @@ it('releases an abandoned configuration and refuses to launch it later', async (
 it('cancels pending creation, cleans its late runtime, and never mounts or navigates', async () => {
   const pending = deferred<Prepared>(),
     native = prepared()
-  const value = session(
-      input(),
-      vi.fn(() => pending.promise),
-    ),
+  const value = session(vi.fn(() => pending.promise)),
     target = destination()
   const mount = vi.spyOn(target.battle, 'initBattle'),
     project = vi.spyOn(target.data, 'useLocalBattleContent')
   const start = value.start(player, player, {}, target)
   await expect(value.start(player, player, {}, target)).rejects.toThrow('重复启动')
   const closing = value.releaseConfiguration()
-  expect(value.trial).toBeUndefined()
   pending.resolve(native)
   await closing
   await expect(start).resolves.toBe(false)
@@ -133,17 +117,16 @@ it('cancels pending creation, cleans its late runtime, and never mounts or navig
   expect(target.navigate).not.toHaveBeenCalled()
 })
 
-it('cleans a failed launch and allows retry with the same captured content', async () => {
+it('cleans a failed launch and allows retry with the same configuration', async () => {
   const bad = prepared(),
     good = prepared()
   vi.mocked(bad.system.getState).mockRejectedValueOnce(new Error('bad initial state'))
   const factory = vi.fn<typeof createNativeWebBattleSession>(async () => good).mockResolvedValueOnce(bad)
-  const value = session(input(), factory),
+  const value = session(factory),
     target = destination(),
     original = target.data.species
   await expect(value.start(player, player, {}, target)).rejects.toThrow('bad initial state')
   expect(value.state).toBe('configuring')
-  expect(value.trial?.title).toBe('原稿')
   expect(target.data.species).toBe(original)
   expect(bad.system.cleanup).toHaveBeenCalledOnce()
   await expect(value.start(player, player, {}, target)).resolves.toBe(true)
@@ -152,10 +135,7 @@ it('cleans a failed launch and allows retry with the same captured content', asy
 
 it('cancels a failed route transfer after configuration unmount without leaving a bound battle', async () => {
   const native = prepared(),
-    value = session(
-      input(),
-      vi.fn(async () => native),
-    ),
+    value = session(vi.fn(async () => native)),
     target = destination()
   const original = target.data.species
   target.navigate.mockImplementation(async () => {
@@ -164,7 +144,6 @@ it('cancels a failed route transfer after configuration unmount without leaving 
   })
   await expect(value.start(player, player, {}, target)).rejects.toThrow('navigation failed')
   expect(value.state).toBe('disposed')
-  expect(value.trial).toBeUndefined()
   expect(target.battle.battleInterface).toBeNull()
   expect(target.data.species).toBe(original)
   expect(native.system.cleanup).toHaveBeenCalledOnce()
@@ -175,14 +154,8 @@ it('a cancelled initial-state read cannot mount over a newer session', async () 
     old = prepared(),
     fresh = prepared()
   vi.mocked(old.system.getState).mockReturnValue(pending.promise)
-  const first = session(
-      input(),
-      vi.fn(async () => old),
-    ),
-    second = session(
-      input(),
-      vi.fn(async () => fresh),
-    )
+  const first = session(vi.fn(async () => old)),
+    second = session(vi.fn(async () => fresh))
   const target = destination(),
     start = first.start(player, player, {}, target)
   await vi.waitFor(() => expect(old.system.getState).toHaveBeenCalled())
@@ -196,12 +169,9 @@ it('a cancelled initial-state read cannot mount over a newer session', async () 
   expect(old.system.cleanup).toHaveBeenCalledOnce()
 })
 
-it('restores display and detaches the store even when native cleanup fails', async () => {
+it('detaches the store even when native cleanup fails', async () => {
   const native = prepared(),
-    value = session(
-      input(),
-      vi.fn(async () => native),
-    ),
+    value = session(vi.fn(async () => native)),
     target = destination()
   const original = target.data.species
   await value.start(player, player, {}, target)

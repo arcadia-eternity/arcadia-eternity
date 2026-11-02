@@ -73,6 +73,12 @@ test(
       await expect(preview.getByRole('alert').filter({ hasText: '文件已在外部修改' })).toBeVisible()
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
       await preview.getByRole('button', { name: '复制当前队伍', exact: true }).click()
+      await preview.getByRole('button', { name: '重命名', exact: true }).click()
+      await preview.getByLabel('队伍名称', { exact: true }).fill('客户端重命名副本')
+      await preview.getByRole('button', { name: '确认名称', exact: true }).click()
+      await expect(preview.getByLabel('我方队伍', { exact: true }).locator('option:checked')).toContainText(
+        '客户端重命名副本',
+      )
       await preview.getByRole('button', { name: '保存队伍', exact: true }).click()
       await expect.poll(async () => (await readdir(join(project.directory, 'debug/teams'))).length).toBe(3)
       const selected = await preview.getByLabel('我方队伍', { exact: true }).inputValue()

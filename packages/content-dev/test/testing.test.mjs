@@ -76,7 +76,7 @@ test('the shared harness accepts data-only packs with cached npm runtime depende
       join(project, 'dist/content.json'),
       JSON.stringify({ data: { species: [], skills: [], marks: [], behaviors: [] } }),
     )
-    await writeFile(join(project, 'arcadia.config.mjs'), 'export default { players: () => [] }\n')
+    await writeFile(join(project, 'arcadia.config.mjs'), "export default { teams: ['blue', 'orange'] }\n")
     process.env.npm_config_registry = registry
     prepared = await prepareContentPack(project, { cache })
     assert.equal(prepared.manifest.name, '@test/data-only')
@@ -88,5 +88,19 @@ test('the shared harness accepts data-only packs with cached npm runtime depende
     server?.close()
     await prepared?.dispose()
     await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('the harness requires project team IDs as its sole default-team configuration', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-team-config-contract-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  for (const [index, text] of [
+    'export default { players: () => [] }',
+    "export default { teams: ['blue', 'orange'], players: () => [] }",
+  ].entries()) {
+    const project = join(root, String(index))
+    await mkdir(project)
+    await writeFile(join(project, 'arcadia.config.mjs'), text)
+    await assert.rejects(prepareContentPack(project), /exactly two project team IDs/)
   }
 })

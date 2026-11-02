@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { createServer } from 'node:http'
-import { randomBytes } from 'node:crypto'
+import { randomBytes, createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
@@ -172,6 +172,10 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
         return json(200, {
           content: publicContent(),
           candidate: prepared.candidate,
+          teams: prepared.teams,
+          draftKey: createHash('sha256')
+            .update(resolve(environmentOptions.lockRoot ?? root))
+            .digest('hex'),
           ...manualSetup(),
           active: !!system,
         })

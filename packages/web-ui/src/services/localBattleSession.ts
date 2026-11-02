@@ -1,21 +1,10 @@
 import { toRaw } from 'vue'
 import { isNavigationFailure, type NavigationFailure } from 'vue-router'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
-import type { NativeWorkSelection } from '@arcadia-eternity/pack-loader/native'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { useBattleStore } from '@/stores/battle'
 import type { useGameDataStore } from '@/stores/gameData'
-import {
-  createNativeWebBattleSession,
-  localBattleDisplayContent,
-  type NativeWebPlayer,
-  type NativeWebBattleConfig,
-} from './nativeBattleFactory'
+import { createNativeWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
 
-export interface CreatorTrialInput {
-  selection: NativeWorkSelection
-  teams: [{ name: string; pets: PetSchemaType[] }, { name: string; pets: PetSchemaType[] }]
-}
 type SessionState = 'configuring' | 'starting' | 'routing' | 'active' | 'disposed'
 type BattleStore = Pick<
   ReturnType<typeof useBattleStore>,
@@ -29,49 +18,23 @@ interface Destination {
 type Prepared = Awaited<ReturnType<typeof createNativeWebBattleSession>>
 interface Attempt {
   native: Prepared['system']
-  data?: Prepared['data']
   system: IBattleSystem
-  restore?: () => void
   stopped?: Promise<void>
 }
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
-function freeze<T>(value: T): T {
-  if (value && typeof value === 'object') {
-    Object.freeze(value)
-    for (const child of Object.values(value)) freeze(child)
-  }
-  return value
-}
-
 /** Owns one configuration → battle handoff and every temporary object it creates.
  * Failed launches can retry while the configuration is open. Disposal is terminal.
  */
 export class LocalBattleSession {
   #state: SessionState = 'configuring'
-  #input?: CreatorTrialInput
-  #view?: { title: string; teams: CreatorTrialInput['teams'] }
   #configurationGone = false
   #preparing?: Promise<Attempt>
   #attempt?: Attempt
   #battle?: BattleStore
   #disposing?: Promise<void>
-  constructor(
-    input?: CreatorTrialInput,
-    private readonly create = createNativeWebBattleSession,
-  ) {
-    if (input) {
-      this.#input = freeze(copy(input))
-      this.#view = Object.freeze({
-        title: this.#input.selection.selected[0]?.project.title ?? 'UGC',
-        teams: this.#input.teams,
-      })
-    }
-  }
+  constructor(private readonly create = createNativeWebBattleSession) {}
   get state() {
     return this.#state
-  }
-  get trial() {
-    return this.#view
   }
 
   async start(
@@ -80,16 +43,12 @@ export class LocalBattleSession {
     config: NativeWebBattleConfig,
     target: Destination,
   ): Promise<boolean> {
-    if (this.#state !== 'configuring') throw new Error('当前试战会话无法重复启动，请重新准备试战')
+    if (this.#state !== 'configuring') throw new Error('当前对战会话无法重复启动，请重新准备对战')
     this.#state = 'starting'
     let attempt: Attempt | undefined
     let activated = false
     try {
       const options = structuredClone(toRaw(config))
-      if (this.#input) {
-        options.works = this.#input.selection
-        options.rngSeed ??= 'creator-preview'
-      }
       this.#preparing = this.create(copy(first), copy(second), target.data, options).then(prepared =>
         this.#manage(prepared),
       )
@@ -98,8 +57,6 @@ export class LocalBattleSession {
       if (this.state === 'disposed') return false
       this.#attempt = attempt
       this.#battle = target.battle
-      if (this.#input) attempt.restore = target.data.useLocalBattleContent(localBattleDisplayContent(attempt.data!))
-      attempt.data = undefined
       const current = () => this.#attempt === attempt && this.#state !== 'disposed'
       const initial = await attempt.system.getState(undefined, true)
       if (!current()) return false
@@ -112,9 +69,6 @@ export class LocalBattleSession {
       if (isNavigationFailure(navigation)) throw new Error('未能进入战斗界面，请重试')
       if (!current()) return false
       this.#state = 'active'
-      // The native runtime owns its captured content now; the authoring snapshot can be released.
-      this.#input = undefined
-      this.#view = undefined
       activated = true
       return true
     } finally {
@@ -144,8 +98,6 @@ export class LocalBattleSession {
   }
   #invalidate() {
     this.#state = 'disposed'
-    this.#input = undefined
-    this.#view = undefined
     this.#attempt = undefined
     this.#battle = undefined
   }
@@ -173,10 +125,6 @@ export class LocalBattleSession {
   }
   #stop(attempt: Attempt): Promise<void> {
     if (attempt.stopped) return attempt.stopped
-    // Restore display synchronously, before another session can acquire it.
-    attempt.restore?.()
-    attempt.restore = undefined
-    attempt.data = undefined
     attempt.stopped = Promise.resolve().then(() => attempt.native.cleanup())
     return attempt.stopped
   }
@@ -184,7 +132,6 @@ export class LocalBattleSession {
     const native = prepared.system
     const attempt: Attempt = {
       native,
-      data: prepared.data,
       system: {
         ready: native.ready.bind(native),
         getState: native.getState.bind(native),

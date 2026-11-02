@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import type { PlayerSchemaType } from '@arcadia-eternity/schema'
-import type { ProjectTeam, ProjectTeamBridge, ProjectTeamDraft, TeamDocument } from '@/components/team/library'
+import type { ProjectTeam, ProjectTeamStorage, ProjectTeamDraft } from '@/components/team/library'
+import { createBrowserTeamStorage } from '../browserTeamStorage'
 import { createProjectTeamLibrary } from '../projectTeamLibrary'
 
 const defaults = [0, 1].map(side => ({
@@ -22,25 +23,28 @@ const defaults = [0, 1].map(side => ({
 function fixture() {
   const files: ProjectTeam[] = []
   let draft: ProjectTeamDraft | null = null
-  const bridge = vi.fn(async (action: string, input?: unknown) => {
-    if (action === 'list') return structuredClone(files)
-    if (action === 'draft-read') return structuredClone(draft)
-    if (action === 'draft-write') {
-      draft = structuredClone(input) as ProjectTeamDraft
-      return
-    }
-    const change = input as { document?: TeamDocument; id?: string; expectedVersion: string | null }
-    const index = files.findIndex(entry => entry.id === (change.document?.id ?? change.id))
-    if ((files[index]?.version ?? null) !== change.expectedVersion) throw new Error('REVISION_CONFLICT')
-    if (action === 'remove') {
-      files.splice(index, 1)
-      return
-    }
-    const result = { ...structuredClone(change.document!), version: `v${Math.random()}` }
-    if (index < 0) files.push(result)
-    else files[index] = result
-    return result
-  }) as unknown as ProjectTeamBridge
+  const bridge: ProjectTeamStorage = {
+    list: vi.fn(async () => structuredClone(files)),
+    readDraft: vi.fn(async () => structuredClone(draft)),
+    writeDraft: vi.fn(async input => {
+      draft = structuredClone(input)
+    }),
+    files: {
+      save: vi.fn(async input => {
+        const index = files.findIndex(entry => entry.id === input.document.id)
+        if ((files[index]?.version ?? null) !== input.expectedVersion) throw new Error('REVISION_CONFLICT')
+        const result = { ...structuredClone(input.document), version: `v${Math.random()}` }
+        if (index < 0) files.push(result)
+        else files[index] = result
+        return result
+      }),
+      remove: vi.fn(async input => {
+        const index = files.findIndex(entry => entry.id === input.id)
+        if (files[index]?.version !== input.expectedVersion) throw new Error('REVISION_CONFLICT')
+        files.splice(index, 1)
+      }),
+    },
+  }
   return {
     bridge,
     external: () => {
@@ -52,7 +56,7 @@ function fixture() {
 it('shares a library across sides, persists drafts across new candidates and saves portable files explicitly', async () => {
   const { bridge } = fixture()
   const first = await createProjectTeamLibrary(bridge, defaults)
-  expect(await bridge('list')).toEqual([])
+  expect(await bridge.list()).toEqual([])
   first.selectors[1]!.selected.value = first.selected.value[0]
   first.editors[0]!.team.value[0]!.level = 65
   first.editors[0]!.persist()
@@ -61,8 +65,8 @@ it('shares a library across sides, persists drafts across new candidates and sav
   const reopened = await createProjectTeamLibrary(bridge, defaults)
   expect(reopened.players.value[0]!.team[0]!.level).toBe(65)
   expect(reopened.selected.value[0]).toBe(reopened.selected.value[1])
-  await reopened.save(0)
-  const file = (await bridge('list'))[0]!
+  await reopened.files!.save(0)
+  const file = (await bridge.list())[0]!
   expect(file.team[0]).not.toHaveProperty('id')
   expect(reopened.current(0).dirty).toBe(false)
   reopened.editors[0]!.persist()
@@ -70,21 +74,21 @@ it('shares a library across sides, persists drafts across new candidates and sav
   reopened.create(0, true)
   expect(reopened.entries.value).toHaveLength(3)
   expect(reopened.current(0).id).not.toBe(file.id)
-  await reopened.remove(0)
+  await reopened.files!.remove(0)
   expect(reopened.entries.value).toHaveLength(2)
 })
 it('retains dirty bases after Git edits and offers explicit reload instead of silent overwrite', async () => {
   const fixtureData = fixture()
   const library = await createProjectTeamLibrary(fixtureData.bridge, defaults)
-  await library.save(0)
-  library.rename(0, 'local draft')
+  await library.files!.save(0)
+  library.rename(library.selected.value[0], 'local draft')
   await library.flush()
   fixtureData.external()
   const reopened = await createProjectTeamLibrary(fixtureData.bridge, defaults)
   expect(reopened.current(0).name).toBe('local draft')
-  await expect(reopened.save(0)).rejects.toThrow('REVISION_CONFLICT')
+  await expect(reopened.files!.save(0)).rejects.toThrow('REVISION_CONFLICT')
   expect(reopened.current(0).name).toBe('local draft')
-  await reopened.reload(0)
+  await reopened.files!.reload(0)
   expect(reopened.current(0).name).toBe('Git team')
 })
 
@@ -93,4 +97,33 @@ it('can add pets to an entirely empty project library from the prepared catalog'
   const empty = defaults.map(player => ({ ...player, team: [] }))
   const library = await createProjectTeamLibrary(bridge, empty, () => structuredClone(defaults[0]!.team[0]!))
   expect(library.editors[0]!.createPet()?.species).toBe('sample:pet')
+})
+
+it('uses the same library in browsers with isolated drafts and no project file capabilities', async () => {
+  localStorage.clear()
+  localStorage.setItem('petStorage', 'personal-data')
+  const { bridge } = fixture(),
+    desktop = await createProjectTeamLibrary(bridge, defaults)
+  await desktop.files!.save(0)
+  const saved = await bridge.list()
+  const first = await createProjectTeamLibrary(createBrowserTeamStorage(saved, 'project-a'), defaults)
+  expect(first.files).toBeUndefined()
+  first.editors[0]!.team.value[0]!.level = 65
+  await first.flush()
+  const reopened = await createProjectTeamLibrary(createBrowserTeamStorage(saved, 'project-a'), defaults)
+  const separate = await createProjectTeamLibrary(createBrowserTeamStorage(saved, 'project-b'), defaults)
+  expect(reopened.players.value[0]!.team[0]!.level).toBe(65)
+  expect(separate.players.value[0]!.team[0]!.level).toBe(100)
+  expect(localStorage.getItem('petStorage')).toBe('personal-data')
+  expect((await bridge.list())[0]!.team[0]!.level).toBe(100)
+})
+
+it('renames a captured team identity even if the selected side changes before confirmation', async () => {
+  const { bridge } = fixture(),
+    library = await createProjectTeamLibrary(bridge, defaults)
+  const id = library.selected.value[0]
+  library.selectors[0]!.selected.value = library.selected.value[1]
+  library.rename(id, 'Renamed team')
+  expect(library.entries.value.find(entry => entry.id === id)?.name).toBe('Renamed team')
+  expect(library.current(0).name).toBe(defaults[1]!.name)
 })

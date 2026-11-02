@@ -133,7 +133,7 @@ test('installed browsing uses declared built rules, resources and locales and ne
   }
 })
 
-test('legacy base registrations become read-only without removing missing source projects', async t => {
+test('current registrations retain read-only metadata and missing source projects', async t => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-registration-'))
   const base = join(root, 'base')
   await mkdir(base)
@@ -149,8 +149,14 @@ test('legacy base registrations become read-only without removing missing source
   await writeFile(
     file,
     JSON.stringify([
-      { id: 'f5579655-65af-40fb-8e13-9e8f93a78931', name: '基础包', directory: base },
-      { id: 'ba254841-a674-48e7-96ba-45dfe96ac856', name: 'Missing project', directory: join(root, 'missing') },
+      { id: 'f5579655-65af-40fb-8e13-9e8f93a78931', name: '基础包', directory: base, readOnly: true, published: false },
+      {
+        id: 'ba254841-a674-48e7-96ba-45dfe96ac856',
+        name: 'Missing project',
+        directory: join(root, 'missing'),
+        readOnly: false,
+        published: false,
+      },
     ]),
   )
   const manager = new AuthorWorkspaces({ root: join(root, 'app'), api: async () => api })
@@ -163,4 +169,19 @@ test('legacy base registrations become read-only without removing missing source
   assert.deepEqual(first, concurrent)
   assert.equal(first[1].name, 'Missing project')
   assert.equal(JSON.parse(await readFile(file, 'utf8'))[0].readOnly, true)
+})
+
+test('source registry rejects incomplete metadata without rewriting the file', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-registry-schema-'))
+  await mkdir(join(root, 'state'))
+  const file = join(root, 'state/projects.json'),
+    text = JSON.stringify([{ id: 'invalid', name: 'project', directory: root }])
+  await writeFile(file, text)
+  const manager = new AuthorWorkspaces({ root, api: async () => api })
+  t.after(async () => {
+    await manager.close()
+    await rm(root, { recursive: true, force: true })
+  })
+  await assert.rejects(manager.list(), /登记格式无效/)
+  assert.equal(await readFile(file, 'utf8'), text)
 })

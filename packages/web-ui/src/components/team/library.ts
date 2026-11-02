@@ -19,12 +19,15 @@ export interface ProjectTeamDraft {
   selected: [string, string]
   names: [string, string]
 }
-export interface ProjectTeamBridge {
-  (action: 'list'): Promise<ProjectTeam[]>
-  (action: 'save', input: { document: TeamDocument; expectedVersion: string | null }): Promise<ProjectTeam>
-  (action: 'remove', input: { id: string; expectedVersion: string }): Promise<void>
-  (action: 'draft-read'): Promise<ProjectTeamDraft | null>
-  (action: 'draft-write', input: ProjectTeamDraft): Promise<void>
+export interface ProjectTeamFiles {
+  save(input: { document: TeamDocument; expectedVersion: string | null }): Promise<ProjectTeam>
+  remove(input: { id: string; expectedVersion: string }): Promise<void>
+}
+export interface ProjectTeamStorage {
+  list(): Promise<ProjectTeam[]>
+  readDraft(): Promise<ProjectTeamDraft | null>
+  writeDraft(draft: ProjectTeamDraft): Promise<void>
+  files?: ProjectTeamFiles
 }
 /** Selection belongs to the caller's library, while editing continues through TeamEditorDelegate. */
 export interface TeamLibraryDelegate {

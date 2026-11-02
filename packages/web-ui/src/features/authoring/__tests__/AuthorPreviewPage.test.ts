@@ -37,6 +37,8 @@ vi.mock('@/services/authorPreview', () => ({
     content: { species: [], skills: [], marks: [] },
     players: [0, 1].map(side => ({ id: String(side).repeat(21), name: `Side ${side}`, team: [] })),
     active: false,
+    teams: [],
+    draftKey: 'browser-project',
     candidate: { environmentId: 'named-cli-preview', environmentConfigVersion: 'prepared-config-hash' },
   }),
   connectAuthorPreview: async () => ({
@@ -59,6 +61,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  localStorage.clear()
   context.query = { endpoint: 'http://127.0.0.1:8123/' + 'a'.repeat(48), resume: 'true' }
   context.battle.battleInterface = null
   context.battle.initBattle.mockImplementation(async (system: IBattleSystem) => {
@@ -92,7 +95,11 @@ it.each([true, false])(
 
 it('isolated previews skip base content loading and return to the existing editor on failure', async () => {
   const returnToEditor = vi.fn()
-  window.arcadiaAuthorPreview = { returnToEditor }
+  window.arcadiaAuthorPreview = {
+    returnToEditor,
+    teams: { list: vi.fn(), readDraft: vi.fn(), writeDraft: vi.fn() },
+    environment: vi.fn(),
+  }
   context.failInitialization = true
   const wrapper = mount(AuthorPreviewPage)
   try {

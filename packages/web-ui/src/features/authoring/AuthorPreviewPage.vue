@@ -11,13 +11,13 @@ import type { TeamEditorDelegate } from '@/components/team/delegate'
 import '@/assets/battle-theme.css'
 import { onMounted, onBeforeUnmount, ref, shallowRef, computed, watch } from 'vue'
 import { isNavigationFailure, useRoute, useRouter } from 'vue-router'
-import { PlayerSchema, PetSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
-import { Type } from '@sinclair/typebox'
+import type { PlayerSchemaType } from '@arcadia-eternity/schema'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { connectAuthorPreview, loadAuthorPreviewSetup, configureAuthorPreview } from '@/services/authorPreview'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
-import { createPreviewTeamDelegate, createPreviewPet } from './previewTeamDelegate'
+import { createPreviewPet } from './previewPet'
+import { createBrowserTeamStorage } from './browserTeamStorage'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 
 const route = useRoute(),
@@ -32,7 +32,6 @@ const error = ref(''),
   side = ref(0)
 const players = ref<PlayerSchemaType[]>([])
 const delegates = shallowRef<TeamEditorDelegate[]>([])
-let defaults: PlayerSchemaType[] = []
 
 const environments = ref<DebugEnvironment[]>([])
 const environmentId = ref('default')
@@ -44,7 +43,7 @@ const environmentReady = computed(
   () =>
     environmentId.value === preparedEnvironmentId.value &&
     !sourceMappingChanged.value &&
-    (!window.arcadiaAuthorPreview?.environment ||
+    (!window.arcadiaAuthorPreview ||
       (environments.value.find(item => item.id === environmentId.value)?.version ?? null) ===
         preparedEnvironmentVersion.value),
 )
@@ -61,8 +60,7 @@ const environmentDraft = ref<DebugEnvironment>({
 })
 const packageText = ref('')
 async function loadEnvironments() {
-  if (window.arcadiaAuthorPreview?.environment)
-    environments.value = await window.arcadiaAuthorPreview.environment('list')
+  if (window.arcadiaAuthorPreview) environments.value = await window.arcadiaAuthorPreview.environment('list')
 }
 function editEnvironment(create = false) {
   const current = environments.value.find(item => item.id === environmentId.value)
@@ -96,7 +94,7 @@ async function saveEnvironment() {
       packages[name] = line.slice(index + 1).trim()
     }
     const { version, ...document } = environmentDraft.value
-    await window.arcadiaAuthorPreview!.environment!(
+    await window.arcadiaAuthorPreview!.environment(
       'save',
       JSON.parse(JSON.stringify({ document: { ...document, packages }, expectedVersion: version })),
     )
@@ -109,7 +107,7 @@ async function saveEnvironment() {
 }
 async function addSource() {
   try {
-    const source = await window.arcadiaAuthorPreview!.environment!('add-source')
+    const source = await window.arcadiaAuthorPreview!.environment('add-source')
     if (source?.changed) sourceMappingChanged.value = true
     if (source && !environmentDraft.value.sources.includes(source.name))
       environmentDraft.value.sources.push(source.name)
@@ -121,20 +119,13 @@ async function prepareEnvironment() {
   busy.value = true
   try {
     await library.value?.flush()
-    await window.arcadiaAuthorPreview!.environment!('prepare', { environmentId: environmentId.value })
+    await window.arcadiaAuthorPreview!.environment('prepare', { environmentId: environmentId.value })
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause)
     busy.value = false
   }
 }
 const library = shallowRef<Awaited<ReturnType<typeof createProjectTeamLibrary>>>()
-const storageKey = 'author-preview-test-teams'
-// Empty teams and names are valid editing states; battle admission remains stricter.
-const draftPlayerSchema = Type.Object({
-  id: PlayerSchema.properties.id,
-  name: Type.String(),
-  team: Type.Array(PetSchema, { maxItems: 6 }),
-})
 let disposed = false,
   transferred = false,
   cleanup: (() => Promise<void>) | undefined
@@ -148,33 +139,34 @@ const problems = computed(() =>
     ),
   ),
 )
-function persist() {
-  if (library.value) return
-  // Browser-only legacy previews have no project filesystem capabilities.
-  if (window.arcadiaAuthorPreview && players.value.length === 2)
-    localStorage.setItem(storageKey, JSON.stringify(players.value))
-}
-watch(players, persist, { deep: true, flush: 'sync' })
-function resetTeams() {
-  players.value = JSON.parse(JSON.stringify(defaults))
-}
 async function teamAction(action: 'save' | 'remove' | 'reload') {
-  if (!library.value || busy.value) return
+  if (!library.value?.files || busy.value) return
   if (action === 'remove' && !window.confirm('删除此队伍及其草稿？')) return
   if (action === 'reload' && !window.confirm('丢弃这套队伍的草稿，重新载入项目文件？')) return
   busy.value = true
   error.value = ''
   try {
-    await library.value[action](side.value)
+    await library.value.files[action](side.value)
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause)
   } finally {
     busy.value = false
   }
 }
+const renameDraft = ref<{ id: string; name: string }>()
 function renameTeam() {
-  const name = window.prompt('队伍名称', library.value?.current(side.value).name)
-  if (name?.trim()) library.value?.rename(side.value, name.trim())
+  const entry = library.value?.current(side.value)
+  if (entry) renameDraft.value = { id: entry.id, name: entry.name }
+}
+function saveTeamName() {
+  if (!renameDraft.value || !library.value) return
+  try {
+    library.value.rename(renameDraft.value.id, renameDraft.value.name)
+    renameDraft.value = undefined
+    error.value = ''
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : String(cause)
+  }
 }
 function windowReturn() {
   if (window.arcadiaAuthorPreview) window.arcadiaAuthorPreview.returnToEditor()
@@ -242,41 +234,28 @@ onMounted(async () => {
     if (disposed) return
     restoreSetup = data.useLocalBattleContent(setup.content)
     await loadEnvironments()
-    environmentId.value = setup.candidate?.environmentId ?? 'default'
+    environmentId.value = setup.candidate.environmentId
     preparedEnvironmentId.value = environmentId.value
-    preparedEnvironmentVersion.value = setup.candidate?.environmentConfigVersion ?? null
+    preparedEnvironmentVersion.value = setup.candidate.environmentConfigVersion
     setupWarning.value = setup.warning ?? ''
-    defaults = setup.players
     active.value = setup.active
-    if (window.arcadiaAuthorPreview?.teams) {
-      const project = await createProjectTeamLibrary(window.arcadiaAuthorPreview.teams, defaults, () =>
-        createPreviewPet(data.speciesList[0]),
-      )
-      if (disposed) return
-      library.value = project
-      stopPlayers = watch(
-        project.players,
-        value => {
-          players.value = value
-        },
-        { immediate: true, deep: true },
-      )
-      delegates.value = project.editors
-      loading.value = false
+    const storage = window.arcadiaAuthorPreview
+      ? window.arcadiaAuthorPreview.teams
+      : createBrowserTeamStorage(setup.teams, setup.draftKey)
+    const project = await createProjectTeamLibrary(storage, setup.players, () => createPreviewPet(data.speciesList[0]))
+    if (disposed) {
+      project.dispose()
       return
     }
-    let saved: PlayerSchemaType[] | undefined
-    if (window.arcadiaAuthorPreview) {
-      try {
-        const value = JSON.parse(localStorage.getItem(storageKey) || 'null')
-        if (Array.isArray(value) && value.length === 2)
-          saved = value.map(player => parseWithErrors(draftPlayerSchema, player))
-      } catch {
-        /* An incomplete draft falls back to the project's defaults. */
-      }
-    }
-    players.value = saved ?? JSON.parse(JSON.stringify(defaults))
-    delegates.value = [0, 1].map(index => createPreviewTeamDelegate(players, index, defaults, persist))
+    library.value = project
+    stopPlayers = watch(
+      project.players,
+      value => {
+        players.value = value
+      },
+      { immediate: true, deep: true },
+    )
+    delegates.value = project.editors
     loading.value = false
   } catch (cause) {
     if (!disposed) error.value = cause instanceof Error ? cause.message : String(cause)
@@ -305,10 +284,15 @@ onBeforeUnmount(() => {
     <header class="debug-controls">
       <div>
         <h1>测试队伍</h1>
-        <p>项目测试队伍与个人编队分开。修改自动暂存为本机草稿，保存队伍后才写入项目。</p>
+        <p>
+          {{
+            library?.files
+              ? '项目测试队伍与个人编队分开。修改自动暂存为本机草稿，保存队伍后才写入项目。'
+              : '浏览器修改自动暂存为本机草稿；请在本地客户端保存项目队伍。'
+          }}
+        </p>
       </div>
       <div class="debug-actions">
-        <button v-if="!library" :disabled="busy" @click="resetTeams">恢复项目默认</button>
         <button v-if="active" :disabled="busy" @click="launch()">继续当前对局</button>
         <button class="start" :disabled="busy || !!problems.length || !environmentReady" @click="launch(true)">
           {{ busy ? '正在准备…' : active ? '按当前配置重新开始' : '开始对战' }}
@@ -364,10 +348,15 @@ onBeforeUnmount(() => {
       <button :disabled="busy" @click="library.create(side)">新建</button>
       <button :disabled="busy" @click="library.create(side, true)">复制当前队伍</button>
       <button :disabled="busy" @click="renameTeam">重命名</button>
-      <button :disabled="busy" @click="teamAction('save')">保存队伍</button>
-      <button :disabled="busy" @click="teamAction('remove')">删除队伍</button>
-      <button :disabled="busy" @click="teamAction('reload')">重新载入项目文件</button>
+      <button v-if="library.files" :disabled="busy" @click="teamAction('save')">保存队伍</button>
+      <button v-if="library.files" :disabled="busy" @click="teamAction('remove')">删除队伍</button>
+      <button v-if="library.files" :disabled="busy" @click="teamAction('reload')">重新载入项目文件</button>
     </div>
+    <form v-if="renameDraft" class="team-sides" @submit.prevent="saveTeamName">
+      <label>队伍名称<input v-model="renameDraft.name" required maxlength="80" /></label>
+      <button type="submit" :disabled="busy">确认名称</button>
+      <button type="button" @click="renameDraft = undefined">取消</button>
+    </form>
     <details class="battle-options">
       <summary>对战参数</summary>
       <BattleOptionsEditor v-model:battle-config="battleConfig" v-model:timer-config="timerConfig" />
@@ -377,7 +366,6 @@ onBeforeUnmount(() => {
         {{ index === 0 ? '我方' : '对方（AI）' }} · {{ player.team.length }} 只
       </button>
       <label v-if="library">训练师名称<input v-model="library.names.value[side]" @input="library.persist" /></label>
-      <label v-else>训练师名称<input v-model="players[side]!.name" /></label>
     </nav>
     <TeamEditor
       v-if="delegates[side]"

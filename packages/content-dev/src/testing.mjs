@@ -9,13 +9,17 @@ import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } 
 export async function prepareContentPack(root = process.cwd(), options = {}) {
   root = resolve(root)
   const { default: config } = await import(pathToFileURL(join(root, 'arcadia.config.mjs')).href)
-  if (!config?.teams && typeof config?.players !== 'function')
-    throw new Error('arcadia.config.mjs must export a players({ namespace }) function')
+  if (
+    !Array.isArray(config?.teams) ||
+    config.teams.length !== 2 ||
+    config.teams.some(id => typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(id)) ||
+    Object.keys(config).some(key => key !== 'teams')
+  )
+    throw new Error('arcadia.config.mjs must export exactly two project team IDs in teams')
   const prepared = await prepareBattleEnvironment(root, options)
-  const { manifest, environment } = prepared
+  const { environment } = prepared
   function defaultPlayers() {
-    if (config.teams) return prepared.loadTeams(config.teams)
-    return structuredClone(config.players({ namespace: manifest.arcadia.namespace, manifest }))
+    return prepared.loadTeams(config.teams)
   }
   function createBattle(
     seed = 'content-pack-template',

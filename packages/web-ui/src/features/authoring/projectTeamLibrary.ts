@@ -2,7 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { nanoid } from 'nanoid'
 import type { PetSchemaType, PlayerSchemaType } from '@arcadia-eternity/schema'
 import type {
-  ProjectTeamBridge,
+  ProjectTeamStorage,
   ProjectTeam,
   TeamDraft,
   TeamDocument,
@@ -28,12 +28,12 @@ function editable(entry: ProjectTeam, dirty = false): Editable {
 
 /** Project files, local drafts and launch snapshots have distinct ownership. */
 export async function createProjectTeamLibrary(
-  bridge: ProjectTeamBridge,
+  storage: ProjectTeamStorage,
   defaults: PlayerSchemaType[],
   fallbackPet?: () => PetSchemaType | undefined,
 ) {
-  const saved = await bridge('list')
-  const draft = await bridge('draft-read')
+  const saved = await storage.list()
+  const draft = await storage.readDraft()
   const entries = ref<Editable[]>(saved.map(entry => editable(entry)))
   if (draft) {
     if (
@@ -73,7 +73,7 @@ export async function createProjectTeamLibrary(
   let pending = Promise.resolve()
   function persist() {
     // Invoke immediately so window close cannot strand a renderer-side debounce/queue.
-    pending = bridge('draft-write', {
+    pending = storage.writeDraft({
       schemaVersion: 1,
       entries: entries.value.map(entry => ({ ...document(entry), version: entry.version, dirty: entry.dirty })),
       selected: copy(selected.value),
@@ -143,15 +143,19 @@ export async function createProjectTeamLibrary(
     selected.value[side] = entry.id
     persist()
   }
-  function rename(side: number, name: string) {
-    current(side).name = name
-    current(side).dirty = true
+  function rename(id: string, name: string) {
+    const entry = entries.value.find(item => item.id === id)
+    if (!entry) throw new Error('队伍已不存在，请重新选择')
+    const trimmed = name.trim()
+    if (!trimmed || trimmed.length > 80) throw new Error('请输入 1–80 个字符的队伍名称')
+    entry.name = trimmed
+    entry.dirty = true
     persist()
   }
   async function save(side: number) {
     const entry = current(side),
       snapshot = document(entry)
-    const result = await bridge('save', { document: snapshot, expectedVersion: entry.version })
+    const result = await storage.files!.save({ document: snapshot, expectedVersion: entry.version })
     entry.version = result.version
     entry.dirty = JSON.stringify(document(entry)) !== JSON.stringify(snapshot)
     persist()
@@ -159,7 +163,7 @@ export async function createProjectTeamLibrary(
   async function remove(side: number) {
     const entry = current(side)
     if (entries.value.length <= 1) throw new Error('请至少保留一套测试队伍')
-    if (entry.version !== null) await bridge('remove', { id: entry.id, expectedVersion: entry.version })
+    if (entry.version !== null) await storage.files!.remove({ id: entry.id, expectedVersion: entry.version })
     entries.value = entries.value.filter(item => item.id !== entry.id)
     selected.value = selected.value.map(id => (id === entry.id ? entries.value[0]!.id : id)) as [string, string]
     persist()
@@ -167,7 +171,7 @@ export async function createProjectTeamLibrary(
   let reloading = false
   async function reload(side: number) {
     const entry = current(side)
-    const latest = (await bridge('list')).find(item => item.id === entry.id)
+    const latest = (await storage.list()).find(item => item.id === entry.id)
     if (!latest) throw new Error('项目文件已删除；可复制草稿为新队伍再保存')
     reloading = true
     try {
@@ -203,9 +207,7 @@ export async function createProjectTeamLibrary(
     persist,
     create,
     rename,
-    save,
-    remove,
-    reload,
+    files: storage.files ? { save, remove, reload } : undefined,
     current,
     flush: () => pending,
   }

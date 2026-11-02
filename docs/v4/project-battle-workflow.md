@@ -55,7 +55,7 @@ A 的内容／效果引用 B 时，A 必须声明正式依赖。只测试 A 与 
 export default { teams: ['blue', 'orange'] }
 ```
 
-旧项目的 `players({ namespace, manifest })` 继续兼容。迁移时设置 `teams` 并移除旧函数；同时存在时 `teams` 优先。自动用例可以明确指定其他项目队伍：
+`arcadia.config.mjs` 只通过 `teams` 引用项目队伍，不接受函数式默认队伍配置。自动用例可以明确指定其他项目队伍：
 
 ```js
 const prepared = await prepareContentPack(root, {
@@ -76,3 +76,5 @@ try {
 玩家的本地人机页保留无需打开源码的快捷入口，使用已准备的个人环境与个人队伍；作者从源码工作区进入调试窗口，返回原编辑位置。两者共用队伍选择和对战参数组件、AI 和战斗画面。旧草稿试战票据及组合工作台到玩家页的隐式配置入口已移除。浏览器继续消费受支持的内容和战斗接口，不执行原生 UGC。
 
 CLI 可用 `arcadia-content workspace <目录> preview --execute --environment interaction`，MCP `preview_start` 接受可选的 `environmentId`。这两个入口仍使用相同候选任务与本机源码映射。
+
+浏览器预览与桌面共用项目队伍库和编辑委托。浏览器从候选读取队伍快照，并按项目分别暂存本机草稿；项目文件保存、删除和重新载入只由本地客户端提供。不存在候选专属的第二套编队存储。
