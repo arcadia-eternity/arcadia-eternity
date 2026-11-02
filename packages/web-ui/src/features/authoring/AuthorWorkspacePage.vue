@@ -402,7 +402,7 @@ const previewStatus = computed(() => {
   if (latestPreview.value && ['queued', 'running'].includes(latestPreview.value.state))
     return '正在准备试玩，可继续编辑'
   if (latestPreview.value?.state === 'failed') return '试玩准备失败 · 在检查与运行中查看原因'
-  if (activePreview.value?.stale) return '内容已更新 · 现有试玩仍使用之前的内容'
+  if (activePreview.value?.stale) return '内容已更新 · 下次调试会使用最新内容'
   if (activePreview.value) return '调试窗口已就绪 · 可配置双方测试队伍'
   return '配置测试队伍，试玩已保存的内容'
 })
@@ -909,6 +909,21 @@ async function start(kind: string) {
   return job
 }
 async function playPreview() {
+  if (dirty.value) throw new Error('请先保存草稿，再开始调试。')
+  // Recheck disk state on click; the periodic UI refresh may still show the previous revision.
+  const currentJobs = await action<AuthorJob[]>({ action: 'jobs' })
+  jobs.value = currentJobs
+  const current = currentJobs.find(
+    job => job.kind === 'preview' && job.state === 'succeeded' && !job.stale && job.result?.preview,
+  )
+  if (current) {
+    const result = await action<{ opened: boolean } | undefined>({
+      action: 'preview-open',
+      jobId: current.jobId,
+      requireCurrent: true,
+    })
+    if (result?.opened !== false) return
+  }
   const job = await start('preview')
   autoOpenPreview.value = job.jobId
 }
@@ -1051,21 +1066,8 @@ onBeforeUnmount(() => {
     </header>
     <section v-if="project && !readOnly" class="play-toolbar" aria-label="试玩控制">
       <p role="status">{{ previewStatus }}</p>
-      <button
-        v-if="activePreview"
-        :disabled="busy"
-        @click="attempt(() => action({ action: 'preview-open', jobId: activePreview!.jobId }))"
-      >
-        {{ activePreview.stale ? '打开之前的调试' : '打开调试窗口' }}
-      </button>
       <button class="primary" :disabled="busy || running || dirty" @click="attempt(playPreview)">
-        {{
-          running && latestPreview && ['queued', 'running'].includes(latestPreview.state)
-            ? '正在准备…'
-            : activePreview
-              ? '用最新内容调试'
-              : '调试试玩'
-        }}
+        {{ running && latestPreview && ['queued', 'running'].includes(latestPreview.state) ? '正在准备…' : '调试试玩' }}
       </button>
     </section>
     <details v-if="!project || projectSettingsOpen" class="project-settings" open>

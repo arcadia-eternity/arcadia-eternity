@@ -1819,10 +1819,18 @@ function setupIpcHandlers() {
             case 'start':
               result = await session.jobs.start({ kind: input.kind })
               break
-            case 'preview-open':
+            case 'preview-open': {
               await session.jobs.refresh()
-              result = await openAuthorPreview(input.id, session.jobs.get(input.jobId))
+              const job = session.jobs.get(input.jobId)
+              // The main action follows current source; history can explicitly open older candidates.
+              if (input.requireCurrent && (job.stale || job.state !== 'succeeded')) {
+                result = { opened: false }
+                break
+              }
+              await openAuthorPreview(input.id, job)
+              result = { opened: true }
               break
+            }
             case 'cancel':
               result = await session.call('cancel', { jobId: input.jobId })
               authorPreviewWindows.get(`${input.id}:${input.jobId}`)?.close()

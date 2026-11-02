@@ -126,6 +126,7 @@ test(
       // The main play action prepares and opens in one click, without leaving the selected object.
       await category(/^技能/).click()
       await page.locator('.content-card').filter({ hasText: '霜击' }).click()
+      await expect(page.getByRole('region', { name: '试玩控制' }).getByRole('button')).toHaveCount(1)
       const personalStorageBefore = await page.evaluate(() => localStorage.getItem('petStorage'))
       const openedPreview = app.waitForEvent('window', { timeout: 45000 })
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()
@@ -142,7 +143,7 @@ test(
       await scratchReturn
       await expect(page.getByLabel('威力', { exact: true })).toHaveValue('70')
       const scratchReopen = app.waitForEvent('window')
-      await page.getByRole('button', { name: '打开调试窗口', exact: true }).click()
+      await page.getByRole('button', { name: '调试试玩', exact: true }).click()
       preview = await scratchReopen
       await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
       await expect(preview.getByRole('button', { name: '我方 · 2 只', exact: true })).toBeVisible()
@@ -190,7 +191,7 @@ test(
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       await category('检查与运行').click()
       const reopened = app.waitForEvent('window')
-      await page.getByRole('button', { name: '打开调试窗口', exact: true }).click()
+      await page.getByRole('button', { name: '调试试玩', exact: true }).click()
       preview = await reopened
       await preview.getByRole('button', { name: '继续当前对局', exact: true }).click()
       await preview.waitForURL(/\/battle\?authorPreview=/, { timeout: 45000 })
@@ -223,10 +224,10 @@ test(
       const returned = preview.waitForEvent('close')
       await preview.locator('.battle-result').getByRole('button', { name: '返回编辑器', exact: true }).click()
       await returned
-      await expect(page.getByRole('button', { name: '用最新内容调试', exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: '调试试玩', exact: true })).toBeVisible()
       // A completed match also restores its outcome rather than an inert battle screen.
       const endedPreview = app.waitForEvent('window')
-      await page.getByRole('button', { name: '打开调试窗口', exact: true }).click()
+      await page.getByRole('button', { name: '调试试玩', exact: true }).click()
       preview = await endedPreview
       await preview.getByRole('button', { name: '继续当前对局', exact: true }).click()
       await expect(preview.locator('.battle-result')).toContainText('胜利！')
@@ -246,6 +247,40 @@ test(
       await preview.locator('.preview-header').getByRole('button', { name: '返回编辑器', exact: true }).click()
       await finishedReturn
       assert.equal(await page.evaluate(() => localStorage.getItem('petStorage')), personalStorageBefore)
+      const previewsBefore = await page.evaluate(
+        async id =>
+          (await window.arcadiaDesktop.author({ action: 'jobs', id })).result.filter(job => job.kind === 'preview'),
+        project.id,
+      )
+      assert.equal(previewsBefore.length, 1, 'reopening unchanged content must reuse its candidate')
+      await category(/^技能/).click()
+      await page.locator('.content-card').filter({ hasText: '霜击' }).click()
+      await page.getByLabel('威力', { exact: true }).fill('71')
+      await save(1)
+      // A candidate selected before an external save is rechecked at the actual open boundary.
+      const staleOpen = await page.evaluate(
+        async ({ id, jobId }) =>
+          (await window.arcadiaDesktop.author({ action: 'preview-open', id, jobId, requireCurrent: true })).result,
+        { id: project.id, jobId: previewsBefore[0].jobId },
+      )
+      assert.deepEqual(staleOpen, { opened: false })
+      const updatedWindow = app.waitForEvent('window', { timeout: 45000 })
+      await page.getByRole('button', { name: '调试试玩', exact: true }).click()
+      preview = await updatedWindow
+      await preview.getByRole('button', { name: '开始对战', exact: true }).click()
+      await expect(preview.getByTestId('skill-button').filter({ hasText: '霜击' })).toContainText('71')
+      const previewsAfter = await page.evaluate(
+        async id =>
+          (await window.arcadiaDesktop.author({ action: 'jobs', id })).result.filter(job => job.kind === 'preview'),
+        project.id,
+      )
+      assert.equal(previewsAfter.length, 2)
+      assert.equal(previewsAfter.find(job => job.jobId === previewsBefore[0].jobId).stale, true)
+      const oldContent = await (await fetch(previewsBefore[0].result.preview.endpoint + '/content')).json()
+      assert.equal(oldContent.content.skills.find(skill => skill.id.endsWith(':strike')).power, 70)
+      const updatedReturn = preview.waitForEvent('close')
+      await preview.getByRole('button', { name: '返回编辑器', exact: true }).click()
+      await updatedReturn
       await category(/^精灵/).click()
       await page.locator('.content-card').filter({ hasText: '霜团' }).click()
       if (process.env.ARCADIA_AUTHOR_SCREENSHOT)
