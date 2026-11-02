@@ -132,31 +132,27 @@ it('browser displays its paired server without a server selection or local-host 
   expect(page.find('[data-testid="start-local-server-button"]').exists()).toBe(false)
 })
 
-it('desktop opens any typed server in an isolated window, shows failures and permits retry', async () => {
+it('desktop displays the current server without the removed remote connection controls', async () => {
   deployment.desktop = true
   vi.stubGlobal('arcadiaDesktop', { openRemotePlay: remotePlay })
-  remotePlay.mockRejectedValueOnce(new Error('无法连接服务器'))
   const page = mount(LobbyPage, { global: { stubs } })
-  await page.get('[data-testid="server-address-input"]').setValue('http://127.0.0.1:9999')
-  await page.get('[data-testid="connect-server-button"]').trigger('click')
   await flushPromises()
-  expect(remotePlay).toHaveBeenLastCalledWith({ url: 'http://127.0.0.1:9999' })
+  expect(page.get('[data-testid="current-server-address"]').text()).toBe(battleClient.serverUrl)
+  expect(page.find('[data-testid="server-address-input"]').exists()).toBe(false)
+  expect(page.find('[data-testid="connect-server-button"]').exists()).toBe(false)
+  expect(remotePlay).not.toHaveBeenCalled()
   expect(switchServer).not.toHaveBeenCalled()
-  expect(page.get('[role="alert"]').text()).toBe('无法连接服务器')
-  await page.get('[data-testid="connect-server-button"]').trigger('click')
-  await flushPromises()
-  expect(remotePlay).toHaveBeenCalledTimes(2)
-  expect(page.find('[role="alert"]').exists()).toBe(false)
 })
 
-it('keeps an existing manager room when opening an independent remote window', async () => {
+it('keeps an existing manager room when visiting the lobby', async () => {
   deployment.desktop = true
   vi.stubGlobal('arcadiaDesktop', { openRemotePlay: remotePlay })
   privateRoom.currentRoom = { status: 'started', config: { roomCode: 'ABC123' } }
   const page = mount(LobbyPage, { global: { stubs } })
-  await page.get('[data-testid="connect-server-button"]').trigger('click')
   await flushPromises()
-  expect(remotePlay).toHaveBeenCalledOnce()
+  expect(page.text()).toContain('回到房间 (ABC123)')
+  expect(privateRoom.currentRoom?.config.roomCode).toBe('ABC123')
+  expect(remotePlay).not.toHaveBeenCalled()
   expect(confirmSwitch).not.toHaveBeenCalled()
   expect(switchServer).not.toHaveBeenCalled()
 })

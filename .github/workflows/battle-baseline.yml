@@ -171,6 +171,8 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverSession.test.ts --maxWorkers=1
       - name: Verify server content environments in the browser client
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverEnvironment.test.ts src/stores/__tests__/privateRoomEnvironment.test.ts src/stores/__tests__/authServerSwitch.test.ts src/stores/__tests__/battleClientSwitch.test.ts src/stores/__tests__/gameData.native.test.ts src/pages/__tests__/lobbyEnvironment.test.ts --maxWorkers=1
+      - name: Verify deployment connection defaults and user preferences
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/bootstrap/__tests__/deployment.test.ts src/stores/__tests__/connectionSettings.test.ts --maxWorkers=1
       - name: Verify local development workspace editing
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/developmentWorkspace.test.ts src/features/development/__tests__/DevelopmentWorkspacePage.test.ts --maxWorkers=1
       - name: Verify candidate preview transport and failed handoff cleanup
@@ -181,8 +183,8 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup
         run: pnpm test:web-native:e2e
-      - name: Verify official and UGC descriptions in a real browser
-        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-presentation.spec.ts
+      - name: Verify content descriptions and connection policy in a real browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-presentation.spec.ts e2e/connection-policy.spec.ts
       - name: Verify ordinary matchmaking and authoritative friend rooms
         run: PLAYWRIGHT_ONLINE=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/matchmaking-online.spec.ts e2e/server-room-online.spec.ts
       - uses: actions/cache@v4
