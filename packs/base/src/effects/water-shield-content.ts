@@ -1,36 +1,51 @@
-import { Category, EffectTrigger, StackStrategy, type baseMarkId, type effectId } from '@arcadia-eternity/const'
-import { AddMarkContext, RemoveMarkContext } from '@arcadia-eternity/battle/v4'
-import { BaseMark, MarkInstanceImpl } from '@arcadia-eternity/battle/v4'
-import { Pet } from '@arcadia-eternity/battle/v4'
-import { defineNativeEffect } from '@arcadia-eternity/battle/v4'
+import { Category, EffectTrigger, StackStrategy, type baseMarkId } from '@arcadia-eternity/const'
+import { BaseMark } from '@arcadia-eternity/battle/v4'
+import {
+  compileEffect,
+  defineEffect,
+  conditions,
+  contexts,
+  targets,
+  checks,
+  actions,
+  ops,
+} from '@arcadia-eternity/battle/v4/authoring'
 import { createOfficialWaterShieldCandidate } from './shield'
 
 export function createWaterShieldDestruction(amplification: BaseMark) {
   if (amplification.id !== 'mark_shanghaizengjia')
     throw new Error('Water shield destruction requires mark_shanghaizengjia')
-  return defineNativeEffect({
-    id: 'effect_mark_onDestroy_add_mark_shanghaizengjia' as effectId,
-    triggers: [EffectTrigger.OnMarkDestroy],
-    apply(context) {
-      const target = context.source.owner
-      if (target instanceof Pet) target.addMark(new AddMarkContext(context, target, amplification, 100))
-    },
-  })
+  return compileEffect(
+    defineEffect({
+      id: 'effect_mark_onDestroy_add_mark_shanghaizengjia',
+      triggers: [EffectTrigger.OnMarkDestroy],
+      apply: targets.ownerPet.apply(ops.addMark(amplification, { stack: 100 })),
+    }),
+  )
 }
 
 /** Native dependency-closed candidate. Current YAML loader acceptance remains a separate gate. */
 export function createOfficialWaterShieldContent() {
-  const amplify = defineNativeEffect({
-    id: 'effect_mark_amplify_next_damage_skill_power_with_stack' as effectId,
-    triggers: [EffectTrigger.AfterUseSkillCheck],
-    when: context => context.source.owner === context.parent.pet && context.parent.category !== Category.Status,
-    apply(context) {
-      if (!(context.source instanceof MarkInstanceImpl)) return
-      // Preserve selector.multiply's floor before adding one, including stacks below 100.
-      context.parent.amplifyPower(Math.floor(context.source.stack * 0.01) + 1)
-      context.battle.removeMark(new RemoveMarkContext(context, context.source))
-    },
-  })
+  const amplify = compileEffect(
+    defineEffect({
+      id: 'effect_mark_amplify_next_damage_skill_power_with_stack',
+      triggers: [EffectTrigger.AfterUseSkillCheck],
+      when: conditions.all(
+        conditions.ownerUsesSkill,
+        contexts.skillUse.condition((_ctx, events) => events.some(event => event.category !== Category.Status)),
+      ),
+      apply: actions.choose(
+        targets.sourceMark.condition(checks.exists()),
+        actions.sequence(
+          // Preserve the floor before adding one, including stacks below 100.
+          contexts.skillUse.apply(
+            ops.amplifyPower(targets.sourceMark.select(mark => Math.floor(mark.stack * 0.01) + 1).first()),
+          ),
+          targets.sourceMark.apply(ops.removeMark()),
+        ),
+      ),
+    }),
+  )
   const amplification = new BaseMark('mark_shanghaizengjia' as baseMarkId, [amplify], {
     duration: -1,
     persistent: true,

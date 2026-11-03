@@ -1,11 +1,16 @@
 import { Type } from '@sinclair/typebox'
-import { EffectTrigger, type effectId } from '@arcadia-eternity/const'
-import { AddMarkContext } from '@arcadia-eternity/battle/v4'
-import { Pet } from '@arcadia-eternity/battle/v4'
-import { SkillInstance } from '@arcadia-eternity/battle/v4'
-import { BaseMark, MarkInstanceImpl } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/v4'
+import {
+  EffectTrigger,
+  compileEffect,
+  defineEffect,
+  conditions,
+  targets,
+  values,
+  ops,
+  numberParam,
+} from '@arcadia-eternity/battle/v4/authoring'
 import { ConfigModifierType } from '@arcadia-eternity/battle/v4'
-import { defineNativeEffect } from '@arcadia-eternity/battle/v4'
 import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/v4'
 
 const id = 'effect_skill_add_mark_shuiwenpingzhang'
@@ -22,22 +27,22 @@ export function createOfficialWaterShieldCandidate(mark: BaseMark) {
     aliases: [`${id}.multiply_value`],
   })
   const parameters = new ParameterCatalog([multiplier])
-  const effect = defineNativeEffect({
-    id: id as effectId,
-    triggers: [EffectTrigger.OnHit],
-    when(context) {
-      return context.source instanceof SkillInstance
-        ? context.source === context.parent.skill && context.source.owner === context.parent.pet
-        : context.source instanceof MarkInstanceImpl && context.source.owner === context.parent.pet
-    },
-    apply(context) {
-      const target = context.source.owner
-      if (!(target instanceof Pet)) return
-      // Each legacy selector operation floors independently, before AddMarkContext/hooks.
-      const quarter = Math.floor(target.stat.maxHp / 4)
-      const factor = parameters.read(context.battle.configSystem, multiplier, context.source)
-      target.addMark(new AddMarkContext(context, target, mark, Math.floor(quarter * factor)))
-    },
+  const factor = numberParam({
+    default: multiplier.value,
+    legacyAddress: multiplier.address,
+    legacyAliases: multiplier.aliases,
   })
+  // Keep both legacy rounding steps, before mark-application hooks.
+  const quarter = targets.ownerPet.select(pet => Math.floor(pet.stat.maxHp / 4)).first()
+  const stack = values.combine(quarter, factor, (hp, multiple) => Math.floor(hp * multiple))
+  const effect = compileEffect(
+    defineEffect({
+      id,
+      triggers: [EffectTrigger.OnHit],
+      parameters: { factor },
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(mark, { stack })),
+    }),
+  )
   return Object.freeze({ effect, parameters, multiplier, mark })
 }

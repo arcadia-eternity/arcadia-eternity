@@ -107,6 +107,8 @@ export interface Parameter<T> extends Value<T> {
 }
 export declare function numberParam(options: {
   default: number
+  /** Retain an existing canonical address while migrating a native effect to the SDK. */
+  legacyAddress?: string
   tags?: readonly string[]
   legacyAliases?: readonly string[]
 }): Parameter<number>

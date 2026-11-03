@@ -618,6 +618,7 @@ export const stringParam: typeof C.stringParam = options => {
 }
 function parameter<T extends number | boolean | string>(options: {
   default: T
+  legacyAddress?: string
   tags?: readonly string[]
   legacyAliases?: readonly string[]
 }): C.Parameter<T> {

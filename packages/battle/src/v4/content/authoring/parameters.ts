@@ -2,7 +2,12 @@ import { Type, type TSchema } from '@sinclair/typebox'
 import { ConfigModifierType, type ConfigSystem, type ScopeObject } from '../../config'
 import { defineParameter, parameterAddress, ParameterCatalog, type ParameterDefinition } from '../parameters'
 
-type Options = { default: number | boolean | string; tags?: readonly string[]; legacyAliases?: readonly string[] }
+type Options = {
+  default: number | boolean | string
+  tags?: readonly string[]
+  legacyAliases?: readonly string[]
+  legacyAddress?: string
+}
 const declarations = new WeakMap<object, Options>()
 
 /** Own declaration metadata; a reusable parameter gets its address from each containing effect. */
@@ -11,6 +16,7 @@ export function declareParameter(parameter: object, options: Options): void {
     throw new Error('Expected a finite scalar parameter default')
   declarations.set(parameter, {
     default: options.default,
+    legacyAddress: options.legacyAddress,
     tags: [...(options.tags ?? [])],
     legacyAliases: [...(options.legacyAliases ?? [])],
   })
@@ -43,11 +49,13 @@ export class AuthoringParameters {
         throw new Error(`Authored public parameter does not match its use: ${name}`)
       if (contracts.rejectLegacyAliases && options.legacyAliases?.length)
         throw new Error(`Behavior parameters cannot expose legacy aliases: ${name}`)
+      if (contracts.rejectLegacyAliases && options.legacyAddress !== undefined)
+        throw new Error(`Behavior parameters cannot expose legacy addresses: ${name}`)
       if (this.references.has(parameter)) throw new Error('One parameter cannot have multiple names in an effect')
       const numeric = typeof options.default === 'number'
       const schema = numeric ? Type.Number() : typeof options.default === 'string' ? Type.String() : Type.Boolean()
       const definition = defineParameter({
-        address: parameterAddress(effectId, 'parameters', name),
+        address: options.legacyAddress ?? parameterAddress(effectId, 'parameters', name),
         schema: contracts.parameterSchemas?.[name] ?? { ...schema, default: options.default },
         effectiveSchema: contracts.parameterSchemas?.[name] ?? schema,
         value: options.default,

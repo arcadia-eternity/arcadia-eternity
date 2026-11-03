@@ -1,4 +1,4 @@
-// Reviewed native behavior; edit this TypeScript source directly.
+// Reviewed SDK behavior; edit this TypeScript source directly.
 import {
   numberParam,
   compileEffect,
@@ -11,26 +11,13 @@ import {
   type EffectFrame,
 } from '@arcadia-eternity/battle/v4/authoring'
 import { Type } from '@sinclair/typebox'
-import { EffectTrigger, StatTypeWithoutHp, type effectId } from '@arcadia-eternity/const'
-import { UseSkillContext, type EffectContext } from '@arcadia-eternity/battle/v4'
-import { Pet } from '@arcadia-eternity/battle/v4'
-import { SkillInstance } from '@arcadia-eternity/battle/v4'
-import { MarkInstanceImpl } from '@arcadia-eternity/battle/v4'
+import { EffectTrigger } from '@arcadia-eternity/const'
+import { UseSkillContext } from '@arcadia-eternity/battle/v4'
 import { ConfigModifierType } from '@arcadia-eternity/battle/v4'
-import { defineNativeEffect } from '@arcadia-eternity/battle/v4'
 import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/v4'
-function selfUsesSkill(context: EffectContext<EffectTrigger>) {
-  return (
-    context.parent instanceof UseSkillContext &&
-    context.source.owner === context.parent.pet &&
-    (context.source instanceof SkillInstance
-      ? context.source === context.parent.skill
-      : context.source instanceof MarkInstanceImpl)
-  )
-}
-function roll(context: EffectContext<EffectTrigger>, percent: number) {
-  return context.battle.random() < percent / 100
-}
+
+// These legacy stage effects require a direct skill event, even for nested triggers.
+const selfUsesSkill = conditions.all(ctx => ctx.parent instanceof UseSkillContext, conditions.selfUsesSkill)
 const p0 = defineParameter({
   address: parameterAddress('effect_skill_raise_atk_1_stage_10_percent', 'condition/1/1', 'percent'),
   schema: Type.Number({ default: 10 }),
@@ -367,7 +354,7 @@ const p41 = defineParameter({
   tags: ['skill_effect_probability'],
   aliases: [],
 })
-const parameters = new ParameterCatalog([
+const probabilityDefinitions = [
   p0,
   p1,
   p2,
@@ -410,7 +397,16 @@ const parameters = new ParameterCatalog([
   p39,
   p40,
   p41,
-])
+]
+const parameters = new ParameterCatalog(probabilityDefinitions)
+const chances = probabilityDefinitions.map(definition =>
+  numberParam({
+    default: definition.value,
+    tags: definition.tags,
+    legacyAliases: definition.aliases,
+    legacyAddress: definition.address,
+  }),
+)
 export const generatedStatStageCandidates = Object.freeze({
   parameters,
   effects: Object.freeze({
@@ -478,80 +474,55 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
       }),
     ),
-    effect_skill_raise_atk_1_stage: defineNativeEffect({
-      id: 'effect_skill_raise_atk_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.atk, 1)
-      },
-    }),
-    effect_skill_raise_atk_1_stage_10_percent: defineNativeEffect({
-      id: 'effect_skill_raise_atk_1_stage_10_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) &&
-          selfUsesSkill(context) &&
-          roll(context, parameters.read(context.battle.configSystem, p0, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.atk, 1)
-      },
-    }),
-    effect_skill_raise_atk_1_stage_15_percent: defineNativeEffect({
-      id: 'effect_skill_raise_atk_1_stage_15_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p1, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.atk, 1)
-      },
-    }),
-    effect_skill_raise_atk_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_raise_atk_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p2, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.atk, 1)
-      },
-    }),
-    effect_skill_raise_atk_1_stage_5_percent: defineNativeEffect({
-      id: 'effect_skill_raise_atk_1_stage_5_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p3, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.atk, 1)
-      },
-    }),
+    effect_skill_raise_atk_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_atk_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+      }),
+    ),
+    effect_skill_raise_atk_1_stage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_atk_1_stage_10_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[0] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[0])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+      }),
+    ),
+    effect_skill_raise_atk_1_stage_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_atk_1_stage_15_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[1] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[1])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+      }),
+    ),
+    effect_skill_raise_atk_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_atk_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[2] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[2])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+      }),
+    ),
+    effect_skill_raise_atk_1_stage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_atk_1_stage_5_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[3] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[3])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+      }),
+    ),
     effect_skill_raise_atk_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_1_stage_after_2_uses',
@@ -618,62 +589,44 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.ownerPet.apply(ops.changeStatStage('atk', 2)),
       }),
     ),
-    effect_skill_raise_atk_2_stages: defineNativeEffect({
-      id: 'effect_skill_raise_atk_2_stages' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.atk, 2)
-      },
-    }),
-    effect_skill_raise_atk_20_percent: defineNativeEffect({
-      id: 'effect_skill_raise_atk_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p4, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.atk, 1)
-      },
-    }),
-    effect_skill_raise_def_1_stage: defineNativeEffect({
-      id: 'effect_skill_raise_def_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.def, 1)
-      },
-    }),
-    effect_skill_raise_def_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_raise_def_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p5, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.def, 1)
-      },
-    }),
+    effect_skill_raise_atk_2_stages: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_atk_2_stages',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 2)),
+      }),
+    ),
+    effect_skill_raise_atk_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_atk_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[4] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[4])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+      }),
+    ),
+    effect_skill_raise_def_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_def_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+      }),
+    ),
+    effect_skill_raise_def_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_def_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[5] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[5])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+      }),
+    ),
     effect_skill_raise_def_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_def_1_stage_after_2_uses',
@@ -721,20 +674,15 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
       }),
     ),
-    effect_skill_raise_def_2_stages: defineNativeEffect({
-      id: 'effect_skill_raise_def_2_stages' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.def, 2)
-      },
-    }),
+    effect_skill_raise_def_2_stages: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_def_2_stages',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('def', 2)),
+      }),
+    ),
     effect_skill_raise_self_spa_1_stage_if_3_hits: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_self_spa_1_stage_if_3_hits',
@@ -760,66 +708,45 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
       }),
     ),
-    effect_skill_raise_spa_1_stage: defineNativeEffect({
-      id: 'effect_skill_raise_spa_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spa, 1)
-      },
-    }),
-    effect_skill_raise_spa_1_stage_10_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spa_1_stage_10_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) &&
-          selfUsesSkill(context) &&
-          roll(context, parameters.read(context.battle.configSystem, p6, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spa, 1)
-      },
-    }),
-    effect_skill_raise_spa_1_stage_15_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spa_1_stage_15_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p7, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spa, 1)
-      },
-    }),
-    effect_skill_raise_spa_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spa_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p8, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spa, 1)
-      },
-    }),
+    effect_skill_raise_spa_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spa_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+      }),
+    ),
+    effect_skill_raise_spa_1_stage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spa_1_stage_10_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[6] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[6])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+      }),
+    ),
+    effect_skill_raise_spa_1_stage_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spa_1_stage_15_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[7] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[7])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+      }),
+    ),
+    effect_skill_raise_spa_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spa_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[8] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[8])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+      }),
+    ),
     effect_skill_raise_spa_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spa_1_stage_after_2_uses',
@@ -883,48 +810,34 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
       }),
     ),
-    effect_skill_raise_spa_2_stages: defineNativeEffect({
-      id: 'effect_skill_raise_spa_2_stages' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spa, 2)
-      },
-    }),
-    effect_skill_raise_spd_1_stage: defineNativeEffect({
-      id: 'effect_skill_raise_spd_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spd, 1)
-      },
-    }),
-    effect_skill_raise_spd_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spd_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p9, context.source))
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spd, 1)
-      },
-    }),
+    effect_skill_raise_spa_2_stages: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spa_2_stages',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
+      }),
+    ),
+    effect_skill_raise_spd_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spd_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+      }),
+    ),
+    effect_skill_raise_spd_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spd_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[9] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[9])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+      }),
+    ),
     effect_skill_raise_spd_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spd_1_stage_after_2_uses',
@@ -960,102 +873,64 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       }),
     ),
-    effect_skill_raise_spd_2_stages: defineNativeEffect({
-      id: 'effect_skill_raise_spd_2_stages' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spd, 2)
-      },
-    }),
-    effect_skill_raise_spe_1_stage: defineNativeEffect({
-      id: 'effect_skill_raise_spe_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 1)
-      },
-    }),
-    effect_skill_raise_spe_1_stage_10_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spe_1_stage_10_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) &&
-          selfUsesSkill(context) &&
-          roll(context, parameters.read(context.battle.configSystem, p10, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 1)
-      },
-    }),
-    effect_skill_raise_spe_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spe_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p11, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 1)
-      },
-    }),
-    effect_skill_raise_spe_1_stage_5_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spe_1_stage_5_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) &&
-          selfUsesSkill(context) &&
-          roll(context, parameters.read(context.battle.configSystem, p12, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 1)
-      },
-    }),
-    effect_skill_raise_spe_1_stage_50_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spe_1_stage_50_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p13, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 1)
-      },
-    }),
+    effect_skill_raise_spd_2_stages: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spd_2_stages',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 2)),
+      }),
+    ),
+    effect_skill_raise_spe_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+      }),
+    ),
+    effect_skill_raise_spe_1_stage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_1_stage_10_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[10] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[10])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+      }),
+    ),
+    effect_skill_raise_spe_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[11] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[11])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+      }),
+    ),
+    effect_skill_raise_spe_1_stage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_1_stage_5_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[12] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[12])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+      }),
+    ),
+    effect_skill_raise_spe_1_stage_50_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_1_stage_50_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[13] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[13])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+      }),
+    ),
     effect_skill_raise_spe_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spe_1_stage_after_2_uses',
@@ -1121,148 +996,94 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
       }),
     ),
-    effect_skill_raise_spe_2_stages: defineNativeEffect({
-      id: 'effect_skill_raise_spe_2_stages' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 2)
-      },
-    }),
-    effect_skill_raise_spe_20_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spe_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p14, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 1)
-      },
-    }),
-    effect_skill_raise_spe_70_percent: defineNativeEffect({
-      id: 'effect_skill_raise_spe_70_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p15, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = owner
-        target.addStatStage(context, StatTypeWithoutHp.spe, 1)
-      },
-    }),
-    effect_skill_reduce_opponent_atk_1_stage: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_atk_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.atk, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_atk_1_stage_10_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_atk_1_stage_10_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) &&
-          selfUsesSkill(context) &&
-          roll(context, parameters.read(context.battle.configSystem, p16, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.atk, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_atk_1_stage_15_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_atk_1_stage_15_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p17, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.atk, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_atk_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_atk_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p18, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.atk, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_atk_1_stage_30_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_atk_1_stage_30_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p19, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.atk, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_atk_1_stage_5_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_atk_1_stage_5_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p20, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.atk, -1)
-      },
-    }),
+    effect_skill_raise_spe_2_stages: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_2_stages',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 2)),
+      }),
+    ),
+    effect_skill_raise_spe_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[14] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[14])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+      }),
+    ),
+    effect_skill_raise_spe_70_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_raise_spe_70_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[15] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[15])),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_atk_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_atk_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_atk_1_stage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_atk_1_stage_10_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[16] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[16])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_atk_1_stage_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_atk_1_stage_15_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[17] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[17])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_atk_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_atk_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[18] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[18])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_atk_1_stage_30_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_atk_1_stage_30_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[19] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[19])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_atk_1_stage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_atk_1_stage_5_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[20] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[20])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+      }),
+    ),
     effect_skill_reduce_opponent_atk_1_stage_if_opponent_male: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_atk_1_stage_if_opponent_male',
@@ -1275,116 +1096,75 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
       }),
     ),
-    effect_skill_reduce_opponent_def_1_stage: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_def_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_def_1_stage_10_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_def_1_stage_10_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p21, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_def_1_stage_15_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_def_1_stage_15_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p22, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_def_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_def_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p23, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_def_1_stage_35_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_def_1_stage_35_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p24, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_def_1_stage_5_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_def_1_stage_5_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p25, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_def_1_stage_50_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_def_1_stage_50_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p26, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
+    effect_skill_reduce_opponent_def_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_def_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_def_1_stage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_def_1_stage_10_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[21] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[21])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_def_1_stage_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_def_1_stage_15_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[22] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[22])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_def_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_def_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[23] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[23])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_def_1_stage_35_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_def_1_stage_35_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[24] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[24])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_def_1_stage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_def_1_stage_5_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[25] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[25])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_def_1_stage_50_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_def_1_stage_50_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[26] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[26])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
     effect_skill_reduce_opponent_def_1_stage_if_has_shunliu: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_def_1_stage_if_has_shunliu',
@@ -1422,84 +1202,55 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
       }),
     ),
-    effect_skill_reduce_opponent_spa_1_stage: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spa_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spa, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spa_1_stage_10_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spa_1_stage_10_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p27, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spa, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spa_1_stage_15_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spa_1_stage_15_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p28, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spa, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spa_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spa_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p29, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spa, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spa_1_stage_5_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spa_1_stage_5_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p30, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spa, -1)
-      },
-    }),
+    effect_skill_reduce_opponent_spa_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spa_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spa_1_stage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spa_1_stage_10_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[27] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[27])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spa_1_stage_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spa_1_stage_15_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[28] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[28])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spa_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spa_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[29] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[29])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spa_1_stage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spa_1_stage_5_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[30] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[30])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+      }),
+    ),
     effect_skill_reduce_opponent_spa_1_stage_if_bingdong: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spa_1_stage_if_bingdong',
@@ -1553,132 +1304,85 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
       }),
     ),
-    effect_skill_reduce_opponent_spd_1_stage: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spd_1_stage_10_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage_10_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p31, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spd_1_stage_15_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage_15_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p32, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spd_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p33, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spd_1_stage_25_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage_25_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p34, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spd_1_stage_30_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage_30_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p35, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spd_1_stage_5_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage_5_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p36, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spd_1_stage_50_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spd_1_stage_50_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p37, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spd, -1)
-      },
-    }),
+    effect_skill_reduce_opponent_spd_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spd_1_stage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage_10_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[31] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[31])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spd_1_stage_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage_15_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[32] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[32])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spd_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[33] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[33])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spd_1_stage_25_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage_25_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[34] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[34])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spd_1_stage_30_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage_30_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[35] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[35])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spd_1_stage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage_5_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[36] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[36])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spd_1_stage_50_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spd_1_stage_50_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[37] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[37])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+      }),
+    ),
     effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times',
@@ -1702,84 +1406,55 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
       }),
     ),
-    effect_skill_reduce_opponent_spe_1_stage: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spe_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spe, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spe_1_stage_15_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spe_1_stage_15_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p38, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spe, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spe_1_stage_20_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spe_1_stage_20_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p39, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spe, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spe_1_stage_35_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spe_1_stage_35_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p40, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spe, -1)
-      },
-    }),
-    effect_skill_reduce_opponent_spe_1_stage_5_percent: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_spe_1_stage_5_percent' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return (
-          selfUsesSkill(context) && roll(context, parameters.read(context.battle.configSystem, p41, context.source))
-        )
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.spe, -1)
-      },
-    }),
+    effect_skill_reduce_opponent_spe_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spe_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spe_1_stage_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spe_1_stage_15_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[38] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[38])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spe_1_stage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spe_1_stage_20_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[39] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[39])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spe_1_stage_35_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spe_1_stage_35_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[40] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[40])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
+      }),
+    ),
+    effect_skill_reduce_opponent_spe_1_stage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_spe_1_stage_5_percent',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { chance: chances[41] },
+        when: conditions.all(selfUsesSkill, conditions.chance(chances[41])),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
+      }),
+    ),
     effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze',
@@ -1792,20 +1467,15 @@ export const generatedStatStageCandidates = Object.freeze({
         apply: targets.opponentActive.apply(ops.changeStatStage('spe', -2)),
       }),
     ),
-    effect_skill_reduce_opponent_stat_1_stage: defineNativeEffect({
-      id: 'effect_skill_reduce_opponent_stat_1_stage' as effectId,
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when(context) {
-        return selfUsesSkill(context)
-      },
-      apply(context) {
-        const owner = context.source.owner
-        if (!(owner instanceof Pet)) return
-        const target = context.battle.getOpponent(owner.owner!).activePet
-        target.addStatStage(context, StatTypeWithoutHp.def, -1)
-      },
-    }),
+    effect_skill_reduce_opponent_stat_1_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_opponent_stat_1_stage',
+        priority: 0,
+        triggers: [EffectTrigger.BeforeHit],
+        when: selfUsesSkill,
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+      }),
+    ),
     effect_skill_reduce_stat_5_percent: (() => {
       const parameters = {
         condition_1_percent: numberParam({ default: 5, tags: ['skill_effect_probability'], legacyAliases: [] }),

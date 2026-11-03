@@ -1,11 +1,14 @@
 import { Type } from '@sinclair/typebox'
-import { EffectTrigger, type effectId } from '@arcadia-eternity/const'
-import { RageContext } from '@arcadia-eternity/battle/v4'
-import { Pet } from '@arcadia-eternity/battle/v4'
-import { SkillInstance } from '@arcadia-eternity/battle/v4'
-import { MarkInstanceImpl } from '@arcadia-eternity/battle/v4'
+import {
+  EffectTrigger,
+  compileEffect,
+  defineEffect,
+  conditions,
+  targets,
+  ops,
+  numberParam,
+} from '@arcadia-eternity/battle/v4/authoring'
 import { ConfigModifierType } from '@arcadia-eternity/battle/v4'
-import { defineNativeEffect } from '@arcadia-eternity/battle/v4'
 import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/v4'
 
 const id = 'effect_skill_add_rage_20_if_rage_below_40'
@@ -18,25 +21,24 @@ const value = defineParameter({
   aliases: [`${id}.add_rage_value`],
 })
 const parameters = new ParameterCatalog([value])
-const effect = defineNativeEffect({
-  id: id as effectId,
-  triggers: [EffectTrigger.OnHit],
-  when(context) {
-    const source = context.source
-    const selfUsesSkill =
-      source instanceof SkillInstance
-        ? source === context.parent.skill && source.owner === context.parent.pet
-        : source instanceof MarkInstanceImpl && source.owner === context.parent.pet
-    // selfPlayer selects the skill context's pet owner; the threshold is collect-time.
-    return selfUsesSkill && context.parent.pet.owner!.currentRage < 40
-  },
-  apply(context) {
-    const target = context.source.owner
-    const amount = parameters.read(context.battle.configSystem, value, context.source)
-    if (target instanceof Pet && target.owner)
-      target.addRage(new RageContext(context, target.owner, 'effect', 'add', amount))
-  },
+const amount = numberParam({
+  default: value.value,
+  legacyAddress: value.address,
+  legacyAliases: value.aliases,
 })
+const effect = compileEffect(
+  defineEffect({
+    id,
+    triggers: [EffectTrigger.OnHit],
+    parameters: { amount },
+    // Keep the threshold at collection time and read the amount when the action runs.
+    when: conditions.all(
+      conditions.selfUsesSkill,
+      targets.selfPlayer.condition((_ctx, players) => players.some(player => player.currentRage < 40)),
+    ),
+    apply: targets.ownerPet.apply(ops.addRage(amount)),
+  }),
+)
 
 /** Explicit candidate only. Install parameters before use; aliases resolve through this catalog. */
 export const officialRageCandidate = Object.freeze({ effect, parameters, value })
