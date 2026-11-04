@@ -4,11 +4,14 @@ import { parse } from 'es-module-lexer/minimal/js'
 import * as sdk from '@arcadia-eternity/battle/v4/authoring'
 import type { EffectModuleArtifact } from '@arcadia-eternity/battle/v4/sandbox/effects'
 
-/** Fixed compiler pipeline: parse/bundle author text without evaluating modules or loading author plugins. */
+/** Fixed compiler pipeline: parse/bundle author text without evaluating modules or loading author plugins.
+ * A trusted host watcher may observe validated source dependencies, including files with syntax errors.
+ */
 export async function compileEffectModule(
   entry: string,
   root: string,
   packageId: string,
+  onDependency?: (file: string) => void,
 ): Promise<EffectModuleArtifact> {
   const { rolldown } = await import('rolldown')
   const boundary = await realpath(root),
@@ -57,6 +60,7 @@ export async function compileEffectModule(
             !info.isFile()
           )
             throw Error('Effect dependency escapes captured installation')
+          onDependency?.(path)
           bytes += info.size
           if (++files > 1024 || info.size > 4 * 1024 * 1024 || bytes > 16 * 1024 * 1024)
             throw Error('Effect dependency graph exceeds compilation limits')

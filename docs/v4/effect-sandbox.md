@@ -13,6 +13,8 @@
 
 `prepareNpmProject` 的目录校验使用 Arena，并返回深冻结的 `sandbox` 配方。实际对战从配方在新 Worker 中重新创建目录和全部 VM。校验用目录不得作为多局共享的游戏运行时。官方基础包额外构建 `@arcadia-eternity/data-pack-base/sandbox`，提供相同效果源码编译得到的制品。
 
+基础包的 `watch:code` 与一次性构建复用同一个沙箱制品生成函数；沙箱入口及编译实际读取的依赖加入 Rolldown 监听。修改官方效果或沙箱独有依赖后会重建 `sandbox.js` 和类型声明，语法错误修复后继续监听重建，无需另开生成任务。
+
 ## 必要的 SDK 适配
 
 `ArenaEffectSdk` 只处理本项目的 SDK 能力与身份：
