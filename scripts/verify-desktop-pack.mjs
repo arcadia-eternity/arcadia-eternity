@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module'
 import { execFile } from 'node:child_process'
-import { stat } from 'node:fs/promises'
+import { cp, lstat, mkdir, mkdtemp, readdir, rm, stat } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -87,6 +87,39 @@ export async function afterPreviewPack(context) {
   await verifyPackagedRuntime(context)
 }
 
+/** Materialize an external renderer inside the app workspace without relaxing
+ * electron-builder's protection against copying system paths into ASAR. */
+export async function preparePreviewInputs(
+  inputs,
+  {
+    temporaryParent = fileURLToPath(new URL('../packages/web-ui/.desktop-preview-inputs.local/', import.meta.url)),
+  } = {},
+) {
+  if (!inputs.webDist) return { inputs, cleanup: async () => {} }
+  const source = resolve(inputs.webDist)
+  async function check(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const file = join(directory, entry.name)
+      if (entry.isSymbolicLink()) throw new Error('Renderer snapshot must contain regular files, not symbolic links')
+      if (entry.isDirectory()) await check(file)
+      else if (!entry.isFile()) throw new Error('Renderer snapshot contains an unsupported file')
+    }
+  }
+  if (!(await lstat(join(source, 'index.html'))).isFile()) throw new Error('Desktop renderer index is missing')
+  await check(source)
+  await mkdir(temporaryParent, { recursive: true })
+  const temporary = await mkdtemp(join(temporaryParent, 'snapshot-'))
+  try {
+    const webDist = join(temporary, 'web')
+    await cp(source, webDist, { recursive: true, verbatimSymlinks: true })
+    await check(webDist)
+    return { inputs: { ...inputs, webDist }, cleanup: () => rm(temporary, { recursive: true, force: true }) }
+  } catch (error) {
+    await rm(temporary, { recursive: true, force: true })
+    throw error
+  }
+}
+
 export function previewBuilderConfiguration({ webDist, runtime } = {}) {
   const require = createRequire(new URL('../packages/web-ui/package.json', import.meta.url))
   const executable = process.env.ELECTRON_OVERRIDE_DIST_PATH ? require('electron') : undefined
@@ -157,19 +190,26 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     const { build } = require('electron-builder')
     let finished = false
     let verified = false
+    let succeeded = false
     // Some Builder child-process failures can leave its promise unsettled even
     // after all handles close. Such a build must never report success.
     process.once('beforeExit', () => {
       if (!finished) {
         console.error('Preview build ended before the packaged runtime was verified')
-        process.exitCode = 1
       }
+      if (!succeeded) process.exitCode = 1
     })
-    build({
+    // Some Builder cleanup callbacks reset exitCode; an incomplete/failed
+    // acceptance must retain a failing terminal status even after cleanup.
+    process.once('exit', () => {
+      if (!succeeded) process.exitCode = 1
+    })
+    const prepared = await preparePreviewInputs(inputs)
+    await build({
       dir: true,
       publish: 'never',
       config: {
-        ...previewBuilderConfiguration(inputs),
+        ...previewBuilderConfiguration(prepared.inputs),
         afterPack: async context => {
           await afterPreviewPack(context)
           verified = true
@@ -179,11 +219,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       .then(() => {
         if (!verified) throw new Error('Preview build did not verify the packaged runtime')
         finished = true
+        succeeded = true
       })
       .catch(error => {
         finished = true
         console.error(error)
         process.exitCode = 1
       })
+      .finally(() => prepared.cleanup())
   }
 }

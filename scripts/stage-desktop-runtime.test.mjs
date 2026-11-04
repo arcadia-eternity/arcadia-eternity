@@ -159,3 +159,27 @@ test('preview configuration uses actual package hooks and local validation permi
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('isolated renderer input is copied into a disposable application directory and rejects links', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-preview-input-'))
+  try {
+    const source = join(root, 'source'),
+      temporaryParent = join(root, 'application')
+    await mkdir(source)
+    await writeFile(join(source, 'index.html'), '<!doctype html><title>final snapshot</title>')
+    const { preparePreviewInputs } = await import('./verify-desktop-pack.mjs')
+    const prepared = await preparePreviewInputs({ webDist: source, runtime: '/selected/runtime' }, { temporaryParent })
+    assert.ok(prepared.inputs.webDist.startsWith(temporaryParent))
+    assert.equal(prepared.inputs.runtime, '/selected/runtime')
+    assert.equal(
+      await readFile(join(prepared.inputs.webDist, 'index.html'), 'utf8'),
+      await readFile(join(source, 'index.html'), 'utf8'),
+    )
+    await prepared.cleanup()
+    await assert.rejects(readFile(join(prepared.inputs.webDist, 'index.html')), { code: 'ENOENT' })
+    await symlink(join(source, 'index.html'), join(source, 'linked.html'), 'file')
+    await assert.rejects(preparePreviewInputs({ webDist: source }, { temporaryParent }), /not symbolic links/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
