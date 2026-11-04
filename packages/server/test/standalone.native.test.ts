@@ -1,11 +1,11 @@
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v4/host'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createStandaloneBattle, getStandaloneRuntimeIdentity, validateStandaloneTeam } from '../src/standalone/native'
 import input from '../../battle/test/fixtures/official-switch.input.json'
 
-const systems: LocalBattleSystemV4[] = []
+const systems: BattleHost[] = []
 let baseline = 0
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 beforeEach(() => {

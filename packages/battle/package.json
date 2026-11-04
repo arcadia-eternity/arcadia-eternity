@@ -36,6 +36,20 @@
       "import": "./dist/native-build.mjs",
       "default": "./dist/native-build.mjs"
     },
+    "./v4/sandbox": {
+      "types": "./dist/types/v4-sandbox.d.ts",
+      "import": "./dist/v4-sandbox.js"
+    },
+    "./v4/sandbox/effects": {
+      "types": "./dist/types/v4-sandbox-effects.d.ts",
+      "import": "./dist/v4-sandbox-effects.js"
+    },
+    "./v4/sandbox/node": {
+      "types": "./dist/types/v4-sandbox-node.d.ts",
+      "import": "./dist/v4-sandbox-node.js"
+    },
+    "./v4/sandbox/worker": "./dist/v4-sandbox-worker.js",
+    "./v4/sandbox/node-worker": "./dist/v4-sandbox-node-worker.js",
     "./v4/authoring": {
       "types": "./dist/types/v4-authoring.d.ts",
       "import": "./dist/v4-authoring.js",
@@ -59,10 +73,14 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/interface": "workspace:^",
+    "@jitl/quickjs-singlefile-browser-release-sync": "0.32.0",
     "@sinclair/typebox": "catalog:",
+    "comlink": "4.4.2",
     "jsondiffpatch": "catalog:",
     "mitt": "^3.0.1",
     "nanoid": "catalog:",
+    "quickjs-emscripten": "0.32.0",
+    "quickjs-emscripten-sync": "1.11.0",
     "zod": "3.25.76",
     "zod-validation-error": "3.5.4"
   },

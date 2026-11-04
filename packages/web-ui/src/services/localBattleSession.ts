@@ -3,7 +3,7 @@ import { isNavigationFailure, type NavigationFailure } from 'vue-router'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { useBattleStore } from '@/stores/battle'
 import type { useGameDataStore } from '@/stores/gameData'
-import { createNativeWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
+import { createSandboxWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
 
 type SessionState = 'configuring' | 'starting' | 'routing' | 'active' | 'disposed'
 type BattleStore = Pick<
@@ -15,7 +15,7 @@ interface Destination {
   battle: BattleStore
   navigate(): Promise<void | NavigationFailure>
 }
-type Prepared = Awaited<ReturnType<typeof createNativeWebBattleSession>>
+type Prepared = Awaited<ReturnType<typeof createSandboxWebBattleSession>>
 interface Attempt {
   native: Prepared['system']
   system: IBattleSystem
@@ -32,7 +32,7 @@ export class LocalBattleSession {
   #attempt?: Attempt
   #battle?: BattleStore
   #disposing?: Promise<void>
-  constructor(private readonly create = createNativeWebBattleSession) {}
+  constructor(private readonly create = createSandboxWebBattleSession) {}
   get state() {
     return this.#state
   }

@@ -45,6 +45,8 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
+    "es-module-lexer": "3.0.4",
+    "rolldown": "1.0.0-rc.18",
     "semver": "7.7.3",
     "yaml": "catalog:"
   },

@@ -28,7 +28,8 @@ export class ExecutionBudget {
   private computations = 0
   private turnComputations = 0
   private turn = -1
-  private failure?: ExecutionBudgetExceeded
+  private failure?: Error & { readonly dimension?: ExecutionBudgetDimension }
+  private readonly healthChecks = new Set<() => void>()
   constructor(private readonly onFault: () => void) {}
   exportState(): { turn: number; turnActions: number; turnComputations: number } {
     this.assertActive()
@@ -55,11 +56,29 @@ export class ExecutionBudget {
     this.turnActions = value.turnActions as number
     this.turnComputations = value.turnComputations as number
   }
-  get fault(): ExecutionBudgetExceeded | undefined {
+  get fault(): (Error & { readonly dimension?: ExecutionBudgetDimension }) | undefined {
     return this.failure
   }
   assertActive(): void {
     if (this.failure) throw this.failure
+    try {
+      for (const check of this.healthChecks) check()
+    } catch (error) {
+      this.fail(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+  /** Sandbox failures must survive ordinary effect/reactive error recovery. */
+  observe(check: () => void): () => void {
+    this.assertActive()
+    this.healthChecks.add(check)
+    return () => {
+      this.healthChecks.delete(check)
+    }
+  }
+  fail(error: Error): never {
+    this.failure ??= error
+    this.onFault()
+    throw this.failure
   }
   run<T>(turn: number, operation: () => T): T {
     this.assertActive()

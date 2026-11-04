@@ -12,11 +12,11 @@ import {
 } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import {
-  createNativeWebBattleSystem,
+  createSandboxWebBattleSession,
+  type WebBattleHost,
   type NativeGameDataStoreLike,
   type NativeWebBattleConfig,
 } from '@/services/nativeBattleFactory'
-import type { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { PeerTransport } from '@arcadia-eternity/p2p-transport'
 import type { PrivateRoomSignalBridge } from '@/p2p/privateRoomSignalBridge'
@@ -54,7 +54,7 @@ export async function createP2PHostBattleSystem(options: {
   transport: PeerTransport
   battleConfig?: NativeWebBattleConfig
 }): Promise<IBattleSystem> {
-  const localSystem = await createNativeWebBattleSystem(
+  const { system: localSystem } = await createSandboxWebBattleSession(
     { id: options.localPlayerId, name: options.localPlayerName, team: options.localTeam },
     { id: options.remotePlayerId, name: options.remotePlayerName, team: options.remoteTeam },
     options.dataStore,
@@ -80,7 +80,7 @@ class P2PHostBattleSystem implements IBattleSystem {
   private isReady = false
 
   constructor(
-    private readonly localSystem: LocalBattleSystemV4,
+    private readonly localSystem: WebBattleHost,
     private readonly localPlayerId: playerId,
     private readonly remotePlayerId: playerId,
     private readonly bridge: PrivateRoomSignalBridge,

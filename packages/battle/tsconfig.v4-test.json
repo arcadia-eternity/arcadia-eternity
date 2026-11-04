@@ -13,6 +13,10 @@
     "v4-host.ts",
     "src/v4/**/*.ts",
     "src/v4-host/**/*.ts",
+    "src/v4-sandbox/**/*.ts",
+    "v4-sandbox.ts",
+    "v4-sandbox-node.ts",
+    "v4-sandbox-effects.ts",
     "src/v4/**/*.json",
     "test/v4/**/*.ts",
     "test/v4/**/*.json"

@@ -1,6 +1,6 @@
 # Effect SDK：使用现有战斗 API 编写 TypeScript 效果
 
-SDK 公开官方效果使用的领域类、上下文和操作。公共入口是 `@arcadia-eternity/battle/v4/authoring`；npm 包运行时使用宿主传入的 `sdk`，类型从这个入口导入。当前兼容版本为 `arcadia.sdkApi: 2`，类型入口和本地打包物料已提供，公开 npm 发行另行管理。
+SDK 公开官方效果使用的领域类、上下文和操作。公共入口是 `@arcadia-eternity/battle/v4/authoring`；npm 包运行时使用宿主传入的 `sdk`，类型从这个入口导入。当前兼容版本为 `arcadia.sdkApi: 2`，类型入口和本地打包物料已提供，公开 npm 发行另行管理。npm 效果现由 [Arena / Comlink 宿主](effect-sandbox.md) 执行；沙箱只开放其中明确允许的效果能力，低层原生基础设施 API 仍供可信宿主使用。
 
 ## 从一个效果开始
 
@@ -82,7 +82,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 
 预算耗尽锁存本局的 `ExecutionBudgetExceeded`，停止计时、释放等待并阻止继续进入引擎结算；捕获异常、消息监听器重入或 skipOnError 不重置预算。它不选择胜负，也不回滚此前操作。普通条件错误跳过该次收集；普通 apply 错误产生 `EffectApplyFail` 并按既有规则继续，已有副作用不回滚。
 
-计数覆盖引擎入口和已计费工具调用。直接领域方法中的全部计算、独立注册的底层 Effect 回调、任意 JS 循环、闭包计算和外部 I/O 不因此自动受逐步计费或抢占。获准的 npm 代码仍在 Node 宿主中执行；不可信代码的进程终止和系统资源边界由 #218 负责。
+计数覆盖引擎入口和已计费工具调用。原生参考运行中的直接领域方法、独立底层 Effect、任意 JS 循环和外部 I/O 不因此自动受逐步计费或抢占。npm 作者代码现运行于包级 Arena VM；局级 Worker 看门狗、VM 执行限额和故障锁存另见 [沙箱执行宿主](effect-sandbox.md)。
 
 核心／SDK 的构建身份保留，内容元数据、依赖图和策略参与环境身份；本地代码不做逐文件摘要准入，相同元数据不证明代码语义相同。版本更新准备新环境，活动对局保留原环境。见 [npm 环境生命周期](npm-content.md#环境生命周期)。
 

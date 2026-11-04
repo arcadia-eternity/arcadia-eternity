@@ -23,6 +23,11 @@ import {
   type NativeWebBattleConfig,
 } from '../nativeBattleFactory'
 import input from '../../../../battle/test/fixtures/official-switch.input.json'
+vi.mock('../sandboxBattleWorkers', async () => {
+  const { createNodeBattleWorkerManager } = await import('@arcadia-eternity/battle/v4/sandbox/node')
+  const manager = createNodeBattleWorkerManager()
+  return { getBattleWorkers: () => manager }
+})
 
 const root = new URL('../../../../../packs/base/', import.meta.url)
 const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8')) as {

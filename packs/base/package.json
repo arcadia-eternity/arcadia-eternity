@@ -9,7 +9,7 @@
     "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml",
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rolldown -c && node ../../scripts/build-base-environment.mjs",
+    "build:code": "rolldown -c && node ../../scripts/build-base-environment.mjs && tsx ../../scripts/build-base-sandbox.ts",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly",
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
@@ -27,6 +27,10 @@
     "LICENSE"
   ],
   "exports": {
+    "./sandbox": {
+      "types": "./dist/sandbox.d.ts",
+      "import": "./dist/sandbox.js"
+    },
     "./native": {
       "types": "./dist/types/native.d.ts",
       "import": "./dist/native.js",

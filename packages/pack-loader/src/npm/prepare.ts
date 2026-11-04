@@ -1,17 +1,31 @@
 import { readFileSync } from 'node:fs'
 import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import * as sdk from '@arcadia-eternity/battle/v4/authoring'
-import type { CodeEffectModule } from '@arcadia-eternity/battle/v4/authoring'
+import { ArenaEffectModule, type SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import type { BehaviorCatalogOptions, ContentCatalog, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
-import { cloneJson, digestJson, fail, runtimeId, type Json, type WorkHost, type WorkRelease } from '../works/model'
+import {
+  cloneJson,
+  digestJson,
+  fail,
+  freeze,
+  runtimeId,
+  type Json,
+  type WorkHost,
+  type WorkRelease,
+} from '../works/model'
 import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProjectInspection } from './inspect'
 import { captureNpmProject } from './capture'
 import { preparePresentation, type PreparedPresentation } from './resources'
+import { compileEffectModule } from './effect-artifact'
+const sandboxEnvironments = new WeakMap<ContentCatalog, SandboxEnvironment>()
+export function sandboxEnvironmentFor(content: ContentCatalog): SandboxEnvironment | undefined {
+  return sandboxEnvironments.get(content)
+}
 
 export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
+  readonly sandboxCatalogs?: SandboxEnvironment['modules']
   readonly createContent: (
     data: ContentPrototypeData,
     revision: string,
@@ -20,6 +34,7 @@ export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
 }
 export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnvironment>> & {
   readonly installation: NpmProjectInspection
+  readonly sandbox: SandboxEnvironment
   presentation: PreparedPresentation[]
   assetFile(hash: string): string | undefined
   readAsset(hash: string): Uint8Array | undefined
@@ -28,7 +43,8 @@ export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnviro
 
 /** Host-only activation. The administrator admits the project; local file edits do not revoke that decision.
  * Each environment captures its package files. The caller disposes it after all its battles finish.
- * This API admits trusted code; it is not an arbitrary JavaScript sandbox.
+ * Author text is bundled without evaluation and loaded in Arena. Client battles use the returned
+ * immutable sandbox recipe in a dedicated Worker; the validation catalog is not a shared battle VM.
  */
 export async function prepareNpmProject(
   directory: string,
@@ -38,17 +54,34 @@ export async function prepareNpmProject(
   const source = await realpath(directory)
   const original = await inspectNpmProject(source)
   const captured = await captureNpmProject(source, original)
+  const sessions: ArenaEffectModule[] = []
+  let disposal: Promise<void> | undefined
+  const dispose = () =>
+    (disposal ??= (async () => {
+      let failure: unknown
+      try {
+        for (const module of sessions.splice(0))
+          try {
+            module.dispose()
+          } catch (error) {
+            failure ??= error
+          }
+      } finally {
+        await captured.dispose()
+      }
+      if (failure) throw failure
+    })())
   try {
     const inspected = await inspectNpmProject(captured.root)
     // Relocation only changes private npm source paths. Audit the administrator's original lockfile.
     const installation = Object.freeze({ ...inspected, lockfileDigest: original.lockfileDigest })
     return Object.freeze({
-      ...(await compileInstallation(captured.root, host, installation, approval.policy)),
+      ...(await compileInstallation(captured.root, host, installation, approval.policy, sessions)),
       presentation: await preparePresentation(captured.root, installation.packages),
-      dispose: captured.dispose,
+      dispose,
     })
   } catch (error) {
-    await captured.dispose()
+    await dispose()
     throw error
   }
 }
@@ -58,6 +91,7 @@ async function compileInstallation(
   host: NpmContentHost,
   installation: NpmProjectInspection,
   policyInput: Readonly<Record<string, Json>>,
+  sessions: ArenaEffectModule[],
 ) {
   const policy = cloneJson(policyInput)
   const contentPackages = installation.packages.filter(pkg => pkg.manifest)
@@ -95,14 +129,16 @@ async function compileInstallation(
       installation: installation.digest,
     }),
   })
-  const modules = new Map<string, CodeEffectModule>()
+  const modules = new Map<string, ArenaEffectModule>()
+  const artifacts: SandboxEnvironment['modules'][number][] = [...(host.sandboxCatalogs ?? [])]
   for (const pkg of contentPackages) {
     if (!pkg.manifest!.effects) continue
     const file = packageFile(resolve(root, pkg.location), pkg.manifest!.effects!)
-    const module: unknown = await import(pathToFileURL(file).href)
-    if (!module || typeof module !== 'object' || typeof Reflect.get(module, 'createEffects') !== 'function')
-      fail('NPM_EXPORT', pkg.location, 'Effect module must export createEffects(context)')
-    modules.set(pkg.location, module as CodeEffectModule)
+    const artifact = await compileEffectModule(file, root, pkg.name)
+    const module = await ArenaEffectModule.prepare(artifact)
+    modules.set(pkg.location, module)
+    sessions.push(module)
+    artifacts.push({ artifact, namespace: pkg.manifest!.namespace, role: 'behaviors' })
   }
   const combinedHost: WorkHost = {
     ...host,
@@ -119,7 +155,7 @@ async function compileInstallation(
       const usedExports = new Set(
         (data.behaviors ?? []).map(raw => (raw as { implementation: { exportId: string } }).implementation.exportId),
       )
-      return host.createContent(data, revision, ({ marks }) => ({
+      const content = host.createContent(data, revision, ({ marks }) => ({
         nativeExports: contentPackages.flatMap(pkg => {
           const manifest = pkg.manifest!
           if (!manifest.effects || ![...usedExports].some(id => id.startsWith(`${manifest.namespace}:`))) return []
@@ -144,6 +180,8 @@ async function compileInstallation(
           return exports.filter(effect => usedExports.has(effect.id))
         }),
       }))
+      for (const module of modules.values()) module.assertHealthy()
+      return content
     },
   }
   const byLocation = new Map(installation.packages.map(pkg => [pkg.location, pkg]))
@@ -207,9 +245,18 @@ async function compileInstallation(
     ...policy,
     npmInstallation: installation.digest,
   })
+  const sandbox: SandboxEnvironment = freeze(
+    structuredClone({
+      revision: prepared.revision,
+      data: { ...prepared.data, behaviors: [...host.templates, ...(prepared.data.behaviors ?? [])] },
+      modules: artifacts,
+    }),
+  )
+  sandboxEnvironments.set(prepared.content, sandbox)
   return Object.freeze({
     ...prepared,
     installation,
+    sandbox,
     assetFile: (hash: string) => assetFiles.get(hash),
     readAsset: (hash: string) => {
       const file = assetFiles.get(hash)

@@ -1,4 +1,6 @@
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v4/host'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import type { BattleOptions, ContentCatalog } from '@arcadia-eternity/battle/v4'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
@@ -15,6 +17,7 @@ import {
 import { nanoid } from 'nanoid'
 
 export interface StandaloneRuntime {
+  sandbox?: SandboxEnvironment
   content: ContentCatalog
   species: ReadonlyMap<string, SpeciesSchemaType>
   identity: NativeRuntimeIdentity
@@ -22,6 +25,7 @@ export interface StandaloneRuntime {
 
 let officialContent: Promise<StandaloneRuntime> | undefined
 let officialPack: Promise<NativePackLoadResult> | undefined
+const sandboxWorkers = createNodeBattleWorkerManager()
 
 export function loadStandaloneBase(): Promise<NativePackLoadResult> {
   officialPack ??= new NativePackLoader(nativeBuildIdentity, createOfficialContent)
@@ -34,10 +38,11 @@ export function loadStandaloneBase(): Promise<NativePackLoadResult> {
 }
 
 export function createStandaloneRuntime(
-  loaded: Pick<NativePackLoadResult, 'content' | 'data' | 'revision' | 'build'>,
+  loaded: Pick<NativePackLoadResult, 'content' | 'data' | 'revision' | 'build'> & { sandbox?: SandboxEnvironment },
 ): StandaloneRuntime {
   return {
     content: loaded.content,
+    sandbox: loaded.sandbox,
     species: new Map(
       loaded.data.species.map(raw => {
         const species = parseWithErrors(SpeciesSchema, raw)
@@ -107,7 +112,7 @@ export async function createStandaloneBattle(
   playerB: PlayerSchemaType,
   options: BattleOptions,
   runtime?: StandaloneRuntime,
-): Promise<LocalBattleSystemV4> {
+): Promise<BattleHost> {
   if (playerA.id === playerB.id) throw new Error('Battle players must have distinct identities')
   runtime ??= await loadOfficialContent()
   const { content } = runtime
@@ -118,7 +123,9 @@ export async function createStandaloneBattle(
     ...structuredClone(player),
     team: player.team.map(pet => ({ ...structuredClone(pet), id: nanoid() })),
   }))
-  const [a, b] = content.parsePlayers(teams)
   const capturedOptions = options && { ...options, timerConfig: options.timerConfig && { ...options.timerConfig } }
+  if (runtime.sandbox)
+    return sandboxWorkers.create({ environment: runtime.sandbox, players: teams, options: capturedOptions })
+  const [a, b] = content.parsePlayers(teams)
   return new LocalBattleSystemV4(content.createBattle(a, b, capturedOptions), content)
 }

@@ -8,7 +8,7 @@ import {
   type playerId,
   type TimerConfig,
 } from '@arcadia-eternity/const'
-import type { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import type { BattleHost } from '@arcadia-eternity/battle/v4/host'
 import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { PrivateRoomInfo, PrivateRoomEvent, ServerSession } from '@arcadia-eternity/protocol'
 import { createStandaloneBattle, validateStandaloneTeam } from './native'
@@ -57,7 +57,7 @@ type Room = {
   info: PrivateRoomInfo
   password?: string
   members: Map<string, Member>
-  battle?: LocalBattleSystemV4
+  battle?: BattleHost
   ready: Set<string>
   cleanups: (() => void)[]
   viewCleanups: Map<string, () => void>

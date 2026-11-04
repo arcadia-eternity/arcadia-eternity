@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { WorkspaceError } from './workspace.mjs'
 import { playersFromTeams } from './project-teams.mjs'
 
@@ -50,7 +49,7 @@ export class PreviewAutomation {
     const teams = await this.readTeams()
     const players = playersFromTeams(teams, config.teamIds)
     const teamVersions = Object.fromEntries(config.teamIds.map(id => [id, teams.find(team => team.id === id).version]))
-    const battle = this.prepared.createBattle(config.seed, {
+    const system = await this.prepared.createBattleSession(config.seed, {
       ai: true,
       players,
       // IDs from the saved teams are deterministic and local to this separate battle.
@@ -62,9 +61,8 @@ export class PreviewAutomation {
       teamVersions,
       sessionId: previous?.sessionId ?? randomUUID(),
       revision: previous ? previous.revision + 1 : 0,
-      playerId: battle.playerA.id,
-      battle,
-      system: new LocalBattleSystemV4(battle, this.prepared.environment.content),
+      playerId: (await system.getState(undefined, true)).players[0].id,
+      system,
       events: [],
       cursor: previous?.cursor ?? 0,
       eventFloor: previous?.cursor ?? 0,
@@ -108,11 +106,7 @@ export class PreviewAutomation {
     }
   }
   async #dispose(entry) {
-    try {
-      await entry.system.cleanup()
-    } finally {
-      this.prepared.untrack(entry.battle)
-    }
+    await entry.system.cleanup()
   }
   async #read(entry) {
     let pending

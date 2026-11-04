@@ -9,7 +9,9 @@ import {
   type playerId,
 } from '@arcadia-eternity/const'
 import { GameRng, ExecutionBudgetExceeded } from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v4/host'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import { sandboxEnvironmentFor } from '@arcadia-eternity/pack-loader/node'
 import type { NativeContentResult } from '@arcadia-eternity/pack-loader/native'
 import type { BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
 import { CliError, message } from '../reporting/errors'
@@ -23,7 +25,7 @@ export interface RunOptions {
   replay?: { initial: BattleRuntimeSnapshot; inputs: RecordedInput[] }
   humans?: number[]
   captureReplay?: boolean
-  present?: (system: LocalBattleSystemV4, ids: playerId[]) => Promise<{ cleanup(): void; failure?: Promise<never> }>
+  present?: (system: BattleHost, ids: playerId[]) => Promise<{ cleanup(): void; failure?: Promise<never> }>
 }
 
 /** Drive only the host's settled decisions. Native Battle remains the sole phase executor. */
@@ -33,13 +35,18 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
     id: freshId(),
     team: team.team.map(pet => ({ ...structuredClone(pet), id: freshId() })),
   }))
-  const [a, b] = content.parsePlayers(teams)
-  const battle = content.createBattle(a, b, {
+  const environment = sandboxEnvironmentFor(content)
+  if (environment && (options.replay || options.captureReplay))
+    throw new CliError('SANDBOX_REPLAY_STATE', 'UGC replay requires verified reconstructible module state', 3)
+  const battleOptions = {
     rngSeed: spec.seed,
     showHidden: true,
     allowFaintSwitch: true,
     timerConfig: { enabled: false },
-  })
+  }
+  const [a, b] = environment ? [] : content.parsePlayers(teams)
+  const battle = environment ? undefined : content.createBattle(a, b, battleOptions)
+  const workers = environment ? createNodeBattleWorkerManager() : undefined
   const aiSeeds = [0, 1].map(seat => `${spec.seed}/ai/${seat}`)
   const rngs = aiSeeds.map(seed => new GameRng(seed))
   let status: RunResult['status'], reason: string, failure: RunResult['error']
@@ -53,7 +60,7 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
   const inputs: RecordedInput[] = []
   let initial: BattleRuntimeSnapshot | undefined
   let completion: Promise<'finished'> | undefined
-  let initialState = battle.getState(undefined, true)
+  let initialState: BattleState
   let finalState: BattleState
   let currentBattle = battle
   // A restored host owns a newly hydrated Battle; retain a read-only state source for final reporting.
@@ -65,17 +72,27 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
     },
   }
   // Use the same restoration hook for initial records and subsequent driver reads.
-  const runtime = new LocalBattleSystemV4(battle, hostContent, {
-    teamSelection: { enabled: spec.teamSelection, config: { timeLimit: 0 } },
-  })
+  const hostOptions = { teamSelection: { enabled: spec.teamSelection, config: { timeLimit: 0 } } }
+  let runtime: BattleHost
+  try {
+    runtime =
+      workers && environment
+        ? await workers.create({ environment, players: teams, options: battleOptions, hostOptions }, options.signal)
+        : new LocalBattleSystemV4(battle!, hostContent, hostOptions)
+    initialState = await runtime.getState(undefined, true)
+  } catch (error) {
+    options.signal.removeEventListener('abort', wake)
+    await workers?.dispose()
+    throw error
+  }
   const unsubscribe = runtime.BattleEvent(event => {
     if (event.type === BattleMessageType.BattleEnd) end = event.data
   })
   try {
     if (options.replay) {
-      const expected = initialFingerprint(battle, await runtime.createRuntimeSnapshot())
+      const expected = initialFingerprint(battle!, await runtime.createRuntimeSnapshot())
       await runtime.restoreRuntimeSnapshot(options.replay.initial)
-      if (!isDeepStrictEqual(expected, initialFingerprint(currentBattle, await runtime.createRuntimeSnapshot())))
+      if (!isDeepStrictEqual(expected, initialFingerprint(currentBattle!, await runtime.createRuntimeSnapshot())))
         throw new CliError(
           'REPLAY_INITIAL',
           'Saved checkpoint does not match effective initial teams, configuration or seed',
@@ -200,8 +217,9 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
     unsubscribe()
     options.signal.removeEventListener('abort', wake)
     presentation?.cleanup()
-    finalState = currentBattle.getState(undefined, true)
+    finalState = await runtime.getState(undefined, true).catch(() => initialState)
     await runtime.cleanup()
+    await workers?.dispose()
     await completion?.catch(() => undefined)
   }
   const rosters = inputCodec(initialState).rosters

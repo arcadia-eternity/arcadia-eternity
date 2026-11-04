@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.mjs'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 export { prepareBattleEnvironment } from './environment.mjs'
 import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/v4'
 /** Existing package scenarios use the default environment with declared dependencies only. */
@@ -18,14 +19,12 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
     throw new Error('arcadia.config.mjs must export exactly two project team IDs in teams')
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
+  const workers = createNodeBattleWorkerManager()
   function defaultPlayers() {
     return prepared.loadTeams(config.teams)
   }
-  function createBattle(
-    seed = 'content-pack-template',
-    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},
-  ) {
-    const input = (supplied ?? defaultPlayers()).map(player => ({
+  function runtimePlayers(supplied, runtimeIds = false) {
+    return (supplied ?? defaultPlayers()).map(player => ({
       ...player,
       id: (runtimeIds ? undefined : player.id) ?? randomBytes(16).toString('base64url').slice(0, 21),
       team: player.team.map(pet => ({
@@ -33,6 +32,12 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
         id: runtimeIds ? randomBytes(16).toString('base64url').slice(0, 21) : pet.id,
       })),
     }))
+  }
+  function createBattle(
+    seed = 'content-pack-template',
+    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},
+  ) {
+    const input = runtimePlayers(supplied, runtimeIds)
     const players = environment.content.parsePlayers(input, { aiPlayerIds: ai ? [input[1]?.id] : [] })
     if (players.length !== 2) throw new Error('The demo requires exactly two players')
     const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
@@ -45,7 +50,33 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
     prepared.track(battle)
     return battle
   }
-  return { ...prepared, createBattle, defaultPlayers }
+  async function createBattleSession(
+    seed = 'content-pack-template',
+    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},
+  ) {
+    const players = runtimePlayers(supplied, runtimeIds)
+    const system = await workers.create({
+      environment: environment.sandbox,
+      players,
+      aiPlayerIds: ai ? [players[1]?.id] : [],
+      options: { ...battleOptions, rngSeed: seed, timerConfig: battleOptions.timerConfig ?? { enabled: false } },
+      hostOptions: { teamSelection: battleOptions.teamSelection },
+    })
+    return system
+  }
+  return {
+    ...prepared,
+    createBattle,
+    createBattleSession,
+    defaultPlayers,
+    async dispose() {
+      try {
+        await workers.dispose()
+      } finally {
+        await prepared.dispose()
+      }
+    },
+  }
 }
 
 export function attack(battle) {

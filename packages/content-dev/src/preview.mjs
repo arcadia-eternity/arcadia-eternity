@@ -3,7 +3,6 @@ import { join, resolve } from 'node:path'
 import { createServer } from 'node:http'
 import { randomBytes, createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { prepareContentPack } from './testing.mjs'
@@ -11,7 +10,7 @@ import { PreviewAutomation } from './preview-control.mjs'
 import { AuthorWorkspace } from './workspace.mjs'
 import { ProjectTeams } from './project-teams.mjs'
 
-/** A captured npm candidate, with rules executed only in this local Node process.
+/** A captured npm candidate, with each battle in a dedicated Worker and each package in Arena.
  * The existing client consumes public metadata and IBattleSystem messages.
  */
 export async function startPreview(root, { clientUrl, signal, ...environmentOptions } = {}) {
@@ -120,7 +119,7 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
   }
   async function reset(players, options = {}) {
     // Validate and construct first: a bad test team must not destroy the current match.
-    const battle = prepared.createBattle(options.rngSeed ?? 'author-preview', {
+    const nextSystem = await prepared.createBattleSession(options.rngSeed ?? 'author-preview', {
       ai: true,
       players: players ?? manualSetup().players,
       runtimeIds: true,
@@ -129,17 +128,23 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
     unsubscribe?.()
     detachTimers.forEach(detach => detach())
     detachTimers = []
-    await system?.cleanup()
+    try {
+      await system?.cleanup()
+    } catch (error) {
+      await nextSystem.cleanup()
+      throw error
+    }
     events = []
     sequence = 0
-    system = new LocalBattleSystemV4(battle, prepared.environment.content, { teamSelection: options.teamSelection })
+    system = nextSystem
+    const initial = await system.getState(undefined, true)
     unsubscribe = system.BattleEvent(
       message => {
         events.push({ cursor: ++sequence, message })
         // A bounded stream fails explicitly if a client falls behind; it never skips deltas.
         if (events.length > 4096) events.shift()
       },
-      { viewerId: battle.playerA.id, showHidden: false },
+      { viewerId: initial.players[0].id, showHidden: false },
     )
     detachTimers = [
       'timerStart',

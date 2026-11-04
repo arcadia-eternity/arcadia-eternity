@@ -79,7 +79,7 @@ const data = {
 }
 const effectModule = `
 import { penalty } from 'arcadia-test-library'
-process.env.ARCADIA_NPM_TEST_LOADED = 'yes'
+if (typeof process !== 'undefined') throw Error('Node capability leaked into effect module')
 export function createEffects({ sdk, marks, id }) {
   const { defineCodeEffect, targets, ops, conditions, EffectTrigger } = sdk
   const slow = marks.get(id('slow'))
@@ -269,7 +269,7 @@ it.each([
 )
 it('executes code effects in the real engine with refresh, removal, and independent battles', async () => {
   const { content } = await prepare()
-  expect(process.env.ARCADIA_NPM_TEST_LOADED).toBe('yes')
+  expect(process.env.ARCADIA_NPM_TEST_LOADED).toBeUndefined()
   const f = fixture(content),
     other = fixture(content),
     speed = f.b.activePet.stat.spe
