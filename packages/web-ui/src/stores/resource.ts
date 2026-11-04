@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
 import { NativePackLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 

@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v4/host'
+import type { BattleHost } from '@arcadia-eternity/battle/v4/host'
+import { WorkerBattleSystem } from '@arcadia-eternity/battle/v4/sandbox'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createStandaloneBattle, getStandaloneRuntimeIdentity, validateStandaloneTeam } from '../src/standalone/native'
 import input from '../../battle/test/fixtures/official-switch.input.json'
@@ -95,17 +96,16 @@ it('accepts the species official ability and emblem', async () => {
   expect(await validateStandaloneTeam(team)).toEqual(team)
 })
 
-it('creates an independent native battle without writing a runtime snapshot', async () => {
+it('creates an independent Worker battle while preserving room identities', async () => {
   const players = fixture()
   players[1].team[0].id = players[0].team[0].id
   const original = structuredClone(players)
-  const snapshot = vi.spyOn(LocalBattleSystemV4.prototype, 'createRuntimeSnapshot')
   const system = await createStandaloneBattle(players[0], players[1], {
     rngSeed: input.seed,
     timerConfig: { enabled: false },
   })
   systems.push(system)
-  expect(snapshot).not.toHaveBeenCalled()
+  expect(system).toBeInstanceOf(WorkerBattleSystem)
   const state = await system.getState(undefined, true)
   expect(state.status).toBe(BattleStatus.Unstarted)
   expect(state.players.map(player => player.id)).toEqual(players.map(player => player.id))

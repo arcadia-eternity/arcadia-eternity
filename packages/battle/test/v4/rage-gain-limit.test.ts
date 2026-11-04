@@ -12,7 +12,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-import { createRageGainLimit } from '@arcadia-eternity/data-pack-base/native'
+import { createRageGainLimit } from '@arcadia-eternity/data-pack-base/effects'
 
 const id = 'effect_mark_limit_rage_gain'
 const battles: Battle[] = []

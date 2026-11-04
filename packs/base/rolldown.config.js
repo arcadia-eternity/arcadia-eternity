@@ -1,10 +1,9 @@
 import { defineConfig } from 'rolldown'
 import { fileURLToPath } from 'node:url'
 import { buildBaseEnvironmentArtifact } from '../../scripts/build-base-environment.mjs'
-import { buildBaseSandboxArtifact } from '../../scripts/build-base-sandbox.ts'
 
 export default defineConfig({
-  input: { native: 'native.ts' },
+  input: { effects: 'effects.ts' },
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,
   plugins: [
@@ -15,8 +14,6 @@ export default defineConfig({
           this.addWatchFile(
             fileURLToPath(new URL('../../packages/battle/dist/environment-build.json', import.meta.url)),
           )
-          this.addWatchFile(fileURLToPath(new URL('./src/sandbox-effects.ts', import.meta.url)))
-          await buildBaseSandboxArtifact(file => this.addWatchFile(file))
         }
       },
       async writeBundle() {

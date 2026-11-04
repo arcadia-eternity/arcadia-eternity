@@ -9,7 +9,7 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
-import { createOfficialWaterShieldCandidate } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialWaterShieldCandidate } from '@arcadia-eternity/data-pack-base/effects'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 const alias = 'effect_skill_add_mark_shuiwenpingzhang.multiply_value'

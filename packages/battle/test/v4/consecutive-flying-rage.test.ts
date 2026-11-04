@@ -24,7 +24,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-import { createConsecutiveFlyingRage } from '@arcadia-eternity/data-pack-base/native'
+import { createConsecutiveFlyingRage } from '@arcadia-eternity/data-pack-base/effects'
 
 const id = 'effect_ability_add_20_rage_when_use_fly_skill_twice'
 const battles: Battle[] = []

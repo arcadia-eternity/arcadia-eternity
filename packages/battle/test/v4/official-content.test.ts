@@ -11,7 +11,7 @@ import {
   type baseSkillId,
 } from '@arcadia-eternity/battle/v4'
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
-import { createOfficialContent, type OfficialPrototypeData } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent, type OfficialPrototypeData } from '@arcadia-eternity/data-pack-base/effects'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import input from '../fixtures/official-switch.input.json'
 import { loadBasePrototypeData } from './base-metadata'

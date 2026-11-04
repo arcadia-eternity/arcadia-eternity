@@ -70,6 +70,22 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
   } catch (error) {
     options.signal.removeEventListener('abort', wake)
     await workers?.dispose()
+    if (options.signal.aborted)
+      return {
+        result: {
+          seed: spec.seed,
+          aiSeeds,
+          strategy: 'legal-skills-v1',
+          status: 'cancelled',
+          turns: 0,
+          actions: 0,
+          winner: null,
+          reason: 'INTERRUPTED',
+          players: [],
+        } satisfies RunResult,
+        initial: undefined,
+        inputs,
+      }
     throw error
   }
   const unsubscribe = runtime.BattleEvent(event => {
@@ -196,10 +212,15 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
         throw new CliError('REPLAY_INPUT_UNUSED', `Unused inputs after action ${inputs.length}`, 3)
     }
   } catch (error) {
-    if (error instanceof CliError && options.replay) throw error
-    status = 'failed'
-    reason = error instanceof ExecutionBudgetExceeded ? 'KERNEL_BUDGET' : 'RUNTIME_FAILED'
-    failure = { code: reason, message: message(error) }
+    if (options.signal.aborted) {
+      status = 'cancelled'
+      reason = 'INTERRUPTED'
+    } else {
+      if (error instanceof CliError && options.replay) throw error
+      status = 'failed'
+      reason = error instanceof ExecutionBudgetExceeded ? 'KERNEL_BUDGET' : 'RUNTIME_FAILED'
+      failure = { code: reason, message: message(error) }
+    }
   } finally {
     unsubscribe()
     options.signal.removeEventListener('abort', wake)

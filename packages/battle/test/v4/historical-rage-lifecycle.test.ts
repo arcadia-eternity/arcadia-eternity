@@ -10,7 +10,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-import { createGeneratedRageAssignment } from '@arcadia-eternity/data-pack-base/native'
+import { createGeneratedRageAssignment } from '@arcadia-eternity/data-pack-base/effects'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))

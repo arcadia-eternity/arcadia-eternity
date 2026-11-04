@@ -3,7 +3,8 @@ import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandb
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import type { BattleOptions, ContentCatalog } from '@arcadia-eternity/battle/v4'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
+import officialEffectArtifact from './effect-module'
 import { NativePackLoader, type NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
 import type { NativeRuntimeIdentity } from '@arcadia-eternity/protocol'
 import {
@@ -28,7 +29,10 @@ let officialPack: Promise<NativePackLoadResult> | undefined
 const sandboxWorkers = createNodeBattleWorkerManager()
 
 export function loadStandaloneBase(): Promise<NativePackLoadResult> {
-  officialPack ??= new NativePackLoader(nativeBuildIdentity, createOfficialContent)
+  officialPack ??= new NativePackLoader(nativeBuildIdentity, createOfficialContent, {
+    templates: officialTemplateDefinitions,
+    effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
+  })
     .load('builtin:workspace')
     .catch(error => {
       officialPack = undefined

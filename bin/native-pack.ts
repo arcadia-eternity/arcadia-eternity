@@ -6,7 +6,7 @@ export async function loadNativeCliPack(packRef = 'builtin:workspace') {
   const [{ NativePackLoader }, { nativeBuildIdentity }, { createOfficialContent }] = await Promise.all([
     import('@arcadia-eternity/pack-loader/native'),
     import('@arcadia-eternity/data-pack-base/build'),
-    import('@arcadia-eternity/data-pack-base/native'),
+    import('@arcadia-eternity/data-pack-base/effects'),
   ])
   return new NativePackLoader(nativeBuildIdentity, createOfficialContent).load(packRef)
 }

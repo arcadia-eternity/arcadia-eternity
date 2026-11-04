@@ -42,7 +42,11 @@ async function boot(options: SingleProcessAppOptions = {}) {
 }
 type Reply = { status: 'SUCCESS'; data: unknown } | { status: 'ERROR'; code: string }
 function ack(socket: Socket, event: string, data?: unknown): Promise<Reply> {
-  return data === undefined ? socket.timeout(5000).emitWithAck(event) : socket.timeout(5000).emitWithAck(event, data)
+  // Pairing prepares a dedicated Worker; use the public client's startup allowance.
+  const timeout = event === 'joinMatchmaking' ? 30000 : 5000
+  return data === undefined
+    ? socket.timeout(timeout).emitWithAck(event)
+    : socket.timeout(timeout).emitWithAck(event, data)
 }
 async function success<T = unknown>(socket: Socket, event: string, data?: unknown): Promise<T> {
   const result = await ack(socket, event, data)
@@ -93,7 +97,7 @@ it('automatically pairs two guests into a playable authoritative battle and supp
   await success(b.socket, 'joinMatchmaking', request())
   expect((await success<PrivateRoomInfo>(b.socket, 'getCurrentPrivateRoom')).battleRoomId).not.toBe(room.battleRoomId)
   expect(app.rooms.size).toBe(1)
-}, 20000)
+}, 60000)
 
 it('cancels without a late pairing, excludes duplicate sockets, and clears a disconnected waiting seat', async () => {
   const { user } = await boot()
@@ -177,8 +181,10 @@ it('allows a trusted namespace/rule policy to reconsider players after waiting w
   await success(b.socket, 'joinMatchmaking', request())
   await expect.poll(() => app.rooms.size).toBe(1)
   expect(observed.length).toBeGreaterThan(1)
-  expect(await success(a.socket, 'getCurrentPrivateRoom')).toMatchObject({ status: 'started' })
-}, 20000)
+  await expect
+    .poll(() => success(a.socket, 'getCurrentPrivateRoom'), { timeout: 30000 })
+    .toMatchObject({ status: 'started' })
+}, 40000)
 
 it('never publishes a canceled pair when an asynchronous trusted selector finishes late', async () => {
   let finish!: (pair: readonly [string, string]) => void

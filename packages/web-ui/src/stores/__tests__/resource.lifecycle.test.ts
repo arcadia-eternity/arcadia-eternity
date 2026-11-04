@@ -14,7 +14,7 @@ vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
   },
 }))
 vi.mock('@arcadia-eternity/data-pack-base/build', () => ({ nativeBuildIdentity: {} }))
-vi.mock('@arcadia-eternity/data-pack-base/native', () => ({ createOfficialContent: vi.fn() }))
+vi.mock('@arcadia-eternity/data-pack-base/effects', () => ({ createOfficialContent: vi.fn() }))
 vi.mock('@/utils/gameLoader', () => ({
   GameDataLoader: class {
     load = load

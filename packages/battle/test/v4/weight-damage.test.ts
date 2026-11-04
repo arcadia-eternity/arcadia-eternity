@@ -17,7 +17,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-import { createWeightDamageEffects } from '@arcadia-eternity/data-pack-base/native'
+import { createWeightDamageEffects } from '@arcadia-eternity/data-pack-base/effects'
 
 const effects = createWeightDamageEffects()
 const ids = Object.keys(effects) as (keyof typeof effects)[]

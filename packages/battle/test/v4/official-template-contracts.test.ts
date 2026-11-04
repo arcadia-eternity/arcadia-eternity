@@ -13,7 +13,7 @@ import {
   officialEffectTemplates,
   officialTemplateDefinitions,
   withOfficialTemplates,
-} from '@arcadia-eternity/data-pack-base/native'
+} from '@arcadia-eternity/data-pack-base/effects'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { MarkSchema } from '../../src/v4/content/schema/mark'
 import { SkillSchema } from '../../src/v4/content/schema/skill'

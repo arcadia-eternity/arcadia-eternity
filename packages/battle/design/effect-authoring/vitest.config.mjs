@@ -10,7 +10,7 @@ export default defineConfig({
       },
       {
         find: /^@arcadia-eternity\/data-pack-base\/native$/,
-        replacement: fileURLToPath(new URL('../../../../packs/base/native.ts', import.meta.url)),
+        replacement: fileURLToPath(new URL('../../../../packs/base/effects.ts', import.meta.url)),
       },
     ],
   },

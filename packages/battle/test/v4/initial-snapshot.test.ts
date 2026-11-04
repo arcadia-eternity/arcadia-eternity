@@ -13,7 +13,7 @@ import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import input from '../fixtures/official-switch.input.json'
 import { makeScenario } from './scenario'
 import { catalogFor } from './snapshot-host'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { loadBasePrototypeData } from './base-metadata'
 
 const data = loadBasePrototypeData()

@@ -1,8 +1,10 @@
 import { defineConfig } from 'rolldown'
+import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
 
 export default defineConfig({
   input: 'index.ts',
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,
-  external: id => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'),
+  plugins: [builtinEffectsPlugin()],
+  external: id => !id.endsWith('?effect-module') && !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'),
 })

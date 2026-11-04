@@ -32,6 +32,28 @@ it('bundles TypeScript and SDK imports without evaluating author top-level state
   }
   expect(Reflect.get(globalThis, 'artifactMarker')).toBeUndefined()
 })
+it('selects effect factories from an ordinary module without exposing host reference helpers', async () => {
+  const { root, entry } = await source(`
+    import {createContentCatalog} from '@arcadia-eternity/battle/v4';
+    export function createReferenceContent(data){return createContentCatalog(data)}
+    export function createEffects(){return []}
+  `)
+  const artifact = await compileEffectModule(entry, root, 'probe')
+  expect(artifact.source).not.toContain('lookup("createContentCatalog")')
+  const module = await ArenaEffectModule.prepare(artifact)
+  try {
+    expect(module.createEffects({ sdk, marks: new Map(), id: id => id })).toEqual([])
+  } finally {
+    module.dispose()
+  }
+})
+it('preserves author initialization even when package metadata claims there are no side effects', async () => {
+  const { root, entry } = await source("throw new Error('AUTHOR_INITIALIZATION')")
+  await writeFile(join(root, 'package.json'), JSON.stringify({ type: 'module', sideEffects: false }))
+  const artifact = await compileEffectModule(entry, root, 'probe')
+  expect(artifact.source).toContain('AUTHOR_INITIALIZATION')
+  await expect(ArenaEffectModule.prepare(artifact)).rejects.toThrow('AUTHOR_INITIALIZATION')
+})
 it.each([
   "import fs from 'node:fs';export function createEffects(){fs.readFileSync('x')}",
   'export function createEffects(){const moduleName=globalThis.name;return import(moduleName)}',

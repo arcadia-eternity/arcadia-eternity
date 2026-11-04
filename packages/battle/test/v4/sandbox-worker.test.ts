@@ -8,12 +8,12 @@ import { afterEach, expect, it } from 'vitest'
 import nodeEndpoint from 'comlink/dist/esm/node-adapter.mjs'
 import { parse } from 'yaml'
 import { BattleWorkerManager } from '../../v4-sandbox'
-import { officialEffectArtifact } from '@arcadia-eternity/data-pack-base/sandbox'
+import officialEffectArtifact from '@arcadia-eternity/data-pack-base/effects?effect-module'
 import {
   officialTemplateDefinitions,
   createOfficialEffectCandidates,
   createOfficialTemplateRegistrations,
-} from '@arcadia-eternity/data-pack-base/native'
+} from '@arcadia-eternity/data-pack-base/effects'
 import input from '../fixtures/official-switch.input.json'
 import { BattleMessageType, BattleStatus, createContentCatalog } from '../../v4'
 import { LocalBattleSystemV4, type BattleHost } from '../../v4-host'
@@ -51,6 +51,10 @@ function manager(
   return result
 }
 function fixture(): SandboxBattleInput {
+  expect(officialEffectArtifact).toMatchObject({
+    format: 'arcadia.effect-module',
+    packageId: '@arcadia-eternity/data-pack-base',
+  })
   const root = new URL('../../../../packs/base/', import.meta.url)
   const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8'))
   const read = (kind: string) =>

@@ -1,5 +1,5 @@
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
 import {
   NativePackLoader,
   workRef,

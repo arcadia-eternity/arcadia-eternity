@@ -23,7 +23,7 @@ import {
   generatedMarkApplicationDependencies,
   namedParameterModifierDependencies,
   officialRageCandidate,
-} from '@arcadia-eternity/data-pack-base/native'
+} from '@arcadia-eternity/data-pack-base/effects'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 

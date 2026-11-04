@@ -5,8 +5,10 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import YAML from 'yaml'
 import { NativePackLoader } from '../src/native-loader'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { createContentCatalog } from '@arcadia-eternity/battle/v4'
+import { sandboxEnvironmentFor } from '../src/effect-environment'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 
 const basePath = fileURLToPath(new URL('../../../packs/base/', import.meta.url))
 const origin = 'https://example.test/native/'
@@ -39,6 +41,38 @@ function serveBase(change?: (path: string, raw: string) => string, extra: Record
 }
 
 describe('NativePackLoader', () => {
+  it('binds host-prepared effects for metadata and work selections with a captured code identity', async () => {
+    const data = { species: [], skills: [], marks: [] }
+    const modules: SandboxEnvironment['modules'][number][] = [
+      {
+        namespace: '',
+        role: 'behaviors',
+        artifact: {
+          format: 'arcadia.effect-module',
+          version: 1,
+          sdkApi: 2,
+          packageId: 'fixture',
+          source: 'export function createEffects(){return []}',
+        },
+      },
+    ]
+    const loader = new NativePackLoader(build, createContentCatalog, { templates: [], effectModules: modules })
+    const metadata = await loader.fromMetadata(data)
+    const works = await loader.fromWorks(data, [])
+    for (const result of [metadata, works]) {
+      expect(sandboxEnvironmentFor(result.content)).toBe(result.sandbox)
+      expect(result.sandbox!.modules).toEqual(modules)
+      expect(Object.isFrozen(result.sandbox!.modules[0].artifact)).toBe(true)
+    }
+    modules[0] = {
+      ...modules[0],
+      artifact: { ...modules[0].artifact, source: modules[0].artifact.source + '\n// edited' },
+    }
+    const edited = await loader.fromMetadata(data)
+    expect(edited.revision).toBe(metadata.revision)
+    expect(edited.sandbox!.revision).not.toBe(metadata.sandbox!.revision)
+    expect(metadata.sandbox!.modules[0].artifact.source).not.toContain('edited')
+  })
   it('rejects an HTTP lockfile that does not match the loaded pack', async () => {
     serveBase(undefined, {
       'pack.json': JSON.stringify({

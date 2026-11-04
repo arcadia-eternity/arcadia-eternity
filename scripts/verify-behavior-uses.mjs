@@ -56,7 +56,7 @@ try {
         {
           name: 'behavior-use-boundary',
           resolveId(id) {
-            if (id === '@arcadia-eternity/data-pack-base/native') return resolve('packs/base/native.ts')
+            if (id === '@arcadia-eternity/data-pack-base/effects') return resolve('packs/base/effects.ts')
             if (id === '@arcadia-eternity/battle/v4') return resolve('packages/battle/v4.ts')
             if (id === '@arcadia-eternity/battle/v4/authoring') return resolve('packages/battle/v4-authoring.ts')
             if (id === '@arcadia-eternity/battle/v4/host') return resolve('packages/battle/v4-host.ts')

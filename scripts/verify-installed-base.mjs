@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { nativeBuildIdentity as core } from '@arcadia-eternity/battle/v4/build'
 

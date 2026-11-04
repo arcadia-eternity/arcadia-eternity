@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [builtinEffectsPlugin(), vue()],
   test: {
     globals: true,
     environment: 'jsdom',

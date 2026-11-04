@@ -18,7 +18,7 @@
 
 ```ts
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 
 const loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)

@@ -9,7 +9,7 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { NativePackLoader } from '../src/native-loader'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 
 type Plan = { type: string; skill?: string; pet?: string }
 type RuntimeSnapshot = Awaited<ReturnType<LocalBattleSystemV4['createRuntimeSnapshot']>>

@@ -13,7 +13,7 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
-import { createGeneratedIgnoreShield } from '@arcadia-eternity/data-pack-base/native'
+import { createGeneratedIgnoreShield } from '@arcadia-eternity/data-pack-base/effects'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 

@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { NativePackLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'

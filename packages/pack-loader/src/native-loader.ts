@@ -5,6 +5,8 @@ import {
   type BehaviorDefinition,
 } from '@arcadia-eternity/battle/v4'
 import { prepareWorkEnvironment, type WorkRelease } from './works'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
+import { bindEffectEnvironment } from './effect-environment'
 import {
   type PackManifest,
   type PresentationManifest,
@@ -23,6 +25,7 @@ export interface NativePackLoaderOptions {
   revision?: string
 }
 export interface NativeContentResult {
+  sandbox?: SandboxEnvironment
   runtime: 'native-v4'
   content: ContentCatalog
   revision: string
@@ -60,6 +63,7 @@ export class NativePackLoader extends PackTransport {
     private readonly workOptions: {
       readonly templates: readonly BehaviorDefinition[]
       readonly allowedExports?: readonly string[]
+      readonly effectModules?: SandboxEnvironment['modules']
     } = { templates: [] },
   ) {
     super()
@@ -91,7 +95,7 @@ export class NativePackLoader extends PackTransport {
     selected: readonly WorkRelease[],
     installed: readonly WorkRelease[] = [],
   ) {
-    return prepareWorkEnvironment(
+    const prepared = await prepareWorkEnvironment(
       {
         build: this.build,
         base,
@@ -101,6 +105,18 @@ export class NativePackLoader extends PackTransport {
       },
       selected,
       installed,
+    )
+    const sandbox = await this.prepareEffects(prepared.content, prepared.data, prepared.revision)
+    return { ...prepared, ...(sandbox && { sandbox }) }
+  }
+
+  private prepareEffects(content: ContentCatalog, data: ContentPrototypeData, revision: string) {
+    if (!this.workOptions.effectModules) return undefined
+    return bindEffectEnvironment(
+      content,
+      { ...data, behaviors: [...this.workOptions.templates, ...(data.behaviors ?? [])] },
+      revision,
+      this.workOptions.effectModules,
     )
   }
 
@@ -113,10 +129,13 @@ export class NativePackLoader extends PackTransport {
     const revision =
       suppliedRevision ??
       `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
+    const content = this.contentFactory(captured, revision)
+    const sandbox = await this.prepareEffects(content, captured, revision)
     return {
       runtime: 'native-v4',
       packs: structuredClone(packs),
-      content: this.contentFactory(captured, revision),
+      content,
+      ...(sandbox && { sandbox }),
       revision,
       build: this.build,
     }

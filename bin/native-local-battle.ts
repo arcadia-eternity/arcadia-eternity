@@ -4,7 +4,7 @@ import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import type { PlayerSchemaType } from '@arcadia-eternity/schema'
 import { randomBytes } from 'node:crypto'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 
 const freshId = () => randomBytes(16).toString('base64url').slice(0, 21)
 

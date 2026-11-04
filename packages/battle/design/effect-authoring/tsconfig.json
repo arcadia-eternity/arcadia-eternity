@@ -6,7 +6,7 @@
     "paths": {
       "@arcadia-eternity/battle/v4": ["../../v4.ts"],
       "@arcadia-eternity/battle/v4/authoring": ["../../v4-authoring.ts"],
-      "@arcadia-eternity/data-pack-base/native": ["../../../../packs/base/native.ts"]
+      "@arcadia-eternity/data-pack-base/effects": ["../../../../packs/base/effects.ts"]
     },
     "strict": true
   },

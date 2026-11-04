@@ -12,7 +12,7 @@ import {
   withOfficialTemplates,
   createOfficialTemplateRegistrations,
   officialTemplateDefinitions,
-} from '@arcadia-eternity/data-pack-base/native'
+} from '@arcadia-eternity/data-pack-base/effects'
 import {
   createDraft,
   compileRelease,

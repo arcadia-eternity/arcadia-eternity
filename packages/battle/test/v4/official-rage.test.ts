@@ -5,7 +5,7 @@ import {
   setGlobalLogger,
   type Battle,
 } from '@arcadia-eternity/battle/v4'
-import { officialRageCandidate } from '@arcadia-eternity/data-pack-base/native'
+import { officialRageCandidate } from '@arcadia-eternity/data-pack-base/effects'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 

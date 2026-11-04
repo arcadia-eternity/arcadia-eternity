@@ -5,27 +5,15 @@ import * as sdk from '@arcadia-eternity/battle/v4/authoring'
 import { ArenaEffectModule, type SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import type { BehaviorCatalogOptions, ContentCatalog, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
-import {
-  cloneJson,
-  digestJson,
-  fail,
-  freeze,
-  runtimeId,
-  type Json,
-  type WorkHost,
-  type WorkRelease,
-} from '../works/model'
+import { cloneJson, digestJson, fail, runtimeId, type Json, type WorkHost, type WorkRelease } from '../works/model'
 import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProjectInspection } from './inspect'
 import { captureNpmProject } from './capture'
 import { preparePresentation, type PreparedPresentation } from './resources'
 import { compileEffectModule } from './effect-artifact'
-const sandboxEnvironments = new WeakMap<ContentCatalog, SandboxEnvironment>()
-export function sandboxEnvironmentFor(content: ContentCatalog): SandboxEnvironment | undefined {
-  return sandboxEnvironments.get(content)
-}
+import { bindEffectEnvironment } from '../effect-environment'
 
 export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
-  readonly sandboxCatalogs?: SandboxEnvironment['modules']
+  readonly effectModules?: SandboxEnvironment['modules']
   readonly createContent: (
     data: ContentPrototypeData,
     revision: string,
@@ -130,7 +118,7 @@ async function compileInstallation(
     }),
   })
   const modules = new Map<string, ArenaEffectModule>()
-  const artifacts: SandboxEnvironment['modules'][number][] = [...(host.sandboxCatalogs ?? [])]
+  const artifacts: SandboxEnvironment['modules'][number][] = [...(host.effectModules ?? [])]
   for (const pkg of contentPackages) {
     if (!pkg.manifest!.effects) continue
     const file = packageFile(resolve(root, pkg.location), pkg.manifest!.effects!)
@@ -245,14 +233,12 @@ async function compileInstallation(
     ...policy,
     npmInstallation: installation.digest,
   })
-  const sandbox: SandboxEnvironment = freeze(
-    structuredClone({
-      revision: `${prepared.revision}/effects:${await digestJson(artifacts)}`,
-      data: { ...prepared.data, behaviors: [...host.templates, ...(prepared.data.behaviors ?? [])] },
-      modules: artifacts,
-    }),
+  const sandbox = await bindEffectEnvironment(
+    prepared.content,
+    { ...prepared.data, behaviors: [...host.templates, ...(prepared.data.behaviors ?? [])] },
+    prepared.revision,
+    artifacts,
   )
-  sandboxEnvironments.set(prepared.content, sandbox)
   return Object.freeze({
     ...prepared,
     installation,

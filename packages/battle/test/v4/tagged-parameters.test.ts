@@ -16,7 +16,7 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
-import { createTaggedParameterModifiers } from '@arcadia-eternity/data-pack-base/native'
+import { createTaggedParameterModifiers } from '@arcadia-eternity/data-pack-base/effects'
 import { Type } from '@sinclair/typebox'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'

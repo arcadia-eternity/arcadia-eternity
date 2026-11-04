@@ -24,7 +24,7 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-import { createOfficialAuthoredEffects } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialAuthoredEffects } from '@arcadia-eternity/data-pack-base/effects'
 
 const { targets, ops, compileEffect, defineEffect, registerEffect, actions } = effectAuthoring
 const battles: Battle[] = []

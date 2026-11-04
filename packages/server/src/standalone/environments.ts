@@ -4,8 +4,8 @@ import { resolve } from 'node:path'
 import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
 import type { PreparedPresentation } from '@arcadia-eternity/pack-loader/node'
 import { prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
-import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
-import { officialEffectArtifact } from '@arcadia-eternity/data-pack-base/sandbox'
+import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
+import officialEffectArtifact from './effect-module'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { SkillSchema, MarkSchema, SpeciesSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createStandaloneRuntime, loadStandaloneBase, type StandaloneRuntime } from './native'
@@ -193,7 +193,7 @@ export class ServerEnvironmentRegistry {
         base: base.data,
         templates: officialTemplateDefinitions,
         createContent: createOfficialContent,
-        sandboxCatalogs: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
+        effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
       },
       await readNpmAdmission(approvalFile),
     )

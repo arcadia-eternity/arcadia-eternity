@@ -1,8 +1,10 @@
 import { availableParallelism } from 'node:os'
 import { defineConfig } from 'vitest/config'
 import { fileURLToPath } from 'node:url'
+import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
 
 export default defineConfig({
+  plugins: [builtinEffectsPlugin()],
   resolve: {
     alias: [
       {

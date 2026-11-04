@@ -34,7 +34,7 @@ export async function buildBaseEnvironmentArtifact() {
   await mkdir(dir, { recursive: true })
   await writeFile(resolve(dir, 'presentation.json'), JSON.stringify(presentation, null, 2) + '\n')
   const core = JSON.parse(await readFile(resolve(root, 'packages/battle/dist/environment-build.json'), 'utf8'))
-  const bundle = await rolldown({ cwd: root, input: resolve(root, 'packs/base/native.ts'), platform: 'browser' })
+  const bundle = await rolldown({ cwd: root, input: resolve(root, 'packs/base/effects.ts'), platform: 'browser' })
   try {
     const { output } = await bundle.generate({ format: 'esm', codeSplitting: false, minify: false })
     if (output.length !== 1 || output[0].type !== 'chunk')

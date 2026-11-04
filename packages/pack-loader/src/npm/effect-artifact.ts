@@ -1,7 +1,8 @@
-import { realpath, stat } from 'node:fs/promises'
+import { readFile, realpath, stat } from 'node:fs/promises'
 import { relative, isAbsolute } from 'node:path'
 import { parse } from 'es-module-lexer/minimal/js'
 import * as sdk from '@arcadia-eternity/battle/v4/authoring'
+import * as core from '@arcadia-eternity/battle/v4'
 import type { EffectModuleArtifact } from '@arcadia-eternity/battle/v4/sandbox/effects'
 
 /** Fixed compiler pipeline: parse/bundle author text without evaluating modules or loading author plugins.
@@ -19,27 +20,37 @@ export async function compileEffectModule(
   let bytes = 0,
     files = 0
   const shim = '\0arcadia-effect-sdk'
+  const factoryEntry = '\0arcadia-effect-factories'
   const build = await rolldown({
     cwd: boundary,
-    input: source,
+    input: factoryEntry,
     platform: 'neutral',
+    onLog(level, log, handler) {
+      if (log.code === 'IMPORT_IS_UNDEFINED' && log.id === factoryEntry) return
+      handler(level, log)
+    },
     plugins: [
       {
         name: 'arcadia-effect-artifact',
         resolveId(id) {
+          if (id === factoryEntry) return factoryEntry
+          if (id === source) return { id: source, moduleSideEffects: true }
           if (['@arcadia-eternity/battle/v4/authoring', '@arcadia-eternity/const'].includes(id)) return shim
           if (id === '@arcadia-eternity/battle/v4') return `${shim}-core`
           if (/^(node:|https?:|data:|file:)/.test(id)) throw Error(`Unsupported effect dependency: ${id}`)
         },
         async load(id) {
+          // Packages publish ordinary modules. Only the author factories enter the VM;
+          // reference/metadata helpers remain available to trusted host tooling.
+          if (id === factoryEntry)
+            // Hoisted bindings keep the emitted ESM valid even when author
+            // initialization throws before the factory assignments are reached.
+            return `import * as authored from ${JSON.stringify(source)};\nexport var createEffects = authored.createEffects;\nexport var createCatalog = authored.createCatalog;`
           if (id === shim || id === `${shim}-core`) {
             const root = id === shim ? 'sdk' : 'core'
-            const names = [
-              ...Object.keys(sdk),
-              ...(root === 'core'
-                ? ['defineNativeBehavior', 'normalizeBehaviorDefinitions', 'BehaviorCompilationError']
-                : []),
-            ]
+            // Linking accepts the module's declared exports. The VM's SDK adapter
+            // still controls access; unused host helpers disappear during bundling.
+            const names = Object.keys(root === 'core' ? core : sdk)
             return (
               `const lookup = key => globalThis.${root}[key];\n` +
               names
@@ -64,6 +75,8 @@ export async function compileEffectModule(
           bytes += info.size
           if (++files > 1024 || info.size > 4 * 1024 * 1024 || bytes > 16 * 1024 * 1024)
             throw Error('Effect dependency graph exceeds compilation limits')
+          // Author package sideEffects metadata must not suppress VM initialization.
+          return { code: await readFile(path, 'utf8'), moduleSideEffects: true }
         },
       },
     ],

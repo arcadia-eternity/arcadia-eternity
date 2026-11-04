@@ -37,7 +37,7 @@ npm run pack
 npm install --save-exact @arcadia-eternity/data-pack-base@4.0.0-preview.1
 ```
 
-官方原生效果入口为 `@arcadia-eternity/data-pack-base/native`，构建身份入口为 `@arcadia-eternity/data-pack-base/build`，数据清单位于包目录下的 `pack.json`。
+官方效果入口为 `@arcadia-eternity/data-pack-base/effects`，构建身份入口为 `@arcadia-eternity/data-pack-base/build`，数据清单位于包目录下的 `pack.json`。
 
 ## 发布范围
 

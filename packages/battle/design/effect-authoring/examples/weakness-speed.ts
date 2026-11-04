@@ -4,4 +4,4 @@ export {
   capturedInstancePenalty,
   followingInstancePenalty,
   entryStackPenalty,
-} from '@arcadia-eternity/data-pack-base/native'
+} from '@arcadia-eternity/data-pack-base/effects'

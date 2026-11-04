@@ -3,15 +3,18 @@ import { parseArchive, limits, WorkError, type NativePackLoadResult } from '@arc
 import { resolve } from 'node:path'
 import { NativeNodePackLoader, prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
-import { officialEffectArtifact } from '@arcadia-eternity/data-pack-base/sandbox'
+import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
+import officialEffectArtifact from './effect-module'
 import type { ContentCatalog } from '@arcadia-eternity/battle/v4'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
 import type { RunSpec } from './types'
 
 export const createLoader = () =>
-  new NativeNodePackLoader(nativeBuildIdentity, createOfficialContent, { templates: officialTemplateDefinitions })
+  new NativeNodePackLoader(nativeBuildIdentity, createOfficialContent, {
+    templates: officialTemplateDefinitions,
+    effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
+  })
 export interface ContentSelectionOptions {
   works?: string
   npmProject?: string
@@ -39,7 +42,7 @@ export async function prepareContent(
           base: loaded.data,
           templates: officialTemplateDefinitions,
           createContent: createOfficialContent,
-          sandboxCatalogs: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
+          effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
         },
         approval,
       )

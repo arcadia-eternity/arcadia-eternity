@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/native'
+import { officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/effects'
 import { type SkillMessage, type AttributeModifierInfo, Category } from '@arcadia-eternity/const'
 import BattleFrame from './BattleFrame.vue'
 import ElementIcon from './ElementIcon.vue'

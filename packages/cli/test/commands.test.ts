@@ -63,7 +63,11 @@ beforeAll(async () => {
   guard = join(temporary, 'offline.mjs')
   await writeFile(
     guard,
-    `import net from 'node:net'; import http from 'node:http'; import https from 'node:https'; const fail = () => {throw new Error('NETWORK_FORBIDDEN')}; net.Socket.prototype.connect = fail; http.request = fail; https.request = fail; globalThis.fetch = fail;`,
+    `import net from 'node:net'; import http from 'node:http'; import https from 'node:https';
+    import fs from 'node:fs'; import {syncBuiltinESMExports} from 'node:module';
+    const fail = () => {throw new Error('NETWORK_FORBIDDEN')};
+    net.Socket.prototype.connect = fail; http.request = fail; https.request = fail; globalThis.fetch = fail;
+    fs.watch = fs.watchFile = () => {throw new Error('FILE_WATCH_FORBIDDEN')}; syncBuiltinESMExports();`,
   )
   const fixture = JSON.parse(
     await readFile(join(root, 'packages/battle/test/fixtures/official-switch.input.json'), 'utf8'),
@@ -366,7 +370,8 @@ it('loads a namespaced work archive offline and verifies its replay in another p
   const { createDraft, compileRelease, exportArchive } = await import('@arcadia-eternity/pack-loader/native')
   const { prepareContent } = await import('../src/application/prepare')
   const { nativeBuildIdentity } = await import('@arcadia-eternity/data-pack-base/build')
-  const { officialTemplateDefinitions, createOfficialContent } = await import('@arcadia-eternity/data-pack-base/native')
+  const { officialTemplateDefinitions, createOfficialContent } =
+    await import('@arcadia-eternity/data-pack-base/effects')
   const base = await prepareContent('builtin:base', root)
   const draft = createDraft('command-work', '命令行作品', 'cli_pack')
   draft.data.skills.push({ id: 'strike', element: 'Normal', category: 'Physical', power: 80, rage: 0, accuracy: 100 })

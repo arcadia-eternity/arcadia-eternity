@@ -12,6 +12,7 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
 import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
 
 // Auto-imported styles are injected after Vite's initial dependency scan.
 const elementPlusComponents = new URL('./components/', import.meta.resolve('element-plus'))
@@ -56,7 +57,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       watch: {
-        ignored: ['**/packs/**'],
+        ignored: ['**/packs/**/assets/**', '**/packs/**/data/**', '**/packs/**/locales/**'],
       },
       proxy: {
         '/health': { target: 'http://localhost:8102' },
@@ -89,6 +90,7 @@ export default defineConfig(({ mode }) => {
     },
     assetsInclude: ['**/*.swf'], // 确保SWF文件被识别为资源
     plugins: [
+      builtinEffectsPlugin(),
       {
         name: 'arcadia-deployment-config',
         configureServer(server) {

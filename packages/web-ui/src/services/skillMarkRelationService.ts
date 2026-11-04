@@ -1,5 +1,5 @@
 import type { SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
-import type { EffectMarkRelation } from '@arcadia-eternity/data-pack-base/native'
+import type { EffectMarkRelation } from '@arcadia-eternity/data-pack-base/effects'
 
 export interface SkillMarkRelation {
   markId: string

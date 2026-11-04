@@ -14,7 +14,7 @@ import {
   type ContentPrototypeData,
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
-import { createOfficialTemplateRegistrations, withOfficialTemplates } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialTemplateRegistrations, withOfficialTemplates } from '@arcadia-eternity/data-pack-base/effects'
 
 export const useTemplate = (
   id: string,

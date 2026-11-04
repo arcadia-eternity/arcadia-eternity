@@ -233,7 +233,7 @@ test('imports omitted template parameters and preserves unfinished behavior rows
 test('Web and Node load byte-equivalent source metadata for works', async ({ page }) => {
   const { NativeNodePackLoader } = await import('@arcadia-eternity/pack-loader/node')
   const { nativeBuildIdentity } = await import('@arcadia-eternity/data-pack-base/build')
-  const { createOfficialContent } = await import('@arcadia-eternity/data-pack-base/native')
+  const { createOfficialContent } = await import('@arcadia-eternity/data-pack-base/effects')
   const node = await new NativeNodePackLoader(nativeBuildIdentity, createOfficialContent).loadMetadata('builtin:base', {
     source: 'node-fs',
     enforceLockfile: true,

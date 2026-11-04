@@ -817,12 +817,16 @@ export class ConsoleUIV2 {
 
   private prompt(question: string): Promise<string> {
     if (this.closed) return Promise.reject(new Error('Console input closed'))
+    process.stdin.ref?.()
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
     this.prompts.add(rl)
     return new Promise((resolve, reject) => {
       let answered = false
       rl.once('close', () => {
         this.prompts.delete(rl)
+        // Worker calls can delay the next prompt; an answered prompt must not
+        // keep the process alive after the driver has already finished.
+        if (!this.prompts.size) process.stdin.unref?.()
         if (!answered) reject(new Error('Console input ended before a choice was entered'))
       })
       rl.question(question, answer => {

@@ -9,7 +9,7 @@ import {
   setGlobalLogger,
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
-import { createOfficialEffectCandidates } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialEffectCandidates } from '@arcadia-eternity/data-pack-base/effects'
 import { beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 import { loadBaseMetadata } from './base-metadata'
