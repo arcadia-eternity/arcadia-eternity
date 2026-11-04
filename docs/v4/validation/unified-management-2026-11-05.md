@@ -1,6 +1,6 @@
 # 统一管理、私人约战与在线备份验证（2026-11-05）
 
-本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；当前远端结果对应 [bfefb852](https://github.com/arcadia-eternity/arcadia-eternity/commit/bfefb8521b8855cfa92919aac821f6ade1bef489)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
+本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；当前远端结果对应 [2b66de18](https://github.com/arcadia-eternity/arcadia-eternity/commit/2b66de18ec20a583b7720a411f0ba5f0fb2e12fb)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
 
 ## 当前本地回归
 
@@ -17,13 +17,11 @@
 
 最新全仓 ESLint、根/服务端类型、Web vue-tsc、Vite production 与 paired stage 构建通过；服务端入口一致性窄回归 5/5、2.92 秒通过。所有变更/新增 TS、Vue、mjs、yaml 的格式检查与 git diff 检查通过。资源相关 3 文件/76 项通过，管理页面缺省 progress.stage 的窄幅回归 8/8 通过；资源测试已纳入 baseline CI。此前 frozen/offline 锁文件与 native renderer/test 验证记录保留。
 
-第二轮 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170) 已结束：changes、headless-battle、offline-cli 和 management-browser-acceptance 通过，生产私人约战/管理备份执行及零跳过断言保持通过；native-server-entry 与 native-browser-entry 失败。
+当前 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381) 的 changes、headless-battle、native-server-entry、management-browser-acceptance 已通过；服务端完整 320 项与最终 CLI 阶段均已执行，生产私人约战/管理备份仍通过零跳过断言。offline-cli、native-browser-entry 也已通过，六个 job 全部成功。
 
-- 服务端 315 项断言通过，但备份 fixture 清理仍触发 2 个未处理 `57P01`，job 判失败。随后统一修补 8 处 fixture 并共用 `dropTestDatabase`；真实 PG 回归 **110 项通过、0 未处理错误**。随后完整服务端 30 文件/320 项以 exit 0、0 未处理异常通过；新远端结果仍待产生。
-- 浏览器内容/连接 6 场景本地约 1.1 分钟通过，第二轮 CI 同步骤也通过；后续普通匹配/权威好友房暴露 production CLI 首次持久初始化没有默认 binding，返回 `ENVIRONMENT_NOT_PUBLISHED`。首次初始化/保留关系修补后，编译 CLI 生命周期 3/3、真实普通匹配/权威房间 2/2 已通过；新种子基线（初始环境 1、备份总环境 2）的管理页面也已真实通过，详见下方。
-- 第二轮 [desktop-runtime-validation](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173077) 四平台仍失败。Linux 和两种 macOS 已通过打包及包内 SQLite，完整宿主测试因 clean checkout 缺少示例 slow-effects 产物失败；fixture 已改为从空目录显式编译并核对归档，修正后的实际 macOS 包完整宿主 **1/1，13.95 秒**通过。Windows 已通过原构建路径问题，本轮转为 pnpm fixture 版本及测试路径失败；现已调整 PNPM_HOME 固定版本优先、fixture 的 packageManager 初始化和 native absolute 路径，三组定向回归 24/24 通过，目标平台远端重跑待完成。
+[桌面 CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385) 的 [Linux x64](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504667) 完整通过：native 42/42、包内 SQLite 写入/关闭/重开、full-host 1/1（20.45 秒）。Windows 的 native/工作区构建已通过，但 renderer 构建因 effect-module plugin 没有将规范化 Windows 路径转换为模块而失败；Intel macOS 也完整通过 native 42/42、包内 SQLite 与 full-host 1/1（71.81 秒）；arm64 排队中。
 
-首轮 [baseline](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367) / [桌面矩阵](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687641) 保留作历史记录；第二轮已越过原 database/dist 与构建路径/metadata 问题。当前没有任何“新修补已通过整套 CI”的结论。
+待提交的修补仅涉及 Windows effect-module plugin 的路径查找及测试两文件：两个真实 Windows ID 先复现 MISSING_EXPORT，canonical lookup 修复后 3/3、真实 Vite 小构建、类型与格式检查通过；不增加 enforce:pre，POSIX 分支保持。新修补的远端验证尚未执行，下方已验收 Docker/macOS 产物继续对应各自真实 sourceProof。此前 CI 失败保留在原 run 记录中，不继续扩写历史。
 
 原 29 文件/315 项及窄幅清理后的真实 socket 7/7 是历史结果；当前服务端结论以 30 文件/320 项、exit 0 为准。Web 257 项仍对应此前快照；最新资源修补由 76 项专项和下方严格 production 复验覆盖。
 

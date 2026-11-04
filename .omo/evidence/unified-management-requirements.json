@@ -290,61 +290,69 @@
       "real two-device LAN",
       "real SMTP/GitHub environment missing; user question pending",
       "full production deployment/capacity/fault matrix",
-      "newcommit andremoteCIhead forPGcleanup/init/resource/platformfixtures"
+      "next commit and Windows CI rerun for narrow effect-module path fix; arm64 remote runner pending"
     ],
     "pullRequest": "https://github.com/arcadia-eternity/arcadia-eternity/pull/275",
     "initialCiHead": "b6e11f1d21684a21e9cb833531b17716aff6fb29",
     "remoteCi": {
-      "head": "bfefb8521b8855cfa92919aac821f6ade1bef489",
-      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170",
-      "overallStatus": "second run terminal failure;4pass2fail; no new repair CI pass claimed",
+      "head": "2b66de18ec20a583b7720a411f0ba5f0fb2e12fb",
+      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381",
+      "overallStatus": "baseline complete success: all six jobs passed; Linux/Intel desktop passed; Windows renderer fix awaits next head; arm64 queued",
       "passedJobs": [
         {
           "name": "changes",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170/job/126781638637"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808503484"
         },
         {
           "name": "headless-battle",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170/job/126781731483"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596526"
         },
         {
-          "name": "offline-cli",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170/job/126781731087"
+          "name": "native-server-entry",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596331"
         },
         {
           "name": "management-browser-acceptance",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170/job/126781731565",
-          "scope": "actual production personal/management and zero-skips assertions"
-        }
-      ],
-      "failedJobs": [
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596364"
+        },
         {
-          "name": "native-server-entry",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170/job/126781731162",
-          "reason": "315 assertions passed;2unhandled57P01 in backup fixture cleanup",
-          "repair": "8fixtures and shared dropTestDatabase repaired; realPG110pass0unhandled; nextCIpending"
+          "name": "offline-cli",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596350"
         },
         {
           "name": "native-browser-entry",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170/job/126781731489",
-          "passedBeforeFailure": "6content/connection scenarios passed locally and inCI",
-          "reason": "online matchmaking/authoritative friend rooms hit ENVIRONMENT_NOT_PUBLISHED because first persistent CLI initialization lacks default binding",
-          "repair": "init/pendingretention repaired; realonline2/2,finalpairedmanagement1/1 andpersonal1/1 locallypassed. No newremoteCIpassyet"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596528"
         }
       ],
       "desktopMatrix": {
-        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173077",
-        "status": "all4failed",
-        "passedBeforeFailure": "Linux and bothmacOS packaged successfully and passed actual packaged SQLite; Windows original build path passed",
-        "reasons": [
-          "Linux/bothmacOS fullhost relied on ignored local slow-effects dist missing in clean checkout",
-          "Windows pnpm fixture version and test path"
-        ],
-        "repair": "clean fixture explicitly compiled from empty directory; actual macOS packaged host1/1 pass13.95s. Windows pinned PNPM_HOME priority, packageManager fixture setup and native absolute paths fixed; three local groups24/24 passed; next targetCIpending"
+        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385",
+        "status": "Linux and Intel macOS success; Windows renderer failed with prepared fix; arm64 queued",
+        "linux": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504667",
+          "result": "success",
+          "checks": ["native42/42", "actual packaged SQLite write/close/reopen", "full-host1/1 in20.45s"]
+        },
+        "windows": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504735",
+          "result": "failure",
+          "passedBeforeFailure": "native and workspace build",
+          "reason": "renderer effect-module plugin missed normalized Windows path",
+          "repair": "two-file plugin/test canonical lookup fix prepared; two real Windows IDs reproduced MISSING_EXPORT before fix,3/3 and real Vite small build/types/format passed; no enforce:pre; next remote run pending"
+        },
+        "macIntel": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504580",
+          "status": "success",
+          "checks": ["native42/42", "actual packaged SQLite write/close/reopen", "full-host1/1 in71.81s"]
+        },
+        "macArm64": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504293",
+          "status": "queued"
+        }
       },
+      "artifactScope": "New change is Windows plugin path lookup only; POSIX branch unchanged. Existing accepted Docker/macOS artifacts retain their exact sourceProof and are not relabeled as new-head builds.",
       "previousRuns": {
-        "baseline": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367",
-        "desktop": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687641"
+        "baseline": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170",
+        "desktop": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173077"
       }
     },
     "issueRefresh": {

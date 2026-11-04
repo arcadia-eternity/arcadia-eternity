@@ -8,17 +8,26 @@ export function effectModulePlugin(
   entries: Readonly<Record<string, { entry: string; packageId: string }>>,
   root: string,
 ): Plugin {
-  const modules = new Map(Object.entries(entries).map(([request, entry]) => [`\0effect-module:${request}`, entry]))
+  // Vite normalizes resolved Windows IDs to slashes, while fileURLToPath uses
+  // native separators. Canonicalize lookup keys, keeping compiler paths intact.
+  const normalizeId = (id: string) => id.replace(/\\/g, '/')
+  const registered = new Map(Object.entries(entries).map(([request, entry]) => [normalizeId(request), entry]))
+  const modules = new Map([...registered].map(([request, entry]) => [`\0effect-module:${request}`, entry]))
   return {
     name: 'arcadia-host-effect-modules',
     resolveId(request, importer) {
-      const resolved = request.startsWith('.') && importer ? resolve(dirname(importer), request) : request
-      const key = entries[resolved] ? resolved : entries[`${resolved}.ts`] ? `${resolved}.ts` : request
+      const resolved = normalizeId(request.startsWith('.') && importer ? resolve(dirname(importer), request) : request)
+      const key = registered.has(resolved)
+        ? resolved
+        : registered.has(`${resolved}.ts`)
+          ? `${resolved}.ts`
+          : normalizeId(request)
       const id = `\0effect-module:${key}`
       if (modules.has(id)) return id
     },
     async load(id) {
-      const module = modules.get(id) ?? entries[id]
+      const key = normalizeId(id)
+      const module = modules.get(key) ?? registered.get(key)
       if (!module) return
       // Only explicit watch builds and Vite's development server track edits.
       const onDependency = this.meta.watchMode ? (file: string) => this.addWatchFile(file) : undefined
