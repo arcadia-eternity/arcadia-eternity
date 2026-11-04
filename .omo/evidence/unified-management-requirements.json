@@ -295,64 +295,79 @@
     "pullRequest": "https://github.com/arcadia-eternity/arcadia-eternity/pull/275",
     "initialCiHead": "b6e11f1d21684a21e9cb833531b17716aff6fb29",
     "remoteCi": {
-      "head": "2b66de18ec20a583b7720a411f0ba5f0fb2e12fb",
-      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381",
-      "overallStatus": "baseline complete success: all six jobs passed; Linux/Intel desktop passed; Windows renderer fix awaits next head; arm64 queued",
+      "head": "20fde2a8f6d4419979fc30d3dd8b0c11890008b1",
+      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364",
+      "overallStatus": "baseline complete success,6/6; desktop Linux/macOS arm64/Intel successful,Windows afterPack failed",
       "passedJobs": [
         {
           "name": "changes",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808503484"
-        },
-        {
-          "name": "headless-battle",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596526"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126815923563"
         },
         {
           "name": "native-server-entry",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596331"
-        },
-        {
-          "name": "management-browser-acceptance",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596364"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007880"
         },
         {
           "name": "offline-cli",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596350"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007888"
         },
         {
           "name": "native-browser-entry",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381/job/126808596528"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007900"
+        },
+        {
+          "name": "management-browser-acceptance",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007999"
+        },
+        {
+          "name": "headless-battle",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816008115"
         }
       ],
       "desktopMatrix": {
-        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385",
-        "status": "Linux and Intel macOS success; Windows renderer failed with prepared fix; arm64 queued",
+        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401",
+        "status": "terminal: three platforms successful; Windows afterPack failed",
         "linux": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504667",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815927938",
           "result": "success",
-          "checks": ["native42/42", "actual packaged SQLite write/close/reopen", "full-host1/1 in20.45s"]
-        },
-        "windows": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504735",
-          "result": "failure",
-          "passedBeforeFailure": "native and workspace build",
-          "reason": "renderer effect-module plugin missed normalized Windows path",
-          "repair": "two-file plugin/test canonical lookup fix prepared; two real Windows IDs reproduced MISSING_EXPORT before fix,3/3 and real Vite small build/types/format passed; no enforce:pre; next remote run pending"
-        },
-        "macIntel": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504580",
-          "status": "success",
-          "checks": ["native42/42", "actual packaged SQLite write/close/reopen", "full-host1/1 in71.81s"]
+          "checks": ["complete staging/packaging", "actual packaged SQLite", "full-host"]
         },
         "macArm64": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504293",
-          "status": "queued"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815928088",
+          "result": "success",
+          "fullHostSeconds": 18.705
+        },
+        "macIntel": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815927562",
+          "result": "success",
+          "checks": ["native42/42", "actual packaged SQLite", "full-host1/1"],
+          "fullHostSeconds": 66.308,
+          "testProcessSeconds": 67.1
+        },
+        "windows": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815927820",
+          "result": "failure",
+          "passedBeforeFailure": "renderer and staging; prior effect-module path fix verified on real Windows",
+          "reason": "afterPack rejected absolute css-calc junction",
+          "interpretation": "installed builder real copier fixture confirmed css-calc is a destination-contained absolute junction; rejecting absolute syntax was not evidence of outside escape; fixture remains readable after staging removal and whole-app relocation",
+          "repair": "prepared and locally passed: Windows-only bounded physical appOutDir guard, existing full preflight/normalization, unchanged strict/native gates; external/missing/protected root-resources-output aliases rejected before mutation; real Windows target CI awaits next head",
+          "localValidation": {
+            "testsPassed": 24,
+            "testsSkipped": 0,
+            "durationMilliseconds": 178,
+            "lintWarnings": 0,
+            "formatAndDiff": "passed",
+            "review": "APPROVE; no must-fix findings",
+            "scope": "installed-builder copier and guard fixtures; not a new Windows CI pass"
+          }
         }
       },
-      "artifactScope": "New change is Windows plugin path lookup only; POSIX branch unchanged. Existing accepted Docker/macOS artifacts retain their exact sourceProof and are not relabeled as new-head builds.",
+      "artifactScope": "20fde verified Windows renderer fix. Prepared afterPack repair is Windows-only with strict/native gates unchanged. Accepted local Docker/macOS exact sourceProof remains unchanged and is not relabeled to the next head.",
       "previousRuns": {
-        "baseline": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170",
-        "desktop": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173077"
+        "head": "2b66de18ec20a583b7720a411f0ba5f0fb2e12fb",
+        "baseline": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381",
+        "baselineResult": "all six jobs successful on previous head",
+        "desktop": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385"
       }
     },
     "issueRefresh": {

@@ -1,6 +1,6 @@
 # 统一管理、私人约战与在线备份验证（2026-11-05）
 
-本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；当前远端结果对应 [2b66de18](https://github.com/arcadia-eternity/arcadia-eternity/commit/2b66de18ec20a583b7720a411f0ba5f0fb2e12fb)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
+本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；当前远端结果对应 [20fde2a8](https://github.com/arcadia-eternity/arcadia-eternity/commit/20fde2a8f6d4419979fc30d3dd8b0c11890008b1)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
 
 ## 当前本地回归
 
@@ -17,11 +17,11 @@
 
 最新全仓 ESLint、根/服务端类型、Web vue-tsc、Vite production 与 paired stage 构建通过；服务端入口一致性窄回归 5/5、2.92 秒通过。所有变更/新增 TS、Vue、mjs、yaml 的格式检查与 git diff 检查通过。资源相关 3 文件/76 项通过，管理页面缺省 progress.stage 的窄幅回归 8/8 通过；资源测试已纳入 baseline CI。此前 frozen/offline 锁文件与 native renderer/test 验证记录保留。
 
-当前 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381) 的 changes、headless-battle、native-server-entry、management-browser-acceptance 已通过；服务端完整 320 项与最终 CLI 阶段均已执行，生产私人约战/管理备份仍通过零跳过断言。offline-cli、native-browser-entry 也已通过，六个 job 全部成功。
+当前提交的 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364) 已完成，changes、native-server-entry、offline-cli、native-browser-entry、management-browser-acceptance、headless-battle **6/6 全部成功**。这包括真实双库服务端/CLI、生产私人约战和管理备份的零跳过断言，以及浏览器 production/offline/storage 场景。
 
-[桌面 CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385) 的 [Linux x64](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385/job/126808504667) 完整通过：native 42/42、包内 SQLite 写入/关闭/重开、full-host 1/1（20.45 秒）。Windows 的 native/工作区构建已通过，但 renderer 构建因 effect-module plugin 没有将规范化 Windows 路径转换为模块而失败；Intel macOS 也完整通过 native 42/42、包内 SQLite 与 full-host 1/1（71.81 秒）；arm64 排队中。
+当前 [桌面 CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401) 已结束：Linux x64、macOS arm64、Intel macOS 三个平台完整成功；arm64 full-host 为 18.705 秒，Intel native 42/42、full-host 1/1 为 66.308 秒（测试进程 67.10 秒）。Windows 已通过 renderer 和 staging，但 afterPack 对 css-calc 的绝对 junction 校验失败，四平台整体尚未通过。
 
-待提交的修补仅涉及 Windows effect-module plugin 的路径查找及测试两文件：两个真实 Windows ID 先复现 MISSING_EXPORT，canonical lookup 修复后 3/3、真实 Vite 小构建、类型与格式检查通过；不增加 enforce:pre，POSIX 分支保持。新修补的远端验证尚未执行，下方已验收 Docker/macOS 产物继续对应各自真实 sourceProof。此前 CI 失败保留在原 run 记录中，不继续扩写历史。
+Windows renderer canonical lookup 修补已随 20fde2a8 提交并在真实 Windows CI 通过。新 afterPack 失败是绝对链接规则拒绝了包内 junction：已安装 builder 的真实 copier fixture 证实 css-calc 目标留在 destination 内，删除 staging、搬移整个 app 后仍可读取。两脚本最小修补仅在 Windows 对物理 appOutDir 做有界检查，再执行现有完整 preflight/规范化与不变的 strict/native gates；外部、缺失或受保护目录别名在修改前拒绝。24/24 本地测试、0 跳过、两文件零 warning lint、格式/差异检查及源码审查通过，真实 Windows CI 待新 head。此前提交和下方已验收 Docker/macOS 本地产物保留各自准确 sourceProof，不重标为新修补构建。
 
 原 29 文件/315 项及窄幅清理后的真实 socket 7/7 是历史结果；当前服务端结论以 30 文件/320 项、exit 0 为准。Web 257 项仍对应此前快照；最新资源修补由 76 项专项和下方严格 production 复验覆盖。
 

@@ -2,16 +2,47 @@ import { createRequire } from 'node:module'
 import { execFile } from 'node:child_process'
 import { cp, lstat, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 import { verifyDesktopSqlite } from './desktop-sqlite-native.mjs'
+import { normalizeRuntimeLinks } from './desktop-runtime-portability.mjs'
 
 const exec = promisify(execFile)
 let previewAccepted = false
 
 const architecture = value =>
   typeof value === 'string' ? value : ['ia32', 'x64', 'armv7l', 'arm64', 'universal'][value]
+
+export async function verifyPackagedRuntimeFiles(runtime, { platform, arch, appOutDir }) {
+  if (platform === 'win32') {
+    const output = appOutDir && resolve(appOutDir)
+    const withinApp = output && relative(output, resolve(runtime))
+    if (!withinApp || withinApp === '..' || withinApp.startsWith(`..${sep}`) || isAbsolute(withinApp))
+      throw new Error('Packaged runtime must be inside the application output directory')
+    // Do not let a link within Builder's trusted output boundary redirect the
+    // directory whose links we will modify. Ancestors above that configured
+    // output are not part of the packaged tree.
+    for (let directory = resolve(runtime); ; directory = dirname(directory)) {
+      if (!(await lstat(directory)).isDirectory())
+        throw new Error('Packaged runtime and its parents must be physical directories')
+      if (relative(output, directory) === '') break
+      if (dirname(directory) === directory) throw new Error('Packaged runtime is outside the application output')
+    }
+    // Builder copies relative links as Windows junctions. Node expands them
+    // relative to the destination link, producing absolute package-local paths.
+    // Audit every lexical and resolved target before rewriting any link. An
+    // external/staging target is rejected, never rebased into the package.
+    await normalizeRuntimeLinks(runtime)
+  }
+  return verifyDesktopRuntime(runtime, {
+    allowIncompleteNotices: true,
+    requireNative: true,
+    platform,
+    arch,
+  })
+}
+
 async function verifyPackagedRuntime(context) {
   const resources = context.packager.getResourcesDir(context.appOutDir)
   const runtime = join(resources, 'arcadia-server')
@@ -19,12 +50,7 @@ async function verifyPackagedRuntime(context) {
     arch = architecture(context.arch)
   if (!['darwin', 'linux', 'win32'].includes(platform) || !['x64', 'arm64', 'ia32', 'armv7l'].includes(arch))
     throw new Error('Native desktop acceptance requires an explicit supported platform and architecture')
-  const manifest = await verifyDesktopRuntime(runtime, {
-    allowIncompleteNotices: true,
-    requireNative: true,
-    platform,
-    arch,
-  })
+  const manifest = await verifyPackagedRuntimeFiles(runtime, { platform, arch, appOutDir: context.appOutDir })
   if (platform !== process.platform || arch !== process.arch)
     throw new Error('Native desktop acceptance must run on its target platform and architecture')
   const product = context.packager.appInfo.productFilename

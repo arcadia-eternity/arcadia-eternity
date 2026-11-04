@@ -1,28 +1,29 @@
-import { test } from 'node:test'
+import { mock, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
-import { tmpdir } from 'node:os'
+import fs, { mkdtemp, mkdir, readFile, readlink, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import os, { tmpdir } from 'node:os'
 import { pathToFileURL } from 'node:url'
 import { validateDesktopRuntimeFiles, stageDesktopRuntime, verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 
 // File-layout fixture only. Real native execution has a separate Electron smoke.
-async function nativeLayout(runtime) {
+async function nativeLayout(runtime, { platform = process.platform, arch = process.arch } = {}) {
   const module = join(runtime, 'node_modules/better-sqlite3')
   await mkdir(join(module, 'build/Release'), { recursive: true })
   await writeFile(join(module, 'package.json'), JSON.stringify({ name: 'better-sqlite3', version: '12.11.1' }))
   await writeFile(join(module, 'build/Release/better_sqlite3.node'), 'layout-fixture')
   const file = join(runtime, 'arcadia-desktop-runtime.json')
   const manifest = JSON.parse(await readFile(file, 'utf8'))
-  manifest.electron = { version: '41.10.7', abi: '145', platform: process.platform, arch: process.arch }
+  manifest.electron = { version: '41.10.7', abi: '145', platform, arch }
   manifest.nativeModules = [
     {
       name: 'better-sqlite3',
       version: '12.11.1',
       electronVersion: '41.10.7',
       abi: '145',
-      platform: process.platform,
-      arch: process.arch,
+      platform,
+      arch,
       verified: true,
       smoke: 'write-close-reopen',
     },
@@ -191,3 +192,166 @@ test('isolated renderer input is copied into a disposable application directory 
     await rm(root, { recursive: true, force: true })
   }
 })
+
+async function copiedWindowsRuntime(t) {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'arcadia-builder-links-')))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const source = join(root, 'staged')
+  const appOutDir = join(root, 'application')
+  const runtime = join(appOutDir, 'resources', 'arcadia-server')
+  const packagePath = 'node_modules/.pnpm/css-calc@2.1.4/node_modules/@csstools/css-calc'
+  const linkPath = 'node_modules/.pnpm/css-color@3.2.0/node_modules/@csstools/css-calc'
+  await mkdir(join(source, packagePath), { recursive: true })
+  await mkdir(dirname(join(source, linkPath)), { recursive: true })
+  await mkdir(join(source, 'licenses'))
+  await writeFile(join(source, packagePath, 'index.js'), 'package-local material')
+  await writeFile(join(source, 'cli.js'), 'export {}')
+  await writeFile(join(source, 'licenses/notice.json'), JSON.stringify({ missing: [] }))
+  await writeFile(
+    join(source, 'arcadia-desktop-runtime.json'),
+    JSON.stringify({ format: 'arcadia.desktop-runtime', version: 1, releaseReady: true, missingLicenseTexts: [] }),
+  )
+  await nativeLayout(source, { platform: 'win32', arch: 'x64' })
+  await symlink(relative(dirname(join(source, linkPath)), join(source, packagePath)), join(source, linkPath), 'dir')
+  await verifyDesktopRuntime(source, { requireNative: true })
+
+  const webRequire = createRequire(new URL('../packages/web-ui/package.json', import.meta.url))
+  const builderRequire = createRequire(webRequire.resolve('electron-builder'))
+  const appRequire = createRequire(builderRequire.resolve('app-builder-lib'))
+  const { copyDir } = appRequire('builder-util/out/fs.js')
+  const nativeSymlink = fs.symlink
+  // Exercise the installed Builder copier, including its actual win32 branch.
+  // On Windows this uses real NTFS junctions. On POSIX simulate only Node's
+  // preprocessSymlinkDestination: junction targets resolve at the link parent.
+  const platformMock = mock.method(os, 'platform', () => 'win32')
+  const junctionMock =
+    process.platform === 'win32'
+      ? undefined
+      : mock.method(fs, 'symlink', (target, path, type) => {
+          assert.equal(type, 'junction')
+          return nativeSymlink(resolve(path, '..', target), path, 'dir')
+        })
+  try {
+    await copyDir(source, runtime, { isUseHardLink: () => false })
+  } finally {
+    junctionMock?.mock.restore()
+    platformMock.mock.restore()
+  }
+  return { root, source, appOutDir, runtime, packagePath, linkPath }
+}
+
+test('Windows Builder junction copies keep package-local targets and survive source removal and package relocation', async t => {
+  const { root, source, appOutDir, runtime, packagePath, linkPath } = await copiedWindowsRuntime(t)
+  const link = join(runtime, linkPath)
+  assert.equal(isAbsolute(await readlink(join(source, linkPath))), false)
+  assert.equal(isAbsolute(await readlink(link)), true)
+  assert.equal(await realpath(link), await realpath(join(runtime, packagePath)))
+  assert.notEqual(await realpath(link), await realpath(join(source, packagePath)))
+  await assert.rejects(verifyDesktopRuntime(runtime, { requireNative: true }), /escapes staged root/)
+  const { verifyPackagedRuntimeFiles } = await import('./verify-desktop-pack.mjs')
+  await verifyPackagedRuntimeFiles(runtime, {
+    platform: 'win32',
+    arch: 'x64',
+    appOutDir: process.platform === 'win32' ? appOutDir.toUpperCase() : appOutDir,
+  })
+  assert.equal(isAbsolute(await readlink(link)), false)
+  assert.equal(await realpath(link), await realpath(join(runtime, packagePath)))
+  assert.equal(await readFile(join(source, packagePath, 'index.js'), 'utf8'), 'package-local material')
+  const moved = join(root, 'relocated-application')
+  await rm(source, { recursive: true })
+  await rename(appOutDir, moved)
+  await assert.rejects(readFile(join(source, packagePath, 'index.js')), { code: 'ENOENT' })
+  await assert.rejects(readFile(join(runtime, packagePath, 'index.js')), { code: 'ENOENT' })
+  const relocated = join(moved, 'resources', 'arcadia-server')
+  assert.equal(await readFile(join(relocated, linkPath, 'index.js'), 'utf8'), 'package-local material')
+  await verifyDesktopRuntime(relocated, { requireNative: true })
+})
+
+test('Windows copied links to staging or missing targets reject before any valid junction changes', async t => {
+  const { source, appOutDir, runtime, packagePath, linkPath } = await copiedWindowsRuntime(t)
+  const original = await readlink(join(runtime, linkPath))
+  const unsafe = join(runtime, 'z-unsafe')
+  const { verifyPackagedRuntimeFiles } = await import('./verify-desktop-pack.mjs')
+  for (const [target, code] of [
+    [join(source, packagePath), 'RUNTIME_LINK_ESCAPE'],
+    [join(runtime, 'missing-package'), 'RUNTIME_LINK_UNRESOLVED'],
+  ]) {
+    await symlink(target, unsafe, process.platform === 'win32' ? 'junction' : 'dir')
+    await assert.rejects(verifyPackagedRuntimeFiles(runtime, { platform: 'win32', arch: 'x64', appOutDir }), { code })
+    assert.equal(await readlink(join(runtime, linkPath)), original)
+    assert.equal(await readFile(join(source, packagePath, 'index.js'), 'utf8'), 'package-local material')
+    await rm(unsafe)
+  }
+})
+
+test('Windows package roots and parents cannot redirect normalization outside application output', async t => {
+  const { root, appOutDir, runtime, linkPath } = await copiedWindowsRuntime(t)
+  const original = await readlink(join(runtime, linkPath))
+  const { verifyPackagedRuntimeFiles } = await import('./verify-desktop-pack.mjs')
+  const alias = join(root, 'linked-application')
+  await symlink(appOutDir, alias, process.platform === 'win32' ? 'junction' : 'dir')
+  await assert.rejects(
+    verifyPackagedRuntimeFiles(join(alias, 'resources', 'arcadia-server'), {
+      platform: 'win32',
+      arch: 'x64',
+      appOutDir: alias,
+    }),
+    /parents must be physical directories/,
+  )
+  const direct = join(appOutDir, 'linked-runtime')
+  await symlink(runtime, direct, process.platform === 'win32' ? 'junction' : 'dir')
+  await assert.rejects(
+    verifyPackagedRuntimeFiles(direct, { platform: 'win32', arch: 'x64', appOutDir }),
+    /parents must be physical directories/,
+  )
+  const redirectedApp = join(root, 'redirected-application')
+  await mkdir(redirectedApp)
+  await symlink(
+    join(appOutDir, 'resources'),
+    join(redirectedApp, 'resources'),
+    process.platform === 'win32' ? 'junction' : 'dir',
+  )
+  await assert.rejects(
+    verifyPackagedRuntimeFiles(join(redirectedApp, 'resources', 'arcadia-server'), {
+      platform: 'win32',
+      arch: 'x64',
+      appOutDir: redirectedApp,
+    }),
+    /parents must be physical directories/,
+  )
+  await assert.rejects(
+    verifyPackagedRuntimeFiles(runtime, { platform: 'win32', arch: 'x64', appOutDir: join(root, 'other-app') }),
+    /inside the application output directory/,
+  )
+  assert.equal(await readlink(join(runtime, linkPath)), original, 'no external junction was rewritten')
+})
+
+test('a configured output may have an alias above its trusted physical boundary', async t => {
+  const { root, runtime, linkPath } = await copiedWindowsRuntime(t)
+  const alias = join(root, 'parent-alias')
+  await symlink(root, alias, process.platform === 'win32' ? 'junction' : 'dir')
+  const appOutDir = join(alias, 'application')
+  const { verifyPackagedRuntimeFiles } = await import('./verify-desktop-pack.mjs')
+  await verifyPackagedRuntimeFiles(join(appOutDir, 'resources', 'arcadia-server'), {
+    platform: 'win32',
+    arch: 'x64',
+    appOutDir,
+  })
+  assert.equal(isAbsolute(await readlink(join(runtime, linkPath))), false)
+  assert.equal(await readFile(join(runtime, linkPath, 'index.js'), 'utf8'), 'package-local material')
+})
+
+test(
+  'POSIX packaged verification rejects absolute links without rewriting them',
+  { skip: process.platform === 'win32' },
+  async t => {
+    const { runtime, linkPath } = await copiedWindowsRuntime(t)
+    const original = await readlink(join(runtime, linkPath))
+    const { verifyPackagedRuntimeFiles } = await import('./verify-desktop-pack.mjs')
+    await assert.rejects(
+      verifyPackagedRuntimeFiles(runtime, { platform: process.platform, arch: process.arch }),
+      /escapes staged root/,
+    )
+    assert.equal(await readlink(join(runtime, linkPath)), original)
+  },
+)
