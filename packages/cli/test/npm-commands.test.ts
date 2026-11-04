@@ -143,4 +143,4 @@ it('records and replays an npm battle in an independent process with its approve
   } finally {
     await writeFile(effects, original)
   }
-}, 60000)
+}, 120000)

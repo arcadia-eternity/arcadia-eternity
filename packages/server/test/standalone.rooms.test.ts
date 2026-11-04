@@ -26,9 +26,12 @@ afterEach(async () => {
 type Reply<T> = { status: 'SUCCESS'; data: T } | { status: 'ERROR'; code: string }
 function ack<T = unknown>(socket: Socket, event: string, data?: unknown): Promise<Reply<T>> {
   return new Promise((resolve, reject) => {
-    const handler = (error: Error | null, response: Reply<T>) => (error ? reject(error) : resolve(response))
-    if (data === undefined) socket.timeout(5000).emit(event, handler)
-    else socket.timeout(5000).emit(event, data, handler)
+    // Battle startup includes dedicated Worker/VM initialization; match the client's default action timeout.
+    const timeout = event === 'startPrivateRoomBattle' ? 30000 : 5000
+    const handler = (error: Error | null, response: Reply<T>) =>
+      error ? reject(new Error(`${event}: ${error.message}`)) : resolve(response)
+    if (data === undefined) socket.timeout(timeout).emit(event, handler)
+    else socket.timeout(timeout).emit(event, data, handler)
   })
 }
 async function success<T = unknown>(socket: Socket, event: string, data?: unknown): Promise<T> {
