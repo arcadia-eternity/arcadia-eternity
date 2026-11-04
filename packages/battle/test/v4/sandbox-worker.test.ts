@@ -118,7 +118,7 @@ async function drive(battle: BattleHost) {
   throw Error('Official battle did not finish')
 }
 it('runs the complete official catalog inside a dedicated Worker with Arena and forwards native events', async () => {
-  const host = manager(),
+  const host = manager({ cleanupMs: 5000 }),
     spec = fixture(),
     battle = await host.create(spec)
   expect((await battle.getState(undefined, true)).status).toBe(BattleStatus.Unstarted)
@@ -151,7 +151,7 @@ it('runs the complete official catalog inside a dedicated Worker with Arena and 
   expect((await battle.getState(undefined, true)).status).toBe(BattleStatus.Ended)
   await battle.cleanup()
   expect(host.status().at(-1)?.state).toBe('disposed')
-  expect(host.status().at(-1)?.cleanup).toBe('graceful')
+  expect(host.status().at(-1)?.cleanup, host.status().at(-1)?.cleanupFault).toBe('graceful')
   await expect(battle.getState()).rejects.toThrow(/disposed/)
 }, 30_000)
 
@@ -214,7 +214,7 @@ it('terminates a stuck startup and preserves another active battle', async () =>
   expect((await healthy.waitForPendingDecision()).selections[0].length).toBeGreaterThan(0)
 }, 10_000)
 it('reconstructs an official waiting checkpoint in a fresh Worker and continues identically', async () => {
-  const host = manager(),
+  const host = manager({ cleanupMs: 5000 }),
     spec = fixture(),
     original = await host.create(spec)
   await original.ready()

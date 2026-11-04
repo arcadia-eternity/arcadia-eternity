@@ -75,6 +75,23 @@ it('requires an explicit initial boundary on the generic snapshot API', async ()
   await ready
   expect(restored.status).toBe(BattleStatus.OnBattle)
 })
+it('returns an initial fingerprint without exposing mutable engine stat records', async () => {
+  const f = makeScenario(),
+    catalog = catalogFor(f)
+  battles.push(f.battle)
+  const system = new LocalBattleSystemV4(f.battle, {
+    snapshot: battle => snapshotBattle(battle, catalog, { boundary: 'initial' }),
+    restore: data => restoreBattle(data, catalog),
+  })
+  systems.push(system)
+  const before = await system.getInitialFingerprint()
+  const view = (await system.getInitialFingerprint()) as {
+    players: { team: { evs: { hp: number }; ivs: { hp: number } }[] }[]
+  }
+  view.players[0].team[0].evs.hp = 200
+  view.players[0].team[0].ivs.hp = 0
+  expect(await system.getInitialFingerprint()).toEqual(before)
+})
 it('restores an enabled initial timer quietly and starts a full clock only when the host is ready', async () => {
   vi.useFakeTimers()
   vi.setSystemTime(Date.UTC(2026, 9, 23))
