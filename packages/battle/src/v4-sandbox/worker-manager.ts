@@ -212,6 +212,7 @@ export class WorkerBattleSystem implements IBattleSystem {
   cancelReconnectGraceTimer: NonNullable<IBattleSystem['cancelReconnectGraceTimer']> = (...args) =>
     this.call('cancelReconnectGraceTimer', args)
   createRuntimeSnapshot = () => this.call('createRuntimeSnapshot', [])
+  getInitialFingerprint = () => this.call('getInitialFingerprint', [])
   restoreRuntimeSnapshot: NonNullable<IBattleSystem['restoreRuntimeSnapshot']> = (...args) =>
     this.call('restoreRuntimeSnapshot', args)
   waitForPendingDecision() {

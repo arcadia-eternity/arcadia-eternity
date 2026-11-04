@@ -17,6 +17,7 @@ export async function compileEffectModule(
     files = 0
   const shim = '\0arcadia-effect-sdk'
   const build = await rolldown({
+    cwd: boundary,
     input: source,
     platform: 'neutral',
     plugins: [

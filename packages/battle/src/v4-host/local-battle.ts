@@ -271,6 +271,47 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     for (const [unsubscribe, subscription] of this.timerSubscriptions)
       if (subscription.type === type && subscription.handler === handler) unsubscribe()
   }
+  /** Compare effective initial inputs without exposing live engine objects or random instance IDs. */
+  async getInitialFingerprint(): Promise<Record<string, unknown>> {
+    const runtime = await this.createRuntimeSnapshot()
+    const saved = JSON.parse(runtime.payload) as { battle: BattleSnapshot; teamSelection: unknown; reconnect: unknown }
+    const root = saved.battle.root as { ref: number }
+    const rng = saved.battle.nodes[root.ref].fields.rngState as { ref: number }
+    const battle = this.battle
+    return {
+      boundary: saved.battle.boundary,
+      status: battle.status,
+      phase: battle.currentPhase,
+      turn: battle.currentTurn,
+      allowFaintSwitch: battle.allowFaintSwitch,
+      showHidden: battle.showHidden,
+      rng: saved.battle.nodes[rng.ref],
+      timer: battle.getTimerConfig(),
+      teamSelection: saved.teamSelection,
+      reconnect: saved.reconnect,
+      players: [battle.playerA, battle.playerB].map(player => ({
+        name: player.name,
+        rage: player.currentRage,
+        active: player.team.indexOf(player.activePet),
+        team: player.team.map(pet => ({
+          name: pet.name,
+          species: pet.originalSpecies.id,
+          level: pet.level,
+          evs: pet.evs,
+          ivs: pet.ivs,
+          nature: pet.nature,
+          gender: pet.gender,
+          weight: pet.weight,
+          height: pet.height,
+          maxHp: pet.maxHp,
+          hp: pet.currentHp,
+          ability: pet.ability?.id,
+          emblem: pet.emblem?.id,
+          skills: pet.baseSkills.map(skill => skill.id),
+        })),
+      })),
+    }
+  }
   async createRuntimeSnapshot(): Promise<BattleRuntimeSnapshot> {
     this.assertOpen()
     const teamSelection = this.preparation?.pending ? this.preparation.snapshot() : null

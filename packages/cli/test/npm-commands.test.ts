@@ -100,7 +100,7 @@ it('installs, inspects and requires separate explicit approval before executing 
   await invoke(['content', 'npm', 'install', environment, '--offline'], 2)
 }, 60000)
 
-it('completes an npm battle and rejects replay capture without a module reconstruction contract', async () => {
+it('records and replays an npm battle in an independent process with its approved environment', async () => {
   const file = join(temporary, 'replay.json')
   const args = [
     'battle',
@@ -114,8 +114,33 @@ it('completes an npm battle and rejects replay capture without a module reconstr
     '--seed',
     'npm-cli',
   ]
-  const result = await invoke(args)
+  const result = await invoke([...args, '--replay-out', file, '--team-selection'])
   expect(result.counts).toEqual({ completed: 1, truncated: 0, failed: 0, cancelled: 0 })
-  expect((await invoke([...args, '--replay-out', file], 3)).diagnostics[0].code).toBe('SANDBOX_REPLAY_STATE')
-  await expect(readFile(file)).rejects.toThrow()
+  const saved = JSON.parse(await readFile(file, 'utf8'))
+  expect(saved.environment.npm.installationDigest).toBe(digest)
+  expect(saved.inputs.some((input: { type: string }) => input.type === 'team-selection')).toBe(true)
+  expect(JSON.stringify(saved)).not.toContain(temporary)
+  expect((await invoke(['battle', 'replay', file], 3)).diagnostics[0].code).toBe('REPLAY_NPM')
+  expect((await invoke(['battle', 'replay', file, '--npm-project', environment])).verified).toBe(true)
+
+  const changed = structuredClone(saved),
+    tampered = join(temporary, 'changed-initial.json')
+  changed.spec.teams[0].team[0].maxHp++
+  await writeFile(tampered, JSON.stringify(changed))
+  expect((await invoke(['battle', 'replay', tampered, '--npm-project', environment], 3)).diagnostics[0].code).toBe(
+    'REPLAY_INITIAL',
+  )
+
+  const effects = join(environment, 'node_modules/@arcadia-example/slow/dist/effects.js'),
+    original = await readFile(effects, 'utf8')
+  const edited = original.replace('default: -25', 'default: -35')
+  expect(edited).not.toBe(original)
+  try {
+    await writeFile(effects, edited)
+    expect((await invoke(['battle', 'replay', file, '--npm-project', environment], 3)).diagnostics[0].code).toMatch(
+      /^REPLAY_/,
+    )
+  } finally {
+    await writeFile(effects, original)
+  }
 }, 60000)

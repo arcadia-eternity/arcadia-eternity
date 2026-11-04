@@ -68,7 +68,6 @@ export async function createSandboxWebBattleSession(
   const ai = new Set(options.ai?.enabled ? (options.ai.players ?? ['playerB']) : [])
   const environment = options.environment ?? {
     revision: `arcadia.sandbox-content/1:${await digestJson({ build: nativeBuildIdentity, data, templates: officialTemplateDefinitions, artifact: officialEffectArtifact })}`,
-    supportsSnapshots: true,
     data: { ...data, behaviors: officialTemplateDefinitions },
     modules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' as const }],
   }

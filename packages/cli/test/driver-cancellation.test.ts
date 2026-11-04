@@ -7,7 +7,6 @@ import type { RunSpec } from '../src/application/types'
 import { runBattle } from '../src/application/run'
 
 const driver = vi.hoisted(() => ({ abort: () => {}, cleanup: vi.fn() }))
-vi.mock('../src/application/initial', () => ({ initialFingerprint: () => ({ boundary: 'initial' }) }))
 vi.mock('@arcadia-eternity/battle/v4/host', () => ({
   // Exercise CLI cancellation at the host boundary without executing a battle.
   LocalBattleSystemV4: class {
@@ -26,6 +25,9 @@ vi.mock('@arcadia-eternity/battle/v4/host', () => ({
     }
     async createRuntimeSnapshot() {
       return {}
+    }
+    async getInitialFingerprint() {
+      return { boundary: 'initial' }
     }
     async restoreRuntimeSnapshot() {}
     async ready() {}

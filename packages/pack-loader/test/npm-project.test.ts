@@ -20,6 +20,7 @@ import {
 import { inspectNpmProject } from '../src/npm/inspect'
 import { prepareNpmProject, type NpmContentHost } from '../src/npm/prepare'
 import { workRef } from '../src/works'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 
 const exec = promisify(execFile)
 vi.setConfig({ testTimeout: 30000 })
@@ -298,6 +299,7 @@ it('reproduces the same environment after npm ci in a different absolute directo
     b = await prepare(fresh)
   expect(b.revision).toBe(a.revision)
   expect(b.installation.digest).toBe(a.installation.digest)
+  expect(b.sandbox.revision).toBe(a.sandbox.revision)
 }, 30000)
 it('allows local code edits without renewed approval while preserving the existing catalog', async () => {
   const before = await prepare(),
@@ -310,6 +312,7 @@ it('allows local code edits without renewed approval while preserving the existi
     })
     environments.push(next)
     expect(next.installation.digest).toBe(before.installation.digest)
+    expect(next.sandbox.revision).not.toBe(before.sandbox.revision)
     const changed = fixture(next.content),
       changedSpeed = changed.b.activePet.stat.spe
     changed.battle.applyEffects(changed.event(), EffectTrigger.OnHit)
@@ -382,6 +385,76 @@ it('restores runtime parameters and source bindings at an existing selection che
   await restored.cleanup()
   await resumed
 }, 15000)
+
+it('rebuilds UGC parameters, custom binding computations and source lifetimes in a fresh Worker', async () => {
+  const file = join(environment, 'node_modules/@arcadia-test/slow/effects.js'),
+    original = await readFile(file, 'utf8')
+  const workers = createNodeBattleWorkerManager()
+  try {
+    await writeFile(
+      file,
+      original.replace(
+        "value: amount.follow({ key: 'amount' })",
+        "value: amount.follow({ key: 'amount' }).map(value => value - 10)",
+      ),
+    )
+    const prepared = await prepare()
+    // Reuse the ordinary input schema; no engine objects cross the Worker boundary.
+    const spec = {
+      environment: prepared.sandbox,
+      players: [0, 1].map(side => ({
+        id: String(side).repeat(21),
+        name: `Player ${side}`,
+        team: [
+          {
+            id: String(side + 2).repeat(21),
+            name: 'Pet',
+            species: 'slow:pet',
+            level: 100,
+            nature: Nature.Hardy,
+            skills: ['slow:strike', 'slow:rest'],
+            maxHp: 10_000,
+            evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+            ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+          },
+        ],
+      })),
+      options: { rngSeed: 'ugc-worker-restore', timerConfig: { enabled: false }, showHidden: true },
+    }
+    const battle = await workers.create(spec)
+    await battle.ready()
+    const initial = await battle.getState(undefined, true),
+      speed = initial.players[1].team![0].stats!.spe
+    async function turn(system: typeof battle, skill: string) {
+      const pending = await system.waitForPendingDecision(),
+        state = await system.getState(undefined, true)
+      for (const [seat, choices] of pending.selections.entries()) {
+        const id = state.players[seat].team![0].skills!.find(entry => entry.baseId === skill)!.id
+        await system.submitAction(choices.find(action => action.type === 'use-skill' && action.skill === id)!)
+      }
+      await system.waitForPendingDecision()
+      return system.getState(undefined, true)
+    }
+    const before = await turn(battle, 'slow:strike')
+    expect(before.players[1].team![0].stats!.spe).toBe(speed - 35)
+    expect(before.players[1].team![0].marks[0].duration).toBe(1)
+    const snapshot = await battle.createRuntimeSnapshot()
+    await battle.cleanup()
+    const restored = await workers.create(spec)
+    expect(restored.id).not.toBe(battle.id)
+    await restored.restoreRuntimeSnapshot(JSON.parse(JSON.stringify(snapshot)))
+    await restored.ready()
+    expect(await restored.getState(undefined, true)).toEqual(before)
+    const after = await turn(restored, 'slow:rest')
+    expect(after.players[1].team![0].marks).toHaveLength(0)
+    expect(after.players[1].team![0].stats!.spe).toBe(speed)
+    await restored.cleanup()
+    expect(workers.status().every(entry => entry.cleanup === 'graceful')).toBe(true)
+  } finally {
+    await workers.dispose()
+    await writeFile(file, original)
+  }
+}, 30_000)
 
 it('rejects uninspected packages and lockfile drift before importing code', async () => {
   const extra = join(environment, 'node_modules/unlisted-library')

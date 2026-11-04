@@ -9,7 +9,6 @@ import { SandboxFault, sandboxPolicy, type EffectModuleArtifact } from './contra
 import type { BattleMessage, Events } from '@arcadia-eternity/const'
 
 export interface SandboxEnvironment {
-  readonly supportsSnapshots?: boolean
   readonly revision: string
   readonly data: ContentPrototypeData
   readonly modules: readonly {
@@ -58,6 +57,7 @@ export const battleMethods = [
   'cancelReconnectGraceTimer',
   'createRuntimeSnapshot',
   'restoreRuntimeSnapshot',
+  'getInitialFingerprint',
   'waitForPendingDecision',
   'waitForCompletion',
 ] as const
@@ -72,7 +72,6 @@ export class SandboxBattleRuntime {
   private initialized = false
   private closed = false
   private failure?: Error
-  private supportsSnapshots = false
   private revision?: string
   private readonly events: SandboxEvent[] = []
   private sending = false
@@ -96,7 +95,6 @@ export class SandboxBattleRuntime {
       const environment = input.environment,
         names = new Set<string>()
       this.revision = environment.revision
-      this.supportsSnapshots = environment.supportsSnapshots === true
       for (const entry of environment.modules) {
         if (
           names.has(entry.artifact.packageId) ||
@@ -233,8 +231,6 @@ export class SandboxBattleRuntime {
     this.health()
     if (!this.system || !battleMethods.includes(method) || !Array.isArray(args) || args.length > 4)
       throw new SandboxFault('permission', 'battle', 'Unknown battle operation')
-    if ((method === 'createRuntimeSnapshot' || method === 'restoreRuntimeSnapshot') && !this.supportsSnapshots)
-      throw new Error('This environment has no verified module-state reconstruction contract')
     if (method === 'restoreRuntimeSnapshot') {
       const snapshot = args[0] as { payload?: unknown } | undefined
       if (

@@ -247,7 +247,7 @@ async function compileInstallation(
   })
   const sandbox: SandboxEnvironment = freeze(
     structuredClone({
-      revision: prepared.revision,
+      revision: `${prepared.revision}/effects:${await digestJson(artifacts)}`,
       data: { ...prepared.data, behaviors: [...host.templates, ...(prepared.data.behaviors ?? [])] },
       modules: artifacts,
     }),

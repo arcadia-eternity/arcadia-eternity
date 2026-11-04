@@ -60,7 +60,6 @@ function fixture(): SandboxBattleInput {
   return {
     environment: {
       revision: 'sandbox/official-test',
-      supportsSnapshots: true,
       data: {
         marks: read('marks'),
         skills: read('skills'),
@@ -231,10 +230,18 @@ it('reconstructs an official waiting checkpoint in a fresh Worker and continues 
   await original.cleanup()
   expect(host.status().every(value => value.cleanup === 'graceful')).toBe(true)
 }, 30_000)
-it('rejects snapshots for modules without a reconstruction contract without faulting the battle', async () => {
-  const battle = await manager().create(small())
-  await expect(battle.createRuntimeSnapshot()).rejects.toThrow(/reconstruction/)
-  expect((await battle.getState()).status).toBe(BattleStatus.Unstarted)
+it('restores a UGC initial checkpoint in a new Worker without a package-specific opt-in', async () => {
+  const host = manager(),
+    spec = small(),
+    original = await host.create(spec)
+  const saved = await original.createRuntimeSnapshot(),
+    fingerprint = await original.getInitialFingerprint()
+  await original.cleanup()
+  const restored = await host.create(spec)
+  await restored.restoreRuntimeSnapshot(saved)
+  expect(await restored.getInitialFingerprint()).toEqual(fingerprint)
+  await restored.ready()
+  expect((await restored.waitForPendingDecision()).selections[0].length).toBeGreaterThan(0)
 })
 it('creates independent per-battle and per-package module globals', async () => {
   const host = manager(),
