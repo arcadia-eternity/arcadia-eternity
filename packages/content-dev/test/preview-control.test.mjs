@@ -10,7 +10,7 @@ import { createSourceProject } from '../src/project.mjs'
 import { startPreview } from '../src/preview.mjs'
 import { callPreviewControl } from '../src/preview-control.mjs'
 import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import { WorkerBattleSystem } from '@arcadia-eternity/battle/v4/sandbox/node'
 import { AuthorWorkspace } from '../src/workspace.mjs'
 import { ProjectTeams } from '../src/project-teams.mjs'
 
@@ -91,15 +91,15 @@ test(
     assert.notDeepEqual(combat(first.state), combat(changed.state))
     assert.deepEqual(await human(endpoint, 'getState', undefined, true), humanBefore)
 
-    const pendingDecision = LocalBattleSystemV4.prototype.waitForPendingDecision
+    const pendingDecision = WorkerBattleSystem.prototype.waitForPendingDecision
     let failed
     try {
-      LocalBattleSystemV4.prototype.waitForPendingDecision = async () => {
+      WorkerBattleSystem.prototype.waitForPendingDecision = async () => {
         throw new Error('engine execution failed')
       }
       failed = await call('read', { sessionId: first.sessionId })
     } finally {
-      LocalBattleSystemV4.prototype.waitForPendingDecision = pendingDecision
+      WorkerBattleSystem.prototype.waitForPendingDecision = pendingDecision
     }
     assert.equal(failed.stateCurrent, false)
     assert.equal(failed.failure.code, 'BATTLE_EXECUTION_FAILED')
@@ -139,9 +139,9 @@ test(
     // Inject failure after the real engine accepts an action, when replaying it would be unsafe.
     const broken = await call('create', config)
     const failAction = async session => {
-      const submitAction = LocalBattleSystemV4.prototype.submitAction
+      const submitAction = WorkerBattleSystem.prototype.submitAction
       try {
-        LocalBattleSystemV4.prototype.submitAction = async function (selection) {
+        WorkerBattleSystem.prototype.submitAction = async function (selection) {
           await submitAction.call(this, selection)
           throw new Error('engine failed after accepting input')
         }
@@ -151,7 +151,7 @@ test(
           selection: session.selections.find(selection => selection.type === 'use-skill'),
         })
       } finally {
-        LocalBattleSystemV4.prototype.submitAction = submitAction
+        WorkerBattleSystem.prototype.submitAction = submitAction
       }
     }
     const failedAction = await failAction(broken)

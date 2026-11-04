@@ -9,6 +9,7 @@ const legacyDependencies = new Set([
   '@arcadia-eternity/server',
   '@arcadia-eternity/p2p-transport',
   '@arcadia-eternity/p2p-transport/node',
+  'rolldown',
 ])
 export default defineConfig({
   input: 'bin/cli.ts',

@@ -37,11 +37,13 @@ export class BattleWorkerManager {
   private readonly active = new Map<number, WorkerBattleSystem>()
   private readonly history: BattleWorkerStatus[] = []
   private closed = false
+  private readonly policy: BattleWorkerPolicy
   constructor(
     private readonly createWorker: () => BattleWorker,
-    private readonly policy: BattleWorkerPolicy = defaultPolicy,
+    policy: Partial<BattleWorkerPolicy> = {},
   ) {
-    for (const value of Object.values(policy))
+    this.policy = { ...defaultPolicy, ...policy }
+    for (const value of Object.values(this.policy))
       if (!Number.isSafeInteger(value) || value <= 0) throw Error('Invalid Worker policy')
   }
   async create(input: SandboxBattleInput, signal?: AbortSignal): Promise<WorkerBattleSystem> {
@@ -191,7 +193,9 @@ export class WorkerBattleSystem implements IBattleSystem {
   ready = () => this.call('ready', [])
   getState = (...args: Parameters<LocalBattleSystemV4['getState']>) => this.call('getState', args)
   getAvailableSelection: IBattleSystem['getAvailableSelection'] = (...args) => this.call('getAvailableSelection', args)
-  submitAction: IBattleSystem['submitAction'] = (...args) => this.call('submitAction', args)
+  submitAction(...args: Parameters<IBattleSystem['submitAction']>) {
+    return this.call('submitAction', args)
+  }
   isTimerEnabled = () => this.call('isTimerEnabled', [])
   getPlayerTimerState: IBattleSystem['getPlayerTimerState'] = (...args) => this.call('getPlayerTimerState', args)
   getAllPlayerTimerStates = () => this.call('getAllPlayerTimerStates', [])
@@ -205,7 +209,9 @@ export class WorkerBattleSystem implements IBattleSystem {
   createRuntimeSnapshot = () => this.call('createRuntimeSnapshot', [])
   restoreRuntimeSnapshot: NonNullable<IBattleSystem['restoreRuntimeSnapshot']> = (...args) =>
     this.call('restoreRuntimeSnapshot', args)
-  waitForPendingDecision = () => this.call('waitForPendingDecision', [])
+  waitForPendingDecision() {
+    return this.call('waitForPendingDecision', [])
+  }
   waitForCompletion = () => this.call('waitForCompletion', [])
   onInputAccepted(callback: Parameters<LocalBattleSystemV4['onInputAccepted']>[0]): () => void {
     this.assertOpen()

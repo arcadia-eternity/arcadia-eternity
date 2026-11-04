@@ -1,6 +1,5 @@
 import { realpath, stat } from 'node:fs/promises'
 import { relative, isAbsolute } from 'node:path'
-import { rolldown } from 'rolldown'
 import { parse } from 'es-module-lexer/minimal/js'
 import * as sdk from '@arcadia-eternity/battle/v4/authoring'
 import type { EffectModuleArtifact } from '@arcadia-eternity/battle/v4/sandbox/effects'
@@ -11,6 +10,7 @@ export async function compileEffectModule(
   root: string,
   packageId: string,
 ): Promise<EffectModuleArtifact> {
+  const { rolldown } = await import('rolldown')
   const boundary = await realpath(root),
     source = await realpath(entry)
   let bytes = 0,

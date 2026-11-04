@@ -19,7 +19,8 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
     throw new Error('arcadia.config.mjs must export exactly two project team IDs in teams')
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
-  const workers = createNodeBattleWorkerManager()
+  // Four automation sessions, one human preview, and room for their validated replacements.
+  const workers = createNodeBattleWorkerManager({ maxBattles: 7 })
   function defaultPlayers() {
     return prepared.loadTeams(config.teams)
   }
