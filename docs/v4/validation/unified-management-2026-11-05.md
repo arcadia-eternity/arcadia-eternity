@@ -1,6 +1,6 @@
 # 统一管理、私人约战与在线备份验证（2026-11-05）
 
-本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；当前远端结果对应 [20fde2a8](https://github.com/arcadia-eternity/arcadia-eternity/commit/20fde2a8f6d4419979fc30d3dd8b0c11890008b1)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
+本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；本文记录的远端结果对应 [82dd37d4](https://github.com/arcadia-eternity/arcadia-eternity/commit/82dd37d4dc38bb4b48e393029be6eddf078c49c4)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
 
 ## 当前本地回归
 
@@ -17,11 +17,18 @@
 
 最新全仓 ESLint、根/服务端类型、Web vue-tsc、Vite production 与 paired stage 构建通过；服务端入口一致性窄回归 5/5、2.92 秒通过。所有变更/新增 TS、Vue、mjs、yaml 的格式检查与 git diff 检查通过。资源相关 3 文件/76 项通过，管理页面缺省 progress.stage 的窄幅回归 8/8 通过；资源测试已纳入 baseline CI。此前 frozen/offline 锁文件与 native renderer/test 验证记录保留。
 
-当前提交的 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364) 已完成，changes、native-server-entry、offline-cli、native-browser-entry、management-browser-acceptance、headless-battle **6/6 全部成功**。这包括真实双库服务端/CLI、生产私人约战和管理备份的零跳过断言，以及浏览器 production/offline/storage 场景。
+提交 82dd37d4 的 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719) **6/6 成功**：changes、native-server-entry、offline-cli、native-browser-entry、management-browser-acceptance、headless-battle 全部完成，含真实双库/CLI、生产浏览器和零跳过断言。
 
-当前 [桌面 CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401) 已结束：Linux x64、macOS arm64、Intel macOS 三个平台完整成功；arm64 full-host 为 18.705 秒，Intel native 42/42、full-host 1/1 为 66.308 秒（测试进程 67.10 秒）。Windows 已通过 renderer 和 staging，但 afterPack 对 css-calc 的绝对 junction 校验失败，四平台整体尚未通过。
+[桌面 CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601) 在 attempt 2 最终 **4/4 成功**，四平台均完成实际包内 Electron SQLite 写入/关闭/重开与 full-host 1/1，full-host 均零跳过：
 
-Windows renderer canonical lookup 修补已随 20fde2a8 提交并在真实 Windows CI 通过。新 afterPack 失败是绝对链接规则拒绝了包内 junction：已安装 builder 的真实 copier fixture 证实 css-calc 目标留在 destination 内，删除 staging、搬移整个 app 后仍可读取。两脚本最小修补仅在 Windows 对物理 appOutDir 做有界检查，再执行现有完整 preflight/规范化与不变的 strict/native gates；外部、缺失或受保护目录别名在修改前拒绝。24/24 本地测试、0 跳过、两文件零 warning lint、格式/差异检查及源码审查通过，真实 Windows CI 待新 head。此前提交和下方已验收 Docker/macOS 本地产物保留各自准确 sourceProof，不重标为新修补构建。
+| 实际执行                                                                                                      | Native                            | Full-host |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------------- | --------- |
+| [Linux x64](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624566)   | 47/47                             | 13.874 秒 |
+| [Windows x64](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624988) | 45 通过，2 项预期 POSIX-only 跳过 | 42.277 秒 |
+| [Intel macOS](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624928) | 47/47                             | 38.942 秒 |
+| [macOS arm64](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126834263448) | 47/47                             | 31.132 秒 |
+
+arm64 首次因托管容量无法分配 runner、尚无执行步骤而取消；只重试该项，其余链接保留原实际执行，不能把 carry-over 记录写成再次运行。Windows renderer 与 afterPack 包内绝对 junction 修补均已在真实目标通过，原 strict/native gates 保持。下方 Docker/r3 本地产物仍对应其精确 sourceProof，未被重标为新的 82dd 构建。
 
 原 29 文件/315 项及窄幅清理后的真实 socket 7/7 是历史结果；当前服务端结论以 30 文件/320 项、exit 0 为准。Web 257 项仍对应此前快照；最新资源修补由 76 项专项和下方严格 production 复验覆盖。
 
@@ -56,6 +63,17 @@ PLAYWRIGHT_MANAGEMENT_BACKUP=1 pnpm --filter @arcadia-eternity/web-ui exec playw
 PLAYWRIGHT_PERSONAL_ENVIRONMENT=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.personal-environment.config.ts
 ```
 
+## 补充本地验证：UGC 环境同步
+
+本项使用 **82dd 产品代码 + 本次仅修正测试 fixture 的准备代码**：5 行增加/5 行删除，将已移除的 inline presentation 写入改为 v2 的 `dist/presentation.json`；没有产品代码或行为断言变化。它是补充本地实跑，不表示 82dd 原有未修正 spec 曾通过。
+
+| 分支     | 结果                                              | 自然结算 | 媒体 / 总请求 |
+| -------- | ------------------------------------------------- | -------- | ------------- |
+| 正常媒体 | 1/1 通过，49.3 秒                                 | 2 回合   | 55 / 1267     |
+| 缺失媒体 | 1/1 通过，51.7 秒（wall 52.32 秒），0 fail/0 skip | 3 回合   | 0 / 1164      |
+
+两轮均保持旧技能 power=60，旧房间环境与新默认环境 ID 不同；guest 重连仍使用原房间租约并自然结束。未使用的 SWF 未请求，正常媒体 `no-store` 断言保留并通过，测试宿主/资源已清理。已读取两份 acceptance JSON；保留目录为 `packages/web-ui/test-results/ugc-environment/{with-media-82dd37d4,missing-media-82dd37d4}/ugc-environment-sync-clean-e504c-onnect-and-finish-naturally/`，含 `acceptance.json`、`network-requests.json` 和截图。
+
 ## Docker 与桌面证据范围
 
 最终 Docker 证据为 `.omo/evidence/docker-management.json`：Linux arm64 镜像 `sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8`，Node 24.22.2、SQLite 3.53.2、PostgreSQL 17，验收 15.6 秒。两库均验证首次 builtin-server 默认绑定及 145 个物种；容器重建后 serverId/workspaceId、设置、默认绑定和版本保持，内容/资源修订一致，PG 另经数据库重启。测试容器、卷、网络均已清理。该镜像包含首次初始化、持久 retention 与最后 UI 修补，`pairedUiRefreshPending=false`。
@@ -73,7 +91,7 @@ sourceProof 记录 1,341 个输入保持一致，摘要 `sha256:33881fd68fc0dc90
 仍需保留：
 
 - 5 个第三方许可证资料问题：`@better-auth/utils@0.5.0`、`@npmcli/agent@4.0.2`、`jsondiffpatch@0.7.6`、`stackback@0.0.2`、`@npmcli/redact@4.0.0`；后者声明/原始文本不一致。清单保持 `releaseReady: false`，不能正式发行。
-- 修补提交的远端复验、四平台 CI、正式安装/升级和真实双设备 LAN。当前最终 Docker、macOS 预览、两组严格浏览器与 lint/类型均已有本地通过证据。
+- 正式安装/跨版本升级和真实双设备 LAN；本次四平台 CI 验证非发布的 staging、打包和包内宿主，不替代实际安装/升级验收。
 - SMTP/GitHub 真实提供商未配置，相关用户问题待答复；不得用 guest bootstrap、测试提供商或双库通过替代邮件投递/回调验收。
 - 生产部署及完整容量/故障矩阵；最终 Linux arm64 Docker 重建持久化已通过，不代表所有部署场景。
 - G4 战绩/积分/录像仍按原后期范围，不纳入本次管理功能完成声明。

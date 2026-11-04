@@ -176,7 +176,7 @@ node dist/cli.js server backup clone --file /backups/arcadia.json --target /srv/
 
 真实普通匹配和权威好友房 2/2（约 1.3 分钟）通过。最终 paired build 的管理备份 UI 1/1（17.1 秒）通过，按 builtin 初始 1、归档共 2 环境验证。私人 Challenge 两浏览器 1/1（50.2 秒）通过：首局和再战各 2 回合自然结束、媒体解码，网络/UI 错误为空，292 次采样无服务端 Worker、目录不变。此前 Blob 提前回收的失败经 transition 回归先红后绿并在本轮严格验收通过；当前附件已保留到隔离输出目录。
 
-最终 Linux arm64 Docker 镜像 `sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8` 验收 15.6 秒，包含最后初始化/retention/UI 修补；两库重建保留身份、默认绑定和版本，PG 重启通过。最终冻结源码 r3 macOS arm64 预览的真实包内 SQLite/完整宿主 1/1（12.74 秒）通过，356 个 renderer 与 62 个 server 文件匹配输入。PR #275 第二轮 bfefb852 baseline 4 pass/2 fail、桌面四平台 fail 仍是最近远端结论；当前本地修补不替代新远端复验。5 项许可证问题保持 releaseReady=false；正式安装升级、双设备 LAN、真实 SMTP/GitHub 和完整故障矩阵仍开放。源码审查为 WATCH / APPROVE，不等于发行批准。详情见[统一管理验证记录](validation/unified-management-2026-11-05.md)。
+最终 Linux arm64 Docker 镜像 `sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8` 验收 15.6 秒，包含最后初始化/retention/UI 修补；两库重建保留身份、默认绑定和版本，PG 重启通过。最终冻结源码 r3 macOS arm64 预览的真实包内 SQLite/完整宿主 1/1（12.74 秒）通过，356 个 renderer 与 62 个 server 文件匹配输入。PR #275 的生产代码快照 82dd37d4 已通过 baseline 6/6 与桌面四平台 4/4；桌面四个平台均包含真实包内 SQLite 和完整开服验收；arm64 首次未取得托管运行器，仅重跑该项后成功。随后修正独立展示文件的测试素材准备，服务器 UGC 同步的有媒体、无媒体两种本地场景均通过，验证了默认环境替换后的旧房间版本保留、重连与自然结算。5 项许可证问题保持 releaseReady=false；正式安装升级、双设备 LAN、真实 SMTP/GitHub 和完整故障矩阵仍开放。源码审查为 WATCH / APPROVE，不等于发行批准。精确提交、产物来源和验证口径见[统一管理验证记录](validation/unified-management-2026-11-05.md)。
 
 ```sh
 pnpm --filter @arcadia-eternity/database test:run

@@ -57,17 +57,17 @@
     {
       "area": "Node/Docker persistent volume, native driver packaging, clean paired web assets, deployment docs/CI",
       "issues": [219, 249, 259, 260, 262],
-      "status": "finalUI/init/retention Linuxarm64 Docker fcb6bcc passed15.6s withSQLite/PG recreation, defaultbinding/versionpreservation andPGrestart;1341stableinputs andcriticalsourcesverifiedinimage. FinalmacOSr3preview12.74s pass. FreshremoteCI/fourplatforminstalledacceptanceopen"
+      "status": "recorded Linuxarm64 Docker andr3macOS exactsourceProof retained;82dd remote baseline6/6 anddesktop4/4 passed including actualpackagedSQLite/fullhost. Arm64 only retried aftercapacitycancel; formalinstalled/upgrade andfullproductionfault acceptanceopen"
     },
     {
       "area": "Real installed OS matrix, SMTP/GitHub callbacks, true multi-client/LAN and production-like faults",
       "issues": [259, 260, 261, 262, 264, 268],
-      "status": "partial: finalproductionpersonal1/1 andmanagement1/1 plusonline2/2 andmacOSpackage evidencepassed; installedmultiOS/LAN/providers/fullfaultmatrix andfreshremoteCIremainopen"
+      "status": "productionbrowser andremote four-platform nonpublishingpackage/fullhost acceptancepassed; formalinstalledmultiOS/upgrades,realLAN/providers/fullfaultmatrix remainopen"
     },
     {
       "area": "Final code review, full tests/build/typechecks, actual browser QA, commit and issue evidence synchronization",
       "issues": [200, 273, 274],
-      "status": "localfinalvalidation complete: server320pass127.44s exit0;CLI3/3;personal1/1 pass50.2s0errors;management1/1 pass17.1s;online2/2;latestlint/types/pairedbuild pass;finalDocker15.6s/macOSr3package12.74spass. PR275/21issues published earlier; nextcommit/remotefixCI and releaseacceptance remainactive",
+      "status": "localfinalevidence and82dd baseline6/6 plusdesktop4/4 completed; PR275/keyissues refreshed separately. SupplementalUGCnormal/missingmedia both locallypassed against82dd productcode withfixture-only v2presentation setupfix, not a claim original82dd specpassed. Formalrelease/provider/LAN/installed/fault limits remainopen",
       "previousRun": "Historical integration run before remediation: 181 passed/25 skipped/2 failed; superseded for the server suite by the final root run below, not erased from history."
     },
     {
@@ -285,89 +285,101 @@
     },
     "runningOrPending": [
       "five exact third-party license blockers; releaseReady=false",
-      "four-platform nonpublishing CI",
       "real installed/upgrade matrix",
       "real two-device LAN",
       "real SMTP/GitHub environment missing; user question pending",
-      "full production deployment/capacity/fault matrix",
-      "next commit and Windows CI rerun for narrow effect-module path fix; arm64 remote runner pending"
+      "full production deployment/capacity/fault matrix"
     ],
     "pullRequest": "https://github.com/arcadia-eternity/arcadia-eternity/pull/275",
     "initialCiHead": "b6e11f1d21684a21e9cb833531b17716aff6fb29",
     "remoteCi": {
-      "head": "20fde2a8f6d4419979fc30d3dd8b0c11890008b1",
-      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364",
-      "overallStatus": "baseline complete success,6/6; desktop Linux/macOS arm64/Intel successful,Windows afterPack failed",
+      "head": "82dd37d4dc38bb4b48e393029be6eddf078c49c4",
+      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719",
+      "overallStatus": "baseline6/6 success; desktop attempt2 overall4/4 success",
       "passedJobs": [
         {
           "name": "changes",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126815923563"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824625715"
         },
         {
           "name": "native-server-entry",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007880"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824732986"
         },
         {
           "name": "offline-cli",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007888"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733182"
         },
         {
           "name": "native-browser-entry",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007900"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733196"
         },
         {
           "name": "management-browser-acceptance",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816007999"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733154"
         },
         {
           "name": "headless-battle",
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364/job/126816008115"
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733134"
         }
       ],
       "desktopMatrix": {
-        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401",
-        "status": "terminal: three platforms successful; Windows afterPack failed",
+        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601",
+        "attempt": 2,
+        "status": "success4/4",
         "linux": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815927938",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624566",
+          "actualAttempt": 1,
           "result": "success",
-          "checks": ["complete staging/packaging", "actual packaged SQLite", "full-host"]
-        },
-        "macArm64": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815928088",
-          "result": "success",
-          "fullHostSeconds": 18.705
-        },
-        "macIntel": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815927562",
-          "result": "success",
-          "checks": ["native42/42", "actual packaged SQLite", "full-host1/1"],
-          "fullHostSeconds": 66.308,
-          "testProcessSeconds": 67.1
+          "nativePassed": 47,
+          "nativeTotal": 47,
+          "fullHostPassed": 1,
+          "fullHostSeconds": 13.874,
+          "fullHostSkipped": 0
         },
         "windows": {
-          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401/job/126815927820",
-          "result": "failure",
-          "passedBeforeFailure": "renderer and staging; prior effect-module path fix verified on real Windows",
-          "reason": "afterPack rejected absolute css-calc junction",
-          "interpretation": "installed builder real copier fixture confirmed css-calc is a destination-contained absolute junction; rejecting absolute syntax was not evidence of outside escape; fixture remains readable after staging removal and whole-app relocation",
-          "repair": "prepared and locally passed: Windows-only bounded physical appOutDir guard, existing full preflight/normalization, unchanged strict/native gates; external/missing/protected root-resources-output aliases rejected before mutation; real Windows target CI awaits next head",
-          "localValidation": {
-            "testsPassed": 24,
-            "testsSkipped": 0,
-            "durationMilliseconds": 178,
-            "lintWarnings": 0,
-            "formatAndDiff": "passed",
-            "review": "APPROVE; no must-fix findings",
-            "scope": "installed-builder copier and guard fixtures; not a new Windows CI pass"
-          }
-        }
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624988",
+          "actualAttempt": 1,
+          "result": "success",
+          "nativePassed": 45,
+          "nativeFailed": 0,
+          "intentionalPosixOnlySkips": ["FIFO", "POSIX absolute-link rejection"],
+          "fullHostPassed": 1,
+          "fullHostSeconds": 42.277,
+          "fullHostSkipped": 0,
+          "checks": [
+            "actual installed-builder junction case",
+            "renderer/staging/package",
+            "actual Electron SQLite write/reopen"
+          ]
+        },
+        "macIntel": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624928",
+          "actualAttempt": 1,
+          "result": "success",
+          "nativePassed": 47,
+          "nativeTotal": 47,
+          "fullHostPassed": 1,
+          "fullHostSeconds": 38.942,
+          "fullHostSkipped": 0
+        },
+        "macArm64": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126834263448",
+          "actualAttempt": 2,
+          "result": "success",
+          "nativePassed": 47,
+          "nativeTotal": 47,
+          "fullHostPassed": 1,
+          "fullHostSeconds": 31.132,
+          "fullHostSkipped": 0
+        },
+        "retryScope": "initial arm64 job126824625106 cancelled before any step due hosted runner capacity; only arm64 retried. Original other3actual job links retained, carry-over records not counted as newexecution",
+        "allPackagedSqlite": "actual Electron write/close/reopen verified on all four platforms"
       },
-      "artifactScope": "20fde verified Windows renderer fix. Prepared afterPack repair is Windows-only with strict/native gates unchanged. Accepted local Docker/macOS exact sourceProof remains unchanged and is not relabeled to the next head.",
+      "artifactScope": "82dd actual CI passes do not relabel recorded local Docker/r3 artifacts; their exact sourceProof is unchanged. Supplemental UGC environment test uses82dd product code plus the fixture-only v2 presentation setup correction recorded separately.",
       "previousRuns": {
-        "head": "2b66de18ec20a583b7720a411f0ba5f0fb2e12fb",
-        "baseline": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836381",
-        "baselineResult": "all six jobs successful on previous head",
-        "desktop": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41896836385"
+        "head": "20fde2a8f6d4419979fc30d3dd8b0c11890008b1",
+        "baseline": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364",
+        "desktop": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401"
       }
     },
     "issueRefresh": {
@@ -405,7 +417,40 @@
         "artifact": "/private/tmp/arcadia-desktop-final-r3-artifact-proof.json"
       }
     },
-    "currentCheckStatus": "latest fullrepositoryESLint/roottypes/servertypes/fullWebvue-tsc/Viteproduction/pairedstage passed"
+    "currentCheckStatus": "latest fullrepositoryESLint/roottypes/servertypes/fullWebvue-tsc/Viteproduction/pairedstage passed",
+    "supplementalUgcEnvironmentSync": {
+      "scope": "82dd production code plus fixture-only 5-add/5-delete spec setup correction to v2 dist/presentation.json; no product code or behavior assertion change; not an original82dd test-pass claim",
+      "execution": "local real production browsers",
+      "normal": {
+        "testsPassed": 1,
+        "durationSeconds": 49.3,
+        "turns": 2,
+        "oldSkillPower": 60,
+        "mediaRequests": 55,
+        "totalRequests": 1267,
+        "acceptance": "packages/web-ui/test-results/ugc-environment/with-media-82dd37d4/ugc-environment-sync-clean-e504c-onnect-and-finish-naturally/acceptance.json"
+      },
+      "missingMedia": {
+        "testsPassed": 1,
+        "testsFailed": 0,
+        "testsSkipped": 0,
+        "durationSeconds": 51.7,
+        "wallSeconds": 52.32,
+        "turns": 3,
+        "oldSkillPower": 60,
+        "mediaRequests": 0,
+        "totalRequests": 1164,
+        "acceptance": "packages/web-ui/test-results/ugc-environment/missing-media-82dd37d4/ugc-environment-sync-clean-e504c-onnect-and-finish-naturally/acceptance.json"
+      },
+      "sharedChecks": [
+        "old/new default environment IDs differ",
+        "guest reconnect retains original room lease",
+        "natural outcomes",
+        "unused SWF not requested",
+        "normal media no-store assertions unchanged andpassed"
+      ],
+      "cleanup": "owned test servers/resources cleaned; acceptance/network/screenshots retained"
+    }
   },
   "validationHistory": [
     {
