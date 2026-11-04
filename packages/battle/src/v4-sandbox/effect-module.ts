@@ -117,7 +117,11 @@ export class ArenaEffectModule implements PreparedEffectModule {
           (typeof Reflect.get(module, 'createEffects') !== 'function' &&
             typeof Reflect.get(module, 'createCatalog') !== 'function')
         )
-          throw new SandboxFault('artifact', session.packageId, 'Expected synchronous effect module')
+          throw new SandboxFault(
+            'artifact',
+            session.packageId,
+            'Expected synchronous createEffects or createCatalog export',
+          )
         session.author = module as AuthorModule
       }, policy.prepareMs)
       return session
