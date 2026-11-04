@@ -92,6 +92,7 @@ test(
       await library.start() // User explicitly chooses to host multiplayer.
       const ready = host.status()
       assert.equal(ready.status, 'running')
+      const customDirectory = host.projectDirectory()
       const catalogue = async () => (await (await fetch(ready.url + '/api/v1/environments')).json()).environments
       const custom = (await catalogue()).find(env => env.packages.some(pkg => pkg.name === '@arcadia-example/slow'))
       assert.ok(custom)
@@ -109,6 +110,8 @@ test(
       assert.equal(official.serviceNeedsRestart, false)
       assert.equal((await ack(first, 'getCurrentPrivateRoom')).environment.id, custom.id)
       assert.equal((await fetch(ready.url + '/api/v1/environments/' + custom.id + '/content')).status, 200)
+      assert.ok((await host.retainedProjectDirectories()).includes(customDirectory))
+      assert.ok(await readFile(join(customDirectory, 'package.json')))
       const second = await connect(ready.url)
       await ack(second, 'createPrivateRoom', { config: { battleMode: 'server' } })
       assert.equal((await ack(second, 'getCurrentPrivateRoom')).environment.packages.length, 0)
@@ -117,6 +120,9 @@ test(
       assert.ok(await readFile(tarball))
       await ack(first, 'leavePrivateRoom')
       assert.equal((await fetch(ready.url + '/api/v1/environments/' + custom.id + '/content')).status, 404)
+      assert.ok(!(await host.retainedProjectDirectories()).includes(customDirectory))
+      await library.collectGarbage()
+      await assert.rejects(readFile(join(customDirectory, 'package.json')), { code: 'ENOENT' })
       t.diagnostic(
         'Same process and URL; old room retained custom content and a new room received official-only content',
       )

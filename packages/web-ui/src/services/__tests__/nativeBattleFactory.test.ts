@@ -99,7 +99,9 @@ it('rejects a sandbox checkpoint after captured metadata changes', async () => {
   const current = await second.system.createRuntimeSnapshot()
   expect(JSON.parse(current.payload).battle.catalog).not.toBe(JSON.parse(saved.payload).battle.catalog)
   await expect(second.system.restoreRuntimeSnapshot(saved)).rejects.toThrow(/revision|content|identity/i)
-}, 20_000)
+  // This assertion starts two independent Workers sequentially; each startup has
+  // its own production 20-second deadline before snapshot/restore calls begin.
+}, 60_000)
 
 it('constructs native local/P2P teams with independent instance IDs and preserves caller data', async () => {
   const f = fixture()

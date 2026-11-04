@@ -4,6 +4,7 @@ import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { useBattleStore } from '@/stores/battle'
 import type { useGameDataStore } from '@/stores/gameData'
 import { createSandboxWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
+import { acquireLocalContent } from './localContent'
 
 type SessionState = 'configuring' | 'starting' | 'routing' | 'active' | 'disposed'
 type BattleStore = Pick<
@@ -32,9 +33,35 @@ export class LocalBattleSession {
   #attempt?: Attempt
   #battle?: BattleStore
   #disposing?: Promise<void>
+  #content?: Awaited<ReturnType<typeof acquireLocalContent>>
+  #contentReady?: Promise<void>
+  #restoreDisplay?: () => void
   constructor(private readonly create = createSandboxWebBattleSession) {}
   get state() {
     return this.#state
+  }
+  /** The configuration and its eventual battle share one successful selection. */
+  prepareContent(data: Destination['data']): Promise<void> {
+    this.#contentReady ??= (async () => {
+      const content = await acquireLocalContent()
+      if (this.state === 'disposed') {
+        await content?.release()
+        return
+      }
+      this.#content = content
+      if (content) this.#restoreDisplay = data.useLocalBattleContent(content.content)
+    })().catch(error => {
+      this.#contentReady = undefined
+      throw error
+    })
+    return this.#contentReady
+  }
+  async #releaseContent() {
+    const content = this.#content
+    this.#content = undefined
+    this.#restoreDisplay?.()
+    this.#restoreDisplay = undefined
+    await content?.release()
   }
 
   async start(
@@ -49,9 +76,16 @@ export class LocalBattleSession {
     let activated = false
     try {
       const options = structuredClone(toRaw(config))
-      this.#preparing = this.create(copy(first), copy(second), target.data, options).then(prepared =>
-        this.#manage(prepared),
-      )
+      const firstInput = copy(first),
+        secondInput = copy(second)
+      this.#preparing = (async () => {
+        await this.prepareContent(target.data)
+        const prepared = await this.create(firstInput, secondInput, target.data, {
+          ...options,
+          ...(this.#content ? { environment: this.#content.environment } : {}),
+        })
+        return this.#manage(prepared)
+      })()
       attempt = await this.#preparing
       this.#preparing = undefined
       if (this.state === 'disposed') return false
@@ -119,6 +153,8 @@ export class LocalBattleSession {
           )
       } finally {
         if (attempt && battle?.battleInterface === attempt.system) await battle.resetBattleWithoutSurrender()
+        await this.#contentReady?.catch(() => {})
+        await this.#releaseContent()
       }
     })()
     return this.#disposing
@@ -152,8 +188,9 @@ export class LocalBattleSession {
         restoreRuntimeSnapshot: native.restoreRuntimeSnapshot.bind(native),
         cleanup: () => {
           // Battle-store cleanup ends this session without recursively resetting the store.
-          if (this.#attempt === attempt) this.#invalidate()
-          return this.#stop(attempt)
+          const current = this.#attempt === attempt
+          if (current) this.#invalidate()
+          return this.#stop(attempt).finally(() => (current ? this.#releaseContent() : undefined))
         },
       },
     }

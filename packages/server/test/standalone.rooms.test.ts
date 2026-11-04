@@ -199,6 +199,7 @@ it('serves approved npm environments to code-free clients and pins rooms across 
     expect((await success<PrivateRoomInfo>(spectator.socket, 'getCurrentPrivateRoom')).environment?.id).toBe(second.id)
     await app.environments.retire(first.id)
     expect(app.environments.list().map(item => item.id)).not.toContain(first.id)
+    expect(app.environments.retainedIds()).toContain(first.id)
     expect(app.environments.descriptor(first.id).id).toBe(first.id)
     expect(
       await ack(a.socket, 'startPrivateRoomBattle', { hostTeam: team, environment: acceptance(second) }),

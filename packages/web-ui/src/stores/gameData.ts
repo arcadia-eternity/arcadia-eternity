@@ -9,6 +9,8 @@ import YAML from 'yaml'
 import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
 import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
+import { acquireLocalContent } from '@/services/localContent'
+import { getDesktopApi } from '@/utils/env'
 
 const BASE_PACK_ID = 'arcadia-eternity.base'
 
@@ -48,10 +50,12 @@ interface GameDataState {
   gameDataLoaded: boolean
   error: string | null
   workspaceRuntime: WorkspaceRuntimeState
-  serverFallback: Pick<
-    GameDataState,
-    'species' | 'skills' | 'marks' | 'nativeEffectIds' | 'workspaceRuntime' | 'loaded' | 'gameDataLoaded' | 'error'
-  > | null
+  serverFallback:
+    | (Pick<
+        GameDataState,
+        'species' | 'skills' | 'marks' | 'nativeEffectIds' | 'workspaceRuntime' | 'loaded' | 'gameDataLoaded' | 'error'
+      > & { contentText: ServerEnvironmentContent | null; remoteText: boolean })
+    | null
 }
 
 interface LocalDisplayScope {
@@ -63,6 +67,7 @@ interface LocalDisplayScope {
   released: boolean
 }
 const localDisplays = new WeakMap<object, LocalDisplayScope>()
+const localMetadataReleases = new WeakMap<object, () => Promise<void>>()
 
 // Bootstrap and the mounted battle page share initialization. Display-scope changes
 // invalidate pending local commits even when the loader itself cannot be cancelled.
@@ -196,6 +201,10 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     reset() {
+      void localMetadataReleases
+        .get(this)?.()
+        .catch(error => console.warn('本地内容释放失败', error))
+      localMetadataReleases.delete(this)
       invalidateMetadata(this)
       setServerContentText(null)
       this.loaded = false
@@ -224,6 +233,8 @@ export const useGameDataStore = defineStore('gameData', {
         loaded: this.loaded,
         gameDataLoaded: this.gameDataLoaded,
         error: this.error,
+        contentText: getServerContentText(),
+        remoteText: isRemoteContentActive(),
       }
       this.species = species
       this.skills = skills
@@ -241,7 +252,7 @@ export const useGameDataStore = defineStore('gameData', {
       const previous = this.serverFallback
       if (!previous) return
       invalidateMetadata(this)
-      setServerContentText(null)
+      setServerContentText(previous.contentText, previous.remoteText)
       this.species = previous.species
       this.skills = previous.skills
       this.marks = previous.marks
@@ -264,6 +275,27 @@ export const useGameDataStore = defineStore('gameData', {
       const isCurrent = () => scope.generation === generation
       const work = (async () => {
         try {
+          if (getDesktopApi()) {
+            const captured = await acquireLocalContent()
+            if (!captured) throw new Error('本地内容服务不可用')
+            if (!isCurrent()) {
+              await captured.release()
+              return
+            }
+            this.species = this.normalizeData(captured.content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
+            this.skills = this.normalizeData(captured.content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
+            this.marks = this.normalizeData(captured.content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
+            this.nativeEffectIds = []
+            this.workspaceRuntime = emptyWorkspaceRuntime()
+            this.serverFallback = null
+            this.loaded = this.gameDataLoaded = true
+            this.error = null
+            const previous = localMetadataReleases.get(this)
+            localMetadataReleases.set(this, captured.release)
+            setServerContentText(captured.content, false)
+            await previous?.()
+            return
+          }
           const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
           if (!isCurrent()) return
           applyRuntimeAssetBase(packRef)

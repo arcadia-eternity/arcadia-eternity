@@ -14,7 +14,7 @@ const repository = fileURLToPath(new URL('../../../../', import.meta.url))
 test(
   'actual Electron window automatically converges package choices without confirmation or restart',
   {
-    timeout: 120000,
+    timeout: 240000,
     skip: process.env.ARCADIA_DESKTOP_GUI_TEST !== '1',
   },
   async t => {
@@ -56,6 +56,20 @@ test(
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
       }, tarball)
       const page = await application.firstWindow({ timeout: 20000 })
+      // Match the ordinary browser smoke fixture: scene readiness is independent of the CDN.
+      await page.addInitScript(() => localStorage.setItem('gameSetting.battleRenderer', '"image"'))
+      await page.route('**/png/battleBackground/*.png', route =>
+        route.fulfill({
+          contentType: 'image/svg+xml',
+          body: '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="1200" height="800" fill="#283546"/></svg>',
+        }),
+      )
+      await page.route('**/png/pet/*.png', route =>
+        route.fulfill({
+          contentType: 'image/svg+xml',
+          body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><circle cx="60" cy="60" r="45" fill="#7e9bbc"/></svg>',
+        }),
+      )
       await page.goto(rendererUrl + '/content', { timeout: 20000 })
       await page.getByRole('button', { name: '添加内容包', exact: true }).click()
       await page.getByRole('button', { name: '安装本地 .tgz 文件', exact: true }).click()
@@ -68,6 +82,86 @@ test(
       await expect(page.getByLabel('启用 ' + pkg.title, { exact: true })).toBeChecked()
       const status = await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())
       assert.equal(status.status, 'idle')
+      // Personal editing and the ordinary local page consume the installed selection.
+      await page.evaluate(async () => {
+        const path = '/src/stores/petStorage.ts'
+        const { usePetStorageStore } = await import(path)
+        const store = usePetStorageStore()
+        store.teams = [
+          {
+            name: 'UGC ordinary local',
+            ruleSetId: 'casual_standard_ruleset',
+            pets: [
+              {
+                id: '111111111111111111111',
+                name: 'UGC pet',
+                species: 'example-slow:pet',
+                level: 100,
+                nature: 'Hardy',
+                gender: 'Male',
+                skills: ['example-slow:strike'],
+                evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+                ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+              },
+            ],
+          },
+        ]
+        store.currentTeamIndex = 0
+        store.initialized = true
+        if (!store.validateAndSave()) throw new Error('Invalid local UGC team fixture')
+      })
+      await page.goto(rendererUrl + '/team-builder')
+      await expect(page.getByRole('heading', { name: '队伍编辑器', exact: true })).toBeVisible()
+      await expect
+        .poll(() =>
+          page.evaluate(async () => {
+            const path = '/src/stores/gameData.ts'
+            return !!(await import(path)).useGameDataStore().species.byId['example-slow:pet']
+          }),
+        )
+        .toBe(true)
+      await page.goto(rendererUrl + '/local-battle')
+      await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+      await page.waitForURL(/\/battle\?dev=true/)
+      await expect
+        .poll(() =>
+          page.evaluate(async () => {
+            const path = '/src/stores/battle.ts'
+            const system = (await import(path)).useBattleStore().battleInterface
+            const state = await system.getState(undefined, true)
+            return (await system.getAvailableSelection(state.players[0].id)).some(action => action.type === 'use-skill')
+          }),
+        )
+        .toBe(true)
+      const initial = await page.evaluate(async () => {
+        const path = '/src/stores/battle.ts'
+        const system = (await import(path)).useBattleStore().battleInterface
+        return system.getState(undefined, true)
+      })
+      assert.equal(initial.players[0].team[0].speciesID, 'example-slow:pet')
+      await page.evaluate(async () => {
+        const path = '/src/stores/battle.ts'
+        const store = (await import(path)).useBattleStore(),
+          system = store.battleInterface
+        const state = await system.getState(undefined, true)
+        const actions = await system.getAvailableSelection(state.players[0].id)
+        await system.submitAction(actions.find(action => action.type === 'use-skill'))
+      })
+      await expect
+        .poll(() =>
+          page.evaluate(async () => {
+            const path = '/src/stores/battle.ts'
+            const state = await (await import(path)).useBattleStore().battleInterface.getState(undefined, true)
+            return state.players[0].team[0].stats.spe
+          }),
+        )
+        .toBeLessThan(initial.players[0].team[0].stats.spe)
+      await page.evaluate(async () => {
+        const path = '/src/stores/battle.ts'
+        await (await import(path)).useBattleStore().resetBattleWithoutSurrender()
+      })
+      await page.goto(rendererUrl + '/content')
+      await page.locator('.package-select').filter({ hasText: pkg.title }).click()
       await page.screenshot({ path: join(output, 'installed.png'), fullPage: true })
       await page.getByLabel('启用 ' + pkg.title, { exact: true }).uncheck()
       await expect(page.locator('.package-detail > .detail-subtitle')).toContainText('已安装，未启用')
@@ -95,6 +189,8 @@ test(
         const diagnostics = await application
           .windows()[0]
           .evaluate(async () => ({
+            page: location.href,
+            text: document.body.innerText.slice(0, 4000),
             library: await window.arcadiaDesktop.listContentPackages(),
             host: await window.arcadiaDesktop.getLocalBattleStatus(),
           }))

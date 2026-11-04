@@ -276,6 +276,10 @@ describe('private desktop content control', () => {
         second = await project('control-second')
       const initial = await instance.start(first)
       const prepared = await instance.prepareProject(second)
+      assert.deepEqual(
+        new Set(await instance.retainedProjectDirectories()),
+        new Set([await realpath(first), await realpath(second)]),
+      )
       assert.equal(instance.projectDirectory(), await realpath(first))
       const previous = await instance.selectPrepared(prepared)
       assert.equal(instance.projectDirectory(), await realpath(second))
@@ -283,6 +287,27 @@ describe('private desktop content control', () => {
       await instance.selectPrepared(previous)
       assert.equal(instance.projectDirectory(), previous.directory)
       await instance.retirePrepared(prepared)
+      assert.deepEqual(await instance.retainedProjectDirectories(), [await realpath(first)])
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('retains every project directory associated with a reused environment ID until retirement completes', async () => {
+    const instance = host()
+    try {
+      const initial = await project('reuse-initial'),
+        first = await project('reuse-id-first'),
+        second = await project('reuse-id-second')
+      await instance.start(initial)
+      const a = await instance.prepareProject(first)
+      const b = await instance.prepareProject(second)
+      assert.equal(a.id, b.id)
+      assert.deepEqual(
+        new Set(await instance.retainedProjectDirectories()),
+        new Set([await realpath(initial), await realpath(first), await realpath(second)]),
+      )
+      await instance.retirePrepared(a)
+      assert.deepEqual(await instance.retainedProjectDirectories(), [await realpath(initial)])
     } finally {
       await instance.stop()
     }

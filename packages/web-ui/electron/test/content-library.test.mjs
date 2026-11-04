@@ -1,6 +1,6 @@
 import { after, before, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { ContentLibrary } from '../content-library.mjs'
@@ -27,8 +27,10 @@ async function fixture(name) {
   const prepared = [],
     selected = [],
     retired = []
+  const heldDirectories = new Set()
   const host = {
     status: () => status,
+    retainedProjectDirectories: async () => [...heldDirectories, ...(running ? [running] : [])],
     projectDirectory: () => running,
     start: async dir => {
       running = dir
@@ -124,6 +126,7 @@ async function fixture(name) {
   }
   return {
     manager,
+    heldDirectories,
     prepared,
     selected,
     retired,
@@ -409,6 +412,129 @@ it('does not prepare or switch content again when reopening an already ready cli
     await new Promise(resolve => setTimeout(resolve, 350))
     assert.equal(f.prepared.length, count)
     assert.equal((await f.manager.list()).selection.status, 'ready')
+  } finally {
+    await f.manager.close()
+  }
+})
+
+const activeDirectory = async f => {
+  const state = JSON.parse(await readFile(join(f.libraryRoot, 'library.json'), 'utf8'))
+  return join(f.libraryRoot, 'projects', 'content-' + state.activeProject.replaceAll('-', ''))
+}
+const exists = async directory => !!(await realpath(directory).catch(() => null))
+it('collects historical successful combinations while protecting installed, active, staged and leased projects', async () => {
+  const f = await fixture('gc-boundaries')
+  try {
+    const a = await install(f, 'a'),
+      b = await install(f, 'b')
+    await f.manager.setSelection([a], true)
+    await settled(f.manager)
+    const old = await activeDirectory(f)
+    const first = await f.manager.acquireProject(),
+      second = await f.manager.acquireProject()
+    const staged = await f.manager.planSelection([a, b], true)
+    const stagedRoot = f.calls.filter(args => args[2] === 'stage').at(-1)[3]
+    await f.manager.setSelection([b], true)
+    await settled(f.manager)
+    await f.manager.collectGarbage()
+    assert.ok(await exists(old))
+    assert.ok(await exists(stagedRoot))
+    assert.ok(await f.manager.sourceDirectory(a))
+    assert.ok(await f.manager.sourceDirectory(b))
+    assert.ok(await exists(await activeDirectory(f)))
+    await first.release()
+    await first.release()
+    assert.ok(await exists(old))
+    await second.release()
+    assert.equal(await exists(old), false)
+    await f.manager.cancel(staged.id)
+    assert.equal(await exists(stagedRoot), false)
+    const unleased = await activeDirectory(f)
+    await f.manager.setSelection([a], true)
+    await settled(f.manager)
+    await f.manager.collectGarbage()
+    assert.equal(await exists(unleased), false)
+  } finally {
+    await f.manager.close()
+  }
+})
+it('retains retired host environments until their room/checkpoint leases actually disappear', async () => {
+  const f = await fixture('gc-host-lease')
+  try {
+    const a = await install(f, 'a'),
+      b = await install(f, 'b')
+    await f.manager.setSelection([a], true)
+    await settled(f.manager)
+    await f.manager.start()
+    const old = f.host.projectDirectory()
+    f.heldDirectories.add(old)
+    await f.manager.setSelection([b], true)
+    await settled(f.manager)
+    await f.manager.collectGarbage()
+    assert.ok(f.retired.some(value => value.directory === old))
+    assert.ok(await exists(old))
+    f.heldDirectories.delete(old)
+    await f.manager.collectGarbage()
+    assert.equal(await exists(old), false)
+  } finally {
+    await f.manager.close()
+  }
+})
+it('keeps the fallback on failed goals, skips uncertain host state, and collects orphans safely after restart', async () => {
+  const f = await fixture('gc-restart')
+  const a = await install(f, 'a'),
+    b = await install(f, 'b')
+  await f.manager.setSelection([a], true)
+  await settled(f.manager)
+  const fallback = await activeDirectory(f)
+  f.fail()
+  await f.manager.setSelection([b], true)
+  await settled(f.manager, 'failed')
+  await f.manager.collectGarbage()
+  assert.ok(await exists(fallback))
+  const orphan = join(f.libraryRoot, 'projects', 'content-' + 'a'.repeat(32))
+  await mkdir(orphan)
+  const foreign = join(f.libraryRoot, 'projects', 'user-directory')
+  await mkdir(foreign)
+  const linked = join(f.libraryRoot, 'projects', 'content-' + 'b'.repeat(32))
+  await symlink(foreign, linked, 'dir')
+  const lifecycle = f.host.retainedProjectDirectories
+  f.host.retainedProjectDirectories = async () => {
+    throw new Error('disconnected')
+  }
+  await f.manager.collectGarbage()
+  assert.ok(await exists(orphan))
+  f.host.retainedProjectDirectories = lifecycle
+  await f.manager.close()
+  const restored = new ContentLibrary({ root: f.libraryRoot, host: f.host, run: f.run })
+  try {
+    await restored.resume()
+    assert.equal(await exists(orphan), false)
+    assert.ok(await exists(fallback))
+    assert.ok(await exists(foreign))
+    assert.ok((await readdir(join(f.libraryRoot, 'projects'))).includes('content-' + 'b'.repeat(32)))
+  } finally {
+    await restored.close()
+  }
+})
+it('leases official-only content before the first selection and rejects static preparation before publication', async () => {
+  const f = await fixture('gc-static-prepare')
+  const lease = await f.manager.acquireProject()
+  assert.equal(lease.directory, null)
+  assert.equal(lease.builtinOnly, true)
+  await lease.release()
+  const a = await install(f, 'a')
+  f.manager.prepare = async () => {
+    throw new Error('COMPILE_FAILED')
+  }
+  try {
+    await f.manager.setSelection([a], true)
+    const snapshot = await settled(f.manager, 'failed')
+    assert.deepEqual(snapshot.activeIds, [])
+    assert.match(snapshot.selection.message, /COMPILE_FAILED/)
+    assert.deepEqual(snapshot.desiredIds, [a])
+    await f.manager.collectGarbage()
+    assert.equal((await readdir(join(f.libraryRoot, 'projects'))).length, 1)
   } finally {
     await f.manager.close()
   }

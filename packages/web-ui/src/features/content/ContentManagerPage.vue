@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
+import { isRemoteContentActive } from '@/i18n/serverContent'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
@@ -230,7 +231,9 @@ async function refresh() {
   const request = ++refreshRequest
   const result = await api!.listContentPackages!()
   if (disposed || request !== refreshRequest) return
+  const changed = snapshot.value && JSON.stringify(snapshot.value.activeIds) !== JSON.stringify(result.activeIds)
   snapshot.value = result
+  if (changed && !isRemoteContentActive()) await gameData.reload()
   if (!pendingSelections.value) draftIds.value = [...result.desiredIds]
 }
 async function poll() {

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { copyFile, lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -93,10 +93,14 @@ export class ContentLibrary {
   #reconciling
   #sync = { status: 'idle' }
   #settledGoal
-  constructor({ root, run, host }) {
+  #leases = new Map()
+  #gcTimer
+  constructor({ root, run, host, prepare = async () => {}, selected = () => {} }) {
     this.root = root
     this.run = run
     this.host = host
+    this.prepare = prepare
+    this.selected = selected
   }
   async #load() {
     if (this.#state) return
@@ -195,6 +199,74 @@ export class ContentLibrary {
       throw error
     }
     return dir
+  }
+  /** Capture the active project before a local session starts; release after its runtime disposes. */
+  async acquireProject() {
+    return this.#exclusive(async () => {
+      const id = this.#state.activeProject
+      const directory = id ? await this.#directory(id) : null
+      if (id) this.#leases.set(id, (this.#leases.get(id) ?? 0) + 1)
+      let released = false
+      return {
+        directory,
+        builtinOnly: this.#state.activeIds.length === 0,
+        release: async () => {
+          if (released) return
+          released = true
+          if (id) {
+            const count = this.#leases.get(id) - 1
+            if (count) this.#leases.set(id, count)
+            else this.#leases.delete(id)
+          }
+          if (!this.#controller.signal.aborted) await this.collectGarbage()
+        },
+      }
+    })
+  }
+  async collectGarbage() {
+    return this.#exclusive(() => this.#collectGarbage())
+  }
+  async #collectGarbage() {
+    clearTimeout(this.#gcTimer)
+    this.#gcTimer = undefined
+    const protectedIds = new Set([
+      ...this.#state.installed.map(entry => entry.id),
+      this.#state.activeProject,
+      ...Array.from(this.#plans.values(), plan => plan.project),
+      ...this.#leases.keys(),
+    ])
+    // Retirement is only a request: rooms, checkpoints and asset streams may still own leases.
+    let retained
+    try {
+      if (this.host.retainedProjectDirectories) retained = await this.host.retainedProjectDirectories()
+      else if (this.host.status().status !== 'idle') return
+      else retained = []
+    } catch {
+      this.#scheduleGc()
+      return
+    }
+    const held = new Set(retained)
+    const projects = join(this.root, 'projects')
+    for (const entry of await readdir(projects, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !/^content-[0-9a-f]{32}$/.test(entry.name)) continue
+      const id = entry.name.slice(8).replace(/^(........)(....)(....)(....)(............)$/, '$1-$2-$3-$4-$5')
+      if (protectedIds.has(id)) continue
+      const directory = join(projects, entry.name)
+      if (held.has(directory)) {
+        this.#scheduleGc()
+        continue
+      }
+      if ((await realpath(directory)) !== directory) continue
+      await rm(directory, { recursive: true, force: true })
+    }
+  }
+  #scheduleGc() {
+    if (this.#controller.signal.aborted || this.#gcTimer) return
+    this.#gcTimer = setTimeout(() => {
+      this.#gcTimer = undefined
+      void this.collectGarbage().catch(() => {})
+    }, 30000)
+    this.#gcTimer.unref?.()
   }
   async sourceDirectory(id) {
     await this.#load()
@@ -439,6 +511,7 @@ export class ContentLibrary {
           ['content', 'validate', ...(plan.ids.length ? ['--npm-project', directory] : [])],
           this.#controller.signal,
         )
+        await this.prepare({ directory, builtinOnly: plan.ids.length === 0 })
         await this.#update(state => ({
           ...state,
           revision: state.revision + 1,
@@ -450,6 +523,8 @@ export class ContentLibrary {
           activeGoalRevision: state.goalRevision + 1,
         }))
         this.#plans.delete(id)
+        this.selected({ directory, builtinOnly: plan.ids.length === 0 })
+        await this.#collectGarbage().catch(() => {})
       } catch (error) {
         this.#plans.delete(id)
         await rm(directory, { recursive: true, force: true })
@@ -485,6 +560,7 @@ export class ContentLibrary {
   }
   async resume() {
     await this.#load()
+    await this.collectGarbage().catch(() => {})
     if (this.#state.activeProject && this.#state.activeGoalRevision === this.#state.goalRevision) {
       this.#sync = { status: 'ready' }
       this.#settledGoal = this.#state.goalRevision
@@ -547,6 +623,7 @@ export class ContentLibrary {
               this.#controller.signal,
             )
           }
+          await this.prepare({ directory, builtinOnly: goal.ids.length === 0 })
           if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
           // Only an explicitly started hosting process receives updates. Offline
           // content preparation never starts rooms, matchmaking or an HTTP server.
@@ -568,6 +645,7 @@ export class ContentLibrary {
             throw error
           }
           retained = true
+          this.selected({ directory, builtinOnly: goal.ids.length === 0 })
           if (previous && prepared && previous.id !== prepared.id)
             await this.host.retirePrepared(previous).catch(() => {})
         })
@@ -586,12 +664,8 @@ export class ContentLibrary {
         if (plan) this.#plans.delete(plan.id)
         if (!retained) {
           if (prepared) await this.host.retirePrepared(prepared).catch(() => {})
-          if (plan && this.host.projectDirectory() !== directory)
-            await rm(directory ?? join(this.root, 'projects', storageName(plan.project)), {
-              recursive: true,
-              force: true,
-            }).catch(() => {})
         }
+        if (!this.#controller.signal.aborted) await this.collectGarbage().catch(() => {})
       }
     }
   }
@@ -606,6 +680,7 @@ export class ContentLibrary {
   async close() {
     this.#controller.abort()
     clearTimeout(this.#scheduled)
+    clearTimeout(this.#gcTimer)
     await this.#reconciling
     await this.#idle
     await this.#writes

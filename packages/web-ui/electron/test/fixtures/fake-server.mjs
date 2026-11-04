@@ -47,13 +47,14 @@ if (project === 'unapproved') {
     const reply = (ok, value) => {
       if (process.connected) process.send({ type: 'arcadia.desktop.content.result', id: message.id, ok, value })
     }
+    if (message.action === 'retained') return reply(true, [...environments.keys()])
     if (message.action === 'describe') return reply(true, current)
     if (message.action === 'prepare') {
       if (message.directory?.endsWith('bad-control')) return reply(false)
       if (message.directory?.endsWith('held-control')) await new Promise(resolve => setTimeout(resolve, 2000).unref())
       const value = message.builtinOnly
         ? environments.get('base')
-        : { id: message.directory, packages: [{ name: 'next' }] }
+        : { id: message.directory?.includes('reuse-id-') ? 'reused' : message.directory, packages: [{ name: 'next' }] }
       environments.set(value.id, value)
       return reply(true, value)
     }

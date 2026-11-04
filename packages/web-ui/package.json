@@ -23,6 +23,7 @@
     "test:e2e:online:webrtc:external": "cross-env PLAYWRIGHT_ONLINE=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:4176 PLAYWRIGHT_P2P_TRANSPORT=webrtc playwright test e2e/private-room-online.spec.ts --config playwright.external.config.ts",
     "test:e2e:headed": "playwright test --headed",
     "test:run": "vitest run",
+    "test:desktop-local-content": "vitest run --config electron/test/local-content.vitest.config.mjs",
     "test:content-locales": "vitest run src/i18n/__tests__/contentLocales.test.ts src/i18n/__tests__/richDescription.test.ts src/components/__tests__/ContentDescription.test.ts src/features/authoring/__tests__/AuthorDescription.test.ts --maxWorkers=1",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",

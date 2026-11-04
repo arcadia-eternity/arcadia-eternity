@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { localStorageUnavailable } from '@/services/localStorage'
 import ObjectIcon from './ObjectIcon.vue'
 import ContentTraits from './ContentTraits.vue'
 import { skillCategories } from './traits'
@@ -11,7 +12,7 @@ import SourceMediaPreview from './SourceMediaPreview.vue'
 import { contentTypes, objectType, initialRecord, localeFor } from './objects'
 import { readResourceBytes } from '@/services/resourceTransport'
 import AuthorDescription, { descriptionProblem } from './AuthorDescription'
-import { useAuthorDrafts, isConflict, recordKey, reviewToken, type AuthorDraft } from './drafts'
+import { useAuthorDraftStorage, useAuthorDrafts, isConflict, recordKey, reviewToken, type AuthorDraft } from './drafts'
 import { clone, object, sharedAt, sharedFieldsUnder } from './fields'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
 import { createCatalogIndex, textSource } from './catalog'
@@ -28,7 +29,7 @@ import {
 const projects = ref<SourceProject[]>([]),
   project = ref<SourceProject>(),
   snapshot = shallowRef<AuthorSnapshot>()
-const store = useAuthorDrafts(),
+const store = useAuthorDrafts(useAuthorDraftStorage()),
   { drafts, pending, conflicts } = store
 const busy = ref(false),
   error = ref(''),
@@ -390,6 +391,12 @@ function editAssetSource(event: Event) {
 const files = computed(() => snapshot.value?.files.filter(row => row.file.startsWith('src/')) ?? [])
 const testFiles = computed(() => snapshot.value?.files.filter(row => /^(test|tests)\//.test(row.file)) ?? [])
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
+const builtPack = computed(() => jobs.value.find(job => job.kind === 'pack' && job.state === 'succeeded'))
+async function installBuiltPack() {
+  if (!builtPack.value) return
+  await action<{ packageId: string }>({ action: 'install-built-author-pack', jobId: builtPack.value.jobId })
+  notice.value = '此构建版本已安装，正在准备启用。可在内容包管理中查看状态。'
+}
 const latestJob = computed(() => jobs.value[0])
 const latestOutput = computed(() =>
   (latestJob.value?.output ?? '')
@@ -616,7 +623,7 @@ async function openProject(next: SourceProject) {
   recent.value = []
   localeScope.value = null
   screen.value = 'editor'
-  store.clear()
+  store.activate(next.id, !!next.published || !!next.readOnly)
   if (previous && previous !== next.id) await authorCall({ action: 'close', id: previous })
   await refresh()
   categoryViews.clear()
@@ -983,7 +990,7 @@ async function preview(file: string, resourceId?: string) {
   await readAsset(file, resourceId)
 }
 function beforeUnload(event: BeforeUnloadEvent) {
-  if (dirty.value) {
+  if (dirty.value && localStorageUnavailable.value) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -997,7 +1004,7 @@ watch(pendingFiles, (next, previous) => {
       error.value = String(cause)
     })
 })
-onBeforeRouteLeave(() => !busy.value && (!dirty.value || window.confirm('离开将丢弃未保存的草稿，继续吗？')))
+onBeforeRouteLeave(() => !busy.value)
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload)
   contextHeartbeat = setInterval(() => void publishContext(), 30000)
@@ -1172,6 +1179,8 @@ onBeforeUnmount(() => {
           连接本机 SDK</button
         ><button v-if="!readOnly" :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">
           构建内容包</button
+        ><button v-if="!readOnly && builtPack" :disabled="busy || running" @click="attempt(installBuiltPack)">
+          安装此版本</button
         ><small>{{ project.directory }}</small>
       </div>
     </details>

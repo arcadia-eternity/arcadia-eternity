@@ -12,7 +12,7 @@
 - 页面区分目标选择与当前可用内容，显示“准备中／已就绪／未能启用”。失败保留最近可用版本和未完成目标；可以直接调整选择或重试，不需要重新确认。下次打开客户端会恢复目标；较新目标仍有问题时先恢复最近可用内容。
 - 依赖解析由 npm 处理；安装操作允许该包声明的依赖闭包在本机运行。已启用包的依赖详情展示当前组合的实际解析结果。高级服务器项目的本地代码编辑继续沿用 `local-development` 策略。
 - 安装、启停内容包和重开客户端只准备本机内容，不启动联机服务。只有明确选择“由本机托管联机对战”才启动服务；若已主动托管，内容变化通过私有 IPC 更新新房间的默认内容，已有房间继续持有原实例。停止托管后，后续包选择不会重新启动服务。
-- 停用并等待准备完成后才能卸载。只删除受管安装，不删除源 tgz、队伍或仓库。过期候选目录自动删除；成功使用过的组合目录暂保留，运行实例则在旧房间全部释放后回收。
+- 停用并等待准备完成后才能卸载。只删除受管安装，不删除源 tgz、队伍或仓库。过期候选目录自动删除；成功组合的回收保护已安装包、当前可用组合、正在准备的组合、所有房间持有的组合和本地战斗租约。只有失去这些引用的组合才可回收。
 - “需处理”列出安装目录／包文件丢失；组合失败同时在状态区显示实际原因。异常安装可以停用后移除记录，再重新安装。
 
 普通运行库保留在详情的依赖清单，不伪装成独立精灵内容包。官方基础内容始终保留，也支持不启用任何自定义包的本机服务。
@@ -46,6 +46,12 @@
 - 真实桌面窗口：先构建 CLI 并启动前端开发服务，再执行 `ARCADIA_DESKTOP_GUI_TEST=1 node --test packages/web-ui/electron/test/content-library-electron.test.mjs`；默认使用 `http://127.0.0.1:4173`，可用 `ARCADIA_DESKTOP_GUI_URL` 指定。测试隔离应用数据，仅替代原生文件选择器的返回值，其余使用真实 preload、IPC、npm 和服务进程。
 - 浏览器交互与移动端：`PLAYWRIGHT_CHROME_CHANNEL=chrome pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-manager.spec.ts e2e/team-builder.spec.ts`
 
-创作页的草稿试战已接入 `/local-battle` 配置和完整战斗界面，直接复用现有本地内核；不创建新的进程或联机服务。会话统一管理草稿快照、临时队伍、展示覆盖和战斗清理，见 [本地试战生命周期](./local-trial-lifecycle.md)。已安装 npm 代码包与普通离线对战的接入仍是独立工作。
+普通桌面本地对战和个人队伍编辑使用 ContentLibrary 最近成功准备的内容组合，沙箱执行与名称、说明、资源展示来自同一组合。新目标准备中或失败时继续使用原可用组合；新局捕获组合并持有租约，之后切换内容不会改变当前对局。作者调试使用独立预览窗口，见 [本地试战生命周期](./local-trial-lifecycle.md)。
+
+作者构建成功后可以点击“安装此版本”。宿主通过项目与成功 pack 任务查找真实产物，核对任务、受管路径和产物哈希后安装并启用；不接受前端指定任意归档路径。同名同版本已安装时显示错误，不覆盖已有版本。
+
+内容编辑草稿通过已注册的 Pinia 持久化插件与 localDataStorage 按项目保存，存储失败沿用全局提示。刷新或重启后恢复修改和原始基版本，并与当前文件重新核对冲突。保存只清除已成功保存文件的草稿，放弃清空当前项目；只读安装包不恢复或写入编辑草稿。
 
 真实包库测试使用 `examples/ugc/slow` 的实际 npm tgz，完成检查、准入、组合、校验、启动、公开内容读取、同一进程内自动切换、旧房间保留原内容、新房间使用新选择及卸载；高级项目测试另覆盖导出、重装及本地代码编辑。它们不代替签名安装包的跨平台验收。
+
+普通桌面组合的静态捕获、资源租约、并发准备与真实 Worker UGC 效果回归可单独运行：`pnpm --filter @arcadia-eternity/web-ui test:desktop-local-content`。库与宿主回收边界使用 `node --test packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-content-owner.test.mjs`。真实宿主回归需先构建 server 与 CLI，再运行 `ARCADIA_DESKTOP_REAL_HOST=1 node --test packages/web-ui/electron/test/content-library-real.test.mjs`。

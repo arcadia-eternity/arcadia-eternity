@@ -49,6 +49,45 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
+it('desktop local names and descriptions survive a remote room round trip and reload replaces only its metadata lease', async () => {
+  const pet = {
+    ...structuredClone(data.species[0]),
+    id: 'local:pet',
+    learnable_skills: [],
+    ability: [],
+    emblem: [],
+    name: '本地精灵',
+  }
+  const content = {
+    species: [pet],
+    skills: [],
+    marks: [],
+    locales: {
+      defaultLocale: 'zh-CN',
+      bundles: { 'zh-CN': { species: { 'local:pet': { name: '本地名称', description: '本地说明' } } } },
+    },
+  }
+  const releaseLocalContent = vi.fn(async () => {})
+  const prepareLocalContent = vi.fn(async () => ({ token: 'metadata', environment: {}, content }))
+  vi.stubGlobal('window', { arcadiaDesktop: { prepareLocalContent, releaseLocalContent } })
+  const store = useGameDataStore()
+  await store.initialize()
+  const local = store.species
+  expect(isRemoteContentActive()).toBe(false)
+  expect(serverText('species', 'local:pet', 'name')).toBe('本地名称')
+  store.applyServerEnvironment({ species: [{ ...pet, id: 'room:pet' }], skills: [], marks: [] })
+  expect(isRemoteContentActive()).toBe(true)
+  expect(releaseLocalContent).not.toHaveBeenCalled()
+  store.clearServerEnvironment()
+  expect(store.species).toBe(local)
+  expect(isRemoteContentActive()).toBe(false)
+  expect(serverText('species', 'local:pet', 'name')).toBe('本地名称')
+  expect(serverText('species', 'local:pet', 'description')).toBe('本地说明')
+  await store.reload()
+  expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('metadata')
+  store.reset()
+})
+
 it('trial display restores exact prior records and text, including the connected room', async () => {
   const store = useGameDataStore()
   await store.initialize()

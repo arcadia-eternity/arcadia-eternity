@@ -101,6 +101,8 @@ export class LocalBattleHost {
   #stopping
   #generation = 0
   #projectDirectory
+  #projects = new Map()
+  #uncertainProjects = new Set()
   constructor({
     executable,
     cli,
@@ -156,7 +158,14 @@ export class LocalBattleHost {
   async prepareProject(directory, { builtinOnly = false } = {}) {
     const canonical = await realpath(directory)
     if (this.#state.status !== 'running') throw problem('HOST_UNAVAILABLE', '请先明确启动本机联机托管')
+    this.#uncertainProjects.add(canonical)
     const descriptor = await this.#request('prepare', { directory: canonical, builtinOnly })
+    this.#uncertainProjects.delete(canonical)
+    if (descriptor.packages.length) {
+      const directories = this.#projects.get(descriptor.id) ?? new Set()
+      directories.add(canonical)
+      this.#projects.set(descriptor.id, directories)
+    }
     return { id: descriptor.id, directory: canonical, builtinOnly: !descriptor.packages.length, started: false }
   }
   async selectPrepared(prepared) {
@@ -167,6 +176,22 @@ export class LocalBattleHost {
   }
   async retirePrepared(prepared) {
     if (prepared && !prepared.builtinOnly) await this.#request('retire', { environmentId: prepared.id })
+  }
+  /** Includes retired environments until their final room/checkpoint/asset lease is released. */
+  async retainedProjectDirectories() {
+    if (!this.#child) return []
+    const child = this.#child
+    const ids = await this.#request('retained')
+    if (child !== this.#child || !Array.isArray(ids) || ids.some(id => typeof id !== 'string'))
+      throw problem('HOST_UNAVAILABLE', '无法确认内容使用状态')
+    const retained = new Set(ids)
+    for (const id of this.#projects.keys()) if (!retained.has(id)) this.#projects.delete(id)
+    return [
+      ...new Set([
+        ...Array.from(this.#projects.values()).flatMap(directories => [...directories]),
+        ...this.#uncertainProjects,
+      ]),
+    ]
   }
   /** Last resort during application shutdown; the child is already unresponsive. */
   forceStop() {
@@ -310,6 +335,12 @@ export class LocalBattleHost {
       })
       if (generation !== this.#generation || this.#child !== child) throw problem('HOST_STOPPED', '本机对战服务已停止')
       this.#state = { status: 'running', url: `http://127.0.0.1:${port}`, serverId, projectName: basename(directory) }
+      this.#projects.clear()
+      this.#uncertainProjects.clear()
+      if (!builtinOnly) {
+        const descriptor = await this.#request('describe')
+        this.#projects.set(descriptor.id, new Set([projectDirectory]))
+      }
       return this.status()
     } catch (error) {
       const wasCurrent = generation === this.#generation

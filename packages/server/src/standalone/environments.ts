@@ -18,6 +18,7 @@ interface Environment {
   dispose(): Promise<void>
   retired: boolean
   references: number
+  disposing?: Promise<void>
 }
 export interface EnvironmentLease {
   readonly runtime: StandaloneRuntime
@@ -35,6 +36,7 @@ const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(va
 /** Local administrator API. Public HTTP/socket clients can only select prepared entries. */
 export class ServerEnvironmentRegistry {
   private readonly entries = new Map<string, Environment>()
+  private readonly disposingIds = new Set<string>()
   private initializing?: Promise<void>
   private defaultId?: string
   private builtinId?: string
@@ -276,6 +278,10 @@ export class ServerEnvironmentRegistry {
     }
   }
 
+  /** Private host lifecycle inspection, including retired entries still held by leases. */
+  retainedIds(): string[] {
+    return [...new Set([...this.entries.keys(), ...this.disposingIds])]
+  }
   list(): ServerEnvironmentDescriptor[] {
     return [...this.entries.values()].filter(entry => !entry.retired).map(entry => structuredClone(entry.descriptor))
   }
@@ -347,8 +353,12 @@ export class ServerEnvironmentRegistry {
   }
   private async collect(entry: Environment) {
     if (!entry.retired || entry.references) return
-    this.entries.delete(entry.descriptor.id)
-    await entry.dispose()
+    const id = entry.descriptor.id
+    this.disposingIds.add(id)
+    this.entries.delete(id)
+    entry.disposing ??= entry.dispose()
+    await entry.disposing
+    this.disposingIds.delete(id)
   }
   async stop(): Promise<void> {
     this.closed = true

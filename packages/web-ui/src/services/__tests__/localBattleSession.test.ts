@@ -57,6 +57,57 @@ beforeEach(() => setActivePinia(createPinia()))
 afterEach(async () => {
   for (const value of sessions.splice(0)) await value.dispose().catch(() => {})
   vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
+it('pins desktop content from configuration through retries and battle cleanup', async () => {
+  const content = { species: [], skills: [], marks: [] }
+  const environment = { revision: 'fixed-local', data: emptyData, modules: [] }
+  const releaseLocalContent = vi.fn(async () => {})
+  const prepareLocalContent = vi.fn(async () => ({ token: 'configuration', environment, content }))
+  vi.stubGlobal('window', { arcadiaDesktop: { prepareLocalContent, releaseLocalContent } })
+  const native = prepared(),
+    factory = vi.fn<typeof createNativeWebBattleSession>(async () => native),
+    value = session(factory)
+  const target = destination(),
+    original = target.data.species
+  target.data.applyServerEnvironment({ species: [], skills: [], marks: [] })
+  await value.prepareContent(target.data)
+  expect(prepareLocalContent).toHaveBeenCalledOnce()
+  expect(target.data.species).not.toBe(original)
+  // The library may change after configuration; this session keeps the captured recipe.
+  prepareLocalContent.mockResolvedValue({ token: 'later', environment: { ...environment, revision: 'later' }, content })
+  target.navigate.mockRejectedValueOnce(new Error('route failed'))
+  await expect(value.start(player, player, {}, target)).rejects.toThrow('route failed')
+  expect(releaseLocalContent).not.toHaveBeenCalled()
+  await value.start(player, player, {}, target)
+  expect(factory.mock.calls[0]?.[3]?.environment).toEqual(environment)
+  expect(factory.mock.calls[1]?.[3]?.environment).toEqual(environment)
+  expect(prepareLocalContent).toHaveBeenCalledOnce()
+  expect(releaseLocalContent).not.toHaveBeenCalled()
+  await target.battle.resetBattleWithoutSurrender()
+  expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('configuration')
+  await value.dispose()
+  expect(releaseLocalContent).toHaveBeenCalledOnce()
+})
+
+it('can retry a failed desktop capture and releases the successful configuration once', async () => {
+  const releaseLocalContent = vi.fn(async () => {})
+  const prepareLocalContent = vi
+    .fn(async () => ({
+      token: 'retry',
+      environment: { revision: 'retry', data: emptyData, modules: [] },
+      content: { species: [], skills: [], marks: [] },
+    }))
+    .mockRejectedValueOnce(new Error('temporary preparation failure'))
+  vi.stubGlobal('window', { arcadiaDesktop: { prepareLocalContent, releaseLocalContent } })
+  const value = session(),
+    target = destination()
+  await expect(value.prepareContent(target.data)).rejects.toThrow('temporary preparation failure')
+  await value.prepareContent(target.data)
+  await value.dispose()
+  expect(prepareLocalContent).toHaveBeenCalledTimes(2)
+  expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('retry')
 })
 
 it('captures player and option inputs, transfers to battle, and releases its runtime exactly once', async () => {

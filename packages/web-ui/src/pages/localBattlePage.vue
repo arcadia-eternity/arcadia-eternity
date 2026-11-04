@@ -7,7 +7,8 @@
       <h2 class="text-xl font-semibold text-center text-gray-700 mb-6">战斗配置</h2>
 
       <div class="mb-6 p-4 bg-white rounded-md border border-gray-200 flex flex-col gap-3">
-        <p>对战环境：当前已准备的本地内容</p>
+        <p>对战环境：进入本页时已准备的本地内容（本次配置和对局保持固定）</p>
+        <p v-if="contentNotice" class="text-sm text-amber-700">{{ contentNotice }}</p>
         <TeamLibrarySelect :delegate="teamSelectors[0]!" label="玩家1队伍" />
         <TeamLibrarySelect :delegate="teamSelectors[1]!" label="玩家2队伍（AI）" />
         <router-link to="/team-builder" class="text-blue-600">管理个人编队</router-link>
@@ -76,6 +77,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
 
 import { LocalBattleSession } from '@/services/localBattleSession'
+import { getDesktopApi } from '@/utils/env'
 
 const router = useRouter()
 const route = useRoute()
@@ -85,6 +87,7 @@ const petStorage = usePetStorageStore()
 const dataStore = useGameDataStore()
 const errorMessage = ref<string | null>(null)
 const isLoading = ref(true)
+const contentNotice = ref('')
 
 const localSession = shallowRef(new LocalBattleSession())
 const battleTeams = computed(() => petStorage.teams)
@@ -272,17 +275,26 @@ async function initializeLocalBattle() {
   if (localSession.value !== session || session.state === 'disposed') return
   isLoading.value = true
   errorMessage.value = null
+  contentNotice.value = ''
   const owner = localSession.value
   const isCurrent = () => localSession.value === owner && owner.state !== 'disposed'
+  dataStore.clearServerEnvironment()
   // 初始化队伍选择
   initializeTeamSelection()
 
-  if (dataStore.loaded || dataStore.gameDataLoaded) {
+  if (!getDesktopApi() && (dataStore.loaded || dataStore.gameDataLoaded)) {
     dataStore.gameDataLoaded = true
     isLoading.value = false
   } else {
     try {
-      await dataStore.initialize()
+      if (getDesktopApi()) {
+        await session.prepareContent(dataStore)
+        const status = await getDesktopApi()!.listContentPackages?.()
+        if (status?.selection.status === 'preparing')
+          contentNotice.value = '新选择正在准备，本次使用最近可用组合。重新进入本页可使用准备完成后的内容。'
+        if (status?.selection.status === 'failed')
+          contentNotice.value = `新选择未能启用，本次使用最近可用组合：${status.selection.message ?? ''}`
+      } else await dataStore.initialize()
       if (isCurrent()) dataStore.gameDataLoaded = true
     } catch (error) {
       if (isCurrent()) errorMessage.value = `资源加载失败: ${(error as Error).message}`

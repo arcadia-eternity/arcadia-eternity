@@ -17,6 +17,8 @@ import { ContentLibrary } from './content-library.mjs'
 import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
 import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
+import { createLocalContentSessions } from './local-content-sessions.mjs'
+import { bindLocalContentOwner } from './local-content-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
 protectStandardStreams()
@@ -79,10 +81,12 @@ let localServer = null
 let localServerPort = null
 let petsDir = null
 let packsDir = null
-let workspacePackStatePath = null
 let creatorWorkStorage
 let contentProjects
 let contentLibrary
+let localContentSessions
+let localContentRuntime
+let localContentOwner
 let authorWorkspaces
 const authorPreviewWindows = new Map()
 const authorPreviewProjects = new WeakMap()
@@ -179,6 +183,8 @@ function getContentLibrary() {
   contentLibrary ??= new ContentLibrary({
     root: path.join(app.getPath('userData'), 'content-packages'),
     host: localBattleHost,
+    prepare: options => getLocalContentSessions().prepareProject(options),
+    selected: options => getLocalContentSessions().selectProject(options),
     run: (args, signal) =>
       runContentCommand(
         {
@@ -190,6 +196,60 @@ function getContentLibrary() {
       ),
   })
   return contentLibrary
+}
+async function loadLocalContentRuntime() {
+  localContentRuntime ??= (async () => {
+    const runtimeRequire = app.isPackaged
+      ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+      : require
+    const load = spec => import(pathToFileURL(runtimeRequire.resolve(spec)).href)
+    const [node, native, metadata, build, schema] = await Promise.all([
+      load('@arcadia-eternity/pack-loader/node'),
+      load('@arcadia-eternity/pack-loader/native'),
+      load('@arcadia-eternity/data-pack-base/metadata'),
+      load('@arcadia-eternity/data-pack-base/build'),
+      load('@arcadia-eternity/schema'),
+    ])
+    const root = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+    const hostRoot = app.isPackaged
+      ? path.join(process.resourcesPath, 'arcadia-server')
+      : path.resolve(projectRoot, '../..')
+    const artifact = await node.compileEffectModule(
+      runtimeRequire.resolve('@arcadia-eternity/data-pack-base/effects'),
+      hostRoot,
+      '@arcadia-eternity/data-pack-base',
+    )
+    const effectModules = [{ artifact, namespace: '', role: 'catalog' }]
+    const base = await new node.NativeNodePackLoader(build.nativeBuildIdentity, metadata.createOfficialContentIndex, {
+      templates: metadata.officialTemplateDefinitions,
+      effectModules,
+    }).load(path.join(root, 'pack.json'))
+    return {
+      base,
+      host: {
+        build: base.build,
+        base: base.data,
+        templates: metadata.officialTemplateDefinitions,
+        effectIds: metadata.officialEffectIds,
+        effectModules,
+      },
+      prepareNpmProject: node.prepareNpmProject,
+      presentationIndex: native.presentationIndex,
+      ...schema,
+    }
+  })().catch(error => {
+    localContentRuntime = undefined
+    throw error
+  })
+  return localContentRuntime
+}
+function getLocalContentSessions() {
+  localContentSessions ??= createLocalContentSessions({
+    library: getContentLibrary(),
+    load: loadLocalContentRuntime,
+    assetUrl: (token, hash) => `http://127.0.0.1:${localServerPort}/local-content/${token}/${hash}`,
+  })
+  return localContentSessions
 }
 function getContentProjects() {
   contentProjects ??= new ContentProjectManager({
@@ -761,7 +821,6 @@ async function ensureAppDataDirs() {
   const userDataDir = app.getPath('userData')
   petsDir = path.join(userDataDir, 'pets')
   packsDir = path.join(userDataDir, 'packs')
-  workspacePackStatePath = path.join(userDataDir, 'packs-state.json')
 
   await Promise.all([fs.mkdir(petsDir, { recursive: true }), fs.mkdir(packsDir, { recursive: true })])
   await ensureWorkspaceBasePack()
@@ -899,114 +958,14 @@ async function discoverWorkspacePacks() {
   return discovered
 }
 
-async function readWorkspacePackState() {
-  if (!workspacePackStatePath) {
-    return { disabledFolders: [] }
-  }
-
-  try {
-    const raw = JSON.parse(await fs.readFile(workspacePackStatePath, 'utf8'))
-    const disabledFolders = Array.isArray(raw?.disabledFolders)
-      ? raw.disabledFolders.filter(value => typeof value === 'string')
-      : []
-    return { disabledFolders }
-  } catch {
-    return { disabledFolders: [] }
-  }
-}
-
-async function writeWorkspacePackState(state) {
-  if (!workspacePackStatePath) return
-
-  const normalized = {
-    disabledFolders: [...new Set((state?.disabledFolders ?? []).filter(value => typeof value === 'string'))].sort(),
-  }
-  await fs.writeFile(workspacePackStatePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8')
-}
-
-function listEnabledDependents(folderName, enabledFolders, dependencyInfo) {
-  const dependents = dependencyInfo.requiredByFolder.get(folderName) ?? []
-  return dependents
-    .filter(depFolder => enabledFolders.has(depFolder))
-    .map(depFolder => dependencyInfo.byFolder.get(depFolder))
-    .filter(Boolean)
-}
-
 async function setWorkspacePackEnabled(input) {
   const folderName = sanitizeExistingFolderName(input?.folderName)
-  if (!folderName) {
-    throw new Error('folderName 非法')
-  }
-
-  const enabled = Boolean(input?.enabled)
-  const discovered = await discoverWorkspacePacks()
-  const target =
-    discovered.find(item => item.folderName === folderName) ??
-    discovered.find(item => item.folderName.toLowerCase() === folderName.toLowerCase())
-  if (!target) {
-    throw new Error(`未找到工作区数据包目录: ${folderName}`)
-  }
-  const targetFolderName = target.folderName
-  if (target.manifest.id === BASE_PACK_ID && !enabled) {
-    throw new Error('默认数据包不可禁用')
-  }
-
-  const state = await readWorkspacePackState()
-  const dependencyInfo = buildWorkspaceDependencyInfo(discovered)
-  const nextDisabled = new Set(state.disabledFolders)
-
-  if (enabled) {
-    const stack = [targetFolderName]
-    const visited = new Set()
-
-    while (stack.length > 0) {
-      const current = stack.pop()
-      if (!current || visited.has(current)) continue
-      visited.add(current)
-      nextDisabled.delete(current)
-
-      const unresolved = dependencyInfo.unresolvedRequiredByFolder.get(current) ?? []
-      if (unresolved.length > 0) {
-        const packId = dependencyInfo.byFolder.get(current)?.manifest.id ?? current
-        throw new Error(`无法启用 '${packId}'，存在未满足依赖: ${unresolved.join('；')}`)
-      }
-
-      const deps = dependencyInfo.requiredDepsByFolder.get(current) ?? []
-      for (const depFolder of deps) {
-        nextDisabled.delete(depFolder)
-        stack.push(depFolder)
-      }
-    }
-  } else {
-    const currentSelection = resolveWorkspaceSelection(discovered, state, dependencyInfo)
-    const blockingDependents = listEnabledDependents(
-      targetFolderName,
-      currentSelection.enabledFolders,
-      dependencyInfo,
-    ).filter(pack => pack.folderName !== targetFolderName)
-
-    if (blockingDependents.length > 0) {
-      const names = blockingDependents.map(pack => pack.manifest.id).join(', ')
-      throw new Error(`无法禁用，以下已启用数据包依赖它: ${names}`)
-    }
-
-    nextDisabled.add(targetFolderName)
-  }
-
-  const nextSelection = resolveWorkspaceSelection(discovered, { disabledFolders: [...nextDisabled] }, dependencyInfo)
-  if (nextSelection.dependencyIssues.length > 0) {
-    throw new Error(`启用状态存在依赖问题: ${nextSelection.dependencyIssues.join('；')}`)
-  }
-
-  await writeWorkspacePackState({ disabledFolders: [...nextDisabled] })
-  return {
-    folderName: targetFolderName,
-    enabled: nextSelection.enabledFolders.has(targetFolderName) || target.manifest.id === BASE_PACK_ID,
-  }
+  if (folderName === BASE_PACK_FOLDER && input?.enabled === true) return { folderName, enabled: true }
+  throw new Error('旧 packs 工作区不再管理启用状态，请在内容包管理中安装并启用 npm 内容包')
 }
 
 async function buildWorkspaceManifest(port) {
-  const [discovered, state] = await Promise.all([discoverWorkspacePacks(), readWorkspacePackState()])
+  const discovered = (await discoverWorkspacePacks()).filter(item => item.manifest.id === BASE_PACK_ID)
 
   // Dev mode: inject base pack from source directory
   if (devServerUrl && !discovered.some(p => p.manifest?.id === BASE_PACK_ID)) {
@@ -1038,7 +997,7 @@ async function buildWorkspaceManifest(port) {
   if (discovered.length === 0) return null
 
   const dependencyInfo = buildWorkspaceDependencyInfo(discovered)
-  const selection = resolveWorkspaceSelection(discovered, state, dependencyInfo)
+  const selection = resolveWorkspaceSelection(discovered, { disabledFolders: [] }, dependencyInfo)
   if (selection.dependencyIssues.length > 0) {
     console.warn('Workspace dependency issues detected:', selection.dependencyIssues)
     return null
@@ -1112,27 +1071,18 @@ async function buildWorkspaceManifest(port) {
 }
 
 async function buildWorkspaceIndex() {
-  const [discovered, state] = await Promise.all([discoverWorkspacePacks(), readWorkspacePackState()])
-  const dependencyInfo = buildWorkspaceDependencyInfo(discovered)
-  const selection = resolveWorkspaceSelection(discovered, state, dependencyInfo)
-  const orderedEnabled = selection.orderedPacks
-  const orderedDisabled = discovered
-    .filter(pack => !selection.enabledFolders.has(pack.folderName))
-    .sort(compareWorkspacePack)
-
-  return [...orderedEnabled, ...orderedDisabled].map(item => {
-    const enabled = selection.enabledFolders.has(item.folderName)
-    const requiredByEnabled = listEnabledDependents(item.folderName, selection.enabledFolders, dependencyInfo)
-    const isBase = item.manifest.id === BASE_PACK_ID
-    return {
+  // Legacy metadata transport is retained only for the official base resources.
+  // Installed npm combinations have one owner: ContentLibrary.
+  return (await discoverWorkspacePacks())
+    .filter(item => item.manifest.id === BASE_PACK_ID)
+    .map(item => ({
       folderName: item.folderName,
       id: item.manifest.id,
       version: item.manifest.version,
       manifestPath: `${item.folderName}/pack.json`,
-      enabled,
-      canDisable: !isBase && (!enabled || requiredByEnabled.length === 0),
-    }
-  })
+      enabled: true,
+      canDisable: false,
+    }))
 }
 
 function listPackTemplates() {
@@ -1612,6 +1562,14 @@ async function handleLocalServerRequest(req, res) {
     return
   }
 
+  const localAsset = /^\/local-content\/([a-f0-9-]{36})\/([a-f0-9]{64})$/.exec(pathname)
+  if (localAsset) {
+    const asset = localContentSessions?.assetFile(localAsset[1], localAsset[2])
+    if (!asset) return sendJson(res, 404, { error: 'local content session expired' })
+    await sendFile(res, asset.file)
+    return
+  }
+
   if (pathname === '/packs/workspace/index.json') {
     const summary = await buildWorkspaceIndex()
     sendJson(res, 200, summary)
@@ -1846,6 +1804,11 @@ function setupIpcHandlers() {
         } else {
           const session = await manager.session(input.id)
           switch (input.action) {
+            case 'install-built-author-pack':
+              result = await manager.installBuiltPack(input.id, input.jobId, file =>
+                getContentLibrary().installFile(file),
+              )
+              break
             case 'import-asset': {
               await session.workspace.assertWritable()
               const choice = await dialog.showOpenDialog(mainWindow, {
@@ -1952,6 +1915,15 @@ function setupIpcHandlers() {
   handle('desktop:list-content-packages', event => {
     requireLocalBattleCaller(event)
     return getContentLibrary().list()
+  })
+  handle('desktop:prepare-local-content', event => {
+    requireLocalBattleCaller(event)
+    return getLocalContentSessions().prepare(localContentOwner.current())
+  })
+  handle('desktop:release-local-content', (event, token) => {
+    requireLocalBattleCaller(event)
+    if (typeof token !== 'string') throw new Error('本地内容会话无效')
+    return getLocalContentSessions().release(token)
   })
   handle('desktop:select-content-package-file', async (event, options) => {
     requireLocalBattleCaller(event)
@@ -2200,6 +2172,7 @@ function createMainWindow() {
   })
 
   protectDesktopNavigation(mainWindow, rendererUrl)
+  localContentOwner = bindLocalContentOwner(mainWindow.webContents, owner => localContentSessions?.releaseOwner(owner))
   setupContextMenu(mainWindow)
 
   mainWindow.webContents.on('preload-error', (_event, preloadPathOnError, error) => {
@@ -2239,6 +2212,7 @@ app.on('before-quit', event => {
     [
       () => swfHost.dispose(),
       () => remotePlay.destroy(),
+      () => localContentSessions?.close(),
       () => contentLibrary?.close(),
       () => contentProjects?.close(),
       () => authorWorkspaces?.close(),

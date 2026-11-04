@@ -142,6 +142,12 @@ export interface ArcadiaDesktopApi {
   getBackendConfig(): Promise<{ schemaVersion: 1; backendOrigin: string }>
   openRemotePlay(input: { url: string }): Promise<unknown>
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
+  prepareLocalContent?: () => Promise<{
+    token: string
+    environment: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
+    content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
+  }>
+  releaseLocalContent?: (token: string) => Promise<void>
   selectContentPackageFile?: (options: {
     offline?: boolean
   }) => Promise<import('./contentPackages').ContentPackagePlan | null>

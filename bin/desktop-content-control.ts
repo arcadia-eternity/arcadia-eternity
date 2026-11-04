@@ -17,7 +17,8 @@ export function attachDesktopContentControl(
         if (closed) return
         try {
           let value: unknown
-          if (input.action === 'describe') value = registry.descriptor()
+          if (input.action === 'retained') value = registry.retainedIds()
+          else if (input.action === 'describe') value = registry.descriptor()
           else if (input.action === 'prepare') {
             if (input.builtinOnly === true) value = registry.descriptor(builtinId)
             else {

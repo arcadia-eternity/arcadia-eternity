@@ -1,4 +1,5 @@
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
+import { defineStore } from 'pinia'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
 import { clone, equal, changes, setField, sharedAt, sharedFieldsUnder, type FieldChange } from './fields'
 import type { AuthorSnapshot, ContentRow, LocaleSource, LocaleText, SharedField, SourceRecord } from './types'
@@ -48,8 +49,33 @@ export const reviewToken = (draft: AuthorDraft) =>
   JSON.stringify(draft.latest ? [draft.latest.file, draft.latest.version, draft.latest.index] : null)
 export const decisionKey = (draft: AuthorDraft, field: FieldChange) => JSON.stringify([draft.key, field.path])
 
-export function useAuthorDrafts() {
+export const useAuthorDraftStorage = defineStore('author-drafts', {
+  state: () => ({ projects: {} as Record<string, Record<string, AuthorDraft>> }),
+  persist: { key: 'author-drafts', pick: ['projects'] },
+})
+
+export function useAuthorDrafts(persisted?: ReturnType<typeof useAuthorDraftStorage>) {
+  let activeProject = ''
+  let restoring = false
   const drafts = reactive<Record<string, AuthorDraft>>({})
+  watch(
+    drafts,
+    () => {
+      if (persisted && activeProject && !restoring) {
+        persisted.projects[activeProject] = clone(drafts)
+        persisted.$persist()
+      }
+    },
+    { deep: true, flush: 'sync' },
+  )
+  function activate(projectId: string, readOnly = false) {
+    restoring = true
+    activeProject = readOnly ? '' : projectId
+    for (const key of Object.keys(drafts)) delete drafts[key]
+    if (activeProject && persisted?.projects[activeProject])
+      Object.assign(drafts, clone(persisted.projects[activeProject]))
+    restoring = false
+  }
   const pending = computed(() => Object.values(drafts))
   const conflicts = computed(() => pending.value.filter(isConflict))
   function put(draft: AuthorDraft) {
@@ -162,5 +188,5 @@ export function useAuthorDrafts() {
       record: clone(draft.value),
     }))
   }
-  return { drafts, pending, conflicts, createRecord, editRecord, editLocale, sync, reconcile, clear, payload }
+  return { activate, drafts, pending, conflicts, createRecord, editRecord, editLocale, sync, reconcile, clear, payload }
 }
