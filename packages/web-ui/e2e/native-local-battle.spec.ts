@@ -56,7 +56,26 @@ test('cold native startup tolerates delayed portraits without entering animation
 
 test('consecutive browser battles reuse one Worker and start with independent battle state', async ({ page }) => {
   test.setTimeout(60_000)
+  // entry.ts imports main asynchronously: navigation can finish before app.use(pinia).
+  // Hold that real bootstrap boundary so this also exercises a slow application startup.
+  let pauseBootstrap!: (resume: () => Promise<void>) => void
+  const bootstrapPaused = new Promise<() => Promise<void>>(resolve => {
+    pauseBootstrap = resolve
+  })
+  await page.route(
+    url => url.pathname === '/src/main.ts',
+    route => {
+      pauseBootstrap(() => route.continue())
+    },
+    { times: 1 },
+  )
   await page.goto('/local-battle')
+  const resumeBootstrap = await bootstrapPaused
+  const startBattle = page.getByRole('button', { name: '开始本地对战', exact: true })
+  await expect(startBattle).not.toBeVisible()
+  await resumeBootstrap()
+  // The rendered, enabled control proves that the real app and local data are ready.
+  await expect(startBattle).toBeEnabled()
   const result = await page.evaluate(async teams => {
     const factoryPath = '/src/services/nativeBattleFactory.ts'
     const poolPath = '/src/services/sandboxBattleWorkers.ts'

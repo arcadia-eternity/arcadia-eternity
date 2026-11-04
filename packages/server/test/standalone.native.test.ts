@@ -96,6 +96,7 @@ it('accepts the species official ability and emblem', async () => {
   expect(await validateStandaloneTeam(team)).toEqual(team)
 })
 
+// Official cold initialization has a 20s Worker deadline; the test also drives the battle to completion.
 it('creates an independent Worker battle while preserving room identities', async () => {
   const players = fixture()
   players[1].team[0].id = players[0].team[0].id
@@ -118,7 +119,7 @@ it('creates an independent Worker battle while preserving room identities', asyn
   await system.submitAction({ type: 'surrender', player: state.players[0].id })
   await system.waitForCompletion()
   expect((await system.getState()).status).toBe(BattleStatus.Ended)
-})
+}, 30_000)
 
 for (const invalid of ['same-player', 'schema', 'reference'] as const)
   it(`rejects invalid battle creation without retaining partial runtime objects: ${invalid}`, async () => {

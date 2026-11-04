@@ -211,7 +211,8 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Relocated CLI/replay alone takes about 7m on CI; loader and author-tool suites follow.
+    timeout-minutes: 20
     env:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
