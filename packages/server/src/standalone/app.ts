@@ -52,6 +52,7 @@ export interface SingleProcessAppOptions extends RoomOptions {
     | 'allowThirdPartyExecution'
     | 'transferDirectory'
     | 'createServerBackup'
+    | 'initialization'
   > & { secureCookies?: boolean; name?: string; trustedProxyAddresses?: string[] }
 }
 

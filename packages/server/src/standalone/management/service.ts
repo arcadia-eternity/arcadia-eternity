@@ -78,6 +78,13 @@ export interface ManagedServer {
   workspaceId: string
   defaultBindingId?: string
   settings?: ServerSettings
+  /** Host-owned first-run state; never infer it from an empty binding list. */
+  initialization?: {
+    kind: 'builtin' | 'desktop' | 'npm'
+    environmentId: string
+    state: 'pending' | 'completed' | 'abandoned'
+    bindingId?: string
+  }
 }
 export interface ManagementRequest {
   method: string
@@ -111,6 +118,8 @@ export interface ManagementOptions {
   transferDirectory?: string
   /** Host-owned consistent capture; API callers cannot choose database or filesystem sources. */
   createServerBackup?: (signal: AbortSignal) => Promise<unknown>
+  /** Opt-in first-run initializer. Existing server records are deliberately never backfilled. */
+  initialization?: { kind: 'builtin' | 'desktop' | 'npm'; environmentId: string }
 }
 export class ManagementError extends Error {
   constructor(
@@ -283,6 +292,9 @@ export class ManagementService {
           name: this.options.name ?? this.options.serverId,
           workspaceId: this.options.workspace.workspaceId,
           settings: this.options.runtimeSettings ?? normalizeServerSettings(),
+          ...(this.options.initialization
+            ? { initialization: { ...this.options.initialization, state: 'pending' as const } }
+            : {}),
         },
       })
     else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
@@ -312,6 +324,166 @@ export class ManagementService {
       fail('BINDING_NOT_FOUND', 404)
     return row!
   }
+  /** A marker is created only with a new server record, never reconstructed from current settings. */
+  async pendingInitialization(kind: 'builtin' | 'desktop' | 'npm', environmentId: string): Promise<boolean> {
+    await this.ready()
+    const initialization = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))?.value
+      .initialization
+    return !!(
+      initialization &&
+      initialization.kind === kind &&
+      initialization.environmentId === environmentId &&
+      initialization.state === 'pending'
+    )
+  }
+  async pendingInitializationInfo(): Promise<
+    { kind: 'builtin' | 'desktop' | 'npm'; environmentId: string } | undefined
+  > {
+    await this.ready()
+    const initialization = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))?.value
+      .initialization
+    if (!initialization || initialization.state !== 'pending') return undefined
+    return { kind: initialization.kind, environmentId: initialization.environmentId }
+  }
+  /** Return only the binding durably claimed by this initializer, never a same-named draft. */
+  async initializationBinding(
+    kind: 'builtin' | 'desktop' | 'npm',
+    environmentId: string,
+  ): Promise<StoredRecord<Binding> | undefined> {
+    await this.ready()
+    const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+    const initialization = server?.value.initialization
+    if (
+      !initialization ||
+      initialization.kind !== kind ||
+      initialization.environmentId !== environmentId ||
+      initialization.state !== 'pending' ||
+      !initialization.bindingId
+    )
+      return undefined
+    const binding = await this.options.storage.get<Binding>('bindings', initialization.bindingId)
+    if (
+      !binding ||
+      binding.value.serverId !== this.options.serverId ||
+      binding.value.workspaceId !== this.options.workspace.workspaceId ||
+      binding.value.environmentId !== environmentId
+    )
+      fail('INITIALIZATION_BINDING_INVALID', 409)
+    return binding!
+  }
+  /** Persist the exact owned binding atomically with its creation for crash recovery. */
+  async ensureInitializationBinding(
+    kind: 'builtin' | 'desktop' | 'npm',
+    environmentId: string,
+    versionId: string,
+  ): Promise<StoredRecord<Binding> | undefined> {
+    await this.ready()
+    const binding = await this.exclusive(() =>
+      this.options.storage.transaction(async tx => {
+        const server = await tx.get<ManagedServer>('servers', this.options.serverId)
+        const initialization = server?.value.initialization
+        if (
+          !server ||
+          !initialization ||
+          initialization.kind !== kind ||
+          initialization.environmentId !== environmentId ||
+          initialization.state !== 'pending'
+        )
+          return undefined
+        if (initialization.bindingId) {
+          const binding = await tx.get<Binding>('bindings', initialization.bindingId)
+          if (
+            !binding ||
+            binding.value.serverId !== this.options.serverId ||
+            binding.value.workspaceId !== this.options.workspace.workspaceId ||
+            binding.value.environmentId !== environmentId
+          )
+            fail('INITIALIZATION_BINDING_INVALID', 409)
+          return binding!
+        }
+        const binding = await tx.create<Binding>('bindings', {
+          id: randomUUID(),
+          scope: managementScopeKey(this.serverScope),
+          value: {
+            serverId: this.options.serverId,
+            workspaceId: this.options.workspace.workspaceId,
+            environmentId,
+            executionPolicy: 'server',
+            selection: 'pinned',
+            desiredVersionId: versionId,
+            enabled: false,
+            visibility: 'private',
+            matchmakingEnabled: false,
+            condition: 'unavailable',
+            observedBootId: this.bootId,
+          },
+        })
+        await tx.replace('servers', server.id, server.revision, {
+          ...server.value,
+          initialization: { ...initialization, bindingId: binding.id },
+        })
+        return binding
+      }),
+    )
+    if (binding?.value.desiredVersionId)
+      await this.options.workspace.retain(binding.value.desiredVersionId, `binding:${binding.id}:desired`)
+    return binding
+  }
+  async completeInitialization(
+    kind: 'builtin' | 'desktop' | 'npm',
+    environmentId: string,
+    bindingId: string,
+  ): Promise<void> {
+    await this.ready()
+    await this.exclusive(async () => {
+      await this.options.storage.transaction(async tx => {
+        const server = await tx.get<ManagedServer>('servers', this.options.serverId)
+        const initialization = server?.value.initialization
+        if (
+          !server ||
+          !initialization ||
+          initialization.kind !== kind ||
+          initialization.environmentId !== environmentId ||
+          initialization.bindingId !== bindingId ||
+          initialization.state !== 'pending'
+        )
+          return
+        const binding = await tx.get<Binding>('bindings', bindingId)
+        if (
+          !binding ||
+          binding.value.serverId !== this.options.serverId ||
+          !binding.value.enabled ||
+          binding.value.condition !== 'available' ||
+          server.value.defaultBindingId !== bindingId
+        )
+          fail('INITIALIZATION_INCOMPLETE', 409)
+        await tx.replace('servers', server.id, server.revision, {
+          ...server.value,
+          initialization: { ...initialization, state: 'completed' },
+        })
+      })
+    })
+  }
+  /** Stop a pending host bootstrap when durable administrator configuration wins. */
+  async abandonInitialization(kind: 'builtin' | 'desktop' | 'npm', environmentId: string): Promise<void> {
+    await this.ready()
+    await this.exclusive(async () => {
+      const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+      const initialization = server?.value.initialization
+      if (
+        !server ||
+        !initialization ||
+        initialization.kind !== kind ||
+        initialization.environmentId !== environmentId ||
+        initialization.state !== 'pending'
+      )
+        return
+      await this.options.storage.replace('servers', server.id, server.revision, {
+        ...server.value,
+        initialization: { ...initialization, state: 'abandoned' },
+      })
+    })
+  }
   private async ensureRuntime(bindingId: string, versionId: string, executionPolicy: 'server' | 'peer' = 'server') {
     const key = `${bindingId}:${versionId}:${executionPolicy}`
     const existing = this.runtimes.get(key)
@@ -334,6 +506,10 @@ export class ManagementService {
             },
             { effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
           )
+      if (descriptor.runtime.contentRevision !== version.contentRevision) {
+        await this.options.environments.retire(descriptor.id)
+        fail('ENVIRONMENT_CONTENT_MISMATCH', 409)
+      }
       if (executionPolicy === 'server' && !this.options.allowThirdPartyExecution && descriptor.packages.length > 0) {
         await this.options.environments.retire(descriptor.id)
         fail('THIRD_PARTY_EXECUTION_FORBIDDEN', 403)

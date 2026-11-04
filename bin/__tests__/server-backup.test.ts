@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import pg from 'pg'
 import { ContentWorkspace, type StaticPreparer } from '@arcadia-eternity/content-dev/management-workspace'
 import { openStorage, SQLAccountDirectory } from '@arcadia-eternity/database'
+import { dropTestDatabase } from './helpers/postgres'
 import {
   createServerBackup,
   createOnlineServerBackup,
@@ -125,8 +126,11 @@ async function postgresTarget() {
   const name = 'arcadia_backup_' + randomUUID().replaceAll('-', '')
   await admin.query('CREATE DATABASE "' + name + '"')
   cleanups.push(async () => {
-    await admin.query('DROP DATABASE "' + name + '"')
-    await admin.end()
+    try {
+      await dropTestDatabase(admin, name)
+    } finally {
+      await admin.end()
+    }
   })
   const url = new URL(process.env.TEST_BACKUP_DATABASE_URL!)
   url.pathname = '/' + name

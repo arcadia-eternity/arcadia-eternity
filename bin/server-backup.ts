@@ -355,6 +355,10 @@ function cloneStorage(snapshot: StorageSnapshot, workspaceId: string, versionIds
     result.records[collection] = []
   result.records.servers = result.records.servers.map(row => {
     const value = object(row.value)
+    const initialization =
+      value.initialization && typeof value.initialization === 'object' && !Array.isArray(value.initialization)
+        ? object(value.initialization)
+        : undefined
     return {
       id: servers.get(row.id)!,
       scope: 'server:' + servers.get(row.id),
@@ -363,6 +367,16 @@ function cloneStorage(snapshot: StorageSnapshot, workspaceId: string, versionIds
         ...value,
         workspaceId,
         ...(value.defaultBindingId ? { defaultBindingId: bindings.get(string(value.defaultBindingId)) } : {}),
+        ...(initialization
+          ? {
+              // A clone must not resume a source host's interrupted bootstrap.
+              initialization: {
+                ...initialization,
+                state: 'abandoned',
+                ...(initialization.bindingId ? { bindingId: bindings.get(string(initialization.bindingId)) } : {}),
+              },
+            }
+          : {}),
       },
     }
   })

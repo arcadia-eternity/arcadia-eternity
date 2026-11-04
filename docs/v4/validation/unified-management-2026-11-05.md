@@ -1,30 +1,37 @@
 # 统一管理、私人约战与在线备份验证（2026-11-05）
 
-本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；首轮 CI 提交为 [b6e11f1](https://github.com/arcadia-eternity/arcadia-eternity/commit/b6e11f1d21684a21e9cb833531b17716aff6fb29)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
+本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；当前远端结果对应 [bfefb852](https://github.com/arcadia-eternity/arcadia-eternity/commit/bfefb8521b8855cfa92919aac821f6ade1bef489)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
 
-## 最终本地回归
+## 当前本地回归
 
-| 范围                                                   | 结果                           | 口径                                                           |
-| ------------------------------------------------------ | ------------------------------ | -------------------------------------------------------------- |
-| 服务端                                                 | 29 文件，315 项通过；104.18 秒 | 使用真实 SQLite/PostgreSQL；含管理、私人环境与终局生命周期回归 |
-| Web 专项                                               | 18 文件，257 项通过；14.56 秒  | 先前 3 项大厅 mock 参数断言失败已修复                          |
-| 备份核心                                               | 14/14 通过                     | 真实双库、逻辑迁移、在线捕获竞争及失败恢复                     |
-| 工作区 / 私有桌面 IPC                                  | 20 / 13 项通过                 | 导入持久记录、快照 stamp、owner 与材料保护                     |
-| 全仓 ESLint / 根及 Web 类型检查 / production Vite 构建 | 通过                           | 测试运行所属工作树；不代表发行物已发布                         |
+| 范围                          | 结果                           | 口径                                                                 |
+| ----------------------------- | ------------------------------ | -------------------------------------------------------------------- |
+| 服务端                        | 30 文件，320 项通过；127.44 秒 | 真实 SQLite/PostgreSQL，exit 0、无未处理异常；自有临时 PG 已停止     |
+| Web 专项                      | 18 文件，257 项通过；14.56 秒  | 先前 3 项大厅 mock 参数断言失败已修复                                |
+| 备份核心                      | 14/14 通过                     | 真实双库、逻辑迁移、在线捕获竞争及失败恢复                           |
+| 工作区 / 私有桌面 IPC         | 20 / 13 项通过                 | 导入持久记录、快照 stamp、owner 与材料保护                           |
+| lint / 类型 / production 构建 | 通过                           | 最新全仓 ESLint、根/服务端/Web 类型、Vite production 与 paired stage |
+| 编译后 CLI 生命周期           | 3/3，21.45 秒                  | 首次初始化、5 次管理保留重启、旧库与 clone/restore 真启动            |
+| 首次初始化 / binding          | 5/5 与 7/7                     | 包含 pending retention 与稳定首次使用关系                            |
+| 普通匹配 / 权威好友房         | 2/2，约 1.3 分钟               | 真实浏览器生产 CLI 路径                                              |
 
-frozen/offline 锁文件校验、变更 Web TS/Vue 的零 warning ESLint、服务端专项类型/lint 及 native renderer/test 类型检查通过。
+最新全仓 ESLint、根/服务端类型、Web vue-tsc、Vite production 与 paired stage 构建通过；服务端入口一致性窄回归 5/5、2.92 秒通过。所有变更/新增 TS、Vue、mjs、yaml 的格式检查与 git diff 检查通过。资源相关 3 文件/76 项通过，管理页面缺省 progress.stage 的窄幅回归 8/8 通过；资源测试已纳入 baseline CI。此前 frozen/offline 锁文件与 native renderer/test 验证记录保留。
 
-提交 b6e11f1 的首轮 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367) 已结束：changes、headless-battle、offline-cli 与 [management-browser-acceptance](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126773051138) 通过；后者实际执行 production 私人约战和管理备份，并通过报告零跳过断言。native-server-entry 虽有 315 项测试通过，但 PostgreSQL fixture 强制删库产生 2 个未捕获异常，job 失败；修补后真实 PG 定向回归 22/22、未捕获错误为 0。native-browser-entry 因直接测试服务器缺少 database/dist 构建产物失败，工作流依赖图与 Playwright 构建配置已修补。修补提交的远端重跑尚待完成，首轮整体仍是失败。
+第二轮 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173170) 已结束：changes、headless-battle、offline-cli 和 management-browser-acceptance 通过，生产私人约战/管理备份执行及零跳过断言保持通过；native-server-entry 与 native-browser-entry 失败。
 
-首轮 [desktop-runtime-validation](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687641) 四个平台均失败：Windows 构建路径解析问题，另外三个平台为 pnpm deploy 改写源 workspace 元数据。路径处理和部署后原字节恢复已修补；打包/暂存回归 23/23、metadata/Windows 专项 8/8 通过。它们是本地修补验证，下一远端提交的四平台实际运行仍待完成。
+- 服务端 315 项断言通过，但备份 fixture 清理仍触发 2 个未处理 `57P01`，job 判失败。随后统一修补 8 处 fixture 并共用 `dropTestDatabase`；真实 PG 回归 **110 项通过、0 未处理错误**。随后完整服务端 30 文件/320 项以 exit 0、0 未处理异常通过；新远端结果仍待产生。
+- 浏览器内容/连接 6 场景本地约 1.1 分钟通过，第二轮 CI 同步骤也通过；后续普通匹配/权威好友房暴露 production CLI 首次持久初始化没有默认 binding，返回 `ENVIRONMENT_NOT_PUBLISHED`。首次初始化/保留关系修补后，编译 CLI 生命周期 3/3、真实普通匹配/权威房间 2/2 已通过；新种子基线（初始环境 1、备份总环境 2）的管理页面也已真实通过，详见下方。
+- 第二轮 [desktop-runtime-validation](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41889173077) 四平台仍失败。Linux 和两种 macOS 已通过打包及包内 SQLite，完整宿主测试因 clean checkout 缺少示例 slow-effects 产物失败；fixture 已改为从空目录显式编译并核对归档，修正后的实际 macOS 包完整宿主 **1/1，13.95 秒**通过。Windows 已通过原构建路径问题，本轮转为 pnpm fixture 版本及测试路径失败；现已调整 PNPM_HOME 固定版本优先、fixture 的 packageManager 初始化和 native absolute 路径，三组定向回归 24/24 通过，目标平台远端重跑待完成。
 
-服务端整组之后还有三处窄幅清理：未使用 client 类型导入、声明文件 glob 扩为 `.d.{ts,mts,cts}`、peer 消息显式字符串校验。随后真实 socket 私人环境回归 **7/7 通过，6.9 秒**；315 项整组结果发生在这次清理之前，没有声称它被再次运行。
+首轮 [baseline](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367) / [桌面矩阵](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687641) 保留作历史记录；第二轮已越过原 database/dist 与构建路径/metadata 问题。当前没有任何“新修补已通过整套 CI”的结论。
+
+原 29 文件/315 项及窄幅清理后的真实 socket 7/7 是历史结果；当前服务端结论以 30 文件/320 项、exit 0 为准。Web 257 项仍对应此前快照；最新资源修补由 76 项专项和下方严格 production 复验覆盖。
 
 测试实现包括 `bin/__tests__/server-backup.test.ts`、`packages/content-dev/test/content-workspace.test.mjs`、`packages/web-ui/electron/test/desktop-workspace.test.mjs` 及服务端/Web 对应测试目录。
 
 ## 真实 production 构建的管理页面
 
-[management-backup.spec.ts](../../../packages/web-ui/e2e/management-backup.spec.ts) **1/1 通过，13.6 秒**。使用实际 CLI、独立数据目录及构建后的配套网站，没有请求替身或页面 store 注入。
+[management-backup.spec.ts](../../../packages/web-ui/e2e/management-backup.spec.ts) 最终 paired build 的新 builtin 基线 **1/1 通过，17.1 秒**。归档含 builtin 与新准备环境共 2 个环境/版本。使用实际 CLI、独立数据目录及构建后的配套网站，没有请求替身或页面 store 注入。
 
 - 匿名备份请求被拒绝；宿主一次性登录码经页面兑换。
 - 准备真实固定环境，签发服务凭证；明文不进入浏览器持久存储，刷新后仅显示安全元数据。
@@ -32,19 +39,17 @@ frozen/offline 锁文件校验、变更 Web TS/Vue 的零 warning ESLint、服�
 - 重启保留 serverId/workspaceId、环境列表、仍有效的凭证元数据、撤销结果和已完成备份下载历史。
 - 浏览器错误和意外 HTTP 响应均为空。该场景使用 guest 账户模式；G3 真实提供商与账户数据保留分别由提供商/存储测试承担。
 
-原始本地产物位于 `packages/web-ui/test-results/management-backup/2026-11-04T17-57-02-036Z/`，包含 acceptance JSON、截图及实际备份文件；为避免记录凭证，trace/video 已明确关闭。该目录是测试输出，不代表已经上传到 PR 或 CI。
+当前保留产物位于 `packages/web-ui/test-results/management-backup/2026-11-04T19-16-09-114Z/`，已读取 acceptance JSON 确认 passed、2 个环境/版本、无浏览器错误或意外响应；同目录包含截图及实际备份文件。为避免记录凭证，trace/video 关闭。早期本地产物曾被默认 outputDir 清理；当前配置已隔离输出目录，本文只将本次确认存在的路径作为附件。
 
 ## 私人 Challenge 双浏览器
 
-[personal-environment.spec.ts](../../../packages/web-ui/e2e/personal-environment.spec.ts) **1/1 通过，50.1 秒**。两个独立浏览器显式导入同一未发布 UGC 环境，使用真实队伍编辑器，在客户端玩家宿主执行。
+[personal-environment.spec.ts](../../../packages/web-ui/e2e/personal-environment.spec.ts) 最终 paired build **1/1 通过，50.2 秒**。两个独立客户端显式导入未发布环境，首局和同房间再战均为 2 回合自然结算，两端胜负一致。
 
-- 首局 2 回合自然结算，同一房间再战 1 回合自然结算；两端均呈现相反且一致的胜负结果。
-- 实际 UGC 媒体完成解码；两个浏览器没有页面错误或遗留错误提示。
-- 279 次服务器 Worker 采样最大值为 0，服务器公开环境目录不变。
-- 479 个 WebSocket 帧中没有作者模块或环境归档。建房 payload 为 1558 字节，其中个人固定引用为 972 字节；引用包含版本/规则/来源元数据，信令服没有获取执行材料。
-- 终局后的结果停留、同房间再战和迟到上一局消息隔离有对应源码/测试回归；不将此两浏览器场景当作双物理设备 LAN 或所有断线场景通过。
+- 网络记录 `errors: []`，两端 UI 错误列表为空；实际 UGC 媒体解码通过。
+- 292 次服务器采样的 Worker 最大值为 0，公开目录不变；609 个 WebSocket 帧通过仅引用、不传作者代码/归档的检查。
+- 当前产物为 `packages/web-ui/test-results/personal-environment/2026-11-04T19-16-06-975Z/`，已读取 acceptance JSON 与 network-events.json；包含两局结果截图和 traces。
 
-原始本地产物位于 `packages/web-ui/test-results/personal-environment/2026-11-04T18-07-25-638Z/`，包含 acceptance JSON、`network-events.json`、截图和两端 trace。
+此前一轮虽自然结算，但 loading overlay 淡出时提前回收 Blob 导致 4 个 `ERR_FILE_NOT_FOUND`，严格断言正确判失败。资源生命周期修补先复现失败再通过对应 transition 回归，3 文件/76 项与本轮零浏览器错误结果验证了修复；没有放宽 console 断言。旧输出曾被默认 outputDir 清理，4 个配置现已隔离目录；旧成功只作为历史记录，不继续引用已删除附件。
 
 两组 production 场景需先完成 CLI 与配套网站构建，可从仓库根目录运行：
 
@@ -55,9 +60,13 @@ PLAYWRIGHT_PERSONAL_ENVIRONMENT=1 pnpm --filter @arcadia-eternity/web-ui exec pl
 
 ## Docker 与桌面证据范围
 
-最终 Docker 记录见 `.omo/evidence/docker-management.json`：实际 Linux arm64 镜像 `sha256:a550f492e1ddea2cce2e40d0cb053a8d15b6e995ca39ffcf8c94a2761e14b508`，Node 24.22.2，运行验收 15.9 秒。SQLite 和 PostgreSQL 均完成容器删除/重建后 serverId、workspaceId 与设置保留；PG 还经历数据库重启。配套 HTML/资源和真实管理 HTTP 通过，测试容器、卷、网络已清理。
+最终 Docker 证据为 `.omo/evidence/docker-management.json`：Linux arm64 镜像 `sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8`，Node 24.22.2、SQLite 3.53.2、PostgreSQL 17，验收 15.6 秒。两库均验证首次 builtin-server 默认绑定及 145 个物种；容器重建后 serverId/workspaceId、设置、默认绑定和版本保持，内容/资源修订一致，PG 另经数据库重启。测试容器、卷、网络均已清理。该镜像包含首次初始化、持久 retention 与最后 UI 修补，`pairedUiRefreshPending=false`。
 
-sourceProof 记录构建前后 1,332 个运行/构建输入一致，摘要为 `sha256:be7a005746a02e3ff997794f522d66f2e34effdad5518251d2ae14b283b7b6be`；最终 P2P 生命周期已包含。变化仅为未被 Docker 构建使用的桌面打包 hook/test，未把更宽源码树的摘要变化隐藏。最终 macOS arm64 自包含 preview 已以 exit 0 完成打包；两个 after-pack 门禁均使用真实包内可执行文件：SQLite 写入/关闭/重开，以及完整托管场景 1/1（13.14 秒）。后者覆盖真实 UGC 安装、复用客户端材料、管理与游玩选择独立、匿名拒绝、排空/停止和重启同一身份/default binding；开发环境 native addon 字节及 system Node 加载仍正常。产物为 `packages/web-ui/release-preview/mac-arm64/Arcadia Eternity Preview.app`，准确输入路径和四项包内 SHA-256 见 `.omo/evidence/desktop-native-validation.md`。本地包通过与四平台 CI、正式安装/升级分别记录。
+sourceProof 记录 1,341 个输入保持一致，摘要 `sha256:33881fd68fc0dc90c04fdc7ecc959fa93484a185c4d056447036f0960d915202`；唯一变化是被 Docker 排除的初始化测试文件。关键管理服务、Blob 生命周期与 ManagementConsole 源码又在该镜像内读取并核对哈希，未把测试文件变化冒充运行代码变化。
+
+最终冻结源码 r3 的 macOS arm64 preview 打包 exit 0，真实包内 SQLite 写入/关闭/重开与完整托管 1/1（12.74 秒，测试进程总计 12.85 秒）通过。托管 fixture 从空目录显式编译，覆盖真实 UGC 安装、客户端材料复用、管理/游玩独立、匿名拒绝、排空/停止及重启身份/default binding。356 个 renderer 文件、62 个 server 文件均匹配冻结输入；开发 addon、pnpm 元数据、清单和锁文件未改变。
+
+产物为 `packages/web-ui/release-preview/mac-arm64/Arcadia Eternity Preview.app`；runtime `/private/tmp/arcadia-desktop-runtime-final-20261105-r3`，日志 `/private/tmp/arcadia-desktop-final-r3-package.log`。准确包内哈希、完整树摘要与 before/after proof 见 `.omo/evidence/desktop-native-validation.md` 和需求矩阵中的 desktop.sourceProof。它们验证此本地包，不代替跨平台安装/升级。
 
 ## 审查与未完成验收
 
@@ -66,7 +75,7 @@ sourceProof 记录构建前后 1,332 个运行/构建输入一致，摘要为 `s
 仍需保留：
 
 - 5 个第三方许可证资料问题：`@better-auth/utils@0.5.0`、`@npmcli/agent@4.0.2`、`jsondiffpatch@0.7.6`、`stackback@0.0.2`、`@npmcli/redact@4.0.0`；后者声明/原始文本不一致。清单保持 `releaseReady: false`，不能正式发行。
-- 首轮 CI 失败的修补提交复验、四平台 CI、正式安装/升级和真实双设备 LAN；最终本地 macOS arm64 preview 已通过。
+- 修补提交的远端复验、四平台 CI、正式安装/升级和真实双设备 LAN。当前最终 Docker、macOS 预览、两组严格浏览器与 lint/类型均已有本地通过证据。
 - SMTP/GitHub 真实提供商未配置，相关用户问题待答复；不得用 guest bootstrap、测试提供商或双库通过替代邮件投递/回调验收。
 - 生产部署及完整容量/故障矩阵；最终 Linux arm64 Docker 重建持久化已通过，不代表所有部署场景。
 - G4 战绩/积分/录像仍按原后期范围，不纳入本次管理功能完成声明。

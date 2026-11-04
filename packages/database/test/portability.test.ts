@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { Pool } from 'pg'
 import { describe, expect, it } from 'vitest'
 import { ACCOUNT_SCHEMA_SQL, SQLAccountDirectory, collections, openStorage } from '../src/index'
+import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 
 const databaseUrl = process.env.TEST_DATABASE_URL
 const sourceDatabase = databaseUrl ? new URL(databaseUrl).pathname.slice(1) : ''
@@ -24,9 +25,12 @@ async function withIsolatedPostgres<T>(action: (pool: Pool, connectionString: st
     isolated = new Pool({ connectionString: targetUrl.toString(), max: 12 })
     return await action(isolated, targetUrl.toString())
   } finally {
-    await isolated?.end()
-    if (created) await admin.query(`DROP DATABASE "${databaseName}"`)
-    await admin.end()
+    try {
+      await isolated?.end()
+      if (created) await dropTestDatabase(admin, databaseName)
+    } finally {
+      await admin.end()
+    }
   }
 }
 

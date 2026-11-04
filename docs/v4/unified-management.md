@@ -32,6 +32,8 @@ node dist/cli.js server --host 127.0.0.1 --port 8102 --data-dir /srv/arcadia
 
 数据目录默认是当前目录下的 `.arcadia-server`。第一次启动在 `identity.json` 保存 serverId，在 `server.sqlite` 初始化数据库，并在 `workspace/` 保存内容工作区。目录应位于持久卷；SQLite 文件不要放网络共享文件系统。
 
+普通 CLI 首次启动还会创建并公开一个 `builtin-server` 默认 binding，因此创建私人房间和普通匹配可以立即使用。这个一次性初始化状态与 binding 一同持久化；后续管理员清空默认选择、停用或删除 binding 后，重启不会恢复它。已有服务器记录不会被追溯性自动发布，可在管理面板中显式准备并发布环境。
+
 | 配置                                              | 含义                                               |
 | ------------------------------------------------- | -------------------------------------------------- |
 | `--data-dir` / `ARCADIA_DATA_DIR`                 | 服务器身份和默认数据库/工作区的持久根目录          |
@@ -170,13 +172,11 @@ node dist/cli.js server backup clone --file /backups/arcadia.json --target /srv/
 
 本地合同测试覆盖存储约束、账户一致性、管理权限/任务/发布和工作区引用，CI 已配置相应检查。PG 测试必须提供真实 `TEST_DATABASE_URL`，跳过不算通过。
 
-2026-11-05 最终本地回归：服务端 29 文件/315 项通过，使用真实 SQLite 和 PostgreSQL，耗时 104.18 秒；Web 18 文件/257 项通过，耗时 14.56 秒。在线备份核心 14 项、工作区 20 项及桌面 IPC 13 项通过，根任务类型检查和构建通过。先前大厅 mock 参数断言失败已由这轮通过结果替代。
+2026-11-05 当前本地回归：服务端 30 文件/320 项通过，真实 SQLite/PostgreSQL，127.44 秒、exit 0 且无未处理异常；自有临时 PG 已停止。编译后 CLI 生命周期 3/3（21.45 秒）、首次初始化 5/5 与 bindings 7/7 已验证 pending retention、管理保留重启及旧库/clone/restore 真启动。此前 Web 257 项、备份核心 14 项、工作区 20 项及桌面 IPC 13 项证据保留。最新全仓 ESLint、根/服务端/Web 类型、Vite production 与 paired stage 通过；资源 3 文件/76 项和管理页面窄幅回归 8/8 通过。
 
-全仓 ESLint、根类型检查、最终 Web 类型检查与 production Vite 构建通过。服务端整组之后的窄幅清理涉及未使用类型导入、声明文件 glob 和 peer 消息显式字符串校验；随后真实 socket 私人环境回归 7/7 通过（6.9 秒），不把整组测试错误标成在这些清理之后重新执行。
+真实普通匹配和权威好友房 2/2（约 1.3 分钟）通过。最终 paired build 的管理备份 UI 1/1（17.1 秒）通过，按 builtin 初始 1、归档共 2 环境验证。私人 Challenge 两浏览器 1/1（50.2 秒）通过：首局和再战各 2 回合自然结束、媒体解码，网络/UI 错误为空，292 次采样无服务端 Worker、目录不变。此前 Blob 提前回收的失败经 transition 回归先红后绿并在本轮严格验收通过；当前附件已保留到隔离输出目录。
 
-真实 production 配套网页管理场景 1/1 通过（13.6 秒），覆盖凭证元数据、签发/撤销、备份创建/下载、重启后稳定身份与历史，浏览器无错误。私人 Challenge 两浏览器场景 1/1 通过（50.1 秒），覆盖真实首局/同房间再战、自然结果和 UGC 媒体解码；279 次采样的服务器 Worker 最大值为零，公开目录不变，479 个 WebSocket 帧不携带作者代码/归档。建房载荷为 1558 字节，其中固定个人引用为 972 字节。
-
-最终 Linux arm64 Docker 的 SQLite/PG 容器删除重建、PG 重启及持久数据验证已通过（15.9 秒）；sourceProof 记录 1,332 个运行/构建输入一致，包含最终 P2P 生命周期。最终 macOS arm64 preview 打包 exit 0，真实包内 SQLite 门禁和完整托管场景 1/1（13.14 秒）通过。PR #275 的首轮 b6e11f1 baseline 中 production 管理/私人约战、headless、offline CLI 通过；服务器 PG fixture 未捕获异常、浏览器缺少 database/dist 及四平台打包路径/源元数据问题导致其余 job 失败。修补与本地定向回归已完成，等待下一提交的远端复验。5 项许可证资料阻碍发行，`releaseReady: false`，四平台 CI、正式安装升级、真实双设备 LAN 和完整故障矩阵仍待验收。SMTP/GitHub 未配置真实提供商环境，相关用户问题待答复。源码审查结论为 `WATCH / APPROVE`，不等于发行批准。详情、测试入口和证据范围见[统一管理验证记录](validation/unified-management-2026-11-05.md)；本次文档同步核对了源码和产物，没有独立重跑上述测试。
+最终 Linux arm64 Docker 镜像 `sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8` 验收 15.6 秒，包含最后初始化/retention/UI 修补；两库重建保留身份、默认绑定和版本，PG 重启通过。最终冻结源码 r3 macOS arm64 预览的真实包内 SQLite/完整宿主 1/1（12.74 秒）通过，356 个 renderer 与 62 个 server 文件匹配输入。PR #275 第二轮 bfefb852 baseline 4 pass/2 fail、桌面四平台 fail 仍是最近远端结论；当前本地修补不替代新远端复验。5 项许可证问题保持 releaseReady=false；正式安装升级、双设备 LAN、真实 SMTP/GitHub 和完整故障矩阵仍开放。源码审查为 WATCH / APPROVE，不等于发行批准。详情见[统一管理验证记录](validation/unified-management-2026-11-05.md)。
 
 ```sh
 pnpm --filter @arcadia-eternity/database test:run
@@ -192,6 +192,6 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 - #260/#262：干净宿主、持久卷、TLS、实际管理发布/入房与重启恢复。
 - #261：真实 SMTP 投递、GitHub App 回调与账户恢复。
 - #258/#266/#268：完整跨机/离线来源、备份故障、版本更新/回滚与回收竞争。
-- #224/#264：私人 Challenge 已通过的双浏览器首局/再战之外，完整网络异常、多客户端与真实双设备 LAN 联机场景。
+- #224/#264：私人 Challenge 代表性严格复验已通过；完整网络异常、多客户端与真实双设备 LAN 场景继续验收。
 - #217/#262：在线一致性备份的实际部署、并发/故障及恢复流程；本地快照合同不替代完整运维验收。
 - #233/#234：G4 战绩、积分和录像仍按原 Deferred 边界，不因管理面交付自动完成。

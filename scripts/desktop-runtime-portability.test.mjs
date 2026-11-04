@@ -190,12 +190,32 @@ test('Windows pnpm resolves an installed package or Corepack PATH layout without
   )
 })
 
+test('Windows pnpm prefers the explicitly configured pinned installation over a Corepack PATH shim', async () => {
+  const pinned = 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\pnpm\\bin\\pnpm.mjs'
+  const corepack = 'C:\\hostedtoolcache\\node\\node_modules\\corepack\\dist\\pnpm.js'
+  assert.deepEqual(
+    await resolvePnpmInvocation({
+      platform: 'win32',
+      env: {
+        PNPM_HOME: 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\.bin',
+        Path: 'C:\\hostedtoolcache\\node;C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\.bin',
+      },
+      execPath: 'node.exe',
+      resolvePackage: () => {
+        throw new Error('not installed in the project')
+      },
+      isFile: async path => path === pinned || path === corepack,
+    }),
+    { command: 'node.exe', args: [pinned] },
+  )
+})
+
 test('Windows pnpm rejects missing entries and relative PATH directories', async () => {
   const seen = []
   await assert.rejects(
     resolvePnpmInvocation({
       platform: 'win32',
-      env: { npm_execpath: 'pnpm.js', PATH: '.;relative;C:\\missing' },
+      env: { npm_execpath: 'pnpm.js', PNPM_HOME: '.', PATH: '.;relative;C:\\missing' },
       resolvePackage: () => {
         throw new Error('not installed')
       },

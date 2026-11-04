@@ -5,6 +5,7 @@ const baseURL = 'http://127.0.0.1:4179/game/'
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './test-results/static',
   testMatch: 'static-local-battle.spec.ts',
   timeout: 180_000,
   expect: { timeout: 30_000 },

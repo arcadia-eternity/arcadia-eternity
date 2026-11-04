@@ -124,22 +124,9 @@ export async function resolvePnpmInvocation({
   if (await executableEntry(env.npm_execpath)) return nodeInvocation(env.npm_execpath)
   if (platform !== 'win32') return { command: 'pnpm', args: [] }
 
-  try {
-    const manifest = await resolvePackage('pnpm/package.json')
-    if (typeof manifest === 'string' && paths.isAbsolute(manifest)) {
-      for (const filename of ['pnpm.mjs', 'pnpm.cjs', 'pnpm.js']) {
-        const entry = paths.join(paths.dirname(manifest), 'bin', filename)
-        if (await executableEntry(entry)) return nodeInvocation(entry)
-      }
-    }
-  } catch {
-    // A globally installed CLI need not be resolvable from this project.
-  }
-  const pathValue = Object.entries(env).find(([key]) => key.toLowerCase() === 'path')?.[1] ?? ''
-  const locations = pathEntries ?? pathValue.split(paths.delimiter)
   const checked = new Set()
-  for (const directory of locations) {
-    if (typeof directory !== 'string' || !paths.isAbsolute(directory)) continue
+  async function fromDirectory(directory) {
+    if (typeof directory !== 'string' || !paths.isAbsolute(directory)) return undefined
     for (const relativeEntry of [
       'pnpm.mjs',
       'pnpm.cjs',
@@ -158,6 +145,30 @@ export async function resolvePnpmInvocation({
       checked.add(key)
       if (await executableEntry(entry)) return nodeInvocation(entry)
     }
+    return undefined
+  }
+
+  // An explicit pnpm installation (including action-setup's pinned version)
+  // takes precedence over a Corepack shim earlier in setup-node's PATH.
+  const configured = await fromDirectory(env.PNPM_HOME)
+  if (configured) return configured
+
+  try {
+    const manifest = await resolvePackage('pnpm/package.json')
+    if (typeof manifest === 'string' && paths.isAbsolute(manifest)) {
+      for (const filename of ['pnpm.mjs', 'pnpm.cjs', 'pnpm.js']) {
+        const entry = paths.join(paths.dirname(manifest), 'bin', filename)
+        if (await executableEntry(entry)) return nodeInvocation(entry)
+      }
+    }
+  } catch {
+    // A globally installed CLI need not be resolvable from this project.
+  }
+  const pathValue = Object.entries(env).find(([key]) => key.toLowerCase() === 'path')?.[1] ?? ''
+  const locations = pathEntries ?? pathValue.split(paths.delimiter)
+  for (const directory of locations) {
+    const found = await fromDirectory(directory)
+    if (found) return found
   }
   throw invalid(
     'PNPM_CLI_NOT_FOUND',

@@ -5,6 +5,7 @@ import pg from 'pg'
 import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openStorage } from '../../database/src/storage'
+import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 import {
   ContentWorkspace,
   type EnvironmentExport,
@@ -59,8 +60,11 @@ async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
     const database = `transfers_${randomUUID().replaceAll('-', '')}`
     await admin.query(`CREATE DATABASE "${database}"`)
     cleanups.push(async () => {
-      await admin.query(`DROP DATABASE "${database}" WITH (FORCE)`)
-      await admin.end()
+      try {
+        await dropTestDatabase(admin, database)
+      } finally {
+        await admin.end()
+      }
     })
     const connection = new URL(process.env.TEST_DATABASE_URL!)
     connection.pathname = `/${database}`

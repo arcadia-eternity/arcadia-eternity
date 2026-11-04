@@ -1,5 +1,5 @@
 import { mount, flushPromises } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, ref, Transition } from 'vue'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useUncachedResource } from '../useUncachedResource'
 
@@ -42,4 +42,60 @@ it('loads only a mounted consumer, bypasses caches and releases its bytes on sou
   wrapper.unmount()
   expect(revoke).toHaveBeenCalledWith('blob:second')
   expect(create).toHaveBeenCalledTimes(2)
+})
+
+it('keeps the loaded media valid while an ancestor leave transition retains its DOM', async () => {
+  const image = new Uint8Array(24)
+  image.set([137, 80, 78, 71], 0)
+  image.set([73, 72, 68, 82], 12)
+  new DataView(image.buffer).setUint32(16, 1)
+  new DataView(image.buffer).setUint32(20, 1)
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(image)),
+  )
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:leaving-image')
+  const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+  const Consumer = defineComponent({
+    setup() {
+      const { url } = useUncachedResource(
+        () => 'https://assets.test/pet.png',
+        () => true,
+      )
+      return () => h('img', { src: url.value })
+    },
+  })
+  const visible = ref(true)
+  let finishLeave: (() => void) | undefined
+  const Parent = defineComponent({
+    setup: () => () =>
+      h(
+        Transition,
+        {
+          css: false,
+          onLeave: (_element: Element, done: () => void) => {
+            finishLeave = done
+          },
+        },
+        { default: () => (visible.value ? h('section', [h(Consumer)]) : undefined) },
+      ),
+  })
+  const wrapper = mount(Parent, { attachTo: document.body, global: { stubs: { transition: false } } })
+  try {
+    await flushPromises()
+    const element = wrapper.find('img').element
+    expect(element.getAttribute('src')).toBe('blob:leaving-image')
+    visible.value = false
+    await flushPromises()
+    expect(finishLeave).toBeTypeOf('function')
+    expect(element.isConnected).toBe(true)
+    expect(revoke).not.toHaveBeenCalled()
+    finishLeave!()
+    await flushPromises()
+    expect(element.isConnected).toBe(false)
+    expect(revoke).toHaveBeenCalledExactlyOnceWith('blob:leaving-image')
+  } finally {
+    finishLeave?.()
+    wrapper.unmount()
+  }
 })

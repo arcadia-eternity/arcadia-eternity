@@ -31,7 +31,6 @@ test(
         timeout: 20000,
         maxBuffer: 1024 * 1024,
       })
-    assert.equal((await run(['--version'])).stdout.trim(), '11.21.0')
     await mkdir(join(root, 'packages', 'server'), { recursive: true })
     await mkdir(join(root, 'dev-addon'))
     await writeFile(
@@ -42,6 +41,9 @@ test(
         devDependencies: { 'development-addon': 'file:./dev-addon' },
       }),
     )
+    // Corepack resolves the package manager from the working directory. Keep
+    // this isolated fixture pinned before invoking it, including --version.
+    assert.equal((await run(['--version'])).stdout.trim(), '11.21.0')
     await writeFile(join(root, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n')
     await writeFile(
       join(root, 'packages', 'server', 'package.json'),

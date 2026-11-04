@@ -702,7 +702,11 @@ onBeforeUnmount(() => {
             ><span>{{ taskLabels[operation.status] ?? operation.status }}</span>
           </header>
           <p v-if="operation.status === 'running' && typeof operation.progress === 'object'">
-            {{ operation.progress.message ?? taskStages[operation.progress.stage] ?? '正在处理' }}
+            {{
+              operation.progress.message ??
+              (operation.progress.stage ? taskStages[operation.progress.stage] : undefined) ??
+              '正在处理'
+            }}
             <span v-if="operation.progress.total"
               >{{ operation.progress.completed ?? 0 }} / {{ operation.progress.total }}</span
             >

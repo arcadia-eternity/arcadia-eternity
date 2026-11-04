@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { pathToFileURL } from 'node:url'
 import { validateDesktopRuntimeFiles, stageDesktopRuntime, verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
@@ -165,17 +165,18 @@ test('isolated renderer input is copied into a disposable application directory 
   const root = await mkdtemp(join(tmpdir(), 'arcadia-preview-input-'))
   try {
     const source = join(root, 'source'),
-      temporaryParent = join(root, 'application')
+      temporaryParent = join(root, 'application'),
+      selectedRuntime = join(root, 'selected', 'runtime')
     await mkdir(source)
     await writeFile(join(source, 'index.html'), '<!doctype html><title>final snapshot</title>')
     const { preparePreviewInputs, writePreviewConfiguration } = await import('./verify-desktop-pack.mjs')
-    const prepared = await preparePreviewInputs({ webDist: source, runtime: '/selected/runtime' }, { temporaryParent })
+    const prepared = await preparePreviewInputs({ webDist: source, runtime: selectedRuntime }, { temporaryParent })
     assert.ok(prepared.inputs.webDist.startsWith(temporaryParent))
-    assert.equal(prepared.inputs.runtime, '/selected/runtime')
+    assert.equal(resolve(prepared.inputs.runtime), resolve(selectedRuntime))
     const configuration = await writePreviewConfiguration(prepared)
     const { default: complete } = await import(pathToFileURL(configuration).href)
     assert.equal(complete.extraResources.length, 2, 'complete config does not append inherited runtime copies')
-    assert.equal(complete.extraResources[0].from, '/selected/runtime')
+    assert.equal(complete.extraResources[0].from, resolve(selectedRuntime))
     assert.equal(complete.files.length, 3, 'complete config replaces the default renderer input')
     assert.equal(complete.files[0].from, prepared.inputs.webDist)
     assert.equal(

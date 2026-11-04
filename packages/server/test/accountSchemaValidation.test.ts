@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { Pool } from 'pg'
 import { ensureAccountSchema } from '../src/standalone/accounts/schema'
+import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 
 const databaseUrl = process.env.TEST_DATABASE_URL
 const sourceDatabase = databaseUrl ? new URL(databaseUrl).pathname.slice(1) : ''
@@ -38,9 +39,12 @@ describe.skipIf(!canCreateIsolatedDatabase)('account schema validation on isolat
       )
       expect(rolledBack.rows[0]?.table_name).toBeNull()
     } finally {
-      await isolated?.end()
-      if (databaseCreated) await admin.query(`DROP DATABASE "${databaseName}"`)
-      await admin.end()
+      try {
+        await isolated?.end()
+        if (databaseCreated) await dropTestDatabase(admin, databaseName)
+      } finally {
+        await admin.end()
+      }
     }
   })
 })

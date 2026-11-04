@@ -10,6 +10,7 @@ const baseURL =
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './test-results/baseline',
   timeout: 30_000,
   workers: 1,
   retries: onlineMode ? 1 : 0,

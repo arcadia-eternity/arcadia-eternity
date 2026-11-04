@@ -1,4 +1,4 @@
-import { computed, shallowRef, watch } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, shallowRef, watch } from 'vue'
 import { readResourceBytes } from '@/services/resourceTransport'
 import { imageResourceBlob } from '@/services/imageResource'
 import unknownPet from '@/assets/images/unknown-pet.svg'
@@ -7,6 +7,28 @@ import unknownPet from '@/assets/images/unknown-pet.svg'
 export function useUncachedResource(source: () => string, enabled: () => boolean) {
   const url = shallowRef('')
   const error = shallowRef<Error | null>(null)
+  const owner = getCurrentInstance()
+  let unmounting = false
+  if (owner)
+    onBeforeUnmount(() => {
+      unmounting = true
+    })
+  const release = (objectUrl: string) => {
+    const element = unmounting ? (owner?.subTree.el as Node | undefined) : undefined
+    const Observer = element?.ownerDocument?.defaultView?.MutationObserver
+    if (!element?.isConnected || !Observer) {
+      URL.revokeObjectURL(objectUrl)
+      return
+    }
+    // Vue stops child scopes before an ancestor's leave animation removes its
+    // DOM. Keep that consumer's image valid until the retained DOM is detached.
+    const observer = new Observer(() => {
+      if (element.isConnected) return
+      observer.disconnect()
+      URL.revokeObjectURL(objectUrl)
+    })
+    observer.observe(element.ownerDocument!, { childList: true, subtree: true })
+  }
   watch(
     () => [source(), enabled()] as const,
     ([value, active], _previous, cleanup) => {
@@ -18,7 +40,7 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
       let objectUrl: string | undefined
       cleanup(() => {
         controller.abort()
-        if (objectUrl) URL.revokeObjectURL(objectUrl)
+        if (objectUrl) release(objectUrl)
       })
       void (async () => {
         const bytes = await readResourceBytes(value, { signal: controller.signal })

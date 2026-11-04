@@ -74,6 +74,33 @@ async function authenticateAndCheck(name, serverId, phase) {
     assert.equal(response.status, 200);
     let server = (await response.json()).servers[0];
     assert.equal(server.id, id);
+    assert.equal(typeof server.defaultBindingId,'string');
+    assert.ok(server.defaultBindingId.length > 0,'Fresh servers must publish a default environment');
+    const bindingsResponse = await fetch(base + '/servers/' + encodeURIComponent(id) + '/bindings',{headers});
+    assert.equal(bindingsResponse.status,200);
+    const bindings = (await bindingsResponse.json()).bindings;
+    assert.equal(bindings.length,1,'Fresh initialization must create exactly one binding');
+    const binding = bindings.find(item => item.id === server.defaultBindingId);
+    assert.ok(binding,'The default must reference the durable builtin binding');
+    assert.equal(binding.environmentId,'builtin-server');
+    assert.equal(binding.enabled,true);
+    assert.equal(binding.visibility,'public');
+    assert.equal(binding.matchmakingEnabled,true);
+    assert.equal(binding.condition,'available');
+    assert.equal(typeof binding.effectiveVersionId,'string');
+    assert.equal(binding.desiredVersionId,binding.effectiveVersionId);
+    const catalogResponse = await fetch(origin + '/api/v1/environments');
+    assert.equal(catalogResponse.status,200);
+    const catalog = await catalogResponse.json();
+    assert.equal(catalog.protocolVersion,1);
+    assert.equal(catalog.environments.length,1,'Fresh public catalog must contain the builtin environment');
+    const builtin = catalog.environments[0];
+    assert.deepEqual(builtin.packages,[]);
+    assert.equal(builtin.runtime.kind,'native-v4');
+    const contentResponse = await fetch(origin + '/api/v1/environments/' + encodeURIComponent(builtin.id) + '/content');
+    assert.equal(contentResponse.status,200);
+    const content = await contentResponse.json();
+    assert.ok(content.species.length > 0,'The published builtin must expose actual playable content');
     if (phase === 'initial') {
       const withoutCsrf = {...headers}; delete withoutCsrf['X-CSRF-Token'];
       assert.equal((await fetch(base + '/servers/' + encodeURIComponent(id), {
@@ -97,8 +124,20 @@ async function authenticateAndCheck(name, serverId, phase) {
     const workspaces = await fetch(base + '/workspaces', {headers});
     assert.equal(workspaces.status,200);
     const workspaceId = (await workspaces.json()).workspaces[0].id;
+    assert.equal(binding.workspaceId,workspaceId);
+    const environmentsResponse = await fetch(base + '/workspaces/' + encodeURIComponent(workspaceId) + '/environments',{headers});
+    assert.equal(environmentsResponse.status,200);
+    const environments = await environmentsResponse.json();
+    const version = environments.versions.find(item => item.versionId === binding.effectiveVersionId);
+    assert.ok(version,'The effective builtin version must remain in the shared workspace');
+    assert.equal(version.status,'ready');
+    assert.equal(version.environmentId,binding.environmentId);
+    assert.deepEqual(version.document.packages,{});
     console.log(JSON.stringify({serverId:id,workspaceId,revision:server.revision,
-      requiresRestart:server.requiresRestart}));
+      requiresRestart:server.requiresRestart,defaultBindingId:server.defaultBindingId,
+      environmentId:binding.environmentId,versionId:binding.effectiveVersionId,
+      catalogEnvironmentId:builtin.id,runtime:builtin.runtime,
+      resourceRevision:builtin.resourceRevision,builtinSpeciesCount:content.species.length}));
   `,
   )
   return result
@@ -199,6 +238,12 @@ async function runCase(driver, postgresHost) {
   const after = await authenticateAndCheck(name, serverId, 'recreated')
   assert.equal(after.workspaceId, before.workspaceId)
   assert.equal(after.revision, before.revision)
+  assert.equal(after.defaultBindingId, before.defaultBindingId)
+  assert.equal(after.environmentId, before.environmentId)
+  assert.equal(after.versionId, before.versionId)
+  assert.deepEqual(after.runtime, before.runtime)
+  assert.equal(after.resourceRevision, before.resourceRevision)
+  assert.equal(after.builtinSpeciesCount, before.builtinSpeciesCount)
   evidence.cases.push({
     driver,
     pairedAssets: assets.length,

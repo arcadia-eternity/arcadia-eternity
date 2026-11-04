@@ -29,6 +29,8 @@ tests/
 jest.config.*
 vitest.config.*
 coverage/
+**/test-results
+**/playwright-report
 
 # Development configuration
 .env

@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openStorage, type DurableStorage } from '../../database/src/storage'
+import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 import { SQLAccountDirectory } from '../../database/src/accounts'
 import { ManagementAccounts } from '../src/standalone/management/accounts'
 import { ManagementAuth, MANAGEMENT_ACTIONS, type ManagementSession } from '../src/standalone/management/auth'
@@ -30,8 +31,11 @@ for (const driver of ['sqlite', 'postgres'] as const)
           const name = `management_accounts_${randomUUID().replaceAll('-', '')}`
           await admin.query(`CREATE DATABASE "${name}"`)
           closeDatabase = async () => {
-            await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`)
-            await admin.end()
+            try {
+              await dropTestDatabase(admin, name)
+            } finally {
+              await admin.end()
+            }
           }
           const url = new URL(process.env.TEST_DATABASE_URL!)
           url.pathname = `/${name}`

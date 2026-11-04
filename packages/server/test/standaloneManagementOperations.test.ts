@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { openStorage, type DurableStorage, type StorageOptions } from '@arcadia-eternity/database'
+import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 import {
   OperationService,
   type Operation,
@@ -69,23 +70,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         await storage?.close()
         if (admin && schemaName) {
           try {
-            // pg-pool can resolve end() before its clients' sockets finish closing.
-            // FORCE would terminate those closing clients and emit uncaught 57P01
-            // errors. Confirm the backend has released every connection instead;
-            // an actual leaked connection must fail cleanup, not be force-killed.
-            await expect
-              .poll(
-                async () => {
-                  const result = await admin!.query<{ connections: string }>(
-                    'SELECT count(*) AS connections FROM pg_stat_activity WHERE datname = $1',
-                    [schemaName],
-                  )
-                  return Number(result.rows[0].connections)
-                },
-                { timeout: 5000, message: 'operation storage connections must close before dropping its database' },
-              )
-              .toBe(0)
-            await admin.query(`DROP DATABASE "${schemaName}"`)
+            await dropTestDatabase(admin, schemaName)
           } finally {
             await admin.end()
             admin = undefined

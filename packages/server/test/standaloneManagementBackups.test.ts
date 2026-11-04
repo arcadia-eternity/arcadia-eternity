@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import pg from 'pg'
 import { afterEach, describe, expect, it } from 'vitest'
 import { openStorage } from '../../database/src/storage'
+import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 import { ContentWorkspace } from '../../content-dev/src/content-workspace.mjs'
 import { createSingleProcessApp } from '../src/standalone/app'
 import { ManagementBackups } from '../src/standalone/management/backups'
@@ -44,8 +45,11 @@ async function fixture(driver: 'sqlite' | 'postgres', enabled = true) {
     const database = `backup_api_${randomUUID().replaceAll('-', '')}`
     await admin.query(`CREATE DATABASE "${database}"`)
     cleanups.push(async () => {
-      await admin.query(`DROP DATABASE "${database}" WITH (FORCE)`)
-      await admin.end()
+      try {
+        await dropTestDatabase(admin, database)
+      } finally {
+        await admin.end()
+      }
     })
     const url = new URL(process.env.TEST_DATABASE_URL!)
     url.pathname = `/${database}`

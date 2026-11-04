@@ -1,22 +1,46 @@
 {
-  "image": "arcadia-management-validation:final",
+  "image": "sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8",
   "platform": "darwin",
-  "startedAt": "2026-11-04T18:21:53.478Z",
+  "startedAt": "2026-11-04T19:20:00.284Z",
   "cases": [
     {
       "driver": "sqlite",
       "pairedAssets": 2,
       "before": {
-        "serverId": "arcadia-validation-708e3189-eec-sqlite",
-        "workspaceId": "bfb5eb5d-9dcf-49fd-91a2-61c924c7c0c8",
-        "revision": 2,
-        "requiresRestart": true
+        "serverId": "arcadia-validation-1f654601-f9e-sqlite",
+        "workspaceId": "096a0c50-d5a7-423c-ae35-444a00e0131c",
+        "revision": 5,
+        "requiresRestart": true,
+        "defaultBindingId": "02dff66a-b433-46ba-ba69-243a54fb0489",
+        "environmentId": "builtin-server",
+        "versionId": "3ab397a6-56a0-4f4d-aca4-11ee5e46078c",
+        "catalogEnvironmentId": "1b4a13030ea3f1abf23cebaa9d8b4809fccd97f6c20c84e492f58c92d16ba295",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
       },
       "after": {
-        "serverId": "arcadia-validation-708e3189-eec-sqlite",
-        "workspaceId": "bfb5eb5d-9dcf-49fd-91a2-61c924c7c0c8",
-        "revision": 2,
-        "requiresRestart": false
+        "serverId": "arcadia-validation-1f654601-f9e-sqlite",
+        "workspaceId": "096a0c50-d5a7-423c-ae35-444a00e0131c",
+        "revision": 5,
+        "requiresRestart": false,
+        "defaultBindingId": "02dff66a-b433-46ba-ba69-243a54fb0489",
+        "environmentId": "builtin-server",
+        "versionId": "3ab397a6-56a0-4f4d-aca4-11ee5e46078c",
+        "catalogEnvironmentId": "5f008ecc281d2ef8101e569831a2b91000f5e5885cb698d979c1e0e0ee216bef",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
       },
       "containerRecreated": true,
       "databaseRestarted": false
@@ -25,16 +49,40 @@
       "driver": "postgres",
       "pairedAssets": 2,
       "before": {
-        "serverId": "arcadia-validation-708e3189-eec-postgres",
-        "workspaceId": "c21da32a-117b-4432-acc6-379f8152ce8c",
-        "revision": 2,
-        "requiresRestart": true
+        "serverId": "arcadia-validation-1f654601-f9e-postgres",
+        "workspaceId": "4d031360-87ec-4e1a-bf24-dc3083bd2afc",
+        "revision": 5,
+        "requiresRestart": true,
+        "defaultBindingId": "1d60e66a-552b-4ce9-88e4-4eb394cd344f",
+        "environmentId": "builtin-server",
+        "versionId": "dd74d354-6e10-4791-9f4b-8d72a7b26b72",
+        "catalogEnvironmentId": "3f9e37b0bf9bb0debefcb9e77ec45a4b3c9705339cc0385b83e275f3888e8b06",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
       },
       "after": {
-        "serverId": "arcadia-validation-708e3189-eec-postgres",
-        "workspaceId": "c21da32a-117b-4432-acc6-379f8152ce8c",
-        "revision": 2,
-        "requiresRestart": false
+        "serverId": "arcadia-validation-1f654601-f9e-postgres",
+        "workspaceId": "4d031360-87ec-4e1a-bf24-dc3083bd2afc",
+        "revision": 5,
+        "requiresRestart": false,
+        "defaultBindingId": "1d60e66a-552b-4ce9-88e4-4eb394cd344f",
+        "environmentId": "builtin-server",
+        "versionId": "dd74d354-6e10-4791-9f4b-8d72a7b26b72",
+        "catalogEnvironmentId": "b7efd644edb871b1ca84c17394b6cc00e218dce8161846d4e7e9e2bab8a8b45b",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
       },
       "containerRecreated": true,
       "databaseRestarted": true
@@ -43,7 +91,7 @@
   "passed": true,
   "dockerVersion": "29.5.3",
   "imageIdentity": {
-    "id": "sha256:a550f492e1ddea2cce2e40d0cb053a8d15b6e995ca39ffcf8c94a2761e14b508",
+    "id": "sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8",
     "architecture": "arm64",
     "os": "linux"
   },
@@ -55,33 +103,39 @@
     "git": "git version 2.54.0",
     "npm": "11.19.1"
   },
-  "finishedAt": "2026-11-04T18:22:09.361Z",
+  "finishedAt": "2026-11-04T19:20:15.849Z",
   "cleanupVerified": {
     "containers": 0,
     "volumes": 0,
     "networks": 0
   },
-  "buildLog": "/private/tmp/arcadia-docker-build-final.log",
+  "buildLog": "/private/tmp/arcadia-docker-build-complete-final.log",
   "sourceProof": {
     "definition": "Sorted runtime/build source tree (bin, packages, packs, scripts, author skill and root build inputs), excluding generated outputs; includes tests and package docs beyond the narrower Docker context.",
     "fingerprintAlgorithm": "SHA256 of sorted path + NUL + mode + NUL + content SHA256 + LF entries",
-    "buildBaseCommit": "8580fcf0ab109829a2f5028301fc7691693b88ed",
-    "postBuildCommit": "b693ed6ae6b30a303d639edc08c6c0a71997c8d8",
-    "imageSourceLabel": "sha256:937fc19d5398863070420c424db4f4846a67872203c46b9ac1788efb20794597",
-    "beforeDigest": "sha256:937fc19d5398863070420c424db4f4846a67872203c46b9ac1788efb20794597",
-    "afterDigest": "sha256:ff19e36ae36cec236acc7e848b6d15e5848610a9cc0a864b0c0e0a9eaa16c5d6",
-    "files": 1334,
-    "changedPaths": [
-      "scripts/stage-desktop-runtime.test.mjs",
-      "scripts/verify-desktop-pack.mjs"
-    ],
-    "unchangedInputsDigest": "sha256:be7a005746a02e3ff997794f522d66f2e34effdad5518251d2ae14b283b7b6be",
-    "unchangedInputsCount": 1332,
-    "explanation": "Only the desktop packaging hook and its test changed during the build. Docker build:prod runs neither; Dockerfile creates an empty production /app/scripts instead of copying root/scripts. All other selected runtime/build sources, including final personal P2P lifecycle, were byte-identical before and after."
+    "buildBaseCommit": "bfefb8521b8855cfa92919aac821f6ade1bef489",
+    "postBuildCommit": "bfefb8521b8855cfa92919aac821f6ade1bef489",
+    "imageSourceLabel": "sha256:1045e29f631da52b5271e21d4cb84029b50093bb3995ee66777df9ef5dc35386",
+    "beforeDigest": "sha256:1045e29f631da52b5271e21d4cb84029b50093bb3995ee66777df9ef5dc35386",
+    "afterDigest": "sha256:1ee4bfb2a960b3613544ea290419ef48be261e3b2435c49cbd096717b2a4faff",
+    "files": 1342,
+    "changedPaths": ["packages/server/test/standaloneManagementInitialization.test.ts"],
+    "unchangedInputsDigest": "sha256:33881fd68fc0dc90c04fdc7ecc959fa93484a185c4d056447036f0960d915202",
+    "unchangedInputsCount": 1341,
+    "allRuntimeInputsUnchanged": true,
+    "imageCriticalSourcesVerified": {
+      "packages/server/src/standalone/management/service.ts": "ce155d75e3a7df7a4a44fec227d276967577091edb456a255ee3c21fe64a4299",
+      "packages/web-ui/src/composition/useUncachedResource.ts": "74f40ed031f6ebaf2b0d2a2321f420052c0d9768bf988709313fb737aedc2f10",
+      "packages/web-ui/src/features/management/ManagementConsole.vue": "881ffbfcc764ef8bb3ad012c4f4de07ad95ed886391c92040586d7a47bab5903"
+    },
+    "explanation": "Only a server test excluded by the Docker *.test.ts rule changed during the build. All selected runtime/build source inputs were otherwise byte-identical. Critical management and final UI fix source files were additionally read and hashed inside this exact image."
   },
+  "generatedReportsExcluded": true,
+  "pairedUiRefreshPending": false,
   "scopeNotes": [
-    "Actual final Linux arm64 image; source race accounting is explicit in sourceProof.",
-    "Guest mode, real SQLite and PostgreSQL17 container restart/recreation; no external SMTP/GitHub provider delivery/callback acceptance performed.",
-    "Entry HTML/assets and real HTTP management verified; full browser UI and personal P2P scenarios are covered separately."
+    "Final Linux arm64 image includes builtin initialization, durable desired-version retention, final Blob URL lifecycle fix and management progress indexing fix.",
+    "SQLite and PostgreSQL17 fresh builtin catalog/default binding and effective version were verified; container recreation preserves identity/config/default/version, and PostgreSQL was restarted too.",
+    "Entry HTML/assets and real HTTP management verified; full browser UI and personal P2P execution are covered separately.",
+    "No external SMTP/GitHub provider delivery or callback acceptance performed."
   ]
 }

@@ -2,6 +2,7 @@ import { defineConfig, devices } from 'playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './test-results/ugc-environment',
   testMatch: 'ugc-environment-sync.spec.ts',
   workers: 1,
   retries: 0,

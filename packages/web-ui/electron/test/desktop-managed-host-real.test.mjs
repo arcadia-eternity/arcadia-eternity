@@ -4,7 +4,7 @@ import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { promisify } from 'node:util'
-import { mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -78,14 +78,44 @@ test(
     }
     try {
       const workspace = await owner.ready()
-      const packArguments = ['pack', './examples/ugc/slow', '--json', '--ignore-scripts', '--pack-destination', root]
+      const example = join(repository, 'examples/ugc/slow')
+      const fixture = join(root, 'slow')
+      await mkdir(fixture)
+      // Never reuse an ignored local dist directory: build the tracked example
+      // into this test's empty fixture. Keep its config in the repository so
+      // TypeScript resolves the already-built workspace SDK without an install.
+      for (const entry of ['package.json', 'content.json', 'src'])
+        await cp(join(example, entry), join(fixture, entry), { recursive: true })
+      const compiler = createRequire(join(repository, 'package.json')).resolve('typescript/bin/tsc')
+      await exec(
+        process.execPath,
+        [compiler, '--project', join(example, 'tsconfig.json'), '--outDir', join(fixture, 'dist'), '--noEmitOnError'],
+        { cwd: repository, maxBuffer: 4 * 1024 * 1024 },
+      )
+      const fixtureManifest = JSON.parse(await readFile(join(fixture, 'package.json'), 'utf8'))
+      assert.ok((await readFile(join(fixture, fixtureManifest.arcadia.effects))).length, 'fresh compiled effect exists')
+      const packArguments = [
+        'pack',
+        fixture,
+        '--json',
+        '--ignore-scripts',
+        '--pack-destination',
+        root,
+        '--cache',
+        join(root, 'pack-cache'),
+      ]
       const packed = process.env.ARCADIA_DESKTOP_NPM_CLI
         ? await exec(host.executable, [process.env.ARCADIA_DESKTOP_NPM_CLI, ...packArguments], {
             cwd: repository,
             env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
           })
         : await exec('npm', packArguments, { cwd: repository })
-      await library.installFile(join(root, JSON.parse(packed.stdout)[0].filename), true)
+      const archive = JSON.parse(packed.stdout)[0]
+      assert.ok(
+        archive.files.some(file => file.path === fixtureManifest.arcadia.effects),
+        'packed fixture includes the freshly compiled effect entry',
+      )
+      await library.installFile(join(root, archive.filename), true)
       await settle()
       const local = await library.acquireProject()
       const existingProjects = await readdir(join(root, 'library/projects'))

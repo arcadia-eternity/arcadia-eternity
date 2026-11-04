@@ -10,6 +10,7 @@ import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openServerStorage, readServerStorageStatus, workspaceRetentions } from '../server-persistence'
+import { dropTestDatabase } from './helpers/postgres'
 
 // Resolve the raw fixture driver through its owning workspace package; production CLI uses DurableStorage.
 const Sqlite = createRequire(new URL('../../packages/database/package.json', import.meta.url))(
@@ -362,10 +363,13 @@ describe.skipIf(!canUseIsolatedPostgres)('PostgreSQL server namespace migration'
       current = await open(dataDir, 'migrate')
       expect(current.serverId).toBe('legacy-server')
     } finally {
-      if (current) await close(current)
-      await legacy?.end()
-      if (created) await admin.query(`DROP DATABASE "${name}"`)
-      await admin.end()
+      try {
+        if (current) await close(current)
+        await legacy?.end()
+        if (created) await dropTestDatabase(admin, name)
+      } finally {
+        await admin.end()
+      }
     }
   })
 })

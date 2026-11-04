@@ -4,13 +4,15 @@ import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-dev/managed-projects'
-import { readFile, stat } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { openServerStorage, workspaceRetentions } from './server-persistence'
 import { createDesktopWorkspaceProxy } from './desktop-workspace-proxy'
 import { createOnlineServerBackup } from './server-backup'
 import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { attachDesktopContentControl } from './desktop-content-control'
+import { initializeHostEnvironment } from './host-environment-initialize'
 import {
   createSingleProcessApp,
   parseBattleCapacityEnv,
@@ -147,6 +149,10 @@ export async function runServerCli(args: string[]): Promise<number> {
     const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
     if ((options.desktopProject || options.desktopManagedNetwork || options.desktopOrigin) && !desktopControl)
       throw new Error('Desktop options require the private desktop host')
+    if (!desktopControl && (options.npmProject?.length ?? 0) > 1)
+      throw new Error(
+        'Only one --npm-project can initialize a persistent server; publish additional environments through management',
+      )
     if (options.desktopManagedNetwork) {
       if (!options.desktopOrigin) throw new Error('Managed desktop host requires its renderer origin')
       if (program.getOptionValueSource('host') !== 'cli' && !process.env.HOST) options.host = '127.0.0.1'
@@ -315,6 +321,13 @@ export async function runServerCli(args: string[]): Promise<number> {
           .map(value => value.trim())
           .filter(Boolean),
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
+        initialization: desktopControl
+          ? options.desktopProject
+            ? { kind: 'desktop', environmentId: 'desktop-host' }
+            : undefined
+          : options.npmProject?.[0]
+            ? { kind: 'npm', environmentId: 'startup-npm' }
+            : { kind: 'builtin', environmentId: 'builtin-server' },
         ...(projects
           ? { prepareEnvironment: (input, validator) => projects!.prepareVersion(workspace!, input, validator) }
           : {}),
@@ -327,10 +340,6 @@ export async function runServerCli(args: string[]): Promise<number> {
     const builtinId = server.environments.descriptor().id
     if (desktopControl && ((!options.desktopManagedNetwork && options.host !== '127.0.0.1') || accounts))
       throw new Error('Invalid desktop host')
-    for (const directory of options.npmProject ?? []) {
-      const prepared = await server.environments.prepareNpm(directory)
-      if (desktopControl) server.environments.selectDefault(prepared.id)
-    }
     if (desktopControl && options.desktopProject) {
       const { initializeDesktopHost } = await import('./desktop-host-initialize')
       await initializeDesktopHost({
@@ -338,6 +347,43 @@ export async function runServerCli(args: string[]): Promise<number> {
         workspace,
         projectDirectory: options.desktopProject,
       })
+    } else if (!desktopControl && options.npmProject?.[0]) {
+      await initializeHostEnvironment({
+        management: server.management!,
+        workspace,
+        projectDirectory: options.npmProject[0],
+        kind: 'npm',
+        environmentId: 'startup-npm',
+        name: '启动时批准的 npm 环境',
+        matchmakingEnabled: true,
+      })
+    } else if (!desktopControl) {
+      const builtinProject = await mkdtemp(join(tmpdir(), 'arcadia-builtin-environment-'))
+      try {
+        const manifest = { name: 'arcadia-builtin-environment', version: '1.0.0', private: true }
+        await writeFile(join(builtinProject, 'package.json'), JSON.stringify(manifest) + '\n', { mode: 0o600 })
+        await writeFile(
+          join(builtinProject, 'package-lock.json'),
+          JSON.stringify({
+            name: manifest.name,
+            version: manifest.version,
+            lockfileVersion: 3,
+            packages: { '': manifest },
+          }) + '\n',
+          { mode: 0o600 },
+        )
+        await initializeHostEnvironment({
+          management: server.management!,
+          workspace,
+          projectDirectory: builtinProject,
+          kind: 'builtin',
+          environmentId: 'builtin-server',
+          name: '内置服务器环境',
+          matchmakingEnabled: true,
+        })
+      } finally {
+        await rm(builtinProject, { recursive: true, force: true })
+      }
     }
     await server.start()
     const detachDesktopControl = desktopControl

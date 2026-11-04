@@ -132,6 +132,7 @@ test('paired production management backs up, revokes service credentials and ret
     const identity = await login(page, directory, server.origin)
     expect(identity.serverId).toBe(server.serverId)
     checks.push('host one-use code claimed through paired production UI')
+    await expect(page.locator('.environment-card')).toHaveCount(1)
 
     await page.getByRole('button', { name: '新建环境', exact: true }).click()
     const editor = page.getByRole('form', { name: '编辑环境' })
@@ -139,7 +140,10 @@ test('paired production management backs up, revokes service credentials and ret
     await editor.getByLabel('标识', { exact: true }).fill('backup-acceptance')
     await editor.getByRole('button', { name: '保存环境', exact: true }).click()
     await expect(editor).not.toBeVisible()
-    await page.getByRole('button', { name: '准备版本', exact: true }).click()
+    const backupEnvironment = page.locator('.environment-card').filter({
+      has: page.getByRole('heading', { name: '备份验收环境', exact: true }),
+    })
+    await backupEnvironment.getByRole('button', { name: '准备版本', exact: true }).click()
     const preparation = page.locator('.operation').filter({ has: page.getByText('准备环境', { exact: true }) })
     await expect(preparation.getByText('已完成', { exact: true })).toBeVisible({ timeout: 90000 })
     checks.push('real fixed environment prepared for backup materials')
@@ -185,8 +189,13 @@ test('paired production management backs up, revokes service credentials and ret
     expect(
       archive.workspace.drafts.some((draft: { document: { id: string } }) => draft.document.id === 'backup-acceptance'),
     ).toBe(true)
-    expect(archive.workspace.versions.length).toBe(1)
-    expect(archive.workspace.versions[0].files.length).toBeGreaterThan(0)
+    expect(archive.workspace.drafts).toHaveLength(2)
+    expect(archive.workspace.versions).toHaveLength(2)
+    const preparedVersions = archive.workspace.versions.filter(
+      (entry: { version: { environmentId: string } }) => entry.version.environmentId === 'backup-acceptance',
+    )
+    expect(preparedVersions).toHaveLength(1)
+    expect(preparedVersions[0].files.length).toBeGreaterThan(0)
     expect(Array.isArray(archive.storage.accounts)).toBe(true)
     expect(archive.storage.records.credentials).toEqual([])
     expect(archive.storage.records.sessions).toEqual([])
@@ -200,8 +209,8 @@ test('paired production management backs up, revokes service credentials and ret
       serverId: identity.serverId,
       workspaceId: identity.workspaceId,
       servers: 1,
-      environments: 1,
-      versions: 1,
+      environments: 2,
+      versions: 2,
       accounts: 0,
     })
     checks.push(
@@ -235,6 +244,7 @@ test('paired production management backs up, revokes service credentials and ret
     server = await startServer(directory, port)
     const restored = await login(page, directory, server.origin)
     expect(restored).toEqual(identity)
+    await expect(page.locator('.environment-card')).toHaveCount(2)
     await expect(page.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
     await page.getByRole('button', { name: '管理员', exact: true }).click()
     await expect(credentialList).toContainText(survivingCredentialId)
