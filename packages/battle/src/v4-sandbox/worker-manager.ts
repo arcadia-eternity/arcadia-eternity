@@ -193,8 +193,13 @@ export class WorkerBattleSystem implements IBattleSystem {
   ready = () => this.call('ready', [])
   getState = (...args: Parameters<LocalBattleSystemV4['getState']>) => this.call('getState', args)
   getAvailableSelection: IBattleSystem['getAvailableSelection'] = (...args) => this.call('getAvailableSelection', args)
-  submitAction(...args: Parameters<IBattleSystem['submitAction']>) {
-    return this.call('submitAction', args)
+  submitAction(selection: Parameters<IBattleSystem['submitAction']>[0]) {
+    // Capture this fixed DTO before Comlink's structured clone (UI selections may be reactive).
+    const input =
+      selection.type === 'team-selection'
+        ? { ...selection, selectedPets: [...selection.selectedPets] }
+        : { ...selection }
+    return this.call('submitAction', [input])
   }
   isTimerEnabled = () => this.call('isTimerEnabled', [])
   getPlayerTimerState: IBattleSystem['getPlayerTimerState'] = (...args) => this.call('getPlayerTimerState', args)

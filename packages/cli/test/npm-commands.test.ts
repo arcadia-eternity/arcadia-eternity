@@ -100,9 +100,9 @@ it('installs, inspects and requires separate explicit approval before executing 
   await invoke(['content', 'npm', 'install', environment, '--offline'], 2)
 }, 60000)
 
-it('completes an npm battle and replays only with the original separately approved environment', async () => {
+it('completes an npm battle and rejects replay capture without a module reconstruction contract', async () => {
   const file = join(temporary, 'replay.json')
-  const result = await invoke([
+  const args = [
     'battle',
     'simulate',
     '--npm-project',
@@ -113,13 +113,9 @@ it('completes an npm battle and replays only with the original separately approv
     join(temporary, 'team-1.json'),
     '--seed',
     'npm-cli',
-    '--replay-out',
-    file,
-  ])
+  ]
+  const result = await invoke(args)
   expect(result.counts).toEqual({ completed: 1, truncated: 0, failed: 0, cancelled: 0 })
-  const saved = JSON.parse(await readFile(file, 'utf8'))
-  expect(saved.environment.npm.installationDigest).toBe(digest)
-  expect(JSON.stringify(saved)).not.toContain(temporary)
-  expect((await invoke(['battle', 'replay', file], 3)).diagnostics[0].code).toBe('REPLAY_NPM')
-  expect((await invoke(['battle', 'replay', file, '--npm-project', environment])).verified).toBe(true)
+  expect((await invoke([...args, '--replay-out', file], 3)).diagnostics[0].code).toBe('SANDBOX_REPLAY_STATE')
+  await expect(readFile(file)).rejects.toThrow()
 }, 60000)

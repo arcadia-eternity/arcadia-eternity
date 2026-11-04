@@ -14,6 +14,7 @@ import { SandboxFault, type SandboxPolicy } from './contracts'
 
 type Fn = (...args: unknown[]) => unknown
 type Scope = { active: boolean; readonly values: object[] }
+const isClassConstructor = (value: Fn) => /^class(?:\s|\{)/.test(Function.prototype.toString.call(value))
 const fields = [
   'battle',
   'configSystem',
@@ -231,9 +232,12 @@ export class ArenaEffectSdk {
     }
     if (typeof value === 'function') {
       const fn = value as Fn
-      const isClass = /^class\s/.test(Function.prototype.toString.call(value))
+      const isClass = isClassConstructor(fn)
       const allowedConstructor =
-        isClass && (value === ParameterCatalog || /Context$/.test(fn.name) || value === BehaviorCompilationError)
+        isClass &&
+        (value === ParameterCatalog ||
+          Reflect.get(fn, 'prototype') instanceof Context ||
+          value === BehaviorCompilationError)
       const callable = (...args: unknown[]) =>
         this.run(() => {
           if (ephemeral && scope && !scope.active)
@@ -275,14 +279,14 @@ export class ArenaEffectSdk {
             if (
               (original === sdk || original === coreSdk) &&
               typeof member === 'function' &&
-              !/^class\s/.test(Function.prototype.toString.call(member)) &&
+              !isClassConstructor(member as Fn) &&
               !authorFunctions.has(String(key))
             )
               return this.reject(new SandboxFault('permission', 'sdk', `Not an effect capability: ${String(key)}`))
             if (typeof member === 'function') {
               if (isDomain && !domainMethods(original).includes(String(key)))
                 return this.reject(new SandboxFault('permission', 'sdk', 'Direct domain methods denied'))
-              if (/^class\s/.test(Function.prototype.toString.call(member))) return this.output(member)
+              if (isClassConstructor(member as Fn)) return this.output(member)
               if (!members.has(key)) members.set(key, (...args) => Reflect.apply(member, original, args))
               return this.output(members.get(key)!, temporary ? scope : undefined, temporary)
             }

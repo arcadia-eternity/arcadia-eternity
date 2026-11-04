@@ -64,7 +64,7 @@ export class ExecutionBudget {
     try {
       for (const check of this.healthChecks) check()
     } catch (error) {
-      this.fail(error instanceof Error ? error : new Error(String(error)))
+      this.fail(error instanceof Error ? error : new Error('Execution health check failed'))
     }
   }
   /** Sandbox failures must survive ordinary effect/reactive error recovery. */

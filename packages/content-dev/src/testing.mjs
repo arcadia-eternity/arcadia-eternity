@@ -34,6 +34,9 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
       })),
     }))
   }
+  /** Trusted in-process reference helper for direct engine introspection tests only.
+   * Reuses validation modules; games and automated previews must use createBattleSession.
+   */
   function createBattle(
     seed = 'content-pack-template',
     { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},

@@ -73,6 +73,7 @@ export class SandboxBattleRuntime {
   private closed = false
   private failure?: Error
   private supportsSnapshots = false
+  private revision?: string
   private readonly events: SandboxEvent[] = []
   private sending = false
   private delivery?: Promise<void>
@@ -94,6 +95,7 @@ export class SandboxBattleRuntime {
         throw new SandboxFault('artifact', 'battle', 'Invalid battle input')
       const environment = input.environment,
         names = new Set<string>()
+      this.revision = environment.revision
       this.supportsSnapshots = environment.supportsSnapshots === true
       for (const entry of environment.modules) {
         if (
@@ -233,6 +235,16 @@ export class SandboxBattleRuntime {
       throw new SandboxFault('permission', 'battle', 'Unknown battle operation')
     if ((method === 'createRuntimeSnapshot' || method === 'restoreRuntimeSnapshot') && !this.supportsSnapshots)
       throw new Error('This environment has no verified module-state reconstruction contract')
+    if (method === 'restoreRuntimeSnapshot') {
+      const snapshot = args[0] as { payload?: unknown } | undefined
+      if (
+        typeof snapshot?.payload !== 'string' ||
+        new TextEncoder().encode(snapshot.payload).byteLength > sandboxPolicy.outputBytes
+      )
+        throw new Error('Invalid or oversized runtime snapshot')
+      const payload = JSON.parse(snapshot.payload) as { battle?: { catalog?: unknown } } | null
+      if (payload?.battle?.catalog !== this.revision) throw new Error('Snapshot content revision mismatch')
+    }
     const fn = this.system[method] as (...args: unknown[]) => unknown
     try {
       const value: unknown = await fn.apply(this.system, args)

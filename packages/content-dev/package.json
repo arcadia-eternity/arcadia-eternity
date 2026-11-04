@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "node build.mjs",
-    "test:run": "node --test test/*.test.mjs"
+    "test:run": "node --test --test-concurrency=1 test/*.test.mjs"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

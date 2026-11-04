@@ -19,6 +19,7 @@ import { InMemoryPeerTransport } from '@/p2p/inMemoryPeerTransport'
 import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
 import {
   createNativeWebBattleSystem,
+  createSandboxWebBattleSession,
   type NativeGameDataStoreLike,
   type NativeWebBattleConfig,
 } from '../nativeBattleFactory'
@@ -85,6 +86,20 @@ function prompt(system: LocalBattleSystemV4) {
     })
   })
 }
+it('rejects a sandbox checkpoint after captured metadata changes', async () => {
+  const f = fixture(),
+    first = await createSandboxWebBattleSession(f.players[0], f.players[1], f.data)
+  peers.push(first.system)
+  const saved = await first.system.createRuntimeSnapshot()
+  await first.system.cleanup()
+  const skill = f.data.skills.byId[f.data.skills.allIds[0]] as { power: number }
+  skill.power = (skill.power ?? 0) + 1
+  const second = await createSandboxWebBattleSession(f.players[0], f.players[1], f.data)
+  peers.push(second.system)
+  const current = await second.system.createRuntimeSnapshot()
+  expect(JSON.parse(current.payload).battle.catalog).not.toBe(JSON.parse(saved.payload).battle.catalog)
+  await expect(second.system.restoreRuntimeSnapshot(saved)).rejects.toThrow(/revision|content|identity/i)
+}, 20_000)
 
 it('constructs native local/P2P teams with independent instance IDs and preserves caller data', async () => {
   const f = fixture()
@@ -189,7 +204,7 @@ it('runs the real native P2P host through sync, remote input and a complete turn
   expect(remote.team?.map(pet => ({ id: pet.id, hp: pet.currentHp }))).toEqual(
     local.team?.map(pet => ({ id: pet.id, hp: pet.currentHp })),
   )
-})
+}, 20_000)
 
 it('uses current edited metadata and captures it with team/config inputs before asynchronous creation', async () => {
   const f = fixture(),

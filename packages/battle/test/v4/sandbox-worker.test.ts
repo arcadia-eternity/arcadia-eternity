@@ -1,5 +1,9 @@
 import { Worker } from 'node:worker_threads'
 import { readFileSync } from 'node:fs'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { pathToFileURL } from 'node:url'
 import { afterEach, expect, it } from 'vitest'
 import nodeEndpoint from 'comlink/dist/esm/node-adapter.mjs'
 import { parse } from 'yaml'
@@ -19,10 +23,13 @@ const managers: BattleWorkerManager[] = []
 afterEach(async () => {
   for (const manager of managers.splice(0)) await manager.dispose()
 })
-function manager(overrides: Partial<ConstructorParameters<typeof BattleWorkerManager>[1]> = {}) {
+function manager(
+  overrides: Partial<ConstructorParameters<typeof BattleWorkerManager>[1]> = {},
+  workerUrl = new URL('../../dist/v4-sandbox-node-worker.js', import.meta.url),
+) {
   const result = new BattleWorkerManager(
     () => {
-      const worker = new Worker(new URL('../../dist/v4-sandbox-node-worker.js', import.meta.url))
+      const worker = new Worker(workerUrl)
       return {
         endpoint: nodeEndpoint(worker),
         terminate: () => worker.terminate(),
@@ -256,19 +263,21 @@ it('stops a running battle after a caught SDK permission fault', async () => {
       apply(ctx){try{ctx.source.owner.currentHp=0}catch{}}
     })]
   }`)
-  spec.environment.data.behaviors = [
-    {
-      formatVersion: 1,
-      id: 'test:fault',
-      sourceKind: 'skill',
-      parameters: {},
-      implementation: { kind: 'native', exportId: 'test:fault' },
-    },
-  ]
-  spec.environment.data.skills = spec.environment.data.skills.map(skill => ({
-    ...(skill as object),
-    behaviors: [{ useId: 'fault', definitionId: 'test:fault' }],
-  }))
+  Object.assign(spec.environment.data, {
+    behaviors: [
+      {
+        formatVersion: 1,
+        id: 'test:fault',
+        sourceKind: 'skill',
+        parameters: {},
+        implementation: { kind: 'native', exportId: 'test:fault' },
+      },
+    ],
+    skills: spec.environment.data.skills.map(skill => ({
+      ...(skill as object),
+      behaviors: [{ useId: 'fault', definitionId: 'test:fault' }],
+    })),
+  })
   const battle = await host.create(spec)
   const events: string[] = []
   battle.BattleEvent(
@@ -291,6 +300,68 @@ it('stops a running battle after a caught SDK permission fault', async () => {
   expect(events).not.toContain(BattleMessageType.BattleEnd)
   expect(host.status().at(-1)?.state).toBe('faulted')
 }, 10_000)
+it('preserves SDK constructors and native healing after production minification', async () => {
+  const { rolldown } = await import('rolldown'),
+    directory = await mkdtemp(join(tmpdir(), 'arcadia-minified-worker-'))
+  const build = await rolldown({
+    input: new URL('../../src/v4-sandbox/node-worker.ts', import.meta.url).pathname,
+    plugins: [
+      {
+        name: 'installed-runtime-dependencies',
+        resolveId(id) {
+          if (id.startsWith('node:')) return { id, external: true }
+          if (!id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'))
+            return { id: import.meta.resolve(id), external: true }
+        },
+      },
+    ],
+  })
+  let battle: Awaited<ReturnType<BattleWorkerManager['create']>> | undefined
+  try {
+    const file = join(directory, 'worker.mjs')
+    await build.write({ file, format: 'esm', minify: true })
+    const spec = small(`export function createEffects({sdk,id}){
+      new sdk.ParameterCatalog([]);
+      return [sdk.defineCodeEffect({id:id('heal'),sourceKind:'skill',triggers:[sdk.EffectTrigger.OnHit],apply(ctx){
+        const pet=ctx.source.owner;if(!(pet instanceof sdk.Pet))throw Error('domain class identity');
+        pet.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(1,1)));
+      }})]
+    }`)
+    Object.assign(spec.environment.data, {
+      behaviors: [
+        {
+          formatVersion: 1,
+          id: 'test:heal',
+          sourceKind: 'skill',
+          parameters: {},
+          implementation: { kind: 'native', exportId: 'test:heal' },
+        },
+      ],
+      skills: spec.environment.data.skills.map(skill => ({
+        ...(skill as object),
+        behaviors: [{ useId: 'heal', definitionId: 'test:heal' }],
+      })),
+    })
+    battle = await manager({}, pathToFileURL(file)).create(spec)
+    const events: string[] = []
+    battle.BattleEvent(
+      message => {
+        events.push(message.type)
+      },
+      { showHidden: true },
+    )
+    await battle.ready()
+    const pending = await battle.waitForPendingDecision()
+    for (const choices of pending.selections)
+      await battle.submitAction(choices.find(action => action.type === 'use-skill')!)
+    await battle.waitForPendingDecision()
+    expect(events).toContain(BattleMessageType.Heal)
+  } finally {
+    await battle?.cleanup()
+    await build.close()
+    await rm(directory, { recursive: true, force: true })
+  }
+}, 20_000)
 it('releases cancellation and admission slots without reusing a Worker', async () => {
   const host = manager({ maxBattles: 1 }),
     signal = new AbortController(),
