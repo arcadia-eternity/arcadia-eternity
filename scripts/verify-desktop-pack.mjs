@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module'
 import { execFile } from 'node:child_process'
-import { cp, lstat, mkdir, mkdtemp, readdir, rm, stat } from 'node:fs/promises'
+import { cp, lstat, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -8,6 +8,7 @@ import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 import { verifyDesktopSqlite } from './desktop-sqlite-native.mjs'
 
 const exec = promisify(execFile)
+let previewAccepted = false
 
 const architecture = value =>
   typeof value === 'string' ? value : ['ia32', 'x64', 'armv7l', 'arm64', 'universal'][value]
@@ -85,6 +86,7 @@ export async function beforePreviewPack() {
 
 export async function afterPreviewPack(context) {
   await verifyPackagedRuntime(context)
+  previewAccepted = true
 }
 
 /** Materialize an external renderer inside the app workspace without relaxing
@@ -95,8 +97,7 @@ export async function preparePreviewInputs(
     temporaryParent = fileURLToPath(new URL('../packages/web-ui/.desktop-preview-inputs.local/', import.meta.url)),
   } = {},
 ) {
-  if (!inputs.webDist) return { inputs, cleanup: async () => {} }
-  const source = resolve(inputs.webDist)
+  const source = inputs.webDist ? resolve(inputs.webDist) : undefined
   async function check(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const file = join(directory, entry.name)
@@ -105,19 +106,40 @@ export async function preparePreviewInputs(
       else if (!entry.isFile()) throw new Error('Renderer snapshot contains an unsupported file')
     }
   }
-  if (!(await lstat(join(source, 'index.html'))).isFile()) throw new Error('Desktop renderer index is missing')
-  await check(source)
+  if (source) {
+    if (!(await lstat(join(source, 'index.html'))).isFile()) throw new Error('Desktop renderer index is missing')
+    await check(source)
+  }
   await mkdir(temporaryParent, { recursive: true })
   const temporary = await mkdtemp(join(temporaryParent, 'snapshot-'))
   try {
+    if (!source) return { inputs, directory: temporary, cleanup: () => rm(temporary, { recursive: true, force: true }) }
     const webDist = join(temporary, 'web')
     await cp(source, webDist, { recursive: true, verbatimSymlinks: true })
     await check(webDist)
-    return { inputs: { ...inputs, webDist }, cleanup: () => rm(temporary, { recursive: true, force: true }) }
+    return {
+      inputs: { ...inputs, webDist },
+      directory: temporary,
+      cleanup: () => rm(temporary, { recursive: true, force: true }),
+    }
   } catch (error) {
     await rm(temporary, { recursive: true, force: true })
     throw error
   }
+}
+
+/** Electron Builder concatenates arrays when option config is merged into
+ * package.json. A complete explicit config prevents stale/default inputs from
+ * being copied beside the chosen renderer and server runtime. */
+export async function writePreviewConfiguration(prepared) {
+  const file = join(prepared.directory, 'builder-config.mjs')
+  const packageUrl = new URL('../packages/web-ui/package.json', import.meta.url).href
+  await writeFile(
+    file,
+    `import { readFileSync } from 'node:fs'\nimport { previewBuilderConfiguration } from ${JSON.stringify(import.meta.url)}\nconst base=JSON.parse(readFileSync(new URL(${JSON.stringify(packageUrl)}),'utf8')).build\nexport default { ...base, ...previewBuilderConfiguration(${JSON.stringify(prepared.inputs)}) }\n`,
+    { flag: 'wx' },
+  )
+  return file
 }
 
 export function previewBuilderConfiguration({ webDist, runtime } = {}) {
@@ -154,7 +176,7 @@ export function previewBuilderConfiguration({ webDist, runtime } = {}) {
     ...(runtime
       ? {
           extraResources: [
-            { from: staged, to: 'arcadia-server' },
+            { from: staged, to: 'arcadia-server', filter: ['**/*', '!node_modules/**'] },
             { from: join(staged, 'node_modules'), to: 'arcadia-server/node_modules', filter: ['**/*'] },
           ],
         }
@@ -189,7 +211,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     const require = createRequire(new URL('../packages/web-ui/package.json', import.meta.url))
     const { build } = require('electron-builder')
     let finished = false
-    let verified = false
     let succeeded = false
     // Some Builder child-process failures can leave its promise unsettled even
     // after all handles close. Such a build must never report success.
@@ -205,19 +226,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       if (!succeeded) process.exitCode = 1
     })
     const prepared = await preparePreviewInputs(inputs)
-    await build({
+    const configurationFile = await writePreviewConfiguration(prepared)
+    // The generated config imports this module's hooks. Let this module finish
+    // evaluating before Builder loads it, avoiding a top-level-await cycle.
+    build({
       dir: true,
       publish: 'never',
-      config: {
-        ...previewBuilderConfiguration(prepared.inputs),
-        afterPack: async context => {
-          await afterPreviewPack(context)
-          verified = true
-        },
-      },
+      config: configurationFile,
     })
       .then(() => {
-        if (!verified) throw new Error('Preview build did not verify the packaged runtime')
+        if (!previewAccepted) throw new Error('Preview build did not verify the packaged runtime')
         finished = true
         succeeded = true
       })

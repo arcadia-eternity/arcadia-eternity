@@ -1,6 +1,6 @@
 # 统一管理、私人约战与在线备份验证（2026-11-05）
 
-本记录对应 `codex/unified-server-management` 当前未发行工作树。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要与 Docker 记录。没有把本地通过换算为远端 CI、四平台安装或生产上线通过；提交/PR 链接待产生后补入。
+本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；首轮 CI 提交为 [b6e11f1](https://github.com/arcadia-eternity/arcadia-eternity/commit/b6e11f1d21684a21e9cb833531b17716aff6fb29)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
 
 ## 最终本地回归
 
@@ -12,7 +12,11 @@
 | 工作区 / 私有桌面 IPC                                  | 20 / 13 项通过                 | 导入持久记录、快照 stamp、owner 与材料保护                     |
 | 全仓 ESLint / 根及 Web 类型检查 / production Vite 构建 | 通过                           | 测试运行所属工作树；不代表发行物已发布                         |
 
-frozen/offline 锁文件校验通过。两项 production 浏览器场景正在接入独立 CI job，远端运行结果尚未产生。
+frozen/offline 锁文件校验、变更 Web TS/Vue 的零 warning ESLint、服务端专项类型/lint 及 native renderer/test 类型检查通过。
+
+提交 b6e11f1 的首轮 [baseline CI](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367) 已结束：changes、headless-battle、offline-cli 与 [management-browser-acceptance](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126773051138) 通过；后者实际执行 production 私人约战和管理备份，并通过报告零跳过断言。native-server-entry 虽有 315 项测试通过，但 PostgreSQL fixture 强制删库产生 2 个未捕获异常，job 失败；修补后真实 PG 定向回归 22/22、未捕获错误为 0。native-browser-entry 因直接测试服务器缺少 database/dist 构建产物失败，工作流依赖图与 Playwright 构建配置已修补。修补提交的远端重跑尚待完成，首轮整体仍是失败。
+
+首轮 [desktop-runtime-validation](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687641) 四个平台均失败：Windows 构建路径解析问题，另外三个平台为 pnpm deploy 改写源 workspace 元数据。路径处理和部署后原字节恢复已修补；打包/暂存回归 23/23、metadata/Windows 专项 8/8 通过。它们是本地修补验证，下一远端提交的四平台实际运行仍待完成。
 
 服务端整组之后还有三处窄幅清理：未使用 client 类型导入、声明文件 glob 扩为 `.d.{ts,mts,cts}`、peer 消息显式字符串校验。随后真实 socket 私人环境回归 **7/7 通过，6.9 秒**；315 项整组结果发生在这次清理之前，没有声称它被再次运行。
 
@@ -51,9 +55,9 @@ PLAYWRIGHT_PERSONAL_ENVIRONMENT=1 pnpm --filter @arcadia-eternity/web-ui exec pl
 
 ## Docker 与桌面证据范围
 
-Docker 记录见 `.omo/evidence/docker-management.json`：实际 Linux arm64 镜像 `sha256:3b9d8724271962a36b0af0ed04ee05229a360b86015345e18276e6b990604d4f`，Node 24.22.2。SQLite 和 PostgreSQL 均完成容器删除/重建后 serverId、workspaceId 与设置保留；PG 还经历数据库重启。配套 HTML/资源和真实管理 HTTP 通过，测试容器、卷、网络已清理。
+最终 Docker 记录见 `.omo/evidence/docker-management.json`：实际 Linux arm64 镜像 `sha256:a550f492e1ddea2cce2e40d0cb053a8d15b6e995ca39ffcf8c94a2761e14b508`，Node 24.22.2，运行验收 15.9 秒。SQLite 和 PostgreSQL 均完成容器删除/重建后 serverId、workspaceId 与设置保留；PG 还经历数据库重启。配套 HTML/资源和真实管理 HTTP 通过，测试容器、卷、网络已清理。
 
-该 Docker 证据对应 build-v3 输入快照，早于最终 P2P 生命周期修补，不能标为最终代码的容器复验。此前 macOS arm64 的实际 Electron/native SQLite、preview 包和当前代码托管检查已有证据；最终完整 preview 刷新仍待完成。四平台非发布 CI（macOS arm64/x64、Linux x64、Windows x64）尚未运行通过。
+sourceProof 记录构建前后 1,332 个运行/构建输入一致，摘要为 `sha256:be7a005746a02e3ff997794f522d66f2e34effdad5518251d2ae14b283b7b6be`；最终 P2P 生命周期已包含。变化仅为未被 Docker 构建使用的桌面打包 hook/test，未把更宽源码树的摘要变化隐藏。最终 macOS arm64 自包含 preview 已以 exit 0 完成打包；两个 after-pack 门禁均使用真实包内可执行文件：SQLite 写入/关闭/重开，以及完整托管场景 1/1（13.14 秒）。后者覆盖真实 UGC 安装、复用客户端材料、管理与游玩选择独立、匿名拒绝、排空/停止和重启同一身份/default binding；开发环境 native addon 字节及 system Node 加载仍正常。产物为 `packages/web-ui/release-preview/mac-arm64/Arcadia Eternity Preview.app`，准确输入路径和四项包内 SHA-256 见 `.omo/evidence/desktop-native-validation.md`。本地包通过与四平台 CI、正式安装/升级分别记录。
 
 ## 审查与未完成验收
 
@@ -62,9 +66,9 @@ Docker 记录见 `.omo/evidence/docker-management.json`：实际 Linux arm64 镜
 仍需保留：
 
 - 5 个第三方许可证资料问题：`@better-auth/utils@0.5.0`、`@npmcli/agent@4.0.2`、`jsondiffpatch@0.7.6`、`stackback@0.0.2`、`@npmcli/redact@4.0.0`；后者声明/原始文本不一致。清单保持 `releaseReady: false`，不能正式发行。
-- 最终桌面 preview、四平台 CI、正式安装/升级和真实双设备 LAN。
+- 首轮 CI 失败的修补提交复验、四平台 CI、正式安装/升级和真实双设备 LAN；最终本地 macOS arm64 preview 已通过。
 - SMTP/GitHub 真实提供商未配置，相关用户问题待答复；不得用 guest bootstrap、测试提供商或双库通过替代邮件投递/回调验收。
-- 最终代码 Docker 复验、生产部署及完整容量/故障矩阵。
+- 生产部署及完整容量/故障矩阵；最终 Linux arm64 Docker 重建持久化已通过，不代表所有部署场景。
 - G4 战绩/积分/录像仍按原后期范围，不纳入本次管理功能完成声明。
 
 相关实现：#273/#274、#214/#243/#244、#209/#217/#220/#222/#224；专项验收继续由 #258–#268/#272 按实际证据维护，本记录不自动关闭任何 issue。

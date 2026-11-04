@@ -68,10 +68,29 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         await operations?.close()
         await storage?.close()
         if (admin && schemaName) {
-          await admin.query(`DROP DATABASE "${schemaName}" WITH (FORCE)`)
-          await admin.end()
-          admin = undefined
-          schemaName = undefined
+          try {
+            // pg-pool can resolve end() before its clients' sockets finish closing.
+            // FORCE would terminate those closing clients and emit uncaught 57P01
+            // errors. Confirm the backend has released every connection instead;
+            // an actual leaked connection must fail cleanup, not be force-killed.
+            await expect
+              .poll(
+                async () => {
+                  const result = await admin!.query<{ connections: string }>(
+                    'SELECT count(*) AS connections FROM pg_stat_activity WHERE datname = $1',
+                    [schemaName],
+                  )
+                  return Number(result.rows[0].connections)
+                },
+                { timeout: 5000, message: 'operation storage connections must close before dropping its database' },
+              )
+              .toBe(0)
+            await admin.query(`DROP DATABASE "${schemaName}"`)
+          } finally {
+            await admin.end()
+            admin = undefined
+            schemaName = undefined
+          }
         }
         await rm(directory, { recursive: true, force: true })
       })

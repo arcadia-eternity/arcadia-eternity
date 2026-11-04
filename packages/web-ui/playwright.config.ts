@@ -54,7 +54,7 @@ export default defineConfig({
       ]
     : {
         command:
-          'pnpm --filter @arcadia-eternity/web-ui run build:deps && pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
+          'pnpm --filter "@arcadia-eternity/web-ui^..." --filter "@arcadia-eternity/server..." run build && pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
         url: 'http://127.0.0.1:4173',
         reuseExistingServer: true,
         stdout: 'ignore',

@@ -174,7 +174,11 @@
     "extraResources": [
       {
         "from": "dist/arcadia-server",
-        "to": "arcadia-server"
+        "to": "arcadia-server",
+        "filter": [
+          "**/*",
+          "!node_modules/**"
+        ]
       },
       {
         "from": "dist/arcadia-server/node_modules",

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { pathToFileURL } from 'node:url'
 import { validateDesktopRuntimeFiles, stageDesktopRuntime, verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 
 // File-layout fixture only. Real native execution has a separate Electron smoke.
@@ -167,10 +168,16 @@ test('isolated renderer input is copied into a disposable application directory 
       temporaryParent = join(root, 'application')
     await mkdir(source)
     await writeFile(join(source, 'index.html'), '<!doctype html><title>final snapshot</title>')
-    const { preparePreviewInputs } = await import('./verify-desktop-pack.mjs')
+    const { preparePreviewInputs, writePreviewConfiguration } = await import('./verify-desktop-pack.mjs')
     const prepared = await preparePreviewInputs({ webDist: source, runtime: '/selected/runtime' }, { temporaryParent })
     assert.ok(prepared.inputs.webDist.startsWith(temporaryParent))
     assert.equal(prepared.inputs.runtime, '/selected/runtime')
+    const configuration = await writePreviewConfiguration(prepared)
+    const { default: complete } = await import(pathToFileURL(configuration).href)
+    assert.equal(complete.extraResources.length, 2, 'complete config does not append inherited runtime copies')
+    assert.equal(complete.extraResources[0].from, '/selected/runtime')
+    assert.equal(complete.files.length, 3, 'complete config replaces the default renderer input')
+    assert.equal(complete.files[0].from, prepared.inputs.webDist)
     assert.equal(
       await readFile(join(prepared.inputs.webDist, 'index.html'), 'utf8'),
       await readFile(join(source, 'index.html'), 'utf8'),

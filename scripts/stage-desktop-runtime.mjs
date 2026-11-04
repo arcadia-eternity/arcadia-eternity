@@ -23,6 +23,7 @@ import YAML from 'yaml'
 import { collectDesktopLicenses } from './desktop-runtime-licenses.mjs'
 import { stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks, resolvePnpmInvocation } from './desktop-runtime-portability.mjs'
+import { withPreservedPnpmWorkspaceState } from './desktop-pnpm-deploy.mjs'
 
 const exec = promisify(execFile)
 const repo = fileURLToPath(new URL('../', import.meta.url))
@@ -234,7 +235,9 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
         ? 'Preparing locked production dependencies from the configured official registry.\n'
         : 'Preparing locked production dependencies using the local cache only.\n',
     )
-    await exec(pnpm.command, [...pnpm.args, ...flags], { cwd: repo, maxBuffer: 16 * 1024 * 1024 })
+    await withPreservedPnpmWorkspaceState(repo, () =>
+      exec(pnpm.command, [...pnpm.args, ...flags], { cwd: repo, maxBuffer: 16 * 1024 * 1024 }),
+    )
     const runtime = join(temp, 'runtime')
     await mkdir(runtime)
     // Replace pnpm's workspace links before auditing the deploy tree: these

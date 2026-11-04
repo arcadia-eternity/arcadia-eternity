@@ -42,7 +42,7 @@
     {
       "area": "Client-hosted same library, stable server identity, parent workspace proxy, persist bindings independent of client selection",
       "issues": [209, 214, 259],
-      "status": "implemented in the unreleased worktree; registered sources reuse client projects root and private owner IPC now exposes import recovery and one-use consistent snapshot capture; root desktop IPC 13 tests passed; fresh packaged/native acceptance running"
+      "status": "implemented; client registered-source/project reuse and owner IPC import recovery/snapshot capture verified; final actual macOS arm64 packaged SQLite and full managed-host acceptance 1/1 passed in 13.14s, stable identity/default binding and no-copy materials; multi-OS install/upgrade pending"
     },
     {
       "area": "LAN/public desktop hosting, invitation/network settings, durable capacity, graceful drain, appropriate supervisor capability",
@@ -57,17 +57,17 @@
     {
       "area": "Node/Docker persistent volume, native driver packaging, clean paired web assets, deployment docs/CI",
       "issues": [219, 249, 259, 260, 262],
-      "status": "root build/types and actual Linux arm64 Docker SQLite/PG delete/recreate persistence passed; Docker proof is prior input snapshot before final P2P lifecycle changes, not final-code container revalidation; final desktop preview refresh running and four-OS CI pending"
+      "status": "final Linux arm64 Docker SQLite/PG recreate/restart passed in 15.9s; final macOS arm64 preview exited0 and actual packaged SQLite/full host1/1 passed13.14s; first four-platform CI failed on Windows paths and pnpm source metadata mutation, fixes locally tested23/23 plus focused8/8, next remote head pending"
     },
     {
       "area": "Real installed OS matrix, SMTP/GitHub callbacks, true multi-client/LAN and production-like faults",
       "issues": [259, 260, 261, 262, 264, 268],
-      "status": "partially verified: actual production two-browser personal battle/rematch and actual management UI passed; final desktop preview, four-OS CI, installed upgrades, true two-device LAN and full deployment/fault matrix pending; real SMTP/GitHub provider environment missing and user question pending"
+      "status": "partially verified: actual production browser personal battle/rematch and management UI plus final macOS arm64 packaged host passed; repaired first-CI failures, multi-OS install/upgrade, two-device LAN and deployment/fault matrix await remote/real acceptance; real SMTP/GitHub environment missing and user question pending"
     },
     {
       "area": "Final code review, full tests/build/typechecks, actual browser QA, commit and issue evidence synchronization",
       "issues": [200, 273, 274],
-      "status": "active: final server 29 files/315 tests PASS104.18s realSQLite+PG; Web18files257tests PASS14.56s; production management UI1/1 and personal two-browser battle/rematch1/1 passed; full repo ESLint/root types/final web types/production Vite passed; final peer validation cleanup followed by real-socket7/7; review WATCH/APPROVE; commit/PR/final live-issue evidence and outstanding release acceptance pending",
+      "status": "active CI remediation: local final server315/Web257, real production management/personal browsers and final Docker/desktop package passed; PR #275 pushed and21 live issues refreshed without metadata/checkstate changes. First baseline has4successful jobs and2failed; first desktop matrix all4failed. Root/specialists repaired PG fixture/build dependencies/platform staging and passed targeted regressions; fresh remote head pending. Review WATCH/APPROVE; license/provider/LAN/installed acceptance open",
       "previousRun": "Historical integration run before remediation: 181 passed/25 skipped/2 failed; superseded for the server suite by the final root run below, not erased from history."
     },
     {
@@ -85,12 +85,13 @@
     "url": "postgresql://arcadia_test@127.0.0.1:55437/arcadia_full_server_test",
     "pid": 58807,
     "root": "/private/tmp/arcadia-postgres-validation.NBejuO",
-    "note": "Disposable test cluster only; authoritative liveness must be rechecked. Separate arcadia_storage_test and arcadia_backup_test databases exist."
+    "note": "Historical disposable validation cluster only, stopped cleanly after tests. Recorded URL/PID/path are evidence identifiers, not a live endpoint; previous UI server is also stopped.",
+    "status": "historical; stopped cleanly by root; not running"
   },
   "latestValidation": {
     "date": "2026-11-05",
     "reportedBy": "root execution and specialist evidence; documentation agent read browser acceptance/network and Docker artifacts, did not rerun suites",
-    "releaseStatus": "unreleased worktree; releaseReady=false with five license blockers; local code review approval is not release approval",
+    "releaseStatus": "draft PR #275, unreleased; releaseReady=false with five license blockers; local/source review and individual remote job passes are not release approval",
     "suites": [
       {
         "scope": "full server",
@@ -151,6 +152,22 @@
         "scope": "real-socket personal after narrow peer-input validation cleanup",
         "testsPassed": 7,
         "durationSeconds": 6.9
+      },
+      {
+        "scope": "PostgreSQL fixture force-drop cleanup after first CI failure",
+        "testsPassed": 22,
+        "unhandledErrors": 0,
+        "databaseMode": "real PostgreSQL",
+        "reportedBy": "root and postgres_validation"
+      },
+      {
+        "scope": "desktop portability/staging/pnpm-state regressions",
+        "testsPassed": 23
+      },
+      {
+        "scope": "desktop metadata/Windows targeted regressions",
+        "testsPassed": 8,
+        "note": "targeted group, not claimed disjoint from staging tests"
       }
     ],
     "checks": [
@@ -159,7 +176,10 @@
       "final web typecheck passed",
       "production Vite build passed",
       "root CLI/build passed",
-      "frozen offline lockfile validation passed"
+      "frozen offline lockfile validation passed",
+      "changed Web TS/Vue ESLint passed with max warnings 0",
+      "server-specific test types and lint passed",
+      "native renderer/test types passed"
     ],
     "review": {
       "codeQualityStatus": "WATCH",
@@ -173,9 +193,16 @@
       "arch": "arm64",
       "drivers": ["sqlite", "postgres"],
       "scenario": "delete/recreate persistent server identity/workspace/settings; PostgreSQL restart",
-      "image": "sha256:3b9d8724271962a36b0af0ed04ee05229a360b86015345e18276e6b990604d4f",
+      "image": "sha256:a550f492e1ddea2cce2e40d0cb053a8d15b6e995ca39ffcf8c94a2761e14b508",
       "evidence": ".omo/evidence/docker-management.json",
-      "limitation": "prior Docker build snapshot; final P2P lifecycle/narrow cleanup not revalidated in this image"
+      "limitation": "Linux arm64 guest mode; no external providers or full production/network/fault matrix acceptance",
+      "durationSeconds": 15.9,
+      "sourceProof": {
+        "unchangedInputsCount": 1332,
+        "unchangedInputsDigest": "sha256:be7a005746a02e3ff997794f522d66f2e34effdad5518251d2ae14b283b7b6be",
+        "changedPaths": ["scripts/stage-desktop-runtime.test.mjs", "scripts/verify-desktop-pack.mjs"],
+        "scope": "only desktop packaging hook/test changed during build; Docker uses neither; includes final P2P lifecycle"
+      }
     },
     "artifacts": {
       "personal": "packages/web-ui/test-results/personal-environment/2026-11-04T18-07-25-638Z/personal-environment-unpub-3e8f7-h-a-real-battle-and-rematch/acceptance.json",
@@ -184,15 +211,79 @@
       "portableSummary": "docs/v4/validation/unified-management-2026-11-05.md"
     },
     "runningOrPending": [
-      "final desktop preview refresh",
       "five exact third-party license blockers; releaseReady=false",
       "four-platform nonpublishing CI",
       "real installed/upgrade matrix",
       "real two-device LAN",
       "real SMTP/GitHub environment missing; user question pending",
-      "final-code Docker revalidation and full deployment/fault matrix",
-      "commit/PR and final live-issue evidence refresh"
-    ]
+      "full production deployment/capacity/fault matrix",
+      "fresh remote head for repaired PostgreSQL fixture, browser DB build dependency and four-platform staging failures"
+    ],
+    "pullRequest": "https://github.com/arcadia-eternity/arcadia-eternity/pull/275",
+    "initialCiHead": "b6e11f1d21684a21e9cb833531b17716aff6fb29",
+    "remoteCi": {
+      "head": "b6e11f1d21684a21e9cb833531b17716aff6fb29",
+      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367",
+      "passedJobs": [
+        {
+          "name": "management-browser-acceptance",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126773051138",
+          "scope": "both real production scenarios executed; zero-skips report assertions passed"
+        },
+        {
+          "name": "headless-battle",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126773051163"
+        },
+        {
+          "name": "changes",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126772928942"
+        },
+        {
+          "name": "offline-cli",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126773051158"
+        }
+      ],
+      "overallStatus": "first run terminal failure; changes/headless/management-browser/offline-cli success; native-server/browser failed; fixes locally verified, next remote head pending",
+      "failedJobs": [
+        {
+          "name": "native-server-entry",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126773051098",
+          "reason": "315 tests passed but2uncaught PG fixture force-drop exceptions failed job",
+          "repair": "fixture cleanup fixed;22/22 actualPG targeted pass with0unhandled errors; remote rerun pending"
+        },
+        {
+          "name": "native-browser-entry",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687367/job/126773051107",
+          "reason": "direct test server import missing database/dist",
+          "repair": "workflow build graph and Playwright build dependency fixed; remote rerun pending"
+        }
+      ],
+      "desktopMatrix": {
+        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41886687641",
+        "status": "all4failed",
+        "reasons": ["Windows resolved build path", "other3 pnpm deploy source workspace metadata mutation"],
+        "repair": "path handling and byte-exact metadata restoration implemented;23staging and8focused metadata/Windows tests passed; next remote run pending"
+      }
+    },
+    "issueRefresh": {
+      "issues": 21,
+      "status": "published and reread; metadata, checkbox states and checked item text unchanged",
+      "evidence": ".omo/evidence/unified-management-issue-evidence-refresh-2026-11-05.json"
+    },
+    "desktop": {
+      "passed": true,
+      "platform": "darwin arm64",
+      "builderExitCode": 0,
+      "checks": [
+        "actual packaged SQLite write/close/reopen",
+        "full managed-host1/1 in13.14s",
+        "original development-addon bytes and system-Node load preserved"
+      ],
+      "artifact": "packages/web-ui/release-preview/mac-arm64/Arcadia Eternity Preview.app",
+      "evidence": ".omo/evidence/desktop-native-validation.md",
+      "log": "/private/tmp/arcadia-desktop-final-package.log",
+      "limitation": "local preview package; not installed upgrade or four-platform acceptance"
+    }
   },
   "validationHistory": [
     {

@@ -222,9 +222,7 @@
       "sourceAudit": {
         "commit": "db7852869c74ceb8985d7c36b291a2e7a866741c",
         "treeUrl": "https://api.github.com/repos/npm/agent/git/trees/db7852869c74ceb8985d7c36b291a2e7a866741c?recursive=1",
-        "matchingLicensePaths": [
-          "test/fixtures/socksv5/LICENSE"
-        ],
+        "matchingLicensePaths": ["test/fixtures/socksv5/LICENSE"],
         "excludedLicenseFiles": [
           {
             "path": "test/fixtures/socksv5/LICENSE",

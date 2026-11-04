@@ -147,6 +147,22 @@ test('Windows pnpm invocation uses an absolute JavaScript entry rather than a cm
   )
 })
 
+test('pnpm11 ESM entry is invoked with Node on Windows from npm_execpath or the installed package', async () => {
+  const entry = 'C:\\tools\\node_modules\\pnpm\\bin\\pnpm.mjs'
+  for (const env of [{ npm_execpath: entry }, {}]) {
+    assert.deepEqual(
+      await resolvePnpmInvocation({
+        platform: 'win32',
+        env,
+        execPath: 'node.exe',
+        resolvePackage: () => 'C:\\tools\\node_modules\\pnpm\\package.json',
+        isFile: async file => file === entry,
+      }),
+      { command: 'node.exe', args: [entry] },
+    )
+  }
+})
+
 test('Windows pnpm resolves an installed package or Corepack PATH layout without shell quoting', async () => {
   const entry = 'C:\\tools\\node_modules\\pnpm\\bin\\pnpm.cjs'
   assert.deepEqual(

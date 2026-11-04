@@ -16,7 +16,7 @@ on:
       - '.npmrc'
       - 'rolldown.config.*'
   push:
-    branches: [refactor/v4, 'codex/**']
+    branches: [refactor/v4]
     paths:
       - '.github/workflows/desktop-runtime-validation.yml'
       - 'bin/**'
@@ -108,7 +108,7 @@ jobs:
       - name: Verify staging and native persistence
         env:
           ARCADIA_DESKTOP_NATIVE_TEST: '1'
-        run: node --test scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs | tee .artifacts/desktop/native-tests.log
+        run: node --test scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs scripts/rollup-external.test.mjs scripts/desktop-pnpm-deploy.test.mjs | tee .artifacts/desktop/native-tests.log
 
       - name: Build desktop renderer
         run: pnpm --filter @arcadia-eternity/web-ui run build-only | tee .artifacts/desktop/renderer-build.log
@@ -121,7 +121,8 @@ jobs:
         # The command uses publish: never and requires no signing or release token.
         env:
           ARCADIA_DESKTOP_MANAGED_HOST_TEST: '1'
-        run: pnpm --filter @arcadia-eternity/web-ui run electron:pack:preview | tee .artifacts/desktop/package.log
+        working-directory: packages/web-ui
+        run: node ../../scripts/verify-desktop-pack.mjs --preview | tee ../../.artifacts/desktop/package.log
 
       - name: Preserve validation evidence
         if: always()

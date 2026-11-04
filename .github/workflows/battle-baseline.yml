@@ -167,7 +167,7 @@ jobs:
         run: npm rebuild better-sqlite3 --ignore-scripts=false
         working-directory: packages/database
       - name: Build browser dependencies
-        run: pnpm --filter '@arcadia-eternity/web-ui^...' run build
+        run: pnpm --filter '@arcadia-eternity/web-ui^...' --filter '@arcadia-eternity/server...' run build
       - name: Verify content locale syntax and real description rendering
         run: pnpm --filter @arcadia-eternity/web-ui run test:content-locales
       - name: Build browser application and generate auto-import lint globals

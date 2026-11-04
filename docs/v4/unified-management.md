@@ -176,7 +176,7 @@ node dist/cli.js server backup clone --file /backups/arcadia.json --target /srv/
 
 真实 production 配套网页管理场景 1/1 通过（13.6 秒），覆盖凭证元数据、签发/撤销、备份创建/下载、重启后稳定身份与历史，浏览器无错误。私人 Challenge 两浏览器场景 1/1 通过（50.1 秒），覆盖真实首局/同房间再战、自然结果和 UGC 媒体解码；279 次采样的服务器 Worker 最大值为零，公开目录不变，479 个 WebSocket 帧不携带作者代码/归档。建房载荷为 1558 字节，其中固定个人引用为 972 字节。
 
-Linux arm64 Docker 的 SQLite/PG 容器删除重建与持久数据验证已通过，证据属于其构建时快照，未覆盖此后的最终 P2P 生命周期修补。最终桌面 preview 刷新待完成；5 项许可证资料阻碍发行，`releaseReady: false`，四平台 CI、真实双设备 LAN 和完整故障矩阵仍待验收。SMTP/GitHub 未配置真实提供商环境，相关用户问题待答复。源码审查结论为 `WATCH / APPROVE`，不等于发行批准。详情、测试入口和证据范围见[统一管理验证记录](validation/unified-management-2026-11-05.md)；本次文档同步核对了源码和产物，没有独立重跑上述测试。
+最终 Linux arm64 Docker 的 SQLite/PG 容器删除重建、PG 重启及持久数据验证已通过（15.9 秒）；sourceProof 记录 1,332 个运行/构建输入一致，包含最终 P2P 生命周期。最终 macOS arm64 preview 打包 exit 0，真实包内 SQLite 门禁和完整托管场景 1/1（13.14 秒）通过。PR #275 的首轮 b6e11f1 baseline 中 production 管理/私人约战、headless、offline CLI 通过；服务器 PG fixture 未捕获异常、浏览器缺少 database/dist 及四平台打包路径/源元数据问题导致其余 job 失败。修补与本地定向回归已完成，等待下一提交的远端复验。5 项许可证资料阻碍发行，`releaseReady: false`，四平台 CI、正式安装升级、真实双设备 LAN 和完整故障矩阵仍待验收。SMTP/GitHub 未配置真实提供商环境，相关用户问题待答复。源码审查结论为 `WATCH / APPROVE`，不等于发行批准。详情、测试入口和证据范围见[统一管理验证记录](validation/unified-management-2026-11-05.md)；本次文档同步核对了源码和产物，没有独立重跑上述测试。
 
 ```sh
 pnpm --filter @arcadia-eternity/database test:run

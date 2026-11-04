@@ -1,4 +1,5 @@
 import { defineConfig } from 'rolldown'
+import { isExternalDependency } from '../../scripts/rollup-external.mjs'
 
 export default defineConfig({
   input: {
@@ -7,5 +8,5 @@ export default defineConfig({
   },
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,
-  external: id => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'),
+  external: isExternalDependency,
 })

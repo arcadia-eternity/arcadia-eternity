@@ -117,7 +117,7 @@ export async function resolvePnpmInvocation({
   const executableEntry = async entry =>
     typeof entry === 'string' &&
     paths.isAbsolute(entry) &&
-    ['pnpm.cjs', 'pnpm.js'].includes(paths.basename(entry).toLowerCase()) &&
+    ['pnpm.mjs', 'pnpm.cjs', 'pnpm.js'].includes(paths.basename(entry).toLowerCase()) &&
     (await isFile(entry))
   const nodeInvocation = entry => ({ command: execPath, args: [entry] })
 
@@ -127,8 +127,10 @@ export async function resolvePnpmInvocation({
   try {
     const manifest = await resolvePackage('pnpm/package.json')
     if (typeof manifest === 'string' && paths.isAbsolute(manifest)) {
-      const entry = paths.join(paths.dirname(manifest), 'bin', 'pnpm.cjs')
-      if (await executableEntry(entry)) return nodeInvocation(entry)
+      for (const filename of ['pnpm.mjs', 'pnpm.cjs', 'pnpm.js']) {
+        const entry = paths.join(paths.dirname(manifest), 'bin', filename)
+        if (await executableEntry(entry)) return nodeInvocation(entry)
+      }
     }
   } catch {
     // A globally installed CLI need not be resolvable from this project.
@@ -139,11 +141,15 @@ export async function resolvePnpmInvocation({
   for (const directory of locations) {
     if (typeof directory !== 'string' || !paths.isAbsolute(directory)) continue
     for (const relativeEntry of [
+      'pnpm.mjs',
       'pnpm.cjs',
       'pnpm.js',
+      'node_modules/pnpm/bin/pnpm.mjs',
       'node_modules/pnpm/bin/pnpm.cjs',
       'node_modules/corepack/dist/pnpm.js',
+      '../pnpm/bin/pnpm.mjs',
       '../pnpm/bin/pnpm.cjs',
+      '../../pnpm/bin/pnpm.mjs',
       '../../pnpm/bin/pnpm.cjs',
     ]) {
       const entry = paths.resolve(directory, relativeEntry)
