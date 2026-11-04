@@ -36,6 +36,10 @@ export class SandboxFault extends Error {
 export interface PreparedEffectModule extends CodeEffectModule {
   readonly packageId: string
   readonly state: 'ready' | 'faulted' | 'disposed'
+  /** Lease the prepared logic to one battle; call before constructing its entities. */
+  beginSession(): void
+  /** Release battle bridge references after native subscriptions and entities clean up. */
+  endSession(): void
   assertHealthy(): void
   dispose(): void
 }

@@ -9,6 +9,10 @@ export function createNodeBattleWorkerManager(policy?: Partial<BattleWorkerPolic
     return {
       endpoint: nodeEndpoint(worker),
       terminate: () => worker.terminate(),
+      setIdle: idle => {
+        if (idle) worker.unref()
+        else worker.ref()
+      },
       onFailure(handler) {
         const error = (value: Error) => handler(value.message),
           exit = (code: number) => handler(`Battle Worker exited (${code})`)

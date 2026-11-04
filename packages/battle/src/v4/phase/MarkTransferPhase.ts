@@ -82,6 +82,7 @@ export function executeMarkTransferOperation(
       )
       battle.phaseManager.registerPhase(stackPhase)
       battle.phaseManager.executePhase(stackPhase.id)
+      battle.configSystem.releaseScope(mark)
     } else {
       // Transfer mark directly
       mark.transfer(context, target)

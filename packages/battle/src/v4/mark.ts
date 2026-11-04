@@ -239,7 +239,7 @@ export class MarkInstanceImpl implements MarkInstance {
       context.battle.applyEffects(context, EffectTrigger.OnMarkCreated, this)
       context.battle.applyEffects(context, EffectTrigger.OnAnyMarkAdded)
     } catch (error) {
-      if (parameters) context.battle.configSystem.releaseScope(this)
+      context.battle.configSystem.releaseScope(this)
       throw error
     }
 
@@ -534,6 +534,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
     // 设置当前印记为非活跃状态，但不调用destroy以避免触发额外的清理逻辑
     this.isActive = false
+    context.battle.configSystem.releaseScope(this)
 
     // 发送印记更新消息
     context.battle.emitMessage(BattleMessageType.MarkUpdate, {

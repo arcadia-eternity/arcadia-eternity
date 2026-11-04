@@ -9,4 +9,4 @@ export {
 } from './src/v4-sandbox/contracts'
 export type { SandboxEnvironment, SandboxBattleInput } from './src/v4-sandbox/runtime'
 
-export { prepareSandboxContent, type SandboxContent } from './src/v4-sandbox/content'
+export { prepareSandboxContent, type SandboxContent, type SandboxContentOptions } from './src/v4-sandbox/content'

@@ -23,6 +23,11 @@ export interface SandboxBattleInput {
   readonly options?: BattleOptions
   readonly hostOptions?: NativeBattleHostOptions
 }
+export interface SandboxRuntimeOptions {
+  readonly sessionId: number
+  readonly reuseContent: boolean
+  readonly grouping: 'package' | 'environment'
+}
 export const timerEvents = [
   'timerStart',
   'timerUpdate',
@@ -62,13 +67,21 @@ export const battleMethods = [
 ] as const
 export type BattleMethod = (typeof battleMethods)[number]
 
-/** One trusted native kernel and one Arena VM for each package, owned by one dedicated Worker. */
+/** One active battle session. Healthy pooled workers retain their immutable executable content. */
 export class SandboxBattleRuntime {
   private effects?: SandboxContent
   private readonly subscriptions: (() => void)[] = []
   private system?: LocalBattleSystemV4
   private battle?: Battle
   private initialized = false
+  private sessionId = 0
+  private reuseContent = false
+  private environment?: string
+  private grouping?: SandboxRuntimeOptions['grouping']
+  private ending = false
+  private invocations = 0
+  private readonly drained: (() => void)[] = []
+  private endingTask?: Promise<void>
   private closed = false
   private failure?: Error
   private revision?: string
@@ -77,8 +90,23 @@ export class SandboxBattleRuntime {
   private delivery?: Promise<void>
   private emit?: (event: SandboxEvent) => Promise<void>
   private readonly battleSubscriptions = new Map<number, () => void>()
-  async initialize(input: SandboxBattleInput, emit: (event: SandboxEvent) => Promise<void>): Promise<void> {
-    if (this.initialized || this.closed) throw new SandboxFault('worker', 'battle', 'Worker cannot be reused')
+  async initialize(
+    input: SandboxBattleInput,
+    emit: (event: SandboxEvent) => Promise<void>,
+    options: SandboxRuntimeOptions = { sessionId: 0, reuseContent: false, grouping: 'package' },
+  ): Promise<void> {
+    if (this.initialized || this.closed || this.ending || this.failure)
+      throw new SandboxFault('worker', 'battle', 'Worker is unavailable')
+    if (
+      !Number.isSafeInteger(options.sessionId) ||
+      options.sessionId < 0 ||
+      typeof options.reuseContent !== 'boolean' ||
+      !['package', 'environment'].includes(options.grouping)
+    )
+      throw new SandboxFault('artifact', 'battle', 'Invalid runtime options')
+    this.sessionId = options.sessionId
+    this.reuseContent = options.reuseContent
+    this.endingTask = undefined
     this.initialized = true
     this.emit = emit
     try {
@@ -91,8 +119,19 @@ export class SandboxBattleRuntime {
         input.players.length !== 2
       )
         throw new SandboxFault('artifact', 'battle', 'Invalid battle input')
+      const environment = JSON.stringify(input.environment)
+      if (
+        this.effects &&
+        (this.environment !== environment || this.grouping !== options.grouping || !options.reuseContent)
+      )
+        throw new SandboxFault('artifact', 'battle', 'Worker environment mismatch')
       this.revision = input.environment.revision
-      this.effects = await prepareSandboxContent(input.environment)
+      if (!this.effects) {
+        this.effects = await prepareSandboxContent(input.environment, { grouping: options.grouping })
+        this.environment = environment
+        this.grouping = options.grouping
+      }
+      this.effects.beginSession()
       const { content } = this.effects
       this.health()
       const [first, second] = content.parsePlayers(input.players, { aiPlayerIds: input.aiPlayerIds })
@@ -121,8 +160,9 @@ export class SandboxBattleRuntime {
       throw error
     }
   }
-  subscribeBattle(id: number, options?: NativeMessageView): void {
-    this.health()
+  subscribeBattle(id: number, options?: NativeMessageView, sessionId?: number): void {
+    this.assertSession(sessionId)
+    this.health(sessionId)
     if (
       !this.system ||
       !Number.isSafeInteger(id) ||
@@ -139,7 +179,8 @@ export class SandboxBattleRuntime {
       ),
     )
   }
-  unsubscribeBattle(id: number): void {
+  unsubscribeBattle(id: number, sessionId?: number): void {
+    this.assertSession(sessionId)
     this.battleSubscriptions.get(id)?.()
     this.battleSubscriptions.delete(id)
   }
@@ -151,7 +192,7 @@ export class SandboxBattleRuntime {
     )
   }
   private enqueue(event: SandboxEvent, emit: (event: SandboxEvent) => Promise<void>): void {
-    if (this.closed || this.failure) return
+    if (this.closed || this.ending || this.failure) return
     if (
       this.events.length >= 4096 ||
       new TextEncoder().encode(JSON.stringify(event)).byteLength > sandboxPolicy.outputBytes
@@ -165,7 +206,7 @@ export class SandboxBattleRuntime {
     this.sending = true
     this.delivery = (async () => {
       try {
-        while (!this.closed && this.events.length) await emit(this.events.shift()!)
+        while (!this.closed && !this.ending && this.events.length) await emit(this.events.shift()!)
       } catch (error) {
         this.failure = new SandboxFault(
           'worker',
@@ -177,15 +218,21 @@ export class SandboxBattleRuntime {
       }
     })()
   }
-  health(): { packages: number; state: 'ready' } {
+  private assertSession(sessionId?: number): void {
+    if (!this.initialized || this.ending || (sessionId !== undefined && sessionId !== this.sessionId))
+      throw new SandboxFault('disposed', 'battle', 'Battle session expired')
+  }
+  health(sessionId?: number): { packages: number; vms: number; state: 'ready' } {
+    if (sessionId !== undefined) this.assertSession(sessionId)
     if (this.closed) throw new SandboxFault('disposed', 'battle', 'Worker disposed')
     if (this.failure) throw this.failure
     this.effects?.assertHealthy()
     this.battle?.executionBudget.assertActive()
-    return { packages: this.effects?.packageCount ?? 0, state: 'ready' }
+    return { packages: this.effects?.packageCount ?? 0, vms: this.effects?.vmCount ?? 0, state: 'ready' }
   }
-  async invoke(method: BattleMethod, args: unknown[]): Promise<unknown> {
-    this.health()
+  async invoke(method: BattleMethod, args: unknown[], sessionId?: number): Promise<unknown> {
+    this.assertSession(sessionId)
+    this.health(sessionId)
     if (!this.system || !battleMethods.includes(method) || !Array.isArray(args) || args.length > 4)
       throw new SandboxFault('permission', 'battle', 'Unknown battle operation')
     if (method === 'restoreRuntimeSnapshot') {
@@ -198,52 +245,101 @@ export class SandboxBattleRuntime {
       const payload = JSON.parse(snapshot.payload) as { battle?: { catalog?: unknown } } | null
       if (payload?.battle?.catalog !== this.revision) throw new Error('Snapshot content revision mismatch')
     }
-    const fn = this.system[method] as (...args: unknown[]) => unknown
+    const session = this.sessionId
+    const system = this.system
+    const fn = system[method] as (...args: unknown[]) => unknown
+    this.invocations++
     try {
-      const value: unknown = await fn.apply(this.system, args)
+      const value: unknown = await fn.apply(system, args)
       if (method === 'ready')
-        void this.system.waitForCompletion().catch(error => {
+        void system.waitForCompletion().catch(error => {
+          if (this.closed || this.ending || session !== this.sessionId) return
           this.failure = error instanceof Error ? error : new SandboxFault('execution', 'battle', String(error))
         })
-      this.health()
+      this.assertSession(session)
+      this.health(session)
       await this.delivery
-      this.health()
+      this.assertSession(session)
+      this.health(session)
       if (new TextEncoder().encode(JSON.stringify(value)).byteLength > sandboxPolicy.outputBytes)
         throw new SandboxFault('budget', 'battle', 'Battle output limit')
       return value
     } catch (error) {
-      this.health()
+      this.assertSession(session)
+      this.health(session)
       throw error
+    } finally {
+      this.invocations--
+      if (!this.invocations) for (const resolve of this.drained.splice(0)) resolve()
     }
   }
+  endSession(sessionId?: number): Promise<void> {
+    if (sessionId !== undefined && sessionId !== this.sessionId)
+      return Promise.reject(new SandboxFault('disposed', 'battle', 'Battle session expired'))
+    if (this.endingTask) return this.endingTask
+    if (!this.initialized) return Promise.resolve()
+    this.ending = true
+    return (this.endingTask = (async () => {
+      for (const detach of this.battleSubscriptions.values()) detach()
+      this.battleSubscriptions.clear()
+      for (const detach of this.subscriptions.splice(0)) detach()
+      this.events.length = 0
+      let failure: unknown = this.failure
+      try {
+        this.effects?.assertHealthy()
+        this.battle?.executionBudget.assertActive()
+      } catch (error) {
+        failure ??= error
+      }
+      try {
+        if (this.system) await this.system.cleanup()
+        else await this.battle?.cleanup()
+        await this.delivery
+        if (this.invocations) await new Promise<void>(resolve => this.drained.push(resolve))
+        this.effects?.assertHealthy()
+        this.effects?.endSession()
+      } catch (error) {
+        failure ??= error
+      }
+      this.system = undefined
+      this.battle = undefined
+      this.delivery = undefined
+      this.sending = false
+      if (this.emit) (this.emit as typeof this.emit & { [releaseProxy](): void })[releaseProxy]()
+      this.emit = undefined
+      this.initialized = false
+      this.ending = false
+      failure ??= this.failure
+      if (failure) {
+        this.failure =
+          failure instanceof Error
+            ? failure
+            : new SandboxFault(
+                'worker',
+                'battle',
+                typeof failure === 'string' ? failure : 'Battle session cleanup failed',
+              )
+        throw this.failure
+      }
+      if (!this.reuseContent) {
+        this.effects?.dispose()
+        this.effects = undefined
+        this.closed = true
+      }
+    })())
+  }
   async dispose(): Promise<void> {
-    if (this.closed) return
+    if (this.closed && !this.effects) return
     this.closed = true
-    for (const detach of this.battleSubscriptions.values()) detach()
-    this.battleSubscriptions.clear()
-    for (const detach of this.subscriptions.splice(0)) detach()
-    this.events.length = 0
-    let failure: unknown
     try {
-      if (this.system) await this.system.cleanup()
-      else await this.battle?.cleanup()
-    } catch (error) {
-      failure = error
-    }
-    try {
+      await this.endSession()
+    } finally {
       this.effects?.dispose()
-    } catch (error) {
-      failure ??= error
+      this.effects = undefined
     }
-    this.effects = undefined
-    this.system = undefined
-    this.battle = undefined
-    if (this.emit) (this.emit as typeof this.emit & { [releaseProxy](): void })[releaseProxy]()
-    this.emit = undefined
-    if (failure) throw failure
   }
 }
 export type SandboxWorkerRemote = Pick<
   SandboxBattleRuntime,
-  'initialize' | 'health' | 'invoke' | 'dispose' | 'subscribeBattle' | 'unsubscribeBattle'
+  'initialize' | 'health' | 'invoke' | 'endSession' | 'dispose' | 'subscribeBattle' | 'unsubscribeBattle'
 >

@@ -43,6 +43,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 | 印记               | `AddMarkContext`、`RemoveMarkContext`、`StackContext`、`ConsumeStackContext`；`pet.addMark`、`battle.removeMark`、`mark.consumeStack`、`pet.transferMarks` |
 | 属性贡献           | `Modifier`、`DurationType`、`attributeSystem.addModifier`；`Signal`、`ReactiveValue`、`projectValue`、`combineValues`                                      |
 | 参数               | `numberParam`、`booleanParam`、`stringParam`；`parameterAddress`、`ParameterCatalog`、`defineParameter`、`ConfigSystem`、`ConfigModifier`                  |
+| 实体状态           | `defineEffectState`、`getEffectState`、`setEffectState`；技能、印记、精灵、玩家或 Battle 的独立状态                                                        |
 | 即时选择与操作工具 | 原有 `targets`、`contexts`、`conditions`、`values`、`ops`、`actions`，按需使用                                                                             |
 | 持续取值工具       | 原有 capture/follow、`bindings`；底层值计划集中在 `sdk.valuePlans`，避免与即时 `sdk.values` 混淆                                                           |
 | 执行预算           | `executionBudgetPolicy`、`ExecutionBudgetExceeded`；本局的 `battle.executionBudget`                                                                        |
@@ -61,10 +62,70 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 
 - `id(localId)` 是 namespace 下稳定的导出 ID。文件名和 npm 包名不替代内容身份。
 - 内容的 `useId` 决定每次使用的编译身份，运行时在 `context.effect.id` 取得；同一导出的多次使用互不共用参数地址。
-- `context.source.id` 区分本局的来源实例。跨回合状态保存于引擎实例、配置或支持恢复的属性贡献中。模块变量和回调闭包不作为对局存档。
+- `context.source.id` 区分本局的来源实例。跨触发状态必须保存于引擎管理的实体状态、配置或支持恢复的绑定与属性贡献中，遵守下述状态归属合同。
 - 可修改参数用现有 `numberParam` 等声明在 `parameters` 中。原生回调通过 `context.battle.configSystem.get(parameterAddress(context.effect!.id, 'parameters', 'amount'), context.source)` 读取当前来源作用域；检查返回值类型。持续跟随参数可使用现有 `amount.follow(...)` 与绑定工具。
 
 随机值使用 `context.battle.random()`、`randomInt(min, max)` 或 `shuffle`，复用本局 RNG；`randomInt` 包含两端。不要使用模块共享 RNG、`Math.random` 或时间决定战斗结果。持续刷新不得重复抽样；需要保存的随机结果应进入引擎支持的持久状态。
+
+### 状态归属与引用生命周期
+
+Effect 保存逻辑和不可变定义；影响后续触发结果的可变状态归属于本局实体。此合同统一适用于官方与 UGC 效果、开发、本地和服务端执行。
+
+- 普通函数、闭包、不可变配置和单次调用内的局部变量可以正常使用。
+- 跨触发的计数、历史目标、已使用标记、阶段进度和抽样结果，必须通过引擎支持的状态接口保存。按语义归属技能实例、印记实例、精灵、玩家或 Battle，并由引擎管理清理、转移和快照恢复。
+- 模块变量、工厂闭包、对象或函数属性、类静态字段、Map/WeakMap 等作者私有容器，不得保存这类状态。`const` 声明不代表引用的对象不可变。
+- `context`、`context.parent`、辅助 frame 及其操作能力仅用于当前同步回调。不得将它们保存到外层变量、返回的延迟回调或异步任务中供以后使用。
+- 后续触发应从新的上下文重新取得来源和目标。需要持续追踪或捕获实体时，使用 SDK 管理的绑定和稳定引用；不要自行在长驻逻辑中保存本局领域对象。不可变内容定义和 SDK 声明句柄可以按各自合同复用。
+
+例如，下列计数依赖工厂闭包，属于不支持的效果写法，即使当前一次试打中看起来正常：
+
+```ts
+export function createEffects({ sdk, id }: CodeEffectModuleContext) {
+  let hits = 0
+  return [
+    sdk.defineCodeEffect({
+      id: id('hit-counter'),
+      sourceKind: 'skill',
+      triggers: [sdk.EffectTrigger.OnHit],
+      apply(context) {
+        if (context.source === context.parent.skill) hits++ // 应保存到所属实例的引擎状态中
+      },
+    }),
+  ]
+}
+```
+
+作者不能依赖模块或工厂只执行一次、每局重新执行、某个包独占 VM，或 Worker 的创建与复用顺序来决定战斗结果。相同内容、输入、引擎状态和 RNG 应产生相同结果，与作者模块之前处理过哪些对局无关。
+
+这是作者编程合同。项目不支持隐藏状态的保存、恢复或重置，不将禁止全部闭包或静态证明任意 TypeScript 无状态作为准入要求；现有编译和运行检查不保证识别全部违规写法。通过加载或一次试打不代表符合此合同。
+
+### 自定义实体状态
+
+用 `defineEffectState` 声明不可变字段，通过当前回调和所属实体读写。下例在技能实例上记录命中次数；工厂闭包只保存字段定义：
+
+```ts
+export function createEffects({ sdk, id }: CodeEffectModuleContext) {
+  const hits = sdk.defineEffectState({ id: id('hit-count'), type: 'number', default: 0 })
+  return [
+    sdk.defineCodeEffect({
+      id: id('hit-counter'),
+      sourceKind: 'skill',
+      triggers: [sdk.EffectTrigger.OnHit],
+      when: context => context.source === context.parent.skill,
+      apply(context) {
+        const previous = sdk.getEffectState(context, context.source, hits)
+        sdk.setEffectState(context, context.source, hits, previous + 1)
+      },
+    }),
+  ]
+}
+```
+
+字段 ID 使用包命名空间，例如 `id('hit-count')`。同一实体上的同一 ID 指向同一个字段；不同实体互不共享，不继承持有者或 Battle 的值，也不参与参数修饰器计算。同一 ID 的类型和默认值必须一致，快照恢复后仍检查这一约束。
+
+状态支持有限数值、布尔值和最多 16,384 个 UTF-16 代码单元的字符串。对象、函数和实体引用不能作为字段值；持续实体引用使用既有绑定 API。读写必须传入当前回调的 `context` 以及属于本局的 Battle、玩家、精灵、技能或印记。实体随等待点快照一起保存和恢复，下一局重新使用默认值。
+
+印记创建回调可以初始化该印记的状态。原实例转移时状态随实例保留；被合并吸收、覆盖或销毁的印记释放其状态，不自动合并双方的自定义字段。其他实体状态保留至实体所属对局清理。不能通过随意挂字段或闭包变量绕过这些生命周期。
 
 ## 属性贡献与清理
 
@@ -82,7 +143,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 
 预算耗尽锁存本局的 `ExecutionBudgetExceeded`，停止计时、释放等待并阻止继续进入引擎结算；捕获异常、消息监听器重入或 skipOnError 不重置预算。它不选择胜负，也不回滚此前操作。普通条件错误跳过该次收集；普通 apply 错误产生 `EffectApplyFail` 并按既有规则继续，已有副作用不回滚。
 
-计数覆盖引擎入口和已计费工具调用。原生参考运行中的直接领域方法、独立底层 Effect、任意 JS 循环和外部 I/O 不因此自动受逐步计费或抢占。npm 作者代码现运行于包级 Arena VM；局级 Worker 看门狗、VM 执行限额和故障锁存另见 [沙箱执行宿主](effect-sandbox.md)。
+计数覆盖引擎入口和已计费工具调用。原生参考运行中的直接领域方法、独立底层 Effect、任意 JS 循环和外部 I/O 不因此自动受逐步计费或抢占。npm 作者代码运行于宿主按包或按环境分组的 Arena VM；局级 Worker 看门狗、VM 执行限额和故障锁存另见 [沙箱执行宿主](effect-sandbox.md)。
 
 核心／SDK 的构建身份保留，内容元数据、依赖图和策略参与环境身份；本地代码不做逐文件摘要准入，相同元数据不证明代码语义相同。版本更新准备新环境，活动对局保留原环境。见 [npm 环境生命周期](npm-content.md#环境生命周期)。
 

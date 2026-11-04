@@ -9,6 +9,7 @@ export interface BattleWorker {
   readonly endpoint: Endpoint
   terminate(): void | Promise<unknown>
   onFailure(handler: (message: string) => void): () => void
+  setIdle?(idle: boolean): void
 }
 export interface BattleWorkerPolicy {
   readonly maxBattles: number
@@ -16,6 +17,8 @@ export interface BattleWorkerPolicy {
   readonly requestMs: number
   readonly cleanupMs: number
   readonly heartbeatMs: number
+  readonly reuseWorkers: boolean
+  readonly vmGrouping: 'package' | 'environment'
 }
 const defaultPolicy: BattleWorkerPolicy = Object.freeze({
   maxBattles: 4,
@@ -23,63 +26,151 @@ const defaultPolicy: BattleWorkerPolicy = Object.freeze({
   requestMs: 5_000,
   cleanupMs: 1_000,
   heartbeatMs: 1_000,
+  reuseWorkers: false,
+  vmGrouping: 'package',
 })
 export interface BattleWorkerStatus {
   readonly id: number
+  readonly workerId?: number
   readonly state: 'preparing' | 'active' | 'faulted' | 'disposed'
   readonly fault?: string
   readonly cleanup?: 'graceful' | 'terminated'
   readonly cleanupFault?: string
 }
-/** Admission and diagnostics for dedicated battle Workers. A finished Worker is never recycled. */
+interface WorkerSlot {
+  readonly id: number
+  readonly worker: BattleWorker
+  readonly remote: Remote<SandboxWorkerRemote>
+  readonly environment: string
+  detachIdleFailure?: () => void
+  termination?: Promise<unknown>
+}
+/** Bounded worker ownership. Each lease is isolated; only healthy sequential sessions reuse content. */
 export class BattleWorkerManager {
   private nextId = 0
+  private nextWorkerId = 0
+  private creating = 0
+  private readonly slots = new Set<WorkerSlot>()
+  private readonly idle: WorkerSlot[] = []
   private readonly active = new Map<number, WorkerBattleSystem>()
   private readonly history: BattleWorkerStatus[] = []
   private closed = false
+  private disposing?: Promise<void>
   private readonly policy: BattleWorkerPolicy
   constructor(
     private readonly createWorker: () => BattleWorker,
     policy: Partial<BattleWorkerPolicy> = {},
   ) {
     this.policy = { ...defaultPolicy, ...policy }
-    for (const value of Object.values(this.policy))
+    const { reuseWorkers, vmGrouping, ...limits } = this.policy
+    for (const value of Object.values(limits))
       if (!Number.isSafeInteger(value) || value <= 0) throw Error('Invalid Worker policy')
+    if (typeof reuseWorkers !== 'boolean' || !['package', 'environment'].includes(vmGrouping))
+      throw Error('Invalid Worker policy')
+  }
+  private terminate(slot: WorkerSlot): Promise<unknown> {
+    if (slot.termination) return slot.termination
+    slot.detachIdleFailure?.()
+    const index = this.idle.indexOf(slot)
+    if (index >= 0) this.idle.splice(index, 1)
+    slot.termination = Promise.resolve()
+      .then(async () => {
+        try {
+          slot.remote[releaseProxy]()
+        } catch {
+          /* Endpoint may already be closed. */
+        }
+        await slot.worker.terminate()
+      })
+      .finally(() => this.slots.delete(slot))
+    return slot.termination
   }
   async create(input: SandboxBattleInput, signal?: AbortSignal): Promise<WorkerBattleSystem> {
     if (this.closed) throw Error('Battle Worker manager disposed')
     if (signal?.aborted) throw new SandboxFault('disposed', 'battle', 'Battle launch cancelled')
-    if (this.active.size >= this.policy.maxBattles)
+    if (this.active.size + this.creating >= this.policy.maxBattles)
       throw new SandboxFault('budget', 'battle', 'Concurrent battle limit')
-    if (new TextEncoder().encode(JSON.stringify(input)).byteLength > 16 * 1024 * 1024)
+    const serialized = JSON.stringify(input)
+    if (new TextEncoder().encode(serialized).byteLength > 16 * 1024 * 1024)
       throw new SandboxFault('budget', 'battle', 'Battle input limit')
-    const id = ++this.nextId
-    const battle = new WorkerBattleSystem(id, this.createWorker(), this.policy, status => {
-      this.active.delete(id)
-      this.history.push(status)
-      if (this.history.length > 64) this.history.shift()
-    })
-    this.active.set(id, battle)
-    const cancel = () => {
-      void battle.cleanup()
-    }
-    signal?.addEventListener('abort', cancel, { once: true })
-    battle.onClosed(() => signal?.removeEventListener('abort', cancel))
+    // Capture before yielding: revisions alone cannot authenticate changed data or code.
+    const captured: SandboxBattleInput = JSON.parse(serialized)
+    const environment = JSON.stringify(captured.environment)
+    this.creating++
+    let slot: WorkerSlot | undefined
+    let battle: WorkerBattleSystem | undefined
     try {
+      const match = this.policy.reuseWorkers ? this.idle.findIndex(value => value.environment === environment) : -1
+      if (match >= 0) {
+        slot = this.idle.splice(match, 1)[0]
+        slot.detachIdleFailure?.()
+        slot.detachIdleFailure = undefined
+      } else {
+        // Reclaim another environment's idle slot before allocating beyond the bound.
+        if (this.slots.size >= this.policy.maxBattles && this.idle.length) await this.terminate(this.idle[0])
+        if (this.slots.size >= this.policy.maxBattles)
+          throw new SandboxFault('budget', 'battle', 'Concurrent worker limit')
+        if (this.closed || signal?.aborted) throw new SandboxFault('disposed', 'battle', 'Battle launch cancelled')
+        const worker = this.createWorker()
+        slot = { id: ++this.nextWorkerId, worker, remote: wrap<SandboxWorkerRemote>(worker.endpoint), environment }
+        this.slots.add(slot)
+      }
+      if (this.closed || signal?.aborted) throw new SandboxFault('disposed', 'battle', 'Battle launch cancelled')
+      const owned = slot
+      owned.worker.setIdle?.(false)
+      const id = ++this.nextId
+      battle = new WorkerBattleSystem(
+        id,
+        owned.worker,
+        this.policy,
+        status => {
+          this.active.delete(id)
+          this.history.push(status)
+          if (this.history.length > 64) this.history.shift()
+        },
+        owned.remote,
+        async reusable => {
+          if (reusable && this.policy.reuseWorkers && !this.closed && !owned.termination) {
+            owned.detachIdleFailure = owned.worker.onFailure(() => {
+              void this.terminate(owned).catch(() => {})
+            })
+            this.idle.push(owned)
+            owned.worker.setIdle?.(true)
+          } else await this.terminate(owned)
+        },
+        owned.id,
+      )
+      this.active.set(id, battle)
+      this.creating--
+      const cancel = () => {
+        void battle!.cancel()
+      }
+      signal?.addEventListener('abort', cancel, { once: true })
+      battle.onClosed(() => signal?.removeEventListener('abort', cancel))
       if (signal?.aborted) cancel()
-      await battle.initialize(input)
+      await battle.initialize(captured)
       return battle
     } catch (error) {
-      await battle.cleanup()
+      if (battle) await battle.cleanup()
+      else {
+        this.creating--
+        if (slot) await this.terminate(slot)
+      }
       throw error
     }
   }
   status(): readonly BattleWorkerStatus[] {
-    return [...this.history.map(value => ({ ...value })), ...[...this.active.values()].map(value => value.status())]
+    return [...this.history.map(value => ({ ...value })), ...[...this.active.values()].map(battle => battle.status())]
   }
-  async dispose(): Promise<void> {
+  dispose(): Promise<void> {
     this.closed = true
-    await Promise.all([...this.active.values()].map(battle => battle.cleanup()))
+    return (this.disposing ??= (async () => {
+      try {
+        await Promise.all([...this.active.values()].map(battle => battle.cleanup()))
+      } finally {
+        await Promise.all([...this.slots].map(slot => this.terminate(slot)))
+      }
+    })())
   }
 }
 
@@ -106,13 +197,17 @@ export class WorkerBattleSystem implements IBattleSystem {
     private readonly worker: BattleWorker,
     private readonly policy: BattleWorkerPolicy,
     private readonly report: (status: BattleWorkerStatus) => void,
+    remote?: Remote<SandboxWorkerRemote>,
+    private readonly releaseWorker?: (reusable: boolean) => Promise<void>,
+    private readonly workerId?: number,
   ) {
-    this.remote = wrap<SandboxWorkerRemote>(worker.endpoint)
+    this.remote = remote ?? wrap<SandboxWorkerRemote>(worker.endpoint)
     this.detachFailure = worker.onFailure(message => this.fail(new SandboxFault('worker', 'battle', message)))
   }
   status(): BattleWorkerStatus {
     return {
       id: this.id,
+      workerId: this.workerId,
       state: this.state,
       fault: this.failure?.message,
       cleanup: this.cleanupState,
@@ -166,6 +261,7 @@ export class WorkerBattleSystem implements IBattleSystem {
             else if (event.kind === 'input') for (const listener of this.inputListeners) listener(event.data)
             else this.fail(new SandboxFault('permission', 'battle', 'Unknown battle event'))
           }),
+          { sessionId: this.id, reuseContent: this.policy.reuseWorkers, grouping: this.policy.vmGrouping },
         ),
       this.policy.initializeMs,
     )
@@ -174,7 +270,7 @@ export class WorkerBattleSystem implements IBattleSystem {
     this.heartbeat = setInterval(() => {
       if (this.checking || this.state !== 'active') return
       this.checking = true
-      void this.request(() => this.remote.health())
+      void this.request(() => this.remote.health(this.id))
         .catch(error => this.fail(error instanceof Error ? error : Error(String(error))))
         .finally(() => {
           this.checking = false
@@ -186,7 +282,7 @@ export class WorkerBattleSystem implements IBattleSystem {
     args: Parameters<LocalBattleSystemV4[K]>,
   ): Promise<Awaited<ReturnType<LocalBattleSystemV4[K]>>> {
     return this.request(
-      () => this.remote.invoke(method, args),
+      () => this.remote.invoke(method, args, this.id),
       method === 'waitForCompletion' ? 0 : this.policy.requestMs,
     ) as Promise<Awaited<ReturnType<LocalBattleSystemV4[K]>>>
   }
@@ -230,12 +326,12 @@ export class WorkerBattleSystem implements IBattleSystem {
     this.assertOpen()
     const id = ++this.nextSubscription
     this.listeners.set(id, callback)
-    void this.request(() => this.remote.subscribeBattle(id, options)).catch(error =>
+    void this.request(() => this.remote.subscribeBattle(id, options, this.id)).catch(error =>
       this.fail(error instanceof Error ? error : Error(String(error))),
     )
     return () => {
       this.listeners.delete(id)
-      if (this.state === 'active') void this.request(() => this.remote.unsubscribeBattle(id)).catch(() => {})
+      if (this.state === 'active') void this.request(() => this.remote.unsubscribeBattle(id, this.id)).catch(() => {})
     }
   }
   onTimerEvent<K extends keyof Events>(type: K, handler: (data: Events[K]) => void): () => void {
@@ -272,9 +368,13 @@ export class WorkerBattleSystem implements IBattleSystem {
     this.inputListeners.clear()
     for (const callback of this.closedListeners.splice(0)) callback()
   }
-  private terminate(): Promise<unknown> {
+  cancel(): Promise<void> {
+    this.fail(new SandboxFault('disposed', 'battle', 'Battle launch cancelled'))
+    return this.cleanup()
+  }
+  private terminate(reusable = false): Promise<unknown> {
     this.termination ??= Promise.resolve()
-      .then(() => this.worker.terminate())
+      .then(() => (this.releaseWorker ? this.releaseWorker(reusable) : this.worker.terminate()))
       .finally(() => {
         if (!this.terminalReported) {
           this.terminalReported = true
@@ -294,7 +394,7 @@ export class WorkerBattleSystem implements IBattleSystem {
         this.cleanupState ??= 'terminated'
         if (healthy) {
           const graceful = await Promise.race([
-            this.remote.dispose().then(() => true),
+            (this.policy.reuseWorkers ? this.remote.endSession(this.id) : this.remote.dispose()).then(() => true),
             new Promise<boolean>(resolve => {
               timer = setTimeout(() => resolve(false), this.policy.cleanupMs)
             }),
@@ -307,11 +407,11 @@ export class WorkerBattleSystem implements IBattleSystem {
       } finally {
         clearTimeout(timer)
         try {
-          this.remote[releaseProxy]()
+          if (!this.releaseWorker) this.remote[releaseProxy]()
         } catch {
           /* Already disconnected. */
         }
-        await this.terminate()
+        await this.terminate(healthy && !this.failure && this.cleanupState === 'graceful')
       }
     })()
     return this.cleanupTask

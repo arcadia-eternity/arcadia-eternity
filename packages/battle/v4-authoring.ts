@@ -26,3 +26,11 @@ export {
   type NativeEffectDefinition,
 } from './src/v4/content/native-effect'
 export { ExecutionBudgetExceeded, executionBudgetPolicy } from './src/v4/execution/budget'
+
+export {
+  defineEffectState,
+  getEffectState,
+  setEffectState,
+  type EffectStateDefinition,
+  type EffectStateEntity,
+} from './src/v4/content/effect-state'

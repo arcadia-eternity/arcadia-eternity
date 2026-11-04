@@ -222,13 +222,14 @@ it('keeps native parameters scoped to each use and exposes the actual typed cont
 
 it('captures native declaration fields before compiling uses and validates unsupported triggers', () => {
   const f = fixture()
-  let calls = 0
+  f.a.activePet.currentHp = 40
   const input = {
     id: 'sdk:immutable',
     sourceKind: 'skill' as const,
     triggers: [EffectTrigger.TurnEnd] as EffectTrigger.TurnEnd[],
-    apply() {
-      calls++
+    apply(context: EffectContext<EffectTrigger.TurnEnd>) {
+      const owner = context.source.owner
+      if (owner instanceof Pet) owner.heal(new HealContext(context, context.source, owner, 3))
     },
   }
   const native = sdk.defineCodeEffect(input)
@@ -247,7 +248,7 @@ it('captures native declaration fields before compiling uses and validates unsup
   if (!compiled.ok) throw new Error(JSON.stringify(compiled.diagnostics))
   f.a.activePet.skills[0].effects.splice(0, Infinity, compiled.effect)
   f.battle.applyEffects(new TurnContext(f.battle), EffectTrigger.TurnEnd, f.a.activePet.skills[0])
-  expect(calls).toBe(1)
+  expect(f.a.activePet.currentHp).toBe(43)
   const invalid = sdk.defineCodeEffect({
     id: 'sdk:invalid',
     sourceKind: 'skill',

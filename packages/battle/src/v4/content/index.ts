@@ -17,3 +17,11 @@ export { defineMarkInstanceParams, type MarkInstanceParams } from './mark-parame
 export type { EnvironmentBuildIdentity } from './environment'
 export * from './behaviors'
 export * from './code-effects'
+
+export {
+  defineEffectState,
+  getEffectState,
+  setEffectState,
+  type EffectStateDefinition,
+  type EffectStateEntity,
+} from './effect-state'

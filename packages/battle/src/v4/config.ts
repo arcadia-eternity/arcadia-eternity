@@ -722,6 +722,14 @@ export class ConfigSystem {
     this.publishScopes()
   }
 
+  /** Exact stored base value, without parent inheritance or modifiers. */
+  getOwnConfig(key: string, scope?: ScopeObject): ConfigValue | undefined {
+    checkConfigRead(this, key)
+    void this.scopeRevision.value
+    if (this.isDestroyed) return undefined
+    return scope ? this.scopedBaseConfigs.get(scope)?.get(key)?.value : this.baseConfigs.get(key)?.value
+  }
+
   hasScopedConfig(key: string, scope: ScopeObject): boolean {
     return this.scopedBaseConfigs.get(scope)?.has(key) ?? false
   }

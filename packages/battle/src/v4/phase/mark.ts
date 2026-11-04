@@ -91,6 +91,7 @@ function replaceStatLevelMark(
 
   // Set existing mark as inactive
   existingMark.isActive = false
+  battle.configSystem.releaseScope(existingMark)
 
   // Emit mark update message
   battle.emitMessage(BattleMessageType.MarkUpdate, {

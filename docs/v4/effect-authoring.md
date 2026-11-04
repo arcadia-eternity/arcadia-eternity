@@ -6,6 +6,8 @@
 
 新的 npm 代码包使用 `defineCodeEffect` 和宿主注入的 SDK，见 [npm 内容包](npm-content.md)。运行时参数继续支持其他效果修改；取消的是强制的效果参数表单，不是参数声明、验证、作用域或生命周期。
 
+所有效果遵守 [状态归属与引用生命周期](effect-sdk.md#状态归属与引用生命周期)：普通函数与闭包可用于组织逻辑，跨触发的可变状态必须进入引擎管理的实体状态。不得保留调用上下文供后续触发使用；持续捕获和跟随通过 SDK 绑定声明。依赖模块变量、私有容器或闭包保存战斗历史的写法不受支持，也不能依赖 VM 每局重建来清空它们。
+
 ## 一次执行
 
 `defineEffect` 使用与 `defineNativeEffect` 一致的 `triggers / when / apply` 字段；`triggers` 始终是 `EffectTrigger` 数组，单触发也使用数组。`ctx.trigger` 推导并缩窄 `ctx.parent` 的事件类型，`compileEffect` 适配为现有 Effect。辅助上下文另外提供 `read` 和 `ops`，不修改引擎原始上下文。直接事件与 `contexts.nearestSkillUse` 等祖先查询分别使用；嵌套伤害/效果不能凭直接父级推断施放者。

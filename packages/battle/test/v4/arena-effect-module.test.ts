@@ -63,21 +63,25 @@ it('uses the injected SDK with canonical parameters and synchronous custom compu
   expect(f.a.activePet.currentHp).toBe(53)
   expect(module.state).toBe('ready')
 })
-it('reads current domain state while preserving references across successive calls', async () => {
-  const module = await prepare(`let saved, count=0;
+it('reads current domain state independently on each callback', async () => {
+  const module = await prepare(`
     export function createEffects({sdk,id}) {
       return [sdk.defineCodeEffect({id:id('read'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
-        apply(ctx){ const pet=ctx.source.owner;
-          if(saved && saved!==pet)throw Error('identity'); saved=pet;
-          if(pet.currentHp!==(count++===0?40:30))throw Error('stale hp');
+        apply(ctx){
+          const pet=ctx.source.owner;
+          if(pet!==ctx.source.owner)throw Error('identity');
+          pet.heal(new sdk.HealContext(ctx,ctx.source,pet,pet.currentHp / 10));
         }
       })];
     }`)
   const f = compile(module)
   f.a.activePet.currentHp = 40
   f.effect.innerApply(f.ctx)
+  expect(f.a.activePet.currentHp).toBe(44)
   f.a.activePet.currentHp = 30
-  f.effect.innerApply(f.ctx)
+  const next = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnEnd, f.a.activePet.skills[0], f.effect)
+  f.effect.innerApply(next)
+  expect(f.a.activePet.currentHp).toBe(33)
   expect(module.state).toBe('ready')
 })
 it('uses native SDK healing and the battle RNG through scoped domain capabilities', async () => {
@@ -108,7 +112,7 @@ it('interrupts top-level loops and detached promise jobs', async () => {
   ])
     await expect(ArenaEffectModule.prepare(artifact(source), { ...sandboxPolicy, prepareMs: 30 })).rejects.toThrow()
 })
-it('expires callback contexts while retaining stable domain references', async () => {
+it('rejects deliberately retained callback contexts after their scope expires', async () => {
   const module = await prepare(`let saved;
     export function createEffects({sdk,id}){return [sdk.defineCodeEffect({id:id('expired'),
       sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],apply(ctx){

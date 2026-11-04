@@ -1,4 +1,5 @@
 import { Arena } from 'quickjs-emscripten-sync'
+import { registerArenaProjection } from './arena-session'
 import * as sdk from '../../v4-authoring'
 import { Battle } from '../v4/battle'
 import { Context } from '../v4/context'
@@ -131,6 +132,9 @@ const authorFunctions = new Set<string>([
   'defineNativeBehavior',
   'normalizeBehaviorDefinitions',
   'CreateStatStageMark',
+  'defineEffectState',
+  'getEffectState',
+  'setEffectState',
 ])
 function domain(value: object): boolean {
   return (
@@ -155,21 +159,36 @@ export class ArenaEffectSdk {
   private readonly callbacks = new WeakMap<Fn, Fn>()
   private count = 0
   private activeScope?: Scope
+  private session?: Scope & { callbacks: Fn[] }
   constructor(
     private readonly arena: Arena,
     private readonly policy: SandboxPolicy,
     private readonly run: <T>(operation: () => T) => T,
     private readonly reject: (error: unknown) => never,
   ) {}
+  beginSession(): void {
+    if (this.session || this.activeScope) throw new Error('Effect session already active')
+    this.session = { active: true, values: [], callbacks: [] }
+  }
+  endSession(): void {
+    if (!this.session || this.activeScope) throw new Error('Effect session is not idle')
+    this.session.active = false
+    for (const value of this.session.values) {
+      if (this.canonical.delete(value)) this.count--
+    }
+    for (const callback of this.session.callbacks) this.callbacks.delete(callback)
+    this.session.values.length = 0
+    this.session.callbacks.length = 0
+    this.session = undefined
+  }
   isCanonical(value: unknown): value is object {
     return !!value && (typeof value === 'object' || typeof value === 'function') && this.canonical.has(value)
   }
   private register(original: object, view: object): void {
     if (++this.count > this.policy.retainedObjects) this.reject(new SandboxFault('budget', 'sdk', 'SDK object limit'))
-    this.arena.expose({ __arcadiaSdkValue: view })
-    this.arena.register(original, '__arcadiaSdkValue')
-    this.arena.evalCode('delete globalThis.__arcadiaSdkValue')
+    registerArenaProjection(this.arena, original, view)
     this.canonical.add(original)
+    this.session?.values.push(original)
   }
   /** Guest records may contain canonical parameters/selectors. Preserve those identities when reading records. */
   private input(value: unknown, depth = 0): unknown {
@@ -180,8 +199,11 @@ export class ArenaEffectSdk {
       const fn = value as Fn
       let callback = this.callbacks.get(fn)
       if (!callback) {
+        const session = this.session
         callback = (...args) =>
           this.run(() => {
+            if (session && !session.active)
+              return this.reject(new SandboxFault('permission', 'sdk', 'Expired effect session'))
             const scope: Scope = { active: true, values: [] }
             const previous = this.activeScope
             this.activeScope = scope
@@ -202,6 +224,7 @@ export class ArenaEffectSdk {
             }
           })
         this.callbacks.set(fn, callback)
+        this.session?.callbacks.push(fn)
       }
       return callback
     }
@@ -231,6 +254,7 @@ export class ArenaEffectSdk {
       return value
     }
     if (typeof value === 'function') {
+      const session = this.session
       const fn = value as Fn
       const isClass = isClassConstructor(fn)
       const allowedConstructor =
@@ -240,6 +264,8 @@ export class ArenaEffectSdk {
           value === BehaviorCompilationError)
       const callable = (...args: unknown[]) =>
         this.run(() => {
+          if (session && !session.active)
+            return this.reject(new SandboxFault('permission', 'sdk', 'Expired effect session'))
           if (ephemeral && scope && !scope.active)
             return this.reject(new SandboxFault('permission', 'sdk', 'Expired effect frame'))
           const input = args.map(arg => this.input(arg))
@@ -254,6 +280,7 @@ export class ArenaEffectSdk {
       return value
     }
     const original = value as object
+    const session = this.session
     const isDomain = domain(original),
       isFrame = frame(original)
     const temporary = isFrame || original instanceof Context || (ephemeral && !isDomain)
@@ -273,6 +300,8 @@ export class ArenaEffectSdk {
         configurable: false,
         get: () =>
           this.run(() => {
+            if (session && !session.active)
+              return this.reject(new SandboxFault('permission', 'sdk', 'Expired effect session'))
             if (temporary && !scope?.active)
               return this.reject(new SandboxFault('permission', 'sdk', 'Expired effect frame'))
             const member: unknown = Reflect.get(original, key, original)
