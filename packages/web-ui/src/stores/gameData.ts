@@ -1,8 +1,7 @@
+import { officialEffectIds } from '@arcadia-eternity/data-pack-base/metadata'
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
-import { NativePackLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
-import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
+import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
@@ -14,7 +13,7 @@ import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 const BASE_PACK_ID = 'arcadia-eternity.base'
 
 function createMetadataLoader() {
-  return new NativePackLoader(nativeBuildIdentity, createOfficialContent)
+  return new PackMetadataLoader()
 }
 
 interface WorkspaceGameDataLayer {
@@ -581,16 +580,7 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     refreshNativeEffectReferences() {
-      // Build after merging layers: native callbacks may refer to marks defined by another layer.
-      const content = createOfficialContent(
-        {
-          marks: this.marks.allIds.map(id => ({ ...JSON.parse(JSON.stringify(this.marks.byId[id])), effect: [] })),
-          skills: [],
-          species: [],
-        },
-        'web-native-effects',
-      )
-      this.nativeEffectIds = content.effects.map(effect => effect.id)
+      this.nativeEffectIds = [...officialEffectIds]
     },
 
     validateDataIntegrity() {

@@ -27,6 +27,11 @@
     "LICENSE"
   ],
   "exports": {
+    "./metadata": {
+      "types": "./dist/metadata.d.ts",
+      "import": "./dist/metadata.mjs",
+      "default": "./dist/metadata.mjs"
+    },
     "./effects": {
       "types": "./dist/types/effects.d.ts",
       "import": "./dist/effects.js",

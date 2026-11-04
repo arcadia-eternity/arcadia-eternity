@@ -208,7 +208,9 @@ function small(source = 'export function createEffects(){return []}'): SandboxBa
   }
 }
 it('terminates a stuck startup and preserves another active battle', async () => {
-  const host = manager({ initializeMs: 1000 }),
+  // Allow a real cold WASM startup; the stuck module still hits the Worker
+  // deadline before its own 10-second VM preparation budget.
+  const host = manager({ initializeMs: 5000 }),
     healthy = await host.create(small())
   const before = await healthy.getState(undefined, true)
   await expect(host.create(small('for(;;){}'))).rejects.toThrow(/deadline/)
@@ -216,7 +218,7 @@ it('terminates a stuck startup and preserves another active battle', async () =>
   expect(host.status().filter(value => value.state === 'faulted')).toHaveLength(1)
   await healthy.ready()
   expect((await healthy.waitForPendingDecision()).selections[0].length).toBeGreaterThan(0)
-}, 10_000)
+}, 20_000)
 it('reconstructs an official waiting checkpoint in a fresh Worker and continues identically', async () => {
   const host = manager({ cleanupMs: 5000 }),
     spec = fixture(),

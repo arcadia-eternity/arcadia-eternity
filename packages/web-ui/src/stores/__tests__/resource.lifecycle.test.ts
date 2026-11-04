@@ -9,12 +9,10 @@ const { loadMetadata, load, packRef, workspace } = vi.hoisted(() => ({
 }))
 vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
   ...(await importOriginal<typeof import('@arcadia-eternity/pack-loader/native')>()),
-  NativePackLoader: class {
+  PackMetadataLoader: class {
     loadMetadata = loadMetadata
   },
 }))
-vi.mock('@arcadia-eternity/data-pack-base/build', () => ({ nativeBuildIdentity: {} }))
-vi.mock('@arcadia-eternity/data-pack-base/effects', () => ({ createOfficialContent: vi.fn() }))
 vi.mock('@/utils/gameLoader', () => ({
   GameDataLoader: class {
     load = load

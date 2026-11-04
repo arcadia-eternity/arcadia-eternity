@@ -11,6 +11,8 @@ import type { BattleState, PlayerSelection } from '@arcadia-eternity/const'
 import { createSingleProcessApp } from '../src/standalone/app'
 import input from '../../battle/test/fixtures/official-switch.input.json'
 import { createNpmFixture } from './fixtures/npm'
+import { createStandaloneBattle } from '../src/standalone/native'
+import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 
 const legalTeam = input.teams[1].team.map(pet => {
   const { maxHp: _maxHp, ...draft } = pet
@@ -159,7 +161,20 @@ it('serves approved npm environments to code-free clients and pins rooms across 
       effects = code
       return 'export const invalid = true'
     })
-    await expect(app.environments.prepareNpm(fixture.directory)).rejects.toThrow('createEffects')
+    // Metadata remains loadable; actual exports are checked only by a battle's Worker.
+    const invalid = await app.environments.prepareNpm(fixture.directory)
+    const invalidLease = app.environments.acquire(invalid.id)
+    const [invalidA, invalidB] = [a, b].map(({ session }, index) =>
+      parseWithErrors(PlayerSchema, { id: session.seatId, name: `Player ${index}`, team }),
+    )
+    try {
+      await expect(
+        createStandaloneBattle(invalidA, invalidB, { timerConfig: { enabled: false } }, invalidLease.runtime),
+      ).rejects.toThrow('createEffects')
+    } finally {
+      await invalidLease.release()
+      await app.environments.retire(invalid.id)
+    }
     expect(app.environments.list().map(item => item.id)).toContain(first.id)
     await fixture.editEffects(() => effects + '\n// local edit without a version bump\n')
     const codeOnly = await app.environments.prepareNpm(fixture.directory)

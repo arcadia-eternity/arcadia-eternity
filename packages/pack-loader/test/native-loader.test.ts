@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import YAML from 'yaml'
-import { NativePackLoader } from '../src/native-loader'
+import { NativePackLoader, PackMetadataLoader } from '../src/native-loader'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { createContentCatalog } from '@arcadia-eternity/battle/v4'
 import { sandboxEnvironmentFor } from '../src/effect-environment'
@@ -41,6 +41,16 @@ function serveBase(change?: (path: string, raw: string) => string, extra: Record
 }
 
 describe('NativePackLoader', () => {
+  it('reads base metadata, locales and assets without a build identity or effect factory', async () => {
+    const requests = serveBase()
+    const loaded = await new PackMetadataLoader().loadMetadata(`${origin}pack.json`, {
+      source: 'http',
+      enforceLockfile: true,
+    })
+    expect(loaded.data.species.length).toBeGreaterThan(0)
+    expect(loaded).not.toHaveProperty('content')
+    expect(requests.every(path => !/\.(?:[cm]?js|ts|wasm)$/.test(path))).toBe(true)
+  })
   it('binds host-prepared effects for metadata and work selections with a captured code identity', async () => {
     const data = { species: [], skills: [], marks: [] }
     const modules: SandboxEnvironment['modules'][number][] = [

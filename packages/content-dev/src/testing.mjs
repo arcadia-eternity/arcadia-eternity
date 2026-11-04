@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.mjs'
+import { prepareSandboxContent } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 export { prepareBattleEnvironment } from './environment.mjs'
 import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/v4'
@@ -34,25 +35,65 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
       })),
     }))
   }
-  /** Trusted in-process reference helper for direct engine introspection tests only.
-   * Reuses validation modules; games and automated previews must use createBattleSession.
-   */
-  function createBattle(
-    seed = 'content-pack-template',
-    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},
-  ) {
-    const input = runtimePlayers(supplied, runtimeIds)
-    const players = environment.content.parsePlayers(input, { aiPlayerIds: ai ? [input[1]?.id] : [] })
-    if (players.length !== 2) throw new Error('The demo requires exactly two players')
-    const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
-    if (new Set(ids).size !== ids.length) throw new Error('玩家和精灵的编号不能重复')
-    const battle = environment.content.createBattle(players[0], players[1], {
-      ...battleOptions,
-      rngSeed: seed,
-      timerConfig: battleOptions.timerConfig ?? { enabled: false },
+  const referenceContent = new WeakMap()
+  function ownBattle(battle, effects) {
+    referenceContent.set(battle, effects.content)
+    const cleanup = battle.cleanup.bind(battle)
+    // Keep the runtime method non-enumerable, like the prototype method: only
+    // domain fields belong in snapshots, never this resource-owner callback.
+    Object.defineProperty(battle, 'cleanup', {
+      configurable: true,
+      value: async () => {
+        try {
+          await cleanup()
+        } finally {
+          effects.dispose()
+        }
+      },
     })
     prepared.track(battle)
     return battle
+  }
+  /** Explicit trusted introspection entry. Every reference battle owns fresh VMs,
+   * just like the Worker entry; preparing an environment never evaluates effects.
+   */
+  async function createBattle(
+    seed = 'content-pack-template',
+    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},
+  ) {
+    const effects = await prepareSandboxContent(environment.sandbox)
+    try {
+      const input = runtimePlayers(supplied, runtimeIds)
+      const players = effects.content.parsePlayers(input, { aiPlayerIds: ai ? [input[1]?.id] : [] })
+      if (players.length !== 2) throw new Error('The demo requires exactly two players')
+      const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
+      if (new Set(ids).size !== ids.length) throw new Error('玩家和精灵的编号不能重复')
+      return ownBattle(
+        effects.content.createBattle(players[0], players[1], {
+          ...battleOptions,
+          rngSeed: seed,
+          timerConfig: battleOptions.timerConfig ?? { enabled: false },
+        }),
+        effects,
+      )
+    } catch (error) {
+      effects.dispose()
+      throw error
+    }
+  }
+  async function restoreBattle(snapshot) {
+    const effects = await prepareSandboxContent(environment.sandbox)
+    try {
+      return ownBattle(effects.content.restore(snapshot), effects)
+    } catch (error) {
+      effects.dispose()
+      throw error
+    }
+  }
+  function contentFor(battle) {
+    const content = referenceContent.get(battle)
+    if (!content) throw new Error('Battle does not belong to this reference helper')
+    return content
   }
   async function createBattleSession(
     seed = 'content-pack-template',
@@ -71,6 +112,8 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
   return {
     ...prepared,
     createBattle,
+    restoreBattle,
+    contentFor,
     createBattleSession,
     defaultPlayers,
     async dispose() {

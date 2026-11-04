@@ -111,7 +111,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       humans: [0, 1].filter(seat => !ai.includes(`player${seat + 1}`)),
       present: async (system, ids) => {
         await initI18n(options.debug, loaded.locales)
-        await context.stdout(`已加载 ${loaded.content.effects.length} 个效果实现\n`)
+        await context.stdout(`已加载 ${loaded.content.effectIds.length} 个效果声明\n`)
         const ui = new ConsoleUIV2(system, ...ids)
         return { cleanup: () => ui.cleanup(), failure: ui.inputFailure }
       },
@@ -139,7 +139,7 @@ export function registerCommands(program: Command, context: CommandContext) {
     const { prepareContent } = await import('../application/prepare')
     const loaded = await prepareContent(options.packRef, context.cwd, options)
     const counts = {
-      effect: loaded.content.effects.length,
+      effect: loaded.content.effectIds.length,
       mark: loaded.content.marks.length,
       skill: loaded.content.skills.length,
       species: loaded.content.species.length,

@@ -53,7 +53,7 @@ test(
     const players = prepared.defaultPlayers()
     players[1].team[0].species = 'environment-b:pet'
     players[1].team[0].skills = ['environment-b:strike', 'environment-b:rest']
-    const battle = prepared.createBattle('cross-pack-effects', { players })
+    const battle = await prepared.createBattle('cross-pack-effects', { players })
     const speedA = battle.playerA.activePet.stat.spe,
       speedB = battle.playerB.activePet.stat.spe
     battle.applyEffects(attack(battle), EffectTrigger.OnHit)
@@ -69,8 +69,8 @@ test(
     context.updateActualTarget()
     battle.applyEffects(context, EffectTrigger.OnHit)
     assert.equal(battle.playerA.activePet.stat.spe, speedA - 25)
-    const first = await runBattle(prepared.createBattle('integration-seed', { players }))
-    const second = await runBattle(prepared.createBattle('integration-seed', { players }))
+    const first = await runBattle(await prepared.createBattle('integration-seed', { players }))
+    const second = await runBattle(await prepared.createBattle('integration-seed', { players }))
     assert.deepEqual(first, second)
     const lock = await readFile(join(a, 'debug/environments/interaction.package-lock.json'), 'utf8')
     assert.ok(!lock.includes(root))
@@ -132,7 +132,7 @@ test(
     // Missing references are also rejected at admission, rather than silently editing teams or dependencies.
     const invalid = structuredClone(players)
     invalid[0].team[0].species = 'missing:pet'
-    assert.throws(() => prepared.createBattle('missing-content', { players: invalid }))
+    await assert.rejects(prepared.createBattle('missing-content', { players: invalid }))
     // Duplicate namespace/project registrations fail explicitly through the existing npm inspector.
     const metadata = JSON.parse(await readFile(join(b, 'package.json'), 'utf8'))
     metadata.arcadia.namespace = 'environment-a'

@@ -331,6 +331,31 @@ export interface BehaviorCompileOptions {
     readonly skills: ReadonlySet<string>
   }
 }
+/** Compare the declared public contract with host-owned export metadata; no code is needed. */
+export function validateBehaviorContract(
+  definition: BehaviorDefinition,
+  contract: Pick<NativeBehaviorExport, 'sourceKind' | 'parameters'>,
+  owner: BehaviorOwner,
+  useId: string,
+): void {
+  if (contract.sourceKind !== definition.sourceKind)
+    fail('CAPABILITY_MISMATCH', owner.id, 'sourceKind', 'native export source mismatch', useId)
+  // The export owns its public contract. A document cannot widen it or hide required fields.
+  const canonical = (value: Readonly<Record<string, BehaviorParameter>>) =>
+    JSON.stringify(
+      Object.entries(value)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, parameter]) => [name, Object.entries(parameter).sort(([a], [b]) => a.localeCompare(b))]),
+    )
+  if (canonical(contract.parameters) !== canonical(definition.parameters))
+    fail(
+      'INVALID_PARAMETERS',
+      owner.id,
+      'parameters',
+      'native public contract does not match its registered export',
+      useId,
+    )
+}
 export interface PreparedBehaviorUse {
   readonly definition: BehaviorDefinition
   readonly use: BehaviorUse
@@ -342,11 +367,11 @@ interface Preparation {
   native: NativeBehaviorExport
 }
 const preparations = new WeakMap<PreparedBehaviorUse, Preparation>()
-/** Validate all candidates before a host invokes any trusted builder. */
-export function validateBehaviorUse(
+/** Validate data contracts and references without registering or executing code. */
+export function validateBehaviorMetadata(
   definitions: readonly BehaviorDefinition[],
   input: unknown,
-  options: BehaviorCompileOptions,
+  options: Pick<BehaviorCompileOptions, 'owner' | 'references'>,
 ): PreparedBehaviorUse {
   let use: BehaviorUse | undefined
   let field = 'behaviors'
@@ -358,11 +383,7 @@ export function validateBehaviorUse(
       fail('MISSING_REFERENCE', options.owner.id, field, `unknown behavior ${use.definitionId}`, use.useId)
     const definition = normalizeDefinition(candidate)
     field = 'sourceKind'
-    if (
-      definition.sourceKind !== options.owner.kind ||
-      (options.owner.kind === 'petMark' && options.sourceMark?.id !== options.owner.id) ||
-      (options.owner.kind === 'skill' && options.sourceMark)
-    )
+    if (definition.sourceKind !== options.owner.kind)
       fail('CAPABILITY_MISMATCH', options.owner.id, field, 'behavior owner/source mismatch', use.useId)
     field = 'params'
     const params = normalizeValues(definition.parameters, use.params, {
@@ -370,7 +391,6 @@ export function validateBehaviorUse(
       field: '/params',
       useId: use.useId,
     })
-    const schemas: Record<string, TSchema> = { ...schemasFor(definition.parameters) }
     for (const [name, parameter] of Object.entries(definition.parameters)) {
       const value = params[name]
       if (parameter.kind === 'string' && parameter.reference) {
@@ -384,9 +404,32 @@ export function validateBehaviorUse(
             use.useId,
           )
       }
-      // References and structural selections are resolved at build time. Runtime config cannot silently retarget them.
-      if (parameter.static || (parameter.kind === 'string' && parameter.reference)) schemas[name] = Type.Literal(value)
     }
+    return freezeContent({ definition, use: { ...use, params }, effectId: behaviorEffectId(options.owner, use.useId) })
+  } catch (error) {
+    throw diagnostic(error, options.owner.id, field, use?.useId)
+  }
+}
+/** Validate all candidates before a host invokes any trusted builder. */
+export function validateBehaviorUse(
+  definitions: readonly BehaviorDefinition[],
+  input: unknown,
+  options: BehaviorCompileOptions,
+): PreparedBehaviorUse {
+  const prepared = validateBehaviorMetadata(definitions, input, options)
+  const { definition, use } = prepared
+  const params = use.params
+  let field = 'sourceKind'
+  try {
+    if (
+      (options.owner.kind === 'petMark' && options.sourceMark?.id !== options.owner.id) ||
+      (options.owner.kind === 'skill' && options.sourceMark)
+    )
+      fail('CAPABILITY_MISMATCH', options.owner.id, field, 'behavior owner/source mismatch', use.useId)
+    const schemas: Record<string, TSchema> = { ...schemasFor(definition.parameters) }
+    for (const [name, parameter] of Object.entries(definition.parameters))
+      if (parameter.static || (parameter.kind === 'string' && parameter.reference))
+        schemas[name] = Type.Literal(params[name])
     field = 'implementation.exportId'
     const exports = new Map<string, NativeBehaviorExport>()
     for (const entry of options.nativeExports ?? []) {
@@ -403,30 +446,8 @@ export function validateBehaviorUse(
         `unregistered native export ${definition.implementation.exportId}`,
         use.useId,
       )
-    if (native.sourceKind !== definition.sourceKind)
-      fail('CAPABILITY_MISMATCH', options.owner.id, 'sourceKind', 'native export source mismatch', use.useId)
-    // The export owns its public contract. A document cannot widen it or hide required fields.
-    const canonical = (value: Readonly<Record<string, BehaviorParameter>>) =>
-      JSON.stringify(
-        Object.entries(value)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([name, parameter]) => [name, Object.entries(parameter).sort(([a], [b]) => a.localeCompare(b))]),
-      )
-    if (canonical(native.parameters) !== canonical(definition.parameters))
-      fail(
-        'INVALID_PARAMETERS',
-        options.owner.id,
-        'parameters',
-        'native public contract does not match its registered export',
-        use.useId,
-      )
+    validateBehaviorContract(definition, native, options.owner, use.useId)
     normalizeValues(native.parameters, params)
-    const effectId = behaviorEffectId(options.owner, use.useId)
-    const prepared = freezeContent({
-      definition,
-      use: { ...use, params },
-      effectId,
-    })
     preparations.set(prepared, { options: { ...options, owner: { ...options.owner } }, schemas, native })
     return prepared
   } catch (error) {

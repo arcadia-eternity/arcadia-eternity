@@ -61,11 +61,11 @@ export interface WorkRelease {
   requirements: WorkRequirement[]
   digest: string
 }
-export interface WorkHost {
+export interface WorkHost<Content = ContentCatalog> {
   readonly build: EnvironmentBuildIdentity
   readonly base: ContentPrototypeData
   readonly templates: readonly BehaviorDefinition[]
-  readonly createContent: (data: ContentPrototypeData, revision: string) => ContentCatalog
+  readonly createContent: (data: ContentPrototypeData, revision: string) => Content
   /** Approved export identities are host policy; a work cannot install code by declaring a requirement. */
   readonly allowedExports?: readonly string[]
 }

@@ -17,17 +17,17 @@ import YAML from 'yaml'
 import { PackTransport, type AssetLoadRecord } from './transport'
 import type { PackMetadataResult, PackLoaderOptions, PackSource, LocaleBundles } from './types'
 
-export type NativeContentFactory = (data: ContentPrototypeData, revision: string) => ContentCatalog
+export type NativeContentFactory<Content = ContentCatalog> = (data: ContentPrototypeData, revision: string) => Content
 
 export interface NativePackLoaderOptions {
   source?: PackSource
   enforceLockfile?: boolean
   revision?: string
 }
-export interface NativeContentResult {
+export interface NativeContentResult<Content = ContentCatalog> {
   sandbox?: SandboxEnvironment
   runtime: 'native-v4'
-  content: ContentCatalog
+  content: Content
   revision: string
   packs: { id: string; version: string }[]
   build: EnvironmentBuildIdentity
@@ -40,7 +40,8 @@ export interface NativeWorkSelection {
   selected: readonly WorkRelease[]
   installed: readonly WorkRelease[]
 }
-export interface NativePackLoadResult extends NativePackMetadataResult, NativeContentResult {
+export interface NativePackLoadResult<Content = ContentCatalog>
+  extends NativePackMetadataResult, NativeContentResult<Content> {
   works?: NativeWorkSelection
   npm?: { installationDigest: string }
 }
@@ -54,102 +55,8 @@ interface MetadataPack {
   presentation?: PresentationManifest
 }
 
-/** Load transport metadata against the trusted host's compiled effect directory. */
-export class NativePackLoader extends PackTransport {
-  private readonly build: EnvironmentBuildIdentity
-  constructor(
-    build: EnvironmentBuildIdentity,
-    private readonly contentFactory: NativeContentFactory,
-    private readonly workOptions: {
-      readonly templates: readonly BehaviorDefinition[]
-      readonly allowedExports?: readonly string[]
-      readonly effectModules?: SandboxEnvironment['modules']
-    } = { templates: [] },
-  ) {
-    super()
-    if (
-      build.formatVersion !== 1 ||
-      !/^[a-f0-9]{64}$/.test(build.coreBuildId) ||
-      !/^[a-f0-9]{64}$/.test(build.registryBuildId)
-    )
-      throw new Error('Invalid trusted native build identity')
-    if (typeof contentFactory !== 'function') throw new Error('A trusted native content factory is required')
-    this.build = Object.freeze({
-      formatVersion: 1,
-      coreBuildId: build.coreBuildId,
-      registryBuildId: build.registryBuildId,
-    })
-  }
-
-  /** Use the caller's current metadata, including unsaved editor changes, with the same trusted code identity. */
-  async fromMetadata(
-    data: ContentPrototypeData,
-    options: { packs?: { id: string; version: string }[]; revision?: string } = {},
-  ): Promise<NativeContentResult> {
-    return this.createContent(data, options.packs ?? [], options.revision)
-  }
-
-  /** Selected immutable works share one resolver and environment identity across all hosts. */
-  async fromWorks(
-    base: ContentPrototypeData,
-    selected: readonly WorkRelease[],
-    installed: readonly WorkRelease[] = [],
-  ) {
-    const prepared = await prepareWorkEnvironment(
-      {
-        build: this.build,
-        base,
-        templates: this.workOptions.templates,
-        allowedExports: this.workOptions.allowedExports,
-        createContent: this.contentFactory,
-      },
-      selected,
-      installed,
-    )
-    const sandbox = await this.prepareEffects(prepared.content, prepared.data, prepared.revision)
-    return { ...prepared, ...(sandbox && { sandbox }) }
-  }
-
-  private prepareEffects(content: ContentCatalog, data: ContentPrototypeData, revision: string) {
-    if (!this.workOptions.effectModules) return undefined
-    return bindEffectEnvironment(
-      content,
-      { ...data, behaviors: [...this.workOptions.templates, ...(data.behaviors ?? [])] },
-      revision,
-      this.workOptions.effectModules,
-    )
-  }
-
-  private async createContent(
-    data: ContentPrototypeData,
-    packs: { id: string; version: string }[],
-    suppliedRevision?: string,
-  ): Promise<NativeContentResult> {
-    const captured = structuredClone(data)
-    const revision =
-      suppliedRevision ??
-      `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
-    const content = this.contentFactory(captured, revision)
-    const sandbox = await this.prepareEffects(content, captured, revision)
-    return {
-      runtime: 'native-v4',
-      packs: structuredClone(packs),
-      content,
-      ...(sandbox && { sandbox }),
-      revision,
-      build: this.build,
-    }
-  }
-
-  async load(packRef = 'builtin:base', options: NativePackLoaderOptions = {}): Promise<NativePackLoadResult> {
-    const revision = options.revision
-    const { metadata, identities } = await this.loadMetadataBatch(packRef, options)
-    // Source URLs and presentation assets do not change executable content identity.
-    // Metadata order and its JSON representation are part of this versioned contract.
-    const authority = await this.createContent(metadata.data, identities, revision)
-    return { ...metadata, ...authority }
-  }
-
+/** YAML/JSON, locales and assets only; no effect code or runtime factory is required. */
+export class PackMetadataLoader extends PackTransport {
   /** Read editable data before composing layers; linking and trusted behavior validation happen in load/fromMetadata. */
   async loadMetadata(
     packRef = 'builtin:base',
@@ -158,7 +65,7 @@ export class NativePackLoader extends PackTransport {
     return (await this.loadMetadataBatch(packRef, options)).metadata
   }
 
-  private async loadMetadataBatch(
+  protected async loadMetadataBatch(
     packRef: string,
     options: Pick<NativePackLoaderOptions, 'source' | 'enforceLockfile'>,
   ) {
@@ -324,5 +231,102 @@ export class NativePackLoader extends PackTransport {
         }
     }
     return { data, locales }
+  }
+}
+
+/** Load transport metadata against the trusted host's compiled effect directory. */
+export class NativePackLoader<Content extends object = ContentCatalog> extends PackMetadataLoader {
+  private readonly build: EnvironmentBuildIdentity
+  constructor(
+    build: EnvironmentBuildIdentity,
+    private readonly contentFactory: NativeContentFactory<Content>,
+    private readonly workOptions: {
+      readonly templates: readonly BehaviorDefinition[]
+      readonly allowedExports?: readonly string[]
+      readonly effectModules?: SandboxEnvironment['modules']
+    } = { templates: [] },
+  ) {
+    super()
+    if (
+      build.formatVersion !== 1 ||
+      !/^[a-f0-9]{64}$/.test(build.coreBuildId) ||
+      !/^[a-f0-9]{64}$/.test(build.registryBuildId)
+    )
+      throw new Error('Invalid trusted native build identity')
+    if (typeof contentFactory !== 'function') throw new Error('A trusted native content factory is required')
+    this.build = Object.freeze({
+      formatVersion: 1,
+      coreBuildId: build.coreBuildId,
+      registryBuildId: build.registryBuildId,
+    })
+  }
+
+  /** Use the caller's current metadata, including unsaved editor changes, with the same trusted code identity. */
+  async fromMetadata(
+    data: ContentPrototypeData,
+    options: { packs?: { id: string; version: string }[]; revision?: string } = {},
+  ): Promise<NativeContentResult<Content>> {
+    return this.createContent(data, options.packs ?? [], options.revision)
+  }
+
+  /** Selected immutable works share one resolver and environment identity across all hosts. */
+  async fromWorks(
+    base: ContentPrototypeData,
+    selected: readonly WorkRelease[],
+    installed: readonly WorkRelease[] = [],
+  ) {
+    const prepared = await prepareWorkEnvironment(
+      {
+        build: this.build,
+        base,
+        templates: this.workOptions.templates,
+        allowedExports: this.workOptions.allowedExports,
+        createContent: this.contentFactory,
+      },
+      selected,
+      installed,
+    )
+    const sandbox = await this.prepareEffects(prepared.content, prepared.data, prepared.revision)
+    return { ...prepared, ...(sandbox && { sandbox }) }
+  }
+
+  private prepareEffects(content: Content, data: ContentPrototypeData, revision: string) {
+    if (!this.workOptions.effectModules) return undefined
+    return bindEffectEnvironment(
+      content,
+      { ...data, behaviors: [...this.workOptions.templates, ...(data.behaviors ?? [])] },
+      revision,
+      this.workOptions.effectModules,
+    )
+  }
+
+  private async createContent(
+    data: ContentPrototypeData,
+    packs: { id: string; version: string }[],
+    suppliedRevision?: string,
+  ): Promise<NativeContentResult<Content>> {
+    const captured = structuredClone(data)
+    const revision =
+      suppliedRevision ??
+      `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
+    const content = this.contentFactory(captured, revision)
+    const sandbox = await this.prepareEffects(content, captured, revision)
+    return {
+      runtime: 'native-v4',
+      packs: structuredClone(packs),
+      content,
+      ...(sandbox && { sandbox }),
+      revision,
+      build: this.build,
+    }
+  }
+
+  async load(packRef = 'builtin:base', options: NativePackLoaderOptions = {}): Promise<NativePackLoadResult<Content>> {
+    const revision = options.revision
+    const { metadata, identities } = await this.loadMetadataBatch(packRef, options)
+    // Source URLs and presentation assets do not change executable content identity.
+    // Metadata order and its JSON representation are part of this versioned contract.
+    const authority = await this.createContent(metadata.data, identities, revision)
+    return { ...metadata, ...authority }
   }
 }

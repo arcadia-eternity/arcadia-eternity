@@ -8,3 +8,5 @@ export {
   type PreparedEffectModule,
 } from './src/v4-sandbox/contracts'
 export type { SandboxEnvironment, SandboxBattleInput } from './src/v4-sandbox/runtime'
+
+export { prepareSandboxContent, type SandboxContent } from './src/v4-sandbox/content'

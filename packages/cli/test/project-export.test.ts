@@ -132,15 +132,17 @@ it('requires a source admission record and leaves no output when it is absent', 
   expect(await exists(output)).toBe(false)
 })
 
-it('reports errors in locally edited code without revoking project approval or creating output', async () => {
+it('exports the locked artifact without evaluating locally edited effect code', async () => {
   const dir = await copySource('changed-unapproved-source')
   await writeFile(
     join(dir, 'node_modules/@arcadia-example/slow/dist/effects.js'),
     "throw new Error('LOCAL_CODE_EXECUTED')\n",
   )
   const output = join(temporary, 'changed-unapproved-output')
-  await expect(exportProject(dir, output, true)).rejects.toThrow('LOCAL_CODE_EXECUTED')
-  expect(await exists(output)).toBe(false)
+  await exportProject(dir, output, true)
+  const original = (await readdir(join(dir, 'artifacts')))[0]
+  const exported = (await readdir(join(output, 'artifacts')))[0]
+  expect(await readFile(join(output, 'artifacts', exported))).toEqual(await readFile(join(dir, 'artifacts', original)))
 })
 
 it('registers the portable export through the actual CLI command tree', async () => {

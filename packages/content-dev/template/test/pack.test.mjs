@@ -79,9 +79,9 @@ test('the installed package includes local artwork, remote declarations and both
   }
 })
 
-test('the installed package handles miss, hit, refresh, parameter updates, transfer and source removal', () => {
-  const battle = example.createBattle(),
-    other = example.createBattle()
+test('the installed package handles miss, hit, refresh, parameter updates, transfer and source removal', async () => {
+  const battle = await example.createBattle(),
+    other = await example.createBattle()
   const a = battle.playerA.activePet,
     b = battle.playerB.activePet
   const speed = b.stat.spe,
@@ -99,7 +99,8 @@ test('the installed package handles miss, hit, refresh, parameter updates, trans
   assert.equal(mark.stack, 1)
   assert.equal(b.stat.spe, speed - 25)
   const effect = mark.effects[0]
-  example.environment.content
+  example
+    .contentFor(battle)
     .parametersFor(effect.id)
     .set(battle.configSystem, parameterAddress(effect.id, 'parameters', 'amount'), -40, mark)
   assert.equal(b.stat.spe, speed - 40)
@@ -123,7 +124,7 @@ test(
   'JSON waiting-point restoration retains the parameter and natural expiry releases the modifier',
   { timeout: 20000 },
   async () => {
-    let battle = example.createBattle(),
+    let battle = await example.createBattle(),
       running = battle.startBattle().catch(cancelled)
     try {
       await battle.waitForInputReady()
@@ -131,13 +132,14 @@ test(
       const speed = battle.playerB.activePet.stat.spe + 25
       const mark = battle.playerB.activePet.marks[0],
         effect = mark.effects[0]
-      example.environment.content
+      example
+        .contentFor(battle)
         .parametersFor(effect.id)
         .set(battle.configSystem, parameterAddress(effect.id, 'parameters', 'amount'), -30, mark)
-      const saved = JSON.parse(JSON.stringify(example.environment.content.snapshot(battle)))
+      const saved = JSON.parse(JSON.stringify(example.contentFor(battle).snapshot(battle)))
       await battle.cleanup()
       await running
-      battle = example.environment.content.restore(saved)
+      battle = await example.restoreBattle(saved)
       example.track(battle)
       assert.equal(battle.playerB.activePet.stat.spe, speed - 30)
       assert.equal(battle.playerB.activePet.marks[0].duration, 2)
@@ -167,7 +169,7 @@ test(
 )
 
 test('two complete battles reproduce the same result from the same seed', { timeout: 20000 }, async () => {
-  const first = await runBattle(example.createBattle('repeatable-example'))
-  const second = await runBattle(example.createBattle('repeatable-example'))
+  const first = await runBattle(await example.createBattle('repeatable-example'))
+  const second = await runBattle(await example.createBattle('repeatable-example'))
   assert.deepEqual(first, second)
 })

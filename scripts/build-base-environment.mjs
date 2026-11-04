@@ -26,11 +26,8 @@ export function identifyBaseEnvironmentArtifact(code, core) {
 export async function buildBaseEnvironmentArtifact() {
   const root = fileURLToPath(new URL('../', import.meta.url))
   const dir = resolve(root, 'packs/base/dist')
-  const presentation = await buildPresentation(
-    resolve(root, 'packs/base'),
-    await readContentSources(resolve(root, 'packs/base')),
-    { includeLocales: false },
-  )
+  const sources = await readContentSources(resolve(root, 'packs/base'))
+  const presentation = await buildPresentation(resolve(root, 'packs/base'), sources, { includeLocales: false })
   await mkdir(dir, { recursive: true })
   await writeFile(resolve(dir, 'presentation.json'), JSON.stringify(presentation, null, 2) + '\n')
   const core = JSON.parse(await readFile(resolve(root, 'packages/battle/dist/environment-build.json'), 'utf8'))
@@ -44,6 +41,47 @@ export async function buildBaseEnvironmentArtifact() {
     await mkdir(dir, { recursive: true })
     await writeFile(resolve(dir, 'THIRD_PARTY_NOTICES.md'), await bundledNotices(Object.keys(output[0].modules)))
     await writeFile(resolve(dir, 'environment-runtime.mjs'), code)
+    // Only the trusted base build evaluates official code. Clients and environment
+    // preparation consume this serializable description without loading effects.
+    const official = await import(
+      `${pathToFileURL(resolve(dir, 'environment-runtime.mjs')).href}?build=${identity.registryBuildId}`
+    )
+    const data = Object.fromEntries(
+      ['marks', 'skills', 'species'].map(kind => [
+        kind,
+        sources.filter(source => source.kind === kind).flatMap(source => source.records),
+      ]),
+    )
+    const catalog = official.createOfficialContent(data, identity.registryBuildId)
+    const metadata = {
+      officialEffectIds: catalog.effects.map(effect => effect.id),
+      officialTemplateDefinitions: official.officialTemplateDefinitions,
+      officialEffectTemplates: official.officialEffectTemplates,
+      officialEffectMarkRelations: official.officialEffectMarkRelations,
+    }
+    await writeFile(
+      resolve(dir, 'metadata.mjs'),
+      [
+        "import { createContentIndex } from '@arcadia-eternity/battle/v4';",
+        ...Object.entries(metadata).map(
+          ([name, value]) => `export const ${name} = Object.freeze(${JSON.stringify(value)});`,
+        ),
+        'export const createOfficialContentIndex = (data, revision) => createContentIndex(data, revision, { templates: officialTemplateDefinitions, effectIds: officialEffectIds });',
+        '',
+      ].join('\n'),
+    )
+    await writeFile(
+      resolve(dir, 'metadata.d.ts'),
+      [
+        "import type { ContentPrototypeData, ContentIndex } from '@arcadia-eternity/battle/v4';",
+        'export declare const officialEffectIds: readonly string[];',
+        ...['officialTemplateDefinitions', 'officialEffectTemplates', 'officialEffectMarkRelations'].map(
+          name => `export declare const ${name}: typeof import('./types/effects').${name};`,
+        ),
+        'export declare const createOfficialContentIndex: (data: ContentPrototypeData, revision: string) => ContentIndex;',
+        '',
+      ].join('\n'),
+    )
     await writeFile(resolve(dir, 'environment-build.json'), JSON.stringify(identity, null, 2) + '\n')
     await writeFile(
       resolve(dir, 'native-build.mjs'),

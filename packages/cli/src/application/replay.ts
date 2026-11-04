@@ -1,3 +1,4 @@
+import type { ContentIndex } from '@arcadia-eternity/battle/v4'
 import { isDeepStrictEqual } from 'node:util'
 import { NativePlayerSchema } from '@arcadia-eternity/battle/v4'
 import { createLoader } from './prepare'
@@ -50,7 +51,7 @@ function firstDifference(actual: unknown, expected: unknown, path = 'result'): s
   }
   return path
 }
-export async function replay(value: unknown, signal: AbortSignal, npmEnvironment?: NativePackLoadResult) {
+export async function replay(value: unknown, signal: AbortSignal, npmEnvironment?: NativePackLoadResult<ContentIndex>) {
   try {
     validate(value)
     if (value.environment.npm && (!npmEnvironment || !isDeepStrictEqual(value.environment.npm, npmEnvironment.npm)))

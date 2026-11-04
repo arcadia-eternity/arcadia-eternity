@@ -12,11 +12,12 @@ import {
   TurnContext,
   UseSkillContext,
   RemoveMarkContext,
-  createContentCatalog,
+  type ContentCatalog,
   parameterAddress,
   setGlobalLogger,
   type Battle,
 } from '@arcadia-eternity/battle/v4'
+import { prepareSandboxContent, ArenaEffectModule } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import { inspectNpmProject } from '../src/npm/inspect'
 import { prepareNpmProject, type NpmContentHost } from '../src/npm/prepare'
 import { workRef } from '../src/works'
@@ -31,7 +32,6 @@ const host: NpmContentHost = {
   build: { formatVersion: 1, coreBuildId: 'a'.repeat(64), registryBuildId: 'b'.repeat(64) },
   base: { marks: [], skills: [], species: [] },
   templates: [],
-  createContent: (data, revision, registrations) => createContentCatalog(data, revision, undefined, registrations),
 }
 const ref = (kind: 'skill' | 'mark' | 'behavior', id: string) => workRef('slow-pack', kind, id)
 const data = {
@@ -172,7 +172,63 @@ async function prepare(dir = environment) {
   environments.push(prepared)
   return prepared
 }
-function fixture(content: Awaited<ReturnType<typeof prepare>>['content']) {
+it('prepares only immutable metadata and code artifacts without creating an Arena VM', async () => {
+  const vm = vi.spyOn(ArenaEffectModule, 'prepare').mockRejectedValue(new Error('VM created during preparation'))
+  try {
+    const prepared = await prepare()
+    expect(vm).not.toHaveBeenCalled()
+    expect(prepared.content.getSkill('slow:strike').power).toBe(30)
+    expect(prepared.content).not.toHaveProperty('parsePlayers')
+    expect(prepared.content).not.toHaveProperty('createBattle')
+    expect(Object.isFrozen(prepared.sandbox.modules[0].artifact)).toBe(true)
+  } finally {
+    vm.mockRestore()
+  }
+})
+it.each([
+  [
+    'module initialization',
+    "throw new Error('module-init-only-in-battle'); export function createEffects(){return []}",
+    'module-init-only-in-battle',
+  ],
+  [
+    'factory execution',
+    "export function createEffects(){throw new Error('factory-only-in-battle')}",
+    'factory-only-in-battle',
+  ],
+  ['missing export', 'export function createEffects(){return []}', 'unregistered native export'],
+  [
+    'source kind',
+    effectModule.replace("id: id('apply'), sourceKind: 'skill'", "id: id('apply'), sourceKind: 'petMark'"),
+    'source mismatch',
+  ],
+  ['duplicate export', effectModule.replace("id: id('penalty')", "id: id('apply')"), 'duplicated'],
+])('delays dynamic code validation to the actual Worker: %s', async (_label, source, message) => {
+  const dir = await mkdtemp(join(root, 'deferred-code-'))
+  await cp(environment, dir, { recursive: true })
+  await writeFile(join(dir, 'node_modules/@arcadia-test/slow/effects.js'), source)
+  const prepared = await prepare(dir)
+  const workers = createNodeBattleWorkerManager()
+  try {
+    // Dynamic checks run before player allocation, after entering the dedicated Worker.
+    await expect(workers.create({ environment: prepared.sandbox, players: [{}, {}] })).rejects.toThrow(message)
+    expect(
+      workers.status().every(entry => !['preparing', 'active'].includes(entry.state) && entry.cleanup === 'terminated'),
+    ).toBe(true)
+  } finally {
+    await workers.dispose()
+  }
+})
+async function reference(prepared: Awaited<ReturnType<typeof prepare>>) {
+  const effects = await prepareSandboxContent(prepared.sandbox)
+  environments.push({
+    async dispose() {
+      effects.dispose()
+    },
+  })
+  return effects.content
+}
+function fixture(content: ContentCatalog) {
   const [a, b] = content.parsePlayers(
     [0, 1].map(side => ({
       id: String(side).repeat(21),
@@ -269,10 +325,11 @@ it.each([
   },
 )
 it('executes code effects in the real engine with refresh, removal, and independent battles', async () => {
-  const { content } = await prepare()
+  const prepared = await prepare(),
+    content = await reference(prepared)
   expect(process.env.ARCADIA_NPM_TEST_LOADED).toBeUndefined()
   const f = fixture(content),
-    other = fixture(content),
+    other = fixture(await reference(prepared)),
     speed = f.b.activePet.stat.spe
   f.battle.applyEffects(f.event(), EffectTrigger.OnMiss)
   expect(f.b.activePet.marks).toHaveLength(0)
@@ -313,11 +370,11 @@ it('allows local code edits without renewed approval while preserving the existi
     environments.push(next)
     expect(next.installation.digest).toBe(before.installation.digest)
     expect(next.sandbox.revision).not.toBe(before.sandbox.revision)
-    const changed = fixture(next.content),
+    const changed = fixture(await reference(next)),
       changedSpeed = changed.b.activePet.stat.spe
     changed.battle.applyEffects(changed.event(), EffectTrigger.OnHit)
     expect(changed.b.activePet.stat.spe).toBe(changedSpeed - 90)
-    const f = fixture(before.content),
+    const f = fixture(await reference(before)),
       speed = f.b.activePet.stat.spe
     f.battle.applyEffects(f.event(), EffectTrigger.OnHit)
     expect(f.b.activePet.stat.spe).toBe(speed - 25)
@@ -328,7 +385,8 @@ it('allows local code edits without renewed approval while preserving the existi
 
 it('restores runtime parameters and source bindings at an existing selection checkpoint, then expires naturally', async () => {
   const loaded = await prepare(),
-    f = fixture(loaded.content),
+    content = await reference(loaded),
+    f = fixture(content),
     speed = f.b.activePet.stat.spe
   let selected: (() => void) | undefined
   const wait = (stage: string) =>
@@ -351,14 +409,14 @@ it('restores runtime parameters and source bindings at an existing selection che
   f.battle.applyEffects(f.event(), EffectTrigger.OnHit)
   const source = f.b.activePet.marks[0],
     effect = source.effects[0]
-  loaded.content
+  content
     .parametersFor(effect.id)!
     .set(f.battle.configSystem, parameterAddress(effect.id, 'parameters', 'amount'), -35, source)
   expect(f.b.activePet.stat.spe).toBe(speed - 35)
-  const snapshot = JSON.parse(JSON.stringify(loaded.content.snapshot(f.battle)))
+  const snapshot = JSON.parse(JSON.stringify(content.snapshot(f.battle)))
   await f.battle.cleanup()
   await running
-  const restored = (await prepare()).content.restore(snapshot)
+  const restored = (await reference(await prepare())).restore(snapshot)
   battles.push(restored)
   expect(restored.playerB.activePet.stat.spe).toBe(speed - 35)
   expect(restored.playerB.activePet.marks[0].duration).toBe(2)
@@ -573,7 +631,7 @@ it('rejects incompatible SDKs, escaping paths, and missing referenced effects wi
   await expect(inspectNpmProject(dir)).rejects.toThrow('package-relative')
   await writeFile(file, original)
   await writeFile(join(dir, 'node_modules/@arcadia-test/slow/effects.js'), 'export const createEffects = () => []')
-  await expect(prepare(dir)).rejects.toThrow()
+  await expect(reference(await prepare(dir))).rejects.toThrow()
 })
 
 it('accepts unused code definitions without a duplicate package export list', async () => {
@@ -589,8 +647,8 @@ it('accepts unused code definitions without a duplicate package export list', as
     ),
   )
   const prepared = await prepare(dir)
-  expect(prepared.content.effects.some(effect => effect.id.includes('unused'))).toBe(false)
-  const f = fixture(prepared.content)
+  expect(prepared.content.effectIds.some(id => id.includes('unused'))).toBe(false)
+  const f = fixture(await reference(prepared))
   const speed = f.b.activePet.stat.spe
   f.battle.applyEffects(f.event(), EffectTrigger.OnHit)
   expect(f.b.activePet.stat.spe).toBe(speed - 25)
@@ -603,9 +661,9 @@ it('checks the actual effect source kind and rejects duplicate returned IDs', as
     module,
     effectModule.replace("id: id('apply'), sourceKind: 'skill'", "id: id('apply'), sourceKind: 'petMark'"),
   )
-  await expect(prepare(dir)).rejects.toThrow()
+  await expect(reference(await prepare(dir))).rejects.toThrow()
   await writeFile(module, effectModule.replace("id: id('penalty')", "id: id('apply')"))
-  await expect(prepare(dir)).rejects.toThrow('duplicated')
+  await expect(reference(await prepare(dir))).rejects.toThrow('duplicated')
 })
 
 it('resolves an effect referenced only by another installed content package', async () => {
@@ -646,9 +704,7 @@ it('resolves an effect referenced only by another installed content package', as
   )
   await exec('npm', ['install', artifact, '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir })
   const prepared = await prepare(dir)
-  expect(
-    prepared.content.getSkill('consumer:copy' as Parameters<typeof prepared.content.getSkill>[0]).effects,
-  ).toHaveLength(1)
+  expect((await reference(prepared)).getSkill('consumer:copy' as never).effects).toHaveLength(1)
 })
 
 it('requires the current npm lockfile format rather than accepting the legacy v2 tree', async () => {

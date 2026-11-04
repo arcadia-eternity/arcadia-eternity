@@ -10,9 +10,12 @@ import { useGameDataStore } from '../gameData'
 import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
 const { loadMetadata } = vi.hoisted(() => ({ loadMetadata: vi.fn() }))
+vi.mock('@arcadia-eternity/data-pack-base/effects', () => {
+  throw new Error('Metadata loading must not import effect code')
+})
 vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
   ...(await importOriginal<typeof import('@arcadia-eternity/pack-loader/native')>()),
-  NativePackLoader: class {
+  PackMetadataLoader: class {
     loadMetadata = loadMetadata
   },
 }))

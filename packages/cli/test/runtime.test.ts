@@ -3,6 +3,7 @@ import { Worker } from 'node:worker_threads'
 import { BattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 import { readFile } from 'node:fs/promises'
 import { AttributeSystem, BattleMessageType, executionBudgetPolicy, setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { prepareContent } from '../src/application/prepare'
 import { runBattle } from '../src/application/run'
 import type { RunSpec } from '../src/application/types'
@@ -114,10 +115,11 @@ it('reports a native execution-budget fault as failed without a winner and still
   const { loaded, spec } = await fixture()
   const baseline = AttributeSystem.getGlobalMemoryStats().totalInstances
   // A trusted host fixture consumes the real kernel budget at the first native selection event.
+  const reference = createOfficialContent(loaded.data, loaded.revision)
   const content = {
-    ...loaded.content,
-    createBattle(...args: Parameters<typeof loaded.content.createBattle>) {
-      const battle = loaded.content.createBattle(...args)
+    ...reference,
+    createBattle(...args: Parameters<typeof reference.createBattle>) {
+      const battle = reference.createBattle(...args)
       battle.registerListener(event => {
         if (event.type === BattleMessageType.TurnAction)
           battle.executionBudget.run(battle.currentTurn, () => {

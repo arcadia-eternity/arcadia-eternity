@@ -1,16 +1,16 @@
-import type { ContentCatalog, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
+import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import { digestJson, freeze } from './works/model'
 
-const environments = new WeakMap<ContentCatalog, SandboxEnvironment>()
+const environments = new WeakMap<object, SandboxEnvironment>()
 
-export function sandboxEnvironmentFor(content: ContentCatalog): SandboxEnvironment | undefined {
+export function sandboxEnvironmentFor(content: object): SandboxEnvironment | undefined {
   return environments.get(content)
 }
 
-/** Keep validation catalogs separate from the immutable recipe used by each battle Worker. */
+/** Associate a read-only content index with the immutable recipe used by each battle Worker. */
 export async function bindEffectEnvironment(
-  content: ContentCatalog,
+  content: object,
   data: ContentPrototypeData,
   revision: string,
   modules: SandboxEnvironment['modules'],

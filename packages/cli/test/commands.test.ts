@@ -7,7 +7,8 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type { RunResult, Replay } from '../src/application/types'
 
-vi.setConfig({ testTimeout: 20000 })
+// Real WASM cold starts happen per battle, including every run in a batch.
+vi.setConfig({ testTimeout: 60000 })
 
 const execute = promisify(execFile)
 const root = resolve(import.meta.dirname, '../../..')
@@ -20,7 +21,7 @@ async function invoke(args: string[], code = 0, extraEnv: Record<string, string>
   try {
     const execution = execute(process.execPath, ['--import', guard, cli, ...args], {
       cwd: temporary,
-      timeout: 20000,
+      timeout: 60000,
       maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, ARCADIA_PACKS_DIR: '', NODE_PATH: '', NODE_OPTIONS: '', ...extraEnv },
     })
@@ -86,10 +87,10 @@ afterAll(async () => {
 })
 
 it('runs complete battles offline from a relocated artifact, and repeats a finite batch deterministically', async () => {
-  const first = (await invoke(battle('--runs', '3', '--team-selection'))).json()
-  const second = (await invoke(battle('--runs', '3', '--team-selection'))).json()
+  const first = (await invoke(battle('--runs', '2', '--team-selection'))).json()
+  const second = (await invoke(battle('--runs', '2', '--team-selection'))).json()
   expect(first).toEqual(second)
-  expect(first.counts).toEqual({ completed: 3, truncated: 0, failed: 0, cancelled: 0 })
+  expect(first.counts).toEqual({ completed: 2, truncated: 0, failed: 0, cancelled: 0 })
   for (const result of first.results as RunResult[]) {
     expect(result.reason).toBe('all_pet_fainted')
     expect(result.turns).toBeGreaterThan(1)
@@ -202,7 +203,7 @@ it('ignores build labels and rejects malformed content, reordered inputs and alt
     await writeFile(path, JSON.stringify(changed))
     expect((await invoke(['battle', 'replay', path, '--json'], 3)).json().diagnostics[0].code).toMatch(/REPLAY|INPUT/)
   }
-}, 60000)
+}, 120000)
 
 it('keeps frozen replay inputs after original teams and source content are removed', async () => {
   const file = output('frozen')

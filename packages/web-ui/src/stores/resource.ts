@@ -2,9 +2,7 @@ import { officialAssetUrl } from '@/utils/officialAssetUrl'
 // src/stores/Resource.ts
 import { defineStore } from 'pinia'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
-import { NativePackLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
-import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
+import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -235,7 +233,7 @@ export const useResourceStore = defineStore('Resource', {
           const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
           if (!isCurrent()) return
           applyRuntimeAssetBase(packRef)
-          const packLoader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
+          const packLoader = new PackMetadataLoader()
           const baseLayer = createEmptyLayer()
           if (isWorkspacePackRef(packRef)) {
             const enabledPacks = await this.loadEnabledWorkspacePacks()
@@ -357,7 +355,7 @@ export const useResourceStore = defineStore('Resource', {
       }
 
       const targetFolder = normalizeFolderName(input.folderName)
-      const packLoader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
+      const packLoader = new PackMetadataLoader()
       for (const pack of enabledPacks) {
         const isTarget = normalizeFolderName(pack.folderName) === targetFolder
         if (!nextLayers[pack.folderName] || (input.enabled && isTarget)) {
@@ -394,7 +392,7 @@ export const useResourceStore = defineStore('Resource', {
     async initializeFromWorkspacePacks(
       enabledPacks: WorkspacePackSummary[],
       baseLayer: ResourceLayer,
-      packLoader: NativePackLoader,
+      packLoader: PackMetadataLoader,
       current?: () => boolean,
     ) {
       const generation = resourceScope(this).generation
@@ -415,7 +413,7 @@ export const useResourceStore = defineStore('Resource', {
       this.validateDataIntegrity()
     },
 
-    async loadWorkspaceLayer(folderName: string, packLoader: NativePackLoader): Promise<ResourceLayer> {
+    async loadWorkspaceLayer(folderName: string, packLoader: PackMetadataLoader): Promise<ResourceLayer> {
       const packRef = await resolveWorkspaceFileUrl(`packs/${encodeURIComponent(folderName)}/pack.json`)
       const packResult = await packLoader.loadMetadata(packRef, {
         source: 'http',

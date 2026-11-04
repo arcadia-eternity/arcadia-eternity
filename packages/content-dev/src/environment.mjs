@@ -4,7 +4,6 @@ import { mkdir, mkdtemp, readFile, rm, writeFile, cp, symlink } from 'node:fs/pr
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { promisify } from 'node:util'
-import { createContentCatalog } from '@arcadia-eternity/battle/v4'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
 import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import { AuthorWorkspace } from './workspace.mjs'
@@ -132,8 +131,6 @@ export async function prepareBattleEnvironment(
         build: nativeBuildIdentity,
         base: { marks: [], skills: [], species: [] },
         templates: [],
-        createContent: (data, revision, registrations) =>
-          createContentCatalog(data, revision, undefined, registrations),
       },
       { policy: { profile: 'local-development' } },
     )

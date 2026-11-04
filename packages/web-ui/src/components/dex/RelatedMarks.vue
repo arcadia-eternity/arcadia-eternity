@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/effects'
+import { officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/metadata'
 import { computed, ref } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'

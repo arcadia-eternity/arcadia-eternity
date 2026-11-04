@@ -1,10 +1,9 @@
-import * as sdk from '../../v4-authoring'
 import { releaseProxy } from 'comlink'
-import { createContentCatalog, type ContentPrototypeData } from '../v4/content/definition-catalog'
+import type { ContentPrototypeData } from '../v4/content/definition-catalog'
 import type { BattleOptions } from '../v4/api'
 import type { Battle } from '../v4/battle'
 import { LocalBattleSystemV4, type NativeBattleHostOptions, type NativeMessageView } from '../v4-host/local-battle'
-import { ArenaEffectModule } from './effect-module'
+import { prepareSandboxContent, type SandboxContent } from './content'
 import { SandboxFault, sandboxPolicy, type EffectModuleArtifact } from './contracts'
 import type { BattleMessage, Events } from '@arcadia-eternity/const'
 
@@ -65,7 +64,7 @@ export type BattleMethod = (typeof battleMethods)[number]
 
 /** One trusted native kernel and one Arena VM for each package, owned by one dedicated Worker. */
 export class SandboxBattleRuntime {
-  private readonly modules: ArenaEffectModule[] = []
+  private effects?: SandboxContent
   private readonly subscriptions: (() => void)[] = []
   private system?: LocalBattleSystemV4
   private battle?: Battle
@@ -92,51 +91,9 @@ export class SandboxBattleRuntime {
         input.players.length !== 2
       )
         throw new SandboxFault('artifact', 'battle', 'Invalid battle input')
-      const environment = input.environment,
-        names = new Set<string>()
-      this.revision = environment.revision
-      for (const entry of environment.modules) {
-        if (
-          names.has(entry.artifact.packageId) ||
-          !['catalog', 'behaviors'].includes(entry.role) ||
-          typeof entry.namespace !== 'string'
-        )
-          throw new SandboxFault('artifact', 'battle', 'Duplicate or invalid package')
-        names.add(entry.artifact.packageId)
-        this.modules.push(await ArenaEffectModule.prepare(entry.artifact))
-      }
-      const content = createContentCatalog(
-        environment.data,
-        environment.revision,
-        marks => {
-          const effects = new Map(),
-            parameters = new Map()
-          for (const [i, entry] of environment.modules.entries())
-            if (entry.role === 'catalog') {
-              const catalog = this.modules[i].createCatalog(marks)
-              for (const [id, effect] of catalog.effects) {
-                if (effects.has(id))
-                  throw new SandboxFault('artifact', entry.artifact.packageId, `Duplicate effect ${id}`)
-                effects.set(id, effect)
-              }
-              for (const [id, parameter] of catalog.parameters) parameters.set(id, parameter)
-            }
-          return { effects, parameters }
-        },
-        ({ marks }) => ({
-          nativeExports: environment.modules.flatMap((entry, index) =>
-            this.modules[index].createEffects({
-              sdk,
-              marks,
-              id: local => {
-                if (typeof local !== 'string' || !/^[a-zA-Z0-9_./-]+$/.test(local))
-                  throw new SandboxFault('artifact', entry.artifact.packageId, 'Invalid local ID')
-                return entry.namespace ? `${entry.namespace}:${local}` : local
-              },
-            }),
-          ),
-        }),
-      )
+      this.revision = input.environment.revision
+      this.effects = await prepareSandboxContent(input.environment)
+      const { content } = this.effects
       this.health()
       const [first, second] = content.parsePlayers(input.players, { aiPlayerIds: input.aiPlayerIds })
       this.battle = content.createBattle(first, second, input.options)
@@ -189,7 +146,7 @@ export class SandboxBattleRuntime {
   private observe(battle: Battle) {
     this.subscriptions.push(
       battle.executionBudget.observe(() => {
-        for (const module of this.modules) module.assertHealthy()
+        this.effects?.assertHealthy()
       }),
     )
   }
@@ -223,9 +180,9 @@ export class SandboxBattleRuntime {
   health(): { packages: number; state: 'ready' } {
     if (this.closed) throw new SandboxFault('disposed', 'battle', 'Worker disposed')
     if (this.failure) throw this.failure
-    for (const module of this.modules) module.assertHealthy()
+    this.effects?.assertHealthy()
     this.battle?.executionBudget.assertActive()
-    return { packages: this.modules.length, state: 'ready' }
+    return { packages: this.effects?.packageCount ?? 0, state: 'ready' }
   }
   async invoke(method: BattleMethod, args: unknown[]): Promise<unknown> {
     this.health()
@@ -273,13 +230,12 @@ export class SandboxBattleRuntime {
     } catch (error) {
       failure = error
     }
-    for (const module of this.modules.splice(0)) {
-      try {
-        module.dispose()
-      } catch (error) {
-        failure ??= error
-      }
+    try {
+      this.effects?.dispose()
+    } catch (error) {
+      failure ??= error
     }
+    this.effects = undefined
     this.system = undefined
     this.battle = undefined
     if (this.emit) (this.emit as typeof this.emit & { [releaseProxy](): void })[releaseProxy]()

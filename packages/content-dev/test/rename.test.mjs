@@ -163,6 +163,6 @@ test(
     await exec(process.execPath, [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'build'], { cwd: project })
     prepared = await prepareContentPack(project)
     assert.equal(prepared.defaultPlayers()[0].team[0].species, 'renamed:pet')
-    assert.doesNotThrow(() => prepared.createBattle('renamed-team'))
+    await prepared.createBattle('renamed-team')
   },
 )

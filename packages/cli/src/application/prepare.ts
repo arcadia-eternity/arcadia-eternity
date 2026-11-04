@@ -3,15 +3,19 @@ import { parseArchive, limits, WorkError, type NativePackLoadResult } from '@arc
 import { resolve } from 'node:path'
 import { NativeNodePackLoader, prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
+import {
+  createOfficialContentIndex,
+  officialTemplateDefinitions,
+  officialEffectIds,
+} from '@arcadia-eternity/data-pack-base/metadata'
 import officialEffectArtifact from './effect-module'
-import type { ContentCatalog } from '@arcadia-eternity/battle/v4'
+import type { ContentCatalog, ContentIndex } from '@arcadia-eternity/battle/v4'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
 import type { RunSpec } from './types'
 
 export const createLoader = () =>
-  new NativeNodePackLoader(nativeBuildIdentity, createOfficialContent, {
+  new NativeNodePackLoader(nativeBuildIdentity, createOfficialContentIndex, {
     templates: officialTemplateDefinitions,
     effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
   })
@@ -24,7 +28,7 @@ export async function prepareContent(
   packRef: string,
   cwd: string,
   { works: workFile, npmProject, approval: approvalFile }: ContentSelectionOptions = {},
-): Promise<NativePackLoadResult> {
+): Promise<NativePackLoadResult<ContentIndex>> {
   const ref = /^(builtin:|npm:)/.test(packRef) ? packRef : resolve(cwd, packRef)
   try {
     const loader = createLoader()
@@ -41,7 +45,7 @@ export async function prepareContent(
           build: nativeBuildIdentity,
           base: loaded.data,
           templates: officialTemplateDefinitions,
-          createContent: createOfficialContent,
+          effectIds: officialEffectIds,
           effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
         },
         approval,
@@ -86,7 +90,7 @@ export async function prepareRun(
     teamSelection: boolean
   },
   cwd: string,
-  content: ContentCatalog,
+  content: Pick<ContentCatalog | ContentIndex, 'getSpecies' | 'getSkill' | 'getMark'>,
 ): Promise<RunSpec> {
   const teams = await Promise.all([readTeam(resolve(cwd, options.player1)), readTeam(resolve(cwd, options.player2))])
   try {

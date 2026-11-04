@@ -154,7 +154,7 @@ export async function resolveReleases(
 
 /** Rewrite only declared reference slots; text, tags and unexposed TS callback references never get guessed. */
 function linkData(
-  host: WorkHost,
+  host: WorkHost<unknown>,
   works: readonly Pick<WorkRelease, 'project' | 'data' | 'dependencies' | 'requirements'>[],
 ): ContentPrototypeData {
   const data = cloneJson({
@@ -299,7 +299,7 @@ function runtimeError(error: unknown, projectId?: string): never {
 export async function compileRelease(
   input: WorkDraft,
   releaseVersion: string,
-  host: WorkHost,
+  host: WorkHost<unknown>,
   installed: readonly WorkRelease[] = [],
   blobs: Readonly<Record<string, Uint8Array>> = {},
 ): Promise<WorkRelease> {
@@ -337,7 +337,7 @@ export async function compileRelease(
   return freeze({ ...payload, digest: await digestJson(payload) })
 }
 
-function captureHost(host: WorkHost): WorkHost {
+function captureHost<Content>(host: WorkHost<Content>): WorkHost<Content> {
   return {
     ...host,
     base: cloneJson(host.base),
@@ -347,8 +347,8 @@ function captureHost(host: WorkHost): WorkHost {
   }
 }
 
-export async function prepareWorkEnvironment(
-  host: WorkHost,
+export async function prepareWorkEnvironment<Content>(
+  host: WorkHost<Content>,
   selected: readonly WorkRelease[],
   installed: readonly WorkRelease[] = [],
   policy: Readonly<Record<string, Json>> = {},

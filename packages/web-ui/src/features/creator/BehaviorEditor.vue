@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { officialEffectTemplates } from '@arcadia-eternity/data-pack-base/effects'
+import { officialEffectTemplates } from '@arcadia-eternity/data-pack-base/metadata'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
 import type { ReferenceOption } from './content'
 interface Use {

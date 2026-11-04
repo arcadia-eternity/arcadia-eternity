@@ -8,7 +8,7 @@ import {
   type PlayerSelection,
   type playerId,
 } from '@arcadia-eternity/const'
-import { GameRng, ExecutionBudgetExceeded } from '@arcadia-eternity/battle/v4'
+import { GameRng, ExecutionBudgetExceeded, type ContentIndex } from '@arcadia-eternity/battle/v4'
 import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v4/host'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 import { sandboxEnvironmentFor } from '@arcadia-eternity/pack-loader/node'
@@ -28,7 +28,11 @@ export interface RunOptions {
 }
 
 /** Drive only the host's settled decisions. Native Battle remains the sole phase executor. */
-export async function runBattle(content: NativeContentResult['content'], spec: RunSpec, options: RunOptions) {
+export async function runBattle(
+  content: NativeContentResult['content'] | ContentIndex,
+  spec: RunSpec,
+  options: RunOptions,
+) {
   const teams = spec.teams.map(team => ({
     ...structuredClone(team),
     id: freshId(),
@@ -41,8 +45,10 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
     allowFaintSwitch: true,
     timerConfig: { enabled: false },
   }
-  const [a, b] = environment ? [] : content.parsePlayers(teams)
-  const battle = environment ? undefined : content.createBattle(a, b, battleOptions)
+  const native = 'parsePlayers' in content ? content : undefined
+  if (!environment && !native) throw new Error('Battle environment has no executable recipe')
+  const [a, b] = environment ? [] : native!.parsePlayers(teams)
+  const battle = environment ? undefined : native!.createBattle(a, b, battleOptions)
   const workers = environment ? createNodeBattleWorkerManager() : undefined
   const aiSeeds = [0, 1].map(seat => `${spec.seed}/ai/${seat}`)
   const rngs = aiSeeds.map(seed => new GameRng(seed))
@@ -65,7 +71,7 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
     runtime =
       workers && environment
         ? await workers.create({ environment, players: teams, options: battleOptions, hostOptions }, options.signal)
-        : new LocalBattleSystemV4(battle!, content, hostOptions)
+        : new LocalBattleSystemV4(battle!, native!, hostOptions)
     initialState = await runtime.getState(undefined, true)
   } catch (error) {
     options.signal.removeEventListener('abort', wake)

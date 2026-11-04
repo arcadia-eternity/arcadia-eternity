@@ -1,9 +1,9 @@
 import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v4/host'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
-import type { BattleOptions, ContentCatalog } from '@arcadia-eternity/battle/v4'
+import type { BattleOptions, ContentCatalog, ContentIndex } from '@arcadia-eternity/battle/v4'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
+import { createOfficialContentIndex, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/metadata'
 import officialEffectArtifact from './effect-module'
 import { NativePackLoader, type NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
 import type { NativeRuntimeIdentity } from '@arcadia-eternity/protocol'
@@ -19,17 +19,17 @@ import { nanoid } from 'nanoid'
 
 export interface StandaloneRuntime {
   sandbox?: SandboxEnvironment
-  content: ContentCatalog
+  content: ContentCatalog | ContentIndex
   species: ReadonlyMap<string, SpeciesSchemaType>
   identity: NativeRuntimeIdentity
 }
 
 let officialContent: Promise<StandaloneRuntime> | undefined
-let officialPack: Promise<NativePackLoadResult> | undefined
+let officialPack: Promise<NativePackLoadResult<ContentIndex>> | undefined
 const sandboxWorkers = createNodeBattleWorkerManager()
 
-export function loadStandaloneBase(): Promise<NativePackLoadResult> {
-  officialPack ??= new NativePackLoader(nativeBuildIdentity, createOfficialContent, {
+export function loadStandaloneBase(): Promise<NativePackLoadResult<ContentIndex>> {
+  officialPack ??= new NativePackLoader(nativeBuildIdentity, createOfficialContentIndex, {
     templates: officialTemplateDefinitions,
     effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
   })
@@ -42,7 +42,9 @@ export function loadStandaloneBase(): Promise<NativePackLoadResult> {
 }
 
 export function createStandaloneRuntime(
-  loaded: Pick<NativePackLoadResult, 'content' | 'data' | 'revision' | 'build'> & { sandbox?: SandboxEnvironment },
+  loaded: Pick<NativePackLoadResult<ContentCatalog | ContentIndex>, 'content' | 'data' | 'revision' | 'build'> & {
+    sandbox?: SandboxEnvironment
+  },
 ): StandaloneRuntime {
   return {
     content: loaded.content,
@@ -130,6 +132,7 @@ export async function createStandaloneBattle(
   const capturedOptions = options && { ...options, timerConfig: options.timerConfig && { ...options.timerConfig } }
   if (runtime.sandbox)
     return sandboxWorkers.create({ environment: runtime.sandbox, players: teams, options: capturedOptions })
+  if (!('parsePlayers' in content)) throw new Error('Battle environment has no executable recipe')
   const [a, b] = content.parsePlayers(teams)
   return new LocalBattleSystemV4(content.createBattle(a, b, capturedOptions), content)
 }

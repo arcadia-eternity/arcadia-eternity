@@ -1,7 +1,7 @@
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
+import { createOfficialContentIndex, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/metadata'
 import {
-  NativePackLoader,
+  PackMetadataLoader,
   workRef,
   type Json,
   type WorkDraft,
@@ -15,14 +15,14 @@ import { resolveBasePackRef } from '@/utils/packRef'
 
 /** Use the same raw metadata boundary as Node; presentation-store defaults are not content identity. */
 export async function loadCreatorBase(): Promise<ContentPrototypeData> {
-  const loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
+  const loader = new PackMetadataLoader()
   return (await loader.loadMetadata(await resolveBasePackRef(), { source: 'http', enforceLockfile: true })).data
 }
 export const workHost = (base: ContentPrototypeData) => ({
   base,
   build: nativeBuildIdentity,
   templates: officialTemplateDefinitions,
-  createContent: createOfficialContent,
+  createContent: createOfficialContentIndex,
 })
 export interface ReferenceOption {
   label: string

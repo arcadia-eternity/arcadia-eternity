@@ -1,3 +1,4 @@
+import type { ContentCatalog } from '@arcadia-eternity/battle/v4'
 import * as resolver from '@arcadia-eternity/battle/pack'
 import { NativePackLoader } from './src/native-loader'
 export { NodeWorkStorage } from './src/node-work-storage'
@@ -9,7 +10,7 @@ export { compileEffectModule } from './src/npm/effect-artifact'
 export { sandboxEnvironmentFor } from './src/effect-environment'
 
 /** Static Node resolver boundary; HTTP/browser consumers keep the native-only entry. */
-export class NativeNodePackLoader extends NativePackLoader {
+export class NativeNodePackLoader<Content extends object = ContentCatalog> extends NativePackLoader<Content> {
   protected override async importNodePackResolver() {
     return resolver
   }

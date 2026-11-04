@@ -39,7 +39,7 @@ it('keeps native console diagnostics out of JSON stdout and restores console met
     console.log('native %s', 'transform')
     console.info('loaded', { count: 1 })
     console.debug('native debug')
-    return { content: { effects: [], marks: [], skills: [], species: [] }, packs: [] }
+    return { content: { effectIds: [], marks: [], skills: [], species: [] }, packs: [] }
   })
   expect(await runCli(['content', 'validate', '--json'])).toBe(0)
   expect(JSON.parse(stdout)).toMatchObject({ format: 'arcadia.cli.validation', valid: true })
