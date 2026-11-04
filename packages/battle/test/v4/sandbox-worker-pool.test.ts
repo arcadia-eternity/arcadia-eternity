@@ -16,6 +16,7 @@ afterEach(async () => {
 function manager(
   policy: Partial<BattleWorkerPolicy> = {},
   workerUrl = new URL('../../dist/v4-sandbox-node-worker.js', import.meta.url),
+  terminate: (worker: Worker) => Promise<unknown> = worker => worker.terminate(),
 ) {
   const workers: Worker[] = []
   const host = new BattleWorkerManager(
@@ -24,7 +25,7 @@ function manager(
       workers.push(worker)
       return {
         endpoint: nodeEndpoint(worker),
-        terminate: () => worker.terminate(),
+        terminate: () => terminate(worker),
         onFailure(handler: (message: string) => void) {
           const error = (value: Error) => handler(value.message)
           const exit = (code: number) => handler(`exit ${code}`)
@@ -235,4 +236,212 @@ it('terminates rather than pools a worker whose session cleanup never finishes',
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
+})
+
+it('expands to active capacity while retaining only one idle worker after a burst', async () => {
+  const { host, workers } = manager({ maxBattles: 3, maxIdleWorkers: 1 })
+  const burst = await Promise.all([host.create(input()), host.create(input()), host.create(input())])
+  expect(host.poolStatus()).toEqual({ active: 3, preparing: 0, idle: 0, queued: 0, workers: 3, maxWorkers: 3 })
+  await Promise.all(burst.map(battle => battle.cleanup()))
+  expect(host.poolStatus()).toEqual({ active: 0, preparing: 0, idle: 1, queued: 0, workers: 1, maxWorkers: 3 })
+  expect(workers.filter(worker => worker.threadId !== -1)).toHaveLength(1)
+  const warm = await host.create(input())
+  expect(workers).toHaveLength(3)
+  await warm.cleanup()
+})
+
+it('admits queued battles FIFO, removes cancelled entries, and rejects overflow', async () => {
+  const { host, workers } = manager({ maxQueuedBattles: 2 })
+  const first = await host.create(input())
+  const cancelled = new AbortController()
+  const second = host.create(input(), cancelled.signal).catch(error => error)
+  const order: string[] = []
+  const third = host.create(input()).then(battle => {
+    order.push('third')
+    return battle
+  })
+  expect(host.poolStatus().queued).toBe(2)
+  await expect(host.create(input())).rejects.toMatchObject({ reason: 'capacity' })
+  cancelled.abort()
+  expect(await second).toMatchObject({ reason: 'cancelled' })
+  expect(host.poolStatus().queued).toBe(1)
+  const fourth = host.create(input()).then(battle => {
+    order.push('fourth')
+    return battle
+  })
+  expect(workers).toHaveLength(1)
+  await first.cleanup()
+  const next = await third
+  expect(order).toEqual(['third'])
+  expect(host.poolStatus().queued).toBe(1)
+  await next.cleanup()
+  await (await fourth).cleanup()
+  expect(order).toEqual(['third', 'fourth'])
+  expect(workers).toHaveLength(1)
+})
+
+it('times out waiting admission and rejects queued launches on disposal', async () => {
+  const { host, workers } = manager({ maxQueuedBattles: 2, queueTimeoutMs: 30 })
+  await host.create(input())
+  await expect(host.create(input())).rejects.toMatchObject({ reason: 'queue-timeout' })
+  expect(host.poolStatus()).toMatchObject({ active: 1, queued: 0, workers: 1 })
+  const queued = host.create(input()).catch(error => error)
+  await host.dispose()
+  expect(await queued).toMatchObject({ reason: 'disposed' })
+  expect(workers).toHaveLength(1)
+  expect(host.poolStatus()).toEqual({ active: 0, preparing: 0, idle: 0, queued: 0, workers: 0, maxWorkers: 1 })
+})
+
+it('captures queued environments and players before callers can modify them', async () => {
+  const { host, workers } = manager({ maxQueuedBattles: 1 })
+  const first = await host.create(input())
+  const fingerprint = await first.getInitialFingerprint()
+  const captured = input()
+  const queued = host.create(captured)
+  Object.assign(captured.environment.modules[0].artifact, { source: 'throw Error("mutated queued input")' })
+  Object.assign(captured.players[0]!, { id: 'mutated-player' })
+  await first.cleanup()
+  const next = await queued
+  expect(await next.getInitialFingerprint()).toEqual(fingerprint)
+  expect(workers).toHaveLength(1)
+  await next.cleanup()
+})
+
+it('holds admission capacity until excess idle workers really terminate', async () => {
+  let release!: () => void
+  const held = new Promise<void>(resolve => {
+    release = resolve
+  })
+  let started!: () => void
+  const terminating = new Promise<void>(resolve => {
+    started = resolve
+  })
+  const { host, workers } = manager({ maxIdleWorkers: 0, maxQueuedBattles: 1 }, undefined, async worker => {
+    started()
+    await held
+    return worker.terminate()
+  })
+  const first = await host.create(input())
+  const queued = host.create(input())
+  const cleanup = first.cleanup()
+  await terminating
+  expect(host.poolStatus()).toMatchObject({ active: 1, idle: 0, queued: 1, workers: 1 })
+  expect(workers).toHaveLength(1)
+  release()
+  await cleanup
+  const second = await queued
+  expect(workers[0].threadId).toBe(-1)
+  expect(workers).toHaveLength(2)
+  await second.cleanup()
+  expect(host.poolStatus().workers).toBe(0)
+})
+
+it('evicts mismatched idle environments before admitting queued work without exceeding the worker cap', async () => {
+  let release!: () => void
+  const held = new Promise<void>(resolve => {
+    release = resolve
+  })
+  let started!: () => void
+  const terminating = new Promise<void>(resolve => {
+    started = resolve
+  })
+  const { host, workers } = manager({ maxQueuedBattles: 1 }, undefined, async worker => {
+    started()
+    await held
+    return worker.terminate()
+  })
+  await (await host.create(input())).cleanup()
+  const changed = input('export function createEffects(){return []}; const replacement = true')
+  const replacing = host.create(changed)
+  await terminating
+  const queued = host.create(changed)
+  expect(host.poolStatus()).toMatchObject({ active: 0, preparing: 1, queued: 1, workers: 1 })
+  release()
+  const next = await replacing
+  expect(workers[0].threadId).toBe(-1)
+  expect(host.poolStatus().workers).toBe(1)
+  await next.cleanup()
+  await (await queued).cleanup()
+  expect(workers).toHaveLength(2)
+})
+
+it('validates independent idle and queue limits and allows explicitly disabling both', () => {
+  expect(() => manager({ maxIdleWorkers: -1 })).toThrow(/Invalid Worker policy/)
+  expect(() => manager({ maxIdleWorkers: 2 })).toThrow(/Invalid Worker policy/)
+  expect(() => manager({ maxQueuedBattles: -1 })).toThrow(/Invalid Worker policy/)
+  expect(() => manager({ queueTimeoutMs: 0 })).toThrow(/Invalid Worker policy/)
+  expect(() => manager({ queueTimeoutMs: 2_147_483_648 })).toThrow(/Invalid Worker policy/)
+  expect(() => manager({ queueTimeoutMs: 2_147_483_647 })).not.toThrow()
+  expect(() => manager({ maxIdleWorkers: 0, maxQueuedBattles: 0 })).not.toThrow()
+})
+
+it('does not create another worker when disposal interrupts environment eviction', async () => {
+  let release!: () => void
+  const held = new Promise<void>(resolve => {
+    release = resolve
+  })
+  let started!: () => void
+  const terminating = new Promise<void>(resolve => {
+    started = resolve
+  })
+  const { host, workers } = manager({ maxQueuedBattles: 1 }, undefined, async worker => {
+    started()
+    await held
+    return worker.terminate()
+  })
+  await (await host.create(input())).cleanup()
+  const replacing = host
+    .create(input('export function createEffects(){return []}; const replacement=true'))
+    .catch(error => error)
+  await terminating
+  const queued = host.create(input()).catch(error => error)
+  const disposing = host.dispose()
+  release()
+  await disposing
+  expect(await replacing).toMatchObject({ reason: 'disposed' })
+  expect(await queued).toMatchObject({ reason: 'disposed' })
+  expect(workers).toHaveLength(1)
+  expect(host.poolStatus()).toMatchObject({ active: 0, preparing: 0, idle: 0, queued: 0, workers: 0 })
+})
+
+it('stops the queue deadline when initialization starts', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-pool-initialize-'))
+  try {
+    const file = join(directory, 'worker.mjs')
+    await writeFile(
+      file,
+      `
+      import {parentPort} from 'node:worker_threads';
+      import {expose} from ${JSON.stringify(import.meta.resolve('comlink'))};
+      import nodeEndpoint from ${JSON.stringify(import.meta.resolve('comlink/dist/esm/node-adapter.mjs'))};
+      expose({initialize(){return new Promise(resolve=>setTimeout(resolve,100))},health(){},endSession(){}},nodeEndpoint(parentPort));
+    `,
+    )
+    const { host, workers } = manager(
+      { maxQueuedBattles: 1, queueTimeoutMs: 30, initializeMs: 1000 },
+      pathToFileURL(file),
+    )
+    const first = await host.create(input())
+    const queued = host.create(input())
+    expect(host.poolStatus().queued).toBe(1)
+    await first.cleanup()
+    const next = await queued
+    expect(host.poolStatus()).toMatchObject({ active: 1, queued: 0, workers: 1 })
+    expect(workers).toHaveLength(1)
+    await next.cleanup()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+it('reserves each physical slot across concurrent environment evictions', async () => {
+  const { host, workers } = manager({ maxBattles: 3, maxQueuedBattles: 1 })
+  const original = await Promise.all([host.create(input()), host.create(input()), host.create(input())])
+  await Promise.all(original.map(battle => battle.cleanup()))
+  expect(host.poolStatus().idle).toBe(3)
+  const changed = input('export function createEffects(){return []}; const changed=true')
+  const replacements = await Promise.all([host.create(changed), host.create(changed), host.create(changed)])
+  expect(host.poolStatus()).toMatchObject({ active: 3, idle: 0, workers: 3 })
+  expect(workers.slice(0, 3).every(worker => worker.threadId === -1)).toBe(true)
+  await Promise.all(replacements.map(battle => battle.cleanup()))
 })

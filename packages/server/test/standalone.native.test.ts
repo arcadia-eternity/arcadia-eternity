@@ -128,3 +128,16 @@ for (const invalid of ['same-player', 'schema', 'reference'] as const)
     if (invalid === 'reference') players[1].team[0].skills[0] = 'skill_unknown'
     await expect(createStandaloneBattle(players[0], players[1], {})).rejects.toThrow()
   })
+
+it('cancels battle creation before content or team preparation can allocate a host', async () => {
+  const players = fixture()
+  const before = new AbortController()
+  before.abort(new Error('launch canceled'))
+  await expect(createStandaloneBattle(players[0], players[1], {}, undefined, undefined, before.signal)).rejects.toThrow(
+    'launch canceled',
+  )
+  const during = new AbortController()
+  const preparing = createStandaloneBattle(players[0], players[1], {}, undefined, undefined, during.signal)
+  during.abort(new Error('preparation canceled'))
+  await expect(preparing).rejects.toThrow('preparation canceled')
+})

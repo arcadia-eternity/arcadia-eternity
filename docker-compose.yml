@@ -8,6 +8,10 @@ services:
       NODE_ENV: production
       PORT: '8102'
       SERVER_ID: '${SERVER_ID:-arcadia-local}'
+      ARCADIA_MAX_CONCURRENT_BATTLES: '${ARCADIA_MAX_CONCURRENT_BATTLES-32}'
+      ARCADIA_MAX_IDLE_WORKERS: '${ARCADIA_MAX_IDLE_WORKERS-4}'
+      ARCADIA_MAX_QUEUED_BATTLES: '${ARCADIA_MAX_QUEUED_BATTLES-64}'
+      ARCADIA_BATTLE_QUEUE_TIMEOUT_MS: '${ARCADIA_BATTLE_QUEUE_TIMEOUT_MS-5000}'
       CORS_ORIGIN: '${CORS_ORIGIN:-http://localhost:3000,http://localhost:5173}'
     restart: unless-stopped
     stop_grace_period: 15s

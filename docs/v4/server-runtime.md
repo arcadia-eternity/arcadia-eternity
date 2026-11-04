@@ -23,6 +23,12 @@ pnpm web:dev
 
 `SERVER_ID` 是部署的稳定名称，同一个服务升级时保持不变。每次启动会生成新的 `bootId`。浏览器凭证按服务器地址及 serverId 隔离，存入当前标签页的 sessionStorage；本地 UID 独立保存在本地资料中。
 
+## 对战容量
+
+根目录 `.env.example` 提供四个可配置项：`ARCADIA_MAX_CONCURRENT_BATTLES=32`、`ARCADIA_MAX_IDLE_WORKERS=4`、`ARCADIA_MAX_QUEUED_BATTLES=64`、`ARCADIA_BATTLE_QUEUE_TIMEOUT_MS=5000`。修改 `.env` 后重启服务；Docker Compose 会将这四项传入容器，修改后重新创建服务容器。每局独占一个 Effect Worker；满载后有界排队，空闲 Worker 按需保留最多 4 个，不在启动时预创建。等待到期或队列满会返回明确错误；离开、断线及停机会取消待启动对战。
+
+Node 宿主可向 `createSingleProcessApp` 传入 `maxConcurrentBattles`、`maxIdleWorkers`、`maxQueuedBattles`、`battleQueueTimeoutMs`。房间数量上限与对战执行容量分别管理。完整参数含义、浏览器配置和运行统计见 [Effect 宿主容量配置](./effect-sandbox.md#容量与空闲保留配置)。
+
 ## 生命周期
 
 ### 普通匹配

@@ -24,6 +24,7 @@ import {
   type NativeWebBattleConfig,
 } from '../nativeBattleFactory'
 import input from '../../../../battle/test/fixtures/official-switch.input.json'
+import { getBattleWorkers } from '../sandboxBattleWorkers'
 vi.mock('../sandboxBattleWorkers', async () => {
   const { createNodeBattleWorkerManager } = await import('@arcadia-eternity/battle/v4/sandbox/node')
   const manager = createNodeBattleWorkerManager()
@@ -86,6 +87,37 @@ function prompt(system: LocalBattleSystemV4) {
     })
   })
 }
+it('forwards cancellation separately from cloned battle options to the Worker queue', async () => {
+  const controller = new AbortController()
+  const create = vi.spyOn(getBattleWorkers(), 'create').mockImplementationOnce(
+    (_input, signal) =>
+      new Promise((_resolve, reject) => {
+        signal!.addEventListener('abort', () => reject(new Error('Battle launch cancelled')), { once: true })
+      }),
+  )
+  try {
+    const f = fixture()
+    const starting = createSandboxWebBattleSession(
+      f.players[0],
+      f.players[1],
+      f.data,
+      {
+        environment: { revision: 'queued', data: { marks: [], skills: [], species: [] }, modules: [] },
+      },
+      controller.signal,
+    )
+    const rejected = expect(starting).rejects.toThrow('Battle launch cancelled')
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ environment: expect.objectContaining({ revision: 'queued' }) }),
+      controller.signal,
+    )
+    controller.abort()
+    await rejected
+  } finally {
+    create.mockRestore()
+  }
+})
+
 it('rejects a sandbox checkpoint after captured metadata changes', async () => {
   const f = fixture(),
     first = await createSandboxWebBattleSession(f.players[0], f.players[1], f.data)

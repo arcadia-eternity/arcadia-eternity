@@ -9,3 +9,5 @@ export { ensureAccountSchema } from './standalone/accounts/schema'
 export { EmailCodeVerifier, GithubAppVerifier, ProviderError } from './standalone/providers'
 export type { AccountDirectory, VerifiedIdentity } from './standalone/accounts/directory'
 export type { G3AccountServices } from './standalone/app'
+
+export { parseBattleCapacityEnv } from './standalone/battle-capacity'

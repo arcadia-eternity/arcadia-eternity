@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { attachDesktopContentControl } from './desktop-content-control'
 import {
   createSingleProcessApp,
+  parseBattleCapacityEnv,
   EmailCodeVerifier,
   GithubAppVerifier,
   PgAccountDirectory,
@@ -58,6 +59,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     }>()
     if (!['true', 'false'].includes(options.webAutoConnect))
       throw new InvalidArgumentError('--web-auto-connect / ARCADIA_WEB_AUTO_CONNECT must be true or false')
+    const battleCapacity = parseBattleCapacityEnv(process.env)
     const corsOrigins = options.corsOrigin
       .split(',')
       .map(value => value.trim())
@@ -182,6 +184,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         : resolve(options.webRoot ?? resolve(dirname(fileURLToPath(import.meta.url)), 'web'))
     if (options.publicOrigin && !corsOrigins.includes(options.publicOrigin)) corsOrigins.push(options.publicOrigin)
     server = createSingleProcessApp({
+      ...battleCapacity,
       webRoot,
       webAutoConnect: options.webAutoConnect === 'true',
       desktopLocal: desktopControl,

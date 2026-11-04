@@ -119,19 +119,24 @@ export async function createStandaloneBattle(
   options: BattleOptions,
   runtime?: StandaloneRuntime,
   workers = sandboxWorkers,
+  signal?: AbortSignal,
 ): Promise<BattleHost> {
+  signal?.throwIfAborted()
   if (playerA.id === playerB.id) throw new Error('Battle players must have distinct identities')
   runtime ??= await loadOfficialContent()
+  signal?.throwIfAborted()
   const { content } = runtime
   const players = await Promise.all(
     [playerA, playerB].map(async player => ({ ...player, team: await validateStandaloneTeam(player.team, runtime) })),
   )
+  signal?.throwIfAborted()
   const teams = players.map(player => ({
     ...structuredClone(player),
     team: player.team.map(pet => ({ ...structuredClone(pet), id: nanoid() })),
   }))
   const capturedOptions = options && { ...options, timerConfig: options.timerConfig && { ...options.timerConfig } }
-  if (runtime.sandbox) return workers.create({ environment: runtime.sandbox, players: teams, options: capturedOptions })
+  if (runtime.sandbox)
+    return workers.create({ environment: runtime.sandbox, players: teams, options: capturedOptions }, signal)
   if (!('parsePlayers' in content)) throw new Error('Battle environment has no executable recipe')
   const [a, b] = content.parsePlayers(teams)
   return new LocalBattleSystemV4(content.createBattle(a, b, capturedOptions), content)

@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net'
 import express, { type Request, type Response, type NextFunction, type Express } from 'express'
 import cors from 'cors'
 import { mountPairedWebsite } from './website'
+import { resolveBattleCapacity } from './battle-capacity'
 import { Server } from 'socket.io'
 import { SessionRegistry, SessionError, readProfile, type AccountProvider } from './session'
 import { RoomRegistry, RoomError, object, type RoomOptions } from './rooms'
@@ -53,6 +54,7 @@ export interface SingleProcessApp {
 
 /** A deliberately ephemeral Node host: restarts invalidate every room and session. */
 export function createSingleProcessApp(options: SingleProcessAppOptions = {}): SingleProcessApp {
+  const battleCapacity = resolveBattleCapacity(options)
   if (
     options.development &&
     (options.host !== '127.0.0.1' || !options.corsOrigins?.length || options.corsOrigins.includes('*'))
@@ -136,7 +138,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     allowRequest: (req, callback) => callback(null, acceptsOrigin(req)),
   })
   const environments = new ServerEnvironmentRegistry()
-  const rooms = new RoomRegistry(io, sessions, options, environments)
+  const rooms = new RoomRegistry(io, sessions, { ...options, ...battleCapacity }, environments)
   let stopped = false,
     started = false
   let stopping: Promise<void> | undefined
