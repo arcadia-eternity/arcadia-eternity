@@ -101,7 +101,7 @@ it('runs the actual local command with native content, two AIs and strict valida
       maxBuffer: 8 * 1024 * 1024,
     },
   )
-  expect(stdout).toContain('已加载 1065 个效果实现')
+  expect(stdout).toContain('已加载 1065 个效果声明')
   expect(stdout).toContain('对战开始！')
   expect(stdout).toContain('completed: all_pet_fainted')
 }, 40_000)
