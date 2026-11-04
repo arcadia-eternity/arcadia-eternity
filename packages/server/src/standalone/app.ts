@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net'
 import express, { type Request, type Response, type NextFunction, type Express } from 'express'
 import cors from 'cors'
 import { mountPairedWebsite } from './website'
+import { ManagementService, mountManagementApi, normalizeServerSettings, type ManagementOptions } from './management'
 import { resolveBattleCapacity } from './battle-capacity'
 import { Server } from 'socket.io'
 import { SessionRegistry, SessionError, readProfile, type AccountProvider } from './session'
@@ -25,6 +26,10 @@ export interface SingleProcessAppOptions extends RoomOptions {
   development?: { directory: string; token: string }
   /** Internal IPC-authorized desktop host; never set on a public listener. */
   desktopLocal?: boolean
+  /** Trusted owner-managed desktop server may persist network settings for its next launch. */
+  desktopManaged?: boolean
+  /** Trusted desktop launcher origin that must remain authorized after a settings restart. */
+  desktopRendererOrigin?: string
   /** Omit for a headless host. Missing or incompatible website fails startup. */
   webRoot?: string
   /** Default for visitors without a saved client preference. */
@@ -38,6 +43,16 @@ export interface SingleProcessAppOptions extends RoomOptions {
   maxSessions?: number
   accountProvider?: AccountProvider
   accounts?: G3AccountServices
+  management?: Pick<
+    ManagementOptions,
+    | 'storage'
+    | 'workspace'
+    | 'resolveProject'
+    | 'prepareEnvironment'
+    | 'allowThirdPartyExecution'
+    | 'transferDirectory'
+    | 'createServerBackup'
+  > & { secureCookies?: boolean; name?: string; trustedProxyAddresses?: string[] }
 }
 
 export interface SingleProcessApp {
@@ -47,6 +62,7 @@ export interface SingleProcessApp {
   sessions: SessionRegistry
   rooms: RoomRegistry
   environments: ServerEnvironmentRegistry
+  management?: ManagementService
   readonly address: AddressInfo | null
   start(): Promise<void>
   stop(): Promise<void>
@@ -118,13 +134,16 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   ) => {
     callback(null, {
       origin: acceptsOrigin(req),
-      allowedHeaders: ['Authorization', 'Content-Type'],
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Authorization', 'Content-Type', 'If-Match', 'Idempotency-Key', 'X-CSRF-Token'],
+      credentials: true,
+      exposedHeaders: ['ETag', 'Location'],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     })
   }
   app.use(cors(corsOptions))
   if (development) app.use('/api/v1/development', express.json({ limit: '2mb', strict: true }))
-  app.use(express.json({ limit: '32kb', strict: true }))
+  const parsePublicJson = express.json({ limit: '32kb', strict: true })
+  app.use((req, res, next) => (req.path.startsWith('/api/management/v1/') ? next() : parsePublicJson(req, res, next)))
   app.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store')
     next()
@@ -139,6 +158,36 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   })
   const environments = new ServerEnvironmentRegistry()
   const rooms = new RoomRegistry(io, sessions, { ...options, ...battleCapacity }, environments)
+  const management =
+    options.management &&
+    new ManagementService({
+      ...options.management,
+      serverId: sessions.getServerInfo().serverId,
+      environments,
+      rooms,
+      sessions,
+      accountDirectory: options.accounts?.directory,
+      runtimeSettings: normalizeServerSettings({
+        host,
+        port,
+        publicOrigin: options.publicOrigin,
+        corsOrigins: allowed,
+        battleCapacity,
+      }),
+      settingsConstraints: {
+        desktopLocal: options.desktopLocal && !options.desktopManaged,
+        requiredCorsOrigins: options.desktopRendererOrigin ? [options.desktopRendererOrigin] : undefined,
+        accountCallbackOrigins: options.accounts?.github.callbackOrigins,
+      },
+    })
+  if (management)
+    mountManagementApi(app, management, {
+      secureCookies: options.management?.secureCookies ?? true,
+      acceptsOrigin,
+      sessions,
+      trustedProxyAddresses: options.management?.trustedProxyAddresses,
+      publicOrigin: options.publicOrigin,
+    })
   let stopped = false,
     started = false
   let stopping: Promise<void> | undefined
@@ -185,6 +234,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     const descriptor = environments.descriptor(req.params.id)
     res.setHeader('Cache-Control', 'no-store')
     res.json(descriptor)
+  })
+  app.get('/api/v1/environments/:id/peer-materials', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store')
+    res.json(environments.peerMaterials(req.params.id))
   })
   app.get('/api/v1/environments/:id/content', (req, res) => {
     const content = environments.content(req.params.id)
@@ -534,6 +587,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     sessions,
     rooms,
     environments,
+    management,
     get address(): AddressInfo | null {
       return httpServer.address() as AddressInfo | null
     },
@@ -542,6 +596,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       if (started) return
       if (options.accounts?.ready) await options.accounts.ready()
       await environments.ready()
+      await management?.ready()
       await new Promise<void>((resolve, reject) => {
         const onError = (error: Error) => {
           httpServer.off('listening', onListen)
@@ -562,8 +617,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       stopped = true
       sessions.clear()
       stopping = (async () => {
+        await management?.beginShutdown()
         await rooms.stop()
         await environments.stop()
+        await management?.close()
         await new Promise<void>(resolve => io.close(() => resolve()))
         if (httpServer.listening)
           await new Promise<void>((resolve, reject) => httpServer.close(error => (error ? reject(error) : resolve())))

@@ -37,6 +37,7 @@ export function mountPairedWebsite(app: Express, directory: string, autoConnect 
     '/',
     '/lobby',
     '/account',
+    '/management',
     '/team-builder',
     '/dex',
     '/download',

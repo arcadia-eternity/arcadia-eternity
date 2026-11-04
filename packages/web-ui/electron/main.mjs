@@ -19,6 +19,7 @@ import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
+import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
 protectStandardStreams()
@@ -34,12 +35,19 @@ const rendererDistDir = path.join(projectRoot, 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.ARCADIA_ELECTRON_DEV_SERVER_URL
 const rendererUrl = devServerUrl ?? CLIENT_URL
+// Main-process content preparation uses the bundled npm entry too. Child invocations
+// set Electron's Node mode themselves; do not alter app relaunch semantics globally.
+if (app.isPackaged)
+  process.env.ARCADIA_NPM_CLI = path.join(process.resourcesPath, 'arcadia-server/runtime/npm/bin/npm-cli.js')
 const localBattleHost = new LocalBattleHost({
   executable: process.execPath,
   cli: app.isPackaged
     ? path.join(process.resourcesPath, 'arcadia-server', 'cli.js')
     : path.resolve(projectRoot, '../../dist/cli.js'),
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
+  stateDirectory: path.join(app.getPath('userData'), 'local-server'),
+  workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
+  attachWorkspace: child => getManagementWorkspaceOwner().attach(child),
   ...(app.isPackaged
     ? {
         npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
@@ -84,6 +92,7 @@ let packsDir = null
 let creatorWorkStorage
 let contentProjects
 let contentLibrary
+let managementWorkspaceOwner
 let localContentSessions
 let localContentRuntime
 let localContentOwner
@@ -185,6 +194,15 @@ function getContentLibrary() {
     host: localBattleHost,
     prepare: options => getLocalContentSessions().prepareProject(options),
     selected: options => getLocalContentSessions().selectProject(options),
+    createManagedProjects: async (root, options) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { ManagedProjects } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/managed-projects')).href
+      )
+      return new ManagedProjects(root, options)
+    },
     run: (args, signal) =>
       runContentCommand(
         {
@@ -196,6 +214,22 @@ function getContentLibrary() {
       ),
   })
   return contentLibrary
+}
+function getManagementWorkspaceOwner() {
+  managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
+    root: path.join(app.getPath('userData'), 'content-packages'),
+    library: getContentLibrary(),
+    openWorkspace: async (root, options) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { ContentWorkspace } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      return ContentWorkspace.open(root, options)
+    },
+  })
+  return managementWorkspaceOwner
 }
 async function loadLocalContentRuntime() {
   localContentRuntime ??= (async () => {
@@ -1711,6 +1745,7 @@ function setupIpcHandlers() {
       requireLocalBattleCaller(event)
       return handler(event, ...args)
     })
+  handle('desktop:management-request', (_event, input) => localBattleHost.managementRequest(input))
   ipcMain.handle('author-preview:environment', async (event, action, input) => {
     const window = [...authorPreviewWindows.values()].find(window =>
       isTrustedDesktopRequest(event, window.webContents, rendererUrl),
@@ -1920,6 +1955,10 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return getLocalContentSessions().prepare(localContentOwner.current())
   })
+  handle('desktop:capture-personal-environment', event => {
+    requireLocalBattleCaller(event)
+    return getLocalContentSessions().capturePersonalEnvironment(localContentOwner.current())
+  })
   handle('desktop:release-local-content', (event, token) => {
     requireLocalBattleCaller(event)
     if (typeof token !== 'string') throw new Error('本地内容会话无效')
@@ -1959,6 +1998,17 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
+    if (input.action === 'import-sources') {
+      const selected = await dialog.showOpenDialog(mainWindow, {
+        title: '导入环境来源登记',
+        properties: ['openFile'],
+        filters: [{ name: '来源登记', extensions: ['json'] }],
+      })
+      requireLocalBattleCaller(event)
+      if (selected.canceled || !selected.filePaths[0]) return null
+      const result = await library.importSourceRegistry(selected.filePaths[0])
+      return result.sourceIds.join('、')
+    }
     if (input.action === 'set-selection') {
       await library.setSelection(input.ids, input.offline === true)
       return null
@@ -2005,6 +2055,10 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return localBattleHost.status()
   })
+  handle('desktop:recover-local-battle', event => {
+    requireLocalBattleCaller(event)
+    return localBattleHost.startLocalRecovery()
+  })
   handle('desktop:list-content-projects', event => {
     requireLocalBattleCaller(event)
     return getContentProjects().list()
@@ -2035,9 +2089,14 @@ function setupIpcHandlers() {
     }
     return manager.operate(input.id, input.action, { offline: input.offline === true })
   })
-  handle('desktop:stop-local-battle', event => {
+  handle('desktop:stop-local-battle', (event, input) => {
     requireLocalBattleCaller(event)
-    return localBattleHost.stop()
+    if (
+      input !== undefined &&
+      (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => key !== 'force'))
+    )
+      throw new Error('停止选项无效')
+    return localBattleHost.stopHosting(input)
   })
   handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
   handle('desktop:write-work-workspace', async (_event, input) => {
@@ -2213,13 +2272,14 @@ app.on('before-quit', event => {
       () => swfHost.dispose(),
       () => remotePlay.destroy(),
       () => localContentSessions?.close(),
+      () => localBattleHost.stop(),
+      () => managementWorkspaceOwner?.close(),
       () => contentLibrary?.close(),
       () => contentProjects?.close(),
       () => authorWorkspaces?.close(),
       () => {
         for (const window of authorPreviewWindows.values()) window.destroy()
       },
-      () => localBattleHost.stop(),
       () => stopLocalServer(),
     ],
     {
@@ -2248,6 +2308,7 @@ app
     autoUpdater.autoInstallOnAppQuit = true
 
     await ensureAppDataDirs()
+    await getManagementWorkspaceOwner().ready()
     await startLocalServer()
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const headers = { ...details.requestHeaders }

@@ -40,7 +40,7 @@ export async function runCli(args: string[], legacy?: () => Promise<void>): Prom
   })
   for (const [name, description] of [
     ['online', 'Online battle'],
-    ['server', 'Single-process in-memory battle server'],
+    ['server', 'Single-process battle server'],
     ['p2p-e2e', 'P2P smoke test'],
     ['p2p-ws-e2e', 'WebSocket P2P smoke test'],
   ])

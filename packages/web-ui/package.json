@@ -52,7 +52,6 @@
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/content-dev": "workspace:^",
     "@arcadia-eternity/data-pack-base": "workspace:^",
-    "@arcadia-eternity/database": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/p2p-transport": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
@@ -100,6 +99,7 @@
     "yaml": "catalog:"
   },
   "devDependencies": {
+    "@electron/rebuild": "4.2.0",
     "@rollup/plugin-yaml": "^4.1.2",
     "@tsconfig/node22": "^22.0.5",
     "@types/howler": "^2.2.12",
@@ -139,6 +139,7 @@
   "build": {
     "appId": "com.arcadia.eternity",
     "productName": "Arcadia Eternity",
+    "npmRebuild": false,
     "asar": true,
     "files": [
       "dist/**/*",

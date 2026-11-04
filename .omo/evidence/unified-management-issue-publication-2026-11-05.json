@@ -1,0 +1,198 @@
+{
+  "checkedAt": "2026-11-05 Asia/Shanghai",
+  "scope": "21 existing issue bodies; in-place current design blocks and targeted unchecked acceptance deltas",
+  "status": "published and reread",
+  "noIssueStateOrMetadataChanges": true,
+  "noNewAcceptancePasses": true,
+  "records": [
+    {
+      "id": 200,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/200",
+      "updated_at": "2026-11-04T17:00:02Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 27,
+      "bodyCharacters": 63334
+    },
+    {
+      "id": 273,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/273",
+      "updated_at": "2026-11-04T17:00:12Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 4961
+    },
+    {
+      "id": 274,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/274",
+      "updated_at": "2026-11-04T17:00:20Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 6446
+    },
+    {
+      "id": 214,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/214",
+      "updated_at": "2026-11-04T17:00:35Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 38,
+      "bodyCharacters": 22974
+    },
+    {
+      "id": 243,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/243",
+      "updated_at": "2026-11-04T17:00:42Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 31,
+      "bodyCharacters": 24040
+    },
+    {
+      "id": 244,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/244",
+      "updated_at": "2026-11-04T17:00:48Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 49,
+      "bodyCharacters": 31071
+    },
+    {
+      "id": 224,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/224",
+      "updated_at": "2026-11-04T17:00:54Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 15,
+      "bodyCharacters": 16169
+    },
+    {
+      "id": 209,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/209",
+      "updated_at": "2026-11-04T17:01:08Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 21,
+      "bodyCharacters": 16499
+    },
+    {
+      "id": 217,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/217",
+      "updated_at": "2026-11-04T17:01:14Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 6,
+      "bodyCharacters": 12712
+    },
+    {
+      "id": 220,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/220",
+      "updated_at": "2026-11-04T17:01:20Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 7,
+      "bodyCharacters": 8129
+    },
+    {
+      "id": 222,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/222",
+      "updated_at": "2026-11-04T17:01:27Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 5,
+      "bodyCharacters": 8321
+    },
+    {
+      "id": 221,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/221",
+      "updated_at": "2026-11-04T17:01:33Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 25,
+      "bodyCharacters": 17381
+    },
+    {
+      "id": 258,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/258",
+      "updated_at": "2026-11-04T17:01:55Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 3089
+    },
+    {
+      "id": 259,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/259",
+      "updated_at": "2026-11-04T17:02:01Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 2492
+    },
+    {
+      "id": 260,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/260",
+      "updated_at": "2026-11-04T17:02:06Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 2515
+    },
+    {
+      "id": 261,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/261",
+      "updated_at": "2026-11-04T17:02:12Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 1905
+    },
+    {
+      "id": 262,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/262",
+      "updated_at": "2026-11-04T17:02:30Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 2269
+    },
+    {
+      "id": 264,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/264",
+      "updated_at": "2026-11-04T17:02:35Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 2945
+    },
+    {
+      "id": 266,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/266",
+      "updated_at": "2026-11-04T17:02:42Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 2102
+    },
+    {
+      "id": 268,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/268",
+      "updated_at": "2026-11-04T17:02:49Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 5834
+    },
+    {
+      "id": 272,
+      "url": "https://github.com/arcadia-eternity/arcadia-eternity/issues/272",
+      "updated_at": "2026-11-04T17:02:54Z",
+      "verified": true,
+      "metadataUnchanged": true,
+      "checkedItemsUnchanged": 0,
+      "bodyCharacters": 1888
+    }
+  ]
+}

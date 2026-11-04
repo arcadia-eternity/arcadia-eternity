@@ -143,6 +143,147 @@ test('rejects package license symlinks and escaping package stores', async () =>
   }
 })
 
+test('reviewed published notices retain attribution, scope exclusions and legacy metadata without hiding conflicts', async () => {
+  const f = await fixture()
+  try {
+    const original = async name =>
+      readFile(new URL(`./desktop-license-reference/packages/${name}.txt`, import.meta.url))
+    await f.pkg('runtime/npm', 'npm', 'MIT', { LICENSE: mit })
+    await f.pkg(
+      'node_modules/.pnpm/tslib/node_modules/tslib',
+      'tslib',
+      '0BSD',
+      {
+        'LICENSE.txt': await original('tslib-2.9.1'),
+        'CopyrightNotice.txt': 'Copyright (c) Microsoft Corporation. All rights reserved.',
+      },
+      { version: '2.9.1' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/minimist/node_modules/minimist',
+      'minimist',
+      'MIT',
+      { LICENSE: await original('mit-publisher-no-holder') },
+      { version: '1.2.8' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/nodemailer/node_modules/nodemailer',
+      'nodemailer',
+      'MIT-0',
+      { LICENSE: await original('nodemailer-10.2.1') },
+      { version: '10.2.1' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/chownr/node_modules/chownr',
+      'chownr',
+      'BlueOak-1.0.0',
+      { LICENSE: await original('blueoak-published-dist') },
+      { version: '3.0.0' },
+    )
+    const excluded = await f.pkg(
+      'node_modules/.pnpm/glob/node_modules/glob',
+      'glob',
+      'BlueOak-1.0.0',
+      { LICENSE: await original('blueoak-published-dist') },
+      { version: '13.0.6' },
+    )
+    await mkdir(join(excluded, 'src'))
+    await f.pkg(
+      'node_modules/.pnpm/legacy/node_modules/legacy',
+      'legacy',
+      undefined,
+      { LICENSE: mit },
+      { licenses: [{ type: 'MIT' }] },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/conflict/node_modules/conflict',
+      'conflict',
+      'ISC',
+      { LICENSE: mit },
+      { licenses: [{ type: 'MIT' }] },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/ambiguous/node_modules/ambiguous',
+      'ambiguous',
+      undefined,
+      { LICENSE: mit },
+      { licenses: [{ type: 'MIT' }, { type: 'ISC' }] },
+    )
+    const result = await collectDesktopLicenses(f.runtime, f.options)
+    assert.deepEqual(
+      result.missing.map(item => item.name),
+      ['ambiguous', 'conflict', 'glob'],
+    )
+    assert.equal(result.packages.find(item => item.name === 'legacy').licenseDeclarationSource, 'licenses[0].type')
+    const tslib = result.packages.find(item => item.name === 'tslib')
+    assert.equal(tslib.files.length, 2)
+    assert.ok(tslib.files.some(file => file.source.endsWith('CopyrightNotice.txt')))
+    assert.deepEqual(
+      await collectDesktopLicenses(f.runtime, f.options),
+      result,
+      'repeat inventory preserves identical digest files',
+    )
+  } finally {
+    await rm(f.root, { recursive: true, force: true })
+  }
+})
+
+test('supplemental notices require exact package identity and declaration and retain unresolved reviews', async () => {
+  const f = await fixture()
+  try {
+    await f.pkg('runtime/npm', 'npm', 'MIT', { LICENSE: mit })
+    await f.pkg(
+      'node_modules/.pnpm/native/node_modules/@esbuild/darwin-arm64',
+      '@esbuild/darwin-arm64',
+      'MIT',
+      {},
+      { version: '0.28.2' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/changed/node_modules/@esbuild/darwin-arm64',
+      '@esbuild/darwin-arm64',
+      'MIT',
+      {},
+      { version: '0.28.1' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/conflicting/node_modules/@esbuild/darwin-arm64',
+      '@esbuild/darwin-arm64',
+      'BSD-2-Clause',
+      { LICENSE: bsd },
+      { version: '0.28.2' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/unresolved/node_modules/@better-auth/utils',
+      '@better-auth/utils',
+      'MIT',
+      { LICENSE: mit },
+      { version: '0.5.0' },
+    )
+    await f.pkg(
+      'runtime/npm/node_modules/@npmcli/redact',
+      '@npmcli/redact',
+      'ISC',
+      { LICENSE: mit },
+      { version: '4.0.0' },
+    )
+    const result = await collectDesktopLicenses(f.runtime, f.options)
+    assert.equal(result.missing.length, 4)
+    const native = result.packages.find(p => p.packagePath.includes('/native/'))
+    assert.deepEqual(native.recognizedLicenses, ['MIT'])
+    assert.ok(native.files[0].source.startsWith('https://raw.githubusercontent.com/evanw/esbuild/'))
+    assert.match(native.files[0].provenance.sourceCommit, /^[a-f0-9]{40}$/)
+    assert.equal(result.missing.find(p => p.name === '@better-auth/utils').reason, 'supplemental-review-unresolved')
+    assert.ok(result.missing.some(p => p.name === '@npmcli/redact'))
+    assert.equal(
+      result.missing.find(p => p.packagePath.includes('/conflicting/')).reason,
+      'supplemental-declaration-mismatch',
+    )
+  } finally {
+    await rm(f.root, { recursive: true, force: true })
+  }
+})
+
 test('matches the complete pinned SPDX terms, while preserving conflicts and changed terms for review', async () => {
   const f = await fixture()
   try {

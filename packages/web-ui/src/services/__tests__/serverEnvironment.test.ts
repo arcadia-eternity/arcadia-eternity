@@ -39,6 +39,18 @@ const fake = (resource = bytes, displayed: unknown = content) =>
   }) as unknown as typeof fetch
 
 describe('server environment display readiness', () => {
+  it('preserves advertised execution policy and rejects unknown policy values', async () => {
+    const peer = { ...descriptor, executionPolicy: 'peer', peerRevision: 'captured-peer-materials' }
+    const request = vi.fn(async () => new Response(JSON.stringify({ protocolVersion: 1, environments: [peer] })))
+    expect(await listServerEnvironments('https://server-a.test', request)).toEqual([peer])
+    const invalidPolicy = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ protocolVersion: 1, environments: [{ ...peer, executionPolicy: 'auto-admin' }] }),
+        ),
+    )
+    await expect(listServerEnvironments('https://server-a.test', invalidPolicy)).rejects.toThrow('格式不正确')
+  })
   it('reads each server catalog independently without downloading display assets', async () => {
     const request = fake()
     expect(environmentServerUrl('wss://server-a.test/')).toBe('https://server-a.test')

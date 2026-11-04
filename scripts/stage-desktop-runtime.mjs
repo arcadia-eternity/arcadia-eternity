@@ -21,6 +21,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import YAML from 'yaml'
 import { collectDesktopLicenses } from './desktop-runtime-licenses.mjs'
+import { stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
+import { normalizeRuntimeLinks, resolvePnpmInvocation } from './desktop-runtime-portability.mjs'
 
 const exec = promisify(execFile)
 const repo = fileURLToPath(new URL('../', import.meta.url))
@@ -51,7 +53,10 @@ export async function validateDesktopRuntimeFiles(root) {
 }
 
 /** Check required runtime files, contained links and complete notices for distribution. */
-export async function verifyDesktopRuntime(root, { allowIncompleteNotices = false } = {}) {
+export async function verifyDesktopRuntime(
+  root,
+  { allowIncompleteNotices = false, requireNative = false, platform, arch } = {},
+) {
   const manifest = JSON.parse(await readFile(join(root, 'arcadia-desktop-runtime.json'), 'utf8'))
   const notices = JSON.parse(await readFile(join(root, 'licenses/notice.json'), 'utf8'))
   if (
@@ -66,6 +71,32 @@ export async function verifyDesktopRuntime(root, { allowIncompleteNotices = fals
   if (!manifest.releaseReady && !allowIncompleteNotices)
     throw new Error(`Desktop runtime cannot be released: ${notices.missing.length} license notices require review`)
   await validateDesktopRuntimeFiles(root)
+  if (requireNative || manifest.nativeModules) {
+    const sqlite = manifest.nativeModules?.find(item => item.name === 'better-sqlite3')
+    if (
+      !sqlite ||
+      sqlite.verified !== true ||
+      sqlite.smoke !== 'write-close-reopen' ||
+      !/^\d+$/.test(sqlite.abi) ||
+      sqlite.electronVersion !== manifest.electron?.version ||
+      sqlite.abi !== manifest.electron?.abi ||
+      sqlite.platform !== manifest.electron?.platform ||
+      sqlite.arch !== manifest.electron?.arch ||
+      (platform && sqlite.platform !== platform) ||
+      (arch && sqlite.arch !== arch)
+    )
+      throw new Error(
+        'Desktop runtime SQLite target is missing or incompatible; stage the native module for this Electron target',
+      )
+    const sqliteRequire = createRequire(join(resolve(root), 'node_modules/@arcadia-eternity/database/package.json'))
+    const sqlitePackage = sqliteRequire.resolve('better-sqlite3/package.json')
+    const installedSqlite = JSON.parse(await readFile(sqlitePackage, 'utf8'))
+    if (installedSqlite.version !== sqlite.version || installedSqlite.name !== sqlite.name)
+      throw new Error('Desktop SQLite native artifact does not match its recorded package version')
+    const nativeFile = join(dirname(sqlitePackage), 'build/Release/better_sqlite3.node')
+    if (!inside(await realpath(root), await realpath(nativeFile)) || !(await stat(nativeFile)).isFile())
+      throw new Error('Desktop SQLite native artifact is missing or escapes runtime')
+  }
   return manifest
 }
 async function workspaces() {
@@ -135,10 +166,6 @@ async function materializeWorkspace(runtime) {
 /** Builds a new, relocatable runtime. Nothing is downloaded without the explicit online option. */
 export async function stageDesktopRuntime({ output, online = false, allowIncompleteNotices = false }) {
   if (typeof output !== 'string' || !output) throw new Error('An output directory is required')
-  if (process.platform === 'win32')
-    throw new Error(
-      'Windows staging is not yet supported: portable pnpm links and the build runner still require Windows validation',
-    )
   const target = resolve(output),
     parent = dirname(target)
   await mkdir(parent, { recursive: true })
@@ -163,15 +190,16 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
     const lockedElectron = parsedLock.importers?.['packages/web-ui']?.devDependencies?.electron?.version?.split('(')[0]
     const electronIntegrity = parsedLock.packages?.[`electron@${lockedElectron}`]?.resolution?.integrity
     if (electron.version !== lockedElectron) throw new Error('Installed Electron does not match pnpm-lock.yaml')
-    const executable =
-      process.platform === 'darwin'
-        ? join(electronRoot, 'dist/Electron.app/Contents/MacOS/Electron')
-        : join(electronRoot, 'dist/electron')
+    const executable = createRequire(join(electronRoot, 'package.json'))('electron')
+    const electronDist = process.platform === 'darwin' ? resolve(dirname(executable), '../../..') : dirname(executable)
     const embedded = JSON.parse(
       (
         await exec(
           executable,
-          ['-p', 'JSON.stringify({node:process.versions.node,electron:process.versions.electron})'],
+          [
+            '-p',
+            'JSON.stringify({node:process.versions.node,electron:process.versions.electron,abi:process.versions.modules,platform:process.platform,arch:process.arch})',
+          ],
           {
             cwd: repo,
             env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
@@ -185,7 +213,8 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
       !createRequire(join(npmRoot, 'package.json'))('semver').satisfies(embedded.node, npm.engines?.node)
     )
       throw new Error('Pinned npm is incompatible with the embedded Electron Node runtime')
-    const installedPnpm = (await exec('pnpm', ['--version'], { cwd: repo })).stdout.trim()
+    const pnpm = await resolvePnpmInvocation()
+    const installedPnpm = (await exec(pnpm.command, [...pnpm.args, '--version'], { cwd: repo })).stdout.trim()
     if (installedPnpm !== pnpmVersion) throw new Error(`Desktop build requires pnpm ${pnpmVersion}`)
     const deployed = join(temp, 'deploy')
     const flags = [
@@ -205,29 +234,55 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
         ? 'Preparing locked production dependencies from the configured official registry.\n'
         : 'Preparing locked production dependencies using the local cache only.\n',
     )
-    await exec('pnpm', flags, { cwd: repo, maxBuffer: 16 * 1024 * 1024 })
+    await exec(pnpm.command, [...pnpm.args, ...flags], { cwd: repo, maxBuffer: 16 * 1024 * 1024 })
     const runtime = join(temp, 'runtime')
     await mkdir(runtime)
+    // Replace pnpm's workspace links before auditing the deploy tree: these
+    // deliberately point at checkout sources and are never distribution files.
+    const workspacePackages = await materializeWorkspace(deployed)
+    // Windows pnpm junctions contain absolute paths. Convert only contained links
+    // before relocation; each native CI target verifies the relocated result.
+    await normalizeRuntimeLinks(join(deployed, 'node_modules'))
     await rename(join(deployed, 'node_modules'), join(runtime, 'node_modules'))
-    const workspacePackages = await materializeWorkspace(runtime)
     const cli = join(temp, 'fresh-cli')
     const rolldown = join(dirname(require.resolve('rolldown/package.json')), 'bin/cli.mjs')
     await exec(process.execPath, [rolldown, '-c', '--dir', cli], { cwd: repo, maxBuffer: 16 * 1024 * 1024 })
     await cp(cli, runtime, { recursive: true })
     // Root CLI output is ESM. The deployed server manifest must not be the package root.
     await writeFile(join(runtime, 'package.json'), '{"private":true,"type":"module"}\n')
+    const sqlite = await stageDesktopSqlite({
+      runtime,
+      executable,
+      electronVersion: electron.version,
+      abi: embedded.abi,
+      platform: embedded.platform,
+      arch: embedded.arch,
+      cacheDirectory: join(repo, 'node_modules/.cache/arcadia-desktop-native'),
+      online,
+      rebuild: online ? await loadElectronRebuild(join(repo, 'packages/web-ui/package.json')) : undefined,
+    })
     await mkdir(join(runtime, 'runtime'))
     await cp(npmRoot, join(runtime, 'runtime/npm'), { recursive: true, verbatimSymlinks: true })
     const pack = join(runtime, 'packs/base')
     await mkdir(pack, { recursive: true })
-    for (const entry of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'assets', 'dist'])
+    for (const entry of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'dist'])
       await cp(join(repo, 'packs/base', entry), join(pack, entry), { recursive: true, verbatimSymlinks: true })
+    // Base presentation may use remote on-demand media and have no local assets.
+    let hasLocalAssets = true
+    try {
+      await stat(join(repo, 'packs/base/assets'))
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+      hasLocalAssets = false
+    }
+    if (hasLocalAssets)
+      await cp(join(repo, 'packs/base/assets'), join(pack, 'assets'), { recursive: true, verbatimSymlinks: true })
     // This absolute build-machine store path is not needed by Node and is not relocatable.
     await rm(join(runtime, 'node_modules/.modules.yaml'), { force: true })
     const notices = await collectDesktopLicenses(runtime, {
       repositoryLicense: join(repo, 'LICENSE'),
-      electronLicense: join(electronRoot, 'dist/LICENSE'),
-      electronNotices: join(electronRoot, 'dist/LICENSES.chromium.html'),
+      electronLicense: join(electronDist, 'LICENSE'),
+      electronNotices: join(electronDist, 'LICENSES.chromium.html'),
     })
     await writeFile(join(runtime, 'licenses/notice.json'), JSON.stringify(notices, null, 2) + '\n')
     if (notices.missing.length && !allowIncompleteNotices)
@@ -248,12 +303,22 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
         version: electron.version,
         integrity: electronIntegrity,
         embeddedNode: embedded.node,
+        abi: embedded.abi,
+        platform: embedded.platform,
+        arch: embedded.arch,
         npmNodeRange: npm.engines?.node,
       },
       pnpm: pnpmVersion,
+      nativeModules: [sqlite],
       workspacePackages,
     }
     await writeFile(join(runtime, 'arcadia-desktop-runtime.json'), JSON.stringify(manifest, null, 2) + '\n')
+    await verifyDesktopRuntime(runtime, {
+      allowIncompleteNotices,
+      requireNative: true,
+      platform: embedded.platform,
+      arch: embedded.arch,
+    })
     // Reserve the destination exclusively before publishing: POSIX rename can otherwise
     // replace a concurrently created empty directory. Publish the manifest last.
     await mkdir(target)

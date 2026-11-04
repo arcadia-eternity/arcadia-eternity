@@ -13,7 +13,6 @@ import {
 import {
   type ClientToServerEvents,
   type PrivateRoomPeerSignalEvent,
-  type PrivateRoomPeerSignalPayload,
   type ServerToClientEvents,
   type SuccessResponse,
   type ErrorResponse,
@@ -23,6 +22,7 @@ import {
   type JoinPrivateRoomSpectatorRequest,
   type ServerEnvironmentAcceptance,
   type MatchmakingRequest,
+  type SendPrivateRoomPeerSignalRequest,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
 import { io, type ManagerOptions, type Socket } from 'socket.io-client'
@@ -34,11 +34,7 @@ export type CreatePrivateRoomData = CreatePrivateRoomRequest
 export type JoinPrivateRoomData = JoinPrivateRoomRequest
 export type JoinSpectatorData = JoinPrivateRoomSpectatorRequest
 
-export type SendPrivateRoomPeerSignalData = {
-  targetPlayerId: string
-  targetSessionId?: string
-  signal: PrivateRoomPeerSignalPayload
-}
+export type SendPrivateRoomPeerSignalData = SendPrivateRoomPeerSignalRequest
 
 type BattleClientOptions = {
   serverUrl: string
@@ -719,7 +715,7 @@ export class BattleClient {
     })
   }
 
-  async finishPrivateRoomBattle(data: { winner: string | null; reason: string }): Promise<void> {
+  async finishPrivateRoomBattle(data: { winner: string | null; reason: string; battleRoomId?: string }): Promise<void> {
     this.verifyConnection()
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Finish battle timeout')), this.options.actionTimeout)

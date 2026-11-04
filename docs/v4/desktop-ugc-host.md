@@ -1,16 +1,16 @@
 # 桌面本机对战宿主基础
 
-Electron 主进程提供独立本机对战子进程管理。Renderer 继续保持 `contextIsolation` 和 `nodeIntegration: false`，只读取服务器的公开内容、资源与对战状态，不载入 npm 效果代码。
+Electron 主进程提供独立本机对战子进程管理，并作为客户端内容工作区的唯一写入 owner。Renderer 保持 `contextIsolation` 和 `nodeIntegration: false`；服务端权威对战读取公开内容，个人/peer 对战的作者代码由受限 Worker 执行，不能在 Renderer 主线程或特权 IPC 中求值。持久环境绑定、网络设置和远程权限见[统一管理](unified-management.md)。
 
 `/content` 已接入命名项目登记、内容包与依赖查看、安装、显式准入、校验、启停和导出；队伍缺失内容的保留策略及边界见[内容包与环境管理](content-management.md)。
 
 桌面桥提供三个受限入口：
 
 - `selectAndStartLocalBattle()` 打开系统目录选择器，选择一个已完整安装、带锁文件和 `arcadia-admission.json` 的服务器项目，再启动本机服务；取消选择时返回 `cancelled`，不改变已有服务。
-- `getLocalBattleStatus()` 返回 `idle`、`starting`、`running`、`stopping` 或 `failed`。就绪时包含回环地址、服务器本次启动身份及项目目录名，不返回本机完整路径或宿主日志。
+- `getLocalBattleStatus()` 返回 `idle`、`starting`、`running`、`stopping` 或 `failed`。就绪时包含连接地址、稳定服务器身份与本次运行信息，不返回任意宿主路径或凭据。
 - `stopLocalBattle()` 停止本机服务。停止会结束其房间和对局；退出或重启桌面应用也会先停止服务。桌面进程异常消失时，子进程正常情况下会检测连接断开并退出。
 
-这些 IPC 只允许当前受信任窗口的主 frame 调用。Renderer 不能指定命令、执行文件、参数、服务器监听地址或任意项目路径；项目必须由系统对话框显式选定。宿主在子进程中使用服务器现有的安装检查和准入记录，绑定 `127.0.0.1` 的随机端口，校验就绪响应中的本次启动身份。子进程仅收到基本运行环境变量，不继承账户凭据，也不从项目或工作目录自动加载 `.env`；启动不会安装依赖或访问工坊。准入代码仍具有本机进程权限，不能把子进程当成不可信 JavaScript 沙箱。
+这些 IPC 只允许当前受信任窗口的主 frame 调用。Renderer 不能指定命令、执行文件或任意项目路径；文件/目录来自系统对话框或已登记句柄。持久托管默认 `127.0.0.1` 和随机端口；可信管理页可通过受校验的 settings 合同保存监听、publicOrigin、CORS 与容量，待重启字段明确显示。父进程从私有就绪通道核对稳定 serverId 和实际监听端口，网络地址不被当作连通性保证。子进程通过 owner 借用既有内容与租约，不创建另一份包库；安装准备与实际 Effect 执行分别受策略约束。
 
 开发模式的服务入口为仓库根目录的 `dist/cli.js`，需先构建 CLI 及其依赖，并由开发机提供可运行的 npm。Windows 开发环境使用 Node 安装目录旁的 `node_modules/npm/bin/npm-cli.js`，不能假定 `npm.cmd` 可由 `execFile('npm')` 直接运行。
 
@@ -20,11 +20,13 @@ Electron 主进程提供独立本机对战子进程管理。Renderer 继续保�
 node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-server --allow-incomplete-notices
 ```
 
-默认离线使用已缓存依赖；需要获取缺失依赖时可显式加 `--online`。输出目录必须不存在，脚本不会覆盖已有目录。发生错误时检查输出目录；若存在未完成的目录，应手动移除或选用新目录，清单在所有文件完成后才写入。当前 staging 仅在 macOS 上验证，Windows staging 会明确拒绝；Linux 尚未验证。
+默认离线使用已缓存依赖；需要获取缺失依赖时可显式加 `--online`。输出目录必须不存在，脚本不会覆盖已有目录。发生错误时检查输出目录；若存在未完成的目录，应手动移除或选用新目录，清单在所有文件完成后才写入。staging 已加入跨平台路径/调用处理；实际四平台执行由非发布 CI 验证，不能把模拟 Windows 路径测试当作 Windows 安装验收。
 
 Electron Builder 会在打包前检查 staging 清单，并在打包后重新核对复制结果；运行 `pnpm --filter @arcadia-eternity/web-ui build:desktop` 会先构建、准备运行时再打包，且不会自动发布。本地打包允许许可证资料待补，清单仍记录待核对项目和 `releaseReady: false`；仍检查运行入口、路径边界与清单结构。仓库与各自有包统一采用 MIT 许可证，版权署名为 Arcadia Eternity contributors；桌面打包会收录根目录的完整 MIT 文本，并用于声明一致且未携带独立许可证文本的自有包。部分第三方包的许可证文本或声明也待核对。
 
 需要检查完整许可证资料时，可在 staging 完成后运行 `node scripts/verify-desktop-pack.mjs --require-complete-notices`；缺少许可证或必要运行文件时该命令会失败。`electron:pack:publish` 同样先执行这项检查，发布仍需单独执行。直接运行 staging 脚本时，不加 `--allow-incomplete-notices` 也会要求清单完整。
+
+当前许可证清单还有 5 项待核对，`releaseReady: false`；预览可用于本机验证，不能据此发行。最终快照的 preview 刷新和 macOS arm64/x64、Linux x64、Windows x64 CI 仍待完成，范围见[验证记录](validation/unified-management-2026-11-05.md)。
 
 本机功能验证可以使用独立预览构建：
 

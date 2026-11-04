@@ -46,6 +46,7 @@ export interface PrivateRoomInfo {
 }
 
 export interface PrivateRoomPeerSignalEvent {
+  battleRoomId?: string
   roomCode: string
   from: PrivateRoomPeerEndpoint
   to: PrivateRoomPeerEndpoint

@@ -1,0 +1,70 @@
+{
+  "image": "arcadia-management-validation:local",
+  "platform": "darwin",
+  "startedAt": "2026-11-04T17:59:41.677Z",
+  "cases": [
+    {
+      "driver": "sqlite",
+      "pairedAssets": 2,
+      "before": {
+        "serverId": "arcadia-validation-5bb40056-63c-sqlite",
+        "workspaceId": "74d13cc2-f4df-4bec-8ea0-00a3fde34d05",
+        "revision": 2,
+        "requiresRestart": true
+      },
+      "after": {
+        "serverId": "arcadia-validation-5bb40056-63c-sqlite",
+        "workspaceId": "74d13cc2-f4df-4bec-8ea0-00a3fde34d05",
+        "revision": 2,
+        "requiresRestart": false
+      },
+      "containerRecreated": true,
+      "databaseRestarted": false
+    },
+    {
+      "driver": "postgres",
+      "pairedAssets": 2,
+      "before": {
+        "serverId": "arcadia-validation-5bb40056-63c-postgres",
+        "workspaceId": "d5c330fb-b4c2-435b-8f83-063a79ae72f9",
+        "revision": 2,
+        "requiresRestart": true
+      },
+      "after": {
+        "serverId": "arcadia-validation-5bb40056-63c-postgres",
+        "workspaceId": "d5c330fb-b4c2-435b-8f83-063a79ae72f9",
+        "revision": 2,
+        "requiresRestart": false
+      },
+      "containerRecreated": true,
+      "databaseRestarted": true
+    }
+  ],
+  "passed": true,
+  "dockerVersion": "29.5.3",
+  "imageIdentity": {
+    "id": "sha256:3b9d8724271962a36b0af0ed04ee05229a360b86015345e18276e6b990604d4f",
+    "architecture": "arm64",
+    "os": "linux"
+  },
+  "runtime": {
+    "node": "v24.22.2",
+    "platform": "linux",
+    "arch": "arm64",
+    "sqliteVersion": "3.53.2",
+    "git": "git version 2.54.0",
+    "npm": "11.19.1"
+  },
+  "finishedAt": "2026-11-04T17:59:53.542Z",
+  "cleanupVerified": {
+    "containers": 0,
+    "volumes": 0,
+    "networks": 0
+  },
+  "buildLog": "/private/tmp/arcadia-docker-build-v3.log",
+  "scopeNotes": [
+    "Actual Linux arm64 image built from the working-tree snapshot consumed by Docker build v3; later source edits require separate validation.",
+    "Guest account mode; no external SMTP/GitHub provider delivery/callback acceptance performed.",
+    "Entry HTML/assets and real HTTP management verified; full browser UI scenarios are covered separately."
+  ]
+}

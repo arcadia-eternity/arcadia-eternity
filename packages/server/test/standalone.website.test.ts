@@ -35,13 +35,23 @@ it('serves config and deep links while missing service/resource paths remain err
     backendOrigin: '/',
     autoConnect: true,
   })
-  for (const path of ['/', '/room/invite', '/team-builder', '/dex/species/pet', '/local-battle-reports/id/play']) {
+  for (const path of [
+    '/',
+    '/management',
+    '/management/',
+    '/room/invite',
+    '/team-builder',
+    '/dex/species/pet',
+    '/local-battle-reports/id/play',
+  ]) {
     const response = await fetch(`${base}${path}`, { headers: { Accept: 'text/html' } })
     expect(response.status, path).toBe(200)
     expect(await response.text()).toContain('paired site')
   }
   for (const path of [
     '/api/v1/missing',
+    '/api/management/v1/missing',
+    '/management/unknown',
     '/api/v1/environments/id/assets/hash',
     '/socket.io/missing',
     '/assets/missing.swf',

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { reactive } from 'vue'
+import { computed, defineComponent, inject, provide, reactive, type ComputedRef } from 'vue'
+import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import LobbyPage from '../lobbyPage.vue'
 
 const deployment = vi.hoisted(() => ({ desktop: false, authorize: vi.fn() }))
@@ -12,13 +13,20 @@ const remotePlay = vi.fn()
 const push = vi.fn()
 const refreshEnvironments = vi.fn()
 const createRoom = vi.fn()
+const setPersonalEnvironment = vi.fn()
 const switchServer = vi.fn()
 const confirmSwitch = vi.fn()
 let battleClient: { currentState: { status: string }; serverUrl: string }
 let privateRoom: {
   currentRoom: { status: string; config: { roomCode: string } } | null
   isSwitchingServer: boolean
-  environments: Array<{ id: string; packages: { name: string; version: string }[] }>
+  personalEnvironment: PreparedPersonalEnvironment | undefined
+  setPersonalEnvironment: typeof setPersonalEnvironment
+  environments: Array<{
+    id: string
+    packages: { name: string; version: string }[]
+    executionPolicy?: 'server' | 'peer'
+  }>
   refreshEnvironments: typeof refreshEnvironments
   createRoom: typeof createRoom
   switchServer: typeof switchServer
@@ -33,6 +41,42 @@ vi.mock('element-plus', () => ({
   ElMessageBox: { confirm: (...args: unknown[]) => confirmSwitch(...args) },
 }))
 
+function preparedPersonalEnvironment(): PreparedPersonalEnvironment {
+  const descriptor: PreparedPersonalEnvironment['reference']['descriptor'] = {
+    id: 'a'.repeat(64),
+    protocolVersion: 1,
+    executionPolicy: 'peer',
+    peerRevision: 'personal-revision',
+    runtime: { kind: 'native-v4', contentRevision: 'personal', coreBuildId: 'core', registryBuildId: 'registry' },
+    packages: [{ name: '@player/custom', version: '1.0.0', projectId: 'custom', namespace: 'custom' }],
+    resourceRevision: 'personal-resources',
+    resources: [],
+  }
+  const rules = { schemaVersion: 1 as const }
+  const content = { species: [], skills: [], marks: [] }
+  const environment = { revision: 'personal-revision', data: content, modules: [] }
+  return {
+    reference: {
+      kind: 'personal',
+      protocolVersion: 1,
+      descriptor,
+      rules,
+      source: { kind: 'file', name: 'custom.json' },
+    },
+    environment,
+    content,
+    acceptance: {
+      environmentId: descriptor.id,
+      protocolVersion: 1,
+      resourceRevision: descriptor.resourceRevision,
+      resourcesReady: true,
+    },
+    bundle: { format: 'arcadia.personal-environment', version: 1, descriptor, rules, environment, content },
+    release: vi.fn(),
+  }
+}
+let personalEnvironment: PreparedPersonalEnvironment
+
 const stubs = {
   MatchmakingPanel: true,
   RouterLink: { template: '<a><slot /></a>' },
@@ -45,6 +89,26 @@ const stubs = {
   ElDialog: { props: ['modelValue'], template: '<div v-if="modelValue"><slot /><slot name="footer" /></div>' },
   ElForm: { template: '<div><slot /></div>' },
   ElFormItem: { template: '<label><slot /></label>' },
+  ElRadioGroup: defineComponent({
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    setup(props, { emit }) {
+      provide('test-radio-group', {
+        selected: computed(() => props.modelValue),
+        select: (value: unknown) => emit('update:modelValue', value),
+      })
+      return {}
+    },
+    template: '<div role="radiogroup"><slot /></div>',
+  }),
+  ElRadio: defineComponent({
+    props: ['value'],
+    setup() {
+      return { group: inject<{ selected: ComputedRef<unknown>; select(value: unknown): void }>('test-radio-group')! }
+    },
+    template:
+      '<label><input type="radio" :checked="group.selected.value === value" @change="group.select(value)" /><slot /></label>',
+  }),
   ElSelect: {
     props: ['modelValue'],
     emits: ['update:modelValue'],
@@ -65,16 +129,26 @@ const stubs = {
     template:
       '<button data-testid="p2p" @click="$emit(\'update:modelValue\', { ...modelValue, battleMode: \'p2p\' })">P2P</button>',
   },
+  PersonalEnvironmentPicker: {
+    props: ['prepared', 'disabled'],
+    emits: ['prepared', 'error'],
+    setup: () => ({ result: personalEnvironment }),
+    template:
+      '<button data-testid="accept-personal-environment" :disabled="disabled" @click="$emit(\'prepared\', result)">选择并接受个人环境</button>',
+  },
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
   deployment.desktop = false
   remotePlay.mockReset().mockResolvedValue(undefined)
+  personalEnvironment = preparedPersonalEnvironment()
   battleClient = reactive({ currentState: { status: 'connected' }, serverUrl: 'http://localhost:8102' })
   privateRoom = reactive({
     currentRoom: null,
     isSwitchingServer: false,
+    personalEnvironment: undefined,
+    setPersonalEnvironment,
     environments: [],
     refreshEnvironments,
     createRoom,
@@ -82,6 +156,9 @@ beforeEach(() => {
   })
   switchServer.mockReset().mockResolvedValue(undefined)
   confirmSwitch.mockReset().mockResolvedValue('confirm')
+  setPersonalEnvironment.mockReset().mockImplementation(async (value: PreparedPersonalEnvironment) => {
+    privateRoom.personalEnvironment = value
+  })
   refreshEnvironments.mockImplementation(async () => {
     privateRoom.environments = [
       { id: 'official', packages: [] },
@@ -102,11 +179,11 @@ it('loads the current server catalog and submits the selected content when creat
   await select.setValue('ugc')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
   await flushPromises()
-  expect(createRoom).toHaveBeenCalledWith(expect.objectContaining({ battleMode: 'server' }), 'ugc')
+  expect(createRoom).toHaveBeenCalledWith(expect.objectContaining({ battleMode: 'server' }), 'ugc', undefined)
   expect(push).toHaveBeenCalledWith('/room/ABC123')
 })
 
-it('keeps official room creation available when the server catalog is unavailable and never sends custom content for P2P', async () => {
+it('keeps official room creation available when the catalog is unavailable and clears incompatible selections on P2P switch', async () => {
   refreshEnvironments.mockRejectedValueOnce(new Error('offline'))
   const page = mount(LobbyPage, { global: { stubs } })
   await page.get('[data-testid="create-private-room-button"]').trigger('click')
@@ -114,16 +191,90 @@ it('keeps official room creation available when the server catalog is unavailabl
   expect(page.text()).toContain('内容列表暂不可用')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
   await flushPromises()
-  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'server' }), undefined)
+  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'server' }), undefined, undefined)
   await page.get('[data-testid="create-private-room-button"]').trigger('click')
   await flushPromises()
   await page.get('[data-testid="room-environment-select"]').setValue('ugc')
   await page.get('[data-testid="p2p"]').trigger('click')
-  expect(page.find('[data-testid="room-environment-select"]').exists()).toBe(false)
+  expect(page.get('[data-testid="room-environment-select"]').text()).toContain('官方固定内容')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
   await flushPromises()
-  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'p2p' }), undefined)
+  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'p2p' }), undefined, undefined)
 })
+
+it('offers a published peer-only environment only for player-hosted room creation', async () => {
+  refreshEnvironments.mockImplementationOnce(async () => {
+    privateRoom.environments = [
+      { id: 'official', packages: [] },
+      { id: 'peer', packages: [{ name: '@example/peer', version: '2.0.0' }], executionPolicy: 'peer' },
+    ]
+  })
+  const page = mount(LobbyPage, { global: { stubs } })
+  await page.get('[data-testid="create-private-room-button"]').trigger('click')
+  await flushPromises()
+  expect(page.get('[data-testid="room-environment-select"]').text()).not.toContain('@example/peer')
+  expect(page.text()).toContain('仅允许玩家主机运行')
+  await page.get('[data-testid="p2p"]').trigger('click')
+  expect(page.get('[data-testid="room-environment-select"]').text()).toContain('@example/peer 2.0.0')
+  await page.get('[data-testid="room-environment-select"]').setValue('peer')
+  await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
+  await flushPromises()
+  expect(createRoom).toHaveBeenCalledWith(expect.objectContaining({ battleMode: 'p2p' }), 'peer', undefined)
+  page.unmount()
+})
+
+it.each(['pending', 'selected'] as const)(
+  'creates a personal room independently of a %s server catalog',
+  async catalogState => {
+    let finishCatalog!: () => void
+    if (catalogState === 'pending') {
+      refreshEnvironments.mockImplementationOnce(
+        () =>
+          new Promise<void>(resolve => {
+            finishCatalog = resolve
+          }),
+      )
+    } else {
+      refreshEnvironments.mockImplementationOnce(async () => {
+        privateRoom.environments = [
+          { id: 'peer', packages: [{ name: '@server/peer', version: '2.0.0' }], executionPolicy: 'peer' },
+        ]
+      })
+    }
+    const page = mount(LobbyPage, { global: { stubs } })
+    await page.get('[data-testid="create-private-room-button"]').trigger('click')
+    await flushPromises()
+    await page.get('[data-testid="p2p"]').trigger('click')
+    if (catalogState === 'selected') await page.get('[data-testid="room-environment-select"]').setValue('peer')
+    await page
+      .findAll('label')
+      .find(label => label.text() === '我的环境')!
+      .get('input')
+      .setValue(true)
+    expect(page.find('[data-testid="room-environment-select"]').exists()).toBe(false)
+    expect(page.get('[data-testid="confirm-create-private-room-button"]').attributes('disabled')).toBeDefined()
+    expect(createRoom).not.toHaveBeenCalled()
+
+    await page.get('[data-testid="accept-personal-environment"]').trigger('click')
+    await flushPromises()
+    expect(setPersonalEnvironment).toHaveBeenCalledWith(personalEnvironment)
+    expect(
+      privateRoom.environments.some(environment => environment.id === personalEnvironment.reference.descriptor.id),
+    ).toBe(false)
+    expect(page.get('[data-testid="confirm-create-private-room-button"]').attributes('disabled')).toBeUndefined()
+    await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
+    await flushPromises()
+    expect(createRoom).toHaveBeenCalledWith(
+      expect.objectContaining({ battleMode: 'p2p' }),
+      undefined,
+      personalEnvironment.reference,
+    )
+    expect(push).toHaveBeenCalledWith('/room/ABC123')
+    finishCatalog?.()
+    await flushPromises()
+    page.unmount()
+  },
+)
 
 it('browser displays its paired server without a server selection or local-host entry', () => {
   const page = mount(LobbyPage, { global: { stubs } })

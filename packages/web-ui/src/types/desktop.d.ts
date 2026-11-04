@@ -131,10 +131,25 @@ export interface DesktopUpdateCheckResult {
 export type LocalBattleHostStatus =
   | { status: 'idle' | 'starting' | 'stopping' }
   | { status: 'cancelled' }
-  | { status: 'running'; url: string; serverId: string; projectName: string }
+  | {
+      status: 'running'
+      url: string
+      serverId: string
+      projectName: string
+      localRecovery?: boolean
+      network?: {
+        host: string
+        port: number
+        scope: 'local' | 'network'
+        publicOrigin?: string
+        availableHosts: string[]
+        inviteUrls: string[]
+      }
+    }
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  managementRequest?: import('@/services/managementClient').ManagementIpcBridge
   author?: (
     input: Record<string, unknown>,
   ) => Promise<{ result?: unknown; error?: { code: string; message: string; file?: string } }>
@@ -146,6 +161,13 @@ export interface ArcadiaDesktopApi {
     token: string
     environment: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
+  }>
+  capturePersonalEnvironment?: () => Promise<{
+    environment: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
+    content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
+    runtime: import('@arcadia-eternity/protocol').NativeRuntimeIdentity
+    packages: import('@arcadia-eternity/protocol').ServerEnvironmentDescriptor['packages']
+    assets: { id: string; mime: string; data: string }[]
   }>
   releaseLocalContent?: (token: string) => Promise<void>
   selectContentPackageFile?: (options: {
@@ -165,7 +187,8 @@ export interface ArcadiaDesktopApi {
   getLocalBattleStatus?: () => Promise<LocalBattleHostStatus>
   installContentPackageFile?: (options?: { offline?: boolean }) => Promise<string | null>
   installNpmContentPackage?: (options: { spec: string; offline?: boolean }) => Promise<string>
-  stopLocalBattle?: () => Promise<LocalBattleHostStatus>
+  stopLocalBattle?: (options?: { force?: boolean }) => Promise<LocalBattleHostStatus>
+  recoverLocalBattle?: () => Promise<LocalBattleHostStatus>
   readWorkWorkspace?: () => Promise<import('@arcadia-eternity/pack-loader/native').WorkSnapshot>
   compareAndSwapWorkWorkspace?: (input: {
     expected: number

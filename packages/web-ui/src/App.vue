@@ -168,6 +168,12 @@
             <el-icon><FolderOpened /></el-icon>
             <span>本地战报</span>
           </router-link>
+          <router-link
+            to="/management"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >环境与服务器</router-link
+          >
         </nav>
 
         <div class="p-5 border-t border-gray-200 bg-gray-50">

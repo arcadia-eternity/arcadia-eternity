@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { createLocalContentLibraryClient } from './contentLibraryClient'
+import ManagementConsole from '@/features/management/ManagementConsole.vue'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
@@ -57,7 +59,9 @@ async function browsePackage(id: string) {
   await run(async () => openSource(await authorCall<SourceProject>({ action: 'browse-package', packageId: id })))
 }
 const api = window.arcadiaDesktop
-const local = !!api?.listContentPackages && !!api?.contentPackageAction
+const libraryClient = createLocalContentLibraryClient(api)
+const local = !!libraryClient
+const managementOpen = ref(false)
 const gameData = useGameDataStore()
 const rooms = usePrivateRoomStore()
 const battle = useBattleClientStore()
@@ -229,7 +233,7 @@ function changeMode(value: typeof mode.value) {
 async function refresh() {
   if (!local) return
   const request = ++refreshRequest
-  const result = await api!.listContentPackages!()
+  const result = await libraryClient!.list()
   if (disposed || request !== refreshRequest) return
   const changed = snapshot.value && JSON.stringify(snapshot.value.activeIds) !== JSON.stringify(result.activeIds)
   snapshot.value = result
@@ -252,7 +256,7 @@ async function setSelection(ids: string[]) {
   error.value = ''
   notice.value = ''
   try {
-    await api!.contentPackageAction!({ action: 'set-selection', ids, offline: offline.value })
+    await libraryClient!.action({ action: 'set-selection', ids, offline: offline.value })
   } catch (cause) {
     if (current === intent && !disposed) error.value = cause instanceof Error ? cause.message : '无法保存内容选择'
   } finally {
@@ -303,16 +307,23 @@ async function installSource(source: () => Promise<string | null>) {
   })
 }
 async function inspectFile() {
-  await installSource(() => api!.installContentPackageFile!({ offline: offline.value }))
+  await installSource(() => libraryClient!.installFile({ offline: offline.value }))
 }
 async function inspectNpm() {
-  await installSource(() => api!.installNpmContentPackage!({ spec: npmSpec.value.trim(), offline: offline.value }))
+  await installSource(() => libraryClient!.installNpm({ spec: npmSpec.value.trim(), offline: offline.value }))
+}
+async function importSources() {
+  if (!local) return
+  await run(async () => {
+    const result = await libraryClient!.action({ action: 'import-sources' })
+    if (typeof result === 'string') notice.value = result ? `已登记来源：${result}` : '来源登记已清空'
+  })
 }
 async function uninstall() {
   const pkg = selected.value
   if (!local || !pkg?.local) return
   await run(async () => {
-    await api!.contentPackageAction!({ action: 'uninstall', packageId: pkg.id })
+    await libraryClient!.action({ action: 'uninstall', packageId: pkg.id })
     await refresh()
     selectedId.value = 'official'
     notice.value = '内容包已卸载'
@@ -365,10 +376,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="content-page" :class="{ 'detail-open': detailOpen }">
+  <section v-if="managementOpen">
+    <button class="management-return" @click="managementOpen = false">返回内容包</button>
+    <ManagementConsole initial-target="local" />
+  </section>
+  <main v-else class="content-page" :class="{ 'detail-open': detailOpen }">
     <header class="page-heading">
       <h1>内容包</h1>
       <span class="scope">{{ readonly ? '只读' : '本机管理' }}</span>
+      <button v-if="api?.managementRequest" @click="managementOpen = true">环境与服务器</button>
+      <button v-else @click="router.push('/management')">服务器管理</button>
     </header>
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <p v-if="notice" class="message" role="status">{{ notice }}</p>
@@ -400,6 +417,7 @@ onBeforeUnmount(() => {
           <input v-model="query" type="search" aria-label="搜索内容包" placeholder="搜索内容包名称或作者" /><template
             v-if="!readonly"
             ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
+            ><button :disabled="busy" @click="importSources">导入环境来源</button
             ><button :disabled="busy" @click="run(() => refresh())">刷新</button></template
           >
         </div>

@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'packs/*'
 allowBuilds:
+  better-sqlite3: true
   '@scarf/scarf': true
   '@swc/core': true
   '@tsparticles/engine': true

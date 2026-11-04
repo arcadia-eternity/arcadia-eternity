@@ -7,12 +7,20 @@ import { writeFileSync } from 'node:fs'
 const args = process.argv.slice(2)
 const option = name => args[args.indexOf(name) + 1]
 const project = basename(option('--npm-project'))
-if (args[0] !== 'server' || option('--host') !== '127.0.0.1' || option('--port') !== '0')
+const managed = args.includes('--desktop-managed-network')
+if (
+  args[0] !== 'server' ||
+  (managed ? !args.includes('--desktop-origin') : option('--host') !== '127.0.0.1' || option('--port') !== '0')
+)
   throw new Error('invalid listener')
 if (process.env.DESKTOP_TEST_SECRET || process.env.NODE_OPTIONS || !process.env.npm_config_userconfig)
   throw new Error('credentials leaked')
 if (project === 'refuse') {
   console.error('secret data that must not be returned')
+  process.exit(8)
+}
+if (project === 'occupied-listener' && managed && !args.includes('--host')) {
+  console.error('Error: EADDRINUSE private listener path')
   process.exit(8)
 }
 if (project === 'unapproved') {
@@ -36,6 +44,8 @@ if (project === 'unapproved') {
     res.end(JSON.stringify({ serverId }))
   })
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  if (managed)
+    process.send({ type: 'arcadia.desktop.listener', serverId, host: '127.0.0.1', port: server.address().port })
   console.log(`Battle server ${serverId} listening on port ${server.address().port}`)
   let current = { id: 'initial', packages: [{ name: 'test' }] }
   const environments = new Map([
@@ -48,6 +58,10 @@ if (project === 'unapproved') {
       if (process.connected) process.send({ type: 'arcadia.desktop.content.result', id: message.id, ok, value })
     }
     if (message.action === 'retained') return reply(true, [...environments.keys()])
+    if (message.action === 'management' && message.request.path.endsWith('/drain'))
+      return reply(true, { status: 200, body: { draining: true, activeBattles: project === 'active-battle' ? 1 : 0 } })
+    if (message.action === 'management')
+      return reply(true, { status: 200, body: { serverId, request: message.request } })
     if (message.action === 'describe') return reply(true, current)
     if (message.action === 'prepare') {
       if (message.directory?.endsWith('bad-control')) return reply(false)

@@ -8,7 +8,11 @@ import type {
   AssetLock,
 } from '@arcadia-eternity/schema'
 import type { NativeRuntimeIdentity } from './session'
-import type { ServerEnvironmentAcceptance, ServerEnvironmentDescriptor } from './environment'
+import type {
+  PersonalEnvironmentReference,
+  ServerEnvironmentAcceptance,
+  ServerEnvironmentDescriptor,
+} from './environment'
 
 // 重新导出常用类型
 export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
@@ -140,7 +144,7 @@ export interface ClientToServerEvents {
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
   startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<PrivateRoomBattleStartInfo>) => void
   finishPrivateRoomBattle: (
-    data: { winner: string | null; reason: string },
+    data: { winner: string | null; reason: string; battleRoomId?: string },
     ack: AckResponse<{ status: 'FINISHED' }>,
   ) => void
   sendPrivateRoomPeerSignal: (data: SendPrivateRoomPeerSignalRequest, ack: AckResponse<{ status: 'FORWARDED' }>) => void
@@ -159,6 +163,7 @@ export interface ClientToServerEvents {
 // 私人房间相关类型定义
 export interface CreatePrivateRoomRequest {
   environmentId?: string
+  personalEnvironment?: PersonalEnvironmentReference
   expectedRuntime?: NativeRuntimeIdentity
   config: {
     ruleSetId?: string
@@ -200,6 +205,7 @@ export interface UpdatePrivateRoomRuleSetRequest {
 }
 
 export interface UpdatePrivateRoomConfigRequest {
+  personalEnvironment?: PersonalEnvironmentReference
   ruleSetId?: string
   isPrivate?: boolean
   password?: string
@@ -235,12 +241,15 @@ export interface PrivateRoomPeerSignalPayload {
 }
 
 export interface SendPrivateRoomPeerSignalRequest {
+  /** Captured battle instance; late signals must not enter a subsequent round in the same room. */
+  battleRoomId?: string
   targetPlayerId: string
   targetSessionId?: string
   signal: PrivateRoomPeerSignalPayload
 }
 
 export interface PrivateRoomPeerSignalEvent {
+  battleRoomId?: string
   roomCode: string
   from: PrivateRoomBattleHostInfo
   to: PrivateRoomBattleHostInfo
@@ -276,6 +285,8 @@ export interface PrivateRoomInfo {
   /** Automatically paired room, closed after the result instead of returning to a friend lobby. */
   matchmaking?: boolean
   environment?: ServerEnvironmentDescriptor
+  personalEnvironment?: PersonalEnvironmentReference
+  challengeGeneration?: number
   id: string
   config: {
     roomCode: string

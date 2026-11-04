@@ -134,23 +134,33 @@ export default defineConfig(({ mode }) => {
             { srcDir: '../../packs/base/data', outDir: 'data' },
             { srcDir: '../../resource', outDir: 'resource' },
             { srcDir: '../../packs/base/locales', outDir: 'locales' },
-          ].map(({ srcDir, outDir }) => {
+          ].flatMap(({ srcDir, outDir }) => {
             const baseDir = srcDir
-            return {
-              src: `${baseDir}/**/*.yaml`,
-              dest: outDir,
-              rename: (fileName: string, fileExtension: string, fullPath: string) => {
-                const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
-                return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
+            // The pack manifest references YAML directly; the app's i18next backend uses JSON.
+            // Ship both metadata formats so neither reader needs a failed request to find its data.
+            return [
+              {
+                src: `${baseDir}/**/*.yaml`,
+                dest: outDir,
+                rename: (_fileName: string, _fileExtension: string, fullPath: string) =>
+                  path.relative(path.resolve(__dirname, baseDir), fullPath).replace(/\\/g, '/'),
               },
-              transform: (content: string) =>
-                JSON.stringify(
-                  yaml.parse(content, {
-                    merge: true,
-                  }),
-                  null,
-                ),
-            }
+              {
+                src: `${baseDir}/**/*.yaml`,
+                dest: outDir,
+                rename: (fileName: string, fileExtension: string, fullPath: string) => {
+                  const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
+                  return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
+                },
+                transform: (content: string) =>
+                  JSON.stringify(
+                    yaml.parse(content, {
+                      merge: true,
+                    }),
+                    null,
+                  ),
+              },
+            ]
           }),
           {
             src: '../../packs/base/pack.json',

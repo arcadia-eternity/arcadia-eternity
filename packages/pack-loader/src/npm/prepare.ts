@@ -10,11 +10,16 @@ import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProje
 import { captureNpmProject } from './capture'
 import { preparePresentation, type PreparedPresentation } from './resources'
 import { compileEffectModule } from './effect-artifact'
+import { readPrebuiltEffectModule } from './prebuilt-artifact'
 import { bindEffectEnvironment } from '../effect-environment'
 
 export interface NpmContentHost extends Omit<WorkHost<ContentIndex>, 'createContent'> {
   readonly effectModules?: SandboxEnvironment['modules']
   readonly effectIds?: readonly string[]
+}
+export interface NpmPreparationOptions {
+  /** prebuilt-only never invokes the author compiler, module loader or a VM. */
+  readonly effectPreparation?: 'compile' | 'prebuilt-only'
 }
 export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnvironment<ContentIndex>>> & {
   readonly installation: NpmProjectInspection
@@ -34,7 +39,16 @@ export async function prepareNpmProject(
   directory: string,
   host: NpmContentHost,
   approval: { policy: Readonly<Record<string, Json>> },
+  options: NpmPreparationOptions = {},
 ): Promise<Readonly<PreparedNpmEnvironment>> {
+  if (options.effectPreparation !== undefined && !['compile', 'prebuilt-only'].includes(options.effectPreparation))
+    fail('NPM_PREPARATION_MODE', 'effectPreparation', 'Unsupported effect preparation mode')
+  if (approval.policy.profile === 'official' && options.effectPreparation === 'compile')
+    fail('NPM_PREPARATION_POLICY', 'effectPreparation', 'Official hosts consume prebuilt author artifacts only')
+  const preparation: NpmPreparationOptions = {
+    effectPreparation:
+      options.effectPreparation ?? (approval.policy.profile === 'official' ? 'prebuilt-only' : 'compile'),
+  }
   const source = await realpath(directory)
   const original = await inspectNpmProject(source)
   const captured = await captureNpmProject(source, original)
@@ -44,7 +58,7 @@ export async function prepareNpmProject(
     // Relocation only changes private npm source paths. Audit the administrator's original lockfile.
     const installation = Object.freeze({ ...inspected, lockfileDigest: original.lockfileDigest })
     return Object.freeze({
-      ...(await compileInstallation(captured.root, host, installation, approval.policy)),
+      ...(await compileInstallation(captured.root, host, installation, approval.policy, preparation)),
       presentation: await preparePresentation(captured.root, installation.packages),
       dispose,
     })
@@ -59,6 +73,7 @@ async function compileInstallation(
   host: NpmContentHost,
   installation: NpmProjectInspection,
   policyInput: Readonly<Record<string, Json>>,
+  options: NpmPreparationOptions,
 ) {
   const policy = cloneJson(policyInput)
   const contentPackages = installation.packages.filter(pkg => pkg.manifest)
@@ -81,7 +96,8 @@ async function compileInstallation(
           const ref = reference.$ref
           if (!ref || typeof ref !== 'object' || Array.isArray(ref) || ref.kind !== 'behavior') continue
           const provider = typeof ref.projectId === 'string' ? byProject.get(ref.projectId) : undefined
-          if (!provider?.manifest!.effects || typeof ref.id !== 'string') continue
+          if ((!provider?.manifest!.effects && !provider?.manifest!.effectArtifact) || typeof ref.id !== 'string')
+            continue
           if (provider.draft!.data.behaviors.some(definition => definition.id === ref.id)) continue
           runtimeId(provider.manifest!.namespace, ref.id)
           const uses = codeUses.get(provider.location)!
@@ -98,10 +114,20 @@ async function compileInstallation(
   })
   const artifacts: SandboxEnvironment['modules'][number][] = [...(host.effectModules ?? [])]
   for (const pkg of contentPackages) {
-    if (!pkg.manifest!.effects) continue
-    const file = packageFile(resolve(root, pkg.location), pkg.manifest!.effects!)
-    const artifact = await compileEffectModule(file, root, pkg.name)
-    artifacts.push({ artifact, namespace: pkg.manifest!.namespace, role: 'behaviors' })
+    const manifest = pkg.manifest!
+    if (!manifest.effects && !manifest.effectArtifact) continue
+    // Published artifacts are canonical for every consumer, including clients that
+    // also have a compiler. A declared artifact never silently falls back to source.
+    if (options.effectPreparation === 'prebuilt-only' && !manifest.effectArtifact)
+      fail('NPM_ARTIFACT_REQUIRED', pkg.location, 'This host requires an author-published effect artifact')
+    const artifact = manifest.effectArtifact
+      ? await readPrebuiltEffectModule(
+          packageFile(resolve(root, pkg.location), manifest.effectArtifact),
+          root,
+          pkg.name,
+        )
+      : await compileEffectModule(packageFile(resolve(root, pkg.location), manifest.effects!), root, pkg.name)
+    artifacts.push({ artifact, namespace: manifest.namespace, role: 'behaviors' })
   }
   const combinedHost: WorkHost<ContentIndex> = {
     ...host,

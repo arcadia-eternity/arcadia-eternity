@@ -1,8 +1,14 @@
 import 'dotenv/config'
 import { Command, CommanderError, InvalidArgumentError } from 'commander'
-import pg from 'pg'
 import nodemailer from 'nodemailer'
-import { resolve, dirname } from 'node:path'
+import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
+import { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
+import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-dev/managed-projects'
+import { readFile, stat } from 'node:fs/promises'
+import { openServerStorage, workspaceRetentions } from './server-persistence'
+import { createDesktopWorkspaceProxy } from './desktop-workspace-proxy'
+import { createOnlineServerBackup } from './server-backup'
+import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { attachDesktopContentControl } from './desktop-content-control'
 import {
@@ -10,8 +16,7 @@ import {
   parseBattleCapacityEnv,
   EmailCodeVerifier,
   GithubAppVerifier,
-  PgAccountDirectory,
-  ensureAccountSchema,
+  getPersistedServerSettings,
   type G3AccountServices,
 } from '@arcadia-eternity/server'
 
@@ -23,7 +28,17 @@ function portNumber(value: string): number {
 }
 
 export async function runServerCli(args: string[]): Promise<number> {
-  let accountPool: pg.Pool | undefined
+  if (args[0] === 'backup') {
+    const { runServerBackupCli } = await import('./server-backup-cli')
+    return runServerBackupCli(args.slice(1))
+  }
+  if (args[0] === 'db' || args[0] === 'admin') {
+    const { runServerAdminCli } = await import('./server-admin-cli')
+    return runServerAdminCli(args)
+  }
+  let storage: DurableStorage | undefined
+  let workspace: ContentWorkspace | undefined
+  let projects: ManagedProjects | undefined
   let mailer: ReturnType<typeof nodemailer.createTransport> | undefined
   let server: ReturnType<typeof createSingleProcessApp> | undefined
   const program = new Command('arcadia server')
@@ -31,7 +46,33 @@ export async function runServerCli(args: string[]): Promise<number> {
     .exitOverride()
     .option('-p, --port <number>', 'HTTP and Socket.IO port', portNumber, portNumber(process.env.PORT || '8102'))
     .option('--host <address>', 'Listen address', process.env.HOST || '0.0.0.0')
-    .option('--server-id <id>', 'Stable identity of this server', process.env.SERVER_ID || 'arcadia-local')
+    .option('--server-id <id>', 'Stable identity (generated once when omitted)', process.env.SERVER_ID)
+    .option('--data-dir <directory>', 'Persistent server data directory', process.env.ARCADIA_DATA_DIR)
+    .option('--workspace-root <directory>', 'Content workspace root', process.env.ARCADIA_WORKSPACE_ROOT)
+    .option('--desktop-project <directory>', 'Trusted desktop host initial content project')
+    .option('--desktop-managed-network', 'Trusted desktop owner controls persistent listener settings')
+    .option('--desktop-origin <origin>', 'Trusted desktop renderer origin')
+    .option(
+      '--content-sources <file>',
+      'Host-registered Git/URL/archive/package sources JSON',
+      process.env.ARCADIA_CONTENT_SOURCES,
+    )
+    .option('--npm-registry <url>', 'HTTPS package registry for managed environments', process.env.ARCADIA_NPM_REGISTRY)
+    .option(
+      '--offline-content',
+      'Prepare content using existing local artifacts/cache only',
+      process.env.ARCADIA_OFFLINE_CONTENT === '1',
+    )
+    .option(
+      '--allow-third-party-content',
+      'Permit acquiring third-party prepared content (does not grant server execution)',
+      process.env.ARCADIA_ALLOW_THIRD_PARTY_CONTENT === '1',
+    )
+    .option(
+      '--allow-third-party-execution',
+      'Community host: explicitly permit approved third-party environments',
+      process.env.ARCADIA_ALLOW_THIRD_PARTY_EXECUTION === '1',
+    )
     .option('--headless', 'Serve API and Socket.IO without the paired website', process.env.ARCADIA_HEADLESS === '1')
     .option('--web-root <directory>', 'Paired website build directory', process.env.ARCADIA_WEB_ROOT)
     .option(
@@ -48,7 +89,17 @@ export async function runServerCli(args: string[]): Promise<number> {
     const options = program.opts<{
       port: number
       host: string
-      serverId: string
+      serverId?: string
+      dataDir?: string
+      workspaceRoot?: string
+      desktopProject?: string
+      desktopManagedNetwork?: boolean
+      desktopOrigin?: string
+      contentSources?: string
+      npmRegistry?: string
+      offlineContent?: boolean
+      allowThirdPartyExecution?: boolean
+      allowThirdPartyContent?: boolean
       corsOrigin: string
       headless: boolean
       webRoot?: string
@@ -59,7 +110,6 @@ export async function runServerCli(args: string[]): Promise<number> {
     }>()
     if (!['true', 'false'].includes(options.webAutoConnect))
       throw new InvalidArgumentError('--web-auto-connect / ARCADIA_WEB_AUTO_CONNECT must be true or false')
-    const battleCapacity = parseBattleCapacityEnv(process.env)
     const corsOrigins = options.corsOrigin
       .split(',')
       .map(value => value.trim())
@@ -74,7 +124,6 @@ export async function runServerCli(args: string[]): Promise<number> {
     if (accountMode && accountMode !== 'guest' && accountMode !== 'g3')
       throw new Error('ACCOUNT_MODE must be guest or g3')
     const accountKeys = [
-      'DATABASE_URL',
       'SMTP_HOST',
       'SMTP_PORT',
       'SMTP_FROM',
@@ -95,18 +144,53 @@ export async function runServerCli(args: string[]): Promise<number> {
       throw new Error('ACCOUNT_MODE=guest cannot be combined with account provider configuration')
     if (accountMode !== 'g3' && hasAccountConfig)
       throw new Error('Set ACCOUNT_MODE=g3 when configuring durable accounts')
+    const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
+    if ((options.desktopProject || options.desktopManagedNetwork || options.desktopOrigin) && !desktopControl)
+      throw new Error('Desktop options require the private desktop host')
+    if (options.desktopManagedNetwork) {
+      if (!options.desktopOrigin) throw new Error('Managed desktop host requires its renderer origin')
+      if (program.getOptionValueSource('host') !== 'cli' && !process.env.HOST) options.host = '127.0.0.1'
+      if (program.getOptionValueSource('port') !== 'cli' && !process.env.PORT) options.port = 0
+      if (program.getOptionValueSource('corsOrigin') !== 'cli' && !process.env.CORS_ORIGIN)
+        corsOrigins.splice(0, corsOrigins.length, options.desktopOrigin)
+    }
+    const opened = await openServerStorage(options)
+    storage = opened.storage
+    const serverId = opened.serverId!
+    options.serverId = serverId
+    const persistedSettings = await getPersistedServerSettings(storage, options.serverId, {
+      desktopLocal: desktopControl && !options.desktopManagedNetwork,
+    })
+    const fromDeployment = (option: string, variable: string) =>
+      program.getOptionValueSource(option) === 'cli' || process.env[variable] !== undefined
+    if (persistedSettings) {
+      if (!fromDeployment('host', 'HOST')) options.host = persistedSettings.host
+      if (!fromDeployment('port', 'PORT')) options.port = persistedSettings.port
+      if (!fromDeployment('publicOrigin', 'PUBLIC_ORIGIN')) options.publicOrigin = persistedSettings.publicOrigin
+      if (!fromDeployment('corsOrigin', 'CORS_ORIGIN'))
+        corsOrigins.splice(0, corsOrigins.length, ...persistedSettings.corsOrigins)
+    }
+    if (options.desktopOrigin && !corsOrigins.includes(options.desktopOrigin)) corsOrigins.push(options.desktopOrigin)
+    const capacityEnvironment = { ...process.env }
+    const capacityVariables = {
+      ARCADIA_MAX_CONCURRENT_BATTLES: 'maxConcurrentBattles',
+      ARCADIA_MAX_IDLE_WORKERS: 'maxIdleWorkers',
+      ARCADIA_MAX_QUEUED_BATTLES: 'maxQueuedBattles',
+      ARCADIA_BATTLE_QUEUE_TIMEOUT_MS: 'battleQueueTimeoutMs',
+    } as const
+    for (const [variable, field] of Object.entries(capacityVariables)) {
+      if (capacityEnvironment[variable] === undefined && persistedSettings)
+        capacityEnvironment[variable] = String(persistedSettings.battleCapacity[field])
+    }
+    const battleCapacity = parseBattleCapacityEnv(capacityEnvironment)
     let accounts: G3AccountServices | undefined
     if (accountMode === 'g3') {
-      const configuredId =
-        !!process.env.SERVER_ID || args.some(arg => arg === '--server-id' || arg.startsWith('--server-id='))
-      if (!configuredId) throw new Error('G3 accounts require an explicit stable SERVER_ID or --server-id')
       if (corsOrigins.includes('*')) throw new Error('G3 accounts require explicit CORS origins')
       const required = (key: string) => {
         const value = process.env[key]?.trim()
         if (!value) throw new Error(`${key} is required for G3 accounts`)
         return value
       }
-      const databaseUrl = required('DATABASE_URL')
       const smtpHost = required('SMTP_HOST')
       const smtpFrom = required('SMTP_FROM')
       if (accountKeys.some(key => key.startsWith('OIDC_') && !!process.env[key]))
@@ -137,7 +221,6 @@ export async function runServerCli(args: string[]): Promise<number> {
       const smtpUser = process.env.SMTP_USER
       const smtpPassword = process.env.SMTP_PASSWORD
       if (!!smtpUser !== !!smtpPassword) throw new Error('SMTP_USER and SMTP_PASSWORD must both be set or both absent')
-      accountPool = new pg.Pool({ connectionString: databaseUrl, connectionTimeoutMillis: 10_000 })
       mailer = nodemailer.createTransport({
         host: smtpHost,
         port: smtpPort,
@@ -149,7 +232,6 @@ export async function runServerCli(args: string[]): Promise<number> {
         socketTimeout: 10_000,
       })
       const smtp = mailer
-      const pool = accountPool
       const email = new EmailCodeVerifier({
         sendCode: async (address, code) => {
           await smtp.sendMail({
@@ -166,20 +248,44 @@ export async function runServerCli(args: string[]): Promise<number> {
         redirectUris,
       })
       accounts = {
-        directory: new PgAccountDirectory(pool, options.serverId),
+        directory: new SQLAccountDirectory(storage, options.serverId),
         email,
         github,
         ready: async () => {
           await email.ready()
-          await ensureAccountSchema(pool)
+          await storage!.checkSchema()
           await smtp.verify()
         },
       }
     }
     if (options.headless && options.webRoot) throw new Error('--headless cannot be combined with --web-root')
-    const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
+    const { persistentServerConfig } = await import('./server-config')
+    const config = persistentServerConfig(options)
+    const retentions = workspaceRetentions(storage, () => workspace!.workspaceId)
+    workspace = desktopControl
+      ? await createDesktopWorkspaceProxy({ retentions })
+      : await ContentWorkspace.open(config.workspaceRoot, { retentions })
+    if (!desktopControl) {
+      let sources: ManagedProjectsOptions['sources']
+      if (options.contentSources) {
+        const sourceFile = await stat(options.contentSources)
+        if (!sourceFile.isFile() || sourceFile.size > 2 * 1024 * 1024)
+          throw new Error('Content source registry must be a JSON file no larger than 2 MiB')
+        const value: unknown = JSON.parse(await readFile(options.contentSources, 'utf8'))
+        if (!value || typeof value !== 'object' || Array.isArray(value))
+          throw new Error('Invalid content source registry')
+        sources = value as ManagedProjectsOptions['sources']
+      }
+      projects = new ManagedProjects(join(config.dataDirectory, 'projects'), {
+        allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
+        registry: options.npmRegistry,
+        offline: options.offlineContent,
+        npmUserConfig: process.env.ARCADIA_NPM_USERCONFIG,
+        sources,
+      })
+    }
     const webRoot =
-      options.headless || desktopControl
+      options.headless || (desktopControl && (!options.desktopManagedNetwork || !options.webRoot))
         ? undefined
         : resolve(options.webRoot ?? resolve(dirname(fileURLToPath(import.meta.url)), 'web'))
     if (options.publicOrigin && !corsOrigins.includes(options.publicOrigin)) corsOrigins.push(options.publicOrigin)
@@ -187,28 +293,57 @@ export async function runServerCli(args: string[]): Promise<number> {
       ...battleCapacity,
       webRoot,
       webAutoConnect: options.webAutoConnect === 'true',
-      desktopLocal: desktopControl,
+      desktopLocal: desktopControl && options.host === '127.0.0.1' && !webRoot,
+      desktopManaged: desktopControl && options.desktopManagedNetwork,
+      desktopRendererOrigin: desktopControl ? options.desktopOrigin : undefined,
       publicOrigin: options.publicOrigin,
       port: options.port,
       host: options.host,
       serverId: options.serverId,
       corsOrigins:
-        program.getOptionValueSource('corsOrigin') === 'default' && !process.env.CORS_ORIGIN ? undefined : corsOrigins,
+        !persistedSettings && !options.desktopOrigin && !fromDeployment('corsOrigin', 'CORS_ORIGIN')
+          ? undefined
+          : corsOrigins,
       accounts,
+      management: {
+        storage,
+        workspace,
+        createServerBackup: signal =>
+          createOnlineServerBackup({ storage: storage!, workspace: workspace!, serverId, signal }),
+        transferDirectory: join(config.dataDirectory, 'transfers'),
+        trustedProxyAddresses: process.env.MANAGEMENT_TRUSTED_PROXY_IPS?.split(',')
+          .map(value => value.trim())
+          .filter(Boolean),
+        allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
+        ...(projects
+          ? { prepareEnvironment: (input, validator) => projects!.prepareVersion(workspace!, input, validator) }
+          : {}),
+      },
       ...(options.developmentProject
         ? { development: { directory: resolve(options.developmentProject), token: developmentToken! } }
         : {}),
     })
     await server.environments.ready()
     const builtinId = server.environments.descriptor().id
-    if (desktopControl && (options.host !== '127.0.0.1' || accounts)) throw new Error('Invalid desktop host')
+    if (desktopControl && ((!options.desktopManagedNetwork && options.host !== '127.0.0.1') || accounts))
+      throw new Error('Invalid desktop host')
     for (const directory of options.npmProject ?? []) {
       const prepared = await server.environments.prepareNpm(directory)
       if (desktopControl) server.environments.selectDefault(prepared.id)
     }
+    if (desktopControl && options.desktopProject) {
+      const { initializeDesktopHost } = await import('./desktop-host-initialize')
+      await initializeDesktopHost({
+        management: server.management!,
+        workspace,
+        projectDirectory: options.desktopProject,
+      })
+    }
     await server.start()
     const detachDesktopControl = desktopControl
-      ? attachDesktopContentControl(server.environments, builtinId)
+      ? attachDesktopContentControl(server.environments, builtinId, request =>
+          server!.management!.localRequest(request),
+        )
       : undefined
     const runningServer = server
     let closing = false
@@ -225,7 +360,9 @@ export async function runServerCli(args: string[]): Promise<number> {
         })
         .finally(async () => {
           mailer?.close()
-          await accountPool?.end()
+          await workspace?.close()
+          await projects?.close()
+          await storage?.close()
           process.removeListener('SIGINT', stop)
           process.removeListener('SIGTERM', stop)
         })
@@ -233,6 +370,15 @@ export async function runServerCli(args: string[]): Promise<number> {
     process.once('SIGINT', stop)
     process.once('SIGTERM', stop)
     const address = server.httpServer.address()
+    if (desktopControl && options.desktopManagedNetwork && typeof address === 'object' && address) {
+      process.send?.({
+        type: 'arcadia.desktop.listener',
+        serverId: options.serverId,
+        host: address.address,
+        port: address.port,
+        publicOrigin: options.publicOrigin,
+      })
+    }
     console.log(
       `Battle server ${options.serverId} listening on port ${typeof address === 'object' ? address?.port : options.port}`,
     )
@@ -241,7 +387,9 @@ export async function runServerCli(args: string[]): Promise<number> {
   } catch (error) {
     await server?.stop()
     mailer?.close()
-    await accountPool?.end()
+    await workspace?.close()
+    await projects?.close()
+    await storage?.close()
     if (error instanceof CommanderError && error.exitCode === 0) return 0
     console.error(error instanceof Error ? error.message : error)
     return 1

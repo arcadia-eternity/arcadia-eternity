@@ -45,6 +45,8 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   const descriptor = value as ServerEnvironmentDescriptor
   if (descriptor?.protocolVersion !== 1 || descriptor?.runtime?.kind !== 'native-v4')
     throw new Error('服务器环境协议不兼容')
+  if (descriptor.executionPolicy !== undefined && !['server', 'peer'].includes(descriptor.executionPolicy)) invalid()
+  if (descriptor.peerRevision !== undefined && !identifier(descriptor.peerRevision)) invalid()
   if (!HASH.test(descriptor.id) || !HASH.test(descriptor.resourceRevision)) invalid()
   if (
     descriptor.runtime?.kind !== 'native-v4' ||

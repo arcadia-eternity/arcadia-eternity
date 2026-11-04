@@ -2,10 +2,21 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { validateSupplementalProvenance } from './desktop-license-provenance.mjs'
 
-const LICENSE_NAME = /^(?:licen[cs]e|copying|notice)(?:[._-].*)?$/i
+const LICENSE_NAME = /^(?:licen[cs]e|copying|notice|copyright(?:notice)?)(?:[._-].*)?$/i
 const README_NAME = /^readme(?:[._-].*)?$/i
 const MAX_TEXT_BYTES = 32 * 1024 * 1024
+const supplementalRoot = fileURLToPath(new URL('./desktop-license-reference/supplemental/', import.meta.url))
+let supplementalRecords
+
+async function loadSupplementalRecords() {
+  supplementalRecords ??= readFile(join(supplementalRoot, 'provenance.json'), 'utf8').then(text =>
+    validateSupplementalProvenance(JSON.parse(text)),
+  )
+  return supplementalRecords
+}
 
 // Pinned SPDX originals are build-time reference material, never substituted for
 // the license text supplied by a dependency. See desktop-license-reference/README.md.
@@ -32,11 +43,29 @@ const verifiedPackageTexts = new Map(
     ['istanbul-reports', '3.2.0', 'istanbul-licenses', 'BSD-3-Clause'],
     ['source-map-js', '1.2.2', 'source-map-js-1.2.2', 'BSD-3-Clause'],
     ['tough-cookie', '5.1.2', 'tough-cookie-5.1.2', 'BSD-3-Clause'],
-  ].map(([name, version, file, license]) => [
+    ['@colors/colors', '1.5.0', 'colors-1.5.0', 'MIT'],
+    ['@jitl/quickjs-ffi-types', '0.32.0', 'quickjs-0.32.0', 'MIT'],
+    ['quickjs-emscripten', '0.32.0', 'quickjs-0.32.0', 'MIT'],
+    ['quickjs-emscripten-core', '0.32.0', 'quickjs-0.32.0', 'MIT'],
+    ['fast-uri', '3.1.8', 'fast-uri-3.1.8', 'BSD-3-Clause'],
+    ['json-schema-typed', '8.0.2', 'json-schema-typed-8.0.2', 'BSD-2-Clause'],
+    ['tslib', '2.9.1', 'tslib-2.9.1', '0BSD'],
+    ['archy', '1.0.0', 'mit-publisher-no-holder', 'MIT'],
+    ['github-from-package', '0.0.0', 'mit-publisher-no-holder', 'MIT'],
+    ['json-stable-stringify-without-jsonify', '1.0.1', 'mit-publisher-no-holder', 'MIT'],
+    ['minimist', '1.2.8', 'mit-publisher-no-holder', 'MIT'],
+    ['text-table', '0.2.0', 'mit-publisher-no-holder', 'MIT'],
+    ['pkce-challenge', '5.0.0', 'pkce-challenge-5.0.0', 'MIT'],
+    ['nodemailer', '10.2.1', 'nodemailer-10.2.1', 'MIT-0'],
+    ['chownr', '3.0.0', 'blueoak-published-dist', 'BlueOak-1.0.0', ['src']],
+    ['glob', '13.0.6', 'blueoak-published-dist', 'BlueOak-1.0.0', ['src']],
+    ['yallist', '5.0.0', 'blueoak-published-dist', 'BlueOak-1.0.0', ['src']],
+  ].map(([name, version, file, license, absentPaths = []]) => [
     JSON.stringify([name, version]),
     {
       text: readFileSync(new URL(`./desktop-license-reference/packages/${file}.txt`, import.meta.url), 'utf8'),
       license,
+      absentPaths,
     },
   ]),
 )
@@ -198,6 +227,17 @@ function declarationMatches(declared, evidence) {
   return clauses.some(part => evidence.has(part))
 }
 
+function packageDeclaration(metadata) {
+  if (typeof metadata.license === 'string')
+    return { value: metadata.license, source: 'license', original: metadata.license }
+  if (metadata.license !== undefined || !Array.isArray(metadata.licenses) || metadata.licenses.length !== 1)
+    return { value: null, source: null }
+  const legacy = metadata.licenses[0]
+  if (!legacy || typeof legacy.type !== 'string') return { value: null, source: null }
+  const aliases = { 'Apache 2.0': 'Apache-2.0' }
+  return { value: aliases[legacy.type] ?? legacy.type, source: 'licenses[0].type', original: legacy.type }
+}
+
 function sourceRepository(metadata) {
   const candidate = typeof metadata.repository === 'string' ? metadata.repository : metadata.repository?.url
   if (typeof candidate !== 'string') return null
@@ -244,13 +284,20 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
   const missing = []
   const visited = new Set()
   const copied = new Map()
+  const supplements = await loadSupplementalRecords()
 
   async function preserve(file, source) {
     const data = await regularFile(file)
     const digest = createHash('sha256').update(data).digest('hex')
     const destination = `licenses/${digest}.txt`
     if (!copied.has(digest)) {
-      await writeFile(join(root, destination), data, { flag: 'wx' })
+      try {
+        await writeFile(join(root, destination), data, { flag: 'wx' })
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error
+        if (!(await regularFile(join(root, destination))).equals(data))
+          throw new Error('Existing license digest file has different bytes', { cause: error })
+      }
       copied.set(digest, destination)
     }
     return { source, sha256: digest, path: destination }
@@ -283,7 +330,8 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
     }
     if (typeof metadata.name !== 'string' || typeof metadata.version !== 'string')
       throw new Error(`Invalid package metadata: ${packageFile}`)
-    const declared = typeof metadata.license === 'string' ? metadata.license : null
+    const declaration = packageDeclaration(metadata)
+    const declared = declaration.value
     const files = []
     const evidence = new Set()
     for (const entry of (await entries(path)).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -292,13 +340,26 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
       // A linked license or README can point outside the immutable staged tree.
       if (entry.isSymbolicLink()) throw new Error(`Unsafe linked license source: ${file}`)
       if (!entry.isFile()) continue
-      const isNotice = /^notice(?:[._-].*)?$/i.test(entry.name)
+      const isNotice = /^(?:notice|copyright(?:notice)?)(?:[._-].*)?$/i.test(entry.name)
       const isLicense = LICENSE_NAME.test(entry.name) && !isNotice
       const content = await regularFile(file)
       const recognized = recognizedLicenseTexts(content.toString('utf8'))
       if (isLicense) {
         const verified = verifiedPackageTexts.get(JSON.stringify([metadata.name, metadata.version]))
-        if (verified?.text === content.toString('utf8') && !recognized.includes(verified.license))
+        let excludedPathsAbsent = true
+        for (const excluded of verified?.absentPaths ?? []) {
+          try {
+            await lstat(join(path, excluded))
+            excludedPathsAbsent = false
+          } catch (error) {
+            if (error.code !== 'ENOENT') throw error
+          }
+        }
+        if (
+          verified?.text === content.toString('utf8') &&
+          excludedPathsAbsent &&
+          !recognized.includes(verified.license)
+        )
           recognized.push(verified.license)
       }
       if (README_NAME.test(entry.name) && !recognized.length) continue
@@ -307,6 +368,54 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
         recognizedLicenses: recognized,
       })
       if (isLicense || README_NAME.test(entry.name)) for (const license of recognized) evidence.add(license)
+    }
+    const supplement = supplements.get(JSON.stringify([metadata.name, metadata.version]))
+    if (supplement?.declaredLicense === declared) {
+      for (const matched of supplement.sourceMatch?.files ?? []) {
+        const published = resolve(path, matched.publishedPath)
+        if (
+          isAbsolute(matched.publishedPath) ||
+          !inside(path, published) ||
+          !inside(path, await realpath(published)) ||
+          createHash('sha256')
+            .update(await regularFile(published))
+            .digest('hex') !== matched.sha256
+        )
+          throw new Error('Published package differs from the reviewed upstream source match')
+      }
+      for (const file of supplement.files) {
+        if (
+          typeof file.file !== 'string' ||
+          isAbsolute(file.file) ||
+          !inside(supplementalRoot, resolve(supplementalRoot, file.file)) ||
+          !/^[a-f0-9]{64}$/.test(file.sha256) ||
+          typeof file.sourceUrl !== 'string' ||
+          !file.sourceUrl.startsWith('https://')
+        )
+          throw new Error('Invalid supplemental license source')
+        const source = resolve(supplementalRoot, file.file)
+        if (!inside(await realpath(supplementalRoot), await realpath(source)))
+          throw new Error('Supplemental license source escapes references')
+        const bytes = await regularFile(source)
+        if (createHash('sha256').update(bytes).digest('hex') !== file.sha256)
+          throw new Error('Supplemental license bytes differ from provenance')
+        const recognized =
+          supplement.status === 'verified' && file.kind === 'license' && typeof file.license === 'string'
+            ? [file.license]
+            : []
+        files.push({
+          ...(await preserve(source, file.sourceUrl)),
+          recognizedLicenses: recognized,
+          provenance: {
+            sourceCommit: file.sourceCommit ?? null,
+            sourcePath: file.sourcePath ?? null,
+            registry: supplement.registry,
+            status: supplement.status,
+            kind: file.kind,
+          },
+        })
+        for (const license of recognized) evidence.add(license)
+      }
     }
     // The repository MIT text applies only when it does not contradict an explicit package declaration.
     if (!evidence.size && origin === 'workspace' && projectLicense && declared === projectLicense) {
@@ -317,14 +426,30 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
       name: metadata.name,
       version: metadata.version,
       license: declared,
+      licenseDeclarationSource: declaration.source,
+      originalLicenseDeclaration: declaration.original ?? null,
       repository: sourceRepository(metadata),
       origin,
       packagePath: relative(root, path).split(sep).join('/'),
       recognizedLicenses: [...evidence].sort(),
       files,
+      ...(supplement
+        ? {
+            supplementalReview: {
+              status: supplement.declaredLicense === declared ? supplement.status : 'unresolved',
+              note: supplement.note ?? null,
+              expectedDeclaration: supplement.declaredLicense,
+              registry: supplement.registry,
+              ...(supplement.sourceAudit ? { sourceAudit: supplement.sourceAudit } : {}),
+              ...(supplement.sourceMatch ? { sourceMatch: supplement.sourceMatch } : {}),
+            },
+          }
+        : {}),
     }
     packageRecords.push(record)
-    if (!declarationMatches(declared, evidence))
+    const unresolvedReview = supplement?.declaredLicense === declared && supplement.status === 'unresolved'
+    const supplementMismatch = !!supplement && supplement.declaredLicense !== declared
+    if (!declarationMatches(declared, evidence) || unresolvedReview || supplementMismatch)
       missing.push({
         name: record.name,
         version: record.version,
@@ -332,11 +457,15 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
         origin,
         packagePath: record.packagePath,
         repository: record.repository,
-        reason: !declared
-          ? 'missing-declaration'
-          : evidence.size
-            ? 'unmatched-or-unsupported-declaration'
-            : 'missing-or-unrecognized-license-text',
+        reason: supplementMismatch
+          ? 'supplemental-declaration-mismatch'
+          : !declared
+            ? 'missing-declaration'
+            : unresolvedReview && declarationMatches(declared, evidence)
+              ? 'supplemental-review-unresolved'
+              : evidence.size
+                ? 'unmatched-or-unsupported-declaration'
+                : 'missing-or-unrecognized-license-text',
       })
     await physicalPackages(join(path, 'node_modules'), origin)
   }

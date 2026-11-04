@@ -1,8 +1,20 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ContentProjectSummary, ContentProjectAction, LocalBattleHostStatus } from '@/types/desktop'
 import type { ContentLibrarySnapshot } from '@/types/contentPackages'
+import type { ManagedServer, ManagedServerSettings } from '@/types/management'
+import { createIpcManagementClient } from '@/services/managementClient'
+import ServerSettingsForm from '@/features/management/ServerSettingsForm.vue'
 const api = window.arcadiaDesktop
+const management = api?.managementRequest
+  ? createIpcManagementClient(
+      { transport: 'ipc', endpoint: 'local-workspace', label: '本机工作区' },
+      api.managementRequest,
+    )
+  : undefined
+const server = ref<ManagedServer & { activeBattles?: number; rooms?: number; queued?: number }>()
+const settingsSaveSequence = ref(0)
+const forceStop = ref(false)
 const library = ref<ContentLibrarySnapshot>()
 const projects = ref<ContentProjectSummary[]>([])
 const selected = ref('')
@@ -14,10 +26,27 @@ const busy = ref(false),
   includeLocal = ref(false),
   offline = ref(false)
 const status = ref<LocalBattleHostStatus>({ status: 'idle' })
+let refreshGeneration = 0
+let disposed = false
 async function refresh() {
-  library.value = await api?.listContentPackages?.()
-  projects.value = (await api?.listContentProjects?.()) ?? []
-  status.value = (await api?.getLocalBattleStatus?.()) ?? { status: 'idle' }
+  const generation = ++refreshGeneration
+  const [nextLibrary, nextProjects, nextStatus] = await Promise.all([
+    api?.listContentPackages?.(),
+    api?.listContentProjects?.(),
+    api?.getLocalBattleStatus?.(),
+  ])
+  const nextServer =
+    nextStatus?.status === 'running' && management
+      ? (await management.request<{ servers: NonNullable<typeof server.value>[] }>('GET', '/servers')).servers.find(
+          item => item.id === nextStatus.serverId,
+        )
+      : undefined
+  if (disposed || generation !== refreshGeneration) return
+  library.value = nextLibrary
+  projects.value = nextProjects ?? []
+  status.value = nextStatus ?? { status: 'idle' }
+  server.value = nextServer
+  if (!nextServer?.draining || !nextServer.activeBattles) forceStop.value = false
 }
 async function run(action: () => Promise<void>) {
   if (busy.value) return
@@ -41,9 +70,36 @@ async function start() {
 }
 async function stop() {
   await run(async () => {
-    await api!.stopLocalBattle!()
-    await refresh()
+    try {
+      await api!.stopLocalBattle!({ force: forceStop.value })
+    } finally {
+      await refresh()
+    }
+    forceStop.value = false
     notice.value = '本机联机托管已停止'
+  })
+}
+async function recover() {
+  await run(async () => {
+    try {
+      await api!.recoverLocalBattle!()
+    } finally {
+      await refresh()
+    }
+    notice.value = '已仅在本机启动。修正下方设置后，停止并正常启动托管。'
+  })
+}
+async function saveSettings(
+  settings: Omit<ManagedServerSettings, 'publicOrigin'> & { publicOrigin: string | null },
+  revision: number,
+) {
+  if (!server.value || !management) return
+  const path = `/servers/${encodeURIComponent(server.value.id)}`
+  await run(async () => {
+    await management.request('PATCH', path, { body: { settings }, revision })
+    settingsSaveSequence.value++
+    await refresh()
+    notice.value = '网络与容量设置已保存，停止后重新启动托管即可应用'
   })
 }
 async function add() {
@@ -74,7 +130,17 @@ async function operate(action: ContentProjectAction['action']) {
     notice.value = '操作已完成'
   })
 }
-onMounted(() => void run(refresh))
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  void run(refresh)
+  refreshTimer = setInterval(() => {
+    if (!busy.value && status.value.status === 'running') void refresh().catch(() => undefined)
+  }, 5000)
+})
+onBeforeUnmount(() => {
+  disposed = true
+  clearInterval(refreshTimer)
+})
 </script>
 <template>
   <main class="local-service">
@@ -93,16 +159,64 @@ onMounted(() => void run(refresh))
         >
       </p>
       <p>只有由本机承担联机服务端时，才需要启动托管。离线对战、UGC 试战和连接其他服务器均无需启动。</p>
-      <p v-if="status.status === 'running'">运行中：{{ status.url }}</p>
+      <template v-if="status.status === 'running'">
+        <p v-if="status.localRecovery" role="status">
+          当前为本机修复模式。已保存的网络设置保留，修正后需重新启动托管。
+        </p>
+        <p>本机连接：{{ status.url }}</p>
+        <p v-if="status.network">
+          监听 {{ status.network.host }}:{{ status.network.port }} ·
+          {{ status.network.scope === 'local' ? '仅本机可连接' : '已开放网络监听' }}
+        </p>
+        <template v-if="status.network?.inviteUrls.length">
+          <h2>玩家连接地址</h2>
+          <p>将地址填入客户端的服务器连接设置。局域网地址需要处于可互通的网络，对外地址需要服主配置代理与网络入口。</p>
+          <ul>
+            <li v-for="address in status.network.inviteUrls" :key="address">
+              <code>{{ address }}</code>
+            </li>
+          </ul>
+        </template>
+        <p v-else-if="!status.localRecovery">
+          尚无可供其他设备连接的地址。在下方设置网卡地址或 0.0.0.0，保存后重启托管。
+        </p>
+        <p v-if="status.network?.availableHosts.length">本机网卡地址：{{ status.network.availableHosts.join('、') }}</p>
+        <p v-if="server">
+          {{ server.draining ? '正在排空，不再接纳新局' : '正在接纳新局' }} · 进行中
+          {{ server.activeBattles ?? 0 }} 场对战
+        </p>
+        <label v-if="server?.draining && (server.activeBattles ?? 0) > 0"
+          ><input v-model="forceStop" type="checkbox" />立即中断正在进行的对战并停止托管</label
+        >
+      </template>
       <p v-else-if="status.status === 'failed'" class="error">{{ status.message }}</p>
       <p v-else>未托管联机对战</p>
       <div class="actions">
+        <button v-if="status.status === 'failed' && api?.recoverLocalBattle" :disabled="busy" @click="recover">
+          仅本机启动以修复设置
+        </button>
         <button :disabled="busy || !library?.hasSelection || status.status === 'running'" @click="start">
           由本机托管联机对战</button
-        ><button :disabled="busy || status.status !== 'running'" @click="stop">停止联机托管</button
+        ><button :disabled="busy || status.status !== 'running'" @click="stop">
+          {{ forceStop ? '立即中断并停止' : '排空后停止托管' }}</button
         ><button :disabled="busy" @click="run(refresh)">刷新状态</button>
       </div>
       <p v-if="!library?.hasSelection">在内容包页选择需要的内容，客户端会自动准备。</p>
+      <ServerSettingsForm
+        v-if="server?.settings"
+        :settings="server.settings"
+        :runtime-settings="server.runtimeSettings"
+        :revision="server.revision"
+        :save-sequence="settingsSaveSequence"
+        :pending-restart="server.pendingRestart"
+        :busy="busy"
+        :can-edit="!!management"
+        @save="saveSettings"
+      />
+      <p v-if="status.status === 'running'">
+        <RouterLink to="/management">管理环境、服务器与权限</RouterLink>。远程网页管理需要管理员身份与
+        HTTPS；玩家连接不会获得本机文件访问权限。
+      </p>
     </details>
     <details>
       <summary>高级服务器项目管理</summary>

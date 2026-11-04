@@ -42,7 +42,8 @@
     "nodemailer": "^10.2.1",
     "openid-client": "^6.8.8",
     "pg": "^8.23.1",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "@arcadia-eternity/database": "workspace:^"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

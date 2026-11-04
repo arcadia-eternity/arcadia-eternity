@@ -1,6 +1,84 @@
-import { expect, it, vi } from 'vitest'
-import { readResourceBytes } from '../resourceTransport'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { Blob as NodeBlob } from 'node:buffer'
+import { readResourceBytes, registerOwnedResource } from '../resourceTransport'
 import { imageResourceBlob } from '../imageResource'
+
+const OriginalURL = globalThis.URL
+const revokeObjectURL = vi.fn()
+const owned: Array<ReturnType<typeof registerOwnedResource>> = []
+beforeEach(() => {
+  let sequence = 0
+  revokeObjectURL.mockClear()
+  vi.stubGlobal(
+    'URL',
+    class extends OriginalURL {
+      static createObjectURL = vi.fn(() => `blob:owned-test/${++sequence}`)
+      static revokeObjectURL = revokeObjectURL
+    },
+  )
+})
+afterEach(() => {
+  for (const resource of owned.splice(0)) resource.release()
+  vi.unstubAllGlobals()
+})
+function own(blob: Blob) {
+  const resource = registerOwnedResource(blob)
+  owned.push(resource)
+  return resource
+}
+
+it('reads explicitly owned local bytes through the normal transport without fetching or caching', async () => {
+  const resource = own(new NodeBlob([new Uint8Array([1, 2, 3])], { type: 'image/png' }))
+  const request = vi.fn()
+  const first = await readResourceBytes(resource.url, {}, request as typeof fetch)
+  const second = await readResourceBytes(resource.url, {}, request as typeof fetch)
+  expect(first).toEqual(new Uint8Array([1, 2, 3]))
+  expect(second).toEqual(first)
+  expect(second).not.toBe(first)
+  expect(request).not.toHaveBeenCalled()
+  resource.release()
+  resource.release()
+  expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith(resource.url)
+  await expect(readResourceBytes(resource.url, {}, request as typeof fetch)).rejects.toThrow('地址无效')
+  expect(request).not.toHaveBeenCalled()
+})
+
+it('applies consumer byte limits to owned resources', async () => {
+  const resource = own(new NodeBlob([new Uint8Array(9)]))
+  const request = vi.fn()
+  await expect(readResourceBytes(resource.url, { maxBytes: 8 }, request as typeof fetch)).rejects.toThrow('大小限制')
+  expect(request).not.toHaveBeenCalled()
+})
+
+it.each(['owner release', 'caller cancellation'])('stops an in-flight owned read on %s', async reason => {
+  const cancel = vi.fn(),
+    pull = vi.fn()
+  const blob = new NodeBlob([new Uint8Array([1])])
+  vi.spyOn(blob, 'stream').mockImplementation(() => new ReadableStream<Uint8Array>({ pull, cancel }))
+  const resource = own(blob)
+  const request = vi.fn()
+  const controller = new AbortController()
+  const pending = readResourceBytes(resource.url, { signal: controller.signal }, request as typeof fetch)
+  const rejected = expect(pending).rejects.toThrow(reason === 'owner release' ? '已释放' : 'cancelled')
+  await vi.waitFor(() => expect(pull).toHaveBeenCalled())
+  if (reason === 'owner release') resource.release()
+  else controller.abort(new Error('cancelled'))
+  await rejected
+  expect(cancel).toHaveBeenCalledOnce()
+  expect(request).not.toHaveBeenCalled()
+})
+
+it('rejects unregistered blobs and arbitrary local/custom addresses without fetching', async () => {
+  const request = vi.fn()
+  for (const url of [
+    'blob:unregistered/media',
+    'file:///tmp/private.png',
+    'arcadia-resource:unregistered',
+    'javascript:alert(1)',
+  ])
+    await expect(readResourceBytes(url, {}, request as typeof fetch)).rejects.toThrow('地址无效')
+  expect(request).not.toHaveBeenCalled()
+})
 
 it('counts actual streamed bytes despite a false content length and cancels overflow', async () => {
   const cancel = vi.fn()

@@ -1,7 +1,7 @@
 <template>
   <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 text-left" aria-label="普通匹配">
     <h2 class="text-lg font-medium text-gray-800">普通匹配</h2>
-    <p class="text-sm text-gray-600 mt-1 mb-3">自动寻找使用相同对战内容的玩家，由服务器运行对战。</p>
+    <p class="text-sm text-gray-600 mt-1 mb-3">自动寻找使用相同固定环境的玩家，按该环境的运行方式开始对战。</p>
     <el-button type="primary" data-testid="open-matchmaking-button" :disabled="unavailable" @click="openDialog">
       {{ searching ? '查看匹配' : '普通匹配' }}
     </el-button>
@@ -31,13 +31,16 @@
               :key="environment.id"
               :value="environment.id"
               :label="
-                environment.packages.length
+                (environment.packages.length
                   ? environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
-                  : '官方内容'
+                  : '官方内容') + (environment.executionPolicy === 'peer' ? ' · 玩家主机' : ' · 服务器')
               "
             />
           </el-select>
         </label>
+        <p v-if="selectedEnvironment?.executionPolicy === 'peer'" class="text-sm text-gray-600 mb-3" role="status">
+          此环境由玩家主机运行。固定内容与执行材料准备完成后才能匹配。
+        </p>
         <p v-if="loading" role="status">正在加载对战内容…</p>
         <TeamSelector v-else v-model="team" data-testid="matchmaking-team-selector" @update:is-valid="valid = $event" />
         <p class="text-xs text-gray-500 mt-3">每回合 30 秒，总计 25 分钟。普通匹配不计排名。</p>
@@ -78,6 +81,7 @@ const loading = ref(false)
 const busy = ref(false)
 const error = ref('')
 const environmentId = ref('')
+const selectedEnvironment = computed(() => rooms.environments.find(item => item.id === environmentId.value))
 const team = ref<{ name: string; pets: unknown[] } | null>(null)
 const valid = ref(false)
 const environmentReady = ref(false)
@@ -114,7 +118,7 @@ async function openDialog() {
     if (attempt !== generation || !open.value) return
     environmentId.value = rooms.environments.some(item => item.id === environmentId.value)
       ? environmentId.value
-      : (rooms.environments.find(item => !item.packages.length)?.id ?? '')
+      : (rooms.environments.find(item => !item.packages.length)?.id ?? rooms.environments[0]?.id ?? '')
     const last = storage.getLastMatchingConfig()
     team.value = storage.teams[last?.teamIndex ?? storage.currentTeamIndex] ?? null
     await prepareEnvironment()

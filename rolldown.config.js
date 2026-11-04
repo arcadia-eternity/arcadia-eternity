@@ -5,6 +5,9 @@ import { builtinEffectsPlugin } from './scripts/effect-module-plugin.ts'
 
 // Offline commands are self-contained. Existing network/server commands retain lazy service dependencies.
 const legacyDependencies = new Set([
+  '@arcadia-eternity/database',
+  '@arcadia-eternity/content-dev/management-workspace',
+  '@arcadia-eternity/content-dev/managed-projects',
   'dotenv',
   'dotenv/config',
   '@arcadia-eternity/client',

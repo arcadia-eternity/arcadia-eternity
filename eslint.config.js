@@ -17,7 +17,7 @@ export default tseslint.config(
       '**/rolldown.config.*',
       '**/vitest.config.*',
       '**/vitest.*.config.*',
-      '**/*.d.ts',
+      '**/*.d.{ts,mts,cts}',
       'scripts/**',
       'tools/**',
       'examples/**',

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
   author: input => ipcRenderer.invoke('desktop:author', input),
+  managementRequest: input => ipcRenderer.invoke('desktop:management-request', input),
   onAuthorChanged: callback => {
     const listener = (_event, value) => callback(value)
     ipcRenderer.on('desktop:author-changed', listener)
@@ -11,6 +12,7 @@ const desktopApi = {
   openRemotePlay: input => ipcRenderer.invoke('desktop:open-remote-play', input),
   listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),
   prepareLocalContent: () => ipcRenderer.invoke('desktop:prepare-local-content'),
+  capturePersonalEnvironment: () => ipcRenderer.invoke('desktop:capture-personal-environment'),
   releaseLocalContent: token => ipcRenderer.invoke('desktop:release-local-content', token),
   selectContentPackageFile: options => ipcRenderer.invoke('desktop:select-content-package-file', options),
   inspectNpmContentPackage: options => ipcRenderer.invoke('desktop:inspect-npm-content-package', options),
@@ -22,7 +24,8 @@ const desktopApi = {
   getLocalBattleStatus: () => ipcRenderer.invoke('desktop:get-local-battle-status'),
   installContentPackageFile: options => ipcRenderer.invoke('desktop:install-content-package-file', options),
   installNpmContentPackage: options => ipcRenderer.invoke('desktop:install-npm-content-package', options),
-  stopLocalBattle: () => ipcRenderer.invoke('desktop:stop-local-battle'),
+  stopLocalBattle: input => ipcRenderer.invoke('desktop:stop-local-battle', input),
+  recoverLocalBattle: () => ipcRenderer.invoke('desktop:recover-local-battle'),
   listContentProjects: () => ipcRenderer.invoke('desktop:list-content-projects'),
   addContentProject: () => ipcRenderer.invoke('desktop:add-content-project'),
   contentProjectAction: input => ipcRenderer.invoke('desktop:content-project-action', input),

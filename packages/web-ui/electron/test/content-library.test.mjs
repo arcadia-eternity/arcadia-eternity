@@ -26,7 +26,8 @@ async function fixture(name) {
     failPreparation = false
   const prepared = [],
     selected = [],
-    retired = []
+    retired = [],
+    localPrepared = []
   const heldDirectories = new Set()
   const host = {
     status: () => status,
@@ -43,12 +44,6 @@ async function fixture(name) {
       if (started) await host.start(dir)
       const value = { id: started ? currentEnvironment : 'prepared:' + dir, directory: dir, builtinOnly, started }
       prepared.push(value)
-      if (blockedPreparation) {
-        const block = blockedPreparation
-        blockedPreparation = undefined
-        block.enter()
-        await block.promise
-      }
       if (failPreparation) throw new Error('HOST_PREPARATION_FAILED')
       return value
     },
@@ -118,7 +113,20 @@ async function fixture(name) {
     if (args[1] === 'validate' && failValidation) throw new Error('INVALID_CONTENT')
     return { format: 'ok' }
   }
-  const manager = new ContentLibrary({ root: join(directory, 'library'), host, run })
+  const manager = new ContentLibrary({
+    root: join(directory, 'library'),
+    host,
+    run,
+    prepare: async value => {
+      localPrepared.push(value)
+      if (blockedPreparation) {
+        const block = blockedPreparation
+        blockedPreparation = undefined
+        block.enter()
+        await block.promise
+      }
+    },
+  })
   const file = async (id, version = '1.0.0', namespace = id) => {
     const path = join(directory, id + '-' + version + '.tgz')
     await writeFile(path, JSON.stringify({ name: '@test/' + id, version, namespace, title: id }))
@@ -130,6 +138,7 @@ async function fixture(name) {
     prepared,
     selected,
     retired,
+    localPrepared,
     blockPreparation: () => {
       let enter, release
       const entered = new Promise(resolve => {
@@ -147,6 +156,9 @@ async function fixture(name) {
     },
     failHost: () => {
       failPreparation = true
+    },
+    crashHost: () => {
+      status = { status: 'failed', code: 'SERVER_EXITED', message: '托管进程已退出' }
     },
     host,
     run,
@@ -194,12 +206,20 @@ it('prepares a complete selection and only publishes it after approval and valid
   await f.manager.applySelection(plan.id, false)
   assert.deepEqual((await f.manager.list()).activeIds, [water])
   await assert.rejects(f.manager.uninstall(water), /先停用/)
+  const localProject = await f.manager.acquireProject()
+  const beforeHosting = f.calls.length
   await f.manager.start()
   const oldDirectory = f.host.projectDirectory()
+  assert.equal(oldDirectory, localProject.directory)
+  assert.equal(f.calls.length, beforeHosting)
+  await localProject.release()
   const empty = await f.manager.planSelection([], true)
   await f.manager.applySelection(empty.id, false)
   assert.equal(f.host.projectDirectory(), oldDirectory)
-  assert.equal((await f.manager.list()).serviceNeedsRestart, true)
+  assert.equal((await f.manager.list()).serviceNeedsRestart, false)
+  assert.deepEqual(f.prepared, [])
+  assert.deepEqual(f.selected, [])
+  assert.deepEqual(f.retired, [])
   await f.manager.uninstall(water)
 })
 it('preserves the prior active selection on content validation failure', async () => {
@@ -294,7 +314,7 @@ it('automatically installs and enables with no apply step, and persists the desi
     await f.manager.close()
   }
 })
-it('converges to the latest in-flight choice without switching to a superseded candidate or restarting', async () => {
+it('converges to the latest local choice without changing the independently hosted environment', async () => {
   const f = await fixture('automatic-latest')
   try {
     const a = await install(f, 'a'),
@@ -304,20 +324,26 @@ it('converges to the latest in-flight choice without switching to a superseded c
     await settled(f.manager)
     await f.manager.start() // Explicit hosting is the only service start.
     const initial = f.host.status()
+    const hostedDirectory = f.host.projectDirectory()
     const block = f.blockPreparation()
     await f.manager.setSelection([b], true)
     await block.entered
-    const staleDirectory = f.prepared.at(-1).directory
+    const staleDirectory = f.localPrepared.at(-1).directory
     await f.manager.setSelection([c], true)
     assert.deepEqual((await f.manager.list()).desiredIds, [c])
     block.release()
     assert.deepEqual((await settled(f.manager)).activeIds, [c])
-    assert.ok(!f.selected.some(value => value.directory === staleDirectory))
-    assert.ok(f.retired.some(value => value.directory === staleDirectory))
+    assert.deepEqual(f.prepared, [])
+    assert.deepEqual(f.selected, [])
+    assert.deepEqual(f.retired, [])
     assert.deepEqual(f.host.status(), initial)
-    const count = f.prepared.length
+    assert.equal(f.host.projectDirectory(), hostedDirectory)
+    await f.manager.collectGarbage()
+    assert.ok(await exists(hostedDirectory))
+    assert.equal(await exists(staleDirectory), false)
+    const count = f.localPrepared.length
     await new Promise(resolve => setTimeout(resolve, 350))
-    assert.equal(f.prepared.length, count)
+    assert.equal(f.localPrepared.length, count)
   } finally {
     await f.manager.close()
   }
@@ -346,6 +372,24 @@ it('retains the actual active content on failure and retries the desired choice 
     await f.manager.close()
   }
 })
+it('keeps prepared local content ready when the independent hosting process fails', async () => {
+  const f = await fixture('host-failure-independent')
+  try {
+    const id = await f.manager.installFile(await f.file('water'), true)
+    await settled(f.manager)
+    await f.manager.start()
+    f.crashHost()
+    const snapshot = await f.manager.list()
+    assert.deepEqual(snapshot.activeIds, [id])
+    assert.equal(snapshot.selection.status, 'ready')
+    assert.equal(snapshot.serviceStatus.code, 'SERVER_EXITED')
+    const local = await f.manager.acquireProject()
+    assert.ok(await readFile(join(local.directory, 'package.json')))
+    await local.release()
+  } finally {
+    await f.manager.close()
+  }
+})
 it('restores selected content after restart without reinstalling or starting hosting', async () => {
   const f = await fixture('automatic-restore')
   const id = await f.manager.installFile(await f.file('water'), true)
@@ -363,17 +407,22 @@ it('restores selected content after restart without reinstalling or starting hos
     await restored.close()
   }
 })
-it('updates an explicitly started host when returning to official-only content', async () => {
+it('keeps the hosted environment when the local selection returns to official-only content', async () => {
   const f = await fixture('automatic-base')
   try {
     await f.manager.installFile(await f.file('water'), true)
     await settled(f.manager)
     await f.manager.start()
     const ready = await f.manager.list()
+    const hostedDirectory = f.host.projectDirectory()
     await f.manager.setSelection([], true)
     assert.deepEqual((await settled(f.manager)).activeIds, [])
     assert.deepEqual(f.host.status(), ready.serviceStatus)
-    assert.equal(f.selected.at(-1).builtinOnly, true)
+    assert.equal(f.host.projectDirectory(), hostedDirectory)
+    assert.equal((await f.manager.list()).serviceNeedsRestart, false)
+    assert.deepEqual(f.prepared, [])
+    assert.deepEqual(f.selected, [])
+    assert.deepEqual(f.retired, [])
   } finally {
     await f.manager.close()
   }
@@ -458,7 +507,7 @@ it('collects historical successful combinations while protecting installed, acti
     await f.manager.close()
   }
 })
-it('retains retired host environments until their room/checkpoint leases actually disappear', async () => {
+it('retains independent server content until both the server and remaining room/checkpoint leases release it', async () => {
   const f = await fixture('gc-host-lease')
   try {
     const a = await install(f, 'a'),
@@ -471,8 +520,16 @@ it('retains retired host environments until their room/checkpoint leases actuall
     await f.manager.setSelection([b], true)
     await settled(f.manager)
     await f.manager.collectGarbage()
-    assert.ok(f.retired.some(value => value.directory === old))
+    assert.deepEqual(f.retired, [])
+    assert.equal(f.host.projectDirectory(), old)
     assert.ok(await exists(old))
+    f.heldDirectories.delete(old)
+    await f.manager.collectGarbage()
+    assert.ok(await exists(old)) // The running server alone owns this material.
+    f.heldDirectories.add(old)
+    await f.host.stop()
+    await f.manager.collectGarbage()
+    assert.ok(await exists(old)) // Outstanding room/checkpoint retention still owns it.
     f.heldDirectories.delete(old)
     await f.manager.collectGarbage()
     assert.equal(await exists(old), false)
@@ -535,6 +592,39 @@ it('leases official-only content before the first selection and rejects static p
     assert.deepEqual(snapshot.desiredIds, [a])
     await f.manager.collectGarbage()
     assert.equal((await readdir(join(f.libraryRoot, 'projects'))).length, 1)
+  } finally {
+    await f.manager.close()
+  }
+})
+it('prepares management combinations independently, reusing an exact active installation and leasing new materials', async () => {
+  const f = await fixture('management-combinations')
+  try {
+    const a = await f.manager.installFile(await f.file('a'), true)
+    await settled(f.manager)
+    const active = await f.manager.acquireProject()
+    const before = f.calls.length
+    const reused = await f.manager.prepareEnvironmentProject({ packages: { '@test/a': '1.0.0' }, sources: [] })
+    assert.equal(reused.directory, active.directory)
+    assert.equal(f.calls.length, before, 'same exact combination does not invoke installation')
+    await reused.release()
+    await active.release()
+    const other = await f.manager.prepareEnvironmentProject({ packages: {}, sources: [] }, { offline: true })
+    assert.notEqual(other.directory, active.directory)
+    assert.deepEqual((await f.manager.list()).activeIds, [a])
+    assert.deepEqual((await f.manager.list()).desiredIds, [a])
+    await f.manager.collectGarbage()
+    assert.ok(await readFile(join(other.directory, 'package.json')))
+    await other.release()
+    await f.manager.collectGarbage()
+    await assert.rejects(readFile(join(other.directory, 'package.json')), { code: 'ENOENT' })
+    const controller = new AbortController()
+    controller.abort()
+    await assert.rejects(
+      f.manager.prepareEnvironmentProject({ packages: {}, sources: [] }, { signal: controller.signal }),
+    )
+    await assert.rejects(f.manager.prepareEnvironmentProject({ packages: {}, sources: ['@test/source'] }), {
+      code: 'INSTALL_SOURCE_NOT_REGISTERED',
+    })
   } finally {
     await f.manager.close()
   }

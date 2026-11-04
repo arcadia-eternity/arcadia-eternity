@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { EnvironmentDocumentV2Schema } from './debug-environments.mjs'
 export { referenceTopics } from './author-reference.mjs'
 
 export const version = z.string().regex(/^[a-f0-9]{64}$/)
@@ -53,7 +54,7 @@ const page = item =>
     })
     .passthrough()
 const team = z.object({ schemaVersion: z.literal(1), id: identifier, name: z.string(), team: z.array(record), version })
-const environment = z.object({
+const legacyEnvironment = z.object({
   schemaVersion: z.literal(1),
   id: identifier,
   name: z.string(),
@@ -61,6 +62,10 @@ const environment = z.object({
   sources: z.array(z.string()),
   version: version.nullable(),
 })
+const environment = z.discriminatedUnion('schemaVersion', [
+  legacyEnvironment,
+  EnvironmentDocumentV2Schema.extend({ version: version.nullable() }),
+])
 
 // Dynamic content and battle payloads keep their domain fields; the envelopes and
 // control fields are explicit so clients can handle pagination, conflicts and jobs.

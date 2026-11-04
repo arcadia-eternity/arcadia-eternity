@@ -6,9 +6,10 @@ import { pathToFileURL } from 'node:url'
 const jobPackages = {
   headless: ['battle', 'data-pack-base', 'pack-loader'],
   // The CLI typecheck also resolves its lazy client/console/server imports.
-  // Keep database changes under server coverage after the direct dependency was removed.
+  // Keep database changes under server coverage after the browser dependency was removed.
   server: ['server', 'console', 'client', 'database', 'cli', 'p2p-transport'],
-  browser: ['web-ui'],
+  // Online browser acceptance starts the actual server, including its storage.
+  browser: ['web-ui', 'server'],
   cli: ['cli', 'content-dev'],
 }
 

@@ -2,7 +2,7 @@
 FROM node:24-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git && \
+RUN apk add --no-cache git python3 make g++ && \
     npm install -g pnpm@11.21.0
 
 WORKDIR /app
@@ -32,7 +32,7 @@ RUN pnpm run build:prod
 # Dependencies stage - install production dependencies
 FROM node:24-alpine AS deps
 
-RUN apk add --no-cache git && \
+RUN apk add --no-cache git python3 make g++ && \
     npm install -g pnpm@11.21.0
 
 WORKDIR /app
@@ -46,6 +46,7 @@ COPY packs/ ./packs/
 # Use local store to avoid cache conflicts in parallel builds
 RUN pnpm config set store-dir /tmp/pnpm-store && \
     pnpm install --frozen-lockfile --prod --prefer-offline --ignore-scripts && \
+    cd packages/database && npm rebuild better-sqlite3 --ignore-scripts=false && cd /app && \
     pnpm store prune
 
 # Production stage
@@ -55,8 +56,8 @@ FROM node:24-alpine AS production
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S joseph -u 1001
 
-# Install minimal runtime dependencies
-RUN apk add --no-cache curl && \
+# Git-backed registered content sources are acquired by the server at runtime.
+RUN apk add --no-cache curl git && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
@@ -70,10 +71,9 @@ COPY --from=builder /app/packs ./packs
 
 # Copy built application and necessary files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/resource ./resource
 
 # Create scripts directory (application handles missing scripts gracefully)
-RUN mkdir -p ./scripts
+RUN mkdir -p ./scripts ./state
 
 # Copy package.json for runtime
 COPY package.json ./
@@ -91,6 +91,7 @@ ENV NODE_PATH=/app/node_modules:/app/packages
 
 # Server configuration environment variables
 ENV PORT=8102
+ENV ARCADIA_DATA_DIR=/app/state
 ENV CORS_ORIGIN=
 
 # Keep this stable across deployments; bootId changes for each process.

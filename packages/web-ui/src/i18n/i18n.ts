@@ -16,6 +16,8 @@ export async function initI18n(debug = false): Promise<void> {
     debug: debug,
     postProcess: ['serverContentText'],
     lng: 'zh-CN',
+    fallbackLng: 'zh-CN',
+    load: 'currentOnly',
     ns: ['webui', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global', 'species', 'battle', 'nature'],
     backend: {
       backends: [httpBackend],

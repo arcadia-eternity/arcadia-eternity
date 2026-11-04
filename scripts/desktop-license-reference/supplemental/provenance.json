@@ -1,0 +1,902 @@
+{
+  "format": "arcadia.desktop-license-supplemental",
+  "version": 1,
+  "entries": [
+    {
+      "name": "@better-auth/utils",
+      "version": "0.5.0",
+      "declaredLicense": "MIT",
+      "status": "unresolved",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40better-auth%2Futils/0.5.0",
+        "integrity": "sha512-BL8W4EfIZFwlu0r54m3v1ztjDhu6dDe/amLTm0xybmbZaNgYUqhD3SjpAsnq0q8YD6/ki4iwIgxJNLP/N3TxiA==",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@better-auth%2futils@0.5.0"
+      },
+      "files": [
+        {
+          "file": "better-auth__utils-0.5.0-README.md.txt",
+          "sha256": "8ddf45255b6c321d8fd54248c3ee044e4f3da8a9bfd34eefef3ab1da0a3f3a87",
+          "license": "MIT",
+          "kind": "declaration",
+          "sourceUrl": "https://raw.githubusercontent.com/better-auth/utils/f03c1c76aff7bfa3f4de4af47b112315c770a0d1/README.md",
+          "sourceCommit": "f03c1c76aff7bfa3f4de4af47b112315c770a0d1",
+          "sourcePath": "README.md"
+        }
+      ],
+      "note": "No complete applicable original license text established at the published source commit; declarations alone do not clear the release gate.",
+      "sourceAudit": {
+        "commit": "f03c1c76aff7bfa3f4de4af47b112315c770a0d1",
+        "treeUrl": "https://api.github.com/repos/better-auth/utils/git/trees/f03c1c76aff7bfa3f4de4af47b112315c770a0d1?recursive=1",
+        "matchingLicensePaths": [],
+        "checkedDeclarationPath": "README.md",
+        "finding": "Exact release README states MIT; complete original license terms and attributed grant were not located in the release source tree."
+      }
+    },
+    {
+      "name": "@dmsnell/diff-match-patch",
+      "version": "1.1.0",
+      "declaredLicense": "Apache-2.0",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40dmsnell%2Fdiff-match-patch/1.1.0",
+        "integrity": "sha512-yejLPmM5pjsGvxS9gXablUSbInW7H976c/FJ4iQxWIm7/38xBySRemTPDe34lhg1gVLbJntX0+sH0jYfU+PN9A==",
+        "gitHead": "c03ac60c9bb1f9d21e0622028406678593b4b074"
+      },
+      "files": [
+        {
+          "file": "dmsnell__diff-match-patch-1.1.0.txt.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "license": "Apache-2.0",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/dmsnell/diff-match-patch/c03ac60c9bb1f9d21e0622028406678593b4b074/LICENSE",
+          "sourceCommit": "c03ac60c9bb1f9d21e0622028406678593b4b074",
+          "sourcePath": "LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.28.2",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fdarwin-arm64/0.28.2",
+        "integrity": "sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==",
+        "gitHead": "609683d892977362a0f99026cb74b96263d728a9",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@esbuild%2fdarwin-arm64@0.28.2"
+      },
+      "files": [
+        {
+          "file": "esbuild__darwin-arm64-0.28.2.txt.txt",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/evanw/esbuild/609683d892977362a0f99026cb74b96263d728a9/LICENSE.md",
+          "sourceCommit": "609683d892977362a0f99026cb74b96263d728a9",
+          "sourcePath": "LICENSE.md"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-x64",
+      "version": "0.28.2",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fdarwin-x64/0.28.2",
+        "integrity": "sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==",
+        "gitHead": "609683d892977362a0f99026cb74b96263d728a9"
+      },
+      "files": [
+        {
+          "file": "esbuild__darwin-arm64-0.28.2.txt.txt",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/evanw/esbuild/609683d892977362a0f99026cb74b96263d728a9/LICENSE.md",
+          "sourceCommit": "609683d892977362a0f99026cb74b96263d728a9",
+          "sourcePath": "LICENSE.md"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@esbuild/linux-x64",
+      "version": "0.28.2",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-x64/0.28.2",
+        "integrity": "sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==",
+        "gitHead": "609683d892977362a0f99026cb74b96263d728a9"
+      },
+      "files": [
+        {
+          "file": "esbuild__darwin-arm64-0.28.2.txt.txt",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/evanw/esbuild/609683d892977362a0f99026cb74b96263d728a9/LICENSE.md",
+          "sourceCommit": "609683d892977362a0f99026cb74b96263d728a9",
+          "sourcePath": "LICENSE.md"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.28.2",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fwin32-x64/0.28.2",
+        "integrity": "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==",
+        "gitHead": "609683d892977362a0f99026cb74b96263d728a9"
+      },
+      "files": [
+        {
+          "file": "esbuild__darwin-arm64-0.28.2.txt.txt",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/evanw/esbuild/609683d892977362a0f99026cb74b96263d728a9/LICENSE.md",
+          "sourceCommit": "609683d892977362a0f99026cb74b96263d728a9",
+          "sourcePath": "LICENSE.md"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@humanfs/types",
+      "version": "0.15.0",
+      "declaredLicense": "Apache-2.0",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40humanfs%2Ftypes/0.15.0",
+        "integrity": "sha512-ZZ1w0aoQkwuUuC7Yf+7sdeaNfqQiiLcSRbfI08oAxqLtpXQr9AIVX7Ay7HLDuiLYAaFPu8oBYNq/QIi9URHJ3Q==",
+        "gitHead": "85069f193cbacc371c3beb649ce746f8c5a493be"
+      },
+      "files": [
+        {
+          "file": "humanfs__types-0.15.0-README.md.txt",
+          "sha256": "c63f4f64e9151683d2223b9388ff69a9132f4c2336168d69b26e38471c8b0d73",
+          "license": "Apache-2.0",
+          "kind": "declaration",
+          "sourceUrl": "https://raw.githubusercontent.com/humanwhocodes/humanfs/85069f193cbacc371c3beb649ce746f8c5a493be/README.md",
+          "sourceCommit": "85069f193cbacc371c3beb649ce746f8c5a493be",
+          "sourcePath": "README.md"
+        },
+        {
+          "file": "humanfs__types-0.15.0-packages__types__README.md.txt",
+          "sha256": "e1076e47ea96eef79e05496912ad03a9fa8031e1bf4847aab1a9554aef5cc5c0",
+          "license": "Apache-2.0",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/humanwhocodes/humanfs/85069f193cbacc371c3beb649ce746f8c5a493be/packages/types/README.md",
+          "sourceCommit": "85069f193cbacc371c3beb649ce746f8c5a493be",
+          "sourcePath": "packages/types/README.md"
+        },
+        {
+          "file": "humanfs_types_source.txt",
+          "sha256": "a3befb11eea960f9285e5122e7df6c428c7b5bf0f0e73713bbbe085c17c2916e",
+          "license": "Apache-2.0",
+          "kind": "declaration",
+          "sourceUrl": "https://raw.githubusercontent.com/humanwhocodes/humanfs/85069f193cbacc371c3beb649ce746f8c5a493be/packages/types/src/hfs-types.ts",
+          "sourceCommit": "85069f193cbacc371c3beb649ce746f8c5a493be",
+          "sourcePath": "packages/types/src/hfs-types.ts"
+        },
+        {
+          "file": "humanfs__types-0.15.0-packages__core__LICENSE.txt",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "license": "Apache-2.0",
+          "kind": "referenced-terms",
+          "sourceUrl": "https://raw.githubusercontent.com/humanwhocodes/humanfs/85069f193cbacc371c3beb649ce746f8c5a493be/packages/core/LICENSE",
+          "sourceCommit": "85069f193cbacc371c3beb649ce746f8c5a493be",
+          "sourcePath": "packages/core/LICENSE"
+        }
+      ],
+      "note": "The exact types package README expressly licenses the package under Apache 2.0. The same published types source preserves its original author attribution. Full Apache 2.0 terms are retained unchanged from the same upstream monorepo commit; the terms alone are not treated as proof of applicability."
+    },
+    {
+      "name": "@npmcli/agent",
+      "version": "4.0.2",
+      "declaredLicense": "ISC",
+      "status": "unresolved",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40npmcli%2Fagent/4.0.2",
+        "integrity": "sha512-EUEuWAxnL07Sp5/iC/1X6Xj+XThUvnbei9zfRWZdEXa7lss9RTHMhAHBeg+MZ5To9s/gGaSI+UwZTPdYMvKSeg==",
+        "gitHead": "db7852869c74ceb8985d7c36b291a2e7a866741c",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@npmcli%2fagent@4.0.2"
+      },
+      "files": [
+        {
+          "file": "npmcli__agent-4.0.2-README.md.txt",
+          "sha256": "838746c5f90e2560312ec35c4a83928027d94fe5bcdf8a80451eb9d73ed95ebe",
+          "license": "ISC",
+          "kind": "declaration",
+          "sourceUrl": "https://raw.githubusercontent.com/npm/agent/db7852869c74ceb8985d7c36b291a2e7a866741c/README.md",
+          "sourceCommit": "db7852869c74ceb8985d7c36b291a2e7a866741c",
+          "sourcePath": "README.md"
+        }
+      ],
+      "note": "No complete applicable original license text established at the published source commit; declarations alone do not clear the release gate.",
+      "sourceAudit": {
+        "commit": "db7852869c74ceb8985d7c36b291a2e7a866741c",
+        "treeUrl": "https://api.github.com/repos/npm/agent/git/trees/db7852869c74ceb8985d7c36b291a2e7a866741c?recursive=1",
+        "matchingLicensePaths": [
+          "test/fixtures/socksv5/LICENSE"
+        ],
+        "excludedLicenseFiles": [
+          {
+            "path": "test/fixtures/socksv5/LICENSE",
+            "reason": "License belongs to a third-party test fixture; no evidence applies it to the agent package."
+          }
+        ],
+        "finding": "Package metadata declares ISC but no complete applicable original project license terms were located."
+      }
+    },
+    {
+      "name": "@npmcli/redact",
+      "version": "4.0.0",
+      "declaredLicense": "ISC",
+      "status": "unresolved",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40npmcli%2Fredact/4.0.0",
+        "integrity": "sha512-gOBg5YHMfZy+TfHArfVogwgfBeQnKbbGo3pSUyK/gSI0AVu+pEiDVcKlQb0D8Mg1LNRZILZ6XG8I5dJ4KuAd9Q==",
+        "gitHead": "a65b0db65c09c060a5b1c1a6ad354faf85575e04",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@npmcli%2fredact@4.0.0"
+      },
+      "files": [
+        {
+          "file": "npmcli__redact-4.0.0.txt.txt",
+          "sha256": "d0b7cddf14a2005e05b397a950b9f69e1de412b8c6749e5b5d70610fb119e9ee",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/npm/redact/a65b0db65c09c060a5b1c1a6ad354faf85575e04/LICENSE",
+          "sourceCommit": "a65b0db65c09c060a5b1c1a6ad354faf85575e04",
+          "sourcePath": "LICENSE"
+        }
+      ],
+      "note": "Exact-release npm metadata declares ISC, while the same published source commit and tarball contain the identical MIT LICENSE. This discrepancy remains unresolved and must not clear the release gate.",
+      "sourceAudit": {
+        "commit": "a65b0db65c09c060a5b1c1a6ad354faf85575e04",
+        "publishedDeclaration": "ISC",
+        "originalLicense": "MIT",
+        "sourceLicenseSha256": "d0b7cddf14a2005e05b397a950b9f69e1de412b8c6749e5b5d70610fb119e9ee",
+        "finding": "Original LICENSE from published gitHead is byte-identical to tarball LICENSE and contradicts declared ISC. Kept unresolved."
+      }
+    },
+    {
+      "name": "@polka/url",
+      "version": "1.0.0-next.29",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40polka%2Furl/1.0.0-next.29",
+        "integrity": "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==",
+        "gitHead": "02cbdb529ddca0a9f3d225e2abb2931924219cc3"
+      },
+      "files": [
+        {
+          "file": "polka__url-1.0.0-next.29-license.txt",
+          "sha256": "ba573393f24555ac0528612ad39665fab5bdcc80330a61096024bbf5f736526d",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/lukeed/polka/02cbdb529ddca0a9f3d225e2abb2931924219cc3/license",
+          "sourceCommit": "02cbdb529ddca0a9f3d225e2abb2931924219cc3",
+          "sourcePath": "license"
+        }
+      ]
+    },
+    {
+      "name": "@rolldown/binding-darwin-arm64",
+      "version": "1.0.0-rc.18",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-darwin-arm64/1.0.0-rc.18",
+        "integrity": "sha512-apJq2ktnGp27nSInMR5Vcj8kY6xJzDAvfdIFlpDcAK/w4cDO58qVoi1YQsES/SKiFNge/6e4CUzgjfHduYqWpQ==",
+        "gitHead": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@rolldown%2fbinding-darwin-arm64@1.0.0-rc.18"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18.txt.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/THIRD-PARTY-LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Root license explicitly references this same-commit third-party notice. Native binding license applies to the published package from this source commit."
+    },
+    {
+      "name": "@rolldown/binding-darwin-arm64",
+      "version": "1.2.12",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-darwin-arm64/1.2.12",
+        "integrity": "sha512-3YIhqHD96nA5SaYNRBR16HnGv4oavZvXfD/ayHM+oYZ0WD/8lBAtf6zQua4kEyAvpqrluKXl0lnOBoiNby7x9w==",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@rolldown%2fbinding-darwin-arm64@1.2.12"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-LICENSE.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/THIRD-PARTY-LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Root license explicitly references this same-commit third-party notice. Native binding license applies to the published package from this source commit."
+    },
+    {
+      "name": "@rolldown/binding-darwin-x64",
+      "version": "1.0.0-rc.18",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-darwin-x64/1.0.0-rc.18",
+        "integrity": "sha512-5Ofot8xbs+pxRHJqm9/9N/4sTQOvdrwEsmPE9pdLEEoAbdZtG6F2LMDfO1sp6ZAtXJuJV/21ew2srq3W8NXB5g==",
+        "gitHead": "2c4a957beb41b9f896f9cb795da056c6638e2698"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18.txt.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/THIRD-PARTY-LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@rolldown/binding-darwin-x64",
+      "version": "1.2.12",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-darwin-x64/1.2.12",
+        "integrity": "sha512-UuuJ35MFw4gmFOrE9pEqIV+K3syIKveph+Qc1/ljHZVdoDW4pz/JHR/eMVom+TZGl/5OOvGJOWaOCVt3ZfqhxA==",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@rolldown%2fbinding-darwin-x64@1.2.12"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-LICENSE.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/THIRD-PARTY-LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-gnu",
+      "version": "1.0.0-rc.18",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-linux-x64-gnu/1.0.0-rc.18",
+        "integrity": "sha512-uCo8ElcCIAMyYAZyuIZ81oFkhTSIllNvUCHCAlbhlN4ji3uC28h7IIdlXyIvGO7HsuqnV9p3rD/bpH7XhIyhRw==",
+        "gitHead": "2c4a957beb41b9f896f9cb795da056c6638e2698"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18.txt.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/THIRD-PARTY-LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-gnu",
+      "version": "1.2.12",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-linux-x64-gnu/1.2.12",
+        "integrity": "sha512-Q9uLBO53Xd4QIq1WOycVQyPP1O4HhraEV2qqb3uTrnVw6QZih9duY4vNXOivL1xoUS1/z+W8eF4NMfl2a8Sdjw==",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@rolldown%2fbinding-linux-x64-gnu@1.2.12"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-LICENSE.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/THIRD-PARTY-LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-musl",
+      "version": "1.0.0-rc.18",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-linux-x64-musl/1.0.0-rc.18",
+        "integrity": "sha512-XNOQZtuE6yUIvx4rwGemwh8kpL1xvU41FXy/s9K7T/3JVcqGzo3NfKM2HrbrGgfPYGFW42f07Wk++aOC6B9NWA==",
+        "gitHead": "2c4a957beb41b9f896f9cb795da056c6638e2698"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18.txt.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/THIRD-PARTY-LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-musl",
+      "version": "1.2.12",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-linux-x64-musl/1.2.12",
+        "integrity": "sha512-3IBxWFMjbOZskDPKv8Lf9BCnahlKuHthWkYnyIxOH/QcJrFcS4EmcenthApkwr/5+nEqZlLzeYbxeMaX7A5u4g==",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@rolldown%2fbinding-linux-x64-musl@1.2.12"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-LICENSE.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/THIRD-PARTY-LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@rolldown/binding-win32-x64-msvc",
+      "version": "1.0.0-rc.18",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-win32-x64-msvc/1.0.0-rc.18",
+        "integrity": "sha512-7H+3yqGgmnlDTRRhw/xpYY9J1kf4GC681nVc4GqKhExZTDrVVrV2tsOR9kso0fvgBdcTCcQShx4SLLoHgaLwhg==",
+        "gitHead": "2c4a957beb41b9f896f9cb795da056c6638e2698"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18.txt.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.0.0-rc.18-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/2c4a957beb41b9f896f9cb795da056c6638e2698/THIRD-PARTY-LICENSE",
+          "sourceCommit": "2c4a957beb41b9f896f9cb795da056c6638e2698",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@rolldown/binding-win32-x64-msvc",
+      "version": "1.2.12",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rolldown%2Fbinding-win32-x64-msvc/1.2.12",
+        "integrity": "sha512-WIw2haVKwjuYdXkHaoC0mF8Le71TuCBxjrdKqLbJGctbBABj+ClfmNvtbOnzpq3RokNo5+V1qhtSzJyXorsklQ==",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@rolldown%2fbinding-win32-x64-msvc@1.2.12"
+      },
+      "files": [
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-LICENSE.txt",
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "rolldown__binding-darwin-arm64-1.2.12-THIRD-PARTY-LICENSE.txt",
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+          "license": "MIT",
+          "kind": "notice",
+          "sourceUrl": "https://raw.githubusercontent.com/rolldown/rolldown/45e407b177f5885d04a9795f37f8be71d91f6f17/THIRD-PARTY-LICENSE",
+          "sourceCommit": "45e407b177f5885d04a9795f37f8be71d91f6f17",
+          "sourcePath": "THIRD-PARTY-LICENSE"
+        }
+      ],
+      "note": "Official native package registry metadata/provenance resolves to the identical immutable release commit as these original upstream notices."
+    },
+    {
+      "name": "@sigstore/verify",
+      "version": "3.1.1",
+      "declaredLicense": "Apache-2.0",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/%40sigstore%2Fverify/3.1.1",
+        "integrity": "sha512-qv7+G3J2cc6wwFj3yKvXOamzqhMwSk1ogPGmhpS8iXllcPrJaIIBA+4HbttlHVu1pqWTdmaCH/WE7UOC51kdoA==",
+        "gitHead": "c1dc7d4778a450787fc72b083f2490ad02b714c6",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@sigstore%2fverify@3.1.1"
+      },
+      "files": [
+        {
+          "file": "sigstore__verify-3.1.1.txt.txt",
+          "sha256": "364a130d2ca340bd56eb1e6d045fc6929bb0f9d0aa018f2c1949b29517e1cdd0",
+          "license": "Apache-2.0",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/sigstore/sigstore-js/c1dc7d4778a450787fc72b083f2490ad02b714c6/LICENSE",
+          "sourceCommit": "c1dc7d4778a450787fc72b083f2490ad02b714c6",
+          "sourcePath": "LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "jsondiffpatch",
+      "version": "0.7.6",
+      "declaredLicense": "MIT",
+      "status": "unresolved",
+      "registry": {
+        "url": "https://registry.npmjs.org/jsondiffpatch/0.7.6",
+        "integrity": "sha512-zE9+AXFq+MkTolDor2Cw1nJzLC0aleqPkYf52Kb4Kn4mJcka/gFHpGI2JBVEJCfWOvBl0OoxZS+wuLdislQcqg==",
+        "gitHead": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/jsondiffpatch@0.7.6"
+      },
+      "files": [
+        {
+          "file": "jsondiffpatch-0.7.6-README.md.txt",
+          "sha256": "b66de79c1b1895c740f47ba1eaa6125eb97abb47bde756cce589b97d51fd0036",
+          "license": "MIT",
+          "kind": "declaration",
+          "sourceUrl": "https://raw.githubusercontent.com/benjamine/jsondiffpatch/a60db8a232f92ee4b987c14f43f77402885d1a5a/README.md",
+          "sourceCommit": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
+          "sourcePath": "README.md"
+        }
+      ],
+      "note": "No complete applicable original license text established at the published source commit; declarations alone do not clear the release gate.",
+      "sourceAudit": {
+        "commit": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
+        "treeUrl": "https://api.github.com/repos/benjamine/jsondiffpatch/git/trees/a60db8a232f92ee4b987c14f43f77402885d1a5a?recursive=1",
+        "matchingLicensePaths": [],
+        "checkedDeclarationPath": "README.md",
+        "finding": "README links to generic MIT information; no complete project-specific license notice was located in the exact release source tree."
+      }
+    },
+    {
+      "name": "keyv",
+      "version": "4.5.4",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/keyv/4.5.4",
+        "integrity": "sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw=="
+      },
+      "files": [
+        {
+          "file": "keyv-4.5.4-source-LICENSE.txt",
+          "sha256": "1f7dca26d2d328c3dbb9b6fe3b15ec3cda08ffe2288e47b73d617454b256f959",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/jaredwray/keyv/a4272b2a47f31d7248080dc72c08421d2ef0b663/LICENSE",
+          "sourceCommit": "a4272b2a47f31d7248080dc72c08421d2ef0b663",
+          "sourcePath": "LICENSE"
+        }
+      ],
+      "note": "The registry release has no gitHead or matching tag. Its SHA512-verified published archive contains exactly README.md,src/index.js,src/index.d.ts and package.json. All three content files are byte-identical to this upstream commit; parsed package.json is identical except the release version4.5.3→4.5.4. The original license from that exact source tree is preserved; the commit is not represented as a4.5.4tag.",
+      "sourceMatch": {
+        "commit": "a4272b2a47f31d7248080dc72c08421d2ef0b663",
+        "publishedAt": "2023-10-07T16:53:54.487Z",
+        "archiveIntegrityVerified": true,
+        "files": [
+          {
+            "publishedPath": "README.md",
+            "sourcePath": "packages/keyv/README.md",
+            "sha256": "c39e1b3f735bb9302eb3cbd84aeb48c4311db64381f9e0a1aa4a61ddf59ce890"
+          },
+          {
+            "publishedPath": "src/index.d.ts",
+            "sourcePath": "packages/keyv/src/index.d.ts",
+            "sha256": "42baf4ca38c38deaf411ea73f37bc39ff56c6e5c761a968b64ac1b25c92b5cd8"
+          },
+          {
+            "publishedPath": "src/index.js",
+            "sourcePath": "packages/keyv/src/index.js",
+            "sha256": "4987708b4b13159c654c09d239bd0c439533b0b792a6fd4e8769d8a509ad4da6"
+          }
+        ],
+        "manifestDifference": {
+          "version": {
+            "source": "4.5.3",
+            "published": "4.5.4"
+          }
+        }
+      }
+    },
+    {
+      "name": "natural-compare",
+      "version": "1.4.0",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/natural-compare/1.4.0",
+        "integrity": "sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==",
+        "gitHead": "eec83eee67cfac84d6db30cdd65363f155673770"
+      },
+      "files": [
+        {
+          "file": "natural-compare-1.4.0-README.md.txt",
+          "sha256": "9a97891a8e69da238853b1a512ae6ea8797072e9aad5bb25449b798deaab986e",
+          "license": "MIT",
+          "kind": "declaration",
+          "sourceUrl": "https://raw.githubusercontent.com/litejs/natural-compare-lite/eec83eee67cfac84d6db30cdd65363f155673770/README.md",
+          "sourceCommit": "eec83eee67cfac84d6db30cdd65363f155673770",
+          "sourcePath": "README.md"
+        },
+        {
+          "file": "natural-author-license.txt",
+          "sha256": "353fe762ba595bf1ffe786acf0f5984bb164205901d74f258af195fc8228c67d",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://lauri.rooden.ee/mit-license.txt"
+        }
+      ],
+      "note": "Version-pinned README attributes Lauri Rooden and links this exact author-hosted license URL; the linked original terms are preserved unchanged, with no invented attribution."
+    },
+    {
+      "name": "qrcode-terminal",
+      "version": "0.12.0",
+      "declaredLicense": "Apache-2.0",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/qrcode-terminal/0.12.0",
+        "integrity": "sha512-EXtzRZmC+YGmGlDFbXKxQiMZNwCLEO6BANKXG4iCtSIM0yqc/pappSx3RIKr4r0uh5JsBckOXeKrB3Iz7mdQpQ==",
+        "gitHead": "90f66cf5c6b10bcb4358df96a9580f9eb383307b"
+      },
+      "files": [
+        {
+          "file": "qrcode_release_license.txt",
+          "sha256": "b3c7a2fadb2515b8106eae58439a4b9c0581a4eaa88d6a265701f8d4dd7dadb8",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/gtanner/qrcode-terminal/90f66cf5c6b10bcb4358df96a9580f9eb383307b/LICENSE",
+          "sourceCommit": "90f66cf5c6b10bcb4358df96a9580f9eb383307b",
+          "sourcePath": "LICENSE"
+        },
+        {
+          "file": "qrcode_author_license.txt",
+          "sha256": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/kazuhikoarase/qrcode-generator/517b9e6c3882f3ad28e4f776bbf1e1495869dc4c/LICENSE",
+          "sourceCommit": "517b9e6c3882f3ad28e4f776bbf1e1495869dc4c",
+          "sourcePath": "LICENSE"
+        }
+      ],
+      "note": "The exact qrcode-terminal release LICENSE separately identifies vendor/QRCode, names Copyright (c) 2009 Kazuhiko Arase, and expressly applies MIT. The original QRCode author repository supplies the complete MIT grant with that same attribution; both original notices are preserved, in addition to the root Apache-2.0 terms."
+    },
+    {
+      "name": "saxes",
+      "version": "6.0.0",
+      "declaredLicense": "ISC",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/saxes/6.0.0",
+        "integrity": "sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==",
+        "gitHead": "211fa0ebec9b628affc09219199639887174bfc3"
+      },
+      "files": [
+        {
+          "file": "saxes-6.0.0.txt.txt",
+          "sha256": "0fac2374380621b22e6b50451057721a9c52935b02d16d106a9f04897f061d0e",
+          "license": "ISC",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/lddubeau/saxes/211fa0ebec9b628affc09219199639887174bfc3/LICENSE",
+          "sourceCommit": "211fa0ebec9b628affc09219199639887174bfc3",
+          "sourcePath": "LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "sirv",
+      "version": "3.0.2",
+      "declaredLicense": "MIT",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/sirv/3.0.2",
+        "integrity": "sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==",
+        "gitHead": "1135207e92c40354543cbd15c763c7a61d79d432"
+      },
+      "files": [
+        {
+          "file": "sirv-3.0.2-license.txt",
+          "sha256": "ba573393f24555ac0528612ad39665fab5bdcc80330a61096024bbf5f736526d",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/lukeed/sirv/1135207e92c40354543cbd15c763c7a61d79d432/license",
+          "sourceCommit": "1135207e92c40354543cbd15c763c7a61d79d432",
+          "sourcePath": "license"
+        }
+      ]
+    },
+    {
+      "name": "spdx-exceptions",
+      "version": "2.5.0",
+      "declaredLicense": "CC-BY-3.0",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/spdx-exceptions/2.5.0",
+        "integrity": "sha512-PiU42r+xO4UbUS1buo3LPJkjlO7430Xn5SVAhdpzzsPHsjbYVflnnFdATgabnLude+Cqu25p6N+g2lw/PFsa4w==",
+        "gitHead": "3aa64bec339abc6a3eca00c3436aaa7e154b8799"
+      },
+      "files": [
+        {
+          "file": "spdx-exceptions-2.5.0-README.md.txt",
+          "sha256": "554b19eee11d2964e9f7b244e47944c08d52ca75539260a04f3227e6c0144513",
+          "license": "CC-BY-3.0",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/kemitchell/spdx-exceptions.json/3aa64bec339abc6a3eca00c3436aaa7e154b8799/README.md",
+          "sourceCommit": "3aa64bec339abc6a3eca00c3436aaa7e154b8799",
+          "sourcePath": "README.md"
+        },
+        {
+          "file": "cc-by-3.txt",
+          "sha256": "e6bc9e9c474700b708f568bac9e5a8a9bcb2b1dad53442f5ba449fcb848b8e76",
+          "license": "CC-BY-3.0",
+          "kind": "referenced-terms",
+          "sourceUrl": "https://creativecommons.org/licenses/by/3.0/legalcode.txt"
+        }
+      ],
+      "note": "The exact-release README expressly applies this identified Creative Commons license and preserves its original attribution. Official versioned legal code accompanies that project-specific grant; the legal code alone is not treated as evidence."
+    },
+    {
+      "name": "spdx-license-ids",
+      "version": "3.0.23",
+      "declaredLicense": "CC0-1.0",
+      "status": "verified",
+      "registry": {
+        "url": "https://registry.npmjs.org/spdx-license-ids/3.0.23",
+        "integrity": "sha512-CWLcCCH7VLu13TgOH+r8p1O/Znwhqv/dbb6lqWy67G+pT1kHmeD/+V36AVb/vq8QMIQwVShJ6Ssl5FPh0fuSdw==",
+        "gitHead": "a2a975daf48bbc2afdc8e7c304405b44c656fd53"
+      },
+      "files": [
+        {
+          "file": "spdx-license-ids-3.0.23-README.md.txt",
+          "sha256": "b4807793db6058c819f76c023362b7d522b3d19c9b41563fcc01c2b2c5b1ccd3",
+          "license": "CC0-1.0",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/jslicense/spdx-license-ids/a2a975daf48bbc2afdc8e7c304405b44c656fd53/README.md",
+          "sourceCommit": "a2a975daf48bbc2afdc8e7c304405b44c656fd53",
+          "sourcePath": "README.md"
+        },
+        {
+          "file": "cc-zero.txt",
+          "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+          "license": "CC0-1.0",
+          "kind": "referenced-terms",
+          "sourceUrl": "https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt"
+        }
+      ],
+      "note": "The exact-release README expressly applies this identified Creative Commons license and preserves its original attribution. Official versioned legal code accompanies that project-specific grant; the legal code alone is not treated as evidence."
+    },
+    {
+      "name": "stackback",
+      "version": "0.0.2",
+      "declaredLicense": "MIT",
+      "status": "unresolved",
+      "registry": {
+        "url": "https://registry.npmjs.org/stackback/0.0.2",
+        "integrity": "sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw=="
+      },
+      "files": [],
+      "note": "No complete applicable original license text established at the published source commit; declarations alone do not clear the release gate.",
+      "sourceAudit": {
+        "commit": "2963095372abf7b75ba55f01cef08ab1e62c2ff4",
+        "treeUrl": "https://api.github.com/repos/defunctzombie/node-stackback/git/trees/2963095372abf7b75ba55f01cef08ab1e62c2ff4?recursive=1",
+        "releaseRef": "refs/tags/v0.0.2",
+        "tagObject": "a3ebcabaf09f9df7d7cfa913cb18fa869bd2a58d",
+        "matchingLicensePaths": [],
+        "finding": "Exact annotated release tag resolves to this source tree. Package metadata declares MIT but the tree has no full original license file."
+      }
+    }
+  ]
+}

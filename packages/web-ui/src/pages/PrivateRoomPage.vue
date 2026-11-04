@@ -67,6 +67,16 @@
         </div>
       </div>
 
+      <PersonalEnvironmentPicker
+        v-if="privateRoomStore.currentRoom.personalEnvironment"
+        :expected="privateRoomStore.currentRoom.personalEnvironment"
+        :prepared="privateRoomStore.personalEnvironment"
+        :disabled="privateRoomStore.currentRoom.status === 'started' || privateRoomStore.isLoading"
+        :allow-replace="privateRoomStore.isHost && privateRoomStore.currentRoom.status !== 'started'"
+        @prepared="acceptPersonalEnvironment"
+        @error="message => ElMessage.error(message)"
+      />
+
       <!-- Combined Players and Spectators Section -->
       <div class="participants-section">
         <!-- Players Section -->
@@ -331,6 +341,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import PersonalEnvironmentPicker from '@/features/content/PersonalEnvironmentPicker.vue'
+import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { useRoute, useRouter } from 'vue-router'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { usePlayerStore } from '@/stores/player'
@@ -348,6 +360,13 @@ import type { UpdatePrivateRoomConfigRequest } from '@arcadia-eternity/protocol'
 const route = useRoute()
 const router = useRouter()
 const privateRoomStore = usePrivateRoomStore()
+async function acceptPersonalEnvironment(value: PreparedPersonalEnvironment) {
+  try {
+    await privateRoomStore.setPersonalEnvironment(value)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '环境准备失败')
+  }
+}
 const playerStore = usePlayerStore()
 const battleClientStore = useBattleClientStore()
 const authStore = useAuthStore()

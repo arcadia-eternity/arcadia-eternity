@@ -337,6 +337,7 @@ it('limits P2P relay to the other player and lets only the host finish the battl
     signal,
   })
   expect(await relayed).toMatchObject({
+    battleRoomId: started.battleRoomId,
     roomCode: room.roomCode,
     from: { playerId: ownerSession.seatId, sessionId: ownerSession.sessionId },
     to: { playerId: peerSession.seatId, sessionId: peerSession.sessionId },
@@ -355,13 +356,15 @@ it('limits P2P relay to the other player and lets only the host finish the battl
     code: 'INVALID_REQUEST',
   })
   const finished = event<PrivateRoomEvent>(peer, 'privateRoomEvent', value => value.type === 'battleFinished')
-  const battleClosed = event(owner, 'roomClosed', () => true, 7000)
+  const rawClosures: unknown[] = []
+  owner.on('roomClosed', value => rawClosures.push(value))
   await success(owner, 'finishPrivateRoomBattle', { winner: ownerSession.seatId, reason: 'surrender' })
   expect(await finished).toMatchObject({
     type: 'battleFinished',
     data: { battleResult: { winner: ownerSession.seatId, battleRoomId: started.battleRoomId } },
   })
-  expect(await battleClosed).toEqual({ roomId: started.battleRoomId })
+  await expect.poll(async () => (await current(owner))?.battleRoomId, { timeout: 7000, interval: 50 }).toBeUndefined()
+  expect(rawClosures).toEqual([])
   const lobby = await current(owner)
   expect(lobby?.status).toBe('waiting')
   expect(lobby?.players).toHaveLength(2)

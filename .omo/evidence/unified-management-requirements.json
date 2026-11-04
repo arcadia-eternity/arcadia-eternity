@@ -1,0 +1,302 @@
+{
+  "objective": "Complete the unified persistence, environment/workspace, server hosting, authorization, shared management UI, export/restore/clone designs linked from issues #200, #273, #274 and related issues. Preserve previously deferred G4 scope; implement its integration boundaries, not ranked/recording products.",
+  "branch": "codex/unified-server-management",
+  "base": "8580fcf0ab109829a2f5028301fc7691693b88ed",
+  "status": "active",
+  "requirements": [
+    {
+      "area": "SQLite/PostgreSQL one Kysely business layer; Supabase SDK retirement; G3 account preservation",
+      "issues": [273, 220, 221, 272],
+      "status": "implemented; final server regression 29 files/315 tests passes with real SQLite and PostgreSQL; real-provider and production legacy-data acceptance remain pending"
+    },
+    {
+      "area": "Versioned JSON environment, v1 compatibility, npm locks, real source installation Git/npm/URL/ZIP without author execution",
+      "issues": [243, 217, 258],
+      "status": "implemented in the unreleased worktree, including content/execution policy separation, standard source acquisition and author prebuilt artifacts; full cross-machine/offline matrix pending"
+    },
+    {
+      "area": "Shared workspace ownership, immutable capture/adopt, leases+DB GC roots, crash reconciliation, import/export",
+      "issues": [214, 244, 266, 268],
+      "status": "implemented in the unreleased worktree; durable import response-loss recovery and owner captureSnapshot/isSnapshotCurrent for online backup present; root validation core workspace 20 and desktop IPC 13 tests passed; full fault matrix pending"
+    },
+    {
+      "area": "Binding desired/effective, pin/follow, public/default/matchmaking, stale publication/revocation/rollback",
+      "issues": [244, 224, 268],
+      "status": "implemented; publication/recovery and private P2P terminal lifecycle have source review and regression coverage; two-browser personal battle/rematch passed; extended version/fault matrix remains open"
+    },
+    {
+      "area": "Orthogonal peer/server execution policy with official no-third-party execution",
+      "issues": [224, 254, 274],
+      "status": "implemented; published peer/server policy and private personal references retain official no-author-execution boundary; actual personal two-browser run kept catalog unchanged and server Worker samples at zero"
+    },
+    {
+      "area": "Scoped management auth/bootstrap/G3/service credentials, shared HTTP+private IPC, jobs/CAS/idempotency/cancel/retry/audit",
+      "issues": [274, 220, 251],
+      "status": "implemented; public-ID credential metadata and scoped revocation verified through actual production UI and restart; review WATCH/APPROVE; complete external-provider/security fault matrix remains pending"
+    },
+    {
+      "area": "Shared management UI, target context isolation, capabilities/permissions/restrictions, accounts/grants/settings/tasks",
+      "issues": [274, 222, 248, 249],
+      "status": "implemented; final Web regression 18 files/257 tests passed in 14.56s, replacing prior lobby mock failures; actual production management UI 1/1 passed in 13.6s with no browser errors; full installed desktop matrix pending"
+    },
+    {
+      "area": "Client-hosted same library, stable server identity, parent workspace proxy, persist bindings independent of client selection",
+      "issues": [209, 214, 259],
+      "status": "implemented in the unreleased worktree; registered sources reuse client projects root and private owner IPC now exposes import recovery and one-use consistent snapshot capture; root desktop IPC 13 tests passed; fresh packaged/native acceptance running"
+    },
+    {
+      "area": "LAN/public desktop hosting, invitation/network settings, durable capacity, graceful drain, appropriate supervisor capability",
+      "issues": [209, 219, 260, 262],
+      "status": "listener/network settings, persistent capacity and drain implemented; real two-device LAN/public reachability acceptance remains unverified"
+    },
+    {
+      "area": "Backup original vs clone, portable logical migration SQLite↔PG, old credential invalidation, staged recoverable restore",
+      "issues": [217, 273, 262, 266],
+      "status": "implemented; 14/14 real DB backup cases and actual production UI backup/download/restart passed; source/clone identity and credential boundaries retained; full deployment/fault matrix pending"
+    },
+    {
+      "area": "Node/Docker persistent volume, native driver packaging, clean paired web assets, deployment docs/CI",
+      "issues": [219, 249, 259, 260, 262],
+      "status": "root build/types and actual Linux arm64 Docker SQLite/PG delete/recreate persistence passed; Docker proof is prior input snapshot before final P2P lifecycle changes, not final-code container revalidation; final desktop preview refresh running and four-OS CI pending"
+    },
+    {
+      "area": "Real installed OS matrix, SMTP/GitHub callbacks, true multi-client/LAN and production-like faults",
+      "issues": [259, 260, 261, 262, 264, 268],
+      "status": "partially verified: actual production two-browser personal battle/rematch and actual management UI passed; final desktop preview, four-OS CI, installed upgrades, true two-device LAN and full deployment/fault matrix pending; real SMTP/GitHub provider environment missing and user question pending"
+    },
+    {
+      "area": "Final code review, full tests/build/typechecks, actual browser QA, commit and issue evidence synchronization",
+      "issues": [200, 273, 274],
+      "status": "active: final server 29 files/315 tests PASS104.18s realSQLite+PG; Web18files257tests PASS14.56s; production management UI1/1 and personal two-browser battle/rematch1/1 passed; full repo ESLint/root types/final web types/production Vite passed; final peer validation cleanup followed by real-socket7/7; review WATCH/APPROVE; commit/PR/final live-issue evidence and outstanding release acceptance pending",
+      "previousRun": "Historical integration run before remediation: 181 passed/25 skipped/2 failed; superseded for the server suite by the final root run below, not erased from history."
+    },
+    {
+      "area": "Unpublished personal Challenge independent of server public bindings and matchmaking",
+      "issues": [224, 264],
+      "status": "implemented and representative real production two-browser acceptance passed 1/1 in50.1s: first battle and same-room rematch naturally completed, UGC media decoded,0browsererrors,279samples0serverWorkers,catalogunchanged,479WSframes without code/archive; create payload1558bytes includes972-byte fixed reference; extended network/LAN matrix remains open"
+    },
+    {
+      "area": "Online consistent server backup using owner snapshot isolation and an atomic database snapshot",
+      "issues": [217, 262, 266],
+      "status": "implemented and verified by 14/14 real DB core tests plus actual management UI create/download/restart; owner snapshot -> atomicDB -> same-owner unchanged stamp, bounded BACKUP_BUSY, scoped/authenticated temporary artifact; no global writer pause claimed; extended production/fault acceptance pending"
+    }
+  ],
+  "liveTestDatabase": {
+    "url": "postgresql://arcadia_test@127.0.0.1:55437/arcadia_full_server_test",
+    "pid": 58807,
+    "root": "/private/tmp/arcadia-postgres-validation.NBejuO",
+    "note": "Disposable test cluster only; authoritative liveness must be rechecked. Separate arcadia_storage_test and arcadia_backup_test databases exist."
+  },
+  "latestValidation": {
+    "date": "2026-11-05",
+    "reportedBy": "root execution and specialist evidence; documentation agent read browser acceptance/network and Docker artifacts, did not rerun suites",
+    "releaseStatus": "unreleased worktree; releaseReady=false with five license blockers; local code review approval is not release approval",
+    "suites": [
+      {
+        "scope": "full server",
+        "files": 29,
+        "testsPassed": 315,
+        "durationSeconds": 104.18,
+        "databases": ["SQLite", "PostgreSQL"],
+        "databaseMode": "real",
+        "chronology": "preceded final narrow lint/peer-input validation cleanup"
+      },
+      {
+        "scope": "Web regression",
+        "files": 18,
+        "testsPassed": 257,
+        "durationSeconds": 14.56
+      },
+      {
+        "scope": "online/offline backup core",
+        "testsPassed": 14,
+        "databaseMode": "real SQLite/PostgreSQL"
+      },
+      {
+        "scope": "core workspace",
+        "testsPassed": 20
+      },
+      {
+        "scope": "desktop IPC",
+        "testsPassed": 13
+      },
+      {
+        "scope": "production management UI",
+        "testsPassed": 1,
+        "durationSeconds": 13.6,
+        "checks": [
+          "safe credential metadata",
+          "issue/revoke",
+          "online backup/download",
+          "restart stable IDs/history",
+          "no browser errors"
+        ]
+      },
+      {
+        "scope": "production personal Challenge two browsers",
+        "testsPassed": 1,
+        "durationSeconds": 50.1,
+        "checks": [
+          "natural first battle",
+          "natural same-room rematch",
+          "actual UGC media decode",
+          "zero browser errors",
+          "unchanged public catalog",
+          "279 server-worker samples max0",
+          "479 WebSocket frames contain no author code or archive",
+          "create payload1558bytes; personal reference972bytes"
+        ]
+      },
+      {
+        "scope": "real-socket personal after narrow peer-input validation cleanup",
+        "testsPassed": 7,
+        "durationSeconds": 6.9
+      }
+    ],
+    "checks": [
+      "full repository ESLint passed",
+      "root typecheck passed",
+      "final web typecheck passed",
+      "production Vite build passed",
+      "root CLI/build passed",
+      "frozen offline lockfile validation passed"
+    ],
+    "review": {
+      "codeQualityStatus": "WATCH",
+      "recommendation": "APPROVE",
+      "path": ".omo/evidence/unified-server-management-code-review.md",
+      "scope": "source review; not release/platform acceptance"
+    },
+    "docker": {
+      "passed": true,
+      "os": "linux",
+      "arch": "arm64",
+      "drivers": ["sqlite", "postgres"],
+      "scenario": "delete/recreate persistent server identity/workspace/settings; PostgreSQL restart",
+      "image": "sha256:3b9d8724271962a36b0af0ed04ee05229a360b86015345e18276e6b990604d4f",
+      "evidence": ".omo/evidence/docker-management.json",
+      "limitation": "prior Docker build snapshot; final P2P lifecycle/narrow cleanup not revalidated in this image"
+    },
+    "artifacts": {
+      "personal": "packages/web-ui/test-results/personal-environment/2026-11-04T18-07-25-638Z/personal-environment-unpub-3e8f7-h-a-real-battle-and-rematch/acceptance.json",
+      "personalNetwork": "packages/web-ui/test-results/personal-environment/2026-11-04T18-07-25-638Z/personal-environment-unpub-3e8f7-h-a-real-battle-and-rematch/network-events.json",
+      "management": "packages/web-ui/test-results/management-backup/2026-11-04T17-57-02-036Z/management-backup-paired-p-8f48a-tains-history-after-restart/acceptance.json",
+      "portableSummary": "docs/v4/validation/unified-management-2026-11-05.md"
+    },
+    "runningOrPending": [
+      "final desktop preview refresh",
+      "five exact third-party license blockers; releaseReady=false",
+      "four-platform nonpublishing CI",
+      "real installed/upgrade matrix",
+      "real two-device LAN",
+      "real SMTP/GitHub environment missing; user question pending",
+      "final-code Docker revalidation and full deployment/fault matrix",
+      "commit/PR and final live-issue evidence refresh"
+    ]
+  },
+  "validationHistory": [
+    {
+      "date": "2026-11-05",
+      "reportedBy": "root task execution; documentation agent inspected owning source/tests but did not independently rerun these suites",
+      "releaseStatus": "unreleased worktree; no independent review, remote CI, installed-platform or production acceptance inferred",
+      "suites": [
+        {
+          "scope": "server",
+          "files": 27,
+          "testsPassed": 292,
+          "databases": ["SQLite", "PostgreSQL"],
+          "databaseMode": "real databases"
+        },
+        {
+          "scope": "management UI",
+          "files": 9,
+          "testsPassed": 89
+        },
+        {
+          "scope": "core workspace",
+          "testsPassed": 17
+        },
+        {
+          "scope": "desktop workspace",
+          "testsPassed": 12,
+          "includes": ["private IPC import recovery"]
+        }
+      ],
+      "sourceConfirmedRemediation": [
+        "ContentWorkspace durable imports journal, recovery/ack/discard and retained staging; ManagementTransfers reconciles committed DB response-loss with the same operation/version",
+        "ContentLibrary native-chooser registered-source import, ManagedProjects.prepareProject reuse and transfer into the same client projects root",
+        "ManagementAuth listCredentials metadata uses public IDs, scoped authorization and revocation without exposing tokens or storage digests"
+      ]
+    },
+    {
+      "date": "2026-11-05",
+      "reportedBy": "root execution and named task-agent reports; documentation agent inspected source, did not independently rerun",
+      "releaseStatus": "unreleased worktree; no independent review, remote CI, installed multi-OS or production acceptance inferred",
+      "suites": [
+        {
+          "scope": "full server",
+          "files": 29,
+          "testsPassed": 314,
+          "durationSeconds": 112.76,
+          "databases": ["SQLite", "PostgreSQL"],
+          "databaseMode": "real databases",
+          "reportedBy": "root"
+        },
+        {
+          "scope": "backup core",
+          "testsPassed": 14,
+          "databaseMode": "real databases",
+          "reportedBy": "root"
+        },
+        {
+          "scope": "core workspace",
+          "testsPassed": 20,
+          "reportedBy": "root"
+        },
+        {
+          "scope": "desktop IPC",
+          "testsPassed": 13,
+          "reportedBy": "root"
+        },
+        {
+          "scope": "personal environment/media/room store",
+          "testsPassed": 92,
+          "reportedBy": "task agent, relayed by root"
+        },
+        {
+          "scope": "management HTTP",
+          "testsPassed": 16,
+          "databases": ["SQLite", "PostgreSQL"],
+          "reportedBy": "task agent, relayed by root"
+        },
+        {
+          "scope": "auth/operations/transport",
+          "testsPassed": 44,
+          "reportedBy": "task agent, relayed by root"
+        },
+        {
+          "scope": "broad UI",
+          "testsTotal": 223,
+          "testsPassed": 220,
+          "testsFailed": 3,
+          "status": "not passed; lobby mock-arity assertions being fixed",
+          "reportedBy": "root"
+        }
+      ],
+      "checks": ["CLI online-backup callback wired", "root full typechecks passed", "root build passed"],
+      "runningOrPending": [
+        "real two-browser personal battle and rematch",
+        "actual Docker build",
+        "fresh desktop packaging",
+        "full multi-OS installed/upgrade acceptance",
+        "real LAN and full failure matrix",
+        "real SMTP/GitHub callback acceptance: provider environment not configured"
+      ],
+      "sourceConfirmedRemediation": [
+        "PersonalEnvironmentReference and private room generation/reset gates; explicit file/HTTPS client import and whole portable content/raw-data/assets identity; official signaling does not acquire or execute personal materials",
+        "Owner captureSnapshot/isSnapshotCurrent brackets atomic database export without holding DB transaction during files/IPC; bounded retry and BACKUP_BUSY preserve consistency",
+        "ManagementBackups async create/download with server backup + workspace export scope, protected bounded expiring artifacts and GUI capability gates"
+      ]
+    }
+  ]
+}

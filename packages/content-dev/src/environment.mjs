@@ -10,7 +10,8 @@ import { AuthorWorkspace } from './workspace.mjs'
 import { ProjectTeams, playersFromTeams } from './project-teams.mjs'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { DebugEnvironments } from './debug-environments.mjs'
+import { DebugEnvironments, normalizeEnvironmentDocument } from './debug-environments.mjs'
+import { assertEnvironmentRequirements, validateEnvironmentRules } from './environment-rules.mjs'
 const exec = promisify(execFile)
 async function npm(args, options) {
   const invocation = await resolveNpmInvocation(args)
@@ -39,6 +40,13 @@ export async function prepareBattleEnvironment(
     workspace = await AuthorWorkspace.open(root, { watch: false })
     const selected = (await new DebugEnvironments(workspace).list()).find(entry => entry.id === environmentId)
     if (!selected) throw new Error(`ENVIRONMENT_MISSING: ${environmentId}`)
+    const { version: _version, ...selectedDocument } = selected
+    const environmentDocument =
+      environmentId === 'default'
+        ? { ...selectedDocument, schemaVersion: 2, rules: { schemaVersion: 1 }, requires: {} }
+        : normalizeEnvironmentDocument(selectedDocument)
+    assertEnvironmentRequirements(environmentDocument.requires)
+    validateEnvironmentRules(environmentDocument.rules)
     const lockFile = environmentId === 'default' ? undefined : `debug/environments/${environmentId}.package-lock.json`
     let oldLock
     if (lockFile) {
@@ -162,6 +170,7 @@ export async function prepareBattleEnvironment(
       console.log(`ARCADIA_RESULT=${JSON.stringify({ candidate, environmentLock, sourceRevisions })}`)
     return {
       environment,
+      environmentDocument,
       candidate,
       environmentLock,
       sourceRevisions,

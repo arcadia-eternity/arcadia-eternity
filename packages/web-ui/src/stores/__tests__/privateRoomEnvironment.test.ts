@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
     currentState: { matchmaking: 'idle' },
     cancelMatchmaking: vi.fn(),
     joinMatchmaking: vi.fn(),
+    createPrivateRoom: vi.fn(),
     playerId: 'host',
     serverUrl: 'https://server-a.test',
     on: vi.fn(),
@@ -52,6 +53,7 @@ const mocks = vi.hoisted(() => ({
   gameData: { applyServerEnvironment: vi.fn(), clearServerEnvironment: vi.fn() },
   list: vi.fn(),
   prepare: vi.fn(),
+  preparePeer: vi.fn(),
 }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ currentRoute: { value: mocks.route }, push: mocks.push }),
@@ -70,6 +72,7 @@ vi.mock('@/services/serverEnvironment', () => ({
   listServerEnvironments: mocks.list,
   prepareServerEnvironment: mocks.prepare,
 }))
+vi.mock('@/services/peerEnvironment', () => ({ preparePeerEnvironment: mocks.preparePeer }))
 
 import { usePrivateRoomStore } from '../privateRoom'
 
@@ -93,6 +96,7 @@ beforeEach(() => {
     reactive(mocks.client).serverUrl = value
   })
   mocks.client.connect.mockResolvedValue(undefined)
+  mocks.client.createPrivateRoom.mockResolvedValue('ABC123')
   mocks.client.joinPrivateRoom.mockResolvedValue(undefined)
   mocks.client.joinPrivateRoomAsSpectator.mockResolvedValue(undefined)
   mocks.client.leavePrivateRoom.mockResolvedValue(undefined)
@@ -102,6 +106,56 @@ beforeEach(() => {
     spectators: [],
     status: 'waiting',
   })
+})
+
+it('rejects a peer-only published environment before sending a server-authority room request', async () => {
+  const store = usePrivateRoomStore()
+  store.environments = [{ id: 'peer-environment', executionPolicy: 'peer', packages: [] }] as typeof store.environments
+  await expect(store.createRoom({ battleMode: 'server' }, 'peer-environment')).rejects.toThrow('仅允许玩家主机运行')
+  expect(mocks.client.createPrivateRoom).not.toHaveBeenCalled()
+  expect(mocks.preparePeer).not.toHaveBeenCalled()
+})
+
+it('prepares exact peer materials before submitting a selected player-hosted room', async () => {
+  const store = usePrivateRoomStore()
+  const runtime = { kind: 'native-v4', contentRevision: 'peer-r', coreBuildId: 'peer-c', registryBuildId: 'peer-g' }
+  store.environments = [
+    { id: 'peer-environment', executionPolicy: 'peer', packages: [], runtime },
+  ] as typeof store.environments
+  let finish!: (value: unknown) => void
+  mocks.preparePeer.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const creating = store.createRoom({ battleMode: 'p2p' }, 'peer-environment')
+  await vi.waitFor(() => expect(mocks.preparePeer).toHaveBeenCalledOnce())
+  expect(mocks.client.createPrivateRoom).not.toHaveBeenCalled()
+  finish({ environment: { revision: 'peer-materials' }, acceptance: {} })
+  await creating
+  expect(mocks.client.createPrivateRoom).toHaveBeenCalledWith({
+    config: { battleMode: 'p2p' },
+    environmentId: 'peer-environment',
+    expectedRuntime: runtime,
+  })
+  store.cleanup()
+})
+
+it('prepares peer execution materials for peer matchmaking instead of accepting display metadata alone', async () => {
+  const store = usePrivateRoomStore()
+  const descriptor = { id: 'peer-environment', executionPolicy: 'peer', packages: [] }
+  store.environments = [descriptor] as typeof store.environments
+  mocks.preparePeer.mockResolvedValueOnce({
+    environment: { revision: 'peer-materials' },
+    content: { species: [], skills: [], marks: [] },
+    acceptance: { environmentId: descriptor.id, peerRevision: 'peer-materials', resourcesReady: true },
+  })
+  const result = await store.prepareMatchmakingEnvironment(descriptor.id)
+  expect(mocks.preparePeer).toHaveBeenCalledOnce()
+  expect(mocks.prepare).not.toHaveBeenCalled()
+  expect(result.acceptance).toMatchObject({ peerRevision: 'peer-materials' })
+  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledOnce()
 })
 
 it('leaves the old room before replacing its authentication and connection', async () => {

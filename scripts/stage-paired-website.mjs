@@ -1,12 +1,51 @@
-import { cp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
-const version = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version
-const root = new URL('../dist/web/', import.meta.url)
-await rm(root, { recursive: true, force: true })
-await mkdir(root, { recursive: true })
-await cp(new URL('../packages/web-ui/dist/', import.meta.url), root, { recursive: true })
-await writeFile(
-  new URL('arcadia-web-manifest.json', root),
-  JSON.stringify({ schemaVersion: 1, protocolVersion: 1, version }, null, 2),
-)
-await writeFile(new URL('arcadia-client.json', root), JSON.stringify({ schemaVersion: 1, backendOrigin: '/' }))
-console.log(`Paired website ${version} staged in dist/web`)
+import { cp, mkdir, readFile, writeFile, rm, access } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** Verify the published pack URLs, including both the pack and app locale readers. */
+export async function verifyPairedWebsite(root) {
+  const pack = JSON.parse(await readFile(new URL('pack.json', root), 'utf8'))
+  const paths = ['index.html', 'pack-lock.yaml', pack.presentation]
+  for (const files of Object.values(pack.data)) {
+    for (const file of files) paths.push(`${pack.paths.dataDir}/${file}`)
+  }
+  for (const [language, namespaces] of Object.entries(pack.locales)) {
+    for (const namespace of namespaces) {
+      paths.push(`${pack.paths.localesDir}/${language}/${namespace}.yaml`)
+      paths.push(`${pack.paths.localesDir}/${language}/${namespace}.json`)
+    }
+  }
+  await Promise.all(
+    paths.map(async path => {
+      try {
+        await access(new URL(path, root))
+      } catch {
+        throw new Error(`Paired website is missing a required built asset: ${path}`)
+      }
+    }),
+  )
+  return paths
+}
+
+export async function stagePairedWebsite(source, root, version) {
+  // Validate before replacing a previously staged distribution.
+  await verifyPairedWebsite(source)
+  await rm(root, { recursive: true, force: true })
+  await mkdir(root, { recursive: true })
+  await cp(source, root, { recursive: true })
+  await writeFile(
+    new URL('arcadia-web-manifest.json', root),
+    JSON.stringify({ schemaVersion: 1, protocolVersion: 1, version }, null, 2),
+  )
+  await writeFile(new URL('arcadia-client.json', root), JSON.stringify({ schemaVersion: 1, backendOrigin: '/' }))
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const version = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version
+  await stagePairedWebsite(
+    new URL('../packages/web-ui/dist/', import.meta.url),
+    new URL('../dist/web/', import.meta.url),
+    version,
+  )
+  console.log(`Paired website ${version} staged in dist/web`)
+}

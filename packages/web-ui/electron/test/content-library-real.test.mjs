@@ -15,7 +15,7 @@ const exec = promisify(execFile)
 const { io } = createRequire(new URL('../../../server/package.json', import.meta.url))('socket.io-client')
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
 test(
-  'real package choices converge without restart while existing rooms keep their runtime',
+  'real local selection and hosted environment remain independent without reinstalling content',
   {
     timeout: 120000,
     skip: process.env.ARCADIA_DESKTOP_REAL_HOST !== '1',
@@ -89,7 +89,10 @@ test(
       assert.deepEqual(installed.desiredIds, [id])
       assert.deepEqual(installed.activeIds, [id])
       assert.equal(host.status().status, 'idle')
-      await library.start() // User explicitly chooses to host multiplayer.
+      const localProject = await library.acquireProject()
+      await library.start() // User explicitly chooses to host the same already installed material.
+      assert.equal(host.projectDirectory(), localProject.directory)
+      await localProject.release()
       const ready = host.status()
       assert.equal(ready.status, 'running')
       const customDirectory = host.projectDirectory()
@@ -114,17 +117,22 @@ test(
       assert.ok(await readFile(join(customDirectory, 'package.json')))
       const second = await connect(ready.url)
       await ack(second, 'createPrivateRoom', { config: { battleMode: 'server' } })
-      assert.equal((await ack(second, 'getCurrentPrivateRoom')).environment.packages.length, 0)
-      assert.ok((await catalogue()).every(env => !env.packages.some(pkg => pkg.name === '@arcadia-example/slow')))
+      assert.equal((await ack(second, 'getCurrentPrivateRoom')).environment.id, custom.id)
+      assert.ok((await catalogue()).some(env => env.id === custom.id))
+      assert.equal(host.projectDirectory(), customDirectory)
       await library.uninstall(id)
       assert.ok(await readFile(tarball))
       await ack(first, 'leavePrivateRoom')
-      assert.equal((await fetch(ready.url + '/api/v1/environments/' + custom.id + '/content')).status, 404)
-      assert.ok(!(await host.retainedProjectDirectories()).includes(customDirectory))
+      assert.equal((await fetch(ready.url + '/api/v1/environments/' + custom.id + '/content')).status, 200)
+      await ack(second, 'leavePrivateRoom')
+      await library.collectGarbage()
+      assert.ok(await readFile(join(customDirectory, 'package.json')))
+      await host.stop()
+      assert.deepEqual(await host.retainedProjectDirectories(), [])
       await library.collectGarbage()
       await assert.rejects(readFile(join(customDirectory, 'package.json')), { code: 'ENOENT' })
       t.diagnostic(
-        'Same process and URL; old room retained custom content and a new room received official-only content',
+        'Local selection became official-only while both old and new server rooms retained custom content; collection waited for server shutdown',
       )
     } finally {
       for (const socket of sockets) socket.disconnect()
