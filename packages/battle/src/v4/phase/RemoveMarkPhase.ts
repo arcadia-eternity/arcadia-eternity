@@ -1,4 +1,3 @@
-import { markParameterContract } from '../content/mark-parameters'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { RemoveMarkContext } from '../context'
@@ -73,7 +72,7 @@ export function executeRemoveMarkOperation(context: RemoveMarkContext, battle: B
     mark.owner = null
   }
 
-  if (markParameterContract(mark.base)) battle.configSystem.releaseScope(mark)
+  battle.configSystem.releaseScope(mark)
 
   // Emit mark destroy message
   battle.emitMessage(BattleMessageType.MarkDestroy, {

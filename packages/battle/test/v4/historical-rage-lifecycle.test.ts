@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import {
   BattleMessageType,
   EffectTrigger,
@@ -83,7 +83,7 @@ it('before hooks can re-enable a context initially marked unavailable, as in lat
 })
 it('setting bypasses gain/loss hooks and retains its message even for unavailable contexts', () => {
   const { battle, a } = fixture()
-  let calls = 0
+  const observeHook = vi.fn()
   a.activePet.skills[0].effects.push(
     defineNativeEffect({
       id: 'fixture/setting-hooks' as effectId,
@@ -93,9 +93,7 @@ it('setting bypasses gain/loss hooks and retains its message even for unavailabl
         EffectTrigger.OnRageGain,
         EffectTrigger.OnRageLoss,
       ],
-      apply() {
-        calls++
-      },
+      apply: observeHook,
     }),
   )
   const changes: unknown[] = []
@@ -106,7 +104,7 @@ it('setting bypasses gain/loss hooks and retains its message even for unavailabl
   rage.available = false
   a.addRage(rage)
   expect(a.currentRage).toBe(17)
-  expect(calls).toBe(0)
+  expect(observeHook).not.toHaveBeenCalled()
   expect(changes).toEqual([[40, 17]])
 })
 it('minimum rage observes the settled loss and emits the nested assignment before the outer loss message', () => {

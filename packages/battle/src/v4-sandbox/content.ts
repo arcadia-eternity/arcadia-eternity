@@ -4,15 +4,26 @@ import { ArenaEffectModule } from './effect-module'
 import { SandboxFault, sandboxPolicy } from './contracts'
 import type { SandboxEnvironment } from './runtime'
 
-/** Create executable content for one battle only. Dispose after its kernel has cleaned up.
- * Normal games call this inside their Worker; trusted introspection tests may opt in explicitly.
- */
-export async function prepareSandboxContent(environment: SandboxEnvironment) {
+export interface SandboxContentOptions {
+  readonly grouping?: 'package' | 'environment'
+}
+/** Prepared immutable logic, leased to one native battle at a time. */
+export async function prepareSandboxContent(environment: SandboxEnvironment, options: SandboxContentOptions = {}) {
+  if (options.grouping !== undefined && !['package', 'environment'].includes(options.grouping))
+    throw new SandboxFault('artifact', 'battle', 'Invalid VM grouping')
   if (!Array.isArray(environment.modules) || environment.modules.length > sandboxPolicy.packagesPerBattle)
     throw new SandboxFault('artifact', 'battle', 'Invalid packages')
   const modules: ArenaEffectModule[] = [],
     names = new Set<string>()
+  let active = false
+  let disposed = false
+  const healthy = () => {
+    if (disposed) throw new SandboxFault('disposed', 'battle', 'Content disposed')
+    for (const module of modules) module.assertHealthy()
+  }
   const dispose = () => {
+    if (disposed) return
+    disposed = true
     let failure: unknown
     for (const module of modules.splice(0)) {
       try {
@@ -32,8 +43,12 @@ export async function prepareSandboxContent(environment: SandboxEnvironment) {
       )
         throw new SandboxFault('artifact', 'battle', 'Duplicate or invalid package')
       names.add(entry.artifact.packageId)
-      modules.push(await ArenaEffectModule.prepare(entry.artifact))
     }
+    const grouped = options.grouping === 'environment'
+    if (grouped && environment.modules.length)
+      modules.push(await ArenaEffectModule.prepareGroup(environment.modules.map(entry => entry.artifact)))
+    else for (const entry of environment.modules) modules.push(await ArenaEffectModule.prepare(entry.artifact))
+    const moduleFor = (index: number) => modules[grouped ? 0 : index]
     const usedExports = new Set(
       (environment.data.behaviors ?? []).map(
         raw => (raw as { implementation: { exportId: string } }).implementation.exportId,
@@ -47,7 +62,7 @@ export async function prepareSandboxContent(environment: SandboxEnvironment) {
           parameters = new Map()
         for (const [i, entry] of environment.modules.entries())
           if (entry.role === 'catalog') {
-            const catalog = modules[i].createCatalog(marks)
+            const catalog = moduleFor(i).createCatalog(marks, entry.artifact.packageId)
             for (const [id, effect] of catalog.effects) {
               if (effects.has(id))
                 throw new SandboxFault('artifact', entry.artifact.packageId, `Duplicate effect ${id}`)
@@ -61,15 +76,18 @@ export async function prepareSandboxContent(environment: SandboxEnvironment) {
         nativeExports: environment.modules.flatMap((entry, index) => {
           if (entry.role === 'behaviors' && ![...usedExports].some(id => id.startsWith(`${entry.namespace}:`)))
             return []
-          const exports = modules[index].createEffects({
-            sdk,
-            marks,
-            id: local => {
-              if (typeof local !== 'string' || !/^[a-zA-Z0-9_./-]+$/.test(local))
-                throw new SandboxFault('artifact', entry.artifact.packageId, 'Invalid local ID')
-              return entry.namespace ? `${entry.namespace}:${local}` : local
+          const exports = moduleFor(index).createEffects(
+            {
+              sdk,
+              marks,
+              id: local => {
+                if (typeof local !== 'string' || !/^[a-zA-Z0-9_./-]+$/.test(local))
+                  throw new SandboxFault('artifact', entry.artifact.packageId, 'Invalid local ID')
+                return entry.namespace ? `${entry.namespace}:${local}` : local
+              },
             },
-          })
+            entry.artifact.packageId,
+          )
           if (entry.role === 'catalog') return exports
           if (!Array.isArray(exports) || exports.length > 5000)
             throw new SandboxFault('artifact', entry.artifact.packageId, 'Expected a bounded array of code effects')
@@ -97,10 +115,21 @@ export async function prepareSandboxContent(environment: SandboxEnvironment) {
     for (const module of modules) module.assertHealthy()
     return {
       content,
-      packageCount: modules.length,
-      assertHealthy() {
-        for (const module of modules) module.assertHealthy()
+      packageCount: environment.modules.length,
+      vmCount: modules.length,
+      beginSession() {
+        healthy()
+        if (active) throw new SandboxFault('permission', 'battle', 'Content session already active')
+        for (const module of modules) module.beginSession()
+        active = true
       },
+      endSession() {
+        healthy()
+        if (!active) throw new SandboxFault('permission', 'battle', 'Content session is not active')
+        for (const module of modules) module.endSession()
+        active = false
+      },
+      assertHealthy: healthy,
       dispose,
     }
   } catch (error) {

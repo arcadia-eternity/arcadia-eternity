@@ -9,6 +9,7 @@ import {
   type TimerConfig,
 } from '@arcadia-eternity/const'
 import type { BattleHost } from '@arcadia-eternity/battle/v4/host'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { PrivateRoomInfo, PrivateRoomEvent, ServerSession } from '@arcadia-eternity/protocol'
 import { createStandaloneBattle, validateStandaloneTeam } from './native'
@@ -81,6 +82,7 @@ export interface RoomOptions {
 
 /** One process owns all rooms. No room or live authorization survives shutdown. */
 export class RoomRegistry {
+  private readonly battleWorkers = createNodeBattleWorkerManager({ reuseWorkers: true, vmGrouping: 'environment' })
   private readonly rooms = new Map<string, Room>()
   private readonly seats = new Map<string, string>()
   private readonly sockets = new Map<string, Set<Socket>>()
@@ -470,6 +472,7 @@ export class RoomRegistry {
           rngSeed: nanoid(),
         },
         room.environment.runtime,
+        this.battleWorkers,
       )
     }
     // A shutdown can happen while official content is loading.
@@ -1145,13 +1148,17 @@ export class RoomRegistry {
     this.closed = true
     for (const controller of this.matchingControllers) controller.abort(new RoomError('SERVER_STOPPED'))
     clearInterval(this.cleaner)
-    await Promise.all([...this.matchmaking.keys()].map(seat => this.cancelQueued(seat)))
     const rooms = [...this.rooms.values()]
-    await Promise.all(rooms.map(room => this.close(room, 'SERVER_STOPPED')))
-    await Promise.allSettled(rooms.map(room => room.pending))
-    await this.matching.catch(() => undefined)
-    for (const connections of this.sockets.values()) for (const socket of connections) socket.disconnect(true)
-    this.sockets.clear()
-    this.seats.clear()
+    try {
+      await Promise.all([...this.matchmaking.keys()].map(seat => this.cancelQueued(seat)))
+      await Promise.all(rooms.map(room => this.close(room, 'SERVER_STOPPED')))
+      await Promise.allSettled(rooms.map(room => room.pending))
+      await this.matching.catch(() => undefined)
+      for (const connections of this.sockets.values()) for (const socket of connections) socket.disconnect(true)
+      this.sockets.clear()
+      this.seats.clear()
+    } finally {
+      await this.battleWorkers.dispose()
+    }
   }
 }

@@ -249,26 +249,6 @@ it('restores a UGC initial checkpoint in a new Worker without a package-specific
   await restored.ready()
   expect((await restored.waitForPendingDecision()).selections[0].length).toBeGreaterThan(0)
 })
-it('creates independent per-battle and per-package module globals', async () => {
-  const host = manager(),
-    first = small(
-      'globalThis.marker=1;let calls=0;export function createEffects(){if(++calls!==1)throw Error("shared module");return []}',
-    )
-  const second = {
-    ...first.environment.modules[0],
-    namespace: 'other',
-    artifact: {
-      ...first.environment.modules[0].artifact,
-      packageId: 'other',
-      source: 'if(globalThis.marker)throw Error("shared package");export function createEffects(){return []}',
-    },
-  }
-  const combined = { ...first, environment: { ...first.environment, modules: [...first.environment.modules, second] } }
-  const a = await host.create(combined),
-    b = await host.create(combined)
-  expect((await a.getState()).status).toBe(BattleStatus.Unstarted)
-  expect((await b.getState()).status).toBe(BattleStatus.Unstarted)
-}, 10_000)
 it('stops a running battle after a caught SDK permission fault', async () => {
   const host = manager(),
     spec = small(`export function createEffects({sdk,id}){

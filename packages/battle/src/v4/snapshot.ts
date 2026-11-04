@@ -1,3 +1,4 @@
+import { validateEffectStateSnapshot } from './content/effect-state'
 import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from './content/mark-parameters'
 import mitt from 'mitt'
 import { BattleStatus, BattlePhase, type EffectTrigger, type Events } from '@arcadia-eternity/const'
@@ -450,8 +451,11 @@ export function snapshotBattle(
         accessors: value instanceof ComposableAttributeSystem ? Object.keys(value.getAccessors()).join('|') : '',
         state: value.exportSnapshotState(),
       })
-    } else if (value instanceof ConfigSystem) write('config', { state: value.exportSnapshotState() })
-    else if (value instanceof AIPlayer && Reflect.get(value, 'decisionPending'))
+    } else if (value instanceof ConfigSystem) {
+      const state = value.exportSnapshotState()
+      validateEffectStateSnapshot(battle, state)
+      write('config', { state })
+    } else if (value instanceof AIPlayer && Reflect.get(value, 'decisionPending'))
       throw new Error('AI decision is not at a snapshot boundary')
     else {
       const kind = specFor(value)
@@ -802,7 +806,10 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
         }
         set(object, { instanceParams: params })
       }
-    for (const { object, state } of configs) object.restoreSnapshotState(state)
+    for (const { object, state } of configs) {
+      validateEffectStateSnapshot(battle, state)
+      object.restoreSnapshotState(state)
+    }
     for (const { object } of configs) object.registerRestoredBattle(battle.id)
     ConfigSystem.bindBattle(battle)
     bound = true

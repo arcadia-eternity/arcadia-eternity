@@ -6,6 +6,7 @@ import type { TrustedEffectCatalog } from '../v4/content/definition-catalog'
 import type { BaseMark } from '../v4/mark'
 import { Effect } from '../../v4-authoring'
 import { ArenaEffectSdk } from './sdk'
+import { checkpointArena, releaseArenaSession, type ArenaCheckpoint } from './arena-session'
 import {
   SandboxFault,
   sandboxPolicy,
@@ -26,12 +27,13 @@ export class ArenaEffectModule implements PreparedEffectModule {
   private deadline = Infinity
   private rootCalls = 0
   private totalCalls = 0
-  private author?: AuthorModule
+  private readonly authors = new Map<string, AuthorModule>()
+  private session?: ArenaCheckpoint
   private adapter?: ArenaEffectSdk
   private arena?: Arena
   private release: (() => void) | undefined
   private constructor(
-    private readonly artifact: EffectModuleArtifact,
+    artifact: EffectModuleArtifact,
     private readonly policy: SandboxPolicy,
   ) {
     this.packageId = artifact.packageId
@@ -40,18 +42,33 @@ export class ArenaEffectModule implements PreparedEffectModule {
     artifact: EffectModuleArtifact,
     policy: SandboxPolicy = sandboxPolicy,
   ): Promise<ArenaEffectModule> {
-    if (
-      !artifact ||
-      artifact.format !== 'arcadia.effect-module' ||
-      artifact.version !== 1 ||
-      artifact.sdkApi !== 2 ||
-      typeof artifact.packageId !== 'string' ||
-      !artifact.packageId.length ||
-      artifact.packageId.length > 200 ||
-      typeof artifact.source !== 'string' ||
-      new TextEncoder().encode(artifact.source).byteLength > policy.sourceBytes
-    )
-      throw new SandboxFault('artifact', 'module', 'Invalid effect artifact')
+    return this.prepareGroup([artifact], policy)
+  }
+  /** Independent ESM modules sharing one environment VM and its resource ceiling. */
+  static async prepareGroup(
+    artifacts: readonly EffectModuleArtifact[],
+    policy: SandboxPolicy = sandboxPolicy,
+  ): Promise<ArenaEffectModule> {
+    if (!Array.isArray(artifacts) || !artifacts.length || artifacts.length > policy.packagesPerBattle)
+      throw new SandboxFault('artifact', 'module', 'Invalid effect module group')
+    const names = new Set<string>()
+    for (const artifact of artifacts) {
+      if (
+        !artifact ||
+        artifact.format !== 'arcadia.effect-module' ||
+        artifact.version !== 1 ||
+        artifact.sdkApi !== 2 ||
+        typeof artifact.packageId !== 'string' ||
+        !artifact.packageId.length ||
+        artifact.packageId.length > 200 ||
+        typeof artifact.source !== 'string' ||
+        new TextEncoder().encode(artifact.source).byteLength > policy.sourceBytes
+      )
+        throw new SandboxFault('artifact', 'module', 'Invalid effect artifact')
+      if (names.has(artifact.packageId)) throw new SandboxFault('artifact', artifact.packageId, 'Duplicate package')
+      names.add(artifact.packageId)
+    }
+    const artifact = artifacts[0]
     for (const key of Object.keys(sandboxPolicy) as (keyof SandboxPolicy)[])
       if (!Number.isSafeInteger(policy[key]) || policy[key] <= 0 || policy[key] > sandboxPolicy[key])
         throw new SandboxFault('budget', artifact.packageId, `Invalid policy: ${key}`)
@@ -110,20 +127,23 @@ export class ArenaEffectModule implements PreparedEffectModule {
           globalThis.Date = DeterministicDate;
           Math.random = () => { throw Error('Use battle RNG'); };
         })();`)
-        const module = arena.evalModule<AuthorModule>(artifact.source, `${artifact.packageId}.js`)
-        if (
-          !module ||
-          typeof Reflect.get(module, 'then') === 'function' ||
-          (typeof Reflect.get(module, 'createEffects') !== 'function' &&
-            typeof Reflect.get(module, 'createCatalog') !== 'function')
-        )
-          throw new SandboxFault(
-            'artifact',
-            session.packageId,
-            'Expected synchronous createEffects or createCatalog export',
-          )
-        session.author = module as AuthorModule
       }, policy.prepareMs)
+      for (const artifact of artifacts)
+        session.run(() => {
+          const module = arena.evalModule<AuthorModule>(artifact.source, `${artifact.packageId}.js`)
+          if (
+            !module ||
+            typeof Reflect.get(module, 'then') === 'function' ||
+            (typeof Reflect.get(module, 'createEffects') !== 'function' &&
+              typeof Reflect.get(module, 'createCatalog') !== 'function')
+          )
+            throw new SandboxFault(
+              'artifact',
+              session.packageId,
+              'Expected synchronous createEffects or createCatalog export',
+            )
+          session.authors.set(artifact.packageId, module as AuthorModule)
+        }, policy.prepareMs)
       return session
     } catch (error) {
       try {
@@ -186,14 +206,15 @@ export class ArenaEffectModule implements PreparedEffectModule {
       if (root) this.deadline = Infinity
     }
   }
-  createEffects(context: CodeEffectModuleContext) {
+  createEffects(context: CodeEffectModuleContext, packageId = this.packageId) {
     return this.run(() => {
-      if (!this.author?.createEffects) {
-        if (this.author?.createCatalog) return []
+      const author = this.authors.get(packageId)
+      if (!author?.createEffects) {
+        if (author?.createCatalog) return []
         throw new SandboxFault('artifact', this.packageId, 'Missing createEffects')
       }
       this.adapter!.output(context)
-      const exports = this.author.createEffects(context)
+      const exports = author.createEffects(context)
       if (!Array.isArray(exports) || exports.length > 5000)
         throw new SandboxFault('artifact', this.packageId, 'Invalid effect exports')
       const canonical = []
@@ -205,11 +226,12 @@ export class ArenaEffectModule implements PreparedEffectModule {
       return Object.freeze(canonical) as ReturnType<CodeEffectModule['createEffects']>
     }, this.policy.prepareMs)
   }
-  createCatalog(marks: ReadonlyMap<string, BaseMark>): TrustedEffectCatalog {
+  createCatalog(marks: ReadonlyMap<string, BaseMark>, packageId = this.packageId): TrustedEffectCatalog {
     return this.run(() => {
-      if (!this.author?.createCatalog) throw new SandboxFault('artifact', this.packageId, 'Missing createCatalog')
+      const author = this.authors.get(packageId)
+      if (!author?.createCatalog) throw new SandboxFault('artifact', this.packageId, 'Missing createCatalog')
       this.adapter!.output(marks)
-      const catalog = this.author.createCatalog(marks)
+      const catalog = author.createCatalog(marks)
       if (
         !(catalog.effects instanceof Map) ||
         !(catalog.parameters instanceof Map) ||
@@ -228,10 +250,30 @@ export class ArenaEffectModule implements PreparedEffectModule {
       return { effects, parameters }
     }, this.policy.prepareMs)
   }
+  beginSession(): void {
+    this.assertHealthy()
+    if (this.session || this.depth)
+      throw new SandboxFault('permission', this.packageId, 'Effect session already active')
+    this.session = checkpointArena(this.arena!)
+    this.adapter!.beginSession()
+    this.totalCalls = 0
+  }
+  endSession(): void {
+    this.assertHealthy()
+    if (!this.session || this.depth) throw new SandboxFault('permission', this.packageId, 'Effect session is not idle')
+    try {
+      this.adapter!.endSession()
+      releaseArenaSession(this.arena!, this.session)
+      this.session = undefined
+    } catch (error) {
+      this.reject(error)
+    }
+  }
   dispose(): void {
     if (this.closed) return
     this.closed = true
-    this.author = undefined
+    this.authors.clear()
+    this.session = undefined
     this.adapter = undefined
     const release = this.release
     this.release = undefined

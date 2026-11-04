@@ -18,7 +18,7 @@ import {
   ops,
   targets,
 } from '@arcadia-eternity/battle/v4/authoring'
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { makeScenario } from './scenario'
 
 const battles: Battle[] = []
@@ -34,21 +34,21 @@ function setup() {
 
 it('stops recursive triggers at the shared depth limit and permanently faults only that battle', () => {
   const { battle, source } = setup()
-  let calls = 0
+  const observeAction = vi.fn()
   source.effects.push(
     defineNativeEffect({
       id: 'recursive' as effectId,
       triggers: [EffectTrigger.TurnEnd],
-      apply() {
-        calls++
-        battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)
+      apply(context) {
+        observeAction()
+        context.battle.applyEffects(new TurnContext(context.battle), EffectTrigger.TurnEnd, context.source)
       },
     }),
   )
   expect(() => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)).toThrow(
     ExecutionBudgetExceeded,
   )
-  expect(calls).toBe(executionBudgetPolicy.depth - 1)
+  expect(observeAction).toHaveBeenCalledTimes(executionBudgetPolicy.depth - 1)
   expect(battle.executionBudget.fault?.dimension).toBe('depth')
   expect(battle.victor).toBeUndefined()
   const log = battle.getActionLog()
@@ -66,11 +66,8 @@ it('stops recursive triggers at the shared depth limit and permanently faults on
 
 it('shares the per-turn limit across roots and does not allow swallowed faults to resume', () => {
   const { battle } = setup()
-  let calls = 0
-  const invoke = () =>
-    battle.executionBudget.action(1, () => {
-      calls++
-    })
+  const observeAction = vi.fn()
+  const invoke = () => battle.executionBudget.action(1, observeAction)
   for (let i = 0; i < executionBudgetPolicy.turnActions; i++) invoke()
   expect(() =>
     battle.executionBudget.run(1, () => {
@@ -81,13 +78,10 @@ it('shares the per-turn limit across roots and does not allow swallowed faults t
       }
     }),
   ).toThrow(ExecutionBudgetExceeded)
-  expect(calls).toBe(executionBudgetPolicy.turnActions)
+  expect(observeAction).toHaveBeenCalledTimes(executionBudgetPolicy.turnActions)
   expect(battle.executionBudget.fault?.dimension).toBe('turnActions')
-  expect(() =>
-    battle.executionBudget.action(2, () => {
-      calls++
-    }),
-  ).toThrow(ExecutionBudgetExceeded)
+  expect(() => battle.executionBudget.action(2, observeAction)).toThrow(ExecutionBudgetExceeded)
+  expect(observeAction).toHaveBeenCalledTimes(executionBudgetPolicy.turnActions)
 })
 
 it('resets root counters between roots and turn counters only on a new turn', () => {
@@ -102,14 +96,12 @@ it('resets root counters between roots and turn counters only on a new turn', ()
 
 it('retains the root budget through message callback reentry even when the listener catches the fault', () => {
   const { battle, source } = setup()
-  let writes = 0
+  const observeAction = vi.fn()
   source.effects.push(
     defineNativeEffect({
       id: 'callback' as effectId,
       triggers: [EffectTrigger.TurnEnd],
-      apply() {
-        writes++
-      },
+      apply: observeAction,
     }),
   )
   battle.registerListener(message => {
@@ -123,7 +115,7 @@ it('retains the root budget through message callback reentry even when the liste
   expect(() => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)).toThrow(
     ExecutionBudgetExceeded,
   )
-  expect(writes).toBe(0)
+  expect(observeAction).not.toHaveBeenCalled()
   expect(battle.executionBudget.fault?.dimension).toBe('depth')
 })
 
@@ -206,23 +198,14 @@ it.each(['selector', 'sequence', 'branch'] as const)(
   'charges %s actions inside a custom callback and blocks subsequent actions after exhaustion',
   mode => {
     const { battle, source, a } = setup()
-    let writes = 0,
-      after = 0
+    const observeAction = vi.fn(),
+      observeLaterAction = vi.fn()
     const action =
       mode === 'selector'
-        ? targets.ownerPet.apply(() => {
-            writes++
-          })
+        ? targets.ownerPet.apply(observeAction)
         : mode === 'sequence'
-          ? actions.sequence(() => {
-              writes++
-            })
-          : actions.choose(
-              () => true,
-              () => {
-                writes++
-              },
-            )
+          ? actions.sequence(observeAction)
+          : actions.choose(() => true, observeAction)
     const effect = compileEffect({
       id: 'sdk:budget-actions',
       triggers: [EffectTrigger.TurnEnd],
@@ -239,9 +222,7 @@ it.each(['selector', 'sequence', 'branch'] as const)(
     const later = defineNativeEffect({
       id: 'later' as effectId,
       triggers: [EffectTrigger.TurnEnd],
-      apply() {
-        after++
-      },
+      apply: observeLaterAction,
     })
     source.effects.splice(0, source.effects.length, effect, later)
     const hp = a.activePet.currentHp
@@ -249,8 +230,8 @@ it.each(['selector', 'sequence', 'branch'] as const)(
       ExecutionBudgetExceeded,
     )
     expect(battle.executionBudget.fault?.dimension).toBe('actions')
-    expect(writes).toBe(executionBudgetPolicy.actions - 1)
-    expect(after).toBe(0)
+    expect(observeAction).toHaveBeenCalledTimes(executionBudgetPolicy.actions - 1)
+    expect(observeLaterAction).not.toHaveBeenCalled()
     expect(a.activePet.currentHp).toBe(hp)
   },
 )
