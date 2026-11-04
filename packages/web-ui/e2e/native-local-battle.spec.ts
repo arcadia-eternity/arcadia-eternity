@@ -1,5 +1,6 @@
 import { expect, test } from 'playwright/test'
 import { prepareLocalBattle } from './helpers/local-battle-fixture'
+import input from '../../battle/test/fixtures/official-switch.input.json' with { type: 'json' }
 
 test.beforeEach(async ({ page }) => {
   await prepareLocalBattle(page)
@@ -51,4 +52,73 @@ test('cold native startup tolerates delayed portraits without entering animation
   await expect(page.getByText('对战开始！', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /^气力 ·/ })).toBeEnabled()
   expect(healthErrors).toEqual([])
+})
+
+test('consecutive browser battles reuse one Worker and start with independent battle state', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/local-battle')
+  const result = await page.evaluate(async teams => {
+    const factoryPath = '/src/services/nativeBattleFactory.ts'
+    const poolPath = '/src/services/sandboxBattleWorkers.ts'
+    const dataPath = '/src/stores/gameData.ts'
+    const [{ createSandboxWebBattleSession }, { getBattleWorkers }, { useGameDataStore }] = await Promise.all([
+      import(factoryPath),
+      import(poolPath),
+      import(dataPath),
+    ])
+    const data = useGameDataStore()
+    await data.whenReady()
+    const manager = getBattleWorkers()
+    const options = { rngSeed: 'browser-pool-reuse', timerConfig: { enabled: false } }
+    const samples = [manager.poolStatus()]
+    const first = (await createSandboxWebBattleSession(teams[0], teams[1], data, options)).system
+    let second: typeof first | undefined
+    try {
+      const firstWorker = manager.status().find((entry: { state: string }) => entry.state === 'active')?.workerId
+      await first.ready()
+      const firstRunning = await first.getState(undefined, true)
+      samples.push(manager.poolStatus())
+      // Change real domain state before returning the Worker to the pool.
+      await first.submitAction({ type: 'surrender', player: firstRunning.players[0].id })
+      const firstEnded = await first.getState(undefined, true)
+      await first.cleanup()
+      samples.push(manager.poolStatus())
+
+      second = (await createSandboxWebBattleSession(teams[0], teams[1], data, options)).system
+      const secondWorker = manager.status().find((entry: { state: string }) => entry.state === 'active')?.workerId
+      const secondInitial = await second.getState(undefined, true)
+      await second.ready()
+      const secondRunning = await second.getState(undefined, true)
+      samples.push(manager.poolStatus())
+      await second.cleanup()
+      samples.push(manager.poolStatus())
+      return {
+        firstWorker,
+        secondWorker,
+        samples,
+        firstRunning: firstRunning.status,
+        firstEnded: firstEnded.status,
+        firstPlayerIds: firstRunning.players.map((player: { id: string }) => player.id),
+        secondInitial: secondInitial.status,
+        secondRunning: secondRunning.status,
+        secondPlayerIds: secondRunning.players.map((player: { id: string }) => player.id),
+      }
+    } finally {
+      await first.cleanup()
+      await second?.cleanup()
+    }
+  }, input.teams)
+
+  expect(result.firstWorker).toBeDefined()
+  expect(result.secondWorker).toBe(result.firstWorker)
+  expect(result.firstRunning).toBe('On')
+  expect(result.firstEnded).toBe('Ended')
+  expect(result.secondInitial).toBe('Unstarted')
+  expect(result.secondRunning).toBe('On')
+  expect(result.secondPlayerIds.every((id: string) => !result.firstPlayerIds.includes(id))).toBe(true)
+  expect(result.samples.every((status: { idle: number }) => status.idle <= 1)).toBe(true)
+  expect(result.samples[1]).toMatchObject({ active: 1, preparing: 0, idle: 0, queued: 0, workers: 1 })
+  expect(result.samples[2]).toMatchObject({ active: 0, preparing: 0, idle: 1, queued: 0, workers: 1 })
+  expect(result.samples[3]).toMatchObject({ active: 1, preparing: 0, idle: 0, queued: 0, workers: 1 })
+  expect(result.samples[4]).toMatchObject({ active: 0, preparing: 0, idle: 1, queued: 0, workers: 1 })
 })

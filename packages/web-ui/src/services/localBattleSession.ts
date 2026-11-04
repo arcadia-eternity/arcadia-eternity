@@ -30,6 +30,7 @@ export class LocalBattleSession {
   #state: SessionState = 'configuring'
   #configurationGone = false
   #preparing?: Promise<Attempt>
+  #launch?: AbortController
   #attempt?: Attempt
   #battle?: BattleStore
   #disposing?: Promise<void>
@@ -72,6 +73,8 @@ export class LocalBattleSession {
   ): Promise<boolean> {
     if (this.#state !== 'configuring') throw new Error('当前对战会话无法重复启动，请重新准备对战')
     this.#state = 'starting'
+    const launch = new AbortController()
+    this.#launch = launch
     let attempt: Attempt | undefined
     let activated = false
     try {
@@ -80,10 +83,17 @@ export class LocalBattleSession {
         secondInput = copy(second)
       this.#preparing = (async () => {
         await this.prepareContent(target.data)
-        const prepared = await this.create(firstInput, secondInput, target.data, {
-          ...options,
-          ...(this.#content ? { environment: this.#content.environment } : {}),
-        })
+        launch.signal.throwIfAborted()
+        const prepared = await this.create(
+          firstInput,
+          secondInput,
+          target.data,
+          {
+            ...options,
+            ...(this.#content ? { environment: this.#content.environment } : {}),
+          },
+          launch.signal,
+        )
         return this.#manage(prepared)
       })()
       attempt = await this.#preparing
@@ -105,7 +115,11 @@ export class LocalBattleSession {
       this.#state = 'active'
       activated = true
       return true
+    } catch (error) {
+      if (launch.signal.aborted) return false
+      throw error
     } finally {
+      if (this.#launch === launch) this.#launch = undefined
       if (!activated) {
         if (this.#attempt === attempt) this.#attempt = undefined
         try {
@@ -132,6 +146,7 @@ export class LocalBattleSession {
   }
   #invalidate() {
     this.#state = 'disposed'
+    this.#launch?.abort()
     this.#attempt = undefined
     this.#battle = undefined
   }

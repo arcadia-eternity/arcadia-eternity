@@ -49,7 +49,9 @@ export async function createSandboxWebBattleSession(
   second: NativeWebPlayer,
   dataStore: NativeGameDataStoreLike,
   config: NativeWebBattleConfig = {},
+  signal?: AbortSignal,
 ): Promise<{ system: WebBattleHost; data: ContentPrototypeData }> {
+  signal?.throwIfAborted()
   const copy = <T>(value: T): T => JSON.parse(JSON.stringify(toRaw(value))) as T
   const teams = [first, second].map(player => ({
     ...copy(player),
@@ -72,18 +74,21 @@ export async function createSandboxWebBattleSession(
     data: { ...data, behaviors: officialTemplateDefinitions },
     modules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' as const }],
   }
-  const system = await getBattleWorkers().create({
-    environment,
-    players: teams,
-    aiPlayerIds: teams.filter((_, index) => ai.has(index === 0 ? 'playerA' : 'playerB')).map(player => player.id),
-    options: {
-      rngSeed: options.rngSeed,
-      allowFaintSwitch: options.allowFaintSwitch,
-      showHidden: options.showHidden,
-      timerConfig: options.timerConfig,
+  const system = await getBattleWorkers().create(
+    {
+      environment,
+      players: teams,
+      aiPlayerIds: teams.filter((_, index) => ai.has(index === 0 ? 'playerA' : 'playerB')).map(player => player.id),
+      options: {
+        rngSeed: options.rngSeed,
+        allowFaintSwitch: options.allowFaintSwitch,
+        showHidden: options.showHidden,
+        timerConfig: options.timerConfig,
+      },
+      hostOptions: { teamSelection: options.teamSelection },
     },
-    hostOptions: { teamSelection: options.teamSelection },
-  })
+    signal,
+  )
   return { system, data }
 }
 

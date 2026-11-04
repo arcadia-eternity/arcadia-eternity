@@ -9,13 +9,14 @@ import {
   type TimerConfig,
 } from '@arcadia-eternity/const'
 import type { BattleHost } from '@arcadia-eternity/battle/v4/host'
-import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import { createNodeBattleWorkerManager, BattleWorkerAdmissionError } from '@arcadia-eternity/battle/v4/sandbox/node'
 import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { PrivateRoomInfo, PrivateRoomEvent, ServerSession } from '@arcadia-eternity/protocol'
 import { createStandaloneBattle, validateStandaloneTeam } from './native'
 import type { SessionRegistry } from './session'
 import { ServerEnvironmentRegistry, EnvironmentError, type EnvironmentLease } from './environments'
 import { fifoMatchmaking, type MatchmakingPolicy } from './matchmaking'
+import { resolveBattleCapacity, type BattleCapacityOptions } from './battle-capacity'
 
 export class RoomError extends Error {
   constructor(public readonly code: string) {
@@ -65,10 +66,12 @@ type Room = {
   animations: Map<string, string>
   commands: Map<string, string>
   pending: Promise<unknown>
+  launch?: AbortController
+  launchEpoch: number
   ending?: ReturnType<typeof setTimeout>
   disconnected: Map<string, number>
 }
-export interface RoomOptions {
+export interface RoomOptions extends BattleCapacityOptions {
   /** Optional trusted selector, for example one consulting namespace/rule-scoped ELO. */
   matchmakingPolicy?: MatchmakingPolicy
   matchmakingPolicyTimeoutMs?: number
@@ -82,7 +85,7 @@ export interface RoomOptions {
 
 /** One process owns all rooms. No room or live authorization survives shutdown. */
 export class RoomRegistry {
-  private readonly battleWorkers = createNodeBattleWorkerManager({ reuseWorkers: true, vmGrouping: 'environment' })
+  private readonly battleWorkers: ReturnType<typeof createNodeBattleWorkerManager>
   private readonly rooms = new Map<string, Room>()
   private readonly seats = new Map<string, string>()
   private readonly sockets = new Map<string, Set<Socket>>()
@@ -92,7 +95,7 @@ export class RoomRegistry {
   private readonly matchingControllers = new Set<AbortController>()
   private readonly cleaner: ReturnType<typeof setInterval>
   private closed = false
-  private readonly limits: Required<Omit<RoomOptions, 'matchmakingPolicy'>>
+  private readonly limits: Required<Omit<RoomOptions, 'matchmakingPolicy' | keyof BattleCapacityOptions>>
   private readonly matchmakingPolicy: MatchmakingPolicy
   constructor(
     private readonly io: Server,
@@ -100,6 +103,15 @@ export class RoomRegistry {
     options: RoomOptions = {},
     private readonly environments: ServerEnvironmentRegistry,
   ) {
+    const capacity = resolveBattleCapacity(options)
+    this.battleWorkers = createNodeBattleWorkerManager({
+      maxBattles: capacity.maxConcurrentBattles,
+      maxIdleWorkers: capacity.maxIdleWorkers,
+      maxQueuedBattles: capacity.maxQueuedBattles,
+      queueTimeoutMs: capacity.battleQueueTimeoutMs,
+      reuseWorkers: true,
+      vmGrouping: 'environment',
+    })
     this.matchmakingPolicy = options.matchmakingPolicy ?? fifoMatchmaking
     this.limits = {
       maxRooms: options.maxRooms ?? 1000,
@@ -116,6 +128,17 @@ export class RoomRegistry {
       void this.sweep().catch(() => undefined)
     }, this.limits.cleanupIntervalMs)
     this.cleaner.unref()
+  }
+  get battleWorkerStats() {
+    return this.battleWorkers.poolStatus()
+  }
+  private cancelLaunch(room: Room, code = 'BATTLE_LAUNCH_CANCELED') {
+    // Invalidate starts already submitted to room.pending, including ones not executing yet.
+    room.launchEpoch++
+    room.launch?.abort(new RoomError(code))
+  }
+  private cancelPlayerLaunch(room: Room, seat: string) {
+    if (room.info.players.some(player => player.playerId === seat)) this.cancelLaunch(room)
   }
   get size() {
     return this.rooms.size
@@ -318,6 +341,7 @@ export class RoomRegistry {
       animations: new Map(),
       commands: new Map(),
       pending: Promise.resolve(),
+      launchEpoch: 0,
       disconnected: new Map(),
     }
     this.rooms.set(code, room)
@@ -366,6 +390,7 @@ export class RoomRegistry {
     if (battle) await battle.cleanup()
   }
   private async close(room: Room, reason: string) {
+    this.cancelLaunch(room, reason === 'SERVER_STOPPED' ? reason : 'BATTLE_LAUNCH_CANCELED')
     if (this.rooms.get(room.info.config.roomCode) !== room) return
     this.rooms.delete(room.info.config.roomCode)
     this.emit(room, { type: 'roomClosed', data: { reason } })
@@ -381,6 +406,7 @@ export class RoomRegistry {
     }
   }
   private async remove(room: Room, seat: string) {
+    this.cancelPlayerLaunch(room, seat)
     if (room.info.matchmaking) {
       await this.close(room, room.info.status === 'ended' ? 'MATCH_FINISHED' : 'PLAYER_LEFT')
       return
@@ -448,72 +474,103 @@ export class RoomRegistry {
     }, 5000)
     room.ending.unref()
   }
-  private async start(room: Room, session: ServerSession, input: unknown, commit?: () => void) {
+  private async start(room: Room, session: ServerSession, input: unknown, launchEpoch: number, commit?: () => void) {
+    if (launchEpoch !== room.launchEpoch) fail('BATTLE_LAUNCH_CANCELED')
     if (room.info.matchmaking && !commit) fail('INVALID_STATE')
     this.host(room, session)
     this.waiting(room)
     if (room.info.players.length !== 2) fail('PLAYERS_NOT_READY')
     if (room.info.players.some(p => !this.sockets.get(p.playerId)?.size)) fail('PLAYER_OFFLINE')
     this.checkClientEnvironment(room, object(input).environment)
-    const requested = object(input).hostTeam
-    if (requested !== undefined)
-      room.info.players.find(p => p.playerId === session.seatId)!.team = await this.validateTeam(room, requested)
-    if (room.info.players.some(p => !p.team || (p.playerId !== session.seatId && !p.isReady))) fail('PLAYERS_NOT_READY')
-    await this.disposeBattle(room)
-    const [a, b] = room.info.players
-    if (room.info.config.battleMode === 'server') {
-      room.battle = await createStandaloneBattle(
-        { id: a.playerId, name: a.playerName, team: a.team! },
-        { id: b.playerId, name: b.playerName, team: b.team! },
-        {
-          allowFaintSwitch: room.info.config.allowFaintSwitch,
-          showHidden: room.info.config.showHidden,
-          timerConfig: room.info.config.timerConfig,
-          rngSeed: nanoid(),
-        },
-        room.environment.runtime,
-        this.battleWorkers,
-      )
-    }
-    // A shutdown can happen while official content is loading.
-    if (this.closed || this.rooms.get(room.info.config.roomCode) !== room) {
+    const controller = new AbortController()
+    room.launch = controller
+    let preparing = false
+    try {
+      const requested = object(input).hostTeam
+      if (requested !== undefined)
+        room.info.players.find(p => p.playerId === session.seatId)!.team = await this.validateTeam(room, requested)
+      if (room.info.players.some(p => !p.team || (p.playerId !== session.seatId && !p.isReady)))
+        fail('PLAYERS_NOT_READY')
       await this.disposeBattle(room)
-      return fail('SERVER_STOPPED')
-    }
-    commit?.()
-    room.info.status = 'started'
-    room.info.battleRoomId = nanoid()
-    room.info.battleHost = { playerId: session.seatId, sessionId: session.sessionId }
-    if (room.battle) {
-      for (const seat of room.members.keys()) this.attachBattleView(room, seat)
-      room.cleanups.push(
-        room.battle.BattleEvent(message => {
-          if (message.type === BattleMessageType.BattleEnd) this.finish(room, message.data.winner, message.data.reason)
-        }),
-      )
-      for (const type of timerEvents)
+      preparing = true
+      const [a, b] = room.info.players
+      if (room.info.config.battleMode === 'server') {
+        room.battle = await createStandaloneBattle(
+          { id: a.playerId, name: a.playerName, team: a.team! },
+          { id: b.playerId, name: b.playerName, team: b.team! },
+          {
+            allowFaintSwitch: room.info.config.allowFaintSwitch,
+            showHidden: room.info.config.showHidden,
+            timerConfig: room.info.config.timerConfig,
+            rngSeed: nanoid(),
+          },
+          room.environment.runtime,
+          this.battleWorkers,
+          controller.signal,
+        )
+      }
+      controller.signal.throwIfAborted()
+      // A shutdown or disconnect can happen while waiting for capacity or content.
+      if (this.closed || this.rooms.get(room.info.config.roomCode) !== room) {
+        await this.disposeBattle(room)
+        return fail('SERVER_STOPPED')
+      }
+      if (room.info.players.some(player => !this.sockets.get(player.playerId)?.size)) fail('PLAYER_OFFLINE')
+      commit?.()
+      room.info.status = 'started'
+      room.info.battleRoomId = nanoid()
+      room.info.battleHost = { playerId: session.seatId, sessionId: session.sessionId }
+      if (room.battle) {
+        for (const seat of room.members.keys()) this.attachBattleView(room, seat)
         room.cleanups.push(
-          room.battle.onTimerEvent(type, data => {
-            if (type === 'animationEnd' && data && 'animationId' in data)
-              room.animations.delete(data.animationId as string)
-            for (const seat of room.members.keys())
-              this.emitSeat(
-                seat,
-                type === 'timerSnapshot' ? type : 'timerEvent',
-                type === 'timerSnapshot' ? data : { type, data },
-              )
+          room.battle.BattleEvent(message => {
+            if (message.type === BattleMessageType.BattleEnd)
+              this.finish(room, message.data.winner, message.data.reason)
           }),
         )
+        for (const type of timerEvents)
+          room.cleanups.push(
+            room.battle.onTimerEvent(type, data => {
+              if (type === 'animationEnd' && data && 'animationId' in data)
+                room.animations.delete(data.animationId as string)
+              for (const seat of room.members.keys())
+                this.emitSeat(
+                  seat,
+                  type === 'timerSnapshot' ? type : 'timerEvent',
+                  type === 'timerSnapshot' ? data : { type, data },
+                )
+            }),
+          )
+      }
+      this.update(room)
+      const result = {
+        battleMode: room.info.config.battleMode,
+        battleRoomId: room.info.battleRoomId,
+        battleHost: room.info.battleHost,
+      }
+      this.emit(room, { type: 'battleStarted', data: result })
+      return result
+    } catch (error) {
+      if (preparing) {
+        await this.disposeBattle(room)
+        room.info.status = 'waiting'
+        delete room.info.battleRoomId
+        delete room.info.battleHost
+        if (!this.closed && this.rooms.get(room.info.config.roomCode) === room) this.update(room, false)
+      }
+      if (controller.signal.aborted) throw controller.signal.reason
+      if (error instanceof BattleWorkerAdmissionError) {
+        if (error.reason === 'capacity') fail('BATTLE_CAPACITY_FULL')
+        if (error.reason === 'queue-timeout') fail('BATTLE_QUEUE_TIMEOUT')
+        if (error.reason === 'disposed') fail('SERVER_STOPPED')
+        fail('BATTLE_LAUNCH_CANCELED')
+      }
+      throw error
+    } finally {
+      if (room.launch === controller) room.launch = undefined
     }
-    this.update(room)
-    const result = {
-      battleMode: room.info.config.battleMode,
-      battleRoomId: room.info.battleRoomId,
-      battleHost: room.info.battleHost,
-    }
-    this.emit(room, { type: 'battleStarted', data: result })
-    return result
   }
+
   private battle(room: Room) {
     if (!room.battle) return fail('BATTLE_NOT_FOUND')
     return room.battle
@@ -533,6 +590,8 @@ export class RoomRegistry {
   private async cancelQueued(seat: string) {
     const player = this.matchmaking.get(seat)
     if (!player) return
+    const room = this.rooms.get(this.seats.get(seat) ?? '')
+    if (room) this.cancelPlayerLaunch(room, seat)
     this.matchmaking.delete(seat)
     // A tentative room borrows this lease until pairing commits or rolls back.
     if (!player.pairing) await player.environment?.release()
@@ -652,6 +711,7 @@ export class RoomRegistry {
           member.team = pair[index].team
           member.isReady = true
         })
+        const launchEpoch = room.launchEpoch
         await this.enqueue(room, () =>
           this.start(
             room!,
@@ -664,6 +724,7 @@ export class RoomRegistry {
                 resourcesReady: true,
               },
             },
+            launchEpoch,
             () => {
               if (!pair.every(player => this.queued(player))) fail('MATCHMAKING_CANCELED')
               pair.forEach(player => this.matchmaking.delete(player.session.seatId))
@@ -734,13 +795,21 @@ export class RoomRegistry {
         )
       })
     }
-    const withRoom = (operation: (room: Room, data: unknown) => unknown | Promise<unknown>) => (data: unknown) => {
-      const current = this.current(session)
-      return this.enqueue(current, () => {
-        if (!current.members.has(session.seatId) || !this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
-        return operation(current, data)
-      })
-    }
+    const withRoom =
+      (
+        operation: (room: Room, data: unknown, launchEpoch: number) => unknown | Promise<unknown>,
+        beforeQueue?: (room: Room, data: unknown) => void,
+      ) =>
+      (data: unknown) => {
+        const current = this.current(session)
+        beforeQueue?.(current, data)
+        const launchEpoch = current.launchEpoch
+        return this.enqueue(current, () => {
+          if (!current.members.has(session.seatId) || !this.sessions.authenticate(session.token))
+            fail('INVALID_SESSION')
+          return operation(current, data, launchEpoch)
+        })
+      }
     register(
       'getServerState',
       () => ({
@@ -780,10 +849,13 @@ export class RoomRegistry {
     })
     register(
       'leavePrivateRoom',
-      withRoom(async room => {
-        await this.remove(room, session.seatId)
-        return { status: 'LEFT' }
-      }),
+      withRoom(
+        async room => {
+          await this.remove(room, session.seatId)
+          return { status: 'LEFT' }
+        },
+        room => this.cancelPlayerLaunch(room, session.seatId),
+      ),
       true,
     )
     register(
@@ -804,7 +876,7 @@ export class RoomRegistry {
     )
     register(
       'startPrivateRoomBattle',
-      withRoom((room, data) => this.start(room, session, data)),
+      withRoom((room, data, launchEpoch) => this.start(room, session, data, launchEpoch)),
     )
     register('updatePrivateRoomRuleSet', () => fail('RULESETS_UNSUPPORTED'))
     register(
@@ -849,16 +921,26 @@ export class RoomRegistry {
     )
     register(
       'kickPlayerFromPrivateRoom',
-      withRoom(async (room, data) => {
-        this.host(room, session)
-        this.waiting(room)
-        const target = text(object(data).targetPlayerId)
-        if (target === session.seatId) fail('CANNOT_KICK_SELF')
-        if (!room.members.has(target)) fail('PLAYER_NOT_FOUND')
-        this.emit(room, { type: 'playerKicked', data: { playerId: target, kickedBy: session.seatId } })
-        await this.remove(room, target)
-        return { status: 'KICKED' }
-      }),
+      withRoom(
+        async (room, data) => {
+          this.host(room, session)
+          this.waiting(room)
+          const target = text(object(data).targetPlayerId)
+          if (target === session.seatId) fail('CANNOT_KICK_SELF')
+          if (!room.members.has(target)) fail('PLAYER_NOT_FOUND')
+          this.emit(room, { type: 'playerKicked', data: { playerId: target, kickedBy: session.seatId } })
+          await this.remove(room, target)
+          return { status: 'KICKED' }
+        },
+        (room, data) => {
+          this.host(room, session)
+          this.waiting(room)
+          const target = text(object(data).targetPlayerId)
+          if (target === session.seatId) fail('CANNOT_KICK_SELF')
+          if (!room.members.has(target)) fail('PLAYER_NOT_FOUND')
+          this.cancelPlayerLaunch(room, target)
+        },
+      ),
     )
     register(
       'switchToSpectator',
@@ -1077,6 +1159,8 @@ export class RoomRegistry {
     connections?.delete(socket)
     if (connections?.size) return
     this.sockets.delete(session.seatId)
+    const pendingRoom = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (pendingRoom) this.cancelPlayerLaunch(pendingRoom, session.seatId)
     await this.cancelQueued(session.seatId)
     const room = this.rooms.get(this.seats.get(session.seatId) ?? '')
     if (!room || this.closed) return
@@ -1098,6 +1182,8 @@ export class RoomRegistry {
     })
   }
   async revoke(session: ServerSession) {
+    const pendingRoom = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (pendingRoom) this.cancelPlayerLaunch(pendingRoom, session.seatId)
     await this.cancelQueued(session.seatId)
     const room = this.rooms.get(this.seats.get(session.seatId) ?? '')
     if (room) await this.enqueue(room, () => this.remove(room, session.seatId))
@@ -1123,13 +1209,14 @@ export class RoomRegistry {
         })
       void this.matching.catch(() => undefined)
     }
+    const expired = (room: Room) =>
+      now - room.info.lastActivity >= this.limits.roomTtlMs ||
+      now - room.info.createdAt >= this.limits.maxRoomLifetimeMs
     await Promise.all(
-      [...this.rooms.values()].map(room =>
-        this.enqueue(room, async () => {
-          if (
-            now - room.info.lastActivity >= this.limits.roomTtlMs ||
-            now - room.info.createdAt >= this.limits.maxRoomLifetimeMs
-          ) {
+      [...this.rooms.values()].map(room => {
+        if (expired(room)) this.cancelLaunch(room)
+        return this.enqueue(room, async () => {
+          if (expired(room)) {
             await this.close(room, 'ROOM_EXPIRED')
             return
           }
@@ -1139,8 +1226,8 @@ export class RoomRegistry {
               if (room.info.config.battleMode === 'p2p') await this.close(room, 'PEER_DISCONNECTED')
             } else await this.remove(room, seat)
           }
-        }).catch(() => undefined),
-      ),
+        }).catch(() => undefined)
+      }),
     )
   }
   async stop() {
@@ -1149,6 +1236,7 @@ export class RoomRegistry {
     for (const controller of this.matchingControllers) controller.abort(new RoomError('SERVER_STOPPED'))
     clearInterval(this.cleaner)
     const rooms = [...this.rooms.values()]
+    for (const room of rooms) this.cancelLaunch(room, 'SERVER_STOPPED')
     try {
       await Promise.all([...this.matchmaking.keys()].map(seat => this.cancelQueued(seat)))
       await Promise.all(rooms.map(room => this.close(room, 'SERVER_STOPPED')))

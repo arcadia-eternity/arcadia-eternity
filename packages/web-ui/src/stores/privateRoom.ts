@@ -67,6 +67,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const isSwitchingServer = ref(false)
   let serverSwitchGeneration = 0
   let battleStartGeneration = 0
+  let battleStartController: AbortController | undefined
   let leaveInFlight: Promise<void> | undefined
   const roomAdmissions = new Set<Promise<unknown>>()
   const admitRoom = <T>(operation: () => Promise<T>): Promise<T> => {
@@ -108,6 +109,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       authStore.serverInfo?.bootId,
     ],
     () => {
+      cancelPendingBattleStart()
       environmentCatalogGeneration++
       environments.value = []
       cancelEnvironmentRequests()
@@ -128,6 +130,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   let roomPollTimer: ReturnType<typeof setInterval> | null = null
   let resumeBattleInFlight: Promise<void> | null = null
   let battleStartInFlight: { roomId: string; task: Promise<boolean> } | null = null
+  function cancelPendingBattleStart(): void {
+    if (!battleStartController) return
+    battleStartGeneration++
+    battleStartController.abort()
+    battleStartController = undefined
+    battleStartInFlight = null
+  }
   let initializedBattleRoomId: string | null = null
   let lastResumeAttemptAt = 0
   let lastP2PInitErrorMessage: string | null = null
@@ -390,6 +399,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const leaveRoom = (): Promise<void> => {
     if (leaveInFlight) return leaveInFlight
     if (!currentRoom.value) return Promise.resolve()
+    cancelPendingBattleStart()
     const scope = serverScope()
     isLoading.value = true
     error.value = null
@@ -420,6 +430,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   /** Leave the old room before retiring its credentials and connecting to another authority. */
   const switchServer = async (address: string): Promise<void> => {
     const target = authStore.checkServerUrl(address)
+    const hadPendingBattleStart = !!battleStartInFlight
+    cancelPendingBattleStart()
     const generation = ++serverSwitchGeneration
     ++matchmakingGeneration
     isSwitchingServer.value = true
@@ -427,7 +439,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       await Promise.allSettled([...roomAdmissions])
       if (generation !== serverSwitchGeneration) return
       if (battleClientStore.currentState.matchmaking === 'searching') await battleClientStore.cancelMatchmaking()
-      const hadBattle = currentRoom.value?.status === 'started' || !!battleStartInFlight
+      const hadBattle = currentRoom.value?.status === 'started' || hadPendingBattleStart || !!battleStartInFlight
       if (currentRoom.value) await leaveRoom()
       if (generation !== serverSwitchGeneration) return
       if (hadBattle) await useBattleStore().resetBattleWithoutSurrender()
@@ -811,6 +823,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   }
 
   const markPeerFailed = (reason: string): void => {
+    cancelPendingBattleStart()
     peerSession.value = markPrivateRoomPeerFailed(peerSession.value, reason)
   }
 
@@ -918,7 +931,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const initializeP2PBattleRuntime = async (isCurrent: () => boolean): Promise<void> => {
+  const initializeP2PBattleRuntime = async (isCurrent: () => boolean, signal: AbortSignal): Promise<void> => {
     if (!currentRoom.value) {
       throw new Error('当前房间不存在')
     }
@@ -956,6 +969,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               localTeam: playerA.playerId === localPlayerId ? playerA.team : playerB.team,
               remoteTeam: playerA.playerId === localPlayerId ? playerB.team : playerA.team,
               dataStore: gameDataStore,
+              signal,
               bridge: peerBridge,
               transport: peerTransport,
               battleConfig: {
@@ -1051,6 +1065,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const initializeBattleStarted = async (
     battleStartInfo: PrivateRoomBattleStartInfo,
     isCurrent: () => boolean,
+    signal: AbortSignal,
     recoveredState?: BattleState,
   ): Promise<boolean> => {
     let environmentReady = false
@@ -1074,7 +1089,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         if (!isCurrent()) return false
 
         if (!isSpectator.value) {
-          await initializeP2PBattleRuntime(isCurrent)
+          await initializeP2PBattleRuntime(isCurrent, signal)
           if (!isCurrent()) return false
         }
 
@@ -1187,19 +1202,24 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       return
     }
     if (roomId && initializedBattleRoomId === roomId && useBattleStore().battleInterface) return
+    cancelPendingBattleStart()
+    const controller = new AbortController()
+    battleStartController = controller
     const generation = ++battleStartGeneration
     const scope = serverScope()
     const roomCode = currentRoom.value.config.roomCode
     const isCurrent = () =>
+      !controller.signal.aborted &&
       generation === battleStartGeneration &&
       scope === serverScope() &&
       currentRoom.value?.config.roomCode === roomCode &&
       shouldResume()
-    const task = initializeBattleStarted(battleStartInfo, isCurrent, recoveredState)
+    const task = initializeBattleStarted(battleStartInfo, isCurrent, controller.signal, recoveredState)
     battleStartInFlight = { roomId, task }
     try {
       if ((await task) && isCurrent() && roomId) initializedBattleRoomId = roomId
     } finally {
+      if (battleStartController === controller) battleStartController = undefined
       if (battleStartInFlight?.task === task) battleStartInFlight = null
     }
   }
@@ -1529,6 +1549,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   // 完全清理房间状态（只在真正离开房间时使用）
   const cleanup = (): void => {
     ++matchmakingEnvironmentGeneration
+    cancelPendingBattleStart()
     battleStartGeneration++
     stopRoomPolling()
     void teardownPeerTransport()

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import {
   DEFAULT_TIMER_CONFIG,
   TimerState,
@@ -7,7 +7,9 @@ import {
   type PlayerSelection,
 } from '@arcadia-eternity/const'
 import { InMemoryPeerTransport } from '@/p2p/inMemoryPeerTransport'
-import { P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
+import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
+import { createSandboxWebBattleSession } from '@/services/nativeBattleFactory'
+vi.mock('@/services/nativeBattleFactory', () => ({ createSandboxWebBattleSession: vi.fn() }))
 
 const DEFAULT_DISABLED_TIMER = {
   config: { ...DEFAULT_TIMER_CONFIG, enabled: false },
@@ -728,4 +730,31 @@ describe('P2PPeerBattleSystem', () => {
       }),
     ).toBe(true)
   })
+})
+
+test('passes host admission cancellation through to the local battle factory', async () => {
+  const controller = new AbortController()
+  vi.mocked(createSandboxWebBattleSession).mockImplementationOnce(
+    (_a, _b, _data, _config, signal) =>
+      new Promise((_resolve, reject) =>
+        signal!.addEventListener('abort', () => reject(new DOMException('Cancelled', 'AbortError')), { once: true }),
+      ),
+  )
+  const transport = new InMemoryPeerTransport()
+  const options = {
+    localPlayerId: 'host',
+    remotePlayerId: 'peer',
+    localPlayerName: 'Host',
+    remotePlayerName: 'Peer',
+    localTeam: [],
+    remoteTeam: [],
+    dataStore: {},
+    bridge: {},
+    transport,
+    signal: controller.signal,
+  } as Parameters<typeof createP2PHostBattleSystem>[0]
+  const starting = createP2PHostBattleSystem(options)
+  expect(vi.mocked(createSandboxWebBattleSession).mock.lastCall?.[4]).toBe(controller.signal)
+  controller.abort()
+  await expect(starting).rejects.toMatchObject({ name: 'AbortError' })
 })

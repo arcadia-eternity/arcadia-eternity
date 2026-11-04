@@ -26,4 +26,11 @@ export function createNodeBattleWorkerManager(policy?: Partial<BattleWorkerPolic
     }
   }, policy)
 }
-export { BattleWorkerManager, WorkerBattleSystem } from './src/v4-sandbox/worker-manager'
+export {
+  BattleWorkerManager,
+  WorkerBattleSystem,
+  BattleWorkerAdmissionError,
+  type BattleWorkerAdmissionReason,
+  type BattleWorkerPolicy,
+  type BattleWorkerPoolStatus,
+} from './src/v4-sandbox/worker-manager'

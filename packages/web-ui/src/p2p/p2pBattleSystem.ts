@@ -53,12 +53,14 @@ export async function createP2PHostBattleSystem(options: {
   bridge: PrivateRoomSignalBridge
   transport: PeerTransport
   battleConfig?: NativeWebBattleConfig
+  signal?: AbortSignal
 }): Promise<IBattleSystem> {
   const { system: localSystem } = await createSandboxWebBattleSession(
     { id: options.localPlayerId, name: options.localPlayerName, team: options.localTeam },
     { id: options.remotePlayerId, name: options.remotePlayerName, team: options.remoteTeam },
     options.dataStore,
     options.battleConfig,
+    options.signal,
   )
 
   return new P2PHostBattleSystem(

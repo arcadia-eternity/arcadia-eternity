@@ -1,6 +1,8 @@
 import BattleWorker from '@arcadia-eternity/battle/v4/sandbox/worker?worker'
 import { BattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox'
+import { parseBattleWorkerPolicy } from '@/config/battleWorkers'
 
+const policy = parseBattleWorkerPolicy(import.meta.env)
 let manager: BattleWorkerManager | undefined
 export function getBattleWorkers(): BattleWorkerManager {
   manager ??= new BattleWorkerManager(() => {
@@ -19,7 +21,7 @@ export function getBattleWorkers(): BattleWorkerManager {
         }
       },
     }
-  })
+  }, policy)
   return manager
 }
 if (typeof window !== 'undefined')

@@ -4,9 +4,9 @@ import type { BattleState } from '@arcadia-eternity/const'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { LocalBattleSession } from '../localBattleSession'
-import type { createNativeWebBattleSession } from '../nativeBattleFactory'
+import type { createSandboxWebBattleSession } from '../nativeBattleFactory'
 
-type Prepared = Awaited<ReturnType<typeof createNativeWebBattleSession>>
+type Prepared = Awaited<ReturnType<typeof createSandboxWebBattleSession>>
 const emptyData = { marks: [], skills: [], species: [] }
 const player = { name: 'test', team: [] }
 function deferred<T>() {
@@ -48,7 +48,7 @@ function destination() {
   return { data, battle, navigate: vi.fn(async () => {}) }
 }
 const sessions: LocalBattleSession[] = []
-function session(factory: typeof createNativeWebBattleSession = vi.fn(async () => prepared())) {
+function session(factory: typeof createSandboxWebBattleSession = vi.fn(async () => prepared())) {
   const value = new LocalBattleSession(factory)
   sessions.push(value)
   return value
@@ -67,7 +67,7 @@ it('pins desktop content from configuration through retries and battle cleanup',
   const prepareLocalContent = vi.fn(async () => ({ token: 'configuration', environment, content }))
   vi.stubGlobal('window', { arcadiaDesktop: { prepareLocalContent, releaseLocalContent } })
   const native = prepared(),
-    factory = vi.fn<typeof createNativeWebBattleSession>(async () => native),
+    factory = vi.fn<typeof createSandboxWebBattleSession>(async () => native),
     value = session(factory)
   const target = destination(),
     original = target.data.species
@@ -112,7 +112,7 @@ it('can retry a failed desktop capture and releases the successful configuration
 
 it('captures player and option inputs, transfers to battle, and releases its runtime exactly once', async () => {
   const native = prepared(),
-    factory = vi.fn<typeof createNativeWebBattleSession>(async () => native)
+    factory = vi.fn<typeof createSandboxWebBattleSession>(async () => native)
   const value = session(factory),
     target = destination(),
     original = target.data.species
@@ -152,12 +152,14 @@ it('releases an abandoned configuration and refuses to launch it later', async (
 it('cancels pending creation, cleans its late runtime, and never mounts or navigates', async () => {
   const pending = deferred<Prepared>(),
     native = prepared()
-  const value = session(vi.fn(() => pending.promise)),
+  const factory = vi.fn(() => pending.promise),
+    value = session(factory),
     target = destination()
   const mount = vi.spyOn(target.battle, 'initBattle'),
     project = vi.spyOn(target.data, 'useLocalBattleContent')
   const start = value.start(player, player, {}, target)
   await expect(value.start(player, player, {}, target)).rejects.toThrow('重复启动')
+  await vi.waitFor(() => expect(factory).toHaveBeenCalledOnce())
   const closing = value.releaseConfiguration()
   pending.resolve(native)
   await closing
@@ -172,7 +174,7 @@ it('cleans a failed launch and allows retry with the same configuration', async 
   const bad = prepared(),
     good = prepared()
   vi.mocked(bad.system.getState).mockRejectedValueOnce(new Error('bad initial state'))
-  const factory = vi.fn<typeof createNativeWebBattleSession>(async () => good).mockResolvedValueOnce(bad)
+  const factory = vi.fn<typeof createSandboxWebBattleSession>(async () => good).mockResolvedValueOnce(bad)
   const value = session(factory),
     target = destination(),
     original = target.data.species
@@ -182,6 +184,68 @@ it('cleans a failed launch and allows retry with the same configuration', async 
   expect(bad.system.cleanup).toHaveBeenCalledOnce()
   await expect(value.start(player, player, {}, target)).resolves.toBe(true)
   expect(factory.mock.calls[0]?.[3]).toEqual(factory.mock.calls[1]?.[3])
+  expect(factory.mock.calls[0]?.[4]).not.toBe(factory.mock.calls[1]?.[4])
+})
+
+it('aborts queued creation immediately and releases its desktop content lease', async () => {
+  const releaseLocalContent = vi.fn(async () => {})
+  vi.stubGlobal('window', {
+    arcadiaDesktop: {
+      prepareLocalContent: vi.fn(async () => ({
+        token: 'queued',
+        environment: { revision: 'queued', data: emptyData, modules: [] },
+        content: emptyData,
+      })),
+      releaseLocalContent,
+    },
+  })
+  const factory = vi.fn<typeof createSandboxWebBattleSession>(
+    (_first, _second, _data, _config, signal) =>
+      new Promise((_resolve, reject) => {
+        signal!.addEventListener('abort', () => reject(new Error('Battle launch cancelled')), { once: true })
+      }),
+  )
+  const value = session(factory),
+    target = destination()
+  const mount = vi.spyOn(target.battle, 'initBattle')
+  const starting = value.start(player, player, {}, target)
+  await vi.waitFor(() => expect(factory).toHaveBeenCalledOnce())
+  expect(factory.mock.calls[0]?.[4]?.aborted).toBe(false)
+  await value.dispose()
+  await expect(starting).resolves.toBe(false)
+  expect(factory.mock.calls[0]?.[4]?.aborted).toBe(true)
+  expect(mount).not.toHaveBeenCalled()
+  expect(target.navigate).not.toHaveBeenCalled()
+  expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('queued')
+})
+
+it('does not enqueue a launch after its pending desktop content capture is cancelled', async () => {
+  const capture = deferred<{
+    token: string
+    environment: { revision: string; data: typeof emptyData; modules: [] }
+    content: typeof emptyData
+  }>()
+  const releaseLocalContent = vi.fn(async () => {})
+  vi.stubGlobal('window', {
+    arcadiaDesktop: {
+      prepareLocalContent: vi.fn(() => capture.promise),
+      releaseLocalContent,
+    },
+  })
+  const factory = vi.fn(async () => prepared()),
+    value = session(factory),
+    target = destination()
+  const starting = value.start(player, player, {}, target)
+  const closing = value.dispose()
+  capture.resolve({
+    token: 'late-capture',
+    environment: { revision: 'late', data: emptyData, modules: [] },
+    content: emptyData,
+  })
+  await closing
+  await expect(starting).resolves.toBe(false)
+  expect(factory).not.toHaveBeenCalled()
+  expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('late-capture')
 })
 
 it('cancels a failed route transfer after configuration unmount without leaving a bound battle', async () => {

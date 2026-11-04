@@ -1,6 +1,6 @@
 # TypeScript 效果的 Arena / Comlink 执行宿主
 
-此实现接续 [#218](https://github.com/arcadia-eternity/arcadia-eternity/issues/218) 和 [#269](https://github.com/arcadia-eternity/arcadia-eternity/issues/269) 的实验。每个活动对局独占一个 Worker 会话。开发／本地默认逐局创建 Worker，按包创建独立 QuickJS Runtime、Context、WASM 内存和 Arena；服务端房间使用有界 Worker 池，在每个 Worker 内用一个 VM 装载固定环境的全部效果。健康 Worker 可顺序处理多局，保留已加载的逻辑目录。
+此实现接续 [#218](https://github.com/arcadia-eternity/arcadia-eternity/issues/218) 和 [#269](https://github.com/arcadia-eternity/arcadia-eternity/issues/269) 的实验。每个活动对局独占一个 Worker 会话。浏览器本地与 P2P 主机使用有界 Worker 池，按包创建独立 QuickJS Runtime、Context、WASM 内存和 Arena；服务端房间也使用有界 Worker 池，在每个 Worker 内用一个 VM 装载固定环境的全部效果。健康 Worker 可顺序处理多局，保留已加载的逻辑目录。
 
 ## 作者合同与宿主生命周期
 
@@ -8,9 +8,9 @@ Effect 遵守 [状态归属与引用生命周期](effect-sdk.md#状态归属与�
 
 项目在设计上不支持作者隐藏状态，不负责保存、恢复或重置任意模块变量和闭包状态。此边界是作者编程合同，不以禁止闭包、静态证明任意 TypeScript 无状态或检测全部违规作为实现前提。VM 的能力限制、执行预算和已有过期上下文检查继续生效；遵守作者合同也不替代第三方代码的宿主准入与隔离。
 
-包如何分组到 VM、逻辑实例存活多久以及 Worker 是否池化属于宿主策略，效果不能依赖这些选择。`BattleWorkerManager` 的 `vmGrouping` 支持 `package`（默认）与 `environment`；`reuseWorkers` 默认关闭。服务端每个 `RoomRegistry` 启用环境分组和池化，并在关闭时释放自己的池。并行对局仍分别使用 Worker；“一个 VM”指一个 Worker 中固定环境的全部模块，不是跨线程共用一个 VM。
+包如何分组到 VM、逻辑实例存活多久以及 Worker 是否池化属于宿主策略，效果不能依赖这些选择。`BattleWorkerManager` 的 `vmGrouping` 支持 `package`（默认）与 `environment`；`reuseWorkers` 默认关闭。浏览器入口显式启用按包分组和池化；服务端每个 `RoomRegistry` 启用环境分组和池化，并在关闭时释放自己的池。并行对局仍分别使用 Worker；“一个 VM”指一个 Worker 中固定环境的全部模块，不是跨线程共用一个 VM。
 
-池在第一次开局时装载环境，之后按完整捕获的环境数据和代码匹配空闲 Worker，不只比较 revision。同名 revision 下修改代码也不会复用旧目录。新环境按需加载，容量满时可淘汰不匹配的空闲 Worker；没有空闲容量时沿用准入拒绝。活动对局始终保留自己的环境。
+池在第一次开局时装载环境，之后按完整捕获的环境数据和代码匹配空闲 Worker，不只比较 revision。同名 revision 下修改代码也不会复用旧目录。新环境按需加载，容量满时可淘汰不匹配的空闲 Worker；没有空闲容量时，产品入口按配置进入有界 FIFO 队列。活动对局始终保留自己的环境。
 
 ## 分工与入口
 
@@ -43,7 +43,7 @@ Effect 遵守 [状态归属与引用生命周期](effect-sdk.md#状态归属与�
 
 ## 管理与故障
 
-`BattleWorkerManager` 负责准入、启动、外部看门狗、取消、清理及有界状态记录。默认最多 4 局（含准备中），启动期限 20 秒，单次控制调用 5 秒，清理 1 秒，每秒健康检查。完成等待不受单次调用期限限制；健康检查仍继续。每个 Worker 一次只服务一局。清理成功后，池化 Worker 回到空闲状态；非池化 Worker 和故障 Worker 实际终止后才释放槽位。活动、启动中和空闲 Worker 总数不超过容量。Node 空闲 Worker 不阻止进程退出。
+`BattleWorkerManager` 负责准入、启动、外部看门狗、取消、清理及有界状态记录。库默认最多 4 局（含准备中），启动期限 20 秒，单次控制调用 5 秒，清理 1 秒，每秒健康检查。完成等待不受单次调用期限限制；健康检查仍继续。每个 Worker 一次只服务一局。清理成功后，池化 Worker 回到空闲状态；非池化 Worker 和故障 Worker 实际终止后才释放槽位。活动、启动中、空闲和尚未终止的 Worker 总数不超过容量。Node 空闲 Worker 不阻止进程退出。
 
 VM 默认堆上限 128 MiB、WASM 上限 256 MiB、栈 512 KiB；初始化或工厂调用 10 秒、普通同步调用 500 ms，并限制调用次数、保留对象、包数、代码和输出大小。每个根调用共享重入期限和计数；还会执行并限制脱离调用的微任务。具体常量以 `contracts.ts` 为准。按环境分组时，同一 VM 的全部包共享这些 VM 限额。健康会话边界重置本局预算，已锁存的故障不能重置。VM 内存限额不等于整个 Worker 或进程的 RSS 上限。
 
@@ -52,6 +52,27 @@ VM 故障锁存在模块；原生 execution budget 观察模块健康，阻止�
 事件保留原生订阅的视角与隐藏信息规则，队列和单条消息有上限。输入事件在控制调用返回前送达，供 CLI 记录动作。会话 ID 隔离旧句柄、订阅和迟到的控制调用。归还池前先清理原生 Battle、计时器和订阅，等待在途调用与事件投递结束，再释放本局桥接引用；任何一步失败或超时都淘汰 Worker。
 
 Arena 1.11.0 的 `unregister` 不释放自动转换映射。`arena-session.ts` 集中适配这一固定版本：直接登记投影句柄，避免每个对象通过临时全局变量和两次源码求值注册；身份表和自动转换表分别持有自己的句柄。会话管理保留内容初始化基线，逐局释放之后增加的注册、转换、同步和临时句柄，检查引用表恢复基线。升级 Arena 时须复验此适配。VM 内无外部引用的代理环由 QuickJS 自动 GC 回收；不要求每次结束立即回收全部 guest 对象。
+
+## 容量与空闲保留配置
+
+每局独占一个 Worker，从准备开始到清理完成占用一个名额。空闲保留数与并发上限独立：流量增加时按需创建，结束后仅保留不超过 `maxIdleWorkers` 个健康 Worker，多出的立即回收。这是空闲保留上限，启动时不预创建，也不保证一直有这么多个空闲实例。设为 `0` 可在每局结束后回收全部 Worker。
+
+| 用途                  | 服务端 `.env`                     | 浏览器 `.env.local`            | 服务端默认 | 浏览器默认 |
+| --------------------- | --------------------------------- | ------------------------------ | ---------- | ---------- |
+| 最大同时占用的对战数  | `ARCADIA_MAX_CONCURRENT_BATTLES`  | `VITE_MAX_CONCURRENT_BATTLES`  | 32         | 4          |
+| 最多保留的空闲 Worker | `ARCADIA_MAX_IDLE_WORKERS`        | `VITE_MAX_IDLE_WORKERS`        | 4          | 1          |
+| 最多等待开局的对战数  | `ARCADIA_MAX_QUEUED_BATTLES`      | `VITE_MAX_QUEUED_BATTLES`      | 64         | 4          |
+| 排队等待期限（毫秒）  | `ARCADIA_BATTLE_QUEUE_TIMEOUT_MS` | `VITE_BATTLE_QUEUE_TIMEOUT_MS` | 5000       | 30000      |
+
+服务端从根目录 `.env` 或进程环境读取，修改后重启服务。浏览器配置位于 `packages/web-ui/.env.local`，由 Vite 在构建／开发服务启动时读取，发布版需要重新构建。示例分别在根目录和 `packages/web-ui` 的 `.env.example`。值须为十进制整数；空闲数和排队数允许为零，其余必须大于零，空闲数不能超过并发上限，排队期限不能超过 2,147,483,647 毫秒。无效配置会报错。
+
+满载后按入队顺序分配 Worker，不因匹配到热环境而插队。入队时捕获环境、队伍及配置，后续修改输入不影响排队中的开局。排队期限在获得名额时结束，之后另计 20 秒 Worker 启动期限；服务端默认排队 5 秒，为客户端默认 30 秒请求等待留出启动余量。队列满或等待到期会返回明确错误；设排队数为 `0` 则满载立即失败。
+
+本地会话销毁、P2P 离开／切换、服务端成员离开／最后连接断开、房间关闭及停机会取消对应的待启动对战，释放其排队位置。已经运行的对战不与其他对战共享执行实例。浏览器池按页面生命周期管理，服务端池按 `RoomRegistry` 生命周期管理。
+
+库调用方可通过 `BattleWorkerPolicy` 设置 `maxBattles`、`maxIdleWorkers`、`maxQueuedBattles`、`queueTimeoutMs`。库默认 `maxBattles=4`、空闲上限等于并发上限、`maxQueuedBattles=0`、`queueTimeoutMs=30000`，且不启用复用；上表是产品入口显式设置的默认值。准入失败使用 `BattleWorkerAdmissionError.reason` 区分 `capacity`、`queue-timeout`、`cancelled`、`disposed`。
+
+`poolStatus()` 返回只读计数：`active`（已完成准备且尚未释放）、`preparing`（创建准备中）、`idle`（当前空闲）、`queued`（等待名额）、`workers`（尚未终止的实际 Worker 总数）、`maxWorkers`（配置上限）。实际空闲数通常低于配置值；终止期间 `workers` 也可能大于前三项之和。服务端通过 `RoomRegistry.battleWorkerStats` 提供相同统计。
 
 ## 产品接入与持久化范围
 
@@ -64,6 +85,8 @@ Arena 1.11.0 的 `unregister` 不释放自动转换映射。`arena-session.ts` �
 CLI replay 保留开局前快照和输入记录，在新 Worker 中恢复初始状态并重新执行。初始输入校验在宿主内完成，只返回普通数据，不暴露原生 Battle。npm 沙箱目录身份同时覆盖捕获的代码制品；本地代码可以继续编辑，但旧快照与 replay 会拒绝不匹配的代码。
 
 ## 验证与剩余边界
+
+容量配置回归覆盖空闲上限与突发扩容、FIFO、队列满／超时／取消、输入捕获、环境替换期间的物理容量预约和停机清理。服务端真实 Socket 测试覆盖离开、断线及连续两次开局后离开，确保尚在房间任务队列中的请求也失效。真实浏览器连续两局验证同一 Worker 复用、第一局结束后第二局恢复独立初始状态，以及空闲最多保留一个；浏览器本地启动、队伍预选和延迟资源场景也通过。构建、类型检查、引擎／服务端／网页回归和两路代码审查通过；Docker Compose 默认值与覆盖值均验证传入服务环境。
 
 复用启动可在 `pnpm build:package` 后运行 `node scripts/benchmark-effect-startup.mjs 3` 比较。脚本先编译一次官方制品，然后分别串行启动专用 Worker 和池化 Worker，记录开局、到达可操作等待点和清理耗时，同时核对初始状态及 Worker 身份。池化省去后续对局的 VM 初始化和效果目录转换，首次装载仍需完成这些工作；此脚本不代表每回合执行速度或长期内存压力测试。
 

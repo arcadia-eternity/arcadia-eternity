@@ -13,6 +13,9 @@ export interface BattleWorker {
 }
 export interface BattleWorkerPolicy {
   readonly maxBattles: number
+  readonly maxIdleWorkers: number
+  readonly maxQueuedBattles: number
+  readonly queueTimeoutMs: number
   readonly initializeMs: number
   readonly requestMs: number
   readonly cleanupMs: number
@@ -22,6 +25,9 @@ export interface BattleWorkerPolicy {
 }
 const defaultPolicy: BattleWorkerPolicy = Object.freeze({
   maxBattles: 4,
+  maxIdleWorkers: 4,
+  maxQueuedBattles: 0,
+  queueTimeoutMs: 30_000,
   initializeMs: 20_000,
   requestMs: 5_000,
   cleanupMs: 1_000,
@@ -37,6 +43,37 @@ export interface BattleWorkerStatus {
   readonly cleanup?: 'graceful' | 'terminated'
   readonly cleanupFault?: string
 }
+export type BattleWorkerAdmissionReason = 'capacity' | 'queue-timeout' | 'cancelled' | 'disposed'
+/** Admission failures stay local to the manager, so callers can map reasons without parsing messages. */
+export class BattleWorkerAdmissionError extends SandboxFault {
+  constructor(readonly reason: BattleWorkerAdmissionReason) {
+    const messages = {
+      capacity: 'Concurrent battle limit or battle queue full',
+      'queue-timeout': 'Battle queue deadline exceeded',
+      cancelled: 'Battle launch cancelled',
+      disposed: 'Battle Worker manager disposed',
+    }
+    super(reason === 'capacity' || reason === 'queue-timeout' ? 'budget' : 'disposed', 'battle', messages[reason])
+  }
+}
+export interface BattleWorkerPoolStatus {
+  /** Running or cleaning leases; capacity is held until cleanup/termination completes. */
+  readonly active: number
+  readonly preparing: number
+  readonly idle: number
+  readonly queued: number
+  /** Includes workers still terminating. Never exceeds maxWorkers. */
+  readonly workers: number
+  readonly maxWorkers: number
+}
+interface QueuedBattle {
+  readonly input: SandboxBattleInput
+  readonly signal?: AbortSignal
+  readonly resolve: (battle: WorkerBattleSystem) => void
+  readonly reject: (error: unknown) => void
+  timer?: ReturnType<typeof setTimeout>
+  detachAbort?: () => void
+}
 interface WorkerSlot {
   readonly id: number
   readonly worker: BattleWorker
@@ -51,9 +88,12 @@ export class BattleWorkerManager {
   private nextWorkerId = 0
   private creating = 0
   private readonly slots = new Set<WorkerSlot>()
+  private readonly reservedEvictions = new Set<WorkerSlot>()
   private readonly idle: WorkerSlot[] = []
   private readonly active = new Map<number, WorkerBattleSystem>()
   private readonly history: BattleWorkerStatus[] = []
+  private readonly queue: QueuedBattle[] = []
+  private readonly launching = new Set<Promise<WorkerBattleSystem>>()
   private closed = false
   private disposing?: Promise<void>
   private readonly policy: BattleWorkerPolicy
@@ -61,8 +101,21 @@ export class BattleWorkerManager {
     private readonly createWorker: () => BattleWorker,
     policy: Partial<BattleWorkerPolicy> = {},
   ) {
-    this.policy = { ...defaultPolicy, ...policy }
-    const { reuseWorkers, vmGrouping, ...limits } = this.policy
+    this.policy = {
+      ...defaultPolicy,
+      ...policy,
+      maxIdleWorkers: policy.maxIdleWorkers ?? policy.maxBattles ?? defaultPolicy.maxBattles,
+    }
+    const { reuseWorkers, vmGrouping, maxIdleWorkers, maxQueuedBattles, ...limits } = this.policy
+    if (
+      !Number.isSafeInteger(maxIdleWorkers) ||
+      maxIdleWorkers < 0 ||
+      maxIdleWorkers > this.policy.maxBattles ||
+      !Number.isSafeInteger(maxQueuedBattles) ||
+      maxQueuedBattles < 0 ||
+      this.policy.queueTimeoutMs > 2_147_483_647
+    )
+      throw Error('Invalid Worker policy')
     for (const value of Object.values(limits))
       if (!Number.isSafeInteger(value) || value <= 0) throw Error('Invalid Worker policy')
     if (typeof reuseWorkers !== 'boolean' || !['package', 'environment'].includes(vmGrouping))
@@ -82,19 +135,75 @@ export class BattleWorkerManager {
         }
         await slot.worker.terminate()
       })
-      .finally(() => this.slots.delete(slot))
+      .finally(() => {
+        this.slots.delete(slot)
+        this.reservedEvictions.delete(slot)
+        this.schedule()
+      })
     return slot.termination
   }
+  private occupiedSlots(): number {
+    return this.slots.size + this.creating - this.reservedEvictions.size
+  }
+  private canLaunch(): boolean {
+    return (
+      this.active.size + this.creating < this.policy.maxBattles &&
+      (this.occupiedSlots() < this.policy.maxBattles || this.idle.length > 0)
+    )
+  }
+  private detachQueued(entry: QueuedBattle): void {
+    clearTimeout(entry.timer)
+    entry.detachAbort?.()
+  }
+  private rejectQueued(entry: QueuedBattle, error: Error): void {
+    const index = this.queue.indexOf(entry)
+    if (index < 0) return
+    this.queue.splice(index, 1)
+    this.detachQueued(entry)
+    entry.reject(error)
+    this.schedule()
+  }
+  private start(entry: QueuedBattle): void {
+    this.detachQueued(entry)
+    const task = this.launch(entry.input, entry.signal)
+    this.launching.add(task)
+    void task.then(entry.resolve, entry.reject).finally(() => this.launching.delete(task))
+  }
+  private schedule(): void {
+    while (!this.closed && this.queue.length && this.canLaunch()) {
+      this.start(this.queue.shift()!)
+    }
+  }
   async create(input: SandboxBattleInput, signal?: AbortSignal): Promise<WorkerBattleSystem> {
-    if (this.closed) throw Error('Battle Worker manager disposed')
-    if (signal?.aborted) throw new SandboxFault('disposed', 'battle', 'Battle launch cancelled')
-    if (this.active.size + this.creating >= this.policy.maxBattles)
-      throw new SandboxFault('budget', 'battle', 'Concurrent battle limit')
+    if (this.closed) throw new BattleWorkerAdmissionError('disposed')
+    if (signal?.aborted) throw new BattleWorkerAdmissionError('cancelled')
     const serialized = JSON.stringify(input)
     if (new TextEncoder().encode(serialized).byteLength > 16 * 1024 * 1024)
       throw new SandboxFault('budget', 'battle', 'Battle input limit')
-    // Capture before yielding: revisions alone cannot authenticate changed data or code.
+    // Capture even queued inputs now; caller mutation must never change the eventual environment or players.
     const captured: SandboxBattleInput = JSON.parse(serialized)
+    return new Promise<WorkerBattleSystem>((resolve, reject) => {
+      const entry: QueuedBattle = { input: captured, signal, resolve, reject }
+      if (!this.queue.length && this.canLaunch()) {
+        this.start(entry)
+        return
+      }
+      if (this.queue.length >= this.policy.maxQueuedBattles) {
+        reject(new BattleWorkerAdmissionError('capacity'))
+        return
+      }
+      this.queue.push(entry)
+      const cancel = () => this.rejectQueued(entry, new BattleWorkerAdmissionError('cancelled'))
+      signal?.addEventListener('abort', cancel, { once: true })
+      entry.detachAbort = () => signal?.removeEventListener('abort', cancel)
+      entry.timer = setTimeout(() => {
+        this.rejectQueued(entry, new BattleWorkerAdmissionError('queue-timeout'))
+      }, this.policy.queueTimeoutMs)
+      if (signal?.aborted) cancel()
+      this.schedule()
+    })
+  }
+  private async launch(captured: SandboxBattleInput, signal?: AbortSignal): Promise<WorkerBattleSystem> {
     const environment = JSON.stringify(captured.environment)
     this.creating++
     let slot: WorkerSlot | undefined
@@ -107,15 +216,22 @@ export class BattleWorkerManager {
         slot.detachIdleFailure = undefined
       } else {
         // Reclaim another environment's idle slot before allocating beyond the bound.
-        if (this.slots.size >= this.policy.maxBattles && this.idle.length) await this.terminate(this.idle[0])
+        // Creating leases reserve future slots, including while an eviction is awaiting termination.
+        if (this.occupiedSlots() > this.policy.maxBattles && this.idle.length) {
+          const victim = this.idle[0]
+          this.reservedEvictions.add(victim)
+          await this.terminate(victim)
+        }
         if (this.slots.size >= this.policy.maxBattles)
           throw new SandboxFault('budget', 'battle', 'Concurrent worker limit')
-        if (this.closed || signal?.aborted) throw new SandboxFault('disposed', 'battle', 'Battle launch cancelled')
+        if (this.closed) throw new BattleWorkerAdmissionError('disposed')
+        if (signal?.aborted) throw new BattleWorkerAdmissionError('cancelled')
         const worker = this.createWorker()
         slot = { id: ++this.nextWorkerId, worker, remote: wrap<SandboxWorkerRemote>(worker.endpoint), environment }
         this.slots.add(slot)
       }
-      if (this.closed || signal?.aborted) throw new SandboxFault('disposed', 'battle', 'Battle launch cancelled')
+      if (this.closed) throw new BattleWorkerAdmissionError('disposed')
+      if (signal?.aborted) throw new BattleWorkerAdmissionError('cancelled')
       const owned = slot
       owned.worker.setIdle?.(false)
       const id = ++this.nextId
@@ -127,10 +243,17 @@ export class BattleWorkerManager {
           this.active.delete(id)
           this.history.push(status)
           if (this.history.length > 64) this.history.shift()
+          this.schedule()
         },
         owned.remote,
         async reusable => {
-          if (reusable && this.policy.reuseWorkers && !this.closed && !owned.termination) {
+          if (
+            reusable &&
+            this.policy.reuseWorkers &&
+            !this.closed &&
+            !owned.termination &&
+            this.idle.length < this.policy.maxIdleWorkers
+          ) {
             owned.detachIdleFailure = owned.worker.onFailure(() => {
               void this.terminate(owned).catch(() => {})
             })
@@ -153,22 +276,45 @@ export class BattleWorkerManager {
     } catch (error) {
       if (battle) await battle.cleanup()
       else {
-        this.creating--
-        if (slot) await this.terminate(slot)
+        try {
+          if (slot) await this.terminate(slot)
+        } finally {
+          this.creating--
+          this.schedule()
+        }
       }
       throw error
     }
+  }
+  poolStatus(): BattleWorkerPoolStatus {
+    const initializing = [...this.active.values()].filter(battle => battle.status().state === 'preparing').length
+    return Object.freeze({
+      active: this.active.size - initializing,
+      preparing: this.creating + initializing,
+      idle: this.idle.length,
+      queued: this.queue.length,
+      workers: this.slots.size,
+      maxWorkers: this.policy.maxBattles,
+    })
   }
   status(): readonly BattleWorkerStatus[] {
     return [...this.history.map(value => ({ ...value })), ...[...this.active.values()].map(battle => battle.status())]
   }
   dispose(): Promise<void> {
     this.closed = true
+    for (const entry of this.queue.splice(0)) {
+      this.detachQueued(entry)
+      entry.reject(new BattleWorkerAdmissionError('disposed'))
+    }
     return (this.disposing ??= (async () => {
       try {
         await Promise.all([...this.active.values()].map(battle => battle.cleanup()))
       } finally {
-        await Promise.all([...this.slots].map(slot => this.terminate(slot)))
+        try {
+          await Promise.all([...this.slots].map(slot => this.terminate(slot)))
+        } finally {
+          await Promise.allSettled([...this.launching])
+        }
       }
     })())
   }
@@ -369,7 +515,7 @@ export class WorkerBattleSystem implements IBattleSystem {
     for (const callback of this.closedListeners.splice(0)) callback()
   }
   cancel(): Promise<void> {
-    this.fail(new SandboxFault('disposed', 'battle', 'Battle launch cancelled'))
+    this.fail(new BattleWorkerAdmissionError('cancelled'))
     return this.cleanup()
   }
   private terminate(reusable = false): Promise<unknown> {
