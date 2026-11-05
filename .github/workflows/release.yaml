@@ -137,6 +137,9 @@ jobs:
           manifest.version = process.env.RELEASE_VERSION
           writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n')
           NODE
+      - name: Install browser for hosted website acceptance
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+
       - name: Build workspace runtime dependencies
         run: pnpm run build:package
       - name: Build desktop renderer

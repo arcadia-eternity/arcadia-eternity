@@ -104,13 +104,16 @@ jobs:
       - name: Install locked dependencies and native development addon
         run: pnpm install --frozen-lockfile | tee .artifacts/desktop/install.log
 
+      - name: Install browser for hosted website acceptance
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+
       - name: Build workspace runtime dependencies
         run: pnpm run build:package | tee .artifacts/desktop/workspace-build.log
 
       - name: Verify staging and native persistence
         env:
           ARCADIA_DESKTOP_NATIVE_TEST: '1'
-        run: node --test scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-linkless-modules.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs scripts/rollup-external.test.mjs scripts/desktop-pnpm-deploy.test.mjs scripts/pnpm-production-peers.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs | tee .artifacts/desktop/native-tests.log
+        run: node --test scripts/stage-paired-website.test.mjs scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-linkless-modules.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs scripts/rollup-external.test.mjs scripts/desktop-pnpm-deploy.test.mjs scripts/pnpm-production-peers.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs | tee .artifacts/desktop/native-tests.log
 
       - name: Build desktop renderer
         run: pnpm --filter @arcadia-eternity/web-ui run build-only | tee .artifacts/desktop/renderer-build.log

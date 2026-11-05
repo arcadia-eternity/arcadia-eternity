@@ -59,3 +59,32 @@ test('staging rejects a JSON-only pack before replacing a complete distribution'
     await rm(directory, { recursive: true, force: true })
   }
 })
+
+test('stages the website inside the renderer output without copying private runtime directories', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-nested-website-'))
+  const source = pathToFileURL(`${directory}/`)
+  const target = new URL('.arcadia-desktop-stage-test/runtime/web/', source)
+  try {
+    await writeFile(
+      new URL('pack.json', source),
+      JSON.stringify({
+        data: {},
+        locales: {},
+        presentation: 'presentation.json',
+      }),
+    )
+    await writeFile(new URL('index.html', source), '<html>Arcadia</html>')
+    await writeFile(new URL('pack-lock.yaml', source), 'schemaVersion: 1')
+    await writeFile(new URL('presentation.json', source), '{}')
+    await mkdir(new URL('arcadia-server/', source))
+    await writeFile(new URL('arcadia-server/private.txt', source), 'backend-only')
+    await stagePairedWebsite(source, target, '1.0.0')
+    assert.equal(await readFile(new URL('index.html', target), 'utf8'), '<html>Arcadia</html>')
+    await assert.rejects(readFile(new URL('arcadia-server/private.txt', target)), { code: 'ENOENT' })
+    await assert.rejects(readFile(new URL('.arcadia-desktop-stage-test/runtime/web/index.html', target)), {
+      code: 'ENOENT',
+    })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})

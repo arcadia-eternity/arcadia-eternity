@@ -1,5 +1,5 @@
-import { cp, mkdir, readFile, writeFile, rm, access } from 'node:fs/promises'
-import { resolve, relative, sep } from 'node:path'
+import { cp, mkdir, readFile, writeFile, rm, access, readdir } from 'node:fs/promises'
+import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Verify the published pack URLs, including both the pack and app locale readers. */
@@ -34,14 +34,14 @@ export async function stagePairedWebsite(source, root, version) {
   await mkdir(root, { recursive: true })
   // Desktop staging lives beneath the renderer output. Never publish its
   // backend runtime or in-progress staging directories as website assets.
+  // Copy public entries individually: fs.cp rejects a directory copied into
+  // itself before its filter can exclude the private staging subtree.
   const sourcePath = fileURLToPath(source)
-  await cp(source, root, {
-    recursive: true,
-    filter: path => {
-      const first = relative(sourcePath, path).split(sep)[0]
-      return first !== 'arcadia-server' && !first.startsWith('.')
-    },
-  })
+  const targetPath = fileURLToPath(root)
+  for (const entry of await readdir(sourcePath)) {
+    if (entry === 'arcadia-server' || entry.startsWith('.')) continue
+    await cp(join(sourcePath, entry), join(targetPath, entry), { recursive: true })
+  }
   await writeFile(
     new URL('arcadia-web-manifest.json', root),
     JSON.stringify({ schemaVersion: 1, protocolVersion: 1, version }, null, 2),
