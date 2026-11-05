@@ -3,7 +3,8 @@
     <el-button size="small" :type="battleClientStore.isConnected ? 'success' : 'default'" @click="showDialog = true">
       {{ statusText }}
     </el-button>
-    <el-dialog v-model="showDialog" title="服务器连接" width="min(440px, 94vw)">
+    <!-- The navigation's backdrop filter contains fixed-position descendants. -->
+    <el-dialog v-model="showDialog" title="服务器连接" width="min(440px, 94vw)" append-to-body>
       <div class="space-y-4">
         <p role="status">{{ statusText }}</p>
         <p class="text-sm break-all">服务器：{{ battleClientStore.serverUrl }}</p>

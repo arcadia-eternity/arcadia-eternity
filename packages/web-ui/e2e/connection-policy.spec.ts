@@ -1,5 +1,40 @@
 import { expect, test } from 'playwright/test'
 
+for (const viewport of [
+  { width: 1280, height: 800 },
+  { width: 390, height: 844 },
+]) {
+  test(`connection dialog covers the viewport above page content: ${viewport.width}`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.route('**/arcadia-client.json', route =>
+      route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
+    )
+    await page.goto('/content')
+    await page.getByRole('button', { name: '未连接 · 连接设置', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '服务器连接', exact: true })
+    await expect(dialog).toBeVisible()
+    await expect
+      .poll(() =>
+        dialog.evaluate(element => {
+          const overlay = element.closest('.el-overlay')!
+          const rect = overlay.getBoundingClientRect()
+          // Hit-test the page area as well: a correct size alone cannot prove that
+          // the backdrop is above the content or intercepts clicks outside the dialog.
+          const top = document.elementFromPoint(8, innerHeight - 8)
+          return {
+            width: rect.width,
+            height: rect.height,
+            coversPage: !!top && overlay.contains(top),
+          }
+        }),
+      )
+      .toEqual({ ...viewport, coversPage: true })
+    await expect(dialog.getByRole('button', { name: '关闭', exact: true })).toBeInViewport()
+    await dialog.getByRole('button', { name: '关闭', exact: true }).click()
+    await expect(dialog).toBeHidden()
+  })
+}
+
 for (const mode of ['same-origin', 'separate-backend']) {
   test(`web deployment automatically connects by default: ${mode}`, async ({ page, baseURL }) => {
     const backend = mode === 'same-origin' ? new URL(baseURL!).origin : 'http://127.0.0.1:8199'
