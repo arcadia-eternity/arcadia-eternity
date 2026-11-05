@@ -21,6 +21,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, posix, relative, resolve, sep, win32 } from 'node:path'
 import { promisify } from 'node:util'
+import { bounded, shutdownDesktopProcess } from './desktop-acceptance-process.mjs'
 
 const exec = promisify(execFile)
 const require = createRequire(new URL('../packages/content-dev/package.json', import.meta.url))
@@ -251,15 +252,17 @@ function requireNsisPolicy(policy) {
 
 async function runNsis(executable, installedRoot, cwd) {
   if (/[\r\n"]/.test(executable + installedRoot)) throw new Error('NSIS paths cannot contain quotes or newlines')
-  await new Promise((resolve, reject) => {
+  let child
+  const started = Date.now()
+  process.stdout.write('Starting isolated NSIS installation.\n')
+  const completion = new Promise((resolve, reject) => {
     // NSIS requires the final /D argument unquoted. Quote argv[0] ourselves
     // because verbatim mode also disables Node's executable-path quoting.
-    const child = spawn(executable, ['/S', '/currentuser', '--no-desktop-shortcut', `/D=${installedRoot}`], {
+    child = spawn(executable, ['/S', '/currentuser', '--no-desktop-shortcut', `/D=${installedRoot}`], {
       argv0: `"${executable}"`,
       windowsVerbatimArguments: true,
       cwd,
       stdio: ['ignore', 'ignore', 'pipe'],
-      signal: AbortSignal.timeout(300000),
     })
     let failure,
       stderr = ''
@@ -279,6 +282,17 @@ async function runNsis(executable, installedRoot, cwd) {
       else resolve()
     })
   })
+  try {
+    await bounded(completion, 300000, 'NSIS installation exceeded 300 seconds')
+    process.stdout.write(`NSIS installation completed in ${Date.now() - started} ms.\n`)
+  } catch (error) {
+    if (child?.pid && child.exitCode === null && child.signalCode === null) {
+      // Terminate the owned installer tree before rollback/removal. Killing only
+      // the launcher can leave its unpacking child writing into deleted files.
+      await shutdownDesktopProcess({ child, quit: () => {}, timeoutMs: 1 })
+    }
+    throw error
+  }
 }
 
 /** Isolated artifact acceptance, not an application updater. The caller must
@@ -425,6 +439,7 @@ export async function createDesktopInstallerWorkspace({ parentDirectory = tmpdir
         backup = undefined
         return result
       } catch (error) {
+        if (error?.preserveInstallerWorkspace === true) retained = true
         failure = error
         if (replaced && !committed && !retained) {
           try {

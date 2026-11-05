@@ -25,6 +25,7 @@ import { verifyDesktopProductionDependencies } from './desktop-production-depend
 import { stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks, resolvePnpmInvocation } from './desktop-runtime-portability.mjs'
 import { withPreservedPnpmWorkspaceState } from './desktop-pnpm-deploy.mjs'
+import { materializeLinklessModules } from './desktop-linkless-modules.mjs'
 
 const exec = promisify(execFile)
 const repo = fileURLToPath(new URL('../', import.meta.url))
@@ -247,7 +248,13 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
     // Windows pnpm junctions contain absolute paths. Convert only contained links
     // before relocation; each native CI target verifies the relocated result.
     await normalizeRuntimeLinks(join(deployed, 'node_modules'))
-    await rename(join(deployed, 'node_modules'), join(runtime, 'node_modules'))
+    let dependencyLayout
+    if (process.platform === 'win32') {
+      dependencyLayout = {
+        kind: 'physical-hoisted',
+        ...(await materializeLinklessModules(join(deployed, 'node_modules'), join(runtime, 'node_modules'))),
+      }
+    } else await rename(join(deployed, 'node_modules'), join(runtime, 'node_modules'))
     const cli = join(temp, 'fresh-cli')
     const rolldown = join(dirname(require.resolve('rolldown/package.json')), 'bin/cli.mjs')
     await exec(process.execPath, [rolldown, '-c', '--dir', cli], { cwd: repo, maxBuffer: 16 * 1024 * 1024 })
@@ -316,6 +323,7 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
       pnpm: pnpmVersion,
       nativeModules: [sqlite],
       workspacePackages,
+      ...(dependencyLayout ? { dependencyLayout } : {}),
     }
     await writeFile(join(runtime, 'arcadia-desktop-runtime.json'), JSON.stringify(manifest, null, 2) + '\n')
     await verifyDesktopRuntime(runtime, {

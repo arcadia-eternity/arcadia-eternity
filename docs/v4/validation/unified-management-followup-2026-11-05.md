@@ -1,6 +1,6 @@
 # 统一管理后续验证（2026-11-05）
 
-本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。此前 `f8099609` 的四平台 4/4 是包内宿主的历史结果。本轮 `55863dbc` 的 [baseline 6/6](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41945686489) 已通过；新增的真实安装与 GUI CI 发现了下述两处问题，修复后需要重新执行。旧 Docker/r3 产物的来源记录继续保留在[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
+本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。此前 `f8099609` 的四平台 4/4 是包内宿主的历史结果。本轮 `55863dbc` 的 [baseline 6/6](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41945686489) 已通过；新增的真实安装与 GUI CI 发现了下述平台问题，修复后需要重新执行。旧 Docker/r3 产物的来源记录继续保留在[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
 
 ## 修复与已执行验证
 
@@ -28,6 +28,8 @@ PostgreSQL 在事务执行至审计触发器时阻塞，然后终止确切后端
 
 首次原生 CI 发现 Linux AppImage 从 scoped npm 名推导出非法程序名，现统一配置 `linux.executableName=arcadia-eternity`；两个 macOS 的真实 GUI 还发现本地档案页隐式查询默认公网账户能力，现仅在明确选服或已有会话后查询。修复后的本地 ZIP 两次完整启动、编辑、开服和替换复验通过，外部服务 API 请求为零；编辑器仍按资源声明加载远程图片，因此不把该场景记为离线资源验收。
 
+Windows ZIP 的首次安装暴露了压缩工具解引用 pnpm 目录链接后丢失兄弟依赖的问题，实际启动报 `chokidar -> readdirp` 缺失。现只在 Windows staging 中使用已锁定的 Builder hoister，把已有依赖图转成普通目录；不重新解析版本或联网安装。每条依赖边都核对原始物理实例，包括已选定的 peer。实际材料投影得到 445 个物理实例、719 条边，真实 chokidar 与 Better Auth 导入通过；新增循环、别名、同版本不同 peer 实例、越界与缺失检查均通过。安装/移植性联合回归 47 项通过、1 项平台限定跳过（日志 `/private/tmp/arcadia-windows-linkless-regression.log`）。NSIS 首次安装在 300 秒超时，原因仍需原生复验；超时清理现会终止本次拥有的安装器进程树，不能证明退出时保留目录。尚不把这些本地检查记为 Windows 安装验收通过。
+
 四平台 CI 增加真实 ZIP、Windows NSIS 与 Linux AppImage GUI 验证。NSIS 限定一次性 GitHub 托管运行器，使用预览应用 ID，不提权、不创建快捷方式、不自动启动；AppImage 在 Linux 上经 FUSE/Xvfb 启动其自身。清理只操作本次拥有的进程和目录；无法确认进程停止时保留材料。
 
 ## 生产依赖与发行检查
@@ -52,4 +54,4 @@ ARCADIA_HTTPS_BROWSER_EXECUTABLE=/path/to/chrome node scripts/verify-docker-mana
 
 ## 尚需独立验收的范围
 
-桌面两处修复后的四平台 CI 仍需执行。新镜像的完整 HTTPS 与双库容器重建已按上述确切提交完成。正式签名/公证、历史版本升级、真实双设备 LAN、公网部署、SMTP/GitHub 外部投递与回调仍未完成；两项上游许可资料问题仍阻止正式发行。代表性数据库故障通过不等于穷尽断电、文件系统磁盘满或所有运维故障。G4 战绩/积分/录像保持原后期范围。
+桌面平台修复后的四平台 CI 仍需执行。新镜像的完整 HTTPS 与双库容器重建已按上述确切提交完成。正式签名/公证、历史版本升级、真实双设备 LAN、公网部署、SMTP/GitHub 外部投递与回调仍未完成；两项上游许可资料问题仍阻止正式发行。代表性数据库故障通过不等于穷尽断电、文件系统磁盘满或所有运维故障。G4 战绩/积分/录像保持原后期范围。
