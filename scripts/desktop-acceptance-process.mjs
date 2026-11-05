@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
 import { createConnection } from 'node:net'
+import { setTimeout as delay } from 'node:timers/promises'
 import { promisify } from 'node:util'
 
 export async function bounded(promise, milliseconds, message) {
@@ -16,7 +17,7 @@ export async function bounded(promise, milliseconds, message) {
   }
 }
 
-export function isPortListening(port) {
+export function isPortListening(port, timeoutMs = 2000) {
   return new Promise((resolve, reject) => {
     const socket = createConnection({ host: '127.0.0.1', port: Number(port) })
     const finish = (error, value) => {
@@ -25,8 +26,30 @@ export function isPortListening(port) {
     }
     socket.once('connect', () => finish(undefined, true))
     socket.once('error', error => (error.code === 'ECONNREFUSED' ? finish(undefined, false) : finish(error)))
-    socket.setTimeout(2000, () => finish(new Error(`Could not establish whether listener ${port} stopped`)))
+    socket.setTimeout(timeoutMs, () => finish(new Error(`Could not establish whether listener ${port} stopped`)))
   })
+}
+
+async function listenersClosed(ports, milliseconds) {
+  const deadline = performance.now() + milliseconds
+  let pending = ports
+  while (pending.length) {
+    const stillOpen = []
+    for (const port of pending) {
+      const remaining = deadline - performance.now()
+      if (remaining <= 0) throw new Error(`Owned listener ${port} remains open after termination deadline`)
+      try {
+        if (await isPortListening(port, Math.max(1, Math.min(2000, Math.ceil(remaining))))) stillOpen.push(port)
+      } catch (error) {
+        // A reset during process teardown is inconclusive. Probe again until a
+        // connection is refused; never accept a reset as proof of termination.
+        if (error.code !== 'ECONNRESET') throw error
+        stillOpen.push(port)
+      }
+    }
+    pending = stillOpen
+    if (pending.length) await delay(Math.max(1, Math.min(25, deadline - performance.now())))
+  }
 }
 
 async function exited(child, milliseconds) {
@@ -49,11 +72,19 @@ async function exited(child, milliseconds) {
 /** Playwright starts Electron in a detached POSIX process group. Its PID is
  * captured from the returned ChildProcess, never discovered by product name.
  * On Windows taskkill /T is restricted to that same owned child PID. */
-export async function shutdownDesktopProcess({ child, quit, ports = [], timeoutMs = 30000 }) {
+export async function shutdownDesktopProcess({
+  child,
+  quit,
+  ports = [],
+  timeoutMs = 30000,
+  terminationTimeoutMs = 10000,
+}) {
   if (!Number.isInteger(child?.pid) || child.pid <= 1) throw new Error('Owned desktop child identity is required')
   const listeners = [...new Set(ports.filter(value => value !== undefined).map(Number))]
   if (listeners.some(value => !Number.isInteger(value) || value < 1 || value > 65535))
     throw new Error('Invalid owned listener port')
+  if (![timeoutMs, terminationTimeoutMs].every(value => Number.isFinite(value) && value > 0))
+    throw new Error('Process shutdown timeouts must be positive and finite')
   let forced = false
   try {
     if (child.exitCode === null && child.signalCode === null) {
@@ -66,8 +97,7 @@ export async function shutdownDesktopProcess({ child, quit, ports = [], timeoutM
       ).catch(() => {})
       await exited(child, timeoutMs)
     }
-    for (const port of listeners)
-      if (await isPortListening(port)) throw new Error(`Owned listener ${port} remains open`)
+    await listenersClosed(listeners, timeoutMs)
   } catch {
     forced = true
     try {
@@ -83,9 +113,9 @@ export async function shutdownDesktopProcess({ child, quit, ports = [], timeoutM
           if (error.code !== 'ESRCH') throw error
         }
       }
-      await exited(child, 10000)
-      for (const port of listeners)
-        if (await isPortListening(port)) throw new Error(`Owned listener ${port} remains open after termination`)
+      // The launcher exit event does not establish that every descendant has
+      // finished exiting. Observe both conditions within the bounded window.
+      await Promise.all([exited(child, terminationTimeoutMs), listenersClosed(listeners, terminationTimeoutMs)])
     } catch (cause) {
       const error = new Error(
         `Cannot prove desktop process tree ${child.pid} stopped; preserve its installation and profile`,

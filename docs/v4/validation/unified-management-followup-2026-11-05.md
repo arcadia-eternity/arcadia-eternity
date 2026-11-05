@@ -1,6 +1,6 @@
 # 统一管理后续验证（2026-11-05）
 
-本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。代码提交 `576202830fc28b3f9840ffbdfb8f5f05147fd847` 的 [baseline 6/6](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41949631695) 与[原生桌面 CI 4/4](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41949631649) 全部通过，包含五种实际安装组合、十次真实 ASAR GUI 启动。后续证据提交只修改文档与回执，不改变被测代码。首次 `55863dbc` 安装 CI 暴露的平台问题及其修复保留如下；旧 Docker/r3 产物的来源继续见[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
+本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。代码提交 `576202830fc28b3f9840ffbdfb8f5f05147fd847` 的 [baseline 6/6](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41949631695) 与[原生桌面 CI 4/4](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41949631649) 全部通过，包含五种实际安装组合、十次真实 ASAR GUI 启动。证据提交 `3b0f93aa` 只修改文档与回执；该提交自动复验随后暴露了下述验收进程退出竞态。首次 `55863dbc` 安装 CI 暴露的平台问题及其修复保留如下；旧 Docker/r3 产物的来源继续见[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
 
 ## 修复与已执行验证
 
@@ -44,6 +44,16 @@ Windows ZIP 的首次安装暴露了压缩工具解引用 pnpm 目录链接后�
 各目标都验证真实包内 SQLite 写入/关闭/重开；完整开服没有跳过。所有十次 GUI 正常退出，玩家/编辑文件/工作区/服务器/默认绑定/环境版本保持，页面、console、HTTP 错误和外部服务请求均为零；按声明加载的远程图片单独计数。安装物 SHA-256、构建输入摘要、CI artifact 摘要、作业 ID 与校验结果保存在 `.omo/evidence/desktop-installer-ci-2026-11-05.json`，每份下载的回执 ZIP 均核对 GitHub artifact 摘要。
 
 NSIS 在此 Windows 托管运行器上的两次安装分别耗时 169.046 秒与 203.798 秒，整个步骤还包含 GUI 编辑/开服与退出清理。NSIS 保留；本轮确认正确性并记录耗时，未把该运行器数据推广为所有用户机器的安装速度。Windows 实际实体布局为 445 包实例/719 条边，许可扫描 589 条记录且只有下述两项阻塞。原 pnpm 布局的 574 条记录保留原统计口径。
+
+## 安装验收进程退出竞态
+
+文档提交 `3b0f93aa` 的 [Linux job 126998976970](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41952341953/job/126998976970) 在强制清理测试中失败：主进程已经退出，但检查时后代进程的监听器尚未关闭。它没有进入本轮 AppImage 构建/安装；前述 `57620283` 的安装回执继续保留其原始范围。
+
+Linux 多进程压力复现（30 个用例、同时两棵进程树、每棵 12 个实际监听子进程）在旧代码下失败 8 次；报错后不到 15 毫秒便观察到端口拒绝连接。修复后相同复现 30/30 通过。新增真实父进程先退出、后代延迟 200 毫秒关闭端口的回归在旧代码下失败，修复后通过；Mac 清理/安装工具 20 通过、1 项平台跳过，Linux 清理用例 4/4 通过，包括持续监听的拒绝清理负例。
+
+退出检查现在对所有已知监听器作有时限的关闭确认，并分别观察主进程与监听器。强制终止后默认窗口为 10 秒，确认关闭即可立即结束；退出中的 ECONNRESET 只表示需重新探测，必须最终收到连接拒绝才接受。到期仍开放或不能确认的进程继续报错并保留安装和资料目录。没有按进程名搜索/终止其他应用，也没有忽略失败或加入固定长等待。
+
+复现数据见 `.omo/evidence/desktop-shutdown-race-2026-11-05.json`。修复后的最新远程 CI 结果记录在 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275)，本页上方的四平台回执仍固定到各自原始提交。
 
 ## 生产依赖与发行检查
 

@@ -25,6 +25,22 @@ test('normal application quit closes its process and listener without force', as
   assert.equal(await isPortListening(port), false)
 })
 
+test('normal quit waits for the descendant listener after the launcher exits', async t => {
+  const delayedServer = `const s=require('node:net').createServer();s.listen(0,'127.0.0.1',()=>process.send({port:s.address().port}));process.on('message',()=>setTimeout(()=>s.close(()=>process.exit(0)),200));`
+  const owned = await fixture(
+    t,
+    `const {spawn}=require('node:child_process');const c=spawn(process.execPath,['-e',${JSON.stringify(delayedServer)}],{stdio:['ignore','ignore','ignore','ipc']});c.on('message',m=>process.send(m));process.on('message',()=>c.send('quit',()=>process.exit(0)));`,
+  )
+  const result = await shutdownDesktopProcess({
+    child: owned.child,
+    quit: () => owned.child.send('quit'),
+    ports: [owned.port],
+    timeoutMs: 2000,
+  })
+  assert.deepEqual(result, { forced: false, exitCode: 0, exitSignal: null })
+  assert.equal(await isPortListening(owned.port), false)
+})
+
 test('hung quit terminates only the captured process tree and closes its descendant listener', async t => {
   const unrelated = await fixture(t)
   const owned = await fixture(
@@ -51,6 +67,7 @@ test('an unproven remaining listener requests preservation instead of deleting l
       quit: () => owned.child.send('quit'),
       ports: [unrelated.port],
       timeoutMs: 1000,
+      terminationTimeoutMs: 200,
     }),
     error => error.preserveInstallerWorkspace === true,
   )
