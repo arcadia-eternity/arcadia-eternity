@@ -3,10 +3,10 @@
     <!-- 移动端优先的导航栏 - 固定置顶 -->
     <header
       class="sticky top-0 z-40 bg-black/90 border-b border-gray-600 backdrop-blur-md"
-      :class="isMobile ? 'h-14' : 'h-15'"
+      :class="compactNavigation ? 'h-14' : 'h-15'"
     >
       <!-- 移动端导航 -->
-      <div v-if="isMobile" class="flex justify-between items-center px-4 h-full">
+      <div v-if="compactNavigation" class="flex justify-between items-center px-4 h-full">
         <div class="flex items-center gap-3">
           <button
             @click="showMobileMenu = !showMobileMenu"
@@ -23,7 +23,13 @@
         </div>
         <div class="flex items-center gap-2">
           <ConnectionStatus v-if="!isStaticMode" />
-          <el-tag v-if="!isStaticMode" type="info" effect="dark" class="text-xs" size="small">
+          <el-tag
+            v-if="!isStaticMode && battleClientStore.isConnected"
+            type="info"
+            effect="dark"
+            class="text-xs"
+            size="small"
+          >
             <span class="inline-flex items-center gap-1">
               <el-icon :size="12"><User /></el-icon>
               {{ serverState.serverState.onlinePlayers }}
@@ -41,7 +47,7 @@
           <img src="@/assets/logo.png" alt="Arcadia Eternity" class="h-10" />
           <span class="text-white text-2xl font-bold" style="text-shadow: 0 0 8px #409eff">Arcadia Eternity</span>
         </div>
-        <div class="flex gap-3 items-center">
+        <div class="desktop-navigation flex gap-2 items-center">
           <el-button
             v-if="!isStaticMode"
             type="primary"
@@ -59,15 +65,21 @@
           >
             队伍编辑
           </el-button>
+
           <el-button
             type="success"
             icon="MagicStick"
             @click="router.push('/local-battle')"
             :disabled="$route.path === '/local-battle'"
+            >人机对战</el-button
           >
-            人机对战
-          </el-button>
           <el-button type="info" icon="Document" @click="router.push('/local-battle-reports')">本地战报</el-button>
+          <el-button
+            @click="router.push('/servers')"
+            :type="$route.path.startsWith('/servers') || $route.path === '/management' ? 'primary' : 'default'"
+            >服务器</el-button
+          >
+
           <el-button @click="router.push('/content')">内容包</el-button>
           <!-- 房间状态显示 -->
           <el-button
@@ -82,7 +94,7 @@
 
           <ConnectionStatus v-if="!isStaticMode" />
 
-          <el-tag v-if="!isStaticMode" type="info" effect="dark">
+          <el-tag v-if="spaciousNavigation && !isStaticMode && battleClientStore.isConnected" type="info" effect="dark">
             <span class="inline-flex items-center gap-1">
               <el-icon><User /></el-icon>
               在线人数：{{ serverState.serverState.onlinePlayers }}
@@ -96,6 +108,8 @@
         </div>
       </div>
     </header>
+
+    <LocalServerStatus />
 
     <!-- 移动端侧边菜单 -->
     <el-drawer v-model="showMobileMenu" direction="ltr" :size="280" :with-header="false">
@@ -168,6 +182,12 @@
             <el-icon><FolderOpened /></el-icon>
             <span>本地战报</span>
           </router-link>
+          <router-link
+            to="/servers"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >服务器</router-link
+          >
         </nav>
 
         <div class="p-5 border-t border-gray-200 bg-gray-50">
@@ -349,10 +369,6 @@
               </el-form-item>
             </el-form>
           </el-tab-pane>
-          <el-tab-pane v-if="isDesktop" label="高级工具" name="local-service">
-            <p class="mb-4">内容包会自动准备；这里提供本机运行诊断和服务器项目管理。</p>
-            <el-button @click="openLocalService">打开高级本机工具</el-button>
-          </el-tab-pane>
         </el-tabs>
       </div>
 
@@ -419,7 +435,8 @@ import { createAppBootstrap } from '@/app/bootstrap'
 import { connectAndResumeOnlineRoom } from '@/app/onlineSession'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { isDesktop, isStaticMode } from '@/utils/env'
+import { isStaticMode } from '@/utils/env'
+import LocalServerStatus from '@/features/servers/LocalServerStatus.vue'
 import { localStorageUnavailable } from '@/services/localStorage'
 import OfflineResources from '@/components/OfflineResources.vue'
 
@@ -436,7 +453,9 @@ const privateRoomStore = usePrivateRoomStore()
 
 // 使用 VueUse 的响应式断点检测
 const breakpoints = useBreakpoints(breakpointsTailwind)
-const isMobile = breakpoints.smaller('md') // md 断点是 768px
+const isMobile = breakpoints.smaller('md')
+const compactNavigation = breakpoints.smaller('xl') // 顶栏同时容纳导航和服务器地址
+const spaciousNavigation = breakpoints.greaterOrEqual('2xl')
 
 // 移动端菜单状态
 const showMobileMenu = ref(false)
@@ -701,10 +720,7 @@ const musicOptions = computed(() => {
 })
 
 const showEditDialog = ref(false)
-function openLocalService() {
-  void router.push('/settings/local-service')
-  showEditDialog.value = false
-}
+
 const activeSettingTab = ref('game') // 默认显示游戏设置标签页
 const activeLogCategories = ref(['战斗流程', '技能相关']) // 默认展开前两个分类
 
@@ -1140,5 +1156,11 @@ header {
 
 .log-categories-collapse .el-collapse-item__arrow {
   margin-right: 8px !important;
+}
+</style>
+
+<style scoped>
+.desktop-navigation .el-button + .el-button {
+  margin-left: 0;
 }
 </style>

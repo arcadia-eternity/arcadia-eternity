@@ -6,18 +6,18 @@
 
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left" aria-label="对战服务器">
       <h2 class="text-lg font-medium text-gray-800">对战服务器</h2>
-      <p class="text-sm text-gray-600 mt-1">
-        当前地址：<span data-testid="current-server-address">{{ battleClientStore.serverUrl }}</span>
-      </p>
-      <div v-if="canSelectBackend() && canStartLocalServer" class="flex flex-col sm:flex-row gap-2 mt-3">
-        <el-button :disabled="switchingServer" data-testid="start-local-server-button" @click="startLocalServer"
-          >由本机托管联机对战</el-button
+      <div class="flex flex-wrap items-center gap-3 mt-3">
+        <el-button
+          v-if="canStartLocalServer"
+          data-testid="start-local-server-button"
+          @click="router.push('/servers?host=1')"
+          >在本机开服</el-button
         >
+        <router-link to="/servers" class="text-blue-600">查看与管理服务器</router-link>
       </div>
-      <p v-if="canSelectBackend() && canStartLocalServer" class="text-xs text-gray-500 mt-2">
-        本机托管会离开当前房间；正在进行的对局也会终止。
+      <p v-if="canStartLocalServer" class="text-xs text-gray-500 mt-2">
+        在这台电脑上创建服务器，供朋友连接。开服后可选择是否进入。
       </p>
-      <p v-if="serverSwitchError" role="alert" class="text-sm text-red-700 mt-2">{{ serverSwitchError }}</p>
     </section>
 
     <!-- 导航菜单 -->
@@ -171,7 +171,20 @@
           <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
         </el-form-item>
         <RoomBattleOptions v-model="battleOptions" />
-        <el-form-item v-if="battleOptions.battleMode === 'server'" label="对战内容">
+        <el-form-item v-if="battleOptions.battleMode === 'p2p'" label="环境来源">
+          <el-radio-group v-model="personalEnvironmentSelected">
+            <el-radio :value="false">服务器提供</el-radio>
+            <el-radio :value="true">我的环境</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <PersonalEnvironmentPicker
+          v-if="battleOptions.battleMode === 'p2p' && personalEnvironmentSelected"
+          :prepared="privateRoomStore.personalEnvironment"
+          :disabled="switchingServer || privateRoomStore.isLoading"
+          @prepared="acceptPersonalEnvironment"
+          @error="message => ElMessage.error(message)"
+        />
+        <el-form-item v-else label="对战内容">
           <div class="w-full">
             <el-select
               v-model="selectedEnvironmentId"
@@ -180,7 +193,7 @@
               aria-label="选择对战内容"
               data-testid="room-environment-select"
             >
-              <el-option label="官方内容" value="" />
+              <el-option :label="battleOptions.battleMode === 'p2p' ? '官方固定内容' : '官方内容'" value="" />
               <el-option
                 v-for="environment in customEnvironments"
                 :key="environment.id"
@@ -189,11 +202,22 @@
               />
             </el-select>
             <p v-if="environmentsError" class="text-xs text-amber-700 mt-2" role="status">
-              内容列表暂不可用，可以使用官方内容。
+              内容列表暂不可用，可以使用{{ battleOptions.battleMode === 'p2p' ? '官方固定内容' : '官方内容' }}。
               <el-button link type="primary" @click="loadEnvironments">重试</el-button>
             </p>
             <p v-else-if="selectedEnvironmentId" class="text-xs text-gray-500 mt-2">
-              房间创建后使用选定的内容；对战由服务器运行。
+              {{
+                battleOptions.battleMode === 'p2p'
+                  ? '双方准备选定环境的固定版本后，由玩家主机运行对战。'
+                  : '房间创建后使用选定的内容；对战由服务器运行。'
+              }}
+            </p>
+            <p
+              v-if="hasPeerEnvironments && battleOptions.battleMode === 'server'"
+              class="text-xs text-gray-500 mt-2"
+              role="status"
+            >
+              部分环境仅允许玩家主机运行，可切换到 P2P 后选择。
             </p>
           </div>
         </el-form-item>
@@ -212,7 +236,12 @@
         <el-button
           type="primary"
           data-testid="confirm-create-private-room-button"
-          :disabled="environmentsLoading || switchingServer"
+          :disabled="
+            switchingServer ||
+            (personalEnvironmentSelected && battleOptions.battleMode === 'p2p'
+              ? !privateRoomStore.personalEnvironment
+              : environmentsLoading)
+          "
           @click="createRoom"
           >创建</el-button
         >
@@ -222,19 +251,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import PersonalEnvironmentPicker from '@/features/content/PersonalEnvironmentPicker.vue'
+import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useAuthStore } from '@/stores/auth'
 import { User, Monitor, Setting, FolderOpened, Collection, Download } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
-import { canSelectBackend, authorizeLocalBackend } from '@/bootstrap/deployment'
+
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
 import MatchmakingPanel from '@/components/MatchmakingPanel.vue'
 import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
+import { allowsServerExecution } from '@/services/serverEnvironmentPolicy'
 
 defineProps<{ startMatching?: boolean }>()
 
@@ -246,54 +278,38 @@ const showCreateRoomDialog = ref(false)
 const joinRoomCode = ref('')
 const joinRoomPassword = ref('')
 const battleOptions = ref(createDefaultRoomBattleOptions())
-const roomConfig = ref({ password: '', p2pTransport: 'auto' as 'auto' | 'webrtc' | 'relay' })
-const serverSwitchError = ref('')
-const serverSwitchPending = ref(false)
-const switchingServer = computed(() => serverSwitchPending.value || privateRoomStore.isSwitchingServer)
-const canStartLocalServer = !!window.arcadiaDesktop?.selectAndStartLocalBattle
-
-async function confirmServerSwitch(): Promise<boolean> {
-  const room = privateRoomStore.currentRoom
-  if (!room) return true
-  const message =
-    room.status === 'started'
-      ? '切换服务器会离开当前房间并终止正在进行的对局。确定继续吗？'
-      : '切换服务器会离开当前房间。确定继续吗？'
+const personalEnvironmentSelected = ref(false)
+async function acceptPersonalEnvironment(value: PreparedPersonalEnvironment) {
   try {
-    await ElMessageBox.confirm(message, '切换服务器', {
-      confirmButtonText: '切换服务器',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function startLocalServer() {
-  if (switchingServer.value || !window.arcadiaDesktop?.selectAndStartLocalBattle) return
-  serverSwitchPending.value = true
-  serverSwitchError.value = ''
-  try {
-    if (!(await confirmServerSwitch())) return
-    const result = await window.arcadiaDesktop.selectAndStartLocalBattle()
-    if (result.status === 'failed') throw new Error(result.message)
-    if (result.status === 'running') {
-      await authorizeLocalBackend()
-      await privateRoomStore.switchServer(result.url)
-    }
+    await privateRoomStore.setPersonalEnvironment(value)
   } catch (error) {
-    serverSwitchError.value = error instanceof Error ? error.message : String(error)
-  } finally {
-    serverSwitchPending.value = false
+    ElMessage.error(error instanceof Error ? error.message : '环境准备失败')
   }
 }
+const roomConfig = ref({ password: '', p2pTransport: 'auto' as 'auto' | 'webrtc' | 'relay' })
+const canStartLocalServer = !!window.arcadiaDesktop?.localServer
+const switchingServer = computed(() => privateRoomStore.isSwitchingServer)
 const selectedEnvironmentId = ref('')
 const environmentsLoading = ref(false)
 const environmentsError = ref(false)
 const customEnvironments = computed(() =>
-  privateRoomStore.environments.filter(environment => environment.packages.length),
+  privateRoomStore.environments.filter(
+    environment =>
+      environment.packages.length &&
+      (battleOptions.value.battleMode === 'p2p'
+        ? environment.executionPolicy === 'peer'
+        : allowsServerExecution(environment)),
+  ),
+)
+const hasPeerEnvironments = computed(() =>
+  privateRoomStore.environments.some(environment => environment.executionPolicy === 'peer'),
+)
+watch(
+  () => battleOptions.value.battleMode,
+  () => {
+    if (!customEnvironments.value.some(environment => environment.id === selectedEnvironmentId.value))
+      selectedEnvironmentId.value = ''
+  },
 )
 
 function environmentLabel(environment: ServerEnvironmentDescriptor): string {
@@ -337,7 +353,12 @@ const createRoom = async () => {
         password: roomConfig.value.password || undefined,
         p2pTransport: roomConfig.value.p2pTransport,
       },
-      battleOptions.value.battleMode === 'server' ? selectedEnvironmentId.value || undefined : undefined,
+      personalEnvironmentSelected.value && battleOptions.value.battleMode === 'p2p'
+        ? undefined
+        : selectedEnvironmentId.value || undefined,
+      personalEnvironmentSelected.value && battleOptions.value.battleMode === 'p2p'
+        ? privateRoomStore.personalEnvironment?.reference
+        : undefined,
     )
     showCreateRoomDialog.value = false
     roomConfig.value = { password: '', p2pTransport: 'auto' }

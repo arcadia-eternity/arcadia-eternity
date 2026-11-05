@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import { homedir, tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import {
@@ -275,6 +276,35 @@ it('captures local tarballs without changing source metadata or its lock audit i
   expect(captured.installation.digest).toBe(source.digest)
   expect(captured.installation.lockfileDigest).toBe(source.lockfileDigest)
   expect(await Promise.all(files.map(file => readFile(join(environment, file), 'utf8')))).toEqual(before)
+})
+it('resolves real npm dependency edges beneath UUID ancestor paths without using sanitized npm paths', async () => {
+  const directory = join(root, randomUUID(), 'workspace', randomUUID(), 'environment')
+  await mkdir(directory, { recursive: true })
+  await cp(join(environment, 'package.json'), join(directory, 'package.json'))
+  await exec('npm', ['install', '--ignore-scripts', '--offline', '--no-audit', '--no-fund'], { cwd: directory })
+  const before = await inspectNpmProject(environment)
+  const actual = await inspectNpmProject(directory)
+  expect(actual.packages).toEqual(before.packages)
+  expect(actual.digest).toBe(before.digest)
+  expect(actual.packages.find(pkg => pkg.name === '@arcadia-test/slow')?.dependencies).toEqual({
+    'arcadia-test-library': 'node_modules/arcadia-test-library',
+  })
+  expect((await prepare(directory)).content.getSkill('slow:strike' as never).power).toBe(30)
+})
+it.each(['outside', 'inside'])('still rejects %s package links beneath a UUID ancestor', async targetKind => {
+  const directory = join(root, randomUUID(), 'linked-installation')
+  await mkdir(directory, { recursive: true })
+  await cp(join(environment, 'package.json'), join(directory, 'package.json'))
+  await exec('npm', ['install', '--ignore-scripts', '--offline', '--no-audit', '--no-fund'], { cwd: directory })
+  expect((await inspectNpmProject(directory)).packages).toHaveLength(2)
+  const installed = join(directory, 'node_modules', 'arcadia-test-library')
+  const target =
+    targetKind === 'inside' ? join(directory, 'elsewhere', 'library') : join(root, 'linked-' + randomUUID())
+  await mkdir(target, { recursive: true })
+  await cp(installed, target, { recursive: true })
+  await rm(installed, { recursive: true })
+  await symlink(target, installed, process.platform === 'win32' ? 'junction' : 'dir')
+  await expect(inspectNpmProject(directory)).rejects.toThrow(/Linked package|npm rejected/)
 })
 it.each([
   { version: 3, shrinkwrap: false, reference: 'project-relative' },

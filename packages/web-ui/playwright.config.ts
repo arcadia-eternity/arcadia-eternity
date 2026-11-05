@@ -10,6 +10,7 @@ const baseURL =
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './test-results/baseline',
   timeout: 30_000,
   workers: 1,
   retries: onlineMode ? 1 : 0,
@@ -54,7 +55,7 @@ export default defineConfig({
       ]
     : {
         command:
-          'pnpm --filter @arcadia-eternity/web-ui run build:deps && pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
+          'pnpm --filter "@arcadia-eternity/web-ui^..." --filter "@arcadia-eternity/server..." run build && pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
         url: 'http://127.0.0.1:4173',
         reuseExistingServer: true,
         stdout: 'ignore',

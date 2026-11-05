@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { open } from 'node:fs/promises'
 
 /** Static preparation only: author modules are compiled by the loader, never evaluated here. */
 export function createLocalContentSessions({ library, load, assetUrl }) {
@@ -178,7 +179,21 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
           }
       content.locales = { defaultLocale: prepared?.presentation[0]?.manifest.defaultLocale ?? 'zh-CN', bundles }
       const result = structuredClone({ token, environment: source.sandbox, content })
-      sessions.set(token, { files, prepared, lease, owner })
+      const runtimeIdentity = {
+        kind: 'native-v4',
+        contentRevision: source.revision,
+        coreBuildId: source.build.coreBuildId,
+        registryBuildId: source.build.registryBuildId,
+      }
+      const packages = (prepared?.installation?.packages ?? [])
+        .filter(pkg => pkg.manifest)
+        .map(pkg => ({
+          name: pkg.name,
+          version: pkg.version,
+          projectId: pkg.manifest.projectId,
+          namespace: pkg.manifest.namespace,
+        }))
+      sessions.set(token, { files, prepared, lease, owner, result, runtimeIdentity, packages })
       // Acquiring a fixed old configuration must not change the library's current selection.
       if (activeDirectory === undefined) activeDirectory = lease.directory
       await collect()
@@ -196,6 +211,62 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
     sessions.delete(token)
     await session.lease.release()
     await collect()
+  }
+  /** Explicit sharing copies only already captured package media, never arbitrary caller paths. */
+  async function capturePersonalEnvironment(owner) {
+    const captured = await prepare(owner)
+    try {
+      const session = sessions.get(captured.token)
+      if (!session || session.owner !== owner) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
+      const content = structuredClone(captured.content)
+      const known = new Map([...session.files.keys()].map(id => [assetUrl(captured.token, id), id]))
+      const referenced = new Set()
+      const resource = value => {
+        const id = known.get(value)
+        if (!id) return value
+        referenced.add(id)
+        return `arcadia-resource:${id}`
+      }
+      for (const kind of ['species', 'skills', 'marks'])
+        for (const row of content[kind]) {
+          const p = row.presentation
+          if (!p) continue
+          for (const key of ['icon', 'portrait', 'cry', 'sfx', 'background', 'music'])
+            if (p[key]) p[key] = resource(p[key])
+          if (p.battle)
+            for (const key of ['source', 'fallback']) if (p.battle[key]) p.battle[key] = resource(p.battle[key])
+        }
+      const assets = []
+      let bytes = 0
+      for (const id of referenced) {
+        assertOpen()
+        if (owner !== undefined && retiredOwners.has(owner)) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
+        const file = session.files.get(id)
+        const handle = await open(file.file, 'r')
+        try {
+          const stat = await handle.stat()
+          if (!stat.isFile() || stat.size > 64 * 1024 * 1024 || bytes + stat.size > 64 * 1024 * 1024)
+            throw new Error('LOCAL_SHARE_TOO_LARGE')
+          const data = await handle.readFile()
+          bytes += data.length
+          if (bytes > 64 * 1024 * 1024) throw new Error('LOCAL_SHARE_TOO_LARGE')
+          assets.push({ id, mime: file.mime, data: data.toString('base64') })
+        } finally {
+          await handle.close()
+        }
+      }
+      assertOpen()
+      if (owner !== undefined && retiredOwners.has(owner)) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
+      return {
+        environment: captured.environment,
+        content,
+        runtime: session.runtimeIdentity,
+        packages: session.packages,
+        assets,
+      }
+    } finally {
+      await release(captured.token)
+    }
   }
   async function prepareProject({ directory, builtinOnly = false }) {
     assertOpen()
@@ -243,6 +314,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
   }
   return {
     prepare: tracked(prepare),
+    capturePersonalEnvironment: tracked(capturePersonalEnvironment),
     prepareProject: tracked(prepareProject),
     selectProject,
     release,

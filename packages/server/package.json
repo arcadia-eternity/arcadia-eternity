@@ -35,14 +35,15 @@
     "@arcadia-eternity/pack-loader": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
-    "better-auth": "1.7.12",
+    "better-auth": "1.7.13",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "nanoid": "catalog:",
     "nodemailer": "^10.2.1",
     "openid-client": "^6.8.8",
     "pg": "^8.23.1",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "@arcadia-eternity/database": "workspace:^"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

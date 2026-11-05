@@ -1,0 +1,417 @@
+{
+  "date": "2026-11-05",
+  "baselineCommit": "f809960945d6d0f61223ee4cbfb1c65b3ae1e80b",
+  "scope": "Unreleased follow-up worktree; exact local artifacts are recorded independently from remote CI.",
+  "suites": {
+    "server": {
+      "files": 32,
+      "passed": 327,
+      "seconds": 122.99,
+      "exitCode": 0,
+      "unhandledErrors": 0,
+      "databases": ["SQLite", "PostgreSQL"]
+    },
+    "database": {
+      "files": 2,
+      "passed": 23,
+      "seconds": 1.14
+    },
+    "compiledCli": {
+      "files": 5,
+      "passed": 35,
+      "seconds": 22.19
+    },
+    "desktopHelpersAndLibrary": {
+      "passed": 74,
+      "skipped": 1,
+      "failed": 0,
+      "seconds": 5.544
+    },
+    "finalDependencyLicenseLibrary": {
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 5.541
+    }
+  },
+  "postgresFaults": {
+    "scope": "real PostgreSQL 17.11 management interruption and pool lifecycle",
+    "testsPassed": 5,
+    "durationSeconds": 2.79,
+    "exitCode": 0,
+    "unhandledErrors": 0,
+    "remainingTestDatabases": [],
+    "remainingTestSessions": [],
+    "sourceSha256": {
+      "packages/database/src/storage.ts": "badd6a7dc8977079b8c8f472a0dcab94aea1ce5066f7c95ce6c0fc21b94c167d",
+      "packages/server/test/standaloneManagementPostgresFaults.test.ts": "7b38b99be697d19cc7fcfc1c0a9d50b4ecc9b405f29ba56ada3fab0a51dbb7ff"
+    },
+    "log": "/private/tmp/arcadia-management-postgres-faults-green.log",
+    "databaseOwner": "Root stopped the owned temporary PostgreSQL cluster normally after the full regression; no running test database remains.",
+    "observedRed": {
+      "testsPassed": 3,
+      "uncaughtErrors": 3,
+      "message": "Connection terminated unexpectedly",
+      "exitCode": 1
+    }
+  },
+  "sqliteFaults": {
+    "tests": 2,
+    "realInjections": 8,
+    "successfulRetries": 8,
+    "codes": ["SQLITE_BUSY", "SQLITE_FULL"],
+    "fullMechanism": "max_page_count and conditional audit trigger after domain mutation; not operating-system ENOSPC"
+  },
+  "desktopGui": {
+    "platform": "darwin arm64",
+    "scope": "same-version artifact replacement; not a public cross-version upgrade",
+    "artifact": {
+      "artifact": "/private/tmp/arcadia-desktop-gui-installers-r6-20261105/Arcadia Eternity Preview-3.4.2-arm64.zip",
+      "sha256": "3cd6a1e2b356d1fe468bbec83b1ab51ecfb13d493e4bdda494fea05fc21e67ce",
+      "format": "mac-zip",
+      "sourceProof": {
+        "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+        "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+        "rendererIndexSha256": "b1d0443a36552615fc2b68cd7fe934448e595d32f51e8518b74c3dc92b846acd",
+        "cliSha256": "c111f298fbaedc5fbb24ce8b3ea44fca6830b64fd6cfaac6b6f9e3c87c4679c9",
+        "serverSha256": "d5544decb8a7cb8fffd409afb3b5760cc5e257a04a46f5b7fb2d057918d474a9",
+        "runtimeManifestSha256": "1ba13b26d331c131a9cfc9778ba795f2a4bac2548991e82be04b77fd240fc43a"
+      },
+      "executableRelativePath": "Arcadia Eternity Preview.app/Contents/MacOS/Arcadia Eternity Preview"
+    },
+    "launches": 2,
+    "allNormalExits": true,
+    "allBrowserObservationsEmpty": true,
+    "samePersistentState": true,
+    "sourceFilesPreserved": true,
+    "evidenceDirectory": "/private/tmp/arcadia-desktop-gui-acceptance-r6b-20261105",
+    "startupReadyVerified": true,
+    "externalServiceRequests": [],
+    "externalImageRequests": [
+      {
+        "origin": "https://seer2-resource.yuuinih.com",
+        "path": "/png/petElementIcon/1.png",
+        "method": "GET",
+        "resourceType": "image"
+      },
+      {
+        "origin": "https://seer2-resource.yuuinih.com",
+        "path": "/png/pet/1.png",
+        "method": "GET",
+        "resourceType": "image"
+      },
+      {
+        "origin": "https://seer2-resource.yuuinih.com",
+        "path": "/png/petElementIcon/1.png",
+        "method": "GET",
+        "resourceType": "image"
+      }
+    ]
+  },
+  "productionDependencies": {
+    "before": 527,
+    "after": 430,
+    "missingRequiredEdges": [],
+    "testDependencyGate": "passed",
+    "betterAuth": "1.7.13",
+    "licensePackages": 574,
+    "licenseBlockers": [
+      {
+        "name": "@npmcli/agent",
+        "version": "4.0.2",
+        "license": "ISC",
+        "origin": "npm",
+        "packagePath": "runtime/npm/node_modules/@npmcli/agent",
+        "repository": "https://github.com/npm/agent.git",
+        "reason": "missing-or-unrecognized-license-text"
+      },
+      {
+        "name": "@npmcli/redact",
+        "version": "4.0.0",
+        "license": "ISC",
+        "origin": "npm",
+        "packagePath": "runtime/npm/node_modules/@npmcli/redact",
+        "repository": "https://github.com/npm/redact.git",
+        "reason": "unmatched-or-unsupported-declaration"
+      }
+    ],
+    "releaseReady": false
+  },
+  "browserDiagnostic": {
+    "upstream": "https://github.com/microsoft/playwright/issues/42742",
+    "chrome156": {
+      "browser": "156.0.8078.80",
+      "results": [
+        {
+          "cache": "no-store",
+          "reader": "stream",
+          "repeat": 0,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfailed",
+            "error": "net::ERR_ABORTED"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "stream",
+          "repeat": 1,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfailed",
+            "error": "net::ERR_ABORTED"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "stream",
+          "repeat": 2,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfailed",
+            "error": "net::ERR_ABORTED"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "json",
+          "repeat": 0,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "json",
+          "repeat": 1,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "json",
+          "repeat": 2,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-cache",
+          "reader": "stream",
+          "repeat": 0,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-cache",
+          "reader": "stream",
+          "repeat": 1,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-cache",
+          "reader": "stream",
+          "repeat": 2,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        }
+      ]
+    },
+    "chrome157": {
+      "browser": "157.0.8103.15",
+      "results": [
+        {
+          "cache": "no-store",
+          "reader": "stream",
+          "repeat": 0,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "stream",
+          "repeat": 1,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "stream",
+          "repeat": 2,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "json",
+          "repeat": 0,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "json",
+          "repeat": 1,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-store",
+          "reader": "json",
+          "repeat": 2,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-cache",
+          "reader": "stream",
+          "repeat": 0,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-cache",
+          "reader": "stream",
+          "repeat": 1,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        },
+        {
+          "cache": "no-cache",
+          "reader": "stream",
+          "repeat": 2,
+          "applicationValue": 42,
+          "terminal": {
+            "event": "requestfinished"
+          }
+        }
+      ]
+    },
+    "officialTestBrowserZipSha256": "fde975f7813b7d4fd8a3db531bcdaffa458277e18f85aa3b1fc0e6d480eb35c4"
+  },
+  "validationState": {
+    "lintAndWebTypes": "passed",
+    "freshDockerImage": {
+      "passed": true,
+      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+      "evidence": ".omo/evidence/docker-management-followup.json"
+    },
+    "https": {
+      "passed": true,
+      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+      "seconds": 21.573,
+      "evidence": ".omo/evidence/docker-management-https-followup.json"
+    },
+    "previousRemoteCi": {
+      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+      "baseline": {
+        "run": 41945686489,
+        "passed": 6,
+        "failed": 0
+      },
+      "desktop": {
+        "run": 41945686724,
+        "status": "Completed failure: Linux executable name, both Mac implicit external account discovery, Windows NSIS timeout and ZIP dereferenced dependency graph. See follow-up fixes and new run."
+      }
+    },
+    "newRemoteCi": {
+      "commit": "576202830fc28b3f9840ffbdfb8f5f05147fd847",
+      "baseline": {
+        "run": 41949631695,
+        "passed": 6,
+        "failed": 0
+      },
+      "desktop": {
+        "run": 41949631649,
+        "passed": 4,
+        "failed": 0,
+        "nativeInstallerFormats": 5,
+        "guiLaunches": 10,
+        "evidence": ".omo/evidence/desktop-installer-ci-2026-11-05.json"
+      }
+    }
+  },
+  "limitations": [
+    "Unsigned unpublished preview; same-version replacement, not historical upgrade",
+    "Two upstream npm license blockers",
+    "Real external SMTP/GitHub, two-device LAN and public deployment not accepted"
+  ],
+  "previousDesktopGui": {
+    "platform": "darwin arm64",
+    "scope": "same-version artifact replacement; not a public cross-version upgrade",
+    "artifact": {
+      "artifact": "/private/tmp/arcadia-desktop-gui-installers-r5-20261105/Arcadia Eternity Preview-3.4.2-arm64.zip",
+      "sha256": "0d889a7a3fca78420c6778287fc29f8d5d5ca59b334c11a41c5b5804391eaeed",
+      "format": "mac-zip",
+      "sourceProof": {
+        "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+        "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+        "rendererIndexSha256": "ed8bd6342128e548f95d44f8014fb21694ec868a723197ae5a60b81aef634b8f",
+        "cliSha256": "c111f298fbaedc5fbb24ce8b3ea44fca6830b64fd6cfaac6b6f9e3c87c4679c9",
+        "serverSha256": "d5544decb8a7cb8fffd409afb3b5760cc5e257a04a46f5b7fb2d057918d474a9",
+        "runtimeManifestSha256": "1ba13b26d331c131a9cfc9778ba795f2a4bac2548991e82be04b77fd240fc43a"
+      },
+      "executableRelativePath": "Arcadia Eternity Preview.app/Contents/MacOS/Arcadia Eternity Preview"
+    },
+    "launches": 2,
+    "allNormalExits": true,
+    "allBrowserObservationsEmpty": true,
+    "samePersistentState": true,
+    "sourceFilesPreserved": true,
+    "evidenceDirectory": "/private/tmp/arcadia-desktop-gui-acceptance-r5-20261105"
+  },
+  "windowsDependencyLayout": {
+    "reason": "ZIP/NSIS dereference pnpm directory links; chokidar could not resolve sibling readdirp",
+    "projection": "locked Builder hoister, original staged package instances, no registry resolution",
+    "localMaterial": {
+      "packages": 445,
+      "verifiedEdges": 719,
+      "realChokidarAndBetterAuthImports": true,
+      "managedHost": {
+        "passed": 1,
+        "skipped": 0,
+        "seconds": 33.503,
+        "log": "/private/tmp/arcadia-linkless-host-validation.log"
+      }
+    },
+    "regressions": {
+      "passed": 47,
+      "platformSkipped": 1,
+      "log": "/private/tmp/arcadia-windows-linkless-regression.log"
+    },
+    "licenses": {
+      "records": 589,
+      "blockers": 2,
+      "regressionPassed": 14,
+      "evidence": "/private/tmp/arcadia-linkless-license-inventory.json"
+    },
+    "nativeAcceptance": "Windows NSIS and ZIP first installation and same-version replacement passed on commit 576202830fc28b3f9840ffbdfb8f5f05147fd847"
+  }
+}

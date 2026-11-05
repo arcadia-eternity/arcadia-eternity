@@ -1,10 +1,26 @@
 import type { MarkSchemaType, SkillSchemaType, SpeciesSchemaType, ContentPresentation } from '@arcadia-eternity/schema'
 import type { NativeRuntimeIdentity } from './session'
+import type { ManagedEnvironmentDocument } from './management'
+
+export type EnvironmentRules = ManagedEnvironmentDocument['rules']
+
+/** A fixed, player-owned recipe. The signaling server never acquires or executes its materials. */
+export interface PersonalEnvironmentReference {
+  kind: 'personal'
+  protocolVersion: 1
+  descriptor: ServerEnvironmentDescriptor
+  rules?: EnvironmentRules
+  source: { kind: 'file'; name: string } | { kind: 'https'; url: string }
+}
 
 /** Server execution identity. A browser acknowledges this; it does not independently load the code. */
 export interface ServerEnvironmentDescriptor {
   id: string
   protocolVersion: 1
+  /** Omitted by older servers. A peer-only listing must never be submitted for server execution. */
+  executionPolicy?: 'server' | 'peer'
+  /** Captured sandbox revision required before a client can acknowledge peer execution readiness. */
+  peerRevision?: string
   runtime: NativeRuntimeIdentity
   packages: { name: string; version: string; projectId: string; namespace: string }[]
   resourceRevision: string
@@ -44,6 +60,9 @@ export interface ServerEnvironmentAcceptance {
   environmentId: string
   protocolVersion: 1
   resourceRevision: string
+  peerRevision?: string
+  /** Personal-room preparation is invalidated by a host or configuration change. */
+  challengeGeneration?: number
   /** Legacy wire name: public catalog and core display compatibility are ready; media remains on-demand. */
   resourcesReady: boolean
 }

@@ -1,3 +1,4 @@
+import { assertEnvironmentTeam } from '@arcadia-eternity/content-dev/environment-rules'
 import { timingSafeEqual } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import type { Server, Socket } from 'socket.io'
@@ -11,12 +12,23 @@ import {
 import type { BattleHost } from '@arcadia-eternity/battle/v4/host'
 import { createNodeBattleWorkerManager, BattleWorkerAdmissionError } from '@arcadia-eternity/battle/v4/sandbox/node'
 import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
-import type { PrivateRoomInfo, PrivateRoomEvent, ServerSession } from '@arcadia-eternity/protocol'
+import type {
+  ManagedBattle,
+  ManagedPlayer,
+  PrivateRoomInfo,
+  PrivateRoomEvent,
+  ServerSession,
+} from '@arcadia-eternity/protocol'
 import { createStandaloneBattle, validateStandaloneTeam } from './native'
 import type { SessionRegistry } from './session'
 import { ServerEnvironmentRegistry, EnvironmentError, type EnvironmentLease } from './environments'
 import { fifoMatchmaking, type MatchmakingPolicy } from './matchmaking'
 import { resolveBattleCapacity, type BattleCapacityOptions } from './battle-capacity'
+import {
+  acquirePersonalEnvironment,
+  validatePersonalTeam,
+  type PersonalEnvironmentLease,
+} from './personal-environments'
 
 export class RoomError extends Error {
   constructor(public readonly code: string) {
@@ -45,7 +57,19 @@ const timerEvents: (keyof Events)[] = [
   'animationStart',
   'animationEnd',
 ]
+const closingPeerMessages = new Set([
+  'p2p-battle-event',
+  'p2p-battle-ack',
+  'p2p-battle-init',
+  'p2p-battle-sync-request',
+  'p2p-battle-selection-update',
+  'p2p-battle-timer-event',
+  'p2p-battle-start-animation',
+  'p2p-battle-start-animation-result',
+  'p2p-battle-end-animation',
+])
 type Member = PrivateRoomInfo['players'][number] & { connectionStatus: 'online' | 'offline' }
+type RoomEnvironment = EnvironmentLease | PersonalEnvironmentLease
 type WaitingPlayer = {
   session: ServerSession
   environment?: EnvironmentLease
@@ -55,10 +79,12 @@ type WaitingPlayer = {
   joinedAt: number
 }
 type Room = {
-  environment: EnvironmentLease
+  environment: RoomEnvironment
   info: PrivateRoomInfo
   password?: string
   members: Map<string, Member>
+  startedAt?: number
+  turn?: number
   battle?: BattleHost
   ready: Set<string>
   cleanups: (() => void)[]
@@ -95,6 +121,7 @@ export class RoomRegistry {
   private readonly matchingControllers = new Set<AbortController>()
   private readonly cleaner: ReturnType<typeof setInterval>
   private closed = false
+  private draining = false
   private readonly limits: Required<Omit<RoomOptions, 'matchmakingPolicy' | keyof BattleCapacityOptions>>
   private readonly matchmakingPolicy: MatchmakingPolicy
   constructor(
@@ -131,6 +158,86 @@ export class RoomRegistry {
   }
   get battleWorkerStats() {
     return this.battleWorkers.poolStatus()
+  }
+  get managementStatus() {
+    return {
+      draining: this.draining,
+      activeBattles: [...this.rooms.values()].filter(room => room.info.status === 'started').length,
+      rooms: this.rooms.size,
+      queued: this.matchmaking.size + this.battleWorkers.poolStatus().queued,
+    }
+  }
+  managementPlayers(): ManagedPlayer[] {
+    return this.sessions.managementPlayers().map(player => {
+      const room = this.rooms.get(this.seats.get(player.seatId) ?? '')
+      return {
+        ...player,
+        connected: !!this.sockets.get(player.seatId)?.size,
+        ...(room ? { roomCode: room.info.config.roomCode } : {}),
+        ...(room?.info.status === 'started' ? { battleId: room.info.battleRoomId } : {}),
+      }
+    })
+  }
+  managementBattles(): ManagedBattle[] {
+    return [...this.rooms.values()]
+      .filter(room => room.info.status === 'started' && room.info.battleRoomId)
+      .map(room => ({
+        id: room.info.battleRoomId!,
+        roomCode: room.info.config.roomCode,
+        environmentId:
+          ('environmentId' in room.environment ? room.environment.environmentId : undefined) ??
+          room.environment.descriptor.id,
+        environmentName:
+          ('environmentName' in room.environment ? room.environment.environmentName : undefined) ??
+          (room.environment.descriptor.packages.map(pkg => pkg.name).join(' + ') || '基础环境'),
+        ...('bindingId' in room.environment ? { bindingId: room.environment.bindingId } : {}),
+        ...('versionId' in room.environment ? { versionId: room.environment.versionId } : {}),
+        execution: room.info.config.battleMode === 'p2p' ? 'peer' : 'server',
+        state: room.info.players.some(player => !this.sockets.get(player.playerId)?.size) ? 'reconnecting' : 'running',
+        startedAt: room.startedAt ?? room.info.createdAt,
+        ...(room.turn === undefined ? {} : { turn: room.turn }),
+        players: room.info.players.map(player => ({
+          seatId: player.playerId,
+          name: player.playerName,
+          connected: !!this.sockets.get(player.playerId)?.size,
+        })),
+      }))
+  }
+  /** Serialize with player commands; authorize again immediately before the irreversible effect. */
+  async terminateManagedBattle(id: string, authorize: () => Promise<void>) {
+    const room = [...this.rooms.values()].find(room => room.info.battleRoomId === id && room.info.status === 'started')
+    if (!room) return { terminated: false, status: 'already-ended' }
+    return this.enqueue(room, async () => {
+      if (room.info.battleRoomId !== id || room.info.status !== 'started')
+        return { terminated: false, status: 'already-ended' }
+      if (room.info.config.battleMode !== 'server') fail('PEER_BATTLE_ADMIN_UNSUPPORTED')
+      await authorize()
+      // A battle may finish while authorization is awaiting durable storage.
+      if (room.info.battleRoomId !== id || room.info.status !== 'started')
+        return { terminated: false, status: 'already-ended' }
+      await this.close(room, 'ADMIN_TERMINATED')
+      return { terminated: true, status: 'terminated' }
+    }).catch(error => {
+      if (error instanceof RoomError && error.code === 'ROOM_NOT_FOUND')
+        return { terminated: false, status: 'already-ended' }
+      throw error
+    })
+  }
+  /** Stop admitting work while existing active battles and reconnects continue. */
+  async setDraining(draining: boolean): Promise<void> {
+    this.assertOpen()
+    this.draining = draining
+    if (!draining) return
+    for (const controller of this.matchingControllers) controller.abort(new RoomError('SERVER_DRAINING'))
+    for (const room of this.rooms.values())
+      if (room.info.status !== 'started') this.cancelLaunch(room, 'SERVER_DRAINING')
+    const queued = [...this.matchmaking.keys()]
+    await Promise.all(queued.map(seat => this.cancelQueued(seat)))
+    for (const seat of queued) this.emitSeat(seat, 'matchmakingError', { status: 'ERROR', code: 'SERVER_DRAINING' })
+  }
+  private assertAccepting() {
+    this.assertOpen()
+    if (this.draining) fail('SERVER_DRAINING')
   }
   private cancelLaunch(room: Room, code = 'BATTLE_LAUNCH_CANCELED') {
     // Invalidate starts already submitted to room.pending, including ones not executing yet.
@@ -217,27 +324,53 @@ export class RoomRegistry {
       b = Buffer.from(typeof password === 'string' ? password : '')
     if (a.length !== b.length || !timingSafeEqual(a, b)) fail('INVALID_PASSWORD')
   }
-  private checkRuntime(input: Record<string, unknown>, environment: EnvironmentLease) {
+  private checkExecutionPolicy(environment: RoomEnvironment, battleMode: 'server' | 'p2p') {
+    if (environment.executionPolicy) {
+      const allowedMode = environment.executionPolicy === 'peer' ? 'p2p' : 'server'
+      if (battleMode !== allowedMode) fail('ENVIRONMENT_EXECUTION_POLICY')
+    } else if (environment.isNpm && battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')
+  }
+  private invalidatePersonalPreparation(room: Room) {
+    if (!room.info.personalEnvironment) return
+    room.info.challengeGeneration = (room.info.challengeGeneration ?? 0) + 1
+    for (const player of room.info.players) player.isReady = false
+  }
+  private checkRuntime(input: Record<string, unknown>, environment: RoomEnvironment) {
     if (input.clientPackLock !== undefined || input.clientAssetLock !== undefined) fail('CUSTOM_CONTENT_UNSUPPORTED')
     if (input.expectedRuntime === undefined) return
     const expected = object(input.expectedRuntime)
-    const actual = environment.runtime.identity
+    const actual = environment.descriptor.runtime
     if (expected.kind !== actual.kind) fail('RUNTIME_MISMATCH')
   }
-  private checkClientEnvironment(room: Pick<Room, 'environment'>, raw: unknown) {
-    if (!room.environment.isNpm && raw === undefined) return
+  private checkClientEnvironment(room: Pick<Room, 'environment'> & Partial<Pick<Room, 'info'>>, raw: unknown) {
+    if (!room.environment.isNpm && raw === undefined && room.environment.executionPolicy !== 'peer') return
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('CLIENT_ENVIRONMENT_REQUIRED')
     const accepted = raw as Record<string, unknown>
     const descriptor = room.environment.descriptor
+    if ('personal' in room.environment && accepted.challengeGeneration !== room.info?.challengeGeneration)
+      fail('CLIENT_PREPARATION_STALE')
     if (accepted.protocolVersion !== descriptor.protocolVersion) fail('CLIENT_PROTOCOL_MISMATCH')
     if (accepted.environmentId !== descriptor.id) fail('CLIENT_ENVIRONMENT_MISMATCH')
     if (accepted.resourceRevision !== descriptor.resourceRevision || accepted.resourcesReady !== true)
       fail('CLIENT_RESOURCES_NOT_READY')
+    if (
+      room.environment.executionPolicy === 'peer' &&
+      (!descriptor.peerRevision || accepted.peerRevision !== descriptor.peerRevision)
+    )
+      fail('CLIENT_PEER_ENVIRONMENT_MISMATCH')
   }
   private async validateTeam(room: Pick<Room, 'environment'>, team: unknown) {
     try {
-      return await validateStandaloneTeam(team, room.environment.runtime)
-    } catch {
+      const validated =
+        'personal' in room.environment
+          ? validatePersonalTeam(team)
+          : await validateStandaloneTeam(team, room.environment.runtime)
+      assertEnvironmentTeam(room.environment.rules, validated)
+      return validated
+    } catch (error) {
+      if (error instanceof RoomError) throw error
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENVIRONMENT_TEAM_REJECTED')
+        return fail(error.code)
       return fail('INVALID_TEAM')
     }
   }
@@ -292,8 +425,10 @@ export class RoomRegistry {
     }
   }
   private async create(session: ServerSession, data: unknown, matchedEnvironment?: EnvironmentLease) {
+    this.assertAccepting()
     const input = object(data)
     await this.environments.ready()
+    this.assertAccepting()
     if (!this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
     if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
     if (!matchedEnvironment && this.matchmaking.has(session.seatId)) fail('ALREADY_QUEUED')
@@ -307,15 +442,24 @@ export class RoomRegistry {
     config.hostPlayerId = session.seatId
     const password = config.isPrivate ? text(object(input.config).password) : undefined
     const member = this.member(session)
+    if (input.personalEnvironment !== undefined && (matchedEnvironment || input.environmentId !== undefined))
+      fail('INVALID_REQUEST')
     const environment =
       matchedEnvironment ??
-      this.environments.acquire(
-        input.environmentId === undefined ? undefined : text(input.environmentId),
-        config.battleMode === 'p2p',
-      )
+      (input.personalEnvironment !== undefined
+        ? await acquirePersonalEnvironment(input.personalEnvironment)
+        : this.environments.acquire(
+            input.environmentId === undefined ? undefined : text(input.environmentId),
+            config.battleMode === 'p2p',
+          ))
     try {
+      this.assertAccepting()
+      if (!this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
+      if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
+      if (!matchedEnvironment && this.matchmaking.has(session.seatId)) fail('ALREADY_QUEUED')
+      if (this.rooms.size >= this.limits.maxRooms) fail('ROOM_CAPACITY')
       this.checkRuntime(input, environment)
-      if (environment.isNpm && config.battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')
+      this.checkExecutionPolicy(environment, config.battleMode ?? 'server')
     } catch (error) {
       await environment.release()
       throw error
@@ -325,6 +469,7 @@ export class RoomRegistry {
       info: {
         ...(matchedEnvironment ? { matchmaking: true } : {}),
         environment: environment.descriptor,
+        ...('personal' in environment ? { personalEnvironment: environment.personal, challengeGeneration: 1 } : {}),
         id: nanoid(),
         config,
         players: [member],
@@ -427,7 +572,10 @@ export class RoomRegistry {
       await this.close(room, 'NO_PLAYERS')
       return
     }
-    if (room.info.config.hostPlayerId === seat) room.info.config.hostPlayerId = room.info.players[0].playerId
+    if (room.info.config.hostPlayerId === seat) {
+      room.info.config.hostPlayerId = room.info.players[0].playerId
+      this.invalidatePersonalPreparation(room)
+    }
     this.update(room)
   }
   private attachBattleView(room: Room, seat: string) {
@@ -464,7 +612,8 @@ export class RoomRegistry {
           await this.close(room, 'MATCH_FINISHED')
           return
         }
-        if (room.info.battleRoomId)
+        // Releasing a completed runtime does not close the private room or the player's result view.
+        if (room.info.config.battleMode === 'server' && room.info.battleRoomId)
           for (const seat of room.members.keys()) this.emitSeat(seat, 'roomClosed', { roomId: room.info.battleRoomId })
         await this.disposeBattle(room)
         delete room.info.battleRoomId
@@ -475,10 +624,12 @@ export class RoomRegistry {
     room.ending.unref()
   }
   private async start(room: Room, session: ServerSession, input: unknown, launchEpoch: number, commit?: () => void) {
+    this.assertAccepting()
     if (launchEpoch !== room.launchEpoch) fail('BATTLE_LAUNCH_CANCELED')
     if (room.info.matchmaking && !commit) fail('INVALID_STATE')
     this.host(room, session)
     this.waiting(room)
+    this.checkExecutionPolicy(room.environment, room.info.config.battleMode ?? 'server')
     if (room.info.players.length !== 2) fail('PLAYERS_NOT_READY')
     if (room.info.players.some(p => !this.sockets.get(p.playerId)?.size)) fail('PLAYER_OFFLINE')
     this.checkClientEnvironment(room, object(input).environment)
@@ -495,6 +646,7 @@ export class RoomRegistry {
       preparing = true
       const [a, b] = room.info.players
       if (room.info.config.battleMode === 'server') {
+        if ('personal' in room.environment) fail('ENVIRONMENT_EXECUTION_POLICY')
         room.battle = await createStandaloneBattle(
           { id: a.playerId, name: a.playerName, team: a.team! },
           { id: b.playerId, name: b.playerName, team: b.team! },
@@ -510,6 +662,7 @@ export class RoomRegistry {
         )
       }
       controller.signal.throwIfAborted()
+      this.assertAccepting()
       // A shutdown or disconnect can happen while waiting for capacity or content.
       if (this.closed || this.rooms.get(room.info.config.roomCode) !== room) {
         await this.disposeBattle(room)
@@ -517,6 +670,8 @@ export class RoomRegistry {
       }
       if (room.info.players.some(player => !this.sockets.get(player.playerId)?.size)) fail('PLAYER_OFFLINE')
       commit?.()
+      room.startedAt = Date.now()
+      room.turn = undefined
       room.info.status = 'started'
       room.info.battleRoomId = nanoid()
       room.info.battleHost = { playerId: session.seatId, sessionId: session.sessionId }
@@ -524,6 +679,7 @@ export class RoomRegistry {
         for (const seat of room.members.keys()) this.attachBattleView(room, seat)
         room.cleanups.push(
           room.battle.BattleEvent(message => {
+            if (message.type === BattleMessageType.TurnStart) room.turn = message.data.turn
             if (message.type === BattleMessageType.BattleEnd)
               this.finish(room, message.data.winner, message.data.reason)
           }),
@@ -582,6 +738,7 @@ export class RoomRegistry {
   private queued(player: WaitingPlayer) {
     return (
       !this.closed &&
+      !this.draining &&
       this.matchmaking.get(player.session.seatId) === player &&
       !!this.sessions.authenticate(player.session.token) &&
       !!this.sockets.get(player.session.seatId)?.size
@@ -597,18 +754,23 @@ export class RoomRegistry {
     if (!player.pairing) await player.environment?.release()
   }
   private async joinMatchmaking(session: ServerSession, raw: unknown) {
+    this.assertAccepting()
     const input = object(raw)
+    if (input.personalEnvironment !== undefined) fail('PERSONAL_ENVIRONMENT_PRIVATE_ONLY')
     if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
     if (this.matchmaking.has(session.seatId)) return { status: 'QUEUED' }
     const player: WaitingPlayer = { session, pairing: false, joinedAt: Date.now() }
     this.matchmaking.set(session.seatId, player)
     try {
       await this.environments.ready()
+      this.assertAccepting()
       if (!this.queued(player)) fail('MATCHMAKING_CANCELED')
       if (input.ruleSetId !== undefined && input.ruleSetId !== 'standard') fail('INVALID_CONFIG')
       if (input.config !== undefined) fail('INVALID_CONFIG')
       player.environment = this.environments.acquire(
         input.environmentId === undefined ? undefined : text(input.environmentId),
+        false,
+        'matchmaking',
       )
       this.checkClientEnvironment({ environment: player.environment }, input.environment)
       // For explicit environments, including the official environment, require resource acceptance.
@@ -637,13 +799,12 @@ export class RoomRegistry {
         if (!this.queued(player)) await this.cancelQueued(player.session.seatId)
       }
       let selected: readonly [WaitingPlayer, WaitingPlayer] | undefined
-      const environmentIds = new Set(
-        waiting.filter(player => this.queued(player)).map(player => player.environment!.descriptor.id),
-      )
-      for (const environmentId of environmentIds) {
-        const group = waiting.filter(
-          player => this.queued(player) && player.environment!.descriptor.id === environmentId,
-        )
+      const lane = (player: WaitingPlayer) =>
+        player.environment!.admissionKey ??
+        `${player.environment!.descriptor.id}:${player.environment!.executionPolicy ?? 'legacy'}`
+      const environmentLanes = new Set(waiting.filter(player => this.queued(player)).map(lane))
+      for (const environmentLane of environmentLanes) {
+        const group = waiting.filter(player => this.queued(player) && lane(player) === environmentLane)
         if (group.length < 2) continue
         const environment = structuredClone(group[0].environment!.descriptor)
         const controller = new AbortController()
@@ -696,10 +857,9 @@ export class RoomRegistry {
       let room: Room | undefined
       let committed = false
       try {
-        // Refuse a retired waiting environment rather than silently selecting a new one.
-        const active = this.environments.acquire(first.environment!.descriptor.id)
-        await active.release()
-        const created = await this.create(first.session, { config: { battleMode: 'server' } }, first.environment)
+        // Queue entries own fixed leases. Publication updates affect new admissions, not this lane.
+        const battleMode = first.environment!.executionPolicy === 'peer' ? 'p2p' : 'server'
+        const created = await this.create(first.session, { config: { battleMode } }, first.environment)
         room = this.rooms.get(created.roomCode)!
         if (!pair.every(player => this.queued(player)) || this.seats.has(second.session.seatId))
           fail('MATCHMAKING_CANCELED')
@@ -721,6 +881,9 @@ export class RoomRegistry {
                 environmentId: first.environment!.descriptor.id,
                 protocolVersion: first.environment!.descriptor.protocolVersion,
                 resourceRevision: first.environment!.descriptor.resourceRevision,
+                ...(first.environment!.descriptor.peerRevision
+                  ? { peerRevision: first.environment!.descriptor.peerRevision }
+                  : {}),
                 resourcesReady: true,
               },
             },
@@ -881,7 +1044,7 @@ export class RoomRegistry {
     register('updatePrivateRoomRuleSet', () => fail('RULESETS_UNSUPPORTED'))
     register(
       'updatePrivateRoomConfig',
-      withRoom((room, data) => {
+      withRoom(async (room, data) => {
         this.host(room, session)
         this.waiting(room)
         const input = object(data),
@@ -892,11 +1055,20 @@ export class RoomRegistry {
             : text(input.password)
           : undefined
         if (config.isPrivate && !password) fail('INVALID_CONFIG')
-        if (room.environment.isNpm && config.battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')
+        this.checkExecutionPolicy(room.environment, config.battleMode ?? 'server')
         if (input.environmentId !== undefined && input.environmentId !== room.environment.descriptor.id)
           fail('ENVIRONMENT_FIXED')
+        if (input.personalEnvironment !== undefined) {
+          if (!('personal' in room.environment)) fail('ENVIRONMENT_FIXED')
+          const next = await acquirePersonalEnvironment(input.personalEnvironment)
+          this.checkExecutionPolicy(next, config.battleMode)
+          room.environment = next
+          room.info.environment = next.descriptor
+          room.info.personalEnvironment = next.personal
+        }
         room.info.config = config
         room.password = password
+        this.invalidatePersonalPreparation(room)
         for (const player of room.info.players) player.isReady = false
         this.update(room)
         return { status: 'UPDATED' }
@@ -911,6 +1083,7 @@ export class RoomRegistry {
         if (target === session.seatId) fail('CANNOT_TRANSFER_TO_SELF')
         if (!room.info.players.some(p => p.playerId === target)) fail('TARGET_NOT_PLAYER')
         room.info.config.hostPlayerId = target
+        this.invalidatePersonalPreparation(room)
         this.emit(room, {
           type: 'hostTransferred',
           data: { oldHostId: session.seatId, newHostId: target, transferredBy: session.seatId },
@@ -1093,9 +1266,12 @@ export class RoomRegistry {
       'sendPrivateRoomPeerSignal',
       withRoom((room, data) => {
         this.player(room, session)
-        if (room.info.config.battleMode !== 'p2p' || room.info.status !== 'started') fail('INVALID_STATE')
+        if (room.info.config.battleMode !== 'p2p' || !room.info.battleRoomId) fail('INVALID_STATE')
         const input = object(data),
           target = room.info.players.find(p => p.playerId === input.targetPlayerId)
+        if (input.battleRoomId !== undefined && input.battleRoomId !== room.info.battleRoomId) fail('STALE_BATTLE')
+        // Drain ACKs and animation synchronization after the result, only for the captured instance.
+        if (room.info.status !== 'started' && input.battleRoomId !== room.info.battleRoomId) fail('INVALID_STATE')
         if (
           !target ||
           target.playerId === session.seatId ||
@@ -1111,7 +1287,13 @@ export class RoomRegistry {
         )
           fail('INVALID_SIGNAL')
         if (Buffer.byteLength(JSON.stringify(signal)) > 64 * 1024) fail('INVALID_SIGNAL')
+        if (room.info.status !== 'started') {
+          const messageType = object(signal.payload).type
+          if (signal.kind !== 'custom' || typeof messageType !== 'string' || !closingPeerMessages.has(messageType))
+            fail('INVALID_STATE')
+        }
         const event = {
+          battleRoomId: room.info.battleRoomId,
           roomCode: room.info.config.roomCode,
           from: { playerId: session.seatId, sessionId: session.sessionId },
           to: { playerId: target.playerId, sessionId: target.sessionId },
@@ -1128,6 +1310,7 @@ export class RoomRegistry {
         this.host(room, session)
         if (room.info.config.battleMode !== 'p2p' || room.info.status !== 'started') fail('INVALID_STATE')
         const input = object(data)
+        if (input.battleRoomId !== undefined && input.battleRoomId !== room.info.battleRoomId) fail('STALE_BATTLE')
         if (input.winner !== null && !room.info.players.some(p => p.playerId === input.winner)) fail('INVALID_REQUEST')
         this.finish(room, input.winner as string | null, text(input.reason))
         return { status: 'FINISHED' }

@@ -131,21 +131,45 @@ export interface DesktopUpdateCheckResult {
 export type LocalBattleHostStatus =
   | { status: 'idle' | 'starting' | 'stopping' }
   | { status: 'cancelled' }
-  | { status: 'running'; url: string; serverId: string; projectName: string }
+  | {
+      status: 'running'
+      url: string
+      serverId: string
+      projectName: string
+      localRecovery?: boolean
+      network?: {
+        host: string
+        port: number
+        scope: 'local' | 'network'
+        publicOrigin?: string
+        availableHosts: string[]
+        inviteUrls: string[]
+      }
+    }
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  localEnvironment?: (input: Record<string, unknown>) => Promise<{ result?: unknown; error?: { code: string; message: string } }>
+  managementRequest?: import('@/services/managementClient').ManagementIpcBridge
   author?: (
     input: Record<string, unknown>,
   ) => Promise<{ result?: unknown; error?: { code: string; message: string; file?: string } }>
   onAuthorChanged?: (callback: (event: { id: string; file?: string; type: string }) => void) => () => void
   getBackendConfig(): Promise<{ schemaVersion: 1; backendOrigin: string }>
-  openRemotePlay(input: { url: string }): Promise<unknown>
+  openServerWebsite(input: { url: string }): Promise<void>
+  openRemotePlay(input: { url: string; mode?: 'play' | 'management' }): Promise<unknown>
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
   prepareLocalContent?: () => Promise<{
     token: string
     environment: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
+  }>
+  capturePersonalEnvironment?: () => Promise<{
+    environment: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
+    content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
+    runtime: import('@arcadia-eternity/protocol').NativeRuntimeIdentity
+    packages: import('@arcadia-eternity/protocol').ServerEnvironmentDescriptor['packages']
+    assets: { id: string; mime: string; data: string }[]
   }>
   releaseLocalContent?: (token: string) => Promise<void>
   selectContentPackageFile?: (options: {
@@ -161,11 +185,10 @@ export interface ArcadiaDesktopApi {
   listContentProjects?: () => Promise<ContentProjectSummary[]>
   addContentProject?: () => Promise<string | null>
   contentProjectAction?: (input: ContentProjectAction) => Promise<unknown>
-  selectAndStartLocalBattle?: () => Promise<LocalBattleHostStatus>
+  localServer?: (input: import('./localServer').LocalServerRequest) => Promise<import('./localServer').LocalServerSnapshot>
   getLocalBattleStatus?: () => Promise<LocalBattleHostStatus>
   installContentPackageFile?: (options?: { offline?: boolean }) => Promise<string | null>
   installNpmContentPackage?: (options: { spec: string; offline?: boolean }) => Promise<string>
-  stopLocalBattle?: () => Promise<LocalBattleHostStatus>
   readWorkWorkspace?: () => Promise<import('@arcadia-eternity/pack-loader/native').WorkSnapshot>
   compareAndSwapWorkWorkspace?: (input: {
     expected: number
@@ -227,7 +250,7 @@ export interface ContentProjectSummary {
 }
 export interface ContentProjectAction {
   id: string
-  action: 'inspect' | 'install' | 'approve' | 'validate' | 'verify' | 'start' | 'rename' | 'forget' | 'export'
+  action: 'inspect' | 'install' | 'approve' | 'validate' | 'verify' | 'rename' | 'forget' | 'export'
   name?: string
   offline?: boolean
   includeLocalArtifacts?: boolean

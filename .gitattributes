@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Original license notices are byte-pinned; preserve publisher line endings.
+scripts/desktop-license-reference/**/*.txt -text

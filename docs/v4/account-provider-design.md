@@ -2,9 +2,11 @@
 
 账号支持邮箱一次性验证码与 GitHub App 用户授权，验证层使用 Better Auth 1.7.12；真实 SMTP 投递与 GitHub 回调需在部署环境验收。
 
-## 官方数据库与不接 OAuth 的登录
+## 统一账号存储与登录提供商
 
-官方服务器沿用现有 **Supabase PostgreSQL**，新账号目录只在同一数据库增加私有 `arcadia_auth` schema。Supabase 在此首先是数据库托管方；G3 当前的邮箱验证码由服务端发送和核销，GitHub App 用户授权由服务端交换授权码并读取 GitHub 用户 ID，尚未把 Supabase Auth 当作登录提供商。旧 `public.players`、旧邮箱验证码和 `auth.users` 都不会自动转换成 `arcadia_auth.accounts`。`DATABASE_URL` 只给服务端，不能用浏览器 key 或 service-role key 代替；账号表不对 [Supabase Data API](https://supabase.com/docs/guides/api/using-custom-schemas) 暴露。常驻服务可使用 [Postgres 直连或 session pooler](https://supabase.com/docs/guides/database/connecting-to-postgres)，取决于宿主是否支持 IPv6。
+账号目录使用 `packages/database` 中的 `SQLAccountDirectory`，通过 Kysely 共用业务逻辑，底层选择 SQLite/better-sqlite3 或 PostgreSQL/pg。当前 `PgAccountDirectory` 仅为兼容构造入口。两种数据库保持同一服务器范围、身份唯一键、显式绑定、最后恢复方式保护和停用语义；迁移保留 `serverId`、`accountId` 与身份映射。
+
+数据库与身份提供商分别配置。Supabase 可继续作为普通 PG 托管商，但产品不使用 Supabase SDK、Auth 或 Data API；`DATABASE_URL` 只给服务端。旧 `public.players`、旧邮箱验证码与 `auth.users` 不会自动转换成新账号。统一存储初始化、显式升级与管理登录命令见[统一管理](unified-management.md)。
 
 不接外部 OAuth 也可以提供完整的注册、登录和找回流程。成熟系统采用的形式不同，但都把凭证与公开用户编号分开：
 
@@ -17,11 +19,11 @@
 
 Arcadia 的无 OAuth 注册可复用当前邮箱流程：玩家提交邮箱，服务端发送短时一次性验证码；验证通过后，账号目录按 `(serverId, providerId='email', issuer='mailto', subject=address)` 找到账号或原子创建新账号。以后用同一邮箱验证码登录。注册与登录可以共用“继续使用邮箱”入口，避免预先暴露某个邮箱是否已有账号；开放注册时还需要邮件发送配额、跨重启限流或准入控制。当前 G3 的邮箱限流只在内存中，故官方服公开上线前还要补强。
 
-**只有邮箱一条路径不能满足本分支选定的 G3 双路径验收。** 当前第二条为 GitHub App；如果以后完全不接外部 OAuth，可将第二条做成 WebAuthn 通行密钥或独立密码凭据，并实现注册、绑定、丢失设备后的恢复和停用撤权。一次性恢复代码可以辅助找回，但不能直接把 GitLab 的第二因素恢复代码算成独立登录方式，也不能把“管理员临时帮忙找回”伪称为已经可用的第二条玩家登录路径。直接采用 Supabase Auth 的邮箱/密码功能也是备选，但属于新的验证器适配：服务端要核验其令牌，把 Supabase 用户 ID 映射为外部身份，仍由 Arcadia 账号目录决定本服 `accountId`。尤其要审查 Supabase Auth 的[同邮箱自动关联身份](https://supabase.com/docs/guides/auth/auth-identity-linking)行为，不能让它绕过 Arcadia 的显式绑定和冲突规则。
+**只有邮箱一条路径不能满足本分支选定的 G3 双路径验收。** 当前第二条为 GitHub App；如果以后完全不接外部 OAuth，可将第二条做成 WebAuthn 通行密钥或独立密码凭据，并实现注册、绑定、丢失设备后的恢复和停用撤权。一次性恢复代码可以辅助找回，但不能直接把 GitLab 的第二因素恢复代码算成独立登录方式，也不能把“管理员临时帮忙找回”伪称为已经可用的第二条玩家登录路径。本轮保留现有 Better Auth 验证层，不增加其他提供商或第二套持久用户模型。
 
 GitHub App 的用户授权是 OAuth 授权码流程，**不返回可当作身份凭证的 OIDC ID Token**。服务端使用 GitHub App 的 Client ID 和 Client Secret 交换授权码，仅以短期用户访问令牌调用 [`GET /user`](https://docs.github.com/en/rest/users/users#get-the-authenticated-user)，将响应中的稳定数字 `id` 转为 subject；`login`、昵称及邮箱都不能当作账号键。GitHub App 用户访问令牌读取 `/user` 不需要额外的细粒度权限，因此当前实现**不申请 Email addresses 权限，也不请求 `user:email` OAuth App scope**。若将来产品确实需要读取 GitHub 邮箱，应在 GitHub App 中申请 **Email addresses: Read-only** 并调用 [`GET /user/emails`](https://docs.github.com/en/rest/users/emails#list-email-addresses-for-the-authenticated-user)，但仍不能凭相同邮箱自动合并 Arcadia 账号。GitHub App 的权限在应用登记时设定，授权请求通常不带 OAuth App 的 scopes；[GitHub App 授权文档](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)仅允许特殊的 `offline_access` scope。本轮不需要它，也不保存 GitHub token 或接入仓库安装权限。
 
-## 拟定的身份模型
+## 身份模型
 
 | 名称             | 含义与权限                                                                                                     |
 | ---------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -72,7 +74,7 @@ interface AccountDirectory {
 }
 ```
 
-`VerifiedIdentityKey` 是认证服务从**已配置的** `providerId`、**已核验的** `issuer`、`subject` 构造的内部值。认证服务提供 `login(providerId, proof)` 和 `link(currentSession, providerId, proof)`；它先调用适配器，再调用账号目录。`SessionRegistry` 不查询提供商或账号库，只保留 `createGuest(profile)` 和仅供内部调用的 `createAuthenticated(profile, accountId)`。对外登录接口从当前的裸 `accountProof` 改为明确的提供商选择和该提供商的交换流程；服务器能力查询也从 `authModes` 扩充为提供商与流程清单。账号模式启用时必须显式配置稳定的 `SERVER_ID`，不能依赖按监听地址生成的默认值。
+`VerifiedIdentityKey` 是认证服务从**已配置的** `providerId`、**已核验的** `issuer`、`subject` 构造的内部值。认证服务提供 `login(providerId, proof)` 和 `link(currentSession, providerId, proof)`；它先调用适配器，再调用账号目录。`SessionRegistry` 不查询提供商或账号库，只保留 `createGuest(profile)` 和仅供内部调用的 `createAuthenticated(profile, accountId)`。对外登录接口从当前的裸 `accountProof` 改为明确的提供商选择和该提供商的交换流程；服务器能力查询也从 `authModes` 扩充为提供商与流程清单。账号模式使用持久保存的稳定 serverId：显式配置或首次初始化后保存在 data-dir/identity.json。监听地址、环境版本及数据库后端变化不会创建新的账号空间。
 
 验证器的界限是“证明玩家此刻控制该外部身份”。GitHub App 按[用户授权码流程](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)携带随机 `state` 和 S256 PKCE；授权入口要求浏览器的 `Origin` 位于服务端允许列表，再由服务端将它确定性映射为该网页的精确 `/account` 回调。回调地址必须同时在 `GITHUB_APP_REDIRECT_URIS` 和 GitHub App 登记页中，浏览器既不能提交任意回调地址，也不能在交换授权码时换用另一个地址。授权码回到网页 `/account` 后，由发起登录的同一标签页提交回调码、`state` 和仅该标签页保存的挑战秘密，服务端核对用途、挑战、有效期并一次性消费，再以同一回调地址交换授权码和调用 GitHub `/user`。它**不验证不存在的 ID Token，也不把 GitHub access token 发给浏览器或保存到账号库**。邮箱流程需要密码学随机验证码、固定邮箱规范化规则、限流和一次性核销。绑定身份比普通登录多一个要求：验证流程必须由当前账号会话发起，挑战或回调状态绑定 `link` 用途与该 `accountId`，完成时再次核对会话；不能把一次登录证明拿来绑定别的账号。无法提供新鲜、用途绑定证明的适配器暂不开放绑定功能。
 
@@ -87,12 +89,12 @@ Better Auth 已作为运行时依赖承担外部身份验证中的通用步骤�
 | 邮箱证明           | [`betterAuthEmail.ts`](../../packages/server/src/standalone/providers/betterAuthEmail.ts) 在服务端内部调用真实 `emailOTP` 插件的 `createVerificationOTP`、`verifyEmailOTP`；Better Auth 负责生成、尝试次数及一次性核销，并通过自定义存储摘要钩子使用进程随机密钥计算 HMAC。每个挑战使用仅存内存的验证专用身份，不是玩家账号。                               |
 | 验证用途和邮件投递 | [`email.ts`](../../packages/server/src/standalone/providers/email.ts) 维护真实收件人与挑战的映射、邮箱规范化、登录／绑定用途、限流、清理及同一挑战的串行核销。                                                                                                                                                                                              |
 | GitHub 证明        | [`github.ts`](../../packages/server/src/standalone/providers/github.ts) 使用 `better-auth/social-providers` 的 `github().createAuthorizationURL()` 生成 S256 授权请求，并使用 `better-auth/oauth2` 的 `authorizationCodeRequest`、`getOAuth2Tokens` 构造和解析授权码交换。Arcadia 保留超时、拒绝重定向、上游限流退避、仅读取 `/user.id` 和短期 token 撤销。 |
-| 持久账号           | [`PgAccountDirectory`](../../packages/server/src/standalone/accounts/directory.ts) 是唯一账号目录，在 `serverId` 范围内处理外部身份唯一归属、多个邮箱的显式绑定、冲突、最后一种恢复方式保护和停用。                                                                                                                                                         |
+| 持久账号           | [`SQLAccountDirectory`](../../packages/database/src/accounts.ts) 是共享 SQLite/PG 账号目录，在 `serverId` 范围内处理外部身份唯一归属、多个邮箱的显式绑定、冲突、最后一种恢复方式保护和停用。                                                                                                                                                                |
 | 游戏会话           | [`SessionRegistry`](../../packages/server/src/standalone/session.ts) 签发当前 `bootId` 下的 token 和席位；重启后全部失效。                                                                                                                                                                                                                                  |
 
 不挂载 Better Auth 的完整社交登录、邮箱登录或 `/api/auth/*` 路由，不签发其 session/cookie，也不建立第二套持久用户表。邮箱证明使用验证接口，不使用会创建用户会话的 `signInEmailOTP`。因此 GitHub 展示的邮箱不会成为隐式恢复入口，多个邮箱也不受 Better Auth 单个 `user.email` 的限制。浏览器仍通过既有 `/api/v1/auth/*` 流程取得 Arcadia 会话。
 
-此次接入不要求新的部署密钥、schema、数据库迁移、GitHub App 权限或回调变更；官方回调仍为 `https://battle.yuuinih.com/account`。内置 GitHub 完整用户流程涉及邮箱读取和注册语义，因此这里只复用其授权与 OAuth 公共 API，继续不申请 `user:email` 或 Email addresses 权限。源码依据及原配置草稿的替代说明见[接入记录](../../design/better-auth-github/README.md)。真实 SMTP、GitHub 回调联调和官方部署仍待后续验收。
+Better Auth 验证层接入不改变 GitHub App 权限或回调；统一存储升级另按显式数据库迁移执行。官方回调仍为 `https://battle.yuuinih.com/account`。内置 GitHub 完整用户流程涉及邮箱读取和注册语义，因此这里只复用其授权与 OAuth 公共 API，继续不申请 `user:email` 或 Email addresses 权限。源码依据及原配置草稿的替代说明见[接入记录](../../design/better-auth-github/README.md)。真实 SMTP、GitHub 回调联调和官方部署仍待后续验收。
 
 ## 落库操作及一致性
 
@@ -104,7 +106,7 @@ Better Auth 已作为运行时依赖承担外部身份验证中的通用步骤�
 | `external_identities`     | `server_id`, `provider_id`, `issuer`, `subject`, `account_id`, `linked_at`    | 唯一 `(server_id, provider_id, issuer, subject)`；复合外键指向 `accounts` |
 | `auth_challenges`（可选） | `server_id`, `challenge_id`, `provider_id`, `purpose`, 过期、次数、消费等字段 | 短期验证状态；由验证层管理，和账号归属表分开                              |
 
-`subject` 及 `issuer` 都不得为空，长度、编码和提供商配置必须校验。单实例首版可把短期挑战放内存，随 `bootId` 失效；这要求重启后重新申请验证码。若要跨重启保留挑战、持续限流或扩展多实例，才把 `auth_challenges` 放入数据库或支持原子操作的共享存储。无论用哪种存储，都要记录用途及绑定账号/会话、到期时间、尝试数、消费时间；低熵邮箱验证码不能明文保存，也不能仅用无密钥的普通哈希，应保存带服务器密钥的摘要并原子限制尝试和消费。挑战不是账号所有权记录；邮件发送频率还需跨重启限流或依赖邮件服务的配额。若使用 Supabase/Postgres，账号表应在不向浏览器直开的私有访问边界；若确实暴露到 Data API，必须同时配置最小权限和匹配所有权语义的 RLS，不能复用旧匿名写入策略。
+`subject` 及 `issuer` 都不得为空，长度、编码和提供商配置必须校验。单实例首版可把短期挑战放内存，随 `bootId` 失效；这要求重启后重新申请验证码。若要跨重启保留挑战、持续限流或扩展多实例，才把 `auth_challenges` 放入数据库或支持原子操作的共享存储。无论用哪种存储，都要记录用途及绑定账号/会话、到期时间、尝试数、消费时间；低熵邮箱验证码不能明文保存，也不能仅用无密钥的普通哈希，应保存带服务器密钥的摘要并原子限制尝试和消费。挑战不是账号所有权记录；邮件发送频率还需跨重启限流或依赖邮件服务的配额。数据库只由服务器访问；PG 账号表保留私有 schema，SQLite 文件受宿主文件权限保护。浏览器只调用已鉴权业务 API，不直接访问数据库或 Data API。
 
 一次**首次登录**按此顺序执行：验证证明并消费一次性挑战；以复合外部身份查找账号；不存在时在**同一短事务**中新建 `accounts` 行和身份映射；检查账号仍启用；提交成功后才签发内存会话。两个首次登录并发时由数据库唯一约束仲裁：输的一方整体回滚新账号，再读取胜方映射；不能只插账号而留下孤儿。已有身份通常只读查询，不必每次登录都写 `last_login`。网络上的提供商验证和邮件发送都发生在账号事务外，以免长时间持锁。[PostgreSQL 的唯一约束](https://www.postgresql.org/docs/current/ddl-constraints.html)和 [`ON CONFLICT` 语义](https://www.postgresql.org/docs/current/sql-insert.html)可支撑这一并发边界。
 
@@ -114,7 +116,7 @@ Better Auth 已作为运行时依赖承担外部身份验证中的通用步骤�
 
 ## 两条路径与恢复
 
-1. **游客**：本地 UID 加服务器临时会话。默认自托管服务无需数据库。两个客户端即使报告相同 UID，也获得不同的 guest principal、token 和 seat。没有备份、没有账号、也没有其他控制权证明时，丢失本地资料无法安全地由服务器找回。
+1. **游客**：本地 UID 加服务器临时会话。游客游戏身份仍不落库，管理配置独立保存到默认 SQLite 或所选 PG。两个客户端即使报告相同 UID，也获得不同的 guest principal、token 和 seat。没有备份、没有账号、也没有其他控制权证明时，丢失本地资料无法安全地由服务器找回。
 2. **账号**：服务端验证提供商证明，解析或新建本服账号，再签发当前进程的会话与席位。服务器重启会解散房间，但持久账号和外部身份仍在；玩家重新认证后取得**新**席位，不继承旧房间。
 3. **游客升级**：必须由玩家明确发起，并同时拥有当前会话和新的提供商证明。登录账号不自动把正在对战的席位转移给新会话；首版可要求结束或退出房间后切换。公开 UID 不能用来认领既有服务器资产。
 4. **绑定第二个提供商**：要求已认证的账号会话和新提供商的新鲜证明。`(serverId, provider, issuer, subject)` 只能属于一个账号；同邮箱、同昵称不自动合并。若已属于别的账号，拒绝并走单独的冲突处理。
@@ -122,7 +124,9 @@ Better Auth 已作为运行时依赖承担外部身份验证中的通用步骤�
 
 对外展示应区分“自报 UID”和“本服务器已验证账号”，避免盗用公开 UID 造成社交冒认。默认不允许解绑最后一个可恢复身份，也不自动合并账号。停用账号时应立即阻止新登录，并撤销本进程中该账号已有的会话；这要求会话注册表能按 `accountId` 查找或检查账号状态。
 
-## 仅在启用账号时持久化
+## 玩家数据与管理数据的持久化边界
+
+以下玩家账号数据在启用 G3 后写入；管理主体、授权、任务与环境绑定在 guest 服务器上也可独立持久保存。
 
 - `accounts`：`serverId`、内部 `accountId`、状态和创建时间。
 - `external_identities`：`serverId`、`providerId`、由服务端确定的 `issuer`、稳定 `subject`、`accountId`、验证时间；唯一约束防止双重绑定。
@@ -130,17 +134,17 @@ Better Auth 已作为运行时依赖承担外部身份验证中的通用步骤�
 - 若需要跨重启免重复登录，可另存经哈希和轮换的设备凭据或使用提供商自身的续期能力。它不能充当房间 token。
 - 用户选择启用的账号资料备份，以及将来确实需要归属的内容引用；不能从 UID 自动推导归属。
 
-游客会话、席位、房间、对战运行状态、断线宽限和快照仍不落库。若坚持无数据库又要稳定账号，可以由单个已验证外部身份和服务器持久密钥派生 ID，但这种模式不能可靠支持多提供商绑定、撤销、账号合并或资料备份，不应宣传为完整账号系统。
+游客游戏会话、席位、房间、对战运行状态、断线宽限和快照仍不落库。管理会话及服务凭证有独立期限、撤销和 scope 校验；它们不能作为玩家席位凭证。环境分享不带账号或管理授权，原服恢复与克隆新服分别处理身份。
 
-## 旧数据处置与实施顺序
+## 旧数据处置与后续验证
 
 旧数据库资产先保持只读、备份并盘点。旧未注册 `players.id` 没有可靠所有权证明，不能按 UID 自动迁移。已绑定邮箱的旧记录，也必须在**重新验证邮箱**且审查重复/异常记录后，才考虑以一次性迁移别名关联新 `accountId`；旧玩家 ID 不直接充当新账号 ID。旧 RLS 的生产实际状态需要单独核查。排位、ELO、旧战报不进入本轮新账号数据库，也不在本设计中删除历史数据。
 
-建议按以下顺序实现：
+现有 G3 与统一存储代码的后续验证顺序：
 
-1. 定义提供商验证结果、账号目录和显式绑定/冲突语义；默认部署继续 guest-only。
-2. 实现邮箱验证码和 GitHub App 两条路径。旧流程可参考“邮箱一次性证明”，但验证码、频率限制和原子消费必须重写；GitHub App 按固定的服务端适配器进入同一账号目录，不在运行时接受任意 OAuth/OIDC 提供商配置。
-3. 建立服务器账号持久化、停用/撤销和客户端登录流程，验证重启后账号仍可登录而房间不可恢复。
+1. 两库执行同一身份绑定/冲突/停用合同，保留 guest 默认玩家模式与独立管理入口。
+2. 在实际部署验证现有邮箱验证码和 GitHub App 两条路径；不在运行时接受任意 OAuth/OIDC 提供商配置。
+3. 验证旧 PG 基线迁移、SQLite↔PG 往返、重启后原账号登录和停用/撤权；活动房间不会自动恢复。
 4. 单独审计生产旧库后，决定是否提供已验证邮箱用户的有限迁移。未做数据盘点前不运行旧 SQL 或自动迁移。
 
 G3 首版先完成**本服账号身份恢复**，不把本地 UID、宠物、队伍或设置自动上传到账号库。玩家仍需另外备份这些本地资料；现有仓库导出功能不能被当作已验证的完整账号资料备份。以后若增加可选 UID/昵称备份，应明确标为“该账号保存的资料副本”，不能宣称全球 UID 归属，也不能承诺恢复从未上传的内容。同一账号能否在同一房间占多个席位仍待产品确认；它影响房间规则，不能从旧代码推断。

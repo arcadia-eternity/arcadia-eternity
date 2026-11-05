@@ -7,8 +7,9 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
 import { LocalBattleHost } from './local-battle-host.mjs'
+import { LocalServerController } from './local-server-controller.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
-import { createRemotePlayController, protectDesktopNavigation } from './remote-play.mjs'
+import { createRemotePlayController, protectDesktopNavigation, normalizeRemoteBackend } from './remote-play.mjs'
 import { createSwfHost } from './swf-host.mjs'
 import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
 import { stopForQuit } from './shutdown.mjs'
@@ -19,6 +20,8 @@ import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
+import { LocalEnvironments } from './local-environments.mjs'
+import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
 protectStandardStreams()
@@ -34,18 +37,34 @@ const rendererDistDir = path.join(projectRoot, 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.ARCADIA_ELECTRON_DEV_SERVER_URL
 const rendererUrl = devServerUrl ?? CLIENT_URL
+// Main-process content preparation uses the bundled npm entry too. Child invocations
+// set Electron's Node mode themselves; do not alter app relaunch semantics globally.
+if (app.isPackaged)
+  process.env.ARCADIA_NPM_CLI = path.join(process.resourcesPath, 'arcadia-server/runtime/npm/bin/npm-cli.js')
 const localBattleHost = new LocalBattleHost({
   executable: process.execPath,
   cli: app.isPackaged
     ? path.join(process.resourcesPath, 'arcadia-server', 'cli.js')
     : path.resolve(projectRoot, '../../dist/cli.js'),
+  webRoot: app.isPackaged
+    ? path.join(process.resourcesPath, 'arcadia-server', 'web')
+    : path.resolve(projectRoot, '../../dist/web'),
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
+  stateDirectory: path.join(app.getPath('userData'), 'local-server'),
+  workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
+  attachWorkspace: child => getManagementWorkspaceOwner().attach(child),
   ...(app.isPackaged
     ? {
         npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
         packsDirectory: path.join(process.resourcesPath, 'arcadia-server', 'packs'),
       }
     : {}),
+})
+
+const localServerController = new LocalServerController({
+  host: localBattleHost,
+  library: getContentLibrary,
+  startProject: id => getContentProjects().start(id),
 })
 
 const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
@@ -84,6 +103,7 @@ let packsDir = null
 let creatorWorkStorage
 let contentProjects
 let contentLibrary
+let managementWorkspaceOwner
 let localContentSessions
 let localContentRuntime
 let localContentOwner
@@ -185,6 +205,15 @@ function getContentLibrary() {
     host: localBattleHost,
     prepare: options => getLocalContentSessions().prepareProject(options),
     selected: options => getLocalContentSessions().selectProject(options),
+    createManagedProjects: async (root, options) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { ManagedProjects } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/managed-projects')).href
+      )
+      return new ManagedProjects(root, options)
+    },
     run: (args, signal) =>
       runContentCommand(
         {
@@ -196,6 +225,48 @@ function getContentLibrary() {
       ),
   })
   return contentLibrary
+}
+let localEnvironments
+function getLocalEnvironments() {
+  const runtimeRequire = app.isPackaged
+    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+    : require
+  localEnvironments ??= new LocalEnvironments({
+    library: getContentLibrary(),
+    openWorkspace: async () => {
+      const { ContentWorkspace } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      // Server publication always imports a separate copy, so only local runtime
+      // leases can retain versions in this independently owned workspace.
+      return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
+        retentions: { list: async () => [] },
+      })
+    },
+    validate: async input => {
+      const { validateWorkspaceProject } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
+      )
+      return validateWorkspaceProject(input)
+    },
+  })
+  return localEnvironments
+}
+function getManagementWorkspaceOwner() {
+  managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
+    root: path.join(app.getPath('userData'), 'content-packages'),
+    library: getContentLibrary(),
+    openWorkspace: async (root, options) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { ContentWorkspace } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      return ContentWorkspace.open(root, options)
+    },
+  })
+  return managementWorkspaceOwner
 }
 async function loadLocalContentRuntime() {
   localContentRuntime ??= (async () => {
@@ -210,7 +281,9 @@ async function loadLocalContentRuntime() {
       load('@arcadia-eternity/data-pack-base/build'),
       load('@arcadia-eternity/schema'),
     ])
-    const root = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+    const root = app.isPackaged
+      ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
+      : path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
     const hostRoot = app.isPackaged
       ? path.join(process.resourcesPath, 'arcadia-server')
       : path.resolve(projectRoot, '../..')
@@ -1580,12 +1653,14 @@ async function handleLocalServerRequest(req, res) {
     const tail = pathname.slice('/packs/'.length)
     let filePath = resolvePackFilePath(tail)
 
-    // Dev mode: base pack served from source directory
+    // Serve the bundled base directly when no legacy workspace copy exists.
     if (filePath && !(await pathExists(filePath))) {
       const slashIndex = tail.indexOf('/')
       const folderName = slashIndex === -1 ? tail : tail.slice(0, slashIndex)
       if (folderName === BASE_PACK_FOLDER) {
-        const baseDir = await findBundledBasePackDir()
+        const baseDir = app.isPackaged
+          ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
+          : await findBundledBasePackDir()
         if (baseDir) {
           const baseRelative = slashIndex === -1 ? '' : tail.slice(slashIndex + 1)
           const raw = String(baseRelative ?? '')
@@ -1688,6 +1763,13 @@ async function checkForUpdates() {
     return { hasUpdate: false }
   }
 
+  try {
+    await fs.access(path.join(process.resourcesPath, 'app-update.yml'))
+  } catch (error) {
+    if (error.code === 'ENOENT') return { hasUpdate: false }
+    throw error
+  }
+
   const result = await autoUpdater.checkForUpdates()
   const version = result?.updateInfo?.version
   const hasUpdate = typeof version === 'string' && version.length > 0 && version !== app.getVersion()
@@ -1711,6 +1793,15 @@ function setupIpcHandlers() {
       requireLocalBattleCaller(event)
       return handler(event, ...args)
     })
+  handle('desktop:local-server', (_event, input) => localServerController.request(input))
+  handle('desktop:local-environment', async (_event, input) => {
+    try {
+      return { result: await getLocalEnvironments().request(input) }
+    } catch (error) {
+      return { error: { code: error.code ?? 'ENVIRONMENT_FAILED', message: error.message ?? '环境操作失败' } }
+    }
+  })
+  handle('desktop:management-request', (_event, input) => localBattleHost.managementRequest(input))
   ipcMain.handle('author-preview:environment', async (event, action, input) => {
     const window = [...authorPreviewWindows.values()].find(window =>
       isTrustedDesktopRequest(event, window.webContents, rendererUrl),
@@ -1762,7 +1853,8 @@ function setupIpcHandlers() {
   })
   ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
   ipcMain.handle('remote-play:close', event => remotePlay.close(event))
-  handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url))
+  handle('desktop:open-server-website', (_event, input) => shell.openExternal(normalizeRemoteBackend(input?.url)))
+  handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url, { mode: input?.mode }))
   handle('desktop:get-backend-config', () => ({ schemaVersion: 1, backendOrigin: 'https://test-battle.fly.dev' }))
   function requireLocalBattleCaller(event) {
     if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl))
@@ -1920,6 +2012,10 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return getLocalContentSessions().prepare(localContentOwner.current())
   })
+  handle('desktop:capture-personal-environment', event => {
+    requireLocalBattleCaller(event)
+    return getLocalContentSessions().capturePersonalEnvironment(localContentOwner.current())
+  })
   handle('desktop:release-local-content', (event, token) => {
     requireLocalBattleCaller(event)
     if (typeof token !== 'string') throw new Error('本地内容会话无效')
@@ -1959,6 +2055,17 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
+    if (input.action === 'import-sources') {
+      const selected = await dialog.showOpenDialog(mainWindow, {
+        title: '导入环境来源登记',
+        properties: ['openFile'],
+        filters: [{ name: '来源登记', extensions: ['json'] }],
+      })
+      requireLocalBattleCaller(event)
+      if (selected.canceled || !selected.filePaths[0]) return null
+      const result = await library.importSourceRegistry(selected.filePaths[0])
+      return result.sourceIds.join('、')
+    }
     if (input.action === 'set-selection') {
       await library.setSelection(input.ids, input.offline === true)
       return null
@@ -1977,34 +2084,13 @@ function setupIpcHandlers() {
       await library.uninstall(input.packageId)
       return null
     }
-    if (input.action === 'start') {
-      await library.start()
-      return null
-    }
     throw new Error('不支持的内容包操作')
-  })
-  handle('desktop:select-and-start-local-battle', async event => {
-    requireLocalBattleCaller(event)
-    const selected = await dialog.showOpenDialog(mainWindow, {
-      title: '选择已安装并准入的服务器项目',
-      properties: ['openDirectory'],
-    })
-    requireLocalBattleCaller(event)
-    if (selected.canceled || !selected.filePaths[0]) return { status: 'cancelled' }
-    try {
-      return await localBattleHost.start(selected.filePaths[0])
-    } catch (error) {
-      return {
-        status: 'failed',
-        code: error?.code ?? 'SERVER_START_FAILED',
-        message: error?.message ?? '本机服务启动失败',
-      }
-    }
   })
   handle('desktop:get-local-battle-status', event => {
     requireLocalBattleCaller(event)
     return localBattleHost.status()
   })
+
   handle('desktop:list-content-projects', event => {
     requireLocalBattleCaller(event)
     return getContentProjects().list()
@@ -2025,7 +2111,6 @@ function setupIpcHandlers() {
     const manager = getContentProjects()
     if (input.action === 'rename') return manager.rename(input.id, input.name)
     if (input.action === 'forget') return manager.forget(input.id)
-    if (input.action === 'start') return manager.start(input.id)
     if (input.action === 'export') {
       const selected = await dialog.showSaveDialog(mainWindow, { title: '导出到新的环境目录', buttonLabel: '导出环境' })
       requireLocalBattleCaller(event)
@@ -2035,10 +2120,7 @@ function setupIpcHandlers() {
     }
     return manager.operate(input.id, input.action, { offline: input.offline === true })
   })
-  handle('desktop:stop-local-battle', event => {
-    requireLocalBattleCaller(event)
-    return localBattleHost.stop()
-  })
+
   handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
   handle('desktop:write-work-workspace', async (_event, input) => {
     if (!Number.isSafeInteger(input?.expected) || input.expected < 0) throw new Error('Invalid workspace revision')
@@ -2212,14 +2294,17 @@ app.on('before-quit', event => {
     [
       () => swfHost.dispose(),
       () => remotePlay.destroy(),
+      () => localEnvironments?.close(),
       () => localContentSessions?.close(),
+      () => localServerController.close(),
+      () => localBattleHost.stop(),
+      () => managementWorkspaceOwner?.close(),
       () => contentLibrary?.close(),
       () => contentProjects?.close(),
       () => authorWorkspaces?.close(),
       () => {
         for (const window of authorPreviewWindows.values()) window.destroy()
       },
-      () => localBattleHost.stop(),
       () => stopLocalServer(),
     ],
     {
@@ -2248,6 +2333,7 @@ app
     autoUpdater.autoInstallOnAppQuit = true
 
     await ensureAppDataDirs()
+    await getManagementWorkspaceOwner().ready()
     await startLocalServer()
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const headers = { ...details.requestHeaders }

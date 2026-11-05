@@ -5,13 +5,21 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
+import { compileEffectModule } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
-export async function createNpmFixture(options: { presentation?: boolean; remoteUrl?: string } = {}) {
+export async function createNpmFixture(
+  options: { presentation?: boolean; remoteUrl?: string; prebuilt?: boolean; forbidHostExecution?: boolean } = {},
+) {
+  if (options.forbidHostExecution && !options.prebuilt) throw new Error('forbidHostExecution requires prebuilt')
   const root = await mkdtemp(join(tmpdir(), 'arcadia-server-npm-'))
   try {
     const repository = fileURLToPath(new URL('../../../../', import.meta.url))
-    await exec('pnpm', ['exec', 'tsc', '-p', 'examples/ugc/slow/tsconfig.json'], { cwd: repository })
+    await exec(
+      process.execPath,
+      [resolve(repository, 'node_modules/typescript/bin/tsc'), '-p', 'examples/ugc/slow/tsconfig.json'],
+      { cwd: repository },
+    )
     const source = join(root, 'source'),
       directory = join(root, 'server')
     await cp(resolve(repository, 'examples/ugc/slow'), source, { recursive: true })
@@ -80,6 +88,23 @@ export async function createNpmFixture(options: { presentation?: boolean; remote
         }),
       )
     }
+    const executionMarker = options.forbidHostExecution ? join(root, 'author-evaluated') : undefined
+    if (options.prebuilt) {
+      // Author-side build completes before publication. Consumers only read the packed artifact.
+      const effects = join(source, manifest.arcadia.effects)
+      const artifact = await compileEffectModule(effects, source, manifest.name)
+      const published = options.forbidHostExecution
+        ? { ...artifact, source: `throw new Error('AUTHOR_ARTIFACT_MUST_NOT_EXECUTE_ON_SERVER');\n${artifact.source}` }
+        : artifact
+      manifest.arcadia.effectArtifact = 'dist/effects.artifact.json'
+      if (!manifest.files.includes('dist')) manifest.files.push('dist/effects.artifact.json')
+      await writeFile(join(source, manifest.arcadia.effectArtifact), JSON.stringify(published))
+      if (executionMarker)
+        await writeFile(
+          effects,
+          `import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(executionMarker)}, 'evaluated');\nexport function createEffects() { throw new Error('AUTHOR_SOURCE_EXECUTED'); }`,
+        )
+    }
     await writeFile(join(source, 'package.json'), JSON.stringify(manifest))
     const content = JSON.parse(await readFile(join(source, 'content.json'), 'utf8'))
     for (const kind of ['species', 'skills', 'marks']) {
@@ -119,6 +144,7 @@ export async function createNpmFixture(options: { presentation?: boolean; remote
     await approve()
     return {
       directory,
+      executionMarker,
       installedDirectory: join(directory, 'node_modules', manifest.name),
       asset,
       approve,

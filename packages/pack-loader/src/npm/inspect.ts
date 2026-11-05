@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
-import { isAbsolute, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import {
   canonical,
   cloneJson,
@@ -27,6 +27,8 @@ export interface NpmContentManifest {
   namespace: string
   content: string
   effects?: string
+  /** Author-produced closed EffectModuleArtifact JSON, consumed without compiling or evaluating code. */
+  effectArtifact?: string
   sdkApi?: number
   /** Asset digest -> package-relative filename. Bytes are checked even in headless mode. */
   presentation?: string
@@ -118,17 +120,29 @@ function readManifest(value: unknown): NpmContentManifest {
     input.formatVersion !== 1 ||
     Object.keys(input).some(
       key =>
-        !['formatVersion', 'projectId', 'namespace', 'content', 'effects', 'sdkApi', 'assets', 'presentation'].includes(
-          key,
-        ),
+        ![
+          'formatVersion',
+          'projectId',
+          'namespace',
+          'content',
+          'effects',
+          'effectArtifact',
+          'sdkApi',
+          'assets',
+          'presentation',
+        ].includes(key),
     )
   )
     fail('NPM_METADATA', 'arcadia', 'Unsupported Arcadia package metadata')
   createDraft(input.projectId, input.projectId, input.namespace)
   packageFile('/', input.content)
   if (input.effects !== undefined) packageFile('/', input.effects)
+  if (input.effectArtifact !== undefined) packageFile('/', input.effectArtifact)
   if (input.presentation !== undefined) packageFile('/', input.presentation)
-  if ((input.effects !== undefined || input.sdkApi !== undefined) && input.sdkApi !== effectSdkApiVersion)
+  if (
+    (input.effects !== undefined || input.effectArtifact !== undefined || input.sdkApi !== undefined) &&
+    input.sdkApi !== effectSdkApiVersion
+  )
     fail('SDK_INCOMPATIBLE', 'arcadia.sdkApi', `Code packages require Effect SDK API ${effectSdkApiVersion}`)
   input.assets ??= {}
   if (!input.assets || typeof input.assets !== 'object' || Array.isArray(input.assets))
@@ -163,6 +177,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
   try {
     const result = await exec(npm.file, npm.args, {
       cwd: root,
+      env: process.versions.electron ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env,
       maxBuffer: 32 * 1024 * 1024,
       timeout: 60000,
       windowsHide: true,
@@ -172,20 +187,59 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
     fail('NPM_TREE', 'node_modules', `npm rejected the installed dependency tree: ${(error as Error).message}`)
   }
   const nodes = new Map<string, NpmTree>()
-  function visit(node: NpmTree) {
+  const resolvedDependencies = new Map<string, string>()
+  async function dependencyDirectory(parent: string, name: string): Promise<string> {
+    if (!packageName.test(name)) fail('NPM_TREE', name, 'Invalid dependency name')
+    const key = parent + '\0' + name
+    const cached = resolvedDependencies.get(key)
+    if (cached) return cached
+    let ancestor = parent
+    for (;;) {
+      if (ancestor === root || basename(ancestor) !== 'node_modules') {
+        const candidate = resolve(ancestor, 'node_modules', name)
+        let info
+        try {
+          info = await lstat(candidate)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+        }
+        if (info) {
+          const location = relative(root, candidate).split(sep).join('/')
+          if (!info.isDirectory() || info.isSymbolicLink() || (await realpath(candidate)) !== candidate)
+            fail('NPM_LINK', location, 'Linked package installations are not immutable')
+          if (!Object.hasOwn(lockedPackages, location))
+            fail('NPM_LOCK', location, 'Installed dependency is missing from its npm lockfile')
+          resolvedDependencies.set(key, candidate)
+          return candidate
+        }
+      }
+      if (ancestor === root) break
+      ancestor = dirname(ancestor)
+      const location = relative(root, ancestor)
+      if (isAbsolute(location) || location === '..' || location.startsWith('..' + sep)) break
+    }
+    return fail('NPM_TREE', name, 'Missing installed dependency within this project')
+  }
+  async function visit(node: NpmTree, parent: string, name: string): Promise<NpmTree> {
     // npm represents omitted optional dependencies and optional peers as {}.
     // Required missing dependencies already make the npm ls command fail.
-    if (!Object.keys(node).length) return
-    if (!node.path) fail('NPM_TREE', '', 'npm did not provide an installed package path')
-    const location = relative(root, node.path).split(sep).join('/')
-    if (!location.startsWith('node_modules/') || location.split('/').includes('..'))
-      fail('NPM_LINK', location, 'Use packed npm artifacts; linked workspaces are not fixed installations')
+    if (!Object.keys(node).length) return node
+    // npm sanitizes UUIDs and credentials even in machine-readable path fields.
+    // Resolve graph edges using the actual filesystem and standard nearest
+    // node_modules lookup, then verify every location against the npm lock.
+    // Neither a sanitized path nor replacing "***" can authorize a directory.
+    const path = await dependencyDirectory(parent, name)
+    const location = relative(root, path).split(sep).join('/')
+    const dependencies: Record<string, NpmTree> = {}
+    for (const [name, child] of Object.entries(node.dependencies ?? {}))
+      dependencies[name] = await visit(child, path, name)
+    const normalized = { ...node, path, dependencies }
     const previous = nodes.get(location)
-    if (!previous || Object.keys(node.dependencies ?? {}).length > Object.keys(previous.dependencies ?? {}).length)
-      nodes.set(location, node)
-    for (const child of Object.values(node.dependencies ?? {})) visit(child)
+    if (!previous || Object.keys(dependencies).length > Object.keys(previous.dependencies ?? {}).length)
+      nodes.set(location, normalized)
+    return normalized
   }
-  for (const child of Object.values(tree.dependencies ?? {})) visit(child)
+  for (const [name, child] of Object.entries(tree.dependencies ?? {})) await visit(child, root, name)
   await checkInstalledDirectories(root, nodes)
   const packages: InstalledNpmPackage[] = []
   const projects = new Map<string, string>(),
@@ -241,6 +295,8 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
         )
       if (manifest.effects && !(await lstat(packageFile(dir, manifest.effects))).isFile())
         fail('NPM_FILE', manifest.effects, 'Effect module must be a regular file')
+      if (manifest.effectArtifact && !(await lstat(packageFile(dir, manifest.effectArtifact))).isFile())
+        fail('NPM_FILE', manifest.effectArtifact, 'Prebuilt effect artifact must be a regular file')
       const blobs: Record<string, Uint8Array> = {}
       for (const [hash, file] of Object.entries(manifest.assets)) blobs[hash] = await readFile(packageFile(dir, file))
       await verifyAssets(draft.assets, blobs)

@@ -1,5 +1,11 @@
 # SPDX reference texts
 
+Desktop packaging and publication preserve this inventory and report unresolved
+notice findings without blocking. `verify-desktop-pack.mjs --require-complete-notices`
+and the equivalent staging option provide an optional strict audit. Runtime file,
+dependency, native ABI and inventory integrity checks remain mandatory. The legacy
+manifest field `releaseReady` describes strict notice completeness only.
+
 The `.txt` files are verbatim copies from the SPDX License List Data repository,
 release `v3.27.0`, commit `d46e94e2c78ceede1cfc63cfa0396472d2798d4c`:
 
@@ -26,3 +32,21 @@ The files under `packages/` preserve the original notice bytes from the pinned p
 | `tough-cookie@5.1.2/LICENSE`                                                                                 | `tough-cookie-5.1.2.txt`   | `22ec6791c91ba42c0516a05f4cbdde019aae4687f8a38c5ca7e8a69ee68f851d` |
 
 These package notices were copied from the locked staged npm dependencies. They are comparison/test fixtures, not a substitute for distributing each package's own notice.
+
+## Additional reviewed published notices
+
+The following fixtures also preserve the exact license files shipped by the locked packages. The collector still requires the package's declared license to match. It does not add or invent copyright holders when a publisher omitted them. Each allowance is restricted to the named version and identical original bytes; unknown packages and altered notices remain unresolved.
+
+| Packages                                                                                                                        | Fixture                       | Reason for exact matching                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@colors/colors@1.5.0`                                                                                                          | `colors-1.5.0.txt`            | Full MIT grant with copyright holders in a bulleted list.                                                                                                                                                        |
+| `@jitl/quickjs-ffi-types`, `quickjs-emscripten`, `quickjs-emscripten-core`, each `0.32.0`                                       | `quickjs-0.32.0.txt`          | Full MIT grant with the project name preceding the copyright line.                                                                                                                                               |
+| `fast-uri@3.1.8`                                                                                                                | `fast-uri-3.1.8.txt`          | Full BSD-3-Clause grant with named contributors and the original contributor link.                                                                                                                               |
+| `json-schema-typed@8.0.2`                                                                                                       | `json-schema-typed-8.0.2.txt` | Full BSD-2-Clause grant with attribution introduced by “Original source code”.                                                                                                                                   |
+| `tslib@2.9.1`                                                                                                                   | `tslib-2.9.1.txt`             | Full 0BSD grant. Its separate `CopyrightNotice.txt` is also preserved in the inventory.                                                                                                                          |
+| `archy@1.0.0`, `github-from-package@0.0.0`, `json-stable-stringify-without-jsonify@1.0.1`, `minimist@1.2.8`, `text-table@0.2.0` | `mit-publisher-no-holder.txt` | Publisher-supplied full MIT grant has no holder line; the original grant is preserved without adding a name.                                                                                                     |
+| `pkce-challenge@5.0.0`                                                                                                          | `pkce-challenge-5.0.0.txt`    | Publisher-supplied full MIT grant leaves the holder blank after the year; those original bytes are retained.                                                                                                     |
+| `nodemailer@10.2.1`                                                                                                             | `nodemailer-10.2.1.txt`       | Publisher declares MIT-0 and ships the full grant and disclaimer, with an empty conditions introduction; only these exact published bytes are accepted.                                                          |
+| `chownr@3.0.0`, `glob@13.0.6`, `yallist@5.0.0`                                                                                  | `blueoak-published-dist.txt`  | The original Blue Oak notice excludes separately licensed `src/` packages. The published artifacts contain no `src/`; the collector checks this before accepting the notice and keeps the entire scope preamble. |
+
+Single-entry legacy `licenses` metadata is recorded with its original field location; the known legacy spelling `Apache 2.0` is normalized to `Apache-2.0`. It never overrides a modern `license` field or combines ambiguous multiple declarations. An upstream declaration/text conflict, including `@npmcli/redact@4.0.0` declaring ISC while shipping MIT, remains an advisory inventory entry and only fails an explicitly requested strict audit.

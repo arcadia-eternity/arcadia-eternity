@@ -1,0 +1,1466 @@
+import type { ManagementCapabilities, ManagementOperation, ManagedEnvironmentVersion } from '@arcadia-eternity/protocol'
+import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import {
+  assertEnvironmentRequirements,
+  validateEnvironmentRules,
+} from '@arcadia-eternity/content-dev/environment-rules'
+import type {
+  ContentWorkspace,
+  EnvironmentVersion,
+  UnavailableVersion,
+  PrepareVersionInput,
+  StaticPreparer,
+} from '@arcadia-eternity/content-dev/management-workspace'
+import type { DurableStorage, StoredRecord, StorageTransaction } from '@arcadia-eternity/database'
+import {
+  ManagementAuth,
+  MANAGEMENT_ACTIONS,
+  managementScopeKey,
+  type ManagementActor,
+  type ManagementScope,
+} from './auth'
+import { ManagementTransfers } from './transfers'
+import { ManagementBackups } from './backups'
+import { ManagementAccounts } from './accounts'
+import type { AccountDirectory } from '../accounts/directory'
+import type { SessionRegistry } from '../session'
+import { managementFailure } from './http'
+import {
+  normalizeServerSettings,
+  patchServerSettings,
+  compareServerSettings,
+  type ServerSettings,
+  type ServerSettingsConstraints,
+} from './settings'
+import { OperationService, type Operation, type OperationContext } from './operations'
+import { ServerEnvironmentRegistry, type EnvironmentAdmissionRules } from '../environments'
+import type { RoomRegistry } from '../rooms'
+
+export type WorkspaceVersion = EnvironmentVersion
+export type ManagementWorkspace = Pick<
+  ContentWorkspace,
+  | 'workspaceId'
+  | 'listDrafts'
+  | 'saveDraft'
+  | 'deleteDraft'
+  | 'listVersions'
+  | 'getVersion'
+  | 'acquire'
+  | 'retain'
+  | 'releaseRetention'
+  | 'prepareVersion'
+  | 'deleteVersion'
+  | 'exportVersion'
+  | 'importVersion'
+  | 'recoverImport'
+  | 'forgetImport'
+  | 'references'
+>
+export interface Binding {
+  serverId: string
+  workspaceId: string
+  environmentId: string
+  executionPolicy: 'server' | 'peer'
+  selection: 'pinned' | 'follow-ready'
+  followPrincipalId?: string
+  desiredVersionId?: string
+  effectiveVersionId?: string
+  enabled: boolean
+  visibility: 'public' | 'private'
+  matchmakingEnabled: boolean
+  condition: 'applying' | 'available' | 'unavailable' | 'degraded'
+  reason?: string
+  observedBootId: string
+}
+export interface ManagedServer {
+  name: string
+  workspaceId: string
+  defaultBindingId?: string
+  settings?: ServerSettings
+  /** Host-owned first-run state; never infer it from an empty binding list. */
+  initialization?: {
+    kind: 'builtin' | 'desktop' | 'npm'
+    environmentId: string
+    state: 'pending' | 'completed' | 'abandoned'
+    bindingId?: string
+  }
+}
+export interface ManagementRequest {
+  method: string
+  path: string
+  /** Internal retry lineage; HTTP transports never deserialize this field. */
+  retryOf?: string
+  body?: unknown
+  headers?: Record<string, string | undefined>
+}
+export interface ManagementResponse {
+  status: number
+  body: unknown
+  headers?: Record<string, string>
+}
+export interface ManagementOptions {
+  storage: DurableStorage
+  workspace: ManagementWorkspace
+  serverId: string
+  environments: ServerEnvironmentRegistry
+  rooms: RoomRegistry
+  sessions: SessionRegistry
+  accountDirectory?: AccountDirectory
+  name?: string
+  runtimeSettings?: ServerSettings
+  listenAddress?: () => { host: string; port: number } | undefined
+  settingsConstraints?: ServerSettingsConstraints
+  /** Host-registered environment sources. Never populated from remote request paths. */
+  resolveProject?: (environmentId: string) => Promise<string>
+  prepareEnvironment?: (input: PrepareVersionInput, validator: StaticPreparer) => Promise<EnvironmentVersion>
+  /** Official hosts must reject third-party server execution. */
+  allowThirdPartyExecution?: boolean
+  transferDirectory?: string
+  /** Host-owned consistent capture; API callers cannot choose database or filesystem sources. */
+  createServerBackup?: (signal: AbortSignal) => Promise<unknown>
+  /** Opt-in first-run initializer. Existing server records are deliberately never backfilled. */
+  initialization?: { kind: 'builtin' | 'desktop' | 'npm'; environmentId: string }
+}
+export class ManagementError extends Error {
+  constructor(
+    readonly code: string,
+    readonly status = 422,
+  ) {
+    super(code)
+  }
+}
+const fail = (code: string, status = 422): never => {
+  throw new ManagementError(code, status)
+}
+const object = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) fail('INVALID_REQUEST')
+  return value as Record<string, unknown>
+}
+const text = (value: unknown, max = 128): string => {
+  if (typeof value !== 'string' || !value.length || value.length > max || /\p{Cc}/u.test(value)) fail('INVALID_REQUEST')
+  return value as string
+}
+const revision = (request: ManagementRequest) => {
+  const raw = request.headers?.['if-match']
+  if (!raw) fail('REVISION_REQUIRED', 428)
+  const value = Number(raw?.replace(/^"|"$/g, ''))
+  if (!Number.isSafeInteger(value) || value < 1) fail('INVALID_REVISION')
+  return value
+}
+const flatten = <T extends object>(record: StoredRecord<T>) => {
+  const { followPrincipalId: _policy, ...value } = record.value as T & { followPrincipalId?: string }
+  return { id: record.id, revision: record.revision, ...value }
+}
+const publicOperation = (op: Operation): ManagementOperation => {
+  const { actor: _actor, input: _input, ...view } = op
+  return view
+}
+const safeVersion = (version: WorkspaceVersion | UnavailableVersion): ManagedEnvironmentVersion => {
+  if (version.status !== 'ready') return version
+  const {
+    directory: _directory,
+    materialDirectory: _materialDirectory,
+    ...publicVersion
+  } = version as WorkspaceVersion & { materialDirectory?: string }
+  return publicVersion
+}
+
+async function builtinOnlyProject(directory: string): Promise<boolean> {
+  const manifest = object(JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')))
+  const lock = object(JSON.parse(await readFile(join(directory, 'package-lock.json'), 'utf8')))
+  if (![2, 3].includes(Number(lock.lockfileVersion))) return false
+  const packages = object(lock.packages)
+  return (
+    ['dependencies', 'optionalDependencies', 'peerDependencies'].every(
+      key => manifest[key] === undefined || Object.keys(object(manifest[key])).length === 0,
+    ) && Object.keys(packages).every(key => key === '')
+  )
+}
+
+/** Static preparation only; metadata capture does not execute author module code. */
+export async function validateWorkspaceProject(
+  { directory, signal }: { directory: string; signal?: AbortSignal },
+  preparation: { effectPreparation?: 'compile' | 'prebuilt-only' } = {},
+) {
+  signal?.throwIfAborted()
+  const temporary = new ServerEnvironmentRegistry()
+  try {
+    const descriptor = (await builtinOnlyProject(directory))
+      ? await temporary.prepareBuiltin()
+      : await temporary.prepareNpm(directory, { policy: { profile: 'self-hosted' } }, preparation)
+    signal?.throwIfAborted()
+    return { contentRevision: descriptor.runtime.contentRevision, packages: descriptor.packages }
+  } catch (error) {
+    const code = (error as { diagnostics?: { code?: string }[] }).diagnostics?.[0]?.code
+    if (code && /^[A-Z][A-Z0-9_]+$/.test(code)) throw new ManagementError(code)
+    throw error
+  } finally {
+    await temporary.stop()
+  }
+}
+
+/** The shared local/HTTP application layer. Only the transports decide how an actor is authenticated. */
+export class ManagementService {
+  readonly auth: ManagementAuth
+  readonly operations: OperationService
+  readonly accounts: ManagementAccounts
+  readonly transfers?: ManagementTransfers
+  readonly backups?: ManagementBackups
+  private collector?: ReturnType<typeof setInterval>
+  private lastTransferCleanup = 0
+  readonly bootId = randomUUID()
+  private readonly runtimes = new Map<string, { runtimeId: string; versionId: string; release(): Promise<void> }>()
+  private pending: Promise<unknown> = Promise.resolve()
+  private localSession?: { actor: ManagementActor; expiresAt: number }
+  private readyPromise?: Promise<void>
+  private closed = false
+  constructor(readonly options: ManagementOptions) {
+    this.auth = new ManagementAuth(options.storage)
+    this.operations = new OperationService(options.storage, {
+      bootId: this.bootId,
+      ownerId: `${options.workspace.workspaceId}:${options.serverId}`,
+    })
+    this.accounts = new ManagementAccounts(
+      options.storage,
+      {
+        serverId: options.serverId,
+        directory: options.accountDirectory,
+        sessions: options.sessions,
+        revokeSession: session => options.rooms.revoke(session),
+      },
+      this.auth,
+    )
+    if (options.transferDirectory)
+      this.transfers = new ManagementTransfers({
+        storage: options.storage,
+        workspace: options.workspace,
+        operations: this.operations,
+        auth: this.auth,
+        directory: options.transferDirectory,
+        validate: this.validator,
+      })
+    if (options.transferDirectory && options.createServerBackup)
+      this.backups = new ManagementBackups({
+        storage: options.storage,
+        auth: this.auth,
+        operations: this.operations,
+        directory: options.transferDirectory,
+        serverId: options.serverId,
+        workspaceId: options.workspace.workspaceId,
+        createServerBackup: options.createServerBackup,
+      })
+  }
+  private readonly validator: StaticPreparer = input =>
+    validateWorkspaceProject(input, {
+      effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
+    })
+  get serverScope(): ManagementScope {
+    return { kind: 'server', id: this.options.serverId }
+  }
+  get workspaceScope(): ManagementScope {
+    return { kind: 'workspace', id: this.options.workspace.workspaceId }
+  }
+  get ownerPermissions() {
+    return [this.serverScope, this.workspaceScope].map(scope => ({
+      scope,
+      actions: [...MANAGEMENT_ACTIONS[scope.kind]],
+    }))
+  }
+  private exclusive<T>(action: () => Promise<T>): Promise<T> {
+    const result = this.pending.catch(() => undefined).then(action)
+    this.pending = result.catch(() => undefined)
+    return result
+  }
+  ready(): Promise<void> {
+    this.readyPromise ??= this.initialize()
+    return this.readyPromise
+  }
+  private async initialize() {
+    await this.options.environments.ready()
+    await this.operations.ready()
+    await this.transfers?.ready()
+    await this.transfers?.cleanup()
+    await this.backups?.ready()
+    await this.backups?.cleanup()
+    this.lastTransferCleanup = Date.now()
+    const existing = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+    if (!existing)
+      await this.options.storage.create('servers', {
+        id: this.options.serverId,
+        scope: managementScopeKey(this.serverScope),
+        value: {
+          name: this.options.name ?? this.options.serverId,
+          workspaceId: this.options.workspace.workspaceId,
+          settings: this.options.runtimeSettings ?? normalizeServerSettings(),
+          ...(this.options.initialization
+            ? { initialization: { ...this.options.initialization, state: 'pending' as const } }
+            : {}),
+        },
+      })
+    else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
+    await this.reconcile()
+    this.collector = setInterval(() => {
+      void this.exclusive(async () => {
+        await this.collectRuntimes()
+        if (Date.now() - this.lastTransferCleanup >= 60_000) {
+          await this.transfers?.cleanup()
+          await this.backups?.cleanup()
+          this.lastTransferCleanup = Date.now()
+        }
+      }).catch(() => undefined)
+    }, 1000)
+    this.collector.unref()
+  }
+  private async bindings() {
+    return this.options.storage.list<Binding>('bindings', managementScopeKey(this.serverScope))
+  }
+  private async binding(id: string) {
+    const row = await this.options.storage.get<Binding>('bindings', id)
+    if (
+      !row ||
+      row.value.serverId !== this.options.serverId ||
+      row.value.workspaceId !== this.options.workspace.workspaceId
+    )
+      fail('BINDING_NOT_FOUND', 404)
+    return row!
+  }
+  /** A marker is created only with a new server record, never reconstructed from current settings. */
+  async pendingInitialization(kind: 'builtin' | 'desktop' | 'npm', environmentId: string): Promise<boolean> {
+    await this.ready()
+    const initialization = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))?.value
+      .initialization
+    return !!(
+      initialization &&
+      initialization.kind === kind &&
+      initialization.environmentId === environmentId &&
+      initialization.state === 'pending'
+    )
+  }
+  async pendingInitializationInfo(): Promise<
+    { kind: 'builtin' | 'desktop' | 'npm'; environmentId: string } | undefined
+  > {
+    await this.ready()
+    const initialization = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))?.value
+      .initialization
+    if (!initialization || initialization.state !== 'pending') return undefined
+    return { kind: initialization.kind, environmentId: initialization.environmentId }
+  }
+  /** Return only the binding durably claimed by this initializer, never a same-named draft. */
+  async initializationBinding(
+    kind: 'builtin' | 'desktop' | 'npm',
+    environmentId: string,
+  ): Promise<StoredRecord<Binding> | undefined> {
+    await this.ready()
+    const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+    const initialization = server?.value.initialization
+    if (
+      !initialization ||
+      initialization.kind !== kind ||
+      initialization.environmentId !== environmentId ||
+      initialization.state !== 'pending' ||
+      !initialization.bindingId
+    )
+      return undefined
+    const binding = await this.options.storage.get<Binding>('bindings', initialization.bindingId)
+    if (
+      !binding ||
+      binding.value.serverId !== this.options.serverId ||
+      binding.value.workspaceId !== this.options.workspace.workspaceId ||
+      binding.value.environmentId !== environmentId
+    )
+      fail('INITIALIZATION_BINDING_INVALID', 409)
+    return binding!
+  }
+  /** Persist the exact owned binding atomically with its creation for crash recovery. */
+  async ensureInitializationBinding(
+    kind: 'builtin' | 'desktop' | 'npm',
+    environmentId: string,
+    versionId: string,
+  ): Promise<StoredRecord<Binding> | undefined> {
+    await this.ready()
+    const binding = await this.exclusive(() =>
+      this.options.storage.transaction(async tx => {
+        const server = await tx.get<ManagedServer>('servers', this.options.serverId)
+        const initialization = server?.value.initialization
+        if (
+          !server ||
+          !initialization ||
+          initialization.kind !== kind ||
+          initialization.environmentId !== environmentId ||
+          initialization.state !== 'pending'
+        )
+          return undefined
+        if (initialization.bindingId) {
+          const binding = await tx.get<Binding>('bindings', initialization.bindingId)
+          if (
+            !binding ||
+            binding.value.serverId !== this.options.serverId ||
+            binding.value.workspaceId !== this.options.workspace.workspaceId ||
+            binding.value.environmentId !== environmentId
+          )
+            fail('INITIALIZATION_BINDING_INVALID', 409)
+          return binding!
+        }
+        const binding = await tx.create<Binding>('bindings', {
+          id: randomUUID(),
+          scope: managementScopeKey(this.serverScope),
+          value: {
+            serverId: this.options.serverId,
+            workspaceId: this.options.workspace.workspaceId,
+            environmentId,
+            executionPolicy: 'server',
+            selection: 'pinned',
+            desiredVersionId: versionId,
+            enabled: false,
+            visibility: 'private',
+            matchmakingEnabled: false,
+            condition: 'unavailable',
+            observedBootId: this.bootId,
+          },
+        })
+        await tx.replace('servers', server.id, server.revision, {
+          ...server.value,
+          initialization: { ...initialization, bindingId: binding.id },
+        })
+        return binding
+      }),
+    )
+    if (binding?.value.desiredVersionId)
+      await this.options.workspace.retain(binding.value.desiredVersionId, `binding:${binding.id}:desired`)
+    return binding
+  }
+  async completeInitialization(
+    kind: 'builtin' | 'desktop' | 'npm',
+    environmentId: string,
+    bindingId: string,
+  ): Promise<void> {
+    await this.ready()
+    await this.exclusive(async () => {
+      await this.options.storage.transaction(async tx => {
+        const server = await tx.get<ManagedServer>('servers', this.options.serverId)
+        const initialization = server?.value.initialization
+        if (
+          !server ||
+          !initialization ||
+          initialization.kind !== kind ||
+          initialization.environmentId !== environmentId ||
+          initialization.bindingId !== bindingId ||
+          initialization.state !== 'pending'
+        )
+          return
+        const binding = await tx.get<Binding>('bindings', bindingId)
+        if (
+          !binding ||
+          binding.value.serverId !== this.options.serverId ||
+          !binding.value.enabled ||
+          binding.value.condition !== 'available' ||
+          server.value.defaultBindingId !== bindingId
+        )
+          fail('INITIALIZATION_INCOMPLETE', 409)
+        await tx.replace('servers', server.id, server.revision, {
+          ...server.value,
+          initialization: { ...initialization, state: 'completed' },
+        })
+      })
+    })
+  }
+  /** Stop a pending host bootstrap when durable administrator configuration wins. */
+  async abandonInitialization(kind: 'builtin' | 'desktop' | 'npm', environmentId: string): Promise<void> {
+    await this.ready()
+    await this.exclusive(async () => {
+      const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+      const initialization = server?.value.initialization
+      if (
+        !server ||
+        !initialization ||
+        initialization.kind !== kind ||
+        initialization.environmentId !== environmentId ||
+        initialization.state !== 'pending'
+      )
+        return
+      await this.options.storage.replace('servers', server.id, server.revision, {
+        ...server.value,
+        initialization: { ...initialization, state: 'abandoned' },
+      })
+    })
+  }
+  private async ensureRuntime(bindingId: string, versionId: string, executionPolicy: 'server' | 'peer' = 'server') {
+    const key = `${bindingId}:${versionId}:${executionPolicy}`
+    const existing = this.runtimes.get(key)
+    if (existing) return existing.runtimeId
+    const version = await this.options.workspace.getVersion(versionId)
+    if (version.workspaceId !== this.options.workspace.workspaceId) fail('WORKSPACE_MISMATCH')
+    assertEnvironmentRequirements(version.document.requires)
+    validateEnvironmentRules(version.document.rules)
+    const lease = await this.options.workspace.acquire(versionId, `server:${this.options.serverId}:${this.bootId}`)
+    try {
+      const descriptor = (await builtinOnlyProject(version.directory))
+        ? await this.options.environments.prepareBuiltin()
+        : await this.options.environments.prepareNpm(
+            version.directory,
+            {
+              policy: {
+                profile:
+                  executionPolicy === 'peer' || this.options.allowThirdPartyExecution ? 'self-hosted' : 'official',
+              },
+            },
+            { effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
+          )
+      if (descriptor.runtime.contentRevision !== version.contentRevision) {
+        await this.options.environments.retire(descriptor.id)
+        fail('ENVIRONMENT_CONTENT_MISMATCH', 409)
+      }
+      if (executionPolicy === 'server' && !this.options.allowThirdPartyExecution && descriptor.packages.length > 0) {
+        await this.options.environments.retire(descriptor.id)
+        fail('THIRD_PARTY_EXECUTION_FORBIDDEN', 403)
+      }
+      this.runtimes.set(key, { versionId, runtimeId: descriptor.id, release: lease.release.bind(lease) })
+      return descriptor.id
+    } catch (error) {
+      await lease.release()
+      throw error
+    }
+  }
+  private async applyPublication(candidate?: { id: string; versionId: string }) {
+    const rows = await this.bindings()
+    const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+    const entries = []
+    let defaultRuntimeId: string | undefined
+    for (const row of rows) {
+      const binding =
+        candidate?.id === row.id
+          ? { ...row.value, effectiveVersionId: candidate.versionId, condition: 'available' }
+          : row.value
+      if (!binding.effectiveVersionId || !['available', 'degraded'].includes(binding.condition)) continue
+      const runtime = this.runtimes.get(
+        `${row.id}:${binding.effectiveVersionId}:${binding.executionPolicy ?? 'server'}`,
+      )
+      if (!runtime) continue
+      const version = await this.options.workspace.getVersion(binding.effectiveVersionId)
+      entries.push({
+        runtimeId: runtime.runtimeId,
+        environmentId: version.document.id,
+        environmentName: version.document.name,
+        bindingId: row.id,
+        versionId: binding.effectiveVersionId,
+        executionPolicy: binding.executionPolicy ?? 'server',
+        enabled: binding.enabled,
+        public: binding.visibility === 'public',
+        matchmaking: binding.matchmakingEnabled,
+        rules: version.document.rules as EnvironmentAdmissionRules | undefined,
+      })
+      if (row.id === server?.value.defaultBindingId && binding.enabled) defaultRuntimeId = runtime.runtimeId
+    }
+    this.options.environments.setPublication(entries, defaultRuntimeId)
+  }
+  async reconcile() {
+    return this.exclusive(async () => {
+      for (const row of await this.bindings()) {
+        let condition: Binding['condition'] = 'unavailable',
+          reason: string | undefined
+        let effectiveVersionId = row.value.effectiveVersionId
+        const intended =
+          row.value.condition === 'applying' ? (row.value.desiredVersionId ?? effectiveVersionId) : effectiveVersionId
+        try {
+          if (intended) {
+            await this.ensureRuntime(row.id, intended, row.value.executionPolicy)
+            effectiveVersionId = intended
+            condition = 'available'
+          } else reason = 'NO_PUBLISHED_VERSION'
+        } catch {
+          reason = 'ENVIRONMENT_UNAVAILABLE'
+          if (effectiveVersionId && effectiveVersionId !== intended) {
+            try {
+              await this.ensureRuntime(row.id, effectiveVersionId, row.value.executionPolicy)
+              condition = 'degraded'
+            } catch {
+              /* No surviving effective runtime. */
+            }
+          }
+        }
+        await this.options.storage.replace('bindings', row.id, row.revision, {
+          ...row.value,
+          effectiveVersionId,
+          condition,
+          reason,
+          observedBootId: this.bootId,
+        })
+      }
+      await this.applyPublication()
+      for (const binding of await this.bindings()) {
+        if (binding.value.effectiveVersionId && ['available', 'degraded'].includes(binding.value.condition)) {
+          await this.options.workspace.retain(binding.value.effectiveVersionId, `binding:${binding.id}:effective`)
+          if (binding.value.effectiveVersionId === binding.value.desiredVersionId)
+            await this.options.workspace.releaseRetention(`binding:${binding.id}:desired`)
+        }
+      }
+      for (const op of await this.operations.list()) {
+        if (op.kind !== 'binding.publish' || op.status !== 'interrupted' || !op.committed) continue
+        const input = object(op.input)
+        const binding = await this.options.storage.get<Binding>('bindings', text(input.id))
+        if (binding?.value.condition === 'available' && binding.value.effectiveVersionId === input.versionId) {
+          await this.options.storage.transaction(async tx => {
+            const stored = await tx.get('operations', op.id)
+            if (!stored) return
+            const { id: _id, revision: _revision, error: _error, ...value } = op
+            await tx.replace('operations', op.id, stored.revision, {
+              ...value,
+              status: 'succeeded',
+              result: { ...flatten(binding), recovered: true },
+              updatedAt: Date.now(),
+            })
+            await tx.create('audit', {
+              id: randomUUID(),
+              scope: managementScopeKey(this.serverScope),
+              value: {
+                actor: 'system:recovery',
+                action: 'operation.recovered',
+                operationId: op.id,
+                bindingId: binding.id,
+                createdAt: Date.now(),
+              },
+            })
+          })
+        }
+      }
+      for (const row of await this.options.storage.list<{ retentionId: string }>(
+        'retentions',
+        managementScopeKey(this.workspaceScope),
+      )) {
+        const name = row.value.retentionId
+        if (!name?.startsWith('binding:') || !name.includes(':candidate:')) continue
+        const operationId = name.split(':candidate:')[1]
+        const op = await this.options.storage.get<{ status: string }>('operations', operationId)
+        if (!op || !['queued', 'running'].includes(op.value.status)) await this.options.workspace.releaseRetention(name)
+      }
+    })
+  }
+  async capabilities(actor?: ManagementActor): Promise<ManagementCapabilities> {
+    return {
+      serverId: this.options.serverId,
+      workspaceId: this.options.workspace.workspaceId,
+      supportedFeatures: [
+        'workspace.environments',
+        'server.bindings',
+        'server.players',
+        'server.battles',
+        'audit',
+        'server.drain',
+        'operations',
+        'grants',
+        'credentials',
+        ...(this.accounts.enabled ? ['accounts'] : []),
+        ...(this.transfers ? ['workspace.transfers'] : []),
+        ...(this.backups ? ['server.backup'] : []),
+      ],
+      effectivePermissions: actor ? await this.auth.effectivePermissions(actor) : [],
+      resourceRestrictions: [],
+    }
+  }
+  private async audit(tx: StorageTransaction, actor: ManagementActor, action: string, target: string) {
+    await tx.create('audit', {
+      id: randomUUID(),
+      scope: managementScopeKey(this.serverScope),
+      value: { actor: actor.principalId, action, target, createdAt: Date.now() },
+    })
+  }
+  private async startOperation(
+    actor: ManagementActor,
+    request: ManagementRequest,
+    kind: string,
+    scope: ManagementScope,
+    input: unknown,
+    work: (ctx: OperationContext) => Promise<unknown>,
+  ) {
+    const idempotencyKey = text(request.headers?.['idempotency-key'], 200)
+    const result = await this.operations.submit(
+      {
+        kind,
+        scope: managementScopeKey(scope),
+        actor,
+        input,
+        idempotencyKey,
+        ...(request.retryOf ? { retryOf: request.retryOf } : {}),
+      },
+      work,
+    )
+    return {
+      status: 202,
+      body: publicOperation(result),
+      headers: { Location: `/api/management/v1/operations/${result.id}` },
+    }
+  }
+  private async authorizeOperation(actor: ManagementActor, id: string): Promise<Operation> {
+    const op = await this.operations.get(id)
+    const kind = op.scope.startsWith('workspace:') ? 'workspace' : 'server'
+    const scope: ManagementScope = { kind, id: op.scope.slice(kind.length + 1) }
+    await this.auth.authorize(actor, scope, 'read')
+    return op
+  }
+  private async publish(
+    actor: ManagementActor,
+    request: ManagementRequest,
+    id: string,
+    versionId: string,
+    policy = false,
+  ) {
+    const authorize = async (tx: StorageTransaction = this.options.storage) => {
+      if (policy) {
+        const binding = await tx.get<Binding>('bindings', id)
+        if (binding?.value.selection !== 'follow-ready' || binding.value.followPrincipalId !== actor.principalId)
+          fail('FOLLOW_POLICY_CHANGED', 409)
+        await this.auth.authorizePolicyInTransaction(tx, actor.principalId, this.serverScope, 'publish')
+        await this.auth.authorizePolicyInTransaction(tx, actor.principalId, this.workspaceScope, 'environment.use')
+      } else {
+        await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
+        await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
+      }
+    }
+    await authorize()
+    const expectedRevision = revision(request)
+    const row = await this.binding(id)
+    const version = await this.options.workspace.getVersion(versionId)
+    if (version.environmentId !== row.value.environmentId) fail('ENVIRONMENT_MISMATCH')
+    return this.startOperation(
+      actor,
+      request,
+      'binding.publish',
+      this.serverScope,
+      { id, versionId, expectedRevision },
+      async ctx =>
+        this.exclusive(async () => {
+          await ctx.checkCurrent()
+          await authorize()
+          const current = await this.binding(id)
+          if (current.revision !== expectedRevision) fail('REVISION_CONFLICT', 412)
+          await this.ensureRuntime(id, versionId, current.value.executionPolicy)
+          await this.options.workspace.retain(versionId, `binding:${id}:candidate:${ctx.operationId}`)
+          try {
+            await ctx.checkCurrent()
+            await authorize()
+            if (policy && !(await this.isCurrentReady(version))) fail('FOLLOW_VERSION_SUPERSEDED', 409)
+            await ctx.commit(
+              async tx => {
+                await authorize(tx)
+                const latest = await tx.get<Binding>('bindings', id)
+                if (!latest || latest.revision !== expectedRevision) fail('REVISION_CONFLICT', 412)
+                const value: Binding = {
+                  ...latest!.value,
+                  desiredVersionId: versionId,
+                  condition: 'applying',
+                  reason: undefined,
+                  observedBootId: this.bootId,
+                }
+                const saved = await tx.replace('bindings', id, expectedRevision, value)
+                await this.audit(tx, actor, 'binding.publish', id)
+                return flatten(saved)
+              },
+              { finalize: false },
+            )
+            try {
+              await this.applyPublication({ id, versionId })
+              const applied = await this.binding(id)
+              const completed = await this.options.storage.replace('bindings', id, applied.revision, {
+                ...applied.value,
+                effectiveVersionId: versionId,
+                condition: 'available',
+                reason: undefined,
+              })
+              await this.options.workspace.retain(versionId, `binding:${id}:effective`)
+              await this.options.workspace.releaseRetention(`binding:${id}:desired`)
+              return flatten(completed)
+            } catch {
+              const failed = await this.binding(id)
+              await this.options.storage.replace('bindings', id, failed.revision, {
+                ...failed.value,
+                condition: failed.value.effectiveVersionId ? 'degraded' : 'unavailable',
+                reason: 'RUNTIME_APPLY_FAILED',
+              })
+              await this.applyPublication()
+              fail('RUNTIME_APPLY_FAILED', 503)
+            }
+          } finally {
+            await this.options.workspace.releaseRetention(`binding:${id}:candidate:${ctx.operationId}`)
+          }
+        }),
+    )
+  }
+  /** Called only by trusted private IPC; remote requests cannot select this authentication path. */
+  async localRequest(request: ManagementRequest): Promise<ManagementResponse> {
+    if (!this.localSession || this.localSession.expiresAt <= Date.now() + 60_000) {
+      const issued = await this.auth.issueBootstrapCode(this.ownerPermissions, `local-owner:${this.options.serverId}`)
+      this.localSession = await this.auth.exchangeBootstrap(issued.code)
+    }
+    try {
+      return await this.request(this.localSession.actor, request)
+    } catch (error) {
+      return managementFailure(error)
+    }
+  }
+  async request(actor: ManagementActor, request: ManagementRequest): Promise<ManagementResponse> {
+    await this.ready()
+    if (this.closed) fail('SERVER_STOPPED', 503)
+    const path = request.path.replace(/^\/api\/management\/v1/, '').split('?')[0]
+    const parts = path.split('/').filter(Boolean).map(decodeURIComponent)
+    const method = request.method.toUpperCase()
+    const input = request.body === undefined ? {} : object(request.body)
+    const ok = (body: unknown, status = 200) => ({ status, body })
+    const page = <T>(items: T[], key: (item: T) => string) => {
+      const query = new URL(request.path, 'http://management.local').searchParams
+      const limit = query.has('limit') ? Number(query.get('limit')) : 100
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) fail('INVALID_PAGE_LIMIT', 422)
+      const cursor = query.get('cursor') ?? ''
+      if (cursor.length > 200) fail('INVALID_CURSOR', 422)
+      const ordered = items
+        .filter(item => key(item) > cursor)
+        .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0))
+      const rows = ordered.slice(0, limit)
+      return {
+        rows,
+        ...(ordered.length > limit ? { nextCursor: key(rows[rows.length - 1]) } : {}),
+        observedAt: Date.now(),
+      }
+    }
+    if (method === 'GET' && path === '/capabilities') return ok(await this.capabilities(actor))
+    if (method === 'GET' && path === '/servers') {
+      await this.auth.authorize(actor, this.serverScope, 'read')
+      const row = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))!
+      return ok({
+        servers: [
+          {
+            ...flatten(row),
+            ...this.options.rooms.managementStatus,
+            status: 'running',
+            runtimeSettings: this.options.runtimeSettings ?? normalizeServerSettings(),
+            listenAddress: this.options.listenAddress?.(),
+            ...compareServerSettings(
+              row.value.settings ?? this.options.runtimeSettings ?? normalizeServerSettings(),
+              this.options.runtimeSettings ?? normalizeServerSettings(),
+            ),
+          },
+        ],
+      })
+    }
+    if (method === 'GET' && path === '/audit') {
+      await this.auth.authorize(actor, this.serverScope, 'read')
+      const entries = await this.options.storage.list<{
+        actor: string
+        action: string
+        target?: string
+        principalId?: string
+        grantId?: string
+        reason?: string
+        createdAt?: number
+        at?: number
+      }>('audit', managementScopeKey(this.serverScope))
+      return ok({
+        entries: entries
+          .map(row => ({
+            id: row.id,
+            actor: row.value.actor,
+            action: row.value.action,
+            target: row.value.target ?? row.value.grantId ?? row.value.principalId ?? this.options.serverId,
+            ...(row.value.reason ? { reason: row.value.reason } : {}),
+            createdAt: row.value.createdAt ?? row.value.at ?? 0,
+          }))
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 200),
+      })
+    }
+    if (method === 'GET' && path === '/workspaces') {
+      await this.auth.authorize(actor, this.workspaceScope, 'read')
+      return ok({ workspaces: [{ id: this.options.workspace.workspaceId, name: this.options.workspace.workspaceId }] })
+    }
+    if (parts[0] === 'workspaces') {
+      if (parts[1] !== this.options.workspace.workspaceId) fail('WORKSPACE_NOT_FOUND', 404)
+      if (this.transfers && parts[2] === 'import' && parts.length === 3 && method === 'POST')
+        return ok(
+          publicOperation(
+            await this.transfers.import(actor, input.bundle, {
+              ...(input.environmentId ? { environmentId: text(input.environmentId) } : {}),
+              ...(input.expectedRevision !== undefined
+                ? { expectedRevision: input.expectedRevision === null ? null : text(input.expectedRevision) }
+                : {}),
+              idempotencyKey: text(request.headers?.['idempotency-key']),
+            }),
+          ),
+          202,
+        )
+      if (parts[2] === 'versions' && parts.length === 5) {
+        if (parts[4] === 'references' && method === 'GET') {
+          await this.auth.authorize(actor, this.workspaceScope, 'read')
+          return ok(
+            this.transfers
+              ? await this.transfers.references(actor, parts[3])
+              : { references: await this.options.workspace.references(parts[3]) },
+          )
+        }
+        if (this.transfers && parts[4] === 'export' && method === 'POST')
+          return ok(
+            publicOperation(await this.transfers.export(actor, parts[3], text(request.headers?.['idempotency-key']))),
+            202,
+          )
+      }
+      if (parts[2] === 'environments') {
+        if (method === 'GET' && parts.length === 3) {
+          await this.auth.authorize(actor, this.workspaceScope, 'read')
+          return ok({
+            environments: await this.options.workspace.listDrafts(),
+            versions: (await this.options.workspace.listVersions()).map(safeVersion),
+          })
+        }
+        if (method === 'DELETE' && parts.length === 4) {
+          await this.auth.authorize(actor, this.workspaceScope, 'delete')
+          if ((await this.bindings()).some(row => row.value.environmentId === parts[3])) fail('ENVIRONMENT_IN_USE', 409)
+          await this.options.workspace.deleteDraft({
+            environmentId: parts[3],
+            expectedRevision: text(request.headers?.['if-match']?.replace(/^"|"$/g, '')),
+          })
+          return ok({ deleted: true })
+        }
+        if ((method === 'POST' && parts.length === 3) || (method === 'PATCH' && parts.length === 4)) {
+          await this.auth.authorize(actor, this.workspaceScope, 'edit')
+          const document = object(input.document)
+          if (parts.length === 4 && document.id !== parts[3]) fail('ENVIRONMENT_MISMATCH')
+          const expectedRevision =
+            input.expectedRevision === null
+              ? null
+              : text(input.expectedRevision ?? request.headers?.['if-match']?.replace(/^"|"$/g, ''))
+          return ok(await this.options.workspace.saveDraft({ document, expectedRevision }))
+        }
+        if (method === 'POST' && parts[4] === 'prepare' && parts.length === 5) {
+          await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+          const environmentId = parts[3],
+            expectedRevision = text(input.expectedRevision)
+          return this.startOperation(
+            actor,
+            request,
+            'environment.prepare',
+            this.workspaceScope,
+            { environmentId, expectedRevision },
+            async ctx => {
+              await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+              const projectDirectory = await this.options.resolveProject?.(environmentId)
+              const prepare =
+                this.options.prepareEnvironment ?? this.options.workspace.prepareVersion.bind(this.options.workspace)
+              const version = await prepare(
+                {
+                  environmentId,
+                  expectedRevision,
+                  projectDirectory,
+                  signal: ctx.signal,
+                  beforeCommit: async () => {
+                    await ctx.checkCurrent()
+                    await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+                  },
+                },
+                this.validator,
+              )
+              await ctx.checkCurrent()
+              await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+              await this.followReady(version)
+              return safeVersion(version)
+            },
+          )
+        }
+      }
+      if (parts[2] === 'versions' && parts.length === 4 && method === 'DELETE') {
+        await this.auth.authorize(actor, this.workspaceScope, 'delete')
+        await this.options.workspace.deleteVersion(parts[3])
+        return ok({ deleted: true })
+      }
+    }
+    if (parts[0] === 'servers') {
+      if (parts[1] !== this.options.serverId) fail('SERVER_NOT_FOUND', 404)
+      if (this.backups && parts.length === 3 && parts[2] === 'backup' && method === 'POST') {
+        const op = await this.backups.create(actor, text(request.headers?.['idempotency-key'], 200))
+        return {
+          status: 202,
+          body: publicOperation(op),
+          headers: { Location: `/api/management/v1/operations/${op.id}` },
+        }
+      }
+      if (parts[2] === 'players' && parts.length === 3 && method === 'GET') {
+        await this.auth.authorize(actor, this.serverScope, 'players.read')
+        const { rows, ...metadata } = page(this.options.rooms.managementPlayers(), player => player.seatId)
+        return ok({ players: rows, ...metadata })
+      }
+      if (parts[2] === 'battles') {
+        if (method === 'GET' && (parts.length === 3 || parts.length === 4)) {
+          await this.auth.authorize(actor, this.serverScope, 'battles.read')
+          const battles = this.options.rooms.managementBattles()
+          if (parts.length === 3) {
+            const { rows, ...metadata } = page(battles, battle => battle.id)
+            return ok({ battles: rows, ...metadata })
+          }
+          const battle = battles.find(battle => battle.id === parts[3])
+          if (!battle) fail('BATTLE_NOT_FOUND', 404)
+          return ok(battle)
+        }
+        if (method === 'POST' && parts.length === 5 && parts[4] === 'terminate') {
+          await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+          const id = text(parts[3])
+          return this.startOperation(actor, request, 'battle.terminate', this.serverScope, { id }, async ctx => {
+            await ctx.checkCurrent()
+            await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+            return this.options.rooms.terminateManagedBattle(id, async () => {
+              await ctx.commit(
+                async tx => {
+                  await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'battles.terminate')
+                  await tx.create('audit', {
+                    id: randomUUID(),
+                    scope: managementScopeKey(this.serverScope),
+                    value: {
+                      actor: actor.principalId,
+                      action: 'battle.terminate',
+                      target: id,
+                      createdAt: Date.now(),
+                    },
+                  })
+                },
+                { finalize: false },
+              )
+            })
+          })
+        }
+      }
+      if (parts[2] === 'accounts') {
+        if (parts.length === 3 && method === 'GET') {
+          const query = new URL(request.path, 'http://management.local').searchParams
+          return ok(
+            await this.accounts.list(actor, {
+              ...(query.has('limit') ? { limit: Number(query.get('limit')) } : {}),
+              ...(query.has('cursor') ? { cursor: query.get('cursor')! } : {}),
+            }),
+          )
+        }
+        if (parts.length === 4 && method === 'GET') return ok(await this.accounts.status(actor, parts[3]))
+        if (parts.length === 5 && parts[4] === 'deactivate' && method === 'POST')
+          return ok(await this.accounts.deactivate(actor, parts[3]))
+      }
+      if (parts.length === 2 && method === 'PATCH') {
+        await this.auth.authorize(actor, this.serverScope, 'settings.manage')
+        return this.exclusive(async () => {
+          const before = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))!
+          const value = { ...before.value }
+          if (input.name !== undefined) value.name = text(input.name, 120)
+          if (input.settings !== undefined)
+            value.settings = patchServerSettings(
+              value.settings ?? this.options.runtimeSettings ?? normalizeServerSettings(),
+              input.settings,
+              this.options.settingsConstraints,
+            )
+          if (input.defaultBindingId === null) delete value.defaultBindingId
+          else if (input.defaultBindingId !== undefined) {
+            const binding = await this.binding(text(input.defaultBindingId))
+            if (!binding.value.enabled || binding.value.condition !== 'available') fail('BINDING_UNAVAILABLE', 409)
+            value.defaultBindingId = binding.id
+          }
+          const row = await this.options.storage.transaction(async tx => {
+            await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'settings.manage')
+            const saved = await tx.replace('servers', before.id, revision(request), value)
+            await this.audit(tx, actor, 'server.update', before.id)
+            return saved
+          })
+          await this.applyPublication()
+          return ok({
+            ...flatten(row),
+            runtimeSettings: this.options.runtimeSettings ?? normalizeServerSettings(),
+            ...compareServerSettings(
+              row.value.settings ?? this.options.runtimeSettings ?? normalizeServerSettings(),
+              this.options.runtimeSettings ?? normalizeServerSettings(),
+            ),
+          })
+        })
+      }
+      if (parts[2] === 'drain' && parts.length === 3 && method === 'POST') {
+        await this.auth.authorize(actor, this.serverScope, 'drain')
+        if (input.draining !== undefined && typeof input.draining !== 'boolean') fail('INVALID_REQUEST')
+        await this.options.rooms.setDraining(input.draining !== false)
+        return ok(this.options.rooms.managementStatus)
+      }
+      if (parts[2] === 'bindings') {
+        if (parts.length === 3 && method === 'GET') {
+          await this.auth.authorize(actor, this.serverScope, 'read')
+          return ok({ bindings: (await this.bindings()).map(flatten) })
+        }
+        if (parts.length === 3 && method === 'POST') {
+          await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
+          await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+          if (
+            input.enabled === true ||
+            input.visibility === 'public' ||
+            input.matchmakingEnabled === true ||
+            input.selection === 'follow-ready'
+          )
+            await this.auth.authorize(actor, this.serverScope, 'publish')
+          const value: Binding = {
+            serverId: this.options.serverId,
+            workspaceId: this.options.workspace.workspaceId,
+            environmentId: text(input.environmentId),
+            executionPolicy: 'server',
+            selection: 'pinned',
+            enabled: false,
+            visibility: 'private',
+            matchmakingEnabled: false,
+            condition: 'unavailable',
+            observedBootId: this.bootId,
+          }
+          this.patchBinding(value, input)
+          if (value.selection === 'follow-ready') value.followPrincipalId = actor.principalId
+          if (input.versionId !== undefined) {
+            const version = await this.options.workspace.getVersion(text(input.versionId))
+            if (version.environmentId !== value.environmentId) fail('ENVIRONMENT_MISMATCH')
+            value.desiredVersionId = version.versionId
+          }
+          const row = await this.options.storage.transaction(async tx => {
+            await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
+            await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
+            if (
+              value.enabled ||
+              value.visibility === 'public' ||
+              value.matchmakingEnabled ||
+              value.selection === 'follow-ready'
+            )
+              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
+            const saved = await tx.create('bindings', {
+              id: randomUUID(),
+              scope: managementScopeKey(this.serverScope),
+              value,
+            })
+            await this.audit(tx, actor, 'binding.create', saved.id)
+            return saved
+          })
+          if (value.desiredVersionId)
+            await this.options.workspace.retain(value.desiredVersionId, `binding:${row.id}:desired`)
+          return ok(flatten(row), 201)
+        }
+        if (parts.length === 4 && method === 'PATCH') {
+          await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
+          // Enabling or exposing a binding is a publication action, not just configuration editing.
+          if (
+            input.enabled === true ||
+            input.visibility === 'public' ||
+            input.matchmakingEnabled === true ||
+            input.selection === 'follow-ready'
+          ) {
+            await this.auth.authorize(actor, this.serverScope, 'publish')
+            await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+          }
+          return this.exclusive(async () => {
+            const row = await this.binding(parts[3]),
+              value = { ...row.value }
+            this.patchBinding(value, input)
+            if (!value.enabled) {
+              const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+              if (server?.value.defaultBindingId === row.id) fail('DEFAULT_BINDING_REQUIRED', 409)
+            }
+            if (input.selection !== undefined)
+              value.followPrincipalId = value.selection === 'follow-ready' ? actor.principalId : undefined
+            const saved = await this.options.storage.transaction(async tx => {
+              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
+              if (
+                value.enabled ||
+                value.visibility === 'public' ||
+                value.matchmakingEnabled ||
+                value.selection === 'follow-ready'
+              ) {
+                await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
+                await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
+              }
+              const result = await tx.replace('bindings', row.id, revision(request), value)
+              await this.audit(tx, actor, 'binding.update', row.id)
+              return result
+            })
+            await this.applyPublication()
+            return ok(flatten(saved))
+          })
+        }
+        if (parts.length === 5 && parts[4] === 'publish' && method === 'POST')
+          return this.publish(actor, request, parts[3], text(input.versionId))
+        if (parts.length === 4 && method === 'DELETE') {
+          await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
+          return this.exclusive(async () => {
+            const row = await this.binding(parts[3])
+            const server = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))!
+            if (server.value.defaultBindingId === row.id) fail('DEFAULT_BINDING_REQUIRED', 409)
+            await this.options.storage.transaction(async tx => {
+              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
+              await tx.delete('bindings', row.id, revision(request))
+              await this.audit(tx, actor, 'binding.delete', row.id)
+            })
+            await this.applyPublication()
+            await this.options.workspace.releaseRetention(`binding:${row.id}:desired`)
+            await this.options.workspace.releaseRetention(`binding:${row.id}:effective`)
+            return ok({ deleted: true })
+          })
+        }
+      }
+    }
+    if (this.transfers && parts[0] === 'transfers' && parts.length === 2 && method === 'GET') {
+      const download = await this.transfers.download(actor, parts[1])
+      try {
+        return ok(JSON.parse(await readFile(download.file, 'utf8')))
+      } finally {
+        await download.release()
+      }
+    }
+    if (this.backups && parts[0] === 'backups' && parts.length === 2 && method === 'GET')
+      return ok(await this.backups.download(actor, parts[1]))
+    if (parts[0] === 'operations') {
+      if (parts.length === 1 && method === 'GET') {
+        const permissions = await this.auth.effectivePermissions(actor)
+        const scopes = new Set(
+          permissions.filter(p => p.actions.includes('read')).map(p => managementScopeKey(p.scope)),
+        )
+        return ok({
+          operations: (await this.operations.list()).filter(op => scopes.has(op.scope)).map(publicOperation),
+        })
+      }
+      const op = await this.authorizeOperation(actor, parts[1])
+      if (parts.length === 2 && method === 'GET') return ok(publicOperation(op))
+      if (parts.length === 3 && parts[2] === 'retry' && method === 'POST') {
+        const original = object(op.input)
+        if (this.backups && op.kind === 'server.backup')
+          return ok(
+            publicOperation(await this.backups.retry(actor, op.id, text(request.headers?.['idempotency-key'], 200))),
+            202,
+          )
+        if (this.transfers && ['environment.export', 'environment.import'].includes(op.kind))
+          return ok(
+            publicOperation(await this.transfers.retry(actor, op.id, text(request.headers?.['idempotency-key']))),
+            202,
+          )
+        if (op.committed) fail('OPERATION_ALREADY_COMMITTED', 409)
+        if (op.kind === 'battle.terminate')
+          return this.request(actor, {
+            ...request,
+            path: `/servers/${encodeURIComponent(this.options.serverId)}/battles/${encodeURIComponent(text(original.id))}/terminate`,
+            body: {},
+            retryOf: op.id,
+          })
+        if (op.kind === 'environment.prepare')
+          return this.request(actor, {
+            ...request,
+            path: `/workspaces/${this.options.workspace.workspaceId}/environments/${text(original.environmentId)}/prepare`,
+            body: { expectedRevision: text(original.expectedRevision) },
+            retryOf: op.id,
+          })
+        if (op.kind === 'binding.publish')
+          return this.publish(
+            actor,
+            {
+              ...request,
+              headers: {
+                ...request.headers,
+                'if-match':
+                  typeof original.expectedRevision === 'number'
+                    ? String(original.expectedRevision)
+                    : fail('INVALID_REVISION'),
+              },
+              retryOf: op.id,
+            },
+            text(original.id),
+            text(original.versionId),
+          )
+        fail('OPERATION_RETRY_UNSUPPORTED', 409)
+      }
+      if (parts.length === 3 && parts[2] === 'cancel' && method === 'POST') {
+        if (op.kind === 'server.backup') {
+          if (!this.backups) fail('BACKUP_NOT_SUPPORTED', 409)
+          await this.backups!.authorize(actor)
+        } else if (op.kind === 'battle.terminate')
+          await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+        else if (op.kind === 'environment.prepare' || op.kind === 'environment.import')
+          await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+        else if (op.kind === 'environment.export') await this.auth.authorize(actor, this.workspaceScope, 'export')
+        else {
+          await this.auth.authorize(actor, this.serverScope, 'publish')
+          await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+        }
+        return ok(publicOperation(await this.operations.cancel(op.id)))
+      }
+    }
+    if (parts[0] === 'grants') {
+      if (parts.length === 1 && method === 'GET') {
+        const grants = []
+        for (const scope of [this.serverScope, this.workspaceScope]) {
+          try {
+            grants.push(...(await this.auth.listGrants(actor, scope)).map(flatten))
+          } catch (error) {
+            if ((error as { status?: number }).status !== 403) throw error
+          }
+        }
+        return ok({ grants })
+      }
+      if (parts.length === 1 && method === 'POST') {
+        const scope = object(input.scope) as unknown as ManagementScope
+        this.checkOwnedScope(scope)
+        return ok(
+          flatten(
+            await this.auth.grant(
+              actor,
+              { principalId: text(input.principalId), scope, actions: input.actions as string[] },
+              request.headers?.['if-match'] ? revision(request) : undefined,
+            ),
+          ),
+          201,
+        )
+      }
+      if (parts.length === 3 && parts[2] === 'revoke' && method === 'POST') {
+        await this.auth.revokeGrant(
+          actor,
+          parts[1],
+          input.revision === undefined ? revision(request) : Number(input.revision),
+        )
+        return ok({ revoked: true })
+      }
+    }
+    if (path === '/principals' && method === 'POST') {
+      const scope = object(input.scope) as unknown as ManagementScope
+      this.checkOwnedScope(scope)
+      return ok(
+        flatten(
+          await this.auth.createPrincipal(actor, {
+            scope,
+            displayName: text(input.displayName),
+            ...(input.id ? { id: text(input.id) } : {}),
+            ...(input.accountId ? { accountId: text(input.accountId), serverId: this.options.serverId } : {}),
+          }),
+        ),
+        201,
+      )
+    }
+    if (path === '/credentials' && method === 'POST') {
+      if (!Array.isArray(input.permissions)) fail('INVALID_PERMISSIONS')
+      for (const permission of input.permissions as { scope: ManagementScope }[]) this.checkOwnedScope(permission.scope)
+      return ok(await this.auth.createServiceToken(actor, input as never), 201)
+    }
+    if (path === '/credentials' && method === 'GET') return ok({ credentials: await this.auth.listCredentials(actor) })
+    if (parts[0] === 'credentials' && parts.length === 3 && parts[2] === 'revoke' && method === 'POST') {
+      await this.auth.revokeCredential(actor, parts[1])
+      return ok({ revoked: true })
+    }
+    return fail('NOT_FOUND', 404)
+  }
+  private async isCurrentReady(version: WorkspaceVersion) {
+    const current = (await this.options.workspace.listDrafts()).find(
+      draft => draft.document.id === version.environmentId,
+    )
+    if (current?.revision !== version.draftRevision) return false
+    return !(await this.options.workspace.listVersions()).some(
+      candidate =>
+        candidate.status === 'ready' &&
+        candidate.environmentId === version.environmentId &&
+        candidate.draftRevision === version.draftRevision &&
+        candidate.createdAt > version.createdAt,
+    )
+  }
+  private async followReady(version: WorkspaceVersion) {
+    if (!(await this.isCurrentReady(version))) return
+    for (const row of await this.bindings()) {
+      if (
+        row.value.selection !== 'follow-ready' ||
+        row.value.environmentId !== version.environmentId ||
+        !row.value.followPrincipalId ||
+        row.value.effectiveVersionId === version.versionId
+      )
+        continue
+      const actor: ManagementActor = {
+        principalId: row.value.followPrincipalId,
+        credentialId: `policy:${row.id}`,
+        kind: 'service',
+      }
+      try {
+        await this.publish(
+          actor,
+          {
+            method: 'POST',
+            path: '',
+            headers: { 'if-match': String(row.revision), 'idempotency-key': `follow:${row.id}:${version.versionId}` },
+          },
+          row.id,
+          version.versionId,
+          true,
+        )
+      } catch {
+        // A revoked or changed policy never replaces the last effective version.
+        const current = await this.binding(row.id)
+        if (current.revision === row.revision)
+          await this.options.storage.replace('bindings', row.id, current.revision, {
+            ...current.value,
+            reason: 'FOLLOW_POLICY_BLOCKED',
+          })
+      }
+    }
+  }
+  private async collectRuntimes() {
+    const required = new Set(
+      (await this.bindings()).flatMap(row =>
+        [row.value.desiredVersionId, row.value.effectiveVersionId]
+          .filter(Boolean)
+          .map(versionId => `${row.id}:${versionId}:${row.value.executionPolicy ?? 'server'}`),
+      ),
+    )
+    for (const [key, runtime] of this.runtimes) {
+      if (required.has(key)) continue
+      if (this.options.environments.retainedIds().includes(runtime.runtimeId)) {
+        try {
+          await this.options.environments.retire(runtime.runtimeId)
+        } catch {
+          continue
+        }
+      }
+      if (!this.options.environments.retainedIds().includes(runtime.runtimeId)) {
+        await runtime.release()
+        this.runtimes.delete(key)
+      }
+    }
+  }
+  private checkOwnedScope(scope: ManagementScope) {
+    if (
+      scope.kind === 'server'
+        ? scope.id !== this.options.serverId
+        : scope.kind !== 'workspace' || scope.id !== this.options.workspace.workspaceId
+    )
+      fail('SCOPE_NOT_FOUND', 404)
+  }
+  private patchBinding(value: Binding, input: Record<string, unknown>) {
+    if (input.executionPolicy !== undefined) {
+      if (!['server', 'peer'].includes(text(input.executionPolicy))) fail('INVALID_EXECUTION_POLICY')
+      if (value.effectiveVersionId && input.executionPolicy !== value.executionPolicy)
+        fail('BINDING_EXECUTION_POLICY_IMMUTABLE', 409)
+      value.executionPolicy = input.executionPolicy as 'server' | 'peer'
+    }
+    if (input.selection !== undefined) {
+      if (typeof input.selection !== 'string' || !['pinned', 'follow-ready'].includes(input.selection))
+        fail('INVALID_SELECTION')
+      value.selection = input.selection as Binding['selection']
+    }
+    if (input.visibility !== undefined) {
+      if (typeof input.visibility !== 'string' || !['public', 'private'].includes(input.visibility))
+        fail('INVALID_VISIBILITY')
+      value.visibility = input.visibility as Binding['visibility']
+    }
+    for (const key of ['enabled', 'matchmakingEnabled'] as const)
+      if (input[key] !== undefined) {
+        if (typeof input[key] !== 'boolean') fail('INVALID_REQUEST')
+        value[key] = input[key] as boolean
+      }
+  }
+  async beginShutdown() {
+    this.closed = true
+    clearInterval(this.collector)
+    await this.operations.close()
+    await this.transfers?.close()
+    await this.backups?.close()
+  }
+  async close() {
+    await this.beginShutdown()
+    await this.pending
+    await Promise.all([...this.runtimes.values()].map(runtime => runtime.release()))
+    this.runtimes.clear()
+  }
+}

@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   notify: vi.fn(),
   createHost: vi.fn(),
+  preparePeer: vi.fn(),
+  gameData: { loaded: true, clearServerEnvironment: vi.fn(), applyServerEnvironment: vi.fn() },
   transports: [] as Array<{ change(state: string): void }>,
   client: {
     playerId: 'host',
@@ -40,9 +42,10 @@ vi.mock('@/stores/auth', () => ({
 vi.mock('@/stores/battle', () => ({ useBattleStore: () => mocks.battle }))
 vi.mock('@/stores/player', () => ({ usePlayerStore: () => ({ player: { name: 'Host' } }) }))
 vi.mock('@/stores/petStorage', () => ({ usePetStorageStore: () => ({ getCurrentTeam: () => [] }) }))
-vi.mock('@/stores/gameData', () => ({ useGameDataStore: () => ({ loaded: true, clearServerEnvironment: vi.fn() }) }))
+vi.mock('@/stores/gameData', () => ({ useGameDataStore: () => mocks.gameData }))
 vi.mock('@/stores/serverState', () => ({ useServerStateStore: () => ({ updateServerState: vi.fn() }) }))
 vi.mock('@/services/serverEnvironment', () => ({ listServerEnvironments: vi.fn(), prepareServerEnvironment: vi.fn() }))
+vi.mock('@/services/peerEnvironment', () => ({ preparePeerEnvironment: mocks.preparePeer }))
 vi.mock('@/p2p/p2pBattleSystem', () => ({ createP2PHostBattleSystem: mocks.createHost, P2PPeerBattleSystem: class {} }))
 vi.mock('@/p2p/webRtcPeerTransport', () => ({
   WebRTCPeerTransport: class {
@@ -69,10 +72,32 @@ vi.mock('@/p2p/privateRoomSignalBridge', () => ({
 
 import { usePrivateRoomStore } from '../privateRoom'
 let store: ReturnType<typeof usePrivateRoomStore>
+const descriptor = {
+  id: 'a'.repeat(64),
+  protocolVersion: 1,
+  executionPolicy: 'peer',
+  peerRevision: 'fixed-peer-revision',
+  resourceRevision: 'b'.repeat(64),
+  runtime: { kind: 'native-v4', contentRevision: 'fixed-content', coreBuildId: 'core', registryBuildId: 'registry' },
+  packages: [],
+  resources: [],
+}
+const prepared = {
+  environment: { revision: descriptor.peerRevision, data: { species: [], skills: [], marks: [] }, modules: [] },
+  content: { species: [], skills: [], marks: [] },
+  acceptance: {
+    environmentId: descriptor.id,
+    protocolVersion: 1,
+    resourceRevision: descriptor.resourceRevision,
+    peerRevision: descriptor.peerRevision,
+    resourcesReady: true,
+  },
+}
 const room = (battleRoomId = 'battle-a') => ({
   config: { roomCode: 'ABC123', hostPlayerId: 'host', battleMode: 'p2p', p2pTransport: 'webrtc' },
   status: 'started',
   battleRoomId,
+  environment: descriptor,
   players: [
     { playerId: 'host', playerName: 'Host', team: [] },
     { playerId: 'peer', playerName: 'Peer', team: [] },
@@ -92,6 +117,7 @@ beforeEach(() => {
   reactive(mocks.client).serverUrl = 'https://server-a.test'
   mocks.client.leavePrivateRoom.mockReset().mockResolvedValue(undefined)
   mocks.client.getPrivateRoomInfo.mockReset().mockResolvedValue(room())
+  mocks.preparePeer.mockReset().mockResolvedValue(prepared)
   mocks.createHost.mockReset().mockImplementation(
     ({ signal }: { signal: AbortSignal }) =>
       new Promise((_resolve, reject) => {
@@ -109,6 +135,8 @@ afterEach(() => {
 it('cancels a queued host immediately when leaving, before the server acknowledges', async () => {
   const starting = start()
   await vi.waitFor(() => expect(mocks.createHost).toHaveBeenCalledOnce())
+  expect(mocks.createHost.mock.calls[0][0].battleConfig.environment).toBe(prepared.environment)
+  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledWith(prepared.content)
   const signal = mocks.createHost.mock.calls[0][0].signal as AbortSignal
   let acknowledge!: () => void
   mocks.client.leavePrivateRoom.mockImplementationOnce(
@@ -209,4 +237,14 @@ it('keeps an initialized host active when leaving fails', async () => {
   expect(host.cleanup).not.toHaveBeenCalled()
   const isCurrent = mocks.battle.initBattle.mock.calls[0][2] as () => boolean
   expect(isCurrent()).toBe(true)
+})
+
+it('does not allocate or install a P2P host when fixed materials cannot be prepared', async () => {
+  mocks.preparePeer.mockRejectedValueOnce(new Error('Fixed peer materials unavailable'))
+  await start()
+  expect(mocks.createHost).not.toHaveBeenCalled()
+  expect(mocks.battle.initBattle).not.toHaveBeenCalled()
+  expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalled()
+  expect(mocks.push).not.toHaveBeenCalled()
+  expect(store.error).toContain('Fixed peer materials unavailable')
 })

@@ -1,3 +1,4 @@
+import { validateEnvironmentRules } from '@arcadia-eternity/content-dev/environment-rules'
 import { presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
@@ -20,10 +21,30 @@ interface Environment {
   references: number
   disposing?: Promise<void>
 }
+export type EnvironmentAdmissionRules = ReturnType<typeof validateEnvironmentRules>
+export interface EnvironmentPublication {
+  runtimeId: string
+  environmentId?: string
+  environmentName?: string
+  bindingId?: string
+  versionId?: string
+  enabled: boolean
+  public: boolean
+  matchmaking: boolean
+  executionPolicy?: 'server' | 'peer'
+  rules?: EnvironmentAdmissionRules
+}
 export interface EnvironmentLease {
+  readonly environmentId?: string
+  readonly environmentName?: string
+  readonly bindingId?: string
+  readonly versionId?: string
+  readonly admissionKey?: string
   readonly runtime: StandaloneRuntime
   readonly descriptor: ServerEnvironmentDescriptor
   readonly isNpm: boolean
+  readonly executionPolicy?: 'server' | 'peer'
+  readonly rules?: EnvironmentAdmissionRules
   release(): Promise<void>
 }
 export class EnvironmentError extends Error {
@@ -40,6 +61,8 @@ export class ServerEnvironmentRegistry {
   private initializing?: Promise<void>
   private defaultId?: string
   private builtinId?: string
+  private publication?: Map<string, EnvironmentPublication>
+  private readonly peerMaterialIds = new Set<string>()
   private closed = false
   async ready(): Promise<void> {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
@@ -182,9 +205,29 @@ export class ServerEnvironmentRegistry {
     this.entries.set(environment.descriptor.id, environment)
   }
 
+  /** Fixed empty npm environments still get distinct room identities and rule snapshots. */
+  async prepareBuiltin(): Promise<ServerEnvironmentDescriptor> {
+    await this.ready()
+    const builtin = this.entry(this.builtinId)
+    const descriptor = {
+      ...structuredClone(builtin.descriptor),
+      id: digest({ builtin: this.builtinId, instance: randomUUID() }),
+    }
+    this.publish({
+      ...builtin,
+      descriptor,
+      content: structuredClone(builtin.content),
+      references: 0,
+      retired: false,
+      dispose: async () => {},
+    })
+    return this.descriptor(descriptor.id)
+  }
+
   async prepareNpm(
     directory: string,
-    approvalFile = resolve(directory, 'arcadia-admission.json'),
+    approvalFile: string | Awaited<ReturnType<typeof readNpmAdmission>> = resolve(directory, 'arcadia-admission.json'),
+    preparation: { effectPreparation?: 'compile' | 'prebuilt-only' } = {},
   ): Promise<ServerEnvironmentDescriptor> {
     await this.ready()
     const base = await loadStandaloneBase()
@@ -197,7 +240,8 @@ export class ServerEnvironmentRegistry {
         effectIds: officialEffectIds,
         effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
       },
-      await readNpmAdmission(approvalFile),
+      typeof approvalFile === 'string' ? await readNpmAdmission(approvalFile) : approvalFile,
+      preparation,
     )
     try {
       const runtime = createStandaloneRuntime(prepared)
@@ -271,7 +315,7 @@ export class ServerEnvironmentRegistry {
         references: 0,
         retired: false,
       })
-      return structuredClone(descriptor)
+      return this.descriptor(descriptor.id)
     } catch (error) {
       await prepared.dispose()
       throw error
@@ -282,8 +326,81 @@ export class ServerEnvironmentRegistry {
   retainedIds(): string[] {
     return [...new Set([...this.entries.keys(), ...this.disposingIds])]
   }
+  /** Atomically replace admission policy; removing publication never invalidates existing leases. */
+  setPublication(entries: readonly EnvironmentPublication[], defaultRuntimeId?: string): void {
+    if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
+    const next = new Map<string, EnvironmentPublication>()
+    for (const publication of entries) {
+      const entry = this.entry(publication.runtimeId)
+      if (entry.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
+      let rules: EnvironmentAdmissionRules
+      try {
+        rules = validateEnvironmentRules(publication.rules)
+      } catch (error) {
+        const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined
+        throw new EnvironmentError(code === 'ENVIRONMENT_RULES_UNSUPPORTED' ? code : 'ENVIRONMENT_RULES_INVALID')
+      }
+      const executionPolicy = publication.executionPolicy ?? 'server'
+      if (executionPolicy !== 'server' && executionPolicy !== 'peer')
+        throw new EnvironmentError('ENVIRONMENT_EXECUTION_POLICY_INVALID')
+      const previous = next.get(publication.runtimeId)
+      if (previous && previous.executionPolicy !== executionPolicy)
+        throw new EnvironmentError('ENVIRONMENT_EXECUTION_POLICY_CONFLICT')
+      if (previous && JSON.stringify(previous.rules) !== JSON.stringify(rules))
+        throw new EnvironmentError('ENVIRONMENT_RULES_CONFLICT')
+      next.set(publication.runtimeId, {
+        ...structuredClone(publication),
+        executionPolicy,
+        rules,
+        enabled: publication.enabled || previous?.enabled || false,
+        public: (publication.enabled && publication.public) || previous?.public || false,
+        matchmaking: (publication.enabled && publication.matchmaking) || previous?.matchmaking || false,
+      })
+    }
+    if (defaultRuntimeId !== undefined && !next.get(defaultRuntimeId)?.enabled)
+      throw new EnvironmentError('DEFAULT_ENVIRONMENT_REQUIRED')
+    this.publication = next
+    for (const publication of next.values())
+      if (publication.executionPolicy === 'peer') this.peerMaterialIds.add(publication.runtimeId)
+    this.defaultId = defaultRuntimeId ?? this.builtinId
+  }
   list(): ServerEnvironmentDescriptor[] {
-    return [...this.entries.values()].filter(entry => !entry.retired).map(entry => structuredClone(entry.descriptor))
+    return [...this.entries.values()]
+      .filter(
+        entry =>
+          !entry.retired &&
+          (!this.publication ||
+            (this.publication.get(entry.descriptor.id)?.enabled && this.publication.get(entry.descriptor.id)?.public)),
+      )
+      .map(entry => this.publicDescriptor(entry))
+  }
+  private publicDescriptor(entry: Environment): ServerEnvironmentDescriptor {
+    const descriptor = structuredClone(entry.descriptor)
+    const policy = this.publication?.get(entry.descriptor.id)?.executionPolicy
+    return {
+      ...descriptor,
+      ...(policy ? { executionPolicy: policy } : {}),
+      ...(entry.runtime.sandbox ? { peerRevision: entry.runtime.sandbox.revision } : {}),
+    }
+  }
+  /** Captured static material only. No imports, factories or VM are evaluated by delivery. */
+  peerMaterials(id: string) {
+    const entry = this.entry(id)
+    if (!entry.runtime.sandbox || (entry.descriptor.packages.length && !this.peerMaterialIds.has(id)))
+      throw new EnvironmentError('ENVIRONMENT_PEER_MATERIALS_UNAVAILABLE')
+    const descriptor = this.publicDescriptor(entry)
+    const captured = entry.runtime.sandbox
+    const payload = structuredClone({
+      protocolVersion: 1 as const,
+      environmentId: id,
+      resourceRevision: descriptor.resourceRevision,
+      runtime: descriptor.runtime,
+      packages: descriptor.packages,
+      environment: { revision: captured.revision, data: captured.data, modules: captured.modules },
+    })
+    if (Buffer.byteLength(JSON.stringify(payload)) > 64 * 1024 * 1024)
+      throw new EnvironmentError('ENVIRONMENT_PEER_MATERIALS_TOO_LARGE')
+    return payload
   }
   private entry(id = this.defaultId): Environment {
     const entry = id && this.entries.get(id)
@@ -291,13 +408,14 @@ export class ServerEnvironmentRegistry {
     return entry
   }
   descriptor(id?: string): ServerEnvironmentDescriptor {
-    return structuredClone(this.entry(id).descriptor)
+    return this.publicDescriptor(this.entry(id))
   }
   /** Host-only selection for future rooms. Existing room leases keep their original runtime. */
   selectDefault(id: string): ServerEnvironmentDescriptor {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
     const entry = this.entry(id)
     if (entry.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
+    if (this.publication && !this.publication.get(id)?.enabled) throw new EnvironmentError('ENVIRONMENT_NOT_PUBLISHED')
     const previous = this.descriptor()
     this.defaultId = id
     return previous
@@ -327,16 +445,33 @@ export class ServerEnvironmentRegistry {
   }
 
   /** Keep a lease for every room or retained checkpoint; retiring never destroys a referenced environment. */
-  acquire(id?: string, builtinOnly = false): EnvironmentLease {
+  acquire(id?: string, builtinOnly = false, purpose: 'room' | 'matchmaking' = 'room'): EnvironmentLease {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
-    const entry = this.entry(id ?? (builtinOnly ? this.builtinId : undefined))
+    const entry = this.entry(id ?? (builtinOnly && !this.publication ? this.builtinId : undefined))
     if (entry.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
+    const publication = this.publication?.get(entry.descriptor.id)
+    if (this.publication && !publication?.enabled) throw new EnvironmentError('ENVIRONMENT_NOT_PUBLISHED')
+    if (this.publication && purpose === 'matchmaking' && !publication?.matchmaking)
+      throw new EnvironmentError('ENVIRONMENT_MATCHMAKING_DISABLED')
     entry.references++
     let released = false
     return {
       runtime: entry.runtime,
-      descriptor: structuredClone(entry.descriptor),
+      bindingId: publication?.bindingId,
+      versionId: publication?.versionId,
+      environmentId: publication?.environmentId,
+      environmentName: publication?.environmentName,
+      admissionKey: digest({
+        runtimeId: entry.descriptor.id,
+        bindingId: publication?.bindingId,
+        versionId: publication?.versionId,
+        rules: publication?.rules,
+        executionPolicy: publication?.executionPolicy,
+      }),
+      descriptor: this.publicDescriptor(entry),
       isNpm: entry.descriptor.packages.length > 0,
+      ...(publication ? { executionPolicy: publication.executionPolicy ?? 'server' } : {}),
+      ...(publication?.rules ? { rules: structuredClone(publication.rules) } : {}),
       release: async () => {
         if (released) return
         released = true
@@ -356,6 +491,7 @@ export class ServerEnvironmentRegistry {
     const id = entry.descriptor.id
     this.disposingIds.add(id)
     this.entries.delete(id)
+    this.peerMaterialIds.delete(id)
     entry.disposing ??= entry.dispose()
     await entry.disposing
     this.disposingIds.delete(id)

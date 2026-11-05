@@ -1,9 +1,10 @@
 import pluginVue from 'eslint-plugin-vue'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import { configureVueProject, defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
 import oxlint from 'eslint-plugin-oxlint'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
 import autoImportConfig from './.eslintrc-auto-import.json' with { type: 'json' }
+configureVueProject({ rootDir: import.meta.dirname })
 const autoImportFlatConfig = {
   languageOptions: {
     globals: autoImportConfig.globals || {}, // 将 globals 移动到 languageOptions 下
@@ -22,7 +23,14 @@ export default defineConfigWithVueTs(
 
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/electron/preload.cjs'],
+    ignores: [
+      '**/dist/**',
+      '**/dist-ssr/**',
+      '**/coverage/**',
+      '**/release/**',
+      '**/release-preview/**',
+      '**/electron/preload.cjs',
+    ],
   },
   autoImportFlatConfig,
 

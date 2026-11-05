@@ -556,6 +556,9 @@ onMounted(async () => {
   } catch (error) {
     ElMessage.error(accountError(error))
   }
+  // Opening the local profile must not contact the deployment's default server.
+  // Explicit server selection or an established session enables account discovery.
+  if (isDesktop && !authStore.hasSelectedServer && !authStore.isAuthenticated) return
   try {
     await authStore.refreshAccountContext()
   } catch (error) {

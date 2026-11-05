@@ -1,0 +1,108 @@
+{
+  "date": "2026-11-05",
+  "scope": {
+    "date": "2026-11-05",
+    "authority": "User deferred signing/notarization, excluded historical version upgrades, and authorized simplifying license checks.",
+    "licensePolicy": "advisory by default; original notices and findings retained; strict audit is opt-in",
+    "signingAndNotarization": "deferred; not a current acceptance blocker",
+    "historicalVersionAndSchemaUpgrades": "out of current scope; address concrete compatibility issues when reported",
+    "currentDataPersistence": "initialization, restart, same-version replacement and backup/restore remain in scope",
+    "evidence": ".omo/evidence/desktop-release-policy-2026-11-05.json"
+  },
+  "alternatives": [
+    {
+      "name": "@npmcli/agent",
+      "version": "5.0.2",
+      "license": "ISC",
+      "engines": {
+        "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+      },
+      "gitHead": "3fadae4d3ea4cc6c73003db2b42456afab9e3cdd",
+      "source": "https://registry.npmjs.org/@npmcli%2Fagent/latest",
+      "tarball": "https://registry.npmjs.org/@npmcli/agent/-/agent-5.0.2.tgz",
+      "tarballIntegrity": "sha512-EkzGmEsgbQ1rqWkRJe2P0oQHx/ylZozDUNPMXCklLuSFL3GY+QyEfBUjhjCsgGXzh4OGpnHvkboSQgczjP/jJg==",
+      "licenseFiles": [],
+      "rootLicenseOpening": null
+    },
+    {
+      "name": "@npmcli/redact",
+      "version": "5.0.0",
+      "license": "ISC",
+      "engines": {
+        "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+      },
+      "gitHead": "3c8e6bc930066b378ac9e78cc266006c1d82d512",
+      "source": "https://registry.npmjs.org/@npmcli%2Fredact/latest",
+      "tarball": "https://registry.npmjs.org/@npmcli/redact/-/redact-5.0.0.tgz",
+      "tarballIntegrity": "sha512-3zcN5Q3yEmeyxXBzqB6fXPQFzYa2ROsGFSr69W0ArXIAGJqxl/aFECOVPD2kbkYPm0U/EHxFKgclK3UA9WQg5A==",
+      "licenseFiles": [
+        {
+          "path": "package/LICENSE",
+          "sha256": "d0b7cddf14a2005e05b397a950b9f69e1de412b8c6749e5b5d70610fb119e9ee"
+        }
+      ],
+      "rootLicenseOpening": "MIT License\n\nCopyright (c) 2024 npm\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software"
+    }
+  ],
+  "decision": "Keep npm 11.17.0: latest agent and redact retain the same missing/conflicting notice findings; do not replace validated package-management behavior for a metadata warning.",
+  "verification": {
+    "tests": {
+      "command": "node --test scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    "existingStagedRuntime": {
+      "runtime": "/private/tmp/arcadia-desktop-gui-runtime-20261105",
+      "defaultNativeVerification": "passed",
+      "legacyReleaseReady": false,
+      "findings": [
+        {
+          "name": "@npmcli/agent",
+          "version": "4.0.2",
+          "license": "ISC",
+          "origin": "npm",
+          "packagePath": "runtime/npm/node_modules/@npmcli/agent",
+          "repository": "https://github.com/npm/agent.git",
+          "reason": "missing-or-unrecognized-license-text"
+        },
+        {
+          "name": "@npmcli/redact",
+          "version": "4.0.0",
+          "license": "ISC",
+          "origin": "npm",
+          "packagePath": "runtime/npm/node_modules/@npmcli/redact",
+          "repository": "https://github.com/npm/redact.git",
+          "reason": "unmatched-or-unsupported-declaration"
+        }
+      ],
+      "strictError": "Strict license check failed: 2 license notices require review",
+      "noticeSha256": "54d5882ad158114ee41db4e69a1f372859dcc7283fc997ac947ed523ff532027",
+      "originalInventoryUnchanged": true
+    },
+    "actualVerifierCLI": {
+      "defaultExit": 0,
+      "defaultWarning": "License inventory: 2 advisory findings; see /Users/yuuinih/.codex/visualizations/2026/11/04/01a1a71e-7c2a-77c1-8402-d8fd60750e6c/implementation/packages/web-ui/dist/arcadia-server/licenses/notice.json",
+      "strictExit": 1,
+      "strictRejectsFindings": true
+    },
+    "staticChecks": {
+      "nodeSyntax": "passed",
+      "formatting": "passed",
+      "gitDiffCheck": "passed",
+      "eslint": "Repository config excludes scripts; forced invocation cannot resolve these mjs files in the TS project. No ESLint pass claimed."
+    }
+  },
+  "priorCommitCI": {
+    "commit": "a230aef2588a01ad86540cb2246dd4e3a67838a2",
+    "baseline": {
+      "run": 41954101809,
+      "conclusion": "success"
+    },
+    "desktopRuntime": {
+      "run": 41954101750,
+      "conclusion": "success"
+    },
+    "scope": "Pre-policy-change CI; not relabeled as verification of the current change."
+  }
+}

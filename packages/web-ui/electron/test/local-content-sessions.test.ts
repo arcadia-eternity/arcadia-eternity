@@ -52,6 +52,18 @@ it('captures real npm display and resources, preserves prepared recipes across e
     const hash = icon.split('/').at(-1)
     expect(await readFile(sessions.assetFile(first.token, hash).file)).toEqual(fixture.asset)
     expect(sessions.assetFile('wrong-token', hash)).toBeUndefined()
+    const shared = await sessions.capturePersonalEnvironment()
+    expect(shared.environment).toEqual(first.environment)
+    expect(shared.runtime.contentRevision).toBe(shared.environment.revision.split('/effects:')[0])
+    expect(shared.packages.some((pkg: { namespace: string }) => pkg.namespace === 'example-slow')).toBe(true)
+    expect(shared.content.species.find((row: { id: string }) => row.id === 'example-slow:pet').presentation.icon).toBe(
+      `arcadia-resource:${hash}`,
+    )
+    expect(Buffer.from(shared.assets.find((asset: { id: string }) => asset.id === hash).data, 'base64')).toEqual(
+      fixture.asset,
+    )
+    expect(JSON.stringify(shared)).not.toContain(fixture.directory)
+    expect(JSON.stringify(shared)).not.toContain('/local-content/')
     await fixture.changePower(999)
     const second = await sessions.prepare()
     expect(second.environment).toEqual(first.environment)
@@ -96,7 +108,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     expect(sessions.assetFile(first.token, hash)).toBeUndefined()
     expect(sessions.assetFile(second.token, hash)).toBeDefined()
     await sessions.release(second.token)
-    expect(releases).toBe(3)
+    expect(releases).toBe(4)
     await expect(readFile(capturedFile)).rejects.toMatchObject({ code: 'ENOENT' })
   } finally {
     await sessions.close()
@@ -113,7 +125,13 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
     fail = false
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
-    base: { data: empty, presentation: [], sandbox: {} },
+    base: {
+      data: empty,
+      presentation: [],
+      sandbox: {},
+      build: { coreBuildId: 'core', registryBuildId: 'registry' },
+      revision: 'base',
+    },
     host: {},
     presentationIndex: () => new Map(),
     prepareNpmProject: async () => {
@@ -129,7 +147,15 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
         throw new Error('compile failed')
       }
       const { vi } = await import('vitest')
-      const value = { data: empty, sandbox: {}, presentation: [], releases: [], dispose: vi.fn(async () => {}) }
+      const value = {
+        data: empty,
+        sandbox: {},
+        presentation: [],
+        releases: [],
+        build: { coreBuildId: 'core', registryBuildId: 'registry' },
+        revision: 'fixture',
+        dispose: vi.fn(async () => {}),
+      }
       captured.push(value)
       return value
     },
@@ -193,12 +219,26 @@ it('releases document owners and rejects late preparation after document retirem
   })
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
-    base: { data: empty, presentation: [], sandbox: {} },
+    base: {
+      data: empty,
+      presentation: [],
+      sandbox: {},
+      build: { coreBuildId: 'core', registryBuildId: 'registry' },
+      revision: 'base',
+    },
     host: {},
     presentationIndex: () => new Map(),
     prepareNpmProject: async () => {
       await gate
-      return { data: empty, sandbox: {}, presentation: [], releases: [], dispose: async () => {} }
+      return {
+        data: empty,
+        sandbox: {},
+        presentation: [],
+        releases: [],
+        build: { coreBuildId: 'core', registryBuildId: 'registry' },
+        revision: 'fixture',
+        dispose: async () => {},
+      }
     },
   }
   const sessions = createLocalContentSessions({

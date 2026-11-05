@@ -66,14 +66,14 @@ test('clean production clients synchronize custom content, form teams, play a tu
     const contentFile = join(fixture.installedDirectory, 'content.json')
     const content = JSON.parse(await readFile(contentFile, 'utf8'))
     content.data.species[0].baseStats.hp = 10
-    content.data.species[0].presentation.battle = { renderer: 'image', source: 'assets/icon.png' }
     content.data.skills[0].power = 60
     content.data.skills[0].name = '同步冲击'
+    const presentationFile = join(fixture.installedDirectory, 'dist/presentation.json')
+    const presentation = JSON.parse(await readFile(presentationFile, 'utf8'))
+    presentation.bindings[0].battle = { renderer: 'image', source: 'icon' }
     const missingMedia = process.env.PLAYWRIGHT_UGC_MISSING_MEDIA === '1'
-    if (missingMedia) {
-      delete content.data.species[0].presentation
-      delete content.data.marks[0].presentation
-    }
+    if (missingMedia) presentation.bindings = []
+    await writeFile(presentationFile, JSON.stringify(presentation))
     await writeFile(contentFile, JSON.stringify(content))
     const environment = await app.environments.prepareNpm(fixture.directory)
     await app.start()

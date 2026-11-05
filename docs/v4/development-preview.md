@@ -39,7 +39,7 @@ node dist/cli.js content validate --npm-project /path/to/new-candidate --json
 验证会执行已准入的效果代码，输出实际 `revision` 与 `build`；批准前应检查内容包及其完整依赖。然后在单独终端启动本机服务器，选择未占用的端口，例如：
 
 ```sh
-node dist/cli.js server --host 127.0.0.1 --port 8102 --npm-project /path/to/new-candidate
+node dist/cli.js server --host 127.0.0.1 --port 8102 --npm-project /path/to/new-candidate --allow-third-party-execution
 ```
 
-服务就绪后，`http://127.0.0.1:8102/api/v1/environments` 列出实际环境 ID、运行时构建及内容包；网页可以连接 `http://127.0.0.1:8102` 并在创建房间时选择该环境。默认服务器需要兼容的 `dist/web` 配套网页，打开同源地址即可游玩，构建方式见[配套网页部署](paired-web-deployment.md)。如需另行启动前端，则显式使用 `--headless`，固定网页后端并配置准确的 CORS 来源。该命令不会替换已经运行的服务或房间；要预览新的修改，应准备、检查和准入另一个候选，再启动新的服务实例。
+服务首次启动时，单个 `--npm-project` 会成为持久的公开默认 binding；`http://127.0.0.1:8102/api/v1/environments` 列出实际环境 ID、运行时构建及内容包。已有服务器不会在重启时改写管理员选择；新增或更换环境请在管理面板中准备、发布和选择。默认服务器需要兼容的 `dist/web` 配套网页，打开同源地址即可游玩，构建方式见[配套网页部署](paired-web-deployment.md)。如需另行启动前端，则显式使用 `--headless`，固定网页后端并配置准确的 CORS 来源。

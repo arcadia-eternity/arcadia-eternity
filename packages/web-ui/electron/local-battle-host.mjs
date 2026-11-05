@@ -6,6 +6,9 @@ import { tmpdir } from 'node:os'
 import { basename, isAbsolute, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
+import { managementRequest } from './desktop-management.mjs'
+import { loadLocalServerProfile, saveLocalServerProject } from './local-server-profile.mjs'
+import { desktopListener } from './desktop-listener.mjs'
 
 const worker = fileURLToPath(new URL('./local-battle-worker.mjs', import.meta.url))
 
@@ -63,9 +66,9 @@ async function verifyProject(directory) {
   }
 }
 
-function verifyReady(port, serverId) {
+function verifyReady(url, serverId) {
   return new Promise((resolve, reject) => {
-    const request = get(`http://127.0.0.1:${port}/api/v1/server-info`, { timeout: 4000 }, response => {
+    const request = get(`${url}/api/v1/server-info`, { timeout: 4000 }, response => {
       if (response.statusCode !== 200) {
         response.resume()
         reject(new Error('Invalid status'))
@@ -103,28 +106,41 @@ export class LocalBattleHost {
   #projectDirectory
   #projects = new Map()
   #uncertainProjects = new Set()
+  #lastProject
   constructor({
     executable,
     cli,
     rendererOrigin,
+    webRoot,
     npmCliPath,
     packsDirectory,
+    stateDirectory,
+    workspaceRoot,
+    attachWorkspace,
     startupTimeoutMs = 60000,
     shutdownTimeoutMs = 5000,
   }) {
     this.executable = executable
     this.cli = cli
     this.rendererOrigin = rendererOrigin
+    this.webRoot = webRoot
     this.npmCliPath = npmCliPath
     this.packsDirectory = packsDirectory
+    this.stateDirectory = stateDirectory
+    this.workspaceRoot = workspaceRoot
+    this.attachWorkspace = attachWorkspace
     this.startupTimeoutMs = startupTimeoutMs
     this.shutdownTimeoutMs = shutdownTimeoutMs
   }
   status() {
-    return { ...this.#state }
+    return structuredClone(this.#state)
   }
   projectDirectory() {
     return this.#child ? this.#projectDirectory : undefined
+  }
+  /** Private parent/child transport: the renderer cannot choose a remote endpoint. */
+  async managementRequest(input) {
+    return this.#request('management', { request: managementRequest(input) })
   }
   async #request(action, input = {}) {
     const child = this.#child
@@ -198,7 +214,13 @@ export class LocalBattleHost {
     ++this.#generation
     this.#child?.kill('SIGKILL')
   }
-  async start(directory, { builtinOnly = false } = {}) {
+  async startLocalRecovery() {
+    const saved =
+      this.#lastProject ?? (this.stateDirectory ? await loadLocalServerProfile(this.stateDirectory) : undefined)
+    if (!saved?.projectDirectory) throw problem('PROJECT_NOT_READY', '请先选择本机托管的内容或服务器项目')
+    return this.start(saved.projectDirectory, { builtinOnly: saved.builtinOnly === true, localRecovery: true })
+  }
+  async start(directory, { builtinOnly = false, localRecovery = false, launch } = {}) {
     if (this.#child || ['starting', 'stopping', 'running'].includes(this.#state.status))
       throw problem('HOST_BUSY', '本机对战服务已经启动或正在启动')
     const generation = ++this.#generation
@@ -234,23 +256,32 @@ export class LocalBattleHost {
       }
       await verifyProject(directory)
       const projectDirectory = await realpath(directory)
+      this.#lastProject = { projectDirectory, builtinOnly }
       cache = await mkdtemp(join(tmpdir(), 'arcadia-desktop-server-'))
       if (generation !== this.#generation) throw problem('HOST_STOPPED', '本机对战服务已停止')
-      const serverId = `arcadia-desktop-${randomUUID()}`
+      const serverId = this.stateDirectory
+        ? (await loadLocalServerProfile(this.stateDirectory)).serverId
+        : `arcadia-desktop-${randomUUID()}`
+      const managedNetwork = !!(this.stateDirectory && this.workspaceRoot)
       const child = spawn(
         this.executable,
         [
           worker,
           this.cli,
           'server',
-          '--host',
-          '127.0.0.1',
-          '--port',
-          '0',
+          ...(managedNetwork
+            ? ['--desktop-managed-network', '--desktop-origin', this.rendererOrigin]
+            : ['--host', '127.0.0.1', '--port', '0', '--cors-origin', this.rendererOrigin]),
+          ...(managedNetwork && localRecovery
+            ? ['--host', '127.0.0.1', '--port', '0', '--cors-origin', this.rendererOrigin]
+            : []),
+          ...(managedNetwork && this.webRoot ? ['--web-root', this.webRoot] : []),
+          ...(launch ? ['--desktop-launch', JSON.stringify(launch)] : []),
           '--server-id',
           serverId,
-          '--cors-origin',
-          this.rendererOrigin,
+          ...(this.stateDirectory ? ['--data-dir', this.stateDirectory] : []),
+          ...(this.workspaceRoot ? ['--workspace-root', this.workspaceRoot] : []),
+          ...(this.workspaceRoot ? ['--desktop-project', projectDirectory] : []),
           ...(builtinOnly ? [] : ['--npm-project', directory]),
         ],
         {
@@ -261,11 +292,13 @@ export class LocalBattleHost {
         },
       )
       spawnedChild = child
+      const detachWorkspace = this.attachWorkspace?.(child)
       this.#child = child
       this.#projectDirectory = projectDirectory
       const done = new Promise(resolve => {
         child.once('close', (code, signal) => resolve({ code, signal }))
       }).then(async result => {
+        detachWorkspace?.()
         await rm(cache, { recursive: true, force: true })
         return result
       })
@@ -289,7 +322,7 @@ export class LocalBattleHost {
       child.stderr.on('data', chunk => {
         stderr = (stderr + chunk).slice(-8192)
       })
-      const port = await new Promise((resolve, reject) => {
+      const listener = await new Promise((resolve, reject) => {
         let buffer = '',
           settled = false,
           checking = false
@@ -297,6 +330,7 @@ export class LocalBattleHost {
           if (settled) return
           settled = true
           clearTimeout(timeout)
+          child.off('message', onListener)
           if (error) reject(error)
           else resolve(value)
         }
@@ -304,9 +338,35 @@ export class LocalBattleHost {
           () => finish(problem('SERVER_START_TIMEOUT', '本机对战服务准备超时')),
           this.startupTimeoutMs,
         )
+        const check = message => {
+          if (checking || settled) return
+          let listener
+          try {
+            listener = desktopListener(message, serverId)
+          } catch {
+            return finish(problem('SERVER_START_FAILED', '本机监听地址无效'))
+          }
+          checking = true
+          // The trusted child emits this only after bind and management initialization.
+          // A host may be unable to route to its own LAN address; keep owner controls
+          // available without treating listener readiness as a remote reachability test.
+          if (managedNetwork && listener.network.scope === 'network') return finish(null, listener)
+          void verifyReady(listener.url, serverId).then(
+            () => finish(null, listener),
+            () => finish(problem('SERVER_START_FAILED', '本机对战服务就绪检查失败')),
+          )
+        }
+        const onListener = message => {
+          if (managedNetwork && message?.type === 'arcadia.desktop.listener') check(message)
+        }
+        child.on('message', onListener)
         child.once('error', () => finish(problem('SERVER_START_FAILED', '无法启动本机对战服务')))
         child.once('close', () => {
-          if (stderr.includes('Expected an explicit npm project approval'))
+          if (stderr.includes('EADDRINUSE'))
+            finish(problem('LISTENER_ADDRESS_IN_USE', '监听端口已被占用，可仅在本机启动以修复网络设置'))
+          else if (stderr.includes('EADDRNOTAVAIL') || stderr.includes('ENOTFOUND'))
+            finish(problem('LISTENER_ADDRESS_UNAVAILABLE', '配置的网卡地址不可用，可仅在本机启动以修复网络设置'))
+          else if (stderr.includes('Expected an explicit npm project approval'))
             finish(problem('NPM_NOT_APPROVED', '项目缺少有效的代码准入记录'))
           else if (/spawn npm ENOENT/.test(stderr))
             finish(problem('NPM_RUNTIME_MISSING', '未找到可运行的 npm 检查工具'))
@@ -316,7 +376,7 @@ export class LocalBattleHost {
         })
         child.stdout.setEncoding('utf8')
         child.stdout.on('data', chunk => {
-          if (checking || settled) return
+          if (managedNetwork || checking || settled) return
           buffer = (buffer + chunk).slice(-8192)
           const line = `Battle server ${serverId} listening on port `
           const start = buffer.indexOf(line)
@@ -326,21 +386,25 @@ export class LocalBattleHost {
           const port = Number(match[1])
           if (!Number.isInteger(port) || port < 1 || port > 65535)
             return finish(problem('SERVER_START_FAILED', '本机端口无效'))
-          checking = true
-          void verifyReady(port, serverId).then(
-            () => finish(null, port),
-            () => finish(problem('SERVER_START_FAILED', '本机对战服务就绪检查失败')),
-          )
+          check({ type: 'arcadia.desktop.listener', serverId, host: '127.0.0.1', port })
         })
       })
       if (generation !== this.#generation || this.#child !== child) throw problem('HOST_STOPPED', '本机对战服务已停止')
-      this.#state = { status: 'running', url: `http://127.0.0.1:${port}`, serverId, projectName: basename(directory) }
+      if (localRecovery) listener.network.inviteUrls = []
+      this.#state = {
+        status: 'running',
+        ...listener,
+        ...(localRecovery ? { localRecovery: true } : {}),
+        serverId,
+        projectName: basename(directory),
+      }
       this.#projects.clear()
       this.#uncertainProjects.clear()
       if (!builtinOnly) {
         const descriptor = await this.#request('describe')
         this.#projects.set(descriptor.id, new Set([projectDirectory]))
       }
+      if (this.stateDirectory) await saveLocalServerProject(this.stateDirectory, projectDirectory, builtinOnly)
       return this.status()
     } catch (error) {
       const wasCurrent = generation === this.#generation
@@ -352,6 +416,26 @@ export class LocalBattleHost {
         this.#state = { status: 'failed', code: failure.code, message: failure.message }
       throw failure
     }
+  }
+  /** Explicit owner stop first closes admission. Active games require a separate force choice. */
+  async stopHosting({ force = false } = {}) {
+    if (typeof force !== 'boolean') throw problem('INVALID_REQUEST', '停止选项无效')
+    if (force) return this.stop()
+    if (this.#state.status === 'running' && this.stateDirectory && this.workspaceRoot) {
+      const response = await this.managementRequest({
+        method: 'POST',
+        path: `/servers/${encodeURIComponent(this.#state.serverId)}/drain`,
+        body: { draining: true },
+      })
+      if (response.status !== 200 || !Number.isInteger(response.body?.activeBattles))
+        throw problem('HOST_DRAIN_FAILED', '无法确认对局状态，请刷新后重试')
+      if (response.body.activeBattles > 0)
+        throw problem(
+          'HOST_DRAINING',
+          `已停止接纳新局，仍有 ${response.body.activeBattles} 场对战进行中。结束后再停止，或明确选择立即中断。`,
+        )
+    }
+    return this.stop()
   }
   async stop() {
     if (this.#stopping) return this.#stopping

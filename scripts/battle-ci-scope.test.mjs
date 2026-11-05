@@ -37,8 +37,8 @@ for (const path of [
 }
 
 for (const path of ['packages/server/src/app.ts']) {
-  test(`server dependency change runs server checks without offline CLI: ${path}`, () => {
-    assert.deepEqual(affectedBattleJobs([path], packages), { ...none, server: true })
+  test(`server dependency change covers server and online browser checks: ${path}`, () => {
+    assert.deepEqual(affectedBattleJobs([path], packages), { ...none, server: true, browser: true })
   })
 }
 

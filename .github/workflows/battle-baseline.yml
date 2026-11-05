@@ -88,11 +88,12 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.server == 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       TEST_DATABASE_URL: postgres://arcadia_test:arcadia_test@localhost:5432/arcadia_test
+      TEST_BACKUP_DATABASE_URL: postgres://arcadia_test:arcadia_test@localhost:5432/arcadia_test
     services:
       postgres:
         image: postgres:16
@@ -118,6 +119,9 @@ jobs:
           cache: pnpm
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build SQLite native driver for Node 24
+        run: npm rebuild better-sqlite3 --ignore-scripts=false
+        working-directory: packages/database
       - name: Build server, console and native runtime dependencies
         run: pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/console... --filter @arcadia-eternity/p2p-transport... run build
       - name: Verify native metadata and converted JSON locale loading
@@ -126,7 +130,9 @@ jobs:
         run: |
           pnpm typecheck:server-native
           pnpm lint:server-native
-      - name: Verify native construction, recovery and disconnect handling
+      - name: Verify identical SQLite and PostgreSQL persistence contracts
+        run: pnpm --filter @arcadia-eternity/database test:run
+      - name: Verify native construction, recovery, management and disconnect handling
         run: pnpm test:server-native
       - name: Verify native content and bootstrap in Node and Chrome
         run: pnpm verify:battle-v4-native-pack
@@ -135,6 +141,8 @@ jobs:
           pnpm typecheck
           pnpm exec eslint bin/cli.ts bin/native-local-battle.ts
           pnpm test:cli-native
+          pnpm build:cli
+          pnpm exec vitest run bin/__tests__/server-*.test.ts --maxWorkers=1
 
   native-browser-entry:
     needs: changes
@@ -155,8 +163,11 @@ jobs:
           cache: pnpm
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build SQLite native driver for the online test server
+        run: npm rebuild better-sqlite3 --ignore-scripts=false
+        working-directory: packages/database
       - name: Build browser dependencies
-        run: pnpm --filter '@arcadia-eternity/web-ui^...' run build
+        run: pnpm --filter '@arcadia-eternity/web-ui^...' --filter '@arcadia-eternity/server...' run build
       - name: Verify content locale syntax and real description rendering
         run: pnpm --filter @arcadia-eternity/web-ui run test:content-locales
       - name: Build browser application and generate auto-import lint globals
@@ -169,8 +180,12 @@ jobs:
         run: pnpm test:web-native
       - name: Verify server account client and recovery flows
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverSession.test.ts --maxWorkers=1
+      - name: Verify shared management transport, target isolation and environment controls
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/managementClient.test.ts src/features/management/__tests__ --maxWorkers=1
       - name: Verify server content environments in the browser client
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverEnvironment.test.ts src/stores/__tests__/privateRoomEnvironment.test.ts src/stores/__tests__/authServerSwitch.test.ts src/stores/__tests__/battleClientSwitch.test.ts src/stores/__tests__/gameData.native.test.ts src/pages/__tests__/lobbyEnvironment.test.ts --maxWorkers=1
+      - name: Verify personal materials and resource lifetime through leave transitions
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/personalEnvironment.test.ts src/services/__tests__/resourceTransport.test.ts src/composition/__tests__/useUncachedResource.test.ts --maxWorkers=1
       - name: Verify deployment connection defaults and user preferences
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/bootstrap/__tests__/deployment.test.ts src/stores/__tests__/connectionSettings.test.ts --maxWorkers=1
       - name: Verify local development workspace editing
@@ -178,7 +193,7 @@ jobs:
       - name: Verify candidate preview transport and failed handoff cleanup
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/authorPreview.test.ts src/features/authoring/__tests__/AuthorPreviewPage.test.ts --maxWorkers=1
       - name: Verify desktop local host lifecycle
-        run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
+        run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-environments.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
       - name: Install browser
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup
@@ -206,6 +221,67 @@ jobs:
           name: static-web-evidence
           path: packages/web-ui/test-results/
           if-no-files-found: ignore
+
+  management-browser-acceptance:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.browser == 'true' || needs.changes.outputs.server == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PLAYWRIGHT_PERSONAL_ENVIRONMENT: '1'
+      PLAYWRIGHT_MANAGEMENT_BACKUP: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build SQLite native driver for the production host
+        run: npm rebuild better-sqlite3 --ignore-scripts=false
+        working-directory: packages/database
+      - name: Build production CLI and paired website
+        id: production_build
+        run: pnpm build:prod
+      - name: Install acceptance browser
+        id: browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+      - name: Verify personal environment consent, battle and rematch
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/personal-environment-report.json
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.personal-environment.config.ts --forbid-only --retries=0 --reporter=line,json
+      - name: Verify management credentials, backup and restart
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && steps.browser.outcome == 'success' }}
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/management-backup-report.json
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.management-backup.config.ts --forbid-only --retries=0 --reporter=line,json
+      - name: Require executed acceptance tests without skips
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && steps.browser.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import { readFileSync } from 'node:fs'
+          for (const name of ['personal-environment', 'management-backup']) {
+            const report = JSON.parse(readFileSync(`packages/web-ui/test-results/${name}-report.json`, 'utf8'))
+            assert.ok(report.stats.expected > 0, `${name}: no acceptance test passed`)
+            assert.equal(report.stats.skipped, 0, `${name}: acceptance tests were skipped`)
+            assert.equal(report.stats.unexpected, 0, `${name}: acceptance tests failed`)
+            assert.equal(report.stats.flaky, 0, `${name}: acceptance tests were flaky`)
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: management-browser-acceptance-evidence
+          path: packages/web-ui/test-results/
+          retention-days: 14
+          if-no-files-found: warn
 
   offline-cli:
     needs: changes

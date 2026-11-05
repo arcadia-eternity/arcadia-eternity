@@ -1,6 +1,38 @@
-/** Per-consumer transport. Limits apply to actual decoded HTTP body bytes, never just headers. */
+/** Per-consumer transport. Limits apply to actual streamed bytes, never just HTTP headers. */
 export const RESOURCE_MAX_BYTES = 64 * 1024 * 1024
 export const METADATA_MAX_BYTES = 16 * 1024 * 1024
+
+const ownedResources = new Map<string, { blob: Blob; controller: AbortController }>()
+
+/** Only explicitly imported local bytes can enter this registry; it is not a network or package cache. */
+export function registerOwnedResource(blob: Blob): { url: string; release(): void } {
+  if (
+    !blob ||
+    typeof blob.stream !== 'function' ||
+    !Number.isSafeInteger(blob.size) ||
+    blob.size < 0 ||
+    blob.size > RESOURCE_MAX_BYTES
+  )
+    throw new Error('本地资源大小或格式无效')
+  const url = URL.createObjectURL(blob)
+  if (!url.startsWith('blob:') || ownedResources.has(url)) {
+    URL.revokeObjectURL(url)
+    throw new Error('本地资源地址无效')
+  }
+  const entry = { blob, controller: new AbortController() }
+  ownedResources.set(url, entry)
+  let released = false
+  return {
+    url,
+    release() {
+      if (released) return
+      released = true
+      ownedResources.delete(url)
+      entry.controller.abort(new Error('本地资源已释放'))
+      URL.revokeObjectURL(url)
+    },
+  }
+}
 
 export function publicHttpUrl(value: string): URL {
   const url = new URL(value, globalThis.location?.href ?? 'http://localhost/')
@@ -14,7 +46,8 @@ export async function readResourceBytes(
   options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number } = {},
   request: typeof fetch = fetch,
 ): Promise<Uint8Array> {
-  const url = publicHttpUrl(value)
+  const owned = ownedResources.get(value)
+  const url = owned ? new URL(value) : publicHttpUrl(value)
   const limit = options.maxBytes ?? RESOURCE_MAX_BYTES
   const timeout = options.timeoutMs ?? 20_000
   if (
@@ -28,8 +61,11 @@ export async function readResourceBytes(
     throw new Error('资源大小或时间限制无效')
   const controller = new AbortController()
   const cancel = () => controller.abort(options.signal?.reason)
+  const cancelOwned = () => controller.abort(owned?.controller.signal.reason)
   options.signal?.addEventListener('abort', cancel, { once: true })
+  owned?.controller.signal.addEventListener('abort', cancelOwned, { once: true })
   if (options.signal?.aborted) cancel()
+  if (owned?.controller.signal.aborted) cancelOwned()
   const timer = setTimeout(() => controller.abort(new Error('资源请求超时')), timeout)
   let onAbort: (() => void) | undefined
   const aborted = new Promise<never>((_resolve, reject) => {
@@ -40,13 +76,15 @@ export async function readResourceBytes(
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
   try {
     const response = await Promise.race([
-      request.call(globalThis, url.toString(), {
-        cache: 'no-store',
-        credentials: 'omit',
-        redirect: 'error',
-        referrerPolicy: 'no-referrer',
-        signal: controller.signal,
-      }),
+      owned
+        ? Promise.resolve(new Response(owned.blob.stream()))
+        : request.call(globalThis, url.toString(), {
+            cache: 'no-store',
+            credentials: 'omit',
+            redirect: 'error',
+            referrerPolicy: 'no-referrer',
+            signal: controller.signal,
+          }),
       aborted,
     ])
     if (!response.ok || response.redirected) throw new Error(`资源请求失败（${response.status}）`)
@@ -77,5 +115,6 @@ export async function readResourceBytes(
     clearTimeout(timer)
     if (onAbort) controller.signal.removeEventListener('abort', onAbort)
     options.signal?.removeEventListener('abort', cancel)
+    owned?.controller.signal.removeEventListener('abort', cancelOwned)
   }
 }

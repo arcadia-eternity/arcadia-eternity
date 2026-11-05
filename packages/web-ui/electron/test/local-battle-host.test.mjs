@@ -46,6 +46,70 @@ async function closed(url) {
 }
 
 describe('local authority host', () => {
+  it('recovers a failed saved listener on loopback without replacing server identity or project', async () => {
+    const stateDirectory = join(root, 'occupied-server-state')
+    const instance = host({ stateDirectory, workspaceRoot: root })
+    const directory = await project('occupied-listener')
+    try {
+      await assert.rejects(instance.start(directory), { code: 'LISTENER_ADDRESS_IN_USE' })
+      const saved = JSON.parse(await readFile(join(stateDirectory, 'server.json'), 'utf8'))
+      const recovered = await instance.startLocalRecovery()
+      assert.equal(recovered.serverId, saved.serverId)
+      assert.equal(recovered.projectName, 'occupied-listener')
+      assert.equal(recovered.localRecovery, true)
+      assert.equal(recovered.network.scope, 'local')
+      assert.deepEqual(recovered.network.inviteUrls, [])
+      assert.equal(instance.projectDirectory(), await realpath(directory))
+      await instance.stopHosting()
+      const fresh = host({ stateDirectory, workspaceRoot: root })
+      try {
+        assert.equal((await fresh.startLocalRecovery()).serverId, saved.serverId)
+      } finally {
+        await fresh.stop()
+      }
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('drains before owner stop and requires an explicit force choice for active games', async () => {
+    const instance = host({ stateDirectory: join(root, 'active-server-state'), workspaceRoot: root })
+    try {
+      const running = await instance.start(await project('active-battle'))
+      await assert.rejects(instance.stopHosting(), { code: 'HOST_DRAINING' })
+      assert.equal(instance.status().status, 'running')
+      assert.equal(await closed(running.url), false)
+      await assert.rejects(instance.stopHosting({ force: 'yes' }), { code: 'INVALID_REQUEST' })
+      assert.equal((await instance.stopHosting({ force: true })).status, 'idle')
+      assert.equal(await closed(running.url), true)
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('persists server identity across host instances and forwards management only through private IPC', async () => {
+    const directory = await project('persistent-host')
+    const stateDirectory = join(root, 'server-state')
+    const first = host({ stateDirectory, workspaceRoot: root })
+    let serverId
+    try {
+      const running = await first.start(directory)
+      serverId = running.serverId
+      const response = await first.managementRequest({ method: 'GET', path: '/capabilities' })
+      assert.equal(response.body.serverId, serverId)
+      assert.deepEqual(response.body.request, { method: 'GET', path: '/capabilities', headers: {} })
+      await assert.rejects(first.managementRequest({ method: 'GET', path: '//remote.test/' }))
+    } finally {
+      await first.stop()
+    }
+    await assert.rejects(first.managementRequest({ method: 'GET', path: '/capabilities' }), {
+      code: 'HOST_UNAVAILABLE',
+    })
+    const second = host({ stateDirectory, workspaceRoot: root })
+    try {
+      assert.equal((await second.start(directory)).serverId, serverId)
+    } finally {
+      await second.stop()
+    }
+  })
   it('requires bundled executable, CLI, npm runtime and an explicitly prepared project', async () => {
     const directory = await project('checks')
     await assert.rejects(host({ executable: '/missing/node' }).start(directory), { code: 'SERVER_RUNTIME_MISSING' })

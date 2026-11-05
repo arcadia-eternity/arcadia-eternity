@@ -1,4 +1,5 @@
 import { defineConfig } from 'rolldown'
+import { isExternalDependency } from '../../scripts/rollup-external.mjs'
 import { buildEnvironmentArtifact } from '../../scripts/build-battle-environment.mjs'
 export default defineConfig({
   input: {
@@ -23,5 +24,5 @@ export default defineConfig({
       },
     },
   ],
-  external: id => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'),
+  external: isExternalDependency,
 })

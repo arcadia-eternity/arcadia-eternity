@@ -8,6 +8,8 @@ import { authorReference } from './author-reference.mjs'
 import { inspectAsset } from './asset-inspect.mjs'
 import { callPreviewControl } from './preview-control.mjs'
 export { createSourceProject, connectDevelopmentSdk, authorConnection } from './project.mjs'
+export { ContentWorkspace } from './content-workspace.mjs'
+export { normalizeEnvironmentDocument } from './debug-environments.mjs'
 
 /** Shared operations for the desktop, CLI and MCP adapters. */
 export async function openAuthorSession(directory, options = {}) {

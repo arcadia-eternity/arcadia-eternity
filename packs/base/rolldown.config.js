@@ -1,4 +1,5 @@
 import { defineConfig } from 'rolldown'
+import { isExternalDependency } from '../../scripts/rollup-external.mjs'
 import { fileURLToPath } from 'node:url'
 import { buildBaseEnvironmentArtifact } from '../../scripts/build-base-environment.mjs'
 
@@ -21,5 +22,5 @@ export default defineConfig({
       },
     },
   ],
-  external: id => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'),
+  external: isExternalDependency,
 })

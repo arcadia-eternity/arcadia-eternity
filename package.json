@@ -65,6 +65,8 @@
     "verify:ugc-release": "node scripts/release-author-sdk.mjs verify"
   },
   "dependencies": {
+    "@arcadia-eternity/database": "workspace:^",
+    "@arcadia-eternity/content-dev": "workspace:^",
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/console": "workspace:^",

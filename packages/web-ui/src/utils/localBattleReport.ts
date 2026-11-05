@@ -1,6 +1,6 @@
 import { ElMessage } from 'element-plus'
 import { nanoid } from 'nanoid'
-import type { BattleRecord } from '@arcadia-eternity/database'
+import type { BattleRecord } from '@/types/localBattleRecord'
 
 /**
  * 本地战报数据结构

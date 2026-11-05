@@ -6,6 +6,10 @@ services:
       - '8102:8102'
     environment:
       NODE_ENV: production
+      ARCADIA_DATA_DIR: /app/state
+      STORAGE_DRIVER: '${STORAGE_DRIVER:-sqlite}'
+      DATABASE_URL: '${DATABASE_URL:-}'
+      ACCOUNT_MODE: '${ACCOUNT_MODE:-guest}'
       PORT: '8102'
       SERVER_ID: '${SERVER_ID:-arcadia-local}'
       ARCADIA_MAX_CONCURRENT_BATTLES: '${ARCADIA_MAX_CONCURRENT_BATTLES-32}'
@@ -14,4 +18,8 @@ services:
       ARCADIA_BATTLE_QUEUE_TIMEOUT_MS: '${ARCADIA_BATTLE_QUEUE_TIMEOUT_MS-5000}'
       CORS_ORIGIN: '${CORS_ORIGIN:-http://localhost:3000,http://localhost:5173}'
     restart: unless-stopped
+    volumes:
+      - arcadia-state:/app/state
     stop_grace_period: 15s
+volumes:
+  arcadia-state:

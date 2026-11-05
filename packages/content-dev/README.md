@@ -15,7 +15,9 @@
 }
 ```
 
-Commands use the caller's working directory. `check` checks `tsconfig.json` and recursive JSON/YAML sources in `data/{species,skills,marks,behaviors}`. `build` compiles TypeScript and generates `dist/content.json`. `rename --name ... --project-id ... --namespace ...` changes local structured references while preserving foreign references, content IDs and YAML comments. `pack` checks, builds and runs `npm pack --ignore-scripts`.
+Commands use the caller's working directory. `check` checks `tsconfig.json` and recursive JSON/YAML sources in `data/{species,skills,marks,behaviors}`. `build` compiles TypeScript and generates `dist/content.json`. `rename --name ... --project-id ... --namespace ...` changes local structured references while preserving foreign references, content IDs and YAML comments. `pack` checks, builds and stages a publishable package before running `npm pack --ignore-scripts`.
+
+For code packages, `pack` bundles the effect dependency graph into `dist/arcadia-effects.json` and adds `arcadia.effectArtifact` to the staged manifest. Source `package.json` stays unchanged. This author-side compilation parses and bundles code without evaluating module initialization or effect factories. Consumers can prepare the resulting package with `effectPreparation: 'prebuilt-only'`; they do not need to compile author source or install its development dependencies. Plain `npm pack` does not generate this artifact, so use `npm run pack` or `arcadia-content pack` for distribution. Publication of a prebuilt artifact does not grant authority to execute its code.
 
 `demo` loads `arcadia.config.mjs`, whose default export selects two project teams with `teams: ['blue', 'orange']`. The template stores their portable configurations in `debug/teams/*.yaml`. It packs the project, installs the artifact in a temporary npm project and runs a deterministic local battle using each player's first skill. It fails on effect errors or if the battle exceeds 40 turns. The configuration and behavioral assertions belong to the content pack.
 
@@ -81,3 +83,13 @@ Execution-enabled sessions expose `battle_create`, `battle_read`, `battle_events
 ## Project teams and named environments
 
 See [the workflow contract](../../docs/v4/project-battle-workflow.md). `prepareContentPack(root, { environmentId, sources, lockRoot, offline, cache })` selects a named environment; omit `environmentId` for the declared-dependencies-only package test. `sources` maps npm names to local source directories. `lockRoot` opts into version-checked npm lock writes to the original project; without it preparation does not mutate project files. The returned harness exposes `loadTeams([firstId, secondId])` and `teamVersions` so automatic cases explicitly select their inputs. Manual drafts and last-selected teams never enter automatic tests. Only `config.teams` defines the default team selection.
+
+Environment schema v2 adds versioned rule data and runtime requirements. Existing v1 files remain readable and are upgraded only on an explicit save. Reference battles and Worker battles apply the same team-size, species uniqueness and content allow/deny rules. Unsupported tiers or capability requirements fail explicitly. Editing returned environment metadata does not change an already prepared candidate's admission policy.
+
+## Shared management workspace
+
+`@arcadia-eternity/content-dev/management-workspace` exports the typed `ContentWorkspace` API used by desktop owners and standalone servers. One process owns each workspace; another live writer is rejected, while a confirmed dead process owner can be recovered. `saveDraft` requires the current revision. `prepareVersion` captures and statically validates a fixed npm installation, while `adoptVersion` borrows existing client materials through a material-owner lease without another installation. Long preparation accepts an abort signal and a trusted `beforeCommit` authorization check.
+
+Workspace files own environment definitions and immutable versions. Database adapters supply durable retention roots; runtime leases belong to the current owner. Deletion fails closed when retention information is unavailable, and owner shutdown refuses outstanding runtime leases. Server bindings, accounts, grants and running rooms remain separate from these files.
+
+`exportVersion` creates a portable environment archive with standard npm locks and material bytes, excluding server and workspace identities. `exportSnapshot` captures workspace identity, drafts and fixed versions for a server backup. `restoreSnapshot` requires an empty, inactive staging workspace: restore preserves identities, clone remaps them. The server backup coordinator validates the corresponding database snapshot before switching the full server directory. These file APIs do not provide a transaction spanning the database and filesystem.

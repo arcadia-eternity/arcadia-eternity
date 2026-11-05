@@ -1,9 +1,10 @@
-import type { createSingleProcessApp } from '@arcadia-eternity/server'
+import type { createSingleProcessApp, ManagementRequest, ManagementResponse } from '@arcadia-eternity/server'
 
 /** Private parent/child channel, deliberately absent from HTTP and Socket.IO. */
 export function attachDesktopContentControl(
   registry: ReturnType<typeof createSingleProcessApp>['environments'],
   builtinId: string,
+  managementRequest?: (request: ManagementRequest) => Promise<ManagementResponse>,
 ): () => void {
   let pending = Promise.resolve()
   let closed = false
@@ -17,7 +18,18 @@ export function attachDesktopContentControl(
         if (closed) return
         try {
           let value: unknown
-          if (input.action === 'retained') value = registry.retainedIds()
+          if (input.action === 'management') {
+            if (!managementRequest || !input.request || typeof input.request !== 'object')
+              throw new Error('MANAGEMENT_UNAVAILABLE')
+            const request = input.request as ManagementRequest
+            if (
+              typeof request.path !== 'string' ||
+              !request.path.startsWith('/') ||
+              !['GET', 'POST', 'PATCH', 'DELETE'].includes(request.method)
+            )
+              throw new Error('INVALID_MANAGEMENT_REQUEST')
+            value = await managementRequest(request)
+          } else if (input.action === 'retained') value = registry.retainedIds()
           else if (input.action === 'describe') value = registry.descriptor()
           else if (input.action === 'prepare') {
             if (input.builtinOnly === true) value = registry.descriptor(builtinId)

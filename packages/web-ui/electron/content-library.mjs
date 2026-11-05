@@ -1,12 +1,44 @@
 import { randomUUID } from 'node:crypto'
 import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import { basename, isAbsolute, join } from 'node:path'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const exactPackage = /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 // npm redacts UUIDs even in npm ls JSON paths; keep opaque handles out of directory names.
 const storageName = id => 'content-' + id.replaceAll('-', '')
 const contentKinds = ['species', 'skills', 'marks']
+const packageName = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
+const sourceError = code => Object.assign(new Error(code), { code })
+function sourceRegistry(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > 200)
+    throw sourceError('INSTALL_SOURCES_INVALID')
+  for (const [name, source] of Object.entries(value)) {
+    if (!packageName.test(name) || !source || typeof source !== 'object' || Array.isArray(source))
+      throw sourceError('INSTALL_SOURCES_INVALID')
+    const keys = {
+      archive: ['kind', 'file'],
+      directory: ['kind', 'directory'],
+      url: ['kind', 'url', 'integrity'],
+      git: ['kind', 'url', 'commit', 'artifactPath'],
+    }[source.kind]
+    if (!keys || Object.keys(source).some(key => !keys.includes(key))) throw sourceError('INSTALL_SOURCES_INVALID')
+    if (source.kind === 'archive' || source.kind === 'directory') {
+      const path = source[source.kind === 'archive' ? 'file' : 'directory']
+      if (typeof path !== 'string' || !isAbsolute(path)) throw sourceError('INSTALL_SOURCES_INVALID')
+    } else {
+      let url
+      try {
+        url = new URL(source.url)
+      } catch {
+        throw sourceError('INSTALL_SOURCES_INVALID')
+      }
+      if (url.protocol !== 'https:' || url.username || url.password) throw sourceError('INSTALL_SOURCES_INVALID')
+      if (source.kind === 'git' && !/^[a-fA-F0-9]{40}$/.test(source.commit ?? ''))
+        throw sourceError('INSTALL_SOURCES_INVALID')
+    }
+  }
+  return structuredClone(value)
+}
 function validEntry(item) {
   return (
     item &&
@@ -17,7 +49,7 @@ function validEntry(item) {
     item.namespace &&
     typeof item.title === 'string' &&
     typeof item.projectId === 'string' &&
-    ((item.source?.kind === 'file' && item.source.file === 'content-0.tgz') ||
+    ((item.source?.kind === 'file' && ['content-0.tgz', 'candidates/content-0.tgz'].includes(item.source.file)) ||
       (item.source?.kind === 'npm' && item.source.spec === item.name + '@' + item.version)) &&
     typeof item.source.label === 'string' &&
     Array.isArray(item.graph) &&
@@ -95,12 +127,21 @@ export class ContentLibrary {
   #settledGoal
   #leases = new Map()
   #gcTimer
-  constructor({ root, run, host, prepare = async () => {}, selected = () => {} }) {
+  #sources
+  #createManagedProjects
+  constructor({ root, run, host, prepare = async () => {}, selected = () => {}, sources = {}, createManagedProjects }) {
     this.root = root
     this.run = run
     this.host = host
     this.prepare = prepare
     this.selected = selected
+    this.#sources = sourceRegistry(sources)
+    this.#createManagedProjects =
+      createManagedProjects ??
+      (async (root, options) => {
+        const { ManagedProjects } = await import('@arcadia-eternity/content-dev/managed-projects')
+        return new ManagedProjects(root, options)
+      })
   }
   async #load() {
     if (this.#state) return
@@ -223,6 +264,35 @@ export class ContentLibrary {
       }
     })
   }
+  /** Fixed project materials may also be owned by immutable workspace versions. */
+  async ownsProjectDirectory(directory) {
+    if (typeof directory !== 'string') return false
+    await this.#load()
+    const name = basename(directory)
+    if (!/^content-[0-9a-f]{32}$/.test(name) || directory !== join(this.root, 'projects', name)) return false
+    return (await realpath(directory).catch(() => null)) === directory
+  }
+  async retainProjectDirectory(directory) {
+    return this.#exclusive(async () => {
+      if (!(await this.ownsProjectDirectory(directory))) throw new Error('环境材料不属于此内容工作区')
+      const id = basename(directory)
+        .slice(8)
+        .replace(/^(........)(....)(....)(....)(............)$/, '$1-$2-$3-$4-$5')
+      await this.#directory(id)
+      this.#leases.set(id, (this.#leases.get(id) ?? 0) + 1)
+      let released = false
+      return async () => {
+        if (released) return
+        released = true
+        const count = (this.#leases.get(id) ?? 1) - 1
+        if (count) this.#leases.set(id, count)
+        else this.#leases.delete(id)
+        // Collection is scheduled independently; releasing a workspace lease can
+        // occur while that workspace holds its own deletion critical section.
+        this.#scheduleGc()
+      }
+    })
+  }
   async collectGarbage() {
     return this.#exclusive(() => this.#collectGarbage())
   }
@@ -288,7 +358,7 @@ export class ContentLibrary {
     if (plan.revision !== this.#state.revision) throw new Error('内容包列表已变化，请重新准备操作')
     return plan
   }
-  async #createProject(sources, offline = false) {
+  async #createProject(sources, offline = false, signal = this.#controller.signal) {
     const id = randomUUID(),
       directory = join(this.root, 'projects', storageName(id))
     await mkdir(directory)
@@ -298,10 +368,11 @@ export class ContentLibrary {
         JSON.stringify({ name: 'arcadia-local-content', version: '1.0.0', private: true }),
       )
       const inputs = []
+      await mkdir(join(directory, 'candidates'))
       for (let index = 0; index < sources.length; index++) {
         const source = sources[index]
         if (source.kind === 'file') {
-          const file = 'content-' + index + '.tgz'
+          const file = 'candidates/content-' + index + '.tgz'
           await copyFile(source.file, join(directory, file))
           inputs.push('file:./' + file)
         } else inputs.push(source.spec)
@@ -316,7 +387,7 @@ export class ContentLibrary {
             ...(offline ? ['--offline'] : []),
             ...(inputs.length ? ['--package', ...inputs] : []),
           ],
-          this.#controller.signal,
+          signal,
         ),
       )
       return { id, directory, inspection }
@@ -349,13 +420,12 @@ export class ContentLibrary {
       activeIds: state.activeIds,
       activeGraph: state.activeGraph,
       desiredIds: state.desiredIds,
-      selection:
-        this.#sync.status === 'ready' && status.status === 'failed'
-          ? { status: 'failed', message: status.message }
-          : this.#sync,
+      selection: this.#sync,
       hasSelection: !!activeDirectory,
       serviceStatus: status,
-      serviceNeedsRestart: status.status === 'running' && this.host.projectDirectory?.() !== activeDirectory,
+      serviceNeedsRestart: false,
+      serviceUsesDifferentEnvironment:
+        status.status === 'running' && this.host.projectDirectory?.() !== activeDirectory,
     })
   }
   async stageFile(file, offline = false) {
@@ -423,7 +493,7 @@ export class ContentLibrary {
         source:
           source.kind === 'npm'
             ? { kind: 'npm', spec: source.spec, label: source.label }
-            : { kind: 'file', file: 'content-0.tgz', label: source.label },
+            : { kind: 'file', file: 'candidates/content-0.tgz', label: source.label },
         graph: graphFor(project.inspection),
         contentIds: idsFor(project.inspection.packages),
         counts: Object.fromEntries(
@@ -459,6 +529,158 @@ export class ContentLibrary {
   }
   async planSelection(ids, offline = false) {
     return this.#exclusive(() => this.#prepareSelection(ids, offline))
+  }
+  async #registeredSources() {
+    let sources = {}
+    try {
+      sources = sourceRegistry(await readJson(join(this.root, 'content-sources.json'), 128 * 1024))
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    return { ...sources, ...this.#sources }
+  }
+  /** The main process obtains this path from a native file chooser, never a renderer path. */
+  async importSourceRegistry(file) {
+    return this.#exclusive(async () => {
+      const sources = sourceRegistry(await readJson(file, 128 * 1024))
+      const target = join(this.root, 'content-sources.json'),
+        temporary = target + '.' + randomUUID() + '.tmp'
+      try {
+        await writeFile(temporary, JSON.stringify(sources, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
+        await rename(temporary, target)
+      } finally {
+        await rm(temporary, { force: true })
+      }
+      return { sourceIds: Object.keys(sources).sort() }
+    })
+  }
+  /** Prepare a named management environment without changing local-play selection.
+   * Reuse the active installed combination whenever its exact packages match.
+   */
+  async prepareEnvironmentProject(document, { signal, offline = false } = {}) {
+    return this.#exclusive(async () => {
+      if (!document || typeof document.packages !== 'object' || !document.packages || Array.isArray(document.packages))
+        throw new Error('环境包配置无效')
+      const requested = Object.entries(document.packages).sort(([a], [b]) => a.localeCompare(b))
+      const sourceIds = document.sources ?? []
+      if (
+        !Array.isArray(sourceIds) ||
+        new Set(sourceIds).size !== sourceIds.length ||
+        sourceIds.some(name => typeof name !== 'string' || !packageName.test(name)) ||
+        requested.length + sourceIds.length > 100 ||
+        requested.some(
+          ([name, version]) =>
+            !packageName.test(name) ||
+            typeof version !== 'string' ||
+            !version.trim() ||
+            /[\/\\\s]/.test(version) ||
+            /^(?:file|link|workspace):/.test(version),
+        )
+      )
+        throw new Error('环境包配置无效')
+      const combined = signal ? AbortSignal.any([signal, this.#controller.signal]) : this.#controller.signal
+      combined.throwIfAborted()
+      const registry = sourceIds.length ? await this.#registeredSources() : {}
+      const selectedSources = {},
+        installedSources = new Map()
+      for (const name of sourceIds) {
+        if (Object.hasOwn(document.packages, name)) throw sourceError('INSTALL_DUPLICATE_PACKAGE')
+        if (Object.hasOwn(registry, name)) selectedSources[name] = registry[name]
+        else {
+          const installed = this.#state.installed.filter(entry => entry.name === name)
+          const active = installed.filter(entry => this.#state.activeIds.includes(entry.id))
+          if (!installed.length) throw sourceError('INSTALL_SOURCE_NOT_REGISTERED')
+          if (active.length !== 1 && installed.length !== 1) throw sourceError('INSTALL_SOURCE_AMBIGUOUS')
+          const entry = active[0] ?? installed[0]
+          installedSources.set(name, entry)
+          requested.push([name, entry.version])
+        }
+      }
+      requested.sort(([a], [b]) => a.localeCompare(b))
+      const active = this.#state.activeIds
+        .map(id => this.#entry(id))
+        .map(entry => [entry.name, entry.version])
+        .sort(([a], [b]) => a.localeCompare(b))
+      let id = this.#state.activeProject,
+        directory
+      if (!Object.keys(selectedSources).length && id && JSON.stringify(active) === JSON.stringify(requested))
+        directory = await this.#directory(id)
+      else {
+        let project
+        if (Object.keys(selectedSources).length) {
+          // Share the headless source/lock/install pipeline, then transfer its one
+          // tree into the client library. The hosted server only adopts this tree.
+          const packages = Object.fromEntries(requested)
+          for (const [name, entry] of installedSources)
+            if (entry.source.kind === 'file') {
+              selectedSources[name] = {
+                kind: 'archive',
+                file: join(await this.#directory(entry.id), entry.source.file),
+              }
+              delete packages[name]
+            }
+          const acquisition = join(this.root, 'acquisition')
+          await mkdir(acquisition, { recursive: true })
+          if ((await realpath(acquisition)) !== acquisition) throw sourceError('INSTALL_ROOT_INVALID')
+          const installer = await this.#createManagedProjects(acquisition, {
+            sources: selectedSources,
+            offline,
+            allowThirdPartyContent: true,
+          })
+          try {
+            project = await installer.prepareProject(
+              { ...document, packages, sources: Object.keys(selectedSources) },
+              { signal: combined },
+              async staged => {
+                combined.throwIfAborted()
+                const id = randomUUID(),
+                  directory = join(this.root, 'projects', storageName(id))
+                await rename(staged, directory)
+                return { id, directory }
+              },
+            )
+          } finally {
+            await installer.close()
+          }
+        } else {
+          const sources = []
+          for (const [name, version] of requested) {
+            const installed =
+              installedSources.get(name) ??
+              this.#state.installed.find(entry => entry.name === name && entry.version === version)
+            sources.push(
+              installed?.source.kind === 'file'
+                ? { kind: 'file', file: join(await this.#directory(installed.id), installed.source.file) }
+                : { kind: 'npm', spec: `${name}@${version}` },
+            )
+          }
+          project = await this.#createProject(sources, offline, combined)
+        }
+        id = project.id
+        directory = project.directory
+        try {
+          combined.throwIfAborted()
+          await this.run(['content', 'npm', 'approve', directory, '--profile', 'local-development'], combined)
+          combined.throwIfAborted()
+        } catch (error) {
+          await rm(directory, { recursive: true, force: true })
+          throw error
+        }
+      }
+      this.#leases.set(id, (this.#leases.get(id) ?? 0) + 1)
+      let released = false
+      return {
+        directory,
+        release: async () => {
+          if (released) return
+          released = true
+          const count = (this.#leases.get(id) ?? 1) - 1
+          if (count) this.#leases.set(id, count)
+          else this.#leases.delete(id)
+          this.#scheduleGc()
+        },
+      }
+    })
   }
   async #prepareSelection(ids, offline = false) {
     if (!Array.isArray(ids) || ids.length > 100 || new Set(ids).size !== ids.length) throw new Error('内容包选择无效')
@@ -598,11 +820,7 @@ export class ContentLibrary {
   async #reconcile() {
     while (!this.#controller.signal.aborted) {
       const goal = { revision: this.#state.goalRevision, ids: [...this.#state.desiredIds] }
-      let plan,
-        directory,
-        prepared,
-        previous,
-        retained = false
+      let plan, directory
       try {
         await this.#exclusive(async () => {
           this.#sync = { status: 'preparing' }
@@ -625,29 +843,16 @@ export class ContentLibrary {
           }
           await this.prepare({ directory, builtinOnly: goal.ids.length === 0 })
           if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
-          // Only an explicitly started hosting process receives updates. Offline
-          // content preparation never starts rooms, matchmaking or an HTTP server.
-          if (this.host.status().status === 'running') {
-            prepared = await this.host.prepareProject(directory, { builtinOnly: goal.ids.length === 0 })
-            if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
-            previous = await this.host.selectPrepared(prepared)
-          }
-          try {
-            await this.#update(state => ({
-              ...state,
-              activeIds: goal.ids,
-              activeProject: plan?.project ?? state.activeProject,
-              activeGoalRevision: goal.revision,
-              activeGraph: plan?.graph ?? state.activeGraph,
-            }))
-          } catch (error) {
-            if (previous) await this.host.selectPrepared(previous)
-            throw error
-          }
-          retained = true
+          // Local selection is independent from a server's published binding.
+          // The running host retains its own project until explicitly switched.
+          await this.#update(state => ({
+            ...state,
+            activeIds: goal.ids,
+            activeProject: plan?.project ?? state.activeProject,
+            activeGoalRevision: goal.revision,
+            activeGraph: plan?.graph ?? state.activeGraph,
+          }))
           this.selected({ directory, builtinOnly: goal.ids.length === 0 })
-          if (previous && prepared && previous.id !== prepared.id)
-            await this.host.retirePrepared(previous).catch(() => {})
         })
         if (goal.revision === this.#state.goalRevision) {
           this.#settledGoal = goal.revision
@@ -662,20 +867,39 @@ export class ContentLibrary {
         }
       } finally {
         if (plan) this.#plans.delete(plan.id)
-        if (!retained) {
-          if (prepared) await this.host.retirePrepared(prepared).catch(() => {})
-        }
         if (!this.#controller.signal.aborted) await this.collectGarbage().catch(() => {})
       }
     }
   }
   async start() {
-    return this.#exclusive(async () => {
-      if (!this.#state.activeProject) throw new Error('请先准备本机内容选择')
-      const directory = await this.#directory(this.#state.activeProject)
+    let lease = await this.acquireProject()
+    if (!lease.directory) {
+      await lease.release()
+      const plan = await this.#exclusive(async () => {
+        if (this.#state.activeProject) return null
+        if (this.#state.desiredIds.length || this.#state.goalRevision !== 0)
+          throw new Error('内容选择尚未准备完成，请完成准备后再启动托管')
+        // A fresh library already offers the bundled base for local play. Hosting
+        // materializes that same choice without requiring a third-party install.
+        return this.#prepareSelection([], true)
+      })
+      if (plan) {
+        try {
+          await this.applySelection(plan.id)
+        } catch (error) {
+          await this.cancel(plan.id).catch(() => {})
+          throw error
+        }
+      }
+      lease = await this.acquireProject()
+    }
+    try {
+      if (!lease.directory) throw new Error('请先准备本机内容选择')
       if (this.#controller.signal.aborted) throw new Error('内容包管理已关闭')
-      return this.host.start(directory, { builtinOnly: this.#state.activeIds.length === 0 })
-    })
+      return await this.host.start(lease.directory, { builtinOnly: lease.builtinOnly })
+    } finally {
+      await lease.release()
+    }
   }
   async close() {
     this.#controller.abort()

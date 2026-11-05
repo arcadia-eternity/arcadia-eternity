@@ -54,10 +54,10 @@ export type ContentPackagePlan =
       requiresApproval: boolean
     }
 export type ContentPackageAction =
+  | { action: 'import-sources' }
   | { action: 'set-selection'; ids: string[]; offline?: boolean }
   | { action: 'confirm-install'; planId: string; allowCode: boolean }
   | { action: 'plan-selection'; ids: string[]; offline?: boolean }
   | { action: 'apply-selection'; planId: string; allowCode: boolean }
   | { action: 'cancel'; planId: string }
   | { action: 'uninstall'; packageId: string }
-  | { action: 'start' }

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.mjs'
+import { assertEnvironmentTeam, validateEnvironmentRules } from './environment-rules.mjs'
 import { prepareSandboxContent } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 export { prepareBattleEnvironment } from './environment.mjs'
@@ -20,13 +21,14 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
     throw new Error('arcadia.config.mjs must export exactly two project team IDs in teams')
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
+  const environmentRules = validateEnvironmentRules(prepared.environmentDocument.rules)
   // Four automation sessions, one human preview, and room for their validated replacements.
   const workers = createNodeBattleWorkerManager({ maxBattles: 7 })
   function defaultPlayers() {
     return prepared.loadTeams(config.teams)
   }
   function runtimePlayers(supplied, runtimeIds = false) {
-    return (supplied ?? defaultPlayers()).map(player => ({
+    const players = (supplied ?? defaultPlayers()).map(player => ({
       ...player,
       id: (runtimeIds ? undefined : player.id) ?? randomBytes(16).toString('base64url').slice(0, 21),
       team: player.team.map(pet => ({
@@ -34,6 +36,8 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
         id: runtimeIds ? randomBytes(16).toString('base64url').slice(0, 21) : pet.id,
       })),
     }))
+    for (const player of players) assertEnvironmentTeam(environmentRules, player.team)
+    return players
   }
   const referenceContent = new WeakMap()
   function ownBattle(battle, effects) {
@@ -61,9 +65,9 @@ export async function prepareContentPack(root = process.cwd(), options = {}) {
     seed = 'content-pack-template',
     { ai = false, players: supplied, runtimeIds = false, battleOptions = {} } = {},
   ) {
+    const input = runtimePlayers(supplied, runtimeIds)
     const effects = await prepareSandboxContent(environment.sandbox)
     try {
-      const input = runtimePlayers(supplied, runtimeIds)
       const players = effects.content.parsePlayers(input, { aiPlayerIds: ai ? [input[1]?.id] : [] })
       if (players.length !== 2) throw new Error('The demo requires exactly two players')
       const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])

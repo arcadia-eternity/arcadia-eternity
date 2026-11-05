@@ -11,3 +11,5 @@ export type { AccountDirectory, VerifiedIdentity } from './standalone/accounts/d
 export type { G3AccountServices } from './standalone/app'
 
 export { parseBattleCapacityEnv } from './standalone/battle-capacity'
+
+export * from './standalone/management'
