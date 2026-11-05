@@ -195,14 +195,11 @@ describe('unified management HTTP and durable environment publication', () => {
       (await env.request(path + '/unused', 'DELETE', undefined, { 'If-Match': draft.body.revision })).response.status,
     ).toBe(200)
     const route = '/servers/managed-test/battles/ended/terminate'
-    expect(
-      (await env.request(route, 'POST', { reason: '' }, { 'Idempotency-Key': 'empty-reason' })).response.status,
-    ).toBe(422)
-    const first = await env.request(route, 'POST', { reason: '已结束' }, { 'Idempotency-Key': 'one-ended-match' })
+    const first = await env.request(route, 'POST', undefined, { 'Idempotency-Key': 'one-ended-match' })
     expect(first.response.status).toBe(202)
     const result = await completed(env.storage, first.body.id)
     expect(result).toMatchObject({ status: 'succeeded', result: { terminated: false, status: 'already-ended' } })
-    const repeated = await env.request(route, 'POST', { reason: '已结束' }, { 'Idempotency-Key': 'one-ended-match' })
+    const repeated = await env.request(route, 'POST', undefined, { 'Idempotency-Key': 'one-ended-match' })
     expect(repeated.body.id).toBe(first.body.id)
   })
   it('keeps guest gameplay independent from authenticated management, enforces CSRF and scope', async () => {

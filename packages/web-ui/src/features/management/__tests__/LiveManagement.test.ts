@@ -27,7 +27,7 @@ const props = {
   busy: false,
 }
 describe('live server operations', () => {
-  it('keeps termination tied to the selected ID, requires a reason and handles a completed match', async () => {
+  it('keeps termination tied to the selected ID, confirms without text input and handles a completed match', async () => {
     const page = mount(LiveManagement, { props })
     await page
       .findAll('button')
@@ -40,10 +40,10 @@ describe('live server operations', () => {
       .trigger('click')
     await page.setProps({ battles: [battle('match-two', 'peer'), battle('match-one')] })
     const form = page.get('[aria-label="确认管理操作"]')
-    expect(form.find('button').attributes('disabled')).toBeDefined()
-    await form.get('textarea').setValue('卡局处理')
+    expect(form.find('button').attributes('disabled')).toBeUndefined()
+    expect(form.find('textarea, input').exists()).toBe(false)
     await form.trigger('submit')
-    expect(page.emitted('terminate')).toEqual([['match-one', '卡局处理']])
+    expect(page.emitted('terminate')).toEqual([['match-one']])
     await page.setProps({ battles: [battle('match-two', 'peer')] })
     expect(page.get('[aria-label="对战详情"]').text()).toContain('此对战已结束')
     page.unmount()

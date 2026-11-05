@@ -1001,39 +1001,29 @@ export class ManagementService {
         }
         if (method === 'POST' && parts.length === 5 && parts[4] === 'terminate') {
           await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
-          const id = text(parts[3]),
-            reason = text(input.reason, 500).trim()
-          if (!reason) fail('REASON_REQUIRED', 422)
-          return this.startOperation(
-            actor,
-            request,
-            'battle.terminate',
-            this.serverScope,
-            { id, reason },
-            async ctx => {
-              await ctx.checkCurrent()
-              await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
-              return this.options.rooms.terminateManagedBattle(id, async () => {
-                await ctx.commit(
-                  async tx => {
-                    await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'battles.terminate')
-                    await tx.create('audit', {
-                      id: randomUUID(),
-                      scope: managementScopeKey(this.serverScope),
-                      value: {
-                        actor: actor.principalId,
-                        action: 'battle.terminate',
-                        target: id,
-                        reason,
-                        createdAt: Date.now(),
-                      },
-                    })
-                  },
-                  { finalize: false },
-                )
-              })
-            },
-          )
+          const id = text(parts[3])
+          return this.startOperation(actor, request, 'battle.terminate', this.serverScope, { id }, async ctx => {
+            await ctx.checkCurrent()
+            await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+            return this.options.rooms.terminateManagedBattle(id, async () => {
+              await ctx.commit(
+                async tx => {
+                  await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'battles.terminate')
+                  await tx.create('audit', {
+                    id: randomUUID(),
+                    scope: managementScopeKey(this.serverScope),
+                    value: {
+                      actor: actor.principalId,
+                      action: 'battle.terminate',
+                      target: id,
+                      createdAt: Date.now(),
+                    },
+                  })
+                },
+                { finalize: false },
+              )
+            })
+          })
         }
       }
       if (parts[2] === 'accounts') {
@@ -1048,7 +1038,7 @@ export class ManagementService {
         }
         if (parts.length === 4 && method === 'GET') return ok(await this.accounts.status(actor, parts[3]))
         if (parts.length === 5 && parts[4] === 'deactivate' && method === 'POST')
-          return ok(await this.accounts.deactivate(actor, parts[3], input.reason))
+          return ok(await this.accounts.deactivate(actor, parts[3]))
       }
       if (parts.length === 2 && method === 'PATCH') {
         await this.auth.authorize(actor, this.serverScope, 'settings.manage')
@@ -1248,7 +1238,7 @@ export class ManagementService {
           return this.request(actor, {
             ...request,
             path: `/servers/${encodeURIComponent(this.options.serverId)}/battles/${encodeURIComponent(text(original.id))}/terminate`,
-            body: { reason: text(original.reason, 500) },
+            body: {},
             retryOf: op.id,
           })
         if (op.kind === 'environment.prepare')

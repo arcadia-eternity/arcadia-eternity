@@ -14,8 +14,8 @@ const props = defineProps<{
   busy: boolean
 }>()
 const emit = defineEmits<{
-  terminate: [id: string, reason: string]
-  deactivate: [id: string, reason: string]
+  terminate: [id: string]
+  deactivate: [id: string]
   moreAccounts: []
 }>()
 const query = ref('')
@@ -24,7 +24,6 @@ const onlyConnected = ref(true)
 const selectedBattle = ref('')
 const selectedAccount = ref('')
 const confirmation = ref<{ kind: 'battle' | 'account'; id: string }>()
-const reason = ref('')
 const matches = (values: (string | undefined)[]) =>
   values.join(' ').toLowerCase().includes(query.value.trim().toLowerCase())
 const environments = computed(() => [
@@ -51,13 +50,12 @@ const battle = computed(() => props.battles.find(b => b.id === selectedBattle.va
 const account = computed(() => props.accounts.find(a => a.accountId === selectedAccount.value))
 function confirm(kind: 'battle' | 'account', id: string) {
   confirmation.value = { kind, id }
-  reason.value = ''
 }
 function submit() {
-  if (!confirmation.value || !reason.value.trim() || props.busy) return
+  if (!confirmation.value || props.busy) return
   const { kind, id } = confirmation.value
-  if (kind === 'battle') emit('terminate', id, reason.value.trim())
-  else emit('deactivate', id, reason.value.trim())
+  if (kind === 'battle') emit('terminate', id)
+  else emit('deactivate', id)
   confirmation.value = undefined
 }
 function elapsed(start: number) {
@@ -264,8 +262,7 @@ function elapsed(start: number) {
             : '此账户将退出本服，关联管理权限失效。身份记录保留，当前无法恢复。'
         }}
       </p>
-      <label>操作原因<textarea v-model="reason" required maxlength="500" rows="3" /></label>
-      <button class="danger" :disabled="busy || !reason.trim()">
+      <button class="danger" :disabled="busy">
         {{ confirmation.kind === 'battle' ? '确认终止对战' : '确认停用' }}</button
       ><button type="button" @click="confirmation = undefined">取消</button>
     </form>

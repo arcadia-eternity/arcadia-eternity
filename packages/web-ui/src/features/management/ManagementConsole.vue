@@ -253,8 +253,8 @@ async function deleteEnvironment(environment: ManagedEnvironment) {
     environment.revision,
   )
 }
-async function terminateBattle(id: string, reason: string) {
-  await state.mutate('POST', `${serverPath.value}/battles/${encode(id)}/terminate`, { reason })
+async function terminateBattle(id: string) {
+  await state.mutate('POST', `${serverPath.value}/battles/${encode(id)}/terminate`)
 }
 async function useVersion(version: ManagedEnvironmentVersion, executionPolicy: 'server' | 'peer' = 'server') {
   if (version.status !== 'ready') return
@@ -389,8 +389,8 @@ async function createPrincipal() {
     newPrincipalAccount.value = ''
   }
 }
-async function deactivateAccount(accountId: string, reason: string) {
-  await state.mutate('POST', `${serverPath.value}/accounts/${encode(accountId)}/deactivate`, { reason })
+async function deactivateAccount(accountId: string) {
+  await state.mutate('POST', `${serverPath.value}/accounts/${encode(accountId)}/deactivate`)
 }
 async function issueCredential(input: {
   principalId?: string
