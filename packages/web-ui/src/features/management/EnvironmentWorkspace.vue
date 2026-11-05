@@ -147,7 +147,7 @@ function save() {
           >标识<input
             v-model="document.id"
             required
-            pattern="[a-z0-9][a-z0-9_-]{0,79}"
+            pattern="[a-z0-9][a-z0-9_\-]{0,79}"
             :disabled="revision !== null"
             placeholder="friends"
         /></label>

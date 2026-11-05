@@ -633,7 +633,7 @@
       "name": "jsondiffpatch",
       "version": "0.7.6",
       "declaredLicense": "MIT",
-      "status": "unresolved",
+      "status": "verified",
       "registry": {
         "url": "https://registry.npmjs.org/jsondiffpatch/0.7.6",
         "integrity": "sha512-zE9+AXFq+MkTolDor2Cw1nJzLC0aleqPkYf52Kb4Kn4mJcka/gFHpGI2JBVEJCfWOvBl0OoxZS+wuLdislQcqg==",
@@ -649,16 +649,18 @@
           "sourceUrl": "https://raw.githubusercontent.com/benjamine/jsondiffpatch/a60db8a232f92ee4b987c14f43f77402885d1a5a/README.md",
           "sourceCommit": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
           "sourcePath": "README.md"
+        },
+        {
+          "file": "jsondiffpatch-0.7.6-MIT-LICENSE.txt",
+          "sha256": "d8690c69e1c144eced7ca92271413a978b169276ea79c5b4728a71eaede742f7",
+          "license": "MIT",
+          "kind": "license",
+          "sourceUrl": "https://raw.githubusercontent.com/benjamine/jsondiffpatch/a60db8a232f92ee4b987c14f43f77402885d1a5a/MIT-LICENSE.txt",
+          "sourceCommit": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
+          "sourcePath": "MIT-LICENSE.txt"
         }
       ],
-      "note": "No complete applicable original license text established at the published source commit; declarations alone do not clear the release gate.",
-      "sourceAudit": {
-        "commit": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
-        "treeUrl": "https://api.github.com/repos/benjamine/jsondiffpatch/git/trees/a60db8a232f92ee4b987c14f43f77402885d1a5a?recursive=1",
-        "matchingLicensePaths": [],
-        "checkedDeclarationPath": "README.md",
-        "finding": "README links to generic MIT information; no complete project-specific license notice was located in the exact release source tree."
-      }
+      "note": "The exact published source commit contains the complete original MIT notice in MIT-LICENSE.txt. The npm archive omits that file; the earlier filename search missed its MIT- prefix. The original source bytes and attribution are preserved unchanged."
     },
     {
       "name": "keyv",

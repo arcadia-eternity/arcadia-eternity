@@ -217,7 +217,7 @@ onBeforeUnmount(() => {
           <label
             >新环境标识（可选）<input
               v-model="importId"
-              pattern="[a-z0-9][a-z0-9_-]{0,79}"
+              pattern="[a-z0-9][a-z0-9_\-]{0,79}"
               maxlength="80"
               :placeholder="preview.id"
               :disabled="busy || !canImport"

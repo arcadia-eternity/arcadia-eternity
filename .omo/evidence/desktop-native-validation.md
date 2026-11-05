@@ -1,6 +1,12 @@
 # Desktop native runtime validation
 
-## Verified locally
+## Follow-up: actual installed GUI
+
+The 2026-11-05 follow-up uses a real macOS arm64 ZIP and ASAR application entry. Both first installation and same-version artifact replacement passed editing, hosting, shared management, identity/source/environment preservation and normal process shutdown with zero renderer or HTTP errors. Receipt SHA-256 is `0d889a7a3fca78420c6778287fc29f8d5d5ca59b334c11a41c5b5804391eaeed`. The exact receipt and observations are in `.omo/evidence/unified-management-followup-2026-11-05.json`; detailed scope is in `docs/v4/validation/unified-management-followup-2026-11-05.md`.
+
+Better Auth is now pinned to 1.7.13 and its production test peer closure is removed. Applicable original jsondiffpatch license text was restored. The current strict gate retains two npm license blockers (`@npmcli/agent@4.0.2`, `@npmcli/redact@4.0.0`); it still reports releaseReady=false. New four-platform installer/GUI CI is pending; the historical RunAsNode passes below do not establish that result.
+
+## Historical r3 preview verification
 
 - Host: macOS arm64; Electron 41.10.7, embedded Node 24.18.0, module ABI 145.
 - Native dependency: better-sqlite3 12.11.1.

@@ -195,13 +195,20 @@ onBeforeUnmount(() => {
         <button v-if="status.status === 'failed' && api?.recoverLocalBattle" :disabled="busy" @click="recover">
           仅本机启动以修复设置
         </button>
-        <button :disabled="busy || !library?.hasSelection || status.status === 'running'" @click="start">
+        <button
+          :disabled="
+            busy || !library || (!library.hasSelection && library.desiredIds.length > 0) || status.status === 'running'
+          "
+          @click="start"
+        >
           由本机托管联机对战</button
         ><button :disabled="busy || status.status !== 'running'" @click="stop">
           {{ forceStop ? '立即中断并停止' : '排空后停止托管' }}</button
         ><button :disabled="busy" @click="run(refresh)">刷新状态</button>
       </div>
-      <p v-if="!library?.hasSelection">在内容包页选择需要的内容，客户端会自动准备。</p>
+      <p v-if="library && !library.hasSelection">
+        {{ library.desiredIds.length ? '内容准备完成后即可启动托管。' : '启动时将自动准备官方基础内容。' }}
+      </p>
       <ServerSettingsForm
         v-if="server?.settings"
         :settings="server.settings"

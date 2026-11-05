@@ -1,8 +1,10 @@
 # 统一管理、私人约战与在线备份验证（2026-11-05）
 
+后续数据库故障、依赖清理和真实 GUI 安装替换的结果见[后续验证记录](unified-management-followup-2026-11-05.md)。下文保留先前提交与产物的验收快照。
+
 本记录对应 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的未发行实现；本文记录的远端结果对应 [82dd37d4](https://github.com/arcadia-eternity/arcadia-eternity/commit/82dd37d4dc38bb4b48e393029be6eddf078c49c4)。测试由根任务和专项执行者运行，文档同步核对了源码、浏览器 acceptance JSON、网络摘要、Docker 记录与远端 job 状态。各测试快照、CI job、安装和生产验收分别记录。
 
-## 当前本地回归
+## 先前本地回归
 
 | 范围                          | 结果                           | 口径                                                                 |
 | ----------------------------- | ------------------------------ | -------------------------------------------------------------------- |
@@ -88,7 +90,7 @@ sourceProof 记录 1,341 个输入保持一致，摘要 `sha256:33881fd68fc0dc90
 
 源码审查记录为 `.omo/evidence/unified-server-management-code-review.md`，结论 `codeQualityStatus: WATCH`、`recommendation: APPROVE`。此前导入已提交恢复、私人 P2P 正常终局以及 ACK 异步造成回调乱序的问题已经修补并经重新查看源码；没有据此宣称所有代码、平台或部署已穷尽审查。
 
-仍需保留：
+此快照当时仍需保留的项目如下；后续进展以上方链接为准：
 
 - 5 个第三方许可证资料问题：`@better-auth/utils@0.5.0`、`@npmcli/agent@4.0.2`、`jsondiffpatch@0.7.6`、`stackback@0.0.2`、`@npmcli/redact@4.0.0`；后者声明/原始文本不一致。清单保持 `releaseReady: false`，不能正式发行。
 - 正式安装/跨版本升级和真实双设备 LAN；本次四平台 CI 验证非发布的 staging、打包和包内宿主，不替代实际安装/升级验收。

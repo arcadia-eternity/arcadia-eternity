@@ -14,6 +14,7 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.npmrc'
+      - '.pnpmfile.cjs'
       - 'rolldown.config.*'
   push:
     branches: [refactor/v4]
@@ -28,6 +29,7 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.npmrc'
+      - '.pnpmfile.cjs'
       - 'rolldown.config.*'
   workflow_dispatch:
 
@@ -97,7 +99,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libatk-bridge2.0-0t64 libxss1
+          sudo apt-get install -y --no-install-recommends libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libatk-bridge2.0-0t64 libxss1 libfuse2t64 xvfb xauth
 
       - name: Install locked dependencies and native development addon
         run: pnpm install --frozen-lockfile | tee .artifacts/desktop/install.log
@@ -108,7 +110,7 @@ jobs:
       - name: Verify staging and native persistence
         env:
           ARCADIA_DESKTOP_NATIVE_TEST: '1'
-        run: node --test scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs scripts/rollup-external.test.mjs scripts/desktop-pnpm-deploy.test.mjs | tee .artifacts/desktop/native-tests.log
+        run: node --test scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs scripts/rollup-external.test.mjs scripts/desktop-pnpm-deploy.test.mjs scripts/pnpm-production-peers.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs | tee .artifacts/desktop/native-tests.log
 
       - name: Build desktop renderer
         run: pnpm --filter @arcadia-eternity/web-ui run build-only | tee .artifacts/desktop/renderer-build.log
@@ -116,13 +118,37 @@ jobs:
       - name: Stage relocatable runtime for this Electron target
         run: pnpm exec node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-server --online --allow-incomplete-notices | tee .artifacts/desktop/runtime-stage.log
 
-      - name: Package locally and execute the packaged SQLite smoke
-        # The preview hook launches the packaged Electron executable and verifies write-close-reopen.
-        # The command uses publish: never and requires no signing or release token.
+      - name: Build native installers and execute the packaged runtime checks
+        id: installers
+        # The artifact builder retains the packaged SQLite and managed-host hooks.
+        # Artifacts are unsigned and unpublished; only their receipts are uploaded.
         env:
           ARCADIA_DESKTOP_MANAGED_HOST_TEST: '1'
-        working-directory: packages/web-ui
-        run: node ../../scripts/verify-desktop-pack.mjs --preview | tee ../../.artifacts/desktop/package.log
+        run: node scripts/package-desktop-installers.mjs --output .artifacts/desktop/installers --runtime packages/web-ui/dist/arcadia-server | tee .artifacts/desktop/package.log
+
+      - name: Verify installed Mac application and replacement
+        if: ${{ !cancelled() && steps.installers.outcome == 'success' && runner.os == 'macOS' }}
+        timeout-minutes: 12
+        run: node scripts/verify-desktop-installation.mjs .artifacts/desktop/installers/mac-zip.json .artifacts/desktop/installation-evidence/mac-zip | tee .artifacts/desktop/mac-installation.log
+
+      - name: Verify installed Windows NSIS application and replacement
+        if: ${{ !cancelled() && steps.installers.outcome == 'success' && runner.os == 'Windows' }}
+        timeout-minutes: 12
+        run: node scripts/verify-desktop-installation.mjs .artifacts/desktop/installers/nsis.json .artifacts/desktop/installation-evidence/nsis | tee .artifacts/desktop/nsis-installation.log
+
+      - name: Verify installed Windows ZIP application and replacement
+        # Each invocation owns a new installation slot and profile, including
+        # when the other Windows format failed its independent acceptance.
+        if: ${{ !cancelled() && steps.installers.outcome == 'success' && runner.os == 'Windows' }}
+        timeout-minutes: 12
+        run: node scripts/verify-desktop-installation.mjs .artifacts/desktop/installers/win-zip.json .artifacts/desktop/installation-evidence/win-zip | tee .artifacts/desktop/zip-installation.log
+
+      - name: Verify native AppImage application and replacement
+        if: ${{ !cancelled() && steps.installers.outcome == 'success' && runner.os == 'Linux' }}
+        timeout-minutes: 12
+        # Launch the AppImage itself through FUSE; an extracted directory does
+        # not count as installation or GUI acceptance.
+        run: xvfb-run --auto-servernum node scripts/verify-desktop-installation.mjs .artifacts/desktop/installers/appimage.json .artifacts/desktop/installation-evidence/appimage | tee .artifacts/desktop/appimage-installation.log
 
       - name: Preserve validation evidence
         if: always()
@@ -132,7 +158,10 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
           path: |
-            .artifacts/desktop/
+            .artifacts/desktop/*.log
+            .artifacts/desktop/runner.json
+            .artifacts/desktop/installers/*.json
+            .artifacts/desktop/installers/builder-effective-config.yaml
+            .artifacts/desktop/installation-evidence/
             packages/web-ui/dist/arcadia-server/arcadia-desktop-runtime.json
             packages/web-ui/dist/arcadia-server/licenses/notice.json
-            packages/web-ui/release-preview/builder-effective-config.yaml

@@ -450,6 +450,12 @@
         "normal media no-store assertions unchanged andpassed"
       ],
       "cleanup": "owned test servers/resources cleaned; acceptance/network/screenshots retained"
+    },
+    "followup": {
+      "evidence": ".omo/evidence/unified-management-followup-2026-11-05.json",
+      "document": "docs/v4/validation/unified-management-followup-2026-11-05.md",
+      "status": "Local DB and macOS actual GUI passed; new CI and deployment verification in progress",
+      "supersedes": "Earlier local counts and five-license-blocker summary; original artifact provenance remains unchanged"
     }
   },
   "validationHistory": [

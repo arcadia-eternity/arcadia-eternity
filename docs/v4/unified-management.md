@@ -172,11 +172,11 @@ node dist/cli.js server backup clone --file /backups/arcadia.json --target /srv/
 
 本地合同测试覆盖存储约束、账户一致性、管理权限/任务/发布和工作区引用，CI 已配置相应检查。PG 测试必须提供真实 `TEST_DATABASE_URL`，跳过不算通过。
 
-2026-11-05 当前本地回归：服务端 30 文件/320 项通过，真实 SQLite/PostgreSQL，127.44 秒、exit 0 且无未处理异常；自有临时 PG 已停止。编译后 CLI 生命周期 3/3（21.45 秒）、首次初始化 5/5 与 bindings 7/7 已验证 pending retention、管理保留重启及旧库/clone/restore 真启动。此前 Web 257 项、备份核心 14 项、工作区 20 项及桌面 IPC 13 项证据保留。最新全仓 ESLint、根/服务端/Web 类型、Vite production 与 paired stage 通过；资源 3 文件/76 项和管理页面窄幅回归 8/8 通过。
+2026-11-05 后续回归：真实 SQLite/PostgreSQL 服务端 32 文件/327 项、数据库 23 项和编译 CLI 35 项通过。SQLite 写锁与页容量耗尽、PG 活跃后端终止及池恢复的真实注入均验证回滚；完整回归后停止了自有临时 PG。代表性故障通过不替代操作系统磁盘满或断电验收。
 
-真实普通匹配和权威好友房 2/2（约 1.3 分钟）通过。最终 paired build 的管理备份 UI 1/1（17.1 秒）通过，按 builtin 初始 1、归档共 2 环境验证。私人 Challenge 两浏览器 1/1（50.2 秒）通过：首局和再战各 2 回合自然结束、媒体解码，网络/UI 错误为空，292 次采样无服务端 Worker、目录不变。此前 Blob 提前回收的失败经 transition 回归先红后绿并在本轮严格验收通过；当前附件已保留到隔离输出目录。
+macOS arm64 真实 ZIP 的首次安装和同版本替换均完成 GUI 编辑、开服、管理环境保存及数据保留，正常退出且页面/HTTP 错误为空。四平台 CI 已增加实际安装物的 GUI 流程，新提交的执行结果单独记录。Better Auth 固定升级至 1.7.13，生产闭包移除其可选测试依赖；许可证阻塞缩减为内置 npm 的两项，仍不能正式发行。
 
-最终 Linux arm64 Docker 镜像 `sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8` 验收 15.6 秒，包含最后初始化/retention/UI 修补；两库重建保留身份、默认绑定和版本，PG 重启通过。最终冻结源码 r3 macOS arm64 预览的真实包内 SQLite/完整宿主 1/1（12.74 秒）通过，356 个 renderer 与 62 个 server 文件匹配输入。PR #275 的生产代码快照 82dd37d4 已通过 baseline 6/6 与桌面四平台 4/4；桌面四个平台均包含真实包内 SQLite 和完整开服验收；arm64 首次未取得托管运行器，仅重跑该项后成功。随后修正独立展示文件的测试素材准备，服务器 UGC 同步的有媒体、无媒体两种本地场景均通过，验证了默认环境替换后的旧房间版本保留、重连与自然结算。5 项许可证问题保持 releaseReady=false；正式安装升级、双设备 LAN、真实 SMTP/GitHub 和完整故障矩阵仍开放。源码审查为 WATCH / APPROVE，不等于发行批准。精确提交、产物来源和验证口径见[统一管理验证记录](validation/unified-management-2026-11-05.md)。
+此前管理备份、私人 Challenge 双客户端和 UGC 环境同步的严格浏览器证据继续保留。各提交与产物的通过范围、HTTPS 浏览器差异以及外部验收待办见[后续验证记录](validation/unified-management-followup-2026-11-05.md)和[先前验证记录](validation/unified-management-2026-11-05.md)。
 
 ```sh
 pnpm --filter @arcadia-eternity/database test:run

@@ -872,7 +872,27 @@ export class ContentLibrary {
     }
   }
   async start() {
-    const lease = await this.acquireProject()
+    let lease = await this.acquireProject()
+    if (!lease.directory) {
+      await lease.release()
+      const plan = await this.#exclusive(async () => {
+        if (this.#state.activeProject) return null
+        if (this.#state.desiredIds.length || this.#state.goalRevision !== 0)
+          throw new Error('内容选择尚未准备完成，请完成准备后再启动托管')
+        // A fresh library already offers the bundled base for local play. Hosting
+        // materializes that same choice without requiring a third-party install.
+        return this.#prepareSelection([], true)
+      })
+      if (plan) {
+        try {
+          await this.applySelection(plan.id)
+        } catch (error) {
+          await this.cancel(plan.id).catch(() => {})
+          throw error
+        }
+      }
+      lease = await this.acquireProject()
+    }
     try {
       if (!lease.directory) throw new Error('请先准备本机内容选择')
       if (this.#controller.signal.aborted) throw new Error('内容包管理已关闭')

@@ -8,7 +8,7 @@ RUN apk add --no-cache git python3 make g++ && \
 WORKDIR /app
 
 # Copy package files for dependency installation
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml .pnpmfile.cjs ./
 # Copy packages directory structure for package.json files
 COPY packages/ ./packages/
 COPY packs/ ./packs/
@@ -38,7 +38,7 @@ RUN apk add --no-cache git python3 make g++ && \
 WORKDIR /app
 
 # Copy package files for production dependencies
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY packages/ ./packages/
 COPY packs/ ./packs/
 

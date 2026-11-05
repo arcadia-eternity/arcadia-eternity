@@ -21,6 +21,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import YAML from 'yaml'
 import { collectDesktopLicenses } from './desktop-runtime-licenses.mjs'
+import { verifyDesktopProductionDependencies } from './desktop-production-dependencies.mjs'
 import { stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks, resolvePnpmInvocation } from './desktop-runtime-portability.mjs'
 import { withPreservedPnpmWorkspaceState } from './desktop-pnpm-deploy.mjs'
@@ -282,6 +283,7 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
       await cp(join(repo, 'packs/base/assets'), join(pack, 'assets'), { recursive: true, verbatimSymlinks: true })
     // This absolute build-machine store path is not needed by Node and is not relocatable.
     await rm(join(runtime, 'node_modules/.modules.yaml'), { force: true })
+    await verifyDesktopProductionDependencies(runtime)
     const notices = await collectDesktopLicenses(runtime, {
       repositoryLicense: join(repo, 'LICENSE'),
       electronLicense: join(electronDist, 'LICENSE'),

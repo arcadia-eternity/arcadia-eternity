@@ -244,7 +244,9 @@ async function loadLocalContentRuntime() {
       load('@arcadia-eternity/data-pack-base/build'),
       load('@arcadia-eternity/schema'),
     ])
-    const root = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+    const root = app.isPackaged
+      ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
+      : path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
     const hostRoot = app.isPackaged
       ? path.join(process.resourcesPath, 'arcadia-server')
       : path.resolve(projectRoot, '../..')
@@ -1614,12 +1616,14 @@ async function handleLocalServerRequest(req, res) {
     const tail = pathname.slice('/packs/'.length)
     let filePath = resolvePackFilePath(tail)
 
-    // Dev mode: base pack served from source directory
+    // Serve the bundled base directly when no legacy workspace copy exists.
     if (filePath && !(await pathExists(filePath))) {
       const slashIndex = tail.indexOf('/')
       const folderName = slashIndex === -1 ? tail : tail.slice(0, slashIndex)
       if (folderName === BASE_PACK_FOLDER) {
-        const baseDir = await findBundledBasePackDir()
+        const baseDir = app.isPackaged
+          ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
+          : await findBundledBasePackDir()
         if (baseDir) {
           const baseRelative = slashIndex === -1 ? '' : tail.slice(slashIndex + 1)
           const raw = String(baseRelative ?? '')
@@ -1720,6 +1724,13 @@ async function stopLocalServer() {
 async function checkForUpdates() {
   if (!app.isPackaged) {
     return { hasUpdate: false }
+  }
+
+  try {
+    await fs.access(path.join(process.resourcesPath, 'app-update.yml'))
+  } catch (error) {
+    if (error.code === 'ENOENT') return { hasUpdate: false }
+    throw error
   }
 
   const result = await autoUpdater.checkForUpdates()

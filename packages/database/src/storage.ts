@@ -232,7 +232,21 @@ export class DurableStorage implements StorageTransaction {
       if (!options.pool && !options.connectionString) throw new Error('PostgreSQL requires connectionString or pool')
       this.pool =
         options.pool ?? new pg.Pool({ connectionString: options.connectionString, connectionTimeoutMillis: 10000 })
-      // Existing callers retain ownership of their pool; Kysely still releases clients.
+      if (this.ownsPool) {
+        const reported = new WeakSet<Error>()
+        const reportConnectionError = (error: Error & { code?: string }) => {
+          if (reported.has(error)) return
+          reported.add(error)
+          // Do not log server-provided messages, connection strings or query parameters.
+          const code = error.code && /^[0-9A-Z]{5}$/.test(error.code) ? error.code : 'CONNECTION_FAILURE'
+          console.warn('[database] PostgreSQL connection failed', { code })
+        }
+        // pg-pool removes its idle error listener while Kysely borrows a client.
+        // A socket may fail after the query rejects but before Kysely releases it.
+        this.pool.on('connect', client => client.on('error', reportConnectionError))
+        this.pool.on('error', reportConnectionError)
+      }
+      // Existing callers retain pool/error-handler ownership; Kysely still releases clients.
       const pool = this.ownsPool ? this.pool : { connect: () => this.pool!.connect(), end: async () => {} }
       this.database = new Kysely<Database>({ dialect: new PostgresDialect({ pool }) })
     }

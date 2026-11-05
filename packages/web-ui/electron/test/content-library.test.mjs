@@ -296,6 +296,46 @@ async function settled(manager, expected = 'ready') {
   }
   assert.fail('Content did not reach ' + expected)
 }
+it('hosts bundled content from a fresh library and reuses its prepared choice on restart', async () => {
+  const f = await fixture('fresh-builtin-host')
+  const starts = []
+  const start = f.host.start
+  f.host.start = async (directory, options) => {
+    starts.push({ directory, options })
+    return start(directory)
+  }
+  try {
+    assert.equal((await f.manager.list()).hasSelection, false)
+    await f.manager.start()
+    const prepared = await f.manager.list()
+    assert.equal(prepared.hasSelection, true)
+    assert.deepEqual(prepared.activeIds, [])
+    assert.deepEqual(prepared.desiredIds, [])
+    assert.deepEqual(starts[0].options, { builtinOnly: true })
+    const stages = f.calls.filter(args => args[2] === 'stage').length
+    await f.host.stop()
+    await f.manager.start()
+    assert.equal(starts[1].directory, starts[0].directory)
+    assert.equal(f.calls.filter(args => args[2] === 'stage').length, stages)
+  } finally {
+    await f.manager.close()
+  }
+})
+it('does not replace an unfinished saved selection with a fresh hosting default', async () => {
+  const f = await fixture('unfinished-host-choice')
+  await f.manager.setSelection([], true)
+  await f.manager.close()
+  const file = join(f.libraryRoot, 'library.json')
+  const saved = await readFile(file)
+  const restored = new ContentLibrary({ root: f.libraryRoot, run: f.run, host: f.host })
+  try {
+    await assert.rejects(restored.start(), /内容选择尚未准备完成/)
+    assert.deepEqual(await readFile(file), saved)
+    assert.equal(f.host.status().status, 'idle')
+  } finally {
+    await restored.close()
+  }
+})
 it('automatically installs and enables with no apply step, and persists the desired selection', async () => {
   const f = await fixture('automatic-install')
   try {
@@ -554,7 +594,7 @@ it('keeps the fallback on failed goals, skips uncertain host state, and collects
   const foreign = join(f.libraryRoot, 'projects', 'user-directory')
   await mkdir(foreign)
   const linked = join(f.libraryRoot, 'projects', 'content-' + 'b'.repeat(32))
-  await symlink(foreign, linked, 'dir')
+  await symlink(foreign, linked, process.platform === 'win32' ? 'junction' : 'dir')
   const lifecycle = f.host.retainedProjectDirectories
   f.host.retainedProjectDirectories = async () => {
     throw new Error('disconnected')
