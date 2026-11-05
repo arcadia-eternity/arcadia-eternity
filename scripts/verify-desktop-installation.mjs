@@ -19,13 +19,24 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
   for (const key of ['ELECTRON_RUN_AS_NODE', ARCADIA_DEV_SERVER, 'NODE_OPTIONS', 'NODE_TEST_CONTEXT']) delete env[key]
   const errors = [],
     responses = [],
-    consoleErrors = []
+    consoleErrors = [],
+    externalRequests = []
   let app, child, page, host, localPort, result
   const output = [],
     attached = new WeakSet()
   const observe = page => {
     if (attached.has(page)) return
     attached.add(page)
+    page.on('request', request => {
+      const url = new URL(request.url())
+      if (['http:', 'https:'].includes(url.protocol) && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))
+        externalRequests.push({
+          origin: url.origin,
+          path: url.pathname,
+          method: request.method(),
+          resourceType: request.resourceType(),
+        })
+    })
     page.on('pageerror', error => errors.push(error.message))
     page.on('console', message => {
       if (message.type() === 'error') consoleErrors.push(message.text())
@@ -105,6 +116,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     }, localPort)
     assert.equal(baseManifest.status, 200)
     assert.equal(baseManifest.manifest.id, 'arcadia-eternity.base')
+    await expect(page.getByRole('button', { name: /^(未连接 · 连接设置|已连接)$/ })).toBeVisible({ timeout: 90000 })
     await expect(page.getByText('初始化失败，请刷新页面重试', { exact: true })).toHaveCount(0)
     await page.goto('arcadia-client://app/account')
     await page.getByRole('heading', { name: '档案与账号', exact: true }).waitFor()
@@ -197,10 +209,19 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     }
     if (baseline) assert.deepEqual(persistent, baseline.persistent)
     await expect(page.getByText('安装保留环境', { exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /^(未连接 · 连接设置|已连接)$/ })).toBeVisible({ timeout: 90000 })
     await page.screenshot({ path: join(evidenceDirectory, `${label}.png`), fullPage: true })
     assert.deepEqual(errors, [], 'no unhandled renderer errors')
     assert.deepEqual(consoleErrors, [], 'no renderer error logs')
     assert.deepEqual(responses, [], 'no unexpected HTTP errors')
+    // The author project may display configured remote images on demand. This
+    // scenario is not offline asset acceptance, but must not contact a game or
+    // account backend just to edit the local profile or start local hosting.
+    assert.deepEqual(
+      externalRequests.filter(request => request.resourceType !== 'image'),
+      [],
+      'local profile, authoring and hosting do not contact external service APIs',
+    )
     result = {
       identity,
       content,
@@ -212,6 +233,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       errors,
       consoleErrors,
       responses,
+      externalRequests,
     }
   } catch (error) {
     await page
@@ -219,7 +241,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       .catch(() => {})
     await writeFile(
       join(evidenceDirectory, `${label}-failure.json`),
-      JSON.stringify({ error: error.stack, errors, consoleErrors, responses }, null, 2) + '\n',
+      JSON.stringify({ error: error.stack, errors, consoleErrors, responses, externalRequests }, null, 2) + '\n',
     )
     throw error
   } finally {

@@ -1,6 +1,6 @@
 # 统一管理后续验证（2026-11-05）
 
-本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。此前 `f8099609` 的 baseline 6/6 和四平台 4/4 是历史提交的结果；本轮增加了真实安装与 GUI 路径，需要新的 CI。旧 Docker/r3 产物的来源记录继续保留在[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
+本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。此前 `f8099609` 的四平台 4/4 是包内宿主的历史结果。本轮 `55863dbc` 的 [baseline 6/6](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41945686489) 已通过；新增的真实安装与 GUI CI 发现了下述两处问题，修复后需要重新执行。旧 Docker/r3 产物的来源记录继续保留在[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
 
 ## 修复与已执行验证
 
@@ -24,7 +24,9 @@ PostgreSQL 在事务执行至审计触发器时阻塞，然后终止确切后端
 
 实际 ZIP 解压到专用临时安装目录，使用独立用户资料目录启动 ASAR 中的真实应用。页面操作保存玩家名称、创建源项目并把技能威力改为 77、启动托管和创建管理环境。替换同版本 ZIP 后，第二次启动验证玩家 ID、源文件哈希、工作区 ID、服务器 ID、默认绑定、有效版本及环境列表均保留。两次退出码为 0，宿主和资源端口均关闭。
 
-产物 SHA-256：`0d889a7a3fca78420c6778287fc29f8d5d5ca59b334c11a41c5b5804391eaeed`。完整回执与截图位于 `/private/tmp/arcadia-desktop-gui-acceptance-r5-20261105/`，摘要见 `.omo/evidence/unified-management-followup-2026-11-05.json`。这是同版本安装替换，尚不等于历史版本或 schema 升级验收。
+最新产物 SHA-256：`3cd6a1e2b356d1fe468bbec83b1ab51ecfb13d493e4bdda494fea05fc21e67ce`。完整回执与截图位于 `/private/tmp/arcadia-desktop-gui-acceptance-r6b-20261105/`，摘要见 `.omo/evidence/unified-management-followup-2026-11-05.json`。这是同版本安装替换，尚不等于历史版本或 schema 升级验收。
+
+首次原生 CI 发现 Linux AppImage 从 scoped npm 名推导出非法程序名，现统一配置 `linux.executableName=arcadia-eternity`；两个 macOS 的真实 GUI 还发现本地档案页隐式查询默认公网账户能力，现仅在明确选服或已有会话后查询。修复后的本地 ZIP 两次完整启动、编辑、开服和替换复验通过，外部服务 API 请求为零；编辑器仍按资源声明加载远程图片，因此不把该场景记为离线资源验收。
 
 四平台 CI 增加真实 ZIP、Windows NSIS 与 Linux AppImage GUI 验证。NSIS 限定一次性 GitHub 托管运行器，使用预览应用 ID，不提权、不创建快捷方式、不自动启动；AppImage 在 Linux 上经 FUSE/Xvfb 启动其自身。清理只操作本次拥有的进程和目录；无法确认进程停止时保留材料。
 
@@ -40,7 +42,7 @@ Better Auth 固定升级到官方 `1.7.13`，对应 utils 使用 `0.5.1` 的完�
 
 真实 TLS 反代通过隔离 Docker bridge 连接非回环后端。场景覆盖精确代理信任、一次性管理登录、Secure/HttpOnly/Strict cookie、刷新保留、CSRF/Origin 拒绝、管理写入、在线备份下载和退出后凭据失效；使用临时证书和仅本次浏览器的 SPKI 信任，不改系统证书配置。
 
-Chrome `156.0.8078.80` 存在已确认的流式响应事件缺陷：应用完整读到 EOF 后仍产生 `net::ERR_ABORTED`。独立合成响应复现 3/3，原生 JSON 与非 no-store 对照 6/6 正常；官方测试版 `157.0.8103.15` 的全部 9 项正常。依据为 [Playwright #42742](https://github.com/microsoft/playwright/issues/42742) 与 [Chromium #568852319](https://issues.chromium.org/issues/568852319)。产品继续使用有大小上限的流式读取和 no-store；验收没有忽略相同文档的取消事件。完整 HTTPS 复验已在原精确镜像 `fcb6bcc5` 上通过，耗时 26.048 秒，浏览器异常列表为空，容器/卷/网络均清理为零。结果记录于 `.omo/evidence/docker-management-https.json`；这确认了浏览器原因与 TLS 流程，当前新代码镜像仍需另行构建验证。
+Chrome `156.0.8078.80` 存在已确认的流式响应事件缺陷：应用完整读到 EOF 后仍产生 `net::ERR_ABORTED`。独立合成响应复现 3/3，原生 JSON 与非 no-store 对照 6/6 正常；官方测试版 `157.0.8103.15` 的全部 9 项正常。依据为 [Playwright #42742](https://github.com/microsoft/playwright/issues/42742) 与 [Chromium #568852319](https://issues.chromium.org/issues/568852319)。产品继续使用有大小上限的流式读取和 no-store；验收没有忽略相同文档的取消事件。完整 HTTPS 复验已在原精确镜像 `fcb6bcc5` 上通过，耗时 26.048 秒，浏览器异常列表为空，容器/卷/网络均清理为零。结果记录于 `.omo/evidence/docker-management-https.json`；这确认了浏览器原因与 TLS 流程，随后从 `55863dbc` 的干净 Git 归档构建镜像 `sha256:daa6da7dad6a2ce655352bf7b70f2b6360ed509ab894028cc82a3cddb4d9f7f6`，双库容器重建与 PG 重启通过，完整 HTTPS 再次通过（21.573 秒、请求失败为零、资源清理为零）。确切源码与产物分别记录于 `.omo/evidence/docker-management-followup.json` 和 `.omo/evidence/docker-management-https-followup.json`；后续桌面页面/打包修复不改写该镜像来源。
 
 可指定隔离浏览器运行：
 
@@ -50,4 +52,4 @@ ARCADIA_HTTPS_BROWSER_EXECUTABLE=/path/to/chrome node scripts/verify-docker-mana
 
 ## 尚需独立验收的范围
 
-新提交的四平台 CI、当前镜像的完整 HTTPS 与双库容器重建以实际完成记录为准。正式签名/公证、历史版本升级、真实双设备 LAN、公网部署、SMTP/GitHub 外部投递与回调仍未完成；两项上游许可资料问题仍阻止正式发行。代表性数据库故障通过不等于穷尽断电、文件系统磁盘满或所有运维故障。G4 战绩/积分/录像保持原后期范围。
+桌面两处修复后的四平台 CI 仍需执行。新镜像的完整 HTTPS 与双库容器重建已按上述确切提交完成。正式签名/公证、历史版本升级、真实双设备 LAN、公网部署、SMTP/GitHub 外部投递与回调仍未完成；两项上游许可资料问题仍阻止正式发行。代表性数据库故障通过不等于穷尽断电、文件系统磁盘满或所有运维故障。G4 战绩/积分/录像保持原后期范围。

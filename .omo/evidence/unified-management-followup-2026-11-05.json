@@ -66,13 +66,13 @@
     "platform": "darwin arm64",
     "scope": "same-version artifact replacement; not a public cross-version upgrade",
     "artifact": {
-      "artifact": "/private/tmp/arcadia-desktop-gui-installers-r5-20261105/Arcadia Eternity Preview-3.4.2-arm64.zip",
-      "sha256": "0d889a7a3fca78420c6778287fc29f8d5d5ca59b334c11a41c5b5804391eaeed",
+      "artifact": "/private/tmp/arcadia-desktop-gui-installers-r6-20261105/Arcadia Eternity Preview-3.4.2-arm64.zip",
+      "sha256": "3cd6a1e2b356d1fe468bbec83b1ab51ecfb13d493e4bdda494fea05fc21e67ce",
       "format": "mac-zip",
       "sourceProof": {
         "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
         "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
-        "rendererIndexSha256": "ed8bd6342128e548f95d44f8014fb21694ec868a723197ae5a60b81aef634b8f",
+        "rendererIndexSha256": "b1d0443a36552615fc2b68cd7fe934448e595d32f51e8518b74c3dc92b846acd",
         "cliSha256": "c111f298fbaedc5fbb24ce8b3ea44fca6830b64fd6cfaac6b6f9e3c87c4679c9",
         "serverSha256": "d5544decb8a7cb8fffd409afb3b5760cc5e257a04a46f5b7fb2d057918d474a9",
         "runtimeManifestSha256": "1ba13b26d331c131a9cfc9778ba795f2a4bac2548991e82be04b77fd240fc43a"
@@ -84,7 +84,29 @@
     "allBrowserObservationsEmpty": true,
     "samePersistentState": true,
     "sourceFilesPreserved": true,
-    "evidenceDirectory": "/private/tmp/arcadia-desktop-gui-acceptance-r5-20261105"
+    "evidenceDirectory": "/private/tmp/arcadia-desktop-gui-acceptance-r6b-20261105",
+    "startupReadyVerified": true,
+    "externalServiceRequests": [],
+    "externalImageRequests": [
+      {
+        "origin": "https://seer2-resource.yuuinih.com",
+        "path": "/png/petElementIcon/1.png",
+        "method": "GET",
+        "resourceType": "image"
+      },
+      {
+        "origin": "https://seer2-resource.yuuinih.com",
+        "path": "/png/pet/1.png",
+        "method": "GET",
+        "resourceType": "image"
+      },
+      {
+        "origin": "https://seer2-resource.yuuinih.com",
+        "path": "/png/petElementIcon/1.png",
+        "method": "GET",
+        "resourceType": "image"
+      }
+    ]
   },
   "productionDependencies": {
     "before": 527,
@@ -296,19 +318,57 @@
   },
   "validationState": {
     "lintAndWebTypes": "passed",
-    "newRemoteCi": "pending",
-    "freshDockerImage": "pending",
+    "newRemoteCi": {
+      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+      "baseline": {
+        "run": 41945686489,
+        "passed": 6,
+        "failed": 0
+      },
+      "desktop": {
+        "run": 41945686724,
+        "status": "Failed Linux executable name and both Mac implicit external account discovery; Windows still running at this snapshot. Fixes prepared for a new run."
+      }
+    },
+    "freshDockerImage": {
+      "passed": true,
+      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+      "evidence": ".omo/evidence/docker-management-followup.json"
+    },
     "https": {
       "passed": true,
-      "image": "sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8",
-      "seconds": 26.048,
-      "evidence": ".omo/evidence/docker-management-https.json",
-      "scope": "Previous exact Docker image, Chrome 157; new follow-up image still pending"
+      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+      "seconds": 21.573,
+      "evidence": ".omo/evidence/docker-management-https-followup.json"
     }
   },
   "limitations": [
     "Unsigned unpublished preview; same-version replacement, not historical upgrade",
     "Two upstream npm license blockers",
     "Real external SMTP/GitHub, two-device LAN and public deployment not accepted"
-  ]
+  ],
+  "previousDesktopGui": {
+    "platform": "darwin arm64",
+    "scope": "same-version artifact replacement; not a public cross-version upgrade",
+    "artifact": {
+      "artifact": "/private/tmp/arcadia-desktop-gui-installers-r5-20261105/Arcadia Eternity Preview-3.4.2-arm64.zip",
+      "sha256": "0d889a7a3fca78420c6778287fc29f8d5d5ca59b334c11a41c5b5804391eaeed",
+      "format": "mac-zip",
+      "sourceProof": {
+        "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+        "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+        "rendererIndexSha256": "ed8bd6342128e548f95d44f8014fb21694ec868a723197ae5a60b81aef634b8f",
+        "cliSha256": "c111f298fbaedc5fbb24ce8b3ea44fca6830b64fd6cfaac6b6f9e3c87c4679c9",
+        "serverSha256": "d5544decb8a7cb8fffd409afb3b5760cc5e257a04a46f5b7fb2d057918d474a9",
+        "runtimeManifestSha256": "1ba13b26d331c131a9cfc9778ba795f2a4bac2548991e82be04b77fd240fc43a"
+      },
+      "executableRelativePath": "Arcadia Eternity Preview.app/Contents/MacOS/Arcadia Eternity Preview"
+    },
+    "launches": 2,
+    "allNormalExits": true,
+    "allBrowserObservationsEmpty": true,
+    "samePersistentState": true,
+    "sourceFilesPreserved": true,
+    "evidenceDirectory": "/private/tmp/arcadia-desktop-gui-acceptance-r5-20261105"
+  }
 }
