@@ -20,6 +20,7 @@ import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
+import { LocalEnvironments } from './local-environments.mjs'
 import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
@@ -224,6 +225,32 @@ function getContentLibrary() {
       ),
   })
   return contentLibrary
+}
+let localEnvironments
+function getLocalEnvironments() {
+  const runtimeRequire = app.isPackaged
+    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+    : require
+  localEnvironments ??= new LocalEnvironments({
+    library: getContentLibrary(),
+    openWorkspace: async () => {
+      const { ContentWorkspace } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      // Server publication always imports a separate copy, so only local runtime
+      // leases can retain versions in this independently owned workspace.
+      return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
+        retentions: { list: async () => [] },
+      })
+    },
+    validate: async input => {
+      const { validateWorkspaceProject } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
+      )
+      return validateWorkspaceProject(input)
+    },
+  })
+  return localEnvironments
 }
 function getManagementWorkspaceOwner() {
   managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
@@ -1767,6 +1794,13 @@ function setupIpcHandlers() {
       return handler(event, ...args)
     })
   handle('desktop:local-server', (_event, input) => localServerController.request(input))
+  handle('desktop:local-environment', async (_event, input) => {
+    try {
+      return { result: await getLocalEnvironments().request(input) }
+    } catch (error) {
+      return { error: { code: error.code ?? 'ENVIRONMENT_FAILED', message: error.message ?? '环境操作失败' } }
+    }
+  })
   handle('desktop:management-request', (_event, input) => localBattleHost.managementRequest(input))
   ipcMain.handle('author-preview:environment', async (event, action, input) => {
     const window = [...authorPreviewWindows.values()].find(window =>
@@ -2260,6 +2294,7 @@ app.on('before-quit', event => {
     [
       () => swfHost.dispose(),
       () => remotePlay.destroy(),
+      () => localEnvironments?.close(),
       () => localContentSessions?.close(),
       () => localServerController.close(),
       () => localBattleHost.stop(),

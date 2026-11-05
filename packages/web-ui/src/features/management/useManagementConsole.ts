@@ -2,6 +2,9 @@ import { computed, ref, shallowRef } from 'vue'
 import { ManagementError, type ManagementClient, type ManagementRequestOptions } from '@/services/managementClient'
 import type {
   ManagedAccount,
+  ManagedPlayer,
+  ManagedBattle,
+  ManagementAuditEntry,
   ManagedServiceCredential,
   ManagedBinding,
   ManagedEnvironment,
@@ -57,6 +60,9 @@ export function useManagementConsole() {
   const grants = ref<ManagementGrant[]>([])
   const credentials = ref<ManagedServiceCredential[]>([])
   const accounts = ref<ManagedAccount[]>([])
+  const players = ref<ManagedPlayer[]>([])
+  const battles = ref<ManagedBattle[]>([])
+  const audit = ref<ManagementAuditEntry[]>([])
   const accountCursor = ref<string>()
   const loading = ref(false),
     busy = ref(false),
@@ -92,6 +98,9 @@ export function useManagementConsole() {
     grants.value = []
     credentials.value = []
     accounts.value = []
+    players.value = []
+    battles.value = []
+    audit.value = []
     accountCursor.value = undefined
     accountPages = 1
   }
@@ -152,6 +161,21 @@ export function useManagementConsole() {
       const allowed = (kind: ManagementScope['kind'], action: string) =>
         hasManagementPermission(cap, { kind, id: kind === 'server' ? cap.serverId : cap.workspaceId }, action)
       const supports = (feature: string) => cap.supportedFeatures.includes(feature)
+      async function liveWindow<T>(resource: 'players' | 'battles', key: (item: T) => string) {
+        const result = new Map<string, T>()
+        let cursor: string | undefined
+        do {
+          const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+          const next = await current!.request<{ nextCursor?: string } & Record<string, unknown>>(
+            'GET',
+            `/servers/${encodeURIComponent(cap.serverId)}/${resource}${query}`,
+          )
+          for (const item of next[resource] as T[]) result.set(key(item), item)
+          if (next.nextCursor && cursor && next.nextCursor <= cursor) throw new Error('服务器返回了无效的分页游标')
+          cursor = next.nextCursor
+        } while (valid() && cursor)
+        return [...result.values()]
+      }
       async function accountWindow() {
         const result: { accounts: ManagedAccount[]; nextCursor?: string } = { accounts: [] }
         const seen = new Set<string>()
@@ -171,36 +195,55 @@ export function useManagementConsole() {
         }
         return result
       }
-      const [serverRows, envRows, bindingRows, operationRows, grantRows, accountRows, credentialRows] =
-        await Promise.all([
-          allowed('server', 'read')
-            ? current.request<{ servers: ManagedServer[] }>('GET', '/servers')
-            : Promise.resolve({ servers: [] }),
-          supports('workspace.environments') && allowed('workspace', 'read')
-            ? current.request<{ environments: ManagedEnvironment[]; versions: ManagedEnvironmentVersion[] }>(
-                'GET',
-                `/workspaces/${encodeURIComponent(cap.workspaceId)}/environments`,
-              )
-            : Promise.resolve({ environments: [], versions: [] }),
-          supports('server.bindings') && allowed('server', 'read')
-            ? current.request<{ bindings: ManagedBinding[] }>(
-                'GET',
-                `/servers/${encodeURIComponent(cap.serverId)}/bindings`,
-              )
-            : Promise.resolve({ bindings: [] }),
-          supports('operations')
-            ? current.request<{ operations: ManagementOperation[] }>('GET', '/operations')
-            : Promise.resolve({ operations: [] }),
-          supports('grants') && (allowed('server', 'grants.manage') || allowed('workspace', 'grants.manage'))
-            ? current.request<{ grants: ManagementGrant[] }>('GET', '/grants')
-            : Promise.resolve({ grants: [] }),
-          supports('accounts') && allowed('server', 'accounts.manage')
-            ? accountWindow()
-            : Promise.resolve({ accounts: [], nextCursor: undefined }),
-          supports('credentials')
-            ? current.request<{ credentials: ManagedServiceCredential[] }>('GET', '/credentials')
-            : Promise.resolve({ credentials: [] }),
-        ])
+      const [
+        serverRows,
+        envRows,
+        bindingRows,
+        operationRows,
+        grantRows,
+        accountRows,
+        credentialRows,
+        playerRows,
+        battleRows,
+        auditRows,
+      ] = await Promise.all([
+        allowed('server', 'read')
+          ? current.request<{ servers: ManagedServer[] }>('GET', '/servers')
+          : Promise.resolve({ servers: [] }),
+        supports('workspace.environments') && allowed('workspace', 'read')
+          ? current.request<{ environments: ManagedEnvironment[]; versions: ManagedEnvironmentVersion[] }>(
+              'GET',
+              `/workspaces/${encodeURIComponent(cap.workspaceId)}/environments`,
+            )
+          : Promise.resolve({ environments: [], versions: [] }),
+        supports('server.bindings') && allowed('server', 'read')
+          ? current.request<{ bindings: ManagedBinding[] }>(
+              'GET',
+              `/servers/${encodeURIComponent(cap.serverId)}/bindings`,
+            )
+          : Promise.resolve({ bindings: [] }),
+        supports('operations')
+          ? current.request<{ operations: ManagementOperation[] }>('GET', '/operations')
+          : Promise.resolve({ operations: [] }),
+        supports('grants') && (allowed('server', 'grants.manage') || allowed('workspace', 'grants.manage'))
+          ? current.request<{ grants: ManagementGrant[] }>('GET', '/grants')
+          : Promise.resolve({ grants: [] }),
+        supports('accounts') && allowed('server', 'accounts.manage')
+          ? accountWindow()
+          : Promise.resolve({ accounts: [], nextCursor: undefined }),
+        supports('credentials')
+          ? current.request<{ credentials: ManagedServiceCredential[] }>('GET', '/credentials')
+          : Promise.resolve({ credentials: [] }),
+        supports('server.players') && allowed('server', 'players.read')
+          ? liveWindow<ManagedPlayer>('players', player => player.seatId)
+          : Promise.resolve([]),
+        supports('server.battles') && allowed('server', 'battles.read')
+          ? liveWindow<ManagedBattle>('battles', battle => battle.id)
+          : Promise.resolve([]),
+        supports('audit') && allowed('server', 'read')
+          ? current.request<{ entries: ManagementAuditEntry[] }>('GET', '/audit')
+          : Promise.resolve({ entries: [] }),
+      ])
       if (!valid()) return
       capabilities.value = cap
       servers.value = serverRows.servers
@@ -211,6 +254,9 @@ export function useManagementConsole() {
       grants.value = grantRows.grants
       credentials.value = credentialRows.credentials
       accounts.value = accountRows.accounts
+      players.value = playerRows
+      battles.value = battleRows
+      audit.value = auditRows.entries
       accountCursor.value = accountRows.nextCursor
       loginRequired.value = false
       error.value = ''
@@ -360,6 +406,9 @@ export function useManagementConsole() {
     grants,
     credentials,
     accounts,
+    players,
+    battles,
+    audit,
     accountCursor,
     loadMoreAccounts,
     loading,

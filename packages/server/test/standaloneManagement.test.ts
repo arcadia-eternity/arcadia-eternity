@@ -124,6 +124,87 @@ async function completed(storage: DurableStorage, id: string) {
 }
 
 describe('unified management HTTP and durable environment publication', () => {
+  it('keeps operational metadata behind separate permissions and reports the actual listening port', async () => {
+    const env = await setup()
+    const servers = await env.request('/servers')
+    expect(servers.body.servers[0].listenAddress.port).toBe(env.app.address!.port)
+    expect(servers.body.servers[0].listenAddress.port).not.toBe(0)
+    const guest = await fetch(env.url.replace('/api/management/v1', '/api/v1/sessions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: { id: 'private-profile', name: 'Visitor' } }),
+    }).then(response => response.json())
+    const players = await env.request('/servers/managed-test/players')
+    expect(players.body.players).toHaveLength(1)
+    expect(players.body.players[0]).toMatchObject({ name: 'Visitor', kind: 'guest', connected: false })
+    expect(JSON.stringify(players.body)).not.toContain('private-profile')
+    expect(JSON.stringify(players.body)).not.toContain(guest.token)
+    await fetch(env.url.replace('/api/management/v1', '/api/v1/sessions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: { id: 'second-private-profile', name: 'Second visitor' } }),
+    })
+    const firstPage = await env.request('/servers/managed-test/players?limit=1')
+    expect(firstPage.body.players).toHaveLength(1)
+    const secondPage = await env.request(
+      '/servers/managed-test/players?limit=1&cursor=' + encodeURIComponent(firstPage.body.nextCursor),
+    )
+    expect(secondPage.body.players).toHaveLength(1)
+    expect(secondPage.body.players[0].seatId).not.toBe(firstPage.body.players[0].seatId)
+    expect((await env.request('/servers/managed-test/players?limit=10000')).response.status).toBe(422)
+    const code = await env.app.management!.auth.issueBootstrapCode(
+      [{ scope: { kind: 'server', id: 'managed-test' }, actions: ['read'] }],
+      'viewer',
+    )
+    const viewer = await env.app.management!.auth.exchangeBootstrap(code.code)
+    for (const path of ['/servers/managed-test/players', '/servers/managed-test/battles']) {
+      await expect(env.app.management!.request(viewer.actor, { method: 'GET', path })).rejects.toMatchObject({
+        code: 'MANAGEMENT_FORBIDDEN',
+      })
+    }
+    await expect(
+      env.app.management!.request(viewer.actor, {
+        method: 'POST',
+        path: '/servers/managed-test/battles/unknown/terminate',
+        body: { reason: 'test' },
+        headers: { 'idempotency-key': 'denied' },
+      }),
+    ).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
+    expect((await env.request('/servers/managed-test/battles')).body.battles).toEqual([])
+  })
+  it('deletes only revision-matching drafts and treats repeated termination of an ended match as one operation', async () => {
+    const env = await setup()
+    const path = `/workspaces/${env.workspace.workspaceId}/environments`
+    const draft = await env.request(path, 'POST', {
+      document: {
+        schemaVersion: 2,
+        id: 'unused',
+        name: 'Unused',
+        packages: {},
+        sources: [],
+        rules: { schemaVersion: 1 },
+        requires: {},
+      },
+      expectedRevision: null,
+    })
+    expect(draft.response.status).toBe(200)
+    expect((await env.request(path + '/unused', 'DELETE', undefined, { 'If-Match': 'stale' })).response.status).toBe(
+      412,
+    )
+    expect(
+      (await env.request(path + '/unused', 'DELETE', undefined, { 'If-Match': draft.body.revision })).response.status,
+    ).toBe(200)
+    const route = '/servers/managed-test/battles/ended/terminate'
+    expect(
+      (await env.request(route, 'POST', { reason: '' }, { 'Idempotency-Key': 'empty-reason' })).response.status,
+    ).toBe(422)
+    const first = await env.request(route, 'POST', { reason: '已结束' }, { 'Idempotency-Key': 'one-ended-match' })
+    expect(first.response.status).toBe(202)
+    const result = await completed(env.storage, first.body.id)
+    expect(result).toMatchObject({ status: 'succeeded', result: { terminated: false, status: 'already-ended' } })
+    const repeated = await env.request(route, 'POST', { reason: '已结束' }, { 'Idempotency-Key': 'one-ended-match' })
+    expect(repeated.body.id).toBe(first.body.id)
+  })
   it('keeps guest gameplay independent from authenticated management, enforces CSRF and scope', async () => {
     const env = await setup()
     const anonymous = await fetch(env.url + '/servers')

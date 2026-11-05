@@ -44,6 +44,7 @@ export type ManagementWorkspace = Pick<
   | 'workspaceId'
   | 'listDrafts'
   | 'saveDraft'
+  | 'deleteDraft'
   | 'listVersions'
   | 'getVersion'
   | 'acquire'
@@ -109,6 +110,7 @@ export interface ManagementOptions {
   accountDirectory?: AccountDirectory
   name?: string
   runtimeSettings?: ServerSettings
+  listenAddress?: () => { host: string; port: number } | undefined
   settingsConstraints?: ServerSettingsConstraints
   /** Host-registered environment sources. Never populated from remote request paths. */
   resolveProject?: (environmentId: string) => Promise<string>
@@ -539,6 +541,8 @@ export class ManagementService {
       const version = await this.options.workspace.getVersion(binding.effectiveVersionId)
       entries.push({
         runtimeId: runtime.runtimeId,
+        environmentId: version.document.id,
+        environmentName: version.document.name,
         bindingId: row.id,
         versionId: binding.effectiveVersionId,
         executionPolicy: binding.executionPolicy ?? 'server',
@@ -640,6 +644,9 @@ export class ManagementService {
       supportedFeatures: [
         'workspace.environments',
         'server.bindings',
+        'server.players',
+        'server.battles',
+        'audit',
         'server.drain',
         'operations',
         'grants',
@@ -800,6 +807,22 @@ export class ManagementService {
     const method = request.method.toUpperCase()
     const input = request.body === undefined ? {} : object(request.body)
     const ok = (body: unknown, status = 200) => ({ status, body })
+    const page = <T>(items: T[], key: (item: T) => string) => {
+      const query = new URL(request.path, 'http://management.local').searchParams
+      const limit = query.has('limit') ? Number(query.get('limit')) : 100
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) fail('INVALID_PAGE_LIMIT', 422)
+      const cursor = query.get('cursor') ?? ''
+      if (cursor.length > 200) fail('INVALID_CURSOR', 422)
+      const ordered = items
+        .filter(item => key(item) > cursor)
+        .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0))
+      const rows = ordered.slice(0, limit)
+      return {
+        rows,
+        ...(ordered.length > limit ? { nextCursor: key(rows[rows.length - 1]) } : {}),
+        observedAt: Date.now(),
+      }
+    }
     if (method === 'GET' && path === '/capabilities') return ok(await this.capabilities(actor))
     if (method === 'GET' && path === '/servers') {
       await this.auth.authorize(actor, this.serverScope, 'read')
@@ -811,12 +834,39 @@ export class ManagementService {
             ...this.options.rooms.managementStatus,
             status: 'running',
             runtimeSettings: this.options.runtimeSettings ?? normalizeServerSettings(),
+            listenAddress: this.options.listenAddress?.(),
             ...compareServerSettings(
               row.value.settings ?? this.options.runtimeSettings ?? normalizeServerSettings(),
               this.options.runtimeSettings ?? normalizeServerSettings(),
             ),
           },
         ],
+      })
+    }
+    if (method === 'GET' && path === '/audit') {
+      await this.auth.authorize(actor, this.serverScope, 'read')
+      const entries = await this.options.storage.list<{
+        actor: string
+        action: string
+        target?: string
+        principalId?: string
+        grantId?: string
+        reason?: string
+        createdAt?: number
+        at?: number
+      }>('audit', managementScopeKey(this.serverScope))
+      return ok({
+        entries: entries
+          .map(row => ({
+            id: row.id,
+            actor: row.value.actor,
+            action: row.value.action,
+            target: row.value.target ?? row.value.grantId ?? row.value.principalId ?? this.options.serverId,
+            ...(row.value.reason ? { reason: row.value.reason } : {}),
+            createdAt: row.value.createdAt ?? row.value.at ?? 0,
+          }))
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 200),
       })
     }
     if (method === 'GET' && path === '/workspaces') {
@@ -860,6 +910,15 @@ export class ManagementService {
             environments: await this.options.workspace.listDrafts(),
             versions: (await this.options.workspace.listVersions()).map(safeVersion),
           })
+        }
+        if (method === 'DELETE' && parts.length === 4) {
+          await this.auth.authorize(actor, this.workspaceScope, 'delete')
+          if ((await this.bindings()).some(row => row.value.environmentId === parts[3])) fail('ENVIRONMENT_IN_USE', 409)
+          await this.options.workspace.deleteDraft({
+            environmentId: parts[3],
+            expectedRevision: text(request.headers?.['if-match']?.replace(/^"|"$/g, '')),
+          })
+          return ok({ deleted: true })
         }
         if ((method === 'POST' && parts.length === 3) || (method === 'PATCH' && parts.length === 4)) {
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
@@ -923,6 +982,60 @@ export class ManagementService {
           headers: { Location: `/api/management/v1/operations/${op.id}` },
         }
       }
+      if (parts[2] === 'players' && parts.length === 3 && method === 'GET') {
+        await this.auth.authorize(actor, this.serverScope, 'players.read')
+        const { rows, ...metadata } = page(this.options.rooms.managementPlayers(), player => player.seatId)
+        return ok({ players: rows, ...metadata })
+      }
+      if (parts[2] === 'battles') {
+        if (method === 'GET' && (parts.length === 3 || parts.length === 4)) {
+          await this.auth.authorize(actor, this.serverScope, 'battles.read')
+          const battles = this.options.rooms.managementBattles()
+          if (parts.length === 3) {
+            const { rows, ...metadata } = page(battles, battle => battle.id)
+            return ok({ battles: rows, ...metadata })
+          }
+          const battle = battles.find(battle => battle.id === parts[3])
+          if (!battle) fail('BATTLE_NOT_FOUND', 404)
+          return ok(battle)
+        }
+        if (method === 'POST' && parts.length === 5 && parts[4] === 'terminate') {
+          await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+          const id = text(parts[3]),
+            reason = text(input.reason, 500).trim()
+          if (!reason) fail('REASON_REQUIRED', 422)
+          return this.startOperation(
+            actor,
+            request,
+            'battle.terminate',
+            this.serverScope,
+            { id, reason },
+            async ctx => {
+              await ctx.checkCurrent()
+              await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+              return this.options.rooms.terminateManagedBattle(id, async () => {
+                await ctx.commit(
+                  async tx => {
+                    await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'battles.terminate')
+                    await tx.create('audit', {
+                      id: randomUUID(),
+                      scope: managementScopeKey(this.serverScope),
+                      value: {
+                        actor: actor.principalId,
+                        action: 'battle.terminate',
+                        target: id,
+                        reason,
+                        createdAt: Date.now(),
+                      },
+                    })
+                  },
+                  { finalize: false },
+                )
+              })
+            },
+          )
+        }
+      }
       if (parts[2] === 'accounts') {
         if (parts.length === 3 && method === 'GET') {
           const query = new URL(request.path, 'http://management.local').searchParams
@@ -935,7 +1048,7 @@ export class ManagementService {
         }
         if (parts.length === 4 && method === 'GET') return ok(await this.accounts.status(actor, parts[3]))
         if (parts.length === 5 && parts[4] === 'deactivate' && method === 'POST')
-          return ok(await this.accounts.deactivate(actor, parts[3]))
+          return ok(await this.accounts.deactivate(actor, parts[3], input.reason))
       }
       if (parts.length === 2 && method === 'PATCH') {
         await this.auth.authorize(actor, this.serverScope, 'settings.manage')
@@ -1131,6 +1244,13 @@ export class ManagementService {
             202,
           )
         if (op.committed) fail('OPERATION_ALREADY_COMMITTED', 409)
+        if (op.kind === 'battle.terminate')
+          return this.request(actor, {
+            ...request,
+            path: `/servers/${encodeURIComponent(this.options.serverId)}/battles/${encodeURIComponent(text(original.id))}/terminate`,
+            body: { reason: text(original.reason, 500) },
+            retryOf: op.id,
+          })
         if (op.kind === 'environment.prepare')
           return this.request(actor, {
             ...request,
@@ -1161,7 +1281,9 @@ export class ManagementService {
         if (op.kind === 'server.backup') {
           if (!this.backups) fail('BACKUP_NOT_SUPPORTED', 409)
           await this.backups!.authorize(actor)
-        } else if (op.kind === 'environment.prepare' || op.kind === 'environment.import')
+        } else if (op.kind === 'battle.terminate')
+          await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+        else if (op.kind === 'environment.prepare' || op.kind === 'environment.import')
           await this.auth.authorize(actor, this.workspaceScope, 'prepare')
         else if (op.kind === 'environment.export') await this.auth.authorize(actor, this.workspaceScope, 'export')
         else {

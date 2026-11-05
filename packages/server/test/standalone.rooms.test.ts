@@ -249,6 +249,48 @@ async function start() {
   await success(b.socket, 'ready')
   return { ...env, a, b, spectator, roomCode }
 }
+it('exposes safe live metadata and terminates only the selected battle after authorization', async () => {
+  const { app, a, b, spectator, url } = await start()
+  const otherSession = (await fetch(url + '/api/v1/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile: { id: 'other', name: 'Other' } }),
+  }).then(response => response.json())) as ServerSession
+  const otherSocket = await connect(url, otherSession)
+  await success(spectator.socket, 'leavePrivateRoom')
+  const other = await success<{ roomCode: string }>(spectator.socket, 'createPrivateRoom', {
+    config: { battleMode: 'server', timerConfig: { enabled: false } },
+  })
+  await success(otherSocket, 'joinPrivateRoom', { roomCode: other.roomCode })
+  await success(otherSocket, 'togglePrivateRoomReady', { team: legalTeam })
+  await success(spectator.socket, 'startPrivateRoomBattle', { hostTeam: legalTeam })
+  const battles = app.rooms.managementBattles()
+  expect(battles).toHaveLength(2)
+  const first = battles.find(battle => battle.players.some(player => player.seatId === a.session.seatId))!
+  expect(first).toMatchObject({ execution: 'server', state: 'running' })
+  const json = JSON.stringify({ battles, players: app.rooms.managementPlayers() })
+  for (const value of [a.session.token, b.session.token, 'same-profile-id', 'skill_paida'])
+    expect(json).not.toContain(value)
+  await expect(
+    app.rooms.terminateManagedBattle(first.id, async () => {
+      throw new Error('authorization revoked')
+    }),
+  ).rejects.toThrow('authorization revoked')
+  expect(app.rooms.managementBattles()).toHaveLength(2)
+  const closed = new Promise<unknown>(resolve => a.socket.once('privateRoomEvent', resolve))
+  expect(await app.rooms.terminateManagedBattle(first.id, async () => {})).toEqual({
+    terminated: true,
+    status: 'terminated',
+  })
+  expect(await closed).toMatchObject({ type: 'roomClosed', data: { reason: 'ADMIN_TERMINATED' } })
+  expect(app.rooms.managementBattles()).toHaveLength(1)
+  expect(app.rooms.managementBattles()[0].roomCode).toBe(other.roomCode)
+  expect(
+    await app.rooms.terminateManagedBattle(first.id, async () => {
+      throw new Error('must not run')
+    }),
+  ).toEqual({ terminated: false, status: 'already-ended' })
+}, 60000)
 it('runs native rooms using server seats despite identical profile IDs; preserves secrecy and rejects forged actions', async () => {
   const baseline = AttributeSystem.getGlobalMemoryStats().totalInstances
   const { app, a, b, spectator } = await start()

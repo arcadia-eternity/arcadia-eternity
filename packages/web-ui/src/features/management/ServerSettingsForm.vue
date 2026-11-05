@@ -6,6 +6,7 @@ const props = defineProps<{
   revision: number
   saveSequence?: number
   runtimeSettings?: ManagedServerSettings
+  listenAddress?: { host: string; port: number }
   pendingRestart?: string[]
   busy: boolean
   canEdit: boolean
@@ -67,9 +68,10 @@ function save() {
       设置已保存，重启服务器后应用。当前对局继续使用现行配置。
     </p>
     <p class="hint">
-      当前监听 {{ runtimeSettings?.host ?? settings.host }}:{{
-        runtimeSettings?.port ?? settings.port
-      }}。监听地址、对外地址与网页允许来源分别配置。
+      当前监听
+      <template v-if="listenAddress">{{ listenAddress.host }}:{{ listenAddress.port }}</template>
+      <template v-else-if="runtimeSettings?.port">{{ runtimeSettings.host }}:{{ runtimeSettings.port }}</template>
+      <template v-else>尚未报告实际地址</template>。监听地址、对外地址与网页允许来源分别配置。
     </p>
     <dl>
       <template v-for="[key, label] in fields" :key="key"

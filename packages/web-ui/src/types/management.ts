@@ -14,6 +14,9 @@ export type {
   ManagementOperation,
   ManagementGrant,
   ManagedAccount,
+  ManagedPlayer,
+  ManagedBattle,
+  ManagementAuditEntry,
   ManagedServiceCredential,
 } from '@arcadia-eternity/protocol'
 

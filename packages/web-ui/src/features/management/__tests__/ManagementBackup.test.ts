@@ -51,7 +51,9 @@ function rows(path: string, operations: ManagementOperation[], capabilities = ca
 }
 const pages: VueWrapper[] = []
 const button = (page: VueWrapper, name: string) =>
-  page.findAll('button').find(item => (name === '维护与备份' ? item.text().startsWith(name) : item.text() === name))!
+  page
+    .findAll('button')
+    .find(item => (name === '操作记录与备份' ? item.text().startsWith(name) : item.text() === name))!
 const nativeURL = URL
 const createObjectURL = vi.fn(() => 'blob:backup-download')
 const revokeObjectURL = vi.fn()
@@ -102,7 +104,7 @@ describe('whole-server backup controls', () => {
     })
     const page = await open(request)
     expect(request.mock.calls.every(([input]) => input.method === 'GET')).toBe(true)
-    await button(page, '维护与备份').trigger('click')
+    await button(page, '操作记录与备份').trigger('click')
     await button(page, '创建服务器备份').trigger('click')
     await flushPromises()
     expect(page.get('[aria-label="管理任务"]').text()).toContain('正在创建一致性快照')
@@ -136,11 +138,11 @@ describe('whole-server backup controls', () => {
         { id: 'running', kind: 'server.backup', status: 'running' as const },
       ]
       const page = await open(async input => ({ status: 200, body: rows(input.path, operations, capabilities) }))
-      await button(page, '维护与备份').trigger('click')
+      await button(page, '操作记录与备份').trigger('click')
       expect(page.text()).not.toContain('创建服务器备份')
       await page
         .findAll('.tabs button')
-        .find(item => item.text().startsWith('维护与备份'))!
+        .find(item => item.text().startsWith('操作记录与备份'))!
         .trigger('click')
       expect(page.text()).not.toContain('下载服务器备份')
       expect(page.text()).not.toContain('重试任务')
@@ -154,7 +156,7 @@ describe('whole-server backup controls', () => {
         ? { status: 500, body: { error: { code: 'BACKUP_FAILED', message: '备份材料暂不可读取' } } }
         : { status: 200, body: rows(input.path, [completed()]) },
     )
-    await button(page, '维护与备份').trigger('click')
+    await button(page, '操作记录与备份').trigger('click')
     await button(page, '下载服务器备份').trigger('click')
     await flushPromises()
     expect(page.get('[role="alert"]').text()).toContain('备份材料暂不可读取')
@@ -180,10 +182,10 @@ describe('whole-server backup controls', () => {
           ),
       ),
     )
-    await button(page, '维护与备份').trigger('click')
+    await button(page, '操作记录与备份').trigger('click')
     await button(page, '下载服务器备份').trigger('click')
     expect(button(page, '正在下载备份…').attributes('disabled')).toBeDefined()
-    await button(page, '配对服务器').trigger('click')
+    await button(page, '当前部署服务器').trigger('click')
     await flushPromises()
     finish({ status: 200, body: { private: 'old-server-archive' } })
     await flushPromises()

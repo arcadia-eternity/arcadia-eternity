@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
-import ManagementConsole from '@/features/management/ManagementConsole.vue'
+import LocalEnvironmentPage from './LocalEnvironmentPage.vue'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
@@ -61,7 +61,7 @@ async function browsePackage(id: string) {
 const api = window.arcadiaDesktop
 const libraryClient = createLocalContentLibraryClient(api)
 const local = !!libraryClient
-const managementOpen = ref(false)
+const contentTab = ref<'packages' | 'environments'>('packages')
 const gameData = useGameDataStore()
 const rooms = usePrivateRoomStore()
 const battle = useBattleClientStore()
@@ -376,271 +376,290 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section v-if="managementOpen">
-    <button class="management-return" @click="managementOpen = false">返回内容包</button>
-    <ManagementConsole initial-target="local" />
-  </section>
-  <main v-else class="content-page" :class="{ 'detail-open': detailOpen }">
+  <main class="content-page" :class="{ 'detail-open': detailOpen }">
     <header class="page-heading">
       <h1>内容包</h1>
-      <span class="scope">{{ readonly ? '只读' : '本机管理' }}</span>
-      <button v-if="api?.managementRequest" @click="managementOpen = true">环境与服务器</button>
-      <button v-else @click="router.push('/management')">服务器管理</button>
+      <span class="scope">{{ readonly ? '只读' : '本机管理' }}</span
+      ><button @click="router.push('/management')">服务器管理</button>
     </header>
-    <p v-if="error" class="message error" role="alert">{{ error }}</p>
-    <p v-if="notice" class="message" role="status">{{ notice }}</p>
-    <section v-if="!readonly && selectionLabel" class="message selection-state" role="status" aria-live="polite">
-      <p>{{ selectionLabel }}</p>
-      <template v-if="snapshot?.selection.status === 'failed'">
-        <p class="problem">{{ snapshot.selection.message }}</p>
-        <button :disabled="busy || !!pendingSelections" @click="retrySelection">重试准备</button>
-      </template>
-    </section>
-    <div class="workspace">
-      <nav class="task-nav" aria-label="内容包导航">
-        <template v-if="local"
-          ><p class="nav-label">本机内容包</p>
-          <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
-            本机内容 <span>{{ (snapshot?.packages.length ?? 0) + 1 }}</span></button
-          ><button :aria-current="mode === 'enabled' ? 'page' : undefined" @click="changeMode('enabled')">
-            已启用 <span>{{ activeIds.length + 1 }}</span></button
-          ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
-            需处理 <span>{{ issueCount }}</span>
-          </button>
-          <hr
-        /></template>
-        <p class="nav-label">当前房间</p>
-        <button :aria-current="mode === 'room' ? 'page' : undefined" @click="changeMode('room')">房间内容</button>
-      </nav>
-      <section class="package-workspace" aria-label="内容包管理">
-        <div class="toolbar">
-          <input v-model="query" type="search" aria-label="搜索内容包" placeholder="搜索内容包名称或作者" /><template
-            v-if="!readonly"
-            ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
-            ><button :disabled="busy" @click="importSources">导入环境来源</button
-            ><button :disabled="busy" @click="run(() => refresh())">刷新</button></template
-          >
-        </div>
-        <p v-if="readonly && !room" class="context-note">尚未进入房间</p>
-        <p v-if="readonly && room" class="context-note">房间 {{ room.config.roomCode }}</p>
-        <p v-if="readonly && roomError" class="message error" role="alert">{{ roomError }}</p>
-        <section v-if="canAuthor && mode === 'installed'" class="source-projects" aria-label="本地源项目">
-          <header>
-            <h2>本地项目</h2>
-            <button :disabled="busy" @click="chooseSource">打开项目文件夹</button>
-            <button :disabled="busy" @click="creating = !creating">新建内容包</button>
-          </header>
-          <form v-if="creating" class="source-create" @submit.prevent="createSource">
-            <label
-              >内容包名称<input v-model="projectName" required maxlength="80" placeholder="给新内容包起个名字"
-            /></label>
-            <button class="primary" :disabled="busy || !projectName.trim()">创建并打开</button>
-            <button type="button" @click="creating = false">取消</button>
-          </form>
-          <div class="source-project-list">
-            <button
-              v-for="project in sourceProjects.filter(
-                row => !row.readOnly && row.name.toLowerCase().includes(query.toLowerCase()),
-              )"
-              :key="project.id"
-              @click="openSource(project)"
-            >
-              <strong>{{ project.name }}</strong
-              ><small>{{ project.readOnly === false ? '源项目 · 可编辑' : '源项目' }}</small>
+    <nav v-if="api?.localEnvironment" class="content-tabs" aria-label="内容分类">
+      <button :aria-current="contentTab === 'packages' ? 'page' : undefined" @click="contentTab = 'packages'">
+        已安装内容
+      </button>
+      <button :aria-current="contentTab === 'environments' ? 'page' : undefined" @click="contentTab = 'environments'">
+        环境
+      </button>
+    </nav>
+    <LocalEnvironmentPage v-if="contentTab === 'environments'" />
+    <template v-else>
+      <p v-if="error" class="message error" role="alert">{{ error }}</p>
+      <p v-if="notice" class="message" role="status">{{ notice }}</p>
+      <section v-if="!readonly && selectionLabel" class="message selection-state" role="status" aria-live="polite">
+        <p>{{ selectionLabel }}</p>
+        <template v-if="snapshot?.selection.status === 'failed'">
+          <p class="problem">{{ snapshot.selection.message }}</p>
+          <button :disabled="busy || !!pendingSelections" @click="retrySelection">重试准备</button>
+        </template>
+      </section>
+      <div class="workspace">
+        <nav class="task-nav" aria-label="内容包导航">
+          <template v-if="local"
+            ><p class="nav-label">本机内容包</p>
+            <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
+              本机内容 <span>{{ (snapshot?.packages.length ?? 0) + 1 }}</span></button
+            ><button :aria-current="mode === 'enabled' ? 'page' : undefined" @click="changeMode('enabled')">
+              已启用 <span>{{ activeIds.length + 1 }}</span></button
+            ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
+              需处理 <span>{{ issueCount }}</span>
             </button>
-          </div>
-          <p class="context-note">在这里编辑源项目；构建并安装后，才能在对战中使用新版本。</p>
-        </section>
-        <div class="columns">
-          <div class="package-list">
-            <p v-if="loading || (readonly && roomLoading)" class="list-note" role="status">正在读取内容包…</p>
-            <div
-              v-for="pkg in visiblePackages"
-              :key="pkg.id"
-              class="package-row"
-              :class="{ selected: selectedId === pkg.id }"
+            <hr
+          /></template>
+          <p class="nav-label">当前房间</p>
+          <button :aria-current="mode === 'room' ? 'page' : undefined" @click="changeMode('room')">房间内容</button>
+        </nav>
+        <section class="package-workspace" aria-label="内容包管理">
+          <div class="toolbar">
+            <input v-model="query" type="search" aria-label="搜索内容包" placeholder="搜索内容包名称或作者" /><template
+              v-if="!readonly"
+              ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
+              ><button :disabled="busy" @click="importSources">导入环境来源</button
+              ><button :disabled="busy" @click="run(() => refresh())">刷新</button></template
             >
+          </div>
+          <p v-if="readonly && !room" class="context-note">尚未进入房间</p>
+          <p v-if="readonly && room" class="context-note">房间 {{ room.config.roomCode }}</p>
+          <p v-if="readonly && roomError" class="message error" role="alert">{{ roomError }}</p>
+          <section v-if="canAuthor && mode === 'installed'" class="source-projects" aria-label="本地源项目">
+            <header>
+              <h2>本地项目</h2>
+              <button :disabled="busy" @click="chooseSource">打开项目文件夹</button>
+              <button :disabled="busy" @click="creating = !creating">新建内容包</button>
+            </header>
+            <form v-if="creating" class="source-create" @submit.prevent="createSource">
+              <label
+                >内容包名称<input v-model="projectName" required maxlength="80" placeholder="给新内容包起个名字"
+              /></label>
+              <button class="primary" :disabled="busy || !projectName.trim()">创建并打开</button>
+              <button type="button" @click="creating = false">取消</button>
+            </form>
+            <div class="source-project-list">
               <button
-                class="package-select"
-                :aria-current="selectedId === pkg.id ? 'true' : undefined"
-                @click="select(pkg)"
+                v-for="project in sourceProjects.filter(
+                  row => !row.readOnly && row.name.toLowerCase().includes(query.toLowerCase()),
+                )"
+                :key="project.id"
+                @click="openSource(project)"
               >
-                <span class="package-icon" aria-hidden="true">{{
-                  pkg.builtin ? 'AE' : pkg.title.replace(/^@/, '').slice(0, 1).toUpperCase()
-                }}</span
-                ><span class="package-title"
-                  >{{ pkg.title }}<small>{{ pkg.version }}{{ pkg.author ? ' · ' + pkg.author : '' }}</small></span
+                <strong>{{ project.name }}</strong
+                ><small>{{ project.readOnly === false ? '源项目 · 可编辑' : '源项目' }}</small>
+              </button>
+            </div>
+            <p class="context-note">在这里编辑源项目；构建并安装后，才能在对战中使用新版本。</p>
+          </section>
+          <div class="columns">
+            <div class="package-list">
+              <p v-if="loading || (readonly && roomLoading)" class="list-note" role="status">正在读取内容包…</p>
+              <div
+                v-for="pkg in visiblePackages"
+                :key="pkg.id"
+                class="package-row"
+                :class="{ selected: selectedId === pkg.id }"
+              >
+                <button
+                  class="package-select"
+                  :aria-current="selectedId === pkg.id ? 'true' : undefined"
+                  @click="select(pkg)"
                 >
-              </button>
-              <div class="row-status">
-                <span v-if="pkg.builtin" class="tag">内置</span><span v-else-if="readonly" class="tag">服务器提供</span
-                ><label v-else class="enable"
-                  ><input
-                    type="checkbox"
-                    :aria-label="'启用 ' + pkg.title"
-                    :checked="draftIds.includes(pkg.id)"
-                    :disabled="busy || (!!pkg.error && !draftIds.includes(pkg.id))"
-                    @change="toggle(pkg, ($event.target as HTMLInputElement).checked)"
-                  />启用</label
-                ><span v-if="pkg.error" class="problem">安装不可用</span
-                ><small v-if="!readonly && !pkg.builtin && draftIds.includes(pkg.id) !== activeIds.includes(pkg.id)">{{
-                  snapshot?.selection.status === 'failed'
-                    ? '未能完成'
-                    : draftIds.includes(pkg.id)
-                      ? '正在启用'
-                      : '正在停用'
-                }}</small>
-              </div>
-            </div>
-            <p v-if="!visiblePackages.length && !loading" class="list-note">没有符合条件的内容包。</p>
-          </div>
-          <aside v-if="selected" class="package-detail" aria-label="内容包详情">
-            <button class="back" @click="detailOpen = false">返回内容包列表</button>
-            <h2>{{ selected.title }}</h2>
-            <p class="detail-subtitle">
-              {{ selected.version }} ·
-              {{
-                selected.builtin
-                  ? '游戏内置'
-                  : readonly
-                    ? '本局固定版本'
-                    : draftIds.includes(selected.id) !== activeIds.includes(selected.id)
-                      ? snapshot?.selection.status === 'failed'
-                        ? '未能完成选择'
-                        : '正在准备'
-                      : activeIds.includes(selected.id)
-                        ? '本机已启用'
-                        : '已安装，未启用'
-              }}
-            </p>
-            <button
-              v-if="canAuthor && mode !== 'room'"
-              class="primary"
-              :disabled="busy"
-              @click="browsePackage(selected.id)"
-            >
-              浏览内容（只读）
-            </button>
-            <div class="detail-tabs" role="tablist" aria-label="包详情">
-              <button
-                v-for="tab in ['overview', 'dependencies', 'impact'] as const"
-                :id="'package-tab-' + tab"
-                :key="tab"
-                role="tab"
-                :aria-selected="detailTab === tab"
-                aria-controls="package-detail-panel"
-                @click="detailTab = tab"
-              >
-                {{ { overview: '简介', dependencies: '依赖', impact: '队伍影响' }[tab] }}
-              </button>
-            </div>
-            <div id="package-detail-panel" role="tabpanel" :aria-labelledby="'package-tab-' + detailTab">
-              <template v-if="detailTab === 'overview'"
-                ><p v-if="selected.description">{{ selected.description }}</p>
-                <p v-if="selected.counts" class="detail-subtitle">
-                  {{ selected.counts.species }} 只精灵 · {{ selected.counts.skills }} 个技能 ·
-                  {{ selected.counts.marks }} 个印记
-                </p>
-                <dl>
-                  <dt>来源</dt>
-                  <dd>{{ selected.source }}</dd>
-                  <template v-if="selected.author"
-                    ><dt>作者</dt>
-                    <dd>{{ selected.author }}</dd></template
+                  <span class="package-icon" aria-hidden="true">{{
+                    pkg.builtin ? 'AE' : pkg.title.replace(/^@/, '').slice(0, 1).toUpperCase()
+                  }}</span
+                  ><span class="package-title"
+                    >{{ pkg.title }}<small>{{ pkg.version }}{{ pkg.author ? ' · ' + pkg.author : '' }}</small></span
                   >
-                </dl>
-                <p v-if="selected.error" class="problem">{{ selected.error }}</p>
-                <details>
-                  <summary>包标识与版本信息</summary>
-                  <p>{{ selected.name }} {{ selected.version }}</p>
-                  <p v-if="selected.namespace">命名空间：{{ selected.namespace }}</p>
-                </details>
-                <div v-if="!readonly && selected.local" class="detail-actions">
-                  <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
-                  ><button
-                    :title="
-                      draftIds.includes(selected.id) || activeIds.includes(selected.id)
-                        ? '请先停用后卸载'
-                        : snapshot?.selection.status === 'preparing'
-                          ? '内容准备完成后可卸载'
-                          : undefined
-                    "
-                    :disabled="
-                      busy ||
-                      snapshot?.selection.status === 'preparing' ||
-                      draftIds.includes(selected.id) ||
-                      activeIds.includes(selected.id)
-                    "
-                    @click="uninstall"
+                </button>
+                <div class="row-status">
+                  <span v-if="pkg.builtin" class="tag">内置</span
+                  ><span v-else-if="readonly" class="tag">服务器提供</span
+                  ><label v-else class="enable"
+                    ><input
+                      type="checkbox"
+                      :aria-label="'启用 ' + pkg.title"
+                      :checked="draftIds.includes(pkg.id)"
+                      :disabled="busy || (!!pkg.error && !draftIds.includes(pkg.id))"
+                      @change="toggle(pkg, ($event.target as HTMLInputElement).checked)"
+                    />启用</label
+                  ><span v-if="pkg.error" class="problem">安装不可用</span
+                  ><small
+                    v-if="!readonly && !pkg.builtin && draftIds.includes(pkg.id) !== activeIds.includes(pkg.id)"
+                    >{{
+                      snapshot?.selection.status === 'failed'
+                        ? '未能完成'
+                        : draftIds.includes(pkg.id)
+                          ? '正在启用'
+                          : '正在停用'
+                    }}</small
                   >
-                    卸载此版本
-                  </button>
                 </div>
-              </template>
-              <template v-else-if="detailTab === 'dependencies'"
-                ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
-                <template v-else-if="selected.graph"
-                  ><p class="detail-subtitle">
-                    {{ activeIds.includes(selected.id) ? '当前可用组合的实际依赖' : '安装时的内容包及依赖' }}
-                  </p>
-                  <ul class="dependencies">
-                    <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
-                      <strong>{{ dependency.name }}</strong> {{ dependency.version
-                      }}<small v-if="dependency.namespace">内容命名空间：{{ dependency.namespace }}</small>
-                      <details v-if="Object.keys(dependency.dependencies).length">
-                        <summary>所需依赖</summary>
-                        <p v-for="(version, name) in dependency.dependencies" :key="name">{{ name }} {{ version }}</p>
-                      </details>
-                    </li>
-                  </ul></template
-                >
-                <p v-else>服务器未提供依赖清单。</p></template
-              >
-              <template v-else
-                ><p v-if="readonly && roomLoading">正在读取房间内容…</p>
-                <p v-else-if="readonly && roomError" class="problem">房间内容尚未读取成功，暂时无法检查队伍引用。</p>
-                <p v-else-if="!gameData.loaded && !roomContent">正在读取基础内容…</p>
-                <p v-else-if="!relatedTeams.length">暂无队伍引用此包的内容。</p>
-                <ul v-else class="team-impact">
-                  <li v-for="(team, index) in relatedTeams" :key="index">
-                    <strong>{{ team.name }}</strong
-                    ><span class="tag" :class="{ warning: team.missing.length }">{{
-                      team.missing.length ? '存在不可用引用' : '内容引用齐全'
-                    }}</span>
-                    <ul v-if="team.missing.length">
-                      <li v-for="(item, itemIndex) in team.missing" :key="itemIndex">{{ item.message }}</li>
-                    </ul>
-                  </li>
-                </ul>
-              </template>
+              </div>
+              <p v-if="!visiblePackages.length && !loading" class="list-note">没有符合条件的内容包。</p>
             </div>
-          </aside>
-        </div>
-      </section>
-    </div>
-    <div v-if="adding" class="dialog-backdrop" @keydown.esc="!busy && (adding = false)">
-      <section role="dialog" aria-modal="true" aria-labelledby="add-package-title" class="dialog">
-        <h2 id="add-package-title">添加内容包</h2>
-        <p>安装后自动启用，内容包及其依赖将在本机运行。</p>
-        <button :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</button
-        ><label class="field"
-          >npm 包名与版本<input v-model="npmSpec" placeholder="@author/pets@1.0.0" :disabled="busy" /></label
-        ><label class="offline"
-          ><input v-model="offline" type="checkbox" :disabled="busy" />仅使用本机已有的 npm 缓存</label
-        >
-        <p v-if="error" role="alert" class="problem">{{ error }}</p>
-        <div class="dialog-actions">
-          <button :disabled="busy" @click="adding = false">取消</button
-          ><button class="primary" :disabled="busy || !npmSpec.trim()" @click="inspectNpm">
-            {{ busy ? '正在安装…' : '安装并启用' }}
-          </button>
-        </div>
-      </section>
-    </div>
+            <aside v-if="selected" class="package-detail" aria-label="内容包详情">
+              <button class="back" @click="detailOpen = false">返回内容包列表</button>
+              <h2>{{ selected.title }}</h2>
+              <p class="detail-subtitle">
+                {{ selected.version }} ·
+                {{
+                  selected.builtin
+                    ? '游戏内置'
+                    : readonly
+                      ? '本局固定版本'
+                      : draftIds.includes(selected.id) !== activeIds.includes(selected.id)
+                        ? snapshot?.selection.status === 'failed'
+                          ? '未能完成选择'
+                          : '正在准备'
+                        : activeIds.includes(selected.id)
+                          ? '本机已启用'
+                          : '已安装，未启用'
+                }}
+              </p>
+              <button
+                v-if="canAuthor && mode !== 'room'"
+                class="primary"
+                :disabled="busy"
+                @click="browsePackage(selected.id)"
+              >
+                浏览内容（只读）
+              </button>
+              <div class="detail-tabs" role="tablist" aria-label="包详情">
+                <button
+                  v-for="tab in ['overview', 'dependencies', 'impact'] as const"
+                  :id="'package-tab-' + tab"
+                  :key="tab"
+                  role="tab"
+                  :aria-selected="detailTab === tab"
+                  aria-controls="package-detail-panel"
+                  @click="detailTab = tab"
+                >
+                  {{ { overview: '简介', dependencies: '依赖', impact: '队伍影响' }[tab] }}
+                </button>
+              </div>
+              <div id="package-detail-panel" role="tabpanel" :aria-labelledby="'package-tab-' + detailTab">
+                <template v-if="detailTab === 'overview'"
+                  ><p v-if="selected.description">{{ selected.description }}</p>
+                  <p v-if="selected.counts" class="detail-subtitle">
+                    {{ selected.counts.species }} 只精灵 · {{ selected.counts.skills }} 个技能 ·
+                    {{ selected.counts.marks }} 个印记
+                  </p>
+                  <dl>
+                    <dt>来源</dt>
+                    <dd>{{ selected.source }}</dd>
+                    <template v-if="selected.author"
+                      ><dt>作者</dt>
+                      <dd>{{ selected.author }}</dd></template
+                    >
+                  </dl>
+                  <p v-if="selected.error" class="problem">{{ selected.error }}</p>
+                  <details>
+                    <summary>包标识与版本信息</summary>
+                    <p>{{ selected.name }} {{ selected.version }}</p>
+                    <p v-if="selected.namespace">命名空间：{{ selected.namespace }}</p>
+                  </details>
+                  <div v-if="!readonly && selected.local" class="detail-actions">
+                    <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
+                    ><button
+                      :title="
+                        draftIds.includes(selected.id) || activeIds.includes(selected.id)
+                          ? '请先停用后卸载'
+                          : snapshot?.selection.status === 'preparing'
+                            ? '内容准备完成后可卸载'
+                            : undefined
+                      "
+                      :disabled="
+                        busy ||
+                        snapshot?.selection.status === 'preparing' ||
+                        draftIds.includes(selected.id) ||
+                        activeIds.includes(selected.id)
+                      "
+                      @click="uninstall"
+                    >
+                      卸载此版本
+                    </button>
+                  </div>
+                </template>
+                <template v-else-if="detailTab === 'dependencies'"
+                  ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
+                  <template v-else-if="selected.graph"
+                    ><p class="detail-subtitle">
+                      {{ activeIds.includes(selected.id) ? '当前可用组合的实际依赖' : '安装时的内容包及依赖' }}
+                    </p>
+                    <ul class="dependencies">
+                      <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
+                        <strong>{{ dependency.name }}</strong> {{ dependency.version
+                        }}<small v-if="dependency.namespace">内容命名空间：{{ dependency.namespace }}</small>
+                        <details v-if="Object.keys(dependency.dependencies).length">
+                          <summary>所需依赖</summary>
+                          <p v-for="(version, name) in dependency.dependencies" :key="name">{{ name }} {{ version }}</p>
+                        </details>
+                      </li>
+                    </ul></template
+                  >
+                  <p v-else>服务器未提供依赖清单。</p></template
+                >
+                <template v-else
+                  ><p v-if="readonly && roomLoading">正在读取房间内容…</p>
+                  <p v-else-if="readonly && roomError" class="problem">房间内容尚未读取成功，暂时无法检查队伍引用。</p>
+                  <p v-else-if="!gameData.loaded && !roomContent">正在读取基础内容…</p>
+                  <p v-else-if="!relatedTeams.length">暂无队伍引用此包的内容。</p>
+                  <ul v-else class="team-impact">
+                    <li v-for="(team, index) in relatedTeams" :key="index">
+                      <strong>{{ team.name }}</strong
+                      ><span class="tag" :class="{ warning: team.missing.length }">{{
+                        team.missing.length ? '存在不可用引用' : '内容引用齐全'
+                      }}</span>
+                      <ul v-if="team.missing.length">
+                        <li v-for="(item, itemIndex) in team.missing" :key="itemIndex">{{ item.message }}</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </template>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </div>
+      <div v-if="adding" class="dialog-backdrop" @keydown.esc="!busy && (adding = false)">
+        <section role="dialog" aria-modal="true" aria-labelledby="add-package-title" class="dialog">
+          <h2 id="add-package-title">添加内容包</h2>
+          <p>安装后自动启用，内容包及其依赖将在本机运行。</p>
+          <button :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</button
+          ><label class="field"
+            >npm 包名与版本<input v-model="npmSpec" placeholder="@author/pets@1.0.0" :disabled="busy" /></label
+          ><label class="offline"
+            ><input v-model="offline" type="checkbox" :disabled="busy" />仅使用本机已有的 npm 缓存</label
+          >
+          <p v-if="error" role="alert" class="problem">{{ error }}</p>
+          <div class="dialog-actions">
+            <button :disabled="busy" @click="adding = false">取消</button
+            ><button class="primary" :disabled="busy || !npmSpec.trim()" @click="inspectNpm">
+              {{ busy ? '正在安装…' : '安装并启用' }}
+            </button>
+          </div>
+        </section>
+      </div>
+    </template>
   </main>
 </template>
 
 <style scoped>
+.content-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.content-tabs [aria-current='page'] {
+  background: #eaf2ff;
+  color: #2467c8;
+}
 .content-page {
   --surface: #fff;
   --page: #f5f7fa;
@@ -1095,6 +1114,15 @@ summary {
 </style>
 
 <style scoped>
+.content-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.content-tabs [aria-current='page'] {
+  background: #eaf2ff;
+  color: #2467c8;
+}
 .source-projects {
   margin: 16px 0 24px;
   padding: 16px;

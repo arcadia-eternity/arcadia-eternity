@@ -1590,6 +1590,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       case 'roomClosed':
         cleanup()
         if (event.data.reason === 'MATCH_FINISHED') break
+        if (event.data.reason === 'ADMIN_TERMINATED')
+          ElNotification({ title: '对战已中断', message: '服务器管理员终止了这场对战，不计胜负。', type: 'info' })
         router.push('/')
         break
     }

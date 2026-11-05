@@ -17,8 +17,12 @@ import EnvironmentWorkspace from './EnvironmentWorkspace.vue'
 import ServerSettingsForm from './ServerSettingsForm.vue'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import ManagementCredentials from './ManagementCredentials.vue'
+import LiveManagement from './LiveManagement.vue'
 
-const props = defineProps<{ initialTarget?: 'local' | 'server'; initialTab?: 'environments' | 'server' | 'network' }>()
+const props = defineProps<{
+  initialTarget?: 'local' | 'server'
+  initialTab?: 'environments' | 'server' | 'network' | 'battles' | 'accounts' | 'tasks' | 'permissions'
+}>()
 const state = useManagementConsole()
 const auth = useAuthStore()
 const {
@@ -33,6 +37,9 @@ const {
   grants,
   credentials,
   accounts,
+  players,
+  battles,
+  audit,
   accountCursor,
   loading,
   busy,
@@ -54,7 +61,6 @@ const principalId = ref('')
 const newPrincipalName = ref('')
 const newPrincipalAccount = ref('')
 const deletingBinding = ref('')
-const deactivatingAccount = ref('')
 const referenceVersion = ref('')
 const versionReferences = ref<Record<string, string>[]>([])
 let referenceRequest = 0
@@ -91,7 +97,7 @@ async function deleteBinding(binding: ManagedBinding) {
   await state.mutate('DELETE', `${serverPath.value}/bindings/${encode(binding.id)}`, undefined, binding.revision)
 }
 const grantRole = ref<'viewer' | 'server-admin' | 'workspace-admin'>('viewer')
-const tab = ref<'environments' | 'server' | 'network' | 'tasks' | 'permissions' | 'accounts'>(
+const tab = ref<'environments' | 'server' | 'network' | 'tasks' | 'permissions' | 'accounts' | 'battles'>(
   props.initialTab ?? 'environments',
 )
 let disposed = false
@@ -116,6 +122,14 @@ const taskKinds: Record<string, string> = {
   'environment.import': '导入环境',
   'environment.export': '导出环境',
   'server.backup': '服务器备份',
+  'battle.terminate': '终止对战',
+}
+const auditLabels: Record<string, string> = {
+  'battle.terminate': '终止对战',
+  'account.deactivate': '停用账户',
+  'grant.replace': '更新授权',
+  'grant.revoke': '撤销授权',
+  'principal.create': '创建管理身份',
 }
 const taskStages: Record<string, string> = {
   exporting: '正在导出环境',
@@ -159,7 +173,6 @@ async function changeTarget(next: 'local' | 'server') {
   newPrincipalName.value = ''
   newPrincipalAccount.value = ''
   deletingBinding.value = ''
-  deactivatingAccount.value = ''
   referenceVersion.value = ''
   versionReferences.value = []
   referenceRequest++
@@ -170,12 +183,16 @@ async function changeTarget(next: 'local' | 'server') {
     if (next === 'local') {
       if (!localBridge) throw new Error('此窗口不支持本机管理，请在客户端本机内容页面打开。')
       state.setClient(
-        createIpcManagementClient({ transport: 'ipc', endpoint: 'local-workspace', label: '本机工作区' }, localBridge),
+        createIpcManagementClient({ transport: 'ipc', endpoint: 'local-workspace', label: '本机服务器' }, localBridge),
       )
     } else {
       const endpoint = getBackendOrigin()
       state.setClient(
-        createHttpManagementClient({ transport: 'http', endpoint, label: `配对服务器 · ${new URL(endpoint).host}` }),
+        createHttpManagementClient({
+          transport: 'http',
+          endpoint,
+          label: `当前部署服务器 · ${new URL(endpoint).host}`,
+        }),
       )
     }
     await state.restoreSession()
@@ -227,6 +244,17 @@ async function prepareEnvironment(environment: ManagedEnvironment) {
     environment.revision,
   )
   if (submitted) tab.value = 'tasks'
+}
+async function deleteEnvironment(environment: ManagedEnvironment) {
+  await state.mutate(
+    'DELETE',
+    `${workspacePath.value}/environments/${encode(environment.document.id)}`,
+    undefined,
+    environment.revision,
+  )
+}
+async function terminateBattle(id: string, reason: string) {
+  await state.mutate('POST', `${serverPath.value}/battles/${encode(id)}/terminate`, { reason })
 }
 async function useVersion(version: ManagedEnvironmentVersion, executionPolicy: 'server' | 'peer' = 'server') {
   if (version.status !== 'ready') return
@@ -361,9 +389,8 @@ async function createPrincipal() {
     newPrincipalAccount.value = ''
   }
 }
-async function deactivateAccount(accountId: string) {
-  deactivatingAccount.value = ''
-  await state.mutate('POST', `${serverPath.value}/accounts/${encode(accountId)}/deactivate`)
+async function deactivateAccount(accountId: string, reason: string) {
+  await state.mutate('POST', `${serverPath.value}/accounts/${encode(accountId)}/deactivate`, { reason })
 }
 async function issueCredential(input: {
   principalId?: string
@@ -391,7 +418,19 @@ async function addGrant() {
   const actions = workspace
     ? ['read', 'environment.use', 'edit', 'prepare', 'delete', 'export', 'grants.manage']
     : grantRole.value === 'server-admin'
-      ? ['read', 'bindings.manage', 'publish', 'settings.manage', 'drain', 'accounts.manage', 'grants.manage']
+      ? [
+          'read',
+          'bindings.manage',
+          'publish',
+          'settings.manage',
+          'drain',
+          'accounts.manage',
+          'grants.manage',
+          'players.read',
+          'battles.read',
+          'battles.terminate',
+          'backup',
+        ]
       : ['read']
   if (
     await state.mutate('POST', '/grants', {
@@ -435,8 +474,8 @@ onBeforeUnmount(() => {
       </div>
       <div class="actions">
         <template v-if="localBridge"
-          ><button :aria-pressed="target === 'local'" @click="changeTarget('local')">本机工作区</button
-          ><button :aria-pressed="target === 'server'" @click="changeTarget('server')">配对服务器</button></template
+          ><button :aria-pressed="target === 'local'" @click="changeTarget('local')">本机服务器</button
+          ><button :aria-pressed="target === 'server'" @click="changeTarget('server')">当前部署服务器</button></template
         ><button :disabled="loading" @click="state.refresh">刷新</button
         ><button v-if="target === 'server' && capabilities && !loginRequired" @click="state.logout">退出管理</button>
       </div>
@@ -447,6 +486,16 @@ onBeforeUnmount(() => {
     <form v-if="loginRequired && target === 'server'" class="login-card" @submit.prevent="login">
       <h2>登录服务器管理</h2>
       <p>使用服主从宿主命令行取得的一次性登录码。普通玩家登录不会自动获得管理权限。</p>
+      <details class="bootstrap-help">
+        <summary>首次配置 / 恢复管理员访问</summary>
+        <p>在服务器主机上运行，使用这台服务器实际的数据目录：</p>
+        <pre><code>node dist/cli.js server admin login-code --data-dir /path/to/server-data</code></pre>
+        <p>
+          自定义工作区时追加相同的 <code>--workspace-root</code>。取返回结果中的 <code>code</code> 填入下方；有效期 10
+          分钟，只能使用一次。
+        </p>
+        <p>此登录码建立 Owner 管理会话，并授予当前服务器及工作区权限。进入“访问权限”后可关联本服账户并授予所需角色。</p>
+      </details>
       <label>一次性登录码<input v-model="loginCode" type="password" required autocomplete="off" /></label
       ><button class="primary" :disabled="busy || !loginCode.trim()">登录管理</button>
       <button v-if="accountLoginAvailable" type="button" :disabled="busy" @click="loginAccount">
@@ -459,395 +508,458 @@ onBeforeUnmount(() => {
       <div v-if="capabilities.resourceRestrictions.length" class="message">
         <p v-for="(restriction, index) in capabilities.resourceRestrictions" :key="index">{{ restriction.reason }}</p>
       </div>
-      <nav class="tabs" aria-label="管理功能">
-        <button :aria-current="tab === 'environments' ? 'page' : undefined" @click="tab = 'environments'">
-          玩法与版本</button
-        ><button
-          :disabled="!can('server', 'read')"
-          :title="reason('server', 'read')"
-          :aria-current="tab === 'server' ? 'page' : undefined"
-          @click="tab = 'server'"
-        >
-          概览</button
-        ><button
-          :disabled="!can('server', 'read')"
-          :aria-current="tab === 'network' ? 'page' : undefined"
-          @click="tab = 'network'"
-        >
-          网络与容量</button
-        ><button
-          :disabled="!supported('operations')"
-          :aria-current="tab === 'tasks' ? 'page' : undefined"
-          @click="tab = 'tasks'"
-        >
-          维护与备份 <span v-if="activeOperations">{{ activeOperations }}</span></button
-        ><button
-          v-if="manageGrants"
-          :aria-current="tab === 'permissions' ? 'page' : undefined"
-          @click="tab = 'permissions'"
-        >
-          管理员
-        </button>
-        <button
-          v-if="supported('accounts') && can('server', 'accounts.manage')"
-          :aria-current="tab === 'accounts' ? 'page' : undefined"
-          @click="tab = 'accounts'"
-        >
-          本服账户
-        </button>
-      </nav>
-      <EnvironmentWorkspace
-        v-if="tab === 'environments' && supported('workspace.environments')"
-        :key="client?.context.endpoint"
-        :environments="environments"
-        :versions="versions"
-        :can-edit="can('workspace', 'edit')"
-        :can-prepare="can('workspace', 'prepare')"
-        :can-use="can('workspace', 'environment.use') && can('server', 'bindings.manage')"
-        :can-delete="can('workspace', 'delete')"
-        :save-sequence="environmentSaveSequence"
-        :busy="busy"
-        @save="saveEnvironment"
-        @prepare="prepareEnvironment"
-        @use="useVersion"
-        @references="inspectReferences"
-        @delete="version => state.mutate('DELETE', `${workspacePath}/versions/${encode(version.versionId)}`)"
-      />
-      <section v-if="tab === 'environments' && referenceVersion" aria-label="版本引用" class="message">
-        <h3>版本引用</h3>
-        <p>
-          <code>{{ referenceVersion }}</code>
-        </p>
-        <p v-if="!versionReferences.length">当前没有引用，可以删除此版本。删除时仍会重新检查。</p>
-        <template v-else>
-          <p>以下使用方仍保留此版本。解除绑定或等待正在使用的对局结束后，才可以删除。</p>
-          <p v-for="(reference, index) in versionReferences" :key="index">
-            {{ reference.kind === 'runtime' ? '正在使用' : '持久引用' }} ·
-            {{ reference.serverId ?? reference.owner ?? reference.id ?? reference.retentionId
-            }}<span v-if="reference.bindingId"> · 绑定 {{ reference.bindingId }}</span>
-          </p>
-        </template>
-        <button @click="referenceVersion = ''">关闭引用</button>
-      </section>
-      <EnvironmentTransfers
-        v-if="tab === 'environments' && supported('workspace.transfers')"
-        :key="client?.context.endpoint"
-        :versions="versions"
-        :operations="operations"
-        :busy="busy || !!downloading"
-        :can-import="can('workspace', 'edit') && can('workspace', 'prepare')"
-        :can-export="can('workspace', 'export')"
-        @import="importEnvironment"
-        @export="exportEnvironment"
-        @download="downloadEnvironment"
-      />
-      <p v-if="tab === 'environments' && !supported('workspace.environments')" class="hint">
-        此管理目标尚不支持环境工作区。
-      </p>
-      <ServerSettingsForm
-        v-if="tab === 'network' && server?.settings"
-        :settings="server.settings"
-        :revision="server.revision"
-        :save-sequence="settingsSaveSequence"
-        :runtime-settings="server.runtimeSettings"
-        :pending-restart="server.pendingRestart"
-        :busy="busy"
-        :can-edit="can('server', 'settings.manage')"
-        @save="saveServerSettings"
-      />
-      <section v-if="tab === 'server' && server" aria-label="服务器管理">
-        <div class="server-summary">
-          <h2>{{ server.name }}</h2>
-          <p>
-            {{ server.draining ? '正在排空：不接纳新局' : '正在接纳对局' }} ·
-            {{ conditionLabels[server.status] ?? server.status }}
-          </p>
-          <form class="actions" @submit.prevent="saveServerName">
-            <label
-              >服务器名称<input
-                v-model="serverName"
-                required
-                maxlength="80"
-                @input="nameRevision ??= server.revision" /></label
-            ><button :disabled="busy || !can('server', 'settings.manage')" :title="reason('server', 'settings.manage')">
-              保存名称</button
-            ><button
-              type="button"
-              :disabled="busy || !supported('server.drain') || !can('server', 'drain')"
-              :title="reason('server', 'drain')"
-              @click="drain"
-            >
-              {{ server.draining ? '恢复接纳新局' : '停止接纳并排空' }}
-            </button>
-          </form>
-          <p class="hint">排空允许已有对局结束。独立服务的进程启停由部署环境控制。</p>
-        </div>
-      </section>
-      <section v-if="tab === 'environments' && server" aria-label="服务器玩法">
-        <h2>服务器使用的玩法</h2>
-        <p class="hint">绑定让服务器使用工作区中的固定版本。更改默认环境不会改变已有房间。</p>
-        <article v-for="binding in bindings" :key="binding.id" class="binding-card">
-          <header>
-            <h3>
-              {{
-                environments.find(env => env.document.id === binding.environmentId)?.document.name ??
-                binding.environmentId
-              }}
-              <span v-if="server.defaultBindingId === binding.id" class="badge">默认</span>
-            </h3>
-            <span>{{ conditionLabels[binding.condition] ?? binding.condition }}</span>
-          </header>
-          <dl>
-            <dt>对局执行</dt>
-            <dd>{{ binding.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行' }}</dd>
-            <dt>期望版本</dt>
-            <dd>{{ binding.desiredVersionId ?? '未选择' }}</dd>
-            <dt>实际版本</dt>
-            <dd>{{ binding.effectiveVersionId ?? '尚未生效' }}</dd>
-          </dl>
-          <p v-if="binding.reason" class="message error">{{ binding.reason }}</p>
-          <div class="binding-options">
-            <label
-              ><input
-                type="checkbox"
-                :checked="binding.enabled"
-                :disabled="busy || !can('server', 'bindings.manage') || (!binding.enabled && !canActivateBinding)"
-                @change="patchBinding(binding, { enabled: ($event.target as HTMLInputElement).checked })"
-              />启用</label
-            ><label
-              ><input
-                type="checkbox"
-                :checked="binding.visibility === 'public'"
-                :disabled="
-                  busy || !can('server', 'bindings.manage') || (binding.visibility !== 'public' && !canActivateBinding)
-                "
-                @change="
-                  patchBinding(binding, {
-                    visibility: ($event.target as HTMLInputElement).checked ? 'public' : 'private',
-                  })
-                "
-              />公开展示</label
-            ><label
-              ><input
-                type="checkbox"
-                :checked="binding.matchmakingEnabled"
-                :disabled="
-                  busy || !can('server', 'bindings.manage') || (!binding.matchmakingEnabled && !canActivateBinding)
-                "
-                @change="patchBinding(binding, { matchmakingEnabled: ($event.target as HTMLInputElement).checked })"
-              />开放匹配</label
-            ><label
-              ><input
-                type="checkbox"
-                :checked="binding.selection === 'follow-ready'"
-                :disabled="
-                  busy ||
-                  !can('server', 'bindings.manage') ||
-                  (binding.selection !== 'follow-ready' && !canActivateBinding)
-                "
-                @change="
-                  patchBinding(binding, {
-                    selection: ($event.target as HTMLInputElement).checked ? 'follow-ready' : 'pinned',
-                  })
-                "
-              />跟随此环境的就绪版本</label
-            >
-          </div>
-          <p v-if="binding.selection === 'follow-ready'" class="hint">
-            后续准备出的就绪版本会按这项授权策略发布，退出管理后仍有效。此设置不会自动更新包；撤销相应授权或关闭跟随后停止。
-          </p>
-          <div class="actions">
-            <label
-              >准备发布的版本<select
-                :value="bindingVersion[binding.id] ?? binding.desiredVersionId ?? binding.effectiveVersionId ?? ''"
-                @change="bindingVersion[binding.id] = ($event.target as HTMLSelectElement).value"
-              >
-                <option value="" disabled>选择版本</option>
-                <option
-                  v-for="version in versions.filter(
-                    item => item.environmentId === binding.environmentId && item.status === 'ready',
-                  )"
-                  :key="version.versionId"
-                  :value="version.versionId"
+      <div class="console-layout">
+        <nav class="tabs" aria-label="管理功能">
+          <button
+            :disabled="!can('server', 'read')"
+            :aria-current="tab === 'server' ? 'page' : undefined"
+            @click="tab = 'server'"
+          >
+            概览
+          </button>
+          <button :aria-current="tab === 'environments' ? 'page' : undefined" @click="tab = 'environments'">
+            运行环境
+          </button>
+          <button
+            v-if="supported('server.battles') && can('server', 'battles.read')"
+            :aria-current="tab === 'battles' ? 'page' : undefined"
+            @click="tab = 'battles'"
+          >
+            活跃对战
+          </button>
+          <button
+            v-if="
+              (supported('server.players') && can('server', 'players.read')) ||
+              (supported('accounts') && can('server', 'accounts.manage'))
+            "
+            :aria-current="tab === 'accounts' ? 'page' : undefined"
+            @click="tab = 'accounts'"
+          >
+            用户管理
+          </button>
+          <button
+            :disabled="!can('server', 'read')"
+            :aria-current="tab === 'network' ? 'page' : undefined"
+            @click="tab = 'network'"
+          >
+            网络与容量
+          </button>
+          <button
+            :disabled="!supported('operations')"
+            :aria-current="tab === 'tasks' ? 'page' : undefined"
+            @click="tab = 'tasks'"
+          >
+            操作记录与备份 <span v-if="activeOperations">{{ activeOperations }}</span>
+          </button>
+          <button
+            v-if="manageGrants"
+            :aria-current="tab === 'permissions' ? 'page' : undefined"
+            @click="tab = 'permissions'"
+          >
+            访问权限
+          </button>
+        </nav>
+        <div class="console-content">
+          <LiveManagement
+            v-if="tab === 'battles' || tab === 'accounts'"
+            :key="client?.context.endpoint + ':' + tab"
+            :mode="tab"
+            :players="players"
+            :battles="battles"
+            :accounts="accounts"
+            :can-read-players="can('server', 'players.read')"
+            :can-read-battles="can('server', 'battles.read')"
+            :can-manage-accounts="supported('accounts') && can('server', 'accounts.manage')"
+            :can-terminate="can('server', 'battles.terminate')"
+            :more-accounts="!!accountCursor"
+            :busy="busy"
+            @terminate="terminateBattle"
+            @deactivate="deactivateAccount"
+            @more-accounts="state.loadMoreAccounts"
+          />
+          <section v-if="tab === 'environments' && server" aria-label="服务器玩法">
+            <h2>运行环境</h2>
+            <p class="hint">
+              一台服务器可以同时开放多个环境。默认环境用于未指定环境的新房间；其他环境仍可独立运行。发布新版本不会改变已有房间。
+            </p>
+            <article v-for="binding in bindings" :key="binding.id" class="binding-card">
+              <header>
+                <h3>
+                  {{
+                    environments.find(env => env.document.id === binding.environmentId)?.document.name ??
+                    binding.environmentId
+                  }}
+                  <span v-if="server.defaultBindingId === binding.id" class="badge">默认</span>
+                </h3>
+                <span>{{ conditionLabels[binding.condition] ?? binding.condition }}</span>
+              </header>
+              <dl>
+                <dt>对局执行</dt>
+                <dd>{{ binding.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行' }}</dd>
+                <dt>期望版本</dt>
+                <dd>{{ binding.desiredVersionId ?? '未选择' }}</dd>
+                <dt>实际版本</dt>
+                <dd>{{ binding.effectiveVersionId ?? '尚未生效' }}</dd>
+              </dl>
+              <p v-if="binding.reason" class="message error">{{ binding.reason }}</p>
+              <div class="binding-options">
+                <label
+                  ><input
+                    type="checkbox"
+                    :checked="binding.enabled"
+                    :disabled="
+                      busy ||
+                      !can('server', 'bindings.manage') ||
+                      (!binding.enabled && !canActivateBinding) ||
+                      server.defaultBindingId === binding.id
+                    "
+                    :title="server.defaultBindingId === binding.id ? '先选择其他默认环境，再停用此环境' : undefined"
+                    @change="patchBinding(binding, { enabled: ($event.target as HTMLInputElement).checked })"
+                  />接纳新房间</label
+                ><label
+                  ><input
+                    type="checkbox"
+                    :checked="binding.visibility === 'public'"
+                    :disabled="
+                      busy ||
+                      !can('server', 'bindings.manage') ||
+                      (binding.visibility !== 'public' && !canActivateBinding)
+                    "
+                    @change="
+                      patchBinding(binding, {
+                        visibility: ($event.target as HTMLInputElement).checked ? 'public' : 'private',
+                      })
+                    "
+                  />公开展示</label
+                ><label
+                  ><input
+                    type="checkbox"
+                    :checked="binding.matchmakingEnabled"
+                    :disabled="
+                      busy || !can('server', 'bindings.manage') || (!binding.matchmakingEnabled && !canActivateBinding)
+                    "
+                    @change="patchBinding(binding, { matchmakingEnabled: ($event.target as HTMLInputElement).checked })"
+                  />开放匹配</label
+                ><label
+                  ><input
+                    type="checkbox"
+                    :checked="binding.selection === 'follow-ready'"
+                    :disabled="
+                      busy ||
+                      !can('server', 'bindings.manage') ||
+                      (binding.selection !== 'follow-ready' && !canActivateBinding)
+                    "
+                    @change="
+                      patchBinding(binding, {
+                        selection: ($event.target as HTMLInputElement).checked ? 'follow-ready' : 'pinned',
+                      })
+                    "
+                  />跟随此环境的就绪版本</label
                 >
-                  {{ version.versionId.slice(0, 16) }} ·
-                  {{ version.status === 'ready' ? new Date(version.createdAt).toLocaleString() : '材料不可用' }}
-                </option>
-              </select></label
-            ><button
-              class="primary"
-              :disabled="busy || !canActivateBinding"
-              :title="canActivateBinding ? undefined : '需要服务器发布和工作区使用权限'"
-              @click="publish(binding)"
-            >
-              发布所选版本</button
-            ><button
-              :disabled="busy || !can('server', 'settings.manage') || binding.condition !== 'available'"
-              @click="setDefault(binding)"
-            >
-              设为默认
-            </button>
-            <button
-              :disabled="busy || !can('server', 'bindings.manage') || server.defaultBindingId === binding.id"
-              :title="server.defaultBindingId === binding.id ? '先选择其他默认环境' : undefined"
-              @click="deletingBinding = binding.id"
-            >
-              移除绑定
-            </button>
-            <span v-if="deletingBinding === binding.id"
-              ><button :disabled="busy" @click="deleteBinding(binding)">确认移除</button
-              ><button @click="deletingBinding = ''">取消</button></span
-            >
-          </div>
-        </article>
-        <p v-if="!bindings.length" class="hint">还没有环境绑定。在上方准备版本后，选择“用于服务器”。</p>
-      </section>
-      <section v-if="tab === 'tasks'" aria-label="管理任务">
-        <div v-if="canBackup" class="server-backup">
-          <button :disabled="busy || !!downloading" @click="createBackup">创建服务器备份</button>
-          <p class="hint">备份包含持久数据和工作区材料。完成后在下方操作记录中下载；恢复需在停止服务后通过宿主执行。</p>
-        </div>
-        <h2>操作记录</h2>
-        <p class="hint">任务属于当前管理目标，离开页面后仍可回来查看。</p>
-        <article v-for="operation in operations" :key="operation.id" class="operation">
-          <header>
-            <strong>{{ taskKinds[operation.kind] ?? operation.kind }}</strong
-            ><span>{{ taskLabels[operation.status] ?? operation.status }}</span>
-          </header>
-          <p v-if="operation.status === 'running' && typeof operation.progress === 'object'">
-            {{
-              operation.progress.message ??
-              (operation.progress.stage ? taskStages[operation.progress.stage] : undefined) ??
-              '正在处理'
-            }}
-            <span v-if="operation.progress.total"
-              >{{ operation.progress.completed ?? 0 }} / {{ operation.progress.total }}</span
-            >
-          </p>
-          <progress v-if="typeof operation.progress === 'number'" :value="operation.progress" max="100" />
-          <p v-if="operation.error" class="error">{{ operationError(operation.error) }}</p>
-          <p v-if="operation.committed && operation.status !== 'succeeded'" class="hint">
-            资源变更已提交，请先查看实际状态，再发起新的操作。
-          </p>
-          <small>{{ operation.id }}</small
-          ><button
-            v-if="
-              (operation.status === 'queued' || operation.status === 'running') &&
-              (operation.kind !== 'server.backup' || canBackup)
-            "
-            :disabled="busy || operation.cancelRequested"
-            @click="state.mutate('POST', `/operations/${encode(operation.id)}/cancel`)"
-          >
-            {{ operation.cancelRequested ? '已请求取消' : '取消任务' }}
-          </button>
-          <button
-            v-if="
-              !operation.committed &&
-              (operation.status === 'failed' || operation.status === 'interrupted') &&
-              (operation.kind !== 'server.backup' || canBackup)
-            "
-            :disabled="busy"
-            @click="state.mutate('POST', `/operations/${encode(operation.id)}/retry`)"
-          >
-            重试任务
-          </button>
-          <template v-if="operation.kind === 'server.backup' && operation.status === 'succeeded' && canBackup">
-            <template v-if="serverBackupDownload(operation)">
-              <p class="hint">
-                {{ serverBackupDownload(operation)!.filename }} ·
-                {{ (serverBackupDownload(operation)!.bytes / 1024 / 1024).toFixed(2) }} MiB · 有效至
-                {{ new Date(serverBackupDownload(operation)!.expiresAt).toLocaleString() }}
+              </div>
+              <p v-if="binding.selection === 'follow-ready'" class="hint">
+                后续准备出的就绪版本会按这项授权策略发布，退出管理后仍有效。此设置不会自动更新包；撤销相应授权或关闭跟随后停止。
               </p>
-              <button
-                :disabled="busy || !!downloading || serverBackupDownload(operation)!.expiresAt <= Date.now()"
-                @click="downloadBackup(operation)"
-              >
-                {{
-                  serverBackupDownload(operation)!.expiresAt <= Date.now()
-                    ? '备份文件已过期'
-                    : downloading === operation.id
-                      ? '正在下载备份…'
-                      : '下载服务器备份'
-                }}
-              </button>
-            </template>
-            <p v-else class="hint">此任务没有可用的备份下载信息，请重新创建备份。</p>
-          </template>
-        </article>
-        <p v-if="!operations.length">没有可查看的任务。</p>
-      </section>
-      <section
-        v-if="tab === 'accounts' && supported('accounts') && can('server', 'accounts.manage')"
-        aria-label="本服账户管理"
-      >
-        <h2>本服账户</h2>
-        <p class="hint">停用后账户及其关联管理权限不可继续使用；已保存的身份记录会保留。</p>
-        <article v-for="account in accounts" :key="account.accountId" class="grant">
-          <strong>{{ account.accountId }}</strong>
-          <p>
-            {{ account.status === 'active' ? '正常' : '已停用' }} · {{ new Date(account.createdAt).toLocaleString() }}
+              <div class="actions">
+                <label
+                  >准备发布的版本<select
+                    :value="bindingVersion[binding.id] ?? binding.desiredVersionId ?? binding.effectiveVersionId ?? ''"
+                    @change="bindingVersion[binding.id] = ($event.target as HTMLSelectElement).value"
+                  >
+                    <option value="" disabled>选择版本</option>
+                    <option
+                      v-for="version in versions.filter(
+                        item => item.environmentId === binding.environmentId && item.status === 'ready',
+                      )"
+                      :key="version.versionId"
+                      :value="version.versionId"
+                    >
+                      {{ version.versionId.slice(0, 16) }} ·
+                      {{ version.status === 'ready' ? new Date(version.createdAt).toLocaleString() : '材料不可用' }}
+                    </option>
+                  </select></label
+                ><button
+                  class="primary"
+                  :disabled="busy || !canActivateBinding"
+                  :title="canActivateBinding ? undefined : '需要服务器发布和工作区使用权限'"
+                  @click="publish(binding)"
+                >
+                  发布所选版本</button
+                ><button
+                  :disabled="busy || !can('server', 'settings.manage') || binding.condition !== 'available'"
+                  @click="setDefault(binding)"
+                >
+                  设为默认
+                </button>
+                <button
+                  :disabled="busy || !can('server', 'bindings.manage') || server.defaultBindingId === binding.id"
+                  :title="server.defaultBindingId === binding.id ? '先选择其他默认环境' : undefined"
+                  @click="deletingBinding = binding.id"
+                >
+                  移除绑定
+                </button>
+                <span v-if="deletingBinding === binding.id"
+                  ><button :disabled="busy" @click="deleteBinding(binding)">确认移除</button
+                  ><button @click="deletingBinding = ''">取消</button></span
+                >
+              </div>
+            </article>
+            <p v-if="!bindings.length" class="hint">还没有环境绑定。在下方准备或导入版本后，选择“用于服务器”。</p>
+          </section>
+          <p v-if="tab === 'environments'" class="context-note">
+            服务器环境库 · 下面的草稿和固定版本保存在当前管理的服务器。本机离线环境请到“内容包 → 环境”管理。
           </p>
-          <button
-            v-if="account.status === 'active' && deactivatingAccount !== account.accountId"
-            :disabled="busy"
-            @click="deactivatingAccount = account.accountId"
-          >
-            停用账户</button
-          ><span v-if="deactivatingAccount === account.accountId"
-            ><button :disabled="busy" @click="deactivateAccount(account.accountId)">确认停用</button
-            ><button @click="deactivatingAccount = ''">取消</button></span
-          >
-        </article>
-        <p v-if="!accounts.length">还没有持久账户。</p>
-        <button v-if="accountCursor" :disabled="busy" @click="state.loadMoreAccounts">加载更多账户</button>
-      </section>
-      <section v-if="tab === 'permissions' && manageGrants" aria-label="管理员授权">
-        <h2>管理员与授权</h2>
-        <p class="hint">权限只作用于指定服务器或工作区。服务器管理员不会自动获得工作区删除权限。</p>
-        <details>
-          <summary>新建管理主体</summary>
-          <form class="grant-form" @submit.prevent="createPrincipal">
-            <label>显示名称<input v-model="newPrincipalName" required maxlength="80" /></label
-            ><label v-if="can('server', 'grants.manage')"
-              >关联本服账户标识（可选）<input v-model="newPrincipalAccount" /></label
-            ><button :disabled="busy || !newPrincipalName.trim()">创建主体</button>
-          </form>
-          <p class="hint">关联账户后，该账户登录仍须具备下方授予的权限。新主体默认没有权限。</p>
-        </details>
-        <form class="grant-form" @submit.prevent="addGrant">
-          <label>管理主体标识<input v-model="principalId" required autocomplete="off" /></label
-          ><label
-            >角色<select v-model="grantRole">
-              <option value="viewer" :disabled="!can('server', 'grants.manage')">服务器只读</option>
-              <option value="server-admin" :disabled="!can('server', 'grants.manage')">服务器管理员</option>
-              <option value="workspace-admin" :disabled="!can('workspace', 'grants.manage')">工作区管理员</option>
-            </select></label
-          ><button class="primary" :disabled="busy || !principalId.trim()">添加授权</button>
-        </form>
-        <article v-for="grant in grants" :key="grant.id" class="grant">
-          <strong>{{ grant.principalId }}</strong>
-          <p>{{ grant.scope.kind === 'server' ? '服务器' : '工作区' }} · {{ grant.scope.id }}</p>
-          <p>{{ grant.actions.join('、') }}</p>
-          <button
-            :disabled="busy"
-            @click="
-              state.mutate('POST', `/grants/${encode(grant.id)}/revoke`, { revision: grant.revision }, grant.revision)
-            "
-          >
-            撤销授权
-          </button>
-        </article>
-        <ManagementCredentials
-          :credentials="credentials"
-          :key="client?.context.endpoint"
-          :capabilities="capabilities"
-          :busy="busy"
-          :issued="issuedCredential"
-          @issue="issueCredential"
-          @revoke="revokeCredential"
-          @dismiss="issuedCredential = undefined"
-        />
-      </section>
+          <EnvironmentWorkspace
+            v-if="tab === 'environments' && supported('workspace.environments')"
+            :key="client?.context.endpoint"
+            :environments="environments"
+            :versions="versions"
+            :can-edit="can('workspace', 'edit')"
+            :can-prepare="can('workspace', 'prepare')"
+            :can-use="can('workspace', 'environment.use') && can('server', 'bindings.manage')"
+            :can-delete="can('workspace', 'delete')"
+            :save-sequence="environmentSaveSequence"
+            :busy="busy"
+            @save="saveEnvironment"
+            @prepare="prepareEnvironment"
+            @delete-draft="deleteEnvironment"
+            @use="useVersion"
+            @references="inspectReferences"
+            @delete="version => state.mutate('DELETE', `${workspacePath}/versions/${encode(version.versionId)}`)"
+          />
+          <section v-if="tab === 'environments' && referenceVersion" aria-label="版本引用" class="message">
+            <h3>版本引用</h3>
+            <p>
+              <code>{{ referenceVersion }}</code>
+            </p>
+            <p v-if="!versionReferences.length">当前没有引用，可以删除此版本。删除时仍会重新检查。</p>
+            <template v-else>
+              <p>以下使用方仍保留此版本。解除绑定或等待正在使用的对局结束后，才可以删除。</p>
+              <p v-for="(reference, index) in versionReferences" :key="index">
+                {{ reference.kind === 'runtime' ? '正在使用' : '持久引用' }} ·
+                {{ reference.serverId ?? reference.owner ?? reference.id ?? reference.retentionId
+                }}<span v-if="reference.bindingId"> · 绑定 {{ reference.bindingId }}</span>
+              </p>
+            </template>
+            <button @click="referenceVersion = ''">关闭引用</button>
+          </section>
+          <EnvironmentTransfers
+            v-if="tab === 'environments' && supported('workspace.transfers')"
+            :key="client?.context.endpoint"
+            :versions="versions"
+            :operations="operations"
+            :busy="busy || !!downloading"
+            :can-import="can('workspace', 'edit') && can('workspace', 'prepare')"
+            :can-export="can('workspace', 'export')"
+            @import="importEnvironment"
+            @export="exportEnvironment"
+            @download="downloadEnvironment"
+          />
+          <p v-if="tab === 'environments' && !supported('workspace.environments')" class="hint">
+            此管理目标尚不支持环境工作区。
+          </p>
+          <ServerSettingsForm
+            v-if="tab === 'network' && server?.settings"
+            :settings="server.settings"
+            :revision="server.revision"
+            :save-sequence="settingsSaveSequence"
+            :runtime-settings="server.runtimeSettings"
+            :listen-address="server.listenAddress"
+            :pending-restart="server.pendingRestart"
+            :busy="busy"
+            :can-edit="can('server', 'settings.manage')"
+            @save="saveServerSettings"
+          />
+          <section v-if="tab === 'server' && server" aria-label="服务器管理">
+            <div class="overview-stats">
+              <button @click="tab = 'environments'">
+                <strong>{{ bindings.filter(item => item.enabled && item.condition === 'available').length }}</strong
+                >运行环境
+              </button>
+              <button :disabled="!can('server', 'battles.read')" @click="tab = 'battles'">
+                <strong>{{ server.activeBattles ?? '—' }}</strong
+                >活跃对战
+              </button>
+              <button :disabled="!can('server', 'players.read')" @click="tab = 'accounts'">
+                <strong>{{
+                  can('server', 'players.read') ? players.filter(item => item.connected).length : '—'
+                }}</strong
+                >在线玩家
+              </button>
+              <div>
+                <strong>{{ server.queued ?? '—' }}</strong
+                >等待中的任务 / 匹配
+              </div>
+            </div>
+            <div class="server-summary">
+              <h2>{{ server.name }}</h2>
+              <p>
+                {{ server.draining ? '正在排空：不接纳新局' : '正在接纳对局' }} ·
+                {{ conditionLabels[server.status] ?? server.status }}
+              </p>
+              <form class="actions" @submit.prevent="saveServerName">
+                <label
+                  >服务器名称<input
+                    v-model="serverName"
+                    required
+                    maxlength="80"
+                    @input="nameRevision ??= server.revision" /></label
+                ><button
+                  :disabled="busy || !can('server', 'settings.manage')"
+                  :title="reason('server', 'settings.manage')"
+                >
+                  保存名称</button
+                ><button
+                  type="button"
+                  :disabled="busy || !supported('server.drain') || !can('server', 'drain')"
+                  :title="reason('server', 'drain')"
+                  @click="drain"
+                >
+                  {{ server.draining ? '恢复接纳新局' : '停止接纳并排空' }}
+                </button>
+              </form>
+              <p class="hint">排空允许已有对局结束。独立服务的进程启停由部署环境控制。</p>
+            </div>
+          </section>
+          <section v-if="tab === 'tasks'" aria-label="管理任务">
+            <div v-if="canBackup" class="server-backup">
+              <button :disabled="busy || !!downloading" @click="createBackup">创建服务器备份</button>
+              <p class="hint">
+                备份包含持久数据和工作区材料。完成后在下方操作记录中下载；恢复需在停止服务后通过宿主执行。
+              </p>
+            </div>
+            <h2>操作记录</h2>
+            <p class="hint">任务属于当前管理目标，离开页面后仍可回来查看。</p>
+            <article v-for="operation in operations" :key="operation.id" class="operation">
+              <header>
+                <strong>{{ taskKinds[operation.kind] ?? operation.kind }}</strong
+                ><span>{{ taskLabels[operation.status] ?? operation.status }}</span>
+              </header>
+              <p v-if="operation.status === 'running' && typeof operation.progress === 'object'">
+                {{
+                  operation.progress.message ??
+                  (operation.progress.stage ? taskStages[operation.progress.stage] : undefined) ??
+                  '正在处理'
+                }}
+                <span v-if="operation.progress.total"
+                  >{{ operation.progress.completed ?? 0 }} / {{ operation.progress.total }}</span
+                >
+              </p>
+              <progress v-if="typeof operation.progress === 'number'" :value="operation.progress" max="100" />
+              <p v-if="operation.error" class="error">{{ operationError(operation.error) }}</p>
+              <p v-if="operation.committed && operation.status !== 'succeeded'" class="hint">
+                资源变更已提交，请先查看实际状态，再发起新的操作。
+              </p>
+              <small>{{ operation.id }}</small
+              ><button
+                v-if="
+                  (operation.status === 'queued' || operation.status === 'running') &&
+                  (operation.kind !== 'server.backup' || canBackup)
+                "
+                :disabled="busy || operation.cancelRequested"
+                @click="state.mutate('POST', `/operations/${encode(operation.id)}/cancel`)"
+              >
+                {{ operation.cancelRequested ? '已请求取消' : '取消任务' }}
+              </button>
+              <button
+                v-if="
+                  !operation.committed &&
+                  (operation.status === 'failed' || operation.status === 'interrupted') &&
+                  (operation.kind !== 'server.backup' || canBackup)
+                "
+                :disabled="busy"
+                @click="state.mutate('POST', `/operations/${encode(operation.id)}/retry`)"
+              >
+                重试任务
+              </button>
+              <template v-if="operation.kind === 'server.backup' && operation.status === 'succeeded' && canBackup">
+                <template v-if="serverBackupDownload(operation)">
+                  <p class="hint">
+                    {{ serverBackupDownload(operation)!.filename }} ·
+                    {{ (serverBackupDownload(operation)!.bytes / 1024 / 1024).toFixed(2) }} MiB · 有效至
+                    {{ new Date(serverBackupDownload(operation)!.expiresAt).toLocaleString() }}
+                  </p>
+                  <button
+                    :disabled="busy || !!downloading || serverBackupDownload(operation)!.expiresAt <= Date.now()"
+                    @click="downloadBackup(operation)"
+                  >
+                    {{
+                      serverBackupDownload(operation)!.expiresAt <= Date.now()
+                        ? '备份文件已过期'
+                        : downloading === operation.id
+                          ? '正在下载备份…'
+                          : '下载服务器备份'
+                    }}
+                  </button>
+                </template>
+                <p v-else class="hint">此任务没有可用的备份下载信息，请重新创建备份。</p>
+              </template>
+            </article>
+            <p v-if="!operations.length">没有可查看的任务。</p>
+            <h3 v-if="supported('audit')">最近管理操作</h3>
+            <article v-for="entry in audit" :key="entry.id" class="operation">
+              <header>
+                <strong>{{ auditLabels[entry.action] ?? entry.action }}</strong
+                ><time>{{ new Date(entry.createdAt).toLocaleString() }}</time>
+              </header>
+              <p>{{ entry.actor }} · {{ entry.target }}</p>
+              <p v-if="entry.reason">原因：{{ entry.reason }}</p>
+            </article>
+          </section>
+          <section v-if="tab === 'permissions' && manageGrants" aria-label="管理员授权">
+            <h2>管理员与授权</h2>
+            <p class="hint">权限只作用于指定服务器或工作区。服务器管理员不会自动获得工作区删除权限。</p>
+            <details>
+              <summary>新建管理主体</summary>
+              <form class="grant-form" @submit.prevent="createPrincipal">
+                <label>显示名称<input v-model="newPrincipalName" required maxlength="80" /></label
+                ><label v-if="can('server', 'grants.manage')"
+                  >关联本服账户标识（可选）<input v-model="newPrincipalAccount" /></label
+                ><button :disabled="busy || !newPrincipalName.trim()">创建主体</button>
+              </form>
+              <p class="hint">关联账户后，该账户登录仍须具备下方授予的权限。新主体默认没有权限。</p>
+            </details>
+            <form class="grant-form" @submit.prevent="addGrant">
+              <label>管理主体标识<input v-model="principalId" required autocomplete="off" /></label
+              ><label
+                >角色<select v-model="grantRole">
+                  <option value="viewer" :disabled="!can('server', 'grants.manage')">服务器只读</option>
+                  <option value="server-admin" :disabled="!can('server', 'grants.manage')">服务器管理员</option>
+                  <option value="workspace-admin" :disabled="!can('workspace', 'grants.manage')">工作区管理员</option>
+                </select></label
+              ><button class="primary" :disabled="busy || !principalId.trim()">添加授权</button>
+            </form>
+            <article v-for="grant in grants" :key="grant.id" class="grant">
+              <strong>{{ grant.principalId }}</strong>
+              <p>{{ grant.scope.kind === 'server' ? '服务器' : '工作区' }} · {{ grant.scope.id }}</p>
+              <p>{{ grant.actions.join('、') }}</p>
+              <button
+                :disabled="busy"
+                @click="
+                  state.mutate(
+                    'POST',
+                    `/grants/${encode(grant.id)}/revoke`,
+                    { revision: grant.revision },
+                    grant.revision,
+                  )
+                "
+              >
+                撤销授权
+              </button>
+            </article>
+            <ManagementCredentials
+              :credentials="credentials"
+              :key="client?.context.endpoint"
+              :capabilities="capabilities"
+              :busy="busy"
+              :issued="issuedCredential"
+              @issue="issueCredential"
+              @revoke="revokeCredential"
+              @dismiss="issuedCredential = undefined"
+            />
+          </section>
+        </div>
+      </div>
     </template>
   </main>
 </template>
@@ -915,13 +1027,19 @@ button[aria-current='page'] {
 }
 .tabs {
   display: flex;
+  flex-direction: column;
+  align-self: start;
+  position: sticky;
+  top: 1rem;
   gap: 0.5rem;
-  margin: 1.5rem 0;
-  border-bottom: 1px solid #e2e8f0;
+  margin: 0;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 1rem;
   padding-bottom: 0.75rem;
   overflow: auto;
 }
 .tabs button {
+  text-align: left;
   white-space: nowrap;
 }
 .message {
@@ -1014,6 +1132,55 @@ select {
 }
 .grant-form {
   margin-bottom: 1rem;
+}
+.console-layout {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+.console-content {
+  min-width: 0;
+}
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.overview-stats > * {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  padding: 0.9rem;
+  font-size: 0.8rem;
+  text-align: left;
+}
+.overview-stats strong {
+  display: block;
+  font-size: 1.7rem;
+  color: #0f172a;
+  margin-bottom: 0.3rem;
+}
+.bootstrap-help pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f1f5f9;
+  padding: 0.7rem;
+  font-size: 0.8rem;
+}
+@media (max-width: 800px) {
+  .console-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tabs {
+    flex-direction: row;
+    position: static;
+    border-right: 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 600px) {
   .management-console {

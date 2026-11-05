@@ -149,6 +149,7 @@ export type LocalBattleHostStatus =
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  localEnvironment?: (input: Record<string, unknown>) => Promise<{ result?: unknown; error?: { code: string; message: string } }>
   managementRequest?: import('@/services/managementClient').ManagementIpcBridge
   author?: (
     input: Record<string, unknown>,

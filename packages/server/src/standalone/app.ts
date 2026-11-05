@@ -168,6 +168,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       rooms,
       sessions,
       accountDirectory: options.accounts?.directory,
+      listenAddress: () => {
+        const address = httpServer.address()
+        return address && typeof address !== 'string' ? { host: address.address, port: address.port } : undefined
+      },
       runtimeSettings: normalizeServerSettings({
         host,
         port,

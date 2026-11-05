@@ -4,9 +4,17 @@ import { useRoute } from 'vue-router'
 import ManagementConsole from './ManagementConsole.vue'
 const route = useRoute()
 const target = computed(() => (route.query.target === 'server' ? 'server' : window.arcadiaDesktop ? 'local' : 'server'))
-const tab = computed(() =>
-  route.query.tab === 'environments' ? 'environments' : route.query.tab === 'network' ? 'network' : 'server',
-)
+const tab = computed(() => {
+  const value = route.query.tab
+  return value === 'environments' ||
+    value === 'network' ||
+    value === 'battles' ||
+    value === 'accounts' ||
+    value === 'tasks' ||
+    value === 'permissions'
+    ? value
+    : 'server'
+})
 </script>
 <template>
   <div>

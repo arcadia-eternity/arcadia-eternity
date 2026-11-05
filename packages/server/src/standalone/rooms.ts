@@ -12,7 +12,13 @@ import {
 import type { BattleHost } from '@arcadia-eternity/battle/v4/host'
 import { createNodeBattleWorkerManager, BattleWorkerAdmissionError } from '@arcadia-eternity/battle/v4/sandbox/node'
 import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
-import type { PrivateRoomInfo, PrivateRoomEvent, ServerSession } from '@arcadia-eternity/protocol'
+import type {
+  ManagedBattle,
+  ManagedPlayer,
+  PrivateRoomInfo,
+  PrivateRoomEvent,
+  ServerSession,
+} from '@arcadia-eternity/protocol'
 import { createStandaloneBattle, validateStandaloneTeam } from './native'
 import type { SessionRegistry } from './session'
 import { ServerEnvironmentRegistry, EnvironmentError, type EnvironmentLease } from './environments'
@@ -77,6 +83,8 @@ type Room = {
   info: PrivateRoomInfo
   password?: string
   members: Map<string, Member>
+  startedAt?: number
+  turn?: number
   battle?: BattleHost
   ready: Set<string>
   cleanups: (() => void)[]
@@ -158,6 +166,62 @@ export class RoomRegistry {
       rooms: this.rooms.size,
       queued: this.matchmaking.size + this.battleWorkers.poolStatus().queued,
     }
+  }
+  managementPlayers(): ManagedPlayer[] {
+    return this.sessions.managementPlayers().map(player => {
+      const room = this.rooms.get(this.seats.get(player.seatId) ?? '')
+      return {
+        ...player,
+        connected: !!this.sockets.get(player.seatId)?.size,
+        ...(room ? { roomCode: room.info.config.roomCode } : {}),
+        ...(room?.info.status === 'started' ? { battleId: room.info.battleRoomId } : {}),
+      }
+    })
+  }
+  managementBattles(): ManagedBattle[] {
+    return [...this.rooms.values()]
+      .filter(room => room.info.status === 'started' && room.info.battleRoomId)
+      .map(room => ({
+        id: room.info.battleRoomId!,
+        roomCode: room.info.config.roomCode,
+        environmentId:
+          ('environmentId' in room.environment ? room.environment.environmentId : undefined) ??
+          room.environment.descriptor.id,
+        environmentName:
+          ('environmentName' in room.environment ? room.environment.environmentName : undefined) ??
+          (room.environment.descriptor.packages.map(pkg => pkg.name).join(' + ') || '基础环境'),
+        ...('bindingId' in room.environment ? { bindingId: room.environment.bindingId } : {}),
+        ...('versionId' in room.environment ? { versionId: room.environment.versionId } : {}),
+        execution: room.info.config.battleMode === 'p2p' ? 'peer' : 'server',
+        state: room.info.players.some(player => !this.sockets.get(player.playerId)?.size) ? 'reconnecting' : 'running',
+        startedAt: room.startedAt ?? room.info.createdAt,
+        ...(room.turn === undefined ? {} : { turn: room.turn }),
+        players: room.info.players.map(player => ({
+          seatId: player.playerId,
+          name: player.playerName,
+          connected: !!this.sockets.get(player.playerId)?.size,
+        })),
+      }))
+  }
+  /** Serialize with player commands; authorize again immediately before the irreversible effect. */
+  async terminateManagedBattle(id: string, authorize: () => Promise<void>) {
+    const room = [...this.rooms.values()].find(room => room.info.battleRoomId === id && room.info.status === 'started')
+    if (!room) return { terminated: false, status: 'already-ended' }
+    return this.enqueue(room, async () => {
+      if (room.info.battleRoomId !== id || room.info.status !== 'started')
+        return { terminated: false, status: 'already-ended' }
+      if (room.info.config.battleMode !== 'server') fail('PEER_BATTLE_ADMIN_UNSUPPORTED')
+      await authorize()
+      // A battle may finish while authorization is awaiting durable storage.
+      if (room.info.battleRoomId !== id || room.info.status !== 'started')
+        return { terminated: false, status: 'already-ended' }
+      await this.close(room, 'ADMIN_TERMINATED')
+      return { terminated: true, status: 'terminated' }
+    }).catch(error => {
+      if (error instanceof RoomError && error.code === 'ROOM_NOT_FOUND')
+        return { terminated: false, status: 'already-ended' }
+      throw error
+    })
   }
   /** Stop admitting work while existing active battles and reconnects continue. */
   async setDraining(draining: boolean): Promise<void> {
@@ -606,6 +670,8 @@ export class RoomRegistry {
       }
       if (room.info.players.some(player => !this.sockets.get(player.playerId)?.size)) fail('PLAYER_OFFLINE')
       commit?.()
+      room.startedAt = Date.now()
+      room.turn = undefined
       room.info.status = 'started'
       room.info.battleRoomId = nanoid()
       room.info.battleHost = { playerId: session.seatId, sessionId: session.sessionId }
@@ -613,6 +679,7 @@ export class RoomRegistry {
         for (const seat of room.members.keys()) this.attachBattleView(room, seat)
         room.cleanups.push(
           room.battle.BattleEvent(message => {
+            if (message.type === BattleMessageType.TurnStart) room.turn = message.data.turn
             if (message.type === BattleMessageType.BattleEnd)
               this.finish(room, message.data.winner, message.data.reason)
           }),

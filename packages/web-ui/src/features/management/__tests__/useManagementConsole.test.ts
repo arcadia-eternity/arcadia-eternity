@@ -83,6 +83,26 @@ function stubClient(serverId: string, handler?: Handler) {
 }
 
 describe('management console target isolation', () => {
+  it('reads bounded operational pages and clears them when the management target changes', async () => {
+    const cap = capabilities('a')
+    cap.supportedFeatures.push('server.players', 'server.battles', 'audit')
+    const a = stubClient('a', async (_method, path) => {
+      if (path === '/capabilities') return cap
+      if (path === '/servers/a/players') return { players: [{ seatId: 'a', name: 'First' }], nextCursor: 'a' }
+      if (path === '/servers/a/players?cursor=a') return { players: [{ seatId: 'b', name: 'Second' }] }
+      if (path === '/servers/a/battles') return { battles: [{ id: 'match' }] }
+      if (path === '/audit') return { entries: [] }
+      return rows('a', path)
+    })
+    const console = useManagementConsole()
+    console.setClient(a.client)
+    await console.refresh()
+    expect(console.players.value.map(player => player.seatId)).toEqual(['a', 'b'])
+    expect(console.battles.value.map(battle => battle.id)).toEqual(['match'])
+    console.setClient(stubClient('b').client)
+    expect(console.players.value).toEqual([])
+    expect(console.battles.value).toEqual([])
+  })
   it('discards protected downloads and one-time credential responses after switching targets', async () => {
     const download = deferred(),
       credential = deferred()

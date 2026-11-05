@@ -167,14 +167,12 @@ describe('shared management console', () => {
     expect(save.headers?.['If-Match']).toBe('"9"')
     expect(save.body).toMatchObject({ settings: { port: 9100 } })
     expect(page.get('[role="alert"]').text()).toContain('另一管理员')
-    expect(
-      (page.get('[aria-label="网络与容量设置"] input[name=port]').element as HTMLInputElement).value,
-    ).toBe('9100')
+    expect((page.get('[aria-label="网络与容量设置"] input[name=port]').element as HTMLInputElement).value).toBe('9100')
   })
 
   it('loads real-shaped IPC data and saves an edited draft with its captured revision', async () => {
     const { page, request } = await open()
-    expect(page.text()).toContain('正在管理：本机工作区')
+    expect(page.text()).toContain('正在管理：本机服务器')
     expect(page.text()).toContain('好友环境 local')
     await button(page, '编辑').trigger('click')
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('修改的环境')
@@ -263,7 +261,7 @@ describe('shared management console', () => {
 
   it('publishes the selected fixed version with the binding revision rather than the server revision', async () => {
     const { page, request } = await open()
-    await button(page, '玩法与版本').trigger('click')
+    await button(page, '运行环境').trigger('click')
     await button(page, '发布所选版本').trigger('click')
     await flushPromises()
     const published = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/publish'))!
@@ -275,7 +273,7 @@ describe('shared management console', () => {
   it('keeps the server catalogue readable but makes no publishing request for a viewer', async () => {
     const { page, request } = await open(bridge(true))
     expect(button(page, '新建环境').attributes('disabled')).toBeDefined()
-    await button(page, '玩法与版本').trigger('click')
+    await button(page, '运行环境').trigger('click')
     expect(page.text()).toContain('实际版本')
     expect(button(page, '发布所选版本').attributes('disabled')).toBeDefined()
     await button(page, '发布所选版本').trigger('click')
@@ -300,7 +298,7 @@ describe('shared management console', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     const { page } = await open(request)
-    await button(page, '配对服务器').trigger('click')
+    await button(page, '当前部署服务器').trigger('click')
     await flushPromises()
     expect(page.text()).toContain('好友环境 remote')
     completeLocal({ status: 200, body: response('/environments') })

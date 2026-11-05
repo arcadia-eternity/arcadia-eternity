@@ -87,9 +87,11 @@ export class ManagementAccounts {
     }
     this.pendingRevocations.delete(account)
   }
-  async deactivate(actor: ManagementActor, id: string) {
+  async deactivate(actor: ManagementActor, id: string, reason?: unknown) {
     this.requireEnabled()
     const target = accountId(id)
+    if (reason !== undefined && (typeof reason !== 'string' || !reason.trim() || reason.length > 500))
+      throw new ManagementAccountError('INVALID_REASON', 422)
     try {
       await this.storage.transaction(async tx => {
         // Authority and the account transition serialize with revocation/login in the same transaction.
@@ -102,6 +104,7 @@ export class ManagementAccounts {
           value: {
             actor: actor.principalId,
             action: 'account.deactivate',
+            ...(typeof reason === 'string' ? { reason: reason.trim() } : {}),
             target,
             createdAt: Date.now(),
           },

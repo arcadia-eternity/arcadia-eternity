@@ -18,6 +18,7 @@ const emit = defineEmits<{
   use: [version: ManagedEnvironmentVersion, executionPolicy?: 'server' | 'peer']
   delete: [version: ManagedEnvironmentVersion]
   references: [version: ManagedEnvironmentVersion]
+  deleteDraft: [environment: ManagedEnvironment]
 }>()
 const editing = ref(false)
 watch(
@@ -33,9 +34,20 @@ const sourceText = ref('')
 const validation = ref('')
 const selectedId = ref('')
 const deletingVersion = ref('')
+const deletingDraft = ref('')
+function duplicate(environment: ManagedEnvironment) {
+  edit(environment)
+  revision.value = null
+  document.value!.id = `${environment.document.id.slice(0, 60)}-copy-${crypto.randomUUID().slice(0, 6)}`
+  document.value!.name += ' 副本'
+}
 function deleteVersion(version: ManagedEnvironmentVersion) {
   deletingVersion.value = ''
   emit('delete', version)
+}
+function deleteDraft(environment: ManagedEnvironment) {
+  deletingDraft.value = ''
+  emit('deleteDraft', environment)
 }
 const contentKinds = ['species', 'skills', 'marks'] as const
 const contentLabels = { species: '精灵', skills: '技能', marks: '印记' }
@@ -134,6 +146,13 @@ function save() {
             准备版本
           </button>
           <button @click="selectedId = environment.document.id">查看版本</button>
+          <button :disabled="!canEdit || busy" @click="duplicate(environment)">复制环境</button>
+          <button v-if="canDelete" :disabled="busy" @click="deletingDraft = environment.document.id">删除环境</button>
+          <div v-if="deletingDraft === environment.document.id" role="group" aria-label="删除环境确认">
+            <p>删除草稿前需先移除其固定版本与服务器引用。</p>
+            <button :disabled="busy" @click="deleteDraft(environment)">确认删除环境</button>
+            <button @click="deletingDraft = ''">取消</button>
+          </div>
         </div>
       </article>
       <p v-if="!environments.length" class="hint">工作区还没有环境。新建环境后可添加内容包并准备版本。</p>

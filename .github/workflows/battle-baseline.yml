@@ -193,7 +193,7 @@ jobs:
       - name: Verify candidate preview transport and failed handoff cleanup
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/authorPreview.test.ts src/features/authoring/__tests__/AuthorPreviewPage.test.ts --maxWorkers=1
       - name: Verify desktop local host lifecycle
-        run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
+        run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-environments.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
       - name: Install browser
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup

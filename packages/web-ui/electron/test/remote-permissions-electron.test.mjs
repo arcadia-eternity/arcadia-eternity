@@ -57,6 +57,37 @@ test(
         })
       }
       assert.equal(await manager.evaluate(() => typeof window.arcadiaDesktop.openRemotePlay), 'function')
+      const offline = await manager.evaluate(async () => {
+        const api = window.arcadiaDesktop
+        const before = await api.getLocalBattleStatus()
+        const saved = await api.localEnvironment({
+          action: 'save',
+          document: {
+            schemaVersion: 2,
+            id: 'offline-check',
+            name: '离线环境',
+            packages: {},
+            sources: [],
+            rules: { schemaVersion: 1 },
+            requires: {},
+          },
+          expectedRevision: null,
+        })
+        const snapshot = await api.localEnvironment({ action: 'snapshot' })
+        const removed = saved.error
+          ? null
+          : await api.localEnvironment({
+              action: 'delete-draft',
+              environmentId: 'offline-check',
+              expectedRevision: saved.result.revision,
+            })
+        return { before, after: await api.getLocalBattleStatus(), saved, snapshot, removed }
+      })
+      assert.equal(offline.saved.error, undefined)
+      assert.equal(offline.snapshot.result.environments[0].document.name, '离线环境')
+      assert.equal(offline.removed.result.deleted, true)
+      assert.equal(offline.before.status, 'idle')
+      assert.equal(offline.after.status, 'idle')
       await assert.rejects(
         manager.evaluate(() => window.arcadiaDesktop.openServerWebsite({ url: 'file:///etc/passwd' })),
       )

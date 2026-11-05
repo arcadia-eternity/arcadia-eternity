@@ -158,6 +158,17 @@ export class SessionRegistry {
     return structuredClone(session)
   }
 
+  /** A bounded public view for administration; capabilities and profile IDs stay private. */
+  managementPlayers() {
+    void this.size
+    return [...this.sessions.values()].map(session => ({
+      seatId: session.seatId,
+      name: session.profile.name,
+      kind: session.principal.kind,
+      ...(session.principal.kind === 'account' ? { accountId: session.principal.accountId } : {}),
+    }))
+  }
+
   revoke(token: unknown): boolean {
     return typeof token === 'string' && this.sessions.delete(token)
   }

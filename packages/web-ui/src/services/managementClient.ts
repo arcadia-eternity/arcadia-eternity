@@ -170,6 +170,13 @@ function responseError(status: number, body: unknown): ManagementError {
     BINDING_UNAVAILABLE: '此绑定尚未生效，请先发布可用版本。',
     ACCOUNT_NOT_ACTIVE: '此账户已停用或尚未建立。',
     PRINCIPAL_NOT_FOUND: '管理主体不存在，请先创建主体。',
+    ENVIRONMENT_HAS_VERSIONS: '请先删除这个环境的固定版本，再删除环境草稿。',
+    ENVIRONMENT_IN_USE: '服务器仍在使用此环境，请先移除绑定。',
+    VERSION_IN_USE: '此版本仍有引用，请查看引用并先解除使用关系。',
+    BATTLE_NOT_FOUND: '此对战已结束或不再活跃。',
+    PEER_BATTLE_ADMIN_UNSUPPORTED: '玩家执行的对战无法由服务器直接终止。',
+    REASON_REQUIRED: '请填写操作原因。',
+    INVALID_REASON: '请填写不超过 500 字的操作原因。',
   }
   return new ManagementError(
     code,

@@ -29,6 +29,10 @@ export interface ManagedServer {
   runtimeSettings?: ManagedServerSettings
   pendingRestart?: string[]
   requiresRestart?: boolean
+  activeBattles?: number
+  rooms?: number
+  queued?: number
+  listenAddress?: { host: string; port: number }
 }
 export interface ManagedServerSettings {
   host: string
@@ -124,4 +128,36 @@ export interface ManagedAccount {
   status: 'active' | 'deactivated'
   createdAt: number
   deactivatedAt?: number | null
+}
+
+/** Public operational metadata. Never includes session tokens, teams or hidden decisions. */
+export interface ManagedPlayer {
+  seatId: string
+  name: string
+  kind: 'guest' | 'account'
+  accountId?: string
+  connected: boolean
+  roomCode?: string
+  battleId?: string
+}
+export interface ManagedBattle {
+  id: string
+  roomCode: string
+  environmentId: string
+  environmentName: string
+  bindingId?: string
+  versionId?: string
+  execution: 'server' | 'peer'
+  state: 'running' | 'reconnecting'
+  startedAt: number
+  turn?: number
+  players: { seatId: string; name: string; connected: boolean }[]
+}
+export interface ManagementAuditEntry {
+  id: string
+  actor: string
+  action: string
+  target: string
+  reason?: string
+  createdAt: number
 }

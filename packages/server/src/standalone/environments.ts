@@ -24,6 +24,8 @@ interface Environment {
 export type EnvironmentAdmissionRules = ReturnType<typeof validateEnvironmentRules>
 export interface EnvironmentPublication {
   runtimeId: string
+  environmentId?: string
+  environmentName?: string
   bindingId?: string
   versionId?: string
   enabled: boolean
@@ -33,6 +35,10 @@ export interface EnvironmentPublication {
   rules?: EnvironmentAdmissionRules
 }
 export interface EnvironmentLease {
+  readonly environmentId?: string
+  readonly environmentName?: string
+  readonly bindingId?: string
+  readonly versionId?: string
   readonly admissionKey?: string
   readonly runtime: StandaloneRuntime
   readonly descriptor: ServerEnvironmentDescriptor
@@ -451,6 +457,10 @@ export class ServerEnvironmentRegistry {
     let released = false
     return {
       runtime: entry.runtime,
+      bindingId: publication?.bindingId,
+      versionId: publication?.versionId,
+      environmentId: publication?.environmentId,
+      environmentName: publication?.environmentName,
       admissionKey: digest({
         runtimeId: entry.descriptor.id,
         bindingId: publication?.bindingId,

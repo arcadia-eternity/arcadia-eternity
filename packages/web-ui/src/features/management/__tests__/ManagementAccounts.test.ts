@@ -71,8 +71,8 @@ describe('server account management', () => {
     { supported: true, authorized: false },
   ])('does not show or fetch accounts without capability and permission: %j', async options => {
     const { page, bridge } = await open(async input => ({ status: 200, body: rows(input.path, options) }))
-    expect(page.findAll('button').some(item => item.text() === '本服账户')).toBe(false)
-    expect(page.find('[aria-label="本服账户管理"]').exists()).toBe(false)
+    expect(page.findAll('button').some(item => item.text() === '用户管理')).toBe(false)
+    expect(page.find('[aria-label="用户管理"]').exists()).toBe(false)
     expect(bridge.mock.calls.some(([input]) => input.path.includes('/accounts'))).toBe(false)
   })
 
@@ -82,30 +82,28 @@ describe('server account management', () => {
       status: 200,
       body: input.path.includes('/accounts?') ? { accounts: order } : rows(input.path),
     }))
-    await button(page, '本服账户').trigger('click')
+    await button(page, '用户管理').trigger('click')
     await button(page, '停用账户').trigger('click')
     expect(bridge.mock.calls.every(([input]) => input.method === 'GET')).toBe(true)
     order = [accounts[1]!, accounts[0]!]
     await button(page, '刷新').trigger('click')
     await flushPromises()
-    const confirmedArticle = page
-      .findAll('[aria-label="本服账户管理"] article')
-      .find(article => article.findAll('button').some(item => item.text() === '确认停用'))!
-    expect(confirmedArticle.get('strong').text()).toBe('account-one')
-    await confirmedArticle
-      .findAll('button')
-      .find(item => item.text() === '确认停用')!
-      .trigger('click')
+    const confirmation = page.get('[aria-label="确认管理操作"]')
+    expect(confirmation.text()).toContain('account-one')
+    expect(button(page, '确认停用').attributes('disabled')).toBeDefined()
+    await confirmation.get('textarea').setValue('违反本服规则')
+    await confirmation.trigger('submit')
     await flushPromises()
     const posts = bridge.mock.calls.map(([input]) => input).filter(input => input.method === 'POST')
     expect(posts).toHaveLength(1)
     expect(posts[0]!.path).toBe('/servers/server-local/accounts/account-one/deactivate')
+    expect(posts[0]!.body).toEqual({ reason: '违反本服规则' })
     expect(posts[0]!.headers?.['Idempotency-Key']).toBeTruthy()
   })
 
   it('cancels a deactivation without sending a mutation', async () => {
     const { page, bridge } = await open(async input => ({ status: 200, body: rows(input.path) }))
-    await button(page, '本服账户').trigger('click')
+    await button(page, '用户管理').trigger('click')
     await button(page, '停用账户').trigger('click')
     await button(page, '取消').trigger('click')
     expect(page.findAll('button').some(item => item.text() === '确认停用')).toBe(false)
@@ -117,7 +115,7 @@ describe('server account management', () => {
       status: 200,
       body: input.path.includes('&cursor=') ? { accounts: [accounts[0], account('account-three')] } : rows(input.path),
     }))
-    await button(page, '本服账户').trigger('click')
+    await button(page, '用户管理').trigger('click')
     await button(page, '加载更多账户').trigger('click')
     await flushPromises()
     expect(
@@ -125,7 +123,7 @@ describe('server account management', () => {
         ([input]) => input.path === '/servers/server-local/accounts?limit=50&cursor=page-two%2Fnext',
       ),
     ).toBe(true)
-    expect(page.findAll('[aria-label="本服账户管理"] article strong').map(item => item.text())).toEqual([
+    expect(page.findAll('[aria-label="用户管理"] tbody tr td:first-child').map(item => item.text())).toEqual([
       'account-one',
       'account-two',
       'account-three',
@@ -147,11 +145,11 @@ describe('server account management', () => {
       ),
     )
     const { page, bridge } = await open(async input => ({ status: 200, body: rows(input.path) }))
-    await button(page, '本服账户').trigger('click')
+    await button(page, '用户管理').trigger('click')
     await button(page, '停用账户').trigger('click')
-    await button(page, '配对服务器').trigger('click')
+    await button(page, '当前部署服务器').trigger('click')
     await flushPromises()
-    await button(page, '本服账户').trigger('click')
+    await button(page, '用户管理').trigger('click')
     expect(page.findAll('button').some(item => item.text() === '确认停用')).toBe(false)
     expect(bridge.mock.calls.every(([input]) => input.method === 'GET')).toBe(true)
   })
@@ -167,20 +165,20 @@ describe('server account management', () => {
           }
         : rows(input.path),
     }))
-    await button(page, '本服账户').trigger('click')
+    await button(page, '用户管理').trigger('click')
     await button(page, '加载更多账户').trigger('click')
     await flushPromises()
     refreshed = true
     await button(page, '刷新').trigger('click')
     await flushPromises()
-    expect(page.findAll('[aria-label="本服账户管理"] article strong').map(item => item.text())).toEqual([
+    expect(page.findAll('[aria-label="用户管理"] tbody tr td:first-child').map(item => item.text())).toEqual([
       'account-one',
       'account-two',
       'account-three',
     ])
     const third = page
-      .findAll('[aria-label="本服账户管理"] article')
-      .find(article => article.get('strong').text() === 'account-three')!
+      .findAll('[aria-label="用户管理"] tbody tr')
+      .find(article => article.get('td').text() === 'account-three')!
     expect(third.text()).toContain('已停用')
     expect(bridge.mock.calls.filter(([input]) => input.path.includes('&cursor=page-two%2Fnext'))).toHaveLength(2)
     expect(button(page, '加载更多账户')).toBeDefined()
