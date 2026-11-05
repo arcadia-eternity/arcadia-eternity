@@ -171,6 +171,10 @@
       ],
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
+    "linux": {
+      "executableName": "arcadia-eternity",
+      "category": "Game"
+    },
     "extraResources": [
       {
         "from": "dist/arcadia-server",
