@@ -94,7 +94,7 @@
 
           <ConnectionStatus v-if="!isStaticMode" />
 
-          <el-tag v-if="!isStaticMode && battleClientStore.isConnected" type="info" effect="dark">
+          <el-tag v-if="spaciousNavigation && !isStaticMode && battleClientStore.isConnected" type="info" effect="dark">
             <span class="inline-flex items-center gap-1">
               <el-icon><User /></el-icon>
               在线人数：{{ serverState.serverState.onlinePlayers }}
@@ -455,6 +455,7 @@ const privateRoomStore = usePrivateRoomStore()
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobile = breakpoints.smaller('md')
 const compactNavigation = breakpoints.smaller('xl') // 顶栏同时容纳导航和服务器地址
+const spaciousNavigation = breakpoints.greaterOrEqual('2xl')
 
 // 移动端菜单状态
 const showMobileMenu = ref(false)
