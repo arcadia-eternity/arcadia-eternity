@@ -4,17 +4,19 @@ Electron 主进程提供独立本机对战子进程管理，并作为客户端�
 
 `/content` 已接入命名项目登记、内容包与依赖查看、安装、显式准入、校验、启停和导出；队伍缺失内容的保留策略及边界见[内容包与环境管理](content-management.md)。
 
-桌面桥提供三个受限入口：
+普通开服从原首页“在本机开服”或一级导航“服务器”进入。首次在应用内选择名称、官方或当前已准备玩法、连接范围及可选端口，不弹项目目录选择器。启动后显示邀请地址，用户明确选择是否进入本机大厅。项目目录登记保留在“项目与开发工具”。完整交互与接口职责见[服务器交互与接口](server-ux.md)。
 
-- `selectAndStartLocalBattle()` 打开系统目录选择器，选择一个已完整安装、带锁文件和 `arcadia-admission.json` 的服务器项目，再启动本机服务；取消选择时返回 `cancelled`，不改变已有服务。
-- `getLocalBattleStatus()` 返回 `idle`、`starting`、`running`、`stopping` 或 `failed`。就绪时包含连接地址、稳定服务器身份与本次运行信息，不返回任意宿主路径或凭据。
-- `stopLocalBattle()` 停止本机服务。停止会结束其房间和对局；退出或重启桌面应用也会先停止服务。桌面进程异常消失时，子进程正常情况下会检测连接断开并退出。
+桌面桥的写入入口为 `localServer(request)`：
 
-这些 IPC 只允许当前受信任窗口的主 frame 调用。Renderer 不能指定命令、执行文件或任意项目路径；文件/目录来自系统对话框或已登记句柄。持久托管默认 `127.0.0.1` 和随机端口；可信管理页可通过受校验的 settings 合同保存监听、publicOrigin、CORS 与容量，待重启字段明确显示。父进程从私有就绪通道核对稳定 serverId 和实际监听端口，网络地址不被当作连通性保证。子进程通过 owner 借用既有内容与租约，不创建另一份包库；安装准备与实际 Effect 执行分别受策略约束。
+- `status` 只读取状态；`start` 首次接收开服配置，之后不传配置即沿用已保存服务器；`start-project` 仅接受已登记项目 ID。
+- `stop` 先停止接纳新局并等待现有对局结束；明确确认后才使用 `force`。`restart` 排空后重新启动；强制停止会取消正在等待的重启。
+- `recover` 以仅本机模式打开已配置服务器，便于修复网络设置；`getLocalBattleStatus()` 保留为连接授权使用的只读状态接口。
 
-开发模式的服务入口为仓库根目录的 `dist/cli.js`，需先构建 CLI 及其依赖，并由开发机提供可运行的 npm。Windows 开发环境使用 Node 安装目录旁的 `node_modules/npm/bin/npm-cli.js`，不能假定 `npm.cmd` 可由 `execFile('npm')` 直接运行。
+这些 IPC 只允许当前受信任窗口的主 frame 调用。Renderer 不能指定命令、执行文件或任意项目路径；目录来自系统对话框登记后的句柄。首次开服的连接范围由表单明确选择；可信管理页通过同一 settings 合同保存监听、publicOrigin、CORS 与容量，待重启字段明确显示。父进程从私有就绪通道核对稳定 serverId 和实际监听端口，网络地址不被当作连通性保证。子进程通过 owner 借用既有内容与租约，不创建另一份包库；安装准备与实际 Effect 执行分别受策略约束。退出客户端会停止托管服务。
 
-桌面运行时由 `scripts/stage-desktop-runtime.mjs` 准备，包括 CLI 的全部构建分块、服务器生产依赖、官方 Base 和锁定为 11.17.0 的 npm。安装后的宿主使用应用自带的 Electron Node 运行 `resources/arcadia-server/runtime/npm/bin/npm-cli.js`，不依赖用户 PATH 中的 Node 或 npm。npm 包来源与完整性、Electron 版本和内嵌 Node 版本记录在运行时清单；许可证文本和待核对项记录在 `licenses/notice.json`。构建时需先安装锁文件中的依赖并构建工作区，再从仓库根目录执行：
+开发模式的服务入口为仓库根目录的 `dist/cli.js`，需先构建 CLI 及其依赖，并通过 `pnpm build:web-distribution` 准备 `dist/web`，并由开发机提供可运行的 npm。Windows 开发环境使用 Node 安装目录旁的 `node_modules/npm/bin/npm-cli.js`，不能假定 `npm.cmd` 可由 `execFile('npm')` 直接运行。
+
+桌面运行时由 `scripts/stage-desktop-runtime.mjs` 准备，包括 CLI 的全部构建分块、服务器生产依赖、官方 Base、独立的 `web/` 配套网页和锁定为 11.17.0 的 npm。安装后的宿主使用应用自带的 Electron Node 运行 `resources/arcadia-server/runtime/npm/bin/npm-cli.js`，不依赖用户 PATH 中的 Node 或 npm。npm 包来源与完整性、Electron 版本和内嵌 Node 版本记录在运行时清单；许可证文本和待核对项记录在 `licenses/notice.json`。构建时需先安装锁文件中的依赖并构建工作区，再从仓库根目录执行：
 
 ```sh
 node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-server
@@ -40,7 +42,7 @@ pnpm --filter @arcadia-eternity/web-ui build:desktop:preview
 
 ### Remote play permission boundary (#251)
 
-The desktop manager opens a third-party backend in a separate window running the bundled client UI. Each opening uses a new nonpersistent Electron session; switching destroys the previous window and clears its storage and connections. Server identity and authentication start from the host-selected HTTP(S) origin, not a server-reported ID or a page query. The remote preload exposes the host boot configuration, window close, and the bounded SWF presentation bridge; the manager preload retains the explicit local creator, package and hosting operations.
+The desktop manager opens a third-party backend in a separate window running the bundled client UI. Each opening uses a new nonpersistent Electron session; switching play servers destroys the previous play window and clears its storage and connections. Opening with `mode: management` creates an independent window with auto-connect disabled and leaves the active play window intact. Server identity and authentication start from the host-selected HTTP(S) origin, not a server-reported ID or a page query. The remote preload exposes the host boot configuration, window close, and the bounded SWF presentation bridge; the manager preload retains the explicit local creator, package and hosting operations.
 
 Every `desktop:*` IPC handler, including legacy workspace, download and updater handlers, requires the registered manager WebContents and its current main frame. Remote main frames and nested frames cannot invoke those handlers. Windows deny popups, external navigation and webviews; remote sessions deny permissions and downloads and keep web security enabled. The legacy loopback workspace HTTP endpoint requires a random main-process token injected only into manager requests. It is not available to remote windows, ordinary webpages or arbitrary local HTTP clients. The legacy pet download operation accepts only its built-in resource URL.
 

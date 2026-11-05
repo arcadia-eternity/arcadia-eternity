@@ -13,6 +13,7 @@ import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { attachDesktopContentControl } from './desktop-content-control'
 import { initializeHostEnvironment } from './host-environment-initialize'
+import { parseDesktopLaunch, saveDesktopLaunch } from './desktop-launch'
 import {
   createSingleProcessApp,
   parseBattleCapacityEnv,
@@ -54,6 +55,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     .option('--desktop-project <directory>', 'Trusted desktop host initial content project')
     .option('--desktop-managed-network', 'Trusted desktop owner controls persistent listener settings')
     .option('--desktop-origin <origin>', 'Trusted desktop renderer origin')
+    .option('--desktop-launch <json>', 'Private desktop launch settings')
     .option(
       '--content-sources <file>',
       'Host-registered Git/URL/archive/package sources JSON',
@@ -97,6 +99,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       desktopProject?: string
       desktopManagedNetwork?: boolean
       desktopOrigin?: string
+      desktopLaunch?: string
       contentSources?: string
       npmRegistry?: string
       offlineContent?: boolean
@@ -147,7 +150,10 @@ export async function runServerCli(args: string[]): Promise<number> {
     if (accountMode !== 'g3' && hasAccountConfig)
       throw new Error('Set ACCOUNT_MODE=g3 when configuring durable accounts')
     const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
-    if ((options.desktopProject || options.desktopManagedNetwork || options.desktopOrigin) && !desktopControl)
+    if (
+      (options.desktopProject || options.desktopManagedNetwork || options.desktopOrigin || options.desktopLaunch) &&
+      !desktopControl
+    )
       throw new Error('Desktop options require the private desktop host')
     if (!desktopControl && (options.npmProject?.length ?? 0) > 1)
       throw new Error(
@@ -160,6 +166,9 @@ export async function runServerCli(args: string[]): Promise<number> {
       if (program.getOptionValueSource('corsOrigin') !== 'cli' && !process.env.CORS_ORIGIN)
         corsOrigins.splice(0, corsOrigins.length, options.desktopOrigin)
     }
+    const desktopLaunch = options.desktopLaunch ? parseDesktopLaunch(options.desktopLaunch) : undefined
+    if (desktopLaunch && !options.desktopManagedNetwork)
+      throw new Error('Launch settings require managed desktop hosting')
     const opened = await openServerStorage(options)
     storage = opened.storage
     const serverId = opened.serverId!
@@ -175,6 +184,11 @@ export async function runServerCli(args: string[]): Promise<number> {
       if (!fromDeployment('publicOrigin', 'PUBLIC_ORIGIN')) options.publicOrigin = persistedSettings.publicOrigin
       if (!fromDeployment('corsOrigin', 'CORS_ORIGIN'))
         corsOrigins.splice(0, corsOrigins.length, ...persistedSettings.corsOrigins)
+    }
+    if (desktopLaunch) {
+      options.host = desktopLaunch.host
+      options.port = desktopLaunch.port
+      options.publicOrigin = desktopLaunch.publicOrigin ?? undefined
     }
     if (options.desktopOrigin && !corsOrigins.includes(options.desktopOrigin)) corsOrigins.push(options.desktopOrigin)
     const capacityEnvironment = { ...process.env }
@@ -385,6 +399,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         await rm(builtinProject, { recursive: true, force: true })
       }
     }
+    if (desktopLaunch) await saveDesktopLaunch(server.management!, desktopLaunch)
     await server.start()
     const detachDesktopControl = desktopControl
       ? attachDesktopContentControl(server.environments, builtinId, request =>

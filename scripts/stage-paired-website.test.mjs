@@ -34,7 +34,13 @@ test('staging rejects a JSON-only pack before replacing a complete distribution'
     assert.equal(await readFile(new URL('previous.txt', target), 'utf8'), 'previous build')
 
     await writeFile(new URL('data/species.yaml', source), '- id: test.species')
+    await mkdir(new URL('arcadia-server/', source))
+    await writeFile(new URL('arcadia-server/private.txt', source), 'backend-only')
+    await mkdir(new URL('.arcadia-desktop-stage-test/', source))
+    await writeFile(new URL('.arcadia-desktop-stage-test/private.txt', source), 'staging-only')
     await stagePairedWebsite(source, target, '1.0.0')
+    await assert.rejects(readFile(new URL('arcadia-server/private.txt', target)), { code: 'ENOENT' })
+    await assert.rejects(readFile(new URL('.arcadia-desktop-stage-test/private.txt', target)), { code: 'ENOENT' })
     assert.equal(await readFile(new URL('data/species.yaml', target), 'utf8'), '- id: test.species')
     assert.equal(
       await readFile(new URL('locales/zh-CN/webui.json', target), 'utf8'),

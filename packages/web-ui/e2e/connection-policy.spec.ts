@@ -10,7 +10,7 @@ for (const viewport of [
       route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
     )
     await page.goto('/content')
-    await page.getByRole('button', { name: '未连接 · 连接设置', exact: true }).click()
+    await page.getByRole('button', { name: '当前未连接服务器，连接设置', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: '服务器连接', exact: true })
     await expect(dialog).toBeVisible()
     await expect
@@ -61,7 +61,7 @@ test('opting out survives navigation and reload while manual connection remains 
     return route.fulfill({ status: 503 })
   })
   await page.goto('/dex')
-  await page.getByRole('button', { name: '未连接 · 连接设置' }).click()
+  await page.getByRole('button', { name: '当前未连接服务器，连接设置' }).click()
   await page.getByText('进入联机页面时自动连接', { exact: true }).click()
   await expect(page.getByRole('switch')).not.toBeChecked()
   expect(healthRequests).toBe(0)
@@ -69,7 +69,7 @@ test('opting out survives navigation and reload while manual connection remains 
   await page.getByRole('button', { name: '好友大厅', exact: true }).first().click()
   await expect(page).toHaveURL(/\/$/)
   await page.reload()
-  await page.getByRole('button', { name: '未连接 · 连接设置' }).click()
+  await page.getByRole('button', { name: '当前未连接服务器，连接设置' }).click()
   expect(healthRequests).toBe(0)
   await page.getByRole('button', { name: '连接服务器', exact: true }).click()
   await expect.poll(() => healthRequests).toBeGreaterThan(0)
@@ -92,13 +92,24 @@ for (const mode of ['same-origin', 'separate-backend']) {
       return route.fulfill({ status: 503 })
     })
     await page.goto('/')
-    await page.getByRole('button', { name: '未连接 · 连接设置' }).click()
+    await page.getByRole('button', { name: '当前未连接服务器，连接设置' }).click()
     await expect(page.getByRole('switch')).not.toBeChecked()
     expect(healthRequests).toBe(0)
     await page.reload()
-    await page.getByRole('button', { name: '未连接 · 连接设置' }).click()
+    await page.getByRole('button', { name: '当前未连接服务器，连接设置' }).click()
     expect(healthRequests).toBe(0)
     await page.getByText('进入联机页面时自动连接', { exact: true }).click()
     await expect.poll(() => healthRequests).toBeGreaterThan(0)
   })
 }
+
+test('website only offers its configured server, with no address picker or switch action', async ({ page }) => {
+  await page.route('**/arcadia-client.json', route =>
+    route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
+  )
+  await page.goto('/servers')
+  await expect(page.getByRole('heading', { name: '当前网页的服务器', exact: true })).toBeVisible()
+  await expect(page.getByLabel('服务器地址', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '用客户端连接', exact: true })).toHaveCount(0)
+  await expect(page.getByText('当前网页只连接本站配置的服务器，不提供切服。', { exact: true })).toBeVisible()
+})

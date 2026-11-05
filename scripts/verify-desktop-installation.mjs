@@ -116,7 +116,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     }, localPort)
     assert.equal(baseManifest.status, 200)
     assert.equal(baseManifest.manifest.id, 'arcadia-eternity.base')
-    await expect(page.getByRole('button', { name: /^(未连接 · 连接设置|已连接)$/ })).toBeVisible({ timeout: 90000 })
+    await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({ timeout: 90000 })
     await expect(page.getByText('初始化失败，请刷新页面重试', { exact: true })).toHaveCount(0)
     await page.goto('arcadia-client://app/account')
     await page.getByRole('heading', { name: '档案与账号', exact: true }).waitFor()
@@ -167,10 +167,14 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     const sourceSha256 = hash(source)
     if (baseline) assert.equal(sourceSha256, baseline.sourceSha256)
 
-    await page.goto('arcadia-client://app/settings/local-service')
-    await page.getByText('联机托管与诊断', { exact: true }).click()
-    await page.getByRole('button', { name: '由本机托管联机对战', exact: true }).click()
-    await expect(page.getByText('本机联机托管已启动', { exact: true })).toBeVisible({ timeout: 90000 })
+    await page.goto('arcadia-client://app/servers')
+    if (baseline) await page.getByRole('button', { name: '使用已保存配置启动', exact: true }).click()
+    else {
+      await page.getByRole('button', { name: '在本机开服', exact: true }).click()
+      await page.getByLabel('谁可以连接').selectOption('local')
+      await page.getByRole('button', { name: '启动服务器', exact: true }).click()
+    }
+    await expect(page.getByRole('button', { name: '进入本机大厅', exact: true })).toBeVisible({ timeout: 90000 })
     host = await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())
     assert.equal(host.status, 'running')
     const request = async (method, path, body) => {
@@ -189,7 +193,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       item => item.id === server.defaultBindingId,
     )
     assert.equal(binding.condition, 'available')
-    await page.goto('arcadia-client://app/management')
+    await page.goto('arcadia-client://app/management?tab=environments')
     if (!baseline) {
       await page.getByRole('button', { name: '新建环境', exact: true }).click()
       const editor = page.getByRole('form', { name: '编辑环境' })
@@ -209,7 +213,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     }
     if (baseline) assert.deepEqual(persistent, baseline.persistent)
     await expect(page.getByText('安装保留环境', { exact: true }).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: /^(未连接 · 连接设置|已连接)$/ })).toBeVisible({ timeout: 90000 })
+    await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({ timeout: 90000 })
     await page.screenshot({ path: join(evidenceDirectory, `${label}.png`), fullPage: true })
     assert.deepEqual(errors, [], 'no unhandled renderer errors')
     assert.deepEqual(consoleErrors, [], 'no renderer error logs')

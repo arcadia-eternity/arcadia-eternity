@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { ManagedServerSettings } from '@/types/management'
 const props = defineProps<{
   settings: ManagedServerSettings
@@ -35,6 +35,12 @@ function edit() {
   origin.value = props.settings.publicOrigin ?? ''
   cors.value = props.settings.corsOrigins.join('\n')
 }
+const connectionScope = computed({
+  get: () => (draft.value?.host === '127.0.0.1' ? 'local' : draft.value?.host === '0.0.0.0' ? 'network' : 'custom'),
+  set: (value: string) => {
+    if (draft.value) draft.value.host = value === 'local' ? '127.0.0.1' : value === 'network' ? '0.0.0.0' : ''
+  },
+})
 function save() {
   if (!draft.value) return
   emit(
@@ -78,12 +84,24 @@ function save() {
     </dl>
     <form v-if="draft" @submit.prevent="save">
       <div class="grid">
-        <label>监听地址<input v-model="draft.host" required /></label
-        ><label>端口<input v-model.number="draft.port" type="number" min="0" max="65535" required /></label
-        ><label>对外网页地址<input v-model="origin" type="url" placeholder="https://play.example.com" /></label
+        <label
+          >连接范围<select v-model="connectionScope">
+            <option value="local">仅本机</option>
+            <option value="network">允许网络连接</option>
+            <option value="custom">指定网卡地址</option>
+          </select></label
+        ><label v-if="connectionScope === 'custom'">监听地址<input v-model="draft.host" required /></label
+        ><label>端口<input name="port" v-model.number="draft.port" type="number" min="0" max="65535" required /></label
+        ><label
+          >对外网页地址<input
+            name="publicOrigin"
+            v-model="origin"
+            type="url"
+            placeholder="https://play.example.com" /></label
         ><label v-for="[key, label] in fields" :key="key"
           >{{ label
           }}<input
+            :name="key"
             v-model.number="draft.battleCapacity[key]"
             type="number"
             :min="key === 'maxConcurrentBattles' ? 1 : 0"
@@ -92,7 +110,7 @@ function save() {
       </div>
       <label>允许的网页来源（每行一个）<textarea v-model="cors" rows="3" /></label>
       <p class="hint">
-        初次开服仅监听本机；选择网卡地址或 0.0.0.0 并重启后，才对网络开放。账户提供商的回调来源需同时满足部署约定。
+        允许网络连接后，同一网络中的朋友可以通过邀请地址加入。公网访问还需要可达入口。网络变更在下次启动时生效。
       </p>
       <button :disabled="busy || !canEdit">保存下次启动设置</button
       ><button type="button" @click="draft = undefined">关闭编辑</button>
@@ -144,6 +162,7 @@ label {
   margin: 0.5rem 0;
 }
 input,
+select,
 textarea {
   border: 1px solid #cbd5e1;
   border-radius: 6px;

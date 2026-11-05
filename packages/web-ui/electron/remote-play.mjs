@@ -74,11 +74,12 @@ export function createRemotePlayController({
     close(event) {
       trustedRecord(event).window.close()
     },
-    async open(value) {
+    async open(value, { mode = 'play' } = {}) {
+      if (!['play', 'management'].includes(mode)) throw new Error('Invalid remote window mode')
       const backendOrigin = normalizeRemoteBackend(value)
       if (isManagementUrl(backendOrigin)) throw new Error('Local management endpoint is not a game server')
       // Do not reuse the manager partition, or even a previous visit to the same server.
-      active?.destroy()
+      if (mode === 'play') active?.destroy()
       const sessionId = randomUUID()
       const isolatedSession = session.fromPartition(`remote-play-${sessionId}`, { cache: false })
       setupSession?.(isolatedSession)
@@ -116,10 +117,19 @@ export function createRemotePlayController({
           navigateOnDragDrop: false,
         },
       })
-      const record = { window, config: { schemaVersion: 1, mode: 'remote-play', backendOrigin, sessionId } }
+      const record = {
+        window,
+        config: {
+          schemaVersion: 1,
+          mode: 'remote-play',
+          backendOrigin,
+          sessionId,
+          ...(mode === 'management' ? { autoConnect: false } : {}),
+        },
+      }
       const contentsId = window.webContents.id
       windows.set(contentsId, record)
-      active = window
+      if (mode === 'play') active = window
       protectDesktopNavigation(window, rendererUrl)
       window.on('closed', () => {
         windows.delete(contentsId)
@@ -130,7 +140,9 @@ export function createRemotePlayController({
       })
       onWindow?.(window)
       try {
-        await window.loadURL(rendererUrl)
+        const entry = new URL(rendererUrl)
+        entry.searchParams.set('entry', mode === 'management' ? 'management' : 'lobby')
+        await window.loadURL(entry.href)
       } catch (error) {
         if (!window.isDestroyed()) window.destroy()
         throw error

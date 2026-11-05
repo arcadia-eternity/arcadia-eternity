@@ -111,6 +111,7 @@ export class LocalBattleHost {
     executable,
     cli,
     rendererOrigin,
+    webRoot,
     npmCliPath,
     packsDirectory,
     stateDirectory,
@@ -122,6 +123,7 @@ export class LocalBattleHost {
     this.executable = executable
     this.cli = cli
     this.rendererOrigin = rendererOrigin
+    this.webRoot = webRoot
     this.npmCliPath = npmCliPath
     this.packsDirectory = packsDirectory
     this.stateDirectory = stateDirectory
@@ -218,7 +220,7 @@ export class LocalBattleHost {
     if (!saved?.projectDirectory) throw problem('PROJECT_NOT_READY', '请先选择本机托管的内容或服务器项目')
     return this.start(saved.projectDirectory, { builtinOnly: saved.builtinOnly === true, localRecovery: true })
   }
-  async start(directory, { builtinOnly = false, localRecovery = false } = {}) {
+  async start(directory, { builtinOnly = false, localRecovery = false, launch } = {}) {
     if (this.#child || ['starting', 'stopping', 'running'].includes(this.#state.status))
       throw problem('HOST_BUSY', '本机对战服务已经启动或正在启动')
     const generation = ++this.#generation
@@ -273,6 +275,8 @@ export class LocalBattleHost {
           ...(managedNetwork && localRecovery
             ? ['--host', '127.0.0.1', '--port', '0', '--cors-origin', this.rendererOrigin]
             : []),
+          ...(managedNetwork && this.webRoot ? ['--web-root', this.webRoot] : []),
+          ...(launch ? ['--desktop-launch', JSON.stringify(launch)] : []),
           '--server-id',
           serverId,
           ...(this.stateDirectory ? ['--data-dir', this.stateDirectory] : []),

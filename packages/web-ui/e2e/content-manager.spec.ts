@@ -40,6 +40,12 @@ test('content choices converge without apply controls or restarting the running 
     Object.defineProperty(window, 'arcadiaDesktop', {
       value: {
         getLocalServerPort: async () => null,
+        prepareLocalContent: async () => ({
+          token: 'test-metadata',
+          content: { species: [], skills: [], marks: [] },
+          environment: { revision: 'test', data: { species: [], skills: [], marks: [] }, modules: [] },
+        }),
+        releaseLocalContent: async () => {},
         listWorkspacePacks: async () => [],
         listCachedPets: async () => [],
         getAppVersion: async () => 'test',

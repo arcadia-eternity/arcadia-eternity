@@ -6,18 +6,18 @@
 
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left" aria-label="对战服务器">
       <h2 class="text-lg font-medium text-gray-800">对战服务器</h2>
-      <p class="text-sm text-gray-600 mt-1">
-        当前地址：<span data-testid="current-server-address">{{ battleClientStore.serverUrl }}</span>
-      </p>
-      <div v-if="canSelectBackend() && canStartLocalServer" class="flex flex-col sm:flex-row gap-2 mt-3">
-        <el-button :disabled="switchingServer" data-testid="start-local-server-button" @click="startLocalServer"
-          >由本机托管联机对战</el-button
+      <div class="flex flex-wrap items-center gap-3 mt-3">
+        <el-button
+          v-if="canStartLocalServer"
+          data-testid="start-local-server-button"
+          @click="router.push('/servers?host=1')"
+          >在本机开服</el-button
         >
+        <router-link to="/servers" class="text-blue-600">查看与管理服务器</router-link>
       </div>
-      <p v-if="canSelectBackend() && canStartLocalServer" class="text-xs text-gray-500 mt-2">
-        本机托管会离开当前房间；正在进行的对局也会终止。
+      <p v-if="canStartLocalServer" class="text-xs text-gray-500 mt-2">
+        在这台电脑上创建服务器，供朋友连接。开服后可选择是否进入。
       </p>
-      <p v-if="serverSwitchError" role="alert" class="text-sm text-red-700 mt-2">{{ serverSwitchError }}</p>
     </section>
 
     <!-- 导航菜单 -->
@@ -259,9 +259,9 @@ import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useAuthStore } from '@/stores/auth'
 import { User, Monitor, Setting, FolderOpened, Collection, Download } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
-import { canSelectBackend, authorizeLocalBackend } from '@/bootstrap/deployment'
+
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
 import MatchmakingPanel from '@/components/MatchmakingPanel.vue'
 import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
@@ -287,48 +287,8 @@ async function acceptPersonalEnvironment(value: PreparedPersonalEnvironment) {
   }
 }
 const roomConfig = ref({ password: '', p2pTransport: 'auto' as 'auto' | 'webrtc' | 'relay' })
-const serverSwitchError = ref('')
-const serverSwitchPending = ref(false)
-const switchingServer = computed(() => serverSwitchPending.value || privateRoomStore.isSwitchingServer)
-const canStartLocalServer = !!window.arcadiaDesktop?.selectAndStartLocalBattle
-
-async function confirmServerSwitch(): Promise<boolean> {
-  const room = privateRoomStore.currentRoom
-  if (!room) return true
-  const message =
-    room.status === 'started'
-      ? '切换服务器会离开当前房间并终止正在进行的对局。确定继续吗？'
-      : '切换服务器会离开当前房间。确定继续吗？'
-  try {
-    await ElMessageBox.confirm(message, '切换服务器', {
-      confirmButtonText: '切换服务器',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function startLocalServer() {
-  if (switchingServer.value || !window.arcadiaDesktop?.selectAndStartLocalBattle) return
-  serverSwitchPending.value = true
-  serverSwitchError.value = ''
-  try {
-    if (!(await confirmServerSwitch())) return
-    const result = await window.arcadiaDesktop.selectAndStartLocalBattle()
-    if (result.status === 'failed') throw new Error(result.message)
-    if (result.status === 'running') {
-      await authorizeLocalBackend()
-      await privateRoomStore.switchServer(result.url)
-    }
-  } catch (error) {
-    serverSwitchError.value = error instanceof Error ? error.message : String(error)
-  } finally {
-    serverSwitchPending.value = false
-  }
-}
+const canStartLocalServer = !!window.arcadiaDesktop?.localServer
+const switchingServer = computed(() => privateRoomStore.isSwitchingServer)
 const selectedEnvironmentId = ref('')
 const environmentsLoading = ref(false)
 const environmentsError = ref(false)

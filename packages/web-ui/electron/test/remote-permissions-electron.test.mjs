@@ -57,6 +57,17 @@ test(
         })
       }
       assert.equal(await manager.evaluate(() => typeof window.arcadiaDesktop.openRemotePlay), 'function')
+      await assert.rejects(
+        manager.evaluate(() => window.arcadiaDesktop.openServerWebsite({ url: 'file:///etc/passwd' })),
+      )
+      await app.evaluate(({ shell }) => {
+        globalThis.testWebsiteUrls = []
+        shell.openExternal = async url => {
+          globalThis.testWebsiteUrls.push(url)
+        }
+      })
+      await manager.evaluate(() => window.arcadiaDesktop.openServerWebsite({ url: 'https://player.example.com/' }))
+      assert.deepEqual(await app.evaluate(() => globalThis.testWebsiteUrls), ['https://player.example.com'])
       const managementPort = await manager.evaluate(() => window.arcadiaDesktop.getLocalServerPort())
       const managementUrl = `http://127.0.0.1:${managementPort}/packs/workspace/index.json`
       assert.equal((await fetch(managementUrl)).status, 403)
@@ -114,6 +125,16 @@ test(
       }, remoteId)
       assert.ok(denied.count > 40)
       assert.deepEqual(denied.failures, [])
+      await manager.evaluate(() =>
+        window.arcadiaDesktop.openRemotePlay({ url: 'https://server-a.test', mode: 'management' }),
+      )
+      const management = app.windows().find(page => page !== manager && page !== remote)
+      await management.waitForLoadState('domcontentloaded')
+      assert.equal(remote.isClosed(), false, 'opening management preserves the play window')
+      assert.equal((await management.evaluate(() => window.arcadiaRemotePlay.getBootConfig())).autoConnect, false)
+      assert.equal(await management.evaluate(() => typeof window.arcadiaDesktop), 'undefined')
+      assert.equal(new URL(management.url()).searchParams.get('entry'), 'management')
+      await management.close()
       await manager.evaluate(() => window.arcadiaDesktop.openRemotePlay({ url: 'https://server-b.test' }))
       const second = app.windows().find(page => page !== manager)
       await second.waitForLoadState('domcontentloaded')

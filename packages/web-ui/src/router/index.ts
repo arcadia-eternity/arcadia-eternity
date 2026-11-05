@@ -20,6 +20,12 @@ const LocalBattleReports = () => import('@/components/battleReport/LocalBattleRe
 const LocalContentOnlyPage = () => import('@/features/content/LocalContentOnlyPage.vue')
 const routes: RouteRecordRaw[] = [
   {
+    path: '/servers',
+    name: 'Servers',
+    component: () => import('@/features/servers/ServersPage.vue'),
+    meta: { title: '服务器' },
+  },
+  {
     path: '/management',
     name: 'Management',
     component: () => import('@/features/management/ManagementPage.vue'),
@@ -64,7 +70,10 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
+    alias: '/lobby',
     name: 'Lobby',
+    beforeEnter: route =>
+      route.query.entry === 'management' ? { path: '/management', query: { target: 'server' } } : true,
     component: LobbyView,
     meta: {
       title: '好友大厅',

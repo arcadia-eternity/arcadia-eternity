@@ -154,10 +154,10 @@ describe('shared management console', () => {
       return { status: 200, body: response(input.path) }
     })
     const { page } = await open(request)
-    await button(page, '服务器').trigger('click')
+    await button(page, '网络与容量').trigger('click')
     await button(page, '编辑设置').trigger('click')
     const form = page.get('[aria-label="网络与容量设置"] form')
-    await form.findAll('input')[1]!.setValue('9100')
+    await form.get('input[name=port]').setValue('9100')
     revision = 10
     await button(page, '刷新').trigger('click')
     await flushPromises()
@@ -168,7 +168,7 @@ describe('shared management console', () => {
     expect(save.body).toMatchObject({ settings: { port: 9100 } })
     expect(page.get('[role="alert"]').text()).toContain('另一管理员')
     expect(
-      (page.get('[aria-label="网络与容量设置"] form').findAll('input')[1]!.element as HTMLInputElement).value,
+      (page.get('[aria-label="网络与容量设置"] input[name=port]').element as HTMLInputElement).value,
     ).toBe('9100')
   })
 
@@ -263,7 +263,7 @@ describe('shared management console', () => {
 
   it('publishes the selected fixed version with the binding revision rather than the server revision', async () => {
     const { page, request } = await open()
-    await button(page, '服务器').trigger('click')
+    await button(page, '玩法与版本').trigger('click')
     await button(page, '发布所选版本').trigger('click')
     await flushPromises()
     const published = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/publish'))!
@@ -275,7 +275,7 @@ describe('shared management console', () => {
   it('keeps the server catalogue readable but makes no publishing request for a viewer', async () => {
     const { page, request } = await open(bridge(true))
     expect(button(page, '新建环境').attributes('disabled')).toBeDefined()
-    await button(page, '服务器').trigger('click')
+    await button(page, '玩法与版本').trigger('click')
     expect(page.text()).toContain('实际版本')
     expect(button(page, '发布所选版本').attributes('disabled')).toBeDefined()
     await button(page, '发布所选版本').trigger('click')

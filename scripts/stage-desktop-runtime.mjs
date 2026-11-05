@@ -25,6 +25,7 @@ import { verifyDesktopProductionDependencies } from './desktop-production-depend
 import { stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks, resolvePnpmInvocation } from './desktop-runtime-portability.mjs'
 import { withPreservedPnpmWorkspaceState } from './desktop-pnpm-deploy.mjs'
+import { stagePairedWebsite, verifyPairedWebsite } from './stage-paired-website.mjs'
 import { materializeLinklessModules } from './desktop-linkless-modules.mjs'
 
 const exec = promisify(execFile)
@@ -74,6 +75,11 @@ export async function verifyDesktopRuntime(
   if (!manifest.releaseReady && !allowIncompleteNotices)
     throw new Error(`Strict license check failed: ${notices.missing.length} license notices require review`)
   await validateDesktopRuntimeFiles(root)
+  if (manifest.website) {
+    await verifyPairedWebsite(pathToFileURL(join(root, 'web') + sep))
+    const website = JSON.parse(await readFile(join(root, 'web/arcadia-web-manifest.json'), 'utf8'))
+    if (website.schemaVersion !== 1 || website.protocolVersion !== 1) throw new Error('Invalid paired desktop website')
+  }
   if (requireNative || manifest.nativeModules) {
     const sqlite = manifest.nativeModules?.find(item => item.name === 'better-sqlite3')
     if (
@@ -301,7 +307,14 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
       throw new Error(
         `License notices need review for ${notices.missing.length} packages: ${notices.missing.map(item => `${item.name}@${item.version}`).join(', ')}`,
       )
+    const version = JSON.parse(await readFile(join(repo, 'package.json'), 'utf8')).version
+    await stagePairedWebsite(
+      pathToFileURL(join(repo, 'packages/web-ui/dist') + sep),
+      pathToFileURL(join(runtime, 'web') + sep),
+      version,
+    )
     const manifest = {
+      website: { schemaVersion: 1, protocolVersion: 1 },
       format: 'arcadia.desktop-runtime',
       version: 1,
       // Legacy field: records strict notice completeness, not publication permission.

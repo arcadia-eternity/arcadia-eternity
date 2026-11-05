@@ -95,7 +95,7 @@ async function hostCommand(directory: string, args: string[]) {
 async function login(page: Page, directory: string, origin: string) {
   const credential = await hostCommand(directory, ['admin', 'login-code', '--data-dir', directory])
   const identity = { serverId: String(credential.serverId), workspaceId: String(credential.workspaceId) }
-  await page.goto(origin + '/management')
+  await page.goto(origin + '/management?tab=environments')
   await expect(page.getByRole('heading', { name: '登录服务器管理', exact: true })).toBeVisible()
   await page.getByLabel('一次性登录码', { exact: true }).fill(credential.code)
   delete credential.code
@@ -172,7 +172,7 @@ test('paired production management backs up, revokes service credentials and ret
     await credentialList.screenshot({ path: testInfo.outputPath('credential-metadata.png') })
     checks.push('service token issued once, absent from browser storage, only credential metadata survives reload')
 
-    await page.getByRole('button', { name: '服务器', exact: true }).click()
+    await page.getByRole('button', { name: '维护与备份', exact: true }).click()
     await page.getByRole('button', { name: '创建服务器备份', exact: true }).click()
     const backupTask = page.locator('.operation').filter({ has: page.getByText('服务器备份', { exact: true }) })
     await expect(backupTask.getByText('已完成', { exact: true })).toBeVisible({ timeout: 60000 })
@@ -260,7 +260,7 @@ test('paired production management backs up, revokes service credentials and ret
       .getByRole('button', { name: '确认撤销', exact: true })
       .click()
     await expect(credentialList).not.toBeVisible()
-    await page.getByRole('button', { name: /^任务/ }).click()
+    await page.getByRole('button', { name: /^维护与备份/ }).click()
     await expect(backupTask).toContainText(operationId)
     await expect(backupTask.getByText('已完成', { exact: true })).toBeVisible()
     const repeatedDownload = page.waitForEvent('download')

@@ -10,6 +10,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ContentLibrary } from '../content-library.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
+import { LocalServerController } from '../local-server-controller.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
@@ -38,6 +39,7 @@ test(
       cli: process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js'),
       npmCliPath: process.env.ARCADIA_DESKTOP_NPM_CLI,
       packsDirectory: process.env.ARCADIA_DESKTOP_PACKS_DIRECTORY,
+      webRoot: join(dirname(process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js')), 'web'),
       rendererOrigin: 'http://localhost:5173',
       stateDirectory: join(root, 'server'),
       workspaceRoot: join(root, 'library'),
@@ -56,6 +58,7 @@ test(
       host,
       run: (args, signal) => runContentCommand({ ...host, npmCacheDirectory: join(root, 'cache') }, args, signal),
     })
+    const controller = new LocalServerController({ host, library: () => library })
     owner = new DesktopWorkspaceOwner({ root: join(root, 'library'), library, openWorkspace: ContentWorkspace.open })
     const request = async (method, path, body, headers) => {
       const response = await host.managementRequest({
@@ -119,12 +122,19 @@ test(
       await settle()
       const local = await library.acquireProject()
       const existingProjects = await readdir(join(root, 'library/projects'))
-      await library.start()
+      const launched = await controller.request({
+        action: 'start',
+        configuration: { name: '好友开服测试', content: 'current', scope: 'local', port: 0 },
+      })
+      assert.equal(launched.error, undefined)
       const first = host.status()
       assert.equal(first.status, 'running')
       const capabilities = await request('GET', '/capabilities')
       assert.equal(capabilities.workspaceId, workspace.workspaceId)
       const firstServer = (await request('GET', '/servers')).servers[0]
+      assert.equal(firstServer.name, '好友开服测试')
+      assert.equal(firstServer.settings.host, '127.0.0.1')
+      assert.equal(firstServer.settings.port, 0)
       const firstBindings = (await request('GET', `/servers/${first.serverId}/bindings`)).bindings
       const binding = firstBindings.find(item => item.id === firstServer.defaultBindingId)
       assert.equal(binding.condition, 'available')
@@ -180,11 +190,14 @@ test(
         await readFile(join(version.directory, 'package.json')),
         'persisted server binding retains materials after stop',
       )
-      await library.start()
+      const resumed = await controller.request({ action: 'start' })
+      assert.equal(resumed.error, undefined)
       const second = host.status()
       assert.equal(second.serverId, first.serverId)
       const restoredServer = (await request('GET', '/servers')).servers[0]
       assert.equal(restoredServer.defaultBindingId, binding.id)
+      assert.equal(restoredServer.name, '好友开服测试')
+      assert.equal(restoredServer.settings.host, '127.0.0.1')
       const restored = (await request('GET', `/servers/${second.serverId}/bindings`)).bindings.find(
         item => item.id === binding.id,
       )
@@ -207,6 +220,94 @@ test(
       const db = new Database(':memory:')
       assert.equal(db.prepare('SELECT 1 AS healthy').get().healthy, 1)
       db.close()
+    }
+  },
+)
+
+test(
+  'clean first launch prepares official content without a project picker or local-play selection',
+  {
+    timeout: 90000,
+    skip: process.env.ARCADIA_DESKTOP_REAL_HOST !== '1',
+  },
+  async () => {
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'arcadia-official-host-')))
+    let owner, browser
+    const host = new LocalBattleHost({
+      executable: process.env.ARCADIA_DESKTOP_EXECUTABLE ?? process.execPath,
+      cli: process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js'),
+      npmCliPath: process.env.ARCADIA_DESKTOP_NPM_CLI,
+      packsDirectory: process.env.ARCADIA_DESKTOP_PACKS_DIRECTORY,
+      webRoot: join(dirname(process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js')), 'web'),
+      rendererOrigin: 'http://localhost:5173',
+      stateDirectory: join(root, 'server'),
+      workspaceRoot: join(root, 'library'),
+      attachWorkspace: child => owner.attach(child),
+      startupTimeoutMs: 60000,
+      shutdownTimeoutMs: 5000,
+    })
+    const library = new ContentLibrary({
+      root: join(root, 'library'),
+      host,
+      run: (args, signal) => runContentCommand({ ...host, npmCacheDirectory: join(root, 'cache') }, args, signal),
+    })
+    owner = new DesktopWorkspaceOwner({ root: join(root, 'library'), library, openWorkspace: ContentWorkspace.open })
+    const controller = new LocalServerController({ host, library: () => library })
+    try {
+      await owner.ready()
+      const launched = await controller.request({
+        action: 'start',
+        configuration: { name: '官方玩法好友服', content: 'official', scope: 'local', port: 0 },
+      })
+      assert.equal(launched.host.status, 'running', JSON.stringify(launched.error))
+      const homepage = await fetch(launched.host.url)
+      assert.equal(homepage.status, 200)
+      assert.match(await homepage.text(), /<html/)
+      const serverPage = await fetch(launched.host.url + '/servers')
+      assert.equal(serverPage.status, 200, 'server management route also survives browser refresh')
+      assert.deepEqual(await (await fetch(launched.host.url + '/arcadia-client.json')).json(), {
+        schemaVersion: 1,
+        backendOrigin: '/',
+        autoConnect: true,
+      })
+      const { chromium } = createRequire(new URL('../../package.json', import.meta.url))('playwright')
+      browser = await chromium.launch()
+      const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+      const failures = []
+      page.on('pageerror', error => failures.push(error.message))
+      await page.goto(launched.host.url)
+      await page
+        .getByRole('button', { name: `已连接当前网页的服务器：${launched.host.url}，连接设置`, exact: true })
+        .waitFor({ timeout: 30000 })
+      await page.goto(launched.host.url + '/servers')
+      await page.getByRole('heading', { name: '当前网页的服务器', exact: true }).waitFor()
+      assert.equal(await page.getByRole('heading', { name: '官方服务器', exact: true }).count(), 0)
+      await page.getByRole('button', { name: '进入大厅', exact: true }).click()
+      await page
+        .getByRole('button', { name: `已连接当前网页的服务器：${launched.host.url}，连接设置`, exact: true })
+        .waitFor({ timeout: 30000 })
+      await page.getByRole('button', { name: '服务器', exact: true }).click()
+      await page.getByRole('heading', { name: '当前网页的服务器', exact: true }).waitFor()
+      assert.deepEqual(failures, [])
+      if (process.env.ARCADIA_UX_SCREENSHOT)
+        await page.screenshot({ path: process.env.ARCADIA_UX_SCREENSHOT, fullPage: true })
+      await browser.close()
+      browser = undefined
+      const listed = await host.managementRequest({ method: 'GET', path: '/servers' })
+      assert.equal(listed.body.servers[0].name, '官方玩法好友服')
+      assert.ok(listed.body.servers[0].defaultBindingId)
+      assert.deepEqual((await library.list()).activeIds, [], 'hosting does not change local-play content')
+      await controller.request({ action: 'stop' })
+      const resumed = await controller.request({ action: 'start' })
+      assert.equal(resumed.host.status, 'running', JSON.stringify(resumed.error))
+      assert.equal(resumed.host.serverId, launched.host.serverId)
+    } finally {
+      await browser?.close()
+      controller.close()
+      await host.stop()
+      await owner.close()
+      await library.close()
+      await rm(root, { recursive: true, force: true })
     }
   },
 )

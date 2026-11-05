@@ -61,4 +61,3 @@ export type ContentPackageAction =
   | { action: 'apply-selection'; planId: string; allowCode: boolean }
   | { action: 'cancel'; planId: string }
   | { action: 'uninstall'; packageId: string }
-  | { action: 'start' }

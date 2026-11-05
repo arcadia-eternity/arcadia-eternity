@@ -18,7 +18,7 @@ import ServerSettingsForm from './ServerSettingsForm.vue'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import ManagementCredentials from './ManagementCredentials.vue'
 
-const props = defineProps<{ initialTarget?: 'local' | 'server' }>()
+const props = defineProps<{ initialTarget?: 'local' | 'server'; initialTab?: 'environments' | 'server' | 'network' }>()
 const state = useManagementConsole()
 const auth = useAuthStore()
 const {
@@ -91,7 +91,9 @@ async function deleteBinding(binding: ManagedBinding) {
   await state.mutate('DELETE', `${serverPath.value}/bindings/${encode(binding.id)}`, undefined, binding.revision)
 }
 const grantRole = ref<'viewer' | 'server-admin' | 'workspace-admin'>('viewer')
-const tab = ref<'environments' | 'server' | 'tasks' | 'permissions' | 'accounts'>('environments')
+const tab = ref<'environments' | 'server' | 'network' | 'tasks' | 'permissions' | 'accounts'>(
+  props.initialTab ?? 'environments',
+)
 let disposed = false
 let targetGeneration = 0
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -163,7 +165,7 @@ async function changeTarget(next: 'local' | 'server') {
   referenceRequest++
   clearDownloads()
   issuedCredential.value = undefined
-  tab.value = 'environments'
+  tab.value = props.initialTab ?? 'environments'
   try {
     if (next === 'local') {
       if (!localBridge) throw new Error('此窗口不支持本机管理，请在客户端本机内容页面打开。')
@@ -241,7 +243,7 @@ async function useVersion(version: ManagedEnvironmentVersion, executionPolicy: '
     matchmakingEnabled: false,
     executionPolicy,
   })
-  if (succeeded) tab.value = 'server'
+  if (succeeded) tab.value = 'environments'
 }
 async function inspectReferences(version: ManagedEnvironmentVersion) {
   const sequence = ++referenceRequest
@@ -422,11 +424,14 @@ onBeforeUnmount(() => {
   <main class="management-console">
     <header class="management-heading">
       <div>
-        <h1>环境与服务器</h1>
+        <h1>服务器管理</h1>
         <p>
           正在管理：<strong>{{ client?.context.label ?? '尚未连接' }}</strong>
         </p>
-        <small v-if="capabilities">服务器 {{ capabilities.serverId }} · 工作区 {{ capabilities.workspaceId }}</small>
+        <details v-if="capabilities">
+          <summary>诊断信息</summary>
+          <small>服务器 {{ capabilities.serverId }} · 工作区 {{ capabilities.workspaceId }}</small>
+        </details>
       </div>
       <div class="actions">
         <template v-if="localBridge"
@@ -456,20 +461,26 @@ onBeforeUnmount(() => {
       </div>
       <nav class="tabs" aria-label="管理功能">
         <button :aria-current="tab === 'environments' ? 'page' : undefined" @click="tab = 'environments'">
-          包与环境</button
+          玩法与版本</button
         ><button
           :disabled="!can('server', 'read')"
           :title="reason('server', 'read')"
           :aria-current="tab === 'server' ? 'page' : undefined"
           @click="tab = 'server'"
         >
-          服务器</button
+          概览</button
+        ><button
+          :disabled="!can('server', 'read')"
+          :aria-current="tab === 'network' ? 'page' : undefined"
+          @click="tab = 'network'"
+        >
+          网络与容量</button
         ><button
           :disabled="!supported('operations')"
           :aria-current="tab === 'tasks' ? 'page' : undefined"
           @click="tab = 'tasks'"
         >
-          任务 <span v-if="activeOperations">{{ activeOperations }}</span></button
+          维护与备份 <span v-if="activeOperations">{{ activeOperations }}</span></button
         ><button
           v-if="manageGrants"
           :aria-current="tab === 'permissions' ? 'page' : undefined"
@@ -533,6 +544,17 @@ onBeforeUnmount(() => {
       <p v-if="tab === 'environments' && !supported('workspace.environments')" class="hint">
         此管理目标尚不支持环境工作区。
       </p>
+      <ServerSettingsForm
+        v-if="tab === 'network' && server?.settings"
+        :settings="server.settings"
+        :revision="server.revision"
+        :save-sequence="settingsSaveSequence"
+        :runtime-settings="server.runtimeSettings"
+        :pending-restart="server.pendingRestart"
+        :busy="busy"
+        :can-edit="can('server', 'settings.manage')"
+        @save="saveServerSettings"
+      />
       <section v-if="tab === 'server' && server" aria-label="服务器管理">
         <div class="server-summary">
           <h2>{{ server.name }}</h2>
@@ -559,23 +581,10 @@ onBeforeUnmount(() => {
             </button>
           </form>
           <p class="hint">排空允许已有对局结束。独立服务的进程启停由部署环境控制。</p>
-          <div v-if="canBackup" class="server-backup">
-            <button :disabled="busy || !!downloading" @click="createBackup">创建服务器备份</button>
-            <p class="hint">备份包含持久数据和工作区材料。完成后在“任务”中手动下载；恢复需在停止服务后通过宿主执行。</p>
-          </div>
-          <ServerSettingsForm
-            v-if="server.settings"
-            :settings="server.settings"
-            :revision="server.revision"
-            :save-sequence="settingsSaveSequence"
-            :runtime-settings="server.runtimeSettings"
-            :pending-restart="server.pendingRestart"
-            :busy="busy"
-            :can-edit="can('server', 'settings.manage')"
-            @save="saveServerSettings"
-          />
         </div>
-        <h2>发布的环境</h2>
+      </section>
+      <section v-if="tab === 'environments' && server" aria-label="服务器玩法">
+        <h2>服务器使用的玩法</h2>
         <p class="hint">绑定让服务器使用工作区中的固定版本。更改默认环境不会改变已有房间。</p>
         <article v-for="binding in bindings" :key="binding.id" class="binding-card">
           <header>
@@ -691,10 +700,14 @@ onBeforeUnmount(() => {
             >
           </div>
         </article>
-        <p v-if="!bindings.length" class="hint">还没有环境绑定。在“包与环境”准备版本后，选择“用于服务器”。</p>
+        <p v-if="!bindings.length" class="hint">还没有环境绑定。在上方准备版本后，选择“用于服务器”。</p>
       </section>
       <section v-if="tab === 'tasks'" aria-label="管理任务">
-        <h2>任务</h2>
+        <div v-if="canBackup" class="server-backup">
+          <button :disabled="busy || !!downloading" @click="createBackup">创建服务器备份</button>
+          <p class="hint">备份包含持久数据和工作区材料。完成后在下方操作记录中下载；恢复需在停止服务后通过宿主执行。</p>
+        </div>
+        <h2>操作记录</h2>
         <p class="hint">任务属于当前管理目标，离开页面后仍可回来查看。</p>
         <article v-for="operation in operations" :key="operation.id" class="operation">
           <header>

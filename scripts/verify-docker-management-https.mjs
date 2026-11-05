@@ -457,7 +457,7 @@ async function validate() {
     secrets.add(issued.code)
     assert.equal(issued.serverId, serverId)
     evidence.identity = { serverId, workspaceId: issued.workspaceId }
-    await page.goto(origin + '/management')
+    await page.goto(origin + '/management?tab=environments')
     await expect(page.getByRole('heading', { name: '登录服务器管理', exact: true })).toBeVisible()
     await page.getByLabel('一次性登录码', { exact: true }).fill(issued.code)
     await page.getByRole('button', { name: '登录管理', exact: true }).click()
@@ -493,7 +493,7 @@ async function validate() {
     await expect(page.getByRole('button', { name: '新建环境', exact: true })).toBeEnabled()
     check('Real paired UI consumed a one-use code; browser Secure/HttpOnly/Strict cookie survives refresh')
 
-    await page.getByRole('button', { name: '服务器', exact: true }).click()
+    await page.getByRole('button', { name: '概览', exact: true }).click()
     const name = 'HTTPS proxy acceptance'
     await page.getByLabel('服务器名称', { exact: true }).fill(name)
     const saved = page.waitForResponse(
@@ -507,7 +507,7 @@ async function validate() {
     await page.waitForLoadState('networkidle')
     navigationGeneration++
     await page.reload()
-    await page.getByRole('button', { name: '服务器', exact: true }).click()
+    await page.getByRole('button', { name: '概览', exact: true }).click()
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
     const server = await page.evaluate(
       async () => (await (await fetch('/api/management/v1/servers')).json()).servers[0],

@@ -7,8 +7,9 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
 import { LocalBattleHost } from './local-battle-host.mjs'
+import { LocalServerController } from './local-server-controller.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
-import { createRemotePlayController, protectDesktopNavigation } from './remote-play.mjs'
+import { createRemotePlayController, protectDesktopNavigation, normalizeRemoteBackend } from './remote-play.mjs'
 import { createSwfHost } from './swf-host.mjs'
 import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
 import { stopForQuit } from './shutdown.mjs'
@@ -44,6 +45,9 @@ const localBattleHost = new LocalBattleHost({
   cli: app.isPackaged
     ? path.join(process.resourcesPath, 'arcadia-server', 'cli.js')
     : path.resolve(projectRoot, '../../dist/cli.js'),
+  webRoot: app.isPackaged
+    ? path.join(process.resourcesPath, 'arcadia-server', 'web')
+    : path.resolve(projectRoot, '../../dist/web'),
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
   stateDirectory: path.join(app.getPath('userData'), 'local-server'),
   workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
@@ -54,6 +58,12 @@ const localBattleHost = new LocalBattleHost({
         packsDirectory: path.join(process.resourcesPath, 'arcadia-server', 'packs'),
       }
     : {}),
+})
+
+const localServerController = new LocalServerController({
+  host: localBattleHost,
+  library: getContentLibrary,
+  startProject: id => getContentProjects().start(id),
 })
 
 const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
@@ -1756,6 +1766,7 @@ function setupIpcHandlers() {
       requireLocalBattleCaller(event)
       return handler(event, ...args)
     })
+  handle('desktop:local-server', (_event, input) => localServerController.request(input))
   handle('desktop:management-request', (_event, input) => localBattleHost.managementRequest(input))
   ipcMain.handle('author-preview:environment', async (event, action, input) => {
     const window = [...authorPreviewWindows.values()].find(window =>
@@ -1808,7 +1819,8 @@ function setupIpcHandlers() {
   })
   ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
   ipcMain.handle('remote-play:close', event => remotePlay.close(event))
-  handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url))
+  handle('desktop:open-server-website', (_event, input) => shell.openExternal(normalizeRemoteBackend(input?.url)))
+  handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url, { mode: input?.mode }))
   handle('desktop:get-backend-config', () => ({ schemaVersion: 1, backendOrigin: 'https://test-battle.fly.dev' }))
   function requireLocalBattleCaller(event) {
     if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl))
@@ -2038,38 +2050,13 @@ function setupIpcHandlers() {
       await library.uninstall(input.packageId)
       return null
     }
-    if (input.action === 'start') {
-      await library.start()
-      return null
-    }
     throw new Error('不支持的内容包操作')
-  })
-  handle('desktop:select-and-start-local-battle', async event => {
-    requireLocalBattleCaller(event)
-    const selected = await dialog.showOpenDialog(mainWindow, {
-      title: '选择已安装并准入的服务器项目',
-      properties: ['openDirectory'],
-    })
-    requireLocalBattleCaller(event)
-    if (selected.canceled || !selected.filePaths[0]) return { status: 'cancelled' }
-    try {
-      return await localBattleHost.start(selected.filePaths[0])
-    } catch (error) {
-      return {
-        status: 'failed',
-        code: error?.code ?? 'SERVER_START_FAILED',
-        message: error?.message ?? '本机服务启动失败',
-      }
-    }
   })
   handle('desktop:get-local-battle-status', event => {
     requireLocalBattleCaller(event)
     return localBattleHost.status()
   })
-  handle('desktop:recover-local-battle', event => {
-    requireLocalBattleCaller(event)
-    return localBattleHost.startLocalRecovery()
-  })
+
   handle('desktop:list-content-projects', event => {
     requireLocalBattleCaller(event)
     return getContentProjects().list()
@@ -2090,7 +2077,6 @@ function setupIpcHandlers() {
     const manager = getContentProjects()
     if (input.action === 'rename') return manager.rename(input.id, input.name)
     if (input.action === 'forget') return manager.forget(input.id)
-    if (input.action === 'start') return manager.start(input.id)
     if (input.action === 'export') {
       const selected = await dialog.showSaveDialog(mainWindow, { title: '导出到新的环境目录', buttonLabel: '导出环境' })
       requireLocalBattleCaller(event)
@@ -2100,15 +2086,7 @@ function setupIpcHandlers() {
     }
     return manager.operate(input.id, input.action, { offline: input.offline === true })
   })
-  handle('desktop:stop-local-battle', (event, input) => {
-    requireLocalBattleCaller(event)
-    if (
-      input !== undefined &&
-      (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => key !== 'force'))
-    )
-      throw new Error('停止选项无效')
-    return localBattleHost.stopHosting(input)
-  })
+
   handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
   handle('desktop:write-work-workspace', async (_event, input) => {
     if (!Number.isSafeInteger(input?.expected) || input.expected < 0) throw new Error('Invalid workspace revision')
@@ -2283,6 +2261,7 @@ app.on('before-quit', event => {
       () => swfHost.dispose(),
       () => remotePlay.destroy(),
       () => localContentSessions?.close(),
+      () => localServerController.close(),
       () => localBattleHost.stop(),
       () => managementWorkspaceOwner?.close(),
       () => contentLibrary?.close(),
