@@ -467,7 +467,7 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
                 ? 'unmatched-or-unsupported-declaration'
                 : 'missing-or-unrecognized-license-text',
       })
-    await physicalPackages(join(path, 'node_modules'), origin)
+    await physicalPackages(join(path, 'node_modules'), origin === 'workspace' ? 'pnpm' : origin)
   }
 
   async function physicalPackages(directory, origin) {
@@ -480,7 +480,7 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
       throw error
     }
     for (const entry of (await entries(directory)).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (entry.isSymbolicLink() || !entry.isDirectory() || entry.name === '.bin') continue
+      if (entry.isSymbolicLink() || !entry.isDirectory() || entry.name.startsWith('.')) continue
       const path = join(directory, entry.name)
       if (entry.name.startsWith('@')) {
         for (const scoped of (await entries(path)).sort((a, b) => a.name.localeCompare(b.name)))
@@ -500,6 +500,9 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
     await physicalPackages(join(store, entry.name, 'node_modules'), 'pnpm')
   }
   await physicalPackages(join(root, 'node_modules', '@arcadia-eternity'), 'workspace')
+  // Windows installers use physical hoisted directories. Scan these too;
+  // visited paths prevent counting workspace/nested packages a second time.
+  await physicalPackages(join(root, 'node_modules'), 'pnpm')
   await packageDir(join(root, 'runtime', 'npm'), 'npm')
 
   packageRecords.sort(

@@ -39,6 +39,28 @@ async function fixture() {
   return { root, runtime, pkg, options: { repositoryLicense, electronLicense, electronNotices } }
 }
 
+test('inventories hoisted physical packages and does not apply repository terms to nested third-party packages', async t => {
+  const f = await fixture()
+  t.after(() => rm(f.root, { recursive: true, force: true }))
+  await f.pkg('node_modules/@arcadia-eternity/server', '@arcadia-eternity/server', 'MIT')
+  await f.pkg('node_modules/@arcadia-eternity/server/node_modules/nested', 'nested', 'MIT')
+  await f.pkg('node_modules/plain', 'plain', 'MIT')
+  await f.pkg('node_modules/@vendor/scoped', '@vendor/scoped', 'MIT', { LICENSE: mit })
+  await f.pkg('node_modules/plain/node_modules/transitive', 'transitive', 'MIT', { LICENSE: mit })
+  await f.pkg('runtime/npm', 'npm', 'MIT', { LICENSE: mit })
+  const result = await collectDesktopLicenses(f.runtime, f.options)
+  assert.equal(result.packages.length, 6)
+  assert.deepEqual(
+    result.missing.map(record => record.name),
+    ['nested', 'plain'],
+  )
+  assert.equal(result.packages.find(record => record.name === 'nested').origin, 'pnpm')
+  assert.equal(
+    result.packages.find(record => record.name === '@arcadia-eternity/server').files[0].source,
+    'repository:LICENSE',
+  )
+})
+
 test('inventories physical dependencies and bundled npm licenses, deduplicates bytes, and reports declarations without text', async () => {
   const f = await fixture()
   try {
