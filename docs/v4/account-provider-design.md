@@ -94,7 +94,7 @@ Better Auth 已作为运行时依赖承担外部身份验证中的通用步骤�
 
 不挂载 Better Auth 的完整社交登录、邮箱登录或 `/api/auth/*` 路由，不签发其 session/cookie，也不建立第二套持久用户表。邮箱证明使用验证接口，不使用会创建用户会话的 `signInEmailOTP`。因此 GitHub 展示的邮箱不会成为隐式恢复入口，多个邮箱也不受 Better Auth 单个 `user.email` 的限制。浏览器仍通过既有 `/api/v1/auth/*` 流程取得 Arcadia 会话。
 
-Better Auth 验证层接入不改变 GitHub App 权限或回调；统一存储升级另按显式数据库迁移执行。官方回调仍为 `https://battle.yuuinih.com/account`。内置 GitHub 完整用户流程涉及邮箱读取和注册语义，因此这里只复用其授权与 OAuth 公共 API，继续不申请 `user:email` 或 Email addresses 权限。源码依据及原配置草稿的替代说明见[接入记录](../../design/better-auth-github/README.md)。真实 SMTP、GitHub 回调联调和官方部署仍待后续验收。
+Better Auth 验证层接入不改变 GitHub App 权限或回调；统一存储升级另按显式数据库迁移执行。官方回调仍为 `https://battle.yuuinih.com/account`。内置 GitHub 完整用户流程涉及邮箱读取和注册语义，因此这里只复用其授权与 OAuth 公共 API，继续不申请 `user:email` 或 Email addresses 权限。真实 SMTP、GitHub 回调联调和官方部署仍待后续验收。
 
 ## 落库操作及一致性
 

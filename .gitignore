@@ -30,3 +30,7 @@ dist-ssr
 packages/web-ui/.eslintrc-auto-import.json
 
 .playwright-mcp/*
+
+# Agent work records and verification artifacts
+.omo/
+.sisyphus/
