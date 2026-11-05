@@ -1,0 +1,184 @@
+{
+  "commit": "576202830fc28b3f9840ffbdfb8f5f05147fd847",
+  "run": 41949631649,
+  "scope": "Unsigned native installers; first launch and same-version replacement, not historical upgrade",
+  "platforms": {
+    "linux-x64": {
+      "job": 126990591436,
+      "status": "success",
+      "artifactEvidenceId": 13379359319,
+      "artifactEvidenceSha256": "8e18a2caa5c97132a9d6eb6e15bd04990718b926c026e55f8a3ce952388fd188",
+      "nativeTests": {
+        "passed": 125,
+        "platformSkipped": 9
+      },
+      "managedHost": {
+        "passed": 1,
+        "skipped": 0,
+        "seconds": 16.647
+      },
+      "installations": [
+        {
+          "format": "appimage",
+          "artifactSha256": "157d762c4e2bd931c559641703098436ec6702312fb9399258e4a00a82d1bc65",
+          "sourceProof": {
+            "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+            "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+            "rendererIndexSha256": "bbadfc8c27f0a074ceff08da17f44499fd74c7291d25f04f1fd054dbc0ee8278",
+            "cliSha256": "ac02e8b28c30d1d2ba7392794a0887f0b329357fb8d2380662ef95cb644c6d86",
+            "serverSha256": "f38bf6c9790b684ca89f8ad90443f08fb8b6c3d59e6a3047352d7051ea77f1c5",
+            "runtimeManifestSha256": "84e588926c67850adab4c34b479645eb330bbd0ab8bf3475f999ddf919e7558c"
+          },
+          "launches": 2,
+          "allPackaged": true,
+          "normalExits": 2,
+          "playerSourceAndManagementStatePreserved": true,
+          "browserErrors": 0,
+          "consoleErrors": 0,
+          "httpErrors": 0,
+          "externalServiceRequests": 0,
+          "externalImagesPerLaunch": [1, 1]
+        }
+      ]
+    },
+    "darwin-arm64": {
+      "job": 126990591450,
+      "status": "success",
+      "artifactEvidenceId": 13380621917,
+      "artifactEvidenceSha256": "fa987d7ec496fa6428a6f22e37b0ef31235ed85a9dcb7e81d777f67e99bc5769",
+      "nativeTests": {
+        "passed": 133,
+        "platformSkipped": 1
+      },
+      "managedHost": {
+        "passed": 1,
+        "skipped": 0,
+        "seconds": 21.924
+      },
+      "installations": [
+        {
+          "format": "mac-zip",
+          "artifactSha256": "64dcc92d378ca76c42551a295fc108acaefc9165ca042724043f4c9307495862",
+          "sourceProof": {
+            "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+            "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+            "rendererIndexSha256": "c5607ac28307c973728040ac983625b878bbf8c9e86c7e3de33797c6d05370a2",
+            "cliSha256": "ad1441930648d023f3b55909bb1ce286f4df9a48534c1e840327bff63d74990c",
+            "serverSha256": "574b57bc4a50b6674441d111b9a333fc800c71408be814b41488f94af9fd782f",
+            "runtimeManifestSha256": "1ba13b26d331c131a9cfc9778ba795f2a4bac2548991e82be04b77fd240fc43a"
+          },
+          "launches": 2,
+          "allPackaged": true,
+          "normalExits": 2,
+          "playerSourceAndManagementStatePreserved": true,
+          "browserErrors": 0,
+          "consoleErrors": 0,
+          "httpErrors": 0,
+          "externalServiceRequests": 0,
+          "externalImagesPerLaunch": [2, 1]
+        }
+      ]
+    },
+    "darwin-x64": {
+      "job": 126990591036,
+      "status": "success",
+      "artifactEvidenceId": 13380308769,
+      "artifactEvidenceSha256": "825e6080c25e9c85cfd4b8a1bb39b331d9d345971d2881fc4ba35f573a91530e",
+      "nativeTests": {
+        "passed": 133,
+        "platformSkipped": 1
+      },
+      "managedHost": {
+        "passed": 1,
+        "skipped": 0,
+        "seconds": 58.514
+      },
+      "installations": [
+        {
+          "format": "mac-zip",
+          "artifactSha256": "efa59b83a2155b1e35e3e915cddd4a8e93e5f498f226df7a6852beaf38460a1c",
+          "sourceProof": {
+            "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+            "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+            "rendererIndexSha256": "33fb721c8a98410d7294a4a7b4b455591153c096e8c8de055b54a72988516c23",
+            "cliSha256": "56d0a50a869d3d2391644ec5486bf5093f59b59331fcb62efa2218cadeaadeea",
+            "serverSha256": "574b57bc4a50b6674441d111b9a333fc800c71408be814b41488f94af9fd782f",
+            "runtimeManifestSha256": "0c0d3f1da18b002fd8b8b96626f630a11712c72be25f7b3f24fd01403a431e7a"
+          },
+          "launches": 2,
+          "allPackaged": true,
+          "normalExits": 2,
+          "playerSourceAndManagementStatePreserved": true,
+          "browserErrors": 0,
+          "consoleErrors": 0,
+          "httpErrors": 0,
+          "externalServiceRequests": 0,
+          "externalImagesPerLaunch": [2, 1]
+        }
+      ]
+    },
+    "win32-x64": {
+      "job": 126990591574,
+      "status": "success",
+      "artifactEvidenceId": 13380329609,
+      "artifactEvidenceSha256": "5faa135f8c9211f793e38b0a795e14a50b7b6be9d5c48a70cdf0160c5f83abc4",
+      "nativeTests": {
+        "passed": 131,
+        "platformSkipped": 3
+      },
+      "managedHost": {
+        "passed": 1,
+        "skipped": 0,
+        "seconds": 40.548
+      },
+      "installations": [
+        {
+          "format": "nsis",
+          "artifactSha256": "736ad2bc02178f78d07b5b06eea76586a4e4a3943e4574661912b91668d70880",
+          "sourceProof": {
+            "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+            "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+            "rendererIndexSha256": "aed67f08f730f7c2f37df6f8053169fa100573bc4c9663a5470b1496f085e5a2",
+            "cliSha256": "bdbf003ce8b096514e7f285bea592cd98f7fa81a81464a7418c0b79b3318e717",
+            "serverSha256": "342f849777187efbc5f4272e1f75c7485f25d57652ec08a9452f33e2275542ad",
+            "runtimeManifestSha256": "8653316337b0fe46e12e0352cdd4c755629cae6be673e558bbca6ac6153797b1"
+          },
+          "launches": 2,
+          "allPackaged": true,
+          "normalExits": 2,
+          "playerSourceAndManagementStatePreserved": true,
+          "browserErrors": 0,
+          "consoleErrors": 0,
+          "httpErrors": 0,
+          "externalServiceRequests": 0,
+          "externalImagesPerLaunch": [1, 1]
+        },
+        {
+          "format": "win-zip",
+          "artifactSha256": "1cbb28758e5a3393ed40c459df54e6a68322dd032ea78ab0745e0d624154fcb0",
+          "sourceProof": {
+            "mainSha256": "68cdaeb5bb04199d8fc0281ec53195debff3b36f1a03354cefca0c70381a0a48",
+            "contentLibrarySha256": "da1913066d5273896d0ef4da43db4812b2204fcf328c2b6e68e3c0fc2b36650e",
+            "rendererIndexSha256": "aed67f08f730f7c2f37df6f8053169fa100573bc4c9663a5470b1496f085e5a2",
+            "cliSha256": "bdbf003ce8b096514e7f285bea592cd98f7fa81a81464a7418c0b79b3318e717",
+            "serverSha256": "342f849777187efbc5f4272e1f75c7485f25d57652ec08a9452f33e2275542ad",
+            "runtimeManifestSha256": "8653316337b0fe46e12e0352cdd4c755629cae6be673e558bbca6ac6153797b1"
+          },
+          "launches": 2,
+          "allPackaged": true,
+          "normalExits": 2,
+          "playerSourceAndManagementStatePreserved": true,
+          "browserErrors": 0,
+          "consoleErrors": 0,
+          "httpErrors": 0,
+          "externalServiceRequests": 0,
+          "externalImagesPerLaunch": [1, 1]
+        }
+      ],
+      "nsisInstallationSeconds": [169.046, 203.798],
+      "licenseRecords": 589,
+      "licenseBlockers": 2
+    }
+  },
+  "status": "success"
+}

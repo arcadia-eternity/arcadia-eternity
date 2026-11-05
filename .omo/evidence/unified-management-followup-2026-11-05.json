@@ -318,18 +318,6 @@
   },
   "validationState": {
     "lintAndWebTypes": "passed",
-    "newRemoteCi": {
-      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
-      "baseline": {
-        "run": 41945686489,
-        "passed": 6,
-        "failed": 0
-      },
-      "desktop": {
-        "run": 41945686724,
-        "status": "Failed Linux executable name and both Mac implicit external account discovery; Windows still running at this snapshot. Fixes prepared for a new run."
-      }
-    },
     "freshDockerImage": {
       "passed": true,
       "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
@@ -340,6 +328,34 @@
       "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
       "seconds": 21.573,
       "evidence": ".omo/evidence/docker-management-https-followup.json"
+    },
+    "previousRemoteCi": {
+      "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+      "baseline": {
+        "run": 41945686489,
+        "passed": 6,
+        "failed": 0
+      },
+      "desktop": {
+        "run": 41945686724,
+        "status": "Completed failure: Linux executable name, both Mac implicit external account discovery, Windows NSIS timeout and ZIP dereferenced dependency graph. See follow-up fixes and new run."
+      }
+    },
+    "newRemoteCi": {
+      "commit": "576202830fc28b3f9840ffbdfb8f5f05147fd847",
+      "baseline": {
+        "run": 41949631695,
+        "passed": 6,
+        "failed": 0
+      },
+      "desktop": {
+        "run": 41949631649,
+        "passed": 4,
+        "failed": 0,
+        "nativeInstallerFormats": 5,
+        "guiLaunches": 10,
+        "evidence": ".omo/evidence/desktop-installer-ci-2026-11-05.json"
+      }
     }
   },
   "limitations": [
@@ -370,5 +386,32 @@
     "samePersistentState": true,
     "sourceFilesPreserved": true,
     "evidenceDirectory": "/private/tmp/arcadia-desktop-gui-acceptance-r5-20261105"
+  },
+  "windowsDependencyLayout": {
+    "reason": "ZIP/NSIS dereference pnpm directory links; chokidar could not resolve sibling readdirp",
+    "projection": "locked Builder hoister, original staged package instances, no registry resolution",
+    "localMaterial": {
+      "packages": 445,
+      "verifiedEdges": 719,
+      "realChokidarAndBetterAuthImports": true,
+      "managedHost": {
+        "passed": 1,
+        "skipped": 0,
+        "seconds": 33.503,
+        "log": "/private/tmp/arcadia-linkless-host-validation.log"
+      }
+    },
+    "regressions": {
+      "passed": 47,
+      "platformSkipped": 1,
+      "log": "/private/tmp/arcadia-windows-linkless-regression.log"
+    },
+    "licenses": {
+      "records": 589,
+      "blockers": 2,
+      "regressionPassed": 14,
+      "evidence": "/private/tmp/arcadia-linkless-license-inventory.json"
+    },
+    "nativeAcceptance": "Windows NSIS and ZIP first installation and same-version replacement passed on commit 576202830fc28b3f9840ffbdfb8f5f05147fd847"
   }
 }

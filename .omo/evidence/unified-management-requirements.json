@@ -454,8 +454,10 @@
     "followup": {
       "evidence": ".omo/evidence/unified-management-followup-2026-11-05.json",
       "document": "docs/v4/validation/unified-management-followup-2026-11-05.md",
-      "status": "Local DB and macOS actual GUI passed; new CI and deployment verification in progress",
-      "supersedes": "Earlier local counts and five-license-blocker summary; original artifact provenance remains unchanged"
+      "status": "Real DB faults, Docker dual-DB recreation and HTTPS, baseline 6/6, native installer matrix 4/4 (5 artifacts, 10 GUI launches) passed; historical upgrades and external/release acceptance remain open",
+      "supersedes": "Earlier local counts and five-license-blocker summary; original artifact provenance remains unchanged",
+      "codeCommit": "576202830fc28b3f9840ffbdfb8f5f05147fd847",
+      "nativeInstallerEvidence": ".omo/evidence/desktop-installer-ci-2026-11-05.json"
     }
   },
   "validationHistory": [

@@ -1,6 +1,6 @@
 # 统一管理后续验证（2026-11-05）
 
-本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。此前 `f8099609` 的四平台 4/4 是包内宿主的历史结果。本轮 `55863dbc` 的 [baseline 6/6](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41945686489) 已通过；新增的真实安装与 GUI CI 发现了下述平台问题，修复后需要重新执行。旧 Docker/r3 产物的来源记录继续保留在[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
+本轮继续 [PR #275](https://github.com/arcadia-eternity/arcadia-eternity/pull/275) 的安装、持久化故障与部署验证。代码提交 `576202830fc28b3f9840ffbdfb8f5f05147fd847` 的 [baseline 6/6](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41949631695) 与[原生桌面 CI 4/4](https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41949631649) 全部通过，包含五种实际安装组合、十次真实 ASAR GUI 启动。后续证据提交只修改文档与回执，不改变被测代码。首次 `55863dbc` 安装 CI 暴露的平台问题及其修复保留如下；旧 Docker/r3 产物的来源继续见[先前验证记录](unified-management-2026-11-05.md)，不重标为新构建。
 
 ## 修复与已执行验证
 
@@ -28,9 +28,22 @@ PostgreSQL 在事务执行至审计触发器时阻塞，然后终止确切后端
 
 首次原生 CI 发现 Linux AppImage 从 scoped npm 名推导出非法程序名，现统一配置 `linux.executableName=arcadia-eternity`；两个 macOS 的真实 GUI 还发现本地档案页隐式查询默认公网账户能力，现仅在明确选服或已有会话后查询。修复后的本地 ZIP 两次完整启动、编辑、开服和替换复验通过，外部服务 API 请求为零；编辑器仍按资源声明加载远程图片，因此不把该场景记为离线资源验收。
 
-Windows ZIP 的首次安装暴露了压缩工具解引用 pnpm 目录链接后丢失兄弟依赖的问题，实际启动报 `chokidar -> readdirp` 缺失。现只在 Windows staging 中使用已锁定的 Builder hoister，把已有依赖图转成普通目录；不重新解析版本或联网安装。每条依赖边都核对原始物理实例，包括已选定的 peer。实际材料投影得到 445 个物理实例、719 条边，真实 chokidar 与 Better Auth 导入通过；新增循环、别名、同版本不同 peer 实例、越界与缺失检查均通过。安装/移植性联合回归 47 项通过、1 项平台限定跳过（日志 `/private/tmp/arcadia-windows-linkless-regression.log`）。NSIS 首次安装在 300 秒超时，原因仍需原生复验；超时清理现会终止本次拥有的安装器进程树，不能证明退出时保留目录。尚不把这些本地检查记为 Windows 安装验收通过。
+Windows ZIP 的首次安装暴露了压缩工具解引用 pnpm 目录链接后丢失兄弟依赖的问题，实际启动报 `chokidar -> readdirp` 缺失。现只在 Windows staging 中使用已锁定的 Builder hoister，把已有依赖图转成普通目录；不重新解析版本或联网安装。每条依赖边都核对原始物理实例，包括已选定的 peer。实际材料投影得到 445 个物理实例、719 条边，真实 chokidar 与 Better Auth 导入通过；新增循环、别名、同版本不同 peer 实例、越界与缺失检查均通过。安装/移植性联合回归 47 项通过、1 项平台限定跳过（日志 `/private/tmp/arcadia-windows-linkless-regression.log`）。NSIS 首轮安装在 300 秒超时，实体布局后的原生复验已通过；超时清理现会终止本次拥有的安装器进程树，不能证明退出时保留目录。这些本地检查随后由下述 Windows NSIS/ZIP 原生安装复验确认。
 
 四平台 CI 增加真实 ZIP、Windows NSIS 与 Linux AppImage GUI 验证。NSIS 限定一次性 GitHub 托管运行器，使用预览应用 ID，不提权、不创建快捷方式、不自动启动；AppImage 在 Linux 上经 FUSE/Xvfb 启动其自身。清理只操作本次拥有的进程和目录；无法确认进程停止时保留材料。
+
+## 原生安装最终矩阵
+
+| 目标        | 实际安装物                 | 原生工具测试           | 包内完整开服   | 安装/同版本替换            |
+| ----------- | -------------------------- | ---------------------- | -------------- | -------------------------- |
+| Linux x64   | AppImage，经 FUSE 启动自身 | 125 通过，9 项平台跳过 | 1/1，16.647 秒 | 通过，两次 GUI             |
+| macOS arm64 | ZIP 应用                   | 133 通过，1 项平台跳过 | 1/1，21.924 秒 | 通过，两次 GUI             |
+| macOS x64   | ZIP 应用                   | 133 通过，1 项平台跳过 | 1/1，58.514 秒 | 通过，两次 GUI             |
+| Windows x64 | NSIS 与 ZIP，分别独立验证  | 131 通过，3 项平台跳过 | 1/1，40.548 秒 | 两种格式均通过，共四次 GUI |
+
+各目标都验证真实包内 SQLite 写入/关闭/重开；完整开服没有跳过。所有十次 GUI 正常退出，玩家/编辑文件/工作区/服务器/默认绑定/环境版本保持，页面、console、HTTP 错误和外部服务请求均为零；按声明加载的远程图片单独计数。安装物 SHA-256、构建输入摘要、CI artifact 摘要、作业 ID 与校验结果保存在 `.omo/evidence/desktop-installer-ci-2026-11-05.json`，每份下载的回执 ZIP 均核对 GitHub artifact 摘要。
+
+NSIS 在此 Windows 托管运行器上的两次安装分别耗时 169.046 秒与 203.798 秒，整个步骤还包含 GUI 编辑/开服与退出清理。NSIS 保留；本轮确认正确性并记录耗时，未把该运行器数据推广为所有用户机器的安装速度。Windows 实际实体布局为 445 包实例/719 条边，许可扫描 589 条记录且只有下述两项阻塞。原 pnpm 布局的 574 条记录保留原统计口径。
 
 ## 生产依赖与发行检查
 
@@ -54,4 +67,4 @@ ARCADIA_HTTPS_BROWSER_EXECUTABLE=/path/to/chrome node scripts/verify-docker-mana
 
 ## 尚需独立验收的范围
 
-桌面平台修复后的四平台 CI 仍需执行。新镜像的完整 HTTPS 与双库容器重建已按上述确切提交完成。正式签名/公证、历史版本升级、真实双设备 LAN、公网部署、SMTP/GitHub 外部投递与回调仍未完成；两项上游许可资料问题仍阻止正式发行。代表性数据库故障通过不等于穷尽断电、文件系统磁盘满或所有运维故障。G4 战绩/积分/录像保持原后期范围。
+四平台实际安装、首次运行与同版本替换已完成。新镜像的完整 HTTPS 与双库容器重建已按上述确切提交完成。正式签名/公证、历史版本升级、真实双设备 LAN、公网部署、SMTP/GitHub 外部投递与回调仍未完成；两项上游许可资料问题仍阻止正式发行。代表性数据库故障通过不等于穷尽断电、文件系统磁盘满或所有运维故障。G4 战绩/积分/录像保持原后期范围。

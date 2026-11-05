@@ -174,7 +174,7 @@ node dist/cli.js server backup clone --file /backups/arcadia.json --target /srv/
 
 2026-11-05 后续回归：真实 SQLite/PostgreSQL 服务端 32 文件/327 项、数据库 23 项和编译 CLI 35 项通过。SQLite 写锁与页容量耗尽、PG 活跃后端终止及池恢复的真实注入均验证回滚；完整回归后停止了自有临时 PG。代表性故障通过不替代操作系统磁盘满或断电验收。
 
-macOS arm64 真实 ZIP 的首次安装和同版本替换均完成 GUI 编辑、开服、管理环境保存及数据保留，正常退出且页面/HTTP 错误为空。四平台 CI 已增加实际安装物的 GUI 流程，新提交的执行结果单独记录。Better Auth 固定升级至 1.7.13，生产闭包移除其可选测试依赖；许可证阻塞缩减为内置 npm 的两项，仍不能正式发行。
+代码提交 `57620283` 的 baseline 6/6 与原生安装 CI 4/4 全部通过。macOS arm64/x64 ZIP、Windows NSIS/ZIP、Linux AppImage 共五种组合完成首次安装和同版本替换后的 GUI 编辑、开服、管理环境保存与数据保留；十次启动均正常退出，页面/HTTP 错误为空。Better Auth 固定升级至 1.7.13，生产闭包移除其可选测试依赖；许可证阻塞缩减为内置 npm 的两项，仍不能正式发行。
 
 此前管理备份、私人 Challenge 双客户端和 UGC 环境同步的严格浏览器证据继续保留。各提交与产物的通过范围、HTTPS 浏览器差异以及外部验收待办见[后续验证记录](validation/unified-management-followup-2026-11-05.md)和[先前验证记录](validation/unified-management-2026-11-05.md)。
 
