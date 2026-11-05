@@ -146,8 +146,8 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui run build-only
       - name: Stage runtime and native addon for this target
         run: pnpm exec node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-server --online
-      - name: Require complete runtime notices before packaging
-        run: node scripts/verify-desktop-pack.mjs --require-complete-notices
+      - name: Verify runtime and report license inventory findings
+        run: node scripts/verify-desktop-pack.mjs
       - name: Build distributable and verify packaged native host
         env:
           ARCADIA_DESKTOP_MANAGED_HOST_TEST: '1'

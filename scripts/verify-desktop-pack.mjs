@@ -89,7 +89,7 @@ async function verifyPackagedRuntime(context) {
   return manifest
 }
 
-// Local packaging permits incomplete notices while checking the runtime layout.
+// Packaging retains notice findings while checking the runtime layout.
 export async function beforePack() {
   const staged = fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url))
   await verifyDesktopRuntime(staged, { allowIncompleteNotices: true, requireNative: true })
@@ -99,9 +99,9 @@ export async function afterPack(context) {
   await verifyPackagedRuntime(context)
 }
 
-// Use this before publication when the complete notices are available.
+// Optional strict audit; normal packaging and publication use advisory notices.
 export async function requireCompleteNotices(root) {
-  return verifyDesktopRuntime(root, { requireNative: true })
+  return verifyDesktopRuntime(root, { requireNative: true, allowIncompleteNotices: false })
 }
 
 // Preview hooks check required files and contained paths, and record incomplete notices.
@@ -214,15 +214,26 @@ export function previewBuilderConfiguration({ webDist, runtime } = {}) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  if (process.argv.length === 3 && process.argv[2] === '--require-complete-notices') {
+  if (process.argv.length === 2 || (process.argv.length === 3 && process.argv[2] === '--require-complete-notices')) {
     const staged = fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url))
-    requireCompleteNotices(staged).catch(error => {
-      console.error(error)
-      process.exitCode = 1
-    })
+    const check =
+      process.argv[2] === '--require-complete-notices'
+        ? requireCompleteNotices(staged)
+        : verifyDesktopRuntime(staged, { requireNative: true })
+    check
+      .then(manifest => {
+        if (manifest.missingLicenseTexts.length)
+          console.warn(
+            `License inventory: ${manifest.missingLicenseTexts.length} advisory findings; see ${join(staged, 'licenses/notice.json')}`,
+          )
+      })
+      .catch(error => {
+        console.error(error)
+        process.exitCode = 1
+      })
   } else if (process.argv[2] !== '--preview') {
     console.error(
-      'Usage: node scripts/verify-desktop-pack.mjs --preview [--web-dist <directory>] [--runtime <directory>] | --require-complete-notices',
+      'Usage: node scripts/verify-desktop-pack.mjs [--require-complete-notices] | --preview [--web-dist <directory>] [--runtime <directory>]',
     )
     process.exitCode = 1
   } else {

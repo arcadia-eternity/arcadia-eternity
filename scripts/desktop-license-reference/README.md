@@ -1,5 +1,11 @@
 # SPDX reference texts
 
+Desktop packaging and publication preserve this inventory and report unresolved
+notice findings without blocking. `verify-desktop-pack.mjs --require-complete-notices`
+and the equivalent staging option provide an optional strict audit. Runtime file,
+dependency, native ABI and inventory integrity checks remain mandatory. The legacy
+manifest field `releaseReady` describes strict notice completeness only.
+
 The `.txt` files are verbatim copies from the SPDX License List Data repository,
 release `v3.27.0`, commit `d46e94e2c78ceede1cfc63cfa0396472d2798d4c`:
 
@@ -43,4 +49,4 @@ The following fixtures also preserve the exact license files shipped by the lock
 | `nodemailer@10.2.1`                                                                                                             | `nodemailer-10.2.1.txt`       | Publisher declares MIT-0 and ships the full grant and disclaimer, with an empty conditions introduction; only these exact published bytes are accepted.                                                          |
 | `chownr@3.0.0`, `glob@13.0.6`, `yallist@5.0.0`                                                                                  | `blueoak-published-dist.txt`  | The original Blue Oak notice excludes separately licensed `src/` packages. The published artifacts contain no `src/`; the collector checks this before accepting the notice and keeps the entire scope preamble. |
 
-Single-entry legacy `licenses` metadata is recorded with its original field location; the known legacy spelling `Apache 2.0` is normalized to `Apache-2.0`. It never overrides a modern `license` field or combines ambiguous multiple declarations. An upstream declaration/text conflict, including `@npmcli/redact@4.0.0` declaring ISC while shipping MIT, remains a release-blocking inventory entry.
+Single-entry legacy `licenses` metadata is recorded with its original field location; the known legacy spelling `Apache 2.0` is normalized to `Apache-2.0`. It never overrides a modern `license` field or combines ambiguous multiple declarations. An upstream declaration/text conflict, including `@npmcli/redact@4.0.0` declaring ISC while shipping MIT, remains an advisory inventory entry and only fails an explicitly requested strict audit.

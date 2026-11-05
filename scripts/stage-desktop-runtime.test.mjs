@@ -58,7 +58,7 @@ test('staging never replaces an existing destination', async () => {
   }
 })
 
-test('release verification rejects missing notices and permits local edits', async () => {
+test('notice findings are advisory by default; strict audit and inventory integrity still reject', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-stage-test-'))
   try {
     await mkdir(join(root, 'licenses'))
@@ -72,10 +72,15 @@ test('release verification rejects missing notices and permits local edits', asy
       missingLicenseTexts: missing,
     }
     await writeFile(join(root, 'arcadia-desktop-runtime.json'), JSON.stringify(manifest))
-    await assert.rejects(verifyDesktopRuntime(root), /cannot be released/)
-    assert.equal((await verifyDesktopRuntime(root, { allowIncompleteNotices: true })).releaseReady, false)
+    assert.equal((await verifyDesktopRuntime(root)).releaseReady, false)
+    await assert.rejects(verifyDesktopRuntime(root, { allowIncompleteNotices: false }), /Strict license check failed/)
     await writeFile(join(root, 'cli.js'), 'changed')
-    await verifyDesktopRuntime(root, { allowIncompleteNotices: true })
+    await verifyDesktopRuntime(root)
+    await writeFile(join(root, 'licenses/notice.json'), JSON.stringify({ missing: [] }))
+    await assert.rejects(verifyDesktopRuntime(root), /Invalid desktop runtime manifest or license inventory/)
+    await writeFile(join(root, 'licenses/notice.json'), JSON.stringify({ missing }))
+    await rm(join(root, 'cli.js'))
+    await assert.rejects(verifyDesktopRuntime(root), /ENOENT/)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -151,7 +156,7 @@ test('preview configuration uses actual package hooks and local validation permi
     assert.equal(isolated.files[0].from, join(root, 'web'))
     assert.equal(isolated.extraResources[0].from, runtime)
     await isolated.beforePack()
-    await assert.rejects(requireCompleteNotices(runtime), /cannot be released/)
+    await assert.rejects(requireCompleteNotices(runtime), /Strict license check failed/)
     await assert.rejects(afterPack(context), /explicit supported platform/)
     await assert.rejects(afterPreviewPack(context), /explicit supported platform/)
     await verifyDesktopRuntime(runtime, { requireNative: true, allowIncompleteNotices: true })

@@ -55,10 +55,10 @@ export async function validateDesktopRuntimeFiles(root) {
   await visit(root)
 }
 
-/** Check required runtime files, contained links and complete notices for distribution. */
+/** Check runtime integrity; notice completeness is advisory unless explicitly required. */
 export async function verifyDesktopRuntime(
   root,
-  { allowIncompleteNotices = false, requireNative = false, platform, arch } = {},
+  { allowIncompleteNotices = true, requireNative = false, platform, arch } = {},
 ) {
   const manifest = JSON.parse(await readFile(join(root, 'arcadia-desktop-runtime.json'), 'utf8'))
   const notices = JSON.parse(await readFile(join(root, 'licenses/notice.json'), 'utf8'))
@@ -72,7 +72,7 @@ export async function verifyDesktopRuntime(
   )
     throw new Error('Invalid desktop runtime manifest or license inventory')
   if (!manifest.releaseReady && !allowIncompleteNotices)
-    throw new Error(`Desktop runtime cannot be released: ${notices.missing.length} license notices require review`)
+    throw new Error(`Strict license check failed: ${notices.missing.length} license notices require review`)
   await validateDesktopRuntimeFiles(root)
   if (requireNative || manifest.nativeModules) {
     const sqlite = manifest.nativeModules?.find(item => item.name === 'better-sqlite3')
@@ -167,7 +167,7 @@ async function materializeWorkspace(runtime) {
 }
 
 /** Builds a new, relocatable runtime. Nothing is downloaded without the explicit online option. */
-export async function stageDesktopRuntime({ output, online = false, allowIncompleteNotices = false }) {
+export async function stageDesktopRuntime({ output, online = false, allowIncompleteNotices = true }) {
   if (typeof output !== 'string' || !output) throw new Error('An output directory is required')
   const target = resolve(output),
     parent = dirname(target)
@@ -304,6 +304,7 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
     const manifest = {
       format: 'arcadia.desktop-runtime',
       version: 1,
+      // Legacy field: records strict notice completeness, not publication permission.
       releaseReady: notices.missing.length === 0,
       missingLicenseTexts: notices.missing,
       npm: {
@@ -352,17 +353,23 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2),
     outputIndex = args.indexOf('--output')
-  const allowed = new Set(['--output', '--online', '--allow-incomplete-notices'])
+  const allowed = new Set(['--output', '--online', '--allow-incomplete-notices', '--require-complete-notices'])
   try {
     if (outputIndex < 0 || !args[outputIndex + 1] || args.some((arg, i) => i !== outputIndex + 1 && !allowed.has(arg)))
       throw new Error(
-        'Usage: node scripts/stage-desktop-runtime.mjs --output <new-directory> [--online] [--allow-incomplete-notices]',
+        'Usage: node scripts/stage-desktop-runtime.mjs --output <new-directory> [--online] [--require-complete-notices]',
       )
+    if (args.includes('--allow-incomplete-notices') && args.includes('--require-complete-notices'))
+      throw new Error('Choose either advisory or strict license checking')
     const result = await stageDesktopRuntime({
       output: args[outputIndex + 1],
       online: args.includes('--online'),
-      allowIncompleteNotices: args.includes('--allow-incomplete-notices'),
+      allowIncompleteNotices: !args.includes('--require-complete-notices'),
     })
+    if (result.missingLicenseTexts.length)
+      console.warn(
+        `License inventory: ${result.missingLicenseTexts.length} advisory findings; see licenses/notice.json`,
+      )
     console.log(JSON.stringify(result, null, 2))
   } catch (error) {
     console.error(error instanceof Error ? error.message : error)

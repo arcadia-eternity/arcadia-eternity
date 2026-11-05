@@ -454,10 +454,19 @@
     "followup": {
       "evidence": ".omo/evidence/unified-management-followup-2026-11-05.json",
       "document": "docs/v4/validation/unified-management-followup-2026-11-05.md",
-      "status": "Real DB faults, Docker dual-DB recreation and HTTPS, baseline 6/6, native installer matrix 4/4 (5 artifacts, 10 GUI launches) passed; historical upgrades and external/release acceptance remain open",
+      "status": "Real DB faults, Docker dual-DB recreation and HTTPS, baseline 6/6, native installer matrix 4/4 (5 artifacts, 10 GUI launches) passed; external deployment/provider acceptance remains open",
       "supersedes": "Earlier local counts and five-license-blocker summary; original artifact provenance remains unchanged",
       "codeCommit": "576202830fc28b3f9840ffbdfb8f5f05147fd847",
-      "nativeInstallerEvidence": ".omo/evidence/desktop-installer-ci-2026-11-05.json"
+      "nativeInstallerEvidence": ".omo/evidence/desktop-installer-ci-2026-11-05.json",
+      "acceptanceScopeUpdate": {
+        "date": "2026-11-05",
+        "authority": "User deferred signing/notarization, excluded historical version upgrades, and authorized simplifying license checks.",
+        "licensePolicy": "advisory by default; original notices and findings retained; strict audit is opt-in",
+        "signingAndNotarization": "deferred; not a current acceptance blocker",
+        "historicalVersionAndSchemaUpgrades": "out of current scope; address concrete compatibility issues when reported",
+        "currentDataPersistence": "initialization, restart, same-version replacement and backup/restore remain in scope",
+        "evidence": ".omo/evidence/desktop-release-policy-2026-11-05.json"
+      }
     }
   },
   "validationHistory": [

@@ -116,7 +116,7 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui run build-only | tee .artifacts/desktop/renderer-build.log
 
       - name: Stage relocatable runtime for this Electron target
-        run: pnpm exec node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-server --online --allow-incomplete-notices | tee .artifacts/desktop/runtime-stage.log
+        run: pnpm exec node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-server --online | tee .artifacts/desktop/runtime-stage.log
 
       - name: Build native installers and execute the packaged runtime checks
         id: installers
