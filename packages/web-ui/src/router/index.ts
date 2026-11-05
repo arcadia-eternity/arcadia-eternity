@@ -15,6 +15,9 @@ import { captureOAuthCallbackAtBoot } from '@/services/serverSession'
 
 // 战报相关组件
 const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
+// Select the loader, not an import inside a shared loader. The production
+// bundler can merge conditional imports and retain only the fallback CSS deps.
+const LocalContentOnlyPage = () => import('@/features/content/LocalContentOnlyPage.vue')
 const routes: RouteRecordRaw[] = [
   {
     path: '/management',
@@ -37,36 +40,26 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/settings/local-service',
     name: 'LocalContentService',
-    component: () =>
-      isDesktop
-        ? import('@/features/content/LocalServicePage.vue')
-        : import('@/features/content/LocalContentOnlyPage.vue'),
+    component: isDesktop ? () => import('@/features/content/LocalServicePage.vue') : LocalContentOnlyPage,
     meta: { title: '高级本机工具' },
   },
   {
     path: '/creator/development',
     name: 'DevelopmentWorkspace',
-    component: () =>
-      isDesktop
-        ? import('@/features/development/DevelopmentWorkspacePage.vue')
-        : import('@/features/content/LocalContentOnlyPage.vue'),
+    component: isDesktop ? () => import('@/features/development/DevelopmentWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '开发服务工作区' },
   },
   {
     path: '/content/edit/:projectId?',
     alias: '/creator',
     name: 'Creator',
-    component: () =>
-      isDesktop
-        ? import('@/features/authoring/AuthorWorkspacePage.vue')
-        : import('@/features/content/LocalContentOnlyPage.vue'),
+    component: isDesktop ? () => import('@/features/authoring/AuthorWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '编辑内容包' },
   },
   {
     path: '/creator/drafts',
     name: 'CreatorDrafts',
-    component: () =>
-      isDesktop ? import('@/features/creator/CreatorPage.vue') : import('@/features/content/LocalContentOnlyPage.vue'),
+    component: isDesktop ? () => import('@/features/creator/CreatorPage.vue') : LocalContentOnlyPage,
     meta: { title: '创作工坊' },
   },
   {
