@@ -369,3 +369,8 @@
   tags: [ability]
   effect:
     - effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen
+- id: mark_ability_shensheng
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_palading_shensheng_immune_crit

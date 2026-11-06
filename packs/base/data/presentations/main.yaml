@@ -8493,3 +8493,144 @@
     kind: marks
     id: mark_global_xingyu
   icon: mark:default-inc
+- id: species.pet_palading
+  target:
+    kind: species
+    id: pet_palading
+  icon: icon:pet_palading
+  portrait: portrait:pet_palading
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_palading
+    fallback: portrait:pet_palading
+  cry: petSound:num:250
+- id: skills.skill_chongzhuang_palading
+  target:
+    kind: skills
+    id: skill_chongzhuang_palading
+  sfx: skill:skill_chongzhuang_palading
+- id: skills.skill_guangxiangongji
+  target:
+    kind: skills
+    id: skill_guangxiangongji
+  sfx: skill:skill_guangxiangongji
+- id: skills.skill_zhengyizhihuo
+  target:
+    kind: skills
+    id: skill_zhengyizhihuo
+  sfx: skill:skill_zhengyizhihuo
+- id: skills.skill_shengguangzhiming
+  target:
+    kind: skills
+    id: skill_shengguangzhiming
+  sfx: skill:skill_shengguangzhiming
+- id: skills.skill_shiziguangchong
+  target:
+    kind: skills
+    id: skill_shiziguangchong
+  sfx: skill:skill_shiziguangchong
+- id: skills.skill_chengjiezhiguang
+  target:
+    kind: skills
+    id: skill_chengjiezhiguang
+  sfx: skill:skill_chengjiezhiguang
+- id: skills.skill_bihuzhihuo
+  target:
+    kind: skills
+    id: skill_bihuzhihuo
+  sfx: skill:skill_bihuzhihuo
+- id: skills.skill_shengguangxili
+  target:
+    kind: skills
+    id: skill_shengguangxili
+  sfx: skill:skill_shengguangxili
+- id: skills.skill_gongzhengguangchong
+  target:
+    kind: skills
+    id: skill_gongzhengguangchong
+  sfx: skill:skill_gongzhengguangchong
+- id: skills.skill_fuchouguangchong
+  target:
+    kind: skills
+    id: skill_fuchouguangchong
+  sfx: skill:skill_fuchouguangchong
+- id: skills.skill_zhengfazhihuo
+  target:
+    kind: skills
+    id: skill_zhengfazhihuo
+  sfx: skill:skill_zhengfazhihuo
+- id: skills.skill_shengyouzhihuo
+  target:
+    kind: skills
+    id: skill_shengyouzhihuo
+  sfx: skill:skill_shengyouzhihuo
+- id: skills.skill_rongyaodeshengzhan
+  target:
+    kind: skills
+    id: skill_rongyaodeshengzhan
+  sfx: skill:skill_rongyaodeshengzhan
+- id: skills.skill_shimingzhihuo
+  target:
+    kind: skills
+    id: skill_shimingzhihuo
+  sfx: skill:skill_shimingzhihuo
+- id: skills.skill_shenpanguangchong
+  target:
+    kind: skills
+    id: skill_shenpanguangchong
+  sfx: skill:skill_shenpanguangchong
+- id: skills.skill_zhengjiuzhihuo
+  target:
+    kind: skills
+    id: skill_zhengjiuzhihuo
+  sfx: skill:skill_zhengjiuzhihuo
+- id: skills.skill_jiushuzhihuo
+  target:
+    kind: skills
+    id: skill_jiushuzhihuo
+  sfx: skill:skill_jiushuzhihuo
+- id: marks.mark_shensheng
+  target:
+    kind: marks
+    id: mark_shensheng
+  icon: mark:mark_shensheng
+- id: marks.mark_bihu
+  target:
+    kind: marks
+    id: mark_bihu
+  icon: mark:mark_bihu
+- id: marks.mark_shengyou
+  target:
+    kind: marks
+    id: mark_shengyou
+  icon: mark:mark_shengyou
+- id: marks.mark_gongzheng
+  target:
+    kind: marks
+    id: mark_gongzheng
+  icon: mark:mark_gongzheng
+- id: marks.mark_zhengfa
+  target:
+    kind: marks
+    id: mark_zhengfa
+  icon: mark:mark_zhengfa
+- id: marks.mark_mingshi
+  target:
+    kind: marks
+    id: mark_mingshi
+  icon: mark:default-inc
+- id: marks.mark_jiushu
+  target:
+    kind: marks
+    id: mark_jiushu
+  icon: mark:mark_jiushu
+- id: marks.mark_ability_shensheng
+  target:
+    kind: marks
+    id: mark_ability_shensheng
+  icon: mark:default-ability
+- id: marks.mark_emblem_bihu
+  target:
+    kind: marks
+    id: mark_emblem_bihu
+  icon: mark:default-emblem

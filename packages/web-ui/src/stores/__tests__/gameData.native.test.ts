@@ -173,9 +173,9 @@ describe('native game metadata', () => {
     await store.initialize()
     expect(store.loaded).toBe(true)
     expect([store.species.allIds.length, store.skills.allIds.length, store.marks.allIds.length]).toEqual([
-      145, 966, 416,
+      146, 983, 425,
     ])
-    expect(store.nativeEffectIds).toHaveLength(1065)
+    expect(store.nativeEffectIds).toHaveLength(1087)
     expect(store.nativeEffectIds).toContain('effect_skill_consume_huanxiang_raise_def_1_stage')
     expect(fetch).not.toHaveBeenCalled()
   })

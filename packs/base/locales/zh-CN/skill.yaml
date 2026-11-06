@@ -2900,3 +2900,54 @@ skill_fangkongdong:
 skill_zuizhongcaijue:
   name: 最终裁决
   description: 击败具有拷问的对手时恢复自身最大体力的1/4
+skill_chongzhuang_palading:
+  name: 冲撞
+  description: 向对手冲撞过去
+skill_guangxiangongji:
+  name: 光线攻击
+  description: 用光线攻击对手
+skill_zhengyizhihuo:
+  name: 正义之火
+  description: 提升<buff>物防</buff> 神圣状态下额外提升<buff>特防</buff>
+skill_shengguangzhiming:
+  name: 圣光之名
+  description: 使自己进入<markName>神圣</markName>状态并持续恢复体力 <buff>先制+1</buff>
+skill_shiziguangchong:
+  name: 十字光冲
+  description: 耀眼的光芒 神圣状态下<damage>伤害增加50%</damage>
+skill_chengjiezhiguang:
+  name: 惩戒之光
+  description: 惩戒恶人的光芒 神圣状态下额外附带<damage>15%特攻值的伤害</damage>
+skill_bihuzhihuo:
+  name: 庇护之火
+  description: 在战场获得<markName>庇护</markName> 恢复<heal>1/8体力</heal>且5回合格挡<shield>50点物理伤害</shield>
+skill_shengguangxili:
+  name: 圣光洗礼
+  description: 接受圣光的洗礼 清除自己的不良状态
+skill_gongzhengguangchong:
+  name: 公正光冲
+  description: 裁定公正的光芒 使对手3回合无法获得能力提升效果
+skill_fuchouguangchong:
+  name: 复仇光冲
+  description: 复仇的光芒 伙伴全部战败时<damage>威力为2倍</damage>
+skill_zhengfazhihuo:
+  name: 征伐之火
+  description: 骑士的决心与怒火 3回合<damage>伤害增加35%</damage>并转化<heal>35%伤害为体力</heal>
+skill_shengyouzhihuo:
+  name: 圣佑之火
+  description: 在战场获得<markName>庇护</markName> 恢复<heal>1/8体力</heal>且5回合受到特攻伤害减半
+skill_rongyaodeshengzhan:
+  name: 荣耀的圣战
+  description: <strong>必杀技</strong> 充满荣耀的圣战 神圣状态下提升物防或特防
+skill_shimingzhihuo:
+  name: 使命之火
+  description: 使自己获得<markName>使命</markName> 免疫异常状态 持续5回合
+skill_shenpanguangchong:
+  name: 审判光冲
+  description: 最后审判的光芒 神圣状态下附带<damage>15%物攻值的伤害</damage> <guaranteedHit>必中</guaranteedHit>
+skill_zhengjiuzhihuo:
+  name: 拯救之火
+  description: 即使对手是恶人也要拯救 恢复<heal>对手100体力</heal>并减少其<rage>35怒气</rage>
+skill_jiushuzhihuo:
+  name: 救赎之火
+  description: 救赎的火焰 自己体力低于1/8时恢复<heal>100体力</heal> 恢复后消失

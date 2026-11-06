@@ -1,0 +1,86 @@
+# data/groups/palading/species.0069.yaml
+# yaml-language-server: $schema=../packages/schema/schema/species.schema.json
+# @metaType species
+# @version 1.0.0
+#
+# 帕拉丁; original client form ID 250 (图鉴 NumbersID 123), evolves from 帕拉 (form 249).
+# Base stats follow the project community convention: the client values are
+# HP 182 / Atk 116 / Def 122 / SpAtk 119 / SpDef 120 / Spd 109, and the 4399
+# community table lists 体力 182 / 攻击 166 / 防御 172 / 特攻 169 / 特防 170 / 速度 159.
+# The non-HP values are therefore the client values plus 50, matching 137/145
+# existing project species; the 4399 table is the community source for this form.
+- id: pet_palading
+  num: 250
+  element: Light
+  baseStats:
+    hp: 182
+    atk: 166
+    spa: 169
+    def: 172
+    spd: 170
+    spe: 159
+  genderRatio:
+    - 0
+    - 1
+  heightRange:
+    - 88
+    - 93
+  weightRange:
+    - 66
+    - 71
+  learnable_skills:
+    - skill_id: skill_chongzhuang_palading
+      level: 1
+      hidden: false
+    - skill_id: skill_guangxiangongji
+      level: 5
+      hidden: false
+    - skill_id: skill_zhengyizhihuo
+      level: 10
+      hidden: false
+    - skill_id: skill_shengguangzhiming
+      level: 15
+      hidden: false
+    - skill_id: skill_shiziguangchong
+      level: 20
+      hidden: false
+    - skill_id: skill_chengjiezhiguang
+      level: 25
+      hidden: false
+    - skill_id: skill_bihuzhihuo
+      level: 30
+      hidden: false
+    - skill_id: skill_shengguangxili
+      level: 35
+      hidden: false
+    - skill_id: skill_gongzhengguangchong
+      level: 40
+      hidden: false
+    - skill_id: skill_fuchouguangchong
+      level: 45
+      hidden: false
+    - skill_id: skill_zhengfazhihuo
+      level: 50
+      hidden: false
+    - skill_id: skill_shengyouzhihuo
+      level: 55
+      hidden: false
+    - skill_id: skill_rongyaodeshengzhan
+      level: 60
+      hidden: false
+    - skill_id: skill_shimingzhihuo
+      level: 60
+      hidden: true
+    - skill_id: skill_shenpanguangchong
+      level: 60
+      hidden: true
+    - skill_id: skill_zhengjiuzhihuo
+      level: 60
+      hidden: true
+    - skill_id: skill_jiushuzhihuo
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shensheng
+  emblem:
+    - mark_emblem_bihu

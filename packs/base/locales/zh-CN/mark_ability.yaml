@@ -208,3 +208,6 @@ mark_ability_tongji:
 mark_ability_kaowen:
   name: 拷问
   description: 后出手时减少具有拷问的对手5点怒气
+mark_ability_shensheng:
+  name: 神圣
+  description: 自己具有神圣状态时不会受到致命一击

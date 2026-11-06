@@ -13,10 +13,10 @@ const loaded = await new NativePackLoader(nativeBuildIdentity, createOfficialCon
 assert.deepEqual(
   Object.fromEntries(['effects', 'marks', 'skills', 'species'].map(kind => [kind, loaded.content[kind].length])),
   {
-    effects: 1065,
-    marks: 416,
-    skills: 966,
-    species: 145,
+    effects: 1087,
+    marks: 425,
+    skills: 983,
+    species: 146,
   },
 )
 assert.equal(loaded.errors.length, 0)

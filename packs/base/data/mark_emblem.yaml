@@ -356,3 +356,7 @@
   tags: [emblem]
   effect:
     - effect_emblem_skill_tongjiling_sure_hit
+- id: mark_emblem_bihu
+  config: *emblem_config
+  tags: [emblem]
+  effect: [] # 该纹章只在庇护印记的减伤范围中生效

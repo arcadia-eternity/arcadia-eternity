@@ -269,7 +269,7 @@ packages:
       remote.content.marks.length,
       remote.content.skills.length,
       remote.content.species.length,
-    ]).toEqual([1065, 416, 966, 145])
+    ]).toEqual([1087, 425, 983, 146])
     for (const prototype of [...remote.content.marks, ...remote.content.skills])
       for (const effect of prototype.effects) expect(remote.content.getEffect(effect.id)).toBe(effect)
     expect(requests.some(path => path.startsWith('data/effect_'))).toBe(false)
@@ -323,8 +323,8 @@ packages:
     )
     const result = await new NativePackLoader(build, createOfficialContent).load(file)
     expect(result.pack?.id).toBe('fixture.native.entry')
-    expect(result.content.effects).toHaveLength(1065)
-    expect(result.content.skills).toHaveLength(966)
+    expect(result.content.effects).toHaveLength(1087)
+    expect(result.content.skills).toHaveLength(983)
     const options = { enforceLockfile: true }
     const strictLoad = new NativePackLoader(build, createOfficialContent).load(file, options)
     options.enforceLockfile = false

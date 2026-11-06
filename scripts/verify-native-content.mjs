@@ -51,7 +51,7 @@ try {
   }
   const content = createOfficialContent(data, 'native-browser-verifier/current-build')
   const counts = Object.fromEntries(['effects', 'marks', 'skills', 'species'].map(kind => [kind, content[kind].length]))
-  assert.deepEqual(counts, { effects: 1065, marks: 416, skills: 966, species: 145 })
+  assert.deepEqual(counts, { effects: 1087, marks: 425, skills: 983, species: 146 })
   console.log(
     JSON.stringify({ minifiedBrowserModule: true, modules: modules.length, legacyEffectDsl: false, ...counts }),
   )

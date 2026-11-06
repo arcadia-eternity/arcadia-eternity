@@ -433,3 +433,6 @@ pet_sabo:
 pet_saber:
   name: 萨伯尔
   description: 萨伯尔的羽翼终于丰满起来 一改青年时略显轻浮的性格 萨伯尔兵团能够给整个飞翼氏族带来安全感
+pet_palading:
+  name: 帕拉丁
+  description: 帕拉丁家族世代生长在飞船上 作为辛迪船长御用的圣骑士军团而存在

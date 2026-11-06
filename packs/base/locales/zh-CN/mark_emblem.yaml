@@ -205,3 +205,6 @@ mark_emblem_kaoda:
 mark_emblem_jina:
   name: 缉拿
   description: 使通缉令技能必中
+mark_emblem_bihu:
+  name: 庇护
+  description: 使庇护之火减少物理伤害变为减少所有伤害

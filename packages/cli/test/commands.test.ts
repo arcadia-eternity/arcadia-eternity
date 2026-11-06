@@ -125,7 +125,7 @@ it('validates offline content through both the new command and compatibility ali
   const first = (await invoke(['content', 'validate', '--json'])).json()
   const second = (await invoke(['validate', '--strict', '--format', 'json'])).json()
   expect(first).toEqual(second)
-  expect(first).toMatchObject({ valid: true, counts: { effect: 1065, species: 145 }, diagnostics: [] })
+  expect(first).toMatchObject({ valid: true, counts: { effect: 1087, species: 146 }, diagnostics: [] })
   const missing = (await invoke(['content', 'validate', '--pack-ref', '/missing/pack.json', '--json'], 2)).json()
   expect(missing.diagnostics[0].code).toBe('CONTENT_INVALID')
 })

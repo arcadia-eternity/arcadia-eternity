@@ -2661,3 +2661,89 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_reduce_opponent_atk_1_stage_when_fainted
+# 帕拉丁技能印记（原作 moves.xml 11572-11586 / buffs.xml 3314 神圣、3315 公正、3317 征伐、
+# 3320 庇护、3322 救赎）。神圣为永续印记；“每回合恢复体力”的 1/16 与半血以下 1/8 只有 4399
+# 帕拉丁解析给出，属社区资料，客户端 buff 表 3314 无描述。庇护/圣佑的回血按每回合 1/8 建模：
+# 该解析写明“带一个的话半血以下一回合恢复四分之一”（神圣 1/8 + 庇护或圣佑 1/8），因此不是使用
+# 当次的一次性回血。
+- id: mark_shensheng
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_shensheng_heal_turn_end
+- id: mark_bihu
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_heal_self_1_8_turnEnd
+    - effect_mark_bihu_block_damage_50
+- id: mark_shengyou
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_heal_self_1_8_turnEnd
+    - effect_mark_shengyou_halve_special_damage
+- id: mark_gongzheng
+  config:
+    duration: 3
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_gongzheng_block_positive_stage
+- id: mark_zhengfa
+  config:
+    duration: 3
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_increase_damage_dealt_35_percent
+    - effect_mark_zhengfa_lifesteal_35
+- id: mark_mingshi
+  config:
+    duration: 5
+    persistent: false
+    maxStacks: 1
+    stackable: true
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_immune_exceptional
+- id: mark_jiushu
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    keepOnSwitchOut: true
+  effect:
+    - effect_mark_jiushu_heal_at_low_hp
+    - effect_mark_jiushu_heal_on_apply_if_low

@@ -1,5 +1,5 @@
 lockfileVersion: 1
-generatedAt: 2026-11-04T12:09:17.567Z
+generatedAt: 2026-11-06T17:43:47.739Z
 importers:
   .:
     specifiers:
@@ -19,6 +19,6 @@ packages:
     entry: pack.json
     provenance: workspace
     resolution:
-      integrity: sha512-xy5uR0lRcd8aT7enZL2FcL8vxuhIxCJbYGiH+jgYuWol+aKjS6/r+4JgxGYWQwZ6NHWOI1wBug6lNHttsuf9DQ==
+      integrity: sha512-UmCSEBg9riIEP7DALc2+a2boU+NG1ulvxsCR51g1JniZ0cJAsW7o12TSOqcJBjq21P5d/7IgPdXtYavuN4DFFQ==
       path: /Users/yuuinih/GitHub/test_battle/packs/base/pack.json
     dependencies: {}

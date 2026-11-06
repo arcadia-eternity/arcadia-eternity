@@ -4,6 +4,7 @@ import { BaseMark } from '@arcadia-eternity/battle/v4'
 import type { ParameterCatalog } from '@arcadia-eternity/battle/v4'
 import { effectParameters, hasAuthoredParameters } from '@arcadia-eternity/battle/v4/authoring'
 import { createOfficialAuthoredEffects } from './authored'
+import { createPaladingEffects } from './palading'
 import { generatedStatStageCandidates } from './stat-stages.generated'
 import { officialRageCandidate } from './rage'
 import { createOfficialWaterShieldCandidate } from './shield'
@@ -92,6 +93,7 @@ export function createOfficialEffectCandidates(marks: ReadonlyMap<string, BaseMa
     return mark
   }
   add('authored', createOfficialAuthoredEffects())
+  add('palading', createPaladingEffects(marks))
   add('attribute-contributions.generated', createGeneratedAttributeContributions())
   add('automatic-stack-consumption', createAutomaticStackConsumption())
   add('context-controls.generated', createGeneratedContextControls())

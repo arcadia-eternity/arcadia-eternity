@@ -283,6 +283,9 @@ groups:
       - pet_sasa
       - pet_sabo
       - pet_saber
+  - id: palading
+    species:
+      - pet_palading
 relations:
   - from: pet_dilan
     to: pet_didilan

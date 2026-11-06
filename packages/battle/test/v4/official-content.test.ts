@@ -40,7 +40,7 @@ it('loads every native definition and wires canonical metadata without mutating 
   const raw = JSON.stringify(data)
   const directory = content()
   expect([directory.effects.length, directory.marks.length, directory.skills.length, directory.species.length]).toEqual(
-    [1065, 416, 966, 145],
+    [1087, 425, 983, 146],
   )
   for (const prototype of [...directory.marks, ...directory.skills])
     for (const effect of prototype.effects) expect(directory.getEffect(effect.id)).toBe(effect)
