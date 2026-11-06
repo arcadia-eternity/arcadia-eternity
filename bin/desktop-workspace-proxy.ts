@@ -27,6 +27,7 @@ type Pending = {
   controller: AbortController
   preparer?: StaticPreparer
   beforeCommit?: () => Promise<void>
+  onProgress?: PrepareVersionInput['onProgress']
 }
 
 const namespace = 'arcadia.desktop.workspace'
@@ -101,6 +102,7 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
     signal?: AbortSignal,
     preparer?: StaticPreparer,
     beforeCommit?: () => Promise<void>,
+    onProgress?: PrepareVersionInput['onProgress'],
   ): Promise<T> {
     if (disconnected || channel.connected === false) return Promise.reject(error('WORKSPACE_PARENT_DISCONNECTED'))
     if (closing && method !== 'close') return Promise.reject(error('WORKSPACE_CLOSED'))
@@ -125,7 +127,7 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
           reject(failure)
         } else resolve(value as T)
       }
-      pending.set(id, { finish, controller, preparer, beforeCommit })
+      pending.set(id, { finish, controller, preparer, beforeCommit, onProgress })
       signal?.addEventListener('abort', onAbort, { once: true })
       if (signal?.aborted) return onAbort()
       try {
@@ -149,6 +151,24 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
           directory: input.directory,
           draft: input.draft as EnvironmentDocument,
           signal: active.controller.signal,
+        })
+        active.controller.signal.throwIfAborted()
+      } else if (message.kind === 'progress') {
+        const active = typeof message.requestId === 'string' ? pending.get(message.requestId) : undefined
+        if (!active?.onProgress) throw error('WORKSPACE_PROGRESS_EXPIRED')
+        if (
+          typeof input.stage !== 'string' ||
+          input.stage.length > 120 ||
+          [input.completed, input.total].some(
+            value => value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < 0),
+          )
+        )
+          throw error('WORKSPACE_CALLBACK_INVALID')
+        active.controller.signal.throwIfAborted()
+        await active.onProgress({
+          stage: input.stage,
+          completed: input.completed as number | undefined,
+          total: input.total as number | undefined,
         })
         active.controller.signal.throwIfAborted()
       } else if (message.kind === 'beforeCommit') {
@@ -202,13 +222,14 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
   channel.on('disconnect', disconnect)
 
   const prepare = (method: 'prepareVersion' | 'adoptVersion', input: PrepareVersionInput, preparer: StaticPreparer) => {
-    const { signal, beforeCommit, ...serializable } = input
+    const { signal, beforeCommit, onProgress, ...serializable } = input
     return request<EnvironmentVersion>(
       method,
-      [{ ...serializable, hasBeforeCommit: !!beforeCommit }],
+      [{ ...serializable, hasBeforeCommit: !!beforeCommit, hasProgress: !!onProgress }],
       signal,
       preparer,
       beforeCommit,
+      onProgress,
     )
   }
   const close = () => {

@@ -154,10 +154,15 @@ export class DesktopWorkspaceOwner {
           const input = { ...args[0], signal: controller.signal }
           if (input.hasBeforeCommit) input.beforeCommit = () => callback('beforeCommit', {}, id)
           delete input.hasBeforeCommit
+          if (input.hasProgress) input.onProgress = progress => callback('progress', progress, id)
+          delete input.hasProgress
           if (!input.projectDirectory && !input.directory) {
             const draft = await workspace.getDraft(input.environmentId)
             if (draft.revision !== input.expectedRevision) throw failure('REVISION_CONFLICT')
-            projectLease = await this.library.prepareEnvironmentProject(draft.document, { signal: controller.signal })
+            projectLease = await this.library.prepareEnvironmentProject(draft.document, {
+              signal: controller.signal,
+              onProgress: input.onProgress,
+            })
             input.directory = projectLease.directory
           }
           // Client content combinations are already installed and immutable.

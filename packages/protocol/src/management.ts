@@ -52,6 +52,7 @@ export interface ManagedEnvironmentDocument {
   name: string
   packages: Record<string, string>
   sources: string[]
+  disabled?: { packages: Record<string, string>; sources: string[] }
   rules: {
     schemaVersion: 1
     tier?: string
@@ -72,6 +73,15 @@ export interface ManagedReadyEnvironmentVersion {
   document: ManagedEnvironmentDocument
   draftRevision: string
   contentRevision: string
+  members?: {
+    name: string
+    version: string
+    projectId: string
+    namespace: string
+    direct: boolean
+    dependencies: string[]
+    requiredBy: string[]
+  }[]
   packages: unknown[]
   createdAt: number
   status: 'ready'

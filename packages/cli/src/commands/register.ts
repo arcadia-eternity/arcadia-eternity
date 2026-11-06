@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import type { CommandContext } from '../context'
 import { CliError } from '../reporting/errors'
 import { reserveOutputs, writeJson } from '../io/files'
+import { registerEnvironmentCommands } from './environment'
 import { registerNpmCommands } from './npm'
 import { registerProjectCommands } from './project'
 import { registerDevPreviewCommands } from './dev-preview'
@@ -173,6 +174,7 @@ export function registerCommands(program: Command, context: CommandContext) {
   const content = program.command('content')
   validationOptions(content.command('validate')).action(validate)
   registerNpmCommands(content, context)
+  registerEnvironmentCommands(content, context)
   registerProjectCommands(content, context)
   registerDevPreviewCommands(content, context)
   validationOptions(program.command('validate').description('Alias for content validate')).action(validate)

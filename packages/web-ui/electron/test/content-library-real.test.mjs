@@ -7,6 +7,8 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
+import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { ContentLibrary } from '../content-library.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { runContentCommand } from '../content-projects.mjs'
@@ -22,10 +24,13 @@ test(
   },
   async t => {
     const root = await mkdtemp(join(tmpdir(), 'arcadia-library-real-'))
+    let owner
     const host = new LocalBattleHost({
       executable: process.execPath,
       cli: resolve(repository, 'dist/cli.js'),
       rendererOrigin: 'http://localhost:5173',
+      workspaceRoot: join(root, 'library'),
+      attachWorkspace: child => owner.attach(child),
       startupTimeoutMs: 40000,
       shutdownTimeoutMs: 3000,
     })
@@ -35,6 +40,7 @@ test(
       host,
       run: (args, signal) => runContentCommand(runtime, args, signal),
     })
+    owner = new DesktopWorkspaceOwner({ root: join(root, 'library'), library, openWorkspace: ContentWorkspace.open })
     const sockets = []
     const ack = (socket, event, data) =>
       new Promise((resolve, reject) => {
@@ -85,6 +91,8 @@ test(
       )
       const tarball = join(root, JSON.parse(packed.stdout)[0].filename)
       const id = await library.installFile(tarball, true)
+      assert.deepEqual((await library.list()).desiredIds, [])
+      await library.setSelection([id], true)
       const installed = await settled()
       assert.deepEqual(installed.desiredIds, [id])
       assert.deepEqual(installed.activeIds, [id])
@@ -130,14 +138,18 @@ test(
       await host.stop()
       assert.deepEqual(await host.retainedProjectDirectories(), [])
       await library.collectGarbage()
-      await assert.rejects(readFile(join(customDirectory, 'package.json')), { code: 'ENOENT' })
+      assert.ok(
+        await readFile(join(customDirectory, 'package.json')),
+        'fixed workspace versions retain materials after the server stops',
+      )
       t.diagnostic(
-        'Local selection became official-only while both old and new server rooms retained custom content; collection waited for server shutdown',
+        'Local selection became official-only while both old and new server rooms retained custom content; fixed versions retained materials after server shutdown',
       )
     } finally {
       for (const socket of sockets) socket.disconnect()
-      await library.close()
       await host.stop()
+      await owner.close()
+      await library.close()
       await rm(root, { recursive: true, force: true })
     }
   },

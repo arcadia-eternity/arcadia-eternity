@@ -23,6 +23,10 @@ export interface InstalledContentPackage {
   projectId: string
   description: string
   author: string
+  sdkApi?: number
+  license?: string
+  engines?: Record<string, string>
+  dependencyRanges?: Record<string, string>
   source: { kind: 'file' | 'npm'; label: string; spec?: string; file?: string }
   graph: PackageGraphEntry[]
   contentIds: ContentIds
@@ -32,6 +36,13 @@ export interface InstalledContentPackage {
   error?: string
 }
 export interface ContentLibrarySnapshot {
+  operations?: {
+    id: string
+    label: string
+    status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+    stage: string
+    error?: string
+  }[]
   revision: number
   packages: InstalledContentPackage[]
   activeIds: string[]
@@ -54,6 +65,8 @@ export type ContentPackagePlan =
       requiresApproval: boolean
     }
 export type ContentPackageAction =
+  | { action: 'cancel-install' | 'retry-install'; operationId: string }
+  | { action: 'clear-install-tasks' }
   | { action: 'import-sources' }
   | { action: 'set-selection'; ids: string[]; offline?: boolean }
   | { action: 'confirm-install'; planId: string; allowCode: boolean }

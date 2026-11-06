@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { useAuthStore } from '@/stores/auth'
@@ -132,9 +133,14 @@ const auditLabels: Record<string, string> = {
   'principal.create': '创建管理身份',
 }
 const taskStages: Record<string, string> = {
+  resolving: '解析依赖',
+  acquiring: '获取来源',
+  installing: '下载并安装',
+  verifying: '校验材料',
+  preparing: '准备固定版本',
   exporting: '正在导出环境',
   importing: '正在导入环境',
-  capturing: '正在保存服务器状态',
+  capturing: '正在保存材料与状态',
   writing: '正在生成备份文件',
 }
 const conditionLabels: Record<string, string> = {
@@ -444,11 +450,8 @@ async function addGrant() {
   )
     principalId.value = ''
 }
-function operationError(value: unknown) {
-  if (typeof value === 'string') return value
-  if (value && typeof value === 'object' && 'message' in value) return String(value.message)
-  return ''
-}
+const operationError = contentTaskError
+
 onMounted(() => void changeTarget(target.value))
 onBeforeUnmount(() => {
   disposed = true
@@ -722,6 +725,15 @@ onBeforeUnmount(() => {
             :busy="busy"
             @save="saveEnvironment"
             @prepare="prepareEnvironment"
+            @package-state="
+              (environment, name, enabled, cascade) =>
+                state.mutate('POST', `${workspacePath}/environments/${encode(environment.document.id)}/package-state`, {
+                  expectedRevision: environment.revision,
+                  name,
+                  enabled,
+                  cascade,
+                })
+            "
             @delete-draft="deleteEnvironment"
             @use="useVersion"
             @references="inspectReferences"
@@ -864,7 +876,9 @@ onBeforeUnmount(() => {
               <button
                 v-if="
                   !operation.committed &&
-                  (operation.status === 'failed' || operation.status === 'interrupted') &&
+                  (operation.status === 'failed' ||
+                    operation.status === 'interrupted' ||
+                    operation.status === 'cancelled') &&
                   (operation.kind !== 'server.backup' || canBackup)
                 "
                 :disabled="busy"

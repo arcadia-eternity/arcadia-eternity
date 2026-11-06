@@ -118,7 +118,9 @@ test(
         archive.files.some(file => file.path === fixtureManifest.arcadia.effects),
         'packed fixture includes the freshly compiled effect entry',
       )
-      await library.installFile(join(root, archive.filename), true)
+      const installed = await library.installFile(join(root, archive.filename), true)
+      assert.deepEqual((await library.list()).activeIds, [])
+      await library.setSelection([installed], true)
       await settle()
       const local = await library.acquireProject()
       const existingProjects = await readdir(join(root, 'library/projects'))

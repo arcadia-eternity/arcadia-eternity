@@ -3,6 +3,7 @@ import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
 import semver from 'semver'
+import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import { normalizeEnvironmentDocument } from './debug-environments.mjs'
 import { withSourceLock } from './source-lock.mjs'
 import { contentError, materialFiles, writeMaterials } from './workspace-materials.mjs'
@@ -32,7 +33,7 @@ async function regularDirectory(path) {
   const info = await lstat(path)
   if (!info.isDirectory() || info.isSymbolicLink()) throw contentError('WORKSPACE_PATH_INVALID')
 }
-function checkedPreparation(result, document) {
+async function checkedPreparation(result, document, directory) {
   if (
     !result ||
     typeof result.contentRevision !== 'string' ||
@@ -51,7 +52,8 @@ function checkedPreparation(result, document) {
   }
   for (const name of document.sources)
     if (!packages.some(pkg => pkg?.name === name)) throw contentError('ENVIRONMENT_SOURCE_MISSING', name)
-  return result
+  const inspection = await inspectNpmProject(directory)
+  return { ...result, members: inspection.members }
 }
 function activeProcess(pid) {
   if (!Number.isSafeInteger(pid) || pid < 1) return true
@@ -265,7 +267,7 @@ export class ContentWorkspace {
     return task
   }
   async #performPrepare(
-    { environmentId, expectedRevision, projectDirectory, directory, signal, beforeCommit },
+    { environmentId, expectedRevision, projectDirectory, directory, signal, beforeCommit, onProgress },
     preparer,
     adopted,
   ) {
@@ -282,6 +284,7 @@ export class ContentWorkspace {
     let releaseExternal,
       committed = false
     try {
+      await onProgress?.({ stage: 'capturing' })
       let materials = join(staging, 'materials')
       if (adopted) {
         materials = await realpath(sourceDirectory)
@@ -297,9 +300,11 @@ export class ContentWorkspace {
         await writeMaterials(materials, files, { ...this.#options, signal: combined })
       }
       combined.throwIfAborted()
-      const result = checkedPreparation(
+      await onProgress?.({ stage: 'preparing' })
+      const result = await checkedPreparation(
         await preparer({ directory: materials, draft: structuredClone(draft.document), signal: combined }),
         draft.document,
+        materials,
       )
       combined.throwIfAborted()
       const metadata = {
@@ -311,6 +316,7 @@ export class ContentWorkspace {
         draftRevision: draft.revision,
         contentRevision: result.contentRevision,
         packages: result.packages ?? [],
+        members: result.members ?? [],
         createdAt: Date.now(),
         adopted,
         materialDirectory: adopted
@@ -565,9 +571,10 @@ export class ContentWorkspace {
           const materials = join(target, 'materials')
           await mkdir(materials, { recursive: true })
           await writeMaterials(materials, entry.files, this.#options)
-          const result = checkedPreparation(
+          const result = await checkedPreparation(
             await preparer({ directory: materials, draft: document, signal: this.#controller.signal }),
             document,
+            materials,
           )
           if (result?.contentRevision !== original.contentRevision) throw contentError('ENVIRONMENT_IMPORT_MISMATCH')
           await writeFile(
@@ -581,6 +588,7 @@ export class ContentWorkspace {
               draftRevision: original.draftRevision,
               contentRevision: result.contentRevision,
               packages: result.packages ?? [],
+              members: result.members ?? [],
               createdAt: original.createdAt,
               adopted: false,
               materialDirectory: `versions/${versionDirectory(versionId)}/materials`,
@@ -711,9 +719,10 @@ export class ContentWorkspace {
     try {
       await writeMaterials(materials, bundle.files, { ...this.#options, signal: combined })
       // Validate received bytes independently; an archive's revision is not a proof.
-      const result = checkedPreparation(
+      const result = await checkedPreparation(
         await preparer({ directory: materials, draft: document, signal: combined }),
         document,
+        materials,
       )
       if (result.contentRevision !== bundle.contentRevision) throw contentError('ENVIRONMENT_IMPORT_MISMATCH')
       const text = json(document)
@@ -726,6 +735,7 @@ export class ContentWorkspace {
         draftRevision: revision(text),
         contentRevision: result.contentRevision,
         packages: result.packages ?? [],
+        members: result.members ?? [],
         createdAt: Date.now(),
         adopted: false,
         materialDirectory: `versions/${versionDirectory(versionId)}/materials`,
@@ -862,4 +872,65 @@ export class ContentWorkspace {
     })
     this.#closed = true
   }
+}
+
+/** Change desired roots only. Resolved material and all published versions remain immutable. */
+export async function setEnvironmentPackageEnabled(workspace, input) {
+  const { environmentId, expectedRevision, name, enabled, cascade = false } = input
+  if (typeof name !== 'string' || typeof enabled !== 'boolean' || typeof cascade !== 'boolean')
+    throw contentError('ENVIRONMENT_PACKAGE_INVALID')
+  const draft = (await workspace.listDrafts()).find(item => item.document.id === environmentId)
+  if (!draft) throw contentError('ENVIRONMENT_NOT_FOUND')
+  if (draft.revision !== expectedRevision) throw contentError('REVISION_CONFLICT')
+  const document = structuredClone(draft.document)
+  const disabled = document.disabled ?? { packages: {}, sources: [] }
+  document.disabled = disabled
+  const active = new Set([...Object.keys(document.packages), ...document.sources])
+  if (enabled) {
+    if (active.has(name)) return draft
+    if (Object.hasOwn(disabled.packages, name)) {
+      document.packages[name] = disabled.packages[name]
+      delete disabled.packages[name]
+    } else if (disabled.sources.includes(name)) {
+      document.sources.push(name)
+      disabled.sources = disabled.sources.filter(value => value !== name)
+    } else throw contentError('ENVIRONMENT_PACKAGE_NOT_FOUND')
+  } else {
+    const version = (await workspace.listVersions())
+      .filter(item => item.status === 'ready' && item.environmentId === environmentId && item.members)
+      .sort((a, b) => b.createdAt - a.createdAt)[0]
+    // A graph captured for different roots/ranges cannot justify disabling a shared dependency.
+    if (
+      !version ||
+      Object.entries(document.packages).some(([key, range]) => version.document.packages[key] !== range) ||
+      document.sources.some(key => !version.document.sources.includes(key))
+    )
+      throw contentError('ENVIRONMENT_DEPENDENCIES_UNRESOLVED', '先准备当前组合，再调整依赖的启用状态')
+    const affected = new Set([name])
+    for (let changed = true; changed; ) {
+      changed = false
+      for (const member of version.members)
+        if (!affected.has(member.name) && member.dependencies.some(dep => affected.has(dep))) {
+          affected.add(member.name)
+          changed = true
+        }
+    }
+    const roots = [...active].filter(key => affected.has(key))
+    if (!roots.length) throw contentError('ENVIRONMENT_PACKAGE_NOT_FOUND')
+    if (!cascade && roots.some(key => key !== name))
+      throw contentError(
+        'ENVIRONMENT_PACKAGE_REQUIRED',
+        `仍被这些资源包依赖：${roots.filter(key => key !== name).join('、')}`,
+      )
+    for (const key of roots) {
+      if (Object.hasOwn(document.packages, key)) {
+        disabled.packages[key] = document.packages[key]
+        delete document.packages[key]
+      } else {
+        disabled.sources.push(key)
+        document.sources = document.sources.filter(value => value !== key)
+      }
+    }
+  }
+  return workspace.saveDraft({ document, expectedRevision })
 }

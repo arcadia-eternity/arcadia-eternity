@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import EnvironmentWorkspace from '@/features/management/EnvironmentWorkspace.vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentVersion } from '@/types/management'
@@ -6,7 +7,8 @@ interface Job {
   id: string
   kind: string
   status: string
-  error?: { message: string }
+  error?: { code?: string; message: string }
+  progress?: { stage: string }
   result?: ManagedEnvironmentVersion
 }
 interface Snapshot {
@@ -15,13 +17,23 @@ interface Snapshot {
   versions: ManagedEnvironmentVersion[]
   operations: Job[]
 }
+const stageLabels: Record<string, string> = {
+  resolving: '解析依赖',
+  acquiring: '获取来源',
+  installing: '下载并安装',
+  verifying: '校验材料',
+  capturing: '保存版本材料',
+  preparing: '准备固定版本',
+}
 const jobLabels: Record<string, string> = {
+  queued: '排队中',
   running: '处理中',
   succeeded: '已完成',
   failed: '失败',
   cancelled: '已取消',
 }
 const snapshot = ref<Snapshot>({ workspaceId: '', environments: [], versions: [], operations: [] })
+const localTab = ref<'workspace' | 'tasks' | 'transfers'>('workspace')
 const busy = ref(false),
   error = ref(''),
   notice = ref(''),
@@ -30,7 +42,7 @@ const busy = ref(false),
 const selectedExport = ref(''),
   importId = ref(''),
   references = ref<unknown[]>()
-const preparing = computed(() => snapshot.value.operations.some(job => job.status === 'running'))
+const preparing = computed(() => snapshot.value.operations.some(job => ['queued', 'running'].includes(job.status)))
 const readyVersions = computed(() => snapshot.value.versions.filter(version => version.status === 'ready'))
 let disposed = false,
   timer: ReturnType<typeof setTimeout> | undefined
@@ -155,17 +167,40 @@ onBeforeUnmount(() => {
     <p class="scope-note">本机环境库 · 编辑和保存无需开服。服务器使用独立副本，发布前不会改变正在运行的玩法。</p>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <label class="download-policy"><input v-model="allowDownload" type="checkbox" />准备版本时允许下载缺失材料</label>
+    <nav class="local-tabs" aria-label="环境工具">
+      <button :aria-pressed="localTab === 'workspace'" @click="localTab = 'workspace'">环境组合</button
+      ><button :aria-pressed="localTab === 'tasks'" @click="localTab = 'tasks'">
+        准备任务 {{ preparing ? '· 处理中' : '' }}</button
+      ><button :aria-pressed="localTab === 'transfers'" @click="localTab = 'transfers'">导入与导出</button>
+    </nav>
+    <label v-if="localTab === 'workspace'" class="download-policy"
+      ><input v-model="allowDownload" type="checkbox" />准备版本时允许下载缺失材料</label
+    >
     <EnvironmentWorkspace
+      v-if="localTab === 'workspace'"
       :environments="snapshot.environments"
       :versions="snapshot.versions"
       :can-edit="true"
-      :can-prepare="!preparing"
+      :can-prepare="true"
       :can-delete="true"
       :can-use="false"
       :busy="busy"
       :save-sequence="saveSequence"
       @save="save"
+      @package-state="
+        (environment, name, enabled, cascade) =>
+          run(
+            {
+              action: 'package-state',
+              environmentId: environment.document.id,
+              expectedRevision: environment.revision,
+              name,
+              enabled,
+              cascade,
+            },
+            '已更新草稿，请准备新版本。',
+          )
+      "
       @prepare="prepare"
       @references="inspect"
       @delete="version => run({ action: 'delete-version', versionId: version.versionId }, '版本已删除。')"
@@ -183,7 +218,7 @@ onBeforeUnmount(() => {
       <pre v-else>{{ references }}</pre>
       <button @click="references = undefined">关闭引用</button>
     </section>
-    <section class="panel" aria-label="环境导入导出">
+    <section v-if="localTab === 'transfers'" class="panel" aria-label="环境导入导出">
       <h3>在本机与服务器之间传递环境</h3>
       <p>导出包含固定版本与内容材料。目标服务器校验导入后，再选择开放或更新。</p>
       <label
@@ -204,23 +239,56 @@ onBeforeUnmount(() => {
           @change="importFile"
       /></label>
     </section>
-    <section class="panel" aria-label="本地环境任务">
-      <h3>环境任务</h3>
+    <section v-if="localTab === 'tasks'" class="panel" aria-label="本地环境任务">
+      <h3>下载与准备任务</h3>
+      <button @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</button>
       <p v-if="!snapshot.operations.length">暂无任务。</p>
       <article v-for="job in snapshot.operations" :key="job.id">
         <span
           >{{ job.kind === 'environment.prepare' ? '准备环境版本' : '导入环境' }} · {{ jobLabels[job.status] }}</span
         >
-        <button v-if="job.status === 'running'" @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')">
+        <button
+          v-if="['queued', 'running'].includes(job.status)"
+          @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')"
+        >
           取消任务
         </button>
-        <p v-if="job.error" class="error">{{ job.error.message }}</p>
+        <p v-if="job.progress">{{ stageLabels[job.progress.stage] ?? job.progress.stage }}</p>
+        <progress v-if="job.status === 'running'" aria-label="正在处理" />
+        <button
+          v-if="['failed', 'cancelled'].includes(job.status)"
+          @click="run({ action: 'retry', operationId: job.id }, '已重新加入队列。')"
+        >
+          重试
+        </button>
+        <p v-if="job.error" class="error">{{ contentTaskError(job.error) }}</p>
       </article>
     </section>
   </section>
 </template>
 <style scoped>
+.local-tabs {
+  display: flex;
+  gap: 8px;
+}
+.local-tabs button[aria-pressed='true'] {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+.local-environments :deep(.environment-workspace) {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+.local-environments > .panel {
+  overflow: auto;
+  min-height: 0;
+}
 .local-environments {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 230px);
+  min-height: 0;
   color: #243042;
 }
 .scope-note {

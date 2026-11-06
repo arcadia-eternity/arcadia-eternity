@@ -746,3 +746,63 @@ it('requires the current npm lockfile format rather than accepting the legacy v2
   await writeFile(file, JSON.stringify(lock))
   await expect(inspectNpmProject(dir)).rejects.toThrow('lockfile v3')
 })
+
+it('lists a shared transitive resource once and rejects two versions even with different content identities', async () => {
+  const empty = { 'content.json': JSON.stringify({ data: { species: [], skills: [], marks: [], behaviors: [] } }) }
+  const contentManifest = (name: string, version: string, identity: string, dependencies = {}) => ({
+    name,
+    version,
+    dependencies,
+    arcadia: { formatVersion: 1, projectId: identity, namespace: identity, content: 'content.json' },
+  })
+  const nature = await pack('shared-nature', contentManifest('@shared/nature', '1.6.3', 'nature'), empty)
+  const nature2 = await pack('shared-nature-v2', contentManifest('@shared/nature', '2.1.0', 'nature-v2'), empty)
+  const forest = await pack(
+    'shared-forest',
+    contentManifest('@shared/forest', '1.0.0', 'forest', { '@shared/nature': `file:${nature}` }),
+    empty,
+  )
+  const arena = await pack(
+    'shared-arena',
+    contentManifest('@shared/arena', '1.0.0', 'arena', { '@shared/nature': `file:${nature}` }),
+    empty,
+  )
+  const wild = await pack(
+    'shared-wild',
+    contentManifest('@shared/wild', '1.0.0', 'wild', { '@shared/nature': `file:${nature2}` }),
+    empty,
+  )
+  async function install(name: string, dependencies: Record<string, string>) {
+    const directory = join(root, name)
+    await mkdir(directory)
+    await writeFile(
+      join(directory, 'package.json'),
+      JSON.stringify({ name, version: '1.0.0', private: true, dependencies }),
+    )
+    await exec('npm', ['install', '--ignore-scripts', '--strict-peer-deps', '--offline', '--no-audit', '--no-fund'], {
+      cwd: directory,
+    })
+    return directory
+  }
+  const compatible = await install('shared-compatible', {
+    '@shared/forest': `file:${forest}`,
+    '@shared/arena': `file:${arena}`,
+  })
+  const inspection = await inspectNpmProject(compatible)
+  expect(inspection.members).toHaveLength(3)
+  expect(inspection.members.find(member => member.name === '@shared/nature')).toMatchObject({
+    version: '1.6.3',
+    direct: false,
+    requiredBy: ['@shared/arena', '@shared/forest'],
+    dependencies: [],
+  })
+  expect(inspection.members.find(member => member.name === '@shared/forest')).toMatchObject({
+    direct: true,
+    dependencies: ['@shared/nature'],
+  })
+  const conflicting = await install('shared-conflicting', {
+    '@shared/forest': `file:${forest}`,
+    '@shared/wild': `file:${wild}`,
+  })
+  await expect(inspectNpmProject(conflicting)).rejects.toThrow('must have one installed version')
+}, 60000)

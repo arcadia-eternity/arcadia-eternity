@@ -102,7 +102,11 @@ function graphFor(inspection) {
       ]),
     ),
     ...(pkg.manifest
-      ? { projectId: pkg.manifest.projectId, namespace: pkg.manifest.namespace, containsCode: !!pkg.manifest.effects }
+      ? {
+          projectId: pkg.manifest.projectId,
+          namespace: pkg.manifest.namespace,
+          containsCode: !!(pkg.manifest.effects || pkg.manifest.effectArtifact),
+        }
       : {}),
   }))
 }
@@ -120,6 +124,8 @@ export class ContentLibrary {
   #idle
   #controller = new AbortController()
   #plans = new Map()
+  #installJobs = new Map()
+  #installTail = Promise.resolve()
   #writes = Promise.resolve()
   #scheduled
   #reconciling
@@ -403,6 +409,7 @@ export class ContentLibrary {
     const activeDirectory = state.activeProject ? join(this.root, 'projects', storageName(state.activeProject)) : null
     return structuredClone({
       revision: state.revision,
+      operations: [...this.#installJobs.values()].map(({ controller, execute, promise, ...job }) => job).reverse(),
       packages: await Promise.all(
         state.installed.map(async entry => {
           try {
@@ -428,49 +435,104 @@ export class ContentLibrary {
         status.status === 'running' && this.host.projectDirectory?.() !== activeDirectory,
     })
   }
-  async stageFile(file, offline = false) {
+  async stageFile(file, offline = false, signal = this.#controller.signal) {
     return this.#exclusive(async () => {
       if (typeof file !== 'string' || !file.endsWith('.tgz')) throw new Error('请选择 npm 内容包文件（.tgz）')
       const source = await realpath(file),
         info = await lstat(source)
       if (!info.isFile() || info.size > 64 * 1024 * 1024) throw new Error('内容包必须是小于 64 MiB 的普通文件')
-      return this.#stageInstall({ kind: 'file', file: source, label: basename(source) }, offline)
+      return this.#stageInstall({ kind: 'file', file: source, label: basename(source) }, offline, signal)
     })
   }
   async installFile(file, offline = false) {
-    return this.#installAndEnable(await this.stageFile(file, offline), offline)
+    return this.#installTask(basename(file), signal => this.stageFile(file, offline, signal))
   }
   async installNpm(spec, offline = false) {
-    return this.#installAndEnable(await this.stageNpm(spec, offline), offline)
+    return this.#installTask(String(spec), signal => this.stageNpm(spec, offline, signal))
   }
-  async #installAndEnable(plan, offline) {
+  #installTask(label, execute) {
+    if ([...this.#installJobs.values()].filter(job => ['queued', 'running'].includes(job.status)).length >= 30)
+      throw new Error('安装队列已满')
+    const job = {
+      id: randomUUID(),
+      label,
+      status: 'queued',
+      stage: 'queued',
+      createdAt: Date.now(),
+      controller: new AbortController(),
+      execute,
+    }
+    this.#installJobs.set(job.id, job)
+    for (const [id, item] of this.#installJobs)
+      if (this.#installJobs.size > 30 && !['queued', 'running'].includes(item.status)) this.#installJobs.delete(id)
+    const signal = AbortSignal.any([job.controller.signal, this.#controller.signal])
+    job.promise = this.#installTail.then(async () => {
+      let plan
+      try {
+        signal.throwIfAborted()
+        job.status = 'running'
+        job.stage = 'installing'
+        plan = await execute(signal)
+        signal.throwIfAborted()
+        job.stage = 'recording'
+        const id = await this.#installOnly(plan, signal)
+        job.status = 'succeeded'
+        return id
+      } catch (error) {
+        if (plan) await this.cancel(plan.id).catch(() => {})
+        job.status = signal.aborted ? 'cancelled' : 'failed'
+        job.error = signal.aborted ? '已取消' : error.message
+        throw error
+      } finally {
+        job.updatedAt = Date.now()
+      }
+    })
+    this.#installTail = job.promise.catch(() => {})
+    return job.promise
+  }
+  cancelInstall(id) {
+    const job = this.#installJobs.get(id)
+    if (!job) throw new Error('安装任务不存在')
+    if (job.status === 'queued' || (job.status === 'running' && job.stage !== 'recording')) {
+      job.controller.abort()
+      if (job.status === 'queued') {
+        job.status = 'cancelled'
+        job.error = '已移出队列'
+        job.updatedAt = Date.now()
+      }
+    }
+  }
+  retryInstall(id) {
+    const job = this.#installJobs.get(id)
+    if (!job || !['failed', 'cancelled'].includes(job.status)) throw new Error('此安装任务不能重试')
+    return this.#installTask(job.label, job.execute)
+  }
+  clearInstallTasks() {
+    for (const [id, job] of this.#installJobs)
+      if (!['queued', 'running'].includes(job.status)) this.#installJobs.delete(id)
+  }
+  async #installOnly(plan, signal) {
     let id
     try {
+      signal.throwIfAborted()
       id = await this.confirmInstall(plan.id, true)
     } catch (error) {
       await this.cancel(plan.id).catch(() => {})
       throw error
     }
-    await this.#update(state => {
-      const installed = this.#entry(id)
-      const ids = state.desiredIds.filter(other => this.#entry(other).name !== installed.name)
-      return { ...state, desiredIds: [...ids, id], goalRevision: state.goalRevision + 1, offline: offline === true }
-    })
-    this.#sync = { status: 'preparing' }
-    this.#schedule()
     return id
   }
-  async stageNpm(spec, offline = false) {
+  async stageNpm(spec, offline = false, signal = this.#controller.signal) {
     return this.#exclusive(async () => {
       if (typeof spec !== 'string' || spec.length > 256 || !exactPackage.test(spec))
         throw new Error('请输入 npm 包名和明确版本，例如 @author/pets@1.0.0')
-      return this.#stageInstall({ kind: 'npm', spec, label: spec }, offline)
+      return this.#stageInstall({ kind: 'npm', spec, label: spec }, offline, signal)
     })
   }
-  async #stageInstall(source, offline) {
+  async #stageInstall(source, offline, signal) {
     if (this.#plans.size >= 8) throw new Error('请先完成或取消已有操作')
     if (this.#state.installed.length >= 200) throw new Error('已安装内容包数量达到上限')
-    const project = await this.#createProject([source], offline)
+    const project = await this.#createProject([source], offline, signal)
     try {
       const manifest = await readJson(join(project.directory, 'package.json'))
       const names = Object.keys(manifest.dependencies ?? {})
@@ -490,6 +552,11 @@ export class ContentLibrary {
         projectId: root.manifest.projectId,
         description: root.draft.project.description || '',
         author: typeof author === 'string' ? author : '',
+        sdkApi: root.manifest.sdkApi,
+        license: typeof packageManifest.license === 'string' ? packageManifest.license : undefined,
+        engines:
+          packageManifest.engines && typeof packageManifest.engines === 'object' ? packageManifest.engines : undefined,
+        dependencyRanges: root.dependencyRanges ?? {},
         source:
           source.kind === 'npm'
             ? { kind: 'npm', spec: source.spec, label: source.label }
@@ -499,7 +566,9 @@ export class ContentLibrary {
         counts: Object.fromEntries(
           ['species', 'skills', 'marks'].map(kind => [kind, root.draft.data[kind]?.length ?? 0]),
         ),
-        containsCode: project.inspection.packages.some(pkg => !!pkg.manifest?.effects),
+        containsCode: project.inspection.packages.some(
+          pkg => !!(pkg.manifest?.effects || pkg.manifest?.effectArtifact),
+        ),
         installedAt: new Date().toISOString(),
       }
       const plan = { id: randomUUID(), kind: 'install', revision: this.#state.revision, project: project.id, entry }
@@ -557,10 +626,11 @@ export class ContentLibrary {
   /** Prepare a named management environment without changing local-play selection.
    * Reuse the active installed combination whenever its exact packages match.
    */
-  async prepareEnvironmentProject(document, { signal, offline = false } = {}) {
+  async prepareEnvironmentProject(document, { signal, offline = false, onProgress } = {}) {
     return this.#exclusive(async () => {
       if (!document || typeof document.packages !== 'object' || !document.packages || Array.isArray(document.packages))
         throw new Error('环境包配置无效')
+      await onProgress?.({ stage: 'resolving' })
       const requested = Object.entries(document.packages).sort(([a], [b]) => a.localeCompare(b))
       const sourceIds = document.sources ?? []
       if (
@@ -573,7 +643,7 @@ export class ContentLibrary {
             !packageName.test(name) ||
             typeof version !== 'string' ||
             !version.trim() ||
-            /[\/\\\s]/.test(version) ||
+            /[\/\\]/.test(version) ||
             /^(?:file|link|workspace):/.test(version),
         )
       )
@@ -630,7 +700,7 @@ export class ContentLibrary {
           try {
             project = await installer.prepareProject(
               { ...document, packages, sources: Object.keys(selectedSources) },
-              { signal: combined },
+              { signal: combined, onProgress },
               async staged => {
                 combined.throwIfAborted()
                 const id = randomUUID(),
@@ -654,6 +724,7 @@ export class ContentLibrary {
                 : { kind: 'npm', spec: `${name}@${version}` },
             )
           }
+          await onProgress?.({ stage: 'installing' })
           project = await this.#createProject(sources, offline, combined)
         }
         id = project.id
@@ -905,6 +976,7 @@ export class ContentLibrary {
     this.#controller.abort()
     clearTimeout(this.#scheduled)
     clearTimeout(this.#gcTimer)
+    await this.#installTail
     await this.#reconciling
     await this.#idle
     await this.#writes

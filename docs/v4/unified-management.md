@@ -195,3 +195,25 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 - #224/#264：私人 Challenge 代表性严格复验已通过；完整网络异常、多客户端与真实双设备 LAN 场景继续验收。
 - #217/#262：在线一致性备份的实际部署、并发/故障及恢复流程；本地快照合同不替代完整运维验收。
 - #233/#234：G4 战绩、积分和录像仍按原 Deferred 边界，不因管理面交付自动完成。
+
+### 环境成员与安装任务
+
+环境的 `packages` / `sources` 保存用户选择的直接依赖；`disabled` 可选字段保留停用的直接依赖及原版本范围。每次准备得到固定版本的 `members`，显式列出所有资源包的名称、精确版本、内容身份、直接/自动依赖身份，以及 `dependencies` / `requiredBy`。普通 JavaScript 工具库仍使用 npm 的多版本树；同一个资源包名、内容身份或命名空间不能出现多个安装实例。安装采用严格 peer 约束，建议作者以 `peerDependencies` 声明共享资源包的兼容范围。精确版本可以使用，但所有约束必须同时满足；不能通过强制安装或忽略 peer 约束绕过校验。
+
+`POST /workspaces/:workspace/environments/:id/package-state` 接受 `{ expectedRevision, name, enabled, cascade? }`，要求工作区 `edit` 权限。停用依赖项时，默认拒绝影响其他启用包；明确传入 `cascade: true` 才连带停用依赖它的直接包。依赖图尚未解析或草稿增加/修改了依赖约束时，先准备当前组合再执行停用。启用或停用只修改草稿；安装不会自动启用，准备不会隐式修改固定版本或开启执行权限。服务器既有的 `follow-ready` 绑定仍按用户选择的跟随策略工作。
+
+准备任务通过既有 operation 接口报告 `resolving`、`acquiring`、`installing`、`verifying`、`capturing`、`preparing` 阶段。只有实际可计数的来源报告 completed/total；npm 未提供可用字节总量时不生成百分比、下载速度或预计时间。服务器任务记录持久化，可查询、取消或重试。桌面资源库安装和本机环境准备有进程内队列、取消、失败重试及清理结束记录，关闭客户端后不恢复该队列。重试仍使用原任务的草稿修订，修改后的草稿须发起新任务。
+
+CLI 使用同一服务器接口与资源授权，服务凭证从文件读取，不放在参数或输出中：
+
+```sh
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE list
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE save environment.json --revision REVISION
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE prepare friends --revision REVISION --wait
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE disable friends @author/nature --revision REVISION --cascade
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token tasks
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token cancel OPERATION
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token retry OPERATION
+```
+
+`save` 不带 `--revision` 创建新环境。`versions` 输出固定版本及完整成员表；`enable` 恢复已停用的直接依赖。`--wait` 将阶段变化写到 stderr，最终结果 JSON 写到 stdout；退出等待不等于取消服务器任务。`content npm install` 从现有 lockfile 恢复材料，`content npm stage` 在新目录解析新组合，两者均禁止生命周期脚本并检查资源包唯一性。

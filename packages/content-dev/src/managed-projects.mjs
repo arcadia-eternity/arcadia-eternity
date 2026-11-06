@@ -65,6 +65,9 @@ function installationEnvironment(cache, configuration) {
     npm_config_globalconfig: configuration + '.global',
     npm_config_ignore_scripts: 'true',
     npm_config_engine_strict: 'true',
+    npm_config_strict_peer_deps: 'true',
+    npm_config_force: 'false',
+    npm_config_legacy_peer_deps: 'false',
     npm_config_audit: 'false',
     npm_config_fund: 'false',
   }
@@ -118,8 +121,10 @@ export class ManagedProjects {
         windowsHide: true,
         env: installationEnvironment(cache, configuration),
       })
-    } catch {
+    } catch (error) {
       signal.throwIfAborted()
+      if (typeof error.stderr === 'string' && /\bERESOLVE\b/.test(error.stderr))
+        throw contentError('ENVIRONMENT_DEPENDENCY_CONFLICT')
       // Do not include subprocess output/configuration paths in public task errors.
       throw contentError('NPM_INSTALL_FAILED')
     }
@@ -164,6 +169,7 @@ export class ManagedProjects {
     ])
     try {
       signal.throwIfAborted()
+      await input.onProgress?.({ stage: 'resolving' })
       const document = normalizeEnvironmentDocument(await readDocument())
       if (Object.keys(document.packages).length + document.sources.length > 200)
         throw contentError('INSTALL_PACKAGE_LIMIT')
@@ -187,6 +193,7 @@ export class ManagedProjects {
         if (!source) throw contentError('INSTALL_SOURCE_NOT_REGISTERED')
         if (this.#options.offline && (source.kind === 'url' || source.kind === 'git'))
           throw contentError('INSTALL_SOURCE_OFFLINE')
+        await input.onProgress?.({ stage: 'acquiring', completed: index, total: document.sources.length })
         const captured = await acquireSource(source, {
           destination: join(directory, 'source-' + index),
           signal,
@@ -253,6 +260,7 @@ export class ManagedProjects {
         signal,
       )
       checkLock(JSON.parse(await readFile(join(directory, 'package-lock.json'), 'utf8')), true)
+      await input.onProgress?.({ stage: 'installing' })
       await this.#npm(
         [
           'ci',
@@ -269,9 +277,11 @@ export class ManagedProjects {
       )
       await mkdir(join(directory, 'node_modules'), { recursive: true })
       // Standard package/lock validation and bounded material capture before static preparation.
+      await input.onProgress?.({ stage: 'verifying' })
       await inspectNpmProject(directory)
       await materialFiles(directory, { signal, maxBytes: this.#options.maxBytes, maxFiles: this.#options.maxFiles })
       signal.throwIfAborted()
+      await input.onProgress?.({ stage: 'preparing' })
       return await consume(directory, signal)
     } catch (error) {
       if (error?.name === 'AbortError' || error?.name === 'TimeoutError') throw error

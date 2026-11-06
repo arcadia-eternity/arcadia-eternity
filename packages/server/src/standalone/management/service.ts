@@ -1,3 +1,4 @@
+import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-dev/management-workspace'
 import type { ManagementCapabilities, ManagementOperation, ManagedEnvironmentVersion } from '@arcadia-eternity/protocol'
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
@@ -930,6 +931,20 @@ export class ManagementService {
               : text(input.expectedRevision ?? request.headers?.['if-match']?.replace(/^"|"$/g, ''))
           return ok(await this.options.workspace.saveDraft({ document, expectedRevision }))
         }
+        if (method === 'POST' && parts[4] === 'package-state' && parts.length === 5) {
+          await this.auth.authorize(actor, this.workspaceScope, 'edit')
+          if (typeof input.enabled !== 'boolean' || (input.cascade !== undefined && typeof input.cascade !== 'boolean'))
+            fail('INVALID_REQUEST')
+          return ok(
+            await setEnvironmentPackageEnabled(this.options.workspace, {
+              environmentId: parts[3],
+              expectedRevision: text(input.expectedRevision),
+              name: text(input.name, 214),
+              enabled: input.enabled as boolean,
+              cascade: input.cascade as boolean | undefined,
+            }),
+          )
+        }
         if (method === 'POST' && parts[4] === 'prepare' && parts.length === 5) {
           await this.auth.authorize(actor, this.workspaceScope, 'prepare')
           const environmentId = parts[3],
@@ -951,6 +966,7 @@ export class ManagementService {
                   expectedRevision,
                   projectDirectory,
                   signal: ctx.signal,
+                  onProgress: progress => ctx.progress(progress),
                   beforeCommit: async () => {
                     await ctx.checkCurrent()
                     await this.auth.authorize(actor, this.workspaceScope, 'prepare')

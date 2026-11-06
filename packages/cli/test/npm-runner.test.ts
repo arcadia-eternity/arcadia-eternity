@@ -51,7 +51,16 @@ it('runs npm install and inspection with the configured CLI and without PATH res
       .split('\n')
       .map(line => JSON.parse(line)),
   ).toEqual([
-    ['ci', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund', '--offline'],
+    [
+      'ci',
+      '--ignore-scripts',
+      '--strict-peer-deps',
+      '--legacy-peer-deps=false',
+      '--omit=dev',
+      '--no-audit',
+      '--no-fund',
+      '--offline',
+    ],
     ['ls', '--all', '--long', '--json', '--omit=dev', '--ignore-scripts'],
   ])
 })

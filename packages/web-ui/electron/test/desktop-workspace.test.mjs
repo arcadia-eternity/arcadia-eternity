@@ -482,3 +482,23 @@ test('an unanswered owner handshake rejects and removes IPC listeners without an
   assert.equal(connection.parent.listenerCount('disconnect'), 0)
   assert.ok(connection.sent.some(message => message.method === 'close'))
 })
+
+test('reports real preparation stages over the owner bridge without serializing callbacks', async t => {
+  const f = await fixture(t)
+  const { proxy, connection } = await f.connect(5000)
+  const draft = await proxy.saveDraft({ document, expectedRevision: null })
+  const stages = []
+  await proxy.prepareVersion(
+    {
+      environmentId: 'main',
+      expectedRevision: draft.revision,
+      projectDirectory: f.project,
+      onProgress: progress => stages.push(progress.stage),
+    },
+    prepare,
+  )
+  assert.deepEqual(stages, ['capturing', 'preparing'])
+  const request = connection.sent.find(message => message.method === 'prepareVersion')
+  assert.equal(request.args[0].hasProgress, true)
+  assert.equal(Object.hasOwn(request.args[0], 'onProgress'), false)
+})

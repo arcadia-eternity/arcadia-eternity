@@ -40,9 +40,19 @@ export interface InstalledNpmPackage {
   version: string
   integrity?: string
   dependencies: Record<string, string>
+  dependencyRanges?: Record<string, string>
   manifest?: NpmContentManifest
   draft?: WorkDraft
   presentation?: PresentationManifest
+}
+export interface NpmContentMember {
+  name: string
+  version: string
+  projectId: string
+  namespace: string
+  direct: boolean
+  dependencies: string[]
+  requiredBy: string[]
 }
 export interface NpmProjectInspection {
   format: 'arcadia.npm-installation'
@@ -51,6 +61,7 @@ export interface NpmProjectInspection {
   digest: string
   /** Audit identity of npm's source/solver record, not a replacement for tarball integrity. */
   lockfileDigest: string
+  members: readonly NpmContentMember[]
   packages: readonly InstalledNpmPackage[]
 }
 interface NpmTree {
@@ -242,6 +253,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
   for (const [name, child] of Object.entries(tree.dependencies ?? {})) await visit(child, root, name)
   await checkInstalledDirectories(root, nodes)
   const packages: InstalledNpmPackage[] = []
+  const contentNames = new Set<string>()
   const projects = new Map<string, string>(),
     namespaces = new Map<string, string>()
   for (const [location, node] of [...nodes].sort(([a], [b]) => (a < b ? -1 : 1))) {
@@ -275,6 +287,9 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       ...(typeof locked.integrity === 'string' ? { integrity: locked.integrity } : {}),
     }
     if (pkg.arcadia !== undefined) {
+      if (contentNames.has(pkg.name))
+        fail('CONTENT_VERSION_CONFLICT', location, `Resource pack ${pkg.name} must have one installed version`)
+      contentNames.add(pkg.name)
       const manifest = readManifest(pkg.arcadia)
       for (const [map, key, code] of [
         [projects, manifest.projectId, 'CONTENT_VERSION_CONFLICT'],
@@ -315,17 +330,59 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
           }
         }
       }
+      entry.dependencyRanges = {
+        ...record(pkg.dependencies ?? {}, location),
+        ...record(pkg.optionalDependencies ?? {}, location),
+        ...record(pkg.peerDependencies ?? {}, location),
+      } as Record<string, string>
       entry.manifest = manifest
       entry.draft = draft
     }
     packages.push(entry)
   }
-  const identity = packages.map(({ integrity: _integrity, ...pkg }) => pkg)
+  const byLocation = new Map(packages.map(pkg => [pkg.location, pkg]))
+  const rootDependencies = record(rootPackage.dependencies ?? {}, 'dependencies')
+  const rootOptional = record(rootPackage.optionalDependencies ?? {}, 'optionalDependencies')
+  const rootPeers = record(rootPackage.peerDependencies ?? {}, 'peerDependencies')
+  const members: NpmContentMember[] = packages
+    .filter(pkg => pkg.manifest)
+    .map(pkg => {
+      const dependencies = new Set<string>()
+      const visited = new Set<string>()
+      const visit = (location: string) => {
+        if (visited.has(location)) return
+        visited.add(location)
+        const target = byLocation.get(location)
+        if (!target) return
+        if (target.manifest) dependencies.add(target.name)
+        else Object.values(target.dependencies).forEach(visit)
+      }
+      Object.values(pkg.dependencies).forEach(visit)
+      return {
+        name: pkg.name,
+        version: pkg.version,
+        projectId: pkg.manifest!.projectId,
+        namespace: pkg.manifest!.namespace,
+        direct:
+          Object.hasOwn(rootDependencies, pkg.name) ||
+          Object.hasOwn(rootOptional, pkg.name) ||
+          Object.hasOwn(rootPeers, pkg.name),
+        dependencies: [...dependencies].sort(),
+        requiredBy: [],
+      }
+    })
+  for (const member of members)
+    member.requiredBy = members
+      .filter(other => other.dependencies.includes(member.name))
+      .map(other => other.name)
+      .sort()
+  const identity = packages.map(({ integrity: _integrity, dependencyRanges: _ranges, ...pkg }) => pkg)
   return freeze({
     format: 'arcadia.npm-installation',
     version: 1,
     digest: await digestJson(identity),
     lockfileDigest: createHash('sha256').update(canonical(lock)).digest('hex'),
     packages,
+    members,
   })
 }

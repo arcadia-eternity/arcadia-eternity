@@ -396,3 +396,35 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(env.app.environments.list()).toHaveLength(0)
   }, 30000)
 })
+
+it('changes package state through the owning workspace with revision checks and no implicit publication', async () => {
+  const env = await setup()
+  const base = `/workspaces/${env.workspace.workspaceId}/environments`
+  const created = await env.request(base, 'POST', {
+    expectedRevision: null,
+    document: {
+      schemaVersion: 2,
+      id: 'toggle',
+      name: 'Toggle',
+      packages: {},
+      sources: [],
+      disabled: { packages: { '@test/shared': '^1.5.0' }, sources: [] },
+      rules: { schemaVersion: 1 },
+      requires: {},
+    },
+  })
+  expect(created.response.status).toBe(200)
+  const input = { expectedRevision: created.body.revision, name: '@test/shared', enabled: true }
+  const enabled = await env.request(base + '/toggle/package-state', 'POST', input)
+  expect(enabled.response.status).toBe(200)
+  expect(enabled.body.document.packages).toEqual({ '@test/shared': '^1.5.0' })
+  expect((await env.request(base + '/toggle/package-state', 'POST', input)).response.status).toBe(412)
+  const unresolved = await env.request(base + '/toggle/package-state', 'POST', {
+    ...input,
+    expectedRevision: enabled.body.revision,
+    enabled: false,
+  })
+  expect(unresolved.body.error.code).toBe('ENVIRONMENT_DEPENDENCIES_UNRESOLVED')
+  expect(await env.workspace.listVersions()).toEqual([])
+  expect(env.app.environments.list().filter(item => item.id !== 'official')).toEqual([])
+})

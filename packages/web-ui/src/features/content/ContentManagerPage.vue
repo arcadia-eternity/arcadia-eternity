@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { contentTaskError } from '@/utils/contentTaskMessages'
+import basePackage from '@arcadia-eternity/data-pack-base/package.json'
+import { useRoute, useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import LocalEnvironmentPage from './LocalEnvironmentPage.vue'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { isRemoteContentActive } from '@/i18n/serverContent'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
@@ -18,6 +20,12 @@ import type {
   PackageGraphEntry,
 } from '@/types/contentPackages'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
+
+const ContentUxPrototype = import.meta.env.DEV ? defineAsyncComponent(() => import('./ContentUxPrototype.vue')) : null
+const prototypeRoute = useRoute()
+const showPrototype = computed(
+  () => import.meta.env.DEV && ['A', 'B', 'C'].includes(String(prototypeRoute.query.variant)),
+)
 
 interface PackageView {
   id: string
@@ -126,7 +134,7 @@ const packages = computed<PackageView[]>(() => {
     id: 'official',
     name: '官方基础内容',
     title: '官方基础内容',
-    version: '随游戏更新',
+    version: readonly.value && room.value ? '固定于房间版本' : basePackage.version,
     author: 'Arcadia Eternity',
     description: '游戏内置的精灵、技能与印记。',
     source: readonly.value && room.value ? '房间服务器' : '游戏内置',
@@ -173,6 +181,22 @@ const packages = computed<PackageView[]>(() => {
     })),
   ]
 })
+const tasksOpen = ref(false)
+const installLabels: Record<string, string> = {
+  queued: '排队中',
+  running: '下载、安装与校验',
+  succeeded: '已完成',
+  failed: '失败',
+  cancelled: '已取消',
+}
+async function installTaskAction(action: 'cancel-install' | 'retry-install' | 'clear-install-tasks', operationId = '') {
+  try {
+    await libraryClient!.action(action === 'clear-install-tasks' ? { action } : { action, operationId })
+    await refresh()
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '任务操作失败'
+  }
+}
 const selected = computed(() => packages.value.find(pkg => pkg.id === selectedId.value))
 const visiblePackages = computed(() =>
   packages.value.filter(
@@ -298,12 +322,15 @@ function toggle(pkg: PackageView, checked: boolean) {
 async function installSource(source: () => Promise<string | null>) {
   if (!local) return
   await run(async () => {
+    adding.value = false
+    tasksOpen.value = true
     const id = await source()
     if (!id || disposed) return
     await refresh()
     adding.value = false
     selectedId.value = id
     detailOpen.value = true
+    notice.value = '已安装到资源库，添加到环境并准备版本后即可使用。'
   })
 }
 async function inspectFile() {
@@ -376,10 +403,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="content-page" :class="{ 'detail-open': detailOpen }">
+  <ContentUxPrototype v-if="showPrototype" />
+  <main v-else class="content-page" :class="{ 'detail-open': detailOpen }">
     <header class="page-heading">
       <h1>内容包</h1>
       <span class="scope">{{ readonly ? '只读' : '本机管理' }}</span
+      ><button v-if="local" @click="tasksOpen = true">
+        下载与安装
+        {{ snapshot?.operations?.filter(job => ['queued', 'running'].includes(job.status)).length || '' }}</button
       ><button @click="router.push('/management')">服务器管理</button>
     </header>
     <nav v-if="api?.localEnvironment" class="content-tabs" aria-label="内容分类">
@@ -551,6 +582,18 @@ onBeforeUnmount(() => {
                     {{ selected.counts.marks }} 个印记
                   </p>
                   <dl>
+                    <template v-if="selected.local?.license"
+                      ><dt>许可证</dt>
+                      <dd>{{ selected.local.license }}</dd></template
+                    >
+                    <template v-if="selected.local?.installedAt"
+                      ><dt>安装时间</dt>
+                      <dd>{{ new Date(selected.local.installedAt).toLocaleString() }}</dd></template
+                    >
+                    <template v-for="(range, engine) in selected.local?.engines" :key="engine"
+                      ><dt>{{ engine }} 兼容范围</dt>
+                      <dd>{{ range }}</dd></template
+                    >
                     <dt>来源</dt>
                     <dd>{{ selected.source }}</dd>
                     <template v-if="selected.author"
@@ -592,6 +635,7 @@ onBeforeUnmount(() => {
                     ><p class="detail-subtitle">
                       {{ activeIds.includes(selected.id) ? '当前可用组合的实际依赖' : '安装时的内容包及依赖' }}
                     </p>
+                    <p v-for="(range, name) in selected.local?.dependencyRanges" :key="name">{{ name }}：{{ range }}</p>
                     <ul class="dependencies">
                       <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
                         <strong>{{ dependency.name }}</strong> {{ dependency.version
@@ -627,10 +671,42 @@ onBeforeUnmount(() => {
           </div>
         </section>
       </div>
+      <div v-if="tasksOpen" class="dialog-backdrop" @keydown.esc="tasksOpen = false">
+        <section role="dialog" aria-modal="true" aria-labelledby="install-tasks-title" class="dialog">
+          <h2 id="install-tasks-title">下载与安装</h2>
+          <p>完成后存入资源库，再添加到环境使用。</p>
+          <p v-if="!snapshot?.operations?.length">暂无安装任务。</p>
+          <article v-for="job in snapshot?.operations" :key="job.id" class="install-task">
+            <strong>{{ job.label }}</strong>
+            <p>
+              {{ job.stage === 'recording' && job.status === 'running' ? '保存安装记录' : installLabels[job.status] }}
+            </p>
+            <progress v-if="job.status === 'running'" aria-label="正在安装" />
+            <p v-if="job.error">{{ contentTaskError(job.error) }}</p>
+            <button
+              v-if="['queued', 'running'].includes(job.status)"
+              :disabled="job.stage === 'recording'"
+              @click="installTaskAction('cancel-install', job.id)"
+            >
+              {{ job.status === 'queued' ? '移出队列' : '取消' }}
+            </button>
+            <button
+              v-if="['failed', 'cancelled'].includes(job.status)"
+              @click="installTaskAction('retry-install', job.id)"
+            >
+              重试
+            </button>
+          </article>
+          <div class="dialog-actions">
+            <button @click="installTaskAction('clear-install-tasks')">清除已结束</button
+            ><button @click="tasksOpen = false">关闭</button>
+          </div>
+        </section>
+      </div>
       <div v-if="adding" class="dialog-backdrop" @keydown.esc="!busy && (adding = false)">
         <section role="dialog" aria-modal="true" aria-labelledby="add-package-title" class="dialog">
           <h2 id="add-package-title">添加内容包</h2>
-          <p>安装后自动启用，内容包及其依赖将在本机运行。</p>
+          <p>安装后进入资源库。添加到环境并准备版本后，再选择使用。</p>
           <button :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</button
           ><label class="field"
             >npm 包名与版本<input v-model="npmSpec" placeholder="@author/pets@1.0.0" :disabled="busy" /></label
@@ -641,7 +717,7 @@ onBeforeUnmount(() => {
           <div class="dialog-actions">
             <button :disabled="busy" @click="adding = false">取消</button
             ><button class="primary" :disabled="busy || !npmSpec.trim()" @click="inspectNpm">
-              {{ busy ? '正在安装…' : '安装并启用' }}
+              {{ busy ? '正在安装…' : '安装到资源库' }}
             </button>
           </div>
         </section>
@@ -651,6 +727,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.install-task {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
 .content-tabs {
   display: flex;
   gap: 10px;
@@ -669,7 +750,7 @@ onBeforeUnmount(() => {
   --accent: #2467c8;
   max-width: 1280px;
   margin: auto;
-  padding: 24px 20px 56px;
+  padding: 24px 20px 12px;
   color: var(--text);
 }
 .page-heading {
@@ -802,9 +883,12 @@ hr {
 .columns {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 310px;
-  min-height: 510px;
+  height: clamp(360px, calc(100dvh - 260px), 780px);
+  min-height: 0;
+  overflow: hidden;
 }
 .package-list {
+  overflow: auto;
   min-width: 0;
 }
 .package-row {
@@ -877,6 +961,7 @@ hr {
   color: var(--muted);
 }
 .package-detail {
+  overflow: auto;
   border-left: 1px solid var(--line);
   padding: 20px 17px;
   min-width: 0;
@@ -917,7 +1002,7 @@ hr {
 }
 .package-detail dl {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
   gap: 8px;
   font-size: 12px;
   margin: 16px 0;
@@ -1087,6 +1172,7 @@ summary {
     display: block;
   }
   .package-detail {
+    overflow: auto;
     display: none;
     border-left: 0;
   }
@@ -1094,6 +1180,7 @@ summary {
     display: none;
   }
   .detail-open .package-detail {
+    overflow: auto;
     display: block;
   }
   .back {
@@ -1114,6 +1201,11 @@ summary {
 </style>
 
 <style scoped>
+.install-task {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
 .content-tabs {
   display: flex;
   gap: 10px;

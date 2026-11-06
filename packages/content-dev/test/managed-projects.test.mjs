@@ -97,6 +97,7 @@ test('host registered built sources install without lifecycle or module executio
     sources: { sample: { kind: 'directory', directory: source } },
   })
   const draft = await workspace.saveDraft({ document: { ...document, sources: ['sample'] }, expectedRevision: null })
+  const stages = []
   let beforeCommit = false
   const validate = async ({ directory }) => {
     await inspectNpmProject(directory)
@@ -110,6 +111,7 @@ test('host registered built sources install without lifecycle or module executio
     {
       environmentId: 'main',
       expectedRevision: draft.revision,
+      onProgress: progress => stages.push(progress.stage),
       beforeCommit: async () => {
         beforeCommit = true
       },
@@ -117,6 +119,7 @@ test('host registered built sources install without lifecycle or module executio
     validate,
   )
   assert.equal(beforeCommit, true)
+  assert.deepEqual(stages, ['resolving', 'acquiring', 'installing', 'verifying', 'preparing', 'capturing', 'preparing'])
   await writeFile(join(source, 'content.json'), '{"power":99}')
   assert.equal(
     JSON.parse(await readFile(join(version.directory, 'node_modules/sample/content.json'), 'utf8')).power,
@@ -182,4 +185,64 @@ test('host registry and resource bounds reject unsafe configuration', () => {
     code: 'INSTALL_REGISTRY_INVALID',
   })
   assert.throws(() => new ManagedProjects('/tmp/unused', { maxConcurrent: 0 }), { code: 'INSTALL_LIMIT_INVALID' })
+})
+
+test('shared peer ranges resolve once and an incompatible upgrade preserves existing fixed versions', async t => {
+  const sourceRoot = await mkdtemp(join(tmpdir(), 'shared-peers-'))
+  t.after(() => rm(sourceRoot, { recursive: true, force: true }))
+  const sources = {}
+  for (const [name, version, range] of [
+    ['nature', '1.6.3', null],
+    ['forest', '1.0.0', '^1'],
+    ['arena', '1.0.0', '>=1.5 <2'],
+  ]) {
+    const directory = join(sourceRoot, name)
+    await mkdir(directory)
+    await writeFile(
+      join(directory, 'package.json'),
+      JSON.stringify({
+        name,
+        version,
+        ...(range ? { peerDependencies: { nature: range } } : {}),
+        arcadia: { formatVersion: 1, projectId: name, namespace: name, content: 'content.json' },
+      }),
+    )
+    await writeFile(
+      join(directory, 'content.json'),
+      JSON.stringify({ data: { species: [], skills: [], marks: [], behaviors: [] } }),
+    )
+    sources[name] = { kind: 'directory', directory }
+  }
+  const { workspace, projects } = await fixture(t, { allowThirdPartyContent: true, sources })
+  const draft = await workspace.saveDraft({
+    document: { ...document, sources: Object.keys(sources) },
+    expectedRevision: null,
+  })
+  const validate = async ({ directory }) => {
+    const inspection = await inspectNpmProject(directory)
+    return {
+      contentRevision: inspection.digest,
+      packages: inspection.packages.map(({ name, version }) => ({ name, version })),
+    }
+  }
+  const version = await projects.prepareVersion(
+    workspace,
+    { environmentId: 'main', expectedRevision: draft.revision },
+    validate,
+  )
+  assert.equal(version.members.filter(member => member.name === 'nature').length, 1)
+  assert.deepEqual(version.members.find(member => member.name === 'nature').requiredBy, ['arena', 'forest'])
+  const file = join(sourceRoot, 'arena/package.json')
+  const manifest = JSON.parse(await readFile(file, 'utf8'))
+  manifest.peerDependencies.nature = '^2'
+  await writeFile(file, JSON.stringify(manifest))
+  await assert.rejects(
+    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: draft.revision }, validate),
+    { code: 'ENVIRONMENT_DEPENDENCY_CONFLICT' },
+  )
+  assert.deepEqual(
+    (await workspace.listVersions()).map(item => item.versionId),
+    [version.versionId],
+  )
+  assert.equal((await workspace.getDraft('main')).revision, draft.revision)
 })

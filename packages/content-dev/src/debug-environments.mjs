@@ -85,6 +85,7 @@ export const EnvironmentDocumentV2Schema = z
   .object({
     schemaVersion: z.literal(2),
     ...sharedFields,
+    disabled: z.object({ packages: sharedFields.packages, sources: sharedFields.sources }).strict().optional(),
     rules: EnvironmentRulesSchema,
     requires: EnvironmentRequirementsSchema,
   })
@@ -94,10 +95,24 @@ export const EnvironmentDocumentSchema = z.discriminatedUnion('schemaVersion', [
   EnvironmentDocumentV1Schema,
   EnvironmentDocumentV2Schema,
 ])
-export function environmentDocument(value) {
-  const parsed = EnvironmentDocumentSchema.safeParse(value)
+export function environmentDocument(input) {
+  const parsed = EnvironmentDocumentSchema.safeParse(input)
   if (!parsed.success) fail(`环境配置无效：${parsed.error.issues[0].message}`)
-  return parsed.data
+  const value = parsed.data
+  if (
+    value.disabled &&
+    (Object.keys(value.disabled.packages).some(
+      name => Object.hasOwn(value.packages, name) || value.sources.includes(name),
+    ) ||
+      value.disabled.sources.some(
+        name =>
+          Object.hasOwn(value.packages, name) ||
+          value.sources.includes(name) ||
+          Object.hasOwn(value.disabled.packages, name),
+      ))
+  )
+    fail('启用和停用的资源包不能重复')
+  return value
 }
 
 /** Read legacy documents into the shared domain model without rewriting source files. */

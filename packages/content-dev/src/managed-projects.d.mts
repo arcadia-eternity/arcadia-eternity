@@ -1,4 +1,4 @@
-import type { ContentWorkspace, EnvironmentVersion, StaticPreparer } from './content-workspace.mjs'
+import type { ContentWorkspace, EnvironmentVersion, StaticPreparer, PrepareVersionInput } from './content-workspace.mjs'
 import type { ManagedSource } from './managed-sources.mjs'
 export interface ManagedProjectsOptions {
   registry?: string
@@ -17,12 +17,13 @@ export class ManagedProjects {
   constructor(root: string, options?: ManagedProjectsOptions)
   prepareProject<T>(
     document: unknown,
-    input: { signal?: AbortSignal },
+    input: { signal?: AbortSignal; onProgress?: PrepareVersionInput['onProgress'] },
     consume: (directory: string, signal: AbortSignal) => Promise<T>,
   ): Promise<T>
   prepareVersion(
     workspace: ContentWorkspace,
     input: {
+      onProgress?: PrepareVersionInput['onProgress']
       environmentId: string
       expectedRevision: string
       signal?: AbortSignal

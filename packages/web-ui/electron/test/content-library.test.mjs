@@ -336,10 +336,12 @@ it('does not replace an unfinished saved selection with a fresh hosting default'
     await restored.close()
   }
 })
-it('automatically installs and enables with no apply step, and persists the desired selection', async () => {
+it('installs without changing selection, then explicitly enables and persists the selection', async () => {
   const f = await fixture('automatic-install')
   try {
     const id = await f.manager.installFile(await f.file('water'), true)
+    assert.deepEqual((await f.manager.list()).desiredIds, [])
+    await f.manager.setSelection([id], true)
     assert.deepEqual((await f.manager.list()).desiredIds, [id])
     assert.deepEqual((await settled(f.manager)).activeIds, [id])
     assert.equal(f.host.status().status, 'idle')
@@ -416,6 +418,8 @@ it('keeps prepared local content ready when the independent hosting process fail
   const f = await fixture('host-failure-independent')
   try {
     const id = await f.manager.installFile(await f.file('water'), true)
+    assert.deepEqual((await f.manager.list()).desiredIds, [])
+    await f.manager.setSelection([id], true)
     await settled(f.manager)
     await f.manager.start()
     f.crashHost()
@@ -433,6 +437,8 @@ it('keeps prepared local content ready when the independent hosting process fail
 it('restores selected content after restart without reinstalling or starting hosting', async () => {
   const f = await fixture('automatic-restore')
   const id = await f.manager.installFile(await f.file('water'), true)
+  assert.deepEqual((await f.manager.list()).desiredIds, [])
+  await f.manager.setSelection([id], true)
   await settled(f.manager)
   await f.manager.close()
   await f.host.stop()
@@ -450,7 +456,8 @@ it('restores selected content after restart without reinstalling or starting hos
 it('keeps the hosted environment when the local selection returns to official-only content', async () => {
   const f = await fixture('automatic-base')
   try {
-    await f.manager.installFile(await f.file('water'), true)
+    const installedId = await f.manager.installFile(await f.file('water'), true)
+    await f.manager.setSelection([installedId], true)
     await settled(f.manager)
     await f.manager.start()
     const ready = await f.manager.list()
@@ -494,7 +501,8 @@ it('restores the last usable content when a persisted newer goal still fails aft
 it('does not prepare or switch content again when reopening an already ready client', async () => {
   const f = await fixture('automatic-reopen')
   try {
-    await f.manager.installFile(await f.file('water'), true)
+    const installedId = await f.manager.installFile(await f.file('water'), true)
+    await f.manager.setSelection([installedId], true)
     await settled(f.manager)
     const count = f.prepared.length
     await f.manager.resume()
@@ -640,6 +648,7 @@ it('prepares management combinations independently, reusing an exact active inst
   const f = await fixture('management-combinations')
   try {
     const a = await f.manager.installFile(await f.file('a'), true)
+    await f.manager.setSelection([a], true)
     await settled(f.manager)
     const active = await f.manager.acquireProject()
     const before = f.calls.length
@@ -665,6 +674,46 @@ it('prepares management combinations independently, reusing an exact active inst
     await assert.rejects(f.manager.prepareEnvironmentProject({ packages: {}, sources: ['@test/source'] }), {
       code: 'INSTALL_SOURCE_NOT_REGISTERED',
     })
+  } finally {
+    await f.manager.close()
+  }
+})
+
+it('cancels queued and running installation tasks and retries without changing enabled content', async () => {
+  const f = await fixture('installation-tasks')
+  const original = f.manager.run
+  let block = true
+  f.manager.run = async (args, signal) => {
+    if (block && args[2] === 'stage')
+      return new Promise((_resolve, reject) => {
+        if (signal.aborted) reject(signal.reason)
+        else signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+      })
+    return original(args, signal)
+  }
+  try {
+    const first = f.manager.installFile(await f.file('water'), true)
+    const firstRejected = assert.rejects(first)
+    const second = f.manager.installFile(await f.file('fire'), true)
+    const secondRejected = assert.rejects(second)
+    const jobs = (await f.manager.list()).operations
+    const running = jobs.find(job => job.status === 'running')
+    const queued = jobs.find(job => job.status === 'queued')
+    assert.ok(running)
+    assert.ok(queued)
+    f.manager.cancelInstall(queued.id)
+    f.manager.cancelInstall(running.id)
+    await Promise.all([firstRejected, secondRejected])
+    assert.ok((await f.manager.list()).operations.every(job => job.status === 'cancelled'))
+    assert.deepEqual((await f.manager.list()).desiredIds, [])
+    block = false
+    await f.manager.retryInstall(running.id)
+    const snapshot = await f.manager.list()
+    assert.equal(snapshot.packages.length, 1)
+    assert.equal(snapshot.operations[0].status, 'succeeded')
+    assert.deepEqual(snapshot.activeIds, [])
+    f.manager.clearInstallTasks()
+    assert.deepEqual((await f.manager.list()).operations, [])
   } finally {
     await f.manager.close()
   }

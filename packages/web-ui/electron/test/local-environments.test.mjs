@@ -67,7 +67,7 @@ async function fixture(t) {
 async function complete(api, id) {
   for (let i = 0; i < 200; i++) {
     const job = (await api.snapshot()).operations.find(job => job.id === id)
-    if (job.status !== 'running') return job
+    if (!['queued', 'running'].includes(job.status)) return job
     await new Promise(resolve => setTimeout(resolve, 10))
   }
   throw new Error('local environment task timed out')
@@ -112,12 +112,12 @@ test('cancels preparation without publishing a version and keeps the saved draft
   const api = f.open()
   const draft = await api.request({ action: 'save', document, expectedRevision: null })
   const job = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision })
-  await assert.rejects(
-    api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision }),
-    { code: 'WORKSPACE_BUSY' },
-  )
+  const queued = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision })
+  assert.equal((await api.snapshot()).operations.find(item => item.id === queued.operationId).status, 'queued')
+  await api.request({ action: 'cancel', operationId: queued.operationId })
   await api.request({ action: 'cancel', operationId: job.operationId })
   assert.equal((await complete(api, job.operationId)).status, 'cancelled')
+  assert.equal((await complete(api, queued.operationId)).status, 'cancelled')
   assert.equal((await api.snapshot()).versions.length, 0)
   assert.equal((await api.snapshot()).environments.length, 1)
 })
@@ -139,4 +139,29 @@ test('imports a portable copy without overwriting an existing local draft', asyn
   await api.request({ action: 'delete-version', versionId: version.versionId })
   const copy = await api.request({ action: 'export', versionId: result.result.versionId })
   assert.ok(copy)
+})
+
+test('failed captured tasks can be retried, report real stages and clear terminal records', async t => {
+  const f = await fixture(t)
+  const acquire = f.library.prepareEnvironmentProject
+  let failOnce = true
+  f.library.prepareEnvironmentProject = async (doc, options) => {
+    await options.onProgress({ stage: 'installing' })
+    if (failOnce) {
+      failOnce = false
+      throw new Error('installation failed')
+    }
+    return acquire(doc, options)
+  }
+  const api = f.open()
+  const draft = await api.request({ action: 'save', document, expectedRevision: null })
+  const first = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision })
+  const failed = await complete(api, first.operationId)
+  assert.equal(failed.status, 'failed')
+  assert.equal(failed.progress.stage, 'installing')
+  const retry = await api.request({ action: 'retry', operationId: first.operationId })
+  assert.equal((await complete(api, retry.operationId)).status, 'succeeded')
+  assert.equal((await api.snapshot()).versions.length, 1)
+  await api.request({ action: 'clear-completed' })
+  assert.deepEqual((await api.snapshot()).operations, [])
 })

@@ -1,3 +1,4 @@
+import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-dev/management-workspace'
 import { randomUUID } from 'node:crypto'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
@@ -12,6 +13,7 @@ export class LocalEnvironments {
   #opening
   #jobs = new Map()
   #closed = false
+  #tail = Promise.resolve()
   constructor({ openWorkspace, library, validate }) {
     this.openWorkspace = openWorkspace
     this.library = library
@@ -31,17 +33,30 @@ export class LocalEnvironments {
       workspaceId: workspace.workspaceId,
       environments: await workspace.listDrafts(),
       versions: (await workspace.listVersions()).map(safeVersion),
-      operations: [...this.#jobs.values()].map(({ controller, promise, ...job }) => job).reverse(),
+      operations: [...this.#jobs.values()].map(({ controller, promise, execute, ...job }) => job).reverse(),
     }
   }
   start(kind, execute) {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
-    if ([...this.#jobs.values()].some(job => job.status === 'running'))
-      throw fail('WORKSPACE_BUSY', '请等待当前任务完成或取消后重试')
-    const job = { id: randomUUID(), kind, status: 'running', createdAt: Date.now(), controller: new AbortController() }
+    if ([...this.#jobs.values()].filter(job => ['queued', 'running'].includes(job.status)).length >= 30)
+      throw fail('WORKSPACE_BUSY', '任务队列已满')
+    const job = {
+      id: randomUUID(),
+      kind,
+      status: 'queued',
+      createdAt: Date.now(),
+      controller: new AbortController(),
+      execute,
+    }
     const work = async () => {
       try {
-        const result = await execute(job.controller.signal)
+        job.controller.signal.throwIfAborted()
+        job.status = 'running'
+        const result = await execute(job.controller.signal, progress => {
+          job.controller.signal.throwIfAborted()
+          job.progress = progress
+          job.updatedAt = Date.now()
+        })
         job.status = 'succeeded'
         job.result = result
       } catch (error) {
@@ -52,8 +67,10 @@ export class LocalEnvironments {
       }
     }
     this.#jobs.set(job.id, job)
-    for (const [id, item] of this.#jobs) if (this.#jobs.size > 30 && item.status !== 'running') this.#jobs.delete(id)
-    job.promise = work()
+    for (const [id, item] of this.#jobs)
+      if (this.#jobs.size > 30 && !['queued', 'running'].includes(item.status)) this.#jobs.delete(id)
+    job.promise = this.#tail.then(work)
+    this.#tail = job.promise.catch(() => {})
     return { operationId: job.id }
   }
   async request(input) {
@@ -64,6 +81,8 @@ export class LocalEnvironments {
     switch (input.action) {
       case 'snapshot':
         return this.snapshot()
+      case 'package-state':
+        return setEnvironmentPackageEnabled(workspace, input)
       case 'save':
         return workspace.saveDraft({ document: input.document, expectedRevision: input.expectedRevision })
       case 'delete-draft':
@@ -79,23 +98,42 @@ export class LocalEnvironments {
       case 'cancel': {
         const job = this.#jobs.get(input.operationId)
         if (!job) throw fail('OPERATION_NOT_FOUND')
-        if (job.status === 'running') job.controller.abort(fail('OPERATION_CANCELLED', '已取消'))
-        return { cancelled: job.status === 'running' }
+        const cancellable = ['queued', 'running'].includes(job.status)
+        if (cancellable) {
+          job.controller.abort(fail('OPERATION_CANCELLED', '已取消'))
+          if (job.status === 'queued') {
+            job.status = 'cancelled'
+            job.updatedAt = Date.now()
+          }
+        }
+        return { cancelled: cancellable }
+      }
+      case 'clear-completed':
+        for (const [id, job] of this.#jobs) if (!['queued', 'running'].includes(job.status)) this.#jobs.delete(id)
+        return { cleared: true }
+      case 'retry': {
+        const job = this.#jobs.get(input.operationId)
+        if (!job) throw fail('OPERATION_NOT_FOUND')
+        if (!['failed', 'cancelled'].includes(job.status)) throw fail('OPERATION_NOT_RETRYABLE')
+        return this.start(job.kind, job.execute)
       }
       case 'prepare': {
         const environmentId = input.environmentId,
           expectedRevision = input.expectedRevision
         const draft = await workspace.getDraft(environmentId)
         if (draft.revision !== expectedRevision) throw fail('REVISION_CONFLICT', '环境已被修改，请刷新后重试')
-        return this.start('environment.prepare', async signal => {
+        return this.start('environment.prepare', async (signal, onProgress) => {
+          if ((await workspace.getDraft(environmentId)).revision !== expectedRevision)
+            throw fail('REVISION_CONFLICT', '环境已被修改，请从当前草稿发起新任务')
           const lease = await this.library.prepareEnvironmentProject(draft.document, {
             signal,
             offline: input.allowDownload !== true,
+            onProgress,
           })
           try {
             return safeVersion(
               await workspace.prepareVersion(
-                { environmentId, expectedRevision, projectDirectory: lease.directory, signal },
+                { environmentId, expectedRevision, projectDirectory: lease.directory, signal, onProgress },
                 this.validate,
               ),
             )
@@ -120,7 +158,8 @@ export class LocalEnvironments {
   }
   async close() {
     this.#closed = true
-    for (const job of this.#jobs.values()) if (job.status === 'running') job.controller.abort(fail('WORKSPACE_CLOSED'))
+    for (const job of this.#jobs.values())
+      if (['queued', 'running'].includes(job.status)) job.controller.abort(fail('WORKSPACE_CLOSED'))
     await Promise.allSettled([...this.#jobs.values()].map(job => job.promise))
     const workspace = await this.#opening?.catch(() => undefined)
     await workspace?.close()

@@ -16,7 +16,8 @@
     "@arcadia-eternity/pack-loader": "workspace:^",
     "commander": "^14.0.3",
     "yaml": "catalog:",
-    "@arcadia-eternity/interface": "workspace:^"
+    "@arcadia-eternity/interface": "workspace:^",
+    "@arcadia-eternity/protocol": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "catalog:",

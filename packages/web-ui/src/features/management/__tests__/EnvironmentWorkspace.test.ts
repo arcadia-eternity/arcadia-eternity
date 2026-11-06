@@ -56,7 +56,7 @@ describe('shared environment workspace', () => {
     await button(page, '编辑').trigger('click')
     const editor = page.get('form.environment-editor')
     await editor.findAll('input')[0]!.setValue('修改的名称')
-    await editor.get('input[placeholder="1.0.0"]').setValue('2.0.0')
+    await editor.get('input[aria-label="版本范围"]').setValue('2.0.0')
     await editor.trigger('submit')
     const [saved, revision] = page.emitted('save')![0]! as [ManagedEnvironment['document'], string]
     expect(revision).toBe('draft-7')
@@ -79,10 +79,10 @@ describe('shared environment workspace', () => {
     expect(page.emitted('save')).toBeUndefined()
     expect(page.get('[role="alert"]').text()).toContain('填写名称和版本')
     await page.get('input[placeholder="@author/package"]').setValue('@test/ice')
-    await page.get('input[placeholder="1.0.0"]').setValue('1.0.0')
+    await page.get('input[aria-label="版本范围"]').setValue('1.0.0')
     await button(page, '添加内容包').trigger('click')
     await page.findAll('input[placeholder="@author/package"]')[1]!.setValue('@test/ice')
-    await page.findAll('input[placeholder="1.0.0"]')[1]!.setValue('2.0.0')
+    await page.findAll('input[aria-label="版本范围"]')[1]!.setValue('2.0.0')
     await page.get('form.environment-editor').trigger('submit')
     expect(page.emitted('save')).toBeUndefined()
     await page.findAll('.package-row button')[1]!.trigger('click')
@@ -93,7 +93,7 @@ describe('shared environment workspace', () => {
 
   it('disables edits, preparation and version use for a viewer, while keeping version details readable', async () => {
     const { page } = open({ canEdit: false, canPrepare: false, canDelete: false, canUse: false })
-    for (const label of ['新建环境', '编辑', '准备版本', '用于服务器']) {
+    for (const label of ['新建环境', '编辑', '准备版本']) {
       expect(button(page, label).attributes('disabled')).toBeDefined()
       await button(page, label).trigger('click')
     }
@@ -101,12 +101,14 @@ describe('shared environment workspace', () => {
     expect(page.emitted('prepare')).toBeUndefined()
     expect(page.emitted('use')).toBeUndefined()
     expect(page.findAll('button').some(item => item.text() === '删除版本')).toBe(false)
-    await button(page, '查看版本').trigger('click')
+    await button(page, '固定版本').trigger('click')
+    expect(button(page, '用于服务器').attributes('disabled')).toBeDefined()
     expect(page.text()).toContain('version-1')
   })
 
   it('emits the selected version and requires a second explicit action to delete it', async () => {
     const { page } = open()
+    await button(page, '固定版本').trigger('click')
     await button(page, '用于服务器').trigger('click')
     expect((page.emitted('use')![0]![0] as ManagedEnvironmentVersion).versionId).toBe('version-1')
     await button(page, '删除版本').trigger('click')

@@ -2066,6 +2066,15 @@ function setupIpcHandlers() {
       const result = await library.importSourceRegistry(selected.filePaths[0])
       return result.sourceIds.join('、')
     }
+    if (input.action === 'cancel-install') {
+      library.cancelInstall(input.operationId)
+      return null
+    }
+    if (input.action === 'retry-install') return library.retryInstall(input.operationId)
+    if (input.action === 'clear-install-tasks') {
+      library.clearInstallTasks()
+      return null
+    }
     if (input.action === 'set-selection') {
       await library.setSelection(input.ids, input.offline === true)
       return null

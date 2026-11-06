@@ -238,7 +238,8 @@ for (const kind of ['archive', 'directory', 'zip']) {
           ),
         )
       const local = await contentPackage(f.root, '@sample/local')
-      await f.library.installFile(local.archive, true)
+      const localId = await f.library.installFile(local.archive, true)
+      await f.library.setSelection([localId], true)
       const before = selection(await settled(f.library))
       const lease = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
       try {
@@ -273,6 +274,7 @@ test(
   async t => {
     const f = await fixture(t)
     const firstId = await f.library.installFile(f.source.archive, true)
+    await f.library.setSelection([firstId], true)
     await settled(f.library)
     const installed = (await f.library.list()).packages[0]
     assert.equal(installed.containsCode, true)
@@ -307,7 +309,8 @@ test(
   { timeout: 60000 },
   async t => {
     const f = await fixture(t)
-    await f.library.installFile(f.source.archive, true)
+    const installedId = await f.library.installFile(f.source.archive, true)
+    await f.library.setSelection([installedId], true)
     const before = selection(await settled(f.library))
     const newer = await contentPackage(f.root, f.source.name, '2.0.0')
     const file = join(f.root, 'trusted-sources.json')

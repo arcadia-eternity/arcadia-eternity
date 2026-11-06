@@ -11,6 +11,7 @@ export interface EnvironmentDocument {
   name: string
   packages: Record<string, string>
   sources: string[]
+  disabled?: { packages: Record<string, string>; sources: string[] }
   rules: EnvironmentRules
   requires: { engine?: string; sdk?: string; capabilities?: string[] }
 }
@@ -26,6 +27,15 @@ export interface EnvironmentVersion {
   document: EnvironmentDocument
   draftRevision: string
   contentRevision: string
+  members?: {
+    name: string
+    version: string
+    projectId: string
+    namespace: string
+    direct: boolean
+    dependencies: string[]
+    requiredBy: string[]
+  }[]
   packages: unknown[]
   createdAt: number
   adopted: boolean
@@ -41,6 +51,7 @@ export interface UnavailableVersion {
   reason: string
 }
 export interface PrepareVersionInput {
+  onProgress?: (progress: { stage: string; completed?: number; total?: number }) => void | Promise<void>
   environmentId: string
   expectedRevision: string
   projectDirectory?: string
@@ -143,3 +154,8 @@ export class ContentWorkspace {
   close(input?: { force?: boolean }): Promise<void>
   cleanupStaging(): Promise<string[]>
 }
+
+export function setEnvironmentPackageEnabled(
+  workspace: Pick<ContentWorkspace, 'listDrafts' | 'listVersions' | 'saveDraft'>,
+  input: { environmentId: string; expectedRevision: string; name: string; enabled: boolean; cascade?: boolean },
+): Promise<EnvironmentDraft>

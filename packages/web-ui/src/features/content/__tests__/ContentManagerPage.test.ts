@@ -26,6 +26,7 @@ const gameData = {
   skills: { allIds: [], byId: {} },
   marks: { allIds: [], byId: {} },
 }
+vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/stores/battleClient', () => ({ useBattleClientStore: () => battle }))
 vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => rooms }))
 vi.mock('@/stores/petStorage', () => ({ usePetStorageStore: () => pets }))
@@ -83,11 +84,7 @@ function bridge(active = false) {
       snapshot.selection = { status: 'preparing' }
     }
   })
-  const install = vi.fn(async () => {
-    snapshot.desiredIds = [pkg.id]
-    snapshot.selection = { status: 'preparing' }
-    return pkg.id
-  })
+  const install = vi.fn(async () => pkg.id)
   vi.stubGlobal('arcadiaDesktop', {
     listContentPackages: async () => structuredClone(snapshot),
     contentPackageAction: action,
@@ -204,18 +201,18 @@ it('keeps rapid checkbox changes responsive and does not restore an older respon
     [],
   ])
 })
-it('installs and enables from the source dialog without a second confirmation', async () => {
+it('installs into the library and shows task management without enabling', async () => {
   const { install, action } = bridge()
   const page = open()
   await flushPromises()
   await button(page, '添加内容包').trigger('click')
-  expect(page.get('[role=dialog]').text()).toContain('内容包及其依赖将在本机运行')
+  expect(page.get('[role=dialog]').text()).toContain('安装后进入资源库')
   await button(page, '安装本地 .tgz 文件').trigger('click')
   await flushPromises()
   expect(install).toHaveBeenCalledWith({ offline: false })
   expect(action).not.toHaveBeenCalled()
-  expect(page.find('[role=dialog]').exists()).toBe(false)
-  expect((page.get('input[aria-label="启用 创作内容"]').element as HTMLInputElement).checked).toBe(true)
+  expect(page.get('[role=dialog]').text()).toContain('下载与安装')
+  expect((page.get('input[aria-label="启用 创作内容"]').element as HTMLInputElement).checked).toBe(false)
 })
 it('shows a failed desired selection and retries it while retaining the old available content', async () => {
   const { snapshot, action } = bridge(true)

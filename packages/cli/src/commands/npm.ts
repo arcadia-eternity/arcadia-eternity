@@ -34,6 +34,8 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
         'install',
         '--save-exact',
         '--ignore-scripts',
+        '--strict-peer-deps',
+        '--legacy-peer-deps=false',
         '--omit=dev',
         '--no-audit',
         '--no-fund',
@@ -69,6 +71,8 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
       const invocation = await resolveNpmInvocation([
         'ci',
         '--ignore-scripts',
+        '--strict-peer-deps',
+        '--legacy-peer-deps=false',
         '--omit=dev',
         '--no-audit',
         '--no-fund',
@@ -97,8 +101,12 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
       await report(
         result,
         !!options.json,
-        result.packages.map(pkg => `${pkg.name}@${pkg.version}${pkg.manifest ? ' [content]' : ''}`).join('\n') +
-          `\nInstallation: ${result.digest}`,
+        result.members
+          .map(
+            pkg =>
+              `${pkg.name}@${pkg.version} [${pkg.direct ? 'direct' : 'dependency'}]${pkg.requiredBy.length ? ' required by ' + pkg.requiredBy.join(', ') : ''}`,
+          )
+          .join('\n') + `\nInstallation: ${result.digest}`,
       )
     })
   npm
