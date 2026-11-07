@@ -1,5 +1,3 @@
-import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContentIndex, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/metadata'
 import {
   PackMetadataLoader,
   workRef,
@@ -10,25 +8,53 @@ import {
   type WorkRelease,
   collection,
 } from '@arcadia-eternity/pack-loader/native'
-import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
+import {
+  createContentIndex,
+  type BehaviorDefinition,
+  type ContentPrototypeData,
+  type EnvironmentBuildIdentity,
+} from '@arcadia-eternity/battle/v4'
 import { resolveBasePackRef } from '@/utils/packRef'
 
-/** Use the same raw metadata boundary as Node; presentation-store defaults are not content identity. */
-export async function loadCreatorBase(): Promise<ContentPrototypeData> {
+export type EffectTemplate =
+  (typeof import('@arcadia-eternity/data-pack-base/metadata').officialEffectTemplates)[number]
+export interface CreatorContent {
+  data: ContentPrototypeData
+  build: EnvironmentBuildIdentity
+  templates: readonly BehaviorDefinition[]
+  effectIds: readonly string[]
+  effectTemplates: readonly EffectTemplate[]
+}
+
+/** Read the selected package's raw rules and authoring definitions together. */
+export async function loadCreatorBase(): Promise<CreatorContent> {
   const loader = new PackMetadataLoader()
-  return (
-    await loader.loadMetadata(await resolveBasePackRef(), {
+  const pack = new URL(await resolveBasePackRef(), window.location.href)
+  const [loaded, response] = await Promise.all([
+    loader.loadMetadata(pack.href, {
       source: 'http',
       enforceLockfile: true,
       includeLocales: false,
-    })
-  ).data
+    }),
+    fetch(new URL('dist/catalog.json', pack), { cache: 'no-store', redirect: 'error', credentials: 'omit' }),
+  ])
+  if (!response.ok) throw new Error(`创作定义加载失败（${response.status}）`)
+  const catalog: Omit<CreatorContent, 'data'> = await response.json()
+  if (
+    !catalog?.build ||
+    !Array.isArray(catalog.templates) ||
+    !Array.isArray(catalog.effectIds) ||
+    !Array.isArray(catalog.effectTemplates)
+  )
+    throw new Error('创作定义格式无效')
+  return { ...catalog, data: loaded.data }
 }
-export const workHost = (base: ContentPrototypeData) => ({
-  base,
-  build: nativeBuildIdentity,
-  templates: officialTemplateDefinitions,
-  createContent: createOfficialContentIndex,
+export const workHost = (base: CreatorContent) => ({
+  base: base.data,
+  build: base.build,
+  templates: base.templates,
+  createContent: (data: ContentPrototypeData, revision: string) =>
+    createContentIndex(data, revision, { templates: base.templates, effectIds: base.effectIds }),
 })
 export interface ReferenceOption {
   label: string
@@ -37,10 +63,10 @@ export interface ReferenceOption {
 export function referenceOptions(
   kind: WorkKind,
   draft: WorkDraft,
-  base: ContentPrototypeData,
+  base: CreatorContent,
   installed: readonly WorkRelease[],
 ): ReferenceOption[] {
-  const builtins = kind === 'behavior' ? officialTemplateDefinitions : (base[collection[kind]] ?? [])
+  const builtins = kind === 'behavior' ? base.templates : (base.data[collection[kind]] ?? [])
   const result: ReferenceOption[] = builtins.map(value => ({
     label: (value as { id: string }).id,
     value: (value as { id: string }).id,

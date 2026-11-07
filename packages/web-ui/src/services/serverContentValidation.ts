@@ -45,6 +45,7 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   const descriptor = value as ServerEnvironmentDescriptor
   if (descriptor?.protocolVersion !== 1 || descriptor?.runtime?.kind !== 'native-v4')
     throw new Error('服务器环境协议不兼容')
+  if (descriptor.isDefault !== undefined && typeof descriptor.isDefault !== 'boolean') invalid()
   if (descriptor.executionPolicy !== undefined && !['server', 'peer'].includes(descriptor.executionPolicy)) invalid()
   if (descriptor.peerRevision !== undefined && !identifier(descriptor.peerRevision)) invalid()
   if (!HASH.test(descriptor.id) || !HASH.test(descriptor.resourceRevision)) invalid()
@@ -112,7 +113,10 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   }
 }
 
-export function validateEnvironmentContent(value: unknown): asserts value is ServerEnvironmentContent {
+export function validateEnvironmentContent(
+  value: unknown,
+  { includeRuleDetails = false } = {},
+): asserts value is ServerEnvironmentContent {
   validateMetadataTree(value)
   const content = value as ServerEnvironmentContent
   if (!content || Object.keys(content).some(key => !['species', 'skills', 'marks', 'locales'].includes(key))) invalid()
@@ -128,7 +132,9 @@ export function validateEnvironmentContent(value: unknown): asserts value is Ser
       if (!item || !identifier(item.id) || seen.has(item.id) || !Value.Check(schema, item)) invalid()
       // Public skill/mark records carry display data only. Unknown fields cannot become an extension API.
       const allowed = new Set([
-        ...Object.keys(schema.properties).filter(key => key !== 'effect' && (index !== 2 || key !== 'config')),
+        ...Object.keys(schema.properties).filter(
+          key => includeRuleDetails || (key !== 'effect' && (index !== 2 || key !== 'config')),
+        ),
         'name',
         'description',
       ])

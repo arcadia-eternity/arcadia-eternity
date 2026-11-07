@@ -280,41 +280,25 @@ async function loadLocalContentRuntime() {
       ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
       : require
     const load = spec => import(pathToFileURL(runtimeRequire.resolve(spec)).href)
-    const [node, native, metadata, build, schema] = await Promise.all([
+    const [node, native] = await Promise.all([
       load('@arcadia-eternity/pack-loader/node'),
       load('@arcadia-eternity/pack-loader/native'),
-      load('@arcadia-eternity/data-pack-base/metadata'),
-      load('@arcadia-eternity/data-pack-base/build'),
-      load('@arcadia-eternity/schema'),
     ])
     const root = app.isPackaged
       ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
       : path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
-    const hostRoot = app.isPackaged
-      ? path.join(process.resourcesPath, 'arcadia-server')
-      : path.resolve(projectRoot, '../..')
-    const artifact = await node.compileEffectModule(
-      runtimeRequire.resolve('@arcadia-eternity/data-pack-base/effects'),
-      hostRoot,
-      '@arcadia-eternity/data-pack-base',
-    )
-    const effectModules = [{ artifact, namespace: '', role: 'catalog' }]
-    const base = await new node.NativeNodePackLoader(build.nativeBuildIdentity, metadata.createOfficialContentIndex, {
-      templates: metadata.officialTemplateDefinitions,
-      effectModules,
-    }).load(path.join(root, 'pack.json'))
+    let base
     return {
-      base,
-      host: {
-        build: base.build,
-        base: base.data,
-        templates: metadata.officialTemplateDefinitions,
-        effectIds: metadata.officialEffectIds,
-        effectModules,
+      loadBase() {
+        return (base ??= node.prepareCatalogPackage(root).catch(error => {
+          base = undefined
+          throw error
+        }))
       },
+      host: node.emptyNpmContentHost,
       prepareNpmProject: node.prepareNpmProject,
-      presentationIndex: native.presentationIndex,
-      ...schema,
+      buildDisplayCatalog: native.buildDisplayCatalog,
+      buildDisplayLocales: native.buildDisplayLocales,
     }
   })().catch(error => {
     localContentRuntime = undefined
@@ -2016,7 +2000,10 @@ function setupIpcHandlers() {
   })
   handle('desktop:prepare-local-content', event => {
     requireLocalBattleCaller(event)
-    return getLocalContentSessions().prepare(localContentOwner.current())
+    return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true })
+  })
+  handle('desktop:read-local-runtime', (_event, token) => {
+    return getLocalContentSessions().readRuntime(token, localContentOwner.current())
   })
   handle('desktop:capture-personal-environment', event => {
     requireLocalBattleCaller(event)

@@ -4,7 +4,8 @@ import {
   validateEnvironmentDescriptor,
   validateMetadataTree,
 } from './serverContentValidation'
-import type { ContentPresentation, ResourceReference } from '@arcadia-eternity/schema'
+import type { ResourceReference } from '@arcadia-eternity/schema'
+import { mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
 import type {
   ServerEnvironmentAcceptance,
   ServerEnvironmentContent,
@@ -24,8 +25,13 @@ export function environmentServerUrl(value: string): string {
   return url.toString().replace(/\/$/, '')
 }
 
-async function json<T>(url: string, request: typeof fetch, signal?: AbortSignal): Promise<T> {
-  const bytes = await readResourceBytes(url, { maxBytes: METADATA_MAX_BYTES, signal }, request)
+export async function readEnvironmentJson<T>(
+  url: string,
+  request: typeof fetch,
+  signal?: AbortSignal,
+  bundledEnvironment = false,
+): Promise<T> {
+  const bytes = await readResourceBytes(url, { maxBytes: METADATA_MAX_BYTES, signal, bundledEnvironment }, request)
   const value: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
   validateMetadataTree(value)
   return value as T
@@ -36,7 +42,7 @@ export async function listServerEnvironments(
   request: typeof fetch = fetch,
   signal?: AbortSignal,
 ): Promise<ServerEnvironmentDescriptor[]> {
-  const catalog = await json<{ protocolVersion: number; environments: ServerEnvironmentDescriptor[] }>(
+  const catalog = await readEnvironmentJson<{ protocolVersion: number; environments: ServerEnvironmentDescriptor[] }>(
     `${environmentServerUrl(server)}/api/v1/environments`,
     request,
     signal,
@@ -58,7 +64,7 @@ export async function readServerEnvironmentContent(
   signal?: AbortSignal,
 ): Promise<ServerEnvironmentContent> {
   if (!/^[a-f0-9]{64}$/.test(id)) throw new Error('服务器环境标识无效')
-  const content = await json<ServerEnvironmentContent>(
+  const content = await readEnvironmentJson<ServerEnvironmentContent>(
     `${environmentServerUrl(server)}/api/v1/environments/${id}/content`,
     request,
     signal,
@@ -81,6 +87,18 @@ export async function prepareServerEnvironment(
   const base = environmentServerUrl(server)
   validateEnvironmentDescriptor(descriptor)
   const content = await readServerEnvironmentContent(server, descriptor.id, request, signal)
+  const projects = new Map(descriptor.packages.map(pkg => [pkg.namespace, pkg.projectId]))
+  const resourceKey = (project: string, id: string) => JSON.stringify([project, id])
+  const remoteResources = new Map(
+    descriptor.remoteResources?.map(item => [resourceKey(item.projectId, item.id), item.url]),
+  )
+  const files = new Map<string, string>()
+  for (const item of descriptor.resources) {
+    const key = resourceKey(item.projectId, item.id)
+    const variant = resourceKey(item.projectId, `${item.id}/${item.variant}`)
+    if (!files.has(variant)) files.set(variant, item.url)
+    if (item.variant === 'default' && !files.has(key)) files.set(key, item.url)
+  }
   const resourceUrl = (owner: string, reference: ResourceReference | undefined): string | undefined => {
     if (!reference) return reference
     const namespace =
@@ -90,49 +108,41 @@ export async function prepareServerEnvironment(
           ? owner.slice(0, owner.indexOf(':'))
           : ''
     const resourceId = typeof reference === 'object' ? reference.id : reference
-    const projectId = descriptor.packages.find(pkg => pkg.namespace === namespace)?.projectId
+    if (!namespace && typeof reference === 'string' && /^https?:\/\//.test(reference))
+      return publicHttpUrl(reference).toString()
+    const projectId = projects.get(namespace || 'base')
     if (!projectId) {
       if (typeof reference !== 'string') throw new Error('内容资源命名空间无效')
       // Unnamespaced core content may declare a direct HTTP resource. Never resolve against local workspace assets.
       if (!/^https?:\/\//.test(reference)) throw new Error('内容资源未在服务器目录声明')
       return publicHttpUrl(reference).toString()
     }
-    const remote = descriptor.remoteResources?.find(item => item.projectId === projectId && item.id === resourceId)
-    if (remote) return remote.url
-    const resource = descriptor.resources.find(
-      item =>
-        item.projectId === projectId &&
-        (resourceId === `${item.id}/${item.variant}` || (resourceId === item.id && item.variant === 'default')),
-    )
+    const key = resourceKey(projectId, resourceId)
+    const remote = remoteResources.get(key)
+    if (remote) return remote
+    const resource = files.get(key)
     if (!resource) throw new Error(`内容资源未在服务器目录声明：${reference}`)
-    return `${base}${resource.url}`
+    return `${base}${resource}`
   }
-  const presentation = (owner: string, value: ContentPresentation | undefined): ContentPresentation | undefined => {
-    if (!value) return undefined
-    const result = structuredClone(value)
-    for (const key of ['icon', 'portrait', 'cry', 'sfx', 'background', 'music'] as const)
-      if (value[key]) result[key] = resourceUrl(owner, value[key])
-    if (value.battle)
-      result.battle = {
-        renderer: value.battle.renderer,
-        source: resourceUrl(owner, value.battle.source)!,
-        ...(value.battle.fallback ? { fallback: resourceUrl(owner, value.battle.fallback) } : {}),
-      }
-    return result
-  }
+  const presentation = (
+    item:
+      | ServerEnvironmentContent['species'][number]
+      | ServerEnvironmentContent['skills'][number]
+      | ServerEnvironmentContent['marks'][number],
+  ) => item.presentation && mapPresentationResources(item.presentation, ref => resourceUrl(item.id, ref)!)
   const displayContent: ServerEnvironmentContent = {
     ...(content.locales ? { locales: content.locales } : {}),
     species: content.species.map(item => ({
       ...item,
-      presentation: presentation(item.id, item.presentation),
+      presentation: presentation(item),
     })),
     skills: content.skills.map(item => ({
       ...item,
-      presentation: presentation(item.id, item.presentation),
+      presentation: presentation(item),
     })),
     marks: content.marks.map(item => ({
       ...item,
-      presentation: presentation(item.id, item.presentation),
+      presentation: presentation(item),
     })),
   }
   return {

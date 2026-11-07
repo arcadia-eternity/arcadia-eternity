@@ -292,12 +292,18 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       if (contentNames.has(pkg.name))
         fail('CONTENT_VERSION_CONFLICT', location, 'Official base must have one installed version')
       contentNames.add(pkg.name)
-      if (typeof pkg.arcadiaEternityHost !== 'string')
-        fail('NPM_BASE_HOST_REQUIRED', location, 'Installed base package needs a rebuilt static host artifact')
-      packageFile(dir, pkg.arcadiaEternityHost)
-      entry.officialHost = pkg.arcadiaEternityHost
+      if (projects.has('base')) fail('CONTENT_VERSION_CONFLICT', location, 'Content project base is already registered')
+      if (namespaces.has('base')) fail('NAMESPACE_CONFLICT', location, 'Content namespace base is already registered')
+      projects.set('base', location)
+      namespaces.set('base', location)
+      const catalog =
+        pkg.arcadia && typeof pkg.arcadia === 'object' && !Array.isArray(pkg.arcadia) && pkg.arcadia.catalog
+      if (typeof catalog !== 'string')
+        fail('NPM_BASE_HOST_REQUIRED', location, 'Installed base package needs its compiled catalog artifact')
+      packageFile(dir, catalog)
+      entry.officialHost = catalog
     }
-    if (pkg.arcadia !== undefined) {
+    if (pkg.arcadia !== undefined && !entry.officialHost) {
       if (contentNames.has(pkg.name))
         fail('CONTENT_VERSION_CONFLICT', location, `Resource pack ${pkg.name} must have one installed version`)
       contentNames.add(pkg.name)

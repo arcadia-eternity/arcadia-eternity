@@ -3,6 +3,7 @@ import { setTimeout } from 'node:timers/promises'
 import { isAbsolute, relative } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { validateWorkspaceProject, type ManagementService } from '@arcadia-eternity/server'
+import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import type { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
 
 type InitializationKind = 'builtin' | 'desktop' | 'npm'
@@ -62,13 +63,8 @@ export async function initializeHostEnvironment({
   const recoveredBinding = await management.initializationBinding(kind, environmentId)
   let versionId = recoveredBinding?.value.desiredVersionId ?? recoveredBinding?.value.effectiveVersionId
   if (!versionId) {
-    const prepared = await validateWorkspaceProject(
-      { directory: projectDirectory },
-      { effectPreparation: management.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
-    )
-    const packages: Record<string, string> = {}
-    for (const pkg of prepared.packages ?? [])
-      if (typeof pkg.name === 'string' && typeof pkg.version === 'string') packages[pkg.name] = pkg.version
+    const { members } = await inspectNpmProject(projectDirectory)
+    const packages = Object.fromEntries(members.map(({ name, version }) => [name, version]))
     const existing = (await workspace.listDrafts()).find(item => item.document.id === environmentId)
     const document = {
       schemaVersion: 2,

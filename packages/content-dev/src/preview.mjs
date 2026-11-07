@@ -4,7 +4,11 @@ import { createServer } from 'node:http'
 import { randomBytes, createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
-import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import {
+  buildDisplayCatalog,
+  buildDisplayLocales,
+  mapPresentationResources,
+} from '@arcadia-eternity/pack-loader/native'
 import { prepareContentPack } from './testing.mjs'
 import { PreviewAutomation } from './preview-control.mjs'
 import { AuthorWorkspace } from './workspace.mjs'
@@ -50,59 +54,32 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
     'restoreRuntimeSnapshot',
   ])
   const assets = new Map()
-  const content = Object.fromEntries(
-    Object.entries({ species: SpeciesSchema, skills: SkillSchema, marks: MarkSchema }).map(([kind, schema]) => [
-      kind,
-      prepared.environment.data[kind].map(raw => ({
-        ...parseWithErrors(schema, raw),
-        ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
-        ...(typeof raw.description === 'string' ? { description: raw.description } : {}),
-      })),
-    ]),
-  )
-  // Only public definitions cross the process boundary; never export effect bodies.
-  for (const kind of ['species', 'skills', 'marks'])
-    for (const record of content[kind]) {
-      delete record.effect
-      if (kind === 'marks') delete record.config
-    }
-  const bundles = {}
-  for (const pkg of prepared.environment.presentation) {
+  const content = buildDisplayCatalog(prepared.environment.data, [], prepared.environment.presentation)
+  for (const pkg of prepared.environment.presentation)
     for (const asset of pkg.resources) assets.set(`${pkg.namespace}/${asset.id}`, asset)
-    for (const [language, namespaces] of Object.entries(pkg.manifest.locales))
-      for (const [namespace, entries] of Object.entries(namespaces)) {
-        const target = ((bundles[language] ??= {})[namespace] ??= {})
-        for (const [id, text] of Object.entries(entries)) target[pkg.namespace ? `${pkg.namespace}:${id}` : id] = text
-      }
-  }
-  content.locales = { defaultLocale: prepared.environment.presentation[0]?.manifest.defaultLocale ?? 'zh-CN', bundles }
+  content.locales = buildDisplayLocales(prepared.environment.presentation, {}, content)
   function resource(owner, reference) {
     const namespace = typeof reference === 'object' ? reference.namespace : owner
     const id = typeof reference === 'object' ? reference.id : reference
-    const pkg = prepared.environment.presentation.find(item => item.namespace === namespace)
+    const pkg = prepared.environment.presentation.find(
+      item => item.namespace === namespace || (!item.namespace && item.projectId === namespace),
+    )
     const asset = pkg?.manifest.resources.find(item => item.id === id)
     if (!asset) throw new Error(`RESOURCE_REFERENCE: ${namespace}/${id}`)
-    return asset.kind === 'http' ? asset.source : `${endpoint}/assets/${encodeURIComponent(`${namespace}/${id}`)}`
+    return asset.kind === 'http' ? asset.source : `${endpoint}/assets/${encodeURIComponent(`${pkg.namespace}/${id}`)}`
   }
+  let displayCatalog
   function publicContent() {
+    if (displayCatalog) return displayCatalog
     const result = structuredClone(content)
-    for (const pkg of prepared.environment.presentation)
-      for (const binding of pkg.manifest.bindings) {
-        const { id: _id, target, ...presentation } = binding
-        for (const [key, ref] of Object.entries(presentation)) {
-          if (key === 'battle')
-            presentation.battle = {
-              ...ref,
-              source: resource(pkg.namespace, ref.source),
-              ...(ref.fallback ? { fallback: resource(pkg.namespace, ref.fallback) } : {}),
-            }
-          else presentation[key] = resource(pkg.namespace, ref)
+    for (const kind of ['species', 'skills', 'marks'])
+      for (const row of result[kind])
+        if (row.presentation) {
+          const namespace = row.id.includes(':') ? row.id.slice(0, row.id.indexOf(':')) : ''
+          row.presentation = mapPresentationResources(row.presentation, ref => resource(namespace, ref))
         }
-        result[target.kind].find(
-          row => row.id === (pkg.namespace ? `${pkg.namespace}:${target.id}` : target.id),
-        ).presentation = presentation
-      }
-    return result
+    displayCatalog = result
+    return displayCatalog
   }
   function manualSetup() {
     try {

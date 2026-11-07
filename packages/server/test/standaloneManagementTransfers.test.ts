@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { mkdtemp, readFile, readdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import pg from 'pg'
@@ -46,14 +47,7 @@ let currentDriver: 'sqlite' | 'postgres' = 'sqlite'
 async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-transfers-'))
   cleanups.push(() => rm(root, { recursive: true, force: true }))
-  const project = join(root, 'project')
-  await mkdir(join(project, 'node_modules'), { recursive: true })
-  const manifest = { name: 'export-test', version: '1.0.0', private: true, dependencies: {} }
-  await writeFile(join(project, 'package.json'), JSON.stringify(manifest))
-  await writeFile(
-    join(project, 'package-lock.json'),
-    JSON.stringify({ lockfileVersion: 3, packages: { '': manifest } }),
-  )
+  const project = await stageShippedCatalog(root)
   let storage: ReturnType<typeof openStorage>
   if (currentDriver === 'postgres') {
     const admin = new pg.Pool({ connectionString: process.env.TEST_DATABASE_URL })
@@ -77,7 +71,7 @@ async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
     retentions: workspaceRetentions(storage, () => workspace.workspaceId),
   })
   cleanups.push(() => workspace.close())
-  const document = { schemaVersion: 1, id: 'source', name: 'Source', packages: {}, sources: [] }
+  const document = { schemaVersion: 1, id: 'source', name: 'Source', packages: shippedCatalogMembers, sources: [] }
   const draft = await workspace.saveDraft({ document, expectedRevision: null })
   const version = await workspace.prepareVersion(
     { environmentId: 'source', expectedRevision: draft.revision },
@@ -146,6 +140,7 @@ async function complete(operations: OperationService, id: string): Promise<Opera
 for (const driver of ['sqlite', 'postgres'] as const) {
   describe.skipIf(driver === 'postgres' && !process.env.TEST_DATABASE_URL)(
     `${driver} file-backed managed environment transfer operations`,
+    { timeout: 30_000 },
     () => {
       beforeEach(() => {
         currentDriver = driver

@@ -7,6 +7,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
   const cache = new Map()
   const retired = new Set()
   const pending = new Map()
+  const catalogs = new WeakMap()
   const operations = new Set()
   const retiredOwners = new Set()
   let closed = false
@@ -53,7 +54,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
     pending.set(directory, task)
     return task
   }
-  async function prepare(owner) {
+  async function prepare(owner, { displayOnly = false } = {}) {
     assertOpen()
     if (owner !== undefined && retiredOwners.has(owner)) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
     const acquired = await library.acquireProject()
@@ -71,10 +72,11 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
     try {
       const runtime = await load()
       prepared = lease.builtinOnly ? undefined : await compileProject(lease.directory)
+      const base = lease.builtinOnly ? await runtime.loadBase() : undefined
       assertOpen()
       if (owner !== undefined && retiredOwners.has(owner)) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
-      const source = prepared ?? runtime.base
-      if (!source.sandbox) throw new Error('LOCAL_SANDBOX_MISSING')
+      const source = prepared ?? base
+      if (!source?.sandbox) throw new Error('LOCAL_SANDBOX_MISSING')
       const token = randomUUID()
       const files = new Map()
       const resources = new Map()
@@ -92,48 +94,20 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
           const file = prepared.assetFile(asset.sha256)
           if (file) files.set(asset.sha256, { file, mime: asset.mime })
         }
-      const text = raw =>
-        Object.fromEntries(
-          ['name', 'description'].filter(key => typeof raw[key] === 'string').map(key => [key, raw[key]]),
-        )
-      const content = {
-        species: source.data.species.map(raw => ({
-          ...runtime.parseWithErrors(runtime.SpeciesSchema, raw),
-          ...text(raw),
-        })),
-        skills: source.data.skills.map(raw => {
-          const { effect, ...display } = runtime.parseWithErrors(runtime.SkillSchema, raw)
-          return { ...display, ...text(raw) }
-        }),
-        marks: source.data.marks.map(raw => {
-          const mark = runtime.parseWithErrors(runtime.MarkSchema, raw)
-          return {
-            id: mark.id,
-            tags: mark.tags ?? [],
-            ...(mark.presentation ? { presentation: mark.presentation } : {}),
-            ...text(raw),
-          }
-        }),
+      let catalog = catalogs.get(source)
+      if (!catalog) {
+        catalog = runtime.buildDisplayCatalog(source.data, base?.presentation, prepared?.presentation)
+        catalog.locales = runtime.buildDisplayLocales(prepared?.presentation ?? [], base?.locales ?? {}, catalog)
+        catalogs.set(source, catalog)
       }
-      const official = runtime.presentationIndex(runtime.base.presentation)
-      for (const kind of ['species', 'skills', 'marks'])
-        for (const row of content[kind]) {
-          const presentation = official.get(`${kind}:${row.id}`)
-          if (presentation) row.presentation = structuredClone(presentation)
-        }
-      for (const pkg of prepared?.presentation ?? [])
-        for (const binding of pkg.manifest.bindings) {
-          const { id, target, ...presentation } = binding
-          const owner = content[target.kind].find(row => row.id === `${pkg.namespace}:${target.id}`)
-          if (!owner) throw new Error('PRESENTATION_TARGET')
-          owner.presentation = structuredClone(presentation)
-        }
+      const content = structuredClone(catalog)
       const resolveResource = (owner, ref) => {
         if (!ref) return ref
         if (typeof ref === 'string' && /^https?:\/\//.test(ref)) return ref
-        const namespace = typeof ref === 'object' ? ref.namespace : owner.slice(0, owner.indexOf(':'))
+        const namespace = typeof ref === 'object' ? ref.namespace : owner.includes(':') ? owner.split(':', 1)[0] : ''
         const id = typeof ref === 'object' ? ref.id : ref
-        const url = resources.get(`${namespace}:${id}`)
+        const url =
+          resources.get(`${namespace === 'base' ? '' : namespace}:${id}`) ?? resources.get(`${namespace}:${id}`)
         if (!url) {
           // Official media already uses the host's public/static paths.
           if (!owner.includes(':') && typeof ref === 'string') return ref
@@ -151,49 +125,21 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
             for (const key of ['source', 'fallback'])
               if (p.battle[key]) p.battle[key] = resolveResource(row.id, p.battle[key])
         }
-      const bundles = structuredClone(runtime.base.locales ?? {})
-      const kinds = {
-        species: 'species',
-        skill: 'skills',
-        mark: 'marks',
-        mark_ability: 'marks',
-        mark_emblem: 'marks',
-        mark_global: 'marks',
-      }
-      for (const [language, namespaces] of Object.entries(bundles))
-        for (const namespace of Object.keys(namespaces)) {
-          if (!kinds[namespace]) {
-            delete namespaces[namespace]
-            continue
-          }
-          const known = new Set(content[kinds[namespace]].map(row => row.id))
-          namespaces[namespace] = Object.fromEntries(
-            Object.entries(namespaces[namespace]).filter(([id]) => known.has(id)),
-          )
-        }
-      for (const pkg of prepared?.presentation ?? [])
-        for (const [language, namespaces] of Object.entries(pkg.manifest.locales))
-          for (const [namespace, entries] of Object.entries(namespaces)) {
-            const target = ((bundles[language] ??= {})[namespace] ??= {})
-            for (const [id, value] of Object.entries(entries)) target[`${pkg.namespace}:${id}`] = structuredClone(value)
-          }
-      content.locales = { defaultLocale: prepared?.presentation[0]?.manifest.defaultLocale ?? 'zh-CN', bundles }
-      const result = structuredClone({ token, environment: source.sandbox, content })
+      const result = { token, ...(displayOnly ? {} : { environment: source.sandbox }), content }
       const runtimeIdentity = {
         kind: 'native-v4',
         contentRevision: source.revision,
         coreBuildId: source.build.coreBuildId,
         registryBuildId: source.build.registryBuildId,
       }
-      const packages = (prepared?.installation?.packages ?? [])
-        .filter(pkg => pkg.manifest)
-        .map(pkg => ({
-          name: pkg.name,
-          version: pkg.version,
-          projectId: pkg.manifest.projectId,
-          namespace: pkg.manifest.namespace,
-        }))
-      sessions.set(token, { files, prepared, lease, owner, result, runtimeIdentity, packages })
+      const members = prepared?.installation?.members ?? (base?.member ? [base.member] : [])
+      const packages = members.map(({ name, version, projectId, namespace }) => ({
+        name,
+        version,
+        projectId,
+        namespace,
+      }))
+      sessions.set(token, { files, prepared, lease, owner, environment: source.sandbox, runtimeIdentity, packages })
       // Acquiring a fixed old configuration must not change the library's current selection.
       if (activeDirectory === undefined) activeDirectory = lease.directory
       await collect()
@@ -314,6 +260,11 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
   }
   return {
     prepare: tracked(prepare),
+    readRuntime(token, owner) {
+      const session = sessions.get(token)
+      if (!session || session.owner !== owner) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
+      return session.environment
+    },
     capturePersonalEnvironment: tracked(capturePersonalEnvironment),
     prepareProject: tracked(prepareProject),
     selectProject,

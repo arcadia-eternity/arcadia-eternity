@@ -1,24 +1,50 @@
 import { readFile, stat } from 'node:fs/promises'
-import { parseArchive, limits, WorkError, type NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
-import { resolve } from 'node:path'
-import { NativeNodePackLoader, prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
-import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import {
-  createOfficialContentIndex,
-  officialTemplateDefinitions,
-  officialEffectIds,
-} from '@arcadia-eternity/data-pack-base/metadata'
-import officialEffectArtifact from './effect-module'
-import type { ContentCatalog, ContentIndex } from '@arcadia-eternity/battle/v4'
+  buildDisplayLocales,
+  parseArchive,
+  limits,
+  WorkError,
+  type NativePackLoadResult,
+} from '@arcadia-eternity/pack-loader/native'
+import { resolve } from 'node:path'
+import {
+  emptyNpmContentHost,
+  NativeNodePackLoader,
+  prepareCatalogPackage,
+  prepareNpmProject,
+  readNpmAdmission,
+} from '@arcadia-eternity/pack-loader/node'
+import { fileURLToPath } from 'node:url'
+import { createContentIndex, type ContentCatalog, type ContentIndex } from '@arcadia-eternity/battle/v4'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
 import type { RunSpec } from './types'
 
-export const createLoader = () =>
-  new NativeNodePackLoader(nativeBuildIdentity, createOfficialContentIndex, {
-    templates: officialTemplateDefinitions,
-    effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
-  })
+function prepareShippedContent() {
+  let root: URL
+  try {
+    root = new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND') throw error
+    root = new URL('../packs/base/', import.meta.url)
+  }
+  return prepareCatalogPackage(fileURLToPath(root))
+}
+
+export async function createLoader() {
+  const { host } = await prepareShippedContent()
+  const { build, templates, effectIds, effectModules } = host
+  return new NativeNodePackLoader(
+    build,
+    (data, revision) => createContentIndex(data, revision, { templates, effectIds }),
+    { templates, effectModules },
+  )
+}
+
+export type CliPreparedContent = Pick<
+  NativePackLoadResult<ContentIndex>,
+  'build' | 'content' | 'data' | 'locales' | 'npm' | 'packs' | 'revision' | 'sandbox' | 'works'
+>
 export interface ContentSelectionOptions {
   works?: string
   npmProject?: string
@@ -28,37 +54,31 @@ export async function prepareContent(
   packRef: string,
   cwd: string,
   { works: workFile, npmProject, approval: approvalFile }: ContentSelectionOptions = {},
-): Promise<NativePackLoadResult<ContentIndex>> {
+): Promise<CliPreparedContent> {
   const ref = /^(builtin:|npm:)/.test(packRef) ? packRef : resolve(cwd, packRef)
   try {
-    const loader = createLoader()
-    const loaded = await loader.load(ref, { source: 'node-fs', enforceLockfile: true })
     if (npmProject) {
       if (workFile) throw new CliError('CONTENT_OPTIONS', '--works and --npm-project cannot be combined')
       const directory = resolve(cwd, npmProject)
       const approval = await readNpmAdmission(
         approvalFile ? resolve(cwd, approvalFile) : resolve(directory, 'arcadia-admission.json'),
       )
-      const prepared = await prepareNpmProject(
-        directory,
-        {
-          build: nativeBuildIdentity,
-          base: loaded.data,
-          templates: officialTemplateDefinitions,
-          effectIds: officialEffectIds,
-          effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
-        },
-        approval,
-      )
-      return {
-        ...loaded,
-        ...prepared,
-        // Native pack metadata uses manifests; npm presentation also includes private captured files.
-        presentation: loaded.presentation,
-        npm: { installationDigest: prepared.installation.digest },
+      const prepared = await prepareNpmProject(directory, emptyNpmContentHost, approval)
+      try {
+        return {
+          ...prepared,
+          locales: buildDisplayLocales(prepared.presentation, {}, prepared.content).bundles,
+          npm: { installationDigest: prepared.installation.digest },
+        }
+      } finally {
+        await prepared.dispose()
       }
     }
     if (approvalFile) throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
+    if (!workFile && !process.env.ARCADIA_PACKS_DIR?.trim() && (ref === 'builtin:base' || ref === 'builtin:workspace'))
+      return await prepareShippedContent()
+    const loader = await createLoader()
+    const loaded = await loader.load(ref, { source: 'node-fs', enforceLockfile: true })
     if (!workFile) return loaded
     const file = resolve(cwd, workFile)
     if ((await stat(file)).size > limits.bytes) throw new Error('作品文件超过大小限制')

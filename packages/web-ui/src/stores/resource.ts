@@ -1,8 +1,9 @@
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 // src/stores/Resource.ts
 import { defineStore } from 'pinia'
-import type { PresentationManifest } from '@arcadia-eternity/schema'
+import type { ContentPresentation, PresentationManifest } from '@arcadia-eternity/schema'
 import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
+import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
 import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -230,6 +231,20 @@ export const useResourceStore = defineStore('Resource', {
       const isCurrent = () => scope.generation === generation
       const work = (async () => {
         try {
+          if (hasPreparedWebEnvironment()) {
+            const { content, resources } = await readPreparedWebCatalog(forceReload)
+            if (!isCurrent()) return
+            const presentations = new Map<string, ContentPresentation>()
+            for (const kind of ['species', 'skills', 'marks'] as const)
+              for (const row of content[kind])
+                if (row.presentation) presentations.set(`${kind}:${row.id}`, row.presentation)
+            this.workspaceRuntime = emptyWorkspaceRuntime()
+            this.applyLayerToState(this.buildResourceLayer(presentations, resources))
+            this.validateDataIntegrity()
+            this.loaded = true
+            this.error = null
+            return
+          }
           const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
           if (!isCurrent()) return
           applyRuntimeAssetBase(packRef)
@@ -456,8 +471,18 @@ export const useResourceStore = defineStore('Resource', {
     },
 
     buildPresentationLayer(manifests: PresentationManifest[]): ResourceLayer {
+      return this.buildResourceLayer(
+        presentationIndex(manifests),
+        manifests.flatMap(manifest => manifest.resources),
+      )
+    },
+
+    buildResourceLayer(
+      presentations: ReadonlyMap<string, ContentPresentation>,
+      resources: PresentationManifest['resources'],
+    ): ResourceLayer {
       const layer = createEmptyLayer()
-      for (const [key, presentation] of presentationIndex(manifests)) {
+      for (const [key, presentation] of presentations) {
         const separator = key.indexOf(':')
         const kind = key.slice(0, separator),
           id = key.slice(separator + 1)
@@ -467,11 +492,10 @@ export const useResourceStore = defineStore('Resource', {
         } else if (kind === 'marks' && presentation.icon) layer.markImage[id] = String(presentation.icon)
         else if (kind === 'skills' && presentation.sfx) layer.skillSound[id] = String(presentation.sfx)
       }
-      for (const manifest of manifests)
-        for (const resource of manifest.resources) {
-          if (resource.tags?.includes('background')) layer.background[resource.id] = resource.source
-          if (resource.tags?.includes('music')) layer.music[resource.id] = resource.source
-        }
+      for (const resource of resources) {
+        if (resource.tags?.includes('background')) layer.background[resource.id] = resource.source
+        if (resource.tags?.includes('music')) layer.music[resource.id] = resource.source
+      }
       return layer
     },
 

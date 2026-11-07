@@ -41,7 +41,6 @@ export async function validatePeerMaterials(
     !record(environment.data) ||
     !exact(environment.data, ['species', 'skills', 'marks', 'behaviors']) ||
     !Array.isArray(environment.modules) ||
-    !environment.modules.length ||
     environment.modules.length > 32
   )
     invalid()
@@ -100,7 +99,6 @@ export async function validatePeerMaterials(
     packages.add(artifact.packageId)
     namespaces.add(entry.namespace)
   }
-  if (!namespaces.has('')) invalid()
   // Packages containing data only need no VM. A referenced code export does need its captured module.
   for (const behavior of (data.behaviors ?? []) as unknown[]) {
     if (!record(behavior) || !record(behavior.implementation) || typeof behavior.implementation.exportId !== 'string')
@@ -125,17 +123,16 @@ export async function preparePeerEnvironment(
   validateEnvironmentDescriptor(descriptor)
   if (typeof descriptor.peerRevision !== 'string' || !descriptor.peerRevision || descriptor.peerRevision.length > 512)
     invalid()
-  const bytes = await readResourceBytes(
-    `${environmentServerUrl(server)}/api/v1/environments/${descriptor.id}/peer-materials`,
-    { signal, maxBytes: RESOURCE_MAX_BYTES },
-    request,
-  )
-  const environment = await validatePeerMaterials(
-    JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)),
-    descriptor,
-  )
-  signal?.throwIfAborted()
-  const display = await prepareServerEnvironment(server, descriptor, request, signal)
+  const [environment, display] = await Promise.all([
+    readResourceBytes(
+      `${environmentServerUrl(server)}/api/v1/environments/${descriptor.id}/peer-materials`,
+      { signal, maxBytes: RESOURCE_MAX_BYTES },
+      request,
+    ).then(bytes =>
+      validatePeerMaterials(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), descriptor),
+    ),
+    prepareServerEnvironment(server, descriptor, request, signal),
+  ])
   for (const kind of ['species', 'skills', 'marks'] as const) {
     const ids = new Set(environment.data[kind].map(raw => (raw as { id: string }).id))
     if (ids.size !== display.content[kind].length || display.content[kind].some(row => !ids.has(row.id))) invalid()

@@ -193,7 +193,7 @@
               aria-label="选择对战内容"
               data-testid="room-environment-select"
             >
-              <el-option :label="battleOptions.battleMode === 'p2p' ? '官方固定内容' : '官方内容'" value="" />
+              <el-option label="服务器默认内容" value="" />
               <el-option
                 v-for="environment in customEnvironments"
                 :key="environment.id"
@@ -202,7 +202,7 @@
               />
             </el-select>
             <p v-if="environmentsError" class="text-xs text-amber-700 mt-2" role="status">
-              内容列表暂不可用，可以使用{{ battleOptions.battleMode === 'p2p' ? '官方固定内容' : '官方内容' }}。
+              内容列表暂不可用，可以尝试使用服务器默认内容。
               <el-button link type="primary" @click="loadEnvironments">重试</el-button>
             </p>
             <p v-else-if="selectedEnvironmentId" class="text-xs text-gray-500 mt-2">
@@ -295,9 +295,9 @@ const environmentsError = ref(false)
 const customEnvironments = computed(() =>
   privateRoomStore.environments.filter(
     environment =>
-      environment.packages.length &&
+      environment.id !== privateRoomStore.defaultEnvironment?.id &&
       (battleOptions.value.battleMode === 'p2p'
-        ? environment.executionPolicy === 'peer'
+        ? environment.executionPolicy === 'peer' || (!environment.executionPolicy && !!environment.peerRevision)
         : allowsServerExecution(environment)),
   ),
 )

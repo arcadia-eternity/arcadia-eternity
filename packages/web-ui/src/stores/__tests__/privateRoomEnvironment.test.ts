@@ -158,6 +158,19 @@ it('prepares peer execution materials for peer matchmaking instead of accepting 
   expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledOnce()
 })
 
+it('uses the server-selected default for matchmaking when it lists an explicit content package', async () => {
+  const store = usePrivateRoomStore()
+  const descriptor = {
+    id: 'default-environment',
+    isDefault: true,
+    packages: [{ name: '@arcadia-eternity/data-pack-base', version: '1.0.0', projectId: 'base', namespace: 'base' }],
+  }
+  store.environments = [{ id: 'other-environment', packages: [] }, descriptor] as typeof store.environments
+  mocks.prepare.mockResolvedValueOnce({ content: { species: [], skills: [], marks: [] }, acceptance: {} })
+  const result = await store.prepareMatchmakingEnvironment()
+  expect(result.descriptor.id).toBe(descriptor.id)
+})
+
 it('leaves the old room before replacing its authentication and connection', async () => {
   const store = usePrivateRoomStore()
   store.currentRoom = { config: { roomCode: 'ABC123' }, status: 'waiting' } as typeof store.currentRoom

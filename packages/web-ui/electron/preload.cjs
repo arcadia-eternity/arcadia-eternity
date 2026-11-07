@@ -14,6 +14,7 @@ const desktopApi = {
   openRemotePlay: input => ipcRenderer.invoke('desktop:open-remote-play', input),
   listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),
   prepareLocalContent: () => ipcRenderer.invoke('desktop:prepare-local-content'),
+  readLocalRuntime: token => ipcRenderer.invoke('desktop:read-local-runtime', token),
   capturePersonalEnvironment: () => ipcRenderer.invoke('desktop:capture-personal-environment'),
   releaseLocalContent: token => ipcRenderer.invoke('desktop:release-local-content', token),
   selectContentPackageFile: options => ipcRenderer.invoke('desktop:select-content-package-file', options),

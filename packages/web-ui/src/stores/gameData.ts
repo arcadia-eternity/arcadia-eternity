@@ -1,4 +1,4 @@
-import { officialEffectIds } from '@arcadia-eternity/data-pack-base/metadata'
+import { officialEffectIds, officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/metadata'
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
 import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
@@ -11,6 +11,9 @@ import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary 
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 import { acquireLocalContent } from '@/services/localContent'
 import { getDesktopApi } from '@/utils/env'
+import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
+
+import type { EffectMarkRelations } from '@/services/skillMarkRelationService'
 
 const BASE_PACK_ID = 'arcadia-eternity.base'
 
@@ -46,6 +49,7 @@ interface GameDataState {
     allIds: string[]
   }
   nativeEffectIds: string[]
+  effectMarkRelations: EffectMarkRelations
   loaded: boolean
   gameDataLoaded: boolean
   error: string | null
@@ -53,7 +57,15 @@ interface GameDataState {
   serverFallback:
     | (Pick<
         GameDataState,
-        'species' | 'skills' | 'marks' | 'nativeEffectIds' | 'workspaceRuntime' | 'loaded' | 'gameDataLoaded' | 'error'
+        | 'species'
+        | 'skills'
+        | 'marks'
+        | 'nativeEffectIds'
+        | 'effectMarkRelations'
+        | 'workspaceRuntime'
+        | 'loaded'
+        | 'gameDataLoaded'
+        | 'error'
       > & { contentText: ServerEnvironmentContent | null; remoteText: boolean })
     | null
 }
@@ -128,6 +140,7 @@ export const useGameDataStore = defineStore('gameData', {
       allIds: [],
     },
     nativeEffectIds: [],
+    effectMarkRelations: {},
     gameDataLoaded: false,
     workspaceRuntime: emptyWorkspaceRuntime(),
     serverFallback: null,
@@ -162,6 +175,7 @@ export const useGameDataStore = defineStore('gameData', {
         skills: this.skills,
         marks: this.marks,
         nativeEffectIds: this.nativeEffectIds,
+        effectMarkRelations: this.effectMarkRelations,
         workspaceRuntime: this.workspaceRuntime,
         loaded: this.loaded,
         gameDataLoaded: this.gameDataLoaded,
@@ -214,6 +228,7 @@ export const useGameDataStore = defineStore('gameData', {
       this.skills = { byId: {}, allIds: [] }
       this.marks = { byId: {}, allIds: [] }
       this.nativeEffectIds = []
+      this.effectMarkRelations = {}
       this.workspaceRuntime = emptyWorkspaceRuntime()
       this.serverFallback = null
     },
@@ -229,6 +244,7 @@ export const useGameDataStore = defineStore('gameData', {
         skills: this.skills,
         marks: this.marks,
         nativeEffectIds: this.nativeEffectIds,
+        effectMarkRelations: this.effectMarkRelations,
         workspaceRuntime: this.workspaceRuntime,
         loaded: this.loaded,
         gameDataLoaded: this.gameDataLoaded,
@@ -240,6 +256,7 @@ export const useGameDataStore = defineStore('gameData', {
       this.skills = skills
       this.marks = marks
       this.nativeEffectIds = []
+      this.effectMarkRelations = {}
       this.workspaceRuntime = emptyWorkspaceRuntime()
       this.loaded = true
       this.gameDataLoaded = true
@@ -257,6 +274,7 @@ export const useGameDataStore = defineStore('gameData', {
       this.skills = previous.skills
       this.marks = previous.marks
       this.nativeEffectIds = previous.nativeEffectIds
+      this.effectMarkRelations = previous.effectMarkRelations
       this.workspaceRuntime = previous.workspaceRuntime
       this.loaded = previous.loaded
       this.gameDataLoaded = previous.gameDataLoaded
@@ -286,6 +304,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.skills = this.normalizeData(captured.content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
             this.marks = this.normalizeData(captured.content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
             this.nativeEffectIds = []
+            this.effectMarkRelations = {}
             this.workspaceRuntime = emptyWorkspaceRuntime()
             this.serverFallback = null
             this.loaded = this.gameDataLoaded = true
@@ -294,6 +313,19 @@ export const useGameDataStore = defineStore('gameData', {
             localMetadataReleases.set(this, captured.release)
             setServerContentText(captured.content, false)
             await previous?.()
+            return
+          }
+          if (hasPreparedWebEnvironment()) {
+            const { content, effectMarkRelations } = await readPreparedWebCatalog(forceReload)
+            if (!isCurrent()) return
+            this.species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
+            this.skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
+            this.marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
+            this.effectMarkRelations = effectMarkRelations ?? {}
+            this.workspaceRuntime = emptyWorkspaceRuntime()
+            if (content.locales) setServerContentText(content, false)
+            this.loaded = this.gameDataLoaded = true
+            this.error = null
             return
           }
           const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
@@ -615,6 +647,7 @@ export const useGameDataStore = defineStore('gameData', {
 
     refreshNativeEffectReferences() {
       this.nativeEffectIds = [...officialEffectIds]
+      this.effectMarkRelations = officialEffectMarkRelations
     },
 
     validateDataIntegrity() {

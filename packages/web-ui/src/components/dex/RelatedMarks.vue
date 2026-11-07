@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/metadata'
 import { computed, ref } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
@@ -22,7 +21,11 @@ const gameDataStore = useGameDataStore()
 
 // 创建关联服务实例
 const relationService = computed(() => {
-  return new SkillMarkRelationService(gameDataStore.skills.byId, gameDataStore.marks.byId, officialEffectMarkRelations)
+  return new SkillMarkRelationService(
+    gameDataStore.skills.byId,
+    gameDataStore.marks.byId,
+    gameDataStore.effectMarkRelations,
+  )
 })
 
 // 分析技能印记关联

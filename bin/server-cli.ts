@@ -2,9 +2,10 @@ import 'dotenv/config'
 import { Command, CommanderError, InvalidArgumentError } from 'commander'
 import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
+import { stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 import { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-dev/managed-projects'
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { openServerStorage, workspaceRetentions } from './server-persistence'
 import { createDesktopWorkspaceProxy } from './desktop-workspace-proxy'
@@ -22,6 +23,19 @@ import {
   getPersistedServerSettings,
   type G3AccountServices,
 } from '@arcadia-eternity/server'
+
+async function withShippedEnvironmentProject<T>(initialize: (directory: string) => Promise<T>): Promise<T> {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-default-environment-'))
+  try {
+    const project = await stageCatalogProject(
+      directory,
+      dirname(fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
+    )
+    return await initialize(project)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+}
 
 function portNumber(value: string): number {
   const port = Number(value)
@@ -356,11 +370,10 @@ export async function runServerCli(args: string[]): Promise<number> {
       throw new Error('Invalid desktop host')
     if (desktopControl && options.desktopProject) {
       const { initializeDesktopHost } = await import('./desktop-host-initialize')
-      await initializeDesktopHost({
-        management: server.management!,
-        workspace,
-        projectDirectory: options.desktopProject,
-      })
+      const initialize = (projectDirectory: string) =>
+        initializeDesktopHost({ management: server!.management!, workspace: workspace!, projectDirectory })
+      if (options.npmProject?.[0]) await initialize(options.desktopProject)
+      else await withShippedEnvironmentProject(initialize)
     } else if (!desktopControl && options.npmProject?.[0]) {
       await initializeHostEnvironment({
         management: server.management!,
@@ -372,32 +385,17 @@ export async function runServerCli(args: string[]): Promise<number> {
         matchmakingEnabled: true,
       })
     } else if (!desktopControl) {
-      const builtinProject = await mkdtemp(join(tmpdir(), 'arcadia-builtin-environment-'))
-      try {
-        const manifest = { name: 'arcadia-builtin-environment', version: '1.0.0', private: true }
-        await writeFile(join(builtinProject, 'package.json'), JSON.stringify(manifest) + '\n', { mode: 0o600 })
-        await writeFile(
-          join(builtinProject, 'package-lock.json'),
-          JSON.stringify({
-            name: manifest.name,
-            version: manifest.version,
-            lockfileVersion: 3,
-            packages: { '': manifest },
-          }) + '\n',
-          { mode: 0o600 },
-        )
-        await initializeHostEnvironment({
-          management: server.management!,
-          workspace,
-          projectDirectory: builtinProject,
+      await withShippedEnvironmentProject(projectDirectory =>
+        initializeHostEnvironment({
+          management: server!.management!,
+          workspace: workspace!,
+          projectDirectory,
           kind: 'builtin',
           environmentId: 'builtin-server',
           name: '内置服务器环境',
           matchmakingEnabled: true,
-        })
-      } finally {
-        await rm(builtinProject, { recursive: true, force: true })
-      }
+        }),
+      )
     }
     if (desktopLaunch) await saveDesktopLaunch(server.management!, desktopLaunch)
     await server.start()

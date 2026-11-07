@@ -3,18 +3,14 @@ import { readFile } from 'node:fs/promises'
 import { createLocalContentSessions } from '../local-content-sessions.mjs'
 import { createNpmFixture } from '../../../server/test/fixtures/npm'
 import { loadStandaloneBase } from '../../../server/src/standalone/native'
-import { prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { presentationIndex } from '@arcadia-eternity/pack-loader/native'
-import { officialTemplateDefinitions, officialEffectIds } from '@arcadia-eternity/data-pack-base/metadata'
-import artifact from '../../../server/src/standalone/effect-module'
-import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 
 it('captures real npm display and resources, preserves prepared recipes across edits, and evaluates effects only in Workers', async () => {
-  const fixture = await createNpmFixture({ presentation: true })
+  const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })
   const workers = createNodeBattleWorkerManager()
   let releases = 0
-  const base = await loadStandaloneBase()
   const sessions = createLocalContentSessions({
     library: {
       acquireProject: async () => ({
@@ -26,20 +22,11 @@ it('captures real npm display and resources, preserves prepared recipes across e
       }),
     },
     load: async () => ({
-      base,
-      host: {
-        build: base.build,
-        base: base.data,
-        templates: officialTemplateDefinitions,
-        effectIds: officialEffectIds,
-        effectModules: [{ artifact, namespace: '', role: 'catalog' }],
-      },
+      loadBase: loadStandaloneBase,
+      host: emptyNpmContentHost,
       prepareNpmProject,
-      presentationIndex,
-      SpeciesSchema,
-      SkillSchema,
-      MarkSchema,
-      parseWithErrors,
+      buildDisplayCatalog,
+      buildDisplayLocales,
     }),
     assetUrl: (token: string, hash: string) => `http://localhost/local-content/${token}/${hash}`,
   })
@@ -125,15 +112,16 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
     fail = false
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
-    base: {
+    loadBase: async () => ({
       data: empty,
       presentation: [],
       sandbox: {},
       build: { coreBuildId: 'core', registryBuildId: 'registry' },
       revision: 'base',
-    },
+    }),
     host: {},
-    presentationIndex: () => new Map(),
+    buildDisplayCatalog,
+    buildDisplayLocales,
     prepareNpmProject: async () => {
       calls++
       let resolve!: () => void
@@ -219,15 +207,16 @@ it('releases document owners and rejects late preparation after document retirem
   })
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
-    base: {
+    loadBase: async () => ({
       data: empty,
       presentation: [],
       sandbox: {},
       build: { coreBuildId: 'core', registryBuildId: 'registry' },
       revision: 'base',
-    },
+    }),
     host: {},
-    presentationIndex: () => new Map(),
+    buildDisplayCatalog,
+    buildDisplayLocales,
     prepareNpmProject: async () => {
       await gate
       return {

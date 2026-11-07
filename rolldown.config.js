@@ -1,9 +1,8 @@
 import { defineConfig } from 'rolldown'
 import { isBuiltin } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { builtinEffectsPlugin } from './scripts/effect-module-plugin.ts'
 
-// Offline commands are self-contained. Existing network/server commands retain lazy service dependencies.
+// Keep network and server dependencies lazy in the bundled launcher.
 const legacyDependencies = new Set([
   '@arcadia-eternity/database',
   '@arcadia-eternity/content-dev/management-workspace',
@@ -29,6 +28,5 @@ export default defineConfig({
       'import { createRequire as __arcadiaCreateRequire } from "node:module"; const require = __arcadiaCreateRequire(import.meta.url);',
   },
   tsconfig: true,
-  plugins: [builtinEffectsPlugin()],
   external: id => isBuiltin(id) || legacyDependencies.has(id),
 })

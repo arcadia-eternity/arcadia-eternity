@@ -1,11 +1,20 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { prepareCatalogPackage } from '@arcadia-eternity/pack-loader/node'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
-import { reactive } from 'vue'
+import { reactive, toRaw } from 'vue'
+import { nanoid } from 'nanoid'
+import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
+import { officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/metadata'
+import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import { patch } from 'jsondiffpatch'
 import type { BattleState } from '@arcadia-eternity/const'
 import { parse } from 'yaml'
 import {
+  type ContentPrototypeData,
+  GameRng,
   AttributeSystem,
   BattleMessageType,
   BattleStatus,
@@ -18,7 +27,6 @@ import type { IBattleSystem } from '@arcadia-eternity/interface'
 import { InMemoryPeerTransport } from '@/p2p/inMemoryPeerTransport'
 import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
 import {
-  createNativeWebBattleSystem,
   createSandboxWebBattleSession,
   type NativeGameDataStoreLike,
   type NativeWebBattleConfig,
@@ -61,10 +69,71 @@ function fixture() {
   )
   return { data, players }
 }
+/** Shared local/P2P construction. Metadata comes from the current store; effects come from compiled TS. */
+async function createNativeWebBattleSystem(
+  first: NativeWebPlayer,
+  second: NativeWebPlayer,
+  dataStore: NativeGameDataStoreLike,
+  config: NativeWebBattleConfig = {},
+): Promise<LocalBattleSystemV4> {
+  if (config.environment) throw Error('Custom environments require the sandbox battle factory')
+  return (await createNativeWebBattleSession(first, second, dataStore, config)).system
+}
+
+/** Load once so local battle rules and display describe the same fixed content. */
+async function createNativeWebBattleSession(
+  first: NativeWebPlayer,
+  second: NativeWebPlayer,
+  dataStore: NativeGameDataStoreLike,
+  config: NativeWebBattleConfig = {},
+): Promise<{ system: LocalBattleSystemV4; data: ContentPrototypeData }> {
+  if (config.environment) throw Error('Custom environments require the sandbox battle factory')
+  const copy = <T>(value: T): T => JSON.parse(JSON.stringify(toRaw(value))) as T
+  const teams = [first, second].map(player => ({
+    ...copy(player),
+    id: player.id ?? nanoid(),
+    team: player.team.map(pet => ({ ...copy(pet), id: nanoid() })),
+  }))
+  if (teams[0].id === teams[1].id) throw new Error('Battle players must have distinct identities')
+  const options = structuredClone(toRaw(config))
+  if (options.rngSeed !== undefined) new GameRng(options.rngSeed)
+  const records = (kind: keyof NativeGameDataStoreLike) =>
+      dataStore[kind].allIds.map(id => copy(dataStore[kind].byId[id])),
+    loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent, {
+      templates: officialTemplateDefinitions,
+    }),
+    metadata = { marks: records('marks'), skills: records('skills'), species: records('species') },
+    loaded = await loader.fromMetadata(metadata),
+    aiSlots = new Set(options.ai?.enabled ? (options.ai.players ?? ['playerB']) : []),
+    [a, b] = loaded.content.parsePlayers(teams, {
+      aiPlayerIds: teams
+        .filter((_, index) => aiSlots.has(index === 0 ? 'playerA' : 'playerB'))
+        .map(player => player.id),
+    }),
+    battle = loaded.content.createBattle(a, b, {
+      rngSeed: options.rngSeed,
+      allowFaintSwitch: options.allowFaintSwitch,
+      showHidden: options.showHidden,
+      timerConfig: options.timerConfig,
+    })
+  try {
+    return {
+      system: new LocalBattleSystemV4(battle, loaded.content, { teamSelection: options.teamSelection }),
+      data: metadata,
+    }
+  } catch (error) {
+    await battle.cleanup()
+    throw error
+  }
+}
 const systems: LocalBattleSystemV4[] = []
 const peers: IBattleSystem[] = []
 let baseline = 0
-beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
+let environment: Awaited<ReturnType<typeof prepareCatalogPackage>>['sandbox']
+beforeAll(async () => {
+  setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
+  environment = (await prepareCatalogPackage(fileURLToPath(root))).sandbox
+})
 beforeEach(() => {
   baseline = AttributeSystem.getGlobalMemoryStats().totalInstances
 })
@@ -120,13 +189,16 @@ it('forwards cancellation separately from cloned battle options to the Worker qu
 
 it('rejects a sandbox checkpoint after captured metadata changes', async () => {
   const f = fixture(),
-    first = await createSandboxWebBattleSession(f.players[0], f.players[1], f.data)
+    first = await createSandboxWebBattleSession(f.players[0], f.players[1], f.data, { environment })
   peers.push(first.system)
   const saved = await first.system.createRuntimeSnapshot()
   await first.system.cleanup()
-  const skill = f.data.skills.byId[f.data.skills.allIds[0]] as { power: number }
+  const edited = structuredClone(environment)
+  const skill = edited.data.skills[0] as { power: number }
   skill.power = (skill.power ?? 0) + 1
-  const second = await createSandboxWebBattleSession(f.players[0], f.players[1], f.data)
+  const second = await createSandboxWebBattleSession(f.players[0], f.players[1], f.data, {
+    environment: { ...edited, revision: edited.revision + '/changed-rules' },
+  })
   peers.push(second.system)
   const current = await second.system.createRuntimeSnapshot()
   expect(JSON.parse(current.payload).battle.catalog).not.toBe(JSON.parse(saved.payload).battle.catalog)
@@ -190,7 +262,7 @@ it('runs the real native P2P host through sync, remote input and a complete turn
       dataStore: f.data,
       bridge: bridge(transports[0]),
       transport: transports[0],
-      battleConfig: { rngSeed: 201, timerConfig: { enabled: false } },
+      battleConfig: { rngSeed: 201, timerConfig: { enabled: false }, environment },
     }),
     peer = new P2PPeerBattleSystem(b, bridge(transports[1]), transports[1])
   peers.push(peer, host)

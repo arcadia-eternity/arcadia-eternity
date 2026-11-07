@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
@@ -18,14 +19,7 @@ afterEach(async () => {
 async function setup() {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-initialization-'))
   cleanups.push(() => rm(directory, { recursive: true, force: true }))
-  const project = join(directory, 'project')
-  await mkdir(project)
-  const manifest = { name: 'empty-initialization-project', version: '1.0.0', private: true }
-  await writeFile(join(project, 'package.json'), JSON.stringify(manifest))
-  await writeFile(
-    join(project, 'package-lock.json'),
-    JSON.stringify({ ...manifest, lockfileVersion: 3, packages: { '': manifest } }),
-  )
+  const project = await stageShippedCatalog(directory)
   const storage = openStorage({ driver: 'sqlite', filename: join(directory, 'server.sqlite') })
   await storage.migrate()
   cleanups.push(() => storage.close())
@@ -50,7 +44,7 @@ const desktopDocument = {
   schemaVersion: 2,
   id: 'desktop-host',
   name: '本机服务器环境',
-  packages: {},
+  packages: shippedCatalogMembers,
   sources: [],
   rules: { schemaVersion: 1 },
   requires: {},
@@ -71,7 +65,7 @@ it('does not overwrite a same-named draft while recovering a host initializer', 
     schemaVersion: 2,
     id: 'desktop-host',
     name: '管理员草稿',
-    packages: {},
+    packages: shippedCatalogMembers,
     sources: [],
     rules: { schemaVersion: 1, team: { maxSize: 1 } },
     requires: {},
@@ -158,7 +152,10 @@ it('fails closed when a persisted builtin version no longer matches runtime cont
   const draft = await workspace.saveDraft({ document: desktopDocument, expectedRevision: null })
   const version = await workspace.prepareVersion(
     { environmentId: 'desktop-host', expectedRevision: draft.revision, directory: project },
-    async () => ({ contentRevision: 'deliberately-wrong-revision', packages: [] }),
+    async () => ({
+      contentRevision: 'deliberately-wrong-revision',
+      packages: Object.entries(shippedCatalogMembers).map(([name, version]) => ({ name, version })),
+    }),
   )
   const binding = (await management.ensureInitializationBinding('desktop', 'desktop-host', version.versionId))!
   await storage.replace('bindings', binding.id, binding.revision, { ...binding.value, condition: 'applying' })

@@ -84,13 +84,15 @@ export class LocalBattleSession {
       this.#preparing = (async () => {
         await this.prepareContent(target.data)
         launch.signal.throwIfAborted()
+        const environment = await this.#content?.readRuntime()
+        launch.signal.throwIfAborted()
         const prepared = await this.create(
           firstInput,
           secondInput,
           target.data,
           {
             ...options,
-            ...(this.#content ? { environment: this.#content.environment } : {}),
+            ...(environment ? { environment } : {}),
           },
           launch.signal,
         )

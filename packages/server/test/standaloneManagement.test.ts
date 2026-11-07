@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { openStorage, type DurableStorage } from '../../database/src/storage'
 import { ContentWorkspace } from '../../content-dev/src/content-workspace.mjs'
 import { createSingleProcessApp } from '../src/standalone/app'
-import { createNpmFixture } from './fixtures/npm'
+import { createNpmFixture, shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
 import type { Binding } from '../src/standalone/management/service'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 
@@ -293,25 +293,13 @@ describe('unified management HTTP and durable environment publication', () => {
   }, 30000)
 
   it('exports and imports actual environment bundles through authenticated HTTP without exposing host paths', async () => {
-    const project = await mkdtemp(join(tmpdir(), 'arcadia-management-empty-'))
-    cleanups.push(() => rm(project, { recursive: true, force: true }))
-    await writeFile(
-      join(project, 'package.json'),
-      JSON.stringify({ name: 'empty', version: '1.0.0', private: true, dependencies: {} }),
-    )
-    await writeFile(
-      join(project, 'package-lock.json'),
-      JSON.stringify({
-        name: 'empty',
-        version: '1.0.0',
-        lockfileVersion: 3,
-        packages: { '': { name: 'empty', version: '1.0.0' } },
-      }),
-    )
+    const root = await mkdtemp(join(tmpdir(), 'arcadia-management-project-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const project = await stageShippedCatalog(root)
     const env = await setup(project)
     const base = `/workspaces/${env.workspace.workspaceId}`
     const draft = await env.request(base + '/environments', 'POST', {
-      document: { schemaVersion: 1, id: 'exported', name: 'Exported', packages: {}, sources: [] },
+      document: { schemaVersion: 1, id: 'exported', name: 'Exported', packages: shippedCatalogMembers, sources: [] },
       expectedRevision: null,
     })
     const prepared = await env.request(

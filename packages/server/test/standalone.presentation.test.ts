@@ -5,13 +5,13 @@ import { createSingleProcessApp } from '../src/standalone/app'
 import { createNpmFixture } from './fixtures/npm'
 
 it('publishes remote URLs without downloading and streams package files without cache, including HEAD and Range', async () => {
-  const fixture = await createNpmFixture({ presentation: true })
+  const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })
   const app = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: [] })
   try {
     const first = await app.environments.prepareNpm(fixture.directory)
     await app.start()
     const base = `http://127.0.0.1:${app.address!.port}`
-    expect(first.remoteResources).toEqual([
+    expect(first.remoteResources?.filter(resource => resource.projectId === 'example-slow')).toEqual([
       {
         projectId: 'example-slow',
         id: 'animation',
@@ -26,7 +26,10 @@ it('publishes remote URLs without downloading and streams package files without 
     expect(content.locales?.bundles['zh-CN'].species.pet_dilan).toMatchObject({ name: '迪兰' })
     expect(content.locales?.bundles['zh-CN']).not.toHaveProperty('webui')
     expect(content.locales?.bundles['zh-CN']).not.toHaveProperty('battle')
-    expect(content.species.find(pet => pet.id === 'pet_dilan')?.presentation?.battle?.source).toMatch(/^https:\/\//)
+    const dilan = content.species.find(pet => pet.id === 'pet_dilan')?.presentation?.battle?.source
+    expect(
+      first.remoteResources?.find(resource => resource.projectId === 'base' && resource.id === dilan)?.url,
+    ).toMatch(/^https:\/\//)
     expect(content.skills.every(skill => !Object.hasOwn(skill, 'effect'))).toBe(true)
     expect(content.marks.every(mark => !Object.hasOwn(mark, 'effect') && !Object.hasOwn(mark, 'config'))).toBe(true)
     const builtin = app.environments.list().find(entry => !entry.packages.length)!

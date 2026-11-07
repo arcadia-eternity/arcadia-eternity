@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -28,20 +29,7 @@ function deferred() {
 async function setup() {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-binding-integration-'))
   cleanups.push(() => rm(directory, { recursive: true, force: true }))
-  const source = join(directory, 'project')
-  await mkdir(join(source, 'node_modules'), { recursive: true })
-  const manifest = { name: 'empty-management-environment', version: '1.0.0', private: true, dependencies: {} }
-  await writeFile(join(source, 'package.json'), JSON.stringify(manifest))
-  await writeFile(
-    join(source, 'package-lock.json'),
-    JSON.stringify({
-      name: manifest.name,
-      version: manifest.version,
-      lockfileVersion: 3,
-      requires: true,
-      packages: { '': { name: manifest.name, version: manifest.version, dependencies: {} } },
-    }),
-  )
+  const source = await stageShippedCatalog(directory)
   await writeFile(
     join(source, 'arcadia-admission.json'),
     JSON.stringify({
@@ -93,7 +81,10 @@ async function setup() {
     request<{ revision: string }>({
       method: 'POST',
       path: environmentsPath,
-      body: { document: { schemaVersion: 1, id: 'shared', name, packages: {}, sources: [] }, expectedRevision },
+      body: {
+        document: { schemaVersion: 1, id: 'shared', name, packages: shippedCatalogMembers, sources: [] },
+        expectedRevision,
+      },
     })
   const beginPrepare = (expectedRevision: string) =>
     request<{ id: string }>({

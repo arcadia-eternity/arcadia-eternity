@@ -5,7 +5,13 @@ export { NodeWorkStorage } from './src/node-work-storage'
 export { readNpmAdmission } from './src/npm/admission'
 export { resolveNpmInvocation } from './src/npm/runner'
 export { inspectNpmProject, type NpmProjectInspection, type NpmContentManifest } from './src/npm/inspect'
-export { prepareNpmProject, type NpmContentHost, type PreparedNpmEnvironment } from './src/npm/prepare'
+export {
+  prepareNpmProject,
+  emptyNpmContentHost,
+  type NpmContentHost,
+  type PreparedNpmEnvironment,
+} from './src/npm/prepare'
+export { prepareCatalogPackage, stageCatalogProject } from './src/npm/official-host'
 export { compileEffectModule } from './src/npm/effect-artifact'
 export { sandboxEnvironmentFor } from './src/effect-environment'
 

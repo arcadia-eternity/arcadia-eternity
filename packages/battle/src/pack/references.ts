@@ -11,6 +11,7 @@ export interface DataPackManifest {
   version: string
   engine: 'seer2-v2'
   layoutVersion?: 1
+  content?: string
   presentation?: string
   assetsRef?: string | string[]
   dependencies?: DataPackDependency[]

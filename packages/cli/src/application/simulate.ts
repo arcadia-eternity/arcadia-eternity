@@ -1,15 +1,9 @@
-import type { ContentIndex } from '@arcadia-eternity/battle/v4'
-import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
+import type { CliPreparedContent } from './prepare'
 import type { RunOptions } from './run'
 import { runBattle } from './run'
 import type { RunSpec, Replay, RunResult } from './types'
 
-export async function simulate(
-  loaded: NativePackLoadResult<ContentIndex>,
-  spec: RunSpec,
-  runs: number,
-  options: RunOptions,
-) {
+export async function simulate(loaded: CliPreparedContent, spec: RunSpec, runs: number, options: RunOptions) {
   const results: RunResult[] = [],
     replays: Replay[] = []
   for (let index = 0; index < runs; index++) {

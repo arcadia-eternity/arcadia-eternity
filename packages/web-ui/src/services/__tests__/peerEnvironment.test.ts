@@ -151,6 +151,14 @@ describe('fixed peer environment acquisition', () => {
     expect(result.acceptance.peerRevision).toBe(descriptor.peerRevision)
   })
 
+  it('loads an environment whose only execution module comes from a selected community package', async () => {
+    const { descriptor, materials } = await fixture()
+    materials.environment.modules.shift()
+    await reseal({ descriptor, materials })
+    const result = await preparePeerEnvironment(server, descriptor, transport(materials) as typeof fetch)
+    expect(result.environment.modules.map(module => module.namespace)).toEqual(['sample'])
+  })
+
   it('validates omitted schema defaults without modifying captured raw skill or mark records', async () => {
     const { descriptor, materials } = await fixture()
     const rawSkill = { id: 'sample:strike' }
@@ -185,7 +193,6 @@ describe('fixed peer environment acquisition', () => {
     }
     const request = transport(captured)
     await expect(preparePeerEnvironment(server, descriptor, request as typeof fetch)).rejects.toThrow()
-    expect(request.mock.calls.some(([url]) => String(url).endsWith('/content'))).toBe(false)
   })
 
   const identityChanges: [string, (materials: Awaited<ReturnType<typeof fixture>>['materials']) => void][] = [
@@ -219,7 +226,6 @@ describe('fixed peer environment acquisition', () => {
   })
 
   const moduleChanges: [string, (materials: Awaited<ReturnType<typeof fixture>>['materials']) => void][] = [
-    ['official catalog', value => value.environment.modules.shift()],
     ['module for a referenced behavior namespace', value => value.environment.modules.pop()],
     ['compatible SDK', value => (value.environment.modules[1].artifact.sdkApi = 99)],
     ['supported artifact format', value => (value.environment.modules[1].artifact.format = 'javascript')],

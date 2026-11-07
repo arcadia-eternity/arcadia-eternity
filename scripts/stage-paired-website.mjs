@@ -7,6 +7,8 @@ export async function verifyPairedWebsite(root) {
   const pack = JSON.parse(await readFile(new URL('pack.json', root), 'utf8'))
   const presentation = JSON.parse(await readFile(new URL(pack.presentation, root), 'utf8'))
   const paths = ['index.html', 'pack-lock.yaml', pack.presentation]
+  if (pack.content)
+    paths.push(pack.content, 'dist/catalog.json', 'environment/catalog.json', 'environment/runtime.json')
   for (const files of Object.values(pack.data)) {
     for (const file of files) paths.push(`${pack.paths.dataDir}/${file}`)
   }

@@ -17,6 +17,8 @@ export interface PersonalEnvironmentReference {
 export interface ServerEnvironmentDescriptor {
   id: string
   protocolVersion: 1
+  /** Set on the public list entry selected by the server as its default. */
+  isDefault?: boolean
   /** Omitted by older servers. A peer-only listing must never be submitted for server execution. */
   executionPolicy?: 'server' | 'peer'
   /** Captured sandbox revision required before a client can acknowledge peer execution readiness. */

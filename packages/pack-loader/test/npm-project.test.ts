@@ -815,23 +815,31 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
       name: '@arcadia-eternity/data-pack-base',
       version: '1.0.0',
       arcadiaEternityPack: 'pack.json',
-      arcadiaEternityHost: 'host.json',
+      arcadia: {
+        formatVersion: 1,
+        projectId: 'base',
+        namespace: 'base',
+        content: 'content.json',
+        catalog: 'catalog.json',
+        effectArtifact: 'effects.json',
+        sdkApi: 2,
+      },
     },
     {
       'pack.json': '{}',
-      'host.json': JSON.stringify({
+      'content.json': JSON.stringify({ data: { species: [], skills: [baseSkill], marks: [] } }),
+      'catalog.json': JSON.stringify({
         formatVersion: 1,
         build: host.build,
-        data: { species: [], skills: [baseSkill], marks: [] },
         templates: [],
         effectIds: [],
-        effectArtifact: {
-          format: 'arcadia.effect-module',
-          version: 1,
-          sdkApi: 2,
-          packageId: '@arcadia-eternity/data-pack-base',
-          source: 'export function createCatalog() { return { effects: new Map(), parameters: new Map() } }',
-        },
+      }),
+      'effects.json': JSON.stringify({
+        format: 'arcadia.effect-module',
+        version: 1,
+        sdkApi: 2,
+        packageId: '@arcadia-eternity/data-pack-base',
+        source: 'export function createCatalog() { return { effects: new Map(), parameters: new Map() } }',
       }),
     },
   )
@@ -890,11 +898,11 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
   const baseMember = prepared.installation.members.find(pkg => pkg.projectId === 'base')!
   expect(baseMember.requiredBy).toContain('@arcadia-test/base-consumer')
   expect(baseMember.direct).toBe(false)
-  const metadataFile = join(directory, 'node_modules/@arcadia-eternity/data-pack-base/host.json')
+  const metadataFile = join(directory, 'node_modules/@arcadia-eternity/data-pack-base/catalog.json')
   const metadata = JSON.parse(await readFile(metadataFile, 'utf8'))
   metadata.build.coreBuildId = 'c'.repeat(64)
   await writeFile(metadataFile, JSON.stringify(metadata))
-  await expect(prepare(directory)).rejects.toThrow('Incompatible official base host artifact')
+  await expect(prepare(directory)).rejects.toThrow('Incompatible catalog package artifact')
   metadata.build.coreBuildId = host.build.coreBuildId
   await writeFile(metadataFile, JSON.stringify(metadata))
   await expect(

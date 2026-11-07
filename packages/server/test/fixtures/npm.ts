@@ -5,11 +5,23 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
-import { compileEffectModule } from '@arcadia-eternity/pack-loader/node'
+import { readFileSync } from 'node:fs'
+import { compileEffectModule, stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
+const shippedCatalogRoot = fileURLToPath(new URL('../../../../packs/base/', import.meta.url))
+const shippedCatalog = JSON.parse(readFileSync(join(shippedCatalogRoot, 'package.json'), 'utf8'))
+export const shippedCatalogMembers: Record<string, string> = { [shippedCatalog.name]: shippedCatalog.version }
+export const stageShippedCatalog = (root: string) => stageCatalogProject(root, shippedCatalogRoot)
+
 export async function createNpmFixture(
-  options: { presentation?: boolean; remoteUrl?: string; prebuilt?: boolean; forbidHostExecution?: boolean } = {},
+  options: {
+    presentation?: boolean
+    remoteUrl?: string
+    prebuilt?: boolean
+    forbidHostExecution?: boolean
+    includeCatalog?: boolean
+  } = {},
 ) {
   if (options.forbidHostExecution && !options.prebuilt) throw new Error('forbidHostExecution requires prebuilt')
   const root = await mkdtemp(join(tmpdir(), 'arcadia-server-npm-'))
@@ -118,6 +130,28 @@ export async function createNpmFixture(
       : [{ id: 'icon', variant: 'default', mime: 'image/png', bytes: asset.length, sha256 }]
     await writeFile(join(source, 'content.json'), JSON.stringify(content))
     const packed = await exec('npm', ['pack', '--ignore-scripts', '--json'], { cwd: source })
+    const dependencies = { [manifest.name]: `file:${join(source, JSON.parse(packed.stdout)[0].filename)}` }
+    if (options.includeCatalog) {
+      const base = join(root, 'catalog')
+      const packageRoot = join(repository, 'packs/base')
+      const metadata = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'))
+      await mkdir(join(base, 'dist'), { recursive: true })
+      for (const field of ['content', 'presentation', 'effectArtifact', 'catalog'])
+        await cp(join(packageRoot, metadata.arcadia[field]), join(base, metadata.arcadia[field]))
+      await cp(join(packageRoot, 'assets'), join(base, 'assets'), { recursive: true })
+      await cp(join(packageRoot, metadata.arcadiaEternityPack), join(base, metadata.arcadiaEternityPack))
+      await writeFile(
+        join(base, 'package.json'),
+        JSON.stringify({
+          name: metadata.name,
+          version: metadata.version,
+          arcadia: metadata.arcadia,
+          arcadiaEternityPack: metadata.arcadiaEternityPack,
+        }),
+      )
+      const { stdout } = await exec('npm', ['pack', '--ignore-scripts', '--json'], { cwd: base })
+      dependencies[metadata.name] = `file:${join(base, JSON.parse(stdout)[0].filename)}`
+    }
     await mkdir(directory)
     await writeFile(
       join(directory, 'package.json'),
@@ -125,7 +159,7 @@ export async function createNpmFixture(
         name: 'server-fixture',
         version: '1.0.0',
         private: true,
-        dependencies: { [manifest.name]: `file:${join(source, JSON.parse(packed.stdout)[0].filename)}` },
+        dependencies,
       }),
     )
     await exec('npm', ['install', '--offline', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund'], {

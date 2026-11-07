@@ -57,7 +57,7 @@ beforeAll(async () => {
   const runtime = join(temporary, 'runtime')
   await cp(join(root, 'dist'), join(runtime, 'dist'), { recursive: true })
   await mkdir(join(runtime, 'packs/base/assets'), { recursive: true })
-  for (const file of ['pack.json', 'pack-lock.yaml', 'data', 'locales', 'dist/presentation.json'])
+  for (const file of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'dist'])
     await cp(join(root, 'packs/base', file), join(runtime, 'packs/base', file), { recursive: true })
   await writeFile(join(runtime, 'package.json'), '{"type":"module"}')
   cli = join(runtime, 'dist/cli.js')

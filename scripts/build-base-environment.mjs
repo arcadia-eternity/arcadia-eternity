@@ -78,18 +78,27 @@ export async function buildBaseEnvironmentArtifact() {
         Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentNamespaces.has(name))),
       ]),
     )
-    await writeFile(
-      resolve(dir, 'native-host.json'),
-      JSON.stringify({
-        formatVersion: 1,
-        build: identity,
-        data,
-        templates: metadata.officialTemplateDefinitions,
-        effectIds: metadata.officialEffectIds,
-        effectArtifact: await compileEffectModule(resolve(dir, 'effects.js'), root, '@arcadia-eternity/data-pack-base'),
-        presentation: { ...presentation, locales },
-      }) + '\n',
-    )
+    await Promise.all([
+      writeFile(resolve(dir, 'content.json'), JSON.stringify({ data }) + '\n'),
+      writeFile(resolve(dir, 'presentation.json'), JSON.stringify({ ...presentation, locales }) + '\n'),
+      writeFile(
+        resolve(dir, 'catalog.json'),
+        JSON.stringify({
+          formatVersion: 1,
+          build: identity,
+          templates: metadata.officialTemplateDefinitions,
+          effectIds: metadata.officialEffectIds,
+          effectTemplates: metadata.officialEffectTemplates,
+          effectMarkRelations: metadata.officialEffectMarkRelations,
+        }) + '\n',
+      ),
+      writeFile(
+        resolve(dir, 'arcadia-effects.json'),
+        JSON.stringify(
+          await compileEffectModule(resolve(dir, 'effects.js'), root, '@arcadia-eternity/data-pack-base'),
+        ) + '\n',
+      ),
+    ])
     await writeFile(
       resolve(dir, 'metadata.mjs'),
       [

@@ -4,8 +4,18 @@ import { resolve } from 'node:path'
 import * as sdk from '@arcadia-eternity/battle/v4/authoring'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import { createContentIndex, type ContentIndex } from '@arcadia-eternity/battle/v4'
+import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
-import { cloneJson, digestJson, fail, runtimeId, type Json, type WorkHost, type WorkRelease } from '../works/model'
+import {
+  cloneJson,
+  digestJson,
+  fail,
+  freeze,
+  runtimeId,
+  type Json,
+  type WorkHost,
+  type WorkRelease,
+} from '../works/model'
 import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProjectInspection } from './inspect'
 import { captureNpmProject } from './capture'
 import { preparePresentation, type PreparedPresentation } from './resources'
@@ -18,6 +28,11 @@ export interface NpmContentHost extends Omit<WorkHost<ContentIndex>, 'createCont
   readonly effectModules?: SandboxEnvironment['modules']
   readonly effectIds?: readonly string[]
 }
+export const emptyNpmContentHost: NpmContentHost = freeze({
+  build: nativeBuildIdentity,
+  base: { marks: [], skills: [], species: [] },
+  templates: [],
+})
 export interface NpmPreparationOptions {
   /** prebuilt-only never invokes the author compiler, module loader or a VM. */
   readonly effectPreparation?: 'compile' | 'prebuilt-only'
@@ -77,7 +92,9 @@ async function compileInstallation(
   policyInput: Readonly<Record<string, Json>>,
   options: NpmPreparationOptions,
 ) {
-  const policy = cloneJson(policyInput)
+  // Admission controls preparation and execution. The same package selection
+  // retains its material identity when a different host admits it.
+  const { profile: _profile, ...policy } = cloneJson(policyInput)
   const contentPackages = installation.packages.filter(pkg => pkg.manifest)
   if (!contentPackages.length && !installation.packages.some(pkg => pkg.officialHost))
     fail('NPM_CONTENT_MISSING', 'dependencies', 'No installed Arcadia content packages')

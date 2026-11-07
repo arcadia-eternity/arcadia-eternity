@@ -27,7 +27,10 @@ test(
     await mkdir(base)
     // The real base build supplies the closed artifact and data. This fixture has
     // no JS runtime imports: preparation must not need to execute its entry point.
-    await cp(new URL('../../../packs/base/dist/native-host.json', import.meta.url), join(base, 'host.json'))
+    const { arcadia } = JSON.parse(await readFile(new URL('../../../packs/base/package.json', import.meta.url), 'utf8'))
+    await mkdir(join(base, 'dist'))
+    for (const file of [arcadia.catalog, arcadia.content, arcadia.presentation, arcadia.effectArtifact])
+      await cp(new URL(`../../../packs/base/${file}`, import.meta.url), join(base, file))
     await cp(new URL('../../../packs/base/assets/', import.meta.url), join(base, 'assets'), { recursive: true })
     await writeFile(
       join(base, 'package.json'),
@@ -35,7 +38,7 @@ test(
         name: '@arcadia-eternity/data-pack-base',
         version: '1.0.0',
         arcadiaEternityPack: 'pack.json',
-        arcadiaEternityHost: 'host.json',
+        arcadia,
         type: 'module',
         main: 'index.js',
       }),

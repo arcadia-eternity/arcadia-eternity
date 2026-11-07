@@ -24,9 +24,21 @@ export async function preparePresentation(
 ): Promise<PreparedPresentation[]> {
   const output: PreparedPresentation[] = []
   const byLocation = new Map(packages.map(pkg => [pkg.location, pkg]))
-  const byNamespace = new Map(packages.filter(pkg => pkg.manifest).map(pkg => [pkg.manifest!.namespace, pkg]))
+  const byNamespace = new Map<string, InstalledNpmPackage>()
+  for (const pkg of packages) {
+    if (pkg.manifest) byNamespace.set(pkg.manifest.namespace, pkg)
+    if (pkg.officialHost) byNamespace.set('base', pkg)
+  }
+  const resourcesByPackage = new Map(
+    packages.map(pkg => [pkg, new Map(pkg.presentation?.resources.map(resource => [resource.id, resource]))]),
+  )
   for (const pkg of packages) {
     if (!pkg.manifest || !pkg.draft) continue
+    const ids = {
+      species: new Set(pkg.draft.data.species.map(record => record.id)),
+      skills: new Set(pkg.draft.data.skills.map(record => record.id)),
+      marks: new Set(pkg.draft.data.marks.map(record => record.id)),
+    }
     const accessible = new Set<string>()
     function visit(dependency: InstalledNpmPackage) {
       if (accessible.has(dependency.location)) return
@@ -49,8 +61,7 @@ export async function preparePresentation(
         }[namespace] as 'species' | 'skills' | 'marks' | undefined
         if (!kind) throw new Error(`LOCALE_NAMESPACE: ${language}/${namespace}`)
         for (const [id, entry] of Object.entries(entries)) {
-          if (!pkg.draft.data[kind].some(record => record.id === id))
-            throw new Error(`LOCALE_REFERENCE: ${language}/${namespace}/${id}`)
+          if (!ids[kind].has(id)) throw new Error(`LOCALE_REFERENCE: ${language}/${namespace}/${id}`)
           if (
             !entry ||
             typeof entry !== 'object' ||
@@ -66,7 +77,7 @@ export async function preparePresentation(
       const namespace = typeof ref === 'string' ? pkg.manifest!.namespace : (ref as { namespace: string }).namespace
       const id = typeof ref === 'string' ? ref : (ref as { id: string }).id
       const provider = byNamespace.get(namespace)
-      const resource = provider?.presentation?.resources.find(asset => asset.id === id)
+      const resource = provider && resourcesByPackage.get(provider)?.get(id)
       if (!provider || !accessible.has(provider.location) || !resource)
         throw new Error(`RESOURCE_REFERENCE: ${pkg.manifest!.namespace} references unavailable ${namespace}/${id}`)
       if (
@@ -89,8 +100,7 @@ export async function preparePresentation(
       if (targets.has(key) || bindingIds.has(id)) throw new Error(`PRESENTATION_CONFLICT: ${id}`)
       targets.add(key)
       bindingIds.add(id)
-      if (!pkg.draft.data[target.kind].some(record => record.id === target.id))
-        throw new Error(`PRESENTATION_TARGET: ${key}`)
+      if (!ids[target.kind].has(target.id)) throw new Error(`PRESENTATION_TARGET: ${key}`)
       const presentation = parseWithErrors(ContentPresentationSchema, raw) as ContentPresentation
       for (const [key, value] of Object.entries(presentation)) {
         if (key === 'battle') {

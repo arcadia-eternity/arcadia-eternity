@@ -54,6 +54,7 @@ interface MetadataPack {
   source: string
   raw: string
   readData(file: string): Promise<unknown[]>
+  readContent?(file: string): Promise<{ data?: Partial<ContentPrototypeData> }>
   readLocale(file: string): Promise<unknown>
   assets: AssetLoadRecord[]
   presentation?: PresentationManifest
@@ -151,6 +152,7 @@ export class PackMetadataLoader extends PackTransport {
           return parsed
         },
         readLocale: async file => YAML.parse(await this.readNodeText(resolve(item.localesRoot, file)), { merge: true }),
+        readContent: async file => JSON.parse(await this.readNodeText(resolve(dirname(item.path), file))),
         assets,
         presentation: item.manifest.presentation
           ? parseWithErrors(
@@ -190,6 +192,7 @@ export class PackMetadataLoader extends PackTransport {
         raw: item.manifestRaw,
         readData: file => this.fetchArray(new URL(file, item.dataRoot).toString()),
         readLocale: file => this.fetchObject(new URL(file, localesRoot).toString()),
+        readContent: file => this.fetchJson(new URL(file, item.manifestUrl).toString()),
         presentation,
         assets: (await this.loadAssetsFromManifest(item.manifest, item.manifestUrl, transportOptions, errors)).records,
       })
@@ -204,13 +207,24 @@ export class PackMetadataLoader extends PackTransport {
     for (const pack of packs) {
       if (!pack.manifest.id || !pack.manifest.version || pack.manifest.engine !== 'seer2-v2' || !pack.manifest.data)
         throw new Error(`Invalid native metadata manifest: ${pack.source}`)
+      const compiled =
+        pack.manifest.content && options.includeData !== false
+          ? (await pack.readContent!(pack.manifest.content))?.data
+          : undefined
+      if (pack.manifest.content && options.includeData !== false && !compiled)
+        throw new Error(`Invalid compiled content: ${pack.source}`)
       for (const kind of ['marks', 'skills', 'species'] as const)
         if (
           !Array.isArray(pack.manifest.data[kind]) ||
           !pack.manifest.data[kind].every(file => typeof file === 'string' && file.length > 0)
         )
           throw new Error(`Invalid native metadata file list: ${kind}`)
-        else if (options.includeData !== false)
+        else if (compiled) {
+          const rows = compiled[kind]
+          if (!Array.isArray(rows) || pack.manifest.data[kind].length)
+            throw new Error(`Invalid compiled content: ${kind}`)
+          data[kind].push(...rows)
+        } else if (options.includeData !== false)
           for (const file of pack.manifest.data[kind]) data[kind].push(...(await pack.readData(file)))
       if (options.includeLocales === false) continue
       const entries = Array.isArray(pack.manifest.locales)

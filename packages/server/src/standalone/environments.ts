@@ -1,26 +1,24 @@
 import { validateEnvironmentRules } from '@arcadia-eternity/content-dev/environment-rules'
-import { presentationIndex } from '@arcadia-eternity/pack-loader/native'
+import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
-import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
-import type { PreparedPresentation } from '@arcadia-eternity/pack-loader/node'
-import { prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
-import { officialTemplateDefinitions, officialEffectIds } from '@arcadia-eternity/data-pack-base/metadata'
-import officialEffectArtifact from './effect-module'
+import { emptyNpmContentHost, prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
-import { SkillSchema, MarkSchema, SpeciesSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createStandaloneRuntime, loadStandaloneBase, type StandaloneRuntime } from './native'
 
 interface Environment {
   runtime: StandaloneRuntime
   descriptor: ServerEnvironmentDescriptor
   content: ServerEnvironmentContent
+  thirdParty?: boolean
+  bundled?: boolean
   assetFile(hash: string): string | undefined
   dispose(): Promise<void>
   retired: boolean
   references: number
   disposing?: Promise<void>
 }
+type PublishedEnvironment = Omit<Environment, 'content'> & { catalogJson: string }
 export type EnvironmentAdmissionRules = ReturnType<typeof validateEnvironmentRules>
 export interface EnvironmentPublication {
   runtimeId: string
@@ -56,7 +54,7 @@ const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(va
 
 /** Local administrator API. Public HTTP/socket clients can only select prepared entries. */
 export class ServerEnvironmentRegistry {
-  private readonly entries = new Map<string, Environment>()
+  private readonly entries = new Map<string, PublishedEnvironment>()
   private readonly disposingIds = new Set<string>()
   private initializing?: Promise<void>
   private defaultId?: string
@@ -70,25 +68,26 @@ export class ServerEnvironmentRegistry {
       const base = await loadStandaloneBase()
       const runtime = createStandaloneRuntime(base)
       const id = digest(runtime.identity)
-      const content = this.publicContent(runtime, base.data, base.presentation)
-      content.locales = this.contentLocales([], base.locales, content)
+      const content: ServerEnvironmentContent = buildDisplayCatalog(base.data, base.presentation)
+      content.locales = buildDisplayLocales([], base.locales, content)
       this.publish({
         runtime,
         descriptor: {
           id,
           protocolVersion: 1,
           runtime: runtime.identity,
-          packages: [],
+          packages: [base.member],
           resourceRevision: digest(content),
           resources: [],
         },
         content,
+        bundled: true,
         assetFile: () => undefined,
         dispose: async () => {},
         references: 0,
         retired: false,
       })
-      this.defaultId = id
+      this.defaultId ??= id
       this.builtinId = id
     })().catch(error => {
       this.initializing = undefined
@@ -97,131 +96,16 @@ export class ServerEnvironmentRegistry {
     await this.initializing
   }
 
-  private publicContent(
-    runtime: StandaloneRuntime,
-    data: Parameters<typeof createStandaloneRuntime>[0]['data'],
-    manifests: NativePackLoadResult['presentation'],
-  ): ServerEnvironmentContent {
-    const text = (raw: unknown) => {
-      const record = raw as Record<string, unknown>
-      return {
-        ...(typeof record.name === 'string' ? { name: record.name } : {}),
-        ...(typeof record.description === 'string' ? { description: record.description } : {}),
-      }
-    }
-    const speciesText = new Map(
-      data.species.map(raw => {
-        const parsed = parseWithErrors(SpeciesSchema, raw)
-        return [
-          parsed.id,
-          {
-            ...text(raw),
-            ...(parsed.presentation ? { presentation: parsed.presentation } : {}),
-          },
-        ] as const
-      }),
-    )
-    const result: ServerEnvironmentContent = {
-      species: [...runtime.species.values()].map(item => ({ ...structuredClone(item), ...speciesText.get(item.id) })),
-      skills: data.skills.map(raw => {
-        const { effect: _effect, ...display } = parseWithErrors(SkillSchema, raw)
-        return { ...display, ...text(raw) }
-      }),
-      marks: data.marks.map(raw => {
-        const mark = parseWithErrors(MarkSchema, raw)
-        return {
-          id: mark.id,
-          tags: mark.tags ?? [],
-          ...(mark.presentation ? { presentation: mark.presentation } : {}),
-          ...text(raw),
-        }
-      }),
-    }
-    const presentations = presentationIndex(manifests)
-    for (const kind of ['species', 'skills', 'marks'] as const)
-      for (const row of result[kind]) {
-        const presentation = presentations.get(`${kind}:${row.id}`)
-        if (presentation) row.presentation = presentation
-      }
-    return result
-  }
-
-  private contentLocales(
-    packages: PreparedPresentation[],
-    official: NativePackLoadResult['locales'],
-    content: ServerEnvironmentContent,
-  ): NonNullable<ServerEnvironmentContent['locales']> {
-    const bundles: NonNullable<ServerEnvironmentContent['locales']>['bundles'] = {}
-    const allowed = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
-    const ids = {
-      species: new Set(content.species.map(row => row.id)),
-      skill: new Set(content.skills.map(row => row.id)),
-      mark: new Set(content.marks.map(row => row.id)),
-    }
-    const add = (language: string, namespace: string, entries: unknown, prefix = '') => {
-      if (!allowed.has(namespace)) throw new EnvironmentError('LOCALE_NAMESPACE_FORBIDDEN')
-      if (!entries || typeof entries !== 'object' || Array.isArray(entries))
-        throw new EnvironmentError('LOCALE_INVALID')
-      const known = ids[namespace === 'species' ? 'species' : namespace === 'skill' ? 'skill' : 'mark']
-      const target = ((bundles[language] ??= {})[namespace] ??= {})
-      for (const [key, raw] of Object.entries(entries)) {
-        const id = `${prefix}${key}`
-        // Official bundles also contain records excluded from this runtime. Never export unrelated UI/local data.
-        if (!known.has(id)) {
-          if (prefix) throw new EnvironmentError('LOCALE_CONTENT_NOT_FOUND')
-          continue
-        }
-        if (Object.hasOwn(target, id)) throw new EnvironmentError('LOCALE_CONFLICT')
-        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new EnvironmentError('LOCALE_INVALID')
-        const fields: Record<string, string> = {}
-        for (const [field, value] of Object.entries(raw)) {
-          if (!['name', 'description'].includes(field)) {
-            if (prefix) throw new EnvironmentError('LOCALE_FIELD_FORBIDDEN')
-            continue
-          }
-          if (typeof value !== 'string' || value.length > 16_384) throw new EnvironmentError('LOCALE_INVALID')
-          fields[field] = value
-        }
-        target[id] = fields
-      }
-    }
-    for (const [language, namespaces] of Object.entries(official ?? {}))
-      for (const [namespace, entries] of Object.entries(namespaces))
-        if (allowed.has(namespace)) add(language, namespace, entries)
-    for (const pkg of packages)
-      for (const [language, namespaces] of Object.entries(pkg.manifest.locales))
-        for (const [namespace, entries] of Object.entries(namespaces))
-          add(language, namespace, entries, `${pkg.namespace}:`)
-    return { defaultLocale: packages[0]?.manifest.defaultLocale ?? 'zh-CN', bundles }
-  }
-
   private publish(environment: Environment) {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
+    const { content, ...entry } = environment
+    const catalogJson = JSON.stringify(content)
     if (
-      Buffer.byteLength(JSON.stringify(environment.content)) > 16 * 1024 * 1024 ||
+      Buffer.byteLength(catalogJson) > 16 * 1024 * 1024 ||
       Buffer.byteLength(JSON.stringify(environment.descriptor)) > 16 * 1024 * 1024
     )
       throw new EnvironmentError('PUBLIC_CATALOG_TOO_LARGE')
-    this.entries.set(environment.descriptor.id, environment)
-  }
-
-  /** Fixed empty npm environments still get distinct room identities and rule snapshots. */
-  async prepareBuiltin(): Promise<ServerEnvironmentDescriptor> {
-    await this.ready()
-    const builtin = this.entry(this.builtinId)
-    const descriptor = {
-      ...structuredClone(builtin.descriptor),
-      id: digest({ builtin: this.builtinId, instance: randomUUID() }),
-    }
-    this.publish({
-      ...builtin,
-      descriptor,
-      content: structuredClone(builtin.content),
-      references: 0,
-      retired: false,
-      dispose: async () => {},
-    })
-    return this.descriptor(descriptor.id)
+    this.entries.set(entry.descriptor.id, { ...entry, catalogJson })
   }
 
   async prepareNpm(
@@ -229,21 +113,26 @@ export class ServerEnvironmentRegistry {
     approvalFile: string | Awaited<ReturnType<typeof readNpmAdmission>> = resolve(directory, 'arcadia-admission.json'),
     preparation: { effectPreparation?: 'compile' | 'prebuilt-only' } = {},
   ): Promise<ServerEnvironmentDescriptor> {
-    await this.ready()
-    const base = await loadStandaloneBase()
-    const prepared = await prepareNpmProject(
-      directory,
-      {
-        build: base.build,
-        base: base.data,
-        templates: officialTemplateDefinitions,
-        effectIds: officialEffectIds,
-        effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
-      },
-      typeof approvalFile === 'string' ? await readNpmAdmission(approvalFile) : approvalFile,
-      preparation,
-    )
+    if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
+    const approval = typeof approvalFile === 'string' ? await readNpmAdmission(approvalFile) : approvalFile
+    const prepared = await prepareNpmProject(directory, emptyNpmContentHost, approval, preparation)
     try {
+      const thirdParty = prepared.installation.packages.some(pkg => pkg.manifest)
+      let bundled = false
+      if (prepared.installation.packages.some(pkg => pkg.officialHost)) {
+        const shipped = await loadStandaloneBase()
+        const catalog = prepared.sandbox.modules.find(module => module.role === 'catalog')
+        const sameCode = catalog && digest(catalog.artifact) === digest(shipped.sandbox.modules[0].artifact)
+        if (!sameCode && approval.policy.profile === 'official')
+          throw new EnvironmentError('THIRD_PARTY_EXECUTION_FORBIDDEN')
+        bundled = Boolean(
+          sameCode &&
+          !thirdParty &&
+          (['species', 'skills', 'marks'] as const).every(
+            kind => digest(prepared.data[kind]) === digest(shipped.data[kind]),
+          ),
+        )
+      }
       const runtime = createStandaloneRuntime(prepared)
       // Local code edits do not change the metadata identity. Every preparation is
       // a fresh room-selectable instance, so it cannot silently reuse an older runtime.
@@ -272,15 +161,8 @@ export class ServerEnvironmentRegistry {
       const files = new Map(
         prepared.presentation.flatMap(pkg => pkg.resources.map(asset => [asset.sha256, asset.file] as const)),
       )
-      const content = this.publicContent(runtime, prepared.data, base.presentation)
-      for (const pkg of prepared.presentation)
-        for (const binding of pkg.manifest.bindings) {
-          const { id: _id, target, ...presentation } = binding
-          const owner = content[target.kind].find(row => row.id === `${pkg.namespace}:${target.id}`)
-          if (!owner) throw new EnvironmentError('PRESENTATION_TARGET')
-          owner.presentation = presentation
-        }
-      content.locales = this.contentLocales(prepared.presentation, base.locales, content)
+      const content: ServerEnvironmentContent = buildDisplayCatalog(prepared.data, [], prepared.presentation)
+      content.locales = buildDisplayLocales(prepared.presentation, {}, content)
       const descriptor: ServerEnvironmentDescriptor = {
         id,
         protocolVersion: 1,
@@ -297,25 +179,25 @@ export class ServerEnvironmentRegistry {
             })),
         ),
         resourceRevision: digest({ content, resources, presentation: prepared.presentation.map(pkg => pkg.manifest) }),
-        packages: prepared.installation.packages
-          .filter(pkg => pkg.manifest)
-          .map(pkg => ({
-            name: pkg.name,
-            version: pkg.version,
-            projectId: pkg.manifest!.projectId,
-            namespace: pkg.manifest!.namespace,
-          })),
+        packages: prepared.installation.members.map(({ name, version, projectId, namespace }) => ({
+          name,
+          version,
+          projectId,
+          namespace,
+        })),
       }
       this.publish({
         runtime,
         descriptor,
         content,
+        thirdParty,
+        bundled,
         assetFile: hash => files.get(hash) ?? prepared.assetFile(hash),
         dispose: prepared.dispose,
         references: 0,
         retired: false,
       })
-      return this.descriptor(descriptor.id)
+      return { ...this.descriptor(descriptor.id), peerRevision: prepared.sandbox.revision }
     } catch (error) {
       await prepared.dispose()
       throw error
@@ -372,21 +254,25 @@ export class ServerEnvironmentRegistry {
           (!this.publication ||
             (this.publication.get(entry.descriptor.id)?.enabled && this.publication.get(entry.descriptor.id)?.public)),
       )
-      .map(entry => this.publicDescriptor(entry))
+      .map(entry => ({
+        ...this.publicDescriptor(entry),
+        ...(entry.descriptor.id === this.defaultId && { isDefault: true }),
+      }))
   }
-  private publicDescriptor(entry: Environment): ServerEnvironmentDescriptor {
+  private publicDescriptor(entry: PublishedEnvironment): ServerEnvironmentDescriptor {
     const descriptor = structuredClone(entry.descriptor)
     const policy = this.publication?.get(entry.descriptor.id)?.executionPolicy
+    const peerRevision = (entry.bundled || this.peerMaterialIds.has(descriptor.id)) && entry.runtime.sandbox?.revision
     return {
       ...descriptor,
       ...(policy ? { executionPolicy: policy } : {}),
-      ...(entry.runtime.sandbox ? { peerRevision: entry.runtime.sandbox.revision } : {}),
+      ...(peerRevision ? { peerRevision } : {}),
     }
   }
   /** Captured static material only. No imports, factories or VM are evaluated by delivery. */
   peerMaterials(id: string) {
     const entry = this.entry(id)
-    if (!entry.runtime.sandbox || (entry.descriptor.packages.length && !this.peerMaterialIds.has(id)))
+    if (!entry.runtime.sandbox || (!entry.bundled && !this.peerMaterialIds.has(id)))
       throw new EnvironmentError('ENVIRONMENT_PEER_MATERIALS_UNAVAILABLE')
     const descriptor = this.publicDescriptor(entry)
     const captured = entry.runtime.sandbox
@@ -402,13 +288,16 @@ export class ServerEnvironmentRegistry {
       throw new EnvironmentError('ENVIRONMENT_PEER_MATERIALS_TOO_LARGE')
     return payload
   }
-  private entry(id = this.defaultId): Environment {
+  private entry(id = this.defaultId): PublishedEnvironment {
     const entry = id && this.entries.get(id)
     if (!entry) throw new EnvironmentError('ENVIRONMENT_NOT_FOUND')
     return entry
   }
   descriptor(id?: string): ServerEnvironmentDescriptor {
     return this.publicDescriptor(this.entry(id))
+  }
+  hasThirdPartyPackages(id: string): boolean {
+    return this.entry(id).thirdParty === true
   }
   /** Host-only selection for future rooms. Existing room leases keep their original runtime. */
   selectDefault(id: string): ServerEnvironmentDescriptor {
@@ -421,7 +310,10 @@ export class ServerEnvironmentRegistry {
     return previous
   }
   content(id: string): ServerEnvironmentContent {
-    return structuredClone(this.entry(id).content)
+    return JSON.parse(this.contentJson(id)) as ServerEnvironmentContent
+  }
+  contentJson(id: string): string {
+    return this.entry(id).catalogJson
   }
   asset(id: string, hash: string) {
     const entry = this.entry(id)
@@ -469,7 +361,7 @@ export class ServerEnvironmentRegistry {
         executionPolicy: publication?.executionPolicy,
       }),
       descriptor: this.publicDescriptor(entry),
-      isNpm: entry.descriptor.packages.length > 0,
+      isNpm: !entry.bundled,
       ...(publication ? { executionPolicy: publication.executionPolicy ?? 'server' } : {}),
       ...(publication?.rules ? { rules: structuredClone(publication.rules) } : {}),
       release: async () => {
@@ -486,7 +378,7 @@ export class ServerEnvironmentRegistry {
     entry.retired = true
     await this.collect(entry)
   }
-  private async collect(entry: Environment) {
+  private async collect(entry: PublishedEnvironment) {
     if (!entry.retired || entry.references) return
     const id = entry.descriptor.id
     this.disposingIds.add(id)

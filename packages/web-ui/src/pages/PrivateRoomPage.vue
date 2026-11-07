@@ -299,7 +299,11 @@
       <el-form :model="privateRoomStore.roomConfigForm" label-width="120px">
         <RoomBattleOptions
           v-model="battleOptions"
-          :server-only="!!privateRoomStore.currentRoom?.environment?.packages.length"
+          :server-only="
+            !!privateRoomStore.currentRoom?.environment &&
+            (privateRoomStore.currentRoom.environment.executionPolicy === 'server' ||
+              !privateRoomStore.currentRoom.environment.peerRevision)
+          "
         />
 
         <!-- 房间隐私设置 -->

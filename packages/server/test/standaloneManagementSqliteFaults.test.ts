@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -34,20 +35,7 @@ async function setup() {
   const storage = openStorage({ driver: 'sqlite', filename, busyTimeout: 25 })
   cleanups.push(() => storage.close())
   await storage.migrate()
-  const project = join(directory, 'project')
-  await mkdir(join(project, 'node_modules'), { recursive: true })
-  const manifest = { name: 'sqlite-fault-environment', version: '1.0.0', private: true, dependencies: {} }
-  await writeFile(join(project, 'package.json'), JSON.stringify(manifest))
-  await writeFile(
-    join(project, 'package-lock.json'),
-    JSON.stringify({
-      name: manifest.name,
-      version: manifest.version,
-      lockfileVersion: 3,
-      requires: true,
-      packages: { '': manifest },
-    }),
-  )
+  const project = await stageShippedCatalog(directory)
   await writeFile(
     join(project, 'arcadia-admission.json'),
     JSON.stringify({ format: 'arcadia.npm-admission', version: 2, profile: 'official' }),
@@ -79,7 +67,7 @@ async function setup() {
     method: 'POST',
     path: base,
     body: {
-      document: { schemaVersion: 1, id: 'shared', name: 'Shared', packages: {}, sources: [] },
+      document: { schemaVersion: 1, id: 'shared', name: 'Shared', packages: shippedCatalogMembers, sources: [] },
       expectedRevision: null,
     },
   })
@@ -162,16 +150,19 @@ function identity(subject: string) {
 async function terminal(storage: DurableStorage, id: string) {
   let operation!: Operation
   await expect
-    .poll(async () => {
-      operation = (await storage.get<Operation>('operations', id))!.value
-      return operation.status
-    })
+    .poll(
+      async () => {
+        operation = (await storage.get<Operation>('operations', id))!.value
+        return operation.status
+      },
+      { timeout: 10_000 },
+    )
     .not.toMatch(/^(queued|running)$/)
   expect(operation.status, JSON.stringify(operation)).toBe('succeeded')
   return operation
 }
 
-describe('management survives actual SQLite write failures', () => {
+describe('management survives actual SQLite write failures', { timeout: 30_000 }, () => {
   for (const fault of ['SQLITE_BUSY', 'SQLITE_FULL'] as const) {
     it(`${fault} preserves accounts, grants, binding publication and audit, then permits a clean retry`, async () => {
       const env = await setup()

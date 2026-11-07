@@ -107,7 +107,7 @@ export class AuthorWorkspace extends EventEmitter {
     const manifest = JSON.parse((await workspace.read('package.json')).text)
     workspace.published = published
     workspace.readOnly = readOnly || published || isBaseManifest(manifest)
-    if (isBaseManifest(manifest) && !manifest.arcadia) {
+    if (isBaseManifest(manifest) && (!published || !manifest.arcadia)) {
       const pack = JSON.parse((await workspace.read('pack.json')).text)
       if (pack.id !== baseProjectId) fail('PROJECT_INVALID', '基础包身份不一致', 'pack.json')
       workspace.baseProject = { projectId: pack.id, namespace: pack.id }

@@ -245,9 +245,9 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     res.json(environments.peerMaterials(req.params.id))
   })
   app.get('/api/v1/environments/:id/content', (req, res) => {
-    const content = environments.content(req.params.id)
+    const content = environments.contentJson(req.params.id)
     res.setHeader('Cache-Control', 'no-store')
-    res.json(content)
+    res.type('application/json').send(content)
   })
   app.get('/api/v1/environments/:id/resources', (req, res) => {
     res.setHeader('Cache-Control', 'no-store')

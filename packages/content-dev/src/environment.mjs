@@ -4,8 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile, cp, symlink } from 'node:fs/pr
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { promisify } from 'node:util'
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
-import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import { emptyNpmContentHost, prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import { AuthorWorkspace } from './workspace.mjs'
 import { ProjectTeams, playersFromTeams } from './project-teams.mjs'
 import { createHash } from 'node:crypto'
@@ -133,15 +132,9 @@ export async function prepareBattleEnvironment(
       ],
       { cwd: installation },
     )
-    environment = await prepareNpmProject(
-      installation,
-      {
-        build: nativeBuildIdentity,
-        base: { marks: [], skills: [], species: [] },
-        templates: [],
-      },
-      { policy: { profile: 'local-development' } },
-    )
+    environment = await prepareNpmProject(installation, emptyNpmContentHost, {
+      policy: { profile: 'local-development' },
+    })
     let environmentLock
     if (lockFile) {
       const text = await readFile(join(installation, 'package-lock.json'), 'utf8')

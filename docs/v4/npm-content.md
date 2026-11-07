@@ -158,6 +158,6 @@ npm 测试实际打包、离线安装与 `npm ci` 重建；验证原生效果、
 
 `prepareContentPack`、MCP 测试任务与运行时共同使用 `prepareNpmProject`：npm 安装声明的依赖后，共享加载器检查锁文件和完整依赖图，组装普通内容包的数据、效果、文本与资源。引用其他包的内容时，应在 `dependencies` 中声明该包；仅把它装进开发用 `node_modules` 或列为 `devDependencies` 不会使其进入测试候选。
 
-官方 base 保留已有的全局内容 ID（如 `skill_zhuangji`）和旧源文件组织。它的构建额外生成 `arcadiaEternityHost` 指向的静态 `dist/native-host.json`，包含数据、模板、效果 ID、封闭的效果产物和表现。共享加载器从**本次安装的依赖树**读取这个适配产物，不从主仓库或全局 SDK 回退加载 base，也不在准备阶段导入或执行 base 模块。普通内容包继续使用既有 `arcadia` 格式。旧 base 发布物缺少适配产物时需要重新构建；引擎身份不兼容、重复 base 版本或与宿主已有官方目录冲突时明确报错。
+base 和社区包通过 `arcadia` 声明规则、表现和效果工件。base 的 `arcadia.catalog` 另指向模板、效果索引及引擎兼容身份，用于保留 `skill_zhuangji` 等现有全局 ID。安装项目按显式成员装配；需要这些内容的项目把 base 加入依赖。加载器从本次安装的包读取构建产物，效果在对战 Worker 中执行。
 
 开发与测试使用同一个标准助手即可，无需复制 `node_modules`、手写锁文件或自建 base 加载器。发布包依赖使用可解析的版本约束；`file:../sdk/example.tgz` 是开发机器上的相对路径，包安装到临时目录后不会保留原目录结构。离线测试应预先缓存已发布依赖，或提供确实能在目标安装环境解析的包来源。

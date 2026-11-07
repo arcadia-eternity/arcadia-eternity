@@ -1,6 +1,6 @@
 /** Only the official CDN assets are mirrored by build:static; user pack URLs keep their own origin. */
 export function officialAssetUrl(url: string): string {
-  if (import.meta.env.VITE_STATIC_MODE !== '1') return url
+  if (import.meta.env.VITE_STATIC_MODE !== '1' || import.meta.env.VITE_MIRROR_OFFICIAL_MEDIA === '0') return url
   const resourceOrigin = 'https://seer2-resource.yuuinih.com/'
   const petOrigin = 'https://seer2-pet-resource.yuuinih.com/'
   const relative = url.startsWith(resourceOrigin)

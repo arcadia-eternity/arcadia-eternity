@@ -223,12 +223,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (generation === environmentCatalogGeneration && scope === serverScope()) environments.value = items
   }
 
+  const defaultEnvironment = computed(() => environments.value.find(item => item.isDefault))
+
   const prepareMatchmakingEnvironment = async (environmentId?: string) => {
     const generation = ++matchmakingEnvironmentGeneration
     const scope = serverScope()
     const descriptor = environmentId
       ? environments.value.find(item => item.id === environmentId)
-      : environments.value.find(item => !item.packages.length)
+      : defaultEnvironment.value
     if (!descriptor) throw new Error('对战内容不可用，请重新选择')
     matchmakingController?.abort()
     matchmakingController = new AbortController()
@@ -1713,6 +1715,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     personalEnvironment,
     personalEnvironmentReady,
     environments,
+    defaultEnvironment,
     selectedTeam,
     peerSignals,
     peerSession,

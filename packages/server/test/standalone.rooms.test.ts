@@ -186,13 +186,15 @@ it('serves approved npm environments to code-free clients and pins rooms across 
     expect(second.id).not.toBe(first.id)
     app.environments.selectDefault(second.id)
     const officialLease = app.environments.acquire(undefined, true)
-    expect(officialLease.descriptor.packages).toEqual([])
+    expect(officialLease.descriptor.packages).toEqual([
+      expect.objectContaining({ name: '@arcadia-eternity/data-pack-base', projectId: 'base', namespace: 'base' }),
+    ])
     await expect(app.environments.retire(officialLease.descriptor.id)).rejects.toThrow('DEFAULT_ENVIRONMENT_REQUIRED')
     await officialLease.release()
     await success(spectator.socket, 'leavePrivateRoom')
     await success(spectator.socket, 'createPrivateRoom', { config: { battleMode: 'p2p' } })
     expect((await success<PrivateRoomInfo>(spectator.socket, 'getCurrentPrivateRoom')).environment?.packages).toEqual(
-      [],
+      officialLease.descriptor.packages,
     )
     await success(spectator.socket, 'leavePrivateRoom')
     await success(spectator.socket, 'createPrivateRoom', { config: { battleMode: 'server' } })

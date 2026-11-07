@@ -20,13 +20,12 @@ import {
   type WorkArchive,
 } from '@arcadia-eternity/pack-loader/native'
 import { createWorkRepository } from '@/services/workStorage'
-import { loadCreatorBase, defaultRecord, referenceOptions, releaseLock, workHost } from './content'
+import { loadCreatorBase, defaultRecord, referenceOptions, releaseLock, workHost, type CreatorContent } from './content'
 import BehaviorEditor from './BehaviorEditor.vue'
 import { selectLearnableSkills } from './records'
-import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 const workspace = shallowRef<WorkWorkspace>(emptyWorkspace())
 const draft = ref<WorkDraft>()
-const base = shallowRef<ContentPrototypeData>({ species: [], skills: [], marks: [] })
+const base = shallowRef<CreatorContent>()
 const ready = ref(false),
   busy = ref(false),
   error = ref(''),
@@ -44,7 +43,7 @@ const installed = computed(() => Object.values(workspace.value.releases))
 const records = computed(() => draft.value?.data[collection[kind.value]] ?? [])
 const record = computed(() => records.value.find(item => item.id === activeId.value))
 const refs = (target: WorkKind) =>
-  draft.value ? referenceOptions(target, draft.value, base.value, installed.value) : []
+  draft.value && base.value ? referenceOptions(target, draft.value, base.value, installed.value) : []
 const marks = computed(() => refs('mark')),
   skills = computed(() => refs('skill'))
 const field = (name: string) => record.value?.[name]
@@ -108,7 +107,9 @@ function add() {
   if (!draft.value) return
   runtimeId(draft.value.project.namespace, localId.value)
   if (records.value.some(item => item.id === localId.value)) throw new Error('此类型中已经存在相同 ID')
-  const source = (base.value[collection[kind.value]] as WorkRecord[]).find(item => item.id === copyId.value)
+  const source = (base.value?.data[collection[kind.value]] as WorkRecord[] | undefined)?.find(
+    item => item.id === copyId.value,
+  )
   records.value.push(source ? { ...clone(source), id: localId.value } : defaultRecord(kind.value, localId.value))
   activeId.value = localId.value
   localId.value = ''
@@ -119,7 +120,7 @@ async function compile(version: string) {
   return compileRelease(
     clone(draft.value),
     version,
-    workHost(base.value),
+    workHost(base.value!),
     installed.value,
     Object.fromEntries(Object.entries(workspace.value.blobs).map(([hash, bytes]) => [hash, decodeBytes(bytes)])),
   )
@@ -139,7 +140,7 @@ async function trial() {
       .filter(lock => lock.projectId !== release.project.id)
       .map(lock => workspace.value.releases[`${lock.projectId}@${lock.version}`]),
   ]
-  await prepareWorkEnvironment(workHost(base.value), selected, installed.value)
+  await prepareWorkEnvironment(workHost(base.value!), selected, installed.value)
   notice.value = '组合内容校验通过。源码项目的调试请从编辑内容包入口开始。'
 }
 async function download(mode: 'draft' | 'release' | 'selection', key?: string) {
@@ -184,7 +185,7 @@ async function toggle(key: string) {
   const selected = workspace.value.selected.filter(item => item.projectId !== lock.projectId)
   if (!enabled) selected.push(lock)
   const roots = selected.map(item => workspace.value.releases[`${item.projectId}@${item.version}`])
-  await prepareWorkEnvironment(workHost(base.value), roots, installed.value)
+  await prepareWorkEnvironment(workHost(base.value!), roots, installed.value)
   await repository.select(selected)
   await refresh()
 }
@@ -267,7 +268,11 @@ onMounted(() => {
             ><label
               >初始内容<select v-model="copyId" aria-label="初始内容">
                 <option value="">空白内容</option>
-                <option v-for="item in base[collection[kind]] as WorkRecord[]" :key="item.id" :value="item.id">
+                <option
+                  v-for="item in (base?.data[collection[kind]] ?? []) as WorkRecord[]"
+                  :key="item.id"
+                  :value="item.id"
+                >
                   复制 {{ item.id }}
                 </option>
               </select></label
@@ -402,6 +407,7 @@ onMounted(() => {
               ></template
             >
             <BehaviorEditor
+              :templates="base?.effectTemplates ?? []"
               v-else
               :value="field('behaviors')"
               :kind="kind"

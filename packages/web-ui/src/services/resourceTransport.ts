@@ -43,11 +43,22 @@ export function publicHttpUrl(value: string): URL {
 
 export async function readResourceBytes(
   value: string,
-  options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number } = {},
+  options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number; bundledEnvironment?: boolean } = {},
   request: typeof fetch = fetch,
 ): Promise<Uint8Array> {
   const owned = ownedResources.get(value)
-  const url = owned ? new URL(value) : publicHttpUrl(value)
+  const candidate = new URL(value, globalThis.location?.href ?? 'http://localhost/')
+  const bundled =
+    options.bundledEnvironment &&
+    globalThis.location?.protocol === 'arcadia-client:' &&
+    candidate.protocol === 'arcadia-client:' &&
+    candidate.host === 'app' &&
+    !candidate.username &&
+    !candidate.password &&
+    !candidate.search &&
+    !candidate.hash &&
+    /^\/environment\/(catalog|runtime)\.json$/.test(candidate.pathname)
+  const url = owned || bundled ? candidate : publicHttpUrl(value)
   const limit = options.maxBytes ?? RESOURCE_MAX_BYTES
   const timeout = options.timeoutMs ?? 20_000
   if (

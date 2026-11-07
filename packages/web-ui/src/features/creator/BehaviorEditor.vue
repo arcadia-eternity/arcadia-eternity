@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { officialEffectTemplates } from '@arcadia-eternity/data-pack-base/metadata'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
-import type { ReferenceOption } from './content'
+import type { EffectTemplate, ReferenceOption } from './content'
 interface Use {
   useId: string
   definitionId: string
@@ -12,12 +11,13 @@ interface Use {
 const props = defineProps<{
   value: Json | undefined
   kind: 'skill' | 'mark'
+  templates: readonly EffectTemplate[]
   references: { mark: ReferenceOption[]; skill: ReferenceOption[] }
 }>()
 const emit = defineEmits<{ change: [value: Json] }>()
 const selected = ref('')
 const templates = computed(() =>
-  officialEffectTemplates.filter(item => item.definition.sourceKind === (props.kind === 'skill' ? 'skill' : 'petMark')),
+  props.templates.filter(item => item.definition.sourceKind === (props.kind === 'skill' ? 'skill' : 'petMark')),
 )
 const rawUses = computed(() => (Array.isArray(props.value) ? props.value : []))
 const object = (value: Json | undefined): Record<string, Json> =>
@@ -33,7 +33,7 @@ const uses = computed<Use[]>(() =>
     }
   }),
 )
-const template = (id: string) => officialEffectTemplates.find(item => item.id === id)
+const template = (id: string) => props.templates.find(item => item.id === id)
 function update(index: number, key: string, value: Json) {
   const next = JSON.parse(JSON.stringify(rawUses.value)) as Json[]
   const current = object(next[index])

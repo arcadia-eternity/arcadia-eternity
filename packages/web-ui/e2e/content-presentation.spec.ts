@@ -5,20 +5,24 @@ import { fileURLToPath } from 'node:url'
 import { createSingleProcessApp } from '../../server/src/standalone/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 
-test('the built-in encyclopedia reads compiled data instead of source files', async ({ page, baseURL }) => {
+test('the encyclopedia shares one prepared catalog and leaves runtime materials for battle', async ({
+  page,
+  baseURL,
+}) => {
   const origin = new URL(baseURL!).origin
   await page.route('**/arcadia-client.json', route =>
     route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
   )
-  const requests = new Set<string>()
+  const requests: string[] = []
   page.on('request', request => {
     const url = new URL(request.url())
-    if (url.origin === origin && url.pathname.startsWith('/data/')) requests.add(url.pathname)
+    if (url.origin === origin && /^(?:\/environment\/|\/data\/|\/pack(?:\.json|-lock\.yaml))/.test(url.pathname))
+      requests.push(url.pathname)
   })
   await page.goto('/dex', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { name: '图鉴', exact: true })).toBeVisible()
   await expect(page.getByText(/共 [1-9][0-9]* 个/)).toBeVisible()
-  expect([...requests].sort()).toEqual(['/data/marks.json', '/data/skills.json', '/data/species.json'])
+  expect(requests).toEqual(['/environment/catalog.json'])
 })
 
 test('a real npm environment renders media and reactive bilingual rich text without prefetch or cache reuse', async ({
@@ -26,7 +30,7 @@ test('a real npm environment renders media and reactive bilingual rich text with
   baseURL,
 }) => {
   test.setTimeout(60_000)
-  const fixture = await createNpmFixture({ presentation: true })
+  const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })
   const server = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: [new URL(baseURL!).origin] })
   const harness = fileURLToPath(new URL('../test-results/content-presentation.html', import.meta.url))
   try {

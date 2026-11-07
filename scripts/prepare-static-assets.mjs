@@ -105,5 +105,5 @@ export async function prepareStaticAssets({
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   if (process.argv.length > 2) throw new Error('prepare-static-assets does not accept arguments')
-  await prepareStaticAssets()
+  if (!process.env.ARCADIA_WEB_ENVIRONMENT_PROJECT?.trim()) await prepareStaticAssets()
 }

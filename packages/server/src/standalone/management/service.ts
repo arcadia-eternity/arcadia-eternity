@@ -2,7 +2,6 @@ import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-dev/mana
 import type { ManagementCapabilities, ManagementOperation, ManagedEnvironmentVersion } from '@arcadia-eternity/protocol'
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import {
   assertEnvironmentRequirements,
   validateEnvironmentRules,
@@ -168,18 +167,6 @@ const safeVersion = (version: WorkspaceVersion | UnavailableVersion): ManagedEnv
   return publicVersion
 }
 
-async function builtinOnlyProject(directory: string): Promise<boolean> {
-  const manifest = object(JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')))
-  const lock = object(JSON.parse(await readFile(join(directory, 'package-lock.json'), 'utf8')))
-  if (![2, 3].includes(Number(lock.lockfileVersion))) return false
-  const packages = object(lock.packages)
-  return (
-    ['dependencies', 'optionalDependencies', 'peerDependencies'].every(
-      key => manifest[key] === undefined || Object.keys(object(manifest[key])).length === 0,
-    ) && Object.keys(packages).every(key => key === '')
-  )
-}
-
 /** Static preparation only; metadata capture does not execute author module code. */
 export async function validateWorkspaceProject(
   { directory, signal }: { directory: string; signal?: AbortSignal },
@@ -188,9 +175,7 @@ export async function validateWorkspaceProject(
   signal?.throwIfAborted()
   const temporary = new ServerEnvironmentRegistry()
   try {
-    const descriptor = (await builtinOnlyProject(directory))
-      ? await temporary.prepareBuiltin()
-      : await temporary.prepareNpm(directory, { policy: { profile: 'self-hosted' } }, preparation)
+    const descriptor = await temporary.prepareNpm(directory, { policy: { profile: 'self-hosted' } }, preparation)
     signal?.throwIfAborted()
     return { contentRevision: descriptor.runtime.contentRevision, packages: descriptor.packages }
   } catch (error) {
@@ -497,23 +482,24 @@ export class ManagementService {
     validateEnvironmentRules(version.document.rules)
     const lease = await this.options.workspace.acquire(versionId, `server:${this.options.serverId}:${this.bootId}`)
     try {
-      const descriptor = (await builtinOnlyProject(version.directory))
-        ? await this.options.environments.prepareBuiltin()
-        : await this.options.environments.prepareNpm(
-            version.directory,
-            {
-              policy: {
-                profile:
-                  executionPolicy === 'peer' || this.options.allowThirdPartyExecution ? 'self-hosted' : 'official',
-              },
-            },
-            { effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
-          )
+      const descriptor = await this.options.environments.prepareNpm(
+        version.directory,
+        {
+          policy: {
+            profile: executionPolicy === 'peer' || this.options.allowThirdPartyExecution ? 'self-hosted' : 'official',
+          },
+        },
+        { effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
+      )
       if (descriptor.runtime.contentRevision !== version.contentRevision) {
         await this.options.environments.retire(descriptor.id)
         fail('ENVIRONMENT_CONTENT_MISMATCH', 409)
       }
-      if (executionPolicy === 'server' && !this.options.allowThirdPartyExecution && descriptor.packages.length > 0) {
+      if (
+        executionPolicy === 'server' &&
+        !this.options.allowThirdPartyExecution &&
+        this.options.environments.hasThirdPartyPackages(descriptor.id)
+      ) {
         await this.options.environments.retire(descriptor.id)
         fail('THIRD_PARTY_EXECUTION_FORBIDDEN', 403)
       }

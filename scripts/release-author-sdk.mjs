@@ -74,8 +74,10 @@ if (command === 'pack') {
     for (const entry of paths([packed.main, packed.types, packed.bin, packed.exports])) {
       assert.ok(files.includes(`package/${entry.replace(/^\.\//, '')}`), `${manifest.name}: missing ${entry}`)
     }
-    if (packed.arcadiaEternityHost)
-      assert.ok(files.includes(`package/${packed.arcadiaEternityHost}`), `${packed.name}: missing static base host`)
+    if (packed.arcadia)
+      for (const field of ['content', 'presentation', 'effectArtifact', 'catalog'])
+        if (packed.arcadia[field])
+          assert.ok(files.includes(`package/${packed.arcadia[field]}`), `${packed.name}: missing ${field} artifact`)
     if (manifest.name.endsWith('/content-dev')) {
       for (const file of [
         'SKILL.md',

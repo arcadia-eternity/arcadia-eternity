@@ -74,7 +74,5 @@ test('every workspace package config bundles Windows sources while preserving ex
     assert.equal(config.external(String.fromCharCode(0) + 'virtual'), false, directory)
     assert.equal(config.external('node:fs'), true, directory)
     assert.equal(config.external('@arcadia-eternity/schema'), true, directory)
-    if (directory === 'packages/server')
-      assert.equal(config.external('@arcadia-eternity/data-pack-base/effects?effect-module'), false)
   }
 })

@@ -80,6 +80,8 @@ export function invalidateRuntimePackRefCache(): void {
 export async function resolveBasePackRef(): Promise<string> {
   const explicit = (import.meta.env.VITE_PACK_REF || '').trim()
   if (explicit) return explicit
+  if (import.meta.env.VITE_PREPARED_ENVIRONMENT === '1' && !import.meta.env.VITE_API_BASE?.trim())
+    return new URL('pack.json', new URL(import.meta.env.BASE_URL, window.location.href)).href
   if (isDesktop) {
     const base = await resolveDesktopPackRef(true)
     if (base) return base

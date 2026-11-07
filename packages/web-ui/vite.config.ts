@@ -11,7 +11,6 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
 import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
 import { buildWebContent } from './scripts/build-web-content.mjs'
 
 // Auto-imported styles are injected after Vite's initial dependency scan.
@@ -34,7 +33,8 @@ function buildCommitHash(): string {
 // https://vite.dev/config/
 export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const env = loadEnv(mode, process.cwd())
-  const { files: webContent, mediaTargets } = await buildWebContent()
+  const environmentProject = process.env.ARCADIA_WEB_ENVIRONMENT_PROJECT?.trim() || undefined
+  const { files: webContent, mediaTargets, dispose } = await buildWebContent(undefined, environmentProject)
   const backendOrigin = process.env.VITE_BACKEND_ORIGIN ?? env.VITE_BACKEND_ORIGIN ?? '/'
   const autoConnect = process.env.VITE_AUTO_CONNECT ?? env.VITE_AUTO_CONNECT ?? 'true'
   if (!['true', 'false'].includes(autoConnect)) throw new Error('VITE_AUTO_CONNECT must be true or false')
@@ -47,6 +47,8 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   return {
     base: process.env.VITE_STATIC_MODE === '1' ? './' : '/',
     define: {
+      'import.meta.env.VITE_PREPARED_ENVIRONMENT': JSON.stringify('1'),
+      'import.meta.env.VITE_MIRROR_OFFICIAL_MEDIA': JSON.stringify(environmentProject ? '0' : '1'),
       // 注入构建时间和commit hash
       'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
       'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(buildCommitHash()),
@@ -91,7 +93,6 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     },
     assetsInclude: ['**/*.swf'], // 确保SWF文件被识别为资源
     plugins: [
-      builtinEffectsPlugin(),
       {
         name: 'arcadia-web-content',
         configureServer(server) {
@@ -107,6 +108,9 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
         },
         generateBundle() {
           for (const [fileName, source] of webContent) this.emitFile({ type: 'asset', fileName, source })
+        },
+        async closeBundle() {
+          await dispose()
         },
       },
       {

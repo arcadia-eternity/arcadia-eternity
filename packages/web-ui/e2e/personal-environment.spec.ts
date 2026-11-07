@@ -5,11 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { createSingleProcessApp } from '../../server/src/standalone/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 import { loadStandaloneBase } from '../../server/src/standalone/native'
-import artifact from '../../server/src/standalone/effect-module'
-import { prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { presentationIndex } from '@arcadia-eternity/pack-loader/native'
-import { officialTemplateDefinitions, officialEffectIds } from '@arcadia-eternity/data-pack-base/metadata'
-import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createLocalContentSessions } from '../electron/local-content-sessions.mjs'
 import { createPersonalEnvironmentBundle, encodePersonalEnvironmentBundle } from '../src/services/personalEnvironment'
 
@@ -33,19 +30,10 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
     library: { acquireProject: async () => ({ directory, builtinOnly: false, release: async () => {} }) },
     load: async () => ({
       base,
-      host: {
-        build: base.build,
-        base: base.data,
-        templates: officialTemplateDefinitions,
-        effectIds: officialEffectIds,
-        effectModules: [{ artifact, namespace: '', role: 'catalog' }],
-      },
+      host: emptyNpmContentHost,
       prepareNpmProject,
-      presentationIndex,
-      SpeciesSchema,
-      SkillSchema,
-      MarkSchema,
-      parseWithErrors,
+      buildDisplayCatalog,
+      buildDisplayLocales,
     }),
     assetUrl: (token: string, hash: string) => `http://localhost/local-content/${token}/${hash}`,
   })
@@ -91,7 +79,7 @@ test('unpublished personal environment stays on two consenting clients through a
   browser,
 }, testInfo) => {
   const root = fileURLToPath(new URL('../../../', import.meta.url))
-  const fixture = await createNpmFixture({ presentation: true })
+  const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })
   const app = createSingleProcessApp({ host: '127.0.0.1', port: 0, webRoot: resolve(root, 'dist/web') })
   const contexts = await Promise.all([browser.newContext(), browser.newContext()])
   await Promise.all(

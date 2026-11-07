@@ -2,10 +2,9 @@ import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import type { BattleOptions, ContentCatalog, ContentIndex } from '@arcadia-eternity/battle/v4'
-import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContentIndex, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/metadata'
-import officialEffectArtifact from './effect-module'
-import { NativePackLoader, type NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
+import { prepareCatalogPackage } from '@arcadia-eternity/pack-loader/node'
+import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
+import { fileURLToPath } from 'node:url'
 import type { NativeRuntimeIdentity } from '@arcadia-eternity/protocol'
 import {
   PlayerSchema,
@@ -25,19 +24,16 @@ export interface StandaloneRuntime {
 }
 
 let officialContent: Promise<StandaloneRuntime> | undefined
-let officialPack: Promise<NativePackLoadResult<ContentIndex>> | undefined
+let officialPack: ReturnType<typeof prepareCatalogPackage> | undefined
 const sandboxWorkers = createNodeBattleWorkerManager()
 
-export function loadStandaloneBase(): Promise<NativePackLoadResult<ContentIndex>> {
-  officialPack ??= new NativePackLoader(nativeBuildIdentity, createOfficialContentIndex, {
-    templates: officialTemplateDefinitions,
-    effectModules: [{ artifact: officialEffectArtifact, namespace: '', role: 'catalog' }],
+export function loadStandaloneBase() {
+  officialPack ??= prepareCatalogPackage(
+    fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
+  ).catch(error => {
+    officialPack = undefined
+    throw error
   })
-    .load('builtin:workspace')
-    .catch(error => {
-      officialPack = undefined
-      throw error
-    })
   return officialPack
 }
 

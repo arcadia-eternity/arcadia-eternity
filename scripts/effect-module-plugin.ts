@@ -48,8 +48,6 @@ export function builtinEffectsPlugin(): Plugin {
     {
       '@arcadia-eternity/data-pack-base/effects?effect-module': module,
       [`${module.entry}?effect-module`]: module,
-      [fileURLToPath(new URL('../packages/cli/src/application/effect-module.ts', import.meta.url))]: module,
-      [fileURLToPath(new URL('../packages/server/src/standalone/effect-module.ts', import.meta.url))]: module,
     },
     fileURLToPath(new URL('../', import.meta.url)),
   )

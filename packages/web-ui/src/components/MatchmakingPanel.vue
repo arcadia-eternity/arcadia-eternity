@@ -118,7 +118,7 @@ async function openDialog() {
     if (attempt !== generation || !open.value) return
     environmentId.value = rooms.environments.some(item => item.id === environmentId.value)
       ? environmentId.value
-      : (rooms.environments.find(item => !item.packages.length)?.id ?? rooms.environments[0]?.id ?? '')
+      : (rooms.defaultEnvironment?.id ?? rooms.environments[0]?.id ?? '')
     const last = storage.getLastMatchingConfig()
     team.value = storage.teams[last?.teamIndex ?? storage.currentTeamIndex] ?? null
     await prepareEnvironment()

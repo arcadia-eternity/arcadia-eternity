@@ -1,6 +1,8 @@
 import type { SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { EffectMarkRelation } from '@arcadia-eternity/data-pack-base/effects'
 
+export type EffectMarkRelations = Readonly<Record<string, readonly EffectMarkRelation[]>>
+
 export interface SkillMarkRelation {
   markId: string
   relationType: 'adds' | 'removes' | 'modifies' | 'consumes' | 'tags'
@@ -26,7 +28,7 @@ export class SkillMarkRelationService {
   constructor(
     skillsData: Record<string, SkillSchemaType>,
     marksData: Record<string, MarkSchemaType>,
-    private nativeEffectRelations: Readonly<Record<string, readonly EffectMarkRelation[]>> = {},
+    private nativeEffectRelations: EffectMarkRelations = {},
   ) {
     this.skillsData = skillsData
     this.marksData = marksData

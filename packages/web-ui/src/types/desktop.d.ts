@@ -161,9 +161,10 @@ export interface ArcadiaDesktopApi {
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
   prepareLocalContent?: () => Promise<{
     token: string
-    environment: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
+    environment?: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
   }>
+  readLocalRuntime?: (token: string) => Promise<import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment>
   capturePersonalEnvironment?: () => Promise<{
     environment: import('@arcadia-eternity/battle/v4/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
