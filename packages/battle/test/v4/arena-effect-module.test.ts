@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import * as sdk from '../../v4-authoring'
 import { ArenaEffectModule, sandboxPolicy, type EffectModuleArtifact } from '../../v4-sandbox'
 import { compileBehaviorUse, EffectContext, EffectTrigger, TurnContext, setGlobalLogger } from '../../v4'
@@ -111,6 +111,23 @@ it('interrupts top-level loops and detached promise jobs', async () => {
     'const f=()=>Promise.resolve().then(f);f(); export function createEffects(){return []}',
   ])
     await expect(ArenaEffectModule.prepare(artifact(source), { ...sandboxPolicy, prepareMs: 30 })).rejects.toThrow()
+})
+it('lets a host extend the catalog deadline separately from ordinary module preparation', async () => {
+  const module = await prepare(`
+    export function createCatalog() { return { effects: new Map(), parameters: new Map() }; }
+    export function createEffects() { return []; }
+  `)
+  const clock = vi.spyOn(performance, 'now')
+  try {
+    clock.mockReturnValueOnce(0).mockReturnValue(11_000)
+    expect(module.createCatalog(new Map(), undefined, 25_000).effects.size).toBe(0)
+    expect(() => module.createCatalog(new Map(), undefined, 25_001)).toThrow(/Invalid catalog time limit/)
+
+    clock.mockReturnValueOnce(0).mockReturnValue(11_000)
+    expect(() => module.createEffects({ sdk, marks: new Map(), id: id => id })).toThrow(/budget exceeded/)
+  } finally {
+    clock.mockRestore()
+  }
 })
 it('rejects deliberately retained callback contexts after their scope expires', async () => {
   const module = await prepare(`let saved;

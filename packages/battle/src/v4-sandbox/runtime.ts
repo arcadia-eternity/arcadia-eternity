@@ -90,6 +90,7 @@ export class SandboxBattleRuntime {
   private delivery?: Promise<void>
   private emit?: (event: SandboxEvent) => Promise<void>
   private readonly battleSubscriptions = new Map<number, () => void>()
+  constructor(private readonly catalogMs?: number) {}
   async initialize(
     input: SandboxBattleInput,
     emit: (event: SandboxEvent) => Promise<void>,
@@ -127,7 +128,10 @@ export class SandboxBattleRuntime {
         throw new SandboxFault('artifact', 'battle', 'Worker environment mismatch')
       this.revision = input.environment.revision
       if (!this.effects) {
-        this.effects = await prepareSandboxContent(input.environment, { grouping: options.grouping })
+        this.effects = await prepareSandboxContent(input.environment, {
+          grouping: options.grouping,
+          catalogMs: this.catalogMs,
+        })
         this.environment = environment
         this.grouping = options.grouping
       }

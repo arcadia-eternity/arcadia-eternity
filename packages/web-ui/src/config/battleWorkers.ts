@@ -1,4 +1,4 @@
-import type { BattleWorkerPolicy } from '@arcadia-eternity/battle/v4/sandbox'
+import { browserSandboxStartup, type BattleWorkerPolicy } from '@arcadia-eternity/battle/v4/sandbox'
 
 type BattleWorkerEnv = Partial<
   Pick<
@@ -27,6 +27,7 @@ export function parseBattleWorkerPolicy(env: BattleWorkerEnv): Partial<BattleWor
     maxIdleWorkers,
     maxQueuedBattles: integer('VITE_MAX_QUEUED_BATTLES', 4, 0),
     queueTimeoutMs,
+    initializeMs: browserSandboxStartup.initializeMs,
     reuseWorkers: true,
     vmGrouping: 'package',
   }

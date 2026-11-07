@@ -159,3 +159,5 @@ docs/*
 docs/v4/*
 !docs/v4/ugc-authoring-agent/
 !docs/v4/ugc-authoring-agent/**
+!docs/v4/seer2-recreate-pet/
+!docs/v4/seer2-recreate-pet/**

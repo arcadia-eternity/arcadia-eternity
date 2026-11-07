@@ -2,6 +2,7 @@
 export { ArenaEffectModule } from './src/v4-sandbox/effect-module'
 export {
   SandboxFault,
+  browserSandboxStartup,
   sandboxPolicy,
   type SandboxPolicy,
   type EffectModuleArtifact,

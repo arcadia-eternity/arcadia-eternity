@@ -1,6 +1,6 @@
 # One process owns every room. Restarts/deployments abandon all rooms.
 app = 'test-battle'
-primary_region = 'hkg'
+primary_region = 'sin'
 kill_signal = 'SIGTERM'
 kill_timeout = '15s'
 
@@ -10,6 +10,10 @@ kill_timeout = '15s'
 [deploy]
 strategy = 'rolling'
 max_unavailable = 1
+
+[processes]
+# Keep the v3 SMTP secret available to the old image during the guest rollout.
+app = "sh -ec 'if [ \"$ACCOUNT_MODE\" = guest ]; then unset SMTP_USER; fi; exec node dist/cli.js server'"
 
 [http_service]
 internal_port = 8102
@@ -26,6 +30,11 @@ grace_period = '30s'
 method = 'GET'
 path = '/health'
 
+[mounts]
+source = 'arcadia_state'
+destination = '/app/state'
+initial_size = '1gb'
+
 [[vm]]
 memory = '1gb'
 cpu_kind = 'shared'
@@ -33,4 +42,7 @@ cpus = 1
 
 [env]
 SERVER_ID = 'arcadia-official'
-CORS_ORIGIN = 'https://battle.yuuinih.com'
+ACCOUNT_MODE = 'guest'
+ARCADIA_DATA_DIR = '/app/state'
+PUBLIC_ORIGIN = 'https://battle.yuuinih.com'
+CORS_ORIGIN = 'https://battle.yuuinih.com,https://test-battle.fly.dev'

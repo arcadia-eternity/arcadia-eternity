@@ -9,6 +9,7 @@ import { ArenaEffectSdk } from './sdk'
 import { checkpointArena, releaseArenaSession, type ArenaCheckpoint } from './arena-session'
 import {
   SandboxFault,
+  browserSandboxStartup,
   sandboxPolicy,
   type SandboxPolicy,
   type EffectModuleArtifact,
@@ -226,7 +227,13 @@ export class ArenaEffectModule implements PreparedEffectModule {
       return Object.freeze(canonical) as ReturnType<CodeEffectModule['createEffects']>
     }, this.policy.prepareMs)
   }
-  createCatalog(marks: ReadonlyMap<string, BaseMark>, packageId = this.packageId): TrustedEffectCatalog {
+  createCatalog(
+    marks: ReadonlyMap<string, BaseMark>,
+    packageId = this.packageId,
+    timeoutMs = this.policy.prepareMs,
+  ): TrustedEffectCatalog {
+    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > browserSandboxStartup.catalogMs)
+      throw new SandboxFault('budget', this.packageId, 'Invalid catalog time limit')
     return this.run(() => {
       const author = this.authors.get(packageId)
       if (!author?.createCatalog) throw new SandboxFault('artifact', this.packageId, 'Missing createCatalog')
@@ -248,7 +255,7 @@ export class ArenaEffectModule implements PreparedEffectModule {
         if (!this.adapter!.isCanonical(parameter))
           throw new SandboxFault('artifact', this.packageId, 'Expected SDK parameter catalogs')
       return { effects, parameters }
-    }, this.policy.prepareMs)
+    }, timeoutMs)
   }
   beginSession(): void {
     this.assertHealthy()

@@ -941,10 +941,24 @@ async function checkPetSpritesReady(): Promise<void> {
 }
 
 const initializeBattleResources = async () => {
+  // A direct battle-page load shares these downloads with application startup.
+  const startupTimeoutMs = 60_000
   resourceAttempt.value++
   await preparation.prepare([
-    { id: 'resources', label: '界面资源', required: true, run: () => resourceStore.whenReady() },
-    { id: 'data', label: '游戏数据', required: true, run: () => gameDataStore.whenReady() },
+    {
+      id: 'resources',
+      label: '界面资源',
+      required: true,
+      timeoutMs: startupTimeoutMs,
+      run: () => resourceStore.whenReady(),
+    },
+    {
+      id: 'data',
+      label: '游戏数据',
+      required: true,
+      timeoutMs: startupTimeoutMs,
+      run: () => gameDataStore.whenReady(),
+    },
     {
       id: 'battle',
       label: '对局数据',

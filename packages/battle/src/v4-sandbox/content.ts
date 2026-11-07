@@ -6,6 +6,7 @@ import type { SandboxEnvironment } from './runtime'
 
 export interface SandboxContentOptions {
   readonly grouping?: 'package' | 'environment'
+  readonly catalogMs?: number
 }
 /** Prepared immutable logic, leased to one native battle at a time. */
 export async function prepareSandboxContent(environment: SandboxEnvironment, options: SandboxContentOptions = {}) {
@@ -62,7 +63,7 @@ export async function prepareSandboxContent(environment: SandboxEnvironment, opt
           parameters = new Map()
         for (const [i, entry] of environment.modules.entries())
           if (entry.role === 'catalog') {
-            const catalog = moduleFor(i).createCatalog(marks, entry.artifact.packageId)
+            const catalog = moduleFor(i).createCatalog(marks, entry.artifact.packageId, options.catalogMs)
             for (const [id, effect] of catalog.effects) {
               if (effects.has(id))
                 throw new SandboxFault('artifact', entry.artifact.packageId, `Duplicate effect ${id}`)

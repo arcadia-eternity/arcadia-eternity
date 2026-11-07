@@ -7,6 +7,7 @@ it('defaults to four concurrent battles and one retained browser Worker', () => 
     maxIdleWorkers: 1,
     maxQueuedBattles: 4,
     queueTimeoutMs: 30_000,
+    initializeMs: 35_000,
     reuseWorkers: true,
     vmGrouping: 'package',
   })

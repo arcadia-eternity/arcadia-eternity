@@ -49,10 +49,10 @@
     <div class="text-center">
       <button
         @click="startLocalBattle"
-        :disabled="isLoading"
+        :disabled="loadingPhase !== null"
         class="px-6 py-3 text-lg font-medium text-white bg-blue-500 border-none rounded-md cursor-pointer transition-colors duration-200 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
-        {{ isLoading ? '资源加载中...' : '开始本地对战' }}
+        {{ startLabel }}
       </button>
 
       <!-- 错误提示 -->
@@ -77,6 +77,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
 
 import { LocalBattleSession } from '@/services/localBattleSession'
+import { preloadBattleWorker } from '@/services/sandboxBattleWorkers'
 import { getDesktopApi } from '@/utils/env'
 
 const router = useRouter()
@@ -86,7 +87,12 @@ const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
 const dataStore = useGameDataStore()
 const errorMessage = ref<string | null>(null)
-const isLoading = ref(true)
+const loadingPhase = ref<'configuration' | 'battle' | null>('configuration')
+const startLabel = computed(() => {
+  if (loadingPhase.value === 'configuration') return '正在准备本地内容…'
+  if (loadingPhase.value === 'battle') return '正在启动对战引擎…'
+  return '开始本地对战'
+})
 const contentNotice = ref('')
 
 const localSession = shallowRef(new LocalBattleSession())
@@ -270,37 +276,37 @@ async function initializeLocalBattle() {
   const previous = localSession.value
   const session = new LocalBattleSession()
   localSession.value = session
-  isLoading.value = true
+  loadingPhase.value = 'configuration'
   await previous.dispose().catch(error => console.warn('本地对战清理失败', error))
   if (localSession.value !== session || session.state === 'disposed') return
-  isLoading.value = true
   errorMessage.value = null
   contentNotice.value = ''
-  const owner = localSession.value
-  const isCurrent = () => localSession.value === owner && owner.state !== 'disposed'
+  const isCurrent = () => localSession.value === session && session.state !== 'disposed'
   dataStore.clearServerEnvironment()
   // 初始化队伍选择
   initializeTeamSelection()
 
-  if (!getDesktopApi() && (dataStore.loaded || dataStore.gameDataLoaded)) {
-    dataStore.gameDataLoaded = true
-    isLoading.value = false
-  } else {
-    try {
-      if (getDesktopApi()) {
-        await session.prepareContent(dataStore)
-        const status = await getDesktopApi()!.listContentPackages?.()
-        if (status?.selection.status === 'preparing')
-          contentNotice.value = '新选择正在准备，本次使用最近可用组合。重新进入本页可使用准备完成后的内容。'
-        if (status?.selection.status === 'failed')
-          contentNotice.value = `新选择未能启用，本次使用最近可用组合：${status.selection.message ?? ''}`
-      } else await dataStore.initialize()
-      if (isCurrent()) dataStore.gameDataLoaded = true
-    } catch (error) {
-      if (isCurrent()) errorMessage.value = `资源加载失败: ${(error as Error).message}`
-    } finally {
-      if (isCurrent()) isLoading.value = false
+  const desktop = getDesktopApi()
+  if (!desktop) preloadBattleWorker()
+  try {
+    if (desktop) {
+      await session.prepareContent(dataStore)
+      const status = await desktop.listContentPackages?.()
+      if (!isCurrent()) return
+      if (status?.selection.status === 'preparing')
+        contentNotice.value = '新选择正在准备，本次使用最近可用组合。重新进入本页可使用准备完成后的内容。'
+      if (status?.selection.status === 'failed')
+        contentNotice.value = `新选择未能启用，本次使用最近可用组合：${status.selection.message ?? ''}`
+    } else if (!dataStore.loaded && !dataStore.gameDataLoaded) {
+      await dataStore.initialize()
     }
+    if (!isCurrent()) return
+    await playerStore.initializePlayer()
+    if (isCurrent()) dataStore.gameDataLoaded = true
+  } catch (error) {
+    if (isCurrent()) errorMessage.value = `资源加载失败: ${(error as Error).message}`
+  } finally {
+    if (isCurrent()) loadingPhase.value = null
   }
 
   if (!isCurrent()) return
@@ -311,11 +317,11 @@ async function initializeLocalBattle() {
 
 const startLocalBattle = async () => {
   // 防止重复点击
-  if (isLoading.value) {
+  if (loadingPhase.value) {
     return
   }
 
-  isLoading.value = true
+  loadingPhase.value = 'battle'
   errorMessage.value = null
   const session = localSession.value
 
@@ -373,7 +379,7 @@ const startLocalBattle = async () => {
     console.error('本地对战启动失败:', error)
     if (localSession.value === session && session.state !== 'disposed') errorMessage.value = (error as Error).message
   } finally {
-    if (localSession.value === session) isLoading.value = false
+    if (localSession.value === session) loadingPhase.value = null
   }
 }
 watch(

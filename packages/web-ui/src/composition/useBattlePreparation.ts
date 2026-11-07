@@ -10,6 +10,7 @@ export interface PreparationJob {
   id: string
   label: string
   required?: boolean
+  timeoutMs?: number
   run: () => Promise<void>
 }
 
@@ -60,7 +61,7 @@ export function useBattlePreparation() {
           },
           () => {},
         )
-        await withDeadline(work, 12000, `${job.label}超时`)
+        await withDeadline(work, job.timeoutMs ?? 12_000, `${job.label}超时`)
         if (run !== generation) return
         task.state = 'ready'
       } catch (cause) {
