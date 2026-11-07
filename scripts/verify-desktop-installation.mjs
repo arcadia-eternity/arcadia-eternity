@@ -119,7 +119,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       }
     })
     assert.ok(content.species > 0 && content.skills > 0, 'packaged official content loads')
-    assert.match(content.environment, /^[a-f0-9]{64}$/)
+    assert.match(content.environment, /^arcadia\.work-environment\/1:[a-f0-9]{64}\/effects:[a-f0-9]{64}$/)
     const baseManifest = await page.evaluate(async port => {
       const response = await fetch(`http://127.0.0.1:${port}/packs/base/pack.json`)
       return { status: response.status, manifest: await response.json() }
