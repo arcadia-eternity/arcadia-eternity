@@ -30,12 +30,22 @@ async function fixture() {
   cleanups.push(() => rm(root, { recursive: true, force: true }))
   const source = join(root, 'project')
   await mkdir(source)
-  await writeFile(join(source, 'package.json'), JSON.stringify({ name: '@example/fixture', version: '1.0.0' }))
+  const project = { name: '@example/fixture', version: '1.0.0', dependencies: { fixture: '1.0.0' } }
+  await writeFile(join(source, 'package.json'), JSON.stringify(project))
   await writeFile(
     join(source, 'package-lock.json'),
-    JSON.stringify({ name: '@example/fixture', lockfileVersion: 3, packages: {} }),
+    JSON.stringify({
+      name: project.name,
+      version: project.version,
+      lockfileVersion: 3,
+      packages: { '': project, 'node_modules/fixture': { version: '1.0.0' } },
+    }),
   )
   await mkdir(join(source, 'node_modules', 'fixture'), { recursive: true })
+  await writeFile(
+    join(source, 'node_modules', 'fixture', 'package.json'),
+    JSON.stringify({ name: 'fixture', version: '1.0.0' }),
+  )
   await writeFile(join(source, 'node_modules', 'fixture', 'content.txt'), 'immutable material')
   const workspace = await ContentWorkspace.open(join(root, 'workspace'), { retentions: { list: async () => [] } })
   cleanups.push(() => workspace.close())
