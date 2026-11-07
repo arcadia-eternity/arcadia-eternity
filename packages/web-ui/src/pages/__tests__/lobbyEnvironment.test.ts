@@ -183,7 +183,7 @@ it('loads the current server catalog and submits the selected content when creat
   expect(push).toHaveBeenCalledWith('/room/ABC123')
 })
 
-it('keeps official room creation available when the catalog is unavailable and clears incompatible selections on P2P switch', async () => {
+it('keeps the server default available when the catalog is unavailable and clears incompatible selections on P2P switch', async () => {
   refreshEnvironments.mockRejectedValueOnce(new Error('offline'))
   const page = mount(LobbyPage, { global: { stubs } })
   await page.get('[data-testid="create-private-room-button"]').trigger('click')
@@ -196,7 +196,7 @@ it('keeps official room creation available when the catalog is unavailable and c
   await flushPromises()
   await page.get('[data-testid="room-environment-select"]').setValue('ugc')
   await page.get('[data-testid="p2p"]').trigger('click')
-  expect(page.get('[data-testid="room-environment-select"]').text()).toContain('官方固定内容')
+  expect(page.get('[data-testid="room-environment-select"]').text()).toContain('服务器默认内容')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
   await flushPromises()
   expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'p2p' }), undefined, undefined)

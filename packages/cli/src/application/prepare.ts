@@ -6,7 +6,8 @@ import {
   WorkError,
   type NativePackLoadResult,
 } from '@arcadia-eternity/pack-loader/native'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { resolvePackPathFromRef } from '@arcadia-eternity/battle/pack'
 import {
   emptyNpmContentHost,
   NativeNodePackLoader,
@@ -14,21 +15,13 @@ import {
   prepareNpmProject,
   readNpmAdmission,
 } from '@arcadia-eternity/pack-loader/node'
-import { fileURLToPath } from 'node:url'
 import { createContentIndex, type ContentCatalog, type ContentIndex } from '@arcadia-eternity/battle/v4'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
 import type { RunSpec } from './types'
 
-function prepareShippedContent() {
-  let root: URL
-  try {
-    root = new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND') throw error
-    root = new URL('../packs/base/', import.meta.url)
-  }
-  return prepareCatalogPackage(fileURLToPath(root))
+async function prepareShippedContent() {
+  return prepareCatalogPackage(dirname(await resolvePackPathFromRef('builtin:base')))
 }
 
 export async function createLoader() {

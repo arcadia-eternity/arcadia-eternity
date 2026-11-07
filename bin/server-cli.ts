@@ -3,6 +3,7 @@ import { Command, CommanderError, InvalidArgumentError } from 'commander'
 import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
 import { stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
+import { resolvePackPathFromRef } from '@arcadia-eternity/battle/pack'
 import { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-dev/managed-projects'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
@@ -27,10 +28,7 @@ import {
 async function withShippedEnvironmentProject<T>(initialize: (directory: string) => Promise<T>): Promise<T> {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-default-environment-'))
   try {
-    const project = await stageCatalogProject(
-      directory,
-      dirname(fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
-    )
+    const project = await stageCatalogProject(directory, dirname(await resolvePackPathFromRef('builtin:base')))
     return await initialize(project)
   } finally {
     await rm(directory, { recursive: true, force: true })

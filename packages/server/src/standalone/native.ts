@@ -4,7 +4,8 @@ import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/eff
 import type { BattleOptions, ContentCatalog, ContentIndex } from '@arcadia-eternity/battle/v4'
 import { prepareCatalogPackage } from '@arcadia-eternity/pack-loader/node'
 import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
-import { fileURLToPath } from 'node:url'
+import { resolvePackPathFromRef } from '@arcadia-eternity/battle/pack'
+import { dirname } from 'node:path'
 import type { NativeRuntimeIdentity } from '@arcadia-eternity/protocol'
 import {
   PlayerSchema,
@@ -28,12 +29,12 @@ let officialPack: ReturnType<typeof prepareCatalogPackage> | undefined
 const sandboxWorkers = createNodeBattleWorkerManager()
 
 export function loadStandaloneBase() {
-  officialPack ??= prepareCatalogPackage(
-    fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
-  ).catch(error => {
-    officialPack = undefined
-    throw error
-  })
+  officialPack ??= resolvePackPathFromRef('builtin:base')
+    .then(path => prepareCatalogPackage(dirname(path)))
+    .catch(error => {
+      officialPack = undefined
+      throw error
+    })
   return officialPack
 }
 

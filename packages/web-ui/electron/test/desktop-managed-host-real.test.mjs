@@ -131,6 +131,11 @@ test(
       assert.equal(launched.error, undefined)
       const first = host.status()
       assert.equal(first.status, 'running')
+      const { environments } = await (await fetch(first.url + '/api/v1/environments')).json()
+      assert.deepEqual(
+        environments.find(item => item.isDefault).packages.map(item => item.name),
+        [fixtureManifest.name],
+      )
       const capabilities = await request('GET', '/capabilities')
       assert.equal(capabilities.workspaceId, workspace.workspaceId)
       const firstServer = (await request('GET', '/servers')).servers[0]
@@ -262,6 +267,11 @@ test(
         configuration: { name: '官方玩法好友服', content: 'official', scope: 'local', port: 0 },
       })
       assert.equal(launched.host.status, 'running', JSON.stringify(launched.error))
+      const { environments } = await (await fetch(launched.host.url + '/api/v1/environments')).json()
+      assert.deepEqual(
+        environments.find(item => item.isDefault).packages.map(item => item.name),
+        ['@arcadia-eternity/data-pack-base'],
+      )
       const homepage = await fetch(launched.host.url)
       assert.equal(homepage.status, 200)
       assert.match(await homepage.text(), /<html/)
