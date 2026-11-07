@@ -58,17 +58,28 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     child = app.process()
     child.stdout?.on('data', data => output.push(data.toString()))
     child.stderr?.on('data', data => output.push(data.toString()))
-    const identity = await app.evaluate(({ app }) => ({
-      isPackaged: app.isPackaged,
-      appPath: app.getAppPath(),
-      userData: app.getPath('userData'),
-      sessionData: app.getPath('sessionData'),
-      version: app.getVersion(),
-      name: app.getName(),
-      executable: process.execPath,
-      resourcesPath: process.resourcesPath,
-      appDir: process.env.APPDIR,
-    }))
+    page = await app.firstWindow({ timeout: 60000 })
+    observe(page)
+    page.setDefaultTimeout(30000)
+    await page.waitForURL(/^arcadia-client:\/\/app\//, { waitUntil: 'domcontentloaded' })
+    const readIdentity = () =>
+      app.evaluate(({ app }) => ({
+        isPackaged: app.isPackaged,
+        appPath: app.getAppPath(),
+        userData: app.getPath('userData'),
+        sessionData: app.getPath('sessionData'),
+        version: app.getVersion(),
+        name: app.getName(),
+        executable: process.execPath,
+        resourcesPath: process.resourcesPath,
+        appDir: process.env.APPDIR,
+      }))
+    const identity = await readIdentity().catch(error => {
+      // Playwright can report a transient inspector error on the first main-process evaluation.
+      if (!error.message.includes('Execution context was destroyed')) throw error
+      console.warn('Retrying installed application identity read:', error.message)
+      return readIdentity()
+    })
     assert.equal(identity.isPackaged, true)
     assert.match(identity.appPath, /[/\\]app\.asar$/)
     assert.equal(await realpath(identity.userData), await realpath(installation.profileDir))
@@ -87,14 +98,10 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       }
       assert.deepEqual(actual, sourceProof, 'installed application uses the recorded renderer, main and server inputs')
     }
-    page = await app.firstWindow({ timeout: 60000 })
-    observe(page)
     errors.push(...(await page.pageErrors()).map(error => error.message))
     consoleErrors.push(
       ...(await page.consoleMessages()).filter(message => message.type() === 'error').map(message => message.text()),
     )
-    page.setDefaultTimeout(30000)
-    assert.match(page.url(), /^arcadia-client:\/\/app\//)
     await page.waitForFunction(() => typeof window.arcadiaDesktop?.prepareLocalContent === 'function')
     localPort = await page.evaluate(() => window.arcadiaDesktop.getLocalServerPort())
     // This exercises the packaged base-pack location, data/locales and compiled
@@ -116,7 +123,9 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     }, localPort)
     assert.equal(baseManifest.status, 200)
     assert.equal(baseManifest.manifest.id, 'arcadia-eternity.base')
-    await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({ timeout: 90000 })
+    await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({
+      timeout: 90000,
+    })
     await expect(page.getByText('初始化失败，请刷新页面重试', { exact: true })).toHaveCount(0)
     await page.goto('arcadia-client://app/account')
     await page.getByRole('heading', { name: '档案与账号', exact: true }).waitFor()
@@ -213,7 +222,9 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     }
     if (baseline) assert.deepEqual(persistent, baseline.persistent)
     await expect(page.getByText('安装保留环境', { exact: true }).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({ timeout: 90000 })
+    await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({
+      timeout: 90000,
+    })
     await page.screenshot({ path: join(evidenceDirectory, `${label}.png`), fullPage: true })
     assert.deepEqual(errors, [], 'no unhandled renderer errors')
     assert.deepEqual(consoleErrors, [], 'no renderer error logs')
