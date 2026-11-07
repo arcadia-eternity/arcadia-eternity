@@ -26,7 +26,7 @@ async function isReachable(url: string): Promise<boolean> {
   }
 }
 
-async function resolveDesktopPackRef(baseOnly = false): Promise<string | null> {
+async function resolveDesktopPackRef(): Promise<string | null> {
   const api = getDesktopApi()
   if (!api) return null
 
@@ -39,7 +39,7 @@ async function resolveDesktopPackRef(baseOnly = false): Promise<string | null> {
     // With registered workspace layers the store loads each original manifest.
     // A fresh dev desktop has none, so it must load the locked base directly.
     const hasLayers = packs.some(pack => pack.enabled)
-    const folder = baseOnly || !hasLayers ? encodeURIComponent(base?.folderName ?? 'base') : 'workspace'
+    const folder = hasLayers ? 'workspace' : encodeURIComponent(base?.folderName ?? 'base')
     const candidate = `http://127.0.0.1:${port}/packs/${folder}/pack.json`
     return (await isReachable(candidate)) ? candidate : null
   } catch {
@@ -74,19 +74,6 @@ function withCacheBust(url: string, token: string): string {
 export function invalidateRuntimePackRefCache(): void {
   runtimeCache.resolvedPackRef = null
   runtimeCache.resolvePromise = null
-}
-
-/** Creator works capture the locked base independently of mutable workspace overlays. */
-export async function resolveBasePackRef(): Promise<string> {
-  const explicit = (import.meta.env.VITE_PACK_REF || '').trim()
-  if (explicit) return explicit
-  if (import.meta.env.VITE_PREPARED_ENVIRONMENT === '1' && !import.meta.env.VITE_API_BASE?.trim())
-    return new URL('pack.json', new URL(import.meta.env.BASE_URL, window.location.href)).href
-  if (isDesktop) {
-    const base = await resolveDesktopPackRef(true)
-    if (base) return base
-  }
-  return defaultPackRef()
 }
 
 export async function resolveRuntimePackRef(options?: { forceRefresh?: boolean }): Promise<string> {

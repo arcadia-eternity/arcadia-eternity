@@ -1,5 +1,4 @@
 import {
-  PackMetadataLoader,
   workRef,
   type Json,
   type WorkDraft,
@@ -14,7 +13,7 @@ import {
   type ContentPrototypeData,
   type EnvironmentBuildIdentity,
 } from '@arcadia-eternity/battle/v4'
-import { resolveBasePackRef } from '@/utils/packRef'
+import { getDesktopApi } from '@/utils/env'
 
 export type EffectTemplate =
   (typeof import('@arcadia-eternity/data-pack-base/metadata').officialEffectTemplates)[number]
@@ -26,28 +25,11 @@ export interface CreatorContent {
   effectTemplates: readonly EffectTemplate[]
 }
 
-/** Read the selected package's raw rules and authoring definitions together. */
+/** Read the installed base package's rules and authoring definitions together. */
 export async function loadCreatorBase(): Promise<CreatorContent> {
-  const loader = new PackMetadataLoader()
-  const pack = new URL(await resolveBasePackRef(), window.location.href)
-  const [loaded, response] = await Promise.all([
-    loader.loadMetadata(pack.href, {
-      source: 'http',
-      enforceLockfile: true,
-      includeLocales: false,
-    }),
-    fetch(new URL('dist/catalog.json', pack), { cache: 'no-store', redirect: 'error', credentials: 'omit' }),
-  ])
-  if (!response.ok) throw new Error(`创作定义加载失败（${response.status}）`)
-  const catalog: Omit<CreatorContent, 'data'> = await response.json()
-  if (
-    !catalog?.build ||
-    !Array.isArray(catalog.templates) ||
-    !Array.isArray(catalog.effectIds) ||
-    !Array.isArray(catalog.effectTemplates)
-  )
-    throw new Error('创作定义格式无效')
-  return { ...catalog, data: loaded.data }
+  const api = getDesktopApi()
+  if (!api?.readCreatorBase) throw new Error('本地创作内容服务不可用')
+  return api.readCreatorBase()
 }
 export const workHost = (base: CreatorContent) => ({
   base: base.data,

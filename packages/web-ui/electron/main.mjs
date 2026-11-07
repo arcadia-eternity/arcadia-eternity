@@ -1857,13 +1857,8 @@ function setupIpcHandlers() {
       let result
       if (input.action === 'list') result = await manager.list()
       else if (input.action === 'browse-package') {
-        const directory =
-          input.packageId === 'official'
-            ? app.isPackaged
-              ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
-              : path.dirname(require.resolve('@arcadia-eternity/data-pack-base/package.json'))
-            : await getContentLibrary().sourceDirectory(input.packageId)
-        result = await manager.add(directory, { readOnly: true, published: input.packageId !== 'official' })
+        const directory = await getContentLibrary().sourceDirectory(input.packageId)
+        result = await manager.add(directory, { readOnly: true, published: true })
       } else if (input.action === 'create') result = await manager.create(input.name)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
@@ -2001,6 +1996,10 @@ function setupIpcHandlers() {
   handle('desktop:prepare-local-content', event => {
     requireLocalBattleCaller(event)
     return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true })
+  })
+  handle('desktop:read-creator-base', event => {
+    requireLocalBattleCaller(event)
+    return getLocalContentSessions().readCreatorBase()
   })
   handle('desktop:read-local-runtime', (_event, token) => {
     return getLocalContentSessions().readRuntime(token, localContentOwner.current())

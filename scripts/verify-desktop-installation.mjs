@@ -120,12 +120,29 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     })
     assert.ok(content.species > 0 && content.skills > 0, 'packaged official content loads')
     assert.match(content.environment, /^arcadia\.work-environment\/1:[a-f0-9]{64}\/effects:[a-f0-9]{64}$/)
-    const baseManifest = await page.evaluate(async port => {
-      const response = await fetch(`http://127.0.0.1:${port}/packs/base/pack.json`)
-      return { status: response.status, manifest: await response.json() }
-    }, localPort)
-    assert.equal(baseManifest.status, 200)
-    assert.equal(baseManifest.manifest.id, 'arcadia-eternity.base')
+    const base = await page.evaluate(async () => {
+      const api = window.arcadiaDesktop
+      const { packages } = await api.listContentPackages()
+      const installed = packages.find(pkg => pkg.bundled)
+      const { result: project, error } = await api.author({ action: 'browse-package', packageId: installed.id })
+      if (error) throw new Error(error.message)
+      try {
+        const { result: snapshot } = await api.author({ action: 'snapshot', id: project.id })
+        const creator = await api.readCreatorBase()
+        return {
+          project,
+          skillCount: snapshot.records.filter(row => row.kind === 'skills').length,
+          creatorSkillCount: creator.data.skills.length,
+        }
+      } finally {
+        await api.author({ action: 'forget', id: project.id })
+      }
+    })
+    assert.equal(base.project.published, true)
+    assert.equal(base.project.readOnly, true)
+    assert.match(base.project.directory, /[/\\]node_modules[/\\]@arcadia-eternity[/\\]data-pack-base$/)
+    assert.equal(base.skillCount, content.skills)
+    assert.equal(base.creatorSkillCount, content.skills)
     await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({
       timeout: 90000,
     })

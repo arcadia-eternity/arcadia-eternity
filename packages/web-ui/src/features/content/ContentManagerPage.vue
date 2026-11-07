@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
                 v-if="canAuthor && mode !== 'room'"
                 class="primary"
                 :disabled="busy"
-                @click="browsePackage(selected.builtin ? 'official' : selected.id)"
+                @click="browsePackage(selected.id)"
               >
                 浏览内容（只读）
               </button>

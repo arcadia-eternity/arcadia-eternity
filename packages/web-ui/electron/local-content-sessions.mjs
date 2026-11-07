@@ -216,6 +216,17 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
     await compileProject(directory, true)
     await collect()
   }
+  async function readCreatorBase() {
+    const lease = await library.acquireDefaultProject()
+    try {
+      const prepared = await compileProject(lease.directory)
+      if (!prepared.authoring) throw new Error('默认环境缺少基础包创作定义')
+      const { build, templates, effectIds, effectTemplates } = prepared.authoring
+      return { data: prepared.data, build, templates, effectIds, effectTemplates }
+    } finally {
+      await lease.release()
+    }
+  }
   function selectProject({ directory }) {
     activeDirectory = directory
     void collect().catch(() => {})
@@ -252,6 +263,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
   }
   return {
     prepare: tracked(prepare),
+    readCreatorBase: tracked(readCreatorBase),
     readRuntime(token, owner) {
       const session = sessions.get(token)
       if (!session || session.owner !== owner) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
