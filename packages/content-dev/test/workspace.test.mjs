@@ -16,7 +16,10 @@ test('base source layout is readable without modifying its package manifest', as
   assert.equal(snapshot.project.projectId, 'arcadia-eternity.base')
   assert.ok(snapshot.records.some(row => row.kind === 'species' && row.record.id === 'pet_dilan'))
   assert.ok(snapshot.records.some(row => row.kind === 'skills' && row.record.id === 'skill_xishui'))
-  assert.ok(snapshot.localeSources.some(row => row.namespace === 'species' && row.entries.pet_dilan.name === '迪兰'))
+  const chinese = snapshot.localeSources.find(row => row.language === 'zh-CN' && row.namespace === 'species')
+  const english = snapshot.localeSources.find(row => row.language === 'en' && row.namespace === 'species')
+  assert.equal(chinese?.entries.pet_dilan?.name, '迪兰')
+  assert.equal(english?.entries.pet_bingchuantun?.name, 'Bingchuantun')
   assert.deepEqual(snapshot.diagnostics, [])
 })
 

@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { webcrypto } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { Blob as NodeBlob, Buffer } from 'node:buffer'
 import { isProxy, reactive } from 'vue'
-import { digestJson } from '@arcadia-eternity/pack-loader/native'
+import { digestJson, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import {
   MarkSchema,
   PetSchema,
   SkillSchema,
   SpeciesSchema,
+  PresentationManifestSchema,
   parseWithErrors,
   type PetSchemaType,
 } from '@arcadia-eternity/schema'
@@ -90,6 +93,27 @@ async function mediaBundle() {
     assets: [{ id: 'pet-icon', mime: 'image/png', data: png }],
   })
 }
+
+it('keeps the built-in Bingchuantun media portable when captured without an installed package', async () => {
+  const manifest = parseWithErrors(
+    PresentationManifestSchema,
+    JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../../../packs/base/dist/presentation.json'), 'utf8')),
+  )
+  const presentations = presentationIndex([manifest])
+  for (const key of [
+    'species:pet_tuntun',
+    'species:pet_binghutun',
+    'species:pet_bingchuantun',
+    'marks:mark_hanbingjianren',
+  ]) {
+    const presentation = presentations.get(key)
+    expect(presentation, key).toBeDefined()
+    const original = await capture(presentation!.icon as string)
+    original.content.species[0].presentation = presentation
+    original.environment.data = structuredClone(original.content)
+    await expect(createPersonalEnvironmentBundle(original), key).resolves.toBeDefined()
+  }
+})
 
 async function httpsReference(bundle: Awaited<ReturnType<typeof createPersonalEnvironmentBundle>>) {
   const prepared = await parsePersonalEnvironmentBundle(bundle, {

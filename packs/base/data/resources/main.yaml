@@ -5793,22 +5793,22 @@
   source: https://seer2-resource.yuuinih.com/sound/pet/249.mp3
 - id: bingchuantun:pet-tuntun-icon
   kind: image
-  source: assets/bingchuantun/pets/tuntun-icon.png
+  source: https://seer2-resource.yuuinih.com/png/petIcon/119.png
 - id: bingchuantun:pet-tuntun-portrait
   kind: image
-  source: assets/bingchuantun/pets/tuntun-portrait.png
+  source: https://seer2-resource.yuuinih.com/png/pet/119.png
 - id: bingchuantun:pet-binghutun-icon
   kind: image
-  source: assets/bingchuantun/pets/binghutun-icon.png
+  source: https://seer2-resource.yuuinih.com/png/petIcon/120.png
 - id: bingchuantun:pet-binghutun-portrait
   kind: image
-  source: assets/bingchuantun/pets/binghutun-portrait.png
+  source: https://seer2-resource.yuuinih.com/png/pet/120.png
 - id: bingchuantun:pet-bingchuantun-icon
   kind: image
-  source: assets/bingchuantun/pets/bingchuantun-icon.png
+  source: https://seer2-resource.yuuinih.com/png/petIcon/121.png
 - id: bingchuantun:pet-bingchuantun-portrait
   kind: image
-  source: assets/bingchuantun/pets/bingchuantun-portrait.png
+  source: https://seer2-resource.yuuinih.com/png/pet/121.png
 - id: bingchuantun:pet-tuntun-battle
   kind: swf
   source: https://seer2-pet-resource.yuuinih.com/public/fight/119.swf
@@ -5829,7 +5829,7 @@
   source: https://seer2-resource.yuuinih.com/sound/pet/121.mp3
 - id: bingchuantun:mark-hanbingjianren
   kind: image
-  source: assets/bingchuantun/marks/hanbingjianren.png
+  source: https://seer2-resource.yuuinih.com/png/markImage/3115.png
 - id: bingchuantun:sfx-01-1-001
   kind: audio
   source: https://seer2-resource.yuuinih.com/sound/skill/01_1_001.mp3
