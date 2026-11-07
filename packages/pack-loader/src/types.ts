@@ -1,5 +1,4 @@
-import type { V2DataRepository } from '@arcadia-eternity/battle'
-import type { PackManifest, AssetManifest } from '@arcadia-eternity/schema'
+import type { PackManifest, AssetManifest, PresentationManifest } from '@arcadia-eternity/schema'
 
 export type PackSource = 'node-fs' | 'http'
 
@@ -49,8 +48,8 @@ export interface PackLockfile {
 }
 
 export interface AssetConflict {
-  kind: 'assetUri' | 'mapping'
-  scope: 'assets' | 'species' | 'marks' | 'skills'
+  kind: 'assetUri'
+  scope: 'assets'
   key: string
   previous: string
   next: string
@@ -66,29 +65,15 @@ export interface PackLoaderOptions {
   enforceLockfile?: boolean
 }
 
-export interface PackLoadResult {
-  repository: V2DataRepository
+export interface PackMetadataResult {
   errors: string[]
   pack?: V2DataPackManifest
   locales?: LocaleBundles
   lockfile?: PackLockfile
   lockfileIssues?: string[]
+  presentation?: PresentationManifest[]
   assets?: AssetManifest[]
   assetConflicts?: AssetConflict[]
   source: PackSource
   packRef: string
-}
-
-export interface PackLoadSummary {
-  source: PackSource
-  packRef: string
-  packId?: string
-  packVersion?: string
-  hasLockfile: boolean
-  lockfileIssueCount: number
-  effectCount: number
-  markCount: number
-  skillCount: number
-  speciesCount: number
-  errorCount: number
 }

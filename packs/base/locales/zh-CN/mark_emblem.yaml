@@ -205,3 +205,12 @@ mark_emblem_kaoda:
 mark_emblem_jina:
   name: 缉拿
   description: 使通缉令技能必中
+mark_emblem_bihu:
+  name: 庇护
+  description: 使庇护之火减少物理伤害变为减少所有伤害
+mark_emblem_hongxin:
+  name: 红心
+  description: 使<markName>红心印记</markName>和<markName>桃红印记</markName>技能<guaranteedHit>必中</guaranteedHit>
+mark_emblem_jianren:
+  name: 坚韧
+  description: 具有<markName>寒冰坚韧</markName>时受到的伤害减少<shield>20</shield>点。

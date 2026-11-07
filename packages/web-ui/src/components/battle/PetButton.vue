@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getNumericAttributeModifier } from '@/utils/modifierStyles'
 import { computed, ref } from 'vue'
 import PetIcon from '../PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
@@ -9,15 +10,11 @@ import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
-import MarkdownIt from 'markdown-it'
+import ContentDescription from '@/components/ContentDescription'
 import { getCurrentSkillEffectiveness } from '@/utils/typeEffectiveness'
 
 const gameDataStore = useGameDataStore()
 const battleStore = useBattleStore()
-
-const md = new MarkdownIt({
-  html: true,
-})
 
 interface Props {
   pet: PetMessage
@@ -137,7 +134,7 @@ const processedSkills = computed(() => {
           }) ||
           i18next.t('unknown_skill', { ns: 'webui' }) ||
           '未知技能'
-        skillDescription = md.render(rawDescription)
+        skillDescription = rawDescription
       } catch {
         skillDescription = i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能'
       }
@@ -160,7 +157,7 @@ const hasModifiers = computed(() => {
 // 获取等级的 modifier 信息
 const levelModifierInfo = computed(() => {
   if (!props.pet.modifierState) return undefined
-  return props.pet.modifierState.attributes.find(attr => attr.attributeName === 'level')
+  return getNumericAttributeModifier(props.pet.modifierState, 'level')
 })
 
 // 获取 HP 相关的 modifier 信息
@@ -168,8 +165,8 @@ const hpModifierInfo = computed(() => {
   if (!props.pet.modifierState) return { currentHp: undefined, maxHp: undefined }
 
   return {
-    currentHp: props.pet.modifierState.attributes.find(attr => attr.attributeName === 'currentHp'),
-    maxHp: props.pet.modifierState.attributes.find(attr => attr.attributeName === 'maxHp'),
+    currentHp: getNumericAttributeModifier(props.pet.modifierState, 'currentHp'),
+    maxHp: getNumericAttributeModifier(props.pet.modifierState, 'maxHp'),
   }
 })
 
@@ -243,13 +240,14 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
   if (!skill.modifierState) return undefined
 
   // 在技能的 modifierState 中查找对应的属性
-  return skill.modifierState.attributes.find(attr => attr.attributeName === attributeName)
+  return getNumericAttributeModifier(skill.modifierState, attributeName)
 }
 </script>
 
 <template>
   <div class="flex flex-wrap content-center justify-center">
     <Tooltip
+      interactive
       portal
       :show="showTooltip"
       :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'"
@@ -287,7 +285,9 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
             <!-- 图标容器 -->
             <div class="relative">
               <PetIcon
+                :uncached="!!gameDataStore.serverFallback"
                 :id="petIconId"
+                :species="speciesInfo ?? undefined"
                 :name="petDisplayName"
                 :is-unknown="isPetUnknown || !speciesInfo"
                 :class="position === 'left' || position === 'right' ? 'pet-button__side-icon' : 'size-35'"
@@ -373,10 +373,13 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
             </div>
 
             <!-- 技能描述 -->
-            <div
+            <ContentDescription
               v-if="!skill.isUnknown"
+              namespace="skill"
+              :content-id="skill.baseId"
+              :fallback="skill.displayDescription"
+              :context="{ skill }"
               class="text-sm text-gray-200 prose prose-invert prose-sm max-w-none"
-              v-html="skill.displayDescription"
             />
             <div v-else class="text-sm text-gray-400">
               {{ i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能' }}

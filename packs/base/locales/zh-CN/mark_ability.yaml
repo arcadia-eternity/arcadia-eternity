@@ -208,3 +208,12 @@ mark_ability_tongji:
 mark_ability_kaowen:
   name: 拷问
   description: 后出手时减少具有拷问的对手5点怒气
+mark_ability_shensheng:
+  name: 神圣
+  description: 自己具有神圣状态时不会受到致命一击
+mark_ability_yinji:
+  name: 印记
+  description: 具有<markName>红心印记</markName>时<damage>伤害增加10%</damage>
+mark_ability_houjin:
+  name: 后劲
+  description: 后出手时造成的伤害增加<damage>10%</damage>。

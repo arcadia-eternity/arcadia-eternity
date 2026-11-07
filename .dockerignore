@@ -1,10 +1,14 @@
 # Dependencies
 node_modules
-packages/*/node_modules
+**/node_modules
 
 # Build outputs (will be copied from builder stage)
 dist
 packages/*/dist
+packs/*/dist
+packages/web-ui/release
+packages/web-ui/release-*
+.omo
 
 # Development files
 .git
@@ -25,6 +29,8 @@ tests/
 jest.config.*
 vitest.config.*
 coverage/
+**/test-results
+**/playwright-report
 
 # Development configuration
 .env
@@ -132,7 +138,7 @@ packages/web-ui/dist
 packages/web-ui/node_modules
 
 # Development scripts
-scripts/
+# Paired website build uses staging scripts.
 
 # Test team files
 testteam*.yaml
@@ -141,3 +147,17 @@ testteam*.yaml
 Dockerfile*
 docker-compose*
 .dockerignore
+
+!tsconfig.json
+!tsconfig.*.json
+!packages/**/tsconfig*.json
+
+# content-dev packages the author instructions as part of the server dependency build.
+!docs/
+docs/*
+!docs/v4/
+docs/v4/*
+!docs/v4/ugc-authoring-agent/
+!docs/v4/ugc-authoring-agent/**
+!docs/v4/seer2-recreate-pet/
+!docs/v4/seer2-recreate-pet/**

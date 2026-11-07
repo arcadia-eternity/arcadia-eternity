@@ -1,0 +1,142 @@
+{
+  "reportedRun": 41952341953,
+  "reportedJob": 126998976970,
+  "reportedCommit": "3b0f93aa165c1ce0729ffbd9c23379dd0f4e088a",
+  "failure": "Owned descendant listener observed before its process finished exiting after launcher exit/SIGKILL",
+  "reproduction": {
+    "platform": "Linux Docker, cached node:24-alpine, Node 24.22.2",
+    "configuration": "30 cases, 2 concurrent trees, 12 real listening descendants per tree, 4 CPU quota",
+    "before": {
+      "total": 30,
+      "failures": [
+        {
+          "index": 2,
+          "error": "Cannot prove desktop process tree 196 stopped; preserve its installation and profile",
+          "cause": "Owned listener 39423 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.48895900000002257,
+              "listening": false
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "error": "Cannot prove desktop process tree 561 stopped; preserve its installation and profile",
+          "cause": "Owned listener 38315 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.848667000000205,
+              "listening": true
+            },
+            {
+              "ms": 12.948459000000184,
+              "listening": false
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "error": "Cannot prove desktop process tree 1107 stopped; preserve its installation and profile",
+          "cause": "Owned listener 38719 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.44341699999949924,
+              "listening": true
+            },
+            {
+              "ms": 12.692374999999629,
+              "listening": false
+            }
+          ]
+        },
+        {
+          "index": 17,
+          "error": "Cannot prove desktop process tree 1471 stopped; preserve its installation and profile",
+          "cause": "Owned listener 46523 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.33920800000032614,
+              "listening": true
+            },
+            {
+              "ms": 9.914500000000771,
+              "listening": false
+            }
+          ]
+        },
+        {
+          "index": 19,
+          "error": "Cannot prove desktop process tree 1653 stopped; preserve its installation and profile",
+          "cause": "Owned listener 44053 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.2709999999988213,
+              "listening": false
+            }
+          ]
+        },
+        {
+          "index": 18,
+          "error": "Cannot prove desktop process tree 1652 stopped; preserve its installation and profile",
+          "cause": "Owned listener 35245 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.5444170000009763,
+              "listening": false
+            }
+          ]
+        },
+        {
+          "index": 25,
+          "error": "Cannot prove desktop process tree 2199 stopped; preserve its installation and profile",
+          "cause": "Owned listener 41419 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.192417000000205,
+              "listening": true
+            },
+            {
+              "ms": 14.612832999999227,
+              "listening": false
+            }
+          ]
+        },
+        {
+          "index": 27,
+          "error": "Cannot prove desktop process tree 2381 stopped; preserve its installation and profile",
+          "cause": "Owned listener 35429 remains open after termination",
+          "observations": [
+            {
+              "ms": 0.09754100000100152,
+              "listening": true
+            },
+            {
+              "ms": 11.412875000001804,
+              "listening": false
+            }
+          ]
+        }
+      ]
+    },
+    "after": {
+      "total": 30,
+      "failures": []
+    }
+  },
+  "regressions": {
+    "deterministicDelayedDescendant": "Fails before fix; passes after fix. Real launcher exits before descendant closes its listener 200 ms later.",
+    "macProcessAndInstaller": {
+      "passed": 20,
+      "platformSkipped": 1,
+      "log": "/private/tmp/arcadia-process-shutdown-fixed-mac.log"
+    },
+    "linuxProcess": {
+      "passed": 4,
+      "skipped": 0,
+      "log": "/private/tmp/arcadia-process-shutdown-fixed-linux.log"
+    }
+  },
+  "contract": "Bounded actual refusal checks after normal/forced shutdown; ECONNRESET is inconclusive and retried, never accepted as closure. Persistent/unproven listener still retains installation and profile.",
+  "remoteVerification": "Latest fix CI is recorded in PR #275; previous successful 57620283 installer receipts retain their original provenance."
+}

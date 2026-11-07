@@ -42,7 +42,7 @@ skill_tuoli:
   description: 【95】弱化对手物攻1级
 skill_ruodiangongji:
   name: 弱点攻击
-  description: 暴击率增加5% 使对手获得1个<font color=#4CE8F7>弱点记号</font>
+  description: 暴击率增加5% 使对手获得1个<markName>弱点记号</markName>
 skill_jiliuchuanji:
   name: 激流穿击
   description: 【💠】清空弱点记号 每个增加45%暴击率
@@ -66,22 +66,22 @@ skill_feiliupubu:
   description: 【💠】清空弱点记号 每个增加50点威力
 skill_hailangzhidun:
   name: 海浪之盾
-  description: 使自身获得50点<font color=#C702EC>柔化</font>
+  description: 使自身获得50点<markName>柔化</markName>
 skill_wujindaxuanwo:
   name: 无尽大漩涡
-  description: <font color=#93E312>必中</font> 10%使对手<font color=#EC6002>溺水</font>
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手<status>溺水</status>
 skill_shuihuajianshe:
   name: 水花溅射
-  description: 使对手获得15点<font color=#C702EC>命中下降</font>
+  description: 使对手获得15点<markName>命中下降</markName>
 skill_yanmo:
   name: 淹没
   description: 【85】使对手溺水
 skill_ruodianbiaoji:
   name: 弱点标记
-  description: 使对手获得2个<font color=#4CE8F7>弱点记号</font>
+  description: 使对手获得2个<markName>弱点记号</markName>
 skill_dixiulazhinu:
   name: 迪休拉之怒
-  description: <font color=#93E312>必中</font> 连击3次
+  description: <guaranteedHit>必中</guaranteedHit> 连击3次
 skill_lizhua:
   name: 利爪
   description: 5%弱化对手物攻1级
@@ -93,19 +93,19 @@ skill_qili:
   description: 强化自身物攻1级
 skill_fenlitupo:
   name: 奋力突破
-  description: 使对手获得50点<font color=#4CE8F7>易伤</font>
+  description: 使对手获得50点<markName>易伤</markName>
 skill_tahuochongzhuang:
   name: 踏火冲撞
-  description: 10%使对手<font color=#EC6002>烧伤</font>
+  description: 10%使对手<status>烧伤</status>
 skill_jiasu:
   name: 加速
   description: 强化自身速度1级
 skill_yanggong:
   name: 佯攻
-  description: 先制+2 使自身获得<font color=#4CE8F7>佯攻强化</font>
+  description: 先制+2 使自身获得<markName>佯攻强化</markName>
 skill_jizhong:
   name: 集中
-  description: 使自身获得<font color=#4CE8F7>必中</font>
+  description: 使自身获得<markName>必中</markName>
 skill_huohai:
   name: 火海
   description: 【90】50%使对手烧伤
@@ -114,22 +114,22 @@ skill_nuhuomenggong:
   description: 造成伤害不低于100点
 skill_shixue:
   name: 嗜血
-  description: 消耗自身最大体力的1/6并恢复<font color=#F4C402>35点怒气</font>
+  description: 消耗自身最大体力的1/6并恢复<rage>35点怒气</rage>
 skill_lieyanjuexiji:
   name: 烈焰绝袭击
   description: 10%弱化对手物防1级
 skill_liehuofentianshao:
   name: 烈火焚天烧
-  description: <font color=#93E312>必中</font> 10%使对手<font color=#EC6002>烧伤</font>
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手<status>烧伤</status>
 skill_yanzhiyizhi:
   name: 炎之意志
-  description: 使自身获得100点<font color=#C702EC>伤害增加</font>
+  description: 使自身获得100点<markName>伤害增加</markName>
 skill_juechufengsheng:
   name: 绝处逢生
   description: 体力＜1/6时威力4倍
 skill_bumiezhixin:
   name: 不灭之心
-  description: 使自身获得<font color=#4CE8F7>不死</font>
+  description: 使自身获得<markName>不死</markName>
 skill_chongzhuang:
   name: 冲撞
   description: 5%弱化对手速度1级
@@ -138,10 +138,10 @@ skill_zhongzibaodan:
   description: 连击2~3次
 skill_zhiyu:
   name: 治愈
-  description: 恢复<font color=#70CB4E>自身最大体力的1/4</font>
+  description: 恢复<heal>自身最大体力的1/4</heal>
 skill_zhongzinengliang:
   name: 种子能量
-  description: 无视Miss使自身获得4个<font color=#4CE8F7>种子能量</font>
+  description: 无视Miss使自身获得4个<markName>种子能量</markName>
 skill_nengliangshifang:
   name: 能量释放
   description: 清空种子能量 每个增加25点威力
@@ -156,19 +156,19 @@ skill_jishengzhongzi:
   description: 【95】使对手寄生
 skill_nengliangzhaqu:
   name: 能量榨取
-  description: 清空种子能量 每个恢复<font color=#70CB4E>造成伤害1/4的体力</font>
+  description: 清空种子能量 每个恢复<heal>造成伤害1/4的体力</heal>
 skill_jinghuazhiye:
   name: 净化汁液
   description: 清除对手强化
 skill_lirendaoye:
   name: 利刃刀叶
-  description: 使对手获得50点<font color=#CB2C1B>流血</font> 清空种子能量 每个增加1回合
+  description: 使对手获得50点<status>流血</status> 清空种子能量 每个增加1回合
 skill_ganrao:
   name: 干扰
   description: 【95】使对手获得15点命中下降
 skill_laaodehuhuan:
   name: 拉奥的呼唤
-  description: <font color=#93E312>必中</font> 使自身获得<font color=#70CB4E>13%</font>的<font color=#C702EC>恢复</font>
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得<heal>13%</heal>的<markName>恢复</markName>
 skill_qianyesha:
   name: 千叶杀
   description: 对手体力＜1/4时威力2倍
@@ -216,10 +216,10 @@ skill_shanbi:
   description: 【35】使自身获得闪避
 skill_huanjinglieshanguang:
   name: 幻境裂闪光
-  description: <font color=#93E312>必中</font> 使对手获得15点命中下降
+  description: <guaranteedHit>必中</guaranteedHit> 使对手获得15点命中下降
 skill_lingcaiguangxian:
   name: 绫彩光线
-  description: <font color=#93E312>必中</font>
+  description: <guaranteedHit>必中</guaranteedHit>
 skill_huanjuezhuangtai:
   name: 幻觉状态
   description: 使自身获得属性必中
@@ -261,19 +261,19 @@ skill_xishoucao:
   description: 使自身获得吸收草 连续使用无效
 skill_gundongzhenci:
   name: 滚动针刺
-  description: 【80】对手具有葵花种子时<font color=#93E312>必中</font>
+  description: 【80】对手具有葵花种子时<guaranteedHit>必中</guaranteedHit>
 skill_jieducao:
   name: 解毒草
   description: 解除自身不良
 skill_qiyeduoming:
   name: 七叶夺命
-  description: <font color=#93E312>必中</font> 10%使对手中毒
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手中毒
 skill_ducao:
   name: 毒草
   description: 【85】使对手中毒
 skill_fangqing:
   name: 放晴
-  description: 使环境变为<font color=#6699CC>晴天</font>
+  description: 使环境变为<markName>晴天</markName>
 skill_duhua:
   name: 毒化
   description: 使对手中毒回合数+2
@@ -288,7 +288,7 @@ skill_zhongji:
   description: 5%弱化对手物防1级
 skill_bianfei:
   name: 变肥
-  description: 使自身获得1层<font color=#4CE8F7>增重</font>
+  description: 使自身获得1层<markName>增重</markName>
 skill_tizhongyapo:
   name: 体重压迫
   description: 体重＞对手时威力2倍
@@ -297,16 +297,16 @@ skill_yinghuazhifang:
   description: 强化自身物防1级
 skill_zhifanghudun:
   name: 脂肪护盾
-  description: 使自身获得<font color=#4CE8F7>脂肪护盾</font>
+  description: 使自身获得<markName>脂肪护盾</markName>
 skill_qilingruoxiao:
   name: 欺凌弱小
   description: 等级＞对手时威力2倍
 skill_konghe:
   name: 恐吓
-  description: 【25】使对手<font color=#EC6002>害怕</font> 等级＞对手时命中率增加50%
+  description: 【25】使对手<status>害怕</status> 等级＞对手时命中率增加50%
 skill_weixiaguangbo:
   name: 威吓光波
-  description: 10%使对手<font color=#EC6002>害怕</font> 等级＞对手时效果4倍
+  description: 10%使对手<status>害怕</status> 等级＞对手时效果4倍
 skill_tuidao:
   name: 推倒
   description: 附加自身总体重值的固伤
@@ -315,22 +315,22 @@ skill_quanliyiji:
   description: 【85】10%强化自身物攻1级
 skill_tizhongbaozhang:
   name: 体重暴涨
-  description: 使自身获得2层<font color=#4CE8F7>增重</font>
+  description: 使自身获得2层<markName>增重</markName>
 skill_chaozhongliangongji:
   name: 超重量攻击
-  description: <font color=#93E312>必中</font> 10%使对手<font color=#EC6002>瘫痪</font>
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手<status>瘫痪</status>
 skill_tizhongzhishang:
   name: 体重至上
   description: 体重＞99时威力2倍
 skill_zhifangranshao:
   name: 脂肪燃烧
-  description: 使每层增重转化成1回合75点<font color=#C702EC>伤害增加</font>
+  description: 使每层增重转化成1回合75点<markName>伤害增加</markName>
 skill_zhifangzhengqi:
   name: 脂肪蒸汽
-  description: 【85】50%使对手<font color=#EC6002>恶心</font>
+  description: 【85】50%使对手<status>恶心</status>
 skill_tanxingzhifang:
   name: 弹性脂肪
-  description: 使自身获得<font color=#4CE8F7>弹性脂肪</font>
+  description: 使自身获得<markName>弹性脂肪</markName>
 skill_qiaoda:
   name: 敲打
   description: 5%弱化对手特攻1级
@@ -369,10 +369,10 @@ skill_fenglizuantou:
   description: 使对手获得30点流血
 skill_qianchuangbaikong:
   name: 千疮百孔
-  description: <font color=#93E312>必中</font> 使对手获得30点流血
+  description: <guaranteedHit>必中</guaranteedHit> 使对手获得30点流血
 skill_caomujiebing:
   name: 草木皆兵
-  description: <font color=#93E312>必中</font>
+  description: <guaranteedHit>必中</guaranteedHit>
 skill_ehuashangkou:
   name: 恶化伤口
   description: 【95】使对手流血层数翻倍并刷新持续时间
@@ -381,7 +381,7 @@ skill_suixinci:
   description: 具有硬化时清除对手双防强化
 skill_muyexuanfeng:
   name: 木叶旋风
-  description: 【65】对手流血时<font color=#93E312>必中</font>
+  description: 【65】对手流血时<guaranteedHit>必中</guaranteedHit>
 skill_touchui:
   name: 头槌
   description: 5%弱化对手物防1级
@@ -420,7 +420,7 @@ skill_shuaitui:
   description: 【95】弱化对手特攻1级
 skill_junengshuiguangpao:
   name: 聚能水光炮
-  description: <font color=#93E312>必中</font> 10%使对手失明
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手失明
 skill_chuantoushuipao:
   name: 穿透水炮
   description: 连续命中伤害增加50% 最多3次
@@ -429,7 +429,7 @@ skill_hunzhuoshuiyu:
   description: 使自身获得浑浊水域
 skill_linweiyichui:
   name: 临危一锤
-  description: 【25】体力＜1/4时<font color=#93E312>必中</font>
+  description: 【25】体力＜1/4时<guaranteedHit>必中</guaranteedHit>
 skill_xuruoshuixian:
   name: 虚弱水线
   description: 【95】弱化对手特攻特防1级
@@ -465,7 +465,7 @@ skill_juduyeti:
   description: 70%使对手获得1层慢性毒药
 skill_duqigongxin:
   name: 毒气攻心
-  description: <font color=#93E312>必中</font> 使对手获得5层慢性毒药
+  description: <guaranteedHit>必中</guaranteedHit> 使对手获得5层慢性毒药
 skill_yidugongdu:
   name: 以毒攻毒
   description: 解除自身中毒并恢复最大体力的1/4
@@ -510,7 +510,7 @@ skill_kongqihudun:
   description: 清空空气值使自身获得等值的空气护盾
 skill_yasuoningjupao:
   name: 压缩凝聚炮
-  description: <font color=#93E312>必中</font> 10%弱化对手特防1级
+  description: <guaranteedHit>必中</guaranteedHit> 10%弱化对手特防1级
 skill_gaoyakongqi:
   name: 高压空气
   description: 清空空气值 附加空气值点数的伤害
@@ -531,7 +531,7 @@ skill_quanlichongzhuang:
   description: 连续命中时减少10点威力 最多20点
 skill_xingzhiwei:
   name: 星之尾
-  description: 无视对手<font color=#02CAC9>护盾</font>
+  description: 无视对手<shield>护盾</shield>
 skill_yingjiachongding:
   name: 硬甲冲顶
   description: 连续命中时使自身获得10点受伤增加 最多20点
@@ -543,7 +543,7 @@ skill_weishe:
   description: 【50】使对手害怕
 skill_shuangxingzhiwei:
   name: 双星之尾
-  description: 连击2次 无视对手<font color=#02CAC9>护盾</font>
+  description: 连击2次 无视对手<shield>护盾</shield>
 skill_fengkuanglianchong:
   name: 疯狂连冲
   description: 【90】连击3次 连续命中时连击数-1 最多2次
@@ -552,7 +552,7 @@ skill_bomingyiji:
   description: 自身承受25%的自损伤害
 skill_nuhailiantao:
   name: 怒海连涛
-  description: '<font color=#93E312>必中</font> 连击5次'
+  description: '<guaranteedHit>必中</guaranteedHit> 连击5次'
 skill_talangchongji:
   name: 踏浪冲击
   description: 连续命中时造成伤害减少10% 最多2次
@@ -594,7 +594,7 @@ skill_fansheshuidun:
   description: 先制+1 使自身获得反弹
 skill_chongnengjizhuangbo:
   name: 充能激撞波
-  description: <font color=#93E312>必中</font> 30%弱化对手物攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 30%弱化对手物攻1级
 skill_yazhi:
   name: 压制
   description: 后制-3 使自身获得反射
@@ -603,7 +603,7 @@ skill_yapo:
   description: 【95】弱化对手双攻1级
 skill_huanyu:
   name: 唤雨
-  description: 使环境变为<font color=#6699CC>雨天</font>
+  description: 使环境变为<markName>雨天</markName>
 skill_jishuichuanliu:
   name: 急水川流
   description: 30%使对手溺水
@@ -630,7 +630,7 @@ skill_lieyanzhiqu:
   description: 使自身获得免疫不良
 skill_huoyanxuanfeng:
   name: 火焰旋风
-  description: 【75】对手烧伤时<font color=#93E312>必中</font>
+  description: 【75】对手烧伤时<guaranteedHit>必中</guaranteedHit>
 skill_mijisaoshe:
   name: 密集扫射
   description: 连击3~5次
@@ -639,7 +639,7 @@ skill_chaodahuoqiu:
   description: 【90】15%使对手烧伤
 skill_rongyanbaolie:
   name: 熔岩爆裂
-  description: <font color=#93E312>必中</font> 10%使对手烧伤
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手烧伤
 skill_jisuhuodan:
   name: 急速火弹
   description: 先制+1
@@ -651,7 +651,7 @@ skill_chuantouhuoyan:
   description: 造成伤害不低于95点
 skill_fennuzhihuo:
   name: 愤怒之火
-  description: 【35】对手体力＜1/4时<font color=#93E312>必中</font>
+  description: 【35】对手体力＜1/4时<guaranteedHit>必中</guaranteedHit>
 skill_huoqiu:
   name: 火球
   description: 5%弱化对手特防1级
@@ -663,19 +663,19 @@ skill_zhuangyun:
   description: 使对手获得眩晕
 skill_daliqian:
   name: 大力钳
-  description: 【60】对手具有眩晕时<font color=#93E312>必中</font>
+  description: 【60】对手具有眩晕时<guaranteedHit>必中</guaranteedHit>
 skill_reliqian:
   name: 热力钳
-  description: 【60】对手具有眩晕时<font color=#93E312>必中</font>
+  description: 【60】对手具有眩晕时<guaranteedHit>必中</guaranteedHit>
 skill_huoqiulianshe:
   name: 火球连射
   description: 连击2~3次
 skill_guailiqian:
   name: 怪力钳
-  description: 【55】对手具有眩晕时<font color=#93E312>必中</font>
+  description: 【55】对手具有眩晕时<guaranteedHit>必中</guaranteedHit>
 skill_huoyanqian:
   name: 火焰钳
-  description: 【55】对手具有眩晕时<font color=#93E312>必中</font>
+  description: 【55】对手具有眩晕时<guaranteedHit>必中</guaranteedHit>
 skill_juansuo:
   name: 卷缩
   description: 使自身获得50点受伤减少
@@ -684,16 +684,16 @@ skill_huoyantuxi:
   description: 10%使对手烧伤
 skill_huoyanshazhen:
   name: 火焰杀阵
-  description: <font color=#93E312>必中</font> 连击4次
+  description: <guaranteedHit>必中</guaranteedHit> 连击4次
 skill_xuli:
   name: 蓄力
   description: 使自身获得75点伤害增加
 skill_fensuiqian:
   name: 粉碎钳
-  description: 【50】对手具有眩晕时<font color=#93E312>必中</font>
+  description: 【50】对手具有眩晕时<guaranteedHit>必中</guaranteedHit>
 skill_rongyanqian:
   name: 熔岩钳
-  description: 【50】对手具有眩晕时<font color=#93E312>必中</font>
+  description: 【50】对手具有眩晕时<guaranteedHit>必中</guaranteedHit>
 skill_xuanyunhuoqiu:
   name: 眩晕火球
   description: 使对手获得眩晕
@@ -723,7 +723,7 @@ skill_huoshanhujia:
   description: 使自身获得免疫不良
 skill_huoshanbaoliequan:
   name: 火山爆裂拳
-  description: '<font color=#93E312>必中</font> 20%强化自身特攻1级'
+  description: '<guaranteedHit>必中</guaranteedHit> 20%强化自身特攻1级'
 skill_yanzhizhua:
   name: 炎之爪
   description: 先制+1 使自身获得100点特攻增加
@@ -732,7 +732,7 @@ skill_yanbao:
   description: 先制+1 使自身获得100点物攻增加
 skill_yangyan:
   name: 阳炎
-  description: 使环境变为<font color=#6699CC>炎热</font>
+  description: 使环境变为<markName>炎热</markName>
 skill_huoshanzhili:
   name: 火山之力
   description: 强化自身双攻1级
@@ -762,7 +762,7 @@ skill_zouhuo:
   description: '【95】50%使对手烧伤'
 skill_lieyanyachongpo:
   name: 烈焰牙冲破
-  description: '<font color=#93E312>必中</font> 15%使对手烧伤'
+  description: '<guaranteedHit>必中</guaranteedHit> 15%使对手烧伤'
 skill_yanwu:
   name: 焰舞
   description: '【95】30%使对手烧伤'
@@ -804,7 +804,7 @@ skill_xuanzhuanchongfeng:
   description: '【95】15%弱化对手物防1级'
 skill_chaoliupo:
   name: 超流破
-  description: '<font color=#93E312>必中</font> 使自身获得<font color=#93E312>必中</font>'
+  description: '<guaranteedHit>必中</guaranteedHit> 使自身获得<markName>必中</markName>'
 skill_junengchongfeng:
   name: 聚能冲锋
   description: '【50】20%弱化对手物防1级'
@@ -825,10 +825,10 @@ skill_rouruan:
   description: 强化自身特防1级
 skill_xinzhiyinji:
   name: 心之印记
-  description: 使对手获得<font color=#4CE8F7>心之印记</font>
+  description: 使对手获得<markName>心之印记</markName>
 skill_xinlianxin:
   name: 心连心
-  description: 【60】消耗心之印记<font color=#93E312>必中</font>
+  description: 【60】消耗心之印记<guaranteedHit>必中</guaranteedHit>
 skill_jianren:
   name: 坚韧
   description: 强化自身双防1级
@@ -837,13 +837,13 @@ skill_hongxinyu:
   description: 消耗心之印记连击5~8次
 skill_rourun:
   name: 柔韧
-  description: 使自身获得<font color=#4CE8F7>反弹</font>
+  description: 使自身获得<markName>反弹</markName>
 skill_quanlichongfeng:
   name: 全力冲锋
   description: 【80】15%强化自身物攻1级
 skill_mantianhongxin:
   name: 满天红心
-  description: <font color=#93E312>必中</font> 10%强化自身特攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 10%强化自身特攻1级
 skill_xinxinxiangyin:
   name: 心心相印
   description: 消耗心之印记威力2倍
@@ -852,7 +852,7 @@ skill_dahongxin:
   description: 使对手获得15点命中下降
 skill_xuehongyinji:
   name: 血红印记
-  description: 【95】使对手获得<font color=#CB2C1B>血红印记</font>
+  description: 【95】使对手获得<markName>血红印记</markName>
 skill_xinyuan:
   name: 心愿
   description: 恢复自身最大体力的1/4 连续使用效果减半
@@ -867,7 +867,7 @@ skill_qiaokeli:
   description: 清除对手双防强化
 skill_aideminyi:
   name: 爱的名义
-  description: <font color=#93E312>必中</font> 使自身获得爱的名义
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得爱的名义
 skill_yongqi:
   name: 勇气
   description: 强化自身特攻1级 具有爱的名义时额外强化物防1级
@@ -894,7 +894,7 @@ skill_yonghengzhiguang:
   description: 【85】具有爱的名义时使自身获得1/16的恢复
 skill_fuxiaozhike:
   name: 拂晓之刻
-  description: <font color=#93E312>必中</font> 恢复自身最大体力的1/4
+  description: <guaranteedHit>必中</guaranteedHit> 恢复自身最大体力的1/4
 skill_xinlingxiangtong:
   name: 心灵相通
   description: 先出手时使自身获得闪避
@@ -927,13 +927,13 @@ skill_shanggouquan:
   description: 自身身高＜对手时威力2倍
 skill_youbaiquan:
   name: 右摆拳
-  description: 自身身高＞100时<font color=#93E312>必中</font>
+  description: 自身身高＞100时<guaranteedHit>必中</guaranteedHit>
 skill_fanjidongzuo:
   name: 反击动作
   description: 使自身获得反弹
 skill_shangxiazuoyouquan:
   name: 上下左右拳
-  description: <font color=#93E312>必中</font>
+  description: <guaranteedHit>必中</guaranteedHit>
 skill_xiaxiaxiagouquan:
   name: 下下下勾拳
   description: 自身身高＞对手时连击3次
@@ -945,7 +945,7 @@ skill_shangshangshanggouquan:
   description: 自身身高＜对手时连击3次
 skill_youyouyoubaiquan:
   name: 右右右摆拳
-  description: 自身身高＞100时<font color=#93E312>必中</font>
+  description: 自身身高＞100时<guaranteedHit>必中</guaranteedHit>
 skill_yili:
   name: 毅力
   description: 强化自身物攻1级
@@ -960,7 +960,7 @@ skill_bachujinzhen:
   description: 消耗麦麦金针使对手获得50点流血
 skill_qianyinjinzhen:
   name: 牵引金针
-  description: 【60】对手具有麦麦金针时<font color=#93E312>必中</font>
+  description: 【60】对手具有麦麦金针时<guaranteedHit>必中</guaranteedHit>
 skill_jinzhenwayi:
   name: 金针外衣
   description: 使自身获得金针外衣
@@ -975,10 +975,10 @@ skill_zhencichongzhuang:
   description: 使对手获得冲撞刺针
 skill_juxingjinzhen:
   name: 巨型金针
-  description: 【60】对手具有麦麦金针时<font color=#93E312>必中</font>
+  description: 【60】对手具有麦麦金针时<guaranteedHit>必中</guaranteedHit>
 skill_jinzhenluanwu:
   name: 金针乱舞
-  description: <font color=#93E312>必中</font> 使对手获得50点流血
+  description: <guaranteedHit>必中</guaranteedHit> 使对手获得50点流血
 skill_zuijiazhugong:
   name: 最佳助攻
   description: 替换上场首次使用威力2倍
@@ -1021,16 +1021,16 @@ skill_chuantounchongfeng:
   description: 无视对手双防强化
 skill_xukongshanshen:
   name: 虚空闪现
-  description: 先制+1 具有虚空感应时<font color=#93E312>必中</font>
+  description: 先制+1 具有虚空感应时<guaranteedHit>必中</guaranteedHit>
 skill_xukongdabaozha:
   name: 虚空大爆炸
-  description: <font color=#93E312>必中</font> 15%弱化对手特防1级
+  description: <guaranteedHit>必中</guaranteedHit> 15%弱化对手特防1级
 skill_xuanwotuxi:
   name: 漩涡突袭
-  description: <font color=#93E312>必中</font> 具有虚空感应时增加50点威力
+  description: <guaranteedHit>必中</guaranteedHit> 具有虚空感应时增加50点威力
 skill_xuanwochuantou:
   name: 漩涡穿透
-  description: <font color=#93E312>必中</font> 无视对手双防强化
+  description: <guaranteedHit>必中</guaranteedHit> 无视对手双防强化
 skill_xuanwozhadan:
   name: 漩涡炸弹
   description: 【90】附加50点固伤 具有虚空感应时效果2倍
@@ -1063,13 +1063,13 @@ skill_jisufeiyu:
   description: 先制+1
 skill_fengbaozhixing:
   name: 风暴之星
-  description: <font color=#93E312>必中</font> 怒气＜40时恢复20点怒气
+  description: <guaranteedHit>必中</guaranteedHit> 怒气＜40时恢复20点怒气
 skill_zhenkongxi:
   name: 真空袭
   description: 先出手时威力2倍
 skill_shenfengliepoxi:
   name: 神风烈破袭
-  description: <font color=#93E312>必中</font> 20%弱化对手物防1级 20%弱化对手特防1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%弱化对手物防1级 20%弱化对手特防1级
 skill_fengzhilingyu:
   name: 风之领域
   description: 使双方获得风之领域 具有伊特领域时变为风暴领域
@@ -1081,7 +1081,7 @@ skill_daqiliu:
   description: 恢复自身25点怒气
 skill_yitesanlianxing:
   name: 伊特三连星
-  description: <font color=#93E312>必中</font> 连击3次
+  description: <guaranteedHit>必中</guaranteedHit> 连击3次
 # 电伊特技能
 skill_jingdianmaichong:
   name: 静电脉冲
@@ -1097,13 +1097,13 @@ skill_bairen:
   description: 后制-1 后出手时威力2倍
 skill_diancizhixing:
   name: 电磁之星
-  description: <font color=#93E312>必中</font> 暴击率增加15% 暴击时强化自身物攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 暴击率增加15% 暴击时强化自身物攻1级
 skill_shandianwaiyi:
   name: 闪电外衣
   description: 使自身获得闪电外衣
 skill_shandianxingguangzhan:
   name: 闪电星光斩
-  description: <font color=#93E312>必中</font> 20%强化自身物攻1级 20%强化自身特攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%强化自身物攻1级 20%强化自身特攻1级
 skill_dianzhilingyu:
   name: 电之领域
   description: 使双方获得电之领域 具有伊特领域时变为电磁领域
@@ -1127,13 +1127,13 @@ skill_bingningzhiqi:
   description: 使对手获得冰凝之气
 skill_bingshuangzhixing:
   name: 冰霜之星
-  description: <font color=#93E312>必中</font> 使对手获得冰霜之星
+  description: <guaranteedHit>必中</guaranteedHit> 使对手获得冰霜之星
 skill_bingguzhishen:
   name: 冰固之躯
   description: 使自身获得免疫异常
 skill_jibingqianliepuo:
   name: 极冰千裂破
-  description: <font color=#93E312>必中</font> 20%弱化对手速度1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%弱化对手速度1级
 skill_bingzhilingyu:
   name: 冰之领域
   description: 使双方获得冰之领域 具有伊特领域时变为冰霜领域
@@ -1149,12 +1149,6 @@ skill_kongjuzhinian:
 skill_yingren:
   name: 影刃
   description: 对手具有恐惧之念时增加50点威力
-skill_anying:
-  name: 暗影
-  description: 先出手时使对手失明
-skill_anyingqie:
-  name: 暗影切
-  description: 先出手时威力2倍
 skill_heian:
   name: 黑暗
   description: 【95】使对手获得15点命中下降
@@ -1163,13 +1157,13 @@ skill_ezuoju:
   description: 【95】弱化对手特防1级
 skill_anyingzhiguang:
   name: 暗影之光
-  description: <font color=#93E312>必中</font> 使自身获得暗影之光
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得暗影之光
 skill_pojian:
   name: 破刃
   description: 对手具有2层恐惧之念时必定暴击
 skill_huianxiezouqu:
   name: 灰暗协奏曲
-  description: <font color=#93E312>必中</font> 附加对手最大体力6%的固伤
+  description: <guaranteedHit>必中</guaranteedHit> 附加对手最大体力6%的固伤
 skill_anyingzhiwu:
   name: 暗影之舞
   description: 具有暗之领域时威力2倍 具有暗影领域时额外强化自身物攻1级
@@ -1193,13 +1187,13 @@ skill_jinghuazhiguang:
   description: 清除对手强化
 skill_guanghuizhiying:
   name: 光辉之影
-  description: <font color=#93E312>必中</font> 使对手获得光辉之影
+  description: <guaranteedHit>必中</guaranteedHit> 使对手获得光辉之影
 skill_guangsuqie:
   name: 光速切
   description: 先制+1
 skill_zhongjishanguangpao:
   name: 终极闪光炮
-  description: <font color=#93E312>必中</font> 恢复自身最大体力的1/6
+  description: <guaranteedHit>必中</guaranteedHit> 恢复自身最大体力的1/6
 skill_guangzhilingyu:
   name: 光之领域
   description: 获得光之领域 具有伊特领域时变为光辉领域
@@ -1211,7 +1205,7 @@ skill_baiguangqie:
   description: 先出手时必定暴击
 skill_guangyinghuanxiang:
   name: 光影幻象
-  description: <font color=#93E312>必中</font> 连击2次 使环境变为<font color=#6699CC>晴天</font>或<font color=#6699CC>夜幕</font>
+  description: <guaranteedHit>必中</guaranteedHit> 连击2次 使环境变为<markName>晴天</markName>或<markName>夜幕</markName>
 skill_liuxingquan:
   name: 流星拳
   description: 50%连击2次
@@ -1238,7 +1232,7 @@ skill_suixingquan:
   description: 35%连击4次
 skill_xingchensuiquan:
   name: 星辰粉碎拳
-  description: <font color=#93E312>必中</font> 使自身获得50点星之辉
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得50点星之辉
 skill_luoxuanguangpao:
   name: 螺旋光炮
   description: 【90】15%使对手害怕
@@ -1319,13 +1313,13 @@ skill_lieshichuanci:
   description: 对手具有破防时使对手获得40点流血
 skill_miaozhuntuji:
   name: 瞄准突击
-  description: <font color=#93E312>必中</font>
+  description: <guaranteedHit>必中</guaranteedHit>
 skill_lanbaoshizhili:
   name: 蓝宝石之力
   description: 使对手获得蓝宝石
 skill_juchuidilichong:
   name: 巨锤地裂冲
-  description: <font color=#93E312>必中</font> 20%弱化对手速度1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%弱化对手速度1级
 skill_liuxingdun:
   name: 流星盾
   description: 使自身获得流星盾
@@ -1349,7 +1343,7 @@ skill_shachenfengbao:
   description: 连击数为沙鹤之力的剩余回合数
 skill_shahuangzhiqu:
   name: 沙皇之驱
-  description: <font color=#93E312>必中</font> 20%强化自身速度1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%强化自身速度1级
 skill_shazhiquti:
   name: 沙之躯体
   description: 使自身获得50点硬化
@@ -1364,7 +1358,7 @@ skill_hongbaoshizhiguang:
   description: 使对手获得红宝石
 skill_shahuangxiangyuewu:
   name: 沙皇翔月舞
-  description: <font color=#93E312>必中</font> 20%强化自身速度1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%强化自身速度1级
 skill_haishishenglou:
   name: 海市蜃楼
   description: 使对手获得25点命中下降
@@ -1376,7 +1370,7 @@ skill_shazhihaixiao:
   description: 【35】沙鹤之力每剩余1回合增加25%命中率
 skill_shahuangshuangshan:
   name: 沙皇双闪
-  description: <font color=#93E312>必中</font> 连击2次
+  description: <guaranteedHit>必中</guaranteedHit> 连击2次
 skill_rengni:
   name: 扔泥
   description: 5%弱化对手物防1级
@@ -1406,7 +1400,7 @@ skill_zhendangdadi:
   description: 【90】10%弱化对手特防1级
 skill_kuangyebenteng:
   name: 狂野奔腾
-  description: <font color=#93E312>必中</font> 弱化对手物防1级
+  description: <guaranteedHit>必中</guaranteedHit> 弱化对手物防1级
 skill_dadizhiqiang:
   name: 大地之墙
   description: 使自身获得50点硬化
@@ -1442,10 +1436,10 @@ skill_shazhijiao:
   description: 清除对手双防强化
 skill_shachendanke:
   name: 沙尘蛋壳
-  description: 【70】消耗1层沙之蛋壳<font color=#93E312>必中</font>
+  description: 【70】消耗1层沙之蛋壳<guaranteedHit>必中</guaranteedHit>
 skill_shabaoqixuan:
   name: 沙暴旋风
-  description: <font color=#93E312>必中</font> 10%弱化对手特防1级
+  description: <guaranteedHit>必中</guaranteedHit> 10%弱化对手特防1级
 skill_dankebaohu:
   name: 蛋壳保护
   description: 使自身获得免疫弱化
@@ -1491,13 +1485,13 @@ skill_shuangpozhan:
   description: 连击2次 造成伤害＜100点时使对手获得双刃追击
 skill_mieyingzhan:
   name: 灭影斩
-  description: <font color=#93E312>必中</font>
+  description: <guaranteedHit>必中</guaranteedHit>
 skill_heiyapo:
   name: 黑牙破
   description: 使对手获得伤害等值的白牙 最多800点
 skill_heiyalianbozhan:
   name: 黑牙连破斩
-  description: <font color=#93E312>必中</font> 连击2次 20%弱化对手物攻1级 20%弱化对手物防1级
+  description: <guaranteedHit>必中</guaranteedHit> 连击2次 20%弱化对手物攻1级 20%弱化对手物防1级
 skill_gongshoujianbei:
   name: 攻守兼备
   description: 使自身获得攻守兼备
@@ -1509,7 +1503,7 @@ skill_shunyingya:
   description: 先制+1
 skill_shengmoshizizhan:
   name: 圣魔十字斩
-  description: <font color=#93E312>必中</font> 连击2次
+  description: <guaranteedHit>必中</guaranteedHit> 连击2次
 skill_renzhezhixin:
   name: 仁者之心
   description: 使自身获得1层仁者之心
@@ -1533,13 +1527,13 @@ skill_shuangrenzhan:
   description: 连击2次 造成伤害＜100点时使对手获得双破追击
 skill_juguangzhan:
   name: 聚光斩
-  description: <font color=#93E312>必中</font>
+  description: <guaranteedHit>必中</guaranteedHit>
 skill_baiyapo:
   name: 白牙破
   description: 使对手获得伤害等值的黑牙 最多800点
 skill_baiyalianbozhan:
   name: 白牙连破斩
-  description: <font color=#93E312>必中</font> 连击2次 20%强化自身特攻1级 20%强化自身特防1级
+  description: <guaranteedHit>必中</guaranteedHit> 连击2次 20%强化自身特攻1级 20%强化自身特防1级
 skill_xulichongji:
   name: 蓄力冲击
   description: 使自身获得蓄力冲击
@@ -1584,7 +1578,7 @@ skill_yuhuawu:
   description: 使用2次强化自身特防1级
 skill_shankongxiangliebo:
   name: 闪空翔烈破
-  description: <font color=#93E312>必中</font> 20%强化自身特攻1级 20%强化自身物攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%强化自身特攻1级 20%强化自身物攻1级
 skill_huiyizhongxian:
   name: 回忆重现
   description: 该技能会变为你上一个使用的技能
@@ -1593,10 +1587,10 @@ skill_fenshenshu:
   description: 转移自身不良且获得分身术
 skill_tiankongliechong:
   name: 天空烈冲
-  description: <font color=#93E312>必中</font> 使用2次强化自身物攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 使用2次强化自身物攻1级
 skill_tiankongzhiwu:
   name: 天空之舞
-  description: <font color=#93E312>必中</font> 使用2次强化自身特攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 使用2次强化自身特攻1级
 skill_fusudadi:
   name: 复苏大地
   description: 无论是否命中 恢复自身物防值1/4的体力
@@ -1665,7 +1659,7 @@ skill_huafenmiman:
   description: 使自身获得花粉弥漫
 skill_huanmiediewu:
   name: 幻灭蝶舞
-  description: <font color=#93E312>必中</font> 10%使对手睡眠
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手睡眠
 skill_fushidufeng:
   name: 腐蚀毒粉
   description: 附加对手最大体力1/8的伤害
@@ -1894,7 +1888,7 @@ skill_huanxiangzhinian:
   description: 消耗幻想强化自身物防1级
 skill_zhenjiabinglengjiang:
   name: 真假冰棱镜
-  description: <font color=#93E312>必中</font> 使自身获得幻想 真实幻想
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得幻想 真实幻想
 skill_buyi:
   name: 不移
   description: 复制自身物攻强化为特攻强化
@@ -1930,7 +1924,7 @@ skill_bailingji:
   description: 具有招财时连击3次 具有进宝时附加100点固伤
 skill_lingyinsiqi:
   name: 铃音似起
-  description: <font color=#93E312>必中</font> 使自身获得招财或进宝
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得招财或进宝
 skill_changmingbuzhi:
   name: 长鸣不止
   description: 强化自身双攻1级
@@ -1960,7 +1954,7 @@ skill_yizhiwudong:
   description: 后出手时增加40点威力
 skill_yeshizhiyan:
   name: 夜视之眼
-  description: <font color=#93E312>必中</font> 使自身获得<font color=#93E312>必中</font>
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得<markName>必中</markName>
 skill_yingzhizhua:
   name: 鹰之爪
   description: 连击2次 先出手时连击4次
@@ -1981,7 +1975,7 @@ skill_chihuan:
   description: 使自身获得1层迟缓
 skill_jiaochayingzhuagong:
   name: 交叉鹰爪功
-  description: <font color=#93E312>必中</font> 20%强化自身物攻1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%强化自身物攻1级
 skill_yingzhilijue:
   name: 鹰之利爪
   description: 先出手时威力2倍
@@ -2014,13 +2008,13 @@ skill_yurenjiazou:
   description: 使自身获得羽刃反弹
 skill_yurenzhan:
   name: 羽刃斩
-  description: 无视对手<font color=#02CAC9>护盾</font>
+  description: 无视对手<shield>护盾</shield>
 skill_yutushiliushi:
   name: 羽突十六式
   description: 使自身获得1层强攻
 skill_salangulerjian:
   name: 萨兰古尔剑
-  description: <font color=#93E312>必中</font> 暴击率增加15%
+  description: <guaranteedHit>必中</guaranteedHit> 暴击率增加15%
 skill_gangduoyizhi:
   name: 刚铎意志
   description: 强化自身物攻1级及其他1项能力1级
@@ -2029,7 +2023,7 @@ skill_yutuyishi:
   description: 自身物攻值＞500时先制+1
 skill_yutulingshi:
   name: 羽突零式
-  description: 自身物攻值＞500时<font color=#93E312>必中</font>
+  description: 自身物攻值＞500时<guaranteedHit>必中</guaranteedHit>
 skill_yutubaibashi:
   name: 羽突百八式
   description: 自身物攻值>500时 附加强攻增加的攻击力的伤害
@@ -2053,7 +2047,7 @@ skill_shiguangdaoliu:
   description: 弱化双方特攻1级 具有时间法则时额外强化自身特攻2级
 skill_shiguangchongji:
   name: 时光冲击
-  description: 先出手时<font color=#93E312>必中</font>
+  description: 先出手时<guaranteedHit>必中</guaranteedHit>
 skill_shiguangliushu:
   name: 时光流束
   description: 先出手时暴击率增加50%
@@ -2062,7 +2056,7 @@ skill_shiguanghudun:
   description: 使自身获得时间护盾
 skill_shiguangzhongcai:
   name: 时光仲裁
-  description: <font color=#93E312>必中</font> 20%强化自身速度1级
+  description: <guaranteedHit>必中</guaranteedHit> 20%强化自身速度1级
 skill_shijianzhadan:
   name: 时间炸弹
   description: 使对手获得时间炸弹 具有时间法则时直接触发
@@ -2173,7 +2167,7 @@ skill_guangliechong:
   description: 附加50点固伤
 skill_shenguanghuti:
   name: 神光护体
-  description: <font color=#93E312>必中</font> 使自身获得免疫异常
+  description: <guaranteedHit>必中</guaranteedHit> 使自身获得免疫异常
 skill_lingtongchuanda:
   name: 灵通传达
   description: 使自身获得灵通传达
@@ -2185,7 +2179,7 @@ skill_guangyuandan:
   description: 附加50点固伤
 skill_guangwushenlingtong:
   name: 光武神灵通
-  description: <font color=#93E312>必中</font> 吸收对手15点怒气
+  description: <guaranteedHit>必中</guaranteedHit> 吸收对手15点怒气
 skill_shenguangliechong:
   name: 神光烈冲
   description: 附加55点固伤
@@ -2203,7 +2197,7 @@ skill_hanshuangchuanliu:
   description: 使对手获得拉扯
 skill_bingdiangongji:
   name: 冰点攻击
-  description: 对手特攻＞物攻时<font color=#93E312>必中</font>
+  description: 对手特攻＞物攻时<guaranteedHit>必中</guaranteedHit>
 skill_xishuichangliu:
   name: 细水长流
   description: 对手特攻＞物攻时增加35点威力
@@ -2227,7 +2221,7 @@ skill_hanshuangtiandi:
   description: 对手特攻＞物攻时增加35点威力
 skill_shuanghounhunqu:
   name: 霜后安魂曲
-  description: <font color=#93E312>必中</font> 使对手获得安魂曲
+  description: <guaranteedHit>必中</guaranteedHit> 使对手获得安魂曲
 skill_hanshuangpingzhang:
   name: 寒霜屏障
   description: 先制+1 使自身获得寒霜屏障
@@ -2413,7 +2407,7 @@ skill_dongqipenshe:
   description: 附加自身最大体力-500的威力
 skill_wuxianbingjie:
   name: 无限冰洁
-  description: '[93E312]必中[-] 10%使对手冰冻'
+  description: '<guaranteedHit>必中</guaranteedHit> 10%使对手冰冻'
 skill_hanbingdongqi:
   name: 寒冰冻气
   description: 对手冰冻时威力2倍
@@ -2458,7 +2452,7 @@ skill_shuangdongchongji:
   description: 对手每级物攻强化增加40点威力
 skill_bingshuangdaxueqiu:
   name: 冰霜大雪球
-  description: <font color=#93E312>必中</font> 10%使对手冻伤
+  description: <guaranteedHit>必中</guaranteedHit> 10%使对手冻伤
 skill_tongganyindiao:
   name: 同感音调
   description: 清空对手的音波值并吸收对手等值的怒气
@@ -2474,9 +2468,6 @@ skill_quzhuhanyi:
 skill_houtuiti:
   name: 后腿踢
   description: 5%弱化对手物防1级
-skill_yiling:
-  name: 毅力
-  description: 强化自身物攻1级
 skill_yigenfasi:
   name: 一根发丝
   description: 使自身获得喷嚏
@@ -2692,7 +2683,7 @@ skill_yitedaluandou:
   description: 必中 连击5~9次
 skill_xifayishi:
   name: 戏法一式
-  description: 使对手获得15点<font color=#C702EC>命中下降</font>
+  description: 使对手获得15点<markName>命中下降</markName>
 skill_yingzhaolianji:
   name: 硬爪连击
   description: 连击3次 10%弱化对手物防1级
@@ -2909,3 +2900,127 @@ skill_fangkongdong:
 skill_zuizhongcaijue:
   name: 最终裁决
   description: 击败具有拷问的对手时恢复自身最大体力的1/4
+skill_chongzhuang_palading:
+  name: 冲撞
+  description: 向对手冲撞过去
+skill_guangxiangongji:
+  name: 光线攻击
+  description: 用光线攻击对手
+skill_zhengyizhihuo:
+  name: 正义之火
+  description: 提升<buff>物防</buff> 神圣状态下额外提升<buff>特防</buff>
+skill_shengguangzhiming:
+  name: 圣光之名
+  description: 使自己进入<markName>神圣</markName>状态并持续恢复体力 <buff>先制+1</buff>
+skill_shiziguangchong:
+  name: 十字光冲
+  description: 耀眼的光芒 神圣状态下<damage>伤害增加50%</damage>
+skill_chengjiezhiguang:
+  name: 惩戒之光
+  description: 惩戒恶人的光芒 神圣状态下额外附带<damage>15%特攻值的伤害</damage>
+skill_bihuzhihuo:
+  name: 庇护之火
+  description: 在战场获得<markName>庇护</markName> 恢复<heal>1/8体力</heal>且5回合格挡<shield>50点物理伤害</shield>
+skill_shengguangxili:
+  name: 圣光洗礼
+  description: 接受圣光的洗礼 清除自己的不良状态
+skill_gongzhengguangchong:
+  name: 公正光冲
+  description: 裁定公正的光芒 使对手3回合无法获得能力提升效果
+skill_fuchouguangchong:
+  name: 复仇光冲
+  description: 复仇的光芒 伙伴全部战败时<damage>威力为2倍</damage>
+skill_zhengfazhihuo:
+  name: 征伐之火
+  description: 骑士的决心与怒火 3回合<damage>伤害增加35%</damage>并转化<heal>35%伤害为体力</heal>
+skill_shengyouzhihuo:
+  name: 圣佑之火
+  description: 在战场获得<markName>庇护</markName> 恢复<heal>1/8体力</heal>且5回合受到特攻伤害减半
+skill_rongyaodeshengzhan:
+  name: 荣耀的圣战
+  description: <strong>必杀技</strong> 充满荣耀的圣战 神圣状态下提升物防或特防
+skill_shimingzhihuo:
+  name: 使命之火
+  description: 使自己获得<markName>使命</markName> 免疫异常状态 持续5回合
+skill_shenpanguangchong:
+  name: 审判光冲
+  description: 最后审判的光芒 神圣状态下附带<damage>15%物攻值的伤害</damage> <guaranteedHit>必中</guaranteedHit>
+skill_zhengjiuzhihuo:
+  name: 拯救之火
+  description: 即使对手是恶人也要拯救 恢复<heal>对手100体力</heal>并减少其<rage>35怒气</rage>
+skill_jiushuzhihuo:
+  name: 救赎之火
+  description: 救赎的火焰 自己体力低于1/8时恢复<heal>100体力</heal> 恢复后消失
+skill_hongxinyinji:
+  name: 红心印记
+  description: 攻击对手同时使自身获得<markName>红心印记</markName>
+skill_hongxinchongzhuang:
+  name: 红心冲撞
+  description: 冲撞对手 消耗<markName>红心印记</markName>时威力2倍
+skill_hongxinqianghua:
+  name: 红心强化
+  description: 强化自身物攻1级 消耗<markName>红心印记</markName>时效果2倍
+skill_hongxinshexian:
+  name: 红心射线
+  description: 【90】10%弱化对手速度1级
+skill_tuihuashexian:
+  name: 退化射线
+  description: 【95】清除对手的能力提升
+skill_hongxinhuifu:
+  name: 红心回复
+  description: 恢复自身<heal>120</heal>体力 连续使用效果减半
+skill_qunxinmantian:
+  name: 群心满天
+  description: <guaranteedHit>必中</guaranteedHit> 10%强化自身物攻1级
+skill_taohongyinji:
+  name: 桃红印记
+  description: 使自身获得<markName>桃红印记</markName> 等同于3回合<markName>红心印记</markName>效果
+skill_hongxinpengzhuang:
+  name: 红心碰撞
+  description: 自身具有<markName>红心印记</markName>且对手具有<markName>心之印记</markName>时威力2倍
+skill_hongxinjizhuang:
+  name: 红心激撞
+  description: 消耗<markName>红心印记</markName>和<markName>心之印记</markName>时威力2倍
+skill_hongxinlianjie:
+  name: 红心连接
+  description: 消耗<markName>红心印记</markName>和<markName>心之印记</markName>使自身获得<markName>红心连接</markName>
+
+skill_quanliyiji_kadundudu:
+  name: 全力一击
+  description: 【85】10%强化自身物攻1级
+skill_bingzhui:
+  name: 冰锥
+  description: 以 <damage>{power}</damage> 威力攻击，命中率 <strong>{accuracy}%</strong>。<emphasis>5%</emphasis>弱化对手特防1级。
+skill_hanbingjianren:
+  name: 寒冰坚韧
+  description: 使自身获得<markName>寒冰坚韧</markName>：受到物攻伤害减少<shield>25%</shield>，受到特攻伤害减少<shield>15%</shield>；被特定技能消耗。
+skill_dongqichongzhuang:
+  name: 冻气冲撞
+  description: 向对手冲撞，命中后消耗<markName>寒冰坚韧</markName>使对手<status>冻伤</status>；对冰系无效。
+skill_bingyu:
+  name: 冰雨
+  description: 召唤冰雨攻击，后出手时威力2倍。
+skill_jisubingzhui:
+  name: 急速冰锥
+  description: 消耗<markName>寒冰坚韧</markName>使本技能先制+1。
+skill_bingdongchongzhuang:
+  name: 冰冻冲撞
+  description: 向对手冲撞，后出手时威力2倍。
+skill_bingbao:
+  name: 冰雹
+  description: 消耗<markName>寒冰坚韧</markName>时威力增加<damage>60</damage>点。
+skill_bingheshidai:
+  name: 冰河时代
+  description: <guaranteedHit>必中</guaranteedHit>。唤出冰河时代攻击对手，并使自己获得<markName>寒冰坚韧</markName>。
+skill_hanlengzhiqi:
+  name: 寒冷之气
+  description: 放出寒冷之气，对手处于<status>冻伤</status>时威力2倍。
+skill_bingzhuiyu:
+  name: 冰锥雨
+  description: 召唤冰锥雨攻击，后出手时威力2倍。
+skill_binglengyiji:
+  name: 冰冷一击
+  description: 消耗<markName>寒冰坚韧</markName>时附加<damage>60</damage>点固伤。
+skill_binglengpifu:
+  name: 冰冷皮肤
+  description: 依靠冰冷的皮肤，使自身获得<markName>免疫不良</markName>。

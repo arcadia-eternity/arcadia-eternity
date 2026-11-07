@@ -3,10 +3,10 @@
     <!-- 移动端优先的导航栏 - 固定置顶 -->
     <header
       class="sticky top-0 z-40 bg-black/90 border-b border-gray-600 backdrop-blur-md"
-      :class="isMobile ? 'h-14' : 'h-15'"
+      :class="compactNavigation ? 'h-14' : 'h-15'"
     >
       <!-- 移动端导航 -->
-      <div v-if="isMobile" class="flex justify-between items-center px-4 h-full">
+      <div v-if="compactNavigation" class="flex justify-between items-center px-4 h-full">
         <div class="flex items-center gap-3">
           <button
             @click="showMobileMenu = !showMobileMenu"
@@ -22,8 +22,14 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <ConnectionStatus />
-          <el-tag type="info" effect="dark" class="text-xs" size="small">
+          <ConnectionStatus v-if="!isStaticMode" />
+          <el-tag
+            v-if="!isStaticMode && battleClientStore.isConnected"
+            type="info"
+            effect="dark"
+            class="text-xs"
+            size="small"
+          >
             <span class="inline-flex items-center gap-1">
               <el-icon :size="12"><User /></el-icon>
               {{ serverState.serverState.onlinePlayers }}
@@ -41,9 +47,15 @@
           <img src="@/assets/logo.png" alt="Arcadia Eternity" class="h-10" />
           <span class="text-white text-2xl font-bold" style="text-shadow: 0 0 8px #409eff">Arcadia Eternity</span>
         </div>
-        <div class="flex gap-3 items-center">
-          <el-button type="primary" icon="House" @click="router.push('/')" :disabled="$route.path === '/'">
-            匹配大厅
+        <div class="desktop-navigation flex gap-2 items-center">
+          <el-button
+            v-if="!isStaticMode"
+            type="primary"
+            icon="House"
+            @click="router.push('/')"
+            :disabled="$route.path === '/'"
+          >
+            好友大厅
           </el-button>
           <el-button
             type="warning"
@@ -53,37 +65,36 @@
           >
             队伍编辑
           </el-button>
+
           <el-button
             type="success"
             icon="MagicStick"
             @click="router.push('/local-battle')"
             :disabled="$route.path === '/local-battle'"
+            >人机对战</el-button
           >
-            人机对战
-          </el-button>
-          <el-dropdown @command="handleBattleReportCommand">
-            <el-button type="info" icon="Document">
-              战报
-              <el-icon class="el-icon--right">
-                <ArrowDown />
-              </el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="online-reports" icon="Document">在线战报</el-dropdown-item>
-                <el-dropdown-item command="local-reports" icon="FolderOpened">本地战报</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <el-button type="info" icon="Document" @click="router.push('/local-battle-reports')">本地战报</el-button>
+          <el-button
+            @click="router.push('/servers')"
+            :type="$route.path.startsWith('/servers') || $route.path === '/management' ? 'primary' : 'default'"
+            >服务器</el-button
+          >
+
+          <el-button @click="router.push('/content')">内容包</el-button>
           <!-- 房间状态显示 -->
-          <el-button v-if="privateRoomStore.currentRoom" type="warning" size="small" @click="handleRoomButtonClick">
+          <el-button
+            v-if="!isStaticMode && privateRoomStore.currentRoom"
+            type="warning"
+            size="small"
+            @click="handleRoomButtonClick"
+          >
             <el-icon><House /></el-icon>
             房间: {{ privateRoomStore.currentRoom.config.roomCode }}
           </el-button>
 
-          <ConnectionStatus />
+          <ConnectionStatus v-if="!isStaticMode" />
 
-          <el-tag type="info" effect="dark">
+          <el-tag v-if="spaciousNavigation && !isStaticMode && battleClientStore.isConnected" type="info" effect="dark">
             <span class="inline-flex items-center gap-1">
               <el-icon><User /></el-icon>
               在线人数：{{ serverState.serverState.onlinePlayers }}
@@ -97,6 +108,8 @@
         </div>
       </div>
     </header>
+
+    <LocalServerStatus />
 
     <!-- 移动端侧边菜单 -->
     <el-drawer v-model="showMobileMenu" direction="ltr" :size="280" :with-header="false">
@@ -118,13 +131,14 @@
 
         <nav class="flex-1 py-5">
           <router-link
+            v-if="!isStaticMode"
             to="/"
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600 no-underline text-base font-medium transition-all border-l-4 border-transparent hover:bg-gray-100 hover:text-gray-800"
             :class="{ 'bg-blue-50 text-blue-600 border-l-blue-600': $route.path === '/' }"
           >
             <el-icon><House /></el-icon>
-            <span>匹配大厅</span>
+            <span>好友大厅</span>
           </router-link>
           <router-link
             to="/team-builder"
@@ -154,14 +168,11 @@
             <span>精灵仓库</span>
           </router-link>
           <router-link
-            to="/battle-reports"
+            to="/content"
             @click="showMobileMenu = false"
-            class="flex items-center gap-4 px-6 py-4 text-gray-600 no-underline text-base font-medium transition-all border-l-4 border-transparent hover:bg-gray-100 hover:text-gray-800"
-            :class="{ 'bg-blue-50 text-blue-600 border-l-blue-600': $route.path === '/battle-reports' }"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >内容包</router-link
           >
-            <el-icon><Document /></el-icon>
-            <span>战报记录</span>
-          </router-link>
           <router-link
             to="/local-battle-reports"
             @click="showMobileMenu = false"
@@ -171,6 +182,12 @@
             <el-icon><FolderOpened /></el-icon>
             <span>本地战报</span>
           </router-link>
+          <router-link
+            to="/servers"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >服务器</router-link
+          >
         </nav>
 
         <div class="p-5 border-t border-gray-200 bg-gray-50">
@@ -213,7 +230,7 @@
       <div class="settings-content">
         <el-tabs v-model="activeSettingTab" :stretch="true">
           <!-- 账户管理标签页 -->
-          <el-tab-pane label="账户" name="account">
+          <el-tab-pane v-if="!isStaticMode" label="账户" name="account">
             <el-form :label-width="isMobile ? '70px' : '80px'" :class="isMobile ? 'mobile-form' : ''">
               <el-form-item label="账户管理">
                 <el-button
@@ -376,15 +393,18 @@
       </template>
     </el-dialog>
 
-    <main class="flex-1 overflow-auto relative">
+    <div v-if="localStorageUnavailable" role="alert" class="bg-amber-50 text-amber-900 px-4 py-3 text-sm">
+      浏览器存储不可用或空间不足。仍可在当前页面对战，但资料和设置可能未保存；关闭页面前请导出精灵与队伍备份。
+    </div>
+    <OfflineResources v-if="isStaticMode" />
+
+    <main class="flex-1 min-h-0 overflow-auto relative">
       <router-view v-slot="{ Component }">
-        <transition name="fade">
-          <component :is="Component" class="w-full" :key="$route.path" />
-        </transition>
+        <component :is="Component" class="w-full" :key="$route.path" />
       </router-view>
 
-      <!-- 桌面端版本信息 - 固定在左下角 -->
-      <div v-if="!isMobile" class="fixed bottom-4 left-4 z-30 pointer-events-none">
+      <!-- 编辑工作区的底栏用于任务输出，避免浮动版本信息遮挡。 -->
+      <div v-if="!isMobile && $route.name !== 'Creator'" class="fixed bottom-4 left-4 z-30 pointer-events-none">
         <div class="pointer-events-auto">
           <VersionInfo />
         </div>
@@ -406,26 +426,19 @@ import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
 import { usePrivateRoomStore } from './stores/privateRoom'
 import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
-import {
-  Menu,
-  Close,
-  House,
-  Edit,
-  MagicStick,
-  Box,
-  Document,
-  User,
-  Setting,
-  ArrowDown,
-  FolderOpened,
-} from '@element-plus/icons-vue'
+import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import { useConnectionSettingsStore } from '@/stores/connectionSettings'
 import { autoCheckForUpdates } from '@/utils/version'
 import { createAppBootstrap } from '@/app/bootstrap'
+import { connectAndResumeOnlineRoom } from '@/app/onlineSession'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { ClientRuleIntegration } from '@arcadia-eternity/rules'
+import { isStaticMode } from '@/utils/env'
+import LocalServerStatus from '@/features/servers/LocalServerStatus.vue'
+import { localStorageUnavailable } from '@/services/localStorage'
+import OfflineResources from '@/components/OfflineResources.vue'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -440,7 +453,9 @@ const privateRoomStore = usePrivateRoomStore()
 
 // 使用 VueUse 的响应式断点检测
 const breakpoints = useBreakpoints(breakpointsTailwind)
-const isMobile = breakpoints.smaller('md') // md 断点是 768px
+const isMobile = breakpoints.smaller('md')
+const compactNavigation = breakpoints.smaller('xl') // 顶栏同时容纳导航和服务器地址
+const spaciousNavigation = breakpoints.greaterOrEqual('2xl')
 
 // 移动端菜单状态
 const showMobileMenu = ref(false)
@@ -493,6 +508,7 @@ const setupBattleReconnectHandler = () => {
   }
 
   battleReconnectHandler = async (event: CustomEvent<BattleReconnectData>) => {
+    if (!needsOnlineConnection.value) return
     const data = event.detail
     // 使用防抖避免重复处理
     if (redirectState.isRedirecting) return
@@ -500,6 +516,14 @@ const setupBattleReconnectHandler = () => {
 
     try {
       if (data.fullBattleState) {
+        const restored = await privateRoomStore.restoreServerBattle(
+          data.roomId,
+          data.fullBattleState as unknown as BattleState,
+          () => needsOnlineConnection.value,
+        )
+        if (restored || !needsOnlineConnection.value) return
+        if (router.currentRoute.value.query.privateRoom === 'true')
+          throw new Error('无法恢复房间对战内容，请返回房间重试')
         if (router.currentRoute.value.path === '/battle') {
           // 如果已经在战斗页面，复用现有的battleInterface或创建新的
           if (battleStore.battleInterface) {
@@ -510,7 +534,7 @@ const setupBattleReconnectHandler = () => {
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
             await battleStore.initBattleWithState(
               battleInterface,
-              playerStore.id,
+              battleClientStore.playerId,
               data.fullBattleState as unknown as BattleState,
             )
           }
@@ -524,7 +548,7 @@ const setupBattleReconnectHandler = () => {
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
             await battleStore.initBattleWithState(
               battleInterface,
-              playerStore.id,
+              battleClientStore.playerId,
               data.fullBattleState as unknown as BattleState,
             )
           }
@@ -562,11 +586,64 @@ const handleRoomButtonClick = () => {
   }
 }
 
-// 初始化连接
+const handleServerSessionInvalidated = (event: Event) => {
+  const reason = (event as CustomEvent<{ reason: string }>).detail.reason
+  const wasOnlineBattle =
+    privateRoomStore.currentRoom !== null || router.currentRoute.value.query.privateRoom === 'true'
+  privateRoomStore.cleanup()
+  battleClientStore.resetState()
+  if (wasOnlineBattle) void battleStore.resetBattleWithoutSurrender()
+  ElMessage.warning(reason)
+  if (router.currentRoute.value.path.startsWith('/room/') || wasOnlineBattle) void router.replace('/')
+}
+
+const connectionSettings = useConnectionSettingsStore()
+const localInitializationComplete = ref(false)
+const needsOnlineConnection = computed(() => {
+  const route = router.currentRoute.value
+  return (
+    !isStaticMode &&
+    (route.meta.requiresServer === true || (route.name === 'Battle' && route.query.privateRoom === 'true'))
+  )
+})
+let onlineConnection: Promise<void> | null = null
+
+async function connectOnlineRoute() {
+  if (!localInitializationComplete.value || !needsOnlineConnection.value || onlineConnection) return
+  onlineConnection = connectAndResumeOnlineRoom({
+    allowConnect: () => connectionSettings.shouldAutoConnect,
+    isConnected: () => battleClientStore.isConnected,
+    isOnlineRoute: () => needsOnlineConnection.value,
+    connect: () => battleClientStore.connect(),
+    checkCurrentRoom: () => privateRoomStore.checkCurrentRoom(() => needsOnlineConnection.value),
+    resumeActiveBattle: () => privateRoomStore.resumeActiveBattle(undefined, () => needsOnlineConnection.value),
+  })
+  try {
+    await onlineConnection
+  } catch (error) {
+    if (needsOnlineConnection.value) console.warn('Online connection unavailable:', error)
+  } finally {
+    onlineConnection = null
+  }
+}
+
+watch(
+  [localInitializationComplete, needsOnlineConnection, () => connectionSettings.shouldAutoConnect],
+  () => void connectOnlineRoute(),
+)
+// Manual connections also restore the room, even when automatic connection is disabled.
+watch(
+  () => battleClientStore.isConnected,
+  connected => {
+    if (connected) void connectOnlineRoute()
+  },
+)
+
+// Local data and identity are ready independently of the optional room server.
 onMounted(async () => {
+  window.addEventListener('server-session-invalidated', handleServerSessionInvalidated)
   try {
     const bootstrap = createAppBootstrap()
-    let initResourcePromise: Promise<void> | null = null
 
     bootstrap.register({
       name: 'pet-storage',
@@ -576,32 +653,12 @@ onMounted(async () => {
       },
     })
     bootstrap.register({
-      name: 'client-rules',
-      phase: 'pre-init',
-      critical: false,
-      run: () =>
-        ClientRuleIntegration.initializeClient().catch(error => {
-          console.error('客户端规则系统初始化失败:', error)
-        }),
-    })
-    bootstrap.register({
       name: 'game-data',
       phase: 'data-ready',
       order: 1,
       run: async () => {
-        initResourcePromise = resourceStore.initialize()
-        await dataStore.initialize()
+        await Promise.all([resourceStore.whenReady(), dataStore.whenReady()])
       },
-    })
-    bootstrap.register({
-      name: 'species-provider',
-      phase: 'data-ready',
-      order: 2,
-      critical: false,
-      run: () =>
-        ClientRuleIntegration.initializeSpeciesDataProvider(dataStore).catch(error => {
-          console.error('❌ 种族数据提供者初始化失败:', error)
-        }),
     })
     bootstrap.register({
       name: 'player-identity',
@@ -618,28 +675,10 @@ onMounted(async () => {
       phase: 'network-ready',
       order: 1,
       run: async () => {
+        if (isStaticMode) return
         await nextTick()
         battleClientStore.initialize()
         setupBattleReconnectHandler()
-      },
-    })
-    bootstrap.register({
-      name: 'battle-client-connect',
-      phase: 'network-ready',
-      order: 2,
-      run: async () => {
-        await Promise.all([initResourcePromise, battleClientStore.connect()])
-      },
-    })
-    bootstrap.register({
-      name: 'resume-private-room',
-      phase: 'network-ready',
-      order: 3,
-      run: async () => {
-        const currentRoom = await privateRoomStore.checkCurrentRoom()
-        if (currentRoom) {
-          await privateRoomStore.resumeActiveBattle()
-        }
       },
     })
     bootstrap.register({
@@ -655,6 +694,7 @@ onMounted(async () => {
 
     await bootstrap.runAll()
     battleClientStore.markInitComplete()
+    localInitializationComplete.value = true
   } catch (err) {
     console.error('Initialization error:', err)
     battleClientStore.markInitComplete()
@@ -664,6 +704,7 @@ onMounted(async () => {
 
 // 清理事件监听器
 onUnmounted(() => {
+  window.removeEventListener('server-session-invalidated', handleServerSessionInvalidated)
   if (battleReconnectHandler) {
     window.removeEventListener('battleReconnect', battleReconnectHandler as EventListener)
     battleReconnectHandler = null
@@ -679,6 +720,7 @@ const musicOptions = computed(() => {
 })
 
 const showEditDialog = ref(false)
+
 const activeSettingTab = ref('game') // 默认显示游戏设置标签页
 const activeLogCategories = ref(['战斗流程', '技能相关']) // 默认展开前两个分类
 
@@ -686,25 +728,13 @@ const activeLogCategories = ref(['战斗流程', '技能相关']) // 默认展�
 const handleSave = () => {
   // gameSettingStore.saveToLocal() // 如果有保存到本地的逻辑
   showEditDialog.value = false
-  ElMessage.success('游戏设置已保存')
+  ElMessage.success('游戏设置已应用')
 }
 
 // 导航到账户页面
 const navigateToAccount = () => {
   showEditDialog.value = false
   router.push('/account')
-}
-
-// 处理战报下拉菜单命令
-const handleBattleReportCommand = (command: string) => {
-  switch (command) {
-    case 'online-reports':
-      router.push('/battle-reports')
-      break
-    case 'local-reports':
-      router.push('/local-battle-reports')
-      break
-  }
 }
 
 // 日志类型图标映射
@@ -942,17 +972,6 @@ header {
   height: 100dvh !important; /* 动态视口高度，更适合移动端 */
 }
 
-/* 动画效果 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
 /* Element Plus 深度选择器样式 - 移动端优化 */
 @media (max-width: 767px) {
   /* 确保移动端菜单在小屏幕上正常显示 */
@@ -1137,5 +1156,11 @@ header {
 
 .log-categories-collapse .el-collapse-item__arrow {
   margin-right: 8px !important;
+}
+</style>
+
+<style scoped>
+.desktop-navigation .el-button + .el-button {
+  margin-left: 0;
 }
 </style>

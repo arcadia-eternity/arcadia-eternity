@@ -1,0 +1,114 @@
+{
+  "image": "sha256:daa6da7dad6a2ce655352bf7b70f2b6360ed509ab894028cc82a3cddb4d9f7f6",
+  "platform": "darwin",
+  "startedAt": "2026-11-05T01:08:53.790Z",
+  "cases": [
+    {
+      "driver": "sqlite",
+      "pairedAssets": 2,
+      "before": {
+        "serverId": "arcadia-validation-2512f205-a5b-sqlite",
+        "workspaceId": "5375bf79-4390-47e6-8d09-532e626f68f8",
+        "revision": 5,
+        "requiresRestart": true,
+        "defaultBindingId": "505026d8-7dff-41fb-94b9-e6f1852edd41",
+        "environmentId": "builtin-server",
+        "versionId": "7cc52c46-8d96-46a1-8910-9be5ade5dfc1",
+        "catalogEnvironmentId": "291b6d16a427397805f4b7b19aabd28d4beaa53669f27d18da18455c8728d371",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
+      },
+      "after": {
+        "serverId": "arcadia-validation-2512f205-a5b-sqlite",
+        "workspaceId": "5375bf79-4390-47e6-8d09-532e626f68f8",
+        "revision": 5,
+        "requiresRestart": false,
+        "defaultBindingId": "505026d8-7dff-41fb-94b9-e6f1852edd41",
+        "environmentId": "builtin-server",
+        "versionId": "7cc52c46-8d96-46a1-8910-9be5ade5dfc1",
+        "catalogEnvironmentId": "f7261c1dcf5ca3c36ef43ac3bb1a6f91d26e70997acee2bae007d003ac0f9007",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
+      },
+      "containerRecreated": true,
+      "databaseRestarted": false
+    },
+    {
+      "driver": "postgres",
+      "pairedAssets": 2,
+      "before": {
+        "serverId": "arcadia-validation-2512f205-a5b-postgres",
+        "workspaceId": "00c7e8af-b2a9-44fd-b6c5-753226ebf945",
+        "revision": 5,
+        "requiresRestart": true,
+        "defaultBindingId": "bc2884a0-1778-4c80-8389-fd0193d135f4",
+        "environmentId": "builtin-server",
+        "versionId": "cef1b667-095d-40de-bce8-92b55a3d6de6",
+        "catalogEnvironmentId": "ea45e768a72d4825e16425e34ef88c0689874c0d27c657ebaa39faccd33416d2",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
+      },
+      "after": {
+        "serverId": "arcadia-validation-2512f205-a5b-postgres",
+        "workspaceId": "00c7e8af-b2a9-44fd-b6c5-753226ebf945",
+        "revision": 5,
+        "requiresRestart": false,
+        "defaultBindingId": "bc2884a0-1778-4c80-8389-fd0193d135f4",
+        "environmentId": "builtin-server",
+        "versionId": "cef1b667-095d-40de-bce8-92b55a3d6de6",
+        "catalogEnvironmentId": "77cbac9078662474757c237805ec3c7e6204d2119b8c2f5d699a2f6aac13cf72",
+        "runtime": {
+          "kind": "native-v4",
+          "contentRevision": "arcadia.native-content/1:sha512-325vOyaw3qy0AImuzC5+3i2IzZqigk3FVY0PsUl3RNPk8gEETameIh5KHtgNxb9/yuho+mmOKsxVuxCOI+2A1w==",
+          "coreBuildId": "92fb457f3419ac6f14932d4af631ad4df0a8ae2d1e0f5706a3cb14b512d19163",
+          "registryBuildId": "8fafd39946a9bfa1d1e05aaaba4a735c3a5a59ed1a46a4cb74acc0162a2769bc"
+        },
+        "resourceRevision": "0eb7ba59601ecca78962638b67cc9eb9f60aff13bb654fc128c2e94d520c63dc",
+        "builtinSpeciesCount": 145
+      },
+      "containerRecreated": true,
+      "databaseRestarted": true
+    }
+  ],
+  "passed": true,
+  "dockerVersion": "29.5.3",
+  "imageIdentity": {
+    "id": "sha256:daa6da7dad6a2ce655352bf7b70f2b6360ed509ab894028cc82a3cddb4d9f7f6",
+    "architecture": "arm64",
+    "os": "linux"
+  },
+  "runtime": {
+    "node": "v24.22.2",
+    "platform": "linux",
+    "arch": "arm64",
+    "sqliteVersion": "3.53.2",
+    "git": "git version 2.54.0",
+    "npm": "11.19.1"
+  },
+  "finishedAt": "2026-11-05T01:09:18.576Z",
+  "sourceProof": {
+    "commit": "55863dbc0d96b92f9fec56f593ed1e084a874bba",
+    "method": "git archive of exact commit supplied as the only Docker build context",
+    "archiveSha256": "27e16305563893c7c783cb423e4e14a9728c74d625a4eb958729344fd1e54180",
+    "buildLog": "/private/tmp/arcadia-followup-docker-55863dbc-build.log",
+    "imageRevisionLabel": "55863dbc0d96b92f9fec56f593ed1e084a874bba"
+  }
+}

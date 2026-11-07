@@ -1,0 +1,34 @@
+- id: species.pet-swf
+  target:
+    kind: species
+    id: pet-swf
+  icon: dilan-portrait
+  portrait: dilan-portrait
+  battle:
+    renderer: seer2-swf
+    source: dilan-animation
+    fallback: frostling-battle
+- id: species.pet
+  target:
+    kind: species
+    id: pet
+  icon: frostling-icon
+  portrait: frostling-portrait
+  battle:
+    renderer: image
+    source: frostling-battle
+- id: skills.rest
+  target:
+    kind: skills
+    id: rest
+  sfx: strike-sound
+- id: skills.strike
+  target:
+    kind: skills
+    id: strike
+  sfx: strike-sound
+- id: marks.slow
+  target:
+    kind: marks
+    id: slow
+  icon: slow

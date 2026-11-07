@@ -5,6 +5,7 @@ vi.mock('@/stores/battle', () => ({ useBattleStore: () => ({ opponent: null }) }
 vi.mock('@/stores/gameData', () => ({ useGameDataStore: () => ({ loaded: false }) }))
 vi.mock('i18next', () => ({
   default: {
+    on: vi.fn(),
     t: (key: string) =>
       ({
         'skill_test.name': '测试技能',
@@ -34,6 +35,7 @@ for (const category of [Category.Physical, Category.Climax]) {
         props: { skill: { ...skill, category } },
         global: {
           stubs: {
+            ContentDescription: { props: ['fallback'], template: '<div>{{ fallback }}</div>' },
             Tooltip: { template: '<div><slot name="trigger" /><slot /></div>' },
             ModifiedValue: { props: ['value'], template: '<span>{{ value }}</span>' },
           },

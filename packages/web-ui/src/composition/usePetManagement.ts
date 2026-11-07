@@ -77,10 +77,14 @@ export function usePetManagement() {
             const newTeam = importedTeam.map(pet => ({
               ...pet,
               id: nanoid(),
-              skills: pet.skills.slice(0, 5),
-              gender: pet.gender ?? getDefaultGender(pet.species),
-              height: pet.height ?? gameDataStore.getSpecies(pet.species)?.heightRange[1] ?? 0,
-              weight: pet.weight ?? gameDataStore.getSpecies(pet.species)?.weightRange[1] ?? 0,
+              skills: [...pet.skills],
+              ...(gameDataStore.getSpecies(pet.species)
+                ? {
+                    gender: pet.gender ?? getDefaultGender(pet.species),
+                    height: pet.height ?? gameDataStore.getSpecies(pet.species)?.heightRange[1],
+                    weight: pet.weight ?? gameDataStore.getSpecies(pet.species)?.weightRange[1],
+                  }
+                : {}),
             }))
 
             // 创建新队伍（不包含默认精灵）

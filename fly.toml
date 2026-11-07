@@ -1,26 +1,28 @@
-# fly.toml app configuration file generated for test-battle on 2025-05-07T21:09:04+08:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
+# One process owns every room. Restarts/deployments abandon all rooms.
 app = 'test-battle'
-primary_region = 'hkg'
+primary_region = 'sin'
+kill_signal = 'SIGTERM'
+kill_timeout = '15s'
 
 [build]
-# Image will be specified dynamically during deployment via --image flag
-# This ensures we always use the latest built image
-# image = 'ghcr.io/arcadia-eternity/arcadia-eternity:main'
+# CI supplies the built image.
+
+[deploy]
+strategy = 'rolling'
+max_unavailable = 1
+
+[processes]
+# Map the existing Fly secret names to the V4 account provider settings.
+app = "sh -ec 'export SMTP_PASSWORD=\"$SMTP_PASS\" GITHUB_APP_CLIENT_ID=\"$ARCADIA_G3_GITHUB_CLIENT_ID\" GITHUB_APP_CLIENT_SECRET=\"$ARCADIA_G3_GITHUB_CLIENT_SECRET\"; exec node dist/cli.js server'"
 
 [http_service]
 internal_port = 8102
 force_https = true
-auto_stop_machines = 'stop'
+auto_stop_machines = 'off'
 auto_start_machines = true
-min_machines_running = 0
-max_machines_running = 5
+min_machines_running = 1
 processes = ['app']
 
-# 健康检查配置 - 使用正确的数组格式
 [[http_service.checks]]
 interval = '30s'
 timeout = '10s'
@@ -28,16 +30,10 @@ grace_period = '30s'
 method = 'GET'
 path = '/health'
 
-[[http_service.checks]]
-interval = '60s'
-timeout = '15s'
-grace_period = '30s'
-method = 'GET'
-path = '/metrics'
-
-[metrics]
-port = 8102
-path = '/metrics'
+[mounts]
+source = 'arcadia_state'
+destination = '/app/state'
+initial_size = '1gb'
 
 [[vm]]
 memory = '1gb'
@@ -45,34 +41,12 @@ cpu_kind = 'shared'
 cpus = 1
 
 [env]
-# Email configuration
-EMAIL_PROVIDER = "smtp"
-SMTP_HOST = "smtp.qcloudmail.com"
-SMTP_PROT = "465"
-SMTP_SECURE = "true"
-EMAIL_FROM = "noreply@auth.yuuinih.com"
-EMAIL_FROM_NAME = "阿卡迪亚永恒"
-
-CORS_ORIGIN = "https://battle.yuuinih.com,https://test-battle.netlify.app" # CORS configuration
-
-# Cluster configuration
-CLUSTER_ENABLED = "true"
-CLUSTER_INSTANCE_REGION = "hkg"
-CLUSTER_HEARTBEAT_INTERVAL = "30000"
-CLUSTER_HEALTH_CHECK_INTERVAL = "60000"
-CLUSTER_FAILOVER_TIMEOUT = "120000"
-
-# gRPC configuration for Fly.io
-GRPC_PORT = "50051"
-GRPC_BIND_ADDRESS = "0.0.0.0"
-# Fly.io 内部网络发现
-FLY_APP_NAME = "test-battle"
-FLY_REGION = "hkg"
-
-# Redis configuration (will be set via secrets)
-# REDIS_HOST will be set via fly secrets
-# REDIS_PASSWORD will be set via fly secrets
-REDIS_PORT = "6379"
-REDIS_DB = "0"
-REDIS_KEY_PREFIX = "arcadia:"
-REDIS_TLS = "true"
+SERVER_ID = 'arcadia-official'
+ACCOUNT_MODE = 'g3'
+ARCADIA_DATA_DIR = '/app/state'
+PUBLIC_ORIGIN = 'https://battle.yuuinih.com'
+CORS_ORIGIN = 'https://battle.yuuinih.com'
+SMTP_HOST = 'smtp.qcloudmail.com'
+SMTP_PORT = '465'
+SMTP_FROM = 'noreply@auth.yuuinih.com'
+GITHUB_APP_REDIRECT_URIS = 'https://battle.yuuinih.com/account'

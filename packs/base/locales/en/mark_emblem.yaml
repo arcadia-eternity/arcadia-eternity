@@ -1,0 +1,3 @@
+mark_emblem_jianren:
+  name: Tenacity
+  description: While the owner has <markName>Frozen Tenacity</markName>, damage taken is reduced by <shield>20</shield> points.

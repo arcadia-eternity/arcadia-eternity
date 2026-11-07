@@ -18,3 +18,6 @@ packages/web-ui/src/components/TeamSelector.vue
 # Git & tooling
 .git/
 .husky/
+
+# Vitest owns the exact JSON serialization of this file snapshot.
+packages/battle/src/v2/__tests__/fixtures/baseline/*.golden.json

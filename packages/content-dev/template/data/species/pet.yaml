@@ -1,0 +1,34 @@
+id: pet
+num: 1
+element: Normal
+baseStats:
+  hp: 100
+  atk: 100
+  def: 100
+  spa: 100
+  spd: 100
+  spe: 100
+genderRatio: null
+heightRange:
+  - 1
+  - 2
+weightRange:
+  - 1
+  - 2
+ability: []
+emblem: []
+learnable_skills:
+  - skill_id:
+      $ref:
+        projectId: example-content-pack
+        kind: skill
+        id: strike
+    level: 1
+    hidden: false
+  - skill_id:
+      $ref:
+        projectId: example-content-pack
+        kind: skill
+        id: rest
+    level: 1
+    hidden: false

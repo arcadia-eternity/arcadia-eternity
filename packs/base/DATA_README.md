@@ -2,17 +2,13 @@
 
 ## 关于命名规范
 
-### 文件标识
+### 内容文件
 
-```yaml
-# data/effect.yaml 文件的名和路径，注意文件名需要带上类型名的前缀。
+精灵种族保存在 `data/groups/<group>/species.*.yaml`；技能保存在 `data/skill.yaml`，印记保存在 `data/mark*.yaml`。`pack.json` 指定读取文件及顺序，编辑器按实际来源文件保存修改。
 
-# yaml-language-server: $schema=../packages/schema/schema/effect.schema.json 用来引入yaml的自动提示
+效果行为以 `src/effects/` 中的 TypeScript 为准；技能和印记的 `effect` 字段继续通过稳定 ID 引用效果。旧效果 YAML 只作为回归测试夹具保留，不随基础内容包分发。
 
-# @metaType effect 标明这个是哪个类型的数据文件，在导入的时候会检测他的类型，允许effect/mark/skill/species
-
-# @version 1.0.0 版本信息
-```
+种族、技能和印记的命名约定如下。
 
 ### 效果以外的对象
 

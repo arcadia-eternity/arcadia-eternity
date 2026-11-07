@@ -1,0 +1,244 @@
+{
+  "type": "array",
+  "items": {
+    "additionalProperties": false,
+    "type": "object",
+    "required": ["id", "target"],
+    "properties": {
+      "id": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "target": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["kind", "id"],
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "const": "species",
+                "type": "string"
+              },
+              {
+                "const": "skills",
+                "type": "string"
+              },
+              {
+                "const": "marks",
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      },
+      "icon": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["namespace", "id"],
+            "properties": {
+              "namespace": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "portrait": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["namespace", "id"],
+            "properties": {
+              "namespace": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "cry": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["namespace", "id"],
+            "properties": {
+              "namespace": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "sfx": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["namespace", "id"],
+            "properties": {
+              "namespace": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "background": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["namespace", "id"],
+            "properties": {
+              "namespace": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "music": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": ["namespace", "id"],
+            "properties": {
+              "namespace": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "battle": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["renderer", "source"],
+        "properties": {
+          "renderer": {
+            "anyOf": [
+              {
+                "const": "image",
+                "type": "string"
+              },
+              {
+                "const": "seer2-swf",
+                "type": "string"
+              }
+            ]
+          },
+          "source": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["namespace", "id"],
+                "properties": {
+                  "namespace": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "id": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          },
+          "fallback": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": ["namespace", "id"],
+                "properties": {
+                  "namespace": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "id": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

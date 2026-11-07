@@ -10,6 +10,7 @@
   position: absolute;
   inset: 0;
 }
+.battle-theme,
 .battle-shell {
   --battle-void: #030e18;
   --battle-panel: #0e1525;
@@ -21,6 +22,8 @@
   --battle-muted: #a3bac9;
   --battle-hp: #65e337;
   --battle-danger: #f58888;
+}
+.battle-shell {
   color: var(--battle-text);
   background: var(--battle-void);
   isolation: isolate;

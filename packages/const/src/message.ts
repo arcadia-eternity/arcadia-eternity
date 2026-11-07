@@ -90,10 +90,10 @@ export interface ModifierInfo {
 }
 
 // 属性修改信息接口
-export interface AttributeModifierInfo {
+export interface AttributeModifierInfo<TValue extends number | boolean | string = number | boolean | string> {
   attributeName: string
-  baseValue: number | boolean | string
-  currentValue: number | boolean | string
+  baseValue: TValue
+  currentValue: TValue
   modifiers: ModifierInfo[]
   isModified: boolean
 }

@@ -2,13 +2,17 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { isStaticMode } from '@/utils/env'
 
 export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
+  if (isStaticMode && to.query.privateRoom === 'true') return '/local-battle'
   const store = useBattleStore()
   const battleClientStore = useBattleClientStore()
 
   // 需要有效对战的页面
   if (to.meta.requiresBattle) {
+    if (typeof to.query.authorPreview === 'string' && !store.battleInterface)
+      return { name: 'AuthorPreview', query: { endpoint: to.query.authorPreview, resume: 'true' } }
     const isPrivateRoomBattle = to.query.privateRoom === 'true'
     const isServerBattle = typeof to.query.roomId === 'string' && to.query.roomId.length > 0
     const isP2PBattle = to.query.p2p === 'true'
@@ -26,6 +30,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
     if (from.name === 'LocalBattle') {
       return true
     }
+    if (from.name === 'AuthorPreview' && store.battleInterface) return true
     if (from.name === 'PrivateRoom') {
       ElMessage.warning('无效的私人房间战斗参数')
       return '/'
@@ -37,7 +42,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
   if (from.name === 'Battle' && to.name !== 'Battle') {
     // 如果是回放模式或战斗已结束，直接清理并跳转
     if (store.isReplayMode || store.isBattleEnd) {
-      store.resetBattle()
+      await store.resetBattle()
       return true
     }
 
@@ -48,7 +53,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
         cancelButtonText: '取消',
         type: 'warning',
       })
-      store.resetBattle()
+      await store.resetBattle()
       return true
     } catch {
       return false

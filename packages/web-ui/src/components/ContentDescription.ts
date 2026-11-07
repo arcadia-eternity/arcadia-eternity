@@ -1,0 +1,100 @@
+import { defineComponent, h, type PropType } from 'vue'
+import { useTranslation } from 'i18next-vue'
+import { serverText, contentLanguage } from '@/i18n/serverContent'
+import {
+  descriptionMarkKind,
+  descriptionStyles,
+  descriptionValues,
+  formatRichDescription,
+} from '@/i18n/richDescription'
+import { useGameDataStore } from '@/stores/gameData'
+import { useResourceStore } from '@/stores/resource'
+import { resolveMarkIconUrl } from '@/utils/resourceResolver'
+import Tooltip from './battle/Tooltip.vue'
+import ResourceImage from './ResourceImage.vue'
+
+const ContentDescription = defineComponent({
+  name: 'ContentDescription',
+  props: {
+    namespace: { type: String, required: true },
+    contentId: { type: String, required: true },
+    fallback: { type: String, default: '' },
+    depth: { type: Number, default: 0 },
+    context: { type: Object as PropType<Record<string, unknown>>, default: () => ({}) },
+  },
+  setup(props) {
+    const { i18next } = useTranslation()
+    const data = useGameDataStore()
+    const resources = useResourceStore()
+    return () => {
+      const value = serverText(props.namespace, props.contentId, 'description', contentLanguage.value) ?? props.fallback
+      try {
+        return h(
+          'div',
+          { class: 'content-description' },
+          formatRichDescription(value, i18next.language || 'zh-CN', descriptionValues(props.context), id => {
+            const mark = data.getMark(id)
+            const kind = descriptionMarkKind(mark?.tags)
+            const appearance = { class: descriptionStyles[kind], 'data-description-kind': kind }
+            const name = String(
+              i18next.t(`${id}.name`, {
+                ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+                nsSeparator: false,
+                defaultValue: id,
+              }),
+            )
+            const description =
+              serverText('mark', id, 'description') ??
+              String(
+                i18next.t(`${id}.description`, {
+                  ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
+                  nsSeparator: false,
+                  defaultValue: '',
+                }),
+              )
+            if (props.depth >= 2) return h('span', appearance, name)
+            return h(
+              Tooltip,
+              { portal: true },
+              {
+                trigger: () =>
+                  h(
+                    'span',
+                    { ...appearance, class: ['inline-flex items-center gap-1', appearance.class], tabindex: 0 },
+                    [
+                      ...(mark
+                        ? [
+                            h(ResourceImage, {
+                              src: resolveMarkIconUrl(mark, resources.getMarkImage),
+                              uncached: !!mark.presentation?.icon,
+                              class: 'inline-block h-[1em] w-[1em]',
+                              alt: '',
+                            }),
+                          ]
+                        : []),
+                      name,
+                    ],
+                  ),
+                default: () => [
+                  h('strong', name),
+                  h(ContentDescription, {
+                    namespace: 'mark',
+                    contentId: id,
+                    fallback: description,
+                    context: {},
+                    depth: props.depth + 1,
+                  }),
+                ],
+              },
+            )
+          }),
+        )
+      } catch {
+        // Broken/incomplete author messages remain visible and cannot inject HTML.
+        return h('div', { class: 'content-description', 'data-format-error': true }, value)
+      }
+    }
+  },
+})
+
+export default ContentDescription

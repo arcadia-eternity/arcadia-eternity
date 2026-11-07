@@ -10,6 +10,9 @@ function normalizeBase(base: string): string {
 }
 
 function defaultPackRef(): string {
+  if (import.meta.env.VITE_STATIC_MODE === '1') {
+    return new URL(`${import.meta.env.BASE_URL}pack.json`, window.location.href).href
+  }
   const base = normalizeBase(import.meta.env.VITE_API_BASE || '')
   return `${base}/pack.json`
 }
@@ -23,7 +26,7 @@ async function isReachable(url: string): Promise<boolean> {
   }
 }
 
-async function resolveDesktopWorkspacePackRef(): Promise<string | null> {
+async function resolveDesktopPackRef(): Promise<string | null> {
   const api = getDesktopApi()
   if (!api) return null
 
@@ -31,7 +34,13 @@ async function resolveDesktopWorkspacePackRef(): Promise<string | null> {
     const port = await api.getLocalServerPort()
     if (!port || !Number.isFinite(port) || port <= 0) return null
 
-    const candidate = `http://127.0.0.1:${port}/packs/workspace/pack.json`
+    const packs = await api.listWorkspacePacks()
+    const base = packs.find(pack => pack.id === 'arcadia-eternity.base')
+    // With registered workspace layers the store loads each original manifest.
+    // A fresh dev desktop has none, so it must load the locked base directly.
+    const hasLayers = packs.some(pack => pack.enabled)
+    const folder = hasLayers ? 'workspace' : encodeURIComponent(base?.folderName ?? 'base')
+    const candidate = `http://127.0.0.1:${port}/packs/${folder}/pack.json`
     return (await isReachable(candidate)) ? candidate : null
   } catch {
     return null
@@ -87,7 +96,7 @@ export async function resolveRuntimePackRef(options?: { forceRefresh?: boolean }
     if (explicit) return explicit
 
     if (isDesktop) {
-      const desktopWorkspace = await resolveDesktopWorkspacePackRef()
+      const desktopWorkspace = await resolveDesktopPackRef()
       if (desktopWorkspace) return desktopWorkspace
     }
 

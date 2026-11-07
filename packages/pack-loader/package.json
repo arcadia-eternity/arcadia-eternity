@@ -1,14 +1,33 @@
 {
   "name": "@arcadia-eternity/pack-loader",
-  "version": "1.0.0",
+  "version": "4.0.0-preview.1",
   "description": "",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git",
+    "directory": "packages/pack-loader"
   },
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./native": {
+      "types": "./dist/native.d.ts",
+      "import": "./dist/native.js",
+      "default": "./dist/native.js"
+    },
+    "./package.json": "./package.json",
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    }
+  },
   "scripts": {
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
@@ -17,6 +36,7 @@
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "test:run": "vitest run --maxWorkers=1",
     "generate:lockfile": "pnpm run build && node dist/generate-pack-lockfile.js"
   },
   "keywords": [],
@@ -25,9 +45,21 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
+    "es-module-lexer": "3.0.4",
+    "rolldown": "1.0.0-rc.18",
+    "semver": "7.7.3",
     "yaml": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "catalog:"
-  }
+    "@types/node": "catalog:",
+    "@types/semver": "7.7.1"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "preview"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ]
 }

@@ -2,9 +2,10 @@ import fs from 'fs/promises'
 import path from 'path'
 import type { TSchema } from '@sinclair/typebox'
 import {
+  PresentationDataSetSchema,
+  ResourceDataSetSchema,
   AssetLockSchema,
   AssetManifestSchema,
-  EffectDSLSetSchema,
   MarkDataSetSchema,
   PackLockSchema,
   PackLockfileSchema,
@@ -21,10 +22,11 @@ const __dirname = dirname(__filename)
 
 // 定义文件名前缀与 Schema 的映射关系
 const SCHEMA_MAP: Record<string, TSchema> = {
+  presentation: PresentationDataSetSchema,
+  resource: ResourceDataSetSchema,
   mark: MarkDataSetSchema,
   skill: SkillDataSetSchema,
   species: SpeciesDataSetSchema,
-  effect: EffectDSLSetSchema,
   pack: PackManifestSchema,
   'pack-lock': PackLockSchema,
   'pack-lockfile': PackLockfileSchema,

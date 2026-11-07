@@ -402,30 +402,6 @@
 
                       <!-- 第三行：规则集和校验状态 -->
                       <div class="flex items-center space-x-3 flex-wrap gap-y-2">
-                        <!-- 规则集显示 -->
-                        <el-dropdown
-                          @command="(ruleSetId: string) => changeTeamRuleSet(petStorage.teams.indexOf(team), ruleSetId)"
-                        >
-                          <span
-                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
-                          >
-                            {{ getRuleSetName(team.ruleSetId) }}
-                            <el-icon class="ml-1" :size="12"><ArrowDown /></el-icon>
-                          </span>
-                          <template #dropdown>
-                            <el-dropdown-menu>
-                              <el-dropdown-item
-                                v-for="(name, id) in ruleSetNames"
-                                :key="id"
-                                :command="id"
-                                :disabled="id === team.ruleSetId"
-                              >
-                                {{ name }}
-                              </el-dropdown-item>
-                            </el-dropdown-menu>
-                          </template>
-                        </el-dropdown>
-
                         <!-- 校验状态 -->
                         <span
                           v-if="teamValidationStatus[petStorage.teams.indexOf(team)]"
@@ -486,32 +462,6 @@
                           >
                             当前队伍
                           </span>
-
-                          <!-- 规则集显示 -->
-                          <el-dropdown
-                            @command="
-                              (ruleSetId: string) => changeTeamRuleSet(petStorage.teams.indexOf(team), ruleSetId)
-                            "
-                          >
-                            <span
-                              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
-                            >
-                              {{ getRuleSetName(team.ruleSetId) }}
-                              <el-icon class="ml-1" :size="12"><ArrowDown /></el-icon>
-                            </span>
-                            <template #dropdown>
-                              <el-dropdown-menu>
-                                <el-dropdown-item
-                                  v-for="(name, id) in ruleSetNames"
-                                  :key="id"
-                                  :command="id"
-                                  :disabled="id === team.ruleSetId"
-                                >
-                                  {{ name }}
-                                </el-dropdown-item>
-                              </el-dropdown-menu>
-                            </template>
-                          </el-dropdown>
 
                           <!-- 校验状态 -->
                           <span
@@ -593,11 +543,17 @@
                       <template #content>
                         <div class="pet-tooltip-content">
                           <div class="flex items-center space-x-3 mb-2">
-                            <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                            <PetIcon
+                              :uncached="!!gameDataStore.serverFallback"
+                              :id="gameDataStore.getSpecies(pet.species)?.num"
+                              :species="gameDataStore.getSpecies(pet.species)"
+                              :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                              class="w-12 h-12"
+                            />
                             <div>
                               <div class="font-semibold text-white">{{ pet.name }}</div>
                               <div class="text-gray-300 text-sm">
-                                {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                                {{ getSpeciesName(pet.species) }}
                               </div>
                               <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                             </div>
@@ -659,12 +615,18 @@
                         class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                       >
                         <div class="flex flex-col items-center space-y-1">
-                          <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
+                          <PetIcon
+                            :uncached="!!gameDataStore.serverFallback"
+                            :id="gameDataStore.getSpecies(pet.species)?.num"
+                            :species="gameDataStore.getSpecies(pet.species)"
+                            :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                            class="w-8 h-8 sm:w-10 sm:h-10"
+                          />
                           <div class="text-center w-full">
                             <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                             <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
                             <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
-                              {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                              {{ getSpeciesName(pet.species) }}
                             </p>
                           </div>
                           <!-- 移动端显示操作按钮，桌面端悬停显示 -->
@@ -956,11 +918,17 @@
                   <template #content>
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <PetIcon
+                          :uncached="!!gameDataStore.serverFallback"
+                          :id="gameDataStore.getSpecies(pet.species)?.num"
+                          :species="gameDataStore.getSpecies(pet.species)"
+                          :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                          class="w-12 h-12"
+                        />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
-                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                            {{ getSpeciesName(pet.species) }}
                           </div>
                           <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                         </div>
@@ -1023,12 +991,18 @@
                     class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                   >
                     <div class="flex flex-col items-center space-y-1">
-                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
+                      <PetIcon
+                        :uncached="!!gameDataStore.serverFallback"
+                        :id="gameDataStore.getSpecies(pet.species)?.num"
+                        :species="gameDataStore.getSpecies(pet.species)"
+                        :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                        class="w-8 h-8 sm:w-10 sm:h-10"
+                      />
                       <div class="text-center w-full">
                         <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
                         <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
-                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          {{ getSpeciesName(pet.species) }}
                         </p>
                       </div>
 
@@ -1092,11 +1066,17 @@
                   <template #content>
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <PetIcon
+                          :uncached="!!gameDataStore.serverFallback"
+                          :id="gameDataStore.getSpecies(pet.species)?.num"
+                          :species="gameDataStore.getSpecies(pet.species)"
+                          :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                          class="w-12 h-12"
+                        />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
-                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                            {{ getSpeciesName(pet.species) }}
                           </div>
                           <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                         </div>
@@ -1158,7 +1138,13 @@
                     class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                   >
                     <div class="flex flex-col items-center space-y-1">
-                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8" />
+                      <PetIcon
+                        :uncached="!!gameDataStore.serverFallback"
+                        :id="gameDataStore.getSpecies(pet.species)?.num"
+                        :species="gameDataStore.getSpecies(pet.species)"
+                        :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                        class="w-8 h-8"
+                      />
                       <div class="text-center w-full">
                         <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
@@ -1435,11 +1421,17 @@
                   <template #content>
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <PetIcon
+                          :uncached="!!gameDataStore.serverFallback"
+                          :id="gameDataStore.getSpecies(pet.species)?.num"
+                          :species="gameDataStore.getSpecies(pet.species)"
+                          :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                          class="w-12 h-12"
+                        />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
-                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                            {{ getSpeciesName(pet.species) }}
                           </div>
                           <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                         </div>
@@ -1501,12 +1493,18 @@
                     class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                   >
                     <div class="flex flex-col items-center space-y-1">
-                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-10 h-10" />
+                      <PetIcon
+                        :uncached="!!gameDataStore.serverFallback"
+                        :id="gameDataStore.getSpecies(pet.species)?.num"
+                        :species="gameDataStore.getSpecies(pet.species)"
+                        :is-unknown="!gameDataStore.getSpecies(pet.species)"
+                        class="w-10 h-10"
+                      />
                       <div class="text-center w-full">
                         <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
                         <p class="text-xs text-gray-400 truncate">
-                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          {{ getSpeciesName(pet.species) }}
                         </p>
                       </div>
 
@@ -1620,13 +1618,17 @@
 
             <div v-if="selectedPetForDetail" class="space-y-4">
               <div class="flex items-center space-x-4">
-                <PetIcon :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num" class="w-16 h-16" />
+                <PetIcon
+                  :uncached="!!gameDataStore.serverFallback"
+                  :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num"
+                  :species="gameDataStore.getSpecies(selectedPetForDetail.species)"
+                  :is-unknown="!gameDataStore.getSpecies(selectedPetForDetail.species)"
+                  class="w-16 h-16"
+                />
                 <div>
                   <h4 class="text-xl font-semibold text-gray-900">{{ selectedPetForDetail.name }}</h4>
                   <p class="text-gray-600">
-                    {{
-                      i18next.t(`${gameDataStore.getSpecies(selectedPetForDetail.species)?.id}.name`, { ns: 'species' })
-                    }}
+                    {{ getSpeciesName(selectedPetForDetail.species) }}
                   </p>
                   <p class="text-sm text-gray-500">等级 {{ selectedPetForDetail.level }}</p>
                 </div>
@@ -1829,8 +1831,8 @@ import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useStorageImportExport } from '@/composition/useStorageImportExport'
-import { Loading, Check, Close, Refresh, ArrowDown } from '@element-plus/icons-vue'
-import { ClientRuleIntegration } from '@arcadia-eternity/rules'
+import { Loading, Check, Close, Refresh } from '@element-plus/icons-vue'
+import { validateBasicTeam } from '@/utils/basicTeamValidation'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()
@@ -2038,12 +2040,6 @@ const filters = ref({
 })
 const sortBy = ref('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
-
-// 规则集相关数据
-const ruleSetNames = ref<Record<string, string>>({
-  casual_standard_ruleset: '休闲规则',
-  competitive_ruleset: '竞技规则',
-})
 
 // 队伍校验状态
 const teamValidationStatus = ref<
@@ -2611,7 +2607,8 @@ const validateTeam = async (teamIndex: number) => {
   }
 
   try {
-    const result = await ClientRuleIntegration.validateTeamWithRuleSet(team.pets, team.ruleSetId)
+    const errors = validateBasicTeam(team.pets)
+    const result = { isValid: errors.length === 0, errors, warnings: [] as string[] }
 
     teamValidationStatus.value[teamIndex] = {
       isValidating: false,
@@ -2628,25 +2625,6 @@ const validateTeam = async (teamIndex: number) => {
       warnings: [],
     }
   }
-}
-
-// 获取规则集名称
-const getRuleSetName = (ruleSetId: string) => {
-  return ruleSetNames.value[ruleSetId] || ruleSetId
-}
-
-// 切换队伍规则集
-const changeTeamRuleSet = async (teamIndex: number, newRuleSetId: string) => {
-  const team = petStorage.teams[teamIndex]
-  if (!team) return
-
-  team.ruleSetId = newRuleSetId
-  petStorage.validateAndSave()
-
-  // 重新校验队伍
-  await validateTeam(teamIndex)
-
-  ElMessage.success(`已将队伍 "${team.name}" 的规则集更改为 "${getRuleSetName(newRuleSetId)}"`)
 }
 
 // 校验所有队伍
@@ -2750,9 +2728,15 @@ const getNatureText = (nature: Nature) => {
 }
 
 // 获取技能名称
-const getSkillName = (skillId: string) => {
-  return i18next.t(`${skillId}.name`, { ns: 'skill' })
-}
+const getSpeciesName = (speciesId: string) =>
+  gameDataStore.getSpecies(speciesId)
+    ? i18next.t(`${speciesId}.name`, { ns: 'species', nsSeparator: false, defaultValue: speciesId })
+    : `缺失精灵：${speciesId}`
+
+const getSkillName = (skillId: string) =>
+  gameDataStore.getSkill(skillId)
+    ? i18next.t(`${skillId}.name`, { ns: 'skill', nsSeparator: false, defaultValue: skillId })
+    : `缺失技能：${skillId}`
 </script>
 
 <style scoped>

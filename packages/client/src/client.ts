@@ -1,5 +1,6 @@
 import {
   type BattleState,
+  type BattleMessage,
   BattleStatus,
   BattleMessageType,
   type playerId,
@@ -12,41 +13,28 @@ import {
 import {
   type ClientToServerEvents,
   type PrivateRoomPeerSignalEvent,
-  type PrivateRoomPeerSignalPayload,
   type ServerToClientEvents,
   type SuccessResponse,
   type ErrorResponse,
   type PrivateRoomBattleStartInfo,
+  type CreatePrivateRoomRequest,
+  type JoinPrivateRoomRequest,
+  type JoinPrivateRoomSpectatorRequest,
+  type ServerEnvironmentAcceptance,
+  type MatchmakingRequest,
+  type SendPrivateRoomPeerSignalRequest,
 } from '@arcadia-eternity/protocol'
-import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
+import { type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
 import { io, type ManagerOptions, type Socket } from 'socket.io-client'
 import { nanoid } from 'nanoid'
 
 // 私人房间相关类型定义
-export type PrivateRoomConfig = {
-  ruleSetId?: string
-  isPrivate?: boolean
-  password?: string
-}
+export type PrivateRoomConfig = CreatePrivateRoomRequest['config']
+export type CreatePrivateRoomData = CreatePrivateRoomRequest
+export type JoinPrivateRoomData = JoinPrivateRoomRequest
+export type JoinSpectatorData = JoinPrivateRoomSpectatorRequest
 
-export type CreatePrivateRoomData = {
-  config: PrivateRoomConfig
-}
-
-export type JoinPrivateRoomData = {
-  roomCode: string
-  password?: string
-}
-
-export type JoinSpectatorData = {
-  roomCode: string
-}
-
-export type SendPrivateRoomPeerSignalData = {
-  targetPlayerId: string
-  targetSessionId?: string
-  signal: PrivateRoomPeerSignalPayload
-}
+export type SendPrivateRoomPeerSignalData = SendPrivateRoomPeerSignalRequest
 
 type BattleClientOptions = {
   serverUrl: string
@@ -57,7 +45,10 @@ type BattleClientOptions = {
   sessionId?: string // 预设的 sessionId
   auth?: {
     getToken?: () => string | null
+    /** Current room seat ID, never a local profile UID or authentication proof. */
     getPlayerId?: () => string
+    /** Stable for a server session even if its token is refreshed. */
+    getSessionId?: () => string | null
     refreshAuth?: () => Promise<void>
   }
 }
@@ -70,9 +61,29 @@ type ClientState = {
   opponent?: { id: string; name: string }
 }
 
+// These events are dispatched by the client's permanent socket listeners. Other
+// events are subscribed directly, with one removable socket callback per subscription.
+const dispatchedEvents = new Set<string>([
+  'updateState',
+  'battleEvent',
+  'roomClosed',
+  'opponentDisconnected',
+  'opponentReconnected',
+  'battleReconnect',
+  'reconnectTest',
+  'privateRoomEvent',
+  'privateRoomPeerSignal',
+  'battleTerminated',
+  'matchSuccess',
+  'matchmakingError',
+])
+
 export class BattleClient {
+  private matchmakingGeneration = 0
+  private timedOutMatchmaking = false
   private socket: Socket<ServerToClientEvents, ClientToServerEvents>
   private eventHandlers = new Map<string, Set<(...args: unknown[]) => void>>()
+  private subscriptions = new Map<string, Map<(...args: unknown[]) => void, Set<(...args: unknown[]) => void>>>()
   private timerEventHandlers = new Map<string, Set<(data: unknown) => void>>()
   private state: ClientState = {
     status: 'disconnected',
@@ -88,9 +99,20 @@ export class BattleClient {
   private timerSnapshots = new Map<playerId, TimerSnapshot>()
   private lastSnapshotUpdate: number = 0
   private lastBattleEndEventAt: number = 0
+  private currentBattleTurn: number | null = null
 
   // 多实例支持：会话管理
   private sessionId: string
+  private authIdentity: string | null | undefined
+  private connectionTask?: Promise<void>
+  private connecting = false
+  private connectionEpoch = 0
+  private cancelConnection?: (error: Error) => void
+
+  /** Endpoint of this connection, used to scope its server-owned content catalog. */
+  get serverUrl(): string {
+    return this.options.serverUrl
+  }
 
   constructor(options: BattleClientOptions) {
     this.options = {
@@ -149,36 +171,37 @@ export class BattleClient {
   }
 
   private updateSocketAuth(config?: Record<string, unknown>) {
-    if (this.options.auth) {
+    // Socket.IO invokes this for every handshake, including automatic reconnects.
+    // Profile and seat IDs are deliberately absent: only the server token authorizes a session.
+    const auth = (callback: (data: { token?: string }) => void) => {
+      let token: string | null
+      let sessionId: string | null
       try {
-        const playerId = this.options.auth.getPlayerId?.()
-        const token = this.options.auth.getToken?.()
-
-        if (playerId) {
-          const query: Record<string, unknown> = {
-            playerId,
-            sessionId: this.sessionId,
-          }
-
-          if (config) {
-            config.query = query
-          } else {
-            // 更新现有socket的query参数
-            this.socket.io.opts.query = query
-          }
-        }
-
-        if (token) {
-          if (config) {
-            config.auth = { token }
-          } else {
-            // 更新现有socket的auth
-            this.socket.auth = { token }
-          }
-        }
+        token = this.options.auth?.getToken?.() ?? null
+        sessionId = this.options.auth?.getSessionId?.() ?? null
       } catch (error) {
-        console.warn('Failed to set auth info:', error)
+        token = null
+        sessionId = null
+        console.warn('Failed to read session credentials:', error)
       }
+
+      const identity = token ? (sessionId ? `session:${sessionId}` : `token:${token}`) : null
+      if (this.authIdentity !== undefined && this.authIdentity !== identity) {
+        if (this.state.battle === 'active' || this.state.roomId) {
+          this.markBattleEnded('session-changed')
+        }
+        this.resetState()
+      }
+      this.authIdentity = identity
+      callback(token ? { token } : {})
+    }
+
+    if (config) {
+      config.auth = auth
+      config.query = {}
+    } else {
+      this.socket.auth = auth
+      this.socket.io.opts.query = {}
     }
   }
 
@@ -196,6 +219,7 @@ export class BattleClient {
 
   // 公开的状态重置方法
   resetState() {
+    this.timedOutMatchmaking = false
     this.updateState({
       matchmaking: 'idle',
       battle: 'idle',
@@ -203,35 +227,45 @@ export class BattleClient {
       opponent: undefined,
     })
     this.lastBattleEndEventAt = 0
+    this.currentBattleTurn = null
 
     // 清理Timer快照缓存
     this.clearTimerSnapshots()
   }
 
   async connect(): Promise<void> {
-    return this.connectWithRetry()
+    return this.startConnection()
   }
 
-  private async connectWithRetry(retryCount = 0): Promise<void> {
-    const maxRetries = 2 // 最多重试2次
+  private startConnection(refreshFirst = false): Promise<void> {
+    if (this.connectionTask) return this.connectionTask
+    this.connecting = true
+    const epoch = this.connectionEpoch
+    this.connectionTask = (async () => {
+      if (refreshFirst) {
+        await this.options.auth?.refreshAuth?.()
+      }
+      await this.connectWithRetry(epoch)
+    })().finally(() => {
+      this.connecting = false
+      this.connectionTask = undefined
+    })
+    return this.connectionTask
+  }
+
+  private async connectWithRetry(epoch: number, retryCount = 0): Promise<void> {
+    if (epoch !== this.connectionEpoch) throw new Error('Connection cancelled')
+    const maxRetries = 2
 
     try {
       await this.attemptConnection()
     } catch (error) {
-      // 检查是否是认证错误且还有重试次数
-      if (this.isAuthError(error) && retryCount < maxRetries) {
-        // 尝试重新获取token
-        if (this.options.auth?.refreshAuth) {
-          try {
-            await this.options.auth.refreshAuth()
-            return this.connectWithRetry(retryCount + 1)
-          } catch (refreshError) {
-            console.error('Token刷新失败:', refreshError)
-          }
-        }
+      if (epoch !== this.connectionEpoch) throw new Error('Connection cancelled', { cause: error })
+      if (this.isAuthError(error) && retryCount < maxRetries && this.options.auth?.refreshAuth) {
+        await this.options.auth.refreshAuth()
+        return this.connectWithRetry(epoch, retryCount + 1)
       }
 
-      // 连接失败，确保状态重置为disconnected
       this.updateState({ status: 'disconnected' })
       throw error
     }
@@ -240,33 +274,37 @@ export class BattleClient {
   private attemptConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.socket?.connected) return resolve()
-
-      // 更新认证信息
       this.updateSocketAuth()
 
-      const connectTimeout = setTimeout(() => {
-        this.updateState({ status: 'disconnected' })
-        reject(new Error('Connection timeout'))
-      }, this.options.actionTimeout)
-
-      this.socket.once('connect', () => {
+      const cleanup = () => {
         clearTimeout(connectTimeout)
+        this.socket.off('connect', onConnect)
+        this.socket.off('connect_error', onError)
+        this.cancelConnection = undefined
+      }
+      const onConnect = () => {
+        cleanup()
         this.updateState({ status: 'connected' })
-        // 连接成功后立即获取服务器状态
         this.socket.emit('getServerState', response => {
           if (response.status === 'SUCCESS') {
             this.eventHandlers.get('updateState')?.forEach(handler => handler(response.data))
           }
         })
         resolve()
-      })
-
-      this.socket.once('connect_error', error => {
-        clearTimeout(connectTimeout)
+      }
+      const onError = (error: Error) => {
+        cleanup()
         this.updateState({ status: 'disconnected' })
         reject(error)
-      })
+      }
+      const connectTimeout = setTimeout(() => {
+        onError(new Error('Connection timeout'))
+        this.socket.disconnect()
+      }, this.options.actionTimeout)
 
+      this.cancelConnection = onError
+      this.socket.once('connect', onConnect)
+      this.socket.once('connect_error', onError)
       this.updateState({ status: 'connecting' })
       this.socket.connect()
     })
@@ -277,12 +315,18 @@ export class BattleClient {
     const errorMessage = typeof message === 'string' ? message : typeof error === 'string' ? error : ''
     return (
       errorMessage.includes('INVALID_TOKEN') ||
+      errorMessage.includes('INVALID_SESSION') ||
+      errorMessage.includes('SESSION_EXPIRED') ||
+      errorMessage.includes('SESSION_REQUIRED') ||
+      errorMessage.includes('TOKEN_REQUIRED') ||
       errorMessage.includes('TOKEN_REQUIRED_FOR_REGISTERED_USER') ||
       errorMessage.includes('AUTHENTICATION_ERROR')
     )
   }
 
   disconnect() {
+    this.connectionEpoch += 1
+    this.cancelConnection?.(new Error('Connection cancelled'))
     if (this.socket) {
       this.socket.disconnect()
     }
@@ -290,6 +334,8 @@ export class BattleClient {
       status: 'disconnected',
       matchmaking: 'idle',
       battle: 'idle',
+      roomId: undefined,
+      opponent: undefined,
     })
 
     // 清理事件处理器和缓存
@@ -297,49 +343,33 @@ export class BattleClient {
     this.clearTimerSnapshots()
   }
 
-  async joinMatchmaking(
-    data: PlayerSchemaType | { playerSchema: PlayerSchemaType; ruleSetId?: string },
-  ): Promise<void> {
+  async joinMatchmaking(data: MatchmakingRequest): Promise<void> {
     this.verifyConnection()
-
-    // 处理不同的输入格式
-    let playerData: PlayerSchemaType
-    let ruleSetId: string
-
-    if ('playerSchema' in data) {
-      // 新格式：包含规则集信息
-      playerData = data.playerSchema
-      ruleSetId = data.ruleSetId || 'standard'
-    } else {
-      // 旧格式：直接是 PlayerSchemaType
-      playerData = data
-      ruleSetId = 'standard'
-    }
-
+    if (this.timedOutMatchmaking) throw new Error('仍在确认上次匹配已取消，请稍后重试')
+    const generation = ++this.matchmakingGeneration
     this.updateState({ matchmaking: 'searching' })
-
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.error('⏰ Matchmaking timeout after', this.options.actionTimeout, 'ms')
+        if (generation === this.matchmakingGeneration && this.state.matchmaking === 'searching') {
+          // The queue belongs to the seat, which may have other connected sockets.
+          this.timedOutMatchmaking = true
+          this.retryTimedOutCancellation()
+        }
         reject(new Error('Matchmaking timeout'))
       }, this.options.actionTimeout)
-
-      this.socket.emit(
-        'joinMatchmaking',
-        {
-          playerSchema: playerData,
-          ruleSetId,
-        },
-        response => {
-          clearTimeout(timeout)
-          this.handleMatchmakingResponse(response, resolve, reject)
-        },
-      )
+      this.socket.emit('joinMatchmaking', data, response => {
+        clearTimeout(timeout)
+        if (generation !== this.matchmakingGeneration) {
+          resolve()
+          return
+        }
+        this.handleMatchmakingResponse(response, resolve, reject)
+      })
     })
   }
 
   async cancelMatchmaking(): Promise<void> {
-    if (this.state.matchmaking !== 'searching') {
+    if (this.state.matchmaking !== 'searching' && !this.timedOutMatchmaking) {
       throw new Error('当前没有在匹配队列中')
     }
 
@@ -351,6 +381,8 @@ export class BattleClient {
       this.socket.emit('cancelMatchmaking', response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
+          this.timedOutMatchmaking = false
+          ++this.matchmakingGeneration
           this.updateState({
             matchmaking: 'idle',
             roomId: undefined,
@@ -366,21 +398,37 @@ export class BattleClient {
 
   async sendplayerSelection(selection: PlayerSelectionSchemaType): Promise<void> {
     this.verifyBattleActive()
+    const expectedTurn = this.currentBattleTurn ?? (await this.getBattleState()).currentTurn
+    const request = { ...selection, expectedTurn, requestId: nanoid() }
+    const roomId = this.state.roomId
 
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Action timeout'))
-      }, this.options.actionTimeout)
+      let timeout: ReturnType<typeof setTimeout>
+      let settled = false
+      let attempts = 0
+      const send = () => {
+        attempts += 1
+        timeout = setTimeout(() => {
+          if (settled) return
+          if (attempts < 2 && this.socket.connected && this.state.roomId === roomId && this.state.battle === 'active') {
+            // An acknowledgement may be lost after the server accepted the action.
+            // Retransmit the exact request so the server can return its saved result.
+            send()
+          } else {
+            settled = true
+            reject(new Error('Action timeout'))
+          }
+        }, this.options.actionTimeout)
 
-      this.socket.emit('submitPlayerSelection', selection, response => {
-        clearTimeout(timeout)
-        if (response.status === 'SUCCESS') {
-          resolve()
-        } else {
-          const error = this.parseError(response)
-          reject(error)
-        }
-      })
+        this.socket.emit('submitPlayerSelection', request, response => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          if (response.status === 'SUCCESS') resolve()
+          else reject(this.parseError(response))
+        })
+      }
+      send()
     })
   }
 
@@ -396,6 +444,7 @@ export class BattleClient {
             return
           }
           const state = response.data as BattleState
+          this.currentBattleTurn = state.currentTurn
           if (state.status === BattleStatus.Ended) {
             this.markBattleEnded('state-ended')
           }
@@ -597,11 +646,6 @@ export class BattleClient {
       this.socket.emit('joinPrivateRoomAsSpectator', data, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
-          // Update battle state to active for spectators
-          this.updateState({
-            battle: 'active',
-            roomId: data.roomCode,
-          })
           resolve()
         } else {
           reject(this.parseError(response))
@@ -621,6 +665,7 @@ export class BattleClient {
       this.socket.emit('leavePrivateRoom', response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
+          this.resetState()
           resolve()
         } else {
           reject(this.parseError(response))
@@ -629,7 +674,7 @@ export class BattleClient {
     })
   }
 
-  async togglePrivateRoomReady(team?: PetSchemaType[]): Promise<void> {
+  async togglePrivateRoomReady(team?: PetSchemaType[], environment?: ServerEnvironmentAcceptance): Promise<void> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -637,7 +682,7 @@ export class BattleClient {
         reject(new Error('Toggle ready timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('togglePrivateRoomReady', { team }, response => {
+      this.socket.emit('togglePrivateRoomReady', { team, ...(environment && { environment }) }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve()
@@ -648,7 +693,10 @@ export class BattleClient {
     })
   }
 
-  async startPrivateRoomBattle(hostTeam: PetSchemaType[]): Promise<PrivateRoomBattleStartInfo> {
+  async startPrivateRoomBattle(
+    hostTeam: PetSchemaType[],
+    environment?: ServerEnvironmentAcceptance,
+  ): Promise<PrivateRoomBattleStartInfo> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -656,13 +704,25 @@ export class BattleClient {
         reject(new Error('Start battle timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('startPrivateRoomBattle', { hostTeam }, response => {
+      this.socket.emit('startPrivateRoomBattle', { hostTeam, ...(environment && { environment }) }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve(response.data)
         } else {
           reject(this.parseError(response))
         }
+      })
+    })
+  }
+
+  async finishPrivateRoomBattle(data: { winner: string | null; reason: string; battleRoomId?: string }): Promise<void> {
+    this.verifyConnection()
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Finish battle timeout')), this.options.actionTimeout)
+      this.socket.emit('finishPrivateRoomBattle', data, response => {
+        clearTimeout(timeout)
+        if (response.status === 'SUCCESS') resolve()
+        else reject(this.parseError(response))
       })
     })
   }
@@ -927,46 +987,71 @@ export class BattleClient {
     this.lastSnapshotUpdate = 0
   }
 
-  /**
-   * 清理事件处理器（但保留socket监听器）
-   */
+  /** Remove external subscriptions while preserving the client's own socket listeners. */
   private clearEventHandlers(): void {
-    console.log('🧹 Clearing event handlers, current handlers:', Array.from(this.eventHandlers.keys()))
-    console.log('🧹 Stack trace:', new Error().stack)
+    for (const [event, handlers] of this.eventHandlers) {
+      if (!dispatchedEvents.has(event))
+        for (const handler of handlers) this.socket.off(event as keyof ServerToClientEvents, handler as never)
+    }
+    for (const subscriptions of this.subscriptions.values())
+      for (const wrappers of subscriptions.values()) wrappers.clear()
     this.eventHandlers.clear()
+    this.subscriptions.clear()
     this.timerEventHandlers.clear()
     this.stateChangeListeners.clear()
   }
 
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
-    this.socket.once(event, listener as never)
+    this.subscribe(event, listener, true)
     return this
   }
 
   on<T extends keyof ServerToClientEvents>(event: T, handler: ServerToClientEvents[T]): () => void {
-    const wrapper: (...args: unknown[]) => void = (...args) => (handler as (...args: unknown[]) => void)(...args)
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, new Set())
-      const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
-      if (!preRegisteredEvents.includes(event)) {
-        this.socket.on(event, handler as never)
-      }
-    }
-    this.eventHandlers.get(event)!.add(wrapper)
-    return () => this.off(event, handler)
+    return this.subscribe(event, handler, false)
   }
 
-  off<T extends keyof ServerToClientEvents>(event: T, _handler: ServerToClientEvents[T]): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.forEach(h => {
-        const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
-        if (!preRegisteredEvents.includes(event)) {
-          this.socket.off(event, h as never)
-        }
-        handlers.delete(h)
-      })
+  private subscribe<T extends keyof ServerToClientEvents>(
+    event: T,
+    handler: ServerToClientEvents[T],
+    once: boolean,
+  ): () => void {
+    const original = handler as (...args: unknown[]) => void
+    const handlers = this.eventHandlers.get(event) ?? new Set()
+    const subscriptions = this.subscriptions.get(event) ?? new Map()
+    const wrappers = subscriptions.get(original) ?? new Set()
+    const wrapper = (...args: unknown[]) => {
+      if (once) unsubscribe()
+      original(...args)
     }
+    const unsubscribe = () => {
+      if (!wrappers.delete(wrapper)) return
+      handlers.delete(wrapper)
+      if (!dispatchedEvents.has(event)) this.socket.off(event, wrapper as never)
+      if (!wrappers.size) subscriptions.delete(original)
+      if (!handlers.size) this.eventHandlers.delete(event)
+      if (!subscriptions.size) this.subscriptions.delete(event)
+    }
+    handlers.add(wrapper)
+    wrappers.add(wrapper)
+    subscriptions.set(original, wrappers)
+    this.eventHandlers.set(event, handlers)
+    this.subscriptions.set(event, subscriptions)
+    if (!dispatchedEvents.has(event)) this.socket.on(event, wrapper as never)
+    return unsubscribe
+  }
+
+  off<T extends keyof ServerToClientEvents>(event: T, handler: ServerToClientEvents[T]): void {
+    const original = handler as (...args: unknown[]) => void
+    const wrappers = this.subscriptions.get(event)?.get(original)
+    if (!wrappers) return
+    for (const wrapper of wrappers) {
+      this.eventHandlers.get(event)?.delete(wrapper)
+      if (!dispatchedEvents.has(event)) this.socket.off(event, wrapper as never)
+    }
+    this.subscriptions.get(event)?.delete(original)
+    if (!this.eventHandlers.get(event)?.size) this.eventHandlers.delete(event)
+    if (!this.subscriptions.get(event)?.size) this.subscriptions.delete(event)
+    wrappers.clear()
   }
 
   // 状态变化监听器管理
@@ -1000,17 +1085,42 @@ export class BattleClient {
     }
   }
 
+  private retryTimedOutCancellation() {
+    if (!this.timedOutMatchmaking || !this.socket.connected) return
+    this.socket.emit('cancelMatchmaking', response => {
+      if (response.status === 'SUCCESS') {
+        this.timedOutMatchmaking = false
+        ++this.matchmakingGeneration
+        if (this.state.matchmaking === 'searching') this.updateState({ matchmaking: 'idle' })
+      } else if (response.code === 'MATCH_ALREADY_STARTED') this.timedOutMatchmaking = false
+    })
+  }
+
   private setupEventListeners() {
     // 连接状态事件
     this.socket.on('connect', () => {
       this.updateState({ status: 'connected' })
+      this.retryTimedOutCancellation()
     })
 
     this.socket.on('disconnect', () => {
+      ++this.matchmakingGeneration
+      if (this.state.matchmaking === 'searching') this.updateState({ matchmaking: 'idle' })
       // 保留 battle/matchmaking 状态，避免短暂断线被误判为战斗结束
       this.updateState({
         status: 'disconnected',
       })
+    })
+
+    this.socket.on('connect_error', error => {
+      if (!this.connecting && this.options.autoReconnect && this.isAuthError(error) && this.options.auth?.refreshAuth) {
+        // Middleware auth rejection stops Socket.IO's automatic reconnect. Obtain a
+        // new server session explicitly; its identity change clears the old room.
+        void this.startConnection(true).catch(refreshError => {
+          this.updateState({ status: 'disconnected' })
+          console.warn('Failed to reconnect session:', refreshError)
+        })
+      }
     })
 
     // 服务器状态更新事件
@@ -1022,15 +1132,25 @@ export class BattleClient {
     })
 
     // 游戏事件
+    this.socket.on('matchmakingError', response => {
+      this.timedOutMatchmaking = false
+      ++this.matchmakingGeneration
+      if (this.state.matchmaking === 'searching') this.updateState({ matchmaking: 'idle' })
+      this.eventHandlers.get('matchmakingError')?.forEach(handler => handler(response))
+    })
+
     this.socket.on('matchSuccess', response => {
       if (response.status === 'SUCCESS') {
+        this.timedOutMatchmaking = false
         this.lastBattleEndEventAt = 0
+        this.currentBattleTurn = null
         this.updateState({
           matchmaking: 'matched',
           battle: 'active',
           roomId: response.data.roomId,
           opponent: response.data.opponent,
         })
+        this.eventHandlers.get('matchSuccess')?.forEach(handler => handler(response))
       } else {
         console.error('❌ Match success event with error status:', response)
       }
@@ -1038,6 +1158,7 @@ export class BattleClient {
 
     // 处理单个战斗事件 - 通过eventHandlers管理系统处理
     this.socket.on('battleEvent', message => {
+      this.trackBattleTurn(message)
       // 触发battleEvent处理器
       const handlers = this.eventHandlers.get('battleEvent')
       if (handlers) {
@@ -1054,6 +1175,7 @@ export class BattleClient {
     this.socket.on('battleEventBatch', messages => {
       // 逐个处理批量消息
       for (const message of messages) {
+        this.trackBattleTurn(message)
         // 触发单个battleEvent处理器
         const handlers = this.eventHandlers.get('battleEvent')
         if (handlers) {
@@ -1129,6 +1251,7 @@ export class BattleClient {
 
     // 战斗重连事件处理（用于页面刷新后自动跳转）
     this.socket.on('battleReconnect', data => {
+      this.currentBattleTurn = data.fullBattleState?.currentTurn ?? null
       const handlers = this.eventHandlers.get('battleReconnect')
       this.updateState({
         matchmaking: 'matched',
@@ -1150,6 +1273,11 @@ export class BattleClient {
 
     // 私人房间事件处理
     this.socket.on('privateRoomEvent', event => {
+      if (event.type === 'battleStarted' && event.data.battleMode === 'server') {
+        this.lastBattleEndEventAt = 0
+        this.currentBattleTurn = null
+        this.updateState({ matchmaking: 'matched', battle: 'active', roomId: event.data.battleRoomId })
+      }
       const handlers = this.eventHandlers.get('privateRoomEvent')
       if (handlers) {
         handlers.forEach(handler => {
@@ -1167,6 +1295,20 @@ export class BattleClient {
 
     // 心跳处理
     this.socket.on('ping', async () => this.socket.emit('pong'))
+  }
+
+  private trackBattleTurn(message: BattleMessage): void {
+    if (message.type === BattleMessageType.TurnStart) {
+      this.currentBattleTurn = message.data.turn
+    }
+    const delta = message.stateDelta
+    if (delta && typeof delta === 'object' && !Array.isArray(delta) && 'currentTurn' in delta) {
+      const change = delta.currentTurn
+      if (Array.isArray(change) && (change.length === 1 || change.length === 2)) {
+        const turn = change.at(-1)
+        if (typeof turn === 'number') this.currentBattleTurn = turn
+      }
+    }
   }
 
   private updateState(partialState: Partial<ClientState>) {

@@ -1,0 +1,257 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'nonce-arcadia-fixed-player' blob: 'unsafe-eval' 'wasm-unsafe-eval'; connect-src blob:; img-src blob: data:; media-src blob:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'"
+    />
+    <style>
+      html,
+      body,
+      #player {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+      }
+      ruffle-player {
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="player"></div>
+    <script nonce="arcadia-fixed-player">
+      /* Entire document is untrusted; its only authority is a playback port. No URL requests. */
+      ;(() => {
+        const states = [
+          '待机',
+          '物理攻击',
+          '属性攻击',
+          '特殊攻击',
+          '被打',
+          '被暴击',
+          '胜利',
+          '失败',
+          '闪避',
+          '必杀',
+          '濒死',
+          '个性出场',
+          '合体攻击',
+          '变身效果',
+          '空',
+        ]
+        let port,
+          owner,
+          task = 0,
+          incoming = 0,
+          outgoing = 0,
+          player,
+          current = '待机',
+          active = false,
+          hit = false,
+          complete = false,
+          disposed = false,
+          count = 0,
+          epoch = Date.now()
+        const blobs = []
+        const send = (type, extra = {}) => {
+          if (!disposed) {
+            const value = { v: 1, instance: owner, task, seq: ++outgoing, type, ...extra }
+            if (port) port.postMessage(value)
+            else window.arcadiaSwfPlayer?.emit(value)
+          }
+        }
+        const blob = (bytes, type) => {
+          const url = URL.createObjectURL(new Blob([bytes], { type }))
+          blobs.push(url)
+          return url
+        }
+        const release = () => {
+          player?.remove()
+          player = null
+          for (const url of blobs) URL.revokeObjectURL(url)
+          blobs.length = 0
+          active = false
+        }
+        async function receive(x) {
+          if (
+            disposed ||
+            !x ||
+            x.v !== 1 ||
+            typeof x.instance !== 'string' ||
+            x.instance.length > 80 ||
+            !Number.isSafeInteger(x.seq) ||
+            x.seq <= incoming ||
+            !Number.isSafeInteger(x.task) ||
+            x.task < 1
+          )
+            return
+          if (owner && x.instance !== owner) return
+          if (Date.now() - epoch > 1000) {
+            epoch = Date.now()
+            count = 0
+          }
+          if (++count > 120) return
+          if (x.type === 'load') {
+            if (x.task <= task) return
+            owner = x.instance
+            task = x.task
+            outgoing = 0
+          } else if (x.task !== task) return
+          incoming = x.seq
+          const loadingTask = task
+          try {
+            if (x.type === 'dispose') {
+              release()
+              disposed = true
+              port?.close()
+              return
+            }
+            if (x.type === 'stop') {
+              player?.ruffle().suspend()
+              active = false
+              return
+            }
+            if (x.type === 'configure') {
+              const b = x.bounds
+              if (
+                !b ||
+                typeof b.reverse !== 'boolean' ||
+                ![b.width, b.height].every(n => Number.isFinite(n) && n > 0 && n <= 4096)
+              )
+                return
+              document.body.style.transform = b.reverse ? 'scaleX(-1)' : ''
+              return
+            }
+            if (x.type === 'play') {
+              if (!states.includes(x.state) || !player) return
+              current = x.state
+              hit = false
+              complete = false
+              active = true
+              player.ruffle().resume()
+              player.setState(current)
+              return
+            }
+            if (x.type !== 'load') return
+            release()
+            const data = x.bytes
+            if (
+              !data ||
+              ![data.container, data.movie].every(
+                b => b instanceof ArrayBuffer && b.byteLength >= 8 && b.byteLength <= 16777216,
+              )
+            )
+              throw Error('Invalid SWF bytes')
+            const runtime = x.runtime
+            const names = [
+              'ruffle.js',
+              'core.ruffle.51d81af79f566b8c93f1.js',
+              'core.ruffle.8da0ccba5a3edadea24d.js',
+              'dcba28a55c2ebf0c3400.wasm',
+              'b87f447eb5eff39fdaec.wasm',
+            ]
+            if (
+              !runtime ||
+              Object.keys(runtime).length !== 5 ||
+              !names.every(n => runtime[n] instanceof ArrayBuffer && runtime[n].byteLength < 33554432)
+            )
+              throw Error('Invalid bundled runtime')
+            if (!window.RufflePlayer?.newest) {
+              const urls = {}
+              for (const name of names.slice(1))
+                urls[name] = blob(runtime[name], name.endsWith('.wasm') ? 'application/wasm' : 'text/javascript')
+              let js = new TextDecoder().decode(runtime['ruffle.js'])
+              for (const name of names.slice(3)) js = js.replace('a.p+"' + name + '"', JSON.stringify(urls[name]))
+              const needle = '"core.ruffle."+{482:"51d81af79f566b8c93f1",655:"8da0ccba5a3edadea24d"}[e]+".js"'
+              if (!js.includes(needle)) throw Error('Unsupported bundled Ruffle build')
+              js = js.replace(
+                needle,
+                '({482:' + JSON.stringify(urls[names[1]]) + ',655:' + JSON.stringify(urls[names[2]]) + '})[e]',
+              )
+              window.RufflePlayer = { config: { publicPath: '', polyfills: false } }
+              await new Promise((resolve, reject) => {
+                const s = document.createElement('script')
+                s.src = blob(js, 'text/javascript')
+                s.onload = resolve
+                s.onerror = reject
+                document.head.append(s)
+              })
+            }
+            if (disposed || task !== loadingTask) return
+            const movie = blob(data.movie, 'application/x-shockwave-flash')
+            player = window.RufflePlayer.newest().createPlayer()
+            document.getElementById('player').append(player)
+            window.addEventListener('message', cosmetic)
+            await player.ruffle().load({
+              data: new Uint8Array(data.container),
+              parameters: {
+                url: movie,
+                instanceId: owner,
+                scale: 'noscale',
+                offsetX: '275',
+                offsetY: '160',
+                scaleX: '1.1',
+                scaleY: '1.1',
+                forceHttps: 'false',
+              },
+              allowScriptAccess: true,
+              autoplay: 'on',
+              unmuteOverlay: 'hidden',
+              splashScreen: false,
+              menu: false,
+              wmode: 'transparent',
+              salign: 'TL',
+              allowNetworking: 'all',
+              openUrlMode: 'deny',
+              maxExecutionDuration: 5,
+            })
+            if (disposed || task !== loadingTask) return
+            for (let i = 0; i < 80 && !disposed && task === loadingTask; i++) {
+              const available = player?.getAvailableStates?.()
+              if (Array.isArray(available) && available.length) {
+                send('ready', { states: available.filter(s => states.includes(s)).slice(0, 15) })
+                return
+              }
+              await new Promise(r => setTimeout(r, 100))
+            }
+            throw Error('Animation callback timeout')
+          } catch (e) {
+            if (disposed || task !== loadingTask) return
+            send('error', { message: String(e?.message || 'Playback failed').slice(0, 240) })
+            release()
+          }
+        }
+        function cosmetic(e) {
+          const x = e.data
+          if (e.source !== window || !x || x.instanceId !== owner || !active || x.state !== current) return
+          if (x.type === 'hit' && !hit) {
+            hit = true
+            send('hit', { state: current })
+          }
+          if (x.type === 'animationComplete' && !complete) {
+            complete = true
+            active = false
+            send('complete', { state: current, duration: Math.min(60000, Math.max(0, Number(x.duration) || 0)) })
+          }
+        }
+        if (window.arcadiaSwfPlayer) {
+          window.arcadiaSwfPlayer.onCommand(receive)
+        } else {
+          window.addEventListener('message', function connect(e) {
+            if (port || e.source !== parent || e.data?.type !== 'arcadia-swf-connect' || e.ports.length !== 1) return
+            port = e.ports[0]
+            window.removeEventListener('message', connect)
+            port.onmessage = e => receive(e.data)
+            port.start()
+          })
+        }
+      })()
+    </script>
+  </body>
+</html>

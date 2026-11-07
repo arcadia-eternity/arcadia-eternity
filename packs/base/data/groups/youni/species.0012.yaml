@@ -1,0 +1,117 @@
+- id: pet_youni
+  num: 32
+  element: Fire
+  baseStats:
+    hp: 85
+    atk: 116
+    spa: 133
+    def: 113
+    spd: 114
+    spe: 117
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 43
+    - 48
+  weightRange:
+    - 19
+    - 24
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_jiare
+      level: 11
+      hidden: false
+    - skill_id: skill_zhuoshao
+      level: 16
+      hidden: false
+    - skill_id: skill_rongjiezhiyan
+      level: 21
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 26
+      hidden: false
+  ability:
+    - mark_ability_ranshao
+  emblem:
+    - mark_emblem_yiran
+- id: pet_qiaoni
+  num: 33
+  element: Fire
+  baseStats:
+    hp: 175
+    atk: 161
+    spa: 183
+    def: 158
+    spd: 159
+    spe: 162
+  genderRatio:
+    - 2
+    - 8
+  heightRange:
+    - 82
+    - 87
+  weightRange:
+    - 46
+    - 51
+  learnable_skills:
+    - skill_id: skill_chongfeng
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_jiare
+      level: 11
+      hidden: false
+    - skill_id: skill_zhuoshao
+      level: 16
+      hidden: false
+    - skill_id: skill_rongjiezhiyan
+      level: 21
+      hidden: false
+    - skill_id: skill_jiangu
+      level: 26
+      hidden: false
+    - skill_id: skill_huoyanchongzhuang
+      level: 31
+      hidden: false
+    - skill_id: skill_shuangguihuopao
+      level: 36
+      hidden: false
+    - skill_id: skill_lieyanzhiqu
+      level: 41
+      hidden: false
+    - skill_id: skill_huoyanxuanfeng
+      level: 46
+      hidden: false
+    - skill_id: skill_mijisaoshe
+      level: 50
+      hidden: false
+    - skill_id: skill_chaodahuoqiu
+      level: 54
+      hidden: false
+    - skill_id: skill_rongyanbaolie
+      level: 60
+      hidden: false
+    - skill_id: skill_jisuhuodan
+      level: 60
+      hidden: true
+    - skill_id: skill_dianran
+      level: 60
+      hidden: true
+    - skill_id: skill_chuantouhuoyan
+      level: 60
+      hidden: true
+    - skill_id: skill_fennuzhihuo
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_ranshao
+  emblem:
+    - mark_emblem_yiran

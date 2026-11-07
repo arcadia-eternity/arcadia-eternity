@@ -1,21 +1,74 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
-  "version": "1.0.0",
-  "private": true,
+  "version": "4.0.0-preview.1",
+  "license": "MIT",
   "type": "module",
-  "description": "Arcadia Eternity base data pack manifest",
+  "description": "Arcadia Eternity base content and effects",
   "arcadiaEternityPack": "pack.json",
-  "arcadiaEternityAssets": "assets/assets.json",
+  "arcadia": {
+    "formatVersion": 1,
+    "projectId": "base",
+    "namespace": "base",
+    "content": "dist/content.json",
+    "presentation": "dist/presentation.json",
+    "effectArtifact": "dist/arcadia-effects.json",
+    "catalog": "dist/catalog.json",
+    "sdkApi": 2
+  },
   "scripts": {
-    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml"
+    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml",
+    "build": "run-s clear build:code build:types",
+    "clear": "rm -rf dist",
+    "build:code": "rolldown -c && node ../../scripts/build-base-environment.mjs",
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "watch:code": "rolldown -c --watch",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types"
   },
   "files": [
     "pack.json",
     "assets/**/*",
-    "pack-lock.yaml",
     "data/**/*",
     "locales/**/*",
     "PACK_FORMAT.md",
-    "DATA_README.md"
-  ]
+    "DATA_README.md",
+    "dist/**/*",
+    "content-groups.yaml",
+    "LICENSE"
+  ],
+  "exports": {
+    "./metadata": {
+      "types": "./dist/metadata.d.ts",
+      "import": "./dist/metadata.mjs",
+      "default": "./dist/metadata.mjs"
+    },
+    "./effects": {
+      "types": "./dist/types/effects.d.ts",
+      "import": "./dist/effects.js",
+      "default": "./dist/effects.js"
+    },
+    "./build": {
+      "types": "./dist/native-build.d.ts",
+      "import": "./dist/native-build.mjs",
+      "default": "./dist/native-build.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/const": "workspace:^",
+    "@sinclair/typebox": "catalog:"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git",
+    "directory": "packs/base"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "preview"
+  },
+  "devDependencies": {
+    "@arcadia-eternity/pack-loader": "workspace:^"
+  }
 }

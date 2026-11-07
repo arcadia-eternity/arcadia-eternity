@@ -1,8 +1,8 @@
 packages:
-  - 'packages/**/*'
-  - 'packs/**/*'
-  - '!packages/web-ui/dist/ruffle'
+  - 'packages/*'
+  - 'packs/*'
 allowBuilds:
+  better-sqlite3: true
   '@scarf/scarf': true
   '@swc/core': true
   '@tsparticles/engine': true
@@ -29,6 +29,7 @@ overrides:
   yauzl: 3.2.1
   postcss: '^8.5.23'
   '@xmldom/xmldom': '^0.9.12'
+  plist: 3.1.1
   dompurify: '^3.4.16'
   fast-xml-parser: '>=5.7.0'
   protobufjs: '^8.6.6'

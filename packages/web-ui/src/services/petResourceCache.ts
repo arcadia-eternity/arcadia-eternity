@@ -1,3 +1,4 @@
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { reactive } from 'vue'
 import { getDesktopApi, isDesktop } from '@/utils/env'
 
@@ -70,7 +71,7 @@ export class PetResourceCache {
   }
 
   getRemotePetUrl(num: number): string {
-    return `https://seer2-pet-resource.yuuinih.com/public/fight/${num}.swf`
+    return officialAssetUrl(`https://seer2-pet-resource.yuuinih.com/public/fight/${num}.swf`)
   }
 
   async initStats() {

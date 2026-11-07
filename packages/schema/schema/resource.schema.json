@@ -1,0 +1,43 @@
+{
+  "type": "array",
+  "items": {
+    "additionalProperties": false,
+    "type": "object",
+    "required": ["id", "kind", "source"],
+    "properties": {
+      "id": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$",
+        "type": "string"
+      },
+      "kind": {
+        "anyOf": [
+          {
+            "const": "image",
+            "type": "string"
+          },
+          {
+            "const": "audio",
+            "type": "string"
+          },
+          {
+            "const": "swf",
+            "type": "string"
+          }
+        ]
+      },
+      "source": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

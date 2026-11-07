@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
@@ -11,8 +11,24 @@
     "declarationMap": true,
     "types": ["node"],
     "strict": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
   },
-  "include": ["./index.ts", "./node.ts", "./src/index.ts", "./src/logger.ts", "./src/v2/**/*"],
+  "include": [
+    "./index.ts",
+    "./pack.ts",
+    "./v4-host.ts",
+    "./src/v4-host/**/*.ts",
+    "./v4-sandbox.ts",
+    "./v4-sandbox-effects.ts",
+    "./v4-sandbox-node.ts",
+    "./src/v4-sandbox/**/*.ts",
+    "./src/pack/**/*.ts",
+    "./src/index.ts",
+    "./src/logger.ts",
+    "./v4.ts",
+    "./src/v4/**/*.ts",
+    "./v4-authoring.ts"
+  ],
   "exclude": ["./node_modules", "./dist", "./src/**/__tests__"]
 }

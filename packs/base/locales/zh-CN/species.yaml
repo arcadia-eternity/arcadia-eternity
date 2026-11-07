@@ -433,3 +433,24 @@ pet_sabo:
 pet_saber:
   name: 萨伯尔
   description: 萨伯尔的羽翼终于丰满起来 一改青年时略显轻浮的性格 萨伯尔兵团能够给整个飞翼氏族带来安全感
+pet_palading:
+  name: 帕拉丁
+  description: 帕拉丁家族世代生长在飞船上 作为辛迪船长御用的圣骑士军团而存在
+pet_kadundudu:
+  name: 卡顿嘟嘟
+  description: 成长后的嘟嘟把名字改成了卡顿嘟嘟 一有机会就去找啾啾比美
+pet_dudu:
+  name: 嘟嘟
+  description: 嘟嘟一直觉得自己长得很美，特别当它看到啾啾以后，就更有自信了！
+pet_pala:
+  name: 帕拉
+  description: 帕拉，出生就是贵族的光系精灵。身边萦绕着固态光环，高傲、耀眼。
+pet_tuntun:
+  name: 豚豚
+  description: 豚豚出生在险恶的冰川湖泊中，为了不被海浪冲走只能紧紧抓住浮冰。
+pet_binghutun:
+  name: 冰湖豚
+  description: 成长后的冰湖豚，体格结实了不少，却依然依赖着自己的“救生圈”。
+pet_bingchuantun:
+  name: 冰川豚
+  description: 冰川豚的尾部还留着当年的“救生圈”，不过它已经不再需要它了！

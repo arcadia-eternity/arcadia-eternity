@@ -1,0 +1,64 @@
+{
+  "name": "@arcadia-eternity/content-dev",
+  "version": "4.0.0-preview.1",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "bin": {
+    "arcadia-content": "./dist/cli.mjs",
+    "arcadia-content-mcp": "./dist/mcp.mjs"
+  },
+  "exports": {
+    "./testing": "./dist/testing.mjs",
+    "./workspace": "./dist/author-api.mjs",
+    "./management-workspace": {
+      "types": "./dist/content-workspace.d.mts",
+      "import": "./dist/content-workspace.mjs",
+      "default": "./dist/content-workspace.mjs"
+    },
+    "./managed-projects": {
+      "types": "./dist/managed-projects.d.mts",
+      "import": "./dist/managed-projects.mjs",
+      "default": "./dist/managed-projects.mjs"
+    },
+    "./environment-rules": {
+      "types": "./dist/environment-rules.d.mts",
+      "import": "./dist/environment-rules.mjs",
+      "default": "./dist/environment-rules.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "test:run": "node --test --test-concurrency=1 test/*.test.mjs"
+  },
+  "dependencies": {
+    "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/pack-loader": "workspace:^",
+    "@arcadia-eternity/schema": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "chokidar": "^6.0.0",
+    "mime-types": "^3.0.2",
+    "semver": "7.7.3",
+    "tar": "^7.5.21",
+    "yauzl": "3.2.1",
+    "typescript": "catalog:",
+    "write-file-atomic": "^8.0.0",
+    "yaml": "catalog:",
+    "zod": "3.25.76"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git",
+    "directory": "packages/content-dev"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "preview"
+  }
+}

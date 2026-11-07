@@ -1,0 +1,200 @@
+{
+  "seed": "ae4-official-switch-201",
+  "teams": [
+    {
+      "name": "A",
+      "team": [
+        {
+          "name": "lead",
+          "species": "pet_huanli",
+          "skills": ["skill_hunzhuoshuiyu", "skill_qili"],
+          "level": 50,
+          "evs": {
+            "hp": 0,
+            "atk": 0,
+            "def": 0,
+            "spa": 0,
+            "spd": 0,
+            "spe": 0
+          },
+          "ivs": {
+            "hp": 31,
+            "atk": 31,
+            "def": 31,
+            "spa": 31,
+            "spd": 31,
+            "spe": 31
+          },
+          "nature": "Hardy",
+          "gender": "Male",
+          "maxHp": 310
+        },
+        {
+          "name": "reserve",
+          "species": "pet_dilan",
+          "skills": ["skill_shuipao"],
+          "level": 50,
+          "evs": {
+            "hp": 0,
+            "atk": 0,
+            "def": 0,
+            "spa": 0,
+            "spd": 0,
+            "spe": 0
+          },
+          "ivs": {
+            "hp": 31,
+            "atk": 31,
+            "def": 31,
+            "spa": 31,
+            "spd": 31,
+            "spe": 31
+          },
+          "nature": "Hardy",
+          "gender": "Male",
+          "maxHp": 300
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "team": [
+        {
+          "name": "lead",
+          "species": "pet_dilan",
+          "skills": ["skill_paida", "skill_qili"],
+          "level": 50,
+          "evs": {
+            "hp": 0,
+            "atk": 0,
+            "def": 0,
+            "spa": 0,
+            "spd": 0,
+            "spe": 0
+          },
+          "ivs": {
+            "hp": 31,
+            "atk": 31,
+            "def": 31,
+            "spa": 31,
+            "spd": 31,
+            "spe": 31
+          },
+          "nature": "Hardy",
+          "gender": "Male",
+          "maxHp": 30
+        },
+        {
+          "name": "reserve",
+          "species": "pet_dilan",
+          "skills": ["skill_paida", "skill_qili"],
+          "level": 50,
+          "evs": {
+            "hp": 0,
+            "atk": 0,
+            "def": 0,
+            "spa": 0,
+            "spd": 0,
+            "spe": 0
+          },
+          "ivs": {
+            "hp": 31,
+            "atk": 31,
+            "def": 31,
+            "spa": 31,
+            "spd": 31,
+            "spe": 31
+          },
+          "nature": "Hardy",
+          "gender": "Male",
+          "maxHp": 30
+        }
+      ]
+    }
+  ],
+  "actions": {
+    "A": [
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_hunzhuoshuiyu"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_qili"
+      },
+      {
+        "phase": "selection",
+        "type": "switch-pet",
+        "pet": "reserve"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_shuipao"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_shuipao"
+      },
+      {
+        "phase": "switch",
+        "type": "do-nothing"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_shuipao"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_shuipao"
+      }
+    ],
+    "B": [
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_paida"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_paida"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_qili"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_paida"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_paida"
+      },
+      {
+        "phase": "switch",
+        "type": "switch-pet",
+        "pet": "reserve"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_paida"
+      },
+      {
+        "phase": "selection",
+        "type": "use-skill",
+        "skill": "skill_paida"
+      }
+    ]
+  }
+}

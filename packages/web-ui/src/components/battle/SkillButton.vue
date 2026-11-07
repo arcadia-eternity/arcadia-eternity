@@ -6,17 +6,13 @@ import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
 import BattleMarkInfo from './BattleMarkInfo.vue'
 import { Z_INDEX } from '@/constants/zIndex'
-import MarkdownIt from 'markdown-it'
+import ContentDescription from '@/components/ContentDescription'
 import i18next from 'i18next'
 import { computed, ref } from 'vue'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
 import { getSkillTypeEffectiveness } from '@/utils/typeEffectiveness'
-
-const md = new MarkdownIt({
-  html: true,
-})
 
 const battleStore = useBattleStore()
 const gameDataStore = useGameDataStore()
@@ -25,9 +21,9 @@ const props = defineProps<{
   skill: SkillMessage
   disabled?: boolean
   // Modifier 信息
-  powerModifierInfo?: AttributeModifierInfo
-  accuracyModifierInfo?: AttributeModifierInfo
-  rageModifierInfo?: AttributeModifierInfo
+  powerModifierInfo?: AttributeModifierInfo<number>
+  accuracyModifierInfo?: AttributeModifierInfo<number>
+  rageModifierInfo?: AttributeModifierInfo<number>
   // 属性克制倍率（可选，如果不提供则自动计算）
   typeEffectiveness?: number
 }>()
@@ -140,7 +136,7 @@ const skillMarkRelations = computed(() => {
   const relationService = new SkillMarkRelationService(
     gameDataStore.skills.byId,
     gameDataStore.marks.byId,
-    gameDataStore.effects.byId,
+    gameDataStore.effectMarkRelations,
   )
 
   const analysis = relationService.analyzeSkillMarkRelations(props.skill.baseId)
@@ -151,7 +147,7 @@ const skillMarkRelations = computed(() => {
 
 <template>
   <div class="battle-skill-slot">
-    <Tooltip portal position="top" v-model:show="showDetails" :trigger="showDetails ? 'click' : 'hover'">
+    <Tooltip interactive portal position="top" v-model:show="showDetails" :trigger="showDetails ? 'click' : 'hover'">
       <template #trigger>
         <div class="battle-skill__trigger">
           <button
@@ -219,7 +215,7 @@ const skillMarkRelations = computed(() => {
             </span>
           </div>
         </div>
-        <div v-html="md.render(description)" />
+        <ContentDescription namespace="skill" :content-id="skill.baseId" :fallback="description" :context="{ skill }" />
 
         <!-- 技能属性详情 -->
         <div class="mt-4 border-t border-gray-600 pt-3">

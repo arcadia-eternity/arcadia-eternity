@@ -1,11 +1,32 @@
 import { defineConfig } from 'rolldown'
+import { isBuiltin } from 'node:module'
+import { fileURLToPath } from 'node:url'
 
+// Keep network and server dependencies lazy in the bundled launcher.
+const legacyDependencies = new Set([
+  '@arcadia-eternity/database',
+  '@arcadia-eternity/content-dev/management-workspace',
+  '@arcadia-eternity/content-dev/managed-projects',
+  'dotenv',
+  'dotenv/config',
+  '@arcadia-eternity/client',
+  '@arcadia-eternity/server',
+  '@arcadia-eternity/p2p-transport',
+  '@arcadia-eternity/p2p-transport/node',
+  'rolldown',
+])
 export default defineConfig({
-  input: 'bin/cli.ts',
+  input: {
+    cli: 'bin/cli.ts',
+    'v4-sandbox-node-worker': fileURLToPath(import.meta.resolve('@arcadia-eternity/battle/v4/sandbox/node-worker')),
+  },
+  platform: 'node',
   output: {
     dir: 'dist',
     format: 'esm',
+    banner:
+      'import { createRequire as __arcadiaCreateRequire } from "node:module"; const require = __arcadiaCreateRequire(import.meta.url);',
   },
   tsconfig: true,
-  external: id => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'),
+  external: id => isBuiltin(id) || legacyDependencies.has(id),
 })

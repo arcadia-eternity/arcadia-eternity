@@ -1,13 +1,17 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import {
   DEFAULT_TIMER_CONFIG,
+  BattleMessageType,
   TimerState,
   type BattleMessage,
   type BattleState,
   type PlayerSelection,
 } from '@arcadia-eternity/const'
 import { InMemoryPeerTransport } from '@/p2p/inMemoryPeerTransport'
-import { P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
+import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
+import { createSandboxWebBattleSession } from '@/services/nativeBattleFactory'
+import type { PrivateRoomSignalBridge } from '@/p2p/privateRoomSignalBridge'
+vi.mock('@/services/nativeBattleFactory', () => ({ createSandboxWebBattleSession: vi.fn() }))
 
 const DEFAULT_DISABLED_TIMER = {
   config: { ...DEFAULT_TIMER_CONFIG, enabled: false },
@@ -727,5 +731,356 @@ describe('P2PPeerBattleSystem', () => {
         )
       }),
     ).toBe(true)
+  })
+})
+
+test('passes host admission cancellation through to the local battle factory', async () => {
+  const controller = new AbortController()
+  vi.mocked(createSandboxWebBattleSession).mockImplementationOnce(
+    (_a, _b, _data, _config, signal) =>
+      new Promise((_resolve, reject) =>
+        signal!.addEventListener('abort', () => reject(new DOMException('Cancelled', 'AbortError')), { once: true }),
+      ),
+  )
+  const transport = new InMemoryPeerTransport()
+  const options = {
+    localPlayerId: 'host',
+    remotePlayerId: 'peer',
+    localPlayerName: 'Host',
+    remotePlayerName: 'Peer',
+    localTeam: [],
+    remoteTeam: [],
+    dataStore: {},
+    bridge: {},
+    transport,
+    signal: controller.signal,
+  } as Parameters<typeof createP2PHostBattleSystem>[0]
+  const starting = createP2PHostBattleSystem(options)
+  expect(vi.mocked(createSandboxWebBattleSession).mock.lastCall?.[4]).toBe(controller.signal)
+  controller.abort()
+  await expect(starting).rejects.toMatchObject({ name: 'AbortError' })
+})
+
+const activeState = (): BattleState =>
+  ({
+    status: 'On',
+    currentTurn: 1,
+    currentPhase: 'SELECTION_PHASE',
+    players: [],
+    sequenceId: 0,
+  }) as unknown as BattleState
+const availableAction = { player: 'peer', type: 'do-nothing' } as PlayerSelection
+function peerEvent(sequenceId: number, terminal = false): BattleMessage {
+  return {
+    type: terminal ? BattleMessageType.BattleEnd : BattleMessageType.TurnStart,
+    sequenceId,
+    data: terminal ? { winner: 'host', reason: 'surrender' } : { turn: sequenceId },
+    stateDelta: {},
+  } as unknown as BattleMessage
+}
+
+async function connectedPeer(ack?: (payload: unknown) => Promise<void>) {
+  const hostTransport = new InMemoryPeerTransport()
+  const peerTransport = new InMemoryPeerTransport()
+  hostTransport.pairWith(peerTransport)
+  peerTransport.pairWith(hostTransport)
+  await hostTransport.connect({ role: 'host', remotePeerId: 'peer' })
+  await peerTransport.connect({ role: 'peer', remotePeerId: 'host' })
+  const sendMessage = vi.fn<PrivateRoomSignalBridge['sendMessage']>(async (type, payload) => {
+    if (type === 'p2p-battle-ack' && ack) return ack(payload)
+    await peerTransport.send({ type, payload })
+  })
+  const system = new P2PPeerBattleSystem(
+    'peer',
+    {
+      transport: peerTransport,
+      connect: async () => {},
+      close: async () => {},
+      handleSignal: async () => {},
+      sendMessage,
+    },
+    peerTransport,
+  )
+  return {
+    system,
+    hostTransport,
+    peerTransport,
+    sendMessage,
+    initialize: (selections: PlayerSelection[] = [availableAction]) =>
+      hostTransport.send({
+        type: 'p2p-battle-init',
+        payload: createInitPayload(activeState(), selections),
+      }),
+    event: (message: BattleMessage) =>
+      hostTransport.send({
+        type: 'p2p-battle-event',
+        payload: { viewerId: 'peer', message },
+      }),
+    cleanup: async () => {
+      await system.cleanup()
+      await hostTransport.close()
+      await peerTransport.close()
+    },
+  }
+}
+
+describe('P2P terminal delivery', () => {
+  test('delivers events in receive order without waiting for a slow acknowledgment', async () => {
+    let releaseAck!: () => void
+    const slow = new Promise<void>(resolve => {
+      releaseAck = resolve
+    })
+    const peer = await connectedPeer(payload =>
+      (payload as { sequenceId: number }).sequenceId === 1 ? slow : Promise.resolve(),
+    )
+    const received: BattleMessage[] = []
+    peer.system.BattleEvent(message => received.push(message))
+    const events = [peerEvent(1), peerEvent(2), peerEvent(3, true)]
+    try {
+      for (const event of events) await peer.event(event)
+      expect(received).toEqual(events)
+      releaseAck()
+      await Promise.resolve()
+      expect(received).toEqual(events)
+    } finally {
+      releaseAck()
+      await peer.cleanup()
+    }
+  })
+
+  test('delivers the terminal event even when its acknowledgment is rejected', async () => {
+    const peer = await connectedPeer(async () => {
+      throw new Error('relay room already closed')
+    })
+    const received: BattleMessage[] = []
+    peer.system.BattleEvent(message => received.push(message))
+    const events = [peerEvent(1), peerEvent(2, true)]
+    try {
+      for (const event of events) await peer.event(event)
+      await Promise.resolve()
+      expect(received).toEqual(events)
+    } finally {
+      await peer.cleanup()
+    }
+  })
+
+  test('preserves local subscriber failures instead of treating them as acknowledgment failures', async () => {
+    const peer = await connectedPeer()
+    const failure = new Error('subscriber failed to apply battle event')
+    peer.system.BattleEvent(() => {
+      throw failure
+    })
+    const handler = peer.system as unknown as {
+      handleMessage(message: { type: string; payload: unknown }): Promise<void>
+    }
+    try {
+      await expect(
+        handler.handleMessage({
+          type: 'p2p-battle-event',
+          payload: { viewerId: 'peer', message: peerEvent(1) },
+        }),
+      ).rejects.toBe(failure)
+    } finally {
+      await peer.cleanup()
+    }
+  })
+
+  test('clears recovery and selections on terminal delivery and does not send further actions or resync', async () => {
+    vi.useFakeTimers()
+    const peer = await connectedPeer()
+    try {
+      await peer.initialize([])
+      await peer.system.submitAction(availableAction)
+      expect(vi.getTimerCount()).toBeGreaterThan(0)
+      await peer.event(peerEvent(1, true))
+      peer.sendMessage.mockClear()
+
+      await expect(peer.system.getAvailableSelection()).resolves.toEqual([])
+      await expect(peer.system.submitAction(availableAction)).rejects.toThrow()
+      await peer.hostTransport.send({
+        type: 'p2p-battle-selection-update',
+        payload: { viewerId: 'peer', availableSelections: [availableAction] },
+      })
+      await expect(peer.system.getAvailableSelection()).resolves.toEqual([])
+      await peer.peerTransport.close()
+      await peer.peerTransport.connect({ role: 'peer', remotePeerId: 'host' })
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(peer.sendMessage).not.toHaveBeenCalled()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      await peer.cleanup()
+      expect(vi.getTimerCount()).toBe(0)
+      vi.useRealTimers()
+    }
+  })
+
+  test('uses local animation IDs after terminal delivery without signaling the closed room', async () => {
+    const peer = await connectedPeer()
+    try {
+      await peer.initialize()
+      await peer.event(peerEvent(1, true))
+      await peer.peerTransport.close()
+      peer.sendMessage.mockClear()
+      const animationId = await peer.system.startAnimation('victory', 500, 'peer')
+      expect(animationId).toEqual(expect.any(String))
+      expect(animationId.length).toBeGreaterThan(0)
+      await peer.system.endAnimation(animationId, 500)
+      await peer.system.endAnimation('old-remote-animation', 100)
+      expect(peer.sendMessage).not.toHaveBeenCalled()
+    } finally {
+      await peer.cleanup()
+    }
+  })
+
+  test('settles a pending animation start on terminal delivery and clears its timeout', async () => {
+    vi.useFakeTimers()
+    const peer = await connectedPeer()
+    try {
+      await peer.initialize()
+      const starting = peer.system.startAnimation('last-hit', 300, 'peer')
+      const resolved = expect(starting).resolves.toEqual(expect.any(String))
+      await Promise.resolve()
+      expect(peer.sendMessage.mock.calls.some(([type]) => type === 'p2p-battle-start-animation')).toBe(true)
+      await peer.event(peerEvent(1, true))
+      await resolved
+      const animationId = await starting
+      peer.sendMessage.mockClear()
+      await peer.system.endAnimation(animationId, 300)
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(peer.sendMessage).not.toHaveBeenCalled()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      await peer.cleanup()
+      expect(vi.getTimerCount()).toBe(0)
+      vi.useRealTimers()
+    }
+  })
+
+  test('rejects an outstanding initial snapshot wait during cleanup without leaving retry timers', async () => {
+    vi.useFakeTimers()
+    const peer = await connectedPeer()
+    try {
+      const waiting = peer.system.getState()
+      const rejected = expect(waiting).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(peer.sendMessage.mock.calls.some(([type]) => type === 'p2p-battle-sync-request')).toBe(true)
+      expect(vi.getTimerCount()).toBeGreaterThan(0)
+      await peer.system.cleanup()
+      await rejected
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      await peer.cleanup()
+      vi.useRealTimers()
+    }
+  })
+
+  test('accepts an ended initial snapshot while clearing the initialization wait and stale selections', async () => {
+    vi.useFakeTimers()
+    const peer = await connectedPeer()
+    const ended = { ...activeState(), status: 'Ended', sequenceId: 4 } as BattleState
+    peer.hostTransport.onMessage(message => {
+      if (message.type === 'p2p-battle-sync-request') {
+        void peer.hostTransport.send({
+          type: 'p2p-battle-init',
+          payload: createInitPayload(ended, [availableAction]),
+        })
+      }
+    })
+    try {
+      await expect(peer.system.getState()).resolves.toEqual(ended)
+      await expect(peer.system.getAvailableSelection()).resolves.toEqual([])
+      peer.sendMessage.mockClear()
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(peer.sendMessage).not.toHaveBeenCalled()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      await peer.cleanup()
+      vi.useRealTimers()
+    }
+  })
+
+  test('rejects a pending transport wait during cleanup without leaving its timeout', async () => {
+    vi.useFakeTimers()
+    const peer = await connectedPeer()
+    try {
+      await peer.peerTransport.close()
+      const waiting = peer.system.startAnimation('pending-connect', 100, 'peer')
+      const rejected = expect(waiting).rejects.toThrow()
+      await Promise.resolve()
+      await peer.system.cleanup()
+      await rejected
+      expect(vi.getTimerCount()).toBe(0)
+      expect(peer.sendMessage).not.toHaveBeenCalled()
+    } finally {
+      await peer.cleanup()
+      vi.useRealTimers()
+    }
+  })
+
+  test('drops a host selection read that completes after the terminal event', async () => {
+    const hostTransport = new InMemoryPeerTransport()
+    const peerTransport = new InMemoryPeerTransport()
+    hostTransport.pairWith(peerTransport)
+    peerTransport.pairWith(hostTransport)
+    await hostTransport.connect({ role: 'host', remotePeerId: 'peer' })
+    await peerTransport.connect({ role: 'peer', remotePeerId: 'host' })
+    let relay!: (message: BattleMessage) => void
+    let finishSelections!: (selections: PlayerSelection[]) => void
+    const selections = new Promise<PlayerSelection[]>(resolve => {
+      finishSelections = resolve
+    })
+    const local = {
+      BattleEvent: vi.fn((callback: (message: BattleMessage) => void) => {
+        relay = callback
+        return vi.fn()
+      }),
+      onTimerEvent: vi.fn(() => vi.fn()),
+      getAvailableSelection: vi.fn(() => selections),
+      cleanup: vi.fn(async () => {}),
+    }
+    vi.mocked(createSandboxWebBattleSession).mockResolvedValueOnce({
+      system: local,
+      data: { species: [], skills: [], marks: [] },
+    } as unknown as Awaited<ReturnType<typeof createSandboxWebBattleSession>>)
+    const sendMessage = vi.fn<PrivateRoomSignalBridge['sendMessage']>(async (type, payload) =>
+      hostTransport.send({ type, payload }),
+    )
+    const host = await createP2PHostBattleSystem({
+      localPlayerId: 'host',
+      remotePlayerId: 'peer',
+      localPlayerName: 'Host',
+      remotePlayerName: 'Peer',
+      localTeam: [],
+      remoteTeam: [],
+      dataStore: {
+        species: { allIds: [], byId: {} },
+        skills: { allIds: [], byId: {} },
+        marks: { allIds: [], byId: {} },
+      },
+      transport: hostTransport,
+      bridge: {
+        transport: hostTransport,
+        connect: async () => {},
+        close: async () => {},
+        handleSignal: async () => {},
+        sendMessage,
+      },
+    })
+    try {
+      relay(peerEvent(1))
+      expect(local.getAvailableSelection).toHaveBeenCalledOnce()
+      relay(peerEvent(2, true))
+      finishSelections([availableAction])
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(sendMessage.mock.calls.filter(([type]) => type === 'p2p-battle-event')).toHaveLength(2)
+      expect(sendMessage.mock.calls.some(([type]) => type === 'p2p-battle-selection-update')).toBe(false)
+      expect(local.getAvailableSelection).toHaveBeenCalledOnce()
+    } finally {
+      finishSelections([])
+      await host.cleanup()
+      await hostTransport.close()
+      await peerTransport.close()
+    }
   })
 })

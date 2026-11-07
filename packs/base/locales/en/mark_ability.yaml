@@ -1,0 +1,3 @@
+mark_ability_houjin:
+  name: Late Surge
+  description: Damage dealt is increased by <damage>10%</damage> when moving last.

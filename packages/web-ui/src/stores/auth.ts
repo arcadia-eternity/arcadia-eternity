@@ -1,306 +1,232 @@
 import { defineStore } from 'pinia'
-import axios, { AxiosError } from 'axios'
-import { ElMessage } from 'element-plus'
+import { toRaw } from 'vue'
+import type {
+  AccountIdentity,
+  AccountIntent,
+  LocalProfile,
+  ServerInfo,
+  ServerSession,
+} from '@arcadia-eternity/protocol'
+import { ServerSessionClient, clearServerCredentials, normalizeSelectedServer } from '@/services/serverSession'
 
-// API 基础配置
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8107/api/v1'
+import { getBackendOrigin, canSelectBackend, checkBackendSelection } from '@/bootstrap/deployment'
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30 * 1000, // 30秒超时
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+const apiBaseUrl = () => `${getBackendOrigin()}/api/v1`
+const SERVER_SELECTION_KEY = 'arcadia-selected-server'
+const clients = new WeakMap<object, ServerSessionClient>()
 
-// 类型定义
-export interface AuthTokens {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
-}
-
-export interface PlayerInfo {
-  id: string
-  name: string
-  isRegistered: boolean
-  email?: string
-  emailVerified?: boolean
-  emailBoundAt?: string
-  createdAt?: string
-}
-
-export interface AuthResult {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
-  player: PlayerInfo
-}
-
-export interface PlayerStatus {
-  playerId: string
-  playerName: string
-  isRegistered: boolean
-  requiresAuth: boolean
-  email?: string
-  createdAt?: string
-}
-
-// 状态接口
-interface AuthState {
-  accessToken: string | null
-  refreshToken: string | null
-  tokenExpiry: number | null
-  isInterceptorsSetup: boolean
+function initialSelection(): string | null {
+  if (!canSelectBackend()) return null
+  try {
+    const value = sessionStorage.getItem(SERVER_SELECTION_KEY)
+    if (!value) return null
+    const selected = normalizeSelectedServer(value)
+    checkBackendSelection(selected)
+    return selected
+  } catch {
+    return null
+  }
 }
 
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    accessToken: null,
-    refreshToken: null,
-    tokenExpiry: null,
-    isInterceptorsSetup: false,
-  }),
-
-  persist: {
-    key: 'auth_tokens',
-    pick: ['accessToken', 'refreshToken', 'tokenExpiry'],
+  state: () => {
+    const selected = initialSelection()
+    return {
+      serverUrl: selected ?? getBackendOrigin(),
+      hasSelectedServer: selected !== null,
+      serverGeneration: 0,
+      session: null as ServerSession | null,
+      serverInfo: null as ServerInfo | null,
+      identities: [] as AccountIdentity[],
+      invalidationReason: null as string | null,
+    }
   },
-
   getters: {
-    /**
-     * 检查token是否有效
-     */
-    isTokenValid(): boolean {
-      if (!this.tokenExpiry) return false
-      return Date.now() < this.tokenExpiry - 60000 // 提前1分钟刷新
-    },
-
-    /**
-     * 获取当前访问令牌
-     */
-    currentAccessToken(): string | null {
-      return this.isTokenValid ? this.accessToken : null
-    },
-
-    /**
-     * 检查是否已登录（有有效token）
-     */
-    isAuthenticated(): boolean {
-      return this.accessToken !== null && this.isTokenValid
-    },
+    isAuthenticated: state => state.session !== null,
+    isAccount: state => state.session?.principal.kind === 'account',
   },
-
   actions: {
-    /**
-     * 初始化 - 设置axios拦截器
-     */
-    initialize() {
-      if (!this.isInterceptorsSetup) {
-        this.setupAxiosInterceptors()
-        this.isInterceptorsSetup = true
-      }
+    /** Validate the address and storage before disconnecting the active room. */
+    checkServerUrl(value: string): string {
+      const next = normalizeSelectedServer(value)
+      checkBackendSelection(next)
+      const probe = `${SERVER_SELECTION_KEY}:probe`
+      sessionStorage.setItem(probe, next)
+      sessionStorage.removeItem(probe)
+      return next
     },
-
-    /**
-     * 设置axios拦截器
-     */
-    setupAxiosInterceptors() {
-      // 请求拦截器 - 自动添加token
-      api.interceptors.request.use(
-        config => {
-          if (this.accessToken && this.isTokenValid) {
-            config.headers.Authorization = `Bearer ${this.accessToken}`
-          }
-          return config
-        },
-        error => Promise.reject(error),
-      )
-
-      // 响应拦截器 - 处理token过期
-      api.interceptors.response.use(
-        response => response,
-        async error => {
-          if (error.response?.status === 401 && this.refreshToken) {
+    /** Synchronously retire the old authority before any request may use the new address. */
+    setServerUrl(value: string): void {
+      const next = normalizeSelectedServer(value)
+      checkBackendSelection(next)
+      const previousApi = this.hasSelectedServer ? `${this.serverUrl}/api/v1` : apiBaseUrl()
+      const nextApi = `${next}/api/v1`
+      // Do not alter the active authority if persisting the new selection fails.
+      sessionStorage.setItem(SERVER_SELECTION_KEY, next)
+      const differentEndpoint = next !== this.serverUrl || previousApi !== nextApi
+      if (differentEndpoint || !this.hasSelectedServer) {
+        this.serverGeneration++
+        const key = toRaw(this.$state)
+        const previous = clients.get(key)
+        clients.delete(key)
+        if (differentEndpoint) {
+          // Drop the in-memory credential before touching storage: even a storage failure must fail closed.
+          this.session = null
+          this.serverInfo = null
+          this.identities = []
+          this.invalidationReason = null
+        }
+        this.serverUrl = next
+        this.hasSelectedServer = true
+        const errors: unknown[] = []
+        try {
+          previous?.dispose({ preserveCredentials: !differentEndpoint })
+        } catch (error) {
+          errors.push(error)
+        }
+        if (differentEndpoint) {
+          for (const endpoint of [previousApi, nextApi]) {
             try {
-              await this.refreshAccessToken()
-              // 重试原请求
-              const originalRequest = error.config
-              originalRequest.headers.Authorization = `Bearer ${this.accessToken}`
-              return api.request(originalRequest)
-            } catch (refreshError) {
-              // token和refreshToken都无效，回退到游客模式
-              this.fallbackToGuest()
+              clearServerCredentials(sessionStorage, endpoint)
+            } catch (error) {
+              errors.push(error)
             }
           }
-          return Promise.reject(error)
+        }
+        if (errors.length) throw new Error('旧服务器连接已终止，但本地凭据清理失败', { cause: errors[0] })
+      }
+      this.serverUrl = next
+      this.hasSelectedServer = true
+    },
+    initialize() {
+      // Pinia devtools gives each action a new Proxy; the raw state stays stable per store instance.
+      const key = toRaw(this.$state)
+      if (clients.has(key)) return
+      const baseUrl = this.hasSelectedServer ? `${this.serverUrl}/api/v1` : apiBaseUrl()
+      const generation = this.serverGeneration
+      const client = new ServerSessionClient(baseUrl, sessionStorage, fetch, reason => {
+        if (clients.get(key) !== client || this.serverGeneration !== generation) return
+        this.session = null
+        this.identities = []
+        this.invalidationReason = reason
+        window.dispatchEvent(new CustomEvent('server-session-invalidated', { detail: { reason } }))
+      })
+      clients.set(key, client)
+    },
+    async withClient<T>(
+      operation: (client: ServerSessionClient) => Promise<T>,
+      commit?: (result: T) => void,
+    ): Promise<T> {
+      this.initialize()
+      const key = toRaw(this.$state)
+      const client = clients.get(key)
+      if (!client) throw new Error('服务器会话未初始化')
+      const generation = this.serverGeneration
+      const current = () => clients.get(key) === client && this.serverGeneration === generation
+      try {
+        const result = await operation(client)
+        if (!current()) throw new Error('会话操作已取消')
+        commit?.(result)
+        return result
+      } catch (error) {
+        if (!current()) throw new Error('会话操作已取消')
+        throw error
+      } finally {
+        if (current()) {
+          this.session = client.session
+          this.serverInfo = client.info
+        }
+      }
+    },
+    async ensureSession(profile: LocalProfile): Promise<ServerSession> {
+      return this.withClient(client => client.ensure(profile))
+    },
+    async refreshAccountContext(): Promise<void> {
+      await this.withClient(
+        async client => {
+          const { session } = await client.refresh()
+          return session?.principal.kind === 'account' ? await client.listIdentities() : []
+        },
+        identities => {
+          this.identities = identities
         },
       )
     },
-
-    /**
-     * 清除token
-     */
-    clearTokens() {
-      this.accessToken = null
-      this.refreshToken = null
-      this.tokenExpiry = null
+    async loginWithAccount(profile: LocalProfile, proof: unknown): Promise<ServerSession> {
+      return this.withClient(client => client.login(profile, proof))
     },
-
-    /**
-     * 创建游客玩家
-     */
-    async createGuest(): Promise<PlayerInfo> {
-      try {
-        const response = await api.post('/auth/create-guest')
-        if (response.data.success) {
-          const guest = response.data.data
-          return {
-            id: guest.id ?? guest.playerId,
-            name: guest.name ?? guest.playerName,
-            isRegistered: guest.isRegistered ?? false,
-            email: guest.email,
-            emailVerified: guest.emailVerified ?? false,
-            emailBoundAt: guest.emailBoundAt,
-            createdAt: guest.createdAt,
-          }
-        }
-        throw new Error(response.data.message || '创建游客失败')
-      } catch (error: unknown) {
-        console.error('Create guest error:', String(error))
-        const message =
-          error instanceof AxiosError
-            ? error.response?.data?.message
-            : error instanceof Error
-              ? error.message
-              : undefined
-        throw new Error(message || '创建游客失败，请检查网络连接')
-      }
+    async requestEmailCode(email: string, intent: AccountIntent) {
+      return this.withClient(client => client.requestEmailCode(email, intent))
     },
-
-    /**
-     * 刷新访问令牌
-     */
-    async refreshAccessToken(): Promise<void> {
-      if (!this.refreshToken) {
-        throw new Error('No refresh token available')
-      }
-
-      try {
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refreshToken: this.refreshToken,
-        })
-
-        if (response.data.success) {
-          const authResult = response.data.data
-          this.setTokens(authResult)
-        } else {
-          throw new Error(response.data.message || 'Token refresh failed')
-        }
-      } catch (error: unknown) {
-        console.error('Token refresh error:', String(error))
-        this.clearTokens()
-        throw error
-      }
+    async completeEmailCode(challengeId: string, code: string, intent: AccountIntent, profile: LocalProfile) {
+      const { result } = await this.withClient(
+        async client => {
+          const result = await client.completeEmailCode(challengeId, code, intent, profile)
+          const identities = Array.isArray(result) ? result : await client.listIdentities()
+          return { result, identities }
+        },
+        value => {
+          this.identities = value.identities
+        },
+      )
+      return result
     },
-
-    /**
-     * 检查玩家状态
-     */
-    async checkPlayerStatus(playerId: string): Promise<PlayerStatus> {
-      try {
-        const response = await api.get(`/auth/check-player/${playerId}`)
-        if (response.data.success) {
-          return response.data.data
-        }
-        throw new Error(response.data.message || '检查玩家状态失败')
-      } catch (error: unknown) {
-        console.error('Check player status error:', String(error))
-        const message =
-          error instanceof AxiosError
-            ? error.response?.data?.message
-            : error instanceof Error
-              ? error.message
-              : undefined
-        throw new Error(message || '检查玩家状态失败，请检查网络连接')
-      }
+    async startGitHub(intent: AccountIntent): Promise<string> {
+      return this.withClient(client => client.startGitHub(intent))
     },
-
-    /**
-     * 验证token有效性
-     */
-    async verifyToken(): Promise<{ valid: boolean; data?: unknown }> {
-      try {
-        const response = await api.get('/auth/verify')
-        return response.data
-      } catch (error: unknown) {
-        console.error('Token verification error:', String(error))
-        return { valid: false }
-      }
+    async completeGitHub(state: string, code: string, profile: LocalProfile) {
+      const { result } = await this.withClient(
+        async client => {
+          const result = await client.completeGitHub(state, code, profile)
+          const identities = Array.isArray(result) ? result : await client.listIdentities()
+          return { result, identities }
+        },
+        value => {
+          this.identities = value.identities
+        },
+      )
+      return result
     },
-
-    /**
-     * 设置认证信息
-     */
-    setTokens(authResult: AuthResult) {
-      this.accessToken = authResult.accessToken
-      this.refreshToken = authResult.refreshToken
-      this.tokenExpiry = Date.now() + authResult.expiresIn * 1000
+    async loadIdentities(): Promise<void> {
+      await this.withClient(
+        client => client.listIdentities(),
+        identities => {
+          this.identities = identities
+        },
+      )
     },
-
-    /**
-     * 登出
-     */
+    async unlinkIdentity(identity: AccountIdentity): Promise<void> {
+      await this.withClient(
+        async client => {
+          await client.unlinkIdentity(identity)
+          return client.listIdentities()
+        },
+        identities => {
+          this.identities = identities
+        },
+      )
+    },
+    async deactivateAccount(): Promise<void> {
+      await this.withClient(
+        client => client.deactivateAccount(),
+        () => {
+          this.session = null
+          this.identities = []
+        },
+      )
+    },
     async logout(): Promise<void> {
-      try {
-        if (this.accessToken) {
-          await api.post('/auth/logout')
-        }
-      } catch (error) {
-        console.error('Logout error:', error)
-      } finally {
-        this.clearTokens()
-      }
+      await this.withClient(
+        client => client.logout(),
+        () => {
+          this.session = null
+          this.identities = []
+        },
+      )
     },
-
-    /**
-     * 获取当前访问令牌
-     */
-    getAccessToken(): string | null {
-      return this.isTokenValid ? this.accessToken : null
-    },
-
-    /**
-     * 获取API实例（已配置认证拦截器）
-     */
-    getApiInstance() {
-      return api
-    },
-
-    /**
-     * 回退到游客模式
-     * 当注册用户的token和refreshToken都无效时调用
-     */
-    fallbackToGuest() {
-      this.clearTokens()
-      ElMessage.warning('认证已过期，已切换到游客模式。如需恢复注册用户身份，请通过邮箱恢复玩家ID')
-
-      // 触发自定义事件，通知其他组件用户已回退到游客模式
-      window.dispatchEvent(new CustomEvent('auth-fallback-to-guest'))
+    getAccessToken(expectedGeneration?: number): string | null {
+      if (expectedGeneration !== undefined && expectedGeneration !== this.serverGeneration) return null
+      return this.session?.token ?? null
     },
   },
 })
-
-// 创建一个兼容的 authService 对象，用于向后兼容
-export const authService = {
-  createGuest: () => useAuthStore().createGuest(),
-  refreshAccessToken: () => useAuthStore().refreshAccessToken(),
-  checkPlayerStatus: (playerId: string) => useAuthStore().checkPlayerStatus(playerId),
-  verifyToken: () => useAuthStore().verifyToken(),
-  setTokens: (authResult: AuthResult) => useAuthStore().setTokens(authResult),
-  logout: () => useAuthStore().logout(),
-  getAccessToken: () => useAuthStore().getAccessToken(),
-  isAuthenticated: () => useAuthStore().isAuthenticated,
-  getApiInstance: () => useAuthStore().getApiInstance(),
-  fallbackToGuest: () => useAuthStore().fallbackToGuest(),
-}

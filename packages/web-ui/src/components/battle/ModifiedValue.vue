@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TValue extends number | string | boolean">
 import { computed, useTemplateRef } from 'vue'
 import type { AttributeModifierInfo } from '@arcadia-eternity/const'
 import Tooltip from './Tooltip.vue'
@@ -6,8 +6,9 @@ import i18next from 'i18next'
 import { analyzeModifierType, getModifierClasses, formatModifierValue, getModifierIcon } from '@/utils/modifierStyles'
 
 interface Props {
-  value: number | string
-  attributeInfo?: AttributeModifierInfo
+  value: TValue
+  attributeInfo?: AttributeModifierInfo<TValue>
+  format?: (value: NoInfer<TValue>) => string
   showTooltip?: boolean
   size?: 'sm' | 'md' | 'lg'
   inline?: boolean
@@ -34,18 +35,15 @@ const valueClasses = computed(() => {
   return getModifierClasses(modifierType.value, props.size, props.inline)
 })
 
-const renderedValue = computed(() => {
-  if (!props.attributeInfo || !props.attributeInfo.isModified) return props.value
-
-  const current = props.attributeInfo.currentValue
-
-  if (typeof props.value === 'string') {
-    if (props.value.endsWith('%')) return `${current}%`
-    return String(current)
-  }
-
-  return current
+// Keep the slot value typed; formatting only affects the default text.
+const renderedValue = computed<TValue>(() => {
+  return props.attributeInfo?.isModified ? props.attributeInfo.currentValue : props.value
 })
+const formattedValue = computed(() => (props.format ? props.format(renderedValue.value) : renderedValue.value))
+
+defineSlots<{
+  default(props: { value: TValue }): unknown
+}>()
 
 // Tooltip 内容
 const tooltipContent = computed(() => {
@@ -89,7 +87,7 @@ const elementRef = useTemplateRef('elementRef')
     <Tooltip v-if="showTooltip && isModified && tooltipContent" position="bottom">
       <template #trigger>
         <span ref="elementRef" :class="valueClasses">
-          <slot :value="renderedValue">{{ renderedValue }}</slot>
+          <slot :value="renderedValue">{{ formattedValue }}</slot>
         </span>
       </template>
       <div class="text-sm max-w-xs bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-lg">
@@ -109,7 +107,7 @@ const elementRef = useTemplateRef('elementRef')
     </Tooltip>
 
     <span v-else ref="elementRef" :class="valueClasses">
-      <slot :value="renderedValue">{{ renderedValue }}</slot>
+      <slot :value="renderedValue">{{ formattedValue }}</slot>
     </span>
   </div>
 </template>

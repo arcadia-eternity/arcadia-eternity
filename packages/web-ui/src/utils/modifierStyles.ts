@@ -1,4 +1,4 @@
-import type { ModifierInfo, AttributeModifierInfo } from '@arcadia-eternity/const'
+import type { ModifierInfo, AttributeModifierInfo, EntityModifierState } from '@arcadia-eternity/const'
 
 /**
  * Modifier 效果类型
@@ -245,4 +245,17 @@ export function getPriorityColor(priority: number): string {
   if (priority >= 5) return 'text-orange-500'
   if (priority >= 1) return 'text-yellow-500'
   return 'text-gray-500'
+}
+
+/** Select a numeric attribute from the heterogeneous modifier state received from the battle. */
+export function getNumericAttributeModifier(
+  state: EntityModifierState | undefined,
+  attributeName: string,
+): AttributeModifierInfo<number> | undefined {
+  return state?.attributes.find(
+    (info): info is AttributeModifierInfo<number> =>
+      info.attributeName === attributeName &&
+      typeof info.baseValue === 'number' &&
+      typeof info.currentValue === 'number',
+  )
 }

@@ -1,0 +1,117 @@
+- id: pet_qilu
+  num: 20
+  element: Water
+  baseStats:
+    hp: 91
+    atk: 119
+    spa: 127
+    def: 116
+    spd: 123
+    spe: 107
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 31
+    - 36
+  weightRange:
+    - 9
+    - 14
+  learnable_skills:
+    - skill_id: skill_touchui
+      level: 1
+      hidden: false
+    - skill_id: skill_shuiqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_ningju
+      level: 9
+      hidden: false
+    - skill_id: skill_chuanjibo
+      level: 13
+      hidden: false
+    - skill_id: skill_niliu
+      level: 17
+      hidden: false
+    - skill_id: skill_zhimingshuiqiang
+      level: 21
+      hidden: false
+  ability:
+    - mark_ability_liushui
+  emblem:
+    - mark_emblem_shiming
+- id: pet_kuqilu
+  num: 21
+  element: Water
+  baseStats:
+    hp: 181
+    atk: 164
+    spa: 177
+    def: 161
+    spd: 168
+    spe: 147
+  genderRatio:
+    - 8
+    - 2
+  heightRange:
+    - 71
+    - 76
+  weightRange:
+    - 35
+    - 40
+  learnable_skills:
+    - skill_id: skill_touchui
+      level: 1
+      hidden: false
+    - skill_id: skill_shuiqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_ningju
+      level: 9
+      hidden: false
+    - skill_id: skill_chuanjibo
+      level: 13
+      hidden: false
+    - skill_id: skill_niliu
+      level: 17
+      hidden: false
+    - skill_id: skill_zhimingshuiqiang
+      level: 21
+      hidden: false
+    - skill_id: skill_jingzhun
+      level: 25
+      hidden: false
+    - skill_id: skill_fenlitouchui
+      level: 29
+      hidden: false
+    - skill_id: skill_shuiqianglianbo
+      level: 33
+      hidden: false
+    - skill_id: skill_chunjingshuiyu
+      level: 38
+      hidden: false
+    - skill_id: skill_pinmingtouchui
+      level: 43
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 49
+      hidden: false
+    - skill_id: skill_junengshuiguangpao
+      level: 60
+      hidden: false
+    - skill_id: skill_chuantoushuipao
+      level: 60
+      hidden: true
+    - skill_id: skill_hunzhuoshuiyu
+      level: 60
+      hidden: true
+    - skill_id: skill_linweiyichui
+      level: 60
+      hidden: true
+    - skill_id: skill_xuruoshuixian
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_liushui
+  emblem:
+    - mark_emblem_shiming

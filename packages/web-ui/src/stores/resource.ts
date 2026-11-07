@@ -1,8 +1,9 @@
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 // src/stores/Resource.ts
 import { defineStore } from 'pinia'
-import { GameDataLoader } from '@/utils/gameLoader'
-import type { AssetManifest, MarkImageSchemaType } from '@arcadia-eternity/schema'
-import { PackLoader } from '@arcadia-eternity/pack-loader'
+import type { ContentPresentation, PresentationManifest } from '@arcadia-eternity/schema'
+import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
+import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
 import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -109,6 +110,27 @@ function isWorkspacePackRef(packRef: string): boolean {
   }
 }
 
+// Bootstrap and battle consumers share work owned by this store. Scope changes
+// fence late loader results even when the underlying metadata request cannot stop.
+const resourceScopes = new WeakMap<
+  object,
+  { generation: number; pending?: { ready: Promise<void>; cancel: () => void } }
+>()
+function resourceScope(store: object) {
+  let scope = resourceScopes.get(store)
+  if (!scope) {
+    scope = { generation: 0 }
+    resourceScopes.set(store, scope)
+  }
+  return scope
+}
+function invalidateResourceScope(store: object) {
+  const scope = resourceScope(store)
+  scope.generation++
+  scope.pending?.cancel()
+  scope.pending = undefined
+}
+
 export const useResourceStore = defineStore('Resource', {
   state: (): ResourceState => ({
     loaded: false,
@@ -187,6 +209,7 @@ export const useResourceStore = defineStore('Resource', {
 
   actions: {
     reset() {
+      invalidateResourceScope(this)
       this.loaded = false
       this.error = null
       this.markImage = { byId: {}, allIds: [] }
@@ -201,84 +224,117 @@ export const useResourceStore = defineStore('Resource', {
     async initialize(options?: { forceReload?: boolean }) {
       const forceReload = options?.forceReload === true
       if (this.loaded && !forceReload) return
-      if (forceReload) {
-        this.reset()
-      }
-
-      const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
-      applyRuntimeAssetBase(packRef)
-      const loader = new GameDataLoader({
-        devBasePath: '/resource',
-        prodBaseUrl: import.meta.env.VITE_API_BASE || '/resource',
-      })
-      const packLoader = new PackLoader()
-
-      try {
-        const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound, rawPetSwf] = await Promise.all([
-          this.loadMarkImage(loader),
-          this.loadBackGround(loader),
-          this.loadMusic(loader),
-          this.loadSkillSound(loader),
-          this.loadPetSwf(loader),
-        ])
-
-        const baseLayer: ResourceLayer = {
-          markImage: this.toStringRecord(rawMarkImage),
-          background: this.toStringRecord(rawBackGround),
-          music: this.toStringRecord(rawMusic),
-          skillSound: this.toStringRecord(rawSkillSound),
-          petSwf: this.toStringRecord(rawPetSwf),
-          petSound: {},
-        }
-
-        if (isWorkspacePackRef(packRef)) {
-          const enabledPacks = await this.loadEnabledWorkspacePacks()
-          if (enabledPacks.length > 0) {
-            await this.initializeFromWorkspacePacks(enabledPacks, baseLayer, packLoader)
+      const scope = resourceScope(this)
+      if (!forceReload && scope.pending) return scope.pending.ready
+      if (forceReload) this.reset()
+      const generation = scope.generation
+      const isCurrent = () => scope.generation === generation
+      const work = (async () => {
+        try {
+          if (hasPreparedWebEnvironment()) {
+            const { content, resources } = await readPreparedWebCatalog(forceReload)
+            if (!isCurrent()) return
+            const presentations = new Map<string, ContentPresentation>()
+            for (const kind of ['species', 'skills', 'marks'] as const)
+              for (const row of content[kind])
+                if (row.presentation) presentations.set(`${kind}:${row.id}`, row.presentation)
+            this.workspaceRuntime = emptyWorkspaceRuntime()
+            this.applyLayerToState(this.buildResourceLayer(presentations, resources))
+            this.validateDataIntegrity()
             this.loaded = true
             this.error = null
-            console.log('📁 Resource store installed (workspace incremental mode)')
             return
           }
+          const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
+          if (!isCurrent()) return
+          applyRuntimeAssetBase(packRef)
+          const packLoader = new PackMetadataLoader()
+          const baseLayer = createEmptyLayer()
+          if (isWorkspacePackRef(packRef)) {
+            const enabledPacks = await this.loadEnabledWorkspacePacks()
+            if (!isCurrent()) return
+            if (enabledPacks.length > 0) {
+              await this.initializeFromWorkspacePacks(enabledPacks, baseLayer, packLoader, isCurrent)
+              if (!isCurrent()) return
+              this.loaded = true
+              this.error = null
+              console.log('📁 Resource store installed (workspace incremental mode)')
+              return
+            }
+          }
+
+          const packResult = await packLoader.loadMetadata(packRef, {
+            source: 'http',
+            enforceLockfile: false,
+            includeData: false,
+            includeLocales: false,
+          })
+
+          if (!isCurrent()) return
+          if ((packResult.assetConflicts?.length ?? 0) > 0) {
+            console.warn('Asset conflicts detected while loading pack resources', packResult.assetConflicts)
+          }
+          if ((packResult.lockfileIssues?.length ?? 0) > 0) {
+            console.warn('Pack lockfile issues detected while loading resources', packResult.lockfileIssues)
+          }
+
+          const merged = cloneLayer(baseLayer)
+          mergeLayer(merged, this.buildPresentationLayer(packResult.presentation ?? []))
+
+          this.workspaceRuntime = emptyWorkspaceRuntime()
+          this.applyLayerToState(merged)
+          this.validateDataIntegrity()
+
+          this.loaded = true
+          this.error = null
+          console.log('📁 Resource store installed')
+        } catch (error) {
+          if (!isCurrent()) return
+          this.error = error instanceof Error ? error.message : '未知错误'
+          this.loaded = false
+          const isNetworkError =
+            error instanceof TypeError ||
+            String(error).includes('Failed to fetch') ||
+            String(error).includes('NetworkError')
+          if (isNetworkError) {
+            console.warn('资源加载失败：服务器未响应，部分功能不可用')
+          } else {
+            console.error('❌ Resource initialization failed:', error)
+          }
+          throw error
         }
+      })()
+      let cancel!: () => void
+      const cancelled = new Promise<void>((_resolve, reject) => {
+        cancel = () => reject(new DOMException('Resource scope changed', 'AbortError'))
+      })
+      const entry = { ready: Promise.race([work, cancelled]), cancel }
+      void entry.ready.catch(() => {})
+      scope.pending = entry
+      try {
+        await entry.ready
+      } finally {
+        if (scope.pending === entry) scope.pending = undefined
+      }
+    },
 
-        const packResult = await packLoader.load(packRef, {
-          source: 'http',
-          continueOnError: true,
-          validateReferences: false,
-          enforceLockfile: false,
-        })
-
-        if ((packResult.assetConflicts?.length ?? 0) > 0) {
-          console.warn('Asset conflicts detected while loading pack resources', packResult.assetConflicts)
+    /** Consumers follow scope replacements; only this store owns cancellation. */
+    async whenReady(): Promise<void> {
+      for (;;) {
+        const generation = resourceScope(this).generation
+        try {
+          await this.initialize()
+          return
+        } catch (error) {
+          if (
+            !(
+              error instanceof DOMException &&
+              error.name === 'AbortError' &&
+              resourceScope(this).generation !== generation
+            )
+          )
+            throw error
         }
-        if ((packResult.lockfileIssues?.length ?? 0) > 0) {
-          console.warn('Pack lockfile issues detected while loading resources', packResult.lockfileIssues)
-        }
-
-        const merged = cloneLayer(baseLayer)
-        mergeLayer(merged, this.buildAssetLayer(packResult.assets ?? []))
-
-        this.workspaceRuntime = emptyWorkspaceRuntime()
-        this.applyLayerToState(merged)
-        this.validateDataIntegrity()
-
-        this.loaded = true
-        this.error = null
-        console.log('📁 Resource store installed')
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '未知错误'
-        this.loaded = false
-        const isNetworkError =
-          error instanceof TypeError ||
-          String(error).includes('Failed to fetch') ||
-          String(error).includes('NetworkError')
-        if (isNetworkError) {
-          console.warn('资源加载失败：服务器未响应，部分功能不可用')
-        } else {
-          console.error('❌ Resource initialization failed:', error)
-        }
-        throw error
       }
     },
 
@@ -287,6 +343,8 @@ export const useResourceStore = defineStore('Resource', {
     },
 
     async applyWorkspacePackToggle(input: { folderName: string; enabled: boolean }) {
+      const generation = resourceScope(this).generation
+      const isCurrent = () => resourceScope(this).generation === generation
       if (!this.loaded) {
         await this.initialize({ forceReload: true })
         return
@@ -298,6 +356,7 @@ export const useResourceStore = defineStore('Resource', {
       }
 
       const enabledPacks = await this.loadEnabledWorkspacePacks()
+      if (!isCurrent()) return
       if (enabledPacks.length === 0) {
         await this.reload()
         return
@@ -313,11 +372,12 @@ export const useResourceStore = defineStore('Resource', {
       }
 
       const targetFolder = normalizeFolderName(input.folderName)
-      const packLoader = new PackLoader()
+      const packLoader = new PackMetadataLoader()
       for (const pack of enabledPacks) {
         const isTarget = normalizeFolderName(pack.folderName) === targetFolder
         if (!nextLayers[pack.folderName] || (input.enabled && isTarget)) {
           nextLayers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName, packLoader)
+          if (!isCurrent()) return
         }
       }
 
@@ -349,11 +409,15 @@ export const useResourceStore = defineStore('Resource', {
     async initializeFromWorkspacePacks(
       enabledPacks: WorkspacePackSummary[],
       baseLayer: ResourceLayer,
-      packLoader: PackLoader,
+      packLoader: PackMetadataLoader,
+      current?: () => boolean,
     ) {
+      const generation = resourceScope(this).generation
+      const isCurrent = current ?? (() => resourceScope(this).generation === generation)
       const layers: Record<string, ResourceLayer> = {}
       for (const pack of enabledPacks) {
         layers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName, packLoader)
+        if (!isCurrent()) return
       }
 
       this.workspaceRuntime = {
@@ -366,13 +430,13 @@ export const useResourceStore = defineStore('Resource', {
       this.validateDataIntegrity()
     },
 
-    async loadWorkspaceLayer(folderName: string, packLoader: PackLoader): Promise<ResourceLayer> {
+    async loadWorkspaceLayer(folderName: string, packLoader: PackMetadataLoader): Promise<ResourceLayer> {
       const packRef = await resolveWorkspaceFileUrl(`packs/${encodeURIComponent(folderName)}/pack.json`)
-      const packResult = await packLoader.load(packRef, {
+      const packResult = await packLoader.loadMetadata(packRef, {
         source: 'http',
-        continueOnError: true,
-        validateReferences: false,
         enforceLockfile: false,
+        includeData: false,
+        includeLocales: false,
       })
 
       if ((packResult.assetConflicts?.length ?? 0) > 0) {
@@ -382,7 +446,7 @@ export const useResourceStore = defineStore('Resource', {
         console.warn(`Pack lockfile issues detected in workspace pack ${folderName}`, packResult.lockfileIssues)
       }
 
-      return this.buildAssetLayer(packResult.assets ?? [])
+      return this.buildPresentationLayer(packResult.presentation ?? [])
     },
 
     rebuildFromWorkspaceLayers() {
@@ -406,72 +470,38 @@ export const useResourceStore = defineStore('Resource', {
       this.petSound = this.normalizeRecordData(layer.petSound)
     },
 
-    buildAssetLayer(manifests: AssetManifest[]): ResourceLayer {
+    buildPresentationLayer(manifests: PresentationManifest[]): ResourceLayer {
+      return this.buildResourceLayer(
+        presentationIndex(manifests),
+        manifests.flatMap(manifest => manifest.resources),
+      )
+    },
+
+    buildResourceLayer(
+      presentations: ReadonlyMap<string, ContentPresentation>,
+      resources: PresentationManifest['resources'],
+    ): ResourceLayer {
       const layer = createEmptyLayer()
-      const entries = manifests.flatMap(manifest => manifest.assets)
-      const entryById = new Map(entries.map(entry => [entry.id, entry]))
-
-      for (const manifest of manifests) {
-        const speciesMap = manifest.mappings?.species ?? {}
-        for (const [speciesId, assetId] of Object.entries(speciesMap)) {
-          const entry = entryById.get(assetId)
-          if (!entry) continue
-          if (entry.type === 'petSwf') {
-            layer.petSwf[speciesId] = entry.uri
-          }
-        }
-
-        const markMap = manifest.mappings?.marks ?? {}
-        for (const [markId, assetId] of Object.entries(markMap)) {
-          const entry = entryById.get(assetId)
-          if (!entry) continue
-          if (entry.type === 'markIcon') {
-            layer.markImage[markId] = entry.uri
-          }
-        }
-
-        const skillMap = manifest.mappings?.skills ?? {}
-        for (const [skillId, assetId] of Object.entries(skillMap)) {
-          const entry = entryById.get(assetId)
-          if (!entry) continue
-          if (entry.type === 'skillSfx') {
-            layer.skillSound[skillId] = entry.uri
-          }
-        }
+      for (const [key, presentation] of presentations) {
+        const separator = key.indexOf(':')
+        const kind = key.slice(0, separator),
+          id = key.slice(separator + 1)
+        if (kind === 'species') {
+          if (presentation.battle?.renderer === 'seer2-swf') layer.petSwf[id] = String(presentation.battle.source)
+          if (presentation.cry) layer.petSound[id] = String(presentation.cry)
+        } else if (kind === 'marks' && presentation.icon) layer.markImage[id] = String(presentation.icon)
+        else if (kind === 'skills' && presentation.sfx) layer.skillSound[id] = String(presentation.sfx)
       }
-
-      for (const entry of entries) {
-        if (entry.type === 'petSwf' && !layer.petSwf[entry.id]) {
-          layer.petSwf[entry.id] = entry.uri
-        }
-        if (entry.type === 'petSfx') {
-          const byPrefix = /^petSound:num:(\d+)$/.exec(entry.id)
-          if (byPrefix?.[1]) {
-            layer.petSound[byPrefix[1]] = entry.uri
-          } else if (/^\d+$/.test(entry.id)) {
-            layer.petSound[entry.id] = entry.uri
-          }
-        }
-        if (entry.type === 'markIcon' && !layer.markImage[entry.id]) {
-          layer.markImage[entry.id] = entry.uri
-        }
-        if (entry.type === 'skillSfx' && !layer.skillSound[entry.id]) {
-          layer.skillSound[entry.id] = entry.uri
-        }
-        if (entry.type === 'uiImage' && !layer.background[entry.id]) {
-          layer.background[entry.id] = entry.uri
-        }
-        if (entry.type === 'bgm' && !layer.music[entry.id]) {
-          layer.music[entry.id] = entry.uri
-        }
+      for (const resource of resources) {
+        if (resource.tags?.includes('background')) layer.background[resource.id] = resource.source
+        if (resource.tags?.includes('music')) layer.music[resource.id] = resource.source
       }
-
       return layer
     },
 
-    normalizeRecordData<T>(item: Record<string, T>) {
+    normalizeRecordData(item: Record<string, string>) {
       return {
-        byId: item,
+        byId: Object.fromEntries(Object.entries(item).map(([id, url]) => [id, officialAssetUrl(url)])),
         allIds: Object.keys(item),
       }
     },
@@ -491,52 +521,6 @@ export const useResourceStore = defineStore('Resource', {
       validate(this.skillSound, '技能音效')
       validate(this.petSwf, '精灵动画')
       validate(this.petSound, '精灵音效')
-    },
-
-    toStringRecord(input: unknown): Record<string, string> {
-      if (!input || typeof input !== 'object' || Array.isArray(input)) {
-        return {}
-      }
-
-      const output: Record<string, string> = {}
-      for (const [key, value] of Object.entries(input)) {
-        if (typeof value === 'string') {
-          output[key] = value
-        }
-      }
-      return output
-    },
-
-    async loadMarkImage(loader: GameDataLoader): Promise<MarkImageSchemaType> {
-      const data = await loader.load<MarkImageSchemaType>('mark_image')
-      return data
-    },
-
-    async loadBackGround(loader: GameDataLoader): Promise<Record<string, string>> {
-      const data = await loader.load<Record<string, string>>('background')
-      return data
-    },
-
-    async loadMusic(loader: GameDataLoader): Promise<Record<string, string>> {
-      const data = await loader.load<Record<string, string>>('music')
-      return data
-    },
-
-    async loadSkillSound(loader: GameDataLoader): Promise<Record<string, string>> {
-      const data = await loader.load<Record<string, string>>('skill_sound')
-      return data
-    },
-
-    async loadPetSwf(loader: GameDataLoader): Promise<Record<string, string>> {
-      try {
-        const data = await loader.load<Record<string, string>>('pet_swf')
-        if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-          return data
-        }
-        return {}
-      } catch {
-        return {}
-      }
     },
   },
 })

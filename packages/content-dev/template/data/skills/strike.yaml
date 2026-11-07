@@ -1,0 +1,14 @@
+# Skill behavior; presentation lives in data/presentations.
+id: strike
+element: Normal
+category: Physical
+power: 40
+rage: 0
+accuracy: 100
+behaviors:
+  - useId: slow
+    definitionId:
+      $ref:
+        projectId: example-content-pack
+        kind: behavior
+        id: apply-slow

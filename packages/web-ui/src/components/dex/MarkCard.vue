@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import ResourceImage from '@/components/ResourceImage.vue'
+import { resolveMarkIconUrl } from '@/utils/resourceResolver'
+import ContentDescription from '@/components/ContentDescription'
 import { computed } from 'vue'
 import { useResourceStore } from '@/stores/resource'
 import { useGameDataStore } from '@/stores/gameData'
@@ -59,7 +62,7 @@ const markDescription = computed(() => {
 // 获取印记图片
 const markImage = computed(() => {
   try {
-    return resourceStore.markImage.byId[props.markId] || null
+    return resolveMarkIconUrl(mark.value, resourceStore.getMarkImage) || null
   } catch {
     return null
   }
@@ -120,7 +123,13 @@ function handleClick() {
         class="flex-shrink-0 bg-slate-600/50 rounded-lg flex items-center justify-center overflow-hidden"
         :class="compact ? 'w-10 h-10' : 'w-12 h-12'"
       >
-        <img v-if="markImage" :src="markImage" :alt="markName" class="w-full h-full object-contain" />
+        <ResourceImage
+          v-if="markImage"
+          :uncached="!!mark?.presentation?.icon"
+          :src="markImage"
+          :alt="markName"
+          class="w-full h-full object-contain"
+        />
         <ShieldCheckIcon v-else class="text-purple-400" :class="compact ? 'w-6 h-6' : 'w-8 h-8'" />
       </div>
 
@@ -139,9 +148,14 @@ function handleClick() {
     </div>
 
     <!-- 印记描述 (非紧凑模式) -->
-    <div v-if="!compact && markDescription" class="text-xs text-gray-300 mb-3 line-clamp-2 leading-relaxed">
-      {{ markDescription }}
-    </div>
+    <ContentDescription
+      v-if="!compact && markDescription"
+      namespace="mark"
+      :content-id="markId"
+      :fallback="markDescription"
+      :context="{ mark }"
+      class="text-xs text-gray-300 mb-3 line-clamp-2 leading-relaxed"
+    />
 
     <!-- 关联信息 -->
     <div v-if="relation && showRelationType" class="space-y-2">

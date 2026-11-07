@@ -1,0 +1,317 @@
+name: Battle regression baseline
+
+on:
+  pull_request:
+    branches: [refactor/v4, main]
+  push:
+    branches: [refactor/v4]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: battle-regression-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      headless: ${{ steps.scope.outputs.headless }}
+      server: ${{ steps.scope.outputs.server }}
+      browser: ${{ steps.scope.outputs.browser }}
+      cli: ${{ steps.scope.outputs.cli }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check battle CI path selection
+        run: node --test scripts/battle-ci-scope.test.mjs
+      - name: Select affected battle checks
+        id: scope
+        run: node scripts/battle-ci-scope.mjs
+
+  # Keep these checks present on every PR; workflow-level paths can leave required checks pending.
+  # If scope detection fails, run all jobs so a filtering error cannot remove test coverage.
+  headless-battle:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.headless == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build battle dependency graph
+        run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/pack-loader... run build
+      - name: Lint
+        run: pnpm lint
+      - name: Verify trusted capability build identities
+        run: node --test scripts/build-environment.test.mjs
+      - name: Typecheck and lint original V1 port tests and adapters
+        run: |
+          pnpm typecheck:battle-v4
+          pnpm lint:battle-v4
+      - name: Run real original V1 battles and mechanism regressions
+        run: pnpm test:battle-v4
+      - name: Build and execute original V1 in Node and Chrome
+        run: pnpm verify:battle-v4-hosts
+      - name: Verify waiting checkpoints in Node and Chrome
+        run: pnpm verify:battle-v4-waiting-snapshots
+      - name: Verify independent behavior uses in Node and Chrome
+        run: pnpm verify:battle-v4-behaviors
+      - name: Verify native templates across hosts
+        run: pnpm verify:battle-v4-templates
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-v1-host-evidence
+          path: packages/battle/dist/v1-host-check/
+          if-no-files-found: ignore
+
+  native-server-entry:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.server == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      TEST_DATABASE_URL: postgres://arcadia_test:arcadia_test@localhost:5432/arcadia_test
+      TEST_BACKUP_DATABASE_URL: postgres://arcadia_test:arcadia_test@localhost:5432/arcadia_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: arcadia_test
+          POSTGRES_PASSWORD: arcadia_test
+          POSTGRES_DB: arcadia_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U arcadia_test -d arcadia_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build SQLite native driver for Node 24
+        run: npm rebuild better-sqlite3 --ignore-scripts=false
+        working-directory: packages/database
+      - name: Build server, console and native runtime dependencies
+        run: pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/console... --filter @arcadia-eternity/p2p-transport... run build
+      - name: Verify native metadata and converted JSON locale loading
+        run: pnpm --filter @arcadia-eternity/pack-loader exec vitest run test/native-loader.test.ts --maxWorkers=1
+      - name: Check native server source and test types
+        run: |
+          pnpm typecheck:server-native
+          pnpm lint:server-native
+      - name: Verify identical SQLite and PostgreSQL persistence contracts
+        run: pnpm --filter @arcadia-eternity/database test:run
+      - name: Verify native construction, recovery, management and disconnect handling
+        run: pnpm test:server-native
+      - name: Verify native content and bootstrap in Node and Chrome
+        run: pnpm verify:battle-v4-native-pack
+      - name: Check CLI types and native local execution
+        run: |
+          pnpm typecheck
+          pnpm exec eslint bin/cli.ts bin/native-local-battle.ts
+          pnpm test:cli-native
+          pnpm build:cli
+          pnpm exec vitest run bin/__tests__/server-*.test.ts --maxWorkers=1
+
+  native-browser-entry:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.browser == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build SQLite native driver for the online test server
+        run: npm rebuild better-sqlite3 --ignore-scripts=false
+        working-directory: packages/database
+      - name: Build browser dependencies
+        run: pnpm --filter '@arcadia-eternity/web-ui^...' --filter '@arcadia-eternity/server...' run build
+      - name: Verify content locale syntax and real description rendering
+        run: pnpm --filter @arcadia-eternity/web-ui run test:content-locales
+      - name: Build browser application and generate auto-import lint globals
+        run: pnpm --filter @arcadia-eternity/web-ui run build-only
+      - name: Check native browser construction and transport types
+        run: |
+          pnpm typecheck:web-native
+          pnpm lint:web-native
+      - name: Verify shared native factory and actual P2P messages
+        run: pnpm test:web-native
+      - name: Verify server account client and recovery flows
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverSession.test.ts --maxWorkers=1
+      - name: Verify shared management transport, target isolation and environment controls
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/managementClient.test.ts src/features/management/__tests__ --maxWorkers=1
+      - name: Verify server content environments in the browser client
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverEnvironment.test.ts src/stores/__tests__/privateRoomEnvironment.test.ts src/stores/__tests__/authServerSwitch.test.ts src/stores/__tests__/battleClientSwitch.test.ts src/stores/__tests__/gameData.native.test.ts src/pages/__tests__/lobbyEnvironment.test.ts --maxWorkers=1
+      - name: Verify personal materials and resource lifetime through leave transitions
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/personalEnvironment.test.ts src/services/__tests__/resourceTransport.test.ts src/composition/__tests__/useUncachedResource.test.ts --maxWorkers=1
+      - name: Verify deployment connection defaults and user preferences
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/bootstrap/__tests__/deployment.test.ts src/stores/__tests__/connectionSettings.test.ts --maxWorkers=1
+      - name: Verify local development workspace editing
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/developmentWorkspace.test.ts src/features/development/__tests__/DevelopmentWorkspacePage.test.ts --maxWorkers=1
+      - name: Verify candidate preview transport and failed handoff cleanup
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/authorPreview.test.ts src/features/authoring/__tests__/AuthorPreviewPage.test.ts --maxWorkers=1
+      - name: Verify desktop local host lifecycle
+        run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-environments.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
+      - name: Install browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+      - name: Verify native local page, selected teams and cold startup
+        run: pnpm test:web-native:e2e
+      - name: Verify content descriptions and connection policy in a real browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-presentation.spec.ts e2e/connection-policy.spec.ts
+      - name: Verify ordinary matchmaking and authoritative friend rooms
+        run: PLAYWRIGHT_ONLINE=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/matchmaking-online.spec.ts e2e/server-room-online.spec.ts
+      - uses: actions/cache@v4
+        with:
+          path: packages/web-ui/.static-assets-cache
+          key: static-assets-${{ hashFiles('packs/base/data/resources/**', 'scripts/prepare-static-assets.mjs') }}
+      - name: Verify offline startup and official assets
+        run: |
+          node --test scripts/prepare-static-assets.test.mjs
+          node --test packages/web-ui/scripts/build-offline.test.mjs
+          pnpm --filter @arcadia-eternity/web-ui exec vitest run src/stores/__tests__/playerIdentity.test.ts src/stores/__tests__/offlineStorage.test.ts src/app/__tests__/bootstrap.test.ts src/app/__tests__/onlineSession.test.ts src/bootstrap/__tests__/ruffle.test.ts src/utils/__tests__/officialAssetUrl.test.ts src/components/__tests__/PetIcon.test.ts src/composition/__tests__/sound.test.ts --maxWorkers=1
+      - name: Build self-contained static application
+        run: pnpm --filter @arcadia-eternity/web-ui run build:static-only
+      - name: Verify production battles, offline reload and storage failures
+        run: pnpm --filter @arcadia-eternity/web-ui run test:e2e:static
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static-web-evidence
+          path: packages/web-ui/test-results/
+          if-no-files-found: ignore
+
+  management-browser-acceptance:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.browser == 'true' || needs.changes.outputs.server == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PLAYWRIGHT_PERSONAL_ENVIRONMENT: '1'
+      PLAYWRIGHT_MANAGEMENT_BACKUP: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build SQLite native driver for the production host
+        run: npm rebuild better-sqlite3 --ignore-scripts=false
+        working-directory: packages/database
+      - name: Build production CLI and paired website
+        id: production_build
+        run: pnpm build:prod
+      - name: Install acceptance browser
+        id: browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+      - name: Verify personal environment consent, battle and rematch
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/personal-environment-report.json
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.personal-environment.config.ts --forbid-only --retries=0 --reporter=line,json
+      - name: Verify management credentials, backup and restart
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && steps.browser.outcome == 'success' }}
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/management-backup-report.json
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.management-backup.config.ts --forbid-only --retries=0 --reporter=line,json
+      - name: Require executed acceptance tests without skips
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && steps.browser.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import { readFileSync } from 'node:fs'
+          for (const name of ['personal-environment', 'management-backup']) {
+            const report = JSON.parse(readFileSync(`packages/web-ui/test-results/${name}-report.json`, 'utf8'))
+            assert.ok(report.stats.expected > 0, `${name}: no acceptance test passed`)
+            assert.equal(report.stats.skipped, 0, `${name}: acceptance tests were skipped`)
+            assert.equal(report.stats.unexpected, 0, `${name}: acceptance tests failed`)
+            assert.equal(report.stats.flaky, 0, `${name}: acceptance tests were flaky`)
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: management-browser-acceptance-evidence
+          path: packages/web-ui/test-results/
+          retention-days: 14
+          if-no-files-found: warn
+
+  offline-cli:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
+    runs-on: ubuntu-latest
+    # Relocated CLI/replay alone takes about 7m on CI; loader and author-tool suites follow.
+    timeout-minutes: 20
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build offline dependency graph
+        run: pnpm --filter '@arcadia-eternity/cli^...' --filter @arcadia-eternity/content-dev... run build
+      - name: Check CLI types
+        run: pnpm typecheck:cli
+      - name: Run relocated offline CLI and lifecycle regressions
+        run: pnpm test:cli
+      - name: Verify standard npm artifacts, admission and content environments
+        run: pnpm --filter @arcadia-eternity/pack-loader test:run
+      - name: Verify shared content-pack development tooling
+        run: |
+          pnpm test:content-dev
+          node --test scripts/stage-author-sdk.test.mjs

@@ -1,3 +1,4 @@
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { Howl } from 'howler'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
@@ -12,17 +13,17 @@ export function useMusic(autoPlay: boolean = true) {
   const musicSrc = computed(() => {
     if (gameSettingStore.battleMusic === 'random') {
       if (resourceStore.music.allIds.length === 0) {
-        return 'https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3'
+        return officialAssetUrl('https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3')
       }
       return (
         resourceStore.getMusic(
           resourceStore.music.allIds[Math.floor(Math.random() * resourceStore.music.allIds.length)],
-        ) ?? 'https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3'
+        ) ?? officialAssetUrl('https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3')
       )
     }
     return (
       resourceStore.getMusic(gameSettingStore.battleMusic) ??
-      'https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3'
+      officialAssetUrl('https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3')
     )
   })
 

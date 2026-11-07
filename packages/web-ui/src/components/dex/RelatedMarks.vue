@@ -21,7 +21,11 @@ const gameDataStore = useGameDataStore()
 
 // 创建关联服务实例
 const relationService = computed(() => {
-  return new SkillMarkRelationService(gameDataStore.skills.byId, gameDataStore.marks.byId, gameDataStore.effects.byId)
+  return new SkillMarkRelationService(
+    gameDataStore.skills.byId,
+    gameDataStore.marks.byId,
+    gameDataStore.effectMarkRelations,
+  )
 })
 
 // 分析技能印记关联

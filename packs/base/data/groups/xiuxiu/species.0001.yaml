@@ -1,0 +1,159 @@
+- id: pet_xiuxiu
+  num: 4
+  element: Fire
+  baseStats:
+    hp: 79
+    atk: 130
+    spa: 112
+    def: 111
+    spd: 110
+    spe: 120
+  genderRatio:
+    - 0
+    - 1
+  heightRange:
+    - 35
+    - 40
+  weightRange:
+    - 8
+    - 13
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 5
+      hidden: false
+    - skill_id: skill_qili
+      level: 10
+      hidden: false
+    - skill_id: skill_fenlitupo
+      level: 15
+      hidden: false
+  ability:
+    - mark_ability_yanhuo
+  emblem:
+    - mark_emblem_nuhuo
+- id: pet_xiuyier
+  num: 5
+  element: Fire
+  baseStats:
+    hp: 119
+    atk: 160
+    spa: 137
+    def: 136
+    spd: 135
+    spe: 140
+  genderRatio:
+    - 0
+    - 1
+  heightRange:
+    - 54
+    - 59
+  weightRange:
+    - 20
+    - 25
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 5
+      hidden: false
+    - skill_id: skill_qili
+      level: 10
+      hidden: false
+    - skill_id: skill_fenlitupo
+      level: 15
+      hidden: false
+    - skill_id: skill_tahuochongzhuang
+      level: 20
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 25
+      hidden: false
+    - skill_id: skill_yanggong
+      level: 30
+      hidden: false
+    - skill_id: skill_jizhong
+      level: 35
+      hidden: false
+  ability:
+    - mark_ability_yanhuo
+  emblem:
+    - mark_emblem_nuhuo
+- id: pet_xiuluosi
+  num: 6
+  element: Fire
+  baseStats:
+    hp: 179
+    atk: 190
+    spa: 162
+    def: 161
+    spd: 160
+    spe: 170
+  genderRatio:
+    - 0
+    - 1
+  heightRange:
+    - 72
+    - 77
+  weightRange:
+    - 34
+    - 39
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_huoyan
+      level: 5
+      hidden: false
+    - skill_id: skill_qili
+      level: 10
+      hidden: false
+    - skill_id: skill_fenlitupo
+      level: 15
+      hidden: false
+    - skill_id: skill_tahuochongzhuang
+      level: 20
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 25
+      hidden: false
+    - skill_id: skill_yanggong
+      level: 30
+      hidden: false
+    - skill_id: skill_jizhong
+      level: 35
+      hidden: false
+    - skill_id: skill_huohai
+      level: 40
+      hidden: false
+    - skill_id: skill_nuhuomenggong
+      level: 45
+      hidden: false
+    - skill_id: skill_shixue
+      level: 50
+      hidden: false
+    - skill_id: skill_lieyanjuexiji
+      level: 55
+      hidden: false
+    - skill_id: skill_liehuofentianshao
+      level: 60
+      hidden: false
+    - skill_id: skill_yanzhiyizhi
+      level: 60
+      hidden: true
+    - skill_id: skill_juechufengsheng
+      level: 60
+      hidden: true
+    - skill_id: skill_bumiezhixin
+      level: 60
+      hidden: true
+    - skill_id: skill_dixiulazhinu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_yanhuo
+  emblem:
+    - mark_emblem_nuhuo

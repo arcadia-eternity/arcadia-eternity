@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { Element } from '@arcadia-eternity/const'
 import { computed } from 'vue'
 
@@ -35,7 +36,7 @@ const elementIndexMap: Record<Element, number> = {
 
 const iconUrl = computed(() => {
   const index = elementIndexMap[props.element]
-  return `https://seer2-resource.yuuinih.com/png/petElementIcon/${index}.png`
+  return officialAssetUrl(`https://seer2-resource.yuuinih.com/png/petElementIcon/${index}.png`)
 })
 
 const iconSizeStyle = computed(() => {

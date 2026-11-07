@@ -369,3 +369,24 @@
   tags: [ability]
   effect:
     - effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen
+- id: mark_ability_shensheng
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_palading_shensheng_immune_crit
+- id: mark_ability_yinji
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_kadundudu_yinji_damage_10_percent
+- id: mark_ability_houjin
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_bingchuantun_ability_houjin_damage

@@ -1,7 +1,7 @@
 {
   "name": "@arcadia-eternity/database",
   "version": "1.0.0",
-  "description": "Database layer for Arcadia Eternity battle reports",
+  "description": "Server-owned SQLite and PostgreSQL persistence",
   "private": true,
   "type": "module",
   "repository": {
@@ -17,25 +17,27 @@
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "pnpm exec tsgo --emitDeclarationOnly"
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "test:run": "vitest run --maxWorkers=1"
   },
   "keywords": [
     "database",
-    "supabase",
-    "battle-reports"
+    "sqlite",
+    "postgresql"
   ],
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/const": "workspace:^",
-    "@supabase/supabase-js": "^2.99.1",
-    "inversify": "^8.1.0",
-    "nanoid": "catalog:",
-    "reflect-metadata": "^0.2.2"
+    "kysely": "^0.28.8",
+    "better-sqlite3": "^12.4.1",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "tslib": "^2.8.1",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/pg": "^8.23.1",
+    "vitest": "catalog:"
   }
 }

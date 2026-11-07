@@ -41,7 +41,9 @@
             @click="togglePetSelection(pet.id)"
           >
             <PetIcon
+              :uncached="!!gameDataStore.serverFallback"
               :id="getPetSpeciesID(pet)"
+              :species="gameDataStore.getSpecies(pet.speciesID)"
               :isUnknown="pet.isUnknown || false"
               class="w-[60px] h-[60px] flex-shrink-0"
               :class="{ 'w-[50px] h-[50px]': isMobile }"
@@ -82,7 +84,9 @@
             :class="{ 'w-[100px] min-h-[120px] p-2': isMobile }"
           >
             <PetIcon
+              :uncached="!!gameDataStore.serverFallback"
               :id="getPetSpeciesID(pet)"
+              :species="gameDataStore.getSpecies(pet.speciesID)"
               :isUnknown="pet.isUnknown || false"
               class="w-[60px] h-[60px] flex-shrink-0"
               :class="{ 'w-[50px] h-[50px]': isMobile }"

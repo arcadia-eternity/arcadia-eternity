@@ -1,0 +1,70 @@
+- id: pet_chongyite
+  num: 99
+  element: Bug
+  baseStats:
+    hp: 180
+    atk: 167
+    def: 161
+    spa: 181
+    spd: 163
+    spe: 159
+  genderRatio: [5, 5]
+  heightRange: [62, 67]
+  weightRange: [25, 30]
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisu
+      level: 9
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 13
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 17
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 21
+      hidden: false
+    - skill_id: skill_heicilianji
+      level: 24
+      hidden: false
+    - skill_id: skill_xixuelianji
+      level: 29
+      hidden: false
+    - skill_id: skill_chongqunzhixin
+      level: 34
+      hidden: false
+    - skill_id: skill_fushilianji
+      level: 40
+      hidden: false
+    - skill_id: skill_chongqunzhen
+      level: 46
+      hidden: false
+    - skill_id: skill_dugulianji
+      level: 52
+      hidden: false
+    - skill_id: skill_yalianbengxici
+      level: 60
+      hidden: false
+    - skill_id: skill_chongzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_xueji
+      level: 60
+      hidden: true
+    - skill_id: skill_chongqundajun
+      level: 60
+      hidden: true
+    - skill_id: skill_miewangsanjiaozhen
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_lianxie
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_chongqun

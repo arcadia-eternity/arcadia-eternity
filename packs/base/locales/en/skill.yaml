@@ -1,0 +1,39 @@
+skill_bingzhui:
+  name: Ice Spike
+  description: Attack with <damage>{power}</damage> power and <strong>{accuracy}%</strong> accuracy.
+    <emphasis>5%</emphasis> chance to lower the target's Sp. Def by 1 stage.
+skill_hanbingjianren:
+  name: Frozen Tenacity
+  description: 'Gain <markName>Frozen Tenacity</markName>: physical damage taken is reduced by <shield>25%</shield> and
+    special damage taken by <shield>15%</shield>. Consumed by specific skills.'
+skill_dongqichongzhuang:
+  name: Chill Charge
+  description: Charge the target. On hit, consume <markName>Frozen Tenacity</markName> to inflict
+    <status>Frostbite</status>; Ice-type targets are immune.
+skill_bingyu:
+  name: Ice Rain
+  description: Call down ice rain. Power is doubled when moving last.
+skill_jisubingzhui:
+  name: Rapid Ice Spike
+  description: Consume <markName>Frozen Tenacity</markName> to give this skill +1 priority.
+skill_bingdongchongzhuang:
+  name: Freezing Charge
+  description: Charge the target. Power is doubled when moving last.
+skill_bingbao:
+  name: Hail
+  description: Consume <markName>Frozen Tenacity</markName> to add <damage>60</damage> power.
+skill_bingheshidai:
+  name: Ice Age
+  description: <guaranteedHit>Sure hit</guaranteedHit>. Unleash an ice age and gain <markName>Frozen Tenacity</markName>.
+skill_hanlengzhiqi:
+  name: Chill Breath
+  description: Release chilling air. Power is doubled while the target has <status>Frostbite</status>.
+skill_bingzhuiyu:
+  name: Ice Spike Rain
+  description: Call down a rain of ice spikes. Power is doubled when moving last.
+skill_binglengyiji:
+  name: Frigid Strike
+  description: Consume <markName>Frozen Tenacity</markName> to add <damage>60</damage> fixed damage.
+skill_binglengpifu:
+  name: Frigid Skin
+  description: Rely on frigid skin to gain <markName>Status Immunity</markName>.

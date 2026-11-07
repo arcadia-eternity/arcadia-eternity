@@ -1,14 +1,22 @@
 <script setup lang="ts">
+import { isRemoteContentActive } from '@/i18n/serverContent'
+import unknownPet from '@/assets/images/unknown-pet.svg'
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { ref, computed, watch, onMounted } from 'vue'
+import { useUncachedResource } from '@/composition/useUncachedResource'
+import type { SpeciesSchemaType } from '@arcadia-eternity/schema'
 
 const props = withDefaults(
   defineProps<{
-    id: number
+    id?: number
+    species?: Partial<SpeciesSchemaType>
+    uncached?: boolean
     reverse?: boolean
     isUnknown?: boolean
   }>(),
   {
     id: 999,
+    uncached: false,
     reverse: false,
     isUnknown: false,
   },
@@ -16,9 +24,19 @@ const props = withDefaults(
 
 const imageFailed = ref(false)
 
-const petIconUrl = computed(() => `https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`)
+const petIconUrl = computed(() =>
+  typeof props.species?.presentation?.icon === 'string'
+    ? officialAssetUrl(props.species.presentation.icon)
+    : isRemoteContentActive()
+      ? unknownPet
+      : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`),
+)
 
-const effectiveUrl = ref(petIconUrl.value)
+const { url: sourceUrl, error: sourceError } = useUncachedResource(
+  () => petIconUrl.value,
+  () => !props.isUnknown && (props.uncached || typeof props.species?.presentation?.icon === 'string'),
+)
+const effectiveUrl = ref(sourceUrl.value)
 
 function checkImage() {
   // 如果明确标记为未知，直接使用未知图标
@@ -28,18 +46,28 @@ function checkImage() {
   }
 
   const img = new Image()
-  img.src = petIconUrl.value
+  const expected = sourceUrl.value
+  if (!expected) {
+    effectiveUrl.value = ''
+    return
+  }
+  img.src = expected
   img.onload = () => {
+    if (sourceUrl.value !== expected) return
     imageFailed.value = false
-    effectiveUrl.value = petIconUrl.value
+    effectiveUrl.value = expected
   }
   img.onerror = () => {
+    if (sourceUrl.value !== expected) return
     imageFailed.value = true
   }
 }
 
 onMounted(checkImage)
-watch(petIconUrl, checkImage)
+watch(sourceUrl, checkImage)
+watch(sourceError, error => {
+  if (error) imageFailed.value = true
+})
 watch(() => props.isUnknown, checkImage)
 </script>
 

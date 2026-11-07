@@ -94,6 +94,36 @@ describe('battle preparation', () => {
     }
   })
 
+  it('waits for shared startup resources past the usual battle preparation deadline', async () => {
+    vi.useFakeTimers()
+    try {
+      const preparation = useBattlePreparation()
+      const handshake = vi.fn(async () => {})
+      const loading = preparation.prepare([
+        {
+          id: 'resources',
+          label: '界面资源',
+          required: true,
+          timeoutMs: 60_000,
+          run: () => new Promise<void>(resolve => setTimeout(resolve, 42_000)),
+        },
+        { id: 'connection', label: '连接', required: true, run: handshake },
+      ])
+
+      await vi.advanceTimersByTimeAsync(12_000)
+      expect(preparation.tasks.value[0].state).toBe('loading')
+      expect(handshake).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(30_000)
+      await loading
+      expect(preparation.error.value).toBeNull()
+      expect(preparation.ready.value).toBe(true)
+      expect(handshake).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('bounds a hung resource and clears the deadline on success', async () => {
     vi.useFakeTimers()
     try {

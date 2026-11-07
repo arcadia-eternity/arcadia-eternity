@@ -2,13 +2,13 @@
 FROM node:24-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git && \
-    npm install -g pnpm@10
+RUN apk add --no-cache git python3 make g++ && \
+    npm install -g pnpm@11.21.0
 
 WORKDIR /app
 
 # Copy package files for dependency installation
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml .pnpmfile.cjs ./
 # Copy packages directory structure for package.json files
 COPY packages/ ./packages/
 COPY packs/ ./packs/
@@ -21,19 +21,24 @@ RUN pnpm config set store-dir /tmp/pnpm-store && \
 # Copy source code
 COPY . .
 
+ARG GITHUB_SHA=""
+ARG COMMIT_HASH=""
+ENV GITHUB_SHA=$GITHUB_SHA
+ENV COMMIT_HASH=$COMMIT_HASH
+
 # Build the application
 RUN pnpm run build:prod
 
 # Dependencies stage - install production dependencies
 FROM node:24-alpine AS deps
 
-RUN apk add --no-cache git && \
-    npm install -g pnpm@10
+RUN apk add --no-cache git python3 make g++ && \
+    npm install -g pnpm@11.21.0
 
 WORKDIR /app
 
 # Copy package files for production dependencies
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY packages/ ./packages/
 COPY packs/ ./packs/
 
@@ -41,6 +46,7 @@ COPY packs/ ./packs/
 # Use local store to avoid cache conflicts in parallel builds
 RUN pnpm config set store-dir /tmp/pnpm-store && \
     pnpm install --frozen-lockfile --prod --prefer-offline --ignore-scripts && \
+    cd packages/database && npm rebuild better-sqlite3 --ignore-scripts=false && cd /app && \
     pnpm store prune
 
 # Production stage
@@ -50,8 +56,8 @@ FROM node:24-alpine AS production
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S joseph -u 1001
 
-# Install minimal runtime dependencies
-RUN apk add --no-cache curl && \
+# Git-backed registered content sources are acquired by the server at runtime.
+RUN apk add --no-cache curl git && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
@@ -65,10 +71,9 @@ COPY --from=builder /app/packs ./packs
 
 # Copy built application and necessary files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/resource ./resource
 
 # Create scripts directory (application handles missing scripts gracefully)
-RUN mkdir -p ./scripts
+RUN mkdir -p ./scripts ./state
 
 # Copy package.json for runtime
 COPY package.json ./
@@ -86,41 +91,11 @@ ENV NODE_PATH=/app/node_modules:/app/packages
 
 # Server configuration environment variables
 ENV PORT=8102
-ENV CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+ENV ARCADIA_DATA_DIR=/app/state
+ENV CORS_ORIGIN=
 
-# Database configuration
-ENV SUPABASE_URL=""
-ENV SUPABASE_ANON_KEY=""
-ENV SUPABASE_SERVICE_KEY=""
-
-# Cluster configuration
-ENV CLUSTER_ENABLED=true
-ENV CLUSTER_INSTANCE_ID=""
-ENV CLUSTER_INSTANCE_HOST=""
-ENV CLUSTER_INSTANCE_REGION=""
-ENV CLUSTER_HEARTBEAT_INTERVAL=30000
-ENV CLUSTER_HEALTH_CHECK_INTERVAL=60000
-ENV CLUSTER_FAILOVER_TIMEOUT=120000
-
-# Redis configuration
-ENV REDIS_HOST=localhost
-ENV REDIS_PORT=6379
-ENV REDIS_PASSWORD=""
-ENV REDIS_DB=0
-ENV REDIS_KEY_PREFIX=arcadia:
-ENV REDIS_MAX_RETRIES=3
-ENV REDIS_RETRY_DELAY=100
-ENV REDIS_ENABLE_READY_CHECK=true
-ENV REDIS_LAZY_CONNECT=true
-
-# Email configuration
-ENV EMAIL_SMTP_HOST=""
-ENV EMAIL_SMTP_PORT=587
-ENV EMAIL_SMTP_SECURE=false
-ENV EMAIL_SMTP_USER=""
-ENV EMAIL_SMTP_PASS=""
-ENV EMAIL_FROM_ADDRESS="noreply@yuuinih.com"
-ENV EMAIL_FROM_NAME="Arcadia Eternity"
+# Keep this stable across deployments; bootId changes for each process.
+ENV SERVER_ID=arcadia
 
 # Health check using curl instead of wget
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
@@ -128,12 +103,5 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 
 EXPOSE 8102
 
-# Use a shell script to conditionally enable features based on environment variables
-# This allows the container to automatically enable features if configuration is provided
-CMD ["sh", "-c", "\
-    ARGS=\"--port $PORT\"; \
-    if [ -n \"$SUPABASE_URL\" ] && [ -n \"$SUPABASE_ANON_KEY\" ]; then \
-    ARGS=\"$ARGS --enable-battle-reports\"; \
-    fi; \
-    node dist/cli.js server $ARGS \
-    "]
+# Node receives SIGTERM directly; the server discards all rooms on shutdown.
+CMD ["node", "dist/cli.js", "server"]

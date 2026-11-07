@@ -1,275 +1,123 @@
 <template>
-  <div>
-    <!-- 连接状态指示器 -->
-    <transition name="connection-status" mode="out-in">
-      <div
-        v-if="showStatus && battleClientStore.initComplete"
-        :class="{ 'cursor-pointer': !isMobile || connectionState === 'disconnected' }"
-        @click="handleStatusClick"
-      >
-        <!-- 正常连接状态 -->
-        <el-tag
-          v-if="connectionState === 'connected'"
-          type="success"
-          effect="dark"
-          round
-          :class="['transition-all duration-300', !isMobile ? 'hover:scale-105 hover:shadow-lg cursor-pointer' : '']"
-        >
-          <span class="inline-flex items-center gap-1">
-            <el-icon :size="14" class="animate-pulse">
-              <Connection />
-            </el-icon>
-            已连接
-          </span>
-        </el-tag>
-
-        <!-- 连接中状态 -->
-        <el-tag
-          v-else-if="connectionState === 'connecting' || isServerWaking"
-          type="warning"
-          effect="dark"
-          round
-          class="transition-all duration-300"
-        >
-          <span class="inline-flex items-center gap-1">
-            <el-icon :size="14" class="animate-spin">
-              <Loading />
-            </el-icon>
-            {{ isServerWaking ? '唤醒中...' : '连接中...' }}
-          </span>
-        </el-tag>
-
-        <!-- 断线状态 -->
-        <el-tag
-          v-else
-          type="danger"
-          effect="dark"
-          round
-          class="transition-all duration-300 hover:scale-105 cursor-pointer animate-pulse"
-          @click="handleReconnect"
-        >
-          <span class="inline-flex items-center gap-1">
-            <el-icon :size="14">
-              <Refresh />
-            </el-icon>
-            已断开
-          </span>
-        </el-tag>
+  <div class="connection-status">
+    <el-button
+      class="connection-trigger"
+      :title="statusDetail"
+      :aria-label="statusDetail + '，连接设置'"
+      size="small"
+      :type="battleClientStore.isConnected ? 'success' : 'default'"
+      @click="showDialog = true"
+    >
+      <span class="connection-label">{{ statusText }}</span>
+    </el-button>
+    <!-- The navigation's backdrop filter contains fixed-position descendants. -->
+    <el-dialog v-model="showDialog" title="服务器连接" width="min(440px, 94vw)" append-to-body>
+      <div class="space-y-4">
+        <p role="status">{{ statusDetail }}</p>
+        <p v-if="!battleClientStore.isConnected" class="text-sm break-all">
+          准备连接：{{ battleClientStore.serverUrl }}
+        </p>
+        <p v-if="settings.isLocalMode" class="text-sm text-gray-500">
+          本地模式不会自动连接服务器。需要联机时，请打开服务器页面选择连接或开服。
+        </p>
+        <template v-else>
+          <el-switch v-model="settings.autoConnect" active-text="进入联机页面时自动连接" />
+          <p class="text-sm text-gray-500">设置会保存在此浏览器。关闭后仍可手动连接，不会断开已有连接。</p>
+        </template>
+        <p v-if="error || battleClientStore.connectionError" role="alert" class="text-sm text-red-600">
+          {{ error || battleClientStore.connectionError }}
+        </p>
+        <p v-if="battleClientStore.isConnected" class="text-sm">
+          在线玩家：{{ serverStateStore.serverState.onlinePlayers }} · 房间：{{ serverStateStore.serverState.rooms }}
+        </p>
       </div>
-    </transition>
-
-    <!-- 连接详情对话框 -->
-    <el-dialog v-model="showReconnectDialog" title="连接详情" width="400px" center>
-      <div class="text-center space-y-4">
-        <div class="flex justify-center">
-          <el-icon :size="48" :class="dialogIconClass">
-            <component :is="dialogIcon" />
-          </el-icon>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-semibold mb-2">连接正常</h3>
-          <p class="text-gray-600">{{ dialogMessage }}</p>
-        </div>
-
-        <!-- 连接详情 -->
-        <div v-if="showConnectionDetails" class="bg-gray-50 p-3 rounded-lg text-sm">
-          <div class="space-y-1">
-            <div class="flex justify-between">
-              <span>连接状态:</span>
-              <span :class="connectionStateClass">{{ connectionStateText }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span>在线玩家:</span>
-              <span>{{ serverState.onlinePlayers }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span>匹配队列:</span>
-              <span>{{ serverState.matchmakingQueue }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <template #footer>
-        <div class="flex justify-center">
-          <el-button @click="showReconnectDialog = false"> 关闭 </el-button>
-        </div>
+        <RouterLink to="/servers" class="mr-4 text-blue-600" @click="showDialog = false">查看与管理服务器</RouterLink>
+        <el-button @click="showDialog = false">关闭</el-button>
+        <el-button
+          v-if="!battleClientStore.isConnected"
+          type="primary"
+          :loading="busy"
+          :disabled="busy || !battleClientStore.initComplete"
+          @click="connect"
+          >{{ error || battleClientStore.connectionError ? '重试连接' : '连接服务器' }}</el-button
+        >
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Connection, Refresh, Loading, SuccessFilled } from '@element-plus/icons-vue'
-import { useMobile } from '@/composition/useMobile'
+import { computed, ref } from 'vue'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { useServerStateStore } from '@/stores/serverState'
+import { connectionPresentation } from '@/services/connectionPresentation'
+import { useLocalServerStore } from '@/stores/localServer'
+import { useConnectionSettingsStore } from '@/stores/connectionSettings'
 
 const battleClientStore = useBattleClientStore()
 const serverStateStore = useServerStateStore()
-
-// 移动端检测
-const { isMobile } = useMobile()
-
-// 响应式状态
-const showStatus = ref(true)
-const showReconnectDialog = ref(false)
-const isReconnecting = ref(false)
-const showConnectionDetails = ref(false)
-
-// 计算属性
-const connectionState = computed(() => {
-  return battleClientStore.currentState.status
+const settings = useConnectionSettingsStore()
+const local = useLocalServerStore()
+const connection = computed(() =>
+  connectionPresentation({
+    connected: battleClientStore.isConnected,
+    endpoint: battleClientStore.serverUrl,
+    pageOrigin: window.location.origin,
+    localEndpoint: local.snapshot.host.status === 'running' ? local.snapshot.host.url : undefined,
+  }),
+)
+const showDialog = ref(false)
+const pending = ref(false)
+const error = ref('')
+const busy = computed(
+  () =>
+    pending.value ||
+    battleClientStore.isConnecting ||
+    battleClientStore.isServerWaking ||
+    battleClientStore.currentState.status === 'connecting',
+)
+const statusText = computed(() => {
+  if (!battleClientStore.initComplete) return '初始化中'
+  if (battleClientStore.isConnected) return connection.value.label
+  if (busy.value) return battleClientStore.isServerWaking ? '正在唤醒服务器…' : '正在连接…'
+  return '离线'
 })
-
-const serverState = computed(() => {
-  return serverStateStore.serverState
-})
-
-const isServerWaking = computed(() => {
-  return battleClientStore.isServerWaking
-})
-
-const connectionStateText = computed(() => {
-  switch (connectionState.value) {
-    case 'connected':
-      return '已连接'
-    case 'connecting':
-      return '连接中'
-    case 'disconnected':
-    default:
-      return '已断开'
-  }
-})
-
-const connectionStateClass = computed(() => {
-  switch (connectionState.value) {
-    case 'connected':
-      return 'text-green-600 font-medium'
-    case 'connecting':
-      return 'text-yellow-600 font-medium'
-    case 'disconnected':
-    default:
-      return 'text-red-600 font-medium'
-  }
-})
-
-const dialogMessage = computed(() => {
-  return '与服务器连接正常，所有功能可用。如需重连，请点击右下角的连接状态指示器。'
-})
-
-const dialogIcon = computed(() => {
-  return SuccessFilled
-})
-
-const dialogIconClass = computed(() => {
-  return 'text-green-500'
-})
-
-// 方法
-const handleStatusClick = () => {
-  console.log('连接状态被点击:', connectionState.value, '移动端:', isMobile.value)
-
-  if (connectionState.value === 'disconnected') {
-    // 断线状态直接重连
-    handleReconnect()
-  } else if (connectionState.value === 'connected' && !isMobile.value) {
-    // 已连接状态在桌面端显示详情对话框，移动端不响应
-    showReconnectDialog.value = true
-    showConnectionDetails.value = true
-  }
-  // 连接中状态不做任何操作
-  // 移动端连接正常时不做任何操作
-}
-
-const handleReconnect = async () => {
-  if (isReconnecting.value) return
-  if (!battleClientStore.isInitialized) {
-    ElMessage.info('客户端仍在初始化，请稍后再试')
-    return
-  }
-
-  isReconnecting.value = true
-
+const statusDetail = computed(() =>
+  !battleClientStore.initComplete
+    ? '初始化中'
+    : busy.value
+      ? `${statusText.value} ${battleClientStore.serverUrl}`
+      : connection.value.detail,
+)
+async function connect() {
+  if (busy.value || !battleClientStore.initComplete) return
+  pending.value = true
+  error.value = ''
   try {
     await battleClientStore.connect()
-    ElMessage.success('重连成功')
-    showReconnectDialog.value = false
-  } catch (error: unknown) {
-    console.error('重连失败:', String(error))
-    ElMessage.error(
-      (error instanceof Error ? error.message : undefined) ||
-        battleClientStore.serverWarmupHint ||
-        '重连失败，请稍后再试',
-    )
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '连接失败，请重试'
   } finally {
-    isReconnecting.value = false
+    pending.value = false
   }
 }
-
-// 监听连接状态变化
-watch(connectionState, (newState, oldState) => {
-  if (!battleClientStore.initComplete) return
-  console.log('连接状态变化:', oldState, '->', newState)
-
-  // 从断开状态恢复连接时显示成功消息
-  if (oldState === 'disconnected' && newState === 'connected') {
-    ElMessage.success('连接已恢复')
-    if (showReconnectDialog.value) {
-      showReconnectDialog.value = false
-    }
-  }
-
-  // 连接断开时显示警告
-  if (oldState === 'connected' && newState === 'disconnected') {
-    ElMessage.warning('连接已断开')
-  }
-
-  // 连接超时时显示提示
-  if (oldState === 'connecting' && newState === 'disconnected') {
-    if (battleClientStore.isServerWaking) {
-      ElMessage.info(battleClientStore.serverWarmupHint || '服务器唤醒中，请稍候')
-    } else {
-      ElMessage.error('连接超时，请检查网络连接')
-    }
-  }
-})
 </script>
 
 <style scoped>
-/* 连接状态过渡动画 */
-.connection-status-enter-active,
-.connection-status-leave-active {
-  transition: all 0.3s ease;
+.connection-status {
+  min-width: 0;
 }
-
-.connection-status-enter-from {
-  opacity: 0;
-  transform: translateY(10px) scale(0.9);
+.connection-label {
+  display: block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.connection-status-leave-to {
-  opacity: 0;
-  transform: translateY(-10px) scale(0.9);
-}
-
-/* 脉冲动画增强 */
-@keyframes enhanced-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
+@media (max-width: 767px) {
+  .connection-label {
+    max-width: 108px;
   }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
-}
-
-.animate-pulse {
-  animation: enhanced-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>

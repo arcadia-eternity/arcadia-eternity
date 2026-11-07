@@ -1,0 +1,197 @@
+{
+  "scenario": "real HTTPS reverse proxy, non-loopback upstream and paired management UI",
+  "startedAt": "2026-11-05T01:10:54.866Z",
+  "image": "sha256:daa6da7dad6a2ce655352bf7b70f2b6360ed509ab894028cc82a3cddb4d9f7f6",
+  "accountMode": "guest with an isolated host-issued owner code",
+  "checks": [
+    "Exact certificate and SAN validated over real TLS; upstream is a separate private bridge address",
+    "Trusted proxy without HTTPS assertion and untrusted peer spoofing HTTPS both rejected",
+    "Real paired UI consumed a one-use code; browser Secure/HttpOnly/Strict cookie survives refresh",
+    "UI management write persists on refresh; missing CSRF and wrong Origin cannot mutate it",
+    "UI online backup download over HTTPS contains stable identity/material references and excludes active secrets",
+    "Logout removes the cookie and revokes replay; proxy telemetry confirms all upstream connections are non-loopback"
+  ],
+  "negativeCases": {
+    "missingProxyHttpsHeader": {
+      "status": 403,
+      "code": "MANAGEMENT_TLS_REQUIRED"
+    },
+    "untrustedForwardedHeader": {
+      "status": 403,
+      "code": "MANAGEMENT_TLS_REQUIRED",
+      "addresses": ["172.18.0.4"]
+    },
+    "missingCsrf": {
+      "status": 403,
+      "code": "CSRF_REJECTED"
+    },
+    "wrongOrigin": {
+      "status": 403,
+      "code": "ORIGIN_FORBIDDEN"
+    }
+  },
+  "limitations": [
+    "Temporary test certificate; no public CA, DNS, external platform or public deployment acceptance.",
+    "SQLite transport integration only; existing PostgreSQL persistence evidence remains separate.",
+    "No WSS/battle, load/fault matrix, account provider or backup restore acceptance in this scenario."
+  ],
+  "passed": true,
+  "imageIdentity": {
+    "id": "sha256:daa6da7dad6a2ce655352bf7b70f2b6360ed509ab894028cc82a3cddb4d9f7f6",
+    "os": "linux",
+    "architecture": "arm64"
+  },
+  "sourceProof": {
+    "reference": ".omo/evidence/docker-management-followup.json",
+    "referenceSha256": "06f83a8bfd0d59de55134967cf3f9182e7160acce9cdfd00d6316d3f4438ce20",
+    "scope": "Exact immutable image matches the referenced Docker evidence; not relabelled as current checkout HEAD."
+  },
+  "certificate": {
+    "fingerprint256": "CB:C6:A6:34:0A:C4:23:F9:42:F3:BD:28:4A:96:FB:36:31:73:07:AC:8E:D2:90:30:9B:3B:25:78:CD:86:79:0E",
+    "subjectAltName": "DNS:localhost, IP Address:127.0.0.1",
+    "trust": "Node validates the exact local certificate and SAN; Chrome has only its SPKI exception in this run."
+  },
+  "transport": {
+    "origin": "https://127.0.0.1:64823",
+    "proxyAddress": "172.18.0.2",
+    "appAddress": "172.18.0.3",
+    "authorized": true,
+    "protocol": "TLSv1.3",
+    "fingerprint256": "CB:C6:A6:34:0A:C4:23:F9:42:F3:BD:28:4A:96:FB:36:31:73:07:AC:8E:D2:90:30:9B:3B:25:78:CD:86:79:0E"
+  },
+  "browserRuntime": {
+    "version": "157.0.8103.15",
+    "executablePath": "/private/tmp/arcadia-chrome-157-validation/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "channel": null
+  },
+  "browser": {
+    "errors": [],
+    "unexpectedResponses": [],
+    "requestFailures": [],
+    "expectedAuthenticationResponses": [
+      {
+        "phase": "anonymous",
+        "path": "/api/management/v1/session",
+        "status": 401
+      },
+      {
+        "phase": "anonymous",
+        "path": "/api/management/v1/operations",
+        "status": 401
+      },
+      {
+        "phase": "anonymous",
+        "path": "/api/management/v1/credentials",
+        "status": 401
+      },
+      {
+        "phase": "logout",
+        "path": "/api/management/v1/servers",
+        "status": 401
+      }
+    ],
+    "rawRequestFailureCount": 0,
+    "expectedNavigationCancellations": []
+  },
+  "identity": {
+    "serverId": "arcadia-https-bcc1cf72-29b-server",
+    "workspaceId": "d819bfb4-4e28-4d40-9599-e2690044bfe7"
+  },
+  "cookie": {
+    "name": "arcadia_management",
+    "domain": "127.0.0.1",
+    "path": "/api/management/v1",
+    "secure": true,
+    "httpOnly": true,
+    "sameSite": "Strict"
+  },
+  "managementWrite": {
+    "name": "HTTPS proxy acceptance",
+    "revision": 5,
+    "rejectedWritesPreservedRevision": true
+  },
+  "backup": {
+    "serverId": "arcadia-https-bcc1cf72-29b-server",
+    "workspaceId": "d819bfb4-4e28-4d40-9599-e2690044bfe7",
+    "servers": 1,
+    "environments": 1,
+    "versions": 1,
+    "accounts": 0,
+    "materialBytes": 237,
+    "sha256": "76abf93882a49213bd889360a72ff718366622a84a3a2cdf5c051d0633ccf83d",
+    "activeCredentialsExcluded": true
+  },
+  "logout": {
+    "browserStatus": 401,
+    "replayedSessionStatus": 401
+  },
+  "proxyObservations": {
+    "forwardedRequests": 831,
+    "peers": [
+      {
+        "localAddress": "172.18.0.2",
+        "remoteAddress": "172.18.0.3"
+      }
+    ],
+    "boundaryProbes": [
+      {
+        "path": "/api/management/v1/servers",
+        "method": "GET",
+        "startedAt": 1793841060387,
+        "forwardedProto": null,
+        "localAddress": "172.18.0.2",
+        "remoteAddress": "172.18.0.3",
+        "status": 403,
+        "upstreamEnded": true,
+        "upstreamComplete": true,
+        "downstreamFinished": true,
+        "downstreamClosedAt": 1793841060389,
+        "downstreamFinishedAtClose": true
+      },
+      {
+        "path": "/api/management/v1/session/bootstrap",
+        "method": "POST",
+        "startedAt": 1793841065859,
+        "forwardedProto": "https",
+        "localAddress": "172.18.0.2",
+        "remoteAddress": "172.18.0.3",
+        "status": 200,
+        "upstreamEnded": true,
+        "upstreamComplete": true,
+        "downstreamFinished": true,
+        "downstreamClosedAt": 1793841065883,
+        "downstreamFinishedAtClose": true
+      },
+      {
+        "path": "/api/management/v1/session/bootstrap",
+        "method": "POST",
+        "startedAt": 1793841066011,
+        "forwardedProto": "https",
+        "localAddress": "172.18.0.2",
+        "remoteAddress": "172.18.0.3",
+        "status": 401,
+        "upstreamEnded": true,
+        "upstreamComplete": true,
+        "downstreamFinished": true,
+        "downstreamClosedAt": 1793841066013,
+        "downstreamFinishedAtClose": true
+      }
+    ],
+    "recentRequestLog": "/Users/yuuinih/.codex/visualizations/2026/11/04/01a1a71e-7c2a-77c1-8402-d8fd60750e6c/implementation/packages/web-ui/test-results/docker-management-https/arcadia-https-bcc1cf72-29b/proxy-observations.json"
+  },
+  "serviceWorkers": {
+    "supported": true,
+    "controlled": false,
+    "registrations": []
+  },
+  "cleanup": {
+    "containers": 0,
+    "volumes": 0,
+    "networks": 0,
+    "temporaryCertificateRemoved": true,
+    "errors": []
+  },
+  "durationMs": 21573,
+  "finishedAt": "2026-11-05T01:11:16.440Z",
+  "artifactDirectory": "/Users/yuuinih/.codex/visualizations/2026/11/04/01a1a71e-7c2a-77c1-8402-d8fd60750e6c/implementation/packages/web-ui/test-results/docker-management-https/arcadia-https-bcc1cf72-29b"
+}

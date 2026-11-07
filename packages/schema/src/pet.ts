@@ -26,7 +26,8 @@ export const StatOutBattleIVSSchema = Type.Object({
 export const PetSchema = Type.Object({
   name: Type.String({ minLength: 1 }),
   id: Type.String({ pattern: NANOID_PATTERN, default: nanoid() }),
-  species: Type.String({ pattern: '^pet_' }), //种族的编号
+  // Official IDs retain their historical prefix; content packs use namespace:local-id.
+  species: Type.String({ pattern: '^(?:pet_.*|[a-z0-9][a-z0-9_.-]{0,79}:[a-z0-9][a-z0-9_./-]{0,119})$' }),
   level: Type.Integer({ minimum: 1 }),
   evs: StatOutBattleEVSSchema,
   ivs: StatOutBattleIVSSchema,

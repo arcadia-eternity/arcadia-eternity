@@ -1,5 +1,6 @@
 import {
   DEFAULT_TIMER_CONFIG,
+  BattleMessageType,
   TimerState,
   type BattleMessage,
   type BattleState,
@@ -11,13 +12,16 @@ import {
   type playerId,
 } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
-import { LocalBattleSystemV2, createBattleFromConfig, createRepositoryFromRawData } from '@arcadia-eternity/battle'
-import type { TeamConfig, BattleConfig as V2BattleConfig } from '@arcadia-eternity/battle'
+import {
+  createSandboxWebBattleSession,
+  type WebBattleHost,
+  type NativeGameDataStoreLike,
+  type NativeWebBattleConfig,
+} from '@/services/nativeBattleFactory'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { PeerTransport } from '@arcadia-eternity/p2p-transport'
 import type { PrivateRoomSignalBridge } from '@/p2p/privateRoomSignalBridge'
 import { type P2PBattleMessage, type P2PTimerSyncPayload, isP2PBattleMessage } from './battleProtocol'
-import { toRaw } from 'vue'
 
 type BattleMessageHandler = (message: BattleMessage) => void
 type SnapshotHandler = (snapshot: { battleState: BattleState; availableSelections: PlayerSelection[] }) => void
@@ -39,72 +43,29 @@ const P2P_TIMER_EVENT_TYPES: TimerEventType[] = [
 ]
 const P2P_TIMER_EVENT_TYPE_SET = new Set<TimerEventType>(P2P_TIMER_EVENT_TYPES)
 
-export interface WebGameDataStoreLike {
-  effects: { allIds: string[]; byId: Record<string, unknown> }
-  marks: { allIds: string[]; byId: Record<string, unknown> }
-  skills: { allIds: string[]; byId: Record<string, unknown> }
-  species: { allIds: string[]; byId: Record<string, unknown> }
-}
-
-function asRawRecord<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T
-}
-
-function toTeamConfig(playerId: string, name: string, pets: PetSchemaType[]): TeamConfig {
-  return {
-    id: playerId,
-    name,
-    team: pets.map(pet => ({
-      name: pet.name,
-      species: pet.species,
-      level: pet.level,
-      evs: pet.evs,
-      ivs: pet.ivs,
-      nature: pet.nature,
-      skills: pet.skills,
-      ability: pet.ability || undefined,
-      emblem: pet.emblem || undefined,
-      gender: pet.gender || undefined,
-      weight: pet.weight || undefined,
-      height: pet.height || undefined,
-    })),
-  }
-}
-
-export function createWebGameRepository(dataStore: WebGameDataStoreLike) {
-  const toRawRecords = (ids: string[], byId: Record<string, unknown>): Record<string, unknown>[] =>
-    ids.map(id => asRawRecord(toRaw(byId[id])) as Record<string, unknown>)
-
-  return createRepositoryFromRawData({
-    effects: toRawRecords(dataStore.effects.allIds, dataStore.effects.byId),
-    marks: toRawRecords(dataStore.marks.allIds, dataStore.marks.byId),
-    skills: toRawRecords(dataStore.skills.allIds, dataStore.skills.byId),
-    species: toRawRecords(dataStore.species.allIds, dataStore.species.byId),
-  })
-}
-
-export function createP2PHostBattleSystem(options: {
+export async function createP2PHostBattleSystem(options: {
   localPlayerId: playerId
   remotePlayerId: playerId
   localPlayerName: string
   remotePlayerName: string
   localTeam: PetSchemaType[]
   remoteTeam: PetSchemaType[]
-  dataStore: WebGameDataStoreLike
+  dataStore: NativeGameDataStoreLike
   bridge: PrivateRoomSignalBridge
   transport: PeerTransport
-  battleConfig?: V2BattleConfig
-}): IBattleSystem {
-  const repo = createWebGameRepository(options.dataStore)
-  const battle = createBattleFromConfig(
-    toTeamConfig(options.localPlayerId, options.localPlayerName, options.localTeam),
-    toTeamConfig(options.remotePlayerId, options.remotePlayerName, options.remoteTeam),
-    repo,
+  battleConfig?: NativeWebBattleConfig
+  signal?: AbortSignal
+}): Promise<IBattleSystem> {
+  const { system: localSystem } = await createSandboxWebBattleSession(
+    { id: options.localPlayerId, name: options.localPlayerName, team: options.localTeam },
+    { id: options.remotePlayerId, name: options.remotePlayerName, team: options.remoteTeam },
+    options.dataStore,
     options.battleConfig,
+    options.signal,
   )
 
   return new P2PHostBattleSystem(
-    new LocalBattleSystemV2(battle),
+    localSystem,
     options.localPlayerId,
     options.remotePlayerId,
     options.bridge,
@@ -120,32 +81,47 @@ class P2PHostBattleSystem implements IBattleSystem {
   private readonly remoteEventBacklog: BattleMessage[] = []
   private remoteAckSequenceId = -1
   private isReady = false
+  private ended = false
+  private closed = false
+  private animationSequence = 0
 
   constructor(
-    private readonly localSystem: LocalBattleSystemV2,
+    private readonly localSystem: WebBattleHost,
     private readonly localPlayerId: playerId,
     private readonly remotePlayerId: playerId,
     private readonly bridge: PrivateRoomSignalBridge,
     private readonly transport: PeerTransport,
   ) {
     this.messageUnsubscribe = this.transport.onMessage(message => {
-      void this.handlePeerMessage(message)
+      void this.handlePeerMessage(message).catch(error => {
+        if (!this.ended && !this.closed) console.error('Failed to handle P2P message:', error)
+      })
     })
 
     this.relayUnsubscribe = this.localSystem.BattleEvent(
       message => {
+        if (message.type === BattleMessageType.BattleEnd) this.ended = true
         this.recordRemoteEvent(message)
-        void this.bridge.sendMessage('p2p-battle-event', {
+        this.sendBackgroundMessage('p2p-battle-event', {
           viewerId: this.remotePlayerId,
           message,
         } satisfies P2PBattleMessage['payload'])
-        void this.pushRemoteSelections()
+        if (
+          !this.ended &&
+          !this.closed &&
+          this.transport.getState() !== 'failed' &&
+          this.transport.getState() !== 'closed'
+        )
+          void this.pushRemoteSelections().catch(error => {
+            if (!this.ended && !this.closed) console.error('Failed to sync P2P selections:', error)
+          })
       },
       { viewerId: this.remotePlayerId, showHidden: false },
     )
     this.timerRelayUnsubscribers = P2P_TIMER_EVENT_TYPES.map(eventType =>
       this.localSystem.onTimerEvent(eventType, data => {
-        void this.bridge.sendMessage('p2p-battle-timer-event', {
+        if (this.ended || this.closed) return
+        this.sendBackgroundMessage('p2p-battle-timer-event', {
           viewerId: this.remotePlayerId,
           eventType,
           data,
@@ -155,13 +131,28 @@ class P2PHostBattleSystem implements IBattleSystem {
 
     this.offStateChange = this.transport.onStateChange(state => {
       if (state === 'connected') {
-        void this.pushInitialStateIfReady()
+        void this.pushInitialStateIfReady().catch(error => {
+          if (!this.ended && !this.closed) console.error('Failed to sync P2P battle:', error)
+        })
       }
     })
   }
 
+  private sendBackgroundMessage(type: string, payload: P2PBattleMessage['payload']): void {
+    if (this.closed || this.transport.getState() === 'failed' || this.transport.getState() === 'closed') return
+    void this.bridge.sendMessage(type, payload).catch(error => {
+      if (
+        !this.ended &&
+        !this.closed &&
+        this.transport.getState() !== 'failed' &&
+        this.transport.getState() !== 'closed'
+      )
+        console.error('Failed to send P2P message:', error)
+    })
+  }
+
   async ready(): Promise<void> {
-    if (this.isReady) return
+    if (this.isReady || this.ended || this.closed) return
     await this.localSystem.ready()
     this.isReady = true
     await this.pushInitialStateIfReady()
@@ -172,10 +163,13 @@ class P2PHostBattleSystem implements IBattleSystem {
   }
 
   async getAvailableSelection(viewerId: playerId): Promise<PlayerSelection[]> {
-    return this.localSystem.getAvailableSelection(viewerId)
+    if (this.ended || this.closed) return []
+    const selections = await this.localSystem.getAvailableSelection(viewerId)
+    return this.ended || this.closed ? [] : selections
   }
 
   async submitAction(selection: PlayerSelection): Promise<void> {
+    if (this.ended || this.closed) throw new Error('P2P battle has ended')
     await this.localSystem.submitAction(selection)
   }
 
@@ -200,11 +194,22 @@ class P2PHostBattleSystem implements IBattleSystem {
   }
 
   async startAnimation(source: string, expectedDuration: number, ownerId: playerId): Promise<string> {
-    return this.localSystem.startAnimation(source, expectedDuration, ownerId)
+    if (this.ended || this.closed) return `p2p-local-animation:${this.animationSequence++}`
+    try {
+      return await this.localSystem.startAnimation(source, expectedDuration, ownerId)
+    } catch (error) {
+      if (this.ended || this.closed) return `p2p-local-animation:${this.animationSequence++}`
+      throw error
+    }
   }
 
   async endAnimation(animationId: string, actualDuration?: number): Promise<void> {
-    return this.localSystem.endAnimation(animationId, actualDuration)
+    if (this.ended || this.closed || animationId.startsWith('p2p-local-animation:')) return
+    try {
+      await this.localSystem.endAnimation(animationId, actualDuration)
+    } catch (error) {
+      if (!this.ended && !this.closed) throw error
+    }
   }
 
   onTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): () => void {
@@ -216,6 +221,8 @@ class P2PHostBattleSystem implements IBattleSystem {
   }
 
   async cleanup(): Promise<void> {
+    if (this.closed) return
+    this.closed = true
     this.messageUnsubscribe()
     this.relayUnsubscribe()
     this.timerRelayUnsubscribers.forEach(unsubscribe => unsubscribe())
@@ -224,7 +231,7 @@ class P2PHostBattleSystem implements IBattleSystem {
   }
 
   private async handlePeerMessage(message: { type: string; payload: unknown }): Promise<void> {
-    if (!isP2PBattleMessage(message)) return
+    if (this.closed || !isP2PBattleMessage(message)) return
 
     if (message.type === 'p2p-battle-sync-request') {
       await this.ready()
@@ -232,7 +239,9 @@ class P2PHostBattleSystem implements IBattleSystem {
       await this.replayRemoteEventsSince(message.payload.lastSeenSequenceId ?? -1)
       await this.pushRemoteSelections()
       queueMicrotask(() => {
-        void this.pushRemoteSelections()
+        void this.pushRemoteSelections().catch(error => {
+          if (!this.ended && !this.closed) console.error('Failed to sync P2P selections:', error)
+        })
       })
       return
     }
@@ -243,12 +252,13 @@ class P2PHostBattleSystem implements IBattleSystem {
     }
 
     if (message.type === 'p2p-battle-submit-action') {
+      if (this.ended) return
       await this.localSystem.submitAction(message.payload.selection)
       return
     }
 
     if (message.type === 'p2p-battle-start-animation') {
-      const animationId = await this.localSystem.startAnimation(
+      const animationId = await this.startAnimation(
         message.payload.source,
         message.payload.expectedDuration,
         message.payload.ownerId,
@@ -262,26 +272,30 @@ class P2PHostBattleSystem implements IBattleSystem {
     }
 
     if (message.type === 'p2p-battle-end-animation') {
-      await this.localSystem.endAnimation(message.payload.animationId, message.payload.actualDuration)
+      await this.endAnimation(message.payload.animationId, message.payload.actualDuration)
     }
   }
 
   private async sendInitSnapshot(): Promise<void> {
+    if (this.closed) return
     const [battleState, availableSelections, timer] = await Promise.all([
       this.localSystem.getState(this.remotePlayerId, false),
-      this.localSystem.getAvailableSelection(this.remotePlayerId),
+      this.getAvailableSelection(this.remotePlayerId),
       this.getRemoteTimerSync(),
     ])
+    if (this.closed) return
     await this.bridge.sendMessage('p2p-battle-init', {
       viewerId: this.remotePlayerId,
       battleState,
-      availableSelections,
-      timer,
+      availableSelections: this.ended ? [] : availableSelections,
+      timer: this.ended ? { ...timer, config: { ...timer.config, enabled: false } } : timer,
     } satisfies P2PBattleMessage['payload'])
   }
 
   private async pushRemoteSelections(): Promise<void> {
+    if (this.ended || this.closed) return
     const availableSelections = await this.localSystem.getAvailableSelection(this.remotePlayerId)
+    if (this.ended || this.closed) return
     await this.bridge.sendMessage('p2p-battle-selection-update', {
       viewerId: this.remotePlayerId,
       availableSelections,
@@ -306,7 +320,7 @@ class P2PHostBattleSystem implements IBattleSystem {
   }
 
   private async pushInitialStateIfReady(): Promise<void> {
-    if (!this.isReady || this.transport.getState() !== 'connected') {
+    if (this.closed || !this.isReady || this.transport.getState() !== 'connected') {
       return
     }
     await this.sendInitSnapshot()
@@ -337,6 +351,9 @@ export class P2PPeerBattleSystem implements IBattleSystem {
   private syncInflight: Promise<void> | null = null
   private lastSeenSequenceId = -1
   private hasReceivedInitialSnapshot = false
+  private ended = false
+  private closed = false
+  private readonly pendingWaits = new Set<(error: Error) => void>()
   private selectionRecoveryTimer: ReturnType<typeof setTimeout> | null = null
   private selectionRecoveryAttempts = 0
   private actionRecoveryTimer: ReturnType<typeof setTimeout> | null = null
@@ -360,8 +377,10 @@ export class P2PPeerBattleSystem implements IBattleSystem {
       void this.handleMessage(message)
     })
     this.offStateChange = this.transport.onStateChange(state => {
-      if (state === 'connected' && this.hasReceivedInitialSnapshot) {
-        void this.requestResync()
+      if (state === 'connected' && this.hasReceivedInitialSnapshot && !this.ended && !this.closed) {
+        void this.requestResync().catch(error => {
+          if (!this.ended && !this.closed) console.error('Failed to resync P2P battle:', error)
+        })
       }
     })
   }
@@ -379,12 +398,15 @@ export class P2PPeerBattleSystem implements IBattleSystem {
   }
 
   async getAvailableSelection(): Promise<PlayerSelection[]> {
+    if (this.ended || this.closed) return []
     await this.ensureInitialized()
     return this.availableSelections
   }
 
   async submitAction(selection: PlayerSelection): Promise<void> {
+    if (this.ended || this.closed) throw new Error('P2P battle has ended')
     await this.waitForTransportConnected()
+    if (this.ended || this.closed) throw new Error('P2P battle has ended')
     const previousSequenceId = this.lastSeenSequenceId
     await this.bridge.sendMessage('p2p-battle-submit-action', { selection })
     this.scheduleActionRecovery(previousSequenceId)
@@ -425,7 +447,14 @@ export class P2PPeerBattleSystem implements IBattleSystem {
   }
 
   async startAnimation(source: string, expectedDuration: number, ownerId: playerId): Promise<string> {
-    await this.waitForTransportConnected()
+    if (this.ended || this.closed) return this.localAnimationId()
+    try {
+      await this.waitForTransportConnected()
+    } catch (error) {
+      if (this.ended) return this.localAnimationId()
+      throw error
+    }
+    if (this.ended || this.closed) return this.localAnimationId()
 
     const requestId = `${this.localPlayerId}:${Date.now()}:${this.animationRequestSeq++}`
     const result = new Promise<string>((resolve, reject) => {
@@ -436,25 +465,38 @@ export class P2PPeerBattleSystem implements IBattleSystem {
       this.pendingAnimationStarts.set(requestId, { resolve, reject, timeout })
     })
 
-    await this.bridge.sendMessage('p2p-battle-start-animation', {
-      requestId,
-      source,
-      expectedDuration,
-      ownerId,
-    } satisfies P2PBattleMessage['payload'])
+    void this.bridge
+      .sendMessage('p2p-battle-start-animation', {
+        requestId,
+        source,
+        expectedDuration,
+        ownerId,
+      } satisfies P2PBattleMessage['payload'])
+      .catch(error => {
+        const pending = this.pendingAnimationStarts.get(requestId)
+        if (!pending) return
+        this.pendingAnimationStarts.delete(requestId)
+        clearTimeout(pending.timeout)
+        pending.reject(error instanceof Error ? error : new Error(String(error)))
+      })
 
     return result
   }
 
   async endAnimation(animationId: string, actualDuration?: number): Promise<void> {
-    if (!animationId) {
+    if (!animationId || this.ended || this.closed || animationId.startsWith('p2p-local-animation:')) {
       return
     }
-    await this.waitForTransportConnected()
-    await this.bridge.sendMessage('p2p-battle-end-animation', {
-      animationId,
-      actualDuration,
-    } satisfies P2PBattleMessage['payload'])
+    try {
+      await this.waitForTransportConnected()
+      if (this.ended || this.closed) return
+      await this.bridge.sendMessage('p2p-battle-end-animation', {
+        animationId,
+        actualDuration,
+      } satisfies P2PBattleMessage['payload'])
+    } catch (error) {
+      if (!this.ended && !this.closed) throw error
+    }
   }
 
   onTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): () => void {
@@ -483,6 +525,8 @@ export class P2PPeerBattleSystem implements IBattleSystem {
   }
 
   async cleanup(): Promise<void> {
+    if (this.closed) return
+    this.closed = true
     this.clearSelectionRecovery()
     this.clearActionRecovery()
     for (const pending of this.pendingAnimationStarts.values()) {
@@ -490,6 +534,8 @@ export class P2PPeerBattleSystem implements IBattleSystem {
       pending.reject(new Error('P2P peer battle system cleaned up'))
     }
     this.pendingAnimationStarts.clear()
+    for (const cancel of [...this.pendingWaits]) cancel(new Error('P2P peer battle system cleaned up'))
+    this.initWaiters = []
     this.timerCallbacks.clear()
     this.timerStates.clear()
     this.offMessage()
@@ -497,6 +543,7 @@ export class P2PPeerBattleSystem implements IBattleSystem {
   }
 
   private async ensureInitialized(): Promise<void> {
+    if (this.closed) throw new Error('P2P peer battle system cleaned up')
     if (this.battleState) return
     if (this.syncInflight) {
       await this.syncInflight
@@ -510,11 +557,13 @@ export class P2PPeerBattleSystem implements IBattleSystem {
       })
       const syncDeadline = Date.now() + 10_000
       while (!this.battleState && Date.now() < syncDeadline) {
-        await this.bridge.sendMessage('p2p-battle-sync-request', {
-          requesterId: this.localPlayerId,
-          lastSeenSequenceId: this.lastSeenSequenceId >= 0 ? this.lastSeenSequenceId : undefined,
-        })
-        await Promise.race([initPromise, new Promise(resolve => setTimeout(resolve, 500))])
+        await this.waitForPending(
+          this.bridge.sendMessage('p2p-battle-sync-request', {
+            requesterId: this.localPlayerId,
+            lastSeenSequenceId: this.lastSeenSequenceId >= 0 ? this.lastSeenSequenceId : undefined,
+          }),
+        )
+        if (!this.battleState) await this.waitForSyncRetry(initPromise)
       }
       if (!this.battleState) {
         throw new Error('Timed out waiting for P2P battle init snapshot')
@@ -529,13 +578,15 @@ export class P2PPeerBattleSystem implements IBattleSystem {
 
     try {
       await this.syncInflight
+    } catch (error) {
+      if (!this.ended || !this.battleState || this.closed) throw error
     } finally {
       this.syncInflight = null
     }
   }
 
   private async requestResync(): Promise<void> {
-    if (this.syncInflight) return
+    if (this.syncInflight || this.ended || this.closed) return
     await this.bridge.sendMessage('p2p-battle-sync-request', {
       requesterId: this.localPlayerId,
       lastSeenSequenceId: this.lastSeenSequenceId >= 0 ? this.lastSeenSequenceId : undefined,
@@ -543,45 +594,90 @@ export class P2PPeerBattleSystem implements IBattleSystem {
   }
 
   private async waitForTransportConnected(timeoutMs = 20_000): Promise<void> {
+    if (this.closed || this.ended) throw new Error('P2P battle has ended')
     if (this.transport.getState() === 'connected') return
     await new Promise<void>((resolve, reject) => {
       let settled = false
-      const timeout = setTimeout(() => {
+      const finish = (error?: Error) => {
         if (settled) return
         settled = true
+        clearTimeout(timeout)
         off()
-        reject(new Error(`Timed out waiting for P2P transport connection after ${timeoutMs}ms`))
-      }, timeoutMs)
+        this.pendingWaits.delete(cancel)
+        if (error) reject(error)
+        else resolve()
+      }
+      const cancel = (error: Error) => finish(error)
+      const timeout = setTimeout(
+        () => finish(new Error(`Timed out waiting for P2P transport connection after ${timeoutMs}ms`)),
+        timeoutMs,
+      )
 
       const off = this.transport.onStateChange(state => {
-        if (settled) return
-        if (state === 'connected') {
-          settled = true
-          clearTimeout(timeout)
-          off()
-          resolve()
-        } else if (state === 'failed' || state === 'closed') {
-          settled = true
-          clearTimeout(timeout)
-          off()
-          reject(new Error(`P2P transport became ${state} before battle sync`))
-        }
+        if (state === 'connected') finish()
+        else if (state === 'failed' || state === 'closed')
+          finish(new Error(`P2P transport became ${state} before battle sync`))
       })
+      this.pendingWaits.add(cancel)
     })
   }
 
+  private waitForPending<T>(task: Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const cancel = (error: Error) => {
+        this.pendingWaits.delete(cancel)
+        reject(error)
+      }
+      this.pendingWaits.add(cancel)
+      void task.then(value => {
+        this.pendingWaits.delete(cancel)
+        resolve(value)
+      }, cancel)
+    })
+  }
+
+  private waitForSyncRetry(initialized: Promise<BattleState>): Promise<void> {
+    let timer: ReturnType<typeof setTimeout>
+    const delay = new Promise<void>(resolve => {
+      timer = setTimeout(resolve, 500)
+    })
+    return this.waitForPending(Promise.race([initialized.then(() => {}), delay])).finally(() => clearTimeout(timer))
+  }
+
+  private localAnimationId(): string {
+    return `p2p-local-animation:${this.localPlayerId}:${this.animationRequestSeq++}`
+  }
+
+  private markEnded(): void {
+    if (this.ended) return
+    this.ended = true
+    this.availableSelections = []
+    this.clearSelectionRecovery()
+    this.clearActionRecovery()
+    this.timerConfig = { ...this.timerConfig, enabled: false }
+    for (const state of this.timerStates.values()) state.state = TimerState.Stopped
+    for (const pending of this.pendingAnimationStarts.values()) {
+      clearTimeout(pending.timeout)
+      pending.resolve(this.localAnimationId())
+    }
+    this.pendingAnimationStarts.clear()
+    for (const cancel of [...this.pendingWaits]) cancel(new Error('P2P battle has ended'))
+  }
+
   private async handleMessage(message: { type: string; payload: unknown }): Promise<void> {
-    if (!isP2PBattleMessage(message)) return
+    if (this.closed || !isP2PBattleMessage(message)) return
 
     if ('viewerId' in message.payload && message.payload.viewerId !== this.localPlayerId) {
       return
     }
 
     if (message.type === 'p2p-battle-init') {
+      if (this.ended) return
       this.clearActionRecovery()
       this.battleState = message.payload.battleState
       this.availableSelections = message.payload.availableSelections
       this.applyTimerSync(message.payload.timer)
+      if (this.battleState.status === 'Ended') this.markEnded()
       this.lastSeenSequenceId = Math.max(this.lastSeenSequenceId, message.payload.battleState.sequenceId ?? -1)
       this.hasReceivedInitialSnapshot = true
       this.handleSelectionRecovery()
@@ -598,6 +694,7 @@ export class P2PPeerBattleSystem implements IBattleSystem {
     }
 
     if (message.type === 'p2p-battle-selection-update') {
+      if (this.ended) return
       this.availableSelections = message.payload.availableSelections
       this.handleSelectionRecovery()
       if (this.availableSelections.length > 0) {
@@ -626,6 +723,7 @@ export class P2PPeerBattleSystem implements IBattleSystem {
     }
 
     if (message.type === 'p2p-battle-timer-event') {
+      if (this.ended) return
       const { eventType, data } = message.payload
       if (!P2P_TIMER_EVENT_TYPE_SET.has(eventType)) {
         return
@@ -639,12 +737,18 @@ export class P2PPeerBattleSystem implements IBattleSystem {
       this.clearActionRecovery()
       if (message.payload.message.sequenceId !== undefined) {
         this.lastSeenSequenceId = Math.max(this.lastSeenSequenceId, message.payload.message.sequenceId)
-        await this.bridge.sendMessage('p2p-battle-ack', {
-          viewerId: this.localPlayerId,
-          sequenceId: this.lastSeenSequenceId,
-        } satisfies P2PBattleMessage['payload'])
       }
+      if (message.payload.message.type === BattleMessageType.BattleEnd) this.markEnded()
+      // Delivery is synchronous and ordered by receipt. ACK failure must never drop a terminal event.
       this.callbacks.forEach(callback => callback(message.payload.message))
+      if (message.payload.message.sequenceId !== undefined) {
+        void this.bridge
+          .sendMessage('p2p-battle-ack', {
+            viewerId: this.localPlayerId,
+            sequenceId: this.lastSeenSequenceId,
+          } satisfies P2PBattleMessage['payload'])
+          .catch(() => {})
+      }
     }
   }
 
@@ -799,6 +903,10 @@ export class P2PPeerBattleSystem implements IBattleSystem {
   }
 
   private handleSelectionRecovery(): void {
+    if (this.ended || this.closed) {
+      this.clearSelectionRecovery()
+      return
+    }
     if (this.availableSelections.length > 0) {
       this.clearSelectionRecovery()
       return
@@ -816,7 +924,9 @@ export class P2PPeerBattleSystem implements IBattleSystem {
     this.selectionRecoveryAttempts += 1
     this.selectionRecoveryTimer = setTimeout(() => {
       this.selectionRecoveryTimer = null
-      void this.requestResync()
+      void this.requestResync().catch(error => {
+        if (!this.ended && !this.closed) console.error('Failed to recover P2P selections:', error)
+      })
     }, 1000)
   }
 
@@ -830,12 +940,12 @@ export class P2PPeerBattleSystem implements IBattleSystem {
 
   private scheduleActionRecovery(previousSequenceId: number): void {
     this.clearActionRecovery()
-    if (!this.battleState || this.battleState.status !== 'On') {
+    if (this.ended || this.closed || !this.battleState || this.battleState.status !== 'On') {
       return
     }
 
     const attemptRecovery = () => {
-      if (!this.battleState || this.battleState.status !== 'On') {
+      if (this.ended || this.closed || !this.battleState || this.battleState.status !== 'On') {
         this.clearActionRecovery()
         return
       }
@@ -853,7 +963,9 @@ export class P2PPeerBattleSystem implements IBattleSystem {
       this.actionRecoveryAttempts += 1
       this.actionRecoveryTimer = setTimeout(() => {
         this.actionRecoveryTimer = null
-        void this.requestResync()
+        void this.requestResync().catch(error => {
+          if (!this.ended && !this.closed) console.error('Failed to recover P2P action:', error)
+        })
         attemptRecovery()
       }, 1500)
     }

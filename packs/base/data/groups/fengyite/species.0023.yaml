@@ -1,0 +1,76 @@
+- id: pet_fengyite
+  num: 92
+  element: Wind
+  baseStats:
+    hp: 179
+    atk: 166
+    spa: 181
+    def: 157
+    spd: 165
+    spe: 164
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 63
+    - 68
+  weightRange:
+    - 27
+    - 32
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+    - skill_id: skill_qiliuyongdong
+      level: 30
+      hidden: false
+    - skill_id: skill_fengjuancanyun
+      level: 35
+      hidden: false
+    - skill_id: skill_jiyun
+      level: 40
+      hidden: false
+    - skill_id: skill_jisufeiyu
+      level: 45
+      hidden: false
+    - skill_id: skill_fengbaozhixing
+      level: 50
+      hidden: false
+    - skill_id: skill_zhenkongxi
+      level: 55
+      hidden: false
+    - skill_id: skill_shenfengliepoxi
+      level: 60
+      hidden: false
+    - skill_id: skill_fengzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_longjuankuangfeng
+      level: 60
+      hidden: true
+    - skill_id: skill_daqiliu
+      level: 60
+      hidden: true
+    - skill_id: skill_yitesanlianxing
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_qiliu
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_fengbao

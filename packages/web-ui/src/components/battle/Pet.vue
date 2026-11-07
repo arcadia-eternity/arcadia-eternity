@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { isRemoteContentActive } from '@/i18n/serverContent'
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
+import unknownPet from '@/assets/images/unknown-pet.svg'
 import { computed } from 'vue'
 const props = withDefaults(
   defineProps<{
@@ -11,7 +14,11 @@ const props = withDefaults(
   },
 )
 
-const petUrl = computed(() => `https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`)
+const petUrl = computed(() =>
+  isRemoteContentActive()
+    ? unknownPet
+    : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`),
+)
 </script>
 
 <template>
@@ -20,7 +27,7 @@ const petUrl = computed(() => `https://seer2-resource.yuuinih.com/png/pet/${prop
     :alt="`Pet ${num}`"
     class="object-contain"
     :class="{ reverse: reverse }"
-    @error="e => ((e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=No+Image')"
+    @error="e => ((e.target as HTMLImageElement).src = unknownPet)"
   />
 </template>
 

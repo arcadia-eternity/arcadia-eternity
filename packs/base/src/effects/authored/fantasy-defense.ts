@@ -1,0 +1,23 @@
+import {
+  EffectTrigger,
+  actions,
+  checks,
+  conditions,
+  defineEffect,
+  ops,
+  targets,
+} from '@arcadia-eternity/battle/v4/authoring'
+
+const owner = targets.ownerPet
+const fantasyMarks = targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang')
+const hasFantasy = fantasyMarks.condition(checks.exists())
+
+/** Action two queries after consumption hooks finish. */
+export const consumeFantasyForDefense = defineEffect({
+  id: 'effect_skill_consume_huanxiang_raise_def_1_stage',
+  triggers: [EffectTrigger.BeforeHit],
+  when(ctx) {
+    return conditions.selfUsesSkill(ctx) && hasFantasy(ctx)
+  },
+  apply: actions.sequence(fantasyMarks.apply(ops.consumeStacks(1)), owner.apply(ops.changeStatStage('def', 1))),
+})

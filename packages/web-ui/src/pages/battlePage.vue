@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getNumericAttributeModifier } from '@/utils/modifierStyles'
 import { waitForSkillAnimation } from '@/composition/skillAnimationWait'
 import '@/assets/battle-theme.css'
 import BattleCommandDock from '@/components/battle/BattleCommandDock.vue'
@@ -27,13 +28,16 @@ import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleReportStore } from '@/stores/battleReport'
 import { useBattleViewStore } from '@/stores/battleView'
 import { useGameDataStore } from '@/stores/gameData'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
 import { resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { logMessagesKey } from '@/symbol/battlelog'
+import { battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
 import {
   BattleMessageType,
   BattleStatus as BattleStatusEnum,
@@ -94,7 +98,6 @@ import { useRoute, useRouter } from 'vue-router'
 // Props 定义
 interface Props {
   replayMode?: boolean
-  battleRecordId?: string
   localReportId?: string
   enableDeveloperMode?: boolean
   spectatorMode?: boolean
@@ -102,7 +105,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   replayMode: false,
-  battleRecordId: undefined,
   localReportId: undefined,
   enableDeveloperMode: false,
   spectatorMode: false,
@@ -133,6 +135,13 @@ const emitter = mitt<AnimationEvents>()
 
 const route = useRoute()
 const router = useRouter()
+const previewReturnLabel = window.arcadiaAuthorPreview ? '返回编辑器' : '返回内容包'
+const isLocalBattle = computed(
+  () =>
+    !props.replayMode &&
+    (props.enableDeveloperMode || typeof route.query.authorPreview === 'string') &&
+    route.query.privateRoom !== 'true',
+)
 const store = useBattleStore()
 const battleReportStore = useBattleReportStore()
 const gameDataStore = useGameDataStore()
@@ -281,7 +290,7 @@ const rightPetRef = useTemplateRef('rightPetRef')
 const leftStatusRef = useTemplateRef('leftStatusRef')
 const rightStatusRef = useTemplateRef('rightStatusRef')
 // 移除了 useElementBounding 相关代码，现在使用固定坐标系统
-const showBattleEndUI = ref(false)
+const showBattleEndUI = ref(!props.replayMode && store.isBattleEnd)
 const showKoBanner = ref(false) // 新增：控制KO横幅显示
 const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板引用
 
@@ -337,12 +346,11 @@ const trainingModeConfig = computed(() => {
 
     // 模式排除检查
     isNotReplayMode: !isReplayMode.value && !props.replayMode,
-    isNotBattleReport: !props.battleRecordId && !props.localReportId,
+    isNotBattleReport: !props.localReportId,
 
     // 获取当前模式描述
     get currentMode() {
       if (props.replayMode || isReplayMode.value) return 'replay'
-      if (props.battleRecordId) return 'battle-report'
       if (props.localReportId) return 'local-battle-report'
       if (props.enableDeveloperMode) return 'local-battle'
       return 'normal-battle'
@@ -416,7 +424,7 @@ const background = computed(() => {
   }
   return (
     resourceStore.getBackGround(gameSettingStore.background) ??
-    'https://seer2-resource.yuuinih.com/png/battleBackground/grass.png'
+    officialAssetUrl('https://seer2-resource.yuuinih.com/png/battleBackground/grass.png')
   )
 })
 
@@ -649,7 +657,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
   if (!skill.modifierState) return undefined
 
   // 在技能的 modifierState 中查找对应的属性
-  return skill.modifierState.attributes.find(attr => attr.attributeName === attributeName)
+  return getNumericAttributeModifier(skill.modifierState, attributeName)
 }
 
 // 计算技能对敌方精灵的属性克制倍率
@@ -890,6 +898,7 @@ const pendingPause = ref(false) // 是否有待执行的暂停
 let battleDisposed = false
 let releasePreparationWait: (() => void) | undefined
 let releaseBattleStartWait: (() => void) | undefined
+let releaseBattleStateWait: (() => void) | undefined
 let playerReadySent = false
 const preparation = useBattlePreparation()
 const {
@@ -902,17 +911,17 @@ const {
 const isReplayFullyLoaded = ref(false)
 const resourceAttempt = ref(0)
 
+provide(
+  battleTooltipsDisabledKey,
+  computed(
+    () => !isFullyLoaded.value || (showTeamSelectionPanel.value && !isSpectatorMode.value) || showCustomConfirm.value,
+  ),
+)
+
 async function loadReplayData() {
-  let record
-  if (props.localReportId) {
-    record = battleReportStore.loadLocalBattleReport(props.localReportId)?.battleRecord
-  } else {
-    const id = props.battleRecordId || String(route.params.id || '')
-    if (!id) throw new Error('缺少战报 ID')
-    await battleReportStore.fetchBattleRecord(id)
-    record = battleReportStore.currentBattleRecord
-  }
-  if (!record) throw new Error('战报加载失败，请重试或返回战报列表')
+  if (!props.localReportId) throw new Error('缺少本地战报 ID')
+  const record = battleReportStore.loadLocalBattleReport(props.localReportId)?.battleRecord
+  if (!record) throw new Error('本地战报加载失败，请返回本地战报列表')
   if (battleDisposed) return
   store.initReplayMode(record.battle_messages, record.final_state as BattleState, record.player_a_id)
 }
@@ -932,17 +941,57 @@ async function checkPetSpritesReady(): Promise<void> {
 }
 
 const initializeBattleResources = async () => {
+  // A direct battle-page load shares these downloads with application startup.
+  const startupTimeoutMs = 60_000
   resourceAttempt.value++
   await preparation.prepare([
-    { id: 'resources', label: '界面资源', required: true, run: () => resourceStore.initialize() },
-    { id: 'data', label: '游戏数据', required: true, run: () => gameDataStore.initialize() },
+    {
+      id: 'resources',
+      label: '界面资源',
+      required: true,
+      timeoutMs: startupTimeoutMs,
+      run: () => resourceStore.whenReady(),
+    },
+    {
+      id: 'data',
+      label: '游戏数据',
+      required: true,
+      timeoutMs: startupTimeoutMs,
+      run: () => gameDataStore.whenReady(),
+    },
     {
       id: 'battle',
       label: '对局数据',
       required: true,
       run: async () => {
-        if (props.replayMode) await loadReplayData()
-        else if (!store.battleState) throw new Error('没有可用的对局数据，请返回大厅')
+        if (props.replayMode) {
+          await loadReplayData()
+        } else {
+          if (!store.battleState && route.query.privateRoom === 'true') {
+            await new Promise<void>((resolve, reject) => {
+              let settled = false
+              const timeout = setTimeout(() => finish(new Error('恢复对局超时，请返回大厅重试')), 10_000)
+              const stop = watch(
+                () => store.battleState,
+                state => {
+                  if (state) finish()
+                },
+              )
+              function finish(error?: Error) {
+                if (settled) return
+                settled = true
+                clearTimeout(timeout)
+                stop()
+                releaseBattleStateWait = undefined
+                if (error) reject(error)
+                else resolve()
+              }
+              releaseBattleStateWait = () => finish()
+              if (store.battleState) finish()
+            })
+          }
+          if (!store.battleState) throw new Error('没有可用的对局数据，请返回大厅')
+        }
       },
     },
     {
@@ -1031,18 +1080,7 @@ const goBackFromReplay = async () => {
     await exitFullscreen()
   }
 
-  // 根据当前路由判断返回到哪里
-  if (props.localReportId) {
-    // 本地战报回放，返回到本地战报管理页面
-    router.push('/local-battle-reports')
-  } else if (props.battleRecordId || route.params.id) {
-    // 在线战报回放，返回到战报详情页面
-    const battleId = props.battleRecordId || route.params.id
-    router.push(`/battle-reports/${battleId}`)
-  } else {
-    // 其他情况，返回到战报列表
-    router.push('/battle-reports')
-  }
+  router.push('/local-battle-reports')
 }
 
 // 战斗结束后的导航函数 - 先退出全屏再跳转
@@ -1050,14 +1088,24 @@ const navigateToLobbyWithMatching = async () => {
   if (isFullscreen.value) {
     await exitFullscreen()
   }
-  router.push({ name: 'Lobby', query: { startMatching: 'true' } })
+  if (route.query.matchmaking === 'true') await usePrivateRoomStore().leaveRoom()
+  if (typeof route.query.authorPreview === 'string') {
+    await router.push({ name: 'AuthorPreview', query: { endpoint: route.query.authorPreview } })
+    return
+  }
+  router.push(isLocalBattle.value ? '/local-battle' : { name: 'Lobby', query: { startMatching: 'true' } })
 }
 
 const navigateToHome = async () => {
   if (isFullscreen.value) {
     await exitFullscreen()
   }
-  router.push('/')
+  if (typeof route.query.authorPreview === 'string') {
+    if (window.arcadiaAuthorPreview) window.arcadiaAuthorPreview.returnToEditor()
+    else await router.push('/content')
+    return
+  }
+  router.push(isLocalBattle.value ? '/local-battle' : '/')
 }
 
 const nextTurn = () => {
@@ -1270,8 +1318,8 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
     const newPetInfo = store.getPetById(toPetId)
     const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
-    if (newPetSpeciesNum !== 0) {
-      playPetSound(newPetSpeciesNum)
+    if (newPetInfo) {
+      playPetSound(newPetSpeciesNum, newPetInfo?.speciesID)
     }
     await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
     assertExecution(execution)
@@ -1810,7 +1858,7 @@ const animatesubscribe = animationQueue
 
 const preloadPetSprites = async () => {
   const imageMode = () => gameSettingStore.battleRenderer === 'image'
-  if (imageMode()) return
+  if (imageMode() || gameDataStore.serverFallback) return
   const pets = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])].filter(
     pet => !pet.isUnknown,
   )
@@ -1857,8 +1905,8 @@ async function initialPetEntryAnimation() {
     [leftPet, leftPetSpeciesNum.value, -battleViewWidth / 2 - 100, 'left'],
     [rightPet, rightPetSpeciesNum.value, battleViewWidth / 2 + 100, 'right'],
   ] as const) {
-    if (pet && pet.$el && speciesNum !== 0) {
-      playPetSound(speciesNum)
+    if (pet && pet.$el) {
+      playPetSound(speciesNum, side === 'left' ? leftActiveSpecies.value?.id : rightActiveSpecies.value?.id)
       if (pet.availableState.includes(ActionState.PRESENT)) {
         animations.push(
           new Promise<void>(resolve => {
@@ -1929,7 +1977,6 @@ onMounted(async () => {
 
   // Lazily create AnimationController after DOM is ready
   animationController = new AnimationController(store as never)
-  animationController.start()
 
   // VueUse的useFullscreen会自动处理全屏状态监听，无需手动添加事件监听器
 
@@ -1954,6 +2001,8 @@ onMounted(async () => {
   })
 
   if (battleDisposed) return
+  // Resource preparation can legitimately have no available actions yet.
+  animationController.start()
   // 检查是否是回放模式
   if (props.replayMode) {
     // 回放模式也需要消息订阅来处理动画
@@ -2113,7 +2162,9 @@ const setupMessageSubscription = async () => {
 }
 
 onUnmounted(async () => {
+  const departingBattle = store.battleInterface
   battleDisposed = true
+  releaseBattleStateWait?.()
   cancelSpriteWaits()
   releasePreparationWait?.()
   preparation.cancel()
@@ -2165,18 +2216,19 @@ onUnmounted(async () => {
   }
 
   // 清理战斗状态 - 观战者不发送surrender
-  if (isSpectatorMode.value || skipSurrenderOnUnmount.value) {
-    await store.resetBattleWithoutSurrender()
-  } else {
-    await store.resetBattle()
+  if (store.battleInterface === departingBattle) {
+    if (isSpectatorMode.value || skipSurrenderOnUnmount.value) {
+      await store.resetBattleWithoutSurrender()
+    } else {
+      await store.resetBattle()
+    }
+    battleClientStore.resetState()
   }
-
-  battleClientStore.resetState()
 })
 
 // 监听加载状态变化
 watch(
-  [() => battleReportStore.loading.battleRecord, () => store.replaySnapshots.length],
+  [() => store.replaySnapshots.length],
   async () => {
     if (isReplayMode.value) {
       await checkReplayLoadingStatus()
@@ -2518,7 +2570,9 @@ watch(
                   :image-only="battleRenderer === 'image'"
                   :allow-recovery="!animating"
                   :swf-url="leftPetSpriteAsset.customSwfUrl"
+                  :uncached="!!gameDataStore.serverFallback"
                   :image-url="leftPetSpriteAsset.customImageUrl"
+                  :fallback-image-url="leftPetSpriteAsset.fallbackImageUrl"
                   class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
                   :class="Z_INDEX_CLASS.PET_SPRITE"
                   @hit="handleAttackHit('left')"
@@ -2537,7 +2591,9 @@ watch(
                   :image-only="battleRenderer === 'image'"
                   :allow-recovery="!animating"
                   :swf-url="rightPetSpriteAsset.customSwfUrl"
+                  :uncached="!!gameDataStore.serverFallback"
                   :image-url="rightPetSpriteAsset.customImageUrl"
+                  :fallback-image-url="rightPetSpriteAsset.fallbackImageUrl"
                   :reverse="true"
                   class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"
                   :class="Z_INDEX_CLASS.PET_SPRITE"
@@ -2581,7 +2637,7 @@ watch(
                 @click="goBackFromReplay"
                 class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
               >
-                {{ props.localReportId ? '返回本地战报' : '返回详情' }}
+                返回本地战报
               </button>
 
               <!-- 播放控制 -->
@@ -2718,13 +2774,19 @@ watch(
                   class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
                   @click="navigateToLobbyWithMatching"
                 >
-                  重新匹配
+                  {{ isLocalBattle ? '再来一局' : '重新匹配' }}
                 </button>
                 <button
                   class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
                   @click="navigateToHome"
                 >
-                  返回大厅
+                  {{
+                    typeof route.query.authorPreview === 'string'
+                      ? previewReturnLabel
+                      : isLocalBattle
+                        ? '返回人机对战'
+                        : '返回大厅'
+                  }}
                 </button>
               </div>
             </div>

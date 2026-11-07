@@ -1,0 +1,126 @@
+# data/groups/palading/species.0069.yaml
+# yaml-language-server: $schema=../packages/schema/schema/species.schema.json
+# @metaType species
+# @version 1.0.0
+#
+# 帕拉 (249) -> 帕拉丁 (250), original client dictionary NumbersID 123.
+# Source: pets.xml and dictionary.xml from the frozen 2.61 client tables.
+# Project stat conversion: HP unchanged; Atk/Def/SpAtk/SpDef/Spd +50.
+# Each form retains its own learn list; the evolved form inherits earlier moves.
+- id: pet_pala
+  num: 249
+  element: Light
+  baseStats:
+    hp: 92
+    atk: 121
+    spa: 124
+    def: 122
+    spd: 120
+    spe: 114
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 10
+    - 15
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_chongzhuang_palading
+      level: 1
+      hidden: false
+    - skill_id: skill_guangxiangongji
+      level: 5
+      hidden: false
+    - skill_id: skill_zhengyizhihuo
+      level: 10
+      hidden: false
+    - skill_id: skill_shengguangzhiming
+      level: 15
+      hidden: false
+    - skill_id: skill_shiziguangchong
+      level: 20
+      hidden: false
+    - skill_id: skill_chengjiezhiguang
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_shensheng
+  emblem:
+    - mark_emblem_bihu
+- id: pet_palading
+  num: 250
+  element: Light
+  baseStats:
+    hp: 182
+    atk: 166
+    spa: 169
+    def: 172
+    spd: 170
+    spe: 159
+  genderRatio:
+    - 0
+    - 1
+  heightRange:
+    - 88
+    - 93
+  weightRange:
+    - 66
+    - 71
+  learnable_skills:
+    - skill_id: skill_chongzhuang_palading
+      level: 1
+      hidden: false
+    - skill_id: skill_guangxiangongji
+      level: 5
+      hidden: false
+    - skill_id: skill_zhengyizhihuo
+      level: 10
+      hidden: false
+    - skill_id: skill_shengguangzhiming
+      level: 15
+      hidden: false
+    - skill_id: skill_shiziguangchong
+      level: 20
+      hidden: false
+    - skill_id: skill_chengjiezhiguang
+      level: 25
+      hidden: false
+    - skill_id: skill_bihuzhihuo
+      level: 30
+      hidden: false
+    - skill_id: skill_shengguangxili
+      level: 35
+      hidden: false
+    - skill_id: skill_gongzhengguangchong
+      level: 40
+      hidden: false
+    - skill_id: skill_fuchouguangchong
+      level: 45
+      hidden: false
+    - skill_id: skill_zhengfazhihuo
+      level: 50
+      hidden: false
+    - skill_id: skill_shengyouzhihuo
+      level: 55
+      hidden: false
+    - skill_id: skill_rongyaodeshengzhan
+      level: 60
+      hidden: false
+    - skill_id: skill_shimingzhihuo
+      level: 60
+      hidden: true
+    - skill_id: skill_shenpanguangchong
+      level: 60
+      hidden: true
+    - skill_id: skill_zhengjiuzhihuo
+      level: 60
+      hidden: true
+    - skill_id: skill_jiushuzhihuo
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shensheng
+  emblem:
+    - mark_emblem_bihu

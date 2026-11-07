@@ -1,0 +1,410 @@
+import { after, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+import { mkdtemp, mkdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { get } from 'node:http'
+import { fileURLToPath } from 'node:url'
+import { LocalBattleHost } from '../local-battle-host.mjs'
+import { isTrustedDesktopRequest } from '../local-battle-ipc.mjs'
+import { stopForQuit } from '../shutdown.mjs'
+
+const cli = fileURLToPath(new URL('./fixtures/fake-server.mjs', import.meta.url))
+const parent = fileURLToPath(new URL('./fixtures/fake-parent.mjs', import.meta.url))
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+let root
+before(async () => {
+  root = await mkdtemp(join(tmpdir(), 'arcadia-desktop-host-test-'))
+})
+after(async () => {
+  await rm(root, { recursive: true, force: true })
+})
+async function project(name) {
+  const directory = join(root, name)
+  await mkdir(join(directory, 'node_modules'), { recursive: true })
+  for (const file of ['package.json', 'package-lock.json', 'arcadia-admission.json'])
+    await writeFile(join(directory, file), '{}')
+  return directory
+}
+function host(options = {}) {
+  return new LocalBattleHost({
+    executable: process.execPath,
+    cli,
+    rendererOrigin: 'http://localhost:5173',
+    startupTimeoutMs: 4000,
+    shutdownTimeoutMs: 1000,
+    ...options,
+  })
+}
+async function closed(url) {
+  return new Promise(resolve => {
+    const request = get(url, () => resolve(false))
+    request.on('error', () => resolve(true))
+    request.setTimeout(500, () => request.destroy())
+  })
+}
+
+describe('local authority host', () => {
+  it('recovers a failed saved listener on loopback without replacing server identity or project', async () => {
+    const stateDirectory = join(root, 'occupied-server-state')
+    const instance = host({ stateDirectory, workspaceRoot: root })
+    const directory = await project('occupied-listener')
+    try {
+      await assert.rejects(instance.start(directory), { code: 'LISTENER_ADDRESS_IN_USE' })
+      const saved = JSON.parse(await readFile(join(stateDirectory, 'server.json'), 'utf8'))
+      const recovered = await instance.startLocalRecovery()
+      assert.equal(recovered.serverId, saved.serverId)
+      assert.equal(recovered.projectName, 'occupied-listener')
+      assert.equal(recovered.localRecovery, true)
+      assert.equal(recovered.network.scope, 'local')
+      assert.deepEqual(recovered.network.inviteUrls, [])
+      assert.equal(instance.projectDirectory(), await realpath(directory))
+      await instance.stopHosting()
+      const fresh = host({ stateDirectory, workspaceRoot: root })
+      try {
+        assert.equal((await fresh.startLocalRecovery()).serverId, saved.serverId)
+      } finally {
+        await fresh.stop()
+      }
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('drains before owner stop and requires an explicit force choice for active games', async () => {
+    const instance = host({ stateDirectory: join(root, 'active-server-state'), workspaceRoot: root })
+    try {
+      const running = await instance.start(await project('active-battle'))
+      await assert.rejects(instance.stopHosting(), { code: 'HOST_DRAINING' })
+      assert.equal(instance.status().status, 'running')
+      assert.equal(await closed(running.url), false)
+      await assert.rejects(instance.stopHosting({ force: 'yes' }), { code: 'INVALID_REQUEST' })
+      assert.equal((await instance.stopHosting({ force: true })).status, 'idle')
+      assert.equal(await closed(running.url), true)
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('persists server identity across host instances and forwards management only through private IPC', async () => {
+    const directory = await project('persistent-host')
+    const stateDirectory = join(root, 'server-state')
+    const first = host({ stateDirectory, workspaceRoot: root })
+    let serverId
+    try {
+      const running = await first.start(directory)
+      serverId = running.serverId
+      const response = await first.managementRequest({ method: 'GET', path: '/capabilities' })
+      assert.equal(response.body.serverId, serverId)
+      assert.deepEqual(response.body.request, { method: 'GET', path: '/capabilities', headers: {} })
+      await assert.rejects(first.managementRequest({ method: 'GET', path: '//remote.test/' }))
+    } finally {
+      await first.stop()
+    }
+    await assert.rejects(first.managementRequest({ method: 'GET', path: '/capabilities' }), {
+      code: 'HOST_UNAVAILABLE',
+    })
+    const second = host({ stateDirectory, workspaceRoot: root })
+    try {
+      assert.equal((await second.start(directory)).serverId, serverId)
+    } finally {
+      await second.stop()
+    }
+  })
+  it('requires bundled executable, CLI, npm runtime and an explicitly prepared project', async () => {
+    const directory = await project('checks')
+    await assert.rejects(host({ executable: '/missing/node' }).start(directory), { code: 'SERVER_RUNTIME_MISSING' })
+    await assert.rejects(host({ cli: '/missing/cli.js' }).start(directory), { code: 'SERVER_RUNTIME_MISSING' })
+    await assert.rejects(host({ npmCliPath: join(root, 'missing-npm') }).start(directory), {
+      code: 'NPM_RUNTIME_MISSING',
+    })
+    await assert.rejects(host({ npmCliPath: root }).start(directory), { code: 'NPM_RUNTIME_MISSING' })
+    await assert.rejects(host({ npmCliPath: 'npm-cli.js' }).start(directory), { code: 'NPM_RUNTIME_MISSING' })
+    await assert.rejects(host({ packsDirectory: join(root, 'missing-packs') }).start(directory), {
+      code: 'BASE_PACK_MISSING',
+    })
+    await assert.rejects(host({ packsDirectory: root }).start(directory), { code: 'BASE_PACK_MISSING' })
+    const instance = host()
+    await assert.rejects(instance.start(root), { code: 'PROJECT_NOT_READY' })
+    assert.equal(instance.status().status, 'failed')
+  })
+  it('passes only the trusted bundled npm CLI and official packs paths to the child', async () => {
+    const directory = await project('runtime-paths')
+    const npmCliPath = join(root, 'runtime', 'npm', 'bin', 'npm-cli.js')
+    const packsDirectory = join(root, 'bundled-packs')
+    await mkdir(join(root, 'runtime', 'npm', 'bin'), { recursive: true })
+    await mkdir(join(packsDirectory, 'base'), { recursive: true })
+    await writeFile(npmCliPath, '// bundled npm entry')
+    await writeFile(join(packsDirectory, 'base', 'pack.json'), '{}')
+    const oldCli = process.env.ARCADIA_NPM_CLI,
+      oldPacks = process.env.ARCADIA_PACKS_DIR
+    process.env.ARCADIA_NPM_CLI = '/untrusted/npm.js'
+    process.env.ARCADIA_PACKS_DIR = '/untrusted/packs'
+    const instance = host({ npmCliPath, packsDirectory })
+    try {
+      await instance.start(directory)
+      assert.deepEqual(JSON.parse(await readFile(join(directory, 'runtime-paths.json'), 'utf8')), {
+        npmCliPath,
+        packsDirectory,
+      })
+    } finally {
+      await instance.stop()
+      if (oldCli === undefined) delete process.env.ARCADIA_NPM_CLI
+      else process.env.ARCADIA_NPM_CLI = oldCli
+      if (oldPacks === undefined) delete process.env.ARCADIA_PACKS_DIR
+      else process.env.ARCADIA_PACKS_DIR = oldPacks
+    }
+  })
+  it('starts only on loopback with a random port, excludes private environment values and stops cleanly', async () => {
+    const directory = await project('success')
+    const instance = host()
+    process.env.DESKTOP_TEST_SECRET = 'not-for-the-child'
+    try {
+      const starting = instance.start(directory)
+      await assert.rejects(instance.start(directory), { code: 'HOST_BUSY' })
+      const result = await starting
+      assert.match(result.url, /^http:\/\/127\.0\.0\.1:\d+$/)
+      assert.equal(result.status, 'running')
+      assert.equal(result.projectName, 'success')
+      assert.equal(await closed(result.url), false)
+      assert.equal((await instance.stop()).status, 'idle')
+      assert.equal(await readFile(join(directory, 'clean-exit'), 'utf8'), 'yes')
+      assert.equal(await closed(result.url), true)
+      assert.equal((await instance.stop()).status, 'idle')
+    } finally {
+      delete process.env.DESKTOP_TEST_SECRET
+      await instance.stop()
+    }
+  })
+  it('reports a failed project without exposing output and permits a later retry', async () => {
+    const instance = host()
+    try {
+      await assert.rejects(instance.start(await project('refuse')), { code: 'SERVER_START_FAILED' })
+      assert.equal(instance.status().status, 'failed')
+      assert.doesNotMatch(JSON.stringify(instance.status()), /secret data/)
+      await assert.rejects(instance.start(await project('unapproved')), { code: 'NPM_NOT_APPROVED' })
+      assert.doesNotMatch(JSON.stringify(instance.status()), /private path/)
+      assert.equal((await instance.start(await project('retry'))).status, 'running')
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('reports unexpected child exit and cancels a pending start', async () => {
+    const instance = host()
+    try {
+      await instance.start(await project('crash'))
+      for (let i = 0; i < 100 && instance.status().status !== 'failed'; i++) await delay(20)
+      assert.equal(instance.status().code, 'SERVER_EXITED')
+      const starting = instance.start(await project('slow'))
+      const rejected = assert.rejects(starting)
+      await delay(100)
+      await instance.stop()
+      await rejected
+      assert.equal(instance.status().status, 'idle')
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('does not stop or overwrite a newer host when an older start and concurrent stops finish late', async () => {
+    const oldProject = await project('slow')
+    const newProject = await project('new-generation')
+    const instance = host()
+    try {
+      for (const delayBeforeStop of [0, 100, 100]) {
+        const oldStart = instance.start(oldProject)
+        const oldRejected = assert.rejects(oldStart)
+        if (delayBeforeStop) await delay(delayBeforeStop)
+        const stops = [instance.stop(), instance.stop()]
+        const results = await Promise.all(stops)
+        assert.ok(results.every(result => result.status === 'idle'))
+        const newer = instance.start(newProject)
+        await oldRejected
+        const started = await newer
+        await delay(50)
+        assert.equal(instance.status().status, 'running')
+        assert.equal(instance.status().serverId, started.serverId)
+        assert.equal(await closed(started.url), false)
+        await instance.stop()
+      }
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('stops the authority if its parent disappears', async () => {
+    const directory = await project('orphan')
+    const child = spawn(process.execPath, [parent, cli, directory], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let output = '',
+      error = ''
+    child.stdout.on('data', data => {
+      output += data
+    })
+    child.stderr.on('data', data => {
+      error += data
+    })
+    const code = await new Promise(resolve => child.on('close', resolve))
+    assert.equal(code, 0, error)
+    const url = output.trim()
+    assert.match(url, /^http:\/\/127\.0\.0\.1:\d+$/)
+    const cache = await readFile(join(directory, 'cache-marker'), 'utf8')
+    let stopped = false
+    for (let i = 0; i < 100 && !stopped; i++) {
+      stopped = await closed(url)
+      if (!stopped) await delay(20)
+    }
+    assert.equal(stopped, true)
+    for (let i = 0; i < 100; i++) {
+      try {
+        await stat(cache)
+        await delay(20)
+      } catch {
+        break
+      }
+    }
+    await assert.rejects(stat(cache), { code: 'ENOENT' })
+  })
+})
+
+describe('desktop shutdown', () => {
+  it('continues after failed cleanup and force-stops a host that does not terminate', async () => {
+    let forced = false
+    await stopForQuit(
+      [
+        async () => {
+          throw new Error('cleanup failed')
+        },
+      ],
+      {
+        timeoutMs: 100,
+        forceStop: () => {
+          forced = true
+        },
+      },
+    )
+    assert.equal(forced, false)
+    let release
+    const stalled = new Promise(resolve => {
+      release = resolve
+    })
+    await stopForQuit([() => stalled], {
+      timeoutMs: 20,
+      forceStop: () => {
+        forced = true
+      },
+    })
+    assert.equal(forced, true)
+    release()
+  })
+})
+
+describe('desktop IPC sender', () => {
+  it('accepts only the current main frame at the expected local renderer', () => {
+    const contents = { mainFrame: { url: 'http://localhost:5173/room' } }
+    const event = { sender: contents, senderFrame: contents.mainFrame }
+    assert.equal(isTrustedDesktopRequest(event, contents, 'http://localhost:5173/'), true)
+    contents.mainFrame.url = 'arcadia-client://app/lobby'
+    assert.equal(isTrustedDesktopRequest(event, contents, 'arcadia-client://app/index.html'), true)
+    contents.mainFrame.url = 'arcadia-client://evil/index.html'
+    assert.equal(isTrustedDesktopRequest(event, contents, 'arcadia-client://app/index.html'), false)
+    contents.mainFrame.url = 'http://localhost:5173/'
+    assert.equal(
+      isTrustedDesktopRequest(
+        { ...event, senderFrame: { url: contents.mainFrame.url } },
+        contents,
+        'http://localhost:5173/',
+      ),
+      false,
+    )
+    contents.mainFrame.url = 'https://attacker.test/'
+    assert.equal(isTrustedDesktopRequest(event, contents, 'http://localhost:5173/'), false)
+    contents.mainFrame.url = 'file:///app/dist/index.html#/room'
+    assert.equal(isTrustedDesktopRequest(event, contents, 'file:///app/dist/index.html'), true)
+    contents.mainFrame.url = 'file:///tmp/foreign.html'
+    assert.equal(isTrustedDesktopRequest(event, contents, 'file:///app/dist/index.html'), false)
+  })
+})
+
+describe('private desktop content control', () => {
+  it('cannot implicitly start hosting while preparing content', async () => {
+    const instance = host()
+    const directory = await project('offline-preparation')
+    await assert.rejects(instance.prepareProject(directory), { code: 'HOST_UNAVAILABLE' })
+    assert.deepEqual(instance.status(), { status: 'idle' })
+    await instance.start(directory)
+    await instance.stop()
+    await assert.rejects(instance.prepareProject(directory), { code: 'HOST_UNAVAILABLE' })
+    assert.deepEqual(instance.status(), { status: 'idle' })
+  })
+  it('selects prepared content with the same host identity and URL, while preserving rollback', async () => {
+    const instance = host()
+    try {
+      const first = await project('control-first'),
+        second = await project('control-second')
+      const initial = await instance.start(first)
+      const prepared = await instance.prepareProject(second)
+      assert.deepEqual(
+        new Set(await instance.retainedProjectDirectories()),
+        new Set([await realpath(first), await realpath(second)]),
+      )
+      assert.equal(instance.projectDirectory(), await realpath(first))
+      const previous = await instance.selectPrepared(prepared)
+      assert.equal(instance.projectDirectory(), await realpath(second))
+      assert.deepEqual(instance.status(), initial)
+      await instance.selectPrepared(previous)
+      assert.equal(instance.projectDirectory(), previous.directory)
+      await instance.retirePrepared(prepared)
+      assert.deepEqual(await instance.retainedProjectDirectories(), [await realpath(first)])
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('retains every project directory associated with a reused environment ID until retirement completes', async () => {
+    const instance = host()
+    try {
+      const initial = await project('reuse-initial'),
+        first = await project('reuse-id-first'),
+        second = await project('reuse-id-second')
+      await instance.start(initial)
+      const a = await instance.prepareProject(first)
+      const b = await instance.prepareProject(second)
+      assert.equal(a.id, b.id)
+      assert.deepEqual(
+        new Set(await instance.retainedProjectDirectories()),
+        new Set([await realpath(initial), await realpath(first), await realpath(second)]),
+      )
+      await instance.retirePrepared(a)
+      assert.deepEqual(await instance.retainedProjectDirectories(), [await realpath(initial)])
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('keeps the selected content and process when a private preparation or selection is rejected', async () => {
+    const instance = host()
+    try {
+      await instance.start(await project('control-valid'))
+      const old = instance.projectDirectory(),
+        initial = instance.status()
+      await assert.rejects(instance.prepareProject(await project('bad-control')), { code: 'CONTENT_PREPARE_FAILED' })
+      await assert.rejects(instance.selectPrepared({ id: 'forged', directory: '/not-selected' }), {
+        code: 'CONTENT_PREPARE_FAILED',
+      })
+      assert.equal(instance.projectDirectory(), old)
+      assert.deepEqual(instance.status(), initial)
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('rejects an in-flight request when the child exits and can start again cleanly', async () => {
+    const instance = host()
+    try {
+      await instance.start(await project('control-stop'))
+      const request = instance.prepareProject(await project('held-control'))
+      const rejected = assert.rejects(request, { code: 'HOST_UNAVAILABLE' })
+      await delay(50)
+      await instance.stop()
+      await rejected
+      await instance.start(await project('control-resume'))
+      assert.ok(await instance.prepareProject(await project('control-after-stop')))
+    } finally {
+      await instance.stop()
+    }
+  })
+})

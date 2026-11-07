@@ -1,11 +1,12 @@
 {
   "name": "@arcadia-eternity/protocol",
-  "version": "1.0.0",
+  "version": "4.0.0-preview.1",
   "description": "",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git",
+    "directory": "packages/protocol"
   },
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",
@@ -24,5 +25,13 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "preview"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ]
 }

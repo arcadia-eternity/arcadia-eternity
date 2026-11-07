@@ -1,31 +1,83 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import LobbyView from '../pages/lobbyPage.vue'
 // import BattleView from '../pages/battlePage.vue'
 const BattleView = () => import('../pages/battlePage.vue')
 // import LocalBattlePage from '../pages/localBattlePage.vue'
 const LocalBattlePage = () => import('../pages/localBattlePage.vue')
-const DataEditorPage = () => import('@/features/data-editor/DataEditorPage.vue')
 
 // 路由守卫
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
 import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
-import { isDesktop } from '@/utils/env'
+import { isDesktop, isStaticMode } from '@/utils/env'
+import { captureOAuthCallbackAtBoot } from '@/services/serverSession'
 
 // 战报相关组件
-const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
-const BattleRecordDetail = () => import('@/components/battleReport/BattleRecordDetail.vue')
 const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
-const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
-const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
+// Select the loader, not an import inside a shared loader. The production
+// bundler can merge conditional imports and retain only the fallback CSS deps.
+const LocalContentOnlyPage = () => import('@/features/content/LocalContentOnlyPage.vue')
 const routes: RouteRecordRaw[] = [
   {
+    path: '/servers',
+    name: 'Servers',
+    component: () => import('@/features/servers/ServersPage.vue'),
+    meta: { title: '服务器' },
+  },
+  {
+    path: '/management',
+    name: 'Management',
+    component: () => import('@/features/management/ManagementPage.vue'),
+    meta: { title: '环境与服务器管理' },
+  },
+  {
+    path: '/content/preview',
+    name: 'AuthorPreview',
+    component: () => import('@/features/authoring/AuthorPreviewPage.vue'),
+    meta: { title: '内容包试玩' },
+  },
+  {
+    path: '/content',
+    name: 'ContentManager',
+    component: () => import('@/features/content/ContentManagerPage.vue'),
+    meta: { title: '内容包' },
+  },
+  {
+    path: '/settings/local-service',
+    name: 'LocalContentService',
+    component: isDesktop ? () => import('@/features/content/LocalServicePage.vue') : LocalContentOnlyPage,
+    meta: { title: '高级本机工具' },
+  },
+  {
+    path: '/creator/development',
+    name: 'DevelopmentWorkspace',
+    component: isDesktop ? () => import('@/features/development/DevelopmentWorkspacePage.vue') : LocalContentOnlyPage,
+    meta: { title: '开发服务工作区' },
+  },
+  {
+    path: '/content/edit/:projectId?',
+    alias: '/creator',
+    name: 'Creator',
+    component: isDesktop ? () => import('@/features/authoring/AuthorWorkspacePage.vue') : LocalContentOnlyPage,
+    meta: { title: '编辑内容包' },
+  },
+  {
+    path: '/creator/drafts',
+    name: 'CreatorDrafts',
+    component: isDesktop ? () => import('@/features/creator/CreatorPage.vue') : LocalContentOnlyPage,
+    meta: { title: '创作工坊' },
+  },
+  {
     path: '/',
+    alias: '/lobby',
     name: 'Lobby',
+    beforeEnter: route =>
+      route.query.entry === 'management' ? { path: '/management', query: { target: 'server' } } : true,
     component: LobbyView,
     meta: {
-      title: '匹配大厅',
+      title: '好友大厅',
+      requiresServer: true,
     },
     props: route => ({
       // 将查询参数转换为props
@@ -54,6 +106,7 @@ const routes: RouteRecordRaw[] = [
     props: true,
     meta: {
       title: '私人房间',
+      requiresServer: true,
       requiresAuth: false, // 私人房间不需要强制认证
     },
   },
@@ -87,6 +140,7 @@ const routes: RouteRecordRaw[] = [
     component: AccountPage,
     meta: {
       title: '账户管理',
+      serverOnly: true,
     },
   },
 
@@ -131,51 +185,6 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // 战报相关路由
-  {
-    path: '/battle-reports',
-    name: 'BattleReports',
-    component: BattleRecordList,
-    meta: {
-      title: '战报记录',
-    },
-  },
-  {
-    path: '/battle-reports/:id',
-    name: 'BattleReportDetail',
-    component: BattleRecordDetail,
-    meta: {
-      title: '战报详情',
-    },
-  },
-  {
-    path: '/battle-reports/:id/preview',
-    name: 'BattleReportPreview',
-    component: BattleView,
-    props: route => ({
-      replayMode: true,
-      battleRecordId: route.params.id,
-    }),
-    meta: {
-      title: '战报预览',
-    },
-  },
-  {
-    path: '/leaderboard',
-    name: 'Leaderboard',
-    component: Leaderboard,
-    meta: {
-      title: '排行榜',
-    },
-  },
-  {
-    path: '/players/:playerId/battles',
-    name: 'PlayerBattleRecords',
-    component: PlayerBattleRecords,
-    meta: {
-      title: '玩家战报',
-    },
-  },
   // 本地战报相关路由
   {
     path: '/local-battle-reports',
@@ -195,14 +204,6 @@ const routes: RouteRecordRaw[] = [
     }),
     meta: {
       title: '本地战报回放',
-    },
-  },
-  {
-    path: '/pack-editor',
-    name: 'DataEditor',
-    component: DataEditorPage,
-    meta: {
-      title: '数据编辑器',
     },
   },
 
@@ -233,9 +234,17 @@ if (!isDesktop) {
   routes.push(...webOnlyRoutes)
 }
 
+// Capture before history remembers the initial URL, so mounting cannot restore the one-time query.
+if (!isStaticMode) captureOAuthCallbackAtBoot(window.location, window.history)
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
+  history: isStaticMode ? createWebHashHistory() : createWebHistory(import.meta.env.BASE_URL),
+  routes: isStaticMode
+    ? [
+        { path: '/', redirect: '/local-battle' },
+        ...routes.filter(route => !route.meta?.requiresServer && !route.meta?.serverOnly),
+      ]
+    : routes,
   scrollBehavior(_to, _from, savedPosition) {
     return savedPosition || { top: 0 }
   },

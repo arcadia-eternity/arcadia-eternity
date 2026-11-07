@@ -1,10 +1,30 @@
-import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } from 'electron'
 import { createRequire } from 'node:module'
 import http from 'node:http'
+import { randomUUID } from 'node:crypto'
 import net from 'node:net'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
+import { LocalBattleHost } from './local-battle-host.mjs'
+import { LocalServerController } from './local-server-controller.mjs'
+import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
+import { createRemotePlayController, protectDesktopNavigation, normalizeRemoteBackend } from './remote-play.mjs'
+import { createSwfHost } from './swf-host.mjs'
+import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
+import { stopForQuit } from './shutdown.mjs'
+import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
+import { ContentLibrary } from './content-library.mjs'
+import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
+import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
+import { AuthorWorkspaces } from './author-workspaces.mjs'
+import { createLocalContentSessions } from './local-content-sessions.mjs'
+import { bindLocalContentOwner } from './local-content-owner.mjs'
+import { LocalEnvironments } from './local-environments.mjs'
+import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
+import { protectStandardStreams } from './stdio.mjs'
+
+protectStandardStreams()
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')
@@ -16,17 +36,311 @@ const projectRoot = path.resolve(__dirname, '..')
 const rendererDistDir = path.join(projectRoot, 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.ARCADIA_ELECTRON_DEV_SERVER_URL
+const rendererUrl = devServerUrl ?? CLIENT_URL
+// Main-process content preparation uses the bundled npm entry too. Child invocations
+// set Electron's Node mode themselves; do not alter app relaunch semantics globally.
+if (app.isPackaged)
+  process.env.ARCADIA_NPM_CLI = path.join(process.resourcesPath, 'arcadia-server/runtime/npm/bin/npm-cli.js')
+const localBattleHost = new LocalBattleHost({
+  executable: process.execPath,
+  cli: app.isPackaged
+    ? path.join(process.resourcesPath, 'arcadia-server', 'cli.js')
+    : path.resolve(projectRoot, '../../dist/cli.js'),
+  webRoot: app.isPackaged
+    ? path.join(process.resourcesPath, 'arcadia-server', 'web')
+    : path.resolve(projectRoot, '../../dist/web'),
+  rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
+  stateDirectory: path.join(app.getPath('userData'), 'local-server'),
+  workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
+  attachWorkspace: child => getManagementWorkspaceOwner().attach(child),
+  ...(app.isPackaged
+    ? {
+        npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
+        packsDirectory: path.join(process.resourcesPath, 'arcadia-server', 'packs'),
+      }
+    : {}),
+})
+
+const localServerController = new LocalServerController({
+  host: localBattleHost,
+  library: getContentLibrary,
+  startProject: id => getContentProjects().start(id),
+})
 
 const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
 const BASE_PACK_ID = 'arcadia-eternity.base'
 const BASE_PACK_FOLDER = 'base'
 
+const remotePlay = createRemotePlayController({
+  BrowserWindow,
+  session,
+  rendererUrl,
+  preload: path.join(__dirname, 'remote-preload.cjs'),
+  setupSession: isolated => {
+    if (!devServerUrl) registerClientProtocol(isolated, rendererDistDir)
+  },
+  isManagementUrl: value => {
+    try {
+      const url = new URL(value)
+      return ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) && Number(url.port) === localServerPort
+    } catch {
+      return true
+    }
+  },
+})
+const swfHost = createSwfHost({
+  isTrustedController: event =>
+    isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl) || remotePlay.isTrusted(event),
+  playerPath: path.join(projectRoot, devServerUrl ? 'public/swf-player.html' : 'dist/swf-player.html'),
+  runtimeDirectory: path.join(projectRoot, devServerUrl ? 'node_modules/@ruffle-rs/ruffle' : 'dist/ruffle'),
+})
+const managementHttpToken = randomUUID()
 let mainWindow = null
 let localServer = null
 let localServerPort = null
 let petsDir = null
 let packsDir = null
-let workspacePackStatePath = null
+let creatorWorkStorage
+let contentProjects
+let contentLibrary
+let managementWorkspaceOwner
+let localContentSessions
+let localContentRuntime
+let localContentOwner
+let authorWorkspaces
+const authorPreviewWindows = new Map()
+const authorPreviewProjects = new WeakMap()
+let previewOperation = Promise.resolve()
+function withPreviewOperation(operation) {
+  const next = previewOperation.catch(() => {}).then(operation)
+  previewOperation = next
+  return next
+}
+const previewSession = createAuthorPreviewSessions({ directory: rendererDistDir, development: !!devServerUrl })
+ipcMain.on('author-preview:return', event => {
+  const window = [...authorPreviewWindows.values()].find(window =>
+    isTrustedDesktopRequest(event, window.webContents, rendererUrl),
+  )
+  if (!window) return
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  }
+  window.close()
+})
+async function openAuthorPreview(id, job) {
+  if (job.kind !== 'preview' || job.state !== 'succeeded' || !job.result?.preview?.endpoint)
+    throw new Error('请先为当前源项目准备可用的画面试玩')
+  const key = `${id}:${job.jobId}`
+  const previous = authorPreviewWindows.get(key)
+  if (previous && !previous.isDestroyed()) {
+    previous.focus()
+    return
+  }
+  const isolated = previewSession(key)
+  const window = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    show: false,
+    backgroundColor: '#09131f',
+    title: '内容包试玩',
+    webPreferences: {
+      session: isolated,
+      preload: path.join(__dirname, 'preview-preload.cjs'),
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+    },
+  })
+  window.once('ready-to-show', () => window.show())
+  authorPreviewWindows.set(key, window)
+  authorPreviewProjects.set(window.webContents, id)
+  protectDesktopNavigation(window, rendererUrl)
+  window.on('closed', () => {
+    authorPreviewWindows.delete(key)
+    void isolated.closeAllConnections()
+  })
+  const url = new URL('/content/preview', rendererUrl)
+  url.searchParams.set('endpoint', job.result.preview.endpoint)
+  try {
+    await window.loadURL(url.href)
+  } catch (error) {
+    window.destroy()
+    throw error
+  }
+}
+function getAuthorWorkspaces() {
+  authorWorkspaces ??= new AuthorWorkspaces({
+    root: path.join(app.getPath('userData'), 'ugc'),
+    api: () =>
+      import(
+        app.isPackaged
+          ? pathToFileURL(
+              path.join(
+                process.resourcesPath,
+                'arcadia-server/node_modules/@arcadia-eternity/content-dev/dist/author-api.mjs',
+              ),
+            ).href
+          : '@arcadia-eternity/content-dev/workspace'
+      ),
+    notify: event => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:author-changed', event)
+      notifyAuthorPreviewChange(authorPreviewWindows.values(), authorPreviewProjects, event)
+    },
+    env: {
+      ...process.env,
+      ARCADIA_PREVIEW_CLIENT_URL: rendererUrl,
+      ...(app.isPackaged
+        ? { ARCADIA_NPM_CLI: path.join(process.resourcesPath, 'arcadia-server/runtime/npm/bin/npm-cli.js') }
+        : {}),
+    },
+  })
+  return authorWorkspaces
+}
+function getContentLibrary() {
+  contentLibrary ??= new ContentLibrary({
+    root: path.join(app.getPath('userData'), 'content-packages'),
+    host: localBattleHost,
+    withDefaultArchive: async use => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { withShippedCatalogArchive } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/pack-loader/node')).href
+      )
+      const root = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+      return withShippedCatalogArchive(root, localBattleHost.npmCliPath, use)
+    },
+    prepare: options => getLocalContentSessions().prepareProject(options),
+    selected: options => getLocalContentSessions().selectProject(options),
+    createManagedProjects: async (root, options) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { ManagedProjects } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/managed-projects')).href
+      )
+      return new ManagedProjects(root, options)
+    },
+    run: (args, signal) =>
+      runContentCommand(
+        {
+          ...localBattleHost,
+          npmCacheDirectory: path.join(app.getPath('userData'), 'npm-content-cache'),
+        },
+        args,
+        signal,
+      ),
+  })
+  return contentLibrary
+}
+let localEnvironments
+function getLocalEnvironments() {
+  const runtimeRequire = app.isPackaged
+    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+    : require
+  localEnvironments ??= new LocalEnvironments({
+    library: getContentLibrary(),
+    setPackageEnabled: async (workspace, input) => {
+      const { setEnvironmentPackageEnabled } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      return setEnvironmentPackageEnabled(workspace, input)
+    },
+    openWorkspace: async () => {
+      const { ContentWorkspace } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      // Server publication always imports a separate copy, so only local runtime
+      // leases can retain versions in this independently owned workspace.
+      return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
+        retentions: { list: async () => [] },
+      })
+    },
+    validate: async input => {
+      const { validateWorkspaceProject } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
+      )
+      return validateWorkspaceProject(input)
+    },
+  })
+  return localEnvironments
+}
+function getManagementWorkspaceOwner() {
+  managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
+    root: path.join(app.getPath('userData'), 'content-packages'),
+    library: getContentLibrary(),
+    openWorkspace: async (root, options) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { ContentWorkspace } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      return ContentWorkspace.open(root, options)
+    },
+  })
+  return managementWorkspaceOwner
+}
+async function loadLocalContentRuntime() {
+  localContentRuntime ??= (async () => {
+    const runtimeRequire = app.isPackaged
+      ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+      : require
+    const load = spec => import(pathToFileURL(runtimeRequire.resolve(spec)).href)
+    const [node, native] = await Promise.all([
+      load('@arcadia-eternity/pack-loader/node'),
+      load('@arcadia-eternity/pack-loader/native'),
+    ])
+    return {
+      host: node.emptyNpmContentHost,
+      prepareNpmProject: node.prepareNpmProject,
+      buildDisplayCatalog: native.buildDisplayCatalog,
+      buildDisplayLocales: native.buildDisplayLocales,
+    }
+  })().catch(error => {
+    localContentRuntime = undefined
+    throw error
+  })
+  return localContentRuntime
+}
+function getLocalContentSessions() {
+  localContentSessions ??= createLocalContentSessions({
+    library: getContentLibrary(),
+    load: loadLocalContentRuntime,
+    assetUrl: (token, hash) => `http://127.0.0.1:${localServerPort}/local-content/${token}/${hash}`,
+  })
+  return localContentSessions
+}
+function getContentProjects() {
+  contentProjects ??= new ContentProjectManager({
+    file: path.join(app.getPath('userData'), 'content-projects.json'),
+    host: localBattleHost,
+    run: (args, signal) => runContentCommand(localBattleHost, args, signal),
+  })
+  return contentProjects
+}
+async function getCreatorWorkStorage() {
+  const loader = app.isPackaged
+    ? pathToFileURL(
+        path.join(
+          process.resourcesPath,
+          'arcadia-server',
+          'node_modules',
+          '@arcadia-eternity',
+          'pack-loader',
+          'dist',
+          'node.js',
+        ),
+      ).href
+    : '@arcadia-eternity/pack-loader/node'
+  creatorWorkStorage ??= import(loader).then(
+    ({ NodeWorkStorage }) => new NodeWorkStorage(path.join(app.getPath('userData'), 'creator-works')),
+  )
+  return creatorWorkStorage
+}
 
 function buildContextMenuTemplate(window, params) {
   const template = []
@@ -570,7 +884,6 @@ async function ensureAppDataDirs() {
   const userDataDir = app.getPath('userData')
   petsDir = path.join(userDataDir, 'pets')
   packsDir = path.join(userDataDir, 'packs')
-  workspacePackStatePath = path.join(userDataDir, 'packs-state.json')
 
   await Promise.all([fs.mkdir(petsDir, { recursive: true }), fs.mkdir(packsDir, { recursive: true })])
   await ensureWorkspaceBasePack()
@@ -591,7 +904,7 @@ async function downloadPetSwf(petNum, remoteUrl) {
   if (!petsDir) throw new Error('pets directory unavailable')
 
   const number = Number(petNum)
-  if (!Number.isFinite(number) || number <= 0) {
+  if (!Number.isSafeInteger(number) || number <= 0) {
     throw new Error('petNum 非法')
   }
 
@@ -600,6 +913,7 @@ async function downloadPetSwf(petNum, remoteUrl) {
     return filePath
   }
 
+  if (remoteUrl !== `${PET_REMOTE_BASE}/${number}.swf`) throw new Error('Unsupported legacy pet resource URL')
   await downloadFileToCache(remoteUrl, filePath)
   return filePath
 }
@@ -707,114 +1021,14 @@ async function discoverWorkspacePacks() {
   return discovered
 }
 
-async function readWorkspacePackState() {
-  if (!workspacePackStatePath) {
-    return { disabledFolders: [] }
-  }
-
-  try {
-    const raw = JSON.parse(await fs.readFile(workspacePackStatePath, 'utf8'))
-    const disabledFolders = Array.isArray(raw?.disabledFolders)
-      ? raw.disabledFolders.filter(value => typeof value === 'string')
-      : []
-    return { disabledFolders }
-  } catch {
-    return { disabledFolders: [] }
-  }
-}
-
-async function writeWorkspacePackState(state) {
-  if (!workspacePackStatePath) return
-
-  const normalized = {
-    disabledFolders: [...new Set((state?.disabledFolders ?? []).filter(value => typeof value === 'string'))].sort(),
-  }
-  await fs.writeFile(workspacePackStatePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8')
-}
-
-function listEnabledDependents(folderName, enabledFolders, dependencyInfo) {
-  const dependents = dependencyInfo.requiredByFolder.get(folderName) ?? []
-  return dependents
-    .filter(depFolder => enabledFolders.has(depFolder))
-    .map(depFolder => dependencyInfo.byFolder.get(depFolder))
-    .filter(Boolean)
-}
-
 async function setWorkspacePackEnabled(input) {
   const folderName = sanitizeExistingFolderName(input?.folderName)
-  if (!folderName) {
-    throw new Error('folderName 非法')
-  }
-
-  const enabled = Boolean(input?.enabled)
-  const discovered = await discoverWorkspacePacks()
-  const target =
-    discovered.find(item => item.folderName === folderName) ??
-    discovered.find(item => item.folderName.toLowerCase() === folderName.toLowerCase())
-  if (!target) {
-    throw new Error(`未找到工作区数据包目录: ${folderName}`)
-  }
-  const targetFolderName = target.folderName
-  if (target.manifest.id === BASE_PACK_ID && !enabled) {
-    throw new Error('默认数据包不可禁用')
-  }
-
-  const state = await readWorkspacePackState()
-  const dependencyInfo = buildWorkspaceDependencyInfo(discovered)
-  const nextDisabled = new Set(state.disabledFolders)
-
-  if (enabled) {
-    const stack = [targetFolderName]
-    const visited = new Set()
-
-    while (stack.length > 0) {
-      const current = stack.pop()
-      if (!current || visited.has(current)) continue
-      visited.add(current)
-      nextDisabled.delete(current)
-
-      const unresolved = dependencyInfo.unresolvedRequiredByFolder.get(current) ?? []
-      if (unresolved.length > 0) {
-        const packId = dependencyInfo.byFolder.get(current)?.manifest.id ?? current
-        throw new Error(`无法启用 '${packId}'，存在未满足依赖: ${unresolved.join('；')}`)
-      }
-
-      const deps = dependencyInfo.requiredDepsByFolder.get(current) ?? []
-      for (const depFolder of deps) {
-        nextDisabled.delete(depFolder)
-        stack.push(depFolder)
-      }
-    }
-  } else {
-    const currentSelection = resolveWorkspaceSelection(discovered, state, dependencyInfo)
-    const blockingDependents = listEnabledDependents(
-      targetFolderName,
-      currentSelection.enabledFolders,
-      dependencyInfo,
-    ).filter(pack => pack.folderName !== targetFolderName)
-
-    if (blockingDependents.length > 0) {
-      const names = blockingDependents.map(pack => pack.manifest.id).join(', ')
-      throw new Error(`无法禁用，以下已启用数据包依赖它: ${names}`)
-    }
-
-    nextDisabled.add(targetFolderName)
-  }
-
-  const nextSelection = resolveWorkspaceSelection(discovered, { disabledFolders: [...nextDisabled] }, dependencyInfo)
-  if (nextSelection.dependencyIssues.length > 0) {
-    throw new Error(`启用状态存在依赖问题: ${nextSelection.dependencyIssues.join('；')}`)
-  }
-
-  await writeWorkspacePackState({ disabledFolders: [...nextDisabled] })
-  return {
-    folderName: targetFolderName,
-    enabled: nextSelection.enabledFolders.has(targetFolderName) || target.manifest.id === BASE_PACK_ID,
-  }
+  if (folderName === BASE_PACK_FOLDER && input?.enabled === true) return { folderName, enabled: true }
+  throw new Error('旧 packs 工作区不再管理启用状态，请在内容包管理中安装并启用 npm 内容包')
 }
 
 async function buildWorkspaceManifest(port) {
-  const [discovered, state] = await Promise.all([discoverWorkspacePacks(), readWorkspacePackState()])
+  const discovered = (await discoverWorkspacePacks()).filter(item => item.manifest.id === BASE_PACK_ID)
 
   // Dev mode: inject base pack from source directory
   if (devServerUrl && !discovered.some(p => p.manifest?.id === BASE_PACK_ID)) {
@@ -846,7 +1060,7 @@ async function buildWorkspaceManifest(port) {
   if (discovered.length === 0) return null
 
   const dependencyInfo = buildWorkspaceDependencyInfo(discovered)
-  const selection = resolveWorkspaceSelection(discovered, state, dependencyInfo)
+  const selection = resolveWorkspaceSelection(discovered, { disabledFolders: [] }, dependencyInfo)
   if (selection.dependencyIssues.length > 0) {
     console.warn('Workspace dependency issues detected:', selection.dependencyIssues)
     return null
@@ -920,27 +1134,18 @@ async function buildWorkspaceManifest(port) {
 }
 
 async function buildWorkspaceIndex() {
-  const [discovered, state] = await Promise.all([discoverWorkspacePacks(), readWorkspacePackState()])
-  const dependencyInfo = buildWorkspaceDependencyInfo(discovered)
-  const selection = resolveWorkspaceSelection(discovered, state, dependencyInfo)
-  const orderedEnabled = selection.orderedPacks
-  const orderedDisabled = discovered
-    .filter(pack => !selection.enabledFolders.has(pack.folderName))
-    .sort(compareWorkspacePack)
-
-  return [...orderedEnabled, ...orderedDisabled].map(item => {
-    const enabled = selection.enabledFolders.has(item.folderName)
-    const requiredByEnabled = listEnabledDependents(item.folderName, selection.enabledFolders, dependencyInfo)
-    const isBase = item.manifest.id === BASE_PACK_ID
-    return {
+  // Legacy metadata transport is retained only for the official base resources.
+  // Installed npm combinations have one owner: ContentLibrary.
+  return (await discoverWorkspacePacks())
+    .filter(item => item.manifest.id === BASE_PACK_ID)
+    .map(item => ({
       folderName: item.folderName,
       id: item.manifest.id,
       version: item.manifest.version,
       manifestPath: `${item.folderName}/pack.json`,
-      enabled,
-      canDisable: !isBase && (!enabled || requiredByEnabled.length === 0),
-    }
-  })
+      enabled: true,
+      canDisable: false,
+    }))
 }
 
 function listPackTemplates() {
@@ -960,7 +1165,7 @@ function starterTemplateFiles(packId, version) {
       version,
       engine: 'seer2-v2',
       layoutVersion: 1,
-      assetsRef: 'assets',
+      presentation: 'presentation.json',
       paths: {
         dataDir: 'data',
         localesDir: 'locales',
@@ -979,25 +1184,15 @@ function starterTemplateFiles(packId, version) {
     2,
   )
 
-  const assetsJson = JSON.stringify(
-    {
-      id: `${packId}.assets`,
-      version,
-      engine: 'seer2-v2',
-      assets: [],
-      mappings: {
-        species: {},
-        marks: {},
-        skills: {},
-      },
-    },
+  const presentationJson = JSON.stringify(
+    { version: 2, defaultLocale: 'zh-CN', bindings: [], resources: [], locales: {} },
     null,
     2,
   )
 
   return [
     ['pack.json', packJson],
-    ['assets/assets.json', assetsJson],
+    ['presentation.json', presentationJson],
     [
       'data/effect.yaml',
       '- id: effect_template_power_up\n  trigger: OnDamage\n  priority: 0\n  apply:\n    type: addPower\n    target: useSkillContext\n    value: 10\n',
@@ -1395,6 +1590,12 @@ async function handleLocalServerRequest(req, res) {
     return
   }
 
+  // The local file endpoint is a manager capability, not a public loopback resource server.
+  if (req.headers['x-arcadia-management'] !== managementHttpToken) {
+    sendJson(res, 403, { error: 'unauthorized desktop resource request' })
+    return
+  }
+
   if (req.method !== 'GET') {
     sendJson(res, 405, { error: 'method not allowed' })
     return
@@ -1424,6 +1625,14 @@ async function handleLocalServerRequest(req, res) {
     return
   }
 
+  const localAsset = /^\/local-content\/([a-f0-9-]{36})\/([a-f0-9]{64})$/.exec(pathname)
+  if (localAsset) {
+    const asset = localContentSessions?.assetFile(localAsset[1], localAsset[2])
+    if (!asset) return sendJson(res, 404, { error: 'local content session expired' })
+    await sendFile(res, asset.file)
+    return
+  }
+
   if (pathname === '/packs/workspace/index.json') {
     const summary = await buildWorkspaceIndex()
     sendJson(res, 200, summary)
@@ -1434,12 +1643,14 @@ async function handleLocalServerRequest(req, res) {
     const tail = pathname.slice('/packs/'.length)
     let filePath = resolvePackFilePath(tail)
 
-    // Dev mode: base pack served from source directory
+    // Serve the bundled base directly when no legacy workspace copy exists.
     if (filePath && !(await pathExists(filePath))) {
       const slashIndex = tail.indexOf('/')
       const folderName = slashIndex === -1 ? tail : tail.slice(0, slashIndex)
       if (folderName === BASE_PACK_FOLDER) {
-        const baseDir = await findBundledBasePackDir()
+        const baseDir = app.isPackaged
+          ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
+          : await findBundledBasePackDir()
         if (baseDir) {
           const baseRelative = slashIndex === -1 ? '' : tail.slice(slashIndex + 1)
           const raw = String(baseRelative ?? '')
@@ -1542,6 +1753,13 @@ async function checkForUpdates() {
     return { hasUpdate: false }
   }
 
+  try {
+    await fs.access(path.join(process.resourcesPath, 'app-update.yml'))
+  } catch (error) {
+    if (error.code === 'ENOENT') return { hasUpdate: false }
+    throw error
+  }
+
   const result = await autoUpdater.checkForUpdates()
   const version = result?.updateInfo?.version
   const hasUpdate = typeof version === 'string' && version.length > 0 && version !== app.getVersion()
@@ -1559,29 +1777,380 @@ async function downloadAndInstallUpdate() {
 }
 
 function setupIpcHandlers() {
-  ipcMain.handle('desktop:get-local-server-port', () => localServerPort)
+  // Every manager handler, including legacy workspace/download/updater APIs, shares this guard.
+  const handle = (channel, handler) =>
+    ipcMain.handle(channel, (event, ...args) => {
+      requireLocalBattleCaller(event)
+      return handler(event, ...args)
+    })
+  handle('desktop:local-server', (_event, input) => localServerController.request(input))
+  handle('desktop:local-environment', async (_event, input) => {
+    try {
+      return { result: await getLocalEnvironments().request(input) }
+    } catch (error) {
+      return { error: { code: error.code ?? 'ENVIRONMENT_FAILED', message: error.message ?? '环境操作失败' } }
+    }
+  })
+  handle('desktop:management-request', (_event, input) => localBattleHost.managementRequest(input))
+  ipcMain.handle('author-preview:environment', async (event, action, input) => {
+    const window = [...authorPreviewWindows.values()].find(window =>
+      isTrustedDesktopRequest(event, window.webContents, rendererUrl),
+    )
+    if (!window) throw new Error('Unauthorized preview frame')
+    const id = authorPreviewProjects.get(window.webContents),
+      manager = getAuthorWorkspaces()
+    if (action === 'list' || action === 'save') return manager.debugEnvironments(id, action, input)
+    if (action === 'add-source') {
+      const choice = await dialog.showOpenDialog(window, { title: '选择额外测试源码包', properties: ['openDirectory'] })
+      if (window.isDestroyed() || !isTrustedDesktopRequest(event, window.webContents, rendererUrl))
+        throw new Error('Preview closed')
+      return choice.canceled ? null : manager.mapDebugSource(id, choice.filePaths[0])
+    }
+    if (action !== 'prepare' || typeof input?.environmentId !== 'string') throw new Error('环境操作无效')
+    // Reply before destroying the caller; the job and output remain owned by the editor.
+    setImmediate(() => {
+      void withPreviewOperation(async () => {
+        const session = await manager.session(id)
+        for (const candidate of authorPreviewWindows.values()) candidate.destroy()
+        await manager.stopPreviews()
+        await previewSession.clear()
+        await manager.previewEnvironment(id, input.environmentId)
+        const started = await session.jobs.start({ kind: 'preview', environmentId: input.environmentId })
+        let job = started
+        while (['queued', 'running'].includes(job.state)) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          job = session.jobs.get(started.jobId)
+        }
+        if (job.state === 'succeeded') await openAuthorPreview(id, job)
+        else if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show()
+          mainWindow.focus()
+        }
+      }).catch(error => {
+        console.error('环境准备失败', error)
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+      })
+    })
+    return { preparing: true }
+  })
+  ipcMain.handle('author-preview:teams', async (event, action, input) => {
+    const window = [...authorPreviewWindows.values()].find(window =>
+      isTrustedDesktopRequest(event, window.webContents, rendererUrl),
+    )
+    if (!window) throw new Error('Unauthorized preview frame')
+    // Identity comes from the owning window; the renderer cannot choose a project or path.
+    return getAuthorWorkspaces().teamLibrary(authorPreviewProjects.get(window.webContents), action, input)
+  })
+  ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
+  ipcMain.handle('remote-play:close', event => remotePlay.close(event))
+  handle('desktop:open-server-website', (_event, input) => shell.openExternal(normalizeRemoteBackend(input?.url)))
+  handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url, { mode: input?.mode }))
+  handle('desktop:get-backend-config', () => ({ schemaVersion: 1, backendOrigin: 'https://test-battle.fly.dev' }))
+  function requireLocalBattleCaller(event) {
+    if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl))
+      throw new Error('Unauthorized desktop frame')
+  }
+  handle('desktop:author', async (event, input) => {
+    try {
+      if (!input || typeof input.action !== 'string') throw new Error('作者操作无效')
+      const manager = getAuthorWorkspaces()
+      let result
+      if (input.action === 'list') result = await manager.list()
+      else if (input.action === 'browse-package') {
+        const directory = await getContentLibrary().sourceDirectory(input.packageId)
+        result = await manager.add(directory, { readOnly: true, published: true })
+      } else if (input.action === 'create') result = await manager.create(input.name)
+      else if (input.action === 'open') {
+        const choice = await dialog.showOpenDialog(mainWindow, {
+          title: '打开内容包源项目',
+          properties: ['openDirectory'],
+        })
+        requireLocalBattleCaller(event)
+        result = choice.canceled ? null : await manager.add(choice.filePaths[0])
+      } else {
+        if (typeof input.id !== 'string') throw new Error('项目标识无效')
+        if (input.action === 'forget') result = await manager.forget(input.id)
+        else if (input.action === 'close') result = await manager.release(input.id, { preservePreviews: true })
+        else if (input.action === 'export') {
+          const choice = await dialog.showSaveDialog(mainWindow, {
+            title: '导出完整源项目到新目录',
+            buttonLabel: '导出项目',
+          })
+          requireLocalBattleCaller(event)
+          result = choice.canceled ? null : await manager.export(input.id, choice.filePath)
+        } else {
+          const session = await manager.session(input.id)
+          switch (input.action) {
+            case 'install-built-author-pack':
+              result = await manager.installBuiltPack(input.id, input.jobId, file =>
+                getContentLibrary().installFile(file),
+              )
+              break
+            case 'import-asset': {
+              await session.workspace.assertWritable()
+              const choice = await dialog.showOpenDialog(mainWindow, {
+                title: '导入素材到当前内容包',
+                properties: ['openFile'],
+                filters: [
+                  { name: '图片、音频与动画', extensions: ['png', 'jpg', 'jpeg', 'webp', 'mp3', 'ogg', 'swf'] },
+                ],
+              })
+              requireLocalBattleCaller(event)
+              result = choice.canceled ? null : await manager.importAsset(input.id, choice.filePaths[0])
+              break
+            }
+            case 'context':
+              result = await manager.setContext(input.id, input.state)
+              break
+            case 'snapshot':
+              result = await session.workspace.snapshot()
+              break
+            case 'save-changes':
+              result = await session.workspace.saveChanges(input, { fromForm: true })
+              break
+            case 'dirty':
+              session.workspace.setDirty(input.file, input.dirty === true)
+              break
+            case 'jobs':
+              await session.jobs.refresh()
+              result = session.jobs.list()
+              break
+            case 'start':
+              result =
+                input.kind === 'preview'
+                  ? await withPreviewOperation(async () => {
+                      for (const window of authorPreviewWindows.values()) window.destroy()
+                      await manager.stopPreviews()
+                      await previewSession.clear()
+                      return session.jobs.start({
+                        kind: 'preview',
+                        environmentId: await manager.previewEnvironment(input.id),
+                      })
+                    })
+                  : await session.jobs.start({ kind: input.kind })
+              break
+            case 'preview-open': {
+              result = await withPreviewOperation(async () => {
+                await session.jobs.refresh()
+                const job = session.jobs.get(input.jobId)
+                // Recheck source freshness at the actual window-open boundary.
+                if (input.requireCurrent && (job.stale || job.state !== 'succeeded')) return { opened: false }
+                for (const [key, window] of authorPreviewWindows)
+                  if (key !== `${input.id}:${input.jobId}`) window.destroy()
+                await openAuthorPreview(input.id, job)
+                return { opened: true }
+              })
+              break
+            }
+            case 'cancel':
+              result = await session.call('cancel', { jobId: input.jobId })
+              authorPreviewWindows.get(`${input.id}:${input.jobId}`)?.close()
+              break
+            case 'media':
+              result = await session.workspace.asset(input.file)
+              break
+            case 'show':
+              shell.showItemInFolder(
+                input.file
+                  ? await session.workspace.path(input.file)
+                  : path.join(session.workspace.root, 'package.json'),
+              )
+              break
+            case 'editor':
+              result = await manager.openExternal(
+                input.id,
+                input.file,
+                input.editor,
+                input.line ?? 1,
+                input.column ?? 1,
+              )
+              break
+            case 'sdk':
+              await session.workspace.assertWritable()
+              result = await (await manager.api()).connectDevelopmentSdk(session.workspace.root)
+              break
+            case 'connection':
+              result = (await manager.api()).authorConnection(
+                session.workspace.root,
+                input.execute === true,
+                manager.env,
+                session.workspace.readOnly,
+                manager.contextFile(input.id),
+                session.workspace.published,
+              )
+              break
+            default:
+              throw new Error('不支持的作者操作')
+          }
+        }
+      }
+      return { result: result ?? null }
+    } catch (error) {
+      return { error: { code: error.code ?? 'AUTHOR_FAILED', message: error.message, file: error.file } }
+    }
+  })
+  handle('desktop:list-content-packages', event => {
+    requireLocalBattleCaller(event)
+    return getContentLibrary().list()
+  })
+  handle('desktop:prepare-local-content', event => {
+    requireLocalBattleCaller(event)
+    return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true })
+  })
+  handle('desktop:read-creator-base', event => {
+    requireLocalBattleCaller(event)
+    return getLocalContentSessions().readCreatorBase()
+  })
+  handle('desktop:read-local-runtime', (_event, token) => {
+    return getLocalContentSessions().readRuntime(token, localContentOwner.current())
+  })
+  handle('desktop:capture-personal-environment', event => {
+    requireLocalBattleCaller(event)
+    return getLocalContentSessions().capturePersonalEnvironment(localContentOwner.current())
+  })
+  handle('desktop:release-local-content', (event, token) => {
+    requireLocalBattleCaller(event)
+    if (typeof token !== 'string') throw new Error('本地内容会话无效')
+    return getLocalContentSessions().release(token)
+  })
+  handle('desktop:select-content-package-file', async (event, options) => {
+    requireLocalBattleCaller(event)
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '添加内容包',
+      properties: ['openFile'],
+      filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
+    })
+    requireLocalBattleCaller(event)
+    if (selected.canceled || !selected.filePaths[0]) return null
+    return getContentLibrary().stageFile(selected.filePaths[0], options?.offline === true)
+  })
+  handle('desktop:inspect-npm-content-package', (event, options) => {
+    requireLocalBattleCaller(event)
+    return getContentLibrary().stageNpm(options?.spec, options?.offline === true)
+  })
+  handle('desktop:install-content-package-file', async (event, options) => {
+    requireLocalBattleCaller(event)
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '安装并启用内容包',
+      properties: ['openFile'],
+      filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
+    })
+    requireLocalBattleCaller(event)
+    if (selected.canceled || !selected.filePaths[0]) return null
+    return getContentLibrary().installFile(selected.filePaths[0], options?.offline === true)
+  })
+  handle('desktop:install-npm-content-package', (event, options) => {
+    requireLocalBattleCaller(event)
+    return getContentLibrary().installNpm(options?.spec, options?.offline === true)
+  })
+  handle('desktop:content-package-action', async (event, input) => {
+    requireLocalBattleCaller(event)
+    if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
+    const library = getContentLibrary()
+    if (input.action === 'import-sources') {
+      const selected = await dialog.showOpenDialog(mainWindow, {
+        title: '导入环境来源登记',
+        properties: ['openFile'],
+        filters: [{ name: '来源登记', extensions: ['json'] }],
+      })
+      requireLocalBattleCaller(event)
+      if (selected.canceled || !selected.filePaths[0]) return null
+      const result = await library.importSourceRegistry(selected.filePaths[0])
+      return result.sourceIds.join('、')
+    }
+    if (input.action === 'cancel-install') {
+      library.cancelInstall(input.operationId)
+      return null
+    }
+    if (input.action === 'retry-install') return library.retryInstall(input.operationId)
+    if (input.action === 'clear-install-tasks') {
+      library.clearInstallTasks()
+      return null
+    }
+    if (input.action === 'set-selection') {
+      await library.setSelection(input.ids, input.offline === true)
+      return null
+    }
+    if (input.action === 'confirm-install') return library.confirmInstall(input.planId, input.allowCode === true)
+    if (input.action === 'plan-selection') return library.planSelection(input.ids, input.offline === true)
+    if (input.action === 'apply-selection') {
+      await library.applySelection(input.planId, input.allowCode === true)
+      return null
+    }
+    if (input.action === 'cancel') {
+      await library.cancel(input.planId)
+      return null
+    }
+    if (input.action === 'uninstall') {
+      await library.uninstall(input.packageId)
+      return null
+    }
+    throw new Error('不支持的内容包操作')
+  })
+  handle('desktop:get-local-battle-status', event => {
+    requireLocalBattleCaller(event)
+    return localBattleHost.status()
+  })
 
-  ipcMain.handle('desktop:download-pet-swf', async (_event, payload) => {
+  handle('desktop:list-content-projects', event => {
+    requireLocalBattleCaller(event)
+    return getContentProjects().list()
+  })
+  handle('desktop:add-content-project', async event => {
+    requireLocalBattleCaller(event)
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '登记 npm 内容环境',
+      properties: ['openDirectory'],
+    })
+    requireLocalBattleCaller(event)
+    if (selected.canceled || !selected.filePaths[0]) return null
+    return getContentProjects().add(selected.filePaths[0])
+  })
+  handle('desktop:content-project-action', async (event, input) => {
+    requireLocalBattleCaller(event)
+    if (!input || typeof input.id !== 'string') throw new Error('环境标识无效')
+    const manager = getContentProjects()
+    if (input.action === 'rename') return manager.rename(input.id, input.name)
+    if (input.action === 'forget') return manager.forget(input.id)
+    if (input.action === 'export') {
+      const selected = await dialog.showSaveDialog(mainWindow, { title: '导出到新的环境目录', buttonLabel: '导出环境' })
+      requireLocalBattleCaller(event)
+      if (selected.canceled || !selected.filePath) return null
+      await manager.export(input.id, selected.filePath, input.includeLocalArtifacts === true)
+      return true
+    }
+    return manager.operate(input.id, input.action, { offline: input.offline === true })
+  })
+
+  handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
+  handle('desktop:write-work-workspace', async (_event, input) => {
+    if (!Number.isSafeInteger(input?.expected) || input.expected < 0) throw new Error('Invalid workspace revision')
+    return (await getCreatorWorkStorage()).compareAndSwap(input.expected, input.workspace)
+  })
+
+  handle('desktop:get-local-server-port', () => localServerPort)
+
+  handle('desktop:download-pet-swf', async (_event, payload) => {
     const petNum = payload?.petNum
     const remoteUrl = payload?.remoteUrl || `${PET_REMOTE_BASE}/${petNum}.swf`
     const filePath = await downloadPetSwf(petNum, remoteUrl)
     return filePath
   })
 
-  ipcMain.handle('desktop:list-cached-pets', async () => listCachedPets())
-  ipcMain.handle('desktop:clear-pet-cache', async () => clearPetCache())
+  handle('desktop:list-cached-pets', async () => listCachedPets())
+  handle('desktop:clear-pet-cache', async () => clearPetCache())
 
-  ipcMain.handle('desktop:list-pack-templates', () => listPackTemplates())
-  ipcMain.handle('desktop:list-workspace-packs', async () => buildWorkspaceIndex())
-  ipcMain.handle('desktop:create-pack-from-template', async (_event, input) => createPackFromTemplate(input))
-  ipcMain.handle('desktop:set-workspace-pack-enabled', async (_event, input) => setWorkspacePackEnabled(input))
-  ipcMain.handle('desktop:read-workspace-pack-manifest', async (_event, input) => readWorkspacePackManifest(input))
-  ipcMain.handle('desktop:write-workspace-pack-manifest', async (_event, input) => writeWorkspacePackManifest(input))
-  ipcMain.handle('desktop:list-workspace-pack-files', async (_event, input) => listWorkspacePackFiles(input))
-  ipcMain.handle('desktop:read-workspace-pack-file', async (_event, input) => readWorkspacePackFile(input))
-  ipcMain.handle('desktop:write-workspace-pack-file', async (_event, input) => writeWorkspacePackFile(input))
+  handle('desktop:list-pack-templates', () => listPackTemplates())
+  handle('desktop:list-workspace-packs', async () => buildWorkspaceIndex())
+  handle('desktop:create-pack-from-template', async (_event, input) => createPackFromTemplate(input))
+  handle('desktop:set-workspace-pack-enabled', async (_event, input) => setWorkspacePackEnabled(input))
+  handle('desktop:read-workspace-pack-manifest', async (_event, input) => readWorkspacePackManifest(input))
+  handle('desktop:write-workspace-pack-manifest', async (_event, input) => writeWorkspacePackManifest(input))
+  handle('desktop:list-workspace-pack-files', async (_event, input) => listWorkspacePackFiles(input))
+  handle('desktop:read-workspace-pack-file', async (_event, input) => readWorkspacePackFile(input))
+  handle('desktop:write-workspace-pack-file', async (_event, input) => writeWorkspacePackFile(input))
 
-  ipcMain.handle('desktop:read-all-base-pack-data', async () => {
+  handle('desktop:read-all-base-pack-data', async () => {
     const baseDir = await findBundledBasePackDir()
     if (!baseDir) throw new Error('Base pack source directory not found')
 
@@ -1611,7 +2180,7 @@ function setupIpcHandlers() {
     return result
   })
 
-  ipcMain.handle('desktop:write-base-pack-file', async (_event, input) => {
+  handle('desktop:write-base-pack-file', async (_event, input) => {
     const baseDir = await findBundledBasePackDir()
     if (!baseDir) throw new Error('Base pack source directory not found')
 
@@ -1627,7 +2196,7 @@ function setupIpcHandlers() {
     return { relativePath }
   })
 
-  ipcMain.handle('desktop:read-base-pack-file', async (_event, input) => {
+  handle('desktop:read-base-pack-file', async (_event, input) => {
     const baseDir = await findBundledBasePackDir()
     if (!baseDir) throw new Error('Base pack source directory not found')
 
@@ -1640,27 +2209,29 @@ function setupIpcHandlers() {
     const content = await fs.readFile(filePath, 'utf8')
     return { relativePath, content }
   })
-  ipcMain.handle('desktop:create-workspace-pack-folder', async (_event, input) => createWorkspacePackFolder(input))
-  ipcMain.handle('desktop:rename-workspace-pack-path', async (_event, input) => renameWorkspacePackPath(input))
-  ipcMain.handle('desktop:delete-workspace-pack-path', async (_event, input) => deleteWorkspacePackPath(input))
+  handle('desktop:create-workspace-pack-folder', async (_event, input) => createWorkspacePackFolder(input))
+  handle('desktop:rename-workspace-pack-path', async (_event, input) => renameWorkspacePackPath(input))
+  handle('desktop:delete-workspace-pack-path', async (_event, input) => deleteWorkspacePackPath(input))
 
-  ipcMain.handle('desktop:get-app-version', () => app.getVersion())
-  ipcMain.handle('desktop:check-for-updates', async () => checkForUpdates())
-  ipcMain.handle('desktop:download-and-install-update', async () => downloadAndInstallUpdate())
+  handle('desktop:get-app-version', () => app.getVersion())
+  handle('desktop:check-for-updates', async () => checkForUpdates())
+  handle('desktop:download-and-install-update', async () => downloadAndInstallUpdate())
 
-  ipcMain.handle('desktop:get-base-pack-dir', async () => {
+  handle('desktop:get-base-pack-dir', async () => {
     const dir = await findBundledBasePackDir()
     if (!dir) throw new Error('Base pack directory not found')
     return dir
   })
 
-  ipcMain.handle('desktop:show-item-in-folder', async (_event, input) => {
+  handle('desktop:show-item-in-folder', async (_event, input) => {
     const dirPath = typeof input?.path === 'string' ? input.path : ''
     if (!dirPath) throw new Error('path required')
     shell.showItemInFolder(dirPath)
   })
 
-  ipcMain.handle('desktop:relaunch', () => {
+  handle('desktop:relaunch', async () => {
+    await localBattleHost.stop()
+    await stopLocalServer()
     app.relaunch()
     app.exit(0)
   })
@@ -1676,9 +2247,15 @@ function createMainWindow() {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      webviewTag: false,
+      navigateOnDragDrop: false,
     },
   })
 
+  protectDesktopNavigation(mainWindow, rendererUrl)
+  localContentOwner = bindLocalContentOwner(mainWindow.webContents, owner => localContentSessions?.releaseOwner(owner))
   setupContextMenu(mainWindow)
 
   mainWindow.webContents.on('preload-error', (_event, preloadPathOnError, error) => {
@@ -1699,7 +2276,7 @@ function createMainWindow() {
   if (devServerUrl) {
     void mainWindow.loadURL(devServerUrl)
   } else {
-    void mainWindow.loadFile(path.join(rendererDistDir, 'index.html'))
+    void mainWindow.loadURL(CLIENT_URL)
   }
 }
 
@@ -1709,26 +2286,74 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
-  void stopLocalServer()
+let stoppingForQuit
+let stoppedForQuit = false
+app.on('before-quit', event => {
+  if (stoppedForQuit) return
+  event.preventDefault()
+  stoppingForQuit ??= stopForQuit(
+    [
+      () => swfHost.dispose(),
+      () => remotePlay.destroy(),
+      () => localEnvironments?.close(),
+      () => localContentSessions?.close(),
+      () => localServerController.close(),
+      () => localBattleHost.stop(),
+      () => managementWorkspaceOwner?.close(),
+      () => contentLibrary?.close(),
+      () => contentProjects?.close(),
+      () => authorWorkspaces?.close(),
+      () => {
+        for (const window of authorPreviewWindows.values()) window.destroy()
+      },
+      () => stopLocalServer(),
+    ],
+    {
+      forceStop: () => localBattleHost.forceStop(),
+    },
+  ).finally(() => {
+    stoppedForQuit = true
+    app.quit()
+  })
 })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createMainWindow()
+    void getContentLibrary()
+      .resume()
+      .catch(() => {})
   }
 })
 
 app
   .whenReady()
   .then(async () => {
+    if (!devServerUrl) registerClientProtocol(session.defaultSession, rendererDistDir)
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = true
 
     await ensureAppDataDirs()
+    await getManagementWorkspaceOwner().ready()
     await startLocalServer()
+    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      const headers = { ...details.requestHeaders }
+      // Inject only for the actual manager WebContents; never for remote renderers or unrelated windows.
+      if (
+        details.webContentsId === mainWindow?.webContents.id &&
+        details.frame === mainWindow?.webContents.mainFrame &&
+        new URL(details.url).origin === `http://127.0.0.1:${localServerPort}`
+      ) {
+        headers['x-arcadia-management'] = managementHttpToken
+      }
+      callback({ requestHeaders: headers })
+    })
     setupIpcHandlers()
+    swfHost.registerIpc(ipcMain)
     createMainWindow()
+    void getContentLibrary()
+      .resume()
+      .catch(() => {})
   })
   .catch(error => {
     console.error('Electron startup failed:', error)

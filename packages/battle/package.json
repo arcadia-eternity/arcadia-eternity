@@ -1,10 +1,11 @@
 {
   "name": "@arcadia-eternity/battle",
-  "version": "1.0.0",
+  "version": "4.0.0-preview.1",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git",
+    "directory": "packages/battle"
   },
   "description": "",
   "main": "./dist/index.js",
@@ -15,16 +16,50 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./node": {
-      "types": "./dist/types/node.d.ts",
-      "import": "./dist/node.js",
-      "default": "./dist/node.js"
+    "./pack": {
+      "types": "./dist/types/pack.d.ts",
+      "import": "./dist/pack.js",
+      "default": "./dist/pack.js"
+    },
+    "./v4": {
+      "types": "./dist/types/v4.d.ts",
+      "import": "./dist/v4.js",
+      "default": "./dist/v4.js"
+    },
+    "./v4/host": {
+      "types": "./dist/types/v4-host.d.ts",
+      "import": "./dist/v4-host.js",
+      "default": "./dist/v4-host.js"
+    },
+    "./v4/build": {
+      "types": "./dist/native-build.d.ts",
+      "import": "./dist/native-build.mjs",
+      "default": "./dist/native-build.mjs"
+    },
+    "./v4/sandbox": {
+      "types": "./dist/types/v4-sandbox.d.ts",
+      "import": "./dist/v4-sandbox.js"
+    },
+    "./v4/sandbox/effects": {
+      "types": "./dist/types/v4-sandbox-effects.d.ts",
+      "import": "./dist/v4-sandbox-effects.js"
+    },
+    "./v4/sandbox/node": {
+      "types": "./dist/types/v4-sandbox-node.d.ts",
+      "import": "./dist/v4-sandbox-node.js"
+    },
+    "./v4/sandbox/worker": "./dist/v4-sandbox-worker.js",
+    "./v4/sandbox/node-worker": "./dist/v4-sandbox-node-worker.js",
+    "./v4/authoring": {
+      "types": "./dist/types/v4-authoring.d.ts",
+      "import": "./dist/v4-authoring.js",
+      "default": "./dist/v4-authoring.js"
     }
   },
   "scripts": {
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rolldown -c",
+    "build:code": "rolldown -c && node ../../scripts/build-battle-environment.mjs",
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
@@ -37,19 +72,27 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:*",
-    "@arcadia-eternity/engine": "workspace:*",
     "@arcadia-eternity/interface": "workspace:^",
-    "@arcadia-eternity/plugin-damage": "workspace:*",
-    "@arcadia-eternity/plugin-element": "workspace:*",
-    "@arcadia-eternity/plugin-transformation": "workspace:*",
+    "@jitl/quickjs-singlefile-browser-release-sync": "0.32.0",
     "@sinclair/typebox": "catalog:",
+    "comlink": "4.4.2",
     "jsondiffpatch": "catalog:",
     "mitt": "^3.0.1",
     "nanoid": "catalog:",
-    "prando": "^6.0.1",
-    "rxjs": "catalog:"
+    "quickjs-emscripten": "0.32.0",
+    "quickjs-emscripten-sync": "1.11.0",
+    "zod": "3.25.76",
+    "zod-validation-error": "3.5.4"
   },
   "devDependencies": {
     "vitest": "catalog:"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "preview"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ]
 }

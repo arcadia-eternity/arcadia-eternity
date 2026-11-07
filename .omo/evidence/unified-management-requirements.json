@@ -1,0 +1,577 @@
+{
+  "objective": "Complete the unified persistence, environment/workspace, server hosting, authorization, shared management UI, export/restore/clone designs linked from issues #200, #273, #274 and related issues. Preserve previously deferred G4 scope; implement its integration boundaries, not ranked/recording products.",
+  "branch": "codex/unified-server-management",
+  "base": "8580fcf0ab109829a2f5028301fc7691693b88ed",
+  "status": "active",
+  "requirements": [
+    {
+      "area": "SQLite/PostgreSQL one Kysely business layer; Supabase SDK retirement; G3 account preservation",
+      "issues": [273, 220, 221, 272],
+      "status": "implemented; current fullserver30files320tests realSQLite+PG passed127.44s exit0 with0unhandled; ownedPGstopped; provider/production legacy-data acceptance pending"
+    },
+    {
+      "area": "Versioned JSON environment, v1 compatibility, npm locks, real source installation Git/npm/URL/ZIP without author execution",
+      "issues": [243, 217, 258],
+      "status": "implemented in the unreleased worktree, including content/execution policy separation, standard source acquisition and author prebuilt artifacts; full cross-machine/offline matrix pending"
+    },
+    {
+      "area": "Shared workspace ownership, immutable capture/adopt, leases+DB GC roots, crash reconciliation, import/export",
+      "issues": [214, 244, 266, 268],
+      "status": "implemented in the unreleased worktree; durable import response-loss recovery and owner captureSnapshot/isSnapshotCurrent for online backup present; root validation core workspace 20 and desktop IPC 13 tests passed; full fault matrix pending"
+    },
+    {
+      "area": "Binding desired/effective, pin/follow, public/default/matchmaking, stale publication/revocation/rollback",
+      "issues": [244, 224, 268],
+      "status": "implemented; init5/5 bindings7/7 andcompiledCLI3/3 verifypendingretentions, restartpreservation andoldDB/clone/restorestartup. Realonline2/2 andfinalpersonal1/1 pass; extendedversion/faultmatrixopen"
+    },
+    {
+      "area": "Orthogonal peer/server execution policy with official no-third-party execution",
+      "issues": [224, 254, 274],
+      "status": "implemented; finalpersonalproductionpass preserves officialno-author-execution: catalogunchanged,292samplesmax0serverWorkers; publishedpeer/serverpolicy remainsseparate"
+    },
+    {
+      "area": "Scoped management auth/bootstrap/G3/service credentials, shared HTTP+private IPC, jobs/CAS/idempotency/cancel/retry/audit",
+      "issues": [274, 220, 251],
+      "status": "implemented; public-ID credential metadata and scoped revocation verified through actual production UI and restart; review WATCH/APPROVE; complete external-provider/security fault matrix remains pending"
+    },
+    {
+      "area": "Shared management UI, target context isolation, capabilities/permissions/restrictions, accounts/grants/settings/tasks",
+      "issues": [274, 222, 248, 249],
+      "status": "implemented; previousWeb257 retained. Finalpaired managementUI1/1 pass17.1s withbuiltin1/archive2envs, personal1/1 pass50.2s. Latestresources3files76tests andprogress-stage8/8 passed; fullvue-tsc/Vitepairedstage pass"
+    },
+    {
+      "area": "Client-hosted same library, stable server identity, parent workspace proxy, persist bindings independent of client selection",
+      "issues": [209, 214, 259],
+      "status": "implemented; finalfrozenr3 macOSpreview exited0, actualpackagedSQLite andcleanfullhost1/1 passed12.74s;356renderer/62server files matchsource; ownership/materialreuse/restartpreservationverified; installedmultiOSacceptanceopen"
+    },
+    {
+      "area": "LAN/public desktop hosting, invitation/network settings, durable capacity, graceful drain, appropriate supervisor capability",
+      "issues": [209, 219, 260, 262],
+      "status": "listener/network settings, persistent capacity and drain implemented; real two-device LAN/public reachability acceptance remains unverified"
+    },
+    {
+      "area": "Backup original vs clone, portable logical migration SQLite↔PG, old credential invalidation, staged recoverable restore",
+      "issues": [217, 273, 262, 266],
+      "status": "implemented; 14/14 real DB backup cases and actual production UI backup/download/restart passed; source/clone identity and credential boundaries retained; full deployment/fault matrix pending"
+    },
+    {
+      "area": "Node/Docker persistent volume, native driver packaging, clean paired web assets, deployment docs/CI",
+      "issues": [219, 249, 259, 260, 262],
+      "status": "recorded Linuxarm64 Docker andr3macOS exactsourceProof retained;82dd remote baseline6/6 anddesktop4/4 passed including actualpackagedSQLite/fullhost. Arm64 only retried aftercapacitycancel; formalinstalled/upgrade andfullproductionfault acceptanceopen"
+    },
+    {
+      "area": "Real installed OS matrix, SMTP/GitHub callbacks, true multi-client/LAN and production-like faults",
+      "issues": [259, 260, 261, 262, 264, 268],
+      "status": "productionbrowser andremote four-platform nonpublishingpackage/fullhost acceptancepassed; formalinstalledmultiOS/upgrades,realLAN/providers/fullfaultmatrix remainopen"
+    },
+    {
+      "area": "Final code review, full tests/build/typechecks, actual browser QA, commit and issue evidence synchronization",
+      "issues": [200, 273, 274],
+      "status": "localfinalevidence and82dd baseline6/6 plusdesktop4/4 completed; PR275/keyissues refreshed separately. SupplementalUGCnormal/missingmedia both locallypassed against82dd productcode withfixture-only v2presentation setupfix, not a claim original82dd specpassed. Formalrelease/provider/LAN/installed/fault limits remainopen",
+      "previousRun": "Historical integration run before remediation: 181 passed/25 skipped/2 failed; superseded for the server suite by the final root run below, not erased from history."
+    },
+    {
+      "area": "Unpublished personal Challenge independent of server public bindings and matchmaking",
+      "issues": [224, 264],
+      "status": "implemented; finalstrictproduction1/1pass50.2s: firstbattle2turns/rematch2turns,naturaloutcomes,0network/UIerrors,UGCmedia decode,292samples0serverWorkers,catalogunchanged,609WSframesreferenceonly. Prior4Bloberrors fixed withtransitionred-to-green regression; currentartifactsretainedinisolatedoutputDir; extendedLAN/faultmatrixopen"
+    },
+    {
+      "area": "Online consistent server backup using owner snapshot isolation and an atomic database snapshot",
+      "issues": [217, 262, 266],
+      "status": "implemented and verified by 14/14 real DB core tests plus actual management UI create/download/restart; owner snapshot -> atomicDB -> same-owner unchanged stamp, bounded BACKUP_BUSY, scoped/authenticated temporary artifact; no global writer pause claimed; extended production/fault acceptance pending"
+    }
+  ],
+  "liveTestDatabase": {
+    "url": "postgresql://arcadia_test@127.0.0.1:55437/arcadia_full_server_test",
+    "pid": 58807,
+    "root": "/private/tmp/arcadia-postgres-validation.NBejuO",
+    "note": "Historical disposable cluster identifiers only; root also stopped the owned temporary PostgreSQL used for current320test run. Do not treat recorded URL/PID/path as live.",
+    "status": "historical; stopped cleanly by root; not running"
+  },
+  "latestValidation": {
+    "date": "2026-11-05",
+    "reportedBy": "root execution and specialist evidence; documentation agent read browser acceptance/network and Docker artifacts, did not rerun suites",
+    "releaseStatus": "draft PR #275, unreleased; releaseReady=false with five license blockers; local/source review and individual remote job passes are not release approval",
+    "suites": [
+      {
+        "scope": "full server",
+        "files": 30,
+        "testsPassed": 320,
+        "durationSeconds": 127.44,
+        "databases": ["SQLite", "PostgreSQL"],
+        "databaseMode": "real",
+        "chronology": "after sharedPG cleanup/init/pending-retention repair; laterUI-only resourcefix validated byresource76 andfinalproductionbrowser",
+        "exitCode": 0,
+        "unhandledErrors": 0,
+        "previousRun": {
+          "files": 29,
+          "testsPassed": 315,
+          "durationSeconds": 104.18
+        }
+      },
+      {
+        "scope": "Web regression",
+        "files": 18,
+        "testsPassed": 257,
+        "durationSeconds": 14.56
+      },
+      {
+        "scope": "online/offline backup core",
+        "testsPassed": 14,
+        "databaseMode": "real SQLite/PostgreSQL"
+      },
+      {
+        "scope": "core workspace",
+        "testsPassed": 20
+      },
+      {
+        "scope": "desktop IPC",
+        "testsPassed": 13
+      },
+      {
+        "scope": "production management UI",
+        "testsPassed": 1,
+        "durationSeconds": 17.1,
+        "checks": [
+          "safe credential metadata",
+          "issue/revoke",
+          "online backup/download",
+          "restart stable IDs/history",
+          "no browser errors"
+        ],
+        "baseline": "builtin initial1, archive2 environments andversions",
+        "artifactStatus": "finalpaired outputpresent andacceptanceJSONverified"
+      },
+      {
+        "scope": "production personal Challenge two browsers",
+        "status": "passed",
+        "testsPassed": 1,
+        "durationSeconds": 50.2,
+        "checks": [
+          "firstbattle2turnsnatural",
+          "sameroomrematch2turnsnatural",
+          "UGCmediadecode",
+          "0networkandUIerrors",
+          "292workersamplesmax0",
+          "catalogunchanged",
+          "609WSframesreferenceonly"
+        ],
+        "priorFailure": "4BlobERR_FILE_NOT_FOUND fromearlyrevoke whileloadingoverlayleaveDOM remained; fixed withtransitionred-green regression, strictconsoleassertionsretained"
+      },
+      {
+        "scope": "real-socket personal after narrow peer-input validation cleanup",
+        "testsPassed": 7,
+        "durationSeconds": 6.9
+      },
+      {
+        "scope": "PostgreSQL shared cleanup after second CI failure",
+        "testsPassed": 110,
+        "unhandledErrors": 0,
+        "databaseMode": "real PostgreSQL",
+        "reportedBy": "root and postgres_validation",
+        "repair": "8fixtures use shared dropTestDatabase; remote rerun pending"
+      },
+      {
+        "scope": "desktop portability/staging/pnpm-state regressions",
+        "testsPassed": 23
+      },
+      {
+        "scope": "native staging CLI/pnpm/Windows targeted regressions",
+        "testsPassed": 24,
+        "note": "three target groups; not claimed disjoint from earlier staging evidence"
+      },
+      {
+        "scope": "content/connection real browser scenarios",
+        "testsPassed": 6,
+        "duration": "about1.1minutes locally",
+        "remote": "same stage passed in second bfefb852 CI; subsequent matchmaking stage failed"
+      },
+      {
+        "scope": "compiledCLI lifecycle after pending-retention repair",
+        "testsPassed": 3,
+        "durationSeconds": 21.45,
+        "checks": ["firststartup", "5management-preserving restarts", "oldDB", "realclone/restorestartup"]
+      },
+      {
+        "scope": "first persistent initialization",
+        "testsPassed": 5
+      },
+      {
+        "scope": "bindings after initialization fix",
+        "testsPassed": 7
+      },
+      {
+        "scope": "real production online matchmaking andauthoritative friend rooms",
+        "testsPassed": 2,
+        "duration": "about1.3minutes"
+      },
+      {
+        "scope": "resource lifecycle targeted",
+        "files": 3,
+        "testsPassed": 76,
+        "checks": "transitionregression red-to-green; addedto baselineCI"
+      },
+      {
+        "scope": "management optional progress.stage regression",
+        "testsPassed": 8
+      }
+    ],
+    "checks": [
+      "full repository ESLint passed",
+      "root typecheck passed",
+      "final web typecheck passed",
+      "production Vite build passed",
+      "root CLI/build passed",
+      "frozen offline lockfile validation passed",
+      "changed Web TS/Vue ESLint passed with max warnings 0",
+      "server-specific test types and lint passed",
+      "native renderer/test types passed",
+      "latest fullrepositoryESLint/roottypes/servertypes/fullWebvue-tsc passed",
+      "final Viteproduction andpairedstage passed",
+      "finalproductionpersonal andmanagement passedwithstrict0errorassertions",
+      "latestserverentry narrowregression5/5 passed2.92s",
+      "allchanged/newTS/Vue/mjs/yaml formattercheck andgitdiffcheck passed"
+    ],
+    "review": {
+      "codeQualityStatus": "WATCH",
+      "recommendation": "APPROVE",
+      "path": ".omo/evidence/unified-server-management-code-review.md",
+      "scope": "source review; not release/platform acceptance"
+    },
+    "docker": {
+      "passed": true,
+      "os": "linux",
+      "arch": "arm64",
+      "drivers": ["sqlite", "postgres"],
+      "scenario": "fresh builtin-server default binding/catalog145species; SQLite/PG recreation preserves server/workspace/defaultbinding/version/content/resource revisions; PG restart",
+      "image": "sha256:fcb6bcc5739ee951dd6668b6fdcf861943bfda6de99b55c67996e943b744f8b8",
+      "evidence": ".omo/evidence/docker-management.json",
+      "limitation": "Linux arm64 guest mode; no external providers or full production/network/fault matrix acceptance",
+      "durationSeconds": 15.6,
+      "sourceProof": {
+        "definition": "Sorted runtime/build source tree (bin, packages, packs, scripts, author skill and root build inputs), excluding generated outputs; includes tests and package docs beyond the narrower Docker context.",
+        "fingerprintAlgorithm": "SHA256 of sorted path + NUL + mode + NUL + content SHA256 + LF entries",
+        "buildBaseCommit": "bfefb8521b8855cfa92919aac821f6ade1bef489",
+        "postBuildCommit": "bfefb8521b8855cfa92919aac821f6ade1bef489",
+        "imageSourceLabel": "sha256:1045e29f631da52b5271e21d4cb84029b50093bb3995ee66777df9ef5dc35386",
+        "beforeDigest": "sha256:1045e29f631da52b5271e21d4cb84029b50093bb3995ee66777df9ef5dc35386",
+        "afterDigest": "sha256:1ee4bfb2a960b3613544ea290419ef48be261e3b2435c49cbd096717b2a4faff",
+        "files": 1342,
+        "changedPaths": ["packages/server/test/standaloneManagementInitialization.test.ts"],
+        "unchangedInputsDigest": "sha256:33881fd68fc0dc90c04fdc7ecc959fa93484a185c4d056447036f0960d915202",
+        "unchangedInputsCount": 1341,
+        "allRuntimeInputsUnchanged": true,
+        "imageCriticalSourcesVerified": {
+          "packages/server/src/standalone/management/service.ts": "ce155d75e3a7df7a4a44fec227d276967577091edb456a255ee3c21fe64a4299",
+          "packages/web-ui/src/composition/useUncachedResource.ts": "74f40ed031f6ebaf2b0d2a2321f420052c0d9768bf988709313fb737aedc2f10",
+          "packages/web-ui/src/features/management/ManagementConsole.vue": "881ffbfcc764ef8bb3ad012c4f4de07ad95ed886391c92040586d7a47bab5903"
+        },
+        "explanation": "Only a server test excluded by the Docker *.test.ts rule changed during the build. All selected runtime/build source inputs were otherwise byte-identical. Critical management and final UI fix source files were additionally read and hashed inside this exact image."
+      },
+      "pairedUiRefreshPending": false,
+      "cleanupVerified": {
+        "containers": 0,
+        "volumes": 0,
+        "networks": 0
+      }
+    },
+    "artifacts": {
+      "personalNetwork": "packages/web-ui/test-results/personal-environment/2026-11-04T19-16-06-975Z/personal-environment-unpub-3e8f7-h-a-real-battle-and-rematch/network-events.json",
+      "management": "packages/web-ui/test-results/management-backup/2026-11-04T19-16-09-114Z/management-backup-paired-p-8f48a-tains-history-after-restart/acceptance.json",
+      "portableSummary": "docs/v4/validation/unified-management-2026-11-05.md",
+      "personalStatus": "finalpass; acceptance/network readandpathsconfirmed",
+      "historicalOutputStatus": "oldmanagement17-57 andpersonal18-07localoutputs removedbydefaultoutputDir; results retained ashistory, paths notavailable.4configs nowisolated",
+      "personal": "packages/web-ui/test-results/personal-environment/2026-11-04T19-16-06-975Z/personal-environment-unpub-3e8f7-h-a-real-battle-and-rematch/acceptance.json"
+    },
+    "runningOrPending": [
+      "five exact third-party license blockers; releaseReady=false",
+      "real installed/upgrade matrix",
+      "real two-device LAN",
+      "real SMTP/GitHub environment missing; user question pending",
+      "full production deployment/capacity/fault matrix"
+    ],
+    "pullRequest": "https://github.com/arcadia-eternity/arcadia-eternity/pull/275",
+    "initialCiHead": "b6e11f1d21684a21e9cb833531b17716aff6fb29",
+    "remoteCi": {
+      "head": "82dd37d4dc38bb4b48e393029be6eddf078c49c4",
+      "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719",
+      "overallStatus": "baseline6/6 success; desktop attempt2 overall4/4 success",
+      "passedJobs": [
+        {
+          "name": "changes",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824625715"
+        },
+        {
+          "name": "native-server-entry",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824732986"
+        },
+        {
+          "name": "offline-cli",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733182"
+        },
+        {
+          "name": "native-browser-entry",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733196"
+        },
+        {
+          "name": "management-browser-acceptance",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733154"
+        },
+        {
+          "name": "headless-battle",
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443719/job/126824733134"
+        }
+      ],
+      "desktopMatrix": {
+        "run": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601",
+        "attempt": 2,
+        "status": "success4/4",
+        "linux": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624566",
+          "actualAttempt": 1,
+          "result": "success",
+          "nativePassed": 47,
+          "nativeTotal": 47,
+          "fullHostPassed": 1,
+          "fullHostSeconds": 13.874,
+          "fullHostSkipped": 0
+        },
+        "windows": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624988",
+          "actualAttempt": 1,
+          "result": "success",
+          "nativePassed": 45,
+          "nativeFailed": 0,
+          "intentionalPosixOnlySkips": ["FIFO", "POSIX absolute-link rejection"],
+          "fullHostPassed": 1,
+          "fullHostSeconds": 42.277,
+          "fullHostSkipped": 0,
+          "checks": [
+            "actual installed-builder junction case",
+            "renderer/staging/package",
+            "actual Electron SQLite write/reopen"
+          ]
+        },
+        "macIntel": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126824624928",
+          "actualAttempt": 1,
+          "result": "success",
+          "nativePassed": 47,
+          "nativeTotal": 47,
+          "fullHostPassed": 1,
+          "fullHostSeconds": 38.942,
+          "fullHostSkipped": 0
+        },
+        "macArm64": {
+          "url": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41901443601/job/126834263448",
+          "actualAttempt": 2,
+          "result": "success",
+          "nativePassed": 47,
+          "nativeTotal": 47,
+          "fullHostPassed": 1,
+          "fullHostSeconds": 31.132,
+          "fullHostSkipped": 0
+        },
+        "retryScope": "initial arm64 job126824625106 cancelled before any step due hosted runner capacity; only arm64 retried. Original other3actual job links retained, carry-over records not counted as newexecution",
+        "allPackagedSqlite": "actual Electron write/close/reopen verified on all four platforms"
+      },
+      "artifactScope": "82dd actual CI passes do not relabel recorded local Docker/r3 artifacts; their exact sourceProof is unchanged. Supplemental UGC environment test uses82dd product code plus the fixture-only v2 presentation setup correction recorded separately.",
+      "previousRuns": {
+        "head": "20fde2a8f6d4419979fc30d3dd8b0c11890008b1",
+        "baseline": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956364",
+        "desktop": "https://github.com/arcadia-eternity/arcadia-eternity/actions/runs/41898956401"
+      }
+    },
+    "issueRefresh": {
+      "issues": 21,
+      "status": "published and reread; metadata, checkbox states and checked item text unchanged",
+      "evidence": ".omo/evidence/unified-management-issue-evidence-refresh-2026-11-05.json"
+    },
+    "desktop": {
+      "passed": true,
+      "platform": "darwin arm64",
+      "builderExitCode": 0,
+      "checks": [
+        "actualpackagedSQLite write/close/reopen",
+        "finalfrozenr3 cleanfullhost1/1 passed12.74s,total12.85s",
+        "356renderer/62server files matchfrozeninputs",
+        "devaddon/pnpmmetadata/manifests/lock unchanged"
+      ],
+      "artifact": "packages/web-ui/release-preview/mac-arm64/Arcadia Eternity Preview.app",
+      "evidence": ".omo/evidence/desktop-native-validation.md",
+      "log": "/private/tmp/arcadia-desktop-final-r3-package.log",
+      "limitation": "local preview package; not installed upgrade or four-platform acceptance",
+      "runtime": "/private/tmp/arcadia-desktop-runtime-final-20261105-r3",
+      "sourceProof": {
+        "fileHashes": {
+          "arcadia-server/cli.js": "c111f298fbaedc5fbb24ce8b3ea44fca6830b64fd6cfaac6b6f9e3c87c4679c9",
+          "arcadia-server/server-cli-DhqksZvk.js": "b49b10c4cdbe70a3825c7e763457db8cc6d1ab498169654ed646c93e6fa4448a",
+          "app.asar/dist/index.html": "7208780f9133607aca9c4f3892f69c0d842c3f3617fda2918b5d0c34c6e9365b",
+          "app.asar/electron/main.mjs": "3a1ffe408462ec5e1ca450bf1c7c06b1a57e2d6dec3d19695c5955e4d20b0972"
+        },
+        "rendererFiles": 356,
+        "serverFiles": 62,
+        "rendererTreeDigest": "77c664b0334ed80cc1ac8f679a5f7e1fe81ec950b6c1d0df1341bfff1898d1da",
+        "serverTreeDigest": "73d6bd89a4fec5ab0f15279056198965d353151a6b0bbd1e0c4d88758fa5dc91",
+        "before": "/private/tmp/arcadia-desktop-final-r3-source-proof-before.json",
+        "artifact": "/private/tmp/arcadia-desktop-final-r3-artifact-proof.json"
+      }
+    },
+    "currentCheckStatus": "latest fullrepositoryESLint/roottypes/servertypes/fullWebvue-tsc/Viteproduction/pairedstage passed",
+    "supplementalUgcEnvironmentSync": {
+      "scope": "82dd production code plus fixture-only 5-add/5-delete spec setup correction to v2 dist/presentation.json; no product code or behavior assertion change; not an original82dd test-pass claim",
+      "execution": "local real production browsers",
+      "normal": {
+        "testsPassed": 1,
+        "durationSeconds": 49.3,
+        "turns": 2,
+        "oldSkillPower": 60,
+        "mediaRequests": 55,
+        "totalRequests": 1267,
+        "acceptance": "packages/web-ui/test-results/ugc-environment/with-media-82dd37d4/ugc-environment-sync-clean-e504c-onnect-and-finish-naturally/acceptance.json"
+      },
+      "missingMedia": {
+        "testsPassed": 1,
+        "testsFailed": 0,
+        "testsSkipped": 0,
+        "durationSeconds": 51.7,
+        "wallSeconds": 52.32,
+        "turns": 3,
+        "oldSkillPower": 60,
+        "mediaRequests": 0,
+        "totalRequests": 1164,
+        "acceptance": "packages/web-ui/test-results/ugc-environment/missing-media-82dd37d4/ugc-environment-sync-clean-e504c-onnect-and-finish-naturally/acceptance.json"
+      },
+      "sharedChecks": [
+        "old/new default environment IDs differ",
+        "guest reconnect retains original room lease",
+        "natural outcomes",
+        "unused SWF not requested",
+        "normal media no-store assertions unchanged andpassed"
+      ],
+      "cleanup": "owned test servers/resources cleaned; acceptance/network/screenshots retained"
+    },
+    "followup": {
+      "evidence": ".omo/evidence/unified-management-followup-2026-11-05.json",
+      "document": "docs/v4/validation/unified-management-followup-2026-11-05.md",
+      "status": "Real DB faults, Docker dual-DB recreation and HTTPS, baseline 6/6, native installer matrix 4/4 (5 artifacts, 10 GUI launches) passed; external deployment/provider acceptance remains open",
+      "supersedes": "Earlier local counts and five-license-blocker summary; original artifact provenance remains unchanged",
+      "codeCommit": "576202830fc28b3f9840ffbdfb8f5f05147fd847",
+      "nativeInstallerEvidence": ".omo/evidence/desktop-installer-ci-2026-11-05.json",
+      "acceptanceScopeUpdate": {
+        "date": "2026-11-05",
+        "authority": "User deferred signing/notarization, excluded historical version upgrades, and authorized simplifying license checks.",
+        "licensePolicy": "advisory by default; original notices and findings retained; strict audit is opt-in",
+        "signingAndNotarization": "deferred; not a current acceptance blocker",
+        "historicalVersionAndSchemaUpgrades": "out of current scope; address concrete compatibility issues when reported",
+        "currentDataPersistence": "initialization, restart, same-version replacement and backup/restore remain in scope",
+        "evidence": ".omo/evidence/desktop-release-policy-2026-11-05.json"
+      }
+    }
+  },
+  "validationHistory": [
+    {
+      "date": "2026-11-05",
+      "reportedBy": "root task execution; documentation agent inspected owning source/tests but did not independently rerun these suites",
+      "releaseStatus": "unreleased worktree; no independent review, remote CI, installed-platform or production acceptance inferred",
+      "suites": [
+        {
+          "scope": "server",
+          "files": 27,
+          "testsPassed": 292,
+          "databases": ["SQLite", "PostgreSQL"],
+          "databaseMode": "real databases"
+        },
+        {
+          "scope": "management UI",
+          "files": 9,
+          "testsPassed": 89
+        },
+        {
+          "scope": "core workspace",
+          "testsPassed": 17
+        },
+        {
+          "scope": "desktop workspace",
+          "testsPassed": 12,
+          "includes": ["private IPC import recovery"]
+        }
+      ],
+      "sourceConfirmedRemediation": [
+        "ContentWorkspace durable imports journal, recovery/ack/discard and retained staging; ManagementTransfers reconciles committed DB response-loss with the same operation/version",
+        "ContentLibrary native-chooser registered-source import, ManagedProjects.prepareProject reuse and transfer into the same client projects root",
+        "ManagementAuth listCredentials metadata uses public IDs, scoped authorization and revocation without exposing tokens or storage digests"
+      ]
+    },
+    {
+      "date": "2026-11-05",
+      "reportedBy": "root execution and named task-agent reports; documentation agent inspected source, did not independently rerun",
+      "releaseStatus": "unreleased worktree; no independent review, remote CI, installed multi-OS or production acceptance inferred",
+      "suites": [
+        {
+          "scope": "full server",
+          "files": 29,
+          "testsPassed": 314,
+          "durationSeconds": 112.76,
+          "databases": ["SQLite", "PostgreSQL"],
+          "databaseMode": "real databases",
+          "reportedBy": "root"
+        },
+        {
+          "scope": "backup core",
+          "testsPassed": 14,
+          "databaseMode": "real databases",
+          "reportedBy": "root"
+        },
+        {
+          "scope": "core workspace",
+          "testsPassed": 20,
+          "reportedBy": "root"
+        },
+        {
+          "scope": "desktop IPC",
+          "testsPassed": 13,
+          "reportedBy": "root"
+        },
+        {
+          "scope": "personal environment/media/room store",
+          "testsPassed": 92,
+          "reportedBy": "task agent, relayed by root"
+        },
+        {
+          "scope": "management HTTP",
+          "testsPassed": 16,
+          "databases": ["SQLite", "PostgreSQL"],
+          "reportedBy": "task agent, relayed by root"
+        },
+        {
+          "scope": "auth/operations/transport",
+          "testsPassed": 44,
+          "reportedBy": "task agent, relayed by root"
+        },
+        {
+          "scope": "broad UI",
+          "testsTotal": 223,
+          "testsPassed": 220,
+          "testsFailed": 3,
+          "status": "not passed; lobby mock-arity assertions being fixed",
+          "reportedBy": "root"
+        }
+      ],
+      "checks": ["CLI online-backup callback wired", "root full typechecks passed", "root build passed"],
+      "runningOrPending": [
+        "real two-browser personal battle and rematch",
+        "actual Docker build",
+        "fresh desktop packaging",
+        "full multi-OS installed/upgrade acceptance",
+        "real LAN and full failure matrix",
+        "real SMTP/GitHub callback acceptance: provider environment not configured"
+      ],
+      "sourceConfirmedRemediation": [
+        "PersonalEnvironmentReference and private room generation/reset gates; explicit file/HTTPS client import and whole portable content/raw-data/assets identity; official signaling does not acquire or execute personal materials",
+        "Owner captureSnapshot/isSnapshotCurrent brackets atomic database export without holding DB transaction during files/IPC; bounded retry and BACKUP_BUSY preserve consistency",
+        "ManagementBackups async create/download with server backup + workspace export scope, protected bounded expiring artifacts and GUI capability gates"
+      ]
+    }
+  ]
+}

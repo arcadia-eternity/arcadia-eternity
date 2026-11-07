@@ -1,6 +1,6 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "auto-imports.d.ts"],
+  "include": ["../../types/effect-module.d.ts", "env.d.ts", "src/**/*", "src/**/*.vue", "auto-imports.d.ts"],
   "exclude": ["src/**/__tests__/*", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",

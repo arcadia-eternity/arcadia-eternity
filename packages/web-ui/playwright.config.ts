@@ -10,6 +10,7 @@ const baseURL =
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './test-results/baseline',
   timeout: 30_000,
   workers: 1,
   retries: onlineMode ? 1 : 0,
@@ -25,13 +26,16 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.PLAYWRIGHT_CHROME_CHANNEL === 'chrome' ? { channel: 'chrome' as const } : {}),
+      },
     },
   ],
   webServer: onlineMode
     ? [
         {
-          command: `pnpm --filter @arcadia-eternity/server build && CLUSTER_ENABLED=false SINGLE_INSTANCE_INMEMORY_REDIS=true pnpm --workspace-root cli server --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
+          command: `pnpm --filter @arcadia-eternity/server... run build && pnpm --workspace-root cli server --headless --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
           url: `http://${loopbackHost}:${onlineServerPort}/health`,
           reuseExistingServer: true,
           stdout: 'ignore',
@@ -39,7 +43,7 @@ export default defineConfig({
           timeout: 180_000,
         },
         {
-          command: `pnpm --filter @arcadia-eternity/pack-loader build && VITE_WS_URL=http://${loopbackHost}:${onlineServerPort} VITE_API_BASE_URL=http://${loopbackHost}:${onlineServerPort}/api/v1${
+          command: `pnpm --filter @arcadia-eternity/web-ui run build:deps && VITE_BACKEND_ORIGIN=http://${loopbackHost}:${onlineServerPort}${
             onlineP2PTransport ? ` VITE_P2P_TRANSPORT=${onlineP2PTransport}` : ''
           } pnpm --filter @arcadia-eternity/web-ui exec vite --host ${loopbackHost} --port ${onlineWebPort} --strictPort`,
           url: `http://${loopbackHost}:${onlineWebPort}`,
@@ -51,7 +55,7 @@ export default defineConfig({
       ]
     : {
         command:
-          'pnpm --filter @arcadia-eternity/pack-loader build && pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
+          'pnpm --filter "@arcadia-eternity/web-ui^..." --filter "@arcadia-eternity/server..." run build && pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
         url: 'http://127.0.0.1:4173',
         reuseExistingServer: true,
         stdout: 'ignore',

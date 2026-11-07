@@ -16,7 +16,8 @@ export default tseslint.config(
       'tsconfig.json',
       '**/rolldown.config.*',
       '**/vitest.config.*',
-      '**/*.d.ts',
+      '**/vitest.*.config.*',
+      '**/*.d.{ts,mts,cts}',
       'scripts/**',
       'tools/**',
       'examples/**',
@@ -59,6 +60,34 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+    },
+  },
+  {
+    ...tseslint.configs.disableTypeChecked,
+    files: ['.pnpmfile.cjs', 'packages/content-dev/**/*.mjs'],
+  },
+  // Imported historical source: retain V1 syntax while compatibility is established.
+  // New adapters/tests use the normal rules in eslint.config.v4.js.
+  {
+    files: ['packages/battle/src/v4/**/*.ts'],
+    ignores: [
+      'packages/battle/src/v4/api.ts',
+      'packages/battle/src/v4/reactiveValue.ts',
+      'packages/battle/src/v4/rng.ts',
+      'packages/battle/src/v4/snapshot.ts',
+      'packages/battle/src/v4/snapshotBindings.ts',
+    ],
+    linterOptions: { reportUnusedDisableDirectives: 'off' },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-base-to-string': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      'no-case-declarations': 'off',
+      'prefer-const': 'off',
+      'preserve-caught-error': 'off',
+      'no-useless-escape': 'off',
+      'no-useless-assignment': 'off',
     },
   },
 )

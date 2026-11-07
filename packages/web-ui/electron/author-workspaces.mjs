@@ -1,0 +1,391 @@
+import { spawn } from 'node:child_process'
+import { constants } from 'node:fs'
+import { randomUUID, createHash } from 'node:crypto'
+import { copyFile, cp, lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { dirname, join, basename, relative, isAbsolute, resolve, sep } from 'node:path'
+
+/** Local source projects are separate from installed packages and multiplayer server projects. */
+export class AuthorWorkspaces {
+  #entries
+  #loading
+  #sessions = new Map()
+  #queue = Promise.resolve()
+  #contextQueue = Promise.resolve()
+  constructor({ root, api, notify = () => {}, env = process.env }) {
+    Object.assign(this, { root, api, notify, env })
+  }
+  async list() {
+    if (!this.#entries) {
+      this.#loading ??= (async () => {
+        let entries
+        try {
+          entries = JSON.parse(await readFile(join(this.root, 'state/projects.json'), 'utf8'))
+        } catch (error) {
+          if (error.code !== 'ENOENT') throw error
+          entries = []
+        }
+        if (
+          !Array.isArray(entries) ||
+          entries.some(
+            entry =>
+              !entry ||
+              typeof entry.id !== 'string' ||
+              typeof entry.directory !== 'string' ||
+              typeof entry.name !== 'string' ||
+              typeof entry.readOnly !== 'boolean' ||
+              typeof entry.published !== 'boolean',
+          )
+        )
+          throw new Error('源项目登记格式无效，请恢复备份')
+        this.#entries = entries
+      })().catch(error => {
+        this.#loading = undefined
+        throw error
+      })
+      await this.#loading
+    }
+    return structuredClone(this.#entries)
+  }
+  async #mutate(action) {
+    const next = this.#queue.catch(() => {}).then(action)
+    this.#queue = next
+    return next
+  }
+  async #save(entries) {
+    const file = join(this.root, 'state/projects.json')
+    await mkdir(dirname(file), { recursive: true })
+    const temp = `${file}.${randomUUID()}.tmp`
+    try {
+      await writeFile(temp, JSON.stringify(entries, null, 2))
+      await rename(temp, file)
+      this.#entries = entries
+    } finally {
+      await rm(temp, { force: true })
+    }
+  }
+  async add(directory, { readOnly = false, published = false } = {}) {
+    return this.#mutate(async () => {
+      const entries = await this.list(),
+        root = await realpath(directory)
+      const existing = entries.find(entry => entry.directory === root)
+      if (existing) {
+        if ((readOnly && !existing.readOnly) || (published && !existing.published)) {
+          await this.release(existing.id)
+          existing.readOnly = true
+          existing.published = published || existing.published
+          await this.#save(entries)
+        }
+        return existing
+      }
+      const { openAuthorSession } = await this.api()
+      const probe = await openAuthorSession(root, { watch: false, readOnly, published })
+      let description
+      try {
+        description = await probe.describe()
+      } finally {
+        await probe.close()
+      }
+      const entry = {
+        id: randomUUID(),
+        directory: root,
+        name: description.name || basename(root),
+        readOnly: !description.capabilities.sourceEditing,
+        published,
+      }
+      await this.#save([...entries, entry])
+      return entry
+    })
+  }
+  async previewEnvironment(id, environmentId) {
+    if (!(await this.list()).some(entry => entry.id === id)) throw new Error('源项目不存在')
+    const file = join(this.root, 'state', `preview-environment-${id}.json`)
+    return this.#mutate(async () => {
+      if (environmentId === undefined) {
+        try {
+          return JSON.parse(await readFile(file, 'utf8')).environmentId
+        } catch (error) {
+          if (error.code === 'ENOENT') return 'default'
+          throw error
+        }
+      }
+      if (typeof environmentId !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId))
+        throw new Error('环境标识无效')
+      await mkdir(dirname(file), { recursive: true })
+      const temporary = `${file}.${randomUUID()}.tmp`
+      try {
+        await writeFile(temporary, JSON.stringify({ environmentId }))
+        await rename(temporary, file)
+      } finally {
+        await rm(temporary, { force: true })
+      }
+      return environmentId
+    })
+  }
+  async debugEnvironments(id, action, input) {
+    const session = await this.session(id)
+    if (action === 'list') return session.environments.list()
+    if (action === 'save') return session.environments.save(input)
+    throw new Error('不支持的环境操作')
+  }
+  async mapDebugSource(id, directory) {
+    const session = await this.session(id)
+    await session.workspace.assertWritable()
+    const root = await realpath(directory)
+    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+    if (!manifest.arcadia?.projectId || typeof manifest.name !== 'string') throw new Error('请选择 npm 内容包源项目')
+    const file = join(session.workspace.root, '.arcadia/debug-sources.json')
+    try {
+      const info = await lstat(dirname(file))
+      if (info.isSymbolicLink() || !info.isDirectory()) throw new Error('本机源码映射目录必须是普通目录')
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    return this.#mutate(async () => {
+      let mappings = {}
+      try {
+        mappings = JSON.parse(await readFile(file, 'utf8'))
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error
+      }
+      const changed = mappings[manifest.name] !== root
+      mappings[manifest.name] = root
+      await mkdir(dirname(file), { recursive: true })
+      const info = await lstat(dirname(file))
+      if (info.isSymbolicLink() || !info.isDirectory()) throw new Error('本机源码映射目录必须是普通目录')
+      await writeFile(join(dirname(file), '.gitignore'), '*\n', { flag: 'wx' }).catch(error => {
+        if (error.code !== 'EEXIST') throw error
+      })
+      const temporary = `${file}.${randomUUID()}.tmp`
+      try {
+        await writeFile(temporary, JSON.stringify(mappings, null, 2))
+        await rename(temporary, file)
+      } finally {
+        await rm(temporary, { force: true })
+      }
+      return { name: manifest.name, changed }
+    })
+  }
+  // Drafts live in the application profile, independently of disposable candidate Sessions.
+  async teamLibrary(id, action, input = {}) {
+    const session = await this.session(id)
+    if (action === 'list') return session.teams.list()
+    if (action === 'save') return session.teams.save(input)
+    if (action === 'remove') return session.teams.remove(input)
+    const file = join(this.root, 'state', `teams-${id}.json`)
+    if (action === 'draft-read') {
+      return this.#mutate(async () => {
+        try {
+          return JSON.parse(await readFile(file, 'utf8'))
+        } catch (error) {
+          if (error.code === 'ENOENT') return null
+          throw error
+        }
+      })
+    }
+    if (action === 'draft-write') {
+      if (!input || input.schemaVersion !== 1 || Buffer.byteLength(JSON.stringify(input)) > 2 * 1024 * 1024)
+        throw new Error('测试编队草稿无效或过大')
+      return this.#mutate(async () => {
+        await mkdir(dirname(file), { recursive: true })
+        const temporary = `${file}.${randomUUID()}.tmp`
+        try {
+          await writeFile(temporary, JSON.stringify(input))
+          await rename(temporary, file)
+        } finally {
+          await rm(temporary, { force: true })
+        }
+      })
+    }
+    throw new Error('不支持的项目队伍操作')
+  }
+  async create(name) {
+    if (typeof name !== 'string' || !name.trim() || name.length > 80) throw new Error('请输入 1–80 个字符的项目名称')
+    const directory = join(this.root, 'projects', `pack-${randomUUID().slice(0, 12)}`)
+    await mkdir(dirname(directory), { recursive: true })
+    const { createSourceProject } = await this.api()
+    await createSourceProject(directory, basename(directory))
+    const entry = await this.add(directory)
+    await this.#mutate(async () =>
+      this.#save((await this.list()).map(item => (item.id === entry.id ? { ...item, name: name.trim() } : item))),
+    )
+    return { ...entry, name: name.trim() }
+  }
+  async entry(id) {
+    const entry = (await this.list()).find(entry => entry.id === id)
+    if (!entry) throw new Error('未登记此源项目')
+    if ((await realpath(entry.directory)) !== entry.directory) throw new Error('目录已改变，请重新打开项目')
+    return entry
+  }
+  async session(id) {
+    const entry = await this.entry(id)
+    if (!this.#sessions.has(id)) {
+      const promise = this.api()
+        .then(api =>
+          api.openAuthorSession(entry.directory, {
+            execute: !entry.readOnly,
+            readOnly: entry.readOnly,
+            published: entry.published,
+            env: this.env,
+          }),
+        )
+        .then(session => {
+          session.workspace.on('change', event => this.notify({ id, ...event }))
+          return session
+        })
+        .catch(error => {
+          this.#sessions.delete(id)
+          throw error
+        })
+      this.#sessions.set(id, promise)
+    }
+    return this.#sessions.get(id)
+  }
+  /** Resolve only a successful task receipt owned by this registered project. */
+  async installBuiltPack(id, jobId, installFile) {
+    const session = await this.session(id)
+    await session.workspace.assertWritable()
+    await session.jobs.refresh()
+    const job = session.jobs.get(jobId)
+    if (job.kind !== 'pack' || job.state !== 'succeeded') throw new Error('请先完成此项目的构建打包')
+    const { filename, shasum, integrity } = job.result ?? {}
+    if (
+      typeof filename !== 'string' ||
+      filename !== basename(filename) ||
+      !filename.endsWith('.tgz') ||
+      !/^[a-f0-9]{40}$/.test(shasum ?? '') ||
+      !/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(integrity ?? '')
+    )
+      throw new Error('构建产物记录无效，请重新构建打包')
+    const file = await session.workspace.path(filename)
+    const bytes = await readFile(file)
+    if (
+      bytes.length > 64 * 1024 * 1024 ||
+      createHash('sha1').update(bytes).digest('hex') !== shasum ||
+      `sha512-${createHash('sha512').update(bytes).digest('base64')}` !== integrity
+    )
+      throw new Error('构建产物已改变，请重新构建打包后安装')
+    // Copy verified bytes into a private staging directory. Source edits after verification
+    // cannot change the archive consumed by the existing package installer.
+    const staging = join(this.root, 'state', `install-${randomUUID()}`)
+    await mkdir(staging, { recursive: true })
+    try {
+      const captured = join(staging, filename)
+      await writeFile(captured, bytes, { flag: 'wx' })
+      return { packageId: await installFile(captured) }
+    } finally {
+      await rm(staging, { recursive: true, force: true })
+    }
+  }
+  contextFile(id) {
+    // IDs are generated by this manager; callers must resolve the registered entry first.
+    if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error('项目标识无效')
+    return join(this.root, 'state', 'workbench-context', `${id}.json`)
+  }
+  async setContext(id, state) {
+    const entry = await this.entry(id)
+    const text = JSON.stringify({
+      protocol: 'arcadia-workbench-context/v1',
+      root: entry.directory,
+      updatedAt: Date.now(),
+      state,
+    })
+    if (Buffer.byteLength(text) > 4 * 1024 * 1024) throw new Error('当前上下文过大，无法同步给外部助手')
+    const next = this.#contextQueue
+      .catch(() => {})
+      .then(async () => {
+        if (!this.#sessions.has(id)) return
+        const file = this.contextFile(id)
+        await mkdir(dirname(file), { recursive: true })
+        const temporary = `${file}.${randomUUID()}.tmp`
+        try {
+          await writeFile(temporary, text, { mode: 0o600 })
+          await rename(temporary, file)
+        } finally {
+          await rm(temporary, { force: true })
+        }
+      })
+    this.#contextQueue = next
+    return next
+  }
+  async release(id, { preservePreviews = false } = {}) {
+    const session = this.#sessions.get(id)
+    const retained = session && preservePreviews && (await session).jobs.hasLivePreviews
+    if (!retained) this.#sessions.delete(id)
+    await this.#contextQueue.catch(() => {})
+    await rm(this.contextFile(id), { force: true })
+    if (retained) (await session).workspace.clearDirty()
+    else if (session) await (await session).close()
+  }
+  async forget(id) {
+    await this.release(id)
+    await this.#mutate(async () => this.#save((await this.list()).filter(entry => entry.id !== id)))
+  }
+  async export(id, destination) {
+    const session = await this.session(id)
+    const relation = relative(session.workspace.root, resolve(destination))
+    if (!relation || (!isAbsolute(relation) && relation !== '..' && !relation.startsWith(`..${sep}`)))
+      throw new Error('导出目录必须位于源项目之外')
+    try {
+      await lstat(destination)
+      throw new Error('请选择尚不存在的新目录')
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    const before = await session.workspace.revision()
+    await mkdir(destination)
+    try {
+      for (const file of await session.workspace.files()) {
+        if (file.error) throw new Error(file.error)
+        const target = join(destination, file.file)
+        await mkdir(dirname(target), { recursive: true })
+        await cp(await session.workspace.path(file.file), target, { errorOnExist: true, force: false })
+      }
+      if (before !== (await session.workspace.revision())) throw new Error('导出期间源文件改变，请重新导出')
+    } catch (error) {
+      await rm(destination, { recursive: true, force: true })
+      throw error
+    }
+    return destination
+  }
+  async openExternal(id, file, editor, line = 1, column = 1) {
+    const session = await this.session(id)
+    await session.workspace.assertWritable()
+    const target = file ? await session.workspace.path(file) : session.workspace.root
+    if (!['code', 'codium', 'cursor', 'zed'].includes(editor)) throw new Error('请选择受支持的外部编辑器')
+    if (![line, column].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error('行列位置无效')
+    const args =
+      editor === 'zed'
+        ? [session.workspace.root, ...(file ? [`${target}:${line}:${column}`] : [])]
+        : [session.workspace.root, ...(file ? ['--goto', `${target}:${line}:${column}`] : [])]
+    await new Promise((resolve, reject) => {
+      const child = spawn(editor, args, { shell: false, stdio: 'ignore', windowsHide: true })
+      child.once('error', () => reject(new Error('无法打开编辑器，请检查命令是否可用，或选择显示文件夹')))
+      child.once('exit', code => (code === 0 ? resolve() : reject(new Error('编辑器未能打开文件，请使用显示文件夹'))))
+    })
+  }
+  async importAsset(id, source) {
+    const session = await this.session(id)
+    await session.workspace.assertWritable()
+    const info = await lstat(source)
+    if (
+      !info.isFile() ||
+      info.isSymbolicLink() ||
+      info.size > 64 * 1024 * 1024 ||
+      !/\.(png|jpe?g|webp|mp3|ogg|swf)$/i.test(source)
+    )
+      throw new Error('请选择不超过 64 MiB 的图片、音频或 SWF 文件')
+    const file = `assets/imports/${randomUUID().slice(0, 8)}-${basename(source)}`
+    const target = await session.workspace.path(file, { create: true })
+    await mkdir(dirname(target), { recursive: true })
+    await session.workspace.path(file, { create: true })
+    await copyFile(source, target, constants.COPYFILE_EXCL)
+    return { file, name: basename(source) }
+  }
+  async stopPreviews() {
+    for (const pending of this.#sessions.values()) await (await pending).jobs.stopPreviews()
+  }
+  async close() {
+    await Promise.allSettled([...this.#sessions.keys()].map(id => this.release(id)))
+    await this.#queue
+  }
+}

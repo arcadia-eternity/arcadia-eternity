@@ -1,4 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
+import { ContentPresentationSchema } from './presentation'
 import { StackStrategy } from '@arcadia-eternity/const'
 import { NativeEnum, parseWithErrors } from './utils'
 
@@ -27,8 +28,8 @@ export const MarkConfigSchema = Type.Object(
 )
 
 export const MarkSchema = Type.Object({
+  presentation: Type.Optional(ContentPresentationSchema),
   id: Type.String({ minLength: 1 }),
-  iconRef: Type.Optional(Type.String()),
   config: Type.Optional(MarkConfigSchema),
   tags: Type.Optional(Type.Array(Type.String(), { default: [] })),
   effect: Type.Optional(Type.Array(Type.String(), { default: [] })),
@@ -40,6 +41,8 @@ export function validateMark(data: unknown): MarkSchemaType {
   return parseWithErrors(MarkSchema, data)
 }
 
-export const MarkDataSetSchema = Type.Array(MarkSchema)
+/** Editable rules exclude display metadata; runtime UI schemas above accept the resolved view. */
+export const MarkDefinitionSchema = Type.Omit(MarkSchema, ['presentation'])
+export const MarkDataSetSchema = Type.Array(MarkDefinitionSchema)
 
 export type MarkDataSet = Static<typeof MarkDataSetSchema>

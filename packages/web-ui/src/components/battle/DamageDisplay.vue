@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { computed } from 'vue'
 
 // 定义属性
@@ -18,7 +19,7 @@ if (props.value <= 0) {
 
 // 计算背景图片路径
 const backgroundImage = computed(() => {
-  const baseUrl = 'https://seer2-resource.yuuinih.com/png/damage/'
+  const baseUrl = officialAssetUrl('https://seer2-resource.yuuinih.com/png/damage/')
   if (props.type === 'blue') {
     return `${baseUrl}damage_blue.png`
   } else if (props.type === 'red') {
@@ -63,7 +64,7 @@ const contentStyle = computed(() => {
         <!-- 将所有内容置于单一容器内，使用行内显示模式确保尺寸由内容决定 -->
         <div class="flex items-center justify-center whitespace-nowrap">
           <img
-            src="https://seer2-resource.yuuinih.com/png/damageNumber/minus.png"
+            :src="officialAssetUrl('https://seer2-resource.yuuinih.com/png/damageNumber/minus.png')"
             alt="minus"
             class="battle-damage__minus object-contain"
           />
@@ -72,7 +73,7 @@ const contentStyle = computed(() => {
           <img
             v-for="(digit, index) in digits"
             :key="index"
-            :src="`https://seer2-resource.yuuinih.com/png/damageNumber/${digit}.png`"
+            :src="officialAssetUrl(`https://seer2-resource.yuuinih.com/png/damageNumber/${digit}.png`)"
             :alt="`digit ${digit}`"
             class="battle-damage__digit object-contain"
             :class="index > 0 ? 'battle-damage__digit--following' : ''"

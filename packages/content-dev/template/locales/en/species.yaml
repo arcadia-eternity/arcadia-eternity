@@ -1,0 +1,6 @@
+pet:
+  name: Frostling
+  description: A sample pet with separate packaged icon, portrait and <emphasis>static battle artwork</emphasis>.
+pet-swf:
+  name: Hosted Appearance Example
+  description: Uses remote images and a <strong>seer2-swf</strong> battle resource, with packaged fallback artwork.
