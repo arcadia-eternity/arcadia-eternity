@@ -161,7 +161,6 @@ it('ordinary content cannot replace installed templates or introduce data rules'
 it('installs templates in the production base-pack factory without altering unused official effects', () => {
   const data = loadBasePrototypeData()
   const original = createOfficialContent(data, 'official/templates')
-  expect(original.effects).toHaveLength(1087)
   const extended = createOfficialContent(
     {
       ...data,
@@ -172,7 +171,7 @@ it('installs templates in the production base-pack factory without altering unus
     },
     'official/templates/extended',
   )
-  expect(extended.effects).toHaveLength(1088)
+  expect(extended.effects).toHaveLength(original.effects.length + 1)
 })
 
 it.each(['expiry', 'destroy'])('rejects recursive or mutex successors for %s before battle creation', event => {

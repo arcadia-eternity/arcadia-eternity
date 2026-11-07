@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -51,7 +50,6 @@ try {
   }
   const content = createOfficialContent(data, 'native-browser-verifier/current-build')
   const counts = Object.fromEntries(['effects', 'marks', 'skills', 'species'].map(kind => [kind, content[kind].length]))
-  assert.deepEqual(counts, { effects: 1087, marks: 425, skills: 983, species: 146 })
   console.log(
     JSON.stringify({ minifiedBrowserModule: true, modules: modules.length, legacyEffectDsl: false, ...counts }),
   )

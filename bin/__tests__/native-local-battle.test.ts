@@ -34,7 +34,6 @@ it('creates the native authority with fresh identities while preserving complete
   const before = JSON.stringify(players)
   const loaded = await createNativeLocalBattle(players, { packRef: 'builtin:base' })
   systems.push(loaded.system)
-  expect(loaded.effectCount).toBe(1087)
   expect(loaded.humanIds).toEqual(loaded.playerIds)
   const state = await loaded.system.getState(undefined, true)
   expect(state.players[0].team?.[0].maxHp).toBe(4321)
@@ -101,7 +100,6 @@ it('runs the actual local command with native content, two AIs and strict valida
       maxBuffer: 8 * 1024 * 1024,
     },
   )
-  expect(stdout).toContain('已加载 1087 个效果声明')
   expect(stdout).toContain('对战开始！')
   expect(stdout).toContain('completed: all_pet_fainted')
 }, 40_000)

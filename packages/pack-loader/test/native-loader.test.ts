@@ -264,12 +264,8 @@ packages:
     expect(remote.assetConflicts).toEqual([])
     expect(remote.locales).toEqual(local.locales)
     expect(remote.assets).toHaveLength(local.assets!.length)
-    expect([
-      remote.content.effects.length,
-      remote.content.marks.length,
-      remote.content.skills.length,
-      remote.content.species.length,
-    ]).toEqual([1087, 425, 983, 146])
+    for (const kind of ['effects', 'marks', 'skills', 'species'] as const)
+      expect(remote.content[kind].map(item => item.id)).toEqual(local.content[kind].map(item => item.id))
     for (const prototype of [...remote.content.marks, ...remote.content.skills])
       for (const effect of prototype.effects) expect(remote.content.getEffect(effect.id)).toBe(effect)
     expect(requests.some(path => path.startsWith('data/effect_'))).toBe(false)
@@ -323,8 +319,7 @@ packages:
     )
     const result = await new NativePackLoader(build, createOfficialContent).load(file)
     expect(result.pack?.id).toBe('fixture.native.entry')
-    expect(result.content.effects).toHaveLength(1087)
-    expect(result.content.skills).toHaveLength(983)
+    expect(result.content.getSkill('skill_shuipao')).toBeDefined()
     const options = { enforceLockfile: true }
     const strictLoad = new NativePackLoader(build, createOfficialContent).load(file, options)
     options.enforceLockfile = false

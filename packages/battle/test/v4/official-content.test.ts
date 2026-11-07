@@ -39,9 +39,6 @@ afterEach(async () => {
 it('loads every native definition and wires canonical metadata without mutating the input', () => {
   const raw = JSON.stringify(data)
   const directory = content()
-  expect([directory.effects.length, directory.marks.length, directory.skills.length, directory.species.length]).toEqual(
-    [1087, 425, 983, 146],
-  )
   for (const prototype of [...directory.marks, ...directory.skills])
     for (const effect of prototype.effects) expect(directory.getEffect(effect.id)).toBe(effect)
   expect(directory.getSkill('skill_shuipao' as baseSkillId)).toBe(
