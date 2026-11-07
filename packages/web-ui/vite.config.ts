@@ -1,10 +1,9 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, normalizePath, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import path from 'node:path'
-import yaml from 'yaml'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
@@ -13,6 +12,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
+import { buildWebContent } from './scripts/build-web-content.mjs'
 
 // Auto-imported styles are injected after Vite's initial dependency scan.
 const elementPlusComponents = new URL('./components/', import.meta.resolve('element-plus'))
@@ -32,8 +32,9 @@ function buildCommitHash(): string {
 }
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const env = loadEnv(mode, process.cwd())
+  const { files: webContent, mediaTargets } = await buildWebContent()
   const backendOrigin = process.env.VITE_BACKEND_ORIGIN ?? env.VITE_BACKEND_ORIGIN ?? '/'
   const autoConnect = process.env.VITE_AUTO_CONNECT ?? env.VITE_AUTO_CONNECT ?? 'true'
   if (!['true', 'false'].includes(autoConnect)) throw new Error('VITE_AUTO_CONNECT must be true or false')
@@ -92,6 +93,23 @@ export default defineConfig(({ mode }) => {
     plugins: [
       builtinEffectsPlugin(),
       {
+        name: 'arcadia-web-content',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (!req.url || !['GET', 'HEAD'].includes(req.method ?? '')) return next()
+            const path = new URL(req.url, 'http://localhost').pathname.slice(1)
+            const content = webContent.get(path)
+            if (content === undefined) return next()
+            res.setHeader('Cache-Control', 'no-store')
+            res.setHeader('Content-Type', path.endsWith('.json') ? 'application/json' : 'application/yaml')
+            res.end(req.method === 'HEAD' ? undefined : content)
+          })
+        },
+        generateBundle() {
+          for (const [fileName, source] of webContent) this.emitFile({ type: 'asset', fileName, source })
+        },
+      },
+      {
         name: 'arcadia-deployment-config',
         configureServer(server) {
           server.middlewares.use('/arcadia-client.json', (_req, res) => {
@@ -130,50 +148,7 @@ export default defineConfig(({ mode }) => {
       }),
       viteStaticCopy({
         targets: [
-          ...[
-            { srcDir: '../../packs/base/data', outDir: 'data' },
-            { srcDir: '../../resource', outDir: 'resource' },
-            { srcDir: '../../packs/base/locales', outDir: 'locales' },
-          ].flatMap(({ srcDir, outDir }) => {
-            const baseDir = srcDir
-            // The pack manifest references YAML directly; the app's i18next backend uses JSON.
-            // Ship both metadata formats so neither reader needs a failed request to find its data.
-            return [
-              {
-                src: `${baseDir}/**/*.yaml`,
-                dest: outDir,
-                rename: (_fileName: string, _fileExtension: string, fullPath: string) =>
-                  path.relative(path.resolve(__dirname, baseDir), fullPath).replace(/\\/g, '/'),
-              },
-              {
-                src: `${baseDir}/**/*.yaml`,
-                dest: outDir,
-                rename: (fileName: string, fileExtension: string, fullPath: string) => {
-                  const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
-                  return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
-                },
-                transform: (content: string) =>
-                  JSON.stringify(
-                    yaml.parse(content, {
-                      merge: true,
-                    }),
-                    null,
-                  ),
-              },
-            ]
-          }),
-          {
-            src: '../../packs/base/pack.json',
-            dest: '.',
-          },
-          {
-            src: '../../packs/base/pack-lock.yaml',
-            dest: '.',
-          },
-          {
-            src: '../../packs/base/dist/presentation.json',
-            dest: 'dist',
-          },
+          ...mediaTargets.map(target => ({ ...target, src: normalizePath(target.src) })),
           // 复制脚本文件（优先复制JavaScript文件）
           {
             src: '../../scripts/**/*.{js,mjs}',

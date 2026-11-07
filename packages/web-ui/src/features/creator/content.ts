@@ -16,7 +16,13 @@ import { resolveBasePackRef } from '@/utils/packRef'
 /** Use the same raw metadata boundary as Node; presentation-store defaults are not content identity. */
 export async function loadCreatorBase(): Promise<ContentPrototypeData> {
   const loader = new PackMetadataLoader()
-  return (await loader.loadMetadata(await resolveBasePackRef(), { source: 'http', enforceLockfile: true })).data
+  return (
+    await loader.loadMetadata(await resolveBasePackRef(), {
+      source: 'http',
+      enforceLockfile: true,
+      includeLocales: false,
+    })
+  ).data
 }
 export const workHost = (base: ContentPrototypeData) => ({
   base,

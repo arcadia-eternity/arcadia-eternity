@@ -251,6 +251,8 @@ export const useResourceStore = defineStore('Resource', {
           const packResult = await packLoader.loadMetadata(packRef, {
             source: 'http',
             enforceLockfile: false,
+            includeData: false,
+            includeLocales: false,
           })
 
           if (!isCurrent()) return
@@ -418,6 +420,8 @@ export const useResourceStore = defineStore('Resource', {
       const packResult = await packLoader.loadMetadata(packRef, {
         source: 'http',
         enforceLockfile: false,
+        includeData: false,
+        includeLocales: false,
       })
 
       if ((packResult.assetConflicts?.length ?? 0) > 0) {

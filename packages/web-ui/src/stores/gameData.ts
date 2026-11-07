@@ -453,6 +453,7 @@ export const useGameDataStore = defineStore('gameData', {
       const result = await loader.loadMetadata(packRef, {
         source: 'http',
         enforceLockfile: true,
+        includeLocales: false,
       })
 
       const presentations = presentationIndex(result.presentation)
@@ -519,6 +520,7 @@ export const useGameDataStore = defineStore('gameData', {
       const result = await loader.loadMetadata(packRef, {
         source: 'http',
         enforceLockfile: true,
+        includeLocales: false,
       })
       if (!isCurrent()) return
       const presentations = presentationIndex(result.presentation)

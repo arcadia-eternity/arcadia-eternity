@@ -24,6 +24,10 @@ export interface NativePackLoaderOptions {
   enforceLockfile?: boolean
   revision?: string
 }
+type MetadataOptions = Pick<NativePackLoaderOptions, 'source' | 'enforceLockfile'> & {
+  includeData?: boolean
+  includeLocales?: boolean
+}
 export interface NativeContentResult<Content = ContentCatalog> {
   sandbox?: SandboxEnvironment
   runtime: 'native-v4'
@@ -58,17 +62,11 @@ interface MetadataPack {
 /** YAML/JSON, locales and assets only; no effect code or runtime factory is required. */
 export class PackMetadataLoader extends PackTransport {
   /** Read editable data before composing layers; linking and trusted behavior validation happen in load/fromMetadata. */
-  async loadMetadata(
-    packRef = 'builtin:base',
-    options: Pick<NativePackLoaderOptions, 'source' | 'enforceLockfile'> = {},
-  ): Promise<NativePackMetadataResult> {
+  async loadMetadata(packRef = 'builtin:base', options: MetadataOptions = {}): Promise<NativePackMetadataResult> {
     return (await this.loadMetadataBatch(packRef, options)).metadata
   }
 
-  protected async loadMetadataBatch(
-    packRef: string,
-    options: Pick<NativePackLoaderOptions, 'source' | 'enforceLockfile'>,
-  ) {
+  protected async loadMetadataBatch(packRef: string, options: MetadataOptions) {
     const source = options.source ?? 'node-fs'
     const transportOptions: PackLoaderOptions = { enforceLockfile: options.enforceLockfile, continueOnError: false }
     const errors: string[] = []
@@ -91,7 +89,7 @@ export class PackMetadataLoader extends PackTransport {
       assets: entry.assets,
     })
     this.assertLockfileIssues(lockfileIssues, transportOptions)
-    const { data, locales } = await this.readMetadata(packs)
+    const { data, locales } = await this.readMetadata(packs, options)
     const assets = packs.flatMap(pack => pack.assets)
     const metadata: NativePackMetadataResult = {
       data,
@@ -174,18 +172,25 @@ export class PackMetadataLoader extends PackTransport {
     const packs: MetadataPack[] = []
     for (const item of resolved.order) {
       const localesRoot = this.resolveDirectoryUrl(item.manifest.paths?.localesDir ?? 'locales', item.manifestUrl)
+      const presentation = item.manifest.presentation
+        ? parseWithErrors(
+            PresentationManifestSchema,
+            await this.fetchObject(new URL(item.manifest.presentation, item.manifestUrl).toString()),
+          )
+        : undefined
+      for (const resource of presentation?.resources ?? []) {
+        if (resource.kind === 'file') {
+          const path = resource.source.split('/').map(encodeURIComponent).join('/')
+          resource.source = new URL(path, item.manifestUrl).href
+        }
+      }
       packs.push({
         manifest: item.manifest,
         source: item.manifestUrl,
         raw: item.manifestRaw,
         readData: file => this.fetchArray(new URL(file, item.dataRoot).toString()),
         readLocale: file => this.fetchObject(new URL(file, localesRoot).toString()),
-        presentation: item.manifest.presentation
-          ? parseWithErrors(
-              PresentationManifestSchema,
-              await this.fetchObject(new URL(item.manifest.presentation, item.manifestUrl).toString()),
-            )
-          : undefined,
+        presentation,
         assets: (await this.loadAssetsFromManifest(item.manifest, item.manifestUrl, transportOptions, errors)).records,
       })
     }
@@ -193,7 +198,7 @@ export class PackMetadataLoader extends PackTransport {
     return { packs, lockfile }
   }
 
-  private async readMetadata(packs: readonly MetadataPack[]) {
+  private async readMetadata(packs: readonly MetadataPack[], options: MetadataOptions) {
     const data = { marks: [] as unknown[], skills: [] as unknown[], species: [] as unknown[] }
     const locales: LocaleBundles = {}
     for (const pack of packs) {
@@ -205,7 +210,9 @@ export class PackMetadataLoader extends PackTransport {
           !pack.manifest.data[kind].every(file => typeof file === 'string' && file.length > 0)
         )
           throw new Error(`Invalid native metadata file list: ${kind}`)
-        else for (const file of pack.manifest.data[kind]) data[kind].push(...(await pack.readData(file)))
+        else if (options.includeData !== false)
+          for (const file of pack.manifest.data[kind]) data[kind].push(...(await pack.readData(file)))
+      if (options.includeLocales === false) continue
       const entries = Array.isArray(pack.manifest.locales)
         ? pack.manifest.locales.map(item => ({
             locale: item.locale,

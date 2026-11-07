@@ -51,6 +51,38 @@ describe('NativePackLoader', () => {
     expect(loaded).not.toHaveProperty('content')
     expect(requests.every(path => !/\.(?:[cm]?js|ts|wasm)$/.test(path))).toBe(true)
   })
+  it('loads presentation without rule or locale requests and resolves media from the pack URL', async () => {
+    const requests = serveBase(undefined, {
+      'dist/presentation.json': JSON.stringify({
+        version: 2,
+        bindings: [],
+        defaultLocale: 'zh-CN',
+        locales: {},
+        resources: [
+          {
+            id: 'icon',
+            kind: 'file',
+            source: 'assets/mark #1.png',
+            sha256: 'a'.repeat(64),
+            bytes: 8,
+            mime: 'image/png',
+          },
+          { id: 'cry', kind: 'http', source: 'https://example.test/cry.mp3', mime: 'audio/mpeg' },
+        ],
+      }),
+    })
+    const loaded = await new PackMetadataLoader().loadMetadata(`${origin}pack.json`, {
+      source: 'http',
+      enforceLockfile: true,
+      includeData: false,
+      includeLocales: false,
+    })
+    expect(requests).toEqual(['pack.json', 'dist/presentation.json', 'pack-lock.yaml'])
+    expect(loaded.presentation![0].resources.map(resource => resource.source)).toEqual([
+      `${origin}assets/mark%20%231.png`,
+      'https://example.test/cry.mp3',
+    ])
+  })
   it('binds host-prepared effects for metadata and work selections with a captured code identity', async () => {
     const data = { species: [], skills: [], marks: [] }
     const modules: SandboxEnvironment['modules'][number][] = [

@@ -29,6 +29,8 @@ docker run --rm -p 8102:8102 -e SERVER_ID=my-community arcadia-community
 
 这会在浏览器启动、导入应用和初始化服务前解析为当前站点 origin。API、Socket.IO 与环境素材由同一监听器提供。房间邀请保留本站点地址，房间路径、图鉴和战报路径刷新均返回 SPA；未知 API、Socket.IO 和资源路径返回错误，不被替换成 HTML。网页和环境资源继续使用 `no-store`，没有为发行物引入 UGC 预下载。
 
+网页构建将内置 base 的规则数据合并为精灵、技能、印记三份 JSON，并生成指向这些文件的发布清单。配套网页和独立静态站点使用同一份目录结构。包内媒体随网页发布，由界面按需请求。连接到社区服后，房间使用该服固定环境的公开目录和资源索引，公开目录一次返回环境中的规则记录和展示文本。
+
 TLS 反向代理必须显式设置公开 origin，例如 `PUBLIC_ORIGIN=https://play.example.com`。公共监听器允许精确 HTTP(S) origins，以及发行客户端固定来源 `arcadia-client://app`；拒绝通配符、其他自定义 scheme 与 `null`。默认允许这个固定桌面来源；显式设置 `CORS_ORIGIN` / `--cors-origin` 时使用管理员给定的完整列表（可排除桌面来源）。这个来源不代表可信身份，也不授予内容执行或本机权限。同源 HTTP 直连默认允许本站 origin；前后端分离时通过 `CORS_ORIGIN` 列出实际配套站点。Socket.IO WebSocket 握手使用相同来源判定。CORS 只控制浏览器跨源访问，不授予内容执行或桌面权限。
 
 ## 自动连接默认值

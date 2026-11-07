@@ -2,23 +2,29 @@ import { cp, mkdir, readFile, writeFile, rm, access, readdir } from 'node:fs/pro
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** Verify the published pack URLs, including both the pack and app locale readers. */
+/** Verify the published pack URLs before replacing the staged website. */
 export async function verifyPairedWebsite(root) {
   const pack = JSON.parse(await readFile(new URL('pack.json', root), 'utf8'))
+  const presentation = JSON.parse(await readFile(new URL(pack.presentation, root), 'utf8'))
   const paths = ['index.html', 'pack-lock.yaml', pack.presentation]
   for (const files of Object.values(pack.data)) {
     for (const file of files) paths.push(`${pack.paths.dataDir}/${file}`)
   }
-  for (const [language, namespaces] of Object.entries(pack.locales)) {
-    for (const namespace of namespaces) {
-      paths.push(`${pack.paths.localesDir}/${language}/${namespace}.yaml`)
-      paths.push(`${pack.paths.localesDir}/${language}/${namespace}.json`)
+  if (Array.isArray(pack.locales)) {
+    for (const { files } of pack.locales) for (const file of files) paths.push(`${pack.paths.localesDir}/${file}`)
+  } else {
+    for (const [language, namespaces] of Object.entries(pack.locales)) {
+      for (const namespace of namespaces) {
+        paths.push(`${pack.paths.localesDir}/${language}/${namespace}.yaml`)
+        paths.push(`${pack.paths.localesDir}/${language}/${namespace}.json`)
+      }
     }
   }
+  for (const resource of presentation.resources ?? []) if (resource.kind === 'file') paths.push(resource.source)
   await Promise.all(
     paths.map(async path => {
       try {
-        await access(new URL(path, root))
+        await access(join(fileURLToPath(root), path))
       } catch {
         throw new Error(`Paired website is missing a required built asset: ${path}`)
       }
