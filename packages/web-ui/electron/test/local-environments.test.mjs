@@ -1,8 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, rm, realpath, copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
 import { LocalEnvironments } from '../local-environments.mjs'
 
@@ -168,4 +169,24 @@ test('failed captured tasks can be retried, report real stages and clear termina
   assert.equal((await api.snapshot()).versions.length, 1)
   await api.request({ action: 'clear-completed' })
   assert.deepEqual((await api.snapshot()).operations, [])
+})
+
+// The Electron ASAR has no workspace packages; they live in the separate runtime.
+test('relocated desktop environment module loads without workspace packages and delegates package state', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'relocated-environments-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const file = join(root, 'local-environments.mjs')
+  await copyFile(new URL('../local-environments.mjs', import.meta.url), file)
+  const { LocalEnvironments: Relocated } = await import(pathToFileURL(file).href)
+  const workspace = {}
+  const input = { action: 'package-state', environmentId: 'friends', packageName: 'sample', enabled: false }
+  const api = new Relocated({
+    openWorkspace: async () => workspace,
+    setPackageEnabled: async (actualWorkspace, actualInput) => {
+      assert.equal(actualWorkspace, workspace)
+      assert.equal(actualInput, input)
+      return { revision: 'updated' }
+    },
+  })
+  assert.deepEqual(await api.request(input), { revision: 'updated' })
 })

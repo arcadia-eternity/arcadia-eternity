@@ -233,6 +233,12 @@ function getLocalEnvironments() {
     : require
   localEnvironments ??= new LocalEnvironments({
     library: getContentLibrary(),
+    setPackageEnabled: async (workspace, input) => {
+      const { setEnvironmentPackageEnabled } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+      )
+      return setEnvironmentPackageEnabled(workspace, input)
+    },
     openWorkspace: async () => {
       const { ContentWorkspace } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href

@@ -1,4 +1,3 @@
-import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-dev/management-workspace'
 import { randomUUID } from 'node:crypto'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
@@ -14,10 +13,11 @@ export class LocalEnvironments {
   #jobs = new Map()
   #closed = false
   #tail = Promise.resolve()
-  constructor({ openWorkspace, library, validate }) {
+  constructor({ openWorkspace, library, validate, setPackageEnabled }) {
     this.openWorkspace = openWorkspace
     this.library = library
     this.validate = validate
+    this.setPackageEnabled = setPackageEnabled
   }
   ready() {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
@@ -82,7 +82,7 @@ export class LocalEnvironments {
       case 'snapshot':
         return this.snapshot()
       case 'package-state':
-        return setEnvironmentPackageEnabled(workspace, input)
+        return this.setPackageEnabled(workspace, input)
       case 'save':
         return workspace.saveDraft({ document: input.document, expectedRevision: input.expectedRevision })
       case 'delete-draft':
