@@ -31,7 +31,7 @@ docker run --rm -p 8102:8102 -e SERVER_ID=my-community arcadia-community
 
 配套网页和独立静态站点都发布一份准备好的环境。网页启动时读取 `environment/catalog.json`，本地开战时读取同一环境的 `environment/runtime.json`。图鉴和资源索引共用展示目录。包内媒体随网页发布，由界面按需请求。连接到服务器后，房间通过该服的环境接口读取展示目录，P2P 房间另外取得运行材料。
 
-默认网页环境选用随发行物提供的 base 包。构建自定义静态环境时，把 `ARCADIA_WEB_ENVIRONMENT_PROJECT` 指向已安装且带锁文件的 npm 内容项目。构建按项目成员装配，使用包发布的预编译效果工件，并复制声明的包内媒体。远程媒体继续使用包声明的地址。
+默认网页环境将随发行物提供的 base npm 包安装到默认环境的依赖树中。默认预设要求 base 保持启用。构建自定义静态环境时，把 `ARCADIA_WEB_ENVIRONMENT_PROJECT` 指向已安装且带锁文件的 npm 内容项目。自定义项目可只包含社区包。两种构建都按项目成员装配，使用包发布的预编译效果工件，并复制声明的包内媒体。远程媒体使用包声明的地址。
 
 TLS 反向代理必须显式设置公开 origin，例如 `PUBLIC_ORIGIN=https://play.example.com`。公共监听器允许精确 HTTP(S) origins，以及发行客户端固定来源 `arcadia-client://app`；拒绝通配符、其他自定义 scheme 与 `null`。默认允许这个固定桌面来源；显式设置 `CORS_ORIGIN` / `--cors-origin` 时使用管理员给定的完整列表（可排除桌面来源）。这个来源不代表可信身份，也不授予内容执行或本机权限。同源 HTTP 直连默认允许本站 origin；前后端分离时通过 `CORS_ORIGIN` 列出实际配套站点。Socket.IO WebSocket 握手使用相同来源判定。CORS 只控制浏览器跨源访问，不授予内容执行或桌面权限。
 

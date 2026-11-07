@@ -7,11 +7,12 @@ export { resolveNpmInvocation } from './src/npm/runner'
 export { inspectNpmProject, type NpmProjectInspection, type NpmContentManifest } from './src/npm/inspect'
 export {
   prepareNpmProject,
+  prepareShippedEnvironment,
   emptyNpmContentHost,
   type NpmContentHost,
   type PreparedNpmEnvironment,
 } from './src/npm/prepare'
-export { prepareCatalogPackage, stageCatalogProject } from './src/npm/official-host'
+export { stageCatalogProject, withShippedCatalogArchive, withShippedEnvironmentProject } from './src/npm/official-host'
 export { compileEffectModule } from './src/npm/effect-artifact'
 export { sandboxEnvironmentFor } from './src/effect-environment'
 

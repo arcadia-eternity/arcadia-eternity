@@ -22,7 +22,7 @@ import { preparePresentation, type PreparedPresentation } from './resources'
 import { compileEffectModule } from './effect-artifact'
 import { readPrebuiltEffectModule } from './prebuilt-artifact'
 import { bindEffectEnvironment } from '../effect-environment'
-import { installedOfficialHost } from './official-host'
+import { installedOfficialHost, withShippedEnvironmentProject } from './official-host'
 
 export interface NpmContentHost extends Omit<WorkHost<ContentIndex>, 'createContent'> {
   readonly effectModules?: SandboxEnvironment['modules']
@@ -40,10 +40,18 @@ export interface NpmPreparationOptions {
 export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnvironment<ContentIndex>>> & {
   readonly installation: NpmProjectInspection
   readonly sandbox: SandboxEnvironment
+  readonly authoring?: Awaited<ReturnType<typeof installedOfficialHost>>['authoring']
   presentation: PreparedPresentation[]
   assetFile(hash: string): string | undefined
   readAsset(hash: string): Uint8Array | undefined
   dispose(): Promise<void>
+}
+
+/** The default preset acquires one local package, then prepares an ordinary locked installation. */
+export function prepareShippedEnvironment(root: string) {
+  return withShippedEnvironmentProject(root, directory =>
+    prepareNpmProject(directory, emptyNpmContentHost, { policy: { profile: 'official' } }),
+  )
 }
 
 /** Host-only activation. The administrator admits the project; local file edits do not revoke that decision.
@@ -76,6 +84,7 @@ export async function prepareNpmProject(
     const selected = await installedOfficialHost(captured.root, installation, host)
     return Object.freeze({
       ...(await compileInstallation(captured.root, selected.host, installation, approval.policy, preparation)),
+      authoring: selected.authoring,
       presentation: await preparePresentation(captured.root, selected.presentationPackages),
       dispose,
     })

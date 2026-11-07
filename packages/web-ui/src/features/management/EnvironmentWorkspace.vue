@@ -209,7 +209,8 @@ function save() {
                 ><span>{{ member.version }} · {{ member.direct ? '直接添加' : '自动依赖' }}</span>
                 <small v-if="member.requiredBy.length">被依赖：{{ member.requiredBy.join('、') }}</small>
                 <small v-if="member.dependencies.length">需要：{{ member.dependencies.join('、') }}</small>
-                <button :disabled="busy || !canEdit" @click="disablingPackage = member.name">停用</button>
+                <small v-if="selectedEnvironment.requiredPackages?.includes(member.name)">默认环境必需</small>
+                <button v-else :disabled="busy || !canEdit" @click="disablingPackage = member.name">停用</button>
                 <div v-if="disablingPackage === member.name" role="group" aria-label="停用资源包确认">
                   <p>
                     停用会修改草稿，已准备版本保持不变。{{
@@ -264,14 +265,25 @@ function save() {
           <fieldset>
             <legend>直接依赖</legend>
             <div v-for="(row, index) in packageRows" :key="index" class="package-row">
-              <label>包名<input v-model="row.name" placeholder="@author/package" required /></label
+              <label
+                >包名<input
+                  v-model="row.name"
+                  :readonly="!!revision && selectedEnvironment?.requiredPackages?.includes(row.name)"
+                  placeholder="@author/package"
+                  required /></label
               ><label
                 >版本范围<input
                   v-model="row.version"
                   aria-label="版本范围"
                   placeholder="^1.0.0 或 >=1.5 <2"
                   required /></label
-              ><button type="button" @click="packageRows.splice(index, 1)">移除</button>
+              ><button
+                v-if="!revision || !selectedEnvironment?.requiredPackages?.includes(row.name)"
+                type="button"
+                @click="packageRows.splice(index, 1)"
+              >
+                移除
+              </button>
             </div>
             <button type="button" @click="packageRows.push({ name: '', version: '' })">添加内容包</button>
           </fieldset>

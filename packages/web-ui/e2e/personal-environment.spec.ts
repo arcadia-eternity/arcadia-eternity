@@ -4,7 +4,6 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createSingleProcessApp } from '../../server/src/standalone/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
-import { loadStandaloneBase } from '../../server/src/standalone/native'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createLocalContentSessions } from '../electron/local-content-sessions.mjs'
@@ -25,11 +24,9 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
   presentation.bindings[0].battle = { renderer: 'image', source: 'icon' }
   presentation.resources = presentation.resources.filter((resource: { kind: string }) => resource.kind === 'file')
   await writeFile(presentationFile, JSON.stringify(presentation))
-  const base = await loadStandaloneBase()
   const sessions = createLocalContentSessions({
-    library: { acquireProject: async () => ({ directory, builtinOnly: false, release: async () => {} }) },
+    library: { acquireProject: async () => ({ directory, release: async () => {} }) },
     load: async () => ({
-      base,
       host: emptyNpmContentHost,
       prepareNpmProject,
       buildDisplayCatalog,

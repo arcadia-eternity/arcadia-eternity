@@ -2,10 +2,9 @@ import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
 import type { BattleOptions, ContentCatalog, ContentIndex } from '@arcadia-eternity/battle/v4'
-import { prepareCatalogPackage } from '@arcadia-eternity/pack-loader/node'
+import { prepareShippedEnvironment } from '@arcadia-eternity/pack-loader/node'
 import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
-import { resolvePackPathFromRef } from '@arcadia-eternity/battle/pack'
-import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { NativeRuntimeIdentity } from '@arcadia-eternity/protocol'
 import {
   PlayerSchema,
@@ -25,16 +24,16 @@ export interface StandaloneRuntime {
 }
 
 let officialContent: Promise<StandaloneRuntime> | undefined
-let officialPack: ReturnType<typeof prepareCatalogPackage> | undefined
+let officialPack: ReturnType<typeof prepareShippedEnvironment> | undefined
 const sandboxWorkers = createNodeBattleWorkerManager()
 
 export function loadStandaloneBase() {
-  officialPack ??= resolvePackPathFromRef('builtin:base')
-    .then(path => prepareCatalogPackage(dirname(path)))
-    .catch(error => {
-      officialPack = undefined
-      throw error
-    })
+  officialPack ??= prepareShippedEnvironment(
+    fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
+  ).catch(error => {
+    officialPack = undefined
+    throw error
+  })
   return officialPack
 }
 

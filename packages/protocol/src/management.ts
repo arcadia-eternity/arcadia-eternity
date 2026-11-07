@@ -65,6 +65,7 @@ export interface ManagedEnvironmentDocument {
 export interface ManagedEnvironment {
   document: ManagedEnvironmentDocument
   revision: string
+  requiredPackages?: string[]
 }
 export interface ManagedReadyEnvironmentVersion {
   versionId: string

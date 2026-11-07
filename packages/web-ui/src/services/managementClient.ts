@@ -172,6 +172,7 @@ function responseError(status: number, body: unknown): ManagementError {
     PRINCIPAL_NOT_FOUND: '管理主体不存在，请先创建主体。',
     ENVIRONMENT_HAS_VERSIONS: '请先删除这个环境的固定版本，再删除环境草稿。',
     ENVIRONMENT_PACKAGE_REQUIRED: '其他资源包仍依赖它。请查看依赖关系，或明确选择连带停用。',
+    DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED: '默认环境必须保留基础内容包。',
     ENVIRONMENT_DEPENDENCIES_UNRESOLVED: '请先准备当前组合，确认依赖关系后再停用资源包。',
     ENVIRONMENT_DEPENDENCY_CONFLICT: '资源包的依赖范围不兼容，请调整组合后重试。已有固定版本保持不变。',
     CONTENT_VERSION_CONFLICT: '资源包版本发生冲突。请调整版本范围后重试，已有版本保持不变。',

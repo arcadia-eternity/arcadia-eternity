@@ -82,6 +82,7 @@ test('base projects reject desktop asset imports, editor launches and source-wri
       arcadia: { projectId: 'arcadia-eternity.base', namespace: 'base' },
     }),
   )
+  await writeFile(join(root, 'pack.json'), JSON.stringify({ id: 'arcadia-eternity.base' }))
   const manager = new AuthorWorkspaces({ root: join(root, '.arcadia'), api: async () => api })
   t.after(async () => {
     await manager.close()

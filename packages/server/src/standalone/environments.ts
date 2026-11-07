@@ -2,7 +2,12 @@ import { validateEnvironmentRules } from '@arcadia-eternity/content-dev/environm
 import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
-import { emptyNpmContentHost, prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
+import {
+  emptyNpmContentHost,
+  prepareNpmProject,
+  readNpmAdmission,
+  type PreparedNpmEnvironment,
+} from '@arcadia-eternity/pack-loader/node'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { createStandaloneRuntime, loadStandaloneBase, type StandaloneRuntime } from './native'
 
@@ -68,25 +73,8 @@ export class ServerEnvironmentRegistry {
       const base = await loadStandaloneBase()
       const runtime = createStandaloneRuntime(base)
       const id = digest(runtime.identity)
-      const content: ServerEnvironmentContent = buildDisplayCatalog(base.data, base.presentation)
-      content.locales = buildDisplayLocales([], base.locales, content)
-      this.publish({
-        runtime,
-        descriptor: {
-          id,
-          protocolVersion: 1,
-          runtime: runtime.identity,
-          packages: [base.member],
-          resourceRevision: digest(content),
-          resources: [],
-        },
-        content,
-        bundled: true,
-        assetFile: () => undefined,
-        dispose: async () => {},
-        references: 0,
-        retired: false,
-      })
+      // The shipped prepared environment is shared by registries in this process.
+      this.publishPrepared(base, runtime, id, { bundled: true, thirdParty: false, dispose: async () => {} })
       this.defaultId ??= id
       this.builtinId = id
     })().catch(error => {
@@ -137,71 +125,78 @@ export class ServerEnvironmentRegistry {
       // Local code edits do not change the metadata identity. Every preparation is
       // a fresh room-selectable instance, so it cannot silently reuse an older runtime.
       const id = digest({ runtime: runtime.identity, instance: randomUUID() })
-      const legacyResources = prepared.releases.flatMap(release =>
-        release.assets.map(asset => ({
-          ...asset,
-          projectId: release.project.id,
-          url: `/api/v1/environments/${id}/assets/${asset.sha256}`,
-        })),
-      )
-      const resources = [
-        ...legacyResources,
-        ...prepared.presentation.flatMap(pkg =>
-          pkg.resources.map(asset => ({
-            id: asset.id,
-            variant: 'default',
-            projectId: pkg.projectId,
-            sha256: asset.sha256,
-            bytes: asset.bytes,
-            mime: asset.mime,
-            url: `/api/v1/environments/${id}/assets/${asset.sha256}`,
-          })),
-        ),
-      ]
-      const files = new Map(
-        prepared.presentation.flatMap(pkg => pkg.resources.map(asset => [asset.sha256, asset.file] as const)),
-      )
-      const content: ServerEnvironmentContent = buildDisplayCatalog(prepared.data, [], prepared.presentation)
-      content.locales = buildDisplayLocales(prepared.presentation, {}, content)
-      const descriptor: ServerEnvironmentDescriptor = {
-        id,
-        protocolVersion: 1,
-        runtime: runtime.identity,
-        resources,
-        remoteResources: prepared.presentation.flatMap(pkg =>
-          pkg.manifest.resources
-            .filter(asset => asset.kind === 'http')
-            .map(asset => ({
-              projectId: pkg.projectId,
-              id: asset.id,
-              url: asset.source,
-              ...(asset.mime ? { mime: asset.mime } : {}),
-            })),
-        ),
-        resourceRevision: digest({ content, resources, presentation: prepared.presentation.map(pkg => pkg.manifest) }),
-        packages: prepared.installation.members.map(({ name, version, projectId, namespace }) => ({
-          name,
-          version,
-          projectId,
-          namespace,
-        })),
-      }
-      this.publish({
-        runtime,
-        descriptor,
-        content,
-        thirdParty,
-        bundled,
-        assetFile: hash => files.get(hash) ?? prepared.assetFile(hash),
-        dispose: prepared.dispose,
-        references: 0,
-        retired: false,
-      })
-      return { ...this.descriptor(descriptor.id), peerRevision: prepared.sandbox.revision }
+      this.publishPrepared(prepared, runtime, id, { bundled, thirdParty, dispose: prepared.dispose })
+      return { ...this.descriptor(id), peerRevision: prepared.sandbox.revision }
     } catch (error) {
       await prepared.dispose()
       throw error
     }
+  }
+
+  private publishPrepared(
+    prepared: Readonly<PreparedNpmEnvironment>,
+    runtime: StandaloneRuntime,
+    id: string,
+    options: Pick<Environment, 'bundled' | 'thirdParty' | 'dispose'>,
+  ) {
+    const legacyResources = prepared.releases.flatMap(release =>
+      release.assets.map(asset => ({
+        ...asset,
+        projectId: release.project.id,
+        url: `/api/v1/environments/${id}/assets/${asset.sha256}`,
+      })),
+    )
+    const resources = [
+      ...legacyResources,
+      ...prepared.presentation.flatMap(pkg =>
+        pkg.resources.map(asset => ({
+          id: asset.id,
+          variant: 'default',
+          projectId: pkg.projectId,
+          sha256: asset.sha256,
+          bytes: asset.bytes,
+          mime: asset.mime,
+          url: `/api/v1/environments/${id}/assets/${asset.sha256}`,
+        })),
+      ),
+    ]
+    const files = new Map(
+      prepared.presentation.flatMap(pkg => pkg.resources.map(asset => [asset.sha256, asset.file] as const)),
+    )
+    const content: ServerEnvironmentContent = buildDisplayCatalog(prepared.data, [], prepared.presentation)
+    content.locales = buildDisplayLocales(prepared.presentation, {}, content)
+    const descriptor: ServerEnvironmentDescriptor = {
+      id,
+      protocolVersion: 1,
+      runtime: runtime.identity,
+      resources,
+      remoteResources: prepared.presentation.flatMap(pkg =>
+        pkg.manifest.resources
+          .filter(asset => asset.kind === 'http')
+          .map(asset => ({
+            projectId: pkg.projectId,
+            id: asset.id,
+            url: asset.source,
+            ...(asset.mime ? { mime: asset.mime } : {}),
+          })),
+      ),
+      resourceRevision: digest({ content, resources, presentation: prepared.presentation.map(pkg => pkg.manifest) }),
+      packages: prepared.installation.members.map(({ name, version, projectId, namespace }) => ({
+        name,
+        version,
+        projectId,
+        namespace,
+      })),
+    }
+    this.publish({
+      runtime,
+      descriptor,
+      content,
+      ...options,
+      assetFile: hash => files.get(hash) ?? prepared.assetFile(hash),
+      references: 0,
+      retired: false,
+    })
   }
 
   /** Private host lifecycle inspection, including retired entries still held by leases. */

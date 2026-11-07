@@ -203,6 +203,16 @@ function getContentLibrary() {
   contentLibrary ??= new ContentLibrary({
     root: path.join(app.getPath('userData'), 'content-packages'),
     host: localBattleHost,
+    withDefaultArchive: async use => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { withShippedCatalogArchive } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/pack-loader/node')).href
+      )
+      const root = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+      return withShippedCatalogArchive(root, localBattleHost.npmCliPath, use)
+    },
     prepare: options => getLocalContentSessions().prepareProject(options),
     selected: options => getLocalContentSessions().selectProject(options),
     createManagedProjects: async (root, options) => {
@@ -284,17 +294,7 @@ async function loadLocalContentRuntime() {
       load('@arcadia-eternity/pack-loader/node'),
       load('@arcadia-eternity/pack-loader/native'),
     ])
-    const root = app.isPackaged
-      ? path.join(process.resourcesPath, 'arcadia-server/packs/base')
-      : path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
-    let base
     return {
-      loadBase() {
-        return (base ??= node.prepareCatalogPackage(root).catch(error => {
-          base = undefined
-          throw error
-        }))
-      },
       host: node.emptyNpmContentHost,
       prepareNpmProject: node.prepareNpmProject,
       buildDisplayCatalog: native.buildDisplayCatalog,

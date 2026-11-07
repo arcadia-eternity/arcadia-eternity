@@ -129,7 +129,7 @@ async function administrator(origin: string, directory: string) {
   expect(response.status).toBe(200)
   const cookie = response.headers.get('set-cookie')!.split(';')[0]
   const { csrfToken } = (await response.json()) as { csrfToken: string }
-  return async <T>(path: string, method = 'GET', body?: unknown, revision?: number): Promise<T> => {
+  return async <T>(path: string, method = 'GET', body?: unknown, revision?: number, status = 200): Promise<T> => {
     const result = await fetch(origin + '/api/management/v1' + path, {
       method,
       headers: {
@@ -141,7 +141,7 @@ async function administrator(origin: string, directory: string) {
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     })
-    expect(result.status, `${method} ${path}`).toBe(200)
+    expect(result.status, `${method} ${path}`).toBe(status)
     return (await result.json()) as T
   }
 }
@@ -199,6 +199,33 @@ it('bootstraps playable builtin content once and preserves administrator removal
   }
   const environments = await catalog(running.origin)
   expect(environments).toHaveLength(1)
+  const base = '@arcadia-eternity/data-pack-base'
+  expect(environments[0].packages.map(pkg => pkg.name)).toEqual([base])
+  const draftsPath = `/workspaces/${server.workspaceId}/environments`
+  const { environments: drafts } = await request<{
+    environments: {
+      document: { id: string; packages: Record<string, string> }
+      revision: string
+      requiredPackages: string[]
+    }[]
+  }>(draftsPath)
+  const draft = drafts.find(item => item.document.id === binding.environmentId)!
+  expect(draft.requiredPackages).toEqual([base])
+  const draftPath = `${draftsPath}/${draft.document.id}`
+  await request(
+    draftPath + '/package-state',
+    'POST',
+    { name: base, enabled: false, cascade: true, expectedRevision: draft.revision },
+    undefined,
+    409,
+  )
+  await request(
+    draftPath,
+    'PATCH',
+    { document: { ...draft.document, packages: {} }, expectedRevision: draft.revision },
+    undefined,
+    409,
+  )
   const socket = await guest(running.origin)
   const room = await accepted<{ roomCode: string }>(socket, 'createPrivateRoom', { config: { battleMode: 'server' } })
   expect(room.roomCode).toBeTruthy()

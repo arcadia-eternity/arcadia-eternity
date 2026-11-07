@@ -85,7 +85,7 @@ const idsFor = packages =>
       packages.flatMap(pkg =>
         pkg.manifest && pkg.draft
           ? (pkg.draft.data[kind] ?? []).map(item => pkg.manifest.namespace + ':' + item.id)
-          : [],
+          : (pkg.catalogIds?.[kind] ?? []),
       ),
     ]),
   )
@@ -107,7 +107,9 @@ function graphFor(inspection) {
           namespace: pkg.manifest.namespace,
           containsCode: !!(pkg.manifest.effects || pkg.manifest.effectArtifact),
         }
-      : {}),
+      : pkg.officialHost
+        ? { projectId: 'base', namespace: 'base', containsCode: true }
+        : {}),
   }))
 }
 function checkedInspection(value) {
@@ -135,12 +137,22 @@ export class ContentLibrary {
   #gcTimer
   #sources
   #createManagedProjects
-  constructor({ root, run, host, prepare = async () => {}, selected = () => {}, sources = {}, createManagedProjects }) {
+  constructor({
+    root,
+    run,
+    host,
+    withDefaultArchive,
+    prepare = async () => {},
+    selected = () => {},
+    sources = {},
+    createManagedProjects,
+  }) {
     this.root = root
     this.run = run
     this.host = host
     this.prepare = prepare
     this.selected = selected
+    this.withDefaultArchive = withDefaultArchive
     this.#sources = sourceRegistry(sources)
     this.#createManagedProjects =
       createManagedProjects ??
@@ -157,15 +169,26 @@ export class ContentLibrary {
       const projects = join(this.root, 'projects')
       await mkdir(projects, { recursive: true })
       if ((await realpath(projects)) !== projects) throw new Error('内容包目录不能是外部链接')
-      let state
+      let state,
+        fresh = false
       try {
         state = await readJson(join(this.root, 'library.json'))
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
-        state = { version: 1, revision: 0, installed: [], activeIds: [], activeProject: null }
+        fresh = true
+        state = {
+          version: 2,
+          revision: 0,
+          installed: [],
+          activeIds: [],
+          activeProject: null,
+          desiredIds: [],
+          goalRevision: 0,
+          activeGoalRevision: -1,
+        }
       }
       if (
-        state.version !== 1 ||
+        state.version !== 2 ||
         !Number.isSafeInteger(state.revision) ||
         state.revision < 0 ||
         !Array.isArray(state.installed) ||
@@ -179,23 +202,59 @@ export class ContentLibrary {
         (state.activeProject !== null && !uuid.test(state.activeProject))
       )
         throw new Error('本机内容包记录格式不正确')
-      state.desiredIds ??= [...state.activeIds]
-      state.goalRevision ??= 0
-      state.activeGoalRevision ??= state.activeProject ? 0 : -1
       if (
         !Array.isArray(state.desiredIds) ||
         state.desiredIds.some(id => !state.installed.some(item => item.id === id)) ||
         !Number.isSafeInteger(state.goalRevision) ||
         state.goalRevision < 0 ||
-        !Number.isSafeInteger(state.activeGoalRevision)
+        !Number.isSafeInteger(state.activeGoalRevision) ||
+        state.installed.some(
+          item => item.bundled && (!state.activeIds.includes(item.id) || !state.desiredIds.includes(item.id)),
+        )
       )
         throw new Error('本机内容选择记录格式不正确')
-      this.#state = state
+      if (fresh && this.withDefaultArchive) await this.#initializeDefault(state)
+      else this.#state = state
     })().catch(error => {
       this.#loading = undefined
       throw error
     })
     await this.#loading
+  }
+  async #initializeDefault(state) {
+    await this.withDefaultArchive(async file => {
+      const candidate = await this.#stageInstall(
+        { kind: 'file', file, label: '随应用提供' },
+        true,
+        this.#controller.signal,
+        state,
+      )
+      const plan = this.#plans.get(candidate.id)
+      try {
+        if (plan.entry.name !== '@arcadia-eternity/data-pack-base' || plan.entry.projectId !== 'base')
+          throw new Error('默认包缺少基础内容声明')
+        await this.run(
+          ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
+          this.#controller.signal,
+        )
+        const entry = { ...plan.entry, bundled: true }
+        await this.#save({
+          ...state,
+          installed: [entry],
+          desiredIds: [entry.id],
+          activeIds: [entry.id],
+          activeProject: plan.project,
+          activeGraph: entry.graph,
+          activeGoalRevision: state.goalRevision,
+        })
+        this.#sync = { status: 'ready' }
+      } catch (error) {
+        await rm(await this.#directory(plan.project), { recursive: true, force: true })
+        throw error
+      } finally {
+        this.#plans.delete(candidate.id)
+      }
+    })
   }
   #update(change) {
     const update = this.#writes.then(() => {
@@ -249,26 +308,28 @@ export class ContentLibrary {
   }
   /** Capture the active project before a local session starts; release after its runtime disposes. */
   async acquireProject() {
-    return this.#exclusive(async () => {
-      const id = this.#state.activeProject
-      const directory = id ? await this.#directory(id) : null
-      if (id) this.#leases.set(id, (this.#leases.get(id) ?? 0) + 1)
-      let released = false
-      return {
-        directory,
-        builtinOnly: this.#state.activeIds.length === 0,
-        release: async () => {
-          if (released) return
-          released = true
-          if (id) {
-            const count = this.#leases.get(id) - 1
-            if (count) this.#leases.set(id, count)
-            else this.#leases.delete(id)
-          }
-          if (!this.#controller.signal.aborted) await this.collectGarbage()
-        },
-      }
-    })
+    return this.#exclusive(() => this.#leaseProject(this.#state.activeProject))
+  }
+  async acquireDefaultProject() {
+    return this.#exclusive(() => this.#leaseProject(this.#state.installed.find(entry => entry.bundled)?.id ?? null))
+  }
+  async #leaseProject(id) {
+    const directory = id ? await this.#directory(id) : null
+    if (id) this.#leases.set(id, (this.#leases.get(id) ?? 0) + 1)
+    let released = false
+    return {
+      directory,
+      release: async () => {
+        if (released) return
+        released = true
+        if (id) {
+          const count = this.#leases.get(id) - 1
+          if (count) this.#leases.set(id, count)
+          else this.#leases.delete(id)
+        }
+        if (!this.#controller.signal.aborted) await this.collectGarbage()
+      },
+    }
   }
   /** Fixed project materials may also be owned by immutable workspace versions. */
   async ownsProjectDirectory(directory) {
@@ -357,6 +418,14 @@ export class ContentLibrary {
     const entry = this.#state.installed.find(item => item.id === id)
     if (!entry) throw new Error('未安装此内容包')
     return entry
+  }
+  #selectionEntries(ids) {
+    const required = this.#state.installed.find(entry => entry.bundled)
+    if (required && !ids.includes(required.id)) throw new Error('默认环境必须启用基础内容包')
+    const entries = ids.map(id => this.#entry(id))
+    if (new Set(entries.map(entry => entry.name)).size !== entries.length)
+      throw new Error('同一个内容包只能启用一个版本')
+    return entries
   }
   #plan(id, kind) {
     const plan = this.#plans.get(id)
@@ -529,30 +598,30 @@ export class ContentLibrary {
       return this.#stageInstall({ kind: 'npm', spec, label: spec }, offline, signal)
     })
   }
-  async #stageInstall(source, offline, signal) {
+  async #stageInstall(source, offline, signal, state = this.#state) {
     if (this.#plans.size >= 8) throw new Error('请先完成或取消已有操作')
-    if (this.#state.installed.length >= 200) throw new Error('已安装内容包数量达到上限')
+    if (state.installed.length >= 200) throw new Error('已安装内容包数量达到上限')
     const project = await this.#createProject([source], offline, signal)
     try {
       const manifest = await readJson(join(project.directory, 'package.json'))
       const names = Object.keys(manifest.dependencies ?? {})
       if (names.length !== 1) throw new Error('一次只能添加一个根内容包')
       const root = project.inspection.packages.find(pkg => pkg.location === 'node_modules/' + names[0])
-      if (!root?.manifest || !root.draft) throw new Error('该 npm 包没有 Arcadia 内容声明')
-      if (this.#state.installed.some(item => item.name === root.name && item.version === root.version))
+      if (!root?.catalogIds && (!root?.manifest || !root.draft)) throw new Error('该 npm 包没有 Arcadia 内容声明')
+      if (state.installed.some(item => item.name === root.name && item.version === root.version))
         throw new Error('已安装此包的同一版本；请先移除未启用的旧安装，或使用新的包版本')
       const packageManifest = await readJson(join(project.directory, root.location, 'package.json'))
       const author = typeof packageManifest.author === 'string' ? packageManifest.author : packageManifest.author?.name
       const entry = {
         id: project.id,
         name: root.name,
-        title: root.draft.project.title || root.name,
+        title: root.draft?.project.title || (root.officialHost ? '官方基础内容' : root.name),
         version: root.version,
-        namespace: root.manifest.namespace,
-        projectId: root.manifest.projectId,
-        description: root.draft.project.description || '',
+        namespace: root.manifest?.namespace ?? 'base',
+        projectId: root.manifest?.projectId ?? 'base',
+        description: root.draft?.project.description || packageManifest.description || '',
         author: typeof author === 'string' ? author : '',
-        sdkApi: root.manifest.sdkApi,
+        sdkApi: root.manifest?.sdkApi ?? packageManifest.arcadia?.sdkApi,
         license: typeof packageManifest.license === 'string' ? packageManifest.license : undefined,
         engines:
           packageManifest.engines && typeof packageManifest.engines === 'object' ? packageManifest.engines : undefined,
@@ -564,14 +633,17 @@ export class ContentLibrary {
         graph: graphFor(project.inspection),
         contentIds: idsFor(project.inspection.packages),
         counts: Object.fromEntries(
-          ['species', 'skills', 'marks'].map(kind => [kind, root.draft.data[kind]?.length ?? 0]),
+          ['species', 'skills', 'marks'].map(kind => [
+            kind,
+            (root.draft?.data[kind] ?? root.catalogIds?.[kind])?.length ?? 0,
+          ]),
         ),
         containsCode: project.inspection.packages.some(
-          pkg => !!(pkg.manifest?.effects || pkg.manifest?.effectArtifact),
+          pkg => !!(pkg.officialHost || pkg.manifest?.effects || pkg.manifest?.effectArtifact),
         ),
         installedAt: new Date().toISOString(),
       }
-      const plan = { id: randomUUID(), kind: 'install', revision: this.#state.revision, project: project.id, entry }
+      const plan = { id: randomUUID(), kind: 'install', revision: state.revision, project: project.id, entry }
       this.#plans.set(plan.id, plan)
       return { id: plan.id, kind: 'install', package: structuredClone(entry), requiresApproval: true }
     } catch (error) {
@@ -756,8 +828,8 @@ export class ContentLibrary {
   async #prepareSelection(ids, offline = false) {
     if (!Array.isArray(ids) || ids.length > 100 || new Set(ids).size !== ids.length) throw new Error('内容包选择无效')
     if (this.#plans.size >= 8) throw new Error('请先完成或取消已有操作')
-    const entries = ids.map(id => this.#entry(id))
-    if (new Set(entries.map(item => item.name)).size !== entries.length) throw new Error('同一个内容包只能启用一个版本')
+    if (!ids.length) throw new Error('请至少启用一个内容包')
+    const entries = this.#selectionEntries(ids)
     const sources = []
     for (const entry of entries)
       sources.push(
@@ -800,11 +872,8 @@ export class ContentLibrary {
           ['content', 'npm', 'approve', directory, '--profile', 'local-development'],
           this.#controller.signal,
         )
-        await this.run(
-          ['content', 'validate', ...(plan.ids.length ? ['--npm-project', directory] : [])],
-          this.#controller.signal,
-        )
-        await this.prepare({ directory, builtinOnly: plan.ids.length === 0 })
+        await this.run(['content', 'validate', '--npm-project', directory], this.#controller.signal)
+        await this.prepare({ directory })
         await this.#update(state => ({
           ...state,
           revision: state.revision + 1,
@@ -816,7 +885,7 @@ export class ContentLibrary {
           activeGoalRevision: state.goalRevision + 1,
         }))
         this.#plans.delete(id)
-        this.selected({ directory, builtinOnly: plan.ids.length === 0 })
+        this.selected({ directory })
         await this.#collectGarbage().catch(() => {})
       } catch (error) {
         this.#plans.delete(id)
@@ -835,7 +904,7 @@ export class ContentLibrary {
   }
   async uninstall(id) {
     return this.#exclusive(async () => {
-      this.#entry(id)
+      if (this.#entry(id).bundled) throw new Error('默认环境必须保留基础内容包')
       if (this.#state.activeIds.includes(id) || this.#state.desiredIds.includes(id))
         throw new Error('请先停用此包，等待内容准备完成后再卸载')
       const directory = join(this.root, 'projects', storageName(id))
@@ -866,9 +935,7 @@ export class ContentLibrary {
     await this.#load()
     if (!Array.isArray(ids) || ids.length > 100 || new Set(ids).size !== ids.length) throw new Error('内容包选择无效')
     await this.#update(state => {
-      const entries = ids.map(id => this.#entry(id))
-      if (new Set(entries.map(entry => entry.name)).size !== entries.length)
-        throw new Error('同一个内容包只能启用一个版本')
+      this.#selectionEntries(ids)
       return { ...state, desiredIds: [...ids], goalRevision: state.goalRevision + 1, offline: offline === true }
     })
     this.#sync = { status: 'preparing' }
@@ -907,12 +974,9 @@ export class ContentLibrary {
               ['content', 'npm', 'approve', directory, '--profile', 'local-development'],
               this.#controller.signal,
             )
-            await this.run(
-              ['content', 'validate', ...(goal.ids.length ? ['--npm-project', directory] : [])],
-              this.#controller.signal,
-            )
+            await this.run(['content', 'validate', '--npm-project', directory], this.#controller.signal)
           }
-          await this.prepare({ directory, builtinOnly: goal.ids.length === 0 })
+          await this.prepare({ directory })
           if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
           // Local selection is independent from a server's published binding.
           // The running host retains its own project until explicitly switched.
@@ -923,7 +987,7 @@ export class ContentLibrary {
             activeGoalRevision: goal.revision,
             activeGraph: plan?.graph ?? state.activeGraph,
           }))
-          this.selected({ directory, builtinOnly: goal.ids.length === 0 })
+          this.selected({ directory })
         })
         if (goal.revision === this.#state.goalRevision) {
           this.#settledGoal = goal.revision
@@ -943,31 +1007,11 @@ export class ContentLibrary {
     }
   }
   async start() {
-    let lease = await this.acquireProject()
-    if (!lease.directory) {
-      await lease.release()
-      const plan = await this.#exclusive(async () => {
-        if (this.#state.activeProject) return null
-        if (this.#state.desiredIds.length || this.#state.goalRevision !== 0)
-          throw new Error('内容选择尚未准备完成，请完成准备后再启动托管')
-        // A fresh library already offers the bundled base for local play. Hosting
-        // materializes that same choice without requiring a third-party install.
-        return this.#prepareSelection([], true)
-      })
-      if (plan) {
-        try {
-          await this.applySelection(plan.id)
-        } catch (error) {
-          await this.cancel(plan.id).catch(() => {})
-          throw error
-        }
-      }
-      lease = await this.acquireProject()
-    }
+    const lease = await this.acquireProject()
     try {
       if (!lease.directory) throw new Error('请先准备本机内容选择')
       if (this.#controller.signal.aborted) throw new Error('内容包管理已关闭')
-      return await this.host.start(lease.directory, { builtinOnly: lease.builtinOnly })
+      return await this.host.start(lease.directory)
     } finally {
       await lease.release()
     }

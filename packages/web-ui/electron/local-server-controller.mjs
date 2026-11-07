@@ -196,17 +196,12 @@ export class LocalServerController {
           )
             throw fail('CONTENT_NOT_READY', snapshot.selection.message || '本地玩法尚未准备完成，请在内容库完成准备')
           lease = await library.acquireProject()
-          if (!lease.directory) {
-            await lease.release()
-            lease = undefined
-          }
-        }
-        lease ??= await library.prepareEnvironmentProject({ packages: {}, sources: [] }, { offline: true })
+        } else lease = await library.acquireDefaultProject()
+        if (!lease.directory) throw fail('CONTENT_NOT_READY', '请先准备所选内容环境')
       }
       if (this.#closed) throw fail('HOST_CLOSED', '客户端正在退出')
       this.#phase = 'starting'
       await this.host.start(profile.projectDirectory ?? lease.directory, {
-        builtinOnly: profile.projectDirectory ? profile.builtinOnly : config.content === 'official',
         ...(config
           ? {
               launch: {
@@ -214,6 +209,7 @@ export class LocalServerController {
                 host: config.scope === 'local' ? '127.0.0.1' : '0.0.0.0',
                 port: config.port,
                 publicOrigin: config.publicOrigin ?? null,
+                ...(config.content === 'official' ? { officialContent: true } : {}),
               },
             }
           : {}),

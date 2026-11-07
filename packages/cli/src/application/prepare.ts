@@ -6,32 +6,39 @@ import {
   WorkError,
   type NativePackLoadResult,
 } from '@arcadia-eternity/pack-loader/native'
-import { dirname, resolve } from 'node:path'
-import { resolvePackPathFromRef } from '@arcadia-eternity/battle/pack'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   emptyNpmContentHost,
   NativeNodePackLoader,
-  prepareCatalogPackage,
+  prepareShippedEnvironment,
   prepareNpmProject,
   readNpmAdmission,
+  type PreparedNpmEnvironment,
 } from '@arcadia-eternity/pack-loader/node'
 import { createContentIndex, type ContentCatalog, type ContentIndex } from '@arcadia-eternity/battle/v4'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
 import type { RunSpec } from './types'
 
-async function prepareShippedContent() {
-  return prepareCatalogPackage(dirname(await resolvePackPathFromRef('builtin:base')))
+function prepareShippedContent() {
+  return prepareShippedEnvironment(
+    fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
+  )
 }
 
 export async function createLoader() {
-  const { host } = await prepareShippedContent()
-  const { build, templates, effectIds, effectModules } = host
-  return new NativeNodePackLoader(
-    build,
-    (data, revision) => createContentIndex(data, revision, { templates, effectIds }),
-    { templates, effectModules },
-  )
+  const prepared = await prepareShippedContent()
+  try {
+    const { build, templates, effectIds } = prepared.authoring!
+    return new NativeNodePackLoader(
+      build,
+      (data, revision) => createContentIndex(data, revision, { templates, effectIds }),
+      { templates, effectModules: prepared.sandbox.modules },
+    )
+  } finally {
+    await prepared.dispose()
+  }
 }
 
 export type CliPreparedContent = Pick<
@@ -42,6 +49,19 @@ export interface ContentSelectionOptions {
   works?: string
   npmProject?: string
   approval?: string
+}
+
+async function toCliContent(prepared: Readonly<PreparedNpmEnvironment>, explicitlyInstalled = false) {
+  try {
+    return {
+      ...prepared,
+      packs: prepared.installation.members.map(({ projectId, version }) => ({ id: projectId, version })),
+      locales: buildDisplayLocales(prepared.presentation, {}, prepared.content).bundles,
+      ...(explicitlyInstalled && { npm: { installationDigest: prepared.installation.digest } }),
+    }
+  } finally {
+    await prepared.dispose()
+  }
 }
 export async function prepareContent(
   packRef: string,
@@ -56,20 +76,11 @@ export async function prepareContent(
       const approval = await readNpmAdmission(
         approvalFile ? resolve(cwd, approvalFile) : resolve(directory, 'arcadia-admission.json'),
       )
-      const prepared = await prepareNpmProject(directory, emptyNpmContentHost, approval)
-      try {
-        return {
-          ...prepared,
-          locales: buildDisplayLocales(prepared.presentation, {}, prepared.content).bundles,
-          npm: { installationDigest: prepared.installation.digest },
-        }
-      } finally {
-        await prepared.dispose()
-      }
+      return await toCliContent(await prepareNpmProject(directory, emptyNpmContentHost, approval), true)
     }
     if (approvalFile) throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
     if (!workFile && !process.env.ARCADIA_PACKS_DIR?.trim() && (ref === 'builtin:base' || ref === 'builtin:workspace'))
-      return await prepareShippedContent()
+      return await toCliContent(await prepareShippedContent())
     const loader = await createLoader()
     const loaded = await loader.load(ref, { source: 'node-fs', enforceLockfile: true })
     if (!workFile) return loaded

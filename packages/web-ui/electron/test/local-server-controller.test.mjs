@@ -26,19 +26,19 @@ function fixture({ saved = false, prepare, start, stop, wait, selection, startPr
     },
   }
   const library = {
-    prepareEnvironmentProject: async document => {
-      calls.push(['prepare', document])
+    acquireDefaultProject: async () => {
+      calls.push(['acquire-default'])
       await prepare?.()
       return lease
     },
     list: async () => selection ?? { selection: { status: 'ready' } },
-    acquireProject: async () => ({ ...lease, directory: '/owned/local-play', builtinOnly: false }),
+    acquireProject: async () => ({ ...lease, directory: '/owned/local-play' }),
   }
   const controller = new LocalServerController({
     host,
     startProject,
     library: () => library,
-    profile: async () => (saved ? { projectDirectory: '/owned/saved', builtinOnly: false } : {}),
+    profile: async () => (saved ? { projectDirectory: '/owned/saved' } : {}),
     wait: wait ?? (async () => {}),
   })
   return { controller, calls, host }
@@ -48,11 +48,11 @@ test('first launch prepares official content independently and sends settings be
   const result = await controller.request({ action: 'start', configuration })
   assert.equal(result.host.status, 'running')
   assert.deepEqual(calls, [
-    ['prepare', { packages: {}, sources: [] }],
+    ['acquire-default'],
     [
       'start',
       '/owned/official',
-      { builtinOnly: true, launch: { name: '好友服', host: '0.0.0.0', port: 8102, publicOrigin: null } },
+      { launch: { name: '好友服', host: '0.0.0.0', port: 8102, publicOrigin: null, officialContent: true } },
     ],
     'release',
   ])
@@ -60,7 +60,7 @@ test('first launch prepares official content independently and sends settings be
 test('saved hosting ignores later local-play selections and preserves database settings', async () => {
   const { controller, calls } = fixture({ saved: true })
   await controller.request({ action: 'start' })
-  assert.deepEqual(calls, [['start', '/owned/saved', { builtinOnly: false }]])
+  assert.deepEqual(calls, [['start', '/owned/saved', {}]])
   await controller.request({ action: 'start' })
   assert.equal(calls.length, 1)
 })

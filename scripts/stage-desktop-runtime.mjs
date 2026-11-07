@@ -146,6 +146,16 @@ async function materializeWorkspace(runtime) {
     await mkdir(target, { recursive: true })
     await cp(join(pkg.directory, 'package.json'), join(target, 'package.json'))
     await cp(join(pkg.directory, 'dist'), join(target, 'dist'), { recursive: true })
+    if (pkg.manifest.arcadia?.catalog) {
+      const manifest = pkg.manifest.arcadiaEternityPack
+      await cp(join(pkg.directory, manifest), join(target, manifest))
+      const presentation = JSON.parse(await readFile(join(pkg.directory, pkg.manifest.arcadia.presentation), 'utf8'))
+      for (const { kind, source } of presentation.resources) {
+        if (kind !== 'file') continue
+        await mkdir(dirname(join(target, source)), { recursive: true })
+        await cp(join(pkg.directory, source), join(target, source))
+      }
+    }
     for (const [dependency, spec] of Object.entries(deps)) {
       if (typeof spec === 'string' && spec.startsWith('workspace:')) continue
       let source

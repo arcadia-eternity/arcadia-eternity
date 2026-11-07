@@ -32,12 +32,9 @@ export function attachDesktopContentControl(
           } else if (input.action === 'retained') value = registry.retainedIds()
           else if (input.action === 'describe') value = registry.descriptor()
           else if (input.action === 'prepare') {
-            if (input.builtinOnly === true) value = registry.descriptor(builtinId)
-            else {
-              if (typeof input.directory !== 'string' || input.directory.length > 4096)
-                throw new Error('INVALID_DIRECTORY')
-              value = await registry.prepareNpm(input.directory)
-            }
+            if (typeof input.directory !== 'string' || input.directory.length > 4096)
+              throw new Error('INVALID_DIRECTORY')
+            value = await registry.prepareNpm(input.directory)
           } else if (input.action === 'select') {
             if (typeof input.environmentId !== 'string') throw new Error('INVALID_ENVIRONMENT')
             value = registry.selectDefault(input.environmentId)

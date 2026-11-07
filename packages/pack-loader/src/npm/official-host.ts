@@ -1,19 +1,20 @@
-import { copyFile, lstat, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { execFile } from 'node:child_process'
+import { copyFile, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { basename, dirname, resolve } from 'node:path'
+import { promisify } from 'node:util'
 import {
-  createContentIndex,
   type BehaviorDefinition,
   type ContentPrototypeData,
   type EnvironmentBuildIdentity,
 } from '@arcadia-eternity/battle/v4'
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
 import type { NpmContentHost } from './prepare'
 import { packageFile, type NpmProjectInspection } from './inspect'
 import { validatePrebuiltEffectModule } from './prebuilt-artifact'
 import { createDraft, fail } from '../works/model'
 import { parseWithErrors, PresentationManifestSchema } from '@arcadia-eternity/schema'
 import type { InstalledNpmPackage } from './inspect'
-import { NativePackLoader } from '../native-loader'
+import { npmInvocation } from './runner'
 
 async function readPackageJson(root: string, path: string) {
   const file = packageFile(root, path)
@@ -50,52 +51,61 @@ async function readCatalogPackage(root: string, coreBuildId: string) {
     effectIds: metadata.effectIds as string[],
     effectModules: [{ artifact, namespace: '', role: 'catalog' as const }],
     presentation: presentation ? parseWithErrors(PresentationManifestSchema, presentation) : undefined,
-    packPath: pkg.arcadiaEternityPack as string,
-    member: { name: pkg.name as string, version: pkg.version as string, projectId: 'base', namespace: 'base' },
+    effectTemplates: Array.isArray(metadata.effectTemplates) ? metadata.effectTemplates : [],
+    effectMarkRelations: metadata.effectMarkRelations ?? {},
   }
 }
 
-/** Prepare the package selected by a shipped environment without importing its effects. */
-export async function prepareCatalogPackage(root: string) {
-  const selected = await readCatalogPackage(root, nativeBuildIdentity.coreBuildId)
-  const { build, data, templates, effectIds, effectModules, presentation } = selected
-  const pack = await readPackageJson(root, selected.packPath)
-  const prepared = await new NativePackLoader(
-    build,
-    (rules, revision) => createContentIndex(rules, revision, { templates, effectIds }),
-    { templates, effectModules },
-  ).fromMetadata(data, { packs: [{ id: pack.id, version: pack.version }] })
-  if (!prepared.sandbox) throw new Error('Catalog package has no prepared runtime')
-  return {
-    ...prepared,
-    sandbox: prepared.sandbox,
-    data,
-    presentation: presentation ? [presentation] : [],
-    locales: presentation?.locales ?? {},
-    member: selected.member,
-    host: { build, base: data, templates, effectIds, effectModules } satisfies NpmContentHost,
+export async function withShippedEnvironmentProject<T>(root: string, use: (directory: string) => Promise<T>) {
+  const directory = await mkdtemp(resolve(tmpdir(), 'arcadia-default-environment-'))
+  try {
+    return await use(await stageCatalogProject(directory, root))
+  } finally {
+    await rm(directory, { recursive: true, force: true })
   }
+}
+
+/** Make the bundled content available to the same installer as any local npm archive. */
+export function withShippedCatalogArchive<T>(
+  root: string,
+  npmCli: string | undefined,
+  use: (file: string) => Promise<T>,
+) {
+  return withShippedEnvironmentProject(root, async project => {
+    const { dependencies } = await readPackageJson(project, 'package.json')
+    const name = Object.keys(dependencies)[0]!
+    const npm = npmInvocation(['pack', '--json', '--ignore-scripts', '--offline', '--pack-destination', project], {
+      cli: npmCli,
+    })
+    const { stdout } = await promisify(execFile)(npm.file, npm.args, {
+      cwd: resolve(project, 'node_modules', name),
+      env: process.versions.electron ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env,
+      timeout: 60_000,
+    })
+    const [{ filename }] = JSON.parse(stdout)
+    if (typeof filename !== 'string' || filename !== basename(filename) || !filename.endsWith('.tgz'))
+      fail('NPM_FILE', name, 'Invalid npm archive filename')
+    return use(packageFile(project, filename))
+  })
 }
 
 /** Stage the already acquired package as an explicit, relocatable npm project. */
 export async function stageCatalogProject(directory: string, root: string) {
   const source = await readPackageJson(root, 'package.json')
-  const selected = await readCatalogPackage(root, nativeBuildIdentity.coreBuildId)
   const { name, version, arcadia, arcadiaEternityPack } = source
   if (!/^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*$/.test(name) || !arcadia?.catalog)
     fail('NPM_METADATA', root, 'Expected a compiled catalog package with a valid npm name')
   const location = `node_modules/${name}`
   const target = packageFile(directory, 'catalog-project')
   const installed = resolve(target, location)
+  const presentation = parseWithErrors(PresentationManifestSchema, await readPackageJson(root, arcadia.presentation))
   const paths = [
     arcadiaEternityPack,
     arcadia.content,
     arcadia.presentation,
     arcadia.effectArtifact,
     arcadia.catalog,
-    ...(selected.presentation?.resources ?? [])
-      .filter(resource => resource.kind === 'file')
-      .map(resource => resource.source),
+    ...presentation.resources.filter(resource => resource.kind === 'file').map(resource => resource.source),
   ]
   for (const path of new Set(paths)) {
     const input = packageFile(root, path)
@@ -132,10 +142,12 @@ export async function stageCatalogProject(directory: string, root: string) {
  */
 export async function installedOfficialHost(root: string, installation: NpmProjectInspection, host: NpmContentHost) {
   const packages = installation.packages.filter(pkg => pkg.officialHost)
-  if (!packages.length) return { host, presentationPackages: installation.packages }
+  if (!packages.length) return { host, presentationPackages: installation.packages, authoring: undefined }
   if (packages.length !== 1) fail('CONTENT_VERSION_CONFLICT', 'base', 'Official base must have one installed version')
   const pkg = packages[0]!
   const metadata = await readCatalogPackage(resolve(root, pkg.location), host.build.coreBuildId)
+  const { build, templates, effectIds, effectTemplates, effectMarkRelations } = metadata
+  const authoring = { build, templates, effectIds, effectTemplates, effectMarkRelations }
   let presentationPackages = installation.packages
   if (metadata.presentation) {
     const draft = createDraft('official-catalog', 'Official catalog')
@@ -157,10 +169,11 @@ export async function installedOfficialHost(root: string, installation: NpmProje
   if (populated) {
     if (host.build.registryBuildId !== metadata.build.registryBuildId)
       fail('NPM_BASE_HOST_CONFLICT', pkg.location, 'Installed official base differs from the host catalog')
-    return { host, presentationPackages }
+    return { host, presentationPackages, authoring }
   }
   return {
     presentationPackages,
+    authoring,
     host: {
       ...host,
       build: metadata.build,

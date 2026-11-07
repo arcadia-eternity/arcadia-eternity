@@ -46,6 +46,7 @@ export interface InstalledNpmPackage {
   presentation?: PresentationManifest
   /** Static adapter for the reserved, unnamespaced official catalog. */
   officialHost?: string
+  catalogIds?: Record<'species' | 'skills' | 'marks', string[]>
 }
 export interface NpmContentMember {
   name: string
@@ -302,6 +303,21 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
         fail('NPM_BASE_HOST_REQUIRED', location, 'Installed base package needs its compiled catalog artifact')
       packageFile(dir, catalog)
       entry.officialHost = catalog
+      const manifest = record(pkg.arcadia, 'arcadia')
+      if (typeof manifest.content !== 'string')
+        fail('NPM_METADATA', 'arcadia.content', 'Expected a catalog content file')
+      const content = await jsonFile(packageFile(dir, manifest.content))
+      const data = record(content.data, 'content.data')
+      entry.catalogIds = { species: [], skills: [], marks: [] }
+      for (const kind of ['species', 'skills', 'marks'] as const) {
+        const rows = data[kind]
+        if (!Array.isArray(rows)) fail('NPM_METADATA', kind, 'Expected catalog records')
+        entry.catalogIds[kind] = rows.map(row => {
+          const { id } = record(row, kind)
+          if (typeof id !== 'string') fail('NPM_METADATA', kind, 'Expected a catalog record ID')
+          return id
+        })
+      }
     }
     if (pkg.arcadia !== undefined && !entry.officialHost) {
       if (contentNames.has(pkg.name))

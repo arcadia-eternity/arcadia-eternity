@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { contentTaskError } from '@/utils/contentTaskMessages'
-import basePackage from '@arcadia-eternity/data-pack-base/package.json'
 import { useRoute, useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import LocalEnvironmentPage from './LocalEnvironmentPage.vue'
@@ -77,7 +76,7 @@ const pets = usePetStorageStore()
 const snapshot = ref<ContentLibrarySnapshot>()
 const draftIds = ref<string[]>([])
 const mode = ref<'installed' | 'enabled' | 'issues' | 'room'>(local ? 'installed' : 'room')
-const selectedId = ref('official')
+const selectedId = ref('')
 const detailTab = ref<'overview' | 'dependencies' | 'impact'>('overview')
 const detailOpen = ref(false)
 const query = ref('')
@@ -120,66 +119,43 @@ const publicIds = (content: ServerEnvironmentContent, namespace?: string): Conte
         .map(item => item.id),
     ]),
   ) as unknown as ContentIds
-const baseIds = computed<ContentIds>(() => {
-  if (mode.value === 'room' && roomContent.value) return publicIds(roomContent.value)
-  const data = gameData.serverFallback ?? gameData
-  return {
-    species: data.species.allIds.filter(id => !id.includes(':')),
-    skills: data.skills.allIds.filter(id => !id.includes(':')),
-    marks: data.marks.allIds.filter(id => !id.includes(':')),
-  }
-})
 const packages = computed<PackageView[]>(() => {
-  const base: PackageView = {
-    id: 'official',
-    name: '官方基础内容',
-    title: '官方基础内容',
-    version: readonly.value && room.value ? '固定于房间版本' : basePackage.version,
-    author: 'Arcadia Eternity',
-    description: '游戏内置的精灵、技能与印记。',
-    source: readonly.value && room.value ? '房间服务器' : '游戏内置',
-    builtin: true,
-    contentIds: baseIds.value,
-  }
   if (readonly.value)
-    return [
-      base,
-      ...(room.value?.environment?.packages ?? []).map(pkg => {
-        const ids = roomContent.value ? publicIds(roomContent.value, pkg.namespace) : emptyIds()
-        return {
-          id: pkg.projectId,
-          name: pkg.name,
-          title: pkg.name,
-          version: pkg.version,
-          namespace: pkg.namespace,
-          author: '',
-          description: '',
-          source: '房间服务器',
-          contentIds: ids,
-          counts: roomContent.value
-            ? { species: ids.species.length, skills: ids.skills.length, marks: ids.marks.length }
-            : undefined,
-        }
-      }),
-    ]
-  return [
-    base,
-    ...(snapshot.value?.packages ?? []).map(pkg => ({
-      id: pkg.id,
-      name: pkg.name,
-      title: pkg.title,
-      version: pkg.version,
-      namespace: pkg.namespace,
-      author: pkg.author,
-      description: pkg.description,
-      source: pkg.source.label,
-      contentIds: pkg.contentIds,
-      graph: activeIds.value.includes(pkg.id) ? (snapshot.value?.activeGraph ?? pkg.graph) : pkg.graph,
-      counts: pkg.counts,
-      local: pkg,
-      error: pkg.error,
-    })),
-  ]
+    return (room.value?.environment?.packages ?? []).map(pkg => {
+      const ids = roomContent.value
+        ? publicIds(roomContent.value, pkg.projectId === 'base' ? undefined : pkg.namespace)
+        : emptyIds()
+      return {
+        id: pkg.projectId,
+        name: pkg.name,
+        title: pkg.name,
+        version: pkg.version,
+        namespace: pkg.namespace,
+        author: '',
+        description: '',
+        source: '房间服务器',
+        contentIds: ids,
+        counts: roomContent.value
+          ? { species: ids.species.length, skills: ids.skills.length, marks: ids.marks.length }
+          : undefined,
+      }
+    })
+  return (snapshot.value?.packages ?? []).map(pkg => ({
+    id: pkg.id,
+    name: pkg.name,
+    title: pkg.title,
+    version: pkg.version,
+    namespace: pkg.namespace,
+    author: pkg.author,
+    description: pkg.description,
+    source: pkg.source.label,
+    contentIds: pkg.contentIds,
+    graph: activeIds.value.includes(pkg.id) ? (snapshot.value?.activeGraph ?? pkg.graph) : pkg.graph,
+    counts: pkg.counts,
+    builtin: pkg.bundled,
+    local: pkg,
+    error: pkg.error,
+  }))
 })
 const tasksOpen = ref(false)
 const installLabels: Record<string, string> = {
@@ -197,11 +173,11 @@ async function installTaskAction(action: 'cancel-install' | 'retry-install' | 'c
     error.value = cause instanceof Error ? cause.message : '任务操作失败'
   }
 }
-const selected = computed(() => packages.value.find(pkg => pkg.id === selectedId.value))
+const selected = computed(() => packages.value.find(pkg => pkg.id === selectedId.value) ?? packages.value[0])
 const visiblePackages = computed(() =>
   packages.value.filter(
     pkg =>
-      (mode.value !== 'enabled' || pkg.builtin || activeIds.value.includes(pkg.id)) &&
+      (mode.value !== 'enabled' || activeIds.value.includes(pkg.id)) &&
       (mode.value !== 'issues' || !!pkg.error) &&
       (pkg.title + pkg.name + pkg.author).toLowerCase().includes(query.value.toLowerCase()),
   ),
@@ -209,7 +185,6 @@ const visiblePackages = computed(() =>
 const issueCount = computed(() => snapshot.value?.packages.filter(pkg => pkg.error).length ?? 0)
 const proposedLookup = computed<TeamContentLookup>(() => {
   const available = emptyIds()
-  for (const kind of ['species', 'skills', 'marks'] as const) available[kind].push(...baseIds.value[kind])
   if (readonly.value && roomContent.value) {
     for (const kind of ['species', 'skills', 'marks'] as const)
       available[kind] = roomContent.value[kind].map(item => item.id)
@@ -252,7 +227,7 @@ function changeMode(value: typeof mode.value) {
   mode.value = value
   query.value = ''
   detailOpen.value = false
-  selectedId.value = value === 'issues' ? (snapshot.value?.packages.find(pkg => pkg.error)?.id ?? '') : 'official'
+  selectedId.value = value === 'issues' ? (snapshot.value?.packages.find(pkg => pkg.error)?.id ?? '') : ''
 }
 async function refresh() {
   if (!local) return
@@ -310,7 +285,7 @@ async function run(action: () => Promise<void>) {
   }
 }
 function toggle(pkg: PackageView, checked: boolean) {
-  if (readonly.value || !pkg.local || busy.value) return
+  if (readonly.value || !pkg.local || pkg.builtin || busy.value) return
   if (checked)
     draftIds.value = [
       ...draftIds.value.filter(id => snapshot.value?.packages.find(p => p.id === id)?.name !== pkg.name),
@@ -352,7 +327,7 @@ async function uninstall() {
   await run(async () => {
     await libraryClient!.action({ action: 'uninstall', packageId: pkg.id })
     await refresh()
-    selectedId.value = 'official'
+    selectedId.value = ''
     notice.value = '内容包已卸载'
   })
 }
@@ -437,7 +412,7 @@ onBeforeUnmount(() => {
           <template v-if="local"
             ><p class="nav-label">本机内容包</p>
             <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
-              本机内容 <span>{{ (snapshot?.packages.length ?? 0) + 1 }}</span></button
+              本机内容 <span>{{ snapshot?.packages.length ?? 0 }}</span></button
             ><button :aria-current="mode === 'enabled' ? 'page' : undefined" @click="changeMode('enabled')">
               已启用 <span>{{ activeIds.length + 1 }}</span></button
             ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
@@ -494,11 +469,11 @@ onBeforeUnmount(() => {
                 v-for="pkg in visiblePackages"
                 :key="pkg.id"
                 class="package-row"
-                :class="{ selected: selectedId === pkg.id }"
+                :class="{ selected: selected?.id === pkg.id }"
               >
                 <button
                   class="package-select"
-                  :aria-current="selectedId === pkg.id ? 'true' : undefined"
+                  :aria-current="selected?.id === pkg.id ? 'true' : undefined"
                   @click="select(pkg)"
                 >
                   <span class="package-icon" aria-hidden="true">{{
@@ -509,7 +484,7 @@ onBeforeUnmount(() => {
                   >
                 </button>
                 <div class="row-status">
-                  <span v-if="pkg.builtin" class="tag">内置</span
+                  <span v-if="pkg.builtin" class="tag">默认环境必需</span
                   ><span v-else-if="readonly" class="tag">服务器提供</span
                   ><label v-else class="enable"
                     ><input
@@ -520,16 +495,13 @@ onBeforeUnmount(() => {
                       @change="toggle(pkg, ($event.target as HTMLInputElement).checked)"
                     />启用</label
                   ><span v-if="pkg.error" class="problem">安装不可用</span
-                  ><small
-                    v-if="!readonly && !pkg.builtin && draftIds.includes(pkg.id) !== activeIds.includes(pkg.id)"
-                    >{{
-                      snapshot?.selection.status === 'failed'
-                        ? '未能完成'
-                        : draftIds.includes(pkg.id)
-                          ? '正在启用'
-                          : '正在停用'
-                    }}</small
-                  >
+                  ><small v-if="!readonly && draftIds.includes(pkg.id) !== activeIds.includes(pkg.id)">{{
+                    snapshot?.selection.status === 'failed'
+                      ? '未能完成'
+                      : draftIds.includes(pkg.id)
+                        ? '正在启用'
+                        : '正在停用'
+                  }}</small>
                 </div>
               </div>
               <p v-if="!visiblePackages.length && !loading" class="list-note">没有符合条件的内容包。</p>
@@ -540,24 +512,22 @@ onBeforeUnmount(() => {
               <p class="detail-subtitle">
                 {{ selected.version }} ·
                 {{
-                  selected.builtin
-                    ? '游戏内置'
-                    : readonly
-                      ? '本局固定版本'
-                      : draftIds.includes(selected.id) !== activeIds.includes(selected.id)
-                        ? snapshot?.selection.status === 'failed'
-                          ? '未能完成选择'
-                          : '正在准备'
-                        : activeIds.includes(selected.id)
-                          ? '本机已启用'
-                          : '已安装，未启用'
+                  readonly
+                    ? '本局固定版本'
+                    : draftIds.includes(selected.id) !== activeIds.includes(selected.id)
+                      ? snapshot?.selection.status === 'failed'
+                        ? '未能完成选择'
+                        : '正在准备'
+                      : activeIds.includes(selected.id)
+                        ? '本机已启用'
+                        : '已安装，未启用'
                 }}
               </p>
               <button
                 v-if="canAuthor && mode !== 'room'"
                 class="primary"
                 :disabled="busy"
-                @click="browsePackage(selected.id)"
+                @click="browsePackage(selected.builtin ? 'official' : selected.id)"
               >
                 浏览内容（只读）
               </button>
@@ -607,7 +577,7 @@ onBeforeUnmount(() => {
                     <p>{{ selected.name }} {{ selected.version }}</p>
                     <p v-if="selected.namespace">命名空间：{{ selected.namespace }}</p>
                   </details>
-                  <div v-if="!readonly && selected.local" class="detail-actions">
+                  <div v-if="!readonly && selected.local && !selected.builtin" class="detail-actions">
                     <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
                     ><button
                       :title="

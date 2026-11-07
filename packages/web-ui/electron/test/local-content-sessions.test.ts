@@ -2,7 +2,6 @@ import { expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import { createLocalContentSessions } from '../local-content-sessions.mjs'
 import { createNpmFixture } from '../../../server/test/fixtures/npm'
-import { loadStandaloneBase } from '../../../server/src/standalone/native'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
@@ -15,14 +14,12 @@ it('captures real npm display and resources, preserves prepared recipes across e
     library: {
       acquireProject: async () => ({
         directory: fixture.directory,
-        builtinOnly: false,
         release: async () => {
           releases++
         },
       }),
     },
     load: async () => ({
-      loadBase: loadStandaloneBase,
       host: emptyNpmContentHost,
       prepareNpmProject,
       buildDisplayCatalog,
@@ -112,13 +109,6 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
     fail = false
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
-    loadBase: async () => ({
-      data: empty,
-      presentation: [],
-      sandbox: {},
-      build: { coreBuildId: 'core', registryBuildId: 'registry' },
-      revision: 'base',
-    }),
     host: {},
     buildDisplayCatalog,
     buildDisplayLocales,
@@ -140,6 +130,7 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
         sandbox: {},
         presentation: [],
         releases: [],
+        installation: { members: [] },
         build: { coreBuildId: 'core', registryBuildId: 'registry' },
         revision: 'fixture',
         dispose: vi.fn(async () => {}),
@@ -207,13 +198,6 @@ it('releases document owners and rejects late preparation after document retirem
   })
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
-    loadBase: async () => ({
-      data: empty,
-      presentation: [],
-      sandbox: {},
-      build: { coreBuildId: 'core', registryBuildId: 'registry' },
-      revision: 'base',
-    }),
     host: {},
     buildDisplayCatalog,
     buildDisplayLocales,
@@ -224,6 +208,7 @@ it('releases document owners and rejects late preparation after document retirem
         sandbox: {},
         presentation: [],
         releases: [],
+        installation: { members: [] },
         build: { coreBuildId: 'core', registryBuildId: 'registry' },
         revision: 'fixture',
         dispose: async () => {},

@@ -32,6 +32,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
   }
   function compileProject(directory, refresh = false) {
     assertOpen()
+    if (!directory) throw new Error('LOCAL_ENVIRONMENT_NOT_PREPARED')
     if (pending.has(directory)) return pending.get(directory)
     if (!refresh && cache.has(directory)) return Promise.resolve(cache.get(directory))
     const task = (async () => {
@@ -68,19 +69,16 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         }
       },
     }
-    let prepared
     try {
       const runtime = await load()
-      prepared = lease.builtinOnly ? undefined : await compileProject(lease.directory)
-      const base = lease.builtinOnly ? await runtime.loadBase() : undefined
+      const prepared = await compileProject(lease.directory)
       assertOpen()
       if (owner !== undefined && retiredOwners.has(owner)) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
-      const source = prepared ?? base
-      if (!source?.sandbox) throw new Error('LOCAL_SANDBOX_MISSING')
+      if (!prepared.sandbox) throw new Error('LOCAL_SANDBOX_MISSING')
       const token = randomUUID()
       const files = new Map()
       const resources = new Map()
-      for (const pkg of prepared?.presentation ?? []) {
+      for (const pkg of prepared.presentation) {
         for (const resource of pkg.manifest.resources) {
           if (resource.kind === 'http') resources.set(`${pkg.namespace}:${resource.id}`, resource.source)
         }
@@ -89,16 +87,16 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
           resources.set(`${pkg.namespace}:${resource.id}`, assetUrl(token, resource.sha256))
         }
       }
-      for (const release of prepared?.releases ?? [])
+      for (const release of prepared.releases)
         for (const asset of release.assets) {
           const file = prepared.assetFile(asset.sha256)
           if (file) files.set(asset.sha256, { file, mime: asset.mime })
         }
-      let catalog = catalogs.get(source)
+      let catalog = catalogs.get(prepared)
       if (!catalog) {
-        catalog = runtime.buildDisplayCatalog(source.data, base?.presentation, prepared?.presentation)
-        catalog.locales = runtime.buildDisplayLocales(prepared?.presentation ?? [], base?.locales ?? {}, catalog)
-        catalogs.set(source, catalog)
+        catalog = runtime.buildDisplayCatalog(prepared.data, [], prepared.presentation)
+        catalog.locales = runtime.buildDisplayLocales(prepared.presentation, {}, catalog)
+        catalogs.set(prepared, catalog)
       }
       const content = structuredClone(catalog)
       const resolveResource = (owner, ref) => {
@@ -125,21 +123,21 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
             for (const key of ['source', 'fallback'])
               if (p.battle[key]) p.battle[key] = resolveResource(row.id, p.battle[key])
         }
-      const result = { token, ...(displayOnly ? {} : { environment: source.sandbox }), content }
+      const result = { token, ...(displayOnly ? {} : { environment: prepared.sandbox }), content }
       const runtimeIdentity = {
         kind: 'native-v4',
-        contentRevision: source.revision,
-        coreBuildId: source.build.coreBuildId,
-        registryBuildId: source.build.registryBuildId,
+        contentRevision: prepared.revision,
+        coreBuildId: prepared.build.coreBuildId,
+        registryBuildId: prepared.build.registryBuildId,
       }
-      const members = prepared?.installation?.members ?? (base?.member ? [base.member] : [])
+      const members = prepared.installation.members
       const packages = members.map(({ name, version, projectId, namespace }) => ({
         name,
         version,
         projectId,
         namespace,
       }))
-      sessions.set(token, { files, prepared, lease, owner, environment: source.sandbox, runtimeIdentity, packages })
+      sessions.set(token, { files, prepared, lease, owner, environment: prepared.sandbox, runtimeIdentity, packages })
       // Acquiring a fixed old configuration must not change the library's current selection.
       if (activeDirectory === undefined) activeDirectory = lease.directory
       await collect()
@@ -214,18 +212,12 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
       await release(captured.token)
     }
   }
-  async function prepareProject({ directory, builtinOnly = false }) {
-    assertOpen()
-    if (builtinOnly) {
-      await load()
-      assertOpen()
-      return
-    }
+  async function prepareProject({ directory }) {
     await compileProject(directory, true)
     await collect()
   }
-  function selectProject({ directory, builtinOnly }) {
-    activeDirectory = builtinOnly ? null : directory
+  function selectProject({ directory }) {
+    activeDirectory = directory
     void collect().catch(() => {})
   }
   async function releaseOwner(owner) {

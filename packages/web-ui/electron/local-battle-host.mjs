@@ -171,27 +171,27 @@ export class LocalBattleHost {
       })
     })
   }
-  async prepareProject(directory, { builtinOnly = false } = {}) {
+  async prepareProject(directory) {
     const canonical = await realpath(directory)
     if (this.#state.status !== 'running') throw problem('HOST_UNAVAILABLE', '请先明确启动本机联机托管')
     this.#uncertainProjects.add(canonical)
-    const descriptor = await this.#request('prepare', { directory: canonical, builtinOnly })
+    const descriptor = await this.#request('prepare', { directory: canonical })
     this.#uncertainProjects.delete(canonical)
     if (descriptor.packages.length) {
       const directories = this.#projects.get(descriptor.id) ?? new Set()
       directories.add(canonical)
       this.#projects.set(descriptor.id, directories)
     }
-    return { id: descriptor.id, directory: canonical, builtinOnly: !descriptor.packages.length, started: false }
+    return { id: descriptor.id, directory: canonical, started: false }
   }
   async selectPrepared(prepared) {
     const directory = this.#projectDirectory
     const previous = await this.#request('select', { environmentId: prepared.id })
     this.#projectDirectory = prepared.directory
-    return { id: previous.id, directory, builtinOnly: !previous.packages.length }
+    return { id: previous.id, directory }
   }
   async retirePrepared(prepared) {
-    if (prepared && !prepared.builtinOnly) await this.#request('retire', { environmentId: prepared.id })
+    if (prepared) await this.#request('retire', { environmentId: prepared.id })
   }
   /** Includes retired environments until their final room/checkpoint/asset lease is released. */
   async retainedProjectDirectories() {
@@ -218,9 +218,9 @@ export class LocalBattleHost {
     const saved =
       this.#lastProject ?? (this.stateDirectory ? await loadLocalServerProfile(this.stateDirectory) : undefined)
     if (!saved?.projectDirectory) throw problem('PROJECT_NOT_READY', '请先选择本机托管的内容或服务器项目')
-    return this.start(saved.projectDirectory, { builtinOnly: saved.builtinOnly === true, localRecovery: true })
+    return this.start(saved.projectDirectory, { localRecovery: true })
   }
-  async start(directory, { builtinOnly = false, localRecovery = false, launch } = {}) {
+  async start(directory, { localRecovery = false, launch } = {}) {
     if (this.#child || ['starting', 'stopping', 'running'].includes(this.#state.status))
       throw problem('HOST_BUSY', '本机对战服务已经启动或正在启动')
     const generation = ++this.#generation
@@ -256,7 +256,7 @@ export class LocalBattleHost {
       }
       await verifyProject(directory)
       const projectDirectory = await realpath(directory)
-      this.#lastProject = { projectDirectory, builtinOnly }
+      this.#lastProject = { projectDirectory }
       cache = await mkdtemp(join(tmpdir(), 'arcadia-desktop-server-'))
       if (generation !== this.#generation) throw problem('HOST_STOPPED', '本机对战服务已停止')
       const serverId = this.stateDirectory
@@ -282,7 +282,8 @@ export class LocalBattleHost {
           ...(this.stateDirectory ? ['--data-dir', this.stateDirectory] : []),
           ...(this.workspaceRoot ? ['--workspace-root', this.workspaceRoot] : []),
           ...(this.workspaceRoot ? ['--desktop-project', projectDirectory] : []),
-          ...(builtinOnly ? [] : ['--npm-project', directory]),
+          '--npm-project',
+          projectDirectory,
         ],
         {
           cwd: cache,
@@ -400,11 +401,9 @@ export class LocalBattleHost {
       }
       this.#projects.clear()
       this.#uncertainProjects.clear()
-      if (!builtinOnly) {
-        const descriptor = await this.#request('describe')
-        this.#projects.set(descriptor.id, new Set([projectDirectory]))
-      }
-      if (this.stateDirectory) await saveLocalServerProject(this.stateDirectory, projectDirectory, builtinOnly)
+      const descriptor = await this.#request('describe')
+      this.#projects.set(descriptor.id, new Set([projectDirectory]))
+      if (this.stateDirectory) await saveLocalServerProject(this.stateDirectory, projectDirectory)
       return this.status()
     } catch (error) {
       const wasCurrent = generation === this.#generation

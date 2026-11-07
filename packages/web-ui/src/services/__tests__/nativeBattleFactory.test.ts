@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { prepareCatalogPackage } from '@arcadia-eternity/pack-loader/node'
+import { prepareShippedEnvironment } from '@arcadia-eternity/pack-loader/node'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { reactive, toRaw } from 'vue'
 import { nanoid } from 'nanoid'
@@ -130,10 +130,12 @@ async function createNativeWebBattleSession(
 const systems: LocalBattleSystemV4[] = []
 const peers: IBattleSystem[] = []
 let baseline = 0
-let environment: Awaited<ReturnType<typeof prepareCatalogPackage>>['sandbox']
+let environment: Awaited<ReturnType<typeof prepareShippedEnvironment>>['sandbox']
 beforeAll(async () => {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
-  environment = (await prepareCatalogPackage(fileURLToPath(root))).sandbox
+  const prepared = await prepareShippedEnvironment(fileURLToPath(root))
+  environment = prepared.sandbox
+  await prepared.dispose()
 })
 beforeEach(() => {
   baseline = AttributeSystem.getGlobalMemoryStats().totalInstances

@@ -16,6 +16,7 @@ export interface ContentIds {
 }
 export interface InstalledContentPackage {
   id: string
+  bundled?: boolean
   name: string
   title: string
   version: string

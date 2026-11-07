@@ -129,7 +129,8 @@ async function fixture(name) {
   })
   const file = async (id, version = '1.0.0', namespace = id) => {
     const path = join(directory, id + '-' + version + '.tgz')
-    await writeFile(path, JSON.stringify({ name: '@test/' + id, version, namespace, title: id }))
+    const name = id === 'base' ? '@arcadia-eternity/data-pack-base' : '@test/' + id
+    await writeFile(path, JSON.stringify({ name, version, namespace, title: id }))
     return path
   }
   return {
@@ -213,8 +214,10 @@ it('prepares a complete selection and only publishes it after approval and valid
   assert.equal(oldDirectory, localProject.directory)
   assert.equal(f.calls.length, beforeHosting)
   await localProject.release()
-  const empty = await f.manager.planSelection([], true)
-  await f.manager.applySelection(empty.id, false)
+  await assert.rejects(f.manager.planSelection([], true), /至少启用一个/)
+  const other = await install(f, 'other')
+  const replacement = await f.manager.planSelection([other], true)
+  await f.manager.applySelection(replacement.id, false)
   assert.equal(f.host.projectDirectory(), oldDirectory)
   assert.equal((await f.manager.list()).serviceNeedsRestart, false)
   assert.deepEqual(f.prepared, [])
@@ -227,8 +230,9 @@ it('preserves the prior active selection on content validation failure', async (
   const water = await install(f)
   const first = await f.manager.planSelection([water], true)
   await f.manager.applySelection(first.id, false)
+  const other = await install(f, 'other')
   f.fail()
-  const plan = await f.manager.planSelection([], true)
+  const plan = await f.manager.planSelection([other], true)
   await assert.rejects(f.manager.applySelection(plan.id, false), /INVALID_CONTENT/)
   assert.deepEqual((await f.manager.list()).activeIds, [water])
 })
@@ -298,6 +302,7 @@ async function settled(manager, expected = 'ready') {
 }
 it('hosts bundled content from a fresh library and reuses its prepared choice on restart', async () => {
   const f = await fixture('fresh-builtin-host')
+  f.manager.withDefaultArchive = async use => use(await f.file('base'))
   const starts = []
   const start = f.host.start
   f.host.start = async (directory, options) => {
@@ -305,13 +310,15 @@ it('hosts bundled content from a fresh library and reuses its prepared choice on
     return start(directory)
   }
   try {
-    assert.equal((await f.manager.list()).hasSelection, false)
-    await f.manager.start()
     const prepared = await f.manager.list()
     assert.equal(prepared.hasSelection, true)
-    assert.deepEqual(prepared.activeIds, [])
-    assert.deepEqual(prepared.desiredIds, [])
-    assert.deepEqual(starts[0].options, { builtinOnly: true })
+    const [base] = prepared.packages
+    assert.deepEqual(prepared.activeIds, [base.id])
+    assert.deepEqual(prepared.desiredIds, [base.id])
+    assert.equal(base.bundled, true)
+    await assert.rejects(f.manager.setSelection([], true), /默认环境必须启用/)
+    await f.manager.start()
+    assert.equal(starts[0].options, undefined)
     const stages = f.calls.filter(args => args[2] === 'stage').length
     await f.host.stop()
     await f.manager.start()
@@ -329,7 +336,7 @@ it('does not replace an unfinished saved selection with a fresh hosting default'
   const saved = await readFile(file)
   const restored = new ContentLibrary({ root: f.libraryRoot, run: f.run, host: f.host })
   try {
-    await assert.rejects(restored.start(), /内容选择尚未准备完成/)
+    await assert.rejects(restored.start(), /先准备本机内容选择/)
     assert.deepEqual(await readFile(file), saved)
     assert.equal(f.host.status().status, 'idle')
   } finally {
@@ -347,7 +354,7 @@ it('installs without changing selection, then explicitly enables and persists th
     assert.equal(f.host.status().status, 'idle')
     assert.equal(f.prepared.length, 0)
     await f.manager.setSelection([], true)
-    assert.deepEqual((await settled(f.manager)).activeIds, [])
+    assert.deepEqual((await settled(f.manager, 'failed')).activeIds, [id])
     assert.equal(f.host.status().status, 'idle')
     assert.equal(f.prepared.length, 0)
     const stored = JSON.parse(await readFile(join(f.libraryRoot, 'library.json'), 'utf8'))
@@ -455,15 +462,17 @@ it('restores selected content after restart without reinstalling or starting hos
 })
 it('keeps the hosted environment when the local selection returns to official-only content', async () => {
   const f = await fixture('automatic-base')
+  f.manager.withDefaultArchive = async use => use(await f.file('base'))
   try {
+    const [base] = (await f.manager.list()).packages
     const installedId = await f.manager.installFile(await f.file('water'), true)
-    await f.manager.setSelection([installedId], true)
+    await f.manager.setSelection([base.id, installedId], true)
     await settled(f.manager)
     await f.manager.start()
     const ready = await f.manager.list()
     const hostedDirectory = f.host.projectDirectory()
-    await f.manager.setSelection([], true)
-    assert.deepEqual((await settled(f.manager)).activeIds, [])
+    await f.manager.setSelection([base.id], true)
+    assert.deepEqual((await settled(f.manager)).activeIds, [base.id])
     assert.deepEqual(f.host.status(), ready.serviceStatus)
     assert.equal(f.host.projectDirectory(), hostedDirectory)
     assert.equal((await f.manager.list()).serviceNeedsRestart, false)
@@ -622,11 +631,10 @@ it('keeps the fallback on failed goals, skips uncertain host state, and collects
     await restored.close()
   }
 })
-it('leases official-only content before the first selection and rejects static preparation before publication', async () => {
+it('reports no active project before a selection and rejects static preparation before publication', async () => {
   const f = await fixture('gc-static-prepare')
   const lease = await f.manager.acquireProject()
   assert.equal(lease.directory, null)
-  assert.equal(lease.builtinOnly, true)
   await lease.release()
   const a = await install(f, 'a')
   f.manager.prepare = async () => {

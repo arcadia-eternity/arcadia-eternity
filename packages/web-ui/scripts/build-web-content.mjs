@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
@@ -9,12 +8,11 @@ import {
   mapPresentationResources,
   PackMetadataLoader,
 } from '@arcadia-eternity/pack-loader/native'
-import { emptyNpmContentHost, prepareCatalogPackage, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { validAssetPath } from '../../content-dev/src/lib/presentation.mjs'
+import { emptyNpmContentHost, prepareShippedEnvironment, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 
 /** Stage the selected package's prepared default environment for static delivery. */
 export async function buildWebContent(
-  root = fileURLToPath(new URL('../../../packs/base/', import.meta.url)),
+  root = fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
   projectDirectory,
 ) {
   const { locales, pack, lockfile } = await new PackMetadataLoader().loadMetadata(join(root, 'pack.json'), {
@@ -30,19 +28,16 @@ export async function buildWebContent(
         { policy: { profile: 'self-hosted' } },
         { effectPreparation: 'prebuilt-only' },
       )
-    : undefined
+    : await prepareShippedEnvironment(root)
   try {
-    const selected = prepared ?? (await prepareCatalogPackage(root))
-    const { data, sandbox } = selected
-    const authoring = prepared
-      ? {
-          build: prepared.build,
-          templates: sandbox.data.behaviors ?? [],
-          effectIds: [],
-          effectTemplates: [],
-          effectMarkRelations: {},
-        }
-      : JSON.parse(await readFile(join(root, 'dist/catalog.json'), 'utf8'))
+    const { data, sandbox } = prepared
+    const authoring = {
+      build: prepared.build,
+      templates: sandbox.data.behaviors ?? [],
+      effectIds: prepared.authoring?.effectIds ?? [],
+      effectTemplates: prepared.authoring?.effectTemplates ?? [],
+      effectMarkRelations: prepared.authoring?.effectMarkRelations ?? {},
+    }
     const writeJson = (path, value) => files.set(path, JSON.stringify(value))
     const manifest = {
       ...pack,
@@ -60,17 +55,16 @@ export async function buildWebContent(
       for (const [namespace, value] of Object.entries(namespaces))
         writeJson(`${localesDir}/${locale}/${namespace}.json`, value)
 
-    const webPresentation = prepared
-      ? { version: 2, bindings: [], locales: {}, resources: [], defaultLocale: 'zh-CN' }
-      : stagePresentation(selected.presentation[0], root, media)
-    const content = prepared
-      ? buildDisplayCatalog(data, [], prepared.presentation, { includeRuleDetails: true })
-      : buildDisplayCatalog(data, [webPresentation], [], { includeRuleDetails: true })
-    const resources = prepared
-      ? stageEnvironmentMedia(content, prepared.presentation, media)
-      : webPresentation.resources
-    if (prepared) content.locales = buildDisplayLocales(prepared.presentation, {}, content)
-    if (prepared) webPresentation.resources = resources
+    const content = buildDisplayCatalog(data, [], prepared.presentation, { includeRuleDetails: true })
+    const resources = stageEnvironmentMedia(content, prepared.presentation, media)
+    content.locales = buildDisplayLocales(prepared.presentation, {}, content)
+    const webPresentation = {
+      version: 2,
+      bindings: prepared.presentation.find(pkg => !pkg.namespace)?.manifest.bindings ?? [],
+      locales: {},
+      resources,
+      defaultLocale: content.locales.defaultLocale,
+    }
     writeJson(manifest.presentation, webPresentation)
     writeJson('environment/catalog.json', {
       content,
@@ -88,24 +82,11 @@ export async function buildWebContent(
     return {
       files,
       mediaTargets: Array.from(media, ([path, src]) => ({ src, dest: dirname(path) })),
-      dispose: () => prepared?.dispose(),
+      dispose: prepared.dispose,
     }
   } catch (error) {
-    await prepared?.dispose()
+    await prepared.dispose()
     throw error
-  }
-}
-
-function stagePresentation(display, root, media) {
-  return {
-    ...display,
-    resources: display.resources.map(resource => {
-      if (resource.kind === 'http') return resource
-      if (!validAssetPath(resource.source)) throw new Error(`Invalid package media path: ${resource.source}`)
-      const source = `pack-assets/${resource.source}`
-      media.set(source, join(root, resource.source))
-      return { ...resource, source }
-    }),
   }
 }
 

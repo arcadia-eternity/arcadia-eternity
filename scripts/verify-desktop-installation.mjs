@@ -104,19 +104,22 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     )
     await page.waitForFunction(() => typeof window.arcadiaDesktop?.prepareLocalContent === 'function')
     localPort = await page.evaluate(() => window.arcadiaDesktop.getLocalServerPort())
-    // This exercises the packaged base-pack location, data/locales and compiled
-    // effects. The old RunAsNode server smoke did not cover this desktop path.
+    // Verify the installed desktop can prepare its own npm environment and hand off its runtime.
     const content = await page.evaluate(async () => {
       const prepared = await window.arcadiaDesktop.prepareLocalContent()
-      const result = {
-        species: prepared.content.species.length,
-        skills: prepared.content.skills.length,
-        environment: prepared.environment.revision,
+      try {
+        const environment = await window.arcadiaDesktop.readLocalRuntime(prepared.token)
+        return {
+          species: prepared.content.species.length,
+          skills: prepared.content.skills.length,
+          environment: environment.revision,
+        }
+      } finally {
+        await window.arcadiaDesktop.releaseLocalContent(prepared.token)
       }
-      await window.arcadiaDesktop.releaseLocalContent(prepared.token)
-      return result
     })
     assert.ok(content.species > 0 && content.skills > 0, 'packaged official content loads')
+    assert.match(content.environment, /^[a-f0-9]{64}$/)
     const baseManifest = await page.evaluate(async port => {
       const response = await fetch(`http://127.0.0.1:${port}/packs/base/pack.json`)
       return { status: response.status, manifest: await response.json() }

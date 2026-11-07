@@ -39,16 +39,12 @@ export async function loadLocalServerProfile(directory) {
 }
 
 /** Updated only by the trusted host after it verifies the prepared project. */
-export async function saveLocalServerProject(directory, projectDirectory, builtinOnly) {
+export async function saveLocalServerProject(directory, projectDirectory) {
   if (!isAbsolute(projectDirectory)) throw new Error('本机服务器项目位置无效')
   const profile = await loadLocalServerProfile(directory)
   const staging = join(directory, `server-${randomUUID()}.tmp`)
   try {
-    await writeFile(
-      staging,
-      JSON.stringify({ ...profile, projectDirectory, builtinOnly: builtinOnly === true }) + '\n',
-      { flag: 'wx', mode: 0o600 },
-    )
+    await writeFile(staging, JSON.stringify({ ...profile, projectDirectory }) + '\n', { flag: 'wx', mode: 0o600 })
     await rename(staging, join(directory, 'server.json'))
   } finally {
     await rm(staging, { force: true })

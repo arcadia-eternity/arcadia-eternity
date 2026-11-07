@@ -14,9 +14,16 @@ import { LocalServerController } from '../local-server-controller.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
+import { withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
+const cli = process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js')
+function defaultArchive(use) {
+  const runtimeRequire = createRequire(join(dirname(cli), 'package.json'))
+  const root = dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+  return withShippedCatalogArchive(root, process.env.ARCADIA_DESKTOP_NPM_CLI, use)
+}
 test(
   'real managed desktop host borrows client materials and restores its own persisted binding',
   {
@@ -56,6 +63,7 @@ test(
     const library = new ContentLibrary({
       root: join(root, 'library'),
       host,
+      withDefaultArchive: defaultArchive,
       run: (args, signal) => runContentCommand({ ...host, npmCacheDirectory: join(root, 'cache') }, args, signal),
     })
     const controller = new LocalServerController({ host, library: () => library })
@@ -119,16 +127,20 @@ test(
         'packed fixture includes the freshly compiled effect entry',
       )
       const installed = await library.installFile(join(root, archive.filename), true)
-      assert.deepEqual((await library.list()).activeIds, [])
-      await library.setSelection([installed], true)
+      const { packages, activeIds } = await library.list()
+      const base = packages.find(item => item.bundled)
+      assert.deepEqual(activeIds, [base.id])
+      await assert.rejects(library.setSelection([installed], true), /默认环境必须启用/)
+      await library.setSelection([base.id, installed], true)
       await settle()
-      const local = await library.acquireProject()
+      const local = await library.prepareEnvironmentProject(
+        { packages: { [fixtureManifest.name]: fixtureManifest.version }, sources: [] },
+        { offline: true },
+      )
       const existingProjects = await readdir(join(root, 'library/projects'))
-      const launched = await controller.request({
-        action: 'start',
-        configuration: { name: '好友开服测试', content: 'current', scope: 'local', port: 0 },
+      await host.start(local.directory, {
+        launch: { name: '好友开服测试', host: '127.0.0.1', port: 0, publicOrigin: null },
       })
-      assert.equal(launched.error, undefined)
       const first = host.status()
       assert.equal(first.status, 'running')
       const { environments } = await (await fetch(first.url + '/api/v1/environments')).json()
@@ -182,7 +194,7 @@ test(
         'management preparation leaves local selection intact',
       )
       assert.equal((await workspace.getVersion(prepared.result.versionId)).adopted, true)
-      await library.setSelection([], true)
+      await library.setSelection([base.id], true)
       await settle()
       assert.equal(
         (await request('GET', `/servers/${first.serverId}/bindings`)).bindings[0].effectiveVersionId,
@@ -256,6 +268,7 @@ test(
     const library = new ContentLibrary({
       root: join(root, 'library'),
       host,
+      withDefaultArchive: defaultArchive,
       run: (args, signal) => runContentCommand({ ...host, npmCacheDirectory: join(root, 'cache') }, args, signal),
     })
     owner = new DesktopWorkspaceOwner({ root: join(root, 'library'), library, openWorkspace: ContentWorkspace.open })
@@ -308,7 +321,19 @@ test(
       const listed = await host.managementRequest({ method: 'GET', path: '/servers' })
       assert.equal(listed.body.servers[0].name, '官方玩法好友服')
       assert.ok(listed.body.servers[0].defaultBindingId)
-      assert.deepEqual((await library.list()).activeIds, [], 'hosting does not change local-play content')
+      const path = `/workspaces/${listed.body.servers[0].workspaceId}/environments`
+      const drafts = await host.managementRequest({ method: 'GET', path })
+      assert.equal(drafts.status, 200)
+      const draft = drafts.body.environments.find(item => item.document.id === 'desktop-host')
+      assert.deepEqual(draft.requiredPackages, ['@arcadia-eternity/data-pack-base'])
+      const disabled = await host.managementRequest({
+        method: 'POST',
+        path: `${path}/desktop-host/package-state`,
+        body: { name: draft.requiredPackages[0], enabled: false, expectedRevision: draft.revision },
+      })
+      assert.equal(disabled.status, 409)
+      const snapshot = await library.list()
+      assert.deepEqual(snapshot.activeIds, [snapshot.packages.find(item => item.bundled).id])
       await controller.request({ action: 'stop' })
       const resumed = await controller.request({ action: 'start' })
       assert.equal(resumed.host.status, 'running', JSON.stringify(resumed.error))

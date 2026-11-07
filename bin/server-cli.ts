@@ -2,12 +2,10 @@ import 'dotenv/config'
 import { Command, CommanderError, InvalidArgumentError } from 'commander'
 import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
-import { stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
-import { resolvePackPathFromRef } from '@arcadia-eternity/battle/pack'
+import { withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
 import { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-dev/managed-projects'
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, stat } from 'node:fs/promises'
 import { openServerStorage, workspaceRetentions } from './server-persistence'
 import { createDesktopWorkspaceProxy } from './desktop-workspace-proxy'
 import { createOnlineServerBackup } from './server-backup'
@@ -25,14 +23,11 @@ import {
   type G3AccountServices,
 } from '@arcadia-eternity/server'
 
-async function withShippedEnvironmentProject<T>(initialize: (directory: string) => Promise<T>): Promise<T> {
-  const directory = await mkdtemp(join(tmpdir(), 'arcadia-default-environment-'))
-  try {
-    const project = await stageCatalogProject(directory, dirname(await resolvePackPathFromRef('builtin:base')))
-    return await initialize(project)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
+function initializeShippedEnvironment<T>(initialize: (directory: string) => Promise<T>) {
+  return withShippedEnvironmentProject(
+    dirname(fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
+    initialize,
+  )
 }
 
 function portNumber(value: string): number {
@@ -349,7 +344,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
         initialization: desktopControl
           ? options.desktopProject
-            ? { kind: 'desktop', environmentId: 'desktop-host' }
+            ? { kind: desktopLaunch?.officialContent ? 'builtin' : 'desktop', environmentId: 'desktop-host' }
             : undefined
           : options.npmProject?.[0]
             ? { kind: 'npm', environmentId: 'startup-npm' }
@@ -368,10 +363,13 @@ export async function runServerCli(args: string[]): Promise<number> {
       throw new Error('Invalid desktop host')
     if (desktopControl && options.desktopProject) {
       const { initializeDesktopHost } = await import('./desktop-host-initialize')
-      const initialize = (projectDirectory: string) =>
-        initializeDesktopHost({ management: server!.management!, workspace: workspace!, projectDirectory })
-      if (options.npmProject?.[0]) await initialize(options.desktopProject)
-      else await withShippedEnvironmentProject(initialize)
+      const pending = await server.management!.pendingInitializationInfo()
+      await initializeDesktopHost({
+        management: server.management!,
+        workspace,
+        projectDirectory: options.desktopProject,
+        kind: desktopLaunch?.officialContent || (!desktopLaunch && pending?.kind === 'builtin') ? 'builtin' : 'desktop',
+      })
     } else if (!desktopControl && options.npmProject?.[0]) {
       await initializeHostEnvironment({
         management: server.management!,
@@ -382,8 +380,8 @@ export async function runServerCli(args: string[]): Promise<number> {
         name: '启动时批准的 npm 环境',
         matchmakingEnabled: true,
       })
-    } else if (!desktopControl) {
-      await withShippedEnvironmentProject(projectDirectory =>
+    } else if (!desktopControl && (await server.management!.pendingInitializationInfo())) {
+      await initializeShippedEnvironment(projectDirectory =>
         initializeHostEnvironment({
           management: server!.management!,
           workspace: workspace!,

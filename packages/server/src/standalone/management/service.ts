@@ -134,6 +134,7 @@ export class ManagementError extends Error {
 const fail = (code: string, status = 422): never => {
   throw new ManagementError(code, status)
 }
+const shippedBasePackage = '@arcadia-eternity/data-pack-base'
 const object = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('INVALID_REQUEST')
   return value as Record<string, unknown>
@@ -238,10 +239,25 @@ export class ManagementService {
         createServerBackup: options.createServerBackup,
       })
   }
-  private readonly validator: StaticPreparer = input =>
-    validateWorkspaceProject(input, {
+  private readonly validator: StaticPreparer = async input => {
+    await this.assertRequiredPackages(input.draft)
+    return validateWorkspaceProject(input, {
       effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
     })
+  }
+  private async builtinEnvironmentId() {
+    const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
+    const initialization = server?.value.initialization
+    return initialization?.kind === 'builtin' ? initialization.environmentId : undefined
+  }
+  private async assertRequiredPackages(document: { id?: unknown; packages?: unknown }) {
+    if (
+      typeof document.id === 'string' &&
+      document.id === (await this.builtinEnvironmentId()) &&
+      !Object.hasOwn(object(document.packages), shippedBasePackage)
+    )
+      fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
+  }
   get serverScope(): ManagementScope {
     return { kind: 'server', id: this.options.serverId }
   }
@@ -893,8 +909,11 @@ export class ManagementService {
       if (parts[2] === 'environments') {
         if (method === 'GET' && parts.length === 3) {
           await this.auth.authorize(actor, this.workspaceScope, 'read')
+          const builtinId = await this.builtinEnvironmentId()
           return ok({
-            environments: await this.options.workspace.listDrafts(),
+            environments: (await this.options.workspace.listDrafts()).map(draft =>
+              draft.document.id === builtinId ? { ...draft, requiredPackages: [shippedBasePackage] } : draft,
+            ),
             versions: (await this.options.workspace.listVersions()).map(safeVersion),
           })
         }
@@ -911,6 +930,7 @@ export class ManagementService {
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
           const document = object(input.document)
           if (parts.length === 4 && document.id !== parts[3]) fail('ENVIRONMENT_MISMATCH')
+          await this.assertRequiredPackages(document)
           const expectedRevision =
             input.expectedRevision === null
               ? null
@@ -921,14 +941,31 @@ export class ManagementService {
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
           if (typeof input.enabled !== 'boolean' || (input.cascade !== undefined && typeof input.cascade !== 'boolean'))
             fail('INVALID_REQUEST')
+          const name = text(input.name, 214)
+          const workspace = this.options.workspace
+          const builtin = parts[3] === (await this.builtinEnvironmentId())
+          if (builtin && !input.enabled && name === shippedBasePackage)
+            fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
           return ok(
-            await setEnvironmentPackageEnabled(this.options.workspace, {
-              environmentId: parts[3],
-              expectedRevision: text(input.expectedRevision),
-              name: text(input.name, 214),
-              enabled: input.enabled as boolean,
-              cascade: input.cascade as boolean | undefined,
-            }),
+            await setEnvironmentPackageEnabled(
+              builtin
+                ? {
+                    listDrafts: () => workspace.listDrafts(),
+                    listVersions: () => workspace.listVersions(),
+                    saveDraft: async draft => {
+                      await this.assertRequiredPackages(object(draft.document))
+                      return workspace.saveDraft(draft)
+                    },
+                  }
+                : workspace,
+              {
+                environmentId: parts[3],
+                expectedRevision: text(input.expectedRevision),
+                name,
+                enabled: input.enabled as boolean,
+                cascade: input.cascade as boolean | undefined,
+              },
+            ),
           )
         }
         if (method === 'POST' && parts[4] === 'prepare' && parts.length === 5) {
