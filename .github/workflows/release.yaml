@@ -164,7 +164,13 @@ jobs:
           ARCADIA_DESKTOP_MANAGED_HOST_TEST: '1'
           # ASCII names match GitHub updater URLs; OS prevents Mac/Windows x64 ZIP collisions.
           ARTIFACT_NAME: Arcadia-Eternity-${{ needs.prepare.outputs.artifact_version }}-${{ matrix.os }}-${{ matrix.arch }}.${ext}
-        run: pnpm --filter @arcadia-eternity/web-ui exec electron-builder ${{ matrix.args }} --publish never --config.extraMetadata.version="$RELEASE_VERSION" --config.${{ matrix.config }}.artifactName="$ARTIFACT_NAME"
+        run: |
+          # Resolve the checked-out hooks before pnpm changes to the web package directory.
+          hook="$(node -p "require('node:path').resolve('scripts/verify-desktop-pack.mjs')")"
+          pnpm --filter @arcadia-eternity/web-ui exec electron-builder ${{ matrix.args }} --publish never \
+            --config.beforePack="$hook" --config.afterPack="$hook" \
+            --config.extraMetadata.version="$RELEASE_VERSION" \
+            --config.${{ matrix.config }}.artifactName="$ARTIFACT_NAME"
       - name: Record validated build inputs
         env:
           SOURCE_PACKAGE_VERSION: ${{ steps.metadata.outputs.source_version }}
