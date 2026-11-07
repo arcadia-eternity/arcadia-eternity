@@ -109,11 +109,15 @@ test('content choices converge without apply controls or restarting the running 
 })
 
 test('browser content is read-only and desktop authoring and host routes stay closed', async ({ page }) => {
+  await page.route('**/arcadia-client.json', route =>
+    route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
+  )
+  await page.route('**/api/v1/environments', route => route.fulfill({ json: { protocolVersion: 1, environments: [] } }))
   await page.goto('/content')
   await expect(page.locator('main.content-page .scope')).toHaveText('只读')
   await expect(page.getByRole('button', { name: '添加内容包', exact: true })).toHaveCount(0)
   await expect(page.locator('main.content-page input[type=checkbox]')).toHaveCount(0)
-  await expect(page.locator('main.content-page')).toContainText('尚未进入房间')
+  await expect(page.locator('main.content-page')).toContainText('服务器暂无公开环境')
   for (const route of ['/creator', '/creator/development', '/settings/local-service']) {
     await page.goto(route)
     await expect(page.getByRole('heading', { name: '本地内容工具', exact: true })).toBeVisible()

@@ -4,13 +4,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import LocalEnvironmentPage from './LocalEnvironmentPage.vue'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { isRemoteContentActive } from '@/i18n/serverContent'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { readServerEnvironmentContent } from '@/services/serverEnvironment'
+import { listServerEnvironments, readServerEnvironmentContent } from '@/services/serverEnvironment'
+import { isStaticMode } from '@/utils/env'
 import { findMissingTeamContent, type TeamContentLookup } from '@/utils/teamContent'
 import type {
   ContentIds,
@@ -18,7 +19,7 @@ import type {
   InstalledContentPackage,
   PackageGraphEntry,
 } from '@/types/contentPackages'
-import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
+import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 
 const ContentUxPrototype = import.meta.env.DEV ? defineAsyncComponent(() => import('./ContentUxPrototype.vue')) : null
 const prototypeRoute = useRoute()
@@ -73,9 +74,12 @@ const gameData = useGameDataStore()
 const rooms = usePrivateRoomStore()
 const battle = useBattleClientStore()
 const pets = usePetStorageStore()
+const room = computed(() => rooms.currentRoom)
 const snapshot = ref<ContentLibrarySnapshot>()
 const draftIds = ref<string[]>([])
-const mode = ref<'installed' | 'enabled' | 'issues' | 'room'>(local ? 'installed' : 'room')
+const mode = ref<'installed' | 'enabled' | 'issues' | 'server' | 'room'>(
+  local ? 'installed' : room.value ? 'room' : 'server',
+)
 const selectedId = ref('')
 const detailTab = ref<'overview' | 'dependencies' | 'impact'>('overview')
 const detailOpen = ref(false)
@@ -85,19 +89,29 @@ const loading = ref(false)
 const error = ref('')
 const notice = ref('')
 const offline = ref(false)
-const roomContent = ref<ServerEnvironmentContent>()
-const roomLoading = ref(false)
-const roomError = ref('')
+const serverEnvironments = shallowRef<ServerEnvironmentDescriptor[]>([])
+const serverEnvironmentId = ref('')
+const serverLoading = ref(false)
+const serverError = ref('')
+const remoteContent = shallowRef<ServerEnvironmentContent>()
+const remoteLoading = ref(false)
+const remoteError = ref('')
 const adding = ref(false)
 const npmSpec = ref('')
-let controller: AbortController | undefined
 let disposed = false
 const pendingSelections = ref(0)
 let intent = 0
 let refreshRequest = 0
 let pollTimer: ReturnType<typeof setTimeout> | undefined
-const readonly = computed(() => !local || mode.value === 'room')
-const room = computed(() => rooms.currentRoom)
+const readonly = computed(() => mode.value === 'server' || mode.value === 'room')
+const serverCatalogUrl = computed(() =>
+  mode.value === 'server' && !isStaticMode && (!local || battle.isConnected) ? battle.serverUrl : undefined,
+)
+const remoteEnvironment = computed(() =>
+  mode.value === 'room'
+    ? room.value?.environment
+    : serverEnvironments.value.find(environment => environment.id === serverEnvironmentId.value),
+)
 const activeIds = computed(() => snapshot.value?.activeIds ?? [])
 const selectionLabel = computed(() =>
   pendingSelections.value
@@ -121,9 +135,9 @@ const publicIds = (content: ServerEnvironmentContent, namespace?: string): Conte
   ) as unknown as ContentIds
 const packages = computed<PackageView[]>(() => {
   if (readonly.value)
-    return (room.value?.environment?.packages ?? []).map(pkg => {
-      const ids = roomContent.value
-        ? publicIds(roomContent.value, pkg.projectId === 'base' ? undefined : pkg.namespace)
+    return (remoteEnvironment.value?.packages ?? []).map(pkg => {
+      const ids = remoteContent.value
+        ? publicIds(remoteContent.value, pkg.projectId === 'base' ? undefined : pkg.namespace)
         : emptyIds()
       return {
         id: pkg.projectId,
@@ -133,9 +147,9 @@ const packages = computed<PackageView[]>(() => {
         namespace: pkg.namespace,
         author: '',
         description: '',
-        source: '房间服务器',
+        source: mode.value === 'room' ? '房间服务器' : '当前服务器',
         contentIds: ids,
-        counts: roomContent.value
+        counts: remoteContent.value
           ? { species: ids.species.length, skills: ids.skills.length, marks: ids.marks.length }
           : undefined,
       }
@@ -185,9 +199,9 @@ const visiblePackages = computed(() =>
 const issueCount = computed(() => snapshot.value?.packages.filter(pkg => pkg.error).length ?? 0)
 const proposedLookup = computed<TeamContentLookup>(() => {
   const available = emptyIds()
-  if (readonly.value && roomContent.value) {
+  if (readonly.value && remoteContent.value) {
     for (const kind of ['species', 'skills', 'marks'] as const)
-      available[kind] = roomContent.value[kind].map(item => item.id)
+      available[kind] = remoteContent.value[kind].map(item => item.id)
   } else
     for (const pkg of snapshot.value?.packages ?? [])
       if (draftIds.value.includes(pkg.id) && !pkg.error) {
@@ -332,24 +346,53 @@ async function uninstall() {
   })
 }
 watch(
-  [() => battle.serverUrl, () => room.value?.environment?.id],
-  async () => {
-    controller?.abort()
-    roomContent.value = undefined
-    roomError.value = ''
-    roomLoading.value = false
-    const descriptor = room.value?.environment
-    if (!descriptor) return
-    const request = new AbortController()
-    controller = request
-    roomLoading.value = true
+  () => !!room.value,
+  inRoom => {
+    if (!inRoom && mode.value === 'room') changeMode('server')
+  },
+)
+watch(
+  serverCatalogUrl,
+  async (server, _previous, onCleanup) => {
+    serverEnvironments.value = []
+    serverEnvironmentId.value = ''
+    serverError.value = ''
+    serverLoading.value = !!server
+    if (!server) return
+    const controller = new AbortController()
+    const { signal } = controller
+    onCleanup(() => controller.abort())
     try {
-      const result = await readServerEnvironmentContent(battle.serverUrl, descriptor.id, fetch, request.signal)
-      if (!request.signal.aborted && !disposed) roomContent.value = result
+      const environments = await listServerEnvironments(server, fetch, signal)
+      if (signal.aborted) return
+      serverEnvironments.value = environments
+      serverEnvironmentId.value = (environments.find(environment => environment.isDefault) ?? environments[0])?.id ?? ''
     } catch (cause) {
-      if (!request.signal.aborted) roomError.value = cause instanceof Error ? cause.message : '无法读取房间内容'
+      if (!signal.aborted) serverError.value = cause instanceof Error ? cause.message : '无法读取服务器环境'
     } finally {
-      if (!request.signal.aborted) roomLoading.value = false
+      if (!signal.aborted) serverLoading.value = false
+    }
+  },
+  { immediate: true },
+)
+watch(
+  [() => battle.serverUrl, () => remoteEnvironment.value?.id, () => remoteEnvironment.value?.resourceRevision],
+  async ([server, id], _previous, onCleanup) => {
+    remoteContent.value = undefined
+    remoteError.value = ''
+    remoteLoading.value = false
+    if (!id) return
+    const controller = new AbortController()
+    const { signal } = controller
+    onCleanup(() => controller.abort())
+    remoteLoading.value = true
+    try {
+      const result = await readServerEnvironmentContent(server, id, fetch, signal)
+      if (!signal.aborted) remoteContent.value = result
+    } catch (cause) {
+      if (!signal.aborted) remoteError.value = cause instanceof Error ? cause.message : '无法读取环境内容'
+    } finally {
+      if (!signal.aborted) remoteLoading.value = false
     }
   },
   { immediate: true },
@@ -372,7 +415,6 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   disposed = true
-  controller?.abort()
   clearTimeout(pollTimer)
 })
 </script>
@@ -414,14 +456,19 @@ onBeforeUnmount(() => {
             <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
               本机内容 <span>{{ snapshot?.packages.length ?? 0 }}</span></button
             ><button :aria-current="mode === 'enabled' ? 'page' : undefined" @click="changeMode('enabled')">
-              已启用 <span>{{ activeIds.length + 1 }}</span></button
+              已启用 <span>{{ activeIds.length }}</span></button
             ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
               需处理 <span>{{ issueCount }}</span>
             </button>
             <hr
           /></template>
-          <p class="nav-label">当前房间</p>
-          <button :aria-current="mode === 'room' ? 'page' : undefined" @click="changeMode('room')">房间内容</button>
+          <p class="nav-label">联机内容包</p>
+          <button :aria-current="mode === 'server' ? 'page' : undefined" @click="changeMode('server')">
+            服务器内容
+          </button>
+          <button v-if="room" :aria-current="mode === 'room' ? 'page' : undefined" @click="changeMode('room')">
+            房间内容
+          </button>
         </nav>
         <section class="package-workspace" aria-label="内容包管理">
           <div class="toolbar">
@@ -432,9 +479,24 @@ onBeforeUnmount(() => {
               ><button :disabled="busy" @click="run(() => refresh())">刷新</button></template
             >
           </div>
-          <p v-if="readonly && !room" class="context-note">尚未进入房间</p>
-          <p v-if="readonly && room" class="context-note">房间 {{ room.config.roomCode }}</p>
-          <p v-if="readonly && roomError" class="message error" role="alert">{{ roomError }}</p>
+          <template v-if="mode === 'server'">
+            <p v-if="!serverCatalogUrl" class="context-note">
+              {{ isStaticMode ? '离线网页没有配对的服务器。' : '连接服务器后可查看已发布的内容包。' }}
+            </p>
+            <p v-else-if="serverError" class="message error" role="alert">{{ serverError }}</p>
+            <p v-else-if="!serverLoading && !serverEnvironments.length" class="context-note">服务器暂无公开环境。</p>
+            <label v-else-if="serverEnvironments.length" class="server-environment-picker">
+              服务器环境
+              <select v-model="serverEnvironmentId" @change="changeMode('server')">
+                <option v-for="environment in serverEnvironments" :key="environment.id" :value="environment.id">
+                  {{ environment.isDefault ? '默认环境 · ' : '' }}
+                  {{ environment.packages.map(pkg => `${pkg.name} ${pkg.version}`).join('、') || '空环境' }}
+                </option>
+              </select>
+            </label>
+          </template>
+          <p v-else-if="mode === 'room' && room" class="context-note">房间 {{ room.config.roomCode }}</p>
+          <p v-if="readonly && remoteError" class="message error" role="alert">{{ remoteError }}</p>
           <section v-if="canAuthor && mode === 'installed'" class="source-projects" aria-label="本地源项目">
             <header>
               <h2>本地项目</h2>
@@ -464,7 +526,9 @@ onBeforeUnmount(() => {
           </section>
           <div class="columns">
             <div class="package-list">
-              <p v-if="loading || (readonly && roomLoading)" class="list-note" role="status">正在读取内容包…</p>
+              <p v-if="loading || (readonly && (serverLoading || remoteLoading))" class="list-note" role="status">
+                正在读取内容包…
+              </p>
               <div
                 v-for="pkg in visiblePackages"
                 :key="pkg.id"
@@ -504,7 +568,12 @@ onBeforeUnmount(() => {
                   }}</small>
                 </div>
               </div>
-              <p v-if="!visiblePackages.length && !loading" class="list-note">没有符合条件的内容包。</p>
+              <p
+                v-if="!visiblePackages.length && !loading && (!readonly || (remoteEnvironment && !remoteLoading))"
+                class="list-note"
+              >
+                没有符合条件的内容包。
+              </p>
             </div>
             <aside v-if="selected" class="package-detail" aria-label="内容包详情">
               <button class="back" @click="detailOpen = false">返回内容包列表</button>
@@ -513,7 +582,9 @@ onBeforeUnmount(() => {
                 {{ selected.version }} ·
                 {{
                   readonly
-                    ? '本局固定版本'
+                    ? mode === 'room'
+                      ? '本局固定版本'
+                      : '服务器已发布版本'
                     : draftIds.includes(selected.id) !== activeIds.includes(selected.id)
                       ? snapshot?.selection.status === 'failed'
                         ? '未能完成选择'
@@ -524,7 +595,7 @@ onBeforeUnmount(() => {
                 }}
               </p>
               <button
-                v-if="canAuthor && mode !== 'room'"
+                v-if="canAuthor && !readonly"
                 class="primary"
                 :disabled="busy"
                 @click="browsePackage(selected.id)"
@@ -620,9 +691,11 @@ onBeforeUnmount(() => {
                   <p v-else>服务器未提供依赖清单。</p></template
                 >
                 <template v-else
-                  ><p v-if="readonly && roomLoading">正在读取房间内容…</p>
-                  <p v-else-if="readonly && roomError" class="problem">房间内容尚未读取成功，暂时无法检查队伍引用。</p>
-                  <p v-else-if="!gameData.loaded && !roomContent">正在读取基础内容…</p>
+                  ><p v-if="readonly && remoteLoading">正在读取环境内容…</p>
+                  <p v-else-if="readonly && remoteError" class="problem">
+                    环境内容尚未读取成功，暂时无法检查队伍引用。
+                  </p>
+                  <p v-else-if="!gameData.loaded && !remoteContent">正在读取基础内容…</p>
                   <p v-else-if="!relatedTeams.length">暂无队伍引用此包的内容。</p>
                   <ul v-else class="team-impact">
                     <li v-for="(team, index) in relatedTeams" :key="index">
@@ -849,6 +922,20 @@ hr {
   padding: 0 16px;
   color: var(--muted);
   font-size: 12px;
+}
+.server-environment-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+}
+.server-environment-picker select {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--page);
 }
 .columns {
   display: grid;

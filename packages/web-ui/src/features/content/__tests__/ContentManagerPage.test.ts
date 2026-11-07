@@ -4,8 +4,8 @@ import { reactive } from 'vue'
 import ContentManagerPage from '../ContentManagerPage.vue'
 import type { ContentLibrarySnapshot, InstalledContentPackage, ContentPackageAction } from '@/types/contentPackages'
 
-const { read } = vi.hoisted(() => ({ read: vi.fn() }))
-const battle = reactive({ serverUrl: 'http://server-a' })
+const { read, list } = vi.hoisted(() => ({ read: vi.fn(), list: vi.fn() }))
+const battle = reactive({ serverUrl: 'http://server-a', isConnected: true })
 const rooms = reactive<{
   currentRoom: { config: { roomCode: string }; environment: ReturnType<typeof environment> } | null
 }>({ currentRoom: null })
@@ -31,11 +31,13 @@ vi.mock('@/stores/battleClient', () => ({ useBattleClientStore: () => battle }))
 vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => rooms }))
 vi.mock('@/stores/petStorage', () => ({ usePetStorageStore: () => pets }))
 vi.mock('@/stores/gameData', () => ({ useGameDataStore: () => gameData }))
-vi.mock('@/services/serverEnvironment', () => ({ readServerEnvironmentContent: read }))
+vi.mock('@/services/serverEnvironment', () => ({ readServerEnvironmentContent: read, listServerEnvironments: list }))
 const environment = (id: string) => ({
   id,
   packages: [{ projectId: 'custom', name: '@test/custom', version: '1.0.0', namespace: 'custom' }],
 })
+const base = { projectId: 'base', name: '@arcadia-eternity/data-pack-base', version: '4.0.0', namespace: 'base' }
+const defaultEnvironment = { id: 'b'.repeat(64), isDefault: true, packages: [base] }
 const content = { species: [{ id: 'custom:pet' }], skills: [{ id: 'custom:skill' }], marks: [{ id: 'custom:ability' }] }
 const pkg: InstalledContentPackage = {
   id: 'package',
@@ -65,7 +67,7 @@ const open = () => {
 const button = (page: ReturnType<typeof mount>, name: string) =>
   page.findAll('button').find(item => item.text() === name)!
 const pickPackage = async (page: ReturnType<typeof mount>) => {
-  await page.findAll('.package-select')[1].trigger('click')
+  await page.get('.package-select').trigger('click')
 }
 function bridge(active = false) {
   const snapshot: ContentLibrarySnapshot = {
@@ -95,7 +97,9 @@ function bridge(active = false) {
 }
 beforeEach(() => {
   read.mockReset().mockResolvedValue(content)
+  list.mockReset().mockResolvedValue([defaultEnvironment])
   battle.serverUrl = 'http://server-a'
+  battle.isConnected = true
   rooms.currentRoom = null
   vi.stubGlobal('arcadiaDesktop', undefined)
 })
@@ -119,12 +123,65 @@ it('shows only the current room packages in the browser and never changes saved 
   expect(read).toHaveBeenCalledWith('http://server-a', 'a'.repeat(64), expect.any(Function), expect.any(AbortSignal))
   expect(JSON.stringify(pets.teams)).toBe(before)
 })
-it('shows the built-in fallback with no selected room rather than aggregating server catalogues', async () => {
+it('shows the paired server default package before connecting or joining a room', async () => {
+  battle.isConnected = false
+  const customEnvironment = environment('c'.repeat(64))
+  list.mockResolvedValue([customEnvironment, defaultEnvironment])
   const page = open()
   await flushPromises()
-  expect(page.text()).toContain('尚未进入房间')
+  expect(page.get('.package-select').text()).toContain(base.name)
   expect(page.findAll('.package-row')).toHaveLength(1)
+  expect(list).toHaveBeenCalledWith('http://server-a', expect.any(Function), expect.any(AbortSignal))
+  expect(read).toHaveBeenCalledWith(
+    'http://server-a',
+    defaultEnvironment.id,
+    expect.any(Function),
+    expect.any(AbortSignal),
+  )
+  await page.get('select').setValue(customEnvironment.id)
+  await flushPromises()
+  expect(page.get('.package-select').text()).toContain('@test/custom')
+  expect(page.findAll('.package-row')).toHaveLength(1)
+  expect(read).toHaveBeenLastCalledWith(
+    'http://server-a',
+    customEnvironment.id,
+    expect.any(Function),
+    expect.any(AbortSignal),
+  )
+})
+it('does not read a server catalog in the disconnected desktop workspace', async () => {
+  bridge()
+  battle.isConnected = false
+  const page = open()
+  await flushPromises()
+  await button(page, '服务器内容').trigger('click')
+  expect(page.text()).toContain('连接服务器后可查看已发布的内容包')
+  expect(list).not.toHaveBeenCalled()
   expect(read).not.toHaveBeenCalled()
+})
+it('drops the previous server catalog when a server switch wins the race', async () => {
+  let resolveOld!: (value: unknown) => void
+  const customEnvironment = environment('c'.repeat(64))
+  list.mockImplementation(server =>
+    server === 'http://server-a'
+      ? new Promise(resolve => {
+          resolveOld = resolve
+        })
+      : Promise.resolve([customEnvironment]),
+  )
+  const page = open()
+  await flushPromises()
+  battle.serverUrl = 'http://server-b'
+  await flushPromises()
+  resolveOld([defaultEnvironment])
+  await flushPromises()
+  expect(page.get('.package-select').text()).toContain('@test/custom')
+  expect(read).toHaveBeenCalledExactlyOnceWith(
+    'http://server-b',
+    customEnvironment.id,
+    expect.any(Function),
+    expect.any(AbortSignal),
+  )
 })
 it('discards stale room content when the connection changes', async () => {
   rooms.currentRoom = { config: { roomCode: 'ROOM' }, environment: environment('a'.repeat(64)) }
