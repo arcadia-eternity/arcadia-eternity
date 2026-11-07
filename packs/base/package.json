@@ -57,5 +57,9 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "tag": "preview"
+  },
+  "arcadiaEternityHost": "dist/native-host.json",
+  "devDependencies": {
+    "@arcadia-eternity/pack-loader": "workspace:^"
   }
 }

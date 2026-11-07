@@ -766,3 +766,6 @@ mark_taohongyinji:
 mark_hongxinlianjie:
   name: 红心连接
   description: 受到伤害的<damage>1/4</damage>由对手分担 持续5回合
+mark_hanbingjianren:
+  name: 寒冰坚韧
+  description: 受到物攻伤害减少<shield>25%</shield>，受到特攻伤害减少<shield>15%</shield>；被冻气冲撞、急速冰锥、冰雹或冰冷一击消耗。

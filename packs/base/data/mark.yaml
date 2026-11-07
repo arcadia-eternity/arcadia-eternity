@@ -2792,3 +2792,19 @@
   effect:
     - effect_mark_kadundudu_hongxin_lianjie_reduce
     - effect_mark_kadundudu_hongxin_lianjie_share
+- id: mark_hanbingjianren
+  config:
+    duration: -1
+    persistent: true
+    maxStacks: 1
+    stackable: false
+    stackStrategy: refresh
+    destroyable: true
+    isShield: false
+    keepOnSwitchOut: true
+    transferOnSwitch: false
+    inheritOnFaint: false
+  tags: []
+  effect:
+    - effect_bingchuantun_hanbingjianren_reduce_physical
+    - effect_bingchuantun_hanbingjianren_reduce_special

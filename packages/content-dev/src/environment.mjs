@@ -161,7 +161,7 @@ export async function prepareBattleEnvironment(
       integrity: packed.integrity,
       shasum: packed.shasum,
       sdkApi: manifest.arcadia.sdkApi,
-      build: nativeBuildIdentity,
+      build: environment.build,
       environmentRevision: environment.revision,
       environmentId,
       environmentConfigVersion: selected.version,

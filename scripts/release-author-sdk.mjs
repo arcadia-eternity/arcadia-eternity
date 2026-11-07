@@ -74,6 +74,20 @@ if (command === 'pack') {
     for (const entry of paths([packed.main, packed.types, packed.bin, packed.exports])) {
       assert.ok(files.includes(`package/${entry.replace(/^\.\//, '')}`), `${manifest.name}: missing ${entry}`)
     }
+    if (packed.arcadiaEternityHost)
+      assert.ok(files.includes(`package/${packed.arcadiaEternityHost}`), `${packed.name}: missing static base host`)
+    if (manifest.name.endsWith('/content-dev')) {
+      for (const file of [
+        'SKILL.md',
+        'references/project-conventions.md',
+        'references/mechanics-and-validation.md',
+        'references/testing.md',
+      ])
+        assert.ok(
+          files.includes(`package/dist/template/skills/seer2-recreate-pet/${file}`),
+          `${manifest.name}: missing recreation skill ${file}`,
+        )
+    }
     if (manifest.name.endsWith('/battle')) {
       assert.ok(files.includes('package/dist/THIRD_PARTY_NOTICES.md'))
       assert.ok(files.includes('package/dist/environment-build.json'))

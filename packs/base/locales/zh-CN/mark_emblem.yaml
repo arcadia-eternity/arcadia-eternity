@@ -211,3 +211,6 @@ mark_emblem_bihu:
 mark_emblem_hongxin:
   name: 红心
   description: 使<markName>红心印记</markName>和<markName>桃红印记</markName>技能<guaranteedHit>必中</guaranteedHit>
+mark_emblem_jianren:
+  name: 坚韧
+  description: 具有<markName>寒冰坚韧</markName>时受到的伤害减少<shield>20</shield>点。

@@ -12,6 +12,7 @@ import { preparePresentation, type PreparedPresentation } from './resources'
 import { compileEffectModule } from './effect-artifact'
 import { readPrebuiltEffectModule } from './prebuilt-artifact'
 import { bindEffectEnvironment } from '../effect-environment'
+import { installedOfficialHost } from './official-host'
 
 export interface NpmContentHost extends Omit<WorkHost<ContentIndex>, 'createContent'> {
   readonly effectModules?: SandboxEnvironment['modules']
@@ -57,9 +58,10 @@ export async function prepareNpmProject(
     const inspected = await inspectNpmProject(captured.root)
     // Relocation only changes private npm source paths. Audit the administrator's original lockfile.
     const installation = Object.freeze({ ...inspected, lockfileDigest: original.lockfileDigest })
+    const selected = await installedOfficialHost(captured.root, installation, host)
     return Object.freeze({
-      ...(await compileInstallation(captured.root, host, installation, approval.policy, preparation)),
-      presentation: await preparePresentation(captured.root, installation.packages),
+      ...(await compileInstallation(captured.root, selected.host, installation, approval.policy, preparation)),
+      presentation: await preparePresentation(captured.root, selected.presentationPackages),
       dispose,
     })
   } catch (error) {
@@ -77,7 +79,8 @@ async function compileInstallation(
 ) {
   const policy = cloneJson(policyInput)
   const contentPackages = installation.packages.filter(pkg => pkg.manifest)
-  if (!contentPackages.length) fail('NPM_CONTENT_MISSING', 'dependencies', 'No installed Arcadia content packages')
+  if (!contentPackages.length && !installation.packages.some(pkg => pkg.officialHost))
+    fail('NPM_CONTENT_MISSING', 'dependencies', 'No installed Arcadia content packages')
   // A content attachment already identifies the effect and its source kind. Do not ask
   // authors to repeat those declarations in package.json; the actual code is checked
   // when the battle Worker initializes the module with its canonical mark prototypes.

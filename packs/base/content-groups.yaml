@@ -291,6 +291,11 @@ groups:
     species:
       - pet_dudu
       - pet_kadundudu
+  - id: bingchuantun
+    species:
+      - pet_tuntun
+      - pet_binghutun
+      - pet_bingchuantun
 relations:
   - from: pet_dilan
     to: pet_didilan
@@ -579,4 +584,10 @@ relations:
     kind: evolution
   - from: pet_pala
     to: pet_palading
+    kind: evolution
+  - from: pet_tuntun
+    to: pet_binghutun
+    kind: evolution
+  - from: pet_binghutun
+    to: pet_bingchuantun
     kind: evolution

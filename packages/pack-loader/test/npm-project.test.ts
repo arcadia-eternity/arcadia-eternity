@@ -806,3 +806,120 @@ it('lists a shared transitive resource once and rejects two versions even with d
   })
   await expect(inspectNpmProject(conflicting)).rejects.toThrow('must have one installed version')
 }, 60000)
+
+it('loads an installed official catalog alongside ordinary npm content dependencies', async () => {
+  const baseSkill = { id: 'skill_zhuangji', element: 'Normal', category: 'Physical', power: 35, rage: 0, accuracy: 100 }
+  const base = await pack(
+    'official-base',
+    {
+      name: '@arcadia-eternity/data-pack-base',
+      version: '1.0.0',
+      arcadiaEternityPack: 'pack.json',
+      arcadiaEternityHost: 'host.json',
+    },
+    {
+      'pack.json': '{}',
+      'host.json': JSON.stringify({
+        formatVersion: 1,
+        build: host.build,
+        data: { species: [], skills: [baseSkill], marks: [] },
+        templates: [],
+        effectIds: [],
+        effectArtifact: {
+          format: 'arcadia.effect-module',
+          version: 1,
+          sdkApi: 2,
+          packageId: '@arcadia-eternity/data-pack-base',
+          source: 'export function createCatalog() { return { effects: new Map(), parameters: new Map() } }',
+        },
+      }),
+    },
+  )
+  const consumerData = {
+    ...structuredClone(data),
+    skills: [],
+    marks: [],
+    species: [
+      {
+        ...structuredClone(data.species[0]!),
+        learnable_skills: [
+          { skill_id: 'skill_zhuangji', level: 1, hidden: false },
+          { skill_id: ref('skill', 'strike'), level: 1, hidden: false },
+        ],
+      },
+    ],
+  }
+  const consumer = await pack(
+    'base-consumer',
+    {
+      name: '@arcadia-test/base-consumer',
+      version: '1.0.0',
+      dependencies: {
+        '@arcadia-eternity/data-pack-base': `file:${base}`,
+        '@arcadia-test/slow': `file:${join(root, 'content/arcadia-test-slow-1.0.0.tgz')}`,
+      },
+      arcadia: { formatVersion: 1, projectId: 'base-consumer', namespace: 'consumer', content: 'content.json' },
+    },
+    { 'content.json': JSON.stringify({ data: consumerData }) },
+  )
+  const directory = join(root, 'base-environment')
+  await mkdir(directory)
+  await writeFile(
+    join(directory, 'package.json'),
+    JSON.stringify({
+      name: 'base-environment',
+      version: '1.0.0',
+      private: true,
+      dependencies: { '@arcadia-test/base-consumer': `file:${consumer}` },
+    }),
+  )
+  await exec('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: directory })
+  const prepared = await prepare(directory)
+  expect(prepared.content.getSkill('skill_zhuangji').power).toBe(35)
+  expect(prepared.content.getSkill('slow:strike').power).toBe(30)
+  expect(prepared.data.species.find(row => row.id === 'consumer:pet')?.learnable_skills).toEqual([
+    { skill_id: 'skill_zhuangji', level: 1, hidden: false },
+    { skill_id: 'slow:strike', level: 1, hidden: false },
+  ])
+  const content = await prepareSandboxContent(prepared.sandbox)
+  try {
+    expect(content.content.getSkill('skill_zhuangji').power).toBe(35)
+  } finally {
+    content.dispose()
+  }
+  const baseMember = prepared.installation.members.find(pkg => pkg.projectId === 'base')!
+  expect(baseMember.requiredBy).toContain('@arcadia-test/base-consumer')
+  expect(baseMember.direct).toBe(false)
+  const metadataFile = join(directory, 'node_modules/@arcadia-eternity/data-pack-base/host.json')
+  const metadata = JSON.parse(await readFile(metadataFile, 'utf8'))
+  metadata.build.coreBuildId = 'c'.repeat(64)
+  await writeFile(metadataFile, JSON.stringify(metadata))
+  await expect(prepare(directory)).rejects.toThrow('Incompatible official base host artifact')
+  metadata.build.coreBuildId = host.build.coreBuildId
+  await writeFile(metadataFile, JSON.stringify(metadata))
+  await expect(
+    prepareNpmProject(
+      directory,
+      {
+        ...host,
+        build: { ...host.build, registryBuildId: 'd'.repeat(64) },
+        base: { ...host.base, skills: [baseSkill] },
+      },
+      { policy: {} },
+    ),
+  ).rejects.toThrow('Installed official base differs from the host catalog')
+  const baseOnly = join(root, 'base-only')
+  await mkdir(baseOnly)
+  await writeFile(
+    join(baseOnly, 'package.json'),
+    JSON.stringify({
+      name: 'base-only',
+      version: '1.0.0',
+      private: true,
+      dependencies: { '@arcadia-eternity/data-pack-base': `file:${base}` },
+    }),
+  )
+  await exec('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: baseOnly })
+  const standalone = await prepare(baseOnly)
+  expect(standalone.content.getSkill('skill_zhuangji').power).toBe(35)
+})

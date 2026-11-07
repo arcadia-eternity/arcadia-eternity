@@ -911,6 +911,10 @@ importers:
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
+    devDependencies:
+      '@arcadia-eternity/pack-loader':
+        specifier: workspace:^
+        version: link:../../packages/pack-loader
 
 packages:
 

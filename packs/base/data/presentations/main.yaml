@@ -8747,3 +8747,101 @@
     source: swf:pet_pala
     fallback: portrait:pet_pala
   cry: petSound:num:249
+- id: species.pet_tuntun
+  target:
+    kind: species
+    id: pet_tuntun
+  icon: bingchuantun:pet-tuntun-icon
+  portrait: bingchuantun:pet-tuntun-portrait
+  battle:
+    renderer: seer2-swf
+    source: bingchuantun:pet-tuntun-battle
+    fallback: bingchuantun:pet-tuntun-portrait
+  cry: bingchuantun:pet-tuntun-cry
+- id: species.pet_binghutun
+  target:
+    kind: species
+    id: pet_binghutun
+  icon: bingchuantun:pet-binghutun-icon
+  portrait: bingchuantun:pet-binghutun-portrait
+  battle:
+    renderer: seer2-swf
+    source: bingchuantun:pet-binghutun-battle
+    fallback: bingchuantun:pet-binghutun-portrait
+  cry: bingchuantun:pet-binghutun-cry
+- id: species.pet_bingchuantun
+  target:
+    kind: species
+    id: pet_bingchuantun
+  icon: bingchuantun:pet-bingchuantun-icon
+  portrait: bingchuantun:pet-bingchuantun-portrait
+  battle:
+    renderer: seer2-swf
+    source: bingchuantun:pet-bingchuantun-battle
+    fallback: bingchuantun:pet-bingchuantun-portrait
+  cry: bingchuantun:pet-bingchuantun-cry
+- id: skills.skill_bingzhui
+  target:
+    kind: skills
+    id: skill_bingzhui
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_hanbingjianren
+  target:
+    kind: skills
+    id: skill_hanbingjianren
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_dongqichongzhuang
+  target:
+    kind: skills
+    id: skill_dongqichongzhuang
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_bingyu
+  target:
+    kind: skills
+    id: skill_bingyu
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_jisubingzhui
+  target:
+    kind: skills
+    id: skill_jisubingzhui
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_bingdongchongzhuang
+  target:
+    kind: skills
+    id: skill_bingdongchongzhuang
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_bingbao
+  target:
+    kind: skills
+    id: skill_bingbao
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_bingheshidai
+  target:
+    kind: skills
+    id: skill_bingheshidai
+  sfx: bingchuantun:sfx-10633
+- id: skills.skill_hanlengzhiqi
+  target:
+    kind: skills
+    id: skill_hanlengzhiqi
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_bingzhuiyu
+  target:
+    kind: skills
+    id: skill_bingzhuiyu
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_binglengyiji
+  target:
+    kind: skills
+    id: skill_binglengyiji
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_binglengpifu
+  target:
+    kind: skills
+    id: skill_binglengpifu
+  sfx: bingchuantun:sfx-01-3-002
+- id: marks.mark_hanbingjianren
+  target:
+    kind: marks
+    id: mark_hanbingjianren
+  icon: bingchuantun:mark-hanbingjianren

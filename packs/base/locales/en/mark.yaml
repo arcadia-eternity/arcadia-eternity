@@ -1,0 +1,5 @@
+mark_hanbingjianren:
+  name: Frozen Tenacity
+  description:
+    Physical damage taken is reduced by <shield>25%</shield> and special damage taken by <shield>15%</shield>.
+    Consumed by Chill Charge, Rapid Ice Spike, Hail, or Frigid Strike.

@@ -445,3 +445,12 @@ pet_dudu:
 pet_pala:
   name: 帕拉
   description: 帕拉，出生就是贵族的光系精灵。身边萦绕着固态光环，高傲、耀眼。
+pet_tuntun:
+  name: 豚豚
+  description: 豚豚出生在险恶的冰川湖泊中，为了不被海浪冲走只能紧紧抓住浮冰。
+pet_binghutun:
+  name: 冰湖豚
+  description: 成长后的冰湖豚，体格结实了不少，却依然依赖着自己的“救生圈”。
+pet_bingchuantun:
+  name: 冰川豚
+  description: 冰川豚的尾部还留着当年的“救生圈”，不过它已经不再需要它了！

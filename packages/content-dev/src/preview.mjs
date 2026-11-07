@@ -72,7 +72,7 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
     for (const [language, namespaces] of Object.entries(pkg.manifest.locales))
       for (const [namespace, entries] of Object.entries(namespaces)) {
         const target = ((bundles[language] ??= {})[namespace] ??= {})
-        for (const [id, text] of Object.entries(entries)) target[`${pkg.namespace}:${id}`] = text
+        for (const [id, text] of Object.entries(entries)) target[pkg.namespace ? `${pkg.namespace}:${id}` : id] = text
       }
   }
   content.locales = { defaultLocale: prepared.environment.presentation[0]?.manifest.defaultLocale ?? 'zh-CN', bundles }
@@ -98,7 +98,9 @@ export async function startPreview(root, { clientUrl, signal, ...environmentOpti
             }
           else presentation[key] = resource(pkg.namespace, ref)
         }
-        result[target.kind].find(row => row.id === `${pkg.namespace}:${target.id}`).presentation = presentation
+        result[target.kind].find(
+          row => row.id === (pkg.namespace ? `${pkg.namespace}:${target.id}` : target.id),
+        ).presentation = presentation
       }
     return result
   }

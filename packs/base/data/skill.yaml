@@ -11699,3 +11699,125 @@
   tags: []
   effect:
     - effect_skill_raise_atk_1_stage_10_percent
+- id: skill_bingbao
+  element: Ice
+  category: Special
+  power: 100
+  rage: 20
+  accuracy: 95
+  target: opponent
+  effect:
+    - effect_bingchuantun_skill_bingbao_power
+  tags: []
+- id: skill_bingdongchongzhuang
+  element: Ice
+  category: Physical
+  power: 80
+  rage: 20
+  accuracy: 85
+  target: opponent
+  effect:
+    - effect_skill_power_2x_if_last
+  tags: []
+- id: skill_bingheshidai
+  element: Ice
+  category: Climax
+  power: 165
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  target: opponent
+  effect:
+    - effect_bingchuantun_skill_add_hanbingjianren
+  tags: []
+- id: skill_binglengpifu
+  element: Ice
+  category: Status
+  power: 0
+  rage: 15
+  accuracy: 100
+  target: self
+  effect:
+    - effect_bingchuantun_skill_add_mianyibuliang
+  tags: []
+- id: skill_binglengyiji
+  element: Ice
+  category: Physical
+  power: 105
+  rage: 25
+  accuracy: 95
+  target: opponent
+  effect:
+    - effect_bingchuantun_skill_binglengyiji_fixed_damage
+    - effect_bingchuantun_skill_consume_hanbingjianren
+  tags: []
+- id: skill_bingyu
+  element: Ice
+  category: Special
+  power: 75
+  rage: 15
+  accuracy: 95
+  target: opponent
+  effect:
+    - effect_skill_power_2x_if_last
+  tags: []
+- id: skill_bingzhui
+  element: Ice
+  category: Special
+  power: 60
+  rage: 5
+  accuracy: 95
+  target: opponent
+  effect:
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
+  tags: []
+- id: skill_bingzhuiyu
+  element: Ice
+  category: Special
+  power: 80
+  rage: 15
+  accuracy: 90
+  target: opponent
+  effect:
+    - effect_skill_power_2x_if_last
+  tags: []
+- id: skill_dongqichongzhuang
+  element: Ice
+  category: Physical
+  power: 80
+  rage: 15
+  accuracy: 95
+  target: opponent
+  effect:
+    - effect_bingchuantun_skill_dongqi_chongzhuang
+  tags: []
+- id: skill_hanbingjianren
+  element: Ice
+  category: Status
+  power: 0
+  rage: 10
+  accuracy: 100
+  target: self
+  effect:
+    - effect_bingchuantun_skill_add_hanbingjianren
+  tags: []
+- id: skill_hanlengzhiqi
+  element: Ice
+  category: Special
+  power: 85
+  rage: 15
+  accuracy: 95
+  target: opponent
+  effect:
+    - effect_bingchuantun_skill_hanlengzhiqi_power
+  tags: []
+- id: skill_jisubingzhui
+  element: Ice
+  category: Special
+  power: 60
+  rage: 15
+  accuracy: 95
+  target: opponent
+  effect:
+    - effect_bingchuantun_skill_jisubingzhui_priority
+  tags: []

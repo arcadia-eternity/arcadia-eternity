@@ -133,3 +133,5 @@ import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/v4/author
 export function createEffects({ marks }: CodeEffectModuleContext) {
   return createOfficialTemplateRegistrations({ marks }).nativeExports
 }
+
+export { createBingchuantunEffects } from './src/effects/bingchuantun'

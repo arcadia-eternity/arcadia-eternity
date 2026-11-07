@@ -365,3 +365,14 @@
   tags: [emblem]
   effect:
     - effect_emblem_kadundudu_hongxin_sure_hit
+- id: mark_emblem_jianren
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_bingchuantun_emblem_jianren_flat_reduction

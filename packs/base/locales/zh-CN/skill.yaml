@@ -2988,3 +2988,39 @@ skill_hongxinlianjie:
 skill_quanliyiji_kadundudu:
   name: 全力一击
   description: 【85】10%强化自身物攻1级
+skill_bingzhui:
+  name: 冰锥
+  description: 以 <damage>{power}</damage> 威力攻击，命中率 <strong>{accuracy}%</strong>。<emphasis>5%</emphasis>弱化对手特防1级。
+skill_hanbingjianren:
+  name: 寒冰坚韧
+  description: 使自身获得<markName>寒冰坚韧</markName>：受到物攻伤害减少<shield>25%</shield>，受到特攻伤害减少<shield>15%</shield>；被特定技能消耗。
+skill_dongqichongzhuang:
+  name: 冻气冲撞
+  description: 向对手冲撞，命中后消耗<markName>寒冰坚韧</markName>使对手<status>冻伤</status>；对冰系无效。
+skill_bingyu:
+  name: 冰雨
+  description: 召唤冰雨攻击，后出手时威力2倍。
+skill_jisubingzhui:
+  name: 急速冰锥
+  description: 消耗<markName>寒冰坚韧</markName>使本技能先制+1。
+skill_bingdongchongzhuang:
+  name: 冰冻冲撞
+  description: 向对手冲撞，后出手时威力2倍。
+skill_bingbao:
+  name: 冰雹
+  description: 消耗<markName>寒冰坚韧</markName>时威力增加<damage>60</damage>点。
+skill_bingheshidai:
+  name: 冰河时代
+  description: <guaranteedHit>必中</guaranteedHit>。唤出冰河时代攻击对手，并使自己获得<markName>寒冰坚韧</markName>。
+skill_hanlengzhiqi:
+  name: 寒冷之气
+  description: 放出寒冷之气，对手处于<status>冻伤</status>时威力2倍。
+skill_bingzhuiyu:
+  name: 冰锥雨
+  description: 召唤冰锥雨攻击，后出手时威力2倍。
+skill_binglengyiji:
+  name: 冰冷一击
+  description: 消耗<markName>寒冰坚韧</markName>时附加<damage>60</damage>点固伤。
+skill_binglengpifu:
+  name: 冰冷皮肤
+  description: 依靠冰冷的皮肤，使自身获得<markName>免疫不良</markName>。

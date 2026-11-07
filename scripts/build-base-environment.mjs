@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
+import { createRequire } from 'node:module'
 
 /** Host identity covers both the engine and the installed native content implementation. */
 export function identifyBaseEnvironmentArtifact(code, core) {
@@ -59,6 +60,36 @@ export async function buildBaseEnvironmentArtifact() {
       officialEffectTemplates: official.officialEffectTemplates,
       officialEffectMarkRelations: official.officialEffectMarkRelations,
     }
+    // Publish a static bridge for npm consumers of the reserved official IDs.
+    // Dependency preparation reads JSON and closed effect text, never imports
+    // this package's executable metadata or effect entry points.
+    const require = createRequire(resolve(root, 'packs/base/package.json'))
+    const { compileEffectModule } = await import(
+      pathToFileURL(require.resolve('@arcadia-eternity/pack-loader/node')).href
+    )
+    const { PackMetadataLoader } = await import(
+      pathToFileURL(require.resolve('@arcadia-eternity/pack-loader/native')).href
+    )
+    const loaded = await new PackMetadataLoader().loadMetadata(resolve(root, 'packs/base/pack.json'))
+    const contentNamespaces = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
+    const locales = Object.fromEntries(
+      Object.entries(loaded.locales).map(([language, namespaces]) => [
+        language,
+        Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentNamespaces.has(name))),
+      ]),
+    )
+    await writeFile(
+      resolve(dir, 'native-host.json'),
+      JSON.stringify({
+        formatVersion: 1,
+        build: identity,
+        data,
+        templates: metadata.officialTemplateDefinitions,
+        effectIds: metadata.officialEffectIds,
+        effectArtifact: await compileEffectModule(resolve(dir, 'effects.js'), root, '@arcadia-eternity/data-pack-base'),
+        presentation: { ...presentation, locales },
+      }) + '\n',
+    )
     await writeFile(
       resolve(dir, 'metadata.mjs'),
       [

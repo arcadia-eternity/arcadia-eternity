@@ -44,6 +44,8 @@ export interface InstalledNpmPackage {
   manifest?: NpmContentManifest
   draft?: WorkDraft
   presentation?: PresentationManifest
+  /** Static adapter for the reserved, unnamespaced official catalog. */
+  officialHost?: string
 }
 export interface NpmContentMember {
   name: string
@@ -286,6 +288,15 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       dependencies,
       ...(typeof locked.integrity === 'string' ? { integrity: locked.integrity } : {}),
     }
+    if (pkg.name === '@arcadia-eternity/data-pack-base' && pkg.arcadiaEternityPack !== undefined) {
+      if (contentNames.has(pkg.name))
+        fail('CONTENT_VERSION_CONFLICT', location, 'Official base must have one installed version')
+      contentNames.add(pkg.name)
+      if (typeof pkg.arcadiaEternityHost !== 'string')
+        fail('NPM_BASE_HOST_REQUIRED', location, 'Installed base package needs a rebuilt static host artifact')
+      packageFile(dir, pkg.arcadiaEternityHost)
+      entry.officialHost = pkg.arcadiaEternityHost
+    }
     if (pkg.arcadia !== undefined) {
       if (contentNames.has(pkg.name))
         fail('CONTENT_VERSION_CONFLICT', location, `Resource pack ${pkg.name} must have one installed version`)
@@ -345,7 +356,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
   const rootOptional = record(rootPackage.optionalDependencies ?? {}, 'optionalDependencies')
   const rootPeers = record(rootPackage.peerDependencies ?? {}, 'peerDependencies')
   const members: NpmContentMember[] = packages
-    .filter(pkg => pkg.manifest)
+    .filter(pkg => pkg.manifest || pkg.officialHost)
     .map(pkg => {
       const dependencies = new Set<string>()
       const visited = new Set<string>()
@@ -354,15 +365,15 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
         visited.add(location)
         const target = byLocation.get(location)
         if (!target) return
-        if (target.manifest) dependencies.add(target.name)
+        if (target.manifest || target.officialHost) dependencies.add(target.name)
         else Object.values(target.dependencies).forEach(visit)
       }
       Object.values(pkg.dependencies).forEach(visit)
       return {
         name: pkg.name,
         version: pkg.version,
-        projectId: pkg.manifest!.projectId,
-        namespace: pkg.manifest!.namespace,
+        projectId: pkg.manifest?.projectId ?? 'base',
+        namespace: pkg.manifest?.namespace ?? 'base',
         direct:
           Object.hasOwn(rootDependencies, pkg.name) ||
           Object.hasOwn(rootOptional, pkg.name) ||

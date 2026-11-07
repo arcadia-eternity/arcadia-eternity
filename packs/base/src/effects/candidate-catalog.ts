@@ -6,6 +6,7 @@ import { effectParameters, hasAuthoredParameters } from '@arcadia-eternity/battl
 import { createOfficialAuthoredEffects } from './authored'
 import { createPaladingEffects } from './palading'
 import { createKadunduduEffects } from './kadundudu'
+import { createBingchuantunEffects } from './bingchuantun'
 import { generatedStatStageCandidates } from './stat-stages.generated'
 import { officialRageCandidate } from './rage'
 import { createOfficialWaterShieldCandidate } from './shield'
@@ -96,6 +97,7 @@ export function createOfficialEffectCandidates(marks: ReadonlyMap<string, BaseMa
   add('authored', createOfficialAuthoredEffects())
   add('palading', createPaladingEffects(marks))
   add('kadundudu', createKadunduduEffects(marks))
+  add('bingchuantun', createBingchuantunEffects(marks))
   add('attribute-contributions.generated', createGeneratedAttributeContributions())
   add('automatic-stack-consumption', createAutomaticStackConsumption())
   add('context-controls.generated', createGeneratedContextControls())

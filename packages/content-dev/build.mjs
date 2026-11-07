@@ -10,4 +10,9 @@ await cp(
   { recursive: true },
 )
 await chmod(new URL('./dist/cli.mjs', import.meta.url), 0o755)
+await cp(
+  new URL('../../docs/v4/seer2-recreate-pet/', import.meta.url),
+  new URL('./dist/template/skills/seer2-recreate-pet/', import.meta.url),
+  { recursive: true },
+)
 await chmod(new URL('./dist/mcp.mjs', import.meta.url), 0o755)

@@ -214,3 +214,6 @@ mark_ability_shensheng:
 mark_ability_yinji:
   name: 印记
   description: 具有<markName>红心印记</markName>时<damage>伤害增加10%</damage>
+mark_ability_houjin:
+  name: 后劲
+  description: 后出手时造成的伤害增加<damage>10%</damage>。

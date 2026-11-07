@@ -82,11 +82,13 @@
       "groups/fenfen/species.0067.yaml",
       "groups/sasa/species.0068.yaml",
       "groups/palading/species.0069.yaml",
-      "groups/kadundudu/species.0070.yaml"
+      "groups/kadundudu/species.0070.yaml",
+      "groups/bingchuantun/species.0071.yaml"
     ]
   },
   "locales": {
-    "zh-CN": ["battle", "mark", "mark_ability", "mark_emblem", "mark_global", "nature", "skill", "species", "webui"]
+    "zh-CN": ["battle", "mark", "mark_ability", "mark_emblem", "mark_global", "nature", "skill", "species", "webui"],
+    "en": ["species", "skill", "mark", "mark_ability", "mark_emblem"]
   },
   "presentation": "dist/presentation.json"
 }
