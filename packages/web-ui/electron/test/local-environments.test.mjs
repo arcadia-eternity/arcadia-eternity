@@ -65,12 +65,16 @@ async function fixture(t) {
   return { open, requests, releases, library, project }
 }
 async function complete(api, id) {
-  for (let i = 0; i < 200; i++) {
+  // Preparation includes real npm inspection, which can take seconds on CI runners.
+  const deadline = performance.now() + 30000
+  let lastJob
+  while (performance.now() < deadline) {
     const job = (await api.snapshot()).operations.find(job => job.id === id)
+    lastJob = job
     if (!['queued', 'running'].includes(job.status)) return job
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise(resolve => setTimeout(resolve, 50))
   }
-  throw new Error('local environment task timed out')
+  throw new Error(`local environment task timed out: ${JSON.stringify(lastJob)}`)
 }
 test('offline drafts survive reopening, reject stale writes and versions copy materials independently', async t => {
   const f = await fixture(t)

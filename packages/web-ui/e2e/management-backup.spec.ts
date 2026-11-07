@@ -132,7 +132,7 @@ test('paired production management backs up, revokes service credentials and ret
     const identity = await login(page, directory, server.origin)
     expect(identity.serverId).toBe(server.serverId)
     checks.push('host one-use code claimed through paired production UI')
-    await expect(page.locator('.environment-card')).toHaveCount(1)
+    await expect(page.getByRole('navigation', { name: '选择环境' }).getByRole('button')).toHaveCount(1)
     await page.getByRole('button', { name: '概览', exact: true }).click()
     await expect(page.locator('.overview-stats')).toContainText('活跃对战')
     await page.screenshot({ path: testInfo.outputPath('server-overview.png'), fullPage: true })
@@ -153,9 +153,12 @@ test('paired production management backs up, revokes service credentials and ret
     await editor.getByLabel('标识', { exact: true }).fill('backup-acceptance')
     await editor.getByRole('button', { name: '保存环境', exact: true }).click()
     await expect(editor).not.toBeVisible()
-    const backupEnvironment = page.locator('.environment-card').filter({
-      has: page.getByRole('heading', { name: '备份验收环境', exact: true }),
-    })
+    await page
+      .getByRole('navigation', { name: '选择环境' })
+      .getByRole('button', { name: /备份验收环境/ })
+      .click()
+    const backupEnvironment = page.getByRole('region', { name: '环境工作区' })
+    await expect(backupEnvironment.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
     await backupEnvironment.getByRole('button', { name: '准备版本', exact: true }).click()
     const preparation = page.locator('.operation').filter({ has: page.getByText('准备环境', { exact: true }) })
     await expect(preparation.getByText('已完成', { exact: true })).toBeVisible({ timeout: 90000 })
@@ -257,7 +260,11 @@ test('paired production management backs up, revokes service credentials and ret
     server = await startServer(directory, port)
     const restored = await login(page, directory, server.origin)
     expect(restored).toEqual(identity)
-    await expect(page.locator('.environment-card')).toHaveCount(2)
+    await expect(page.getByRole('navigation', { name: '选择环境' }).getByRole('button')).toHaveCount(2)
+    await page
+      .getByRole('navigation', { name: '选择环境' })
+      .getByRole('button', { name: /备份验收环境/ })
+      .click()
     await expect(page.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
     await page.getByRole('button', { name: '访问权限', exact: true }).click()
     await expect(credentialList).toContainText(survivingCredentialId)
