@@ -285,9 +285,11 @@ groups:
       - pet_saber
   - id: palading
     species:
+      - pet_pala
       - pet_palading
   - id: kadundudu
     species:
+      - pet_dudu
       - pet_kadundudu
 relations:
   - from: pet_dilan
@@ -571,4 +573,10 @@ relations:
     kind: evolution
   - from: pet_salan
     to: pet_salanguer
+    kind: evolution
+  - from: pet_dudu
+    to: pet_kadundudu
+    kind: evolution
+  - from: pet_pala
+    to: pet_palading
     kind: evolution

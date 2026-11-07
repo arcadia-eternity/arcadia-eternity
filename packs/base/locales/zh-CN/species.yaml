@@ -439,3 +439,9 @@ pet_palading:
 pet_kadundudu:
   name: 卡顿嘟嘟
   description: 成长后的嘟嘟把名字改成了卡顿嘟嘟 一有机会就去找啾啾比美
+pet_dudu:
+  name: 嘟嘟
+  description: 嘟嘟一直觉得自己长得很美，特别当它看到啾啾以后，就更有自信了！
+pet_pala:
+  name: 帕拉
+  description: 帕拉，出生就是贵族的光系精灵。身边萦绕着固态光环，高傲、耀眼。

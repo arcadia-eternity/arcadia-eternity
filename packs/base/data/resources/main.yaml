@@ -5767,3 +5767,27 @@
 - id: skill:skill_hongxinlianjie
   kind: audio
   source: https://seer2-resource.yuuinih.com/sound/skill/01_3_002.mp3
+- id: icon:pet_dudu
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/petIcon/70.png
+- id: portrait:pet_dudu
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/pet/70.png
+- id: swf:pet_dudu
+  kind: swf
+  source: https://seer2-pet-resource.yuuinih.com/public/fight/70.swf
+- id: petSound:num:70
+  kind: audio
+  source: https://seer2-resource.yuuinih.com/sound/pet/70.mp3
+- id: icon:pet_pala
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/petIcon/249.png
+- id: portrait:pet_pala
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/pet/249.png
+- id: swf:pet_pala
+  kind: swf
+  source: https://seer2-pet-resource.yuuinih.com/public/fight/249.swf
+- id: petSound:num:249
+  kind: audio
+  source: https://seer2-resource.yuuinih.com/sound/pet/249.mp3

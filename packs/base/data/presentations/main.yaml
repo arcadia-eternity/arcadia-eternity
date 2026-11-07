@@ -8725,3 +8725,25 @@
     kind: marks
     id: mark_emblem_hongxin
   icon: mark:default-emblem
+- id: species.pet_dudu
+  target:
+    kind: species
+    id: pet_dudu
+  icon: icon:pet_dudu
+  portrait: portrait:pet_dudu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_dudu
+    fallback: portrait:pet_dudu
+  cry: petSound:num:70
+- id: species.pet_pala
+  target:
+    kind: species
+    id: pet_pala
+  icon: icon:pet_pala
+  portrait: portrait:pet_pala
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_pala
+    fallback: portrait:pet_pala
+  cry: petSound:num:249

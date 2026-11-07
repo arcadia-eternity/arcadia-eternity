@@ -243,7 +243,7 @@ it('loads form 71 stats, the 17-move learn list, and battle-start ability/emblem
 
 it('grants the 印记 and 红心 emblem marks to active and benched team members at battle start', async () => {
   const { battle, a, directory } = start(testData, [
-    team('A', [kadunPet(KADUN, ['skill_hongxinyinji']), kadunPet(KADUN, ['skill_hongxinyinji'])]),
+    team('A', [kadunPet(KADUN, ['skill_hongxinyinji']), kadunPet('pet_dudu', ['skill_hongxinyinji'])]),
     team('B', [pet('pet_dilan', ['skill_test_status'], { maxHp: 9999 })]),
   ])
   const ready = prompt(battle)

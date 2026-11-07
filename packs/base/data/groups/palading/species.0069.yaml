@@ -3,12 +3,52 @@
 # @metaType species
 # @version 1.0.0
 #
-# 帕拉丁; original client form ID 250 (图鉴 NumbersID 123), evolves from 帕拉 (form 249).
-# Base stats follow the project community convention: the client values are
-# HP 182 / Atk 116 / Def 122 / SpAtk 119 / SpDef 120 / Spd 109, and the 4399
-# community table lists 体力 182 / 攻击 166 / 防御 172 / 特攻 169 / 特防 170 / 速度 159.
-# The non-HP values are therefore the client values plus 50, matching 137/145
-# existing project species; the 4399 table is the community source for this form.
+# 帕拉 (249) -> 帕拉丁 (250), original client dictionary NumbersID 123.
+# Source: pets.xml and dictionary.xml from the frozen 2.61 client tables.
+# Project stat conversion: HP unchanged; Atk/Def/SpAtk/SpDef/Spd +50.
+# Each form retains its own learn list; the evolved form inherits earlier moves.
+- id: pet_pala
+  num: 249
+  element: Light
+  baseStats:
+    hp: 92
+    atk: 121
+    spa: 124
+    def: 122
+    spd: 120
+    spe: 114
+  genderRatio:
+    - 0
+    - 10
+  heightRange:
+    - 10
+    - 15
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_chongzhuang_palading
+      level: 1
+      hidden: false
+    - skill_id: skill_guangxiangongji
+      level: 5
+      hidden: false
+    - skill_id: skill_zhengyizhihuo
+      level: 10
+      hidden: false
+    - skill_id: skill_shengguangzhiming
+      level: 15
+      hidden: false
+    - skill_id: skill_shiziguangchong
+      level: 20
+      hidden: false
+    - skill_id: skill_chengjiezhiguang
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_shensheng
+  emblem:
+    - mark_emblem_bihu
 - id: pet_palading
   num: 250
   element: Light

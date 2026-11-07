@@ -223,7 +223,7 @@ it('loads the paladin species, skills and battle-start ability/emblem marks for 
   expect(species.baseStats).toEqual({ hp: 182, atk: 166, spa: 169, def: 172, spd: 170, spe: 159 })
 
   const { battle, a } = start(baseData, [
-    team('A', [paladinPet(palading, paladingSkills), paladinPet(palading, ['skill_chongzhuang_palading'])]),
+    team('A', [paladinPet(palading, paladingSkills), paladinPet('pet_pala', ['skill_chongzhuang_palading'])]),
     team('B', [pet('pet_dilan', ['skill_daqiliu'], { maxHp: 9999 })]),
   ])
   const ready = prompt(battle)

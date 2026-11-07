@@ -4,8 +4,7 @@
 # @version 1.0.0
 #
 # 卡顿嘟嘟; original client form ID 71 (图鉴 NumbersID 29), evolves from 嘟嘟 form 70.
-# Only form 71 is implemented here; form 70 is used only to recover the inherited
-# learn list. No evolution chain is registered for this target.
+# Includes the normal pre-evolution form 70 and evolved form 71.
 #
 # Frozen 2.61 source (/private/tmp/seer2-original-tables, manifest SHA256
 # 555d465fa2ab0b4d59bc0d0c69b641aaa0174af6a5083af7180ad6be2535cf83):
@@ -13,6 +12,48 @@
 # Type=1 普通, Features=1029, LearnableMoves 10418-10426 plus inherited form 70
 # moves; dictionary.xml Features "自己具有红心印记时伤害增加10%", emblemID 300029.
 # Project stat conversion (user-confirmed): HP unchanged, other five +50.
+- id: pet_dudu
+  num: 70
+  element: Normal
+  baseStats:
+    hp: 88
+    atk: 125
+    spa: 118
+    def: 124
+    spd: 119
+    spe: 99
+  genderRatio:
+    - 4
+    - 6
+  heightRange:
+    - 33
+    - 38
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_jianqiang
+      level: 5
+      hidden: false
+    - skill_id: skill_hongxin
+      level: 9
+      hidden: false
+    - skill_id: skill_hongxinyinji
+      level: 14
+      hidden: false
+    - skill_id: skill_hongxinchongzhuang
+      level: 19
+      hidden: false
+    - skill_id: skill_jianren
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_yinji
+  emblem:
+    - mark_emblem_hongxin
 - id: pet_kadundudu
   num: 71
   element: Normal
@@ -33,7 +74,7 @@
     - 47
     - 52
   learnable_skills:
-    # form 70 inherited moves (only used for this learn list).
+    # Skills inherited from form 70.
     - skill_id: skill_chongzhuang
       level: 1
       hidden: false
