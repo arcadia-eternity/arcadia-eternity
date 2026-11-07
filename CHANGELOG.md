@@ -1,5 +1,127 @@
 # Changelog
 
+## [4.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.4.2...arcadia-eternity-v4.0.0) (2026-11-07)
+
+
+### ✨ Features
+
+* add versioned project teams and shared battle environments ([b65f4c4](https://github.com/arcadia-eternity/arcadia-eternity/commit/b65f4c4cf4d8404ce36b671bbc2fa12bcc5c8e65))
+* **auth:** integrate Better Auth verification providers ([#238](https://github.com/arcadia-eternity/arcadia-eternity/issues/238)) ([b674011](https://github.com/arcadia-eternity/arcadia-eternity/commit/b674011b5ad14349e1b1ba92ca923b3c09f040f4))
+* **authoring:** separate resources and presentation in object workspace ([7d89e3a](https://github.com/arcadia-eternity/arcadia-eternity/commit/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd))
+* **authoring:** unify package workspace and expose live MCP context ([3258bcc](https://github.com/arcadia-eternity/arcadia-eternity/commit/3258bccc563db7f45c749fd282247dd4a00b89dc))
+* **base:** recreate Kadundudu with heart mark synergy ([92babe7](https://github.com/arcadia-eternity/arcadia-eternity/commit/92babe7b8cb4fc0fdbfd06de17fbcaabd65ca874))
+* **battle:** expose native APIs through the effect SDK ([21baa8a](https://github.com/arcadia-eternity/arcadia-eternity/commit/21baa8a78b3f06a9736fe5965ea03cb7616b69bb))
+* **battle:** integrate TypeScript effects and native V4 hosts ([#230](https://github.com/arcadia-eternity/arcadia-eternity/issues/230)) ([7cb5f67](https://github.com/arcadia-eternity/arcadia-eternity/commit/7cb5f670a9354f1fd778cff5cb828154d6e60da6))
+* **battle:** restore switch and team-selection wait checkpoints ([#231](https://github.com/arcadia-eternity/arcadia-eternity/issues/231)) ([d7b84eb](https://github.com/arcadia-eternity/arcadia-eternity/commit/d7b84ebaa20031be679e85071c55772ac92da9b3))
+* **cli:** add offline simulation, replay and validation commands ([#232](https://github.com/arcadia-eternity/arcadia-eternity/issues/232)) ([c09d044](https://github.com/arcadia-eternity/arcadia-eternity/commit/c09d044d45b45160a16bc8e13609435496f28b31))
+* configure battle worker capacity and cancellable admission queues ([8c1b511](https://github.com/arcadia-eternity/arcadia-eternity/commit/8c1b511ca7317cbcf6af4b0d307c1a5a9592fe9c))
+* **content-dev:** centralize content pack author tooling ([8d8aaa6](https://github.com/arcadia-eternity/arcadia-eternity/commit/8d8aaa6972c681b126864a9464afbcd5a8002e96))
+* **content-dev:** expand MCP authoring and sync live project views ([5474c81](https://github.com/arcadia-eternity/arcadia-eternity/commit/5474c81d5cfca077481e3f18d556429cc4f773ea))
+* **desktop:** build local preview with incomplete notices ([3b71393](https://github.com/arcadia-eternity/arcadia-eternity/commit/3b71393851796ab912227a1a86f7fd774e3486d0))
+* **desktop:** use managed content in local battles ([061efec](https://github.com/arcadia-eternity/arcadia-eternity/commit/061efecefe8ab4173a15eb952e724aeac4ab2f0e))
+* **i18n:** standardize mark colors and document description conventions ([df56a5b](https://github.com/arcadia-eternity/arcadia-eternity/commit/df56a5b292ec656e89bdfc9a00fc8aef6867b22b))
+* integrate Bingchuantun and ship recreation skill with author SDK ([f4e68eb](https://github.com/arcadia-eternity/arcadia-eternity/commit/f4e68eb7fa016906f72ff656e3dace1d48e9c4a3))
+* **matchmaking:** restore ordinary server battles ([#247](https://github.com/arcadia-eternity/arcadia-eternity/issues/247)) ([08a621d](https://github.com/arcadia-eternity/arcadia-eternity/commit/08a621d20c2e9b08094b5d1dfcbb335ce1e850b3))
+* recreate Paladin in native base content ([e535020](https://github.com/arcadia-eternity/arcadia-eternity/commit/e5350208134c96fd0050f9969224af04caa98d26))
+* **sandbox:** run TypeScript effects with Arena and Comlink ([#218](https://github.com/arcadia-eternity/arcadia-eternity/issues/218)) ([473a819](https://github.com/arcadia-eternity/arcadia-eternity/commit/473a819d373a369cbf2772f94876639d0be5806f))
+* **server:** configure default automatic client connection ([83dd9f4](https://github.com/arcadia-eternity/arcadia-eternity/commit/83dd9f426216dc68f011c2b1c09fe019be1e2ac0))
+* **server:** single-process runtime and G3 account recovery ([#235](https://github.com/arcadia-eternity/arcadia-eternity/issues/235)) ([148ca3b](https://github.com/arcadia-eternity/arcadia-eternity/commit/148ca3b22650fc85087bb1f67d9f58c66a7d1b24))
+* streamline project battle setup and team editing UX ([996eec9](https://github.com/arcadia-eternity/arcadia-eternity/commit/996eec997b6771e635aab8a7505ae26d342ad0bb))
+* **ugc:** add isolated team-configurable debug windows ([675de98](https://github.com/arcadia-eternity/arcadia-eternity/commit/675de987de80e299220023783fe99b46a948a353))
+* **ugc:** add local content package manager and preserve missing team content ([a5a5eb7](https://github.com/arcadia-eternity/arcadia-eternity/commit/a5a5eb79be267515884189047ffbd2c301c70794))
+* **ugc:** add source-backed authoring workbench and tooling ([002ac5f](https://github.com/arcadia-eternity/arcadia-eternity/commit/002ac5fc06e72e1cd63c9308941c48c75bc1036e))
+* **ugc:** add uncached media and localized rich descriptions ([41f4831](https://github.com/arcadia-eternity/arcadia-eternity/commit/41f4831e1cfcb3f1b4b99489de4625f8f138d9a3))
+* **ugc:** automatically reconcile local content selections without restarting rooms ([93499ba](https://github.com/arcadia-eternity/arcadia-eternity/commit/93499bab8500aeccbc6432c5f9d0a0a5196d3541))
+* **ugc:** connect source candidates to full battle previews ([#223](https://github.com/arcadia-eternity/arcadia-eternity/issues/223), [#244](https://github.com/arcadia-eternity/arcadia-eternity/issues/244)) ([3dbe385](https://github.com/arcadia-eternity/arcadia-eternity/commit/3dbe3853d4c42d9dcb9fd2e78f31125ffa42f53b))
+* **ugc:** edit local development workspace with revision checks ([41fda13](https://github.com/arcadia-eternity/arcadia-eternity/commit/41fda13974d57e05440369e536effb63c4678f14))
+* **ugc:** export projects and stage desktop runtime ([7db092d](https://github.com/arcadia-eternity/arcadia-eternity/commit/7db092d72640dadf7bfe5c6381049b93ed781cca))
+* **ugc:** load approved npm content with native effect SDK ([f95c110](https://github.com/arcadia-eternity/arcadia-eternity/commit/f95c11076a9a34fe377cc326d3db512890797149))
+* **ugc:** prepare isolated development preview candidates ([ed6f7b9](https://github.com/arcadia-eternity/arcadia-eternity/commit/ed6f7b949b3c4baea489b3d66702160b8cb0c6e9))
+* **ugc:** release author SDK and base content through GitHub Packages ([8f0a386](https://github.com/arcadia-eternity/arcadia-eternity/commit/8f0a38654c558f56bd9a0f052afc24709e5267a6))
+* **ugc:** select references from server environments ([be2d8f6](https://github.com/arcadia-eternity/arcadia-eternity/commit/be2d8f62bd8e4aa1d197c00a0d8a324c15394978))
+* **ugc:** serve approved environments to rooms and creators ([33e7ef3](https://github.com/arcadia-eternity/arcadia-eternity/commit/33e7ef34e07688bf5887edff4622cfe522961011))
+* **ugc:** stage local author SDK packages ([4dbc10f](https://github.com/arcadia-eternity/arcadia-eternity/commit/4dbc10f5ea9388e1a93ca73a037c5358f032506b))
+* **ugc:** trusted effect templates and namespaced local works ([#245](https://github.com/arcadia-eternity/arcadia-eternity/issues/245)) ([3e3eafc](https://github.com/arcadia-eternity/arcadia-eternity/commit/3e3eafc8e2c713a9eb7b4f4a8bdadb09b9bb8edd))
+* unify environment dependency lifecycle and installation tasks ([39dc62b](https://github.com/arcadia-eternity/arcadia-eternity/commit/39dc62beac55cc6785396f91d5e94db56099aed3))
+* **web-ui:** make automatic server connection configurable ([b4eccbc](https://github.com/arcadia-eternity/arcadia-eternity/commit/b4eccbc2398814aa32802e505bff5913ab3aff5e))
+* **web:** deliver standalone static AI battles ([#239](https://github.com/arcadia-eternity/arcadia-eternity/issues/239)) ([8a394dd](https://github.com/arcadia-eternity/arcadia-eternity/commit/8a394dd40ab47f7fa8aabcdd700feeaa2dcfac58))
+* 统一服务器与内容工作区管理、持久化和私人环境约战 ([#275](https://github.com/arcadia-eternity/arcadia-eternity/issues/275)) ([073f9c8](https://github.com/arcadia-eternity/arcadia-eternity/commit/073f9c87670ca17c40b733e9e58ae6c0ad86659a))
+
+
+### 🐛 Bug Fixes
+
+* allow captured named previews in browser clients ([71dfa33](https://github.com/arcadia-eternity/arcadia-eternity/commit/71dfa338205ea2d792342b9c14793b7e4c1783cb))
+* **authoring:** index catalog lookups and guard detached desktop logs ([d3817c5](https://github.com/arcadia-eternity/arcadia-eternity/commit/d3817c543af94e73ef695e9f20a90899b08269cd))
+* **base:** include Dudu and Pala pre-evolutions ([e61a822](https://github.com/arcadia-eternity/arcadia-eternity/commit/e61a822f862c384456d3a08298aa2dda4a5cc27b))
+* **build:** regenerate sandbox artifacts in base watch mode ([5d93581](https://github.com/arcadia-eternity/arcadia-eternity/commit/5d93581356e7831a5de3cefb8ef7720757833bee))
+* **ci:** stabilize installed Electron identity checks ([777de71](https://github.com/arcadia-eternity/arcadia-eternity/commit/777de7129236dbe9c7ea0ef7b7f6210c4f0ba008))
+* **ci:** wait for app bootstrap and budget full worker regressions ([bd1d028](https://github.com/arcadia-eternity/arcadia-eternity/commit/bd1d028b6f798e708f645e5ed73f05283fa075b2))
+* **content:** show published server packages outside rooms ([c6f7626](https://github.com/arcadia-eternity/arcadia-eternity/commit/c6f7626bfa6de9d8c93515004dbdf4d8f0b9570d))
+* **creator:** read bundled base from the installed npm environment ([8a2c765](https://github.com/arcadia-eternity/arcadia-eternity/commit/8a2c765f86a81b5769c0f0c9da341ed48c18b539))
+* **desktop:** allow local builds with pending notices ([a3cc4a6](https://github.com/arcadia-eternity/arcadia-eternity/commit/a3cc4a66cd4933e633c8aa41057d93c2657ae157))
+* **desktop:** recognize exact third-party license notices ([380df07](https://github.com/arcadia-eternity/arcadia-eternity/commit/380df07f1f69dc09021090a9a9a0c62cda4b3541))
+* **desktop:** resolve the shipped catalog in relocated runtimes ([b522866](https://github.com/arcadia-eternity/arcadia-eternity/commit/b52286604d71f42ad2521f0a90f69cca96733c80))
+* **host:** isolate initial checkpoint fingerprint data ([1f5c4c9](https://github.com/arcadia-eternity/arcadia-eternity/commit/1f5c4c979fd23537584735df9729fa088af92cbb))
+* **i18n:** migrate content descriptions and add CI coverage ([6aadb4a](https://github.com/arcadia-eternity/arcadia-eternity/commit/6aadb4a2278565b657b9e90ec9918c5c55a6beae))
+* integrate official V4 rollout fixes ([265627c](https://github.com/arcadia-eternity/arcadia-eternity/commit/265627c62053a42d322f1c4ce98aa04818bb14a9))
+* keep built-in pet media portable and scope locale assertions ([71b46ac](https://github.com/arcadia-eternity/arcadia-eternity/commit/71b46ac97d58ac2d84848d73bc995bb363f47ce3))
+* **p2p:** correct signal test types and remove obsolete battle tests ([b927b34](https://github.com/arcadia-eternity/arcadia-eternity/commit/b927b340ac71fc923f3063d9823fbec82b72a245))
+* **pack-loader:** preserve local npm sources in captured environments ([98c3749](https://github.com/arcadia-eternity/arcadia-eternity/commit/98c37491b795192fa0ddc939f72591c7b33fef40))
+* preserve author workflows across environment and team changes ([121b93b](https://github.com/arcadia-eternity/arcadia-eternity/commit/121b93b8c9e3fc2e447fb302b49d993502a1d934))
+* **release:** pin V4 builds to the release tag ([a116be2](https://github.com/arcadia-eternity/arcadia-eternity/commit/a116be21b1ac555bd6d5d87ee69239e6a23f8362))
+* resolve desktop environment actions from packaged runtime ([2f8a351](https://github.com/arcadia-eternity/arcadia-eternity/commit/2f8a351382ebf71535e5f16f9b8a54a24613840d))
+* **sandbox:** pin checkpoints and preserve SDK capabilities in production builds ([1d4927a](https://github.com/arcadia-eternity/arcadia-eternity/commit/1d4927aedb09142e64e77366bf087020cd567d38))
+* **sandbox:** preserve offline CLI and preview replacement capacity ([64896da](https://github.com/arcadia-eternity/arcadia-eternity/commit/64896da5f4143bd576ecf5d88a49cab11c98e046))
+* **sandbox:** restore UGC checkpoints and replay through native host contracts ([c67e8a4](https://github.com/arcadia-eternity/arcadia-eternity/commit/c67e8a454136a8b15999155f67b23725ed216145))
+* **ugc:** isolate room initialization and preserve display metadata ([989d10f](https://github.com/arcadia-eternity/arcadia-eternity/commit/989d10f18ed293100f0b45170812abc9a24e7452))
+* **ugc:** preserve previews and share cancellation across author sessions ([3b44786](https://github.com/arcadia-eternity/arcadia-eternity/commit/3b44786c0c0880d9e4811bb54fa7163257776f3f))
+* **ugc:** replace the run page with an editor output panel ([49eb0c5](https://github.com/arcadia-eternity/arcadia-eternity/commit/49eb0c5e5545316b0ea9ba0b8ab45c16c80d9df3))
+* **ugc:** show latest output and keep a single desktop preview ([9e2a9d0](https://github.com/arcadia-eternity/arcadia-eternity/commit/9e2a9d04388f289ac00895c97f61f2832ff58f7b))
+* **ugc:** tolerate concurrent author task history cleanup ([21ead88](https://github.com/arcadia-eternity/arcadia-eternity/commit/21ead887229b4522e929ca7ab2bf0394df1004c4))
+* **ugc:** unify the debug launch action ([00b4eb0](https://github.com/arcadia-eternity/arcadia-eternity/commit/00b4eb058f5400d055be282c7235e7f834310451))
+* unify creator trials with managed local battle sessions ([e5bd829](https://github.com/arcadia-eternity/arcadia-eternity/commit/e5bd829743b3bc2b2522cc1ab1745ae6135b07e9))
+* **web-ui:** preserve modifier value types through battle displays ([5b8c1b4](https://github.com/arcadia-eternity/arcadia-eternity/commit/5b8c1b43db100ebca40aed01157880275cd4827e))
+* **web-ui:** prevent blank team editor during startup and navigation ([c250c5b](https://github.com/arcadia-eternity/arcadia-eternity/commit/c250c5b6dd978b5e79cd17502bd6b80b5dd2c541))
+* **web-ui:** reuse development workspace project type ([9adab4f](https://github.com/arcadia-eternity/arcadia-eternity/commit/9adab4f414ed3077ae494d3615d8351b10ce2878))
+* **web-ui:** suppress battle tooltips while overlays are active ([555ced3](https://github.com/arcadia-eternity/arcadia-eternity/commit/555ced38ca9643c728a12283e75cdcf7b68688fe))
+* **web:** open the content workspace from creator navigation ([18d52ce](https://github.com/arcadia-eternity/arcadia-eternity/commit/18d52ce4e2e6972603c91e0b22f785a2b9217dab))
+* **web:** resolve declared official media in static builds ([217f8ed](https://github.com/arcadia-eternity/arcadia-eternity/commit/217f8edf5a8ea5b6bd485662c25d0e150d3f8449))
+
+
+### ⚡ Performance Improvements
+
+* **battle:** reuse effect runtimes across server battles ([dfff5fd](https://github.com/arcadia-eternity/arcadia-eternity/commit/dfff5fd295f932071eb6adaefde4a0b3e6667b90))
+* **test:** speed up v4 battle regressions and scope CI checks ([#236](https://github.com/arcadia-eternity/arcadia-eternity/issues/236)) ([6f38392](https://github.com/arcadia-eternity/arcadia-eternity/commit/6f383928b5b24303567205ce9ed34bb5a3ec8a3c))
+* **web:** compile base content for web distribution ([a1b83fe](https://github.com/arcadia-eternity/arcadia-eternity/commit/a1b83fecdce1f5dc1509ba6ae09602a657761f64))
+
+
+### 📚 Documentation
+
+* consolidate agent guidance in AGENTS.md ([c6b9aad](https://github.com/arcadia-eternity/arcadia-eternity/commit/c6b9aad1f8aeb79811c8298fe0a083856b3e6164))
+* **ugc:** record source candidate preview acceptance ([1cd9a34](https://github.com/arcadia-eternity/arcadia-eternity/commit/1cd9a34804b1a812c4a6f59de2e6a3aecbc0ef9e))
+* **v4:** remove obsolete guides and align current contracts ([d8865ac](https://github.com/arcadia-eternity/arcadia-eternity/commit/d8865ac26b7a46390a6e31be41adff3f96619b3e))
+
+
+### ♻️ Code Refactoring
+
+* **battle:** align authored effect terminology with native effects ([7e49ab5](https://github.com/arcadia-eternity/arcadia-eternity/commit/7e49ab5b4784dd5066decaa8e8d5341c29b82f35))
+* **battle:** directly port complete original V1 engine for v4 ([#229](https://github.com/arcadia-eternity/arcadia-eternity/issues/229)) ([4f09282](https://github.com/arcadia-eternity/arcadia-eternity/commit/4f0928225a3f80cbafa2c7f497740c77718438c1))
+* **content-dev:** simplify MCP image delivery ([829890d](https://github.com/arcadia-eternity/arcadia-eternity/commit/829890dbfa5b2b09af32fbcd9d4d330729883496))
+* **content:** load default environments from npm dependencies ([33a7bc1](https://github.com/arcadia-eternity/arcadia-eternity/commit/33a7bc1435c04dad6c7351e6cb2b7263eed3e066))
+* **content:** unify package environment delivery ([a624668](https://github.com/arcadia-eternity/arcadia-eternity/commit/a6246683b6e7a28072d0e98d8fe1657650800f0f))
+* **effects:** migrate remaining official effects to authoring SDK ([ef66791](https://github.com/arcadia-eternity/arcadia-eternity/commit/ef667913251f157f7cda3e1467651db7d1a4dd61))
+* **i18n:** remove legacy rendering and orphaned translations ([b69a1ad](https://github.com/arcadia-eternity/arcadia-eternity/commit/b69a1add6afeffa42f5449dbdd1ec27d353253ed))
+* remove author preview compatibility paths and fix desktop rename ([b60095d](https://github.com/arcadia-eternity/arcadia-eternity/commit/b60095df3fc16bd1db7c0f14a0366c43ae3683fe))
+* remove completed migration audits and hash verification ([84785a1](https://github.com/arcadia-eternity/arcadia-eternity/commit/84785a13de24e03cb255b29e89fd88bdb83558d6))
+* remove legacy v2 battle and editor ([0a110f6](https://github.com/arcadia-eternity/arcadia-eternity/commit/0a110f6f65ee396537b7322156575254401867c9))
+* remove retired DSL and unused legacy clients ([f1785ea](https://github.com/arcadia-eternity/arcadia-eternity/commit/f1785ea6a934b813f058e4ec39aaafc8cfd8ea14))
+* **sandbox:** prepare content without validation VMs ([5eed031](https://github.com/arcadia-eternity/arcadia-eternity/commit/5eed0318ea335c4c38b895f56a4f5b92d2b6e15f))
+* **sandbox:** prepare effect modules in hosts ([b2d5880](https://github.com/arcadia-eternity/arcadia-eternity/commit/b2d5880e45c6d879df84497b4a03f712ca330528))
+* **ugc:** allow local code edits without digest admission ([1498f04](https://github.com/arcadia-eternity/arcadia-eternity/commit/1498f04be7692c36520b71864e07cb7bd1b47467))
+* **ugc:** remove duplicate export manifests and obsolete compatibility paths ([44de0b7](https://github.com/arcadia-eternity/arcadia-eternity/commit/44de0b7a9d0adf7b36065be04d3e2fe76f667057))
+* **ugc:** remove the data rule authoring runtime ([#246](https://github.com/arcadia-eternity/arcadia-eternity/issues/246)) ([0796213](https://github.com/arcadia-eternity/arcadia-eternity/commit/0796213a1fc346dfbd3a7a6ad9070ba1be547c16))
+* **ui:** remove redundant content manager hints ([7105ca1](https://github.com/arcadia-eternity/arcadia-eternity/commit/7105ca1cc10768dc743ccad9b6d623531ade3163))
+
 ## [3.4.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.4.1...arcadia-eternity-v3.4.2) (2026-10-08)
 
 
