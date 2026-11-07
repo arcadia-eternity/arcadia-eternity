@@ -39,7 +39,7 @@ it('reports the actual immutable official runtime identity', async () => {
   const identity = await getStandaloneRuntimeIdentity()
   expect(identity).toMatchObject({
     kind: 'native-v4',
-    contentRevision: expect.stringMatching(/^arcadia\.native-content\/1:/),
+    contentRevision: expect.stringMatching(/^arcadia\.work-environment\/1:[a-f0-9]{64}$/),
   })
   expect(identity.coreBuildId).toMatch(/^[a-f0-9]{64}$/)
   expect(identity.registryBuildId).toMatch(/^[a-f0-9]{64}$/)
