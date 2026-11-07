@@ -6,12 +6,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 
 // Uses only the production distribution, real host CLI and public UI/API. No route mocks or store injection.
 test.skip(process.env.PLAYWRIGHT_MANAGEMENT_BACKUP !== '1', 'Requires freshly built CLI and paired website')
 
 const root = fileURLToPath(new URL('../../../', import.meta.url))
 const cli = join(root, 'dist/cli.js')
+const catalogPackage = '@arcadia-eternity/data-pack-base'
 const run = promisify(execFile)
 const environment = {
   PATH: process.env.PATH,
@@ -38,6 +40,9 @@ async function startServer(directory: string, port = 0) {
       '--web-auto-connect',
       'false',
       '--offline-content',
+      '--content-sources',
+      join(directory, 'content-sources.json'),
+      '--allow-third-party-content',
     ],
     { cwd: directory, env: environment, stdio: ['ignore', 'pipe', 'pipe'] },
   )
@@ -123,6 +128,16 @@ test('paired production management backs up, revokes service credentials and ret
   })
   let summary: Record<string, unknown> = {}
   try {
+    const catalog = await stageCatalogProject(directory, join(root, 'packs/base'))
+    const { stdout } = await run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', directory], {
+      cwd: join(catalog, 'node_modules', catalogPackage),
+      env: environment,
+    })
+    const [{ filename }] = JSON.parse(stdout)
+    await writeFile(
+      join(directory, 'content-sources.json'),
+      JSON.stringify({ [catalogPackage]: { kind: 'archive', file: join(directory, filename) } }),
+    )
     server = await startServer(directory)
     const denied = await context.request.post(`${server.origin}/api/management/v1/servers/${server.serverId}/backup`, {
       data: {},
@@ -151,6 +166,8 @@ test('paired production management backs up, revokes service credentials and ret
     const editor = page.getByRole('form', { name: '编辑环境' })
     await editor.getByLabel('名称', { exact: true }).fill('备份验收环境')
     await editor.getByLabel('标识', { exact: true }).fill('backup-acceptance')
+    await editor.getByText('来源与规则', { exact: true }).click()
+    await editor.getByLabel('已登记的来源包名（每行一个）').fill(catalogPackage)
     await editor.getByRole('button', { name: '保存环境', exact: true }).click()
     await expect(editor).not.toBeVisible()
     await page

@@ -129,7 +129,9 @@ test('unpublished personal environment stays on two consenting clients through a
     sampler = setInterval(sampleWorkers, 100)
     const origin = `http://127.0.0.1:${app.address!.port}`
     const initialCatalog = app.environments.list().map(environment => environment.id)
-    expect(app.environments.list().every(environment => environment.packages.length === 0)).toBe(true)
+    expect(app.environments.list()).toMatchObject([
+      { isDefault: true, packages: [{ name: '@arcadia-eternity/data-pack-base' }] },
+    ])
     for (const page of pages) {
       await page.goto(origin)
       await expect(page.getByTestId('create-private-room-button')).toBeEnabled({ timeout: 30_000 })

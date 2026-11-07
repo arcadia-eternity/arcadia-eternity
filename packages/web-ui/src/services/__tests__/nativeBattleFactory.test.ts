@@ -30,6 +30,7 @@ import {
   createSandboxWebBattleSession,
   type NativeGameDataStoreLike,
   type NativeWebBattleConfig,
+  type NativeWebPlayer,
 } from '../nativeBattleFactory'
 import input from '../../../../battle/test/fixtures/official-switch.input.json'
 import { getBattleWorkers } from '../sandboxBattleWorkers'

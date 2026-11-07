@@ -82,6 +82,10 @@ async function verifyPackagedRuntime(context) {
       },
       timeout: 240000,
       maxBuffer: 4 * 1024 * 1024,
+    }).catch(error => {
+      process.stdout.write(error.stdout ?? '')
+      process.stderr.write(error.stderr ?? '')
+      throw error
     })
     process.stdout.write(result.stdout)
     process.stderr.write(result.stderr)

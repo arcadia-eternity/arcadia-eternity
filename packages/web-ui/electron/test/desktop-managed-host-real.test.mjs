@@ -151,7 +151,7 @@ test(
           schemaVersion: 2,
           id: 'tournament',
           name: '独立比赛环境',
-          packages: {},
+          packages: { [fixtureManifest.name]: fixtureManifest.version },
           sources: [],
           rules: { schemaVersion: 1 },
           requires: {},

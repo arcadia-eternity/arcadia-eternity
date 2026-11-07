@@ -32,7 +32,7 @@ it('publishes remote URLs without downloading and streams package files without 
     ).toMatch(/^https:\/\//)
     expect(content.skills.every(skill => !Object.hasOwn(skill, 'effect'))).toBe(true)
     expect(content.marks.every(mark => !Object.hasOwn(mark, 'effect') && !Object.hasOwn(mark, 'config'))).toBe(true)
-    const builtin = app.environments.list().find(entry => !entry.packages.length)!
+    const builtin = app.environments.list().find(entry => entry.isDefault)!
     const official = app.environments.content(builtin.id)
     expect(official.locales?.bundles['zh-CN'].species.pet_dilan).toMatchObject({ name: '迪兰' })
     const resource = first.resources.find(asset => asset.id === 'icon')!
