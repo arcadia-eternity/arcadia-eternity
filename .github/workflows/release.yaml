@@ -9,6 +9,10 @@ on:
         description: 'Version to release (e.g., v1.0.0)'
         required: true
         type: string
+      tag:
+        description: 'Existing release tag, if different from v<version>'
+        required: false
+        type: string
 
 jobs:
   prepare:
@@ -30,20 +34,24 @@ jobs:
       - name: Resolve release version and exact source
         id: input
         env:
-          REQUESTED_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.client_payload.tag_name }}
+          REQUESTED_VERSION: ${{ inputs.version || github.event.client_payload.version }}
+          REQUESTED_TAG: ${{ inputs.tag || github.event.client_payload.tag_name }}
         run: |
           node --input-type=module <<'NODE'
-          import { appendFileSync } from 'node:fs'
+          import { appendFileSync, readFileSync } from 'node:fs'
           import { execFileSync, spawnSync } from 'node:child_process'
           import { releaseVersion } from './scripts/merge-desktop-release-manifests.mjs'
           const version = releaseVersion(process.env.REQUESTED_VERSION)
-          const tag = `v${version}`
+          const { name } = JSON.parse(readFileSync('package.json', 'utf8'))
+          const tag = process.env.REQUESTED_TAG || `v${version}`
+          if (![ `v${version}`, `${name}-v${version}` ].includes(tag))
+            throw new Error(`Release tag ${tag} does not match version ${version}`)
           const remote = spawnSync('git', ['ls-remote', '--exit-code', 'origin', `refs/tags/${tag}`], { encoding: 'utf8' })
           let commit
           if (remote.status === 0) {
             execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', `refs/tags/${tag}`], { stdio: 'inherit' })
             commit = execFileSync('git', ['rev-parse', 'FETCH_HEAD^{commit}'], { encoding: 'utf8' }).trim()
-          } else if (remote.status === 2 && process.env.GITHUB_EVENT_NAME === 'workflow_dispatch') {
+          } else if (remote.status === 2 && process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && !process.env.REQUESTED_TAG) {
             // A new manual version is built from this workflow's exact revision and creates only a draft.
             commit = process.env.GITHUB_SHA
           } else {

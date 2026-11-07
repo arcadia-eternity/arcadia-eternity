@@ -1,14 +1,6 @@
 name: Deploy to Fly.io (Production)
 
 on:
-  # 等待生产镜像构建完成后部署
-  workflow_run:
-    workflows: ['Build Production Docker Image']
-    types:
-      - completed
-    branches:
-      - main
-  # 通过repository_dispatch触发部署
   repository_dispatch:
     types: [deploy-production]
   # 手动触发
@@ -32,50 +24,27 @@ env:
 permissions:
   contents: read
   packages: read
-  actions: read
 
 jobs:
   deploy:
     name: Deploy to Fly.io (Production)
     runs-on: ubuntu-latest
     environment: production
-    # 只有当Docker构建成功时才运行，或者手动触发，或者通过repository_dispatch触发
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
 
     steps:
-      - name: Debug workflow trigger
-        run: |
-          echo "Event name: ${{ github.event_name }}"
-          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
-          echo "Workflow run name: ${{ github.event.workflow_run.name }}"
-          echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
-          echo "Workflow run head sha: ${{ github.event.workflow_run.head_sha }}"
-          echo "Repository dispatch action: ${{ github.event.action }}"
-          echo "Repository dispatch client payload: ${{ toJson(github.event.client_payload) }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Actor: ${{ github.actor }}"
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version || github.event.workflow_run.head_sha || 'main' }}
+          ref: ${{ github.event.client_payload.source_commit || inputs.version || github.sha }}
 
       - name: Determine version
         id: version
-        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version || github.event.client_payload.version }}
         run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-          elif [ -n "${{ github.event.client_payload.version }}" ]; then
-            VERSION="${{ github.event.client_payload.version }}"
-          else
-            # 从package.json读取版本号
-            VERSION="$(node -p "require('./package.json').version")"
-          fi
-          # 移除v前缀（如果存在）
-          VERSION=${VERSION#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Deploying production version: $VERSION"
+          package_version="$(node -p "require('./package.json').version")"
+          version="${REQUESTED_VERSION:-$package_version}"
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
@@ -89,18 +58,24 @@ jobs:
 
       - name: Determine production image reference
         id: image-info
+        env:
+          IMAGE_DIGEST: ${{ github.event.client_payload.image_digest }}
+          SOURCE_COMMIT: ${{ github.event.client_payload.source_commit }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          IMAGE_NAME="ghcr.io/${{ github.repository }}"
-          VERSION="${{ steps.version.outputs.version }}"
-
-          if [ "$VERSION" = "latest" ]; then
-            IMAGE_REF="${IMAGE_NAME}:production"
+          image="ghcr.io/$GITHUB_REPOSITORY"
+          if [ "$GITHUB_EVENT_NAME" = repository_dispatch ]; then
+            if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || [ "$(git rev-parse HEAD)" != "$SOURCE_COMMIT" ]; then
+              echo "Missing or invalid release image digest or source commit." >&2
+              exit 1
+            fi
+            image_ref="$image@$IMAGE_DIGEST"
+          elif [ "$VERSION" = latest ]; then
+            image_ref="$image:production"
           else
-            IMAGE_REF="${IMAGE_NAME}:v${VERSION}"
+            image_ref="$image:v$VERSION"
           fi
-
-          echo "Using production image: $IMAGE_REF"
-          echo "image-ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          echo "image-ref=$image_ref" >> "$GITHUB_OUTPUT"
 
       # A room cannot be routed between independent in-memory owners.
       - name: Require a single server instance

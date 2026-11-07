@@ -59,10 +59,12 @@ jobs:
             git checkout -b production
           fi
 
-      - name: Merge main to production
+      - name: Merge the release tag to production
+        env:
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
-          echo "Merging main to production for release ${{ needs.release-please.outputs.tag_name }}"
-          git merge origin/main --no-ff -m "chore: merge main to production for release ${{ needs.release-please.outputs.tag_name }}"
+          git merge "refs/tags/$RELEASE_TAG" --no-ff -m "chore: merge $RELEASE_TAG to production"
+          git diff --exit-code "refs/tags/$RELEASE_TAG" HEAD
 
       - name: Push production branch
         run: |
@@ -83,26 +85,7 @@ jobs:
             });
             console.log('Triggered production workflows via repository dispatch');
 
-      - name: Create production deployment comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.payload.pull_request?.number || 1,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 **Production Deployment Triggered**
-              
-              Release \`${{ needs.release-please.outputs.tag_name }}\` has been created and merged to production branch.
-              
-              **Deployment Status:**
-              - ✅ Production branch updated
-              - 🔄 Cloudflare Pages deployment in progress
-              - 🔄 Server deployment in progress
-              - 🔄 Desktop app build in progress
-              
-              **Links:**
-              - [Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-please.outputs.tag_name }})
-              - [Production Site](https://yourdomain.com) (will update shortly)
-              `
-            });
+      - name: Record the release dispatch
+        env:
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: echo "Dispatched production build and desktop release for $RELEASE_TAG." >> "$GITHUB_STEP_SUMMARY"
