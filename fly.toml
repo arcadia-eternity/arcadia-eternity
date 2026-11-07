@@ -12,8 +12,8 @@ strategy = 'rolling'
 max_unavailable = 1
 
 [processes]
-# Keep the v3 SMTP secret available to the old image during the guest rollout.
-app = "sh -ec 'if [ \"$ACCOUNT_MODE\" = guest ]; then unset SMTP_USER; fi; exec node dist/cli.js server'"
+# Map the existing Fly secret names to the V4 account provider settings.
+app = "sh -ec 'export SMTP_PASSWORD=\"$SMTP_PASS\" GITHUB_APP_CLIENT_ID=\"$ARCADIA_G3_GITHUB_CLIENT_ID\" GITHUB_APP_CLIENT_SECRET=\"$ARCADIA_G3_GITHUB_CLIENT_SECRET\"; exec node dist/cli.js server'"
 
 [http_service]
 internal_port = 8102
@@ -42,7 +42,11 @@ cpus = 1
 
 [env]
 SERVER_ID = 'arcadia-official'
-ACCOUNT_MODE = 'guest'
+ACCOUNT_MODE = 'g3'
 ARCADIA_DATA_DIR = '/app/state'
 PUBLIC_ORIGIN = 'https://battle.yuuinih.com'
-CORS_ORIGIN = 'https://battle.yuuinih.com,https://test-battle.fly.dev'
+CORS_ORIGIN = 'https://battle.yuuinih.com'
+SMTP_HOST = 'smtp.qcloudmail.com'
+SMTP_PORT = '465'
+SMTP_FROM = 'noreply@auth.yuuinih.com'
+GITHUB_APP_REDIRECT_URIS = 'https://battle.yuuinih.com/account'
