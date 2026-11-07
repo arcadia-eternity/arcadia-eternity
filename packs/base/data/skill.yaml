@@ -11552,3 +11552,150 @@
   tags: []
   effect:
     - effect_skill_palading_jiushuzhihuo
+- id: skill_hongxinyinji
+  element: Normal
+  category: Special
+  target: opponent
+  power: 65
+  accuracy: 95
+  rage: 10
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_add_hongxinyinji
+  tags: []
+- id: skill_hongxinchongzhuang
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 70
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_hongxin_chongzhuang_power
+    - effect_skill_kadundudu_hongxin_chongzhuang_consume
+  tags: []
+- id: skill_hongxinqianghua
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_hongxin_qianghua
+  tags: []
+- id: skill_hongxinshexian
+  element: Normal
+  category: Special
+  target: opponent
+  power: 100
+  accuracy: 90
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_reduce_spe_10_percent
+  tags: []
+- id: skill_tuihuashexian
+  element: Normal
+  category: Special
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_opponent_clear_stage
+  tags: []
+- id: skill_hongxinhuifu
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_hongxin_huifu
+  tags: []
+- id: skill_qunxinmantian
+  element: Normal
+  category: Climax
+  target: opponent
+  power: 160
+  accuracy: 100
+  rage: 100
+  sureHit: true
+  ignoreShield: false
+  effect:
+    - effect_skill_raise_atk_1_stage_10_percent
+  tags: []
+- id: skill_taohongyinji
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_add_taohongyinji
+  tags: []
+- id: skill_hongxinpengzhuang
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 80
+  accuracy: 95
+  rage: 20
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_hongxin_pengzhuang
+  tags: []
+- id: skill_hongxinjizhuang
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 110
+  accuracy: 95
+  rage: 25
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_hongxin_jizhuang_power
+    - effect_skill_kadundudu_hongxin_jizhuang_consume
+  tags: []
+- id: skill_hongxinlianjie
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  accuracy: 100
+  rage: 15
+  sureHit: false
+  ignoreShield: false
+  effect:
+    - effect_skill_kadundudu_hongxin_lianjie
+  tags: []
+
+- id: skill_quanliyiji_kadundudu
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 100
+  rage: 20
+  accuracy: 85
+  sureHit: false
+  ignoreShield: false
+  tags: []
+  effect:
+    - effect_skill_raise_atk_1_stage_10_percent

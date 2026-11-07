@@ -757,3 +757,12 @@ mark_mingshi:
 mark_jiushu:
   name: 救赎
   description: 体力低于1/8时恢复<heal>100体力</heal> 恢复后消失
+mark_hongxinyinji:
+  name: 红心印记
+  description: 使用需要消耗它的技能时消耗1层
+mark_taohongyinji:
+  name: 桃红印记
+  description: 视为红心印记且不消耗 持续3回合
+mark_hongxinlianjie:
+  name: 红心连接
+  description: 受到伤害的<damage>1/4</damage>由对手分担 持续5回合

@@ -374,3 +374,8 @@
   tags: [ability]
   effect:
     - effect_ability_palading_shensheng_immune_crit
+- id: mark_ability_yinji
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_kadundudu_yinji_damage_10_percent

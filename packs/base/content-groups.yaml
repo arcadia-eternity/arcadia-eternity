@@ -286,6 +286,9 @@ groups:
   - id: palading
     species:
       - pet_palading
+  - id: kadundudu
+    species:
+      - pet_kadundudu
 relations:
   - from: pet_dilan
     to: pet_didilan

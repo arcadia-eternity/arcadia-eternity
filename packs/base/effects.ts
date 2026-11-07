@@ -1,5 +1,6 @@
 export { generatedIgnoreShield, createGeneratedIgnoreShield } from './src/effects/ignore-shield.generated'
 export { createPaladingEffects } from './src/effects/palading'
+export { createKadunduduEffects } from './src/effects/kadundudu'
 export { generatedRageAssignment, createGeneratedRageAssignment } from './src/effects/rage-assignment.generated'
 export { officialHealingEffects } from './src/effects/healing'
 export { officialRageCandidate } from './src/effects/rage'

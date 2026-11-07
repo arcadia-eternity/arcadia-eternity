@@ -2951,3 +2951,40 @@ skill_zhengjiuzhihuo:
 skill_jiushuzhihuo:
   name: 救赎之火
   description: 救赎的火焰 自己体力低于1/8时恢复<heal>100体力</heal> 恢复后消失
+skill_hongxinyinji:
+  name: 红心印记
+  description: 攻击对手同时使自身获得<markName>红心印记</markName>
+skill_hongxinchongzhuang:
+  name: 红心冲撞
+  description: 冲撞对手 消耗<markName>红心印记</markName>时威力2倍
+skill_hongxinqianghua:
+  name: 红心强化
+  description: 强化自身物攻1级 消耗<markName>红心印记</markName>时效果2倍
+skill_hongxinshexian:
+  name: 红心射线
+  description: 【90】10%弱化对手速度1级
+skill_tuihuashexian:
+  name: 退化射线
+  description: 【95】清除对手的能力提升
+skill_hongxinhuifu:
+  name: 红心回复
+  description: 恢复自身<heal>120</heal>体力 连续使用效果减半
+skill_qunxinmantian:
+  name: 群心满天
+  description: <guaranteedHit>必中</guaranteedHit> 10%强化自身物攻1级
+skill_taohongyinji:
+  name: 桃红印记
+  description: 使自身获得<markName>桃红印记</markName> 等同于3回合<markName>红心印记</markName>效果
+skill_hongxinpengzhuang:
+  name: 红心碰撞
+  description: 自身具有<markName>红心印记</markName>且对手具有<markName>心之印记</markName>时威力2倍
+skill_hongxinjizhuang:
+  name: 红心激撞
+  description: 消耗<markName>红心印记</markName>和<markName>心之印记</markName>时威力2倍
+skill_hongxinlianjie:
+  name: 红心连接
+  description: 消耗<markName>红心印记</markName>和<markName>心之印记</markName>使自身获得<markName>红心连接</markName>
+
+skill_quanliyiji_kadundudu:
+  name: 全力一击
+  description: 【85】10%强化自身物攻1级

@@ -211,3 +211,6 @@ mark_ability_kaowen:
 mark_ability_shensheng:
   name: 神圣
   description: 自己具有神圣状态时不会受到致命一击
+mark_ability_yinji:
+  name: 印记
+  description: 具有<markName>红心印记</markName>时<damage>伤害增加10%</damage>

@@ -8634,3 +8634,94 @@
     kind: marks
     id: mark_emblem_bihu
   icon: mark:default-emblem
+- id: species.pet_kadundudu
+  target:
+    kind: species
+    id: pet_kadundudu
+  icon: icon:pet_kadundudu
+  portrait: portrait:pet_kadundudu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_kadundudu
+    fallback: portrait:pet_kadundudu
+  cry: petSound:num:71
+- id: skills.skill_hongxinyinji
+  target:
+    kind: skills
+    id: skill_hongxinyinji
+  sfx: skill:skill_hongxinyinji
+- id: skills.skill_hongxinchongzhuang
+  target:
+    kind: skills
+    id: skill_hongxinchongzhuang
+  sfx: skill:skill_hongxinchongzhuang
+- id: skills.skill_hongxinqianghua
+  target:
+    kind: skills
+    id: skill_hongxinqianghua
+  sfx: skill:skill_hongxinqianghua
+- id: skills.skill_hongxinshexian
+  target:
+    kind: skills
+    id: skill_hongxinshexian
+  sfx: skill:skill_hongxinshexian
+- id: skills.skill_tuihuashexian
+  target:
+    kind: skills
+    id: skill_tuihuashexian
+  sfx: skill:skill_tuihuashexian
+- id: skills.skill_hongxinhuifu
+  target:
+    kind: skills
+    id: skill_hongxinhuifu
+  sfx: skill:skill_hongxinhuifu
+- id: skills.skill_qunxinmantian
+  target:
+    kind: skills
+    id: skill_qunxinmantian
+  sfx: skill:skill_qunxinmantian
+- id: skills.skill_taohongyinji
+  target:
+    kind: skills
+    id: skill_taohongyinji
+  sfx: skill:skill_taohongyinji
+- id: skills.skill_hongxinpengzhuang
+  target:
+    kind: skills
+    id: skill_hongxinpengzhuang
+  sfx: skill:skill_hongxinpengzhuang
+- id: skills.skill_hongxinjizhuang
+  target:
+    kind: skills
+    id: skill_hongxinjizhuang
+  sfx: skill:skill_hongxinjizhuang
+- id: skills.skill_hongxinlianjie
+  target:
+    kind: skills
+    id: skill_hongxinlianjie
+  sfx: skill:skill_hongxinlianjie
+- id: marks.mark_hongxinyinji
+  target:
+    kind: marks
+    id: mark_hongxinyinji
+  icon: mark:mark_hongxinyinji
+- id: marks.mark_taohongyinji
+  target:
+    kind: marks
+    id: mark_taohongyinji
+  icon: mark:mark_taohongyinji
+- id: marks.mark_hongxinlianjie
+  target:
+    kind: marks
+    id: mark_hongxinlianjie
+  icon: mark:mark_hongxinlianjie
+- id: marks.mark_ability_yinji
+  target:
+    kind: marks
+    id: mark_ability_yinji
+  icon: mark:default-ability
+- id: marks.mark_emblem_hongxin
+  target:
+    kind: marks
+    id: mark_emblem_hongxin
+  icon: mark:default-emblem
