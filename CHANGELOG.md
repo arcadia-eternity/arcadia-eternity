@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.1.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.0...arcadia-eternity-v4.1.1) (2026-11-08)
+
+
+### 🐛 Bug Fixes
+
+* avoid management probes during anonymous offline play ([9998827](https://github.com/arcadia-eternity/arcadia-eternity/commit/9998827bfc347df316ea13308652adb302e8434a))
+* rebuild SQLite in its owning workspace package ([fd3a577](https://github.com/arcadia-eternity/arcadia-eternity/commit/fd3a5774cfbd5ec4c9092c5793d85376c97649fc))
+* serialize SQLite native build in production image ([f3d0f19](https://github.com/arcadia-eternity/arcadia-eternity/commit/f3d0f1930509dbefa018eab23744f7907c3d54fd))
+* stabilize server image and SQLite CI builds ([4d6e32d](https://github.com/arcadia-eternity/arcadia-eternity/commit/4d6e32d81a70d8ec739bb62879f77a3a302b81eb))
+
 ## [4.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.0.1...arcadia-eternity-v4.1.0) (2026-11-08)
 
 

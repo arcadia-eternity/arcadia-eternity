@@ -1,4 +1,8 @@
-import { restoreManagementSession, managementSessionChanged } from '@/services/managementSession'
+import {
+  restoreManagementSession,
+  managementSessionChanged,
+  rememberManagementDiscovery,
+} from '@/services/managementSession'
 import { computed, ref, shallowRef } from 'vue'
 import { ManagementError, type ManagementClient, type ManagementRequestOptions } from '@/services/managementClient'
 import type {
@@ -303,6 +307,7 @@ export function useManagementConsole() {
       loginRequired.value = false
       managementPrincipalId.value = session.principalId
       await refresh()
+      rememberManagementDiscovery(current.context.endpoint)
       managementSessionChanged()
     } catch (cause) {
       if (epoch === generation) failure(cause)
