@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.2.0...arcadia-eternity-v4.3.0) (2026-11-08)
+
+
+### ✨ Features
+
+* **web:** make matchmaking easier to find ([f3ee232](https://github.com/arcadia-eternity/arcadia-eternity/commit/f3ee2327d664b063362c4791057fccf9a3e7ba49))
+
 ## [4.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.3...arcadia-eternity-v4.2.0) (2026-11-08)
 
 
