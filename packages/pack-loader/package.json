@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/pack-loader",
-  "version": "4.0.0-preview.1",
+  "version": "4.2.0",
   "description": "",
   "type": "module",
   "repository": {
@@ -44,8 +44,8 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/battle": "workspace:^",
-    "@arcadia-eternity/schema": "workspace:^",
+    "@arcadia-eternity/battle": "workspace:*",
+    "@arcadia-eternity/schema": "workspace:*",
     "es-module-lexer": "3.0.4",
     "rolldown": "1.0.0-rc.18",
     "semver": "7.7.3",
@@ -56,8 +56,8 @@
     "@types/semver": "7.7.1"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "tag": "preview"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "files": [
     "dist",

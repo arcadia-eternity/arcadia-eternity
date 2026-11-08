@@ -1,7 +1,7 @@
-import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring'
+import type { EffectModuleContext } from '@arcadia-eternity/content-sdk'
 
 /** The host supplies its SDK and canonical prototypes; importing this file registers nothing globally. */
-export function createEffects({ sdk, marks, id }: CodeEffectModuleContext) {
+export function createEffects({ sdk, marks, id }: EffectModuleContext) {
   const { defineCodeEffect, numberParam, targets, ops, EffectTrigger, AddMarkContext } = sdk
   const slow = marks.get(id('slow'))
   if (!slow) throw new Error('Missing slow mark')

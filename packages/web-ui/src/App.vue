@@ -113,6 +113,16 @@
     </header>
 
     <LocalServerStatus v-if="$route.name !== 'Management'" />
+    <aside
+      v-if="matchmaking?.waiting && $route.name !== 'Matchmaking'"
+      class="flex shrink-0 flex-wrap items-center justify-center gap-x-4 gap-y-1 bg-blue-50 px-4 py-2 text-sm text-blue-900"
+      aria-label="普通匹配"
+      data-testid="background-matchmaking"
+    >
+      <span role="status">{{ matchmaking.statusLabel }}</span>
+      <router-link :to="{ name: 'Matchmaking' }" class="text-blue-700 underline">查看匹配</router-link>
+      <el-button size="small" :disabled="matchmaking.canceling" @click="matchmaking.cancel">取消匹配</el-button>
+    </aside>
 
     <!-- 移动端侧边菜单 -->
     <el-drawer v-model="showMobileMenu" direction="ltr" :size="280" :with-header="false">
@@ -438,6 +448,7 @@ import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
 import { usePrivateRoomStore } from './stores/privateRoom'
+import { useMatchmakingStore } from './stores/matchmaking'
 import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
@@ -478,6 +489,13 @@ const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
 const privateRoomStore = usePrivateRoomStore()
+const matchmaking = isStaticMode ? null : useMatchmakingStore()
+watch(
+  () => matchmaking?.error,
+  error => {
+    if (error && router.currentRoute.value.name !== 'Matchmaking') ElMessage.warning(error)
+  },
+)
 
 // 使用 VueUse 的响应式断点检测
 const breakpoints = useBreakpoints(breakpointsTailwind)

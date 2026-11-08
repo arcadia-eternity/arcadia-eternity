@@ -36,6 +36,7 @@
     },
     "packages/content-dev": {
       "entry": [
+        "src/index.mts",
         "src/cli.mjs",
         "src/mcp.mjs",
         "src/testing.mjs",

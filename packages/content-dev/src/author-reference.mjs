@@ -43,7 +43,7 @@ export async function authorReference({ topic } = {}) {
     return {
       topic,
       title: 'Portable project team',
-      source: '@arcadia-eternity/content-dev/project-teams',
+      source: '@arcadia-eternity/content-sdk/project-teams',
       stage: 'source',
       schema,
       examples: [{ language: 'yaml', text: 'schemaVersion: 1\nid: blue\nname: 蓝队\nteam: []\n' }],
@@ -57,7 +57,7 @@ export async function authorReference({ topic } = {}) {
     return {
       topic,
       title: 'Named project environment',
-      source: '@arcadia-eternity/content-dev/debug-environments',
+      source: '@arcadia-eternity/content-sdk/debug-environments',
       stage: 'source',
       schema: toJsonSchemaCompat(EnvironmentDocumentSchema),
       examples: [
@@ -77,10 +77,10 @@ export async function authorReference({ topic } = {}) {
     return {
       topic,
       title: 'Native TypeScript effects',
-      source: '@arcadia-eternity/content-dev/template/src/effects.ts',
+      source: '@arcadia-eternity/content-sdk/dist/template/src/effects.ts',
       examples: [{ language: 'typescript', text: await template('src/effects.ts') }],
       notes: [
-        'Use the host-supplied CodeEffectModuleContext and SDK; importing an effect module must not register global state.',
+        'Import EffectModuleContext from @arcadia-eternity/content-sdk and use the host-supplied SDK. Importing an effect module must not register global state.',
         'defineCodeEffect uses triggers/apply. ctx.trigger identifies the trigger; ctx.parent is the typed parent context. Use stable namespaced IDs and actual behavior definitions.',
         'This installed template is the executable example. Query content, read source versions, check, and run behavior tests after edits. No Rule Graph/DSL conversion is needed.',
       ],

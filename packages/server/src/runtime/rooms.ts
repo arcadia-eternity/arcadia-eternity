@@ -1,4 +1,4 @@
-import { assertEnvironmentTeam } from '@arcadia-eternity/content-dev/environment-rules'
+import { assertEnvironmentTeam } from '@arcadia-eternity/content-sdk/environment-rules'
 import { timingSafeEqual } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import type { Server, Socket } from 'socket.io'

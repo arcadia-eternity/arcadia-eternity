@@ -33,6 +33,7 @@ let privateRoom: {
 }
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
 vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => privateRoom }))
+vi.mock('@/stores/matchmaking', () => ({ useMatchmakingStore: () => ({ waiting: false }) }))
 vi.mock('@/stores/battleClient', () => ({ useBattleClientStore: () => battleClient }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ invalidationReason: null }) }))
 vi.mock('@/utils/env', () => ({ isDesktop: false }))
@@ -78,7 +79,6 @@ function preparedPersonalEnvironment(): PreparedPersonalEnvironment {
 let personalEnvironment: PreparedPersonalEnvironment
 
 const stubs = {
-  MatchmakingPanel: true,
   RouterLink: { template: '<a><slot /></a>' },
   ElIcon: { template: '<i><slot /></i>' },
   ElButton: {

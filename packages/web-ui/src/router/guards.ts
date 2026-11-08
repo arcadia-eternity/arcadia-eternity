@@ -2,10 +2,19 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { useMatchmakingStore } from '@/stores/matchmaking'
 import { isStaticMode } from '@/utils/env'
 
 export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
   if (isStaticMode && to.query.privateRoom === 'true') return '/local-battle'
+  if (
+    !isStaticMode &&
+    (to.name === 'LocalBattleReportPlay' || to.name === 'AuthorPreview') &&
+    useMatchmakingStore().blocksOtherBattles
+  ) {
+    ElMessage.warning('请先取消匹配，再进入其他对战或回放')
+    return false
+  }
   const store = useBattleStore()
   const battleClientStore = useBattleClientStore()
 

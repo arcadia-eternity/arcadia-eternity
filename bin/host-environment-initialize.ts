@@ -4,7 +4,7 @@ import { isAbsolute, relative } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { validateWorkspaceProject, type ManagementService } from '@arcadia-eternity/server'
 import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
-import type { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
+import type { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 
 type InitializationKind = 'builtin' | 'desktop' | 'npm'
 type Server = { id: string; revision: number; defaultBindingId?: string }

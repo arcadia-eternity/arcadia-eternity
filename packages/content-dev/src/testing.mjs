@@ -8,6 +8,14 @@ import { prepareSandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 export { prepareBattleEnvironment } from './environment.mjs'
 import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/engine'
+export {
+  AttackTargetOpinion,
+  EffectContext,
+  EffectTrigger,
+  RemoveMarkContext,
+  parameterAddress,
+  setGlobalLogger,
+} from '@arcadia-eternity/battle/engine'
 /** Existing package scenarios use the default environment with declared dependencies only. */
 export async function prepareContentPack(root = process.cwd(), options = {}) {
   root = resolve(root)

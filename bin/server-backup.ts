@@ -12,7 +12,7 @@ import {
   ContentWorkspace,
   type StaticPreparer,
   type WorkspaceSnapshot,
-} from '@arcadia-eternity/content-dev/management-workspace'
+} from '@arcadia-eternity/content-sdk/management-workspace'
 
 export interface ServerBackup {
   format: 'arcadia.server-backup/1'

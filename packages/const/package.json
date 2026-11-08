@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/const",
-  "version": "4.0.0-preview.1",
+  "version": "4.2.0",
   "description": "",
   "keywords": [],
   "main": "./dist/index.js",
@@ -27,8 +27,8 @@
     "directory": "packages/const"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "tag": "preview"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "files": [
     "dist",

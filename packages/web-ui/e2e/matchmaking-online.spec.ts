@@ -13,6 +13,7 @@ async function lobby(page: Page, name: string) {
 }
 async function queue(page: Page) {
   await page.getByTestId('open-matchmaking-button').click()
+  await expect(page).toHaveURL(/\/matchmaking$/)
   await expect(page.getByTestId('matchmaking-team-selector').getByTestId('team-option-0')).toBeVisible({
     timeout: 30_000,
   })
@@ -29,9 +30,22 @@ test('two fresh guests cancel, automatically match, play, reconnect, finish and 
     const [a, b] = pages
     await queue(a)
     await expect(a.getByTestId('matchmaking-waiting')).toContainText('寻找对手')
-    await a.getByTestId('cancel-matchmaking-button').click()
-    await expect(a.getByTestId('start-matchmaking-button')).toBeEnabled()
-    await a.getByTestId('start-matchmaking-button').click()
+    await a.getByRole('link', { name: '返回对战大厅' }).click()
+    await a.getByRole('link', { name: '队伍编辑', exact: true }).click()
+    const background = a.getByTestId('background-matchmaking')
+    await expect(background).toContainText('寻找对手')
+    await background.getByRole('link', { name: '查看匹配' }).click()
+    await expect(a.getByTestId('matchmaking-waiting')).toContainText('寻找对手')
+    await a.getByRole('link', { name: '返回对战大厅' }).click()
+    await background.getByRole('button', { name: '取消匹配' }).click()
+    await expect(background).toHaveCount(0)
+
+    await queue(a)
+    await expect(a.getByTestId('matchmaking-waiting')).toContainText('寻找对手')
+    await a.getByRole('link', { name: '返回对战大厅' }).click()
+    await a.getByRole('link', { name: '队伍编辑', exact: true }).click()
+    await expect(a).toHaveURL(/\/team-builder$/)
+    await expect(background).toContainText('寻找对手')
     await queue(b)
     for (const page of pages) {
       await expect(page).toHaveURL(/\/battle\?.*matchmaking=true/, { timeout: 45_000 })

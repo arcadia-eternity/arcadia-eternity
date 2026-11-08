@@ -80,7 +80,17 @@
       </a>
     </div>
 
-    <MatchmakingPanel :auto-open="startMatching" />
+    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 text-left" aria-label="普通匹配">
+      <h2 class="text-lg font-medium text-gray-800">普通匹配</h2>
+      <p class="text-sm text-gray-600 mt-1 mb-3">自动寻找使用相同对战环境的玩家。</p>
+      <router-link
+        :to="{ name: 'Matchmaking' }"
+        class="inline-block rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        data-testid="open-matchmaking-button"
+      >
+        进入匹配
+      </router-link>
+    </section>
 
     <!-- 好友房间 -->
     <div class="mb-6 md:mb-8 space-y-6">
@@ -99,6 +109,10 @@
               回到房间 ({{ privateRoomStore.currentRoom.config.roomCode }})
             </el-button>
           </div>
+
+          <p v-else-if="matchmaking.waiting" class="md:col-span-3 text-sm text-gray-600">
+            取消普通匹配后，可以创建或加入私人房间。
+          </p>
 
           <!-- 否则，显示创建和加入选项 -->
           <template v-else>
@@ -257,22 +271,21 @@ import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
+import { useMatchmakingStore } from '@/stores/matchmaking'
 import { useAuthStore } from '@/stores/auth'
 import { User, Monitor, Setting, FolderOpened, Collection, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
-import MatchmakingPanel from '@/components/MatchmakingPanel.vue'
 import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { allowsServerExecution } from '@/services/serverEnvironmentPolicy'
 
-defineProps<{ startMatching?: boolean }>()
-
 const router = useRouter()
 const battleClientStore = useBattleClientStore()
 const privateRoomStore = usePrivateRoomStore()
+const matchmaking = useMatchmakingStore()
 const authStore = useAuthStore()
 const showCreateRoomDialog = ref(false)
 const joinRoomCode = ref('')

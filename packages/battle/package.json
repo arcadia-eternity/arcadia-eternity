@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/battle",
-  "version": "4.0.0-preview.1",
+  "version": "4.2.0",
   "type": "module",
   "repository": {
     "type": "git",
@@ -73,7 +73,7 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:*",
-    "@arcadia-eternity/interface": "workspace:^",
+    "@arcadia-eternity/interface": "workspace:*",
     "@jitl/quickjs-singlefile-browser-release-sync": "0.32.0",
     "@sinclair/typebox": "catalog:",
     "comlink": "4.4.2",
@@ -89,8 +89,8 @@
     "vitest": "catalog:"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "tag": "preview"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "files": [
     "dist",

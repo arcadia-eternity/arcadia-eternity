@@ -293,7 +293,7 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
     )
   }
 
-  it('recovers the same email account after restart without restoring its room or session', async () => {
+  it('restores the email login after restart with a fresh seat and no old room', async () => {
     const serverId = `full-stack-${randomUUID()}`
     serverIds.add(serverId)
     const codes = new Map<string, string>()
@@ -311,7 +311,14 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
     await first.app.stop()
     const second = await boot(serverId, codes)
     expect(second.app.rooms.size).toBe(0)
-    expect((await request(second, '/session', 'GET', undefined, original.token)).status).toBe(401)
+    const resumedResponse = await request(second, '/session', 'GET', undefined, original.token)
+    expect(resumedResponse.status).toBe(200)
+    const resumed = (await resumedResponse.json()) as ServerSession
+    expect(resumed.principal).toEqual(original.principal)
+    expect(resumed.expiresAt).toBe(original.expiresAt)
+    expect(resumed.bootId).not.toBe(original.bootId)
+    expect(resumed.sessionId).not.toBe(original.sessionId)
+    expect(resumed.seatId).not.toBe(original.seatId)
 
     const recovered = await emailLogin(second, codes, 'recovery@example.test')
     expect(recovered.principal).toEqual(original.principal)
@@ -427,7 +434,14 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
 
     await first.app.stop()
     const second = await boot(serverId, codes)
-    expect((await request(second, '/session', 'GET', undefined, original.token)).status).toBe(401)
+    const resumedResponse = await request(second, '/session', 'GET', undefined, original.token)
+    expect(resumedResponse.status).toBe(200)
+    const resumed = (await resumedResponse.json()) as ServerSession
+    expect(resumed.principal).toEqual(original.principal)
+    expect(resumed.expiresAt).toBe(original.expiresAt)
+    expect(resumed.bootId).not.toBe(original.bootId)
+    expect(resumed.sessionId).not.toBe(original.sessionId)
+    expect(resumed.seatId).not.toBe(original.seatId)
     for (const address of [primary, secondary]) {
       const recovered = await emailLogin(second, codes, address)
       expect(recovered.principal).toEqual(original.principal)
@@ -523,7 +537,14 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
 
     await first.app.stop()
     const second = await boot(serverId, codes)
-    expect((await request(second, '/session', 'GET', undefined, alice.token)).status).toBe(401)
+    const resumedResponse = await request(second, '/session', 'GET', undefined, alice.token)
+    expect(resumedResponse.status).toBe(200)
+    const resumed = (await resumedResponse.json()) as ServerSession
+    expect(resumed.principal).toEqual(alice.principal)
+    expect(resumed.expiresAt).toBe(alice.expiresAt)
+    expect(resumed.bootId).not.toBe(alice.bootId)
+    expect(resumed.sessionId).not.toBe(alice.sessionId)
+    expect(resumed.seatId).not.toBe(alice.seatId)
     const recovered = await githubComplete(second, 'login', 1001)
     expect(recovered.status).toBe(201)
     const newSession = ((await recovered.json()) as { session: ServerSession }).session

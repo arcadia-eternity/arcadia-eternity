@@ -1,65 +1,95 @@
 name: Publish UGC Packages
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
   workflow_dispatch:
-  push:
-    tags: ['ugc-v*']
-
-concurrency:
-  group: publish-ugc-packages
-  cancel-in-progress: false
+    inputs:
+      tag:
+        description: 'Existing stable Arcadia release tag (arcadia-eternity-vX.Y.Z)'
+        required: true
+        type: string
 
 permissions:
   contents: read
-  packages: write
+
+env:
+  RELEASE_TAG: ${{ inputs.tag }}
 
 jobs:
-  publish-packages:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+  verify-archives:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
     steps:
+      - name: Check the requested release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^arcadia-eternity-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          gh release view "$RELEASE_TAG" --json isDraft,isPrerelease | jq -e '(.isDraft or .isPrerelease) | not'
       - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          persist-credentials: false
+      - name: Record the verified source revision
+        id: source
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@arcadia-eternity'
-          cache: pnpm
+          package-manager-cache: false
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build the author SDK dependency graph
-        run: pnpm --filter @arcadia-eternity/content-dev... --filter @arcadia-eternity/data-pack-base... run build
+        run: pnpm --filter @arcadia-eternity/content-sdk... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/protocol... run build
       - name: Test author tooling and package loader
         run: |
           pnpm test:content-dev
           pnpm --filter @arcadia-eternity/pack-loader test:run
       - name: Pack and inspect the eight release archives
         run: pnpm pack:ugc
-      - name: Install archives in a separate author project and exercise a full battle
+      - name: Install the archives and run an author project
         run: pnpm verify:ugc-release
       - uses: actions/upload-artifact@v4
         with:
           name: ugc-npm-packages
           path: dist/ugc-release/
           if-no-files-found: error
-      - name: Publish verified archives to GitHub Packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          node --input-type=module <<'JS'
-          import { readFileSync } from 'node:fs'
-          import { execFileSync } from 'node:child_process'
-          const release = JSON.parse(readFileSync('dist/ugc-release/release.json', 'utf8'))
-          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== `ugc-v${release.version}`)
-            throw new Error('Release tag must match the package version')
-          for (const pkg of release.packages) {
-            // Existing versions fail rather than silently accepting unrelated bytes.
-            execFileSync('npm', ['publish', `dist/ugc-release/${pkg.filename}`, '--ignore-scripts', '--registry', release.registry, '--tag', release.tag], { stdio: 'inherit' })
-          }
-          JS
-      - name: Download the published release into an empty cache and verify author workflow
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm verify:ugc-release --registry
+
+  publish-packages:
+    needs: verify-archives
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: publish-ugc-packages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-archives.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ugc-npm-packages
+          path: dist/ugc-release/
+      - name: Publish verified archives with npm Trusted Publishing
+        run: node scripts/release-author-sdk.mjs publish
+      - name: Install the published release and repeat the author workflow
+        run: node scripts/release-author-sdk.mjs verify --registry

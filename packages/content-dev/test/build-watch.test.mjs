@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { test } from 'node:test'
 import { watchContentDev } from '../watch.mjs'
@@ -33,6 +34,19 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
     await writeFile(join(root, 'docs/guides', skill, 'SKILL.md'), 'original skill')
   }
   await cp(new URL('../build.mjs', import.meta.url), join(directory, 'build.mjs'))
+  await symlink(
+    fileURLToPath(new URL('../node_modules', import.meta.url)),
+    join(directory, 'node_modules'),
+    process.platform === 'win32' ? 'junction' : 'dir',
+  )
+  await writeFile(
+    join(directory, 'tsconfig.json'),
+    JSON.stringify({
+      compilerOptions: { declaration: true, types: [], outDir: 'dist', rootDir: 'src' },
+      include: ['src/*.mts'],
+    }),
+  )
+  await writeFile(join(directory, 'src/index.mts'), 'export type Example = string')
   const originalBuild = await readFile(join(directory, 'build.mjs'), 'utf8')
   for (const file of ['cli.mjs', 'mcp.mjs', 'removable.mjs'])
     await writeFile(join(directory, 'src', file), '// original')
@@ -40,6 +54,7 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
   const errors = []
   watcher = await watchContentDev(directory, { onBuild() {}, onError: error => errors.push(error) })
   assert.equal(await readFile(join(directory, 'dist/cli.mjs'), 'utf8'), '// original')
+  assert.match(await readFile(join(directory, 'dist/index.d.mts'), 'utf8'), /export type Example = string/)
 
   await writeFile(join(directory, 'src/cli.mjs'), '// changed')
   await writeFile(join(directory, 'template/example.txt'), 'changed template')

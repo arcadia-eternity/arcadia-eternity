@@ -1,6 +1,6 @@
 {
-  "name": "@arcadia-eternity/content-dev",
-  "version": "4.0.0-preview.1",
+  "name": "@arcadia-eternity/content-sdk",
+  "version": "4.2.0",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -11,6 +11,10 @@
     "arcadia-content-mcp": "./dist/mcp.mjs"
   },
   "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
     "./testing": "./dist/testing.mjs",
     "./workspace": "./dist/author-api.mjs",
     "./management-workspace": {
@@ -41,9 +45,9 @@
     "clear": "rm -rf dist"
   },
   "dependencies": {
-    "@arcadia-eternity/battle": "workspace:^",
-    "@arcadia-eternity/pack-loader": "workspace:^",
-    "@arcadia-eternity/schema": "workspace:^",
+    "@arcadia-eternity/battle": "workspace:*",
+    "@arcadia-eternity/pack-loader": "workspace:*",
+    "@arcadia-eternity/schema": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "chokidar": "^6.0.0",
     "mime-types": "^3.0.2",
@@ -61,7 +65,7 @@
     "directory": "packages/content-dev"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "tag": "preview"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   }
 }

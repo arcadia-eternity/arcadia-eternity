@@ -1,6 +1,6 @@
 import { Command, CommanderError } from 'commander'
 import { open, readFile, stat } from 'node:fs/promises'
-import { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
+import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { validateWorkspaceProject } from '@arcadia-eternity/server'
 import { persistentServerConfig } from './server-config'
 import { openServerStorage, workspaceRetentions } from './server-persistence'

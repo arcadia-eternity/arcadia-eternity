@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, describe, expect, it } from 'vitest'
 import pg from 'pg'
-import { ContentWorkspace, type StaticPreparer } from '@arcadia-eternity/content-dev/management-workspace'
+import { ContentWorkspace, type StaticPreparer } from '@arcadia-eternity/content-sdk/management-workspace'
 import { openStorage, SQLAccountDirectory } from '@arcadia-eternity/database'
 import { dropTestDatabase } from './helpers/postgres'
 import {

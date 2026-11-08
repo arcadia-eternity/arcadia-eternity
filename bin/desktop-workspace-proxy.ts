@@ -6,7 +6,7 @@ import type {
   EnvironmentVersion,
   PrepareVersionInput,
   StaticPreparer,
-} from '@arcadia-eternity/content-dev/management-workspace'
+} from '@arcadia-eternity/content-sdk/management-workspace'
 
 /** This channel is the inherited parent process IPC, never a renderer or HTTP transport. */
 interface DesktopWorkspaceChannel {
