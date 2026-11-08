@@ -68,7 +68,7 @@ jobs:
   publish-packages:
     needs: verify-archives
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     concurrency:
       group: publish-ugc-packages
       cancel-in-progress: false

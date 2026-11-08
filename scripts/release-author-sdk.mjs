@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { setTimeout as wait } from 'node:timers/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -67,6 +68,41 @@ async function readRelease() {
     assert.equal(createHash('sha256').update(bytes).digest('hex'), pkg.sha256)
   }
   return release
+}
+
+// npm accepts uploads before it makes them visible to install clients.
+async function waitForPublishedArchives(release) {
+  const pending = new Set(release.packages)
+  const deadline = Date.now() + 15 * 60_000
+  let lastReport
+  while (Date.now() < deadline) {
+    await Promise.all(
+      [...pending].map(async pkg => {
+        const url = `${registry}/${encodeURIComponent(pkg.name)}`
+        const response = await fetch(url, {
+          headers: { accept: 'application/vnd.npm.install-v1+json', 'cache-control': 'no-cache' },
+          signal: AbortSignal.timeout(15_000),
+        }).catch(() => undefined)
+        if (!response) return
+        if (response.status === 404 || response.status === 429 || response.status >= 500) {
+          await response.body?.cancel()
+          return
+        }
+        assert.ok(response.ok, `${pkg.name}: registry returned HTTP ${response.status}`)
+        const metadata = await response.json()
+        const published = metadata.versions?.[pkg.version]
+        if (!published) return
+        assert.equal(published.dist?.integrity, pkg.integrity, `${pkg.name}: published archive bytes differ`)
+        pending.delete(pkg)
+      }),
+    )
+    if (!pending.size) return
+    const report = [...pending].map(pkg => `${pkg.name}@${pkg.version}`).join(', ')
+    if (report !== lastReport) console.log(`Waiting for npm registry availability: ${report}`)
+    lastReport = report
+    await wait(20_000)
+  }
+  throw new Error(`npm has not made these versions publicly installable after 15 minutes: ${lastReport}`)
 }
 
 if (command === 'pack') {
@@ -170,6 +206,7 @@ if (command === 'pack') {
   }
 } else if (command === 'verify') {
   const release = await readRelease()
+  if (registryMode) await waitForPublishedArchives(release)
   const temporary = await mkdtemp(join(tmpdir(), 'arcadia-ugc-release-'))
   const project = join(temporary, 'project')
   try {
