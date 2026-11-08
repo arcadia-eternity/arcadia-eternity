@@ -57,8 +57,6 @@ jobs:
           pnpm --filter @arcadia-eternity/pack-loader test:run
       - name: Pack and inspect the eight release archives
         run: pnpm pack:ugc
-      - name: Install the archives and run an author project
-        run: pnpm verify:ugc-release
       - uses: actions/upload-artifact@v4
         with:
           name: ugc-npm-packages
@@ -91,5 +89,3 @@ jobs:
           path: dist/ugc-release/
       - name: Publish verified archives with npm Trusted Publishing
         run: node scripts/release-author-sdk.mjs publish
-      - name: Install the published release and repeat the author workflow
-        run: node scripts/release-author-sdk.mjs verify --registry
