@@ -243,7 +243,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     if (baseline) assert.deepEqual(persistent, baseline.persistent)
     await expect(page.getByText('安装保留环境', { exact: true }).first()).toBeVisible()
     const connectionStatus = page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })
-    await expect(connectionStatus).not.toBeVisible()
+    await expect(connectionStatus).toBeVisible()
     await page.screenshot({ path: join(evidenceDirectory, `${label}.png`), fullPage: true })
     await page.goto('arcadia-client://app/servers')
     await expect(connectionStatus).toBeVisible({ timeout: 90000 })

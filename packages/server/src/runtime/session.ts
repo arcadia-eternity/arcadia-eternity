@@ -58,6 +58,7 @@ export class SessionRegistry {
   private readonly accountProvider?: AccountProvider
   private readonly accountEnabled: boolean
   private readonly blockedAccounts = new Set<string>()
+  private readonly accountTtlMs: number
   private readonly ttlMs: number
   private readonly maxSessions: number
   private generation = 0
@@ -72,6 +73,7 @@ export class SessionRegistry {
     this.bootId = options.bootId ?? nanoid()
     this.accountProvider = options.accountProvider
     this.accountEnabled = options.accountEnabled ?? false
+    this.accountTtlMs = options.ttlMs ?? 7 * 24 * 60 * 60 * 1000
     this.ttlMs = options.ttlMs ?? 24 * 60 * 60 * 1000
     this.maxSessions = options.maxSessions ?? 10_000
     if (!Number.isSafeInteger(this.ttlMs) || this.ttlMs <= 0) throw new Error('ttlMs must be a positive safe integer')
@@ -118,10 +120,20 @@ export class SessionRegistry {
     return this.issue(profile, principal, generation)
   }
 
-  /** Called only after a fresh proof has been checked against the durable directory. */
+  /** Called only after account authority has been checked against the durable directory. */
   issueVerifiedAccount(value: unknown, accountId: string): ServerSession {
     if (!this.accountEnabled || !boundedString(accountId, 256)) throw new SessionError('ACCOUNT_AUTH_UNAVAILABLE', 503)
     return this.issue(readProfile(value), { kind: 'account', accountId }, this.generation)
+  }
+
+  /** Only called after the durable account credential and account status were verified. */
+  restoreVerifiedAccount(profile: LocalProfile, accountId: string, token: string, expiresAt: number): ServerSession {
+    const session = this.issueVerifiedAccount(profile, accountId)
+    this.sessions.delete(session.token)
+    session.token = token
+    session.expiresAt = expiresAt
+    this.sessions.set(token, session)
+    return structuredClone(session)
   }
 
   private issue(profile: LocalProfile, principal: ServerPrincipal, generation: number): ServerSession {
@@ -137,7 +149,7 @@ export class SessionRegistry {
       token: randomBytes(32).toString('base64url'),
       principal,
       profile,
-      expiresAt: Date.now() + this.ttlMs,
+      expiresAt: Date.now() + (principal.kind === 'account' ? this.accountTtlMs : this.ttlMs),
     }
     this.sessions.set(session.token, session)
     return structuredClone(session)

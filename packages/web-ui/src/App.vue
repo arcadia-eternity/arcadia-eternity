@@ -1,8 +1,7 @@
 <template>
-  <div class="h-screen flex flex-col">
+  <div class="h-screen flex flex-col" :style="{ '--site-navigation-height': compactNavigation ? '56px' : '60px' }">
     <!-- 移动端优先的导航栏 - 固定置顶 -->
     <header
-      v-if="$route.name !== 'Management'"
       class="sticky top-0 z-40 bg-black/90 border-b border-gray-600 backdrop-blur-md"
       :class="compactNavigation ? 'h-14' : 'h-15'"
     >

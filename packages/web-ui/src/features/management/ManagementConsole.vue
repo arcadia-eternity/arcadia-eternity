@@ -617,7 +617,6 @@ onBeforeUnmount(() => {
         </form>
       </details>
     </section>
-    <p v-if="loading && !capabilities" role="status">正在读取管理能力…</p>
     <template v-if="capabilities">
       <div v-if="capabilities.resourceRestrictions.length" class="message">
         <p v-for="(restriction, index) in capabilities.resourceRestrictions" :key="index">{{ restriction.reason }}</p>
@@ -732,7 +731,7 @@ onBeforeUnmount(() => {
                 <dt>实际版本</dt>
                 <dd>{{ binding.effectiveVersionId ?? '尚未生效' }}</dd>
               </dl>
-              <p v-if="binding.reason" class="message error">{{ binding.reason }}</p>
+              <p v-if="binding.reason" class="message error">{{ contentTaskError(binding.reason) }}</p>
               <div class="binding-options">
                 <label
                   ><input
@@ -1370,7 +1369,7 @@ select {
   grid-template-columns: 232px minmax(0, 1fr);
   gap: 0;
   margin-top: 0;
-  min-height: calc(100vh - 64px);
+  min-height: calc(100dvh - var(--site-navigation-height, 0px) - 64px);
 }
 .tabs {
   background: #111d32;
@@ -1378,7 +1377,7 @@ select {
   padding: 1.5rem 1rem;
   border: 0;
   top: 0;
-  height: calc(100vh - 64px);
+  height: calc(100dvh - var(--site-navigation-height, 0px) - 64px);
   border-radius: 0;
 }
 .tabs button {

@@ -392,6 +392,27 @@ describe('durable binding publication with real captured environment artifacts',
     expect(JSON.stringify(nextReferences)).not.toContain(`candidate:${operationId}`)
   }, 45_000)
 
+  it('reports incompatible saved content without exposing diagnostic paths or publishing it', async () => {
+    const env = await setup()
+    const draft = await env.draft('Old build', null)
+    const version = await env.prepare(draft.revision)
+    const binding = await env.createBinding(version.versionId, 'pinned')
+    const row = (await env.storage.get<Binding>('bindings', binding.id))!
+    await env.storage.replace('bindings', binding.id, row.revision, {
+      ...row.value,
+      effectiveVersionId: version.versionId,
+    })
+    vi.spyOn(env.app.environments, 'prepareNpm').mockRejectedValueOnce({
+      diagnostics: [{ code: 'NPM_BASE_HOST_INVALID', path: '/private/materials', message: 'private detail' }],
+    })
+    await env.service.reconcile()
+    expect((await env.storage.get<Binding>('bindings', binding.id))!.value).toMatchObject({
+      condition: 'unavailable',
+      reason: 'NPM_BASE_HOST_INVALID',
+    })
+    expect(env.app.environments.list()).toHaveLength(0)
+  }, 45_000)
+
   it('keeps the previous effective version degraded when the committed desired material is missing on restart', async () => {
     const env = await setup()
     const firstDraft = await env.draft('Surviving version', null)

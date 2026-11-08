@@ -1,3 +1,5 @@
+import { SQLAccountDirectory } from '@arcadia-eternity/database'
+import { AccountLoginSessions } from './accounts/login-sessions'
 import { createServer, type Server as HttpServer, type IncomingMessage } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import express, { type Request, type Response, type NextFunction, type Express } from 'express'
@@ -71,7 +73,7 @@ export interface SingleProcessApp {
   stop(): Promise<void>
 }
 
-/** A deliberately ephemeral Node host: restarts invalidate every room and session. */
+/** Rooms and seats are ephemeral; verified SQL account logins can survive a restart. */
 export function createSingleProcessApp(options: SingleProcessAppOptions = {}): SingleProcessApp {
   const battleCapacity = resolveBattleCapacity(options)
   if (
@@ -110,6 +112,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     accountProvider: options.accountProvider,
     accountEnabled: !!options.accounts,
   })
+  const accountLogins =
+    options.accounts?.directory instanceof SQLAccountDirectory
+      ? new AccountLoginSessions(options.accounts.directory.storage, sessions)
+      : undefined
   const app = express()
   app.disable('x-powered-by')
   app.disable('etag')
@@ -303,8 +309,9 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       pendingAdmissions--
     }
   })
-  app.get('/api/v1/session', (req, res) => {
-    const session = sessions.authenticate(token(req))
+  app.get('/api/v1/session', async (req, res) => {
+    const credential = token(req)
+    const session = sessions.authenticate(credential) ?? (credential && (await accountLogins?.resume(credential)))
     if (!session) {
       res.status(401).json({ code: 'INVALID_SESSION' })
       return
@@ -314,6 +321,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   app.delete('/api/v1/session', async (req, res) => {
     const credential = token(req),
       session = sessions.authenticate(credential)
+    if (credential) await accountLogins?.revoke(credential)
     if (!session) {
       res.status(401).json({ code: 'INVALID_SESSION' })
       return
@@ -383,6 +391,12 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
         throw error
       }
       if (!issued) throw new SessionError('ACCOUNT_STORE_UNAVAILABLE', 503)
+      try {
+        await accountLogins?.remember(issued)
+      } catch (error) {
+        sessions.revoke(issued.token)
+        throw error
+      }
       res.status(201).json({ session: issued })
     }
     // The proof endpoints share the same bounded in-process admission budget as guest sessions.
