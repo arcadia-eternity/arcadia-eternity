@@ -2,7 +2,7 @@ name: Desktop runtime validation
 
 on:
   pull_request:
-    branches: [refactor/v4, main]
+    branches: [main]
     paths:
       - '.github/workflows/desktop-runtime-validation.yml'
       - 'bin/**'
@@ -22,7 +22,7 @@ on:
       - 'docs/guides/ugc-authoring-agent/**'
       - 'docs/guides/seer2-recreate-pet/**'
   push:
-    branches: [refactor/v4, main]
+    branches: [main]
     paths:
       - '.github/workflows/desktop-runtime-validation.yml'
       - 'bin/**'

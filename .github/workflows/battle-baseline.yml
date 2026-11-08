@@ -2,9 +2,9 @@ name: Battle regression baseline
 
 on:
   pull_request:
-    branches: [refactor/v4, main]
+    branches: [main]
   push:
-    branches: [refactor/v4, main]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
