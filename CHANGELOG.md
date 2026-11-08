@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.1.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.2...arcadia-eternity-v4.1.3) (2026-11-08)
+
+
+### 🐛 Bug Fixes
+
+* preserve account logins across server restarts ([e907f90](https://github.com/arcadia-eternity/arcadia-eternity/commit/e907f90b5323b822f59ae9c63e473c11b6291fac))
+* retain site navigation in management and explain incompatible environments ([75e5f3c](https://github.com/arcadia-eternity/arcadia-eternity/commit/75e5f3cc994576a7b319a91fdc4319247dddde8a))
+* stop requiring matching engine build hashes for saved content ([3a10aa0](https://github.com/arcadia-eternity/arcadia-eternity/commit/3a10aa0d5fd5a4cb702cf636ec86ad0d40a978c7))
+
 ## [4.1.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.1...arcadia-eternity-v4.1.2) (2026-11-08)
 
 
