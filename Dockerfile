@@ -49,7 +49,7 @@ COPY packs/ ./packs/
 # Use local store to avoid cache conflicts in parallel builds
 RUN pnpm config set store-dir /tmp/pnpm-store && \
     pnpm install --frozen-lockfile --prod --prefer-offline --ignore-scripts && \
-    cd packages/database && npm rebuild better-sqlite3 --ignore-scripts=false && cd /app && \
+    pnpm --filter @arcadia-eternity/database rebuild better-sqlite3 && \
     pnpm store prune
 
 # Production stage
