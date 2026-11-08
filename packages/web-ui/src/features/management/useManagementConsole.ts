@@ -1,3 +1,4 @@
+import { restoreManagementSession, managementSessionChanged } from '@/services/managementSession'
 import { computed, ref, shallowRef } from 'vue'
 import { ManagementError, type ManagementClient, type ManagementRequestOptions } from '@/services/managementClient'
 import type {
@@ -69,6 +70,8 @@ export function useManagementConsole() {
     loginRequired = ref(false),
     error = ref(''),
     notice = ref('')
+  const managementPrincipalId = ref('')
+  let accountProof: string | undefined
   let generation = 0
   let refreshSequence = 0
   let accountPages = 1
@@ -90,6 +93,7 @@ export function useManagementConsole() {
   )
   function clear() {
     capabilities.value = undefined
+    managementPrincipalId.value = ''
     servers.value = []
     environments.value = []
     versions.value = []
@@ -116,6 +120,7 @@ export function useManagementConsole() {
     notice.value = ''
     pendingKeys.clear()
     observedIdentity = undefined
+    accountProof = undefined
   }
   function failure(cause: unknown) {
     const initialLogin =
@@ -126,23 +131,30 @@ export function useManagementConsole() {
     }
     error.value = initialLogin ? '' : cause instanceof Error ? cause.message : '无法完成管理操作'
   }
-  async function restoreSession() {
+  async function restoreSession(proof = accountProof) {
     const current = client.value,
       epoch = generation
     if (!current || current.context.transport === 'ipc') return
+    accountProof = proof
     try {
-      const session = await current.request<{ csrfToken: string }>('GET', '/session')
+      const session = await restoreManagementSession(current, proof)
       if (epoch !== generation) return
       current.setCsrfToken(session.csrfToken)
+      managementPrincipalId.value = session.principalId
+      loginRequired.value = false
     } catch (cause) {
-      if (epoch === generation) failure(cause)
+      if (epoch === generation) {
+        failure(cause)
+        loginRequired.value = true
+      }
     }
   }
-  async function refresh() {
+  const refresh = () => refreshCurrent(true)
+  async function refreshCurrent(recoverSession: boolean) {
     const current = client.value,
       epoch = generation,
       sequence = ++refreshSequence
-    if (!current) return
+    if (!current || loginRequired.value) return
     loading.value = true
     const valid = () => epoch === generation && sequence === refreshSequence
     try {
@@ -261,7 +273,18 @@ export function useManagementConsole() {
       loginRequired.value = false
       error.value = ''
     } catch (cause) {
-      if (valid()) failure(cause)
+      if (valid()) {
+        failure(cause)
+        if (
+          recoverSession &&
+          cause instanceof ManagementError &&
+          cause.status === 401 &&
+          current.context.transport === 'http'
+        ) {
+          await restoreSession()
+          if (valid() && !loginRequired.value) await refreshCurrent(false)
+        }
+      }
     } finally {
       if (valid()) loading.value = false
     }
@@ -274,18 +297,21 @@ export function useManagementConsole() {
     busy.value = true
     error.value = ''
     try {
-      const session = await current.request<{ csrfToken: string }>('POST', path, options)
+      const session = await current.request<{ csrfToken: string; principalId: string }>('POST', path, options)
       if (epoch !== generation) return
       current.setCsrfToken(session.csrfToken)
       loginRequired.value = false
+      managementPrincipalId.value = session.principalId
       await refresh()
+      managementSessionChanged()
     } catch (cause) {
       if (epoch === generation) failure(cause)
     } finally {
       if (epoch === generation) busy.value = false
     }
   }
-  const login = (code: string) => loginRequest('/session/bootstrap', { body: { code } })
+  const login = (code: string, remember = false) => loginRequest('/session/bootstrap', { body: { code, remember } })
+  const loginPasskey = (body: unknown) => loginRequest('/session/passkey', { body })
   const loginAccount = (accountProof: string) => loginRequest('/session/account', { accountProof })
   async function loadMoreAccounts() {
     const current = client.value,
@@ -325,6 +351,8 @@ export function useManagementConsole() {
       current.setCsrfToken(undefined)
       clear()
       loginRequired.value = true
+      notice.value = ''
+      managementSessionChanged()
     } catch (cause) {
       if (epoch === generation) failure(cause)
     }
@@ -396,6 +424,7 @@ export function useManagementConsole() {
   return {
     client,
     capabilities,
+    managementPrincipalId,
     servers,
     server,
     workspaceId,
@@ -423,6 +452,7 @@ export function useManagementConsole() {
     refresh,
     login,
     loginAccount,
+    loginPasskey,
     logout,
     mutate,
     read,

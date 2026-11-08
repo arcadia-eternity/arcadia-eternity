@@ -61,6 +61,7 @@
     "@element-plus/icons-vue": "^2.3.2",
     "@heroicons/vue": "^2.2.0",
     "@ruffle-rs/ruffle": "0.2.0-nightly.2026.3.15",
+    "@simplewebauthn/browser": "13.2.2",
     "@sinclair/typebox": "catalog:",
     "@tailwindcss/vite": "^4.2.1",
     "@tsparticles/vue3": "^3.0.1",
@@ -108,6 +109,7 @@
     "eslint": "^10.0.3",
     "eslint-plugin-vue": "^10.8.0",
     "jiti": "^2.6.1",
+    "jsdom": "^29.0.1",
     "npm": "11.17.0",
     "npm-run-all2": "^8.0.4",
     "playwright": "^1.58.2",
@@ -121,8 +123,7 @@
     "vite-plugin-vue-devtools": "^8.1.0",
     "vitest": "catalog:",
     "vue-tsc": "^3.2.5",
-    "wait-on": "^9.0.4",
-    "jsdom": "^29.0.1"
+    "wait-on": "^9.0.4"
   },
   "main": "electron/main.mjs",
   "build": {

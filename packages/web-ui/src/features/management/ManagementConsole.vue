@@ -18,17 +18,24 @@ import EnvironmentWorkspace from './EnvironmentWorkspace.vue'
 import ServerSettingsForm from './ServerSettingsForm.vue'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import ManagementCredentials from './ManagementCredentials.vue'
+import { suppressManagementAccount, allowManagementAccount } from '@/services/managementSession'
+import { startAuthentication } from '@simplewebauthn/browser'
+import ManagementSecurity from './ManagementSecurity.vue'
 import LiveManagement from './LiveManagement.vue'
 
 const props = defineProps<{
   initialTarget?: 'local' | 'server'
-  initialTab?: 'environments' | 'server' | 'network' | 'battles' | 'accounts' | 'tasks' | 'permissions'
+  initialTab?: 'environments' | 'server' | 'network' | 'battles' | 'accounts' | 'tasks' | 'security' | 'permissions'
+}>()
+const emit = defineEmits<{
+  navigate: [value: { target: 'local' | 'server'; tab: NonNullable<typeof props.initialTab> }]
 }>()
 const state = useManagementConsole()
 const auth = useAuthStore()
 const {
   client,
   capabilities,
+  managementPrincipalId,
   server,
   workspaceId,
   environments,
@@ -53,6 +60,11 @@ const {
 const localBridge = window.arcadiaDesktop?.managementRequest
 const target = ref<'local' | 'server'>(props.initialTarget ?? (localBridge ? 'local' : 'server'))
 const loginCode = ref('')
+const remember = ref(false)
+const accountLoginSupported = ref(false)
+const signingIn = ref(false)
+const sidebarOpen = ref(false)
+const passkeyAvailable = window.isSecureContext && !!window.PublicKeyCredential
 const environmentSaveSequence = ref(0)
 const serverName = ref('')
 const nameRevision = ref<number>()
@@ -98,7 +110,7 @@ async function deleteBinding(binding: ManagedBinding) {
   await state.mutate('DELETE', `${serverPath.value}/bindings/${encode(binding.id)}`, undefined, binding.revision)
 }
 const grantRole = ref<'viewer' | 'server-admin' | 'workspace-admin'>('viewer')
-const tab = ref<'environments' | 'server' | 'network' | 'tasks' | 'permissions' | 'accounts' | 'battles'>(
+const tab = ref<'environments' | 'server' | 'network' | 'tasks' | 'security' | 'permissions' | 'accounts' | 'battles'>(
   props.initialTab ?? 'environments',
 )
 let disposed = false
@@ -160,6 +172,26 @@ const manageGrants = computed(
   () => supported('grants') && (can('server', 'grants.manage') || can('workspace', 'grants.manage')),
 )
 const canActivateBinding = computed(() => can('server', 'publish') && can('workspace', 'environment.use'))
+const accessibleTabs = computed(() => {
+  const allowed: NonNullable<typeof props.initialTab>[] = []
+  if (can('server', 'read')) allowed.push('server', 'network')
+  if (can('server', 'read') || can('workspace', 'read')) allowed.push('environments')
+  if (supported('server.battles') && can('server', 'battles.read')) allowed.push('battles')
+  if (
+    (supported('server.players') && can('server', 'players.read')) ||
+    (supported('accounts') && can('server', 'accounts.manage'))
+  )
+    allowed.push('accounts')
+  if (supported('operations')) allowed.push('tasks')
+  if (manageGrants.value) allowed.push('permissions')
+  if (target.value === 'server') allowed.push('security')
+  return allowed
+})
+watch([accessibleTabs, tab], () => {
+  if (capabilities.value && !accessibleTabs.value.includes(tab.value) && accessibleTabs.value[0])
+    tab.value = accessibleTabs.value[0]
+})
+
 watch(manageGrants, allowed => {
   if (!allowed) issuedCredential.value = undefined
 })
@@ -172,6 +204,7 @@ async function changeTarget(next: 'local' | 'server') {
   clearTimeout(timer)
   target.value = next
   loginCode.value = ''
+  accountLoginSupported.value = false
   serverName.value = ''
   nameRevision.value = undefined
   bindingVersion.value = {}
@@ -201,8 +234,17 @@ async function changeTarget(next: 'local' | 'server') {
         }),
       )
     }
-    await state.restoreSession()
+    await state.restoreSession(accountLoginAvailable.value ? auth.session?.token : undefined)
     if (generation !== targetGeneration || disposed) return
+    if (loginRequired.value && client.value) {
+      try {
+        const available = await client.value.request<{ supportedFeatures: string[] }>('GET', '/capabilities')
+        if (generation !== targetGeneration || disposed) return
+        accountLoginSupported.value = available.supportedFeatures.includes('accounts')
+      } catch {
+        accountLoginSupported.value = accountLoginAvailable.value
+      }
+    }
     await state.refresh()
     if (generation !== targetGeneration || disposed) return
     serverName.value = server.value?.name ?? ''
@@ -222,16 +264,55 @@ function schedule(generation: number) {
   )
 }
 async function login() {
-  const code = loginCode.value
+  const code = loginCode.value.trim()
   loginCode.value = ''
-  await state.login(code)
+  await state.login(code, remember.value)
   if (server.value) serverName.value = server.value.name
 }
-async function loginAccount() {
-  if (!accountLoginAvailable.value || !auth.session) return
-  await state.loginAccount(auth.session.token)
-  if (server.value) serverName.value = server.value.name
+async function logout() {
+  if (client.value) suppressManagementAccount(client.value.context.endpoint)
+  await state.logout()
 }
+async function loginPasskey() {
+  const current = client.value
+  if (!current || signingIn.value || busy.value) return
+  signingIn.value = true
+  error.value = ''
+  const generation = targetGeneration
+  try {
+    const request = await current.request<{
+      options: Parameters<typeof startAuthentication>[0]['optionsJSON']
+      challengeId: string
+    }>('POST', '/session/passkey/options', { body: {} })
+    const response = await startAuthentication({ optionsJSON: request.options })
+    if (generation !== targetGeneration || disposed) return
+    await state.loginPasskey({ challengeId: request.challengeId, response, remember: remember.value })
+    if (server.value) serverName.value = server.value.name
+  } catch (cause) {
+    if (generation === targetGeneration) error.value = cause instanceof Error ? cause.message : '无法使用通行密钥登录'
+  } finally {
+    signingIn.value = false
+  }
+}
+watch(
+  () => auth.session?.token,
+  async token => {
+    if (!token || !loginRequired.value || !accountLoginAvailable.value) return
+    await state.restoreSession(token)
+    if (!disposed) await state.refresh()
+  },
+)
+watch(
+  () => props.initialTab,
+  value => {
+    if (value) tab.value = value
+  },
+)
+watch(tab, () => {
+  sidebarOpen.value = false
+  emit('navigate', { target: target.value, tab: tab.value })
+})
+watch(target, () => emit('navigate', { target: target.value, tab: tab.value }))
 async function saveEnvironment(document: ManagedEnvironmentDocument, expectedRevision: string | null) {
   const path = `${workspacePath.value}/environments${expectedRevision === null ? '' : `/${encode(document.id)}`}`
   const saved = await state.mutate(
@@ -463,56 +544,87 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="management-console">
+  <main class="management-console" :class="{ authenticated: !!capabilities }">
     <header class="management-heading">
-      <div>
-        <h1>服务器管理</h1>
+      <div class="management-context">
         <p>
           正在管理：<strong>{{ client?.context.label ?? '尚未连接' }}</strong>
         </p>
-        <details v-if="capabilities">
-          <summary>诊断信息</summary>
-          <small>服务器 {{ capabilities.serverId }} · 工作区 {{ capabilities.workspaceId }}</small>
-        </details>
+        <p v-if="capabilities" class="identity">
+          {{ target === 'local' ? '本机服主' : `管理身份：${managementPrincipalId || '已验证'}` }}
+        </p>
       </div>
       <div class="actions">
+        <button
+          v-if="capabilities"
+          class="sidebar-toggle"
+          :aria-expanded="sidebarOpen"
+          aria-controls="management-navigation"
+          @click="sidebarOpen = !sidebarOpen"
+        >
+          管理菜单
+        </button>
+        <RouterLink to="/servers">服务器列表</RouterLink><RouterLink to="/">返回游戏</RouterLink>
         <template v-if="localBridge"
           ><button :aria-pressed="target === 'local'" @click="changeTarget('local')">本机服务器</button
           ><button :aria-pressed="target === 'server'" @click="changeTarget('server')">当前部署服务器</button></template
-        ><button :disabled="loading" @click="state.refresh">刷新</button
-        ><button v-if="target === 'server' && capabilities && !loginRequired" @click="state.logout">退出管理</button>
+        ><button v-if="capabilities" :disabled="loading || busy" @click="state.refresh">
+          {{ loading ? '刷新中…' : '刷新' }}</button
+        ><button v-if="target === 'server' && capabilities && !loginRequired" @click="logout">退出管理</button>
       </div>
     </header>
-    <p class="context-note">管理目标独立于当前游玩连接。环境准备完成后，由你选择何时发布。</p>
+
     <p v-if="error" role="alert" class="message error">{{ error }}</p>
     <p v-if="notice" role="status" class="message success">{{ notice }}</p>
-    <form v-if="loginRequired && target === 'server'" class="login-card" @submit.prevent="login">
-      <h2>登录服务器管理</h2>
-      <p>使用服主从宿主命令行取得的一次性登录码。普通玩家登录不会自动获得管理权限。</p>
+    <section v-if="loginRequired && target === 'server'" class="login-card" aria-label="管理员登录">
+      <span class="login-eyebrow">ARCADIA ETERNITY</span>
+      <h2>登录管理后台</h2>
+      <p>使用管理员身份管理此服务器。</p>
+      <button class="primary login-primary" :disabled="busy || signingIn || !passkeyAvailable" @click="loginPasskey">
+        {{ signingIn ? '请在设备上完成验证…' : '使用通行密钥登录' }}
+      </button>
+      <p v-if="!passkeyAvailable" class="hint">通行密钥需要 HTTPS 或 localhost，以及支持此功能的浏览器。</p>
+      <RouterLink
+        v-if="accountLoginSupported || accountLoginAvailable"
+        class="account-login"
+        to="/account?returnTo=management"
+        @click="client && allowManagementAccount(client.context.endpoint)"
+        >使用已授权账户登录</RouterLink
+      >
+      <label class="remember-device"
+        ><input v-model="remember" type="checkbox" />记住此设备 30 天（仅限私人设备）</label
+      >
       <details class="bootstrap-help">
-        <summary>首次配置 / 恢复管理员访问</summary>
-        <p>在服务器主机上运行，使用这台服务器实际的数据目录：</p>
+        <summary>首次设置或恢复管理员访问</summary>
+        <p>在服务器主机上运行，使用实际数据目录：</p>
         <pre><code>node dist/cli.js server admin login-code --data-dir /path/to/server-data</code></pre>
         <p>
-          自定义工作区时追加相同的 <code>--workspace-root</code>。取返回结果中的 <code>code</code> 填入下方；有效期 10
-          分钟，只能使用一次。
+          自定义工作区时追加相同的 <code>--workspace-root</code>。登录码有效期 10
+          分钟，仅能使用一次。进入后可在“登录与安全”添加通行密钥。
         </p>
-        <p>此登录码建立 Owner 管理会话，并授予当前服务器及工作区权限。进入“访问权限”后可关联本服账户并授予所需角色。</p>
+        <form @submit.prevent="login">
+          <label
+            >一次性登录码<input
+              v-model="loginCode"
+              type="password"
+              required
+              autocomplete="off"
+              :disabled="busy || signingIn"
+          /></label>
+          <button class="primary" :disabled="busy || signingIn || !loginCode.trim()">
+            {{ busy ? '正在验证…' : '使用登录码进入' }}
+          </button>
+        </form>
       </details>
-      <label>一次性登录码<input v-model="loginCode" type="password" required autocomplete="off" /></label
-      ><button class="primary" :disabled="busy || !loginCode.trim()">登录管理</button>
-      <button v-if="accountLoginAvailable" type="button" :disabled="busy" @click="loginAccount">
-        使用当前已授权账户
-      </button>
-      <p v-else class="hint">已有授权的玩家可先在账户页登录，再回到这里使用本服账户。</p>
-    </form>
+    </section>
     <p v-if="loading && !capabilities" role="status">正在读取管理能力…</p>
     <template v-if="capabilities">
       <div v-if="capabilities.resourceRestrictions.length" class="message">
         <p v-for="(restriction, index) in capabilities.resourceRestrictions" :key="index">{{ restriction.reason }}</p>
       </div>
       <div class="console-layout">
-        <nav class="tabs" aria-label="管理功能">
+        <nav id="management-navigation" class="tabs" :class="{ open: sidebarOpen }" aria-label="管理功能">
+          <div class="sidebar-brand">ARCADIA <span>管理控制台</span></div>
           <button
             :disabled="!can('server', 'read')"
             :aria-current="tab === 'server' ? 'page' : undefined"
@@ -520,7 +632,11 @@ onBeforeUnmount(() => {
           >
             概览
           </button>
-          <button :aria-current="tab === 'environments' ? 'page' : undefined" @click="tab = 'environments'">
+          <button
+            :disabled="!accessibleTabs.includes('environments')"
+            :aria-current="tab === 'environments' ? 'page' : undefined"
+            @click="tab = 'environments'"
+          >
             运行环境
           </button>
           <button
@@ -561,8 +677,20 @@ onBeforeUnmount(() => {
           >
             访问权限
           </button>
+          <button
+            v-if="target === 'server'"
+            :aria-current="tab === 'security' ? 'page' : undefined"
+            @click="tab = 'security'"
+          >
+            登录与安全
+          </button>
         </nav>
         <div class="console-content">
+          <ManagementSecurity
+            v-if="tab === 'security' && target === 'server' && client"
+            :key="client.context.endpoint"
+            :client="client"
+          />
           <LiveManagement
             v-if="tab === 'battles' || tab === 'accounts'"
             :key="client?.context.endpoint + ':' + tab"
@@ -980,9 +1108,10 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .management-console {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 1.5rem;
+  width: 100%;
+  min-height: 100%;
+  padding: 0;
+  background: #f4f6fa;
   color: #0f172a;
 }
 .management-heading,
@@ -1205,6 +1334,174 @@ select {
   }
   .actions label {
     width: 100%;
+  }
+}
+
+.management-heading {
+  min-height: 64px;
+  padding: 0.65rem 1.5rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+}
+.management-context {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.management-context .identity {
+  padding-left: 1rem;
+  border-left: 1px solid #e2e8f0;
+}
+.management-heading p {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+.management-heading a {
+  color: #475569;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+}
+.management-console > .message {
+  margin: 1rem 2rem;
+}
+.console-layout {
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 0;
+  margin-top: 0;
+  min-height: calc(100vh - 64px);
+}
+.tabs {
+  background: #111d32;
+  color: #cbd5e1;
+  padding: 1.5rem 1rem;
+  border: 0;
+  top: 0;
+  height: calc(100vh - 64px);
+  border-radius: 0;
+}
+.tabs button {
+  border: 0;
+  background: transparent;
+  color: #cbd5e1;
+  padding: 0.8rem 1rem;
+}
+.tabs button:hover:not(:disabled):not([aria-current='page']) {
+  background: #20324e;
+}
+.tabs button[aria-current='page'] {
+  background: #2563eb;
+  color: white;
+}
+.sidebar-brand {
+  padding: 0.5rem 1rem 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.08em;
+}
+.sidebar-brand span {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.console-content {
+  padding: 2rem;
+}
+.login-card {
+  margin: 4rem auto;
+  width: calc(100% - 2rem);
+  max-width: 460px;
+  padding: 2rem;
+  box-shadow: 0 12px 40px #0f172a08;
+}
+.login-card h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.75rem 0;
+}
+.login-eyebrow {
+  color: #64748b;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+}
+.login-primary,
+.account-login {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 1rem 0;
+  padding: 0.8rem;
+  border-radius: 8px;
+}
+.account-login {
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  text-decoration: none;
+}
+.remember-device {
+  flex-direction: row;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.bootstrap-help {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1.5rem;
+  padding-top: 1.2rem;
+}
+.bootstrap-help summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.sidebar-toggle {
+  display: none;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+}
+@media (max-width: 800px) {
+  .console-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tabs {
+    display: none;
+    position: static;
+    height: auto;
+    flex-direction: column;
+  }
+  .tabs.open {
+    display: flex;
+  }
+  .sidebar-toggle {
+    display: inline-block;
+  }
+  .console-content {
+    padding: 1rem;
+  }
+  .management-heading {
+    padding: 0.75rem 1rem;
+  }
+  .management-context {
+    gap: 0.3rem 0.75rem;
+  }
+  .management-context p {
+    margin: 0;
+  }
+  .management-context .identity {
+    padding: 0;
+    border: 0;
+  }
+  .management-console {
+    padding: 0;
+  }
+  .management-console > .message {
+    margin: 1rem;
   }
 }
 </style>

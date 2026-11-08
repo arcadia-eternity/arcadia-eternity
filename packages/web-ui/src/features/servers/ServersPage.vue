@@ -198,17 +198,15 @@ async function copy(value: string) {
           <button v-if="isDesktop" type="button" :disabled="!address.trim()" @click="website(address)">
             在浏览器中打开
           </button>
-          <button
-            v-if="isDesktop"
-            type="button"
-            :disabled="connecting || !address.trim()"
-            @click="remote(address, 'management')"
-          >
-            管理登录
-          </button>
+          <details v-if="isDesktop" class="management-menu">
+            <summary>更多</summary>
+            <button type="button" :disabled="connecting || !address.trim()" @click="remote(address, 'management')">
+              管理员登录
+            </button>
+          </details>
         </div>
         <p class="server-small">
-          客户端连接会打开独立窗口；在浏览器中打开则使用该服务器的网页。管理登录不切换游玩连接。
+          客户端连接会打开独立窗口；在浏览器中打开则使用该服务器的网页。管理员登录不切换游玩连接。
         </p>
       </form>
       <p v-if="!isDesktop" class="server-small">当前网页只连接本站配置的服务器，不提供切服。</p>
@@ -222,15 +220,21 @@ async function copy(value: string) {
             {{ isDesktop ? '用客户端连接' : '进入大厅' }}
           </button>
           <button v-if="isDesktop" @click="website(getBackendOrigin())">在浏览器中打开</button>
-          <button :disabled="connecting" @click="remote(getBackendOrigin(), 'management')">管理登录</button>
+          <details class="management-menu">
+            <summary>更多</summary>
+            <button :disabled="connecting" @click="remote(getBackendOrigin(), 'management')">管理员登录</button>
+          </details>
         </div>
       </div>
       <div v-for="url in recent.filter(item => item !== getBackendOrigin())" :key="url" class="server-row server-entry">
         <span class="server-address">{{ url }}</span>
         <div class="server-actions">
           <button :disabled="connecting" @click="remote(url)">用客户端连接</button
-          ><button @click="website(url)">在浏览器中打开</button
-          ><button :disabled="connecting" @click="remote(url, 'management')">管理登录</button>
+          ><button @click="website(url)">在浏览器中打开</button>
+          <details class="management-menu">
+            <summary>更多</summary>
+            <button :disabled="connecting" @click="remote(url, 'management')">管理员登录</button>
+          </details>
         </div>
       </div>
     </section>
@@ -261,7 +265,7 @@ async function copy(value: string) {
           <button class="server-primary" :disabled="connecting || !client.initComplete" @click="enter">
             进入本机大厅
           </button>
-          <RouterLink class="server-link" to="/management?target=local&tab=server">管理服务器</RouterLink>
+          <RouterLink class="server-link" to="/management?target=local&tab=server">管理后台</RouterLink>
           <RouterLink class="server-link" to="/management?target=local&tab=network">网络与容量</RouterLink>
           <RouterLink to="/management?target=local&tab=environments">玩法与版本</RouterLink>
           <button @click="operate({ action: 'stop' })">等待对局结束后停止</button>

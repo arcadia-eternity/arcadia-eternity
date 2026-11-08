@@ -1,3 +1,11 @@
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+  type RegistrationResponseJSON,
+  type AuthenticationResponseJSON,
+} from '@simplewebauthn/server'
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import type { DurableStorage, StorageTransaction, StoredRecord } from '@arcadia-eternity/database'
 
@@ -27,9 +35,13 @@ interface Credential {
   /** Public management handle; storage keys remain token digests and never leave this module. */
   publicId?: string
   principalId: string
-  kind: 'bootstrap' | 'session' | 'service'
+  kind: 'bootstrap' | 'session' | 'service' | 'passkey' | 'device'
   expiresAt: number
   createdAt: number
+  parentId?: string
+  label?: string
+  secretHash?: string
+  passkey?: { id: string; publicKey: string; counter: number; rpId: string }
   csrfHash?: string
   permissions?: ManagementPermission[]
 }
@@ -242,6 +254,7 @@ export class ManagementAuth {
       credential.value.expiresAt <= this.now()
     )
       return fail('MANAGEMENT_UNAUTHENTICATED', 401)
+    await this.validateParent(tx, credential.value)
     await this.activePrincipal(tx, actor.principalId)
     return credential
   }
@@ -263,11 +276,12 @@ export class ManagementAuth {
     if (!validText(token, 256)) return fail('MANAGEMENT_UNAUTHENTICATED', 401)
     const credentialId = hash(token)
     const credential = await this.store.get<Credential>('credentials', credentialId)
-    if (!credential || credential.value.kind === 'bootstrap') return fail('MANAGEMENT_UNAUTHENTICATED', 401)
+    if (!credential || !['session', 'service'].includes(credential.value.kind))
+      return fail('MANAGEMENT_UNAUTHENTICATED', 401)
     const actor: ManagementActor = {
       principalId: credential.value.principalId,
       credentialId,
-      kind: credential.value.kind,
+      kind: credential.value.kind as ManagementActor['kind'],
     }
     await this.credential(this.store, actor)
     return actor
@@ -552,6 +566,286 @@ export class ManagementAuth {
       await this.audit(tx, actor.principalId, 'credential.revoke', credential.value.principalId, {
         credentialId: credential.value.publicId ?? id,
       })
+    })
+  }
+
+  private readonly challenges = new Map<
+    string,
+    { challenge: string; origin: string; rpId: string; expiresAt: number; actor?: ManagementActor }
+  >()
+
+  private async validateParent(tx: StorageTransaction, value: Credential, depth = 0): Promise<void> {
+    if (!value.parentId) return
+    if (depth > 2) fail('MANAGEMENT_UNAUTHENTICATED', 401)
+    const parent = await tx.get<Credential>('credentials', value.parentId)
+    if (
+      !parent ||
+      parent.value.principalId !== value.principalId ||
+      parent.value.expiresAt <= this.now() ||
+      !['device', 'passkey'].includes(parent.value.kind)
+    )
+      fail('MANAGEMENT_UNAUTHENTICATED', 401)
+    await this.validateParent(tx, parent!.value, depth + 1)
+  }
+
+  private async loginSession(
+    tx: StorageTransaction,
+    principalId: string,
+    allowed: ManagementPermission[],
+    parentId?: string,
+  ) {
+    await this.activePrincipal(tx, principalId)
+    const grants = (await tx.list<ManagementGrant>('grants')).filter(row => row.value.principalId === principalId)
+    if (
+      !allowed.some(permission =>
+        permission.actions.some(action => grants.some(grant => matches(grant.value, permission.scope, action))),
+      )
+    )
+      fail('MANAGEMENT_FORBIDDEN')
+    const token = secret(),
+      csrfToken = sessionCsrf(token),
+      expiresAt = this.now() + this.sessionTtlMs
+    const actor: ManagementActor = { principalId, credentialId: hash(token), kind: 'session' }
+    await tx.create<Credential>('credentials', {
+      id: actor.credentialId,
+      scope: principalId,
+      value: {
+        principalId,
+        kind: 'session',
+        createdAt: this.now(),
+        expiresAt,
+        csrfHash: hash(csrfToken),
+        permissions: allowed,
+        parentId,
+      },
+    })
+    return { token, csrfToken, expiresAt, actor }
+  }
+
+  private challenge(origin: string, challenge: string, actor?: ManagementActor) {
+    for (const [id, value] of this.challenges) if (value.expiresAt <= this.now()) this.challenges.delete(id)
+    if (this.challenges.size >= 4096) fail('LOGIN_RATE_LIMITED', 429)
+    const id = randomUUID()
+    this.challenges.set(id, {
+      origin,
+      rpId: new URL(origin).hostname,
+      challenge,
+      actor,
+      expiresAt: this.now() + 300_000,
+    })
+    return id
+  }
+
+  private takeChallenge(id: string, origin: string, actor?: ManagementActor) {
+    const value = this.challenges.get(id)
+    this.challenges.delete(id)
+    if (
+      !value ||
+      value.expiresAt <= this.now() ||
+      value.origin !== origin ||
+      value.actor?.credentialId !== actor?.credentialId
+    )
+      return fail('PASSKEY_CHALLENGE_INVALID', 401)
+    return value
+  }
+
+  async passkeyRegistrationOptions(actor: ManagementActor, origin: string) {
+    await this.credential(this.store, actor)
+    if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
+    const principal = await this.activePrincipal(this.store, actor.principalId)
+    const options = await generateRegistrationOptions({
+      rpName: 'Arcadia 管理后台',
+      rpID: new URL(origin).hostname,
+      userName: principal!.value.displayName,
+      userID: Buffer.from(hash(actor.principalId), 'hex'),
+      attestationType: 'none',
+      authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
+      excludeCredentials: (await this.store.list<Credential>('credentials', actor.principalId))
+        .filter(row => row.value.kind === 'passkey' && row.value.passkey?.rpId === new URL(origin).hostname)
+        .map(row => ({ id: row.value.passkey!.id })),
+    })
+    return { options, challengeId: this.challenge(origin, options.challenge, actor) }
+  }
+
+  async registerPasskey(
+    actor: ManagementActor,
+    origin: string,
+    input: { challengeId: string; response: RegistrationResponseJSON; label: string },
+  ) {
+    const challenge = this.takeChallenge(input.challengeId, origin, actor)
+    if (!validText(input.label, 80)) fail('INVALID_CREDENTIAL', 422)
+    let verification
+    try {
+      verification = await verifyRegistrationResponse({
+        response: input.response,
+        expectedChallenge: challenge.challenge,
+        expectedOrigin: origin,
+        expectedRPID: challenge.rpId,
+        requireUserVerification: true,
+      })
+    } catch {
+      return fail('PASSKEY_INVALID', 401)
+    }
+    if (!verification.verified || !verification.registrationInfo) return fail('PASSKEY_INVALID', 401)
+    const key = verification.registrationInfo.credential
+    const allowed = await this.effectivePermissions(actor)
+    await this.store.transaction(async tx => {
+      await this.credential(tx, actor)
+      if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
+      // Save the registering session's ceiling; a limited session cannot acquire broader login rights.
+      await tx.create<Credential>('credentials', {
+        id: `passkey:${hash(key.id)}`,
+        scope: actor.principalId,
+        value: {
+          publicId: randomUUID(),
+          principalId: actor.principalId,
+          kind: 'passkey',
+          label: input.label,
+          createdAt: this.now(),
+          expiresAt: Number.MAX_SAFE_INTEGER,
+          permissions: allowed,
+          passkey: {
+            id: key.id,
+            publicKey: Buffer.from(key.publicKey).toString('base64url'),
+            counter: key.counter,
+            rpId: challenge.rpId,
+          },
+        },
+      })
+      await this.audit(tx, actor.principalId, 'passkey.create', 'management', { label: input.label })
+    })
+  }
+
+  async passkeyLoginOptions(origin: string) {
+    const options = await generateAuthenticationOptions({
+      rpID: new URL(origin).hostname,
+      userVerification: 'required',
+    })
+    return { options, challengeId: this.challenge(origin, options.challenge) }
+  }
+
+  async loginPasskey(origin: string, input: { challengeId: string; response: AuthenticationResponseJSON }) {
+    const challenge = this.takeChallenge(input.challengeId, origin)
+    if (!input.response || !validText(input.response.id, 2048)) return fail('PASSKEY_INVALID', 401)
+    const id = `passkey:${hash(input.response.id)}`
+    const row = await this.store.get<Credential>('credentials', id)
+    const key = row?.value.passkey
+    if (!row || row.value.kind !== 'passkey' || !key || key.rpId !== challenge.rpId) return fail('PASSKEY_INVALID', 401)
+    let verification
+    try {
+      verification = await verifyAuthenticationResponse({
+        response: input.response,
+        expectedChallenge: challenge.challenge,
+        expectedOrigin: origin,
+        expectedRPID: challenge.rpId,
+        requireUserVerification: true,
+        credential: {
+          id: key.id,
+          publicKey: new Uint8Array(Buffer.from(key.publicKey, 'base64url')),
+          counter: key.counter,
+        },
+      })
+    } catch {
+      return fail('PASSKEY_INVALID', 401)
+    }
+    if (!verification.verified) return fail('PASSKEY_INVALID', 401)
+    return this.store.transaction(async tx => {
+      await tx.replace('credentials', row.id, row.revision, {
+        ...row.value,
+        passkey: { ...key, counter: verification.authenticationInfo.newCounter },
+      })
+      const session = await this.loginSession(tx, row.value.principalId, row.value.permissions ?? [], id)
+      await this.audit(tx, row.value.principalId, 'passkey.login', 'management', {})
+      return session
+    })
+  }
+
+  async rememberDevice(actor: ManagementActor, label: string) {
+    if (!validText(label, 80)) fail('INVALID_CREDENTIAL', 422)
+    const allowed = await this.effectivePermissions(actor)
+    return this.store.transaction(async tx => {
+      const current = await this.credential(tx, actor)
+      if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
+      const id = randomUUID(),
+        token = `${id}.${secret()}`,
+        expiresAt = this.now() + 30 * 86400_000
+      await tx.create<Credential>('credentials', {
+        id: `device:${id}`,
+        scope: actor.principalId,
+        value: {
+          publicId: id,
+          principalId: actor.principalId,
+          kind: 'device',
+          label,
+          createdAt: this.now(),
+          expiresAt,
+          secretHash: hash(token),
+          permissions: allowed,
+          parentId: current.value.parentId,
+        },
+      })
+      await tx.replace('credentials', current.id, current.revision, { ...current.value, parentId: `device:${id}` })
+      await this.audit(tx, actor.principalId, 'device.remember', 'management', { deviceId: id })
+      return { token, expiresAt }
+    })
+  }
+
+  async refreshDevice(token: string) {
+    if (!validText(token, 256)) return fail('MANAGEMENT_UNAUTHENTICATED', 401)
+    const id = `device:${token.split('.')[0]}`
+    return this.store.transaction(async tx => {
+      const row = await tx.get<Credential>('credentials', id)
+      if (
+        !row ||
+        row.value.kind !== 'device' ||
+        row.value.expiresAt <= this.now() ||
+        row.value.secretHash !== hash(token)
+      )
+        return fail('MANAGEMENT_UNAUTHENTICATED', 401)
+      await this.validateParent(tx, row.value)
+      const rotated = `${row.value.publicId}.${secret()}`
+      await tx.replace('credentials', id, row.revision, { ...row.value, secretHash: hash(rotated) })
+      const session = await this.loginSession(tx, row.value.principalId, row.value.permissions ?? [], id)
+      return { session, token: rotated, expiresAt: row.value.expiresAt }
+    })
+  }
+
+  async loginMethods(actor: ManagementActor) {
+    await this.credential(this.store, actor)
+    if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
+    return (await this.store.list<Credential>('credentials', actor.principalId))
+      .filter(row => ['device', 'passkey'].includes(row.value.kind) && row.value.expiresAt > this.now())
+      .map(row => ({
+        id: row.value.publicId!,
+        kind: row.value.kind,
+        label: row.value.label,
+        createdAt: row.value.createdAt,
+        expiresAt: row.value.kind === 'device' ? row.value.expiresAt : undefined,
+      }))
+  }
+
+  async revokeLoginMethod(actor: ManagementActor, publicId: string) {
+    await this.store.transaction(async tx => {
+      await this.credential(tx, actor)
+      if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
+      const row = (await tx.list<Credential>('credentials', actor.principalId)).find(
+        row => ['device', 'passkey'].includes(row.value.kind) && row.value.publicId === publicId,
+      )
+      if (!row) return fail('CREDENTIAL_NOT_FOUND', 404)
+      for (const permission of row.value.permissions ?? [])
+        for (const action of permission.actions) await this.authorizeIn(tx, actor, permission.scope, action)
+      await tx.delete('credentials', row.id, row.revision)
+      await this.audit(tx, actor.principalId, 'login-method.revoke', 'management', { credentialId: publicId })
+    })
+  }
+
+  async logoutSession(actor: ManagementActor) {
+    await this.store.transaction(async tx => {
+      const row = await this.credential(tx, actor)
+      if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
+      const parent = row.value.parentId ? await tx.get<Credential>('credentials', row.value.parentId) : undefined
+      if (parent?.value.kind === 'device') await tx.delete('credentials', parent.id, parent.revision)
+      await tx.delete('credentials', row.id, row.revision)
     })
   }
 

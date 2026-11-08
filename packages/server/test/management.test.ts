@@ -202,6 +202,74 @@ describe('unified management HTTP and durable environment publication', () => {
     const repeated = await env.request(route, 'POST', undefined, { 'Idempotency-Key': 'one-ended-match' })
     expect(repeated.body.id).toBe(first.body.id)
   })
+  it('rejects forged cookies, unsigned admin claims and guest tokens over real HTTP', async () => {
+    const env = await setup()
+    const guestResponse = await fetch(env.url.replace('/api/management/v1', '/api/v1/sessions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: { id: 'owner', name: 'Administrator' } }),
+    })
+    const guest = await guestResponse.json()
+    expect(guestResponse.status).toBe(201)
+    for (const headers of [
+      { Cookie: 'arcadia_management=ae_mgt_forged' },
+      { Authorization: 'Bearer eyJhbGciOiJub25lIn0.eyJyb2xlIjoiYWRtaW4iLCJhY2NvdW50SWQiOiJvd25lciJ9.' },
+      { Authorization: `Bearer ${guest.token}` },
+      { 'X-User-Id': 'owner', 'X-Role': 'admin' },
+    ] as Record<string, string>[]) {
+      expect((await fetch(env.url + '/servers', { headers })).status).toBe(401)
+      expect((await fetch(env.url + '/servers/managed-test/drain', { method: 'POST', headers })).status).toBe(401)
+    }
+    const exchange = await fetch(env.url + '/session/account', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${guest.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId: 'owner', principalId: 'owner', role: 'admin' }),
+    })
+    expect(exchange.status).toBe(401)
+    expect((await exchange.json()).error.code).toBe('VERIFIED_ACCOUNT_REQUIRED')
+  })
+
+  it('does not spend the login budget on anonymous session discovery', async () => {
+    const env = await setup()
+    for (let i = 0; i < 15; i++) {
+      const response = await fetch(env.url + '/session/refresh', {
+        method: 'POST',
+        headers: { Origin: 'http://admin.test' },
+      })
+      expect(response.status).toBe(401)
+    }
+    await env.login()
+  })
+
+  it('issues HttpOnly remembered-device cookies, requires an origin to refresh and clears them at logout', async () => {
+    const env = await setup()
+    const code = await env.app.management!.auth.issueBootstrapCode(env.app.management!.ownerPermissions)
+    const login = await env.request('/session/bootstrap', 'POST', { code: code.code, remember: true })
+    const cookies = login.response.headers.getSetCookie()
+    expect(cookies).toHaveLength(2)
+    expect(cookies.every(value => value.includes('HttpOnly'))).toBe(true)
+    const device = cookies.find(value => value.startsWith('arcadia_management_device='))!.split(';')[0]
+    expect((await fetch(env.url + '/session/refresh', { method: 'POST', headers: { Cookie: device } })).status).toBe(
+      403,
+    )
+    const refresh = await env.request('/session/refresh', 'POST', {}, { Cookie: device })
+    expect(refresh.response.status).toBe(200)
+    const renewed = refresh.response.headers
+      .getSetCookie()
+      .map(value => value.split(';')[0])
+      .join('; ')
+    expect((await env.request('/session/refresh', 'POST', {}, { Cookie: device })).response.status).toBe(401)
+    const logout = await env.request(
+      '/session/logout',
+      'POST',
+      {},
+      { Cookie: renewed, 'X-CSRF-Token': refresh.body.csrfToken },
+    )
+    expect(logout.response.status).toBe(200)
+    expect(logout.response.headers.getSetCookie().every(value => value.includes('Max-Age=0'))).toBe(true)
+    expect((await env.request('/session/refresh', 'POST', {}, { Cookie: renewed })).response.status).toBe(401)
+  })
+
   it('keeps guest gameplay independent from authenticated management, enforces CSRF and scope', async () => {
     const env = await setup()
     const anonymous = await fetch(env.url + '/servers')
@@ -216,6 +284,7 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(
       (await env.request('/servers/managed-test/drain', 'POST', {}, { Origin: 'https://evil.test' })).response.status,
     ).toBe(403)
+    expect((await env.request('/passkeys/options', 'POST', {}, { 'X-CSRF-Token': 'forged' })).response.status).toBe(403)
     expect((await env.request('/session')).body.csrfToken).toBeTruthy()
     expect((await env.request('/servers/managed-test/drain', 'POST')).body.draining).toBe(true)
     expect((await env.request('/servers/managed-test/drain', 'POST', { draining: false })).body.draining).toBe(false)

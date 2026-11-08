@@ -23,7 +23,7 @@ const cookieToken = (request: Request, name: string) => {
     .map(part => part.trim())
     .find(part => part.startsWith(prefix))
     ?.slice(prefix.length)
-  return value && /^[A-Za-z0-9_-]{1,256}$/.test(value) ? value : undefined
+  return value && /^[A-Za-z0-9_.-]{1,256}$/.test(value) ? value : undefined
 }
 const bearerToken = (request: Request) => {
   const value = request.headers.authorization
@@ -99,6 +99,19 @@ export function mountManagementApi(
   const attempts = new Map<string, { count: number; until: number }>()
   const cookie = (value: string, maxAge: number) =>
     `${cookieName}=${value}; Path=${PREFIX}; HttpOnly; SameSite=${sameSite}; Max-Age=${maxAge}${secure ? '; Secure' : ''}${partitioned ? '; Partitioned' : ''}`
+  const deviceCookie = (value: string, maxAge: number) =>
+    cookie(value, maxAge).replace(`${cookieName}=`, `${cookieName}_device=`)
+  const passkeyOrigin = (req: Request) => {
+    const origin = req.headers.origin
+    if (!origin || !options.acceptsOrigin(req)) throw new ManagementAuthError('ORIGIN_REQUIRED')
+    const url = new URL(origin)
+    if (
+      url.origin !== origin ||
+      (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)))
+    )
+      throw new ManagementAuthError('PASSKEY_HTTPS_REQUIRED', 403)
+    return origin
+  }
   const sessionBody = (session: Omit<ManagementSession, 'token'>) => ({
     principalId: session.actor.principalId,
     csrfToken: session.csrfToken,
@@ -123,23 +136,57 @@ export function mountManagementApi(
         throw new ManagementAuthError('MANAGEMENT_TLS_REQUIRED', 403)
       const path = req.path
       const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
-      if (req.method === 'POST' && ['/session/bootstrap', '/session/account'].includes(path)) {
+      if (
+        req.method === 'POST' &&
+        [
+          '/session/bootstrap',
+          '/session/account',
+          '/session/refresh',
+          '/session/passkey/options',
+          '/session/passkey',
+        ].includes(path)
+      ) {
+        const refreshing = path === '/session/refresh'
+        // Passive discovery without a saved device is not a failed login attempt.
+        if (refreshing && !cookieToken(req, `${cookieName}_device`))
+          throw new ManagementAuthError('MANAGEMENT_UNAUTHENTICATED', 401)
         await bodyParser(req, res)
-        const key = req.socket.remoteAddress ?? 'unknown',
+        const key = `${req.socket.remoteAddress ?? 'unknown'}:${refreshing ? 'refresh' : 'login'}`,
           now = Date.now()
         for (const [address, entry] of attempts) if (entry.until <= now) attempts.delete(address)
         const attempt = attempts.get(key) ?? { count: 0, until: now + 60_000 }
-        if (attempt.count >= 10 || attempts.size > 4096) throw new ManagementAuthError('LOGIN_RATE_LIMITED', 429)
+        if (attempt.count >= (refreshing ? 60 : 10) || attempts.size > 4096)
+          throw new ManagementAuthError('LOGIN_RATE_LIMITED', 429)
         attempt.count++
         attempts.set(key, attempt)
+        if (path === '/session/passkey/options') {
+          res.json(await service.auth.passkeyLoginOptions(passkeyOrigin(req)))
+          return
+        }
+        if (path === '/session/refresh') {
+          if (!req.headers.origin) throw new ManagementAuthError('ORIGIN_REQUIRED')
+          const refreshed = await service.auth.refreshDevice(cookieToken(req, `${cookieName}_device`) ?? '')
+          res.setHeader('Set-Cookie', [
+            cookie(refreshed.session.token, Math.floor((refreshed.session.expiresAt - now) / 1000)),
+            deviceCookie(refreshed.token, Math.floor((refreshed.expiresAt - now) / 1000)),
+          ])
+          res.json(sessionBody(refreshed.session))
+          return
+        }
         let session: ManagementSession
         if (path === '/session/bootstrap') session = await service.auth.exchangeBootstrap(req.body?.code)
+        else if (path === '/session/passkey') session = await service.auth.loginPasskey(passkeyOrigin(req), req.body)
         else {
           const player = options.sessions.authenticate(bearerToken(req))
           if (player?.principal.kind !== 'account') throw new ManagementAuthError('VERIFIED_ACCOUNT_REQUIRED', 401)
           session = await service.auth.exchangeAccount(service.options.serverId, player.principal.accountId)
         }
-        res.setHeader('Set-Cookie', cookie(session.token, Math.max(0, Math.floor((session.expiresAt - now) / 1000))))
+        const cookies = [cookie(session.token, Math.max(0, Math.floor((session.expiresAt - now) / 1000)))]
+        if (req.body?.remember === true) {
+          const device = await service.auth.rememberDevice(session.actor, '浏览器设备')
+          cookies.push(deviceCookie(device.token, Math.floor((device.expiresAt - now) / 1000)))
+        } else cookies.push(deviceCookie('', 0))
+        res.setHeader('Set-Cookie', cookies)
         res.json(sessionBody(session))
         return
       }
@@ -169,12 +216,30 @@ export function mountManagementApi(
         return
       }
       if (req.method === 'POST' && path === '/session/logout') {
-        await service.auth.revokeCredential(actor, actor.credentialId)
-        res.setHeader('Set-Cookie', cookie('', 0))
+        await service.auth.logoutSession(actor)
+        res.setHeader('Set-Cookie', [cookie('', 0), deviceCookie('', 0)])
         res.json({ loggedOut: true })
         return
       }
       if (unsafe && bearer && actor.kind !== 'service') throw new ManagementAuthError('SERVICE_CREDENTIAL_REQUIRED')
+      if (path === '/login-methods' && req.method === 'GET') {
+        res.json({ methods: await service.auth.loginMethods(actor) })
+        return
+      }
+      if (path.startsWith('/login-methods/') && req.method === 'DELETE') {
+        await service.auth.revokeLoginMethod(actor, decodeURIComponent(path.slice('/login-methods/'.length)))
+        res.json({ revoked: true })
+        return
+      }
+      if (path === '/passkeys/options' && req.method === 'POST') {
+        res.json(await service.auth.passkeyRegistrationOptions(actor, passkeyOrigin(req)))
+        return
+      }
+      if (path === '/passkeys' && req.method === 'POST') {
+        await service.auth.registerPasskey(actor, passkeyOrigin(req), req.body)
+        res.json({ registered: true })
+        return
+      }
       if (service.transfers && req.method === 'GET' && /^\/transfers\/[a-f0-9]{64}$/.test(path)) {
         const artifact = await service.transfers.download(actor, path.split('/')[2])
         res.once('close', () => {
