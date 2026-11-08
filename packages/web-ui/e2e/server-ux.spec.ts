@@ -109,11 +109,12 @@ for (const width of [1280, 390]) {
     ])
     expect(await page.locator('main.server-page').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('server-running.png'), fullPage: true })
-    await page.getByRole('link', { name: '管理服务器', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '服务器管理', exact: true })).toBeVisible()
+    await page.getByRole('link', { name: '管理后台', exact: true }).click()
+    if (width < 800) await page.getByRole('button', { name: '管理菜单', exact: true }).click()
+    await expect(page.getByRole('navigation', { name: '管理功能' })).toBeVisible()
     await expect(page.getByRole('heading', { name: '朋友联机', exact: true })).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath('management.png'), fullPage: true })
-    await page.getByRole('link', { name: '← 返回服务器', exact: true }).click()
+    await page.getByRole('link', { name: '服务器列表', exact: true }).click()
     await page.getByRole('button', { name: '等待对局结束后停止', exact: true }).click()
     await expect(page.getByRole('button', { name: '使用已保存配置启动', exact: true })).toBeVisible()
   })
@@ -121,7 +122,8 @@ for (const width of [1280, 390]) {
 test('joining and managing a remote server use separate explicit intents', async ({ page }) => {
   await page.goto('/servers')
   await page.getByLabel('服务器地址', { exact: true }).fill('https://friends.example.com')
-  await page.getByRole('button', { name: '管理登录', exact: true }).first().click()
+  await page.locator('details.management-menu').first().locator('summary').click()
+  await page.getByRole('button', { name: '管理员登录', exact: true }).first().click()
   expect(await page.evaluate(() => (window as unknown as { serverUxCalls: unknown[] }).serverUxCalls)).toEqual([
     { url: 'https://friends.example.com', mode: 'management' },
   ])

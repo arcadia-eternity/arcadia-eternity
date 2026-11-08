@@ -101,13 +101,14 @@ async function login(page: Page, directory: string, origin: string) {
   const credential = await hostCommand(directory, ['admin', 'login-code', '--data-dir', directory])
   const identity = { serverId: String(credential.serverId), workspaceId: String(credential.workspaceId) }
   await page.goto(origin + '/management?tab=environments')
-  await expect(page.getByRole('heading', { name: '登录服务器管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
+  await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
   await page.getByLabel('一次性登录码', { exact: true }).fill(credential.code)
   delete credential.code
-  await page.getByRole('button', { name: '登录管理', exact: true }).click()
+  await page.getByRole('button', { name: '使用登录码进入', exact: true }).click()
   await expect(page.getByRole('button', { name: '新建环境', exact: true })).toBeEnabled()
-  await expect(page.locator('.management-heading')).toContainText(identity.serverId)
-  await expect(page.locator('.management-heading')).toContainText(identity.workspaceId)
+  const verified = await page.evaluate(async () => (await fetch('/api/management/v1/session')).json())
+  expect(verified).toMatchObject(identity)
   return identity
 }
 
@@ -271,7 +272,7 @@ test('paired production management backs up, revokes service credentials and ret
     await expect(issued).not.toBeVisible()
 
     await page.getByRole('button', { name: '退出管理', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '登录服务器管理', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
     const port = server.port
     await stopServer(server.child)
     server = await startServer(directory, port)

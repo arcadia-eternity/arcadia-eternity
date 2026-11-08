@@ -5,10 +5,31 @@ export interface ManagementSessionInfo {
   csrfToken: string
   expiresAt: number
 }
+const discoveryKey = (endpoint: string) => `arcadia-management-known:${endpoint}`
+// This is only a network-discovery hint, never authorization. The server still verifies every session.
+export function hasKnownManagementSession(endpoint: string) {
+  try {
+    return localStorage.getItem(discoveryKey(endpoint)) === '1'
+  } catch {
+    return false
+  }
+}
+export function rememberManagementDiscovery(endpoint: string) {
+  try {
+    localStorage.setItem(discoveryKey(endpoint), '1')
+  } catch {
+    /* Discovery can still start from the login page. */
+  }
+}
 const signedOut = new Set<string>()
 const logoutKey = (endpoint: string) => `arcadia-management-signed-out:${endpoint}`
 export function suppressManagementAccount(endpoint: string) {
   signedOut.add(endpoint)
+  try {
+    localStorage.removeItem(discoveryKey(endpoint))
+  } catch {
+    /* The signed-out preference remains active. */
+  }
   try {
     sessionStorage.setItem(logoutKey(endpoint), '1')
   } catch {
@@ -64,6 +85,7 @@ export async function restoreManagementSession(client: ManagementClient, account
       client.request<ManagementSessionInfo>('POST', '/session/account', { accountProof, body: {} }),
     )
   }
+  rememberManagementDiscovery(key)
   client.setCsrfToken(session.csrfToken)
   return session
 }

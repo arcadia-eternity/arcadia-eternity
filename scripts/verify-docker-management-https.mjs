@@ -447,8 +447,9 @@ async function validate() {
       // refreshes must succeed. Requests after logout must lose access again.
       if (
         response.status() === 401 &&
-        response.request().method() === 'GET' &&
-        ((phase === 'anonymous' && /^\/api\/management\/v1\/(session|servers|operations|credentials)$/.test(path)) ||
+        ['GET', 'POST'].includes(response.request().method()) &&
+        ((phase === 'anonymous' &&
+          /^\/api\/management\/v1\/(session|session\/refresh|servers|operations|credentials)$/.test(path)) ||
           (phase === 'logout' && path.startsWith('/api/management/v1/')))
       ) {
         expectedAuthenticationResponses.push({ phase, path, status: response.status() })
@@ -462,12 +463,16 @@ async function validate() {
     assert.equal(issued.serverId, serverId)
     evidence.identity = { serverId, workspaceId: issued.workspaceId }
     await page.goto(origin + '/management?tab=environments')
-    await expect(page.getByRole('heading', { name: '登录服务器管理', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
+    await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
     await page.getByLabel('一次性登录码', { exact: true }).fill(issued.code)
-    await page.getByRole('button', { name: '登录管理', exact: true }).click()
+    await page.getByRole('button', { name: '使用登录码进入', exact: true }).click()
     await expect(page.getByRole('button', { name: '新建环境', exact: true })).toBeEnabled()
     authenticationPhase = 'authenticated'
-    await expect(page.locator('.management-heading')).toContainText(serverId)
+    assert.equal(
+      await page.evaluate(async () => (await (await fetch('/api/management/v1/session')).json()).serverId),
+      serverId,
+    )
     const cookies = await context.cookies(origin + '/api/management/v1/session')
     const cookie = cookies.find(item => item.name === 'arcadia_management')
     assert.ok(cookie, 'The browser must accept the management cookie')
@@ -606,7 +611,7 @@ async function validate() {
 
     authenticationPhase = 'logout'
     await page.getByRole('button', { name: '退出管理', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '登录服务器管理', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
     assert.equal(
       (await context.cookies(origin + '/api/management/v1/session')).some(item => item.name === 'arcadia_management'),
       false,
