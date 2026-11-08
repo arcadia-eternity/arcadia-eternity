@@ -52,7 +52,7 @@ function rows(path: string, operations: ManagementOperation[], capabilities = ca
 const pages: VueWrapper[] = []
 const button = (page: VueWrapper, name: string) =>
   page
-    .findAll('button')
+    .findAll('button, [role="menuitem"]')
     .find(item => (name === '操作记录与备份' ? item.text().startsWith(name) : item.text() === name))!
 const nativeURL = URL
 const createObjectURL = vi.fn(() => 'blob:backup-download')
@@ -141,7 +141,7 @@ describe('whole-server backup controls', () => {
       await button(page, '操作记录与备份').trigger('click')
       expect(page.text()).not.toContain('创建服务器备份')
       await page
-        .findAll('.tabs button')
+        .findAll('[role="menuitem"]')
         .find(item => item.text().startsWith('操作记录与备份'))!
         .trigger('click')
       expect(page.text()).not.toContain('下载服务器备份')

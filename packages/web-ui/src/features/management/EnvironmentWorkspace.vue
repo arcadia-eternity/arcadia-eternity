@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import './managementStyles'
+import { ElTable, ElTableColumn, ElButton, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentVersion } from '@/types/management'
 
@@ -140,18 +142,24 @@ function save() {
         <h2>环境</h2>
         <p>编辑组合后准备固定版本，再选择要发布到服务器的版本。</p>
       </div>
-      <button :disabled="!canEdit || busy" :title="!canEdit ? '没有编辑此工作区的权限' : undefined" @click="edit()">
+      <ElButton
+        :disabled="!canEdit || busy"
+        :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
+        @click="edit()"
+        native-type="button"
+      >
         新建环境
-      </button>
+      </ElButton>
     </header>
     <p v-if="!canEdit" class="hint">你可以查看此工作区；编辑与准备需要相应授权。</p>
     <div class="workspace-columns">
       <nav class="environment-list" aria-label="选择环境">
-        <button
+        <ElButton
           v-for="environment in environments"
           :key="environment.document.id"
           :aria-current="selectedEnvironment?.document.id === environment.document.id ? 'true' : undefined"
           @click="selectEnvironment(environment)"
+          native-type="button"
         >
           <strong>{{ environment.document.name }}</strong>
           <small
@@ -160,7 +168,7 @@ function save() {
             }}
             个直接添加的包</small
           >
-        </button>
+        </ElButton>
         <p v-if="!environments.length" class="hint">还没有环境。新建一个组合开始。</p>
       </nav>
       <div class="environment-detail">
@@ -171,21 +179,36 @@ function save() {
               <small>保存草稿 → 准备固定版本 → 使用或发布</small>
             </div>
             <div class="actions">
-              <button :disabled="!canEdit || busy" @click="edit(selectedEnvironment)">编辑</button>
-              <button :disabled="!canEdit || busy" @click="duplicate(selectedEnvironment)">复制环境</button>
-              <button v-if="canDelete" :disabled="busy" @click="deletingDraft = selectedEnvironment.document.id">
+              <ElButton :disabled="!canEdit || busy" @click="edit(selectedEnvironment)" native-type="button"
+                >编辑</ElButton
+              >
+              <ElButton :disabled="!canEdit || busy" @click="duplicate(selectedEnvironment)" native-type="button"
+                >复制环境</ElButton
+              >
+              <ElButton
+                v-if="canDelete"
+                :disabled="busy"
+                @click="deletingDraft = selectedEnvironment.document.id"
+                native-type="button"
+              >
                 删除环境
-              </button>
+              </ElButton>
             </div>
           </header>
           <div v-if="deletingDraft === selectedEnvironment.document.id" role="group" aria-label="删除环境确认">
             <p>删除草稿前需先移除其固定版本与服务器引用。</p>
-            <button :disabled="busy" @click="deleteDraft(selectedEnvironment)">确认删除环境</button
-            ><button @click="deletingDraft = ''">取消</button>
+            <ElButton :disabled="busy" @click="deleteDraft(selectedEnvironment)" native-type="button"
+              >确认删除环境</ElButton
+            >
+            <ElButton @click="deletingDraft = ''" native-type="button">取消</ElButton>
           </div>
           <nav class="actions" aria-label="环境详情">
-            <button @click="detailTab = 'packages'" :aria-pressed="detailTab === 'packages'">资源包</button
-            ><button @click="detailTab = 'versions'" :aria-pressed="detailTab === 'versions'">固定版本</button>
+            <ElButton @click="detailTab = 'packages'" :aria-pressed="detailTab === 'packages'" native-type="button"
+              >资源包</ElButton
+            >
+            <ElButton @click="detailTab = 'versions'" :aria-pressed="detailTab === 'versions'" native-type="button"
+              >固定版本</ElButton
+            >
           </nav>
           <section v-if="detailTab === 'packages'" class="members">
             <template
@@ -194,38 +217,48 @@ function save() {
               <h4>草稿中的直接依赖</h4>
               <ul class="package-list">
                 <li v-for="(range, name) in selectedEnvironment.document.packages" :key="name">
-                  <strong>{{ name }}</strong> <span>{{ range }}</span>
+                  <strong>{{ name }}</strong>
+                  <span>{{ range }}</span>
                 </li>
                 <li v-for="name in selectedEnvironment.document.sources" :key="name">{{ name }} · 已登记来源</li>
-              </ul></template
-            >
+              </ul>
+            </template>
             <template v-if="latestVersion?.status === 'ready' && latestVersion.members">
               <h4>最近固定版本的完整资源包列表</h4>
               <p v-if="latestVersion.draftRevision !== selectedEnvironment.revision" class="hint">
                 草稿已更改，以下是上次成功准备的结果。
               </p>
               <article v-for="member in latestVersion.members" :key="member.name" class="member">
-                <strong>{{ member.name }}</strong
-                ><span>{{ member.version }} · {{ member.direct ? '直接添加' : '自动依赖' }}</span>
+                <strong>{{ member.name }}</strong>
+                <span>{{ member.version }} · {{ member.direct ? '直接添加' : '自动依赖' }}</span>
                 <small v-if="member.requiredBy.length">被依赖：{{ member.requiredBy.join('、') }}</small>
                 <small v-if="member.dependencies.length">需要：{{ member.dependencies.join('、') }}</small>
                 <small v-if="selectedEnvironment.requiredPackages?.includes(member.name)">默认环境必需</small>
-                <button v-else :disabled="busy || !canEdit" @click="disablingPackage = member.name">停用</button>
+                <ElButton
+                  v-else
+                  :disabled="busy || !canEdit"
+                  @click="disablingPackage = member.name"
+                  native-type="button"
+                  >停用</ElButton
+                >
                 <div v-if="disablingPackage === member.name" role="group" aria-label="停用资源包确认">
                   <p>
                     停用会修改草稿，已准备版本保持不变。{{
                       member.requiredBy.length ? '其他包依赖它，可以选择连带停用。' : ''
                     }}
                   </p>
-                  <button :disabled="busy || !canEdit" @click="changePackage(member.name, false)">确认停用</button>
-                  <button
+                  <ElButton :disabled="busy || !canEdit" @click="changePackage(member.name, false)" native-type="button"
+                    >确认停用</ElButton
+                  >
+                  <ElButton
                     v-if="member.requiredBy.length"
                     :disabled="busy || !canEdit"
                     @click="changePackage(member.name, false, true)"
+                    native-type="button"
                   >
                     连带停用依赖它的包
-                  </button>
-                  <button @click="disablingPackage = ''">取消</button>
+                  </ElButton>
+                  <ElButton @click="disablingPackage = ''" native-type="button">取消</ElButton>
                 </div>
               </article>
               <p v-if="!latestVersion.members.length" class="hint">此版本没有额外资源包。</p>
@@ -239,178 +272,206 @@ function save() {
                 class="member"
               >
                 {{ name }} · {{ range }}
-                <button :disabled="busy || !canEdit" @click="changePackage(String(name), true)">启用</button>
+                <ElButton :disabled="busy || !canEdit" @click="changePackage(String(name), true)" native-type="button"
+                  >启用</ElButton
+                >
               </article>
               <article v-for="name in selectedEnvironment.document.disabled.sources" :key="name" class="member">
                 {{ name }} · 已登记来源
-                <button :disabled="busy || !canEdit" @click="changePackage(name, true)">启用</button>
+                <ElButton :disabled="busy || !canEdit" @click="changePackage(name, true)" native-type="button"
+                  >启用</ElButton
+                >
               </article>
             </template>
           </section>
         </template>
-        <form v-if="editing && document" class="environment-editor" aria-label="编辑环境" @submit.prevent="save">
+        <ElForm
+          v-if="editing && document"
+          class="environment-editor"
+          aria-label="编辑环境"
+          @submit.prevent="save"
+          label-position="top"
+        >
           <h3>{{ revision === null ? '新建环境' : '编辑环境' }}</h3>
           <p v-if="validation" role="alert" class="error">{{ validation }}</p>
           <div class="field-row">
-            <label>名称<input v-model="document.name" required maxlength="80" /></label
-            ><label
-              >标识<input
+            <ElFormItem label="名称">
+              <ElInput v-model="document.name" required maxlength="80" />
+            </ElFormItem>
+            <ElFormItem label="标识">
+              <ElInput
                 v-model="document.id"
                 required
                 pattern="[a-z0-9][a-z0-9_\-]{0,79}"
                 :disabled="revision !== null"
                 placeholder="friends"
-            /></label>
+              />
+            </ElFormItem>
           </div>
           <fieldset>
             <legend>直接依赖</legend>
             <div v-for="(row, index) in packageRows" :key="index" class="package-row">
-              <label
-                >包名<input
+              <ElFormItem label="包名">
+                <ElInput
                   v-model="row.name"
                   :readonly="!!revision && selectedEnvironment?.requiredPackages?.includes(row.name)"
                   placeholder="@author/package"
-                  required /></label
-              ><label
-                >版本范围<input
-                  v-model="row.version"
-                  aria-label="版本范围"
-                  placeholder="^1.0.0 或 >=1.5 <2"
-                  required /></label
-              ><button
+                  required
+                />
+              </ElFormItem>
+              <ElFormItem label="版本范围">
+                <ElInput v-model="row.version" aria-label="版本范围" placeholder="^1.0.0 或 >=1.5 <2" required>
+                </ElInput>
+              </ElFormItem>
+              <ElButton
                 v-if="!revision || !selectedEnvironment?.requiredPackages?.includes(row.name)"
-                type="button"
                 @click="packageRows.splice(index, 1)"
+                native-type="button"
               >
                 移除
-              </button>
+              </ElButton>
             </div>
-            <button type="button" @click="packageRows.push({ name: '', version: '' })">添加内容包</button>
+            <ElButton @click="packageRows.push({ name: '', version: '' })" native-type="button">添加内容包</ElButton>
           </fieldset>
           <details>
             <summary>来源与规则</summary>
-            <label>已登记的来源包名（每行一个）<textarea v-model="sourceText" rows="3" /></label>
-            <label
-              >环境分级<input
-                :value="document.rules.tier ?? ''"
-                @input="document.rules.tier = ($event.target as HTMLInputElement).value || undefined"
+            <ElFormItem label="已登记的来源包名（每行一个）">
+              <ElInput v-model="sourceText" :rows="3" type="textarea" />
+            </ElFormItem>
+            <ElFormItem label="环境分级">
+              <ElInput
+                :model-value="document.rules.tier ?? ''"
+                @input="document.rules.tier = $event || undefined"
                 placeholder="可选"
-            /></label>
+              />
+            </ElFormItem>
             <div class="field-row">
-              <label
-                >队伍最少数量<input
+              <ElFormItem label="队伍最少数量">
+                <ElInput
                   type="number"
                   min="1"
                   max="100"
-                  :value="document.rules.team?.minSize"
-                  @input="setTeamSize('minSize', ($event.target as HTMLInputElement).value)" /></label
-              ><label
-                >队伍最多数量<input
+                  :model-value="document.rules.team?.minSize"
+                  @input="setTeamSize('minSize', $event)"
+                />
+              </ElFormItem>
+              <ElFormItem label="队伍最多数量">
+                <ElInput
                   type="number"
                   min="1"
                   max="100"
-                  :value="document.rules.team?.maxSize"
-                  @input="setTeamSize('maxSize', ($event.target as HTMLInputElement).value)"
-              /></label>
+                  :model-value="document.rules.team?.maxSize"
+                  @input="setTeamSize('maxSize', $event)"
+                />
+              </ElFormItem>
             </div>
-            <label
-              ><input
-                type="checkbox"
-                :checked="document.rules.team?.uniqueSpecies"
-                @change="
-                  document.rules.team = {
-                    ...document.rules.team,
-                    uniqueSpecies: ($event.target as HTMLInputElement).checked,
-                  }
-                "
-              />队伍内精灵不重复</label
+            <ElCheckbox
+              :model-value="document.rules.team?.uniqueSpecies"
+              @change="
+                document.rules.team = {
+                  ...document.rules.team,
+                  uniqueSpecies: Boolean($event),
+                }
+              "
+              >队伍内精灵不重复</ElCheckbox
             >
             <fieldset v-for="side in ['allow', 'deny'] as const" :key="side">
               <legend>{{ side === 'allow' ? '允许内容（留空表示不额外限制）' : '禁止内容' }}</legend>
-              <label v-for="kind in contentKinds" :key="kind"
-                >{{ contentLabels[kind] }}标识（每行一个）<textarea
-                  :value="document.rules[side]?.[kind]?.join('\n') ?? ''"
-                  rows="2"
-                  @input="setRuleList(side, kind, ($event.target as HTMLTextAreaElement).value)"
+              <ElFormItem
+                v-for="kind in contentKinds"
+                :key="kind"
+                :label="String(contentLabels[kind]) + '标识（每行一个）'"
+              >
+                <ElInput
+                  :model-value="document.rules[side]?.[kind]?.join('\n') ?? ''"
+                  :rows="2"
+                  @input="setRuleList(side, kind, $event)"
+                  type="textarea"
                 />
-              </label>
+              </ElFormItem>
             </fieldset>
             <p class="hint">规则随准备的版本固定，已有兼容要求随本次保存保留。来源须先由宿主登记。</p>
           </details>
           <div class="actions">
-            <button class="primary" :disabled="busy || !canEdit">保存环境</button
-            ><button type="button" @click="editing = false">关闭编辑</button>
+            <ElButton class="primary" :disabled="busy || !canEdit" native-type="submit" type="primary"
+              >保存环境</ElButton
+            >
+            <ElButton @click="editing = false" native-type="button">关闭编辑</ElButton>
           </div>
           <p class="hint">保存不会改变已发布版本。发生版本冲突时，你的编辑内容会留在这里。</p>
-        </form>
+        </ElForm>
         <template v-if="!editing && detailTab === 'versions'">
           <header class="section-heading">
             <h3>固定版本</h3>
           </header>
           <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>环境</th>
-                  <th>版本</th>
-                  <th>状态</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="version in selectedVersions" :key="version.versionId">
-                  <td>
-                    {{ version.status === 'ready' ? version.document.name : (version.environmentId ?? '未知环境') }}
-                  </td>
-                  <td>
-                    <code :title="version.versionId">{{ version.versionId.slice(0, 16) }}</code
-                    ><small v-if="version.status === 'ready'">{{ new Date(version.createdAt).toLocaleString() }}</small>
-                  </td>
-                  <td>
-                    {{ version.status === 'ready' ? '已准备' : '材料不可用'
-                    }}<small v-if="version.status === 'unavailable'">{{ version.reason }}</small>
-                  </td>
-                  <td>
-                    <button :disabled="busy" @click="emit('references', version)">查看引用</button>
-                    <button
-                      :disabled="busy || version.status !== 'ready' || !canUse"
-                      :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
-                      @click="emit('use', version)"
-                    >
-                      用于服务器
-                    </button>
-                    <button
-                      :disabled="busy || version.status !== 'ready' || !canUse"
-                      :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
-                      @click="emit('use', version, 'peer')"
-                    >
-                      用于玩家托管
-                    </button>
-                    <button
-                      v-if="canDelete && deletingVersion !== version.versionId"
-                      :disabled="busy"
-                      @click="deletingVersion = version.versionId"
-                    >
-                      删除版本
-                    </button>
-                    <span v-if="deletingVersion === version.versionId"
-                      ><button :disabled="busy" @click="deleteVersion(version)">确认删除</button
-                      ><button @click="deletingVersion = ''">取消</button></span
-                    >
-                  </td>
-                </tr>
-                <tr v-if="!selectedVersions.length">
-                  <td colspan="4">还没有固定版本。</td>
-                </tr>
-              </tbody>
-            </table>
+            <ElTable :data="selectedVersions" row-key="versionId" stripe empty-text="暂无符合条件的记录">
+              <ElTableColumn label="环境" min-width="180">
+                <template #default="{ row: version }">{{
+                  version.status === 'ready' ? version.document.name : (version.environmentId ?? '未知环境')
+                }}</template>
+              </ElTableColumn>
+              <ElTableColumn label="版本" min-width="150">
+                <template #default="{ row: version }">
+                  <code :title="version.versionId">{{ version.versionId.slice(0, 16) }}</code>
+                  <small v-if="version.status === 'ready'">{{ new Date(version.createdAt).toLocaleString() }}</small>
+                </template>
+              </ElTableColumn>
+              <ElTableColumn label="状态" min-width="150">
+                <template #default="{ row: version }"
+                  >{{ version.status === 'ready' ? '已准备' : '材料不可用'
+                  }}<small v-if="version.status === 'unavailable'">{{ version.reason }}</small>
+                </template>
+              </ElTableColumn>
+              <ElTableColumn label="操作" min-width="240">
+                <template #default="{ row: version }">
+                  <ElButton :disabled="busy" @click="emit('references', version)" native-type="button"
+                    >查看引用</ElButton
+                  >
+                  <ElButton
+                    :disabled="busy || version.status !== 'ready' || !canUse"
+                    :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
+                    @click="emit('use', version)"
+                    native-type="button"
+                  >
+                    用于服务器
+                  </ElButton>
+                  <ElButton
+                    :disabled="busy || version.status !== 'ready' || !canUse"
+                    :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
+                    @click="emit('use', version, 'peer')"
+                    native-type="button"
+                  >
+                    用于玩家托管
+                  </ElButton>
+                  <ElButton
+                    v-if="canDelete && deletingVersion !== version.versionId"
+                    :disabled="busy"
+                    @click="deletingVersion = version.versionId"
+                    native-type="button"
+                  >
+                    删除版本
+                  </ElButton>
+                  <span v-if="deletingVersion === version.versionId">
+                    <ElButton :disabled="busy" @click="deleteVersion(version)" native-type="button">确认删除</ElButton>
+                    <ElButton @click="deletingVersion = ''" native-type="button">取消</ElButton>
+                  </span>
+                </template>
+              </ElTableColumn>
+            </ElTable>
           </div>
         </template>
         <footer v-if="selectedEnvironment && !editing" class="workspace-footer">
-          <span class="hint">准备不会自动启用或发布。</span
-          ><button class="primary" :disabled="!canPrepare || busy" @click="emit('prepare', selectedEnvironment)">
+          <span class="hint">准备不会自动启用或发布。</span>
+          <ElButton
+            class="primary"
+            :disabled="!canPrepare || busy"
+            @click="emit('prepare', selectedEnvironment)"
+            native-type="button"
+            type="primary"
+          >
             准备版本
-          </button>
+          </ElButton>
         </footer>
       </div>
     </div>
@@ -421,25 +482,32 @@ function save() {
 .environment-workspace {
   display: flex;
   flex-direction: column;
-  height: min(760px, calc(100dvh - 170px));
-  min-height: 380px;
 }
 .workspace-columns {
   display: grid;
   grid-template-columns: minmax(170px, 25%) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
-  border: 1px solid #dbe2ea;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   overflow: hidden;
 }
 .environment-list {
   overflow: auto;
   padding: 12px;
-  border-right: 1px solid #dbe2ea;
-  background: #f8fafc;
+  border-right: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-light);
+}
+.environment-list :deep(.el-button > span) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
 }
 .environment-list button {
+  height: auto;
+  padding: 12px;
+  margin-left: 0;
   display: block;
   width: 100%;
   text-align: left;
@@ -447,8 +515,8 @@ function save() {
   overflow-wrap: anywhere;
 }
 .environment-list button[aria-current='true'] {
-  background: #eff6ff;
-  border-color: #2563eb;
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
 }
 .environment-detail {
   overflow: auto;
@@ -466,7 +534,7 @@ function save() {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 2px 12px;
   padding: 8px 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--el-border-color-light);
   overflow-wrap: anywhere;
 }
 .member > strong,
@@ -488,21 +556,28 @@ function save() {
 .member > span {
   font-size: 0.85rem;
   display: block;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 .workspace-footer {
   position: sticky;
   bottom: 0;
-  background: white;
+  background: var(--el-bg-color);
   padding: 12px 0;
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--el-border-color-light);
 }
 @media (max-width: 600px) {
   .workspace-columns {
-    grid-template-columns: 115px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .environment-list {
+    display: flex;
+    gap: 8px;
+    max-height: 180px;
+    border-right: 0;
+    border-bottom: 1px solid var(--el-border-color-light);
   }
   .environment-detail {
     padding: 0 10px;
@@ -525,7 +600,7 @@ function save() {
 }
 .section-heading p,
 .hint {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   font-size: 0.9rem;
 }
 .environment-grid {
@@ -535,16 +610,16 @@ function save() {
 }
 .environment-card,
 .environment-editor {
-  border: 1px solid #dbe2ea;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   padding: 1rem;
-  background: #fff;
+  background: var(--el-bg-color);
 }
 .environment-card h3 {
   margin: 0;
 }
 .environment-card p {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   font-size: 0.9rem;
 }
 .package-list {
@@ -553,7 +628,7 @@ function save() {
   overflow-wrap: anywhere;
 }
 .package-list span {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 .actions,
 .field-row,
@@ -566,67 +641,26 @@ function save() {
 .environment-editor {
   margin-top: 1rem;
 }
-.field-row > label,
-.package-row > label {
+.field-row > .el-form-item,
+.package-row > .el-form-item {
   flex: 1;
   min-width: 140px;
 }
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0.7rem 0;
-}
-input,
-textarea {
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 0.6rem;
-  color: #0f172a;
-  background: #fff;
-}
 fieldset {
-  border: 1px solid #dbe2ea;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   margin: 1rem 0;
 }
 .table-wrap {
   overflow: auto;
 }
-table {
-  border-collapse: collapse;
-  width: 100%;
-  text-align: left;
-}
-td,
-th {
-  padding: 0.8rem;
-  border-bottom: 1px solid #e2e8f0;
-}
 small {
   display: block;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   margin-top: 0.25rem;
 }
-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 0.5rem 0.8rem;
-  background: #fff;
-  color: #334155;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
 .error {
-  color: #b91c1c;
+  color: var(--el-color-danger);
 }
 details {
   margin: 1rem 0;

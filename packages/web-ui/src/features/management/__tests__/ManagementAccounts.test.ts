@@ -9,7 +9,8 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({ session: null, serverUrl: 'https://paired.example', isAccount: false }),
 }))
 const pages: VueWrapper[] = []
-const button = (page: VueWrapper, text: string) => page.findAll('button').find(item => item.text() === text)!
+const button = (page: VueWrapper, text: string) =>
+  page.findAll('button, [role="menuitem"]').find(item => item.text() === text)!
 const account = (id: string): ManagedAccount => ({ accountId: id, status: 'active', createdAt: 1793808000000 })
 const accounts = [account('account-one'), account('account-two')]
 
@@ -71,7 +72,7 @@ describe('server account management', () => {
     { supported: true, authorized: false },
   ])('does not show or fetch accounts without capability and permission: %j', async options => {
     const { page, bridge } = await open(async input => ({ status: 200, body: rows(input.path, options) }))
-    expect(page.findAll('button').some(item => item.text() === '用户管理')).toBe(false)
+    expect(page.findAll('button, [role="menuitem"]').some(item => item.text() === '用户管理')).toBe(false)
     expect(page.find('[aria-label="用户管理"]').exists()).toBe(false)
     expect(bridge.mock.calls.some(([input]) => input.path.includes('/accounts'))).toBe(false)
   })
@@ -106,7 +107,7 @@ describe('server account management', () => {
     await button(page, '用户管理').trigger('click')
     await button(page, '停用账户').trigger('click')
     await button(page, '取消').trigger('click')
-    expect(page.findAll('button').some(item => item.text() === '确认停用')).toBe(false)
+    expect(page.findAll('button, [role="menuitem"]').some(item => item.text() === '确认停用')).toBe(false)
     expect(bridge.mock.calls.every(([input]) => input.method === 'GET')).toBe(true)
   })
 
@@ -128,7 +129,7 @@ describe('server account management', () => {
       'account-two',
       'account-three',
     ])
-    expect(page.findAll('button').some(item => item.text() === '加载更多账户')).toBe(false)
+    expect(page.findAll('button, [role="menuitem"]').some(item => item.text() === '加载更多账户')).toBe(false)
   })
 
   it('requires fresh confirmation after changing the target even if both servers use the same account ID', async () => {
@@ -150,7 +151,7 @@ describe('server account management', () => {
     await button(page, '当前部署服务器').trigger('click')
     await flushPromises()
     await button(page, '用户管理').trigger('click')
-    expect(page.findAll('button').some(item => item.text() === '确认停用')).toBe(false)
+    expect(page.findAll('button, [role="menuitem"]').some(item => item.text() === '确认停用')).toBe(false)
     expect(bridge.mock.calls.every(([input]) => input.method === 'GET')).toBe(true)
   })
 

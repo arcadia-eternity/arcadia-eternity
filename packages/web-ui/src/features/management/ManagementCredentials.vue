@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElCheckboxGroup, ElForm, ElFormItem, ElSelect, ElOption, ElInput, ElCheckbox, ElButton } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import type { ManagementCapabilities, ManagementScope, ManagedServiceCredential } from '@/types/management'
 
@@ -171,61 +172,68 @@ async function copy() {
     <h3>自动化服务凭证</h3>
     <p class="hint">为自动化工具单独设置作用范围、操作和有效期。凭证只能使用对应管理主体已有的权限。</p>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
-    <form v-if="scopes.length" aria-label="签发管理凭证" @submit.prevent="issue">
+    <ElForm v-if="scopes.length" aria-label="签发管理凭证" @submit.prevent="issue" label-position="top">
       <div class="fields">
-        <label
-          >作用范围<select v-model="kind" :disabled="busy">
-            <option v-for="item in scopes" :key="item.kind" :value="item.kind">
-              {{ item.kind === 'server' ? '当前服务器' : '当前工作区' }} · {{ item.id }}
-            </option>
-          </select></label
-        >
-        <label
-          >管理主体标识（留空使用本人）<input v-model="principalId" :disabled="busy" maxlength="128" autocomplete="off"
-        /></label>
-        <label
-          >权限预设<select
-            :value="preset"
-            :disabled="busy"
-            @change="choosePreset(($event.target as HTMLSelectElement).value as typeof preset)"
-          >
-            <option v-if="scope?.actions.includes('read')" value="read">只读</option>
-            <option v-if="adminAvailable" value="admin">
-              {{ kind === 'server' ? '服务器管理员' : '工作区管理员' }}
-            </option>
-            <option value="custom">自定义操作</option>
-          </select></label
-        >
-        <label
-          >有效期（小时）<input v-model="hours" :disabled="busy" type="number" min="1" max="720" step="1" required
-        /></label>
+        <ElFormItem label="作用范围">
+          <ElSelect v-model="kind" :disabled="busy">
+            <ElOption
+              v-for="item in scopes"
+              :key="item.kind"
+              :value="item.kind"
+              :label="String(item.kind === 'server' ? '当前服务器' : '当前工作区') + ' · ' + String(item.id)"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="管理主体标识（留空使用本人）">
+          <ElInput v-model="principalId" :disabled="busy" maxlength="128" autocomplete="off" />
+        </ElFormItem>
+        <ElFormItem label="权限预设">
+          <ElSelect :model-value="preset" :disabled="busy" @change="choosePreset($event as typeof preset)">
+            <ElOption v-if="scope?.actions.includes('read')" value="read" label="只读" />
+            <ElOption
+              v-if="adminAvailable"
+              value="admin"
+              :label="String(kind === 'server' ? '服务器管理员' : '工作区管理员')"
+            />
+            <ElOption value="custom" label="自定义操作" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="有效期（小时）">
+          <ElInput v-model="hours" :disabled="busy" type="number" min="1" max="720" step="1" required />
+        </ElFormItem>
       </div>
-      <fieldset :disabled="busy">
-        <legend>允许的操作</legend>
-        <label v-for="action in scope?.actions" :key="action" class="checkbox"
-          ><input v-model="selected" type="checkbox" :value="action" @change="preset = 'custom'" />{{
-            actionLabels[action]
-          }}</label
+      <ElCheckboxGroup v-model="selected" :disabled="busy" @change="preset = 'custom'">
+        <p class="hint">允许的操作</p>
+        <ElCheckbox
+          v-for="action in scope?.actions"
+          :key="action"
+          class="checkbox"
+          :value="action"
+          @change="preset = 'custom'"
+          >{{ actionLabels[action] }}</ElCheckbox
         >
-      </fieldset>
-      <button class="primary" :disabled="busy || !selected.length">签发凭证</button>
-    </form>
+      </ElCheckboxGroup>
+      <ElButton class="primary" :disabled="busy || !selected.length" native-type="submit" type="primary"
+        >签发凭证</ElButton
+      >
+    </ElForm>
     <p v-else class="hint">当前授权不允许签发服务凭证。</p>
     <section v-if="issuedVisible && issued" class="issued" aria-label="新签发的凭证">
       <h4>请保存此凭证</h4>
       <p>关闭后无法再次查看完整凭证。系统只保留用于校验的摘要。</p>
-      <label
-        >凭证<input
+      <ElFormItem label="凭证">
+        <ElInput
           :type="visible ? 'text' : 'password'"
-          :value="issued.token"
+          :model-value="issued.token"
           readonly
           autocomplete="off"
           spellcheck="false"
-      /></label>
+        />
+      </ElFormItem>
       <div class="actions">
-        <button type="button" @click="visible = !visible">{{ visible ? '隐藏凭证' : '显示凭证' }}</button
-        ><button type="button" @click="copy">复制凭证</button
-        ><button type="button" @click="dismiss">已保存，关闭</button>
+        <ElButton @click="visible = !visible" native-type="button">{{ visible ? '隐藏凭证' : '显示凭证' }}</ElButton>
+        <ElButton @click="copy" native-type="button">复制凭证</ElButton>
+        <ElButton @click="dismiss" native-type="button">已保存，关闭</ElButton>
       </div>
       <p v-if="copied" role="status">已复制凭证。</p>
       <p v-if="copyError" role="alert" class="error">{{ copyError }}</p>
@@ -233,18 +241,19 @@ async function copy() {
         凭证标识：<code>{{ issued.credentialId }}</code>
       </p>
       <p>到期：{{ new Date(issued.expiresAt).toLocaleString() }}</p>
-      <button :disabled="busy" @click="requestRevoke(issued.credentialId)">撤销此凭证</button>
+      <ElButton :disabled="busy" @click="requestRevoke(issued.credentialId)" native-type="button">撤销此凭证</ElButton>
     </section>
-    <form class="revoke-form" aria-label="撤销管理凭证" @submit.prevent="requestRevoke(manualId)">
-      <label
-        >要撤销的凭证标识<input
-          v-model="manualId"
-          :disabled="busy"
-          required
-          maxlength="256"
-          autocomplete="off" /></label
-      ><button :disabled="busy || !manualId.trim()">撤销凭证</button>
-    </form>
+    <ElForm
+      class="revoke-form"
+      aria-label="撤销管理凭证"
+      @submit.prevent="requestRevoke(manualId)"
+      label-position="top"
+    >
+      <ElFormItem label="要撤销的凭证标识">
+        <ElInput v-model="manualId" :disabled="busy" required maxlength="256" autocomplete="off" />
+      </ElFormItem>
+      <ElButton :disabled="busy || !manualId.trim()" native-type="submit">撤销凭证</ElButton>
+    </ElForm>
     <section v-if="credentials?.length" aria-label="已有服务凭证">
       <h3>已有服务凭证</h3>
       <article v-for="credential in credentials" :key="credential.id">
@@ -253,7 +262,7 @@ async function copy() {
         <p v-for="permission in credential.permissions" :key="`${permission.scope.kind}:${permission.scope.id}`">
           {{ permission.scope.kind === 'server' ? '服务器' : '工作区' }}：{{ permission.actions.join('、') }}
         </p>
-        <button :disabled="busy" @click="requestRevoke(credential.id)">撤销此凭证</button>
+        <ElButton :disabled="busy" @click="requestRevoke(credential.id)" native-type="button">撤销此凭证</ElButton>
       </article>
     </section>
     <div v-if="confirmId" class="confirmation" role="group" aria-label="确认撤销凭证">
@@ -261,20 +270,20 @@ async function copy() {
         确认撤销 <code>{{ confirmId }}</code
         >？使用它的工具将无法继续管理服务。
       </p>
-      <button :disabled="busy" @click="revoke">确认撤销</button
-      ><button :disabled="busy" @click="confirmId = ''">取消</button>
+      <ElButton :disabled="busy" @click="revoke" native-type="button">确认撤销</ElButton>
+      <ElButton :disabled="busy" @click="confirmId = ''" native-type="button">取消</ElButton>
     </div>
   </section>
 </template>
 
 <style scoped>
 .credentials {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--el-border-color-light);
   margin-top: 1.5rem;
   padding-top: 1rem;
 }
 .hint {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   font-size: 0.9rem;
   line-height: 1.6;
 }
@@ -283,22 +292,8 @@ async function copy() {
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 0.75rem;
 }
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0.7rem 0;
-}
-input,
-select {
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 0.6rem;
-  background: #fff;
-  color: #0f172a;
-}
 fieldset {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 7px;
   margin: 1rem 0;
   display: flex;
@@ -314,27 +309,10 @@ fieldset {
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 0.5rem 0.8rem;
-  background: #fff;
-  color: #334155;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.primary {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
 .issued {
   padding: 1rem;
-  border: 1px solid #93c5fd;
-  background: #eff6ff;
+  border: 1px solid var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
   border-radius: 10px;
   margin-top: 1.25rem;
 }
@@ -354,13 +332,13 @@ button:disabled {
   gap: 0.7rem;
   margin-top: 1rem;
 }
-.revoke-form label {
+.revoke-form .el-form-item {
   flex: 1;
   margin-bottom: 0;
 }
 .confirmation {
-  border: 1px solid #fbbf24;
-  background: #fffbeb;
+  border: 1px solid var(--el-color-warning-light-5);
+  background: var(--el-color-warning-light-9);
   border-radius: 7px;
   padding: 0.8rem;
   margin-top: 0.75rem;
@@ -369,6 +347,6 @@ button:disabled {
   margin-right: 0.5rem;
 }
 .error {
-  color: #b91c1c;
+  color: var(--el-color-danger);
 }
 </style>

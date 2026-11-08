@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.3.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.0...arcadia-eternity-v4.3.1) (2026-11-08)
+
+
+### ♻️ Code Refactoring
+
+* **web:** rebuild management console with Element Plus ([5ce71c8](https://github.com/arcadia-eternity/arcadia-eternity/commit/5ce71c8a03c5af454bc22a32cbb99a583bf7d94f))
+
 ## [4.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.2.0...arcadia-eternity-v4.3.0) (2026-11-08)
 
 

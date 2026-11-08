@@ -1,3 +1,4 @@
+import { ElSelect, ElOption } from 'element-plus'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import ManagementCredentials from '../ManagementCredentials.vue'
@@ -57,7 +58,7 @@ describe('management service credentials', () => {
         },
       ],
     ])
-    expect(page.findAll('option').some(option => option.text() === '服务器管理员')).toBe(false)
+    expect(page.findAllComponents(ElOption).some(option => option.props('label') === '服务器管理员')).toBe(false)
   })
 
   it('never exposes ungranted actions or scopes, and removes withdrawn selections before issue', async () => {
@@ -72,7 +73,7 @@ describe('management service credentials', () => {
       'publish',
       'grants.manage',
     ])
-    expect(page.findAll('select')[0]!.findAll('option')).toHaveLength(1)
+    expect(page.findAllComponents(ElSelect)[0]!.findAllComponents(ElOption)).toHaveLength(1)
     await page.get('input[value="publish"]').setValue(true)
     await page.setProps({ capabilities: capabilities(['read', 'grants.manage']) })
     expect(page.find('input[value="publish"]').exists()).toBe(false)
@@ -85,10 +86,11 @@ describe('management service credentials', () => {
     const cap = capabilities(['*'])
     cap.effectivePermissions.push({ scope: { kind: 'workspace', id: 'workspace-a' }, actions: ['*'] })
     const page = open({ capabilities: cap })
-    const selects = page.findAll('select')
+    const selects = page.findAllComponents(ElSelect)
     await selects[0]!.setValue('workspace')
     await selects[1]!.setValue('admin')
-    await page.get('input[autocomplete="off"]').setValue(' automation-principal ')
+    selects[1]!.vm.$emit('change', 'admin')
+    await page.get('input[maxlength="128"]').setValue(' automation-principal ')
     await page.get('[aria-label="签发管理凭证"]').trigger('submit')
     const payload = page.emitted('issue')![0]![0] as {
       principalId: string
