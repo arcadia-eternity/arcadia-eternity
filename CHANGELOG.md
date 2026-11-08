@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.1.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.1...arcadia-eternity-v4.1.2) (2026-11-08)
+
+
+### 🐛 Bug Fixes
+
+* keep Electron CI installer in its owning workspace ([4a83db6](https://github.com/arcadia-eternity/arcadia-eternity/commit/4a83db646d012b8c0e76acc6037293617009906f))
+* use verified mirror downloads for desktop CI ([cd4f309](https://github.com/arcadia-eternity/arcadia-eternity/commit/cd4f309cca0437d92d657b7032ae981a54a88378))
+
 ## [4.1.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.0...arcadia-eternity-v4.1.1) (2026-11-08)
 
 
