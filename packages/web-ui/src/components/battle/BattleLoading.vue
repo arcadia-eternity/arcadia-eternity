@@ -23,8 +23,9 @@ const activeTask = computed(() => props.tasks.find(t => t.state === 'loading')?.
 </script>
 <template>
   <section class="battle-loading" data-testid="battle-loading-overlay" :aria-busy="!error" aria-label="准备对战">
-    <div class="battle-loading__backdrop" :style="{ backgroundImage: `url(${loadingGrid})` }"></div>
-    <div class="battle-loading__scan" aria-hidden="true"></div>
+    <div class="battle-loading__backdrop" :style="{ backgroundImage: `url(${loadingGrid})` }" aria-hidden="true">
+      <div class="battle-loading__scan"></div>
+    </div>
     <div class="battle-loading__content">
       <div class="battle-loading__eyebrow">ARCADIA ETERNITY</div>
       <h1>{{ replay ? '战斗回放' : '准备对战' }}</h1>

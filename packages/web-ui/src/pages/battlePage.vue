@@ -1084,7 +1084,7 @@ const goBackFromReplay = async () => {
 }
 
 // 战斗结束后的导航函数 - 先退出全屏再跳转
-const navigateToLobbyWithMatching = async () => {
+const navigateToMatchmaking = async () => {
   if (isFullscreen.value) {
     await exitFullscreen()
   }
@@ -1093,7 +1093,7 @@ const navigateToLobbyWithMatching = async () => {
     await router.push({ name: 'AuthorPreview', query: { endpoint: route.query.authorPreview } })
     return
   }
-  router.push(isLocalBattle.value ? '/local-battle' : { name: 'Lobby', query: { startMatching: 'true' } })
+  router.push(isLocalBattle.value ? '/local-battle' : { name: 'Matchmaking' })
 }
 
 const navigateToHome = async () => {
@@ -2772,7 +2772,7 @@ watch(
               <div class="flex gap-4 mt-8">
                 <button
                   class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-                  @click="navigateToLobbyWithMatching"
+                  @click="navigateToMatchmaking"
                 >
                   {{ isLocalBattle ? '再来一局' : '重新匹配' }}
                 </button>

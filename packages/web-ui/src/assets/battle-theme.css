@@ -353,6 +353,7 @@
 .battle-loading__backdrop {
   position: absolute;
   inset: 0;
+  overflow: clip;
   background-position: center;
   background-size: cover;
   opacity: 1;

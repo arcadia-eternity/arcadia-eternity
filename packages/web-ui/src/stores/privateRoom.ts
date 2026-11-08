@@ -239,14 +239,17 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     assertServerScope(scope)
     if (generation !== matchmakingEnvironmentGeneration) throw new Error('对战内容已变化，请重新选择')
     if (isSwitchingServer.value) throw new Error('正在切换服务器')
-    gameDataStore.applyServerEnvironment(prepared.content)
     return { descriptor, ...prepared }
+  }
+
+  const cancelMatchmakingPreparation = () => {
+    ++matchmakingEnvironmentGeneration
+    matchmakingController?.abort()
   }
 
   const cancelMatchmaking = async () => {
     ++matchmakingGeneration
-    ++matchmakingEnvironmentGeneration
-    matchmakingController?.abort()
+    cancelMatchmakingPreparation()
     if (battleClientStore.currentState.matchmaking === 'searching') await battleClientStore.cancelMatchmaking()
   }
 
@@ -1741,6 +1744,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     refreshEnvironments,
     joinMatchmaking,
     cancelMatchmaking,
+    cancelMatchmakingPreparation,
     prepareMatchmakingEnvironment,
     joinRoom,
     joinAsSpectator,

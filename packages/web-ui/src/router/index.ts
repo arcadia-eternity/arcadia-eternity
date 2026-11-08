@@ -72,17 +72,22 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     alias: '/lobby',
     name: 'Lobby',
-    beforeEnter: route =>
-      route.query.entry === 'management' ? { path: '/management', query: { target: 'server' } } : true,
+    beforeEnter: route => {
+      if (route.query.entry === 'management') return { path: '/management', query: { target: 'server' } }
+      if (route.query.startMatching === 'true') return { name: 'Matchmaking' }
+      return true
+    },
     component: LobbyView,
     meta: {
       title: '好友大厅',
       requiresServer: true,
     },
-    props: route => ({
-      // 将查询参数转换为props
-      startMatching: route.query.startMatching === 'true',
-    }),
+  },
+  {
+    path: '/matchmaking',
+    name: 'Matchmaking',
+    component: () => import('@/pages/MatchmakingPage.vue'),
+    meta: { title: '普通匹配', requiresServer: true },
   },
   {
     path: '/battle',

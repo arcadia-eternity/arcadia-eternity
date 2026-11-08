@@ -161,7 +161,7 @@ it('prepares peer execution materials for peer matchmaking instead of accepting 
   expect(mocks.preparePeer).toHaveBeenCalledOnce()
   expect(mocks.prepare).not.toHaveBeenCalled()
   expect(result.acceptance).toMatchObject({ peerRevision: 'peer-materials' })
-  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledOnce()
+  expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalled()
 })
 
 it('uses the server-selected default for matchmaking when it lists an explicit content package', async () => {

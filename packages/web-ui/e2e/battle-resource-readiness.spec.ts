@@ -48,6 +48,27 @@ async function completeCallbacks(page: Page, index: number) {
     .evaluate(renderer => renderer.dispatchEvent(new Event('test-ready')))
 }
 
+test('the loading radar fits the battle viewport throughout its rotation', async ({ page }) => {
+  await page.addInitScript(() => {
+    const observer = new MutationObserver(() => {
+      const overlay = document.querySelector('[data-testid="battle-loading-overlay"]')
+      const [animation] = overlay?.querySelector('.battle-loading__scan')?.getAnimations() ?? []
+      if (!overlay || !animation) return
+      observer.disconnect()
+      animation.pause()
+      const overflow = [0, 1000, 2000, 3000].map(time => {
+        animation.currentTime = time
+        return overlay.scrollHeight - overlay.clientHeight
+      })
+      document.documentElement.dataset.loadingOverflow = JSON.stringify(overflow)
+    })
+    observer.observe(document, { childList: true, subtree: true })
+  })
+  await page.goto('/local-battle')
+  await page.getByRole('button', { name: '开始本地对战' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-loading-overflow', '[0,0,0,0]')
+})
+
 test('waits for both renderer callbacks even beyond the former fallback deadline', async ({ page }) => {
   test.setTimeout(60000)
   await enterLoadingBattle(page)

@@ -49,7 +49,7 @@
     <div class="text-center">
       <button
         @click="startLocalBattle"
-        :disabled="loadingPhase !== null"
+        :disabled="loadingPhase !== null || matchmaking?.blocksOtherBattles"
         class="px-6 py-3 text-lg font-medium text-white bg-blue-500 border-none rounded-md cursor-pointer transition-colors duration-200 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
         {{ startLabel }}
@@ -74,11 +74,12 @@ import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
+import { useMatchmakingStore } from '@/stores/matchmaking'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
 
 import { LocalBattleSession } from '@/services/localBattleSession'
 import { preloadBattleWorker } from '@/services/sandboxBattleWorkers'
-import { getDesktopApi } from '@/utils/env'
+import { getDesktopApi, isStaticMode } from '@/utils/env'
 
 const router = useRouter()
 const route = useRoute()
@@ -86,9 +87,11 @@ const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
 const dataStore = useGameDataStore()
+const matchmaking = isStaticMode ? null : useMatchmakingStore()
 const errorMessage = ref<string | null>(null)
 const loadingPhase = ref<'configuration' | 'battle' | null>('configuration')
 const startLabel = computed(() => {
+  if (matchmaking?.blocksOtherBattles) return '取消匹配后可开始本地对战'
   if (loadingPhase.value === 'configuration') return '正在准备本地内容…'
   if (loadingPhase.value === 'battle') return '正在启动对战引擎…'
   return '开始本地对战'
@@ -317,7 +320,7 @@ async function initializeLocalBattle() {
 
 const startLocalBattle = async () => {
   // 防止重复点击
-  if (loadingPhase.value) {
+  if (loadingPhase.value || matchmaking?.blocksOtherBattles) {
     return
   }
 
