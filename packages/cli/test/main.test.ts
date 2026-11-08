@@ -2,10 +2,10 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { runCli } from '../src/main'
 
 const { prepareContent } = vi.hoisted(() => ({ prepareContent: vi.fn() }))
-vi.mock('@arcadia-eternity/battle/v4', () => ({ setGlobalLogger: vi.fn() }))
+vi.mock('@arcadia-eternity/battle/engine', () => ({ setGlobalLogger: vi.fn() }))
 vi.mock('../src/application/prepare', () => ({ prepareContent, prepareRun: vi.fn() }))
 vi.mock('../src/application/run', () => ({ runBattle: vi.fn() }))
-vi.mock('@arcadia-eternity/console', () => ({ ConsoleUIV2: vi.fn(), initI18n: vi.fn() }))
+vi.mock('@arcadia-eternity/console', () => ({ ConsoleUI: vi.fn(), initI18n: vi.fn() }))
 
 let stdout: string
 let stderr: string

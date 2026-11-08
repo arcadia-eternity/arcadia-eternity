@@ -7,7 +7,7 @@ import {
   AttackTargetOpinion,
   Nature,
   setGlobalLogger,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import {
   withOfficialTemplates,
   createOfficialTemplateRegistrations,

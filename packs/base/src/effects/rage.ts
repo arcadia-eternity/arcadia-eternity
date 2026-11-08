@@ -7,9 +7,9 @@ import {
   targets,
   ops,
   numberParam,
-} from '@arcadia-eternity/battle/v4/authoring'
-import { ConfigModifierType } from '@arcadia-eternity/battle/v4'
-import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/authoring'
+import { ConfigModifierType } from '@arcadia-eternity/battle/engine'
+import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/engine'
 
 const id = 'effect_skill_add_rage_20_if_rage_below_40'
 const value = defineParameter({

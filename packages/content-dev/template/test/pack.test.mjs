@@ -8,7 +8,7 @@ import {
   TurnContext,
   parameterAddress,
   setGlobalLogger,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import { attack, cancelled, nextTurn, prepareContentPack, runBattle } from '@arcadia-eternity/content-dev/testing'
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 

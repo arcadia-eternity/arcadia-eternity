@@ -1,6 +1,6 @@
-import BattleWorker from '@arcadia-eternity/battle/v4/sandbox/worker?worker'
-import battleWorkerUrl from '@arcadia-eternity/battle/v4/sandbox/worker?worker&url'
-import { BattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox'
+import BattleWorker from '@arcadia-eternity/battle/sandbox/worker?worker'
+import battleWorkerUrl from '@arcadia-eternity/battle/sandbox/worker?worker&url'
+import { BattleWorkerManager } from '@arcadia-eternity/battle/sandbox'
 import { parseBattleWorkerPolicy } from '@/config/battleWorkers'
 
 const policy = parseBattleWorkerPolicy(import.meta.env)

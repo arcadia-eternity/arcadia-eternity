@@ -1,4 +1,4 @@
-import { EffectTrigger, conditions, contexts, targets, ops, values } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, conditions, contexts, targets, ops, values } from '@arcadia-eternity/battle/authoring'
 import { template, numeric, choice, target } from './contracts'
 
 import { healingOnHit, consecutiveHealingAmount } from '../effects/shared-plans'

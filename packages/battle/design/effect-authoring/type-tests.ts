@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions -- Compile-only positive and negative type assertions intentionally do not execute. */
 /** Compile only. @ts-expect-error must fail if its misuse ever becomes accepted. */
-import { EffectTrigger } from '../../v4'
-import type { DamageContext, UseSkillContext } from '../../src/v4/context'
-import type { Pet } from '../../src/v4/pet'
-import type { MarkInstance } from '../../src/v4/mark'
-import * as sdk from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger } from '../../engine'
+import type { DamageContext, UseSkillContext } from '../../src/engine/context'
+import type { Pet } from '../../src/engine/pet'
+import type { MarkInstance } from '../../src/engine/mark'
+import * as sdk from '@arcadia-eternity/battle/authoring'
 import {
   actions,
   bindings,
@@ -358,7 +358,7 @@ const consumptionEvent = defineEffect({
   id: 'type-test/consumption-context',
   triggers: [EffectTrigger.OnBeforeConsumeStack],
   apply(ctx) {
-    exact<Equal<typeof ctx.parent, import('../../src/v4/context').ConsumeStackContext>>(true)
+    exact<Equal<typeof ctx.parent, import('../../src/engine/context').ConsumeStackContext>>(true)
     contexts.consumeStack.apply(ops.disableContext())(ctx)
   },
 })

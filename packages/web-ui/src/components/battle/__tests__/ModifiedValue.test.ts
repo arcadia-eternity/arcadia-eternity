@@ -32,7 +32,7 @@ describe('ModifiedValue Component', () => {
       modifiers: [],
     }
     const wrapper = mount(ModifiedValue, {
-      props: { value: 10, attributeInfo, format: (value: number) => `${value}%` },
+      props: { value: 10, attributeInfo, format: (value: number | string | boolean) => `${value}%` },
     })
     expect(wrapper.text()).toBe('10%')
     await wrapper.setProps({ attributeInfo: { ...attributeInfo, isModified: true } })
@@ -41,9 +41,12 @@ describe('ModifiedValue Component', () => {
   })
 
   test('passes the numeric value to the slot even when text formatting is configured', () => {
-    const slot = vi.fn(({ value }: { value: number }) => h('span', value.toFixed(1)))
+    const slot = vi.fn(({ value }: { value: number | string | boolean }) => {
+      if (typeof value !== 'number') throw new Error('Expected a numeric slot value')
+      return h('span', value.toFixed(1))
+    })
     const wrapper = mount(ModifiedValue, {
-      props: { value: 10, format: (value: number) => `${value}%` },
+      props: { value: 10, format: (value: number | string | boolean) => `${value}%` },
       slots: { default: slot },
     })
     expect(slot).toHaveBeenLastCalledWith(expect.objectContaining({ value: 10 }))

@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 
 const mocked = vi.hoisted(() => ({ dispose: vi.fn(async () => {}), manager: vi.fn() }))
-vi.mock('@arcadia-eternity/battle/v4/sandbox', () => ({
+vi.mock('@arcadia-eternity/battle/sandbox', () => ({
   BattleWorkerManager: class {
     dispose = mocked.dispose
     constructor(...args: unknown[]) {
@@ -9,7 +9,7 @@ vi.mock('@arcadia-eternity/battle/v4/sandbox', () => ({
     }
   },
 }))
-vi.mock('@arcadia-eternity/battle/v4/sandbox/worker?worker', () => ({ default: vi.fn() }))
+vi.mock('@arcadia-eternity/battle/sandbox/worker?worker', () => ({ default: vi.fn() }))
 
 afterEach(() => vi.unstubAllEnvs())
 

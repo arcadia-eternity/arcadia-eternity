@@ -12,7 +12,7 @@ strategy = 'rolling'
 max_unavailable = 1
 
 [processes]
-# Map the existing Fly secret names to the V4 account provider settings.
+# Map the existing Fly secret names to the account provider settings.
 app = "sh -ec 'export SMTP_PASSWORD=\"$SMTP_PASS\" GITHUB_APP_CLIENT_ID=\"$ARCADIA_G3_GITHUB_CLIENT_ID\" GITHUB_APP_CLIENT_SECRET=\"$ARCADIA_G3_GITHUB_CLIENT_SECRET\"; exec node dist/cli.js server'"
 
 [http_service]

@@ -2,7 +2,7 @@ import { readFile, lstat, realpath, link, unlink, writeFile } from 'node:fs/prom
 import { basename, dirname, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import YAML from 'yaml'
-import { NativePlayerSchema } from '@arcadia-eternity/battle/v4'
+import { NativePlayerSchema } from '@arcadia-eternity/battle/engine'
 import { CliError, message } from '../reporting/errors'
 
 export async function readDocument(path: string): Promise<unknown> {

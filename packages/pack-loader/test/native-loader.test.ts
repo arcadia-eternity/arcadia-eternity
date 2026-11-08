@@ -6,9 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import YAML from 'yaml'
 import { NativePackLoader, PackMetadataLoader } from '../src/native-loader'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
-import { createContentCatalog } from '@arcadia-eternity/battle/v4'
+import { createContentCatalog } from '@arcadia-eternity/battle/engine'
 import { sandboxEnvironmentFor } from '../src/effect-environment'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
 
 const basePath = fileURLToPath(new URL('../../../packs/base/', import.meta.url))
 const origin = 'https://example.test/native/'

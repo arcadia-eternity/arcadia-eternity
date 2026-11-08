@@ -7,6 +7,7 @@ const OriginalURL = globalThis.URL
 const revokeObjectURL = vi.fn()
 const owned: Array<ReturnType<typeof registerOwnedResource>> = []
 beforeEach(() => {
+  vi.stubGlobal('Blob', NodeBlob)
   let sequence = 0
   revokeObjectURL.mockClear()
   vi.stubGlobal(
@@ -28,7 +29,7 @@ function own(blob: Blob) {
 }
 
 it('reads explicitly owned local bytes through the normal transport without fetching or caching', async () => {
-  const resource = own(new NodeBlob([new Uint8Array([1, 2, 3])], { type: 'image/png' }))
+  const resource = own(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }))
   const request = vi.fn()
   const first = await readResourceBytes(resource.url, {}, request as typeof fetch)
   const second = await readResourceBytes(resource.url, {}, request as typeof fetch)
@@ -44,7 +45,7 @@ it('reads explicitly owned local bytes through the normal transport without fetc
 })
 
 it('applies consumer byte limits to owned resources', async () => {
-  const resource = own(new NodeBlob([new Uint8Array(9)]))
+  const resource = own(new Blob([new Uint8Array(9)]))
   const request = vi.fn()
   await expect(readResourceBytes(resource.url, { maxBytes: 8 }, request as typeof fetch)).rejects.toThrow('大小限制')
   expect(request).not.toHaveBeenCalled()
@@ -53,8 +54,8 @@ it('applies consumer byte limits to owned resources', async () => {
 it.each(['owner release', 'caller cancellation'])('stops an in-flight owned read on %s', async reason => {
   const cancel = vi.fn(),
     pull = vi.fn()
-  const blob = new NodeBlob([new Uint8Array([1])])
-  vi.spyOn(blob, 'stream').mockImplementation(() => new ReadableStream<Uint8Array>({ pull, cancel }))
+  const blob = new Blob([new Uint8Array([1])])
+  vi.spyOn(blob, 'stream').mockImplementation(() => new ReadableStream<Uint8Array<ArrayBuffer>>({ pull, cancel }))
   const resource = own(blob)
   const request = vi.fn()
   const controller = new AbortController()

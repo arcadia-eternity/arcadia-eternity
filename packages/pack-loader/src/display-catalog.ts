@@ -1,4 +1,4 @@
-import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
+import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import {
   MarkSchema,
   SkillSchema,

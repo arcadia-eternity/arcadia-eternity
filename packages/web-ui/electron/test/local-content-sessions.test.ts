@@ -4,7 +4,7 @@ import { createLocalContentSessions } from '../local-content-sessions.mjs'
 import { createNpmFixture } from '../../../server/test/fixtures/npm'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
-import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 
 it('captures real npm display and resources, preserves prepared recipes across edits, and evaluates effects only in Workers', async () => {
   const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })

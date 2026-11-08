@@ -1,6 +1,6 @@
-import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/v4/authoring'
+import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring'
 
-/** Official engine APIs, exercised by packages/battle/test/v4/effect-sdk-native.test.ts. */
+/** Official engine APIs, exercised by packages/battle/test/engine/effect-sdk-native.test.ts. */
 export function createEffects({ sdk, id }: CodeEffectModuleContext) {
   const { defineCodeEffect, EffectTrigger, Pet, HealContext, MarkInstanceImpl, Modifier, DurationType, projectValue } =
     sdk

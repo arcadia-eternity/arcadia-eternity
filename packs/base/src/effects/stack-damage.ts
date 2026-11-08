@@ -9,7 +9,7 @@ import {
   ops,
   targets,
   values,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Explicit corrections to the source's reactive-object delta and premature skill-check trigger. */
 export function createStackDamageEffects() {

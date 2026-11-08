@@ -1,4 +1,4 @@
-import type { BehaviorDefinition, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
+import type { BehaviorDefinition, ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import { parse as parseVersion } from 'semver'
 import {
   WorkError,

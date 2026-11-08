@@ -1,5 +1,5 @@
 // Reviewed SDK behavior; edit this TypeScript source directly.
-import { UseSkillContext } from '@arcadia-eternity/battle/v4'
+import { UseSkillContext } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   compileEffect,
@@ -7,7 +7,7 @@ import {
   conditions,
   targets,
   ops,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 const selfUsesSkill = conditions.all(ctx => ctx.parent instanceof UseSkillContext, conditions.selfUsesSkill)
 

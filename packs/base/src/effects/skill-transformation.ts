@@ -6,7 +6,7 @@ import {
   defineEffect,
   ops,
   targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Restore the most recently installed transformation after this instance finishes its skill use. */
 export function createSkillTransformationRemoval() {

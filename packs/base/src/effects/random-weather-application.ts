@@ -1,4 +1,4 @@
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   compileEffect,
@@ -7,7 +7,7 @@ import {
   defineEffect,
   ops,
   selectFrom,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 export const randomWeatherDependencies = Object.freeze(['mark_global_qingtian', 'mark_global_yemu'] as const)
 

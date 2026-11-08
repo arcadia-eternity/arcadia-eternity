@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { nativeBuildIdentity as core } from '@arcadia-eternity/battle/v4/build'
+import { nativeBuildIdentity as core } from '@arcadia-eternity/battle/build'
 
 const root = dirname(fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')))
 assert.equal(nativeBuildIdentity.coreBuildId, core.coreBuildId)

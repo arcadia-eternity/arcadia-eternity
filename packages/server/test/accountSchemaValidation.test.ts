@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { Pool } from 'pg'
-import { ensureAccountSchema } from '../src/standalone/accounts/schema'
+import { ensureAccountSchema } from '../src/runtime/accounts/schema'
 import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 
 const databaseUrl = process.env.TEST_DATABASE_URL

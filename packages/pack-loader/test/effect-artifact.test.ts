@@ -3,8 +3,8 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, expect, it } from 'vitest'
 import { compileEffectModule } from '../src/npm/effect-artifact'
-import { ArenaEffectModule } from '@arcadia-eternity/battle/v4/sandbox/effects'
-import * as sdk from '@arcadia-eternity/battle/v4/authoring'
+import { ArenaEffectModule } from '@arcadia-eternity/battle/sandbox/effects'
+import * as sdk from '@arcadia-eternity/battle/authoring'
 
 const temporary: string[] = []
 afterEach(async () => {
@@ -19,7 +19,7 @@ async function source(code: string) {
 }
 it('bundles TypeScript and SDK imports without evaluating author top-level statements in Node', async () => {
   const { root, entry } =
-    await source(`import {defineCodeEffect,EffectTrigger} from '@arcadia-eternity/battle/v4/authoring';
+    await source(`import {defineCodeEffect,EffectTrigger} from '@arcadia-eternity/battle/authoring';
     (globalThis as unknown as {artifactMarker:number}).artifactMarker=1;
     export function createEffects(){return [defineCodeEffect({id:'probe/tick',sourceKind:'skill',triggers:[EffectTrigger.TurnEnd],apply(){}})]}`)
   const artifact = await compileEffectModule(entry, root, 'probe')
@@ -34,7 +34,7 @@ it('bundles TypeScript and SDK imports without evaluating author top-level state
 })
 it('selects effect factories from an ordinary module without exposing host reference helpers', async () => {
   const { root, entry } = await source(`
-    import {createContentCatalog} from '@arcadia-eternity/battle/v4';
+    import {createContentCatalog} from '@arcadia-eternity/battle/engine';
     export function createReferenceContent(data){return createContentCatalog(data)}
     export function createEffects(){return []}
   `)
@@ -69,7 +69,7 @@ it('rejects a dependency symlink outside the captured installation', async () =>
 })
 it('reports the source graph to a host watcher without exposing virtual SDK modules', async () => {
   const { root, entry } = await source(
-    "import {value} from './helper.ts';import {EffectTrigger} from '@arcadia-eternity/battle/v4/authoring';export function createEffects(){return [value,EffectTrigger.OnHit]}",
+    "import {value} from './helper.ts';import {EffectTrigger} from '@arcadia-eternity/battle/authoring';export function createEffects(){return [value,EffectTrigger.OnHit]}",
   )
   const helper = join(root, 'helper.ts')
   await writeFile(helper, 'export const value=1')

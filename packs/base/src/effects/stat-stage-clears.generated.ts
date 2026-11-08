@@ -9,7 +9,7 @@ import {
   checks,
   ops,
   actions,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedStatStageClears() {
   return Object.freeze({
     effect_skill_clear_opponent_atk_spa_stage: compileEffect(

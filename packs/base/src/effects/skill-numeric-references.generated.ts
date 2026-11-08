@@ -10,7 +10,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedSkillNumericReferences() {
   return Object.freeze({
     effect_ability_physical_evasion_boost_5_percent: compileEffect(

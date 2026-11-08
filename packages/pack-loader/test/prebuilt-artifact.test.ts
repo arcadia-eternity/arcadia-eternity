@@ -4,7 +4,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/pr
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
-import { ArenaEffectModule, type EffectModuleArtifact } from '@arcadia-eternity/battle/v4/sandbox/effects'
+import { ArenaEffectModule, type EffectModuleArtifact } from '@arcadia-eternity/battle/sandbox/effects'
 import * as compiler from '../src/npm/effect-artifact'
 import { readPrebuiltEffectModule, validatePrebuiltEffectModule } from '../src/npm/prebuilt-artifact'
 import { prepareNpmProject, type NpmContentHost, type PreparedNpmEnvironment } from '../src/npm/prepare'

@@ -11,7 +11,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedMultihit() {
   return Object.freeze({
     effect_ability_add_multihit_1_on_multihit_skill: compileEffect(

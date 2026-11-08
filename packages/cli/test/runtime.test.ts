@@ -1,8 +1,13 @@
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { Worker } from 'node:worker_threads'
-import { BattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import { BattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 import { readFile } from 'node:fs/promises'
-import { AttributeSystem, BattleMessageType, executionBudgetPolicy, setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import {
+  AttributeSystem,
+  BattleMessageType,
+  executionBudgetPolicy,
+  setGlobalLogger,
+} from '@arcadia-eternity/battle/engine'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { prepareContent } from '../src/application/prepare'
 import { runBattle } from '../src/application/run'

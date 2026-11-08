@@ -25,7 +25,7 @@ test(
   async t => {
     const { _electron, expect: baseExpect } = require('playwright/test')
     const expect = baseExpect.configure({ timeout: 30000 })
-    const { createSingleProcessApp } = await import('../../../server/src/standalone/app.ts')
+    const { createSingleProcessApp } = await import('../../../server/src/runtime/app.ts')
     const { createNpmFixture } = await import('../../../server/test/fixtures/npm.ts')
     await readFile(join(frontend, 'dist/index.html'))
     const directory = await mkdtemp(join(tmpdir(), 'arcadia-desktop-gameplay-'))

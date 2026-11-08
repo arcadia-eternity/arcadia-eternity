@@ -102,7 +102,7 @@ export async function buildBaseEnvironmentArtifact() {
     await writeFile(
       resolve(dir, 'metadata.mjs'),
       [
-        "import { createContentIndex } from '@arcadia-eternity/battle/v4';",
+        "import { createContentIndex } from '@arcadia-eternity/battle/engine';",
         ...Object.entries(metadata).map(
           ([name, value]) => `export const ${name} = Object.freeze(${JSON.stringify(value)});`,
         ),
@@ -113,7 +113,7 @@ export async function buildBaseEnvironmentArtifact() {
     await writeFile(
       resolve(dir, 'metadata.d.ts'),
       [
-        "import type { ContentPrototypeData, ContentIndex } from '@arcadia-eternity/battle/v4';",
+        "import type { ContentPrototypeData, ContentIndex } from '@arcadia-eternity/battle/engine';",
         'export declare const officialEffectIds: readonly string[];',
         ...['officialTemplateDefinitions', 'officialEffectTemplates', 'officialEffectMarkRelations'].map(
           name => `export declare const ${name}: typeof import('./types/effects').${name};`,

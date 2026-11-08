@@ -2,7 +2,7 @@ import { expect, test, type Page } from 'playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createSingleProcessApp } from '../../server/src/standalone/app'
+import { createSingleProcessApp } from '../../server/src/runtime/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 
 test.skip(process.env.PLAYWRIGHT_SWF_BATTLE !== '1', 'Requires the built paired website and live original SWF endpoint')

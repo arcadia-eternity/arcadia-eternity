@@ -90,7 +90,7 @@ vi.mock('@/p2p/privateRoomSignalBridge', () => ({
 
 import { usePrivateRoomStore } from '../privateRoom'
 
-function prepared(key = 'a'): PreparedPersonalEnvironment & { release: ReturnType<typeof vi.fn> } {
+function prepared(key = 'a'): PreparedPersonalEnvironment & { release: ReturnType<typeof vi.fn<() => void>> } {
   const descriptor = {
     id: key.repeat(64),
     protocolVersion: 1 as const,
@@ -151,7 +151,7 @@ function prepared(key = 'a'): PreparedPersonalEnvironment & { release: ReturnTyp
       peerRevision: descriptor.peerRevision,
       resourcesReady: true,
     },
-    release: vi.fn(),
+    release: vi.fn<() => void>(),
   }
 }
 function room(value: PreparedPersonalEnvironment, generation = 1, id = 'room-a'): PrivateRoomInfo {

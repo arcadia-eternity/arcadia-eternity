@@ -1,4 +1,4 @@
-import { compileEffect } from '@arcadia-eternity/battle/v4/authoring'
+import { compileEffect } from '@arcadia-eternity/battle/authoring'
 import { consumeFantasyForDefense } from './fantasy-defense'
 import { damageBoostByHp } from './damage-by-hp'
 import { timeRebirth } from './time-rebirth'

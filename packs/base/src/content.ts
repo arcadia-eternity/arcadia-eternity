@@ -3,7 +3,7 @@ import {
   type ContentPrototypeData,
   type ContentCatalog,
   type BehaviorCatalogOptions,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import { createOfficialEffectCandidates } from './effects/candidate-catalog'
 import { withOfficialTemplates, createOfficialTemplateRegistrations } from './templates'
 

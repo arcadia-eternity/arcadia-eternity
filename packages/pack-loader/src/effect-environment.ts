@@ -1,5 +1,5 @@
-import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
+import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
 import { digestJson, freeze } from './works/model'
 
 const environments = new WeakMap<object, SandboxEnvironment>()

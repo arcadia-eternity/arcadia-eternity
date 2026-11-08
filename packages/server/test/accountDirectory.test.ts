@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Pool } from 'pg'
-import { PgAccountDirectory } from '../src/standalone/accounts/directory'
-import { ensureAccountSchema } from '../src/standalone/accounts/schema'
+import { PgAccountDirectory } from '../src/runtime/accounts/directory'
+import { ensureAccountSchema } from '../src/runtime/accounts/schema'
 
 const email = (subject: string) => ({ providerId: 'email', issuer: 'mailto', subject, verifiedAt: Date.now() })
 const oidc = (subject: string) => ({

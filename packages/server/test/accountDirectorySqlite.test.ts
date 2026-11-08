@@ -2,8 +2,8 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { openStorage } from '../../database/src/index'
-import { SQLAccountDirectory } from '../src/standalone/accounts/directory'
+import { openStorage } from '@arcadia-eternity/database'
+import { SQLAccountDirectory } from '../src/runtime/accounts/directory'
 
 const email = (subject: string) => ({ providerId: 'email', issuer: 'mailto', subject, verifiedAt: 1_793_808_123_000 })
 const github = (subject: string) => ({

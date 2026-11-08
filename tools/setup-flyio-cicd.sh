@@ -120,10 +120,10 @@ echo "# Guest 玩家模式也可通过 server admin login-code 初始化管理�
 echo "# 尚未启动过服务时，先执行 server db migrate 初始化数据目录。"
 echo "# Fly 负责公网 HTTPS。跨站管理网页可设置 MANAGEMENT_COOKIE_SAME_SITE=none。"
 echo "# 内容来源通过 ARCADIA_CONTENT_SOURCES 注册；允许取得内容与允许执行代码分别配置。"
-echo "# 数据库迁移和管理命令见 docs/v4/unified-management.md。"
+echo "# 数据库迁移和管理命令见 docs/guides/unified-management.md。"
 
 echo ""
 echo "✅ 设置完成!"
 echo "现在您可以推送代码到 main 分支来触发自动部署"
 echo ""
-echo "📚 当前运行与部署说明: docs/v4/server-runtime.md"
+echo "📚 当前运行与部署说明: docs/guides/server-runtime.md"

@@ -7,7 +7,7 @@ import {
   contexts,
   ops,
   actions,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedSkillDisabling() {
   return Object.freeze({
     effect_mark_40probability_stun: compileEffect(

@@ -3,7 +3,7 @@ import {
   normalizeBehaviorDefinitions,
   type BaseMark,
   type ContentPrototypeData,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import { markTemplates } from './marks'
 import { combatTemplates } from './combat'
 import { resourceTemplates } from './resources'

@@ -155,9 +155,9 @@ docker-compose*
 # content-dev packages the author instructions as part of the server dependency build.
 !docs/
 docs/*
-!docs/v4/
-docs/v4/*
-!docs/v4/ugc-authoring-agent/
-!docs/v4/ugc-authoring-agent/**
-!docs/v4/seer2-recreate-pet/
-!docs/v4/seer2-recreate-pet/**
+!docs/guides/
+docs/guides/*
+!docs/guides/ugc-authoring-agent/
+!docs/guides/ugc-authoring-agent/**
+!docs/guides/seer2-recreate-pet/
+!docs/guides/seer2-recreate-pet/**

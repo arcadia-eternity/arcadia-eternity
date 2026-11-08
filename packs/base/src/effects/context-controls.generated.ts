@@ -9,7 +9,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedContextControls() {
   return Object.freeze({
     effect_block_damage_under_60: compileEffect(

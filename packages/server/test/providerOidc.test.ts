@@ -1,8 +1,8 @@
 import { createHash, generateKeyPairSync, randomUUID, sign, type KeyObject } from 'node:crypto'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { OidcVerifier, type OidcVerifierOptions } from '../src/standalone/providers/oidc.js'
-import type { AuthIntent } from '../src/standalone/providers/types.js'
+import { OidcVerifier, type OidcVerifierOptions } from '../src/runtime/providers/oidc.js'
+import type { AuthIntent } from '../src/runtime/providers/types.js'
 
 type Claims = {
   iss: string

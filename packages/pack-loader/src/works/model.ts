@@ -3,7 +3,7 @@ import type {
   ContentCatalog,
   ContentPrototypeData,
   EnvironmentBuildIdentity,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
 export type WorkKind = 'species' | 'skill' | 'mark' | 'behavior'

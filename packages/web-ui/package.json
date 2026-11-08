@@ -26,7 +26,7 @@
     "test:desktop-local-content": "vitest run --config electron/test/local-content.vitest.config.mjs",
     "test:content-locales": "vitest run src/i18n/__tests__/contentLocales.test.ts src/i18n/__tests__/richDescription.test.ts src/components/__tests__/ContentDescription.test.ts src/features/authoring/__tests__/AuthorDescription.test.ts --maxWorkers=1",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build",
+    "type-check": "vue-tsc --build && vue-tsc --noEmit -p tsconfig.test.json",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore --config .oxlintrc.json || true",
     "lint:eslint": "eslint . --fix",
     "lint": "run-s lint:eslint",
@@ -44,7 +44,8 @@
     "test:e2e:static": "playwright test --config playwright.static.config.ts",
     "stage:desktop-runtime": "node ../../scripts/stage-desktop-runtime.mjs --output dist/arcadia-server",
     "stage:desktop-runtime:preview": "node ../../scripts/stage-desktop-runtime.mjs --output dist/arcadia-server",
-    "build:desktop:runtime:deps": "pnpm --filter @arcadia-eternity/server... run build"
+    "build:desktop:runtime:deps": "pnpm --filter @arcadia-eternity/server... run build",
+    "typecheck": "pnpm run type-check"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

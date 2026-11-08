@@ -3,11 +3,12 @@ import { configureVueProject, defineConfigWithVueTs, vueTsConfigs } from '@vue/e
 import oxlint from 'eslint-plugin-oxlint'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
-import autoImportConfig from './.eslintrc-auto-import.json' with { type: 'json' }
 configureVueProject({ rootDir: import.meta.dirname })
 const autoImportFlatConfig = {
   languageOptions: {
-    globals: autoImportConfig.globals || {}, // 将 globals 移动到 languageOptions 下
+    // Element Plus service APIs resolved by the Vite auto-import plugin.
+    // Keep lint usable before the first application build.
+    globals: { ElMessage: 'readonly', ElMessageBox: 'readonly' } as const,
   },
 }
 // To allow more languages other than `ts` in `.vue` files, uncomment the following lines:
@@ -23,20 +24,18 @@ export default defineConfigWithVueTs(
 
   {
     name: 'app/files-to-ignore',
-    ignores: [
-      '**/dist/**',
-      '**/dist-ssr/**',
-      '**/coverage/**',
-      '**/release/**',
-      '**/release-preview/**',
-      '**/electron/preload.cjs',
-    ],
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/release/**', '**/release-preview/**'],
   },
   autoImportFlatConfig,
 
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   oxlint.configs['flat/recommended'],
+  {
+    name: 'electron/commonjs-preloads',
+    files: ['electron/*preload.cjs'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
   {
     name: 'app/overrides',
     rules: {

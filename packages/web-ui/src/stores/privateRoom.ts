@@ -45,7 +45,7 @@ import { preparePeerEnvironment } from '@/services/peerEnvironment'
 import { validatePersonalEnvironmentTeam, type PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { requireServerExecution } from '@/services/serverEnvironmentPolicy'
 import { useServerStateStore } from '@/stores/serverState'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 
 type P2PTransportMode = 'auto' | 'webrtc' | 'relay'
 

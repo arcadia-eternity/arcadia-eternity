@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
-import { NativePlayerSchema } from '@arcadia-eternity/battle/v4'
+import { NativePlayerSchema } from '@arcadia-eternity/battle/engine'
 import { createLoader, type CliPreparedContent } from './prepare'
 import { runBattle } from './run'
 import { CliError, message } from '../reporting/errors'

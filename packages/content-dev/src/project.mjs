@@ -70,7 +70,7 @@ export async function connectDevelopmentSdk(root) {
   await directory(['node_modules', '@arcadia-eternity'])
   await directory(['node_modules', '.bin'])
   const packages = {
-    '@arcadia-eternity/battle': await packageRoot('@arcadia-eternity/battle', '@arcadia-eternity/battle/v4'),
+    '@arcadia-eternity/battle': await packageRoot('@arcadia-eternity/battle', '@arcadia-eternity/battle/engine'),
     '@arcadia-eternity/pack-loader': await packageRoot(
       '@arcadia-eternity/pack-loader',
       '@arcadia-eternity/pack-loader/node',

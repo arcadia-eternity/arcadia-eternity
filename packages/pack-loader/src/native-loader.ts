@@ -3,9 +3,9 @@ import {
   type ContentCatalog,
   type ContentPrototypeData,
   type BehaviorDefinition,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import { prepareWorkEnvironment, type WorkRelease } from './works'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
 import { bindEffectEnvironment } from './effect-environment'
 import {
   type PackManifest,

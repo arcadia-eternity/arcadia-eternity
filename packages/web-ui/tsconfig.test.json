@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "types": ["node", "vitest/globals", "pinia-plugin-persistedstate", "element-plus/global"],
+    "resolveJsonModule": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+  },
+  "include": ["../../types/effect-module.d.ts", "env.d.ts", "auto-imports.d.ts", "src/**/*.ts", "src/**/*.vue"],
+  "exclude": ["node_modules", "dist"]
+}

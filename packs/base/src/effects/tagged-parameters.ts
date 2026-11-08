@@ -1,4 +1,4 @@
-import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
 
 /** Match installed parameter tags at execution; repeated applications append scoped modifiers. */
 export function createTaggedParameterModifiers() {

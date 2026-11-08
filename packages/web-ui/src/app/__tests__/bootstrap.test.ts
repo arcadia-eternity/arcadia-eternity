@@ -6,10 +6,37 @@ describe('AppBootstrap', () => {
     const bootstrap = createAppBootstrap()
     const trace: string[] = []
 
-    bootstrap.register({ name: 'b', phase: 'network-ready', order: 2, run: () => trace.push('network-b') })
-    bootstrap.register({ name: 'a', phase: 'pre-init', order: 2, run: () => trace.push('pre-b') })
-    bootstrap.register({ name: 'c', phase: 'pre-init', order: 1, run: () => trace.push('pre-a') })
-    bootstrap.register({ name: 'd', phase: 'post-init', run: () => trace.push('post') })
+    bootstrap.register({
+      name: 'b',
+      phase: 'network-ready',
+      order: 2,
+      run: () => {
+        trace.push('network-b')
+      },
+    })
+    bootstrap.register({
+      name: 'a',
+      phase: 'pre-init',
+      order: 2,
+      run: () => {
+        trace.push('pre-b')
+      },
+    })
+    bootstrap.register({
+      name: 'c',
+      phase: 'pre-init',
+      order: 1,
+      run: () => {
+        trace.push('pre-a')
+      },
+    })
+    bootstrap.register({
+      name: 'd',
+      phase: 'post-init',
+      run: () => {
+        trace.push('post')
+      },
+    })
 
     await bootstrap.runAll()
 
@@ -29,7 +56,13 @@ describe('AppBootstrap', () => {
         throw new Error('boom')
       },
     })
-    bootstrap.register({ name: 'next', phase: 'pre-init', run: () => trace.push('after-fail') })
+    bootstrap.register({
+      name: 'next',
+      phase: 'pre-init',
+      run: () => {
+        trace.push('after-fail')
+      },
+    })
 
     const failures = await bootstrap.runPhase('pre-init')
 

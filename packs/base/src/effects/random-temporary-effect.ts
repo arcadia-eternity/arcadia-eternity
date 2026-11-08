@@ -1,13 +1,6 @@
-import { Effect } from '@arcadia-eternity/battle/v4'
+import { Effect } from '@arcadia-eternity/battle/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
-import {
-  compileEffect,
-  conditions,
-  defineEffect,
-  ops,
-  selectFrom,
-  targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+import { compileEffect, conditions, defineEffect, ops, selectFrom, targets } from '@arcadia-eternity/battle/authoring'
 
 export const randomTemporaryEffectDependencies = Object.freeze([
   'effect_skill_add_mark_shanbi_below_1_8_hp',

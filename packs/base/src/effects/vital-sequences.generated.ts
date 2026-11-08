@@ -12,7 +12,7 @@ import {
   actions,
   values,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedVitalSequences() {
   return Object.freeze({
     effect_mark_absorb_damage_to_heal: compileEffect(

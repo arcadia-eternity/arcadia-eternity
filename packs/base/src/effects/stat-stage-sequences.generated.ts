@@ -10,7 +10,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedStatStageSequences() {
   return Object.freeze({
     effect_mark_raise_def_1_when_hit_and_remove_self: compileEffect(

@@ -12,7 +12,7 @@ import {
   actions,
   values,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedVitalActions() {
   return Object.freeze({
     effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end: compileEffect(

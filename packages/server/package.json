@@ -21,7 +21,8 @@
     "start": "tsx ../../bin/cli.ts server",
     "dev": "npm run build && npm start",
     "test": "vitest",
-    "test:run": "vitest run --maxWorkers=1"
+    "test:run": "vitest run --maxWorkers=1",
+    "typecheck": "pnpm exec tsgo --noEmit -p tsconfig.test.json"
   },
   "keywords": [],
   "author": "yuuinih",

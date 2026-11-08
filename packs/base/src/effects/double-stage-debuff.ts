@@ -1,4 +1,4 @@
-import { BaseStatLevelMark } from '@arcadia-eternity/battle/v4'
+import { BaseStatLevelMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   compileEffect,
@@ -6,7 +6,7 @@ import {
   contexts,
   defineEffect,
   ops,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** V1 uses a signed prototype level; V2's statLevelMarkLevel is an unsigned event magnitude. */
 export function createDoubleStageDebuff() {

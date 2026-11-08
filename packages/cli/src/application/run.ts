@@ -8,9 +8,9 @@ import {
   type PlayerSelection,
   type playerId,
 } from '@arcadia-eternity/const'
-import { GameRng, ExecutionBudgetExceeded, type ContentIndex } from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4, type BattleHost } from '@arcadia-eternity/battle/v4/host'
-import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import { GameRng, ExecutionBudgetExceeded, type ContentIndex } from '@arcadia-eternity/battle/engine'
+import { LocalBattleSystem, type BattleHost } from '@arcadia-eternity/battle/host'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 import { sandboxEnvironmentFor } from '@arcadia-eternity/pack-loader/node'
 import type { NativeContentResult } from '@arcadia-eternity/pack-loader/native'
 import type { BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
@@ -71,7 +71,7 @@ export async function runBattle(
     runtime =
       workers && environment
         ? await workers.create({ environment, players: teams, options: battleOptions, hostOptions }, options.signal)
-        : new LocalBattleSystemV4(battle!, native!, hostOptions)
+        : new LocalBattleSystem(battle!, native!, hostOptions)
     initialState = await runtime.getState(undefined, true)
   } catch (error) {
     options.signal.removeEventListener('abort', wake)

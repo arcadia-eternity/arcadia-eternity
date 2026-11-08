@@ -31,7 +31,7 @@ export type ErrorResponse = {
 
 export type AckResponse<T = unknown> = (response: SuccessResponse<T> | ErrorResponse) => void
 
-/** Standalone servers require both fields; optional here for legacy transport compatibility. */
+/** Servers require both fields; optional here for legacy transport compatibility. */
 export type SubmitPlayerSelectionRequest = PlayerSelectionSchemaType & {
   requestId?: string
   expectedTurn?: number

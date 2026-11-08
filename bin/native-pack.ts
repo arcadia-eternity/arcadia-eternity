@@ -1,4 +1,4 @@
-import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
+import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import { SpeciesSchema, parseWithErrors } from '@arcadia-eternity/schema'
 
 /** Validate metadata against the same compiled content used by local and server battles. */

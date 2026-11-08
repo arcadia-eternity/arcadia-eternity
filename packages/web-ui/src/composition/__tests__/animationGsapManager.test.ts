@@ -1,5 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { render } from 'vue'
+import type { AnimationStateMachine } from '../animationStateMachine'
 import { AnimationGsapManager } from '../animationGsapManager'
 
 vi.mock('gsap', () => {
@@ -30,7 +31,7 @@ describe('AnimationGsapManager', () => {
       incrementTempDom: vi.fn(),
       decrementTempDom: vi.fn(),
     }
-    gsapManager.attach(mockStateMachine)
+    gsapManager.attach(mockStateMachine as unknown as AnimationStateMachine)
   })
 
   test('createTimeline registers tween and calls stateMachine.registerTween', () => {

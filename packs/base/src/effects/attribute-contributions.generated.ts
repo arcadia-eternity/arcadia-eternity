@@ -10,7 +10,7 @@ import {
   actions,
   bindings,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedAttributeContributions() {
   return Object.freeze({
     effect_ability_add_self_evasion_10: compileEffect(

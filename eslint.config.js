@@ -6,33 +6,7 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 const root = import.meta.dirname
 
 /** @type {import('eslint').Linter.Config[]} */
-export default tseslint.config(
-  {
-    ignores: [
-      '**/dist/**',
-      '**/test/**',
-      '**/e2e/**',
-      '**/__tests__/**',
-      'tsconfig.json',
-      '**/rolldown.config.*',
-      '**/vitest.config.*',
-      '**/vitest.*.config.*',
-      '**/*.d.{ts,mts,cts}',
-      'scripts/**',
-      'tools/**',
-      'examples/**',
-      'test-*.ts',
-      'packages/*/index.ts',
-      'packages/*/test/**',
-      'packages/web-ui/**',
-      'packages/p2p-transport/**',
-      'packages/engine-plugins/**/index.ts',
-      'packages/database/scripts/**',
-      'packages/schema/examples/**',
-      'packages/schema/script/**',
-      'eslint.config.*',
-    ],
-  },
+export const sharedConfig = tseslint.config(
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
@@ -66,16 +40,15 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
     files: ['.pnpmfile.cjs', 'packages/content-dev/**/*.mjs'],
   },
-  // Imported historical source: retain V1 syntax while compatibility is established.
-  // New adapters/tests use the normal rules in eslint.config.v4.js.
+  // The engine retains its existing rule exceptions; host, sandbox and tests use the shared rules.
   {
-    files: ['packages/battle/src/v4/**/*.ts'],
+    files: ['packages/battle/src/engine/**/*.ts'],
     ignores: [
-      'packages/battle/src/v4/api.ts',
-      'packages/battle/src/v4/reactiveValue.ts',
-      'packages/battle/src/v4/rng.ts',
-      'packages/battle/src/v4/snapshot.ts',
-      'packages/battle/src/v4/snapshotBindings.ts',
+      'packages/battle/src/engine/api.ts',
+      'packages/battle/src/engine/reactiveValue.ts',
+      'packages/battle/src/engine/rng.ts',
+      'packages/battle/src/engine/snapshot.ts',
+      'packages/battle/src/engine/snapshotBindings.ts',
     ],
     linterOptions: { reportUnusedDisableDirectives: 'off' },
     rules: {
@@ -90,4 +63,34 @@ export default tseslint.config(
       'no-useless-assignment': 'off',
     },
   },
+)
+
+export default tseslint.config(
+  {
+    ignores: [
+      '**/dist/**',
+      '**/test/**',
+      '**/e2e/**',
+      '**/__tests__/**',
+      'tsconfig.json',
+      '**/rolldown.config.*',
+      '**/vitest.config.*',
+      '**/vitest.*.config.*',
+      '**/*.d.{ts,mts,cts}',
+      'scripts/**',
+      'tools/**',
+      'examples/**',
+      'test-*.ts',
+      'packages/*/index.ts',
+      'packages/*/test/**',
+      'packages/web-ui/**',
+      'packages/p2p-transport/**',
+      'packages/engine-plugins/**/index.ts',
+      'packages/database/scripts/**',
+      'packages/schema/examples/**',
+      'packages/schema/script/**',
+      'eslint.config.*',
+    ],
+  },
+  ...sharedConfig,
 )

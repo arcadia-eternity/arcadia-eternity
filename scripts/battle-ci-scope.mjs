@@ -29,13 +29,13 @@ const sharedFiles = new Set([
 
 const jobFiles = {
   headless: [
-    /^eslint\.config\.(?:baseline|v4)\.js$/,
-    /^scripts\/verify-v1-hosts\.mjs$/,
+    /^eslint\.config\.battle\.js$/,
+    /^scripts\/verify-battle-hosts\.mjs$/,
     /^scripts\/verify-waiting-snapshots\.mjs$/,
     /^scripts\/verify-behavior-uses\.mjs$/,
     /^scripts\/build-environment\.test\.mjs$/,
   ],
-  server: [/^bin\//, /^eslint\.config\.server-standalone\.js$/, /^scripts\/verify-native-pack\.mjs$/],
+  server: [/^bin\//, /^eslint\.config\.server\.js$/, /^scripts\/verify-native-pack\.mjs$/],
   browser: [
     /^resource\//,
     /^scripts\/prepare-static-assets(?:\.test)?\.mjs$/,

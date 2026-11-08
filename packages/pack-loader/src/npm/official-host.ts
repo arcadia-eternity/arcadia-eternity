@@ -7,7 +7,7 @@ import {
   type BehaviorDefinition,
   type ContentPrototypeData,
   type EnvironmentBuildIdentity,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import type { NpmContentHost } from './prepare'
 import { packageFile, type NpmProjectInspection } from './inspect'
 import { validatePrebuiltEffectModule } from './prebuilt-artifact'

@@ -6,7 +6,7 @@ import {
   defineEffect,
   ops,
   targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 const owner = targets.ownerPet
 const fantasyMarks = targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang')

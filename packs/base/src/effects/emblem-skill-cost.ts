@@ -7,7 +7,7 @@ import {
   numberParam,
   ops,
   values,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** C09: the used instance is UseSkillContext.skill, not skillId. */
 export function createEmblemSkillCost() {

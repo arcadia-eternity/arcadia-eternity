@@ -128,7 +128,7 @@ test(
   async t => {
     const { createSourceProject } = await import('../src/author-api.mjs')
     const { prepareContentPack } = await import('../src/testing.mjs')
-    const { setGlobalLogger } = await import('@arcadia-eternity/battle/v4')
+    const { setGlobalLogger } = await import('@arcadia-eternity/battle/engine')
     setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
     const root = await mkdtemp(join(tmpdir(), 'arcadia-team-rename-'))
     const project = join(root, 'project')

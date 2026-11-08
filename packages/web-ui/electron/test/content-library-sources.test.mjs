@@ -9,7 +9,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { ContentLibrary } from '../content-library.mjs'
 import { ManagedProjects } from '../../../content-dev/src/managed-projects.mjs'
 import { packBuiltProject } from '../../../content-dev/src/pack-project.mjs'
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
+import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { inspectNpmProject, prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)

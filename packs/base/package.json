@@ -23,7 +23,8 @@
     "build:types": "pnpm exec tsgo --emitDeclarationOnly",
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
-    "watch": "run-p watch:code watch:types"
+    "watch": "run-p watch:code watch:types",
+    "typecheck": "pnpm exec tsgo --noEmit"
   },
   "files": [
     "pack.json",

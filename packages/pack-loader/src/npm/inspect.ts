@@ -16,7 +16,7 @@ import {
 } from '../works/model'
 import { verifyAssets } from '../works/compiler'
 import { PresentationManifestSchema, parseWithErrors, type PresentationManifest } from '@arcadia-eternity/schema'
-import { effectSdkApiVersion } from '@arcadia-eternity/battle/v4/authoring'
+import { effectSdkApiVersion } from '@arcadia-eternity/battle/authoring'
 import { resolveNpmInvocation } from './runner'
 
 const exec = promisify(execFile)

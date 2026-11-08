@@ -17,7 +17,8 @@
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly",
-    "test:run": "vitest run --config vitest.config.ts"
+    "test:run": "vitest run --config vitest.config.ts",
+    "typecheck": "pnpm exec tsgo --noEmit"
   },
   "keywords": [],
   "author": "yuuinih",

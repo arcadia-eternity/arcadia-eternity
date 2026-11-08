@@ -16,7 +16,7 @@ import {
   readNpmAdmission,
   type PreparedNpmEnvironment,
 } from '@arcadia-eternity/pack-loader/node'
-import { createContentIndex, type ContentCatalog, type ContentIndex } from '@arcadia-eternity/battle/v4'
+import { createContentIndex, type ContentCatalog, type ContentIndex } from '@arcadia-eternity/battle/engine'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
 import type { RunSpec } from './types'

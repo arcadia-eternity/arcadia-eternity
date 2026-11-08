@@ -48,7 +48,7 @@ export function identifyEnvironmentArtifact(code) {
 export async function buildEnvironmentArtifact() {
   const root = fileURLToPath(new URL('../', import.meta.url))
   const dir = resolve(root, 'packages/battle/dist')
-  const bundle = await rolldown({ cwd: root, input: resolve(root, 'packages/battle/v4.ts'), platform: 'browser' })
+  const bundle = await rolldown({ cwd: root, input: resolve(root, 'packages/battle/engine.ts'), platform: 'browser' })
   try {
     const { output } = await bundle.generate({ format: 'esm', codeSplitting: false, minify: false })
     if (output.length !== 1 || output[0].type !== 'chunk')

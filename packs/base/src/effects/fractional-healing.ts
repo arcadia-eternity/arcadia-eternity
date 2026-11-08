@@ -9,7 +9,7 @@ import {
   targets,
   values,
   type Trigger,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 function healing(id: string, on: Trigger, divisor: number, needsField = false) {
   const parameters = { divisor: numberParam({ default: divisor }) }

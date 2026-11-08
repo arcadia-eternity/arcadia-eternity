@@ -19,7 +19,7 @@ import { marked } from 'marked'
 import TerminalRenderer from 'marked-terminal'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Delta } from 'jsondiffpatch'
-export class ConsoleUIV2 {
+export class ConsoleUI {
   private closed = false
   private ended = false
   private detachBattle?: () => void

@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createSourceProject } from '../src/author-api.mjs'
 import { attack, prepareContentPack } from '../src/testing.mjs'
-import { EffectTrigger, setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import { EffectTrigger, setGlobalLogger } from '@arcadia-eternity/battle/engine'
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 const exec = promisify(execFile)
 

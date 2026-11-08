@@ -1,11 +1,11 @@
 {
-  "extends": "../../tsconfig.v4.json",
+  "extends": "../../tsconfig.test.json",
   "compilerOptions": {
     "noEmit": true,
     "rootDir": "../../../..",
     "paths": {
-      "@arcadia-eternity/battle/v4": ["../../v4.ts"],
-      "@arcadia-eternity/battle/v4/authoring": ["../../v4-authoring.ts"],
+      "@arcadia-eternity/battle/engine": ["../../engine.ts"],
+      "@arcadia-eternity/battle/authoring": ["../../authoring.ts"],
       "@arcadia-eternity/data-pack-base/effects": ["../../../../packs/base/effects.ts"]
     },
     "strict": true

@@ -20,7 +20,7 @@
 //
 // Restoration-server skill values and secondary effects take precedence (BWIKI oldid 37122).
 import { DamageType } from '@arcadia-eternity/const'
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   actions,
@@ -33,7 +33,7 @@ import {
   targets,
   values,
   type Condition,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 function requireMark(marks: ReadonlyMap<string, BaseMark>, id: string): BaseMark {
   const mark = marks.get(id)

@@ -173,7 +173,7 @@ describe('native game metadata', () => {
     await store.initialize()
     expect(store.loaded).toBe(true)
     for (const kind of ['species', 'skills', 'marks'] as const)
-      expect(store[kind].allIds).toEqual(data[kind].map(item => item.id))
+      expect(store[kind].allIds).toEqual(data[kind].map((item: { id: string }) => item.id))
     expect(store.nativeEffectIds).toContain('effect_skill_consume_huanxiang_raise_def_1_stage')
     expect(fetch).not.toHaveBeenCalled()
   })

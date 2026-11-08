@@ -1,13 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { io, type Socket } from 'socket.io-client'
 import type { AccountIdentity, ServerInfo, ServerSession } from '@arcadia-eternity/protocol'
-import { createSingleProcessApp, type G3AccountServices } from '../src/standalone/app'
-import {
-  AccountDirectoryError,
-  type AccountDirectory,
-  type VerifiedIdentity,
-} from '../src/standalone/accounts/directory'
-import { EmailCodeVerifier, ProviderError, type AuthIntent } from '../src/standalone/providers'
+import { createSingleProcessApp, type G3AccountServices } from '../src/runtime/app'
+import { AccountDirectoryError, type AccountDirectory, type VerifiedIdentity } from '../src/runtime/accounts/directory'
+import { EmailCodeVerifier, ProviderError, type AuthIntent } from '../src/runtime/providers'
 
 const apps: ReturnType<typeof createSingleProcessApp>[] = []
 const sockets: Socket[] = []

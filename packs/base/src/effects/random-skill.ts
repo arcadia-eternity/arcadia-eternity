@@ -6,7 +6,7 @@ import {
   defineEffect,
   ops,
   targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Legacy randomPick(1) fully shuffles the affordable pool, then selects its first member. */
 export function createRandomSkillSelection() {

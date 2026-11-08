@@ -1,4 +1,4 @@
-import { EffectTrigger, conditions, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, conditions, defineEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
 
 const owner = targets.ownerPet
 const isAtZeroHp = owner.condition((_ctx, pets) => pets.some(pet => pet.currentHp <= 0))

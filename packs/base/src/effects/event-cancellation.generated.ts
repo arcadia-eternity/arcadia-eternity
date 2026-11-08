@@ -9,7 +9,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedEventCancellation() {
   return Object.freeze({
     effect_ability_immune_exceptional_if_rage_gt_50: compileEffect(

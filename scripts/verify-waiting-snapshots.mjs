@@ -13,14 +13,14 @@ let server, browserProbes
 try {
   for (const platform of ['node', 'browser']) {
     const bundle = await rolldown({
-      input: resolve('packages/battle/test/v4/waiting-snapshot-host.ts'),
+      input: resolve('packages/battle/test/engine/waiting-snapshot-host.ts'),
       platform,
       plugins: [
         {
           name: 'waiting-checkpoint-boundary',
           resolveId(id) {
-            if (id === '@arcadia-eternity/battle/v4') return resolve('packages/battle/v4.ts')
-            if (id === '@arcadia-eternity/battle/v4/host') return resolve('packages/battle/v4-host.ts')
+            if (id === '@arcadia-eternity/battle/engine') return resolve('packages/battle/engine.ts')
+            if (id === '@arcadia-eternity/battle/host') return resolve('packages/battle/host.ts')
           },
           moduleParsed(info) {
             assert.doesNotMatch(
@@ -84,7 +84,7 @@ try {
     })
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
     const chrome =
-      process.env.BATTLE_V1_CHROME ??
+      process.env.BATTLE_CHROME ??
       (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
     const { stdout } = await promisify(execFile)(
       chrome,

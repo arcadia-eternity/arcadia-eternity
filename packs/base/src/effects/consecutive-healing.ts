@@ -7,7 +7,7 @@ import {
   ops,
   targets,
   values,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 import { healingOnHit, consecutiveHealingAmount } from './shared-plans'
 

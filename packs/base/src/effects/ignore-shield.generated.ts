@@ -9,7 +9,7 @@ import {
   checks,
   ops,
   actions,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedIgnoreShield() {
   return Object.freeze({
     effect_skill_ignore_opponent_shield_if_has_shunliu: compileEffect(

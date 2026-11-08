@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SessionRegistry } from '../src/standalone/session'
+import { SessionRegistry } from '../src/runtime/session'
 
 const profile = { id: 'local-profile', name: 'Player' }
 
 afterEach(() => vi.useRealTimers())
 
-describe('standalone session identity', () => {
+describe('server session identity', () => {
   it('gives the same self-reported profile independent credentials, principals and seats', async () => {
     const registry = new SessionRegistry({ serverId: 'official' })
     const a = await registry.create(profile)

@@ -2,14 +2,14 @@ import { expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { BattleState, PlayerSelection } from '@arcadia-eternity/const'
 import type { BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
-import type { ContentCatalog } from '@arcadia-eternity/battle/v4'
+import type { ContentCatalog } from '@arcadia-eternity/battle/engine'
 import type { RunSpec } from '../src/application/types'
 import { runBattle } from '../src/application/run'
 
 const driver = vi.hoisted(() => ({ abort: () => {}, cleanup: vi.fn() }))
-vi.mock('@arcadia-eternity/battle/v4/host', () => ({
+vi.mock('@arcadia-eternity/battle/host', () => ({
   // Exercise CLI cancellation at the host boundary without executing a battle.
-  LocalBattleSystemV4: class {
+  LocalBattleSystem: class {
     private accepted?: (input: { selection: PlayerSelection; turn: number; phase: string }) => void
     private finish = () => {}
     constructor(private readonly battle: { getState(): BattleState }) {}

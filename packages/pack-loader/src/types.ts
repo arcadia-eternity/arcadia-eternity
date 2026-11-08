@@ -2,7 +2,7 @@ import type { PackManifest, AssetManifest, PresentationManifest } from '@arcadia
 
 export type PackSource = 'node-fs' | 'http'
 
-export type V2DataPackManifest = PackManifest
+export type DataPackManifest = PackManifest
 
 export type LocaleBundles = Record<string, Record<string, unknown>>
 
@@ -67,7 +67,7 @@ export interface PackLoaderOptions {
 
 export interface PackMetadataResult {
   errors: string[]
-  pack?: V2DataPackManifest
+  pack?: DataPackManifest
   locales?: LocaleBundles
   lockfile?: PackLockfile
   lockfileIssues?: string[]

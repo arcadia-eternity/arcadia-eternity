@@ -17,11 +17,11 @@ async function runtimeFormat(page: import('playwright/test').Page) {
 
 test('the local page uses the native runtime and can create its actual checkpoint', async ({ page }) => {
   const workerScript = page.waitForResponse(
-    response => response.url().includes('v4-sandbox-worker') && response.request().resourceType() === 'fetch',
+    response => response.url().includes('sandbox-worker') && response.request().resourceType() === 'fetch',
   )
   await page.goto('/local-battle')
   expect((await workerScript).ok()).toBe(true)
-  expect(page.workers().some(worker => worker.url().includes('v4-sandbox-worker'))).toBe(false)
+  expect(page.workers().some(worker => worker.url().includes('sandbox-worker'))).toBe(false)
   await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
   await page.waitForURL(/\/battle\?dev=true/)
   await expect(page.getByText('对战开始！', { exact: true })).toBeVisible()
