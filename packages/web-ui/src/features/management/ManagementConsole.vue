@@ -64,6 +64,7 @@ const remember = ref(false)
 const accountLoginSupported = ref(false)
 const signingIn = ref(false)
 const sidebarOpen = ref(false)
+const contentPane = ref<HTMLElement>()
 const passkeyAvailable = window.isSecureContext && !!window.PublicKeyCredential
 const environmentSaveSequence = ref(0)
 const serverName = ref('')
@@ -309,6 +310,7 @@ watch(
   },
 )
 watch(tab, () => {
+  if (contentPane.value) contentPane.value.scrollTop = 0
   sidebarOpen.value = false
   emit('navigate', { target: target.value, tab: tab.value })
 })
@@ -544,7 +546,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="management-console" :class="{ authenticated: !!capabilities }">
+  <section aria-label="管理控制台" class="management-console" :class="{ authenticated: !!capabilities }">
     <header class="management-heading">
       <div class="management-context">
         <p>
@@ -684,7 +686,7 @@ onBeforeUnmount(() => {
             登录与安全
           </button>
         </nav>
-        <div class="console-content">
+        <div ref="contentPane" class="console-content" tabindex="0" aria-label="管理内容">
           <ManagementSecurity
             v-if="tab === 'security' && target === 'server' && client"
             :key="client.context.endpoint"
@@ -1102,16 +1104,27 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </template>
-  </main>
+  </section>
 </template>
 
 <style scoped>
 .management-console {
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
   padding: 0;
   background: #f4f6fa;
   color: #0f172a;
+}
+.management-console.authenticated {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.management-console > .management-heading,
+.management-console > .message {
+  flex-shrink: 0;
 }
 .management-heading,
 .binding-card header,
@@ -1369,7 +1382,11 @@ select {
   grid-template-columns: 232px minmax(0, 1fr);
   gap: 0;
   margin-top: 0;
-  min-height: calc(100dvh - var(--site-navigation-height, 0px) - 64px);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  grid-template-rows: minmax(0, 1fr);
 }
 .tabs {
   background: #111d32;
@@ -1377,7 +1394,10 @@ select {
   padding: 1.5rem 1rem;
   border: 0;
   top: 0;
-  height: calc(100dvh - var(--site-navigation-height, 0px) - 64px);
+  height: 100%;
+  min-height: 0;
+  position: static;
+  overscroll-behavior: contain;
   border-radius: 0;
 }
 .tabs button {
@@ -1408,6 +1428,11 @@ select {
   font-weight: 400;
 }
 .console-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  overflow-wrap: anywhere;
   padding: 2rem;
 }
 .login-card {
@@ -1476,6 +1501,12 @@ summary:focus-visible {
   }
   .tabs.open {
     display: flex;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: min(280px, 100%);
+    height: 100%;
+    z-index: 50;
+    box-shadow: 8px 0 24px #0f172a26;
   }
   .sidebar-toggle {
     display: inline-block;
