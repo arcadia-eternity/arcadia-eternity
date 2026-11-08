@@ -151,7 +151,7 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         run: pnpm install --frozen-lockfile
       - name: Install and verify locked Electron runtime
-        run: node scripts/install-ci-electron.mjs
+        run: node packages/web-ui/scripts/install-ci-electron.mjs
       - name: Apply application version to renderer build input
         id: metadata
         run: |

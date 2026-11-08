@@ -3,7 +3,7 @@ import { appendFileSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
-const require = createRequire(new URL('../packages/web-ui/package.json', import.meta.url))
+const require = createRequire(new URL('../package.json', import.meta.url))
 const manifest = require.resolve('electron/package.json')
 const directory = dirname(manifest)
 const { version } = JSON.parse(readFileSync(manifest, 'utf8'))

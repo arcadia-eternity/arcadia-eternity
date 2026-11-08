@@ -10,7 +10,7 @@ on:
       - 'packages/content-dev/**'
       - 'scripts/*desktop*'
       - 'scripts/stage-paired-website*'
-      - 'scripts/install-ci-electron.mjs'
+      - 'packages/web-ui/scripts/install-ci-electron.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -25,7 +25,7 @@ on:
       - 'packages/content-dev/**'
       - 'scripts/*desktop*'
       - 'scripts/stage-paired-website*'
-      - 'scripts/install-ci-electron.mjs'
+      - 'packages/web-ui/scripts/install-ci-electron.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -147,7 +147,7 @@ jobs:
         run: pnpm install --frozen-lockfile | tee .artifacts/desktop/install.log
 
       - name: Install and verify locked Electron runtime
-        run: node scripts/install-ci-electron.mjs
+        run: node packages/web-ui/scripts/install-ci-electron.mjs
 
       - name: Install browser for hosted website acceptance
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps --only-shell chromium
