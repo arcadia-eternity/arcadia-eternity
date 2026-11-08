@@ -141,7 +141,7 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build SQLite native driver for Node 24
-        run: pnpm rebuild better-sqlite3
+        run: pnpm --filter @arcadia-eternity/database rebuild better-sqlite3
       - name: Build server, console and native runtime dependencies
         run: pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/console... --filter @arcadia-eternity/p2p-transport... run build
       - name: Verify native metadata and converted JSON locale loading
@@ -184,7 +184,7 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build SQLite native driver for the online test server
-        run: pnpm rebuild better-sqlite3
+        run: pnpm --filter @arcadia-eternity/database rebuild better-sqlite3
       - name: Build browser dependencies
         run: pnpm --filter '@arcadia-eternity/web-ui^...' --filter '@arcadia-eternity/server...' run build
       - name: Verify content locale syntax and real description rendering
@@ -263,7 +263,7 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build SQLite native driver for the production host
-        run: pnpm rebuild better-sqlite3
+        run: pnpm --filter @arcadia-eternity/database rebuild better-sqlite3
       - name: Build production CLI and paired website
         id: production_build
         run: pnpm build:prod
