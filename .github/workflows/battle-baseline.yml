@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [refactor/v4, main]
   push:
-    branches: [refactor/v4]
+    branches: [refactor/v4, main]
   workflow_dispatch:
 
 permissions:

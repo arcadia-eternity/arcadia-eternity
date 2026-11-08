@@ -28,6 +28,10 @@ for (const path of [
   'packages/const/src/index.ts',
   'packages/pack-loader/src/native-loader.ts',
   'pnpm-lock.yaml',
+  '.pnpmfile.cjs',
+  'tsconfig.base.json',
+  'types/effect-module.d.ts',
+  'scripts/rollup-external.mjs',
   'scripts/build-base-environment.mjs',
   '.github/workflows/battle-baseline.yml',
 ]) {
@@ -224,6 +228,8 @@ test('workflow command writes explicit GitHub outputs for manual runs and an emp
 
 for (const path of [
   'packages/content-dev/src/cli.mjs',
+  'docs/guides/ugc-authoring-agent/SKILL.md',
+  'docs/guides/seer2-recreate-pet/references/testing.md',
   'packages/content-dev/test/setup.test.mjs',
   'packages/content-dev/template/locales/en/skill.yaml',
 ]) {

@@ -16,6 +16,8 @@ const jobPackages = {
 const sharedFiles = new Set([
   '.github/workflows/battle-baseline.yml',
   '.npmrc',
+  '.pnpmfile.cjs',
+  'scripts/rollup-external.mjs',
   'package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
@@ -95,7 +97,11 @@ export function affectedBattleJobs(paths, packages = workspacePackages()) {
       const directories = dependencyDirectories(names, packages)
       const affected = paths.some(
         path =>
+          (directories.has('packages/content-dev') &&
+            /^docs\/guides\/(?:ugc-authoring-agent|seer2-recreate-pet)\//.test(path)) ||
           sharedFiles.has(path) ||
+          /^tsconfig(?:\.[^/]+)?\.json$/.test(path) ||
+          path.startsWith('types/') ||
           jobFiles[job].some(pattern => pattern.test(path)) ||
           [...directories].some(directory => path.startsWith(`${directory}/`)),
       )
