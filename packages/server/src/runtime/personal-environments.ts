@@ -1,5 +1,5 @@
 import { digestJson } from '@arcadia-eternity/pack-loader/native'
-import { validateEnvironmentRules } from '@arcadia-eternity/content-dev/environment-rules'
+import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { PersonalEnvironmentReference } from '@arcadia-eternity/protocol'
 import { EnvironmentError, type EnvironmentAdmissionRules } from './environments'

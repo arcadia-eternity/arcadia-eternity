@@ -8,7 +8,7 @@ import type {
 } from '@arcadia-eternity/protocol'
 import { digestJson } from '@arcadia-eternity/pack-loader/native'
 import { Value } from '@sinclair/typebox/value'
-import { assertEnvironmentTeam, validateEnvironmentRules } from '@arcadia-eternity/content-dev/environment-rules'
+import { assertEnvironmentTeam, validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import { PlayerSchema, SpeciesSchema, parseWithErrors, type PetSchemaType } from '@arcadia-eternity/schema'
 import { validatePeerMaterials } from './peerEnvironment'
 import { readResourceBytes, registerOwnedResource, RESOURCE_MAX_BYTES } from './resourceTransport'

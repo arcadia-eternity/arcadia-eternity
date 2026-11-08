@@ -1,18 +1,18 @@
-import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-dev/management-workspace'
+import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-sdk/management-workspace'
 import type { ManagementCapabilities, ManagementOperation, ManagedEnvironmentVersion } from '@arcadia-eternity/protocol'
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import {
   assertEnvironmentRequirements,
   validateEnvironmentRules,
-} from '@arcadia-eternity/content-dev/environment-rules'
+} from '@arcadia-eternity/content-sdk/environment-rules'
 import type {
   ContentWorkspace,
   EnvironmentVersion,
   UnavailableVersion,
   PrepareVersionInput,
   StaticPreparer,
-} from '@arcadia-eternity/content-dev/management-workspace'
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import type { DurableStorage, StoredRecord, StorageTransaction } from '@arcadia-eternity/database'
 import {
   ManagementAuth,

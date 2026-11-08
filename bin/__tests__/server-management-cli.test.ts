@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { openStorage } from '@arcadia-eternity/database'
-import { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
+import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import type { ServerEnvironmentDescriptor, ServerSession } from '@arcadia-eternity/protocol'
 import { afterEach, expect, it } from 'vitest'
 

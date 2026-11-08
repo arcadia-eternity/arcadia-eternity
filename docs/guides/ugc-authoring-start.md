@@ -14,7 +14,7 @@
 
 “外部助手”提供 MCP 连接配置。连接后，AI 可用 `workspace_context` 读取当前包、查看位置、对象或资源、多语言状态、未保存草稿及外部冲突，无需勾选协作对象。查看位置只是上下文，任务范围由人与 AI 的对话决定。AI 可以继续查询关联内容；源码读取仍返回磁盘版本，外部修改继续走刷新与冲突核对。上下文只写入 Electron userData 下的临时状态，不进入内容包或源项目导出；关闭工作区会清除，异常退出后的快照会过期。工作台不直接调用模型。
 
-在独立仓库开发时，使用组织下的 [content-pack-template](https://github.com/arcadia-eternity/content-pack-template)，点击 **Use this template** 创建自己的包，配置 GitHub Packages 登录后，运行 `npm install`、`npm test` 和 `npm run demo`。安装步骤见 [UGC SDK 发布与安装](ugc-npm-release.md)。
+在独立仓库开发时，可以从 `@arcadia-eternity/content-sdk` 发行包复制模板，再运行 `npm install`、`npm test` 和 `npm run demo`。见 [UGC SDK 安装](ugc-npm-release.md)。
 
 保存草稿后，点击常驻工具栏的“调试试玩”。准备完成会打开独立调试窗口，先调整双方测试队伍，再点击“开始对战”。模板从 `debug/teams/*.yaml` 读取 `arcadia.config.mjs` 指定的默认队伍，也可修改精灵、等级、技能、性格、特性、纹章和首发顺序；第一位玩家手动操作，对手由 AI 控制。测试队伍与个人编队分开；双方共用项目多队伍库，修改自动暂存为本机草稿，点击“保存队伍”才写入 `debug/teams/*.yaml`，由作者决定 Git 提交。关窗、重启或准备新版会保留草稿和选择。外部文件改变时，保存报冲突，可重新载入项目文件，或复制草稿为新队伍后保存。
 
@@ -24,16 +24,16 @@
 
 CLI 使用 `arcadia-content workspace /path/to/pack preview --execute`；MCP 使用 `preview_start` 并通过 `job_get` 读取结果。`result.preview` 提供本机宿主 endpoint、客户端路径，以及配置了 `ARCADIA_PREVIEW_CLIENT_URL` 时的完整地址。桌面复制的 MCP 配置自动提供配套客户端地址。独立 CLI 可以设置该变量为本机配套网页地址。任务会保持试玩宿主运行，Ctrl+C 或 `job_cancel` 停止；其他入口可以通过相同项目的任务 ID 查询和取消。取消保留源码，异常退出的任务在重新打开后显示 interrupted。
 
-模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects.ts`，演示队伍放在 `debug/teams/*.yaml`，由 `arcadia.config.mjs` 的 `teams` 引用。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-dev`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
+模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects.ts`，演示队伍放在 `debug/teams/*.yaml`，由 `arcadia.config.mjs` 的 `teams` 引用。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-sdk`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
 
-SDK 和作者工具通过 GitHub Packages 发布 `4.0.0-preview.1`，使用 `preview` 标签；npmjs.org 不发布这批包。独立模板按精确版本安装，不再需要首次编译主仓库。需要匹配本地未发布宿主时，仍可用 `node scripts/stage-author-sdk.mjs /new/sdk-dir` 生成开发物料。
+独立模板把 `@arcadia-eternity/content-sdk` 固定到精确版本。需要匹配本地未发布宿主时，可以用 `node scripts/stage-author-sdk.mjs /new/sdk-dir` 生成开发物料。
 
 ## 本地 SDK 与验证
 
 如需使用已经构建好的本地 SDK，先在主仓库运行：
 
 ```sh
-pnpm --filter @arcadia-eternity/content-dev... run build
+pnpm --filter @arcadia-eternity/content-sdk... run build
 node scripts/stage-author-sdk.mjs /path/to/new-sdk-directory
 ```
 

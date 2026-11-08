@@ -8,7 +8,7 @@
 
 从新包开始时，可按[创作者入门](ugc-authoring-start.md)生成带真实引擎场景测试和 Agent Skill 的 TypeScript 项目。
 
-效果模块导出 `createEffects({ sdk, marks, id })`。宿主注入与本局核心相同的 SDK 和规范印记原型；`id(localId)` 生成包的 `namespace:id`。类型从 `@arcadia-eternity/battle/authoring` 导入 `CodeEffectModuleContext`。运行时代码使用注入的 `sdk`，避免包内另一个引擎副本产生不兼容的类、参数 token 或恢复工厂。
+效果模块导出 `createEffects({ sdk, marks, id })`。宿主注入与本局核心相同的 SDK 和规范印记原型；`id(localId)` 生成包的 `namespace:id`。类型从 `@arcadia-eternity/content-sdk` 导入 `EffectModuleContext`。运行时代码使用注入的 `sdk`，避免包内另一个引擎副本产生不兼容的类、参数 token 或恢复工厂。
 
 `sdk.defineCodeEffect` 支持与官方效果相同的 `triggers / when / apply` 字段，直接提供真实引擎上下文与领域类。简单定义无需 `build`；每个使用位置由宿主分配稳定编译身份。需要原有工具时，`build` 仍可返回 `defineEffect` 接受的定义，并收到 `effectId` 和可用的 `sourceMark`。API 索引、来源清理和失败语义见 [Effect SDK](effect-sdk.md)。配置复用使用普通 TS 函数；跨回合状态使用引擎实例、参数和绑定，不能放在模块全局或共享闭包中。
 
@@ -152,7 +152,7 @@ npm 测试实际打包、离线安装与 `npm ci` 重建；验证原生效果、
 
 ## 作者调试与包测试环境
 
-`@arcadia-eternity/content-dev/testing` 的 `prepareBattleEnvironment` 复用上述真实 npm 环境准备能力，`prepareContentPack` 在其上保留包级默认队伍和战斗接口。默认环境只安装当前包与正式依赖；命名组合环境另行声明测试共存的包，不能给内容提供未声明的跨包引用权限。配置、队伍、npm 锁与本机源码映射的边界见[项目队伍与对战环境](project-battle-workflow.md)。
+`@arcadia-eternity/content-sdk/testing` 的 `prepareBattleEnvironment` 复用上述真实 npm 环境准备能力，`prepareContentPack` 在其上保留包级默认队伍和战斗接口。默认环境只安装当前包与正式依赖；命名组合环境另行声明测试共存的包，不能给内容提供未声明的跨包引用权限。配置、队伍、npm 锁与本机源码映射的边界见[项目队伍与对战环境](project-battle-workflow.md)。
 
 ### 独立包测试中的运行依赖
 

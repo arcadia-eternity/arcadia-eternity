@@ -1,6 +1,6 @@
-# Content-pack development tool
+# Arcadia Content SDK
 
-`@arcadia-eternity/content-dev` owns the reusable author tooling in the main repository. Its `arcadia-content` executable is installed as a development dependency of a content pack; templates contain data, effects, scenario configuration and behavior tests.
+`@arcadia-eternity/content-sdk` is the development dependency for a content pack. It provides TypeScript effect types, testing helpers, and the `arcadia-content` and `arcadia-content-mcp` executables. The bundled template includes data, effects, scenario configuration and behavior tests.
 
 ```json
 {
@@ -25,7 +25,7 @@ For code packages, `pack` bundles the effect dependency graph into `dist/arcadia
 
 Task receipts live in `.arcadia/author-jobs`, outside exports and source revisions. `workspace <directory> job --execute` and `cancel --execute` accept `{ "jobId": "..." }` on stdin; MCP uses `job_get` and `job_cancel`. These operations work across author sessions. A stopped owner becomes `interrupted` on the next query. New candidates never replace older preview processes, failed preparations keep existing previews, and changed source marks old receipts stale. At most four preview processes are retained per session. Leaving the desktop editor clears its context and draft markers while active previews keep their owner alive. Explicit cancellation, forgetting the project, closing a CLI/MCP owner, or quitting the application terminates the corresponding previews and releases temporary files. This journal restores task status, not live processes or battle saves after a host restart.
 
-Tests can import `prepareBattleEnvironment`, `prepareContentPack`, `attack`, `nextTurn`, `cancelled` and `runBattle` from `@arcadia-eternity/content-dev/testing`. `prepareContentPack(root = process.cwd(), { offline = true, cache })` loads that config and returns the installed `environment`, `manifest`, packed `files`, `await createBattle(seed)`, `contentFor(battle)`, `await restoreBattle(snapshot)`, `track(battle)` and async `dispose()`. Environment preparation reads and compiles data without evaluating effect code. Each explicit reference battle owns fresh VMs, released by its cleanup. The harness admits code only in the temporary local-development project. It uses the normal npm cache by default; `cache` selects an explicit cache directory. It defaults to offline artifact installation; packs with runtime dependencies need a populated cache or an explicit `{ offline: false }`.
+Tests can import `prepareBattleEnvironment`, `prepareContentPack`, `attack`, `nextTurn`, `cancelled` and `runBattle` from `@arcadia-eternity/content-sdk/testing`. `prepareContentPack(root = process.cwd(), { offline = true, cache })` loads that config and returns the installed `environment`, `manifest`, packed `files`, `await createBattle(seed)`, `contentFor(battle)`, `await restoreBattle(snapshot)`, `track(battle)` and async `dispose()`. Environment preparation reads and compiles data without evaluating effect code. Each explicit reference battle owns fresh VMs, released by its cleanup. The harness admits code only in the temporary local-development project. It uses the normal npm cache by default; `cache` selects an explicit cache directory. It defaults to offline artifact installation; packs with runtime dependencies need a populated cache or an explicit `{ offline: false }`.
 
 ## YAML sharing in author workspaces
 
@@ -35,16 +35,16 @@ Forms display shared values read-only and can open their definition in an extern
 
 Source-text editing (external editors and version-checked CLI/MCP writes) remains available for intentionally changing sharing. External changes invalidate stale form saves. Unresolved aliases, cycles and excessive alias expansion produce diagnostics without rewriting the source. This does not add cross-file YAML anchors, automatic shared edits, or detach/override actions to forms. Localized names/descriptions resolve sharing when read, edited and built; shared text fields remain read-only in forms.
 
-## GitHub Packages installation
+## npm installation
 
-The author tool and its six SDK dependencies are released together as `4.0.0-preview.1` on GitHub Packages (dist-tag `preview`). Configure `@arcadia-eternity:registry=https://npm.pkg.github.com`, authenticate with a GitHub token with `read:packages`, then install the exact tool, battle and pack-loader versions in your author project. See [release and installation instructions](../../docs/guides/ugc-npm-release.md). These packages are not published to npmjs.org.
+After the npm release, install `@arcadia-eternity/content-sdk` as a dev dependency. Import effect types from the package root and scenario helpers from `@arcadia-eternity/content-sdk/testing`. Both author commands are included. See [installation instructions](../../docs/guides/ugc-npm-release.md).
 
 ## Local development SDK
 
 For an unpublished host build, build and stage packages from a trusted checkout:
 
 ```sh
-pnpm --filter @arcadia-eternity/content-dev... run build
+pnpm --filter @arcadia-eternity/content-sdk... --filter @arcadia-eternity/protocol... run build
 node scripts/stage-author-sdk.mjs /new/author-sdk
 cd /path/to/content-pack
 node /path/to/main-repo/packages/content-dev/src/setup.mjs --sdk-dir /new/author-sdk
@@ -88,7 +88,7 @@ Environment schema v2 adds versioned rule data and runtime requirements. Existin
 
 ## Shared management workspace
 
-`@arcadia-eternity/content-dev/management-workspace` exports the typed `ContentWorkspace` API used by desktop owners and servers. One process owns each workspace; another live writer is rejected, while a confirmed dead process owner can be recovered. `saveDraft` requires the current revision. `prepareVersion` captures and statically validates a fixed npm installation, while `adoptVersion` borrows existing client materials through a material-owner lease without another installation. Long preparation accepts an abort signal and a trusted `beforeCommit` authorization check.
+`@arcadia-eternity/content-sdk/management-workspace` exports the typed `ContentWorkspace` API used by desktop owners and servers. One process owns each workspace; another live writer is rejected, while a confirmed dead process owner can be recovered. `saveDraft` requires the current revision. `prepareVersion` captures and statically validates a fixed npm installation, while `adoptVersion` borrows existing client materials through a material-owner lease without another installation. Long preparation accepts an abort signal and a trusted `beforeCommit` authorization check.
 
 Workspace files own environment definitions and immutable versions. Database adapters supply durable retention roots; runtime leases belong to the current owner. Deletion fails closed when retention information is unavailable, and owner shutdown refuses outstanding runtime leases. Server bindings, accounts, grants and running rooms remain separate from these files.
 
@@ -96,4 +96,4 @@ Workspace files own environment definitions and immutable versions. Database ada
 
 ## Repository development
 
-`pnpm --filter @arcadia-eternity/content-dev watch` builds once, then rebuilds when `src`, `template`, or either bundled skill directory under `docs/guides` changes. Rebuilds are serialized, include deletions, and recover after a failed build. The root `pnpm watch` includes this watcher. `pnpm --filter @arcadia-eternity/content-dev clear` removes `dist`; root `pnpm clear` includes it as well. The package `typecheck` validates public `.d.mts` declarations; Node tests validate the JavaScript implementation.
+`pnpm --filter @arcadia-eternity/content-sdk watch` builds once, then rebuilds when `src`, `template`, or either bundled skill directory under `docs/guides` changes. Rebuilds are serialized, include deletions, and recover after a failed build. The root `pnpm watch` includes this watcher. `pnpm --filter @arcadia-eternity/content-sdk clear` removes `dist`; root `pnpm clear` includes it as well. The package `typecheck` validates public `.d.mts` declarations; Node tests validate the JavaScript implementation.

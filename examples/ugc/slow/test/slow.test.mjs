@@ -13,9 +13,9 @@ import {
   RemoveMarkContext,
   TurnContext,
   UseSkillContext,
-  createContentCatalog,
   setGlobalLogger,
 } from '@arcadia-eternity/battle/engine'
+import { prepareSandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
 import { inspectNpmProject, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
@@ -27,7 +27,7 @@ test(
   { timeout: 60000 },
   async () => {
     const temporary = await mkdtemp(join(tmpdir(), 'arcadia-author-scenario-'))
-    let environment, battle, running
+    let environment, effects, battle, running
     try {
       const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
       const packed = await exec(
@@ -73,8 +73,6 @@ test(
           ],
         },
         templates: [],
-        createContent: (data, revision, registrations) =>
-          createContentCatalog(data, revision, undefined, registrations),
       }
       environment = await prepareNpmProject(installationDir, host, {
         installationDigest: installation.digest,
@@ -97,8 +95,9 @@ test(
           },
         ],
       }))
-      let [a, b] = environment.content.parsePlayers(players)
-      battle = environment.content.createBattle(a, b, { rngSeed: 'author-slow', timerConfig: { enabled: false } })
+      effects = await prepareSandboxContent(environment.sandbox)
+      let [a, b] = effects.content.parsePlayers(players)
+      battle = effects.content.createBattle(a, b, { rngSeed: 'author-slow', timerConfig: { enabled: false } })
       const cancelled = error => {
         if (!(error instanceof Error) || error.message !== 'Battle cancelled') throw error
       }
@@ -123,10 +122,12 @@ test(
       assert.equal(mark.duration, 2, 'repeat hits refresh the duration')
       assert.equal(mark.stack, 1, 'repeat hits do not stack the magnitude')
       assert.equal(b.activePet.stat.spe, speed - 25)
-      const saved = JSON.parse(JSON.stringify(environment.content.snapshot(battle)))
+      const saved = JSON.parse(JSON.stringify(effects.content.snapshot(battle)))
       await battle.cleanup()
       await running
-      battle = environment.content.restore(saved)
+      effects.dispose()
+      effects = await prepareSandboxContent(environment.sandbox)
+      battle = effects.content.restore(saved)
       a = battle.playerA
       b = battle.playerB
       assert.equal(b.activePet.marks[0].duration, 2, 'saved waiting point preserves the refreshed duration')
@@ -165,6 +166,7 @@ test(
     } finally {
       await battle?.cleanup()
       await running
+      effects?.dispose()
       await environment?.dispose()
       await rm(temporary, { recursive: true, force: true })
     }

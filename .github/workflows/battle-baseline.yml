@@ -322,7 +322,7 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build offline dependency graph
-        run: pnpm --filter '@arcadia-eternity/cli^...' --filter @arcadia-eternity/content-dev... run build
+        run: pnpm --filter '@arcadia-eternity/cli^...' --filter @arcadia-eternity/content-sdk... run build
       - name: Check CLI types
         run: pnpm typecheck:cli
       - name: Run relocated offline CLI and lifecycle regressions

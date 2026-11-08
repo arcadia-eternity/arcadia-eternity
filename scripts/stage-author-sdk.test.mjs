@@ -40,7 +40,7 @@ test(
         const files = (await exec('tar', ['-tzf', archive])).stdout.split('\n')
         assert.ok(!files.some(path => /^package\/licen[sc]e(?:\.|$)/i.test(path)))
         const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)
-        if (pkg.name === '@arcadia-eternity/content-dev') {
+        if (pkg.name === '@arcadia-eternity/content-sdk') {
           for (const path of [
             'dist/author-api.mjs',
             'dist/mcp.mjs',
@@ -113,7 +113,7 @@ test('development tooling is packaged with its executable and testing entry', as
   const temporary = await mkdtemp(join(tmpdir(), 'arcadia-content-dev-sdk-'))
   try {
     const index = await stageAuthorSdk(join(temporary, 'sdk'))
-    const tool = index.packages.find(pkg => pkg.name === '@arcadia-eternity/content-dev')
+    const tool = index.packages.find(pkg => pkg.name === '@arcadia-eternity/content-sdk')
     assert.ok(tool)
     const archive = join(temporary, 'sdk', tool.filename)
     const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)

@@ -59,7 +59,7 @@ jobs:
       - name: Install dependencies without native downloads
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build content workspace dependencies
-        run: pnpm --filter @arcadia-eternity/content-dev... run build
+        run: pnpm --filter @arcadia-eternity/content-sdk... run build
       - name: Check desktop contracts without Electron or installers
         run: node --test scripts/desktop-linkless-modules.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-environments.test.mjs
 

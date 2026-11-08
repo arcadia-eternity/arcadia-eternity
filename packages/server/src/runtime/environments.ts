@@ -1,4 +1,4 @@
-import { validateEnvironmentRules } from '@arcadia-eternity/content-dev/environment-rules'
+import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'

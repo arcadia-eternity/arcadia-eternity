@@ -21,6 +21,7 @@ export async function watchContentDev(
       'src',
       'template',
       'build.mjs',
+      'tsconfig.json',
       '../../docs/guides/ugc-authoring-agent',
       '../../docs/guides/seer2-recreate-pet',
     ].map(path => resolve(directory, path)),
