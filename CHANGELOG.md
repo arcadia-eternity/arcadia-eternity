@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.3...arcadia-eternity-v4.2.0) (2026-11-08)
+
+
+### ✨ Features
+
+* **ugc:** publish the unified content SDK to npm ([#283](https://github.com/arcadia-eternity/arcadia-eternity/issues/283)) ([485ea3e](https://github.com/arcadia-eternity/arcadia-eternity/commit/485ea3e3f550771b4f6cafc22be065448bcf31d3))
+* **web:** keep matchmaking active across pages ([ced5106](https://github.com/arcadia-eternity/arcadia-eternity/commit/ced5106e6c15855f384af8da926eca384cee17fe))
+
+
+### 🐛 Bug Fixes
+
+* **web:** contain management console scrolling ([eb927dc](https://github.com/arcadia-eternity/arcadia-eternity/commit/eb927dc390fe4dba9dcfb891dbfd1b614f25bfe0))
+
 ## [4.1.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.1.2...arcadia-eternity-v4.1.3) (2026-11-08)
 
 
