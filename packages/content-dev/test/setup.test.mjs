@@ -32,7 +32,7 @@ test('setup rejects incomplete manifests and unsafe archive paths before install
     const manifest = join(root, 'sdk/arcadia-author-sdk.json')
     await writeFile(manifest, JSON.stringify(index))
     const args = ['--sdk-dir', join(root, 'sdk'), '--offline']
-    await assert.rejects(setup(args, root), /Missing SDK packages: @arcadia-eternity\/content-dev/)
+    await assert.rejects(setup(args, root), /Missing SDK packages: @arcadia-eternity\/content-sdk/)
     index.packages[0].filename = '../battle.tgz'
     await writeFile(manifest, JSON.stringify(index))
     await assert.rejects(setup(args, root), /Unexpected or duplicated SDK archive/)

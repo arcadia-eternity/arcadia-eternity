@@ -10,7 +10,7 @@ const jobPackages = {
   server: ['server', 'console', 'client', 'database', 'cli', 'p2p-transport'],
   // Online browser acceptance starts the actual server, including its storage.
   browser: ['web-ui', 'server'],
-  cli: ['cli', 'content-dev'],
+  cli: ['cli', 'content-sdk'],
 }
 
 const sharedFiles = new Set([

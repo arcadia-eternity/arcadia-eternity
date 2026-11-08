@@ -157,7 +157,7 @@ export class ContentLibrary {
     this.#createManagedProjects =
       createManagedProjects ??
       (async (root, options) => {
-        const { ManagedProjects } = await import('@arcadia-eternity/content-dev/managed-projects')
+        const { ManagedProjects } = await import('@arcadia-eternity/content-sdk/managed-projects')
         return new ManagedProjects(root, options)
       })
   }

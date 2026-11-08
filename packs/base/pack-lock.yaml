@@ -1,5 +1,5 @@
 lockfileVersion: 1
-generatedAt: 2026-11-08T03:26:21.035Z
+generatedAt: 2026-11-08T12:44:11.007Z
 importers:
   .:
     specifiers:
@@ -20,5 +20,5 @@ packages:
     provenance: workspace
     resolution:
       integrity: sha512-sg1/dGc3vbp1PA5rSQRGrxc4KMOFsJm7d9ok0HkKt4Z8TPyEg9JFAnWuPRt0YIYVVgdnkTIPCsvUFf+rC+dawA==
-      path: /Users/yuuinih/GitHub/test_battle/packs/base/pack.json
+      path: /private/tmp/arcadia-content-sdk-pr.t5YSVg/checkout/packs/base/pack.json
     dependencies: {}

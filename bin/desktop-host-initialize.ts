@@ -1,5 +1,5 @@
 import type { ManagementService } from '@arcadia-eternity/server'
-import type { ContentWorkspace } from '@arcadia-eternity/content-dev/management-workspace'
+import type { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { initializeHostEnvironment } from './host-environment-initialize'
 
 /** Clearing a desktop default later is an administrator decision, not a re-bootstrap request. */

@@ -14,8 +14,9 @@
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@arcadia-eternity/battle": "4.0.0-preview.1",
-    "@arcadia-eternity/pack-loader": "4.0.0-preview.1",
+    "@arcadia-eternity/battle": "4.1.3",
+    "@arcadia-eternity/content-sdk": "4.1.3",
+    "@arcadia-eternity/pack-loader": "4.1.3",
     "@types/node": "25.6.0",
     "typescript": "6.0.3"
   },

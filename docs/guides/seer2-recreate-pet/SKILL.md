@@ -34,7 +34,7 @@ description: 根据任务提供的资料，将赛尔号2精灵、技能、特性
 
 使用 `createEffects({ sdk, marks, id })`、`sdk.defineCodeEffect` 与 SDK 的 `defineEffect`；通过项目 namespace 和显式引用连接数据。复用外部技能、印记或资源须声明运行时 dependencies，开发工具放 devDependencies。不得修改安装的不可变包、node_modules，或为实验重写加载器。
 
-测试使用 `@arcadia-eternity/content-dev/testing` 的 `prepareContentPack` 和标准依赖装配，不限制只能依赖 base。打包使用 `arcadia-content pack` 或项目对应脚本，检查生成预编译效果工件；在独立安装目录通过标准 `prebuilt-only` 准备验证分发产物。安装与执行准入分开，不能因为装包成功就推定允许执行。
+测试使用 `@arcadia-eternity/content-sdk/testing` 的 `prepareContentPack` 和标准依赖装配，不限制只能依赖 base。打包使用 `arcadia-content pack` 或项目对应脚本，检查生成预编译效果工件；在独立安装目录通过标准 `prebuilt-only` 准备验证分发产物。安装与执行准入分开，不能因为装包成功就推定允许执行。
 
 有 MCP 时先查询工作区与 `author_reference`，版本检查后使用 `source_apply`/`content_apply` 保存，运行 `check_start`、`test_start`、`package_build`，轮询 `job_get` 并增量读取 `job_output`。仅 CLI 时用项目脚本完成同等检查。遇到 SDK 缺口，记录最小复现与阻塞，继续独立内容工作；不要自行扩展为 SDK、前端或宿主修复任务。
 

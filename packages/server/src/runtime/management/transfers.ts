@@ -6,7 +6,7 @@ import type {
   ContentWorkspace,
   EnvironmentExport,
   StaticPreparer,
-} from '@arcadia-eternity/content-dev/management-workspace'
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import { ManagementAuth, managementScopeKey, type ManagementActor, type ManagementScope } from './auth'
 import { OperationService, type Operation } from './operations'
 

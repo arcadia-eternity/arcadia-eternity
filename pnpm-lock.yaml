@@ -107,7 +107,7 @@ importers:
       '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:packages/const
-      '@arcadia-eternity/content-dev':
+      '@arcadia-eternity/content-sdk':
         specifier: workspace:^
         version: link:packages/content-dev
       '@arcadia-eternity/data-pack-base':
@@ -208,7 +208,7 @@ importers:
         specifier: workspace:*
         version: link:../const
       '@arcadia-eternity/interface':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../interface
       '@jitl/quickjs-singlefile-browser-release-sync':
         specifier: 0.32.0
@@ -346,13 +346,13 @@ importers:
   packages/content-dev:
     dependencies:
       '@arcadia-eternity/battle':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../battle
       '@arcadia-eternity/pack-loader':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../pack-loader
       '@arcadia-eternity/schema':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../schema
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.2
@@ -416,7 +416,7 @@ importers:
   packages/interface:
     dependencies:
       '@arcadia-eternity/const':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../const
 
   packages/p2p-transport:
@@ -432,10 +432,10 @@ importers:
   packages/pack-loader:
     dependencies:
       '@arcadia-eternity/battle':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../battle
       '@arcadia-eternity/schema':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../schema
       es-module-lexer:
         specifier: 3.0.4
@@ -460,16 +460,16 @@ importers:
   packages/protocol:
     dependencies:
       '@arcadia-eternity/const':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../const
       '@arcadia-eternity/schema':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../schema
 
   packages/schema:
     dependencies:
       '@arcadia-eternity/const':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../const
       '@sinclair/typebox':
         specifier: 'catalog:'
@@ -493,7 +493,7 @@ importers:
       '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@arcadia-eternity/content-dev':
+      '@arcadia-eternity/content-sdk':
         specifier: workspace:^
         version: link:../content-dev
       '@arcadia-eternity/data-pack-base':
@@ -569,7 +569,7 @@ importers:
       '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
-      '@arcadia-eternity/content-dev':
+      '@arcadia-eternity/content-sdk':
         specifier: workspace:^
         version: link:../content-dev
       '@arcadia-eternity/data-pack-base':
@@ -787,17 +787,17 @@ importers:
   packs/base:
     dependencies:
       '@arcadia-eternity/battle':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/battle
       '@arcadia-eternity/const':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/const
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
     devDependencies:
       '@arcadia-eternity/pack-loader':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/pack-loader
 
 packages:

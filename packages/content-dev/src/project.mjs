@@ -75,7 +75,7 @@ export async function connectDevelopmentSdk(root) {
       '@arcadia-eternity/pack-loader',
       '@arcadia-eternity/pack-loader/node',
     ),
-    '@arcadia-eternity/content-dev': moduleRoot,
+    '@arcadia-eternity/content-sdk': moduleRoot,
     typescript: await packageRoot('typescript', 'typescript'),
   }
   const linked = []

@@ -180,10 +180,10 @@ function getAuthorWorkspaces() {
           ? pathToFileURL(
               path.join(
                 process.resourcesPath,
-                'arcadia-server/node_modules/@arcadia-eternity/content-dev/dist/author-api.mjs',
+                'arcadia-server/node_modules/@arcadia-eternity/content-sdk/dist/author-api.mjs',
               ),
             ).href
-          : '@arcadia-eternity/content-dev/workspace'
+          : '@arcadia-eternity/content-sdk/workspace'
       ),
     notify: event => {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:author-changed', event)
@@ -220,7 +220,7 @@ function getContentLibrary() {
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
         : require
       const { ManagedProjects } = await import(
-        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/managed-projects')).href
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href
       )
       return new ManagedProjects(root, options)
     },
@@ -245,13 +245,13 @@ function getLocalEnvironments() {
     library: getContentLibrary(),
     setPackageEnabled: async (workspace, input) => {
       const { setEnvironmentPackageEnabled } = await import(
-        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
       return setEnvironmentPackageEnabled(workspace, input)
     },
     openWorkspace: async () => {
       const { ContentWorkspace } = await import(
-        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
       // Server publication always imports a separate copy, so only local runtime
       // leases can retain versions in this independently owned workspace.
@@ -277,7 +277,7 @@ function getManagementWorkspaceOwner() {
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
         : require
       const { ContentWorkspace } = await import(
-        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-dev/management-workspace')).href
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
       return ContentWorkspace.open(root, options)
     },

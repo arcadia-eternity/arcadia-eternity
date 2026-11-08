@@ -76,7 +76,8 @@ export async function stageAuthorSdk(output) {
       for (const [dep, spec] of Object.entries(pkg.manifest[section] ?? {}))
         if (typeof spec === 'string' && spec.startsWith('workspace:')) visit(dep)
   }
-  visit('@arcadia-eternity/content-dev')
+  visit('@arcadia-eternity/content-sdk')
+  visit('@arcadia-eternity/protocol')
 
   const battleBuild = join(packages.get('@arcadia-eternity/battle').directory, 'dist')
   const build = JSON.parse(await readFile(join(battleBuild, 'environment-build.json'), 'utf8'))

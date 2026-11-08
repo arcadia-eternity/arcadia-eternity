@@ -1,13 +1,13 @@
 # Effect SDK：使用现有战斗 API 编写 TypeScript 效果
 
-SDK 公开官方效果使用的领域类、上下文和操作。公共入口是 `@arcadia-eternity/battle/authoring`；npm 包运行时使用宿主传入的 `sdk`，类型从这个入口导入。当前兼容版本为 `arcadia.sdkApi: 2`，类型入口和本地打包物料已提供，公开 npm 发行另行管理。npm 效果现由 [Arena / Comlink 宿主](effect-sandbox.md) 执行；沙箱只开放其中明确允许的效果能力，低层原生基础设施 API 仍供可信宿主使用。
+从 `@arcadia-eternity/content-sdk` 导入效果类型。运行时，宿主向 `createEffects` 传入本局的 `sdk`。效果接口版本通过 `arcadia.sdkApi: 2` 声明。npm 效果由 [Arena / Comlink 宿主](effect-sandbox.md) 执行，沙箱开放明确允许的效果能力。
 
 ## 从一个效果开始
 
 ```ts
-import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring'
+import type { EffectModuleContext } from '@arcadia-eternity/content-sdk'
 
-export function createEffects({ sdk, id }: CodeEffectModuleContext) {
+export function createEffects({ sdk, id }: EffectModuleContext) {
   const { defineCodeEffect, EffectTrigger, Pet, HealContext } = sdk
   return [
     defineCodeEffect({
@@ -48,9 +48,9 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 | 持续取值工具       | 原有 capture/follow、`bindings`；底层值计划集中在 `sdk.valuePlans`，避免与即时 `sdk.values` 混淆                                                           |
 | 执行预算           | `executionBudgetPolicy`、`ExecutionBudgetExceeded`；本局的 `battle.executionBudget`                                                                        |
 
-注入的 `EffectSdk` 仅声明可调用的顶层函数和构造器。领域类可用于 `instanceof`，但不能在沙箱中自行构造；例如 `new sdk.Signal(...)` 不受支持。`authoring` 的完整导出仍供可信宿主使用，上表中的低层属性贡献与响应式基础设施不属于沙箱构造能力。
+注入的 `EffectSdk` 仅声明可调用的顶层函数和构造器。领域类可用于 `instanceof`，但不能在沙箱中自行构造；例如 `new sdk.Signal(...)` 不受支持。`@arcadia-eternity/battle/authoring` 的完整导出供可信宿主使用，上表中的低层属性贡献与响应式基础设施不属于沙箱构造能力。
 
-这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`CodeEffectModule` 和 `CodeEffectModuleContext` 定义模块签名，`EffectSdk` 是注入对象的类型。
+这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`EffectModule` 和 `EffectModuleContext` 定义模块签名，`EffectSdk` 是注入对象的类型。
 
 ## 上下文和执行顺序
 
@@ -82,7 +82,7 @@ Effect 保存逻辑和不可变定义；影响后续触发结果的可变状态�
 例如，下列计数依赖工厂闭包，属于不支持的效果写法，即使当前一次试打中看起来正常：
 
 ```ts
-export function createEffects({ sdk, id }: CodeEffectModuleContext) {
+export function createEffects({ sdk, id }: EffectModuleContext) {
   let hits = 0
   return [
     sdk.defineCodeEffect({
@@ -106,7 +106,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 用 `defineEffectState` 声明不可变字段，通过当前回调和所属实体读写。下例在技能实例上记录命中次数；工厂闭包只保存字段定义：
 
 ```ts
-export function createEffects({ sdk, id }: CodeEffectModuleContext) {
+export function createEffects({ sdk, id }: EffectModuleContext) {
   const hits = sdk.defineEffectState({ id: id('hit-count'), type: 'number', default: 0 })
   return [
     sdk.defineCodeEffect({

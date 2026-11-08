@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/protocol",
-  "version": "4.0.0-preview.1",
+  "version": "4.1.3",
   "description": "",
   "type": "module",
   "repository": {
@@ -24,12 +24,12 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/const": "workspace:^",
-    "@arcadia-eternity/schema": "workspace:^"
+    "@arcadia-eternity/const": "workspace:*",
+    "@arcadia-eternity/schema": "workspace:*"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "tag": "preview"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "files": [
     "dist",

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 // Keep network and server dependencies lazy in the bundled launcher.
 const legacyDependencies = new Set([
   '@arcadia-eternity/database',
-  '@arcadia-eternity/content-dev/management-workspace',
-  '@arcadia-eternity/content-dev/managed-projects',
+  '@arcadia-eternity/content-sdk/management-workspace',
+  '@arcadia-eternity/content-sdk/managed-projects',
   'dotenv',
   'dotenv/config',
   '@arcadia-eternity/client',

@@ -69,7 +69,7 @@ export async function setup(args = process.argv.slice(2), root = process.cwd()) 
         throw new Error('The cached SDK source must match the pinned revision without local changes.')
       const pnpm = args => run('npx', ['--yes', `--package=pnpm@${pin.pnpmVersion}`, 'pnpm', ...args], source)
       await pnpm(['install', '--frozen-lockfile', '--ignore-scripts'])
-      await pnpm(['--filter', '@arcadia-eternity/content-dev...', 'run', 'build'])
+      await pnpm(['--filter', './packages/content-dev...', '--filter', '@arcadia-eternity/protocol...', 'run', 'build'])
       await run(process.execPath, ['scripts/stage-author-sdk.mjs', sdkDirectory], source)
     }
     const index = JSON.parse(await readFile(join(sdkDirectory, 'arcadia-author-sdk.json'), 'utf8'))
@@ -82,7 +82,7 @@ export async function setup(args = process.argv.slice(2), root = process.cwd()) 
     )
       throw new Error('SDK manifest format, API or build identity does not match this template.')
     const required = new Set(
-      ['battle', 'const', 'interface', 'pack-loader', 'protocol', 'schema', 'content-dev'].map(
+      ['battle', 'const', 'interface', 'pack-loader', 'protocol', 'schema', 'content-sdk'].map(
         name => `@arcadia-eternity/${name}`,
       ),
     )
