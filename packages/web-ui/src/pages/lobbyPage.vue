@@ -4,6 +4,21 @@
   >
     <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-gray-800">对战大厅</h1>
 
+    <router-link :to="{ name: 'Matchmaking' }" class="matchmaking-entry" data-testid="open-matchmaking-button">
+      <span class="matchmaking-entry__icon" aria-hidden="true"><Search /></span>
+      <span class="min-w-0">
+        <span class="block text-xs font-semibold text-blue-700">在线对战</span>
+        <span class="block mt-1 text-xl font-bold text-slate-900">普通匹配</span>
+        <span class="block mt-1 text-sm text-slate-600">
+          {{ matchmaking.waiting ? matchmaking.statusLabel : '自动寻找使用相同对战环境的对手。' }}
+        </span>
+      </span>
+      <span class="matchmaking-entry__action">
+        {{ matchmaking.waiting ? '查看匹配' : '进入匹配' }}
+        <ArrowRight class="h-4 w-4" aria-hidden="true" />
+      </span>
+    </router-link>
+
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left" aria-label="对战服务器">
       <h2 class="text-lg font-medium text-gray-800">对战服务器</h2>
       <div class="flex flex-wrap items-center gap-3 mt-3">
@@ -79,18 +94,6 @@
         <span class="text-sm md:text-base">GitHub</span>
       </a>
     </div>
-
-    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 text-left" aria-label="普通匹配">
-      <h2 class="text-lg font-medium text-gray-800">普通匹配</h2>
-      <p class="text-sm text-gray-600 mt-1 mb-3">自动寻找使用相同对战环境的玩家。</p>
-      <router-link
-        :to="{ name: 'Matchmaking' }"
-        class="inline-block rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        data-testid="open-matchmaking-button"
-      >
-        进入匹配
-      </router-link>
-    </section>
 
     <!-- 好友房间 -->
     <div class="mb-6 md:mb-8 space-y-6">
@@ -273,7 +276,7 @@ import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useMatchmakingStore } from '@/stores/matchmaking'
 import { useAuthStore } from '@/stores/auth'
-import { User, Monitor, Setting, FolderOpened, Collection, Download } from '@element-plus/icons-vue'
+import { ArrowRight, Collection, Download, FolderOpened, Monitor, Search, Setting, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 
@@ -408,6 +411,71 @@ const joinAsSpectator = async () => {
 </script>
 
 <style scoped>
+.matchmaking-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 1rem;
+  background: linear-gradient(115deg, #eff6ff, #fff);
+  text-align: left;
+  text-decoration: none;
+}
+
+.matchmaking-entry__icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.875rem;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.matchmaking-entry__icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.matchmaking-entry__action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  border-radius: 0.625rem;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.matchmaking-entry:hover,
+.matchmaking-entry:focus-visible {
+  border-color: #60a5fa;
+}
+
+.matchmaking-entry:hover .matchmaking-entry__action,
+.matchmaking-entry:focus-visible .matchmaking-entry__action {
+  background: #1e40af;
+}
+
+@media (max-width: 639px) {
+  .matchmaking-entry {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .matchmaking-entry__action {
+    grid-column: 1 / -1;
+  }
+}
+
 /* 确保页面内容可以正常滚动 */
 .lobby-container {
   /* 当内容较少时居中显示，内容较多时允许滚动 */

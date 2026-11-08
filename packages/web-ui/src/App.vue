@@ -21,20 +21,24 @@
             <span class="text-white text-lg font-bold" style="text-shadow: 0 0 8px #409eff">AE</span>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <ConnectionStatus v-if="!isStaticMode" />
-          <el-tag
-            v-if="!isStaticMode && battleClientStore.isConnected"
-            type="info"
-            effect="dark"
-            class="text-xs"
-            size="small"
+        <div class="compact-navigation-actions flex items-center gap-2">
+          <router-link
+            v-if="!isStaticMode"
+            :to="{ name: 'Matchmaking' }"
+            class="matchmaking-nav matchmaking-nav--compact"
+            aria-label="普通匹配"
           >
-            <span class="inline-flex items-center gap-1">
-              <el-icon :size="12"><User /></el-icon>
-              {{ serverState.serverState.onlinePlayers }}
-            </span>
-          </el-tag>
+            匹配
+          </router-link>
+          <ConnectionStatus v-if="!isStaticMode" />
+          <span v-if="!isStaticMode && battleClientStore.isConnected" class="hidden min-[400px]:inline-flex">
+            <el-tag type="info" effect="dark" class="text-xs" size="small">
+              <span class="inline-flex items-center gap-1">
+                <el-icon :size="12"><User /></el-icon>
+                {{ serverState.serverState.onlinePlayers }}
+              </span>
+            </el-tag>
+          </span>
           <el-button type="default" size="small" @click="showEditDialog = true" class="min-w-0 p-2">
             <el-icon><Setting /></el-icon>
           </el-button>
@@ -57,6 +61,10 @@
           >
             好友大厅
           </el-button>
+          <router-link v-if="!isStaticMode" :to="{ name: 'Matchmaking' }" class="matchmaking-nav">
+            <Search class="h-4 w-4" aria-hidden="true" />
+            普通匹配
+          </router-link>
           <el-button
             type="warning"
             icon="Edit"
@@ -450,7 +458,7 @@ import { useGameSettingStore } from './stores/gameSetting'
 import { usePrivateRoomStore } from './stores/privateRoom'
 import { useMatchmakingStore } from './stores/matchmaking'
 import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
-import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened } from '@element-plus/icons-vue'
+import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened, Search } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import { useConnectionSettingsStore } from '@/stores/connectionSettings'
@@ -1208,5 +1216,44 @@ header {
 <style scoped>
 .desktop-navigation .el-button + .el-button {
   margin-left: 0;
+}
+
+.matchmaking-nav {
+  display: inline-flex;
+  flex: none;
+  min-height: 32px;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 0.75rem;
+  border: 1px solid #60a5fa;
+  border-radius: 0.375rem;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.matchmaking-nav:hover {
+  background: #1e40af;
+}
+
+.matchmaking-nav[aria-current='page'],
+.matchmaking-nav:focus-visible {
+  outline: 2px solid #bfdbfe;
+  outline-offset: 2px;
+}
+
+.matchmaking-nav--compact {
+  min-height: 44px;
+  padding: 0 0.625rem;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 399px) {
+  .compact-navigation-actions :deep(.connection-label) {
+    max-width: 4rem;
+  }
 }
 </style>

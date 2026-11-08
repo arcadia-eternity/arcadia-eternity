@@ -22,7 +22,13 @@
       </template>
       <p v-else-if="rooms.isSwitchingServer" role="status">正在切换服务器…</p>
       <p v-else-if="rooms.currentRoom" role="status">请先离开当前房间，再开始匹配。</p>
-      <p v-else-if="!client.isConnected" role="status">请先连接对战服务器，再开始匹配。</p>
+      <div v-else-if="!client.isConnected" class="flex flex-wrap items-center justify-between gap-3">
+        <p role="status">请先连接对战服务器，再开始匹配。</p>
+        <router-link to="/servers" class="inline-flex min-h-11 items-center gap-1 font-medium text-blue-700">
+          前往服务器页面
+          <ArrowRight class="h-4 w-4" aria-hidden="true" />
+        </router-link>
+      </div>
       <template v-else>
         <div class="mb-4">
           <label for="matchmaking-environment" class="block font-medium mb-2">对战环境</label>
@@ -56,10 +62,18 @@
           data-testid="matchmaking-team-selector"
           @update:is-valid="valid = $event"
         />
-        <div class="mt-4">
-          <el-button v-if="configurationError && !loading" @click="loadEnvironments">重新加载</el-button>
+        <div
+          class="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p class="text-sm text-gray-600">
+            {{ valid && environmentReady ? '开始后可以离开本页继续等待。' : '对战环境和队伍准备就绪后即可匹配。' }}
+          </p>
+          <el-button v-if="configurationError" size="large" @click="loadEnvironments">重新加载</el-button>
           <el-button
+            v-else
             type="primary"
+            size="large"
+            :icon="Search"
             data-testid="start-matchmaking-button"
             :disabled="loading || !environmentReady || !valid"
             @click="start"
@@ -77,6 +91,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { ArrowRight, Search } from '@element-plus/icons-vue'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import TeamSelector from '@/components/TeamSelector.vue'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
