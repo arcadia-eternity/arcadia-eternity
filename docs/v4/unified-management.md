@@ -34,19 +34,21 @@ node dist/cli.js server --host 127.0.0.1 --port 8102 --data-dir /srv/arcadia
 
 普通 CLI 首次启动还会创建并公开一个 `builtin-server` 默认 binding，因此创建私人房间和普通匹配可以立即使用。这个一次性初始化状态与 binding 一同持久化；后续管理员清空默认选择、停用或删除 binding 后，重启不会恢复它。已有服务器记录不会被追溯性自动发布，可在管理面板中显式准备并发布环境。
 
-| 配置                                              | 含义                                               |
-| ------------------------------------------------- | -------------------------------------------------- |
-| `--data-dir` / `ARCADIA_DATA_DIR`                 | 服务器身份和默认数据库/工作区的持久根目录          |
-| `--workspace-root` / `ARCADIA_WORKSPACE_ROOT`     | 可选的工作区位置                                   |
-| `--server-id` / `SERVER_ID`                       | 可选显式身份；必须与已有 identity.json 一致        |
-| `STORAGE_DRIVER=sqlite`、`SQLITE_PATH`            | 本机 SQLite，路径默认 data-dir/server.sqlite       |
-| `STORAGE_DRIVER=postgres`、`DATABASE_URL`         | 标准 PG 连接；不再使用 Supabase SDK 或 service key |
-| `--public-origin` / `PUBLIC_ORIGIN`               | 访问者看到的配套网站 origin，与监听地址分开        |
-| `CORS_ORIGIN`                                     | 允许的确切浏览器来源，生产管理应使用 HTTPS         |
-| `--content-sources` / `ARCADIA_CONTENT_SOURCES`   | 宿主维护的来源注册表 JSON 文件                     |
-| `--npm-registry` / `ARCADIA_NPM_REGISTRY`         | 托管环境使用的 HTTPS npm registry                  |
-| `--offline-content` / `ARCADIA_OFFLINE_CONTENT=1` | 只用本机来源与已有 npm 缓存                        |
-| `MANAGEMENT_TRUSTED_PROXY_IPS`                    | TLS 代理的确切 IP 地址，逗号分隔                   |
+| 配置                                                            | 含义                                                 |
+| --------------------------------------------------------------- | ---------------------------------------------------- |
+| `--data-dir` / `ARCADIA_DATA_DIR`                               | 服务器身份和默认数据库/工作区的持久根目录            |
+| `--workspace-root` / `ARCADIA_WORKSPACE_ROOT`                   | 可选的工作区位置                                     |
+| `--server-id` / `SERVER_ID`                                     | 可选显式身份；必须与已有 identity.json 一致          |
+| `STORAGE_DRIVER=sqlite`、`SQLITE_PATH`                          | 本机 SQLite，路径默认 data-dir/server.sqlite         |
+| `STORAGE_DRIVER=postgres`、`DATABASE_URL`                       | 标准 PG 连接；不再使用 Supabase SDK 或 service key   |
+| `--public-origin` / `PUBLIC_ORIGIN`                             | 访问者看到的配套网站 origin，与监听地址分开          |
+| `CORS_ORIGIN`                                                   | 允许的确切浏览器来源，生产管理应使用 HTTPS           |
+| `--content-sources` / `ARCADIA_CONTENT_SOURCES`                 | 宿主维护的来源注册表 JSON 文件                       |
+| `--npm-registry` / `ARCADIA_NPM_REGISTRY`                       | 托管环境使用的 HTTPS npm registry                    |
+| `--offline-content` / `ARCADIA_OFFLINE_CONTENT=1`               | 只用本机来源与已有 npm 缓存                          |
+| `--management-require-tls` / `MANAGEMENT_REQUIRE_TLS`           | `true` 在应用内检查 TLS，`false` 由部署入口负责      |
+| `--management-cookie-same-site` / `MANAGEMENT_COOKIE_SAME_SITE` | 管理会话 Cookie 的 `lax`（默认）、`strict` 或 `none` |
+| `MANAGEMENT_TRUSTED_PROXY_IPS`                                  | TLS 代理的确切 IP 地址，逗号分隔                     |
 
 未指定 driver 而已有 DATABASE_URL 时兼容使用 PG。SQLite 与 PG 的相互冲突配置会报错；改连接字符串不会迁移数据。PG 支持不意味着多节点工作区管理已实现。
 
@@ -107,11 +109,11 @@ node dist/cli.js server admin login-code --data-dir /srv/arcadia
 
 管理权限由主体、scope 与 action 决定。服务器管理员只能管理被授权服务器；工作区编辑/准备/删除权限另行授予。发布环境需要目标服务器的 publish 权限与来源环境的 use 权限。已有 G3 账号必须被显式关联并授权后才能管理；停用或撤权后不能继续通过页面、API 或尚未提交的长任务操作。
 
-网页管理会话使用独立 HttpOnly/SameSite cookie；写请求检查 Origin 与 CSRF，生产使用 Secure/HTTPS。自动化服务凭证另行限权与撤销。远程服务器窗口不能取得本机文件系统或管理 IPC；可信本地页面才可通过私有 bridge 管理本机资源。浏览器仍保持一站一服，不提供任意后端选择器。
+网页管理会话使用独立的 HttpOnly、Secure Cookie，默认 `SameSite=Lax`。要求同站时可设 `strict`，跨站部署可设 `none`，此时发送 `SameSite=None; Secure; Partitioned`，由浏览器按顶层站点隔离会话。跨站页面的来源仍须获准，写请求仍检查 Origin 与 CSRF。自动化服务凭证另行限权与撤销。远程服务器窗口不能取得本机文件系统或管理 IPC；可信本地页面才可通过私有 bridge 管理本机资源。浏览器仍保持一站一服，不提供任意后端选择器。
 
 服务凭证的明文 token 仅在签发时展示。重新打开页面可通过 `GET /api/management/v1/credentials` 查询有权管理的服务凭证元数据：独立公开 ID、所属主体、创建/到期时间与权限；列表不返回 token、存储摘要、bootstrap 或浏览器会话。撤销使用公开 ID，并再次校验对应 scope 的管理权限；同一主体身份不自动授予跨 scope 的凭证管理权。
 
-非回环管理 HTTP 请求必须经过 TLS。反向代理终止 TLS 时，设置 HTTPS 的 `PUBLIC_ORIGIN`，并在 `MANAGEMENT_TRUSTED_PROXY_IPS` 列出连接服务器的代理确切 IP；只有来自该地址且带 `X-Forwarded-Proto: https` 的请求才作为代理 TLS 处理。不接受 CIDR/通配符，也不信任普通客户端自报的转发头。回环传输例外只允许本机连接，仍需正常管理认证。
+独立服务默认由部署入口负责 HTTPS，应用可在代理后使用 HTTP。配置 `MANAGEMENT_TRUSTED_PROXY_IPS` 会默认开启应用内 TLS 检查，`MANAGEMENT_REQUIRE_TLS=true` 或 `false` 可显式指定策略。开启检查时，回环和直接 TLS 可通过；反向代理需设置 HTTPS 的 `PUBLIC_ORIGIN`，并在 `MANAGEMENT_TRUSTED_PROXY_IPS` 列出代理确切 IP，只有来自登记地址且带 `X-Forwarded-Proto: https` 的请求才通过代理检查。地址列表接受单个 IP，管理认证和权限在所有模式下都生效。桌面托管的局域网服务默认保留应用内 TLS 检查。
 
 ## 发布、任务与运行
 

@@ -323,6 +323,10 @@ async function validate() {
       '-e',
       `MANAGEMENT_TRUSTED_PROXY_IPS=${proxyAddress}`,
       '-e',
+      'MANAGEMENT_REQUIRE_TLS=true',
+      '-e',
+      'MANAGEMENT_COOKIE_SAME_SITE=strict',
+      '-e',
       'ARCADIA_WEB_AUTO_CONNECT=false',
       image,
     ])

@@ -118,7 +118,7 @@ echo "flyctl secrets set GITHUB_APP_CLIENT_ID=\"client-id\" GITHUB_APP_CLIENT_SE
 echo "flyctl secrets set GITHUB_APP_REDIRECT_URIS=\"https://battle.yuuinih.com/account\""
 echo "# Guest 玩家模式也可通过 server admin login-code 初始化管理登录。"
 echo "# 尚未启动过服务时，先执行 server db migrate 初始化数据目录。"
-echo "# TLS 代理需配置 HTTPS PUBLIC_ORIGIN 和 MANAGEMENT_TRUSTED_PROXY_IPS 的确切地址。"
+echo "# Fly 负责公网 HTTPS。跨站管理网页可设置 MANAGEMENT_COOKIE_SAME_SITE=none。"
 echo "# 内容来源通过 ARCADIA_CONTENT_SOURCES 注册；允许取得内容与允许执行代码分别配置。"
 echo "# 数据库迁移和管理命令见 docs/v4/unified-management.md。"
 

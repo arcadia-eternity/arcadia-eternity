@@ -7,12 +7,22 @@ import type { SessionRegistry } from '../session'
 
 const PREFIX = '/api/management/v1'
 const COOKIE = 'arcadia_management'
-const cookieToken = (request: Request) => {
+const cookieSameSite = { lax: 'Lax', strict: 'Strict', none: 'None' } as const
+
+export interface ManagementHttpPolicy {
+  requireTls?: boolean
+  cookieSameSite?: keyof typeof cookieSameSite
+  secureCookies?: boolean
+  trustedProxyAddresses?: string[]
+}
+
+const cookieToken = (request: Request, name: string) => {
+  const prefix = `${name}=`
   const value = request.headers.cookie
     ?.split(';')
     .map(part => part.trim())
-    .find(part => part.startsWith(`${COOKIE}=`))
-    ?.slice(COOKIE.length + 1)
+    .find(part => part.startsWith(prefix))
+    ?.slice(prefix.length)
   return value && /^[A-Za-z0-9_-]{1,256}$/.test(value) ? value : undefined
 }
 const bearerToken = (request: Request) => {
@@ -66,20 +76,21 @@ export function isManagementTransportTrusted(input: {
 export function mountManagementApi(
   app: Express,
   service: ManagementService,
-  options: {
-    secureCookies: boolean
+  options: ManagementHttpPolicy & {
     acceptsOrigin(request: Request): boolean
     sessions: SessionRegistry
-    trustedProxyAddresses?: string[]
     publicOrigin?: string
   },
 ) {
-  const trustedProxyAddresses = new Set(
-    (options.trustedProxyAddresses ?? []).map(address => {
-      if (!isIP(address)) throw new Error('MANAGEMENT_PROXY_IP_INVALID')
-      return address.replace(/^::ffff:/, '')
-    }),
-  )
+  const trustedProxyAddresses = (options.trustedProxyAddresses ?? []).map(address => {
+    if (!isIP(address)) throw new Error('MANAGEMENT_PROXY_IP_INVALID')
+    return address.replace(/^::ffff:/, '')
+  })
+  const requireTls = options.requireTls ?? trustedProxyAddresses.length > 0
+  const sameSite = cookieSameSite[options.cookieSameSite ?? 'lax']
+  const partitioned = sameSite === 'None'
+  const cookieName = partitioned ? `${COOKIE}_partitioned` : COOKIE
+  const secure = partitioned || options.secureCookies !== false
   const bodyParser = (req: Request, res: Response, large = false) =>
     new Promise<void>((resolve, reject) => {
       express.json({ limit: large ? '130mb' : '2mb', strict: true })(req, res, ((error?: unknown) =>
@@ -87,7 +98,7 @@ export function mountManagementApi(
     })
   const attempts = new Map<string, { count: number; until: number }>()
   const cookie = (value: string, maxAge: number) =>
-    `${COOKIE}=${value}; Path=${PREFIX}; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${options.secureCookies ? '; Secure' : ''}`
+    `${cookieName}=${value}; Path=${PREFIX}; HttpOnly; SameSite=${sameSite}; Max-Age=${maxAge}${secure ? '; Secure' : ''}${partitioned ? '; Partitioned' : ''}`
   const sessionBody = (session: Omit<ManagementSession, 'token'>) => ({
     principalId: session.actor.principalId,
     csrfToken: session.csrfToken,
@@ -100,12 +111,13 @@ export function mountManagementApi(
     try {
       if (req.headers.origin && !options.acceptsOrigin(req)) throw new ManagementAuthError('ORIGIN_FORBIDDEN')
       if (
+        requireTls &&
         !isManagementTransportTrusted({
           remoteAddress: req.socket.remoteAddress,
           encrypted: (req.socket as TLSSocket).encrypted,
           forwardedProto: req.headers['x-forwarded-proto'],
           publicOrigin: options.publicOrigin,
-          trustedProxyAddresses: [...trustedProxyAddresses],
+          trustedProxyAddresses,
         })
       )
         throw new ManagementAuthError('MANAGEMENT_TLS_REQUIRED', 403)
@@ -132,7 +144,7 @@ export function mountManagementApi(
         return
       }
       const bearer = bearerToken(req),
-        rawToken = bearer ?? cookieToken(req)
+        rawToken = bearer ?? cookieToken(req, cookieName)
       if (req.method === 'GET' && path === '/capabilities' && !rawToken) {
         res.json(await service.capabilities())
         return

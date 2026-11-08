@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.0.0...arcadia-eternity-v4.0.1) (2026-11-08)
+
+
+### 🐛 Bug Fixes
+
+* **server:** make management TLS and cookie policies configurable ([6cf3868](https://github.com/arcadia-eternity/arcadia-eternity/commit/6cf38687c71e910ea58c35543788ffefc33c65ba))
+
 ## [4.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.4.2...arcadia-eternity-v4.0.0) (2026-11-07)
 
 

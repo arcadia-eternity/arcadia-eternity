@@ -66,7 +66,7 @@ async function authenticateAndCheck(name, serverId, phase) {
     const session = await login.json();
     const cookie = login.headers.get('set-cookie');
     assert.match(cookie, /HttpOnly/);
-    assert.match(cookie, /SameSite=Strict/);
+    assert.match(cookie, /SameSite=Lax/);
     assert.equal((await exchange()).status, 401);
     const headers = {'Content-Type':'application/json', Origin:'http://localhost',
       Cookie:cookie.split(';')[0], 'X-CSRF-Token':session.csrfToken};

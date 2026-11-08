@@ -25,7 +25,7 @@ pnpm web:dev
 
 宿主通过 `--content-sources` 登记 Git 固定提交、HTTPS 归档或本机归档/目录，环境页面引用包名而不是任意文件路径。`--npm-registry` 指定 HTTPS npm registry；`--offline-content` 要求已有本地材料/缓存。`--allow-third-party-content` 仅允许取得第三方材料，`--allow-third-party-execution` 才允许社区宿主静态编译和权威执行获准内容。具体格式见[宿主内容来源](unified-management.md#宿主内容来源)。
 
-远程管理需要 HTTPS；由反向代理终止 TLS 时，`MANAGEMENT_TRUSTED_PROXY_IPS` 只接受代理确切 IP，并与 HTTPS `PUBLIC_ORIGIN` 及代理的 `X-Forwarded-Proto: https` 一起使用。普通客户端提供转发头不能绕过 TLS 检查。首次离线签发管理登录码前先用 `server db migrate` 初始化数据；`server db status` 不创建缺失目录或数据库。
+公网管理网页使用 HTTPS。独立服务默认允许反向代理终止 TLS 后以 HTTP 转发。配置 `MANAGEMENT_TRUSTED_PROXY_IPS` 或显式设 `MANAGEMENT_REQUIRE_TLS=true` 可开启应用内检查，代理地址须为确切 IP，并与 HTTPS `PUBLIC_ORIGIN` 及代理的 `X-Forwarded-Proto: https` 一起使用。管理 Cookie 默认 `SameSite=Lax`，跨站配套网页可设 `MANAGEMENT_COOKIE_SAME_SITE=none`。首次离线签发管理登录码前先用 `server db migrate` 初始化数据；`server db status` 不创建缺失目录或数据库。
 
 ## 对战容量
 
