@@ -5,42 +5,32 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/desktop-runtime-validation.yml'
-      - 'bin/**'
-      - 'packages/**'
-      - 'packs/**'
-      - 'resource/**'
-      - 'scripts/**'
+      - 'packages/web-ui/electron/**'
+      - 'packages/web-ui/package.json'
+      - 'packages/content-dev/**'
+      - 'scripts/*desktop*'
+      - 'scripts/stage-paired-website*'
+      - 'scripts/install-ci-electron.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.npmrc'
       - '.pnpmfile.cjs'
-      - 'rolldown.config.*'
-      - 'tsconfig*.json'
-      - 'eslint.config.*'
-      - 'types/**'
-      - 'docs/guides/ugc-authoring-agent/**'
-      - 'docs/guides/seer2-recreate-pet/**'
   push:
     branches: [main]
     paths:
       - '.github/workflows/desktop-runtime-validation.yml'
-      - 'bin/**'
-      - 'packages/**'
-      - 'packs/**'
-      - 'resource/**'
-      - 'scripts/**'
+      - 'packages/web-ui/electron/**'
+      - 'packages/web-ui/package.json'
+      - 'packages/content-dev/**'
+      - 'scripts/*desktop*'
+      - 'scripts/stage-paired-website*'
+      - 'scripts/install-ci-electron.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.npmrc'
       - '.pnpmfile.cjs'
-      - 'rolldown.config.*'
-      - 'tsconfig*.json'
-      - 'eslint.config.*'
-      - 'types/**'
-      - 'docs/guides/ugc-authoring-agent/**'
-      - 'docs/guides/seer2-recreate-pet/**'
   workflow_dispatch:
 
 permissions:
@@ -51,7 +41,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  desktop-contracts:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install dependencies without native downloads
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build content workspace dependencies
+        run: pnpm --filter @arcadia-eternity/content-dev... run build
+      - name: Check desktop contracts without Electron or installers
+        run: node --test scripts/desktop-linkless-modules.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-environments.test.mjs
+
+  # Full installed-app/replacement acceptance is explicitly requested, not
+  # repeated for every UI edit. Release builds retain their packaged-host hooks.
   native-runtime:
+    if: github.event_name == 'workflow_dispatch'
     name: ${{ matrix.platform }} / ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
@@ -87,6 +102,8 @@ jobs:
       # Existing workspace clean scripts use rm; hosted Windows runners include Git Bash.
       npm_config_script_shell: bash
       NODE_OPTIONS: --max-old-space-size=4096
+      electron_config_cache: ${{ runner.temp }}/electron-cache
+      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
       EXPECTED_PLATFORM: ${{ matrix.platform }}
       EXPECTED_ARCH: ${{ matrix.arch }}
 
@@ -104,6 +121,14 @@ jobs:
           node-version: '24'
           architecture: ${{ matrix.arch }}
           cache: pnpm
+
+      - name: Restore versioned desktop download cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/electron-cache
+            ${{ runner.temp }}/electron-builder-cache
+          key: desktop-downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Verify native runner target
         run: |
@@ -125,7 +150,7 @@ jobs:
         run: node scripts/install-ci-electron.mjs
 
       - name: Install browser for hosted website acceptance
-        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps --only-shell chromium
 
       - name: Build workspace runtime dependencies
         run: pnpm run build:package | tee .artifacts/desktop/workspace-build.log

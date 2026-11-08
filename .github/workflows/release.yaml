@@ -111,6 +111,8 @@ jobs:
       # Workspace clean scripts use rm; hosted Windows runners include Git Bash.
       npm_config_script_shell: bash
       NODE_OPTIONS: --max-old-space-size=4096
+      electron_config_cache: ${{ runner.temp }}/electron-cache
+      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
       EXPECTED_PLATFORM: ${{ matrix.platform }}
       EXPECTED_ARCH: ${{ matrix.arch }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
@@ -128,6 +130,14 @@ jobs:
           node-version: '24'
           architecture: ${{ matrix.arch }}
           cache: pnpm
+      - name: Restore versioned desktop download cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/electron-cache
+            ${{ runner.temp }}/electron-builder-cache
+          key: desktop-downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Verify native runner target
         run: |
           node -e 'const assert = require("node:assert/strict"); assert.equal(process.platform, process.env.EXPECTED_PLATFORM); assert.equal(process.arch, process.env.EXPECTED_ARCH); console.log(JSON.stringify({ platform: process.platform, arch: process.arch, node: process.version }));'
@@ -155,7 +165,7 @@ jobs:
           writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n')
           NODE
       - name: Install browser for hosted website acceptance
-        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps --only-shell chromium
 
       - name: Build workspace runtime dependencies
         run: pnpm run build:package
