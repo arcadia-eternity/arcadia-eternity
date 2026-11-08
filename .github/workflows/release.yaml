@@ -103,6 +103,11 @@ jobs:
       CI: 'true'
       HUSKY: '0'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # GitHub release-asset downloads repeatedly return 504. Keep the locked
+      # Electron/toolset checksums while using the npm mirror for transport.
+      ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+      ELECTRON_CUSTOM_DIR: '{{ version }}'
+      ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
       # Workspace clean scripts use rm; hosted Windows runners include Git Bash.
       npm_config_script_shell: bash
       NODE_OPTIONS: --max-old-space-size=4096
@@ -132,7 +137,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libatk-bridge2.0-0t64 libxss1
       - name: Install locked dependencies
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         run: pnpm install --frozen-lockfile
+      - name: Install and verify locked Electron runtime
+        run: node scripts/install-ci-electron.mjs
       - name: Apply application version to renderer build input
         id: metadata
         run: |
@@ -169,6 +178,7 @@ jobs:
           hook="$(node -p "require('node:path').resolve('scripts/verify-desktop-pack.mjs')")"
           pnpm --filter @arcadia-eternity/web-ui exec electron-builder ${{ matrix.args }} --publish never \
             --config.beforePack="$hook" --config.afterPack="$hook" \
+            --config.electronDist="$ARCADIA_ELECTRON_DIST" \
             --config.extraMetadata.version="$RELEASE_VERSION" \
             --config.${{ matrix.config }}.artifactName="$ARTIFACT_NAME"
       - name: Record validated build inputs
