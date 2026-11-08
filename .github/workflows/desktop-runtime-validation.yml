@@ -102,8 +102,8 @@ jobs:
       # Existing workspace clean scripts use rm; hosted Windows runners include Git Bash.
       npm_config_script_shell: bash
       NODE_OPTIONS: --max-old-space-size=4096
-      electron_config_cache: ${{ runner.temp }}/electron-cache
-      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+      electron_config_cache: ${{ github.workspace }}/.artifacts/electron-cache
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.artifacts/electron-builder-cache
       EXPECTED_PLATFORM: ${{ matrix.platform }}
       EXPECTED_ARCH: ${{ matrix.arch }}
 
@@ -126,8 +126,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ runner.temp }}/electron-cache
-            ${{ runner.temp }}/electron-builder-cache
+            ${{ github.workspace }}/.artifacts/electron-cache
+            ${{ github.workspace }}/.artifacts/electron-builder-cache
           key: desktop-downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Verify native runner target
