@@ -898,13 +898,22 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
   const baseMember = prepared.installation.members.find(pkg => pkg.projectId === 'base')!
   expect(baseMember.requiredBy).toContain('@arcadia-test/base-consumer')
   expect(baseMember.direct).toBe(false)
-  const metadataFile = join(directory, 'node_modules/@arcadia-eternity/data-pack-base/catalog.json')
-  const metadata = JSON.parse(await readFile(metadataFile, 'utf8'))
-  metadata.build.coreBuildId = 'c'.repeat(64)
-  await writeFile(metadataFile, JSON.stringify(metadata))
-  await expect(prepare(directory)).rejects.toThrow('Incompatible catalog package artifact')
-  metadata.build.coreBuildId = host.build.coreBuildId
-  await writeFile(metadataFile, JSON.stringify(metadata))
+  // A rebuilt server must load the unchanged saved installation with the same
+  // material revision; the host binary hash is not a content compatibility API.
+  const rebuilt = await prepareNpmProject(
+    directory,
+    { ...host, build: { formatVersion: 1, coreBuildId: 'c'.repeat(64), registryBuildId: 'e'.repeat(64) } },
+    { policy: { trust: 'local-development' } },
+  )
+  environments.push(rebuilt)
+  expect(rebuilt.revision).toBe(prepared.revision)
+  const rebuiltContent = await prepareSandboxContent(rebuilt.sandbox)
+  try {
+    expect(rebuiltContent.content.getSkill('skill_zhuangji').power).toBe(35)
+    expect(rebuiltContent.content.getSkill('slow:strike').power).toBe(30)
+  } finally {
+    rebuiltContent.dispose()
+  }
   await expect(
     prepareNpmProject(
       directory,

@@ -23,7 +23,7 @@ async function readPackageJson(root: string, path: string) {
   return JSON.parse(await readFile(file, 'utf8'))
 }
 
-async function readCatalogPackage(root: string, coreBuildId: string) {
+async function readCatalogPackage(root: string) {
   const pkg = await readPackageJson(root, 'package.json')
   const manifest = pkg.arcadia
   const metadata = await readPackageJson(root, manifest?.catalog)
@@ -32,7 +32,7 @@ async function readCatalogPackage(root: string, coreBuildId: string) {
     !metadata ||
     metadata.formatVersion !== 1 ||
     metadata.build?.formatVersion !== 1 ||
-    metadata.build.coreBuildId !== coreBuildId ||
+    !/^[a-f0-9]{64}$/.test(metadata.build.coreBuildId) ||
     !/^[a-f0-9]{64}$/.test(metadata.build.registryBuildId) ||
     !Array.isArray(data?.species) ||
     !Array.isArray(data?.skills) ||
@@ -145,7 +145,7 @@ export async function installedOfficialHost(root: string, installation: NpmProje
   if (!packages.length) return { host, presentationPackages: installation.packages, authoring: undefined }
   if (packages.length !== 1) fail('CONTENT_VERSION_CONFLICT', 'base', 'Official base must have one installed version')
   const pkg = packages[0]!
-  const metadata = await readCatalogPackage(resolve(root, pkg.location), host.build.coreBuildId)
+  const metadata = await readCatalogPackage(resolve(root, pkg.location))
   const { build, templates, effectIds, effectTemplates, effectMarkRelations } = metadata
   const authoring = { build, templates, effectIds, effectTemplates, effectMarkRelations }
   let presentationPackages = installation.packages
