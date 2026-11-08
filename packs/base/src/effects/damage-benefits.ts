@@ -6,7 +6,7 @@ import {
   contexts,
   targets,
   ops,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Keep the nearest skill ancestry, including damage caused by a nested effect. */
 export const officialDamageBenefitEffects = Object.freeze({

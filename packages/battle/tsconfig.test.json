@@ -1,10 +1,23 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "verbatimModuleSyntax": false,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "types": ["node"]
+    "composite": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@arcadia-eternity/battle/engine": ["./engine.ts"],
+      "@arcadia-eternity/battle/authoring": ["./authoring.ts"],
+      "@arcadia-eternity/battle/host": ["./host.ts"],
+      "@arcadia-eternity/data-pack-base/effects": ["../../packs/base/effects.ts"]
+    }
   },
-  "include": ["./src/**/*", "./__tests__/**/*"]
+  "include": [
+    "../../types/effect-module.d.ts",
+    "*.ts",
+    "src/**/*.ts",
+    "src/**/*.json",
+    "test/**/*.ts",
+    "test/**/*.json"
+  ],
+  "exclude": ["node_modules", "dist"]
 }

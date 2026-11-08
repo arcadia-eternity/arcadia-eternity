@@ -14,7 +14,7 @@ import {
   TurnContext,
   UseSkillContext,
   setGlobalLogger,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 const exec = promisify(execFile)
 const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url))

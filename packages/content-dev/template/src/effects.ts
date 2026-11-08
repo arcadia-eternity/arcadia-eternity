@@ -1,4 +1,4 @@
-import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/v4/authoring'
+import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring'
 
 /** The host supplies its SDK and canonical prototypes; importing this file registers nothing globally. */
 export function createEffects({ sdk, marks, id }: CodeEffectModuleContext) {

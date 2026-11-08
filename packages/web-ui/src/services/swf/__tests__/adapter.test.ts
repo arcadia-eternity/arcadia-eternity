@@ -169,7 +169,7 @@ describe('owned desktop canvas playback', () => {
     'closes and ACKs an in-flight decoded bitmap after %s without painting',
     async action => {
       const h = harness()
-      let decoded!: (value: typeof bitmap) => void
+      let decoded!: (value: ImageBitmap) => void
       vi.mocked(createImageBitmap).mockImplementationOnce(
         () =>
           new Promise(resolve => {

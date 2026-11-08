@@ -11,7 +11,7 @@ import {
   ops,
   values,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedSkillPowerEffects() {
   return Object.freeze({
     effect_ability_add_power_50_percent_normal: compileEffect(

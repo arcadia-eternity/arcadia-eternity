@@ -16,6 +16,8 @@ const jobPackages = {
 const sharedFiles = new Set([
   '.github/workflows/battle-baseline.yml',
   '.npmrc',
+  '.pnpmfile.cjs',
+  'scripts/rollup-external.mjs',
   'package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
@@ -29,13 +31,13 @@ const sharedFiles = new Set([
 
 const jobFiles = {
   headless: [
-    /^eslint\.config\.(?:baseline|v4)\.js$/,
-    /^scripts\/verify-v1-hosts\.mjs$/,
+    /^eslint\.config\.battle\.js$/,
+    /^scripts\/verify-battle-hosts\.mjs$/,
     /^scripts\/verify-waiting-snapshots\.mjs$/,
     /^scripts\/verify-behavior-uses\.mjs$/,
     /^scripts\/build-environment\.test\.mjs$/,
   ],
-  server: [/^bin\//, /^eslint\.config\.server-standalone\.js$/, /^scripts\/verify-native-pack\.mjs$/],
+  server: [/^bin\//, /^eslint\.config\.server\.js$/, /^scripts\/verify-native-pack\.mjs$/],
   browser: [
     /^resource\//,
     /^scripts\/prepare-static-assets(?:\.test)?\.mjs$/,
@@ -95,7 +97,11 @@ export function affectedBattleJobs(paths, packages = workspacePackages()) {
       const directories = dependencyDirectories(names, packages)
       const affected = paths.some(
         path =>
+          (directories.has('packages/content-dev') &&
+            /^docs\/guides\/(?:ugc-authoring-agent|seer2-recreate-pet)\//.test(path)) ||
           sharedFiles.has(path) ||
+          /^tsconfig(?:\.[^/]+)?\.json$/.test(path) ||
+          path.startsWith('types/') ||
           jobFiles[job].some(pattern => pattern.test(path)) ||
           [...directories].some(directory => path.startsWith(`${directory}/`)),
       )

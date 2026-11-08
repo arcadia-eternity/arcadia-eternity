@@ -9,7 +9,7 @@ import {
   checks,
   ops,
   actions,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedDamageThresholds() {
   return Object.freeze({
     effect_mark_damage_cap_half_max_hp: compileEffect(

@@ -32,10 +32,10 @@ function createGsapManagerMock(): AnimationGsapManager {
 }
 
 function createStateMachineMock(): AnimationStateMachine {
-  return {
+  const machine = {
     state: AnimationState.IDLE,
     get canAcceptNewTask() {
-      return this.state === AnimationState.IDLE
+      return machine.state === AnimationState.IDLE
     },
     snapshot: vi.fn().mockReturnValue({
       state: AnimationState.IDLE,
@@ -46,7 +46,8 @@ function createStateMachineMock(): AnimationStateMachine {
     transition: vi.fn(),
     markStuck: vi.fn(),
     forceRecover: vi.fn(),
-  } as unknown as AnimationStateMachine
+  }
+  return machine as unknown as AnimationStateMachine
 }
 
 describe('AnimationHealthMonitor', () => {

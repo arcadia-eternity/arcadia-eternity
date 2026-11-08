@@ -1,5 +1,5 @@
-import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
-import type { ParameterCatalog } from '@arcadia-eternity/battle/v4'
+import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
+import type { ParameterCatalog } from '@arcadia-eternity/battle/engine'
 const definitions = [
   {
     id: 'effect_emblem_fengbaozhixing_rage_boost_5',

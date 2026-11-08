@@ -1,6 +1,6 @@
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { GameRng, type BattleOptions } from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import { GameRng, type BattleOptions } from '@arcadia-eternity/battle/engine'
+import { LocalBattleSystem } from '@arcadia-eternity/battle/host'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import type { PlayerSchemaType } from '@arcadia-eternity/schema'
 import { randomBytes } from 'node:crypto'
@@ -33,7 +33,7 @@ export async function createNativeLocalBattle(
   })
   const battle = loaded.content.createBattle(a, b, config)
   return {
-    system: new LocalBattleSystemV4(battle, loaded.content),
+    system: new LocalBattleSystem(battle, loaded.content),
     playerIds: [a.id, b.id] as const,
     humanIds: [a, b].filter((_, index) => !ai.has(`player${index + 1}`)).map(player => player.id),
     effectCount: loaded.content.effects.length,

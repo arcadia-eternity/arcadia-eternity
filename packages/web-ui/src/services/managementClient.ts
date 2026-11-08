@@ -161,6 +161,10 @@ function responseError(status: number, body: unknown): ManagementError {
     422: '操作内容不符合要求',
   }
   const messages: Record<string, string> = {
+    PASSKEY_INVALID: '通行密钥验证失败，请重试或使用其他登录方式。',
+    PASSKEY_CHALLENGE_INVALID: '验证请求已过期或已使用，请重新发起登录。',
+    PASSKEY_HTTPS_REQUIRED: '请通过 HTTPS 网页设置和使用通行密钥。',
+    LOGIN_RATE_LIMITED: '尝试次数过多，请稍后重试。',
     INVALID_BOOTSTRAP_CODE: '登录码无效、已使用或已过期，请从宿主重新取得登录码。',
     MANAGEMENT_UNAUTHENTICATED: '管理会话已失效，请重新登录。',
     MANAGEMENT_FORBIDDEN: '此身份没有管理目标资源的权限。',

@@ -10,7 +10,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedMarkRemovals() {
   return Object.freeze({
     effect_emblem_destroy_meihuo_onturnend: compileEffect(

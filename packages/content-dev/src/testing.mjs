@@ -4,10 +4,10 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.mjs'
 import { assertEnvironmentTeam, validateEnvironmentRules } from './environment-rules.mjs'
-import { prepareSandboxContent } from '@arcadia-eternity/battle/v4/sandbox/effects'
-import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import { prepareSandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 export { prepareBattleEnvironment } from './environment.mjs'
-import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/v4'
+import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/engine'
 /** Existing package scenarios use the default environment with declared dependencies only. */
 export async function prepareContentPack(root = process.cwd(), options = {}) {
   root = resolve(root)

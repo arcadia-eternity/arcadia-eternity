@@ -1,5 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import type { TeamDocument } from '@/components/team/library'
+import type { DebugEnvironment } from '../debugEnvironment'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 
 const context = vi.hoisted(() => ({
@@ -126,7 +128,7 @@ it('allows a captured named CLI environment in a browser without project-managem
 
 function desktopLibrary() {
   const teams = ['blue', 'orange'].map(id => ({ schemaVersion: 1 as const, id, name: id, team: [], version: 'v1' }))
-  const save = vi.fn(async ({ document }: { document: (typeof teams)[number] }) => ({ ...document, version: 'v2' }))
+  const save = vi.fn(async ({ document }: { document: TeamDocument }) => ({ ...document, version: 'v2' }))
   window.arcadiaAuthorPreview = {
     returnToEditor: vi.fn(),
     teams: {
@@ -225,7 +227,9 @@ it('revalidates externally edited environments before starting without altering 
   try {
     await flushPromises()
     expect(wrapper.get('button.start').attributes('disabled')).toBeUndefined()
-    vi.mocked(window.arcadiaAuthorPreview!.environment).mockResolvedValue([
+    vi.mocked(
+      window.arcadiaAuthorPreview!.environment as (action: 'list') => Promise<DebugEnvironment[]>,
+    ).mockResolvedValue([
       {
         schemaVersion: 1,
         id: 'named-cli-preview',
@@ -258,7 +262,9 @@ it('refreshes externally changed environment choices on focus without replacing 
       .trigger('click')
     await wrapper.get('.environment-form input').setValue('My unsaved environment')
     await wrapper.get('.environment-form textarea').setValue('@example/pack=1.0.0')
-    vi.mocked(window.arcadiaAuthorPreview!.environment).mockResolvedValue([
+    vi.mocked(
+      window.arcadiaAuthorPreview!.environment as (action: 'list') => Promise<DebugEnvironment[]>,
+    ).mockResolvedValue([
       {
         schemaVersion: 1,
         id: 'named-cli-preview',

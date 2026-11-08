@@ -39,6 +39,3 @@ export function resolveSpeciesPortraitUrl(species: SpeciesSchemaType | undefined
     ? officialAssetUrl(species.presentation.portrait)
     : unknownPet
 }
-export function resolveSpeciesIconUrl(species: Partial<SpeciesSchemaType> | undefined): string {
-  return typeof species?.presentation?.icon === 'string' ? officialAssetUrl(species.presentation.icon) : unknownPet
-}

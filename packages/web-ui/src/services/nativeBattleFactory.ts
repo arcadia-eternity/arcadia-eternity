@@ -1,12 +1,12 @@
-import type { LocalBattleSystemV4, NativeBattleHostOptions } from '@arcadia-eternity/battle/v4/host'
-import { GameRng, type BattleOptions } from '@arcadia-eternity/battle/v4'
+import type { LocalBattleSystem, NativeBattleHostOptions } from '@arcadia-eternity/battle/host'
+import { GameRng, type BattleOptions } from '@arcadia-eternity/battle/engine'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
+import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import { nanoid } from 'nanoid'
 import { toRaw } from 'vue'
 import { readPreparedWebRuntime } from './preparedWebEnvironment'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import { getBattleWorkers } from './sandboxBattleWorkers'
 
 export interface NativeGameDataStoreLike {
@@ -30,7 +30,7 @@ export type NativeWebBattleConfig = Pick<
 
 export type WebBattleHost = IBattleSystem &
   Pick<
-    LocalBattleSystemV4,
+    LocalBattleSystem,
     | 'BattleEvent'
     | 'createRuntimeSnapshot'
     | 'restoreRuntimeSnapshot'

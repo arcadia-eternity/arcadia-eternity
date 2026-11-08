@@ -2,9 +2,9 @@ name: Battle regression baseline
 
 on:
   pull_request:
-    branches: [refactor/v4, main]
+    branches: [main]
   push:
-    branches: [refactor/v4]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -15,6 +15,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Check unused code and dependencies without build artifacts
+        run: pnpm lint:unused
+      - name: Lint P2P sources and tests
+        run: pnpm lint:p2p
+
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -59,29 +80,29 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build battle dependency graph
         run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/pack-loader... run build
-      - name: Lint
-        run: pnpm lint
+      - name: Lint workspace sources
+        run: pnpm lint:workspace
       - name: Verify trusted capability build identities
         run: node --test scripts/build-environment.test.mjs
-      - name: Typecheck and lint original V1 port tests and adapters
+      - name: Typecheck and lint battle tests and adapters
         run: |
-          pnpm typecheck:battle-v4
-          pnpm lint:battle-v4
-      - name: Run real original V1 battles and mechanism regressions
-        run: pnpm test:battle-v4
-      - name: Build and execute original V1 in Node and Chrome
-        run: pnpm verify:battle-v4-hosts
+          pnpm typecheck:battle
+          pnpm lint:battle
+      - name: Run real battles and mechanism regressions
+        run: pnpm test:battle
+      - name: Build and execute battle engine in Node and Chrome
+        run: pnpm verify:battle-hosts
       - name: Verify waiting checkpoints in Node and Chrome
-        run: pnpm verify:battle-v4-waiting-snapshots
+        run: pnpm verify:battle-waiting-snapshots
       - name: Verify independent behavior uses in Node and Chrome
-        run: pnpm verify:battle-v4-behaviors
+        run: pnpm verify:battle-behaviors
       - name: Verify native templates across hosts
-        run: pnpm verify:battle-v4-templates
+        run: pnpm verify:battle-templates
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: original-v1-host-evidence
-          path: packages/battle/dist/v1-host-check/
+          name: battle-host-evidence
+          path: packages/battle/dist/battle-host-check/
           if-no-files-found: ignore
 
   native-server-entry:
@@ -128,17 +149,17 @@ jobs:
         run: pnpm --filter @arcadia-eternity/pack-loader exec vitest run test/native-loader.test.ts --maxWorkers=1
       - name: Check native server source and test types
         run: |
-          pnpm typecheck:server-native
-          pnpm lint:server-native
+          pnpm typecheck:server
+          pnpm lint:server
       - name: Verify identical SQLite and PostgreSQL persistence contracts
         run: pnpm --filter @arcadia-eternity/database test:run
       - name: Verify native construction, recovery, management and disconnect handling
-        run: pnpm test:server-native
+        run: pnpm test:server
       - name: Verify native content and bootstrap in Node and Chrome
-        run: pnpm verify:battle-v4-native-pack
+        run: pnpm verify:battle-native-pack
       - name: Check CLI types and native local execution
         run: |
-          pnpm typecheck
+          pnpm typecheck:workspace
           pnpm exec eslint bin/cli.ts bin/native-local-battle.ts
           pnpm test:cli-native
           pnpm build:cli
@@ -170,12 +191,12 @@ jobs:
         run: pnpm --filter '@arcadia-eternity/web-ui^...' --filter '@arcadia-eternity/server...' run build
       - name: Verify content locale syntax and real description rendering
         run: pnpm --filter @arcadia-eternity/web-ui run test:content-locales
-      - name: Build browser application and generate auto-import lint globals
+      - name: Build browser application
         run: pnpm --filter @arcadia-eternity/web-ui run build-only
       - name: Check native browser construction and transport types
         run: |
-          pnpm typecheck:web-native
-          pnpm lint:web-native
+          pnpm typecheck:web
+          pnpm lint:web
       - name: Verify shared native factory and actual P2P messages
         run: pnpm test:web-native
       - name: Verify server account client and recovery flows

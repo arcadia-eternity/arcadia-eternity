@@ -1,7 +1,7 @@
 import Sqlite from 'better-sqlite3'
 import { sql } from 'kysely'
 import { expect } from 'vitest'
-import type { DurableStorage } from '../../src/storage'
+import type { DurableStorage } from '@arcadia-eternity/database'
 
 /** Exhaust SQLite's page limit, without filling the host disk or replacing repository methods. */
 export async function exhaustSqlitePages(storage: DurableStorage) {

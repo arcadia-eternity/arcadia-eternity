@@ -1,4 +1,4 @@
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffect,
   compileEffect,
@@ -9,7 +9,7 @@ import {
   checks,
   ops,
   EffectTrigger,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 import { DamageType } from '@arcadia-eternity/const'
 
 // Accepted recreation: priority/power spend before hit; on-hit effects spend on hit.

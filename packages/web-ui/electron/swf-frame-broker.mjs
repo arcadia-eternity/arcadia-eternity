@@ -1,5 +1,5 @@
 /** Main-process paint broker. No player-provided bytes enter this channel. */
-export const FRAME_LIMITS = { dimension: 2048, pixels: 2097152, bytes: 8 * 1024 * 1024, fps: 24 }
+const FRAME_LIMITS = { dimension: 2048, pixels: 2097152, bytes: 8 * 1024 * 1024, fps: 24 }
 export function validFrameSize(width, height) {
   return (
     Number.isInteger(width) &&

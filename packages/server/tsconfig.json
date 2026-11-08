@@ -17,6 +17,6 @@
     "declarationMap": true,
     "skipLibCheck": true
   },
-  "include": ["./index.ts", "./src/index.ts", "./src/standalone/**/*.ts"],
+  "include": ["index.ts", "src/**/*.ts"],
   "exclude": ["./node_modules", "./dist"]
 }

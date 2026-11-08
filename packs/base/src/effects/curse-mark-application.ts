@@ -1,4 +1,4 @@
-import type { BaseMark } from '@arcadia-eternity/battle/v4'
+import type { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   compileEffect,
@@ -6,7 +6,7 @@ import {
   ops,
   selectFrom,
   targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** The supplied ordered catalog is read at execution time, including membership and tag changes. */
 export function createCurseMarkApplication(marks: ReadonlyMap<string, BaseMark>) {

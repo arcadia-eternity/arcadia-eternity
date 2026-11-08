@@ -1,12 +1,5 @@
 // Reviewed native behavior; edit this TypeScript source directly.
-import {
-  EffectTrigger,
-  compileEffect,
-  defineEffect,
-  targets,
-  ops,
-  actions,
-} from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, compileEffect, defineEffect, targets, ops, actions } from '@arcadia-eternity/battle/authoring'
 export function createGeneratedSkillContributions() {
   return Object.freeze({
     effect_ability_add_self_skill_accuracy_5: compileEffect(

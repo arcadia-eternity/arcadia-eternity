@@ -4,7 +4,7 @@ import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
 
-export interface ValidationError {
+interface ValidationError {
   type: string
   code: string
   message: string

@@ -100,7 +100,7 @@ export function registerCommands(program: Command, context: CommandContext) {
   }) {
     const ai = options.ai?.split(',').map(s => s.trim().toLowerCase()) ?? []
     if (ai.some(s => !['player1', 'player2'].includes(s))) throw new CliError('AI_INVALID', 'Expected player1,player2')
-    const [{ prepareContent, prepareRun }, { runBattle }, { ConsoleUIV2, initI18n }] = await Promise.all([
+    const [{ prepareContent, prepareRun }, { runBattle }, { ConsoleUI, initI18n }] = await Promise.all([
       import('../application/prepare'),
       import('../application/run'),
       import('@arcadia-eternity/console'),
@@ -113,7 +113,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       present: async (system, ids) => {
         await initI18n(options.debug, loaded.locales)
         await context.stdout(`已加载 ${loaded.content.effectIds.length} 个效果声明\n`)
-        const ui = new ConsoleUIV2(system, ...ids)
+        const ui = new ConsoleUI(system, ...ids)
         return { cleanup: () => ui.cleanup(), failure: ui.inputFailure }
       },
     })

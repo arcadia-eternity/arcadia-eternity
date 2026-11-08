@@ -8,7 +8,7 @@
 //   client tables leave a number unspecified, e.g. the 神圣 heal rate).
 // Unsupported details are marked as assumptions in the comments, not as original facts.
 import { DamageType } from '@arcadia-eternity/const'
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   actions,
@@ -21,7 +21,7 @@ import {
   targets,
   values,
   type Condition,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 function requireMark(marks: ReadonlyMap<string, BaseMark>, id: string): BaseMark {
   const mark = marks.get(id)

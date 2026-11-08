@@ -1,9 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { useResourceStore } from '../resource'
-const { loadMetadata, load, packRef, workspace } = vi.hoisted(() => ({
+const { loadMetadata, packRef, workspace } = vi.hoisted(() => ({
   loadMetadata: vi.fn(),
-  load: vi.fn(),
   packRef: vi.fn(),
   workspace: vi.fn(),
 }))
@@ -11,11 +10,6 @@ vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
   ...(await importOriginal<typeof import('@arcadia-eternity/pack-loader/native')>()),
   PackMetadataLoader: class {
     loadMetadata = loadMetadata
-  },
-}))
-vi.mock('@/utils/gameLoader', () => ({
-  GameDataLoader: class {
-    load = load
   },
 }))
 vi.mock('@/utils/officialAssetUrl', () => ({ officialAssetUrl: (value: string) => value }))
@@ -46,7 +40,6 @@ const result = (name: string) => ({
 beforeEach(() => {
   setActivePinia(createPinia())
   loadMetadata.mockReset().mockResolvedValue(result('base'))
-  load.mockReset().mockResolvedValue({})
   packRef.mockReset().mockResolvedValue('http://localhost/packs/base/pack.json')
   workspace.mockReset().mockResolvedValue([])
 })
@@ -60,7 +53,6 @@ it('shares pending metadata without requesting retired resource mapping files', 
   pending.resolve(result('shared'))
   await Promise.all([first, second])
   expect(loadMetadata).toHaveBeenCalledTimes(1)
-  expect(load).not.toHaveBeenCalled()
 })
 it('late metadata success cannot replace resources loaded after reset', async () => {
   const pending = deferred<ReturnType<typeof result>>()
@@ -167,7 +159,6 @@ it('workspace toggles preserve base resources and reuse unchanged layers', async
   await store.applyWorkspacePackToggle({ folderName: 'addon', enabled: true })
   expect(store.background.byId.arena).toBe('http://localhost/addon.png')
   expect(loadMetadata).toHaveBeenCalledTimes(3)
-  expect(load).not.toHaveBeenCalled()
 })
 it('late workspace toggles cannot replace a reset scope', async () => {
   const base = { folderName: 'base', id: 'arcadia-eternity.base', enabled: true }

@@ -1,5 +1,5 @@
 import { Type } from '@sinclair/typebox'
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   compileEffect,
@@ -9,9 +9,9 @@ import {
   values,
   ops,
   numberParam,
-} from '@arcadia-eternity/battle/v4/authoring'
-import { ConfigModifierType } from '@arcadia-eternity/battle/v4'
-import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/authoring'
+import { ConfigModifierType } from '@arcadia-eternity/battle/engine'
+import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/engine'
 
 const id = 'effect_skill_add_mark_shuiwenpingzhang'
 /** Dependency supplied by the trusted catalog; this factory never substitutes a missing mark. */

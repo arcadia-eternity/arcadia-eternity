@@ -7,8 +7,8 @@ import {
   ops,
   targets,
   values,
-} from '@arcadia-eternity/battle/v4/authoring'
-import type { ParameterCatalog } from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/authoring'
+import type { ParameterCatalog } from '@arcadia-eternity/battle/engine'
 
 /** C09 maps the skillId lookup to the skill instance; weather is queried at action time. */
 export function createRainWaterShield(catalog: ParameterCatalog) {

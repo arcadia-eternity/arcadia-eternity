@@ -6,7 +6,7 @@ import {
   ops,
   bindings,
   type Trigger,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 import {
   template,
   numeric,

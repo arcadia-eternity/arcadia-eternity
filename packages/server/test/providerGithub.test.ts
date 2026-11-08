@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
-import { GithubAppVerifier } from '../src/standalone/providers/github.js'
-import type { AuthIntent } from '../src/standalone/providers/types.js'
+import { GithubAppVerifier } from '../src/runtime/providers/github.js'
+import type { AuthIntent } from '../src/runtime/providers/types.js'
 
 const clientId = 'Iv1.arcadia-test'
 const clientSecret = 'github-app-test-secret'

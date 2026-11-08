@@ -31,7 +31,7 @@ export type MacOSFormat = 'dmg' | 'app'
 /**
  * 下载资源定义
  */
-export interface DownloadAsset {
+interface DownloadAsset {
   /** 文件名 */
   filename: string
   /** 文件大小（字节） */
@@ -151,18 +151,4 @@ export interface DownloadSourceTemplate {
   checkUrl?: string
   /** 描述 */
   description?: string
-}
-
-/**
- * 下载统计信息
- */
-export interface DownloadStats {
-  /** 总下载次数 */
-  totalDownloads: number
-  /** 各平台下载次数 */
-  platformStats: Record<Platform, number>
-  /** 各源的使用次数 */
-  sourceStats: Record<string, number>
-  /** 最后更新时间 */
-  lastUpdated: string
 }

@@ -1,4 +1,4 @@
-import { EffectTrigger, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, defineEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
 
 const weaknessMark = targets.ownerMarks.where(mark => mark.baseId === 'mark_ruodianjihao').first()
 

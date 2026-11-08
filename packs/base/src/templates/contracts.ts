@@ -4,7 +4,7 @@ import {
   type BehaviorDefinition,
   type BehaviorParameter,
   type NativeBehaviorExport,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import {
   numberParam,
   stringParam,
@@ -14,7 +14,7 @@ import {
   type EffectDefinition,
   type Parameter,
   type Trigger,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 export interface TemplateField {
   readonly label: string

@@ -1,6 +1,6 @@
 import type { BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
 import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
-import type { NativePlayerSchemaType } from '@arcadia-eternity/battle/v4'
+import type { NativePlayerSchemaType } from '@arcadia-eternity/battle/engine'
 import type { PlayerSelection } from '@arcadia-eternity/const'
 
 export interface RunSpec {

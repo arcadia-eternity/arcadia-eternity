@@ -1,4 +1,4 @@
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import { mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import type { PresentationManifest } from '@arcadia-eternity/schema'

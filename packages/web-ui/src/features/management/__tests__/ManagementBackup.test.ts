@@ -189,7 +189,7 @@ describe('whole-server backup controls', () => {
     await flushPromises()
     finish({ status: 200, body: { private: 'old-server-archive' } })
     await flushPromises()
-    expect(page.text()).toContain('server-paired')
+    expect(page.text()).toContain('paired.example')
     expect(createObjectURL).not.toHaveBeenCalled()
   })
 })

@@ -6,7 +6,7 @@ import {
   conditions,
   contexts,
   ops,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedRageModifiers() {
   return Object.freeze({
     effect_emblem_increase_rage_on_damage: compileEffect(

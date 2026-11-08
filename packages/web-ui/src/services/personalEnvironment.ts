@@ -1,4 +1,4 @@
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import type {
   NativeRuntimeIdentity,
   PersonalEnvironmentReference,
@@ -32,7 +32,7 @@ const allowedMime = new Set([
 ])
 type PersonalRules = NonNullable<PersonalEnvironmentReference['rules']>
 type PersonalSource = PersonalEnvironmentReference['source']
-export interface PersonalEnvironmentAsset {
+interface PersonalEnvironmentAsset {
   id: string
   mime: string
   data: string

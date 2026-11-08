@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test:run": "vitest run --maxWorkers=1",
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "pnpm exec tsgo --noEmit"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

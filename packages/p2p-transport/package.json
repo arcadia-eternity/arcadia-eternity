@@ -22,11 +22,11 @@
     "watch:types": "pnpm exec tsgo -p tsconfig.build.json --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo -p tsconfig.build.json --emitDeclarationOnly",
-    "test:run": "vitest run test/*.test.ts"
+    "test:run": "vitest run test/*.test.ts",
+    "typecheck": "pnpm exec tsgo --noEmit -p tsconfig.build.json"
   },
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/battle": "workspace:^",
     "ws": "^8.19.0"
   },
   "devDependencies": {

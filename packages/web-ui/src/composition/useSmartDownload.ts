@@ -1,11 +1,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { DownloadManager } from '@/utils/downloadManager'
-import {
-  downloadSourceTemplates,
-  generateAssetConfig,
-  DownloadSourceConfig,
-  getRecommendedSourcesForRegion,
-} from '@/config/downloadSources'
+import { generateAssetConfig, DownloadSourceConfig, getRecommendedSourcesForRegion } from '@/config/downloadSources'
 import { getPlatformInfo, detectRegion, getEnvironmentInfo } from '@/utils/platformDetection'
 import type {
   DownloadSource,

@@ -6,7 +6,7 @@ import {
   numberParam,
   ops,
   targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Re-query the owner after automatic consumption; a destroyed source no longer has an owner. */
 export function createLastStand() {

@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.0.1...arcadia-eternity-v4.1.0) (2026-11-08)
+
+
+### ✨ Features
+
+* streamline management access and add passkey sign-in ([236b5a8](https://github.com/arcadia-eternity/arcadia-eternity/commit/236b5a895f721ece442f84e844f7aba471b99f1e))
+
+
+### 🐛 Bug Fixes
+
+* align injected effect SDK types with sandbox capabilities ([52b5ee9](https://github.com/arcadia-eternity/arcadia-eternity/commit/52b5ee9a905b3f20df0f85b362950e074badf47a))
+
+
+### ♻️ Code Refactoring
+
+* normalize package layout and monorepo checks ([c6540e0](https://github.com/arcadia-eternity/arcadia-eternity/commit/c6540e0a5357d2aeab64489a2cf9dbb0011bb355))
+
 ## [4.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.0.0...arcadia-eternity-v4.0.1) (2026-11-08)
 
 

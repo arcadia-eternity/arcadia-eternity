@@ -45,7 +45,7 @@ import { preparePeerEnvironment } from '@/services/peerEnvironment'
 import { validatePersonalEnvironmentTeam, type PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { requireServerExecution } from '@/services/serverEnvironmentPolicy'
 import { useServerStateStore } from '@/stores/serverState'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 
 type P2PTransportMode = 'auto' | 'webrtc' | 'relay'
 
@@ -1517,7 +1517,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
                 type: 'error',
                 showClose: false,
               })
-            } catch (error) {
+            } catch {
               // 用户可能直接关闭了对话框，继续执行后续逻辑
             }
 
@@ -1648,7 +1648,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         initializeSelectedTeam()
       }
       return roomInfo
-    } catch (err) {
+    } catch {
       return null
     }
   }

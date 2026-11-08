@@ -1,5 +1,5 @@
 // Reviewed native behavior; edit this TypeScript source directly.
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   selectFrom,
@@ -13,7 +13,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export const generatedConditionalActionDependencies = Object.freeze([
   'mark_dingshizhadan',
   'mark_mabi',

@@ -129,7 +129,7 @@ export {
 // Ordinary author factories; the host chooses how to execute this module.
 export { createOfficialEffectCandidates as createCatalog } from './src/effects/candidate-catalog'
 import { createOfficialTemplateRegistrations } from './src/templates'
-import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/v4/authoring'
+import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring'
 export function createEffects({ marks }: CodeEffectModuleContext) {
   return createOfficialTemplateRegistrations({ marks }).nativeExports
 }

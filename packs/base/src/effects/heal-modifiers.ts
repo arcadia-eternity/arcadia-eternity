@@ -6,7 +6,7 @@ import {
   defineEffect,
   ops,
   type Condition,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 function healingModifier(id: string, percent: number, when: Condition = conditions.selfBeHealed) {
   return compileEffect(

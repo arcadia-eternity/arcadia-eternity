@@ -1,4 +1,4 @@
-import type { ContentCatalog } from '@arcadia-eternity/battle/v4'
+import type { ContentCatalog } from '@arcadia-eternity/battle/engine'
 import * as resolver from '@arcadia-eternity/battle/pack'
 import { NativePackLoader } from './src/native-loader'
 export { NodeWorkStorage } from './src/node-work-storage'

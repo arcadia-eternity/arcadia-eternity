@@ -3,10 +3,13 @@ import { fileURLToPath } from 'node:url'
 export default defineConfig({
   resolve: {
     alias: [
-      { find: /^@arcadia-eternity\/battle\/v4$/, replacement: fileURLToPath(new URL('../../v4.ts', import.meta.url)) },
       {
-        find: /^@arcadia-eternity\/battle\/v4\/authoring$/,
-        replacement: fileURLToPath(new URL('../../v4-authoring.ts', import.meta.url)),
+        find: /^@arcadia-eternity\/battle\/engine$/,
+        replacement: fileURLToPath(new URL('../../engine.ts', import.meta.url)),
+      },
+      {
+        find: /^@arcadia-eternity\/battle\/authoring$/,
+        replacement: fileURLToPath(new URL('../../authoring.ts', import.meta.url)),
       },
       {
         find: /^@arcadia-eternity\/data-pack-base\/native$/,
@@ -16,7 +19,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['design/effect-authoring/runtime.test.ts', 'test/v4/value-binding.test.ts'],
+    include: ['design/effect-authoring/runtime.test.ts', 'test/engine/value-binding.test.ts'],
     maxWorkers: 2,
   },
 })

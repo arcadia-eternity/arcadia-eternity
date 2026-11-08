@@ -89,7 +89,7 @@ export function bindingPresentation(binding) {
   const { id: _id, target: _target, ...presentation } = binding
   return presentation
 }
-export function validateBinding(binding, sources) {
+function validateBinding(binding, sources) {
   if (
     !binding.target ||
     !['species', 'skills', 'marks'].includes(binding.target.kind) ||

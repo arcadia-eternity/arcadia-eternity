@@ -80,7 +80,7 @@ export async function stageAuthorSdk(output) {
 
   const battleBuild = join(packages.get('@arcadia-eternity/battle').directory, 'dist')
   const build = JSON.parse(await readFile(join(battleBuild, 'environment-build.json'), 'utf8'))
-  const { effectSdkApiVersion } = await import(pathToFileURL(join(battleBuild, 'v4-authoring.js')).href)
+  const { effectSdkApiVersion } = await import(pathToFileURL(join(battleBuild, 'authoring.js')).href)
   if (
     build.formatVersion !== 1 ||
     ![build.coreBuildId, build.registryBuildId].every(id => /^[a-f0-9]{64}$/.test(id)) ||

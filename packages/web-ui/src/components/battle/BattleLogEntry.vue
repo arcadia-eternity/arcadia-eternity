@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type BattleMessageType } from '@arcadia-eternity/const'
 
-export interface FormattedBattleMessage {
+interface FormattedBattleMessage {
   type: BattleMessageType
   icon: string
   content: string

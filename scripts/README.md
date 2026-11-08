@@ -1,6 +1,6 @@
 # 维护脚本
 
-官方效果实现在 `packs/base/src/effects/`，Species、Skill 和 Mark 的编辑数据由 `packs/base/pack.json` 选取。内容结构与编辑方式见 [内容结构](../docs/v4/content-structure.md)。
+官方效果实现在 `packs/base/src/effects/`，Species、Skill 和 Mark 的编辑数据由 `packs/base/pack.json` 选取。内容结构与编辑方式见 [内容结构](../docs/guides/content-structure.md)。
 
 | 脚本                           | 用途                                                          |
 | ------------------------------ | ------------------------------------------------------------- |
@@ -11,5 +11,5 @@
 | `verify-behavior-uses.mjs`     | 在 Node 和 Chrome 验证独立原生行为与模板恢复（`--templates`） |
 | `verify-native-content.mjs`    | 检查原生内容目录及浏览器构建                                  |
 | `verify-native-pack.mjs`       | 检查原生内容加载、完整对战与恢复                              |
-| `verify-v1-hosts.mjs`          | 验证 Node 和 Chrome 中的执行与恢复                            |
-| `run-v1-battle.ts`             | 运行战斗示例                                                  |
+| `verify-battle-hosts.mjs`      | 验证 Node 和 Chrome 中的执行与恢复                            |
+| `run-battle.ts`                | 运行战斗示例                                                  |

@@ -46,7 +46,7 @@ Source definitions live in `data/presentations/` and `data/resources/`. Presenta
 
 The base build emits `dist/presentation.json` version 2. HTTP resources remain declarations. `loadMetadata` returns this separately from rules and locales; display consumers join it by content ID. Source movement does not change IDs. Changing a media location only updates its resource definition.
 
-The previous `assets.json` mappings and duplicated resource YAML maps have been migrated. See [the presentation contract](../../docs/v4/content-presentation.md).
+The previous `assets.json` mappings and duplicated resource YAML maps have been migrated. See [the presentation contract](../../docs/guides/content-presentation.md).
 
 Dependency item format:
 

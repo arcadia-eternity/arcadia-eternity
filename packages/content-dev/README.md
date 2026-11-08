@@ -37,7 +37,7 @@ Source-text editing (external editors and version-checked CLI/MCP writes) remain
 
 ## GitHub Packages installation
 
-The author tool and its six SDK dependencies are released together as `4.0.0-preview.1` on GitHub Packages (dist-tag `preview`). Configure `@arcadia-eternity:registry=https://npm.pkg.github.com`, authenticate with a GitHub token with `read:packages`, then install the exact tool, battle and pack-loader versions in your author project. See [release and installation instructions](../../docs/v4/ugc-npm-release.md). These packages are not published to npmjs.org.
+The author tool and its six SDK dependencies are released together as `4.0.0-preview.1` on GitHub Packages (dist-tag `preview`). Configure `@arcadia-eternity:registry=https://npm.pkg.github.com`, authenticate with a GitHub token with `read:packages`, then install the exact tool, battle and pack-loader versions in your author project. See [release and installation instructions](../../docs/guides/ugc-npm-release.md). These packages are not published to npmjs.org.
 
 ## Local development SDK
 
@@ -82,14 +82,18 @@ Execution-enabled sessions expose `battle_create`, `battle_read`, `battle_events
 
 ## Project teams and named environments
 
-See [the workflow contract](../../docs/v4/project-battle-workflow.md). `prepareContentPack(root, { environmentId, sources, lockRoot, offline, cache })` selects a named environment; omit `environmentId` for the declared-dependencies-only package test. `sources` maps npm names to local source directories. `lockRoot` opts into version-checked npm lock writes to the original project; without it preparation does not mutate project files. The returned harness exposes `loadTeams([firstId, secondId])` and `teamVersions` so automatic cases explicitly select their inputs. Manual drafts and last-selected teams never enter automatic tests. Only `config.teams` defines the default team selection.
+See [the workflow contract](../../docs/guides/project-battle-workflow.md). `prepareContentPack(root, { environmentId, sources, lockRoot, offline, cache })` selects a named environment; omit `environmentId` for the declared-dependencies-only package test. `sources` maps npm names to local source directories. `lockRoot` opts into version-checked npm lock writes to the original project; without it preparation does not mutate project files. The returned harness exposes `loadTeams([firstId, secondId])` and `teamVersions` so automatic cases explicitly select their inputs. Manual drafts and last-selected teams never enter automatic tests. Only `config.teams` defines the default team selection.
 
 Environment schema v2 adds versioned rule data and runtime requirements. Existing v1 files remain readable and are upgraded only on an explicit save. Reference battles and Worker battles apply the same team-size, species uniqueness and content allow/deny rules. Unsupported tiers or capability requirements fail explicitly. Editing returned environment metadata does not change an already prepared candidate's admission policy.
 
 ## Shared management workspace
 
-`@arcadia-eternity/content-dev/management-workspace` exports the typed `ContentWorkspace` API used by desktop owners and standalone servers. One process owns each workspace; another live writer is rejected, while a confirmed dead process owner can be recovered. `saveDraft` requires the current revision. `prepareVersion` captures and statically validates a fixed npm installation, while `adoptVersion` borrows existing client materials through a material-owner lease without another installation. Long preparation accepts an abort signal and a trusted `beforeCommit` authorization check.
+`@arcadia-eternity/content-dev/management-workspace` exports the typed `ContentWorkspace` API used by desktop owners and servers. One process owns each workspace; another live writer is rejected, while a confirmed dead process owner can be recovered. `saveDraft` requires the current revision. `prepareVersion` captures and statically validates a fixed npm installation, while `adoptVersion` borrows existing client materials through a material-owner lease without another installation. Long preparation accepts an abort signal and a trusted `beforeCommit` authorization check.
 
 Workspace files own environment definitions and immutable versions. Database adapters supply durable retention roots; runtime leases belong to the current owner. Deletion fails closed when retention information is unavailable, and owner shutdown refuses outstanding runtime leases. Server bindings, accounts, grants and running rooms remain separate from these files.
 
 `exportVersion` creates a portable environment archive with standard npm locks and material bytes, excluding server and workspace identities. `exportSnapshot` captures workspace identity, drafts and fixed versions for a server backup. `restoreSnapshot` requires an empty, inactive staging workspace: restore preserves identities, clone remaps them. The server backup coordinator validates the corresponding database snapshot before switching the full server directory. These file APIs do not provide a transaction spanning the database and filesystem.
+
+## Repository development
+
+`pnpm --filter @arcadia-eternity/content-dev watch` builds once, then rebuilds when `src`, `template`, or either bundled skill directory under `docs/guides` changes. Rebuilds are serialized, include deletions, and recover after a failed build. The root `pnpm watch` includes this watcher. `pnpm --filter @arcadia-eternity/content-dev clear` removes `dist`; root `pnpm clear` includes it as well. The package `typecheck` validates public `.d.mts` declarations; Node tests validate the JavaScript implementation.

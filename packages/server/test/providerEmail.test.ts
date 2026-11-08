@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import nodemailer from 'nodemailer'
 import { memoryAdapter } from 'better-auth/adapters/memory'
-import { EmailCodeVerifier, ProviderError } from '../src/standalone/providers/index.js'
+import { EmailCodeVerifier, ProviderError } from '../src/runtime/providers/index.js'
 
 // Capture the storage passed to the real adapter; Better Auth and every OTP
 // operation still execute normally. This detects accidental account/session

@@ -1,3 +1,4 @@
+import { roomFixture, environmentFixture } from './fixtures/rooms'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick, reactive } from 'vue'
@@ -72,7 +73,7 @@ vi.mock('@/p2p/privateRoomSignalBridge', () => ({
 
 import { usePrivateRoomStore } from '../privateRoom'
 let store: ReturnType<typeof usePrivateRoomStore>
-const descriptor = {
+const descriptor = environmentFixture({
   id: 'a'.repeat(64),
   protocolVersion: 1,
   executionPolicy: 'peer',
@@ -81,7 +82,7 @@ const descriptor = {
   runtime: { kind: 'native-v4', contentRevision: 'fixed-content', coreBuildId: 'core', registryBuildId: 'registry' },
   packages: [],
   resources: [],
-}
+})
 const prepared = {
   environment: { revision: descriptor.peerRevision, data: { species: [], skills: [], marks: [] }, modules: [] },
   content: { species: [], skills: [], marks: [] },
@@ -93,17 +94,18 @@ const prepared = {
     resourcesReady: true,
   },
 }
-const room = (battleRoomId = 'battle-a') => ({
-  config: { roomCode: 'ABC123', hostPlayerId: 'host', battleMode: 'p2p', p2pTransport: 'webrtc' },
-  status: 'started',
-  battleRoomId,
-  environment: descriptor,
-  players: [
-    { playerId: 'host', playerName: 'Host', team: [] },
-    { playerId: 'peer', playerName: 'Peer', team: [] },
-  ],
-  spectators: [],
-})
+const room = (battleRoomId = 'battle-a') =>
+  roomFixture({
+    config: { roomCode: 'ABC123', hostPlayerId: 'host', battleMode: 'p2p', p2pTransport: 'webrtc' },
+    status: 'started',
+    battleRoomId,
+    environment: descriptor,
+    players: [
+      { playerId: 'host', playerName: 'Host', team: [] },
+      { playerId: 'peer', playerName: 'Peer', team: [] },
+    ],
+    spectators: [],
+  })
 function start(battleRoomId = 'battle-a'): Promise<void> {
   const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
   return handler({

@@ -99,7 +99,7 @@ export type StateListener = (from: AnimationState, to: AnimationState, ctx: Deep
 
 const MAX_TRANSITION_LOG = 200
 
-export const ANIMATION_TRANSITIONS: Readonly<Record<AnimationState, readonly AnimationState[]>> = {
+const ANIMATION_TRANSITIONS: Readonly<Record<AnimationState, readonly AnimationState[]>> = {
   idle: [AnimationState.PREPARING, AnimationState.PAUSED, AnimationState.RECOVERING, AnimationState.STUCK],
   preparing: [
     AnimationState.PLAYING,

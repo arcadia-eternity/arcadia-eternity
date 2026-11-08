@@ -11,8 +11,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    ArrayTagCell: typeof import('./src/components/ArrayTagCell.vue')['default']
-    AuthStatus: typeof import('./src/components/auth/AuthStatus.vue')['default']
     BattleBarNumber: typeof import('./src/components/battle/BattleBarNumber.vue')['default']
     BattleCommandDock: typeof import('./src/components/battle/BattleCommandDock.vue')['default']
     BattleFrame: typeof import('./src/components/battle/BattleFrame.vue')['default']
@@ -65,11 +63,8 @@ declare module 'vue' {
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     ElUpload: typeof import('element-plus/es')['ElUpload']
     FeatureRow: typeof import('./src/components/FeatureRow.vue')['default']
-    FieldEditor: typeof import('./src/components/FieldEditor.vue')['default']
     HealDisplay: typeof import('./src/components/battle/HealDisplay.vue')['default']
     HealthRageBar: typeof import('./src/components/battle/HealthRageBar.vue')['default']
-    InlineArrayEditor: typeof import('./src/components/InlineArrayEditor.vue')['default']
-    InlineObjectEditor: typeof import('./src/components/InlineObjectEditor.vue')['default']
     LinuxIcon: typeof import('./src/components/icons/LinuxIcon.vue')['default']
     LocalBattleReports: typeof import('./src/components/battleReport/LocalBattleReports.vue')['default']
     MacOSIcon: typeof import('./src/components/icons/MacOSIcon.vue')['default']
@@ -80,12 +75,10 @@ declare module 'vue' {
     MatchmakingPanel: typeof import('./src/components/MatchmakingPanel.vue')['default']
     ModifiedValue: typeof import('./src/components/battle/ModifiedValue.vue')['default']
     OfflineResources: typeof import('./src/components/OfflineResources.vue')['default']
-    Pet: typeof import('./src/components/battle/Pet.vue')['default']
     PetButton: typeof import('./src/components/battle/PetButton.vue')['default']
     PetIcon: typeof import('./src/components/PetIcon.vue')['default']
     PetSprite: typeof import('./src/components/battle/PetSprite.vue')['default']
     PlayerCard: typeof import('./src/components/PlayerCard.vue')['default']
-    RangeEditor: typeof import('./src/components/RangeEditor.vue')['default']
     RelatedMarks: typeof import('./src/components/dex/RelatedMarks.vue')['default']
     ResourceImage: typeof import('./src/components/ResourceImage.vue')['default']
     RoomBattleOptions: typeof import('./src/components/RoomBattleOptions.vue')['default']

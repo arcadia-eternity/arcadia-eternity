@@ -6,7 +6,7 @@ import {
   contexts,
   defineEffect,
   ops,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** C09 repairs baseMarkId; the original action sets transferOnSwitch, despite the effect's name. */
 export function createWeaknessTransfer() {

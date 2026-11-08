@@ -1,6 +1,6 @@
 import type { AssetManifest } from '@arcadia-eternity/schema'
 import type { resolvePackLoadOrder, resolvePackEntriesFromRef } from '@arcadia-eternity/battle/pack'
-import type { AssetConflict, PackLoaderOptions, PackLockfile, V2DataPackManifest } from './types'
+import type { AssetConflict, PackLoaderOptions, PackLockfile, DataPackManifest } from './types'
 import YAML from 'yaml'
 
 export type AssetLoadRecord = {
@@ -10,7 +10,7 @@ export type AssetLoadRecord = {
 }
 
 type HttpResolvedPack = {
-  manifest: V2DataPackManifest
+  manifest: DataPackManifest
   manifestUrl: string
   manifestRaw: string
   dataRoot: URL
@@ -62,10 +62,10 @@ export class PackTransport {
       state.set(manifestUrl, 'visiting')
 
       let manifestRaw: string
-      let manifest: V2DataPackManifest
+      let manifest: DataPackManifest
       try {
         manifestRaw = await this.fetchText(manifestUrl)
-        manifest = JSON.parse(manifestRaw) as V2DataPackManifest
+        manifest = JSON.parse(manifestRaw) as DataPackManifest
       } catch (error) {
         state.delete(manifestUrl)
         const message = `pack manifest load error (${manifestUrl}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'}`
@@ -136,7 +136,7 @@ export class PackTransport {
   }
 
   protected async loadAssetsFromManifest(
-    manifest: V2DataPackManifest,
+    manifest: DataPackManifest,
     manifestUrl: string,
     options: PackLoaderOptions,
     errors: string[],
@@ -295,7 +295,7 @@ export class PackTransport {
   protected async validateLockfile(
     lockfile: PackLockfile | undefined,
     context: {
-      pack: V2DataPackManifest | undefined
+      pack: DataPackManifest | undefined
       packSource: string
       packRaw: string
       assets: AssetLoadRecord[]
@@ -513,7 +513,7 @@ export class PackTransport {
 
   protected async loadAssetsFromNodeFs(
     packPath: string,
-    manifest: V2DataPackManifest | undefined,
+    manifest: DataPackManifest | undefined,
     options: PackLoaderOptions,
     errors: string[],
   ): Promise<AssetLoadRecord[]> {

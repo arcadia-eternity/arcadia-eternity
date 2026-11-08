@@ -1,9 +1,9 @@
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { relative, isAbsolute } from 'node:path'
 import { parse } from 'es-module-lexer/minimal/js'
-import * as sdk from '@arcadia-eternity/battle/v4/authoring'
-import * as core from '@arcadia-eternity/battle/v4'
-import type { EffectModuleArtifact } from '@arcadia-eternity/battle/v4/sandbox/effects'
+import * as sdk from '@arcadia-eternity/battle/authoring'
+import * as core from '@arcadia-eternity/battle/engine'
+import type { EffectModuleArtifact } from '@arcadia-eternity/battle/sandbox/effects'
 
 /** Fixed compiler pipeline: parse/bundle author text without evaluating modules or loading author plugins.
  * A trusted host watcher may observe validated source dependencies, including files with syntax errors.
@@ -35,8 +35,8 @@ export async function compileEffectModule(
         resolveId(id) {
           if (id === factoryEntry) return factoryEntry
           if (id === source) return { id: source, moduleSideEffects: true }
-          if (['@arcadia-eternity/battle/v4/authoring', '@arcadia-eternity/const'].includes(id)) return shim
-          if (id === '@arcadia-eternity/battle/v4') return `${shim}-core`
+          if (['@arcadia-eternity/battle/authoring', '@arcadia-eternity/const'].includes(id)) return shim
+          if (id === '@arcadia-eternity/battle/engine') return `${shim}-core`
           if (/^(node:|https?:|data:|file:)/.test(id)) throw Error(`Unsupported effect dependency: ${id}`)
         },
         async load(id) {

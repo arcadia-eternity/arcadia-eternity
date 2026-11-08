@@ -1,4 +1,4 @@
-import { browserSandboxStartup, type BattleWorkerPolicy } from '@arcadia-eternity/battle/v4/sandbox'
+import { browserSandboxStartup, type BattleWorkerPolicy } from '@arcadia-eternity/battle/sandbox'
 
 type BattleWorkerEnv = Partial<
   Pick<

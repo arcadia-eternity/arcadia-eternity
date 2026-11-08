@@ -1,6 +1,6 @@
 # Effect authoring 示例与类型验证
 
-正式实现位于 `packages/battle/src/v4/content/authoring/`，公共入口为 `@arcadia-eternity/battle/v4/authoring`。执行、参数、capture/follow 和恢复合同统一见[效果编写指南](../../../../docs/v4/effect-authoring.md)。官方行为由 `packs/base/src/effects/` 维护。
+正式实现位于 `packages/battle/src/engine/content/authoring/`，公共入口为 `@arcadia-eternity/battle/authoring`。执行、参数、capture/follow 和恢复合同统一见[效果编写指南](../../../../docs/guides/effect-authoring.md)。官方行为由 `packs/base/src/effects/` 维护。
 
 ## 示例
 
@@ -13,7 +13,7 @@
 | [api.ts](api.ts)                                  | 转向正式实现的作者入口                                 |
 | [type-tests.ts](type-tests.ts)                    | 正向类型推导及必须失败的用法                           |
 
-示例使用真实 V4 对象、调度与属性系统。官方效果由原生 TypeScript 内容注册。
+示例使用真实 对象、调度与属性系统。官方效果由原生 TypeScript 内容注册。
 
 ## 检查
 
@@ -24,4 +24,4 @@ pnpm typecheck:effect-authoring-design
 pnpm test:effect-authoring-design
 ```
 
-`@ts-expect-error` 保护错误用法不被意外放宽，精确类型断言防止推导退化为 any。持续值与新目录 JSON 恢复另由 V4 回归套件检查，命令见 [V4 验证](../../../../docs/v4/direct-v1-port.md#验证)。
+`@ts-expect-error` 保护错误用法不被意外放宽，精确类型断言防止推导退化为 any。持续值与新目录 JSON 恢复另由 回归套件检查，命令见 [验证](../../../../docs/guides/battle-engine.md#验证)。

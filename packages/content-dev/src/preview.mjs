@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import { createServer } from 'node:http'
 import { randomBytes, createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import { setGlobalLogger } from '@arcadia-eternity/battle/engine'
 import {
   buildDisplayCatalog,
   buildDisplayLocales,

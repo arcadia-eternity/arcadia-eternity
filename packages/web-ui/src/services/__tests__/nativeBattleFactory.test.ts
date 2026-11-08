@@ -20,8 +20,8 @@ import {
   BattleStatus,
   setGlobalLogger,
   type playerId,
-} from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+} from '@arcadia-eternity/battle/engine'
+import { LocalBattleSystem } from '@arcadia-eternity/battle/host'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import { InMemoryPeerTransport } from '@/p2p/inMemoryPeerTransport'
@@ -35,7 +35,7 @@ import {
 import input from '../../../../battle/test/fixtures/official-switch.input.json'
 import { getBattleWorkers } from '../sandboxBattleWorkers'
 vi.mock('../sandboxBattleWorkers', async () => {
-  const { createNodeBattleWorkerManager } = await import('@arcadia-eternity/battle/v4/sandbox/node')
+  const { createNodeBattleWorkerManager } = await import('@arcadia-eternity/battle/sandbox/node')
   const manager = createNodeBattleWorkerManager()
   return { getBattleWorkers: () => manager }
 })
@@ -76,7 +76,7 @@ async function createNativeWebBattleSystem(
   second: NativeWebPlayer,
   dataStore: NativeGameDataStoreLike,
   config: NativeWebBattleConfig = {},
-): Promise<LocalBattleSystemV4> {
+): Promise<LocalBattleSystem> {
   if (config.environment) throw Error('Custom environments require the sandbox battle factory')
   return (await createNativeWebBattleSession(first, second, dataStore, config)).system
 }
@@ -87,7 +87,7 @@ async function createNativeWebBattleSession(
   second: NativeWebPlayer,
   dataStore: NativeGameDataStoreLike,
   config: NativeWebBattleConfig = {},
-): Promise<{ system: LocalBattleSystemV4; data: ContentPrototypeData }> {
+): Promise<{ system: LocalBattleSystem; data: ContentPrototypeData }> {
   if (config.environment) throw Error('Custom environments require the sandbox battle factory')
   const copy = <T>(value: T): T => JSON.parse(JSON.stringify(toRaw(value))) as T
   const teams = [first, second].map(player => ({
@@ -119,7 +119,7 @@ async function createNativeWebBattleSession(
     })
   try {
     return {
-      system: new LocalBattleSystemV4(battle, loaded.content, { teamSelection: options.teamSelection }),
+      system: new LocalBattleSystem(battle, loaded.content, { teamSelection: options.teamSelection }),
       data: metadata,
     }
   } catch (error) {
@@ -127,7 +127,7 @@ async function createNativeWebBattleSession(
     throw error
   }
 }
-const systems: LocalBattleSystemV4[] = []
+const systems: LocalBattleSystem[] = []
 const peers: IBattleSystem[] = []
 let baseline = 0
 let environment: Awaited<ReturnType<typeof prepareShippedEnvironment>>['sandbox']
@@ -149,7 +149,7 @@ afterEach(async () => {
     vi.useRealTimers()
   }
 })
-function prompt(system: LocalBattleSystemV4) {
+function prompt(system: LocalBattleSystem) {
   return new Promise<void>(resolve => {
     const off = system.BattleEvent(message => {
       if (message.type === BattleMessageType.TurnAction) {
@@ -217,7 +217,7 @@ it('constructs native local/P2P teams with independent instance IDs and preserve
   const captured = JSON.stringify(f.players)
   const system = await createNativeWebBattleSystem(f.players[0], f.players[1], f.data)
   systems.push(system)
-  expect(system).toBeInstanceOf(LocalBattleSystemV4)
+  expect(system).toBeInstanceOf(LocalBattleSystem)
   const state = await system.getState(undefined, true),
     pets = state.players.flatMap(player => player.team ?? [])
   expect(state.status).toBe(BattleStatus.Unstarted)

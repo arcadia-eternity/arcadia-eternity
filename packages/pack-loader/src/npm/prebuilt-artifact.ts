@@ -1,7 +1,7 @@
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { isAbsolute, relative } from 'node:path'
 import { parse } from 'es-module-lexer/minimal/js'
-import type { EffectModuleArtifact } from '@arcadia-eternity/battle/v4/sandbox/effects'
+import type { EffectModuleArtifact } from '@arcadia-eternity/battle/sandbox/effects'
 import { fail } from '../works/model'
 
 const maxSourceBytes = 4 * 1024 * 1024

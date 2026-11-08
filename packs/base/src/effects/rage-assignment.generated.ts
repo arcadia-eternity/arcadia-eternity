@@ -8,7 +8,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedRageAssignment() {
   return Object.freeze({
     effect_ability_keep_rage_at_least_25: compileEffect(

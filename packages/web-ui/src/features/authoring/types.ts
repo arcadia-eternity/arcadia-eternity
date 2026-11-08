@@ -18,13 +18,13 @@ export interface SourceRecord {
   line?: number
   column?: number
 }
-export interface SourceFile {
+interface SourceFile {
   file: string
   size?: number
   modified?: number
   error?: string
 }
-export interface SourceAsset extends SourceFile {
+interface SourceAsset extends SourceFile {
   id: string
   references: { file: string; kind: string; id: string }[]
 }
@@ -41,7 +41,7 @@ export interface LocaleSource {
   sharedFields: SharedField[]
   locations?: Record<string, { line: number; column: number }>
 }
-export interface AuthorDiagnostic {
+interface AuthorDiagnostic {
   code: string
   message: string
   file?: string

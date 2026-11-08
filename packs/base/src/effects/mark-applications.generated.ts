@@ -1,5 +1,5 @@
 // Reviewed native behavior; edit this TypeScript source directly.
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   compileEffect,
@@ -12,7 +12,7 @@ import {
   checks,
   contexts,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_aideminyi',
   'mark_anhunqu',

@@ -6,7 +6,7 @@ import {
   conditions,
   contexts,
   defineEffect,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Consumption belongs to Effect.innerApply; the original TODO body intentionally does nothing. */
 export function createAutomaticStackConsumption() {

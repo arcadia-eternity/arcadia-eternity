@@ -9,12 +9,12 @@ import {
   checks,
   ops,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 import { Type } from '@sinclair/typebox'
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { UseSkillContext } from '@arcadia-eternity/battle/v4'
-import { ConfigModifierType } from '@arcadia-eternity/battle/v4'
-import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/v4'
+import { UseSkillContext } from '@arcadia-eternity/battle/engine'
+import { ConfigModifierType } from '@arcadia-eternity/battle/engine'
+import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/engine'
 
 // These legacy stage effects require a direct skill event, even for nested triggers.
 const selfUsesSkill = conditions.all(ctx => ctx.parent instanceof UseSkillContext, conditions.selfUsesSkill)

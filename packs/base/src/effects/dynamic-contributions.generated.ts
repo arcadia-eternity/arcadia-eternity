@@ -8,7 +8,7 @@ import {
   ops,
   actions,
   bindings,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedDynamicContributions() {
   return Object.freeze({
     effect_mark_add_atk_stack_x35: compileEffect(

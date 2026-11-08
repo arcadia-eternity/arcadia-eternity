@@ -21,7 +21,8 @@
     "start": "tsx ../../bin/cli.ts server",
     "dev": "npm run build && npm start",
     "test": "vitest",
-    "test:run": "vitest run --maxWorkers=1"
+    "test:run": "vitest run --maxWorkers=1",
+    "typecheck": "pnpm exec tsgo --noEmit -p tsconfig.test.json"
   },
   "keywords": [],
   "author": "yuuinih",
@@ -31,10 +32,11 @@
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/content-dev": "workspace:^",
     "@arcadia-eternity/data-pack-base": "workspace:^",
-    "@arcadia-eternity/interface": "workspace:^",
+    "@arcadia-eternity/database": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
+    "@simplewebauthn/server": "14.1.0",
     "better-auth": "1.7.13",
     "cors": "^2.8.6",
     "express": "^5.2.1",
@@ -42,8 +44,7 @@
     "nodemailer": "^10.2.1",
     "openid-client": "^6.8.8",
     "pg": "^8.23.1",
-    "socket.io": "^4.8.3",
-    "@arcadia-eternity/database": "workspace:^"
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

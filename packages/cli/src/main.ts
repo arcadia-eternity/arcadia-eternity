@@ -3,7 +3,7 @@ import { format } from 'node:util'
 import { CliError, diagnostic } from './reporting/errors'
 import { registerCommands } from './commands/register'
 import type { CommandContext } from './context'
-import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import { setGlobalLogger } from '@arcadia-eternity/battle/engine'
 import { WorkError } from '@arcadia-eternity/pack-loader/native'
 
 function write(stream: NodeJS.WriteStream, text: string): Promise<void> {

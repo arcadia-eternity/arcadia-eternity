@@ -1,3 +1,4 @@
+import { roomFixture, environmentFixture } from './fixtures/rooms'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { reactive, nextTick } from 'vue'
@@ -110,7 +111,7 @@ beforeEach(() => {
 
 it('rejects a peer-only published environment before sending a server-authority room request', async () => {
   const store = usePrivateRoomStore()
-  store.environments = [{ id: 'peer-environment', executionPolicy: 'peer', packages: [] }] as typeof store.environments
+  store.environments = [environmentFixture({ id: 'peer-environment', executionPolicy: 'peer' })]
   await expect(store.createRoom({ battleMode: 'server' }, 'peer-environment')).rejects.toThrow('仅允许玩家主机运行')
   expect(mocks.client.createPrivateRoom).not.toHaveBeenCalled()
   expect(mocks.preparePeer).not.toHaveBeenCalled()
@@ -118,9 +119,14 @@ it('rejects a peer-only published environment before sending a server-authority 
 
 it('prepares exact peer materials before submitting a selected player-hosted room', async () => {
   const store = usePrivateRoomStore()
-  const runtime = { kind: 'native-v4', contentRevision: 'peer-r', coreBuildId: 'peer-c', registryBuildId: 'peer-g' }
+  const runtime = {
+    kind: 'native-v4' as const,
+    contentRevision: 'peer-r',
+    coreBuildId: 'peer-c',
+    registryBuildId: 'peer-g',
+  }
   store.environments = [
-    { id: 'peer-environment', executionPolicy: 'peer', packages: [], runtime },
+    environmentFixture({ id: 'peer-environment', executionPolicy: 'peer', runtime }),
   ] as typeof store.environments
   let finish!: (value: unknown) => void
   mocks.preparePeer.mockImplementationOnce(
@@ -144,7 +150,7 @@ it('prepares exact peer materials before submitting a selected player-hosted roo
 
 it('prepares peer execution materials for peer matchmaking instead of accepting display metadata alone', async () => {
   const store = usePrivateRoomStore()
-  const descriptor = { id: 'peer-environment', executionPolicy: 'peer', packages: [] }
+  const descriptor = environmentFixture({ id: 'peer-environment', executionPolicy: 'peer' })
   store.environments = [descriptor] as typeof store.environments
   mocks.preparePeer.mockResolvedValueOnce({
     environment: { revision: 'peer-materials' },
@@ -173,7 +179,7 @@ it('uses the server-selected default for matchmaking when it lists an explicit c
 
 it('leaves the old room before replacing its authentication and connection', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = { config: { roomCode: 'ABC123' }, status: 'waiting' } as typeof store.currentRoom
+  store.currentRoom = roomFixture({ config: { roomCode: 'ABC123' }, status: 'waiting' })
   await store.switchServer('https://server-b.test')
   expect(mocks.client.leavePrivateRoom).toHaveBeenCalledOnce()
   expect(mocks.client.leavePrivateRoom.mock.invocationCallOrder[0]).toBeLessThan(
@@ -191,7 +197,7 @@ it('leaves the old room before replacing its authentication and connection', asy
 
 it('keeps the old authority when leaving its room fails', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = { config: { roomCode: 'ABC123' }, status: 'waiting' } as typeof store.currentRoom
+  store.currentRoom = roomFixture({ config: { roomCode: 'ABC123' }, status: 'waiting' })
   mocks.client.leavePrivateRoom.mockRejectedValueOnce(new Error('leave failed'))
   await expect(store.switchServer('https://server-b.test')).rejects.toThrow('leave failed')
   expect(store.currentRoom?.config.roomCode).toBe('ABC123')
@@ -201,7 +207,7 @@ it('keeps the old authority when leaving its room fails', async () => {
 
 it('does not leave a room if server selection storage cannot be prepared', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = { config: { roomCode: 'ABC123' }, status: 'waiting' } as typeof store.currentRoom
+  store.currentRoom = roomFixture({ config: { roomCode: 'ABC123' }, status: 'waiting' })
   mocks.auth.checkServerUrl.mockImplementationOnce(() => {
     throw new Error('storage unavailable')
   })
@@ -389,13 +395,13 @@ for (const fails of [false, true]) {
         }),
     )
     const store = usePrivateRoomStore()
-    store.currentRoom = {
+    store.currentRoom = roomFixture({
       config: { roomCode: 'AAAAAA', battleMode: 'server', hostPlayerId: 'host' },
       status: 'started',
       players: [{ playerId: 'host' }],
       spectators: [],
       battleRoomId: 'battle-a',
-    } as typeof store.currentRoom
+    })
     const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
     const old = handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'battle-a' } })
     await vi.waitFor(() => expect(mocks.battle.initBattle).toHaveBeenCalledOnce())
@@ -420,14 +426,14 @@ it('does not initialize a P2P battle after its room lookup finishes on a differe
       }),
   )
   const store = usePrivateRoomStore()
-  const room = {
+  const room: Parameters<typeof roomFixture>[0] = {
     config: { roomCode: 'AAAAAA', battleMode: 'p2p', hostPlayerId: 'host' },
     status: 'started',
     players: [{ playerId: 'host' }],
     spectators: [],
     battleRoomId: 'battle-a',
   }
-  store.currentRoom = room as typeof store.currentRoom
+  store.currentRoom = roomFixture(room)
   const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
   const old = handler({ type: 'battleStarted', data: { battleMode: 'p2p', battleRoomId: 'battle-a' } })
   await store.switchServer('https://server-b.test')
@@ -440,13 +446,13 @@ it('does not initialize a P2P battle after its room lookup finishes on a differe
 
 it('keeps a running battle active if leaving the old server fails', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = {
+  store.currentRoom = roomFixture({
     config: { roomCode: 'AAAAAA', battleMode: 'server', hostPlayerId: 'host' },
     status: 'started',
     players: [{ playerId: 'host' }],
     spectators: [],
     battleRoomId: 'battle-a',
-  } as typeof store.currentRoom
+  })
   mocks.battle.initBattle.mockResolvedValueOnce(undefined)
   const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
   await handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'battle-a' } })
@@ -495,14 +501,14 @@ it('cancels the old matchmaking queue before switching servers', async () => {
 
 it('does not initialize or route a recovered server battle before the shared room catalog is accepted', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = {
+  store.currentRoom = roomFixture({
     config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
     status: 'started',
     players: [{ playerId: 'host', sessionId: 'host-session' }],
     spectators: [],
     battleRoomId: 'recovered-battle',
-    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
-  } as typeof store.currentRoom
+    environment: environmentFixture({ id: 'recovered-env', resourceRevision: 'r', packages: [] }),
+  })
   let finish!: (value: unknown) => void
   mocks.prepare.mockImplementationOnce(
     () =>
@@ -525,14 +531,14 @@ it('does not initialize or route a recovered server battle before the shared roo
 
 it('restores a reconnect snapshot only after the shared server environment is ready', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = {
+  store.currentRoom = roomFixture({
     config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
     status: 'started',
     players: [{ playerId: 'host', sessionId: 'host-session' }],
     spectators: [],
     battleRoomId: 'recovered-battle',
-    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
-  } as typeof store.currentRoom
+    environment: environmentFixture({ id: 'recovered-env', resourceRevision: 'r', packages: [] }),
+  })
   let finish!: (value: unknown) => void
   mocks.prepare.mockImplementationOnce(
     () =>
@@ -554,14 +560,14 @@ it('restores a reconnect snapshot only after the shared server environment is re
 
 it('does not apply a late reconnect catalog or redirect after navigating to a local page', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = {
+  store.currentRoom = roomFixture({
     config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
     status: 'started',
     players: [{ playerId: 'host', sessionId: 'host-session' }],
     spectators: [],
     battleRoomId: 'recovered-battle',
-    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
-  } as typeof store.currentRoom
+    environment: environmentFixture({ id: 'recovered-env', resourceRevision: 'r', packages: [] }),
+  })
   let finish!: (value: unknown) => void
   let online = true
   mocks.prepare.mockImplementationOnce(
@@ -586,14 +592,14 @@ it('does not apply a late reconnect catalog or redirect after navigating to a lo
 
 it('fences the available-action recovery call against a newer room, interface and local navigation', async () => {
   const store = usePrivateRoomStore()
-  store.currentRoom = {
+  store.currentRoom = roomFixture({
     config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
     status: 'started',
     players: [{ playerId: 'host', sessionId: 'host-session' }],
     spectators: [],
     battleRoomId: 'recovered-battle',
-    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
-  } as typeof store.currentRoom
+    environment: environmentFixture({ id: 'recovered-env', resourceRevision: 'r', packages: [] }),
+  })
   mocks.route.name = 'Battle'
   mocks.battle.battleInterface = {}
   mocks.prepare.mockResolvedValueOnce({ content: { species: [], skills: [], marks: [] }, acceptance: {} })

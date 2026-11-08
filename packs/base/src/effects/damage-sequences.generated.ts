@@ -9,7 +9,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedDamageSequences() {
   return Object.freeze({
     effect_mark_add_damage_taken_with_stack: compileEffect(

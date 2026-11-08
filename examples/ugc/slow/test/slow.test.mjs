@@ -15,7 +15,7 @@ import {
   UseSkillContext,
   createContentCatalog,
   setGlobalLogger,
-} from '@arcadia-eternity/battle/v4'
+} from '@arcadia-eternity/battle/engine'
 import { inspectNpmProject, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)

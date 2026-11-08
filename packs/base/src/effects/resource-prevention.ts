@@ -5,7 +5,7 @@ import {
   contexts,
   defineEffect,
   ops,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 export function createResourcePrevention() {
   return Object.freeze({

@@ -1,0 +1,103 @@
+// Source entries include CLI subprocesses, Electron preloads and standalone content templates.
+// Generated dist declarations are excluded even when source imports resolve through package exports.
+// Public package entry exports are retained; unused enum members are not a deletion policy.
+// Desktop scripts resolve tools using createRequire from web-ui/content-dev, not the root.
+// Ruffle is copied by Vite; rebuild and npm are used by desktop staging; base loads pack-loader in its build script.
+// The SWF verifier imports /src/... through the running Vite server.
+// Vite/Vitest configs import built workspace packages: scan them as source entries, never execute them.
+{
+  "ignore": ["**/dist/**"],
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{ts,mjs}", "examples/*.ts"],
+      "project": ["bin/**/*.ts", "scripts/**/*.{ts,mjs}", "examples/**/*.ts", "*.{js,mjs,ts}"],
+    },
+    "packages/web-ui": {
+      "entry": [
+        "src/main.ts",
+        "electron/*preload.cjs",
+        "scripts/*.mjs",
+        "playwright*.config.ts",
+        "index.html",
+        "src/styles.css",
+        "scripts/build-web-content.d.mts",
+        "vitest.config.{ts,mjs}",
+        "vite.config.ts",
+      ],
+      "project": ["src/**/*.{ts,tsx,vue,css}", "electron/**/*.{ts,mjs,cjs}", "scripts/**/*.{ts,mjs,mts}", "*.{ts,mjs}"],
+      "vitest": {
+        "config": [],
+      },
+      "ignoreDependencies": ["@ruffle-rs/ruffle", "@electron/rebuild", "npm"],
+      "ignoreUnresolved": ["/src/services/swf/adapter.ts"],
+      "vite": {
+        "config": [],
+      },
+    },
+    "packages/content-dev": {
+      "entry": [
+        "src/cli.mjs",
+        "src/mcp.mjs",
+        "src/testing.mjs",
+        "src/author-api.mjs",
+        "src/content-workspace.mjs",
+        "src/managed-projects.mjs",
+        "src/environment-rules.mjs",
+        "src/build-content.mjs",
+        "src/rename.mjs",
+        "test/*.test.mjs",
+      ],
+      "project": ["src/**/*.{mjs,mts}", "test/**/*.mjs", "*.mjs"],
+    },
+    "packages/content-dev/template": {
+      "entry": ["src/effects.ts", "arcadia.config.mjs", "test/*.test.mjs"],
+      "project": ["src/**/*.ts", "test/*.mjs", "*.mjs"],
+    },
+    "examples/ugc/slow": {
+      "entry": ["src/effects.ts", "test/*.test.mjs"],
+      "project": ["src/**/*.ts", "test/*.mjs"],
+    },
+    "packages/battle": {
+      "entry": [
+        "*.ts",
+        "src/sandbox/*worker.ts",
+        "design/effect-authoring/type-tests.ts",
+        "design/effect-authoring/vitest.config.mjs",
+        "vitest.config.{ts,mjs}",
+      ],
+      "project": ["*.ts", "src/**/*.ts", "test/**/*.ts", "design/**/*.ts"],
+      "vitest": {
+        "config": [],
+      },
+    },
+    "packs/base": {
+      "ignoreDependencies": ["@arcadia-eternity/pack-loader"],
+    },
+    "packages/server": {
+      "vitest": {
+        "config": [],
+      },
+      "entry": ["vitest.config.{ts,mjs}"],
+    },
+    "packages/cli": {
+      "vitest": {
+        "config": [],
+      },
+      "entry": ["vitest.config.{ts,mjs}"],
+    },
+    "packages/schema": {
+      "entry": ["vitest.config.ts"],
+    },
+  },
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreIssues": {
+    "scripts/desktop-sqlite-native.mjs": ["unlisted"],
+    "scripts/verify-desktop-pack.mjs": ["unlisted"],
+    "scripts/package-desktop-installers.mjs": ["unlisted"],
+    "scripts/desktop-installer-artifacts.mjs": ["unlisted"],
+    "scripts/verify-desktop-installation.mjs": ["unlisted"],
+  },
+  "vitest": {
+    "config": [],
+  },
+}

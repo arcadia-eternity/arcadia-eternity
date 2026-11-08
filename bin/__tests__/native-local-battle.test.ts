@@ -5,7 +5,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternity/battle/engine'
 import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import { createNativeLocalBattle } from '../native-local-battle'
 

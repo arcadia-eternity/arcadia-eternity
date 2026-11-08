@@ -2,7 +2,7 @@ import { expect, test, type Page } from 'playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createSingleProcessApp } from '../../server/src/standalone/app'
+import { createSingleProcessApp } from '../../server/src/runtime/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 
 // Explicit acceptance run against a production distribution: pnpm build:prod, then

@@ -35,7 +35,10 @@
   ],
   "scripts": {
     "build": "node build.mjs",
-    "test:run": "node --test --test-concurrency=1 test/*.test.mjs"
+    "test:run": "node --test --test-concurrency=1 test/*.test.mjs",
+    "typecheck": "pnpm exec tsgo --noEmit",
+    "watch": "node watch.mjs",
+    "clear": "rm -rf dist"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

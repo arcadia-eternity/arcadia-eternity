@@ -2,6 +2,7 @@
   <div class="h-screen flex flex-col">
     <!-- 移动端优先的导航栏 - 固定置顶 -->
     <header
+      v-if="$route.name !== 'Management'"
       class="sticky top-0 z-40 bg-black/90 border-b border-gray-600 backdrop-blur-md"
       :class="compactNavigation ? 'h-14' : 'h-15'"
     >
@@ -80,6 +81,9 @@
             >服务器</el-button
           >
 
+          <el-button v-if="managementAccess.allowed" @click="router.push('/management?target=server')"
+            >管理后台</el-button
+          >
           <el-button @click="router.push('/content')">内容包</el-button>
           <!-- 房间状态显示 -->
           <el-button
@@ -109,7 +113,7 @@
       </div>
     </header>
 
-    <LocalServerStatus />
+    <LocalServerStatus v-if="$route.name !== 'Management'" />
 
     <!-- 移动端侧边菜单 -->
     <el-drawer v-model="showMobileMenu" direction="ltr" :size="280" :with-header="false">
@@ -187,6 +191,13 @@
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600"
             >服务器</router-link
+          >
+          <router-link
+            v-if="managementAccess.allowed"
+            to="/management?target=server"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >管理后台</router-link
           >
         </nav>
 
@@ -396,7 +407,7 @@
     <div v-if="localStorageUnavailable" role="alert" class="bg-amber-50 text-amber-900 px-4 py-3 text-sm">
       浏览器存储不可用或空间不足。仍可在当前页面对战，但资料和设置可能未保存；关闭页面前请导出精灵与队伍备份。
     </div>
-    <OfflineResources v-if="isStaticMode" />
+    <OfflineResources v-if="isStaticMode && $route.name !== 'Management'" />
 
     <main class="flex-1 min-h-0 overflow-auto relative">
       <router-view v-slot="{ Component }">
@@ -404,7 +415,10 @@
       </router-view>
 
       <!-- 编辑工作区的底栏用于任务输出，避免浮动版本信息遮挡。 -->
-      <div v-if="!isMobile && $route.name !== 'Creator'" class="fixed bottom-4 left-4 z-30 pointer-events-none">
+      <div
+        v-if="!isMobile && $route.name !== 'Creator' && $route.name !== 'Management'"
+        class="fixed bottom-4 left-4 z-30 pointer-events-none"
+      >
         <div class="pointer-events-auto">
           <VersionInfo />
         </div>
@@ -440,6 +454,21 @@ import LocalServerStatus from '@/features/servers/LocalServerStatus.vue'
 import { localStorageUnavailable } from '@/services/localStorage'
 import OfflineResources from '@/components/OfflineResources.vue'
 
+import { useAuthStore } from '@/stores/auth'
+import { useManagementAccessStore } from '@/stores/managementAccess'
+import { getBackendOrigin } from '@/bootstrap/deployment'
+const managementAuth = useAuthStore()
+const managementAccess = useManagementAccessStore()
+function checkManagementAccess() {
+  const endpoint = getBackendOrigin()
+  void managementAccess.check(
+    endpoint,
+    managementAuth.isAccount && managementAuth.serverUrl === endpoint ? managementAuth.session?.token : undefined,
+  )
+}
+watch(() => [managementAuth.session?.token, managementAuth.serverUrl], checkManagementAccess, { immediate: true })
+onMounted(() => window.addEventListener('management-session-changed', checkManagementAccess))
+onUnmounted(() => window.removeEventListener('management-session-changed', checkManagementAccess))
 const router = useRouter()
 const dataStore = useGameDataStore()
 const resourceStore = useResourceStore()

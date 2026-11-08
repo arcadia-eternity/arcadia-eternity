@@ -1,4 +1,4 @@
-import { compileEffect, defineEffect, targets, type Value } from '@arcadia-eternity/battle/v4/authoring'
+import { compileEffect, defineEffect, targets, type Value } from '@arcadia-eternity/battle/authoring'
 
 import { healingOnHit } from './shared-plans'
 

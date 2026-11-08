@@ -47,11 +47,11 @@ pnpm cli server --headless --cors-origin http://localhost:5173
 pnpm web:dev
 ```
 
-服务器采用单进程内存房间：停机、重启或部署会结束所有房间；页面刷新和短时断线可在原进程仍存活时重连。本地 UID 不承担登录或席位权限。详见[服务端运行与身份约定](docs/v4/server-runtime.md)。
+服务器采用单进程内存房间：停机、重启或部署会结束所有房间；页面刷新和短时断线可在原进程仍存活时重连。本地 UID 不承担登录或席位权限。详见[服务端运行与身份约定](docs/guides/server-runtime.md)。
 
 ## 开发文档
 
-从[文档导航](docs/README.md)或[V4 指南](docs/v4/direct-v1-port.md)开始。内容包作者见[创建并测试 TypeScript 内容包](docs/v4/ugc-authoring-start.md)。
+从[文档导航](docs/README.md)或[指南](docs/guides/battle-engine.md)开始。内容包作者见[创建并测试 TypeScript 内容包](docs/guides/ugc-authoring-start.md)。
 
 ## 许可证
 

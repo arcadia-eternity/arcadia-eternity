@@ -15,7 +15,7 @@ import {
   type PetSchemaType,
 } from '@arcadia-eternity/schema'
 import { Nature } from '@arcadia-eternity/const'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import type { EnvironmentRules, NativeRuntimeIdentity, PersonalEnvironmentReference } from '@arcadia-eternity/protocol'
 import {
   createPersonalEnvironmentBundle,
@@ -110,7 +110,7 @@ it('keeps the built-in Bingchuantun media portable when captured without an inst
     expect(presentation, key).toBeDefined()
     const original = await capture(presentation!.icon as string)
     original.content.species[0].presentation = presentation
-    original.environment.data = structuredClone(original.content)
+    original.environment = { ...original.environment, data: structuredClone(original.content) }
     await expect(createPersonalEnvironmentBundle(original), key).resolves.toBeDefined()
   }
 })

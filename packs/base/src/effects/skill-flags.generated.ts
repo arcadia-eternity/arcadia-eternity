@@ -8,7 +8,7 @@ import {
   checks,
   ops,
   actions,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedSkillFlags() {
   return Object.freeze({
     effect_ability_multi_hit_skills_sure_hit: compileEffect(

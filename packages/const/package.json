@@ -12,7 +12,8 @@
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck"
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck",
+    "typecheck": "pnpm exec tsgo --noEmit --skipLibCheck"
   },
   "author": "yuuinih",
   "license": "MIT",

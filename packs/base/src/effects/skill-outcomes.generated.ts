@@ -11,7 +11,7 @@ import {
   ops,
   values,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedSkillOutcomeEffects() {
   return Object.freeze({
     effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua: compileEffect(

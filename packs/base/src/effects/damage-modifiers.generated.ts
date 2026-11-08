@@ -11,7 +11,7 @@ import {
   ops,
   values,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedDamageModifierEffects() {
   return Object.freeze({
     effect_ability_add_damage_40_if_using_yutu_skill: compileEffect(

@@ -9,7 +9,7 @@
     "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
   },
   "main": "./dist/index.js",
-  "types": "./dist/src/index.d.ts",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "run-p build:code build:types",
     "clear": "rm -rf dist",
@@ -18,7 +18,8 @@
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly",
-    "test:run": "vitest run --maxWorkers=1"
+    "test:run": "vitest run --maxWorkers=1",
+    "typecheck": "pnpm exec tsgo --noEmit"
   },
   "keywords": [
     "database",
@@ -34,7 +35,6 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tslib": "^2.8.1",
     "typescript": "catalog:",
     "@types/better-sqlite3": "^7.6.13",
     "@types/pg": "^8.23.1",

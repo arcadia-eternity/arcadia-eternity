@@ -18,7 +18,7 @@ const legacyDependencies = new Set([
 export default defineConfig({
   input: {
     cli: 'bin/cli.ts',
-    'v4-sandbox-node-worker': fileURLToPath(import.meta.resolve('@arcadia-eternity/battle/v4/sandbox/node-worker')),
+    'sandbox-node-worker': fileURLToPath(import.meta.resolve('@arcadia-eternity/battle/sandbox/node-worker')),
   },
   platform: 'node',
   output: {

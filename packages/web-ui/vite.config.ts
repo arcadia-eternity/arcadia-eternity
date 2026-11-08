@@ -141,9 +141,6 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
       vueDevTools(),
       tailwindcss(),
       AutoImport({
-        eslintrc: {
-          enabled: true,
-        },
         dts: true,
         resolvers: [ElementPlusResolver()],
       }),

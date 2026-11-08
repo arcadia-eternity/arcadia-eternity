@@ -50,16 +50,16 @@ async function waitForBrowserExit(milliseconds) {
 try {
   for (const platform of ['node', 'browser']) {
     const bundle = await rolldown({
-      input: resolve('packages/battle/test/v4', suite.entry),
+      input: resolve('packages/battle/test/engine', suite.entry),
       platform,
       plugins: [
         {
           name: 'behavior-use-boundary',
           resolveId(id) {
             if (id === '@arcadia-eternity/data-pack-base/effects') return resolve('packs/base/effects.ts')
-            if (id === '@arcadia-eternity/battle/v4') return resolve('packages/battle/v4.ts')
-            if (id === '@arcadia-eternity/battle/v4/authoring') return resolve('packages/battle/v4-authoring.ts')
-            if (id === '@arcadia-eternity/battle/v4/host') return resolve('packages/battle/v4-host.ts')
+            if (id === '@arcadia-eternity/battle/engine') return resolve('packages/battle/engine.ts')
+            if (id === '@arcadia-eternity/battle/authoring') return resolve('packages/battle/authoring.ts')
+            if (id === '@arcadia-eternity/battle/host') return resolve('packages/battle/host.ts')
           },
           moduleParsed(info) {
             assert.doesNotMatch(
@@ -151,7 +151,7 @@ try {
       server.listen(0, '127.0.0.1', resolve)
     })
     const chrome =
-      process.env.BATTLE_V1_CHROME ??
+      process.env.BATTLE_CHROME ??
       (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
     let settled = false
     const completed = new Promise((resolve, reject) => {

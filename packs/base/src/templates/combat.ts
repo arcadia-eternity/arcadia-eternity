@@ -1,5 +1,5 @@
-import { Element, StatTypeWithoutHp, type SkillInstance } from '@arcadia-eternity/battle/v4'
-import { EffectTrigger, conditions, contexts, targets, ops, values } from '@arcadia-eternity/battle/v4/authoring'
+import { Element, StatTypeWithoutHp, type SkillInstance } from '@arcadia-eternity/battle/engine'
+import { EffectTrigger, conditions, contexts, targets, ops, values } from '@arcadia-eternity/battle/authoring'
 import {
   template,
   numeric,

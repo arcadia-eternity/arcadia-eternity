@@ -1,5 +1,5 @@
 import { prepareContentPack, runBattle } from './testing.mjs'
-import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import { setGlobalLogger } from '@arcadia-eternity/battle/engine'
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 const example = await prepareContentPack()
 try {

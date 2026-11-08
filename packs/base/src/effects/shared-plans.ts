@@ -1,4 +1,4 @@
-import { EffectTrigger, conditions, targets, ops, values, type Value } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, conditions, targets, ops, values, type Value } from '@arcadia-eternity/battle/authoring'
 
 type Numeric = number | Value<number, 'optional' | 'required'>
 

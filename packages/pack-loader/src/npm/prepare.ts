@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import * as sdk from '@arcadia-eternity/battle/v4/authoring'
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox/effects'
-import { createContentIndex, type ContentIndex } from '@arcadia-eternity/battle/v4'
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
+import * as sdk from '@arcadia-eternity/battle/authoring'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
+import { createContentIndex, type ContentIndex } from '@arcadia-eternity/battle/engine'
+import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
 import {
   cloneJson,

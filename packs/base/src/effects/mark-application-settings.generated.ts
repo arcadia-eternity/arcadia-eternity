@@ -7,7 +7,7 @@ import {
   contexts,
   ops,
   actions,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedMarkApplicationSettings() {
   return Object.freeze({
     effect_emblem_add_manxingduyao_maxstack_4: compileEffect(

@@ -14,21 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": [
-    "./index.ts",
-    "./pack.ts",
-    "./v4-host.ts",
-    "./src/v4-host/**/*.ts",
-    "./v4-sandbox.ts",
-    "./v4-sandbox-effects.ts",
-    "./v4-sandbox-node.ts",
-    "./src/v4-sandbox/**/*.ts",
-    "./src/pack/**/*.ts",
-    "./src/index.ts",
-    "./src/logger.ts",
-    "./v4.ts",
-    "./src/v4/**/*.ts",
-    "./v4-authoring.ts"
-  ],
-  "exclude": ["./node_modules", "./dist", "./src/**/__tests__"]
+  "include": ["*.ts", "src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/**/__tests__/**"]
 }

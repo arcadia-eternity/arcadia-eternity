@@ -122,6 +122,16 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
+  it('navigates without discarding the console and follows a restored tab', async () => {
+    const { page, request } = await open()
+    const reads = request.mock.calls.length
+    await button(page, '网络与容量').trigger('click')
+    expect(page.emitted('navigate')?.at(-1)).toEqual([{ target: 'local', tab: 'network' }])
+    await page.setProps({ initialTab: 'server' })
+    expect(button(page, '概览').attributes('aria-current')).toBe('page')
+    expect(request.mock.calls.length).toBe(reads)
+  })
+
   it('keeps the settings draft and original revision when a server settings save conflicts', async () => {
     const settings = {
       host: '127.0.0.1',

@@ -6,7 +6,7 @@ import {
   defineEffect,
   ops,
   targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 import { statusTransferOnHit } from './shared-plans'
 

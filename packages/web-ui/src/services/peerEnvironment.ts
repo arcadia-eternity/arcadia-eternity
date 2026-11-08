@@ -1,4 +1,4 @@
-import type { SandboxEnvironment } from '@arcadia-eternity/battle/v4/sandbox'
+import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { digestJson } from '@arcadia-eternity/pack-loader/native'
 import { Value } from '@sinclair/typebox/value'

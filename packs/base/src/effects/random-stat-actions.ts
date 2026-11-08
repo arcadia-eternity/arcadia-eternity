@@ -9,7 +9,7 @@ import {
   selectFrom,
   targets,
   type Action,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Select first, then execute. Each selected action queries its target at execution time. */
 function randomAction(...choices: readonly Action[]): Action {

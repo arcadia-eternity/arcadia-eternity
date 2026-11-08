@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { toJsonSchemaCompat } from '@modelcontextprotocol/sdk/server/zod-json-schema-compat.js'
-import { NativeSpeciesSchema, NativeSkillSchema, NativeMarkSchema } from '@arcadia-eternity/battle/v4'
+import { NativeSpeciesSchema, NativeSkillSchema, NativeMarkSchema } from '@arcadia-eternity/battle/engine'
 import { teamEnvelopeSchema, portablePetSchema } from './project-teams.mjs'
 import { EnvironmentDocumentSchema } from './debug-environments.mjs'
 import { WorkspaceError } from './workspace.mjs'
@@ -24,13 +24,13 @@ export async function authorReference({ topic } = {}) {
   if (parserSchemas[topic]) {
     return {
       topic,
-      title: `${topic}: V4 parser fields and source example`,
-      source: '@arcadia-eternity/battle/v4',
+      title: `${topic}: parser fields and source example`,
+      source: '@arcadia-eternity/battle/engine',
       stage: 'linked-runtime',
       schema: toJsonSchemaCompat(parserSchemas[topic]),
       examples: [{ language: 'yaml', text: await template(examples[topic]) }],
       notes: [
-        'This is the actual V4 parser schema AFTER package linking, not a validator for unlinked source documents. JSON Schema cannot express every Zod refinement; run check and tests.',
+        'This is the actual parser schema AFTER package linking, not a validator for unlinked source documents. JSON Schema cannot express every Zod refinement; run check and tests.',
         'Source IDs are local stable IDs. Package linking produces namespace:id runtime IDs. Official base references retain their existing IDs.',
         'Source relationship slots use {$ref:{projectId,kind,id}} for package content: species learnable_skills[].skill_id uses kind skill; ability/emblem use mark; skills/marks behaviors[].definitionId uses behavior. Declare dependencies and resolve actual IDs before writing.',
         'Keep rules, data/presentations, data/resources and localized names/descriptions separate. Do not infer behavior from description text.',
@@ -89,7 +89,7 @@ export async function authorReference({ topic } = {}) {
   return {
     topic,
     title: 'ICU descriptions and semantic tags',
-    source: 'docs/v4/content-presentation.md; packages/web-ui/src/i18n/richDescription.ts',
+    source: 'docs/guides/content-presentation.md; packages/web-ui/src/i18n/richDescription.ts',
     tags: [
       'markName',
       'status',

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { defaultBattleCapacity, parseBattleCapacityEnv, resolveBattleCapacity } from '../src/standalone/battle-capacity'
+import { defaultBattleCapacity, parseBattleCapacityEnv, resolveBattleCapacity } from '../src/runtime/battle-capacity'
 
 it('uses the service defaults and maps explicit dotenv values', () => {
   expect(parseBattleCapacityEnv({})).toEqual({

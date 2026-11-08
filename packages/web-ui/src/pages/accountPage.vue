@@ -257,7 +257,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ref, nextTick, computed, onMounted, watch } from 'vue'
 import type { AccountIdentity, AccountIntent } from '@arcadia-eternity/protocol'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -281,6 +282,16 @@ import { isDesktop } from '@/utils/env'
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
 const authStore = useAuthStore()
+const managementRouter = useRouter()
+const managementRoute = useRoute()
+watch(
+  () => authStore.isAccount,
+  loggedIn => {
+    if (loggedIn && managementRoute.query.returnTo === 'management')
+      void managementRouter.replace('/management?target=server')
+  },
+  { immediate: true },
+)
 const loggingOut = ref(false)
 const accountBusy = ref(false)
 const profileReady = ref(false)

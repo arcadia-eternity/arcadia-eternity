@@ -12,7 +12,7 @@ const all = { headless: true, server: true, browser: true, cli: true }
 
 for (const path of [
   'README.md',
-  'docs/v4/effect-value-semantics.md',
+  'docs/guides/effect-value-semantics.md',
   '.github/workflows/release.yaml',
   'monitoring/load-balancing-dashboard.json',
 ]) {
@@ -22,12 +22,16 @@ for (const path of [
 }
 
 for (const path of [
-  'packages/battle/src/v4/battle.ts',
+  'packages/battle/src/engine/battle.ts',
   'packs/base/data/species.yaml',
   'packs/base/locales/zh-CN/mark.yaml',
   'packages/const/src/index.ts',
   'packages/pack-loader/src/native-loader.ts',
   'pnpm-lock.yaml',
+  '.pnpmfile.cjs',
+  'tsconfig.base.json',
+  'types/effect-module.d.ts',
+  'scripts/rollup-external.mjs',
   'scripts/build-base-environment.mjs',
   '.github/workflows/battle-baseline.yml',
 ]) {
@@ -42,8 +46,14 @@ for (const path of ['packages/server/src/app.ts']) {
   })
 }
 
-test('standalone server lint configuration runs server checks', () => {
-  assert.deepEqual(affectedBattleJobs(['eslint.config.server-standalone.js'], packages), { ...none, server: true })
+test('server lint configuration runs server checks', () => {
+  assert.deepEqual(affectedBattleJobs(['eslint.config.server.js'], packages), { ...none, server: true })
+})
+
+test('battle lint configuration and host verification run headless checks', () => {
+  for (const path of ['eslint.config.battle.js', 'scripts/verify-battle-hosts.mjs']) {
+    assert.deepEqual(affectedBattleJobs([path], packages), { ...none, headless: true })
+  }
 })
 
 for (const path of [
@@ -92,7 +102,7 @@ test('client, database and P2P changes cover server and browser without offline 
 })
 
 for (const path of [
-  'scripts/verify-v1-hosts.mjs',
+  'scripts/verify-battle-hosts.mjs',
   'scripts/verify-waiting-snapshots.mjs',
   'scripts/verify-behavior-uses.mjs',
   'scripts/build-environment.test.mjs',
@@ -218,6 +228,8 @@ test('workflow command writes explicit GitHub outputs for manual runs and an emp
 
 for (const path of [
   'packages/content-dev/src/cli.mjs',
+  'docs/guides/ugc-authoring-agent/SKILL.md',
+  'docs/guides/seer2-recreate-pet/references/testing.md',
   'packages/content-dev/test/setup.test.mjs',
   'packages/content-dev/template/locales/en/skill.yaml',
 ]) {

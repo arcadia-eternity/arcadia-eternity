@@ -20,7 +20,8 @@
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo -p tsconfig.build.json --skipLibCheck",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "typecheck": "pnpm exec tsgo --noEmit --skipLibCheck"
   },
   "keywords": [],
   "author": "yuuinih",

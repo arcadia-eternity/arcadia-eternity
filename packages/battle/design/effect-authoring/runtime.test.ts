@@ -23,8 +23,8 @@ import {
   type Battle,
   type baseMarkId,
   type effectId,
-} from '../../v4'
-import { makeScenario } from '../../test/v4/scenario'
+} from '../../engine'
+import { makeScenario } from '../../test/engine/scenario'
 import {
   compileEffect,
   selectFrom,

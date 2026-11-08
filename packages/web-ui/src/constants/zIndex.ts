@@ -4,7 +4,7 @@
  */
 
 // 数值常量，用于需要动态设置 style.zIndex 的场景
-export const Z_INDEX_VALUES = {
+const Z_INDEX_VALUES = {
   // 基础层级 (0-99)
   PET_SPRITE: 5,
   TIMELINE_CLICKABLE: 10,
@@ -41,45 +41,43 @@ export const Z_INDEX_VALUES = {
   CUSTOM_CONFIRM_DIALOG: 2000, // 提高到最高层级，确保在全屏模式下也能显示
 } as const
 
-// Tailwind CSS 类名枚举，用于模板中的 class 绑定
-export enum Z_INDEX_CLASS {
+// Tailwind CSS 类名常量，用于模板中的 class 绑定
+export const Z_INDEX_CLASS = {
   // 基础层级
-  PET_SPRITE = 'z-[5]',
-  TIMELINE_CLICKABLE = 'z-[10]',
-  PET_BUTTON_LEVEL = 'z-[10]',
-  DYNAMIC_ANIMATION = 'z-[10]',
+  PET_SPRITE: 'z-[5]',
+  TIMELINE_CLICKABLE: 'z-[10]',
+  PET_BUTTON_LEVEL: 'z-[10]',
+  DYNAMIC_ANIMATION: 'z-[10]',
 
   // 控制层级
-  TIMER = 'z-[30]',
-  SKILL_BUTTON = 'z-[30]',
-  BATTLE_STATUS_ICON = 'z-[40]',
-  PET_BUTTON = 'z-[45]',
-  MARK = 'z-[50]',
-  PET_BUTTON_CONTAINER = 'z-[50]',
+  TIMER: 'z-[30]',
+  SKILL_BUTTON: 'z-[30]',
+  BATTLE_STATUS_ICON: 'z-[40]',
+  PET_BUTTON: 'z-[45]',
+  MARK: 'z-[50]',
+  PET_BUTTON_CONTAINER: 'z-[50]',
 
   // UI 层级
-  TOOLTIP = 'z-[200]',
+  TOOLTIP: 'z-[200]',
 
   // 顶层 UI
-  KO_BANNER = 'z-[1000]',
-  BATTLE_END_UI = 'z-[1000]',
-  TEAM_SELECTION_PANEL = 'z-[1020]',
+  KO_BANNER: 'z-[1000]',
+  BATTLE_END_UI: 'z-[1000]',
+  TEAM_SELECTION_PANEL: 'z-[1020]',
 
   // Climax 特效层级
-  CLIMAX_BLACK_SCREEN = 'z-[1050]',
-  CLIMAX_EFFECT = 'z-[1060]',
+  CLIMAX_BLACK_SCREEN: 'z-[1050]',
+  CLIMAX_EFFECT: 'z-[1060]',
 
   // 移动端适配 UI
-  MOBILE_ORIENTATION_HINT = 'z-[1100]',
-  MOBILE_FULLSCREEN_BUTTON = 'z-[1200]',
+  MOBILE_ORIENTATION_HINT: 'z-[1100]',
+  MOBILE_FULLSCREEN_BUTTON: 'z-[1200]',
 
   // 加载遮罩
-  LOADING_OVERLAY = 'z-[1500]',
+  LOADING_OVERLAY: 'z-[1500]',
 
-  CUSTOM_CONFIRM_DIALOG = 'z-[2000]', // 提高到最高层级，确保在全屏模式下也能显示
-}
+  CUSTOM_CONFIRM_DIALOG: 'z-[2000]', // 提高到最高层级，确保在全屏模式下也能显示
+} as const
 
 // 向后兼容的别名
 export const Z_INDEX = Z_INDEX_VALUES
-
-export type ZIndexLevel = (typeof Z_INDEX_VALUES)[keyof typeof Z_INDEX_VALUES]

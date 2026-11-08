@@ -1,4 +1,4 @@
-import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
 
 /** Capture the contributing mark, then follow that instance's stack for each parameter read. */
 export function createStackTriggerProbability() {

@@ -3,6 +3,7 @@ import {
   DEFAULT_TIMER_CONFIG,
   BattleMessageType,
   TimerState,
+  type playerId,
   type BattleMessage,
   type BattleState,
   type PlayerSelection,
@@ -64,7 +65,7 @@ describe('P2PPeerBattleSystem', () => {
     })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -86,7 +87,7 @@ describe('P2PPeerBattleSystem', () => {
     })
 
     await expect(statePromise).resolves.toEqual(battleState)
-    await expect(peerSystem.getAvailableSelection('peer')).resolves.toEqual(selections)
+    await expect(peerSystem.getAvailableSelection()).resolves.toEqual(selections)
 
     const action = {
       player: 'peer',
@@ -110,7 +111,7 @@ describe('P2PPeerBattleSystem', () => {
     await peerTransport.connect({ role: 'peer', remotePeerId: 'host' })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -155,7 +156,7 @@ describe('P2PPeerBattleSystem', () => {
     await peerTransport.connect({ role: 'peer', remotePeerId: 'host' })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -215,7 +216,7 @@ describe('P2PPeerBattleSystem', () => {
     await expect(peerSystem.getTimerConfig()).resolves.toEqual(
       expect.objectContaining({ enabled: true, turnTimeLimit: 30, totalTimeLimit: 1800 }),
     )
-    await expect(peerSystem.getPlayerTimerState('peer')).resolves.toEqual(
+    await expect(peerSystem.getPlayerTimerState('peer' as playerId)).resolves.toEqual(
       expect.objectContaining({
         playerId: 'peer',
         state: TimerState.Running,
@@ -238,7 +239,7 @@ describe('P2PPeerBattleSystem', () => {
     await Promise.resolve()
 
     expect(timeoutEvents).toEqual([{ player: 'peer', type: 'turn' }])
-    await expect(peerSystem.getPlayerTimerState('peer')).resolves.toEqual(
+    await expect(peerSystem.getPlayerTimerState('peer' as playerId)).resolves.toEqual(
       expect.objectContaining({
         playerId: 'peer',
         state: TimerState.Timeout,
@@ -293,7 +294,7 @@ describe('P2PPeerBattleSystem', () => {
     })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -307,7 +308,7 @@ describe('P2PPeerBattleSystem', () => {
     )
 
     await peerSystem.ready()
-    await expect(peerSystem.startAnimation('skill_xxx', 1200, 'peer')).resolves.toBe('anim_remote_1')
+    await expect(peerSystem.startAnimation('skill_xxx', 1200, 'peer' as playerId)).resolves.toBe('anim_remote_1')
     await peerSystem.endAnimation('anim_remote_1', 1000)
 
     expect(hostReceived.some(message => message.type === 'p2p-battle-start-animation')).toBe(true)
@@ -356,7 +357,7 @@ describe('P2PPeerBattleSystem', () => {
     })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -394,7 +395,7 @@ describe('P2PPeerBattleSystem', () => {
     hostTransport.onMessage(message => hostReceived.push(message))
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -491,7 +492,7 @@ describe('P2PPeerBattleSystem', () => {
     })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -555,7 +556,7 @@ describe('P2PPeerBattleSystem', () => {
     })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -571,7 +572,7 @@ describe('P2PPeerBattleSystem', () => {
     await peerSystem.getState()
     await new Promise(resolve => setTimeout(resolve, 1200))
 
-    const selections = await peerSystem.getAvailableSelection('peer')
+    const selections = await peerSystem.getAvailableSelection()
     expect(selections).toHaveLength(1)
     expect(syncRequestCount).toBeGreaterThanOrEqual(2)
   })
@@ -586,7 +587,7 @@ describe('P2PPeerBattleSystem', () => {
     await peerTransport.connect({ role: 'peer', remotePeerId: 'host' })
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -656,7 +657,7 @@ describe('P2PPeerBattleSystem', () => {
     hostTransport.onMessage(message => hostReceived.push(message))
 
     const peerSystem = new P2PPeerBattleSystem(
-      'peer',
+      'peer' as playerId,
       {
         transport: peerTransport,
         connect: async () => {},
@@ -743,18 +744,24 @@ test('passes host admission cancellation through to the local battle factory', a
       ),
   )
   const transport = new InMemoryPeerTransport()
-  const options = {
-    localPlayerId: 'host',
-    remotePlayerId: 'peer',
+  const options: Parameters<typeof createP2PHostBattleSystem>[0] = {
+    localPlayerId: 'host' as playerId,
+    remotePlayerId: 'peer' as playerId,
     localPlayerName: 'Host',
     remotePlayerName: 'Peer',
     localTeam: [],
     remoteTeam: [],
-    dataStore: {},
-    bridge: {},
+    dataStore: { species: { allIds: [], byId: {} }, skills: { allIds: [], byId: {} }, marks: { allIds: [], byId: {} } },
+    bridge: {
+      transport,
+      connect: async () => {},
+      close: async () => {},
+      handleSignal: async () => {},
+      sendMessage: async () => {},
+    },
     transport,
     signal: controller.signal,
-  } as Parameters<typeof createP2PHostBattleSystem>[0]
+  }
   const starting = createP2PHostBattleSystem(options)
   expect(vi.mocked(createSandboxWebBattleSession).mock.lastCall?.[4]).toBe(controller.signal)
   controller.abort()
@@ -791,7 +798,7 @@ async function connectedPeer(ack?: (payload: unknown) => Promise<void>) {
     await peerTransport.send({ type, payload })
   })
   const system = new P2PPeerBattleSystem(
-    'peer',
+    'peer' as playerId,
     {
       transport: peerTransport,
       connect: async () => {},
@@ -921,7 +928,7 @@ describe('P2P terminal delivery', () => {
       await peer.event(peerEvent(1, true))
       await peer.peerTransport.close()
       peer.sendMessage.mockClear()
-      const animationId = await peer.system.startAnimation('victory', 500, 'peer')
+      const animationId = await peer.system.startAnimation('victory', 500, 'peer' as playerId)
       expect(animationId).toEqual(expect.any(String))
       expect(animationId.length).toBeGreaterThan(0)
       await peer.system.endAnimation(animationId, 500)
@@ -937,7 +944,7 @@ describe('P2P terminal delivery', () => {
     const peer = await connectedPeer()
     try {
       await peer.initialize()
-      const starting = peer.system.startAnimation('last-hit', 300, 'peer')
+      const starting = peer.system.startAnimation('last-hit', 300, 'peer' as playerId)
       const resolved = expect(starting).resolves.toEqual(expect.any(String))
       await Promise.resolve()
       expect(peer.sendMessage.mock.calls.some(([type]) => type === 'p2p-battle-start-animation')).toBe(true)
@@ -1004,7 +1011,7 @@ describe('P2P terminal delivery', () => {
     const peer = await connectedPeer()
     try {
       await peer.peerTransport.close()
-      const waiting = peer.system.startAnimation('pending-connect', 100, 'peer')
+      const waiting = peer.system.startAnimation('pending-connect', 100, 'peer' as playerId)
       const rejected = expect(waiting).rejects.toThrow()
       await Promise.resolve()
       await peer.system.cleanup()
@@ -1046,8 +1053,8 @@ describe('P2P terminal delivery', () => {
       hostTransport.send({ type, payload }),
     )
     const host = await createP2PHostBattleSystem({
-      localPlayerId: 'host',
-      remotePlayerId: 'peer',
+      localPlayerId: 'host' as playerId,
+      remotePlayerId: 'peer' as playerId,
       localPlayerName: 'Host',
       remotePlayerName: 'Peer',
       localTeam: [],

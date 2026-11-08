@@ -1,4 +1,4 @@
-import { EffectTrigger, actions, compileEffect, conditions, defineEffect } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, actions, compileEffect, conditions, defineEffect } from '@arcadia-eternity/battle/authoring'
 
 /** Preserve the source TODO identity. Experience settlement is not implemented by this effect. */
 export function createExperiencePlaceholder() {

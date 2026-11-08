@@ -6,13 +6,13 @@ import {
   setGlobalLogger,
   type EnvironmentBuildIdentity,
   type Battle,
-} from '@arcadia-eternity/battle/v4'
-import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+} from '@arcadia-eternity/battle/engine'
+import { LocalBattleSystem } from '@arcadia-eternity/battle/host'
 import { NativePackLoader } from '../src/native-loader'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 
 type Plan = { type: string; skill?: string; pet?: string }
-type RuntimeSnapshot = Awaited<ReturnType<LocalBattleSystemV4['createRuntimeSnapshot']>>
+type RuntimeSnapshot = Awaited<ReturnType<LocalBattleSystem['createRuntimeSnapshot']>>
 export async function verifyNativePackHost(
   packRef: string,
   build: EnvironmentBuildIdentity,
@@ -42,7 +42,7 @@ export async function verifyNativePackHost(
       snapshot: (current: Battle) => content.snapshot(current),
       restore: (data: unknown) => (battle = content.restore(data)),
     })
-    let system = new LocalBattleSystemV4(battle, authority())
+    let system = new LocalBattleSystem(battle, authority())
     const choose = async () =>
       (await system.getAvailableSelection(battle.playerA.id)).find(action => action.type === 'use-skill')!
     try {
@@ -66,7 +66,7 @@ export async function verifyNativePackHost(
       content = (await loader.load(packRef, { source: 'http', revision: initial.revision })).content
       const players = content.parsePlayers(teams)
       battle = content.createBattle(players[0], players[1], config)
-      system = new LocalBattleSystemV4(battle, authority())
+      system = new LocalBattleSystem(battle, authority())
       await system.restoreRuntimeSnapshot(saved)
       await system.ready()
       if (!(battle.playerB instanceof AIPlayer) || JSON.stringify(await system.getState(undefined, true)) !== before)
@@ -94,7 +94,7 @@ export async function verifyNativePackHost(
         return battle
       },
     })
-    let system = new LocalBattleSystemV4(battle, authority())
+    let system = new LocalBattleSystem(battle, authority())
     const replace = async (saved: RuntimeSnapshot) => {
       await system.cleanup()
       const fresh = await loader.load(packRef, {
@@ -105,7 +105,7 @@ export async function verifyNativePackHost(
       content = fresh.content
       const players = input.teams.map(team => content.parsePlayer(team))
       battle = content.createBattle(players[0], players[1], { timerConfig })
-      system = new LocalBattleSystemV4(battle, authority())
+      system = new LocalBattleSystem(battle, authority())
       await system.restoreRuntimeSnapshot(saved)
     }
     let savedAnimation: string | undefined

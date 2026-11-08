@@ -5,7 +5,7 @@ import {
   targets,
   values,
   type Condition,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 const owner = targets.ownerPet
 function hpBelow(ratio: number): Condition {

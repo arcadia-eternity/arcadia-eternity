@@ -49,7 +49,7 @@ program
   .option('--validate-data', '启用数据完整性验证', false)
   .action(async options => {
     try {
-      const [{ BattleClient, RemoteBattleSystem }, { ConsoleUIV2, initI18n }] = await Promise.all([
+      const [{ BattleClient, RemoteBattleSystem }, { ConsoleUI, initI18n }] = await Promise.all([
         import('@arcadia-eternity/client'),
         import('@arcadia-eternity/console'),
       ])
@@ -90,7 +90,7 @@ program
       const remote = new RemoteBattleSystem(client)
 
       await initI18n()
-      const ui = new ConsoleUIV2(remote, session.seatId as playerId)
+      const ui = new ConsoleUI(remote, session.seatId as playerId)
       const stop = remote.BattleEvent(event => {
         if (event.type === BattleMessageType.BattleEnd) {
           setImmediate(() => {

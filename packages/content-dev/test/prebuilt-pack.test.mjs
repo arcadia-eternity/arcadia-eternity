@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
+import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import { packBuiltProject } from '../src/pack-project.mjs'
 

@@ -1,0 +1,1435 @@
+import { assertEnvironmentTeam } from '@arcadia-eternity/content-dev/environment-rules'
+import { timingSafeEqual } from 'node:crypto'
+import { nanoid } from 'nanoid'
+import type { Server, Socket } from 'socket.io'
+import {
+  BattleMessageType,
+  type Events,
+  type PlayerSelection,
+  type playerId,
+  type TimerConfig,
+} from '@arcadia-eternity/const'
+import type { BattleHost } from '@arcadia-eternity/battle/host'
+import { createNodeBattleWorkerManager, BattleWorkerAdmissionError } from '@arcadia-eternity/battle/sandbox/node'
+import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import type {
+  ManagedBattle,
+  ManagedPlayer,
+  PrivateRoomInfo,
+  PrivateRoomEvent,
+  ServerSession,
+} from '@arcadia-eternity/protocol'
+import { createServerBattle, validateServerTeam } from './native'
+import type { SessionRegistry } from './session'
+import { ServerEnvironmentRegistry, EnvironmentError, type EnvironmentLease } from './environments'
+import { fifoMatchmaking, type MatchmakingPolicy } from './matchmaking'
+import { resolveBattleCapacity, type BattleCapacityOptions } from './battle-capacity'
+import {
+  acquirePersonalEnvironment,
+  validatePersonalTeam,
+  type PersonalEnvironmentLease,
+} from './personal-environments'
+
+export class RoomError extends Error {
+  constructor(public readonly code: string) {
+    super(code)
+  }
+}
+function fail(code: string): never {
+  throw new RoomError(code)
+}
+export function object(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return fail('INVALID_REQUEST')
+  return value as Record<string, unknown>
+}
+function text(value: unknown, max = 128): string {
+  if (typeof value !== 'string' || !value.length || value.length > max) return fail('INVALID_REQUEST')
+  return value
+}
+const timerEvents: (keyof Events)[] = [
+  'timerStart',
+  'timerUpdate',
+  'timerPause',
+  'timerResume',
+  'timerTimeout',
+  'timerSnapshot',
+  'timerStateChange',
+  'animationStart',
+  'animationEnd',
+]
+const closingPeerMessages = new Set([
+  'p2p-battle-event',
+  'p2p-battle-ack',
+  'p2p-battle-init',
+  'p2p-battle-sync-request',
+  'p2p-battle-selection-update',
+  'p2p-battle-timer-event',
+  'p2p-battle-start-animation',
+  'p2p-battle-start-animation-result',
+  'p2p-battle-end-animation',
+])
+type Member = PrivateRoomInfo['players'][number] & { connectionStatus: 'online' | 'offline' }
+type RoomEnvironment = EnvironmentLease | PersonalEnvironmentLease
+type WaitingPlayer = {
+  session: ServerSession
+  environment?: EnvironmentLease
+  team?: Member['team']
+  pairing: boolean
+  failure?: string
+  joinedAt: number
+}
+type Room = {
+  environment: RoomEnvironment
+  info: PrivateRoomInfo
+  password?: string
+  members: Map<string, Member>
+  startedAt?: number
+  turn?: number
+  battle?: BattleHost
+  ready: Set<string>
+  cleanups: (() => void)[]
+  viewCleanups: Map<string, () => void>
+  animations: Map<string, string>
+  commands: Map<string, string>
+  pending: Promise<unknown>
+  launch?: AbortController
+  launchEpoch: number
+  ending?: ReturnType<typeof setTimeout>
+  disconnected: Map<string, number>
+}
+export interface RoomOptions extends BattleCapacityOptions {
+  /** Optional trusted selector, for example one consulting namespace/rule-scoped ELO. */
+  matchmakingPolicy?: MatchmakingPolicy
+  matchmakingPolicyTimeoutMs?: number
+  maxRooms?: number
+  maxSpectators?: number
+  roomTtlMs?: number
+  maxRoomLifetimeMs?: number
+  reconnectGraceMs?: number
+  cleanupIntervalMs?: number
+}
+
+/** One process owns all rooms. No room or live authorization survives shutdown. */
+export class RoomRegistry {
+  private readonly battleWorkers: ReturnType<typeof createNodeBattleWorkerManager>
+  private readonly rooms = new Map<string, Room>()
+  private readonly seats = new Map<string, string>()
+  private readonly sockets = new Map<string, Set<Socket>>()
+  private readonly matchmaking = new Map<string, WaitingPlayer>()
+  private matching: Promise<void> = Promise.resolve()
+  private matchingScheduled = false
+  private readonly matchingControllers = new Set<AbortController>()
+  private readonly cleaner: ReturnType<typeof setInterval>
+  private closed = false
+  private draining = false
+  private readonly limits: Required<Omit<RoomOptions, 'matchmakingPolicy' | keyof BattleCapacityOptions>>
+  private readonly matchmakingPolicy: MatchmakingPolicy
+  constructor(
+    private readonly io: Server,
+    private readonly sessions: SessionRegistry,
+    options: RoomOptions = {},
+    private readonly environments: ServerEnvironmentRegistry,
+  ) {
+    const capacity = resolveBattleCapacity(options)
+    this.battleWorkers = createNodeBattleWorkerManager({
+      maxBattles: capacity.maxConcurrentBattles,
+      maxIdleWorkers: capacity.maxIdleWorkers,
+      maxQueuedBattles: capacity.maxQueuedBattles,
+      queueTimeoutMs: capacity.battleQueueTimeoutMs,
+      reuseWorkers: true,
+      vmGrouping: 'environment',
+    })
+    this.matchmakingPolicy = options.matchmakingPolicy ?? fifoMatchmaking
+    this.limits = {
+      maxRooms: options.maxRooms ?? 1000,
+      maxSpectators: options.maxSpectators ?? 20,
+      roomTtlMs: options.roomTtlMs ?? 30 * 60_000,
+      maxRoomLifetimeMs: options.maxRoomLifetimeMs ?? 12 * 60 * 60_000,
+      reconnectGraceMs: options.reconnectGraceMs ?? 60_000,
+      cleanupIntervalMs: options.cleanupIntervalMs ?? 10_000,
+      matchmakingPolicyTimeoutMs: options.matchmakingPolicyTimeoutMs ?? 3000,
+    }
+    for (const value of Object.values(this.limits))
+      if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid room limits')
+    this.cleaner = setInterval(() => {
+      void this.sweep().catch(() => undefined)
+    }, this.limits.cleanupIntervalMs)
+    this.cleaner.unref()
+  }
+  get battleWorkerStats() {
+    return this.battleWorkers.poolStatus()
+  }
+  get managementStatus() {
+    return {
+      draining: this.draining,
+      activeBattles: [...this.rooms.values()].filter(room => room.info.status === 'started').length,
+      rooms: this.rooms.size,
+      queued: this.matchmaking.size + this.battleWorkers.poolStatus().queued,
+    }
+  }
+  managementPlayers(): ManagedPlayer[] {
+    return this.sessions.managementPlayers().map(player => {
+      const room = this.rooms.get(this.seats.get(player.seatId) ?? '')
+      return {
+        ...player,
+        connected: !!this.sockets.get(player.seatId)?.size,
+        ...(room ? { roomCode: room.info.config.roomCode } : {}),
+        ...(room?.info.status === 'started' ? { battleId: room.info.battleRoomId } : {}),
+      }
+    })
+  }
+  managementBattles(): ManagedBattle[] {
+    return [...this.rooms.values()]
+      .filter(room => room.info.status === 'started' && room.info.battleRoomId)
+      .map(room => ({
+        id: room.info.battleRoomId!,
+        roomCode: room.info.config.roomCode,
+        environmentId:
+          ('environmentId' in room.environment ? room.environment.environmentId : undefined) ??
+          room.environment.descriptor.id,
+        environmentName:
+          ('environmentName' in room.environment ? room.environment.environmentName : undefined) ??
+          (room.environment.descriptor.packages.map(pkg => pkg.name).join(' + ') || '基础环境'),
+        ...('bindingId' in room.environment ? { bindingId: room.environment.bindingId } : {}),
+        ...('versionId' in room.environment ? { versionId: room.environment.versionId } : {}),
+        execution: room.info.config.battleMode === 'p2p' ? 'peer' : 'server',
+        state: room.info.players.some(player => !this.sockets.get(player.playerId)?.size) ? 'reconnecting' : 'running',
+        startedAt: room.startedAt ?? room.info.createdAt,
+        ...(room.turn === undefined ? {} : { turn: room.turn }),
+        players: room.info.players.map(player => ({
+          seatId: player.playerId,
+          name: player.playerName,
+          connected: !!this.sockets.get(player.playerId)?.size,
+        })),
+      }))
+  }
+  /** Serialize with player commands; authorize again immediately before the irreversible effect. */
+  async terminateManagedBattle(id: string, authorize: () => Promise<void>) {
+    const room = [...this.rooms.values()].find(room => room.info.battleRoomId === id && room.info.status === 'started')
+    if (!room) return { terminated: false, status: 'already-ended' }
+    return this.enqueue(room, async () => {
+      if (room.info.battleRoomId !== id || room.info.status !== 'started')
+        return { terminated: false, status: 'already-ended' }
+      if (room.info.config.battleMode !== 'server') fail('PEER_BATTLE_ADMIN_UNSUPPORTED')
+      await authorize()
+      // A battle may finish while authorization is awaiting durable storage.
+      if (room.info.battleRoomId !== id || room.info.status !== 'started')
+        return { terminated: false, status: 'already-ended' }
+      await this.close(room, 'ADMIN_TERMINATED')
+      return { terminated: true, status: 'terminated' }
+    }).catch(error => {
+      if (error instanceof RoomError && error.code === 'ROOM_NOT_FOUND')
+        return { terminated: false, status: 'already-ended' }
+      throw error
+    })
+  }
+  /** Stop admitting work while existing active battles and reconnects continue. */
+  async setDraining(draining: boolean): Promise<void> {
+    this.assertOpen()
+    this.draining = draining
+    if (!draining) return
+    for (const controller of this.matchingControllers) controller.abort(new RoomError('SERVER_DRAINING'))
+    for (const room of this.rooms.values())
+      if (room.info.status !== 'started') this.cancelLaunch(room, 'SERVER_DRAINING')
+    const queued = [...this.matchmaking.keys()]
+    await Promise.all(queued.map(seat => this.cancelQueued(seat)))
+    for (const seat of queued) this.emitSeat(seat, 'matchmakingError', { status: 'ERROR', code: 'SERVER_DRAINING' })
+  }
+  private assertAccepting() {
+    this.assertOpen()
+    if (this.draining) fail('SERVER_DRAINING')
+  }
+  private cancelLaunch(room: Room, code = 'BATTLE_LAUNCH_CANCELED') {
+    // Invalidate starts already submitted to room.pending, including ones not executing yet.
+    room.launchEpoch++
+    room.launch?.abort(new RoomError(code))
+  }
+  private cancelPlayerLaunch(room: Room, seat: string) {
+    if (room.info.players.some(player => player.playerId === seat)) this.cancelLaunch(room)
+  }
+  get size() {
+    return this.rooms.size
+  }
+  get onlinePlayers() {
+    return this.sockets.size
+  }
+  get playersInRooms() {
+    return this.seats.size
+  }
+  private assertOpen() {
+    if (this.closed) fail('SERVER_STOPPED')
+  }
+  private current(session: ServerSession): Room {
+    const room = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (!room || !room.members.has(session.seatId)) return fail('ROOM_NOT_FOUND')
+    return room
+  }
+  private host(room: Room, session: ServerSession) {
+    if (room.info.config.hostPlayerId !== session.seatId) fail('NOT_HOST')
+  }
+  private waiting(room: Room) {
+    if (room.info.status === 'started') fail('INVALID_STATE')
+  }
+  private player(room: Room, session: ServerSession) {
+    if (!room.info.players.some(p => p.playerId === session.seatId)) fail('NOT_BATTLE_PLAYER')
+  }
+  private enqueue<T>(room: Room, operation: () => Promise<T> | T): Promise<T> {
+    const pending = room.pending
+      .catch(() => undefined)
+      .then(() => {
+        this.assertOpen()
+        if (this.rooms.get(room.info.config.roomCode) !== room) fail('ROOM_NOT_FOUND')
+        return operation()
+      })
+    room.pending = pending
+    return pending
+  }
+  private emitSeat(seat: string, event: string, data: unknown) {
+    for (const socket of this.sockets.get(seat) ?? []) socket.emit(event, data)
+  }
+  private emit(room: Room, event: PrivateRoomEvent) {
+    for (const seat of room.members.keys()) this.emitSeat(seat, 'privateRoomEvent', event)
+  }
+  /** Only the P2P authority receives both teams, because it constructs the battle. */
+  private view(room: Room, viewer: string): PrivateRoomInfo {
+    const info = structuredClone(room.info)
+    const canHostPeerBattle = info.config.battleMode === 'p2p' && info.config.hostPlayerId === viewer
+    info.players = info.players.map(player => ({
+      ...player,
+      team: player.playerId === viewer || canHostPeerBattle ? player.team : undefined,
+      connectionStatus: room.members.get(player.playerId)?.connectionStatus,
+    }))
+    return info
+  }
+  private update(room: Room, activity = true) {
+    if (activity) room.info.lastActivity = Date.now()
+    if (room.info.status !== 'started' && !(room.info.matchmaking && room.info.status === 'ended'))
+      room.info.status = room.info.players.length === 2 && room.info.players.every(p => p.isReady) ? 'ready' : 'waiting'
+    for (const seat of room.members.keys())
+      this.emitSeat(seat, 'privateRoomEvent', { type: 'roomUpdate', data: this.view(room, seat) })
+  }
+  private member(session: ServerSession): Member {
+    return {
+      playerId: session.seatId,
+      sessionId: session.sessionId,
+      playerName: session.profile.name,
+      isReady: false,
+      joinedAt: Date.now(),
+      connectionStatus: 'online',
+    }
+  }
+  private checkPassword(room: Room, password: unknown) {
+    if (!room.password) return
+    const a = Buffer.from(room.password),
+      b = Buffer.from(typeof password === 'string' ? password : '')
+    if (a.length !== b.length || !timingSafeEqual(a, b)) fail('INVALID_PASSWORD')
+  }
+  private checkExecutionPolicy(environment: RoomEnvironment, battleMode: 'server' | 'p2p') {
+    if (environment.executionPolicy) {
+      const allowedMode = environment.executionPolicy === 'peer' ? 'p2p' : 'server'
+      if (battleMode !== allowedMode) fail('ENVIRONMENT_EXECUTION_POLICY')
+    } else if (environment.isNpm && battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')
+  }
+  private invalidatePersonalPreparation(room: Room) {
+    if (!room.info.personalEnvironment) return
+    room.info.challengeGeneration = (room.info.challengeGeneration ?? 0) + 1
+    for (const player of room.info.players) player.isReady = false
+  }
+  private checkRuntime(input: Record<string, unknown>, environment: RoomEnvironment) {
+    if (input.clientPackLock !== undefined || input.clientAssetLock !== undefined) fail('CUSTOM_CONTENT_UNSUPPORTED')
+    if (input.expectedRuntime === undefined) return
+    const expected = object(input.expectedRuntime)
+    const actual = environment.descriptor.runtime
+    if (expected.kind !== actual.kind) fail('RUNTIME_MISMATCH')
+  }
+  private checkClientEnvironment(room: Pick<Room, 'environment'> & Partial<Pick<Room, 'info'>>, raw: unknown) {
+    if (!room.environment.isNpm && raw === undefined && room.environment.executionPolicy !== 'peer') return
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('CLIENT_ENVIRONMENT_REQUIRED')
+    const accepted = raw as Record<string, unknown>
+    const descriptor = room.environment.descriptor
+    if ('personal' in room.environment && accepted.challengeGeneration !== room.info?.challengeGeneration)
+      fail('CLIENT_PREPARATION_STALE')
+    if (accepted.protocolVersion !== descriptor.protocolVersion) fail('CLIENT_PROTOCOL_MISMATCH')
+    if (accepted.environmentId !== descriptor.id) fail('CLIENT_ENVIRONMENT_MISMATCH')
+    if (accepted.resourceRevision !== descriptor.resourceRevision || accepted.resourcesReady !== true)
+      fail('CLIENT_RESOURCES_NOT_READY')
+    if (
+      room.environment.executionPolicy === 'peer' &&
+      (!descriptor.peerRevision || accepted.peerRevision !== descriptor.peerRevision)
+    )
+      fail('CLIENT_PEER_ENVIRONMENT_MISMATCH')
+  }
+  private async validateTeam(room: Pick<Room, 'environment'>, team: unknown) {
+    try {
+      const validated =
+        'personal' in room.environment
+          ? validatePersonalTeam(team)
+          : await validateServerTeam(team, room.environment.runtime)
+      assertEnvironmentTeam(room.environment.rules, validated)
+      return validated
+    } catch (error) {
+      if (error instanceof RoomError) throw error
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENVIRONMENT_TEAM_REJECTED')
+        return fail(error.code)
+      return fail('INVALID_TEAM')
+    }
+  }
+  private config(raw: unknown, previous?: PrivateRoomInfo['config']) {
+    const input = object(raw)
+    if (input.requiredPackLock !== undefined || input.requiredAssetLock !== undefined)
+      fail('CUSTOM_CONTENT_UNSUPPORTED')
+    const battleMode = input.battleMode ?? previous?.battleMode ?? 'server'
+    const p2pTransport = input.p2pTransport ?? previous?.p2pTransport ?? 'auto'
+    if (battleMode !== 'server' && battleMode !== 'p2p') fail('INVALID_CONFIG')
+    if (!['auto', 'webrtc', 'relay'].includes(p2pTransport as string)) fail('INVALID_CONFIG')
+    const isPrivate = input.isPrivate ?? previous?.isPrivate ?? false
+    if (typeof isPrivate !== 'boolean') fail('INVALID_CONFIG')
+    for (const key of ['allowFaintSwitch', 'showHidden'])
+      if (input[key] !== undefined && typeof input[key] !== 'boolean') fail('INVALID_CONFIG')
+    const timerConfig = {
+      enabled: true,
+      turnTimeLimit: 30,
+      totalTimeLimit: 1500,
+      animationPauseEnabled: true,
+      maxAnimationDuration: 20_000,
+      ...previous?.timerConfig,
+    } as TimerConfig
+    if (input.timerConfig !== undefined) {
+      const timer = object(input.timerConfig)
+      for (const [key, value] of Object.entries(timer)) {
+        if (key === 'enabled' || key === 'animationPauseEnabled') {
+          if (typeof value !== 'boolean') fail('INVALID_CONFIG')
+        } else if (['turnTimeLimit', 'totalTimeLimit', 'maxAnimationDuration'].includes(key)) {
+          if (
+            typeof value !== 'number' ||
+            !Number.isFinite(value) ||
+            value <= 0 ||
+            value > (key === 'maxAnimationDuration' ? 20_000 : 86_400)
+          )
+            fail('INVALID_CONFIG')
+        } else fail('INVALID_CONFIG')
+      }
+      Object.assign(timerConfig, timer)
+    }
+    return {
+      roomCode: previous?.roomCode ?? '',
+      hostPlayerId: previous?.hostPlayerId ?? '',
+      ruleSetId: '',
+      maxPlayers: 2,
+      isPrivate,
+      battleMode: battleMode as 'server' | 'p2p',
+      p2pTransport: p2pTransport as 'auto' | 'webrtc' | 'relay',
+      timerConfig,
+      allowFaintSwitch: (input.allowFaintSwitch as boolean | undefined) ?? previous?.allowFaintSwitch ?? true,
+      showHidden: (input.showHidden as boolean | undefined) ?? previous?.showHidden ?? false,
+    }
+  }
+  private async create(session: ServerSession, data: unknown, matchedEnvironment?: EnvironmentLease) {
+    this.assertAccepting()
+    const input = object(data)
+    await this.environments.ready()
+    this.assertAccepting()
+    if (!this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
+    if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
+    if (!matchedEnvironment && this.matchmaking.has(session.seatId)) fail('ALREADY_QUEUED')
+    if (this.rooms.size >= this.limits.maxRooms) fail('ROOM_CAPACITY')
+    const config = this.config(input.config)
+    let code: string
+    do {
+      code = nanoid(6).toUpperCase()
+    } while (this.rooms.has(code))
+    config.roomCode = code
+    config.hostPlayerId = session.seatId
+    const password = config.isPrivate ? text(object(input.config).password) : undefined
+    const member = this.member(session)
+    if (input.personalEnvironment !== undefined && (matchedEnvironment || input.environmentId !== undefined))
+      fail('INVALID_REQUEST')
+    const environment =
+      matchedEnvironment ??
+      (input.personalEnvironment !== undefined
+        ? await acquirePersonalEnvironment(input.personalEnvironment)
+        : this.environments.acquire(
+            input.environmentId === undefined ? undefined : text(input.environmentId),
+            config.battleMode === 'p2p',
+          ))
+    try {
+      this.assertAccepting()
+      if (!this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
+      if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
+      if (!matchedEnvironment && this.matchmaking.has(session.seatId)) fail('ALREADY_QUEUED')
+      if (this.rooms.size >= this.limits.maxRooms) fail('ROOM_CAPACITY')
+      this.checkRuntime(input, environment)
+      this.checkExecutionPolicy(environment, config.battleMode ?? 'server')
+    } catch (error) {
+      await environment.release()
+      throw error
+    }
+    const room: Room = {
+      environment,
+      info: {
+        ...(matchedEnvironment ? { matchmaking: true } : {}),
+        environment: environment.descriptor,
+        ...('personal' in environment ? { personalEnvironment: environment.personal, challengeGeneration: 1 } : {}),
+        id: nanoid(),
+        config,
+        players: [member],
+        spectators: [],
+        status: 'waiting',
+        createdAt: Date.now(),
+        lastActivity: Date.now(),
+      },
+      password,
+      members: new Map([[session.seatId, member]]),
+      ready: new Set(),
+      cleanups: [],
+      viewCleanups: new Map(),
+      animations: new Map(),
+      commands: new Map(),
+      pending: Promise.resolve(),
+      launchEpoch: 0,
+      disconnected: new Map(),
+    }
+    this.rooms.set(code, room)
+    this.seats.set(session.seatId, code)
+    if (!matchedEnvironment) this.update(room)
+    return { roomCode: code }
+  }
+  private async join(session: ServerSession, data: unknown, spectator: boolean) {
+    const input = object(data)
+    const room = this.rooms.get(text(input.roomCode, 6).toUpperCase())
+    if (!room) return fail('ROOM_NOT_FOUND')
+    this.checkRuntime(input, room.environment)
+    return this.enqueue(room, () => {
+      if (!this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
+      if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
+      if (this.matchmaking.has(session.seatId)) fail('ALREADY_QUEUED')
+      if (room.info.matchmaking) fail('ROOM_NOT_FOUND')
+      this.checkPassword(room, input.password)
+      if (spectator) {
+        if (room.info.spectators.length >= this.limits.maxSpectators) fail('SPECTATOR_LIMIT_REACHED')
+      } else {
+        this.waiting(room)
+        if (room.info.players.length >= 2) fail('ROOM_FULL')
+      }
+      const member = this.member(session)
+      room.members.set(session.seatId, member)
+      this.seats.set(session.seatId, room.info.config.roomCode)
+      if (spectator) room.info.spectators.push(member)
+      else room.info.players.push(member)
+      this.update(room)
+      if (room.battle) this.attachBattleView(room, session.seatId)
+      return { status: 'JOINED' }
+    })
+  }
+  private async disposeBattle(room: Room) {
+    if (room.ending) clearTimeout(room.ending)
+    room.ending = undefined
+    for (const cleanup of room.cleanups.splice(0)) cleanup()
+    for (const cleanup of room.viewCleanups.values()) cleanup()
+    room.viewCleanups.clear()
+    const battle = room.battle
+    room.battle = undefined
+    room.animations.clear()
+    room.commands.clear()
+    room.ready.clear()
+    if (battle) await battle.cleanup()
+  }
+  private async close(room: Room, reason: string) {
+    this.cancelLaunch(room, reason === 'SERVER_STOPPED' ? reason : 'BATTLE_LAUNCH_CANCELED')
+    if (this.rooms.get(room.info.config.roomCode) !== room) return
+    this.rooms.delete(room.info.config.roomCode)
+    this.emit(room, { type: 'roomClosed', data: { reason } })
+    if (room.info.battleRoomId)
+      for (const seat of room.members.keys()) this.emitSeat(seat, 'roomClosed', { roomId: room.info.battleRoomId })
+    for (const seat of room.members.keys())
+      if (this.seats.get(seat) === room.info.config.roomCode) this.seats.delete(seat)
+    room.members.clear()
+    try {
+      await this.disposeBattle(room)
+    } finally {
+      await room.environment.release()
+    }
+  }
+  private async remove(room: Room, seat: string) {
+    this.cancelPlayerLaunch(room, seat)
+    if (room.info.matchmaking) {
+      await this.close(room, room.info.status === 'ended' ? 'MATCH_FINISHED' : 'PLAYER_LEFT')
+      return
+    }
+    const isPlayer = room.info.players.some(p => p.playerId === seat)
+    if (isPlayer && room.info.status === 'started') {
+      await this.close(room, 'PLAYER_LEFT')
+      return
+    }
+    room.viewCleanups.get(seat)?.()
+    room.viewCleanups.delete(seat)
+    room.members.delete(seat)
+    room.disconnected.delete(seat)
+    if (this.seats.get(seat) === room.info.config.roomCode) this.seats.delete(seat)
+    room.info.players = room.info.players.filter(p => p.playerId !== seat)
+    room.info.spectators = room.info.spectators.filter(p => p.playerId !== seat)
+    if (!room.info.players.length) {
+      await this.close(room, 'NO_PLAYERS')
+      return
+    }
+    if (room.info.config.hostPlayerId === seat) {
+      room.info.config.hostPlayerId = room.info.players[0].playerId
+      this.invalidatePersonalPreparation(room)
+    }
+    this.update(room)
+  }
+  private attachBattleView(room: Room, seat: string) {
+    if (!room.battle) return
+    room.viewCleanups.get(seat)?.()
+    const isPlayer = room.info.players.some(p => p.playerId === seat)
+    room.viewCleanups.set(
+      seat,
+      room.battle.BattleEvent(
+        message => {
+          if (room.members.has(seat)) this.emitSeat(seat, 'battleEvent', message)
+        },
+        {
+          viewerId: isPlayer ? (seat as playerId) : undefined,
+          showHidden: room.info.config.showHidden ?? false,
+          showAll: false,
+        },
+      ),
+    )
+  }
+  private finish(room: Room, winner: string | null, reason: string) {
+    if (room.info.status !== 'started') return
+    room.info.lastBattleResult = { winner, reason, endedAt: Date.now(), battleRoomId: room.info.battleRoomId! }
+    room.info.status = 'ended'
+    for (const player of room.info.players) player.isReady = false
+    this.emit(room, { type: 'battleFinished', data: { battleResult: room.info.lastBattleResult } })
+    this.update(room)
+    const battle = room.battle
+    room.ending = setTimeout(() => {
+      if (room.battle !== battle) return
+      void this.enqueue(room, async () => {
+        if (room.battle !== battle) return
+        if (room.info.matchmaking) {
+          await this.close(room, 'MATCH_FINISHED')
+          return
+        }
+        // Releasing a completed runtime does not close the private room or the player's result view.
+        if (room.info.config.battleMode === 'server' && room.info.battleRoomId)
+          for (const seat of room.members.keys()) this.emitSeat(seat, 'roomClosed', { roomId: room.info.battleRoomId })
+        await this.disposeBattle(room)
+        delete room.info.battleRoomId
+        delete room.info.battleHost
+        this.update(room)
+      }).catch(() => undefined)
+    }, 5000)
+    room.ending.unref()
+  }
+  private async start(room: Room, session: ServerSession, input: unknown, launchEpoch: number, commit?: () => void) {
+    this.assertAccepting()
+    if (launchEpoch !== room.launchEpoch) fail('BATTLE_LAUNCH_CANCELED')
+    if (room.info.matchmaking && !commit) fail('INVALID_STATE')
+    this.host(room, session)
+    this.waiting(room)
+    this.checkExecutionPolicy(room.environment, room.info.config.battleMode ?? 'server')
+    if (room.info.players.length !== 2) fail('PLAYERS_NOT_READY')
+    if (room.info.players.some(p => !this.sockets.get(p.playerId)?.size)) fail('PLAYER_OFFLINE')
+    this.checkClientEnvironment(room, object(input).environment)
+    const controller = new AbortController()
+    room.launch = controller
+    let preparing = false
+    try {
+      const requested = object(input).hostTeam
+      if (requested !== undefined)
+        room.info.players.find(p => p.playerId === session.seatId)!.team = await this.validateTeam(room, requested)
+      if (room.info.players.some(p => !p.team || (p.playerId !== session.seatId && !p.isReady)))
+        fail('PLAYERS_NOT_READY')
+      await this.disposeBattle(room)
+      preparing = true
+      const [a, b] = room.info.players
+      if (room.info.config.battleMode === 'server') {
+        if ('personal' in room.environment) fail('ENVIRONMENT_EXECUTION_POLICY')
+        room.battle = await createServerBattle(
+          { id: a.playerId, name: a.playerName, team: a.team! },
+          { id: b.playerId, name: b.playerName, team: b.team! },
+          {
+            allowFaintSwitch: room.info.config.allowFaintSwitch,
+            showHidden: room.info.config.showHidden,
+            timerConfig: room.info.config.timerConfig,
+            rngSeed: nanoid(),
+          },
+          room.environment.runtime,
+          this.battleWorkers,
+          controller.signal,
+        )
+      }
+      controller.signal.throwIfAborted()
+      this.assertAccepting()
+      // A shutdown or disconnect can happen while waiting for capacity or content.
+      if (this.closed || this.rooms.get(room.info.config.roomCode) !== room) {
+        await this.disposeBattle(room)
+        return fail('SERVER_STOPPED')
+      }
+      if (room.info.players.some(player => !this.sockets.get(player.playerId)?.size)) fail('PLAYER_OFFLINE')
+      commit?.()
+      room.startedAt = Date.now()
+      room.turn = undefined
+      room.info.status = 'started'
+      room.info.battleRoomId = nanoid()
+      room.info.battleHost = { playerId: session.seatId, sessionId: session.sessionId }
+      if (room.battle) {
+        for (const seat of room.members.keys()) this.attachBattleView(room, seat)
+        room.cleanups.push(
+          room.battle.BattleEvent(message => {
+            if (message.type === BattleMessageType.TurnStart) room.turn = message.data.turn
+            if (message.type === BattleMessageType.BattleEnd)
+              this.finish(room, message.data.winner, message.data.reason)
+          }),
+        )
+        for (const type of timerEvents)
+          room.cleanups.push(
+            room.battle.onTimerEvent(type, data => {
+              if (type === 'animationEnd' && data && 'animationId' in data)
+                room.animations.delete(data.animationId as string)
+              for (const seat of room.members.keys())
+                this.emitSeat(
+                  seat,
+                  type === 'timerSnapshot' ? type : 'timerEvent',
+                  type === 'timerSnapshot' ? data : { type, data },
+                )
+            }),
+          )
+      }
+      this.update(room)
+      const result = {
+        battleMode: room.info.config.battleMode,
+        battleRoomId: room.info.battleRoomId,
+        battleHost: room.info.battleHost,
+      }
+      this.emit(room, { type: 'battleStarted', data: result })
+      return result
+    } catch (error) {
+      if (preparing) {
+        await this.disposeBattle(room)
+        room.info.status = 'waiting'
+        delete room.info.battleRoomId
+        delete room.info.battleHost
+        if (!this.closed && this.rooms.get(room.info.config.roomCode) === room) this.update(room, false)
+      }
+      if (controller.signal.aborted) throw controller.signal.reason
+      if (error instanceof BattleWorkerAdmissionError) {
+        if (error.reason === 'capacity') fail('BATTLE_CAPACITY_FULL')
+        if (error.reason === 'queue-timeout') fail('BATTLE_QUEUE_TIMEOUT')
+        if (error.reason === 'disposed') fail('SERVER_STOPPED')
+        fail('BATTLE_LAUNCH_CANCELED')
+      }
+      throw error
+    } finally {
+      if (room.launch === controller) room.launch = undefined
+    }
+  }
+
+  private battle(room: Room) {
+    if (!room.battle) return fail('BATTLE_NOT_FOUND')
+    return room.battle
+  }
+  private async state(room: Room, seat: string) {
+    const player = room.info.players.some(p => p.playerId === seat)
+    return this.battle(room).getState(player ? (seat as playerId) : undefined, room.info.config.showHidden ?? false)
+  }
+  private queued(player: WaitingPlayer) {
+    return (
+      !this.closed &&
+      !this.draining &&
+      this.matchmaking.get(player.session.seatId) === player &&
+      !!this.sessions.authenticate(player.session.token) &&
+      !!this.sockets.get(player.session.seatId)?.size
+    )
+  }
+  private async cancelQueued(seat: string) {
+    const player = this.matchmaking.get(seat)
+    if (!player) return
+    const room = this.rooms.get(this.seats.get(seat) ?? '')
+    if (room) this.cancelPlayerLaunch(room, seat)
+    this.matchmaking.delete(seat)
+    // A tentative room borrows this lease until pairing commits or rolls back.
+    if (!player.pairing) await player.environment?.release()
+  }
+  private async joinMatchmaking(session: ServerSession, raw: unknown) {
+    this.assertAccepting()
+    const input = object(raw)
+    if (input.personalEnvironment !== undefined) fail('PERSONAL_ENVIRONMENT_PRIVATE_ONLY')
+    if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
+    if (this.matchmaking.has(session.seatId)) return { status: 'QUEUED' }
+    const player: WaitingPlayer = { session, pairing: false, joinedAt: Date.now() }
+    this.matchmaking.set(session.seatId, player)
+    try {
+      await this.environments.ready()
+      this.assertAccepting()
+      if (!this.queued(player)) fail('MATCHMAKING_CANCELED')
+      if (input.ruleSetId !== undefined && input.ruleSetId !== 'standard') fail('INVALID_CONFIG')
+      if (input.config !== undefined) fail('INVALID_CONFIG')
+      player.environment = this.environments.acquire(
+        input.environmentId === undefined ? undefined : text(input.environmentId),
+        false,
+        'matchmaking',
+      )
+      this.checkClientEnvironment({ environment: player.environment }, input.environment)
+      // For explicit environments, including the official environment, require resource acceptance.
+      if (input.environmentId !== undefined && input.environment === undefined) fail('CLIENT_ENVIRONMENT_REQUIRED')
+      player.team = await this.validateTeam(
+        { environment: player.environment },
+        object(input.playerSchema ?? input).team,
+      )
+      if (!this.queued(player)) fail('MATCHMAKING_CANCELED')
+      const pending = this.matching.catch(() => undefined).then(() => this.pairWaitingPlayers())
+      this.matching = pending
+      await pending
+      if (player.failure) fail(player.failure)
+      return { status: 'QUEUED' }
+    } catch (error) {
+      if (this.matchmaking.get(session.seatId) === player) await this.cancelQueued(session.seatId)
+      // Cancellation during validation may have already removed this entry.
+      if (!player.pairing) await player.environment?.release()
+      throw error
+    }
+  }
+  private async pairWaitingPlayers() {
+    for (;;) {
+      const waiting = [...this.matchmaking.values()].filter(player => player.team && !player.pairing)
+      for (const player of waiting) {
+        if (!this.queued(player)) await this.cancelQueued(player.session.seatId)
+      }
+      let selected: readonly [WaitingPlayer, WaitingPlayer] | undefined
+      const lane = (player: WaitingPlayer) =>
+        player.environment!.admissionKey ??
+        `${player.environment!.descriptor.id}:${player.environment!.executionPolicy ?? 'legacy'}`
+      const environmentLanes = new Set(waiting.filter(player => this.queued(player)).map(lane))
+      for (const environmentLane of environmentLanes) {
+        const group = waiting.filter(player => this.queued(player) && lane(player) === environmentLane)
+        if (group.length < 2) continue
+        const environment = structuredClone(group[0].environment!.descriptor)
+        const controller = new AbortController()
+        this.matchingControllers.add(controller)
+        const timeout = setTimeout(
+          () => controller.abort(new RoomError('MATCHMAKING_POLICY_TIMEOUT')),
+          this.limits.matchmakingPolicyTimeoutMs,
+        )
+        let ids: readonly [string, string] | null
+        try {
+          ids = await Promise.race([
+            Promise.resolve().then(() =>
+              this.matchmakingPolicy.findMatch(
+                group.map(player => ({
+                  seatId: player.session.seatId,
+                  principal: structuredClone(player.session.principal),
+                  joinedAt: player.joinedAt,
+                })),
+                {
+                  environment,
+                  ratingScope: this.matchmakingPolicy.ratingScope?.(environment),
+                  now: Date.now(),
+                  signal: controller.signal,
+                },
+              ),
+            ),
+            new Promise<never>((_resolve, reject) => {
+              controller.signal.addEventListener('abort', () => reject(controller.signal.reason), { once: true })
+            }),
+          ])
+        } finally {
+          clearTimeout(timeout)
+          this.matchingControllers.delete(controller)
+        }
+        if (!ids) continue
+        const a = group.find(player => player.session.seatId === ids[0])
+        const b = group.find(player => player.session.seatId === ids[1])
+        if (!a || !b || a === b) fail('INVALID_MATCHMAKING_PAIR')
+        // A trusted asynchronous selector may finish after cancellation or disconnection.
+        if (!this.queued(a) || !this.queued(b)) continue
+        selected = [a, b]
+        break
+      }
+      if (!selected) return
+      const [first, second] = selected
+      const pair = [first, second]
+      pair.forEach(player => {
+        player.pairing = true
+      })
+      let room: Room | undefined
+      let committed = false
+      try {
+        // Queue entries own fixed leases. Publication updates affect new admissions, not this lane.
+        const battleMode = first.environment!.executionPolicy === 'peer' ? 'p2p' : 'server'
+        const created = await this.create(first.session, { config: { battleMode } }, first.environment)
+        room = this.rooms.get(created.roomCode)!
+        if (!pair.every(player => this.queued(player)) || this.seats.has(second.session.seatId))
+          fail('MATCHMAKING_CANCELED')
+        const member = this.member(second.session)
+        room.members.set(second.session.seatId, member)
+        room.info.players.push(member)
+        this.seats.set(second.session.seatId, created.roomCode)
+        room.info.players.forEach((member, index) => {
+          member.team = pair[index].team
+          member.isReady = true
+        })
+        const launchEpoch = room.launchEpoch
+        await this.enqueue(room, () =>
+          this.start(
+            room!,
+            first.session,
+            {
+              environment: {
+                environmentId: first.environment!.descriptor.id,
+                protocolVersion: first.environment!.descriptor.protocolVersion,
+                resourceRevision: first.environment!.descriptor.resourceRevision,
+                ...(first.environment!.descriptor.peerRevision
+                  ? { peerRevision: first.environment!.descriptor.peerRevision }
+                  : {}),
+                resourcesReady: true,
+              },
+            },
+            launchEpoch,
+            () => {
+              if (!pair.every(player => this.queued(player))) fail('MATCHMAKING_CANCELED')
+              pair.forEach(player => this.matchmaking.delete(player.session.seatId))
+              committed = true
+            },
+          ),
+        )
+        for (const [index, player] of pair.entries()) {
+          const other = pair[1 - index].session
+          this.emitSeat(player.session.seatId, 'matchSuccess', {
+            status: 'SUCCESS',
+            data: { roomId: room.info.battleRoomId, opponent: { id: other.seatId, name: other.profile.name } },
+          })
+        }
+      } catch (error) {
+        if (room) await this.close(room, 'MATCHMAKING_CANCELED')
+        const code = error instanceof RoomError || error instanceof EnvironmentError ? error.code : 'MATCHMAKING_FAILED'
+        for (const player of pair) {
+          if (this.matchmaking.get(player.session.seatId) !== player) continue
+          this.matchmaking.delete(player.session.seatId)
+          player.failure = code
+          this.emitSeat(player.session.seatId, 'matchmakingError', { status: 'ERROR', code })
+        }
+      } finally {
+        // On success the room owns the first lease. Every other path releases both.
+        await second.environment!.release()
+        if (!committed) await first.environment!.release()
+      }
+    }
+  }
+  async connect(socket: Socket, session: ServerSession) {
+    const connections = this.sockets.get(session.seatId) ?? new Set<Socket>()
+    if (connections.size >= 8) {
+      socket.disconnect(true)
+      return
+    }
+    connections.add(socket)
+    this.sockets.set(session.seatId, connections)
+    socket.on('disconnect', () => {
+      void this.disconnect(socket, session).catch(() => undefined)
+    })
+    let count = 0,
+      window = Date.now()
+    const register = (event: string, operation: (data: unknown) => unknown | Promise<unknown>, noPayload = false) => {
+      socket.on(event, (...args: unknown[]) => {
+        const ack = args.at(-1)
+        const reply = (value: unknown) => {
+          if (typeof ack === 'function') ack(value)
+        }
+        void (async () => {
+          this.assertOpen()
+          if (!this.sessions.authenticate(session.token)) {
+            socket.disconnect(true)
+            fail('SESSION_EXPIRED')
+          }
+          if (Date.now() - window > 1000) {
+            count = 0
+            window = Date.now()
+          }
+          if (++count > 120) fail('RATE_LIMITED')
+          const data = await operation(noPayload ? undefined : args[0])
+          reply({ status: 'SUCCESS', data })
+        })().catch(error =>
+          reply({
+            status: 'ERROR',
+            code: error instanceof RoomError || error instanceof EnvironmentError ? error.code : 'INVALID_REQUEST',
+          }),
+        )
+      })
+    }
+    const withRoom =
+      (
+        operation: (room: Room, data: unknown, launchEpoch: number) => unknown | Promise<unknown>,
+        beforeQueue?: (room: Room, data: unknown) => void,
+      ) =>
+      (data: unknown) => {
+        const current = this.current(session)
+        beforeQueue?.(current, data)
+        const launchEpoch = current.launchEpoch
+        return this.enqueue(current, () => {
+          if (!current.members.has(session.seatId) || !this.sessions.authenticate(session.token))
+            fail('INVALID_SESSION')
+          return operation(current, data, launchEpoch)
+        })
+      }
+    register(
+      'getServerState',
+      () => ({
+        onlinePlayers: this.onlinePlayers,
+        matchmakingQueue: [...this.matchmaking.values()].filter(player => player.team && !player.pairing).length,
+        rooms: this.size,
+        playersInRooms: this.playersInRooms,
+      }),
+      true,
+    )
+    register('joinMatchmaking', data => this.joinMatchmaking(session, data))
+    register(
+      'cancelMatchmaking',
+      async () => {
+        if (!this.matchmaking.has(session.seatId) && this.seats.has(session.seatId)) fail('MATCH_ALREADY_STARTED')
+        await this.cancelQueued(session.seatId)
+        this.emitSeat(session.seatId, 'matchmakingError', { status: 'ERROR', code: 'MATCHMAKING_CANCELED' })
+        return { status: 'CANCELED' }
+      },
+      true,
+    )
+    register('createPrivateRoom', data => this.create(session, data))
+    register('joinPrivateRoom', data => this.join(session, data, false))
+    register('joinPrivateRoomAsSpectator', data => this.join(session, data, true))
+    register(
+      'getCurrentPrivateRoom',
+      () => {
+        const current = this.rooms.get(this.seats.get(session.seatId) ?? '')
+        return current ? this.view(current, session.seatId) : null
+      },
+      true,
+    )
+    register('getPrivateRoomInfo', data => {
+      const current = this.current(session)
+      if (text(object(data).roomCode, 6).toUpperCase() !== current.info.config.roomCode) fail('ROOM_NOT_FOUND')
+      return this.view(current, session.seatId)
+    })
+    register(
+      'leavePrivateRoom',
+      withRoom(
+        async room => {
+          await this.remove(room, session.seatId)
+          return { status: 'LEFT' }
+        },
+        room => this.cancelPlayerLaunch(room, session.seatId),
+      ),
+      true,
+    )
+    register(
+      'togglePrivateRoomReady',
+      withRoom(async (room, data) => {
+        this.waiting(room)
+        this.player(room, session)
+        const player = room.info.players.find(p => p.playerId === session.seatId)!
+        if (player.isReady) player.isReady = false
+        else {
+          this.checkClientEnvironment(room, object(data).environment)
+          player.team = await this.validateTeam(room, object(data).team)
+          player.isReady = true
+        }
+        this.update(room)
+        return { status: 'READY_TOGGLED' }
+      }),
+    )
+    register(
+      'startPrivateRoomBattle',
+      withRoom((room, data, launchEpoch) => this.start(room, session, data, launchEpoch)),
+    )
+    register('updatePrivateRoomRuleSet', () => fail('RULESETS_UNSUPPORTED'))
+    register(
+      'updatePrivateRoomConfig',
+      withRoom(async (room, data) => {
+        this.host(room, session)
+        this.waiting(room)
+        const input = object(data),
+          config = this.config(input, room.info.config)
+        const password = config.isPrivate
+          ? input.password === undefined
+            ? room.password
+            : text(input.password)
+          : undefined
+        if (config.isPrivate && !password) fail('INVALID_CONFIG')
+        this.checkExecutionPolicy(room.environment, config.battleMode ?? 'server')
+        if (input.environmentId !== undefined && input.environmentId !== room.environment.descriptor.id)
+          fail('ENVIRONMENT_FIXED')
+        if (input.personalEnvironment !== undefined) {
+          if (!('personal' in room.environment)) fail('ENVIRONMENT_FIXED')
+          const next = await acquirePersonalEnvironment(input.personalEnvironment)
+          this.checkExecutionPolicy(next, config.battleMode)
+          room.environment = next
+          room.info.environment = next.descriptor
+          room.info.personalEnvironment = next.personal
+        }
+        room.info.config = config
+        room.password = password
+        this.invalidatePersonalPreparation(room)
+        for (const player of room.info.players) player.isReady = false
+        this.update(room)
+        return { status: 'UPDATED' }
+      }),
+    )
+    register(
+      'transferPrivateRoomHost',
+      withRoom((room, data) => {
+        this.host(room, session)
+        this.waiting(room)
+        const target = text(object(data).targetPlayerId)
+        if (target === session.seatId) fail('CANNOT_TRANSFER_TO_SELF')
+        if (!room.info.players.some(p => p.playerId === target)) fail('TARGET_NOT_PLAYER')
+        room.info.config.hostPlayerId = target
+        this.invalidatePersonalPreparation(room)
+        this.emit(room, {
+          type: 'hostTransferred',
+          data: { oldHostId: session.seatId, newHostId: target, transferredBy: session.seatId },
+        })
+        this.update(room)
+        return { status: 'TRANSFERRED' }
+      }),
+    )
+    register(
+      'kickPlayerFromPrivateRoom',
+      withRoom(
+        async (room, data) => {
+          this.host(room, session)
+          this.waiting(room)
+          const target = text(object(data).targetPlayerId)
+          if (target === session.seatId) fail('CANNOT_KICK_SELF')
+          if (!room.members.has(target)) fail('PLAYER_NOT_FOUND')
+          this.emit(room, { type: 'playerKicked', data: { playerId: target, kickedBy: session.seatId } })
+          await this.remove(room, target)
+          return { status: 'KICKED' }
+        },
+        (room, data) => {
+          this.host(room, session)
+          this.waiting(room)
+          const target = text(object(data).targetPlayerId)
+          if (target === session.seatId) fail('CANNOT_KICK_SELF')
+          if (!room.members.has(target)) fail('PLAYER_NOT_FOUND')
+          this.cancelPlayerLaunch(room, target)
+        },
+      ),
+    )
+    register(
+      'switchToSpectator',
+      withRoom(room => {
+        this.waiting(room)
+        this.player(room, session)
+        if (room.info.config.hostPlayerId === session.seatId) fail('HOST_CANNOT_SPECTATE')
+        if (room.info.spectators.length >= this.limits.maxSpectators) fail('SPECTATOR_LIMIT_REACHED')
+        const member = room.members.get(session.seatId)!
+        member.isReady = false
+        delete member.team
+        room.info.players = room.info.players.filter(p => p.playerId !== session.seatId)
+        room.info.spectators.push(member)
+        this.update(room)
+        return { status: 'SWITCHED' }
+      }),
+    )
+    register(
+      'switchToPlayer',
+      withRoom(async (room, data) => {
+        this.waiting(room)
+        if (!room.info.spectators.some(p => p.playerId === session.seatId)) fail('SPECTATOR_NOT_FOUND')
+        if (room.info.players.length >= 2) fail('ROOM_FULL')
+        const member = room.members.get(session.seatId)!
+        member.team = await this.validateTeam(room, object(data).team)
+        room.info.spectators = room.info.spectators.filter(p => p.playerId !== session.seatId)
+        room.info.players.push(member)
+        this.update(room)
+        return { status: 'SWITCHED' }
+      }),
+    )
+    register(
+      'joinSpectateBattle',
+      withRoom((room, data) => {
+        if (room.info.config.battleMode === 'p2p') fail('P2P_SPECTATE_UNSUPPORTED')
+        if (room.info.battleRoomId !== object(data).battleRoomId || room.info.status !== 'started')
+          fail('BATTLE_NOT_FOUND')
+        if (!room.info.spectators.some(p => p.playerId === session.seatId)) fail('NOT_SPECTATOR')
+        return { status: 'SPECTATING' }
+      }),
+    )
+    register('leaveSpectateBattle', () => ({ status: 'LEFT_SPECTATE' }))
+    register(
+      'ready',
+      withRoom(async room => {
+        this.player(room, session)
+        const battle = this.battle(room)
+        room.ready.add(session.seatId)
+        if (room.info.players.every(p => room.ready.has(p.playerId))) await battle.ready()
+        return { status: 'READY' }
+      }),
+      true,
+    )
+    register(
+      'getState',
+      withRoom(room => this.state(room, session.seatId)),
+      true,
+    )
+    register(
+      'getAvailableSelection',
+      withRoom(async room => {
+        this.player(room, session)
+        return this.battle(room).getAvailableSelection(session.seatId as playerId)
+      }),
+      true,
+    )
+    register(
+      'submitPlayerSelection',
+      withRoom(async (room, data) => {
+        this.player(room, session)
+        if (room.info.status !== 'started') fail('INVALID_STATE')
+        const raw = object(data)
+        const { requestId, expectedTurn, ...body } = raw
+        const selection = parseWithErrors(PlayerSelectionSchema, body)
+        if (selection.player !== session.seatId) fail('FORBIDDEN_PLAYER')
+        const command = `${session.seatId}:${text(requestId)}`
+        const fingerprint = JSON.stringify({ body, expectedTurn })
+        if (room.commands.has(command)) {
+          if (room.commands.get(command) !== fingerprint) fail('DUPLICATE_ACTION')
+          return { status: 'ACTION_ACCEPTED' }
+        }
+        const battle = this.battle(room)
+        if (!room.info.players.every(p => room.ready.has(p.playerId))) fail('PLAYERS_NOT_READY')
+        await battle.waitForPendingDecision()
+        if (!this.sessions.authenticate(session.token) || !room.members.has(session.seatId)) fail('INVALID_SESSION')
+        const state = await battle.getState(session.seatId as playerId)
+        if (typeof expectedTurn !== 'number' || expectedTurn !== state.currentTurn) fail('STALE_ACTION')
+        if (!room.info.players.every(p => room.ready.has(p.playerId))) fail('PLAYERS_NOT_READY')
+        await battle.submitAction(selection as PlayerSelection)
+        room.commands.set(command, fingerprint)
+        if (room.commands.size > 4096) room.commands.delete(room.commands.keys().next().value!)
+        room.info.lastActivity = Date.now()
+        return { status: 'ACTION_ACCEPTED' }
+      }),
+    )
+    register(
+      'isTimerEnabled',
+      withRoom(room => this.battle(room).isTimerEnabled()),
+      true,
+    )
+    register(
+      'getTimerConfig',
+      withRoom(room => this.battle(room).getTimerConfig()),
+      true,
+    )
+    register(
+      'getAllPlayerTimerStates',
+      withRoom(room => this.battle(room).getAllPlayerTimerStates()),
+      true,
+    )
+    register(
+      'getPlayerTimerState',
+      withRoom((room, data) => {
+        const target = text(object(data).playerId)
+        if (!room.info.players.some(p => p.playerId === target)) fail('PLAYER_NOT_FOUND')
+        return this.battle(room).getPlayerTimerState(target as playerId)
+      }),
+    )
+    register(
+      'startAnimation',
+      withRoom(async (room, data) => {
+        this.player(room, session)
+        const input = object(data)
+        if (input.ownerId !== session.seatId) fail('FORBIDDEN_PLAYER')
+        const duration = input.expectedDuration
+        if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 0 || duration > 20_000)
+          fail('INVALID_REQUEST')
+        if (room.animations.size >= 100) fail('ANIMATION_CAPACITY')
+        const id = await this.battle(room).startAnimation(text(input.source), duration, session.seatId as playerId)
+        room.animations.set(id, session.seatId)
+        return id
+      }),
+    )
+    const endAnimation = withRoom(async (room, data) => {
+      const input = object(data),
+        id = text(input.animationId)
+      if (room.animations.get(id) !== session.seatId) fail('FORBIDDEN_ANIMATION')
+      const duration = input.actualDuration
+      if (
+        duration !== undefined &&
+        (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 0 || duration > 120_000)
+      )
+        fail('INVALID_REQUEST')
+      await this.battle(room).endAnimation(id, duration as number | undefined)
+      room.animations.delete(id)
+    })
+    register('endAnimation', endAnimation)
+    register('reportAnimationEnd', endAnimation)
+    register(
+      'sendPrivateRoomPeerSignal',
+      withRoom((room, data) => {
+        this.player(room, session)
+        if (room.info.config.battleMode !== 'p2p' || !room.info.battleRoomId) fail('INVALID_STATE')
+        const input = object(data),
+          target = room.info.players.find(p => p.playerId === input.targetPlayerId)
+        if (input.battleRoomId !== undefined && input.battleRoomId !== room.info.battleRoomId) fail('STALE_BATTLE')
+        // Drain ACKs and animation synchronization after the result, only for the captured instance.
+        if (room.info.status !== 'started' && input.battleRoomId !== room.info.battleRoomId) fail('INVALID_STATE')
+        if (
+          !target ||
+          target.playerId === session.seatId ||
+          (input.targetSessionId !== undefined && input.targetSessionId !== target.sessionId)
+        )
+          fail('SIGNAL_TARGET_NOT_FOUND')
+        const signal = object(input.signal)
+        if (
+          typeof signal.transport !== 'string' ||
+          !['webrtc', 'relay'].includes(signal.transport) ||
+          typeof signal.kind !== 'string' ||
+          !['offer', 'answer', 'ice-candidate', 'ready', 'custom'].includes(signal.kind)
+        )
+          fail('INVALID_SIGNAL')
+        if (Buffer.byteLength(JSON.stringify(signal)) > 64 * 1024) fail('INVALID_SIGNAL')
+        if (room.info.status !== 'started') {
+          const messageType = object(signal.payload).type
+          if (signal.kind !== 'custom' || typeof messageType !== 'string' || !closingPeerMessages.has(messageType))
+            fail('INVALID_STATE')
+        }
+        const event = {
+          battleRoomId: room.info.battleRoomId,
+          roomCode: room.info.config.roomCode,
+          from: { playerId: session.seatId, sessionId: session.sessionId },
+          to: { playerId: target.playerId, sessionId: target.sessionId },
+          signal,
+          timestamp: Date.now(),
+        }
+        this.emitSeat(target.playerId, 'privateRoomPeerSignal', event)
+        return { status: 'FORWARDED' }
+      }),
+    )
+    register(
+      'finishPrivateRoomBattle',
+      withRoom((room, data) => {
+        this.host(room, session)
+        if (room.info.config.battleMode !== 'p2p' || room.info.status !== 'started') fail('INVALID_STATE')
+        const input = object(data)
+        if (input.battleRoomId !== undefined && input.battleRoomId !== room.info.battleRoomId) fail('STALE_BATTLE')
+        if (input.winner !== null && !room.info.players.some(p => p.playerId === input.winner)) fail('INVALID_REQUEST')
+        this.finish(room, input.winner as string | null, text(input.reason))
+        return { status: 'FINISHED' }
+      }),
+    )
+    const room = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (room)
+      await this.enqueue(room, async () => {
+        room.disconnected.delete(session.seatId)
+        room.members.get(session.seatId)!.connectionStatus = 'online'
+        this.update(room, false)
+        if (room.battle && room.info.players.some(p => p.playerId === session.seatId)) {
+          await room.battle.cancelReconnectGraceTimer(session.seatId as playerId)
+          for (const seat of room.members.keys())
+            if (seat !== session.seatId)
+              this.emitSeat(seat, 'opponentReconnected', { reconnectedPlayerId: session.seatId })
+        }
+        if (room.battle && room.info.status === 'started')
+          socket.emit('battleReconnect', {
+            roomId: room.info.battleRoomId,
+            shouldRedirect: true,
+            battleState: 'active',
+            fullBattleState: await this.state(room, session.seatId),
+          })
+      })
+  }
+  private async disconnect(socket: Socket, session: ServerSession) {
+    const connections = this.sockets.get(session.seatId)
+    connections?.delete(socket)
+    if (connections?.size) return
+    this.sockets.delete(session.seatId)
+    const pendingRoom = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (pendingRoom) this.cancelPlayerLaunch(pendingRoom, session.seatId)
+    await this.cancelQueued(session.seatId)
+    const room = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (!room || this.closed) return
+    await this.enqueue(room, async () => {
+      if (this.sockets.has(session.seatId) || !room.members.has(session.seatId)) return
+      room.disconnected.set(session.seatId, Date.now())
+      room.members.get(session.seatId)!.connectionStatus = 'offline'
+      if (room.info.status === 'started' && room.info.players.some(p => p.playerId === session.seatId)) {
+        if (room.battle)
+          await room.battle.startReconnectGraceTimer(session.seatId as playerId, this.limits.reconnectGraceMs / 1000)
+        for (const seat of room.members.keys())
+          if (seat !== session.seatId)
+            this.emitSeat(seat, 'opponentDisconnected', {
+              disconnectedPlayerId: session.seatId,
+              graceTimeRemaining: this.limits.reconnectGraceMs / 1000,
+            })
+      }
+      this.update(room, false)
+    })
+  }
+  async revoke(session: ServerSession) {
+    const pendingRoom = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (pendingRoom) this.cancelPlayerLaunch(pendingRoom, session.seatId)
+    await this.cancelQueued(session.seatId)
+    const room = this.rooms.get(this.seats.get(session.seatId) ?? '')
+    if (room) await this.enqueue(room, () => this.remove(room, session.seatId))
+    for (const socket of this.sockets.get(session.seatId) ?? []) socket.disconnect(true)
+    this.sockets.delete(session.seatId)
+  }
+  private async sweep() {
+    for (const [seat, connections] of this.sockets) {
+      const socket = connections.values().next().value
+      if (socket && !this.sessions.authenticate(socket.handshake.auth.token))
+        for (const connection of connections) connection.disconnect(true)
+      if (!connections.size) this.sockets.delete(seat)
+    }
+    const now = Date.now()
+    // Reconsider waiting players even without a new arrival (e.g. widening ELO ranges).
+    if (this.matchmaking.size >= 2 && !this.matchingScheduled) {
+      this.matchingScheduled = true
+      this.matching = this.matching
+        .catch(() => undefined)
+        .then(() => this.pairWaitingPlayers())
+        .finally(() => {
+          this.matchingScheduled = false
+        })
+      void this.matching.catch(() => undefined)
+    }
+    const expired = (room: Room) =>
+      now - room.info.lastActivity >= this.limits.roomTtlMs ||
+      now - room.info.createdAt >= this.limits.maxRoomLifetimeMs
+    await Promise.all(
+      [...this.rooms.values()].map(room => {
+        if (expired(room)) this.cancelLaunch(room)
+        return this.enqueue(room, async () => {
+          if (expired(room)) {
+            await this.close(room, 'ROOM_EXPIRED')
+            return
+          }
+          for (const [seat, disconnectedAt] of room.disconnected) {
+            if (now - disconnectedAt < this.limits.reconnectGraceMs) continue
+            if (room.info.status === 'started') {
+              if (room.info.config.battleMode === 'p2p') await this.close(room, 'PEER_DISCONNECTED')
+            } else await this.remove(room, seat)
+          }
+        }).catch(() => undefined)
+      }),
+    )
+  }
+  async stop() {
+    if (this.closed) return
+    this.closed = true
+    for (const controller of this.matchingControllers) controller.abort(new RoomError('SERVER_STOPPED'))
+    clearInterval(this.cleaner)
+    const rooms = [...this.rooms.values()]
+    for (const room of rooms) this.cancelLaunch(room, 'SERVER_STOPPED')
+    try {
+      await Promise.all([...this.matchmaking.keys()].map(seat => this.cancelQueued(seat)))
+      await Promise.all(rooms.map(room => this.close(room, 'SERVER_STOPPED')))
+      await Promise.allSettled(rooms.map(room => room.pending))
+      await this.matching.catch(() => undefined)
+      for (const connections of this.sockets.values()) for (const socket of connections) socket.disconnect(true)
+      this.sockets.clear()
+      this.seats.clear()
+    } finally {
+      await this.battleWorkers.dispose()
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { Category, EffectTrigger, StackStrategy, type baseMarkId } from '@arcadia-eternity/const'
-import { BaseMark } from '@arcadia-eternity/battle/v4'
+import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   compileEffect,
   defineEffect,
@@ -9,7 +9,7 @@ import {
   checks,
   actions,
   ops,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 import { createOfficialWaterShieldCandidate } from './shield'
 
 export function createWaterShieldDestruction(amplification: BaseMark) {

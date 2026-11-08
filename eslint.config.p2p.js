@@ -1,0 +1,25 @@
+import { sharedConfig } from './eslint.config.js'
+
+export default [
+  {
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/*.d.ts',
+      '**/design/**',
+      '**/rolldown.config.*',
+      '**/vitest.config.*',
+    ],
+  },
+  ...sharedConfig,
+  {
+    files: ['packages/p2p-transport/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ['./packages/p2p-transport/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+]

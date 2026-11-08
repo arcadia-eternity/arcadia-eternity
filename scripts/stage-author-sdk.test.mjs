@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,6 +12,13 @@ import { stageAuthorSdk } from './stage-author-sdk.mjs'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const exec = promisify(execFile)
 const cache = process.env.ARCADIA_SDK_INTEGRATION_CACHE
+const semver = createRequire(join(root, 'packages/pack-loader/package.json'))('semver')
+
+function entryPaths(value) {
+  if (typeof value === 'string') return [value]
+  if (value && typeof value === 'object') return Object.values(value).flatMap(entryPaths)
+  return []
+}
 
 test(
   'local author SDK preserves package identity',
@@ -20,6 +28,7 @@ test(
     try {
       const bundle = join(temporary, 'sdk')
       const index = await stageAuthorSdk(bundle)
+      const versions = new Map(index.packages.map(pkg => [pkg.name, pkg.version]))
       assert.equal(index.releaseReady, false)
       assert.equal(index.sdkApi, 2)
       assert.match(index.build.coreBuildId, /^[a-f0-9]{64}$/)
@@ -45,8 +54,17 @@ test(
         assert.equal(metadata.name, pkg.name)
         assert.equal(metadata.version, pkg.version)
         assert.equal(metadata.private, true)
-        assert.ok(!JSON.stringify(metadata.dependencies).includes('workspace:'))
-        assert.ok(!JSON.stringify(metadata.dependencies).includes('catalog:'))
+        for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+          for (const [name, spec] of Object.entries(metadata[section] ?? {})) {
+            assert.doesNotMatch(spec, /^(workspace:|catalog:)/, `${pkg.name}: unresolved ${name} in ${section}`)
+            if (name.startsWith('@arcadia-eternity/')) {
+              assert.ok(versions.has(name), `${pkg.name}: missing SDK dependency ${name} in ${section}`)
+              assert.ok(semver.satisfies(versions.get(name), spec), `${pkg.name}: incompatible ${name} ${spec}`)
+            }
+          }
+        }
+        for (const path of entryPaths([metadata.main, metadata.types, metadata.bin, metadata.exports]))
+          assert.ok(files.includes(`package/${path.replace(/^\.\//, '')}`), `${pkg.name}: missing entry ${path}`)
       }
       await writeFile(join(bundle, 'keep.txt'), 'keep')
       await assert.rejects(stageAuthorSdk(bundle), /already exists/)
@@ -95,13 +113,13 @@ test('development tooling is packaged with its executable and testing entry', as
   const temporary = await mkdtemp(join(tmpdir(), 'arcadia-content-dev-sdk-'))
   try {
     const index = await stageAuthorSdk(join(temporary, 'sdk'))
-    assert.equal(index.packages.length, 7)
     const tool = index.packages.find(pkg => pkg.name === '@arcadia-eternity/content-dev')
     assert.ok(tool)
     const archive = join(temporary, 'sdk', tool.filename)
     const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)
     const files = (await exec('tar', ['-tzf', archive])).stdout.split('\n')
     assert.equal(metadata.bin['arcadia-content'], './dist/cli.mjs')
+    assert.equal(metadata.exports['./testing'], './dist/testing.mjs')
     assert.ok(files.includes('package/dist/cli.mjs'))
     assert.ok(files.includes('package/dist/testing.mjs'))
     assert.ok(!files.some(file => /package\/test\//.test(file)))

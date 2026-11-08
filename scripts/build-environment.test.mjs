@@ -7,8 +7,8 @@ import { identifyBaseEnvironmentArtifact } from './build-base-environment.mjs'
 
 /** Compile a real registered capability; the identifier stays fixed while semantics change. */
 async function capabilityArtifact({ amountMaximum = 100, multiplier = 1 } = {}) {
-  const behavior = fileURLToPath(new URL('../packages/battle/src/v4/content/behaviors.ts', import.meta.url))
-  const authoring = fileURLToPath(new URL('../packages/battle/src/v4/content/authoring/index.ts', import.meta.url))
+  const behavior = fileURLToPath(new URL('../packages/battle/src/engine/content/behaviors.ts', import.meta.url))
+  const authoring = fileURLToPath(new URL('../packages/battle/src/engine/content/authoring/index.ts', import.meta.url))
   const entry = '\0trusted-capability-identity-test'
   const bundle = await rolldown({
     input: entry,

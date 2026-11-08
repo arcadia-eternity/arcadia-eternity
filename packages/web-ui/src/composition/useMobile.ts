@@ -53,11 +53,3 @@ export function useMobile() {
     isLandscape,
   }
 }
-
-// 导出全局清理函数（可在App.vue中调用）
-export function cleanupMobileListener() {
-  if (typeof window !== 'undefined' && isListenerAdded) {
-    window.removeEventListener('resize', handleResize)
-    isListenerAdded = false
-  }
-}

@@ -17,12 +17,12 @@ import {
   parameterAddress,
   setGlobalLogger,
   type Battle,
-} from '@arcadia-eternity/battle/v4'
-import { prepareSandboxContent, ArenaEffectModule } from '@arcadia-eternity/battle/v4/sandbox/effects'
+} from '@arcadia-eternity/battle/engine'
+import { prepareSandboxContent, ArenaEffectModule } from '@arcadia-eternity/battle/sandbox/effects'
 import { inspectNpmProject } from '../src/npm/inspect'
 import { prepareNpmProject, type NpmContentHost } from '../src/npm/prepare'
 import { workRef } from '../src/works'
-import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/v4/sandbox/node'
+import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 
 const exec = promisify(execFile)
 vi.setConfig({ testTimeout: 30000 })

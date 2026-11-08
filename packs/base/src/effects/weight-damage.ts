@@ -6,7 +6,7 @@ import {
   defineEffect,
   ops,
   targets,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 
 /** Read computed weight when the action runs; do not capture an instance or install a binding. */
 export function createWeightDamageEffects() {

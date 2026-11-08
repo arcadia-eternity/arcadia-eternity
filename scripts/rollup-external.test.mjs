@@ -15,7 +15,7 @@ test('resolved Windows drive and UNC paths stay internal, package imports stay e
     String.fromCharCode(0) + 'effect-module:official',
   ])
     assert.equal(isExternalDependency(id), false, id)
-  for (const id of ['node:fs', 'rolldown', '@arcadia-eternity/battle/v4', 'pg'])
+  for (const id of ['node:fs', 'rolldown', '@arcadia-eternity/battle/engine', 'pg'])
     assert.equal(isExternalDependency(id), true, id)
 })
 

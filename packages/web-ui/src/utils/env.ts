@@ -7,16 +7,3 @@ export function getDesktopApi(): ArcadiaDesktopApi | null {
 
 export const isDesktop = getDesktopApi() !== null
 export const isStaticMode = import.meta.env.VITE_STATIC_MODE === '1'
-
-export function onDesktop<T>(cb: () => T) {
-  if (isDesktop) return cb()
-}
-
-export function onWeb<T>(cb: () => T) {
-  if (!isDesktop) return cb()
-}
-
-export function runInEnv<T>(implementations: { desktop: () => T; web: () => T }): T {
-  if (isDesktop) return implementations.desktop()
-  return implementations.web()
-}

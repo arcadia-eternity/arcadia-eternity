@@ -83,6 +83,27 @@ function stubClient(serverId: string, handler?: Handler) {
 }
 
 describe('management console target isolation', () => {
+  it('renews an expired session during refresh without a login screen', async () => {
+    let expired = false
+    const a = stubClient('renew', async (_method, path) => {
+      if (path === '/capabilities' && expired) throw new ManagementError('MANAGEMENT_UNAUTHENTICATED', 'expired', 401)
+      if (path === '/session') throw new ManagementError('MANAGEMENT_UNAUTHENTICATED', 'expired', 401)
+      if (path === '/session/refresh') {
+        expired = false
+        return { csrfToken: 'renewed', principalId: 'owner' }
+      }
+      return rows('renew', path)
+    })
+    const state = useManagementConsole()
+    state.setClient(a.client)
+    await state.refresh()
+    expired = true
+    await state.refresh()
+    expect(state.loginRequired.value).toBe(false)
+    expect(state.capabilities.value?.serverId).toBe('renew')
+    expect(a.setCsrfToken).toHaveBeenCalledWith('renewed')
+  })
+
   it('reads bounded operational pages and clears them when the management target changes', async () => {
     const cap = capabilities('a')
     cap.supportedFeatures.push('server.players', 'server.battles', 'audit')

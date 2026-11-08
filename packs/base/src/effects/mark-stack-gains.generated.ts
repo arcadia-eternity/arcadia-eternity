@@ -9,7 +9,7 @@ import {
   ops,
   actions,
   type EffectFrame,
-} from '@arcadia-eternity/battle/v4/authoring'
+} from '@arcadia-eternity/battle/authoring'
 export function createGeneratedMarkStackGains() {
   return Object.freeze({
     effect_mark_add_stack_on_turn_end: compileEffect(

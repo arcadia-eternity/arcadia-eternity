@@ -2,7 +2,7 @@ import { expect, test } from 'playwright/test'
 import { mkdir, writeFile, rm } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createSingleProcessApp } from '../../server/src/standalone/app'
+import { createSingleProcessApp } from '../../server/src/runtime/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 
 test('the encyclopedia shares one prepared catalog and leaves runtime materials for battle', async ({

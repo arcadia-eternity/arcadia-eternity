@@ -22,9 +22,9 @@ try {
       {
         name: 'native-pack-boundary',
         resolveId(id) {
-          if (id === '@arcadia-eternity/battle/v4') return resolve('packages/battle/v4.ts')
-          if (id === '@arcadia-eternity/battle/v4/authoring') return resolve('packages/battle/v4-authoring.ts')
-          if (id === '@arcadia-eternity/battle/v4/host') return resolve('packages/battle/v4-host.ts')
+          if (id === '@arcadia-eternity/battle/engine') return resolve('packages/battle/engine.ts')
+          if (id === '@arcadia-eternity/battle/authoring') return resolve('packages/battle/authoring.ts')
+          if (id === '@arcadia-eternity/battle/host') return resolve('packages/battle/host.ts')
           if (id === '@arcadia-eternity/data-pack-base/effects') return resolve('packs/base/effects.ts')
         },
         moduleParsed(info) {
@@ -104,7 +104,7 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
   }
   if (process.argv.includes('--browser')) {
     const chrome =
-      process.env.BATTLE_V1_CHROME ??
+      process.env.BATTLE_CHROME ??
       (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
     const { stdout } = await promisify(execFile)(
       chrome,

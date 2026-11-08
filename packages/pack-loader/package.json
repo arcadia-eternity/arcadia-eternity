@@ -37,7 +37,8 @@
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly",
     "test:run": "vitest run --maxWorkers=1",
-    "generate:lockfile": "pnpm run build && node dist/generate-pack-lockfile.js"
+    "generate:lockfile": "pnpm run build && node dist/generate-pack-lockfile.js",
+    "typecheck": "pnpm exec tsgo --noEmit"
   },
   "keywords": [],
   "author": "yuuinih",

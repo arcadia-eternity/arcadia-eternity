@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 
-export type PreparationState = 'pending' | 'loading' | 'ready' | 'degraded' | 'error'
+type PreparationState = 'pending' | 'loading' | 'ready' | 'degraded' | 'error'
 export interface PreparationTask {
   id: string
   label: string

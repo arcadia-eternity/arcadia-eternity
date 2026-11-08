@@ -1,7 +1,7 @@
 import { IntlMessageFormat, type PrimitiveType, type FormatXMLElementFn } from 'intl-messageformat'
 import { h, type VNode } from 'vue'
 
-/** Shared palette: follow the fixed color convention in docs/v4/content-presentation.md. */
+/** Shared palette: follow the fixed color convention in docs/guides/content-presentation.md. */
 export const descriptionStyles: Record<string, string> = {
   markName: 'text-cyan-700 dark:text-cyan-300',
   status: 'text-orange-700 dark:text-orange-300',

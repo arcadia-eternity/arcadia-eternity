@@ -19,7 +19,7 @@ export interface ProjectTeamDraft {
   selected: [string, string]
   names: [string, string]
 }
-export interface ProjectTeamFiles {
+interface ProjectTeamFiles {
   save(input: { document: TeamDocument; expectedVersion: string | null }): Promise<ProjectTeam>
   remove(input: { id: string; expectedVersion: string }): Promise<void>
 }
