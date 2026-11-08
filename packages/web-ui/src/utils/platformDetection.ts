@@ -9,7 +9,7 @@ const result = parser.getResult()
 /**
  * Detects the user's operating system platform using ua-parser-js.
  */
-export function detectPlatform(): Platform {
+function detectPlatform(): Platform {
   const osName = result.os.name
   if (typeof osName === 'string') {
     const lowerOsName = osName.toLowerCase()
@@ -30,7 +30,7 @@ export function detectPlatform(): Platform {
 /**
  * Detects the user's processor architecture using ua-parser-js.
  */
-export function detectArchitecture(): Architecture {
+function detectArchitecture(): Architecture {
   // The `cpu.architecture` property provides the architecture name.
   const arch = result.cpu.architecture
   switch (arch) {
@@ -53,7 +53,7 @@ export function detectArchitecture(): Architecture {
 /**
  * 获取推荐的下载格式
  */
-export function getRecommendedFormat(platform: Platform): WindowsFormat | MacOSFormat {
+function getRecommendedFormat(platform: Platform): WindowsFormat | MacOSFormat {
   switch (platform) {
     case 'windows':
       // NSIS 安装包更常用，体积更小
@@ -68,7 +68,7 @@ export function getRecommendedFormat(platform: Platform): WindowsFormat | MacOSF
 /**
  * 检测是否为移动设备
  */
-export function isMobileDevice(): boolean {
+function isMobileDevice(): boolean {
   const userAgent = navigator.userAgent.toLowerCase()
   const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone', 'opera mini']
 
@@ -111,21 +111,6 @@ export function getPlatformDisplayName(platform: Platform, architecture?: Archit
       return `Linux ${architecture === 'x64' ? '64-bit' : '32-bit'}`
     default:
       return 'Unknown Platform'
-  }
-}
-
-/**
- * 获取架构的显示名称
- */
-export function getArchitectureDisplayName(architecture: Architecture): string {
-  switch (architecture) {
-    case 'x64':
-      return 'Intel/AMD 64-bit'
-    case 'aarch64':
-    case 'arm64':
-      return 'ARM 64-bit'
-    default:
-      return 'Unknown Architecture'
   }
 }
 
@@ -174,7 +159,7 @@ export function getFormatInfo(format: WindowsFormat | MacOSFormat): {
 /**
  * 检测浏览器信息
  */
-export function getBrowserInfo(): { name: string; version: string; engine: string } {
+function getBrowserInfo(): { name: string; version: string; engine: string } {
   const userAgent = navigator.userAgent
 
   // Chrome
@@ -259,7 +244,7 @@ export function detectRegion(): string {
 /**
  * 检测系统主题偏好
  */
-export function getSystemTheme(): 'light' | 'dark' | 'auto' {
+function getSystemTheme(): 'light' | 'dark' | 'auto' {
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark'
   }
@@ -269,7 +254,7 @@ export function getSystemTheme(): 'light' | 'dark' | 'auto' {
 /**
  * 获取系统语言偏好
  */
-export function getSystemLanguage(): string {
+function getSystemLanguage(): string {
   return navigator.language || navigator.languages?.[0] || 'en-US'
 }
 

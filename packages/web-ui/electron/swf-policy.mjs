@@ -1,5 +1,5 @@
 export const PLAYER_URL = 'arcadia-swf://player/swf-player.html'
-export const STATES = [
+const STATES = [
   '待机',
   '物理攻击',
   '属性攻击',
@@ -19,7 +19,7 @@ export const STATES = [
 export function validInstance(x) {
   return typeof x === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(x)
 }
-export function validEnvelope(x) {
+function validEnvelope(x) {
   return (
     x &&
     typeof x === 'object' &&
@@ -33,7 +33,7 @@ export function validEnvelope(x) {
     Object.keys(x).length <= 9
   )
 }
-export function validBytes(x) {
+function validBytes(x) {
   if (!(x instanceof ArrayBuffer) || x.byteLength < 8 || x.byteLength > 16 * 1024 * 1024) return false
   const a = new Uint8Array(x, 0, 8)
   return (

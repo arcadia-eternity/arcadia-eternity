@@ -2,7 +2,7 @@ import { Value } from '@sinclair/typebox/value'
 import { SpeciesSchema, SkillSchema, MarkSchema } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 
-export const CONTENT_NAMESPACES = ['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'] as const
+const CONTENT_NAMESPACES = ['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'] as const
 const HASH = /^[a-f0-9]{64}$/
 const identifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 256

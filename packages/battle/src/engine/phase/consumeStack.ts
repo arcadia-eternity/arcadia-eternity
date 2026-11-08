@@ -38,7 +38,7 @@ export class ConsumeStackPhase extends SynchronousPhase<ConsumeStackContext> {
  * Extracted consume stack operation logic
  * This function contains the core stack consumption logic, replacing MarkInstance.consumeStack
  */
-export function executeConsumeStackOperation(context: ConsumeStackContext, battle: Battle): number {
+function executeConsumeStackOperation(context: ConsumeStackContext, battle: Battle): number {
   const mark = context.mark
 
   // Check if mark is active

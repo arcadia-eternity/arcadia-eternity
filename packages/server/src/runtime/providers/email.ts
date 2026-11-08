@@ -30,7 +30,7 @@ const MAX_PENDING = 10_000
 const MAX_RATE_KEYS = 50_000
 
 /** ASCII dot-atom mailboxes only. The local part retains case; only DNS names are folded. */
-export function normalizeEmail(value: string): string {
+function normalizeEmail(value: string): string {
   if (typeof value !== 'string' || value.length > 254 || value.trim() !== value)
     throw new ProviderError('INVALID_EMAIL', 400)
   const at = value.indexOf('@')

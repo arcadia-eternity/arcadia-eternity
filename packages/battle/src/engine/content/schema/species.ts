@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ElementSchema } from './element'
 
-export const LearnableSkillSchema = z.object({
+const LearnableSkillSchema = z.object({
   skill_id: z.string(),
   level: z.number(),
   hidden: z.boolean(),
@@ -30,11 +30,3 @@ export const SpeciesSchema = z.object({
   ability: z.array(z.string()),
   emblem: z.array(z.string()),
 })
-
-export type LearnableSkill = z.infer<typeof LearnableSkillSchema>
-
-export type SpeciesSchemaType = z.infer<typeof SpeciesSchema>
-
-export const SpeciesDataSetSchema = z.array(SpeciesSchema)
-
-export type SpeciesDataSet = z.infer<typeof SpeciesDataSetSchema>

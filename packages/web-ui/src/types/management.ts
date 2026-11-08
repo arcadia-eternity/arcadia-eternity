@@ -8,8 +8,6 @@ export type {
   ManagedEnvironmentDocument,
   ManagedEnvironment,
   ManagedEnvironmentVersion,
-  ManagedReadyEnvironmentVersion,
-  ManagedUnavailableEnvironmentVersion,
   ManagedBinding,
   ManagementOperation,
   ManagementGrant,

@@ -1,13 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type { DurableStorage, StoredRecord } from '@arcadia-eternity/database'
 
-export type OperationStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted'
-export interface OperationProgress {
+type OperationStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted'
+interface OperationProgress {
   stage: string
   completed?: number
   total?: number
 }
-export interface OperationFailure {
+interface OperationFailure {
   code: string
   message: string
   retryable: boolean

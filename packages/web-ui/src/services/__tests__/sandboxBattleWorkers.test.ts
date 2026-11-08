@@ -1,7 +1,9 @@
+import { browserSandboxStartup } from '@arcadia-eternity/battle/sandbox'
 import { afterEach, expect, it, vi } from 'vitest'
 
 const mocked = vi.hoisted(() => ({ dispose: vi.fn(async () => {}), manager: vi.fn() }))
-vi.mock('@arcadia-eternity/battle/sandbox', () => ({
+vi.mock('@arcadia-eternity/battle/sandbox', async importOriginal => ({
+  ...(await importOriginal<typeof import('@arcadia-eternity/battle/sandbox')>()),
   BattleWorkerManager: class {
     dispose = mocked.dispose
     constructor(...args: unknown[]) {
@@ -29,6 +31,7 @@ it('shares the configured browser pool and disposes it on page exit', async () =
     maxIdleWorkers: 1,
     maxQueuedBattles: 4,
     queueTimeoutMs: 30_000,
+    initializeMs: browserSandboxStartup.initializeMs,
     reuseWorkers: true,
     vmGrouping: 'package',
   })

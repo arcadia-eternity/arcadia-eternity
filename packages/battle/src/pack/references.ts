@@ -74,7 +74,7 @@ interface PackPackageJsonLike {
 
 const requireFromLoader = createRequire(import.meta.url)
 
-export async function resolvePackReference(packRef?: string): Promise<string | undefined> {
+async function resolvePackReference(packRef?: string): Promise<string | undefined> {
   if (!packRef || packRef.trim().length === 0) return undefined
   const ref = packRef.trim()
   if (ref === 'builtin:workspace') {

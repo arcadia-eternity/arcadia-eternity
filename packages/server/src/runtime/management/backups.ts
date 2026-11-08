@@ -18,14 +18,14 @@ export interface ManagementBackupsOptions {
   ttlMs?: number
   now?: () => number
 }
-export interface BackupDownloadResult {
+interface BackupDownloadResult {
   downloadPath: string
   filename: string
   bytes: number
   expiresAt: number
   sha256: string
 }
-export class ManagementBackupError extends Error {
+class ManagementBackupError extends Error {
   constructor(
     readonly code: string,
     readonly status = 422,

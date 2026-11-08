@@ -32,7 +32,7 @@ const allowedMime = new Set([
 ])
 type PersonalRules = NonNullable<PersonalEnvironmentReference['rules']>
 type PersonalSource = PersonalEnvironmentReference['source']
-export interface PersonalEnvironmentAsset {
+interface PersonalEnvironmentAsset {
   id: string
   mime: string
   data: string

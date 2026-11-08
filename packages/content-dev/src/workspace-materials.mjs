@@ -4,9 +4,9 @@ import { dirname, isAbsolute, join, relative } from 'node:path'
 export function contentError(code, message = code) {
   return Object.assign(new Error(message), { code })
 }
-export const materialRoots = new Set(['package.json', 'package-lock.json', 'node_modules', 'candidates'])
+const materialRoots = new Set(['package.json', 'package-lock.json', 'node_modules', 'candidates'])
 const forbidden = new Set(['.git', '.env', '.npmrc', '.arcadia', '.bin'])
-export function checkedMaterialPath(value) {
+function checkedMaterialPath(value) {
   if (typeof value !== 'string' || !value || value.includes('\\') || value.includes('\0') || isAbsolute(value))
     throw contentError('MATERIAL_PATH_INVALID')
   const parts = value.split('/')

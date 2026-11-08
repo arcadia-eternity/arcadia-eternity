@@ -1,6 +1,5 @@
 /** Cosmetic playback only. Never feed these events into the battle protocol. */
-export const SWF_VERSION = 1
-export const SWF_MAX_BYTES = 16 * 1024 * 1024
+const SWF_MAX_BYTES = 16 * 1024 * 1024
 export const SWF_STATES = [
   '待机',
   '物理攻击',
@@ -27,7 +26,7 @@ export interface SwfBounds {
   width: number
   height: number
 }
-export interface SwfEnvelope {
+interface SwfEnvelope {
   v: 1
   instance: string
   task: number
@@ -65,9 +64,9 @@ export interface SwfFrameAck {
   task: number
   frame: number
 }
-export const SWF_FRAME_MAX_DIMENSION = 2048
-export const SWF_FRAME_MAX_PIXELS = 2097152
-export const SWF_FRAME_MAX_BYTES = 8 * 1024 * 1024
+const SWF_FRAME_MAX_DIMENSION = 2048
+const SWF_FRAME_MAX_PIXELS = 2097152
+const SWF_FRAME_MAX_BYTES = 8 * 1024 * 1024
 export function validSwfFrameIdentity(value: unknown): value is SwfFrameAck & Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const x = value as Record<string, unknown>
@@ -115,7 +114,7 @@ export interface SwfPlayer {
   dispose(): void
 }
 export type SwfEventHandler = (event: SwfEvent) => void
-export function validEnvelope(value: unknown): value is SwfEnvelope & Record<string, unknown> {
+function validEnvelope(value: unknown): value is SwfEnvelope & Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const x = value as Record<string, unknown>
   return (

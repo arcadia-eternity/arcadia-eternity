@@ -10,7 +10,7 @@ import type {
 import { ManagementAuth, managementScopeKey, type ManagementActor, type ManagementScope } from './auth'
 import { OperationService, type Operation } from './operations'
 
-export type TransferWorkspace = Pick<
+type TransferWorkspace = Pick<
   ContentWorkspace,
   | 'workspaceId'
   | 'exportVersion'
@@ -39,7 +39,7 @@ export interface TransferDownload {
   bytes: number
   release(): Promise<void>
 }
-export class ManagementTransferError extends Error {
+class ManagementTransferError extends Error {
   constructor(
     readonly code: string,
     readonly status = 422,

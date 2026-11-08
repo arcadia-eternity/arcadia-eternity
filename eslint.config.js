@@ -84,7 +84,6 @@ export default tseslint.config(
       'packages/*/index.ts',
       'packages/*/test/**',
       'packages/web-ui/**',
-      'packages/p2p-transport/**',
       'packages/engine-plugins/**/index.ts',
       'packages/database/scripts/**',
       'packages/schema/examples/**',

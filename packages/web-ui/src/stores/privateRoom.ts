@@ -1517,7 +1517,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
                 type: 'error',
                 showClose: false,
               })
-            } catch (error) {
+            } catch {
               // 用户可能直接关闭了对话框，继续执行后续逻辑
             }
 
@@ -1648,7 +1648,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         initializeSelectedTeam()
       }
       return roomInfo
-    } catch (err) {
+    } catch {
       return null
     }
   }

@@ -1,4 +1,4 @@
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { nanoid } from 'nanoid'
 import { parse } from 'yaml'
@@ -8,7 +8,7 @@ import { Gender } from '@arcadia-eternity/const'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
 
-export interface ContextMenuItem {
+interface ContextMenuItem {
   label: string
   iconPath: string
   action: () => void
@@ -114,7 +114,7 @@ export function usePetManagement() {
       }
 
       input.click()
-    } catch (err) {
+    } catch {
       ElMessage.error('导入过程中发生错误')
     }
   }
@@ -206,7 +206,7 @@ export function usePetManagement() {
       } else {
         ElMessage.error('移动精灵失败，请重试')
       }
-    } catch (error) {
+    } catch {
       ElMessage.error('移动精灵失败，请重试')
     }
   }

@@ -24,11 +24,7 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/const": "workspace:^",
-    "@arcadia-eternity/protocol": "workspace:^",
-    "@arcadia-eternity/schema": "workspace:^",
-    "nanoid": "catalog:",
-    "socket.io-client": "catalog:"
+    "@arcadia-eternity/const": "workspace:^"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",

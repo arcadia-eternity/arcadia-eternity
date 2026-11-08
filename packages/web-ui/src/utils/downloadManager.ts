@@ -147,7 +147,7 @@ export class DownloadManager {
     if (!source || !source.checkUrl) return true
 
     try {
-      const response = await fetch(source.checkUrl, {
+      await fetch(source.checkUrl, {
         method: 'HEAD',
         mode: 'no-cors',
         cache: 'no-cache',

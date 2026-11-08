@@ -3,8 +3,8 @@ import { extname, join, relative } from 'node:path'
 import YAML from 'yaml'
 import { isDeepStrictEqual } from 'node:util'
 
-export const contentKinds = ['species', 'skills', 'marks', 'behaviors']
-export const sourceKinds = [...contentKinds, 'presentations', 'resources']
+const contentKinds = ['species', 'skills', 'marks', 'behaviors']
+const sourceKinds = [...contentKinds, 'presentations', 'resources']
 
 async function filesIn(directory) {
   let entries

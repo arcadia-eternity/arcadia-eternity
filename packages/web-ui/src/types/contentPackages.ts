@@ -54,17 +54,6 @@ export interface ContentLibrarySnapshot {
   serviceStatus: LocalBattleHostStatus
   serviceNeedsRestart: boolean
 }
-export type ContentPackagePlan =
-  | { id: string; kind: 'install'; package: InstalledContentPackage; requiresApproval: boolean }
-  | {
-      id: string
-      kind: 'selection'
-      ids: string[]
-      graph: PackageGraphEntry[]
-      contentIds: ContentIds
-      newDependencies: PackageGraphEntry[]
-      requiresApproval: boolean
-    }
 export type ContentPackageAction =
   | { action: 'cancel-install' | 'retry-install'; operationId: string }
   | { action: 'clear-install-tasks' }

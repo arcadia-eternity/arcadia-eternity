@@ -1,3 +1,4 @@
+import { webSocketText } from './webSocketData'
 import WebSocket from 'ws'
 import type {
   PeerTransportConnectOptions,
@@ -48,7 +49,7 @@ export class WebSocketPeerTransport implements SignalingPeerTransport {
 
     this.socket = new WebSocket(wsUrl)
     this.socket.on('message', data => {
-      const raw = typeof data === 'string' ? data : data.toString()
+      const raw = webSocketText(data)
       const parsed = JSON.parse(raw) as PeerTransportMessage
       this.messageHandlers.forEach(handler => handler(parsed))
     })

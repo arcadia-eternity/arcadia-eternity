@@ -48,7 +48,7 @@ export interface InstalledNpmPackage {
   officialHost?: string
   catalogIds?: Record<'species' | 'skills' | 'marks', string[]>
 }
-export interface NpmContentMember {
+interface NpmContentMember {
   name: string
   version: string
   projectId: string

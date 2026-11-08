@@ -32,7 +32,6 @@
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/content-dev": "workspace:^",
     "@arcadia-eternity/data-pack-base": "workspace:^",
-    "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",

@@ -27,7 +27,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@arcadia-eternity/battle": "workspace:^",
     "ws": "^8.19.0"
   },
   "devDependencies": {

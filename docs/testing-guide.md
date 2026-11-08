@@ -77,8 +77,16 @@ node --test packages/web-ui/electron/test/*.test.mjs
 
 ## 全仓检查与维护
 
-`pnpm test` 先通过 `test:prepare` 构建全部工作区包及根 CLI，再执行类型检查汇总和各包的 `test:run`；`pnpm test:types`、`pnpm test:run` 和 `pnpm test:watch` 可分别运行。单独运行 `test:run` 前需要准备依赖和产物。`pnpm typecheck` 递归执行 `packages/*`、`packs/*` 的统一 `typecheck`，再检查根 CLI；内容开发工具的该命令检查公开 `.d.mts` 声明，JavaScript 运行逻辑由 Node 测试覆盖。`pnpm lint` 汇总工作区源码、战斗、服务端和网页检查。各专项命令也可以独立运行。新增或移除入口时同步对应脚本、本指南和 CI。
+`pnpm test` 先通过 `test:prepare` 构建全部工作区包及根 CLI，再执行类型检查汇总和各包的 `test:run`；`pnpm test:types`、`pnpm test:run` 和 `pnpm test:watch` 可分别运行。单独运行 `test:run` 前需要准备依赖和产物。`pnpm typecheck` 递归执行 `packages/*`、`packs/*` 的统一 `typecheck`，再检查根 CLI；内容开发工具的该命令检查公开 `.d.mts` 声明，JavaScript 运行逻辑由 Node 测试覆盖。`pnpm lint` 汇总工作区源码、战斗、服务端、P2P、网页和 Knip 检查。各专项命令也可以独立运行。新增或移除入口时同步对应脚本、本指南和 CI。
 
 构建配置与测试检查分别维护：战斗、服务端的 `tsconfig.json` 收集包入口和完整 `src`，`tsconfig.test.json` 额外递归收集 `test`，并关闭产物输出。战斗仅保留一个 Vitest 配置，递归收集 `test`。网页的 `tsconfig.app.json`、`tsconfig.node.json` 分别覆盖应用和工具配置，`tsconfig.test.json` 覆盖应用及全部单元测试；`typecheck:web` 顺序运行这些检查。
 
 ESLint 的基础规则由根配置导出，战斗与服务端配置显式选择各自的 TypeScript 项目。专项 lint 按完整包目录收集文件，排除生成产物、构建配置和独立设计实验；不再维护按文件枚举的检查名单。引擎原有规则例外集中保留，宿主、sandbox 和测试使用共享规则。
+
+## 静态质量检查
+
+- `pnpm lint`：执行根工作区、battle、server、P2P、网页的 ESLint，以及 Knip。
+- `pnpm knip` / `pnpm lint:unused`：检查未使用文件、导出、类型、依赖，以及未声明依赖和无法解析的导入。
+- `pnpm --filter @arcadia-eternity/web-ui lint:fix`：显式执行网页代码自动修复；常规 lint 不写文件。
+
+Knip 配置在 `knip.jsonc`。新增 CLI 子进程入口、Electron preload、独立内容模板时应登记实际入口，不要将整个源码目录标为入口。发布包的公共入口导出默认保留；枚举成员和命名常量的重复值不作为删除依据。动态构建用途的例外有具体说明：Ruffle 静态复制、Electron rebuild、桌面内置 npm，以及从其他工作区解析的打包工具。不要用全局忽略或成功退出码掩盖新的告警。

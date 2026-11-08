@@ -14,7 +14,7 @@ export type ModifierEffectType =
 /**
  * 样式配置接口
  */
-export interface ModifierStyleConfig {
+interface ModifierStyleConfig {
   textColor: string
   description: string
 }
@@ -22,7 +22,7 @@ export interface ModifierStyleConfig {
 /**
  * Modifier 样式配置
  */
-export const MODIFIER_STYLES: Record<ModifierEffectType, ModifierStyleConfig> = {
+const MODIFIER_STYLES: Record<ModifierEffectType, ModifierStyleConfig> = {
   none: {
     textColor: 'text-white',
     description: '无修改器效果',
@@ -52,7 +52,7 @@ export const MODIFIER_STYLES: Record<ModifierEffectType, ModifierStyleConfig> = 
 /**
  * 属性评估策略类型
  */
-export type AttributeEvaluationStrategy = 'benefit' | 'cost'
+type AttributeEvaluationStrategy = 'benefit' | 'cost'
 
 /**
  * 属性策略配置
@@ -189,13 +189,6 @@ export function getModifierClasses(
 }
 
 /**
- * 获取 modifier 描述文本
- */
-export function getModifierDescription(effectType: ModifierEffectType): string {
-  return MODIFIER_STYLES[effectType].description
-}
-
-/**
  * 获取修改器类型的图标
  */
 export function getModifierIcon(modifierType: string): string {
@@ -235,16 +228,6 @@ export function formatModifierValue(modifier: ModifierInfo): string {
     default:
       return String(value)
   }
-}
-
-/**
- * 获取修改器优先级颜色
- */
-export function getPriorityColor(priority: number): string {
-  if (priority >= 10) return 'text-red-500'
-  if (priority >= 5) return 'text-orange-500'
-  if (priority >= 1) return 'text-yellow-500'
-  return 'text-gray-500'
 }
 
 /** Select a numeric attribute from the heterogeneous modifier state received from the battle. */

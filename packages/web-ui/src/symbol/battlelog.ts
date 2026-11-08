@@ -7,4 +7,3 @@ export type TimestampedBattleMessage = BattleMessage & {
 }
 
 export const logMessagesKey: InjectionKey<TimestampedBattleMessage[]> = Symbol('logMessages')
-export const clearLogKey: InjectionKey<() => void> = Symbol('clearLog')

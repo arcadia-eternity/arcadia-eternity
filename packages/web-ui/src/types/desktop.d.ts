@@ -1,4 +1,4 @@
-export interface PackTemplateSummary {
+interface PackTemplateSummary {
   id: string
   name: string
   description: string
@@ -13,14 +13,14 @@ export interface WorkspacePackSummary {
   canDisable: boolean
 }
 
-export interface CreatePackFromTemplateInput {
+interface CreatePackFromTemplateInput {
   folderName: string
   packId?: string
   version?: string
   template?: string
 }
 
-export interface CreatePackFromTemplateResult {
+interface CreatePackFromTemplateResult {
   folderName: string
   packId: string
   version: string
@@ -28,102 +28,102 @@ export interface CreatePackFromTemplateResult {
   createdFiles: string[]
 }
 
-export interface SetWorkspacePackEnabledInput {
+interface SetWorkspacePackEnabledInput {
   folderName: string
   enabled: boolean
 }
 
-export interface SetWorkspacePackEnabledResult {
+interface SetWorkspacePackEnabledResult {
   folderName: string
   enabled: boolean
 }
 
-export interface ReadWorkspacePackManifestInput {
+interface ReadWorkspacePackManifestInput {
   folderName: string
 }
 
-export interface ReadWorkspacePackManifestResult {
-  folderName: string
-  manifest: Record<string, unknown>
-}
-
-export interface WriteWorkspacePackManifestInput {
+interface ReadWorkspacePackManifestResult {
   folderName: string
   manifest: Record<string, unknown>
 }
 
-export interface ReadWorkspacePackFileInput {
+interface WriteWorkspacePackManifestInput {
+  folderName: string
+  manifest: Record<string, unknown>
+}
+
+interface ReadWorkspacePackFileInput {
   folderName: string
   relativePath: string
 }
 
-export interface ReadWorkspacePackFileResult {
+interface ReadWorkspacePackFileResult {
   folderName: string
   relativePath: string
   content: string
 }
 
-export interface WriteWorkspacePackFileInput {
+interface WriteWorkspacePackFileInput {
   folderName: string
   relativePath: string
   content: string
 }
 
-export interface WriteWorkspacePackFileResult {
+interface WriteWorkspacePackFileResult {
   folderName: string
   relativePath: string
 }
 
-export interface CreateWorkspacePackFolderInput {
+interface CreateWorkspacePackFolderInput {
   folderName: string
   relativePath: string
 }
 
-export interface CreateWorkspacePackFolderResult {
+interface CreateWorkspacePackFolderResult {
   folderName: string
   relativePath: string
 }
 
-export interface RenameWorkspacePackPathInput {
+interface RenameWorkspacePackPathInput {
   folderName: string
   oldRelativePath: string
   newRelativePath: string
 }
 
-export interface RenameWorkspacePackPathResult {
+interface RenameWorkspacePackPathResult {
   folderName: string
   oldRelativePath: string
   newRelativePath: string
 }
 
-export interface DeleteWorkspacePackPathInput {
+interface DeleteWorkspacePackPathInput {
   folderName: string
   relativePath: string
   recursive?: boolean
 }
 
-export interface DeleteWorkspacePackPathResult {
+interface DeleteWorkspacePackPathResult {
   folderName: string
   relativePath: string
 }
 
-export interface WorkspacePackFileEntry {
+interface WorkspacePackFileEntry {
   relativePath: string
   size: number
   ext: string
   isDirectory?: boolean
 }
 
-export interface ListWorkspacePackFilesInput {
+interface ListWorkspacePackFilesInput {
   folderName: string
 }
 
-export interface ListWorkspacePackFilesResult {
+interface ListWorkspacePackFilesResult {
   folderName: string
   files: WorkspacePackFileEntry[]
 }
 
-export interface DesktopUpdateCheckResult {
+interface DesktopUpdateCheckResult {
   hasUpdate: boolean
   version?: string
 }
@@ -223,7 +223,7 @@ export interface ArcadiaDesktopApi {
   showItemInFolder: (path: string) => Promise<void>
 }
 
-export interface ContentProjectPackage {
+interface ContentProjectPackage {
   name: string
   version: string
   location: string

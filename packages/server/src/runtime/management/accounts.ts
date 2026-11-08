@@ -4,7 +4,7 @@ import type { ServerSession } from '@arcadia-eternity/protocol'
 import { SessionRegistry } from '../session'
 import { ManagementAuth, ManagementAuthError, type ManagementActor, type ManagementScope } from './auth'
 
-export class ManagementAccountError extends Error {
+class ManagementAccountError extends Error {
   constructor(
     readonly code: string,
     readonly status: number,

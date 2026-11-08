@@ -40,7 +40,7 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
  * Extracted effect execution operation logic
  * This function contains the core effect execution logic, replacing EffectScheduler.flushEffects
  */
-export function executeEffectExecutionOperation<T extends EffectTrigger>(
+function executeEffectExecutionOperation<T extends EffectTrigger>(
   parentContext: TriggerContextMap[T],
   trigger: T,
   effectContainers: EffectContainer[],
@@ -118,7 +118,7 @@ export function executeEffectExecutionOperation<T extends EffectTrigger>(
  * Helper function to collect effects from containers
  * This replaces the direct effect collection logic
  */
-export function collectEffectsFromContainers<T extends EffectTrigger>(
+function collectEffectsFromContainers<T extends EffectTrigger>(
   trigger: T,
   parentContext: TriggerContextMap[T],
   effectContainers: EffectContainer[],

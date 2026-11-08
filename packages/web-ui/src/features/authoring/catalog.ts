@@ -27,7 +27,7 @@ export function textSource(sources: LocaleSource[], row: SourceRecord, language:
   const matching = known.length === 1 ? candidates.filter(source => source.namespace === known[0]) : candidates
   return matching.length === 1 ? matching[0] : undefined
 }
-export function resourcePaths(value: unknown): string[] {
+function resourcePaths(value: unknown): string[] {
   if (typeof value === 'string') return [value]
   if (Array.isArray(value)) return value.flatMap(resourcePaths)
   if (!object(value) || Object.hasOwn(value, 'namespace')) return []
@@ -57,7 +57,7 @@ export function referenceValue(entry: Json, key: string): Json | undefined {
       ? entry.definitionId
       : entry
 }
-export function references(row: SourceRecord, projectId: string) {
+function references(row: SourceRecord, projectId: string) {
   const found: { kind: string; id: string }[] = []
   if (row.kind === 'presentations') {
     const target = row.record.target
@@ -93,11 +93,6 @@ export function references(row: SourceRecord, projectId: string) {
   visit(row.record)
   return found.filter(
     (target, index) => found.findIndex(other => other.kind === target.kind && other.id === target.id) === index,
-  )
-}
-export function consumers(rows: SourceRecord[], target: { kind: string; id: string }, projectId: string) {
-  return rows.filter(row =>
-    references(row, projectId).some(reference => reference.kind === target.kind && reference.id === target.id),
   )
 }
 

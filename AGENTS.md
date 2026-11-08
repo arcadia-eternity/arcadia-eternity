@@ -72,6 +72,10 @@ pnpm cli server --help
 # Build fresh test artifacts, check types, then run package test:run scripts
 pnpm test
 
+# ESLint scopes and unused code/dependencies
+pnpm lint
+pnpm knip
+
 # All workspace package types plus root CLI type checking
 pnpm test:types
 

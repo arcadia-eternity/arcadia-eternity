@@ -1,6 +1,5 @@
 import pluginVue from 'eslint-plugin-vue'
 import { configureVueProject, defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
-import oxlint from 'eslint-plugin-oxlint'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
 configureVueProject({ rootDir: import.meta.dirname })
@@ -30,7 +29,6 @@ export default defineConfigWithVueTs(
 
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
-  oxlint.configs['flat/recommended'],
   {
     name: 'electron/commonjs-preloads',
     files: ['electron/*preload.cjs'],
@@ -40,6 +38,15 @@ export default defineConfigWithVueTs(
     name: 'app/overrides',
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
       'vue/no-deprecated-filter': 'off',
       'vue/multi-word-component-names': 'off',
     },

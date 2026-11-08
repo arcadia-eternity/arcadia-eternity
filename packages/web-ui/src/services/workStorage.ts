@@ -8,7 +8,7 @@ import {
 } from '@arcadia-eternity/pack-loader/native'
 import { getDesktopApi } from '@/utils/env'
 
-export class BrowserWorkStorage implements WorkStorage {
+class BrowserWorkStorage implements WorkStorage {
   constructor(private readonly name = 'arcadia-creator-works-v1') {}
   private open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {

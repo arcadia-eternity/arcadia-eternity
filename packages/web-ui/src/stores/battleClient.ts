@@ -48,7 +48,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const currentState = computed(() => {
     // 依赖触发器确保响应式更新
 
-    _stateUpdateTrigger.value // 触发依赖追踪
+    void _stateUpdateTrigger.value // 触发依赖追踪
     const state = _instance.value?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
     return state
   })

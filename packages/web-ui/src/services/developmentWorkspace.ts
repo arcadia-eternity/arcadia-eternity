@@ -174,7 +174,7 @@ export class DevelopmentWorkspaceClient {
           mode: 'cors',
           signal: controller.signal,
         })
-      } catch (error) {
+      } catch {
         if (controller.signal.aborted) throw new DOMException('开发请求已取消', 'AbortError')
         throw new DevelopmentWorkspaceError('NETWORK_ERROR', '无法连接本机开发服务')
       }

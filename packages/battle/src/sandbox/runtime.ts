@@ -28,7 +28,7 @@ export interface SandboxRuntimeOptions {
   readonly reuseContent: boolean
   readonly grouping: 'package' | 'environment'
 }
-export const timerEvents = [
+const timerEvents = [
   'timerStart',
   'timerUpdate',
   'timerPause',
@@ -46,7 +46,7 @@ export type SandboxEvent =
   | { readonly kind: 'battle'; readonly subscription: number; readonly message: BattleMessage }
   | { readonly kind: 'timer'; readonly type: keyof Events; readonly data: Events[keyof Events] }
   | { readonly kind: 'input'; readonly data: Parameters<Parameters<LocalBattleSystem['onInputAccepted']>[0]>[0] }
-export const battleMethods = [
+const battleMethods = [
   'ready',
   'getState',
   'getAvailableSelection',

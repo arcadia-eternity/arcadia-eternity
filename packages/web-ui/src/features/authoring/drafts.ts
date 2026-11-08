@@ -6,7 +6,7 @@ import type { AuthorSnapshot, ContentRow, LocaleSource, LocaleText, SharedField,
 
 export const recordKey = (row: Pick<SourceRecord, 'kind' | 'record'>) =>
   JSON.stringify(['record', row.kind, row.record.id])
-export const localeKey = (source: LocaleSource, id: string) =>
+const localeKey = (source: LocaleSource, id: string) =>
   JSON.stringify(['locale', source.language, source.namespace, id])
 export interface DraftSource {
   file: string

@@ -4,11 +4,11 @@ import { ElementSchema } from './element'
 import { Category, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import { AttackTargetOpinion } from '@arcadia-eternity/const'
 
-export const CategorySchema = z.nativeEnum(Category)
+const CategorySchema = z.nativeEnum(Category)
 
-export const AttackTargetOpinionSchema = z.nativeEnum(AttackTargetOpinion)
+const AttackTargetOpinionSchema = z.nativeEnum(AttackTargetOpinion)
 
-export const ignoreStageStrategySchema = z.nativeEnum(IgnoreStageStrategy)
+const ignoreStageStrategySchema = z.nativeEnum(IgnoreStageStrategy)
 
 export const SkillSchema = z.object({
   id: z.string().min(1),
@@ -35,9 +35,3 @@ export const SkillSchema = z.object({
   effect: z.array(z.string()).optional(),
   behaviors: z.array(BehaviorUseSchema).optional(),
 })
-
-export type SkillSchemaType = z.infer<typeof SkillSchema>
-
-export const SkillDataSetSchema = z.array(SkillSchema)
-
-export type SkillDataSet = z.infer<typeof SkillDataSetSchema>

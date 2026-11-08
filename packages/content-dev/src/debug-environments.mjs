@@ -51,7 +51,7 @@ const contentSelection = z
   .strict()
 
 /** Portable rule data. Runtime consumers must explicitly support every declared capability. */
-export const EnvironmentRulesSchema = z
+const EnvironmentRulesSchema = z
   .object({
     schemaVersion: z.literal(1),
     tier: z.string().regex(idPattern).optional(),
@@ -72,7 +72,7 @@ export const EnvironmentRulesSchema = z
   })
   .strict()
 
-export const EnvironmentRequirementsSchema = z
+const EnvironmentRequirementsSchema = z
   .object({
     engine: z.string().trim().min(1).max(128).optional(),
     sdk: z.string().trim().min(1).max(128).optional(),
@@ -80,7 +80,7 @@ export const EnvironmentRequirementsSchema = z
   })
   .strict()
 
-export const EnvironmentDocumentV1Schema = z.object({ schemaVersion: z.literal(1), ...sharedFields }).strict()
+const EnvironmentDocumentV1Schema = z.object({ schemaVersion: z.literal(1), ...sharedFields }).strict()
 export const EnvironmentDocumentV2Schema = z
   .object({
     schemaVersion: z.literal(2),

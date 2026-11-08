@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AnimationTimeoutManager, type TimeoutConfig, type PetSpriteRef } from '../animationTimeout'
-import { AnimationStateMachine, AnimationState } from '../animationStateMachine'
+import { AnimationStateMachine } from '../animationStateMachine'
 import { ActionState } from 'seer2-pet-animator'
 import { Category } from '@arcadia-eternity/const'
 

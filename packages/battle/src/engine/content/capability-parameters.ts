@@ -7,7 +7,7 @@ export interface PublicParameterSlot {
   readonly operations: readonly ConfigModifierType[]
   readonly tags?: readonly string[]
 }
-export interface PublicParameterGroup {
+interface PublicParameterGroup {
   readonly fields: PublicParameterBindings
 }
 export type PublicParameterBindings = Readonly<Record<string, PublicParameterSlot | PublicParameterGroup>>

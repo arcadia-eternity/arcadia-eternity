@@ -14,9 +14,9 @@ interface Member<T> {
   generation: number
   value: T
 }
-export type CaptureState = { anchor: string; value: unknown } | { anchor: string; error: string }
+type CaptureState = { anchor: string; value: unknown } | { anchor: string; error: string }
 export class BindingStateError extends Error {}
-export interface SelectionState {
+interface SelectionState {
   ids: string[]
   generations: number[]
 }

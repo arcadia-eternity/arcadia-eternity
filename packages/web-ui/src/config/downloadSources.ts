@@ -3,7 +3,7 @@ import type { DownloadSourceTemplate, PlatformAssets } from '@/types/download'
 /**
  * 下载源配置模板
  */
-export const downloadSourceTemplates: Record<string, DownloadSourceTemplate> = {
+const downloadSourceTemplates: Record<string, DownloadSourceTemplate> = {
   github: {
     id: 'github',
     name: 'GitHub Releases',
@@ -30,7 +30,7 @@ export const downloadSourceTemplates: Record<string, DownloadSourceTemplate> = {
 /**
  * 默认激活的下载源配置
  */
-export const defaultActiveSources = {
+const defaultActiveSources = {
   production: ['github'],
   development: ['github'],
   china: ['custom-cdn', 'github'],
@@ -40,7 +40,7 @@ export const defaultActiveSources = {
 /**
  * 根据环境获取激活的源
  */
-export function getActiveSourcesForEnvironment(env: string = 'production'): string[] {
+function getActiveSourcesForEnvironment(env: string = 'production'): string[] {
   return defaultActiveSources[env as keyof typeof defaultActiveSources] || defaultActiveSources.production
 }
 

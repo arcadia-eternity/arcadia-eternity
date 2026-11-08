@@ -1,3 +1,4 @@
+import { webSocketText } from './webSocketData'
 import { WebSocketServer, type WebSocket } from 'ws'
 import type { PeerTransportMessage } from './peerTransport'
 
@@ -49,7 +50,7 @@ export class WebSocketRelayServer {
       room.set(peerId, socket)
 
       socket.on('message', data => {
-        const raw = typeof data === 'string' ? data : data.toString()
+        const raw = webSocketText(data)
         const parsed = JSON.parse(raw) as WebSocketRelayEnvelope
         this.forward(roomId, peerId, parsed)
       })

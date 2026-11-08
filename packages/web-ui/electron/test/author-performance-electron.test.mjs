@@ -69,7 +69,7 @@ test(
   'full base catalog switches categories without long main-thread stalls',
   { skip: !enabled, timeout: 120000 },
   async () => {
-    await desktop(async ({ app, page, expect }) => {
+    await desktop(async ({ page, expect }) => {
       await page.goto((process.env.ARCADIA_AUTHOR_TEST_ORIGIN || 'http://127.0.0.1:5183') + '/content')
       await page.getByRole('button', { name: '浏览内容（只读）', exact: true }).click()
       await expect(page.getByRole('heading', { name: '精灵', exact: true })).toBeVisible()

@@ -12,7 +12,7 @@ import { desktopListener } from './desktop-listener.mjs'
 
 const worker = fileURLToPath(new URL('./local-battle-worker.mjs', import.meta.url))
 
-export class LocalBattleHostError extends Error {
+class LocalBattleHostError extends Error {
   constructor(code, message) {
     super(message)
     this.name = 'LocalBattleHostError'

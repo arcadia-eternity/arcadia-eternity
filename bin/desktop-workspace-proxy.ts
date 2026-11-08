@@ -9,7 +9,7 @@ import type {
 } from '@arcadia-eternity/content-dev/management-workspace'
 
 /** This channel is the inherited parent process IPC, never a renderer or HTTP transport. */
-export interface DesktopWorkspaceChannel {
+interface DesktopWorkspaceChannel {
   readonly connected?: boolean
   send(message: object, callback?: (error: Error | null) => void): unknown
   on(event: 'message' | 'disconnect', listener: (message?: unknown) => void): unknown
