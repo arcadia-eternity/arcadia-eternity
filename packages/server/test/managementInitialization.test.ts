@@ -162,6 +162,6 @@ it('fails closed when a persisted builtin version no longer matches runtime cont
   await management.reconcile()
   expect((await storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
     condition: 'unavailable',
-    reason: 'ENVIRONMENT_UNAVAILABLE',
+    reason: 'ENVIRONMENT_CONTENT_MISMATCH',
   })
 })
