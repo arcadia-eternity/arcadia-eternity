@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { Command, CommanderError, InvalidArgumentError } from 'commander'
+import { Command, CommanderError, InvalidArgumentError, Option } from 'commander'
 import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
 import { withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
@@ -92,6 +92,16 @@ export async function runServerCli(args: string[]): Promise<number> {
       process.env.ARCADIA_WEB_AUTO_CONNECT ?? 'true',
     )
     .option('--public-origin <origin>', 'Externally visible paired site origin', process.env.PUBLIC_ORIGIN)
+    .addOption(
+      new Option('--management-require-tls <boolean>', 'Require TLS or a trusted HTTPS proxy for management requests')
+        .choices(['true', 'false'])
+        .env('MANAGEMENT_REQUIRE_TLS'),
+    )
+    .addOption(
+      new Option('--management-cookie-same-site <policy>', 'Management session cookie policy (default: lax)')
+        .choices(['lax', 'strict', 'none'])
+        .env('MANAGEMENT_COOKIE_SAME_SITE'),
+    )
     .option('--npm-project <directories...>', 'Prepare approved npm installations for room selection')
     .option('--development-project <directory>', 'Enable local authoring of one configured project')
     .option('--cors-origin <origins>', 'Allowed browser origins, separated by commas', process.env.CORS_ORIGIN || '')
@@ -117,6 +127,8 @@ export async function runServerCli(args: string[]): Promise<number> {
       webRoot?: string
       webAutoConnect: string
       publicOrigin?: string
+      managementRequireTls?: 'true' | 'false'
+      managementCookieSameSite?: 'lax' | 'strict' | 'none'
       npmProject?: string[]
       developmentProject?: string
     }>()
@@ -338,6 +350,8 @@ export async function runServerCli(args: string[]): Promise<number> {
         createServerBackup: signal =>
           createOnlineServerBackup({ storage: storage!, workspace: workspace!, serverId, signal }),
         transferDirectory: join(config.dataDirectory, 'transfers'),
+        requireTls: options.managementRequireTls === undefined ? undefined : options.managementRequireTls === 'true',
+        cookieSameSite: options.managementCookieSameSite,
         trustedProxyAddresses: process.env.MANAGEMENT_TRUSTED_PROXY_IPS?.split(',')
           .map(value => value.trim())
           .filter(Boolean),

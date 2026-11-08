@@ -4,6 +4,7 @@ import express, { type Request, type Response, type NextFunction, type Express }
 import cors from 'cors'
 import { mountPairedWebsite } from './website'
 import { ManagementService, mountManagementApi, normalizeServerSettings, type ManagementOptions } from './management'
+import type { ManagementHttpPolicy } from './management/http'
 import { resolveBattleCapacity } from './battle-capacity'
 import { Server } from 'socket.io'
 import { SessionRegistry, SessionError, readProfile, type AccountProvider } from './session'
@@ -53,7 +54,8 @@ export interface SingleProcessAppOptions extends RoomOptions {
     | 'transferDirectory'
     | 'createServerBackup'
     | 'initialization'
-  > & { secureCookies?: boolean; name?: string; trustedProxyAddresses?: string[] }
+  > &
+    ManagementHttpPolicy & { name?: string }
 }
 
 export interface SingleProcessApp {
@@ -187,7 +189,9 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     })
   if (management)
     mountManagementApi(app, management, {
-      secureCookies: options.management?.secureCookies ?? true,
+      secureCookies: options.management?.secureCookies,
+      cookieSameSite: options.management?.cookieSameSite,
+      requireTls: options.management?.requireTls ?? (options.desktopManaged ? true : undefined),
       acceptsOrigin,
       sessions,
       trustedProxyAddresses: options.management?.trustedProxyAddresses,
