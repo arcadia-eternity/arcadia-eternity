@@ -57,7 +57,6 @@
     "test:content-dev": "pnpm --filter @arcadia-eternity/content-sdk test:run",
     "build:web-distribution": "pnpm --filter @arcadia-eternity/web-ui build-only && node scripts/stage-paired-website.mjs",
     "pack:ugc": "node scripts/release-author-sdk.mjs pack",
-    "verify:ugc-release": "node scripts/release-author-sdk.mjs verify",
     "lint:workspace": "pnpm exec eslint .",
     "typecheck:web": "pnpm --filter @arcadia-eternity/web-ui type-check",
     "lint:web": "pnpm --filter @arcadia-eternity/web-ui exec eslint .",

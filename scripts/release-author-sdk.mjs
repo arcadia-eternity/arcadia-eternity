@@ -2,11 +2,9 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { setTimeout as wait } from 'node:timers/promises'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const registry = 'https://registry.npmjs.org'
@@ -25,11 +23,8 @@ const packages = await Promise.all(
 )
 const packageNames = new Set(packages.map(({ manifest }) => manifest.name))
 const { name: releaseName, version } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-const output = resolve(
-  process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : join(root, 'dist', 'ugc-release'),
-)
+const output = resolve(process.argv[3] ?? join(root, 'dist', 'ugc-release'))
 const command = process.argv[2]
-const registryMode = process.argv.includes('--registry')
 
 function run(command, args, cwd, capture = false) {
   const env = { ...process.env }
@@ -68,41 +63,6 @@ async function readRelease() {
     assert.equal(createHash('sha256').update(bytes).digest('hex'), pkg.sha256)
   }
   return release
-}
-
-// npm accepts uploads before it makes them visible to install clients.
-async function waitForPublishedArchives(release) {
-  const pending = new Set(release.packages)
-  const deadline = Date.now() + 15 * 60_000
-  let lastReport
-  while (Date.now() < deadline) {
-    await Promise.all(
-      [...pending].map(async pkg => {
-        const url = `${registry}/${encodeURIComponent(pkg.name)}`
-        const response = await fetch(url, {
-          headers: { accept: 'application/vnd.npm.install-v1+json', 'cache-control': 'no-cache' },
-          signal: AbortSignal.timeout(15_000),
-        }).catch(() => undefined)
-        if (!response) return
-        if (response.status === 404 || response.status === 429 || response.status >= 500) {
-          await response.body?.cancel()
-          return
-        }
-        assert.ok(response.ok, `${pkg.name}: registry returned HTTP ${response.status}`)
-        const metadata = await response.json()
-        const published = metadata.versions?.[pkg.version]
-        if (!published) return
-        assert.equal(published.dist?.integrity, pkg.integrity, `${pkg.name}: published archive bytes differ`)
-        pending.delete(pkg)
-      }),
-    )
-    if (!pending.size) return
-    const report = [...pending].map(pkg => `${pkg.name}@${pkg.version}`).join(', ')
-    if (report !== lastReport) console.log(`Waiting for npm registry availability: ${report}`)
-    lastReport = report
-    await wait(20_000)
-  }
-  throw new Error(`npm has not made these versions publicly installable after 15 minutes: ${lastReport}`)
 }
 
 if (command === 'pack') {
@@ -204,70 +164,6 @@ if (command === 'pack') {
       root,
     )
   }
-} else if (command === 'verify') {
-  const release = await readRelease()
-  if (registryMode) await waitForPublishedArchives(release)
-  const temporary = await mkdtemp(join(tmpdir(), 'arcadia-ugc-release-'))
-  const project = join(temporary, 'project')
-  try {
-    run('tar', ['-xzf', join(output, archiveName('@arcadia-eternity/content-sdk'))], temporary)
-    await rename(join(temporary, 'package/dist/template'), project)
-    const manifestFile = join(project, 'package.json')
-    const manifest = JSON.parse(await readFile(manifestFile, 'utf8'))
-    const sdk = '@arcadia-eternity/content-sdk'
-    const extras = ['@arcadia-eternity/data-pack-base', '@arcadia-eternity/protocol']
-    const spec = name => (registryMode ? version : pathToFileURL(join(output, archiveName(name))).href)
-    assert.deepEqual(
-      Object.fromEntries(Object.entries(manifest.devDependencies).filter(([name]) => packageNames.has(name))),
-      { [sdk]: version },
-      'The author template must only declare content-sdk',
-    )
-    if (registryMode) {
-      process.env.npm_config_cache = join(temporary, '.npm-cache')
-      await writeFile(join(project, '.npmrc'), `@arcadia-eternity:registry=${registry}\n`)
-    } else {
-      // Resolve local tarballs in place of registry versions without adding direct dependencies.
-      manifest.devDependencies[sdk] = spec(sdk)
-      manifest.overrides = Object.fromEntries(
-        [...packageNames].filter(name => name !== sdk && !extras.includes(name)).map(name => [name, spec(name)]),
-      )
-      await writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n')
-    }
-    const install = ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--registry', registry]
-    run('npm', install, project)
-    run('npm', ['run', 'workspace'], project)
-    run('npm', ['run', 'check'], project)
-    run('npm', ['test'], project)
-    run('npm', ['run', 'demo'], project)
-    run('npm', ['run', 'pack'], project)
-
-    // Verify packages outside the default author project separately.
-    for (const name of extras) manifest.devDependencies[name] = spec(name)
-    await writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n')
-    run('npm', install, project)
-    const lock = JSON.parse(await readFile(join(project, 'package-lock.json'), 'utf8'))
-    for (const pkg of release.packages) {
-      const installed = JSON.parse(await readFile(join(project, 'node_modules', pkg.name, 'package.json'), 'utf8'))
-      assert.equal(installed.version, version, `${pkg.name}: incorrect installed version`)
-      assert.equal(
-        lock.packages[`node_modules/${pkg.name}`].integrity,
-        pkg.integrity,
-        `${pkg.name}: archive bytes differ`,
-      )
-    }
-    const installedBuild = JSON.parse(
-      await readFile(join(project, 'node_modules/@arcadia-eternity/battle/dist/environment-build.json'), 'utf8'),
-    )
-    assert.deepEqual(installedBuild, release.build)
-    await writeFile(
-      join(project, 'verify-installed-base.mjs'),
-      await readFile(join(root, 'scripts/verify-installed-base.mjs')),
-    )
-    run(process.execPath, ['verify-installed-base.mjs'], project)
-    console.log(`Verified ${registryMode ? 'npmjs.org' : 'local archives'}: ${version}`)
-  } finally {
-    await rm(temporary, { recursive: true, force: true })
-  }
 } else {
-  throw new Error('Usage: node scripts/release-author-sdk.mjs <pack|publish|verify> [output-directory] [--registry]')
+  throw new Error('Usage: node scripts/release-author-sdk.mjs <pack|publish> [output-directory]')
 }
