@@ -260,7 +260,7 @@ export class ServerSessionClient {
         this.storage.removeItem(this.key(info.serverId))
       }
     }
-    if (this.session?.bootId !== info.bootId && this.session) {
+    if (this.session?.bootId !== info.bootId && this.session && this.session.principal.kind !== 'account') {
       this.invalidate('服务器已重启，原房间已失效，请重新创建或加入房间')
     }
     if (this.session) {
@@ -269,6 +269,9 @@ export class ServerSessionClient {
           headers: { Authorization: `Bearer ${this.session.token}` },
         })
         assertCurrent()
+        if (this.session && this.session.bootId !== resumed.bootId) {
+          this.invalidate('服务器已重启，账号已恢复，原房间已失效')
+        }
         return this.save(resumed)
       } catch (error) {
         assertCurrent()
