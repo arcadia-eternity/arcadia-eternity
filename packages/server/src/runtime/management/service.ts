@@ -572,8 +572,13 @@ export class ManagementService {
             effectiveVersionId = intended
             condition = 'available'
           } else reason = 'NO_PUBLISHED_VERSION'
-        } catch {
-          reason = 'ENVIRONMENT_UNAVAILABLE'
+        } catch (error) {
+          const failure = error as { code?: string; diagnostics?: { code?: string }[] }
+          const code = failure?.code ?? failure?.diagnostics?.[0]?.code
+          reason =
+            code === 'NPM_BASE_HOST_INVALID' || code === 'ENVIRONMENT_CONTENT_MISMATCH'
+              ? code
+              : 'ENVIRONMENT_UNAVAILABLE'
           if (effectiveVersionId && effectiveVersionId !== intended) {
             try {
               await this.ensureRuntime(row.id, effectiveVersionId, row.value.executionPolicy)
