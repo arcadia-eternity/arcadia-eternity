@@ -13,6 +13,9 @@ COPY pnpm-lock.yaml package.json pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY packages/ ./packages/
 COPY packs/ ./packs/
 
+# The server image does not need the Electron desktop binary.
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+
 # Install all dependencies (including dev dependencies for building)
 # Use local store to avoid cache conflicts in parallel builds
 RUN pnpm config set store-dir /tmp/pnpm-store && \
