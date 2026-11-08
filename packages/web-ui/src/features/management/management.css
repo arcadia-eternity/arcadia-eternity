@@ -1,0 +1,280 @@
+/* Management layout owns sizing; Element Plus owns control appearance. */
+.management-console {
+  --management-gap: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--el-text-color-primary);
+  background: var(--el-bg-color-page);
+  font-size: var(--el-font-size-base);
+}
+.management-heading {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
+}
+.management-context {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.management-eyebrow {
+  color: var(--el-text-color-secondary);
+}
+.management-console .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.management-console .el-button + .el-button {
+  margin-left: 0;
+}
+.management-notices {
+  flex-shrink: 0;
+  display: grid;
+  gap: 8px;
+  padding: 12px 24px;
+  max-height: 30%;
+  overflow: auto;
+}
+.console-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.console-sidebar {
+  width: 224px;
+  flex-shrink: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
+}
+.management-menu.el-menu {
+  border-right: 0;
+  padding: 12px 8px;
+}
+.management-menu .el-menu-item {
+  height: 44px;
+  border-radius: var(--el-border-radius-base);
+  margin-bottom: 4px;
+}
+.management-menu .is-active {
+  background: var(--el-color-primary-light-9);
+}
+.management-menu .task-count {
+  margin-left: auto;
+}
+.management-identity {
+  padding: 16px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.console-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  overflow-wrap: anywhere;
+}
+.console-content > section {
+  max-width: 1440px;
+  margin: 0 auto 24px;
+}
+.management-console h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.management-console h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px 0 12px;
+}
+.management-console p {
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.management-console .hint,
+.management-console .context-note {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.management-console .error {
+  color: var(--el-color-danger);
+}
+.management-console .el-form {
+  margin-top: 16px;
+}
+.management-console .el-form-item {
+  min-width: 0;
+}
+.management-console .el-form-item__content {
+  min-width: 0;
+}
+.management-console .el-table {
+  border-radius: var(--el-border-radius-base);
+}
+.management-console .el-table .cell {
+  overflow-wrap: anywhere;
+}
+.management-console .el-table small {
+  display: block;
+  color: var(--el-text-color-secondary);
+}
+.management-console .el-table .el-button {
+  margin: 4px;
+}
+.management-console .binding-card,
+.management-console .server-summary,
+.management-console .grant {
+  margin: 16px 0;
+}
+.management-console .binding-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.management-console .binding-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.management-console dl {
+  display: grid;
+  grid-template-columns: minmax(80px, auto) minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 16px 0;
+}
+.management-console dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.management-console dt {
+  color: var(--el-text-color-secondary);
+}
+.management-console .grant-form {
+  max-width: 640px;
+}
+.management-console .overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.management-console .overview-stats .el-button {
+  height: auto;
+  padding: 24px 16px;
+  width: 100%;
+}
+.management-console .overview-stats .el-button > span {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.management-console .overview-stats strong {
+  font-size: 30px;
+}
+.management-console .overview-stats > div {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-bg-color);
+  text-align: center;
+}
+.management-login-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+}
+.management-console .login-card {
+  max-width: 460px;
+  margin: 40px auto;
+  padding: 28px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-base);
+}
+.management-console .login-primary {
+  width: 100%;
+  margin: 16px 0;
+}
+.management-console .account-login {
+  display: block;
+  margin: 16px 0;
+  color: var(--el-color-primary);
+}
+.management-console .bootstrap-help {
+  margin-top: 20px;
+}
+.management-console pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: var(--el-fill-color-light);
+}
+.management-console summary {
+  cursor: pointer;
+}
+.management-navigation-drawer .el-drawer__body {
+  padding: 0;
+}
+.management-console .history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+.management-console .history-toolbar .el-input {
+  max-width: 360px;
+}
+.management-console .history-toolbar .el-select {
+  width: 180px;
+}
+.management-console .el-pagination {
+  margin-top: 16px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+@media (max-width: 800px) {
+  .management-heading {
+    padding: 12px 16px;
+  }
+  .console-content {
+    padding: 16px;
+  }
+  .management-console .overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .management-console .login-card {
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .management-console .binding-options {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

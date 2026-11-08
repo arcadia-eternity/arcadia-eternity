@@ -1,3 +1,4 @@
+import { ElSelect } from 'element-plus'
 import { afterEach, describe, expect, it } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { reactive } from 'vue'
@@ -27,7 +28,7 @@ describe('server settings editor', () => {
   it('captures the revision at edit time and does not mutate the reactive source while editing', async () => {
     const { page, source } = open()
     await button(page, '编辑设置').trigger('click')
-    await page.get('select').setValue('network')
+    await page.findComponent(ElSelect).setValue('network')
     await page.get('input[name=port]').setValue('9100')
     await page.get('input[name=publicOrigin]').setValue('')
     await page.get('input[name=maxConcurrentBattles]').setValue('24')

@@ -1,0 +1,26 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+.fixture-app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.fixture-navigation {
+  height: 60px;
+  flex-shrink: 0;
+  padding: 16px 24px;
+  background: #181818;
+  color: white;
+  font-weight: 700;
+}
+.fixture-route {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}

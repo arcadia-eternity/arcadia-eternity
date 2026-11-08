@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElForm, ElFormItem, ElInput, ElButton } from 'element-plus'
 import { onMounted, ref } from 'vue'
 import { startRegistration } from '@simplewebauthn/browser'
 import type { ManagementClient } from '@/services/managementClient'
@@ -55,10 +56,14 @@ onMounted(() => void run(async () => {}))
     <p>为当前管理身份添加通行密钥。游客模式也可使用，无需注册玩家账户。</p>
     <p v-if="error" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <form @submit.prevent="register">
-      <label>通行密钥名称<input v-model="label" maxlength="80" required :disabled="busy" /></label>
-      <button :disabled="busy || !available || !label.trim()">{{ busy ? '正在处理…' : '添加通行密钥' }}</button>
-    </form>
+    <ElForm @submit.prevent="register" label-position="top">
+      <ElFormItem label="通行密钥名称">
+        <ElInput v-model="label" maxlength="80" required :disabled="busy" />
+      </ElFormItem>
+      <ElButton :disabled="busy || !available || !label.trim()" native-type="submit">{{
+        busy ? '正在处理…' : '添加通行密钥'
+      }}</ElButton>
+    </ElForm>
     <p v-if="!available">请在 HTTPS 网页或 localhost 中设置通行密钥。本机客户端管理无需登录。</p>
     <h3>通行密钥与已记住的设备</h3>
     <p v-if="!methods.length && !busy">尚未添加。首次使用登录码进入后，建议添加通行密钥，方便下次登录。</p>
@@ -71,19 +76,19 @@ onMounted(() => void run(async () => {}))
           }}<span v-if="item.expiresAt"> · 有效至 {{ new Date(item.expiresAt).toLocaleString() }}</span>
         </p>
       </div>
-      <button :disabled="busy" @click="confirming = item.id">撤销</button>
+      <ElButton :disabled="busy" @click="confirming = item.id" native-type="button">撤销</ElButton>
       <div v-if="confirming === item.id" role="group" aria-label="确认撤销登录方式">
         <p>关联的管理会话也会失效。如果这是当前设备，你需要重新登录。</p>
-        <button :disabled="busy" @click="revoke(item.id)">确认撤销</button
-        ><button @click="confirming = ''">取消</button>
+        <ElButton :disabled="busy" @click="revoke(item.id)" native-type="button">确认撤销</ElButton>
+        <ElButton @click="confirming = ''" native-type="button">取消</ElButton>
       </div>
     </article>
   </section>
 </template>
 <style scoped>
 .security {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   padding: 1.5rem;
 }
@@ -96,7 +101,7 @@ h3 {
   font-weight: 600;
 }
 p {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   line-height: 1.7;
   margin: 0.6rem 0;
 }
@@ -109,28 +114,11 @@ article {
   margin: 1rem 0;
 }
 article {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--el-border-color-light);
   padding-top: 1rem;
   justify-content: space-between;
 }
-label {
-  display: grid;
-  gap: 0.4rem;
-}
-input,
-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 0.6rem 0.9rem;
-}
-button {
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 [role='alert'] {
-  color: #b91c1c;
+  color: var(--el-color-danger);
 }
 </style>

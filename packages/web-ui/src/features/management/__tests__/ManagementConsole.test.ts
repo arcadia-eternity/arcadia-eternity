@@ -10,7 +10,8 @@ vi.mock('@/stores/auth', () => ({
 }))
 
 const pages: VueWrapper[] = []
-const button = (page: VueWrapper, text: string) => page.findAll('button').find(item => item.text() === text)!
+const button = (page: VueWrapper, text: string) =>
+  page.findAll('button, [role="menuitem"]').find(item => item.text() === text)!
 const draft = (suffix = 'local'): ManagedEnvironment => ({
   revision: 'draft-4',
   document: {
@@ -182,7 +183,7 @@ describe('shared management console', () => {
 
   it('loads real-shaped IPC data and saves an edited draft with its captured revision', async () => {
     const { page, request } = await open()
-    expect(page.text()).toContain('正在管理：本机服务器')
+    expect(page.get('.management-context').text()).toContain('本机服务器')
     expect(page.text()).toContain('好友环境 local')
     await button(page, '编辑').trigger('click')
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('修改的环境')
@@ -247,7 +248,7 @@ describe('shared management console', () => {
     await flushPromises()
     expect(savedRevisions).toEqual(['draft-4', 'draft-5'])
     expect(current.document.name).toBe('第二次修改')
-    expect(page.find('[role="alert"]').exists()).toBe(false)
+    expect(page.find('.el-alert--error').exists()).toBe(false)
   })
 
   it('keeps unsaved edits visible when another administrator changed the draft', async () => {

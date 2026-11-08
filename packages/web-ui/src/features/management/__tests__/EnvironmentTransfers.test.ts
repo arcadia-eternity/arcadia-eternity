@@ -1,3 +1,4 @@
+import { ElSelect, ElOption } from 'element-plus'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import EnvironmentTransfers from '../EnvironmentTransfers.vue'
@@ -113,7 +114,7 @@ describe('environment transfers', () => {
     const task = exportTask()
     const page = open({ operations: [task] })
     expect(button(page, '创建导出文件').attributes('disabled')).toBeDefined()
-    await page.get('select').setValue('version-1')
+    await page.findComponent(ElSelect).setValue('version-1')
     await page.get('form[aria-label="导出环境"]').trigger('submit')
     expect(page.emitted('export')).toEqual([[version]])
     await button(page, '下载导出文件').trigger('click')
@@ -129,13 +130,13 @@ describe('environment transfers', () => {
 
   it('hides unavailable materials from export selection and clears stale selections', async () => {
     const page = open()
-    await page.get('select').setValue('version-1')
+    await page.findComponent(ElSelect).setValue('version-1')
     await page.setProps({
       versions: [
         { versionId: 'missing', workspaceId: 'workspace-a', status: 'unavailable', reason: 'missing materials' },
       ],
     })
-    expect(page.get('select').findAll('option')).toHaveLength(1)
+    expect(page.findComponent(ElSelect).findAllComponents(ElOption)).toHaveLength(1)
     await page.get('form[aria-label="导出环境"]').trigger('submit')
     expect(page.emitted('export')).toBeUndefined()
     expect(button(page, '创建导出文件').attributes('disabled')).toBeDefined()
@@ -154,7 +155,7 @@ describe('environment transfers', () => {
     expect(page.emitted('export')).toBeUndefined()
     await page.setProps({ canImport: true, canExport: true })
     await choose(page)
-    await page.get('select').setValue('version-1')
+    await page.findComponent(ElSelect).setValue('version-1')
     await page.setProps({ busy: true })
     await page.get('form[aria-label="导入环境"]').trigger('submit')
     await page.get('form[aria-label="导出环境"]').trigger('submit')

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElForm, ElFormItem, ElSelect, ElOption, ElInput } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import type { ManagedServerSettings } from '@/types/management'
 const props = defineProps<{
@@ -62,7 +63,7 @@ function save() {
   <section class="settings" aria-label="网络与容量设置">
     <header>
       <h3>网络与容量</h3>
-      <button :disabled="busy || !canEdit" @click="edit">编辑设置</button>
+      <ElButton :disabled="busy || !canEdit" @click="edit" native-type="button">编辑设置</ElButton>
     </header>
     <p v-if="pendingRestart?.length" role="status" class="pending">
       设置已保存，重启服务器后应用。当前对局继续使用现行配置。
@@ -74,54 +75,58 @@ function save() {
       <template v-else>尚未报告实际地址</template>。监听地址、对外地址与网页允许来源分别配置。
     </p>
     <dl>
-      <template v-for="[key, label] in fields" :key="key"
-        ><dt>{{ label }}</dt>
+      <template v-for="[key, label] in fields" :key="key">
+        <dt>{{ label }}</dt>
         <dd>
           {{ runtimeSettings?.battleCapacity[key] ?? settings.battleCapacity[key]
           }}<span v-if="runtimeSettings && runtimeSettings.battleCapacity[key] !== settings.battleCapacity[key]">
             → {{ settings.battleCapacity[key] }}（待重启）</span
           >
-        </dd></template
-      >
+        </dd>
+      </template>
     </dl>
-    <form v-if="draft" @submit.prevent="save">
+    <ElForm v-if="draft" @submit.prevent="save" label-position="top">
       <div class="grid">
-        <label
-          >连接范围<select v-model="connectionScope">
-            <option value="local">仅本机</option>
-            <option value="network">允许网络连接</option>
-            <option value="custom">指定网卡地址</option>
-          </select></label
-        ><label v-if="connectionScope === 'custom'">监听地址<input v-model="draft.host" required /></label
-        ><label>端口<input name="port" v-model.number="draft.port" type="number" min="0" max="65535" required /></label
-        ><label
-          >对外网页地址<input
-            name="publicOrigin"
-            v-model="origin"
-            type="url"
-            placeholder="https://play.example.com" /></label
-        ><label v-for="[key, label] in fields" :key="key"
-          >{{ label
-          }}<input
+        <ElFormItem label="连接范围">
+          <ElSelect v-model="connectionScope">
+            <ElOption value="local" label="仅本机" />
+            <ElOption value="network" label="允许网络连接" />
+            <ElOption value="custom" label="指定网卡地址" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem v-if="connectionScope === 'custom'" label="监听地址">
+          <ElInput v-model="draft.host" required />
+        </ElFormItem>
+        <ElFormItem label="端口">
+          <ElInput name="port" v-model.number="draft.port" type="number" min="0" max="65535" required />
+        </ElFormItem>
+        <ElFormItem label="对外网页地址">
+          <ElInput name="publicOrigin" v-model="origin" type="url" placeholder="https://play.example.com" />
+        </ElFormItem>
+        <ElFormItem v-for="[key, label] in fields" :key="key" :label="String(label)">
+          <ElInput
             :name="key"
             v-model.number="draft.battleCapacity[key]"
             type="number"
             :min="key === 'maxConcurrentBattles' ? 1 : 0"
             required
-        /></label>
+          />
+        </ElFormItem>
       </div>
-      <label>允许的网页来源（每行一个）<textarea v-model="cors" rows="3" /></label>
+      <ElFormItem label="允许的网页来源（每行一个）">
+        <ElInput v-model="cors" :rows="3" type="textarea" />
+      </ElFormItem>
       <p class="hint">
         允许网络连接后，同一网络中的朋友可以通过邀请地址加入。公网访问还需要可达入口。网络变更在下次启动时生效。
       </p>
-      <button :disabled="busy || !canEdit">保存下次启动设置</button
-      ><button type="button" @click="draft = undefined">关闭编辑</button>
-    </form>
+      <ElButton :disabled="busy || !canEdit" native-type="submit">保存下次启动设置</ElButton>
+      <ElButton @click="draft = undefined" native-type="button">关闭编辑</ElButton>
+    </ElForm>
   </section>
 </template>
 <style scoped>
 .settings {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--el-border-color-light);
   margin-top: 1rem;
   padding-top: 1rem;
 }
@@ -134,12 +139,12 @@ h3 {
   margin: 0;
 }
 .hint {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   font-size: 0.9rem;
 }
 .pending {
-  background: #fffbeb;
-  color: #92400e;
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
   padding: 0.75rem;
   border-radius: 7px;
 }
@@ -156,32 +161,5 @@ dd {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 0.6rem;
-}
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0.5rem 0;
-}
-input,
-select,
-textarea {
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 0.6rem;
-  background: white;
-  color: #0f172a;
-}
-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 0.5rem 0.8rem;
-  background: white;
-  cursor: pointer;
-  margin-right: 0.5rem;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 </style>

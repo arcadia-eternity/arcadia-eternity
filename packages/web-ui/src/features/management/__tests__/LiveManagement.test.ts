@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import LiveManagement from '../LiveManagement.vue'
 import type { ManagedBattle } from '@/types/management'
 const battle = (id: string, execution: 'server' | 'peer' = 'server'): ManagedBattle => ({
@@ -29,11 +29,13 @@ const props = {
 describe('live server operations', () => {
   it('keeps termination tied to the selected ID, confirms without text input and handles a completed match', async () => {
     const page = mount(LiveManagement, { props })
+    await flushPromises()
     await page
       .findAll('button')
       .find(button => button.text() === '查看对战')!
       .trigger('click')
     expect(page.get('[aria-label="对战详情"]').text()).toContain('version-at-start')
+    await flushPromises()
     await page
       .findAll('button')
       .find(button => button.text() === '终止此对战')!
@@ -51,6 +53,7 @@ describe('live server operations', () => {
   it('does not offer remote execution control for peer matches or viewers', async () => {
     for (const input of [{ battles: [battle('peer', 'peer')] }, { battles: [battle('server')], canTerminate: false }]) {
       const page = mount(LiveManagement, { props: { ...props, ...input } })
+      await flushPromises()
       await page
         .findAll('button')
         .find(button => button.text() === '查看对战')!
@@ -75,8 +78,10 @@ describe('live server operations', () => {
         ],
       },
     })
+    await flushPromises()
     expect(page.text()).toContain('访客 A')
     expect(page.findAll('button').some(button => button.text() === '停用账户')).toBe(false)
+    await flushPromises()
     await page
       .findAll('button')
       .find(button => button.text() === '查看对战')!

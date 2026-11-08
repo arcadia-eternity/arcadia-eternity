@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import type { ManagedEnvironmentVersion, ManagementOperation } from '@/types/management'
 
@@ -175,30 +176,34 @@ onBeforeUnmount(() => {
     <h2>导入与导出</h2>
     <p class="hint">导出包含固定版本的环境配置和已捕获的内容材料。导入后会重新校验，并生成本工作区的固定版本。</p>
     <div class="transfer-grid">
-      <form aria-label="导出环境" @submit.prevent="exportEnvironment">
+      <ElForm aria-label="导出环境" @submit.prevent="exportEnvironment" label-position="top">
         <h3>导出固定版本</h3>
-        <label
-          >要导出的版本<select v-model="selectedVersion" :disabled="busy || !canExport">
-            <option value="" disabled>选择已准备的版本</option>
-            <option v-for="version in readyVersions" :key="version.versionId" :value="version.versionId">
-              {{ version.document.name }} · {{ version.versionId }}
-            </option>
-          </select></label
-        >
-        <button :disabled="busy || !canExport || !selectedVersion">创建导出文件</button>
+        <ElFormItem label="要导出的版本">
+          <ElSelect v-model="selectedVersion" :disabled="busy || !canExport">
+            <ElOption value="" disabled label="选择已准备的版本" />
+            <ElOption
+              v-for="version in readyVersions"
+              :key="version.versionId"
+              :value="version.versionId"
+              :label="String(version.document.name) + ' · ' + String(version.versionId)"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElButton :disabled="busy || !canExport || !selectedVersion" native-type="submit">创建导出文件</ElButton>
         <p v-if="!canExport" class="hint">导出需要此工作区的导出权限。</p>
         <p v-else-if="!readyVersions.length" class="hint">准备固定版本后即可导出。</p>
-      </form>
-      <form aria-label="导入环境" @submit.prevent="importEnvironment">
+      </ElForm>
+      <ElForm aria-label="导入环境" @submit.prevent="importEnvironment" label-position="top">
         <h3>导入环境文件</h3>
-        <label
-          >环境 JSON 文件<input
+        <ElFormItem label="环境 JSON 文件">
+          <input
             ref="fileInput"
             type="file"
             accept=".json,application/json"
             :disabled="busy || !canImport || reading"
             @change="chooseFile"
-        /></label>
+          />
+        </ElFormItem>
         <p class="hint">文件最多 128 MiB。只创建新环境；若标识已存在，请先填写一个新标识。</p>
         <p v-if="!canImport" class="hint">导入需要此工作区的编辑和准备权限。</p>
         <p v-if="reading" role="status">正在读取环境文件…</p>
@@ -214,21 +219,24 @@ onBeforeUnmount(() => {
             <dt>内容材料</dt>
             <dd>{{ preview.packageCount }} 个额外内容包 · {{ preview.fileCount }} 个文件</dd>
           </dl>
-          <label
-            >新环境标识（可选）<input
+          <ElFormItem label="新环境标识（可选）">
+            <ElInput
               v-model="importId"
               pattern="[a-z0-9][a-z0-9_\-]{0,79}"
               maxlength="80"
               :placeholder="preview.id"
               :disabled="busy || !canImport"
-          /></label>
+            />
+          </ElFormItem>
           <div class="actions">
-            <button class="primary" :disabled="busy || !canImport || reading">确认导入新环境</button>
-            <button type="button" :disabled="busy" @click="clearFile">取消导入</button>
+            <ElButton class="primary" :disabled="busy || !canImport || reading" native-type="submit" type="primary"
+              >确认导入新环境</ElButton
+            >
+            <ElButton :disabled="busy" @click="clearFile" native-type="button">取消导入</ElButton>
           </div>
           <p class="hint">导入会作为后台任务执行，完成后可在固定版本中使用。</p>
         </div>
-      </form>
+      </ElForm>
     </div>
     <div v-if="exports.length" class="export-results" aria-label="导出任务">
       <h3>导出文件</h3>
@@ -240,12 +248,12 @@ onBeforeUnmount(() => {
             {{ formatBytes(downloadInfo(operation)!.bytes) }} · 有效至
             {{ new Date(downloadInfo(operation)!.expiresAt).toLocaleString() }}
           </p>
-          <button
+          <ElButton
             :disabled="busy || !canExport || downloadInfo(operation)!.expiresAt <= now"
             @click="download(operation)"
+            native-type="button"
+            >{{ downloadInfo(operation)!.expiresAt <= now ? '文件已过期' : '下载导出文件' }}</ElButton
           >
-            {{ downloadInfo(operation)!.expiresAt <= now ? '文件已过期' : '下载导出文件' }}
-          </button>
         </template>
         <p v-else-if="operation.status === 'succeeded'" class="hint">此任务没有可用的下载信息，请重新导出。</p>
         <p v-else-if="operation.status === 'failed' || operation.status === 'interrupted'" class="hint">
@@ -266,7 +274,7 @@ h4 {
   margin: 0 0 0.75rem;
 }
 .hint {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
   font-size: 0.9rem;
 }
 .transfer-grid {
@@ -276,42 +284,10 @@ h4 {
 }
 form,
 .export-result {
-  background: #fff;
-  border: 1px solid #dbe2ea;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   padding: 1rem;
-}
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0.8rem 0;
-}
-input,
-select {
-  min-width: 0;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 0.6rem;
-  color: #0f172a;
-  background: #fff;
-}
-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 0.5rem 0.8rem;
-  background: #fff;
-  color: #334155;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.primary {
-  background: #0f766e;
-  color: white;
-  border-color: #0f766e;
 }
 .actions {
   display: flex;
@@ -319,7 +295,7 @@ button:disabled {
   flex-wrap: wrap;
 }
 .import-preview {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--el-border-color-light);
   margin-top: 1rem;
   padding-top: 1rem;
   overflow-wrap: anywhere;
@@ -331,7 +307,7 @@ dl {
   font-size: 0.9rem;
 }
 dt {
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 dd {
   margin: 0;
@@ -347,6 +323,6 @@ dd {
   float: right;
 }
 .error {
-  color: #b91c1c;
+  color: var(--el-color-danger);
 }
 </style>

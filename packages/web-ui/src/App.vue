@@ -2,7 +2,7 @@
   <div class="h-screen flex flex-col" :style="{ '--site-navigation-height': compactNavigation ? '56px' : '60px' }">
     <!-- 移动端优先的导航栏 - 固定置顶 -->
     <header
-      class="sticky top-0 z-40 bg-black/90 border-b border-gray-600 backdrop-blur-md"
+      class="site-navigation sticky top-0 z-40 bg-black/90 border-b border-gray-600 backdrop-blur-md"
       :class="compactNavigation ? 'h-14' : 'h-15'"
     >
       <!-- 移动端导航 -->
@@ -1013,8 +1013,8 @@ main {
   position: relative !important;
 }
 
-/* 确保顶栏始终置顶 */
-header {
+/* Only the application navigation owns the sticky header layer. */
+.site-navigation {
   position: sticky !important;
   top: 0 !important;
   z-index: 40 !important;
