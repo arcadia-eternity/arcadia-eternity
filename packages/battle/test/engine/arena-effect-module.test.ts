@@ -142,3 +142,70 @@ it('rejects deliberately retained callback contexts after their scope expires', 
   expect(() => f.effect.innerApply(next)).toThrow(/Expired/)
   expect(module.state).toBe('faulted')
 })
+
+it.each(['new sdk.Signal(1)', 'new sdk.Pet()', 'new sdk.Modifier()'])(
+  'rejects host-only construction: %s',
+  async expression => {
+    const module = await prepare(`export function createEffects({sdk}) { ${expression}; return [] }`)
+    expect(() => module.createEffects({ sdk, marks: new Map(), id: id => id })).toThrow('Domain construction denied')
+    expect(module.state).toBe('faulted')
+  },
+)
+
+it('reduces rage through the native context and dispatches loss events', async () => {
+  const module = await prepare(`export function createEffects({sdk,id}) {
+    return [sdk.defineCodeEffect({id:id('reduce-rage'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
+      apply(ctx) {
+        const pet = ctx.source.owner;
+        if (pet instanceof sdk.Pet && pet.owner) {
+          pet.addRage(new sdk.RageContext(ctx, pet.owner, 'effect', 'reduce', 12));
+        }
+      }
+    })];
+  }`)
+  const f = compile(module)
+  f.a.settingRage(50)
+  const dispatch = vi.spyOn(f.battle, 'applyEffects')
+  f.effect.innerApply(f.ctx)
+  expect(f.a.currentRage).toBe(38)
+  expect(dispatch.mock.calls.map(call => call[1])).toEqual([EffectTrigger.BeforeRageLoss, EffectTrigger.OnRageLoss])
+  expect(module.state).toBe('ready')
+})
+
+// Included in tsconfig.test.json; never execute invalid author programs.
+function injectedSdkTypeContract(
+  { sdk: injected }: sdk.CodeEffectModuleContext,
+  candidate: unknown,
+  petArgs: ConstructorParameters<typeof sdk.Pet>,
+  modifierArgs: ConstructorParameters<typeof sdk.Modifier>,
+) {
+  // @ts-expect-error Signal construction belongs to trusted host code.
+  new injected.Signal(1)
+  // @ts-expect-error Domain classes are only available for identity checks.
+  new injected.Pet(...petArgs)
+  // @ts-expect-error Modifier construction is unavailable in the sandbox.
+  new injected.Modifier(...modifierArgs)
+  // @ts-expect-error Host infrastructure is not an injected capability.
+  injected.setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
+  // @ts-expect-error Low-level reactive functions are not injected capabilities.
+  void injected.projectValue
+  if (candidate instanceof injected.Pet) {
+    const pet: sdk.Pet = candidate
+    // @ts-expect-error Rage loss uses addRage with a reduce context.
+    pet.reduceRage()
+  }
+  injected.defineCodeEffect({
+    id: 'test:rage',
+    sourceKind: 'skill',
+    triggers: [injected.EffectTrigger.TurnEnd],
+    apply(ctx) {
+      const pet = ctx.source.owner
+      if (pet instanceof injected.Pet && pet.owner)
+        pet.addRage(new injected.RageContext(ctx, pet.owner, 'effect', 'reduce', 12))
+    },
+  })
+  new injected.ParameterCatalog([])
+  // Trusted authoring remains constructible.
+  new sdk.Signal(1)
+}
+void injectedSdkTypeContract

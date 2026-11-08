@@ -1,0 +1,22 @@
+/** Callable top-level capabilities shared by the injected SDK types and Arena. */
+export const effectSdkFunctions = [
+  'compileEffect',
+  'defineEffect',
+  'numberParam',
+  'booleanParam',
+  'stringParam',
+  'selectFrom',
+  'effectParameters',
+  'hasAuthoredParameters',
+  'defineCodeEffect',
+  'codeEffectDefinition',
+  'defineNativeEffect',
+  'defineParameter',
+  'parameterAddress',
+  'defineNativeBehavior',
+  'normalizeBehaviorDefinitions',
+  'CreateStatStageMark',
+  'defineEffectState',
+  'getEffectState',
+  'setEffectState',
+] as const

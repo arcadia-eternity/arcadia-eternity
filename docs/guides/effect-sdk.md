@@ -39,7 +39,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 | 触发与上下文       | `EffectTrigger`、`nativeEffectTriggers`、`EffectContext`、`UseSkillContext`、`TurnContext`；`NativeEffectContext<T>` 根据触发类型推导 `parent`             |
 | 领域对象           | `Battle`、`Player`、`Pet`、`BaseSkill`、`SkillInstance`、`BaseMark`、`MarkInstanceImpl`，以及原有实例类型与枚举                                            |
 | 伤害和治疗         | `DamageContext`、`HealContext`；`pet.damage(context)`、`pet.heal(context)`；伤害事件的 `addModified(percent, delta)`                                       |
-| 怒气               | `RageContext`；`pet.addRage(context)`、`pet.reduceRage(context)`，分别走获得和损失事件                                                                     |
+| 怒气               | `RageContext`；`pet.addRage(context)`；由 `RageContext.modifiedType` 的 `add` / `reduce` 选择获得或损失事件                                                |
 | 印记               | `AddMarkContext`、`RemoveMarkContext`、`StackContext`、`ConsumeStackContext`；`pet.addMark`、`battle.removeMark`、`mark.consumeStack`、`pet.transferMarks` |
 | 属性贡献           | `Modifier`、`DurationType`、`attributeSystem.addModifier`；`Signal`、`ReactiveValue`、`projectValue`、`combineValues`                                      |
 | 参数               | `numberParam`、`booleanParam`、`stringParam`；`parameterAddress`、`ParameterCatalog`、`defineParameter`、`ConfigSystem`、`ConfigModifier`                  |
@@ -47,6 +47,8 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 | 即时选择与操作工具 | 原有 `targets`、`contexts`、`conditions`、`values`、`ops`、`actions`，按需使用                                                                             |
 | 持续取值工具       | 原有 capture/follow、`bindings`；底层值计划集中在 `sdk.valuePlans`，避免与即时 `sdk.values` 混淆                                                           |
 | 执行预算           | `executionBudgetPolicy`、`ExecutionBudgetExceeded`；本局的 `battle.executionBudget`                                                                        |
+
+注入的 `EffectSdk` 仅声明可调用的顶层函数和构造器。领域类可用于 `instanceof`，但不能在沙箱中自行构造；例如 `new sdk.Signal(...)` 不受支持。`authoring` 的完整导出仍供可信宿主使用，上表中的低层属性贡献与响应式基础设施不属于沙箱构造能力。
 
 这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`CodeEffectModule` 和 `CodeEffectModuleContext` 定义模块签名，`EffectSdk` 是注入对象的类型。
 

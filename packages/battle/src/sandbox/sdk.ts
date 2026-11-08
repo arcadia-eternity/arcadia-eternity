@@ -1,3 +1,4 @@
+import { effectSdkFunctions } from '../engine/content/sdk-capabilities'
 import { Arena } from 'quickjs-emscripten-sync'
 import { registerArenaProjection } from './arena-session'
 import * as sdk from '../../authoring'
@@ -119,27 +120,7 @@ function domainMethods(value: object): readonly string[] {
 const parameterMethods = ['read', 'get', 'install', 'register', 'snapshot', 'restore', 'addressOf'] as const
 const denied = new Set(['constructor', 'prototype', '__proto__', 'caller', 'callee', 'arguments'])
 const coreSdk = { ...sdk, defineNativeBehavior, normalizeBehaviorDefinitions, BehaviorCompilationError }
-const authorFunctions = new Set<string>([
-  'compileEffect',
-  'defineEffect',
-  'numberParam',
-  'booleanParam',
-  'stringParam',
-  'selectFrom',
-  'effectParameters',
-  'hasAuthoredParameters',
-  'defineCodeEffect',
-  'codeEffectDefinition',
-  'defineNativeEffect',
-  'defineParameter',
-  'parameterAddress',
-  'defineNativeBehavior',
-  'normalizeBehaviorDefinitions',
-  'CreateStatStageMark',
-  'defineEffectState',
-  'getEffectState',
-  'setEffectState',
-])
+const authorFunctions = new Set<string>(effectSdkFunctions)
 function domain(value: object): boolean {
   return (
     value instanceof Pet ||

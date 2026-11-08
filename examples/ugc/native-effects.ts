@@ -2,8 +2,7 @@ import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring
 
 /** Official engine APIs, exercised by packages/battle/test/engine/effect-sdk-native.test.ts. */
 export function createEffects({ sdk, id }: CodeEffectModuleContext) {
-  const { defineCodeEffect, EffectTrigger, Pet, HealContext, MarkInstanceImpl, Modifier, DurationType, projectValue } =
-    sdk
+  const { defineCodeEffect, EffectTrigger, Pet, HealContext, targets, ops } = sdk
   return [
     defineCodeEffect({
       id: id('recover'),
@@ -21,22 +20,27 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
     defineCodeEffect({
       id: id('stack-defense'),
       sourceKind: 'petMark',
-      triggers: [EffectTrigger.OnMarkCreated],
-      rebindOnOwnerTransfer: true,
-      apply(context) {
-        const source = context.source,
-          owner = source.owner
-        if (!(source instanceof MarkInstanceImpl) || !(owner instanceof Pet)) return
-        const modifier = new Modifier(
-          DurationType.binding,
-          `${context.effect!.id}/defense`,
-          projectValue(source.attributeSystem.getAttribute$('stack'), 'multiply', 3),
-          'delta',
-          0,
-          source,
-        )
-        modifier.followsMarkOwner = true
-        source.addAttributeModifierCleanup(owner.attributeSystem.addModifier('def', modifier))
+      build({ effectId }) {
+        return {
+          id: effectId,
+          triggers: [EffectTrigger.OnMarkCreated],
+          rebindOnOwnerTransfer: true,
+          apply: targets.ownerPet.apply(
+            ops.bindAttribute({
+              key: 'defense',
+              attribute: 'def',
+              operation: 'delta',
+              value: targets.sourceMark
+                .first()
+                .capture({ key: 'source', scope: 'binding' })
+                .attribute('stack')
+                .follow({ key: 'stack' })
+                .map(stack => stack * 3),
+              lifetime: 'sourceMark',
+              missing: 'detach',
+            }),
+          ),
+        }
       },
     }),
   ]
