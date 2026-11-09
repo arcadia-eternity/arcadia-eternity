@@ -1,6 +1,10 @@
 <template>
   <div class="max-w-4xl mx-auto px-4 py-6 md:px-6 md:py-8">
-    <router-link :to="{ name: 'Lobby' }" class="inline-flex items-center gap-1 text-sm text-blue-600">
+    <router-link
+      :to="{ name: 'Lobby' }"
+      class="inline-flex items-center gap-1 text-sm text-blue-600"
+      aria-label="返回对战大厅"
+    >
       <ArrowLeft class="h-4 w-4" aria-hidden="true" />
       对战大厅
     </router-link>
