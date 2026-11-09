@@ -135,6 +135,14 @@ The PostgreSQL storage cases require `TEST_DATABASE_URL` pointing to a disposabl
 - Keep installed packages immutable; authoring changes belong to editable projects and prepared environment revisions.
 - Keep transport and database details behind the shared resource/service contracts so desktop, server, and remote flows preserve the same behavior.
 
+## UI Microcopy
+
+Do not add explanatory microcopy, helper text, subtitles, descriptions, or instructional paragraphs to UI components unless they communicate non-obvious, actionable information.
+
+Prefer self-explanatory controls and concise labels. Never narrate what a section or component does. Do not restate headings in descriptions. Preserve necessary warnings, validation feedback, and accessibility information.
+
+When in doubt, omit the text.
+
 ## 工作区验证：依赖与构建产物
 
 本仓库通过工作区包的 `dist` 产物及类型声明解析部分跨包导入。拉取代码、切换分支或更新依赖后，旧的声明文件可能导致 `TS2305`（缺少导出）、`TS2307`（找不到模块）及连带类型错误，即使源码已有正确导出。
