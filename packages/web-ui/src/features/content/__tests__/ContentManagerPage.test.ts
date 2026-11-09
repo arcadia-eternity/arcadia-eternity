@@ -263,7 +263,7 @@ it('installs into the library and shows task management without enabling', async
   const page = open()
   await flushPromises()
   await button(page, '添加内容包').trigger('click')
-  expect(page.get('[role=dialog]').text()).toContain('安装后进入资源库')
+  expect(page.get('[role=dialog] h2').text()).toBe('安装内容包')
   await button(page, '安装本地 .tgz 文件').trigger('click')
   await flushPromises()
   expect(install).toHaveBeenCalledWith({ offline: false })

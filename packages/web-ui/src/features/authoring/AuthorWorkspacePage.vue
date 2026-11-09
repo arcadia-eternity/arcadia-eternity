@@ -1191,7 +1191,6 @@ onBeforeUnmount(() => {
     </div>
     <div v-if="!project" class="welcome">
       <h1>让你的内容加入战斗</h1>
-      <p>打开已有内容包，或从模板开始。精灵、技能、印记和资源在这里关联，效果代码在外部编辑器维护。</p>
     </div>
     <div v-else class="workspace">
       <aside class="sidebar">
@@ -1228,7 +1227,6 @@ onBeforeUnmount(() => {
           ><header class="page-heading">
             <div>
               <h1>确认保存</h1>
-              <p>核对字段改动与使用范围，保存到各自的来源。</p>
             </div>
             <button @click="screen = 'editor'">返回继续编辑</button>
           </header>
@@ -1257,7 +1255,7 @@ onBeforeUnmount(() => {
           ><header class="page-heading">
             <div>
               <h1>核对外部变化</h1>
-              <p>逐项选择保留的值。核对只更新草稿，之后仍需保存。</p>
+              <p>核对后仍需保存。</p>
             </div>
             <button @click="screen = 'editor'">稍后处理，保留草稿</button>
           </header>
@@ -1456,7 +1454,7 @@ onBeforeUnmount(() => {
               <button v-if="rows.length > libraryLimit" @click="libraryLimit += 60">
                 显示更多（{{ libraryLimit }} / {{ rows.length }}）
               </button>
-              <p v-if="!rows.length" class="hint">没有匹配内容。可以新建独立对象，或在外部添加后自动刷新。</p>
+              <p v-if="!rows.length" class="hint">无匹配内容</p>
             </div>
           </section>
           <section v-if="selected && currentRecord" class="object-inspector" aria-label="对象编辑">
@@ -1564,14 +1562,12 @@ onBeforeUnmount(() => {
               </p>
             </details>
           </section>
-          <p v-if="!selected" class="inspector-empty">选择一项内容，查看或编辑它的规则、关联和资源。</p>
         </div>
         <template v-else-if="tab === 'assets'"
           ><button v-if="history.length" class="back-link" @click="back">← 返回内容</button>
           <header class="page-heading">
             <div>
               <h1>资源</h1>
-              <p>查看已有资源、预览效果，并跳转到使用它的内容。</p>
             </div>
             <input v-model="search" type="search" aria-label="搜索资源" placeholder="搜索资源名称" />
             <button v-if="!readOnly" :disabled="busy" @click="attempt(importAsset)">导入资源</button>
@@ -1636,14 +1632,8 @@ onBeforeUnmount(() => {
           ><header class="page-heading">
             <div>
               <h1>连接外部助手</h1>
-              <p>在外部 AI 工具连接此内容包，即可读取查看位置与未保存修改，无需先勾选协作范围。</p>
-              <p>
-                {{
-                  readOnly
-                    ? '此包的 MCP 连接仅提供读取，不提供修改或运行项目的工具。'
-                    : '助手可以按需要查找关联内容。当前查看位置是上下文，不限制你的创作任务范围。'
-                }}
-              </p>
+              <p>连接后，助手可以读取未保存的修改。</p>
+              <p v-if="readOnly">只读连接</p>
             </div>
           </header>
           <label v-if="!readOnly" class="checkbox"
@@ -1656,8 +1646,7 @@ onBeforeUnmount(() => {
             </button>
           </div>
           <p v-if="contextError" class="error" role="alert">上下文同步失败：{{ contextError }}</p>
-          <p class="hint">源文件发生变化时，草稿会保留并进入核对流程。代码与文件整理继续使用外部工具。</p></template
-        >
+        </template>
         <template v-else-if="tab === 'effects'">
           <header class="page-heading">
             <div>
@@ -1698,7 +1687,7 @@ onBeforeUnmount(() => {
         >
       </button>
       <div v-show="runPanelOpen" id="author-run-output" class="run-panel-body">
-        <p v-if="!latestJob" class="hint">还没有任务输出。可从上方“更多操作”检查内容或运行测试。</p>
+        <p v-if="!latestJob" class="hint">暂无任务输出</p>
         <article v-if="latestJob" :key="latestJob.jobId" class="job">
           <header>
             <h3>

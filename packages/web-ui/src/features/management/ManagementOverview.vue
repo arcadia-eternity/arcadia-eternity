@@ -64,7 +64,6 @@ const {
           >{{ server.draining ? '恢复接纳新局' : '停止接纳并排空' }}</ElButton
         >
       </ElForm>
-      <p class="hint">排空允许已有对局结束。独立服务的进程启停由部署环境控制。</p>
     </ElCard>
   </section>
 </template>

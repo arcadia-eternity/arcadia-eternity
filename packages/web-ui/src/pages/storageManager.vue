@@ -902,7 +902,7 @@
                   />
                 </svg>
                 <p class="text-lg font-medium">没有找到匹配的精灵</p>
-                <p class="text-sm">尝试调整搜索条件或清除筛选</p>
+                <el-button class="mt-3" @click="clearFilters">清除筛选</el-button>
               </div>
 
               <!-- 仓库精灵列表 -->
@@ -1399,7 +1399,7 @@
                   />
                 </svg>
                 <p class="text-lg font-medium">没有找到匹配的精灵</p>
-                <p class="text-sm">尝试调整搜索条件或清除筛选</p>
+                <el-button class="mt-3" @click="clearFilters">清除筛选</el-button>
               </div>
 
               <!-- 仓库精灵列表 -->

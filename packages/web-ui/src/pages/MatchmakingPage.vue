@@ -1,17 +1,22 @@
 <template>
   <div class="max-w-4xl mx-auto px-4 py-6 md:px-6 md:py-8">
-    <router-link :to="{ name: 'Lobby' }" class="text-sm text-blue-600">← 返回对战大厅</router-link>
-    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mt-3">普通匹配</h1>
-    <p class="text-sm text-gray-600 mt-2 mb-6">
-      与使用相同对战环境的玩家交手。每回合 30 秒，总计 25 分钟，结果不计排名。
-    </p>
+    <router-link :to="{ name: 'Lobby' }" class="inline-flex items-center gap-1 text-sm text-blue-600">
+      <ArrowLeft class="h-4 w-4" aria-hidden="true" />
+      对战大厅
+    </router-link>
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mt-3 mb-2">普通匹配</h1>
+    <ul class="mb-6 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+      <li>每回合 30 秒</li>
+      <li>总计 25 分钟</li>
+      <li>不计排名</li>
+    </ul>
 
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
       <template v-if="matchmaking.waiting">
         <h2 class="text-lg font-medium" role="status" data-testid="matchmaking-waiting">
           {{ matchmaking.statusLabel }}
         </h2>
-        <p class="text-sm text-gray-600 mt-2 mb-4">可以离开本页继续等待。匹配成功后会自动进入对战。</p>
+        <p class="text-sm text-gray-600 mt-2 mb-4">可离开此页，匹配成功后会自动进入对战。</p>
         <el-button
           data-testid="cancel-matchmaking-button"
           :disabled="matchmaking.canceling"
@@ -21,11 +26,11 @@
         </el-button>
       </template>
       <p v-else-if="rooms.isSwitchingServer" role="status">正在切换服务器…</p>
-      <p v-else-if="rooms.currentRoom" role="status">请先离开当前房间，再开始匹配。</p>
+      <p v-else-if="rooms.currentRoom" role="status">匹配前请退出房间。</p>
       <div v-else-if="!client.isConnected" class="flex flex-wrap items-center justify-between gap-3">
-        <p role="status">请先连接对战服务器，再开始匹配。</p>
+        <p role="status">服务器未连接</p>
         <router-link to="/servers" class="inline-flex min-h-11 items-center gap-1 font-medium text-blue-700">
-          前往服务器页面
+          服务器列表
           <ArrowRight class="h-4 w-4" aria-hidden="true" />
         </router-link>
       </div>
@@ -52,9 +57,6 @@
             />
           </el-select>
         </div>
-        <p v-if="selectedEnvironment?.executionPolicy === 'peer'" class="text-sm text-gray-600 mb-3">
-          此环境由玩家主机运行。固定内容与执行材料准备完成后才能匹配。
-        </p>
         <p v-if="loading" role="status">正在加载对战内容…</p>
         <TeamSelector
           v-else-if="environmentReady"
@@ -62,12 +64,7 @@
           data-testid="matchmaking-team-selector"
           @update:is-valid="valid = $event"
         />
-        <div
-          class="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <p class="text-sm text-gray-600">
-            {{ valid && environmentReady ? '开始后可以离开本页继续等待。' : '对战环境和队伍准备就绪后即可匹配。' }}
-          </p>
+        <div class="mt-5 flex justify-end border-t border-gray-200 pt-4">
           <el-button v-if="configurationError" size="large" @click="loadEnvironments">重新加载</el-button>
           <el-button
             v-else
@@ -91,7 +88,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { ArrowRight, Search } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, Search } from '@element-plus/icons-vue'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import TeamSelector from '@/components/TeamSelector.vue'
 import { usePrivateRoomStore } from '@/stores/privateRoom'

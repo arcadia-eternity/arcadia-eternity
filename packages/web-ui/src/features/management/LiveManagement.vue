@@ -77,10 +77,6 @@ function elapsed(start: number) {
 <template>
   <section class="live-management" :aria-label="mode === 'battles' ? '活跃对战管理' : '用户管理'">
     <h2>{{ mode === 'battles' ? '活跃对战' : '用户管理' }}</h2>
-    <p class="hint" v-if="mode === 'battles'">
-      汇总所有运行环境中的对局。列表会自动刷新；每局继续使用开局时的固定版本。
-    </p>
-    <p class="hint" v-else>在线玩家包括访客与账户玩家。账户、游玩会话和管理授权分别管理。</p>
     <div class="filters">
       <ElFormItem label="搜索">
         <ElInput
@@ -101,7 +97,7 @@ function elapsed(start: number) {
       <p v-if="!canReadBattles">没有查看对战的权限。</p>
       <template v-else>
         <div class="table-scroll">
-          <ElTable :data="battles" row-key="id" stripe empty-text="暂无符合条件的记录">
+          <ElTable :data="battles" row-key="id" stripe empty-text="无匹配对战">
             <ElTableColumn label="对战 / 房间" min-width="180">
               <template #default="{ row: item }"
                 >{{ item.roomCode }}<small>{{ item.id.slice(0, 12) }}</small>
@@ -138,9 +134,6 @@ function elapsed(start: number) {
             </ElTableColumn>
           </ElTable>
         </div>
-        <p v-if="!battles.length" class="empty">
-          {{ query || environment ? '没有符合条件的活跃对战。' : '当前没有活跃对战。' }}
-        </p>
       </template>
     </template>
     <template v-else>
@@ -148,7 +141,7 @@ function elapsed(start: number) {
       <p v-if="!canReadPlayers">没有查看玩家会话的权限。</p>
       <template v-else>
         <div class="table-scroll">
-          <ElTable :data="players" row-key="seatId" stripe empty-text="暂无符合条件的记录">
+          <ElTable :data="players" row-key="seatId" stripe empty-text="无匹配会话">
             <ElTableColumn label="玩家" min-width="180">
               <template #default="{ row: player }"
                 >{{ player.name }}<small>{{ player.accountId ?? player.seatId }}</small>
@@ -185,15 +178,11 @@ function elapsed(start: number) {
             </ElTableColumn>
           </ElTable>
         </div>
-        <p v-if="!players.length" class="empty">没有符合条件的玩家会话。</p>
       </template>
       <template v-if="canManageAccounts">
         <h3>本服账户</h3>
-        <p class="hint">
-          账户由玩家通过本服登录建立。停用会撤销会话和关联管理权限，保留身份记录；当前不支持恢复停用的账户。
-        </p>
         <div class="table-scroll">
-          <ElTable :data="accounts" row-key="accountId" stripe empty-text="暂无符合条件的记录">
+          <ElTable :data="accounts" row-key="accountId" stripe empty-text="无匹配账户">
             <ElTableColumn label="账户" min-width="180">
               <template #default="{ row: item }">{{ item.accountId }}</template>
             </ElTableColumn>
@@ -218,7 +207,6 @@ function elapsed(start: number) {
             </ElTableColumn>
           </ElTable>
         </div>
-        <p v-if="!accounts.length" class="empty">没有符合条件的账户。</p>
         <ElButton v-if="moreAccounts" :disabled="busy" @click="emit('moreAccounts')" native-type="button"
           >加载更多账户</ElButton
         >
@@ -336,13 +324,6 @@ header {
 small,
 .player {
   display: block;
-}
-.empty {
-  padding: 2rem;
-  text-align: center;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  border-radius: 10px;
 }
 .detail,
 .confirmation {

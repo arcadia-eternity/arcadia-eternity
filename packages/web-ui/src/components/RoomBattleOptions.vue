@@ -7,7 +7,6 @@
     <p v-if="options.battleMode === 'p2p'" class="text-xs text-gray-500 mt-2">
       房主需保持页面开启；当前不支持 P2P 对战观战。
     </p>
-    <p v-else-if="serverOnly" class="text-xs text-gray-500 mt-2">此房间的内容由服务器运行。</p>
   </el-form-item>
   <el-form-item label="行动计时">
     <el-switch v-model="options.timerConfig.enabled" />

@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentVersion } from '@/types/management'
 
 const props = defineProps<{
+  heading?: string
   environments: ManagedEnvironment[]
   versions: ManagedEnvironmentVersion[]
   canEdit: boolean
@@ -138,10 +139,7 @@ function save() {
 <template>
   <section class="environment-workspace" aria-label="环境工作区">
     <header class="section-heading">
-      <div>
-        <h2>环境</h2>
-        <p>编辑组合后准备固定版本，再选择要发布到服务器的版本。</p>
-      </div>
+      <h2>{{ heading ?? '环境' }}</h2>
       <ElButton
         :disabled="!canEdit || busy"
         :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
@@ -151,7 +149,7 @@ function save() {
         新建环境
       </ElButton>
     </header>
-    <p v-if="!canEdit" class="hint">你可以查看此工作区；编辑与准备需要相应授权。</p>
+    <p v-if="!canEdit" class="hint">无权编辑或准备版本。</p>
     <div class="workspace-columns">
       <nav class="environment-list" aria-label="选择环境">
         <ElButton
@@ -169,15 +167,11 @@ function save() {
             个直接添加的包</small
           >
         </ElButton>
-        <p v-if="!environments.length" class="hint">还没有环境。新建一个组合开始。</p>
       </nav>
       <div class="environment-detail">
         <template v-if="selectedEnvironment && !editing">
           <header class="section-heading">
-            <div>
-              <h3>{{ selectedEnvironment.document.name }}</h3>
-              <small>保存草稿 → 准备固定版本 → 使用或发布</small>
-            </div>
+            <h3>{{ selectedEnvironment.document.name }}</h3>
             <div class="actions">
               <ElButton :disabled="!canEdit || busy" @click="edit(selectedEnvironment)" native-type="button"
                 >编辑</ElButton
@@ -261,9 +255,7 @@ function save() {
                   <ElButton @click="disablingPackage = ''" native-type="button">取消</ElButton>
                 </div>
               </article>
-              <p v-if="!latestVersion.members.length" class="hint">此版本没有额外资源包。</p>
             </template>
-            <p v-else class="hint">准备版本后显示自动依赖与实际版本。每个资源包只允许一个版本，冲突时保留已有版本。</p>
             <template v-if="selectedEnvironment.document.disabled">
               <h4>已停用的直接依赖</h4>
               <article
@@ -390,7 +382,7 @@ function save() {
                 />
               </ElFormItem>
             </fieldset>
-            <p class="hint">规则随准备的版本固定，已有兼容要求随本次保存保留。来源须先由宿主登记。</p>
+            <p class="hint">仅可使用宿主已登记的来源。</p>
           </details>
           <div class="actions">
             <ElButton class="primary" :disabled="busy || !canEdit" native-type="submit" type="primary"
@@ -398,7 +390,6 @@ function save() {
             >
             <ElButton @click="editing = false" native-type="button">关闭编辑</ElButton>
           </div>
-          <p class="hint">保存不会改变已发布版本。发生版本冲突时，你的编辑内容会留在这里。</p>
         </ElForm>
         <template v-if="!editing && detailTab === 'versions'">
           <header class="section-heading">
@@ -462,7 +453,6 @@ function save() {
           </div>
         </template>
         <footer v-if="selectedEnvironment && !editing" class="workspace-footer">
-          <span class="hint">准备不会自动启用或发布。</span>
           <ElButton
             class="primary"
             :disabled="!canPrepare || busy"

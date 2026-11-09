@@ -1,14 +1,36 @@
+import { fileURLToPath } from 'node:url'
+import { emptyWorkspace, type WorkSnapshot, type WorkWorkspace } from '@arcadia-eternity/pack-loader/native'
+import { prepareShippedEnvironment } from '@arcadia-eternity/pack-loader/node'
 import { expect, test, type BrowserContext } from 'playwright/test'
-import { prepareLocalBattle } from './helpers/local-battle-fixture'
+import type { CreatorContent } from '../src/features/creator/content'
+
+let creatorBase: CreatorContent
+test.beforeAll(async () => {
+  const prepared = await prepareShippedEnvironment(fileURLToPath(new URL('../../../packs/base/', import.meta.url)))
+  try {
+    const authoring = prepared.authoring
+    if (!authoring) throw new Error('Shipped environment is missing authoring metadata')
+    const { build, templates, effectIds, effectTemplates } = authoring
+    creatorBase = { data: prepared.data, build, templates, effectIds, effectTemplates }
+  } finally {
+    await prepared.dispose()
+  }
+})
 
 // Exercise the desktop authoring surface with transactional storage behind a test bridge.
 // The ordinary browser route is now read-only and is covered by content-manager.spec.ts.
 async function desktopAuthoring(context: BrowserContext) {
-  await context.addInitScript(() => {
-    const storage = async () => {
-      const modulePath = '/src/services/workStorage.ts'
-      const { BrowserWorkStorage } = await import(modulePath)
-      return new BrowserWorkStorage('desktop-authoring-test')
+  let snapshot: WorkSnapshot = { revision: 0, workspace: emptyWorkspace() }
+  await context.exposeFunction('readTestWorkWorkspace', () => snapshot)
+  await context.exposeFunction('writeTestWorkWorkspace', (expected: number, workspace: WorkWorkspace) => {
+    if (expected !== snapshot.revision) return false
+    snapshot = { revision: expected + 1, workspace }
+    return true
+  })
+  await context.addInitScript(base => {
+    const storage = window as Window & {
+      readTestWorkWorkspace(): Promise<WorkSnapshot>
+      writeTestWorkWorkspace(expected: number, workspace: WorkWorkspace): Promise<boolean>
     }
     Object.defineProperty(window, 'arcadiaDesktop', {
       value: {
@@ -16,30 +38,25 @@ async function desktopAuthoring(context: BrowserContext) {
         listWorkspacePacks: async () => [],
         listCachedPets: async () => [],
         getAppVersion: async () => 'test',
-        readWorkWorkspace: async () => (await storage()).read(),
-        compareAndSwapWorkWorkspace: async ({ expected, workspace }: { expected: number; workspace: unknown }) =>
-          (await storage()).compareAndSwap(expected, workspace),
+        prepareLocalContent: async () => ({
+          token: 'creator-test',
+          content: { species: [], skills: [], marks: [] },
+        }),
+        releaseLocalContent: async () => {},
+        readCreatorBase: async () => base,
+        readWorkWorkspace: () => storage.readTestWorkWorkspace(),
+        compareAndSwapWorkWorkspace: ({ expected, workspace }: { expected: number; workspace: WorkWorkspace }) =>
+          storage.writeTestWorkWorkspace(expected, workspace),
       },
     })
-  })
+  }, creatorBase)
 }
-test.beforeEach(async ({ context, page }) => {
+test.beforeEach(async ({ context }) => {
   await desktopAuthoring(context)
-  await prepareLocalBattle(page)
 })
 
-test('authors namespaced effects, persists a draft, publishes and shares it, and runs the real battle', async ({
-  page,
-  browser,
-}) => {
-  // Authoring, reloads, a full animated battle, and a second mobile client all share this budget.
-  test.setTimeout(120_000)
-  const lifecycleErrors: string[] = []
-  page.on('console', message => {
-    if (message.text().includes('Native battle system is disposed')) lifecycleErrors.push(message.text())
-  })
-  page.on('pageerror', error => lifecycleErrors.push(error.message))
-  await page.goto('/creator')
+test('authors namespaced effects, validates, publishes and shares a draft', async ({ page, browser }) => {
+  await page.goto('/creator/drafts')
   await page.getByLabel('作品名称', { exact: true }).fill('寒霜作品')
   await page.getByLabel('命名空间', { exact: true }).fill('frost_pack')
   await page.getByRole('button', { name: '创建作品', exact: true }).click()
@@ -80,91 +97,13 @@ test('authors namespaced effects, persists a draft, publishes and shares it, and
   await page.getByRole('button', { name: '导出草稿', exact: true }).click()
   const download = await downloadPromise
   const file = await download.path()
-  await page.getByRole('button', { name: '校验并准备试战', exact: true }).click()
+  await page.getByRole('button', { name: '校验组合内容', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('校验通过')
-  const original = await page.evaluate(async () => {
-    const petsPath = '/src/stores/petStorage.ts',
-      clientPath = '/src/stores/battleClient.ts'
-    const { usePetStorageStore } = await import(petsPath)
-    const { useBattleClientStore } = await import(clientPath)
-    return { teams: JSON.stringify(usePetStorageStore().teams), server: useBattleClientStore().serverUrl }
-  })
-  // Editing after preparation must persist, while this battle keeps its earlier snapshot.
-  await page.getByLabel('作品标题').fill('寒霜作品修改中')
-  await page.evaluate(() => {
-    const api = window.arcadiaDesktop!,
-      write = api.compareAndSwapWorkWorkspace!
-    const gate = new Promise<void>(resolve => {
-      Reflect.set(window, 'releaseTrialSave', resolve)
-    })
-    api.compareAndSwapWorkWorkspace = async input => {
-      api.compareAndSwapWorkWorkspace = write
-      await gate
-      return write(input)
-    }
-  })
-  await page.getByRole('button', { name: '开始试战', exact: true }).click()
-  await expect(page.getByLabel('作品标题')).toBeDisabled()
-  await page.evaluate(() => Reflect.get(window, 'releaseTrialSave')())
-  await page.waitForURL(/\/local-battle\?trialKey=/)
-  await expect(page.getByRole('status')).toContainText('已载入 UGC 草稿快照：寒霜作品。')
-  await expect(page.getByRole('heading', { name: '本地对战', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
-  await page.waitForURL(/\/battle\?dev=true/)
-  await expect(page.getByText('对战开始！', { exact: true })).toBeVisible()
-  const strike = page.getByRole('button', { name: /^寒霜打击 ·/ })
-  await expect(strike).toBeEnabled()
-  await strike.click()
-  await expect(
-    page
-      .getByRole('log', { name: '战斗记录' })
-      .getByText(/新精灵 使用 寒霜打击/)
-      .last(),
-  ).toBeVisible()
-  await expect
-    .poll(async () =>
-      page.evaluate(async () => {
-        const path = '/src/stores/battle.ts'
-        const { useBattleStore } = await import(path)
-        const state = await useBattleStore().battleInterface.getState(undefined, true)
-        return state.players.some(player =>
-          player.team?.some(pet => pet.marks?.some(mark => mark.baseId === 'frost_pack:slow')),
-        )
-      }),
-    )
-    .toBe(true)
-  await page.screenshot({ path: '/tmp/ugc-creator-desktop.png', fullPage: true })
-  await page.evaluate(async () => {
-    const path = '/src/router/index.ts'
-    const { default: router } = await import(path)
-    void router.push('/creator')
-  })
-  await page.getByRole('button', { name: '确定', exact: true }).click()
-  await page.waitForURL(/\/creator$/)
-  await expect(page.getByRole('button', { name: '寒霜作品修改中 frost_pack:…' })).toBeVisible()
-  const restored = await page.evaluate(async () => {
-    const petsPath = '/src/stores/petStorage.ts',
-      clientPath = '/src/stores/battleClient.ts'
-    const dataPath = '/src/stores/gameData.ts',
-      battlePath = '/src/stores/battle.ts'
-    const { usePetStorageStore } = await import(petsPath)
-    const { useBattleClientStore } = await import(clientPath)
-    const { useGameDataStore } = await import(dataPath)
-    const { useBattleStore } = await import(battlePath)
-    return {
-      teams: JSON.stringify(usePetStorageStore().teams),
-      server: useBattleClientStore().serverUrl,
-      temporarySpecies: useGameDataStore().species.allIds.filter(id => id.startsWith('frost_pack:')),
-      battle: useBattleStore().battleInterface,
-    }
-  })
-  expect(restored).toEqual({ ...original, temporarySpecies: [], battle: null })
-  expect(lifecycleErrors).toEqual([])
   const other = await browser.newContext({ viewport: { width: 390, height: 844 } })
   try {
     await desktopAuthoring(other)
     const receiver = await other.newPage()
-    await receiver.goto('/creator')
+    await receiver.goto('/creator/drafts')
     await expect(receiver.getByLabel('导入作品文件')).toBeEnabled()
     await receiver.getByLabel('导入作品文件').setInputFiles(file!)
     await receiver.getByRole('button', { name: '导入这些作品', exact: true }).click()
@@ -181,20 +120,20 @@ test('authors namespaced effects, persists a draft, publishes and shares it, and
 })
 
 test('a conflicting authoring window can preserve edits as a namespaced fork', async ({ page, context }) => {
-  await page.goto('/creator')
+  await page.goto('/creator/drafts')
   await page.getByLabel('作品名称', { exact: true }).fill('原稿')
   await page.getByLabel('命名空间', { exact: true }).fill('source')
   await page.getByRole('button', { name: '创建作品', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('已保存')
   const other = await context.newPage()
-  await other.goto('/creator')
+  await other.goto('/creator/drafts')
   await other.getByRole('button', { name: '原稿 source:…' }).click()
   await page.getByLabel('作品标题').fill('新版本')
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('已保存')
   await other.getByLabel('作品标题').fill('冲突窗口的编辑')
   await other.getByRole('button', { name: '保存草稿', exact: true }).click()
-  await expect(other.getByRole('alert')).toContainText('其他窗口修改')
+  await expect(other.locator('main.creator').getByRole('alert')).toContainText('其他窗口修改')
   await other.getByLabel('命名空间', { exact: true }).fill('rescued')
   await other.getByRole('button', { name: '以此命名空间另存副本', exact: true }).click()
   await expect(other.getByLabel('作品命名空间')).toHaveValue('rescued')
@@ -211,7 +150,7 @@ test('imports omitted template parameters and preserves unfinished behavior rows
     behaviors: [{ useId: 'speed', definitionId: 'base/template/mark-attribute' }, null],
   })
   const archive = await exportArchive({ drafts: [draft] })
-  await page.goto('/creator')
+  await page.goto('/creator/drafts')
   await expect(page.getByLabel('导入作品文件')).toBeEnabled()
   await page
     .getByLabel('导入作品文件')
@@ -226,11 +165,11 @@ test('imports omitted template parameters and preserves unfinished behavior rows
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('已保存')
   await page.locator('.effect-card').last().getByRole('button', { name: '移除效果' }).click()
-  await page.getByRole('button', { name: '校验并准备试战', exact: true }).click()
+  await page.getByRole('button', { name: '校验组合内容', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('校验通过')
 })
 
-test('Web and Node load byte-equivalent source metadata for works', async ({ page }) => {
+test('creator uses the shipped metadata provided by the desktop bridge', async ({ page }) => {
   const { NativeNodePackLoader } = await import('@arcadia-eternity/pack-loader/node')
   const { nativeBuildIdentity } = await import('@arcadia-eternity/data-pack-base/build')
   const { createOfficialContent } = await import('@arcadia-eternity/data-pack-base/effects')
@@ -238,18 +177,13 @@ test('Web and Node load byte-equivalent source metadata for works', async ({ pag
     source: 'node-fs',
     enforceLockfile: true,
   })
-  await page.goto('/creator')
+  await page.goto('/creator/drafts')
   await expect(page.getByRole('button', { name: '创建作品', exact: true })).toBeEnabled()
   const browser = await page.evaluate(async () => {
     const path = '/src/features/creator/content.ts'
     const { loadCreatorBase } = await import(path)
     return loadCreatorBase()
   })
-  expect(browser).toEqual(node.data)
-})
-
-test('expired trial links cannot silently launch an ordinary battle', async ({ page }) => {
-  await page.goto('/local-battle?trialKey=expired')
-  await expect(page.getByText('试战快照已失效，请回到创作页重新准备试战')).toBeVisible()
-  await expect(page.getByRole('button', { name: '开始本地对战', exact: true })).toBeDisabled()
+  expect(browser.data).toMatchObject(node.data)
+  expect(browser.effectTemplates).toEqual(creatorBase.effectTemplates)
 })

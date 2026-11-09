@@ -23,16 +23,12 @@
         <div class="text-sm text-gray-600 mt-1">{{ team.pets.map(pet => pet.name).join('、') }}</div>
       </button>
     </div>
-    <div v-else class="text-center py-8 text-gray-600">
-      <p>还没有队伍，请先创建一支队伍。</p>
-      <router-link :to="editorRoute" class="inline-block mt-3 text-blue-600">前往队伍编辑器</router-link>
-    </div>
     <ul v-if="validationErrors.length" class="text-sm text-orange-600 space-y-1" role="alert">
       <li v-for="error in validationErrors" :key="error">{{ error }}</li>
     </ul>
-    <router-link v-if="teams.length" :to="editorRoute" class="inline-block mt-3 text-blue-600"
-      >编辑或创建队伍</router-link
-    >
+    <router-link v-if="isInitialized" :to="editorRoute" class="inline-block mt-3 text-blue-600">
+      {{ teams.length ? '编辑队伍' : '创建队伍' }}
+    </router-link>
   </div>
 </template>
 

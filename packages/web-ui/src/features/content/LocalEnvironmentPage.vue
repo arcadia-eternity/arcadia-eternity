@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="local-environments" aria-label="本机环境库">
-    <p class="scope-note">本机环境库 · 编辑和保存无需开服。服务器使用独立副本，发布前不会改变正在运行的玩法。</p>
+    <h2>本机环境库</h2>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <nav class="local-tabs" aria-label="环境工具">
@@ -220,7 +220,6 @@ onBeforeUnmount(() => {
     </section>
     <section v-if="localTab === 'transfers'" class="panel" aria-label="环境导入导出">
       <h3>在本机与服务器之间传递环境</h3>
-      <p>导出包含固定版本与内容材料。目标服务器校验导入后，再选择开放或更新。</p>
       <label
         >导出的固定版本<select v-model="selectedExport">
           <option value="">选择版本</option>
@@ -290,11 +289,6 @@ onBeforeUnmount(() => {
   height: calc(100dvh - 230px);
   min-height: 0;
   color: #243042;
-}
-.scope-note {
-  padding: 14px;
-  background: #eaf2ff;
-  border-radius: 8px;
 }
 .download-policy {
   display: flex;

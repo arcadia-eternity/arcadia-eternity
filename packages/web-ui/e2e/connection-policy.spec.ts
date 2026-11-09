@@ -111,5 +111,5 @@ test('website only offers its configured server, with no address picker or switc
   await expect(page.getByRole('heading', { name: '当前网页的服务器', exact: true })).toBeVisible()
   await expect(page.getByLabel('服务器地址', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '用客户端连接', exact: true })).toHaveCount(0)
-  await expect(page.getByText('当前网页只连接本站配置的服务器，不提供切服。', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '进入大厅', exact: true })).toBeVisible()
 })

@@ -213,7 +213,7 @@ it('offers a published peer-only environment only for player-hosted room creatio
   await page.get('[data-testid="create-private-room-button"]').trigger('click')
   await flushPromises()
   expect(page.get('[data-testid="room-environment-select"]').text()).not.toContain('@example/peer')
-  expect(page.text()).toContain('仅允许玩家主机运行')
+  expect(page.text()).toContain('部分环境仅限房主运行')
   await page.get('[data-testid="p2p"]').trigger('click')
   expect(page.get('[data-testid="room-environment-select"]').text()).toContain('@example/peer 2.0.0')
   await page.get('[data-testid="room-environment-select"]').setValue('peer')
@@ -312,7 +312,7 @@ it('links to server management without starting a host or abandoning the room', 
   deployment.desktop = true
   privateRoom.currentRoom = { status: 'started', config: { roomCode: 'ABC123' } }
   const page = mount(LobbyPage, { global: { stubs } })
-  expect(page.text()).toContain('查看与管理服务器')
+  expect(page.text()).toContain('服务器列表')
   expect(page.find('[data-testid="start-local-server-button"]').exists()).toBe(false)
   expect(switchServer).not.toHaveBeenCalled()
 })

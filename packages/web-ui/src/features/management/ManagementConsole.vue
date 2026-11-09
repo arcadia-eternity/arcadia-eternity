@@ -177,9 +177,7 @@ watch(compact, () => {
       </div>
       <div v-else class="management-login-scroll">
         <section v-if="loginRequired && target === 'server'" class="login-card" aria-label="管理员登录">
-          <span class="login-eyebrow">ARCADIA ETERNITY</span>
           <h2>登录管理后台</h2>
-          <p>使用管理员身份管理此服务器。</p>
           <ElButton
             class="primary login-primary"
             :disabled="busy || signingIn || !passkeyAvailable"

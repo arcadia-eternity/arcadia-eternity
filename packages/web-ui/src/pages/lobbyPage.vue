@@ -5,18 +5,9 @@
     <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-gray-800">对战大厅</h1>
 
     <router-link :to="{ name: 'Matchmaking' }" class="matchmaking-entry" data-testid="open-matchmaking-button">
-      <span class="matchmaking-entry__icon" aria-hidden="true"><Search /></span>
-      <span class="min-w-0">
-        <span class="block text-xs font-semibold text-blue-700">在线对战</span>
-        <span class="block mt-1 text-xl font-bold text-slate-900">普通匹配</span>
-        <span class="block mt-1 text-sm text-slate-600">
-          {{ matchmaking.waiting ? matchmaking.statusLabel : '自动寻找使用相同对战环境的对手。' }}
-        </span>
-      </span>
-      <span class="matchmaking-entry__action">
-        {{ matchmaking.waiting ? '查看匹配' : '进入匹配' }}
-        <ArrowRight class="h-4 w-4" aria-hidden="true" />
-      </span>
+      <Search class="h-5 w-5" aria-hidden="true" />
+      <span>{{ matchmaking.waiting ? '查看匹配' : '普通匹配' }}</span>
+      <span v-if="matchmaking.waiting" class="text-sm font-normal text-blue-100">{{ matchmaking.statusLabel }}</span>
     </router-link>
 
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left" aria-label="对战服务器">
@@ -28,15 +19,12 @@
           @click="router.push('/servers?host=1')"
           >在本机开服</el-button
         >
-        <router-link to="/servers" class="text-blue-600">查看与管理服务器</router-link>
+        <router-link to="/servers" class="text-blue-600">服务器列表</router-link>
       </div>
-      <p v-if="canStartLocalServer" class="text-xs text-gray-500 mt-2">
-        在这台电脑上创建服务器，供朋友连接。开服后可选择是否进入。
-      </p>
     </section>
 
     <!-- 导航菜单 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 my-6 md:my-8 mx-auto max-w-6xl">
+    <nav class="lobby-links my-6 md:my-8" aria-label="游戏工具">
       <router-link
         to="/team-builder"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
@@ -93,21 +81,20 @@
         </svg>
         <span class="text-sm md:text-base">GitHub</span>
       </a>
-    </div>
+    </nav>
 
     <!-- 好友房间 -->
     <div class="mb-6 md:mb-8 space-y-6">
       <!-- 私人房间区域 -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+        <h2 class="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
           <el-icon><User /></el-icon>
           私人房间
-        </h3>
+        </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- 如果已在房间，显示进入房间按钮 -->
           <div v-if="privateRoomStore.currentRoom" class="md:col-span-3">
-            <h4 class="text-sm font-medium text-gray-700 mb-3">你已在房间中</h4>
             <el-button type="primary" @click="goToCurrentRoom" class="w-full">
               回到房间 ({{ privateRoomStore.currentRoom.config.roomCode }})
             </el-button>
@@ -121,7 +108,6 @@
           <template v-else>
             <!-- 创建房间 -->
             <div class="space-y-3">
-              <h4 class="text-sm font-medium text-gray-700">创建房间</h4>
               <el-button
                 type="success"
                 :disabled="switchingServer || battleClientStore.currentState.status !== 'connected'"
@@ -135,13 +121,13 @@
 
             <!-- 加入房间 -->
             <div class="space-y-3 md:col-span-2">
-              <h4 class="text-sm font-medium text-gray-700">加入房间</h4>
               <div class="flex gap-2">
                 <el-input
                   v-model="joinRoomCode"
-                  placeholder="输入房间码"
+                  placeholder="房间码"
+                  aria-label="房间码"
                   maxlength="6"
-                  class="flex-1"
+                  class="min-w-0 flex-1"
                   @keyup.enter="joinRoom"
                   data-testid="join-room-code-input"
                 />
@@ -161,25 +147,19 @@
                   观战
                 </el-button>
               </div>
-              <el-input v-model="joinRoomPassword" placeholder="房间密码（公开房间留空）" show-password />
+              <el-input
+                v-model="joinRoomPassword"
+                placeholder="房间密码（选填）"
+                aria-label="房间密码（选填）"
+                show-password
+              />
             </div>
           </template>
         </div>
       </div>
     </div>
 
-    <!-- 提示信息 -->
-    <div class="mt-6 md:mt-8 text-left">
-      <el-alert title="使用提示" type="info" :closable="false" class="mb-4">
-        <ul class="text-left text-sm md:text-base space-y-1">
-          <li>不要忘了 先在队伍编辑里面编辑队伍</li>
-          <li>目前正在活跃更新中 可能会有一些bug 尽量谅解</li>
-          <li>短暂断线后可恢复仍然存在的房间；服务器重启后，需要重新创建房间。</li>
-          <li>人机对战可以在没有连接服务器的情况下进行</li>
-          <li>群号：805146068</li>
-        </ul>
-      </el-alert>
-    </div>
+    <footer class="mb-6 text-sm text-gray-600">QQ 群 805146068</footer>
 
     <!-- 创建房间对话框 -->
     <el-dialog v-model="showCreateRoomDialog" title="创建私人房间" width="min(500px, 92vw)">
@@ -222,19 +202,12 @@
               内容列表暂不可用，可以尝试使用服务器默认内容。
               <el-button link type="primary" @click="loadEnvironments">重试</el-button>
             </p>
-            <p v-else-if="selectedEnvironmentId" class="text-xs text-gray-500 mt-2">
-              {{
-                battleOptions.battleMode === 'p2p'
-                  ? '双方准备选定环境的固定版本后，由玩家主机运行对战。'
-                  : '房间创建后使用选定的内容；对战由服务器运行。'
-              }}
-            </p>
             <p
               v-if="hasPeerEnvironments && battleOptions.battleMode === 'server'"
               class="text-xs text-gray-500 mt-2"
               role="status"
             >
-              部分环境仅允许玩家主机运行，可切换到 P2P 后选择。
+              部分环境仅限房主运行。
             </p>
           </div>
         </el-form-item>
@@ -276,7 +249,7 @@ import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useMatchmakingStore } from '@/stores/matchmaking'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowRight, Collection, Download, FolderOpened, Monitor, Search, Setting, User } from '@element-plus/icons-vue'
+import { Collection, Download, FolderOpened, Monitor, Search, Setting, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 
@@ -412,84 +385,33 @@ const joinAsSpectator = async () => {
 
 <style scoped>
 .matchmaking-entry {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  padding: 1.25rem;
-  border: 1px solid #bfdbfe;
-  border-radius: 1rem;
-  background: linear-gradient(115deg, #eff6ff, #fff);
-  text-align: left;
-  text-decoration: none;
-}
-
-.matchmaking-entry__icon {
-  display: grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border: 1px solid #bfdbfe;
-  border-radius: 0.875rem;
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.matchmaking-entry__icon svg {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.matchmaking-entry__action {
-  display: inline-flex;
-  min-height: 44px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0 1rem;
-  border-radius: 0.625rem;
+  gap: 0.625rem;
+  min-height: 44px;
+  margin-bottom: 1rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
   background: #1d4ed8;
   color: #fff;
-  font-size: 0.875rem;
   font-weight: 600;
+  text-decoration: none;
 }
 
 .matchmaking-entry:hover,
 .matchmaking-entry:focus-visible {
-  border-color: #60a5fa;
-}
-
-.matchmaking-entry:hover .matchmaking-entry__action,
-.matchmaking-entry:focus-visible .matchmaking-entry__action {
   background: #1e40af;
 }
 
-@media (max-width: 639px) {
-  .matchmaking-entry {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.75rem;
-  }
-
-  .matchmaking-entry__action {
-    grid-column: 1 / -1;
-  }
+.lobby-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 0.75rem;
 }
 
-/* 确保页面内容可以正常滚动 */
 .lobby-container {
-  /* 当内容较少时居中显示，内容较多时允许滚动 */
-  justify-content: center;
-  /* 在移动端确保有足够的空间 */
   padding-bottom: env(safe-area-inset-bottom, 20px);
-}
-
-/* 当内容超出视口时，移除居中对齐 */
-@media (max-height: 800px) {
-  .lobby-container {
-    justify-content: flex-start;
-    padding-top: 2rem;
-  }
 }
 
 /* 移动端触摸优化 */
@@ -518,9 +440,7 @@ const joinAsSpectator = async () => {
 
   /* 移动端按钮优化 */
   button {
-    font-size: 1rem;
-    padding: 16px 32px;
-    border-radius: 12px;
+    min-height: 44px;
   }
 
   /* 移动端卡片优化 */
@@ -535,21 +455,6 @@ const joinAsSpectator = async () => {
   a:active {
     transform: scale(0.98);
     transition: transform 0.1s ease;
-  }
-
-  /* 移动端提示框优化 */
-  .el-alert {
-    border-radius: 12px;
-  }
-
-  .el-alert ul {
-    margin: 0;
-    padding-left: 1.2rem;
-  }
-
-  .el-alert li {
-    margin-bottom: 8px;
-    line-height: 1.5;
   }
 }
 

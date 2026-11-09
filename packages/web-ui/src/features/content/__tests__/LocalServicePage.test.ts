@@ -10,9 +10,11 @@ it('keeps project tools separate and directs ordinary hosting to Servers', async
     getLocalBattleStatus: async () => ({ status: 'idle' }),
     localServer: start,
   })
-  const page = mount(LocalServicePage, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } })
+  const page = mount(LocalServicePage, {
+    global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' } } },
+  })
   await flushPromises()
-  expect(page.text()).toContain('开服、连接地址与服务器设置已移至')
+  expect(page.get('a[href="/servers"]').text()).toBe('服务器列表')
   expect(page.text()).toContain('登记项目目录')
   expect(start).not.toHaveBeenCalled()
   page.unmount()

@@ -4,10 +4,7 @@
 
     <!-- 战斗配置面板 -->
     <div class="bg-gray-50 rounded-lg p-6 shadow-lg border border-gray-200">
-      <h2 class="text-xl font-semibold text-center text-gray-700 mb-6">战斗配置</h2>
-
       <div class="mb-6 p-4 bg-white rounded-md border border-gray-200 flex flex-col gap-3">
-        <p>对战环境：进入本页时已准备的本地内容（本次配置和对局保持固定）</p>
         <p v-if="contentNotice" class="text-sm text-amber-700">{{ contentNotice }}</p>
         <TeamLibrarySelect :delegate="teamSelectors[0]!" label="玩家1队伍" />
         <TeamLibrarySelect :delegate="teamSelectors[1]!" label="玩家2队伍（AI）" />

@@ -182,10 +182,7 @@ async function copy(value: string) {
 </script>
 <template>
   <main class="server-page server-stack">
-    <header class="server-gap">
-      <h1>服务器</h1>
-      <p>{{ isDesktop ? '通过地址连接服务器，或管理你自己的服务器。' : '查看当前站点的服务器与管理入口。' }}</p>
-    </header>
+    <h1>服务器</h1>
     <p v-if="error || local.error" role="alert" class="server-error">{{ error || local.error }}</p>
     <p v-if="notice" role="status" class="server-notice">{{ notice }}</p>
     <p class="server-small">当前游玩：{{ client.isConnected ? client.serverUrl : '离线' }}</p>
@@ -205,11 +202,7 @@ async function copy(value: string) {
             </button>
           </details>
         </div>
-        <p class="server-small">
-          客户端连接会打开独立窗口；在浏览器中打开则使用该服务器的网页。管理员登录不切换游玩连接。
-        </p>
       </form>
-      <p v-if="!isDesktop" class="server-small">当前网页只连接本站配置的服务器，不提供切服。</p>
       <div class="server-row">
         <div>
           <h3 v-if="isDesktop">默认服务器</h3>
@@ -243,18 +236,14 @@ async function copy(value: string) {
         <h2>{{ summary?.name || '本机服务器' }}</h2>
         <span role="status">{{ phase }}</span>
       </div>
-      <template v-if="local.busy"
-        ><p class="server-notice">{{ phase }} 页面关闭后操作仍会继续。</p>
-        <button v-if="local.snapshot.phase === 'draining'" @click="forceStop">立即中断并停止</button></template
-      >
+      <template v-if="local.busy">
+        <button v-if="local.snapshot.phase === 'draining'" @click="forceStop">立即中断并停止</button>
+      </template>
       <template v-else-if="running">
-        <p v-if="running.localRecovery" class="server-notice">当前为仅本机修复模式。修改网络设置后，重新启动服务器。</p>
-        <p v-else-if="running.network?.scope === 'local'">仅本机可连接。邀请朋友前，请在网络设置中开放连接范围。</p>
+        <p v-if="running.localRecovery" class="server-notice">仅本机修复模式。修改网络设置后重启。</p>
+        <p v-else-if="running.network?.scope === 'local'">仅本机可连接</p>
         <div v-if="running.network?.inviteUrls.length" class="server-gap">
           <h3>邀请朋友</h3>
-          <p class="server-small">
-            朋友可用浏览器打开地址，或在客户端连接。局域网地址需要双方网络可互通；公网地址需已有可达入口。
-          </p>
           <div v-for="url in running.network.inviteUrls" :key="url" class="server-row">
             <code class="server-address">{{ url }}</code
             ><button @click="copy(url)">复制连接地址</button><button @click="website(url)">在浏览器中打开</button>
@@ -271,10 +260,10 @@ async function copy(value: string) {
           <button @click="operate({ action: 'stop' })">等待对局结束后停止</button>
         </div>
         <div v-if="summary?.pendingRestart?.length" class="server-notice server-gap">
-          <p>设置已保存，重启后应用。重启前等待现有对局结束。</p>
-          <div><button @click="operate({ action: 'restart' })">重启并应用</button></div>
+          <p>设置待重启</p>
+          <div><button @click="operate({ action: 'restart' })">对局结束后重启</button></div>
         </div>
-        <p class="server-small">管理和开服不改变当前游玩连接；退出客户端会停止本机服务器。</p>
+        <p class="server-small">退出客户端会停止本机服务器。</p>
       </template>
       <template v-else>
         <p v-if="host.status === 'failed'" role="alert" class="server-error">{{ host.message }}</p>
@@ -296,16 +285,12 @@ async function copy(value: string) {
         <form v-if="showForm && !local.snapshot.configured" class="server-stack" @submit.prevent="start">
           <div class="server-grid">
             <label>服务器名称<input v-model="configuration.name" required maxlength="80" /></label>
-            <label v-if="!local.snapshot.configured"
+            <label
               >玩法<select v-model="configuration.content">
                 <option value="official">官方基础玩法</option>
                 <option value="current">当前本地玩法（复用已准备内容）</option>
               </select></label
             >
-            <div v-else class="server-gap">
-              <h3>玩法</h3>
-              <p>使用服务器已保存的玩法；启动后在“玩法与版本”中修改。</p>
-            </div>
           </div>
           <label
             >谁可以连接<select v-model="configuration.scope">
@@ -314,15 +299,7 @@ async function copy(value: string) {
               <option value="public">通过已配置的公网地址</option>
             </select></label
           >
-          <p>
-            {{
-              configuration.scope === 'lan'
-                ? '启动后显示局域网地址，朋友需要与你处于可互通的网络。'
-                : configuration.scope === 'local'
-                  ? '只允许这台电脑连接。'
-                  : '使用已有公网入口；这里不会自动配置路由器或代理。'
-            }}
-          </p>
+          <p v-if="configuration.scope === 'public'" class="server-small">需要可访问的公网入口。</p>
           <label v-if="configuration.scope === 'public'"
             >公网访问地址<input
               v-model="configuration.publicOrigin"
@@ -340,20 +317,17 @@ async function copy(value: string) {
                 min="0"
                 max="65535"
             /></label>
-            <p class="server-small">容量配置保留已有值，首次开服使用桌面默认值。</p>
           </details>
           <div class="server-actions">
             <button class="server-primary" :disabled="local.busy">启动服务器</button
             ><button type="button" @click="showForm = false">取消</button
             ><RouterLink class="server-link" to="/content">管理内容</RouterLink>
           </div>
-          <p class="server-small">本地人机对战的内容选择保持不变；退出客户端会停止服务器。</p>
         </form>
       </template>
     </section>
     <section v-else-if="!isDesktop" class="server-panel server-gap">
       <h2>自己开服</h2>
-      <p>在桌面客户端选择玩法并启动本机服务器。</p>
       <div><RouterLink class="server-link" to="/download">下载客户端</RouterLink></div>
     </section>
     <details v-if="isDesktop">

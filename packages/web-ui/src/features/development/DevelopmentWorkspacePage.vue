@@ -336,7 +336,6 @@ onBeforeUnmount(() => {
   <main class="development-workspace">
     <header>
       <h1>开发服务工作区</h1>
-      <p>编辑当前本机开发服务的内容源文件；效果代码由作者在项目中维护。</p>
       <p>
         目标服务器：<code>{{ server }}</code>
       </p>
@@ -346,7 +345,7 @@ onBeforeUnmount(() => {
       <label
         >开发令牌<input v-model="token" data-testid="development-token" type="password" autocomplete="off"
       /></label>
-      <p>令牌由本机服务管理员提供，仅保存在当前页面内。正常对战服务器默认不启用开发服务。</p>
+      <p>请向本机服务器管理员获取开发令牌。</p>
       <button :disabled="busy || !token" data-testid="development-load" @click="run('read')">读取工作区</button>
       <button
         :disabled="busy || !token || !sameServer || !document || !!dataProblem || !dirty"

@@ -61,9 +61,9 @@ describe('server settings editor', () => {
       runtimeSettings: settings(),
       pendingRestart: ['port', 'battleCapacity'],
     })
-    expect(page.get('[role="status"]').text()).toContain('重启服务器后应用')
+    expect(page.get('[role="status"]').text()).toBe('设置待重启')
     expect(page.text()).toContain('当前监听 127.0.0.1:8102')
-    expect(page.findAll('dd')[0]!.text()).toMatch(/32\s*→ 24（待重启）/)
+    expect(page.findAll('dd')[0]!.text()).toMatch(/32\s*重启后 24/)
     expect(page.text()).not.toContain('当前监听 127.0.0.1:9100')
   })
 
