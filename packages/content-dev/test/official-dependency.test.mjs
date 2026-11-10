@@ -31,7 +31,6 @@ test(
     await mkdir(join(base, 'dist'))
     for (const file of [arcadia.catalog, arcadia.content, arcadia.presentation, arcadia.effectArtifact])
       await cp(new URL(`../../../packs/base/${file}`, import.meta.url), join(base, file))
-    await cp(new URL('../../../packs/base/assets/', import.meta.url), join(base, 'assets'), { recursive: true })
     await writeFile(
       join(base, 'package.json'),
       JSON.stringify({
