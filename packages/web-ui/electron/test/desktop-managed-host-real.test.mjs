@@ -14,6 +14,7 @@ import { LocalServerController } from '../local-server-controller.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
+import { buildEffects } from '@arcadia-eternity/content-sdk/build'
 import { withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
@@ -93,18 +94,15 @@ test(
       const fixture = join(root, 'slow')
       await mkdir(fixture)
       // Never reuse an ignored local dist directory: build the tracked example
-      // into this test's empty fixture. Keep its config in the repository so
-      // TypeScript resolves the already-built workspace SDK without an install.
+      // into this test's empty fixture.
       for (const entry of ['package.json', 'content.json', 'src'])
         await cp(join(example, entry), join(fixture, entry), { recursive: true })
-      const compiler = createRequire(join(repository, 'package.json')).resolve('typescript/bin/tsc')
-      await exec(
-        process.execPath,
-        [compiler, '--project', join(example, 'tsconfig.json'), '--outDir', join(fixture, 'dist'), '--noEmitOnError'],
-        { cwd: repository, maxBuffer: 4 * 1024 * 1024 },
-      )
+      await buildEffects(fixture)
       const fixtureManifest = JSON.parse(await readFile(join(fixture, 'package.json'), 'utf8'))
-      assert.ok((await readFile(join(fixture, fixtureManifest.arcadia.effects))).length, 'fresh compiled effect exists')
+      assert.ok(
+        (await readFile(join(fixture, fixtureManifest.arcadia.effectArtifact))).length,
+        'fresh effect artifact exists',
+      )
       const packArguments = [
         'pack',
         fixture,
@@ -123,8 +121,8 @@ test(
         : await exec('npm', packArguments, { cwd: repository })
       const archive = JSON.parse(packed.stdout)[0]
       assert.ok(
-        archive.files.some(file => file.path === fixtureManifest.arcadia.effects),
-        'packed fixture includes the freshly compiled effect entry',
+        archive.files.some(file => file.path === fixtureManifest.arcadia.effectArtifact),
+        'packed fixture includes the freshly built effect artifact',
       )
       const installed = await library.installFile(join(root, archive.filename), true)
       const { packages, activeIds } = await library.list()
