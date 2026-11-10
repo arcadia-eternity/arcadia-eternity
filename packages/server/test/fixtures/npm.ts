@@ -27,11 +27,6 @@ export async function createNpmFixture(
   const root = await mkdtemp(join(tmpdir(), 'arcadia-server-npm-'))
   try {
     const repository = fileURLToPath(new URL('../../../../', import.meta.url))
-    await exec(
-      process.execPath,
-      [resolve(repository, 'node_modules/typescript/bin/tsc'), '-p', 'examples/ugc/slow/tsconfig.json'],
-      { cwd: repository },
-    )
     const source = join(root, 'source'),
       directory = join(root, 'server')
     await cp(resolve(repository, 'examples/ugc/slow'), source, { recursive: true })
@@ -101,19 +96,25 @@ export async function createNpmFixture(
       )
     }
     const executionMarker = options.forbidHostExecution ? join(root, 'author-evaluated') : undefined
+    const effectSource = join(source, manifest.arcadia.effectSources)
+    const effectArtifact = join(source, manifest.arcadia.effectArtifact)
+    const artifact = await compileEffectModule(effectSource, source, manifest.name)
+    await writeFile(
+      effectArtifact,
+      JSON.stringify(
+        options.forbidHostExecution
+          ? {
+              ...artifact,
+              source: `throw new Error('AUTHOR_ARTIFACT_MUST_NOT_EXECUTE_ON_SERVER');\n${artifact.source}`,
+            }
+          : artifact,
+      ),
+    )
     if (options.prebuilt) {
       // Author-side build completes before publication. Consumers only read the packed artifact.
-      const effects = join(source, manifest.arcadia.effects)
-      const artifact = await compileEffectModule(effects, source, manifest.name)
-      const published = options.forbidHostExecution
-        ? { ...artifact, source: `throw new Error('AUTHOR_ARTIFACT_MUST_NOT_EXECUTE_ON_SERVER');\n${artifact.source}` }
-        : artifact
-      manifest.arcadia.effectArtifact = 'dist/effects.artifact.json'
-      if (!manifest.files.includes('dist')) manifest.files.push('dist/effects.artifact.json')
-      await writeFile(join(source, manifest.arcadia.effectArtifact), JSON.stringify(published))
       if (executionMarker)
         await writeFile(
-          effects,
+          join(effectSource, 'slow.effect.ts'),
           `import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(executionMarker)}, 'evaluated');\nexport function createEffects() { throw new Error('AUTHOR_SOURCE_EXECUTED'); }`,
         )
     }
@@ -183,8 +184,10 @@ export async function createNpmFixture(
       asset,
       approve,
       async editEffects(edit: (code: string) => string) {
-        const file = join(directory, 'node_modules', manifest.name, 'dist/effects.js')
-        await writeFile(file, edit(await readFile(file, 'utf8')))
+        const file = join(directory, 'node_modules', manifest.name, manifest.arcadia.effectArtifact)
+        const installed = JSON.parse(await readFile(file, 'utf8'))
+        installed.source = edit(installed.source)
+        await writeFile(file, JSON.stringify(installed))
       },
       async changePower(power: number) {
         const file = join(directory, 'node_modules', manifest.name, 'content.json')
