@@ -7,7 +7,6 @@ import i18next from 'i18next'
 import { computed } from 'vue'
 import { serverContentText, serverText, isRemoteContentActive } from '@/i18n/serverContent'
 import { useGameDataStore } from '../gameData'
-import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
 const { loadMetadata } = vi.hoisted(() => ({ loadMetadata: vi.fn() }))
 vi.mock('@arcadia-eternity/data-pack-base/effects', () => {
@@ -18,10 +17,6 @@ vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
   PackMetadataLoader: class {
     loadMetadata = loadMetadata
   },
-}))
-vi.mock('@/services/packWorkspace', () => ({
-  listWorkspacePacks: vi.fn(async () => []),
-  resolveWorkspaceFileUrl: vi.fn(async (path: string) => `http://localhost/${path}`),
 }))
 vi.mock('@/utils/packRef', () => ({
   applyRuntimeAssetBase: vi.fn(),
@@ -186,40 +181,6 @@ describe('native game metadata', () => {
     const errors: string[] = []
     store.validateCrossReferences(errors)
     expect(errors).toEqual([`技能 ${id} 引用了不存在的效果 effect_unknown`])
-  })
-
-  it('merges overlay metadata before resolving native effects and preserves nested source paths', async () => {
-    const overlaySkill = { ...data.skills[0], power: 17, effect: ['effect_skill_consume_huanxiang_raise_def_1_stage'] }
-    const overlayManifest = {
-      ...manifest,
-      id: 'example.overlay',
-      data: { effects: [], marks: [], species: [], skills: ['groups/custom/skill.yaml'] },
-    }
-    loadMetadata.mockImplementation(async (ref: string) =>
-      ref.includes('/overlay/')
-        ? { pack: overlayManifest, data: { marks: [], species: [], skills: [overlaySkill] }, errors: [] }
-        : baseResult(),
-    )
-    const requests: string[] = []
-    vi.stubGlobal('fetch', async (ref: string) => {
-      requests.push(ref)
-      const pathname = new URL(ref).pathname
-      const text = pathname.includes('/overlay/')
-        ? JSON.stringify([overlaySkill])
-        : readFileSync(new URL(pathname.replace('/packs/base/', ''), root), 'utf8')
-      return new Response(text)
-    })
-    const store = useGameDataStore()
-    await store.initializeFromWorkspacePacks([
-      { id: manifest.id, folderName: 'base', enabled: true },
-      { id: overlayManifest.id, folderName: 'overlay', enabled: true },
-    ] as WorkspacePackSummary[])
-    expect(store.skills.byId[overlaySkill.id].power).toBe(17)
-    expect(store.nativeEffectIds).toContain(overlaySkill.effect[0])
-    expect(store.getRecordSourceFile('skills', overlaySkill.id)).toBe('data/groups/custom/skill.yaml')
-    expect(store.getRecordSourceFile('species', 'pet_dilan')).toBe('data/groups/dilan/species.0000.yaml')
-    expect(requests.some(ref => /effect_.*\.yaml/.test(ref))).toBe(false)
-    expect(() => store.validateDataIntegrity()).not.toThrow()
   })
 })
 

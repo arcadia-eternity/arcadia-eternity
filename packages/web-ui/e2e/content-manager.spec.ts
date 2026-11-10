@@ -46,7 +46,6 @@ test('content choices converge without apply controls or restarting the running 
           environment: { revision: 'test', data: { species: [], skills: [], marks: [] }, modules: [] },
         }),
         releaseLocalContent: async () => {},
-        listWorkspacePacks: async () => [],
         listCachedPets: async () => [],
         getAppVersion: async () => 'test',
         listContentPackages: async () => structuredClone(snapshot),

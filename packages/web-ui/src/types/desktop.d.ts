@@ -1,107 +1,3 @@
-export interface WorkspacePackSummary {
-  folderName: string
-  id: string
-  version: string
-  manifestPath: string
-  enabled: boolean
-  canDisable: boolean
-}
-
-interface SetWorkspacePackEnabledInput {
-  folderName: string
-  enabled: boolean
-}
-
-interface SetWorkspacePackEnabledResult {
-  folderName: string
-  enabled: boolean
-}
-
-interface ReadWorkspacePackManifestInput {
-  folderName: string
-}
-
-interface ReadWorkspacePackManifestResult {
-  folderName: string
-  manifest: Record<string, unknown>
-}
-
-interface WriteWorkspacePackManifestInput {
-  folderName: string
-  manifest: Record<string, unknown>
-}
-
-interface ReadWorkspacePackFileInput {
-  folderName: string
-  relativePath: string
-}
-
-interface ReadWorkspacePackFileResult {
-  folderName: string
-  relativePath: string
-  content: string
-}
-
-interface WriteWorkspacePackFileInput {
-  folderName: string
-  relativePath: string
-  content: string
-}
-
-interface WriteWorkspacePackFileResult {
-  folderName: string
-  relativePath: string
-}
-
-interface CreateWorkspacePackFolderInput {
-  folderName: string
-  relativePath: string
-}
-
-interface CreateWorkspacePackFolderResult {
-  folderName: string
-  relativePath: string
-}
-
-interface RenameWorkspacePackPathInput {
-  folderName: string
-  oldRelativePath: string
-  newRelativePath: string
-}
-
-interface RenameWorkspacePackPathResult {
-  folderName: string
-  oldRelativePath: string
-  newRelativePath: string
-}
-
-interface DeleteWorkspacePackPathInput {
-  folderName: string
-  relativePath: string
-  recursive?: boolean
-}
-
-interface DeleteWorkspacePackPathResult {
-  folderName: string
-  relativePath: string
-}
-
-interface WorkspacePackFileEntry {
-  relativePath: string
-  size: number
-  ext: string
-  isDirectory?: boolean
-}
-
-interface ListWorkspacePackFilesInput {
-  folderName: string
-}
-
-interface ListWorkspacePackFilesResult {
-  folderName: string
-  files: WorkspacePackFileEntry[]
-}
-
 interface DesktopUpdateCheckResult {
   hasUpdate: boolean
   version?: string
@@ -174,24 +70,10 @@ export interface ArcadiaDesktopApi {
   downloadPetSwf: (petNum: number, remoteUrl: string) => Promise<string>
   listCachedPets: () => Promise<number[]>
   clearPetCache: () => Promise<void>
-  listWorkspacePacks: () => Promise<WorkspacePackSummary[]>
-  setWorkspacePackEnabled: (input: SetWorkspacePackEnabledInput) => Promise<SetWorkspacePackEnabledResult>
-  readWorkspacePackManifest: (input: ReadWorkspacePackManifestInput) => Promise<ReadWorkspacePackManifestResult>
-  writeWorkspacePackManifest: (input: WriteWorkspacePackManifestInput) => Promise<void>
-  listWorkspacePackFiles: (input: ListWorkspacePackFilesInput) => Promise<ListWorkspacePackFilesResult>
-  readWorkspacePackFile: (input: ReadWorkspacePackFileInput) => Promise<ReadWorkspacePackFileResult>
-  writeWorkspacePackFile: (input: WriteWorkspacePackFileInput) => Promise<WriteWorkspacePackFileResult>
-  writeBasePackFile: (input: WriteWorkspacePackFileInput) => Promise<WriteWorkspacePackFileResult>
-  readBasePackFile: (input: ReadWorkspacePackFileInput) => Promise<ReadWorkspacePackFileResult>
-  readAllBasePackData: () => Promise<Record<string, Record<string, unknown>[]>>
-  createWorkspacePackFolder: (input: CreateWorkspacePackFolderInput) => Promise<CreateWorkspacePackFolderResult>
-  renameWorkspacePackPath: (input: RenameWorkspacePackPathInput) => Promise<RenameWorkspacePackPathResult>
-  deleteWorkspacePackPath: (input: DeleteWorkspacePackPathInput) => Promise<DeleteWorkspacePackPathResult>
   getAppVersion: () => Promise<string>
   checkForUpdates: () => Promise<DesktopUpdateCheckResult>
   downloadAndInstallUpdate: () => Promise<void>
   relaunch: () => Promise<void>
-  getBasePackDir: () => Promise<string>
   showItemInFolder: (path: string) => Promise<void>
 }
 

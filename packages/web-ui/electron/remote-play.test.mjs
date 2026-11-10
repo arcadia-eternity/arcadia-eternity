@@ -80,7 +80,7 @@ test('remote partitions are disposable, frame-authorized and never share manager
   assert.equal(first.options.webPreferences.webSecurity, true)
   assert.equal(sessions[0].check(), false)
   assert.deepEqual(first.openHandler(), { action: 'deny' })
-  sessions[0].filter({ url: 'http://127.0.0.1:8103/packs/workspace/index.json' }, result =>
+  sessions[0].filter({ url: 'http://127.0.0.1:8103/local-content/blocked' }, result =>
     assert.equal(result.cancel, true),
   )
   await controller.open('https://server-b.test')
