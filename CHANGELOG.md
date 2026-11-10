@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.3.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.2...arcadia-eternity-v4.3.3) (2026-11-10)
+
+
+### ♻️ Code Refactoring
+
+* **battle:** move effect group authoring into the SDK ([7560044](https://github.com/arcadia-eternity/arcadia-eternity/commit/756004450f1f9d100dd00ffbf544052092fdc656))
+* load effects through SDK decorators ([413b6db](https://github.com/arcadia-eternity/arcadia-eternity/commit/413b6db8ce8204cd9db202288d751cd2a3ce4480))
+
 ## [4.3.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.1...arcadia-eternity-v4.3.2) (2026-11-09)
 
 
