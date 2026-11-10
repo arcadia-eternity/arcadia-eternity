@@ -36,11 +36,12 @@ async function resolveDesktopPackRef(): Promise<string | null> {
 
     const packs = await api.listWorkspacePacks()
     const base = packs.find(pack => pack.id === 'arcadia-eternity.base')
-    // With registered workspace layers the store loads each original manifest.
-    // A fresh dev desktop has none, so it must load the locked base directly.
-    const hasLayers = packs.some(pack => pack.enabled)
-    const folder = hasLayers ? 'workspace' : encodeURIComponent(base?.folderName ?? 'base')
-    const candidate = `http://127.0.0.1:${port}/packs/${folder}/pack.json`
+    const relative = (base?.manifestPath || 'base/dist/pack.json')
+      .split('/')
+      .filter(Boolean)
+      .map(encodeURIComponent)
+      .join('/')
+    const candidate = `http://127.0.0.1:${port}/packs/${relative}`
     return (await isReachable(candidate)) ? candidate : null
   } catch {
     return null

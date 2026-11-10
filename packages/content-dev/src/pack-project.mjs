@@ -7,6 +7,7 @@ import { compileEffectModule, resolveNpmInvocation } from '@arcadia-eternity/pac
 
 const exec = promisify(execFile)
 const artifactFile = 'dist/arcadia-effects.json'
+const distributionMetadata = /^(?:package\.json|readme(?:\..+)?|licen[cs]e(?:\..+)?|notice(?:\..+)?)$/i
 const fail = message => {
   throw new Error(message)
 }
@@ -77,27 +78,42 @@ export async function packBuiltProject(directory = process.cwd(), { cache } = {}
   if (!Array.isArray(preview?.files) || preview.files.length > 50000) fail('npm returned an invalid package file list')
   const included = new Set(preview.files.map(file => packagePath(file.path)))
   if (!included.has('package.json')) fail('npm omitted the package manifest')
-  const required = manifest.arcadia?.content ? [manifest.arcadia.content] : []
-  if (manifest.arcadia?.effectSources) required.push(manifest.arcadia.effectArtifact)
   let presentation
   try {
     presentation = JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8'))
   } catch (error) {
     if (error.code !== 'ENOENT') throw error
   }
+  const required = []
+  const declaredAssets =
+    manifest.arcadia?.assets && typeof manifest.arcadia.assets === 'object' && !Array.isArray(manifest.arcadia.assets)
+      ? Object.values(manifest.arcadia.assets)
+      : []
+  for (const file of [
+    manifest.arcadia?.content,
+    manifest.arcadia?.presentation,
+    manifest.arcadia?.catalog,
+    ...declaredAssets,
+  ])
+    if (typeof file === 'string') required.push(packagePath(file))
+  if (manifest.arcadia?.effectArtifact && !manifest.arcadia?.effects)
+    required.push(packagePath(manifest.arcadia.effectArtifact))
   if (
     presentation &&
-    (presentation.bindings.length || presentation.resources.length || Object.keys(presentation.locales).length)
+    (presentation.bindings?.length || presentation.resources?.length || Object.keys(presentation.locales ?? {}).length)
   ) {
     if (manifest.arcadia?.presentation !== 'dist/presentation.json')
       fail('Set arcadia.presentation to dist/presentation.json before packing media/locales')
     required.push(
       'dist/content.json',
       'dist/presentation.json',
-      ...presentation.resources.filter(resource => resource.kind === 'file').map(resource => resource.source),
+      ...(presentation.resources ?? []).filter(resource => resource.kind === 'file').map(resource => resource.source),
     )
   }
   for (const file of required) if (!included.has(file)) fail(`npm files omits required presentation file: ${file}`)
+  const distributed = new Set(['package.json'])
+  for (const file of included) if (file.startsWith('dist/') || distributionMetadata.test(file)) distributed.add(file)
+  for (const file of required) distributed.add(file)
 
   // Keep output on the destination filesystem so publishing can be one rename.
   const temporary = await mkdtemp(join(await stagingRoot(root), 'publish-'))
@@ -108,7 +124,7 @@ export async function packBuiltProject(directory = process.cwd(), { cache } = {}
     await mkdir(payload)
     await mkdir(output)
     const staged = structuredClone(manifest)
-    for (const file of included) {
+    for (const file of distributed) {
       const source = await sourceFile(root, file)
       sources.set(source.path, source)
       await mkdir(dirname(join(payload, file)), { recursive: true })
@@ -129,13 +145,15 @@ export async function packBuiltProject(directory = process.cwd(), { cache } = {}
       await mkdir(dirname(join(payload, artifactFile)), { recursive: true })
       await writeFile(join(payload, artifactFile), JSON.stringify(artifact) + '\n')
       staged.arcadia.effectArtifact = artifactFile
-      // A published artifact is sufficient even if the author's npm files excludes source.
-      if (!included.has(manifest.arcadia.effects)) delete staged.arcadia.effects
-      included.add(artifactFile)
+      distributed.add(artifactFile)
     } else if (manifest.arcadia?.effectArtifact && !included.has(manifest.arcadia.effectArtifact)) {
       fail(`npm files omits required effect artifact: ${manifest.arcadia.effectArtifact}`)
     }
-    staged.files = [...included]
+    if (staged.arcadia) {
+      delete staged.arcadia.effectSources
+      delete staged.arcadia.effects
+    }
+    staged.files = [...distributed]
     await writeFile(join(payload, 'package.json'), JSON.stringify(staged, null, 2) + '\n')
     const packed = JSON.parse(
       (await npm(payload, ['pack', '--ignore-scripts', '--json', '--pack-destination', output], cache)).stdout,
@@ -145,7 +163,9 @@ export async function packBuiltProject(directory = process.cwd(), { cache } = {}
     packagePath(packed.filename)
     if (basename(packed.filename) !== packed.filename) fail('npm returned an unsafe archive filename')
     const actual = new Set(packed.files.map(file => file.path))
-    for (const file of included) if (!actual.has(file)) fail(`npm omitted staged package file: ${file}`)
+    for (const file of distributed) if (!actual.has(file)) fail(`npm omitted staged package file: ${file}`)
+    for (const file of actual)
+      if (!distributed.has(file) && !distributionMetadata.test(file)) fail(`npm included a non-artifact file: ${file}`)
     if ((await readFile(join(root, 'package.json'), 'utf8')) !== manifestText)
       fail('Package manifest changed during packaging')
     await verifyCapture(sources)

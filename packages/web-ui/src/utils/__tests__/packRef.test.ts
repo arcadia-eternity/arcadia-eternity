@@ -18,25 +18,35 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-it('resolves the base manifest when the workspace has no enabled layers', async () => {
-  const base = 'http://127.0.0.1:12345/packs/base/pack.json'
+it('resolves the compiled base manifest when the workspace has no enabled layers', async () => {
+  const base = 'http://127.0.0.1:12345/packs/base/dist/pack.json'
   expect(await resolveRuntimePackRef()).toBe(base)
 })
 
-it('resolves the workspace manifest when layers are enabled', async () => {
+it('resolves the compiled manifest reported by the workspace', async () => {
   desktop.listWorkspacePacks.mockResolvedValue([
-    { id: 'arcadia-eternity.base', folderName: 'base-1', enabled: true },
+    {
+      id: 'arcadia-eternity.base',
+      folderName: 'base-1',
+      manifestPath: 'base-1/dist/pack.json',
+      enabled: true,
+    },
     { id: 'custom', folderName: 'custom', enabled: true },
   ])
-  expect(await resolveRuntimePackRef()).toBe('http://127.0.0.1:12345/packs/workspace/pack.json')
+  expect(await resolveRuntimePackRef()).toBe('http://127.0.0.1:12345/packs/base-1/dist/pack.json')
 })
 
-it('ordinary battles preserve registered workspace layering even when only the base is enabled', async () => {
+it('ordinary battles load the base artifact even when other workspace entries are disabled', async () => {
   desktop.listWorkspacePacks.mockResolvedValue([
-    { id: 'arcadia-eternity.base', folderName: 'base-1', enabled: true },
+    {
+      id: 'arcadia-eternity.base',
+      folderName: 'base-1',
+      manifestPath: 'base-1/dist/pack.json',
+      enabled: true,
+    },
     { id: 'custom', folderName: 'custom', enabled: false },
   ])
-  expect(await resolveRuntimePackRef()).toBe('http://127.0.0.1:12345/packs/workspace/pack.json')
+  expect(await resolveRuntimePackRef()).toBe('http://127.0.0.1:12345/packs/base-1/dist/pack.json')
 })
 
 it('explicit pack configuration takes precedence', async () => {

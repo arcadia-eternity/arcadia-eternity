@@ -6,8 +6,9 @@ import { rolldown } from 'rolldown'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
+import YAML from 'yaml'
 
 /** Host identity covers both the engine and the installed native content implementation. */
 export function identifyBaseEnvironmentArtifact(code, core) {
@@ -82,9 +83,70 @@ export async function buildBaseEnvironmentArtifact() {
         Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentNamespaces.has(name))),
       ]),
     )
+    const localeFiles = Object.entries(loaded.locales).map(([language, namespaces]) => ({
+      locale: language,
+      files: Object.keys(namespaces).map(namespace => `${language}/${namespace}.json`),
+    }))
+    await Promise.all(
+      Object.entries(loaded.locales).flatMap(([language, namespaces]) =>
+        Object.entries(namespaces).map(async ([namespace, value]) => {
+          const file = resolve(dir, 'locales', language, `${namespace}.json`)
+          await mkdir(dirname(file), { recursive: true })
+          await writeFile(file, JSON.stringify(value) + '\n')
+        }),
+      ),
+    )
+    const manifest = {
+      id: loaded.pack.id,
+      version: loaded.pack.version,
+      engine: loaded.pack.engine,
+      layoutVersion: loaded.pack.layoutVersion ?? 1,
+      content: 'content.json',
+      presentation: 'presentation.json',
+      paths: { dataDir: '.', localesDir: 'locales' },
+      data: { effects: [], marks: [], skills: [], species: [] },
+      locales: localeFiles,
+    }
+    const manifestText = JSON.stringify(manifest, null, 2) + '\n'
+    const integrity = `sha512-${createHash('sha512').update(manifestText).digest('base64')}`
     await Promise.all([
       writeFile(resolve(dir, 'content.json'), JSON.stringify({ data }) + '\n'),
       writeFile(resolve(dir, 'presentation.json'), JSON.stringify({ ...presentation, locales }) + '\n'),
+      writeFile(resolve(dir, 'pack.json'), manifestText),
+      writeFile(
+        resolve(dir, 'pack-lock.yaml'),
+        YAML.stringify({
+          lockfileVersion: 1,
+          generatedAt: new Date().toISOString(),
+          importers: {
+            '.': {
+              specifiers: {
+                [manifest.id]: `workspace:@arcadia-eternity/data-pack-base#dist/pack.json`,
+              },
+              dependencies: {
+                [manifest.id]: {
+                  specifier: `workspace:@arcadia-eternity/data-pack-base#dist/pack.json`,
+                  version: manifest.version,
+                  packageKey: `/${manifest.id}@${manifest.version}`,
+                },
+              },
+            },
+          },
+          packages: {
+            [`/${manifest.id}@${manifest.version}`]: {
+              name: manifest.id,
+              version: manifest.version,
+              kind: 'data',
+              engine: manifest.engine,
+              source: 'workspace:@arcadia-eternity/data-pack-base#dist/pack.json',
+              entry: 'pack.json',
+              provenance: 'workspace',
+              resolution: { integrity },
+              dependencies: {},
+            },
+          },
+        }),
+      ),
       writeFile(
         resolve(dir, 'catalog.json'),
         JSON.stringify({

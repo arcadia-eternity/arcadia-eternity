@@ -16,6 +16,7 @@ const kinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'reso
 const basePackageName = '@arcadia-eternity/data-pack-base'
 const baseProjectId = 'arcadia-eternity.base'
 const isBaseManifest = manifest => manifest.name === basePackageName || manifest.arcadia?.projectId === baseProjectId
+const isInstalledPackage = root => root.split(sep).includes('node_modules')
 const textLimit = 2 * 1024 * 1024
 const hash = value => createHash('sha256').update(value).digest('hex')
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -105,9 +106,9 @@ export class AuthorWorkspace extends EventEmitter {
   static async open(directory, { watch = true, readOnly = false, published = false } = {}) {
     const workspace = new AuthorWorkspace(await realpath(directory))
     const manifest = JSON.parse((await workspace.read('package.json')).text)
-    workspace.published = published
-    workspace.readOnly = readOnly || published || isBaseManifest(manifest)
-    if (isBaseManifest(manifest) && (!published || !manifest.arcadia)) {
+    workspace.published = published || isInstalledPackage(workspace.root)
+    workspace.readOnly = readOnly || workspace.published || isBaseManifest(manifest)
+    if (isBaseManifest(manifest) && (!workspace.published || !manifest.arcadia)) {
       const pack = JSON.parse((await workspace.read('pack.json')).text)
       if (pack.id !== baseProjectId) fail('PROJECT_INVALID', '基础包身份不一致', 'pack.json')
       workspace.baseProject = { projectId: pack.id, namespace: pack.id }

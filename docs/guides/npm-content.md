@@ -27,18 +27,21 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表�
   "name": "@your-scope/slow",
   "version": "1.0.0",
   "type": "module",
-  "files": ["content.json", "src", "dist"],
+  "files": ["dist", "assets"],
   "arcadia": {
     "formatVersion": 1,
     "projectId": "my-slow-pack",
     "namespace": "my-slow",
-    "content": "content.json",
+    "content": "dist/content.json",
+    "presentation": "dist/presentation.json",
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json",
     "sdkApi": 2
   }
 }
 ```
+
+`package.json` above is the authoring manifest. `arcadia-content pack` reads it, compiles effects, and publishes a separate staged manifest: `effectSources` and `effects` are removed, `effectArtifact` remains, and `files` is reduced to `package.json`, `dist/**`, referenced media, and license/readme metadata. Authoring `data/`, `locales/`, `src/`, tests, and configuration files are never copied into the npm archive. Keep YAML and TypeScript in the source project; distribute only compiled artifacts.
 
 `content.json` 使用现有草稿数据结构；可以仅提供 `data` 和 `assets`，项目身份由元信息补齐，也可以显式保存完整草稿。显式身份必须匹配包声明。被内容引用的代码效果由宿主生成内部行为定义，作者无需再写效果元数据或参数 Schema。对象中的引用继续使用 `$ref { projectId, kind, id }`，官方内容直接使用其现有 ID。
 
@@ -47,6 +50,8 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表�
 推荐用 `arcadia.presentation: "dist/presentation.json"` 接入工具生成的资源／语言索引，源文件与 `presentation` 用途声明见[内容展示合同](content-presentation.md)。包内文件从固定环境的包目录流式提供；HTTP/HTTPS 资源只公布地址，不在构建／环境准备时下载。不建立服务器或客户端资源缓存，资源响应和客户端主动请求使用 `no-store`。远程 URL 固定的是引用，不保证源站字节不变。
 
 现有 `arcadia.assets` 提供 `sha256 → 包内相对文件` 映射，与草稿 `assets` 声明对应。即使在无界面运行时也检查声明的资源字节，以确保客户端取得对应展示资源。源码、构建产物和 source map 不做安装文件摘要或本地防篡改检查。
+
+通过 npm 安装的内容包是只读发行物。内容库、作者会话、MCP 和 CLI 的已发布视图只提供浏览、查询和试玩，不允许保存、重命名、删除或交给外部编辑器写入。需要修改时回到原始作者项目，重新构建并发布新版本。
 
 ## 标准依赖与固定安装
 

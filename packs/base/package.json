@@ -4,7 +4,7 @@
   "license": "MIT",
   "type": "module",
   "description": "Arcadia Eternity base content and effects",
-  "arcadiaEternityPack": "pack.json",
+  "arcadiaEternityPack": "dist/pack.json",
   "arcadia": {
     "formatVersion": 1,
     "projectId": "base",
@@ -27,14 +27,8 @@
     "typecheck": "pnpm exec tsgo --noEmit"
   },
   "files": [
-    "pack.json",
     "assets/**/*",
-    "data/**/*",
-    "locales/**/*",
-    "PACK_FORMAT.md",
-    "DATA_README.md",
     "dist/**/*",
-    "content-groups.yaml",
     "LICENSE"
   ],
   "exports": {

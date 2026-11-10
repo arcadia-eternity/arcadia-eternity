@@ -103,6 +103,20 @@ if (command === 'pack') {
       for (const field of ['content', 'presentation', 'effectArtifact', 'catalog'])
         if (packed.arcadia[field])
           assert.ok(files.includes(`package/${packed.arcadia[field]}`), `${packed.name}: missing ${field} artifact`)
+    if (manifest.name === '@arcadia-eternity/data-pack-base') {
+      assert.equal(packed.arcadiaEternityPack, 'dist/pack.json')
+      assert.ok(files.includes('package/dist/pack.json'), 'base pack: missing compiled manifest')
+      assert.deepEqual(
+        files.filter(file => /^package\/(?:data|locales|src)\//.test(file) || file === 'package/pack.json'),
+        [],
+        'base pack: authoring sources must not be published',
+      )
+      assert.deepEqual(
+        files.filter(file => /\.ya?ml$/i.test(file) && file !== 'package/dist/pack-lock.yaml'),
+        [],
+        'base pack: only the generated distribution lock may be YAML',
+      )
+    }
     if (manifest.name === '@arcadia-eternity/content-sdk') {
       for (const file of [
         'SKILL.md',

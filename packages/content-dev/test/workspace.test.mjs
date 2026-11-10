@@ -50,6 +50,48 @@ test('read-only workspaces reject raw writes, form saves and late changes to bas
   }
 })
 
+test('packages opened from node_modules always use the read-only published view', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-installed-'))
+  const project = join(root, 'node_modules', '@sample', 'installed-pack')
+  await mkdir(join(project, 'dist'), { recursive: true })
+  await writeFile(
+    join(project, 'package.json'),
+    JSON.stringify({
+      name: '@sample/installed-pack',
+      version: '1.0.0',
+      arcadia: {
+        formatVersion: 1,
+        projectId: 'installed-pack',
+        namespace: 'installed-pack',
+        content: 'dist/content.json',
+        presentation: 'dist/presentation.json',
+        sdkApi: 2,
+      },
+    }),
+  )
+  await writeFile(
+    join(project, 'dist/content.json'),
+    JSON.stringify({ data: { species: [], skills: [{ id: 'installed_skill', power: 40 }], marks: [] } }),
+  )
+  await writeFile(
+    join(project, 'dist/presentation.json'),
+    JSON.stringify({ version: 2, bindings: [], resources: [], locales: {} }),
+  )
+  const workspace = await AuthorWorkspace.open(project, { watch: false })
+  t.after(async () => {
+    await workspace.close()
+    await rm(root, { recursive: true, force: true })
+  })
+  const snapshot = await workspace.snapshot()
+  assert.equal(workspace.published, true)
+  assert.equal(snapshot.capabilities.sourceEditing, false)
+  assert.equal(snapshot.capabilities.externalEditor, false)
+  assert.equal(snapshot.records.find(row => row.record.id === 'installed_skill')?.kind, 'skills')
+  await assert.rejects(workspace.write({ file: 'package.json', expectedVersion: null, text: '{}' }), {
+    code: 'WRITE_DISABLED',
+  })
+})
+
 async function fixture(t, options = { watch: false }) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-source-'))
   await mkdir(join(root, 'data/skills'), { recursive: true })

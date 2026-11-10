@@ -479,6 +479,12 @@ function resolveWorkspacePackDir(folderNameInput) {
   return { folderName, packDir }
 }
 
+async function assertWorkspacePackWritable(folderName, packDir) {
+  if (folderName === BASE_PACK_FOLDER) throw new Error('基础包为只读，已安装的发行内容不能修改')
+  const entry = await readPackEntry(packDir)
+  if (entry?.manifest.id === BASE_PACK_ID) throw new Error('基础包为只读，已安装的发行内容不能修改')
+}
+
 function resolveWorkspacePackFile(folderNameInput, relativePathInput) {
   const { folderName, packDir } = resolveWorkspacePackDir(folderNameInput)
   const relativePath = sanitizeWorkspaceRelativePath(relativePathInput)
@@ -758,39 +764,71 @@ async function readPackManifest(manifestPath) {
   }
 }
 
+async function readPackEntry(packDir) {
+  let relativePath = 'pack.json'
+  try {
+    const pkg = JSON.parse(await fs.readFile(path.join(packDir, 'package.json'), 'utf8'))
+    if (typeof pkg.arcadiaEternityPack === 'string' && pkg.arcadiaEternityPack) {
+      relativePath = pkg.arcadiaEternityPack
+    }
+  } catch {
+    // Legacy packs without package metadata use pack.json at their root.
+  }
+  const manifestPath = path.resolve(packDir, relativePath)
+  const relative = path.relative(packDir, manifestPath)
+  if (relative.startsWith('..') || path.isAbsolute(relative)) return null
+  const manifest = await readPackManifest(manifestPath)
+  return manifest ? { manifest, manifestPath } : null
+}
+
 async function findBundledBasePackDir() {
   const candidates = [path.resolve(projectRoot, '../../packs/base')]
   for (const candidate of candidates) {
-    const manifest = await readPackManifest(path.join(candidate, 'pack.json'))
-    if (manifest?.id === BASE_PACK_ID) {
+    const entry = await readPackEntry(candidate)
+    if (entry?.manifest.id === BASE_PACK_ID) {
       return candidate
     }
   }
   return null
 }
 
-async function hasWorkspaceBasePack() {
-  if (!packsDir) return false
+async function findWorkspaceBasePack() {
+  if (!packsDir) return null
   const entries = await fs.readdir(packsDir, { withFileTypes: true })
   for (const entry of entries) {
     if (!entry.isDirectory()) continue
-    const manifest = await readPackManifest(path.join(packsDir, entry.name, 'pack.json'))
-    if (manifest?.id === BASE_PACK_ID) {
-      return true
+    const directory = path.join(packsDir, entry.name)
+    const pack = await readPackEntry(directory)
+    if (pack?.manifest.id === BASE_PACK_ID) {
+      return { directory, ...pack }
     }
   }
-  return false
+  return null
 }
 
 async function ensureWorkspaceBasePack() {
   if (devServerUrl) return
   if (!packsDir) return
-  if (await hasWorkspaceBasePack()) return
 
   const bundledBaseDir = await findBundledBasePackDir()
   if (!bundledBaseDir) {
     console.warn('Workspace base pack source not found, skip seeding default pack')
     return
+  }
+  const existing = await findWorkspaceBasePack()
+  if (existing) {
+    try {
+      const existingPackage = JSON.parse(await fs.readFile(path.join(existing.directory, 'package.json'), 'utf8'))
+      const bundledPackage = JSON.parse(await fs.readFile(path.join(bundledBaseDir, 'package.json'), 'utf8'))
+      if (
+        existingPackage.arcadiaEternityPack === bundledPackage.arcadiaEternityPack &&
+        existingPackage.version === bundledPackage.version
+      )
+        return
+    } catch {
+      // Replace incomplete or legacy copies with the current artifact-only seed.
+    }
+    await fs.rm(existing.directory, { recursive: true, force: true })
   }
 
   let targetDir = path.join(packsDir, BASE_PACK_FOLDER)
@@ -802,11 +840,13 @@ async function ensureWorkspaceBasePack() {
     targetDir = path.join(packsDir, `${BASE_PACK_FOLDER}-${index}`)
   }
 
-  await fs.cp(bundledBaseDir, targetDir, {
-    recursive: true,
-    force: false,
-    errorOnExist: false,
-  })
+  await fs.mkdir(targetDir, { recursive: true })
+  for (const entry of ['package.json', 'dist', 'assets', 'LICENSE']) {
+    const source = path.join(bundledBaseDir, entry)
+    if (await pathExists(source)) {
+      await fs.cp(source, path.join(targetDir, entry), { recursive: true })
+    }
+  }
   console.log(`Seeded default base pack into workspace: ${targetDir}`)
 }
 
@@ -939,25 +979,20 @@ async function discoverWorkspacePacks() {
     if (!entry.isDirectory()) continue
 
     const folderName = entry.name
-    const manifestPath = path.join(packsDir, folderName, 'pack.json')
-
-    if (!(await pathExists(manifestPath))) continue
-
-    let rawManifest
-    try {
-      rawManifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'))
-    } catch {
-      continue
-    }
-
-    if (!rawManifest || typeof rawManifest.id !== 'string') continue
+    const packEntry = await readPackEntry(path.join(packsDir, folderName))
+    if (!packEntry) continue
+    const { manifest: rawManifest, manifestPath } = packEntry
 
     discovered.push({
       folderName,
       manifestPath,
+      rawManifest,
       manifest: {
         id: rawManifest.id,
         version: typeof rawManifest.version === 'string' && rawManifest.version ? rawManifest.version : '1.0.0',
+        content: rawManifest.content,
+        presentation: rawManifest.presentation,
+        locales: rawManifest.locales,
         paths: rawManifest.paths && typeof rawManifest.paths === 'object' ? rawManifest.paths : {},
         data: {
           effects: toStringArray(rawManifest.data?.effects),
@@ -989,14 +1024,19 @@ async function buildWorkspaceManifest(port) {
   if (devServerUrl && !discovered.some(p => p.manifest?.id === BASE_PACK_ID)) {
     const baseDir = await findBundledBasePackDir()
     if (baseDir) {
-      const raw = await readPackManifest(path.join(baseDir, 'pack.json'))
+      const baseEntry = await readPackEntry(baseDir)
+      const raw = baseEntry?.manifest
       if (raw?.id === BASE_PACK_ID) {
         discovered.unshift({
           folderName: BASE_PACK_FOLDER,
-          manifestPath: path.join(baseDir, 'pack.json'),
+          manifestPath: baseEntry.manifestPath,
+          rawManifest: raw,
           manifest: {
             id: raw.id,
             version: typeof raw.version === 'string' && raw.version ? raw.version : '1.0.0',
+            content: raw.content,
+            presentation: raw.presentation,
+            locales: raw.locales,
             paths: raw.paths && typeof raw.paths === 'object' ? raw.paths : {},
             data: {
               effects: toStringArray(raw.data?.effects),
@@ -1024,6 +1064,39 @@ async function buildWorkspaceManifest(port) {
   const packs = selection.orderedPacks
   if (packs.length === 0) return null
   if (!packs.some(item => item.manifest.id === BASE_PACK_ID)) return null
+
+  const basePack = packs.find(item => item.manifest.id === BASE_PACK_ID)
+  if (basePack?.rawManifest?.content) {
+    const packRoot = path.join(packsDir, basePack.folderName)
+    const manifestDir = path.dirname(basePack.manifestPath)
+    const artifactUrl = file =>
+      toWorkspaceFileUrl(
+        port,
+        basePack.folderName,
+        path.relative(packRoot, path.resolve(manifestDir, file)).split(path.sep).join('/'),
+      )
+    const raw = basePack.rawManifest
+    const locales = Array.isArray(raw.locales)
+      ? raw.locales.map(entry => ({
+          locale: entry.locale,
+          files: (entry.files ?? []).map(artifactUrl),
+        }))
+      : Object.entries(raw.locales ?? {}).map(([locale, namespaces]) => ({
+          locale,
+          files: namespaces.map(namespace => artifactUrl(`${locale}/${namespace}.yaml`)),
+        }))
+    return {
+      id: raw.id,
+      version: raw.version,
+      engine: raw.engine,
+      layoutVersion: raw.layoutVersion ?? 1,
+      content: artifactUrl(raw.content),
+      ...(raw.presentation ? { presentation: artifactUrl(raw.presentation) } : {}),
+      paths: { dataDir: '.', localesDir: '.' },
+      data: { effects: [], marks: [], skills: [], species: [] },
+      ...(raw.locales ? { locales } : {}),
+    }
+  }
 
   const effects = []
   const marks = []
@@ -1097,7 +1170,7 @@ async function buildWorkspaceIndex() {
       folderName: item.folderName,
       id: item.manifest.id,
       version: item.manifest.version,
-      manifestPath: `${item.folderName}/pack.json`,
+      manifestPath: path.relative(packsDir, item.manifestPath).split(path.sep).join('/'),
       enabled: true,
       canDisable: false,
     }))
@@ -1120,33 +1193,18 @@ async function readWorkspacePackManifest(input) {
   const { folderName, packDir } = resolveWorkspacePackDir(input?.folderName)
   await assertWorkspacePackDirExists(packDir, folderName)
 
-  const manifestPath = path.join(packDir, 'pack.json')
-  let raw
-  try {
-    raw = await fs.readFile(manifestPath, 'utf8')
-  } catch {
-    throw new Error(`未找到数据包清单: ${folderName}/pack.json`)
-  }
-
-  let manifest
-  try {
-    manifest = JSON.parse(raw)
-  } catch {
-    throw new Error(`数据包清单 JSON 无法解析: ${folderName}/pack.json`)
-  }
-
-  if (!manifest || typeof manifest !== 'object' || typeof manifest.id !== 'string') {
-    throw new Error(`数据包清单格式非法: ${folderName}/pack.json`)
-  }
+  const entry = await readPackEntry(packDir)
+  if (!entry) throw new Error(`未找到数据包清单: ${folderName}/pack.json`)
 
   return {
     folderName,
-    manifest,
+    manifest: entry.manifest,
   }
 }
 
 async function writeWorkspacePackManifest(input) {
   const { folderName, packDir } = resolveWorkspacePackDir(input?.folderName)
+  await assertWorkspacePackWritable(folderName, packDir)
   await assertWorkspacePackDirExists(packDir, folderName)
 
   const manifest = input?.manifest
@@ -1159,11 +1217,24 @@ async function writeWorkspacePackManifest(input) {
 }
 
 async function readWorkspacePackFile(input) {
-  const { folderName, packDir, relativePath, filePath } = resolveWorkspacePackFile(
-    input?.folderName,
-    input?.relativePath,
-  )
+  const {
+    folderName,
+    packDir,
+    relativePath,
+    filePath: rootFilePath,
+  } = resolveWorkspacePackFile(input?.folderName, input?.relativePath)
   await assertWorkspacePackDirExists(packDir, folderName)
+
+  let filePath = rootFilePath
+  if (!(await pathExists(filePath))) {
+    const entry = await readPackEntry(packDir)
+    if (entry) {
+      const artifactFile = path.join(path.dirname(entry.manifestPath), relativePath)
+      const relative = path.relative(packDir, artifactFile)
+      if (!relative.startsWith('..') && !path.isAbsolute(relative) && (await pathExists(artifactFile)))
+        filePath = artifactFile
+    }
+  }
 
   let stat
   try {
@@ -1188,6 +1259,7 @@ async function writeWorkspacePackFile(input) {
     input?.folderName,
     input?.relativePath,
   )
+  await assertWorkspacePackWritable(folderName, packDir)
   await assertWorkspacePackDirExists(packDir, folderName)
 
   const content = typeof input?.content === 'string' ? input.content : ''
@@ -1204,6 +1276,7 @@ async function createWorkspacePackFolder(input) {
     input?.folderName,
     input?.relativePath,
   )
+  await assertWorkspacePackWritable(folderName, packDir)
   await assertWorkspacePackDirExists(packDir, folderName)
 
   let stat
@@ -1227,6 +1300,7 @@ async function renameWorkspacePackPath(input) {
   const source = resolveWorkspacePackPath(input?.folderName, input?.oldRelativePath)
   const target = resolveWorkspacePackPath(input?.folderName, input?.newRelativePath)
 
+  await assertWorkspacePackWritable(source.folderName, source.packDir)
   await assertWorkspacePackDirExists(source.packDir, source.folderName)
 
   if (source.relativePath === target.relativePath) {
@@ -1272,6 +1346,7 @@ async function deleteWorkspacePackPath(input) {
     input?.folderName,
     input?.relativePath,
   )
+  await assertWorkspacePackWritable(folderName, packDir)
   await assertWorkspacePackDirExists(packDir, folderName)
 
   let stat
@@ -1974,8 +2049,20 @@ function setupIpcHandlers() {
     const baseDir = await findBundledBasePackDir()
     if (!baseDir) throw new Error('Base pack source directory not found')
 
-    const manifest = JSON.parse(await fs.readFile(path.join(baseDir, 'pack.json'), 'utf8'))
-    const dataDir = path.join(baseDir, manifest.paths?.dataDir || '.')
+    const entry = await readPackEntry(baseDir)
+    if (!entry) throw new Error('Base pack manifest not found')
+    const manifest = entry.manifest
+    if (typeof manifest.content === 'string') {
+      const compiled = JSON.parse(
+        await fs.readFile(path.join(path.dirname(entry.manifestPath), manifest.content), 'utf8'),
+      )
+      const data = compiled?.data
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid compiled base content')
+      return Object.fromEntries(
+        ['species', 'skills', 'marks', 'effects'].map(kind => [kind, Array.isArray(data[kind]) ? data[kind] : []]),
+      )
+    }
+    const dataDir = path.join(path.dirname(entry.manifestPath), manifest.paths?.dataDir || '.')
 
     const result = {}
     const kinds = ['species', 'skills', 'marks', 'effects']
@@ -2000,20 +2087,8 @@ function setupIpcHandlers() {
     return result
   })
 
-  handle('desktop:write-base-pack-file', async (_event, input) => {
-    const baseDir = await findBundledBasePackDir()
-    if (!baseDir) throw new Error('Base pack source directory not found')
-
-    const relativePath = sanitizeWorkspaceRelativePath(input?.relativePath)
-    if (!relativePath) throw new Error('relativePath 非法')
-
-    const filePath = path.join(baseDir, relativePath)
-    if (!filePath.startsWith(baseDir)) throw new Error('relativePath 非法')
-
-    const content = typeof input?.content === 'string' ? input.content : ''
-    await fs.mkdir(path.dirname(filePath), { recursive: true })
-    await fs.writeFile(filePath, content, 'utf8')
-    return { relativePath }
+  handle('desktop:write-base-pack-file', async () => {
+    throw new Error('基础包为只读，已安装的发行内容不能修改')
   })
 
   handle('desktop:read-base-pack-file', async (_event, input) => {
@@ -2023,8 +2098,15 @@ function setupIpcHandlers() {
     const relativePath = sanitizeWorkspaceRelativePath(input?.relativePath)
     if (!relativePath) throw new Error('relativePath 非法')
 
-    const filePath = path.join(baseDir, relativePath)
-    if (!filePath.startsWith(baseDir)) throw new Error('relativePath 非法')
+    const entry = await readPackEntry(baseDir)
+    if (!entry) throw new Error('Base pack manifest not found')
+    let filePath = path.join(baseDir, relativePath)
+    if (!(await pathExists(filePath))) {
+      const artifactFile = path.join(path.dirname(entry.manifestPath), relativePath)
+      if (await pathExists(artifactFile)) filePath = artifactFile
+    }
+    const resolved = path.relative(baseDir, filePath)
+    if (resolved.startsWith('..') || path.isAbsolute(resolved)) throw new Error('relativePath 非法')
 
     const content = await fs.readFile(filePath, 'utf8')
     return { relativePath, content }

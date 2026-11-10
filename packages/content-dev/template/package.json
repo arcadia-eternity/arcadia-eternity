@@ -4,12 +4,8 @@
   "type": "module",
   "private": true,
   "files": [
-    "data",
     "dist",
-    "src",
-    "assets",
-    "locales",
-    "docs"
+    "assets"
   ],
   "scripts": {
     "rename": "arcadia-content rename",

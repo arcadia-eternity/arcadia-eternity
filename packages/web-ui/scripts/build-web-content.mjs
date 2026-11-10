@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
@@ -15,7 +16,9 @@ export async function buildWebContent(
   root = fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
   projectDirectory,
 ) {
-  const { locales, pack, lockfile } = await new PackMetadataLoader().loadMetadata(join(root, 'pack.json'), {
+  const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+  const manifestPath = join(root, pkg.arcadiaEternityPack ?? 'pack.json')
+  const { locales, pack, lockfile } = await new PackMetadataLoader().loadMetadata(manifestPath, {
     enforceLockfile: true,
     includeData: false,
   })
@@ -41,13 +44,14 @@ export async function buildWebContent(
     const manifest = {
       ...pack,
       content: 'dist/content.json',
+      presentation: 'dist/presentation.json',
       data: { effects: [], marks: [], skills: [], species: [] },
       locales: Object.entries(locales).map(([locale, namespaces]) => ({
         locale,
         files: Object.keys(namespaces).map(namespace => `${locale}/${namespace}.json`),
       })),
     }
-    const { localesDir } = manifest.paths
+    const { localesDir = 'locales' } = manifest.paths ?? {}
     writeJson(manifest.content, { data })
     writeJson('dist/catalog.json', authoring)
     for (const [locale, namespaces] of Object.entries(locales))

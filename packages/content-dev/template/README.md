@@ -12,6 +12,8 @@ SDK 构建模板携带 `skills/arcadia-content-authoring/SKILL.md` 和 `skills/s
 
 表现关联位于 `data/presentations/main.yaml`，资源定义位于 `data/resources/main.yaml`。规则只描述游戏内容，表现通过对象 ID 关联，图片与声音使用稳定资源 ID。移动素材时只更新资源定义的 `source`。见 [表现说明](docs/presentation.md)。
 
+`data/`、`locales/` 和 `src/` 只用于源项目创作。`npm run pack` 发布的归档只包含 `dist/`、被表现清单引用的素材及包元数据；安装后的包为只读，修改内容需要回到本项目重新构建并发布新版本。
+
 ## 依赖内容包
 
 复用其他包的技能、印记或资源时，将其声明为 `package.json` 的运行依赖（`dependencies`），并使用已安装版本支持的引用格式。`npm test` 使用标准助手，通过 npm 安装候选及其依赖，再由共享加载器组装环境；不需要另写依赖加载器。官方 base 同样必须是运行依赖，且使用包含静态适配产物的构建版本。不要把开发目录中的 `file:../sdk/*.tgz` 当成可分发的依赖地址。
