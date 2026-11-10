@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.3.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.3...arcadia-eternity-v4.3.4) (2026-11-10)
+
+
+### 🐛 Bug Fixes
+
+* restore effect checks for desktop release and headless CI ([34d6d1e](https://github.com/arcadia-eternity/arcadia-eternity/commit/34d6d1eb0cced792145ab47229cbe23cc6d41a2a))
+
 ## [4.3.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.2...arcadia-eternity-v4.3.3) (2026-11-10)
 
 
