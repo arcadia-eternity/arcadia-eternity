@@ -60,7 +60,7 @@ async function observeClient(page: Page, origin: string, name: string) {
 const playback = (page: Page) =>
   page.evaluate(() => (window as Window & { swfBattleEvents: PlaybackEvent[] }).swfBattleEvents)
 async function formTeam(page: Page, species: string) {
-  await page.getByRole('link', { name: '编辑或创建队伍', exact: true }).click()
+  await page.getByRole('link', { name: '编辑队伍', exact: true }).click()
   await expect(page.getByRole('heading', { name: '队伍编辑器', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '添加精灵', exact: true }).click()
   const selector = page.locator('.el-select').first()

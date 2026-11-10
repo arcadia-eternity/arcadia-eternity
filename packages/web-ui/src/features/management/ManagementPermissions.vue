@@ -28,7 +28,6 @@ const {
 <template>
   <section v-if="tab === 'permissions' && manageGrants && capabilities" aria-label="管理员授权">
     <h2>管理员与授权</h2>
-    <p class="hint">权限只作用于指定服务器或工作区。服务器管理员不会自动获得工作区删除权限。</p>
     <details>
       <summary>新建管理主体</summary>
       <ElForm class="grant-form" @submit.prevent="createPrincipal" label-position="top">
@@ -40,7 +39,7 @@ const {
         </ElFormItem>
         <ElButton :disabled="busy || !newPrincipalName.trim()" native-type="submit">创建主体</ElButton>
       </ElForm>
-      <p class="hint">关联账户后，该账户登录仍须具备下方授予的权限。新主体默认没有权限。</p>
+      <p class="hint">关联账户后仍需单独授权。</p>
     </details>
     <ElForm class="grant-form" @submit.prevent="addGrant" label-position="top">
       <ElFormItem label="管理主体标识">

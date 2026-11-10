@@ -522,7 +522,6 @@ onBeforeUnmount(() => {
                 ><small>{{ project.readOnly === false ? '源项目 · 可编辑' : '源项目' }}</small>
               </button>
             </div>
-            <p class="context-note">在这里编辑源项目；构建并安装后，才能在对战中使用新版本。</p>
           </section>
           <div class="columns">
             <div class="package-list">
@@ -717,7 +716,6 @@ onBeforeUnmount(() => {
       <div v-if="tasksOpen" class="dialog-backdrop" @keydown.esc="tasksOpen = false">
         <section role="dialog" aria-modal="true" aria-labelledby="install-tasks-title" class="dialog">
           <h2 id="install-tasks-title">下载与安装</h2>
-          <p>完成后存入资源库，再添加到环境使用。</p>
           <p v-if="!snapshot?.operations?.length">暂无安装任务。</p>
           <article v-for="job in snapshot?.operations" :key="job.id" class="install-task">
             <strong>{{ job.label }}</strong>
@@ -748,8 +746,7 @@ onBeforeUnmount(() => {
       </div>
       <div v-if="adding" class="dialog-backdrop" @keydown.esc="!busy && (adding = false)">
         <section role="dialog" aria-modal="true" aria-labelledby="add-package-title" class="dialog">
-          <h2 id="add-package-title">添加内容包</h2>
-          <p>安装后进入资源库。添加到环境并准备版本后，再选择使用。</p>
+          <h2 id="add-package-title">安装内容包</h2>
           <button :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</button
           ><label class="field"
             >npm 包名与版本<input v-model="npmSpec" placeholder="@author/pets@1.0.0" :disabled="busy" /></label

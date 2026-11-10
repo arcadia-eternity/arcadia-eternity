@@ -93,13 +93,11 @@ onBeforeUnmount(() => {
 <template>
   <main class="local-service">
     <h1>高级本机工具</h1>
-    <p>内容会根据你的选择自动准备。这里提供诊断与已有服务器项目的管理工具。</p>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <p><RouterLink to="/servers">开服、连接地址与服务器设置已移至“服务器”页面</RouterLink></p>
+    <RouterLink to="/servers">服务器列表</RouterLink>
     <details>
       <summary>高级服务器项目管理</summary>
-      <p>兼容已有的 npm 服务器项目。普通内容包管理不需要手动登记项目目录。</p>
       <button :disabled="busy" @click="add">登记项目目录</button
       ><label
         >已有项目<select v-model="selected" @change="selectProject">

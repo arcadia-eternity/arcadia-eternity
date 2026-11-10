@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
       <h3>私人挑战环境</h3>
       <span v-if="prepared" class="accepted">已接受此版本</span>
     </header>
-    <p>双方都需要取得并接受相同的环境，才能准备对局。此选择不会更改服务器的公开环境。</p>
+    <p>双方需接受同一版本才能准备。</p>
     <div v-if="shown" class="selection">
       <p>
         版本：<code :title="revision">{{ revision?.slice(0, 16) }}</code>
@@ -267,7 +267,7 @@ onBeforeUnmount(() => {
       /></label>
       <button :disabled="disabled || busy || !url.trim()">下载并接受链接环境</button>
     </form>
-    <p class="hint">文件最多 128 MiB；链接下载最多 64 MiB。下载只在你点击接受后开始。</p>
+    <p class="hint">环境文件上限 128 MiB，链接下载上限 64 MiB。</p>
   </section>
 </template>
 

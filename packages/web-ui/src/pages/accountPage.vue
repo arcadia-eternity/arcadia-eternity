@@ -4,7 +4,6 @@
       <!-- 页面标题 -->
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">档案与账号</h1>
-        <p class="text-gray-600">管理本地档案，查看当前服务器身份</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -57,12 +56,8 @@
                 </div>
               </div>
 
-              <el-alert title="资料保存在当前设备" type="info" :closable="false" show-icon>
-                <p>本地档案、队伍和设置可以离线使用。登录或退出服务器账号不会改变档案 UID。</p>
-                <p class="mt-2">
-                  请保留完整的本地资料备份。清空本地数据且没有备份时，仅凭 UID
-                  无法找回资料；账号只能恢复服务器实际保存过的内容。
-                </p>
+              <el-alert title="清除本地数据前请先备份" type="info" :closable="false" show-icon>
+                <p>仅凭 UID 无法恢复本地档案、队伍和设置。</p>
               </el-alert>
             </div>
           </el-card>

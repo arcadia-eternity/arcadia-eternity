@@ -65,23 +65,21 @@ function save() {
       <h3>网络与容量</h3>
       <ElButton :disabled="busy || !canEdit" @click="edit" native-type="button">编辑设置</ElButton>
     </header>
-    <p v-if="pendingRestart?.length" role="status" class="pending">
-      设置已保存，重启服务器后应用。当前对局继续使用现行配置。
-    </p>
+    <p v-if="pendingRestart?.length" role="status" class="pending">设置待重启</p>
     <p class="hint">
       当前监听
       <template v-if="listenAddress">{{ listenAddress.host }}:{{ listenAddress.port }}</template>
       <template v-else-if="runtimeSettings?.port">{{ runtimeSettings.host }}:{{ runtimeSettings.port }}</template>
-      <template v-else>尚未报告实际地址</template>。监听地址、对外地址与网页允许来源分别配置。
+      <template v-else>尚未报告实际地址</template>
     </p>
     <dl>
       <template v-for="[key, label] in fields" :key="key">
         <dt>{{ label }}</dt>
         <dd>
-          {{ runtimeSettings?.battleCapacity[key] ?? settings.battleCapacity[key]
-          }}<span v-if="runtimeSettings && runtimeSettings.battleCapacity[key] !== settings.battleCapacity[key]">
-            → {{ settings.battleCapacity[key] }}（待重启）</span
-          >
+          {{ runtimeSettings?.battleCapacity[key] ?? settings.battleCapacity[key] }}
+          <small v-if="runtimeSettings && runtimeSettings.battleCapacity[key] !== settings.battleCapacity[key]">
+            重启后 {{ settings.battleCapacity[key] }}
+          </small>
         </dd>
       </template>
     </dl>
@@ -116,9 +114,7 @@ function save() {
       <ElFormItem label="允许的网页来源（每行一个）">
         <ElInput v-model="cors" :rows="3" type="textarea" />
       </ElFormItem>
-      <p class="hint">
-        允许网络连接后，同一网络中的朋友可以通过邀请地址加入。公网访问还需要可达入口。网络变更在下次启动时生效。
-      </p>
+      <p v-if="origin.trim()" class="hint">公网访问需要可访问的公网入口。</p>
       <ElButton :disabled="busy || !canEdit" native-type="submit">保存下次启动设置</ElButton>
       <ElButton @click="draft = undefined" native-type="button">关闭编辑</ElButton>
     </ElForm>
@@ -156,6 +152,10 @@ dl {
 }
 dd {
   margin: 0;
+}
+dd small {
+  margin-inline-start: 0.5rem;
+  color: var(--el-text-color-secondary);
 }
 .grid {
   display: grid;

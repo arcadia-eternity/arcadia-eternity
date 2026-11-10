@@ -30,7 +30,7 @@ const matches = computed(() =>
         </button>
       </li>
     </ul>
-    <p v-if="!matches.length" class="hint">没有匹配内容。可在外部编辑器添加内容，保存后这里会刷新。</p>
+    <p v-if="!matches.length" class="hint">无匹配内容</p>
     <p v-if="matches.length > 40" class="hint">输入更具体的名称可缩小范围。</p>
   </section>
 </template>

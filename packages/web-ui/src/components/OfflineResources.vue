@@ -47,7 +47,6 @@ async function save() {
   <section class="border-b border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700" aria-label="离线资源">
     <div class="flex flex-wrap items-center gap-3">
       <span v-if="ready" role="status">离线资源已就绪</span>
-      <span v-else>本地对战无需游戏服务器。</span>
       <button
         v-if="supported"
         type="button"
@@ -60,9 +59,7 @@ async function save() {
       <span v-if="manifest">约 {{ Math.ceil(manifest.bytes / 1048576) }} MB</span>
       <span v-if="!supported">此浏览器暂不支持离线保存；请使用 HTTPS 或本机访问。</span>
     </div>
-    <p class="mt-1 text-xs">
-      首次使用需加载资源。保存完成后可断网重开；浏览器清理数据会移除缓存和本地队伍，请在精灵仓库导出备份。
-    </p>
+    <p class="mt-1 text-xs">清除浏览器数据前，请在精灵仓库备份队伍。</p>
     <p v-if="error" role="alert" class="mt-1 text-red-700">{{ error }}</p>
   </section>
 </template>

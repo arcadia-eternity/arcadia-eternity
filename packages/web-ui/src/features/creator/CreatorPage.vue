@@ -208,7 +208,6 @@ onMounted(() => {
   <main class="creator">
     <header>
       <h1>创作工坊</h1>
-      <p>设计精灵、技能与印记，组合已有效果，保存并分享你的作品。</p>
     </header>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status" class="notice">{{ notice }}</p>
@@ -440,16 +439,10 @@ onMounted(() => {
             ><button @click="run(publish)">创建固定版本</button>
           </div>
         </section>
-        <section v-else class="panel">
-          <h2>从一份作品开始</h2>
-          <p>在左侧创建作品或导入好友分享的文件。未完成的内容可以保存为草稿，发布前会检查引用及效果参数。</p>
-        </section>
       </div>
       <section class="panel releases">
         <h2>已安装的固定版本</h2>
-        <p>启用的版本将加入导出组合；导出的组合可在其他客户端及命令行中加载。</p>
         <button :disabled="!workspace.selected.length" @click="run(() => download('selection'))">导出启用组合</button>
-        <p v-if="!installed.length">暂无。创建固定版本后，即可导出作品及其依赖。</p>
         <div v-for="(release, key) in workspace.releases" :key="key" class="release-row">
           <span>{{ release.project.title }} · {{ release.project.namespace }} · {{ release.releaseVersion }}</span
           ><button @click="run(() => toggle(key))">

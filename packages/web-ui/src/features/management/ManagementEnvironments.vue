@@ -44,9 +44,7 @@ const {
 <template>
   <section v-if="tab === 'environments' && server" aria-label="服务器玩法">
     <h2>运行环境</h2>
-    <p class="hint">
-      一台服务器可以同时开放多个环境。默认环境用于未指定环境的新房间；其他环境仍可独立运行。发布新版本不会改变已有房间。
-    </p>
+    <p class="hint">发布的版本仅用于新房间。</p>
     <ElCard shadow="never" v-for="binding in bindings" :key="binding.id" class="binding-card">
       <header>
         <h3>
@@ -110,9 +108,7 @@ const {
           >跟随此环境的就绪版本</ElCheckbox
         >
       </div>
-      <p v-if="binding.selection === 'follow-ready'" class="hint">
-        后续准备出的就绪版本会按这项授权策略发布，退出管理后仍有效。此设置不会自动更新包；撤销相应授权或关闭跟随后停止。
-      </p>
+      <p v-if="binding.selection === 'follow-ready'" class="hint">准备新版本后会自动发布。</p>
       <div class="actions">
         <ElFormItem label="准备发布的版本">
           <ElSelect
@@ -166,13 +162,10 @@ const {
         </span>
       </div>
     </ElCard>
-    <p v-if="!bindings.length" class="hint">还没有环境绑定。在下方准备或导入版本后，选择“用于服务器”。</p>
   </section>
-  <p v-if="tab === 'environments'" class="context-note">
-    服务器环境库 · 下面的草稿和固定版本保存在当前管理的服务器。本机离线环境请到“内容包 → 环境”管理。
-  </p>
   <EnvironmentWorkspace
     v-if="tab === 'environments' && supported('workspace.environments')"
+    heading="服务器环境库"
     :key="client?.context.endpoint"
     :environments="environments"
     :versions="versions"
@@ -204,7 +197,7 @@ const {
     <p>
       <code>{{ referenceVersion }}</code>
     </p>
-    <p v-if="!versionReferences.length">当前没有引用，可以删除此版本。删除时仍会重新检查。</p>
+    <p v-if="!versionReferences.length">无版本引用</p>
     <template v-else>
       <p>以下使用方仍保留此版本。解除绑定或等待正在使用的对局结束后，才可以删除。</p>
       <p v-for="(reference, index) in versionReferences" :key="index">

@@ -46,7 +46,7 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
 }
 
 async function formCustomTeam(page: Page) {
-  await page.getByRole('link', { name: '编辑或创建队伍', exact: true }).click()
+  await page.getByRole('link', { name: '编辑队伍', exact: true }).click()
   await expect(page.getByRole('heading', { name: '队伍编辑器', exact: true })).toBeVisible()
   // A new profile contains a starter team; remove its pets through their ordinary editor controls.
   const cards = page.locator('.drag-handle')

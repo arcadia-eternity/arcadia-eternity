@@ -109,11 +109,6 @@
 .object-inspector h1 {
   font-size: 21px;
 }
-.inspector-empty {
-  padding: 40px 20px;
-  color: var(--author-muted);
-  text-align: center;
-}
 .browser-back {
   display: none;
 }
@@ -133,9 +128,6 @@
   .browser-back {
     display: inline-block;
     margin: 0 8px 12px 0;
-  }
-  .inspector-empty {
-    display: none;
   }
 }
 .create-object {

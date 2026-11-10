@@ -77,7 +77,7 @@ it('offers peer matchmaking and waits for fixed execution materials before readi
   await flushPromises()
   expect(mocks.rooms.prepareMatchmakingEnvironment).toHaveBeenCalledWith('peer-env')
   expect(panel.text()).toContain('@community/game 1.0.0 · 玩家主机')
-  expect(panel.text()).toContain('固定内容与执行材料准备完成后才能匹配')
+  expect(panel.get('[role="status"]').text()).toBe('正在加载对战内容…')
   expect(panel.get('[data-testid="start-matchmaking-button"]').attributes('disabled')).toBeDefined()
   finish()
   await flushPromises()

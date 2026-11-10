@@ -17,13 +17,7 @@
         <p v-if="!battleClientStore.isConnected" class="text-sm break-all">
           准备连接：{{ battleClientStore.serverUrl }}
         </p>
-        <p v-if="settings.isLocalMode" class="text-sm text-gray-500">
-          本地模式不会自动连接服务器。需要联机时，请打开服务器页面选择连接或开服。
-        </p>
-        <template v-else>
-          <el-switch v-model="settings.autoConnect" active-text="进入联机页面时自动连接" />
-          <p class="text-sm text-gray-500">设置会保存在此浏览器。关闭后仍可手动连接，不会断开已有连接。</p>
-        </template>
+        <el-switch v-if="!settings.isLocalMode" v-model="settings.autoConnect" active-text="进入联机页面时自动连接" />
         <p v-if="error || battleClientStore.connectionError" role="alert" class="text-sm text-red-600">
           {{ error || battleClientStore.connectionError }}
         </p>
@@ -32,7 +26,7 @@
         </p>
       </div>
       <template #footer>
-        <RouterLink to="/servers" class="mr-4 text-blue-600" @click="showDialog = false">查看与管理服务器</RouterLink>
+        <RouterLink to="/servers" class="mr-4 text-blue-600" @click="showDialog = false">服务器列表</RouterLink>
         <el-button @click="showDialog = false">关闭</el-button>
         <el-button
           v-if="!battleClientStore.isConnected"

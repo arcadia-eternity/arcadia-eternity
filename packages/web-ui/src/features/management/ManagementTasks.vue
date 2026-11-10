@@ -85,13 +85,12 @@ const statusType = (value: string) =>
 <template>
   <section v-if="tab === 'tasks'" aria-label="管理任务">
     <h2>操作记录与备份</h2>
-    <p class="hint">任务属于当前管理目标，离开页面后仍可回来查看。</p>
     <ElCard v-if="canBackup" shadow="never" class="server-backup">
       <div class="actions">
         <strong>服务器备份</strong>
         <ElButton type="primary" :disabled="busy || !!downloading" @click="createBackup">创建服务器备份</ElButton>
       </div>
-      <p class="hint">包含持久数据和工作区材料。完成后在操作记录中下载；恢复需在停止服务后通过宿主执行。</p>
+      <p class="hint">恢复备份前须停止服务器。</p>
     </ElCard>
     <div class="history-toolbar">
       <ElInput v-model="query" clearable placeholder="搜索任务、操作或标识" aria-label="搜索操作记录" />

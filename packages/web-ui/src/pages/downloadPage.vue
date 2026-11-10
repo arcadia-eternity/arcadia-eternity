@@ -6,10 +6,6 @@
         <h1 class="text-4xl font-bold text-center mb-4">
           {{ $t('download.title', '下载客户端') }}
         </h1>
-        <p class="text-xl text-gray-600 text-center mb-8">
-          {{ $t('download.subtitle', '获得更好的游戏体验') }}
-        </p>
-
         <!-- 版本信息 -->
         <div class="text-center mb-8">
           <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -37,9 +33,6 @@
                   {{ getPlatformDisplayName(platformInfo.platform, platformInfo.architecture) }}
                 </span>
               </div>
-              <p class="text-sm text-gray-600">
-                {{ $t('download.detected', '已自动检测您的系统') }}
-              </p>
             </div>
 
             <!-- 下载按钮 -->

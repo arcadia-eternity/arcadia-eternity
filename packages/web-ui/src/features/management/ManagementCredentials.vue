@@ -170,7 +170,7 @@ async function copy() {
 <template>
   <section class="credentials" aria-label="管理服务凭证">
     <h3>自动化服务凭证</h3>
-    <p class="hint">为自动化工具单独设置作用范围、操作和有效期。凭证只能使用对应管理主体已有的权限。</p>
+    <p class="hint">凭证只能使用管理主体已有的权限。</p>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <ElForm v-if="scopes.length" aria-label="签发管理凭证" @submit.prevent="issue" label-position="top">
       <div class="fields">

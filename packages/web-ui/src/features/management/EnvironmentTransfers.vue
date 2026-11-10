@@ -174,7 +174,6 @@ onBeforeUnmount(() => {
 <template>
   <section class="environment-transfers" aria-label="环境导入导出">
     <h2>导入与导出</h2>
-    <p class="hint">导出包含固定版本的环境配置和已捕获的内容材料。导入后会重新校验，并生成本工作区的固定版本。</p>
     <div class="transfer-grid">
       <ElForm aria-label="导出环境" @submit.prevent="exportEnvironment" label-position="top">
         <h3>导出固定版本</h3>
@@ -204,7 +203,7 @@ onBeforeUnmount(() => {
             @change="chooseFile"
           />
         </ElFormItem>
-        <p class="hint">文件最多 128 MiB。只创建新环境；若标识已存在，请先填写一个新标识。</p>
+        <p class="hint">文件上限 128 MiB。导入需要唯一的环境标识。</p>
         <p v-if="!canImport" class="hint">导入需要此工作区的编辑和准备权限。</p>
         <p v-if="reading" role="status">正在读取环境文件…</p>
         <p v-if="validation" role="alert" class="error">{{ validation }}</p>
@@ -234,7 +233,6 @@ onBeforeUnmount(() => {
             >
             <ElButton :disabled="busy" @click="clearFile" native-type="button">取消导入</ElButton>
           </div>
-          <p class="hint">导入会作为后台任务执行，完成后可在固定版本中使用。</p>
         </div>
       </ElForm>
     </div>

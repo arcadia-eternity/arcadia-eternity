@@ -109,7 +109,7 @@ describe('personal challenge environment picker', () => {
     const page = open({ expected: reference(undefined, true) })
     expect(page.text()).toContain('@friend/ice')
     expect(page.text()).toContain('revision-aaaa')
-    expect(page.text()).toContain('双方都需要取得并接受相同的环境')
+    expect(page.text()).toContain('双方需接受同一版本才能准备')
     expect(services.download).not.toHaveBeenCalled()
     expect(services.read).not.toHaveBeenCalled()
     expect(capture).not.toHaveBeenCalled()

@@ -112,8 +112,7 @@
   line-height: 1.6;
   margin: 8px 0;
 }
-.management-console .hint,
-.management-console .context-note {
+.management-console .hint {
   color: var(--el-text-color-secondary);
   font-size: 13px;
 }
