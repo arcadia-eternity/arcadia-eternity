@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.3.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.1...arcadia-eternity-v4.3.2) (2026-11-09)
+
+
+### 🐛 Bug Fixes
+
+* **web:** align browser acceptance with concise UI ([6c11773](https://github.com/arcadia-eternity/arcadia-eternity/commit/6c11773e6635651ea68aa3744df994354c47d5d0))
+
+
+### 📚 Documentation
+
+* add concise UI microcopy guidance ([06ae7c3](https://github.com/arcadia-eternity/arcadia-eternity/commit/06ae7c35ff74860834868e2bc9b8b4dc3e4ca846))
+
+
+### ♻️ Code Refactoring
+
+* **web:** simplify UI copy and update creator tests ([b189564](https://github.com/arcadia-eternity/arcadia-eternity/commit/b1895641b6f808ac20e12288674b73e0ba3eb990))
+
 ## [4.3.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.0...arcadia-eternity-v4.3.1) (2026-11-08)
 
 
