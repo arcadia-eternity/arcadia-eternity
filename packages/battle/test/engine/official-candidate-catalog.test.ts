@@ -9,7 +9,7 @@ import {
   setGlobalLogger,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { createOfficialEffectCandidates } from '@arcadia-eternity/data-pack-base/effects'
+import { createCatalog } from '@arcadia-eternity/data-pack-base/effects'
 import { beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 import { loadBaseMetadata } from './base-metadata'
@@ -22,7 +22,7 @@ function marks(): Map<string, BaseMark> {
 }
 it('uses the caller-provided amplification prototype when the supplied shield is destroyed', async () => {
   const dependencies = marks()
-  const candidates = createOfficialEffectCandidates(dependencies)
+  const candidates = createCatalog(dependencies)
   const { battle, a } = makeScenario()
   try {
     const source = dependencies.get('mark_shuiwenpingzhang')!.createInstance()
@@ -41,12 +41,12 @@ it('uses the caller-provided amplification prototype when the supplied shield is
 it('rejects missing and mismatched dependencies before publishing a directory', () => {
   const dependencies = marks()
   dependencies.delete('mark_shuiwenpingzhang')
-  expect(() => createOfficialEffectCandidates(dependencies)).toThrow()
+  expect(() => createCatalog(dependencies)).toThrow()
   dependencies.set('mark_shuiwenpingzhang', new BaseMark('fixture/wrong' as baseMarkId, []))
-  expect(() => createOfficialEffectCandidates(dependencies)).toThrow()
+  expect(() => createCatalog(dependencies)).toThrow()
 })
 it('installs all distinct parameter catalogs without address conflicts and keeps worlds isolated', () => {
-  const result = createOfficialEffectCandidates(marks())
+  const result = createCatalog(marks())
   const first = ConfigSystem.createInstance()
   const second = ConfigSystem.createInstance()
   try {

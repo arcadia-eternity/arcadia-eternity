@@ -10,13 +10,13 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node build.mjs",
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@arcadia-eternity/battle": "4.3.2",
-    "@arcadia-eternity/content-sdk": "4.3.2",
-    "@arcadia-eternity/pack-loader": "4.3.2",
+    "@arcadia-eternity/battle": "4.3.3",
+    "@arcadia-eternity/content-sdk": "4.3.3",
+    "@arcadia-eternity/pack-loader": "4.3.3",
     "@types/node": "25.6.0",
     "typescript": "6.0.3"
   },
@@ -25,7 +25,8 @@
     "projectId": "example-slow",
     "namespace": "example-slow",
     "content": "content.json",
-    "effects": "dist/effects.js",
-    "sdkApi": 2
+    "sdkApi": 2,
+    "effectSources": "src/effects",
+    "effectArtifact": "dist/arcadia-effects.json"
   }
 }

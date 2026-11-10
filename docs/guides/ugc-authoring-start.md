@@ -24,7 +24,7 @@
 
 CLI 使用 `arcadia-content workspace /path/to/pack preview --execute`；MCP 使用 `preview_start` 并通过 `job_get` 读取结果。`result.preview` 提供本机宿主 endpoint、客户端路径，以及配置了 `ARCADIA_PREVIEW_CLIENT_URL` 时的完整地址。桌面复制的 MCP 配置自动提供配套客户端地址。独立 CLI 可以设置该变量为本机配套网页地址。任务会保持试玩宿主运行，Ctrl+C 或 `job_cancel` 停止；其他入口可以通过相同项目的任务 ID 查询和取消。取消保留源码，异常退出的任务在重新打开后显示 interrupted。
 
-模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects.ts`，演示队伍放在 `debug/teams/*.yaml`，由 `arcadia.config.mjs` 的 `teams` 引用。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-sdk`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
+模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects/*.effect.ts`，使用 `@effect` / `@on` 装饰器由 SDK 自动发现装载，演示队伍放在 `debug/teams/*.yaml`，由 `arcadia.config.mjs` 的 `teams` 引用。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-sdk`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
 
 独立模板把 `@arcadia-eternity/content-sdk` 固定到精确版本。需要匹配本地未发布宿主时，可以用 `node scripts/stage-author-sdk.mjs /new/sdk-dir` 生成开发物料。
 

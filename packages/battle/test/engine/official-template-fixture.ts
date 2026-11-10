@@ -1,3 +1,4 @@
+import * as authoringSdk from '@arcadia-eternity/battle/authoring'
 import {
   AddMarkContext,
   AttackTargetOpinion,
@@ -14,7 +15,7 @@ import {
   type ContentPrototypeData,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { createOfficialTemplateRegistrations, withOfficialTemplates } from '@arcadia-eternity/data-pack-base/effects'
+import { createEffects, withOfficialTemplates } from '@arcadia-eternity/data-pack-base/effects'
 
 export const useTemplate = (
   id: string,
@@ -72,7 +73,7 @@ export function templateCatalog(data: ContentPrototypeData = templateData(), rev
     withOfficialTemplates(JSON.parse(JSON.stringify(data))),
     revision,
     undefined,
-    createOfficialTemplateRegistrations,
+    context => ({ nativeExports: createEffects({ sdk: authoringSdk, marks: context.marks, id: local => local }) }),
   )
 }
 export function templateFixture(data: ContentPrototypeData = templateData(), seed = 'official-templates') {

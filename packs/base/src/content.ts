@@ -4,8 +4,9 @@ import {
   type ContentCatalog,
   type BehaviorCatalogOptions,
 } from '@arcadia-eternity/battle/engine'
-import { createOfficialEffectCandidates } from './effects/candidate-catalog'
-import { withOfficialTemplates, createOfficialTemplateRegistrations } from './templates'
+import { createCatalog, createEffects } from 'virtual:arcadia-effects'
+import { withOfficialTemplates } from './templates'
+import * as sdk from '@arcadia-eternity/battle/authoring'
 
 export type OfficialPrototypeData = ContentPrototypeData
 export type OfficialContent = ContentCatalog
@@ -16,9 +17,9 @@ export function createOfficialContent(
   revision: string,
   additional: BehaviorCatalogOptions = {},
 ): OfficialContent {
-  return createContentCatalog(withOfficialTemplates(data), revision, createOfficialEffectCandidates, context => ({
+  return createContentCatalog(withOfficialTemplates(data), revision, createCatalog, context => ({
     nativeExports: [
-      ...(createOfficialTemplateRegistrations(context).nativeExports ?? []),
+      ...createEffects({ sdk, marks: context.marks, id: local => local }),
       ...((typeof additional === 'function' ? additional(context) : additional).nativeExports ?? []),
     ],
   }))

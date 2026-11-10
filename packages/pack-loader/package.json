@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/pack-loader",
-  "version": "4.3.2",
+  "version": "4.3.3",
   "description": "",
   "type": "module",
   "repository": {
@@ -26,6 +26,10 @@
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js",
       "default": "./dist/node.js"
+    },
+    "./effect-build": {
+      "types": "./dist/effect-build.d.ts",
+      "import": "./dist/effect-build.js"
     }
   },
   "scripts": {
@@ -49,7 +53,8 @@
     "es-module-lexer": "3.0.4",
     "rolldown": "1.0.0-rc.18",
     "semver": "7.7.3",
-    "yaml": "catalog:"
+    "yaml": "catalog:",
+    "typescript": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

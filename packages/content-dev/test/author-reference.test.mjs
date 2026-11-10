@@ -57,6 +57,9 @@ test('description tags match the renderer and effects come from the shipped temp
   assert.match(result.notes.join('\n'), /preserve \{stack\}/)
   assert.match(result.notes.join('\n'), /not implemented/)
   const effects = await authorReference({ topic: 'effects' })
-  assert.equal(effects.examples[0].text, await readFile(new URL('../template/src/effects.ts', import.meta.url), 'utf8'))
+  assert.equal(
+    effects.examples[0].text,
+    await readFile(new URL('../template/src/effects/slow.effect.ts', import.meta.url), 'utf8'),
+  )
   for (const topic of referenceTopics) assert.ok(JSON.stringify(await authorReference({ topic })).length < 32 * 1024)
 })

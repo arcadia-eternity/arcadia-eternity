@@ -1,3 +1,16 @@
+import { AttributeContributionsGeneratedEffects } from '../../../../packs/base/src/effects/attribute-contributions.generated.effect'
+import { DamageModifiersGeneratedEffects } from '../../../../packs/base/src/effects/damage-modifiers.generated.effect'
+import { DynamicContributionsGeneratedEffects } from '../../../../packs/base/src/effects/dynamic-contributions.generated.effect'
+import {
+  MarkApplicationsGeneratedEffects,
+  generatedMarkApplicationDependencies,
+} from '../../../../packs/base/src/effects/mark-applications.generated.effect'
+import { VitalSequencesGeneratedEffects } from '../../../../packs/base/src/effects/vital-sequences.generated.effect'
+import {
+  NamedParametersEffects,
+  namedParameterModifierDependencies,
+} from '../../../../packs/base/src/effects/named-parameters.effect'
+import { officialRageCandidate } from '../../../../packs/base/src/effects/rage.effect'
 import {
   AddMarkContext,
   AttackTargetOpinion,
@@ -13,29 +26,19 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import {
-  createGeneratedAttributeContributions,
-  createGeneratedDamageModifierEffects,
-  createGeneratedDynamicContributions,
-  createGeneratedMarkApplications,
-  createGeneratedVitalSequences,
-  createNamedParameterModifiers,
-  generatedMarkApplicationDependencies,
-  namedParameterModifierDependencies,
-  officialRageCandidate,
-} from '@arcadia-eternity/data-pack-base/effects'
+
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 
 function catalogs() {
   const effects = {
-    ...createGeneratedAttributeContributions(),
-    ...createGeneratedDynamicContributions(),
-    ...createGeneratedDamageModifierEffects(),
-    ...createGeneratedVitalSequences(),
-    ...createGeneratedMarkApplications(
-      new Map(generatedMarkApplicationDependencies.map(id => [id, new BaseMark(id as baseMarkId, [])])),
-    ),
+    ...AttributeContributionsGeneratedEffects.build(),
+    ...DynamicContributionsGeneratedEffects.build(),
+    ...DamageModifiersGeneratedEffects.build(),
+    ...VitalSequencesGeneratedEffects.build(),
+    ...MarkApplicationsGeneratedEffects.build({
+      marks: new Map(generatedMarkApplicationDependencies.map(id => [id, new BaseMark(id as baseMarkId, [])])),
+    }),
   }
   return new Map(
     namedParameterModifierDependencies.map(id => [
@@ -47,18 +50,18 @@ function catalogs() {
   )
 }
 const dependencies = catalogs(),
-  candidates = createNamedParameterModifiers(dependencies)
+  candidates = NamedParametersEffects.build({ parameters: dependencies })
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
 it('rejects missing catalogs and unknown aliases at assembly without mutating the supplied map', () => {
-  expect(() => createNamedParameterModifiers(new Map())).toThrow('Missing parameter catalog')
+  expect(() => NamedParametersEffects.build({ parameters: new Map() })).toThrow('Missing parameter catalog')
   const map = catalogs()
   const first = namedParameterModifierDependencies[0]
   map.set(first, new ParameterCatalog([]))
-  expect(() => createNamedParameterModifiers(map)).toThrow('Unknown parameter')
+  expect(() => NamedParametersEffects.build({ parameters: map })).toThrow('Unknown parameter')
   expect(map.size).toBe(namedParameterModifierDependencies.length)
 })
 it('the rage consumer reads the modified canonical parameter and returns to baseline after source removal', () => {
@@ -96,14 +99,14 @@ it('a captured parameter factor stays captured while its mark stack follows; new
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
-  const dependency = createGeneratedAttributeContributions().effect_mark_increase_crit_rate_20_percent_per_stack
+  const dependency = AttributeContributionsGeneratedEffects.build().effect_mark_increase_crit_rate_20_percent_per_stack
   const catalog = effectAuthoring.effectParameters(dependency)
   catalog.install(battle.configSystem)
   const all = new Map(dependencies)
   all.set(dependency.id, catalog)
   const emblem = new BaseMark(
     'fixture/crit-emblem' as baseMarkId,
-    [createNamedParameterModifiers(all).effect_emblem_dianhe_crit_rate_boost_5_percent],
+    [NamedParametersEffects.build({ parameters: all }).effect_emblem_dianhe_crit_rate_boost_5_percent],
     debuff.config,
   ).createInstance()
   const pet = a.activePet

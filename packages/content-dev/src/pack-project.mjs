@@ -78,6 +78,7 @@ export async function packBuiltProject(directory = process.cwd(), { cache } = {}
   const included = new Set(preview.files.map(file => packagePath(file.path)))
   if (!included.has('package.json')) fail('npm omitted the package manifest')
   const required = manifest.arcadia?.content ? [manifest.arcadia.content] : []
+  if (manifest.arcadia?.effectSources) required.push(manifest.arcadia.effectArtifact)
   let presentation
   try {
     presentation = JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8'))

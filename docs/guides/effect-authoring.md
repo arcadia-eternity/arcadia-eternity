@@ -10,7 +10,11 @@
 
 ## 一次执行
 
-`defineEffect` 使用与 `defineNativeEffect` 一致的 `triggers / when / apply` 字段；`triggers` 始终是 `EffectTrigger` 数组，单触发也使用数组。`ctx.trigger` 推导并缩窄 `ctx.parent` 的事件类型，`compileEffect` 适配为现有 Effect。辅助上下文另外提供 `read` 和 `ops`，不修改引擎原始上下文。直接事件与 `contexts.nearestSkillUse` 等祖先查询分别使用；嵌套伤害/效果不能凭直接父级推断施放者。
+直接创建可执行效果时使用 `compileEffect({ id, triggers, when, apply })`。需要单独导出定义，或由宿主在 `build()` 返回后编译时，使用 `defineEffect({ id, triggers, when, apply })`。
+
+效果装载采用标准装饰器与文件自动发现，详见 [装饰器与 SDK 装载](effect-loading-redesign.md)。普通内容包使用 `@effect` / `@on`；基础包的固定效果族使用 `@effectGroup`。新增 `*.effect.ts` 不需要修改中央注册表。已有 `defineEffects` 和原生操作继续用于效果机制实现。
+
+两者都从 `triggers` 推导回调类型，从 `parameters` 推导参数名称和类型。`triggers` 始终是 `EffectTrigger` 数组，单触发也使用数组。多触发效果可以用 `ctx.trigger` 缩窄 `ctx.parent` 的事件类型。辅助上下文另外提供 `read` 和 `ops`，不修改引擎原始上下文。直接事件与 `contexts.nearestSkillUse` 等祖先查询分别使用；嵌套伤害/效果不能凭直接父级推断施放者。
 
 - 条件在收集时读取；动作在执行到该步时重新查询。条件通过后，HP、归属或目标可能已变化。
 - `actions.sequence` 按顺序执行，每步独立查询；后续步骤不隐式依赖前一步成功。

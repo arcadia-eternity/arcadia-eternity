@@ -53,7 +53,7 @@ async function fixture(t, { files = ['dist/content.json'] } = {}) {
     join(project, 'dist/effects.js'),
     `import {bundled} from 'artifact-helper';
 globalThis.__arcadiaPrebuiltPackExecuted = true;
-throw new Error('AUTHOR_MODULE_MUST_NOT_EXECUTE_DURING_PACK_OR_PREPARATION');
+throw new Error('AUTHOR_MODULE_MUST_NOT_EXECUTE_DURING_PACK_OR_PREPARATION: ' + bundled);
 export function createEffects(){return [bundled]}
 `,
   )

@@ -1,3 +1,4 @@
+import { ConsecutiveFlyingRageEffects } from '../../../../packs/base/src/effects/consecutive-flying-rage.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   effectAuthoring,
@@ -24,7 +25,6 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
-import { createConsecutiveFlyingRage } from '@arcadia-eternity/data-pack-base/effects'
 
 const id = 'effect_ability_add_20_rage_when_use_fly_skill_twice'
 const battles: Battle[] = []
@@ -39,7 +39,7 @@ function fixture() {
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
-  const effect = createConsecutiveFlyingRage()
+  const effect = ConsecutiveFlyingRageEffects.build()
   effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
   const mark = new BaseMark('mark_ability_feixiang' as baseMarkId, [effect], {
     ...f.debuff.config,

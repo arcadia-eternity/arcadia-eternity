@@ -1,3 +1,4 @@
+import * as authoringSdk from '@arcadia-eternity/battle/authoring'
 import { expect, it } from 'vitest'
 import {
   createContentCatalog,
@@ -10,7 +11,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 import {
   withOfficialTemplates,
-  createOfficialTemplateRegistrations,
+  createEffects,
   officialTemplateDefinitions,
 } from '@arcadia-eternity/data-pack-base/effects'
 import {
@@ -35,7 +36,9 @@ const host = {
   base: { marks: [], skills: [], species: [] },
   templates: officialTemplateDefinitions,
   createContent: (data: Parameters<typeof createContentCatalog>[0], revision: string) =>
-    createContentCatalog(withOfficialTemplates(data), revision, undefined, createOfficialTemplateRegistrations),
+    createContentCatalog(withOfficialTemplates(data), revision, undefined, context => ({
+      nativeExports: createEffects({ sdk: authoringSdk, marks: context.marks, id: local => local }),
+    })),
 }
 const skill = (id: string) => ({ id, element: 'Normal', category: 'Physical', power: 40, rage: 0, accuracy: 100 })
 

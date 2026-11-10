@@ -51,11 +51,11 @@
       "project": ["src/**/*.{mjs,mts}", "test/**/*.mjs", "*.mjs"],
     },
     "packages/content-dev/template": {
-      "entry": ["src/effects.ts", "arcadia.config.mjs", "test/*.test.mjs"],
+      "entry": ["src/effects/**/*.effect.ts", "arcadia.config.mjs", "test/*.test.mjs"],
       "project": ["src/**/*.ts", "test/*.mjs", "*.mjs"],
     },
     "examples/ugc/slow": {
-      "entry": ["src/effects.ts", "test/*.test.mjs"],
+      "entry": ["src/effects/**/*.effect.ts", "test/*.test.mjs", "build.mjs"],
       "project": ["src/**/*.ts", "test/*.mjs"],
     },
     "packages/battle": {
@@ -72,7 +72,7 @@
       },
     },
     "packs/base": {
-      "ignoreDependencies": ["@arcadia-eternity/pack-loader"],
+      "entry": ["effects.ts", "src/effects/**/*.effect.ts", "src/templates/*.effect.ts"],
     },
     "packages/server": {
       "vitest": {

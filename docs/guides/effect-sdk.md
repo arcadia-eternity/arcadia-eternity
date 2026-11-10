@@ -1,36 +1,28 @@
 # Effect SDK：使用现有战斗 API 编写 TypeScript 效果
 
-从 `@arcadia-eternity/content-sdk` 导入效果类型。运行时，宿主向 `createEffects` 传入本局的 `sdk`。效果接口版本通过 `arcadia.sdkApi: 2` 声明。npm 效果由 [Arena / Comlink 宿主](effect-sandbox.md) 执行，沙箱开放明确允许的效果能力。
+从 `@arcadia-eternity/content-sdk` 导入装饰器和效果类型，在 `src/effects/*.effect.ts` 中声明效果。效果接口版本通过 `arcadia.sdkApi: 2` 声明。npm 效果由 [Arena / Comlink 宿主](effect-sandbox.md) 执行，沙箱开放明确允许的效果能力。
 
 ## 从一个效果开始
 
 ```ts
-import type { EffectModuleContext } from '@arcadia-eternity/content-sdk'
+import { effect, on, EffectTrigger, Pet, HealContext, type NativeEffectContext } from '@arcadia-eternity/content-sdk'
 
-export function createEffects({ sdk, id }: EffectModuleContext) {
-  const { defineCodeEffect, EffectTrigger, Pet, HealContext } = sdk
-  return [
-    defineCodeEffect({
-      id: id('heal-on-hit'),
-      sourceKind: 'skill',
-      triggers: [EffectTrigger.OnHit],
-      when: context => context.source === context.parent.skill,
-      apply(context) {
-        const owner = context.source.owner
-        if (owner instanceof Pet) {
-          owner.heal(new HealContext(context, context.source, owner, 20))
-        }
-      },
-    }),
-  ]
+@effect({ id: 'heal-on-hit', sourceKind: 'skill' })
+export class HealOnHit {
+  @on(EffectTrigger.OnHit)
+  static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
+    if (context.source !== context.parent.skill) return
+    const owner = context.source.owner
+    if (owner instanceof Pet) owner.heal(new HealContext(context, context.source, owner, 20))
+  }
 }
 ```
 
-`triggers / priority / when / apply / consumesStacks / tags` 与官方 `defineNativeEffect` 一致。`defineCodeEffect` 只把定义接入 npm 内容导出和每次使用的注册流程；回调收到原本的 `EffectContext`，领域方法走原有战斗阶段。简单定义无需 `build`。需要组合工具时，可用 `build({ effectId, sourceMark }) → { triggers, apply, ... }` 返回 `defineEffect` 定义。两种写法使用相同的字段名；辅助上下文保留 `read` 和 `ops`，原生回调接收原始引擎上下文。
+`@on` 的静态方法收到原生战斗上下文，领域方法走原有战斗阶段。需要参数、绑定或组合工具时，可在装饰类中实现 `static create(context)`，返回 `defineCodeEffect` 定义；其 `build({ effectId, sourceMark })` 仍支持原有能力。参见 [装饰器装载设计](effect-loading-redesign.md) 和 [slow 示例](../../examples/ugc/slow/src/effects/slow.effect.ts)。
 
-在技能或印记的 `behaviors` 中通过独立 `useId` 引用效果 ID。`createEffects` 是代码定义的唯一来源，`package.json` 不再维护效果清单；加载器在准入后读取模块，检查实际效果是否适用于引用它的对象。未被内容引用的效果不会注册。完整格式见 [npm 内容包](npm-content.md)。
+在技能或印记的 `behaviors` 中通过独立 `useId` 引用效果 ID。SDK 从 `effectSources` 指定的目录发现装饰类，构建 `effectArtifact`；加载器在准入后读取产物，检查实际效果是否适用于引用它的对象。未被内容引用的效果不会注册。完整格式见 [npm 内容包](npm-content.md)。
 
-独立的官方内容宿主也可以使用 `sdk.defineNativeEffect` 构造内核 `Effect`，由自己的内容目录注册；npm 的 `createEffects` 返回 `defineCodeEffect` 产生的导出。
+固定内容目录仍可用 `defineNativeEffect` 构造内核 `Effect`，或用 `defineEffects({ effectId: { triggers, apply } })` 编译一组效果；基础包的目录由 `@effectGroup` 自动收集。普通 npm 内容包使用 `@effect` 与 `@on`。
 
 ## 现有 API 索引
 
@@ -50,7 +42,7 @@ export function createEffects({ sdk, id }: EffectModuleContext) {
 
 注入的 `EffectSdk` 仅声明可调用的顶层函数和构造器。领域类可用于 `instanceof`，但不能在沙箱中自行构造；例如 `new sdk.Signal(...)` 不受支持。`@arcadia-eternity/battle/authoring` 的完整导出供可信宿主使用，上表中的低层属性贡献与响应式基础设施不属于沙箱构造能力。
 
-这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`EffectModule` 和 `EffectModuleContext` 定义模块签名，`EffectSdk` 是注入对象的类型。
+这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`EffectModuleContext` 提供当前内容上下文，`EffectSdk` 是注入对象的类型。
 
 ## 上下文和执行顺序
 
@@ -58,11 +50,11 @@ export function createEffects({ sdk, id }: EffectModuleContext) {
 
 触发收集会遍历相关来源。声明 `OnHit` 本身不意味着只有该来源使用技能时才运行，示例通过 `context.source === context.parent.skill` 明确这一条件。印记若监听持有者出招，需比较 `source.owner` 和事件的 `pet`。嵌套伤害的直接父事件不一定是技能，应遍历祖先，或使用已有上下文查询工具。
 
-`when` 在收集时执行，按优先级结算前还会触发 `BeforeEffect`。`apply` 应重新读取可能变化的 HP、目标、归属或印记状态。回调同步执行；顺序、分支、循环和复用直接使用 TypeScript。原生领域方法保留原有检查；操作其他对局的对象需要作者自行避免，选择器工具的跨局写入校验并不覆盖任意直接调用。
+效果的条件判断在收集时执行，按优先级结算前还会触发 `BeforeEffect`。回调应重新读取可能变化的 HP、目标、归属或印记状态。回调同步执行；顺序、分支、循环和复用直接使用 TypeScript。原生领域方法保留原有检查；操作其他对局的对象需要作者自行避免，选择器工具的跨局写入校验并不覆盖任意直接调用。
 
 ## 身份、参数和持久状态
 
-- `id(localId)` 是 namespace 下稳定的导出 ID。文件名和 npm 包名不替代内容身份。
+- 装饰器中的局部 `id` 在 namespace 下生成稳定的导出 ID。文件名和 npm 包名不替代内容身份；`static create(context)` 可用 `context.id(localId)` 解析它。
 - 内容的 `useId` 决定每次使用的编译身份，运行时在 `context.effect.id` 取得；同一导出的多次使用互不共用参数地址。
 - `context.source.id` 区分本局的来源实例。跨触发状态必须保存于引擎管理的实体状态、配置或支持恢复的绑定与属性贡献中，遵守下述状态归属合同。
 - 可修改参数用现有 `numberParam` 等声明在 `parameters` 中。原生回调通过 `context.battle.configSystem.get(parameterAddress(context.effect!.id, 'parameters', 'amount'), context.source)` 读取当前来源作用域；检查返回值类型。持续跟随参数可使用现有 `amount.follow(...)` 与绑定工具。
@@ -79,21 +71,17 @@ Effect 保存逻辑和不可变定义；影响后续触发结果的可变状态�
 - `context`、`context.parent`、辅助 frame 及其操作能力仅用于当前同步回调。不得将它们保存到外层变量、返回的延迟回调或异步任务中供以后使用。
 - 后续触发应从新的上下文重新取得来源和目标。需要持续追踪或捕获实体时，使用 SDK 管理的绑定和稳定引用；不要自行在长驻逻辑中保存本局领域对象。不可变内容定义和 SDK 声明句柄可以按各自合同复用。
 
-例如，下列计数依赖工厂闭包，属于不支持的效果写法，即使当前一次试打中看起来正常：
+例如，下列计数依赖类静态字段，属于不支持的效果写法，即使当前一次试打中看起来正常：
 
 ```ts
-export function createEffects({ sdk, id }: EffectModuleContext) {
-  let hits = 0
-  return [
-    sdk.defineCodeEffect({
-      id: id('hit-counter'),
-      sourceKind: 'skill',
-      triggers: [sdk.EffectTrigger.OnHit],
-      apply(context) {
-        if (context.source === context.parent.skill) hits++ // 应保存到所属实例的引擎状态中
-      },
-    }),
-  ]
+@effect({ id: 'hit-counter', sourceKind: 'skill' })
+export class HitCounter {
+  static hits = 0 // 不支持：跨对局共享
+
+  @on(EffectTrigger.OnHit)
+  static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
+    if (context.source === context.parent.skill) this.hits++
+  }
 }
 ```
 
@@ -103,13 +91,14 @@ export function createEffects({ sdk, id }: EffectModuleContext) {
 
 ### 自定义实体状态
 
-用 `defineEffectState` 声明不可变字段，通过当前回调和所属实体读写。下例在技能实例上记录命中次数；工厂闭包只保存字段定义：
+用 `defineEffectState` 声明不可变字段，通过当前回调和所属实体读写。下例在技能实例上记录命中次数；装饰类只保存字段定义：
 
 ```ts
-export function createEffects({ sdk, id }: EffectModuleContext) {
-  const hits = sdk.defineEffectState({ id: id('hit-count'), type: 'number', default: 0 })
-  return [
-    sdk.defineCodeEffect({
+@effect({ id: 'hit-counter', sourceKind: 'skill' })
+export class HitCounter {
+  static create({ sdk, id }: EffectModuleContext) {
+    const hits = sdk.defineEffectState({ id: id('hit-count'), type: 'number', default: 0 })
+    return sdk.defineCodeEffect({
       id: id('hit-counter'),
       sourceKind: 'skill',
       triggers: [sdk.EffectTrigger.OnHit],
@@ -118,8 +107,8 @@ export function createEffects({ sdk, id }: EffectModuleContext) {
         const previous = sdk.getEffectState(context, context.source, hits)
         sdk.setEffectState(context, context.source, hits, previous + 1)
       },
-    }),
-  ]
+    })
+  }
 }
 ```
 
@@ -160,7 +149,7 @@ pnpm typecheck:battle
 pnpm typecheck:effect-authoring-design
 pnpm test:battle
 pnpm --filter @arcadia-eternity/pack-loader test:run
-pnpm exec tsc -p examples/ugc/slow/tsconfig.json
+pnpm --dir examples/ugc/slow build
 node --test examples/ugc/slow/test/slow.test.mjs
 ```
 

@@ -1,24 +1,17 @@
 import {
   BehaviorCompilationError,
   normalizeBehaviorDefinitions,
-  type BaseMark,
   type ContentPrototypeData,
 } from '@arcadia-eternity/battle/engine'
-import { markTemplates } from './marks'
-import { combatTemplates } from './combat'
-import { resourceTemplates } from './resources'
+import { loadEffectTemplates } from '@arcadia-eternity/battle/effect-loading'
+import { effectSources } from 'virtual:arcadia-effects'
+import type { TemplateRegistration } from './contracts'
 
-const registrations = [...markTemplates, ...combatTemplates, ...resourceTemplates]
-if (new Set(registrations.map(entry => entry.template.id)).size !== registrations.length)
-  throw new Error('Duplicate official effect template')
+const registrations = loadEffectTemplates(effectSources) as readonly TemplateRegistration[]
 
 /** Serializable catalog for content editors. Executable factories are registered separately by the host. */
 export const officialEffectTemplates = Object.freeze(registrations.map(entry => entry.template))
 export const officialTemplateDefinitions = Object.freeze(officialEffectTemplates.map(entry => entry.definition))
-export function createOfficialTemplateRegistrations(content: { readonly marks: ReadonlyMap<string, BaseMark> }) {
-  const marks = new Map(content.marks)
-  return { nativeExports: Object.freeze(registrations.map(entry => entry.register(marks))) }
-}
 
 /** Ordinary base-pack content can configure installed native templates, but cannot introduce executable rules. */
 export function withOfficialTemplates(data: ContentPrototypeData): ContentPrototypeData {

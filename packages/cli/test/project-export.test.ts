@@ -87,6 +87,7 @@ beforeAll(async () => {
     [join(workspace, 'node_modules/typescript/bin/tsc'), '-p', join(workspace, 'examples/ugc/slow/tsconfig.json')],
     { cwd: workspace, timeout: 30000 },
   )
+  await exec(process.execPath, ['build.mjs'], { cwd: join(workspace, 'examples/ugc/slow'), timeout: 30000 })
   const packed = await exec(
     'npm',
     ['pack', '--ignore-scripts', '--json', '--pack-destination', join(source, 'artifacts')],
@@ -134,10 +135,10 @@ it('requires a source admission record and leaves no output when it is absent', 
 
 it('exports the locked artifact without evaluating locally edited effect code', async () => {
   const dir = await copySource('changed-unapproved-source')
-  await writeFile(
-    join(dir, 'node_modules/@arcadia-example/slow/dist/effects.js'),
-    "throw new Error('LOCAL_CODE_EXECUTED')\n",
-  )
+  const effectFile = join(dir, 'node_modules/@arcadia-example/slow/dist/arcadia-effects.json')
+  const localEdit = await json(effectFile)
+  localEdit.source = "throw new Error('LOCAL_CODE_EXECUTED')\n"
+  await writeJson(effectFile, localEdit)
   const output = join(temporary, 'changed-unapproved-output')
   await exportProject(dir, output, true)
   const original = (await readdir(join(dir, 'artifacts')))[0]
@@ -249,8 +250,10 @@ it('rejects invalid tarball formats before creating output', async () => {
 
 it('exports the retained artifact without policing local code file edits', async () => {
   const dir = await copySource('locally-modified-installation')
-  const compiled = join(dir, 'node_modules/@arcadia-example/slow/dist/effects.js')
-  await writeFile(compiled, (await readFile(compiled, 'utf8')) + '\n// approved local modification\n')
+  const compiled = join(dir, 'node_modules/@arcadia-example/slow/dist/arcadia-effects.json')
+  const localEdit = await json(compiled)
+  localEdit.source += '\n// approved local modification\n'
+  await writeJson(compiled, localEdit)
   const output = join(temporary, 'modified-installation-output')
   expect((await exportProject(dir, output, true)).installationDigest).toBe(installedDigest)
   expect(await exists(join(output, 'arcadia-deployment.json'))).toBe(true)

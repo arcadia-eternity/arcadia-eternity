@@ -77,8 +77,8 @@ export async function authorReference({ topic } = {}) {
     return {
       topic,
       title: 'Native TypeScript effects',
-      source: '@arcadia-eternity/content-sdk/dist/template/src/effects.ts',
-      examples: [{ language: 'typescript', text: await template('src/effects.ts') }],
+      source: '@arcadia-eternity/content-sdk/dist/template/src/effects/slow.effect.ts',
+      examples: [{ language: 'typescript', text: await template('src/effects/slow.effect.ts') }],
       notes: [
         'Import EffectModuleContext from @arcadia-eternity/content-sdk and use the host-supplied SDK. Importing an effect module must not register global state.',
         'defineCodeEffect uses triggers/apply. ctx.trigger identifies the trigger; ctx.parent is the typed parent context. Use stable namespaced IDs and actual behavior definitions.',

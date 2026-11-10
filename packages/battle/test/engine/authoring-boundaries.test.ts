@@ -11,7 +11,7 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
-const { compileEffect, defineEffect, numberParam, booleanParam, targets, ops } = effectAuthoring
+const { compileEffect, defineEffect, defineEffects, numberParam, booleanParam, targets, ops } = effectAuthoring
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
@@ -22,6 +22,21 @@ function fixture() {
   battles.push(f.battle)
   return f
 }
+it('compiles an immutable effect group using its keys as effect IDs', () => {
+  const triggers: (EffectTrigger.TurnStart | EffectTrigger.TurnEnd)[] = [EffectTrigger.TurnStart]
+  const group = defineEffects({
+    start: { triggers, apply() {} },
+    end: { triggers: [EffectTrigger.TurnEnd], apply() {} },
+  })
+  triggers.push(EffectTrigger.TurnEnd)
+
+  expect(group.start.id).toBe('start')
+  expect(group.end.id).toBe('end')
+  expect(group.start.triggers).toEqual([EffectTrigger.TurnStart])
+  expect(Object.keys(group)).toEqual(['start', 'end'])
+  expect(Object.isFrozen(group)).toBe(true)
+  expect(Object.isFrozen(group.start)).toBe(true)
+})
 it('snapshots declaration defaults and parameter tables before compilation', () => {
   const f = fixture()
   const numberOptions = { default: 10 },

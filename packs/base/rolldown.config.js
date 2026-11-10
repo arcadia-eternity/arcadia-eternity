@@ -1,3 +1,4 @@
+import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { defineConfig } from 'rolldown'
 import { isExternalDependency } from '../../scripts/rollup-external.mjs'
 import { fileURLToPath } from 'node:url'
@@ -8,6 +9,7 @@ export default defineConfig({
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,
   plugins: [
+    effectDiscoveryPlugin(import.meta.dirname, ['src/effects', 'src/templates'], true),
     {
       name: 'base-content-watch-artifacts',
       async buildStart() {
@@ -22,5 +24,5 @@ export default defineConfig({
       },
     },
   ],
-  external: isExternalDependency,
+  external: id => (id === 'virtual:arcadia-effects' || id.startsWith('\0') ? false : isExternalDependency(id)),
 })

@@ -6,6 +6,7 @@ export default defineConfig({
     index: 'index.ts',
     native: 'native.ts',
     node: 'node.ts',
+    'effect-build': 'effect-build.ts',
     'generate-pack-lockfile': 'src/generate-pack-lockfile.ts',
   },
   output: { format: 'esm', dir: 'dist' },

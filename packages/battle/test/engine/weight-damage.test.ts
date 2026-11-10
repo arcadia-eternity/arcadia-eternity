@@ -1,3 +1,4 @@
+import { WeightDamageEffects } from '../../../../packs/base/src/effects/weight-damage.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   Modifier,
@@ -17,9 +18,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
-import { createWeightDamageEffects } from '@arcadia-eternity/data-pack-base/effects'
 
-const effects = createWeightDamageEffects()
+const effects = WeightDamageEffects.build()
 const ids = Object.keys(effects) as (keyof typeof effects)[]
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))

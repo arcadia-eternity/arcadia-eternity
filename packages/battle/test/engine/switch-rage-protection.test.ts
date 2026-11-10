@@ -1,3 +1,4 @@
+import { SwitchRageProtectionEffects } from '../../../../packs/base/src/effects/switch-rage-protection.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   SnapshotCatalog,
@@ -18,7 +19,6 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
-import { createSwitchRageProtection } from '@arcadia-eternity/data-pack-base/effects'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -35,7 +35,7 @@ function fixture(location: 'outgoing' | 'incoming' | 'opponent' | 'none' = 'outg
   const outgoing = f.a.activePet,
     incoming = f.a.team[1]
   const owner = location === 'incoming' ? incoming : location === 'opponent' ? f.b.activePet : outgoing
-  const mark = new BaseMark('mark_feixuanzhen' as baseMarkId, [createSwitchRageProtection()], {
+  const mark = new BaseMark('mark_feixuanzhen' as baseMarkId, [SwitchRageProtectionEffects.build()], {
     ...f.debuff.config,
     persistent: true,
     duration: -1,

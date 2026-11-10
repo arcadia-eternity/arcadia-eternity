@@ -7,6 +7,7 @@ import { createServer } from 'node:http'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { rolldown } from 'rolldown'
+import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { identifyEnvironmentArtifact } from './build-battle-environment.mjs'
 
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-native-pack-'))
@@ -19,6 +20,7 @@ try {
     platform: 'browser',
     external: id => id.startsWith('node:'),
     plugins: [
+      effectDiscoveryPlugin(resolve('packs/base'), ['src/effects', 'src/templates'], true),
       {
         name: 'native-pack-boundary',
         resolveId(id) {

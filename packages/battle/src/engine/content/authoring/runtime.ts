@@ -1281,8 +1281,11 @@ function bindAttributeOperator<T extends Pet | SkillInstance>(
   actionBindings.set(operator, [{ key: options.key, value: options.value }])
   return operator
 }
-/** Explicit opt-in adapter; does not register examples or change the production catalog. */
-export function compileEffect<T extends C.Trigger, P extends Readonly<Record<string, C.Parameter<unknown>>>>(
+/** Compile an inline or reusable authored definition into a battle effect. */
+export function compileEffect<
+  const T extends C.Trigger,
+  const P extends Readonly<Record<string, C.Parameter<unknown>>> = Record<never, never>,
+>(
   input: C.EffectDefinition<T, P>,
   options: {
     readonly source?:

@@ -140,9 +140,11 @@ export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly when?: (ctx: NoInfer<EffectFrame<T>>, params: P) => boolean
   readonly apply: (ctx: NoInfer<EffectFrame<T>>, params: P) => void
 }
-export declare function defineEffect<const T extends Trigger, const P extends Parameters = Record<never, never>>(
-  definition: EffectDefinition<T, P>,
-): EffectDefinition<T, P>
+export declare function defineEffect<
+  const T extends Trigger,
+  const P extends Parameters = Record<never, never>,
+  const Id extends string = string,
+>(definition: EffectDefinition<T, P> & { readonly id: Id }): EffectDefinition<T, P> & { readonly id: Id }
 
 export declare const targets: {
   readonly ownerPet: Selector<Pet>

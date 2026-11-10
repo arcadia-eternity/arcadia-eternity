@@ -1,3 +1,4 @@
+import { AuthoredEffects } from '../../../../packs/base/src/effects/authored/index.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   effectAuthoring,
@@ -24,7 +25,6 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
-import { createOfficialAuthoredEffects } from '@arcadia-eternity/data-pack-base/effects'
 
 const { targets, ops, compileEffect, defineEffect, registerEffect, actions } = effectAuthoring
 const battles: Battle[] = []
@@ -87,7 +87,7 @@ function definition(mode: Mode, custom = false) {
       }),
     )
   }
-  if (mode === 'official') return createOfficialAuthoredEffects().effect_mark_reduce_speed_ruodian
+  if (mode === 'official') return AuthoredEffects.build().effect_mark_reduce_speed_ruodian
   const root = targets.ownerMarks.where(mark => mark.baseId === 'mark_ruodianjihao').first()
   const selected = mode === 'capture' ? root.capture({ key: 'mark', scope: 'binding' }) : root.follow({ key: 'mark' })
   const stack = selected.attribute('stack')
@@ -327,7 +327,7 @@ it('checkpoints the actual weakness-speed candidate with a fresh compiled catalo
   for (const p of [...f.a.team, ...f.b.team])
     for (const skill of p.skills) for (const effect of skill.effects) fresh.registerEffect(effect.id, effect)
   for (const effect of f.debuff.effects) fresh.registerEffect(effect.id, effect)
-  registerEffect(fresh, createOfficialAuthoredEffects().effect_mark_reduce_speed_ruodian)
+  registerEffect(fresh, AuthoredEffects.build().effect_mark_reduce_speed_ruodian)
   const twice = restoreBattle(saved, fresh)
   battles.push(twice)
   expect(twice.playerA.activePet.stat.spe).toBe(225)

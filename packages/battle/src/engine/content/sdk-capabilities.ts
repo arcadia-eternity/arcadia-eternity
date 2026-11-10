@@ -2,6 +2,7 @@
 export const effectSdkFunctions = [
   'compileEffect',
   'defineEffect',
+  'defineEffects',
   'numberParam',
   'booleanParam',
   'stringParam',

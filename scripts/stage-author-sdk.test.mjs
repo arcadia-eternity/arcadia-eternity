@@ -44,7 +44,7 @@ test(
           for (const path of [
             'dist/author-api.mjs',
             'dist/mcp.mjs',
-            'dist/template/src/effects.ts',
+            'dist/template/src/effects/slow.effect.ts',
             'dist/template/skills/arcadia-content-authoring/SKILL.md',
           ])
             assert.ok(files.includes('package/' + path), `missing author artifact: ${path}`)

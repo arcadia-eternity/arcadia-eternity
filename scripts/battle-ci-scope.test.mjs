@@ -74,7 +74,10 @@ test('root offline bundle configuration runs offline CLI checks', () => {
 })
 
 test('npm authoring examples run their compilation and actual package acceptance in CLI CI', () => {
-  assert.deepEqual(affectedBattleJobs(['examples/ugc/slow/src/effects.ts'], packages), { ...none, cli: true })
+  assert.deepEqual(affectedBattleJobs(['examples/ugc/slow/src/effects/slow.effect.ts'], packages), {
+    ...none,
+    cli: true,
+  })
 })
 
 for (const path of [

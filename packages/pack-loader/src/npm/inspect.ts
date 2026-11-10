@@ -27,6 +27,7 @@ export interface NpmContentManifest {
   namespace: string
   content: string
   effects?: string
+  effectSources?: string
   /** Author-produced closed EffectModuleArtifact JSON, consumed without compiling or evaluating code. */
   effectArtifact?: string
   sdkApi?: number
@@ -140,6 +141,7 @@ function readManifest(value: unknown): NpmContentManifest {
           'namespace',
           'content',
           'effects',
+          'effectSources',
           'effectArtifact',
           'sdkApi',
           'assets',
@@ -150,6 +152,11 @@ function readManifest(value: unknown): NpmContentManifest {
     fail('NPM_METADATA', 'arcadia', 'Unsupported Arcadia package metadata')
   createDraft(input.projectId, input.projectId, input.namespace)
   packageFile('/', input.content)
+  if (input.effectSources !== undefined) {
+    packageFile('/', input.effectSources)
+    if (input.effects !== undefined || input.effectArtifact === undefined)
+      fail('NPM_MANIFEST', 'effectSources', 'Source discovery requires an artifact and no manual effects entry')
+  }
   if (input.effects !== undefined) packageFile('/', input.effects)
   if (input.effectArtifact !== undefined) packageFile('/', input.effectArtifact)
   if (input.presentation !== undefined) packageFile('/', input.presentation)

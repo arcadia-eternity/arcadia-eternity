@@ -30,9 +30,9 @@ description: 根据任务提供的资料，将赛尔号2精灵、技能、特性
 
 ### 独立 SDK 内容包（默认）
 
-不要求主仓库存在。读取项目 manifest、安装的 SDK 参考与邻近示例，以 `data/species`、`data/skills`、`data/marks`、`src/effects.ts`、`locales`、`data/presentations`、`data/resources` 和 `test/*.test.mjs` 组织。进化链共享种族文件，效果按精灵或机制分组；以实际 manifest 为准，不凭空创建 base 专用注册文件。
+不要求主仓库存在。读取项目 manifest、安装的 SDK 参考与邻近示例，以 `data/species`、`data/skills`、`data/marks`、`src/effects/*.effect.ts`、`locales`、`data/presentations`、`data/resources` 和 `test/*.test.mjs` 组织。进化链共享种族文件，效果按精灵或机制分组；以实际 manifest 为准，不凭空创建 base 专用注册文件。
 
-使用 `createEffects({ sdk, marks, id })`、`sdk.defineCodeEffect` 与 SDK 的 `defineEffect`；通过项目 namespace 和显式引用连接数据。复用外部技能、印记或资源须声明运行时 dependencies，开发工具放 devDependencies。不得修改安装的不可变包、node_modules，或为实验重写加载器。
+使用 SDK 的 `@effect` / `@on` 声明普通效果，复杂参数和绑定通过装饰类的 `static create(context)` 返回 `defineCodeEffect`；通过项目 namespace 和显式引用连接数据。复用外部技能、印记或资源须声明运行时 dependencies，开发工具放 devDependencies。不得修改安装的不可变包、node_modules，或为实验重写加载器。
 
 测试使用 `@arcadia-eternity/content-sdk/testing` 的 `prepareContentPack` 和标准依赖装配，不限制只能依赖 base。打包使用 `arcadia-content pack` 或项目对应脚本，检查生成预编译效果工件；在独立安装目录通过标准 `prebuilt-only` 准备验证分发产物。安装与执行准入分开，不能因为装包成功就推定允许执行。
 
@@ -57,7 +57,7 @@ description: 根据任务提供的资料，将赛尔号2精灵、技能、特性
 修改主仓库 base 时检查两条注册链（独立包使用自己的 manifest/SDK 注册方式）：
 
 - 数据：种族文件加入 `pack.json`，分组加入 `content-groups.yaml`；只有本次确实实现的进化关系才登记。
-- 效果：专属文件可导出 `create<Pet>Effects(marks)`，在 `src/effects/candidate-catalog.ts` 汇入当前效果目录；按现有导出约定更新 `effects.ts`。技能和印记通过效果 ID 引用实现，仅导出函数不等于完成注册。
+- 效果：基础包专属实现放进 `src/effects/<pet>.effect.ts`，通过 `@effectGroup` 声明并在静态 `build(context)` 中返回效果表；SDK 自动发现、排序和注册，无需修改中央装载表或 `effects.ts`。技能和印记仍通过稳定效果 ID 引用。普通 UGC 使用 SDK 的 `@effect` / `@on` 和 BehaviorUse。
 
 这套结构中，一只精灵的完整实现会跨多个文件，不能只复制种族 YAML 和效果 TS 就视为迁移完成。交付时简要列出新增文件、追加到公共表的定义及注册入口；不要新增写死精灵、技能、印记或效果总数的校验；验证引用完整性、加载一致性和实际行为。文件数量不是目标，不为单只精灵另建一套目录结构。精灵展示沿用现有 icon、portrait、battle（`seer2-swf`、source、fallback）、cry 结构。
 

@@ -1,3 +1,4 @@
+import { StackDamageEffects } from '../../../../packs/base/src/effects/stack-damage.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   SkillPhase,
@@ -19,7 +20,6 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
-import { createStackDamageEffects } from '@arcadia-eternity/data-pack-base/effects'
 
 const reduction = 'effect_mark_special_damage_reduction_with_stack'
 const amplification = 'effect_skill_add_damage_30_per_niliu'
@@ -45,7 +45,7 @@ function fixture(id: typeof reduction | typeof amplification, stack = 3) {
   mark.setOwner(owner, f.battle.emitter)
   owner.marks.push(mark)
   const source = id === reduction ? mark : owner.skills[0]
-  const effect = createStackDamageEffects()[id]
+  const effect = StackDamageEffects.build()[id]
   effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
   source.effects.push(effect)
   const use = new UseSkillContext(

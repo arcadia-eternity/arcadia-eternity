@@ -24,3 +24,5 @@ export class NativeNodePackLoader<Content extends object = ContentCatalog> exten
 }
 
 export type { PreparedPresentation } from './src/npm/resources'
+
+export { effectDiscoveryPlugin } from './src/npm/effect-discovery'

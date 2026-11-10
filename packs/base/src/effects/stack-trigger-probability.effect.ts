@@ -1,0 +1,28 @@
+import { effectGroup } from '@arcadia-eternity/battle/effect-loading'
+import { defineEffects, EffectTrigger, ops, targets } from '@arcadia-eternity/battle/authoring'
+
+/** Capture the contributing mark, then follow that instance's stack for each parameter read. */
+@effectGroup({ id: 'stack-trigger-probability' })
+export class StackTriggerProbabilityEffects {
+  static build() {
+    const stack = targets.sourceMark
+      .first()
+      .capture({ key: 'source-mark', scope: 'binding' })
+      .attribute('stack')
+      .follow({ key: 'current-stack' })
+    return defineEffects({
+      effect_mark_increase_skill_trigger_rate_with_stack: {
+        triggers: [EffectTrigger.OnMarkCreated],
+        priority: 0,
+        apply: targets.ownerPet.apply(
+          ops.bindTaggedParameter({
+            key: 'stack-trigger-probability',
+            tag: 'skill_effect_probability',
+            operation: 'delta',
+            value: stack,
+          }),
+        ),
+      },
+    })
+  }
+}
