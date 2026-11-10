@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { compileEffectModule, stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
@@ -141,7 +141,8 @@ export async function createNpmFixture(
       await mkdir(join(base, 'dist'), { recursive: true })
       for (const field of ['content', 'presentation', 'effectArtifact', 'catalog'])
         await cp(join(packageRoot, metadata.arcadia[field]), join(base, metadata.arcadia[field]))
-      await cp(join(packageRoot, 'assets'), join(base, 'assets'), { recursive: true })
+      if (existsSync(join(packageRoot, 'assets')))
+        await cp(join(packageRoot, 'assets'), join(base, 'assets'), { recursive: true })
       await cp(join(packageRoot, metadata.arcadiaEternityPack), join(base, metadata.arcadiaEternityPack))
       await writeFile(
         join(base, 'package.json'),
