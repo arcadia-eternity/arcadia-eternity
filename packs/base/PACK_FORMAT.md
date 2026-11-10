@@ -112,7 +112,7 @@ Current generator behavior:
 
 - emits pnpm-like `importers` and `packages`
 - records the `pack.json` package node; presentation metadata is generated separately
-- uses `workspace:` source refs when package metadata is available
+- uses the explicitly supplied workspace package and source entry for the root `workspace:` ref; the published entry remains `arcadiaEternityPack`
 - computes `sha512-*` integrity from local manifest content
 
 The base build also emits `dist/pack-lock.yaml` for the compiled manifest. Consumers that load `dist/pack.json` enforce that generated lock record.

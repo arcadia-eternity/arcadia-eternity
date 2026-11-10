@@ -16,7 +16,7 @@
     "sdkApi": 2
   },
   "scripts": {
-    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml",
+    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml --workspace @arcadia-eternity/data-pack-base#pack.json",
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
     "build:code": "rolldown -c && node ../../scripts/build-base-environment.mjs",

@@ -65,6 +65,10 @@ type QueueItem = {
   kind: 'data' | 'asset'
   parentKey?: string
   dependencyName?: string
+  sourceRef?: {
+    source: string
+    provenance: LockProvenance
+  }
 }
 
 type PackageMeta = {
@@ -72,6 +76,13 @@ type PackageMeta = {
   packageRoot?: string
   packEntry?: string
   assetsEntry?: string
+}
+
+export type PackLockfileOptions = {
+  workspaceSource?: {
+    packageName: string
+    entry: string
+  }
 }
 
 function toSRI(content: string): string {
@@ -158,14 +169,31 @@ function parseAssetManifest(raw: string): AssetManifest {
   return JSON.parse(raw) as AssetManifest
 }
 
-export async function generatePackLockfileFromEntry(entryPath: string, importer = '.'): Promise<PackLockfile> {
+export async function generatePackLockfileFromEntry(
+  entryPath: string,
+  importer = '.',
+  options: PackLockfileOptions = {},
+): Promise<PackLockfile> {
   const rootPath = resolve(entryPath)
   const importers: Record<string, LockImporterSnapshot> = {
     [importer]: { specifiers: {}, dependencies: {} },
   }
   const packages: Record<string, LockPackageSnapshot> = {}
   const visited = new Set<string>()
-  const queue: QueueItem[] = [{ absPath: rootPath, importer, kind: 'data' }]
+  const workspaceSource = options.workspaceSource
+  const queue: QueueItem[] = [
+    {
+      absPath: rootPath,
+      importer,
+      kind: 'data',
+      ...(workspaceSource && {
+        sourceRef: {
+          source: `workspace:${workspaceSource.packageName}#${workspaceSource.entry}`,
+          provenance: 'workspace',
+        },
+      }),
+    },
+  ]
 
   while (queue.length > 0) {
     const current = queue.shift()!
@@ -178,7 +206,7 @@ export async function generatePackLockfileFromEntry(entryPath: string, importer 
     if (current.kind === 'data') {
       const manifest = parsePackManifest(raw)
       const key = packageKeyOf(manifest.id, manifest.version)
-      const resolvedRef = await detectSourceRef(current.absPath, 'data')
+      const resolvedRef = current.sourceRef ?? (await detectSourceRef(current.absPath, 'data'))
 
       packages[key] = {
         name: manifest.id,
@@ -241,7 +269,7 @@ export async function generatePackLockfileFromEntry(entryPath: string, importer 
 
     const manifest = parseAssetManifest(raw)
     const key = packageKeyOf(manifest.id, manifest.version)
-    const resolvedRef = await detectSourceRef(current.absPath, 'asset')
+    const resolvedRef = current.sourceRef ?? (await detectSourceRef(current.absPath, 'asset'))
 
     packages[key] = {
       name: manifest.id,
