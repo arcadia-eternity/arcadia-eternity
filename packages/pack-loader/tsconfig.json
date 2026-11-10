@@ -6,6 +6,7 @@
     "composite": true,
     "lib": ["ESNext"],
     "module": "ESNext",
+    "allowImportingTsExtensions": true,
     "target": "ESNext",
     "outDir": "./dist/",
     "verbatimModuleSyntax": true,

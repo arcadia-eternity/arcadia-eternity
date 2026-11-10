@@ -27,7 +27,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event.client_payload.tag_name || github.sha }}
 
@@ -45,7 +45,7 @@ jobs:
           echo "source_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Log into GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -53,7 +53,7 @@ jobs:
 
       - name: Extract metadata for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: org.opencontainers.image.revision=${{ steps.version.outputs.source_commit }}
@@ -64,7 +64,7 @@ jobs:
 
       - name: Build and push production Docker image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: ./Dockerfile
@@ -88,7 +88,7 @@ jobs:
           echo "This image is ready for production deployment." >> $GITHUB_STEP_SUMMARY
 
       - name: Trigger production deployment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9.0.0
         env:
           VERSION: ${{ steps.version.outputs.version }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}

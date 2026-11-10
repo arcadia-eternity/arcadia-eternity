@@ -25,10 +25,10 @@ jobs:
       tag: ${{ steps.input.outputs.tag }}
       commit: ${{ steps.input.outputs.commit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
       - name: Resolve release version and exact source
@@ -118,20 +118,20 @@ jobs:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       SOURCE_COMMIT: ${{ needs.prepare.outputs.commit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.commit }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           architecture: ${{ matrix.arch }}
           cache: pnpm
       - name: Restore versioned desktop download cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ${{ github.workspace }}/.artifacts/electron-cache
@@ -209,7 +209,7 @@ jobs:
           }, null, 2) + '\n', { flag: 'wx' })
           NODE
       - name: Preserve validated release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: desktop-release-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.platform }}-${{ matrix.arch }}
           if-no-files-found: error
@@ -237,14 +237,14 @@ jobs:
       SOURCE_COMMIT: ${{ needs.prepare.outputs.commit }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.commit }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -252,7 +252,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Resolve exact native artifact IDs
         id: artifacts
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const fs = require('node:fs')
@@ -274,7 +274,7 @@ jobs:
             })
             fs.writeFileSync('artifact-sources.json', JSON.stringify(sources, null, 2) + '\n', { flag: 'wx' })
             core.setOutput('ids', sources.map(source => source.artifactId).join(','))
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           artifact-ids: ${{ steps.artifacts.outputs.ids }}
           path: release-inputs
@@ -283,7 +283,7 @@ jobs:
         run: node scripts/merge-desktop-release-manifests.mjs release-inputs release-assets "$RELEASE_VERSION" "$SOURCE_COMMIT" artifact-sources.json
       - name: Locate release without changing its notes or publication state
         id: release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const tag = process.env.RELEASE_TAG
@@ -324,7 +324,7 @@ jobs:
             core.setOutput('id', release.id)
             core.info(`Uploading assets to release ${release.id} (${release.tag_name}); draft=${release.draft}`)
       - name: Check existing assets before any upload
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9.0.0
         env:
           RELEASE_ID: ${{ steps.release.outputs.id }}
         with:

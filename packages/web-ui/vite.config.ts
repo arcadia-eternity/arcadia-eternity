@@ -13,6 +13,8 @@ import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { buildWebContent } from './scripts/build-web-content.mjs'
 
+const configDir = import.meta.dirname
+
 // Auto-imported styles are injected after Vite's initial dependency scan.
 const elementPlusComponents = new URL('./components/', import.meta.resolve('element-plus'))
 const elementPlusStyles = readdirSync(elementPlusComponents, { withFileTypes: true })
@@ -155,7 +157,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
             src: '../../scripts/**/*.{js,mjs}',
             dest: 'scripts',
             rename: (_fileName: string, _fileExtension: string, fullPath: string) => {
-              const relativePath = path.relative(path.resolve(__dirname, '../../scripts'), fullPath)
+              const relativePath = path.relative(path.resolve(configDir, '../../scripts'), fullPath)
               return relativePath.replace(/\\/g, '/')
             },
           },
@@ -175,8 +177,8 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
-        '@data': path.resolve(__dirname, '../../packs/base/data'),
-        '@locales': path.resolve(__dirname, '../../packs/base/locales'),
+        '@data': path.resolve(configDir, '../../packs/base/data'),
+        '@locales': path.resolve(configDir, '../../packs/base/locales'),
       },
     },
   }

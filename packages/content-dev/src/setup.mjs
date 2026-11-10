@@ -52,7 +52,7 @@ export async function setup(args = process.argv.slice(2), root = process.cwd()) 
       const source = join(state, `source-${pin.revision}`)
       if (!(await exists(source))) {
         await mkdir(source)
-        await run('git', ['init', '--quiet'], source)
+        await run('git', ['init', '--quiet', '--initial-branch=main'], source)
         await run('git', ['remote', 'add', 'origin', pin.repository], source)
       }
       await run('git', ['fetch', '--depth=1', 'origin', pin.revision], source)

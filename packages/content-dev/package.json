@@ -7,8 +7,8 @@
     "node": ">=24 <25"
   },
   "bin": {
-    "arcadia-content": "./dist/cli.mjs",
-    "arcadia-content-mcp": "./dist/mcp.mjs"
+    "arcadia-content": "./bin/arcadia-content.mjs",
+    "arcadia-content-mcp": "./bin/arcadia-content-mcp.mjs"
   },
   "exports": {
     ".": {
@@ -38,6 +38,7 @@
     }
   },
   "files": [
+    "bin",
     "dist",
     "LICENSE"
   ],

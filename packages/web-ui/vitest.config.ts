@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
 
+const configDir = import.meta.dirname
+
 export default defineConfig({
   plugins: [builtinEffectsPlugin(), vue()],
   test: {
@@ -14,7 +16,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': resolve(configDir, 'src'),
     },
   },
 })

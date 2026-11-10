@@ -42,6 +42,7 @@ test(
         const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)
         if (pkg.name === '@arcadia-eternity/content-sdk') {
           for (const path of [
+            'bin/arcadia-content-mcp.mjs',
             'dist/author-api.mjs',
             'dist/mcp.mjs',
             'dist/template/src/effects/slow.effect.ts',
@@ -49,7 +50,7 @@ test(
           ])
             assert.ok(files.includes('package/' + path), `missing author artifact: ${path}`)
           assert.equal(metadata.exports['./workspace'], './dist/author-api.mjs')
-          assert.equal(metadata.bin['arcadia-content-mcp'], './dist/mcp.mjs')
+          assert.equal(metadata.bin['arcadia-content-mcp'], './bin/arcadia-content-mcp.mjs')
         }
         assert.equal(metadata.name, pkg.name)
         assert.equal(metadata.version, pkg.version)
@@ -118,8 +119,9 @@ test('development tooling is packaged with its executable and testing entry', as
     const archive = join(temporary, 'sdk', tool.filename)
     const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)
     const files = (await exec('tar', ['-tzf', archive])).stdout.split('\n')
-    assert.equal(metadata.bin['arcadia-content'], './dist/cli.mjs')
+    assert.equal(metadata.bin['arcadia-content'], './bin/arcadia-content.mjs')
     assert.equal(metadata.exports['./testing'], './dist/testing.mjs')
+    assert.ok(files.includes('package/bin/arcadia-content.mjs'))
     assert.ok(files.includes('package/dist/cli.mjs'))
     assert.ok(files.includes('package/dist/testing.mjs'))
     assert.ok(!files.some(file => /package\/test\//.test(file)))

@@ -386,7 +386,7 @@ async function gitArchive(source, root, options) {
       windowsHide: true,
     })
   try {
-    await run(['init', '--bare', gitRoot])
+    await run(['init', '--bare', '--initial-branch=main', gitRoot])
     await run(['--git-dir=' + gitRoot, 'fetch', '--no-tags', '--depth=1', '--', url, source.commit])
     await checkBudget()
     const actual = (await run(['--git-dir=' + gitRoot, 'rev-parse', 'FETCH_HEAD^{commit}'])).stdout.trim()

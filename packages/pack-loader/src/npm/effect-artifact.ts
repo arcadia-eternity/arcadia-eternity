@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { effectDiscoveryPlugin } from './effect-discovery'
+import { effectDiscoveryPlugin } from './effect-discovery.ts'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { relative, isAbsolute } from 'node:path'
 import { parse } from 'es-module-lexer/minimal/js'

@@ -161,7 +161,7 @@ after(() => rmSync(repository, { recursive: true, force: true }))
 function git(...args) {
   return execFileSync('git', args, { cwd: repository, encoding: 'utf8' }).trim()
 }
-git('init', '-q')
+git('init', '-q', '-b', 'main')
 git('config', 'user.email', 'battle-ci-scope@example.invalid')
 git('config', 'user.name', 'Battle CI scope test')
 mkdirSync(join(repository, 'packages/battle'), { recursive: true })

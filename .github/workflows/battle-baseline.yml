@@ -21,11 +21,11 @@ jobs:
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -45,10 +45,10 @@ jobs:
       browser: ${{ steps.scope.outputs.browser }}
       cli: ${{ steps.scope.outputs.cli }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
       - name: Check battle CI path selection
@@ -68,11 +68,11 @@ jobs:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -96,7 +96,7 @@ jobs:
         run: pnpm verify:battle-waiting-snapshots
       - name: Verify independent behavior uses in Node and Chrome
         run: pnpm verify:battle-behaviors
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: battle-host-evidence
@@ -128,11 +128,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -171,11 +171,11 @@ jobs:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -219,7 +219,7 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-presentation.spec.ts e2e/connection-policy.spec.ts
       - name: Verify ordinary matchmaking and authoritative friend rooms
         run: PLAYWRIGHT_ONLINE=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/matchmaking-online.spec.ts e2e/server-room-online.spec.ts
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6.1.0
         with:
           path: packages/web-ui/.static-assets-cache
           key: static-assets-${{ hashFiles('packs/base/data/resources/**', 'scripts/prepare-static-assets.mjs') }}
@@ -232,7 +232,7 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui run build:static-only
       - name: Verify production battles, offline reload and storage failures
         run: pnpm --filter @arcadia-eternity/web-ui run test:e2e:static
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: static-web-evidence
@@ -250,11 +250,11 @@ jobs:
       PLAYWRIGHT_PERSONAL_ENVIRONMENT: '1'
       PLAYWRIGHT_MANAGEMENT_BACKUP: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -291,7 +291,7 @@ jobs:
             assert.equal(report.stats.flaky, 0, `${name}: acceptance tests were flaky`)
           }
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: management-browser-acceptance-evidence
@@ -309,11 +309,11 @@ jobs:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
