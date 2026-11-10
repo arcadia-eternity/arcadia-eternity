@@ -6,7 +6,7 @@
 
 该项目是一个对约瑟传说（赛尔号2）的战斗模拟系统。提供联机网页、队伍编辑器和桌面内容包工作台。
 
-网页采用 HTML5，桌面客户端使用 Electron；战斗内核同时用于 Node 服务端、CLI 和本地对战。当前开发与集成分支为 `refactor/v4`。
+网页采用 HTML5，桌面客户端使用 Electron；战斗内核同时用于 Node 服务端、CLI 和本地对战。当前开发与集成分支为 `main`。
 
 支持本地 AI 对战、好友房间与普通匹配。
 
@@ -33,7 +33,7 @@ pnpm cli battle simulate -1 testteam.yaml -2 testteam.yaml --json
 ### 启动服务器
 
 ```sh
-# 构建依赖后启动后端服务器（无需 Redis / 数据库）
+# 构建依赖后启动后端服务器（无需 Redis 或外部数据库，默认使用 SQLite）
 pnpm install
 pnpm build:prod
 pnpm run cli server --port 8102 --server-id arcadia-local

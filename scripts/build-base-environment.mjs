@@ -37,7 +37,7 @@ export async function buildBaseEnvironmentArtifact() {
     cwd: root,
     input: resolve(root, 'packs/base/effects.ts'),
     platform: 'browser',
-    plugins: [effectDiscoveryPlugin(resolve(root, 'packs/base'), ['src/effects', 'src/templates'], true)],
+    plugins: [effectDiscoveryPlugin(resolve(root, 'packs/base'), ['src/effects'], true)],
   })
   try {
     const { output } = await bundle.generate({ format: 'esm', codeSplitting: false, minify: false })

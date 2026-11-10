@@ -7,11 +7,7 @@ import { builtinEffectsPlugin } from '../../scripts/effect-module-plugin.ts'
 export default defineConfig({
   plugins: [
     builtinEffectsPlugin(),
-    effectDiscoveryPlugin(
-      fileURLToPath(new URL('../../packs/base', import.meta.url)),
-      ['src/effects', 'src/templates'],
-      true,
-    ),
+    effectDiscoveryPlugin(fileURLToPath(new URL('../../packs/base', import.meta.url)), ['src/effects'], true),
   ],
   resolve: {
     alias: [
