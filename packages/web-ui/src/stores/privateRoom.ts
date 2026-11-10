@@ -426,7 +426,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   const joinAsSpectator = async (
     roomCode: string,
-    preferredView?: 'player1' | 'player2' | 'god',
+    _preferredView?: 'player1' | 'player2' | 'god',
     password?: string,
   ): Promise<void> =>
     admitRoom(async () => {

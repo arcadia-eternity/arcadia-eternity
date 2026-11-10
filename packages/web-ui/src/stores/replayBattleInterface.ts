@@ -15,12 +15,10 @@ import type { IBattleSystem } from '@arcadia-eternity/interface'
  */
 export class ReplayBattleInterface implements IBattleSystem {
   private currentState: BattleState | null = null
-  private _viewerId: playerId | undefined
   private eventCallbacks: Array<(message: BattleMessage) => void> = []
 
-  constructor(initialState: BattleState, viewerId?: playerId) {
+  constructor(initialState: BattleState, _viewerId?: playerId) {
     this.currentState = initialState
-    this._viewerId = viewerId
   }
 
   async ready(): Promise<void> {

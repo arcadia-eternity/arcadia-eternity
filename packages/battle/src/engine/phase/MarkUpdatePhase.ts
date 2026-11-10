@@ -14,7 +14,7 @@ import { RemoveMarkPhase } from './RemoveMarkPhase'
 export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
   constructor(
     battle: Battle,
-    private readonly turnContext: TurnContext,
+    turnContext: TurnContext,
     private readonly mark: MarkInstance,
     id?: string,
   ) {

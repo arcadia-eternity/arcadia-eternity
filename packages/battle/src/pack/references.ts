@@ -252,7 +252,10 @@ async function discoverWorkspacePackDescriptors(packsDir: string): Promise<Works
   return descriptors
 }
 
-async function createWorkspaceAggregatePack(packsDir: string, descriptors: WorkspacePackDescriptor[]): Promise<string> {
+async function createWorkspaceAggregatePack(
+  _packsDir: string,
+  descriptors: WorkspacePackDescriptor[],
+): Promise<string> {
   const hashInput = descriptors.map(item => `${item.path}\n${item.rawFingerprint}`).join('\n---\n')
   const hash = createHash('sha1').update(hashInput).digest('hex').slice(0, 16)
   const outputDir = resolve(tmpdir(), 'arcadia-eternity', 'pack-cache')

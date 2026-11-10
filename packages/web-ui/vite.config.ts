@@ -154,7 +154,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
           {
             src: '../../scripts/**/*.{js,mjs}',
             dest: 'scripts',
-            rename: (fileName: string, fileExtension: string, fullPath: string) => {
+            rename: (_fileName: string, _fileExtension: string, fullPath: string) => {
               const relativePath = path.relative(path.resolve(__dirname, '../../scripts'), fullPath)
               return relativePath.replace(/\\/g, '/')
             },

@@ -8,14 +8,6 @@ import {
   IgnoreStageStrategy,
   StackStrategy,
   type Element,
-  type StatOnBattle,
-  type petId,
-  type skillId,
-  type markId,
-  type effectId,
-  type speciesId,
-  type baseSkillId,
-  type baseMarkId,
 } from '@arcadia-eternity/const'
 import { Battle } from './battle'
 import { type MarkOwner } from './entity'

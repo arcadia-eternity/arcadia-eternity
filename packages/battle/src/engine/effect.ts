@@ -1,5 +1,5 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { EffectContext, Context } from './context'
+import { EffectContext } from './context'
 import { type Prototype } from './entity'
 import type { effectId } from '@arcadia-eternity/const'
 import { MarkInstanceImpl } from './mark'

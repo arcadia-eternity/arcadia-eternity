@@ -1,6 +1,5 @@
 import { BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'
-import { createChildLogger } from '../logger'
 
 /**
  * Phase execution options
@@ -24,7 +23,6 @@ export interface PhaseDependency {
  * Manages phase creation, execution, dependencies, and cleanup
  */
 export class PhaseManager {
-  private readonly logger = createChildLogger('PhaseManager')
   private phases: Map<string, BattlePhaseBase> = new Map()
   private executionQueue: string[] = []
   private dependencies: Map<string, PhaseDependency[]> = new Map()

@@ -17,7 +17,6 @@ export class InMemoryPeerTransport implements SignalingPeerTransport {
   private readonly stateHandlers = new Set<StateHandler>()
   private readonly signalHandlers = new Set<(signal: PeerTransportSignal) => void>()
   private peer?: InMemoryPeerTransport
-  private remotePeerId?: string
 
   pairWith(peer: InMemoryPeerTransport): void {
     this.peer = peer
@@ -27,8 +26,7 @@ export class InMemoryPeerTransport implements SignalingPeerTransport {
     return this.state
   }
 
-  async connect(options: PeerTransportConnectOptions): Promise<void> {
-    this.remotePeerId = options.remotePeerId
+  async connect(_options: PeerTransportConnectOptions): Promise<void> {
     this.setState('connecting')
     if (!this.peer) {
       this.setState('failed')

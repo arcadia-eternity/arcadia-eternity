@@ -3,7 +3,6 @@ import { getCleanupBinding } from './snapshotBindings'
 import { initializeOwnerRelations } from './values/relations'
 import { normalizeMarkInstanceParams, markParameterContract, type MarkInstanceParams } from './content/mark-parameters'
 import {
-  BattleMessageType,
   EffectTrigger,
   type MarkMessage,
   StackStrategy,
@@ -16,16 +15,7 @@ import {
 import { nanoid } from 'nanoid'
 
 import { Battle } from './battle'
-import {
-  AddMarkContext,
-  type AllContext,
-  DamageContext,
-  EffectContext,
-  RemoveMarkContext,
-  StackContext,
-  SwitchPetContext,
-  TurnContext,
-} from './context'
+import { AddMarkContext, DamageContext, EffectContext, SwitchPetContext } from './context'
 import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
@@ -324,7 +314,7 @@ export class MarkInstanceImpl implements MarkInstance {
     })
   }
 
-  public transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {
+  public transfer(_context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {
     this.attachTo(target)
     target.marks.push(this)
     // Mark cleanup will be handled by the phase system at appropriate times
@@ -452,17 +442,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     this.modifierCleanupFn = pet.attributeSystem.addModifier(this.statType, modifier)
   }
 
-  private getStageMultiplier(stage: number): number {
-    const validStage = Math.max(-6, Math.min(6, stage)) // 强制等级范围
-    const index = validStage + 6
-    const STAT_STAGE_MULTIPLIER = [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4] as const
-    const multiplier = STAT_STAGE_MULTIPLIER[index]
-
-    // Convert multiplier to percentage for percent modifier system
-    // multiplier 0.25 -> -75%, multiplier 1.5 -> 50%, multiplier 2.0 -> 100%
-    return (multiplier - 1) * 100
-  }
-
   attachTo(target: Pet | Battle) {
     super.attachTo(target)
     if (target instanceof Pet) {
@@ -487,60 +466,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   public isOppositeMark(other: StatLevelMarkInstanceImpl): boolean {
     return this.base.statType === other.base.statType && Math.sign(this.level) !== Math.sign(other.level)
-  }
-
-  /**
-   * 替换当前印记为具有正确baseId的新印记
-   * 用于处理相反印记叠加或符号变化的情况
-   */
-  private replaceWithNewMark(context: AddMarkContext, newLevel: number): void {
-    if (!this.owner) return
-
-    // 创建具有正确baseId的新BaseMark
-    const newBaseMark = CreateStatStageMark(this.base.statType, newLevel)
-
-    // 保存当前印记的属性
-    const currentDuration = this.duration
-    const currentConfig = { ...this.config }
-
-    // 创建新印记实例
-    const newMarkInstance = newBaseMark.createInstance()
-
-    // 设置正确的level
-    newMarkInstance.level = newLevel
-
-    // 设置其他属性
-    newMarkInstance.duration = currentDuration
-    newMarkInstance.config = currentConfig
-
-    // 设置新印记的owner和emitter
-    if (this.emitter) {
-      newMarkInstance.setOwner(this.owner, this.emitter)
-    }
-
-    // 在marks数组中替换当前印记
-    const markIndex = this.owner.marks.indexOf(this)
-    if (markIndex !== -1) {
-      this.owner.marks[markIndex] = newMarkInstance
-    }
-
-    // 清理当前印记的modifier
-    this.cleanupStatStageModifier()
-
-    // 为新印记添加modifier
-    if (this.owner instanceof Pet) {
-      newMarkInstance.addStatStageModifier(this.owner)
-    }
-
-    // 设置当前印记为非活跃状态，但不调用destroy以避免触发额外的清理逻辑
-    this.isActive = false
-    context.battle.configSystem.releaseScope(this)
-
-    // 发送印记更新消息
-    context.battle.emitMessage(BattleMessageType.MarkUpdate, {
-      target: this.owner instanceof Pet ? this.owner.id : 'battle',
-      mark: newMarkInstance.toMessage(),
-    })
   }
 }
 

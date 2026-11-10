@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TValue extends number | string | boolean">
-import { computed, useTemplateRef } from 'vue'
+import { computed } from 'vue'
 import type { AttributeModifierInfo } from '@arcadia-eternity/const'
 import Tooltip from './Tooltip.vue'
 import i18next from 'i18next'
@@ -77,16 +77,13 @@ const tooltipContent = computed(() => {
 
   return lines.join('\n')
 })
-
-// 简化的引用，不需要动画
-const elementRef = useTemplateRef('elementRef')
 </script>
 
 <template>
   <div :class="props.inline ? 'inline-block' : 'block'">
     <Tooltip v-if="showTooltip && isModified && tooltipContent" position="bottom">
       <template #trigger>
-        <span ref="elementRef" :class="valueClasses">
+        <span :class="valueClasses">
           <slot :value="renderedValue">{{ formattedValue }}</slot>
         </span>
       </template>
@@ -106,7 +103,7 @@ const elementRef = useTemplateRef('elementRef')
       </div>
     </Tooltip>
 
-    <span v-else ref="elementRef" :class="valueClasses">
+    <span v-else :class="valueClasses">
       <slot :value="renderedValue">{{ formattedValue }}</slot>
     </span>
   </div>

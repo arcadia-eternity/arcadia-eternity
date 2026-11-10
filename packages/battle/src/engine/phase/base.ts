@@ -1,7 +1,6 @@
-import { EffectTrigger } from '@arcadia-eternity/const'
-import { Context, type TriggerContextMap } from '../context'
+import { Context } from '../context'
 import type { Battle } from '../battle'
-import { ConfigSystem, ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from '../config'
+import { ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from '../config'
 
 /**
  * Phase execution state
@@ -290,7 +289,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   // Lifecycle hooks - can be overridden by subclasses
   protected onInitialize(): void {}
   protected onComplete(): void {}
-  protected onError(error: Error): void {}
+  protected onError(_error: Error): void {}
   protected onCancel(): void {}
   protected onCleanup(): void {}
 
