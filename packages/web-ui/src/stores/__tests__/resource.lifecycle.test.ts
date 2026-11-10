@@ -1,10 +1,11 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useResourceStore } from '../resource'
-const { loadMetadata, packRef, workspace } = vi.hoisted(() => ({
+const { loadMetadata, packRef, workspace, localContent } = vi.hoisted(() => ({
   loadMetadata: vi.fn(),
   packRef: vi.fn(),
   workspace: vi.fn(),
+  localContent: vi.fn(),
 }))
 vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
   ...(await importOriginal<typeof import('@arcadia-eternity/pack-loader/native')>()),
@@ -18,6 +19,7 @@ vi.mock('@/services/packWorkspace', () => ({
   listWorkspacePacks: workspace,
   resolveWorkspaceFileUrl: async (path: string) => `http://localhost/${path}`,
 }))
+vi.mock('@/services/localContent', () => ({ acquireLocalContent: localContent }))
 function deferred<T>() {
   let resolve!: (value: T) => void, reject!: (error: Error) => void
   const promise = new Promise<T>((yes, no) => {
@@ -42,7 +44,9 @@ beforeEach(() => {
   loadMetadata.mockReset().mockResolvedValue(result('base'))
   packRef.mockReset().mockResolvedValue('http://localhost/packs/base/pack.json')
   workspace.mockReset().mockResolvedValue([])
+  localContent.mockReset()
 })
+afterEach(() => vi.unstubAllGlobals())
 it('shares pending metadata without requesting retired resource mapping files', async () => {
   const pending = deferred<ReturnType<typeof result>>()
   loadMetadata.mockReturnValue(pending.promise)
@@ -190,4 +194,27 @@ it('a current loader AbortError propagates once and only an explicit retry reloa
   await store.whenReady()
   expect(loadMetadata).toHaveBeenCalledTimes(2)
   expect(store.background.byId.arena).toBe('http://localhost/retried.png')
+})
+
+it('desktop resources come from the prepared content session instead of the legacy base pack', async () => {
+  const release = vi.fn(async () => {})
+  localContent.mockResolvedValue({
+    content: { species: [], skills: [], marks: [] },
+    resources: [
+      { kind: 'http', id: 'bg:prepared', source: 'http://localhost/prepared.png', tags: ['background'] },
+      { kind: 'http', id: 'example-slow:theme', source: 'http://localhost/theme.mp3', tags: ['music'] },
+    ],
+    release,
+  })
+  vi.stubGlobal('window', { arcadiaDesktop: {} })
+  const store = useResourceStore()
+  await store.initialize()
+  expect(store.background.byId['bg:prepared']).toBe('http://localhost/prepared.png')
+  expect(store.music.byId['example-slow:theme']).toBe('http://localhost/theme.mp3')
+  expect(localContent).toHaveBeenCalledOnce()
+  expect(packRef).not.toHaveBeenCalled()
+  expect(loadMetadata).not.toHaveBeenCalled()
+  await store.reload()
+  expect(release).toHaveBeenCalledOnce()
+  store.reset()
 })

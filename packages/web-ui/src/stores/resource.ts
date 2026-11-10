@@ -6,6 +6,8 @@ import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-lo
 import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
 import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
+import { acquireLocalContent } from '@/services/localContent'
+import { getDesktopApi } from '@/utils/env'
 
 const BASE_PACK_ID = 'arcadia-eternity.base'
 
@@ -56,6 +58,8 @@ interface ResourceState {
   error: string | null
   workspaceRuntime: WorkspaceResourceRuntime
 }
+
+const localResourceReleases = new WeakMap<object, () => Promise<void>>()
 
 function createEmptyLayer(): ResourceLayer {
   return {
@@ -210,6 +214,10 @@ export const useResourceStore = defineStore('Resource', {
   actions: {
     reset() {
       invalidateResourceScope(this)
+      void localResourceReleases
+        .get(this)?.()
+        .catch(error => console.warn('本地资源会话释放失败', error))
+      localResourceReleases.delete(this)
       this.loaded = false
       this.error = null
       this.markImage = { byId: {}, allIds: [] }
@@ -231,6 +239,32 @@ export const useResourceStore = defineStore('Resource', {
       const isCurrent = () => scope.generation === generation
       const work = (async () => {
         try {
+          if (getDesktopApi()) {
+            const captured = await acquireLocalContent()
+            if (!captured) throw new Error('本地内容服务不可用')
+            if (!isCurrent()) {
+              await captured.release()
+              return
+            }
+            try {
+              const presentations = new Map<string, ContentPresentation>()
+              for (const kind of ['species', 'skills', 'marks'] as const)
+                for (const row of captured.content[kind])
+                  if (row.presentation) presentations.set(`${kind}:${row.id}`, row.presentation)
+              this.workspaceRuntime = emptyWorkspaceRuntime()
+              this.applyLayerToState(this.buildResourceLayer(presentations, captured.resources))
+              this.validateDataIntegrity()
+            } catch (error) {
+              await captured.release()
+              throw error
+            }
+            this.loaded = true
+            this.error = null
+            const previous = localResourceReleases.get(this)
+            localResourceReleases.set(this, captured.release)
+            await previous?.().catch(error => console.warn('旧本地资源会话释放失败', error))
+            return
+          }
           if (hasPreparedWebEnvironment()) {
             const { content, resources } = await readPreparedWebCatalog(forceReload)
             if (!isCurrent()) return

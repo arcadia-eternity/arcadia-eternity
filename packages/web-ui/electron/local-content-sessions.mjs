@@ -78,9 +78,21 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
       const token = randomUUID()
       const files = new Map()
       const resources = new Map()
+      const resourceIndex = []
       for (const pkg of prepared.presentation) {
+        const filesById = new Map(pkg.resources.map(resource => [resource.id, resource]))
         for (const resource of pkg.manifest.resources) {
           if (resource.kind === 'http') resources.set(`${pkg.namespace}:${resource.id}`, resource.source)
+          if (resource.tags?.length) {
+            const id = pkg.namespace ? `${pkg.namespace}:${resource.id}` : resource.id
+            let source = resource.source
+            if (resource.kind === 'file') {
+              const file = filesById.get(resource.id)
+              if (!file) throw new Error(`LOCAL_RESOURCE_MISSING: ${id}`)
+              source = assetUrl(token, resource.sha256)
+            }
+            resourceIndex.push({ ...resource, id, source })
+          }
         }
         for (const resource of pkg.resources) {
           files.set(resource.sha256, { file: resource.file, mime: resource.mime })
@@ -123,7 +135,12 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
             for (const key of ['source', 'fallback'])
               if (p.battle[key]) p.battle[key] = resolveResource(row.id, p.battle[key])
         }
-      const result = { token, ...(displayOnly ? {} : { environment: prepared.sandbox }), content }
+      const result = {
+        token,
+        ...(displayOnly ? {} : { environment: prepared.sandbox }),
+        content,
+        resources: resourceIndex,
+      }
       const runtimeIdentity = {
         kind: 'native-v4',
         contentRevision: prepared.revision,

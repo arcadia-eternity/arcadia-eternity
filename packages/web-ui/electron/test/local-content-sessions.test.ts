@@ -34,6 +34,22 @@ it('captures real npm display and resources, preserves prepared recipes across e
     expect(first.content.locales.bundles['zh-CN'].species.pet_dilan.name).toBe('迪兰')
     const icon = first.content.species.find((row: { id: string }) => row.id === 'example-slow:pet').presentation.icon
     const hash = icon.split('/').at(-1)
+    expect(first.resources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'example-slow:icon',
+          kind: 'file',
+          source: `http://localhost/local-content/${first.token}/${hash}`,
+          tags: ['test'],
+        }),
+        expect.objectContaining({
+          id: 'example-slow:animation',
+          kind: 'http',
+          source: 'http://127.0.0.1:1/not-fetched.swf',
+          tags: ['test'],
+        }),
+      ]),
+    )
     expect(await readFile(sessions.assetFile(first.token, hash).file)).toEqual(fixture.asset)
     expect(sessions.assetFile('wrong-token', hash)).toBeUndefined()
     const shared = await sessions.capturePersonalEnvironment()

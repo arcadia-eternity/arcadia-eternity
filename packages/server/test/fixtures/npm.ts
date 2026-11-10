@@ -67,6 +67,7 @@ export async function createNpmFixture(
             {
               kind: 'file',
               id: 'icon',
+              tags: ['test'],
               source: 'assets/icon.png',
               sha256,
               bytes: asset.length,
@@ -75,6 +76,7 @@ export async function createNpmFixture(
             {
               kind: 'http',
               id: 'animation',
+              tags: ['test'],
               source: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
               mime: 'application/x-shockwave-flash',
             },
