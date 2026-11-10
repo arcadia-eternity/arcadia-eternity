@@ -63,12 +63,14 @@ const testNativeExports = (marks: ReadonlyMap<string, BaseMark>) => [
     sourceKind: 'petMark',
     parameters: markAttributeDefinition.parameters,
     build({ effectId, params }) {
+      const attribute = authoringSdk.stringParam({ default: String(params.attribute) })
+      const operation = authoringSdk.stringParam({ default: String(params.operation) })
       const amount = authoringSdk.numberParam({ default: Number(params.amount) })
       return {
         id: effectId,
         triggers: [EffectTrigger.OnMarkCreated],
         rebindOnOwnerTransfer: true,
-        parameters: { amount },
+        parameters: { attribute, operation, amount },
         apply: authoringSdk.targets.ownerPet.apply(
           authoringSdk.ops.addAttributeModifier(
             String(params.attribute) as 'atk' | 'def' | 'spa' | 'spd' | 'spe',
@@ -80,14 +82,20 @@ const testNativeExports = (marks: ReadonlyMap<string, BaseMark>) => [
     },
   }),
 ]
+const templates = [applyMarkDefinition, markAttributeDefinition]
 const host = {
   build: { formatVersion: 1, coreBuildId: 'a'.repeat(64), registryBuildId: 'b'.repeat(64) } as const,
   base: { marks: [], skills: [], species: [] },
-  templates: [applyMarkDefinition, markAttributeDefinition],
+  templates,
   createContent: (data: Parameters<typeof createContentCatalog>[0], revision: string) =>
-    createContentCatalog(data, revision, undefined, context => ({
-      nativeExports: testNativeExports(context.marks),
-    })),
+    createContentCatalog(
+      { ...data, behaviors: [...templates, ...(data.behaviors ?? [])] },
+      revision,
+      undefined,
+      context => ({
+        nativeExports: testNativeExports(context.marks),
+      }),
+    ),
 }
 const skill = (id: string) => ({ id, element: 'Normal', category: 'Physical', power: 40, rage: 0, accuracy: 100 })
 
