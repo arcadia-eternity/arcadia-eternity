@@ -1,9 +1,8 @@
 import {
+  defineEffects,
   EffectTrigger,
   checks,
-  compileEffect,
   conditions,
-  defineEffect,
   numberParam,
   ops,
   targets,
@@ -11,42 +10,30 @@ import {
   type Trigger,
 } from '@arcadia-eternity/battle/authoring'
 
-function healing(id: string, on: Trigger, divisor: number, needsField = false) {
+function healing(on: Trigger, divisor: number, needsField = false) {
   const parameters = { divisor: numberParam({ default: divisor }) }
   const amount = values.combine(targets.ownerPet.first().attribute('maxHp'), parameters.divisor, (hp, divisor) =>
     Math.floor(hp / divisor),
   )
-  return compileEffect(
-    defineEffect({
-      id,
-      triggers: [on],
-      priority: 0,
-      parameters,
-      when: needsField
-        ? conditions.all(
-            conditions.selfUsesSkill,
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_guanghuilingyu').condition(checks.exists()),
-          )
-        : conditions.selfUsesSkill,
-      apply: targets.ownerPet.apply(ops.heal(amount)),
-    }),
-  )
+  return {
+    triggers: [on] as const,
+    priority: 0,
+    parameters,
+    when: needsField
+      ? conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_guanghuilingyu').condition(checks.exists()),
+        )
+      : conditions.selfUsesSkill,
+    apply: targets.ownerPet.apply(ops.heal(amount)),
+  }
 }
 
 /** Finite divisions retain legacy flooring; a zero divisor is rejected by the shared numeric action boundary. */
 export function createFractionalHealing() {
-  return Object.freeze({
-    effect_skill_heal_self_1_6_max_hp: healing('effect_skill_heal_self_1_6_max_hp', EffectTrigger.OnHit, 6),
-    effect_skill_heal_quarter_if_guanghuilingyu: healing(
-      'effect_skill_heal_quarter_if_guanghuilingyu',
-      EffectTrigger.OnHit,
-      4,
-      true,
-    ),
-    effect_skill_heal_self_1_6_max_hp_on_defeat_opponent: healing(
-      'effect_skill_heal_self_1_6_max_hp_on_defeat_opponent',
-      EffectTrigger.OnDefeat,
-      6,
-    ),
+  return defineEffects({
+    effect_skill_heal_self_1_6_max_hp: healing(EffectTrigger.OnHit, 6),
+    effect_skill_heal_quarter_if_guanghuilingyu: healing(EffectTrigger.OnHit, 4, true),
+    effect_skill_heal_self_1_6_max_hp_on_defeat_opponent: healing(EffectTrigger.OnDefeat, 6),
   })
 }

@@ -1,4 +1,4 @@
-import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
+import { defineEffects, EffectTrigger, ops, targets } from '@arcadia-eternity/battle/authoring'
 import type { ParameterCatalog } from '@arcadia-eternity/battle/engine'
 const definitions = [
   {
@@ -61,7 +61,7 @@ export const namedParameterModifierDependencies = Object.freeze([
 ])
 /** Dependencies retain their own parameter catalogs; aliases resolve before effects are constructed. */
 export function createNamedParameterModifiers(catalogs: ReadonlyMap<string, ParameterCatalog>) {
-  return Object.freeze(
+  return defineEffects(
     Object.fromEntries(
       definitions.map(d => {
         const dependency = d.reference.split('.')[0]
@@ -75,14 +75,11 @@ export function createNamedParameterModifiers(catalogs: ReadonlyMap<string, Para
               : targets.opponentPlayer
         return [
           d.id,
-          compileEffect(
-            defineEffect({
-              id: d.id,
-              triggers: [EffectTrigger.OnBattleStart],
-              priority: 0,
-              apply: target.apply(ops.addParameterModifier(catalog, d.reference, 'delta', d.amount)),
-            }),
-          ),
+          {
+            triggers: [EffectTrigger.OnBattleStart] as const,
+            priority: 0,
+            apply: target.apply(ops.addParameterModifier(catalog, d.reference, 'delta', d.amount)),
+          },
         ]
       }),
     ),

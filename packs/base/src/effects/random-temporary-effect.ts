@@ -1,6 +1,6 @@
 import { Effect } from '@arcadia-eternity/battle/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { compileEffect, conditions, defineEffect, ops, selectFrom, targets } from '@arcadia-eternity/battle/authoring'
+import { compileEffect, conditions, ops, selectFrom, targets } from '@arcadia-eternity/battle/authoring'
 
 export const randomTemporaryEffectDependencies = Object.freeze([
   'effect_skill_add_mark_shanbi_below_1_8_hp',
@@ -17,13 +17,11 @@ export function createRandomTemporaryEffect(effects: ReadonlyMap<string, Effect<
       throw new Error(`Missing or mismatched native effect dependency: ${id}`)
     return effect
   })
-  return compileEffect(
-    defineEffect({
-      id: 'effect_skill_random_xifa_effect',
-      triggers: [EffectTrigger.BeforeSort],
-      priority: 100,
-      when: conditions.selfUsesSkill,
-      apply: targets.sourceSkill.apply(ops.addTemporaryEffect(selectFrom(choices).shuffled().first())),
-    }),
-  )
+  return compileEffect({
+    id: 'effect_skill_random_xifa_effect',
+    triggers: [EffectTrigger.BeforeSort],
+    priority: 100,
+    when: conditions.selfUsesSkill,
+    apply: targets.sourceSkill.apply(ops.addTemporaryEffect(selectFrom(choices).shuffled().first())),
+  })
 }

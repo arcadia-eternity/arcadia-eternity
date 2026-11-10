@@ -1,13 +1,5 @@
 import { BaseMark } from '@arcadia-eternity/battle/engine'
-import {
-  EffectTrigger,
-  compileEffect,
-  conditions,
-  defineEffect,
-  ops,
-  selectFrom,
-  targets,
-} from '@arcadia-eternity/battle/authoring'
+import { defineEffects, EffectTrigger, conditions, ops, selectFrom, targets } from '@arcadia-eternity/battle/authoring'
 
 export const randomMarkApplicationDependencies = Object.freeze(['mark_zhaocai', 'mark_jinbao'] as const)
 
@@ -20,15 +12,12 @@ export function createRandomMarkApplications(marks: ReadonlyMap<string, BaseMark
     return mark
   })
   const luckyMark = selectFrom(choices).shuffled().first()
-  return Object.freeze({
-    effect_skill_add_mark_zhaocai_or_jinbao: compileEffect(
-      defineEffect({
-        id: 'effect_skill_add_mark_zhaocai_or_jinbao',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(luckyMark)),
-      }),
-    ),
+  return defineEffects({
+    effect_skill_add_mark_zhaocai_or_jinbao: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(luckyMark)),
+    },
   })
 }

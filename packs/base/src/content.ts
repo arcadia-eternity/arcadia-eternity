@@ -4,7 +4,7 @@ import {
   type ContentCatalog,
   type BehaviorCatalogOptions,
 } from '@arcadia-eternity/battle/engine'
-import { createOfficialEffectCandidates } from './effects/candidate-catalog'
+import { createOfficialEffectCandidates } from './candidate-catalog'
 import { withOfficialTemplates, createOfficialTemplateRegistrations } from './templates'
 
 export type OfficialPrototypeData = ContentPrototypeData

@@ -99,7 +99,7 @@ export { createWeaknessTransfer } from './src/effects/weakness-transfer'
 export { createRainWaterShield } from './src/effects/rain-water-shield'
 export { createDoubleStageDebuff } from './src/effects/double-stage-debuff'
 export { createExperiencePlaceholder } from './src/effects/experience-placeholder'
-export { createOfficialEffectCandidates } from './src/effects/candidate-catalog'
+export { createOfficialEffectCandidates } from './src/candidate-catalog'
 export { createWeightDamageEffects } from './src/effects/weight-damage'
 export { createStackDamageEffects } from './src/effects/stack-damage'
 export { createRageGainLimit } from './src/effects/rage-gain-limit'
@@ -127,7 +127,7 @@ export {
 } from './src/templates'
 
 // Ordinary author factories; the host chooses how to execute this module.
-export { createOfficialEffectCandidates as createCatalog } from './src/effects/candidate-catalog'
+export { createOfficialEffectCandidates as createCatalog } from './src/candidate-catalog'
 import { createOfficialTemplateRegistrations } from './src/templates'
 import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring'
 export function createEffects({ marks }: CodeEffectModuleContext) {

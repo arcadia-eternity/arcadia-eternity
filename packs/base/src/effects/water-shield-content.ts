@@ -1,51 +1,38 @@
 import { Category, EffectTrigger, StackStrategy, type baseMarkId } from '@arcadia-eternity/const'
 import { BaseMark } from '@arcadia-eternity/battle/engine'
-import {
-  compileEffect,
-  defineEffect,
-  conditions,
-  contexts,
-  targets,
-  checks,
-  actions,
-  ops,
-} from '@arcadia-eternity/battle/authoring'
+import { compileEffect, conditions, contexts, targets, checks, actions, ops } from '@arcadia-eternity/battle/authoring'
 import { createOfficialWaterShieldCandidate } from './shield'
 
 export function createWaterShieldDestruction(amplification: BaseMark) {
   if (amplification.id !== 'mark_shanghaizengjia')
     throw new Error('Water shield destruction requires mark_shanghaizengjia')
-  return compileEffect(
-    defineEffect({
-      id: 'effect_mark_onDestroy_add_mark_shanghaizengjia',
-      triggers: [EffectTrigger.OnMarkDestroy],
-      apply: targets.ownerPet.apply(ops.addMark(amplification, { stack: 100 })),
-    }),
-  )
+  return compileEffect({
+    id: 'effect_mark_onDestroy_add_mark_shanghaizengjia',
+    triggers: [EffectTrigger.OnMarkDestroy],
+    apply: targets.ownerPet.apply(ops.addMark(amplification, { stack: 100 })),
+  })
 }
 
 /** Native dependency-closed candidate. Current YAML loader acceptance remains a separate gate. */
 export function createOfficialWaterShieldContent() {
-  const amplify = compileEffect(
-    defineEffect({
-      id: 'effect_mark_amplify_next_damage_skill_power_with_stack',
-      triggers: [EffectTrigger.AfterUseSkillCheck],
-      when: conditions.all(
-        conditions.ownerUsesSkill,
-        contexts.skillUse.condition((_ctx, events) => events.some(event => event.category !== Category.Status)),
-      ),
-      apply: actions.choose(
-        targets.sourceMark.condition(checks.exists()),
-        actions.sequence(
-          // Preserve the floor before adding one, including stacks below 100.
-          contexts.skillUse.apply(
-            ops.amplifyPower(targets.sourceMark.select(mark => Math.floor(mark.stack * 0.01) + 1).first()),
-          ),
-          targets.sourceMark.apply(ops.removeMark()),
+  const amplify = compileEffect({
+    id: 'effect_mark_amplify_next_damage_skill_power_with_stack',
+    triggers: [EffectTrigger.AfterUseSkillCheck],
+    when: conditions.all(
+      conditions.ownerUsesSkill,
+      contexts.skillUse.condition((_ctx, events) => events.some(event => event.category !== Category.Status)),
+    ),
+    apply: actions.choose(
+      targets.sourceMark.condition(checks.exists()),
+      actions.sequence(
+        // Preserve the floor before adding one, including stacks below 100.
+        contexts.skillUse.apply(
+          ops.amplifyPower(targets.sourceMark.select(mark => Math.floor(mark.stack * 0.01) + 1).first()),
         ),
+        targets.sourceMark.apply(ops.removeMark()),
       ),
-    }),
-  )
+    ),
+  })
   const amplification = new BaseMark('mark_shanghaizengjia' as baseMarkId, [amplify], {
     duration: -1,
     persistent: true,

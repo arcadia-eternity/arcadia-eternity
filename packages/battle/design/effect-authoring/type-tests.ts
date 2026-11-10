@@ -12,6 +12,7 @@ import {
   booleanParam,
   contexts,
   defineEffect,
+  defineEffects,
   numberParam,
   ops,
   targets,
@@ -49,59 +50,69 @@ export type ExampleInference = [
   Expect<Equal<typeof targets.ownerMarks, Selector<MarkInstance>>>,
 ]
 
-const hit = defineEffect({
-  id: 'type-test/hit',
-  triggers: [EffectTrigger.OnHit],
-  parameters: {
-    chance: numberParam({ default: 20, tags: ['skill_effect_probability'] }),
-    enabled: booleanParam({ default: true }),
+const group = defineEffects({
+  'type-test/hit': {
+    triggers: [EffectTrigger.OnHit],
+    parameters: {
+      chance: numberParam({ default: 20, tags: ['skill_effect_probability'] }),
+      enabled: booleanParam({ default: true }),
+    },
+    when(ctx, params) {
+      exact<Equal<typeof ctx.parent, UseSkillContext>>(true)
+      const enabled = ctx.read(params.enabled)
+      exact<Equal<typeof enabled, boolean>>(true)
+      return enabled
+    },
+    apply(ctx, params) {
+      const chance = ctx.read(params.chance)
+      exact<Equal<typeof chance, number>>(true)
+      const owner = ctx.read(targets.ownerPet.first())
+      exact<Equal<typeof owner, Pet | undefined>>(true)
+      const skillUse = contexts.nearestSkillUse(ctx)
+      exact<Equal<typeof skillUse, UseSkillContext | undefined>>(true)
+      // @ts-expect-error A skill event is not a damage event.
+      ctx.parent.damageResult
+      // @ts-expect-error Parameter names are inferred, not an open dictionary.
+      params.missing
+      // @ts-expect-error A required number parameter does not become a string.
+      const bad: string = chance
+      // @ts-expect-error Explicit optionality must be narrowed.
+      owner.currentHp
+      // @ts-expect-error Ancestor lookup is fallible.
+      skillUse.skill
+      // @ts-expect-error Selector collections cannot be silently read as scalar values.
+      ctx.read(targets.ownerPet)
+      // @ts-expect-error Persistent binding plans cannot be read as instantaneous values.
+      ctx.read(capturedInstancePenalty)
+      const branch = values.choose(
+        () => true,
+        1,
+        values.choose(() => false, 2, 3),
+      )
+      exact<Equal<typeof branch, Value<number>>>(true)
+    },
   },
-  when(ctx, params) {
-    exact<Equal<typeof ctx.parent, UseSkillContext>>(true)
-    const enabled = ctx.read(params.enabled)
-    exact<Equal<typeof enabled, boolean>>(true)
-    return enabled
-  },
-  apply(ctx, params) {
-    const chance = ctx.read(params.chance)
-    exact<Equal<typeof chance, number>>(true)
-    const owner = ctx.read(targets.ownerPet.first())
-    exact<Equal<typeof owner, Pet | undefined>>(true)
-    const skillUse = contexts.nearestSkillUse(ctx)
-    exact<Equal<typeof skillUse, UseSkillContext | undefined>>(true)
-    // @ts-expect-error A skill event is not a damage event.
-    ctx.parent.damageResult
-    // @ts-expect-error Parameter names are inferred, not an open dictionary.
-    params.missing
-    // @ts-expect-error A required number parameter does not become a string.
-    const bad: string = chance
-    // @ts-expect-error Explicit optionality must be narrowed.
-    owner.currentHp
-    // @ts-expect-error Ancestor lookup is fallible.
-    skillUse.skill
-    // @ts-expect-error Selector collections cannot be silently read as scalar values.
-    ctx.read(targets.ownerPet)
-    // @ts-expect-error Persistent binding plans cannot be read as instantaneous values.
-    ctx.read(capturedInstancePenalty)
-    const branch = values.choose(
-      () => true,
-      1,
-      values.choose(() => false, 2, 3),
-    )
-    exact<Equal<typeof branch, Value<number>>>(true)
-    exact<Equal<ReturnType<typeof hit.apply>, void>>(true)
+  // Conditional type correlation survives a union of triggers.
+  'type-test/union': {
+    triggers: [EffectTrigger.OnHit, EffectTrigger.OnDamage],
+    apply(ctx, params) {
+      // @ts-expect-error No parameters are available without declarations.
+      params.missing
+      // @ts-expect-error Cannot access damage before narrowing the trigger.
+      ctx.parent.damageResult
+      if (ctx.trigger === EffectTrigger.OnDamage) exact<Equal<typeof ctx.parent, DamageContext>>(true)
+      else exact<Equal<typeof ctx.parent, UseSkillContext>>(true)
+    },
   },
 })
-
-// Conditional type correlation survives a union of triggers.
-defineEffect({
-  id: 'type-test/union',
-  triggers: [EffectTrigger.OnHit, EffectTrigger.OnDamage],
-  apply(ctx) {
-    // @ts-expect-error Cannot access damage before narrowing the trigger.
-    ctx.parent.damageResult
-    if (ctx.trigger === EffectTrigger.OnDamage) exact<Equal<typeof ctx.parent, DamageContext>>(true)
-    else exact<Equal<typeof ctx.parent, UseSkillContext>>(true)
+exact<Equal<keyof typeof group, 'type-test/hit' | 'type-test/union'>>(true)
+exact<Equal<sdk.EffectSdk['defineEffects'], typeof defineEffects>>(true)
+defineEffects({
+  invalid: {
+    triggers: [EffectTrigger.OnHit],
+    // @ts-expect-error Group parameters must use declared parameter tokens.
+    parameters: { chance: 20 },
+    apply() {},
   },
 })
 

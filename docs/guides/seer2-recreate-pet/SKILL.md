@@ -57,7 +57,7 @@ description: 根据任务提供的资料，将赛尔号2精灵、技能、特性
 修改主仓库 base 时检查两条注册链（独立包使用自己的 manifest/SDK 注册方式）：
 
 - 数据：种族文件加入 `pack.json`，分组加入 `content-groups.yaml`；只有本次确实实现的进化关系才登记。
-- 效果：专属文件可导出 `create<Pet>Effects(marks)`，在 `src/effects/candidate-catalog.ts` 汇入当前效果目录；按现有导出约定更新 `effects.ts`。技能和印记通过效果 ID 引用实现，仅导出函数不等于完成注册。
+- 效果：专属文件可导出 `create<Pet>Effects(marks)`，在 `src/candidate-catalog.ts` 汇入当前效果目录；按现有导出约定更新 `effects.ts`。技能和印记通过效果 ID 引用实现，仅导出函数不等于完成注册。
 
 这套结构中，一只精灵的完整实现会跨多个文件，不能只复制种族 YAML 和效果 TS 就视为迁移完成。交付时简要列出新增文件、追加到公共表的定义及注册入口；不要新增写死精灵、技能、印记或效果总数的校验；验证引用完整性、加载一致性和实际行为。文件数量不是目标，不为单只精灵另建一套目录结构。精灵展示沿用现有 icon、portrait、battle（`seer2-swf`、source、fallback）、cry 结构。
 

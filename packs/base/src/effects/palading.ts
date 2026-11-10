@@ -10,13 +10,12 @@
 import { DamageType } from '@arcadia-eternity/const'
 import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
+  defineEffects,
   EffectTrigger,
   actions,
   checks,
-  compileEffect,
   conditions,
   contexts,
-  defineEffect,
   ops,
   targets,
   values,
@@ -84,167 +83,125 @@ export function createPaladingEffects(marks: ReadonlyMap<string, BaseMark>) {
   const mingshi = requireMark(marks, 'mark_mingshi')
   const jiushu = requireMark(marks, 'mark_jiushu')
 
-  return Object.freeze({
+  return defineEffects({
     /** 正义之火: raise physical defence, and special defence while in the 神圣 state. */
-    effect_skill_palading_zhengyizhihuo: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_zhengyizhihuo',
-        triggers: [EffectTrigger.BeforeHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          targets.ownerPet.apply(ops.changeStatStage('def', 1)),
-          actions.choose(hasOwnerMark(SHENSHENG), targets.ownerPet.apply(ops.changeStatStage('spd', 1))),
-        ),
-      }),
-    ),
+    effect_skill_palading_zhengyizhihuo: {
+      triggers: [EffectTrigger.BeforeHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: actions.sequence(
+        targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+        actions.choose(hasOwnerMark(SHENSHENG), targets.ownerPet.apply(ops.changeStatStage('spd', 1))),
+      ),
+    },
     /** 圣光之名: enter the permanent 神圣 state (its turn-end healing lives on the mark). */
-    effect_skill_palading_shengguangzhiming: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_shengguangzhiming',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(shensheng)),
-      }),
-    ),
+    effect_skill_palading_shengguangzhiming: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(shensheng)),
+    },
     /** 十字光冲: +50% damage while in the 神圣 state. */
-    effect_skill_palading_shiziguangchong: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_shiziguangchong',
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
-        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
-      }),
-    ),
+    effect_skill_palading_shiziguangchong: {
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
+      priority: 0,
+      when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
+      apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+    },
     /** 惩戒之光: while in the 神圣 state add 15% of the user's special attack as flat damage. */
-    effect_skill_palading_chengjiezhiguang: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_chengjiezhiguang',
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
-        apply: contexts.damage.apply(
-          ops.modifyDamage({
-            percent: 0,
-            delta: targets.ownerPet.select(pet => Math.floor(pet.stat.spa * 0.15)).first(),
-          }),
-        ),
-      }),
-    ),
+    effect_skill_palading_chengjiezhiguang: {
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
+      priority: 0,
+      when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
+      apply: contexts.damage.apply(
+        ops.modifyDamage({
+          percent: 0,
+          delta: targets.ownerPet.select(pet => Math.floor(pet.stat.spa * 0.15)).first(),
+        }),
+      ),
+    },
     /** 庇护之火: grant the 5-turn 庇护 state. */
-    effect_skill_palading_bihuzhihuo: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_bihuzhihuo',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(bihu)),
-      }),
-    ),
+    effect_skill_palading_bihuzhihuo: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(bihu)),
+    },
     /** 公正光冲: the opponent cannot gain positive stat stages for 3 turns. */
-    effect_skill_palading_gongzhengguangchong: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_gongzhengguangchong',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.opponentActive.apply(ops.addMark(gongzheng, { duration: 3 })),
-      }),
-    ),
+    effect_skill_palading_gongzhengguangchong: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.opponentActive.apply(ops.addMark(gongzheng, { duration: 3 })),
+    },
     /** 复仇光冲: double power when all allies have fainted. */
-    effect_skill_palading_fuchouguangchong: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_fuchouguangchong',
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, allAlliesFainted),
-        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
-      }),
-    ),
+    effect_skill_palading_fuchouguangchong: {
+      triggers: [EffectTrigger.AfterUseSkillCheck],
+      priority: 0,
+      when: conditions.all(conditions.selfUsesSkill, allAlliesFainted),
+      apply: contexts.skillUse.apply(ops.amplifyPower(2)),
+    },
     /** 征伐之火: grant the 3-turn 征伐 state. */
-    effect_skill_palading_zhengfazhihuo: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_zhengfazhihuo',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(zhengfa)),
-      }),
-    ),
+    effect_skill_palading_zhengfazhihuo: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(zhengfa)),
+    },
     /** 圣佑之火: grant the 5-turn 圣佑 state. */
-    effect_skill_palading_shengyouzhihuo: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_shengyouzhihuo',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(shengyou)),
-      }),
-    ),
+    effect_skill_palading_shengyouzhihuo: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(shengyou)),
+    },
     /** 荣耀的圣战: while in the 神圣 state raise defence or special defence (50/50, battle RNG). */
-    effect_skill_palading_rongyaodeshengzhan: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_rongyaodeshengzhan',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
-        apply: actions.choose(
-          conditions.chance(50),
-          targets.ownerPet.apply(ops.changeStatStage('def', 1)),
-          targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
-        ),
-      }),
-    ),
+    effect_skill_palading_rongyaodeshengzhan: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
+      apply: actions.choose(
+        conditions.chance(50),
+        targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+        targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+      ),
+    },
     /** 使命之火: grant the 5-turn 使命 state (abnormal-state immunity lives on the mark). */
-    effect_skill_palading_shimingzhihuo: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_shimingzhihuo',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(mingshi)),
-      }),
-    ),
+    effect_skill_palading_shimingzhihuo: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(mingshi)),
+    },
     /** 审判光冲: while in the 神圣 state add 15% of the user's physical attack as flat damage. */
-    effect_skill_palading_shenpanguangchong: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_shenpanguangchong',
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
-        apply: contexts.damage.apply(
-          ops.modifyDamage({
-            percent: 0,
-            delta: targets.ownerPet.select(pet => Math.floor(pet.stat.atk * 0.15)).first(),
-          }),
-        ),
-      }),
-    ),
+    effect_skill_palading_shenpanguangchong: {
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
+      priority: 0,
+      when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
+      apply: contexts.damage.apply(
+        ops.modifyDamage({
+          percent: 0,
+          delta: targets.ownerPet.select(pet => Math.floor(pet.stat.atk * 0.15)).first(),
+        }),
+      ),
+    },
     /** 拯救之火: heal the opponent for 100 and remove 35 rage from them. */
-    effect_skill_palading_zhengjiuzhihuo: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_zhengjiuzhihuo',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          targets.opponentActive.apply(ops.heal(100)),
-          targets.opponentActive.apply(ops.reduceRage(35)),
-        ),
-      }),
-    ),
+    effect_skill_palading_zhengjiuzhihuo: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: actions.sequence(
+        targets.opponentActive.apply(ops.heal(100)),
+        targets.opponentActive.apply(ops.reduceRage(35)),
+      ),
+    },
     /** 救赎之火: grant the persistent 救赎 state (heal trigger lives on the mark). */
-    effect_skill_palading_jiushuzhihuo: compileEffect(
-      defineEffect({
-        id: 'effect_skill_palading_jiushuzhihuo',
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(jiushu)),
-      }),
-    ),
+    effect_skill_palading_jiushuzhihuo: {
+      triggers: [EffectTrigger.OnHit],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.addMark(jiushu)),
+    },
 
     /**
      * 神圣 (mark 3314): heals every turn end. The client tip only says "持续恢复体力";
@@ -252,23 +209,20 @@ export function createPaladingEffects(marks: ReadonlyMap<string, BaseMark>) {
      * source for the rates, so treat them as community-documented, not client facts.
      * The half-HP boundary uses integer math (see hpBelowFraction) for exact rounding.
      */
-    effect_mark_shensheng_heal_turn_end: compileEffect(
-      defineEffect({
-        id: 'effect_mark_shensheng_heal_turn_end',
-        triggers: [EffectTrigger.TurnEnd],
-        priority: 0,
-        when: conditions.ownerIsActive,
-        apply: targets.ownerPet.apply(
-          ops.heal(
-            values.combine(
-              targets.ownerPet.select(pet => pet.currentHp).first(),
-              targets.ownerPet.select(pet => pet.stat.maxHp).first(),
-              (currentHp, maxHp) => Math.floor(maxHp / (currentHp * 2 < maxHp ? 8 : 16)),
-            ),
+    effect_mark_shensheng_heal_turn_end: {
+      triggers: [EffectTrigger.TurnEnd],
+      priority: 0,
+      when: conditions.ownerIsActive,
+      apply: targets.ownerPet.apply(
+        ops.heal(
+          values.combine(
+            targets.ownerPet.select(pet => pet.currentHp).first(),
+            targets.ownerPet.select(pet => pet.stat.maxHp).first(),
+            (currentHp, maxHp) => Math.floor(maxHp / (currentHp * 2 < maxHp ? 8 : 16)),
           ),
         ),
-      }),
-    ),
+      ),
+    },
     /**
      * 庇护 (mark 3320): block a flat 50 points of physical damage for the mark's 5 turns
      * (move 11576 tip). The 庇护 emblem (item 300123, "使庇护之火减少物理伤害变为减少所有伤害")
@@ -276,96 +230,75 @@ export function createPaladingEffects(marks: ReadonlyMap<string, BaseMark>) {
      * OnBeforeCalculateDamage in this engine, so no damage hook can reduce it; only
      * physical and special damage are reachable here.
      */
-    effect_mark_bihu_block_damage_50: compileEffect(
-      defineEffect({
-        id: 'effect_mark_bihu_block_damage_50',
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          damageIsPhysicalOrSpecial,
-          conditions.any(emblemBiHuEquipped, damageIsPhysical),
-        ),
-        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -50 })),
-      }),
-    ),
+    effect_mark_bihu_block_damage_50: {
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
+      priority: 0,
+      when: conditions.all(
+        conditions.selfBeDamaged,
+        damageIsPhysicalOrSpecial,
+        conditions.any(emblemBiHuEquipped, damageIsPhysical),
+      ),
+      apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -50 })),
+    },
     /** 圣佑 (mark): 5 turns of halved special damage (move 11581 tip). */
-    effect_mark_shengyou_halve_special_damage: compileEffect(
-      defineEffect({
-        id: 'effect_mark_shengyou_halve_special_damage',
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, damageIsSpecial),
-        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
-      }),
-    ),
+    effect_mark_shengyou_halve_special_damage: {
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
+      priority: 0,
+      when: conditions.all(conditions.selfBeDamaged, damageIsSpecial),
+      apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+    },
     /**
      * 公正 (mark 3315): the marked pet cannot gain positive stat stages for 3 turns
      * (move 11578 tip). Only the five battle stats are covered because the engine's
      * stat-stage marks are limited to atk/def/spa/spd/spe.
      */
-    effect_mark_gongzheng_block_positive_stage: compileEffect(
-      defineEffect({
-        id: 'effect_mark_gongzheng_block_positive_stage',
-        triggers: [EffectTrigger.OnBeforeAddMark],
-        priority: 0,
-        when: conditions.all(conditions.ownerReceivesMark, conditions.statStageChange(undefined, 'up')),
-        apply: actions.sequence(contexts.addMark.apply(ops.disableContext())),
-      }),
-    ),
+    effect_mark_gongzheng_block_positive_stage: {
+      triggers: [EffectTrigger.OnBeforeAddMark],
+      priority: 0,
+      when: conditions.all(conditions.ownerReceivesMark, conditions.statStageChange(undefined, 'up')),
+      apply: actions.sequence(contexts.addMark.apply(ops.disableContext())),
+    },
     /** 征伐 (mark 3317): 35% of the damage dealt is converted back into HP (move 11580 tip). */
-    effect_mark_zhengfa_lifesteal_35: compileEffect(
-      defineEffect({
-        id: 'effect_mark_zhengfa_lifesteal_35',
-        triggers: [EffectTrigger.OnDamage],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(
-          ops.heal(contexts.damage.select(event => Math.floor(event.damageResult * 0.35)).first()),
-        ),
-      }),
-    ),
+    effect_mark_zhengfa_lifesteal_35: {
+      triggers: [EffectTrigger.OnDamage],
+      priority: 0,
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(
+        ops.heal(contexts.damage.select(event => Math.floor(event.damageResult * 0.35)).first()),
+      ),
+    },
     /**
      * 救赎 (mark 3322): "自己体力低于1/8时立刻恢复100点体力 恢复后状态消失"
      * (buff description; move 11586 tip). Heal on drop, then the mark expires.
      */
-    effect_mark_jiushu_heal_at_low_hp: compileEffect(
-      defineEffect({
-        id: 'effect_mark_jiushu_heal_at_low_hp',
-        triggers: [EffectTrigger.OnDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, hpBelowEighth),
-        apply: actions.sequence(targets.ownerPet.apply(ops.heal(100)), targets.sourceMark.apply(ops.removeMark())),
-      }),
-    ),
+    effect_mark_jiushu_heal_at_low_hp: {
+      triggers: [EffectTrigger.OnDamage],
+      priority: 0,
+      when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, hpBelowEighth),
+      apply: actions.sequence(targets.ownerPet.apply(ops.heal(100)), targets.sourceMark.apply(ops.removeMark())),
+    },
     /** 救赎 (mark): if it is applied while already below 1/8 HP, resolve immediately. */
-    effect_mark_jiushu_heal_on_apply_if_low: compileEffect(
-      defineEffect({
-        id: 'effect_mark_jiushu_heal_on_apply_if_low',
-        triggers: [EffectTrigger.OnMarkCreated],
-        priority: 0,
-        when: conditions.all(
-          conditions.ownerReceivesMark,
-          contexts.addMark.condition((_ctx, events) => events.some(event => event.baseMark.id === 'mark_jiushu')),
-          hpBelowEighth,
-        ),
-        apply: actions.sequence(targets.ownerPet.apply(ops.heal(100)), targets.sourceMark.apply(ops.removeMark())),
-      }),
-    ),
+    effect_mark_jiushu_heal_on_apply_if_low: {
+      triggers: [EffectTrigger.OnMarkCreated],
+      priority: 0,
+      when: conditions.all(
+        conditions.ownerReceivesMark,
+        contexts.addMark.condition((_ctx, events) => events.some(event => event.baseMark.id === 'mark_jiushu')),
+        hpBelowEighth,
+      ),
+      apply: actions.sequence(targets.ownerPet.apply(ops.heal(100)), targets.sourceMark.apply(ops.removeMark())),
+    },
     /**
      * 神圣 (ability, feature 1123): "自己具有神圣状态时不会受到致命一击".
      * The client phrase 致命一击 is the crit term in this engine, so the owner cannot be
      * critically hit while the 神圣 mark is attached. Priority 99 beats the attacker's
      * sure-crit overrides.
      */
-    effect_ability_palading_shensheng_immune_crit: compileEffect(
-      defineEffect({
-        id: 'effect_ability_palading_shensheng_immune_crit',
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.ownerIsSkillTarget, hasOwnerMark(SHENSHENG)),
-        apply: contexts.skillUse.apply(ops.setSureNoCrit(99)),
-      }),
-    ),
+    effect_ability_palading_shensheng_immune_crit: {
+      triggers: [EffectTrigger.AfterUseSkillCheck],
+      priority: 0,
+      when: conditions.all(conditions.ownerIsSkillTarget, hasOwnerMark(SHENSHENG)),
+      apply: contexts.skillUse.apply(ops.setSureNoCrit(99)),
+    },
   })
 }

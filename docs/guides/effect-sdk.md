@@ -30,7 +30,7 @@ export function createEffects({ sdk, id }: EffectModuleContext) {
 
 在技能或印记的 `behaviors` 中通过独立 `useId` 引用效果 ID。`createEffects` 是代码定义的唯一来源，`package.json` 不再维护效果清单；加载器在准入后读取模块，检查实际效果是否适用于引用它的对象。未被内容引用的效果不会注册。完整格式见 [npm 内容包](npm-content.md)。
 
-独立的官方内容宿主也可以使用 `sdk.defineNativeEffect` 构造内核 `Effect`，由自己的内容目录注册；npm 的 `createEffects` 返回 `defineCodeEffect` 产生的导出。
+内容目录可以用 `sdk.defineNativeEffect` 构造单个内核 `Effect`，或用 `sdk.defineEffects({ effectId: { triggers, apply } })` 编译并冻结一组效果，再由目录注册。npm 的 `createEffects` 返回 `defineCodeEffect` 产生的导出。
 
 ## 现有 API 索引
 

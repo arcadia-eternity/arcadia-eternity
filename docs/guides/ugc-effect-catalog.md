@@ -28,7 +28,7 @@
 | 其余实现分组             |      263 | 治疗工厂、复合流程、转移、随机、变身及专用机制等 |
 | 合计                     |    1,065 |                                                  |
 
-来源为 [官方工厂目录](../../packs/base/src/effects/candidate-catalog.ts)、[内容装配](../../packs/base/src/content.ts) 和 [基础包数据清单](../../packs/base/pack.json)。参数目录的存在不等于已有玩家参数表单：有些目录为空，有些参数只服务内部运行修饰。
+来源为 [官方工厂目录](../../packs/base/src/candidate-catalog.ts)、[内容装配](../../packs/base/src/content.ts) 和 [基础包数据清单](../../packs/base/pack.json)。参数目录的存在不等于已有玩家参数表单：有些目录为空，有些参数只服务内部运行修饰。
 
 ## 创作对象如何衔接
 

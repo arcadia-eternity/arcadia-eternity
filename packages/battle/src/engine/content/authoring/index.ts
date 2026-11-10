@@ -1,5 +1,6 @@
 /** Typed authoring surface. Effects enter a catalog only through explicit compilation and registration. */
 export type * from './contracts'
+export { defineEffects } from './define-effects'
 export {
   defineEffect,
   selectFrom,

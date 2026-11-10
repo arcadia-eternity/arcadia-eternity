@@ -1,33 +1,28 @@
 import {
+  defineEffects,
   EffectTrigger,
-  compileEffect,
   conditions,
   contexts,
-  defineEffect,
   ops,
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 
-function healingModifier(id: string, percent: number, when: Condition = conditions.selfBeHealed) {
-  return compileEffect(
-    defineEffect({
-      id,
-      triggers: [EffectTrigger.OnBeforeHeal],
-      when,
-      apply: contexts.heal.apply(ops.modifyHeal({ percent, delta: 0 })),
-    }),
-  )
+function healingModifier(percent: number, when: Condition = conditions.selfBeHealed) {
+  return {
+    triggers: [EffectTrigger.OnBeforeHeal] as const,
+    when,
+    apply: contexts.heal.apply(ops.modifyHeal({ percent, delta: 0 })),
+  }
 }
 
 /** Current YAML candidates. Fresh instances support independent catalogs and restore. */
 export function createOfficialHealModifierEffects() {
-  return Object.freeze({
-    effect_mark_decrease_heal: healingModifier('effect_mark_decrease_heal', -15),
-    effect_mark_increase_heal_20_percent: healingModifier('effect_mark_increase_heal_20_percent', 20),
-    effect_mark_increase_heal_40_percent: healingModifier('effect_mark_increase_heal_40_percent', 40),
-    effect_mark_reduce_healing_50_percent: healingModifier('effect_mark_reduce_healing_50_percent', -50),
+  return defineEffects({
+    effect_mark_decrease_heal: healingModifier(-15),
+    effect_mark_increase_heal_20_percent: healingModifier(20),
+    effect_mark_increase_heal_40_percent: healingModifier(40),
+    effect_mark_reduce_healing_50_percent: healingModifier(-50),
     effect_emblem_20percent_double_heal: healingModifier(
-      'effect_emblem_20percent_double_heal',
       100,
       conditions.all(conditions.selfBeHealed, conditions.chance(20)),
     ),

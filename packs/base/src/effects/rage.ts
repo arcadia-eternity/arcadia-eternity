@@ -1,13 +1,5 @@
 import { Type } from '@sinclair/typebox'
-import {
-  EffectTrigger,
-  compileEffect,
-  defineEffect,
-  conditions,
-  targets,
-  ops,
-  numberParam,
-} from '@arcadia-eternity/battle/authoring'
+import { EffectTrigger, compileEffect, conditions, targets, ops, numberParam } from '@arcadia-eternity/battle/authoring'
 import { ConfigModifierType } from '@arcadia-eternity/battle/engine'
 import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/engine'
 
@@ -26,19 +18,17 @@ const amount = numberParam({
   legacyAddress: value.address,
   legacyAliases: value.aliases,
 })
-const effect = compileEffect(
-  defineEffect({
-    id,
-    triggers: [EffectTrigger.OnHit],
-    parameters: { amount },
-    // Keep the threshold at collection time and read the amount when the action runs.
-    when: conditions.all(
-      conditions.selfUsesSkill,
-      targets.selfPlayer.condition((_ctx, players) => players.some(player => player.currentRage < 40)),
-    ),
-    apply: targets.ownerPet.apply(ops.addRage(amount)),
-  }),
-)
+const effect = compileEffect({
+  id,
+  triggers: [EffectTrigger.OnHit],
+  parameters: { amount },
+  // Keep the threshold at collection time and read the amount when the action runs.
+  when: conditions.all(
+    conditions.selfUsesSkill,
+    targets.selfPlayer.condition((_ctx, players) => players.some(player => player.currentRage < 40)),
+  ),
+  apply: targets.ownerPet.apply(ops.addRage(amount)),
+})
 
 /** Explicit candidate only. Install parameters before use; aliases resolve through this catalog. */
 export const officialRageCandidate = Object.freeze({ effect, parameters, value })

@@ -3,7 +3,6 @@ import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   EffectTrigger,
   compileEffect,
-  defineEffect,
   conditions,
   targets,
   values,
@@ -35,14 +34,12 @@ export function createOfficialWaterShieldCandidate(mark: BaseMark) {
   // Keep both legacy rounding steps, before mark-application hooks.
   const quarter = targets.ownerPet.select(pet => Math.floor(pet.stat.maxHp / 4)).first()
   const stack = values.combine(quarter, factor, (hp, multiple) => Math.floor(hp * multiple))
-  const effect = compileEffect(
-    defineEffect({
-      id,
-      triggers: [EffectTrigger.OnHit],
-      parameters: { factor },
-      when: conditions.selfUsesSkill,
-      apply: targets.ownerPet.apply(ops.addMark(mark, { stack })),
-    }),
-  )
+  const effect = compileEffect({
+    id,
+    triggers: [EffectTrigger.OnHit],
+    parameters: { factor },
+    when: conditions.selfUsesSkill,
+    apply: targets.ownerPet.apply(ops.addMark(mark, { stack })),
+  })
   return Object.freeze({ effect, parameters, multiplier, mark })
 }
