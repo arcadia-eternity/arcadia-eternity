@@ -30,6 +30,8 @@ export async function createNpmFixture(
     const source = join(root, 'source'),
       directory = join(root, 'server')
     await cp(resolve(repository, 'examples/ugc/slow'), source, { recursive: true })
+    await rm(join(source, 'dist'), { recursive: true, force: true })
+    await mkdir(join(source, 'dist'))
     const asset = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
       'base64',
