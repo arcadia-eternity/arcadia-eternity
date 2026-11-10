@@ -1,3 +1,4 @@
+import { RageGainLimitEffects } from '../../../../packs/base/src/effects/rage-gain-limit.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   BaseMark,
@@ -12,7 +13,6 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
-import { createRageGainLimit } from '@arcadia-eternity/data-pack-base/effects'
 
 const id = 'effect_mark_limit_rage_gain'
 const battles: Battle[] = []
@@ -27,7 +27,7 @@ function fixture(stack = 3) {
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
-  const mark = new BaseMark('mark_xinlingzhiyue' as baseMarkId, [createRageGainLimit()], {
+  const mark = new BaseMark('mark_xinlingzhiyue' as baseMarkId, [RageGainLimitEffects.build()], {
     ...f.debuff.config,
     maxStacks: 100,
     persistent: true,

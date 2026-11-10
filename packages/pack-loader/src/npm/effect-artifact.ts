@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+import { effectDiscoveryPlugin } from './effect-discovery'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { relative, isAbsolute } from 'node:path'
 import { parse } from 'es-module-lexer/minimal/js'
@@ -16,11 +18,15 @@ export async function compileEffectModule(
 ): Promise<EffectModuleArtifact> {
   const { rolldown } = await import('rolldown')
   const boundary = await realpath(root),
-    source = await realpath(entry)
+    sourcePath = await realpath(entry)
+  const discover = (await stat(sourcePath)).isDirectory()
+  const source = discover ? 'virtual:arcadia-effects' : sourcePath
   let bytes = 0,
     files = 0
   const shim = '\0arcadia-effect-sdk'
   const factoryEntry = '\0arcadia-effect-factories'
+  const loading = '\0arcadia-effect-loading'
+  const contentSdk = '\0arcadia-content-sdk'
   const build = await rolldown({
     cwd: boundary,
     input: factoryEntry,
@@ -30,16 +36,23 @@ export async function compileEffectModule(
       handler(level, log)
     },
     plugins: [
+      effectDiscoveryPlugin(discover ? sourcePath : boundary, discover ? ['.'] : ['src/effects']),
       {
         name: 'arcadia-effect-artifact',
         resolveId(id) {
           if (id === factoryEntry) return factoryEntry
+          if (id === '@arcadia-eternity/battle/effect-loading' || id === loading) return loading
+          if (id === '@arcadia-eternity/content-sdk' || id === contentSdk) return contentSdk
           if (id === source) return { id: source, moduleSideEffects: true }
           if (['@arcadia-eternity/battle/authoring', '@arcadia-eternity/const'].includes(id)) return shim
           if (id === '@arcadia-eternity/battle/engine') return `${shim}-core`
           if (/^(node:|https?:|data:|file:)/.test(id)) throw Error(`Unsupported effect dependency: ${id}`)
         },
         async load(id) {
+          if (id === contentSdk)
+            return `export * from '@arcadia-eternity/battle/authoring'; export * from '@arcadia-eternity/battle/effect-loading';`
+          if (id === loading)
+            return readFile(fileURLToPath(import.meta.resolve('@arcadia-eternity/battle/effect-loading')), 'utf8')
           // Packages publish ordinary modules. Only the author factories enter the VM;
           // reference/metadata helpers remain available to trusted host tooling.
           if (id === factoryEntry)
@@ -82,7 +95,7 @@ export async function compileEffectModule(
     ],
   })
   try {
-    const { output } = await build.generate({ format: 'esm', codeSplitting: false })
+    const { output } = await build.generate({ format: 'esm', codeSplitting: false, minify: true })
     if (
       output.length !== 1 ||
       output[0].type !== 'chunk' ||

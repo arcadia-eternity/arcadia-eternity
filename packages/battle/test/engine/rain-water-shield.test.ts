@@ -1,3 +1,4 @@
+import { ShieldEffects } from '../../../../packs/base/src/effects/shield.effect'
 import {
   AttackTargetOpinion,
   BaseMark,
@@ -9,7 +10,7 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { createOfficialWaterShieldCandidate } from '@arcadia-eternity/data-pack-base/effects'
+
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 const alias = 'effect_skill_add_mark_shuiwenpingzhang.multiply_value'
@@ -22,9 +23,9 @@ it('samples a scoped assignment once, rejects foreign writes, and validates base
   const { battle, a, b, debuff } = makeScenario()
   const foreign = makeScenario()
   battles.push(battle, foreign.battle)
-  const shield = createOfficialWaterShieldCandidate(
-    new BaseMark('mark_shuiwenpingzhang' as baseMarkId, [], debuff.config),
-  )
+  const shield = ShieldEffects.build({
+    mark: () => new BaseMark('mark_shuiwenpingzhang' as baseMarkId, [], debuff.config),
+  })
   shield.parameters.install(battle.configSystem)
   const { compileEffect, defineEffect, ops, values, targets } = effectAuthoring
   let reads = 0

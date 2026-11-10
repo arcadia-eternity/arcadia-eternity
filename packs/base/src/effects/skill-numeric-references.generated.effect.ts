@@ -1,0 +1,101 @@
+import { effectGroup } from '@arcadia-eternity/battle/effect-loading'
+// Reviewed native behavior; edit this TypeScript source directly.
+import {
+  defineEffects,
+  EffectTrigger,
+  conditions,
+  contexts,
+  targets,
+  checks,
+  ops,
+  actions,
+  type EffectFrame,
+} from '@arcadia-eternity/battle/authoring'
+@effectGroup({ id: 'skill-numeric-references.generated' })
+export class SkillNumericReferencesGeneratedEffects {
+  static build() {
+    return defineEffects({
+      effect_ability_physical_evasion_boost_5_percent: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
+        priority: 0,
+        when: conditions.all(
+          conditions.ownerIsSkillTarget,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        apply: actions.sequence(contexts.skillUse.property('evasion').apply(ops.add(5))),
+      },
+      effect_ability_reduce_climax_skill_rage_cost_5: {
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
+        ),
+        apply: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
+      },
+      effect_emblem_reduce_5_rage_cost_in_field_chongqun: {
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          (ctx: EffectFrame) => {
+            const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
+            const right = 1
+            return left !== undefined && right !== undefined && left > right
+          },
+          contexts.battle
+            .flatMap(battle => battle.marks)
+            .where(mark => mark.baseId === 'mark_global_chongqun')
+            .condition(checks.exists()),
+        ),
+        apply: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
+      },
+      effect_emblem_reduce_light_climax_skill_rage_cost_5: {
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Light'),
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
+        ),
+        apply: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
+      },
+      effect_skill_priority_plus_1: {
+        triggers: [EffectTrigger.BeforeSort],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
+      },
+      effect_skill_priority_plus_1_if_aideminyi: {
+        triggers: [EffectTrigger.BeforeSort],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
+        ),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
+      },
+      effect_skill_priority_plus_1_if_atk_over_500: {
+        triggers: [EffectTrigger.BeforeSort],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.atk).first())
+          const right = 500
+          return left !== undefined && right !== undefined && left > right
+        }),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
+      },
+      effect_skill_priority_plus_2_if_has_mark_chaojipenti: {
+        triggers: [EffectTrigger.BeforeSort],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_chaojipenti').condition(checks.exists()),
+        ),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(2))),
+      },
+    })
+  }
+}
+
+export const generatedSkillNumericReferences = SkillNumericReferencesGeneratedEffects.build()

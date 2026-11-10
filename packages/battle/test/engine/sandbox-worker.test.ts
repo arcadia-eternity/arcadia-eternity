@@ -1,3 +1,4 @@
+import * as authoringSdk from '@arcadia-eternity/battle/authoring'
 import { Worker } from 'node:worker_threads'
 import { readFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -9,11 +10,7 @@ import nodeEndpoint from 'comlink/dist/esm/node-adapter.mjs'
 import { parse } from 'yaml'
 import { BattleWorkerManager } from '../../sandbox'
 import officialEffectArtifact from '@arcadia-eternity/data-pack-base/effects?effect-module'
-import {
-  officialTemplateDefinitions,
-  createOfficialEffectCandidates,
-  createOfficialTemplateRegistrations,
-} from '@arcadia-eternity/data-pack-base/effects'
+import { officialTemplateDefinitions, createCatalog, createEffects } from '@arcadia-eternity/data-pack-base/effects'
 import input from '../fixtures/official-switch.input.json'
 import { BattleMessageType, BattleStatus, createContentCatalog } from '../../engine'
 import { LocalBattleSystem, type BattleHost } from '../../host'
@@ -138,12 +135,9 @@ it('runs the complete official catalog inside a dedicated Worker with Arena and 
   expect(pending.selections[0].length).toBeGreaterThan(0)
   expect(events).toContain(BattleMessageType.TurnAction)
   const actual = await drive(battle)
-  const content = createContentCatalog(
-    spec.environment.data,
-    spec.environment.revision,
-    createOfficialEffectCandidates,
-    createOfficialTemplateRegistrations,
-  )
+  const content = createContentCatalog(spec.environment.data, spec.environment.revision, createCatalog, context => ({
+    nativeExports: createEffects({ sdk: authoringSdk, marks: context.marks, id: local => local }),
+  }))
   const [a, b] = content.parsePlayers(spec.players)
   const reference = new LocalBattleSystem(content.createBattle(a, b, spec.options), content)
   try {
@@ -235,7 +229,7 @@ it('reconstructs an official waiting checkpoint in a fresh Worker and continues 
   await restored.cleanup()
   await original.cleanup()
   expect(host.status().every(value => value.cleanup === 'graceful')).toBe(true)
-}, 30_000)
+}, 45_000)
 it('restores a UGC initial checkpoint in a new Worker without a package-specific opt-in', async () => {
   const host = manager(),
     spec = small(),

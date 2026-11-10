@@ -31,6 +31,10 @@
       "types": "./dist/environment-rules.d.mts",
       "import": "./dist/environment-rules.mjs",
       "default": "./dist/environment-rules.mjs"
+    },
+    "./build": {
+      "types": "./dist/effect-build.d.mts",
+      "import": "./dist/effect-build.mjs"
     }
   },
   "files": [

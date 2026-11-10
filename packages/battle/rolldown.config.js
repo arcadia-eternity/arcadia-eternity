@@ -7,6 +7,7 @@ export default defineConfig({
     pack: 'pack.ts',
     engine: 'engine.ts',
     authoring: 'authoring.ts',
+    'effect-loading': 'effect-loading.ts',
     host: 'host.ts',
     sandbox: 'sandbox.ts',
     'sandbox-effects': 'sandbox-effects.ts',

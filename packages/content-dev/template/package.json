@@ -32,9 +32,10 @@
     "projectId": "example-content-pack",
     "namespace": "example-pack",
     "content": "dist/content.json",
-    "effects": "dist/effects.js",
     "sdkApi": 2,
-    "presentation": "dist/presentation.json"
+    "presentation": "dist/presentation.json",
+    "effectSources": "src/effects",
+    "effectArtifact": "dist/arcadia-effects.json"
   },
   "description": "A runnable Arcadia Eternity user-defined content pack: species, skills, marks and TypeScript effects.",
   "license": "MIT",

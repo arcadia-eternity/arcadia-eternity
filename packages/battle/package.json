@@ -54,6 +54,10 @@
       "types": "./dist/types/authoring.d.ts",
       "import": "./dist/authoring.js",
       "default": "./dist/authoring.js"
+    },
+    "./effect-loading": {
+      "types": "./dist/types/effect-loading.d.ts",
+      "import": "./dist/effect-loading.js"
     }
   },
   "scripts": {

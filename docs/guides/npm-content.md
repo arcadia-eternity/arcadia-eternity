@@ -8,9 +8,9 @@
 
 从新包开始时，可按[创作者入门](ugc-authoring-start.md)生成带真实引擎场景测试和 Agent Skill 的 TypeScript 项目。
 
-效果模块导出 `createEffects({ sdk, marks, id })`。宿主注入与本局核心相同的 SDK 和规范印记原型；`id(localId)` 生成包的 `namespace:id`。类型从 `@arcadia-eternity/content-sdk` 导入 `EffectModuleContext`。运行时代码使用注入的 `sdk`，避免包内另一个引擎副本产生不兼容的类、参数 token 或恢复工厂。
+在 `src/effects/*.effect.ts` 中用 SDK 的 `@effect`、`@on` 声明效果。构建工具发现文件并生成闭合的 `effectArtifact`；宿主在本局隔离运行时提供规范印记原型及 SDK。装饰器的局部 ID 生成包的 `namespace:id`；需要复杂参数和绑定时用 `static create(context)` 返回 `defineCodeEffect`。参见 [装饰器装载设计](effect-loading-redesign.md)。
 
-`sdk.defineCodeEffect` 支持与官方效果相同的 `triggers / when / apply` 字段，直接提供真实引擎上下文与领域类。简单定义无需 `build`；每个使用位置由宿主分配稳定编译身份。需要原有工具时，`build` 仍可返回 `defineEffect` 接受的定义，并收到 `effectId` 和可用的 `sourceMark`。API 索引、来源清理和失败语义见 [Effect SDK](effect-sdk.md)。配置复用使用普通 TS 函数；跨回合状态使用引擎实例、参数和绑定，不能放在模块全局或共享闭包中。
+`defineCodeEffect` 支持与官方效果相同的 `triggers / when / apply` 字段，直接提供真实引擎上下文与领域类。简单定义使用 `@on` 静态方法；每个使用位置由宿主分配稳定编译身份。需要原有工具时，`build` 仍可返回 `defineEffect` 接受的定义，并收到 `effectId` 和可用的 `sourceMark`。API 索引、来源清理和失败语义见 [Effect SDK](effect-sdk.md)。配置复用使用普通 TS 函数；跨回合状态使用引擎实例、参数和绑定，不能放在模块全局或共享闭包中。
 
 **运行时参数与编辑表单是两个合同。** `numberParam`、`booleanParam`、`stringParam` 仍可声明在效果的 `parameters` 中；执行时读取当前作用域的有效值，支持稳定地址、标签、其他效果的修改和来源清理。不要求为其建立编辑器表单或序列化配置 Schema。示例的减速量使用 `numberParam` 和 `follow`，其他效果修改该参数时，速度贡献随之更新。固定且不参与战斗修改的选项才适合直接使用 TS 常量。
 
@@ -33,7 +33,8 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表�
     "projectId": "my-slow-pack",
     "namespace": "my-slow",
     "content": "content.json",
-    "effects": "dist/effects.js",
+    "effectSources": "src/effects",
+    "effectArtifact": "dist/arcadia-effects.json",
     "sdkApi": 2
   }
 }
@@ -41,7 +42,7 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表�
 
 `content.json` 使用现有草稿数据结构；可以仅提供 `data` 和 `assets`，项目身份由元信息补齐，也可以显式保存完整草稿。显式身份必须匹配包声明。被内容引用的代码效果由宿主生成内部行为定义，作者无需再写效果元数据或参数 Schema。对象中的引用继续使用 `$ref { projectId, kind, id }`，官方内容直接使用其现有 ID。
 
-数据包可以省略 `effects` 和 `sdkApi`。代码包声明 SDK API 版本，效果定义由 `createEffects` 返回。技能和印记直接引用所需效果，不再维护 `arcadia.exports`；加载器据引用生成内部注册信息，并检查实际效果的适用对象。未被引用的效果不注册。所有包都有 `content`，代码包可提供空内容集合。元数据检查不会导入效果模块。
+数据包可以省略效果字段和 `sdkApi`。代码包声明 SDK API 版本，构建阶段由 SDK 收集效果定义。技能和印记直接引用所需效果，不再维护 `arcadia.exports`；加载器据引用生成内部注册信息，并检查实际效果的适用对象。未被引用的效果不注册。所有包都有 `content`，代码包可提供空内容集合。元数据检查不会导入效果模块。
 
 推荐用 `arcadia.presentation: "dist/presentation.json"` 接入工具生成的资源／语言索引，源文件与 `presentation` 用途声明见[内容展示合同](content-presentation.md)。包内文件从固定环境的包目录流式提供；HTTP/HTTPS 资源只公布地址，不在构建／环境准备时下载。不建立服务器或客户端资源缓存，资源响应和客户端主动请求使用 `no-store`。远程 URL 固定的是引用，不保证源站字节不变。
 

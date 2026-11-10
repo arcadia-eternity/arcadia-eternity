@@ -39,6 +39,8 @@ async function build() {
   await data(true)
   await types()
   await data()
+  const { buildEffects } = await import('./effect-build.mjs')
+  await buildEffects(process.cwd())
 }
 try {
   if (!command || command === '--help' || command === '-h') console.log(help)

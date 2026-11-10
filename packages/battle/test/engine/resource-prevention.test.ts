@@ -1,3 +1,4 @@
+import { ResourcePreventionEffects } from '../../../../packs/base/src/effects/resource-prevention.effect'
 import {
   AttackTargetOpinion,
   BaseMark,
@@ -10,11 +11,11 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { createResourcePrevention } from '@arcadia-eternity/data-pack-base/effects'
+
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 
-const candidates = createResourcePrevention()
+const candidates = ResourcePreventionEffects.build()
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {

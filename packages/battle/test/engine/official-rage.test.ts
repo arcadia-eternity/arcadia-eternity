@@ -1,3 +1,4 @@
+import { officialRageCandidate } from '../../../../packs/base/src/effects/rage.effect'
 import {
   ConfigDurationType,
   ConfigModifier,
@@ -5,7 +6,7 @@ import {
   setGlobalLogger,
   type Battle,
 } from '@arcadia-eternity/battle/engine'
-import { officialRageCandidate } from '@arcadia-eternity/data-pack-base/effects'
+
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 

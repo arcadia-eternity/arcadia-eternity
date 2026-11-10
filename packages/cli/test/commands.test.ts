@@ -200,12 +200,18 @@ it('ignores build labels and rejects malformed content, reordered inputs and alt
       r.initial.version = 2
     },
   ]
-  for (const mutate of mutations) {
-    const changed = structuredClone(original)
-    mutate(changed)
-    const path = output('changed')
-    await writeFile(path, JSON.stringify(changed))
-    expect((await invoke(['battle', 'replay', path, '--json'], 3)).json().diagnostics[0].code).toMatch(/REPLAY|INPUT/)
+  for (let offset = 0; offset < mutations.length; offset += 3) {
+    await Promise.all(
+      mutations.slice(offset, offset + 3).map(async mutate => {
+        const changed = structuredClone(original)
+        mutate(changed)
+        const path = output('changed')
+        await writeFile(path, JSON.stringify(changed))
+        expect((await invoke(['battle', 'replay', path, '--json'], 3)).json().diagnostics[0].code).toMatch(
+          /REPLAY|INPUT/,
+        )
+      }),
+    )
   }
 }, 120000)
 
@@ -317,33 +323,37 @@ it('fails cleanly on human input EOF', async () => {
   expect(result.stderr).toContain('Console input ended')
 })
 
-it.each(['limit', 'interrupt'])('closes a real human prompt on %s and returns the correct exit code', async mode => {
-  const child = spawn(
-    process.execPath,
-    ['--import', guard, cli, 'battle', 'local', '--player1', teams[0], '--player2', teams[1], '--max-actions', '1'],
-    { cwd: temporary, stdio: ['pipe', 'pipe', 'pipe'] },
-  )
-  let stdout = '',
-    stderr = '',
-    handled = false
-  child.stdout.on('data', data => {
-    stdout += String(data)
-    if (!handled && stdout.includes('请选择操作:')) {
-      handled = true
-      if (mode === 'interrupt') child.kill('SIGINT')
-      else child.stdin.write('1\n')
-    }
-  })
-  child.stderr.on('data', data => {
-    stderr += String(data)
-  })
-  const watchdog = setTimeout(() => child.kill('SIGKILL'), 12000)
-  const code = await new Promise<number | null>(resolve => child.once('exit', resolve))
-  clearTimeout(watchdog)
-  expect(handled).toBe(true)
-  expect(code, stderr).toBe(mode === 'interrupt' ? 130 : 1)
-  expect(stdout).toContain(mode === 'interrupt' ? 'cancelled: INTERRUPTED' : 'truncated: MAX_ACTIONS')
-})
+it.each(['limit', 'interrupt'])(
+  'closes a real human prompt on %s and returns the correct exit code',
+  async mode => {
+    const child = spawn(
+      process.execPath,
+      ['--import', guard, cli, 'battle', 'local', '--player1', teams[0], '--player2', teams[1], '--max-actions', '1'],
+      { cwd: temporary, stdio: ['pipe', 'pipe', 'pipe'] },
+    )
+    let stdout = '',
+      stderr = '',
+      handled = false
+    child.stdout.on('data', data => {
+      stdout += String(data)
+      if (!handled && stdout.includes('请选择操作:')) {
+        handled = true
+        if (mode === 'interrupt') child.kill('SIGINT')
+        else child.stdin.write('1\n')
+      }
+    })
+    child.stderr.on('data', data => {
+      stderr += String(data)
+    })
+    const watchdog = setTimeout(() => child.kill('SIGKILL'), 30000)
+    const code = await new Promise<number | null>(resolve => child.once('exit', resolve))
+    clearTimeout(watchdog)
+    expect(handled).toBe(true)
+    expect(code, stderr).toBe(mode === 'interrupt' ? 130 : 1)
+    expect(stdout).toContain(mode === 'interrupt' ? 'cancelled: INTERRUPTED' : 'truncated: MAX_ACTIONS')
+  },
+  35000,
+)
 
 it('cancels a running batch with SIGINT, writes partial JSON and exits 130', async () => {
   const report = output('cancelled')

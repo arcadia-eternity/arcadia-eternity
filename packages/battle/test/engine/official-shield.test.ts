@@ -1,5 +1,6 @@
+import { ShieldEffects } from '../../../../packs/base/src/effects/shield.effect'
 import { setGlobalLogger, type Battle } from '@arcadia-eternity/battle/engine'
-import { createOfficialWaterShieldCandidate } from '@arcadia-eternity/data-pack-base/effects'
+
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { makeScenario } from './scenario'
 const battles: Battle[] = []
@@ -10,5 +11,5 @@ afterEach(async () => {
 it('requires the declared mark dependency rather than creating a fallback', () => {
   const f = makeScenario()
   battles.push(f.battle)
-  expect(() => createOfficialWaterShieldCandidate(f.debuff)).toThrow('requires mark_shuiwenpingzhang')
+  expect(() => ShieldEffects.build({ mark: () => f.debuff })).toThrow('requires mark_shuiwenpingzhang')
 })

@@ -28,7 +28,7 @@
 | 其余实现分组             |      263 | 治疗工厂、复合流程、转移、随机、变身及专用机制等 |
 | 合计                     |    1,065 |                                                  |
 
-来源为 [官方工厂目录](../../packs/base/src/candidate-catalog.ts)、[内容装配](../../packs/base/src/content.ts) 和 [基础包数据清单](../../packs/base/pack.json)。参数目录的存在不等于已有玩家参数表单：有些目录为空，有些参数只服务内部运行修饰。
+来源为 [SDK 效果装载](effect-loading-redesign.md)、[内容装配](../../packs/base/src/content.ts) 和 [基础包数据清单](../../packs/base/pack.json)。参数目录的存在不等于已有玩家参数表单：有些目录为空，有些参数只服务内部运行修饰。
 
 ## 创作对象如何衔接
 
@@ -50,38 +50,38 @@
 
 ### 基础机制族
 
-| 机制族                 | 挂载位置 | 配置方向                                         | 固定语义与源码依据                                                                                                                                                                                                                           |
-| ---------------------- | -------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 命中后附加印记         | 技能     | 印记引用、自己或对手当前出战精灵、概率、初始层数 | 保留 `OnHit` 与本技能使用判定。`effect_skill_add_mark_mingzhongtisheng_10/15`、`effect_skill_add_mark_opponent_bingdong_40_percent`，见 [附加印记](../../packs/base/src/effects/mark-applications.generated.ts)                              |
-| 印记持续修改精灵属性   | 印记     | 允许的属性、固定值或百分比、幅度                 | 绑定到来源印记；来源移除时清理。`effect_mark_decrease_atk`、`effect_mark_decrease_spa`、`effect_mark_reduce_speed_50`，见 [属性贡献](../../packs/base/src/effects/attribute-contributions.generated.ts)                                      |
-| 按印记层数修改属性     | 印记     | 允许的属性、每层数值                             | 跟随本印记层数，保留取整和来源清理。已实现固定值加法变体；每层百分比变体未开放。`effect_mark_add_atk_stack_x35`、`effect_mark_raise_spe_by_25_per_stack`，见 [动态属性贡献](../../packs/base/src/effects/dynamic-contributions.generated.ts) |
-| 技能改变能力等级       | 技能     | 自己或对手、属性、等级变化量、概率               | 采用同一命中流程的变体；能力等级与直接修改属性分开。见 [能力等级效果](../../packs/base/src/effects/stat-stages.generated.ts)                                                                                                                 |
-| 技能恢复生命           | 技能     | 固定量，或最大生命比例的分子与分母               | 固定本技能命中后的自身治疗，沿用治疗上下文和取整。`effect_skill_heal_self_90_hp`、`effect_heal_self_half`，见 [治疗工厂](../../packs/base/src/effects/healing.ts)                                                                            |
-| 连续使用改变治疗量     | 技能     | 普通治疗量、连续使用治疗量                       | 判定采用已有连续使用历史，不接受自定义条件。两种固定数值版本见 [连续治疗](../../packs/base/src/effects/consecutive-healing.ts)                                                                                                               |
-| 命中后消耗指定印记层数 | 技能     | 印记引用、自己或对手、消耗量                     | 缺少印记、层数不足和消耗顺序沿用明确的模板合同。`effect_skill_consume_ruodian`、`effect_skill_consume_shuiwenzhenji`，见 [印记消耗](../../packs/base/src/effects/mark-consumption.generated.ts)                                              |
-| 清除指定类别的状态     | 技能     | 官方支持的状态类别、自己或对手                   | 固定命中与对象范围，沿用正常移除流程。`effect_skill_clear_status` 及其命中或未命中版本见 [印记移除](../../packs/base/src/effects/mark-removals.generated.ts)                                                                                 |
+| 机制族                 | 挂载位置 | 配置方向                                         | 固定语义与源码依据                                                                                                                                                                                                                                  |
+| ---------------------- | -------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 命中后附加印记         | 技能     | 印记引用、自己或对手当前出战精灵、概率、初始层数 | 保留 `OnHit` 与本技能使用判定。`effect_skill_add_mark_mingzhongtisheng_10/15`、`effect_skill_add_mark_opponent_bingdong_40_percent`，见 [附加印记](../../packs/base/src/effects/mark-applications.generated.effect.ts)                              |
+| 印记持续修改精灵属性   | 印记     | 允许的属性、固定值或百分比、幅度                 | 绑定到来源印记；来源移除时清理。`effect_mark_decrease_atk`、`effect_mark_decrease_spa`、`effect_mark_reduce_speed_50`，见 [属性贡献](../../packs/base/src/effects/attribute-contributions.generated.effect.ts)                                      |
+| 按印记层数修改属性     | 印记     | 允许的属性、每层数值                             | 跟随本印记层数，保留取整和来源清理。已实现固定值加法变体；每层百分比变体未开放。`effect_mark_add_atk_stack_x35`、`effect_mark_raise_spe_by_25_per_stack`，见 [动态属性贡献](../../packs/base/src/effects/dynamic-contributions.generated.effect.ts) |
+| 技能改变能力等级       | 技能     | 自己或对手、属性、等级变化量、概率               | 采用同一命中流程的变体；能力等级与直接修改属性分开。见 [能力等级效果](../../packs/base/src/effects/stat-stages.generated.effect.ts)                                                                                                                 |
+| 技能恢复生命           | 技能     | 固定量，或最大生命比例的分子与分母               | 固定本技能命中后的自身治疗，沿用治疗上下文和取整。`effect_skill_heal_self_90_hp`、`effect_heal_self_half`，见 [治疗工厂](../../packs/base/src/effects/healing.effect.ts)                                                                            |
+| 连续使用改变治疗量     | 技能     | 普通治疗量、连续使用治疗量                       | 判定采用已有连续使用历史，不接受自定义条件。两种固定数值版本见 [连续治疗](../../packs/base/src/effects/consecutive-healing.effect.ts)                                                                                                               |
+| 命中后消耗指定印记层数 | 技能     | 印记引用、自己或对手、消耗量                     | 缺少印记、层数不足和消耗顺序沿用明确的模板合同。`effect_skill_consume_ruodian`、`effect_skill_consume_shuiwenzhenji`，见 [印记消耗](../../packs/base/src/effects/mark-consumption.generated.effect.ts)                                              |
+| 清除指定类别的状态     | 技能     | 官方支持的状态类别、自己或对手                   | 固定命中与对象范围，沿用正常移除流程。`effect_skill_clear_status` 及其命中或未命中版本见 [印记移除](../../packs/base/src/effects/mark-removals.generated.effect.ts)                                                                                 |
 
 “消耗全部”的旧效果名中存在用固定数值代表全部的实现，不能仅按名称导出“全部”选项。需先按层数上限和实际消费行为确认合同。
 
 ### 扩展机制族
 
-| 机制族                       | 配置方向                                           | 保留的完整机制与来源                                                                                                                                                                                         |
-| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 换入或战斗开始时附加印记     | 印记引用、层数、概率                               | 各事件分别定义；区分本人换入和给另一只换入精灵加印记，见 [附加印记](../../packs/base/src/effects/mark-applications.generated.ts)                                                                             |
-| 受击后附加印记               | 印记引用、概率、层数                               | 明确攻击者与受击者，以及物理伤害等固定版本，见同一 [附加印记文件](../../packs/base/src/effects/mark-applications.generated.ts)                                                                               |
-| 印记到期或销毁后附加另一印记 | 后继印记引用、层数                                 | 到期与销毁为两个独立事件；同时挂载两个模板会各执行一次。拒绝自身后继和带互斥组的后继，避免消失或递归销毁，见同一 [附加印记文件](../../packs/base/src/effects/mark-applications.generated.ts)                 |
-| 周期增长或消耗层数           | 每次数值                                           | 回合末与使用技能后为不同模板；是否要求持有者出战写入合同，见 [层数增长](../../packs/base/src/effects/mark-stack-gains.generated.ts)、[自动消耗](../../packs/base/src/effects/automatic-stack-consumption.ts) |
-| 印记修改技能属性             | 属性、数值、允许的技能范围                         | 全部技能、固定元素、标签、具体技能引用等有限范围分别声明；明确新获得技能是否跟随，见 [技能贡献](../../packs/base/src/effects/skill-contributions.generated.ts)                                               |
-| 调整技能威力                 | 倍率或增量，以及模板明确支持的元素、标签或印记引用 | 每个模板固定条件种类；生命阈值、印记存在、体重换算等不合并成任意条件表，见 [技能威力](../../packs/base/src/effects/skill-power.generated.ts)                                                                 |
-| 调整造成或承受的伤害         | 数值、比例或每层系数                               | 造成伤害与承受伤害、固定修正与比例修正分别约定，见 [伤害修正](../../packs/base/src/effects/damage-modifiers.generated.ts)                                                                                    |
-| 命中率和暴击结果调整         | 幅度，以及固定条件模板所需的参数                   | 必中、必暴和普通概率修正保留独立含义，见 [技能结果](../../packs/base/src/effects/skill-outcomes.generated.ts)                                                                                                |
-| 下一次技能强化并消费印记     | 强化值、支持的技能范围、消费量                     | 强化与消费保留在一个完整流程中，包含命中或未命中时是否消费，见 [技能结果序列](../../packs/base/src/effects/skill-outcome-sequences.generated.ts)                                                             |
-| 多段次数调整                 | 次数、概率或已支持的每层换算系数                   | 设置次数与追加次数分开；保留检查阶段和多段触发规则，见 [多段效果](../../packs/base/src/effects/multihit.generated.ts)                                                                                        |
-| 伤害后治疗或获得怒气         | 治疗比例、伤害阈值、怒气量                         | 目前读取 `damageResult`，不能宣传为按实际扣血量治疗；保留伤害归属与取整，见 [伤害收益](../../packs/base/src/effects/damage-benefits.ts)                                                                      |
-| 周期生命变化与怒气变化       | 数量或固定比例                                     | 回合末、命中、暴击等使用各自完整流程，见 [生命怒气操作](../../packs/base/src/effects/vital-actions.generated.ts)、[怒气修正](../../packs/base/src/effects/rage-modifiers.generated.ts)                       |
-| 修正一次印记附加             | 印记引用、持续时间或层数上限修正                   | 只修正符合范围的一次附加，不改印记定义本身，见 [附加过程修正](../../packs/base/src/effects/mark-application-settings.generated.ts)                                                                           |
-| 免疫指定印记或类别           | 印记引用或受支持的状态类别                         | 明确接收方、附加前取消和已有状态处理；旧代码中的标签匹配方式也要保留或单独修正，见 [事件取消](../../packs/base/src/effects/event-cancellation.generated.ts)                                                  |
-| 状态转移                     | 官方支持的状态类别和对象关系                       | 转移与复制、层数与持续时间如何携带必须固定，见 [印记转移](../../packs/base/src/effects/mark-transfers.ts)                                                                                                    |
+| 机制族                       | 配置方向                                           | 保留的完整机制与来源                                                                                                                                                                                                       |
+| ---------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 换入或战斗开始时附加印记     | 印记引用、层数、概率                               | 各事件分别定义；区分本人换入和给另一只换入精灵加印记，见 [附加印记](../../packs/base/src/effects/mark-applications.generated.effect.ts)                                                                                    |
+| 受击后附加印记               | 印记引用、概率、层数                               | 明确攻击者与受击者，以及物理伤害等固定版本，见同一 [附加印记文件](../../packs/base/src/effects/mark-applications.generated.effect.ts)                                                                                      |
+| 印记到期或销毁后附加另一印记 | 后继印记引用、层数                                 | 到期与销毁为两个独立事件；同时挂载两个模板会各执行一次。拒绝自身后继和带互斥组的后继，避免消失或递归销毁，见同一 [附加印记文件](../../packs/base/src/effects/mark-applications.generated.effect.ts)                        |
+| 周期增长或消耗层数           | 每次数值                                           | 回合末与使用技能后为不同模板；是否要求持有者出战写入合同，见 [层数增长](../../packs/base/src/effects/mark-stack-gains.generated.effect.ts)、[自动消耗](../../packs/base/src/effects/automatic-stack-consumption.effect.ts) |
+| 印记修改技能属性             | 属性、数值、允许的技能范围                         | 全部技能、固定元素、标签、具体技能引用等有限范围分别声明；明确新获得技能是否跟随，见 [技能贡献](../../packs/base/src/effects/skill-contributions.generated.effect.ts)                                                      |
+| 调整技能威力                 | 倍率或增量，以及模板明确支持的元素、标签或印记引用 | 每个模板固定条件种类；生命阈值、印记存在、体重换算等不合并成任意条件表，见 [技能威力](../../packs/base/src/effects/skill-power.generated.effect.ts)                                                                        |
+| 调整造成或承受的伤害         | 数值、比例或每层系数                               | 造成伤害与承受伤害、固定修正与比例修正分别约定，见 [伤害修正](../../packs/base/src/effects/damage-modifiers.generated.effect.ts)                                                                                           |
+| 命中率和暴击结果调整         | 幅度，以及固定条件模板所需的参数                   | 必中、必暴和普通概率修正保留独立含义，见 [技能结果](../../packs/base/src/effects/skill-outcomes.generated.effect.ts)                                                                                                       |
+| 下一次技能强化并消费印记     | 强化值、支持的技能范围、消费量                     | 强化与消费保留在一个完整流程中，包含命中或未命中时是否消费，见 [技能结果序列](../../packs/base/src/effects/skill-outcome-sequences.generated.effect.ts)                                                                    |
+| 多段次数调整                 | 次数、概率或已支持的每层换算系数                   | 设置次数与追加次数分开；保留检查阶段和多段触发规则，见 [多段效果](../../packs/base/src/effects/multihit.generated.effect.ts)                                                                                               |
+| 伤害后治疗或获得怒气         | 治疗比例、伤害阈值、怒气量                         | 目前读取 `damageResult`，不能宣传为按实际扣血量治疗；保留伤害归属与取整，见 [伤害收益](../../packs/base/src/effects/damage-benefits.effect.ts)                                                                             |
+| 周期生命变化与怒气变化       | 数量或固定比例                                     | 回合末、命中、暴击等使用各自完整流程，见 [生命怒气操作](../../packs/base/src/effects/vital-actions.generated.effect.ts)、[怒气修正](../../packs/base/src/effects/rage-modifiers.generated.effect.ts)                       |
+| 修正一次印记附加             | 印记引用、持续时间或层数上限修正                   | 只修正符合范围的一次附加，不改印记定义本身，见 [附加过程修正](../../packs/base/src/effects/mark-application-settings.generated.effect.ts)                                                                                  |
+| 免疫指定印记或类别           | 印记引用或受支持的状态类别                         | 明确接收方、附加前取消和已有状态处理；旧代码中的标签匹配方式也要保留或单独修正，见 [事件取消](../../packs/base/src/effects/event-cancellation.generated.effect.ts)                                                         |
+| 状态转移                     | 官方支持的状态类别和对象关系                       | 转移与复制、层数与持续时间如何携带必须固定，见 [印记转移](../../packs/base/src/effects/mark-transfers.effect.ts)                                                                                                           |
 
 这些机制提供有限选择项，不开放任意目标查询、条件嵌套和公式编写。
 
@@ -89,7 +89,7 @@
 
 随机技能、随机临时效果、技能复制和变换、时光重生、伤害阈值保护、跨效果命名参数修饰等，先保留为带明确依赖的专用内容。能够迁移到其他技能或印记上的，才作为完整效果条目开放；引用了特定技能、印记或参数地址的实现不能默认任意移植。
 
-来源包括 [随机技能](../../packs/base/src/effects/random-skill.ts)、[随机临时效果](../../packs/base/src/effects/random-temporary-effect.ts)、[技能变换](../../packs/base/src/effects/skill-transformation.ts)、[时光重生](../../packs/base/src/effects/authored/time-rebirth.ts)、[上下文控制](../../packs/base/src/effects/context-controls.generated.ts)、[命名参数修饰](../../packs/base/src/effects/named-parameters.ts)。
+来源包括 [随机技能](../../packs/base/src/effects/random-skill.effect.ts)、[随机临时效果](../../packs/base/src/effects/random-temporary-effect.effect.ts)、[技能变换](../../packs/base/src/effects/skill-transformation.effect.ts)、[时光重生](../../packs/base/src/effects/authored/time-rebirth.ts)、[上下文控制](../../packs/base/src/effects/context-controls.generated.effect.ts)、[命名参数修饰](../../packs/base/src/effects/named-parameters.effect.ts)。
 
 ## 模板需要公开的合同
 

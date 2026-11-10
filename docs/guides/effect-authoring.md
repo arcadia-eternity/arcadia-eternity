@@ -12,7 +12,7 @@
 
 直接创建可执行效果时使用 `compileEffect({ id, triggers, when, apply })`。需要单独导出定义，或由宿主在 `build()` 返回后编译时，使用 `defineEffect({ id, triggers, when, apply })`。
 
-从 `@arcadia-eternity/battle/authoring` 导入 `defineEffects`，用 `defineEffects({ effectId: { triggers, apply } })` 编写效果组。键名就是效果 ID，SDK 负责编译并冻结效果表。基础包在 `candidate-catalog.ts` 装配各组。 [编写工具](../../packages/battle/src/engine/content/authoring/define-effects.ts) · [效果目录](../../packs/base/src/candidate-catalog.ts)
+效果装载采用标准装饰器与文件自动发现，详见 [装饰器与 SDK 装载](effect-loading-redesign.md)。普通内容包使用 `@effect` / `@on`；基础包的固定效果族使用 `@effectGroup`。新增 `*.effect.ts` 不需要修改中央注册表。已有 `defineEffects` 和原生操作继续用于效果机制实现。
 
 两者都从 `triggers` 推导回调类型，从 `parameters` 推导参数名称和类型。`triggers` 始终是 `EffectTrigger` 数组，单触发也使用数组。多触发效果可以用 `ctx.trigger` 缩窄 `ctx.parent` 的事件类型。辅助上下文另外提供 `read` 和 `ops`，不修改引擎原始上下文。直接事件与 `contexts.nearestSkillUse` 等祖先查询分别使用；嵌套伤害/效果不能凭直接父级推断施放者。
 

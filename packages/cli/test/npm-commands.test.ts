@@ -36,6 +36,7 @@ beforeAll(async () => {
     [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(root, 'examples/ugc/slow/tsconfig.json')],
     { cwd: root },
   )
+  await exec(process.execPath, ['build.mjs'], { cwd: join(root, 'examples/ugc/slow') })
   const { stdout } = await exec('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temporary], {
     cwd: join(root, 'examples/ugc/slow'),
   })
@@ -93,8 +94,10 @@ it('installs, inspects and requires separate explicit approval before executing 
   const validated = await invoke(['content', 'validate', '--npm-project', environment])
   expect(validated.valid).toBe(true)
   const admission = await readFile(join(environment, 'arcadia-admission.json'), 'utf8')
-  const effects = join(environment, 'node_modules/@arcadia-example/slow/dist/effects.js')
-  await writeFile(effects, (await readFile(effects, 'utf8')) + '\n// Local edit, no renewed approval required.\n')
+  const effects = join(environment, 'node_modules/@arcadia-example/slow/dist/arcadia-effects.json')
+  const localEdit = JSON.parse(await readFile(effects, 'utf8'))
+  localEdit.source += '\n// Local edit, no renewed approval required.\n'
+  await writeFile(effects, JSON.stringify(localEdit))
   expect((await invoke(['content', 'validate', '--npm-project', environment])).valid).toBe(true)
   expect(await readFile(join(environment, 'arcadia-admission.json'), 'utf8')).toBe(admission)
   await invoke(['content', 'npm', 'install', environment, '--offline'], 2)
@@ -131,12 +134,13 @@ it('records and replays an npm battle in an independent process with its approve
     'REPLAY_INITIAL',
   )
 
-  const effects = join(environment, 'node_modules/@arcadia-example/slow/dist/effects.js'),
+  const effects = join(environment, 'node_modules/@arcadia-example/slow/dist/arcadia-effects.json'),
     original = await readFile(effects, 'utf8')
-  const edited = original.replace('default: -25', 'default: -35')
-  expect(edited).not.toBe(original)
+  const edited = JSON.parse(original)
+  expect(edited.source).toMatch(/default:\s*-25\b/)
+  edited.source = edited.source.replace(/default:\s*-25\b/, 'default:-35')
   try {
-    await writeFile(effects, edited)
+    await writeFile(effects, JSON.stringify(edited))
     expect((await invoke(['battle', 'replay', file, '--npm-project', environment], 3)).diagnostics[0].code).toMatch(
       /^REPLAY_/,
     )
