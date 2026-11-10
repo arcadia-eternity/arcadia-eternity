@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { rolldown } from 'rolldown'
+import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-behavior-uses-'))
 const browserEnabled = process.argv.includes('--browser')
@@ -53,6 +54,7 @@ try {
       input: resolve('packages/battle/test/engine', suite.entry),
       platform,
       plugins: [
+        effectDiscoveryPlugin(resolve('packs/base'), ['src/effects', 'src/templates'], true),
         {
           name: 'behavior-use-boundary',
           resolveId(id) {
