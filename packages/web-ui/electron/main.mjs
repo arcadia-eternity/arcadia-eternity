@@ -442,17 +442,6 @@ function detectContentType(filePath) {
   }
 }
 
-function sanitizeFolderName(input) {
-  const trimmed = String(input ?? '').trim()
-  if (!trimmed || trimmed === '.' || trimmed === '..') return null
-
-  const normalized = trimmed.toLowerCase()
-  if ([...normalized].every(c => /[A-Za-z0-9_-]/.test(c))) {
-    return normalized
-  }
-  return null
-}
-
 function sanitizeExistingFolderName(input) {
   const trimmed = String(input ?? '').trim()
   if (!trimmed || trimmed === '.' || trimmed === '..') return null
@@ -520,19 +509,6 @@ function resolveWorkspacePackPath(folderNameInput, relativePathInput) {
   }
 
   return { folderName, packDir, relativePath, absolutePath }
-}
-
-function isValidPackId(input) {
-  const trimmed = String(input ?? '').trim()
-  if (!trimmed) return false
-  return trimmed.split('.').every(segment => segment.length > 0 && /^[A-Za-z0-9_-]+$/.test(segment))
-}
-
-function isValidSemverLike(input) {
-  const trimmed = String(input ?? '').trim()
-  if (!trimmed) return false
-  const parts = trimmed.split('.')
-  return parts.length === 3 && parts.every(part => /^\d+$/.test(part))
 }
 
 function hasTraversalSegment(value) {
@@ -1125,129 +1101,6 @@ async function buildWorkspaceIndex() {
       enabled: true,
       canDisable: false,
     }))
-}
-
-function listPackTemplates() {
-  return [
-    {
-      id: 'starter',
-      name: 'Starter Pack',
-      description: '基础可运行模板，包含最小的 effect/mark/skill/species 与 locales 结构',
-    },
-  ]
-}
-
-function starterTemplateFiles(packId, version) {
-  const packJson = JSON.stringify(
-    {
-      id: packId,
-      version,
-      engine: 'seer2-v2',
-      layoutVersion: 1,
-      presentation: 'presentation.json',
-      paths: {
-        dataDir: 'data',
-        localesDir: 'locales',
-      },
-      data: {
-        effects: ['effect.yaml'],
-        marks: ['mark.yaml'],
-        skills: ['skill.yaml'],
-        species: ['species.yaml'],
-      },
-      locales: {
-        'zh-CN': ['mark', 'skill', 'species', 'webui', 'battle'],
-      },
-    },
-    null,
-    2,
-  )
-
-  const presentationJson = JSON.stringify(
-    { version: 2, defaultLocale: 'zh-CN', bindings: [], resources: [], locales: {} },
-    null,
-    2,
-  )
-
-  return [
-    ['pack.json', packJson],
-    ['presentation.json', presentationJson],
-    [
-      'data/effect.yaml',
-      '- id: effect_template_power_up\n  trigger: OnDamage\n  priority: 0\n  apply:\n    type: addPower\n    target: useSkillContext\n    value: 10\n',
-    ],
-    ['data/mark.yaml', '- id: mark_template\n  effect:\n    - effect_template_power_up\n'],
-    [
-      'data/skill.yaml',
-      '- id: skill_template\n  element: Normal\n  category: Physical\n  target: opponent\n  power: 60\n  rage: 0\n  accuracy: 100\n  effect:\n    - effect_template_power_up\n',
-    ],
-    [
-      'data/species.yaml',
-      '- id: pet_template\n  num: 900001\n  element: Normal\n  baseStats:\n    hp: 100\n    atk: 100\n    def: 100\n    spa: 100\n    spd: 100\n    spe: 100\n  genderRatio: [50, 50]\n  heightRange: [10, 20]\n  weightRange: [10, 20]\n  ability: []\n  emblem: []\n  learnable_skills:\n    - level: 1\n      skill_id: skill_template\n      hidden: false\n',
-    ],
-    ['locales/zh-CN/mark.yaml', 'mark_template:\n  name: 模板印记\n'],
-    ['locales/zh-CN/skill.yaml', 'skill_template:\n  name: 模板技能\n'],
-    ['locales/zh-CN/species.yaml', 'pet_template:\n  name: 模板精灵\n'],
-    ['locales/zh-CN/webui.yaml', 'pack_template:\n  name: 模板数据包\n'],
-    ['locales/zh-CN/battle.yaml', 'template_message: 模板数据包已加载\n'],
-    ['README.md', '# Starter Pack\n\n此目录由内置模板生成，可直接在编辑器中按数据包维度进行修改。\n'],
-  ]
-}
-
-async function createPackFromTemplate(input) {
-  const templateId = typeof input?.template === 'string' && input.template ? input.template : 'starter'
-  if (templateId !== 'starter') {
-    throw new Error(`不支持的模板: ${templateId}`)
-  }
-
-  const folderName = sanitizeFolderName(input?.folderName)
-  if (!folderName) {
-    throw new Error('folderName 仅允许字母、数字、-、_，且不能为空')
-  }
-
-  const packId =
-    typeof input?.packId === 'string' && input.packId.trim()
-      ? input.packId.trim()
-      : `user.${folderName.replace(/-/g, '_')}`
-  if (!isValidPackId(packId)) {
-    throw new Error('packId 格式非法，建议使用 a.b.c 形式，且每段仅允许字母/数字/-/_')
-  }
-
-  const version = typeof input?.version === 'string' && input.version.trim() ? input.version.trim() : '0.1.0'
-  if (!isValidSemverLike(version)) {
-    throw new Error('version 必须是 x.y.z 数字格式')
-  }
-
-  if (!packsDir) {
-    throw new Error('packs 目录不可用')
-  }
-
-  await fs.mkdir(packsDir, { recursive: true })
-
-  const targetDir = path.join(packsDir, folderName)
-  if (await pathExists(targetDir)) {
-    throw new Error(`数据包目录已存在: ${folderName}`)
-  }
-
-  await fs.mkdir(targetDir, { recursive: true })
-
-  const files = starterTemplateFiles(packId, version)
-  const createdFiles = []
-
-  for (const [relativePath, content] of files) {
-    const destination = path.join(targetDir, relativePath)
-    await fs.mkdir(path.dirname(destination), { recursive: true })
-    await fs.writeFile(destination, content, 'utf8')
-    createdFiles.push(relativePath)
-  }
-
-  return {
-    folderName,
-    packId,
-    version,
-    packPath: targetDir,
-    createdFiles,
-  }
 }
 
 async function assertWorkspacePackDirExists(packDir, folderName) {
@@ -2109,9 +1962,7 @@ function setupIpcHandlers() {
   handle('desktop:list-cached-pets', async () => listCachedPets())
   handle('desktop:clear-pet-cache', async () => clearPetCache())
 
-  handle('desktop:list-pack-templates', () => listPackTemplates())
   handle('desktop:list-workspace-packs', async () => buildWorkspaceIndex())
-  handle('desktop:create-pack-from-template', async (_event, input) => createPackFromTemplate(input))
   handle('desktop:set-workspace-pack-enabled', async (_event, input) => setWorkspacePackEnabled(input))
   handle('desktop:read-workspace-pack-manifest', async (_event, input) => readWorkspacePackManifest(input))
   handle('desktop:write-workspace-pack-manifest', async (_event, input) => writeWorkspacePackManifest(input))

@@ -1,9 +1,3 @@
-interface PackTemplateSummary {
-  id: string
-  name: string
-  description: string
-}
-
 export interface WorkspacePackSummary {
   folderName: string
   id: string
@@ -11,21 +5,6 @@ export interface WorkspacePackSummary {
   manifestPath: string
   enabled: boolean
   canDisable: boolean
-}
-
-interface CreatePackFromTemplateInput {
-  folderName: string
-  packId?: string
-  version?: string
-  template?: string
-}
-
-interface CreatePackFromTemplateResult {
-  folderName: string
-  packId: string
-  version: string
-  packPath: string
-  createdFiles: string[]
 }
 
 interface SetWorkspacePackEnabledInput {
@@ -194,9 +173,7 @@ export interface ArcadiaDesktopApi {
   downloadPetSwf: (petNum: number, remoteUrl: string) => Promise<string>
   listCachedPets: () => Promise<number[]>
   clearPetCache: () => Promise<void>
-  listPackTemplates: () => Promise<PackTemplateSummary[]>
   listWorkspacePacks: () => Promise<WorkspacePackSummary[]>
-  createPackFromTemplate: (input: CreatePackFromTemplateInput) => Promise<CreatePackFromTemplateResult>
   setWorkspacePackEnabled: (input: SetWorkspacePackEnabledInput) => Promise<SetWorkspacePackEnabledResult>
   readWorkspacePackManifest: (input: ReadWorkspacePackManifestInput) => Promise<ReadWorkspacePackManifestResult>
   writeWorkspacePackManifest: (input: WriteWorkspacePackManifestInput) => Promise<void>
