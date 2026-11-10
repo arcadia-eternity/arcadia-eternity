@@ -58,7 +58,7 @@ test('clean production clients synchronize custom content, form teams, play a tu
   browser,
 }, testInfo) => {
   const root = fileURLToPath(new URL('../../../', import.meta.url))
-  const fixture = await createNpmFixture({ presentation: true })
+  const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })
   const app = createSingleProcessApp({ host: '127.0.0.1', port: 0, webRoot: resolve(root, 'dist/web') })
   const contexts = await Promise.all([browser.newContext(), browser.newContext()])
   try {
@@ -97,7 +97,7 @@ test('clean production clients synchronize custom content, form teams, play a tu
     const timer = dialog.getByRole('switch').first()
     if ((await timer.getAttribute('aria-checked')) === 'true') await timer.click()
     await host.getByTestId('room-environment-select').click()
-    await host.getByRole('option', { name: '@arcadia-example/slow 1.0.0', exact: true }).click()
+    await host.getByRole('option', { name: /@arcadia-example\/slow 1\.0\.0/ }).click()
     await host.getByTestId('confirm-create-private-room-button').click()
     await expect(host).toHaveURL(/\/room\/[^/?#]+/, { timeout: 30_000 })
     console.log('Custom room created', host.url())
