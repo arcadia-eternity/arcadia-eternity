@@ -128,11 +128,9 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       if (error) throw new Error(error.message)
       try {
         const { result: snapshot } = await api.author({ action: 'snapshot', id: project.id })
-        const creator = await api.readCreatorBase()
         return {
           project,
           skillCount: snapshot.records.filter(row => row.kind === 'skills').length,
-          creatorSkillCount: creator.data.skills.length,
         }
       } finally {
         await api.author({ action: 'forget', id: project.id })
@@ -142,7 +140,6 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     assert.equal(base.project.readOnly, true)
     assert.match(base.project.directory, /[/\\]node_modules[/\\]@arcadia-eternity[/\\]data-pack-base$/)
     assert.equal(base.skillCount, content.skills)
-    assert.equal(base.creatorSkillCount, content.skills)
     await expect(page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })).toBeVisible({
       timeout: 90000,
     })

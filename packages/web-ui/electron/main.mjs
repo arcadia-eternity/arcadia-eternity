@@ -100,7 +100,6 @@ let localServer = null
 let localServerPort = null
 let petsDir = null
 let packsDir = null
-let creatorWorkStorage
 let contentProjects
 let contentLibrary
 let managementWorkspaceOwner
@@ -322,26 +321,6 @@ function getContentProjects() {
   })
   return contentProjects
 }
-async function getCreatorWorkStorage() {
-  const loader = app.isPackaged
-    ? pathToFileURL(
-        path.join(
-          process.resourcesPath,
-          'arcadia-server',
-          'node_modules',
-          '@arcadia-eternity',
-          'pack-loader',
-          'dist',
-          'node.js',
-        ),
-      ).href
-    : '@arcadia-eternity/pack-loader/node'
-  creatorWorkStorage ??= import(loader).then(
-    ({ NodeWorkStorage }) => new NodeWorkStorage(path.join(app.getPath('userData'), 'creator-works')),
-  )
-  return creatorWorkStorage
-}
-
 function buildContextMenuTemplate(window, params) {
   const template = []
   const editFlags = params.editFlags ?? {}
@@ -1997,10 +1976,6 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true })
   })
-  handle('desktop:read-creator-base', event => {
-    requireLocalBattleCaller(event)
-    return getLocalContentSessions().readCreatorBase()
-  })
   handle('desktop:read-local-runtime', (_event, token) => {
     return getLocalContentSessions().readRuntime(token, localContentOwner.current())
   })
@@ -2120,12 +2095,6 @@ function setupIpcHandlers() {
       return true
     }
     return manager.operate(input.id, input.action, { offline: input.offline === true })
-  })
-
-  handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
-  handle('desktop:write-work-workspace', async (_event, input) => {
-    if (!Number.isSafeInteger(input?.expected) || input.expected < 0) throw new Error('Invalid workspace revision')
-    return (await getCreatorWorkStorage()).compareAndSwap(input.expected, input.workspace)
   })
 
   handle('desktop:get-local-server-port', () => localServerPort)

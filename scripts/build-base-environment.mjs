@@ -62,8 +62,6 @@ export async function buildBaseEnvironmentArtifact() {
     const catalog = official.createOfficialContent(data, identity.registryBuildId)
     const metadata = {
       officialEffectIds: catalog.effects.map(effect => effect.id),
-      officialTemplateDefinitions: official.officialTemplateDefinitions,
-      officialEffectTemplates: official.officialEffectTemplates,
       officialEffectMarkRelations: official.officialEffectMarkRelations,
     }
     // Publish a static bridge for npm consumers of the reserved official IDs.
@@ -92,9 +90,8 @@ export async function buildBaseEnvironmentArtifact() {
         JSON.stringify({
           formatVersion: 1,
           build: identity,
-          templates: metadata.officialTemplateDefinitions,
+          templates: [],
           effectIds: metadata.officialEffectIds,
-          effectTemplates: metadata.officialEffectTemplates,
           effectMarkRelations: metadata.officialEffectMarkRelations,
         }) + '\n',
       ),
@@ -112,7 +109,7 @@ export async function buildBaseEnvironmentArtifact() {
         ...Object.entries(metadata).map(
           ([name, value]) => `export const ${name} = Object.freeze(${JSON.stringify(value)});`,
         ),
-        'export const createOfficialContentIndex = (data, revision) => createContentIndex(data, revision, { templates: officialTemplateDefinitions, effectIds: officialEffectIds });',
+        'export const createOfficialContentIndex = (data, revision) => createContentIndex(data, revision, { templates: [], effectIds: officialEffectIds });',
         '',
       ].join('\n'),
     )
@@ -121,7 +118,7 @@ export async function buildBaseEnvironmentArtifact() {
       [
         "import type { ContentPrototypeData, ContentIndex } from '@arcadia-eternity/battle/engine';",
         'export declare const officialEffectIds: readonly string[];',
-        ...['officialTemplateDefinitions', 'officialEffectTemplates', 'officialEffectMarkRelations'].map(
+        ...['officialEffectMarkRelations'].map(
           name => `export declare const ${name}: typeof import('./types/effects').${name};`,
         ),
         'export declare const createOfficialContentIndex: (data: ContentPrototypeData, revision: string) => ContentIndex;',

@@ -54,7 +54,7 @@ UGC 新效果直接以 TypeScript 编写，经 npm 产物安装和宿主准入�
 
 执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。效果执行入口、SDK 动作组合和受计费的值计算均参与计数；具体计费位置见 [SDK 预算合同](effect-sdk.md#执行预算与失败)。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/engine/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
 
-creator 与 CLI 已接入作品运行；完整宿主体验、Mod 安装准入、服务端环境策略及资源预算矩阵仍有独立验收。能力允许列表和有限参数不能代替对可信 TS 实现的审查。
+作者工作台与 CLI 已接入作品运行；完整宿主体验、Mod 安装准入、服务端环境策略及资源预算矩阵仍有独立验收。能力允许列表和有限参数不能代替对可信 TS 实现的审查。
 
 ## 维护与检查
 

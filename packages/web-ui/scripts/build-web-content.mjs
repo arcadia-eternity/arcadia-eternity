@@ -35,7 +35,6 @@ export async function buildWebContent(
       build: prepared.build,
       templates: sandbox.data.behaviors ?? [],
       effectIds: prepared.authoring?.effectIds ?? [],
-      effectTemplates: prepared.authoring?.effectTemplates ?? [],
       effectMarkRelations: prepared.authoring?.effectMarkRelations ?? {},
     }
     const writeJson = (path, value) => files.set(path, JSON.stringify(value))

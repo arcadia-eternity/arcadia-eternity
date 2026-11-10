@@ -51,7 +51,6 @@ async function readCatalogPackage(root: string) {
     effectIds: metadata.effectIds as string[],
     effectModules: [{ artifact, namespace: '', role: 'catalog' as const }],
     presentation: presentation ? parseWithErrors(PresentationManifestSchema, presentation) : undefined,
-    effectTemplates: Array.isArray(metadata.effectTemplates) ? metadata.effectTemplates : [],
     effectMarkRelations: metadata.effectMarkRelations ?? {},
   }
 }
@@ -146,8 +145,8 @@ export async function installedOfficialHost(root: string, installation: NpmProje
   if (packages.length !== 1) fail('CONTENT_VERSION_CONFLICT', 'base', 'Official base must have one installed version')
   const pkg = packages[0]!
   const metadata = await readCatalogPackage(resolve(root, pkg.location))
-  const { build, templates, effectIds, effectTemplates, effectMarkRelations } = metadata
-  const authoring = { build, templates, effectIds, effectTemplates, effectMarkRelations }
+  const { build, templates, effectIds, effectMarkRelations } = metadata
+  const authoring = { build, templates, effectIds, effectMarkRelations }
   let presentationPackages = installation.packages
   if (metadata.presentation) {
     const draft = createDraft('official-catalog', 'Official catalog')

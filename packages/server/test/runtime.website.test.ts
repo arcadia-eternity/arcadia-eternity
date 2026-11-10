@@ -41,6 +41,7 @@ it('serves config and deep links while missing service/resource paths remain err
     '/management/',
     '/room/invite',
     '/team-builder',
+    '/content/edit/project-id',
     '/dex/species/pet',
     '/local-battle-reports/id/play',
   ]) {

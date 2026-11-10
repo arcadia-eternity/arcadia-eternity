@@ -8,7 +8,7 @@
 | 官方内容文件、系列归属与批量整理      | [内容结构](guides/content-structure.md)                                                                                                      |
 | 创建 npm 内容包、桌面工作台与外部助手 | [作者入门](guides/ugc-authoring-start.md)、[工具链职责](guides/ugc-toolchain-design.md)                                                      |
 | TypeScript 效果、参数与持续取值       | [Effect SDK](guides/effect-sdk.md)、[效果编写](guides/effect-authoring.md)                                                                   |
-| 行为定义、独立使用与已有模板          | [行为使用](guides/behavior-uses.md)、[模板目录](guides/ugc-effect-catalog.md)                                                                |
+| 行为定义与独立使用                    | [行为使用](guides/behavior-uses.md)                                                                                                          |
 | 包安装、版本选择与源码编辑边界        | [内容管理](guides/content-management.md)、[管理界面](guides/content-manager-design.md)                                                       |
 | npm 依赖、准入、环境与项目导出        | [npm 内容包](guides/npm-content.md)                                                                                                          |
 | 资源、表现、语言与描述配色            | [内容表现](guides/content-presentation.md)                                                                                                   |

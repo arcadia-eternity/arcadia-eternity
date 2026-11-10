@@ -165,7 +165,6 @@ export interface ArcadiaDesktopApi {
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
   }>
   readLocalRuntime?: (token: string) => Promise<import('@arcadia-eternity/battle/sandbox').SandboxEnvironment>
-  readCreatorBase?: () => Promise<import('@/features/creator/content').CreatorContent>
   capturePersonalEnvironment?: () => Promise<{
     environment: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
@@ -191,11 +190,6 @@ export interface ArcadiaDesktopApi {
   getLocalBattleStatus?: () => Promise<LocalBattleHostStatus>
   installContentPackageFile?: (options?: { offline?: boolean }) => Promise<string | null>
   installNpmContentPackage?: (options: { spec: string; offline?: boolean }) => Promise<string>
-  readWorkWorkspace?: () => Promise<import('@arcadia-eternity/pack-loader/native').WorkSnapshot>
-  compareAndSwapWorkWorkspace?: (input: {
-    expected: number
-    workspace: import('@arcadia-eternity/pack-loader/native').WorkWorkspace
-  }) => Promise<boolean>
   getLocalServerPort: () => Promise<number | null>
   downloadPetSwf: (petNum: number, remoteUrl: string) => Promise<string>
   listCachedPets: () => Promise<number[]>

@@ -1,7 +1,6 @@
 import type { ContentCatalog } from '@arcadia-eternity/battle/engine'
 import * as resolver from '@arcadia-eternity/battle/pack'
 import { NativePackLoader } from './src/native-loader'
-export { NodeWorkStorage } from './src/node-work-storage'
 export { readNpmAdmission } from './src/npm/admission'
 export { resolveNpmInvocation } from './src/npm/runner'
 export { inspectNpmProject, type NpmProjectInspection, type NpmContentManifest } from './src/npm/inspect'

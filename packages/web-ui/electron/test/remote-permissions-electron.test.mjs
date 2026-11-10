@@ -176,7 +176,7 @@ test(
         .catch(error => {
           if (!error.message.includes('closed')) throw error
         })
-      assert.equal(await manager.evaluate(() => typeof window.arcadiaDesktop.readWorkWorkspace), 'function')
+      assert.equal(await manager.evaluate(() => typeof window.arcadiaDesktop.listContentProjects), 'function')
     } finally {
       if (app) await app.close()
       if (bundled) {

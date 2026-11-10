@@ -42,7 +42,6 @@
     "verify:battle-native-pack": "node scripts/verify-native-pack.mjs --browser",
     "verify:battle-waiting-snapshots": "node scripts/verify-waiting-snapshots.mjs --browser",
     "verify:battle-behaviors": "node scripts/verify-behavior-uses.mjs --browser",
-    "verify:battle-templates": "node scripts/verify-behavior-uses.mjs --templates --browser",
     "verify:battle-hosts": "node scripts/verify-battle-hosts.mjs --browser",
     "lint:battle": "pnpm exec eslint --config eslint.config.battle.js packages/battle packs/base",
     "battle:demo": "tsx scripts/run-battle.ts",

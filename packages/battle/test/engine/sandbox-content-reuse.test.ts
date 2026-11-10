@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import officialEffectArtifact from '@arcadia-eternity/data-pack-base/effects?effect-module'
-import { officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/effects'
 import { LocalBattleSystem } from '../../host'
 import { expect, it, vi } from 'vitest'
 import { getQuickJS } from 'quickjs-emscripten'
@@ -172,7 +171,6 @@ it('reuses the complete official catalog after actions, cleanup and checkpoint r
         marks: read('marks'),
         skills: read('skills'),
         species: read('species'),
-        behaviors: officialTemplateDefinitions,
       },
       modules: [{ artifact: officialEffectArtifact, role: 'catalog', namespace: '' }],
     },
