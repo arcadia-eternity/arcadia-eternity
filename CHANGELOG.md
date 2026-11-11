@@ -1,5 +1,37 @@
 # Changelog
 
+## [4.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.4...arcadia-eternity-v4.4.0) (2026-11-11)
+
+
+### ✨ Features
+
+* **content:** publish compiled read-only npm packs ([ecf99dc](https://github.com/arcadia-eternity/arcadia-eternity/commit/ecf99dcbfec5e121f39b5a83923f320923113f1a))
+
+
+### 🐛 Bug Fixes
+
+* **base:** remove bundled Bingchuantun images ([28c053d](https://github.com/arcadia-eternity/arcadia-eternity/commit/28c053db23718e53c687c888ae3773f583d6f95e))
+* **ci:** support tsgo bridge in Docker and content SDK ([23f8689](https://github.com/arcadia-eternity/arcadia-eternity/commit/23f8689a692752cb528b5d129f6ec8ea53da5b69))
+* **content-sdk:** prune unused migration exports ([20d6260](https://github.com/arcadia-eternity/arcadia-eternity/commit/20d62600eb3287d3da02dde0ece4ce71f82dfb72))
+* **pack-loader:** separate source and published pack entries ([5843e61](https://github.com/arcadia-eternity/arcadia-eternity/commit/5843e61e5fcf57763f95d20f01e629a775954048))
+* **server:** skip base asset copy when the pack ships none ([2798db2](https://github.com/arcadia-eternity/arcadia-eternity/commit/2798db214f884703c2759adbe6ef08c1ebd9b3e2))
+* **web-ui:** read desktop resources from the prepared content session ([1355ae6](https://github.com/arcadia-eternity/arcadia-eternity/commit/1355ae6867f5190234adeac4408221e84b7bc63a))
+
+
+### 📚 Documentation
+
+* clarify editable workspace package read path ([d162329](https://github.com/arcadia-eternity/arcadia-eternity/commit/d1623295c4e7b626ecb314b330b00f9f79181972))
+* document base and UGC content read paths ([54d5557](https://github.com/arcadia-eternity/arcadia-eternity/commit/54d55579709e26263656401c970ccc1ac9ac8dd7))
+
+
+### ♻️ Code Refactoring
+
+* **content-sdk:** enforce strict TypeScript and lint rules ([307eebf](https://github.com/arcadia-eternity/arcadia-eternity/commit/307eebfc68d3d14a55b8dc810c20e99bdb14b284))
+* **content-sdk:** migrate implementation to TypeScript ([0ba41d9](https://github.com/arcadia-eternity/arcadia-eternity/commit/0ba41d979e4b43e47f2480c280fb79708dedb89b))
+* remove legacy creator workspace and templates ([b59b788](https://github.com/arcadia-eternity/arcadia-eternity/commit/b59b788d8ce7d8c8acb544523c35e3c0e9d8a1ea))
+* remove unused desktop pack template generators ([78704d7](https://github.com/arcadia-eternity/arcadia-eternity/commit/78704d7679d0653d3093da20f3e460426fe432df))
+* **web-ui:** remove legacy desktop packs workspace ([aedf2cf](https://github.com/arcadia-eternity/arcadia-eternity/commit/aedf2cf86fe2c7685839e434ff8737d7835eac5e))
+
 ## [4.3.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.3...arcadia-eternity-v4.3.4) (2026-11-10)
 
 
