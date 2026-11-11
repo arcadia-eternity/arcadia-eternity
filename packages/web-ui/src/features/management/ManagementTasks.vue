@@ -15,6 +15,7 @@ import {
   ElTabPane,
 } from 'element-plus'
 import type { ManagementController } from './useManagementController'
+import type { ManagementOperation } from '@/types/management'
 import { serverBackupDownload } from './useManagementConsole'
 const { controller } = defineProps<{ controller: ManagementController }>()
 const {
@@ -38,6 +39,12 @@ const {
 const history = ref('operations')
 const query = ref('')
 const status = ref('')
+function backupDownload(row: Record<PropertyKey, unknown>) {
+  return serverBackupDownload(row as unknown as ManagementOperation)
+}
+function backupTask(row: Record<PropertyKey, unknown>) {
+  return row as unknown as ManagementOperation
+}
 const operationPage = ref(1)
 const auditPage = ref(1)
 const pageSize = 15
@@ -157,18 +164,18 @@ const statusType = (value: string) =>
                 重试任务
               </ElButton>
               <template v-if="operation.kind === 'server.backup' && operation.status === 'succeeded' && canBackup">
-                <template v-if="serverBackupDownload(operation)">
+                <template v-if="backupDownload(operation)">
                   <p class="hint">
-                    {{ serverBackupDownload(operation)!.filename }} ·
-                    {{ (serverBackupDownload(operation)!.bytes / 1024 / 1024).toFixed(2) }} MiB · 有效至
-                    {{ new Date(serverBackupDownload(operation)!.expiresAt).toLocaleString() }}
+                    {{ backupDownload(operation)!.filename }} ·
+                    {{ (backupDownload(operation)!.bytes / 1024 / 1024).toFixed(2) }} MiB · 有效至
+                    {{ new Date(backupDownload(operation)!.expiresAt).toLocaleString() }}
                   </p>
                   <ElButton
-                    :disabled="busy || !!downloading || serverBackupDownload(operation)!.expiresAt <= Date.now()"
-                    @click="downloadBackup(operation)"
+                    :disabled="busy || !!downloading || backupDownload(operation)!.expiresAt <= Date.now()"
+                    @click="downloadBackup(backupTask(operation))"
                     native-type="button"
                     >{{
-                      serverBackupDownload(operation)!.expiresAt <= Date.now()
+                      backupDownload(operation)!.expiresAt <= Date.now()
                         ? '备份文件已过期'
                         : downloading === operation.id
                           ? '正在下载备份…'

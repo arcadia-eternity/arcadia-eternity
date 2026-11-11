@@ -4,7 +4,7 @@ export { referenceTopics } from './author-reference.mjs'
 
 export const version = z.string().regex(/^[a-f0-9]{64}$/)
 export const identifier = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,79}$/)
-export const record = z.record(z.unknown())
+export const record = z.record(z.string(), z.unknown())
 const diagnosticSchema = z
   .object({
     code: z.string(),
@@ -58,7 +58,7 @@ const legacyEnvironment = z.object({
   schemaVersion: z.literal(1),
   id: identifier,
   name: z.string(),
-  packages: z.record(z.string()),
+  packages: z.record(z.string(), z.string()),
   sources: z.array(z.string()),
   version: version.nullable(),
 })

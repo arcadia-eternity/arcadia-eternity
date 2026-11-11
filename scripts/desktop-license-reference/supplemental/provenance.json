@@ -631,36 +631,36 @@
     },
     {
       "name": "jsondiffpatch",
-      "version": "0.7.6",
+      "version": "0.7.7",
       "declaredLicense": "MIT",
       "status": "verified",
       "registry": {
-        "url": "https://registry.npmjs.org/jsondiffpatch/0.7.6",
-        "integrity": "sha512-zE9+AXFq+MkTolDor2Cw1nJzLC0aleqPkYf52Kb4Kn4mJcka/gFHpGI2JBVEJCfWOvBl0OoxZS+wuLdislQcqg==",
-        "gitHead": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
-        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/jsondiffpatch@0.7.6"
+        "url": "https://registry.npmjs.org/jsondiffpatch/0.7.7",
+        "integrity": "sha512-C3375q+xluwQYS6Je613YqXpZhW9uSi2YFRR+8QTJVYhdk0GZiDr7HD9bXNrdV9PJCpmwsCgJM9ZXXESSZPCzA==",
+        "gitHead": "ce76b39942891bbbeb60bf6a2ab3b7cbdb758923",
+        "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/jsondiffpatch@0.7.7"
       },
       "files": [
         {
-          "file": "jsondiffpatch-0.7.6-README.md.txt",
+          "file": "jsondiffpatch-0.7.7-README.md.txt",
           "sha256": "b66de79c1b1895c740f47ba1eaa6125eb97abb47bde756cce589b97d51fd0036",
           "license": "MIT",
           "kind": "declaration",
-          "sourceUrl": "https://raw.githubusercontent.com/benjamine/jsondiffpatch/a60db8a232f92ee4b987c14f43f77402885d1a5a/README.md",
-          "sourceCommit": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
+          "sourceUrl": "https://raw.githubusercontent.com/benjamine/jsondiffpatch/ce76b39942891bbbeb60bf6a2ab3b7cbdb758923/README.md",
+          "sourceCommit": "ce76b39942891bbbeb60bf6a2ab3b7cbdb758923",
           "sourcePath": "README.md"
         },
         {
-          "file": "jsondiffpatch-0.7.6-MIT-LICENSE.txt",
+          "file": "jsondiffpatch-0.7.7-MIT-LICENSE.txt",
           "sha256": "d8690c69e1c144eced7ca92271413a978b169276ea79c5b4728a71eaede742f7",
           "license": "MIT",
           "kind": "license",
-          "sourceUrl": "https://raw.githubusercontent.com/benjamine/jsondiffpatch/a60db8a232f92ee4b987c14f43f77402885d1a5a/MIT-LICENSE.txt",
-          "sourceCommit": "a60db8a232f92ee4b987c14f43f77402885d1a5a",
+          "sourceUrl": "https://raw.githubusercontent.com/benjamine/jsondiffpatch/ce76b39942891bbbeb60bf6a2ab3b7cbdb758923/MIT-LICENSE.txt",
+          "sourceCommit": "ce76b39942891bbbeb60bf6a2ab3b7cbdb758923",
           "sourcePath": "MIT-LICENSE.txt"
         }
       ],
-      "note": "The exact published source commit contains the complete original MIT notice in MIT-LICENSE.txt. The npm archive omits that file; the earlier filename search missed its MIT- prefix. The original source bytes and attribution are preserved unchanged."
+      "note": "The exact published source commit contains the complete original MIT notice in MIT-LICENSE.txt. The npm archive omits that file; the original source bytes and attribution are preserved unchanged."
     },
     {
       "name": "keyv",

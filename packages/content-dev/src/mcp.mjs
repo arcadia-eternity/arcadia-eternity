@@ -129,7 +129,7 @@ if (!session.workspace.readOnly)
               .nullable(),
             index: z.number().int().min(0).nullable().optional(),
             id: z.string().optional(),
-            record: z.record(z.unknown()),
+            record: z.record(z.string(), z.unknown()),
           }),
         )
         .min(1)

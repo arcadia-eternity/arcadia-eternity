@@ -27,9 +27,9 @@ export async function bundledNotices(moduleIds) {
   for (const [name, directory] of [...packages].sort(([a], [b]) => a.localeCompare(b))) {
     const files = (await readdir(directory)).filter(name => /^(license|licence|copying|notice)([.-]|$)/i.test(name))
     if (!files.some(name => /^(license|licence|copying)([.-]|$)/i.test(name))) {
-      if (name !== 'jsondiffpatch@0.7.6') throw new Error(`Missing bundled dependency license: ${name}`)
+      if (name !== 'jsondiffpatch@0.7.7') throw new Error(`Missing bundled dependency license: ${name}`)
       notices.push(
-        `## ${name}\n\n${await readFile(new URL('./release-license-reference/jsondiffpatch-0.7.6.txt', import.meta.url), 'utf8')}`,
+        `## ${name}\n\n${await readFile(new URL('./release-license-reference/jsondiffpatch-0.7.7.txt', import.meta.url), 'utf8')}`,
       )
       continue
     }

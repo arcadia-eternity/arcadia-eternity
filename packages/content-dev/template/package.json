@@ -19,7 +19,7 @@
     "mcp": "arcadia-content-mcp ."
   },
   "devDependencies": {
-    "@types/node": "25.6.0",
+    "@types/node": "26.6.6",
     "typescript": "6.0.3",
     "@arcadia-eternity/content-sdk": "4.3.4"
   },

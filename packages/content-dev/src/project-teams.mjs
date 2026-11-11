@@ -19,7 +19,7 @@ export const teamEnvelopeSchema = z
       .min(1)
       .max(80)
       .refine(value => !!value.trim())
-      .transform(value => value.trim()),
+      .overwrite(value => value.trim()),
     team: z.array(z.unknown()).max(6),
   })
   .strict()
@@ -29,7 +29,7 @@ export const portablePetSchema = {
   required: PetSchema.required.filter(key => key !== 'id'),
   additionalProperties: false,
 }
-const portablePetInputSchema = z.record(z.unknown()).transform((value, context) => {
+const portablePetInputSchema = z.record(z.string(), z.unknown()).transform((value, context) => {
   try {
     if (Object.keys(value).some(key => !petKeys.includes(key))) throw new Error('精灵配置包含运行时编号或未知字段')
     const parsed = parseWithErrors(PetSchema, { ...value, id: '0'.repeat(21) })

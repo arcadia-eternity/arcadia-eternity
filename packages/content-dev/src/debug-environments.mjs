@@ -15,7 +15,7 @@ const sharedFields = {
     .min(1)
     .max(80)
     .refine(value => !!value.trim())
-    .transform(value => value.trim()),
+    .overwrite(value => value.trim()),
   packages: z.record(
     z.string().regex(packagePattern),
     z

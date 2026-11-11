@@ -16,7 +16,7 @@ import readline from 'readline'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import i18next from 'i18next'
 import { marked } from 'marked'
-import TerminalRenderer from 'marked-terminal'
+import { markedTerminal } from 'marked-terminal'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Delta } from 'jsondiffpatch'
 export class ConsoleUI {
@@ -41,13 +41,11 @@ export class ConsoleUI {
     this.setupEventHandlers()
     this.setupTimerEventListeners()
 
-    const renderer = new TerminalRenderer({
-      reflowText: false,
-    })
-
-    // 配置 marked
-    // @ts-expect-error marked.setOptions is deprecated but still functional
-    marked.setOptions({ renderer })
+    marked.use(
+      markedTerminal({
+        reflowText: false,
+      }),
+    )
     this.currentPlayer = currentPlayer
   }
 

@@ -13,22 +13,22 @@ allowBuilds:
   protobufjs: true
   vue-demi: true
 catalog:
-  '@typescript/native-preview': 7.0.0-dev.20260504.1
+  '@typescript/native-preview': 7.0.0-dev.20260707.2
   typescript: 6.0.3
-  nanoid: 5.1.16
-  '@sinclair/typebox': 0.34.48
-  vitest: 4.1.11
-  '@types/node': 25.6.0
-  jsondiffpatch: 0.7.6
-  yaml: 2.8.4
+  nanoid: 6.0.2
+  '@sinclair/typebox': 0.34.52
+  vitest: 5.1.0
+  '@types/node': 26.6.6
+  jsondiffpatch: 0.7.7
+  yaml: 2.9.1
   rxjs: 7.8.2
-  'socket.io-client': 4.8.3
-  i18next: 26.0.8
+  'socket.io-client': 4.8.4
+  i18next: 27.1.0
 linkWorkspacePackages: true
 overrides:
   # WebAuthn ASN.1 decorators and parsers must share the same schema registry.
   '@simplewebauthn/server>@peculiar/asn1-schema': '2.11.1'
-  yauzl: 3.2.1
+  yauzl: 3.4.0
   postcss: '^8.5.23'
   '@xmldom/xmldom': '^0.9.12'
   plist: 3.1.1

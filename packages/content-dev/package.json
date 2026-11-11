@@ -56,13 +56,13 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "chokidar": "^6.0.0",
     "mime-types": "^3.0.2",
-    "semver": "7.7.3",
-    "tar": "^7.5.21",
-    "yauzl": "3.2.1",
+    "semver": "7.8.6",
+    "tar": "^7.5.22",
     "typescript": "catalog:",
     "write-file-atomic": "^8.0.0",
     "yaml": "catalog:",
-    "zod": "3.25.76"
+    "yauzl": "3.4.0",
+    "zod": "4.6.7"
   },
   "repository": {
     "type": "git",

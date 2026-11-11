@@ -26,14 +26,13 @@
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
     "i18next": "catalog:",
-    "i18next-chained-backend": "^5.0.2",
-    "i18next-fs-backend": "^2.6.6",
+    "i18next-chained-backend": "^5.0.8",
+    "i18next-fs-backend": "^2.6.10",
     "jsondiffpatch": "catalog:",
-    "marked": "^17.0.4",
-    "marked-terminal": "^7.3.0"
+    "marked": "^18.2.0",
+    "marked-terminal": "^8.0.0"
   },
   "devDependencies": {
-    "@types/marked-terminal": "^6.1.1",
     "@types/node": "catalog:"
   }
 }

@@ -104,7 +104,7 @@ function save() {
         <ElFormItem v-for="[key, label] in fields" :key="key" :label="String(label)">
           <ElInput
             :name="key"
-            v-model.number="draft.battleCapacity[key]"
+            v-model.number="draft!.battleCapacity[key]"
             type="number"
             :min="key === 'maxConcurrentBattles' ? 1 : 0"
             required

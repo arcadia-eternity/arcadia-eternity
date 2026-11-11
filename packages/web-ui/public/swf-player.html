@@ -151,10 +151,10 @@
             const runtime = x.runtime
             const names = [
               'ruffle.js',
-              'core.ruffle.51d81af79f566b8c93f1.js',
-              'core.ruffle.8da0ccba5a3edadea24d.js',
-              'dcba28a55c2ebf0c3400.wasm',
-              'b87f447eb5eff39fdaec.wasm',
+              'core.ruffle.16d61072ac7fdc4d5013.js',
+              'core.ruffle.994eeef0a471a88cd0e3.js',
+              '878d548199cddef07035.wasm',
+              '172de42e6619eac8f371.wasm',
             ]
             if (
               !runtime ||
@@ -168,11 +168,11 @@
                 urls[name] = blob(runtime[name], name.endsWith('.wasm') ? 'application/wasm' : 'text/javascript')
               let js = new TextDecoder().decode(runtime['ruffle.js'])
               for (const name of names.slice(3)) js = js.replace('a.p+"' + name + '"', JSON.stringify(urls[name]))
-              const needle = '"core.ruffle."+{482:"51d81af79f566b8c93f1",655:"8da0ccba5a3edadea24d"}[e]+".js"'
+              const needle = '"core.ruffle."+{110:"16d61072ac7fdc4d5013",993:"994eeef0a471a88cd0e3"}[e]+".js"'
               if (!js.includes(needle)) throw Error('Unsupported bundled Ruffle build')
               js = js.replace(
                 needle,
-                '({482:' + JSON.stringify(urls[names[1]]) + ',655:' + JSON.stringify(urls[names[2]]) + '})[e]',
+                '({110:' + JSON.stringify(urls[names[1]]) + ',993:' + JSON.stringify(urls[names[2]]) + '})[e]',
               )
               window.RufflePlayer = { config: { publicPath: '', polyfills: false } }
               await new Promise((resolve, reject) => {

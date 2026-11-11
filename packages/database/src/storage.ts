@@ -1,5 +1,6 @@
 import Sqlite from 'better-sqlite3'
-import { Kysely, Migrator, PostgresDialect, SqliteDialect, sql, type Transaction } from 'kysely'
+import { Kysely, PostgresDialect, SqliteDialect, sql, type Transaction } from 'kysely'
+import { Migrator } from 'kysely/migration'
 import pg, { type Pool } from 'pg'
 import { ensureAccountSchema, validateAccountSchema } from './legacy-account-schema'
 
@@ -247,7 +248,9 @@ export class DurableStorage implements StorageTransaction {
         this.pool.on('error', reportConnectionError)
       }
       // Existing callers retain pool/error-handler ownership; Kysely still releases clients.
-      const pool = this.ownsPool ? this.pool : { connect: () => this.pool!.connect(), end: async () => {} }
+      const pool = this.ownsPool
+        ? this.pool
+        : { connect: () => this.pool!.connect(), end: async () => {}, options: this.pool!.options }
       this.database = new Kysely<Database>({ dialect: new PostgresDialect({ pool }) })
     }
   }
