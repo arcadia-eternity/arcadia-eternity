@@ -4,6 +4,7 @@ import { promisify } from 'node:util'
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
+import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
 const root = resolve(import.meta.dirname, '../../..'),
@@ -40,7 +41,7 @@ beforeAll(async () => {
   const { stdout } = await exec('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temporary], {
     cwd: join(root, 'examples/ugc/slow'),
   })
-  const artifact = join(temporary, JSON.parse(stdout)[0].filename)
+  const artifact = join(temporary, parseNpmPackOutput(stdout)[0].filename)
   await writeFile(
     join(environment, 'package.json'),
     JSON.stringify({

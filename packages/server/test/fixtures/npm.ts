@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { compileEffectModule, stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
+import { compileEffectModule, parseNpmPackOutput, stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
 const shippedCatalogRoot = fileURLToPath(new URL('../../../../packs/base/', import.meta.url))
@@ -135,7 +135,7 @@ export async function createNpmFixture(
       : [{ id: 'icon', variant: 'default', mime: 'image/png', bytes: asset.length, sha256 }]
     await writeFile(join(source, 'content.json'), JSON.stringify(content))
     const packed = await exec('npm', ['pack', '--ignore-scripts', '--json'], { cwd: source })
-    const dependencies = { [manifest.name]: `file:${join(source, JSON.parse(packed.stdout)[0].filename)}` }
+    const dependencies = { [manifest.name]: `file:${join(source, parseNpmPackOutput(packed.stdout)[0].filename)}` }
     if (options.includeCatalog) {
       const base = join(root, 'catalog')
       const packageRoot = join(repository, 'packs/base')
@@ -156,7 +156,7 @@ export async function createNpmFixture(
         }),
       )
       const { stdout } = await exec('npm', ['pack', '--ignore-scripts', '--json'], { cwd: base })
-      dependencies[metadata.name] = `file:${join(base, JSON.parse(stdout)[0].filename)}`
+      dependencies[metadata.name] = `file:${join(base, parseNpmPackOutput(stdout)[0].filename)}`
     }
     await mkdir(directory)
     await writeFile(

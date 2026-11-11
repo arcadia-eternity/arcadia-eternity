@@ -6,6 +6,7 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { ContentProjectManager, runContentCommand } from '../content-projects.mjs'
 
@@ -40,9 +41,9 @@ test(
         ['pack', './examples/ugc/slow', '--json', '--ignore-scripts', '--pack-destination', root],
         { cwd: repository, env: { ...process.env, npm_config_cache: cache } },
       )
-      const tarball = join(root, JSON.parse(packed.stdout)[0].filename)
+      const tarball = join(root, parseNpmPackOutput(packed.stdout)[0].filename)
       await mkdir(directory)
-      const projectTarball = join(directory, JSON.parse(packed.stdout)[0].filename)
+      const projectTarball = join(directory, parseNpmPackOutput(packed.stdout)[0].filename)
       await copyFile(tarball, projectTarball)
       await writeFile(
         join(directory, 'package.json'),
@@ -50,7 +51,7 @@ test(
           name: 'desktop-test',
           version: '1.0.0',
           private: true,
-          dependencies: { '@arcadia-example/slow': `file:./${JSON.parse(packed.stdout)[0].filename}` },
+          dependencies: { '@arcadia-example/slow': `file:./${parseNpmPackOutput(packed.stdout)[0].filename}` },
         }),
       )
       await exec('npm', ['install', '--offline', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund'], {

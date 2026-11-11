@@ -6,6 +6,7 @@ import { promisify } from 'node:util'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 
 const require = createRequire(import.meta.url)
 const exec = promisify(execFile)
@@ -35,7 +36,7 @@ test(
         ['pack', './examples/ugc/slow', '--json', '--ignore-scripts', '--pack-destination', directory],
         { cwd: repository },
       )
-      const tarball = join(directory, JSON.parse(packed.stdout)[0].filename)
+      const tarball = join(directory, parseNpmPackOutput(packed.stdout)[0].filename)
       const main = pathToFileURL(join(frontend, 'electron/main.mjs')).href
       const entry = join(directory, 'entry.mjs')
       await writeFile(

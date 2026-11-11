@@ -15,7 +15,8 @@ import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 import { buildEffects } from '@arcadia-eternity/content-sdk/build'
-import { withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
+import { parseNpmPackOutput, withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
+import { locateDesktopSqliteBinary } from '../../../../scripts/desktop-sqlite-native.mjs'
 
 const exec = promisify(execFile)
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
@@ -34,10 +35,8 @@ test(
   async t => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'arcadia-managed-host-')))
     const databaseRequire = createRequire(join(repository, 'packages/database/package.json'))
-    const sourceAddon = join(
-      dirname(databaseRequire.resolve('better-sqlite3/package.json')),
-      'build/Release/better_sqlite3.node',
-    )
+    const sourceAddon = await locateDesktopSqliteBinary(dirname(databaseRequire.resolve('better-sqlite3/package.json')))
+    assert.ok(sourceAddon, 'development SQLite must expose a native binary')
     const originalAddonDigest = createHash('sha256')
       .update(await readFile(sourceAddon))
       .digest('hex')
@@ -119,7 +118,7 @@ test(
             env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
           })
         : await exec('npm', packArguments, { cwd: repository })
-      const archive = JSON.parse(packed.stdout)[0]
+      const archive = parseNpmPackOutput(packed.stdout)[0]
       assert.ok(
         archive.files.some(file => file.path === fixtureManifest.arcadia.effectArtifact),
         'packed fixture includes the freshly built effect artifact',

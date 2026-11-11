@@ -20,6 +20,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 import { prepareSandboxContent, ArenaEffectModule } from '@arcadia-eternity/battle/sandbox/effects'
 import { inspectNpmProject } from '../src/npm/inspect'
+import { parseNpmPackOutput } from '../src/npm/pack-output'
 import { prepareNpmProject, type NpmContentHost } from '../src/npm/prepare'
 import { workRef } from '../src/works'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
@@ -111,7 +112,7 @@ async function pack(name: string, manifest: object, files: Record<string, string
   await writeFile(join(dir, 'package.json'), JSON.stringify(manifest))
   for (const [path, content] of Object.entries(files)) await writeFile(join(dir, path), content)
   const { stdout } = await exec('npm', ['pack', '--ignore-scripts', '--json'], { cwd: dir })
-  return join(dir, JSON.parse(stdout)[0].filename)
+  return join(dir, parseNpmPackOutput(stdout)[0].filename)
 }
 beforeAll(async () => {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
