@@ -7,7 +7,12 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { stageDesktopSqlite, verifyDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
+import {
+  locateDesktopSqliteBinary,
+  stageDesktopSqlite,
+  verifyDesktopSqlite,
+  loadElectronRebuild,
+} from './desktop-sqlite-native.mjs'
 
 const exec = promisify(execFile)
 const repository = fileURLToPath(new URL('../', import.meta.url))
@@ -52,7 +57,8 @@ test(
     const databaseRequire = createRequire(join(repository, 'packages/database/package.json'))
     const webRequire = createRequire(join(repository, 'packages/web-ui/package.json'))
     const sqliteRoot = dirname(databaseRequire.resolve('better-sqlite3/package.json'))
-    const originalBinary = join(sqliteRoot, 'build/Release/better_sqlite3.node')
+    const originalBinary = await locateDesktopSqliteBinary(sqliteRoot)
+    assert.ok(originalBinary, 'Better SQLite must ship or build a binary for the development host')
     const original = await readFile(originalBinary)
     const executable = process.env.ARCADIA_ELECTRON_EXECUTABLE ?? webRequire('electron')
     const embedded = JSON.parse(
@@ -116,6 +122,7 @@ test(
         platform: embedded.platform,
         arch: embedded.arch,
       })
+      await rm(join(moduleRoot, 'prebuilds'), { recursive: true, force: true })
       await rm(join(moduleRoot, 'build'), { recursive: true, force: true })
       const cached = await stageDesktopSqlite({
         ...options,

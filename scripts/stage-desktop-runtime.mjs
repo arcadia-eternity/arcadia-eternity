@@ -22,7 +22,7 @@ import { promisify } from 'node:util'
 import YAML from 'yaml'
 import { collectDesktopLicenses } from './desktop-runtime-licenses.mjs'
 import { verifyDesktopProductionDependencies } from './desktop-production-dependencies.mjs'
-import { stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
+import { locateDesktopSqliteBinary, stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks, resolvePnpmInvocation } from './desktop-runtime-portability.mjs'
 import { withPreservedPnpmWorkspaceState } from './desktop-pnpm-deploy.mjs'
 import { stagePairedWebsite, verifyPairedWebsite } from './stage-paired-website.mjs'
@@ -100,8 +100,8 @@ export async function verifyDesktopRuntime(
     const installedSqlite = JSON.parse(await readFile(sqlitePackage, 'utf8'))
     if (installedSqlite.version !== sqlite.version || installedSqlite.name !== sqlite.name)
       throw new Error('Desktop SQLite native artifact does not match its recorded package version')
-    const nativeFile = join(dirname(sqlitePackage), 'build/Release/better_sqlite3.node')
-    if (!inside(await realpath(root), await realpath(nativeFile)) || !(await stat(nativeFile)).isFile())
+    const nativeFile = await locateDesktopSqliteBinary(dirname(sqlitePackage), sqlite.platform, sqlite.arch)
+    if (!nativeFile || !inside(await realpath(root), await realpath(nativeFile)) || !(await stat(nativeFile)).isFile())
       throw new Error('Desktop SQLite native artifact is missing or escapes runtime')
   }
   return manifest
