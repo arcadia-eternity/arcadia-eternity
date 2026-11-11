@@ -1,33 +1,95 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
+import type { ExecFileOptions } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm, writeFile, cp, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { promisify } from 'node:util'
 import { emptyNpmContentHost, prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
-import { AuthorWorkspace } from './workspace.ts'
-import { ProjectTeams, playersFromTeams } from './project-teams.ts'
+import { AuthorWorkspace, type ManifestArcadia, type PackageManifest } from './workspace.ts'
+import { ProjectTeams, playersFromTeams, type ProjectTeam } from './project-teams.ts'
 import { createHash } from 'node:crypto'
-import { DebugEnvironments, normalizeEnvironmentDocument } from './debug-environments.ts'
+import { DebugEnvironments, normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
 import { assertEnvironmentRequirements, validateEnvironmentRules } from './environment-rules.ts'
 import { siblingModulePath } from './module-path.ts'
+import { errorCode } from './types.ts'
+
 const exec = promisify(execFile)
-async function npm(args, options) {
+
+type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareNpmProject>>
+
+interface PackedInfo {
+  filename: string
+  shasum: string
+  integrity?: string
+  files: Array<{ path: string }>
+}
+
+export interface BattleLike {
+  cleanup(): Promise<void>
+}
+
+export interface ContentCandidate {
+  packageName: string | undefined
+  version: string | undefined
+  integrity: string
+  shasum: string
+  sdkApi: unknown
+  build: unknown
+  environmentRevision: string
+  environmentId: string
+  environmentConfigVersion: string | null
+}
+
+export interface PreparedBattleEnvironment {
+  environment: PreparedNpmEnvironment
+  environmentDocument: EnvironmentDocumentV2
+  candidate: ContentCandidate
+  environmentLock: { file: string; version: string } | undefined
+  sourceRevisions: Record<string, string>
+  loadTeams(ids: string[]): ReturnType<typeof playersFromTeams>
+  teams: ProjectTeam[]
+  teamVersions: Record<string, string | null>
+  manifest: PackageManifest & { arcadia: ManifestArcadia }
+  files: string[]
+  dispose(): Promise<void>
+  track(battle: BattleLike): void
+  untrack(battle: BattleLike): void
+}
+
+async function npm(args: string[], options: ExecFileOptions) {
   const invocation = await resolveNpmInvocation(args)
   return exec(invocation.file, invocation.args, options)
 }
+
 /** Pack and install exactly what a consuming server receives. Approval is limited to this local demo. */
 export async function prepareBattleEnvironment(
   root: string = process.cwd(),
-  { offline = true, cache, environmentId = 'default', sources = {}, lockRoot }: any = {},
-) {
+  {
+    offline = true,
+    cache,
+    environmentId = 'default',
+    sources = {},
+    lockRoot,
+  }: {
+    offline?: boolean
+    cache?: string
+    environmentId?: string
+    sources?: Record<string, string | undefined>
+    lockRoot?: string
+  } = {},
+): Promise<PreparedBattleEnvironment> {
   root = resolve(root)
   const temporary = await mkdtemp(join(tmpdir(), 'arcadia-pack-template-'))
-  const manifest: any = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+  const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as PackageManifest & {
+    arcadia: ManifestArcadia
+  }
   const cacheArgs = cache ? ['--cache', resolve(cache)] : []
-  const battles = new Set<any>()
+  const battles = new Set<BattleLike>()
   const sourceRevisions: Record<string, string> = {}
-  let environment: any, workspace: any, lockWorkspace: any
+  let environment: PreparedNpmEnvironment | undefined,
+    workspace: AuthorWorkspace | undefined,
+    lockWorkspace: AuthorWorkspace | undefined
   async function dispose() {
     for (const battle of battles) await battle.cleanup()
     await environment?.dispose()
@@ -40,42 +102,47 @@ export async function prepareBattleEnvironment(
     const selected = (await new DebugEnvironments(workspace).list()).find(entry => entry.id === environmentId)
     if (!selected) throw new Error(`ENVIRONMENT_MISSING: ${environmentId}`)
     const { version: _version, ...selectedDocument } = selected
-    const environmentDocument =
+    const environmentDocument: EnvironmentDocumentV2 =
       environmentId === 'default'
-        ? { ...selectedDocument, schemaVersion: 2, rules: { schemaVersion: 1 }, requires: {} }
+        ? {
+            ...(selectedDocument as EnvironmentDocumentV2),
+            schemaVersion: 2,
+            rules: { schemaVersion: 1 },
+            requires: {},
+          }
         : normalizeEnvironmentDocument(selectedDocument)
     assertEnvironmentRequirements(environmentDocument.requires)
     validateEnvironmentRules(environmentDocument.rules)
     const lockFile = environmentId === 'default' ? undefined : `debug/environments/${environmentId}.package-lock.json`
-    let oldLock
+    let oldLock: { file: string; text: string; version: string } | undefined
     if (lockFile) {
       try {
         oldLock = await workspace.read(lockFile)
       } catch (error) {
-        if (error.code !== 'ENOENT') throw error
+        if (errorCode(error) !== 'ENOENT') throw error
       }
     }
     const result = await npm(['pack', '--json', '--ignore-scripts', '--pack-destination', temporary, ...cacheArgs], {
       cwd: root,
     })
-    const packed = JSON.parse(String(result.stdout))[0]
+    const packed = (JSON.parse(String(result.stdout)) as PackedInfo[])[0]
     const files = packed.files.map(file => file.path)
-    assert.ok(files.includes(manifest.arcadia.content))
-    if (manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects))
+    assert.ok(files.includes(manifest.arcadia.content!))
+    if (manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
     assert.ok(
       !files.some(file => /^(?:\.arcadia|\.github|node_modules|test|scripts|debug)\//.test(file)),
       'the package must contain content, not a developer workspace',
     )
     const installation = join(temporary, 'server-project')
     await mkdir(join(installation, 'candidates'), { recursive: true })
-    const dependencies = { ...selected.packages }
-    async function addCandidate(directory, metadata, packedInfo) {
+    const dependencies: Record<string, string> = { ...selected.packages }
+    async function addCandidate(directory: string, metadata: { name: string }, packedInfo: PackedInfo): Promise<void> {
       if (Object.hasOwn(dependencies, metadata.name)) throw new Error(`ENVIRONMENT_DUPLICATE: ${metadata.name}`)
       const filename = `candidates/${packedInfo.shasum}.tgz`
       await cp(join(directory, packedInfo.filename), join(installation, filename))
       dependencies[metadata.name] = `file:${filename}`
     }
-    await addCandidate(temporary, manifest, packed)
+    await addCandidate(temporary, manifest as unknown as { name: string }, packed)
     for (const name of selected.sources) {
       const source = sources[name]
       if (typeof source !== 'string') throw new Error(`ENVIRONMENT_SOURCE_MISSING: ${name}，请设置本机源码映射`)
@@ -97,11 +164,13 @@ export async function prepareBattleEnvironment(
           join(captured, 'node_modules'),
           process.platform === 'win32' ? 'junction' : 'dir',
         )
-        const metadata = JSON.parse(await readFile(join(captured, 'package.json'), 'utf8'))
+        const metadata = JSON.parse(await readFile(join(captured, 'package.json'), 'utf8')) as { name: string }
         if (metadata.name !== name) throw new Error(`ENVIRONMENT_SOURCE_IDENTITY: ${name}`)
         await exec(process.execPath, [siblingModulePath('cli'), 'build'], { cwd: captured })
-        const info = JSON.parse(
-          String((await npm(['pack', '--json', '--ignore-scripts', ...cacheArgs], { cwd: captured })).stdout),
+        const info = (
+          JSON.parse(
+            String((await npm(['pack', '--json', '--ignore-scripts', ...cacheArgs], { cwd: captured })).stdout),
+          ) as PackedInfo[]
         )[0]
         if (info.files.some(file => /^(?:debug|test|scripts|node_modules|\.arcadia|\.github)\//.test(file.path)))
           throw new Error('ENVIRONMENT_PACKAGE_FILES')
@@ -135,7 +204,7 @@ export async function prepareBattleEnvironment(
     environment = await prepareNpmProject(installation, emptyNpmContentHost, {
       policy: { profile: 'local-development' },
     })
-    let environmentLock
+    let environmentLock: { file: string; version: string } | undefined
     if (lockFile) {
       const text = await readFile(join(installation, 'package-lock.json'), 'utf8')
       if (lockRoot) {
@@ -145,13 +214,13 @@ export async function prepareBattleEnvironment(
       } else environmentLock = { file: lockFile, version: createHash('sha256').update(text).digest('hex') }
     }
     const teamLibrary = await new ProjectTeams(workspace).list()
-    function loadTeams(ids) {
+    function loadTeams(ids: string[]) {
       return playersFromTeams(teamLibrary, ids)
     }
-    const candidate = {
+    const candidate: ContentCandidate = {
       packageName: manifest.name,
       version: manifest.version,
-      integrity: packed.integrity,
+      integrity: packed.integrity ?? '',
       shasum: packed.shasum,
       sdkApi: manifest.arcadia.sdkApi,
       build: environment.build,

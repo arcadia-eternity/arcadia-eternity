@@ -2,9 +2,11 @@ import { createHash } from 'node:crypto'
 import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join, relative, extname } from 'node:path'
 import YAML from 'yaml'
+import { errorCode, errorMessage, isRecord, type UnknownRecord } from '../types.ts'
+import type { ContentSource } from './content.ts'
 
 const maximumBytes = 64 * 1024 * 1024
-const mimeTypes = {
+const mimeTypes: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -13,11 +15,11 @@ const mimeTypes = {
   '.mp3': 'audio/mpeg',
   '.swf': 'application/x-shockwave-flash',
 }
-const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
-const remote = value => /^https?:\/\//.test(value)
-export function resourceReferences(presentation: any): any[] {
+const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
+const remote = (value: string) => /^https?:\/\//.test(value)
+export function resourceReferences(presentation: unknown): unknown[] {
   if (!presentation) return []
-  if (typeof presentation !== 'object' || Array.isArray(presentation)) throw new Error('presentation must be an object')
+  if (!isRecord(presentation)) throw new Error('presentation must be an object')
   const keys = ['icon', 'portrait', 'cry', 'sfx', 'background', 'music', 'battle']
   for (const key of Object.keys(presentation))
     if (!keys.includes(key)) throw new Error(`Unknown presentation field: ${key}`)
@@ -27,6 +29,8 @@ export function resourceReferences(presentation: any): any[] {
   if (presentation.battle) {
     const battle = presentation.battle
     if (
+      !isRecord(battle) ||
+      typeof battle.renderer !== 'string' ||
       !['image', 'seer2-swf'].includes(battle.renderer) ||
       !battle.source ||
       Object.keys(battle).some(key => !['renderer', 'source', 'fallback'].includes(key))
@@ -38,9 +42,7 @@ export function resourceReferences(presentation: any): any[] {
   for (const ref of refs) {
     if (typeof ref === 'string' && validResourceId(ref)) continue
     if (
-      ref &&
-      typeof ref === 'object' &&
-      !Array.isArray(ref) &&
+      isRecord(ref) &&
       typeof ref.namespace === 'string' &&
       ref.namespace &&
       typeof ref.id === 'string' &&
@@ -52,8 +54,9 @@ export function resourceReferences(presentation: any): any[] {
   }
   return refs
 }
-export const validResourceId = (value: any) => typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$/.test(value)
-export function validAssetPath(value: any) {
+export const validResourceId = (value: unknown): value is string =>
+  typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$/.test(value)
+export function validAssetPath(value: unknown) {
   return (
     typeof value === 'string' &&
     !value.startsWith('/') &&
@@ -64,7 +67,7 @@ export function validAssetPath(value: any) {
     value.split('/').every(part => part && part !== '.' && part !== '..')
   )
 }
-async function files(root, directory) {
+async function files(root: string, directory: string): Promise<string[]> {
   let entries
   try {
     const info = await lstat(directory)
@@ -72,10 +75,10 @@ async function files(root, directory) {
       throw new Error(`Presentation directory must be an ordinary directory: ${relative(root, directory)}`)
     entries = await readdir(directory, { withFileTypes: true })
   } catch (error) {
-    if (error.code === 'ENOENT') return []
+    if (errorCode(error) === 'ENOENT') return []
     throw error
   }
-  const output = []
+  const output: string[] = []
   for (const entry of entries.sort((a, b) => compare(a.name, b.name))) {
     if (entry.name.startsWith('.')) continue
     const path = join(directory, entry.name)
@@ -85,40 +88,55 @@ async function files(root, directory) {
   }
   return output
 }
-export function bindingPresentation(binding: any): any {
+export function bindingPresentation(binding: unknown): UnknownRecord {
+  if (!isRecord(binding)) throw new Error('presentation binding must be an object')
   const { id: _id, target: _target, ...presentation } = binding
   return presentation
 }
-function validateBinding(binding: any, sources: any) {
+function validateBinding(binding: unknown, sources: ContentSource[]) {
+  if (!isRecord(binding) || !isRecord(binding.target)) throw new Error('Invalid presentation target')
+  const target = binding.target
   if (
-    !binding.target ||
-    !['species', 'skills', 'marks'].includes(binding.target.kind) ||
-    typeof binding.target.id !== 'string' ||
-    Object.keys(binding.target).some(key => !['kind', 'id'].includes(key))
+    typeof target.kind !== 'string' ||
+    !['species', 'skills', 'marks'].includes(target.kind) ||
+    typeof target.id !== 'string' ||
+    Object.keys(target).some(key => !['kind', 'id'].includes(key))
   )
-    throw new Error(`Invalid presentation target: ${binding.id}`)
-  if (
-    !sources.some(
-      source => source.kind === binding.target.kind && source.records.some(row => row.id === binding.target.id),
+    throw new Error(
+      `Invalid presentation target: ${typeof binding.id === 'string' ? binding.id : JSON.stringify(binding.id)}`,
     )
-  )
-    throw new Error(`Missing presentation target: ${binding.target.kind}/${binding.target.id}`)
+  if (!sources.some(source => source.kind === target.kind && source.records.some(row => row.id === target.id)))
+    throw new Error(`Missing presentation target: ${target.kind}/${target.id}`)
   return resourceReferences(bindingPresentation(binding))
 }
 /** Read only declared files. References are IDs; locations never become resource identities. */
-export async function buildPresentation(root: any, sources: any, { includeLocales = true }: any = {}) {
-  const resources = []
+export async function buildPresentation(
+  root: string,
+  sources: ContentSource[],
+  { includeLocales = true }: { includeLocales?: boolean } = {},
+) {
+  const resources: Array<{
+    kind: 'http' | 'file'
+    id: string
+    source: string
+    sha256?: string
+    bytes?: number
+    mime?: string
+    tags?: unknown
+  }> = []
   const definitions = sources.filter(source => source.kind === 'resources')
   for (const source of definitions)
     for (const record of source.records) {
       const { id, source: location, kind, name: _name } = record
       if (
         !validResourceId(id) ||
+        typeof kind !== 'string' ||
         !['image', 'audio', 'swf'].includes(kind) ||
         typeof location !== 'string' ||
         Object.keys(record).some(key => !['id', 'source', 'kind', 'name', 'tags'].includes(key)) ||
         (record.name !== undefined && typeof record.name !== 'string') ||
-        (record.tags !== undefined && (!Array.isArray(record.tags) || record.tags.some(tag => typeof tag !== 'string')))
+        (record.tags !== undefined &&
+          (!Array.isArray(record.tags) || record.tags.some((tag: unknown) => typeof tag !== 'string')))
       )
         throw new Error(`${relative(root, source.file)}: Invalid resource definition ${id}`)
       const url = remote(location) ? new URL(location) : undefined
@@ -158,8 +176,8 @@ export async function buildPresentation(root: any, sources: any, { includeLocale
       })
     }
   const ids = new Set(resources.map(row => row.id))
-  const kinds = new Map(definitions.flatMap(source => source.records).map(row => [row.id, row.kind]))
-  const bindings = []
+  const kinds = new Map<string, unknown>(definitions.flatMap(source => source.records).map(row => [row.id, row.kind]))
+  const bindings: Array<{ id: string } & Record<string, unknown>> = []
   const targets = new Set()
   for (const source of sources)
     for (const record of source.records) {
@@ -173,14 +191,16 @@ export async function buildPresentation(root: any, sources: any, { includeLocale
       if (source.kind !== 'presentations') continue
       try {
         const refs = validateBinding(record, sources)
-        const target = JSON.stringify([record.target.kind, record.target.id])
+        const targetFields = isRecord(record.target) ? record.target : {}
+        const target = JSON.stringify([targetFields.kind, targetFields.id])
         if (targets.has(target)) throw new Error(`Duplicate presentation target: ${target}`)
         targets.add(target)
         for (const ref of refs) if (typeof ref === 'string' && !ids.has(ref)) throw new Error(`Missing resource ${ref}`)
-        const kindOf = ref => (typeof ref === 'string' ? kinds.get(ref) : undefined)
-        const presentation: any = bindingPresentation(record)
-        for (const [slot, ref] of Object.entries(presentation) as [string, any][]) {
+        const kindOf = (ref: unknown) => (typeof ref === 'string' ? kinds.get(ref) : undefined)
+        const presentation = bindingPresentation(record)
+        for (const [slot, ref] of Object.entries(presentation)) {
           if (slot === 'battle') {
+            if (!isRecord(ref)) continue
             if (kindOf(ref.source) && kindOf(ref.source) !== (ref.renderer === 'image' ? 'image' : 'swf'))
               throw new Error('Battle resource type mismatch')
             if (kindOf(ref.fallback) && kindOf(ref.fallback) !== 'image') throw new Error('Fallback must be an image')
@@ -189,10 +209,10 @@ export async function buildPresentation(root: any, sources: any, { includeLocale
         }
         bindings.push(record)
       } catch (error) {
-        throw new Error(`${relative(root, source.file)}: ${error.message}`, { cause: error })
+        throw new Error(`${relative(root, source.file)}: ${errorMessage(error)}`, { cause: error })
       }
     }
-  const locales = {}
+  const locales: Record<string, Record<string, unknown>> = {}
   for (const file of includeLocales ? await files(root, join(root, 'locales')) : []) {
     const path = relative(join(root, 'locales'), file).split('\\').join('/')
     const match = /^([A-Za-z0-9-]+)\/([A-Za-z0-9_-]+)\.(json|ya?ml)$/.exec(path)
@@ -202,14 +222,16 @@ export async function buildPresentation(root: any, sources: any, { includeLocale
     const text = await readFile(file, 'utf8')
     const value = match[3] === 'json' ? JSON.parse(text) : YAML.parse(text, { uniqueKeys: true, merge: true })
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Expected locale object: ${path}`)
-    const records = {
-      species: 'species',
-      skill: 'skills',
-      mark: 'marks',
-      mark_ability: 'marks',
-      mark_emblem: 'marks',
-      mark_global: 'marks',
-    }[namespace]
+    const records = (
+      {
+        species: 'species',
+        skill: 'skills',
+        mark: 'marks',
+        mark_ability: 'marks',
+        mark_emblem: 'marks',
+        mark_global: 'marks',
+      } as Record<string, string | undefined>
+    )[namespace]
     if (!records) throw new Error(`Unsupported content locale namespace: ${path}`)
     const ids = new Set(
       sources.filter(source => source.kind === records).flatMap(source => source.records.map(record => record.id)),

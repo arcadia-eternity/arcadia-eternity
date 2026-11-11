@@ -4,8 +4,12 @@ import { constants, createReadStream } from 'node:fs'
 import { mkdir, open, readdir, lstat, realpath, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import { promisify } from 'node:util'
+import type { Readable } from 'node:stream'
 import { Parser } from 'tar'
+import type { ReadEntry } from 'tar'
 import yauzl from 'yauzl'
+import type { Entry as ZipEntry, ZipFile } from 'yauzl'
+import { errorCode, errorMessage, isRecord } from './types.ts'
 
 export type ManagedSource =
   | { kind: 'archive'; file: string }
@@ -21,11 +25,13 @@ export interface SourceAcquisitionOptions {
 }
 
 const exec = promisify(execFile)
-const fail = code => Object.assign(new Error(code), { code })
-const forbidden = name =>
+function fail(code: string): never {
+  throw Object.assign(new Error(code), { code })
+}
+const forbidden = (name: string) =>
   ['.git', '.ssh', '.aws', '.npmrc', '.netrc', 'node_modules'].includes(name.toLowerCase()) ||
   /^\.env(?:\.|$)/i.test(name)
-const safePath = value => {
+const safePath = (value: unknown): string => {
   if (
     typeof value !== 'string' ||
     !value ||
@@ -52,23 +58,42 @@ const safePath = value => {
     throw fail('SOURCE_PATH_INVALID')
   return clean
 }
-const httpsUrl = value => {
+const httpsUrl = (value: string | URL): URL => {
   const url = new URL(value)
   if (url.protocol !== 'https:' || url.username || url.password || url.hash) throw fail('SOURCE_URL_INVALID')
   return url
 }
-const publicUrl = value => {
+const publicUrl = (value: string | URL): string => {
   const url = httpsUrl(value)
   url.search = ''
   return url.href
 }
 
-function boundedFiles(options: any) {
-  const names = new Set()
-  const files = []
+interface BoundedOptions {
+  signal: AbortSignal
+  maxBytes: number
+  maxFiles: number
+  timeoutMs: number
+}
+
+interface SourceFile {
+  name: string
+  bytes: Buffer
+}
+
+interface BoundedFiles {
+  files: SourceFile[]
+  directory(name: string): string
+  add(name: string, bytes: Buffer): void
+  checkSize(size: number): void
+}
+
+function boundedFiles(options: BoundedOptions): BoundedFiles {
+  const names = new Set<string>()
+  const files: SourceFile[] = []
   let size = 0
   let entries = 0
-  function track(name) {
+  function track(name: string): string {
     options.signal.throwIfAborted()
     name = safePath(name)
     if (++entries > options.maxFiles) throw fail('SOURCE_LIMIT')
@@ -80,24 +105,24 @@ function boundedFiles(options: any) {
   return {
     files,
     directory: track,
-    add(name, bytes) {
+    add(name: string, bytes: Buffer) {
       name = track(name)
       if ((size += bytes.length) > options.maxBytes) throw fail('SOURCE_LIMIT')
       if (!name.split('/').some(forbidden)) files.push({ name, bytes })
     },
-    checkSize(size) {
+    checkSize(size: number) {
       if (!Number.isSafeInteger(size) || size < 0 || size > options.maxBytes) throw fail('SOURCE_LIMIT')
     },
   }
 }
-async function readBounded(stream: any, expectedSize: any, options: any): Promise<any> {
+async function readBounded(stream: Readable, expectedSize: number, options: BoundedOptions): Promise<Buffer> {
   if (!Number.isSafeInteger(expectedSize) || expectedSize < 0 || expectedSize > options.maxBytes)
     throw fail('SOURCE_LIMIT')
   return new Promise((resolve, reject) => {
-    const chunks = []
+    const chunks: Buffer[] = []
     let size = 0,
       settled = false
-    const finish = error => {
+    const finish = (error?: unknown) => {
       if (settled) return
       settled = true
       options.signal.removeEventListener('abort', abort)
@@ -109,7 +134,7 @@ async function readBounded(stream: any, expectedSize: any, options: any): Promis
     const abort = () => finish(options.signal.reason ?? fail('SOURCE_CANCELLED'))
     options.signal.addEventListener('abort', abort, { once: true })
     stream.on('error', finish)
-    stream.on('data', chunk => {
+    stream.on('data', (chunk: Buffer) => {
       if (settled) return
       size += chunk.length
       if (size > expectedSize || size > options.maxBytes) return finish(fail('SOURCE_LIMIT'))
@@ -122,23 +147,23 @@ async function readBounded(stream: any, expectedSize: any, options: any): Promis
     if (options.signal.aborted) abort()
   })
 }
-async function tarFiles(file: any, options: any) {
+async function tarFiles(file: string, options: BoundedOptions): Promise<SourceFile[]> {
   const output = boundedFiles(options)
   await new Promise<void>((resolve, reject) => {
     const input = createReadStream(file)
     const parser = new Parser({ strict: true, maxMetaEntrySize: 64 * 1024, maxDecompressionRatio: 1000 })
     let failed = false
-    const stop = error => {
+    const stop = (error: unknown) => {
       if (failed) return
       failed = true
       options.signal.removeEventListener('abort', abort)
       input.destroy()
-      parser.abort(error)
+      parser.abort(error instanceof Error ? error : new Error(errorMessage(error)))
       reject(error)
     }
     const abort = () => stop(options.signal.reason ?? fail('SOURCE_CANCELLED'))
     options.signal.addEventListener('abort', abort, { once: true })
-    parser.on('entry', entry => {
+    parser.on('entry', (entry: ReadEntry) => {
       try {
         if (entry.type === 'Directory' && ['.', './'].includes(entry.path)) {
           entry.resume()
@@ -152,9 +177,9 @@ async function tarFiles(file: any, options: any) {
         }
         if (!['File', 'OldFile', 'ContiguousFile'].includes(entry.type)) throw fail('SOURCE_LINK_FORBIDDEN')
         output.checkSize(entry.size)
-        const chunks = []
+        const chunks: Buffer[] = []
         let size = 0
-        entry.on('data', chunk => {
+        entry.on('data', (chunk: Buffer) => {
           if (failed) return
           size += chunk.length
           if (size > entry.size || size > options.maxBytes) return stop(fail('SOURCE_LIMIT'))
@@ -185,27 +210,28 @@ async function tarFiles(file: any, options: any) {
   })
   return output.files
 }
-async function zipFiles(file: any, options: any) {
+async function zipFiles(file: string, options: BoundedOptions): Promise<SourceFile[]> {
   const output = boundedFiles(options)
-  const zip: any = await new Promise((resolve, reject) =>
+  const zip = await new Promise<ZipFile>((resolve, reject) =>
     yauzl.open(file, { lazyEntries: true, validateEntrySizes: true, strictFileNames: true }, (error, value) =>
-      error ? reject(error) : resolve(value),
+      error ? reject(error) : resolve(value!),
     ),
   )
-  let abort
+  let abort: (() => void) | undefined
   try {
     await new Promise<void>((resolve, reject) => {
-      abort = () => {
+      const onAbort = () => {
         zip.close()
         reject(options.signal.reason ?? fail('SOURCE_CANCELLED'))
       }
-      options.signal.addEventListener('abort', abort, { once: true })
+      abort = onAbort
+      options.signal.addEventListener('abort', onAbort, { once: true })
       zip.on('error', reject)
       zip.on('end', () => {
-        options.signal.removeEventListener('abort', abort)
+        options.signal.removeEventListener('abort', onAbort)
         resolve()
       })
-      zip.on('entry', entry => {
+      zip.on('entry', (entry: ZipEntry) => {
         void (async () => {
           const name = safePath(entry.fileName)
           const kind = (entry.externalFileAttributes >>> 16) & 0o170000
@@ -217,8 +243,8 @@ async function zipFiles(file: any, options: any) {
             return
           }
           output.checkSize(entry.uncompressedSize)
-          const stream = await new Promise((resolve, reject) =>
-            zip.openReadStream(entry, (error, value) => (error ? reject(error) : resolve(value))),
+          const stream = await new Promise<Readable>((resolve, reject) =>
+            zip.openReadStream(entry, (error, value) => (error ? reject(error) : resolve(value!))),
           )
           output.add(name, await readBounded(stream, entry.uncompressedSize, options))
           zip.readEntry()
@@ -230,15 +256,15 @@ async function zipFiles(file: any, options: any) {
       zip.readEntry()
     })
   } finally {
-    options.signal.removeEventListener('abort', abort)
+    if (abort) options.signal.removeEventListener('abort', abort)
     zip.close()
   }
   return output.files
 }
-async function directoryFiles(directory: any, options: any) {
+async function directoryFiles(directory: string, options: BoundedOptions): Promise<SourceFile[]> {
   const root = await realpath(directory)
   const output = boundedFiles(options)
-  async function walk(path, prefix = '') {
+  async function walk(path: string, prefix = ''): Promise<void> {
     options.signal.throwIfAborted()
     const resolved = await realpath(path)
     const rel = relative(root, resolved)
@@ -279,14 +305,19 @@ async function directoryFiles(directory: any, options: any) {
   await walk(root)
   return output.files
 }
-async function download(source, file, options) {
+async function download(
+  source: Extract<ManagedSource, { kind: 'url' }>,
+  file: string,
+  options: BoundedOptions,
+): Promise<Record<string, string>> {
   let url = httpsUrl(source.url)
   for (let redirects = 0; redirects <= 5; redirects++) {
     const response = await fetch(url, { redirect: 'manual', signal: options.signal })
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       await response.body?.cancel()
-      if (redirects === 5 || !response.headers.get('location')) throw fail('SOURCE_REDIRECT_LIMIT')
-      url = httpsUrl(new URL(response.headers.get('location'), url).href)
+      const location = response.headers.get('location')
+      if (redirects === 5 || !location) throw fail('SOURCE_REDIRECT_LIMIT')
+      url = httpsUrl(new URL(location, url).href)
       continue
     }
     if (!response.ok || !response.body) {
@@ -298,7 +329,7 @@ async function download(source, file, options) {
       await response.body.cancel()
       throw fail('SOURCE_LIMIT')
     }
-    const chunks = []
+    const chunks: Buffer[] = []
     let total = 0
     for await (const chunk of response.body) {
       total += chunk.length
@@ -311,10 +342,10 @@ async function download(source, file, options) {
     const bytes = Buffer.concat(chunks, total)
     if (source.integrity) {
       const tokens = source.integrity.trim().split(/\s+/)
-      if (!tokens.length || tokens.some(token => !/^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$/.test(token)))
+      if (!tokens.length || tokens.some((token: string) => !/^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$/.test(token)))
         throw fail('SOURCE_INTEGRITY_INVALID')
       if (
-        !tokens.some(token => {
+        !tokens.some((token: string) => {
           const [algorithm, expected] = token.split('-')
           return createHash(algorithm).update(bytes).digest('base64') === expected
         })
@@ -331,7 +362,11 @@ async function download(source, file, options) {
   }
   throw fail('SOURCE_REDIRECT_LIMIT')
 }
-async function gitArchive(source, root, options) {
+async function gitArchive(
+  source: Extract<ManagedSource, { kind: 'git' }>,
+  root: string,
+  options: BoundedOptions,
+): Promise<{ file: string; provenance: Record<string, string> }> {
   const url = httpsUrl(source.url).href
   if (typeof source.commit !== 'string' || !/^[0-9a-f]{40}(?:[0-9a-f]{24})?$/i.test(source.commit))
     throw fail('SOURCE_GIT_COMMIT_REQUIRED')
@@ -363,14 +398,14 @@ async function gitArchive(source, root, options) {
   async function checkBudget() {
     let size = 0,
       count = 0
-    async function walk(directory) {
+    async function walk(directory: string): Promise<void> {
       for (const entry of await readdir(directory, { withFileTypes: true })) {
         const file = join(directory, entry.name)
         let info
         try {
           info = await lstat(file)
         } catch (error) {
-          if (error.code === 'ENOENT') continue
+          if (errorCode(error) === 'ENOENT') continue
           throw error
         }
         if (++count > options.maxFiles || (size += info.size) > options.maxBytes) throw fail('SOURCE_LIMIT')
@@ -389,7 +424,7 @@ async function gitArchive(source, root, options) {
       })
   }, 100)
   timer.unref()
-  const run = args =>
+  const run = (args: string[]) =>
     exec('git', [...config, ...args], {
       env,
       signal,
@@ -420,7 +455,8 @@ async function gitArchive(source, root, options) {
   } catch (error) {
     if (budget.signal.aborted) throw budget.signal.reason
     if (options.signal.aborted) throw options.signal.reason
-    if (typeof error.code === 'string' && error.code.startsWith('SOURCE_')) throw error
+    const code = errorCode(error)
+    if (typeof code === 'string' && code.startsWith('SOURCE_')) throw error
     throw fail('SOURCE_GIT_FAILED')
   } finally {
     clearInterval(timer)
@@ -459,13 +495,13 @@ export async function acquireSource(
   try {
     const scratch = join(input.destination, '.source')
     await mkdir(scratch)
-    let files, provenance
+    let files: SourceFile[], provenance: Record<string, string>
     if (source.kind === 'directory') {
       if (typeof source.directory !== 'string' || !isAbsolute(source.directory)) throw fail('SOURCE_PATH_INVALID')
       files = await directoryFiles(source.directory, options)
       provenance = { kind: 'directory' }
     } else {
-      let file
+      let file: string
       if (source.kind === 'archive') {
         if (typeof source.file !== 'string' || !isAbsolute(source.file) || !(await lstat(source.file)).isFile())
           throw fail('SOURCE_ARCHIVE_INVALID')
@@ -496,8 +532,9 @@ export async function acquireSource(
     if (!shortest) throw fail('SOURCE_PACKAGE_MISSING')
     const prefix = shortest.name.slice(0, -'package.json'.length)
     if (!rootManifest && files.some(file => !file.name.startsWith(prefix))) throw fail('SOURCE_PACKAGE_AMBIGUOUS')
-    const manifest = JSON.parse(shortest.bytes.toString('utf8'))
-    if (typeof manifest.name !== 'string' || typeof manifest.version !== 'string') throw fail('SOURCE_PACKAGE_INVALID')
+    const manifest: unknown = JSON.parse(shortest.bytes.toString('utf8'))
+    if (!isRecord(manifest) || typeof manifest.name !== 'string' || typeof manifest.version !== 'string')
+      throw fail('SOURCE_PACKAGE_INVALID')
     const directory = join(input.destination, 'package')
     await mkdir(directory)
     for (const file of files) {
@@ -512,7 +549,8 @@ export async function acquireSource(
     return { directory, provenance: { ...provenance, name: manifest.name, version: manifest.version } }
   } catch (error) {
     await rm(input.destination, { recursive: true, force: true })
-    if (typeof error.code === 'string' && error.code.startsWith('SOURCE_')) throw error
+    const code = errorCode(error)
+    if (typeof code === 'string' && code.startsWith('SOURCE_')) throw error
     if (options.signal.aborted) throw options.signal.reason
     throw fail('SOURCE_ACQUISITION_FAILED')
   }

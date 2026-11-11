@@ -1,11 +1,24 @@
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { AuthorWorkspace, WorkspaceError, diagnostic } from './workspace.ts'
+import {
+  AuthorWorkspace,
+  WorkspaceError,
+  diagnostic,
+  type Diagnostic,
+  type PackageManifest,
+  type WorkspaceFile,
+  type WorkspaceLocaleSource,
+  type WorkspaceRecord,
+  type WorkspaceSnapshot,
+} from './workspace.ts'
 import { recordSharing } from './lib/yaml-sharing.ts'
+import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
-const kinds = ['content', 'presentations', 'resources', 'assets', 'files', 'locales', 'diagnostics']
-const contentKinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources']
-const localeKinds = {
+const kinds = ['content', 'presentations', 'resources', 'assets', 'files', 'locales', 'diagnostics'] as const
+const contentKinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources'] as const
+const scopes = ['project', 'dependencies', 'all'] as const
+const details = ['summary', 'full'] as const
+const localeKinds: Record<string, string | undefined> = {
   species: 'species',
   skill: 'skills',
   mark: 'marks',
@@ -13,40 +26,123 @@ const localeKinds = {
   mark_emblem: 'marks',
   mark_global: 'marks',
 }
-const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
-const invalid = message => {
+
+type QueryKind = (typeof kinds)[number]
+type QueryScope = (typeof scopes)[number]
+type QueryDetail = (typeof details)[number]
+
+export interface QueryOptions {
+  kind: QueryKind
+  scope: QueryScope
+  detail: QueryDetail
+  search: string
+  offset: number
+  limit: number
+  contentKind?: string
+  id?: string
+  locale?: string
+  namespace?: string
+  packageName?: string
+}
+
+interface Provenance {
+  namespace: string | undefined
+  packageName: string | undefined
+  packageVersion: string | undefined
+  projectId: string | undefined
+  scope: QueryScope
+  readOnly: boolean
+}
+
+interface Catalog {
+  snapshot: WorkspaceSnapshot
+  owner: Provenance
+}
+
+interface Localization {
+  locale: string
+  localeNamespace: string
+  name?: unknown
+  description?: unknown
+  [key: string]: unknown
+}
+
+interface QueryRow {
+  row: UnknownRecord
+  text: string
+  summary: unknown
+  full: unknown
+}
+
+interface DependencyRequest {
+  from: string
+  name: string
+  optional: boolean
+}
+
+const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
+function invalid(message: string): never {
   throw new WorkspaceError('QUERY_INVALID', message)
 }
 const pageBytes = 2 * 1024 * 1024
 const packageLimit = 256
 const packageNamePattern = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/i
 
-function options(input: any = {}) {
-  const value = { kind: 'content', scope: 'project', detail: 'summary', search: '', offset: 0, limit: 50, ...input }
-  if (!kinds.includes(value.kind)) invalid('查询类型无效')
-  if (!['project', 'dependencies', 'all'].includes(value.scope)) invalid('查询范围无效')
-  if (!['summary', 'full'].includes(value.detail)) invalid('查询详情级别无效')
-  if (value.contentKind !== undefined && !contentKinds.includes(value.contentKind)) invalid('内容类型无效')
-  for (const key of ['search', 'id', 'locale', 'namespace', 'packageName'])
-    if (value[key] !== undefined && (typeof value[key] !== 'string' || value[key].length > 200))
+function options(input: UnknownRecord = {}): QueryOptions {
+  const kind = input.kind ?? 'content'
+  const scope = input.scope ?? 'project'
+  const detail = input.detail ?? 'summary'
+  if (typeof kind !== 'string' || !(kinds as readonly string[]).includes(kind)) invalid('查询类型无效')
+  if (typeof scope !== 'string' || !(scopes as readonly string[]).includes(scope)) invalid('查询范围无效')
+  if (typeof detail !== 'string' || !(details as readonly string[]).includes(detail)) invalid('查询详情级别无效')
+  const contentKind = input.contentKind
+  if (
+    contentKind !== undefined &&
+    (typeof contentKind !== 'string' || !(contentKinds as readonly string[]).includes(contentKind))
+  )
+    invalid('内容类型无效')
+  for (const key of ['search', 'id', 'locale', 'namespace', 'packageName'] as const) {
+    const value = input[key]
+    if (value !== undefined && (typeof value !== 'string' || value.length > 200))
       invalid(`${key} 需要不超过 200 字符的文本`)
-  if (!Number.isInteger(value.offset) || value.offset < 0) invalid('offset 需要非负整数')
-  if (!Number.isInteger(value.limit) || value.limit < 1 || value.limit > 100) invalid('limit 需要 1–100 的整数')
-  return value
+  }
+  const offset = input.offset ?? 0
+  const limit = input.limit ?? 50
+  if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) invalid('offset 需要非负整数')
+  if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 100)
+    invalid('limit 需要 1–100 的整数')
+  return {
+    kind: kind as QueryKind,
+    scope: scope as QueryScope,
+    detail: detail as QueryDetail,
+    search: typeof input.search === 'string' ? input.search : '',
+    offset,
+    limit,
+    ...(typeof contentKind === 'string' ? { contentKind } : {}),
+    ...(typeof input.id === 'string' ? { id: input.id } : {}),
+    ...(typeof input.locale === 'string' ? { locale: input.locale } : {}),
+    ...(typeof input.namespace === 'string' ? { namespace: input.namespace } : {}),
+    ...(typeof input.packageName === 'string' ? { packageName: input.packageName } : {}),
+  }
 }
 
-function runtimeDependencies(manifest: any) {
-  const entries = new Map()
-  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'])
-    for (const name of Object.keys(manifest[field] ?? {}).sort(compare)) {
+function runtimeDependencies(manifest: PackageManifest): Array<[string, boolean]> {
+  const entries = new Map<string, boolean>()
+  const metadata = isRecord(manifest.peerDependenciesMeta) ? manifest.peerDependenciesMeta : {}
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) {
+    const value = manifest[field]
+    if (!isRecord(value)) continue
+    for (const name of Object.keys(value).sort(compare)) {
       if (!packageNamePattern.test(name)) throw new WorkspaceError('DEPENDENCY_INVALID', '依赖包名无效', 'package.json')
-      entries.set(name, field === 'optionalDependencies' || manifest.peerDependenciesMeta?.[name]?.optional === true)
+      const optional = isRecord(metadata[name]) && metadata[name].optional === true
+      entries.set(name, field === 'optionalDependencies' || optional)
     }
+  }
   return [...entries].sort(([a], [b]) => compare(a, b))
 }
 
 // Resolve declared packages without executing package exports or consulting global module paths.
-async function installedPackage(from, name) {
+async function installedPackage(from: string, name: string): Promise<{ root: string; manifest: PackageManifest }> {
   for (let directory = from; ; directory = dirname(directory)) {
     const candidate = join(directory, 'node_modules', name)
     try {
@@ -55,15 +151,15 @@ async function installedPackage(from, name) {
       const info = await lstat(file)
       if (!info.isFile() || info.size > pageBytes)
         throw new WorkspaceError('DEPENDENCY_INVALID', '依赖清单需要不超过 2 MiB 的普通文件', file)
-      return { root, manifest: JSON.parse(await readFile(file, 'utf8')) }
+      return { root, manifest: JSON.parse(await readFile(file, 'utf8')) as PackageManifest }
     } catch (error) {
-      if (error.code !== 'ENOENT') throw error
+      if (errorCode(error) !== 'ENOENT') throw error
     }
     if (dirname(directory) === directory) throw new WorkspaceError('DEPENDENCY_MISSING', `未安装声明的依赖：${name}`)
   }
 }
 
-function provenance(snapshot: any, scope: any, manifest: any) {
+function provenance(snapshot: WorkspaceSnapshot, scope: QueryScope, manifest: PackageManifest): Provenance {
   return {
     namespace: snapshot.project.namespace,
     packageName: manifest.name,
@@ -74,16 +170,23 @@ function provenance(snapshot: any, scope: any, manifest: any) {
   }
 }
 
-async function catalogs(workspace, scope) {
-  const manifest = JSON.parse((await workspace.read('package.json')).text)
+async function catalogs(
+  workspace: AuthorWorkspace,
+  scope: QueryScope,
+): Promise<{ catalogs: Catalog[]; diagnostics: Array<Record<string, unknown>> }> {
+  const manifest = JSON.parse((await workspace.read('package.json')).text) as PackageManifest
   const project = await workspace.snapshot()
-  const own = { snapshot: project, owner: provenance(project, 'project', manifest) }
-  const result = scope === 'dependencies' ? [] : [own]
-  const diagnostics = []
+  const own: Catalog = { snapshot: project, owner: provenance(project, 'project', manifest) }
+  const result: Catalog[] = scope === 'dependencies' ? [] : [own]
+  const diagnostics: Array<Record<string, unknown>> = []
   if (scope === 'project') return { catalogs: result, diagnostics }
-  const queue = runtimeDependencies(manifest).map(([name, optional]) => ({ from: workspace.root, name, optional }))
+  const queue: DependencyRequest[] = runtimeDependencies(manifest).map(([name, optional]) => ({
+    from: workspace.root,
+    name,
+    optional,
+  }))
   const visited = new Set([workspace.root])
-  const identities = new Map([[project.project.namespace, manifest.name]])
+  const identities = new Map<string | undefined, string | undefined>([[project.project.namespace, manifest.name]])
   let inspected = 0
   while (queue.length) {
     if (++inspected > packageLimit) {
@@ -94,8 +197,10 @@ async function catalogs(workspace, scope) {
       })
       break
     }
-    const { from, name, optional } = queue.shift()
-    let dependency
+    const next = queue.shift()
+    if (!next) break
+    const { from, name, optional } = next
+    let dependency: AuthorWorkspace | undefined
     try {
       const { root, manifest: metadata } = await installedPackage(from, name)
       if (visited.has(root)) continue
@@ -125,7 +230,7 @@ async function catalogs(workspace, scope) {
         )
       }
     } catch (error) {
-      if (!(optional && error.code === 'DEPENDENCY_MISSING'))
+      if (!(optional && errorCode(error) === 'DEPENDENCY_MISSING'))
         diagnostics.push({ ...diagnostic(error), packageName: name, scope: 'dependencies', readOnly: true })
     } finally {
       await dependency?.close()
@@ -134,19 +239,19 @@ async function catalogs(workspace, scope) {
   return { catalogs: result, diagnostics }
 }
 
-function translations(snapshot: any, row: any, locale: any) {
+function translations(snapshot: WorkspaceSnapshot, row: WorkspaceRecord, locale: string | undefined): Localization[] {
   return snapshot.localeSources
-    .flatMap(source =>
-      localeKinds[source.namespace] === row.kind &&
-      (!locale || source.language === locale) &&
-      source.entries[row.record.id]
-        ? [{ locale: source.language, localeNamespace: source.namespace, ...source.entries[row.record.id] }]
-        : [],
-    )
+    .flatMap((source: WorkspaceLocaleSource): Localization[] => {
+      const entries = isRecord(source.entries) ? source.entries : undefined
+      const entry = entries?.[row.record.id]
+      return localeKinds[source.namespace] === row.kind && (!locale || source.language === locale) && isRecord(entry)
+        ? [{ locale: source.language, localeNamespace: source.namespace, ...entry }]
+        : []
+    })
     .sort((a, b) => compare(a.locale, b.locale) || compare(a.localeNamespace, b.localeNamespace))
 }
 
-function nameFields(localizations: any, requested: any, fallback: any) {
+function nameFields(localizations: Localization[], requested: string | undefined, fallback: unknown) {
   const locale = requested ?? localizations.find(entry => entry.locale === 'zh-CN')?.locale ?? localizations[0]?.locale
   const names: string[] = [
     ...new Set<string>(
@@ -167,8 +272,9 @@ function nameFields(localizations: any, requested: any, fallback: any) {
   }
 }
 
-function rowsFor({ snapshot, owner }: any, query: any) {
-  const identify = (id, kind, source = {}) => ({
+function rowsFor(catalog: Catalog, query: QueryOptions): QueryRow[] {
+  const { snapshot, owner } = catalog
+  const identify = (id: string, kind: string, source: UnknownRecord = {}): UnknownRecord => ({
     ...owner,
     kind,
     id,
@@ -176,8 +282,10 @@ function rowsFor({ snapshot, owner }: any, query: any) {
     ...source,
   })
   if (query.kind === 'locales')
-    return snapshot.localeSources.flatMap(source =>
-      (Object.entries(source.entries) as [string, any][]).map(([id, record]) => {
+    return snapshot.localeSources.flatMap(source => {
+      const entries = isRecord(source.entries) ? source.entries : {}
+      return Object.entries(entries).flatMap(([id, record]): QueryRow[] => {
+        if (!isRecord(record)) return []
         const row = identify(id, 'locales', {
           contentKind: localeKinds[source.namespace],
           file: source.file,
@@ -186,25 +294,31 @@ function rowsFor({ snapshot, owner }: any, query: any) {
           localeNamespace: source.namespace,
           ...(source.locations?.[id] ?? {}),
         })
-        return {
-          row,
-          text: JSON.stringify({ ...row, ...record }),
-          full: { ...row, record, sharedFields: recordSharing(source.sharedFields, id) },
-          summary: {
-            ...row,
-            ...(record.name ? { name: record.name.slice(0, 200) } : {}),
-            ...(record.description ? { descriptionPreview: record.description.slice(0, 240) } : {}),
+        return [
+          {
+            row,
+            text: JSON.stringify({ ...row, ...record }),
+            full: { ...row, record, sharedFields: recordSharing(source.sharedFields, id) },
+            summary: {
+              ...row,
+              ...(typeof record.name === 'string' ? { name: record.name.slice(0, 200) } : {}),
+              ...(typeof record.description === 'string'
+                ? { descriptionPreview: record.description.slice(0, 240) }
+                : {}),
+            },
           },
-        }
-      }),
-    )
-  if (query.kind === 'files' || query.kind === 'diagnostics')
-    return (query.kind === 'files' ? snapshot.files : snapshot.diagnostics).map(entry => {
-      const row = { ...owner, kind: query.kind, ...entry }
-      return { row, text: JSON.stringify(row), full: row, summary: row }
+        ]
+      })
     })
+  if (query.kind === 'files' || query.kind === 'diagnostics')
+    return (query.kind === 'files' ? snapshot.files : snapshot.diagnostics).map(
+      (entry: WorkspaceFile | Diagnostic): QueryRow => {
+        const row: UnknownRecord = { ...owner, kind: query.kind, ...entry }
+        return { row, text: JSON.stringify(row), full: row, summary: row }
+      },
+    )
   if (query.kind === 'assets')
-    return snapshot.assets.map(asset => {
+    return snapshot.assets.map((asset): QueryRow => {
       const definition = snapshot.records.find(
         row => row.kind === 'resources' && row.record.id === asset.id && row.file === asset.definition,
       )
@@ -216,11 +330,16 @@ function rowsFor({ snapshot, owner }: any, query: any) {
         ...(definition ? { version: definition.version, index: definition.index } : {}),
       })
       const { references, ...summary } = row
-      return { row, text: JSON.stringify(row), full: row, summary: { ...summary, referenceCount: references.length } }
+      return {
+        row,
+        text: JSON.stringify(row),
+        full: row,
+        summary: { ...summary, referenceCount: Array.isArray(references) ? references.length : 0 },
+      }
     })
   return snapshot.records
     .filter(row => !['presentations', 'resources'].includes(query.kind) || row.kind === query.kind)
-    .map(source => {
+    .map((source): QueryRow => {
       const localizations = translations(snapshot, source, query.locale)
       const row = identify(source.record.id, source.kind, {
         contentKind: source.kind,
@@ -240,7 +359,7 @@ function rowsFor({ snapshot, owner }: any, query: any) {
 }
 
 /** Read-only discovery over disk data. Never loads effects or changes workbench selection/drafts. */
-export async function queryContent(workspace: any, input: any = {}) {
+export async function queryContent(workspace: AuthorWorkspace, input: UnknownRecord = {}) {
   const query = options(input)
   const { catalogs: sources, diagnostics } = await catalogs(workspace, query.scope)
   const needle = query.search.toLowerCase()
@@ -265,7 +384,7 @@ export async function queryContent(workspace: any, input: any = {}) {
       severity: 'warning',
       message: '此 ID 对应多个对象；请使用 contentKind、namespace 或 packageName 明确目标',
     })
-  const items = []
+  const items: unknown[] = []
   let bytes = 0
   for (const candidate of rows.slice(query.offset, query.offset + query.limit)) {
     const item = candidate[query.detail === 'full' ? 'full' : 'summary']

@@ -1,16 +1,18 @@
 import type { EnvironmentRules } from './content-workspace.ts'
+import { isRecord, type UnknownRecord } from './types.ts'
 
-const fail = (code: any) => {
+function fail(code: string): never {
   throw Object.assign(new Error(code), { code })
 }
-const record = (value: any) => value !== null && typeof value === 'object' && !Array.isArray(value)
-const keysAllowed = (value: any, names: any) => Object.keys(value).every(name => names.includes(name))
-const identifier = (value: any) =>
+const record = (value: unknown): value is UnknownRecord => isRecord(value)
+const keysAllowed = (value: UnknownRecord, names: readonly string[]) =>
+  Object.keys(value).every(name => names.includes(name))
+const identifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 256 && !/\p{Cc}/u.test(value)
 
 /** Validate the currently implemented rule vocabulary before admitting an environment. */
 export function validateEnvironmentRules(input?: unknown): EnvironmentRules {
-  const rules: any = input === undefined ? { schemaVersion: 1 } : input
+  const rules: unknown = input === undefined ? { schemaVersion: 1 } : input
   if (!record(rules) || !keysAllowed(rules, ['schemaVersion', 'tier', 'allow', 'deny', 'team']))
     fail('ENVIRONMENT_RULES_INVALID')
   if (rules.schemaVersion !== 1 || (rules.tier !== undefined && rules.tier !== 'standard'))
@@ -33,8 +35,13 @@ export function validateEnvironmentRules(input?: unknown): EnvironmentRules {
     (!record(rules.team) || !keysAllowed(rules.team, ['minSize', 'maxSize', 'uniqueSpecies']))
   )
     fail('ENVIRONMENT_RULES_INVALID')
-  const { minSize = 1, maxSize = 6, uniqueSpecies } = rules.team ?? {}
+  const team = record(rules.team) ? rules.team : {}
+  const minSize = team.minSize === undefined ? 1 : team.minSize
+  const maxSize = team.maxSize === undefined ? 6 : team.maxSize
+  const uniqueSpecies = team.uniqueSpecies
   if (
+    typeof minSize !== 'number' ||
+    typeof maxSize !== 'number' ||
     !Number.isInteger(minSize) ||
     !Number.isInteger(maxSize) ||
     minSize < 1 ||
@@ -43,54 +50,58 @@ export function validateEnvironmentRules(input?: unknown): EnvironmentRules {
     (uniqueSpecies !== undefined && typeof uniqueSpecies !== 'boolean')
   )
     fail('ENVIRONMENT_RULES_INVALID')
-  return structuredClone(rules) as EnvironmentRules
+  return structuredClone(rules) as unknown as EnvironmentRules
 }
 
 /** Version requirements fail closed until a host implements capability negotiation. */
 export function assertEnvironmentRequirements(input?: unknown): void {
-  const requires: any = input === undefined ? {} : input
+  const requires: unknown = input === undefined ? {} : input
   if (!record(requires) || !keysAllowed(requires, ['engine', 'sdk', 'capabilities']))
     fail('ENVIRONMENT_REQUIREMENT_INVALID')
-  for (const key of ['engine', 'sdk'])
-    if (requires[key] !== undefined && (typeof requires[key] !== 'string' || !requires[key].trim()))
-      fail('ENVIRONMENT_REQUIREMENT_INVALID')
+  for (const key of ['engine', 'sdk'] as const) {
+    const value = requires[key]
+    if (value !== undefined && (typeof value !== 'string' || !value.trim())) fail('ENVIRONMENT_REQUIREMENT_INVALID')
+  }
   if (
     requires.capabilities !== undefined &&
     (!Array.isArray(requires.capabilities) || requires.capabilities.some(value => !identifier(value)))
   )
     fail('ENVIRONMENT_REQUIREMENT_INVALID')
-  if (requires.capabilities?.length) fail('ENVIRONMENT_CAPABILITY_UNSUPPORTED')
+  if (Array.isArray(requires.capabilities) && requires.capabilities.length) fail('ENVIRONMENT_CAPABILITY_UNSUPPORTED')
   if (requires.engine !== undefined || requires.sdk !== undefined) fail('ENVIRONMENT_REQUIREMENT_UNSUPPORTED')
 }
 
 /** Admission checks apply to normalized team definitions, before creating any battle. */
 export function assertEnvironmentTeam(input: unknown, team: unknown): void {
-  const rules: any = validateEnvironmentRules(input)
+  const rules = validateEnvironmentRules(input)
   const { minSize = 1, maxSize = 6, uniqueSpecies = false } = rules.team ?? {}
   if (!Array.isArray(team) || team.length < minSize || team.length > maxSize) fail('ENVIRONMENT_TEAM_REJECTED')
-  const players: any[] = team as any[]
+  const players: unknown[] = team
   for (const pet of players) {
+    if (!record(pet)) fail('ENVIRONMENT_TEAM_REJECTED')
+    const petRecord = pet as UnknownRecord
     if (
-      !record(pet) ||
-      !identifier(pet.species) ||
-      !Array.isArray(pet.skills) ||
-      pet.skills.some(skill => !identifier(skill))
+      !identifier(petRecord.species) ||
+      !Array.isArray(petRecord.skills) ||
+      petRecord.skills.some(skill => !identifier(skill))
     )
       fail('ENVIRONMENT_TEAM_REJECTED')
-    if ([pet.ability, pet.emblem].some(mark => mark !== undefined && mark !== '' && !identifier(mark)))
+    if ([petRecord.ability, petRecord.emblem].some(mark => mark !== undefined && mark !== '' && !identifier(mark)))
       fail('ENVIRONMENT_TEAM_REJECTED')
-    const selected = {
-      species: [pet.species],
-      skills: pet.skills,
-      marks: [pet.ability, pet.emblem].filter(value => !!value),
+    const selected: Record<'species' | 'skills' | 'marks', unknown[]> = {
+      species: [petRecord.species],
+      skills: petRecord.skills as unknown[],
+      marks: [petRecord.ability, petRecord.emblem].filter(value => !!value),
     }
-    for (const kind of ['species', 'skills', 'marks']) {
+    for (const kind of ['species', 'skills', 'marks'] as const) {
       const allow = rules.allow?.[kind],
         deny = rules.deny?.[kind]
-      if (selected[kind].some(id => (allow !== undefined && !allow.includes(id)) || deny?.includes(id)))
+      if (
+        selected[kind].some(id => !identifier(id) || (allow !== undefined && !allow.includes(id)) || deny?.includes(id))
+      )
         fail('ENVIRONMENT_TEAM_REJECTED')
     }
   }
-  if (uniqueSpecies && new Set(players.map(pet => pet.species)).size !== players.length)
+  if (uniqueSpecies && new Set(players.map(pet => (pet as UnknownRecord).species)).size !== players.length)
     fail('ENVIRONMENT_TEAM_REJECTED')
 }

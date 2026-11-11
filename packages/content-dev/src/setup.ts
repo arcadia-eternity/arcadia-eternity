@@ -3,10 +3,11 @@ import { spawn, execFileSync } from 'node:child_process'
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { errorMessage } from './types.ts'
 
 export async function setup(args: string[] = process.argv.slice(2), root: string = process.cwd()) {
   root = resolve(root)
-  const options: any = { offline: false }
+  const options: { offline: boolean; sdkDir?: string } = { offline: false }
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (arg === '--help') {
@@ -30,14 +31,14 @@ export async function setup(args: string[] = process.argv.slice(2), root: string
     pnpm_config_verify_deps_before_run: 'false',
     ELECTRON_SKIP_BINARY_DOWNLOAD: '1',
   }
-  function run(command, args, cwd = root) {
+  function run(command: string, args: string[], cwd = root) {
     return new Promise<void>((resolve, reject) => {
       const child = spawn(command, args, { cwd, env, stdio: 'inherit' })
       child.on('error', reject)
       child.on('exit', code => (code === 0 ? resolve() : reject(new Error(`${command} exited with ${code}`))))
     })
   }
-  const exists = path =>
+  const exists = (path: string) =>
     access(path).then(
       () => true,
       () => false,
@@ -67,7 +68,8 @@ export async function setup(args: string[] = process.argv.slice(2), root: string
       }).trim()
       if (head !== pin.revision || changes)
         throw new Error('The cached SDK source must match the pinned revision without local changes.')
-      const pnpm = args => run('npx', ['--yes', `--package=pnpm@${pin.pnpmVersion}`, 'pnpm', ...args], source)
+      const pnpm = (args: string[]) =>
+        run('npx', ['--yes', `--package=pnpm@${pin.pnpmVersion}`, 'pnpm', ...args], source)
       await pnpm(['install', '--frozen-lockfile', '--ignore-scripts'])
       await pnpm(['--filter', './packages/content-dev...', '--filter', '@arcadia-eternity/protocol...', 'run', 'build'])
       await run(process.execPath, ['scripts/stage-author-sdk.mjs', sdkDirectory], source)
@@ -119,7 +121,7 @@ export async function setup(args: string[] = process.argv.slice(2), root: string
     )
     console.log('SDK installed. Run npm test, npm run demo, or npm run pack.')
   } catch (error) {
-    throw new Error(`SDK setup failed: ${error.message}`, { cause: error })
+    throw new Error(`SDK setup failed: ${errorMessage(error)}`, { cause: error })
   }
 }
 if (
@@ -128,7 +130,7 @@ if (
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   setup().catch(error => {
-    console.error(error.message)
+    console.error(errorMessage(error))
     process.exitCode = 1
   })
 }

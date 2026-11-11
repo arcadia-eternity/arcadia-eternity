@@ -5,21 +5,188 @@ import { dirname, extname, isAbsolute, join, relative, sep } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
 import YAML from 'yaml'
+import type { Document, LineCounter } from 'yaml'
 import chokidar from 'chokidar'
+import type { FSWatcher } from 'chokidar'
 import writeFileAtomic from 'write-file-atomic'
 import { resourceReferences, bindingPresentation, validResourceId, validAssetPath } from './lib/presentation.ts'
 import { yamlSharing, recordSharing, changedSharedField, sharingSignature } from './lib/yaml-sharing.ts'
+import type { NodePath, SharedField } from './lib/yaml-sharing.ts'
 import { withSourceLock } from './source-lock.ts'
+import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.ts'
 
 const ignored = new Set(['node_modules', 'dist', '.git', '.arcadia', '.DS_Store', 'Thumbs.db'])
-const kinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources']
+const kinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources'] as const
+const contentKinds = ['species', 'skills', 'marks', 'behaviors'] as const
+const contentFilePattern = /^data\/(species|skills|marks|behaviors|presentations|resources)\/.+\.(json|ya?ml)$/
+const localeFilePattern = /^locales\/([^/]+)\/([^/]+)\.(json|ya?ml)$/
 const basePackageName = '@arcadia-eternity/data-pack-base'
 const baseProjectId = 'arcadia-eternity.base'
-const isBaseManifest = manifest => manifest.name === basePackageName || manifest.arcadia?.projectId === baseProjectId
-const isInstalledPackage = root => root.split(sep).includes('node_modules')
 const textLimit = 2 * 1024 * 1024
-const hash = value => createHash('sha256').update(value).digest('hex')
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
+
+export interface ManifestArcadia {
+  projectId?: string
+  namespace?: string
+  content?: string
+  presentation?: string
+  sdkApi?: string
+  [key: string]: unknown
+}
+
+export interface PackageManifest {
+  name?: string
+  version?: string
+  arcadia?: ManifestArcadia
+  [key: string]: unknown
+}
+
+export interface SourceRecord {
+  id: string
+  [key: string]: unknown
+}
+
+export interface Diagnostic {
+  code: string
+  severity: string
+  message: string
+  file?: string
+}
+
+export interface WorkspaceFile {
+  file: string
+  size?: number
+  modified?: number
+  error?: string
+}
+
+export interface SourceLocation {
+  line: number
+  column: number
+}
+
+export interface WorkspaceRecord {
+  kind: string
+  record: SourceRecord
+  file: string
+  version: string
+  index: number | null
+  sharedFields: SharedField[]
+  line?: number
+  column?: number
+}
+
+export interface WorkspaceAsset {
+  id: string
+  file?: unknown
+  definition: string
+  kind?: unknown
+  name?: unknown
+  size?: number
+  modified?: number
+  error?: string
+  references: Array<{ file: string; kind: string; id: string }>
+}
+
+export interface WorkspaceLocaleSource {
+  file: string
+  version: string
+  language: string
+  namespace: string
+  entries: unknown
+  sharedFields: SharedField[]
+  locations?: Record<string, SourceLocation>
+}
+
+export interface WorkspaceCapabilities {
+  sourceEditing: boolean
+  structuredSaving: boolean
+  localeEditing: boolean
+  yamlSharing: string
+  externalEditor: boolean
+  kinds: readonly string[]
+  sdkApi: unknown
+}
+
+export interface WorkspaceSnapshot {
+  protocolVersion: number
+  root: string
+  project: ManifestArcadia
+  name: string | undefined
+  version: string | undefined
+  records: WorkspaceRecord[]
+  files: WorkspaceFile[]
+  assets: WorkspaceAsset[]
+  locales: Record<string, unknown>
+  localeSources: WorkspaceLocaleSource[]
+  diagnostics: Diagnostic[]
+  capabilities: WorkspaceCapabilities
+}
+
+export interface WorkspaceOptions {
+  watch?: boolean
+  readOnly?: boolean
+  published?: boolean
+}
+
+export interface WriteInput {
+  file: string
+  expectedVersion: string | null
+  text: string
+}
+
+export interface RemoveInput {
+  file: string
+  expectedVersion: string | null
+}
+
+export interface SaveRecordInput {
+  file: string
+  expectedVersion: string | null
+  index?: number | null
+  record: unknown
+}
+
+export interface WorkspaceChange {
+  kind: 'record' | 'locale' | 'create-record'
+  file: string
+  expectedVersion?: string | null
+  record?: unknown
+  index?: number | null
+  id?: string
+}
+
+export interface SaveChangesInput {
+  changes: WorkspaceChange[]
+}
+
+export interface SaveResult {
+  file: string
+  saved: boolean
+  version?: string
+  diagnostic?: Diagnostic
+}
+
+interface ParsedSource {
+  value: unknown
+  doc?: Document
+  lineCounter: LineCounter
+  sharedFields: SharedField[]
+}
+
+interface PreparedDraft {
+  source: { file: string; version: string | null; text: string }
+  parsed: ParsedSource
+  next: unknown
+}
+
+const object = (value: unknown): value is UnknownRecord =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
+
+const isBaseManifest = (manifest: PackageManifest) =>
+  manifest.name === basePackageName || manifest.arcadia?.projectId === baseProjectId
+const isInstalledPackage = (root: string) => root.split(sep).includes('node_modules')
+
 export class WorkspaceError extends Error {
   code: string
   file?: string
@@ -29,22 +196,25 @@ export class WorkspaceError extends Error {
     this.file = file
   }
 }
-const fail = (code: any, message: any, file?: any) => {
+
+function fail(code: string, message: string, file?: string): never {
   throw new WorkspaceError(code, message, file)
 }
-export function diagnostic(error) {
+
+export function diagnostic(error: unknown): Diagnostic {
   return {
-    code: error.code ?? 'WORKSPACE_ERROR',
+    code: errorCode(error) ?? 'WORKSPACE_ERROR',
     severity: 'error',
-    message: error.message,
-    ...(error.file ? { file: error.file } : {}),
+    message: errorMessage(error),
+    ...(isRecord(error) && typeof error.file === 'string' ? { file: error.file } : {}),
   }
 }
-function parse(text, file) {
+
+function parse(text: string, file: string): ParsedSource {
   try {
-    let doc
+    let doc: Document | undefined
     const lineCounter = new YAML.LineCounter()
-    const value =
+    const value: unknown =
       extname(file) === '.json'
         ? JSON.parse(text)
         : (doc = YAML.parseDocument(text, { merge: true, lineCounter })).toJS({ maxAliasCount: 100 })
@@ -52,10 +222,11 @@ function parse(text, file) {
     if (!isDeepStrictEqual(JSON.parse(JSON.stringify(value)), value)) throw new Error('数据必须是有限的 JSON 值')
     return { value, doc, lineCounter, sharedFields: yamlSharing(doc, lineCounter) }
   } catch (error) {
-    fail('SOURCE_INVALID', error.message, file)
+    fail('SOURCE_INVALID', errorMessage(error), file)
   }
 }
-function safeValue(value) {
+
+function safeValue(value: unknown): void {
   if (Array.isArray(value)) value.forEach(safeValue)
   else if (object(value))
     for (const [key, entry] of Object.entries(value)) {
@@ -66,31 +237,34 @@ function safeValue(value) {
     fail('SOURCE_INVALID', '不支持的数据值')
   if (typeof value === 'number' && !Number.isFinite(value)) fail('SOURCE_INVALID', '数值必须有限')
 }
+
 // Change individual YAML nodes so comments and unrelated records survive a form save.
-function updateNodes(doc, before, after, path = []) {
+function updateNodes(doc: Document, before: unknown, after: unknown, path: NodePath = []): void {
   if (isDeepStrictEqual(before, after)) return
   if (
     (object(before) && object(after)) ||
     (Array.isArray(before) && Array.isArray(after) && before.length === after.length)
   ) {
-    for (const key of Object.keys(before)) if (!Object.hasOwn(after, key)) doc.deleteIn([...path, key])
-    for (const key of Object.keys(after))
-      updateNodes(doc, before[key], after[key], [...path, Array.isArray(after) ? Number(key) : key])
+    const from = before as UnknownRecord
+    const to = after as UnknownRecord
+    for (const key of Object.keys(from)) if (!Object.hasOwn(to, key)) doc.deleteIn([...path, key])
+    for (const key of Object.keys(to))
+      updateNodes(doc, from[key], to[key], [...path, Array.isArray(after) ? Number(key) : key])
   } else if (!path.length) doc.contents = doc.createNode(after)
   else doc.setIn(path, after)
 }
 
-function serializeForm({ value, doc, sharedFields }, next, file, original) {
-  const changed = changedSharedField(sharedFields, value, next)
+function serializeForm(parsed: ParsedSource, next: unknown, file: string, original: string): string {
+  const changed = changedSharedField(parsed.sharedFields, parsed.value, next)
   if (changed)
     fail('SHARED_FIELD_READ_ONLY', `共享字段 ${changed.path.join('.') || '整个对象'} 请在外部编辑器修改`, file)
-  if (isDeepStrictEqual(value, next)) return original
-  if (!doc) return JSON.stringify(next, null, 2) + '\n'
-  const signature = sharingSignature(doc)
-  updateNodes(doc, value, next)
-  const text = String(doc)
+  if (isDeepStrictEqual(parsed.value, next)) return original
+  if (!parsed.doc) return JSON.stringify(next, null, 2) + '\n'
+  const signature = sharingSignature(parsed.doc)
+  updateNodes(parsed.doc, parsed.value, next)
+  const text = String(parsed.doc)
   const saved = parse(text, file)
-  if (!isDeepStrictEqual(saved.value, next) || !isDeepStrictEqual(sharingSignature(saved.doc), signature))
+  if (!isDeepStrictEqual(saved.value, next) || !isDeepStrictEqual(sharingSignature(saved.doc!), signature))
     fail('SOURCE_STRUCTURE_CHANGED', '此次修改无法保留 YAML 共享结构，请在外部编辑器处理', file)
   return text
 }
@@ -100,10 +274,10 @@ export class AuthorWorkspace extends EventEmitter {
   root: string
   published = false
   readOnly = false
-  baseProject?: { projectId: string; namespace: string }
-  #watcher
-  #queues = new Map()
-  #dirty = new Set()
+  baseProject?: ManifestArcadia & { projectId: string; namespace: string }
+  #watcher: FSWatcher | undefined
+  #queues = new Map<string, Promise<unknown>>()
+  #dirty = new Set<string>()
   #closed = false
   constructor(root: string) {
     super()
@@ -111,16 +285,16 @@ export class AuthorWorkspace extends EventEmitter {
   }
   static async open(
     directory: string,
-    { watch = true, readOnly = false, published = false }: any = {},
+    { watch = true, readOnly = false, published = false }: WorkspaceOptions = {},
   ): Promise<AuthorWorkspace> {
     const workspace = new AuthorWorkspace(await realpath(directory))
-    const manifest = JSON.parse((await workspace.read('package.json')).text)
+    const manifest = JSON.parse((await workspace.read('package.json')).text) as PackageManifest
     workspace.published = published || isInstalledPackage(workspace.root)
     workspace.readOnly = readOnly || workspace.published || isBaseManifest(manifest)
     if (isBaseManifest(manifest) && (!workspace.published || !manifest.arcadia)) {
-      const pack = JSON.parse((await workspace.read('pack.json')).text)
+      const pack = JSON.parse((await workspace.read('pack.json')).text) as UnknownRecord
       if (pack.id !== baseProjectId) fail('PROJECT_INVALID', '基础包身份不一致', 'pack.json')
-      workspace.baseProject = { projectId: pack.id, namespace: pack.id }
+      workspace.baseProject = { projectId: baseProjectId, namespace: baseProjectId }
     }
     if (
       !workspace.baseProject &&
@@ -144,8 +318,8 @@ export class AuthorWorkspace extends EventEmitter {
         workspace.emit('change', { type, file: relative(workspace.root, path).split(sep).join('/') }),
       )
       await new Promise<void>((resolve, reject) => {
-        workspace.#watcher.once('ready', resolve)
-        workspace.#watcher.once('error', reject)
+        workspace.#watcher!.once('ready', resolve)
+        workspace.#watcher!.once('error', reject)
       })
       workspace.#watcher.on('error', error =>
         workspace.emit('change', { type: 'rescan', diagnostic: diagnostic(error) }),
@@ -153,11 +327,11 @@ export class AuthorWorkspace extends EventEmitter {
     }
     return workspace
   }
-  async assertWritable() {
-    if (this.readOnly || isBaseManifest(JSON.parse((await this.read('package.json')).text)))
+  async assertWritable(): Promise<void> {
+    if (this.readOnly || isBaseManifest(JSON.parse((await this.read('package.json')).text) as PackageManifest))
       fail('WRITE_DISABLED', '此内容包为只读，请在自己的内容包中创作。')
   }
-  async path(file: string, { create = false }: any = {}) {
+  async path(file: string, { create = false }: { create?: boolean } = {}): Promise<string> {
     if (this.#closed) fail('WORKSPACE_CLOSED', '工作区已关闭')
     if (
       typeof file !== 'string' ||
@@ -184,22 +358,22 @@ export class AuthorWorkspace extends EventEmitter {
         if (info.isSymbolicLink() || (index < parts.length - 1 ? !info.isDirectory() : !info.isFile()))
           fail('PATH_INVALID', '源路径必须是普通文件／目录', file)
       } catch (error) {
-        if (create && error.code === 'ENOENT') continue
+        if (create && errorCode(error) === 'ENOENT') continue
         throw error
       }
     }
     return current
   }
-  async read(file: string) {
+  async read(file: string): Promise<{ file: string; text: string; version: string }> {
     const path = await this.path(file)
     if ((await lstat(path)).size > textLimit) fail('SOURCE_TOO_LARGE', '文本超过 2 MiB，请在外部编辑器打开', file)
     const bytes = await readFile(path)
     if (bytes.length > textLimit || bytes.includes(0)) fail('SOURCE_INVALID', '文件不是受支持的源文本', file)
     return { file, text: bytes.toString('utf8'), version: hash(bytes) }
   }
-  async files() {
-    const result = []
-    const walk = async (directory, prefix = '') => {
+  async files(): Promise<WorkspaceFile[]> {
+    const result: WorkspaceFile[] = []
+    const walk = async (directory: string, prefix = ''): Promise<void> => {
       for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
         a.name.localeCompare(b.name),
       )) {
@@ -221,8 +395,11 @@ export class AuthorWorkspace extends EventEmitter {
     await walk(this.root)
     return result
   }
-  async revision({ contentOnly = false, excludeFile }: any = {}) {
-    const hashes = []
+  async revision({
+    contentOnly = false,
+    excludeFile,
+  }: { contentOnly?: boolean; excludeFile?: string } = {}): Promise<string> {
+    const hashes: Array<[string, string]> = []
     for (const entry of await this.files()) {
       if (entry.file === excludeFile || (contentOnly && entry.file.startsWith('debug/teams/'))) continue
       if (entry.error) fail('PATH_INVALID', entry.error, entry.file)
@@ -232,69 +409,89 @@ export class AuthorWorkspace extends EventEmitter {
     }
     return hash(JSON.stringify(hashes))
   }
-  async snapshot(): Promise<any> {
-    const manifest = JSON.parse((await this.read('package.json')).text)
-    const project = this.baseProject ?? manifest.arcadia
+  async snapshot(): Promise<WorkspaceSnapshot> {
+    const manifest = JSON.parse((await this.read('package.json')).text) as PackageManifest
+    const project = this.baseProject ?? manifest.arcadia ?? {}
     const readOnly = this.readOnly || isBaseManifest(manifest)
-    const baseSources = new Map()
+    const baseSources = new Map<string, string>()
     if (this.baseProject) {
-      const pack = JSON.parse((await this.read('pack.json')).text)
+      const pack = JSON.parse((await this.read('pack.json')).text) as UnknownRecord
+      const data = object(pack.data) ? pack.data : {}
+      const paths = object(pack.paths) ? pack.paths : {}
+      const dataDir = typeof paths.dataDir === 'string' ? paths.dataDir : 'data'
       for (const kind of kinds)
-        for (const file of pack.data?.[kind] ?? []) baseSources.set(`${pack.paths?.dataDir ?? 'data'}/${file}`, kind)
+        for (const file of Array.isArray(data[kind]) ? (data[kind] as string[]) : [])
+          baseSources.set(`${dataDir}/${file}`, kind)
     }
     const files = await this.files(),
-      records = [],
-      diagnostics = [],
-      ids = new Set()
-    const locales = {},
-      localeSources = []
+      records: WorkspaceRecord[] = [],
+      diagnostics: Diagnostic[] = [],
+      ids = new Set<string>()
+    const locales: Record<string, unknown> = {},
+      localeSources: WorkspaceLocaleSource[] = []
     if (this.published) {
+      const arcadia = manifest.arcadia
+      if (!arcadia) fail('PROJECT_INVALID', '安装包缺少内容入口', 'package.json')
+      if (typeof arcadia.content !== 'string') fail('PROJECT_INVALID', '安装包缺少内容入口', 'package.json')
       // Published views follow the declared runtime artifacts, even when stale raw sources ship alongside them.
-      const content = await this.read(manifest.arcadia.content)
-      const data = JSON.parse(content.text).data
+      const content = await this.read(arcadia.content)
+      const data = (JSON.parse(content.text) as UnknownRecord).data
       safeValue(data)
       if (!object(data)) fail('SOURCE_INVALID', '安装包缺少内容数据', content.file)
-      const add = (kind, record, source, index) => {
+      const add = (kind: string, record: unknown, source: { file: string; version: string }, index: number) => {
         if (!object(record) || typeof record.id !== 'string') fail('SOURCE_INVALID', '安装内容缺少 ID', source.file)
-        records.push({ kind, record, file: source.file, version: source.version, index, sharedFields: [] })
+        records.push({
+          kind,
+          record: record as SourceRecord,
+          file: source.file,
+          version: source.version,
+          index,
+          sharedFields: [],
+        })
       }
-      for (const kind of ['species', 'skills', 'marks', 'behaviors']) {
-        if (data[kind] !== undefined && !Array.isArray(data[kind]))
-          fail('SOURCE_INVALID', '安装内容需要数组', content.file)
-        for (const [index, record] of (data[kind] ?? []).entries()) add(kind, record, content, index)
+      for (const kind of contentKinds) {
+        const list = data[kind]
+        if (list !== undefined && !Array.isArray(list)) fail('SOURCE_INVALID', '安装内容需要数组', content.file)
+        if (!Array.isArray(list)) continue
+        for (const [index, record] of list.entries()) add(kind, record, content, index)
       }
-      if (manifest.arcadia.presentation) {
-        const source = await this.read(manifest.arcadia.presentation)
-        const presentation = JSON.parse(source.text)
+      if (typeof arcadia.presentation === 'string') {
+        const source = await this.read(arcadia.presentation)
+        const presentation = JSON.parse(source.text) as UnknownRecord
         safeValue(presentation)
         if (presentation.version !== 2) fail('SOURCE_INVALID', '安装包需要 v2 表现格式', source.file)
-        for (const [index, record] of (presentation.bindings ?? []).entries())
-          add('presentations', record, source, index)
-        for (const [index, resource] of (presentation.resources ?? []).entries()) {
-          const kind = resource.mime?.startsWith('image/')
-            ? 'image'
-            : resource.mime?.startsWith('audio/')
-              ? 'audio'
-              : 'swf'
-          add(
-            'resources',
-            { id: resource.id, kind, source: resource.source, ...(resource.tags ? { tags: resource.tags } : {}) },
-            source,
-            index,
-          )
-        }
-        for (const [language, namespaces] of Object.entries(presentation.locales ?? {})) {
-          for (const [namespace, entries] of Object.entries(namespaces)) {
-            localeSources.push({
-              file: source.file,
-              version: source.version,
-              language,
-              namespace,
-              entries,
-              sharedFields: [],
-            })
+        if (Array.isArray(presentation.bindings))
+          for (const [index, record] of presentation.bindings.entries()) add('presentations', record, source, index)
+        if (Array.isArray(presentation.resources))
+          for (const [index, resource] of presentation.resources.entries()) {
+            if (!object(resource)) continue
+            const kind =
+              typeof resource.mime === 'string' && resource.mime.startsWith('image/')
+                ? 'image'
+                : typeof resource.mime === 'string' && resource.mime.startsWith('audio/')
+                  ? 'audio'
+                  : 'swf'
+            add(
+              'resources',
+              { id: resource.id, kind, source: resource.source, ...(resource.tags ? { tags: resource.tags } : {}) },
+              source,
+              index,
+            )
           }
-        }
+        if (object(presentation.locales))
+          for (const [language, namespaces] of Object.entries(presentation.locales)) {
+            if (!object(namespaces)) continue
+            for (const [namespace, entries] of Object.entries(namespaces)) {
+              localeSources.push({
+                file: source.file,
+                version: source.version,
+                language,
+                namespace,
+                entries,
+                sharedFields: [],
+              })
+            }
+          }
       }
     }
     for (const entry of this.published ? [] : files) {
@@ -302,10 +499,11 @@ export class AuthorWorkspace extends EventEmitter {
         diagnostics.push({ code: 'PATH_INVALID', severity: 'error', file: entry.file, message: entry.error })
         continue
       }
-      const match = baseSources.has(entry.file)
-        ? [entry.file, baseSources.get(entry.file)]
-        : /^data\/(species|skills|marks|behaviors|presentations|resources)\/.+\.(json|ya?ml)$/.exec(entry.file)
-      const locale = /^locales\/([^/]+)\/([^/]+)\.(json|ya?ml)$/.exec(entry.file)
+      const baseKind = baseSources.get(entry.file)
+      const match: readonly string[] | RegExpExecArray | null = baseKind
+        ? [entry.file, baseKind]
+        : contentFilePattern.exec(entry.file)
+      const locale = localeFilePattern.exec(entry.file)
       if (
         this.baseProject &&
         locale &&
@@ -315,7 +513,8 @@ export class AuthorWorkspace extends EventEmitter {
       if (!match && !locale) continue
       try {
         const source = await this.read(entry.file),
-          { value, doc, lineCounter, sharedFields } = parse(source.text, entry.file)
+          parsed = parse(source.text, entry.file)
+        const { value, doc, lineCounter, sharedFields } = parsed
         if (locale) {
           if (
             !object(value) ||
@@ -340,7 +539,7 @@ export class AuthorWorkspace extends EventEmitter {
             locations: Object.fromEntries(
               Object.keys(value).flatMap(id => {
                 const node = doc?.getIn([id], true)
-                if (!node?.range) return []
+                if (!YAML.isNode(node) || !node.range) return []
                 const position = lineCounter.linePos(node.range[0])
                 return [[id, { line: position.line, column: position.col }]]
               }),
@@ -352,7 +551,7 @@ export class AuthorWorkspace extends EventEmitter {
         for (const [index, record] of values.entries()) {
           if (!object(record) || typeof record.id !== 'string' || !record.id)
             fail('SOURCE_INVALID', '每条内容需要 ID', entry.file)
-          const key = `${match[1]}:${record.id}`
+          const key = `${match![1]}:${record.id}`
           if (ids.has(key))
             diagnostics.push({
               code: 'DUPLICATE_ID',
@@ -362,13 +561,13 @@ export class AuthorWorkspace extends EventEmitter {
             })
           ids.add(key)
           const node = doc?.getIn(Array.isArray(value) ? [index] : [], true)
-          const position = node?.range ? lineCounter.linePos(node.range[0]) : undefined
+          const position = YAML.isNode(node) && node.range ? lineCounter.linePos(node.range[0]) : undefined
           records.push({
-            kind: match[1],
+            kind: match![1],
             file: entry.file,
             index: Array.isArray(value) ? index : null,
             version: source.version,
-            record,
+            record: record as SourceRecord,
             sharedFields: recordSharing(sharedFields, Array.isArray(value) ? index : null),
             ...(position ? { line: position.line, column: position.col } : {}),
           })
@@ -389,7 +588,7 @@ export class AuthorWorkspace extends EventEmitter {
           message: '此对象仍使用旧资源格式，请将表现与资源迁移到 data/presentations 和 data/resources。',
         })
     }
-    const assets = records
+    const assets: WorkspaceAsset[] = records
       .filter(row => row.kind === 'resources')
       .map(row => ({
         id: row.record.id,
@@ -401,19 +600,21 @@ export class AuthorWorkspace extends EventEmitter {
         references: [],
       }))
     const byId = new Map(assets.map(row => [row.id, row]))
-    const targets = new Set()
+    const targets = new Set<string>()
     for (const source of records.filter(row => row.kind === 'presentations')) {
       try {
         const target = source.record.target
-        const key = JSON.stringify([target?.kind, target?.id])
+        const targetKind = object(target) && typeof target.kind === 'string' ? target.kind : undefined
+        const targetId = object(target) && typeof target.id === 'string' ? target.id : undefined
+        const key = JSON.stringify([targetKind, targetId])
         if (targets.has(key)) throw new Error(`重复表现关联：${key}`)
         targets.add(key)
-        if (!records.some(row => row.kind === target?.kind && row.record.id === target?.id))
+        if (!records.some(row => row.kind === targetKind && row.record.id === targetId))
           throw new Error(`表现关联的对象不存在：${key}`)
         for (const ref of resourceReferences(bindingPresentation(source.record))) {
           if (typeof ref !== 'string') continue
           const resource = byId.get(ref)
-          if (resource) resource.references.push({ file: source.file, kind: target.kind, id: target.id })
+          if (resource) resource.references.push({ file: source.file, kind: targetKind!, id: targetId! })
           else
             diagnostics.push({
               code: 'RESOURCE_MISSING',
@@ -461,14 +662,14 @@ export class AuthorWorkspace extends EventEmitter {
       },
     }
   }
-  setDirty(file: string, dirty: boolean) {
+  setDirty(file: string, dirty: boolean): void {
     if (dirty) this.#dirty.add(file)
     else this.#dirty.delete(file)
   }
-  clearDirty() {
+  clearDirty(): void {
     this.#dirty.clear()
   }
-  async asset(file: string) {
+  async asset(file: string): Promise<{ file: string; bytes: Buffer; version: string }> {
     if (!file.startsWith('assets/') && !(await this.snapshot()).assets.some(row => row.file === file))
       fail('PATH_INVALID', '请选择项目声明的素材', file)
     const path = await this.path(file)
@@ -476,7 +677,7 @@ export class AuthorWorkspace extends EventEmitter {
     const bytes = await readFile(path)
     return { file, bytes, version: hash(bytes) }
   }
-  async #serialize(file, action) {
+  async #serialize<T>(file: string, action: () => Promise<T>): Promise<T> {
     const pending = (this.#queues.get(file) ?? Promise.resolve())
       .catch(() => {})
       .then(() => withSourceLock(this.root, file, action))
@@ -487,21 +688,21 @@ export class AuthorWorkspace extends EventEmitter {
       if (this.#queues.get(file) === pending) this.#queues.delete(file)
     }
   }
-  async #version(file) {
+  async #version(file: string): Promise<string | null> {
     try {
       return (await this.read(file)).version
     } catch (error) {
-      if (error.code === 'ENOENT') return null
+      if (errorCode(error) === 'ENOENT') return null
       throw error
     }
   }
-  async #check(file, expectedVersion, fromForm) {
+  async #check(file: string, expectedVersion: string | null | undefined, fromForm: boolean): Promise<void> {
     await this.assertWritable()
     if (this.#dirty.has(file) && !fromForm) fail('UNSAVED_CHANGES', '此文件有未保存表单', file)
     if (expectedVersion !== (await this.#version(file)))
       fail('REVISION_CONFLICT', '文件已在外部修改，未保存输入仍保留', file)
   }
-  async write({ file, expectedVersion, text }: any, { fromForm = false }: any = {}) {
+  async write({ file, expectedVersion, text }: WriteInput, { fromForm = false }: { fromForm?: boolean } = {}) {
     await this.assertWritable()
     if (typeof text !== 'string' || Buffer.byteLength(text) > textLimit)
       fail('SOURCE_TOO_LARGE', '源文本超过大小限制', file)
@@ -518,7 +719,7 @@ export class AuthorWorkspace extends EventEmitter {
       return { file, version: hash(text) }
     })
   }
-  async remove({ file, expectedVersion }: any) {
+  async remove({ file, expectedVersion }: RemoveInput): Promise<void> {
     await this.assertWritable()
     await this.path(file, { create: true })
     return this.#serialize(file, async () => {
@@ -528,35 +729,44 @@ export class AuthorWorkspace extends EventEmitter {
       this.emit('change', { type: 'unlink', file })
     })
   }
-  async saveRecord({ file, expectedVersion, index = null, record }: any) {
+  async saveRecord({
+    file,
+    expectedVersion,
+    index = null,
+    record,
+  }: SaveRecordInput): Promise<{ file: string; version?: string }> {
     const { results } = await this.saveChanges(
       { changes: [{ kind: 'record', file, expectedVersion, index, record }] },
       { fromForm: true },
     )
     const result = results[0]
-    if (!result.saved) fail(result.diagnostic.code, result.diagnostic.message, result.diagnostic.file ?? file)
+    if (!result.saved) fail(result.diagnostic!.code, result.diagnostic!.message, result.diagnostic!.file ?? file)
     return { file: result.file, version: result.version }
   }
   /** Prepare the whole review first; commit each source once, reporting partial writes explicitly. */
-  async saveChanges({ changes }: any, { fromForm = false }: any = {}) {
+  async saveChanges(
+    { changes }: SaveChangesInput,
+    { fromForm = false }: { fromForm?: boolean } = {},
+  ): Promise<{ results: SaveResult[]; complete: boolean }> {
     await this.assertWritable()
     if (!Array.isArray(changes) || !changes.length || changes.length > 1000)
       fail('SOURCE_INVALID', '请选择 1–1000 项修改')
     const catalog = changes.some(change => ['locale', 'create-record'].includes(change?.kind))
       ? await this.snapshot()
       : undefined
-    const created = new Set()
+    const created = new Set<string>()
     for (const change of changes.filter(change => change?.kind === 'create-record')) {
       const kind = /^data\/(species|skills|marks|presentations|resources)\/.+\.(json|ya?ml)$/.exec(change.file)?.[1]
-      if (!kind || !object(change.record) || typeof change.record.id !== 'string' || !change.record.id)
+      const createdRecord = change.record
+      if (!kind || !object(createdRecord) || typeof createdRecord.id !== 'string' || !createdRecord.id)
         fail('SOURCE_INVALID', '新建内容需要有效类型、ID 和源文件位置', change.file)
-      const key = JSON.stringify([kind, change.record.id])
-      if (created.has(key) || catalog.records.some(row => row.kind === kind && row.record.id === change.record.id))
+      const key = JSON.stringify([kind, createdRecord.id])
+      if (created.has(key) || catalog!.records.some(row => row.kind === kind && row.record.id === createdRecord.id))
         fail('DUPLICATE_ID', '此内容 ID 已存在，请使用其他标识', change.file)
       created.add(key)
     }
-    const files = new Map(),
-      targets = new Set()
+    const files = new Map<string, PreparedDraft>(),
+      targets = new Set<string>()
     for (const change of changes) {
       const { file, expectedVersion, kind, record, index = null, id } = change
       const creating = kind === 'create-record'
@@ -589,7 +799,7 @@ export class AuthorWorkspace extends EventEmitter {
         safeValue(parsed.value)
         files.set(file, { source, parsed, next: JSON.parse(JSON.stringify(parsed.value)) })
       }
-      const prepared = files.get(file)
+      const prepared = files.get(file)!
       if (prepared.source.version !== expectedVersion)
         fail('REVISION_CONFLICT', '同一文件的草稿版本不一致，请核对外部变化', file)
       safeValue(record)
@@ -598,15 +808,17 @@ export class AuthorWorkspace extends EventEmitter {
         const sourceKind = file.split('/')[1]
         if (sourceKind === 'resources') {
           if (
-            !validResourceId(record?.id) ||
-            !['image', 'audio', 'swf'].includes(record?.kind) ||
+            !validResourceId(record.id) ||
+            typeof record.kind !== 'string' ||
+            !['image', 'audio', 'swf'].includes(record.kind) ||
             typeof record.source !== 'string' ||
             (!/^https?:\/\//.test(record.source) && !validAssetPath(record.source))
           )
             fail('SOURCE_INVALID', '资源需要稳定 ID、类型和项目内路径或 HTTP 地址', file)
         } else if (sourceKind === 'presentations') {
           if (
-            !object(record?.target) ||
+            !object(record.target) ||
+            typeof record.target.kind !== 'string' ||
             !['species', 'skills', 'marks'].includes(record.target.kind) ||
             typeof record.target.id !== 'string'
           )
@@ -616,36 +828,38 @@ export class AuthorWorkspace extends EventEmitter {
           fail('SOURCE_INVALID', '请将表现关联和资源定义分别保存到 data/presentations 与 data/resources', file)
       }
       if (isLocale) {
+        const target = prepared.next
         if (
           typeof id !== 'string' ||
           !id ||
           ['__proto__', 'constructor', 'prototype'].includes(id) ||
-          !object(prepared.next) ||
-          !object(record) ||
+          !object(target) ||
           Object.entries(record).some(
             ([key, value]) => !['name', 'description'].includes(key) || typeof value !== 'string',
           )
         )
           fail('SOURCE_INVALID', '名称与描述需要文本值', file)
         const namespace = /^locales\/[^/]+\/([^/]+)\.(json|ya?ml)$/.exec(file)?.[1]
-        const contentKind = {
-          species: 'species',
-          skill: 'skills',
-          mark: 'marks',
-          mark_ability: 'marks',
-          mark_emblem: 'marks',
-          mark_global: 'marks',
-        }[namespace]
+        const contentKind = (
+          {
+            species: 'species',
+            skill: 'skills',
+            mark: 'marks',
+            mark_ability: 'marks',
+            mark_emblem: 'marks',
+            mark_global: 'marks',
+          } as Record<string, string | undefined>
+        )[namespace ?? '']
         if (
           !contentKind ||
-          catalog.records.filter(row => row.kind === contentKind && row.record.id === id).length +
+          catalog!.records.filter(row => row.kind === contentKind && row.record.id === id).length +
             Number(created.has(JSON.stringify([contentKind, id]))) !==
             1
         )
           fail('SOURCE_INVALID', '名称与描述需要对应唯一的已有内容对象', file)
-        prepared.next[id] = record
+        target[id] = record
       } else {
-        if (!object(record) || typeof record.id !== 'string' || !record.id) fail('SOURCE_INVALID', '内容需要 ID', file)
+        if (typeof record.id !== 'string' || !record.id) fail('SOURCE_INVALID', '内容需要 ID', file)
         if (creating) {
           prepared.next = record
           continue
@@ -658,7 +872,7 @@ export class AuthorWorkspace extends EventEmitter {
               : undefined
         if (!object(before) || before.id !== record.id) fail('SOURCE_INVALID', '内容位置或身份已改变，请核对来源', file)
         if (index === null) prepared.next = record
-        else prepared.next[index] = record
+        else if (Array.isArray(prepared.next)) prepared.next[index] = record
       }
     }
     const prepared = [...files]
@@ -673,7 +887,7 @@ export class AuthorWorkspace extends EventEmitter {
             : serializeForm(parsed, next, file, source.text),
       }))
       .sort((a, b) => Number(a.file.startsWith('locales/')) - Number(b.file.startsWith('locales/')))
-    const results = []
+    const results: SaveResult[] = []
     for (const change of prepared) {
       try {
         const result = await this.write(change, { fromForm })
@@ -685,7 +899,7 @@ export class AuthorWorkspace extends EventEmitter {
     }
     return { results, complete: results.length === prepared.length && results.every(result => result.saved) }
   }
-  async close() {
+  async close(): Promise<void> {
     this.#closed = true
     await this.#watcher?.close()
     await Promise.allSettled(this.#queues.values())

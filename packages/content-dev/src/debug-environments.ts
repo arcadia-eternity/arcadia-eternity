@@ -2,7 +2,7 @@ import { WorkspaceError, type AuthorWorkspace } from './workspace.ts'
 import { z } from 'zod'
 const idPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const packagePattern = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
-const fail = message => {
+function fail(message: string): never {
   throw new WorkspaceError('ENVIRONMENT_INVALID', message)
 }
 const sharedFields = {
@@ -37,7 +37,7 @@ const reference = z
   .min(1)
   .max(256)
   .regex(/^[a-zA-Z0-9_./:-]+$/)
-const uniqueList = schema =>
+const uniqueList = <T extends z.ZodType>(schema: T) =>
   z
     .array(schema)
     .max(10000)
@@ -95,20 +95,21 @@ export const EnvironmentDocumentSchema = z.discriminatedUnion('schemaVersion', [
   EnvironmentDocumentV1Schema,
   EnvironmentDocumentV2Schema,
 ])
-export function environmentDocument(input) {
+export type EnvironmentDocument = z.infer<typeof EnvironmentDocumentSchema>
+export type EnvironmentDocumentV2 = z.infer<typeof EnvironmentDocumentV2Schema>
+export type ListedEnvironment = EnvironmentDocument & { version: string | null }
+
+export function environmentDocument(input: unknown): EnvironmentDocument {
   const parsed = EnvironmentDocumentSchema.safeParse(input)
-  if (!parsed.success) fail(`环境配置无效：${parsed.error.issues[0].message}`)
-  const value: any = parsed.data
+  if (!parsed.success) fail(`环境配置无效：${parsed.error.issues[0]?.message ?? ''}`)
+  const value = parsed.data
+  const disabled = value.schemaVersion === 2 ? value.disabled : undefined
   if (
-    value.disabled &&
-    (Object.keys(value.disabled.packages).some(
-      name => Object.hasOwn(value.packages, name) || value.sources.includes(name),
-    ) ||
-      value.disabled.sources.some(
+    disabled &&
+    (Object.keys(disabled.packages).some(name => Object.hasOwn(value.packages, name) || value.sources.includes(name)) ||
+      disabled.sources.some(
         name =>
-          Object.hasOwn(value.packages, name) ||
-          value.sources.includes(name) ||
-          Object.hasOwn(value.disabled.packages, name),
+          Object.hasOwn(value.packages, name) || value.sources.includes(name) || Object.hasOwn(disabled.packages, name),
       ))
   )
     fail('启用和停用的资源包不能重复')
@@ -116,7 +117,7 @@ export function environmentDocument(input) {
 }
 
 /** Read legacy documents into the shared domain model without rewriting source files. */
-export function normalizeEnvironmentDocument(value: any): any {
+export function normalizeEnvironmentDocument(value: unknown): EnvironmentDocumentV2 {
   const document = environmentDocument(value)
   if (document.schemaVersion === 2) return document
   return { ...document, schemaVersion: 2, rules: { schemaVersion: 1 }, requires: {} }
@@ -126,12 +127,12 @@ export class DebugEnvironments {
   constructor(workspace: AuthorWorkspace) {
     this.workspace = workspace
   }
-  file(id) {
+  file(id: string): string {
     if (typeof id !== 'string' || !idPattern.test(id) || id === 'default') fail('环境标识无效')
     return `debug/environments/${id}.json`
   }
-  async list() {
-    const environments = [
+  async list(): Promise<ListedEnvironment[]> {
+    const environments: ListedEnvironment[] = [
       { schemaVersion: 1, id: 'default', name: '当前包与正式依赖', packages: {}, sources: [], version: null },
     ]
     for (const { file } of await this.workspace.files()) {
@@ -139,17 +140,23 @@ export class DebugEnvironments {
       const source = await this.workspace.read(file),
         value = environmentDocument(JSON.parse(source.text))
       if (this.file(value.id) !== file) fail('环境文件名与标识不一致')
-      environments.push({ ...value, version: source.version })
+      environments.push({ ...value, version: source.version } as ListedEnvironment)
     }
     return environments
   }
-  async save({ document, expectedVersion }) {
+  async save({
+    document,
+    expectedVersion,
+  }: {
+    document: unknown
+    expectedVersion: string | null
+  }): Promise<ListedEnvironment> {
     const value = environmentDocument(document)
     const result = await this.workspace.write({
       file: this.file(value.id),
       expectedVersion,
       text: JSON.stringify(value, null, 2) + '\n',
     })
-    return { ...value, version: result.version }
+    return { ...value, version: result.version } as ListedEnvironment
   }
 }

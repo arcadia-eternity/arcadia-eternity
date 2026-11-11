@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { siblingModulePath } from './module-path.ts'
+import { errorMessage } from './types.ts'
 const require = createRequire(import.meta.url)
 const [command, ...args] = process.argv.slice(2)
 const help = `arcadia-content <command>
@@ -14,7 +15,7 @@ const help = `arcadia-content <command>
   setup     Install the pinned development SDK and tool
   workspace <directory> <operation> [--execute]  Structured author operations
 `
-function run(file, arguments_) {
+function run(file: string, arguments_: string[]) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(file, arguments_, { stdio: 'inherit', cwd: process.cwd() })
     child.on('error', reject)
@@ -65,11 +66,11 @@ try {
       const packed = await packBuiltProject()
       console.log(`Packed ${packed.filename}`)
       console.log(
-        `ARCADIA_RESULT=${JSON.stringify({ filename: packed.filename, integrity: packed.integrity, shasum: packed.shasum, files: packed.files.map(file => file.path) })}`,
+        `ARCADIA_RESULT=${JSON.stringify({ filename: packed.filename, integrity: packed.integrity, shasum: packed.shasum, files: packed.files.map((file: { path: string }) => file.path) })}`,
       )
     }
   }
 } catch (error) {
-  console.error(error.message)
+  console.error(errorMessage(error))
   process.exitCode = 1
 }

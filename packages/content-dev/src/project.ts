@@ -4,14 +4,15 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { WorkspaceError } from './workspace.ts'
 import { siblingModulePath } from './module-path.ts'
+import { errorCode } from './types.ts'
 const require = createRequire(import.meta.url)
 const moduleRoot = fileURLToPath(new URL('../', import.meta.url))
 export function authorConnection(
-  root,
+  root: string,
   execute = false,
-  env = process.env,
+  env: NodeJS.ProcessEnv = process.env,
   readOnly = false,
-  contextFile,
+  contextFile?: string,
   published = false,
 ) {
   return {
@@ -34,7 +35,7 @@ export function authorConnection(
     },
   }
 }
-async function packageRoot(names, entry) {
+async function packageRoot(names: string | string[], entry: string): Promise<string> {
   if (!Array.isArray(names)) names = [names]
   let path = dirname(require.resolve(entry))
   for (;;) {
@@ -49,17 +50,17 @@ async function packageRoot(names, entry) {
   }
 }
 /** Connect bundled tools only when absent. Never replace a project's existing dependencies. */
-export async function connectDevelopmentSdk(root) {
+export async function connectDevelopmentSdk(root: string) {
   root = await realpath(root)
   // Existing dependency directories must not redirect writes outside this project.
-  async function directory(parts) {
+  async function directory(parts: string[]) {
     let current = root
     for (const part of parts) {
       current = join(current, part)
       try {
         await mkdir(current)
       } catch (error) {
-        if (error.code !== 'EEXIST') throw error
+        if (errorCode(error) !== 'EEXIST') throw error
       }
       const info = await lstat(current)
       if (info.isSymbolicLink() || !info.isDirectory())
@@ -88,7 +89,7 @@ export async function connectDevelopmentSdk(root) {
       await lstat(target)
       continue
     } catch (error) {
-      if (error.code !== 'ENOENT') throw error
+      if (errorCode(error) !== 'ENOENT') throw error
     }
     await symlink(source, target, process.platform === 'win32' ? 'junction' : 'dir')
     linked.push(name)
@@ -103,16 +104,16 @@ export async function connectDevelopmentSdk(root) {
     const script = siblingModulePath(entry)
     if (process.platform === 'win32')
       await writeFile(join(bin, name + '.cmd'), `@echo off\r\nnode "${script}" %*\r\n`, { flag: 'wx' }).catch(e => {
-        if (e.code !== 'EEXIST') throw e
+        if (errorCode(e) !== 'EEXIST') throw e
       })
     else
       await symlink(script, join(bin, name)).catch(e => {
-        if (e.code !== 'EEXIST') throw e
+        if (errorCode(e) !== 'EEXIST') throw e
       })
   }
   return { linked }
 }
-export async function createSourceProject(directory, identity) {
+export async function createSourceProject(directory: string, identity: string) {
   if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(identity)) throw new WorkspaceError('PROJECT_INVALID', '项目 ID 无效')
   await mkdir(directory) // No overwrite or merge with existing directories.
   let template = fileURLToPath(new URL('./template/', import.meta.url))
@@ -123,7 +124,7 @@ export async function createSourceProject(directory, identity) {
   }
   for (const entry of await readdir(template))
     await cp(join(template, entry), join(directory, entry), { recursive: true, force: false, errorOnExist: true })
-  async function renameText(root) {
+  async function renameText(root: string) {
     for (const entry of await readdir(root, { withFileTypes: true })) {
       const file = join(root, entry.name)
       if (entry.isDirectory()) await renameText(file)
@@ -134,7 +135,7 @@ export async function createSourceProject(directory, identity) {
     }
   }
   await renameText(directory)
-  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')) as Record<string, unknown>
   manifest.name = `@arcadia-local/${identity}`
   await writeFile(join(directory, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
   await connectDevelopmentSdk(directory)

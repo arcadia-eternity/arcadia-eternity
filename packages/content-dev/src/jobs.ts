@@ -11,22 +11,67 @@ import { siblingModulePath } from './module-path.ts'
 const cli = siblingModulePath('cli')
 const terminal = new Set(['succeeded', 'failed', 'cancelled', 'interrupted'])
 const outputLimit = 1024 * 1024
-const queryError = message => {
+function queryError(message: string): never {
   throw new WorkspaceError('TASK_QUERY_INVALID', message)
 }
-function integer(value, minimum, maximum, name) {
-  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) queryError(`${name} 超出范围`)
+function integer(value: unknown, minimum: number, maximum: number, name: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum || value > maximum)
+    queryError(`${name} 超出范围`)
   return value
 }
-function outputRange(job: any) {
+
+interface JobDiagnostic {
+  code: string
+  severity?: string
+  message: string
+  file?: string
+  line?: number
+  column?: number
+}
+
+interface JobResult {
+  preview?: { endpoint: string; clientPath: string; url?: string }
+  environmentLock?: { file: string; version: string }
+  sourceRevisions?: Record<string, string>
+  files?: unknown[]
+  [key: string]: unknown
+}
+
+export interface Job {
+  jobId: string
+  kind: string
+  sourceRevision: string
+  contentRevision: string
+  environmentId: string
+  preparationRevision: string
+  state: string
+  phase: string
+  stale: boolean
+  output: string
+  outputCursor: number
+  diagnostics: JobDiagnostic[]
+  createdAt: number
+  finishedAt?: string
+  result?: JobResult
+}
+
+interface JobControl {
+  job: Job
+  controller?: AbortController
+  live?: boolean
+  done?: Promise<void>
+}
+
+function outputRange(job: Pick<Job, 'output' | 'outputCursor'>) {
   const text = typeof job.output === 'string' ? job.output : ''
   // Receipts written by older versions have no cursor; their retained output starts at zero.
   const end = Number.isSafeInteger(job.outputCursor) ? Math.max(job.outputCursor, text.length) : text.length
   return { text, start: end - text.length, end }
 }
-function resultSummary(result: any) {
+function resultSummary(result: unknown) {
   if (!result || typeof result !== 'object') return undefined
-  const summary: any = {}
+  const record = result as Record<string, unknown>
+  const summary: Record<string, unknown> = {}
   for (const key of [
     'candidate',
     'preview',
@@ -40,13 +85,13 @@ function resultSummary(result: any) {
     'environmentRevision',
     'packageName',
   ])
-    if (result[key] !== undefined) summary[key] = structuredClone(result[key])
-  if (Array.isArray(result.files)) summary.fileCount = result.files.length
+    if (record[key] !== undefined) summary[key] = structuredClone(record[key])
+  if (Array.isArray(record.files)) summary.fileCount = record.files.length
   return summary
 }
-function jobSummary(job: any, details = false) {
+function jobSummary(job: Job, details = false) {
   const { start, end } = outputRange(job)
-  const summary: any = {
+  const summary: Record<string, unknown> = {
     jobId: job.jobId,
     kind: job.kind,
     state: job.state,
@@ -62,7 +107,7 @@ function jobSummary(job: any, details = false) {
     outputCursor: end,
   }
   if (details) {
-    summary.diagnostics = job.diagnostics.slice(0, 100).map(item => ({
+    summary.diagnostics = job.diagnostics.slice(0, 100).map((item: JobDiagnostic) => ({
       ...item,
       message: typeof item.message === 'string' ? item.message.slice(0, 4000) : item.message,
     }))
@@ -79,15 +124,15 @@ export class AuthorJobs {
   execute: boolean
   env: Record<string, string>
   executable: string
-  #jobs = new Map()
-  #active
+  #jobs = new Map<string, JobControl>()
+  #active: string | undefined
   #closed = false
-  #starting
-  #changed
-  #previews = new Map()
-  #journal
-  #sync = Promise.resolve()
-  #timer
+  #starting: Promise<void> | undefined
+  #changed: (event?: { file?: string }) => void
+  #previews = new Map<string, Promise<void>>()
+  #journal: JobJournal | undefined
+  #sync: Promise<void> = Promise.resolve()
+  #timer: ReturnType<typeof setInterval> | undefined
   #waiters = new Set<() => void>()
   constructor(
     workspace: AuthorWorkspace,
@@ -105,9 +150,9 @@ export class AuthorJobs {
           key,
         ),
       ),
-    )
+    ) as Record<string, string>
     this.executable = executable
-    this.#changed = ({ file }: any = {}) => {
+    this.#changed = ({ file }: { file?: string } = {}) => {
       for (const { job } of this.#jobs.values())
         if (
           terminal.has(job.state) &&
@@ -146,11 +191,13 @@ export class AuthorJobs {
       })
     return this.#sync
   }
-  async #dependenciesCurrent(job) {
+  async #dependenciesCurrent(job: Job): Promise<boolean> {
     const revisions = Object.entries(job.result?.sourceRevisions ?? {})
     if (!revisions.length) return true
     try {
-      const mappings = JSON.parse(await readFile(join(this.workspace.root, '.arcadia/debug-sources.json'), 'utf8'))
+      const mappings = JSON.parse(
+        await readFile(join(this.workspace.root, '.arcadia/debug-sources.json'), 'utf8'),
+      ) as Record<string, unknown>
       for (const [name, revision] of revisions) {
         if (typeof mappings[name] !== 'string') return false
         const source = await AuthorWorkspace.open(mappings[name], { watch: false })
@@ -178,7 +225,7 @@ export class AuthorJobs {
             : job.sourceRevision !== revision
     await this.#refreshReceipts({ revision, contentRevision })
   }
-  async #refreshReceipts(revisions: any = undefined) {
+  async #refreshReceipts(revisions?: { revision: string; contentRevision: string }): Promise<void> {
     if (!this.#journal) return
     const receipts = await this.#journal.read()
     const present = new Set(receipts.map(receipt => receipt.job.jobId))
@@ -195,7 +242,15 @@ export class AuthorJobs {
       this.#jobs.set(receipt.job.jobId, { job: receipt.job, live: receipt.live })
     }
   }
-  async start({ kind, sourceRevision, environmentId = 'default' }: any) {
+  async start({
+    kind,
+    sourceRevision,
+    environmentId = 'default',
+  }: {
+    kind: string
+    sourceRevision?: string
+    environmentId?: string
+  }): Promise<Job> {
     if (this.workspace.assertWritable) await this.workspace.assertWritable()
     if (this.#closed) throw new WorkspaceError('WORKSPACE_CLOSED', '任务宿主已关闭')
     if (!['check', 'test', 'demo', 'preview', 'pack'].includes(kind))
@@ -209,8 +264,8 @@ export class AuthorJobs {
     const jobId = randomUUID()
     // Reserve before fingerprinting so concurrent starts cannot race.
     this.#active = jobId
-    let started
-    this.#starting = new Promise(resolve => {
+    let started: () => void = () => {}
+    this.#starting = new Promise<void>(resolve => {
       started = resolve
     })
     try {
@@ -218,7 +273,7 @@ export class AuthorJobs {
       if (this.#closed) throw new WorkspaceError('WORKSPACE_CLOSED', '任务宿主已关闭')
       if (sourceRevision && sourceRevision !== revision)
         throw new WorkspaceError('REVISION_CONFLICT', '项目已改变，请重新读取')
-      const job = {
+      const job: Job = {
         jobId,
         kind,
         sourceRevision: revision,
@@ -237,7 +292,7 @@ export class AuthorJobs {
         diagnostics: [],
         createdAt: Date.now(),
       }
-      const control: any = { job, controller: new AbortController() }
+      const control: JobControl = { job, controller: new AbortController() }
       this.#jobs.set(jobId, control)
       for (const [id, value] of this.#jobs) {
         if (this.#jobs.size <= 30) break
@@ -260,16 +315,21 @@ export class AuthorJobs {
       this.#starting = undefined
     }
   }
-  get(jobId) {
+  get(jobId: string): Job {
     const control = this.#jobs.get(jobId)
     if (!control) throw new WorkspaceError('TASK_UNKNOWN', '任务不存在或已过期')
     return structuredClone(control.job)
   }
-  list() {
+  list(): Job[] {
     return [...this.#jobs.keys()].map(id => this.get(id)).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
   }
   /** Compact task discovery; listing never switches or replaces a desktop preview. */
-  async queryJobs({ offset = 0, limit = 20, state, kind }: any = {}) {
+  async queryJobs({
+    offset = 0,
+    limit = 20,
+    state,
+    kind,
+  }: { offset?: number; limit?: number; state?: string; kind?: string } = {}) {
     integer(offset, 0, Number.MAX_SAFE_INTEGER, 'offset')
     integer(limit, 1, 100, 'limit')
     if (state !== undefined && !['queued', 'running', ...terminal].includes(state)) queryError('任务状态无效')
@@ -287,7 +347,19 @@ export class AuthorJobs {
     }
   }
   /** Wait for changes without repeatedly hashing every project file. */
-  async queryJob({ jobId, waitMs = 0, afterCursor, includeOutput = false, limit = 16384 }: any = {}) {
+  async queryJob({
+    jobId,
+    waitMs = 0,
+    afterCursor,
+    includeOutput = false,
+    limit = 16384,
+  }: {
+    jobId: string
+    waitMs?: number
+    afterCursor?: number
+    includeOutput?: boolean
+    limit?: number
+  }) {
     integer(waitMs, 0, 10000, 'waitMs')
     integer(limit, 1, 65536, 'limit')
     if (afterCursor !== undefined) integer(afterCursor, 0, Number.MAX_SAFE_INTEGER, 'afterCursor')
@@ -313,7 +385,7 @@ export class AuthorJobs {
     if (includeOutput) summary.output = this.#output(jobId, afterCursor ?? 0, limit)
     return summary
   }
-  async readJobOutput({ jobId, cursor = 0, limit = 16384 }: any = {}) {
+  async readJobOutput({ jobId, cursor = 0, limit = 16384 }: { jobId: string; cursor?: number; limit?: number }) {
     integer(cursor, 0, Number.MAX_SAFE_INTEGER, 'cursor')
     integer(limit, 1, 65536, 'limit')
     await this.#refreshReceipts()
@@ -338,7 +410,7 @@ export class AuthorJobs {
   #notify() {
     for (const wake of this.#waiters) wake()
   }
-  #wait(milliseconds) {
+  #wait(milliseconds: number): Promise<void> {
     return new Promise<void>(resolve => {
       const wake = () => {
         clearTimeout(timer)
@@ -349,12 +421,12 @@ export class AuthorJobs {
       this.#waiters.add(wake)
     })
   }
-  cancel(jobId) {
+  cancel(jobId: string): Job | Promise<Job> {
     const control = this.#jobs.get(jobId)
     if (!control) throw new WorkspaceError('TASK_UNKNOWN', '任务不存在')
     if (!control.controller) {
       if (!terminal.has(control.job.state) || control.live)
-        return this.#journal.requestCancel(jobId).then(() => this.get(jobId))
+        return (this.#journal?.requestCancel(jobId) ?? Promise.resolve()).then(() => this.get(jobId))
       return this.get(jobId)
     }
     if (!terminal.has(control.job.state) || this.#previews.has(jobId)) {
@@ -364,7 +436,8 @@ export class AuthorJobs {
     }
     return this.get(jobId)
   }
-  async #run({ job, controller }: any) {
+  async #run({ job, controller }: { job: Job; controller?: AbortController }): Promise<void> {
+    if (!controller) throw new WorkspaceError('TASK_INVALID', '任务缺少控制信号')
     const signal = controller.signal
     const timeout = setTimeout(() => controller.abort(), 180000)
     let state = 'succeeded'
@@ -443,12 +516,22 @@ export class AuthorJobs {
       this.#notify()
     }
   }
-  async #process(args: any[], job: any, signal: AbortSignal, preview = false, capture: any = undefined) {
+  async #process(
+    args: string[],
+    job: Job,
+    signal: AbortSignal,
+    preview = false,
+    capture: string | undefined = undefined,
+  ): Promise<void> {
     if (signal.aborted) throw new WorkspaceError('TASK_CANCELLED', '任务已取消')
-    job.phase =
-      { check: 'checking', build: 'building', pack: 'packing', preview: 'starting-preview', demo: 'running-demo' }[
-        args[1]
-      ] ?? 'testing'
+    const phases: Record<string, string> = {
+      check: 'checking',
+      build: 'building',
+      pack: 'packing',
+      preview: 'starting-preview',
+      demo: 'running-demo',
+    }
+    job.phase = phases[args[1]] ?? 'testing'
     this.#notify()
     await new Promise<void>((resolve, reject) => {
       const child = spawn(this.executable, args, {
@@ -459,13 +542,14 @@ export class AuthorJobs {
           ARCADIA_AUTHOR_RESULT: '1',
           ...(preview ? { ARCADIA_DEBUG_ENVIRONMENT: job.environmentId, ARCADIA_DEBUG_ROOT: this.workspace.root } : {}),
         },
-        stdio: ['ignore', 'pipe', 'pipe', ...(preview ? ['ipc'] : [])] as any,
+        stdio: ['ignore', 'pipe', 'pipe', ...(preview ? ['ipc'] : [])] as import('node:child_process').StdioOptions,
         windowsHide: true,
         detached: process.platform !== 'win32',
       })
-      let killTimer
-      const kill = force => {
+      let killTimer: ReturnType<typeof setTimeout> | undefined
+      const kill = (force: boolean) => {
         try {
+          if (child.pid === undefined) return
           if (process.platform !== 'win32') process.kill(-child.pid, force ? 'SIGKILL' : 'SIGTERM')
           else child.kill(force ? 'SIGKILL' : 'SIGTERM')
         } catch {
@@ -480,7 +564,7 @@ export class AuthorJobs {
       if (signal.aborted) abort()
       let buffer = '',
         ready = false
-      const output = text => {
+      const output = (text: string) => {
         if (!text) return
         job.outputCursor = outputRange(job).end + text.length
         job.output = (job.output + text).slice(-outputLimit)
@@ -493,7 +577,7 @@ export class AuthorJobs {
           buffer = buffer.slice(newline + 1)
           if (!line.startsWith('ARCADIA_RESULT=')) continue
           try {
-            const result = JSON.parse(line.slice('ARCADIA_RESULT='.length))
+            const result = JSON.parse(line.slice('ARCADIA_RESULT='.length)) as JobResult
             if (!result.preview?.endpoint || signal.aborted) continue
             job.result = result
             ready = true
@@ -503,7 +587,7 @@ export class AuthorJobs {
           }
         }
       }
-      let finished
+      let finished: () => void = () => {}
       if (preview)
         this.#previews.set(
           job.jobId,
@@ -514,7 +598,7 @@ export class AuthorJobs {
       for (const stream of [child.stdout, child.stderr]) {
         if (!stream) continue
         const decoder = new StringDecoder('utf8')
-        stream.on('data', chunk => output(decoder.write(chunk)))
+        stream.on('data', (chunk: Buffer) => output(decoder.write(chunk)))
         stream.on('end', () => output(decoder.end()))
       }
       child.once('error', reject)
@@ -522,7 +606,7 @@ export class AuthorJobs {
         if (preview) {
           this.#previews.delete(job.jobId)
           const released = capture ? rm(capture, { recursive: true, force: true }) : Promise.resolve()
-          void released.then(finished, error => {
+          void released.then(finished, (error: unknown) => {
             job.diagnostics.push(diagnostic(error))
             finished()
           })
@@ -539,7 +623,7 @@ export class AuthorJobs {
           const line = raw.replace(/^# /, '')
           if (line.startsWith('ARCADIA_RESULT=')) {
             try {
-              job.result = JSON.parse(line.slice('ARCADIA_RESULT='.length))
+              job.result = JSON.parse(line.slice('ARCADIA_RESULT='.length)) as JobResult
             } catch {
               /* Keep malformed output in the log. */
             }

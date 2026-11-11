@@ -9,16 +9,40 @@ import {
   buildDisplayLocales,
   mapPresentationResources,
 } from '@arcadia-eternity/pack-loader/native'
+import type { PreparedPresentation } from '@arcadia-eternity/pack-loader/node'
+import type { BattleMessage, BattleState, Events } from '@arcadia-eternity/const'
+import type { ResourceReference } from '@arcadia-eternity/schema'
 import { prepareContentPack } from './testing.ts'
 import { PreviewAutomation } from './preview-control.ts'
 import { AuthorWorkspace } from './workspace.ts'
 import { ProjectTeams } from './project-teams.ts'
+import { errorCode, errorMessage, isRecord } from './types.ts'
+
+type PreviewPrepared = Awaited<ReturnType<typeof prepareContentPack>>
+type PreviewSystem = Awaited<ReturnType<PreviewPrepared['createBattleSession']>>
+type PreviewOptions = NonNullable<Parameters<typeof prepareContentPack>[1]>
+interface StartPreviewOptions extends PreviewOptions {
+  clientUrl?: string
+  signal?: AbortSignal
+}
+type PreviewEvent = {
+  cursor: number
+  message?: BattleMessage
+  timer?: { type: keyof Events; data: Events[keyof Events] }
+}
+type DisplayCatalog = ReturnType<typeof buildDisplayCatalog> & {
+  locales: ReturnType<typeof buildDisplayLocales>
+}
+type BattleOptions = NonNullable<NonNullable<Parameters<PreviewPrepared['createBattleSession']>[1]>['battleOptions']>
 
 /** A captured npm candidate, with each battle in a dedicated Worker and each package in Arena.
  * The existing client consumes public metadata and IBattleSystem messages.
  */
-export async function startPreview(root: string, { clientUrl, signal, ...environmentOptions }: any = {}) {
-  const prepared: any = await prepareContentPack(root, environmentOptions)
+export async function startPreview(
+  root: string,
+  { clientUrl, signal, ...environmentOptions }: StartPreviewOptions = {},
+) {
+  const prepared = await prepareContentPack(root, environmentOptions)
   const automation = new PreviewAutomation(prepared, {
     async readTeams() {
       // Candidate rules stay fixed; every new automated battle uses saved teams from the source project.
@@ -31,15 +55,15 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
     },
   })
   const token = randomBytes(24).toString('hex')
-  let endpoint,
-    system,
-    unsubscribe,
-    detachTimers = [],
-    closed = false,
-    closing
-  let events = [],
+  let endpoint = '',
+    system: PreviewSystem | undefined,
+    unsubscribe: (() => void) | undefined,
+    detachTimers: (() => void)[] = [],
+    closing: Promise<void> | undefined
+  let closed = false
+  let events: PreviewEvent[] = [],
     sequence = 0
-  const methods = new Set([
+  const methodNames = [
     'ready',
     'getState',
     'getAvailableSelection',
@@ -52,27 +76,31 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
     'endAnimation',
     'createRuntimeSnapshot',
     'restoreRuntimeSnapshot',
-  ])
-  const assets = new Map()
-  const content: any = buildDisplayCatalog(prepared.environment.data, [], prepared.environment.presentation)
+  ] as const
+  const methods = new Set<string>(methodNames)
+  const assets = new Map<string, PreparedPresentation['resources'][number]>()
+  const catalog = buildDisplayCatalog(prepared.environment.data, [], prepared.environment.presentation)
   for (const pkg of prepared.environment.presentation)
     for (const asset of pkg.resources) assets.set(`${pkg.namespace}/${asset.id}`, asset)
-  content.locales = buildDisplayLocales(prepared.environment.presentation, {}, content)
-  function resource(owner, reference) {
+  const content: DisplayCatalog = {
+    ...catalog,
+    locales: buildDisplayLocales(prepared.environment.presentation, {}, catalog),
+  }
+  function resource(owner: string, reference: ResourceReference): ResourceReference {
     const namespace = typeof reference === 'object' ? reference.namespace : owner
     const id = typeof reference === 'object' ? reference.id : reference
     const pkg = prepared.environment.presentation.find(
       item => item.namespace === namespace || (!item.namespace && item.projectId === namespace),
     )
     const asset = pkg?.manifest.resources.find(item => item.id === id)
-    if (!asset) throw new Error(`RESOURCE_REFERENCE: ${namespace}/${id}`)
+    if (!pkg || !asset) throw new Error(`RESOURCE_REFERENCE: ${namespace}/${id}`)
     return asset.kind === 'http' ? asset.source : `${endpoint}/assets/${encodeURIComponent(`${pkg.namespace}/${id}`)}`
   }
-  let displayCatalog
+  let displayCatalog: DisplayCatalog | undefined
   function publicContent() {
     if (displayCatalog) return displayCatalog
     const result = structuredClone(content)
-    for (const kind of ['species', 'skills', 'marks'])
+    for (const kind of ['species', 'skills', 'marks'] as const)
       for (const row of result[kind])
         if (row.presentation) {
           const namespace = row.id.includes(':') ? row.id.slice(0, row.id.indexOf(':')) : ''
@@ -85,20 +113,25 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
     try {
       return { players: prepared.defaultPlayers() }
     } catch (error) {
-      if (!error.message.startsWith('TEAM_MISSING:')) throw error
+      const message = errorMessage(error)
+      if (!message.startsWith('TEAM_MISSING:')) throw error
       const ids = Object.keys(prepared.teamVersions)
       const players = ids.length
         ? prepared.loadTeams([ids[0], ids[1] ?? ids[0]])
         : [0, 1].map(side => ({ id: String(side).repeat(21), name: side === 0 ? '我方' : '对方', team: [] }))
       return {
         players,
-        warning: `默认队伍 ${error.message.slice('TEAM_MISSING:'.length).trim()} 已不存在。请从项目库选择队伍；自动测试仍按项目配置检查默认队伍。`,
+        warning: `默认队伍 ${message.slice('TEAM_MISSING:'.length).trim()} 已不存在。请从项目库选择队伍；自动测试仍按项目配置检查默认队伍。`,
       }
     }
   }
-  async function reset(players: any = undefined, options: any = {}) {
+  async function reset(
+    players: NonNullable<Parameters<PreviewPrepared['createBattleSession']>[1]>['players'] = undefined,
+    options: BattleOptions = {},
+  ): Promise<BattleState> {
     // Validate and construct first: a bad test team must not destroy the current match.
-    const nextSystem = await prepared.createBattleSession(options.rngSeed ?? 'author-preview', {
+    const seed = typeof options.rngSeed === 'string' ? options.rngSeed : 'author-preview'
+    const nextSystem = await prepared.createBattleSession(seed, {
       ai: true,
       players: players ?? manualSetup().players,
       runtimeIds: true,
@@ -118,14 +151,14 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
     system = nextSystem
     const initial = await system.getState(undefined, true)
     unsubscribe = system.BattleEvent(
-      message => {
+      (message: BattleMessage) => {
         events.push({ cursor: ++sequence, message })
         // A bounded stream fails explicitly if a client falls behind; it never skips deltas.
         if (events.length > 4096) events.shift()
       },
       { viewerId: initial.players[0].id, showHidden: false },
     )
-    detachTimers = [
+    const timerTypes = [
       'timerStart',
       'timerUpdate',
       'timerPause',
@@ -138,8 +171,9 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
       'timerStateChange',
       'animationStart',
       'animationEnd',
-    ].map(type =>
-      system.onTimerEvent(type, data => {
+    ] as const
+    detachTimers = timerTypes.map(type =>
+      system!.onTimerEvent(type, data => {
         events.push({ cursor: ++sequence, timer: { type, data } })
         if (events.length > 4096) events.shift()
       }),
@@ -147,7 +181,7 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
     return system.getState(undefined, true)
   }
   const server = createServer(async (request, response) => {
-    const json = (status, value) => {
+    const json = (status: number, value: unknown) => {
       response.writeHead(status, { 'content-type': 'application/json' })
       response.end(JSON.stringify(value))
     }
@@ -158,7 +192,7 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
     response.setHeader('access-control-allow-private-network', 'true')
     response.setHeader('referrer-policy', 'no-referrer')
     try {
-      const url = new URL(request.url, endpoint)
+      const url = new URL(request.url ?? '/', endpoint || 'http://127.0.0.1')
       if (!url.pathname.startsWith(`/${token}/`)) return json(403, { error: 'PREVIEW_UNAUTHORIZED' })
       if (request.method === 'OPTIONS') {
         response.writeHead(204)
@@ -201,15 +235,16 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
       const input = JSON.parse(body || '{}')
       if (route.startsWith('automation/'))
         return json(200, { result: await automation.call(route.slice('automation/'.length), input) })
-      const { args = [] } = input
+      const { args = [] } = input as { args?: unknown[] }
       if (!Array.isArray(args)) throw new Error('INVALID_ARGUMENTS')
       if (route === 'configure') {
         if (!Array.isArray(args[0]) || args[0].length !== 2) throw new Error('请配置双方测试队伍')
+        if (args[1] !== undefined && !isRecord(args[1])) throw new Error('INVALID_OPTIONS')
         return json(200, { result: await reset(args[0], args[1]) })
       }
       if (route === 'open') {
         const state = system ? await system.getState(undefined, true) : await reset()
-        const outcome = events.findLast(event => event.message?.type === 'BATTLE_END')?.message.data
+        const outcome = events.findLast(event => event.message?.type === 'BATTLE_END')?.message?.data
         return json(200, { result: { state, cursor: sequence, outcome } })
       }
       if (route === 'cleanup') {
@@ -221,11 +256,16 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
         return json(200, { result: null })
       }
       if (!methods.has(route) || !system) return json(400, { error: 'PREVIEW_NOT_ACTIVE' })
-      return json(200, { result: (await system[route](...args)) ?? null })
+      const method = system[route as keyof PreviewSystem]
+      if (typeof method !== 'function') return json(400, { error: 'PREVIEW_NOT_ACTIVE' })
+      return json(200, {
+        result: (await (method as (...parameters: unknown[]) => Promise<unknown>).apply(system, args)) ?? null,
+      })
     } catch (error) {
-      json(error.code === 'BATTLE_REVISION_CONFLICT' ? 409 : 400, {
-        error: error.message,
-        ...(error.code ? { code: error.code } : {}),
+      const code = errorCode(error)
+      json(code === 'BATTLE_REVISION_CONFLICT' ? 409 : 400, {
+        error: errorMessage(error),
+        ...(code ? { code } : {}),
       })
     }
   })
@@ -248,7 +288,9 @@ export async function startPreview(root: string, { clientUrl, signal, ...environ
       server.once('error', reject)
       server.listen(0, '127.0.0.1', resolve)
     })
-    endpoint = `http://127.0.0.1:${(server.address() as any).port}/${token}`
+    const address = server.address()
+    if (!address || typeof address === 'string') throw new Error('PREVIEW_ADDRESS_INVALID')
+    endpoint = `http://127.0.0.1:${address.port}/${token}`
     signal?.addEventListener('abort', close, { once: true })
     if (signal?.aborted) {
       await close()
@@ -303,11 +345,14 @@ export async function previewCommand() {
   }
 }
 
-async function readSourceMappings(root) {
+async function readSourceMappings(root: string): Promise<Record<string, string | undefined>> {
   try {
-    return JSON.parse(await readFile(join(root, '.arcadia/debug-sources.json'), 'utf8'))
+    return JSON.parse(await readFile(join(root, '.arcadia/debug-sources.json'), 'utf8')) as Record<
+      string,
+      string | undefined
+    >
   } catch (error) {
-    if (error.code === 'ENOENT') return {}
+    if (errorCode(error) === 'ENOENT') return {}
     throw error
   }
 }

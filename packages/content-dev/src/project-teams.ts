@@ -2,10 +2,11 @@ import YAML from 'yaml'
 import { PetSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { WorkspaceError, type AuthorWorkspace } from './workspace.ts'
 import { z } from 'zod'
+import { errorMessage } from './types.ts'
 
 const validId = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const petKeys = Object.keys(PetSchema.properties).filter(key => key !== 'id')
-const invalid = message => {
+function invalid(message: string): never {
   throw new WorkspaceError('TEAM_INVALID', message)
 }
 
@@ -23,9 +24,9 @@ export const teamEnvelopeSchema = z
     team: z.array(z.unknown()).max(6),
   })
   .strict()
-export const portablePetSchema: Record<string, any> = {
+export const portablePetSchema: Record<string, unknown> = {
   ...PetSchema,
-  properties: Object.fromEntries(petKeys.map(key => [key, PetSchema.properties[key]])),
+  properties: Object.fromEntries(petKeys.map(key => [key, (PetSchema.properties as Record<string, unknown>)[key]])),
   required: PetSchema.required.filter(key => key !== 'id'),
   additionalProperties: false,
 }
@@ -33,23 +34,36 @@ const portablePetInputSchema = z.record(z.string(), z.unknown()).transform((valu
   try {
     if (Object.keys(value).some(key => !petKeys.includes(key))) throw new Error('精灵配置包含运行时编号或未知字段')
     const parsed = parseWithErrors(PetSchema, { ...value, id: '0'.repeat(21) })
-    return Object.fromEntries(petKeys.filter(key => parsed[key] !== undefined).map(key => [key, parsed[key]]))
+    return Object.fromEntries(
+      petKeys
+        .filter(key => (parsed as Record<string, unknown>)[key] !== undefined)
+        .map(key => [key, (parsed as Record<string, unknown>)[key]]),
+    )
   } catch (error) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: error.message })
+    context.addIssue({ code: z.ZodIssueCode.custom, message: errorMessage(error) })
     return z.NEVER
   }
 })
 export const TeamDocumentSchema = teamEnvelopeSchema.extend({ team: z.array(portablePetInputSchema).max(6) })
 
 /** Portable team documents contain configurations, never battle or editor identities. */
-export function teamDocument(value) {
+export type TeamDocument = z.infer<typeof TeamDocumentSchema>
+export type PortablePet = TeamDocument['team'][number]
+export interface ProjectTeam {
+  id: string
+  name: string
+  team: PortablePet[]
+  version: string
+}
+
+export function teamDocument(value: unknown): TeamDocument {
   const parsed = TeamDocumentSchema.safeParse(value)
   if (!parsed.success) invalid(`测试队伍配置无效：${parsed.error.issues[0].message}`)
   return parsed.data
 }
 
 /** Copy saved team documents into independent players with deterministic, battle-local identities. */
-export function playersFromTeams(teamLibrary, ids) {
+export function playersFromTeams(teamLibrary: ProjectTeam[], ids: string[]) {
   if (!Array.isArray(ids) || ids.length !== 2) throw new Error('测试必须显式指定两个项目队伍标识')
   return ids.map((id, side) => {
     const entry = teamLibrary.find(team => team.id === id)
@@ -67,12 +81,12 @@ export class ProjectTeams {
   constructor(workspace: AuthorWorkspace) {
     this.workspace = workspace
   }
-  file(id) {
+  file(id: string): string {
     if (typeof id !== 'string' || !validId.test(id)) invalid('测试队伍标识无效')
     return `debug/teams/${id}.yaml`
   }
-  async list() {
-    const teams = []
+  async list(): Promise<ProjectTeam[]> {
+    const teams: ProjectTeam[] = []
     for (const { file } of await this.workspace.files()) {
       if (!/^debug\/teams\/[^/]+\.yaml$/.test(file)) continue
       const source = await this.workspace.read(file)
@@ -82,7 +96,13 @@ export class ProjectTeams {
     }
     return teams
   }
-  async save({ document, expectedVersion }) {
+  async save({
+    document,
+    expectedVersion,
+  }: {
+    document: unknown
+    expectedVersion: string | null
+  }): Promise<ProjectTeam> {
     const parsed = teamDocument(document)
     if (expectedVersion !== null && typeof expectedVersion !== 'string') invalid('保存需要已读取的文件版本')
     const saved = await this.workspace.write({
@@ -92,7 +112,7 @@ export class ProjectTeams {
     })
     return { ...parsed, version: saved.version }
   }
-  async remove({ id, expectedVersion }) {
+  async remove({ id, expectedVersion }: { id: string; expectedVersion: string | null }): Promise<void> {
     if (typeof expectedVersion !== 'string') invalid('删除需要已读取的文件版本')
     await this.workspace.remove({ file: this.file(id), expectedVersion })
   }

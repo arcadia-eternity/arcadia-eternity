@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import type { CallToolResult, ContentBlock } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { openAuthorSession } from './author-api.ts'
 import { diagnostic } from './workspace.ts'
 import { identifier, version, record, outputSchemas, jobKind, jobState, referenceTopics } from './mcp-contracts.ts'
 import { TeamDocumentSchema } from './project-teams.ts'
 import { EnvironmentDocumentSchema } from './debug-environments.ts'
+import { isRecord } from './types.ts'
 
 const [directory, ...flags] = process.argv.slice(2)
 let contextFile
@@ -30,7 +32,16 @@ const session = await openAuthorSession(directory, {
   published: options.has('--published'),
 })
 const server = new McpServer({ name: 'arcadia-content-authoring', version: '0.1.0' })
-function tool(name, description, inputSchema, operation, transform = input => input, readOnly = false) {
+type ToolOperation = keyof typeof outputSchemas
+type ToolTransform = (input: Record<string, unknown>) => Record<string, unknown>
+function tool(
+  name: string,
+  description: string,
+  inputSchema: z.ZodRawShape,
+  operation: ToolOperation,
+  transform: ToolTransform = input => input,
+  readOnly = false,
+) {
   server.registerTool(
     name,
     {
@@ -39,14 +50,28 @@ function tool(name, description, inputSchema, operation, transform = input => in
       outputSchema: { result: outputSchemas[operation] },
       annotations: { readOnlyHint: readOnly, ...(readOnly ? { destructiveHint: false, idempotentHint: true } : {}) },
     },
-    async (input: any): Promise<any> => {
+    async (input: Record<string, unknown>): Promise<CallToolResult> => {
       try {
         const value = await session.call(operation, transform(input))
-        const { image, ...metadata } = operation === 'asset-inspect' ? value : {}
-        const result = operation === 'asset-inspect' ? metadata : value
+        let result = value
+        let image: ContentBlock | undefined
+        if (operation === 'asset-inspect' && isRecord(value)) {
+          const { image: inspectedImage, ...metadata } = value
+          result = metadata
+          if (
+            isRecord(inspectedImage) &&
+            inspectedImage.type === 'image' &&
+            typeof inspectedImage.mimeType === 'string' &&
+            typeof inspectedImage.data === 'string'
+          )
+            image = { type: 'image', mimeType: inspectedImage.mimeType, data: inspectedImage.data }
+        }
         return {
-          ...(operation === 'save' && !result.complete ? { isError: true } : {}),
-          content: [{ type: 'text', text: JSON.stringify({ result }) }, ...(image ? [image] : [])] as any,
+          ...(operation === 'save' && isRecord(result) && !result.complete ? { isError: true } : {}),
+          content: [
+            { type: 'text', text: JSON.stringify({ result }) },
+            ...(image ? [image] : []),
+          ] satisfies ContentBlock[],
           structuredContent: { result },
         }
       } catch (error) {
@@ -281,7 +306,7 @@ tool(
 )
 
 if (!session.workspace.readOnly && options.has('--execute')) {
-  const battle = (name, description, schema, operation, readOnly = false) =>
+  const battle = (name: string, description: string, schema: z.ZodRawShape, operation: string, readOnly = false) =>
     tool(name, description, { jobId: z.string(), ...schema }, 'battle', input => ({ ...input, operation }), readOnly)
   const identity = { sessionId: z.string() }
   const mutation = { ...identity, expectedRevision: z.number().int().min(0) }

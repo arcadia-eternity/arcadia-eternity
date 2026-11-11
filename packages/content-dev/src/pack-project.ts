@@ -3,15 +3,18 @@ import { statSync } from 'node:fs'
 import { copyFile, lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
+import type { Stats } from 'node:fs'
 import { compileEffectModule, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import type { PackageManifest } from './workspace.ts'
+import { errorCode } from './types.ts'
 
 const exec = promisify(execFile)
 const artifactFile = 'dist/arcadia-effects.json'
 const distributionMetadata = /^(?:package\.json|readme(?:\..+)?|licen[cs]e(?:\..+)?|notice(?:\..+)?)$/i
-const fail = message => {
+function fail(message: string): never {
   throw new Error(message)
 }
-function packagePath(file) {
+function packagePath(file: unknown): string {
   if (
     typeof file !== 'string' ||
     !file ||
@@ -23,11 +26,17 @@ function packagePath(file) {
     fail('npm returned an unsafe package path')
   return file
 }
-async function npm(root, args, cache) {
+async function npm(root: string, args: string[], cache: string | undefined) {
   const invocation = await resolveNpmInvocation([...args, ...(cache ? ['--cache', resolve(cache)] : [])])
   return exec(invocation.file, invocation.args, { cwd: root, maxBuffer: 32 * 1024 * 1024, timeout: 120000 })
 }
-async function sourceFile(root, file) {
+interface CapturedSource {
+  path: string
+  canonical: string
+  info: Stats
+}
+
+async function sourceFile(root: string, file: string): Promise<CapturedSource> {
   const path = join(root, packagePath(file)),
     canonical = await realpath(path),
     info = await lstat(path)
@@ -43,19 +52,19 @@ async function sourceFile(root, file) {
     fail(`Package source must be a regular file inside the project: ${file}`)
   return { path, canonical, info }
 }
-const sameFile = (before, after) =>
+const sameFile = (before: Stats, after: Stats) =>
   before.size === after.size &&
   before.mtimeMs === after.mtimeMs &&
   before.ctimeMs === after.ctimeMs &&
   before.ino === after.ino
-async function verifyCapture(sources) {
+async function verifyCapture(sources: Map<string, CapturedSource>) {
   for (const source of sources.values()) {
     const after = await lstat(source.path)
     if (!sameFile(source.info, after) || (await realpath(source.path)) !== source.canonical)
       fail(`Package source changed during capture: ${source.path}`)
   }
 }
-async function stagingRoot(root) {
+async function stagingRoot(root: string): Promise<string> {
   let directory = root
   for (const part of ['.arcadia', 'package-staging']) {
     directory = join(directory, part)
@@ -70,21 +79,31 @@ async function stagingRoot(root) {
 /** Trusted author packaging: close the effect dependency graph without evaluating it.
  * Only the staged package gains artifact metadata; the source manifest is never rewritten.
  */
-export async function packBuiltProject(directory: string = process.cwd(), { cache }: any = {}) {
+interface PresentationManifest {
+  bindings?: unknown[]
+  resources?: Array<{ kind?: string; source?: string }>
+  locales?: Record<string, unknown>
+}
+
+export async function packBuiltProject(directory: string = process.cwd(), { cache }: { cache?: string } = {}) {
   const root = await realpath(resolve(directory))
   const manifestText = await readFile(join(root, 'package.json'), 'utf8')
-  const manifest: any = JSON.parse(manifestText)
-  const preview = JSON.parse((await npm(root, ['pack', '--dry-run', '--ignore-scripts', '--json'], cache)).stdout)[0]
+  const manifest = JSON.parse(manifestText) as PackageManifest & { name: string }
+  const preview = (
+    JSON.parse(String((await npm(root, ['pack', '--dry-run', '--ignore-scripts', '--json'], cache)).stdout)) as Array<{
+      files: Array<{ path: string }>
+    }>
+  )[0]
   if (!Array.isArray(preview?.files) || preview.files.length > 50000) fail('npm returned an invalid package file list')
-  const included = new Set<string>(preview.files.map(file => packagePath(file.path)))
+  const included = new Set<string>(preview.files.map((file: { path: string }) => packagePath(file.path)))
   if (!included.has('package.json')) fail('npm omitted the package manifest')
-  let presentation
+  let presentation: PresentationManifest | undefined
   try {
-    presentation = JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8'))
+    presentation = JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8')) as PresentationManifest
   } catch (error) {
-    if (error.code !== 'ENOENT') throw error
+    if (errorCode(error) !== 'ENOENT') throw error
   }
-  const required = []
+  const required: string[] = []
   const declaredAssets =
     manifest.arcadia?.assets && typeof manifest.arcadia.assets === 'object' && !Array.isArray(manifest.arcadia.assets)
       ? Object.values(manifest.arcadia.assets)
@@ -107,7 +126,12 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
     required.push(
       'dist/content.json',
       'dist/presentation.json',
-      ...(presentation.resources ?? []).filter(resource => resource.kind === 'file').map(resource => resource.source),
+      ...(presentation.resources ?? [])
+        .filter(
+          (resource): resource is { kind: 'file'; source: string } =>
+            resource.kind === 'file' && typeof resource.source === 'string',
+        )
+        .map(resource => resource.source),
     )
   }
   for (const file of required) if (!included.has(file)) fail(`npm files omits required presentation file: ${file}`)
@@ -119,7 +143,7 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
   const temporary = await mkdtemp(join(await stagingRoot(root), 'publish-'))
   const payload = join(temporary, 'package'),
     output = join(temporary, 'output')
-  const sources = new Map()
+  const sources = new Map<string, CapturedSource>()
   try {
     await mkdir(payload)
     await mkdir(output)
@@ -132,7 +156,7 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
       const after = await lstat(source.path)
       if (!sameFile(source.info, after)) fail(`Package source changed during capture: ${file}`)
     }
-    if (manifest.arcadia?.effects) {
+    if (typeof manifest.arcadia?.effects === 'string') {
       const effects = await sourceFile(root, manifest.arcadia.effects)
       const artifact = await compileEffectModule(effects.path, root, manifest.name, path => {
         // The fixed compiler calls this before reading each validated dependency.
@@ -144,9 +168,11 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
       await verifyCapture(sources)
       await mkdir(dirname(join(payload, artifactFile)), { recursive: true })
       await writeFile(join(payload, artifactFile), JSON.stringify(artifact) + '\n')
-      staged.arcadia.effectArtifact = artifactFile
+      const stagedArcadia = staged.arcadia
+      if (!stagedArcadia) fail('Package manifest is missing arcadia metadata')
+      stagedArcadia.effectArtifact = artifactFile
       distributed.add(artifactFile)
-    } else if (manifest.arcadia?.effectArtifact && !included.has(manifest.arcadia.effectArtifact)) {
+    } else if (typeof manifest.arcadia?.effectArtifact === 'string' && !included.has(manifest.arcadia.effectArtifact)) {
       fail(`npm files omits required effect artifact: ${manifest.arcadia.effectArtifact}`)
     }
     if (staged.arcadia) {
@@ -155,14 +181,23 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
     }
     staged.files = [...distributed]
     await writeFile(join(payload, 'package.json'), JSON.stringify(staged, null, 2) + '\n')
-    const packed = JSON.parse(
-      (await npm(payload, ['pack', '--ignore-scripts', '--json', '--pack-destination', output], cache)).stdout,
+    const packed = (
+      JSON.parse(
+        String(
+          (await npm(payload, ['pack', '--ignore-scripts', '--json', '--pack-destination', output], cache)).stdout,
+        ),
+      ) as Array<{
+        filename: string
+        files: Array<{ path: string }>
+        integrity?: string
+        shasum?: string
+      }>
     )[0]
     if (!packed || typeof packed.filename !== 'string' || !Array.isArray(packed.files))
       fail('npm returned an invalid package receipt')
     packagePath(packed.filename)
     if (basename(packed.filename) !== packed.filename) fail('npm returned an unsafe archive filename')
-    const actual = new Set<string>(packed.files.map(file => file.path))
+    const actual = new Set<string>(packed.files.map((file: { path: string }) => file.path))
     for (const file of distributed) if (!actual.has(file)) fail(`npm omitted staged package file: ${file}`)
     for (const file of actual)
       if (!distributed.has(file) && !distributionMetadata.test(file)) fail(`npm included a non-artifact file: ${file}`)

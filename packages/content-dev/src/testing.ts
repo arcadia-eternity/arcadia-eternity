@@ -4,8 +4,11 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.ts'
 import { assertEnvironmentTeam, validateEnvironmentRules } from './environment-rules.ts'
-import { prepareSandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
+import { playersFromTeams } from './project-teams.ts'
+import { prepareSandboxContent, type SandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
+import type { Battle } from '@arcadia-eternity/battle/engine'
+import { isRecord } from './types.ts'
 export { prepareBattleEnvironment } from './environment.ts'
 import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/engine'
 export {
@@ -16,27 +19,37 @@ export {
   parameterAddress,
   setGlobalLogger,
 } from '@arcadia-eternity/battle/engine'
+
+type BattleListener = Parameters<Battle['registerListener']>[0]
+type BattleMessage = Parameters<BattleListener>[0]
+type PlayerSelection = Parameters<Battle['setSelection']>[0]
+
 /** Existing package scenarios use the default environment with declared dependencies only. */
-export async function prepareContentPack(root: string = process.cwd(), options: any = {}) {
+export async function prepareContentPack(
+  root: string = process.cwd(),
+  options: NonNullable<Parameters<typeof prepareBattleEnvironment>[1]> = {},
+) {
   root = resolve(root)
-  const { default: config }: any = await import(pathToFileURL(join(root, 'arcadia.config.mjs')).href)
+  const { default: config }: { default: unknown } = await import(pathToFileURL(join(root, 'arcadia.config.mjs')).href)
   if (
-    !Array.isArray(config?.teams) ||
+    !isRecord(config) ||
+    !Array.isArray(config.teams) ||
     config.teams.length !== 2 ||
-    config.teams.some(id => typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(id)) ||
+    config.teams.some((id: unknown) => typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(id)) ||
     Object.keys(config).some(key => key !== 'teams')
   )
     throw new Error('arcadia.config.mjs must export exactly two project team IDs in teams')
+  const teams = (config as { teams: string[] }).teams
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
   const environmentRules = validateEnvironmentRules(prepared.environmentDocument.rules)
   // Four automation sessions, one human preview, and room for their validated replacements.
   const workers = createNodeBattleWorkerManager({ maxBattles: 7 })
   function defaultPlayers() {
-    return prepared.loadTeams(config.teams)
+    return prepared.loadTeams(teams)
   }
-  function runtimePlayers(supplied, runtimeIds = false) {
-    const players = (supplied ?? defaultPlayers()).map(player => ({
+  function runtimePlayers(supplied?: readonly unknown[], runtimeIds = false) {
+    const players = ((supplied ?? defaultPlayers()) as unknown as ReturnType<typeof playersFromTeams>).map(player => ({
       ...player,
       id: (runtimeIds ? undefined : player.id) ?? randomBytes(16).toString('base64url').slice(0, 21),
       team: player.team.map(pet => ({
@@ -47,8 +60,8 @@ export async function prepareContentPack(root: string = process.cwd(), options: 
     for (const player of players) assertEnvironmentTeam(environmentRules, player.team)
     return players
   }
-  const referenceContent = new WeakMap()
-  function ownBattle(battle, effects) {
+  const referenceContent = new WeakMap<Battle, SandboxContent['content']>()
+  function ownBattle(battle: Battle, effects: SandboxContent): Battle {
     referenceContent.set(battle, effects.content)
     const cleanup = battle.cleanup.bind(battle)
     // Keep the runtime method non-enumerable, like the prototype method: only
@@ -71,12 +84,24 @@ export async function prepareContentPack(root: string = process.cwd(), options: 
    */
   async function createBattle(
     seed: string = 'content-pack-template',
-    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} }: any = {},
-  ) {
+    {
+      ai = false,
+      players: supplied,
+      runtimeIds = false,
+      battleOptions = {},
+    }: {
+      ai?: boolean
+      players?: readonly unknown[]
+      runtimeIds?: boolean
+      battleOptions?: Record<string, unknown>
+    } = {},
+  ): Promise<Battle> {
     const input = runtimePlayers(supplied, runtimeIds)
     const effects = await prepareSandboxContent(environment.sandbox)
     try {
-      const players = effects.content.parsePlayers(input, { aiPlayerIds: ai ? [input[1]?.id] : [] })
+      const players = effects.content.parsePlayers(input, {
+        aiPlayerIds: ai && input[1] ? [input[1].id] : [],
+      })
       if (players.length !== 2) throw new Error('The demo requires exactly two players')
       const ids = players.flatMap(player => [player.id, ...player.team.map(pet => pet.id)])
       if (new Set(ids).size !== ids.length) throw new Error('玩家和精灵的编号不能重复')
@@ -85,7 +110,7 @@ export async function prepareContentPack(root: string = process.cwd(), options: 
           ...battleOptions,
           rngSeed: seed,
           timerConfig: battleOptions.timerConfig ?? { enabled: false },
-        }),
+        } as Parameters<typeof effects.content.createBattle>[2]),
         effects,
       )
     } catch (error) {
@@ -93,7 +118,7 @@ export async function prepareContentPack(root: string = process.cwd(), options: 
       throw error
     }
   }
-  async function restoreBattle(snapshot: any) {
+  async function restoreBattle(snapshot: unknown): Promise<Battle> {
     const effects = await prepareSandboxContent(environment.sandbox)
     try {
       return ownBattle(effects.content.restore(snapshot), effects)
@@ -102,14 +127,24 @@ export async function prepareContentPack(root: string = process.cwd(), options: 
       throw error
     }
   }
-  function contentFor(battle) {
+  function contentFor(battle: Battle): SandboxContent['content'] {
     const content = referenceContent.get(battle)
     if (!content) throw new Error('Battle does not belong to this reference helper')
     return content
   }
   async function createBattleSession(
     seed: string = 'content-pack-template',
-    { ai = false, players: supplied, runtimeIds = false, battleOptions = {} }: any = {},
+    {
+      ai = false,
+      players: supplied,
+      runtimeIds = false,
+      battleOptions = {},
+    }: {
+      ai?: boolean
+      players?: readonly unknown[]
+      runtimeIds?: boolean
+      battleOptions?: Record<string, unknown>
+    } = {},
   ) {
     const players = runtimePlayers(supplied, runtimeIds)
     const system = await workers.create({
@@ -118,7 +153,7 @@ export async function prepareContentPack(root: string = process.cwd(), options: 
       aiPlayerIds: ai ? [players[1]?.id] : [],
       options: { ...battleOptions, rngSeed: seed, timerConfig: battleOptions.timerConfig ?? { enabled: false } },
       hostOptions: { teamSelection: battleOptions.teamSelection },
-    })
+    } as Parameters<typeof workers.create>[0])
     return system
   }
   return {
@@ -138,7 +173,7 @@ export async function prepareContentPack(root: string = process.cwd(), options: 
   }
 }
 
-export function attack(battle: any) {
+export function attack(battle: Battle) {
   const player = battle.playerA
   const context = new UseSkillContext(
     new TurnContext(battle),
@@ -150,16 +185,16 @@ export function attack(battle: any) {
   context.updateActualTarget()
   return context
 }
-export function cancelled(error) {
+export function cancelled(error: unknown) {
   if (!(error instanceof Error) || error.message !== 'Battle cancelled') throw error
 }
-export function nextTurn(battle: any): Promise<void> {
+export function nextTurn(battle: Battle): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       unsubscribe()
       reject(new Error('Battle did not reach its next input boundary'))
     }, 10000)
-    const listener = message => {
+    const listener = (message: BattleMessage) => {
       if (message.type !== BattleMessageType.TurnAction) return
       clearTimeout(timeout)
       unsubscribe()
@@ -169,17 +204,17 @@ export function nextTurn(battle: any): Promise<void> {
     battle.registerListener(listener)
   })
 }
-export async function runBattle(battle: any, onTurn: any = () => {}) {
-  const damage = [],
-    failures = []
-  battle.registerListener(message => {
+export async function runBattle(battle: Battle, onTurn: (battle: Battle) => void = () => {}) {
+  const damage: number[] = [],
+    failures: BattleMessage[] = []
+  battle.registerListener((message: BattleMessage) => {
     if (message.type === BattleMessageType.Damage) damage.push(message.data.damage)
-    if (message.type === BattleMessageType.Error || message.type === BattleMessageType.EffectApplyFail)
+    if (message.type === BattleMessageType.Error || String(message.type) === BattleMessageType.EffectApplyFail)
       failures.push(message)
     if (message.type === BattleMessageType.TurnEnd) onTurn(battle)
     if (message.type !== BattleMessageType.TurnAction) return
     for (const player of [battle.playerA, battle.playerB]) {
-      const selection =
+      const selection: PlayerSelection =
         battle.currentTurn >= 40
           ? { type: 'surrender', player: player.id }
           : {

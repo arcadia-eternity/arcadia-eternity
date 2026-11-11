@@ -44,7 +44,7 @@ const job = z
       .optional(),
   })
   .passthrough()
-const page = item =>
+const page = <T extends z.ZodType>(item: T) =>
   z
     .object({
       total: z.number().int(),

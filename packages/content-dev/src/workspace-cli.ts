@@ -1,7 +1,8 @@
 import { openAuthorSession } from './author-api.ts'
 import { diagnostic } from './workspace.ts'
+import { isRecord } from './types.ts'
 
-export async function workspaceCli(args) {
+export async function workspaceCli(args: string[]) {
   const [directory, operation = 'describe', ...flags] = args
   let execute = false,
     environmentId
@@ -46,7 +47,7 @@ export async function workspaceCli(args) {
           if (Buffer.byteLength(input) > 3 * 1024 * 1024) throw new Error('JSON input exceeds 3 MiB')
         }
       result = await session.call(operation, input ? JSON.parse(input) : {})
-      if (operation === 'save' && !result.complete) process.exitCode = 1
+      if (operation === 'save' && isRecord(result) && !result.complete) process.exitCode = 1
     }
     console.log(JSON.stringify({ result }))
   } catch (error) {

@@ -1,20 +1,35 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { extname, join, relative } from 'node:path'
+import type { Dirent } from 'node:fs'
 import YAML from 'yaml'
 import { isDeepStrictEqual } from 'node:util'
+import type { Document } from 'yaml'
+import { errorCode, errorMessage, isRecord, type UnknownRecord } from '../types.ts'
 
-const contentKinds = ['species', 'skills', 'marks', 'behaviors']
-const sourceKinds = [...contentKinds, 'presentations', 'resources']
+const contentKinds = ['species', 'skills', 'marks', 'behaviors'] as const
+const sourceKinds = [...contentKinds, 'presentations', 'resources'] as const
 
-async function filesIn(directory) {
-  let entries
+type ContentKind = (typeof contentKinds)[number]
+type SourceKind = (typeof sourceKinds)[number]
+
+export interface ContentSource {
+  kind: SourceKind
+  file: string
+  text: string
+  document: Document | undefined
+  value: unknown
+  records: Array<Record<string, unknown> & { id: string }>
+}
+
+async function filesIn(directory: string): Promise<string[]> {
+  let entries: Dirent[]
   try {
     entries = await readdir(directory, { withFileTypes: true })
   } catch (error) {
-    if (error.code === 'ENOENT') return []
+    if (errorCode(error) === 'ENOENT') return []
     throw error
   }
-  const files = []
+  const files: string[] = []
   for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
     if (entry.name.startsWith('.')) continue
     const file = join(directory, entry.name)
@@ -26,28 +41,38 @@ async function filesIn(directory) {
 }
 
 /** Editable source files; each file may hold one record or an array of records. */
-export async function readContentSources(root) {
+export async function readContentSources(root: string): Promise<ContentSource[]> {
   const directory = join(root, 'data')
-  const base = await readFile(join(root, 'pack.json'), 'utf8')
+  const base: (UnknownRecord & { data?: Record<string, unknown> }) | undefined = await readFile(
+    join(root, 'pack.json'),
+    'utf8',
+  )
     .then(JSON.parse)
-    .catch(error => {
-      if (error.code === 'ENOENT') return undefined
+    .catch((error: unknown) => {
+      if (errorCode(error) === 'ENOENT') return undefined
       throw error
     })
   const entries = await readdir(directory, { withFileTypes: true })
   for (const entry of entries) {
-    if (!base && entry.isDirectory() && !entry.name.startsWith('.') && !sourceKinds.includes(entry.name))
+    if (
+      !base &&
+      entry.isDirectory() &&
+      !entry.name.startsWith('.') &&
+      !(sourceKinds as readonly string[]).includes(entry.name)
+    )
       throw new Error(`Unknown content directory: data/${entry.name}`)
   }
-  const sources = []
+  const sources: ContentSource[] = []
   for (const kind of sourceKinds) {
-    const ids = new Map()
-    for (const file of base && contentKinds.includes(kind)
-      ? (base.data[kind] ?? []).map(file => join(directory, file))
-      : await filesIn(join(directory, kind))) {
+    const ids = new Map<string, string>()
+    const baseFiles =
+      base && (contentKinds as readonly string[]).includes(kind)
+        ? ((base.data?.[kind] ?? []) as string[]).map(file => join(directory, file))
+        : undefined
+    for (const file of baseFiles ?? (await filesIn(join(directory, kind)))) {
       const name = relative(root, file)
       const text = await readFile(file, 'utf8')
-      let document, value
+      let document: Document | undefined, value: unknown
       try {
         if (extname(file) === '.json') value = JSON.parse(text)
         else {
@@ -58,29 +83,30 @@ export async function readContentSources(root) {
         if (!isDeepStrictEqual(JSON.parse(JSON.stringify(value)), value))
           throw new Error('Content values must be finite JSON-compatible data')
       } catch (error) {
-        throw new Error(`Invalid content in ${name}: ${error.message}`, { cause: error })
+        throw new Error(`Invalid content in ${name}: ${errorMessage(error)}`, { cause: error })
       }
       const records = Array.isArray(value) ? value : [value]
       for (const record of records) {
-        if (
-          !record ||
-          typeof record !== 'object' ||
-          Array.isArray(record) ||
-          typeof record.id !== 'string' ||
-          !record.id
-        )
+        if (!isRecord(record) || typeof record.id !== 'string' || !record.id)
           throw new Error(`Each record needs an id: ${name}`)
         if (ids.has(record.id)) throw new Error(`Duplicate ${kind} id ${record.id}: ${ids.get(record.id)} and ${name}`)
         ids.set(record.id, name)
       }
-      sources.push({ kind, file, text, document, value, records })
+      sources.push({
+        kind,
+        file,
+        text,
+        document,
+        value,
+        records: records as Array<Record<string, unknown> & { id: string }>,
+      })
     }
   }
   return sources
 }
 
 /** File names and grouping do not enter runtime IDs or record ordering. */
-export function assembleContent(sources) {
+export function assembleContent(sources: ContentSource[]) {
   return {
     data: Object.fromEntries(
       contentKinds.map(kind => [
@@ -93,3 +119,5 @@ export function assembleContent(sources) {
     ),
   }
 }
+
+export type { ContentKind, SourceKind }

@@ -4,23 +4,34 @@ import { NativeSpeciesSchema, NativeSkillSchema, NativeMarkSchema } from '@arcad
 import { teamEnvelopeSchema, portablePetSchema } from './project-teams.ts'
 import { EnvironmentDocumentSchema } from './debug-environments.ts'
 import { WorkspaceError } from './workspace.ts'
+import { errorCode } from './types.ts'
 
-export const referenceTopics = ['species', 'skills', 'marks', 'team', 'environment', 'descriptions', 'effects']
-const parserSchemas = { species: NativeSpeciesSchema, skills: NativeSkillSchema, marks: NativeMarkSchema }
-const examples = { species: 'data/species/pet.yaml', skills: 'data/skills/strike.yaml', marks: 'data/marks/slow.yaml' }
+export const referenceTopics = ['species', 'skills', 'marks', 'team', 'environment', 'descriptions', 'effects'] as const
+export type ReferenceTopic = (typeof referenceTopics)[number]
+const parserSchemas: Record<string, typeof NativeSpeciesSchema | typeof NativeSkillSchema | typeof NativeMarkSchema> = {
+  species: NativeSpeciesSchema,
+  skills: NativeSkillSchema,
+  marks: NativeMarkSchema,
+}
+const examples: Record<string, string> = {
+  species: 'data/species/pet.yaml',
+  skills: 'data/skills/strike.yaml',
+  marks: 'data/marks/slow.yaml',
+}
 
-async function template(file) {
+async function template(file: string): Promise<string> {
   try {
     return await readFile(new URL(`./template/${file}`, import.meta.url), 'utf8')
   } catch (error) {
-    if (error.code !== 'ENOENT') throw error
+    if (errorCode(error) !== 'ENOENT') throw error
     return readFile(new URL(`../template/${file}`, import.meta.url), 'utf8')
   }
 }
 
 /** Discover installed SDK contracts, without importing a content project's executable effects. */
-export async function authorReference({ topic }: any = {}) {
-  if (!referenceTopics.includes(topic)) throw new WorkspaceError('REFERENCE_UNKNOWN', '请选择有效的作者参考主题')
+export async function authorReference({ topic }: { topic?: string } = {}) {
+  if (!topic || !(referenceTopics as readonly string[]).includes(topic))
+    throw new WorkspaceError('REFERENCE_UNKNOWN', '请选择有效的作者参考主题')
   if (parserSchemas[topic]) {
     return {
       topic,
@@ -28,7 +39,7 @@ export async function authorReference({ topic }: any = {}) {
       source: '@arcadia-eternity/battle/engine',
       stage: 'linked-runtime',
       schema: toJsonSchemaCompat(parserSchemas[topic]),
-      examples: [{ language: 'yaml', text: await template(examples[topic]) }],
+      examples: [{ language: 'yaml', text: await template(examples[topic] ?? '') }],
       notes: [
         'This is the actual parser schema AFTER package linking, not a validator for unlinked source documents. JSON Schema cannot express every Zod refinement; run check and tests.',
         'Source IDs are local stable IDs. Package linking produces namespace:id runtime IDs. Official base references retain their existing IDs.',
@@ -38,7 +49,9 @@ export async function authorReference({ topic }: any = {}) {
     }
   }
   if (topic === 'team') {
-    const schema: any = toJsonSchemaCompat(teamEnvelopeSchema)
+    const schema = toJsonSchemaCompat(teamEnvelopeSchema) as {
+      properties: { team: { items: unknown } }
+    }
     schema.properties.team.items = JSON.parse(JSON.stringify(portablePetSchema))
     return {
       topic,

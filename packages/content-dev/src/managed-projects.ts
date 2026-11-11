@@ -9,6 +9,7 @@ import { acquireSource } from './managed-sources.ts'
 import { contentError, materialFiles } from './workspace-materials.ts'
 import type { ContentWorkspace, EnvironmentVersion, PrepareVersionInput, StaticPreparer } from './content-workspace.ts'
 import type { ManagedSource } from './managed-sources.ts'
+import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
 export interface ManagedProjectsOptions {
   registry?: string
@@ -28,33 +29,36 @@ const DEFAULT_TIMEOUT = 120_000
 const DEFAULT_BYTES = 256 * 1024 * 1024
 const packageName = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
 
-function limit(value: any, fallback: any, maximum: any) {
+function limit(value: number | undefined, fallback: number, maximum: number): number {
   const result = value ?? fallback
   if (!Number.isSafeInteger(result) || result < 1 || result > maximum) throw contentError('INSTALL_LIMIT_INVALID')
   return result
 }
-function registryUrl(value: any) {
+function registryUrl(value: string | undefined): string {
   const url = new URL(value ?? 'https://registry.npmjs.org/')
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash)
     throw contentError('INSTALL_REGISTRY_INVALID')
   return url.href
 }
-function checkDependencySpecs(manifest: any) {
-  for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+function checkDependencySpecs(manifest: UnknownRecord) {
+  for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies'] as const) {
     if (manifest[field] === undefined) continue
     if (!manifest[field] || typeof manifest[field] !== 'object' || Array.isArray(manifest[field]))
       throw contentError('INSTALL_DEPENDENCY_INVALID')
-    for (const [name, range] of Object.entries(manifest[field])) {
+    const entries = manifest[field]
+    if (!isRecord(entries)) throw contentError('INSTALL_DEPENDENCY_INVALID')
+    for (const [name, range] of Object.entries(entries)) {
       if (!packageName.test(name) || typeof range !== 'string' || !validRange(range))
         throw contentError('INSTALL_DEPENDENCY_SOURCE_FORBIDDEN')
     }
   }
 }
-function checkLock(lock: any, candidates = false) {
-  if (lock?.lockfileVersion !== 3 || !lock.packages || typeof lock.packages !== 'object')
+function checkLock(lock: unknown, candidates = false): void {
+  if (!isRecord(lock) || lock.lockfileVersion !== 3 || !isRecord(lock.packages))
     throw contentError('INSTALL_LOCK_INVALID')
-  for (const [location, entry] of Object.entries(lock.packages) as [string, any][]) {
-    if (!entry || typeof entry !== 'object' || entry.link) throw contentError('INSTALL_LOCK_INVALID')
+  for (const [location, value] of Object.entries(lock.packages)) {
+    if (!isRecord(value) || value.link) throw contentError('INSTALL_LOCK_INVALID')
+    const entry = value
     if (
       location &&
       (!location.startsWith('node_modules/') || location.split('/').includes('..') || location.includes('\\'))
@@ -95,9 +99,16 @@ function installationEnvironment(cache: string, configuration: string): Record<s
  */
 export class ManagedProjects {
   readonly root: string
-  #options
+  #options: ManagedProjectsOptions & {
+    registry: string
+    sources: Record<string, ManagedSource>
+    timeoutMs: number
+    maxBytes: number
+    maxFiles: number
+    maxConcurrent: number
+  }
   #controller = new AbortController()
-  #pending = new Set()
+  #pending = new Set<Promise<unknown>>()
   #active = 0
   constructor(root: string, options: ManagedProjectsOptions = {}) {
     this.root = resolve(root)
@@ -118,7 +129,7 @@ export class ManagedProjects {
     for (const name of Object.keys(this.#options.sources))
       if (!packageName.test(name)) throw contentError('INSTALL_SOURCE_NAME_INVALID')
   }
-  async #npm(args, cwd, signal) {
+  async #npm(args: string[], cwd: string, signal: AbortSignal): Promise<void> {
     const invocation = await resolveNpmInvocation(args)
     const cache = join(this.root, 'npm-cache')
     const configuration = this.#options.npmUserConfig ?? join(this.root, 'empty.npmrc')
@@ -139,7 +150,7 @@ export class ManagedProjects {
       })
     } catch (error) {
       signal.throwIfAborted()
-      if (typeof error.stderr === 'string' && /\bERESOLVE\b/.test(error.stderr))
+      if (isRecord(error) && typeof error.stderr === 'string' && /\bERESOLVE\b/.test(error.stderr))
         throw contentError('ENVIRONMENT_DEPENDENCY_CONFLICT')
       // Do not include subprocess output/configuration paths in public task errors.
       throw contentError('NPM_INSTALL_FAILED')
@@ -181,17 +192,21 @@ export class ManagedProjects {
   ): Promise<T> {
     return this.#track(this.#prepare(async () => document, input ?? {}, consume))
   }
-  #track(task) {
+  #track<T>(task: Promise<T>): Promise<T> {
     this.#pending.add(task)
     task.finally(() => this.#pending.delete(task)).catch(() => {})
     return task
   }
-  async #prepare(readDocument, input, consume) {
+  async #prepare<T>(
+    readDocument: () => Promise<unknown>,
+    input: { signal?: AbortSignal; onProgress?: PrepareVersionInput['onProgress'] },
+    consume: (directory: string, signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
     if (this.#controller.signal.aborted) throw contentError('INSTALLER_CLOSED')
     if (this.#active >= this.#options.maxConcurrent) throw contentError('INSTALL_BUSY')
     if (typeof consume !== 'function') throw contentError('PROJECT_CONSUMER_REQUIRED')
     this.#active++
-    let directory
+    let directory: string | undefined
     const signal = AbortSignal.any([
       this.#controller.signal,
       ...(input.signal ? [input.signal] : []),
@@ -203,7 +218,7 @@ export class ManagedProjects {
       const document = normalizeEnvironmentDocument(await readDocument())
       if (Object.keys(document.packages).length + document.sources.length > 200)
         throw contentError('INSTALL_PACKAGE_LIMIT')
-      const dependencies = {}
+      const dependencies: Record<string, string> = {}
       for (const [name, range] of Object.entries(document.packages)) {
         if (typeof range !== 'string' || range.length > 256 || !validRange(range))
           throw contentError('INSTALL_VERSION_INVALID')
@@ -216,7 +231,7 @@ export class ManagedProjects {
       await mkdir(join(this.root, 'staging'), { recursive: true, mode: 0o700 })
       directory = await mkdtemp(join(this.root, 'staging', 'prepare-'))
       await mkdir(join(directory, 'candidates'))
-      const provenance = {}
+      const provenance: Record<string, unknown> = {}
       for (const [index, name] of document.sources.entries()) {
         if (Object.hasOwn(dependencies, name)) throw contentError('INSTALL_DUPLICATE_PACKAGE')
         const source = this.#options.sources[name]
@@ -231,7 +246,7 @@ export class ManagedProjects {
           maxFiles: this.#options.maxFiles,
           timeoutMs: this.#options.timeoutMs,
         })
-        const manifest = JSON.parse(await readFile(join(captured.directory, 'package.json'), 'utf8'))
+        const manifest = JSON.parse(await readFile(join(captured.directory, 'package.json'), 'utf8')) as UnknownRecord
         if (manifest.name !== name) throw contentError('INSTALL_SOURCE_IDENTITY')
         if (typeof manifest.version !== 'string' || !valid(manifest.version))
           throw contentError('INSTALL_SOURCE_VERSION')
@@ -239,7 +254,7 @@ export class ManagedProjects {
         try {
           checkLock(JSON.parse(await readFile(join(captured.directory, 'npm-shrinkwrap.json'), 'utf8')))
         } catch (error) {
-          if (error.code !== 'ENOENT') throw error
+          if (errorCode(error) !== 'ENOENT') throw error
         }
         const output = join(directory, 'packed-' + index)
         await mkdir(output)
@@ -314,8 +329,10 @@ export class ManagedProjects {
       await input.onProgress?.({ stage: 'preparing' })
       return await consume(directory, signal)
     } catch (error) {
-      if (error?.name === 'AbortError' || error?.name === 'TimeoutError') throw error
-      const code = error?.code ?? error?.diagnostics?.[0]?.code
+      if (isRecord(error) && (error.name === 'AbortError' || error.name === 'TimeoutError')) throw error
+      const diagnostics = isRecord(error) && Array.isArray(error.diagnostics) ? error.diagnostics : []
+      const firstDiagnostic = isRecord(diagnostics[0]) ? diagnostics[0] : undefined
+      const code = isRecord(error) ? (error.code ?? firstDiagnostic?.code) : undefined
       if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{2,79}$/.test(code)) throw contentError(code)
       throw contentError('ENVIRONMENT_INSTALL_FAILED')
     } finally {

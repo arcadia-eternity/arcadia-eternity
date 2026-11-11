@@ -1,12 +1,14 @@
 import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises'
+import type { Stats } from 'node:fs'
 import { dirname, isAbsolute, join, relative } from 'node:path'
+import { errorCode, isRecord } from './types.ts'
 
 export function contentError(code: string, message: string = code) {
   return Object.assign(new Error(message), { code })
 }
 const materialRoots = new Set(['package.json', 'package-lock.json', 'node_modules', 'candidates'])
 const forbidden = new Set(['.git', '.env', '.npmrc', '.arcadia', '.bin'])
-function checkedMaterialPath(value: any) {
+function checkedMaterialPath(value: unknown): string {
   if (typeof value !== 'string' || !value || value.includes('\\') || value.includes('\0') || isAbsolute(value))
     throw contentError('MATERIAL_PATH_INVALID')
   const parts = value.split('/')
@@ -18,7 +20,7 @@ function checkedMaterialPath(value: any) {
         part === '..' ||
         forbidden.has(part) ||
         /[<>:"|?*]/.test(part) ||
-        [...part].some(character => character.codePointAt(0) < 32) ||
+        [...part].some(character => (character.codePointAt(0) ?? 0) < 32) ||
         /[. ]$/.test(part) ||
         /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part),
     ) ||
@@ -30,14 +32,24 @@ function checkedMaterialPath(value: any) {
 
 /** Capture data bytes only. Symlink targets must remain inside the installed project. */
 export async function materialFiles(
-  root: any,
-  { signal, maxBytes = 256 * 1024 * 1024, maxFiles = 50000, onRead }: any = {},
-) {
+  root: string,
+  {
+    signal,
+    maxBytes = 256 * 1024 * 1024,
+    maxFiles = 50000,
+    onRead,
+  }: {
+    signal?: AbortSignal
+    maxBytes?: number
+    maxFiles?: number
+    onRead?: (path: string, stats: Stats) => void
+  } = {},
+): Promise<Array<{ path: string; bytes: Buffer }>> {
   root = await realpath(root)
-  const result = []
-  const captured = []
+  const result: Array<{ path: string; bytes: Buffer }> = []
+  const captured: Array<{ path: string; actual: string; size: number; mtimeMs: number; ino: number }> = []
   let total = 0
-  async function walk(path, name, ancestors = new Set()) {
+  async function walk(path: string, name: string, ancestors = new Set<string>()): Promise<void> {
     signal?.throwIfAborted()
     const actual = await realpath(path)
     const rel = relative(root, actual)
@@ -78,13 +90,13 @@ export async function materialFiles(
     try {
       await lstat(join(root, name))
     } catch (error) {
-      if (error.code === 'ENOENT' && name !== 'package.json' && name !== 'package-lock.json') continue
+      if (errorCode(error) === 'ENOENT' && name !== 'package.json' && name !== 'package-lock.json') continue
       throw error
     }
     try {
       await walk(join(root, name), name)
     } catch (error) {
-      if (error.code === 'ENOENT') throw contentError('MATERIAL_SOURCE_CHANGED')
+      if (errorCode(error) === 'ENOENT') throw contentError('MATERIAL_SOURCE_CHANGED')
       throw error
     }
   }
@@ -98,7 +110,7 @@ export async function materialFiles(
       if (entry.size !== info.size || entry.mtimeMs !== info.mtimeMs || entry.ino !== info.ino)
         throw contentError('MATERIAL_SOURCE_CHANGED')
     } catch (error) {
-      if (error.code === 'ENOENT') throw contentError('MATERIAL_SOURCE_CHANGED')
+      if (errorCode(error) === 'ENOENT') throw contentError('MATERIAL_SOURCE_CHANGED')
       throw error
     }
   }
@@ -106,27 +118,34 @@ export async function materialFiles(
 }
 
 export async function writeMaterials(
-  root: any,
-  files: any,
-  { signal, maxBytes = 256 * 1024 * 1024, maxFiles = 50000 }: any = {},
-) {
+  root: string,
+  files: unknown,
+  {
+    signal,
+    maxBytes = 256 * 1024 * 1024,
+    maxFiles = 50000,
+  }: { signal?: AbortSignal; maxBytes?: number; maxFiles?: number } = {},
+): Promise<void> {
   if (!Array.isArray(files) || files.length > maxFiles) throw contentError('MATERIAL_LIMIT')
   const seen = new Set()
   let total = 0
   for (const file of files) {
+    if (!isRecord(file)) throw contentError('MATERIAL_PATH_INVALID')
     signal?.throwIfAborted()
     const path = checkedMaterialPath(file.path)
     // Case aliases are rejected even on case-sensitive machines for portable archives.
     const alias = path.toLowerCase()
     if (seen.has(alias)) throw contentError('MATERIAL_PATH_DUPLICATE')
     seen.add(alias)
+    const data = typeof file.data === 'string' ? file.data : undefined
+    if (!Buffer.isBuffer(file.bytes) && data === undefined) throw contentError('MATERIAL_ENCODING_INVALID')
     if (
       !Buffer.isBuffer(file.bytes) &&
-      (typeof file.data !== 'string' ||
-        !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.data))
+      data !== undefined &&
+      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(data)
     )
       throw contentError('MATERIAL_ENCODING_INVALID')
-    const bytes = Buffer.isBuffer(file.bytes) ? file.bytes : Buffer.from(file.data, 'base64')
+    const bytes = Buffer.isBuffer(file.bytes) ? file.bytes : Buffer.from(data!, 'base64')
     total += bytes.length
     if (total > maxBytes) throw contentError('MATERIAL_LIMIT')
     await mkdir(dirname(join(root, path)), { recursive: true })
@@ -139,8 +158,9 @@ export async function writeMaterials(
   const lock = JSON.parse(await readFile(join(root, 'package-lock.json'), 'utf8'))
   if (![2, 3].includes(lock.lockfileVersion) || !lock.packages || typeof lock.packages !== 'object')
     throw contentError('MATERIAL_LOCK_INVALID')
-  for (const pkg of Object.values(lock.packages) as any[]) {
-    if (!pkg || typeof pkg !== 'object') throw contentError('MATERIAL_LOCK_INVALID')
+  for (const pkgValue of Object.values(lock.packages)) {
+    if (!isRecord(pkgValue)) throw contentError('MATERIAL_LOCK_INVALID')
+    const pkg = pkgValue
     if (pkg.link === true) throw contentError('MATERIAL_LOCK_NOT_PORTABLE')
     if (typeof pkg.resolved === 'string' && /^https?:/.test(pkg.resolved)) {
       const url = new URL(pkg.resolved)

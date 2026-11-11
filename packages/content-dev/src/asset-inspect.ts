@@ -1,35 +1,58 @@
 import { stat } from 'node:fs/promises'
 import { lookup } from 'mime-types'
 import { validResourceId } from './lib/presentation.ts'
-import { WorkspaceError } from './workspace.ts'
+import { WorkspaceError, type AuthorWorkspace } from './workspace.ts'
 
 export const imageByteLimit = 2 * 1024 * 1024
-const fail = (code, message) => {
+
+function fail(code: string, message: string): never {
   throw new WorkspaceError(code, message)
+}
+
+export interface AssetMetadata {
+  id: string | undefined
+  kind: unknown
+  source: unknown
+  definition: string
+  definitionVersion: string
+  remote?: boolean
+  imageAvailable?: boolean
+  reason?: string
+  bytes?: number
+  mimeType?: string
+  imageByteLimit?: number
+  version?: string
+}
+
+export interface AssetInspection {
+  metadata: AssetMetadata
+  image?: { type: 'image'; mimeType: string; data: string }
 }
 
 /** Read declared local resources only; remote URLs remain metadata and are never fetched. */
 export async function inspectAsset(
-  workspace: any,
+  workspace: AuthorWorkspace,
   { id, includeImage = false }: { id?: string; includeImage?: boolean } = {},
-) {
+): Promise<AssetInspection> {
   if (!validResourceId(id)) fail('RESOURCE_INVALID', '需要已声明资源的稳定 ID')
   if (typeof includeImage !== 'boolean') fail('RESOURCE_INVALID', 'includeImage 必须是布尔值')
+  const resourceId = id!
   const snapshot = await workspace.snapshot()
-  const resources = snapshot.records.filter(row => row.kind === 'resources' && row.record.id === id)
+  const resources = snapshot.records.filter(row => row.kind === 'resources' && row.record.id === resourceId)
   if (!resources.length) fail('RESOURCE_UNKNOWN', '此项目没有声明该资源')
   if (resources.length !== 1) fail('RESOURCE_AMBIGUOUS', '资源 ID 不唯一，请先修复重复声明')
   const definition = resources[0]
   const { kind, source } = definition.record
   if (typeof source !== 'string') fail('RESOURCE_INVALID', '资源缺少有效位置')
-  const metadata = { id, kind, source, definition: definition.file, definitionVersion: definition.version }
+  const metadata: AssetMetadata = {
+    id: resourceId,
+    kind,
+    source,
+    definition: definition.file,
+    definitionVersion: definition.version,
+  }
   if (/^https?:\/\//.test(source)) {
-    let url
-    try {
-      url = new URL(source)
-    } catch {
-      fail('RESOURCE_INVALID', '资源 URL 无效')
-    }
+    const url = parseRemoteUrl(source)
     if (url.username || url.password) fail('RESOURCE_INVALID', '资源 URL 不能含有凭据')
     return { metadata: { ...metadata, remote: true, imageAvailable: false, reason: 'REMOTE_NOT_FETCHED' } }
   }
@@ -48,7 +71,7 @@ export async function inspectAsset(
         : info.size > imageByteLimit
           ? 'IMAGE_TOO_LARGE'
           : undefined
-  const result: any = {
+  const result: AssetInspection = {
     metadata: {
       ...metadata,
       remote: false,
@@ -67,4 +90,12 @@ export async function inspectAsset(
   result.metadata.version = asset.version
   result.image = { type: 'image', mimeType, data: asset.bytes.toString('base64') }
   return result
+}
+
+function parseRemoteUrl(source: string): URL {
+  try {
+    return new URL(source)
+  } catch {
+    fail('RESOURCE_INVALID', '资源 URL 无效')
+  }
 }

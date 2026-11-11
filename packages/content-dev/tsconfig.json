@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "rewriteRelativeImportExtensions": true,
-    "strict": false,
+    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "declaration": true,
