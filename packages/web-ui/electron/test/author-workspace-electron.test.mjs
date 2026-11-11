@@ -32,7 +32,7 @@ test(
       app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
       page = await app.firstWindow()
       page.setDefaultTimeout(15000)
-      await page.goto(origin + '/creator')
+      await page.goto(origin + '/content/edit')
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
       await page.getByLabel('新项目名称').fill('寒霜工作区验收')
       await page.getByRole('button', { name: '从模板创建项目', exact: true }).click()

@@ -177,7 +177,7 @@ export class LocalTimerCalculator {
    */
   private emitUpdates(): void {
     // 发送单个玩家更新
-    this.snapshots.forEach((snapshot, playerId) => {
+    this.snapshots.forEach((_snapshot, playerId) => {
       const key = `player:${playerId}`
       const listeners = this.listeners.get(key)
       if (listeners && listeners.size > 0) {

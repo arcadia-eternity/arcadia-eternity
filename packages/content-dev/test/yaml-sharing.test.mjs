@@ -4,9 +4,9 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import YAML from 'yaml'
-import { AuthorWorkspace } from '../src/workspace.mjs'
-import { readContentSources } from '../src/lib/content.mjs'
-import { buildPresentation } from '../src/lib/presentation.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
+import { readContentSources } from '../src/lib/content.ts'
+import { buildPresentation } from '../src/lib/presentation.ts'
 
 const source = `# shared status
 - id: first

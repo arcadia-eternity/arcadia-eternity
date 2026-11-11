@@ -100,9 +100,9 @@ test(
       await manager.evaluate(() => window.arcadiaDesktop.openServerWebsite({ url: 'https://player.example.com/' }))
       assert.deepEqual(await app.evaluate(() => globalThis.testWebsiteUrls), ['https://player.example.com'])
       const managementPort = await manager.evaluate(() => window.arcadiaDesktop.getLocalServerPort())
-      const managementUrl = `http://127.0.0.1:${managementPort}/packs/workspace/index.json`
+      const managementUrl = `http://127.0.0.1:${managementPort}/local-content/00000000-0000-0000-0000-000000000000/${'0'.repeat(64)}`
       assert.equal((await fetch(managementUrl)).status, 403)
-      assert.equal(await manager.evaluate(async url => (await fetch(url)).status, managementUrl), 200)
+      assert.equal(await manager.evaluate(async url => (await fetch(url)).status, managementUrl), 404)
 
       await manager.evaluate(() => window.arcadiaDesktop.openRemotePlay({ url: 'https://server-a.test' }))
       const remote = app.windows().find(page => page !== manager)
@@ -176,7 +176,7 @@ test(
         .catch(error => {
           if (!error.message.includes('closed')) throw error
         })
-      assert.equal(await manager.evaluate(() => typeof window.arcadiaDesktop.readWorkWorkspace), 'function')
+      assert.equal(await manager.evaluate(() => typeof window.arcadiaDesktop.listContentProjects), 'function')
     } finally {
       if (app) await app.close()
       if (bundled) {

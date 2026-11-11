@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, rm, realpath, copyFile } from 'node:fs/promi
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
+import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 import { LocalEnvironments } from '../local-environments.mjs'
 
 const document = {

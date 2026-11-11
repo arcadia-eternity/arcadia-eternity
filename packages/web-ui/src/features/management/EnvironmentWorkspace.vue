@@ -65,6 +65,9 @@ function deleteVersion(version: ManagedEnvironmentVersion) {
   deletingVersion.value = ''
   emit('delete', version)
 }
+function managedVersion(row: Record<PropertyKey, unknown>) {
+  return row as unknown as ManagedEnvironmentVersion
+}
 function deleteDraft(environment: ManagedEnvironment) {
   deletingDraft.value = ''
   emit('deleteDraft', environment)
@@ -416,13 +419,13 @@ function save() {
               </ElTableColumn>
               <ElTableColumn label="操作" min-width="240">
                 <template #default="{ row: version }">
-                  <ElButton :disabled="busy" @click="emit('references', version)" native-type="button"
+                  <ElButton :disabled="busy" @click="emit('references', managedVersion(version))" native-type="button"
                     >查看引用</ElButton
                   >
                   <ElButton
                     :disabled="busy || version.status !== 'ready' || !canUse"
                     :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
-                    @click="emit('use', version)"
+                    @click="emit('use', managedVersion(version))"
                     native-type="button"
                   >
                     用于服务器
@@ -430,7 +433,7 @@ function save() {
                   <ElButton
                     :disabled="busy || version.status !== 'ready' || !canUse"
                     :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
-                    @click="emit('use', version, 'peer')"
+                    @click="emit('use', managedVersion(version), 'peer')"
                     native-type="button"
                   >
                     用于玩家托管
@@ -444,7 +447,9 @@ function save() {
                     删除版本
                   </ElButton>
                   <span v-if="deletingVersion === version.versionId">
-                    <ElButton :disabled="busy" @click="deleteVersion(version)" native-type="button">确认删除</ElButton>
+                    <ElButton :disabled="busy" @click="deleteVersion(managedVersion(version))" native-type="button"
+                      >确认删除</ElButton
+                    >
                     <ElButton @click="deletingVersion = ''" native-type="button">取消</ElButton>
                   </span>
                 </template>

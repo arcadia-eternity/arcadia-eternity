@@ -11,11 +11,9 @@ import { createChildLogger } from '../logger'
  * Replaces EffectScheduler logic with proper phase-based execution
  */
 export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPhase<TriggerContextMap[T]> {
-  private readonly logger = createChildLogger('EffectExecutionPhase')
-
   constructor(
     battle: Battle,
-    private readonly parentContext: TriggerContextMap[T],
+    parentContext: TriggerContextMap[T],
     private readonly trigger: T,
     private readonly effectContainers: EffectContainer[],
     id?: string,

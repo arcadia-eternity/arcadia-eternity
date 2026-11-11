@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import YAML from 'yaml'
 const exec = promisify(execFile)
-const script = resolve(dirname(fileURLToPath(import.meta.url)), '../src/rename.mjs')
+const script = resolve(dirname(fileURLToPath(import.meta.url)), '../src/rename.ts')
 const files = ['package.json', 'data/skills/strike.yaml', 'data/skills/nested/rest.json']
 
 async function fixture() {
@@ -126,8 +126,8 @@ test(
   'renaming a real template updates portable team references and keeps foreign references and comments',
   { timeout: 30000 },
   async t => {
-    const { createSourceProject } = await import('../src/author-api.mjs')
-    const { prepareContentPack } = await import('../src/testing.mjs')
+    const { createSourceProject } = await import('../src/author-api.ts')
+    const { prepareContentPack } = await import('../src/testing.ts')
     const { setGlobalLogger } = await import('@arcadia-eternity/battle/engine')
     setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
     const root = await mkdtemp(join(tmpdir(), 'arcadia-team-rename-'))
@@ -160,7 +160,7 @@ test(
     assert.deepEqual(renamed.team[0].skills, ['renamed:strike', 'renamed:rest', 'foreign:skill'])
     assert.equal(renamed.team[0].ability, 'foreign:trait')
     assert.equal(renamed.team[0].emblem, 'renamed:emblem')
-    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'build'], { cwd: project })
+    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'build'], { cwd: project })
     prepared = await prepareContentPack(project)
     assert.equal(prepared.defaultPlayers()[0].team[0].species, 'renamed:pet')
     await prepared.createBattle('renamed-team')

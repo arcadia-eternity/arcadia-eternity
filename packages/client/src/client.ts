@@ -97,7 +97,6 @@ export class BattleClient {
 
   // 新架构：Timer快照本地缓存
   private timerSnapshots = new Map<playerId, TimerSnapshot>()
-  private lastSnapshotUpdate: number = 0
   private lastBattleEndEventAt: number = 0
   private currentBattleTurn: number | null = null
 
@@ -976,7 +975,6 @@ export class BattleClient {
     snapshots.forEach(snapshot => {
       this.timerSnapshots.set(snapshot.playerId, snapshot)
     })
-    this.lastSnapshotUpdate = Date.now()
   }
 
   /**
@@ -984,7 +982,6 @@ export class BattleClient {
    */
   private clearTimerSnapshots(): void {
     this.timerSnapshots.clear()
-    this.lastSnapshotUpdate = 0
   }
 
   /** Remove external subscriptions while preserving the client's own socket listeners. */

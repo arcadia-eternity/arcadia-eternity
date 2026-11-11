@@ -1,4 +1,4 @@
-import type { Events, Id, InstanceId, PrototypeId } from '@arcadia-eternity/const'
+import type { Events, InstanceId, PrototypeId } from '@arcadia-eternity/const'
 import { Battle } from './battle'
 import { AddMarkContext, RemoveMarkContext } from './context'
 import type { MarkInstance } from './mark'

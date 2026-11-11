@@ -15,7 +15,7 @@ import { isOwnerContribution } from '../content/owner-contributions'
 export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext | EffectContext<EffectTrigger>> {
   constructor(
     battle: Battle,
-    private readonly transferContext: SwitchPetContext | EffectContext<EffectTrigger>,
+    transferContext: SwitchPetContext | EffectContext<EffectTrigger>,
     private readonly target: Pet | Battle,
     private readonly marks: MarkInstance[],
     id?: string,

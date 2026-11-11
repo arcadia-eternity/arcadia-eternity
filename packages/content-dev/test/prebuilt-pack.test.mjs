@@ -9,7 +9,7 @@ import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
-import { packBuiltProject } from '../src/pack-project.mjs'
+import { packBuiltProject } from '../src/pack-project.ts'
 
 const exec = promisify(execFile)
 async function fixture(t, { files = ['dist/content.json'] } = {}) {
@@ -125,12 +125,69 @@ test('author packaging embeds a closed effect artifact and clean consumers prepa
   }
 })
 
-test('packaging retains intended source files and source manifest when effects are included', async t => {
+test('packaging keeps compiled dist files and leaves the author manifest unchanged', async t => {
   const { project, cache, original } = await fixture(t, { files: ['dist'] })
   const packed = await packBuiltProject(project, { cache })
   assert.ok(packed.files.some(file => file.path === 'dist/effects.js'))
   assert.ok(packed.files.some(file => file.path === 'dist/arcadia-effects.json'))
   assert.equal(await readFile(join(project, 'package.json'), 'utf8'), original)
+})
+
+test('published archives omit author sources, locales, configs, and unreferenced assets', async t => {
+  const { project, cache } = await fixture(t, {
+    files: ['dist', 'src', 'data', 'locales', 'assets', 'tsconfig.json'],
+  })
+  for (const directory of ['src/effects', 'data/species', 'locales/zh-CN', 'assets'])
+    await mkdir(join(project, directory), { recursive: true })
+  await Promise.all([
+    writeFile(join(project, 'src/effects/example.ts'), 'export const source = true\n'),
+    writeFile(join(project, 'data/species/example.yaml'), 'id: example\n'),
+    writeFile(join(project, 'locales/zh-CN/species.yaml'), 'example: {name: Example}\n'),
+    writeFile(join(project, 'assets/unreferenced.png'), 'not a real image'),
+    writeFile(join(project, 'tsconfig.json'), '{}\n'),
+  ])
+  const packed = await packBuiltProject(project, { cache })
+  const files = packed.files.map(file => file.path)
+  assert.ok(files.includes('package.json'))
+  assert.ok(files.includes('dist/content.json'))
+  assert.ok(files.includes('dist/arcadia-effects.json'))
+  assert.equal(
+    files.some(file => /^(?:src|data|locales|assets)\//.test(file)),
+    false,
+  )
+  assert.equal(files.includes('tsconfig.json'), false)
+})
+
+test('published archives include media referenced by the compiled presentation manifest', async t => {
+  const { project, cache } = await fixture(t, { files: ['dist', 'assets'] })
+  await mkdir(join(project, 'assets'), { recursive: true })
+  await writeFile(join(project, 'assets/icon.png'), 'image')
+  await writeFile(join(project, 'assets/unused.png'), 'image')
+  const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+  manifest.arcadia.presentation = 'dist/presentation.json'
+  await writeFile(join(project, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
+  await writeFile(
+    join(project, 'dist/presentation.json'),
+    JSON.stringify({
+      version: 2,
+      bindings: [],
+      locales: {},
+      resources: [
+        {
+          kind: 'file',
+          id: 'icon',
+          source: 'assets/icon.png',
+          mime: 'image/png',
+          sha256: 'a'.repeat(64),
+          bytes: 5,
+        },
+      ],
+    }),
+  )
+  const packed = await packBuiltProject(project, { cache })
+  const files = packed.files.map(file => file.path)
+  assert.ok(files.includes('assets/icon.png'))
+  assert.equal(files.includes('assets/unused.png'), false)
 })
 
 test('author packaging rejects effect source symlinks outside the project without changing its manifest', async t => {
@@ -176,7 +233,7 @@ test('the author pack CLI emits its existing receipt with the generated artifact
       include: ['src/**/*.ts'],
     }),
   )
-  const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url))
+  const cli = fileURLToPath(new URL('../src/cli.ts', import.meta.url))
   const result = await exec(process.execPath, [cli, 'pack'], {
     cwd: project,
     env: { ...process.env, npm_config_cache: cache },

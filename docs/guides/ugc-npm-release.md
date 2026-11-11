@@ -34,4 +34,4 @@ npm run pack
 npm install --save-exact @arcadia-eternity/data-pack-base
 ```
 
-官方效果入口为 `@arcadia-eternity/data-pack-base/effects`，构建身份入口为 `@arcadia-eternity/data-pack-base/build`，数据清单位于包目录下的 `pack.json`。
+官方效果入口为 `@arcadia-eternity/data-pack-base/effects`，构建身份入口为 `@arcadia-eternity/data-pack-base/build`，数据清单由 `package.json#arcadiaEternityPack` 指向 `dist/pack.json`。发行包只包含编译后的内容、表现、语言 JSON、效果工件和媒体，不包含 `data/`、`locales/` 或 `src/` 源文件。通过 npm 安装的基础包和 UGC 包均为只读；修改内容需回到作者源项目重新构建发布。

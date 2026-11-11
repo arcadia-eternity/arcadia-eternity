@@ -16,10 +16,10 @@ import {
 } from './protocol'
 const runtimeFiles = [
   'ruffle.js',
-  'core.ruffle.51d81af79f566b8c93f1.js',
-  'core.ruffle.8da0ccba5a3edadea24d.js',
-  'dcba28a55c2ebf0c3400.wasm',
-  'b87f447eb5eff39fdaec.wasm',
+  'core.ruffle.16d61072ac7fdc4d5013.js',
+  'core.ruffle.994eeef0a471a88cd0e3.js',
+  '878d548199cddef07035.wasm',
+  '172de42e6619eac8f371.wasm',
 ]
 interface DesktopBridge {
   create(options: { instance: string }): Promise<unknown>

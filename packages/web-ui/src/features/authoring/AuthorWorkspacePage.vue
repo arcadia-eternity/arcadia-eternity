@@ -632,7 +632,8 @@ async function openProject(next: SourceProject) {
   const lastTab = localStorage.getItem(`arcadia-author-tab:${next.id}`) || 'species'
   tab.value = Object.hasOwn(contentTypes, lastTab) ? lastTab : 'species'
   localStorage.setItem('arcadia-author-project', next.id)
-  if (route.params.projectId !== next.id) await router.replace({ name: 'Creator', params: { projectId: next.id } })
+  if (route.params.projectId !== next.id)
+    await router.replace({ name: 'AuthorWorkspace', params: { projectId: next.id } })
 }
 function switchTab(key: string) {
   if (key === tab.value && screen.value === 'editor') return

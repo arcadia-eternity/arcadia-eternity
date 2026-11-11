@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, writeFile, rm, symlink, readFile, readdir, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AuthorWorkspace } from '../src/workspace.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
 import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.mjs'
 
 test('install resolves project-owned successful receipts and captures verified archive bytes', async t => {

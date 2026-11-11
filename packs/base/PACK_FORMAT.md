@@ -1,6 +1,6 @@
 # Base Content Pack Format
 
-## Recommended Folder Layout
+## Authoring Source Layout
 
 ```text
 <pack-root>/
@@ -26,6 +26,27 @@ For this repository's built-in pack package:
 - `paths.dataDir = "data"`
 - `paths.localesDir = "locales"`
 
+## Published npm Layout
+
+The npm package is an immutable distribution artifact. It does not include `pack.json`, `data/`, `locales/`, or `src/` from the source tree.
+
+```text
+@arcadia-eternity/data-pack-base/
+  package.json
+  LICENSE
+  assets/
+  dist/
+    pack.json
+    pack-lock.yaml
+    content.json
+    presentation.json
+    catalog.json
+    arcadia-effects.json
+    locales/<locale>/<namespace>.json
+```
+
+`package.json#arcadiaEternityPack` points to `dist/pack.json`. The published manifest has `content` and `presentation` entries plus empty `data.*` file lists; runtime content comes from the compiled JSON files. `dist/pack-lock.yaml` is a generated lock record, not authoring source. Installed packages are opened read-only.
+
 ## `pack.json` Fields
 
 - `id`: unique pack id
@@ -33,12 +54,12 @@ For this repository's built-in pack package:
 - `engine`: must be `"seer2-v2"`
 - `layoutVersion`: currently `1`
 - `presentation`: generated display manifest path (`dist/presentation.json`)
-- `paths.dataDir`: base dir for `data.*` file lists
+- `paths.dataDir`: base dir for `data.*` file lists in source manifests
 - `paths.localesDir`: base dir for locale files
 - `dependencies`: dependent pack list, loaded before current pack
-- `data.marks|skills|species`: YAML filenames relative to `dataDir`
+- `data.marks|skills|species`: YAML filenames relative to `dataDir` in source manifests; empty in published manifests
 - `data.effects`: empty in the native base pack; retained for legacy manifest compatibility
-- `locales`: locale -> namespace list (namespace maps to `<localesDir>/<locale>/<namespace>.yaml`)
+- `locales`: source manifests use locale -> namespace lists; published manifests list the compiled JSON files
 
 ## Presentation and resources
 
@@ -77,6 +98,8 @@ When loading from npm package, loader reads package root `package.json` and uses
 - `arcadiaEternityPack` as manifest entry path, or
 - default `pack.json` when field is missing.
 
+Published base and UGC packages use compiled content and presentation JSON. YAML remains an authoring input in the source repository and is not part of the npm archive.
+
 ## Lockfile
 
 Base pack can generate its own `pack-lock.yaml`:
@@ -89,5 +112,7 @@ Current generator behavior:
 
 - emits pnpm-like `importers` and `packages`
 - records the `pack.json` package node; presentation metadata is generated separately
-- uses `workspace:` source refs when package metadata is available
+- uses the explicitly supplied workspace package and source entry for the root `workspace:` ref; the published entry remains `arcadiaEternityPack`
 - computes `sha512-*` integrity from local manifest content
+
+The base build also emits `dist/pack-lock.yaml` for the compiled manifest. Consumers that load `dist/pack.json` enforce that generated lock record.

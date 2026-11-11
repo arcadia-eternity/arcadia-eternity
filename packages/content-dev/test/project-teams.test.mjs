@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AuthorWorkspace } from '../src/workspace.mjs'
-import { ProjectTeams } from '../src/project-teams.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
+import { ProjectTeams } from '../src/project-teams.ts'
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-project-teams-'))

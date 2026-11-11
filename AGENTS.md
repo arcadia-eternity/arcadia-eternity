@@ -156,6 +156,6 @@ pnpm typecheck:workspace
 pnpm typecheck:server
 ```
 
-其他包的类型检查同样需要先构建其工作区依赖。全仓检查使用 `pnpm build:package` 后运行 `pnpm typecheck`；该汇总命令递归执行 `packages/*`、`packs/*` 的 `typecheck`，再检查根 CLI。内容开发工具为 JavaScript 包，类型检查覆盖其公开 `.d.mts` 声明，运行逻辑由 Node 测试覆盖。`pnpm test` 会先执行 `test:prepare` 构建工作区包和根 CLI，避免离线集成测试使用旧 `dist`；单独执行 `test:run` 时需要先准备产物。以刷新产物后的检查结果为准，不要为过时的本地产物修改源码或放宽类型约束。
+其他包的类型检查同样需要先构建其工作区依赖。全仓检查使用 `pnpm build:package` 后运行 `pnpm typecheck`；该汇总命令递归执行 `packages/*`、`packs/*` 的 `typecheck`，再检查根 CLI。内容开发工具为 TypeScript 包，类型检查覆盖其实现与生成的 `.d.ts` 声明，运行逻辑由 Node 测试覆盖。`pnpm test` 会先执行 `test:prepare` 构建工作区包和根 CLI，避免离线集成测试使用旧 `dist`；单独执行 `test:run` 时需要先准备产物。以刷新产物后的检查结果为准，不要为过时的本地产物修改源码或放宽类型约束。
 
 提交前若类型检查失败，应先按上述顺序排查；不要直接认定为既有错误并跳过提交钩子。

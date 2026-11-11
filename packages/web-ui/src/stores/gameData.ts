@@ -5,9 +5,7 @@ import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-lo
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
-import YAML from 'yaml'
 import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
-import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 import { acquireLocalContent } from '@/services/localContent'
 import { getDesktopApi } from '@/utils/env'
@@ -15,24 +13,8 @@ import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/pr
 
 import type { EffectMarkRelations } from '@/services/skillMarkRelationService'
 
-const BASE_PACK_ID = 'arcadia-eternity.base'
-
 function createMetadataLoader() {
   return new PackMetadataLoader()
-}
-
-interface WorkspaceGameDataLayer {
-  folderName: string
-  species: Record<string, SpeciesSchemaType>
-  skills: Record<string, SkillSchemaType>
-  marks: Record<string, MarkSchemaType>
-  sourceFiles: Record<string, Record<string, string>>
-}
-
-interface WorkspaceRuntimeState {
-  active: boolean
-  order: string[]
-  layers: Record<string, WorkspaceGameDataLayer>
 }
 
 interface GameDataState {
@@ -53,7 +35,6 @@ interface GameDataState {
   loaded: boolean
   gameDataLoaded: boolean
   error: string | null
-  workspaceRuntime: WorkspaceRuntimeState
   serverFallback:
     | (Pick<
         GameDataState,
@@ -62,7 +43,6 @@ interface GameDataState {
         | 'marks'
         | 'nativeEffectIds'
         | 'effectMarkRelations'
-        | 'workspaceRuntime'
         | 'loaded'
         | 'gameDataLoaded'
         | 'error'
@@ -102,27 +82,6 @@ function invalidateMetadata(store: object) {
   scope.pending = undefined
 }
 
-function emptyWorkspaceRuntime(): WorkspaceRuntimeState {
-  return {
-    active: false,
-    order: [],
-    layers: {},
-  }
-}
-
-function isWorkspacePackRef(packRef: string): boolean {
-  try {
-    const url = new URL(packRef, getHttpBaseUrl())
-    return url.pathname.endsWith('/packs/workspace/pack.json')
-  } catch {
-    return packRef.replace(/[?#].*$/, '').endsWith('/packs/workspace/pack.json')
-  }
-}
-
-function normalizeFolderName(folderName: string): string {
-  return folderName.trim().toLowerCase()
-}
-
 export const useGameDataStore = defineStore('gameData', {
   state: (): GameDataState => ({
     loaded: false,
@@ -142,7 +101,6 @@ export const useGameDataStore = defineStore('gameData', {
     nativeEffectIds: [],
     effectMarkRelations: {},
     gameDataLoaded: false,
-    workspaceRuntime: emptyWorkspaceRuntime(),
     serverFallback: null,
   }),
 
@@ -153,18 +111,6 @@ export const useGameDataStore = defineStore('gameData', {
     getSpecies: state => (id: string) => state.species.byId[id],
     getSkill: state => (id: string) => state.skills.byId[id],
     getMark: state => (id: string) => state.marks.byId[id],
-    getRecordSourceFile:
-      state =>
-      (kind: string, recordId: string): string | null => {
-        const layerOrder = state.workspaceRuntime.order
-        for (let i = layerOrder.length - 1; i >= 0; i--) {
-          const layer = state.workspaceRuntime.layers[layerOrder[i]]
-          if (layer?.sourceFiles?.[kind]?.[recordId]) {
-            return layer.sourceFiles[kind][recordId]
-          }
-        }
-        return null
-      },
   },
 
   actions: {
@@ -176,7 +122,6 @@ export const useGameDataStore = defineStore('gameData', {
         marks: this.marks,
         nativeEffectIds: this.nativeEffectIds,
         effectMarkRelations: this.effectMarkRelations,
-        workspaceRuntime: this.workspaceRuntime,
         loaded: this.loaded,
         gameDataLoaded: this.gameDataLoaded,
         error: this.error,
@@ -229,7 +174,6 @@ export const useGameDataStore = defineStore('gameData', {
       this.marks = { byId: {}, allIds: [] }
       this.nativeEffectIds = []
       this.effectMarkRelations = {}
-      this.workspaceRuntime = emptyWorkspaceRuntime()
       this.serverFallback = null
     },
 
@@ -245,7 +189,6 @@ export const useGameDataStore = defineStore('gameData', {
         marks: this.marks,
         nativeEffectIds: this.nativeEffectIds,
         effectMarkRelations: this.effectMarkRelations,
-        workspaceRuntime: this.workspaceRuntime,
         loaded: this.loaded,
         gameDataLoaded: this.gameDataLoaded,
         error: this.error,
@@ -257,7 +200,6 @@ export const useGameDataStore = defineStore('gameData', {
       this.marks = marks
       this.nativeEffectIds = []
       this.effectMarkRelations = {}
-      this.workspaceRuntime = emptyWorkspaceRuntime()
       this.loaded = true
       this.gameDataLoaded = true
       this.error = null
@@ -275,7 +217,6 @@ export const useGameDataStore = defineStore('gameData', {
       this.marks = previous.marks
       this.nativeEffectIds = previous.nativeEffectIds
       this.effectMarkRelations = previous.effectMarkRelations
-      this.workspaceRuntime = previous.workspaceRuntime
       this.loaded = previous.loaded
       this.gameDataLoaded = previous.gameDataLoaded
       this.error = previous.error
@@ -305,7 +246,6 @@ export const useGameDataStore = defineStore('gameData', {
             this.marks = this.normalizeData(captured.content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
             this.nativeEffectIds = []
             this.effectMarkRelations = {}
-            this.workspaceRuntime = emptyWorkspaceRuntime()
             this.serverFallback = null
             this.loaded = this.gameDataLoaded = true
             this.error = null
@@ -322,7 +262,6 @@ export const useGameDataStore = defineStore('gameData', {
             this.skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
             this.marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
             this.effectMarkRelations = effectMarkRelations ?? {}
-            this.workspaceRuntime = emptyWorkspaceRuntime()
             if (content.locales) setServerContentText(content, false)
             this.loaded = this.gameDataLoaded = true
             this.error = null
@@ -331,19 +270,6 @@ export const useGameDataStore = defineStore('gameData', {
           const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
           if (!isCurrent()) return
           applyRuntimeAssetBase(packRef)
-          if (isWorkspacePackRef(packRef)) {
-            const enabledPacks = await this.loadEnabledWorkspacePacks()
-            if (!isCurrent()) return
-            if (enabledPacks.length > 0) {
-              await this.initializeFromWorkspacePacks(enabledPacks, isCurrent)
-              if (!isCurrent()) return
-              this.loaded = true
-              this.gameDataLoaded = true
-              this.error = null
-              console.log('🎮 Game data store installed (workspace incremental mode)')
-              return
-            }
-          }
           await this.loadFromPackRef(packRef, isCurrent)
           if (!isCurrent()) return
           this.loaded = true
@@ -400,151 +326,6 @@ export const useGameDataStore = defineStore('gameData', {
       await this.initialize({ forceReload: true })
     },
 
-    async applyWorkspacePackToggle(input: { folderName: string; enabled: boolean }) {
-      const generation = metadataScope(this).generation
-      const isCurrent = () => metadataScope(this).generation === generation
-      if (!this.loaded) {
-        await this.initialize({ forceReload: true })
-        return
-      }
-
-      if (!this.workspaceRuntime.active) {
-        await this.reload()
-        return
-      }
-
-      const enabledPacks = await this.loadEnabledWorkspacePacks()
-      if (!isCurrent()) return
-      if (enabledPacks.length === 0) {
-        await this.reload()
-        return
-      }
-
-      const nextOrder = enabledPacks.map(pack => pack.folderName)
-      const nextLayers: Record<string, WorkspaceGameDataLayer> = {}
-      for (const folderName of nextOrder) {
-        const existing = this.workspaceRuntime.layers[folderName]
-        if (existing) {
-          nextLayers[folderName] = existing
-        }
-      }
-
-      const targetFolder = normalizeFolderName(input.folderName)
-      for (const pack of enabledPacks) {
-        const isTarget = normalizeFolderName(pack.folderName) === targetFolder
-        if (!nextLayers[pack.folderName] || (input.enabled && isTarget)) {
-          nextLayers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName)
-        }
-      }
-
-      if (!isCurrent()) return
-      this.workspaceRuntime = {
-        active: true,
-        order: nextOrder,
-        layers: nextLayers,
-      }
-      this.rebuildFromWorkspaceLayers()
-      this.loaded = true
-      this.gameDataLoaded = true
-      this.error = null
-    },
-
-    async loadEnabledWorkspacePacks(): Promise<WorkspacePackSummary[]> {
-      const allPacks = await listWorkspacePacks()
-      if (allPacks.length === 0) return []
-
-      const enabledPacks = allPacks.filter(pack => pack.enabled)
-      if (enabledPacks.length === 0) return []
-      if (!enabledPacks.some(pack => pack.id === BASE_PACK_ID)) {
-        throw new Error('默认数据包必须保持启用')
-      }
-
-      return enabledPacks
-    },
-
-    async initializeFromWorkspacePacks(enabledPacks: WorkspacePackSummary[], current?: () => boolean) {
-      const generation = metadataScope(this).generation
-      const isCurrent = current ?? (() => metadataScope(this).generation === generation)
-      const layers: Record<string, WorkspaceGameDataLayer> = {}
-      for (const pack of enabledPacks) {
-        layers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName)
-      }
-
-      if (!isCurrent()) return
-      this.workspaceRuntime = {
-        active: true,
-        order: enabledPacks.map(pack => pack.folderName),
-        layers,
-      }
-      this.rebuildFromWorkspaceLayers()
-    },
-
-    async loadWorkspaceLayer(folderName: string): Promise<WorkspaceGameDataLayer> {
-      const loader = createMetadataLoader()
-      const packRef = await resolveWorkspaceFileUrl(`packs/${encodeURIComponent(folderName)}/pack.json`)
-      const result = await loader.loadMetadata(packRef, {
-        source: 'http',
-        enforceLockfile: true,
-        includeLocales: false,
-      })
-
-      const presentations = presentationIndex(result.presentation)
-      // Build sourceFile mapping: kind → recordId → relativePath
-      const sourceFiles: Record<string, Record<string, string>> = {}
-      if (result.pack) {
-        const kinds = ['species', 'skills', 'marks'] as const
-        const manifestUrl = toAbsoluteHttpUrl(packRef)
-        const dataRoot = resolveDirectoryUrl(result.pack.paths?.dataDir ?? '.', manifestUrl)
-        const dataDir = result.pack.paths?.dataDir
-
-        for (const kind of kinds) {
-          const kindSourceMap: Record<string, string> = {}
-          const filePaths = result.pack.data[kind] as string[] | undefined
-          if (Array.isArray(filePaths)) {
-            for (const fileRef of filePaths) {
-              const fileUrl = new URL(fileRef, dataRoot).toString()
-              const relativePath = dataDir && dataDir !== '.' ? `${dataDir}/${fileRef}` : fileRef
-              try {
-                const records = await fetchArray(fileUrl)
-                for (const record of records) {
-                  const id = String(record?.id ?? '').trim()
-                  if (id) {
-                    kindSourceMap[id] = relativePath
-                  }
-                }
-              } catch (e) {
-                console.warn(`[gameData] Failed to build source map for ${kind}/${fileRef}:`, e)
-              }
-            }
-          }
-          sourceFiles[kind] = kindSourceMap
-        }
-      }
-
-      return {
-        folderName,
-        species: this.normalizeData(
-          result.data.species.map(raw => ({
-            ...parseWithErrors(SpeciesSchema, raw),
-            presentation: presentations.get(`species:${parseWithErrors(SpeciesSchema, raw).id}`),
-          })),
-        ).byId,
-        skills: this.normalizeData(
-          result.data.skills.map(raw => ({
-            ...parseWithErrors(SkillSchema, raw),
-            presentation: presentations.get(`skills:${parseWithErrors(SkillSchema, raw).id}`),
-          })),
-        ).byId,
-        marks: this.normalizeData(
-          result.data.marks.map(raw => ({
-            ...parseWithErrors(MarkSchema, raw),
-            presentation: presentations.get(`marks:${parseWithErrors(MarkSchema, raw).id}`),
-          })),
-        ).byId,
-        sourceFiles,
-      }
-    },
-
     async loadFromPackRef(packRef: string, current?: () => boolean) {
       const generation = metadataScope(this).generation
       const isCurrent = current ?? (() => metadataScope(this).generation === generation)
@@ -576,7 +357,6 @@ export const useGameDataStore = defineStore('gameData', {
       )
       this.refreshNativeEffectReferences()
 
-      this.workspaceRuntime = emptyWorkspaceRuntime()
       this.validateDataIntegrity()
 
       console.log('Pack loaded', {
@@ -587,41 +367,6 @@ export const useGameDataStore = defineStore('gameData', {
         lockfileIssueCount: result.lockfileIssues?.length ?? 0,
         assetConflictCount: result.assetConflicts?.length ?? 0,
       })
-    },
-
-    rebuildFromWorkspaceLayers() {
-      const speciesById: Record<string, SpeciesSchemaType> = {}
-      const skillsById: Record<string, SkillSchemaType> = {}
-      const marksById: Record<string, MarkSchemaType> = {}
-      const mergedSourceFiles: Record<string, Record<string, string>> = {
-        species: {},
-        skills: {},
-        marks: {},
-      }
-
-      for (const folderName of this.workspaceRuntime.order) {
-        const layer = this.workspaceRuntime.layers[folderName]
-        if (!layer) continue
-        Object.assign(speciesById, layer.species)
-        Object.assign(skillsById, layer.skills)
-        Object.assign(marksById, layer.marks)
-        for (const kind of ['species', 'skills', 'marks']) {
-          Object.assign(mergedSourceFiles[kind], layer.sourceFiles?.[kind])
-        }
-      }
-
-      this.species = this.normalizeRecordData(speciesById)
-      this.skills = this.normalizeRecordData(skillsById)
-      this.marks = this.normalizeRecordData(marksById)
-      this.refreshNativeEffectReferences()
-      this.validateDataIntegrity()
-    },
-
-    normalizeRecordData<T>(item: Record<string, T>) {
-      return {
-        byId: item,
-        allIds: Object.keys(item),
-      }
     },
 
     normalizeData<T extends { id: string }>(
@@ -728,51 +473,3 @@ export const useGameDataStore = defineStore('gameData', {
     },
   },
 })
-
-function resolveDirectoryUrl(dir: string, baseUrl: string): URL {
-  const normalizedDir = dir === '.' ? './' : `${dir.replace(/\/+$/, '')}/`
-  return new URL(normalizedDir, baseUrl)
-}
-
-function toAbsoluteHttpUrl(urlOrPath: string): string {
-  return new URL(urlOrPath, getHttpBaseUrl()).toString()
-}
-
-function getHttpBaseUrl(): string {
-  const maybeLocation = (globalThis as { location?: { href?: string } }).location
-  if (typeof maybeLocation?.href === 'string' && maybeLocation.href.length > 0) {
-    return maybeLocation.href
-  }
-  return 'http://localhost/'
-}
-
-async function fetchArray(url: string): Promise<Record<string, unknown>[]> {
-  try {
-    const text = await fetchText(url)
-    const isJson = url.toLowerCase().endsWith('.json')
-    const parsed = isJson ? JSON.parse(text) : YAML.parse(text, { merge: true })
-    if (!Array.isArray(parsed)) {
-      throw new Error(`Expected array content from ${url}`)
-    }
-    return parsed as Record<string, unknown>[]
-  } catch (error) {
-    if (url.endsWith('.yaml')) {
-      const jsonUrl = url.replace(/\.yaml$/, '.json')
-      const text = await fetchText(jsonUrl)
-      const parsed = JSON.parse(text)
-      if (!Array.isArray(parsed)) {
-        throw new Error(`Expected array content from ${jsonUrl}`)
-      }
-      return parsed as Record<string, unknown>[]
-    }
-    throw error
-  }
-}
-
-async function fetchText(url: string): Promise<string> {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`)
-  }
-  return response.text()
-}

@@ -7,7 +7,6 @@ import { reactive, toRaw } from 'vue'
 import { nanoid } from 'nanoid'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
-import { officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/metadata'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import { patch } from 'jsondiffpatch'
 import type { BattleState } from '@arcadia-eternity/const'
@@ -101,7 +100,7 @@ async function createNativeWebBattleSession(
   const records = (kind: keyof NativeGameDataStoreLike) =>
       dataStore[kind].allIds.map(id => copy(dataStore[kind].byId[id])),
     loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent, {
-      templates: officialTemplateDefinitions,
+      templates: [],
     }),
     metadata = { marks: records('marks'), skills: records('skills'), species: records('species') },
     loaded = await loader.fromMetadata(metadata),

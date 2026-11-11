@@ -48,11 +48,11 @@ jobs:
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -108,22 +108,22 @@ jobs:
       EXPECTED_ARCH: ${{ matrix.arch }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 11.21.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           architecture: ${{ matrix.arch }}
           cache: pnpm
 
       - name: Restore versioned desktop download cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ${{ github.workspace }}/.artifacts/electron-cache
@@ -200,7 +200,7 @@ jobs:
 
       - name: Preserve validation evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: desktop-runtime-evidence-${{ matrix.platform }}-${{ matrix.arch }}
           retention-days: 14

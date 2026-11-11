@@ -49,7 +49,7 @@ export function executeStatLevelMarkStacking(
 function replaceStatLevelMark(
   existingMark: StatLevelMarkInstanceImpl,
   newLevel: number,
-  context: AddMarkContext,
+  _context: AddMarkContext,
   battle: Battle,
 ): void {
   const owner = existingMark.owner

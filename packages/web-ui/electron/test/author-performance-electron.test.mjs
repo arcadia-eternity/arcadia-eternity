@@ -26,7 +26,7 @@ async function desktop(run) {
     app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
     const page = await app.firstWindow()
     page.setDefaultTimeout(30000)
-    await page.goto(origin + '/creator')
+    await page.goto(origin + '/content/edit')
     try {
       await run({ app, page, expect })
     } catch (error) {

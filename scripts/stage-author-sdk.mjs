@@ -133,13 +133,25 @@ export async function stageAuthorSdk(output) {
         ...exportedPaths(manifest.bin),
       ]) {
         if (path === './package.json') continue
-        if (!path.startsWith('./dist/') || path.includes('*') || path.split('/').includes('..'))
+        if (
+          (!path.startsWith('./dist/') && !path.startsWith('./bin/')) ||
+          path.includes('*') ||
+          path.split('/').includes('..')
+        )
           throw new Error(`Unsupported package entry in ${name}: ${path}`)
         if (!(await stat(join(pkg.directory, path))).isFile()) throw new Error(`Missing package entry: ${name} ${path}`)
       }
       const dir = join(scratch, `package-${records.length}`)
       await mkdir(dir)
       await cp(build, join(dir, 'dist'), { recursive: true })
+      const bin = join(pkg.directory, 'bin')
+      try {
+        if (!(await stat(bin)).isDirectory()) throw new Error(`Unsupported binary directory: ${name}/bin`)
+        await safeTree(bin)
+        await cp(bin, join(dir, 'bin'), { recursive: true })
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error
+      }
       await writeFile(join(dir, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
       const result = await exec(
         'npm',

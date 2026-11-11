@@ -1,10 +1,10 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
-  "version": "4.3.4",
+  "version": "4.4.0",
   "license": "MIT",
   "type": "module",
   "description": "Arcadia Eternity base content and effects",
-  "arcadiaEternityPack": "pack.json",
+  "arcadiaEternityPack": "dist/pack.json",
   "arcadia": {
     "formatVersion": 1,
     "projectId": "base",
@@ -16,7 +16,7 @@
     "sdkApi": 2
   },
   "scripts": {
-    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml",
+    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml --workspace @arcadia-eternity/data-pack-base#pack.json",
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
     "build:code": "rolldown -c && node ../../scripts/build-base-environment.mjs",
@@ -27,14 +27,8 @@
     "typecheck": "pnpm exec tsgo --noEmit"
   },
   "files": [
-    "pack.json",
     "assets/**/*",
-    "data/**/*",
-    "locales/**/*",
-    "PACK_FORMAT.md",
-    "DATA_README.md",
     "dist/**/*",
-    "content-groups.yaml",
     "LICENSE"
   ],
   "exports": {

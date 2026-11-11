@@ -7,9 +7,9 @@ import {
   assertEnvironmentRequirements,
   assertEnvironmentTeam,
   validateEnvironmentRules,
-} from '../src/environment-rules.mjs'
-import { prepareBattleEnvironment } from '../src/environment.mjs'
-import { prepareContentPack } from '../src/testing.mjs'
+} from '../src/environment-rules.ts'
+import { prepareBattleEnvironment } from '../src/environment.ts'
+import { prepareContentPack } from '../src/testing.ts'
 
 const pet = (species = 'sample:pet', values = {}) => ({ species, skills: ['sample:strike'], ...values })
 const rules = values => ({ schemaVersion: 1, ...values })

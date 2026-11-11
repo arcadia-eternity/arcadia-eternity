@@ -8,7 +8,7 @@ import {
   DevelopmentWorkspaceError,
   type DevelopmentWorkspaceSnapshot,
 } from '@/services/developmentWorkspace'
-import { defaultRecord } from '@/features/creator/content'
+import { defaultRecord } from '@/features/authoring/defaultRecord'
 import { listServerEnvironments, readServerEnvironmentContent } from '@/services/serverEnvironment'
 
 type Kind = 'species' | 'skill' | 'mark'
@@ -339,7 +339,7 @@ onBeforeUnmount(() => {
       <p>
         目标服务器：<code>{{ server }}</code>
       </p>
-      <router-link to="/creator">内容创作工作台</router-link>
+      <router-link to="/content/edit">内容创作工作台</router-link>
     </header>
     <section class="panel">
       <label

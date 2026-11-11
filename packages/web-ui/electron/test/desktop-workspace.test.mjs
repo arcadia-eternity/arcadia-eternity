@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events'
 import { mkdtemp, mkdir, readFile, readdir, realpath, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
+import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 import { createDesktopWorkspaceProxy } from '../../../../bin/desktop-workspace-proxy.ts'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 

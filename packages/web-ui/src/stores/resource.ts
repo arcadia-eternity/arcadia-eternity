@@ -4,10 +4,9 @@ import { defineStore } from 'pinia'
 import type { ContentPresentation, PresentationManifest } from '@arcadia-eternity/schema'
 import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
-import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
-
-const BASE_PACK_ID = 'arcadia-eternity.base'
+import { acquireLocalContent } from '@/services/localContent'
+import { getDesktopApi } from '@/utils/env'
 
 type ResourceBucket = Record<string, string>
 
@@ -18,13 +17,6 @@ interface ResourceLayer {
   skillSound: ResourceBucket
   petSwf: ResourceBucket
   petSound: ResourceBucket
-}
-
-interface WorkspaceResourceRuntime {
-  active: boolean
-  order: string[]
-  layers: Record<string, ResourceLayer>
-  base: ResourceLayer
 }
 
 interface ResourceState {
@@ -54,8 +46,9 @@ interface ResourceState {
   }
   loaded: boolean
   error: string | null
-  workspaceRuntime: WorkspaceResourceRuntime
 }
+
+const localResourceReleases = new WeakMap<object, () => Promise<void>>()
 
 function createEmptyLayer(): ResourceLayer {
   return {
@@ -65,48 +58,6 @@ function createEmptyLayer(): ResourceLayer {
     skillSound: {},
     petSwf: {},
     petSound: {},
-  }
-}
-
-function cloneLayer(layer: ResourceLayer): ResourceLayer {
-  return {
-    markImage: { ...layer.markImage },
-    background: { ...layer.background },
-    music: { ...layer.music },
-    skillSound: { ...layer.skillSound },
-    petSwf: { ...layer.petSwf },
-    petSound: { ...layer.petSound },
-  }
-}
-
-function mergeLayer(target: ResourceLayer, overlay: ResourceLayer): void {
-  Object.assign(target.markImage, overlay.markImage)
-  Object.assign(target.background, overlay.background)
-  Object.assign(target.music, overlay.music)
-  Object.assign(target.skillSound, overlay.skillSound)
-  Object.assign(target.petSwf, overlay.petSwf)
-  Object.assign(target.petSound, overlay.petSound)
-}
-
-function emptyWorkspaceRuntime(): WorkspaceResourceRuntime {
-  return {
-    active: false,
-    order: [],
-    layers: {},
-    base: createEmptyLayer(),
-  }
-}
-
-function normalizeFolderName(folderName: string): string {
-  return folderName.trim().toLowerCase()
-}
-
-function isWorkspacePackRef(packRef: string): boolean {
-  try {
-    const url = new URL(packRef, window.location.href)
-    return url.pathname.endsWith('/packs/workspace/pack.json')
-  } catch {
-    return packRef.replace(/[?#].*$/, '').endsWith('/packs/workspace/pack.json')
   }
 }
 
@@ -156,7 +107,6 @@ export const useResourceStore = defineStore('Resource', {
       byId: {},
       allIds: [],
     },
-    workspaceRuntime: emptyWorkspaceRuntime(),
   }),
 
   getters: {
@@ -210,6 +160,10 @@ export const useResourceStore = defineStore('Resource', {
   actions: {
     reset() {
       invalidateResourceScope(this)
+      void localResourceReleases
+        .get(this)?.()
+        .catch(error => console.warn('本地资源会话释放失败', error))
+      localResourceReleases.delete(this)
       this.loaded = false
       this.error = null
       this.markImage = { byId: {}, allIds: [] }
@@ -218,7 +172,6 @@ export const useResourceStore = defineStore('Resource', {
       this.skillSound = { byId: {}, allIds: [] }
       this.petSwf = { byId: {}, allIds: [] }
       this.petSound = { byId: {}, allIds: [] }
-      this.workspaceRuntime = emptyWorkspaceRuntime()
     },
 
     async initialize(options?: { forceReload?: boolean }) {
@@ -231,6 +184,31 @@ export const useResourceStore = defineStore('Resource', {
       const isCurrent = () => scope.generation === generation
       const work = (async () => {
         try {
+          if (getDesktopApi()) {
+            const captured = await acquireLocalContent()
+            if (!captured) throw new Error('本地内容服务不可用')
+            if (!isCurrent()) {
+              await captured.release()
+              return
+            }
+            try {
+              const presentations = new Map<string, ContentPresentation>()
+              for (const kind of ['species', 'skills', 'marks'] as const)
+                for (const row of captured.content[kind])
+                  if (row.presentation) presentations.set(`${kind}:${row.id}`, row.presentation)
+              this.applyLayerToState(this.buildResourceLayer(presentations, captured.resources))
+              this.validateDataIntegrity()
+            } catch (error) {
+              await captured.release()
+              throw error
+            }
+            this.loaded = true
+            this.error = null
+            const previous = localResourceReleases.get(this)
+            localResourceReleases.set(this, captured.release)
+            await previous?.().catch(error => console.warn('旧本地资源会话释放失败', error))
+            return
+          }
           if (hasPreparedWebEnvironment()) {
             const { content, resources } = await readPreparedWebCatalog(forceReload)
             if (!isCurrent()) return
@@ -238,7 +216,6 @@ export const useResourceStore = defineStore('Resource', {
             for (const kind of ['species', 'skills', 'marks'] as const)
               for (const row of content[kind])
                 if (row.presentation) presentations.set(`${kind}:${row.id}`, row.presentation)
-            this.workspaceRuntime = emptyWorkspaceRuntime()
             this.applyLayerToState(this.buildResourceLayer(presentations, resources))
             this.validateDataIntegrity()
             this.loaded = true
@@ -249,20 +226,6 @@ export const useResourceStore = defineStore('Resource', {
           if (!isCurrent()) return
           applyRuntimeAssetBase(packRef)
           const packLoader = new PackMetadataLoader()
-          const baseLayer = createEmptyLayer()
-          if (isWorkspacePackRef(packRef)) {
-            const enabledPacks = await this.loadEnabledWorkspacePacks()
-            if (!isCurrent()) return
-            if (enabledPacks.length > 0) {
-              await this.initializeFromWorkspacePacks(enabledPacks, baseLayer, packLoader, isCurrent)
-              if (!isCurrent()) return
-              this.loaded = true
-              this.error = null
-              console.log('📁 Resource store installed (workspace incremental mode)')
-              return
-            }
-          }
-
           const packResult = await packLoader.loadMetadata(packRef, {
             source: 'http',
             enforceLockfile: false,
@@ -278,11 +241,7 @@ export const useResourceStore = defineStore('Resource', {
             console.warn('Pack lockfile issues detected while loading resources', packResult.lockfileIssues)
           }
 
-          const merged = cloneLayer(baseLayer)
-          mergeLayer(merged, this.buildPresentationLayer(packResult.presentation ?? []))
-
-          this.workspaceRuntime = emptyWorkspaceRuntime()
-          this.applyLayerToState(merged)
+          this.applyLayerToState(this.buildPresentationLayer(packResult.presentation ?? []))
           this.validateDataIntegrity()
 
           this.loaded = true
@@ -340,125 +299,6 @@ export const useResourceStore = defineStore('Resource', {
 
     async reload() {
       await this.initialize({ forceReload: true })
-    },
-
-    async applyWorkspacePackToggle(input: { folderName: string; enabled: boolean }) {
-      const generation = resourceScope(this).generation
-      const isCurrent = () => resourceScope(this).generation === generation
-      if (!this.loaded) {
-        await this.initialize({ forceReload: true })
-        return
-      }
-
-      if (!this.workspaceRuntime.active) {
-        await this.reload()
-        return
-      }
-
-      const enabledPacks = await this.loadEnabledWorkspacePacks()
-      if (!isCurrent()) return
-      if (enabledPacks.length === 0) {
-        await this.reload()
-        return
-      }
-
-      const nextOrder = enabledPacks.map(pack => pack.folderName)
-      const nextLayers: Record<string, ResourceLayer> = {}
-      for (const folderName of nextOrder) {
-        const existing = this.workspaceRuntime.layers[folderName]
-        if (existing) {
-          nextLayers[folderName] = existing
-        }
-      }
-
-      const targetFolder = normalizeFolderName(input.folderName)
-      const packLoader = new PackMetadataLoader()
-      for (const pack of enabledPacks) {
-        const isTarget = normalizeFolderName(pack.folderName) === targetFolder
-        if (!nextLayers[pack.folderName] || (input.enabled && isTarget)) {
-          nextLayers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName, packLoader)
-          if (!isCurrent()) return
-        }
-      }
-
-      this.workspaceRuntime = {
-        active: true,
-        order: nextOrder,
-        layers: nextLayers,
-        base: cloneLayer(this.workspaceRuntime.base),
-      }
-
-      this.rebuildFromWorkspaceLayers()
-      this.loaded = true
-      this.error = null
-    },
-
-    async loadEnabledWorkspacePacks(): Promise<WorkspacePackSummary[]> {
-      const allPacks = await listWorkspacePacks()
-      if (allPacks.length === 0) return []
-
-      const enabledPacks = allPacks.filter(pack => pack.enabled)
-      if (enabledPacks.length === 0) return []
-      if (!enabledPacks.some(pack => pack.id === BASE_PACK_ID)) {
-        throw new Error('默认数据包必须保持启用')
-      }
-
-      return enabledPacks
-    },
-
-    async initializeFromWorkspacePacks(
-      enabledPacks: WorkspacePackSummary[],
-      baseLayer: ResourceLayer,
-      packLoader: PackMetadataLoader,
-      current?: () => boolean,
-    ) {
-      const generation = resourceScope(this).generation
-      const isCurrent = current ?? (() => resourceScope(this).generation === generation)
-      const layers: Record<string, ResourceLayer> = {}
-      for (const pack of enabledPacks) {
-        layers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName, packLoader)
-        if (!isCurrent()) return
-      }
-
-      this.workspaceRuntime = {
-        active: true,
-        order: enabledPacks.map(pack => pack.folderName),
-        layers,
-        base: cloneLayer(baseLayer),
-      }
-      this.rebuildFromWorkspaceLayers()
-      this.validateDataIntegrity()
-    },
-
-    async loadWorkspaceLayer(folderName: string, packLoader: PackMetadataLoader): Promise<ResourceLayer> {
-      const packRef = await resolveWorkspaceFileUrl(`packs/${encodeURIComponent(folderName)}/pack.json`)
-      const packResult = await packLoader.loadMetadata(packRef, {
-        source: 'http',
-        enforceLockfile: false,
-        includeData: false,
-        includeLocales: false,
-      })
-
-      if ((packResult.assetConflicts?.length ?? 0) > 0) {
-        console.warn(`Asset conflicts detected in workspace pack ${folderName}`, packResult.assetConflicts)
-      }
-      if ((packResult.lockfileIssues?.length ?? 0) > 0) {
-        console.warn(`Pack lockfile issues detected in workspace pack ${folderName}`, packResult.lockfileIssues)
-      }
-
-      return this.buildPresentationLayer(packResult.presentation ?? [])
-    },
-
-    rebuildFromWorkspaceLayers() {
-      const merged = cloneLayer(this.workspaceRuntime.base)
-      for (const folderName of this.workspaceRuntime.order) {
-        const layer = this.workspaceRuntime.layers[folderName]
-        if (!layer) continue
-        mergeLayer(merged, layer)
-      }
-
-      this.applyLayerToState(merged)
-      this.validateDataIntegrity()
     },
 
     applyLayerToState(layer: ResourceLayer) {

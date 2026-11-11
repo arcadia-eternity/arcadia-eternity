@@ -4,10 +4,3 @@ import './src/effect-sources'
 export { createCatalog, createEffects } from 'virtual:arcadia-effects'
 export { createOfficialContent, type OfficialContent, type OfficialPrototypeData } from './src/content'
 export { officialEffectMarkRelations, type EffectMarkRelation } from './src/effect-mark-relations'
-export {
-  officialEffectTemplates,
-  officialTemplateDefinitions,
-  withOfficialTemplates,
-  type EffectTemplate,
-  type TemplateField,
-} from './src/templates'

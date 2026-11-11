@@ -125,7 +125,7 @@ export class RoomRegistry {
   private readonly limits: Required<Omit<RoomOptions, 'matchmakingPolicy' | keyof BattleCapacityOptions>>
   private readonly matchmakingPolicy: MatchmakingPolicy
   constructor(
-    private readonly io: Server,
+    _io: Server,
     private readonly sessions: SessionRegistry,
     options: RoomOptions = {},
     private readonly environments: ServerEnvironmentRegistry,

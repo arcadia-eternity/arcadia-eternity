@@ -108,7 +108,7 @@
 - `packages/web-ui/electron/content-library.mjs`：`installFile/installNpm` 当前会安装并自动修改本机 desired selection；已有安装暂存/确认和依赖装配能力，但尚无面向上述新流程的统一预检 DTO。新设计不能直接复用“安装并启用”作为纯安装。
 - 同文件 `prepareEnvironmentProject` 支持按环境获取/装配、离线开关、已登记来源，并有歧义检查；其临时装配材料不等于用户包库里每个依赖都有独立安装条目。UI 要区分“环境材料可用”和“已登记到包库”。
 - `packages/web-ui/electron/local-environments.mjs`：保存、准备、导入导出、版本引用、删除与取消已有入口；本机任务在内存中，按当前实现不能承诺重启恢复或详细下载进度。
-- `packages/content-dev/src/content-workspace.mjs`：草稿用 expectedRevision；有固定版本时禁止删草稿；版本删除检查运行租约、保留和导入引用。卸载包检查 active/desired selection，不等同于完整环境影响分析。
+- `packages/content-dev/src/content-workspace.ts`：草稿用 expectedRevision；有固定版本时禁止删草稿；版本删除检查运行租约、保留和导入引用。卸载包检查 active/desired selection，不等同于完整环境影响分析。
 - `packages/web-ui/src/types/contentPackages.ts`：已有作者、描述、来源、依赖图、内容统计；许可证、主页、问题反馈与兼容声明尚不能直接从当前列表接口完整取得，原型展示是提案示例。
 - `docs/guides/unified-management.md`：服务器任务、导入恢复、发布与运行引用有更完整合同；不能将其恢复能力直接归给本机环境库。
 

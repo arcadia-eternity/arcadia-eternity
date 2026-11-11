@@ -16,8 +16,9 @@ export default [
     files: ['packages/p2p-transport/**/*.ts'],
     languageOptions: {
       parserOptions: {
-        projectService: false,
-        project: ['./packages/p2p-transport/tsconfig.json'],
+        projectService: {
+          EXPERIMENTAL_backend: 'tsgo',
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

@@ -20,7 +20,7 @@ try {
     platform: 'browser',
     external: id => id.startsWith('node:'),
     plugins: [
-      effectDiscoveryPlugin(resolve('packs/base'), ['src/effects', 'src/templates'], true),
+      effectDiscoveryPlugin(resolve('packs/base'), ['src/effects'], true),
       {
         name: 'native-pack-boundary',
         resolveId(id) {

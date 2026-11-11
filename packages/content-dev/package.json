@@ -1,43 +1,44 @@
 {
   "name": "@arcadia-eternity/content-sdk",
-  "version": "4.3.4",
+  "version": "4.4.0",
   "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=24 <25"
   },
   "bin": {
-    "arcadia-content": "./dist/cli.mjs",
-    "arcadia-content-mcp": "./dist/mcp.mjs"
+    "arcadia-content": "./bin/arcadia-content.mjs",
+    "arcadia-content-mcp": "./bin/arcadia-content-mcp.mjs"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "./testing": "./dist/testing.mjs",
-    "./workspace": "./dist/author-api.mjs",
+    "./testing": "./dist/testing.js",
+    "./workspace": "./dist/author-api.js",
     "./management-workspace": {
-      "types": "./dist/content-workspace.d.mts",
-      "import": "./dist/content-workspace.mjs",
-      "default": "./dist/content-workspace.mjs"
+      "types": "./dist/content-workspace.d.ts",
+      "import": "./dist/content-workspace.js",
+      "default": "./dist/content-workspace.js"
     },
     "./managed-projects": {
-      "types": "./dist/managed-projects.d.mts",
-      "import": "./dist/managed-projects.mjs",
-      "default": "./dist/managed-projects.mjs"
+      "types": "./dist/managed-projects.d.ts",
+      "import": "./dist/managed-projects.js",
+      "default": "./dist/managed-projects.js"
     },
     "./environment-rules": {
-      "types": "./dist/environment-rules.d.mts",
-      "import": "./dist/environment-rules.mjs",
-      "default": "./dist/environment-rules.mjs"
+      "types": "./dist/environment-rules.d.ts",
+      "import": "./dist/environment-rules.js",
+      "default": "./dist/environment-rules.js"
     },
     "./build": {
-      "types": "./dist/effect-build.d.mts",
-      "import": "./dist/effect-build.mjs"
+      "types": "./dist/effect-build.d.ts",
+      "import": "./dist/effect-build.js"
     }
   },
   "files": [
+    "bin",
     "dist",
     "LICENSE"
   ],
@@ -55,13 +56,13 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "chokidar": "^6.0.0",
     "mime-types": "^3.0.2",
-    "semver": "7.7.3",
-    "tar": "^7.5.21",
-    "yauzl": "3.2.1",
+    "semver": "7.8.6",
+    "tar": "^7.5.22",
     "typescript": "catalog:",
     "write-file-atomic": "^8.0.0",
     "yaml": "catalog:",
-    "zod": "3.25.76"
+    "yauzl": "3.4.0",
+    "zod": "4.6.7"
   },
   "repository": {
     "type": "git",
@@ -71,5 +72,11 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org",
     "access": "public"
+  },
+  "devDependencies": {
+    "@types/mime-types": "^3.0.1",
+    "@types/semver": "7.8.0",
+    "@types/write-file-atomic": "^4.0.3",
+    "@types/yauzl": "^3.4.0"
   }
 }

@@ -25,7 +25,6 @@ test.beforeEach(async ({ page }) => {
         }),
         releaseLocalContent: async () => {},
         getAppVersion: async () => 'test',
-        listWorkspacePacks: async () => [],
         listCachedPets: async () => [],
         getLocalBattleStatus: async () => structuredClone(snapshot.host),
         openServerWebsite: async (input: unknown) => {

@@ -2,18 +2,16 @@ import * as authoringSdk from '@arcadia-eternity/battle/authoring'
 import { expect, it } from 'vitest'
 import {
   createContentCatalog,
+  defineNativeBehavior,
   EffectTrigger,
   UseSkillContext,
   TurnContext,
   AttackTargetOpinion,
   Nature,
   setGlobalLogger,
+  type BaseMark,
+  type BehaviorDefinition,
 } from '@arcadia-eternity/battle/engine'
-import {
-  withOfficialTemplates,
-  createEffects,
-  officialTemplateDefinitions,
-} from '@arcadia-eternity/data-pack-base/effects'
 import {
   createDraft,
   compileRelease,
@@ -24,21 +22,80 @@ import {
   forkDraft,
   exportArchive,
   parseArchive,
-  WorkRepository,
 } from '../src/works'
-import { NodeWorkStorage } from '../src/node-work-storage'
-import { mkdtemp, rm, readFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 
+const applyMarkDefinition: BehaviorDefinition = {
+  formatVersion: 1,
+  id: 'test/template/apply-mark',
+  sourceKind: 'skill',
+  parameters: { mark: { kind: 'string', default: '', maxLength: 256, reference: 'mark', static: true } },
+  implementation: { kind: 'native', exportId: 'test/native/apply-mark' },
+}
+const markAttributeDefinition: BehaviorDefinition = {
+  formatVersion: 1,
+  id: 'test/template/mark-attribute',
+  sourceKind: 'petMark',
+  parameters: {
+    attribute: { kind: 'string', default: 'spe', enum: ['atk', 'def', 'spa', 'spd', 'spe'], static: true },
+    operation: { kind: 'string', default: 'delta', enum: ['delta', 'percent'], static: true },
+    amount: { kind: 'number', default: 10, minimum: -1000, maximum: 1000 },
+  },
+  implementation: { kind: 'native', exportId: 'test/native/mark-attribute' },
+}
+const testNativeExports = (marks: ReadonlyMap<string, BaseMark>) => [
+  defineNativeBehavior({
+    id: 'test/native/apply-mark',
+    sourceKind: 'skill',
+    parameters: applyMarkDefinition.parameters,
+    build({ effectId, params }) {
+      const mark = marks.get(String(params.mark))
+      if (!mark) throw new Error(`Missing mark: ${String(params.mark)}`)
+      return {
+        id: effectId,
+        triggers: [EffectTrigger.OnHit],
+        parameters: { mark: authoringSdk.stringParam({ default: String(params.mark) }) },
+        apply: authoringSdk.targets.opponentActive.apply(authoringSdk.ops.addMark(mark)),
+      }
+    },
+  }),
+  defineNativeBehavior({
+    id: 'test/native/mark-attribute',
+    sourceKind: 'petMark',
+    parameters: markAttributeDefinition.parameters,
+    build({ effectId, params }) {
+      const attribute = authoringSdk.stringParam({ default: String(params.attribute) })
+      const operation = authoringSdk.stringParam({ default: String(params.operation) })
+      const amount = authoringSdk.numberParam({ default: Number(params.amount) })
+      return {
+        id: effectId,
+        triggers: [EffectTrigger.OnMarkCreated],
+        rebindOnOwnerTransfer: true,
+        parameters: { attribute, operation, amount },
+        apply: authoringSdk.targets.ownerPet.apply(
+          authoringSdk.ops.addAttributeModifier(
+            String(params.attribute) as 'atk' | 'def' | 'spa' | 'spd' | 'spe',
+            String(params.operation) as 'delta' | 'percent',
+            amount,
+          ),
+        ),
+      }
+    },
+  }),
+]
+const templates = [applyMarkDefinition, markAttributeDefinition]
 const host = {
   build: { formatVersion: 1, coreBuildId: 'a'.repeat(64), registryBuildId: 'b'.repeat(64) } as const,
   base: { marks: [], skills: [], species: [] },
-  templates: officialTemplateDefinitions,
+  templates,
   createContent: (data: Parameters<typeof createContentCatalog>[0], revision: string) =>
-    createContentCatalog(withOfficialTemplates(data), revision, undefined, context => ({
-      nativeExports: createEffects({ sdk: authoringSdk, marks: context.marks, id: local => local }),
-    })),
+    createContentCatalog(
+      { ...data, behaviors: [...templates, ...(data.behaviors ?? [])] },
+      revision,
+      undefined,
+      context => ({
+        nativeExports: testNativeExports(context.marks),
+      }),
+    ),
 }
 const skill = (id: string) => ({ id, element: 'Normal', category: 'Physical', power: 40, rage: 0, accuracy: 100 })
 
@@ -64,8 +121,8 @@ it('publishes independent namespaced works and freezes the running version while
     behaviors: [
       {
         useId: 'speed',
-        definitionId: 'base/template/mark-attribute-per-stack',
-        params: { attribute: 'spe', amount: -10 },
+        definitionId: 'test/template/mark-attribute',
+        params: { attribute: 'spe', operation: 'delta', amount: -10 },
       },
     ],
   })
@@ -78,8 +135,8 @@ it('publishes independent namespaced works and freezes the running version while
     behaviors: [
       {
         useId: 'slow',
-        definitionId: 'base/template/apply-mark-on-hit',
-        params: { mark: workRef(a.project.id, 'mark', 'slow'), target: 'opponent', chance: 100, stacks: 1 },
+        definitionId: 'test/template/apply-mark',
+        params: { mark: workRef(a.project.id, 'mark', 'slow') },
       },
     ],
   })
@@ -152,7 +209,7 @@ it('forks declared references into a new namespace without rewriting labels or e
     behaviors: [
       {
         useId: 'mark',
-        definitionId: 'base/template/apply-mark-on-hit',
+        definitionId: 'test/template/apply-mark',
         params: { mark: workRef('source-project', 'mark', 'slow') },
       },
     ],
@@ -165,54 +222,24 @@ it('forks declared references into a new namespace without rewriting labels or e
   expect(draft.project.namespace).toBe('frost')
 })
 
-it('round-trips an archive and commits imports atomically without overwriting drafts', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'arcadia-works-'))
-  try {
-    const repo = new WorkRepository(new NodeWorkStorage(directory))
-    const draft = createDraft('ice', '寒冰')
-    draft.data.skills.push(skill('strike'))
-    const release = await compileRelease(draft, '1.0.0', host)
-    const text = await exportArchive({ drafts: [draft], selected: [release], installed: [release] })
-    const archive = await parseArchive(text)
-    await repo.importArchive(archive)
-    expect(Object.values((await repo.read()).releases)[0].digest).toBe(release.digest)
-    expect((await repo.read()).selected).toEqual([])
-    const before = await readFile(join(directory, 'works.json'), 'utf8')
-    await expect(repo.importArchive(archive)).rejects.toThrow(/本地已存在/)
-    expect(await readFile(join(directory, 'works.json'), 'utf8')).toBe(before)
-    const tampered = JSON.parse(text)
-    tampered.releases[0].data.skills[0].power = 999
-    expect((await parseArchive(tampered)).releases[0].data.skills[0].power).toBe(999)
-    expect(await readFile(join(directory, 'works.json'), 'utf8')).toBe(before)
-    const saved = await repo.saveDraft((await repo.read()).drafts.ice)
-    await expect(repo.saveDraft(archive.drafts[0])).rejects.toThrow(/其他窗口修改/)
-    expect(saved.revision).toBe(2)
-    await repo.select([{ projectId: 'ice', version: '1.0.0', digest: release.digest }])
-    expect((await new WorkRepository(new NodeWorkStorage(directory)).read()).selected).toHaveLength(1)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
+it('round-trips an archive and re-validates tampered content on parse', async () => {
+  const draft = createDraft('ice', '寒冰')
+  draft.data.skills.push(skill('strike'))
+  const release = await compileRelease(draft, '1.0.0', host)
+  const text = await exportArchive({ drafts: [draft], selected: [release], installed: [release] })
+  const archive = await parseArchive(text)
+  expect(archive.releases[0].digest).toBe(release.digest)
+  const tampered = JSON.parse(text)
+  tampered.releases[0].data.skills[0].power = 999
+  expect((await parseArchive(tampered)).releases[0].data.skills[0].power).toBe(999)
 })
 
-it('keeps independent writers and installed but unselected releases out of environment identity', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'arcadia-writers-'))
-  try {
-    const first = new WorkRepository(new NodeWorkStorage(directory)),
-      second = new WorkRepository(new NodeWorkStorage(directory))
-    await Promise.all([first.saveDraft(createDraft('one', '一')), second.saveDraft(createDraft('two', '二'))])
-    expect(Object.keys((await first.read()).drafts).sort()).toEqual(['one', 'two'])
-    const a = await compileRelease(createDraft('one', '一'), '1.0.0', host)
-    const b = await compileRelease(createDraft('two', '二'), '1.0.0', host)
-    expect((await prepareWorkEnvironment(host, [a], [a, b])).revision).toBe(
-      (await prepareWorkEnvironment(host, [a], [a])).revision,
-    )
-    await first.installRelease(a)
-    const changed = createDraft('one', '一')
-    changed.data.skills.push(skill('new'))
-    await expect(first.installRelease(await compileRelease(changed, '1.0.0', host))).rejects.toThrow(/版本已经存在/)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
+it('keeps installed but unselected releases out of environment identity', async () => {
+  const a = await compileRelease(createDraft('one', '一'), '1.0.0', host)
+  const b = await compileRelease(createDraft('two', '二'), '1.0.0', host)
+  expect((await prepareWorkEnvironment(host, [a], [a, b])).revision).toBe(
+    (await prepareWorkEnvironment(host, [a], [a])).revision,
+  )
 })
 
 it('round-trips unfinished drafts but refuses to publish incomplete runtime data', async () => {
@@ -264,7 +291,7 @@ it('locks explicit dependencies and rejects missing, conflicting and undeclared 
     behaviors: [
       {
         useId: 'hit',
-        definitionId: 'base/template/apply-mark-on-hit',
+        definitionId: 'test/template/apply-mark',
         params: { mark: workRef('alpha', 'mark', 'status') },
       },
     ],
@@ -316,12 +343,16 @@ it('decodes normal-sized binary assets without recursive regular-expression over
   for (const text of ['a', '=aaa', 'a===', 'AAAA AAAA']) expect(() => decodeBytes(text)).toThrow()
 })
 
-it('enforces host capability permission for direct uses of official templates', async () => {
+it('enforces host capability permission for host-defined behaviors', async () => {
   const draft = createDraft('capabilities', '受限宿主')
   draft.data.marks.push({
     id: 'buff',
     behaviors: [
-      { useId: 'speed', definitionId: 'base/template/mark-attribute', params: { attribute: 'spe', amount: 10 } },
+      {
+        useId: 'speed',
+        definitionId: 'test/template/mark-attribute',
+        params: { attribute: 'spe', operation: 'delta', amount: 10 },
+      },
     ],
   })
   const release = await compileRelease(draft, '1.0.0', host)

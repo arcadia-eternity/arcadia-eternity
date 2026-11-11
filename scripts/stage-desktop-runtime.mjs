@@ -292,8 +292,13 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
     await cp(npmRoot, join(runtime, 'runtime/npm'), { recursive: true, verbatimSymlinks: true })
     const pack = join(runtime, 'packs/base')
     await mkdir(pack, { recursive: true })
-    for (const entry of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'dist'])
-      await cp(join(repo, 'packs/base', entry), join(pack, entry), { recursive: true, verbatimSymlinks: true })
+    for (const entry of ['package.json', 'dist', 'LICENSE']) {
+      try {
+        await cp(join(repo, 'packs/base', entry), join(pack, entry), { recursive: true, verbatimSymlinks: true })
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error
+      }
+    }
     // Base presentation may use remote on-demand media and have no local assets.
     let hasLocalAssets = true
     try {

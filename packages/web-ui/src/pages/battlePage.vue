@@ -287,8 +287,6 @@ const battleCameraRef = useTemplateRef('battleCameraRef')
 const backgroundContainerRef = useTemplateRef('backgroundContainerRef')
 const leftPetRef = useTemplateRef('leftPetRef')
 const rightPetRef = useTemplateRef('rightPetRef')
-const leftStatusRef = useTemplateRef('leftStatusRef')
-const rightStatusRef = useTemplateRef('rightStatusRef')
 // 移除了 useElementBounding 相关代码，现在使用固定坐标系统
 const showBattleEndUI = ref(!props.replayMode && store.isBattleEnd)
 const showKoBanner = ref(false) // 新增：控制KO横幅显示
@@ -2457,7 +2455,7 @@ watch(
             }"
           ></div>
           <div class="battle-hud" :style="{ opacity: isFullyLoaded ? 1 : 0 }">
-            <BattleStatus v-if="currentPlayer" ref="leftStatusRef" :player="currentPlayer" side="left" />
+            <BattleStatus v-if="currentPlayer" :player="currentPlayer" side="left" />
             <div class="battle-hud__center">
               <BattleFrame />
               <div class="relative">
@@ -2473,7 +2471,7 @@ watch(
                 </div>
               </div>
             </div>
-            <BattleStatus v-if="opponentPlayer" ref="rightStatusRef" :player="opponentPlayer" side="right" />
+            <BattleStatus v-if="opponentPlayer" :player="opponentPlayer" side="right" />
           </div>
           <div v-if="selfDisconnected" class="battle-notice battle-notice--error" role="status">
             {{ reconnecting ? '连接中断，正在重连…' : '连接已断开，请检查网络连接' }}

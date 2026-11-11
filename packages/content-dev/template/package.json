@@ -4,12 +4,8 @@
   "type": "module",
   "private": true,
   "files": [
-    "data",
     "dist",
-    "src",
-    "assets",
-    "locales",
-    "docs"
+    "assets"
   ],
   "scripts": {
     "rename": "arcadia-content rename",
@@ -23,9 +19,9 @@
     "mcp": "arcadia-content-mcp ."
   },
   "devDependencies": {
-    "@types/node": "25.6.0",
+    "@types/node": "26.6.6",
     "typescript": "6.0.3",
-    "@arcadia-eternity/content-sdk": "4.3.4"
+    "@arcadia-eternity/content-sdk": "4.4.0"
   },
   "arcadia": {
     "formatVersion": 1,

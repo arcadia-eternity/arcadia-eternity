@@ -62,7 +62,7 @@ test(
       app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
       page = await app.firstWindow()
       page.setDefaultTimeout(15000)
-      await page.goto(origin + '/creator')
+      await page.goto(origin + '/content/edit')
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
       await page.locator('.project-settings select').first().selectOption('yaml')
       await page.locator('nav').getByRole('button', { name: /^印记/ }).click()

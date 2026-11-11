@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { flushPromises, mount, RouterLinkStub, type VueWrapper } from '@vue/test-utils'
 import ManagementConsole from '../ManagementConsole.vue'
 import type { ManagementIpcRequest } from '@/services/managementClient'
 import type { ManagedEnvironment, ManagedEnvironmentVersion } from '@/types/management'
@@ -111,7 +111,7 @@ function bridge(readonly = false) {
 }
 async function open(request = bridge()) {
   vi.stubGlobal('arcadiaDesktop', { managementRequest: request })
-  const page = mount(ManagementConsole)
+  const page = mount(ManagementConsole, { global: { stubs: { RouterLink: RouterLinkStub } } })
   pages.push(page)
   await flushPromises()
   return { page, request }

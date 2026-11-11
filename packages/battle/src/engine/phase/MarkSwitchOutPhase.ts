@@ -14,7 +14,7 @@ import { RemoveMarkPhase } from './RemoveMarkPhase'
 export class MarkSwitchOutPhase extends SynchronousPhase<SwitchPetContext> {
   constructor(
     battle: Battle,
-    private readonly switchContext: SwitchPetContext,
+    switchContext: SwitchPetContext,
     private readonly pet: Pet,
     id?: string,
   ) {

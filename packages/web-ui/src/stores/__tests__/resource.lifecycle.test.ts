@@ -1,10 +1,10 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useResourceStore } from '../resource'
-const { loadMetadata, packRef, workspace } = vi.hoisted(() => ({
+const { loadMetadata, packRef, localContent } = vi.hoisted(() => ({
   loadMetadata: vi.fn(),
   packRef: vi.fn(),
-  workspace: vi.fn(),
+  localContent: vi.fn(),
 }))
 vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
   ...(await importOriginal<typeof import('@arcadia-eternity/pack-loader/native')>()),
@@ -14,10 +14,7 @@ vi.mock('@arcadia-eternity/pack-loader/native', async importOriginal => ({
 }))
 vi.mock('@/utils/officialAssetUrl', () => ({ officialAssetUrl: (value: string) => value }))
 vi.mock('@/utils/packRef', () => ({ resolveRuntimePackRef: packRef, applyRuntimeAssetBase: vi.fn() }))
-vi.mock('@/services/packWorkspace', () => ({
-  listWorkspacePacks: workspace,
-  resolveWorkspaceFileUrl: async (path: string) => `http://localhost/${path}`,
-}))
+vi.mock('@/services/localContent', () => ({ acquireLocalContent: localContent }))
 function deferred<T>() {
   let resolve!: (value: T) => void, reject!: (error: Error) => void
   const promise = new Promise<T>((yes, no) => {
@@ -41,8 +38,9 @@ beforeEach(() => {
   setActivePinia(createPinia())
   loadMetadata.mockReset().mockResolvedValue(result('base'))
   packRef.mockReset().mockResolvedValue('http://localhost/packs/base/pack.json')
-  workspace.mockReset().mockResolvedValue([])
+  localContent.mockReset()
 })
+afterEach(() => vi.unstubAllGlobals())
 it('shares pending metadata without requesting retired resource mapping files', async () => {
   const pending = deferred<ReturnType<typeof result>>()
   loadMetadata.mockReturnValue(pending.promise)
@@ -123,62 +121,6 @@ it('a current failure is shared and a subsequent consumer can retry', async () =
   expect(store.error).toBeNull()
   expect(store.background.byId.arena).toBe('http://localhost/retried.png')
 })
-it('late workspace initialization cannot commit its layers over a new scope', async () => {
-  const pending = deferred<ReturnType<typeof result>>()
-  packRef
-    .mockResolvedValueOnce('http://localhost/packs/workspace/pack.json')
-    .mockResolvedValue('http://localhost/packs/base/pack.json')
-  workspace.mockResolvedValue([{ folderName: 'base', id: 'arcadia-eternity.base', enabled: true }])
-  loadMetadata.mockReturnValueOnce(pending.promise).mockResolvedValue(result('fresh'))
-  const store = useResourceStore(),
-    old = store.initialize().catch(error => error)
-  await vi.waitFor(() => expect(loadMetadata).toHaveBeenCalledTimes(1))
-  store.reset()
-  await store.initialize()
-  pending.resolve(result('old-workspace'))
-  await old
-  await Promise.resolve()
-  await Promise.resolve()
-  expect(store.workspaceRuntime.active).toBe(false)
-  expect(store.background.byId.arena).toBe('http://localhost/fresh.png')
-})
-it('workspace toggles preserve base resources and reuse unchanged layers', async () => {
-  const base = { folderName: 'base', id: 'arcadia-eternity.base', enabled: true },
-    addon = { folderName: 'addon', id: 'example.addon', enabled: true }
-  packRef.mockResolvedValue('http://localhost/packs/workspace/pack.json')
-  workspace.mockResolvedValue([base, addon])
-  loadMetadata.mockImplementation(async (url: string) => result(url.includes('/addon/') ? 'addon' : 'base'))
-  const store = useResourceStore()
-  await store.whenReady()
-  expect(store.background.byId.arena).toBe('http://localhost/addon.png')
-  workspace.mockResolvedValue([base])
-  await store.applyWorkspacePackToggle({ folderName: 'addon', enabled: false })
-  expect(store.background.byId.arena).toBe('http://localhost/base.png')
-  expect(loadMetadata).toHaveBeenCalledTimes(2)
-  workspace.mockResolvedValue([base, addon])
-  await store.applyWorkspacePackToggle({ folderName: 'addon', enabled: true })
-  expect(store.background.byId.arena).toBe('http://localhost/addon.png')
-  expect(loadMetadata).toHaveBeenCalledTimes(3)
-})
-it('late workspace toggles cannot replace a reset scope', async () => {
-  const base = { folderName: 'base', id: 'arcadia-eternity.base', enabled: true }
-  packRef.mockResolvedValue('http://localhost/packs/workspace/pack.json')
-  workspace.mockResolvedValue([base])
-  const store = useResourceStore()
-  await store.initialize()
-  const pending = deferred<(typeof base)[]>()
-  workspace.mockReturnValueOnce(pending.promise)
-  const toggle = store.applyWorkspacePackToggle({ folderName: 'addon', enabled: true })
-  store.reset()
-  packRef.mockResolvedValue('http://localhost/packs/base/pack.json')
-  loadMetadata.mockResolvedValue(result('fresh'))
-  await store.initialize()
-  pending.resolve([base])
-  await toggle
-  expect(store.workspaceRuntime.active).toBe(false)
-  expect(store.background.byId.arena).toBe('http://localhost/fresh.png')
-})
-
 it('a current loader AbortError propagates once and only an explicit retry reloads', async () => {
   const aborted = new DOMException('Current request aborted', 'AbortError')
   loadMetadata.mockRejectedValueOnce(aborted).mockResolvedValue(result('retried'))
@@ -190,4 +132,27 @@ it('a current loader AbortError propagates once and only an explicit retry reloa
   await store.whenReady()
   expect(loadMetadata).toHaveBeenCalledTimes(2)
   expect(store.background.byId.arena).toBe('http://localhost/retried.png')
+})
+
+it('desktop resources come from the prepared content session instead of the legacy base pack', async () => {
+  const release = vi.fn(async () => {})
+  localContent.mockResolvedValue({
+    content: { species: [], skills: [], marks: [] },
+    resources: [
+      { kind: 'http', id: 'bg:prepared', source: 'http://localhost/prepared.png', tags: ['background'] },
+      { kind: 'http', id: 'example-slow:theme', source: 'http://localhost/theme.mp3', tags: ['music'] },
+    ],
+    release,
+  })
+  vi.stubGlobal('window', { arcadiaDesktop: {} })
+  const store = useResourceStore()
+  await store.initialize()
+  expect(store.background.byId['bg:prepared']).toBe('http://localhost/prepared.png')
+  expect(store.music.byId['example-slow:theme']).toBe('http://localhost/theme.mp3')
+  expect(localContent).toHaveBeenCalledOnce()
+  expect(packRef).not.toHaveBeenCalled()
+  expect(loadMetadata).not.toHaveBeenCalled()
+  await store.reload()
+  expect(release).toHaveBeenCalledOnce()
+  store.reset()
 })

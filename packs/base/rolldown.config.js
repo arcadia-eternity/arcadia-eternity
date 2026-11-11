@@ -9,7 +9,7 @@ export default defineConfig({
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,
   plugins: [
-    effectDiscoveryPlugin(import.meta.dirname, ['src/effects', 'src/templates'], true),
+    effectDiscoveryPlugin(import.meta.dirname, ['src/effects'], true),
     {
       name: 'base-content-watch-artifacts',
       async buildStart() {

@@ -125,7 +125,7 @@ export class ManagementAuth {
   private readonly bootstrapTtlMs: number
   constructor(
     private readonly store: DurableStorage,
-    private readonly options: {
+    options: {
       now?: () => number
       sessionTtlMs?: number
       bootstrapTtlMs?: number

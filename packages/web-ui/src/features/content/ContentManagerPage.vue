@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { contentTaskError } from '@/utils/contentTaskMessages'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import LocalEnvironmentPage from './LocalEnvironmentPage.vue'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { isRemoteContentActive } from '@/i18n/serverContent'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
@@ -20,12 +20,6 @@ import type {
   PackageGraphEntry,
 } from '@/types/contentPackages'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
-
-const ContentUxPrototype = import.meta.env.DEV ? defineAsyncComponent(() => import('./ContentUxPrototype.vue')) : null
-const prototypeRoute = useRoute()
-const showPrototype = computed(
-  () => import.meta.env.DEV && ['A', 'B', 'C'].includes(String(prototypeRoute.query.variant)),
-)
 
 interface PackageView {
   id: string
@@ -49,7 +43,7 @@ const creating = ref(false)
 const projectName = ref('')
 const canAuthor = !!window.arcadiaDesktop?.author
 async function openSource(project: SourceProject) {
-  await router.push({ name: 'Creator', params: { projectId: project.id } })
+  await router.push({ name: 'AuthorWorkspace', params: { projectId: project.id } })
 }
 async function createSource() {
   await run(async () => {
@@ -420,8 +414,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ContentUxPrototype v-if="showPrototype" />
-  <main v-else class="content-page" :class="{ 'detail-open': detailOpen }">
+  <main class="content-page" :class="{ 'detail-open': detailOpen }">
     <header class="page-heading">
       <h1>内容包</h1>
       <span class="scope">{{ readonly ? '只读' : '本机管理' }}</span

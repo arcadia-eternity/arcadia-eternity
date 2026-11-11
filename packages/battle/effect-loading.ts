@@ -196,43 +196,5 @@ export function loadCodeEffects(
       ids.add(definition.id)
       result.push(definition)
     }
-  for (const registration of loadEffectTemplates(sources)) {
-    const definition = registration.register(context.marks)
-    if (ids.has(definition.id)) throw new Error(`Duplicate effect ${definition.id}`)
-    ids.add(definition.id)
-    result.push(definition)
-  }
-  return Object.freeze(result)
-}
-
-export interface EffectTemplateRegistration {
-  readonly template: {
-    readonly id: string
-    readonly definition: import('@arcadia-eternity/battle/engine').BehaviorDefinition
-  }
-  readonly register: (marks: ReadonlyMap<string, BaseMark>) => NativeBehaviorExport
-}
-const templateGroups = new WeakMap<object, () => readonly EffectTemplateRegistration[]>()
-export function effectTemplates<T extends { readonly templates: readonly EffectTemplateRegistration[] }>(
-  value: T,
-  _context: ClassDecoratorContext,
-) {
-  templateGroups.set(value, () => value.templates)
-}
-export function loadEffectTemplates(sources: readonly EffectSource[]): readonly EffectTemplateRegistration[] {
-  const result: EffectTemplateRegistration[] = [],
-    seen = new Set<object>(),
-    ids = new Set<string>()
-  for (const source of sources)
-    for (const value of Object.values(source.exports)) {
-      if (typeof value !== 'function' || seen.has(value)) continue
-      seen.add(value)
-      for (const registration of templateGroups.get(value)?.() ?? []) {
-        if (ids.has(registration.template.id))
-          throw new Error(`${source.file}: Duplicate template ${registration.template.id}`)
-        ids.add(registration.template.id)
-        result.push(registration)
-      }
-    }
   return Object.freeze(result)
 }

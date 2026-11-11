@@ -13,6 +13,8 @@ import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { buildWebContent } from './scripts/build-web-content.mjs'
 
+const configDir = import.meta.dirname
+
 // Auto-imported styles are injected after Vite's initial dependency scan.
 const elementPlusComponents = new URL('./components/', import.meta.resolve('element-plus'))
 const elementPlusStyles = readdirSync(elementPlusComponents, { withFileTypes: true })
@@ -149,20 +151,21 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
       }),
       viteStaticCopy({
         targets: [
-          ...mediaTargets.map(target => ({ ...target, src: normalizePath(target.src) })),
+          ...mediaTargets.map(target => ({
+            ...target,
+            src: normalizePath(target.src),
+            rename: { stripBase: true as const },
+          })),
           // 复制脚本文件（优先复制JavaScript文件）
           {
             src: '../../scripts/**/*.{js,mjs}',
-            dest: 'scripts',
-            rename: (fileName: string, fileExtension: string, fullPath: string) => {
-              const relativePath = path.relative(path.resolve(__dirname, '../../scripts'), fullPath)
-              return relativePath.replace(/\\/g, '/')
-            },
+            dest: '.',
           },
           // 复制 @ruffle-rs/ruffle 包的所有文件到 ruffle 文件夹
           {
             src: 'node_modules/@ruffle-rs/ruffle/*',
             dest: 'ruffle',
+            rename: { stripBase: true },
           },
         ],
         // 忽略找不到文件的错误，继续处理其他目标
@@ -175,8 +178,8 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
-        '@data': path.resolve(__dirname, '../../packs/base/data'),
-        '@locales': path.resolve(__dirname, '../../packs/base/locales'),
+        '@data': path.resolve(configDir, '../../packs/base/data'),
+        '@locales': path.resolve(configDir, '../../packs/base/locales'),
       },
     },
   }

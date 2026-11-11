@@ -27,7 +27,6 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
   private state: PeerTransportState = 'idle'
   private peerConnection?: RTCPeerConnection
   private dataChannel?: RTCDataChannel
-  private remotePeerId?: string
   private pendingMessages: PeerTransportMessage[] = []
 
   constructor(options: WebRTCPeerTransportOptions) {
@@ -39,7 +38,6 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
   }
 
   async connect(options: PeerTransportConnectOptions): Promise<void> {
-    this.remotePeerId = options.remotePeerId
     this.destroyPeerConnection()
     this.setState('connecting')
 

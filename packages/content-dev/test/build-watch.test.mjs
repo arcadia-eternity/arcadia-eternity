@@ -42,32 +42,43 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
   await writeFile(
     join(directory, 'tsconfig.json'),
     JSON.stringify({
-      compilerOptions: { declaration: true, types: [], outDir: 'dist', rootDir: 'src' },
-      include: ['src/*.mts'],
+      compilerOptions: {
+        declaration: true,
+        module: 'ESNext',
+        moduleResolution: 'bundler',
+        rewriteRelativeImportExtensions: true,
+        types: [],
+        outDir: 'dist',
+        rootDir: 'src',
+      },
+      include: ['src/*.ts'],
     }),
   )
-  await writeFile(join(directory, 'src/index.mts'), 'export type Example = string')
+  await writeFile(join(directory, 'src/example.ts'), 'export type Imported = string')
+  await writeFile(
+    join(directory, 'src/index.ts'),
+    "import type { Imported } from './example.ts'\nexport type Example = Imported",
+  )
   const originalBuild = await readFile(join(directory, 'build.mjs'), 'utf8')
-  for (const file of ['cli.mjs', 'mcp.mjs', 'removable.mjs'])
-    await writeFile(join(directory, 'src', file), '// original')
+  for (const file of ['cli.ts', 'mcp.ts', 'removable.ts']) await writeFile(join(directory, 'src', file), '// original')
   await writeFile(join(directory, 'template/example.txt'), 'original template')
   const errors = []
   watcher = await watchContentDev(directory, { onBuild() {}, onError: error => errors.push(error) })
-  assert.equal(await readFile(join(directory, 'dist/cli.mjs'), 'utf8'), '// original')
-  assert.match(await readFile(join(directory, 'dist/index.d.mts'), 'utf8'), /export type Example = string/)
+  assert.match(await readFile(join(directory, 'dist/cli.js'), 'utf8'), /\/\/ original/)
+  assert.match(await readFile(join(directory, 'dist/index.d.ts'), 'utf8'), /from '\.\/example\.js'/)
 
-  await writeFile(join(directory, 'src/cli.mjs'), '// changed')
+  await writeFile(join(directory, 'src/cli.ts'), '// changed')
   await writeFile(join(directory, 'template/example.txt'), 'changed template')
   await writeFile(join(root, 'docs/guides/ugc-authoring-agent/SKILL.md'), 'changed skill')
-  await rm(join(directory, 'src/removable.mjs'))
+  await rm(join(directory, 'src/removable.ts'))
   await eventually(async () => {
-    assert.equal(await readFile(join(directory, 'dist/cli.mjs'), 'utf8'), '// changed')
+    assert.match(await readFile(join(directory, 'dist/cli.js'), 'utf8'), /\/\/ changed/)
     assert.equal(await readFile(join(directory, 'dist/template/example.txt'), 'utf8'), 'changed template')
     assert.equal(
       await readFile(join(directory, 'dist/template/skills/arcadia-content-authoring/SKILL.md'), 'utf8'),
       'changed skill',
     )
-    await assert.rejects(readFile(join(directory, 'dist/removable.mjs')), { code: 'ENOENT' })
+    await assert.rejects(readFile(join(directory, 'dist/removable.js')), { code: 'ENOENT' })
   })
   assert.equal(errors.length, 0)
 
@@ -79,10 +90,10 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
     `${originalBuild}\nawait new Promise(resolve => setTimeout(resolve, 300));`,
   )
   await delay(200)
-  await writeFile(join(directory, 'src/cli.mjs'), '// recovered')
+  await writeFile(join(directory, 'src/cli.ts'), '// recovered')
   await writeFile(join(root, 'docs/guides/seer2-recreate-pet/SKILL.md'), 'recovered skill')
   await eventually(async () => {
-    assert.equal(await readFile(join(directory, 'dist/cli.mjs'), 'utf8'), '// recovered')
+    assert.match(await readFile(join(directory, 'dist/cli.js'), 'utf8'), /\/\/ recovered/)
     assert.equal(
       await readFile(join(directory, 'dist/template/skills/seer2-recreate-pet/SKILL.md'), 'utf8'),
       'recovered skill',

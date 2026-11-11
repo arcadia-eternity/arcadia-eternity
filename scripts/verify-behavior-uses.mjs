@@ -10,19 +10,12 @@ import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-behavior-uses-'))
 const browserEnabled = process.argv.includes('--browser')
-const suite = process.argv.includes('--templates')
-  ? {
-      entry: 'official-template-host.ts',
-      create: 'createOfficialTemplateProbes',
-      resume: 'resumeOfficialTemplateProbes',
-      report: 'officialTemplates',
-    }
-  : {
-      entry: 'behavior-use-host.ts',
-      create: 'createBehaviorUseProbes',
-      resume: 'resumeBehaviorUseProbes',
-      report: 'behaviorUses',
-    }
+const suite = {
+  entry: 'behavior-use-host.ts',
+  create: 'createBehaviorUseProbes',
+  resume: 'resumeBehaviorUseProbes',
+  report: 'behaviorUses',
+}
 const jsonRoundTrip = value => JSON.parse(JSON.stringify(value))
 let server, browser, browserExit, browserTimeout, browserResult, report
 const ownsProcessGroup = process.platform !== 'win32'
@@ -54,7 +47,7 @@ try {
       input: resolve('packages/battle/test/engine', suite.entry),
       platform,
       plugins: [
-        effectDiscoveryPlugin(resolve('packs/base'), ['src/effects', 'src/templates'], true),
+        effectDiscoveryPlugin(resolve('packs/base'), ['src/effects'], true),
         {
           name: 'behavior-use-boundary',
           resolveId(id) {

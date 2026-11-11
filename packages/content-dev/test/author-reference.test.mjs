@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { toJsonSchemaCompat } from '@modelcontextprotocol/sdk/server/zod-json-schema-compat.js'
 import { NativeSpeciesSchema, NativeSkillSchema, NativeMarkSchema } from '@arcadia-eternity/battle/engine'
-import { authorReference, referenceTopics } from '../src/author-reference.mjs'
-import { teamDocument, TeamDocumentSchema } from '../src/project-teams.mjs'
-import { environmentDocument, EnvironmentDocumentSchema } from '../src/debug-environments.mjs'
+import { authorReference, referenceTopics } from '../src/author-reference.ts'
+import { teamDocument, TeamDocumentSchema } from '../src/project-teams.ts'
+import { environmentDocument, EnvironmentDocumentSchema } from '../src/debug-environments.ts'
 
 test('author references derive runtime fields from the installed parser and distinguish source linking', async () => {
   for (const [topic, schema] of Object.entries({

@@ -13,7 +13,7 @@ import { LocalBattleHost } from '../local-battle-host.mjs'
 import { LocalServerController } from '../local-server-controller.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
-import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
+import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 import { buildEffects } from '@arcadia-eternity/content-sdk/build'
 import { withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
 

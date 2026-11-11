@@ -16,7 +16,7 @@ import readline from 'readline'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import i18next from 'i18next'
 import { marked } from 'marked'
-import TerminalRenderer from 'marked-terminal'
+import { markedTerminal } from 'marked-terminal'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Delta } from 'jsondiffpatch'
 export class ConsoleUI {
@@ -41,13 +41,11 @@ export class ConsoleUI {
     this.setupEventHandlers()
     this.setupTimerEventListeners()
 
-    const renderer = new TerminalRenderer({
-      reflowText: false,
-    })
-
-    // 配置 marked
-    // @ts-expect-error marked.setOptions is deprecated but still functional
-    marked.setOptions({ renderer })
+    marked.use(
+      markedTerminal({
+        reflowText: false,
+      }),
+    )
     this.currentPlayer = currentPlayer
   }
 
@@ -556,11 +554,6 @@ export class ConsoleUI {
     }
   }
 
-  private getSkillDescriptionById(skillId: string): string {
-    const skill = this.getSkillById(skillId)
-    return skill ? this.getSkillDescriptionByBaseId(skill.baseId, skill) : skillId
-  }
-
   private getMarkNameByBaseId(baseMarkId: string): string {
     try {
       return i18next.t(`${baseMarkId}.name`, {
@@ -638,25 +631,6 @@ export class ConsoleUI {
       }[reason] || reason
     )
   }
-
-  private getSpeciesNameById(speciesId: string): string {
-    try {
-      return i18next.t(`${speciesId}.name`, {
-        ns: 'species',
-      })
-    } catch {
-      return speciesId
-    }
-  }
-
-  private getPetStatus = (pet: PetMessage) => {
-    const baseInfo = `${ELEMENT_MAP[pet.element].emoji}${pet.name}(${this.getSpeciesNameById(pet.speciesID)})[Lv.${pet.level} HP:${pet.currentHp}/${pet.maxHp}]`
-    const markInfo = pet.marks.length > 0 ? ' 印记:' + pet.marks.map(mark => this.getMarkStatus(mark)).join(' ') : ''
-    return baseInfo + markInfo
-  }
-
-  private getMarkStatus = (mark: MarkMessage) =>
-    `{<${this.getMarkNameById(mark.id)}> ${mark.duration < 0 ? '' : `[剩余${mark.duration}回合]`} ${mark.stack}层}`
 
   private getNameById(anyId: string) {
     if (anyId.length === 0) return ''

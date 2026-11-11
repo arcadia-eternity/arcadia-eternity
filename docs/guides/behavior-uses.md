@@ -1,8 +1,8 @@
 # 可复用行为与独立使用
 
-普通 UGC 用于内容创作：玩家编辑精灵、技能和印记，选择、配置并组合已安装且获准使用的效果模板。新机制由专业作者使用 TypeScript 实现，再通过可信构建与安装流程公开为模板。通用 Rule Graph、规则预设展开和节点编程不属于当前玩家创作方案。
+普通 UGC 用于内容创作：玩家编辑精灵、技能和印记，并引用已安装且获准使用的行为定义。新机制由专业作者使用 TypeScript 实现，再通过可信构建与安装流程公开为行为定义。通用 Rule Graph、规则预设展开和节点编程不属于当前玩家创作方案。
 
-本文说明 [#241](https://github.com/arcadia-eternity/arcadia-eternity/issues/241) 保留的行为复用合同。实际模板见[官方效果模板目录](ugc-effect-catalog.md)，作品身份、引用、发布与宿主接入见[UGC 作品](ugc-works.md)，可信实现见[TypeScript 效果编写](effect-authoring.md)。
+本文说明 [#241](https://github.com/arcadia-eternity/arcadia-eternity/issues/241) 保留的行为复用合同。作品身份、引用、发布与宿主接入见[UGC 作品](ugc-works.md)，可信实现见[TypeScript 效果编写](effect-authoring.md)。
 
 ## 定义、导出与使用
 
@@ -12,30 +12,30 @@
 | `BehaviorDefinition`   | 可复用行为的静态数据合同；当前作品使用 `{ kind: 'native', exportId }` 指向已安装且获准的导出，参数合同必须与导出一致。 |
 | `BehaviorUse`          | 技能或印记上的一次使用，保存稳定 `useId`、`definitionId` 和独立 `params`。同一定义可以使用多次。                       |
 
-普通玩家使用现有模板时，只需保存行为使用，不需要重新声明模板定义或编写实现。例如，以下是同一技能 `behaviors` 字段中的两次独立治疗配置：
+作品引用已安装的行为定义时，只需保存行为使用，不需要重新声明定义或编写实现。例如，以下是同一技能 `behaviors` 字段中的两次独立治疗配置：
 
 ```json
 [
   {
     "useId": "first",
-    "definitionId": "base/template/heal-fixed",
+    "definitionId": "frost_pack/heal-fixed",
     "params": { "amount": 10 }
   },
   {
     "useId": "second",
-    "definitionId": "base/template/heal-fixed",
+    "definitionId": "frost_pack/heal-fixed",
     "params": { "amount": 20 }
   }
 ]
 ```
 
-`heal-fixed` 固定在本技能命中后通过正常治疗流程恢复自身生命。这里分别请求治疗 10 和 20，实际生命变化仍由治疗上下文、生命上限等战斗语义决定。修改一份配置不会改变另一份，也不会修改模板定义。
+`heal-fixed` 的行为实现由所属作品的效果模块提供。这里分别请求治疗 10 和 20，实际生命变化仍由治疗上下文、生命上限等战斗语义决定。修改一份配置不会改变另一份，也不会修改行为定义。
 
-公开参数支持数字范围、整数、布尔和字符串枚举／长度等约束，拒绝未知参数及非法默认值。省略的参数按模板合同补默认值；未完成草稿可保存，但生成固定版本或试玩必须通过完整校验。运行参数目录继续校验允许变化的参数值。
+公开参数支持数字范围、整数、布尔和字符串枚举／长度等约束，拒绝未知参数及非法默认值。省略的参数按定义合同补默认值；未完成草稿可保存，但生成固定版本或试玩必须通过完整校验。运行参数目录继续校验允许变化的参数值。
 
 ## 装配、顺序与实例隔离
 
-底层 `createContentCatalog` 的 `ContentPrototypeData.behaviors` 保存行为定义；技能和印记元数据的 `behaviors` 保存使用数组。原有 `effect: string[]` 继续引用静态效果。目录按 `effect`、`behaviors` 的顺序装配，实际执行仍遵循既有优先级，同优先级保持列表顺序。组合顺序不能覆盖模板自身的事件与来源条件。
+底层 `createContentCatalog` 的 `ContentPrototypeData.behaviors` 保存行为定义；技能和印记元数据的 `behaviors` 保存使用数组。原有 `effect: string[]` 继续引用静态效果。目录按 `effect`、`behaviors` 的顺序装配，实际执行仍遵循既有优先级，同优先级保持列表顺序。组合顺序不能覆盖行为自身的事件与来源条件。
 
 每次使用独立编译为既有 Effect。生成的行为效果不能再通过 `effect` 重复引用，也不能挂到另一拥有者上。多个使用之间没有隐式参数共享或任意数据流连接；读取结算伤害等上下文的能力由模板实现明确提供。
 
@@ -45,14 +45,14 @@
 
 ## 作品引用与 namespace
 
-作品源记录使用局部 ID；编译后的对象 ID 为 `namespace:id`，对象类型独立表达。projectId 是稳定作品身份，与 namespace 不同。已有官方模板仍保留 `base/template/*` 等 ID，不批量改名为新格式。
+作品源记录使用局部 ID；编译后的对象 ID 为 `namespace:id`，对象类型独立表达。projectId 是稳定作品身份，与 namespace 不同。
 
-模板的字符串参数可以声明 `reference: 'mark' | 'skill'`。引用作品对象时，源参数使用结构化引用，例如“命中附加印记”模板的一次使用：
+行为定义的字符串参数可以声明 `reference: 'mark' | 'skill'`。引用作品对象时，源参数使用结构化引用，例如“命中附加印记”行为的一次使用：
 
 ```json
 {
   "useId": "apply-slow",
-  "definitionId": "base/template/apply-mark-on-hit",
+  "definitionId": "frost_pack/apply-mark-on-hit",
   "params": {
     "mark": {
       "$ref": { "projectId": "frost-project", "kind": "mark", "id": "slow" }
@@ -102,14 +102,13 @@ const native = defineNativeBehavior({
 
 `copyBehaviorUse` 为一次使用生成新 useId；`copyBehaviorDefinition` 复制静态定义，不会复制或生成原生实现。作品 Fork 则由作品层生成新 projectId 和 namespace，改写显式内部引用、保留外部依赖。可信 TS 闭包中的硬编码引用无法自动改写，含自定义原生导出的作品不能宣称自动 Fork 成功。
 
-行为定义使用原生导出。作品编译只允许已安装且获准的原生导出，普通基础包入口仍禁止替换官方模板。
+行为定义使用原生导出。作品编译只允许已安装且获准的原生导出。
 
 目标选择、数值计算、捕获／跟随与持续绑定继续由可信 TS Authoring API 提供。普通玩家不需要通过展开模板来编辑这些实现细节。
 
 ## 验证与接入边界
 
-- [模板合同测试](../../packages/battle/test/engine/official-template-contracts.test.ts)与[模板战斗测试](../../packages/battle/test/engine/official-template-behavior.test.ts)覆盖公开参数、实际印记引用、多个独立使用及贡献生命周期。
 - [行为目录校验](../../packages/battle/test/engine/behavior-catalog-validation.test.ts)覆盖正式目录拒绝非法输入；[行为使用测试](../../packages/battle/test/engine/behavior-uses.test.ts)覆盖实例隔离与已有等待点恢复，使用可信原生行为。
-- `pnpm verify:battle-templates` 用 Node、压缩构建与真实 Chrome 验证原生模板及双向 JSON 恢复；`pnpm verify:battle-behaviors` 验证原生行为的独立参数、印记绑定及初始／行动等待点恢复。宿主探针不代替完整作者产品验收。
+- `pnpm verify:battle-behaviors` 用 Node、压缩构建与真实 Chrome 验证原生行为的独立参数、印记绑定及初始／行动等待点恢复。宿主探针不代替完整作者产品验收。
 
-作品编译、creator 试玩和 CLI 加载／replay 已接入。普通组队与本地对战入口、Electron 安装版、服务端批准环境目录及真实房间匹配仍见 #243/#244/#209/#224。完整 Mod 安装准入由 #218 跟踪。房间只校验事先具备的环境，不下载或同步作品。
+作品编译、作者工作台调试试玩和 CLI 加载／replay 已接入。普通组队与本地对战入口、Electron 安装版、服务端批准环境目录及真实房间匹配仍见 #243/#244/#209/#224。完整 Mod 安装准入由 #218 跟踪。房间只校验事先具备的环境，不下载或同步作品。

@@ -6,13 +6,13 @@ import { cp, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createSourceProject } from '../src/project.mjs'
-import { startPreview } from '../src/preview.mjs'
-import { callPreviewControl } from '../src/preview-control.mjs'
+import { createSourceProject } from '../src/project.ts'
+import { startPreview } from '../src/preview.ts'
+import { callPreviewControl } from '../src/preview-control.ts'
 import { setGlobalLogger } from '@arcadia-eternity/battle/engine'
 import { WorkerBattleSystem } from '@arcadia-eternity/battle/sandbox/node'
-import { AuthorWorkspace } from '../src/workspace.mjs'
-import { ProjectTeams } from '../src/project-teams.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
+import { ProjectTeams } from '../src/project-teams.ts'
 
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 const exec = promisify(execFile)
@@ -52,7 +52,7 @@ test(
       await rm(temporary, { recursive: true, force: true })
     })
     await createSourceProject(root, 'battle-control')
-    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'build'], { cwd: root })
+    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'build'], { cwd: root })
     preview = await startPreview(root)
     const endpoint = preview.endpoint
     const call = (operation, input) => callPreviewControl(endpoint, operation, input)
@@ -223,7 +223,7 @@ test(
       await rm(temporary, { recursive: true, force: true })
     })
     await createSourceProject(root, 'live-teams')
-    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'build'], { cwd: root })
+    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'build'], { cwd: root })
     await cp(root, captured, { recursive: true })
     // Real preview jobs build a copy and retain the original project as lockRoot.
     preview = await startPreview(captured, { lockRoot: root })

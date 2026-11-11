@@ -10,7 +10,7 @@ import nodeEndpoint from 'comlink/dist/esm/node-adapter.mjs'
 import { parse } from 'yaml'
 import { BattleWorkerManager } from '../../sandbox'
 import officialEffectArtifact from '@arcadia-eternity/data-pack-base/effects?effect-module'
-import { officialTemplateDefinitions, createCatalog, createEffects } from '@arcadia-eternity/data-pack-base/effects'
+import { createCatalog, createEffects } from '@arcadia-eternity/data-pack-base/effects'
 import input from '../fixtures/official-switch.input.json'
 import { BattleMessageType, BattleStatus, createContentCatalog } from '../../engine'
 import { LocalBattleSystem, type BattleHost } from '../../host'
@@ -65,7 +65,6 @@ function fixture(): SandboxBattleInput {
         marks: read('marks'),
         skills: read('skills'),
         species: read('species'),
-        behaviors: officialTemplateDefinitions,
       },
       modules: [{ artifact: officialEffectArtifact, role: 'catalog', namespace: '' }],
     },

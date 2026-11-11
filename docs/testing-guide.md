@@ -77,7 +77,7 @@ node --test packages/web-ui/electron/test/*.test.mjs
 
 ## 全仓检查与维护
 
-`pnpm test` 先通过 `test:prepare` 构建全部工作区包及根 CLI，再执行类型检查汇总和各包的 `test:run`；`pnpm test:types`、`pnpm test:run` 和 `pnpm test:watch` 可分别运行。单独运行 `test:run` 前需要准备依赖和产物。`pnpm typecheck` 递归执行 `packages/*`、`packs/*` 的统一 `typecheck`，再检查根 CLI；内容开发工具的该命令检查公开 `.d.mts` 声明，JavaScript 运行逻辑由 Node 测试覆盖。`pnpm lint` 汇总工作区源码、战斗、服务端、P2P、网页和 Knip 检查。各专项命令也可以独立运行。新增或移除入口时同步对应脚本、本指南和 CI。
+`pnpm test` 先通过 `test:prepare` 构建全部工作区包及根 CLI，再执行类型检查汇总和各包的 `test:run`；`pnpm test:types`、`pnpm test:run` 和 `pnpm test:watch` 可分别运行。单独运行 `test:run` 前需要准备依赖和产物。`pnpm typecheck` 递归执行 `packages/*`、`packs/*` 的统一 `typecheck`，再检查根 CLI；内容开发工具的该命令检查实现与生成的 `.d.ts` 声明，运行逻辑由 Node 测试覆盖。`pnpm lint` 汇总工作区源码、战斗、服务端、P2P、网页和 Knip 检查。各专项命令也可以独立运行。新增或移除入口时同步对应脚本、本指南和 CI。
 
 构建配置与测试检查分别维护：战斗、服务端的 `tsconfig.json` 收集包入口和完整 `src`，`tsconfig.test.json` 额外递归收集 `test`，并关闭产物输出。战斗仅保留一个 Vitest 配置，递归收集 `test`。网页的 `tsconfig.app.json`、`tsconfig.node.json` 分别覆盖应用和工具配置，`tsconfig.test.json` 覆盖应用及全部单元测试；`typecheck:web` 顺序运行这些检查。
 

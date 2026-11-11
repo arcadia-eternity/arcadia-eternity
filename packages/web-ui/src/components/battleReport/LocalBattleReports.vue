@@ -9,13 +9,7 @@
         </div>
         <div class="flex items-center space-x-3">
           <!-- 导入战报按钮 -->
-          <el-upload
-            ref="uploadRef"
-            :show-file-list="false"
-            :before-upload="handleImportReport"
-            accept=".json"
-            :auto-upload="false"
-          >
+          <el-upload :show-file-list="false" :before-upload="handleImportReport" accept=".json" :auto-upload="false">
             <el-button type="primary" :icon="Upload"> 导入战报 </el-button>
           </el-upload>
 
@@ -141,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleReportStore } from '@/stores/battleReport'
 import { storeToRefs } from 'pinia'
@@ -152,8 +146,6 @@ import type { LocalBattleReport } from '@/utils/localBattleReport'
 const router = useRouter()
 const battleReportStore = useBattleReportStore()
 const { localBattleReports } = storeToRefs(battleReportStore)
-
-const uploadRef = ref()
 
 // 统计信息
 const statistics = computed(() => battleReportStore.getLocalBattleReportStatistics())

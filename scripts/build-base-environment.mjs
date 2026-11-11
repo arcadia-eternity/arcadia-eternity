@@ -1,13 +1,14 @@
 import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { bundledNotices } from './build-battle-environment.mjs'
-import { readContentSources } from '../packages/content-dev/src/lib/content.mjs'
-import { buildPresentation } from '../packages/content-dev/src/lib/presentation.mjs'
+import { readContentSources } from '../packages/content-dev/src/lib/content.ts'
+import { buildPresentation } from '../packages/content-dev/src/lib/presentation.ts'
 import { rolldown } from 'rolldown'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
+import YAML from 'yaml'
 
 /** Host identity covers both the engine and the installed native content implementation. */
 export function identifyBaseEnvironmentArtifact(code, core) {
@@ -37,7 +38,7 @@ export async function buildBaseEnvironmentArtifact() {
     cwd: root,
     input: resolve(root, 'packs/base/effects.ts'),
     platform: 'browser',
-    plugins: [effectDiscoveryPlugin(resolve(root, 'packs/base'), ['src/effects', 'src/templates'], true)],
+    plugins: [effectDiscoveryPlugin(resolve(root, 'packs/base'), ['src/effects'], true)],
   })
   try {
     const { output } = await bundle.generate({ format: 'esm', codeSplitting: false, minify: false })
@@ -62,8 +63,6 @@ export async function buildBaseEnvironmentArtifact() {
     const catalog = official.createOfficialContent(data, identity.registryBuildId)
     const metadata = {
       officialEffectIds: catalog.effects.map(effect => effect.id),
-      officialTemplateDefinitions: official.officialTemplateDefinitions,
-      officialEffectTemplates: official.officialEffectTemplates,
       officialEffectMarkRelations: official.officialEffectMarkRelations,
     }
     // Publish a static bridge for npm consumers of the reserved official IDs.
@@ -84,17 +83,77 @@ export async function buildBaseEnvironmentArtifact() {
         Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentNamespaces.has(name))),
       ]),
     )
+    const localeFiles = Object.entries(loaded.locales).map(([language, namespaces]) => ({
+      locale: language,
+      files: Object.keys(namespaces).map(namespace => `${language}/${namespace}.json`),
+    }))
+    await Promise.all(
+      Object.entries(loaded.locales).flatMap(([language, namespaces]) =>
+        Object.entries(namespaces).map(async ([namespace, value]) => {
+          const file = resolve(dir, 'locales', language, `${namespace}.json`)
+          await mkdir(dirname(file), { recursive: true })
+          await writeFile(file, JSON.stringify(value) + '\n')
+        }),
+      ),
+    )
+    const manifest = {
+      id: loaded.pack.id,
+      version: loaded.pack.version,
+      engine: loaded.pack.engine,
+      layoutVersion: loaded.pack.layoutVersion ?? 1,
+      content: 'content.json',
+      presentation: 'presentation.json',
+      paths: { dataDir: '.', localesDir: 'locales' },
+      data: { effects: [], marks: [], skills: [], species: [] },
+      locales: localeFiles,
+    }
+    const manifestText = JSON.stringify(manifest, null, 2) + '\n'
+    const integrity = `sha512-${createHash('sha512').update(manifestText).digest('base64')}`
     await Promise.all([
       writeFile(resolve(dir, 'content.json'), JSON.stringify({ data }) + '\n'),
       writeFile(resolve(dir, 'presentation.json'), JSON.stringify({ ...presentation, locales }) + '\n'),
+      writeFile(resolve(dir, 'pack.json'), manifestText),
+      writeFile(
+        resolve(dir, 'pack-lock.yaml'),
+        YAML.stringify({
+          lockfileVersion: 1,
+          generatedAt: new Date().toISOString(),
+          importers: {
+            '.': {
+              specifiers: {
+                [manifest.id]: `workspace:@arcadia-eternity/data-pack-base#dist/pack.json`,
+              },
+              dependencies: {
+                [manifest.id]: {
+                  specifier: `workspace:@arcadia-eternity/data-pack-base#dist/pack.json`,
+                  version: manifest.version,
+                  packageKey: `/${manifest.id}@${manifest.version}`,
+                },
+              },
+            },
+          },
+          packages: {
+            [`/${manifest.id}@${manifest.version}`]: {
+              name: manifest.id,
+              version: manifest.version,
+              kind: 'data',
+              engine: manifest.engine,
+              source: 'workspace:@arcadia-eternity/data-pack-base#dist/pack.json',
+              entry: 'pack.json',
+              provenance: 'workspace',
+              resolution: { integrity },
+              dependencies: {},
+            },
+          },
+        }),
+      ),
       writeFile(
         resolve(dir, 'catalog.json'),
         JSON.stringify({
           formatVersion: 1,
           build: identity,
-          templates: metadata.officialTemplateDefinitions,
+          templates: [],
           effectIds: metadata.officialEffectIds,
-          effectTemplates: metadata.officialEffectTemplates,
           effectMarkRelations: metadata.officialEffectMarkRelations,
         }) + '\n',
       ),
@@ -112,7 +171,7 @@ export async function buildBaseEnvironmentArtifact() {
         ...Object.entries(metadata).map(
           ([name, value]) => `export const ${name} = Object.freeze(${JSON.stringify(value)});`,
         ),
-        'export const createOfficialContentIndex = (data, revision) => createContentIndex(data, revision, { templates: officialTemplateDefinitions, effectIds: officialEffectIds });',
+        'export const createOfficialContentIndex = (data, revision) => createContentIndex(data, revision, { templates: [], effectIds: officialEffectIds });',
         '',
       ].join('\n'),
     )
@@ -121,7 +180,7 @@ export async function buildBaseEnvironmentArtifact() {
       [
         "import type { ContentPrototypeData, ContentIndex } from '@arcadia-eternity/battle/engine';",
         'export declare const officialEffectIds: readonly string[];',
-        ...['officialTemplateDefinitions', 'officialEffectTemplates', 'officialEffectMarkRelations'].map(
+        ...['officialEffectMarkRelations'].map(
           name => `export declare const ${name}: typeof import('./types/effects').${name};`,
         ),
         'export declare const createOfficialContentIndex: (data: ContentPrototypeData, revision: string) => ContentIndex;',

@@ -5,12 +5,15 @@
 // Ruffle is copied by Vite; rebuild and npm are used by desktop staging; base loads pack-loader in its build script.
 // The SWF verifier imports /src/... through the running Vite server.
 // Vite/Vitest configs import built workspace packages: scan them as source entries, never execute them.
+// The TypeScript 7 lint backend is an optional peer loaded dynamically by typescript-eslint.
 {
   "ignore": ["**/dist/**"],
+  "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
       "entry": ["scripts/*.{ts,mjs}", "examples/*.ts"],
       "project": ["bin/**/*.ts", "scripts/**/*.{ts,mjs}", "examples/**/*.ts", "*.{js,mjs,ts}"],
+      "ignoreDependencies": ["@typescript/native"],
     },
     "packages/web-ui": {
       "entry": [
@@ -36,19 +39,19 @@
     },
     "packages/content-dev": {
       "entry": [
-        "src/index.mts",
-        "src/cli.mjs",
-        "src/mcp.mjs",
-        "src/testing.mjs",
-        "src/author-api.mjs",
-        "src/content-workspace.mjs",
-        "src/managed-projects.mjs",
-        "src/environment-rules.mjs",
-        "src/build-content.mjs",
-        "src/rename.mjs",
+        "src/index.ts",
+        "src/cli.ts",
+        "src/mcp.ts",
+        "src/testing.ts",
+        "src/author-api.ts",
+        "src/content-workspace.ts",
+        "src/managed-projects.ts",
+        "src/environment-rules.ts",
+        "src/build-content.ts",
+        "src/rename.ts",
         "test/*.test.mjs",
       ],
-      "project": ["src/**/*.{mjs,mts}", "test/**/*.mjs", "*.mjs"],
+      "project": ["src/**/*.ts", "test/**/*.mjs", "*.mjs"],
     },
     "packages/content-dev/template": {
       "entry": ["src/effects/**/*.effect.ts", "arcadia.config.mjs", "test/*.test.mjs"],

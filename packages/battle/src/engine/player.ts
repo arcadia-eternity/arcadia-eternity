@@ -4,9 +4,7 @@ import {
   BattlePhase,
   type BattleState,
   BattleStatus,
-  Category,
   type DoNothingSelection,
-  EffectTrigger,
   type Events,
   MAX_RAGE,
   type PlayerMessage,
@@ -16,7 +14,7 @@ import {
   type playerId,
 } from '@arcadia-eternity/const'
 import { Battle } from './battle'
-import { DamageContext, RageContext, SwitchPetContext, UseSkillContext } from './context'
+import { RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
 import { SkillPhase } from './phase/skill'
@@ -89,7 +87,7 @@ export class Player {
 
   public registerListener(
     callback: (message: BattleMessage) => void,
-    options?: {
+    _options?: {
       // 对于player来说，回调中的信息始终默认显示自己可见的
       // 这里保留options参数是为了API一致性，但实际上player总是使用自己的视角
     },

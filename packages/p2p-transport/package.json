@@ -27,9 +27,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "ws": "^8.19.0"
+    "ws": "^8.22.2"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.1"
+    "@types/ws": "^8.18.2"
   }
 }

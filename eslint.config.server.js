@@ -16,8 +16,9 @@ export default [
     files: ['packages/server/**/*.ts'],
     languageOptions: {
       parserOptions: {
-        projectService: false,
-        project: ['./packages/server/tsconfig.test.json'],
+        projectService: {
+          EXPERIMENTAL_backend: 'tsgo',
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

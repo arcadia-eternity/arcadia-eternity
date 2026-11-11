@@ -48,8 +48,8 @@ export function mountPairedWebsite(app: Express, directory: string, autoConnect 
     '/battle',
     '/content',
     '/settings/local-service',
-    '/creator/development',
-    '/creator',
+    '/content/development',
+    '/content/edit',
     '/storage',
   ])
   app.use((req, res, next) => {
@@ -59,7 +59,7 @@ export function mountPairedWebsite(app: Express, directory: string, autoConnect 
       !req.accepts('html') ||
       !(
         routes.has(req.path.replace(/\/$/, '') || '/') ||
-        /^\/(?:room\/[^/]+|dex\/(?:species|skill|mark)\/[^/]+|dex\/type-chart|local-battle-reports\/[^/]+\/play)$/.test(
+        /^\/(?:room\/[^/]+|dex\/(?:species|skill|mark)\/[^/]+|dex\/type-chart|local-battle-reports\/[^/]+\/play|content\/edit\/[^/]+)$/.test(
           req.path,
         )
       )

@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks'
 import { parse } from 'yaml'
 import { compileEffectModule } from '@arcadia-eternity/pack-loader/node'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
-import { officialTemplateDefinitions, officialEffectIds } from '@arcadia-eternity/data-pack-base/metadata'
+import { officialEffectIds } from '@arcadia-eternity/data-pack-base/metadata'
 
 // Run after pnpm build:package. Sequential runs avoid competition between modes.
 const rounds = Number(process.argv[2] ?? 3)
@@ -32,7 +32,6 @@ const environment = {
     marks: await read('marks'),
     skills: await read('skills'),
     species: await read('species'),
-    behaviors: officialTemplateDefinitions,
   },
   modules: [{ artifact, namespace: '', role: 'catalog' }],
 }

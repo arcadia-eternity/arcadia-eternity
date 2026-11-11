@@ -11,7 +11,6 @@ import {
   type SkillMessage,
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
-import { EffectContext, UseSkillContext } from './context'
 import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'

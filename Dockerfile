@@ -1,8 +1,10 @@
 # Build stage
-FROM node:24-alpine AS builder
+FROM node:24-bookworm-slim AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git python3 make g++ && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git python3 make g++ && \
+    rm -rf /var/lib/apt/lists/* && \
     npm install -g pnpm@11.21.0
 
 WORKDIR /app
@@ -33,9 +35,11 @@ ENV COMMIT_HASH=$COMMIT_HASH
 RUN pnpm run build:prod
 
 # Dependencies stage - install production dependencies
-FROM node:24-alpine AS deps
+FROM node:24-bookworm-slim AS deps
 
-RUN apk add --no-cache git python3 make g++ && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git python3 make g++ && \
+    rm -rf /var/lib/apt/lists/* && \
     npm install -g pnpm@11.21.0
 
 WORKDIR /app
@@ -53,15 +57,16 @@ RUN pnpm config set store-dir /tmp/pnpm-store && \
     pnpm store prune
 
 # Production stage
-FROM node:24-alpine AS production
+FROM node:24-bookworm-slim AS production
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S joseph -u 1001
+RUN groupadd --gid 1001 nodejs && \
+    useradd --uid 1001 --gid nodejs --create-home --shell /usr/sbin/nologin joseph
 
 # Git-backed registered content sources are acquired by the server at runtime.
-RUN apk add --no-cache curl git && \
-    rm -rf /var/cache/apk/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl git && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

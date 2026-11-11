@@ -46,7 +46,6 @@ test('content choices converge without apply controls or restarting the running 
           environment: { revision: 'test', data: { species: [], skills: [], marks: [] }, modules: [] },
         }),
         releaseLocalContent: async () => {},
-        listWorkspacePacks: async () => [],
         listCachedPets: async () => [],
         getAppVersion: async () => 'test',
         listContentPackages: async () => structuredClone(snapshot),
@@ -120,7 +119,7 @@ test('browser content is read-only and desktop authoring and host routes stay cl
   await expect(page.getByRole('button', { name: '添加内容包', exact: true })).toHaveCount(0)
   await expect(page.locator('main.content-page input[type=checkbox]')).toHaveCount(0)
   await expect(page.locator('main.content-page')).toContainText('服务器暂无公开环境')
-  for (const route of ['/creator', '/creator/development', '/settings/local-service']) {
+  for (const route of ['/content/edit', '/content/development', '/settings/local-service']) {
     await page.goto(route)
     await expect(page.getByRole('heading', { name: '本地内容工具', exact: true })).toBeVisible()
     await expect(page.locator('main button')).toHaveCount(0)

@@ -27,8 +27,13 @@ before(
     } finally {
       globalThis.fetch = fetch
     }
-    assert.ok(example.files.some(file => file.startsWith('data/species/')))
-    assert.ok(!example.files.includes('content.json'))
+    assert.ok(example.files.includes('dist/content.json'))
+    assert.ok(example.files.includes('dist/presentation.json'))
+    assert.ok(example.files.includes('dist/arcadia-effects.json'))
+    assert.equal(
+      example.files.some(file => /^(?:data|locales|src|docs)\//.test(file)),
+      false,
+    )
   },
   { timeout: 60000 },
 )
@@ -36,17 +41,15 @@ after(async () => {
   await example?.dispose()
 })
 
-test('the installed package includes local artwork, remote declarations and both languages', () => {
+test('the installed package includes compiled content, local artwork, remote declarations and both languages', () => {
   for (const file of [
+    'dist/content.json',
     'dist/presentation.json',
-    'docs/presentation.md',
+    'dist/arcadia-effects.json',
     'assets/pets/frostling-icon.png',
     'assets/pets/frostling-portrait.png',
     'assets/pets/frostling-battle.png',
     'assets/marks/slow.png',
-    ...['zh-CN', 'en'].flatMap(language =>
-      ['species', 'skill', 'mark'].map(kind => `locales/${language}/${kind}.yaml`),
-    ),
   ])
     assert.ok(example.files.includes(file), `Missing packaged file: ${file}`)
   const presentation = example.environment.presentation.find(

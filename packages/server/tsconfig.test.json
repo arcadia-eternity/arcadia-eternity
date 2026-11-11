@@ -3,6 +3,7 @@
   "compilerOptions": {
     "composite": false,
     "noEmit": true,
+    "rootDir": "../..",
     "resolveJsonModule": true
   },
   "include": ["index.ts", "src/**/*.ts", "test/**/*.ts"],

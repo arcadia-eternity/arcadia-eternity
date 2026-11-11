@@ -385,15 +385,14 @@ it('loads a namespaced work archive offline and verifies its replay in another p
   const { createDraft, compileRelease, exportArchive } = await import('@arcadia-eternity/pack-loader/native')
   const { prepareContent } = await import('../src/application/prepare')
   const { nativeBuildIdentity } = await import('@arcadia-eternity/data-pack-base/build')
-  const { officialTemplateDefinitions, createOfficialContent } =
-    await import('@arcadia-eternity/data-pack-base/effects')
+  const { createOfficialContent } = await import('@arcadia-eternity/data-pack-base/effects')
   const base = await prepareContent('builtin:base', root)
   const draft = createDraft('command-work', '命令行作品', 'cli_pack')
   draft.data.skills.push({ id: 'strike', element: 'Normal', category: 'Physical', power: 80, rage: 0, accuracy: 100 })
   const release = await compileRelease(draft, '1.0.0', {
     base: base.data,
     build: nativeBuildIdentity,
-    templates: officialTemplateDefinitions,
+    templates: [],
     createContent: createOfficialContent,
   })
   const archiveFile = output('work'),

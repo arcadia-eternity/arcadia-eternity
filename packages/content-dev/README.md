@@ -47,12 +47,12 @@ For an unpublished host build, build and stage packages from a trusted checkout:
 pnpm --filter @arcadia-eternity/content-sdk... --filter @arcadia-eternity/protocol... run build
 node scripts/stage-author-sdk.mjs /new/author-sdk
 cd /path/to/content-pack
-node /path/to/main-repo/packages/content-dev/src/setup.mjs --sdk-dir /new/author-sdk
+node /path/to/main-repo/packages/content-dev/src/setup.ts --sdk-dir /new/author-sdk
 ```
 
 The installer checks the seven required archives and SDK API version, installs the tool and SDK together without changing the pack's package metadata or creating a lockfile, and records the installation under `.arcadia/`.
 
-The optional source-bootstrap `setup:source` entry in the independent template fetches this repository's `src/setup.mjs` from the exact revision in `arcadia-sdk.json`. This standalone installer uses only Node built-ins. It builds the pinned source with its lockfile, stages the development tool and SDK, and installs them. There is no copied installer in the template. After installation, `npm exec --offline -- arcadia-content setup --sdk-dir ... --offline` supports cached/offline updates. Normal template installation uses the registry release and a standard npm lockfile; the source bootstrap remains available for local SDK development.
+The optional source-bootstrap `setup:source` entry in the independent template fetches this repository's `src/setup.ts` from the exact revision in `arcadia-sdk.json`. This standalone installer uses only Node built-ins. It builds the pinned source with its lockfile, stages the development tool and SDK, and installs them. There is no copied installer in the template. After installation, `npm exec --offline -- arcadia-content setup --sdk-dir ... --offline` supports cached/offline updates. Normal template installation uses the registry release and a standard npm lockfile; the source bootstrap remains available for local SDK development.
 
 ## Object drafts and reviewed saves
 
@@ -96,4 +96,4 @@ Workspace files own environment definitions and immutable versions. Database ada
 
 ## Repository development
 
-`pnpm --filter @arcadia-eternity/content-sdk watch` builds once, then rebuilds when `src`, `template`, or either bundled skill directory under `docs/guides` changes. Rebuilds are serialized, include deletions, and recover after a failed build. The root `pnpm watch` includes this watcher. `pnpm --filter @arcadia-eternity/content-sdk clear` removes `dist`; root `pnpm clear` includes it as well. The package `typecheck` validates public `.d.mts` declarations; Node tests validate the JavaScript implementation.
+`pnpm --filter @arcadia-eternity/content-sdk watch` builds once, then rebuilds when `src`, `template`, or either bundled skill directory under `docs/guides` changes. Rebuilds are serialized, include deletions, and recover after a failed build. The root `pnpm watch` includes this watcher. `pnpm --filter @arcadia-eternity/content-sdk clear` removes `dist`; root `pnpm clear` includes it as well. The package `typecheck` validates the TypeScript implementation and generated declarations; Node tests exercise the source modules directly.

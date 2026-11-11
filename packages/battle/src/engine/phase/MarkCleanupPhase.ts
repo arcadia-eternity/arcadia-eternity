@@ -9,11 +9,7 @@ import { SynchronousPhase } from './base'
  */
 
 export class MarkCleanupPhase extends SynchronousPhase<TurnContext> {
-  constructor(
-    battle: Battle,
-    private readonly turnContext: TurnContext,
-    id?: string,
-  ) {
+  constructor(battle: Battle, turnContext: TurnContext, id?: string) {
     super(battle, id)
     this._context = turnContext
   }
@@ -34,7 +30,7 @@ export class MarkCleanupPhase extends SynchronousPhase<TurnContext> {
  * This function contains the core mark cleanup logic, replacing Battle.cleanupMarks
  */
 
-export function executeMarkCleanupOperation(context: TurnContext, battle: Battle): void {
+export function executeMarkCleanupOperation(_context: TurnContext, battle: Battle): void {
   // Clean up battle marks
   battle.marks = battle.marks.filter(mark => {
     return mark.isActive

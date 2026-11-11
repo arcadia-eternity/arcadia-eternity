@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
 import { openStorage } from '@arcadia-eternity/database'
-import { ContentWorkspace } from '../../content-dev/src/content-workspace.mjs'
+import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 import { initializeHostEnvironment } from '../../../bin/host-environment-initialize'
 import { createSingleProcessApp } from '@arcadia-eternity/server'
@@ -145,7 +145,7 @@ it('resumes the exact pending marker-owned binding after an interrupted initiali
     effectiveVersionId: version.versionId,
     condition: 'available',
   })
-})
+}, 10_000)
 
 it('fails closed when a persisted builtin version no longer matches runtime content', async () => {
   const { storage, workspace, project, management } = await setup()

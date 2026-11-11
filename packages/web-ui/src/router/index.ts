@@ -50,23 +50,16 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '高级本机工具' },
   },
   {
-    path: '/creator/development',
+    path: '/content/development',
     name: 'DevelopmentWorkspace',
     component: isDesktop ? () => import('@/features/development/DevelopmentWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '开发服务工作区' },
   },
   {
     path: '/content/edit/:projectId?',
-    alias: '/creator',
-    name: 'Creator',
+    name: 'AuthorWorkspace',
     component: isDesktop ? () => import('@/features/authoring/AuthorWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '编辑内容包' },
-  },
-  {
-    path: '/creator/drafts',
-    name: 'CreatorDrafts',
-    component: isDesktop ? () => import('@/features/creator/CreatorPage.vue') : LocalContentOnlyPage,
-    meta: { title: '创作工坊' },
   },
   {
     path: '/',

@@ -29,15 +29,15 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "kysely": "^0.28.8",
-    "better-sqlite3": "^12.4.1",
+    "better-sqlite3": "^13.0.3",
+    "kysely": "^0.29.8",
     "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "catalog:",
-    "typescript": "catalog:",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/pg": "^8.23.1",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   }
 }

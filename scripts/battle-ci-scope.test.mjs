@@ -161,7 +161,7 @@ after(() => rmSync(repository, { recursive: true, force: true }))
 function git(...args) {
   return execFileSync('git', args, { cwd: repository, encoding: 'utf8' }).trim()
 }
-git('init', '-q')
+git('init', '-q', '-b', 'main')
 git('config', 'user.email', 'battle-ci-scope@example.invalid')
 git('config', 'user.name', 'Battle CI scope test')
 mkdirSync(join(repository, 'packages/battle'), { recursive: true })
@@ -230,7 +230,7 @@ test('workflow command writes explicit GitHub outputs for manual runs and an emp
 })
 
 for (const path of [
-  'packages/content-dev/src/cli.mjs',
+  'packages/content-dev/src/cli.ts',
   'docs/guides/ugc-authoring-agent/SKILL.md',
   'docs/guides/seer2-recreate-pet/references/testing.md',
   'packages/content-dev/test/setup.test.mjs',

@@ -2,10 +2,12 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { rolldown } from 'rolldown'
 import { parse } from 'yaml'
 
-const root = resolve('packs/base/src')
+const packRoot = resolve('packs/base')
+const root = join(packRoot, 'src')
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-native-content-'))
 const modules = []
 try {
@@ -15,6 +17,7 @@ try {
     input: entry,
     platform: 'browser',
     plugins: [
+      effectDiscoveryPlugin(packRoot, ['src/effects'], true),
       {
         name: 'native-content-boundary',
         moduleParsed(info) {

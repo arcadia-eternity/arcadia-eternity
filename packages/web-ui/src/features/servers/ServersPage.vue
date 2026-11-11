@@ -334,7 +334,7 @@ async function copy(value: string) {
       <summary>高级工具</summary>
       <div class="server-actions">
         <RouterLink class="server-link" to="/settings/local-service">服务器项目与诊断</RouterLink
-        ><RouterLink class="server-link" to="/creator/development">开发服务工作区</RouterLink>
+        ><RouterLink class="server-link" to="/content/development">开发服务工作区</RouterLink>
       </div>
     </details>
   </main>

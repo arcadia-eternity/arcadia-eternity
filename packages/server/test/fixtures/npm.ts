@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { compileEffectModule, stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
@@ -67,6 +67,7 @@ export async function createNpmFixture(
             {
               kind: 'file',
               id: 'icon',
+              tags: ['test'],
               source: 'assets/icon.png',
               sha256,
               bytes: asset.length,
@@ -75,6 +76,7 @@ export async function createNpmFixture(
             {
               kind: 'http',
               id: 'animation',
+              tags: ['test'],
               source: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
               mime: 'application/x-shockwave-flash',
             },
@@ -141,7 +143,8 @@ export async function createNpmFixture(
       await mkdir(join(base, 'dist'), { recursive: true })
       for (const field of ['content', 'presentation', 'effectArtifact', 'catalog'])
         await cp(join(packageRoot, metadata.arcadia[field]), join(base, metadata.arcadia[field]))
-      await cp(join(packageRoot, 'assets'), join(base, 'assets'), { recursive: true })
+      if (existsSync(join(packageRoot, 'assets')))
+        await cp(join(packageRoot, 'assets'), join(base, 'assets'), { recursive: true })
       await cp(join(packageRoot, metadata.arcadiaEternityPack), join(base, metadata.arcadiaEternityPack))
       await writeFile(
         join(base, 'package.json'),

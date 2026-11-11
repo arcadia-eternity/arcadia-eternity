@@ -439,7 +439,7 @@ export class AttributeSystem<T extends AttributeData> {
     const globalKey = `${this.objectId}.${String(key)}`
 
     // Check if this attribute is already being calculated in any object
-    for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
+    for (const stack of AttributeSystem.globalCalculationStack.values()) {
       if (stack.has(globalKey)) {
         return true
       }
@@ -492,16 +492,6 @@ export class AttributeSystem<T extends AttributeData> {
     if (typeof baseValue === 'number') return 0
     if (typeof baseValue === 'boolean') return false
     return ''
-  }
-
-  /**
-   * Track dependency between attributes for cycle detection
-   */
-  private trackDependency(from: keyof T, to: keyof T): void {
-    if (!this.dependencyGraph.has(from)) {
-      this.dependencyGraph.set(from, new Set())
-    }
-    this.dependencyGraph.get(from)!.add(to)
   }
 
   /**

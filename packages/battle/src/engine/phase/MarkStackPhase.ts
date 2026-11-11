@@ -13,11 +13,7 @@ import { RemoveMarkPhase } from './RemoveMarkPhase'
  */
 
 export class MarkStackPhase extends SynchronousPhase<StackContext> {
-  constructor(
-    battle: Battle,
-    private readonly stackContext: StackContext,
-    id?: string,
-  ) {
+  constructor(battle: Battle, stackContext: StackContext, id?: string) {
     super(battle, id)
     this._context = stackContext
   }
