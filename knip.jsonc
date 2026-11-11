@@ -8,6 +8,7 @@
 // The TypeScript 7 lint backend is an optional peer loaded dynamically by typescript-eslint.
 {
   "ignore": ["**/dist/**"],
+  "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
       "entry": ["scripts/*.{ts,mjs}", "examples/*.ts"],

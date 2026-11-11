@@ -48,7 +48,7 @@ export const TeamDocumentSchema = teamEnvelopeSchema.extend({ team: z.array(port
 
 /** Portable team documents contain configurations, never battle or editor identities. */
 export type TeamDocument = z.infer<typeof TeamDocumentSchema>
-export type PortablePet = TeamDocument['team'][number]
+type PortablePet = TeamDocument['team'][number]
 export interface ProjectTeam {
   id: string
   name: string

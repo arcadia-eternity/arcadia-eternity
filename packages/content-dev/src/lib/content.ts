@@ -9,7 +9,6 @@ import { errorCode, errorMessage, isRecord, type UnknownRecord } from '../types.
 const contentKinds = ['species', 'skills', 'marks', 'behaviors'] as const
 const sourceKinds = [...contentKinds, 'presentations', 'resources'] as const
 
-type ContentKind = (typeof contentKinds)[number]
 type SourceKind = (typeof sourceKinds)[number]
 
 export interface ContentSource {
@@ -119,5 +118,3 @@ export function assembleContent(sources: ContentSource[]) {
     ),
   }
 }
-
-export type { ContentKind, SourceKind }

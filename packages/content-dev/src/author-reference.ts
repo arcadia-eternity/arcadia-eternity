@@ -7,7 +7,6 @@ import { WorkspaceError } from './workspace.ts'
 import { errorCode } from './types.ts'
 
 export const referenceTopics = ['species', 'skills', 'marks', 'team', 'environment', 'descriptions', 'effects'] as const
-export type ReferenceTopic = (typeof referenceTopics)[number]
 const parserSchemas: Record<string, typeof NativeSpeciesSchema | typeof NativeSkillSchema | typeof NativeMarkSchema> = {
   species: NativeSpeciesSchema,
   skills: NativeSkillSchema,

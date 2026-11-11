@@ -2,8 +2,6 @@
 
 export type UnknownRecord = Record<string, unknown>
 
-export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
-
 export function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

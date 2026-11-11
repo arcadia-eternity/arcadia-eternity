@@ -9,7 +9,7 @@ function fail(code: string, message: string): never {
   throw new WorkspaceError(code, message)
 }
 
-export interface AssetMetadata {
+interface AssetMetadata {
   id: string | undefined
   kind: unknown
   source: unknown
