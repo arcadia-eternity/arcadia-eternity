@@ -5,6 +5,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:pat
 import { promisify } from 'node:util'
 import type { Stats } from 'node:fs'
 import { compileEffectModule, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import type { PresentationManifest } from '@arcadia-eternity/schema'
 import type { PackageManifest } from './workspace.ts'
 import { errorCode } from './types.ts'
 
@@ -79,12 +80,6 @@ async function stagingRoot(root: string): Promise<string> {
 /** Trusted author packaging: close the effect dependency graph without evaluating it.
  * Only the staged package gains artifact metadata; the source manifest is never rewritten.
  */
-interface PresentationManifest {
-  bindings?: unknown[]
-  resources?: Array<{ kind?: string; source?: string }>
-  locales?: Record<string, unknown>
-}
-
 export async function packBuiltProject(directory: string = process.cwd(), { cache }: { cache?: string } = {}) {
   const root = await realpath(resolve(directory))
   const manifestText = await readFile(join(root, 'package.json'), 'utf8')
@@ -126,12 +121,7 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
     required.push(
       'dist/content.json',
       'dist/presentation.json',
-      ...(presentation.resources ?? [])
-        .filter(
-          (resource): resource is { kind: 'file'; source: string } =>
-            resource.kind === 'file' && typeof resource.source === 'string',
-        )
-        .map(resource => resource.source),
+      ...(presentation.resources ?? []).filter(resource => resource.kind === 'file').map(resource => resource.source),
     )
   }
   for (const file of required) if (!included.has(file)) fail(`npm files omits required presentation file: ${file}`)

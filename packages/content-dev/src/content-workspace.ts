@@ -4,29 +4,14 @@ import { isAbsolute, join, relative, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
 import semver from 'semver'
 import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { normalizeEnvironmentDocument } from './debug-environments.ts'
+import { normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
 import { withSourceLock } from './source-lock.ts'
 import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 import type { Stats } from 'node:fs'
 
-export interface EnvironmentRules {
-  schemaVersion: 1
-  tier?: string
-  allow?: { species?: string[]; skills?: string[]; marks?: string[] }
-  deny?: { species?: string[]; skills?: string[]; marks?: string[] }
-  team?: { minSize?: number; maxSize?: number; uniqueSpecies?: boolean }
-}
-export interface EnvironmentDocument {
-  schemaVersion: 2
-  id: string
-  name: string
-  packages: Record<string, string>
-  sources: string[]
-  disabled?: { packages: Record<string, string>; sources: string[] }
-  rules: EnvironmentRules
-  requires: { engine?: string; sdk?: string; capabilities?: string[] }
-}
+export type { EnvironmentRules } from './debug-environments.ts'
+export type EnvironmentDocument = EnvironmentDocumentV2
 export interface EnvironmentDraft {
   document: EnvironmentDocument
   revision: string
