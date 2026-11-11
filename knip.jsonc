@@ -5,12 +5,14 @@
 // Ruffle is copied by Vite; rebuild and npm are used by desktop staging; base loads pack-loader in its build script.
 // The SWF verifier imports /src/... through the running Vite server.
 // Vite/Vitest configs import built workspace packages: scan them as source entries, never execute them.
+// The TypeScript 7 lint backend is an optional peer loaded dynamically by typescript-eslint.
 {
   "ignore": ["**/dist/**"],
   "workspaces": {
     ".": {
       "entry": ["scripts/*.{ts,mjs}", "examples/*.ts"],
       "project": ["bin/**/*.ts", "scripts/**/*.{ts,mjs}", "examples/**/*.ts", "*.{js,mjs,ts}"],
+      "ignoreDependencies": ["@typescript/native"],
     },
     "packages/web-ui": {
       "entry": [
