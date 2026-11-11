@@ -245,13 +245,14 @@ describe('local authority host', () => {
     const url = output.trim()
     assert.match(url, /^http:\/\/127\.0\.0\.1:\d+$/)
     const cache = await readFile(join(directory, 'cache-marker'), 'utf8')
+    // The worker force-exits five seconds after losing its parent.
     let stopped = false
-    for (let i = 0; i < 100 && !stopped; i++) {
+    for (let i = 0; i < 300 && !stopped; i++) {
       stopped = await closed(url)
       if (!stopped) await delay(20)
     }
     assert.equal(stopped, true)
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 300; i++) {
       try {
         await stat(cache)
         await delay(20)
