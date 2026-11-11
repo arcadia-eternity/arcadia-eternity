@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.4.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.4.0...arcadia-eternity-v4.4.1) (2026-11-11)
+
+
+### 🐛 Bug Fixes
+
+* **server:** refresh stale builtin content on startup ([28a364b](https://github.com/arcadia-eternity/arcadia-eternity/commit/28a364b2f85e52d0159523ac8736520579378465))
+
+
+### ♻️ Code Refactoring
+
+* **content-sdk:** derive document types from schemas ([af43994](https://github.com/arcadia-eternity/arcadia-eternity/commit/af439948fab4093b87acc9826336eaee21ff7ad0))
+
 ## [4.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.3.4...arcadia-eternity-v4.4.0) (2026-11-11)
 
 

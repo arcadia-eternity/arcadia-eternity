@@ -51,7 +51,7 @@ const contentSelection = z
   .strict()
 
 /** Portable rule data. Runtime consumers must explicitly support every declared capability. */
-const EnvironmentRulesSchema = z
+export const EnvironmentRulesSchema = z
   .object({
     schemaVersion: z.literal(1),
     tier: z.string().regex(idPattern).optional(),
@@ -71,6 +71,7 @@ const EnvironmentRulesSchema = z
       .optional(),
   })
   .strict()
+export type EnvironmentRules = z.infer<typeof EnvironmentRulesSchema>
 
 const EnvironmentRequirementsSchema = z
   .object({
