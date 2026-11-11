@@ -33,16 +33,17 @@ export function authorConnection(
     },
   }
 }
-async function packageRoot(name, entry) {
+async function packageRoot(names, entry) {
+  if (!Array.isArray(names)) names = [names]
   let path = dirname(require.resolve(entry))
   for (;;) {
     try {
-      if (JSON.parse(await readFile(join(path, 'package.json'), 'utf8')).name === name) return realpath(path)
+      if (names.includes(JSON.parse(await readFile(join(path, 'package.json'), 'utf8')).name)) return realpath(path)
     } catch {
       /* Walk to owning package. */
     }
     const parent = dirname(path)
-    if (parent === path) throw new Error(`Cannot find SDK package ${name}`)
+    if (parent === path) throw new Error(`Cannot find SDK package ${names.join(' or ')}`)
     path = parent
   }
 }
@@ -76,7 +77,7 @@ export async function connectDevelopmentSdk(root) {
       '@arcadia-eternity/pack-loader/node',
     ),
     '@arcadia-eternity/content-sdk': moduleRoot,
-    typescript: await packageRoot('typescript', 'typescript'),
+    typescript: await packageRoot(['typescript', 'typescript-native-bridge'], 'typescript'),
   }
   const linked = []
   for (const [name, source] of Object.entries(packages)) {
