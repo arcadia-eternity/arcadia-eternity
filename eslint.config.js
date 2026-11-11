@@ -14,7 +14,9 @@ export const sharedConfig = tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          EXPERIMENTAL_backend: 'tsgo',
+        },
         tsconfigRootDir: root,
       },
     },
