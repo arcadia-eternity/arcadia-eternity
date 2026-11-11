@@ -16,7 +16,7 @@ Electron 主进程提供独立本机对战子进程管理，并作为客户端�
 
 开发模式的服务入口为仓库根目录的 `dist/cli.js`，需先构建 CLI 及其依赖，并通过 `pnpm build:web-distribution` 准备 `dist/web`，并由开发机提供可运行的 npm。Windows 开发环境使用 Node 安装目录旁的 `node_modules/npm/bin/npm-cli.js`，不能假定 `npm.cmd` 可由 `execFile('npm')` 直接运行。
 
-桌面运行时由 `scripts/stage-desktop-runtime.mjs` 准备，包括 CLI 的全部构建分块、服务器生产依赖、官方 Base、独立的 `web/` 配套网页和锁定为 11.17.0 的 npm。安装后的宿主使用应用自带的 Electron Node 运行 `resources/arcadia-server/runtime/npm/bin/npm-cli.js`，不依赖用户 PATH 中的 Node 或 npm。npm 包来源与完整性、Electron 版本和内嵌 Node 版本记录在运行时清单；许可证文本和待核对项记录在 `licenses/notice.json`。构建时需先安装锁文件中的依赖并构建工作区，再从仓库根目录执行：
+桌面运行时由 `scripts/stage-desktop-runtime.mjs` 准备，包括 CLI 的全部构建分块、服务器生产依赖、官方 Base、独立的 `web/` 配套网页和 `packages/web-ui` 中锁定的 npm。安装后的宿主使用应用自带的 Electron Node 运行 `resources/arcadia-server/runtime/npm/bin/npm-cli.js`，不依赖用户 PATH 中的 Node 或 npm。npm 包来源与完整性、Electron 版本和内嵌 Node 版本记录在运行时清单；许可证文本和待核对项记录在 `licenses/notice.json`。构建时需先安装锁文件中的依赖并构建工作区，再从仓库根目录执行：
 
 ```sh
 node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-server
@@ -28,7 +28,7 @@ Electron Builder 会在打包前检查 staging 清单，并在打包后重新核
 
 `node scripts/verify-desktop-pack.mjs` 校验运行时并输出许可清单提示；发布工作流和 `electron:pack:publish` 使用此默认模式。需要严格核对许可资料时，显式加 `--require-complete-notices`，staging 脚本也支持这个选项。旧的 `--allow-incomplete-notices` 仍可使用，与默认行为一致。运行时清单中的旧字段 `releaseReady` 仅记录严格许可资料检查是否完整，不再作为默认发布开关。
 
-当前许可清单保留 `@npmcli/agent@4.0.2` 缺少适用原文、`@npmcli/redact@4.0.0` 声明与文本不一致两项提示。2026-11-05 核对的最新版本 agent 5.0.2 和 redact 5.0.0 仍存在对应问题，因此保留已验证的 npm 11.17.0。四平台真实安装与同版本替换已通过；按用户确定的范围，签名/公证暂缓，历史版本升级不作为本轮验收要求。具体提交和结果见[后续验证记录](validation/unified-management-followup-2026-11-05.md)。
+当前许可清单保留 `@npmcli/agent@5.0.2` 缺少适用原文、`@npmcli/redact@5.0.0` 声明与文本不一致两项提示。四平台真实安装与同版本替换已通过；按用户确定的范围，签名/公证暂缓，历史版本升级不作为本轮验收要求。具体提交和结果见[后续验证记录](validation/unified-management-followup-2026-11-05.md)。
 
 本机功能验证可以使用独立预览构建：
 

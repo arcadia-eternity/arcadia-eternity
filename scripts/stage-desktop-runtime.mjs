@@ -31,9 +31,7 @@ import { materializeLinklessModules } from './desktop-linkless-modules.mjs'
 const exec = promisify(execFile)
 const repo = fileURLToPath(new URL('../', import.meta.url))
 const require = createRequire(import.meta.url)
-const npmVersion = '11.17.0'
 const pnpmVersion = '11.21.0'
-const npmIntegrity = 'sha512-PurxiZexEHDTE4SSaLI3ZrnbAGiZfeyUcQcxcP5D+hfytNAze/D1IzDuInTn9XVLIbAQUnQuSPXJx02LHjLvQw=='
 
 function inside(root, target) {
   const path = relative(root, target)
@@ -198,9 +196,16 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
   try {
     const lock = await readFile(join(repo, 'pnpm-lock.yaml'), 'utf8')
     const parsedLock = YAML.parse(lock)
+    const webUi = JSON.parse(await readFile(join(repo, 'packages/web-ui/package.json'), 'utf8'))
+    const npmVersion = webUi.devDependencies?.npm
+    if (typeof npmVersion !== 'string' || !/^\d+\.\d+\.\d+$/.test(npmVersion))
+      throw new Error('packages/web-ui/package.json must pin an exact npm version')
     const lockedNpm = parsedLock.importers?.['packages/web-ui']?.devDependencies?.npm
     if (lockedNpm?.specifier !== npmVersion || lockedNpm?.version !== npmVersion)
-      throw new Error('The pinned npm version is missing from pnpm-lock.yaml')
+      throw new Error(`The pinned npm ${npmVersion} is missing from pnpm-lock.yaml`)
+    const npmIntegrity = parsedLock.packages?.[`npm@${npmVersion}`]?.resolution?.integrity
+    if (typeof npmIntegrity !== 'string')
+      throw new Error(`The pinned npm ${npmVersion} integrity is missing from pnpm-lock.yaml`)
     const npmRoot = await realpath(join(repo, 'packages/web-ui/node_modules/npm'))
     const npm = JSON.parse(await readFile(join(npmRoot, 'package.json'), 'utf8'))
     if (npm.version !== npmVersion) throw new Error(`Desktop build requires npm ${npmVersion}`)
