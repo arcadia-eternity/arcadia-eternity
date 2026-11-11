@@ -25,6 +25,18 @@ catalog:
   'socket.io-client': 4.8.4
   i18next: 27.1.0
 linkWorkspacePackages: true
+minimumReleaseAgeExclude:
+  - '@typescript-eslint/eslint-plugin@8.72.3-alpha.6'
+  - '@typescript-eslint/parser@8.72.3-alpha.6'
+  - '@typescript-eslint/project-service@8.72.3-alpha.6'
+  - '@typescript-eslint/scope-manager@8.72.3-alpha.6'
+  - '@typescript-eslint/tsconfig-utils@8.72.3-alpha.6'
+  - '@typescript-eslint/type-utils@8.72.3-alpha.6'
+  - '@typescript-eslint/types@8.72.3-alpha.6'
+  - '@typescript-eslint/typescript-estree@8.72.3-alpha.6'
+  - '@typescript-eslint/utils@8.72.3-alpha.6'
+  - '@typescript-eslint/visitor-keys@8.72.3-alpha.6'
+  - typescript-eslint@8.72.3-alpha.6
 overrides:
   # WebAuthn ASN.1 decorators and parsers must share the same schema registry.
   '@simplewebauthn/server>@peculiar/asn1-schema': '2.11.1'

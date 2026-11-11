@@ -83,7 +83,6 @@
     "dotenv": "^18.0.10",
     "nodemailer": "^10.4.0",
     "pg": "^8.23.1",
-    "rolldown": "^1.3.1",
     "yaml": "catalog:"
   },
   "devDependencies": {
@@ -100,9 +99,10 @@
     "lint-staged": "^17.6.0",
     "npm-run-all2": "^9.0.4",
     "prettier": "3.9.10",
+    "rolldown": "^1.3.1",
     "tsx": "^4.23.15",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.72.2",
+    "typescript-eslint": "8.72.3-alpha.6",
     "vitest": "catalog:"
   },
   "bin": "./dist/cli.js",
