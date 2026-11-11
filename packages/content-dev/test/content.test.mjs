@@ -7,7 +7,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 const exec = promisify(execFile)
-const script = resolve(dirname(fileURLToPath(import.meta.url)), '../src/build-content.mjs')
+const script = resolve(dirname(fileURLToPath(import.meta.url)), '../src/build-content.ts')
 const build = (cwd, ...args) => exec(process.execPath, [script, ...args], { cwd })
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-template-content-'))

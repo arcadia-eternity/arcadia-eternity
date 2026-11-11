@@ -11,7 +11,7 @@ import {
   ContentWorkspace,
   type EnvironmentExport,
   type StaticPreparer,
-} from '../../content-dev/src/content-workspace.mjs'
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 import { ManagementAuth, MANAGEMENT_ACTIONS } from '../src/runtime/management/auth'
 import { OperationService, type Operation, type OperationContext } from '../src/runtime/management/operations'

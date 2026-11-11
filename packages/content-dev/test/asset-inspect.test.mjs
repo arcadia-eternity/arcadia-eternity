@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { AuthorWorkspace } from '../src/workspace.mjs'
-import { inspectAsset, imageByteLimit } from '../src/asset-inspect.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
+import { inspectAsset, imageByteLimit } from '../src/asset-inspect.ts'
 
 async function fixture(t, records) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-asset-inspect-'))

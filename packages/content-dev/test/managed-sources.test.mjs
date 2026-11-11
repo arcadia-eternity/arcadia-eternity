@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, access } from 'node:f
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { create, Header } from 'tar'
-import { acquireSource } from '../src/managed-sources.mjs'
+import { acquireSource } from '../src/managed-sources.ts'
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-sources-'))

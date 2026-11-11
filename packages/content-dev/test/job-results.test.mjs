@@ -5,8 +5,8 @@ import { randomUUID } from 'node:crypto'
 import { mkdtemp, rm, writeFile, chmod } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AuthorJobs } from '../src/jobs.mjs'
-import { JobJournal } from '../src/job-journal.mjs'
+import { AuthorJobs } from '../src/jobs.ts'
+import { JobJournal } from '../src/job-journal.ts'
 
 async function fixture(t, options = {}) {
   const root = await mkdtemp(join(tmpdir(), 'author-job-results-'))

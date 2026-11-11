@@ -60,7 +60,7 @@ test(
       await mcp.connect(
         new StdioClientTransport({
           command: process.execPath,
-          args: [fileURLToPath(new URL('../../../content-dev/src/mcp.mjs', import.meta.url)), project.directory],
+          args: [fileURLToPath(new URL('../../../content-dev/src/mcp.ts', import.meta.url)), project.directory],
           stderr: 'pipe',
         }),
       )

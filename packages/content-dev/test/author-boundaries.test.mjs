@@ -4,10 +4,10 @@ import { EventEmitter } from 'node:events'
 import { mkdir, mkdtemp, readdir, rm, symlink, writeFile, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AuthorJobs } from '../src/jobs.mjs'
-import { connectDevelopmentSdk, authorConnection } from '../src/project.mjs'
+import { AuthorJobs } from '../src/jobs.ts'
+import { connectDevelopmentSdk, authorConnection } from '../src/project.ts'
 import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.mjs'
-import * as api from '../src/author-api.mjs'
+import * as api from '../src/author-api.ts'
 
 test('close waits for a preparing job and prevents it from starting', async () => {
   const workspace = new EventEmitter()

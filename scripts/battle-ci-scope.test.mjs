@@ -230,7 +230,7 @@ test('workflow command writes explicit GitHub outputs for manual runs and an emp
 })
 
 for (const path of [
-  'packages/content-dev/src/cli.mjs',
+  'packages/content-dev/src/cli.ts',
   'docs/guides/ugc-authoring-agent/SKILL.md',
   'docs/guides/seer2-recreate-pet/references/testing.md',
   'packages/content-dev/test/setup.test.mjs',

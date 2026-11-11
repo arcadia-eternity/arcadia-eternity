@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { DebugEnvironments, environmentDocument, normalizeEnvironmentDocument } from '../src/debug-environments.mjs'
-import { AuthorWorkspace } from '../src/workspace.mjs'
+import { DebugEnvironments, environmentDocument, normalizeEnvironmentDocument } from '../src/debug-environments.ts'
+import { AuthorWorkspace } from '../src/workspace.ts'
 
 const legacy = () => ({
   schemaVersion: 1,

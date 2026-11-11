@@ -11,7 +11,7 @@ import { ContentLibrary } from '../content-library.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
-import { ContentWorkspace } from '../../../content-dev/src/content-workspace.mjs'
+import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 
 const { io } = createRequire(new URL('../../../server/package.json', import.meta.url))('socket.io-client')
 const exec = promisify(execFile)

@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 const exec = promisify(execFile)
-const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url))
+const cli = fileURLToPath(new URL('../src/cli.ts', import.meta.url))
 test('CLI checks, builds and packs from the caller directory, with type errors failing the command', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-content-cli-'))
   try {

@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, writeFile, readdir, rm, access } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ContentWorkspace } from '../src/content-workspace.mjs'
-import { ManagedProjects } from '../src/managed-projects.mjs'
+import { ContentWorkspace } from '../src/content-workspace.ts'
+import { ManagedProjects } from '../src/managed-projects.ts'
 import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 
 const document = { schemaVersion: 1, id: 'main', name: 'Main', packages: {}, sources: [] }

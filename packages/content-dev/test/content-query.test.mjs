@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, rm, readFile, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { AuthorWorkspace } from '../src/workspace.mjs'
-import { queryContent } from '../src/content-query.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
+import { queryContent } from '../src/content-query.ts'
 
 async function json(root, file, value) {
   await mkdir(dirname(join(root, file)), { recursive: true })

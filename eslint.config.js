@@ -42,6 +42,13 @@ export const sharedConfig = tseslint.config(
     ...tseslint.configs.disableTypeChecked,
     files: ['.pnpmfile.cjs', 'packages/content-dev/**/*.mjs'],
   },
+  // Migrated content tooling validates disk/npm payloads at explicit boundaries; typed internals can follow separately.
+  {
+    files: ['packages/content-dev/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
   // The engine retains its existing rule exceptions; host, sandbox and tests use the shared rules.
   {
     files: ['packages/battle/src/engine/**/*.ts'],

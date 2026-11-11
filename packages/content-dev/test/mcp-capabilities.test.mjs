@@ -7,9 +7,9 @@ import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { JobJournal } from '../src/job-journal.mjs'
+import { JobJournal } from '../src/job-journal.ts'
 import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.mjs'
-import * as api from '../src/author-api.mjs'
+import * as api from '../src/author-api.ts'
 
 async function fixture(t) {
   const temporary = await mkdtemp(join(tmpdir(), 'arcadia-mcp-capabilities-'))
@@ -39,7 +39,7 @@ async function connect(t, root, flags = []) {
   await client.connect(
     new StdioClientTransport({
       command: process.execPath,
-      args: [fileURLToPath(new URL('../src/mcp.mjs', import.meta.url)), root, ...flags],
+      args: [fileURLToPath(new URL('../src/mcp.ts', import.meta.url)), root, ...flags],
       stderr: 'pipe',
     }),
   )

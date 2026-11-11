@@ -1,4 +1,4 @@
-import { readContentSources } from '../packages/content-dev/src/lib/content.mjs'
+import { readContentSources } from '../packages/content-dev/src/lib/content.ts'
 import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'

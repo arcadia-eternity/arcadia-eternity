@@ -6,8 +6,8 @@ import { mkdtemp, readFile, writeFile, rm, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createSourceProject, openAuthorSession } from '../src/author-api.mjs'
-import { prepareContentPack, attack, runBattle } from '../src/testing.mjs'
+import { createSourceProject, openAuthorSession } from '../src/author-api.ts'
+import { prepareContentPack, attack, runBattle } from '../src/testing.ts'
 import {
   AttackTargetOpinion,
   EffectTrigger,
@@ -17,7 +17,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 const exec = promisify(execFile)
-const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url))
+const cli = fileURLToPath(new URL('../src/cli.ts', import.meta.url))
 
 test(
   'two actual npm packs interact through one locked environment without inventing formal dependencies',

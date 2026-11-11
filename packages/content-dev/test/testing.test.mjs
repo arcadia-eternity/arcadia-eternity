@@ -7,7 +7,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { prepareContentPack } from '../src/testing.mjs'
+import { prepareContentPack } from '../src/testing.ts'
 const exec = promisify(execFile)
 
 test('the shared harness accepts data-only packs with cached npm runtime dependencies', async () => {

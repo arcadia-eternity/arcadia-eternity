@@ -175,7 +175,7 @@ function getAuthorWorkspaces() {
           ? pathToFileURL(
               path.join(
                 process.resourcesPath,
-                'arcadia-server/node_modules/@arcadia-eternity/content-sdk/dist/author-api.mjs',
+                'arcadia-server/node_modules/@arcadia-eternity/content-sdk/dist/author-api.js',
               ),
             ).href
           : '@arcadia-eternity/content-sdk/workspace'

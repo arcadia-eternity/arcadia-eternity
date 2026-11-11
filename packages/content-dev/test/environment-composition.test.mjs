@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { setEnvironmentPackageEnabled } from '../src/content-workspace.mjs'
-import { normalizeEnvironmentDocument } from '../src/debug-environments.mjs'
+import { setEnvironmentPackageEnabled } from '../src/content-workspace.ts'
+import { normalizeEnvironmentDocument } from '../src/debug-environments.ts'
 
 function fixture() {
   let draft = {

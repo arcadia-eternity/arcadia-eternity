@@ -3,7 +3,8 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "strict": true,
+    "rewriteRelativeImportExtensions": true,
+    "strict": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "declaration": true,
@@ -12,5 +13,5 @@
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["src/**/*.mts"]
+  "include": ["src/**/*.ts"]
 }

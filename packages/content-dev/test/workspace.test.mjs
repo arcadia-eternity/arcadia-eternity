@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, rename } from 'node:f
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { AuthorWorkspace } from '../src/workspace.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
 
 test('base source layout is readable without modifying its package manifest', async t => {
   const workspace = await AuthorWorkspace.open(fileURLToPath(new URL('../../../packs/base', import.meta.url)), {

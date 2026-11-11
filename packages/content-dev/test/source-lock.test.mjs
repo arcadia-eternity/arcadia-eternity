@@ -5,11 +5,11 @@ import { once } from 'node:events'
 import { mkdtemp, writeFile, rm, realpath, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { AuthorWorkspace } from '../src/workspace.mjs'
-import { withSourceLock } from '../src/source-lock.mjs'
+import { AuthorWorkspace } from '../src/workspace.ts'
+import { withSourceLock } from '../src/source-lock.ts'
 
-const workspaceUrl = new URL('../src/workspace.mjs', import.meta.url).href
-const lockUrl = new URL('../src/source-lock.mjs', import.meta.url).href
+const workspaceUrl = new URL('../src/workspace.ts', import.meta.url).href
+const lockUrl = new URL('../src/source-lock.ts', import.meta.url).href
 
 async function project(t) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'arcadia-source-lock-')))

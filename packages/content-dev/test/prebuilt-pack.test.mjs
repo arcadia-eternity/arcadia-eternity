@@ -9,7 +9,7 @@ import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
-import { packBuiltProject } from '../src/pack-project.mjs'
+import { packBuiltProject } from '../src/pack-project.ts'
 
 const exec = promisify(execFile)
 async function fixture(t, { files = ['dist/content.json'] } = {}) {
@@ -233,7 +233,7 @@ test('the author pack CLI emits its existing receipt with the generated artifact
       include: ['src/**/*.ts'],
     }),
   )
-  const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url))
+  const cli = fileURLToPath(new URL('../src/cli.ts', import.meta.url))
   const result = await exec(process.execPath, [cli, 'pack'], {
     cwd: project,
     env: { ...process.env, npm_config_cache: cache },

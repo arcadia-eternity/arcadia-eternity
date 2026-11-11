@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, writeFile, rm, symlink, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ContentWorkspace } from '../src/content-workspace.mjs'
-import { outputSchemas } from '../src/mcp-contracts.mjs'
+import { ContentWorkspace } from '../src/content-workspace.ts'
+import { outputSchemas } from '../src/mcp-contracts.ts'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { randomUUID } from 'node:crypto'
@@ -376,7 +376,7 @@ test('an import survives process death at the durable commit boundary and resume
   await writeFile(file, JSON.stringify(bundle))
   await workspace.close()
   const importId = 'a'.repeat(64)
-  const module = new URL('../src/content-workspace.mjs', import.meta.url).href
+  const module = new URL('../src/content-workspace.ts', import.meta.url).href
   const child = spawn(
     process.execPath,
     [
@@ -505,7 +505,7 @@ test('unresolved import commit receipts prevent both offline and online unrestor
 
 test('a dead owner can be recovered without stealing a live process lock', async t => {
   const { open, location } = await fixture(t)
-  const module = new URL('../src/content-workspace.mjs', import.meta.url).href
+  const module = new URL('../src/content-workspace.ts', import.meta.url).href
   const child = spawn(
     process.execPath,
     [

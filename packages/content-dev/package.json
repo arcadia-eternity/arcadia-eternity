@@ -12,29 +12,29 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "./testing": "./dist/testing.mjs",
-    "./workspace": "./dist/author-api.mjs",
+    "./testing": "./dist/testing.js",
+    "./workspace": "./dist/author-api.js",
     "./management-workspace": {
-      "types": "./dist/content-workspace.d.mts",
-      "import": "./dist/content-workspace.mjs",
-      "default": "./dist/content-workspace.mjs"
+      "types": "./dist/content-workspace.d.ts",
+      "import": "./dist/content-workspace.js",
+      "default": "./dist/content-workspace.js"
     },
     "./managed-projects": {
-      "types": "./dist/managed-projects.d.mts",
-      "import": "./dist/managed-projects.mjs",
-      "default": "./dist/managed-projects.mjs"
+      "types": "./dist/managed-projects.d.ts",
+      "import": "./dist/managed-projects.js",
+      "default": "./dist/managed-projects.js"
     },
     "./environment-rules": {
-      "types": "./dist/environment-rules.d.mts",
-      "import": "./dist/environment-rules.mjs",
-      "default": "./dist/environment-rules.mjs"
+      "types": "./dist/environment-rules.d.ts",
+      "import": "./dist/environment-rules.js",
+      "default": "./dist/environment-rules.js"
     },
     "./build": {
-      "types": "./dist/effect-build.d.mts",
-      "import": "./dist/effect-build.mjs"
+      "types": "./dist/effect-build.d.ts",
+      "import": "./dist/effect-build.js"
     }
   },
   "files": [

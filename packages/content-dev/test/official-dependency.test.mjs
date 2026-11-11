@@ -6,8 +6,8 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createSourceProject } from '../src/author-api.mjs'
-import { attack, prepareContentPack } from '../src/testing.mjs'
+import { createSourceProject } from '../src/author-api.ts'
+import { attack, prepareContentPack } from '../src/testing.ts'
 import { EffectTrigger, setGlobalLogger } from '@arcadia-eternity/battle/engine'
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 const exec = promisify(execFile)
@@ -58,7 +58,7 @@ test(
       species,
       (await readFile(species, 'utf8')) + '\n  - skill_id: skill_zhuangji\n    level: 1\n    hidden: false\n',
     )
-    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'build'], { cwd: project })
+    await exec(process.execPath, [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'build'], { cwd: project })
     prepared = await prepareContentPack(project, { cache })
     assert.equal(prepared.environment.content.getSkill('skill_zhuangji').power, 35)
     assert.ok(prepared.environment.installation.members.some(pkg => pkg.name === '@arcadia-eternity/data-pack-base'))

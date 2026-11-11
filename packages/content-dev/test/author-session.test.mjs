@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createSourceProject, openAuthorSession } from '../src/author-api.mjs'
+import { createSourceProject, openAuthorSession } from '../src/author-api.ts'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { fileURLToPath } from 'node:url'
@@ -71,7 +71,7 @@ test('MCP uses the same file versions and diagnostics, and execution is opt-in',
   await writeFile(join(root, 'data/skills/hit.json'), '{"id":"hit","power":40}')
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [fileURLToPath(new URL('../src/mcp.mjs', import.meta.url)), root],
+    args: [fileURLToPath(new URL('../src/mcp.ts', import.meta.url)), root],
     stderr: 'pipe',
   })
   const client = new Client({ name: 'author-test-client', version: '1' })

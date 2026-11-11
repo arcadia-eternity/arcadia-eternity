@@ -3,13 +3,13 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createSourceProject, openAuthorSession } from '../src/author-api.mjs'
+import { createSourceProject, openAuthorSession } from '../src/author-api.ts'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { JobJournal } from '../src/job-journal.mjs'
+import { JobJournal } from '../src/job-journal.ts'
 
 async function finish(session, kind) {
   let job = await session.jobs.start({ kind })
@@ -151,7 +151,7 @@ test(
     await createSourceProject(root, 'preview-mcp')
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [fileURLToPath(new URL('../src/mcp.mjs', import.meta.url)), root, '--execute'],
+      args: [fileURLToPath(new URL('../src/mcp.ts', import.meta.url)), root, '--execute'],
       stderr: 'pipe',
     })
     const client = new Client({ name: 'preview-acceptance', version: '1' })
@@ -233,7 +233,7 @@ test(
     assert.deepEqual(receipt.result.preview, preview.result.preview)
     const cli = spawn(
       process.execPath,
-      [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'workspace', root, 'cancel', '--execute'],
+      [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'workspace', root, 'cancel', '--execute'],
       { stdio: ['pipe', 'pipe', 'pipe'] },
     )
     cli.stdin.end(JSON.stringify({ jobId: preview.jobId }))
@@ -259,7 +259,7 @@ test('a killed CLI owner leaves an interrupted receipt and its preview child exi
   await createSourceProject(root, 'preview-interrupted')
   const child = spawn(
     process.execPath,
-    [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'workspace', root, 'preview', '--execute'],
+    [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'workspace', root, 'preview', '--execute'],
     { stdio: ['ignore', 'pipe', 'pipe'] },
   )
   let session
@@ -312,7 +312,7 @@ test(
     await createSourceProject(root, 'preview-cli')
     const child = spawn(
       process.execPath,
-      [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'workspace', root, 'preview', '--execute'],
+      [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'workspace', root, 'preview', '--execute'],
       { stdio: ['ignore', 'pipe', 'pipe'] },
     )
     let peer,
@@ -356,8 +356,8 @@ test(
   'missing configured teams leave manual project management available while automatic defaults still fail',
   { timeout: 30000 },
   async t => {
-    const { prepareContentPack } = await import('../src/testing.mjs')
-    const { startPreview } = await import('../src/preview.mjs')
+    const { prepareContentPack } = await import('../src/testing.ts')
+    const { startPreview } = await import('../src/preview.ts')
     const root = await mkdtemp(join(tmpdir(), 'arcadia-missing-preview-team-'))
     const project = join(root, 'project')
     await createSourceProject(project, 'missing-default-team')

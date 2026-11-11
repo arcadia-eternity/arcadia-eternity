@@ -8,8 +8,8 @@ import { mkdtemp, mkdir, writeFile, readFile, access, rm } from 'node:fs/promise
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { create } from 'tar'
-import { ContentWorkspace } from '../src/content-workspace.mjs'
-import { ManagedProjects } from '../src/managed-projects.mjs'
+import { ContentWorkspace } from '../src/content-workspace.ts'
+import { ManagedProjects } from '../src/managed-projects.ts'
 
 test(
   'editing registry package versions resolves new locked bytes while previous versions stay unchanged',

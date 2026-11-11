@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, symlink, rm, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { buildEffects } from '../src/effect-build.mjs'
+import { buildEffects } from '../src/effect-build.ts'
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-effect-build-'))
