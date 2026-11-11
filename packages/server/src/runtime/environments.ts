@@ -110,6 +110,8 @@ export class ServerEnvironmentRegistry {
       if (prepared.installation.packages.some(pkg => pkg.officialHost)) {
         const shipped = await loadServerBase()
         const catalog = prepared.sandbox.modules.find(module => module.role === 'catalog')
+        // officialHost comes from package metadata, so a package name is not a trust
+        // boundary. Only the shipped official artifact may run under official policy.
         const sameCode = catalog && digest(catalog.artifact) === digest(shipped.sandbox.modules[0].artifact)
         if (!sameCode && approval.policy.profile === 'official')
           throw new EnvironmentError('THIRD_PARTY_EXECUTION_FORBIDDEN')

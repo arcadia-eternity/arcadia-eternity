@@ -1,6 +1,6 @@
 import { spawn, execFile, type ChildProcess } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdtemp, rm, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
@@ -300,6 +300,48 @@ it('bootstraps playable builtin content once and preserves administrator removal
   expect(server.defaultBindingId).toBeUndefined()
   expect((await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings).toEqual([])
   expect(await catalog(running.origin)).toEqual([])
+}, 120_000)
+
+it('refreshes stale builtin content after a release without changing administrator policy', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-builtin-refresh-'))
+  directories.push(directory)
+  let running = await start(directory)
+  let request = await administrator(running.origin, directory)
+  let server = (await request<{ servers: Server[] }>('/servers')).servers[0]
+  let binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  expect(binding.condition).toBe('available')
+  const previousVersionId = binding.effectiveVersionId
+  await stop(running.child)
+
+  const versionDirectory = `version-${previousVersionId!.replaceAll('-', '')}`
+  const metadataFile = join(directory, 'workspace', 'versions', versionDirectory, 'version.json')
+  const metadata = JSON.parse(await readFile(metadataFile, 'utf8')) as {
+    contentRevision: string
+    document: { packages: Record<string, string> }
+  }
+  metadata.document.packages['@arcadia-eternity/data-pack-base'] = '0.0.0-stale'
+  metadata.contentRevision = 'arcadia.work-environment/1:stale'
+  await writeFile(metadataFile, JSON.stringify(metadata, null, 2) + '\n')
+
+  running = await start(directory)
+  const environments = await catalog(running.origin)
+  expect(environments).toHaveLength(1)
+  const info = (await (await fetch(running.origin + '/api/v1/server-info')).json()) as {
+    runtime: { contentRevision: string }
+  }
+  expect(environments[0].runtime.contentRevision).toBe(info.runtime.contentRevision)
+
+  request = await administrator(running.origin, directory)
+  server = (await request<{ servers: Server[] }>('/servers')).servers[0]
+  binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  expect(binding).toMatchObject({
+    enabled: true,
+    visibility: 'public',
+    matchmakingEnabled: true,
+    condition: 'available',
+  })
+  expect(binding.effectiveVersionId).not.toBe(previousVersionId)
+  expect(server.defaultBindingId).toBe(binding.id)
 }, 120_000)
 
 it('does not auto-publish an existing managed server without bootstrap provenance', async () => {
