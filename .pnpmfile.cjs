@@ -1,7 +1,8 @@
 module.exports = {
   hooks: {
     readPackage(pkg) {
-      if (pkg.name !== 'better-auth' || pkg.version !== '1.7.13') return pkg
+      const reviewedVersions = new Set(['1.7.13', '1.7.19'])
+      if (pkg.name !== 'better-auth' || !reviewedVersions.has(pkg.version)) return pkg
       // Arcadia uses authentication entry points, never better-auth/test.
       // pnpm 11 restores a deleted optional peer from peerDependenciesMeta,
       // so both declarations must be omitted to keep Vitest out of production.
