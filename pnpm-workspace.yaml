@@ -14,7 +14,7 @@ allowBuilds:
   vue-demi: true
 catalog:
   '@typescript/native-preview': 7.0.0-dev.20260707.2
-  typescript: 6.0.3
+  typescript: 'npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2'
   nanoid: 6.0.2
   '@sinclair/typebox': 0.34.52
   vitest: 5.1.0
@@ -38,6 +38,8 @@ minimumReleaseAgeExclude:
   - '@typescript-eslint/visitor-keys@8.72.3-alpha.6'
   - typescript-eslint@8.72.3-alpha.6
 overrides:
+  # Keep the classic TypeScript API surface while running type checks on tsgo.
+  typescript: 'npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2'
   # WebAuthn ASN.1 decorators and parsers must share the same schema registry.
   '@simplewebauthn/server>@peculiar/asn1-schema': '2.11.1'
   yauzl: 3.4.0
