@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createGzip, gzipSync } from 'node:zlib'
 import { Command } from 'commander'
-import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { inspectNpmProject, parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 import { exportProject, verifyProject } from '../src/commands/project'
 import { registerCommands } from '../src/commands/register'
 
@@ -97,7 +97,7 @@ beforeAll(async () => {
       timeout: 30000,
     },
   )
-  const tarball = JSON.parse(packed.stdout)[0].filename as string
+  const tarball = parseNpmPackOutput(packed.stdout)[0].filename
   await writeJson(join(source, 'package.json'), {
     name: 'private-server',
     version: '1.0.0',
@@ -390,7 +390,7 @@ it('rejects transitive local file dependencies even when the source installation
       timeout: 30000,
     },
   )
-  const library = join(project, 'artifacts', JSON.parse(libraryPack.stdout)[0].filename)
+  const library = join(project, 'artifacts', parseNpmPackOutput(libraryPack.stdout)[0].filename)
   await cp(join(workspace, 'examples/ugc/slow'), sampleDir, { recursive: true })
   const manifest = await json(join(sampleDir, 'package.json'))
   manifest.dependencies = { 'arcadia-local-library': `file:${library}` }
@@ -404,7 +404,7 @@ it('rejects transitive local file dependencies even when the source installation
       timeout: 30000,
     },
   )
-  const contentTarball = JSON.parse(samplePack.stdout)[0].filename
+  const contentTarball = parseNpmPackOutput(samplePack.stdout)[0].filename
   await writeJson(join(project, 'package.json'), {
     name: 'nested-project',
     version: '1.0.0',
@@ -437,7 +437,7 @@ it('preserves an omitted optional peer dependency in the current lockfile format
       timeout: 30000,
     },
   )
-  const tarball = JSON.parse(packed.stdout)[0].filename
+  const tarball = parseNpmPackOutput(packed.stdout)[0].filename
   await writeJson(join(project, 'package.json'), {
     name: 'v3-peer-project',
     version: '1.0.0',

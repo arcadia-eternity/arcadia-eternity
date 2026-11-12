@@ -22,7 +22,7 @@ import { promisify } from 'node:util'
 import YAML from 'yaml'
 import { collectDesktopLicenses } from './desktop-runtime-licenses.mjs'
 import { verifyDesktopProductionDependencies } from './desktop-production-dependencies.mjs'
-import { stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
+import { locateDesktopSqliteBinary, stageDesktopSqlite, loadElectronRebuild } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks, resolvePnpmInvocation } from './desktop-runtime-portability.mjs'
 import { withPreservedPnpmWorkspaceState } from './desktop-pnpm-deploy.mjs'
 import { stagePairedWebsite, verifyPairedWebsite } from './stage-paired-website.mjs'
@@ -31,9 +31,7 @@ import { materializeLinklessModules } from './desktop-linkless-modules.mjs'
 const exec = promisify(execFile)
 const repo = fileURLToPath(new URL('../', import.meta.url))
 const require = createRequire(import.meta.url)
-const npmVersion = '11.17.0'
 const pnpmVersion = '11.21.0'
-const npmIntegrity = 'sha512-PurxiZexEHDTE4SSaLI3ZrnbAGiZfeyUcQcxcP5D+hfytNAze/D1IzDuInTn9XVLIbAQUnQuSPXJx02LHjLvQw=='
 
 function inside(root, target) {
   const path = relative(root, target)
@@ -102,8 +100,8 @@ export async function verifyDesktopRuntime(
     const installedSqlite = JSON.parse(await readFile(sqlitePackage, 'utf8'))
     if (installedSqlite.version !== sqlite.version || installedSqlite.name !== sqlite.name)
       throw new Error('Desktop SQLite native artifact does not match its recorded package version')
-    const nativeFile = join(dirname(sqlitePackage), 'build/Release/better_sqlite3.node')
-    if (!inside(await realpath(root), await realpath(nativeFile)) || !(await stat(nativeFile)).isFile())
+    const nativeFile = await locateDesktopSqliteBinary(dirname(sqlitePackage), sqlite.platform, sqlite.arch)
+    if (!nativeFile || !inside(await realpath(root), await realpath(nativeFile)) || !(await stat(nativeFile)).isFile())
       throw new Error('Desktop SQLite native artifact is missing or escapes runtime')
   }
   return manifest
@@ -198,9 +196,16 @@ export async function stageDesktopRuntime({ output, online = false, allowIncompl
   try {
     const lock = await readFile(join(repo, 'pnpm-lock.yaml'), 'utf8')
     const parsedLock = YAML.parse(lock)
+    const webUi = JSON.parse(await readFile(join(repo, 'packages/web-ui/package.json'), 'utf8'))
+    const npmVersion = webUi.devDependencies?.npm
+    if (typeof npmVersion !== 'string' || !/^\d+\.\d+\.\d+$/.test(npmVersion))
+      throw new Error('packages/web-ui/package.json must pin an exact npm version')
     const lockedNpm = parsedLock.importers?.['packages/web-ui']?.devDependencies?.npm
     if (lockedNpm?.specifier !== npmVersion || lockedNpm?.version !== npmVersion)
-      throw new Error('The pinned npm version is missing from pnpm-lock.yaml')
+      throw new Error(`The pinned npm ${npmVersion} is missing from pnpm-lock.yaml`)
+    const npmIntegrity = parsedLock.packages?.[`npm@${npmVersion}`]?.resolution?.integrity
+    if (typeof npmIntegrity !== 'string')
+      throw new Error(`The pinned npm ${npmVersion} integrity is missing from pnpm-lock.yaml`)
     const npmRoot = await realpath(join(repo, 'packages/web-ui/node_modules/npm'))
     const npm = JSON.parse(await readFile(join(npmRoot, 'package.json'), 'utf8'))
     if (npm.version !== npmVersion) throw new Error(`Desktop build requires npm ${npmVersion}`)

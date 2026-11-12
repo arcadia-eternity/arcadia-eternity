@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { ArenaEffectModule, type EffectModuleArtifact } from '@arcadia-eternity/battle/sandbox/effects'
 import * as compiler from '../src/npm/effect-artifact'
+import { parseNpmPackOutput } from '../src/npm/pack-output'
 import { readPrebuiltEffectModule, validatePrebuiltEffectModule } from '../src/npm/prebuilt-artifact'
 import { prepareNpmProject, type NpmContentHost, type PreparedNpmEnvironment } from '../src/npm/prepare'
 
@@ -59,7 +60,7 @@ beforeAll(async () => {
     join(project, 'package.json'),
     JSON.stringify({
       private: true,
-      dependencies: { [packageId]: `file:${join(source, JSON.parse(packed.stdout)[0].filename)}` },
+      dependencies: { [packageId]: `file:${join(source, parseNpmPackOutput(packed.stdout)[0].filename)}` },
     }),
   )
   await execute('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: project })

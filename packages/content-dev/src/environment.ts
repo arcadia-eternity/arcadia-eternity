@@ -5,7 +5,13 @@ import { mkdir, mkdtemp, readFile, rm, writeFile, cp, symlink } from 'node:fs/pr
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { promisify } from 'node:util'
-import { emptyNpmContentHost, prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import {
+  emptyNpmContentHost,
+  parseNpmPackOutput,
+  prepareNpmProject,
+  resolveNpmInvocation,
+  type NpmPackEntry,
+} from '@arcadia-eternity/pack-loader/node'
 import { AuthorWorkspace, type ManifestArcadia, type PackageManifest } from './workspace.ts'
 import { ProjectTeams, playersFromTeams, type ProjectTeam } from './project-teams.ts'
 import { createHash } from 'node:crypto'
@@ -18,11 +24,13 @@ const exec = promisify(execFile)
 
 type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareNpmProject>>
 
-interface PackedInfo {
-  filename: string
+interface PackedInfo extends NpmPackEntry {
   shasum: string
-  integrity?: string
-  files: Array<{ path: string }>
+}
+
+function requirePackedInfo(entry: NpmPackEntry | undefined): PackedInfo {
+  if (!entry?.shasum) throw new Error('ENVIRONMENT_PACK_INVALID')
+  return { ...entry, shasum: entry.shasum }
 }
 
 export interface BattleLike {
@@ -125,7 +133,7 @@ export async function prepareBattleEnvironment(
     const result = await npm(['pack', '--json', '--ignore-scripts', '--pack-destination', temporary, ...cacheArgs], {
       cwd: root,
     })
-    const packed = (JSON.parse(String(result.stdout)) as PackedInfo[])[0]
+    const packed = requirePackedInfo(parseNpmPackOutput(String(result.stdout))[0])
     const files = packed.files.map(file => file.path)
     assert.ok(files.includes(manifest.arcadia.content!))
     if (manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
@@ -167,11 +175,11 @@ export async function prepareBattleEnvironment(
         const metadata = JSON.parse(await readFile(join(captured, 'package.json'), 'utf8')) as { name: string }
         if (metadata.name !== name) throw new Error(`ENVIRONMENT_SOURCE_IDENTITY: ${name}`)
         await exec(process.execPath, [siblingModulePath('cli'), 'build'], { cwd: captured })
-        const info = (
-          JSON.parse(
+        const info = requirePackedInfo(
+          parseNpmPackOutput(
             String((await npm(['pack', '--json', '--ignore-scripts', ...cacheArgs], { cwd: captured })).stdout),
-          ) as PackedInfo[]
-        )[0]
+          )[0],
+        )
         if (info.files.some(file => /^(?:debug|test|scripts|node_modules|\.arcadia|\.github)\//.test(file.path)))
           throw new Error('ENVIRONMENT_PACKAGE_FILES')
         await addCandidate(captured, metadata, info)

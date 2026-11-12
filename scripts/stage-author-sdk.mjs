@@ -161,14 +161,10 @@ export async function stageAuthorSdk(output) {
           maxBuffer: 16 * 1024 * 1024,
         },
       )
-      const packed = JSON.parse(result.stdout)
-      const filename = packed?.[0]?.filename
-      if (
-        !Array.isArray(packed) ||
-        packed.length !== 1 ||
-        typeof filename !== 'string' ||
-        basename(filename) !== filename
-      )
+      const parsed = JSON.parse(result.stdout)
+      const packed = Array.isArray(parsed) ? parsed : parsed && typeof parsed === 'object' ? Object.values(parsed) : []
+      const filename = packed.length === 1 ? packed[0]?.filename : undefined
+      if (packed.length !== 1 || typeof filename !== 'string' || basename(filename) !== filename)
         throw new Error(`Invalid npm pack output for ${name}`)
       records.push({
         name,

@@ -4,7 +4,7 @@ import { copyFile, lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, writeF
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import type { Stats } from 'node:fs'
-import { compileEffectModule, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import { compileEffectModule, parseNpmPackOutput, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
 import type { PackageManifest } from './workspace.ts'
 import { errorCode } from './types.ts'
@@ -84,12 +84,10 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
   const root = await realpath(resolve(directory))
   const manifestText = await readFile(join(root, 'package.json'), 'utf8')
   const manifest = JSON.parse(manifestText) as PackageManifest & { name: string }
-  const preview = (
-    JSON.parse(String((await npm(root, ['pack', '--dry-run', '--ignore-scripts', '--json'], cache)).stdout)) as Array<{
-      files: Array<{ path: string }>
-    }>
+  const preview = parseNpmPackOutput(
+    String((await npm(root, ['pack', '--dry-run', '--ignore-scripts', '--json'], cache)).stdout),
   )[0]
-  if (!Array.isArray(preview?.files) || preview.files.length > 50000) fail('npm returned an invalid package file list')
+  if (!preview || preview.files.length > 50000) fail('npm returned an invalid package file list')
   const included = new Set<string>(preview.files.map((file: { path: string }) => packagePath(file.path)))
   if (!included.has('package.json')) fail('npm omitted the package manifest')
   let presentation: PresentationManifest | undefined
@@ -171,20 +169,10 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
     }
     staged.files = [...distributed]
     await writeFile(join(payload, 'package.json'), JSON.stringify(staged, null, 2) + '\n')
-    const packed = (
-      JSON.parse(
-        String(
-          (await npm(payload, ['pack', '--ignore-scripts', '--json', '--pack-destination', output], cache)).stdout,
-        ),
-      ) as Array<{
-        filename: string
-        files: Array<{ path: string }>
-        integrity?: string
-        shasum?: string
-      }>
+    const packed = parseNpmPackOutput(
+      String((await npm(payload, ['pack', '--ignore-scripts', '--json', '--pack-destination', output], cache)).stdout),
     )[0]
-    if (!packed || typeof packed.filename !== 'string' || !Array.isArray(packed.files))
-      fail('npm returned an invalid package receipt')
+    if (!packed) fail('npm returned an invalid package receipt')
     packagePath(packed.filename)
     if (basename(packed.filename) !== packed.filename) fail('npm returned an unsafe archive filename')
     const actual = new Set<string>(packed.files.map((file: { path: string }) => file.path))

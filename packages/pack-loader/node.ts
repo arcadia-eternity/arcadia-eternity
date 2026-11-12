@@ -3,6 +3,7 @@ import * as resolver from '@arcadia-eternity/battle/pack'
 import { NativePackLoader } from './src/native-loader'
 export { readNpmAdmission } from './src/npm/admission'
 export { resolveNpmInvocation } from './src/npm/runner'
+export { parseNpmPackOutput, type NpmPackEntry, type NpmPackFile } from './src/npm/pack-output'
 export { inspectNpmProject, type NpmProjectInspection, type NpmContentManifest } from './src/npm/inspect'
 export {
   prepareNpmProject,

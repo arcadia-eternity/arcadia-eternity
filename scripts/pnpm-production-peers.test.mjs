@@ -18,10 +18,10 @@ const require = createRequire(import.meta.url)
 const { readPackage } = require('../.pnpmfile.cjs').hooks
 const exec = promisify(execFile)
 
-const manifest = () => ({
+const manifest = (version = '1.7.13') => ({
   name: 'better-auth',
-  version: '1.7.13',
-  dependencies: { '@better-auth/core': '1.7.13' },
+  version,
+  dependencies: { '@better-auth/core': version },
   optionalDependencies: { 'runtime-addon': '1.0.0' },
   devDependencies: { vitest: '4.1.11' },
   peerDependencies: { vitest: '^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0', pg: '^8.0.0' },
@@ -29,40 +29,46 @@ const manifest = () => ({
 })
 
 test('omits only the reviewed test peer and its pnpm 11 implicit-peer metadata', () => {
-  const original = manifest()
-  const result = readPackage(original)
-  assert.equal(result.peerDependencies.vitest, undefined)
-  assert.equal(result.peerDependenciesMeta.vitest, undefined)
-  assert.deepEqual(result.peerDependencies, { pg: '^8.0.0' })
-  assert.deepEqual(result.peerDependenciesMeta, { pg: { optional: true } })
-  assert.equal(result.dependencies, original.dependencies)
-  assert.equal(result.optionalDependencies, original.optionalDependencies)
-  assert.equal(result.devDependencies, original.devDependencies)
-  assert.equal(original.peerDependenciesMeta.vitest.optional, true)
-  assert.equal(readPackage(result), result)
+  for (const version of ['1.7.13', '1.7.19']) {
+    const original = manifest(version)
+    const result = readPackage(original)
+    assert.equal(result.peerDependencies.vitest, undefined)
+    assert.equal(result.peerDependenciesMeta.vitest, undefined)
+    assert.deepEqual(result.peerDependencies, { pg: '^8.0.0' })
+    assert.deepEqual(result.peerDependenciesMeta, { pg: { optional: true } })
+    assert.equal(result.dependencies, original.dependencies)
+    assert.equal(result.optionalDependencies, original.optionalDependencies)
+    assert.equal(result.devDependencies, original.devDependencies)
+    assert.equal(original.peerDependenciesMeta.vitest.optional, true)
+    assert.equal(readPackage(result), result)
+  }
 })
 
 test('keeps development Vitest and other packages or Better Auth releases unchanged', () => {
   for (const pkg of [
     { ...manifest(), name: 'arcadia-eternity' },
     { ...manifest(), version: '1.7.14' },
+    manifest('1.7.18'),
+    manifest('1.7.20'),
     { name: 'vitest', version: '4.1.11', dependencies: { 'why-is-node-running': '^2.3.0' } },
   ])
     assert.equal(readPackage(pkg), pkg)
 })
 
 test('fails closed if the reviewed test peer becomes a runtime or required dependency', () => {
-  for (const field of ['dependencies', 'optionalDependencies']) {
-    const pkg = manifest()
-    pkg[field].vitest = '4.1.11'
-    assert.throws(() => readPackage(pkg), /not a runtime dependency/)
+  for (const version of ['1.7.13', '1.7.19']) {
+    for (const field of ['dependencies', 'optionalDependencies']) {
+      const pkg = manifest(version)
+      pkg[field].vitest = '4.1.11'
+      assert.throws(() => readPackage(pkg), /not a runtime dependency/)
+    }
+    const required = manifest(version)
+    required.peerDependenciesMeta.vitest.optional = false
+    assert.throws(() => readPackage(required), /metadata changed/)
+    const implicit = manifest(version)
+    delete implicit.peerDependencies.vitest
+    assert.throws(() => readPackage(implicit), /metadata changed/)
   }
-  const required = manifest()
-  required.peerDependenciesMeta.vitest.optional = false
-  assert.throws(() => readPackage(required), /metadata changed/)
-  const implicit = manifest()
-  delete implicit.peerDependencies.vitest
-  assert.throws(() => readPackage(implicit), /metadata changed/)
 })
 
 async function physicalPackage(root, path, name, version = '9.8.7') {
@@ -184,10 +190,10 @@ test(
       packages.set(value.name, { manifest: value, tarball })
     }
     pkg(
-      manifest(),
+      manifest('1.7.19'),
       "module.exports = { core: require('@better-auth/core'), addon: require('runtime-addon'), pg: require('pg') }\n",
     )
-    pkg({ name: '@better-auth/core', version: '1.7.13' }, "module.exports = 'auth-core'\n")
+    pkg({ name: '@better-auth/core', version: '1.7.19' }, "module.exports = 'auth-core'\n")
     pkg(
       { name: 'runtime-addon', version: '1.0.0' },
       "module.exports = require('node:fs').readFileSync(require('node:path').join(__dirname, 'runtime.node'))\n",
@@ -263,7 +269,7 @@ test(
         JSON.stringify({
           name: 'fixture-server',
           version: '1.0.0',
-          dependencies: { 'better-auth': '1.7.13', pg: '8.23.1' },
+          dependencies: { 'better-auth': '1.7.19', pg: '8.23.1' },
         }),
       )
       if (policy === 'reviewed')
@@ -272,7 +278,7 @@ test(
         await writeFile(
           join(root, '.pnpmfile.cjs'),
           `module.exports = { hooks: { readPackage(pkg) {
-        if (pkg.name !== 'better-auth' || pkg.version !== '1.7.13') return pkg
+        if (pkg.name !== 'better-auth' || pkg.version !== '1.7.19') return pkg
         const peerDependencies = { ...pkg.peerDependencies }
         delete peerDependencies.vitest
         return { ...pkg, peerDependencies }
@@ -312,11 +318,11 @@ test(
       const before = await Promise.all(sourcePaths.map(file => readFile(join(root, file))))
       const devBefore = await readFile(devEntry)
       const lock = parse(before[2].toString())
-      const authSnapshot = Object.entries(lock.snapshots).find(([name]) => name.startsWith('better-auth@1.7.13'))?.[1]
+      const authSnapshot = Object.entries(lock.snapshots).find(([name]) => name.startsWith('better-auth@1.7.19'))?.[1]
       assert.ok(authSnapshot)
       assert.equal(authSnapshot.optionalDependencies?.vitest, policy !== 'reviewed' ? '4.1.11' : undefined)
       assert.equal(
-        lock.packages['better-auth@1.7.13'].peerDependencies?.vitest,
+        lock.packages['better-auth@1.7.19'].peerDependencies?.vitest,
         policy === 'peer-only' ? '*' : policy === 'control' ? manifest().peerDependencies.vitest : undefined,
       )
       assert.equal(lock.snapshots['vitest@4.1.11'].dependencies['why-is-node-running'], '2.3.0')

@@ -7,6 +7,7 @@ import { networkInterfaces, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 import { ContentLibrary } from '../content-library.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
@@ -134,7 +135,7 @@ test(
           env: { ...process.env, npm_config_cache: join(root, 'cache') },
         },
       )
-      await library.installFile(join(root, JSON.parse(packed.stdout)[0].filename), true)
+      await library.installFile(join(root, parseNpmPackOutput(packed.stdout)[0].filename), true)
       for (let attempt = 0; ; attempt++) {
         const state = await library.list()
         if (state.selection.status === 'failed') throw new Error(state.selection.message)

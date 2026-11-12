@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
+import { parseNpmPackOutput, stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 
 // Uses only the production distribution, real host CLI and public UI/API. No route mocks or store injection.
 test.skip(process.env.PLAYWRIGHT_MANAGEMENT_BACKUP !== '1', 'Requires freshly built CLI and paired website')
@@ -134,7 +134,7 @@ test('paired production management backs up, revokes service credentials and ret
       cwd: join(catalog, 'node_modules', catalogPackage),
       env: environment,
     })
-    const [{ filename }] = JSON.parse(stdout)
+    const [{ filename }] = parseNpmPackOutput(stdout)
     await writeFile(
       join(directory, 'content-sources.json'),
       JSON.stringify({ [catalogPackage]: { kind: 'archive', file: join(directory, filename) } }),

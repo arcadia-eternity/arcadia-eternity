@@ -210,6 +210,43 @@ test('Windows pnpm prefers the explicitly configured pinned installation over a 
   )
 })
 
+test('Windows pnpm follows the action-setup bin shim to the requested version', async () => {
+  const home = 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\.bin'
+  const shim = 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\.bin\\bin\\pnpm'
+  const target = 'C:\\Users\\runneradmin\\setup-pnpm\\global\\5\\node_modules\\pnpm\\bin\\pnpm.mjs'
+  const bootstrap = 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\pnpm\\bin\\pnpm.mjs'
+  assert.deepEqual(
+    await resolvePnpmInvocation({
+      platform: 'win32',
+      env: { PNPM_HOME: home },
+      execPath: 'node.exe',
+      resolvePackage: () => 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\pnpm\\package.json',
+      isFile: async path => path === target || path === bootstrap,
+      readText: async path => {
+        if (path !== shim) throw Object.assign(new Error(`ENOENT: ${path}`), { code: 'ENOENT' })
+        return '# cmd-shim-target=../../../global/5/node_modules/pnpm/bin/pnpm.mjs\n'
+      },
+    }),
+    { command: 'node.exe', args: [target] },
+  )
+})
+
+test('Windows pnpm accepts a native executable from the configured installation', async () => {
+  const home = 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\.bin'
+  const executable = 'C:\\Users\\runneradmin\\setup-pnpm\\node_modules\\.bin\\bin\\pnpm.exe'
+  assert.deepEqual(
+    await resolvePnpmInvocation({
+      platform: 'win32',
+      env: { PNPM_HOME: home },
+      resolvePackage: () => {
+        throw new Error('not installed in the project')
+      },
+      isFile: async path => path === executable,
+    }),
+    { command: executable, args: [] },
+  )
+})
+
 test('Windows pnpm rejects missing entries and relative PATH directories', async () => {
   const seen = []
   await assert.rejects(

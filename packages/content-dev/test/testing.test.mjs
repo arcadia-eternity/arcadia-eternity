@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { prepareContentPack } from '../src/testing.ts'
+import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 const exec = promisify(execFile)
 
 test('the shared harness accepts data-only packs with cached npm runtime dependencies', async () => {
@@ -23,7 +24,7 @@ test('the shared harness accepts data-only packs with cached npm runtime depende
       JSON.stringify({ name: 'arcadia-test-runtime', version: '1.0.0' }),
     )
     await writeFile(join(dependency, 'index.js'), 'module.exports = 42\n')
-    const packed = JSON.parse(
+    const packed = parseNpmPackOutput(
       (await exec('npm', ['pack', '--json', '--ignore-scripts', '--cache', cache], { cwd: dependency })).stdout,
     )[0]
     const bytes = await readFile(join(dependency, packed.filename))

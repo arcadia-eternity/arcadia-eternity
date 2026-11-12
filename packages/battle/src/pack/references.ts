@@ -1,6 +1,6 @@
 // Pack references and dependency traversal shared by all battle runtimes.
 import { access, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
@@ -74,6 +74,30 @@ interface PackPackageJsonLike {
 
 const requireFromLoader = createRequire(import.meta.url)
 
+function inside(root: string, target: string): boolean {
+  const path = relative(root, target)
+  return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path)
+}
+
+async function resolvePackManifestPath(packRoot: string): Promise<string | undefined> {
+  let entry = 'pack.json'
+  try {
+    const packageJson = JSON.parse(await readFile(resolve(packRoot, 'package.json'), 'utf-8')) as PackPackageJsonLike
+    if (typeof packageJson.arcadiaEternityPack === 'string' && packageJson.arcadiaEternityPack.trim().length > 0)
+      entry = packageJson.arcadiaEternityPack.trim()
+  } catch {
+    // Legacy packs without package metadata use pack.json at their root.
+  }
+  const manifestPath = resolve(packRoot, entry)
+  if (!inside(packRoot, manifestPath)) return undefined
+  try {
+    if (!(await stat(manifestPath)).isFile()) return undefined
+    return manifestPath
+  } catch {
+    return undefined
+  }
+}
+
 async function resolvePackReference(packRef?: string): Promise<string | undefined> {
   if (!packRef || packRef.trim().length === 0) return undefined
   const ref = packRef.trim()
@@ -112,9 +136,11 @@ async function resolvePackReference(packRef?: string): Promise<string | undefine
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8')) as PackPackageJsonLike
   const packEntry =
     typeof packageJson.arcadiaEternityPack === 'string' && packageJson.arcadiaEternityPack.length > 0
-      ? packageJson.arcadiaEternityPack
+      ? packageJson.arcadiaEternityPack.trim()
       : 'pack.json'
-  return resolve(packageRoot, packEntry)
+  const manifestPath = resolve(packageRoot, packEntry)
+  if (!inside(packageRoot, manifestPath)) throw new Error(`Pack entry escapes package root: ${packEntry}`)
+  return manifestPath
 }
 
 async function resolvePackageJsonPath(packageName: string): Promise<string> {
@@ -155,13 +181,8 @@ async function findWorkspacePackageJson(packageName: string): Promise<string | u
 async function resolveBuiltinBasePackPath(): Promise<string | undefined> {
   let current = dirname(fileURLToPath(import.meta.url))
   for (let i = 0; i < 8; i++) {
-    const candidate = resolve(current, 'packs', 'base', 'pack.json')
-    try {
-      await access(candidate)
-      return candidate
-    } catch {
-      // keep climbing to repo root
-    }
+    const candidate = await resolvePackManifestPath(resolve(current, 'packs', 'base'))
+    if (candidate) return candidate
     const parent = dirname(current)
     if (parent === current) break
     current = parent
@@ -219,9 +240,9 @@ async function discoverWorkspacePackDescriptors(packsDir: string): Promise<Works
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue
-    const packPath = resolve(packsDir, entry.name, 'pack.json')
+    const packPath = await resolvePackManifestPath(resolve(packsDir, entry.name))
+    if (!packPath) continue
     try {
-      await access(packPath)
       const raw = await readFile(packPath, 'utf-8')
       const parsed = JSON.parse(raw) as { id?: string; assetsRef?: string | string[] }
       if (!parsed.id) continue

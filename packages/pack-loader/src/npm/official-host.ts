@@ -15,6 +15,7 @@ import { createDraft, fail } from '../works/model'
 import { parseWithErrors, PresentationManifestSchema } from '@arcadia-eternity/schema'
 import type { InstalledNpmPackage } from './inspect'
 import { npmInvocation } from './runner'
+import { parseNpmPackOutput } from './pack-output'
 
 async function readPackageJson(root: string, path: string) {
   const file = packageFile(root, path)
@@ -81,7 +82,7 @@ export function withShippedCatalogArchive<T>(
       env: process.versions.electron ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env,
       timeout: 60_000,
     })
-    const [{ filename }] = JSON.parse(stdout)
+    const [{ filename }] = parseNpmPackOutput(stdout)
     if (typeof filename !== 'string' || filename !== basename(filename) || !filename.endsWith('.tgz'))
       fail('NPM_FILE', name, 'Invalid npm archive filename')
     return use(packageFile(project, filename))

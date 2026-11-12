@@ -1,6 +1,18 @@
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { cp, mkdir, mkdtemp, readFile, readdir, readlink, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  readlink,
+  realpath,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -11,6 +23,24 @@ const exec = promisify(execFile)
 const inside = (root, target) => {
   const path = relative(root, target)
   return path !== '' && path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path)
+}
+
+/** Prefer the N-API prebuild shipped by better-sqlite3 13, then the node-gyp fallback. */
+export async function locateDesktopSqliteBinary(moduleRoot, platform = process.platform, arch = process.arch) {
+  const linuxMusl =
+    platform === 'linux' && !process.report.getReport().header.glibcVersionRuntime ? 'linuxmusl' : platform
+  for (const file of [
+    join(moduleRoot, 'prebuilds', `${linuxMusl}-${arch}.node`),
+    join(moduleRoot, 'build', 'Release', 'better_sqlite3.node'),
+    join(moduleRoot, 'build', 'Debug', 'better_sqlite3.node'),
+  ]) {
+    try {
+      if ((await stat(file)).isFile()) return file
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+  }
+  return undefined
 }
 
 async function validateRuntimeLinks(root) {
@@ -114,7 +144,7 @@ export async function stageDesktopSqlite({
   await cp(moduleRoot, copy, { recursive: true, verbatimSymlinks: true, force: false, errorOnExist: true })
   await rm(moduleRoot, { recursive: true, force: true })
   await rename(copy, moduleRoot)
-  const binary = join(moduleRoot, 'build/Release/better_sqlite3.node')
+  let binary = await locateDesktopSqliteBinary(moduleRoot, platform, arch)
   const probe = async () => {
     await validateRuntimeLinks(runtime)
     return verifyDesktopSqlite({ executable, moduleRoot, electronVersion, platform, arch })
@@ -126,7 +156,9 @@ export async function stageDesktopSqlite({
     /* A deployed dependency usually contains the system Node ABI. */
   }
   if (!verified) {
+    await rm(join(moduleRoot, 'prebuilds'), { recursive: true, force: true })
     await rm(join(moduleRoot, 'build'), { recursive: true, force: true })
+    binary = join(moduleRoot, 'build/Release/better_sqlite3.node')
     await mkdir(dirname(binary), { recursive: true })
     try {
       await cp(cached, binary)
@@ -139,6 +171,7 @@ export async function stageDesktopSqlite({
     if (!online)
       throw new Error(`No verified SQLite binary for ${key}; rerun staging with --online to prepare this target`)
     if (typeof rebuild !== 'function') throw new Error('Electron native rebuild tool is unavailable')
+    await rm(join(moduleRoot, 'prebuilds'), { recursive: true, force: true })
     await rebuild({
       buildPath: moduleRoot,
       projectRootPath: runtime,
@@ -148,6 +181,8 @@ export async function stageDesktopSqlite({
       onlyModules: ['better-sqlite3'],
       force: true,
     })
+    binary = await locateDesktopSqliteBinary(moduleRoot, platform, arch)
+    if (!binary) throw new Error('Electron native rebuild did not produce a SQLite binary')
     verified = await probe()
   }
   if (verified.abi !== String(abi)) throw new Error('SQLite binary ABI does not match the selected Electron runtime')

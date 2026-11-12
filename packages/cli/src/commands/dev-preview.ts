@@ -4,7 +4,7 @@ import { lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFi
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { promisify } from 'node:util'
 import type { Command } from 'commander'
-import { inspectNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import { inspectNpmProject, parseNpmPackOutput, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import type { CommandContext } from '../context'
 import { CliError } from '../reporting/errors'
 
@@ -81,10 +81,9 @@ export async function prepareDevPreview(
       root,
       options.signal,
     )
-    const result: unknown = JSON.parse(packed.stdout)
-    if (!Array.isArray(result) || result.length !== 1 || typeof result[0]?.filename !== 'string')
-      throw new CliError('DEV_PACK', 'npm did not return one package artifact')
-    const filename = result[0].filename as string
+    const result = parseNpmPackOutput(packed.stdout)
+    if (result.length !== 1) throw new CliError('DEV_PACK', 'npm did not return one package artifact')
+    const filename = result[0].filename
     if (basename(filename) !== filename) throw new CliError('DEV_PACK', 'Invalid npm artifact filename')
     const artifact = await readFile(resolve(scratch, filename))
     if (artifact.length > maxBytes) throw new CliError('DEV_PACK', 'Package artifact is too large')

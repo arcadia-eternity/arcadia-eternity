@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process'
 import { constants } from 'node:fs'
-import { access, mkdtemp, realpath, rm, stat } from 'node:fs/promises'
+import { access, mkdtemp, readFile, realpath, rm, stat } from 'node:fs/promises'
 import { get } from 'node:http'
 import { tmpdir } from 'node:os'
-import { basename, isAbsolute, join } from 'node:path'
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { managementRequest } from './desktop-management.mjs'
@@ -20,6 +20,28 @@ class LocalBattleHostError extends Error {
   }
 }
 const problem = (code, message) => new LocalBattleHostError(code, message)
+
+async function resolveBundledBaseManifest(packsDirectory) {
+  const packRoot = join(packsDirectory, 'base')
+  let entry = 'pack.json'
+  try {
+    const packageJson = JSON.parse(await readFile(join(packRoot, 'package.json'), 'utf8'))
+    if (typeof packageJson.arcadiaEternityPack === 'string' && packageJson.arcadiaEternityPack.trim())
+      entry = packageJson.arcadiaEternityPack.trim()
+  } catch {
+    // Legacy packs without package metadata use pack.json at their root.
+  }
+  const manifest = resolve(packRoot, entry)
+  const path = relative(packRoot, manifest)
+  if (path === '..' || path.startsWith(`..${sep}`) || isAbsolute(path)) return undefined
+  try {
+    if (!(await stat(manifest)).isFile()) return undefined
+    await access(manifest)
+    return manifest
+  } catch {
+    return undefined
+  }
+}
 
 /** Don't forward the desktop process's account tokens or arbitrary Node options. */
 export function workerEnvironment(cache, npmCliPath, packsDirectory) {
@@ -248,8 +270,7 @@ export class LocalBattleHost {
       if (this.packsDirectory !== undefined) {
         try {
           if (!isAbsolute(this.packsDirectory) || !(await stat(this.packsDirectory)).isDirectory()) throw new Error()
-          if (!(await stat(join(this.packsDirectory, 'base', 'pack.json'))).isFile()) throw new Error()
-          await access(join(this.packsDirectory, 'base', 'pack.json'), constants.R_OK)
+          if (!(await resolveBundledBaseManifest(this.packsDirectory))) throw new Error()
         } catch {
           throw problem('BASE_PACK_MISSING', '未找到打包的官方基础内容')
         }

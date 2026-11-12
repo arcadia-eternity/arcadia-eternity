@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { createSourceProject } from '../src/author-api.ts'
 import { attack, prepareContentPack } from '../src/testing.ts'
 import { EffectTrigger, setGlobalLogger } from '@arcadia-eternity/battle/engine'
+import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 const exec = promisify(execFile)
 
@@ -44,7 +45,7 @@ test(
     )
     await writeFile(join(base, 'pack.json'), '{}')
     await writeFile(join(base, 'index.js'), "throw new Error('base code executed by host')")
-    const packed = JSON.parse(
+    const packed = parseNpmPackOutput(
       (await exec('npm', ['pack', '--json', '--ignore-scripts', '--cache', cache], { cwd: base })).stdout,
     )[0]
     const project = join(root, 'project')

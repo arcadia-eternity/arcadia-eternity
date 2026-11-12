@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { lstat, readdir, readlink, realpath, rename, stat, symlink, unlink } from 'node:fs/promises'
+import { lstat, readdir, readFile, readlink, realpath, rename, stat, symlink, unlink } from 'node:fs/promises'
 import { dirname, isAbsolute, join, posix, relative, resolve, sep, win32 } from 'node:path'
 
 // Windows junction readlink() may use an extended path although realpath(root)
@@ -111,6 +111,7 @@ export async function resolvePnpmInvocation({
       info => info.isFile(),
       () => false,
     ),
+  readText = path => readFile(path, 'utf8'),
   resolvePackage = specifier => createRequire(import.meta.url).resolve(specifier),
 } = {}) {
   const paths = platform === 'win32' ? win32 : posix
@@ -120,6 +121,23 @@ export async function resolvePnpmInvocation({
     ['pnpm.mjs', 'pnpm.cjs', 'pnpm.js'].includes(paths.basename(entry).toLowerCase()) &&
     (await isFile(entry))
   const nodeInvocation = entry => ({ command: execPath, args: [entry] })
+  const executable = async entry => {
+    if (!(await isFile(entry))) return undefined
+    if (paths.extname(entry).toLowerCase() === '.exe') return { command: entry, args: [] }
+    return executableEntry(entry) ? nodeInvocation(entry) : undefined
+  }
+  // pnpm self-update links the requested version into PNPM_HOME/bin. Windows
+  // shims expose the real Node entry through a cmd-shim target comment.
+  const shimEntry = async shim => {
+    let content
+    try {
+      content = await readText(shim)
+    } catch {
+      return undefined
+    }
+    const target = typeof content === 'string' ? /^#\s*cmd-shim-target=(.+)$/m.exec(content)?.[1]?.trim() : undefined
+    return target ? executable(paths.resolve(paths.dirname(shim), target)) : undefined
+  }
 
   if (await executableEntry(env.npm_execpath)) return nodeInvocation(env.npm_execpath)
   if (platform !== 'win32') return { command: 'pnpm', args: [] }
@@ -127,12 +145,22 @@ export async function resolvePnpmInvocation({
   const checked = new Set()
   async function fromDirectory(directory) {
     if (typeof directory !== 'string' || !paths.isAbsolute(directory)) return undefined
+    for (const relativeEntry of ['pnpm', 'bin/pnpm']) {
+      const found = await shimEntry(paths.resolve(directory, relativeEntry))
+      if (found) return found
+    }
+    for (const relativeEntry of ['pnpm.exe', 'bin/pnpm.exe']) {
+      const found = await executable(paths.resolve(directory, relativeEntry))
+      if (found) return found
+    }
     for (const relativeEntry of [
       'pnpm.mjs',
       'pnpm.cjs',
       'pnpm.js',
       'node_modules/pnpm/bin/pnpm.mjs',
       'node_modules/pnpm/bin/pnpm.cjs',
+      'bin/node_modules/pnpm/bin/pnpm.mjs',
+      'bin/node_modules/pnpm/bin/pnpm.cjs',
       'node_modules/corepack/dist/pnpm.js',
       '../pnpm/bin/pnpm.mjs',
       '../pnpm/bin/pnpm.cjs',

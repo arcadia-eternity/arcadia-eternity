@@ -132,9 +132,13 @@ describe('local authority host', () => {
     const npmCliPath = join(root, 'runtime', 'npm', 'bin', 'npm-cli.js')
     const packsDirectory = join(root, 'bundled-packs')
     await mkdir(join(root, 'runtime', 'npm', 'bin'), { recursive: true })
-    await mkdir(join(packsDirectory, 'base'), { recursive: true })
+    await mkdir(join(packsDirectory, 'base', 'dist'), { recursive: true })
     await writeFile(npmCliPath, '// bundled npm entry')
-    await writeFile(join(packsDirectory, 'base', 'pack.json'), '{}')
+    await writeFile(
+      join(packsDirectory, 'base', 'package.json'),
+      JSON.stringify({ name: '@arcadia-eternity/data-pack-base', arcadiaEternityPack: 'dist/pack.json' }),
+    )
+    await writeFile(join(packsDirectory, 'base', 'dist', 'pack.json'), '{}')
     const oldCli = process.env.ARCADIA_NPM_CLI,
       oldPacks = process.env.ARCADIA_PACKS_DIR
     process.env.ARCADIA_NPM_CLI = '/untrusted/npm.js'
@@ -150,6 +154,30 @@ describe('local authority host', () => {
       await instance.stop()
       if (oldCli === undefined) delete process.env.ARCADIA_NPM_CLI
       else process.env.ARCADIA_NPM_CLI = oldCli
+      if (oldPacks === undefined) delete process.env.ARCADIA_PACKS_DIR
+      else process.env.ARCADIA_PACKS_DIR = oldPacks
+    }
+  })
+  it('accepts legacy base packs and rejects escaping package entries', async () => {
+    const directory = await project('base-pack-layouts')
+    const legacy = join(root, 'legacy-packs')
+    await mkdir(join(legacy, 'base'), { recursive: true })
+    await writeFile(join(legacy, 'base', 'pack.json'), '{}')
+    const oldPacks = process.env.ARCADIA_PACKS_DIR
+    process.env.ARCADIA_PACKS_DIR = '/untrusted/packs'
+    try {
+      const instance = host({ packsDirectory: legacy })
+      try {
+        assert.equal((await instance.start(directory)).status, 'running')
+      } finally {
+        await instance.stop()
+      }
+      const escaped = join(root, 'escaped-packs')
+      await mkdir(join(escaped, 'base'), { recursive: true })
+      await writeFile(join(escaped, 'base', 'package.json'), JSON.stringify({ arcadiaEternityPack: '../pack.json' }))
+      await writeFile(join(escaped, 'pack.json'), '{}')
+      await assert.rejects(host({ packsDirectory: escaped }).start(directory), { code: 'BASE_PACK_MISSING' })
+    } finally {
       if (oldPacks === undefined) delete process.env.ARCADIA_PACKS_DIR
       else process.env.ARCADIA_PACKS_DIR = oldPacks
     }
@@ -245,13 +273,14 @@ describe('local authority host', () => {
     const url = output.trim()
     assert.match(url, /^http:\/\/127\.0\.0\.1:\d+$/)
     const cache = await readFile(join(directory, 'cache-marker'), 'utf8')
+    // The worker force-exits five seconds after losing its parent.
     let stopped = false
-    for (let i = 0; i < 100 && !stopped; i++) {
+    for (let i = 0; i < 300 && !stopped; i++) {
       stopped = await closed(url)
       if (!stopped) await delay(20)
     }
     assert.equal(stopped, true)
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 300; i++) {
       try {
         await stat(cache)
         await delay(20)

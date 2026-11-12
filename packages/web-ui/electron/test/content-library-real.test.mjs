@@ -7,6 +7,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { ContentLibrary } from '../content-library.mjs'
@@ -89,7 +90,7 @@ test(
         ['pack', './examples/ugc/slow', '--json', '--ignore-scripts', '--pack-destination', root],
         { cwd: repository },
       )
-      const tarball = join(root, JSON.parse(packed.stdout)[0].filename)
+      const tarball = join(root, parseNpmPackOutput(packed.stdout)[0].filename)
       const id = await library.installFile(tarball, true)
       assert.deepEqual((await library.list()).desiredIds, [])
       await library.setSelection([id], true)
