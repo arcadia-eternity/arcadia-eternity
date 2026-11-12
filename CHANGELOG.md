@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.4.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.4.1...arcadia-eternity-v4.4.2) (2026-11-11)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** keep Vitest out of the production server graph ([d82a367](https://github.com/arcadia-eternity/arcadia-eternity/commit/d82a36771c0254b7846d47bc9a6e7b3bca7da5e2))
+* **desktop:** derive the pinned npm from the workspace ([1799b37](https://github.com/arcadia-eternity/arcadia-eternity/commit/1799b373314495b2b14c9151eb5bc197a2f3c62d))
+* **desktop:** resolve packaged base manifests ([22a0782](https://github.com/arcadia-eternity/arcadia-eternity/commit/22a0782df3963eb83d60a99d2e07ecb7794b7093))
+* **desktop:** stage prebuilt SQLite for Electron ([55fa984](https://github.com/arcadia-eternity/arcadia-eternity/commit/55fa984516b018c33ca7ade1cc3a70dbb5252c41))
+* **desktop:** support npm 12 package receipts ([0abdec7](https://github.com/arcadia-eternity/arcadia-eternity/commit/0abdec7088f4290348c929dc7829165e9698ba71))
+
 ## [4.4.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.4.0...arcadia-eternity-v4.4.1) (2026-11-11)
 
 
