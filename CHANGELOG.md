@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.5.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.4.2...arcadia-eternity-v4.5.0) (2026-11-13)
+
+
+### ✨ Features
+
+* **profile:** add offline recovery and acceptance coverage ([8f809dc](https://github.com/arcadia-eternity/arcadia-eternity/commit/8f809dc5da9b8269f5840f4b718b919d1886fea1))
+
+
+### 🐛 Bug Fixes
+
+* **profile:** preserve starter teams and update CI persistence checks ([ecf4bfb](https://github.com/arcadia-eternity/arcadia-eternity/commit/ecf4bfb2106958b82ce73cd93b9f451422d42283))
+
+
+### ♻️ Code Refactoring
+
+* **content:** replace environment snapshots with persistent npm projects ([0c22445](https://github.com/arcadia-eternity/arcadia-eternity/commit/0c22445e906816a51785a08785083e29daaff8ef))
+
 ## [4.4.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.4.1...arcadia-eternity-v4.4.2) (2026-11-11)
 
 
