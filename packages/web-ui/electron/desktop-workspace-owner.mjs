@@ -32,11 +32,18 @@ export class DesktopWorkspaceOwner {
   #workspace
   #connections = new Set()
   #retentionConnection
-  constructor({ root, openWorkspace, library, timeoutMs = 120000 }) {
+  constructor({ root, openWorkspace, library, synchronize, timeoutMs = 120000 }) {
     this.root = root
     this.openWorkspace = openWorkspace
     this.library = library
     this.timeoutMs = timeoutMs
+    this.synchronize =
+      synchronize ??
+      (async workspace => {
+        if (!library.synchronizeEnvironments) return
+        const { validateWorkspaceProject } = await import('@arcadia-eternity/server')
+        await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
+      })
   }
   async ready() {
     this.#opening ??= (async () => {
@@ -47,6 +54,12 @@ export class DesktopWorkspaceOwner {
           remove: retentionId => this.#retention('retention.remove', { retentionId }),
         },
       })
+      try {
+        await this.synchronize(workspace)
+      } catch (error) {
+        await workspace.close()
+        throw error
+      }
       this.#workspace = workspace
       return workspace
     })().catch(error => {

@@ -22,10 +22,20 @@ export class LocalEnvironments {
   }
   ready() {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
-    this.#opening ??= this.openWorkspace().catch(error => {
-      this.#opening = undefined
-      throw error
-    })
+    this.#opening ??= this.openWorkspace()
+      .then(async workspace => {
+        try {
+          await this.library?.synchronizeEnvironments?.(workspace, this.validate)
+          return workspace
+        } catch (error) {
+          await workspace.close()
+          throw error
+        }
+      })
+      .catch(error => {
+        this.#opening = undefined
+        throw error
+      })
     return this.#opening
   }
   async snapshot() {

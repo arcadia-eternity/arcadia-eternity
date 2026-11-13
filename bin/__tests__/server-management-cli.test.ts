@@ -462,3 +462,78 @@ it('applies the bundled base from local files even when the registry is unreacha
   expect(after.environments[0].document.name).toBe('本地基础包')
   expect(await catalog(running.origin)).toHaveLength(1)
 }, 90_000)
+
+it('synchronizes old base installations in existing custom environments on restart without applying', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-base-upgrade-'))
+  directories.push(directory)
+  let running = await start(directory, ['--npm-registry', 'https://127.0.0.1:1'])
+  let request = await administrator(running.origin, directory)
+  const server = (await request<{ servers: Server[] }>('/servers')).servers[0]
+  const path = `/workspaces/${server.workspaceId}/environments`
+  const before = await request<{
+    environments: { document: { id: string; packages: Record<string, string> }; revision: string }[]
+  }>(path)
+  const document = before.environments[0].document
+  const base = '@arcadia-eternity/data-pack-base'
+  const currentVersion = document.packages[base]
+  const operation = await request<{ id: string }>(
+    path + '/apply',
+    'POST',
+    {
+      document: { ...document, id: 'custom', name: 'Keep this environment', packages: { [base]: '0.0.1' } },
+      expectedRevision: null,
+    },
+    undefined,
+    202,
+  )
+  await expect
+    .poll(async () => (await request<{ status: string }>(`/operations/${operation.id}`)).status, { timeout: 30_000 })
+    .toBe('succeeded')
+  await stop(running.child)
+  for (const id of [document.id, 'custom']) {
+    const project = join(directory, 'workspace/environments', id)
+    const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+    const lock = JSON.parse(await readFile(join(project, 'package-lock.json'), 'utf8'))
+    const pkg = JSON.parse(await readFile(join(project, 'node_modules', base, 'package.json'), 'utf8'))
+    manifest.dependencies[base] = '0.0.1'
+    lock.packages[''].dependencies[base] = '0.0.1'
+    lock.packages['node_modules/' + base].version = '0.0.1'
+    pkg.version = '0.0.1'
+    await writeFile(join(project, 'package.json'), JSON.stringify(manifest))
+    await writeFile(join(project, 'package-lock.json'), JSON.stringify(lock))
+    await writeFile(join(project, 'node_modules', base, 'package.json'), JSON.stringify(pkg))
+  }
+  running = await start(directory, ['--npm-registry', 'https://127.0.0.1:1'])
+  request = await administrator(running.origin, directory)
+  const after = await request<{
+    environments: { document: { id: string; name: string; packages: Record<string, string> } }[]
+  }>(path)
+  expect(after.environments).toHaveLength(2)
+  expect(after.environments.find(item => item.document.id === 'custom')?.document.name).toBe('Keep this environment')
+  for (const { document: env } of after.environments) expect(env.packages[base]).toBe(currentVersion)
+  expect(await catalog(running.origin)).toHaveLength(1)
+}, 90_000)
+
+it('replaces an old base from an external startup project without changing that source', async () => {
+  const { cp } = await import('node:fs/promises')
+  const { withShippedEnvironmentProject } = await import('@arcadia-eternity/pack-loader/node')
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-external-base-upgrade-'))
+  directories.push(root)
+  const project = join(root, 'project')
+  await withShippedEnvironmentProject(resolve('packs/base'), source => cp(source, project, { recursive: true }))
+  const base = '@arcadia-eternity/data-pack-base'
+  const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+  const lock = JSON.parse(await readFile(join(project, 'package-lock.json'), 'utf8'))
+  const pkg = JSON.parse(await readFile(join(project, 'node_modules', base, 'package.json'), 'utf8'))
+  const version = pkg.version
+  manifest.dependencies[base] = '0.0.1'
+  lock.packages[''].dependencies[base] = '0.0.1'
+  lock.packages['node_modules/' + base].version = '0.0.1'
+  pkg.version = '0.0.1'
+  await writeFile(join(project, 'package.json'), JSON.stringify(manifest))
+  await writeFile(join(project, 'package-lock.json'), JSON.stringify(lock))
+  await writeFile(join(project, 'node_modules', base, 'package.json'), JSON.stringify(pkg))
+  const running = await start(join(root, 'server'), ['--npm-project', project, '--npm-registry', 'https://127.0.0.1:1'])
+  expect((await catalog(running.origin))[0].packages.find(item => item.name === base)?.version).toBe(version)
+  expect(JSON.parse(await readFile(join(project, 'package.json'), 'utf8')).dependencies[base]).toBe('0.0.1')
+}, 60_000)

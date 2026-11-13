@@ -337,3 +337,86 @@ test('a missing bundled base never falls back to the registry', async t => {
   )
   assert.deepEqual(await workspace.listDrafts(), [])
 })
+
+test('startup synchronizes shipped base bytes and old declarations offline while preserving third-party installations', async t => {
+  const { cp } = await import('node:fs/promises')
+  const { fileURLToPath } = await import('node:url')
+  const root = await mkdtemp(join(tmpdir(), 'bundled-update-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const bundled = join(root, 'base')
+  await cp(fileURLToPath(new URL('../../../packs/base/', import.meta.url)), bundled, {
+    recursive: true,
+    filter: path => !path.includes('/node_modules'),
+  })
+  const base = JSON.parse(await readFile(join(bundled, 'package.json'), 'utf8'))
+  base.version = '1.0.0'
+  await writeFile(join(bundled, 'package.json'), JSON.stringify(base))
+  const helper = join(root, 'helper')
+  await mkdir(helper)
+  await writeFile(
+    join(helper, 'package.json'),
+    JSON.stringify({ name: 'helper', version: '1.0.0', peerDependencies: { [base.name]: '*' } }),
+  )
+  const { workspace, projects } = await fixture(t, {
+    bundledPackageRoot: bundled,
+    registry: 'https://127.0.0.1:1',
+    offline: true,
+    allowThirdPartyContent: true,
+    sources: { helper: { kind: 'directory', directory: helper } },
+  })
+  const validate = async () => ({ contentRevision: 'test', packages: [] })
+  for (const id of ['base-only', 'mixed'])
+    await projects.prepareEnvironment(
+      workspace,
+      {
+        environmentId: id,
+        expectedRevision: null,
+        document: { ...document, id, packages: { [base.name]: '0.0.1' }, sources: id === 'mixed' ? ['helper'] : [] },
+      },
+      validate,
+    )
+  await projects.prepareEnvironment(
+    workspace,
+    { environmentId: 'empty', document: { ...document, id: 'empty' }, expectedRevision: null },
+    validate,
+  )
+  const empty = await workspace.getInstallation('empty')
+  const helperBefore = await readFile(join(workspace.root, 'environments/mixed/node_modules/helper/package.json'))
+  await rm(helper, { recursive: true })
+  base.version = '2.0.0'
+  await writeFile(join(bundled, 'package.json'), JSON.stringify(base))
+  const original = await workspace.getDraft('base-only')
+  await assert.rejects(
+    projects.synchronizeBundledBase(workspace, async () => {
+      throw new Error('reject update')
+    }),
+    /reject update/,
+  )
+  assert.deepEqual(await workspace.getDraft('base-only'), original)
+  await projects.synchronizeBundledBase(workspace, validate)
+  for (const id of ['base-only', 'mixed']) {
+    const draft = await workspace.getDraft(id)
+    assert.equal(draft.document.packages[base.name], '2.0.0')
+    assert.equal(
+      JSON.parse(
+        await readFile(join(workspace.root, 'environments', id, 'node_modules', base.name, 'package.json'), 'utf8'),
+      ).version,
+      '2.0.0',
+    )
+  }
+  assert.deepEqual(
+    await readFile(join(workspace.root, 'environments/mixed/node_modules/helper/package.json')),
+    helperBefore,
+  )
+  assert.equal((await workspace.getInstallation('empty')).createdAt, empty.createdAt)
+  const unchanged = await workspace.getInstallation('mixed')
+  await projects.synchronizeBundledBase(workspace, validate)
+  assert.equal((await workspace.getInstallation('mixed')).createdAt, unchanged.createdAt)
+  const artifact = base.arcadia.effectArtifact
+  await writeFile(join(bundled, artifact), (await readFile(join(bundled, artifact), 'utf8')) + '\n')
+  await projects.synchronizeBundledBase(workspace, validate)
+  assert.deepEqual(
+    await readFile(join(workspace.root, 'environments/mixed/node_modules', base.name, artifact)),
+    await readFile(join(bundled, artifact)),
+  )
+})

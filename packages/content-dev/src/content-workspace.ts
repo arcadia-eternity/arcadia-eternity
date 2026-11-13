@@ -478,6 +478,16 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         signal,
       })
       const manifest = await readJson(join(staging, 'package.json'))
+      const base = '@arcadia-eternity/data-pack-base'
+      if (Object.hasOwn(document.packages, base) || document.sources.includes(base)) {
+        const installed = await readJson(join(staging, 'node_modules', base, 'package.json'))
+        if (typeof installed.version !== 'string') throw contentError('BUNDLED_PACKAGE_INVALID')
+        document = {
+          ...document,
+          packages: { ...document.packages, [base]: installed.version },
+          sources: document.sources.filter(name => name !== base),
+        }
+      }
       await writeFile(
         join(staging, 'package.json'),
         json({ ...this.#manifest(document, manifest), dependencies: manifest.dependencies ?? {} }),

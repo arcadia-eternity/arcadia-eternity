@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { basename, dirname, isAbsolute, join } from 'node:path'
@@ -220,7 +220,10 @@ export class ContentLibrary {
       )
         throw new Error('本机内容选择记录格式不正确')
       if (fresh && this.withDefaultArchive) await this.#initializeDefault(state)
-      else this.#state = state
+      else {
+        if (this.withDefaultArchive) await this.#synchronizeDefault(state)
+        this.#state ??= state
+      }
     })().catch(error => {
       this.#loading = undefined
       throw error
@@ -246,6 +249,9 @@ export class ContentLibrary {
         const entry = { ...plan.entry, bundled: true }
         await this.#save({
           ...state,
+          bundledDigest: createHash('sha256')
+            .update(await readFile(file))
+            .digest('hex'),
           installed: [entry],
           desiredIds: [entry.id],
           activeIds: [entry.id],
@@ -261,6 +267,93 @@ export class ContentLibrary {
         this.#plans.delete(candidate.id)
       }
     })
+  }
+  async #synchronizeDefault(state) {
+    const oldBase = state.installed.find(entry => entry.bundled)
+    if (!oldBase) return
+    await this.withDefaultArchive(async file => {
+      const digest = createHash('sha256')
+        .update(await readFile(file))
+        .digest('hex')
+      if (state.bundledDigest === digest) return
+      const candidate = await this.#stageInstall(
+        { kind: 'file', file, label: '随应用提供' },
+        true,
+        this.#controller.signal,
+        { ...state, installed: state.installed.filter(entry => entry.id !== oldBase.id) },
+      )
+      const plan = this.#plans.get(candidate.id)
+      const created = [plan.project]
+      const replacements = new Map([[oldBase.id, { ...plan.entry, bundled: true }]])
+      const projects = new Map([[oldBase.id, plan.project]])
+      let installer
+      try {
+        installer = await this.#createManagedProjects(join(this.root, 'acquisition'), { offline: true })
+        await this.run(
+          ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
+          this.#controller.signal,
+        )
+        for (const id of new Set([...state.installed.map(entry => entry.id), state.activeProject].filter(Boolean))) {
+          if (id === oldBase.id) continue
+          await installer.synchronizeProject(await this.#directory(id), async directory => {
+            const next = randomUUID()
+            const target = join(this.root, 'projects', storageName(next))
+            await rename(directory, target)
+            created.push(next)
+            const inspection = checkedInspection(
+              await this.run(['content', 'npm', 'inspect', target], this.#controller.signal),
+            )
+            await this.run(
+              ['content', 'npm', 'approve', target, '--profile', 'local-development'],
+              this.#controller.signal,
+            )
+            projects.set(id, next)
+            const entry = state.installed.find(entry => entry.id === id)
+            if (entry)
+              replacements.set(id, {
+                ...entry,
+                id: next,
+                graph: graphFor(inspection),
+                contentIds: idsFor(inspection.packages),
+              })
+          })
+        }
+        const activeProject = projects.get(state.activeProject) ?? state.activeProject
+        const activeInspection = checkedInspection(
+          await this.run(['content', 'npm', 'inspect', await this.#directory(activeProject)], this.#controller.signal),
+        )
+        await this.run(
+          ['content', 'validate', '--npm-project', await this.#directory(activeProject)],
+          this.#controller.signal,
+        )
+        await this.#save({
+          ...state,
+          revision: state.revision + 1,
+          bundledDigest: digest,
+          installed: state.installed.map(entry => replacements.get(entry.id) ?? entry),
+          activeIds: state.activeIds.map(id => projects.get(id) ?? id),
+          desiredIds: state.desiredIds.map(id => projects.get(id) ?? id),
+          activeProject,
+          activeGraph: graphFor(activeInspection),
+        })
+      } catch (error) {
+        await Promise.all(
+          created.map(id => rm(join(this.root, 'projects', storageName(id)), { recursive: true, force: true })),
+        )
+        throw error
+      } finally {
+        this.#plans.delete(candidate.id)
+        await installer?.close()
+      }
+    })
+  }
+  async synchronizeEnvironments(workspace, validate) {
+    const installer = await this.#createManagedProjects(join(this.root, 'acquisition'), { offline: true })
+    try {
+      await installer.synchronizeBundledBase(workspace, validate)
+    } finally {
+      await installer.close()
+    }
   }
   #update(change) {
     const update = this.#writes.then(() => {

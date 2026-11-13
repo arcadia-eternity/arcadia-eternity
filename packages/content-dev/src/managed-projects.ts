@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { valid, validRange, satisfies } from 'semver'
+import { valid, validRange } from 'semver'
 import {
   inspectNpmProject,
   resolveNpmInvocation,
@@ -12,7 +12,7 @@ import {
 } from '@arcadia-eternity/pack-loader/node'
 import { normalizeEnvironmentDocument } from './debug-environments.ts'
 import { acquireSource } from './managed-sources.ts'
-import { contentError, materialFiles } from './workspace-materials.ts'
+import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
 import type {
   ContentWorkspace,
   EnvironmentInstallation,
@@ -196,11 +196,109 @@ export class ManagedProjects {
           return input.document ?? draft?.document
         },
         { ...input, projectDirectory: join(workspace.root, 'environments', input.environmentId) },
-        async (directory, signal) => {
-          return workspace.prepareEnvironment({ ...input, projectDirectory: directory, signal }, validate)
+        async (directory, signal, document) => {
+          return workspace.prepareEnvironment({ ...input, document, projectDirectory: directory, signal }, validate)
         },
       ),
     )
+  }
+  /** Refresh only shipped bytes, without resolving or downloading third-party dependencies. */
+  async synchronizeBundledBase(workspace: ContentWorkspace, validate: StaticPreparer): Promise<void> {
+    for (const draft of await workspace.listDrafts()) {
+      await this.synchronizeProject(
+        join(workspace.root, 'environments', draft.document.id),
+        async (directory, version) => {
+          const name = '@arcadia-eternity/data-pack-base'
+          await workspace.prepareEnvironment(
+            {
+              environmentId: draft.document.id,
+              expectedRevision: draft.revision,
+              document: {
+                ...draft.document,
+                packages: { ...draft.document.packages, [name]: version },
+                sources: draft.document.sources.filter(source => source !== name),
+              },
+              projectDirectory: directory,
+              signal: this.#controller.signal,
+            },
+            validate,
+          )
+        },
+      )
+    }
+  }
+  synchronizeProject<T>(
+    project: string,
+    consume: (directory: string, version: string) => Promise<T>,
+  ): Promise<T | undefined> {
+    return this.#track(this.#synchronizeProject(project, consume))
+  }
+  async #synchronizeProject<T>(
+    project: string,
+    consume: (directory: string, version: string) => Promise<T>,
+  ): Promise<T | undefined> {
+    const signal = this.#controller.signal
+    signal.throwIfAborted()
+    const base = '@arcadia-eternity/data-pack-base'
+    const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+    const installed = join('node_modules', base).replaceAll('\\', '/')
+    const lock = JSON.parse(
+      await readFile(join(project, 'package-lock.json'), 'utf8').catch(error => {
+        if (errorCode(error) !== 'ENOENT') throw error
+        return JSON.stringify({ lockfileVersion: 3, packages: { '': { dependencies: manifest.dependencies ?? {} } } })
+      }),
+    )
+    if (
+      !Object.hasOwn(manifest.dependencies ?? {}, base) &&
+      !lock.packages?.[installed] &&
+      !manifest.arcadiaEnvironment?.sources?.includes(base)
+    )
+      return
+    if (!this.#options.bundledPackageRoot) throw contentError('BUNDLED_PACKAGE_UNAVAILABLE')
+    return withShippedEnvironmentProject(this.#options.bundledPackageRoot, async shipped => {
+      const fresh = await materialFiles(shipped, { signal })
+      const current = await materialFiles(project, { allowMissingLock: true, signal })
+      const baseFiles = fresh.filter(file => file.path.startsWith(installed + '/'))
+      const version = JSON.parse(baseFiles.find(file => file.path === installed + '/package.json')!.bytes.toString())
+        .version as string
+      const previous = new Map(
+        current.filter(file => file.path.startsWith(installed + '/')).map(file => [file.path, file.bytes]),
+      )
+      if (
+        manifest.dependencies?.[base] === version &&
+        previous.size === baseFiles.length &&
+        baseFiles.every(file => previous.get(file.path)?.equals(file.bytes))
+      )
+        return
+      await mkdir(this.root, { recursive: true })
+      const directory = await mkdtemp(join(this.root, 'sync-base-'))
+      try {
+        manifest.dependencies = { ...manifest.dependencies, [base]: version }
+        if (manifest.arcadiaManagedSources) delete manifest.arcadiaManagedSources[base]
+        lock.packages[''] = { ...lock.packages[''], dependencies: manifest.dependencies }
+        for (const key of Object.keys(lock.packages))
+          if (key === installed || key.startsWith(installed + '/')) delete lock.packages[key]
+        lock.packages[installed] = { name: base, version }
+        const files = current.filter(
+          file =>
+            !file.path.startsWith(installed + '/') &&
+            file.path !== 'node_modules/.package-lock.json' &&
+            file.path !== 'package.json' &&
+            file.path !== 'package-lock.json',
+        )
+        await writeMaterials(directory, [
+          ...files,
+          ...baseFiles,
+          { path: 'package.json', bytes: Buffer.from(JSON.stringify(manifest)) },
+          { path: 'package-lock.json', bytes: Buffer.from(JSON.stringify(lock)) },
+        ])
+        await inspectNpmProject(directory)
+        signal.throwIfAborted()
+        return await consume(directory, version)
+      } finally {
+        await rm(directory, { recursive: true, force: true })
+      }
+    })
   }
   /** Transfer an installed project to the host's existing library without a second copy. */
   prepareProject<T>(
@@ -218,7 +316,7 @@ export class ManagedProjects {
   async #prepare<T>(
     readDocument: () => Promise<unknown>,
     input: { signal?: AbortSignal; onProgress?: PrepareEnvironmentInput['onProgress']; projectDirectory?: string },
-    consume: (directory: string, signal: AbortSignal) => Promise<T>,
+    consume: (directory: string, signal: AbortSignal, document: PrepareEnvironmentInput['document']) => Promise<T>,
   ): Promise<T> {
     if (this.#controller.signal.aborted) throw contentError('INSTALLER_CLOSED')
     if (this.#active >= this.#options.maxConcurrent) throw contentError('INSTALL_BUSY')
@@ -255,13 +353,10 @@ export class ManagedProjects {
       if (includesBase) {
         const baseManifest = JSON.parse(await readFile(join(baseRoot!, 'package.json'), 'utf8'))
         if (baseManifest.name !== baseName) throw contentError('BUNDLED_PACKAGE_INVALID')
-        const requested = dependencies[baseName]
-        if (requested && !requested.startsWith('file:') && !satisfies(baseManifest.version, requested))
-          throw contentError('BUNDLED_PACKAGE_VERSION_MISMATCH')
-        if (
-          Object.keys(dependencies).every(name => name === baseName) &&
-          document.sources.every(name => name === baseName)
-        ) {
+        dependencies[baseName] = baseManifest.version
+        document.packages[baseName] = baseManifest.version
+        document.sources = document.sources.filter(name => name !== baseName)
+        if (Object.keys(dependencies).every(name => name === baseName) && document.sources.length === 0) {
           await input.onProgress?.({ stage: 'preparing' })
           return await withShippedEnvironmentProject(baseRoot!, async staged => {
             const manifest = JSON.parse(await readFile(join(staged, 'package.json'), 'utf8'))
@@ -277,7 +372,7 @@ export class ManagedProjects {
               ...manifest,
               ...saved,
               dependencies: {
-                [baseName]: requested && !requested.startsWith('file:') ? requested : baseManifest.version,
+                [baseName]: baseManifest.version,
               },
             }
             const lock = JSON.parse(await readFile(join(staged, 'package-lock.json'), 'utf8'))
@@ -287,7 +382,7 @@ export class ManagedProjects {
             await writeFile(join(staged, 'package.json'), JSON.stringify(project))
             await writeFile(join(staged, 'package-lock.json'), JSON.stringify(lock))
             signal.throwIfAborted()
-            return consume(staged, signal)
+            return consume(staged, signal, document)
           })
         }
       }
@@ -434,7 +529,7 @@ export class ManagedProjects {
       await materialFiles(directory, { signal, maxBytes: this.#options.maxBytes, maxFiles: this.#options.maxFiles })
       signal.throwIfAborted()
       await input.onProgress?.({ stage: 'preparing' })
-      return await consume(directory, signal)
+      return await consume(directory, signal, document)
     } catch (error) {
       if (isRecord(error) && (error.name === 'AbortError' || error.name === 'TimeoutError')) throw error
       const diagnostics = isRecord(error) && Array.isArray(error.diagnostics) ? error.diagnostics : []

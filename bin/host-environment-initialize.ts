@@ -29,7 +29,10 @@ export async function initializeHostEnvironment({
   const owned = await management.initializationBinding(kind, environmentId)
   if (!pending && !owned) return
   const existing = (await workspace.listDrafts()).find(item => item.document.id === environmentId)
-  if (resolve(projectDirectory) !== resolve(workspace.root, 'environments', environmentId)) {
+  if (
+    !(kind === 'builtin' && existing) &&
+    resolve(projectDirectory) !== resolve(workspace.root, 'environments', environmentId)
+  ) {
     const { members } = await inspectNpmProject(projectDirectory)
     const document = {
       schemaVersion: 2 as const,

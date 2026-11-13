@@ -329,6 +329,15 @@ function getManagementWorkspaceOwner() {
   managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
     root: path.join(app.getPath('userData'), 'content-packages'),
     library: getContentLibrary(),
+    synchronize: async workspace => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { validateWorkspaceProject } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
+      )
+      await getContentLibrary().synchronizeEnvironments(workspace, validateWorkspaceProject)
+    },
     openWorkspace: async (root, options) => {
       const runtimeRequire = app.isPackaged
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
@@ -1252,7 +1261,9 @@ app
     autoUpdater.autoInstallOnAppQuit = true
 
     await ensureAppDataDirs()
+    await getContentLibrary().resume()
     await getManagementWorkspaceOwner().ready()
+    await getLocalEnvironments().ready()
     await startLocalServer()
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const headers = { ...details.requestHeaders }
