@@ -18,7 +18,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   packageState: [environment: ManagedEnvironment, name: string, enabled: boolean, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
-  prepare: [environment: ManagedEnvironment]
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
   delete: [version: ManagedEnvironmentInstallation]
   references: [version: ManagedEnvironmentInstallation]
@@ -213,7 +212,7 @@ function save() {
                 <small v-if="selectedEnvironment.requiredPackages?.includes(member.name)">默认环境必需</small>
                 <ElButton
                   v-else
-                  :disabled="busy || !canEdit"
+                  :disabled="busy || !canEdit || !canPrepare"
                   @click="disablingPackage = member.name"
                   native-type="button"
                   >停用</ElButton
@@ -222,12 +221,15 @@ function save() {
                   <p>
                     {{ member.requiredBy.length ? '其他包依赖它，可以选择连带停用。' : '' }}
                   </p>
-                  <ElButton :disabled="busy || !canEdit" @click="changePackage(member.name, false)" native-type="button"
+                  <ElButton
+                    :disabled="busy || !canEdit || !canPrepare"
+                    @click="changePackage(member.name, false)"
+                    native-type="button"
                     >确认停用</ElButton
                   >
                   <ElButton
                     v-if="member.requiredBy.length"
-                    :disabled="busy || !canEdit"
+                    :disabled="busy || !canEdit || !canPrepare"
                     @click="changePackage(member.name, false, true)"
                     native-type="button"
                   >
@@ -245,13 +247,19 @@ function save() {
                 class="member"
               >
                 {{ name }} · {{ range }}
-                <ElButton :disabled="busy || !canEdit" @click="changePackage(String(name), true)" native-type="button"
+                <ElButton
+                  :disabled="busy || !canEdit || !canPrepare"
+                  @click="changePackage(String(name), true)"
+                  native-type="button"
                   >启用</ElButton
                 >
               </article>
               <article v-for="name in selectedEnvironment.document.disabled.sources" :key="name" class="member">
                 {{ name }} · 已登记来源
-                <ElButton :disabled="busy || !canEdit" @click="changePackage(name, true)" native-type="button"
+                <ElButton
+                  :disabled="busy || !canEdit || !canPrepare"
+                  @click="changePackage(name, true)"
+                  native-type="button"
                   >启用</ElButton
                 >
               </article>
@@ -366,8 +374,8 @@ function save() {
             <p class="hint">仅可使用宿主已登记的来源。</p>
           </details>
           <div class="actions">
-            <ElButton class="primary" :disabled="busy || !canEdit" native-type="submit" type="primary"
-              >保存环境</ElButton
+            <ElButton class="primary" :disabled="busy || !canEdit || !canPrepare" native-type="submit" type="primary"
+              >保存并应用</ElButton
             >
             <ElButton @click="editing = false" native-type="button">关闭编辑</ElButton>
           </div>
@@ -377,17 +385,6 @@ function save() {
           <ElButton :disabled="busy || !canUse" @click="emit('use', latestVersion)">服务器使用</ElButton>
           <ElButton :disabled="busy || !canUse" @click="emit('use', latestVersion, 'peer')">P2P 使用</ElButton>
         </section>
-        <footer v-if="selectedEnvironment && !editing" class="workspace-footer">
-          <ElButton
-            class="primary"
-            :disabled="!canPrepare || busy"
-            @click="emit('prepare', selectedEnvironment)"
-            native-type="button"
-            type="primary"
-          >
-            准备环境
-          </ElButton>
-        </footer>
       </div>
     </div>
   </section>

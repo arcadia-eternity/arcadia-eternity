@@ -82,10 +82,51 @@ export class LocalEnvironments {
     switch (input.action) {
       case 'snapshot':
         return this.snapshot()
-      case 'package-state':
-        return this.setPackageEnabled(workspace, input)
-      case 'save':
-        return workspace.saveDraft({ document: input.document, expectedRevision: input.expectedRevision })
+      case 'package-state': {
+        const draft = await this.setPackageEnabled(
+          {
+            listDrafts: () => workspace.listDrafts(),
+            listInstallations: () => workspace.listInstallations(),
+            saveDraft: async ({ document, expectedRevision }) => ({ document, revision: expectedRevision }),
+          },
+          input,
+        )
+        return this.request({ ...input, action: 'apply', document: draft.document })
+      }
+      case 'apply': {
+        const document = structuredClone(input.document)
+        const environmentId = document.id
+        return this.start('environment.apply', async (signal, onProgress) => {
+          const current = await workspace.getDraft(environmentId).catch(error => {
+            if (error.code !== 'ENOENT') throw error
+            return undefined
+          })
+          if ((current?.revision ?? null) !== input.expectedRevision) throw fail('REVISION_CONFLICT')
+          const lease = await this.library.prepareEnvironmentProject(document, {
+            projectDirectory: join(workspace.root, 'environments', environmentId),
+            signal,
+            offline: input.allowDownload !== true,
+            onProgress,
+          })
+          try {
+            return safeInstallation(
+              await workspace.prepareEnvironment(
+                {
+                  environmentId,
+                  document,
+                  expectedRevision: input.expectedRevision,
+                  projectDirectory: lease.directory,
+                  signal,
+                  onProgress,
+                },
+                this.validate,
+              ),
+            )
+          } finally {
+            await lease.release()
+          }
+        })
+      }
       case 'delete-draft':
         await workspace.deleteDraft({ environmentId: input.environmentId, expectedRevision: input.expectedRevision })
         return { deleted: true }
@@ -117,32 +158,6 @@ export class LocalEnvironments {
         if (!job) throw fail('OPERATION_NOT_FOUND')
         if (!['failed', 'cancelled'].includes(job.status)) throw fail('OPERATION_NOT_RETRYABLE')
         return this.start(job.kind, job.execute)
-      }
-      case 'prepare': {
-        const environmentId = input.environmentId,
-          expectedRevision = input.expectedRevision
-        const draft = await workspace.getDraft(environmentId)
-        if (draft.revision !== expectedRevision) throw fail('REVISION_CONFLICT', '环境已被修改，请刷新后重试')
-        return this.start('environment.prepare', async (signal, onProgress) => {
-          if ((await workspace.getDraft(environmentId)).revision !== expectedRevision)
-            throw fail('REVISION_CONFLICT', '环境已被修改，请从当前草稿发起新任务')
-          const lease = await this.library.prepareEnvironmentProject(draft.document, {
-            projectDirectory: join(workspace.root, 'environments', environmentId),
-            signal,
-            offline: input.allowDownload !== true,
-            onProgress,
-          })
-          try {
-            return safeInstallation(
-              await workspace.prepareEnvironment(
-                { environmentId, expectedRevision, projectDirectory: lease.directory, signal, onProgress },
-                this.validate,
-              ),
-            )
-          } finally {
-            await lease.release()
-          }
-        })
       }
       case 'import':
         return this.start('environment.import', async signal =>

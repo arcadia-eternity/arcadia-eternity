@@ -84,18 +84,10 @@ async function run(input: Record<string, unknown>, message: string) {
   }
 }
 async function save(document: ManagedEnvironmentDocument, expectedRevision: string | null) {
-  if (await run({ action: 'save', document, expectedRevision }, '环境已保存。')) saveSequence.value++
-}
-async function prepare(environment: ManagedEnvironment) {
-  await run(
-    {
-      action: 'prepare',
-      environmentId: environment.document.id,
-      expectedRevision: environment.revision,
-      allowDownload: allowDownload.value,
-    },
-    '正在准备环境。',
+  if (
+    await run({ action: 'apply', document, expectedRevision, allowDownload: allowDownload.value }, '正在保存并应用。')
   )
+    saveSequence.value++
 }
 async function inspect(version: ManagedEnvironmentInstallation) {
   try {
@@ -173,7 +165,7 @@ onBeforeUnmount(() => {
       ><button :aria-pressed="localTab === 'transfers'" @click="localTab = 'transfers'">导入与导出</button>
     </nav>
     <label v-if="localTab === 'workspace'" class="download-policy"
-      ><input v-model="allowDownload" type="checkbox" />准备版本时允许下载缺失材料</label
+      ><input v-model="allowDownload" type="checkbox" />允许下载缺失的第三方包</label
     >
     <EnvironmentWorkspace
       v-if="localTab === 'workspace'"
@@ -196,11 +188,11 @@ onBeforeUnmount(() => {
               name,
               enabled,
               cascade,
+              allowDownload: allowDownload,
             },
-            '已更新草稿，请准备新版本。',
+            '正在保存并应用。',
           )
       "
-      @prepare="prepare"
       @references="inspect"
       @delete="version => run({ action: 'clear-installation', installationId: version.installationId }, '安装已清理。')"
       @delete-draft="
@@ -242,9 +234,7 @@ onBeforeUnmount(() => {
       <button @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</button>
       <p v-if="!snapshot.operations.length">暂无任务。</p>
       <article v-for="job in snapshot.operations" :key="job.id">
-        <span
-          >{{ job.kind === 'environment.prepare' ? '准备环境版本' : '导入环境' }} · {{ jobLabels[job.status] }}</span
-        >
+        <span>{{ job.kind === 'environment.apply' ? '保存并应用' : '导入环境' }} · {{ jobLabels[job.status] }}</span>
         <button
           v-if="['queued', 'running'].includes(job.status)"
           @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')"

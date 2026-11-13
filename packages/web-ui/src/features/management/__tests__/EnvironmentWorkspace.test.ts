@@ -93,7 +93,7 @@ describe('shared environment workspace', () => {
 
   it('disables edits, preparation and version use for a viewer, while keeping version details readable', async () => {
     const { page } = open({ canEdit: false, canPrepare: false, canDelete: false, canUse: false })
-    for (const label of ['新建环境', '编辑', '准备环境']) {
+    for (const label of ['新建环境', '编辑']) {
       expect(button(page, label).attributes('disabled')).toBeDefined()
       await button(page, label).trigger('click')
     }

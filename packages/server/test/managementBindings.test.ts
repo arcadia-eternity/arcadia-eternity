@@ -70,20 +70,16 @@ async function setup() {
   }
   const environmentsPath = `/workspaces/${workspace.workspaceId}/environments`
   const draft = (name: string, expectedRevision: string | null) =>
-    request<{ revision: string }>({
-      method: 'POST',
-      path: environmentsPath,
-      body: {
-        document: { schemaVersion: 1, id: 'shared', name, packages: shippedCatalogMembers, sources: [] },
-        expectedRevision,
-      },
+    workspace.saveDraft({
+      document: { schemaVersion: 1, id: 'shared', name, packages: shippedCatalogMembers, sources: [] },
+      expectedRevision,
     })
-  const beginPrepare = (expectedRevision: string) =>
+  const beginPrepare = async (expectedRevision: string) =>
     request<{ id: string }>({
       method: 'POST',
-      path: `${environmentsPath}/shared/prepare`,
-      body: { expectedRevision },
-      headers: { 'idempotency-key': `prepare-${++sequence}` },
+      path: `${environmentsPath}/apply`,
+      body: { document: (await workspace.getDraft('shared')).document, expectedRevision },
+      headers: { 'idempotency-key': `apply-${++sequence}` },
     })
   const prepare = async (expectedRevision: string) => {
     const started = await beginPrepare(expectedRevision)
@@ -247,10 +243,64 @@ it('preparing a bound environment requires publish permission before replacement
   await expect(
     f.service.request(editor.actor, {
       method: 'POST',
-      path: `/workspaces/${f.workspace.workspaceId}/environments/shared/prepare`,
-      body: { expectedRevision: current.revision },
+      path: `/workspaces/${f.workspace.workspaceId}/environments/apply`,
+      body: { document: current.document, expectedRevision: current.revision },
       headers: { 'idempotency-key': 'forbidden-bound-update' },
     }),
   ).rejects.toThrow()
   expect((await f.workspace.getDraft('shared')).revision).toBe(current.revision)
+}, 30_000)
+
+it('saves and applies in one operation, preserving both the manifest and installation on failure', async () => {
+  const f = await setup()
+  const path = `/workspaces/${f.workspace.workspaceId}/environments/apply`
+  expect(
+    (
+      await f.service.localRequest({
+        method: 'POST',
+        path: `/workspaces/${f.workspace.workspaceId}/environments/shared/prepare`,
+        body: {},
+      })
+    ).status,
+  ).toBe(404)
+  const document = {
+    schemaVersion: 2,
+    id: 'shared',
+    name: 'Applied',
+    packages: shippedCatalogMembers,
+    sources: [],
+    rules: { schemaVersion: 1 },
+    requires: {},
+  }
+  const first = await f.request<{ id: string }>({
+    method: 'POST',
+    path,
+    body: { document, expectedRevision: null },
+    headers: { 'idempotency-key': 'apply-new' },
+  })
+  expect((await terminal(f.storage, first.id)).status).toBe('succeeded')
+  const original = await f.workspace.getDraft('shared')
+  const installation = await f.workspace.getInstallation('shared')
+  await f.createBinding()
+  f.gatePreparation(async () => {
+    throw new Error('invalid replacement')
+  })
+  const failed = await f.request<{ id: string }>({
+    method: 'POST',
+    path,
+    body: { document: { ...original.document, name: 'Rejected' }, expectedRevision: original.revision },
+    headers: { 'idempotency-key': 'apply-bad' },
+  })
+  expect((await terminal(f.storage, failed.id)).status).toBe('failed')
+  expect(await f.workspace.getDraft('shared')).toEqual(original)
+  expect((await f.workspace.getInstallation('shared')).createdAt).toBe(installation.createdAt)
+  f.gatePreparation(undefined)
+  const next = await f.request<{ id: string }>({
+    method: 'POST',
+    path,
+    body: { document: { ...original.document, name: 'Updated' }, expectedRevision: original.revision },
+    headers: { 'idempotency-key': 'apply-good' },
+  })
+  expect((await terminal(f.storage, next.id)).status).toBe('succeeded')
+  expect((await f.workspace.getDraft('shared')).document.name).toBe('Updated')
 }, 30_000)

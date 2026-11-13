@@ -32,7 +32,7 @@ node dist/cli.js server --host 127.0.0.1 --port 8102 --data-dir /srv/arcadia
 
 数据目录默认是当前目录下的 `.arcadia-server`。第一次启动在 `identity.json` 保存 serverId，在 `server.sqlite` 初始化数据库，并在 `workspace/` 保存内容工作区。目录应位于持久卷；SQLite 文件不要放网络共享文件系统。
 
-普通 CLI 首次启动还会创建并公开一个 `builtin-server` 默认 binding，因此创建私人房间和普通匹配可以立即使用。这个一次性初始化状态与 binding 一同持久化；后续管理员清空默认选择、停用或删除 binding 后，重启不会恢复它。已有服务器记录不会被追溯性自动发布，可在管理面板中显式准备并发布环境。
+普通 CLI 首次启动还会创建并公开一个 `builtin-server` 默认 binding，因此创建私人房间和普通匹配可以立即使用。这个一次性初始化状态与 binding 一同持久化；后续管理员清空默认选择、停用或删除 binding 后，重启不会恢复它。已有服务器记录不会被追溯性自动发布，可在管理面板中保存并应用环境，再建立服务器绑定。
 
 | 配置                                                            | 含义                                                 |
 | --------------------------------------------------------------- | ---------------------------------------------------- |
@@ -76,11 +76,11 @@ node dist/cli.js server --data-dir /srv/arcadia \
   --allow-third-party-content
 ```
 
-准备复用环境的标准锁文件，以 `--ignore-scripts` 解析并安装依赖，校验通过后替换同一环境的当前安装。失败或取消保留原安装；不创建可选历史版本。`.arcadia-prepared.json` 仅记录当前准备结果，不决定服务器使用哪个版本。离线模式拒绝新的远程 Git/URL 获取；本地归档/目录可继续使用，但 npm 所需依赖必须已在缓存中。私有 registry 凭据通过受保护的 `ARCADIA_NPM_USERCONFIG` 文件提供，不进入来源文件、公开环境或分享包。
+应用复用环境的标准锁文件，以 `--ignore-scripts` 解析并安装依赖，校验通过后替换同一环境的当前安装。失败或提交前取消保留原配置和安装；不创建可选历史版本。`.arcadia-prepared.json` 仅记录当前准备结果，不决定服务器使用哪个版本。离线模式拒绝新的远程 Git/URL 获取；本地归档/目录可继续使用，但 npm 所需依赖必须已在缓存中。私有 registry 凭据通过受保护的 `ARCADIA_NPM_USERCONFIG` 文件提供，不进入来源文件、公开环境或分享包。
 
 桌面内容页提供“导入环境来源”，由可信主进程打开文件选择器并保存同一格式的 `content-sources.json`，渲染页面不能提交任意本机路径。环境的 `sources` 可以引用已登记来源；未登记但已有安装材料时，使用唯一已安装版本或唯一选中的版本，有歧义则要求用户明确选择。
 
-桌面准备复用 `ManagedProjects` 的来源获取、标准锁和安装管线，完成后把取得的项目移入客户端现有 `projects` 目录；托管服务器通过 owner 借用该材料，不再建立第二份包库。与当前已安装组合完全相同时直接复用。准备管理环境不会改变客户端本地游玩选择，使用期间由材料租约阻止回收。
+桌面应用复用 `ManagedProjects` 的来源获取、标准锁和安装管线，完成后将校验后的材料提交到环境的持久 npm 项目。托管服务器通过私有桥访问桌面 owner 的同一工作区。应用管理环境不会改变客户端本地游玩选择。
 
 ## 升级数据库
 
@@ -115,7 +115,7 @@ G2 游客服可以在首次用登录码进入后，从“登录与安全”添�
 
 登录时可选择“记住此设备 30 天”，默认不勾选。管理会话仍为短期会话，长期凭证独立存于 HttpOnly Cookie，数据库只存摘要；恢复时原子轮换，旧值不能复用，30 天期限不会滑动延长。每次恢复检查主体、账户状态和现有授权。“登录与安全”可查看、撤销自己的密钥和设备；撤销会使关联会话失效。退出管理会撤销当前设备的长期凭证并清除两个 Cookie。设备凭证不是服务 token，不能直接调用管理接口。
 
-管理权限由主体、scope 与 action 决定。服务器管理员只能管理被授权服务器；工作区编辑/准备/删除权限另行授予。发布环境需要目标服务器的 publish 权限与来源环境的 use 权限。准备或导入覆盖已绑定的环境时，同样检查所有关联服务器的 publish 权限和工作区 environment.use 权限，然后更新绑定所用的当前安装。已有 G3 账号必须被显式关联并授权后才能管理；停用或撤权后不能继续通过页面、API 或尚未提交的长任务操作。
+管理权限由主体、scope 与 action 决定。服务器管理员只能管理被授权服务器；工作区编辑/准备/删除权限另行授予。发布环境需要目标服务器的 publish 权限与来源环境的 use 权限。应用或导入覆盖已绑定的环境时，同样检查所有关联服务器的 publish 权限和工作区 environment.use 权限，然后更新绑定所用的当前安装。已有 G3 账号必须被显式关联并授权后才能管理；停用或撤权后不能继续通过页面、API 或尚未提交的长任务操作。
 
 网页管理会话使用独立的 HttpOnly、Secure Cookie，默认 `SameSite=Lax`。要求同站时可设 `strict`，跨站部署可设 `none`，此时发送 `SameSite=None; Secure; Partitioned`，由浏览器按顶层站点隔离会话。跨站页面的来源仍须获准，写请求仍检查 Origin 与 CSRF。自动化服务凭证另行限权与撤销。远程服务器窗口不能取得本机文件系统或管理 IPC；可信本地页面才可通过私有 bridge 管理本机资源。浏览器仍保持一站一服，不提供任意后端选择器。
 
@@ -139,7 +139,7 @@ G2 游客服可以在首次用登录码进入后，从“登录与安全”添�
 
 ### 绑定与运行
 
-EnvironmentBinding 直接引用 environmentId，不保存 desired/effective 版本指针，也没有 pinned/follow-ready 选择。准备或导入完成后重新加载关联环境；首次绑定自动加载当前安装。`POST /servers/:server/bindings/:binding/reload` 可显式重新读取已安装材料。加载仍检查格式、能力及执行政策，不要求本次内容摘要等于旧准备回执。新房间使用新运行实例，已有房间保留启动时的内容。删除环境检查服务器绑定和运行租约。部署管理的官方或启动 npm 环境在每次启动时按部署输入同步，保留管理员的开放、默认和匹配设置。
+EnvironmentBinding 直接引用 environmentId，不保存 desired/effective 版本指针，也没有 pinned/follow-ready 选择。保存并应用或导入完成后重新加载关联环境；首次绑定自动加载当前安装。`POST /servers/:server/bindings/:binding/reload` 可显式重新读取已安装材料。加载仍检查格式、能力及执行政策，不要求本次内容摘要等于旧准备回执。新房间使用新运行实例，已有房间保留启动时的内容。删除环境检查服务器绑定和运行租约。部署管理的官方或启动 npm 环境在每次启动时按部署输入同步，保留管理员的开放、默认和匹配设置。
 
 排空停止接纳新局，现有对局按生命周期结束。独立服务器的进程启停由 systemd/Docker 等 supervisor 负责；进程退出后网页自身无法重新唤醒它。容量参数见[服务运行](server-runtime.md#对战容量)。
 
@@ -210,24 +210,29 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 
 环境的 `packages` / `sources` 保存用户选择的直接依赖；`disabled` 可选字段保留停用的直接依赖及原版本范围。当前安装的 `members`，显式列出所有资源包的名称、精确版本、内容身份、直接/自动依赖身份，以及 `dependencies` / `requiredBy`。普通 JavaScript 工具库仍使用 npm 的多版本树；同一个资源包名、内容身份或命名空间不能出现多个安装实例。安装采用严格 peer 约束，建议作者以 `peerDependencies` 声明共享资源包的兼容范围。精确版本可以使用，但所有约束必须同时满足；不能通过强制安装或忽略 peer 约束绕过校验。
 
-`POST /workspaces/:workspace/environments/:id/package-state` 接受 `{ expectedRevision, name, enabled, cascade? }`，要求工作区 `edit` 权限。停用依赖项时，默认拒绝影响其他启用包；明确传入 `cascade: true` 才连带停用依赖它的直接包。依赖图尚未解析或草稿增加/修改了依赖约束时，先准备当前组合再执行停用。启用或停用修改环境 manifest；准备成功后关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
+`POST /workspaces/:workspace/environments/:id/package-state` 接受 `{ expectedRevision, name, enabled, cascade? }`，要求工作区 `edit` 和 `prepare` 权限，返回应用任务。停用依赖项时，默认拒绝影响其他启用包；明确传入 `cascade: true` 才连带停用依赖它的直接包。依赖图尚未解析或草稿增加/修改了依赖约束时，先应用当前组合再执行停用。启用或停用会安装并校验新的组合，成功后一起更新环境 manifest 和安装内容，关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
 
-准备任务通过既有 operation 接口报告 `resolving`、`acquiring`、`installing`、`verifying`、`capturing`、`preparing` 阶段。只有实际可计数的来源报告 completed/total；npm 未提供可用字节总量时不生成百分比、下载速度或预计时间。服务器任务记录持久化，可查询、取消或重试。桌面资源库安装和本机环境准备有进程内队列、取消、失败重试及清理结束记录，关闭客户端后不恢复该队列。重试仍使用原任务的草稿修订，修改后的草稿须发起新任务。
+应用任务通过既有 operation 接口报告 `resolving`、`acquiring`、`installing`、`verifying`、`capturing`、`preparing` 阶段。只有实际可计数的来源报告 completed/total；npm 未提供可用字节总量时不生成百分比、下载速度或预计时间。服务器任务记录持久化，可查询、取消或重试。桌面资源库安装和本机环境应用有进程内队列、取消、失败重试及清理结束记录，关闭客户端后不恢复该队列。重试仍使用原任务的草稿修订，修改后的草稿须发起新任务。
 
 CLI 使用同一服务器接口与资源授权，服务凭证从文件读取，不放在参数或输出中：
 
 ```sh
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE list
-pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE save environment.json --revision REVISION
-pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE prepare friends --revision REVISION --wait
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE apply environment.json --revision REVISION --wait
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE disable friends @author/nature --revision REVISION --cascade
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token tasks
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token cancel OPERATION
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token retry OPERATION
 ```
 
-`save` 不带 `--revision` 创建新环境。`installations` 输出当前安装及完整成员表；`enable` 恢复已停用的直接依赖。`--wait` 将阶段变化写到 stderr，最终结果 JSON 写到 stdout；退出等待不等于取消服务器任务。`content npm install` 从现有 lockfile 恢复材料，`content npm stage` 在新目录解析新组合，两者均禁止生命周期脚本并检查资源包唯一性。
+`apply` 不带 `--revision` 创建并应用新环境。`installations` 输出当前安装及完整成员表；`enable` 恢复已停用的直接依赖。`--wait` 将阶段变化写到 stderr，最终结果 JSON 写到 stdout；退出等待不等于取消服务器任务。`content npm install` 从现有 lockfile 恢复材料，`content npm stage` 在新目录解析新组合，两者均禁止生命周期脚本并检查资源包唯一性。
 
 ### 格式边界
 
 工作区格式为 `arcadia.content-workspace/2`，环境分享和备份内工作区格式分别为 `arcadia.environment-export/2`、`arcadia.workspace-snapshot/2`。不读取旧环境快照，也不迁移旧发布指针。备份快照仍用于恢复，不参与日常环境版本选择。
+
+### 保存并应用
+
+管理界面和 CLI 使用一次应用操作提交完整环境声明与预期修订。`POST /workspaces/:workspace/environments/apply` 返回 `environment.apply` 任务；声明、锁文件和安装内容在校验成功后一起替换，失败或提交前取消保留原环境。创建失败不会留下空草稿。工作区仍提供内部文件编辑与安装原语，界面不再要求先保存、再点击准备。
+
+附带基础包由宿主显式提供本地目录。只包含基础包时直接复制本地发行材料并校验，不运行 npm 安装；与第三方包组合时将该本地材料作为本地 npm 压缩包安装，基础包不向 registry 获取，缺失或版本不满足时直接报错。第三方依赖仍遵循下载开关和宿主联网策略。应用关联环境继续检查所有关联服务器的发布权限，已有对局保留原运行内容。

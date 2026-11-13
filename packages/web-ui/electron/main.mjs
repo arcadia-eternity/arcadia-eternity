@@ -276,7 +276,10 @@ function getContentLibrary() {
       const { ManagedProjects } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href
       )
-      return new ManagedProjects(root, options)
+      return new ManagedProjects(root, {
+        ...options,
+        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+      })
     },
     run: (args, signal) =>
       runContentCommand(

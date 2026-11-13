@@ -316,6 +316,9 @@ export async function runServerCli(args: string[]): Promise<number> {
         sources = value as ManagedProjectsOptions['sources']
       }
       projects = new ManagedProjects(join(config.dataDirectory, 'projects'), {
+        bundledPackageRoot: dirname(
+          fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
+        ),
         allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
         registry: options.npmRegistry,
         offline: options.offlineContent,

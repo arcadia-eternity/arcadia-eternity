@@ -80,17 +80,17 @@ async function complete(api, id) {
 test('offline drafts survive reopening, reject stale writes and installations copy materials independently', async t => {
   const f = await fixture(t)
   let api = f.open()
-  const saved = await api.request({ action: 'save', document, expectedRevision: null })
+  const saved = await (await api.ready()).saveDraft({ document, expectedRevision: null })
   assert.equal(f.requests.length, 0)
   await api.close()
   api = f.open()
   const restored = (await api.snapshot()).environments[0]
   assert.equal(restored.revision, saved.revision)
   await assert.rejects(
-    api.request({ action: 'save', document: { ...document, name: '冲突' }, expectedRevision: 'stale' }),
+    (await api.ready()).saveDraft({ document: { ...document, name: '冲突' }, expectedRevision: 'stale' }),
     { code: 'REVISION_CONFLICT' },
   )
-  const started = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: saved.revision })
+  const started = await api.request({ action: 'apply', document, expectedRevision: saved.revision })
   const job = await complete(api, started.operationId)
   assert.equal(job.status, 'succeeded', JSON.stringify(job.error))
   assert.equal(f.requests[0].options.offline, true)
@@ -111,9 +111,9 @@ test('cancels preparation without publishing a version and keeps the saved draft
       else signal.addEventListener('abort', () => reject(signal.reason), { once: true })
     })
   const api = f.open()
-  const draft = await api.request({ action: 'save', document, expectedRevision: null })
-  const job = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision })
-  const queued = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision })
+  const draft = await (await api.ready()).saveDraft({ document, expectedRevision: null })
+  const job = await api.request({ action: 'apply', document, expectedRevision: draft.revision })
+  const queued = await api.request({ action: 'apply', document, expectedRevision: draft.revision })
   assert.equal((await api.snapshot()).operations.find(item => item.id === queued.operationId).status, 'queued')
   await api.request({ action: 'cancel', operationId: queued.operationId })
   await api.request({ action: 'cancel', operationId: job.operationId })
@@ -125,8 +125,8 @@ test('cancels preparation without publishing a version and keeps the saved draft
 test('imports a portable copy without overwriting an existing local draft', async t => {
   const f = await fixture(t)
   const api = f.open()
-  const draft = await api.request({ action: 'save', document, expectedRevision: null })
-  const started = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision })
+  const draft = await (await api.ready()).saveDraft({ document, expectedRevision: null })
+  const started = await api.request({ action: 'apply', document, expectedRevision: draft.revision })
   const version = (await complete(api, started.operationId)).result
   const bundle = await api.request({ action: 'export', installationId: version.installationId })
   const duplicate = await api.request({ action: 'import', bundle })
@@ -155,8 +155,8 @@ test('failed captured tasks can be retried, report real stages and clear termina
     return acquire(doc, options)
   }
   const api = f.open()
-  const draft = await api.request({ action: 'save', document, expectedRevision: null })
-  const first = await api.request({ action: 'prepare', environmentId: document.id, expectedRevision: draft.revision })
+  const draft = await (await api.ready()).saveDraft({ document, expectedRevision: null })
+  const first = await api.request({ action: 'apply', document, expectedRevision: draft.revision })
   const failed = await complete(api, first.operationId)
   assert.equal(failed.status, 'failed')
   assert.equal(failed.progress.stage, 'installing')
@@ -174,15 +174,34 @@ test('relocated desktop environment module loads without workspace packages and 
   const file = join(root, 'local-environments.mjs')
   await copyFile(new URL('../local-environments.mjs', import.meta.url), file)
   const { LocalEnvironments: Relocated } = await import(pathToFileURL(file).href)
-  const workspace = {}
+  const workspace = { close: async () => {} }
   const input = { action: 'package-state', environmentId: 'friends', packageName: 'sample', enabled: false }
   const api = new Relocated({
     openWorkspace: async () => workspace,
     setPackageEnabled: async (actualWorkspace, actualInput) => {
-      assert.equal(actualWorkspace, workspace)
+      assert.equal(typeof actualWorkspace.saveDraft, 'function')
       assert.equal(actualInput, input)
-      return { revision: 'updated' }
+      return { document, revision: 'updated' }
     },
   })
-  assert.deepEqual(await api.request(input), { revision: 'updated' })
+  assert.equal(typeof (await api.request(input)).operationId, 'string')
+  await api.close()
+})
+
+test('one apply action creates and updates the installation without saving a draft first', async t => {
+  const f = await fixture(t)
+  const api = f.open()
+  let submitted = await api.request({ action: 'apply', document, expectedRevision: null })
+  assert.equal((await complete(api, submitted.operationId)).status, 'succeeded')
+  const original = (await api.snapshot()).environments[0]
+  f.library.prepareEnvironmentProject = async () => {
+    throw new Error('download failed')
+  }
+  submitted = await api.request({
+    action: 'apply',
+    document: { ...document, name: 'Rejected' },
+    expectedRevision: original.revision,
+  })
+  assert.equal((await complete(api, submitted.operationId)).status, 'failed')
+  assert.deepEqual((await api.snapshot()).environments[0], original)
 })

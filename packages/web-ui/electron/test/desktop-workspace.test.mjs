@@ -83,6 +83,9 @@ async function fixture(t) {
     openWorkspace: (directory, options) => ContentWorkspace.open(directory, options),
     timeoutMs: 10000,
     library: {
+      async prepareEnvironmentProject() {
+        return { directory: project, release: async () => {} }
+      },
       async ownsProjectDirectory(directory) {
         return directory === project
       },
@@ -506,4 +509,28 @@ test('reports real preparation stages over the owner bridge without serializing 
   const request = connection.sent.find(message => message.method === 'prepareEnvironment')
   assert.equal(request.args[0].hasProgress, true)
   assert.equal(Object.hasOwn(request.args[0], 'onProgress'), false)
+})
+
+test('the desktop owner applies a proposed document over IPC without a pre-existing draft', async t => {
+  const f = await fixture(t)
+  const { proxy } = await f.connect()
+  const installed = await proxy.prepareEnvironment(
+    { environmentId: document.id, document, expectedRevision: null },
+    prepare,
+  )
+  assert.equal(installed.environmentId, document.id)
+  const original = await proxy.getDraft(document.id)
+  await assert.rejects(
+    proxy.prepareEnvironment(
+      {
+        environmentId: document.id,
+        document: { ...original.document, name: 'Rejected' },
+        expectedRevision: original.revision,
+      },
+      async () => {
+        throw new Error('invalid content')
+      },
+    ),
+  )
+  assert.deepEqual(await proxy.getDraft(document.id), original)
 })

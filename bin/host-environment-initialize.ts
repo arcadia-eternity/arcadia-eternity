@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
+import { resolve } from 'node:path'
 import { validateWorkspaceProject, type ManagementService } from '@arcadia-eternity/server'
 import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import type { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 
-/** A deployment-owned npm project is synchronized on every start. There is no
- * historical publication pointer; administrator binding policy remains independent. */
+/** External launch projects are synchronized on startup. A desktop restart uses
+ * its already-applied workspace installation; binding policy remains independent. */
 export async function initializeHostEnvironment({
   management,
   workspace,
@@ -28,23 +29,25 @@ export async function initializeHostEnvironment({
   const owned = await management.initializationBinding(kind, environmentId)
   if (!pending && !owned) return
   const existing = (await workspace.listDrafts()).find(item => item.document.id === environmentId)
-  const { members } = await inspectNpmProject(projectDirectory)
-  const document = {
-    schemaVersion: 2 as const,
-    id: environmentId,
-    name,
-    ...(existing?.document ?? {}),
-    packages: Object.fromEntries(members.map(({ name, version }) => [name, version])),
-    sources: [],
-    rules: existing?.document.rules ?? { schemaVersion: 1 as const },
-    requires: existing?.document.requires ?? {},
+  if (resolve(projectDirectory) !== resolve(workspace.root, 'environments', environmentId)) {
+    const { members } = await inspectNpmProject(projectDirectory)
+    const document = {
+      schemaVersion: 2 as const,
+      id: environmentId,
+      name,
+      ...(existing?.document ?? {}),
+      packages: Object.fromEntries(members.map(({ name, version }) => [name, version])),
+      sources: [],
+      rules: existing?.document.rules ?? { schemaVersion: 1 as const },
+      requires: existing?.document.requires ?? {},
+    }
+    const draft = await workspace.saveDraft({ document, expectedRevision: existing?.revision ?? null })
+    await workspace.prepareEnvironment({ environmentId, expectedRevision: draft.revision, projectDirectory }, input =>
+      validateWorkspaceProject(input, {
+        effectPreparation: management.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
+      }),
+    )
   }
-  const draft = await workspace.saveDraft({ document, expectedRevision: existing?.revision ?? null })
-  await workspace.prepareEnvironment({ environmentId, expectedRevision: draft.revision, projectDirectory }, input =>
-    validateWorkspaceProject(input, {
-      effectPreparation: management.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
-    }),
-  )
   const binding = owned ?? (await management.ensureInitializationBinding(kind, environmentId))
   if (!binding) return
   await management.reconcile()

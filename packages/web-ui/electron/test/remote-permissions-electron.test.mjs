@@ -61,7 +61,7 @@ test(
         const api = window.arcadiaDesktop
         const before = await api.getLocalBattleStatus()
         const saved = await api.localEnvironment({
-          action: 'save',
+          action: 'apply',
           document: {
             schemaVersion: 2,
             id: 'offline-check',

@@ -176,7 +176,11 @@ async function fixture(t, options = {}) {
     host,
     sources: options.sources?.(source),
     createManagedProjects: async (directory, input) => {
-      const managed = new ManagedProjects(directory, { ...input, offline: true })
+      const managed = new ManagedProjects(directory, {
+        ...input,
+        offline: true,
+        bundledPackageRoot: options.bundledPackageRoot,
+      })
       projects.push(managed)
       if (!options.cancelOnConsume) return managed
       return {
@@ -378,3 +382,31 @@ test('environment preparation uses its own persistent manifest and lock', { time
     await first.release()
   }
 })
+
+test(
+  'desktop apply uses the bundled base without downloading or requiring a library installation',
+  { timeout: 60000 },
+  async t => {
+    const { fileURLToPath } = await import('node:url')
+    const bundledPackageRoot = fileURLToPath(new URL('../../../../packs/base/', import.meta.url))
+    const base = JSON.parse(await readFile(join(bundledPackageRoot, 'package.json'), 'utf8'))
+    const f = await fixture(t, { bundledPackageRoot })
+    const lease = await f.library.prepareEnvironmentProject(
+      { ...environment([]), packages: { [base.name]: base.version } },
+      { offline: true },
+    )
+    try {
+      const actual = JSON.parse(
+        await readFile(join(lease.directory, 'node_modules', base.name, 'package.json'), 'utf8'),
+      )
+      assert.equal(actual.version, base.version)
+      assert.equal(
+        f.calls.some(args => args[2] === 'stage'),
+        false,
+      )
+      assert.deepEqual((await f.library.list()).activeIds, [])
+    } finally {
+      await lease.release()
+    }
+  },
+)

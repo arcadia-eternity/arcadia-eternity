@@ -250,3 +250,90 @@ test('shared peer ranges resolve once and an incompatible upgrade preserves exis
   )
   assert.equal((await workspace.getDraft('main')).revision, version.draftRevision)
 })
+
+test('apply creates a complete environment atomically and keeps failed edits out of package.json', async t => {
+  const { workspace, projects } = await fixture(t)
+  const installed = await projects.prepareEnvironment(
+    workspace,
+    { environmentId: 'main', document, expectedRevision: null },
+    noPackages,
+  )
+  const original = await workspace.getDraft('main')
+  await assert.rejects(
+    projects.prepareEnvironment(
+      workspace,
+      {
+        environmentId: 'main',
+        document: { ...original.document, name: 'Rejected' },
+        expectedRevision: original.revision,
+      },
+      async () => {
+        throw new Error('invalid content')
+      },
+    ),
+    { code: 'ENVIRONMENT_INSTALL_FAILED' },
+  )
+  assert.deepEqual(await workspace.getDraft('main'), original)
+  assert.equal((await workspace.getInstallation('main')).createdAt, installed.createdAt)
+})
+
+test('bundled base applies locally with an unreachable registry and no third-party permission', async t => {
+  const { fileURLToPath } = await import('node:url')
+  const bundledPackageRoot = fileURLToPath(new URL('../../../packs/base/', import.meta.url))
+  const base = JSON.parse(await readFile(join(bundledPackageRoot, 'package.json'), 'utf8'))
+  for (const mixed of [false, true]) {
+    const source = await mkdtemp(join(tmpdir(), 'local-helper-'))
+    t.after(() => rm(source, { recursive: true, force: true }))
+    await writeFile(
+      join(source, 'package.json'),
+      JSON.stringify({ name: 'helper', version: '1.0.0', peerDependencies: { [base.name]: '*' } }),
+    )
+    const { workspace, projects } = await fixture(t, {
+      bundledPackageRoot,
+      registry: 'https://127.0.0.1:1',
+      offline: false,
+      allowThirdPartyContent: mixed,
+      sources: { helper: { kind: 'directory', directory: source } },
+    })
+    const installed = await projects.prepareEnvironment(
+      workspace,
+      {
+        environmentId: 'main',
+        document: { ...document, packages: { [base.name]: base.version }, sources: mixed ? ['helper'] : [] },
+        expectedRevision: null,
+      },
+      async () => ({ contentRevision: 'local-base', packages: [] }),
+    )
+    const actual = JSON.parse(
+      await readFile(join(installed.directory, 'node_modules', base.name, 'package.json'), 'utf8'),
+    )
+    assert.equal(actual.version, base.version)
+    const draft = await workspace.getDraft('main')
+    await projects.prepareEnvironment(
+      workspace,
+      { environmentId: 'main', document: draft.document, expectedRevision: draft.revision },
+      async () => ({ contentRevision: 'again', packages: [] }),
+    )
+  }
+})
+
+test('a missing bundled base never falls back to the registry', async t => {
+  const { workspace, projects } = await fixture(t, {
+    offline: false,
+    allowThirdPartyContent: true,
+    registry: 'https://127.0.0.1:1',
+  })
+  await assert.rejects(
+    projects.prepareEnvironment(
+      workspace,
+      {
+        environmentId: 'main',
+        document: { ...document, packages: { '@arcadia-eternity/data-pack-base': '*' } },
+        expectedRevision: null,
+      },
+      noPackages,
+    ),
+    { code: 'BUNDLED_PACKAGE_UNAVAILABLE' },
+  )
+  assert.deepEqual(await workspace.listDrafts(), [])
+})

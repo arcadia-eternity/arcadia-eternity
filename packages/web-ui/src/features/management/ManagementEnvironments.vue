@@ -28,7 +28,6 @@ const {
   supported,
   canActivateBinding,
   saveEnvironment,
-  prepareEnvironment,
   deleteEnvironment,
   useEnvironment,
   inspectReferences,
@@ -129,7 +128,6 @@ const {
     :save-sequence="environmentSaveSequence"
     :busy="busy"
     @save="saveEnvironment"
-    @prepare="prepareEnvironment"
     @package-state="
       (environment, name, enabled, cascade) =>
         state.mutate('POST', `${workspacePath}/environments/${encode(environment.document.id)}/package-state`, {

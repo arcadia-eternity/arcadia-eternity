@@ -14,6 +14,18 @@ async function fixture() {
   const cwd = await mkdtemp(join(tmpdir(), 'environment-cli-'))
   directories.push(cwd)
   await writeFile(join(cwd, 'token'), 'scoped-service-token\n')
+  await writeFile(
+    join(cwd, 'environment.json'),
+    JSON.stringify({
+      schemaVersion: 2,
+      id: 'friends',
+      name: 'Friends',
+      packages: {},
+      sources: [],
+      rules: { schemaVersion: 1 },
+      requires: {},
+    }),
+  )
   const stdout: string[] = [],
     stderr: string[] = []
   const program = new Command().exitOverride()
@@ -71,7 +83,7 @@ it('waits for a real operation and reports stages separately from the final JSON
     .mockResolvedValueOnce(Response.json({ id: 'job', status: 'running', progress: { stage: 'installing' } }))
     .mockResolvedValueOnce(Response.json({ id: 'job', status: 'succeeded', result: { installationId: 'fixed' } }))
   vi.stubGlobal('fetch', fetcher)
-  await f.run(['prepare', 'friends', '--revision', 'r1', '--wait'])
+  await f.run(['apply', 'environment.json', '--revision', 'r1', '--wait'])
   expect(f.stderr.join('')).toContain('installing')
   expect(JSON.parse(f.stdout[0]!)).toMatchObject({ status: 'succeeded', result: { installationId: 'fixed' } })
   expect(String(fetcher.mock.calls[1]![0])).toContain('/operations/job')

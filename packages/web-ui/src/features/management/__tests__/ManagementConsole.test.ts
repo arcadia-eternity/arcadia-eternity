@@ -187,9 +187,9 @@ describe('shared management console', () => {
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('修改的环境')
     await page.get('form.environment-editor').trigger('submit')
     await flushPromises()
-    const save = request.mock.calls.map(([input]) => input).find(input => input.method === 'PATCH')!
-    expect(save.path).toBe('/workspaces/workspace-local/environments/friends')
-    expect(save.headers?.['If-Match']).toBe('"draft-4"')
+    const save = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/environments/apply'))!
+    expect(save.path).toBe('/workspaces/workspace-local/environments/apply')
+    expect(save.headers?.['If-Match']).toBeUndefined()
     expect(save.headers?.['Idempotency-Key']).toBeTruthy()
     expect(save.body).toEqual({ document: { ...draft().document, name: '修改的环境' }, expectedRevision: 'draft-4' })
   })
@@ -203,27 +203,21 @@ describe('shared management console', () => {
     await flushPromises()
     const created = request.mock.calls
       .map(([input]) => input)
-      .find(input => input.method === 'POST' && input.path.endsWith('/environments'))!
-    expect(created.path).toBe('/workspaces/workspace-local/environments')
+      .find(input => input.method === 'POST' && input.path.endsWith('/environments/apply'))!
+    expect(created.path).toBe('/workspaces/workspace-local/environments/apply')
     expect(created.body).toMatchObject({
       document: { id: 'new-env', name: '新环境', schemaVersion: 2 },
       expectedRevision: null,
     })
     expect(created.headers?.['If-Match']).toBeUndefined()
-    await button(page, '准备环境').trigger('click')
-    await flushPromises()
-    const prepared = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/prepare'))!
-    expect(prepared.path).toBe('/workspaces/workspace-local/environments/friends/prepare')
-    expect(prepared.body).toEqual({ expectedRevision: 'draft-4' })
-    expect(prepared.headers?.['If-Match']).toBe('"draft-4"')
-    expect(page.find('[aria-label="管理任务"]').exists()).toBe(true)
+    expect(page.text()).not.toContain('准备环境')
   })
 
   it('uses the newly saved revision for the next edit instead of leaving the editor permanently stale', async () => {
     let current = draft()
     const savedRevisions: string[] = []
     const request = vi.fn(async (input: ManagementIpcRequest) => {
-      if (input.path.endsWith('/environments/friends') && input.method === 'PATCH') {
+      if (input.path.endsWith('/environments/apply') && input.method === 'POST') {
         const body = input.body as { document: ManagedEnvironment['document']; expectedRevision: string }
         if (body.expectedRevision !== current.revision)
           return { status: 412, body: { error: { code: 'REVISION_CONFLICT', message: '资源已更新' } } }
@@ -251,7 +245,7 @@ describe('shared management console', () => {
 
   it('keeps unsaved edits visible when another administrator changed the draft', async () => {
     const request = vi.fn(async (input: ManagementIpcRequest) =>
-      input.method === 'PATCH'
+      input.path.endsWith('/environments/apply')
         ? { status: 412, body: { error: { code: 'REVISION_CONFLICT', message: '资源已被另一管理员更新' } } }
         : { status: 200, body: response(input.path) },
     )
@@ -265,7 +259,7 @@ describe('shared management console', () => {
     expect((page.get('form.environment-editor').findAll('input')[0]!.element as HTMLInputElement).value).toBe(
       '尚未保存的内容',
     )
-    expect(request.mock.calls.filter(([input]) => input.method === 'PATCH')).toHaveLength(1)
+    expect(request.mock.calls.filter(([input]) => input.path.endsWith('/environments/apply'))).toHaveLength(1)
   })
 
   it('publishes the selected fixed version with the binding revision rather than the server revision', async () => {

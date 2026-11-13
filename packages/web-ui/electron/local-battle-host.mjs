@@ -70,12 +70,12 @@ export function workerEnvironment(cache, npmCliPath, packsDirectory) {
   }
 }
 
-async function verifyProject(directory) {
+async function verifyProject(directory, managed = false) {
   if (typeof directory !== 'string' || !isAbsolute(directory))
     throw problem('PROJECT_INVALID', '请选择本机服务器项目目录')
   try {
     if (!(await stat(directory)).isDirectory()) throw new Error()
-    for (const name of ['package.json', 'arcadia-admission.json'])
+    for (const name of ['package.json', managed ? '.arcadia-prepared.json' : 'arcadia-admission.json'])
       if (!(await stat(join(directory, name))).isFile()) throw new Error()
     if (!(await stat(join(directory, 'node_modules'))).isDirectory()) throw new Error()
     try {
@@ -275,7 +275,10 @@ export class LocalBattleHost {
           throw problem('BASE_PACK_MISSING', '未找到打包的官方基础内容')
         }
       }
-      await verifyProject(directory)
+      await verifyProject(
+        directory,
+        !!this.workspaceRoot && resolve(directory) === join(this.workspaceRoot, 'environments', 'desktop-host'),
+      )
       const projectDirectory = await realpath(directory)
       this.#lastProject = { projectDirectory }
       cache = await mkdtemp(join(tmpdir(), 'arcadia-desktop-server-'))
@@ -424,7 +427,21 @@ export class LocalBattleHost {
       this.#uncertainProjects.clear()
       const descriptor = await this.#request('describe')
       this.#projects.set(descriptor.id, new Set([projectDirectory]))
-      if (this.stateDirectory) await saveLocalServerProject(this.stateDirectory, projectDirectory)
+      if (this.stateDirectory) {
+        // Managed startup adopts its source into this persistent environment.
+        // The library project is only a launch lease and can be collected later.
+        const managedDirectory = this.workspaceRoot && join(this.workspaceRoot, 'environments', 'desktop-host')
+        const persistent = managedDirectory
+          ? await stat(join(managedDirectory, 'package.json')).then(
+              () => managedDirectory,
+              error => {
+                if (error.code !== 'ENOENT') throw error
+                return projectDirectory
+              },
+            )
+          : projectDirectory
+        await saveLocalServerProject(this.stateDirectory, persistent)
+      }
       return this.status()
     } catch (error) {
       const wasCurrent = generation === this.#generation

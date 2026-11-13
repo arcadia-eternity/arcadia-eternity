@@ -152,9 +152,12 @@ export class DesktopWorkspaceOwner {
           if (input.hasProgress) input.onProgress = progress => callback('progress', progress, id)
           delete input.hasProgress
           if (!input.projectDirectory && !input.directory) {
-            const draft = await workspace.getDraft(input.environmentId)
-            if (draft.revision !== input.expectedRevision) throw failure('REVISION_CONFLICT')
-            projectLease = await this.library.prepareEnvironmentProject(draft.document, {
+            const draft = await workspace.getDraft(input.environmentId).catch(error => {
+              if (error.code !== 'ENOENT') throw error
+              return undefined
+            })
+            if ((draft?.revision ?? null) !== input.expectedRevision) throw failure('REVISION_CONFLICT')
+            projectLease = await this.library.prepareEnvironmentProject(input.document ?? draft.document, {
               projectDirectory: join(workspace.root, 'environments', input.environmentId),
               signal: controller.signal,
               onProgress: input.onProgress,

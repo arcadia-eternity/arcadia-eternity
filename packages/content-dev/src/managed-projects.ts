@@ -3,8 +3,13 @@ import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { valid, validRange } from 'semver'
-import { inspectNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import { valid, validRange, satisfies } from 'semver'
+import {
+  inspectNpmProject,
+  resolveNpmInvocation,
+  withShippedEnvironmentProject,
+  withShippedCatalogArchive,
+} from '@arcadia-eternity/pack-loader/node'
 import { normalizeEnvironmentDocument } from './debug-environments.ts'
 import { acquireSource } from './managed-sources.ts'
 import { contentError, materialFiles } from './workspace-materials.ts'
@@ -18,6 +23,7 @@ import type { ManagedSource } from './managed-sources.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
 export interface ManagedProjectsOptions {
+  bundledPackageRoot?: string
   registry?: string
   offline?: boolean
   /** Host permission to acquire metadata/materials; never grants authority to execute them. */
@@ -171,7 +177,8 @@ export class ManagedProjects {
     input: {
       onProgress?: PrepareEnvironmentInput['onProgress']
       environmentId: string
-      expectedRevision: string
+      expectedRevision: string | null
+      document?: PrepareEnvironmentInput['document']
       signal?: AbortSignal
       beforeCommit?: () => Promise<void>
     },
@@ -181,14 +188,15 @@ export class ManagedProjects {
     return this.#track(
       this.#prepare(
         async () => {
-          const draft = await workspace.getDraft(input.environmentId)
-          if (draft.revision !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
-          return draft.document
+          const draft = await workspace.getDraft(input.environmentId).catch(error => {
+            if (errorCode(error) !== 'ENOENT') throw error
+            return undefined
+          })
+          if ((draft?.revision ?? null) !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
+          return input.document ?? draft?.document
         },
         { ...input, projectDirectory: join(workspace.root, 'environments', input.environmentId) },
         async (directory, signal) => {
-          const current = await workspace.getDraft(input.environmentId)
-          if (current.revision !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
           return workspace.prepareEnvironment({ ...input, projectDirectory: directory, signal }, validate)
         },
       ),
@@ -238,14 +246,63 @@ export class ManagedProjects {
           throw contentError('INSTALL_VERSION_INVALID')
         dependencies[name] = range
       }
+      const baseName = '@arcadia-eternity/data-pack-base'
+      const includesBase = Object.hasOwn(dependencies, baseName) || document.sources.includes(baseName)
+      if (Object.hasOwn(dependencies, baseName) && document.sources.includes(baseName))
+        throw contentError('INSTALL_DUPLICATE_PACKAGE')
+      const baseRoot = this.#options.bundledPackageRoot
+      if (includesBase && !baseRoot) throw contentError('BUNDLED_PACKAGE_UNAVAILABLE')
+      if (includesBase) {
+        const baseManifest = JSON.parse(await readFile(join(baseRoot!, 'package.json'), 'utf8'))
+        if (baseManifest.name !== baseName) throw contentError('BUNDLED_PACKAGE_INVALID')
+        const requested = dependencies[baseName]
+        if (requested && !requested.startsWith('file:') && !satisfies(baseManifest.version, requested))
+          throw contentError('BUNDLED_PACKAGE_VERSION_MISMATCH')
+        if (
+          Object.keys(dependencies).every(name => name === baseName) &&
+          document.sources.every(name => name === baseName)
+        ) {
+          await input.onProgress?.({ stage: 'preparing' })
+          return await withShippedEnvironmentProject(baseRoot!, async staged => {
+            const manifest = JSON.parse(await readFile(join(staged, 'package.json'), 'utf8'))
+            const saved = input.projectDirectory
+              ? JSON.parse(
+                  await readFile(join(input.projectDirectory, 'package.json'), 'utf8').catch(error => {
+                    if (errorCode(error) !== 'ENOENT') throw error
+                    return '{}'
+                  }),
+                )
+              : {}
+            const project = {
+              ...manifest,
+              ...saved,
+              dependencies: {
+                [baseName]: requested && !requested.startsWith('file:') ? requested : baseManifest.version,
+              },
+            }
+            const lock = JSON.parse(await readFile(join(staged, 'package-lock.json'), 'utf8'))
+            lock.name = project.name
+            lock.version = project.version
+            lock.packages[''] = { name: project.name, version: project.version, dependencies: project.dependencies }
+            await writeFile(join(staged, 'package.json'), JSON.stringify(project))
+            await writeFile(join(staged, 'package-lock.json'), JSON.stringify(lock))
+            signal.throwIfAborted()
+            return consume(staged, signal)
+          })
+        }
+      }
       // Acquisition approval is separate from any runtime execution policy. This
       // installer never evaluates author modules or invokes lifecycle scripts.
-      if (!this.#options.allowThirdPartyContent && (Object.keys(dependencies).length || document.sources.length))
+      if (
+        !this.#options.allowThirdPartyContent &&
+        (Object.keys(dependencies).some(name => name !== baseName) || document.sources.some(name => name !== baseName))
+      )
         throw contentError('THIRD_PARTY_CONTENT_NOT_AUTHORIZED')
       await mkdir(join(this.root, 'staging'), { recursive: true, mode: 0o700 })
       directory = await mkdtemp(join(this.root, 'staging', 'prepare-'))
       await mkdir(join(directory, 'candidates'))
-      for (const spec of Object.values(dependencies)) {
+      for (const [name, spec] of Object.entries(dependencies)) {
+        if (name === baseName) continue
         if (!spec.startsWith('file:')) continue
         if (!input.projectDirectory) throw contentError('ENVIRONMENT_SOURCE_MISSING')
         const relativeFile = spec.slice(5)
@@ -253,8 +310,17 @@ export class ManagedProjects {
         if ((await realpath(sourceFile)) !== sourceFile) throw contentError('MATERIAL_PATH_ESCAPE')
         await writeFile(join(directory, relativeFile), await readFile(sourceFile))
       }
+      if (includesBase) {
+        await withShippedCatalogArchive(baseRoot!, undefined, async file => {
+          const bytes = await readFile(file)
+          const filename = `candidates/base-${createHash('sha256').update(bytes).digest('hex')}.tgz`
+          await writeFile(join(directory!, filename), bytes)
+          dependencies[baseName] = 'file:' + filename
+        })
+      }
       const provenance: Record<string, unknown> = {}
       for (const [index, name] of document.sources.entries()) {
+        if (name === baseName) continue
         if (Object.hasOwn(dependencies, name)) throw contentError('INSTALL_DUPLICATE_PACKAGE')
         const source = this.#options.sources[name]
         if (!source) throw contentError('INSTALL_SOURCE_NOT_REGISTERED')
@@ -299,7 +365,12 @@ export class ManagedProjects {
         await rm(output, { recursive: true, force: true })
       }
       const savedManifest = input.projectDirectory
-        ? (JSON.parse(await readFile(join(input.projectDirectory, 'package.json'), 'utf8')) as UnknownRecord)
+        ? (JSON.parse(
+            await readFile(join(input.projectDirectory, 'package.json'), 'utf8').catch(error => {
+              if (errorCode(error) !== 'ENOENT') throw error
+              return '{}'
+            }),
+          ) as UnknownRecord)
         : {}
       if (input.projectDirectory) {
         const lock = await readFile(join(input.projectDirectory, 'package-lock.json')).catch(error => {

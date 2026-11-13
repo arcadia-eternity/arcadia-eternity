@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { spawn, execFile, type ChildProcess } from 'node:child_process'
 import { promisify } from 'node:util'
 import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises'
@@ -48,7 +49,7 @@ async function command(args: string[]) {
   const { stdout } = await execute(process.execPath, [cli, 'server', ...args], { env, timeout: 60_000 })
   return JSON.parse(stdout.trim())
 }
-async function start(directory: string) {
+async function start(directory: string, extra: string[] = []) {
   const child = spawn(
     process.execPath,
     [
@@ -63,6 +64,7 @@ async function start(directory: string) {
       directory,
       '--cors-origin',
       adminOrigin,
+      ...extra,
     ],
     { env, stdio: ['ignore', 'pipe', 'pipe'] },
   )
@@ -136,6 +138,7 @@ async function administrator(origin: string, directory: string) {
         Origin: adminOrigin,
         Cookie: cookie,
         'X-CSRF-Token': csrfToken,
+        'Idempotency-Key': randomUUID(),
         ...(revision === undefined ? {} : { 'If-Match': String(revision) }),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -219,8 +222,8 @@ it('bootstraps playable builtin content once and preserves administrator removal
     409,
   )
   await request(
-    draftPath,
-    'PATCH',
+    draftsPath + '/apply',
+    'POST',
     { document: { ...draft.document, packages: {} }, expectedRevision: draft.revision },
     undefined,
     409,
@@ -431,4 +434,31 @@ it('runs guest management with SQLite, one-use owner login, restart identity, an
     expect(await catalog(running.origin)).toHaveLength(1)
     await stop(running.child)
   }
+}, 90_000)
+
+it('applies the bundled base from local files even when the registry is unreachable', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-local-base-'))
+  directories.push(directory)
+  const running = await start(directory, ['--npm-registry', 'https://127.0.0.1:1'])
+  const request = await administrator(running.origin, directory)
+  const server = (await request<{ servers: Server[] }>('/servers')).servers[0]
+  const path = `/workspaces/${server.workspaceId}/environments`
+  const before = await request<{ environments: { document: Record<string, unknown>; revision: string }[] }>(path)
+  const draft = before.environments[0]
+  const operation = await request<{ id: string }>(
+    path + '/apply',
+    'POST',
+    {
+      document: { ...draft.document, name: '本地基础包' },
+      expectedRevision: draft.revision,
+    },
+    undefined,
+    202,
+  )
+  await expect
+    .poll(async () => (await request<{ status: string }>(`/operations/${operation.id}`)).status, { timeout: 30_000 })
+    .toBe('succeeded')
+  const after = await request<{ environments: { document: { name: string } }[] }>(path)
+  expect(after.environments[0].document.name).toBe('本地基础包')
+  expect(await catalog(running.origin)).toHaveLength(1)
 }, 90_000)

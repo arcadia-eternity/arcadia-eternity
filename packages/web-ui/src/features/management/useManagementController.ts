@@ -127,7 +127,7 @@ export function useManagementController(
     interrupted: '执行中断',
   }
   const taskKinds: Record<string, string> = {
-    'environment.prepare': '准备环境',
+    'environment.apply': '保存并应用',
     'binding.reload': '重新加载环境',
     'environment.import': '导入环境',
     'environment.export': '导出环境',
@@ -319,23 +319,13 @@ export function useManagementController(
   })
   watch(target, () => emit('navigate', { target: target.value, tab: tab.value }))
   async function saveEnvironment(document: ManagedEnvironmentDocument, expectedRevision: string | null) {
-    const path = `${workspacePath.value}/environments${expectedRevision === null ? '' : `/${encode(document.id)}`}`
-    const saved = await state.mutate(
-      expectedRevision === null ? 'POST' : 'PATCH',
-      path,
-      { document, expectedRevision },
-      expectedRevision ?? undefined,
-    )
-    if (saved) environmentSaveSequence.value++
-  }
-  async function prepareEnvironment(environment: ManagedEnvironment) {
-    const submitted = await state.mutate(
-      'POST',
-      `${workspacePath.value}/environments/${encode(environment.document.id)}/prepare`,
-      { expectedRevision: environment.revision },
-      environment.revision,
-    )
-    if (submitted) tab.value = 'tasks'
+    const submitted = await state.mutate('POST', `${workspacePath.value}/environments/apply`, {
+      document,
+      expectedRevision,
+    })
+    if (submitted) {
+      environmentSaveSequence.value++
+    }
   }
   async function deleteEnvironment(environment: ManagedEnvironment) {
     await state.mutate(
@@ -609,7 +599,6 @@ export function useManagementController(
     logout,
     loginPasskey,
     saveEnvironment,
-    prepareEnvironment,
     deleteEnvironment,
     terminateBattle,
     useEnvironment,

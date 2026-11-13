@@ -9,6 +9,7 @@ import { withSourceLock } from './source-lock.ts'
 import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
+export { normalizeEnvironmentDocument } from './debug-environments.ts'
 export type { EnvironmentRules } from './debug-environments.ts'
 export type EnvironmentDocument = EnvironmentDocumentV2
 export interface EnvironmentDraft {
@@ -40,7 +41,8 @@ export interface UnavailableInstallation {
 export interface PrepareEnvironmentInput {
   onProgress?: (progress: { stage: string; completed?: number; total?: number }) => void | Promise<void>
   environmentId: string
-  expectedRevision: string
+  expectedRevision: string | null
+  document?: EnvironmentDocument
   projectDirectory?: string
   directory?: string
   signal?: AbortSignal
@@ -437,14 +439,19 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
   }
   prepareEnvironment(input: PrepareEnvironmentInput, preparer: StaticPreparer) {
     return this.#exclusive(async () => {
-      const draft = await this.#draft(input.environmentId)
-      if (draft.revision !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
+      const draft = await this.#draft(input.environmentId).catch(error => {
+        if (errorCode(error) !== 'ENOENT') throw error
+        return undefined
+      })
+      if ((draft?.revision ?? null) !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
+      const document = normalizeEnvironmentDocument(input.document ?? draft?.document)
+      if (document.id !== input.environmentId) throw contentError('ENVIRONMENT_ID_MISMATCH')
       const source =
         input.projectDirectory ??
         input.directory ??
         (await this.#options.resolveProject?.(input.environmentId)) ??
         this.#directory(input.environmentId)
-      return this.#install(draft.document, source, preparer, input)
+      return this.#install(document, source, preparer, input)
     }, true)
   }
   async #install(

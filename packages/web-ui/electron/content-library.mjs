@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
-import { basename, isAbsolute, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { basename, dirname, isAbsolute, join } from 'node:path'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const exactPackage = /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
@@ -158,7 +159,12 @@ export class ContentLibrary {
       createManagedProjects ??
       (async (root, options) => {
         const { ManagedProjects } = await import('@arcadia-eternity/content-sdk/managed-projects')
-        return new ManagedProjects(root, options)
+        return new ManagedProjects(root, {
+          ...options,
+          bundledPackageRoot: dirname(
+            fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
+          ),
+        })
       })
   }
   async #load() {
@@ -726,6 +732,7 @@ export class ContentLibrary {
       const selectedSources = {},
         installedSources = new Map()
       for (const name of sourceIds) {
+        if (name === '@arcadia-eternity/data-pack-base') continue
         if (Object.hasOwn(document.packages, name)) throw sourceError('INSTALL_DUPLICATE_PACKAGE')
         if (Object.hasOwn(registry, name)) selectedSources[name] = registry[name]
         else {
@@ -747,6 +754,8 @@ export class ContentLibrary {
         directory
       if (
         !projectDirectory &&
+        !requested.some(([name]) => name === '@arcadia-eternity/data-pack-base') &&
+        !sourceIds.includes('@arcadia-eternity/data-pack-base') &&
         !Object.keys(selectedSources).length &&
         id &&
         JSON.stringify(active) === JSON.stringify(requested)
@@ -754,11 +763,17 @@ export class ContentLibrary {
         directory = await this.#directory(id)
       else {
         let project
-        if (projectDirectory || Object.keys(selectedSources).length) {
+        if (
+          projectDirectory ||
+          requested.some(([name]) => name === '@arcadia-eternity/data-pack-base') ||
+          sourceIds.includes('@arcadia-eternity/data-pack-base') ||
+          Object.keys(selectedSources).length
+        ) {
           // Share the headless source/lock/install pipeline, then transfer its one
           // tree into the client library before committing the persistent environment.
           const packages = Object.fromEntries(requested)
           for (const [name, version] of requested) {
+            if (name === '@arcadia-eternity/data-pack-base') continue
             const entry =
               installedSources.get(name) ??
               this.#state.installed.find(
@@ -782,7 +797,14 @@ export class ContentLibrary {
           })
           try {
             project = await installer.prepareProject(
-              { ...document, packages, sources: Object.keys(selectedSources) },
+              {
+                ...document,
+                packages,
+                sources: [
+                  ...sourceIds.filter(name => name === '@arcadia-eternity/data-pack-base'),
+                  ...Object.keys(selectedSources),
+                ],
+              },
               { signal: combined, onProgress, projectDirectory },
               async staged => {
                 combined.throwIfAborted()

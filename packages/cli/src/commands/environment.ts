@@ -73,27 +73,15 @@ export function registerEnvironmentCommands(content: Command, context: CommandCo
     await report(result.installations)
   })
   command
-    .command('save')
+    .command('apply')
     .argument('<file>', 'Environment document JSON')
-    .option('--revision <revision>', 'Expected draft revision; omit to create')
-    .action(async (file: string, options: { revision?: string }) => {
-      const document = JSON.parse(await readFile(resolve(context.cwd, file), 'utf8')) as { id: string }
-      await report(
-        await request(
-          options.revision ? 'PATCH' : 'POST',
-          workspace() + '/environments' + (options.revision ? '/' + segment(document.id) : ''),
-          { document, expectedRevision: options.revision ?? null },
-        ),
-      )
-    })
-  command
-    .command('prepare')
-    .argument('<id>')
-    .requiredOption('--revision <revision>', 'Captured draft revision')
+    .option('--revision <revision>', 'Expected environment revision; omit to create')
     .option('--wait', 'Wait for completion and write stage updates to stderr')
-    .action(async (id: string, options: { revision: string; wait?: boolean }) => {
-      let operation = (await request('POST', workspace() + '/environments/' + segment(id) + '/prepare', {
-        expectedRevision: options.revision,
+    .action(async (file: string, options: { revision?: string; wait?: boolean }) => {
+      const document = JSON.parse(await readFile(resolve(context.cwd, file), 'utf8'))
+      let operation = (await request('POST', workspace() + '/environments/apply', {
+        document,
+        expectedRevision: options.revision ?? null,
       })) as ManagementOperation
       let previous = ''
       while (options.wait && ['queued', 'running'].includes(operation.status)) {
@@ -106,7 +94,7 @@ export function registerEnvironmentCommands(content: Command, context: CommandCo
         operation = (await request('GET', '/operations/' + segment(operation.id))) as ManagementOperation
       }
       if (options.wait && operation.status !== 'succeeded')
-        throw new CliError('ENVIRONMENT_PREPARE_FAILED', `Preparation ${operation.status}: ${operation.id}`)
+        throw new CliError('ENVIRONMENT_APPLY_FAILED', `Application ${operation.status}: ${operation.id}`)
       await report(operation)
     })
   for (const enabled of [true, false])

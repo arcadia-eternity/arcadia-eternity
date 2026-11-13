@@ -159,23 +159,22 @@ test(
       assert.deepEqual(await readdir(join(root, 'library/projects')), existingProjects)
       await local.release()
       const selectedBeforeManagement = (await library.list()).activeIds
-      const tournament = await request('POST', `/workspaces/${workspace.workspaceId}/environments`, {
-        document: {
-          schemaVersion: 2,
-          id: 'tournament',
-          name: '独立比赛环境',
-          packages: { [fixtureManifest.name]: fixtureManifest.version },
-          sources: [],
-          rules: { schemaVersion: 1 },
-          requires: {},
-        },
-        expectedRevision: null,
-      })
       const preparation = await request(
         'POST',
-        `/workspaces/${workspace.workspaceId}/environments/tournament/prepare`,
-        { expectedRevision: tournament.revision },
-        { 'idempotency-key': 'prepare-tournament' },
+        `/workspaces/${workspace.workspaceId}/environments/apply`,
+        {
+          document: {
+            schemaVersion: 2,
+            id: 'tournament',
+            name: '独立比赛环境',
+            packages: { [fixtureManifest.name]: fixtureManifest.version },
+            sources: [],
+            rules: { schemaVersion: 1 },
+            requires: {},
+          },
+          expectedRevision: null,
+        },
+        { 'idempotency-key': 'apply-tournament' },
       )
       let prepared
       for (let i = 0; i < 1200; i++) {

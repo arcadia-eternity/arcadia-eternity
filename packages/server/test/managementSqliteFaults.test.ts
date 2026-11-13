@@ -62,18 +62,14 @@ async function setup() {
     return result.body as T
   }
   const base = `/workspaces/${workspace.workspaceId}/environments`
-  const draft = await request<{ revision: string }>({
-    method: 'POST',
-    path: base,
-    body: {
-      document: { schemaVersion: 1, id: 'shared', name: 'Shared', packages: shippedCatalogMembers, sources: [] },
-      expectedRevision: null,
-    },
+  const draft = await workspace.saveDraft({
+    document: { schemaVersion: 1, id: 'shared', name: 'Shared', packages: shippedCatalogMembers, sources: [] },
+    expectedRevision: null,
   })
   const started = await request<{ id: string }>({
     method: 'POST',
-    path: `${base}/shared/prepare`,
-    body: { expectedRevision: draft.revision },
+    path: `${base}/apply`,
+    body: { document: draft.document, expectedRevision: draft.revision },
     headers: { 'idempotency-key': 'prepare' },
   })
   const prepared = await terminal(storage, started.id)
@@ -83,13 +79,6 @@ async function setup() {
     path: `/servers/${SERVER}/bindings`,
     body: { environmentId: 'shared', installationId, enabled: true, visibility: 'public', matchmakingEnabled: true },
   })
-  const publication = await request<{ id: string }>({
-    method: 'POST',
-    path: `/servers/${SERVER}/bindings/${created.id}/publish`,
-    body: { installationId },
-    headers: { 'if-match': String(created.revision), 'idempotency-key': 'publish' },
-  })
-  await terminal(storage, publication.id)
   expect(app.environments.list()).toHaveLength(1)
   const binding = (await storage.get<Binding>('bindings', created.id))!
 

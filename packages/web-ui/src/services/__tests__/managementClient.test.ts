@@ -34,7 +34,7 @@ describe('management transport contexts', () => {
     const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => response({ id: 'job-1' }, 202))
     const api = createHttpManagementClient(httpContext(), fetchImpl)
     api.setCsrfToken('csrf-a')
-    await api.request('POST', '/workspaces/my-workspace/environments/test/prepare', {
+    await api.request('POST', '/workspaces/my-workspace/environments/apply', {
       body: { version: 'v1' },
       revision: 2,
       idempotencyKey: 'attempt:1',

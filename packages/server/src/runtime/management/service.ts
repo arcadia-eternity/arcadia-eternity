@@ -1,4 +1,7 @@
-import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-sdk/management-workspace'
+import {
+  setEnvironmentPackageEnabled,
+  normalizeEnvironmentDocument,
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import type {
   ManagementCapabilities,
   ManagementOperation,
@@ -650,6 +653,50 @@ export class ManagementService {
     await this.auth.authorize(actor, scope, 'read')
     return op
   }
+  private async applyEnvironment(
+    actor: ManagementActor,
+    request: ManagementRequest,
+    value: unknown,
+    expectedRevision: string | null,
+  ) {
+    const document = normalizeEnvironmentDocument(value)
+    await this.auth.authorize(actor, this.workspaceScope, 'edit')
+    await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+    await this.assertRequiredPackages(document)
+    await this.authorizeEnvironmentUpdate(actor, document.id)
+    return this.startOperation(
+      actor,
+      request,
+      'environment.apply',
+      this.workspaceScope,
+      { document, expectedRevision },
+      async ctx => {
+        const authorize = async () => {
+          await ctx.checkCurrent()
+          await this.auth.authorize(actor, this.workspaceScope, 'edit')
+          await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+          await this.authorizeEnvironmentUpdate(actor, document.id)
+        }
+        await authorize()
+        const prepare =
+          this.options.prepareEnvironment ?? this.options.workspace.prepareEnvironment.bind(this.options.workspace)
+        const installation = await prepare(
+          {
+            environmentId: document.id,
+            document,
+            expectedRevision,
+            projectDirectory: await this.options.resolveProject?.(document.id),
+            signal: ctx.signal,
+            onProgress: progress => ctx.progress(progress),
+            beforeCommit: authorize,
+          },
+          this.validator,
+        )
+        await this.reconcile()
+        return safeInstallation(installation)
+      },
+    )
+  }
   private async reload(actor: ManagementActor, request: ManagementRequest, id: string) {
     await this.auth.authorize(actor, this.serverScope, 'publish')
     await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
@@ -791,6 +838,13 @@ export class ManagementService {
           )
       }
       if (parts[2] === 'environments') {
+        if (method === 'POST' && parts.length === 4 && parts[3] === 'apply')
+          return this.applyEnvironment(
+            actor,
+            request,
+            input.document,
+            input.expectedRevision === null ? null : text(input.expectedRevision),
+          )
         if (method === 'GET' && parts.length === 3) {
           await this.auth.authorize(actor, this.workspaceScope, 'read')
           const builtinId = await this.builtinEnvironmentId()
@@ -810,18 +864,6 @@ export class ManagementService {
           })
           return ok({ deleted: true })
         }
-        if ((method === 'POST' && parts.length === 3) || (method === 'PATCH' && parts.length === 4)) {
-          await this.auth.authorize(actor, this.workspaceScope, 'edit')
-          const document = object(input.document)
-          if (parts.length === 4 && document.id !== parts[3]) fail('ENVIRONMENT_MISMATCH')
-          await this.assertRequiredPackages(document)
-          await this.authorizeEnvironmentUpdate(actor, text(document.id))
-          const expectedRevision =
-            input.expectedRevision === null
-              ? null
-              : text(input.expectedRevision ?? request.headers?.['if-match']?.replace(/^"|"$/g, ''))
-          return ok(await this.options.workspace.saveDraft({ document, expectedRevision }))
-        }
         if (method === 'POST' && parts[4] === 'package-state' && parts.length === 5) {
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
           if (typeof input.enabled !== 'boolean' || (input.cascade !== undefined && typeof input.cascade !== 'boolean'))
@@ -832,66 +874,24 @@ export class ManagementService {
           const builtin = parts[3] === (await this.builtinEnvironmentId())
           if (builtin && !input.enabled && name === shippedBasePackage)
             fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
-          return ok(
-            await setEnvironmentPackageEnabled(
-              builtin
-                ? {
-                    listDrafts: () => workspace.listDrafts(),
-                    listInstallations: () => workspace.listInstallations(),
-                    saveDraft: async draft => {
-                      await this.assertRequiredPackages(object(draft.document))
-                      return workspace.saveDraft(draft)
-                    },
-                  }
-                : workspace,
-              {
-                environmentId: parts[3],
-                expectedRevision: text(input.expectedRevision),
-                name,
-                enabled: input.enabled as boolean,
-                cascade: input.cascade as boolean | undefined,
-              },
-            ),
-          )
-        }
-        if (method === 'POST' && parts[4] === 'prepare' && parts.length === 5) {
-          await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-          const environmentId = parts[3],
-            expectedRevision = text(input.expectedRevision)
-          await this.authorizeEnvironmentUpdate(actor, environmentId)
-          return this.startOperation(
-            actor,
-            request,
-            'environment.prepare',
-            this.workspaceScope,
-            { environmentId, expectedRevision },
-            async ctx => {
-              await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-              const projectDirectory = await this.options.resolveProject?.(environmentId)
-              const prepare =
-                this.options.prepareEnvironment ??
-                this.options.workspace.prepareEnvironment.bind(this.options.workspace)
-              const version = await prepare(
-                {
-                  environmentId,
-                  expectedRevision,
-                  projectDirectory,
-                  signal: ctx.signal,
-                  onProgress: progress => ctx.progress(progress),
-                  beforeCommit: async () => {
-                    await ctx.checkCurrent()
-                    await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-                    await this.authorizeEnvironmentUpdate(actor, environmentId)
-                  },
-                },
-                this.validator,
-              )
-              await ctx.checkCurrent()
-              await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-              await this.reconcile()
-              return safeInstallation(version)
+          const draft = await setEnvironmentPackageEnabled(
+            {
+              listDrafts: () => workspace.listDrafts(),
+              listInstallations: () => workspace.listInstallations(),
+              saveDraft: async ({ document, expectedRevision }) => ({
+                document: normalizeEnvironmentDocument(document),
+                revision: expectedRevision!,
+              }),
+            },
+            {
+              environmentId: parts[3],
+              expectedRevision: text(input.expectedRevision),
+              name,
+              enabled: input.enabled as boolean,
+              cascade: input.cascade as boolean | undefined,
             },
           )
+          return this.applyEnvironment(actor, request, draft.document, text(input.expectedRevision))
         }
       }
       if (parts[2] === 'installations' && parts.length === 4 && method === 'DELETE') {
@@ -1142,13 +1142,13 @@ export class ManagementService {
             body: {},
             retryOf: op.id,
           })
-        if (op.kind === 'environment.prepare')
-          return this.request(actor, {
-            ...request,
-            path: `/workspaces/${this.options.workspace.workspaceId}/environments/${text(original.environmentId)}/prepare`,
-            body: { expectedRevision: text(original.expectedRevision) },
-            retryOf: op.id,
-          })
+        if (op.kind === 'environment.apply')
+          return this.applyEnvironment(
+            actor,
+            { ...request, retryOf: op.id },
+            original.document,
+            original.expectedRevision === null ? null : text(original.expectedRevision),
+          )
         if (op.kind === 'binding.reload')
           return this.reload(
             actor,
@@ -1173,7 +1173,7 @@ export class ManagementService {
           await this.backups!.authorize(actor)
         } else if (op.kind === 'battle.terminate')
           await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
-        else if (op.kind === 'environment.prepare' || op.kind === 'environment.import')
+        else if (['environment.apply', 'environment.import'].includes(op.kind))
           await this.auth.authorize(actor, this.workspaceScope, 'prepare')
         else if (op.kind === 'environment.export') await this.auth.authorize(actor, this.workspaceScope, 'export')
         else {
