@@ -27,7 +27,7 @@ export interface BackupSummary {
   workspaceId: string
   servers: number
   environments: number
-  versions: number
+  installations: number
   accounts: number
   materialBytes: number
 }
@@ -81,7 +81,7 @@ export function inspectServerBackup(value: unknown): BackupSummary {
   const serverId = string(backup.serverId),
     workspace = object(backup.workspace),
     storage = object(backup.storage)
-  if (workspace.format !== 'arcadia.workspace-snapshot/1' || storage.formatVersion !== 1 || storage.schemaVersion !== 1)
+  if (workspace.format !== 'arcadia.workspace-snapshot/2' || storage.formatVersion !== 1 || storage.schemaVersion !== 1)
     fail('UNSUPPORTED_SERVER_BACKUP')
   const workspaceId = string(workspace.workspaceId),
     records = object(storage.records)
@@ -102,20 +102,28 @@ export function inspectServerBackup(value: unknown): BackupSummary {
     string(draft.revision)
     drafts.add(id)
   }
-  const versions = new Map<string, string>()
+  const installations = new Map<string, string>()
   let materialBytes = 0,
     materialFiles = 0
-  for (const entryValue of array(workspace.versions)) {
+  for (const entryValue of array(workspace.installations)) {
     const entry = object(entryValue),
       version = object(entry.version),
-      id = string(version.versionId)
+      id = string(version.installationId)
     const environmentId = string(version.environmentId)
-    if (versions.has(id) || !drafts.has(environmentId) || object(version.document).id !== environmentId)
+    if (installations.has(id) || !drafts.has(environmentId) || object(version.document).id !== environmentId)
       fail('BACKUP_ENVIRONMENT_REFERENCE_INVALID')
     string(version.contentRevision)
     string(version.draftRevision)
     if (!Number.isSafeInteger(version.createdAt)) fail('INVALID_SERVER_BACKUP')
-    versions.set(id, environmentId)
+    installations.set(id, environmentId)
+  }
+  const materialSets = [
+    ...array(workspace.installations).map(entry => ({ files: object(entry).files, lockRequired: true })),
+    ...array(workspace.drafts)
+      .filter(draft => !installations.has(string(object(object(draft).document).id)))
+      .map(draft => ({ files: object(draft).files, lockRequired: false })),
+  ]
+  for (const entry of materialSets) {
     const paths = new Set<string>()
     for (const fileValue of array(entry.files)) {
       const file = object(fileValue),
@@ -139,7 +147,8 @@ export function inspectServerBackup(value: unknown): BackupSummary {
       materialFiles++
       if (materialBytes > 1024 * 1024 * 1024 || materialFiles > 100000) fail('BACKUP_SIZE_LIMIT')
     }
-    if (!paths.has('package.json') || !paths.has('package-lock.json')) fail('BACKUP_MATERIAL_INCOMPLETE')
+    if (!paths.has('package.json') || (entry.lockRequired && !paths.has('package-lock.json')))
+      fail('BACKUP_MATERIAL_INCOMPLETE')
   }
   for (const row of maps.bindings.values()) {
     const binding = object(row.value),
@@ -148,11 +157,6 @@ export function inspectServerBackup(value: unknown): BackupSummary {
       fail('BACKUP_BINDING_REFERENCE_INVALID')
     const environmentId = string(binding.environmentId)
     if (!drafts.has(environmentId)) fail('BACKUP_ENVIRONMENT_REFERENCE_INVALID')
-    for (const key of ['desiredVersionId', 'effectiveVersionId']) {
-      const versionId = binding[key]
-      if (versionId !== undefined && versions.get(string(versionId)) !== environmentId)
-        fail('BACKUP_VERSION_REFERENCE_INVALID')
-    }
   }
   for (const [id, row] of maps.servers) {
     const defaultId = object(row.value).defaultBindingId
@@ -204,7 +208,7 @@ export function inspectServerBackup(value: unknown): BackupSummary {
       fail('BACKUP_GRANT_REFERENCE_INVALID')
   }
   for (const row of maps.retentions.values()) {
-    if (row.scope !== 'workspace:' + workspaceId || !versions.has(string(object(row.value).versionId)))
+    if (row.scope !== 'workspace:' + workspaceId || !installations.has(string(object(row.value).installationId)))
       fail('BACKUP_RETENTION_REFERENCE_INVALID')
   }
   // Backups never grant old bearer sessions or one-time codes a second life.
@@ -214,7 +218,7 @@ export function inspectServerBackup(value: unknown): BackupSummary {
     workspaceId,
     servers: serverIds.size,
     environments: drafts.size,
-    versions: versions.size,
+    installations: installations.size,
     accounts: accounts.size,
     materialBytes,
   }
@@ -224,7 +228,7 @@ function withoutRuntime(snapshot: StorageSnapshot): StorageSnapshot {
   const result = structuredClone(snapshot)
   result.records.credentials = []
   result.records.sessions = []
-  result.records.environmentVersions = [] // Rebuilt from immutable files.
+  result.records.environmentVersions = [] // Environment metadata belongs to the npm projects.
   result.records.operations = result.records.operations.map(row => {
     const value = object(row.value)
     return {
@@ -337,7 +341,7 @@ export async function createOnlineServerBackup(input: {
   throw new ServerBackupError('BACKUP_BUSY')
 }
 
-function cloneStorage(snapshot: StorageSnapshot, workspaceId: string, versionIds: Record<string, string>) {
+function cloneStorage(snapshot: StorageSnapshot, workspaceId: string) {
   const result = withoutRuntime(snapshot)
   const servers = new Map(result.records.servers.map(row => [row.id, randomUUID()]))
   const bindings = new Map(result.records.bindings.map(row => [row.id, randomUUID()]))
@@ -387,20 +391,14 @@ function cloneStorage(snapshot: StorageSnapshot, workspaceId: string, versionIds
       ...value,
       workspaceId,
       serverId: servers.get(string(value.serverId)),
-      ...(value.desiredVersionId ? { desiredVersionId: versionIds[string(value.desiredVersionId)] } : {}),
-      ...(value.effectiveVersionId ? { effectiveVersionId: versionIds[string(value.effectiveVersionId)] } : {}),
     }
-    for (const field of ['desiredVersionId', 'effectiveVersionId'] as const) {
-      const versionId = binding[field]
-      if (!versionId) continue
-      const retentionId = 'binding:' + id + (field === 'desiredVersionId' ? ':desired' : ':effective')
-      result.records.retentions.push({
-        id: 'workspace:' + workspaceId + ':' + retentionId,
-        scope: 'workspace:' + workspaceId,
-        revision: 1,
-        value: { versionId, retentionId },
-      })
-    }
+    const retentionId = 'binding:' + id
+    result.records.retentions.push({
+      id: 'workspace:' + workspaceId + ':' + retentionId,
+      scope: 'workspace:' + workspaceId,
+      revision: 1,
+      value: { installationId: value.environmentId, retentionId },
+    })
     return { id, scope: 'server:' + binding.serverId, revision: 1, value: binding }
   })
   return { storage: result, serverIds: servers }
@@ -440,8 +438,7 @@ export async function restoreServerBackup(input: RestoreServerInput): Promise<Re
   try {
     workspace = await ContentWorkspace.open(join(staging, 'workspace'), { retentions: { list: async () => [] } })
     const restored = await workspace.restoreSnapshot(backup.workspace, { mode: input.mode }, input.preparer)
-    const clone =
-      input.mode === 'clone' ? cloneStorage(backup.storage, restored.workspaceId, restored.versionIds) : undefined
+    const clone = input.mode === 'clone' ? cloneStorage(backup.storage, restored.workspaceId) : undefined
     const snapshot = clone?.storage ?? withoutRuntime(backup.storage)
     const serverId = clone?.serverIds.get(summary.serverId) ?? summary.serverId
     const readyWorkspace = await workspace.exportSnapshot()

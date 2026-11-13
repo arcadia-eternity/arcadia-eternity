@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 const failure = (code, message = code) => Object.assign(new Error(message), { code })
@@ -7,13 +8,13 @@ const methods = new Set([
   'getDraft',
   'saveDraft',
   'deleteDraft',
-  'listVersions',
-  'getVersion',
+  'listInstallations',
+  'getInstallation',
   'retain',
   'releaseRetention',
   'references',
-  'deleteVersion',
-  'exportVersion',
+  'clearInstallation',
+  'exportEnvironment',
   'exportSnapshot',
   'captureSnapshot',
   'isSnapshotCurrent',
@@ -40,10 +41,9 @@ export class DesktopWorkspaceOwner {
   async ready() {
     this.#opening ??= (async () => {
       const workspace = await this.openWorkspace(this.root, {
-        acquireMaterials: directory => this.library.retainProjectDirectory(directory),
         retentions: {
-          list: versionId => this.#retention('retention.list', { versionId }),
-          put: (versionId, retentionId) => this.#retention('retention.put', { versionId, retentionId }),
+          list: installationId => this.#retention('retention.list', { installationId }),
+          put: (installationId, retentionId) => this.#retention('retention.put', { installationId, retentionId }),
           remove: retentionId => this.#retention('retention.remove', { retentionId }),
         },
       })
@@ -129,19 +129,14 @@ export class DesktopWorkspaceOwner {
         await release?.()
         return null
       }
-      if (
-        method === 'prepareVersion' ||
-        method === 'adoptVersion' ||
-        method === 'importVersion' ||
-        method === 'restoreSnapshot'
-      ) {
+      if (method === 'prepareEnvironment' || method === 'importEnvironment' || method === 'restoreSnapshot') {
         const controller = controllers.get(id)
         controller.signal.throwIfAborted()
         const prepare = input => callback('prepare', { directory: input.directory, draft: input.draft }, id)
         let projectLease
         try {
-          if (method === 'importVersion')
-            return await workspace.importVersion(
+          if (method === 'importEnvironment')
+            return await workspace.importEnvironment(
               args[0],
               {
                 ...args[1],
@@ -160,16 +155,12 @@ export class DesktopWorkspaceOwner {
             const draft = await workspace.getDraft(input.environmentId)
             if (draft.revision !== input.expectedRevision) throw failure('REVISION_CONFLICT')
             projectLease = await this.library.prepareEnvironmentProject(draft.document, {
+              projectDirectory: join(workspace.root, 'environments', input.environmentId),
               signal: controller.signal,
               onProgress: input.onProgress,
             })
             input.directory = projectLease.directory
           }
-          // Client content combinations are already installed and immutable.
-          // Adopt them under the same owner instead of copying a second library.
-          const project = input.projectDirectory ?? input.directory
-          if (project && (await this.library.ownsProjectDirectory(project)))
-            return await workspace.adoptVersion({ ...input, directory: project }, prepare)
           return await workspace[method](input, prepare)
         } finally {
           controllers.delete(id)
@@ -202,7 +193,7 @@ export class DesktopWorkspaceOwner {
         return
       if (active.has(message.id)) return
       active.add(message.id)
-      if (['prepareVersion', 'adoptVersion', 'importVersion', 'restoreSnapshot'].includes(message.method))
+      if (['prepareEnvironment', 'importEnvironment', 'restoreSnapshot'].includes(message.method))
         controllers.set(message.id, new AbortController())
       void dispatch(message)
         .then(

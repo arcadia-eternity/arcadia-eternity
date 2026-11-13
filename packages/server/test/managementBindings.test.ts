@@ -2,29 +2,21 @@ import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { openStorage, type DurableStorage } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
-import type { EnvironmentVersion, StaticPreparer } from '@arcadia-eternity/content-sdk/management-workspace'
+import type { EnvironmentInstallation, StaticPreparer } from '@arcadia-eternity/content-sdk/management-workspace'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 import { createSingleProcessApp } from '../src/runtime/app'
 import type { Binding, ManagementRequest } from '../src/runtime/management/service'
-import type { ManagementActor, ManagementGrant } from '../src/runtime/management/auth'
-import type { Operation, OperationValue } from '../src/runtime/management/operations'
+import type { ManagementActor } from '../src/runtime/management/auth'
+import type { Operation } from '../src/runtime/management/operations'
 
 const cleanups: (() => Promise<unknown>)[] = []
 afterEach(async () => {
   vi.restoreAllMocks()
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
-})
-
-function deferred() {
-  let resolve!: () => void
-  const promise = new Promise<void>(done => {
-    resolve = done
-  })
-  return { promise, resolve }
-}
+}, 30_000)
 
 async function setup() {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-binding-integration-'))
@@ -56,7 +48,7 @@ async function setup() {
         storage,
         workspace,
         prepareEnvironment: (input, validator: StaticPreparer) =>
-          workspace.prepareVersion(input, async materials => {
+          workspace.prepareEnvironment(input, async materials => {
             const result = await validator(materials)
             await afterStaticPreparation?.()
             return result
@@ -97,17 +89,15 @@ async function setup() {
     const started = await beginPrepare(expectedRevision)
     const operation = await terminal(storage, started.id)
     expect(operation.status, JSON.stringify(operation)).toBe('succeeded')
-    return operation.result as EnvironmentVersion
+    return operation.result as EnvironmentInstallation
   }
-  const createBinding = (versionId: string, selection: Binding['selection'] = 'follow-ready') =>
+  const createBinding = () =>
     request<Binding & { id: string; revision: number }>(
       {
         method: 'POST',
         path: '/servers/binding-server/bindings',
         body: {
           environmentId: 'shared',
-          versionId,
-          selection,
           enabled: true,
           visibility: 'public',
           matchmakingEnabled: true,
@@ -115,16 +105,6 @@ async function setup() {
       },
       owner.actor,
     )
-  const publish = async (bindingId: string, versionId: string) => {
-    const row = (await storage.get<Binding>('bindings', bindingId))!
-    const result = await request<{ id: string }>({
-      method: 'POST',
-      path: `/servers/binding-server/bindings/${bindingId}/publish`,
-      body: { versionId },
-      headers: { 'if-match': String(row.revision), 'idempotency-key': `publish-${++sequence}` },
-    })
-    return terminal(storage, result.id)
-  }
   return {
     get app() {
       return app
@@ -140,7 +120,6 @@ async function setup() {
     beginPrepare,
     prepare,
     createBinding,
-    publish,
     async restart() {
       await app.stop()
       app = createApp()
@@ -168,273 +147,110 @@ async function terminal(storage: DurableStorage, id: string) {
   return operation
 }
 
-async function effective(storage: DurableStorage, id: string, versionId: string) {
-  await expect
-    .poll(async () => (await storage.get<Binding>('bindings', id))?.value.effectiveVersionId, { timeout: 20_000 })
-    .toBe(versionId)
-  // A durable pointer alone is insufficient: wait for the actual publication operation to finish.
-  await expect
-    .poll(
-      async () =>
-        (await storage.list<Operation>('operations'))
-          .filter(row => row.value.kind === 'binding.publish')
-          .every(row => !['queued', 'running'].includes(row.value.status)),
-      { timeout: 20_000 },
-    )
-    .toBe(true)
-}
+it('binds the current npm environment without publishing a snapshot', async () => {
+  const f = await setup()
+  const draft = await f.draft('Shared', null)
+  const installation = await f.prepare(draft.revision)
+  const binding = await f.createBinding()
+  expect(binding.condition).toBe('available')
+  expect(installation.installationId).toBe('shared')
+  expect(binding).not.toHaveProperty('desiredVersionId')
+  expect(binding).not.toHaveProperty('effectiveInstallationId')
+  expect(f.app.environments.list()).toHaveLength(1)
+  await f.restart()
+  expect((await f.storage.get<Binding>('bindings', binding.id))?.value.condition).toBe('available')
+  expect(f.app.environments.list()).toHaveLength(1)
+}, 30_000)
 
-/** The exact durable boundary after pointer intent commits, before the in-memory publication applies. */
-async function interruptCommittedPublication(
-  env: Awaited<ReturnType<typeof setup>>,
-  bindingId: string,
-  versionId: string,
-) {
-  const operationId = 'interrupted-publication'
-  await env.storage.transaction(async tx => {
-    const before = (await tx.get<Binding>('bindings', bindingId))!
-    await tx.replace('bindings', bindingId, before.revision, {
-      ...before.value,
-      condition: 'applying',
-      desiredVersionId: versionId,
-    })
-    const value: OperationValue = {
-      kind: 'binding.publish',
-      scope: 'server:binding-server',
-      actor: env.owner.actor,
-      input: { id: bindingId, versionId, expectedRevision: before.revision },
-      inputFingerprint: 'recorded-durable-boundary',
-      idempotencyKey: 'crash-publication',
-      attempt: 1,
-      rootOperationId: operationId,
-      ownerId: env.service.operations.ownerId,
-      bootId: env.service.bootId,
-      status: 'running',
-      committed: true,
-      cancelRequested: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }
-    await tx.create('operations', { id: operationId, scope: value.scope, value })
+it('preparing an edited environment updates its binding without a second publication', async () => {
+  const f = await setup()
+  const draft = await f.draft('First', null)
+  await f.prepare(draft.revision)
+  const binding = await f.createBinding()
+  const current = await f.workspace.getDraft('shared')
+  const edited = await f.draft('Updated', current.revision)
+  await f.prepare(edited.revision)
+  expect(await f.workspace.listInstallations()).toHaveLength(1)
+  const row = await f.storage.get<Binding>('bindings', binding.id)
+  expect(row?.value).toMatchObject({
+    environmentId: 'shared',
+    condition: 'available',
+    enabled: true,
+    matchmakingEnabled: true,
   })
-  await env.workspace.retain(versionId, `binding:${bindingId}:candidate:${operationId}`)
-  return operationId
-}
+  expect((await f.workspace.getDraft('shared')).document.name).toBe('Updated')
+}, 30_000)
 
-describe('durable binding publication with real captured environment artifacts', () => {
-  it('advances follow-ready to a matching new draft while keeping pinned bindings on their chosen version', async () => {
-    const env = await setup()
-    const firstDraft = await env.draft('First', null)
-    const first = await env.prepare(firstDraft.revision)
-    const following = await env.createBinding(first.versionId)
-    const pinned = await env.createBinding(first.versionId, 'pinned')
-    expect((await env.publish(following.id, first.versionId)).status).toBe('succeeded')
-    expect((await env.publish(pinned.id, first.versionId)).status).toBe('succeeded')
-    const secondDraft = await env.draft('Second', firstDraft.revision)
-    const second = await env.prepare(secondDraft.revision)
-    expect(second.versionId).not.toBe(first.versionId)
-    await effective(env.storage, following.id, second.versionId)
-    expect((await env.storage.get<Binding>('bindings', pinned.id))?.value.effectiveVersionId).toBe(first.versionId)
-    expect((await env.storage.get<Binding>('bindings', following.id))?.value).toMatchObject({
-      condition: 'available',
-      followPrincipalId: env.owner.actor.principalId,
-    })
-    expect(env.app.environments.list()).toHaveLength(2)
-    expect((await env.workspace.getVersion(first.versionId)).versionId).toBe(first.versionId)
-  }, 45_000)
+it('failed preparation preserves the usable installation and binding', async () => {
+  const f = await setup()
+  const draft = await f.draft('Shared', null)
+  const installed = await f.prepare(draft.revision)
+  const binding = await f.createBinding()
+  f.gatePreparation(async () => {
+    throw new Error('invalid content')
+  })
+  const current = await f.workspace.getDraft('shared')
+  const op = await f.beginPrepare(current.revision)
+  expect((await terminal(f.storage, op.id)).status).toBe('failed')
+  expect((await f.workspace.getInstallation('shared')).createdAt).toBe(installed.createdAt)
+  expect((await f.storage.get<Binding>('bindings', binding.id))?.value.condition).toBe('available')
+  expect(f.app.environments.list()).toHaveLength(1)
+}, 30_000)
 
-  it('keeps an explicitly configured follow policy after logout but stops after its publish grant is revoked', async () => {
-    const env = await setup()
-    const firstDraft = await env.draft('First', null)
-    const first = await env.prepare(firstDraft.revision)
-    const binding = await env.createBinding(first.versionId)
-    expect((await env.publish(binding.id, first.versionId)).status).toBe('succeeded')
-    const grants = await env.service.auth.listGrants(env.owner.actor, env.service.serverScope)
-    const policyGrant = grants.find(grant => grant.value.principalId === env.owner.actor.principalId)!
-    await env.service.auth.revokeCredential(env.owner.actor, env.owner.actor.credentialId)
-    await expect(env.service.auth.authenticate(env.owner.token)).rejects.toMatchObject({ status: 401 })
-    const secondDraft = await env.draft('After logout', firstDraft.revision)
-    const second = await env.prepare(secondDraft.revision)
-    await effective(env.storage, binding.id, second.versionId)
-    await env.request({
+it('removes snapshot publication and requires permission to activate a binding', async () => {
+  const f = await setup()
+  const draft = await f.draft('Shared', null)
+  await f.prepare(draft.revision)
+  const binding = await f.createBinding()
+  const result = await f.service.localRequest({
+    method: 'POST',
+    path: `/servers/binding-server/bindings/${binding.id}/publish`,
+    body: {},
+  })
+  expect(result.status).toBe(404)
+  const viewer = await f.service.auth.exchangeBootstrap(
+    (
+      await f.service.auth.issueBootstrapCode(
+        [{ scope: { kind: 'server', id: 'binding-server' }, actions: ['read'] }],
+        'viewer',
+      )
+    ).code,
+  )
+  await expect(
+    f.service.request(viewer.actor, {
       method: 'POST',
-      path: `/grants/${policyGrant.id}/revoke`,
-      body: { revision: policyGrant.revision },
-    })
-    const thirdDraft = await env.draft('After revoke', secondDraft.revision)
-    await env.prepare(thirdDraft.revision)
-    expect((await env.storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
-      effectiveVersionId: second.versionId,
-      condition: 'available',
-      reason: 'FOLLOW_POLICY_BLOCKED',
-    })
-    const remaining = await env.storage.get<ManagementGrant>('grants', policyGrant.id)
-    expect(remaining).toBeNull()
-  }, 45_000)
+      path: '/servers/binding-server/bindings',
+      body: { environmentId: 'shared', enabled: true },
+    }),
+  ).rejects.toThrow()
+}, 30_000)
 
-  it('retains a completed stale preparation without following it after the source draft changed', async () => {
-    const env = await setup()
-    const firstDraft = await env.draft('First', null)
-    const first = await env.prepare(firstDraft.revision)
-    const binding = await env.createBinding(first.versionId)
-    expect((await env.publish(binding.id, first.versionId)).status).toBe('succeeded')
-    const oldDraft = await env.draft('Preparing old draft', firstDraft.revision)
-    const entered = deferred(),
-      release = deferred()
-    env.gatePreparation(async () => {
-      entered.resolve()
-      await release.promise
-    })
-    const started = await env.beginPrepare(oldDraft.revision)
-    await entered.promise
-    try {
-      await env.draft('Newer desired draft', oldDraft.revision)
-    } finally {
-      release.resolve()
-    }
-    const operation = await terminal(env.storage, started.id)
-    expect(operation.status, JSON.stringify(operation)).toBe('succeeded')
-    const stale = operation.result as EnvironmentVersion
-    expect(stale.draftRevision).toBe(oldDraft.revision)
-    expect((await env.workspace.getVersion(stale.versionId)).status).toBe('ready')
-    expect((await env.storage.get<Binding>('bindings', binding.id))?.value.effectiveVersionId).toBe(first.versionId)
-    expect(
-      (await env.storage.list<Operation>('operations')).filter(row => row.value.kind === 'binding.publish'),
-    ).toHaveLength(1)
-  }, 45_000)
-
-  it('reports a runtime publication failure as a failed operation and an unavailable binding', async () => {
-    const env = await setup()
-    const draft = await env.draft('Failure case', null)
-    const version = await env.prepare(draft.revision)
-    const binding = await env.createBinding(version.versionId, 'pinned')
-    vi.spyOn(env.app.environments, 'setPublication').mockImplementationOnce(() => {
-      throw new Error('injected publication fault')
-    })
-    const publication = await env.publish(binding.id, version.versionId)
-    expect(publication).toMatchObject({ status: 'failed', error: { code: 'RUNTIME_APPLY_FAILED' } })
-    expect((await env.storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
-      condition: 'unavailable',
-      reason: 'RUNTIME_APPLY_FAILED',
-      desiredVersionId: version.versionId,
-    })
-    expect((await env.storage.get<Binding>('bindings', binding.id))?.value.effectiveVersionId).toBeUndefined()
-    expect(env.app.environments.list()).toHaveLength(0)
-  }, 45_000)
-
-  it('keeps the last effective version when applying a replacement fails', async () => {
-    const env = await setup()
-    const firstDraft = await env.draft('Working version', null)
-    const first = await env.prepare(firstDraft.revision)
-    const binding = await env.createBinding(first.versionId, 'pinned')
-    expect((await env.publish(binding.id, first.versionId)).status).toBe('succeeded')
-    const previousRuntime = env.app.environments.list()[0].id
-    const secondDraft = await env.draft('Failing replacement', firstDraft.revision)
-    const second = await env.prepare(secondDraft.revision)
-    vi.spyOn(env.app.environments, 'setPublication').mockImplementationOnce(() => {
-      throw new Error('injected replacement fault')
-    })
-    const publication = await env.publish(binding.id, second.versionId)
-    expect(publication).toMatchObject({ status: 'failed', error: { code: 'RUNTIME_APPLY_FAILED' } })
-    expect((await env.storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
-      condition: 'degraded',
-      reason: 'RUNTIME_APPLY_FAILED',
-      desiredVersionId: second.versionId,
-      effectiveVersionId: first.versionId,
-    })
-    expect(env.app.environments.list().map(descriptor => descriptor.id)).toEqual([previousRuntime])
-  }, 45_000)
-
-  it('reconciles committed publication intent on restart and does not resurrect old gameplay sessions or runtime leases', async () => {
-    const env = await setup()
-    const firstDraft = await env.draft('Old effective', null)
-    const first = await env.prepare(firstDraft.revision)
-    const binding = await env.createBinding(first.versionId, 'pinned')
-    expect((await env.publish(binding.id, first.versionId)).status).toBe('succeeded')
-    const oldRuntime = env.app.environments.list()[0].id
-    const oldBoot = env.service.bootId
-    const player = await env.app.sessions.create({ id: 'local-profile', name: 'Player before restart' })
-    expect(env.app.sessions.authenticate(player.token)).toBeDefined()
-    const secondDraft = await env.draft('Committed desired', firstDraft.revision)
-    const second = await env.prepare(secondDraft.revision)
-    const operationId = await interruptCommittedPublication(env, binding.id, second.versionId)
-    await env.restart()
-    expect(env.service.bootId).not.toBe(oldBoot)
-    const restored = (await env.storage.get<Binding>('bindings', binding.id))!.value
-    expect(restored).toMatchObject({
-      condition: 'available',
-      desiredVersionId: second.versionId,
-      effectiveVersionId: second.versionId,
-      observedBootId: env.service.bootId,
-    })
-    const operation = await env.service.operations.get(operationId)
-    expect(operation).toMatchObject({
-      status: 'succeeded',
-      committed: true,
-      result: { recovered: true, effectiveVersionId: second.versionId },
-    })
-    expect(operation.error).toBeUndefined()
-    expect(env.app.environments.list()).toHaveLength(1)
-    expect(env.app.environments.retainedIds()).not.toContain(oldRuntime)
-    expect(env.app.sessions.authenticate(player.token)).toBeUndefined()
-    expect(env.app.sessions.size).toBe(0)
-    expect((await env.workspace.references(first.versionId)).filter(reference => reference.kind === 'runtime')).toEqual(
-      [],
-    )
-    expect(
-      (await env.workspace.references(first.versionId)).some(
-        reference => reference.retentionId === `binding:${binding.id}:effective`,
-      ),
-    ).toBe(false)
-    const nextReferences = await env.workspace.references(second.versionId)
-    expect(nextReferences.filter(reference => reference.kind === 'runtime')).toHaveLength(1)
-    expect(JSON.stringify(nextReferences)).not.toContain(oldBoot)
-    expect(JSON.stringify(nextReferences)).not.toContain(`candidate:${operationId}`)
-  }, 45_000)
-
-  it('reports incompatible saved content without exposing diagnostic paths or publishing it', async () => {
-    const env = await setup()
-    const draft = await env.draft('Old build', null)
-    const version = await env.prepare(draft.revision)
-    const binding = await env.createBinding(version.versionId, 'pinned')
-    const row = (await env.storage.get<Binding>('bindings', binding.id))!
-    await env.storage.replace('bindings', binding.id, row.revision, {
-      ...row.value,
-      effectiveVersionId: version.versionId,
-    })
-    vi.spyOn(env.app.environments, 'prepareNpm').mockRejectedValueOnce({
-      diagnostics: [{ code: 'NPM_BASE_HOST_INVALID', path: '/private/materials', message: 'private detail' }],
-    })
-    await env.service.reconcile()
-    expect((await env.storage.get<Binding>('bindings', binding.id))!.value).toMatchObject({
-      condition: 'unavailable',
-      reason: 'NPM_BASE_HOST_INVALID',
-    })
-    expect(env.app.environments.list()).toHaveLength(0)
-  }, 45_000)
-
-  it('keeps the previous effective version degraded when the committed desired material is missing on restart', async () => {
-    const env = await setup()
-    const firstDraft = await env.draft('Surviving version', null)
-    const first = await env.prepare(firstDraft.revision)
-    const binding = await env.createBinding(first.versionId, 'pinned')
-    expect((await env.publish(binding.id, first.versionId)).status).toBe('succeeded')
-    const secondDraft = await env.draft('Lost committed version', firstDraft.revision)
-    const second = await env.prepare(secondDraft.revision)
-    const operationId = await interruptCommittedPublication(env, binding.id, second.versionId)
-    const captured = await env.workspace.getVersion(second.versionId)
-    await rm(join(captured.directory, 'package.json'))
-    await env.restart()
-    expect((await env.storage.get<Binding>('bindings', binding.id))!.value).toMatchObject({
-      condition: 'degraded',
-      reason: 'ENVIRONMENT_UNAVAILABLE',
-      desiredVersionId: second.versionId,
-      effectiveVersionId: first.versionId,
-    })
-    expect((await env.service.operations.get(operationId)).status).toBe('interrupted')
-    expect(env.app.environments.list()).toHaveLength(1)
-    expect(
-      (await env.workspace.references(second.versionId)).filter(reference => reference.kind === 'runtime'),
-    ).toEqual([])
-  }, 45_000)
-})
+it('preparing a bound environment requires publish permission before replacement', async () => {
+  const f = await setup()
+  const draft = await f.draft('Shared', null)
+  await f.prepare(draft.revision)
+  await f.createBinding()
+  const editor = await f.service.auth.exchangeBootstrap(
+    (
+      await f.service.auth.issueBootstrapCode(
+        [
+          {
+            scope: { kind: 'workspace', id: f.workspace.workspaceId },
+            actions: ['read', 'edit', 'prepare', 'environment.use'],
+          },
+        ],
+        'workspace-editor',
+      )
+    ).code,
+  )
+  const current = await f.workspace.getDraft('shared')
+  await expect(
+    f.service.request(editor.actor, {
+      method: 'POST',
+      path: `/workspaces/${f.workspace.workspaceId}/environments/shared/prepare`,
+      body: { expectedRevision: current.revision },
+      headers: { 'idempotency-key': 'forbidden-bound-update' },
+    }),
+  ).rejects.toThrow()
+  expect((await f.workspace.getDraft('shared')).revision).toBe(current.revision)
+}, 30_000)

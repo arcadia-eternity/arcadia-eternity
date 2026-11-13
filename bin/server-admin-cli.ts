@@ -39,7 +39,7 @@ export async function runServerAdminCli(args: string[]): Promise<number> {
     let workspaceId: string
     try {
       const metadata = JSON.parse(await readFile(join(opened.config.workspaceRoot, 'workspace.json'), 'utf8'))
-      if (metadata.format !== 'arcadia.content-workspace/1' || typeof metadata.workspaceId !== 'string')
+      if (metadata.format !== 'arcadia.content-workspace/2' || typeof metadata.workspaceId !== 'string')
         throw new Error('Invalid content workspace metadata')
       workspaceId = metadata.workspaceId
     } catch (error) {

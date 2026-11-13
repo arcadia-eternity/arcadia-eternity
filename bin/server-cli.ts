@@ -12,7 +12,7 @@ import { createOnlineServerBackup } from './server-backup'
 import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { attachDesktopContentControl } from './desktop-content-control'
-import { initializeHostEnvironment, refreshBuiltinEnvironment } from './host-environment-initialize'
+import { initializeHostEnvironment } from './host-environment-initialize'
 import { parseDesktopLaunch, saveDesktopLaunch } from './desktop-launch'
 import {
   createSingleProcessApp,
@@ -364,7 +364,7 @@ export async function runServerCli(args: string[]): Promise<number> {
             ? { kind: 'npm', environmentId: 'startup-npm' }
             : { kind: 'builtin', environmentId: 'builtin-server' },
         ...(projects
-          ? { prepareEnvironment: (input, validator) => projects!.prepareVersion(workspace!, input, validator) }
+          ? { prepareEnvironment: (input, validator) => projects!.prepareEnvironment(workspace!, input, validator) }
           : {}),
       },
       ...(options.developmentProject
@@ -394,7 +394,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         name: '启动时批准的 npm 环境',
         matchmakingEnabled: true,
       })
-    } else if (!desktopControl && (await server.management!.pendingInitializationInfo())) {
+    } else if (!desktopControl) {
       await initializeShippedEnvironment(projectDirectory =>
         initializeHostEnvironment({
           management: server!.management!,
@@ -404,14 +404,6 @@ export async function runServerCli(args: string[]): Promise<number> {
           environmentId: 'builtin-server',
           name: '内置服务器环境',
           matchmakingEnabled: true,
-        }),
-      )
-    } else if (!desktopControl && !options.npmProject?.[0]) {
-      await initializeShippedEnvironment(projectDirectory =>
-        refreshBuiltinEnvironment({
-          management: server!.management!,
-          workspace: workspace!,
-          projectDirectory,
         }),
       )
     }

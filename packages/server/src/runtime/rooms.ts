@@ -191,7 +191,7 @@ export class RoomRegistry {
           ('environmentName' in room.environment ? room.environment.environmentName : undefined) ??
           (room.environment.descriptor.packages.map(pkg => pkg.name).join(' + ') || '基础环境'),
         ...('bindingId' in room.environment ? { bindingId: room.environment.bindingId } : {}),
-        ...('versionId' in room.environment ? { versionId: room.environment.versionId } : {}),
+        ...('installationId' in room.environment ? { installationId: room.environment.installationId } : {}),
         execution: room.info.config.battleMode === 'p2p' ? 'peer' : 'server',
         state: room.info.players.some(player => !this.sockets.get(player.playerId)?.size) ? 'reconnecting' : 'running',
         startedAt: room.startedAt ?? room.info.createdAt,

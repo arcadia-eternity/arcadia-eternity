@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
 import semver from 'semver'
 import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
@@ -8,7 +8,6 @@ import { normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debu
 import { withSourceLock } from './source-lock.ts'
 import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
-import type { Stats } from 'node:fs'
 
 export type { EnvironmentRules } from './debug-environments.ts'
 export type EnvironmentDocument = EnvironmentDocumentV2
@@ -16,9 +15,9 @@ export interface EnvironmentDraft {
   document: EnvironmentDocument
   revision: string
 }
-export interface EnvironmentVersion {
-  format: 'arcadia.environment-version/1'
-  versionId: string
+export interface EnvironmentInstallation {
+  format: 'arcadia.environment-installation/1'
+  installationId: string
   workspaceId: string
   environmentId: string
   document: EnvironmentDocument
@@ -27,19 +26,18 @@ export interface EnvironmentVersion {
   members?: EnvironmentMember[]
   packages: unknown[]
   createdAt: number
-  adopted: boolean
   materialDirectory: string
   directory: string
   status: 'ready'
 }
-export interface UnavailableVersion {
-  versionId: string
+export interface UnavailableInstallation {
+  installationId: string
   workspaceId: string
   environmentId?: string
   status: 'unavailable'
   reason: string
 }
-export interface PrepareVersionInput {
+export interface PrepareEnvironmentInput {
   onProgress?: (progress: { stage: string; completed?: number; total?: number }) => void | Promise<void>
   environmentId: string
   expectedRevision: string
@@ -61,27 +59,26 @@ export interface ContentWorkspaceOptions {
   maxFiles?: number
   stagingRetentionMs?: number
   resolveProject?: (environmentId: string) => string | undefined | Promise<string | undefined>
-  acquireMaterials?: (directory: string, versionId: string) => Promise<() => void | Promise<void>>
   retentions?: {
-    list(versionId: string): Promise<Record<string, unknown>[]>
-    put?(versionId: string, retentionId: string): Promise<void>
+    list(installationId: string): Promise<Record<string, unknown>[]>
+    put?(installationId: string, retentionId: string): Promise<void>
     remove?(retentionId: string): Promise<void>
   }
 }
 export interface EnvironmentExport {
-  format: 'arcadia.environment-export/1'
+  format: 'arcadia.environment-export/2'
   document: EnvironmentDocument
   contentRevision: string
   files: { path: string; data: string }[]
 }
 export interface WorkspaceSnapshot {
-  format: 'arcadia.workspace-snapshot/1'
+  format: 'arcadia.workspace-snapshot/2'
   workspaceId: string
-  drafts: EnvironmentDraft[]
-  versions: {
+  drafts: (EnvironmentDraft & { files?: { path: string; data: string }[] })[]
+  installations: {
     version: Pick<
-      EnvironmentVersion,
-      'versionId' | 'environmentId' | 'document' | 'draftRevision' | 'contentRevision' | 'packages' | 'createdAt'
+      EnvironmentInstallation,
+      'installationId' | 'environmentId' | 'document' | 'draftRevision' | 'contentRevision' | 'packages' | 'createdAt'
     >
     files: { path: string; data: string }[]
   }[]
@@ -103,16 +100,15 @@ export interface ContentWorkspace {
   getDraft(environmentId: string): Promise<EnvironmentDraft>
   saveDraft(input: { document: unknown; expectedRevision: string | null }): Promise<EnvironmentDraft>
   deleteDraft(input: { environmentId: string; expectedRevision: string }): Promise<void>
-  prepareVersion(input: PrepareVersionInput, preparer: StaticPreparer): Promise<EnvironmentVersion>
-  adoptVersion(input: PrepareVersionInput, preparer: StaticPreparer): Promise<EnvironmentVersion>
-  getVersion(versionId: string): Promise<EnvironmentVersion>
-  listVersions(environmentId?: string): Promise<(EnvironmentVersion | UnavailableVersion)[]>
-  acquire(versionId: string, owner?: string): Promise<EnvironmentVersion & { release(): Promise<void> }>
-  retain(versionId: string, retentionId: string): Promise<void>
+  prepareEnvironment(input: PrepareEnvironmentInput, preparer: StaticPreparer): Promise<EnvironmentInstallation>
+  getInstallation(installationId: string): Promise<EnvironmentInstallation>
+  listInstallations(environmentId?: string): Promise<(EnvironmentInstallation | UnavailableInstallation)[]>
+  acquire(installationId: string, owner?: string): Promise<EnvironmentInstallation & { release(): Promise<void> }>
+  retain(installationId: string, retentionId: string): Promise<void>
   releaseRetention(retentionId: string): Promise<void>
-  references(versionId: string): Promise<Record<string, unknown>[]>
-  deleteVersion(versionId: string): Promise<void>
-  exportVersion(versionId: string): Promise<EnvironmentExport>
+  references(installationId: string): Promise<Record<string, unknown>[]>
+  clearInstallation(installationId: string): Promise<void>
+  exportEnvironment(installationId: string): Promise<EnvironmentExport>
   exportSnapshot(): Promise<WorkspaceSnapshot>
   captureSnapshot(): Promise<WorkspaceSnapshotCapture>
   isSnapshotCurrent(stamp: WorkspaceSnapshotStamp): Promise<boolean>
@@ -120,8 +116,8 @@ export interface ContentWorkspace {
     snapshot: WorkspaceSnapshot,
     input: { mode: 'restore' | 'clone' },
     preparer: StaticPreparer,
-  ): Promise<{ workspaceId: string; versionIds: Record<string, string> }>
-  importVersion(
+  ): Promise<{ workspaceId: string; installationIds: Record<string, string> }>
+  importEnvironment(
     bundle: EnvironmentExport,
     input: {
       environmentId?: string
@@ -131,12 +127,12 @@ export interface ContentWorkspace {
       importId?: string
     },
     preparer: StaticPreparer,
-  ): Promise<EnvironmentVersion>
-  recoverImport(importId: string): Promise<EnvironmentVersion>
+  ): Promise<EnvironmentInstallation>
+  recoverImport(importId: string): Promise<EnvironmentInstallation>
   forgetImport(importId: string, input?: { discard?: boolean }): Promise<void>
   reconcile(): Promise<{
     workspaceId: string
-    versions: (EnvironmentVersion | UnavailableVersion)[]
+    installations: (EnvironmentInstallation | UnavailableInstallation)[]
     abandoned: string[]
   }>
   close(input?: { force?: boolean }): Promise<void>
@@ -148,13 +144,6 @@ export interface ContentWorkspaceConstructor {
 }
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-// npm ls redacts UUID-shaped path components, so opaque logical identities must
-// not also be physical directory names.
-const versionDirectory = (id: string) => 'version-' + id.replaceAll('-', '')
-const directoryVersion = (name: string): string | undefined =>
-  /^version-[a-f0-9]{32}$/.test(name)
-    ? name.slice(8).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5')
-    : undefined
 const envId = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const revision = (text: string | Buffer) => createHash('sha256').update(text).digest('hex')
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
@@ -189,43 +178,6 @@ interface PreparationResult {
   members: EnvironmentMember[]
 }
 
-interface VersionMetadata {
-  format: 'arcadia.environment-version/1'
-  versionId: string
-  workspaceId: string
-  environmentId: string
-  document: unknown
-  draftRevision: string
-  contentRevision: string
-  packages: unknown[]
-  members: EnvironmentMember[]
-  createdAt: number
-  adopted: boolean
-  materialDirectory: string
-  completed?: boolean
-}
-
-interface ImportIntent {
-  format: string
-  importId: string
-  workspaceId: string
-  versionId: string
-  document: EnvironmentDocument
-  expectedRevision: string | null
-  contentRevision: string
-  completed: boolean
-}
-
-interface Observation {
-  path: string
-  dev: number
-  ino: number
-  mode: number
-  size: number
-  mtimeMs: number
-  ctimeMs: number
-}
-
 async function checkedPreparation(
   result: unknown,
   document: EnvironmentDocument,
@@ -239,21 +191,24 @@ async function checkedPreparation(
   )
     throw contentError('STATIC_PREPARATION_INVALID')
   const packages: unknown[] = Array.isArray(result.packages) ? result.packages : []
+  const inspection = await inspectNpmProject(directory)
   for (const [name, range] of Object.entries(document.packages)) {
-    const matches = packages.filter(pkg => isRecord(pkg) && pkg.name === name)
+    const matches = inspection.packages.filter(pkg => isRecord(pkg) && pkg.name === name)
     if (
-      !semver.validRange(range) ||
+      (!semver.validRange(range) && !/^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(range)) ||
       !matches.some(pkg => {
         if (!isRecord(pkg) || typeof pkg.version !== 'string') return false
-        return semver.valid(pkg.version) !== null && semver.satisfies(pkg.version, range)
+        return (
+          semver.valid(pkg.version) !== null &&
+          (range.startsWith('file:candidates/') || semver.satisfies(pkg.version, range))
+        )
       })
     )
       throw contentError('ENVIRONMENT_PACKAGE_MISMATCH', `Prepared packages do not satisfy ${name}@${range}`)
   }
   for (const name of document.sources)
-    if (!packages.some(pkg => isRecord(pkg) && pkg.name === name))
+    if (!inspection.packages.some(pkg => isRecord(pkg) && pkg.name === name))
       throw contentError('ENVIRONMENT_SOURCE_MISSING', name)
-  const inspection = await inspectNpmProject(directory)
   return {
     contentRevision: result.contentRevision,
     packages,
@@ -273,28 +228,21 @@ function activeProcess(pid: number): boolean {
   }
 }
 
-/** One local owner coordinates files, immutable materials and runtime leases.
- * Bindings/grants/retention roots remain owned by the injected durable database.
- */
+/** One owner edits persistent npm projects. Prepared metadata is a disposable receipt,
+ * never a selectable historical version. Runtime loaders capture their own inputs. */
 class ContentWorkspaceImplementation implements ContentWorkspace {
   readonly root: string
-  readonly bootId: string
+  readonly bootId = randomUUID()
   workspaceId!: string
   #queue: Promise<unknown> = Promise.resolve()
-  #snapshotGeneration = 0
-  #snapshotObservations: Observation[] | undefined
   #closed = false
-  #closing = false
-  #closePromise: Promise<void> | undefined
-  #pending = new Set<Promise<unknown>>()
-  #activeStaging = new Set<string>()
-  #leases = new Map<string, { versionId: string; owner: string; bootId: string }>()
-  #external = new Map<string, () => void | Promise<void>>()
   #controller = new AbortController()
   #options: ContentWorkspaceOptions
+  #leases = new Map<string, { installationId: string; owner: string }>()
+  #snapshotGeneration = 0
+  #snapshotFingerprint?: string
   constructor(root: string, options: ContentWorkspaceOptions = {}) {
     this.root = root
-    this.bootId = randomUUID()
     this.#options = options
   }
   static async open(directory: string, options: ContentWorkspaceOptions = {}): Promise<ContentWorkspace> {
@@ -302,836 +250,620 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     const root = await realpath(directory)
     const workspace = new ContentWorkspaceImplementation(root, options)
     await withSourceLock(root, 'workspace-owner', async () => {
-      const ownerFile = join(root, 'workspace-owner.json')
-      try {
-        const owner = await readJson<{ pid?: number; bootId?: string }>(ownerFile)
-        if (activeProcess(owner.pid ?? 0)) throw contentError('WORKSPACE_BUSY')
-        await rm(ownerFile)
-      } catch (error) {
+      const file = join(root, 'workspace-owner.json')
+      const owner = await readJson<{ pid: number }>(file).catch(error => {
         if (errorCode(error) !== 'ENOENT') throw error
-      }
-      await writeFile(ownerFile, json({ pid: process.pid, bootId: workspace.bootId }), { flag: 'wx', mode: 0o600 })
+        return undefined
+      })
+      if (owner && activeProcess(owner.pid)) throw contentError('WORKSPACE_BUSY')
+      await writeFileAtomic(file, json({ pid: process.pid, bootId: workspace.bootId }))
     })
     try {
-      for (const name of ['environments', 'versions', 'staging', 'imports']) await regularDirectory(join(root, name))
-      try {
-        const metadata = await readJson<{ format?: string; workspaceId?: string }>(join(root, 'workspace.json'))
-        if (metadata.format !== 'arcadia.content-workspace/1') throw contentError('WORKSPACE_FORMAT_INVALID')
-        workspace.workspaceId = checkId(metadata.workspaceId)
-      } catch (error) {
+      for (const name of ['environments', 'staging', 'imports']) await regularDirectory(join(root, name))
+      const file = join(root, 'workspace.json')
+      const metadata = await readJson(file).catch(error => {
         if (errorCode(error) !== 'ENOENT') throw error
+        return undefined
+      })
+      if (metadata) {
+        if (metadata.format !== 'arcadia.content-workspace/2') throw contentError('WORKSPACE_FORMAT_INVALID')
+        workspace.workspaceId = checkId(metadata.workspaceId, uuid)
+      } else {
         workspace.workspaceId = randomUUID()
-        await writeFileAtomic(
-          join(root, 'workspace.json'),
-          json({ format: 'arcadia.content-workspace/1', workspaceId: workspace.workspaceId }),
-          { mode: 0o600 },
-        )
+        await writeFileAtomic(file, json({ format: 'arcadia.content-workspace/2', workspaceId: workspace.workspaceId }))
       }
-      await workspace.reconcile()
+      // Recover an interrupted directory replacement before exposing projects.
+      for (const name of await readdir(join(root, 'staging'))) {
+        if (!name.startsWith('replaced-') || !envId.test(name.slice(9))) continue
+        const previous = join(root, 'staging', name)
+        const target = workspace.#directory(name.slice(9))
+        const current = await lstat(target).catch(error => {
+          if (errorCode(error) !== 'ENOENT') throw error
+          return undefined
+        })
+        if (current) await rm(previous, { recursive: true })
+        else await rename(previous, target)
+      }
       return workspace
     } catch (error) {
-      await workspace.close()
+      await workspace.close({ force: true })
       throw error
     }
   }
-  async #assertOwner(): Promise<void> {
-    if (this.#closed || this.#closing) throw contentError('WORKSPACE_CLOSED')
-    const owner = await readJson<{ bootId?: string; pid?: number }>(join(this.root, 'workspace-owner.json'))
+  async #assertOwner() {
+    if (this.#closed) throw contentError('WORKSPACE_CLOSED')
+    const owner = await readJson(join(this.root, 'workspace-owner.json'))
     if (owner.bootId !== this.bootId || owner.pid !== process.pid) throw contentError('WORKSPACE_OWNERSHIP_LOST')
   }
-  #exclusive<T>(action: () => Promise<T>, mutatesSnapshot = false): Promise<T> {
+  #exclusive<T>(action: () => Promise<T>, mutation = false): Promise<T> {
     const result = this.#queue.then(async () => {
       await this.#assertOwner()
-      if (mutatesSnapshot) {
-        // Invalidate before the first awaited write: an operation may commit
-        // partially and then fail, including an external DB import boundary.
+      if (mutation) {
         this.#snapshotGeneration++
-        this.#snapshotObservations = undefined
+        this.#snapshotFingerprint = undefined
       }
       return action()
     })
     this.#queue = result.catch(() => {})
     return result
   }
+  #directory(id: string) {
+    return join(this.root, 'environments', checkId(id, envId))
+  }
+  #manifest(document: EnvironmentDocument, previous: UnknownRecord = {}): UnknownRecord {
+    const { packages, ...metadata } = document
+    const priorDependencies = isRecord(previous.dependencies) ? previous.dependencies : {}
+    return {
+      ...previous,
+      name: typeof previous.name === 'string' ? previous.name : `arcadia-environment-${document.id}`,
+      version: typeof previous.version === 'string' ? previous.version : '1.0.0',
+      private: true,
+      dependencies: {
+        ...packages,
+        ...Object.fromEntries(
+          document.sources.flatMap(name =>
+            typeof priorDependencies[name] === 'string' ? [[name, priorDependencies[name]]] : [],
+          ),
+        ),
+      },
+      arcadiaEnvironment: metadata,
+    }
+  }
   async #draft(id: string): Promise<EnvironmentDraft> {
-    checkId(id, envId)
-    const file = join(this.root, 'environments', `${id}.json`)
-    await readJson(file)
-    const text = await readFile(file, 'utf8')
-    const document = normalizeEnvironmentDocument(JSON.parse(text))
+    const directory = this.#directory(id)
+    if ((await realpath(directory)) !== directory) throw contentError('WORKSPACE_PATH_INVALID')
+    await readJson(join(directory, 'package.json'))
+    const text = await readFile(join(this.#directory(id), 'package.json'), 'utf8')
+    const manifest = JSON.parse(text) as UnknownRecord
+    if (!isRecord(manifest.arcadiaEnvironment) || !isRecord(manifest.dependencies))
+      throw contentError('ENVIRONMENT_MANIFEST_INVALID')
+    const sources = manifest.arcadiaEnvironment.sources
+    if (!Array.isArray(sources)) throw contentError('ENVIRONMENT_MANIFEST_INVALID')
+    const document = normalizeEnvironmentDocument({
+      ...manifest.arcadiaEnvironment,
+      packages: Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !sources.includes(name))),
+    })
     if (document.id !== id) throw contentError('ENVIRONMENT_ID_MISMATCH')
     return { document, revision: revision(text) }
   }
-  async listDrafts(): Promise<EnvironmentDraft[]> {
-    await this.#assertOwner()
-    const result: EnvironmentDraft[] = []
-    for (const file of (await readdir(join(this.root, 'environments'))).sort()) {
-      if (!file.endsWith('.json')) continue
-      result.push(await this.#draft(file.slice(0, -5)))
-    }
-    return result
+  listDrafts() {
+    return this.#exclusive(() => this.#listDrafts())
   }
-  getDraft(id: string): Promise<EnvironmentDraft> {
+  async #listDrafts() {
+    await this.#assertOwner()
+    const results: EnvironmentDraft[] = []
+    for (const id of (await readdir(join(this.root, 'environments'))).sort()) {
+      if (envId.test(id)) results.push(await this.#draft(id))
+    }
+    return results
+  }
+  getDraft(id: string) {
     return this.#exclusive(() => this.#draft(id))
   }
-  saveDraft({
-    document,
-    expectedRevision,
-  }: {
-    document: unknown
-    expectedRevision: string | null
-  }): Promise<EnvironmentDraft> {
-    const next = normalizeEnvironmentDocument(document)
+  saveDraft(input: { document: unknown; expectedRevision: string | null }) {
     return this.#exclusive(async () => {
-      let previous: EnvironmentDraft | null = null
-      try {
-        previous = await this.#draft(next.id)
-      } catch (error) {
+      const document = normalizeEnvironmentDocument(input.document)
+      const directory = this.#directory(document.id)
+      const file = join(directory, 'package.json')
+      const previous = await readFile(file, 'utf8').catch(error => {
         if (errorCode(error) !== 'ENOENT') throw error
-      }
-      if (expectedRevision !== (previous?.revision ?? null)) throw contentError('REVISION_CONFLICT')
-      await writeFileAtomic(join(this.root, 'environments', `${next.id}.json`), json(next), { mode: 0o600 })
-      return this.#draft(next.id)
+        return null
+      })
+      if ((previous === null ? null : revision(previous)) !== input.expectedRevision)
+        throw contentError('REVISION_CONFLICT')
+      await regularDirectory(directory)
+      await writeFileAtomic(file, json(this.#manifest(document, previous ? JSON.parse(previous) : {})))
+      return this.#draft(document.id)
     }, true)
   }
-  deleteDraft({ environmentId, expectedRevision }: { environmentId: string; expectedRevision: string }): Promise<void> {
+  deleteDraft(input: { environmentId: string; expectedRevision: string }) {
     return this.#exclusive(async () => {
-      const draft = await this.#draft(environmentId)
-      if (draft.revision !== expectedRevision) throw contentError('REVISION_CONFLICT')
-      const versions = await this.listVersions()
-      if (versions.some(version => version.environmentId === environmentId || version.environmentId === undefined))
-        throw contentError('ENVIRONMENT_HAS_VERSIONS')
-      await rm(join(this.root, 'environments', `${environmentId}.json`))
+      const current = await this.#draft(input.environmentId)
+      if (current.revision !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
+      const references = await this.#references(input.environmentId)
+      if (references.length) throw Object.assign(contentError('ENVIRONMENT_IN_USE'), { references })
+      await rm(this.#directory(input.environmentId), { recursive: true })
     }, true)
   }
-  async #materialDirectory(metadata: VersionMetadata): Promise<string> {
-    const path = metadata.materialDirectory
-    if (
-      typeof path !== 'string' ||
-      isAbsolute(path) ||
-      path.includes('\\') ||
-      path.split('/').some(p => !p || p === '.' || p === '..')
-    )
-      throw contentError('MATERIAL_PATH_INVALID')
-    const directory = join(this.root, path)
-    if ((await realpath(directory)) !== directory) throw contentError('MATERIAL_PATH_ESCAPE')
-    return directory
-  }
-  async #version(versionId: string): Promise<EnvironmentVersion> {
-    checkId(versionId)
-    const metadata = await readJson<VersionMetadata>(
-      join(this.root, 'versions', versionDirectory(versionId), 'version.json'),
-    )
-    if (
-      metadata.format !== 'arcadia.environment-version/1' ||
-      metadata.versionId !== versionId ||
-      metadata.workspaceId !== this.workspaceId
-    )
-      throw contentError('ENVIRONMENT_VERSION_INVALID')
-    checkId(metadata.environmentId, envId)
-    const document = normalizeEnvironmentDocument(metadata.document)
-    if (
-      document.id !== metadata.environmentId ||
-      typeof metadata.contentRevision !== 'string' ||
-      !metadata.contentRevision ||
-      typeof metadata.draftRevision !== 'string'
-    )
-      throw contentError('ENVIRONMENT_VERSION_INVALID')
-    if (metadata.adopted && !this.#options.acquireMaterials) throw contentError('MATERIAL_OWNER_REQUIRED')
-    const directory = await this.#materialDirectory(metadata)
-    await readJson(join(directory, 'package.json'))
+  async #installation(id: string): Promise<EnvironmentInstallation> {
+    const directory = this.#directory(id)
     await readJson(join(directory, 'package-lock.json'), 16 * 1024 * 1024)
-    return { ...metadata, document, directory, status: 'ready' }
+    await lstat(join(directory, 'node_modules'))
+    const draft = await this.#draft(id)
+    const metadata = await readJson(join(directory, '.arcadia-prepared.json'))
+    if (
+      metadata.format !== 'arcadia.environment-installation/1' ||
+      metadata.installationId !== id ||
+      typeof metadata.contentRevision !== 'string'
+    )
+      throw contentError('ENVIRONMENT_INSTALLATION_INVALID')
+    // The manifest is authoritative. Metadata describes preparation, not a frozen document.
+    return {
+      ...metadata,
+      installationId: id,
+      environmentId: id,
+      workspaceId: this.workspaceId,
+      document: draft.document,
+      directory,
+      materialDirectory: `environments/${id}`,
+      status: 'ready',
+    } as EnvironmentInstallation
   }
-  getVersion(versionId: string): Promise<EnvironmentVersion> {
-    return this.#exclusive(() => this.#version(versionId))
+  getInstallation(id: string) {
+    return this.#exclusive(() => this.#installation(id))
   }
-  async listVersions(environmentId?: string): Promise<(EnvironmentVersion | UnavailableVersion)[]> {
+  listInstallations(environmentId?: string) {
+    return this.#exclusive(() => this.#listInstallations(environmentId))
+  }
+  async #listInstallations(environmentId?: string): Promise<(EnvironmentInstallation | UnavailableInstallation)[]> {
     await this.#assertOwner()
-    if (environmentId !== undefined) checkId(environmentId, envId)
-    const result: (EnvironmentVersion | UnavailableVersion)[] = []
-    for (const directory of (await readdir(join(this.root, 'versions'))).sort()) {
-      const versionId = directoryVersion(directory)
-      if (!versionId) continue
+    const drafts = environmentId ? [await this.#draft(environmentId)] : await this.#listDrafts()
+    const results: (EnvironmentInstallation | UnavailableInstallation)[] = []
+    for (const { document } of drafts) {
       try {
-        const version = await this.#version(versionId)
-        if (environmentId === undefined || version.environmentId === environmentId) result.push(version)
+        results.push(await this.#installation(document.id))
       } catch (error) {
-        const metadata = await readJson<VersionMetadata>(join(this.root, 'versions', directory, 'version.json')).catch(
-          () => null,
-        )
-        if (environmentId === undefined || metadata?.environmentId === environmentId)
-          result.push({
-            versionId,
-            environmentId: metadata?.environmentId,
+        if (errorCode(error) !== 'ENOENT')
+          results.push({
+            installationId: document.id,
+            environmentId: document.id,
             workspaceId: this.workspaceId,
             status: 'unavailable',
-            reason: errorCode(error) ?? 'ENVIRONMENT_VERSION_INVALID',
+            reason: errorCode(error) ?? 'ENVIRONMENT_INSTALLATION_INVALID',
           })
       }
     }
-    return result
+    return results
   }
-  prepareVersion(input: PrepareVersionInput, preparer: StaticPreparer): Promise<EnvironmentVersion> {
-    return this.#prepare(input, preparer, false)
+  prepareEnvironment(input: PrepareEnvironmentInput, preparer: StaticPreparer) {
+    return this.#exclusive(async () => {
+      const draft = await this.#draft(input.environmentId)
+      if (draft.revision !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
+      const source =
+        input.projectDirectory ??
+        input.directory ??
+        (await this.#options.resolveProject?.(input.environmentId)) ??
+        this.#directory(input.environmentId)
+      return this.#install(draft.document, source, preparer, input)
+    }, true)
   }
-  adoptVersion(input: PrepareVersionInput, preparer: StaticPreparer): Promise<EnvironmentVersion> {
-    return this.#prepare(input, preparer, true)
-  }
-  #prepare(input: PrepareVersionInput, preparer: StaticPreparer, adopted: boolean): Promise<EnvironmentVersion> {
-    if (typeof preparer !== 'function') throw contentError('STATIC_PREPARER_REQUIRED')
-    const task = this.#performPrepare(input, preparer, adopted)
-    this.#pending.add(task)
-    task.finally(() => this.#pending.delete(task)).catch(() => {})
-    return task
-  }
-  async #performPrepare(
-    {
-      environmentId,
-      expectedRevision,
-      projectDirectory,
-      directory,
-      signal,
-      beforeCommit,
-      onProgress,
-    }: PrepareVersionInput,
+  async #install(
+    document: EnvironmentDocument,
+    source: string,
     preparer: StaticPreparer,
-    adopted: boolean,
-  ): Promise<EnvironmentVersion> {
-    const draft = await this.getDraft(environmentId)
-    if (draft.revision !== expectedRevision) throw contentError('REVISION_CONFLICT')
-    const combined = signal ? AbortSignal.any([signal, this.#controller.signal]) : this.#controller.signal
-    combined.throwIfAborted()
-    const sourceDirectory = projectDirectory ?? directory ?? (await this.#options.resolveProject?.(environmentId))
-    if (typeof sourceDirectory !== 'string') throw contentError('ENVIRONMENT_SOURCE_MISSING')
-    const versionId = randomUUID()
-    const staging = join(this.root, 'staging', 'prepare-' + versionId.replaceAll('-', ''))
-    await mkdir(staging, { mode: 0o700 })
-    this.#activeStaging.add(staging)
-    let releaseExternal: (() => void | Promise<void>) | undefined,
-      committed = false
+    input: Pick<PrepareEnvironmentInput, 'signal' | 'beforeCommit' | 'onProgress'> & {
+      importId?: string
+      expectedRevision?: string | null
+    } = {},
+  ) {
+    const signal = input.signal ? AbortSignal.any([input.signal, this.#controller.signal]) : this.#controller.signal
+    signal.throwIfAborted()
+    const staging = join(this.root, 'staging', `prepare-${randomUUID()}`)
+    const target = this.#directory(document.id)
+    const previous = join(this.root, 'staging', `replaced-${document.id}`)
+    await mkdir(staging)
+    let moved = false
+    let journaled = false
     try {
-      await onProgress?.({ stage: 'capturing' })
-      let materials = join(staging, 'materials')
-      if (adopted) {
-        materials = await realpath(sourceDirectory)
-        const path = relative(this.root, materials)
-        if (!path || isAbsolute(path) || path === '..' || path.startsWith('../'))
-          throw contentError('MATERIAL_PATH_ESCAPE')
-        if (typeof this.#options.acquireMaterials !== 'function') throw contentError('MATERIAL_OWNER_REQUIRED')
-        releaseExternal = await this.#options.acquireMaterials(materials, versionId)
-        if (typeof releaseExternal !== 'function') throw contentError('MATERIAL_OWNER_REQUIRED')
-      } else {
-        await mkdir(materials)
-        const files = await materialFiles(sourceDirectory, { ...this.#options, signal: combined })
-        await writeMaterials(materials, files, { ...this.#options, signal: combined })
-      }
-      combined.throwIfAborted()
-      await onProgress?.({ stage: 'preparing' })
-      const result = await checkedPreparation(
-        await preparer({ directory: materials, draft: structuredClone(draft.document), signal: combined }),
-        draft.document,
-        materials,
+      await input.onProgress?.({ stage: 'preparing' })
+      await writeMaterials(staging, await materialFiles(source, { ...this.#options, signal }), {
+        ...this.#options,
+        signal,
+      })
+      const manifest = await readJson(join(staging, 'package.json'))
+      await writeFile(
+        join(staging, 'package.json'),
+        json({ ...this.#manifest(document, manifest), dependencies: manifest.dependencies ?? {} }),
       )
-      combined.throwIfAborted()
-      const metadata: VersionMetadata = {
-        format: 'arcadia.environment-version/1',
-        versionId,
-        workspaceId: this.workspaceId,
-        environmentId,
-        document: draft.document,
-        draftRevision: draft.revision,
-        contentRevision: result.contentRevision,
-        packages: result.packages ?? [],
-        members: result.members ?? [],
-        createdAt: Date.now(),
-        adopted,
-        materialDirectory: adopted
-          ? relative(this.root, materials).split('\\').join('/')
-          : `versions/${versionDirectory(versionId)}/materials`,
+      const result = await checkedPreparation(
+        await preparer({ directory: staging, draft: document, signal }),
+        document,
+        staging,
+      )
+      const text = await readFile(join(staging, 'package.json'), 'utf8')
+      await writeFile(
+        join(staging, '.arcadia-prepared.json'),
+        json({
+          format: 'arcadia.environment-installation/1',
+          installationId: document.id,
+          draftRevision: revision(text),
+          contentRevision: result.contentRevision,
+          packages: result.packages,
+          members: result.members,
+          createdAt: Date.now(),
+          ...(input.importId ? { importId: input.importId } : {}),
+        }),
+      )
+      signal.throwIfAborted()
+      if (input.importId) {
+        checkId(input.importId, /^[a-f0-9]{64}$/)
+        const receipt = join(this.root, 'imports', input.importId + '.json')
+        await writeFile(
+          receipt,
+          json({
+            environmentId: document.id,
+            staging: staging.slice(staging.lastIndexOf('/') + 1),
+            expectedRevision: input.expectedRevision ?? null,
+            completed: false,
+          }),
+          { flag: 'wx' },
+        )
+        journaled = true
       }
-      await writeFile(join(staging, 'version.json'), json(metadata), { flag: 'wx', mode: 0o600 })
-      return await this.#exclusive(async () => {
-        combined.throwIfAborted()
-        await beforeCommit?.()
-        combined.throwIfAborted()
-        await rename(staging, join(this.root, 'versions', versionDirectory(versionId)))
-        committed = true
-        if (releaseExternal) this.#external.set(versionId, releaseExternal)
-        // The revision is captured, never a mutable "active" pointer. A stale
-        // candidate can be retained but only the binding owner can publish it.
-        return this.#version(versionId)
-      }, true)
+      await input.beforeCommit?.()
+      signal.throwIfAborted()
+      if (input.importId) return this.#finishImport(input.importId)
+      try {
+        await rename(target, previous)
+        moved = true
+      } catch (error) {
+        if (errorCode(error) !== 'ENOENT') throw error
+      }
+      try {
+        await rename(staging, target)
+      } catch (error) {
+        if (moved) await rename(previous, target)
+        throw error
+      }
+      await rm(previous, { recursive: true, force: true })
+      return this.#installation(document.id)
     } finally {
-      this.#activeStaging.delete(staging)
-      if (!committed) {
-        await rm(staging, { recursive: true, force: true })
-        await releaseExternal?.()
-      }
+      if (!journaled) await rm(staging, { recursive: true, force: true })
     }
   }
-  acquire(versionId: string, owner = 'runtime'): Promise<EnvironmentVersion & { release(): Promise<void> }> {
+  acquire(id: string, owner = 'runtime') {
     return this.#exclusive(async () => {
-      const version = await this.#version(versionId)
-      if (this.#closing || this.#closed) throw contentError('WORKSPACE_CLOSED')
+      const installation = await this.#installation(id)
       const token = randomUUID()
-      this.#leases.set(token, { versionId, owner, bootId: this.bootId })
-      let released = false
+      const directory = join(this.root, 'staging', `read-${token}`)
+      await mkdir(directory)
+      try {
+        await writeMaterials(directory, await materialFiles(installation.directory, this.#options), this.#options)
+      } catch (error) {
+        await rm(directory, { recursive: true, force: true })
+        throw error
+      }
+      this.#leases.set(token, { installationId: id, owner })
       return {
-        ...version,
+        ...installation,
+        directory,
         release: async () => {
-          if (released) return
-          released = true
+          await rm(directory, { recursive: true, force: true })
           this.#leases.delete(token)
         },
       }
     })
   }
-  retain(versionId: string, retentionId: string): Promise<void> {
+  retain(id: string, retentionId: string) {
     return this.#exclusive(async () => {
-      await this.#version(versionId)
+      await this.#draft(id)
       if (!this.#options.retentions?.put) throw contentError('RETENTION_UNAVAILABLE')
-      await this.#options.retentions.put(versionId, retentionId)
+      await this.#options.retentions.put(id, retentionId)
     })
   }
-  releaseRetention(retentionId: string): Promise<void> {
+  releaseRetention(retentionId: string) {
     return this.#exclusive(async () => {
-      if (!this.#options.retentions?.remove) throw contentError('RETENTION_UNAVAILABLE')
-      await this.#options.retentions.remove(retentionId)
+      await this.#options.retentions?.remove?.(retentionId)
     })
   }
-  async #references(versionId: string): Promise<Record<string, unknown>[]> {
-    if (!this.#options.retentions?.list) throw contentError('RETENTION_UNAVAILABLE')
+  async #references(id: string): Promise<Record<string, unknown>[]> {
+    checkId(id, envId)
     return [
-      ...(await this.#importIntents())
-        .filter(x => x.versionId === versionId)
-        .map(x => ({ kind: 'import', importId: x.importId })),
-      ...[...this.#leases.values()].filter(x => x.versionId === versionId).map(x => ({ kind: 'runtime', ...x })),
-      ...(await this.#options.retentions.list(versionId)).map(x => ({ kind: 'retention', ...x })),
+      ...[...this.#leases.values()].filter(x => x.installationId === id).map(x => ({ kind: 'runtime', ...x })),
+      ...((await this.#options.retentions?.list(id)) ?? []).map(x => ({ kind: 'retention', ...x })),
     ]
   }
-  references(versionId: string): Promise<Record<string, unknown>[]> {
-    return this.#exclusive(() => this.#references(checkId(versionId)))
+  references(id: string) {
+    return this.#exclusive(() => this.#references(id))
   }
-  deleteVersion(versionId: string): Promise<void> {
+  clearInstallation(id: string) {
     return this.#exclusive(async () => {
-      checkId(versionId)
-      const references = await this.#references(versionId)
+      const references = await this.#references(id)
       if (references.length) throw Object.assign(contentError('ENVIRONMENT_IN_USE'), { references })
-      // Rename removes it from admission before any bytes are deleted. A crash
-      // leaves a recognizable staging tombstone, never a half-ready version.
-      const tombstone = join(
-        this.root,
-        'staging',
-        `deleted-${versionId.replaceAll('-', '')}-${randomUUID().replaceAll('-', '')}`,
-      )
-      await rename(join(this.root, 'versions', versionDirectory(versionId)), tombstone)
-      await rm(tombstone, { recursive: true, force: true })
-      await this.#external.get(versionId)?.()
-      this.#external.delete(versionId)
+      const directory = this.#directory(id)
+      await rm(join(directory, 'node_modules'), { recursive: true, force: true })
+      await rm(join(directory, '.arcadia-prepared.json'), { force: true })
     }, true)
   }
-  async exportVersion(versionId: string): Promise<EnvironmentExport> {
-    const lease = await this.acquire(versionId, 'export')
-    try {
-      const files = await materialFiles(lease.directory, this.#options)
-      return {
-        format: 'arcadia.environment-export/1',
-        document: lease.document,
-        contentRevision: lease.contentRevision,
-        files: files.map(({ path, bytes }) => ({ path, data: bytes.toString('base64') })),
-      }
-    } finally {
-      await lease.release()
-    }
-  }
-  #observation(path: string, info: Stats): Observation {
+  async #export(id: string): Promise<EnvironmentExport> {
+    const draft = await this.#draft(id)
+    const installation = await this.#installation(id)
+    if (installation.draftRevision !== draft.revision)
+      throw contentError('ENVIRONMENT_PREPARATION_REQUIRED', '环境已修改，请先准备环境再导出')
+    const files = await materialFiles(this.#directory(id), this.#options)
     return {
-      path,
-      dev: info.dev,
-      ino: info.ino,
-      mode: info.mode,
-      size: info.size,
-      mtimeMs: info.mtimeMs,
-      ctimeMs: info.ctimeMs,
+      format: 'arcadia.environment-export/2',
+      document: draft.document,
+      contentRevision: installation.contentRevision,
+      files: files.map(({ path, bytes }) => ({ path, data: bytes.toString('base64') })),
     }
   }
-  async #observationsCurrent(observations: Observation[]): Promise<boolean> {
-    for (const previous of observations) {
-      const info = await lstat(previous.path).catch(error => {
-        if (['ENOENT', 'ENOTDIR'].includes(errorCode(error) ?? '')) return null
-        throw error
+  exportEnvironment(id: string) {
+    return this.#exclusive(() => this.#export(id))
+  }
+  async #snapshot(): Promise<WorkspaceSnapshot> {
+    for (const name of await readdir(join(this.root, 'imports'))) {
+      const receipt = await readJson(join(this.root, 'imports', name))
+      if (!receipt.completed) throw contentError('WORKSPACE_SNAPSHOT_UNSETTLED')
+    }
+    const drafts: WorkspaceSnapshot['drafts'] = await this.#listDrafts()
+    const installations: WorkspaceSnapshot['installations'] = []
+    for (const draft of drafts) {
+      const installed = await this.#installation(draft.document.id).catch(error => {
+        if (errorCode(error) !== 'ENOENT') throw error
+        return undefined
       })
-      if (!info) return false
-      const current = this.#observation(previous.path, info)
-      if (Object.keys(current).some(key => current[key as keyof Observation] !== previous[key as keyof Observation]))
-        return false
-    }
-    return true
-  }
-  async #snapshotData(observations?: Observation[]): Promise<WorkspaceSnapshot> {
-    if ((await this.#importIntents()).some(intent => !intent.completed))
-      throw contentError('WORKSPACE_SNAPSHOT_UNSETTLED')
-    const observe = (path: string, info: Stats) => {
-      if (!observations) return
-      if (observations.length >= 200000) throw contentError('WORKSPACE_SNAPSHOT_LIMIT')
-      observations.push(this.#observation(path, info))
-    }
-    // Observe control files before reading them; materialFiles supplies the
-    // matching post-read observations without copying another set of bytes.
-    if (observations) {
-      for (const name of ['workspace.json', 'environments', 'versions', 'imports']) {
-        const path = join(this.root, name)
-        observe(path, await lstat(path))
+      if (!installed) {
+        draft.files = (
+          await materialFiles(this.#directory(draft.document.id), { ...this.#options, allowMissingLock: true })
+        ).map(({ path, bytes }) => ({ path, data: bytes.toString('base64') }))
+        continue
       }
-      for (const name of await readdir(join(this.root, 'environments'))) {
-        const path = join(this.root, 'environments', name)
-        observe(path, await lstat(path))
-      }
-      for (const name of await readdir(join(this.root, 'versions'))) {
-        if (!directoryVersion(name)) continue
-        const path = join(this.root, 'versions', name, 'version.json')
-        observe(path, await lstat(path))
-      }
+      const { directory: _dir, materialDirectory: _path, status: _status, ...version } = installed
+      const files = await materialFiles(this.#directory(draft.document.id), this.#options)
+      installations.push({ version, files: files.map(({ path, bytes }) => ({ path, data: bytes.toString('base64') })) })
     }
-    const versions: WorkspaceSnapshot['versions'] = []
-    let materialBytes = 0
-    for (const entry of await this.listVersions()) {
-      if (entry.status !== 'ready') throw contentError('ENVIRONMENT_UNAVAILABLE')
-      const { versionId, environmentId, document, draftRevision, contentRevision, packages, createdAt } = entry
-      const files = await materialFiles(entry.directory, {
-        ...this.#options,
-        signal: this.#controller.signal,
-        onRead: observe,
-      })
-      materialBytes += files.reduce((total, file) => total + file.bytes.length, 0)
-      if (materialBytes > 1024 * 1024 * 1024) throw contentError('WORKSPACE_SNAPSHOT_LIMIT')
-      versions.push({
-        version: { versionId, environmentId, document, draftRevision, contentRevision, packages, createdAt },
-        files: files.map(({ path, bytes }) => ({ path, data: bytes.toString('base64') })),
-      })
-    }
-    const snapshot: WorkspaceSnapshot = {
-      format: 'arcadia.workspace-snapshot/1',
-      workspaceId: this.workspaceId,
-      drafts: await this.listDrafts(),
-      versions,
-    }
-    if (observations && !(await this.#observationsCurrent(observations)))
-      throw contentError('WORKSPACE_SNAPSHOT_UNSETTLED')
-    return snapshot
+    return { format: 'arcadia.workspace-snapshot/2', workspaceId: this.workspaceId, drafts, installations }
   }
-  exportSnapshot(): Promise<WorkspaceSnapshot> {
-    return this.#exclusive(() => this.#snapshotData())
+  exportSnapshot() {
+    return this.#exclusive(() => this.#snapshot())
   }
-  /** One-use stamp for an optimistic file/DB consistent snapshot. */
-  captureSnapshot(): Promise<WorkspaceSnapshotCapture> {
+  captureSnapshot() {
     return this.#exclusive(async () => {
-      this.#snapshotGeneration++
-      this.#snapshotObservations = undefined
-      const observations: Observation[] = []
-      const snapshot = await this.#snapshotData(observations)
-      const stamp = { workspaceId: this.workspaceId, bootId: this.bootId, generation: this.#snapshotGeneration }
-      this.#snapshotObservations = observations
+      const snapshot = await this.#snapshot()
+      this.#snapshotFingerprint = revision(json(snapshot))
+      const stamp = { workspaceId: this.workspaceId, bootId: this.bootId, generation: ++this.#snapshotGeneration }
       return { snapshot, stamp }
     })
   }
-  isSnapshotCurrent(stamp: WorkspaceSnapshotStamp): Promise<boolean> {
+  isSnapshotCurrent(stamp: WorkspaceSnapshotStamp) {
     return this.#exclusive(async () => {
       if (
-        !stamp ||
         stamp.workspaceId !== this.workspaceId ||
         stamp.bootId !== this.bootId ||
-        !Number.isSafeInteger(stamp.generation) ||
         stamp.generation !== this.#snapshotGeneration ||
-        !this.#snapshotObservations
+        !this.#snapshotFingerprint
       )
         return false
-      const observations = this.#snapshotObservations
-      this.#snapshotObservations = undefined
-      return this.#observationsCurrent(observations)
+      const expected = this.#snapshotFingerprint
+      this.#snapshotFingerprint = undefined
+      return revision(json(await this.#snapshot())) === expected
     })
   }
-  async restoreSnapshot(
-    snapshot: WorkspaceSnapshot,
-    { mode }: { mode: 'restore' | 'clone' },
-    preparer: StaticPreparer,
-  ): Promise<{ workspaceId: string; versionIds: Record<string, string> }> {
-    if (
-      snapshot?.format !== 'arcadia.workspace-snapshot/1' ||
-      !['restore', 'clone'].includes(mode) ||
-      !Array.isArray(snapshot.drafts) ||
-      !Array.isArray(snapshot.versions) ||
-      typeof preparer !== 'function'
-    )
-      throw contentError('WORKSPACE_SNAPSHOT_INVALID')
-    checkId(snapshot.workspaceId)
+  restoreSnapshot(snapshot: WorkspaceSnapshot, { mode }: { mode: 'restore' | 'clone' }, preparer: StaticPreparer) {
     return this.#exclusive(async () => {
       if (
-        (await this.listDrafts()).length ||
-        (await this.listVersions()).length ||
-        this.#pending.size ||
-        this.#leases.size
+        snapshot?.format !== 'arcadia.workspace-snapshot/2' ||
+        !['restore', 'clone'].includes(mode) ||
+        !Array.isArray(snapshot.drafts) ||
+        !Array.isArray(snapshot.installations)
       )
-        throw contentError('WORKSPACE_NOT_EMPTY')
-      const workspaceId = mode === 'restore' ? snapshot.workspaceId : this.workspaceId
-      const versions = new Map()
-      const drafts = new Map()
-      for (const draft of snapshot.drafts) {
-        const document = normalizeEnvironmentDocument(draft.document)
-        if (drafts.has(document.id)) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
-        drafts.set(document.id, document)
-      }
-      const staging = join(this.root, 'staging', `restore-${randomUUID().replaceAll('-', '')}`)
-      await mkdir(staging)
-      try {
-        // Validate every received artifact before changing any target document.
-        for (const entry of snapshot.versions) {
-          const original = entry.version
-          checkId(original?.versionId)
-          if (versions.has(original.versionId)) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
-          const document = normalizeEnvironmentDocument(original.document)
-          if (
-            document.id !== original.environmentId ||
-            !drafts.has(document.id) ||
-            typeof original.draftRevision !== 'string' ||
-            !Number.isSafeInteger(original.createdAt)
+        throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+      if ((await this.#listDrafts()).length) throw contentError('WORKSPACE_NOT_EMPTY')
+      const drafts = new Map(
+        snapshot.drafts.map(draft => {
+          const document = normalizeEnvironmentDocument(draft.document)
+          return [document.id, document]
+        }),
+      )
+      if (drafts.size !== snapshot.drafts.length) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+      const ids = new Set<string>()
+      for (const entry of snapshot.installations) {
+        const id = entry.version.environmentId
+        if (!drafts.has(id) || ids.has(id) || entry.version.installationId !== id)
+          throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+        ids.add(id)
+        const staging = join(this.root, 'staging', `restore-${randomUUID()}`)
+        await mkdir(staging)
+        try {
+          await writeMaterials(staging, entry.files, this.#options)
+          // Validate the installed tree against its lock, preserving pending manifest edits.
+          const manifestText = await readFile(join(staging, 'package.json'), 'utf8')
+          const manifest = JSON.parse(manifestText)
+          const lock = await readJson<{ packages: Record<string, { dependencies?: Record<string, string> }> }>(
+            join(staging, 'package-lock.json'),
           )
-            throw contentError('WORKSPACE_SNAPSHOT_INVALID')
-          const versionId = mode === 'restore' ? original.versionId : randomUUID()
-          const target = join(staging, versionDirectory(versionId))
-          const materials = join(target, 'materials')
-          await mkdir(materials, { recursive: true })
-          await writeMaterials(materials, entry.files, this.#options)
-          const result = await checkedPreparation(
-            await preparer({ directory: materials, draft: document, signal: this.#controller.signal }),
-            document,
-            materials,
-          )
-          if (result?.contentRevision !== original.contentRevision) throw contentError('ENVIRONMENT_IMPORT_MISMATCH')
           await writeFile(
-            join(target, 'version.json'),
+            join(staging, 'package.json'),
+            json({ ...manifest, dependencies: lock.packages['']?.dependencies ?? {} }),
+          )
+          const result = await preparer({ directory: staging, draft: drafts.get(id)! })
+          await inspectNpmProject(staging)
+          await writeFile(join(staging, 'package.json'), manifestText)
+          await writeFile(
+            join(staging, '.arcadia-prepared.json'),
             json({
-              format: 'arcadia.environment-version/1',
-              versionId,
-              workspaceId,
-              environmentId: document.id,
-              document,
-              draftRevision: original.draftRevision,
+              ...entry.version,
+              format: 'arcadia.environment-installation/1',
               contentRevision: result.contentRevision,
               packages: result.packages ?? [],
-              members: result.members ?? [],
-              createdAt: original.createdAt,
-              adopted: false,
-              materialDirectory: `versions/${versionDirectory(versionId)}/materials`,
             }),
-            { flag: 'wx', mode: 0o600 },
           )
-          versions.set(original.versionId, versionId)
+          await rename(staging, this.#directory(id))
+        } finally {
+          await rm(staging, { recursive: true, force: true })
         }
-        this.#controller.signal.throwIfAborted()
-        // Callers restore into an inactive staging workspace and switch the whole
-        // server directory only after DB/files validation. Never merge online.
-        for (const id of versions.values())
-          await rename(join(staging, versionDirectory(id)), join(this.root, 'versions', versionDirectory(id)))
-        for (const [id, document] of drafts)
-          await writeFileAtomic(join(this.root, 'environments', `${id}.json`), json(document), { mode: 0o600 })
-        await writeFileAtomic(
-          join(this.root, 'workspace.json'),
-          json({ format: 'arcadia.content-workspace/1', workspaceId }),
-          { mode: 0o600 },
-        )
-        this.workspaceId = workspaceId
-        return { workspaceId, versionIds: Object.fromEntries(versions) }
-      } finally {
-        await rm(staging, { recursive: true, force: true })
       }
-    }, true)
-  }
-  async #importIntents(): Promise<ImportIntent[]> {
-    const intents: ImportIntent[] = []
-    for (const name of await readdir(join(this.root, 'imports'))) {
-      if (!/^[a-f0-9]{64}\.json$/.test(name)) continue
-      const intent = await readJson<ImportIntent>(join(this.root, 'imports', name))
-      if (
-        intent.format !== 'arcadia.environment-import/1' ||
-        intent.importId !== name.slice(0, -5) ||
-        intent.workspaceId !== this.workspaceId
+      for (const [id, document] of drafts) {
+        if (ids.has(id)) continue
+        await regularDirectory(this.#directory(id))
+        const saved = snapshot.drafts.find(draft => draft.document.id === id)
+        if (!saved?.files) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+        await writeMaterials(this.#directory(id), saved.files, { ...this.#options, allowMissingLock: true })
+        if (json((await this.#draft(id)).document) !== json(document)) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+      }
+      this.workspaceId = mode === 'restore' ? checkId(snapshot.workspaceId, uuid) : this.workspaceId
+      await writeFileAtomic(
+        join(this.root, 'workspace.json'),
+        json({ format: 'arcadia.content-workspace/2', workspaceId: this.workspaceId }),
       )
-        throw contentError('IMPORT_INTENT_INVALID')
-      checkId(intent.versionId)
-      checkId(intent.document?.id, envId)
-      intents.push(intent)
-    }
-    return intents
-  }
-  async #finishImport(importId: string): Promise<EnvironmentVersion> {
-    const intent = (await this.#importIntents()).find(x => x.importId === importId)
-    if (!intent) throw contentError('IMPORT_INTENT_NOT_FOUND')
-    const target = join(this.root, 'versions', versionDirectory(intent.versionId))
-    const staging = join(this.root, 'staging', `import-${intent.versionId.replaceAll('-', '')}`)
-    const draftFile = join(this.root, 'environments', `${intent.document.id}.json`)
-    const text = json(normalizeEnvironmentDocument(intent.document))
-    let previous: string | null = null
-    try {
-      previous = await readFile(draftFile, 'utf8')
-    } catch (error) {
-      if (errorCode(error) !== 'ENOENT') throw error
-    }
-    if (
-      !intent.completed &&
-      previous !== text &&
-      (previous === null ? null : revision(previous)) !== intent.expectedRevision
-    )
-      throw contentError('REVISION_CONFLICT')
-    try {
-      await lstat(target)
-    } catch (error) {
-      if (errorCode(error) !== 'ENOENT') throw error
-      await rename(staging, target)
-    }
-    const version = await this.#version(intent.versionId)
-    if (version.draftRevision !== revision(text) || version.contentRevision !== intent.contentRevision)
-      throw contentError('IMPORT_INTENT_INVALID')
-    // Replaying a completed receipt must not overwrite a subsequent draft edit.
-    if (!intent.completed) {
-      if (previous !== text) await writeFileAtomic(draftFile, text, { mode: 0o600 })
-      await writeFileAtomic(join(this.root, 'imports', `${importId}.json`), json({ ...intent, completed: true }), {
-        mode: 0o600,
-      })
-    }
-    return version
-  }
-  /** The caller must first establish that its durable operation committed. */
-  recoverImport(importId: string): Promise<EnvironmentVersion> {
-    checkId(importId, /^[a-f0-9]{64}$/)
-    return this.#exclusive(() => this.#finishImport(importId), true)
-  }
-  /** Acknowledge a completed receipt, or discard a proven uncommitted operation. */
-  forgetImport(importId: string, { discard = false }: { discard?: boolean } = {}): Promise<void> {
-    checkId(importId, /^[a-f0-9]{64}$/)
-    return this.#exclusive(async () => {
-      const intent = (await this.#importIntents()).find(x => x.importId === importId)
-      if (!intent) return
-      if (!intent.completed && !discard) throw contentError('IMPORT_NOT_COMPLETED')
-      if (discard) {
-        const published = await lstat(join(this.root, 'versions', versionDirectory(intent.versionId))).catch(error => {
-          if (errorCode(error) === 'ENOENT') return null
-          throw error
-        })
-        if (published) throw contentError('IMPORT_ALREADY_PUBLISHED')
-        await rm(join(this.root, 'staging', `import-${intent.versionId.replaceAll('-', '')}`), {
-          recursive: true,
-          force: true,
-        })
-      }
-      await rm(join(this.root, 'imports', `${importId}.json`))
+      return { workspaceId: this.workspaceId, installationIds: Object.fromEntries([...ids].map(id => [id, id])) }
     }, true)
   }
-  async importVersion(
+  importEnvironment(
     bundle: EnvironmentExport,
-    {
-      environmentId,
-      expectedRevision = null,
-      signal,
-      beforeCommit,
-      importId,
-    }: {
+    input: {
       environmentId?: string
       expectedRevision?: string | null
       signal?: AbortSignal
       beforeCommit?: () => Promise<void>
       importId?: string
-    } = {},
+    },
     preparer: StaticPreparer,
-  ): Promise<EnvironmentVersion> {
-    if (bundle?.format !== 'arcadia.environment-export/1') throw contentError('ENVIRONMENT_EXPORT_INVALID')
-    if (typeof preparer !== 'function') throw contentError('STATIC_PREPARER_REQUIRED')
-    const document = normalizeEnvironmentDocument({
-      ...bundle.document,
-      ...(environmentId ? { id: environmentId } : {}),
-    })
-    const versionId = randomUUID()
-    if (importId !== undefined) checkId(importId, /^[a-f0-9]{64}$/)
-    let journaled = false
-    const staging = join(this.root, 'staging', `import-${versionId.replaceAll('-', '')}`)
-    const combined = signal ? AbortSignal.any([signal, this.#controller.signal]) : this.#controller.signal
-    await this.#assertOwner()
-    const materials = join(staging, 'materials')
-    await mkdir(materials, { recursive: true })
-    this.#activeStaging.add(staging)
-    try {
-      await writeMaterials(materials, bundle.files, { ...this.#options, signal: combined })
-      // Validate received bytes independently; an archive's revision is not a proof.
-      const result = await checkedPreparation(
-        await preparer({ directory: materials, draft: document, signal: combined }),
-        document,
-        materials,
-      )
-      if (result.contentRevision !== bundle.contentRevision) throw contentError('ENVIRONMENT_IMPORT_MISMATCH')
-      const text = json(document)
-      const metadata: VersionMetadata = {
-        format: 'arcadia.environment-version/1',
-        versionId,
-        workspaceId: this.workspaceId,
-        environmentId: document.id,
-        document,
-        draftRevision: revision(text),
-        contentRevision: result.contentRevision,
-        packages: result.packages ?? [],
-        members: result.members ?? [],
-        createdAt: Date.now(),
-        adopted: false,
-        materialDirectory: `versions/${versionDirectory(versionId)}/materials`,
-      }
-      await writeFile(join(staging, 'version.json'), json(metadata), { flag: 'wx', mode: 0o600 })
-      return await this.#exclusive(async () => {
-        const draftFile = join(this.root, 'environments', `${document.id}.json`)
-        let previous: string | null = null
-        try {
-          previous = await readFile(draftFile, 'utf8')
-        } catch (error) {
-          if (errorCode(error) !== 'ENOENT') throw error
-        }
-        if (expectedRevision !== (previous === null ? null : revision(previous)))
-          throw contentError('REVISION_CONFLICT')
-        combined.throwIfAborted()
-        if (importId) {
-          if ((await this.#importIntents()).some(x => x.importId === importId))
-            throw contentError('IMPORT_ALREADY_EXISTS')
-          // Persist prepared material intent before the external DB cancellation boundary.
-          // If its response is lost, only the caller's DB may decide recovery vs discard.
-          await writeFileAtomic(
-            join(this.root, 'imports', `${importId}.json`),
-            json({
-              format: 'arcadia.environment-import/1',
-              importId,
-              workspaceId: this.workspaceId,
-              versionId,
-              document,
-              expectedRevision,
-              contentRevision: metadata.contentRevision,
-              completed: false,
-            }),
-            { mode: 0o600 },
-          )
-          journaled = true
-          await beforeCommit?.()
-          return this.#finishImport(importId)
-        }
-        await beforeCommit?.()
-        combined.throwIfAborted()
-        const target = join(this.root, 'versions', versionDirectory(versionId))
-        await rename(staging, target)
-        try {
-          await writeFileAtomic(draftFile, text, { mode: 0o600 })
-        } catch (error) {
-          // An atomic writer can report an fsync error after rename. Compensate
-          // only our own bytes; never overwrite a subsequent external edit.
-          const current = await readFile(draftFile, 'utf8').catch(() => null)
-          if (current === text) {
-            if (previous === null) await rm(draftFile)
-            else await writeFileAtomic(draftFile, previous, { mode: 0o600 })
-          }
-          await rm(target, { recursive: true, force: true })
-          throw error
-        }
-        return { ...metadata, document, directory: join(target, 'materials'), status: 'ready' }
-      }, true)
-    } finally {
-      this.#activeStaging.delete(staging)
-      if (!journaled) await rm(staging, { recursive: true, force: true })
-    }
-  }
-  reconcile(): Promise<{
-    workspaceId: string
-    versions: (EnvironmentVersion | UnavailableVersion)[]
-    abandoned: string[]
-  }> {
-    return this.#exclusive(() => this.#reconcile())
-  }
-  async #reconcile() {
-    await this.#assertOwner()
-    const versions: (EnvironmentVersion | UnavailableVersion)[] = await this.listVersions()
-    for (const [index, version] of versions.entries()) {
-      if (version.status !== 'ready' || !version.adopted || this.#external.has(version.versionId)) continue
-      if (!this.#options.acquireMaterials) {
-        versions[index] = {
-          versionId: version.versionId,
-          workspaceId: version.workspaceId,
-          environmentId: version.environmentId,
-          status: 'unavailable',
-          reason: 'MATERIAL_OWNER_REQUIRED',
-        }
-        continue
-      }
-      const release = await this.#options.acquireMaterials(version.directory, version.versionId)
-      if (typeof release !== 'function') throw contentError('MATERIAL_OWNER_REQUIRED')
-      this.#external.set(version.versionId, release)
-    }
-    const abandoned: string[] = []
-    const pendingImports = new Set((await this.#importIntents()).map(x => `import-${x.versionId.replaceAll('-', '')}`))
-    for (const name of await readdir(join(this.root, 'staging'))) {
-      const info = await lstat(join(this.root, 'staging', name))
-      if (info.isSymbolicLink()) throw contentError('WORKSPACE_PATH_INVALID')
-      if (
-        !pendingImports.has(name) &&
-        !this.#activeStaging.has(join(this.root, 'staging', name)) &&
-        Date.now() - info.mtimeMs >= (this.#options.stagingRetentionMs ?? 24 * 3600 * 1000)
-      )
-        abandoned.push(name)
-    }
-    return { workspaceId: this.workspaceId, versions, abandoned }
-  }
-  cleanupStaging(): Promise<string[]> {
+  ) {
     return this.#exclusive(async () => {
-      const { abandoned } = await this.#reconcile()
-      const removed: string[] = []
-      for (const name of abandoned) {
-        if (!/^(?:(?:import|restore|deleted|prepare)-)?[a-f0-9-]+$/.test(name)) continue
-        const path = join(this.root, 'staging', name)
-        if (this.#activeStaging.has(path)) continue
-        await rm(path, { recursive: true, force: true })
-        removed.push(name)
+      if (bundle?.format !== 'arcadia.environment-export/2') throw contentError('ENVIRONMENT_EXPORT_INVALID')
+      const document = normalizeEnvironmentDocument({
+        ...bundle.document,
+        ...(input.environmentId ? { id: input.environmentId } : {}),
+      })
+      const previous = await this.#draft(document.id).catch(error => {
+        if (errorCode(error) !== 'ENOENT') throw error
+        return undefined
+      })
+      if ((previous?.revision ?? null) !== (input.expectedRevision ?? null)) throw contentError('REVISION_CONFLICT')
+      const staging = join(this.root, 'staging', `import-${randomUUID()}`)
+      await mkdir(staging)
+      try {
+        await writeMaterials(staging, bundle.files, this.#options)
+        const result = await this.#install(document, staging, preparer, input)
+        return result
+      } finally {
+        await rm(staging, { recursive: true, force: true })
       }
-      return removed
     }, true)
   }
-  close({ force = false }: { force?: boolean } = {}): Promise<void> {
-    if (this.#closed) return Promise.resolve()
-    if (this.#closePromise) return this.#closePromise
-    if (this.#leases.size && !force) return Promise.reject(contentError('WORKSPACE_IN_USE'))
-    this.#closePromise = this.#close()
-    return this.#closePromise
+  async #finishImport(id: string): Promise<EnvironmentInstallation> {
+    checkId(id, /^[a-f0-9]{64}$/)
+    const file = join(this.root, 'imports', id + '.json')
+    const receipt = await readJson(file)
+    const environmentId = checkId(receipt.environmentId, envId)
+    if (typeof receipt.staging !== 'string' || !/^prepare-[0-9a-f-]{36}$/.test(receipt.staging))
+      throw contentError('IMPORT_INTENT_INVALID')
+    const target = this.#directory(environmentId)
+    const metadata = await readJson(join(target, '.arcadia-prepared.json')).catch(error => {
+      if (errorCode(error) !== 'ENOENT') throw error
+      return undefined
+    })
+    if (receipt.completed || metadata?.importId === id) {
+      if (!receipt.completed) await writeFileAtomic(file, json({ ...receipt, completed: true }))
+      return this.#installation(environmentId)
+    }
+    const current = await this.#draft(environmentId).catch(error => {
+      if (errorCode(error) !== 'ENOENT') throw error
+      return undefined
+    })
+    if ((current?.revision ?? null) !== receipt.expectedRevision) throw contentError('REVISION_CONFLICT')
+    const staging = join(this.root, 'staging', receipt.staging)
+    const prepared = await readJson(join(staging, '.arcadia-prepared.json'))
+    if (prepared.importId !== id || prepared.installationId !== environmentId)
+      throw contentError('IMPORT_INTENT_INVALID')
+    const previous = join(this.root, 'staging', `replaced-${environmentId}`)
+    let moved = false
+    try {
+      await rename(target, previous)
+      moved = true
+    } catch (error) {
+      if (errorCode(error) !== 'ENOENT') throw error
+    }
+    try {
+      await rename(staging, target)
+    } catch (error) {
+      if (moved) await rename(previous, target)
+      throw error
+    }
+    await writeFileAtomic(file, json({ ...receipt, completed: true }))
+    await rm(previous, { recursive: true, force: true })
+    return this.#installation(environmentId)
   }
-  async #close() {
+  recoverImport(id: string) {
+    return this.#exclusive(() => this.#finishImport(id), true)
+  }
+  forgetImport(id: string, { discard = false }: { discard?: boolean } = {}) {
+    return this.#exclusive(async () => {
+      checkId(id, /^[a-f0-9]{64}$/)
+      const file = join(this.root, 'imports', id + '.json')
+      const receipt = await readJson(file).catch(error => {
+        if (errorCode(error) !== 'ENOENT') throw error
+        return undefined
+      })
+      if (!receipt) return
+      if (!receipt.completed && !discard) throw contentError('IMPORT_NOT_COMPLETED')
+      if (discard && !receipt.completed) {
+        if (typeof receipt.staging !== 'string' || !/^prepare-[0-9a-f-]{36}$/.test(receipt.staging))
+          throw contentError('IMPORT_INTENT_INVALID')
+        await rm(join(this.root, 'staging', receipt.staging), { recursive: true, force: true })
+      }
+      await rm(file)
+    }, true)
+  }
+  reconcile() {
+    return this.#exclusive(async () => ({
+      workspaceId: this.workspaceId,
+      installations: await this.#listInstallations(),
+      abandoned: await readdir(join(this.root, 'staging')),
+    }))
+  }
+  cleanupStaging() {
+    return this.#exclusive(async () => {
+      const retained = new Set<string>()
+      for (const file of await readdir(join(this.root, 'imports'))) {
+        const receipt = await readJson(join(this.root, 'imports', file))
+        if (!receipt.completed && typeof receipt.staging === 'string') retained.add(receipt.staging)
+      }
+      const names: string[] = []
+      for (const name of await readdir(join(this.root, 'staging'))) {
+        if (name.startsWith('read-') && this.#leases.has(name.slice(5))) continue
+        if (retained.has(name) || !/^(?:(?:prepare|import|restore|read)-)?[a-f0-9-]{36}$/.test(name)) continue
+        const info = await lstat(join(this.root, 'staging', name))
+        if (
+          !info.isSymbolicLink() &&
+          Date.now() - info.mtimeMs >= (this.#options.stagingRetentionMs ?? 24 * 3600 * 1000)
+        )
+          names.push(name)
+      }
+      for (const name of names) await rm(join(this.root, 'staging', name), { recursive: true, force: true })
+      return names
+    }, true)
+  }
+  async close({ force = false }: { force?: boolean } = {}) {
     if (this.#closed) return
-    this.#closing = true
-    this.#snapshotGeneration++
-    this.#snapshotObservations = undefined
-    this.#controller.abort(contentError('WORKSPACE_CLOSED'))
-    await Promise.allSettled([...this.#pending])
+    if (this.#leases.size && !force) throw contentError('WORKSPACE_IN_USE')
+    this.#controller.abort()
     await this.#queue
-    this.#leases.clear()
-    for (const release of this.#external.values()) await release()
-    this.#external.clear()
+    this.#closed = true
     await withSourceLock(this.root, 'workspace-owner', async () => {
       const file = join(this.root, 'workspace-owner.json')
-      const owner = await readJson(file).catch(error => {
-        if (errorCode(error) === 'ENOENT') return null
-        throw error
-      })
+      const owner = await readJson(file).catch(() => undefined)
       if (owner?.bootId === this.bootId) await rm(file)
     })
-    this.#closed = true
   }
 }
-
 export const ContentWorkspace: ContentWorkspaceConstructor = ContentWorkspaceImplementation
 
-/** Change desired roots only. Resolved material and all published versions remain immutable. */
+/** Change desired roots only. Resolved material and all published installations remain immutable. */
 export async function setEnvironmentPackageEnabled(
-  workspace: Pick<ContentWorkspace, 'listDrafts' | 'listVersions' | 'saveDraft'>,
+  workspace: Pick<ContentWorkspace, 'listDrafts' | 'listInstallations' | 'saveDraft'>,
   input: { environmentId: string; expectedRevision: string; name: string; enabled: boolean; cascade?: boolean },
 ): Promise<EnvironmentDraft> {
   const { environmentId, expectedRevision, name, enabled, cascade = false } = input
@@ -1154,8 +886,8 @@ export async function setEnvironmentPackageEnabled(
       disabled.sources = disabled.sources.filter(value => value !== name)
     } else throw contentError('ENVIRONMENT_PACKAGE_NOT_FOUND')
   } else {
-    const version = (await workspace.listVersions())
-      .filter((item): item is EnvironmentVersion => item.status === 'ready')
+    const version = (await workspace.listInstallations())
+      .filter((item): item is EnvironmentInstallation => item.status === 'ready')
       .filter(item => item.environmentId === environmentId && item.members)
       .sort((a, b) => b.createdAt - a.createdAt)[0]
     // A graph captured for different roots/ranges cannot justify disabling a shared dependency.

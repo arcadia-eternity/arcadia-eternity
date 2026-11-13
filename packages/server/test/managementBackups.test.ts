@@ -65,7 +65,7 @@ async function fixture(driver: 'sqlite' | 'postgres', enabled = true) {
     schemaVersion: 1,
     createdAt: Date.now(),
     serverId,
-    workspace: { format: 'arcadia.workspace-snapshot/1', workspaceId: workspace.workspaceId, drafts: [], versions: [] },
+    workspace: { format: 'arcadia.workspace-snapshot/2', workspaceId: workspace.workspaceId, drafts: [], versions: [] },
     storage: {
       formatVersion: 1,
       schemaVersion: 1,

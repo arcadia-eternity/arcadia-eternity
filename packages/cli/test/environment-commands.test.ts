@@ -69,10 +69,10 @@ it('waits for a real operation and reports stages separately from the final JSON
   const fetcher = vi
     .fn()
     .mockResolvedValueOnce(Response.json({ id: 'job', status: 'running', progress: { stage: 'installing' } }))
-    .mockResolvedValueOnce(Response.json({ id: 'job', status: 'succeeded', result: { versionId: 'fixed' } }))
+    .mockResolvedValueOnce(Response.json({ id: 'job', status: 'succeeded', result: { installationId: 'fixed' } }))
   vi.stubGlobal('fetch', fetcher)
   await f.run(['prepare', 'friends', '--revision', 'r1', '--wait'])
   expect(f.stderr.join('')).toContain('installing')
-  expect(JSON.parse(f.stdout[0]!)).toMatchObject({ status: 'succeeded', result: { versionId: 'fixed' } })
+  expect(JSON.parse(f.stdout[0]!)).toMatchObject({ status: 'succeeded', result: { installationId: 'fixed' } })
   expect(String(fetcher.mock.calls[1]![0])).toContain('/operations/job')
 })

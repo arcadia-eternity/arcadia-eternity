@@ -8,7 +8,7 @@ const battle = (id: string, execution: 'server' | 'peer' = 'server'): ManagedBat
   environmentId: 'friends',
   environmentName: '好友环境',
   bindingId: 'friends-binding',
-  versionId: 'version-at-start',
+  installationId: 'version-at-start',
   startedAt: Date.now() - 120000,
   execution,
   state: 'running',

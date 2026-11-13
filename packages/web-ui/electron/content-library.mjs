@@ -698,7 +698,7 @@ export class ContentLibrary {
   /** Prepare a named management environment without changing local-play selection.
    * Reuse the active installed combination whenever its exact packages match.
    */
-  async prepareEnvironmentProject(document, { signal, offline = false, onProgress } = {}) {
+  async prepareEnvironmentProject(document, { signal, offline = false, onProgress, projectDirectory } = {}) {
     return this.#exclusive(async () => {
       if (!document || typeof document.packages !== 'object' || !document.packages || Array.isArray(document.packages))
         throw new Error('环境包配置无效')
@@ -715,8 +715,8 @@ export class ContentLibrary {
             !packageName.test(name) ||
             typeof version !== 'string' ||
             !version.trim() ||
-            /[\/\\]/.test(version) ||
-            /^(?:file|link|workspace):/.test(version),
+            (!/^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(version) &&
+              (/[\/\\]/.test(version) || /^(?:file|link|workspace):/.test(version))),
         )
       )
         throw new Error('环境包配置无效')
@@ -745,22 +745,33 @@ export class ContentLibrary {
         .sort(([a], [b]) => a.localeCompare(b))
       let id = this.#state.activeProject,
         directory
-      if (!Object.keys(selectedSources).length && id && JSON.stringify(active) === JSON.stringify(requested))
+      if (
+        !projectDirectory &&
+        !Object.keys(selectedSources).length &&
+        id &&
+        JSON.stringify(active) === JSON.stringify(requested)
+      )
         directory = await this.#directory(id)
       else {
         let project
-        if (Object.keys(selectedSources).length) {
+        if (projectDirectory || Object.keys(selectedSources).length) {
           // Share the headless source/lock/install pipeline, then transfer its one
-          // tree into the client library. The hosted server only adopts this tree.
+          // tree into the client library before committing the persistent environment.
           const packages = Object.fromEntries(requested)
-          for (const [name, entry] of installedSources)
-            if (entry.source.kind === 'file') {
+          for (const [name, version] of requested) {
+            const entry =
+              installedSources.get(name) ??
+              this.#state.installed.find(
+                item => item.name === name && item.version === version && item.source.kind === 'file',
+              )
+            if (entry?.source.kind === 'file') {
               selectedSources[name] = {
                 kind: 'archive',
                 file: join(await this.#directory(entry.id), entry.source.file),
               }
               delete packages[name]
             }
+          }
           const acquisition = join(this.root, 'acquisition')
           await mkdir(acquisition, { recursive: true })
           if ((await realpath(acquisition)) !== acquisition) throw sourceError('INSTALL_ROOT_INVALID')
@@ -772,7 +783,7 @@ export class ContentLibrary {
           try {
             project = await installer.prepareProject(
               { ...document, packages, sources: Object.keys(selectedSources) },
-              { signal: combined, onProgress },
+              { signal: combined, onProgress, projectDirectory },
               async staged => {
                 combined.throwIfAborted()
                 const id = randomUUID(),

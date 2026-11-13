@@ -2,19 +2,19 @@
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import EnvironmentWorkspace from '@/features/management/EnvironmentWorkspace.vue'
-import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentVersion } from '@/types/management'
+import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
 interface Job {
   id: string
   kind: string
   status: string
   error?: { code?: string; message: string }
   progress?: { stage: string }
-  result?: ManagedEnvironmentVersion
+  result?: ManagedEnvironmentInstallation
 }
 interface Snapshot {
   workspaceId: string
   environments: ManagedEnvironment[]
-  versions: ManagedEnvironmentVersion[]
+  installations: ManagedEnvironmentInstallation[]
   operations: Job[]
 }
 const stageLabels: Record<string, string> = {
@@ -23,7 +23,7 @@ const stageLabels: Record<string, string> = {
   installing: '下载并安装',
   verifying: '校验材料',
   capturing: '保存版本材料',
-  preparing: '准备固定版本',
+  preparing: '准备环境',
 }
 const jobLabels: Record<string, string> = {
   queued: '排队中',
@@ -32,7 +32,7 @@ const jobLabels: Record<string, string> = {
   failed: '失败',
   cancelled: '已取消',
 }
-const snapshot = ref<Snapshot>({ workspaceId: '', environments: [], versions: [], operations: [] })
+const snapshot = ref<Snapshot>({ workspaceId: '', environments: [], installations: [], operations: [] })
 const localTab = ref<'workspace' | 'tasks' | 'transfers'>('workspace')
 const busy = ref(false),
   error = ref(''),
@@ -43,7 +43,7 @@ const selectedExport = ref(''),
   importId = ref(''),
   references = ref<unknown[]>()
 const preparing = computed(() => snapshot.value.operations.some(job => ['queued', 'running'].includes(job.status)))
-const readyVersions = computed(() => snapshot.value.versions.filter(version => version.status === 'ready'))
+const readyVersions = computed(() => snapshot.value.installations.filter(version => version.status === 'ready'))
 let disposed = false,
   timer: ReturnType<typeof setTimeout> | undefined
 let refreshSequence = 0
@@ -84,8 +84,7 @@ async function run(input: Record<string, unknown>, message: string) {
   }
 }
 async function save(document: ManagedEnvironmentDocument, expectedRevision: string | null) {
-  if (await run({ action: 'save', document, expectedRevision }, '草稿已保存，服务器版本保持不变。'))
-    saveSequence.value++
+  if (await run({ action: 'save', document, expectedRevision }, '环境已保存。')) saveSequence.value++
 }
 async function prepare(environment: ManagedEnvironment) {
   await run(
@@ -95,25 +94,25 @@ async function prepare(environment: ManagedEnvironment) {
       expectedRevision: environment.revision,
       allowDownload: allowDownload.value,
     },
-    '正在准备新版本；可离开页面，稍后查看结果。',
+    '正在准备环境。',
   )
 }
-async function inspect(version: ManagedEnvironmentVersion) {
+async function inspect(version: ManagedEnvironmentInstallation) {
   try {
     references.value = (
-      await call<{ references: unknown[] }>({ action: 'references', versionId: version.versionId })
+      await call<{ references: unknown[] }>({ action: 'references', installationId: version.installationId })
     ).references
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '无法读取引用'
   }
 }
-async function exportVersion() {
+async function exportEnvironment() {
   if (!selectedExport.value || busy.value) return
   busy.value = true
   error.value = ''
   let url: string | undefined
   try {
-    const bundle = await call({ action: 'export', versionId: selectedExport.value })
+    const bundle = await call({ action: 'export', installationId: selectedExport.value })
     if (disposed) return
     url = URL.createObjectURL(new Blob([JSON.stringify(bundle)], { type: 'application/json' }))
     const link = document.createElement('a')
@@ -179,7 +178,7 @@ onBeforeUnmount(() => {
     <EnvironmentWorkspace
       v-if="localTab === 'workspace'"
       :environments="snapshot.environments"
-      :versions="snapshot.versions"
+      :installations="snapshot.installations"
       :can-edit="true"
       :can-prepare="true"
       :can-delete="true"
@@ -203,7 +202,7 @@ onBeforeUnmount(() => {
       "
       @prepare="prepare"
       @references="inspect"
-      @delete="version => run({ action: 'delete-version', versionId: version.versionId }, '版本已删除。')"
+      @delete="version => run({ action: 'clear-installation', installationId: version.installationId }, '安装已清理。')"
       @delete-draft="
         environment =>
           run(
@@ -221,14 +220,14 @@ onBeforeUnmount(() => {
     <section v-if="localTab === 'transfers'" class="panel" aria-label="环境导入导出">
       <h3>在本机与服务器之间传递环境</h3>
       <label
-        >导出的固定版本<select v-model="selectedExport">
+        >导出的环境<select v-model="selectedExport">
           <option value="">选择版本</option>
-          <option v-for="version in readyVersions" :key="version.versionId" :value="version.versionId">
+          <option v-for="version in readyVersions" :key="version.installationId" :value="version.installationId">
             {{ version.document.name }} · {{ new Date(version.createdAt).toLocaleString() }}
           </option>
         </select></label
       >
-      <button :disabled="busy || !selectedExport" @click="exportVersion">导出环境文件</button>
+      <button :disabled="busy || !selectedExport" @click="exportEnvironment">导出环境文件</button>
       <label>导入为新环境标识（可选）<input v-model="importId" placeholder="保留原标识；不能与现有环境重名" /></label>
       <label
         >导入环境文件<input

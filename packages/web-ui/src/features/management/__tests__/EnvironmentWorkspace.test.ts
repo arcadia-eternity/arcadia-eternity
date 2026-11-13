@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { reactive } from 'vue'
 import EnvironmentWorkspace from '../EnvironmentWorkspace.vue'
-import type { ManagedEnvironment, ManagedEnvironmentVersion } from '@/types/management'
+import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@/types/management'
 
 const environment = (): ManagedEnvironment => ({
   revision: 'draft-7',
@@ -16,8 +16,8 @@ const environment = (): ManagedEnvironment => ({
     requires: { engine: '4', capabilities: ['custom-effects'] },
   },
 })
-const version = (draft: ManagedEnvironment, id = 'version-1'): ManagedEnvironmentVersion => ({
-  versionId: id,
+const version = (draft: ManagedEnvironment, id = 'version-1'): ManagedEnvironmentInstallation => ({
+  installationId: id,
   environmentId: draft.document.id,
   workspaceId: 'workspace-a',
   document: draft.document,
@@ -34,7 +34,7 @@ function open(overrides: Record<string, unknown> = {}) {
   const page = mount(EnvironmentWorkspace, {
     props: {
       environments: [draft],
-      versions: [version(draft)],
+      installations: [version(draft)],
       canEdit: true,
       canPrepare: true,
       canDelete: true,
@@ -93,7 +93,7 @@ describe('shared environment workspace', () => {
 
   it('disables edits, preparation and version use for a viewer, while keeping version details readable', async () => {
     const { page } = open({ canEdit: false, canPrepare: false, canDelete: false, canUse: false })
-    for (const label of ['新建环境', '编辑', '准备版本']) {
+    for (const label of ['新建环境', '编辑', '准备环境']) {
       expect(button(page, label).attributes('disabled')).toBeDefined()
       await button(page, label).trigger('click')
     }
@@ -101,23 +101,16 @@ describe('shared environment workspace', () => {
     expect(page.emitted('prepare')).toBeUndefined()
     expect(page.emitted('use')).toBeUndefined()
     expect(page.findAll('button').some(item => item.text() === '删除版本')).toBe(false)
-    await button(page, '固定版本').trigger('click')
-    expect(button(page, '用于服务器').attributes('disabled')).toBeDefined()
-    expect(page.text()).toContain('version-1')
+    expect(button(page, '服务器使用').attributes('disabled')).toBeDefined()
+    expect(page.text()).not.toContain('固定版本')
   })
 
-  it('emits the selected version and requires a second explicit action to delete it', async () => {
+  it('uses the current environment without a snapshot selector', async () => {
     const { page } = open()
-    await button(page, '固定版本').trigger('click')
-    await button(page, '用于服务器').trigger('click')
-    expect((page.emitted('use')![0]![0] as ManagedEnvironmentVersion).versionId).toBe('version-1')
-    await button(page, '删除版本').trigger('click')
-    expect(page.emitted('delete')).toBeUndefined()
-    await button(page, '取消').trigger('click')
-    expect(page.emitted('delete')).toBeUndefined()
-    await button(page, '删除版本').trigger('click')
-    await button(page, '确认删除').trigger('click')
-    expect((page.emitted('delete')![0]![0] as ManagedEnvironmentVersion).versionId).toBe('version-1')
+    await button(page, '服务器使用').trigger('click')
+    expect((page.emitted('use')![0]![0] as ManagedEnvironmentInstallation).installationId).toBe('version-1')
+    expect(page.text()).not.toContain('固定版本')
+    expect(page.text()).not.toContain('删除版本')
   })
 
   it('edits content and team rules without dropping unrelated rule fields', async () => {

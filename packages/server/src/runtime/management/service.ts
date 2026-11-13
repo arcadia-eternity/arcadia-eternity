@@ -1,5 +1,9 @@
 import { setEnvironmentPackageEnabled } from '@arcadia-eternity/content-sdk/management-workspace'
-import type { ManagementCapabilities, ManagementOperation, ManagedEnvironmentVersion } from '@arcadia-eternity/protocol'
+import type {
+  ManagementCapabilities,
+  ManagementOperation,
+  ManagedEnvironmentInstallation,
+} from '@arcadia-eternity/protocol'
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import {
@@ -8,9 +12,9 @@ import {
 } from '@arcadia-eternity/content-sdk/environment-rules'
 import type {
   ContentWorkspace,
-  EnvironmentVersion,
-  UnavailableVersion,
-  PrepareVersionInput,
+  EnvironmentInstallation,
+  UnavailableInstallation,
+  PrepareEnvironmentInput,
   StaticPreparer,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import type { DurableStorage, StoredRecord, StorageTransaction } from '@arcadia-eternity/database'
@@ -38,22 +42,22 @@ import { OperationService, type Operation, type OperationContext } from './opera
 import { ServerEnvironmentRegistry, type EnvironmentAdmissionRules } from '../environments'
 import type { RoomRegistry } from '../rooms'
 
-export type WorkspaceVersion = EnvironmentVersion
+export type WorkspaceInstallation = EnvironmentInstallation
 export type ManagementWorkspace = Pick<
   ContentWorkspace,
   | 'workspaceId'
   | 'listDrafts'
   | 'saveDraft'
   | 'deleteDraft'
-  | 'listVersions'
-  | 'getVersion'
+  | 'listInstallations'
+  | 'getInstallation'
   | 'acquire'
   | 'retain'
   | 'releaseRetention'
-  | 'prepareVersion'
-  | 'deleteVersion'
-  | 'exportVersion'
-  | 'importVersion'
+  | 'prepareEnvironment'
+  | 'clearInstallation'
+  | 'exportEnvironment'
+  | 'importEnvironment'
   | 'recoverImport'
   | 'forgetImport'
   | 'references'
@@ -63,10 +67,6 @@ export interface Binding {
   workspaceId: string
   environmentId: string
   executionPolicy: 'server' | 'peer'
-  selection: 'pinned' | 'follow-ready'
-  followPrincipalId?: string
-  desiredVersionId?: string
-  effectiveVersionId?: string
   enabled: boolean
   visibility: 'public' | 'private'
   matchmakingEnabled: boolean
@@ -114,7 +114,7 @@ export interface ManagementOptions {
   settingsConstraints?: ServerSettingsConstraints
   /** Host-registered environment sources. Never populated from remote request paths. */
   resolveProject?: (environmentId: string) => Promise<string>
-  prepareEnvironment?: (input: PrepareVersionInput, validator: StaticPreparer) => Promise<EnvironmentVersion>
+  prepareEnvironment?: (input: PrepareEnvironmentInput, validator: StaticPreparer) => Promise<EnvironmentInstallation>
   /** Official hosts must reject third-party server execution. */
   allowThirdPartyExecution?: boolean
   transferDirectory?: string
@@ -151,20 +151,19 @@ const revision = (request: ManagementRequest) => {
   return value
 }
 const flatten = <T extends object>(record: StoredRecord<T>) => {
-  const { followPrincipalId: _policy, ...value } = record.value as T & { followPrincipalId?: string }
-  return { id: record.id, revision: record.revision, ...value }
+  return { id: record.id, revision: record.revision, ...record.value }
 }
 const publicOperation = (op: Operation): ManagementOperation => {
   const { actor: _actor, input: _input, ...view } = op
   return view
 }
-const safeVersion = (version: WorkspaceVersion | UnavailableVersion): ManagedEnvironmentVersion => {
+const safeInstallation = (version: WorkspaceInstallation | UnavailableInstallation): ManagedEnvironmentInstallation => {
   if (version.status !== 'ready') return version
   const {
     directory: _directory,
     materialDirectory: _materialDirectory,
     ...publicVersion
-  } = version as WorkspaceVersion & { materialDirectory?: string }
+  } = version as WorkspaceInstallation & { materialDirectory?: string }
   return publicVersion
 }
 
@@ -198,7 +197,8 @@ export class ManagementService {
   private collector?: ReturnType<typeof setInterval>
   private lastTransferCleanup = 0
   readonly bootId = randomUUID()
-  private readonly runtimes = new Map<string, { runtimeId: string; versionId: string; release(): Promise<void> }>()
+  private readonly activeRuntimes = new Map<string, string>()
+  private readonly runtimes = new Map<string, { runtimeId: string; installationId: string }>()
   private pending: Promise<unknown> = Promise.resolve()
   private localSession?: { actor: ManagementActor; expiresAt: number }
   private readyPromise?: Promise<void>
@@ -227,6 +227,8 @@ export class ManagementService {
         auth: this.auth,
         directory: options.transferDirectory,
         validate: this.validator,
+        beforeImport: (actor, environmentId) => this.authorizeEnvironmentUpdate(actor, environmentId),
+        onImported: () => this.reconcile(),
       })
     if (options.transferDirectory && options.createServerBackup)
       this.backups = new ManagementBackups({
@@ -318,6 +320,15 @@ export class ManagementService {
   private async bindings() {
     return this.options.storage.list<Binding>('bindings', managementScopeKey(this.serverScope))
   }
+  private async authorizeEnvironmentUpdate(actor: ManagementActor, environmentId: string) {
+    const bindings = (await this.options.storage.list<Binding>('bindings')).filter(
+      row => row.value.workspaceId === this.options.workspace.workspaceId && row.value.environmentId === environmentId,
+    )
+    if (!bindings.length) return
+    await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+    for (const serverId of new Set(bindings.map(row => row.value.serverId)))
+      await this.auth.authorize(actor, { kind: 'server', id: serverId }, 'publish')
+  }
   private async binding(id: string) {
     const row = await this.options.storage.get<Binding>('bindings', id)
     if (
@@ -361,7 +372,7 @@ export class ManagementService {
       !initialization ||
       initialization.kind !== kind ||
       initialization.environmentId !== environmentId ||
-      initialization.state !== 'pending' ||
+      initialization.state === 'abandoned' ||
       !initialization.bindingId
     )
       return undefined
@@ -371,15 +382,16 @@ export class ManagementService {
       binding.value.serverId !== this.options.serverId ||
       binding.value.workspaceId !== this.options.workspace.workspaceId ||
       binding.value.environmentId !== environmentId
-    )
+    ) {
+      if (initialization.state === 'completed') return undefined
       fail('INITIALIZATION_BINDING_INVALID', 409)
+    }
     return binding!
   }
   /** Persist the exact owned binding atomically with its creation for crash recovery. */
   async ensureInitializationBinding(
     kind: 'builtin' | 'desktop' | 'npm',
     environmentId: string,
-    versionId: string,
   ): Promise<StoredRecord<Binding> | undefined> {
     await this.ready()
     const binding = await this.exclusive(() =>
@@ -413,8 +425,6 @@ export class ManagementService {
             workspaceId: this.options.workspace.workspaceId,
             environmentId,
             executionPolicy: 'server',
-            selection: 'pinned',
-            desiredVersionId: versionId,
             enabled: false,
             visibility: 'private',
             matchmakingEnabled: false,
@@ -429,8 +439,7 @@ export class ManagementService {
         return binding
       }),
     )
-    if (binding?.value.desiredVersionId)
-      await this.options.workspace.retain(binding.value.desiredVersionId, `binding:${binding.id}:desired`)
+    if (binding) await this.options.workspace.retain(environmentId, `binding:${binding.id}`)
     return binding
   }
   async completeInitialization(
@@ -488,18 +497,26 @@ export class ManagementService {
       })
     })
   }
-  private async ensureRuntime(bindingId: string, versionId: string, executionPolicy: 'server' | 'peer' = 'server') {
-    const key = `${bindingId}:${versionId}:${executionPolicy}`
+  private async ensureRuntime(
+    bindingId: string,
+    installationId: string,
+    executionPolicy: 'server' | 'peer' = 'server',
+    force = false,
+  ) {
+    const version = await this.options.workspace.getInstallation(installationId)
+    const key = `${bindingId}:${installationId}:${executionPolicy}:${version.createdAt}:${version.draftRevision}${force ? `:${randomUUID()}` : ''}`
     const existing = this.runtimes.get(key)
-    if (existing) return existing.runtimeId
-    const version = await this.options.workspace.getVersion(versionId)
+    if (existing) {
+      this.activeRuntimes.set(bindingId, key)
+      return existing.runtimeId
+    }
     if (version.workspaceId !== this.options.workspace.workspaceId) fail('WORKSPACE_MISMATCH')
     assertEnvironmentRequirements(version.document.requires)
     validateEnvironmentRules(version.document.rules)
-    const lease = await this.options.workspace.acquire(versionId, `server:${this.options.serverId}:${this.bootId}`)
+    const lease = await this.options.workspace.acquire(installationId, `server:${this.options.serverId}:${this.bootId}`)
     try {
       const descriptor = await this.options.environments.prepareNpm(
-        version.directory,
+        lease.directory,
         {
           policy: {
             profile: executionPolicy === 'peer' || this.options.allowThirdPartyExecution ? 'self-hosted' : 'official',
@@ -507,10 +524,6 @@ export class ManagementService {
         },
         { effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
       )
-      if (descriptor.runtime.contentRevision !== version.contentRevision) {
-        await this.options.environments.retire(descriptor.id)
-        fail('ENVIRONMENT_CONTENT_MISMATCH', 409)
-      }
       if (
         executionPolicy === 'server' &&
         !this.options.allowThirdPartyExecution &&
@@ -519,40 +532,36 @@ export class ManagementService {
         await this.options.environments.retire(descriptor.id)
         fail('THIRD_PARTY_EXECUTION_FORBIDDEN', 403)
       }
-      this.runtimes.set(key, { versionId, runtimeId: descriptor.id, release: lease.release.bind(lease) })
+      this.activeRuntimes.set(bindingId, key)
+      await lease.release()
+      this.runtimes.set(key, { installationId, runtimeId: descriptor.id })
       return descriptor.id
     } catch (error) {
       await lease.release()
       throw error
     }
   }
-  private async applyPublication(candidate?: { id: string; versionId: string }) {
+  private async applyPublication() {
     const rows = await this.bindings()
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
     const entries = []
     let defaultRuntimeId: string | undefined
     for (const row of rows) {
-      const binding =
-        candidate?.id === row.id
-          ? { ...row.value, effectiveVersionId: candidate.versionId, condition: 'available' }
-          : row.value
-      if (!binding.effectiveVersionId || !['available', 'degraded'].includes(binding.condition)) continue
-      const runtime = this.runtimes.get(
-        `${row.id}:${binding.effectiveVersionId}:${binding.executionPolicy ?? 'server'}`,
-      )
+      const binding = row.value
+      if (binding.condition !== 'available') continue
+      const runtime = this.runtimes.get(this.activeRuntimes.get(row.id) ?? '')
       if (!runtime) continue
-      const version = await this.options.workspace.getVersion(binding.effectiveVersionId)
+      const installation = await this.options.workspace.getInstallation(binding.environmentId)
       entries.push({
         runtimeId: runtime.runtimeId,
-        environmentId: version.document.id,
-        environmentName: version.document.name,
+        environmentId: binding.environmentId,
+        environmentName: installation.document.name,
         bindingId: row.id,
-        versionId: binding.effectiveVersionId,
-        executionPolicy: binding.executionPolicy ?? 'server',
+        executionPolicy: binding.executionPolicy,
         enabled: binding.enabled,
         public: binding.visibility === 'public',
         matchmaking: binding.matchmakingEnabled,
-        rules: version.document.rules as EnvironmentAdmissionRules | undefined,
+        rules: installation.document.rules as EnvironmentAdmissionRules | undefined,
       })
       if (row.id === server?.value.defaultBindingId && binding.enabled) defaultRuntimeId = runtime.runtimeId
     }
@@ -560,89 +569,23 @@ export class ManagementService {
   }
   async reconcile() {
     return this.exclusive(async () => {
-      for (const row of await this.bindings()) {
-        let condition: Binding['condition'] = 'unavailable',
-          reason: string | undefined
-        let effectiveVersionId = row.value.effectiveVersionId
-        const intended =
-          row.value.condition === 'applying' ? (row.value.desiredVersionId ?? effectiveVersionId) : effectiveVersionId
-        try {
-          if (intended) {
-            await this.ensureRuntime(row.id, intended, row.value.executionPolicy)
-            effectiveVersionId = intended
-            condition = 'available'
-          } else reason = 'NO_PUBLISHED_VERSION'
-        } catch (error) {
-          const failure = error as { code?: string; diagnostics?: { code?: string }[] }
-          const code = failure?.code ?? failure?.diagnostics?.[0]?.code
-          reason =
-            code === 'NPM_BASE_HOST_INVALID' || code === 'ENVIRONMENT_CONTENT_MISMATCH'
-              ? code
-              : 'ENVIRONMENT_UNAVAILABLE'
-          if (effectiveVersionId && effectiveVersionId !== intended) {
-            try {
-              await this.ensureRuntime(row.id, effectiveVersionId, row.value.executionPolicy)
-              condition = 'degraded'
-            } catch {
-              /* No surviving effective runtime. */
-            }
-          }
-        }
-        await this.options.storage.replace('bindings', row.id, row.revision, {
-          ...row.value,
-          effectiveVersionId,
-          condition,
-          reason,
-          observedBootId: this.bootId,
-        })
-      }
+      for (const row of await this.bindings()) await this.reloadBinding(row)
       await this.applyPublication()
-      for (const binding of await this.bindings()) {
-        if (binding.value.effectiveVersionId && ['available', 'degraded'].includes(binding.value.condition)) {
-          await this.options.workspace.retain(binding.value.effectiveVersionId, `binding:${binding.id}:effective`)
-          if (binding.value.effectiveVersionId === binding.value.desiredVersionId)
-            await this.options.workspace.releaseRetention(`binding:${binding.id}:desired`)
-        }
-      }
-      for (const op of await this.operations.list()) {
-        if (op.kind !== 'binding.publish' || op.status !== 'interrupted' || !op.committed) continue
-        const input = object(op.input)
-        const binding = await this.options.storage.get<Binding>('bindings', text(input.id))
-        if (binding?.value.condition === 'available' && binding.value.effectiveVersionId === input.versionId) {
-          await this.options.storage.transaction(async tx => {
-            const stored = await tx.get('operations', op.id)
-            if (!stored) return
-            const { id: _id, revision: _revision, error: _error, ...value } = op
-            await tx.replace('operations', op.id, stored.revision, {
-              ...value,
-              status: 'succeeded',
-              result: { ...flatten(binding), recovered: true },
-              updatedAt: Date.now(),
-            })
-            await tx.create('audit', {
-              id: randomUUID(),
-              scope: managementScopeKey(this.serverScope),
-              value: {
-                actor: 'system:recovery',
-                action: 'operation.recovered',
-                operationId: op.id,
-                bindingId: binding.id,
-                createdAt: Date.now(),
-              },
-            })
-          })
-        }
-      }
-      for (const row of await this.options.storage.list<{ retentionId: string }>(
-        'retentions',
-        managementScopeKey(this.workspaceScope),
-      )) {
-        const name = row.value.retentionId
-        if (!name?.startsWith('binding:') || !name.includes(':candidate:')) continue
-        const operationId = name.split(':candidate:')[1]
-        const op = await this.options.storage.get<{ status: string }>('operations', operationId)
-        if (!op || !['queued', 'running'].includes(op.value.status)) await this.options.workspace.releaseRetention(name)
-      }
+    })
+  }
+  private async reloadBinding(row: StoredRecord<Binding>, force = false) {
+    let reason: string | undefined
+    try {
+      await this.ensureRuntime(row.id, row.value.environmentId, row.value.executionPolicy, force)
+    } catch (error) {
+      const failure = error as { code?: string; diagnostics?: { code?: string }[] }
+      reason = failure?.code ?? failure?.diagnostics?.[0]?.code ?? 'ENVIRONMENT_UNAVAILABLE'
+    }
+    return this.options.storage.replace('bindings', row.id, row.revision, {
+      ...row.value,
+      condition: reason ? 'unavailable' : 'available',
+      reason,
+      observedBootId: this.bootId,
     })
   }
   async capabilities(actor?: ManagementActor): Promise<ManagementCapabilities> {
@@ -707,91 +650,27 @@ export class ManagementService {
     await this.auth.authorize(actor, scope, 'read')
     return op
   }
-  private async publish(
-    actor: ManagementActor,
-    request: ManagementRequest,
-    id: string,
-    versionId: string,
-    policy = false,
-  ) {
-    const authorize = async (tx: StorageTransaction = this.options.storage) => {
-      if (policy) {
-        const binding = await tx.get<Binding>('bindings', id)
-        if (binding?.value.selection !== 'follow-ready' || binding.value.followPrincipalId !== actor.principalId)
-          fail('FOLLOW_POLICY_CHANGED', 409)
-        await this.auth.authorizePolicyInTransaction(tx, actor.principalId, this.serverScope, 'publish')
-        await this.auth.authorizePolicyInTransaction(tx, actor.principalId, this.workspaceScope, 'environment.use')
-      } else {
-        await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
-        await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
-      }
-    }
-    await authorize()
+  private async reload(actor: ManagementActor, request: ManagementRequest, id: string) {
+    await this.auth.authorize(actor, this.serverScope, 'publish')
+    await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
     const expectedRevision = revision(request)
-    const row = await this.binding(id)
-    const version = await this.options.workspace.getVersion(versionId)
-    if (version.environmentId !== row.value.environmentId) fail('ENVIRONMENT_MISMATCH')
     return this.startOperation(
       actor,
       request,
-      'binding.publish',
+      'binding.reload',
       this.serverScope,
-      { id, versionId, expectedRevision },
+      { id, expectedRevision },
       async ctx =>
         this.exclusive(async () => {
           await ctx.checkCurrent()
-          await authorize()
+          await this.auth.authorize(actor, this.serverScope, 'publish')
+          await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
           const current = await this.binding(id)
           if (current.revision !== expectedRevision) fail('REVISION_CONFLICT', 412)
-          await this.ensureRuntime(id, versionId, current.value.executionPolicy)
-          await this.options.workspace.retain(versionId, `binding:${id}:candidate:${ctx.operationId}`)
-          try {
-            await ctx.checkCurrent()
-            await authorize()
-            if (policy && !(await this.isCurrentReady(version))) fail('FOLLOW_VERSION_SUPERSEDED', 409)
-            await ctx.commit(
-              async tx => {
-                await authorize(tx)
-                const latest = await tx.get<Binding>('bindings', id)
-                if (!latest || latest.revision !== expectedRevision) fail('REVISION_CONFLICT', 412)
-                const value: Binding = {
-                  ...latest!.value,
-                  desiredVersionId: versionId,
-                  condition: 'applying',
-                  reason: undefined,
-                  observedBootId: this.bootId,
-                }
-                const saved = await tx.replace('bindings', id, expectedRevision, value)
-                await this.audit(tx, actor, 'binding.publish', id)
-                return flatten(saved)
-              },
-              { finalize: false },
-            )
-            try {
-              await this.applyPublication({ id, versionId })
-              const applied = await this.binding(id)
-              const completed = await this.options.storage.replace('bindings', id, applied.revision, {
-                ...applied.value,
-                effectiveVersionId: versionId,
-                condition: 'available',
-                reason: undefined,
-              })
-              await this.options.workspace.retain(versionId, `binding:${id}:effective`)
-              await this.options.workspace.releaseRetention(`binding:${id}:desired`)
-              return flatten(completed)
-            } catch {
-              const failed = await this.binding(id)
-              await this.options.storage.replace('bindings', id, failed.revision, {
-                ...failed.value,
-                condition: failed.value.effectiveVersionId ? 'degraded' : 'unavailable',
-                reason: 'RUNTIME_APPLY_FAILED',
-              })
-              await this.applyPublication()
-              fail('RUNTIME_APPLY_FAILED', 503)
-            }
-          } finally {
-            await this.options.workspace.releaseRetention(`binding:${id}:candidate:${ctx.operationId}`)
-          }
+          const updated = await this.reloadBinding(current, true)
+          await this.applyPublication()
+          if (updated.value.condition !== 'available') fail(updated.value.reason ?? 'ENVIRONMENT_UNAVAILABLE', 409)
+          return flatten(updated)
         }),
     )
   }
@@ -896,7 +775,7 @@ export class ManagementService {
           ),
           202,
         )
-      if (parts[2] === 'versions' && parts.length === 5) {
+      if (parts[2] === 'installations' && parts.length === 5) {
         if (parts[4] === 'references' && method === 'GET') {
           await this.auth.authorize(actor, this.workspaceScope, 'read')
           return ok(
@@ -919,7 +798,7 @@ export class ManagementService {
             environments: (await this.options.workspace.listDrafts()).map(draft =>
               draft.document.id === builtinId ? { ...draft, requiredPackages: [shippedBasePackage] } : draft,
             ),
-            versions: (await this.options.workspace.listVersions()).map(safeVersion),
+            installations: (await this.options.workspace.listInstallations()).map(safeInstallation),
           })
         }
         if (method === 'DELETE' && parts.length === 4) {
@@ -936,6 +815,7 @@ export class ManagementService {
           const document = object(input.document)
           if (parts.length === 4 && document.id !== parts[3]) fail('ENVIRONMENT_MISMATCH')
           await this.assertRequiredPackages(document)
+          await this.authorizeEnvironmentUpdate(actor, text(document.id))
           const expectedRevision =
             input.expectedRevision === null
               ? null
@@ -946,6 +826,7 @@ export class ManagementService {
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
           if (typeof input.enabled !== 'boolean' || (input.cascade !== undefined && typeof input.cascade !== 'boolean'))
             fail('INVALID_REQUEST')
+          await this.authorizeEnvironmentUpdate(actor, parts[3])
           const name = text(input.name, 214)
           const workspace = this.options.workspace
           const builtin = parts[3] === (await this.builtinEnvironmentId())
@@ -956,7 +837,7 @@ export class ManagementService {
               builtin
                 ? {
                     listDrafts: () => workspace.listDrafts(),
-                    listVersions: () => workspace.listVersions(),
+                    listInstallations: () => workspace.listInstallations(),
                     saveDraft: async draft => {
                       await this.assertRequiredPackages(object(draft.document))
                       return workspace.saveDraft(draft)
@@ -977,6 +858,7 @@ export class ManagementService {
           await this.auth.authorize(actor, this.workspaceScope, 'prepare')
           const environmentId = parts[3],
             expectedRevision = text(input.expectedRevision)
+          await this.authorizeEnvironmentUpdate(actor, environmentId)
           return this.startOperation(
             actor,
             request,
@@ -987,7 +869,8 @@ export class ManagementService {
               await this.auth.authorize(actor, this.workspaceScope, 'prepare')
               const projectDirectory = await this.options.resolveProject?.(environmentId)
               const prepare =
-                this.options.prepareEnvironment ?? this.options.workspace.prepareVersion.bind(this.options.workspace)
+                this.options.prepareEnvironment ??
+                this.options.workspace.prepareEnvironment.bind(this.options.workspace)
               const version = await prepare(
                 {
                   environmentId,
@@ -998,21 +881,22 @@ export class ManagementService {
                   beforeCommit: async () => {
                     await ctx.checkCurrent()
                     await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+                    await this.authorizeEnvironmentUpdate(actor, environmentId)
                   },
                 },
                 this.validator,
               )
               await ctx.checkCurrent()
               await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-              await this.followReady(version)
-              return safeVersion(version)
+              await this.reconcile()
+              return safeInstallation(version)
             },
           )
         }
       }
-      if (parts[2] === 'versions' && parts.length === 4 && method === 'DELETE') {
+      if (parts[2] === 'installations' && parts.length === 4 && method === 'DELETE') {
         await this.auth.authorize(actor, this.workspaceScope, 'delete')
-        await this.options.workspace.deleteVersion(parts[3])
+        await this.options.workspace.clearInstallation(parts[3])
         return ok({ deleted: true })
       }
     }
@@ -1133,19 +1017,13 @@ export class ManagementService {
         if (parts.length === 3 && method === 'POST') {
           await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
           await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
-          if (
-            input.enabled === true ||
-            input.visibility === 'public' ||
-            input.matchmakingEnabled === true ||
-            input.selection === 'follow-ready'
-          )
+          if (input.enabled === true || input.visibility === 'public' || input.matchmakingEnabled === true)
             await this.auth.authorize(actor, this.serverScope, 'publish')
           const value: Binding = {
             serverId: this.options.serverId,
             workspaceId: this.options.workspace.workspaceId,
             environmentId: text(input.environmentId),
             executionPolicy: 'server',
-            selection: 'pinned',
             enabled: false,
             visibility: 'private',
             matchmakingEnabled: false,
@@ -1153,21 +1031,11 @@ export class ManagementService {
             observedBootId: this.bootId,
           }
           this.patchBinding(value, input)
-          if (value.selection === 'follow-ready') value.followPrincipalId = actor.principalId
-          if (input.versionId !== undefined) {
-            const version = await this.options.workspace.getVersion(text(input.versionId))
-            if (version.environmentId !== value.environmentId) fail('ENVIRONMENT_MISMATCH')
-            value.desiredVersionId = version.versionId
-          }
+          await this.options.workspace.getInstallation(value.environmentId)
           const row = await this.options.storage.transaction(async tx => {
             await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
             await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
-            if (
-              value.enabled ||
-              value.visibility === 'public' ||
-              value.matchmakingEnabled ||
-              value.selection === 'follow-ready'
-            )
+            if (value.enabled || value.visibility === 'public' || value.matchmakingEnabled)
               await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
             const saved = await tx.create('bindings', {
               id: randomUUID(),
@@ -1177,19 +1045,15 @@ export class ManagementService {
             await this.audit(tx, actor, 'binding.create', saved.id)
             return saved
           })
-          if (value.desiredVersionId)
-            await this.options.workspace.retain(value.desiredVersionId, `binding:${row.id}:desired`)
-          return ok(flatten(row), 201)
+          await this.options.workspace.retain(value.environmentId, `binding:${row.id}`)
+          const loaded = await this.reloadBinding(row)
+          await this.applyPublication()
+          return ok(flatten(loaded), 201)
         }
         if (parts.length === 4 && method === 'PATCH') {
           await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
           // Enabling or exposing a binding is a publication action, not just configuration editing.
-          if (
-            input.enabled === true ||
-            input.visibility === 'public' ||
-            input.matchmakingEnabled === true ||
-            input.selection === 'follow-ready'
-          ) {
+          if (input.enabled === true || input.visibility === 'public' || input.matchmakingEnabled === true) {
             await this.auth.authorize(actor, this.serverScope, 'publish')
             await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
           }
@@ -1201,16 +1065,9 @@ export class ManagementService {
               const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
               if (server?.value.defaultBindingId === row.id) fail('DEFAULT_BINDING_REQUIRED', 409)
             }
-            if (input.selection !== undefined)
-              value.followPrincipalId = value.selection === 'follow-ready' ? actor.principalId : undefined
             const saved = await this.options.storage.transaction(async tx => {
               await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
-              if (
-                value.enabled ||
-                value.visibility === 'public' ||
-                value.matchmakingEnabled ||
-                value.selection === 'follow-ready'
-              ) {
+              if (value.enabled || value.visibility === 'public' || value.matchmakingEnabled) {
                 await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
                 await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
               }
@@ -1222,8 +1079,8 @@ export class ManagementService {
             return ok(flatten(saved))
           })
         }
-        if (parts.length === 5 && parts[4] === 'publish' && method === 'POST')
-          return this.publish(actor, request, parts[3], text(input.versionId))
+        if (parts.length === 5 && parts[4] === 'reload' && method === 'POST')
+          return this.reload(actor, request, parts[3])
         if (parts.length === 4 && method === 'DELETE') {
           await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
           return this.exclusive(async () => {
@@ -1236,8 +1093,8 @@ export class ManagementService {
               await this.audit(tx, actor, 'binding.delete', row.id)
             })
             await this.applyPublication()
-            await this.options.workspace.releaseRetention(`binding:${row.id}:desired`)
-            await this.options.workspace.releaseRetention(`binding:${row.id}:effective`)
+            await this.options.workspace.releaseRetention(`binding:${row.id}`)
+
             return ok({ deleted: true })
           })
         }
@@ -1292,8 +1149,8 @@ export class ManagementService {
             body: { expectedRevision: text(original.expectedRevision) },
             retryOf: op.id,
           })
-        if (op.kind === 'binding.publish')
-          return this.publish(
+        if (op.kind === 'binding.reload')
+          return this.reload(
             actor,
             {
               ...request,
@@ -1307,7 +1164,6 @@ export class ManagementService {
               retryOf: op.id,
             },
             text(original.id),
-            text(original.versionId),
           )
         fail('OPERATION_RETRY_UNSUPPORTED', 409)
       }
@@ -1389,65 +1245,10 @@ export class ManagementService {
     }
     return fail('NOT_FOUND', 404)
   }
-  private async isCurrentReady(version: WorkspaceVersion) {
-    const current = (await this.options.workspace.listDrafts()).find(
-      draft => draft.document.id === version.environmentId,
-    )
-    if (current?.revision !== version.draftRevision) return false
-    return !(await this.options.workspace.listVersions()).some(
-      candidate =>
-        candidate.status === 'ready' &&
-        candidate.environmentId === version.environmentId &&
-        candidate.draftRevision === version.draftRevision &&
-        candidate.createdAt > version.createdAt,
-    )
-  }
-  private async followReady(version: WorkspaceVersion) {
-    if (!(await this.isCurrentReady(version))) return
-    for (const row of await this.bindings()) {
-      if (
-        row.value.selection !== 'follow-ready' ||
-        row.value.environmentId !== version.environmentId ||
-        !row.value.followPrincipalId ||
-        row.value.effectiveVersionId === version.versionId
-      )
-        continue
-      const actor: ManagementActor = {
-        principalId: row.value.followPrincipalId,
-        credentialId: `policy:${row.id}`,
-        kind: 'service',
-      }
-      try {
-        await this.publish(
-          actor,
-          {
-            method: 'POST',
-            path: '',
-            headers: { 'if-match': String(row.revision), 'idempotency-key': `follow:${row.id}:${version.versionId}` },
-          },
-          row.id,
-          version.versionId,
-          true,
-        )
-      } catch {
-        // A revoked or changed policy never replaces the last effective version.
-        const current = await this.binding(row.id)
-        if (current.revision === row.revision)
-          await this.options.storage.replace('bindings', row.id, current.revision, {
-            ...current.value,
-            reason: 'FOLLOW_POLICY_BLOCKED',
-          })
-      }
-    }
-  }
   private async collectRuntimes() {
-    const required = new Set(
-      (await this.bindings()).flatMap(row =>
-        [row.value.desiredVersionId, row.value.effectiveVersionId]
-          .filter(Boolean)
-          .map(versionId => `${row.id}:${versionId}:${row.value.executionPolicy ?? 'server'}`),
-      ),
-    )
+    const bindings = new Set((await this.bindings()).map(row => row.id))
+    for (const id of this.activeRuntimes.keys()) if (!bindings.has(id)) this.activeRuntimes.delete(id)
+    const required = new Set(this.activeRuntimes.values())
     for (const [key, runtime] of this.runtimes) {
       if (required.has(key)) continue
       if (this.options.environments.retainedIds().includes(runtime.runtimeId)) {
@@ -1458,7 +1259,6 @@ export class ManagementService {
         }
       }
       if (!this.options.environments.retainedIds().includes(runtime.runtimeId)) {
-        await runtime.release()
         this.runtimes.delete(key)
       }
     }
@@ -1474,14 +1274,9 @@ export class ManagementService {
   private patchBinding(value: Binding, input: Record<string, unknown>) {
     if (input.executionPolicy !== undefined) {
       if (!['server', 'peer'].includes(text(input.executionPolicy))) fail('INVALID_EXECUTION_POLICY')
-      if (value.effectiveVersionId && input.executionPolicy !== value.executionPolicy)
+      if (value.condition === 'available' && input.executionPolicy !== value.executionPolicy)
         fail('BINDING_EXECUTION_POLICY_IMMUTABLE', 409)
       value.executionPolicy = input.executionPolicy as 'server' | 'peer'
-    }
-    if (input.selection !== undefined) {
-      if (typeof input.selection !== 'string' || !['pinned', 'follow-ready'].includes(input.selection))
-        fail('INVALID_SELECTION')
-      value.selection = input.selection as Binding['selection']
     }
     if (input.visibility !== undefined) {
       if (typeof input.visibility !== 'string' || !['public', 'private'].includes(input.visibility))
@@ -1504,7 +1299,6 @@ export class ManagementService {
   async close() {
     await this.beginShutdown()
     await this.pending
-    await Promise.all([...this.runtimes.values()].map(runtime => runtime.release()))
     this.runtimes.clear()
   }
 }

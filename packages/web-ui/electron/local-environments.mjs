@@ -1,11 +1,12 @@
+import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
-const safeVersion = version => {
-  const { directory, materialDirectory, adopted, ...metadata } = version
+const safeInstallation = version => {
+  const { directory, materialDirectory, ...metadata } = version
   return metadata
 }
-/** The local library owns drafts and copied immutable versions without a server process.
+/** The local library owns persistent environment npm projects without a server process.
  * Published servers import their own copy; no server binding points into this workspace.
  */
 export class LocalEnvironments {
@@ -32,7 +33,7 @@ export class LocalEnvironments {
     return {
       workspaceId: workspace.workspaceId,
       environments: await workspace.listDrafts(),
-      versions: (await workspace.listVersions()).map(safeVersion),
+      installations: (await workspace.listInstallations()).map(safeInstallation),
       operations: [...this.#jobs.values()].map(({ controller, promise, execute, ...job }) => job).reverse(),
     }
   }
@@ -88,13 +89,13 @@ export class LocalEnvironments {
       case 'delete-draft':
         await workspace.deleteDraft({ environmentId: input.environmentId, expectedRevision: input.expectedRevision })
         return { deleted: true }
-      case 'delete-version':
-        await workspace.deleteVersion(input.versionId)
+      case 'clear-installation':
+        await workspace.clearInstallation(input.installationId)
         return { deleted: true }
       case 'references':
-        return { references: await workspace.references(input.versionId) }
+        return { references: await workspace.references(input.installationId) }
       case 'export':
-        return workspace.exportVersion(input.versionId)
+        return workspace.exportEnvironment(input.installationId)
       case 'cancel': {
         const job = this.#jobs.get(input.operationId)
         if (!job) throw fail('OPERATION_NOT_FOUND')
@@ -126,13 +127,14 @@ export class LocalEnvironments {
           if ((await workspace.getDraft(environmentId)).revision !== expectedRevision)
             throw fail('REVISION_CONFLICT', '环境已被修改，请从当前草稿发起新任务')
           const lease = await this.library.prepareEnvironmentProject(draft.document, {
+            projectDirectory: join(workspace.root, 'environments', environmentId),
             signal,
             offline: input.allowDownload !== true,
             onProgress,
           })
           try {
-            return safeVersion(
-              await workspace.prepareVersion(
+            return safeInstallation(
+              await workspace.prepareEnvironment(
                 { environmentId, expectedRevision, projectDirectory: lease.directory, signal, onProgress },
                 this.validate,
               ),
@@ -144,8 +146,8 @@ export class LocalEnvironments {
       }
       case 'import':
         return this.start('environment.import', async signal =>
-          safeVersion(
-            await workspace.importVersion(
+          safeInstallation(
+            await workspace.importEnvironment(
               input.bundle,
               { environmentId: input.environmentId, expectedRevision: null, signal },
               this.validate,

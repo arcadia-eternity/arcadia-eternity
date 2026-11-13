@@ -8,7 +8,7 @@
 
 | 资源                                    | 权威来源               | 使用方式                                                      |
 | --------------------------------------- | ---------------------- | ------------------------------------------------------------- |
-| 环境草稿、标准依赖锁、固定材料版本      | ContentWorkspace 文件  | 可编辑草稿产生新的固定版本，不修改活动局材料                  |
+| 环境 npm 项目、标准依赖锁、当前安装     | ContentWorkspace 文件  | 每个环境一个持久化项目，运行中对局持有独立的已加载内容        |
 | serverId                                | data-dir/identity.json | 与数据库中的服务器身份校验，重启保持、克隆重建                |
 | 服务器配置、默认环境绑定                | SQLite 或 PostgreSQL   | ServerInstance 持久保存自己的选择                             |
 | EnvironmentBinding                      | 同一个业务数据库       | 引用 workspace/environment/version，区分 desired 与 effective |
@@ -56,7 +56,7 @@ SQLite 与 PostgreSQL 共用 Kysely 查询和业务合同。G3 仍要求配置�
 
 ### 宿主内容来源
 
-环境草稿的 `packages` 指定 npm 包和版本范围，`sources` 引用宿主来源注册表中的包名。来源文件是包名到描述对象的 JSON，例如：
+环境保存在 `environments/<id>/` 的 npm 项目中。`package.json.dependencies` 指定包和版本范围，`arcadiaEnvironment` 保存名称、规则、来源及停用项。管理 API 的 `packages` 是 dependencies 的视图，`sources` 引用宿主来源注册表中的包名。来源文件是包名到描述对象的 JSON，例如：
 
 ```json
 {
@@ -76,7 +76,7 @@ node dist/cli.js server --data-dir /srv/arcadia \
   --allow-third-party-content
 ```
 
-准备会按捕获的草稿修订创建真实 npm 项目，以 `--ignore-scripts` 解析并安装依赖，保存标准锁并校验实际解析版本；更新草稿不会继续使用旧安装组合冒充新环境。离线模式拒绝新的远程 Git/URL 获取；本地归档/目录可继续使用，但 npm 所需依赖必须已在缓存中。私有 registry 凭据通过受保护的 `ARCADIA_NPM_USERCONFIG` 文件提供，不进入来源文件、公开环境或分享包。
+准备复用环境的标准锁文件，以 `--ignore-scripts` 解析并安装依赖，校验通过后替换同一环境的当前安装。失败或取消保留原安装；不创建可选历史版本。`.arcadia-prepared.json` 仅记录当前准备结果，不决定服务器使用哪个版本。离线模式拒绝新的远程 Git/URL 获取；本地归档/目录可继续使用，但 npm 所需依赖必须已在缓存中。私有 registry 凭据通过受保护的 `ARCADIA_NPM_USERCONFIG` 文件提供，不进入来源文件、公开环境或分享包。
 
 桌面内容页提供“导入环境来源”，由可信主进程打开文件选择器并保存同一格式的 `content-sources.json`，渲染页面不能提交任意本机路径。环境的 `sources` 可以引用已登记来源；未登记但已有安装材料时，使用唯一已安装版本或唯一选中的版本，有歧义则要求用户明确选择。
 
@@ -115,7 +115,7 @@ G2 游客服可以在首次用登录码进入后，从“登录与安全”添�
 
 登录时可选择“记住此设备 30 天”，默认不勾选。管理会话仍为短期会话，长期凭证独立存于 HttpOnly Cookie，数据库只存摘要；恢复时原子轮换，旧值不能复用，30 天期限不会滑动延长。每次恢复检查主体、账户状态和现有授权。“登录与安全”可查看、撤销自己的密钥和设备；撤销会使关联会话失效。退出管理会撤销当前设备的长期凭证并清除两个 Cookie。设备凭证不是服务 token，不能直接调用管理接口。
 
-管理权限由主体、scope 与 action 决定。服务器管理员只能管理被授权服务器；工作区编辑/准备/删除权限另行授予。发布环境需要目标服务器的 publish 权限与来源环境的 use 权限。已有 G3 账号必须被显式关联并授权后才能管理；停用或撤权后不能继续通过页面、API 或尚未提交的长任务操作。
+管理权限由主体、scope 与 action 决定。服务器管理员只能管理被授权服务器；工作区编辑/准备/删除权限另行授予。发布环境需要目标服务器的 publish 权限与来源环境的 use 权限。准备或导入覆盖已绑定的环境时，同样检查所有关联服务器的 publish 权限和工作区 environment.use 权限，然后更新绑定所用的当前安装。已有 G3 账号必须被显式关联并授权后才能管理；停用或撤权后不能继续通过页面、API 或尚未提交的长任务操作。
 
 网页管理会话使用独立的 HttpOnly、Secure Cookie，默认 `SameSite=Lax`。要求同站时可设 `strict`，跨站部署可设 `none`，此时发送 `SameSite=None; Secure; Partitioned`，由浏览器按顶层站点隔离会话。跨站页面的来源仍须获准，写请求仍检查 Origin 与 CSRF。自动化服务凭证另行限权与撤销。远程服务器窗口不能取得本机文件系统或管理 IPC；可信本地页面才可通过私有 bridge 管理本机资源。浏览器仍保持一站一服，不提供任意后端选择器。
 
@@ -127,19 +127,19 @@ G2 游客服可以在首次用登录码进入后，从“登录与安全”添�
 
 管理入口前缀为 `/api/management/v1`。页面先恢复或验证管理身份，再查询 capabilities，分开处理功能支持、权限和资源限制。管理请求捕获目标身份，切换页面/目标后迟到响应不能更新另一目标。
 
-环境准备和发布等任务返回 operationId，可重新查询状态；写入使用 expectedRevision/If-Match 与幂等键。取消、撤权和版本变化在提交前重新检查。文件与数据库没有跨介质事务，重启会按材料和持久绑定对账，旧 running 任务不得被当作成功结果。
+环境准备和重新加载等任务返回 operationId，可重新查询状态；写入使用 expectedRevision/If-Match 与幂等键。取消、撤权和环境修订变化在提交前重新检查。文件与数据库没有跨介质事务，重启会按材料和持久绑定对账，旧 running 任务不得被当作成功结果。
 
 ### 环境导入与已提交操作恢复
 
-环境导入先在工作区 `imports/` 写入 `arcadia.environment-import/1` 持久记录，固定 operationId、目标版本和预期草稿修订，再在数据库事务中检查权限并标记操作 `committed`。随后提交材料目录与草稿，完成后才标记任务成功。提交边界之后的取消不能把已有持久效果报告成“已撤销”。
+环境导入先在工作区 `imports/` 写入 持久导入记录，固定 operationId、目标环境、暂存目录和预期 manifest 修订，再在数据库事务中检查权限并标记操作 `committed`。随后替换环境 npm 目录，完成后才标记任务成功。提交边界之后的取消不能把已有持久效果报告成“已撤销”。
 
-若数据库提交已成功、但响应丢失或进程在文件提交前退出，保留 staging 和导入记录。维护清理或经授权的重试读取数据库事实，继续同一个 operation/version，不重新生成一份版本；修复成功后补齐原任务结果并清理记录。确认未提交的导入才可丢弃暂存材料。完成回执重放不覆盖后续草稿编辑；与外部编辑冲突时保留材料和可诊断的失败状态，不自动覆盖。桌面 owner 的私有 IPC 同样提供这组恢复操作。
+若数据库提交已成功、但响应丢失或进程在文件提交前退出，保留 staging 和导入记录。维护清理或经授权的重试读取数据库事实，继续同一个 operation，完成当前环境的目录替换；修复成功后补齐原任务结果并清理记录。确认未提交的导入才可丢弃暂存材料。完成回执重放不覆盖后续环境编辑；与外部编辑冲突时保留材料和可诊断的失败状态，不自动覆盖。桌面 owner 的私有 IPC 同样提供这组恢复操作。
 
 导出操作在尝试数据库提交后也保留已生成文件，避免“提交成功但响应丢失”留下成功任务却没有可下载产物。文件下载租约与到期回收共同保护当前使用中的材料。
 
 ### 绑定与运行
 
-EnvironmentBinding 默认固定版本；显式跟随指定环境的 ready 版本仍需通过兼容和执行政策检查。新房间捕获 effectiveVersion，默认环境或绑定更新不改变已有对局。删除检查运行租约、desired/effective 绑定与保留根，不能因当前房间数量为零就删材料。
+EnvironmentBinding 直接引用 environmentId，不保存 desired/effective 版本指针，也没有 pinned/follow-ready 选择。准备或导入完成后重新加载关联环境；首次绑定自动加载当前安装。`POST /servers/:server/bindings/:binding/reload` 可显式重新读取已安装材料。加载仍检查格式、能力及执行政策，不要求本次内容摘要等于旧准备回执。新房间使用新运行实例，已有房间保留启动时的内容。删除环境检查服务器绑定和运行租约。部署管理的官方或启动 npm 环境在每次启动时按部署输入同步，保留管理员的开放、默认和匹配设置。
 
 排空停止接纳新局，现有对局按生命周期结束。独立服务器的进程启停由 systemd/Docker 等 supervisor 负责；进程退出后网页自身无法重新唤醒它。容量参数见[服务运行](server-runtime.md#对战容量)。
 
@@ -157,7 +157,7 @@ EnvironmentBinding 默认固定版本；显式跟随指定环境的 ready 版本
 
 宿主配置备份回调后，capabilities 返回 `server.backup`。共享管理页提供“创建服务器备份”，调用 `POST /api/management/v1/servers/:id/backup` 并返回异步 operation；成功后用户在任务中手动下载 `GET /api/management/v1/backups/:operationId`。创建、提交和下载均校验服务器 `backup` 与工作区 `export` 权限，归档含多个同工作区服务器时还检查每个服务器的授权。该入口不授予在线覆盖恢复能力。
 
-一致性采用工作区 owner 内的文件捕获、数据库原子逻辑快照和捕获后复核：先取得带 owner/boot/generation 标识的工作区快照，再导出数据库，最后检查同一 owner 的文件观察值仍然有效。复制材料和桌面 IPC 期间不持有数据库长事务，也不宣称暂停所有业务写入。材料正在变化、owner 更换或快照失效时重新捕获，默认最多三次；持续不稳定则返回 `BACKUP_BUSY`，不交付混合版本归档。
+一致性采用工作区 owner 内的文件捕获、数据库原子逻辑快照和捕获后复核：先取得带 owner/boot/generation 标识的工作区快照，再导出数据库，最后检查同一 owner 的捕获内容指纹仍然有效。复制材料和桌面 IPC 期间不持有数据库长事务，也不宣称暂停所有业务写入。材料正在变化、owner 更换或快照失效时重新捕获，默认最多三次；持续不稳定则返回 `BACKUP_BUSY`，不交付混合版本归档。
 
 备份产物存于受保护的临时目录，默认上限 512 MiB、有效期 24 小时；操作记录只保存下载元数据，不内嵌账户归档。下载重新验证权限、大小和完整性，下载租约与到期回收协调；数据库提交结果不明时保留产物等待查询或到期处理。会话、bootstrap/服务凭证及活动房间仍按恢复合同排除，已有对局不会被备份或恢复成在线状态。
 
@@ -208,9 +208,9 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 
 ### 环境成员与安装任务
 
-环境的 `packages` / `sources` 保存用户选择的直接依赖；`disabled` 可选字段保留停用的直接依赖及原版本范围。每次准备得到固定版本的 `members`，显式列出所有资源包的名称、精确版本、内容身份、直接/自动依赖身份，以及 `dependencies` / `requiredBy`。普通 JavaScript 工具库仍使用 npm 的多版本树；同一个资源包名、内容身份或命名空间不能出现多个安装实例。安装采用严格 peer 约束，建议作者以 `peerDependencies` 声明共享资源包的兼容范围。精确版本可以使用，但所有约束必须同时满足；不能通过强制安装或忽略 peer 约束绕过校验。
+环境的 `packages` / `sources` 保存用户选择的直接依赖；`disabled` 可选字段保留停用的直接依赖及原版本范围。当前安装的 `members`，显式列出所有资源包的名称、精确版本、内容身份、直接/自动依赖身份，以及 `dependencies` / `requiredBy`。普通 JavaScript 工具库仍使用 npm 的多版本树；同一个资源包名、内容身份或命名空间不能出现多个安装实例。安装采用严格 peer 约束，建议作者以 `peerDependencies` 声明共享资源包的兼容范围。精确版本可以使用，但所有约束必须同时满足；不能通过强制安装或忽略 peer 约束绕过校验。
 
-`POST /workspaces/:workspace/environments/:id/package-state` 接受 `{ expectedRevision, name, enabled, cascade? }`，要求工作区 `edit` 权限。停用依赖项时，默认拒绝影响其他启用包；明确传入 `cascade: true` 才连带停用依赖它的直接包。依赖图尚未解析或草稿增加/修改了依赖约束时，先准备当前组合再执行停用。启用或停用只修改草稿；安装不会自动启用，准备不会隐式修改固定版本或开启执行权限。服务器既有的 `follow-ready` 绑定仍按用户选择的跟随策略工作。
+`POST /workspaces/:workspace/environments/:id/package-state` 接受 `{ expectedRevision, name, enabled, cascade? }`，要求工作区 `edit` 权限。停用依赖项时，默认拒绝影响其他启用包；明确传入 `cascade: true` 才连带停用依赖它的直接包。依赖图尚未解析或草稿增加/修改了依赖约束时，先准备当前组合再执行停用。启用或停用修改环境 manifest；准备成功后关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
 
 准备任务通过既有 operation 接口报告 `resolving`、`acquiring`、`installing`、`verifying`、`capturing`、`preparing` 阶段。只有实际可计数的来源报告 completed/total；npm 未提供可用字节总量时不生成百分比、下载速度或预计时间。服务器任务记录持久化，可查询、取消或重试。桌面资源库安装和本机环境准备有进程内队列、取消、失败重试及清理结束记录，关闭客户端后不恢复该队列。重试仍使用原任务的草稿修订，修改后的草稿须发起新任务。
 
@@ -226,4 +226,8 @@ pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/s
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token retry OPERATION
 ```
 
-`save` 不带 `--revision` 创建新环境。`versions` 输出固定版本及完整成员表；`enable` 恢复已停用的直接依赖。`--wait` 将阶段变化写到 stderr，最终结果 JSON 写到 stdout；退出等待不等于取消服务器任务。`content npm install` 从现有 lockfile 恢复材料，`content npm stage` 在新目录解析新组合，两者均禁止生命周期脚本并检查资源包唯一性。
+`save` 不带 `--revision` 创建新环境。`installations` 输出当前安装及完整成员表；`enable` 恢复已停用的直接依赖。`--wait` 将阶段变化写到 stderr，最终结果 JSON 写到 stdout；退出等待不等于取消服务器任务。`content npm install` 从现有 lockfile 恢复材料，`content npm stage` 在新目录解析新组合，两者均禁止生命周期脚本并检查资源包唯一性。
+
+### 格式边界
+
+工作区格式为 `arcadia.content-workspace/2`，环境分享和备份内工作区格式分别为 `arcadia.environment-export/2`、`arcadia.workspace-snapshot/2`。不读取旧环境快照，也不迁移旧发布指针。备份快照仍用于恢复，不参与日常环境版本选择。

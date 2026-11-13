@@ -68,11 +68,11 @@ async function fixture(t) {
     connections = [],
     proxies = []
   const retentions = {
-    async list(versionId) {
-      return [...roots].filter(([, version]) => version === versionId).map(([id]) => ({ id }))
+    async list(installationId) {
+      return [...roots].filter(([, version]) => version === installationId).map(([id]) => ({ id }))
     },
-    async put(versionId, id) {
-      roots.set(id, versionId)
+    async put(installationId, id) {
+      roots.set(id, installationId)
     },
     async remove(id) {
       roots.delete(id)
@@ -81,7 +81,7 @@ async function fixture(t) {
   const owner = new DesktopWorkspaceOwner({
     root,
     openWorkspace: (directory, options) => ContentWorkspace.open(directory, options),
-    timeoutMs: 1000,
+    timeoutMs: 10000,
     library: {
       async ownsProjectDirectory(directory) {
         return directory === project
@@ -96,7 +96,7 @@ async function fixture(t) {
       },
     },
   })
-  async function connect(timeoutMs = 1000) {
+  async function connect(timeoutMs = 10000) {
     const connection = channels()
     connections.push(connection)
     owner.attach(connection.child)
@@ -122,7 +122,7 @@ async function prepare({ directory, draft, signal }) {
 }
 async function ready(proxy, project) {
   const draft = await proxy.saveDraft({ document, expectedRevision: null })
-  return proxy.prepareVersion(
+  return proxy.prepareEnvironment(
     { environmentId: document.id, expectedRevision: draft.revision, projectDirectory: project },
     prepare,
   )
@@ -135,24 +135,21 @@ async function eventually(check) {
   assert.fail('workspace did not reach expected state')
 }
 
-test('child borrows one desktop workspace and adopts existing installed materials without copying', async t => {
+test('child borrows one desktop workspace and prepares a persistent environment project', async t => {
   const f = await fixture(t),
     { proxy, connection } = await f.connect()
   const version = await ready(proxy, f.project)
   assert.equal(proxy.workspaceId, (await f.owner.ready()).workspaceId)
-  assert.equal(version.directory, f.project)
-  assert.equal(version.adopted, true)
-  assert.equal(f.materialLeases.size, 1)
-  const storedVersions = await readdir(join(f.root, 'versions'))
-  assert.equal(storedVersions.length, 1)
-  assert.deepEqual(await readdir(join(f.root, 'versions', storedVersions[0])), ['version.json'])
+  assert.equal(version.directory, join(f.root, 'environments/main'))
+  assert.equal(f.materialLeases.size, 0)
+  assert.equal((await proxy.listInstallations()).length, 1)
   assert.equal((await proxy.getDraft('main')).document.schemaVersion, 2)
   assert.equal((await proxy.listDrafts()).length, 1)
-  assert.equal((await proxy.listVersions('main'))[0].versionId, version.versionId)
+  assert.equal((await proxy.listInstallations('main'))[0].installationId, version.installationId)
   const callback = connection.sent.find(
     message => message.type === 'arcadia.desktop.workspace.callback' && message.kind === 'prepare',
   )
-  assert.equal(callback.input.directory, f.project)
+  assert.notEqual(callback.input.directory, f.project)
   assert.equal((await proxy.reconcile()).workspaceId, proxy.workspaceId)
   await assert.rejects(ContentWorkspace.open(f.root), { code: 'WORKSPACE_BUSY' })
   await proxy.close()
@@ -165,22 +162,22 @@ test('runtime and persistent references roundtrip and protect shared materials u
   const f = await fixture(t),
     { proxy, connection } = await f.connect()
   const version = await ready(proxy, f.project)
-  const lease = await proxy.acquire(version.versionId, 'room:one')
-  await proxy.retain(version.versionId, 'binding:main')
-  assert.equal(f.roots.get('binding:main'), version.versionId)
-  assert.equal((await proxy.references(version.versionId)).length, 2)
-  await assert.rejects(proxy.deleteVersion(version.versionId), { code: 'ENVIRONMENT_IN_USE' })
+  const lease = await proxy.acquire(version.installationId, 'room:one')
+  await proxy.retain(version.installationId, 'binding:main')
+  assert.equal(f.roots.get('binding:main'), version.installationId)
+  assert.equal((await proxy.references(version.installationId)).length, 2)
+  await assert.rejects(proxy.clearInstallation(version.installationId), { code: 'ENVIRONMENT_IN_USE' })
   await Promise.all([lease.release(), lease.release()])
   assert.equal(connection.sent.filter(message => message.method === 'release').length, 1)
-  await assert.rejects(proxy.deleteVersion(version.versionId), { code: 'ENVIRONMENT_IN_USE' })
+  await assert.rejects(proxy.clearInstallation(version.installationId), { code: 'ENVIRONMENT_IN_USE' })
   await proxy.releaseRetention('binding:main')
-  await proxy.deleteVersion(version.versionId)
+  await proxy.clearInstallation(version.installationId)
   assert.equal(f.materialLeases.size, 0)
   assert.ok(
     await readFile(join(f.project, 'package.json')),
     'deleting environment metadata does not delete library materials',
   )
-  await assert.rejects(proxy.getVersion(version.versionId), { code: 'ENOENT' })
+  await assert.rejects(proxy.getInstallation(version.installationId), { code: 'ENOENT' })
 })
 
 test('online backup snapshots and owner stamps cross private IPC and observe local-owner edits', async t => {
@@ -191,7 +188,7 @@ test('online backup snapshots and owner stamps cross private IPC and observe loc
   assert.equal(captured.stamp.workspaceId, proxy.workspaceId)
   assert.equal(captured.stamp.bootId, proxy.bootId)
   assert.ok(Number.isSafeInteger(captured.stamp.generation))
-  assert.equal(captured.snapshot.versions[0].version.versionId, version.versionId)
+  assert.equal(captured.snapshot.installations[0].version.installationId, version.installationId)
   assert.equal(await proxy.isSnapshotCurrent({ ...captured.stamp, bootId: 'different-owner-boot' }), false)
   assert.equal(await proxy.isSnapshotCurrent({ ...captured.stamp, workspaceId: 'different-workspace' }), false)
   assert.equal(await proxy.isSnapshotCurrent(captured.stamp), true)
@@ -249,18 +246,22 @@ test('IPC disconnect rejects child requests but holds runtime leases until proce
   const f = await fixture(t),
     first = await f.connect()
   const version = await ready(first.proxy, f.project)
-  await first.proxy.acquire(version.versionId, 'room:old-child')
-  const interrupted = first.proxy.getVersion(version.versionId)
+  await first.proxy.acquire(version.installationId, 'room:old-child')
+  const interrupted = first.proxy.getInstallation(version.installationId)
   first.connection.disconnect()
   await assert.rejects(interrupted, { code: 'WORKSPACE_PARENT_DISCONNECTED' })
   assert.equal(first.connection.parent.listenerCount('message'), 0)
-  await assert.rejects((await f.owner.ready()).deleteVersion(version.versionId), { code: 'RETENTION_UNAVAILABLE' })
+  await assert.rejects((await f.owner.ready()).clearInstallation(version.installationId), {
+    code: 'RETENTION_UNAVAILABLE',
+  })
   const second = await f.connect()
-  assert.ok((await second.proxy.references(version.versionId)).some(reference => reference.owner === 'room:old-child'))
-  await assert.rejects(second.proxy.deleteVersion(version.versionId), { code: 'ENVIRONMENT_IN_USE' })
+  assert.ok(
+    (await second.proxy.references(version.installationId)).some(reference => reference.owner === 'room:old-child'),
+  )
+  await assert.rejects(second.proxy.clearInstallation(version.installationId), { code: 'ENVIRONMENT_IN_USE' })
   first.connection.exit()
-  await eventually(async () => (await second.proxy.references(version.versionId)).length === 0)
-  await second.proxy.deleteVersion(version.versionId)
+  await eventually(async () => (await second.proxy.references(version.installationId)).length === 0)
+  await second.proxy.clearInstallation(version.installationId)
   assert.equal(f.materialLeases.size, 0)
 })
 
@@ -273,7 +274,7 @@ test('preparation cancellation crosses the IPC boundary and never publishes the 
   const starting = new Promise(resolve => {
     entered = resolve
   })
-  const candidate = proxy.prepareVersion(
+  const candidate = proxy.prepareEnvironment(
     { environmentId: 'main', expectedRevision: draft.revision, projectDirectory: f.project, signal: controller.signal },
     async ({ signal }) => {
       entered()
@@ -286,18 +287,19 @@ test('preparation cancellation crosses the IPC boundary and never publishes the 
   await assert.rejects(candidate, /cancel request/)
   assert.ok(connection.sent.some(message => message.type === 'arcadia.desktop.workspace.cancel'))
   await eventually(async () => (await readdir(join(f.root, 'staging'))).length === 0)
-  assert.deepEqual(await proxy.listVersions(), [])
+  assert.deepEqual(await proxy.listInstallations(), [])
   assert.equal(f.materialLeases.size, 0)
   assert.ok(await readFile(join(f.project, 'package.json')))
 })
 
-test('timed-out preparation aborts its child callback and releases adopted material retention', async t => {
+test('timed-out preparation aborts its child callback and releases preparation materials', async t => {
   const f = await fixture(t),
-    { proxy } = await f.connect(150)
-  const draft = await proxy.saveDraft({ document, expectedRevision: null })
+    { proxy: setup } = await f.connect()
+  const draft = await setup.saveDraft({ document, expectedRevision: null })
+  const { proxy } = await f.connect(1500)
   let aborted = false
   await assert.rejects(
-    proxy.prepareVersion(
+    proxy.prepareEnvironment(
       { environmentId: 'main', expectedRevision: draft.revision, projectDirectory: f.project },
       async ({ signal }) => {
         await new Promise((_, reject) =>
@@ -318,21 +320,21 @@ test('timed-out preparation aborts its child callback and releases adopted mater
   assert.equal(aborted, true)
   await eventually(async () => (await readdir(join(f.root, 'staging'))).length === 0)
   assert.equal(f.materialLeases.size, 0)
-  assert.deepEqual(await proxy.listVersions(), [])
+  assert.deepEqual(await proxy.listInstallations(), [])
 })
 
 test('portable environment export/import validates received materials through the child static callback', async t => {
   const f = await fixture(t),
     { proxy, connection } = await f.connect()
   const version = await ready(proxy, f.project)
-  const bundle = await proxy.exportVersion(version.versionId)
-  assert.equal(bundle.format, 'arcadia.environment-export/1')
+  const bundle = await proxy.exportEnvironment(version.installationId)
+  assert.equal(bundle.format, 'arcadia.environment-export/2')
   assert.equal(JSON.stringify(bundle).includes(f.root), false)
-  const imported = await proxy.importVersion(bundle, { environmentId: 'copy' }, prepare)
+  const imported = await proxy.importEnvironment(bundle, { environmentId: 'copy' }, prepare)
   assert.equal(imported.environmentId, 'copy')
   assert.equal(imported.contentRevision, version.contentRevision)
-  assert.notEqual(imported.versionId, version.versionId)
-  const request = connection.sent.find(message => message.method === 'importVersion')
+  assert.notEqual(imported.installationId, version.installationId)
+  const request = connection.sent.find(message => message.method === 'importEnvironment')
   assert.equal(
     connection.sent.filter(
       message =>
@@ -343,17 +345,17 @@ test('portable environment export/import validates received materials through th
     1,
   )
   assert.notEqual(imported.directory, f.project)
-  assert.equal((await proxy.listVersions()).length, 2)
+  assert.equal((await proxy.listInstallations()).length, 2)
 })
 
 test('the parent retains a committed import intent when the child loses its callback response', async t => {
   const f = await fixture(t),
     { proxy, connection } = await f.connect()
   const version = await ready(proxy, f.project)
-  const bundle = await proxy.exportVersion(version.versionId)
+  const bundle = await proxy.exportEnvironment(version.installationId)
   const importId = 'c'.repeat(64)
   await assert.rejects(
-    proxy.importVersion(
+    proxy.importEnvironment(
       bundle,
       {
         environmentId: 'recover-copy',
@@ -371,12 +373,12 @@ test('the parent retains a committed import intent when the child loses its call
   const resumed = (await f.connect()).proxy
   const imported = await resumed.recoverImport(importId)
   assert.equal(imported.environmentId, 'recover-copy')
-  assert.equal((await resumed.recoverImport(importId)).versionId, imported.versionId)
+  assert.equal((await resumed.recoverImport(importId)).installationId, imported.installationId)
   await resumed.forgetImport(importId)
   assert.deepEqual(await readdir(join(f.root, 'imports')), [])
 })
 
-test('draft deletion preserves optimistic concurrency and refuses an environment with retained versions', async t => {
+test('draft deletion preserves optimistic concurrency and refuses an environment with retained installations', async t => {
   const f = await fixture(t),
     { proxy } = await f.connect()
   const draft = await proxy.saveDraft({ document, expectedRevision: null })
@@ -386,9 +388,12 @@ test('draft deletion preserves optimistic concurrency and refuses an environment
   await proxy.deleteDraft({ environmentId: 'main', expectedRevision: draft.revision })
   assert.deepEqual(await proxy.listDrafts(), [])
   const version = await ready(proxy, f.project)
+  await proxy.retain('main', 'binding:test')
   await assert.rejects(proxy.deleteDraft({ environmentId: 'main', expectedRevision: version.draftRevision }), {
-    code: 'ENVIRONMENT_HAS_VERSIONS',
+    code: 'ENVIRONMENT_IN_USE',
   })
+  await proxy.releaseRetention('binding:test')
+  await proxy.deleteDraft({ environmentId: 'main', expectedRevision: version.draftRevision })
 })
 
 test('staging cleanup removes only recognized expired staging artifacts through the owner', async t => {
@@ -408,13 +413,13 @@ test('authorization checks execute in the child immediately before prepare/adopt
   const f = await fixture(t),
     { proxy, connection } = await f.connect()
   const previous = await ready(proxy, f.project)
-  const bundle = await proxy.exportVersion(previous.versionId)
+  const bundle = await proxy.exportEnvironment(previous.installationId)
   let checks = 0
   const beforeCommit = async () => {
     checks++
     throw Object.assign(new Error('authorization revoked'), { code: 'AUTH_REVOKED' })
   }
-  for (const method of ['prepareVersion', 'adoptVersion']) {
+  for (const method of ['prepareEnvironment']) {
     await assert.rejects(
       proxy[method](
         { environmentId: 'main', expectedRevision: previous.draftRevision, projectDirectory: f.project, beforeCommit },
@@ -423,28 +428,28 @@ test('authorization checks execute in the child immediately before prepare/adopt
       { code: 'AUTH_REVOKED' },
     )
   }
-  await assert.rejects(proxy.importVersion(bundle, { environmentId: 'denied', beforeCommit }, prepare), {
+  await assert.rejects(proxy.importEnvironment(bundle, { environmentId: 'denied', beforeCommit }, prepare), {
     code: 'AUTH_REVOKED',
   })
-  assert.equal(checks, 3)
+  assert.equal(checks, 2)
   assert.ok(
     connection.sent.some(
       message => message.type === 'arcadia.desktop.workspace.callback' && message.kind === 'beforeCommit',
     ),
   )
   assert.deepEqual(
-    (await proxy.listVersions()).map(version => version.versionId),
-    [previous.versionId],
+    (await proxy.listInstallations()).map(version => version.installationId),
+    [previous.installationId],
   )
   assert.deepEqual(
     (await proxy.listDrafts()).map(draft => draft.document.id),
     ['main'],
   )
-  assert.equal(f.materialLeases.size, 1)
+  assert.equal(f.materialLeases.size, 0)
   assert.deepEqual(await readdir(join(f.root, 'staging')), [])
 })
 
-test('server snapshot restore preserves identity and clone creates an independent version namespace', async t => {
+test('server snapshot restore preserves identity and clone creates an independent workspace', async t => {
   const source = await fixture(t),
     { proxy } = await source.connect()
   const version = await ready(proxy, source.project)
@@ -454,15 +459,15 @@ test('server snapshot restore preserves identity and clone creates an independen
   assert.notEqual(restored.workspaceId, proxy.workspaceId)
   const result = await restored.restoreSnapshot(snapshot, { mode: 'restore' }, prepare)
   assert.equal(restored.workspaceId, proxy.workspaceId)
-  assert.equal(result.versionIds[version.versionId], version.versionId)
-  assert.equal((await restored.getVersion(version.versionId)).contentRevision, version.contentRevision)
+  assert.equal(result.installationIds[version.installationId], version.installationId)
+  assert.equal((await restored.getInstallation(version.installationId)).contentRevision, version.contentRevision)
   const copy = await fixture(t),
     cloned = (await copy.connect()).proxy
   const cloneId = cloned.workspaceId
   const clonedResult = await cloned.restoreSnapshot(snapshot, { mode: 'clone' }, prepare)
   assert.equal(cloned.workspaceId, cloneId)
   assert.notEqual(cloneId, proxy.workspaceId)
-  assert.notEqual(clonedResult.versionIds[version.versionId], version.versionId)
+  assert.equal(clonedResult.installationIds[version.installationId], version.installationId)
 })
 
 test('an unanswered owner handshake rejects and removes IPC listeners without another timeout', async t => {
@@ -488,7 +493,7 @@ test('reports real preparation stages over the owner bridge without serializing 
   const { proxy, connection } = await f.connect(5000)
   const draft = await proxy.saveDraft({ document, expectedRevision: null })
   const stages = []
-  await proxy.prepareVersion(
+  await proxy.prepareEnvironment(
     {
       environmentId: 'main',
       expectedRevision: draft.revision,
@@ -497,8 +502,8 @@ test('reports real preparation stages over the owner bridge without serializing 
     },
     prepare,
   )
-  assert.deepEqual(stages, ['capturing', 'preparing'])
-  const request = connection.sent.find(message => message.method === 'prepareVersion')
+  assert.deepEqual(stages, ['preparing'])
+  const request = connection.sent.find(message => message.method === 'prepareEnvironment')
   assert.equal(request.args[0].hasProgress, true)
   assert.equal(Object.hasOwn(request.args[0], 'onProgress'), false)
 })

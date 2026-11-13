@@ -13,11 +13,10 @@ import { OperationService, type Operation } from './operations'
 type TransferWorkspace = Pick<
   ContentWorkspace,
   | 'workspaceId'
-  | 'exportVersion'
-  | 'importVersion'
+  | 'exportEnvironment'
+  | 'importEnvironment'
   | 'recoverImport'
   | 'forgetImport'
-  | 'acquire'
   | 'retain'
   | 'releaseRetention'
   | 'references'
@@ -29,6 +28,8 @@ export interface ManagementTransfersOptions {
   auth: ManagementAuth
   directory: string
   validate: StaticPreparer
+  beforeImport?: (actor: ManagementActor, environmentId: string) => Promise<void>
+  onImported?: () => Promise<void>
   maxBytes?: number
   ttlMs?: number
   now?: () => number
@@ -63,7 +64,7 @@ const validId = (id: string) => {
 }
 const safeString = (input: unknown, max = 128): input is string =>
   typeof input === 'string' && input.length > 0 && input.length <= max && !/\p{Cc}/u.test(input)
-const safeVersion = (version: Awaited<ReturnType<ContentWorkspace['importVersion']>>) => {
+const safeInstallation = (version: Awaited<ReturnType<ContentWorkspace['importEnvironment']>>) => {
   const { directory: _directory, materialDirectory: _materialDirectory, ...result } = version
   return result
 }
@@ -170,40 +171,38 @@ export class ManagementTransfers {
   }
   async export(
     actor: ManagementActor,
-    versionId: string,
+    installationId: string,
     idempotencyKey: string,
     retryOf?: string,
   ): Promise<Operation> {
     await this.ready()
     await this.options.auth.authorize(actor, this.scope, 'export')
-    if (!safeString(versionId)) fail('ENVIRONMENT_VERSION_INVALID')
+    if (!safeString(installationId)) fail('ENVIRONMENT_VERSION_INVALID')
     return this.options.operations.submit(
       {
         kind: 'environment.export',
         scope: managementScopeKey(this.scope),
         actor,
         idempotencyKey,
-        input: { versionId },
+        input: { installationId },
         ...(retryOf ? { retryOf } : {}),
       },
       async context => {
         const name = `export-${context.operationId}.json`
         const unpin = this.pin(name)
-        let lease: Awaited<ReturnType<TransferWorkspace['acquire']>> | undefined
         let completed = false,
           commitAttempted = false
         try {
-          lease = await this.options.workspace.acquire(versionId, `export:${context.operationId}`)
           await context.checkCurrent()
           await this.options.auth.authorize(actor, this.scope, 'export')
           await context.progress({ stage: 'exporting' })
-          const bundle = await this.options.workspace.exportVersion(versionId)
+          const bundle = await this.options.workspace.exportEnvironment(installationId)
           const bytes = Buffer.from(JSON.stringify(bundle))
           await context.checkCurrent()
           await this.write(name, bytes)
           const result: ExportResult = {
             downloadPath: `/api/management/v1/transfers/${context.operationId}`,
-            filename: `environment-${lease.environmentId}.json`,
+            filename: `environment-${bundle.document.id}.json`,
             bytes: bytes.length,
             expiresAt: this.now() + this.ttlMs,
           }
@@ -220,11 +219,7 @@ export class ManagementTransfers {
           try {
             if (!completed && !commitAttempted) await this.exclusive(name, () => rm(this.file(name), { force: true }))
           } finally {
-            try {
-              await lease?.release()
-            } finally {
-              unpin()
-            }
+            unpin()
           }
         }
       },
@@ -247,7 +242,7 @@ export class ManagementTransfers {
       !bundle ||
       typeof bundle !== 'object' ||
       Array.isArray(bundle) ||
-      (bundle as { format?: unknown }).format !== 'arcadia.environment-export/1'
+      (bundle as { format?: unknown }).format !== 'arcadia.environment-export/2'
     )
       fail('ENVIRONMENT_EXPORT_INVALID')
     if (input.environmentId !== undefined && !safeString(input.environmentId)) fail('ENVIRONMENT_ID_INVALID')
@@ -291,7 +286,7 @@ export class ManagementTransfers {
             if (digest(contents) !== bundleDigest) fail('TRANSFER_ARTIFACT_INVALID', 409)
             const parsed = JSON.parse(contents.toString('utf8')) as EnvironmentExport
             await context.progress({ stage: 'importing' })
-            const version = await this.options.workspace.importVersion(
+            const version = await this.options.workspace.importEnvironment(
               parsed,
               {
                 importId: context.operationId,
@@ -299,6 +294,7 @@ export class ManagementTransfers {
                 expectedRevision: input.expectedRevision ?? null,
                 signal: context.signal,
                 beforeCommit: async () => {
+                  await this.options.beforeImport?.(actor, input.environmentId ?? parsed.document.id)
                   // This is the cancellation boundary: after durable intent, file commit
                   // may fail but can no longer be represented as a cancelled/no-op import.
                   await context.commit(
@@ -313,7 +309,8 @@ export class ManagementTransfers {
               },
               this.options.validate,
             )
-            return safeVersion(version)
+            await this.options.onImported?.()
+            return safeInstallation(version)
           } finally {
             release()
           }
@@ -340,8 +337,8 @@ export class ManagementTransfers {
     }
     if (!['failed', 'cancelled', 'interrupted'].includes(previous.status)) return fail('OPERATION_NOT_RETRYABLE', 409)
     if (previous.kind === 'environment.export') {
-      const input = previous.input as { versionId: string }
-      return this.export(actor, input.versionId, idempotencyKey, previous.id)
+      const input = previous.input as { installationId: string }
+      return this.export(actor, input.installationId, idempotencyKey, previous.id)
     }
     await this.options.auth.authorize(actor, this.scope, 'edit')
     await this.options.auth.authorize(actor, this.scope, 'prepare')
@@ -396,13 +393,13 @@ export class ManagementTransfers {
       throw error
     }
   }
-  async references(actor: ManagementActor, versionId: string) {
+  async references(actor: ManagementActor, installationId: string) {
     await this.options.auth.authorize(actor, this.scope, 'read')
-    const references = await this.options.workspace.references(versionId)
+    const references = await this.options.workspace.references(installationId)
     return {
       references: references.map(reference => {
         const result: Record<string, unknown> = {}
-        for (const key of ['kind', 'versionId', 'retentionId', 'serverId', 'bindingId', 'owner', 'id']) {
+        for (const key of ['kind', 'installationId', 'retentionId', 'serverId', 'bindingId', 'owner', 'id']) {
           const value = reference[key]
           // IDs have a bounded printable shape; user-controlled paths/diagnostics aren't sent.
           if (safeString(value, 256) && !/[\\/]/.test(value)) result[key] = value
@@ -416,7 +413,7 @@ export class ManagementTransfers {
       const current = await this.options.operations.get(operation.id)
       if (current.status === 'succeeded') return current
       const version = await this.options.workspace.recoverImport(current.id)
-      const recovered = await this.options.operations.recoverCommitted(current.id, safeVersion(version))
+      const recovered = await this.options.operations.recoverCommitted(current.id, safeInstallation(version))
       await this.options.workspace.forgetImport(current.id)
       return recovered
     })

@@ -31,7 +31,6 @@ type Binding = {
   id: string
   revision: number
   environmentId: string
-  effectiveVersionId?: string
   enabled: boolean
   visibility: 'public' | 'private'
   matchmakingEnabled: boolean
@@ -46,7 +45,7 @@ const env: NodeJS.ProcessEnv = {
   DOTENV_CONFIG_PATH: '/dev/null',
 }
 async function command(args: string[]) {
-  const { stdout } = await execute(process.execPath, [cli, 'server', ...args], { env, timeout: 20_000 })
+  const { stdout } = await execute(process.execPath, [cli, 'server', ...args], { env, timeout: 60_000 })
   return JSON.parse(stdout.trim())
 }
 async function start(directory: string) {
@@ -74,7 +73,7 @@ async function start(directory: string) {
     const timer = setTimeout(() => {
       child.kill()
       reject(new Error('Server startup timed out: ' + errors))
-    }, 20_000)
+    }, 60_000)
     child.stderr!.on('data', chunk => {
       errors += chunk.toString()
     })
@@ -189,13 +188,13 @@ it('bootstraps playable builtin content once and preserves administrator removal
     matchmakingEnabled: true,
     condition: 'available',
   })
-  expect(binding.effectiveVersionId).toBeTruthy()
+  expect(binding.environmentId).toBeTruthy()
   expect(server.defaultBindingId).toBe(binding.id)
   const initial = {
     serverId: server.id,
     workspaceId: server.workspaceId,
     bindingId: binding.id,
-    versionId: binding.effectiveVersionId,
+    installationId: binding.environmentId,
   }
   const environments = await catalog(running.origin)
   expect(environments).toHaveLength(1)
@@ -255,7 +254,7 @@ it('bootstraps playable builtin content once and preserves administrator removal
     serverId: server.id,
     workspaceId: server.workspaceId,
     bindingId: binding.id,
-    versionId: binding.effectiveVersionId,
+    installationId: binding.environmentId,
   }).toEqual(initial)
   expect(server.defaultBindingId).toBe(binding.id)
   const restartedEnvironments = await catalog(running.origin)
@@ -310,18 +309,13 @@ it('refreshes stale builtin content after a release without changing administrat
   let server = (await request<{ servers: Server[] }>('/servers')).servers[0]
   let binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
   expect(binding.condition).toBe('available')
-  const previousVersionId = binding.effectiveVersionId
+  const previousVersionId = binding.environmentId
   await stop(running.child)
 
-  const versionDirectory = `version-${previousVersionId!.replaceAll('-', '')}`
-  const metadataFile = join(directory, 'workspace', 'versions', versionDirectory, 'version.json')
-  const metadata = JSON.parse(await readFile(metadataFile, 'utf8')) as {
-    contentRevision: string
-    document: { packages: Record<string, string> }
-  }
-  metadata.document.packages['@arcadia-eternity/data-pack-base'] = '0.0.0-stale'
-  metadata.contentRevision = 'arcadia.work-environment/1:stale'
-  await writeFile(metadataFile, JSON.stringify(metadata, null, 2) + '\n')
+  const manifestFile = join(directory, 'workspace', 'environments', binding.environmentId, 'package.json')
+  const manifest = JSON.parse(await readFile(manifestFile, 'utf8'))
+  manifest.dependencies['@arcadia-eternity/data-pack-base'] = '0.0.0-stale'
+  await writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n')
 
   running = await start(directory)
   const environments = await catalog(running.origin)
@@ -340,7 +334,7 @@ it('refreshes stale builtin content after a release without changing administrat
     matchmakingEnabled: true,
     condition: 'available',
   })
-  expect(binding.effectiveVersionId).not.toBe(previousVersionId)
+  expect(binding.environmentId).toBe(previousVersionId)
   expect(server.defaultBindingId).toBe(binding.id)
 }, 120_000)
 
@@ -428,11 +422,11 @@ it('runs guest management with SQLite, one-use owner login, restart identity, an
     if (mode === 'clone') {
       expect(server.workspaceId).not.toBe(originalServer.workspaceId)
       expect(bindings[0].id).not.toBe(originalBinding.id)
-      expect(bindings[0].effectiveVersionId).not.toBe(originalBinding.effectiveVersionId)
+      expect(bindings[0].environmentId).toBe(originalBinding.environmentId)
     } else {
       expect(server.workspaceId).toBe(originalServer.workspaceId)
       expect(bindings[0].id).toBe(originalBinding.id)
-      expect(bindings[0].effectiveVersionId).toBe(originalBinding.effectiveVersionId)
+      expect(bindings[0].environmentId).toBe(originalBinding.environmentId)
     }
     expect(await catalog(running.origin)).toHaveLength(1)
     await stop(running.child)

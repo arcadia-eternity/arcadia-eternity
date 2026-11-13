@@ -77,16 +77,16 @@ async function setup() {
     headers: { 'idempotency-key': 'prepare' },
   })
   const prepared = await terminal(storage, started.id)
-  const versionId = (prepared.result as { versionId: string }).versionId
+  const installationId = (prepared.result as { installationId: string }).installationId
   const created = await request<Binding & { id: string; revision: number }>({
     method: 'POST',
     path: `/servers/${SERVER}/bindings`,
-    body: { environmentId: 'shared', versionId, enabled: true, visibility: 'public', matchmakingEnabled: true },
+    body: { environmentId: 'shared', installationId, enabled: true, visibility: 'public', matchmakingEnabled: true },
   })
   const publication = await request<{ id: string }>({
     method: 'POST',
     path: `/servers/${SERVER}/bindings/${created.id}/publish`,
-    body: { versionId },
+    body: { installationId },
     headers: { 'if-match': String(created.revision), 'idempotency-key': 'publish' },
   })
   await terminal(storage, publication.id)

@@ -1,13 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, writeFile, rm, symlink, realpath } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ContentWorkspace } from '../src/content-workspace.ts'
-import { outputSchemas } from '../src/mcp-contracts.ts'
-import { spawn } from 'node:child_process'
-import { once } from 'node:events'
-import { randomUUID } from 'node:crypto'
 
 const document = { schemaVersion: 1, id: 'main', name: 'Main', packages: {}, sources: [] }
 async function fixture(t) {
@@ -36,11 +32,11 @@ async function fixture(t) {
   await writeFile(join(project, 'node_modules', 'sample', 'index.js'), 'throw new Error("never execute author entry")')
   const roots = new Map()
   const retentions = {
-    async list(versionId) {
-      return [...roots].filter(([, value]) => value === versionId).map(([id]) => ({ id }))
+    async list(installationId) {
+      return [...roots].filter(([, value]) => value === installationId).map(([id]) => ({ id }))
     },
-    async put(versionId, id) {
-      roots.set(id, versionId)
+    async put(installationId, id) {
+      roots.set(id, installationId)
     },
     async remove(id) {
       roots.delete(id)
@@ -68,290 +64,103 @@ async function prepare({ directory, draft }) {
 }
 async function ready(workspace) {
   const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  return workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, prepare)
+  return workspace.prepareEnvironment({ environmentId: 'main', expectedRevision: draft.revision }, prepare)
 }
 
-test('workspace has one live owner, stable identity and explicit draft conflicts', async t => {
+test('environment is a persistent npm project and package.json is authoritative', async t => {
+  const { open, location } = await fixture(t)
+  const workspace = await open()
+  await ready(workspace)
+  const file = join(location, 'environments/main/package.json')
+  const manifest = JSON.parse(await readFile(file, 'utf8'))
+  assert.equal(manifest.dependencies.sample, '1.0.0')
+  assert.equal(manifest.arcadiaEnvironment.id, 'main')
+  manifest.dependencies.sample = '^2.0.0'
+  await writeFile(file, JSON.stringify(manifest))
+  const current = await workspace.getDraft('main')
+  assert.equal(current.document.packages.sample, '^2.0.0')
+  const saved = await workspace.saveDraft({
+    document: { ...current.document, name: 'Edited' },
+    expectedRevision: current.revision,
+  })
+  assert.equal(JSON.parse(await readFile(file, 'utf8')).arcadiaEnvironment.name, 'Edited')
+  assert.equal(saved.document.packages.sample, '^2.0.0')
+  await assert.rejects(workspace.saveDraft({ document: saved.document, expectedRevision: current.revision }), {
+    code: 'REVISION_CONFLICT',
+  })
+})
+
+test('preparing updates one installation instead of creating selectable snapshots', async t => {
+  const { open, project, location } = await fixture(t)
+  const workspace = await open()
+  const first = await ready(workspace)
+  await writeFile(join(project, 'node_modules/sample/content.json'), '{"power":99}')
+  const draft = await workspace.getDraft('main')
+  const next = await workspace.prepareEnvironment({ environmentId: 'main', expectedRevision: draft.revision }, prepare)
+  assert.equal(first.installationId, 'main')
+  assert.equal(next.installationId, first.installationId)
+  assert.equal(next.directory, join(workspace.root, 'environments/main'))
+  assert.equal(next.directory, first.directory)
+  assert.notEqual(first.contentRevision, next.contentRevision)
+  assert.equal((await workspace.listInstallations()).length, 1)
+  await assert.rejects(readFile(join(location, 'versions')), { code: 'ENOENT' })
+  await workspace.close()
+  const reopened = await open()
+  assert.equal((await reopened.getInstallation('main')).contentRevision, next.contentRevision)
+})
+
+test('one live owner and environment references prevent destructive deletion', async t => {
   const { open, location } = await fixture(t)
   const workspace = await open()
   await assert.rejects(ContentWorkspace.open(location), { code: 'WORKSPACE_BUSY' })
-  const saved = await workspace.saveDraft({ document, expectedRevision: null })
-  assert.equal(saved.document.schemaVersion, 2)
-  await assert.rejects(workspace.saveDraft({ document: { ...document, name: 'Stale' }, expectedRevision: null }), {
-    code: 'REVISION_CONFLICT',
+  await ready(workspace)
+  const lease = await workspace.acquire('main')
+  const draft = await workspace.getDraft('main')
+  await assert.rejects(workspace.deleteDraft({ environmentId: 'main', expectedRevision: draft.revision }), {
+    code: 'ENVIRONMENT_IN_USE',
   })
-  const updated = await workspace.saveDraft({
-    document: { ...document, name: 'New' },
-    expectedRevision: saved.revision,
+  await lease.release()
+  await workspace.retain('main', 'binding:server')
+  await assert.rejects(workspace.deleteDraft({ environmentId: 'main', expectedRevision: draft.revision }), {
+    code: 'ENVIRONMENT_IN_USE',
   })
-  assert.notEqual(updated.revision, saved.revision)
-  const id = workspace.workspaceId
-  await workspace.close()
-  const reopened = await open()
-  assert.equal(reopened.workspaceId, id)
-  assert.equal((await reopened.listDrafts())[0].document.name, 'New')
+  await workspace.releaseRetention('binding:server')
+  await workspace.deleteDraft({ environmentId: 'main', expectedRevision: draft.revision })
+  assert.deepEqual(await workspace.listDrafts(), [])
 })
 
-test('captured artifacts isolate source changes without running scripts or modules', async t => {
+test('failed preparation and cancellation preserve the installed project', async t => {
   const { open, project } = await fixture(t)
   const workspace = await open()
   const first = await ready(workspace)
-  assert.equal(first.status, 'ready')
-  assert.notEqual(first.directory, project)
+  const draft = await workspace.getDraft('main')
+  const input = { environmentId: 'main', expectedRevision: draft.revision }
   await writeFile(join(project, 'node_modules/sample/content.json'), '{"power":99}')
-  assert.equal(JSON.parse(await readFile(join(first.directory, 'node_modules/sample/content.json'))).power, 40)
-  const draft = await workspace.getDraft('main')
-  const second = await workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, prepare)
-  assert.notEqual(first.versionId, second.versionId)
-  assert.notEqual(first.contentRevision, second.contentRevision)
-  assert.equal((await workspace.listVersions()).length, 2)
-  await workspace.close()
-  const reopened = await open()
-  assert.equal((await reopened.getVersion(first.versionId)).contentRevision, first.contentRevision)
-})
-
-test('runtime leases and durable references prevent GC with concurrent acquire', async t => {
-  const { open } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  const lease = await workspace.acquire(version.versionId, 'room:A')
-  await assert.rejects(workspace.close(), { code: 'WORKSPACE_IN_USE' })
-  await workspace.retain(version.versionId, 'binding:one')
-  assert.equal((await workspace.references(version.versionId)).length, 2)
-  await assert.rejects(workspace.deleteVersion(version.versionId), { code: 'ENVIRONMENT_IN_USE' })
-  await lease.release()
-  await workspace.close()
-  const reopened = await open()
-  assert.equal((await reopened.references(version.versionId)).length, 1, 'runtime lease does not resurrect')
-  await assert.rejects(reopened.deleteVersion(version.versionId), { code: 'ENVIRONMENT_IN_USE' })
-  await reopened.releaseRetention('binding:one')
-  const [leased, deletion] = await Promise.allSettled([
-    reopened.acquire(version.versionId),
-    reopened.deleteVersion(version.versionId),
-  ])
-  assert.equal(leased.status, 'fulfilled')
-  assert.equal(deletion.status, 'rejected')
-  await leased.value.release()
-  await reopened.deleteVersion(version.versionId)
-  await assert.rejects(reopened.acquire(version.versionId), { code: 'ENOENT' })
-})
-
-test('missing material and unavailable retention authority fail closed', async t => {
-  const { open } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  await rm(join(version.directory, 'package-lock.json'))
-  assert.equal((await workspace.listVersions())[0].status, 'unavailable')
-  await assert.rejects(workspace.acquire(version.versionId), { code: 'ENOENT' })
-  await workspace.close()
-  const reopened = await open({ retentions: undefined })
-  await assert.rejects(reopened.deleteVersion(version.versionId), { code: 'RETENTION_UNAVAILABLE' })
-})
-
-test('failed and cancelled preparations leave old versions intact and never become ready', async t => {
-  const { open } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  const draft = await workspace.getDraft('main')
   await assert.rejects(
-    workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, async () => {
-      throw new Error('invalid material')
+    workspace.prepareEnvironment(input, async () => {
+      throw new Error('invalid effect')
     }),
-    /invalid material/,
+    /invalid effect/,
   )
   const controller = new AbortController()
   await assert.rejects(
-    workspace.prepareVersion(
-      { environmentId: 'main', expectedRevision: draft.revision, signal: controller.signal },
-      async input => {
-        controller.abort(new Error('cancelled'))
-        return prepare(input)
-      },
-    ),
+    workspace.prepareEnvironment({ ...input, signal: controller.signal }, async args => {
+      controller.abort(new Error('cancelled'))
+      return prepare(args)
+    }),
     /cancelled/,
   )
-  assert.deepEqual(
-    (await workspace.listVersions()).map(v => v.versionId),
-    [version.versionId],
-  )
+  assert.equal((await workspace.getInstallation('main')).contentRevision, first.contentRevision)
+  assert.equal(JSON.parse(await readFile(join(first.directory, 'node_modules/sample/content.json'))).power, 40)
 })
 
-test('late prepare captures old draft and cannot change latest selection', async t => {
+test('preparation checks authorization before replacing the environment', async t => {
   const { open } = await fixture(t)
   const workspace = await open()
-  const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  let entered, release
-  const started = new Promise(resolve => {
-    entered = resolve
-  })
-  const gate = new Promise(resolve => {
-    release = resolve
-  })
-  const pending = workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, async input => {
-    entered()
-    await gate
-    return prepare(input)
-  })
-  await started
-  const latest = await workspace.saveDraft({
-    document: { ...document, name: 'Latest' },
-    expectedRevision: draft.revision,
-  })
-  release()
-  const old = await pending
-  assert.equal(old.draftRevision, draft.revision)
-  assert.equal((await workspace.getDraft('main')).revision, latest.revision)
-})
-
-test('portable archive validates bytes and rejects traversal, identity leakage and unvalidated imports', async t => {
-  const { open, root } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  const archive = await workspace.exportVersion(version.versionId)
-  assert.equal(JSON.stringify(archive).includes(root), false)
-  assert.equal(archive.workspaceId, undefined)
-  assert.equal(archive.versionId, undefined)
-  const imported = await workspace.importVersion(archive, { environmentId: 'copy' }, prepare)
-  assert.equal(imported.contentRevision, version.contentRevision)
-  assert.notEqual(imported.versionId, version.versionId)
-  const hostile = structuredClone(archive)
-  hostile.files.push({ path: '../escape', data: '' })
-  await assert.rejects(workspace.importVersion(hostile, { environmentId: 'bad' }, prepare), {
-    code: 'MATERIAL_PATH_INVALID',
-  })
+  const first = await ready(workspace)
+  const draft = await workspace.getDraft('main')
   await assert.rejects(
-    workspace.importVersion({ ...archive, contentRevision: 'forged' }, { environmentId: 'bad' }, prepare),
-    { code: 'ENVIRONMENT_IMPORT_MISMATCH' },
-  )
-  assert.equal(
-    (await workspace.listDrafts()).some(x => x.document.id === 'bad'),
-    false,
-  )
-})
-
-test('material capture rejects symlink escape and nonportable locks', async t => {
-  const { open, project, root } = await fixture(t)
-  const workspace = await open()
-  const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  const outside = join(root, 'secret.txt')
-  await writeFile(outside, 'secret')
-  await symlink(outside, join(project, 'node_modules/sample/leak'))
-  await assert.rejects(workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, prepare), {
-    code: 'MATERIAL_PATH_ESCAPE',
-  })
-  await rm(join(project, 'node_modules/sample/leak'))
-  await writeFile(join(project, '.npmrc'), 'secret-token')
-  await symlink(join(project, '.npmrc'), join(project, 'node_modules/sample/leak'))
-  await assert.rejects(workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, prepare), {
-    code: 'MATERIAL_PATH_INVALID',
-  })
-  await rm(join(project, 'node_modules/sample/leak'))
-  await writeFile(
-    join(project, 'package-lock.json'),
-    JSON.stringify({ lockfileVersion: 3, packages: { 'node_modules/sample': { resolved: 'file:/private/secret' } } }),
-  )
-  await assert.rejects(workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, prepare), {
-    code: 'MATERIAL_LOCK_NOT_PORTABLE',
-  })
-})
-
-test('zero-copy adoption requires material owner and releases only after version deletion', async t => {
-  const { open, project, location } = await fixture(t)
-  await mkdir(location)
-  const { cp } = await import('node:fs/promises')
-  const shared = join(location, 'projects', 'existing')
-  await cp(project, shared, { recursive: true })
-  let retained = 0
-  const workspace = await open({
-    acquireMaterials: async () => {
-      retained++
-      return () => {
-        retained--
-      }
-    },
-  })
-  const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  const version = await workspace.adoptVersion(
-    { environmentId: 'main', expectedRevision: draft.revision, directory: shared },
-    prepare,
-  )
-  assert.equal(version.directory, await realpath(shared))
-  assert.equal(retained, 1)
-  await workspace.deleteVersion(version.versionId)
-  assert.equal(retained, 0)
-  assert.equal(JSON.parse(await readFile(join(shared, 'package.json'))).name, 'fixture')
-})
-
-test('MCP output keeps v2 rule and requirements fields', () => {
-  const value = {
-    ...document,
-    schemaVersion: 2,
-    rules: { schemaVersion: 1, team: { maxSize: 3 } },
-    requires: { capabilities: ['teams'] },
-    version: 'a'.repeat(64),
-  }
-  assert.deepEqual(outputSchemas['environment-save'].parse(value), value)
-})
-
-test('prepared material must satisfy declared package selection', async t => {
-  const { open } = await fixture(t)
-  const workspace = await open()
-  const draft = await workspace.saveDraft({
-    document: { ...document, packages: { sample: '^2.0.0' } },
-    expectedRevision: null,
-  })
-  await assert.rejects(workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, prepare), {
-    code: 'ENVIRONMENT_PACKAGE_MISMATCH',
-  })
-  assert.equal((await workspace.listVersions()).length, 0)
-})
-
-test('cancelled or unauthorized import never overwrites an existing draft', async t => {
-  const { open } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  const archive = await workspace.exportVersion(version.versionId)
-  const original = await workspace.getDraft('main')
-  archive.document.name = 'Imported'
-  await assert.rejects(
-    workspace.importVersion(
-      archive,
-      {
-        expectedRevision: original.revision,
-        beforeCommit: async () => {
-          throw new Error('permission revoked')
-        },
-      },
-      prepare,
-    ),
-    /permission revoked/,
-  )
-  assert.deepEqual(await workspace.getDraft('main'), original)
-  assert.equal((await workspace.listVersions()).length, 1)
-  const controller = new AbortController()
-  await assert.rejects(
-    workspace.importVersion(
-      archive,
-      {
-        expectedRevision: original.revision,
-        signal: controller.signal,
-      },
-      async input => {
-        controller.abort(new Error('cancelled'))
-        return prepare(input)
-      },
-    ),
-    /cancelled/,
-  )
-  assert.deepEqual(await workspace.getDraft('main'), original)
-})
-
-test('prepare checks authorization immediately before committing the frozen version', async t => {
-  const { open } = await fixture(t)
-  const workspace = await open()
-  const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  await assert.rejects(
-    workspace.prepareVersion(
+    workspace.prepareEnvironment(
       {
         environmentId: 'main',
         expectedRevision: draft.revision,
@@ -363,192 +172,158 @@ test('prepare checks authorization immediately before committing the frozen vers
     ),
     /revoked/,
   )
-  assert.equal((await workspace.listVersions()).length, 0)
+  assert.equal((await workspace.getInstallation('main')).createdAt, first.createdAt)
 })
 
-test('an import survives process death at the durable commit boundary and resumes exactly once', async t => {
-  const { open, root, location } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  const bundle = await workspace.exportVersion(version.versionId)
-  bundle.document.id = 'recovered'
-  const file = join(root, 'bundle.json')
-  await writeFile(file, JSON.stringify(bundle))
-  await workspace.close()
-  const importId = 'a'.repeat(64)
-  const module = new URL('../src/content-workspace.ts', import.meta.url).href
-  const child = spawn(
-    process.execPath,
-    [
-      '--input-type=module',
-      '-e',
-      `
-    import { readFile } from 'node:fs/promises';
-    import { ContentWorkspace } from ${JSON.stringify(module)};
-    const workspace = await ContentWorkspace.open(process.argv[1]);
-    const bundle = JSON.parse(await readFile(process.argv[2], 'utf8'));
-    await workspace.importVersion(bundle, { importId: process.argv[3], beforeCommit: async () => process.exit(23) },
-      async () => ({ contentRevision: bundle.contentRevision, packages: [{ name: 'sample', version: '1.0.0' }] }));
-  `,
-      location,
-      file,
-      importId,
-    ],
-    { stdio: ['ignore', 'ignore', 'pipe'] },
-  )
-  assert.equal((await once(child, 'close'))[0], 23)
-  const recovered = await open({ stagingRetentionMs: 0 })
-  assert.deepEqual(await recovered.cleanupStaging(), [])
-  await assert.rejects(recovered.getDraft('recovered'), { code: 'ENOENT' })
-  const first = await recovered.recoverImport(importId)
-  const draft = await recovered.getDraft('recovered')
-  await recovered.saveDraft({ document: { ...draft.document, name: 'Later edit' }, expectedRevision: draft.revision })
-  assert.equal((await recovered.recoverImport(importId)).versionId, first.versionId)
-  assert.equal((await recovered.getDraft('recovered')).document.name, 'Later edit')
-  await assert.rejects(recovered.deleteVersion(first.versionId), { code: 'ENVIRONMENT_IN_USE' })
-  await recovered.forgetImport(importId)
-  await recovered.deleteVersion(first.versionId)
-})
-
-test('server snapshot restore preserves identity while clone remaps version identities', async t => {
+test('export and import revalidate current materials without matching an old runtime hash', async t => {
   const { open, root } = await fixture(t)
   const workspace = await open()
-  const version = await ready(workspace)
+  await ready(workspace)
+  const bundle = await workspace.exportEnvironment('main')
+  bundle.contentRevision = 'previous-engine-build'
+  const target = await ContentWorkspace.open(join(root, 'target'))
+  t.after(() => target.close())
+  const imported = await target.importEnvironment(bundle, {}, prepare)
+  assert.equal(imported.installationId, 'main')
+  assert.equal(imported.contentRevision, 'fixture:40:1')
+  assert.equal((await target.getDraft('main')).document.packages.sample, '1.0.0')
+  await assert.rejects(target.importEnvironment(bundle, {}, prepare), { code: 'REVISION_CONFLICT' })
+  await target.close()
+})
+
+test('backup and clone preserve npm projects, not historical versions', async t => {
+  const { open, root } = await fixture(t)
+  const workspace = await open()
+  await ready(workspace)
+  await workspace.saveDraft({ document: { ...document, id: 'empty' }, expectedRevision: null })
   const snapshot = await workspace.exportSnapshot()
-  const restored = await ContentWorkspace.open(join(root, 'restore'))
-  const cloned = await ContentWorkspace.open(join(root, 'clone'))
-  try {
-    const original = await restored.restoreSnapshot(snapshot, { mode: 'restore' }, prepare)
-    assert.equal(original.workspaceId, workspace.workspaceId)
-    assert.equal(original.versionIds[version.versionId], version.versionId)
-    assert.equal((await restored.getVersion(version.versionId)).contentRevision, version.contentRevision)
-    const copy = await cloned.restoreSnapshot(snapshot, { mode: 'clone' }, prepare)
-    assert.notEqual(copy.workspaceId, workspace.workspaceId)
-    assert.notEqual(copy.versionIds[version.versionId], version.versionId)
-    assert.equal((await cloned.getVersion(copy.versionIds[version.versionId])).contentRevision, version.contentRevision)
-    await assert.rejects(restored.restoreSnapshot(snapshot, { mode: 'restore' }, prepare), {
-      code: 'WORKSPACE_NOT_EMPTY',
-    })
-  } finally {
-    await restored.close()
-    await cloned.close()
+  assert.equal(snapshot.installations.length, 1)
+  for (const mode of ['restore', 'clone']) {
+    const target = await ContentWorkspace.open(join(root, mode))
+    t.after(() => target.close())
+    await target.restoreSnapshot(snapshot, { mode }, prepare)
+    assert.equal((await target.getInstallation('main')).installationId, 'main')
+    assert.equal((await target.listDrafts()).length, 2)
+    assert.equal(target.workspaceId === workspace.workspaceId, mode === 'restore')
+    await target.close()
   }
 })
 
-test('online snapshot stamps are one-use, owner-scoped and invalidate actual exported-file edits', async t => {
-  const { open, project } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  const first = await workspace.captureSnapshot()
-  assert.equal(await workspace.isSnapshotCurrent({ ...first.stamp, bootId: randomUUID() }), false)
-  assert.equal(await workspace.isSnapshotCurrent(first.stamp), true)
-  assert.equal(await workspace.isSnapshotCurrent(first.stamp), false)
-  const isolated = await workspace.captureSnapshot()
-  // Author source edits cannot change the captured immutable project.
-  await writeFile(join(project, 'node_modules/sample/content.json'), '{"power":99}')
-  assert.equal(await workspace.isSnapshotCurrent(isolated.stamp), true)
-  const corrupted = await workspace.captureSnapshot()
-  await writeFile(join(version.directory, 'node_modules/sample/content.json'), '{"power":77}')
-  assert.equal(await workspace.isSnapshotCurrent(corrupted.stamp), false)
-})
-
-test('online stamps invalidate successful and failed metadata mutations and version GC', async t => {
+test('online backup stamp detects edits to installed files and is single use', async t => {
   const { open } = await fixture(t)
   const workspace = await open()
-  const version = await ready(workspace)
-  let capture = await workspace.captureSnapshot()
-  const draft = await workspace.getDraft('main')
-  await workspace.saveDraft({ document: { ...draft.document, name: 'Updated' }, expectedRevision: draft.revision })
-  assert.equal(await workspace.isSnapshotCurrent(capture.stamp), false)
-  capture = await workspace.captureSnapshot()
-  await assert.rejects(workspace.saveDraft({ document, expectedRevision: 'stale' }), { code: 'REVISION_CONFLICT' })
-  assert.equal(await workspace.isSnapshotCurrent(capture.stamp), false)
-  capture = await workspace.captureSnapshot()
-  await workspace.deleteVersion(version.versionId)
-  assert.equal(await workspace.isSnapshotCurrent(capture.stamp), false)
-  capture = await workspace.captureSnapshot()
-  await workspace.deleteDraft({ environmentId: 'main', expectedRevision: (await workspace.getDraft('main')).revision })
-  assert.equal(await workspace.isSnapshotCurrent(capture.stamp), false)
-})
-
-test('unresolved import commit receipts prevent both offline and online unrestorable snapshots', async t => {
-  const { open } = await fixture(t)
-  const workspace = await open()
-  const version = await ready(workspace)
-  const bundle = await workspace.exportVersion(version.versionId)
+  const installation = await ready(workspace)
   const capture = await workspace.captureSnapshot()
-  const importId = 'b'.repeat(64)
+  await writeFile(join(installation.directory, 'node_modules/sample/content.json'), '{"power":99}')
+  assert.equal(await workspace.isSnapshotCurrent(capture.stamp), false)
+  const unchanged = await workspace.captureSnapshot()
+  assert.equal(await workspace.isSnapshotCurrent(unchanged.stamp), true)
+  assert.equal(await workspace.isSnapshotCurrent(unchanged.stamp), false)
+})
+
+test('untrusted material cannot escape the project directory', async t => {
+  const { open, project, root } = await fixture(t)
+  const workspace = await open()
+  const draft = await workspace.saveDraft({ document, expectedRevision: null })
+  const outside = join(root, 'secret')
+  await writeFile(outside, 'secret')
+  await symlink(outside, join(project, 'node_modules/sample/escape'))
   await assert.rejects(
-    workspace.importVersion(
+    workspace.prepareEnvironment({ environmentId: 'main', expectedRevision: draft.revision }, prepare),
+    { code: 'MATERIAL_PATH_ESCAPE' },
+  )
+})
+
+test('interrupted committed imports retain recoverable intent and cannot enter a backup', async t => {
+  const { open, root } = await fixture(t)
+  const workspace = await open()
+  await ready(workspace)
+  const bundle = await workspace.exportEnvironment('main')
+  const target = await ContentWorkspace.open(join(root, 'import-target'))
+  const importId = 'a'.repeat(64)
+  await assert.rejects(
+    target.importEnvironment(
       bundle,
       {
-        environmentId: 'imported',
         importId,
         beforeCommit: async () => {
-          throw new Error('commit reply lost')
+          throw new Error('response lost after database commit')
         },
       },
       prepare,
     ),
-    /commit reply lost/,
+    /response lost/,
   )
-  assert.equal(await workspace.isSnapshotCurrent(capture.stamp), false)
-  await assert.rejects(workspace.captureSnapshot(), { code: 'WORKSPACE_SNAPSHOT_UNSETTLED' })
-  await assert.rejects(workspace.exportSnapshot(), { code: 'WORKSPACE_SNAPSHOT_UNSETTLED' })
-  // Only the durable operation owner decides commit vs discard.
-  await workspace.recoverImport(importId)
-  const recovered = await workspace.captureSnapshot()
-  assert.equal(recovered.snapshot.versions.length, 2)
-  assert.equal(await workspace.isSnapshotCurrent(recovered.stamp), true)
-  await workspace.forgetImport(importId)
+  await assert.rejects(target.exportSnapshot(), { code: 'WORKSPACE_SNAPSHOT_UNSETTLED' })
+  await target.cleanupStaging()
+  await target.close()
+  const reopened = await ContentWorkspace.open(join(root, 'import-target'))
+  try {
+    const installed = await reopened.recoverImport(importId)
+    assert.equal(installed.installationId, 'main')
+    const draft = await reopened.getDraft('main')
+    await reopened.saveDraft({ document: { ...draft.document, name: 'Later edit' }, expectedRevision: draft.revision })
+    await reopened.recoverImport(importId)
+    assert.equal((await reopened.getDraft('main')).document.name, 'Later edit')
+    await reopened.forgetImport(importId)
+    assert.equal((await reopened.exportSnapshot()).installations.length, 1)
+  } finally {
+    await reopened.close()
+  }
 })
 
-test('a dead owner can be recovered without stealing a live process lock', async t => {
-  const { open, location } = await fixture(t)
-  const module = new URL('../src/content-workspace.ts', import.meta.url).href
-  const child = spawn(
-    process.execPath,
-    [
-      '--input-type=module',
-      '-e',
-      `import { ContentWorkspace } from ${JSON.stringify(module)}; const w=await ContentWorkspace.open(process.argv[1]); console.log(w.workspaceId); setInterval(()=>{},1000);`,
-      location,
-    ],
-    { stdio: ['ignore', 'pipe', 'pipe'] },
-  )
-  t.after(() => {
-    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
-  })
-  const [data] = await once(child.stdout, 'data')
-  const id = String(data).trim()
-  await assert.rejects(open(), { code: 'WORKSPACE_BUSY' })
-  const exited = once(child, 'exit')
-  child.kill('SIGKILL')
-  await exited
-  const recovered = await open()
-  assert.equal(recovered.workspaceId, id)
+test('backup preserves cleared projects and pending dependency edits', async t => {
+  for (const clear of [false, true]) {
+    const { open, root } = await fixture(t)
+    const workspace = await open()
+    const installed = await ready(workspace)
+    const file = join(installed.directory, 'package.json')
+    const manifest = JSON.parse(await readFile(file, 'utf8'))
+    manifest.dependencies.sample = '^2.0.0'
+    manifest.custom = { retained: true }
+    await writeFile(file, JSON.stringify(manifest))
+    await mkdir(join(installed.directory, 'candidates'))
+    await writeFile(join(installed.directory, 'candidates/source.tgz'), 'archive')
+    await assert.rejects(workspace.exportEnvironment('main'), { code: 'ENVIRONMENT_PREPARATION_REQUIRED' })
+    if (clear) await workspace.clearInstallation('main')
+    const snapshot = await workspace.exportSnapshot()
+    const target = await ContentWorkspace.open(join(root, 'restored'))
+    t.after(() => target.close())
+    await target.restoreSnapshot(snapshot, { mode: 'restore' }, prepare)
+    const directory = join(target.root, 'environments/main')
+    assert.deepEqual(JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')), manifest)
+    assert.equal(
+      await readFile(join(directory, 'package-lock.json'), 'utf8'),
+      await readFile(join(installed.directory, 'package-lock.json'), 'utf8'),
+    )
+    assert.equal(await readFile(join(directory, 'candidates/source.tgz'), 'utf8'), 'archive')
+    assert.equal((await target.listInstallations()).length, clear ? 0 : 1)
+    await target.close()
+  }
 })
 
-test('staging cleanup never deletes an active preparation', async t => {
-  const { open, location } = await fixture(t)
-  const workspace = await open({ stagingRetentionMs: 0 })
-  const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  const orphan = randomUUID()
-  await mkdir(join(location, 'staging', orphan))
-  let entered, release
-  const started = new Promise(resolve => {
-    entered = resolve
-  })
-  const gate = new Promise(resolve => {
-    release = resolve
-  })
-  const pending = workspace.prepareVersion({ environmentId: 'main', expectedRevision: draft.revision }, async input => {
-    entered()
-    await gate
-    return prepare(input)
-  })
-  await started
-  assert.deepEqual(await workspace.cleanupStaging(), [orphan])
-  release()
-  assert.equal((await pending).status, 'ready')
+test('a reader keeps consistent materials while the current project is replaced', async t => {
+  const { open, project } = await fixture(t)
+  const workspace = await open()
+  await ready(workspace)
+  const reader = await workspace.acquire('main')
+  try {
+    await writeFile(join(project, 'node_modules/sample/content.json'), '{"power":80}')
+    const draft = await workspace.getDraft('main')
+    const installed = await workspace.prepareEnvironment(
+      { environmentId: 'main', expectedRevision: draft.revision },
+      prepare,
+    )
+    assert.equal(
+      JSON.parse(await readFile(join(reader.directory, 'node_modules/sample/content.json'), 'utf8')).power,
+      40,
+    )
+    assert.equal(
+      JSON.parse(await readFile(join(installed.directory, 'node_modules/sample/content.json'), 'utf8')).power,
+      80,
+    )
+  } finally {
+    await reader.release()
+  }
+  await assert.rejects(readFile(join(reader.directory, 'package.json')), { code: 'ENOENT' })
 })

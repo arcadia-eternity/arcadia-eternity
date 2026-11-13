@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import type { ManagedEnvironmentVersion, ManagementOperation } from '@/types/management'
+import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
 const props = defineProps<{
-  versions: ManagedEnvironmentVersion[]
+  installations: ManagedEnvironmentInstallation[]
   operations: ManagementOperation[]
   busy: boolean
   canImport: boolean
@@ -12,7 +12,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null }]
-  export: [version: ManagedEnvironmentVersion]
+  export: [version: ManagedEnvironmentInstallation]
   download: [operation: ManagementOperation]
 }>()
 const maxBytes = 128 * 1024 * 1024
@@ -29,7 +29,7 @@ const now = ref(Date.now())
 let readGeneration = 0
 let reader: FileReader | undefined
 let timer: ReturnType<typeof setInterval> | undefined
-const readyVersions = computed(() => props.versions.filter(version => version.status === 'ready'))
+const readyVersions = computed(() => props.installations.filter(version => version.status === 'ready'))
 const exports = computed(() => props.operations.filter(operation => operation.kind === 'environment.export'))
 const statuses: Record<ManagementOperation['status'], string> = {
   queued: '等待中',
@@ -96,7 +96,7 @@ async function chooseFile(event: Event) {
     const parsed: unknown = JSON.parse(contents)
     if (
       !record(parsed) ||
-      parsed.format !== 'arcadia.environment-export/1' ||
+      parsed.format !== 'arcadia.environment-export/2' ||
       !record(parsed.document) ||
       parsed.document.schemaVersion !== 2 ||
       !text(parsed.document.id) ||
@@ -144,7 +144,7 @@ function importEnvironment() {
   emit('import', { bundle: bundle.value, ...(environmentId ? { environmentId } : {}), expectedRevision: null })
 }
 function exportEnvironment() {
-  const version = readyVersions.value.find(version => version.versionId === selectedVersion.value)
+  const version = readyVersions.value.find(version => version.installationId === selectedVersion.value)
   if (!props.busy && props.canExport && version) emit('export', version)
 }
 function download(operation: ManagementOperation) {
@@ -157,8 +157,8 @@ watch(
     if (!allowed) clearFile()
   },
 )
-watch(readyVersions, versions => {
-  if (!versions.some(version => version.versionId === selectedVersion.value)) selectedVersion.value = ''
+watch(readyVersions, installations => {
+  if (!installations.some(version => version.installationId === selectedVersion.value)) selectedVersion.value = ''
 })
 onMounted(() => {
   timer = setInterval(() => {
@@ -176,21 +176,21 @@ onBeforeUnmount(() => {
     <h2>导入与导出</h2>
     <div class="transfer-grid">
       <ElForm aria-label="导出环境" @submit.prevent="exportEnvironment" label-position="top">
-        <h3>导出固定版本</h3>
-        <ElFormItem label="要导出的版本">
+        <h3>导出环境</h3>
+        <ElFormItem label="环境">
           <ElSelect v-model="selectedVersion" :disabled="busy || !canExport">
-            <ElOption value="" disabled label="选择已准备的版本" />
+            <ElOption value="" disabled label="选择环境" />
             <ElOption
               v-for="version in readyVersions"
-              :key="version.versionId"
-              :value="version.versionId"
-              :label="String(version.document.name) + ' · ' + String(version.versionId)"
+              :key="version.installationId"
+              :value="version.installationId"
+              :label="String(version.document.name) + ' · ' + String(version.installationId)"
             />
           </ElSelect>
         </ElFormItem>
         <ElButton :disabled="busy || !canExport || !selectedVersion" native-type="submit">创建导出文件</ElButton>
         <p v-if="!canExport" class="hint">导出需要此工作区的导出权限。</p>
-        <p v-else-if="!readyVersions.length" class="hint">准备固定版本后即可导出。</p>
+        <p v-else-if="!readyVersions.length" class="hint">请先准备环境。</p>
       </ElForm>
       <ElForm aria-label="导入环境" @submit.prevent="importEnvironment" label-position="top">
         <h3>导入环境文件</h3>

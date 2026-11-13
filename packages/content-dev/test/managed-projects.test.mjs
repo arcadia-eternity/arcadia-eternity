@@ -33,17 +33,17 @@ test('content acquisition requires its own permission, independent of execution 
     expectedRevision: null,
   })
   await assert.rejects(
-    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
+    projects.prepareEnvironment(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
     { code: 'THIRD_PARTY_CONTENT_NOT_AUTHORIZED' },
   )
-  assert.deepEqual(await workspace.listVersions(), [])
+  assert.deepEqual(await workspace.listInstallations(), [])
 })
 
 test('unregistered sources and registry-protocol injection fail before package installation', async t => {
   const { workspace, projects } = await fixture(t, { allowThirdPartyContent: true })
   let draft = await workspace.saveDraft({ document: { ...document, sources: ['missing'] }, expectedRevision: null })
   await assert.rejects(
-    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
+    projects.prepareEnvironment(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
     { code: 'INSTALL_SOURCE_NOT_REGISTERED' },
   )
   draft = await workspace.saveDraft({
@@ -51,16 +51,16 @@ test('unregistered sources and registry-protocol injection fail before package i
     expectedRevision: draft.revision,
   })
   await assert.rejects(
-    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
+    projects.prepareEnvironment(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
     { code: 'INSTALL_VERSION_INVALID' },
   )
-  assert.deepEqual(await workspace.listVersions(), [])
+  assert.deepEqual(await workspace.listInstallations(), [])
 })
 
 test('empty environment resolves a real standard npm lock offline and cleans staging', async t => {
   const { root, workspace, projects } = await fixture(t)
   const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  const version = await projects.prepareVersion(
+  const version = await projects.prepareEnvironment(
     workspace,
     { environmentId: 'main', expectedRevision: draft.revision },
     noPackages,
@@ -106,7 +106,7 @@ test('host registered built sources install without lifecycle or module executio
     assert.equal(JSON.parse(await readFile(join(packageDirectory, 'content.json'), 'utf8')).power, 40)
     return { contentRevision: 'sample:40', packages: [{ name: 'sample', version: '1.0.0' }] }
   }
-  const version = await projects.prepareVersion(
+  const version = await projects.prepareEnvironment(
     workspace,
     {
       environmentId: 'main',
@@ -119,14 +119,14 @@ test('host registered built sources install without lifecycle or module executio
     validate,
   )
   assert.equal(beforeCommit, true)
-  assert.deepEqual(stages, ['resolving', 'acquiring', 'installing', 'verifying', 'preparing', 'capturing', 'preparing'])
+  assert.deepEqual(stages, ['resolving', 'acquiring', 'installing', 'verifying', 'preparing', 'preparing'])
   await writeFile(join(source, 'content.json'), '{"power":99}')
   assert.equal(
     JSON.parse(await readFile(join(version.directory, 'node_modules/sample/content.json'), 'utf8')).power,
     40,
   )
   const lock = JSON.parse(await readFile(join(version.directory, 'package-lock.json'), 'utf8'))
-  assert.equal(lock.packages['node_modules/sample'].resolved, 'file:candidates/source-0.tgz')
+  assert.match(lock.packages['node_modules/sample'].resolved, /^file:candidates\/source-0-[a-f0-9]{64}\.tgz$/)
 })
 
 test('source dependencies cannot request arbitrary host files or Git commands through npm', async t => {
@@ -146,23 +146,23 @@ test('source dependencies cannot request arbitrary host files or Git commands th
   })
   const draft = await workspace.saveDraft({ document: { ...document, sources: ['sample'] }, expectedRevision: null })
   await assert.rejects(
-    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
+    projects.prepareEnvironment(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
     { code: 'INSTALL_DEPENDENCY_SOURCE_FORBIDDEN' },
   )
-  assert.deepEqual(await workspace.listVersions(), [])
+  assert.deepEqual(await workspace.listInstallations(), [])
 })
 
 test('stale, cancelled and closed requests never produce ready artifacts', async t => {
   const { workspace, projects } = await fixture(t)
   const draft = await workspace.saveDraft({ document, expectedRevision: null })
   await assert.rejects(
-    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: 'old' }, noPackages),
+    projects.prepareEnvironment(workspace, { environmentId: 'main', expectedRevision: 'old' }, noPackages),
     { code: 'REVISION_CONFLICT' },
   )
   const controller = new AbortController()
   controller.abort()
   await assert.rejects(
-    projects.prepareVersion(
+    projects.prepareEnvironment(
       workspace,
       { environmentId: 'main', expectedRevision: draft.revision, signal: controller.signal },
       noPackages,
@@ -171,10 +171,10 @@ test('stale, cancelled and closed requests never produce ready artifacts', async
   )
   await projects.close()
   await assert.rejects(
-    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
+    projects.prepareEnvironment(workspace, { environmentId: 'main', expectedRevision: draft.revision }, noPackages),
     { code: 'INSTALLER_CLOSED' },
   )
-  assert.deepEqual(await workspace.listVersions(), [])
+  assert.deepEqual(await workspace.listInstallations(), [])
 })
 
 test('host registry and resource bounds reject unsafe configuration', () => {
@@ -187,7 +187,7 @@ test('host registry and resource bounds reject unsafe configuration', () => {
   assert.throws(() => new ManagedProjects('/tmp/unused', { maxConcurrent: 0 }), { code: 'INSTALL_LIMIT_INVALID' })
 })
 
-test('shared peer ranges resolve once and an incompatible upgrade preserves existing fixed versions', async t => {
+test('shared peer ranges resolve once and an incompatible upgrade preserves existing fixed installations', async t => {
   const sourceRoot = await mkdtemp(join(tmpdir(), 'shared-peers-'))
   t.after(() => rm(sourceRoot, { recursive: true, force: true }))
   const sources = {}
@@ -225,7 +225,7 @@ test('shared peer ranges resolve once and an incompatible upgrade preserves exis
       packages: inspection.packages.map(({ name, version }) => ({ name, version })),
     }
   }
-  const version = await projects.prepareVersion(
+  const version = await projects.prepareEnvironment(
     workspace,
     { environmentId: 'main', expectedRevision: draft.revision },
     validate,
@@ -237,12 +237,16 @@ test('shared peer ranges resolve once and an incompatible upgrade preserves exis
   manifest.peerDependencies.nature = '^2'
   await writeFile(file, JSON.stringify(manifest))
   await assert.rejects(
-    projects.prepareVersion(workspace, { environmentId: 'main', expectedRevision: draft.revision }, validate),
+    projects.prepareEnvironment(
+      workspace,
+      { environmentId: 'main', expectedRevision: (await workspace.getDraft('main')).revision },
+      validate,
+    ),
     { code: 'ENVIRONMENT_DEPENDENCY_CONFLICT' },
   )
   assert.deepEqual(
-    (await workspace.listVersions()).map(item => item.versionId),
-    [version.versionId],
+    (await workspace.listInstallations()).map(item => item.installationId),
+    [version.installationId],
   )
-  assert.equal((await workspace.getDraft('main')).revision, draft.revision)
+  assert.equal((await workspace.getDraft('main')).revision, version.draftRevision)
 })

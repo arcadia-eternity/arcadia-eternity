@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { valid, validRange } from 'semver'
@@ -7,7 +8,12 @@ import { inspectNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-
 import { normalizeEnvironmentDocument } from './debug-environments.ts'
 import { acquireSource } from './managed-sources.ts'
 import { contentError, materialFiles } from './workspace-materials.ts'
-import type { ContentWorkspace, EnvironmentVersion, PrepareVersionInput, StaticPreparer } from './content-workspace.ts'
+import type {
+  ContentWorkspace,
+  EnvironmentInstallation,
+  PrepareEnvironmentInput,
+  StaticPreparer,
+} from './content-workspace.ts'
 import type { ManagedSource } from './managed-sources.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
@@ -48,7 +54,11 @@ function checkDependencySpecs(manifest: UnknownRecord) {
     const entries = manifest[field]
     if (!isRecord(entries)) throw contentError('INSTALL_DEPENDENCY_INVALID')
     for (const [name, range] of Object.entries(entries)) {
-      if (!packageName.test(name) || typeof range !== 'string' || !validRange(range))
+      if (
+        !packageName.test(name) ||
+        typeof range !== 'string' ||
+        (!validRange(range) && !/^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(range))
+      )
         throw contentError('INSTALL_DEPENDENCY_SOURCE_FORBIDDEN')
     }
   }
@@ -65,7 +75,7 @@ function checkLock(lock: unknown, candidates = false): void {
     )
       throw contentError('INSTALL_LOCK_INVALID')
     if (typeof entry.resolved !== 'string') continue
-    if (candidates && /^file:candidates\/source-[0-9]+\.tgz$/.test(entry.resolved)) continue
+    if (candidates && /^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(entry.resolved)) continue
     const url = new URL(entry.resolved)
     if (url.protocol !== 'https:' || url.username || url.password)
       throw contentError('INSTALL_DEPENDENCY_SOURCE_FORBIDDEN')
@@ -156,17 +166,17 @@ export class ManagedProjects {
       throw contentError('NPM_INSTALL_FAILED')
     }
   }
-  prepareVersion(
+  prepareEnvironment(
     workspace: ContentWorkspace,
     input: {
-      onProgress?: PrepareVersionInput['onProgress']
+      onProgress?: PrepareEnvironmentInput['onProgress']
       environmentId: string
       expectedRevision: string
       signal?: AbortSignal
       beforeCommit?: () => Promise<void>
     },
     validate: StaticPreparer,
-  ): Promise<EnvironmentVersion> {
+  ): Promise<EnvironmentInstallation> {
     if (typeof validate !== 'function') return Promise.reject(contentError('STATIC_PREPARER_REQUIRED'))
     return this.#track(
       this.#prepare(
@@ -175,11 +185,11 @@ export class ManagedProjects {
           if (draft.revision !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
           return draft.document
         },
-        input,
+        { ...input, projectDirectory: join(workspace.root, 'environments', input.environmentId) },
         async (directory, signal) => {
           const current = await workspace.getDraft(input.environmentId)
           if (current.revision !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
-          return workspace.prepareVersion({ ...input, projectDirectory: directory, signal }, validate)
+          return workspace.prepareEnvironment({ ...input, projectDirectory: directory, signal }, validate)
         },
       ),
     )
@@ -187,7 +197,7 @@ export class ManagedProjects {
   /** Transfer an installed project to the host's existing library without a second copy. */
   prepareProject<T>(
     document: unknown,
-    input: { signal?: AbortSignal; onProgress?: PrepareVersionInput['onProgress'] },
+    input: { signal?: AbortSignal; onProgress?: PrepareEnvironmentInput['onProgress']; projectDirectory?: string },
     consume: (directory: string, signal: AbortSignal) => Promise<T>,
   ): Promise<T> {
     return this.#track(this.#prepare(async () => document, input ?? {}, consume))
@@ -199,7 +209,7 @@ export class ManagedProjects {
   }
   async #prepare<T>(
     readDocument: () => Promise<unknown>,
-    input: { signal?: AbortSignal; onProgress?: PrepareVersionInput['onProgress'] },
+    input: { signal?: AbortSignal; onProgress?: PrepareEnvironmentInput['onProgress']; projectDirectory?: string },
     consume: (directory: string, signal: AbortSignal) => Promise<T>,
   ): Promise<T> {
     if (this.#controller.signal.aborted) throw contentError('INSTALLER_CLOSED')
@@ -220,7 +230,11 @@ export class ManagedProjects {
         throw contentError('INSTALL_PACKAGE_LIMIT')
       const dependencies: Record<string, string> = {}
       for (const [name, range] of Object.entries(document.packages)) {
-        if (typeof range !== 'string' || range.length > 256 || !validRange(range))
+        if (
+          typeof range !== 'string' ||
+          range.length > 256 ||
+          (!validRange(range) && !/^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(range))
+        )
           throw contentError('INSTALL_VERSION_INVALID')
         dependencies[name] = range
       }
@@ -231,6 +245,14 @@ export class ManagedProjects {
       await mkdir(join(this.root, 'staging'), { recursive: true, mode: 0o700 })
       directory = await mkdtemp(join(this.root, 'staging', 'prepare-'))
       await mkdir(join(directory, 'candidates'))
+      for (const spec of Object.values(dependencies)) {
+        if (!spec.startsWith('file:')) continue
+        if (!input.projectDirectory) throw contentError('ENVIRONMENT_SOURCE_MISSING')
+        const relativeFile = spec.slice(5)
+        const sourceFile = join(await realpath(input.projectDirectory), relativeFile)
+        if ((await realpath(sourceFile)) !== sourceFile) throw contentError('MATERIAL_PATH_ESCAPE')
+        await writeFile(join(directory, relativeFile), await readFile(sourceFile))
+      }
       const provenance: Record<string, unknown> = {}
       for (const [index, name] of document.sources.entries()) {
         if (Object.hasOwn(dependencies, name)) throw contentError('INSTALL_DUPLICATE_PACKAGE')
@@ -266,18 +288,32 @@ export class ManagedProjects {
         const { readdir } = await import('node:fs/promises')
         const files = await readdir(output)
         if (files.length !== 1 || !files[0].endsWith('.tgz')) throw contentError('INSTALL_PACK_INVALID')
-        const filename = 'candidates/source-' + index + '.tgz'
+        const archiveDigest = createHash('sha256')
+          .update(await readFile(join(output, files[0])))
+          .digest('hex')
+        const filename = `candidates/source-${index}-${archiveDigest}.tgz`
         await rename(join(output, files[0]), join(directory, filename))
         dependencies[name] = 'file:' + filename
         provenance[name] = captured.provenance
         await rm(captured.directory, { recursive: true, force: true })
         await rm(output, { recursive: true, force: true })
       }
+      const savedManifest = input.projectDirectory
+        ? (JSON.parse(await readFile(join(input.projectDirectory, 'package.json'), 'utf8')) as UnknownRecord)
+        : {}
+      if (input.projectDirectory) {
+        const lock = await readFile(join(input.projectDirectory, 'package-lock.json')).catch(error => {
+          if (errorCode(error) !== 'ENOENT') throw error
+          return undefined
+        })
+        if (lock) await writeFile(join(directory, 'package-lock.json'), lock)
+      }
       await writeFile(
         join(directory, 'package.json'),
         JSON.stringify(
           {
-            name: 'arcadia-managed-environment',
+            ...savedManifest,
+            name: savedManifest.name ?? 'arcadia-managed-environment',
             version: '1.0.0',
             private: true,
             dependencies,

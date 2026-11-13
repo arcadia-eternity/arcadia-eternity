@@ -68,9 +68,9 @@ export function registerEnvironmentCommands(content: Command, context: CommandCo
   const workspace = () => '/workspaces/' + segment(command.opts<{ workspace?: string }>().workspace ?? '')
   const report = (value: unknown) => context.stdout(JSON.stringify(value) + '\n')
   command.command('list').action(async () => report(await request('GET', workspace() + '/environments')))
-  command.command('versions').action(async () => {
-    const result = (await request('GET', workspace() + '/environments')) as { versions: unknown[] }
-    await report(result.versions)
+  command.command('installations').action(async () => {
+    const result = (await request('GET', workspace() + '/environments')) as { installations: unknown[] }
+    await report(result.installations)
   })
   command
     .command('save')

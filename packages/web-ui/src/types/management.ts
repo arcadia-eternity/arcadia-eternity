@@ -7,7 +7,7 @@ export type {
   ManagedServerSettings,
   ManagedEnvironmentDocument,
   ManagedEnvironment,
-  ManagedEnvironmentVersion,
+  ManagedEnvironmentInstallation,
   ManagedBinding,
   ManagementOperation,
   ManagementGrant,

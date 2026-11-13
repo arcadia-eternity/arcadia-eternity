@@ -62,7 +62,7 @@ function rows(serverId: string, path: string) {
       ],
     }
   if (path.endsWith('/environments'))
-    return { environments: [{ document: document(serverId), revision: '1' }], versions: [] }
+    return { environments: [{ document: document(serverId), revision: '1' }], installations: [] }
   if (path.endsWith('/bindings')) return { bindings: [] }
   if (path === '/operations')
     return { operations: [{ id: `operation-${serverId}`, kind: 'prepare', status: 'succeeded' }] }
@@ -295,10 +295,10 @@ describe('management console authentication and mutations', () => {
     })
     const console = useManagementConsole()
     console.setClient(a.client)
-    const body = { versionId: 'version-a' }
-    expect(await console.mutate('POST', '/servers/a/bindings/default/publish', body, 2)).toBe(false)
-    expect(await console.mutate('POST', '/servers/a/bindings/default/publish', body, 2)).toBe(true)
-    expect(await console.mutate('POST', '/servers/a/bindings/default/publish', body, 2)).toBe(true)
+    const body = { installationId: 'version-a' }
+    expect(await console.mutate('POST', '/servers/a/bindings/default/reload', body, 2)).toBe(false)
+    expect(await console.mutate('POST', '/servers/a/bindings/default/reload', body, 2)).toBe(true)
+    expect(await console.mutate('POST', '/servers/a/bindings/default/reload', body, 2)).toBe(true)
     const mutations = a.request.mock.calls.filter(call => call[0] === 'POST')
     expect(mutations).toHaveLength(3)
     expect(mutations[0]![2]?.idempotencyKey).toBeTruthy()
@@ -342,7 +342,7 @@ describe('management console authentication and mutations', () => {
     for (const values of [
       console.servers,
       console.environments,
-      console.versions,
+      console.installations,
       console.bindings,
       console.operations,
       console.grants,

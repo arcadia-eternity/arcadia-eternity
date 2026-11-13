@@ -13,7 +13,7 @@ import type {
   ManagedServiceCredential,
   ManagedBinding,
   ManagedEnvironment,
-  ManagedEnvironmentVersion,
+  ManagedEnvironmentInstallation,
   ManagedServer,
   ManagementCapabilities,
   ManagementGrant,
@@ -59,7 +59,7 @@ export function useManagementConsole() {
   const capabilities = ref<ManagementCapabilities>()
   const servers = ref<ManagedServer[]>([])
   const environments = ref<ManagedEnvironment[]>([])
-  const versions = ref<ManagedEnvironmentVersion[]>([])
+  const installations = ref<ManagedEnvironmentInstallation[]>([])
   const bindings = ref<ManagedBinding[]>([])
   const operations = ref<ManagementOperation[]>([])
   const grants = ref<ManagementGrant[]>([])
@@ -100,7 +100,7 @@ export function useManagementConsole() {
     managementPrincipalId.value = ''
     servers.value = []
     environments.value = []
-    versions.value = []
+    installations.value = []
     bindings.value = []
     operations.value = []
     grants.value = []
@@ -227,11 +227,11 @@ export function useManagementConsole() {
           ? current.request<{ servers: ManagedServer[] }>('GET', '/servers')
           : Promise.resolve({ servers: [] }),
         supports('workspace.environments') && allowed('workspace', 'read')
-          ? current.request<{ environments: ManagedEnvironment[]; versions: ManagedEnvironmentVersion[] }>(
+          ? current.request<{ environments: ManagedEnvironment[]; installations: ManagedEnvironmentInstallation[] }>(
               'GET',
               `/workspaces/${encodeURIComponent(cap.workspaceId)}/environments`,
             )
-          : Promise.resolve({ environments: [], versions: [] }),
+          : Promise.resolve({ environments: [], installations: [] }),
         supports('server.bindings') && allowed('server', 'read')
           ? current.request<{ bindings: ManagedBinding[] }>(
               'GET',
@@ -264,7 +264,7 @@ export function useManagementConsole() {
       capabilities.value = cap
       servers.value = serverRows.servers
       environments.value = envRows.environments
-      versions.value = envRows.versions
+      installations.value = envRows.installations
       bindings.value = bindingRows.bindings
       operations.value = operationRows.operations
       grants.value = grantRows.grants
@@ -434,7 +434,7 @@ export function useManagementConsole() {
     server,
     workspaceId,
     environments,
-    versions,
+    installations,
     bindings,
     operations,
     grants,

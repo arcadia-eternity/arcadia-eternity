@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import './managementStyles'
-import { ElTable, ElTableColumn, ElButton, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
+import { ElButton, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
 import { computed, ref, watch } from 'vue'
-import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentVersion } from '@/types/management'
+import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
 
 const props = defineProps<{
   heading?: string
   environments: ManagedEnvironment[]
-  versions: ManagedEnvironmentVersion[]
+  installations: ManagedEnvironmentInstallation[]
   canEdit: boolean
   canPrepare: boolean
   canDelete?: boolean
@@ -19,9 +19,9 @@ const emit = defineEmits<{
   packageState: [environment: ManagedEnvironment, name: string, enabled: boolean, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
   prepare: [environment: ManagedEnvironment]
-  use: [version: ManagedEnvironmentVersion, executionPolicy?: 'server' | 'peer']
-  delete: [version: ManagedEnvironmentVersion]
-  references: [version: ManagedEnvironmentVersion]
+  use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
+  delete: [version: ManagedEnvironmentInstallation]
+  references: [version: ManagedEnvironmentInstallation]
   deleteDraft: [environment: ManagedEnvironment]
 }>()
 const editing = ref(false)
@@ -37,17 +37,15 @@ const packageRows = ref<{ name: string; version: string }[]>([])
 const sourceText = ref('')
 const validation = ref('')
 const selectedId = ref('')
-const detailTab = ref<'packages' | 'versions'>('packages')
 const selectedEnvironment = computed(
   () => props.environments.find(item => item.document.id === selectedId.value) ?? props.environments[0],
 )
 const latestVersion = computed(
   () =>
-    props.versions
+    props.installations
       .filter(item => item.environmentId === selectedEnvironment.value?.document.id && item.status === 'ready')
       .sort((a, b) => (b.status === 'ready' ? b.createdAt : 0) - (a.status === 'ready' ? a.createdAt : 0))[0],
 )
-const deletingVersion = ref('')
 const deletingDraft = ref('')
 const disablingPackage = ref('')
 function changePackage(name: string, enabled: boolean, cascade = false) {
@@ -60,13 +58,6 @@ function duplicate(environment: ManagedEnvironment) {
   revision.value = null
   document.value!.id = `${environment.document.id.slice(0, 60)}-copy-${crypto.randomUUID().slice(0, 6)}`
   document.value!.name += ' 副本'
-}
-function deleteVersion(version: ManagedEnvironmentVersion) {
-  deletingVersion.value = ''
-  emit('delete', version)
-}
-function managedVersion(row: Record<PropertyKey, unknown>) {
-  return row as unknown as ManagedEnvironmentVersion
 }
 function deleteDraft(environment: ManagedEnvironment) {
   deletingDraft.value = ''
@@ -101,9 +92,6 @@ function setTeamSize(key: 'minSize' | 'maxSize', value: string) {
   else team[key] = Number(value)
   document.value.rules.team = team
 }
-const selectedVersions = computed(() =>
-  props.versions.filter(version => version.environmentId === selectedEnvironment.value?.document.id),
-)
 const clone = (value: ManagedEnvironmentDocument): ManagedEnvironmentDocument => JSON.parse(JSON.stringify(value))
 
 function edit(environment?: ManagedEnvironment) {
@@ -152,7 +140,7 @@ function save() {
         新建环境
       </ElButton>
     </header>
-    <p v-if="!canEdit" class="hint">无权编辑或准备版本。</p>
+    <p v-if="!canEdit" class="hint">无编辑权限。</p>
     <div class="workspace-columns">
       <nav class="environment-list" aria-label="选择环境">
         <ElButton
@@ -193,25 +181,17 @@ function save() {
             </div>
           </header>
           <div v-if="deletingDraft === selectedEnvironment.document.id" role="group" aria-label="删除环境确认">
-            <p>删除草稿前需先移除其固定版本与服务器引用。</p>
+            <p>删除后将移除此环境及其安装文件。</p>
             <ElButton :disabled="busy" @click="deleteDraft(selectedEnvironment)" native-type="button"
               >确认删除环境</ElButton
             >
             <ElButton @click="deletingDraft = ''" native-type="button">取消</ElButton>
           </div>
-          <nav class="actions" aria-label="环境详情">
-            <ElButton @click="detailTab = 'packages'" :aria-pressed="detailTab === 'packages'" native-type="button"
-              >资源包</ElButton
-            >
-            <ElButton @click="detailTab = 'versions'" :aria-pressed="detailTab === 'versions'" native-type="button"
-              >固定版本</ElButton
-            >
-          </nav>
-          <section v-if="detailTab === 'packages'" class="members">
+          <section class="members">
             <template
               v-if="latestVersion?.status !== 'ready' || latestVersion.draftRevision !== selectedEnvironment.revision"
             >
-              <h4>草稿中的直接依赖</h4>
+              <h4>依赖</h4>
               <ul class="package-list">
                 <li v-for="(range, name) in selectedEnvironment.document.packages" :key="name">
                   <strong>{{ name }}</strong>
@@ -221,9 +201,9 @@ function save() {
               </ul>
             </template>
             <template v-if="latestVersion?.status === 'ready' && latestVersion.members">
-              <h4>最近固定版本的完整资源包列表</h4>
+              <h4>已安装资源包</h4>
               <p v-if="latestVersion.draftRevision !== selectedEnvironment.revision" class="hint">
-                草稿已更改，以下是上次成功准备的结果。
+                依赖已更改，请重新准备。
               </p>
               <article v-for="member in latestVersion.members" :key="member.name" class="member">
                 <strong>{{ member.name }}</strong>
@@ -240,9 +220,7 @@ function save() {
                 >
                 <div v-if="disablingPackage === member.name" role="group" aria-label="停用资源包确认">
                   <p>
-                    停用会修改草稿，已准备版本保持不变。{{
-                      member.requiredBy.length ? '其他包依赖它，可以选择连带停用。' : ''
-                    }}
+                    {{ member.requiredBy.length ? '其他包依赖它，可以选择连带停用。' : '' }}
                   </p>
                   <ElButton :disabled="busy || !canEdit" @click="changePackage(member.name, false)" native-type="button"
                     >确认停用</ElButton
@@ -394,69 +372,11 @@ function save() {
             <ElButton @click="editing = false" native-type="button">关闭编辑</ElButton>
           </div>
         </ElForm>
-        <template v-if="!editing && detailTab === 'versions'">
-          <header class="section-heading">
-            <h3>固定版本</h3>
-          </header>
-          <div class="table-wrap">
-            <ElTable :data="selectedVersions" row-key="versionId" stripe empty-text="暂无符合条件的记录">
-              <ElTableColumn label="环境" min-width="180">
-                <template #default="{ row: version }">{{
-                  version.status === 'ready' ? version.document.name : (version.environmentId ?? '未知环境')
-                }}</template>
-              </ElTableColumn>
-              <ElTableColumn label="版本" min-width="150">
-                <template #default="{ row: version }">
-                  <code :title="version.versionId">{{ version.versionId.slice(0, 16) }}</code>
-                  <small v-if="version.status === 'ready'">{{ new Date(version.createdAt).toLocaleString() }}</small>
-                </template>
-              </ElTableColumn>
-              <ElTableColumn label="状态" min-width="150">
-                <template #default="{ row: version }"
-                  >{{ version.status === 'ready' ? '已准备' : '材料不可用'
-                  }}<small v-if="version.status === 'unavailable'">{{ version.reason }}</small>
-                </template>
-              </ElTableColumn>
-              <ElTableColumn label="操作" min-width="240">
-                <template #default="{ row: version }">
-                  <ElButton :disabled="busy" @click="emit('references', managedVersion(version))" native-type="button"
-                    >查看引用</ElButton
-                  >
-                  <ElButton
-                    :disabled="busy || version.status !== 'ready' || !canUse"
-                    :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
-                    @click="emit('use', managedVersion(version))"
-                    native-type="button"
-                  >
-                    用于服务器
-                  </ElButton>
-                  <ElButton
-                    :disabled="busy || version.status !== 'ready' || !canUse"
-                    :title="!canUse ? '需要工作区使用和服务器绑定管理权限' : undefined"
-                    @click="emit('use', managedVersion(version), 'peer')"
-                    native-type="button"
-                  >
-                    用于玩家托管
-                  </ElButton>
-                  <ElButton
-                    v-if="canDelete && deletingVersion !== version.versionId"
-                    :disabled="busy"
-                    @click="deletingVersion = version.versionId"
-                    native-type="button"
-                  >
-                    删除版本
-                  </ElButton>
-                  <span v-if="deletingVersion === version.versionId">
-                    <ElButton :disabled="busy" @click="deleteVersion(managedVersion(version))" native-type="button"
-                      >确认删除</ElButton
-                    >
-                    <ElButton @click="deletingVersion = ''" native-type="button">取消</ElButton>
-                  </span>
-                </template>
-              </ElTableColumn>
-            </ElTable>
-          </div>
-        </template>
+        <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
+          <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
+          <ElButton :disabled="busy || !canUse" @click="emit('use', latestVersion)">服务器使用</ElButton>
+          <ElButton :disabled="busy || !canUse" @click="emit('use', latestVersion, 'peer')">P2P 使用</ElButton>
+        </section>
         <footer v-if="selectedEnvironment && !editing" class="workspace-footer">
           <ElButton
             class="primary"
@@ -465,7 +385,7 @@ function save() {
             native-type="button"
             type="primary"
           >
-            准备版本
+            准备环境
           </ElButton>
         </footer>
       </div>

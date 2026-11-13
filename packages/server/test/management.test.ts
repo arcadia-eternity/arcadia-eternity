@@ -294,7 +294,7 @@ describe('unified management HTTP and durable environment publication', () => {
     expect((await env.request('/servers')).response.status).toBe(401)
   })
 
-  it('prepares actual captured npm materials, publishes only explicitly, survives restart, and preserves versions', async () => {
+  it('prepares actual captured npm materials, publishes only explicitly, survives restart, and preserves installations', async () => {
     const source = await portableFixture()
     cleanups.push(() => source.dispose())
     const env = await setup(source.directory)
@@ -313,12 +313,12 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(prepared.response.status).toBe(202)
     const preparation = await completed(env.storage, prepared.body.id)
     expect(preparation.status, JSON.stringify(preparation)).toBe('succeeded')
-    const version = preparation.result as { versionId: string }
+    const version = preparation.result as { installationId: string; environmentId: string }
     expect(JSON.stringify(preparation.result)).not.toContain(source.directory)
     expect(env.app.environments.list()).toHaveLength(0)
     const created = await env.request('/servers/managed-test/bindings', 'POST', {
       environmentId: 'community',
-      versionId: version.versionId,
+      installationId: version.installationId,
       enabled: true,
       visibility: 'public',
       matchmakingEnabled: true,
@@ -326,18 +326,18 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(created.response.status).toBe(201)
     const path = `/servers/managed-test/bindings/${created.body.id}`
     const publication = await env.request(
-      path + '/publish',
+      path + '/reload',
       'POST',
-      { versionId: version.versionId },
+      { installationId: version.installationId },
       { 'If-Match': String(created.body.revision), 'Idempotency-Key': 'publish-1' },
     )
     expect(publication.response.status).toBe(202)
     expect((await completed(env.storage, publication.body.id)).status).toBe('succeeded')
     await expect.poll(() => env.app.environments.list().length).toBe(1)
     const replay = await env.request(
-      path + '/publish',
+      path + '/reload',
       'POST',
-      { versionId: version.versionId },
+      { installationId: version.installationId },
       { 'If-Match': String(created.body.revision), 'Idempotency-Key': 'publish-1' },
     )
     expect(replay.response.status).toBe(202)
@@ -352,11 +352,13 @@ describe('unified management HTTP and durable environment publication', () => {
     ).toBe(200)
     expect(env.app.environments.list()).toHaveLength(0)
     expect(lease.descriptor.id).toBe(previousRuntime)
-    await expect(env.workspace.deleteVersion(version.versionId)).rejects.toMatchObject({ code: 'ENVIRONMENT_IN_USE' })
+    await expect(env.workspace.clearInstallation(version.installationId)).rejects.toMatchObject({
+      code: 'ENVIRONMENT_IN_USE',
+    })
     await lease.release()
     await env.restart()
     const restored = (await env.request('/servers/managed-test/bindings')).body.bindings[0]
-    expect(restored.effectiveVersionId).toBe(version.versionId)
+    expect(restored.environmentId).toBe(version.environmentId)
     expect(restored.condition).toBe('available')
     expect(restored.observedBootId).toBe(env.app.management!.bootId)
   }, 30000)
@@ -379,9 +381,9 @@ describe('unified management HTTP and durable environment publication', () => {
     )
     const preparation = await completed(env.storage, prepared.body.id)
     expect(preparation.status).toBe('succeeded')
-    const versionId = (preparation.result as { versionId: string }).versionId
+    const installationId = (preparation.result as { installationId: string }).installationId
     const exported = await env.request(
-      `${base}/versions/${versionId}/export`,
+      `${base}/installations/${installationId}/export`,
       'POST',
       {},
       { 'Idempotency-Key': 'export-file' },
@@ -405,7 +407,7 @@ describe('unified management HTTP and durable environment publication', () => {
     const importOperation = await completed(env.storage, imported.body.id)
     expect(importOperation.status, JSON.stringify(importOperation)).toBe('succeeded')
     expect((importOperation.result as { environmentId: string }).environmentId).toBe('copied')
-    expect((await env.request(`${base}/versions/${versionId}/references`)).body.references).toEqual([])
+    expect((await env.request(`${base}/installations/${installationId}/references`)).body.references).toEqual([])
   }, 30000)
 
   it('keeps unauthorized tokens out of mutation and refuses content publication on an official-policy host', async () => {
@@ -436,17 +438,17 @@ describe('unified management HTTP and durable environment publication', () => {
     })
     const task = await completed(env.storage, (prepared.body as { id: string }).id)
     expect(task.status).toBe('succeeded')
-    const version = task.result as { versionId: string }
+    const version = task.result as { installationId: string }
     const created = await env.request('/servers/managed-test/bindings', 'POST', {
       environmentId: 'private',
-      versionId: version.versionId,
+      installationId: version.installationId,
       enabled: true,
       visibility: 'public',
     })
     const publication = await env.request(
-      `/servers/managed-test/bindings/${created.body.id}/publish`,
+      `/servers/managed-test/bindings/${created.body.id}/reload`,
       'POST',
-      { versionId: version.versionId },
+      { installationId: version.installationId },
       { 'If-Match': String(created.body.revision), 'Idempotency-Key': 'official-deny' },
     )
     expect((await completed(env.storage, publication.body.id)).status).toBe('failed')
@@ -482,6 +484,6 @@ it('changes package state through the owning workspace with revision checks and 
     enabled: false,
   })
   expect(unresolved.body.error.code).toBe('ENVIRONMENT_DEPENDENCIES_UNRESOLVED')
-  expect(await env.workspace.listVersions()).toEqual([])
+  expect(await env.workspace.listInstallations()).toEqual([])
   expect(env.app.environments.list().filter(item => item.id !== 'official')).toEqual([])
 })

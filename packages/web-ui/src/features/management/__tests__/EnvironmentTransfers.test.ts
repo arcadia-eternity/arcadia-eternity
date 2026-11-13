@@ -2,7 +2,7 @@ import { ElSelect, ElOption } from 'element-plus'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import EnvironmentTransfers from '../EnvironmentTransfers.vue'
-import type { ManagedEnvironmentVersion, ManagementOperation } from '@/types/management'
+import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
 const document = {
   schemaVersion: 2 as const,
@@ -14,13 +14,13 @@ const document = {
   requires: {},
 }
 const bundle = () => ({
-  format: 'arcadia.environment-export/1',
+  format: 'arcadia.environment-export/2',
   document,
   contentRevision: 'content-123',
   files: [{ path: 'package.json', data: 'e30=' }],
 })
-const version: ManagedEnvironmentVersion = {
-  versionId: 'version-1',
+const version: ManagedEnvironmentInstallation = {
+  installationId: 'version-1',
   environmentId: document.id,
   workspaceId: 'workspace-a',
   document,
@@ -45,7 +45,7 @@ const pages: VueWrapper[] = []
 const button = (page: VueWrapper, text: string) => page.findAll('button').find(item => item.text() === text)!
 function open(overrides: Record<string, unknown> = {}) {
   const page = mount(EnvironmentTransfers, {
-    props: { versions: [version], operations: [], busy: false, canImport: true, canExport: true, ...overrides },
+    props: { installations: [version], operations: [], busy: false, canImport: true, canExport: true, ...overrides },
   })
   pages.push(page)
   return page
@@ -132,8 +132,8 @@ describe('environment transfers', () => {
     const page = open()
     await page.findComponent(ElSelect).setValue('version-1')
     await page.setProps({
-      versions: [
-        { versionId: 'missing', workspaceId: 'workspace-a', status: 'unavailable', reason: 'missing materials' },
+      installations: [
+        { installationId: 'missing', workspaceId: 'workspace-a', status: 'unavailable', reason: 'missing materials' },
       ],
     })
     expect(page.findComponent(ElSelect).findAllComponents(ElOption)).toHaveLength(1)

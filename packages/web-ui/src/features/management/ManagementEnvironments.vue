@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElTag, ElCard, ElCheckbox, ElFormItem, ElSelect, ElOption, ElButton } from 'element-plus'
+import { ElTag, ElCard, ElCheckbox, ElButton } from 'element-plus'
 import type { ManagementController } from './useManagementController'
 import EnvironmentWorkspace from './EnvironmentWorkspace.vue'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
@@ -10,16 +10,15 @@ const {
   client,
   server,
   environments,
-  versions,
+  installations,
   bindings,
   operations,
   busy,
   can,
   environmentSaveSequence,
-  bindingVersion,
   deletingBinding,
-  referenceVersion,
-  versionReferences,
+  referenceEnvironment,
+  environmentReferences,
   downloading,
   deleteBinding,
   tab,
@@ -31,20 +30,19 @@ const {
   saveEnvironment,
   prepareEnvironment,
   deleteEnvironment,
-  useVersion,
+  useEnvironment,
   inspectReferences,
   exportEnvironment,
   importEnvironment,
   downloadEnvironment,
   patchBinding,
-  publish,
+  reloadEnvironment,
   setDefault,
 } = controller
 </script>
 <template>
   <section v-if="tab === 'environments' && server" aria-label="服务器玩法">
     <h2>运行环境</h2>
-    <p class="hint">发布的版本仅用于新房间。</p>
     <ElCard shadow="never" v-for="binding in bindings" :key="binding.id" class="binding-card">
       <header>
         <h3>
@@ -58,10 +56,6 @@ const {
       <dl>
         <dt>对局执行</dt>
         <dd>{{ binding.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行' }}</dd>
-        <dt>期望版本</dt>
-        <dd>{{ binding.desiredVersionId ?? '未选择' }}</dd>
-        <dt>实际版本</dt>
-        <dd>{{ binding.effectiveVersionId ?? '尚未生效' }}</dd>
       </dl>
       <p v-if="binding.reason" class="message error">{{ contentTaskError(binding.reason) }}</p>
       <div class="binding-options">
@@ -95,51 +89,10 @@ const {
           @change="patchBinding(binding, { matchmakingEnabled: Boolean($event) })"
           >开放匹配</ElCheckbox
         >
-        <ElCheckbox
-          :model-value="binding.selection === 'follow-ready'"
-          :disabled="
-            busy || !can('server', 'bindings.manage') || (binding.selection !== 'follow-ready' && !canActivateBinding)
-          "
-          @change="
-            patchBinding(binding, {
-              selection: Boolean($event) ? 'follow-ready' : 'pinned',
-            })
-          "
-          >跟随此环境的就绪版本</ElCheckbox
-        >
       </div>
-      <p v-if="binding.selection === 'follow-ready'" class="hint">准备新版本后会自动发布。</p>
       <div class="actions">
-        <ElFormItem label="准备发布的版本">
-          <ElSelect
-            :model-value="bindingVersion[binding.id] ?? binding.desiredVersionId ?? binding.effectiveVersionId ?? ''"
-            @change="bindingVersion[binding.id] = $event"
-          >
-            <ElOption value="" disabled label="选择版本" />
-            <ElOption
-              v-for="version in versions.filter(
-                item => item.environmentId === binding.environmentId && item.status === 'ready',
-              )"
-              :key="version.versionId"
-              :value="version.versionId"
-              :label="
-                String(version.versionId.slice(0, 16)) +
-                ' · ' +
-                String(version.status === 'ready' ? new Date(version.createdAt).toLocaleString() : '材料不可用')
-              "
-            >
-            </ElOption>
-          </ElSelect>
-        </ElFormItem>
-        <ElButton
-          class="primary"
-          :disabled="busy || !canActivateBinding"
-          :title="canActivateBinding ? undefined : '需要服务器发布和工作区使用权限'"
-          @click="publish(binding)"
-          native-type="button"
-          type="primary"
-        >
-          发布所选版本</ElButton
+        <ElButton :disabled="busy || !canActivateBinding" @click="reloadEnvironment(binding)" native-type="button"
+          >重新加载</ElButton
         >
         <ElButton
           :disabled="busy || !can('server', 'settings.manage') || binding.condition !== 'available'"
@@ -168,7 +121,7 @@ const {
     heading="服务器环境库"
     :key="client?.context.endpoint"
     :environments="environments"
-    :versions="versions"
+    :installations="installations"
     :can-edit="can('workspace', 'edit')"
     :can-prepare="can('workspace', 'prepare')"
     :can-use="can('workspace', 'environment.use') && can('server', 'bindings.manage')"
@@ -187,31 +140,31 @@ const {
         })
     "
     @delete-draft="deleteEnvironment"
-    @use="useVersion"
+    @use="useEnvironment"
     @references="inspectReferences"
-    @delete="version => state.mutate('DELETE', `${workspacePath}/versions/${encode(version.versionId)}`)"
+    @delete="version => state.mutate('DELETE', `${workspacePath}/installations/${encode(version.installationId)}`)"
   >
   </EnvironmentWorkspace>
-  <section v-if="tab === 'environments' && referenceVersion" aria-label="版本引用" class="message">
-    <h3>版本引用</h3>
+  <section v-if="tab === 'environments' && referenceEnvironment" aria-label="环境引用" class="message">
+    <h3>环境引用</h3>
     <p>
-      <code>{{ referenceVersion }}</code>
+      <code>{{ referenceEnvironment }}</code>
     </p>
-    <p v-if="!versionReferences.length">无版本引用</p>
+    <p v-if="!environmentReferences.length">无环境引用</p>
     <template v-else>
-      <p>以下使用方仍保留此版本。解除绑定或等待正在使用的对局结束后，才可以删除。</p>
-      <p v-for="(reference, index) in versionReferences" :key="index">
+      <p>以下使用方仍保留此环境。解除绑定或等待正在使用的对局结束后，才可以删除。</p>
+      <p v-for="(reference, index) in environmentReferences" :key="index">
         {{ reference.kind === 'runtime' ? '正在使用' : '持久引用' }} ·
         {{ reference.serverId ?? reference.owner ?? reference.id ?? reference.retentionId
         }}<span v-if="reference.bindingId"> · 绑定 {{ reference.bindingId }}</span>
       </p>
     </template>
-    <ElButton @click="referenceVersion = ''" native-type="button">关闭引用</ElButton>
+    <ElButton @click="referenceEnvironment = ''" native-type="button">关闭引用</ElButton>
   </section>
   <EnvironmentTransfers
     v-if="tab === 'environments' && supported('workspace.transfers')"
     :key="client?.context.endpoint"
-    :versions="versions"
+    :installations="installations"
     :operations="operations"
     :busy="busy || !!downloading"
     :can-import="can('workspace', 'edit') && can('workspace', 'prepare')"

@@ -7,7 +7,7 @@ import type {
   ManagedBinding,
   ManagedEnvironment,
   ManagedEnvironmentDocument,
-  ManagedEnvironmentVersion,
+  ManagedEnvironmentInstallation,
   ManagedServerSettings,
   ManagementOperation,
   ManagementScope,
@@ -17,14 +17,7 @@ import { suppressManagementAccount } from '@/services/managementSession'
 import { startAuthentication } from '@simplewebauthn/browser'
 
 export type ManagementTab =
-  | 'environments'
-  | 'server'
-  | 'network'
-  | 'battles'
-  | 'accounts'
-  | 'tasks'
-  | 'security'
-  | 'permissions'
+  'environments' | 'server' | 'network' | 'battles' | 'accounts' | 'tasks' | 'security' | 'permissions'
 export interface ManagementConsoleProps {
   initialTarget?: 'local' | 'server'
   initialTab?: ManagementTab
@@ -42,7 +35,7 @@ export function useManagementController(
     server,
     workspaceId,
     environments,
-    versions,
+    installations,
     bindings,
     operations,
     grants,
@@ -72,13 +65,12 @@ export function useManagementController(
   const serverName = ref('')
   const nameRevision = ref<number>()
   const settingsSaveSequence = ref(0)
-  const bindingVersion = ref<Record<string, string>>({})
   const principalId = ref('')
   const newPrincipalName = ref('')
   const newPrincipalAccount = ref('')
   const deletingBinding = ref('')
-  const referenceVersion = ref('')
-  const versionReferences = ref<Record<string, string>[]>([])
+  const referenceEnvironment = ref('')
+  const environmentReferences = ref<Record<string, string>[]>([])
   let referenceRequest = 0
   const downloading = ref('')
   const downloadUrls = new Map<string, ReturnType<typeof setTimeout>>()
@@ -136,7 +128,7 @@ export function useManagementController(
   }
   const taskKinds: Record<string, string> = {
     'environment.prepare': '准备环境',
-    'binding.publish': '发布环境',
+    'binding.reload': '重新加载环境',
     'environment.import': '导入环境',
     'environment.export': '导出环境',
     'server.backup': '服务器备份',
@@ -144,7 +136,7 @@ export function useManagementController(
   }
   const auditLabels: Record<string, string> = {
     'account.session': '账户登录',
-    'binding.publish': '发布环境',
+    'binding.reload': '重新加载环境',
     running: '任务开始',
     committed: '变更已提交',
     succeeded: '任务完成',
@@ -160,7 +152,7 @@ export function useManagementController(
     acquiring: '获取来源',
     installing: '下载并安装',
     verifying: '校验材料',
-    preparing: '准备固定版本',
+    preparing: '准备环境',
     exporting: '正在导出环境',
     importing: '正在导入环境',
     capturing: '正在保存材料与状态',
@@ -218,13 +210,12 @@ export function useManagementController(
     accountLoginSupported.value = false
     serverName.value = ''
     nameRevision.value = undefined
-    bindingVersion.value = {}
     principalId.value = ''
     newPrincipalName.value = ''
     newPrincipalAccount.value = ''
     deletingBinding.value = ''
-    referenceVersion.value = ''
-    versionReferences.value = []
+    referenceEnvironment.value = ''
+    environmentReferences.value = []
     referenceRequest++
     clearDownloads()
     issuedCredential.value = undefined
@@ -357,7 +348,10 @@ export function useManagementController(
   async function terminateBattle(id: string) {
     await state.mutate('POST', `${serverPath.value}/battles/${encode(id)}/terminate`)
   }
-  async function useVersion(version: ManagedEnvironmentVersion, executionPolicy: 'server' | 'peer' = 'server') {
+  async function useEnvironment(
+    version: ManagedEnvironmentInstallation,
+    executionPolicy: 'server' | 'peer' = 'server',
+  ) {
     if (version.status !== 'ready') return
     if (!server.value || !can('server', 'bindings.manage') || !can('workspace', 'environment.use')) {
       error.value = '使用环境需要该工作区的使用权限，以及目标服务器的绑定管理权限。'
@@ -365,8 +359,6 @@ export function useManagementController(
     }
     const succeeded = await state.mutate('POST', `${serverPath.value}/bindings`, {
       environmentId: version.environmentId,
-      versionId: version.versionId,
-      selection: 'pinned',
       enabled: true,
       visibility: 'private',
       matchmakingEnabled: false,
@@ -374,20 +366,20 @@ export function useManagementController(
     })
     if (succeeded) tab.value = 'environments'
   }
-  async function inspectReferences(version: ManagedEnvironmentVersion) {
+  async function inspectReferences(version: ManagedEnvironmentInstallation) {
     const sequence = ++referenceRequest
-    referenceVersion.value = ''
-    versionReferences.value = []
+    referenceEnvironment.value = ''
+    environmentReferences.value = []
     const result = await state.read<{ references: Record<string, string>[] }>(
-      `${workspacePath.value}/versions/${encode(version.versionId)}/references`,
+      `${workspacePath.value}/installations/${encode(version.installationId)}/references`,
     )
     if (result && sequence === referenceRequest) {
-      referenceVersion.value = version.versionId
-      versionReferences.value = result.references
+      referenceEnvironment.value = version.installationId
+      environmentReferences.value = result.references
     }
   }
-  async function exportEnvironment(version: ManagedEnvironmentVersion) {
-    await state.mutate('POST', `${workspacePath.value}/versions/${encode(version.versionId)}/export`, {})
+  async function exportEnvironment(version: ManagedEnvironmentInstallation) {
+    await state.mutate('POST', `${workspacePath.value}/installations/${encode(version.installationId)}/export`, {})
   }
   async function importEnvironment(input: {
     bundle: unknown
@@ -440,18 +432,8 @@ export function useManagementController(
   async function patchBinding(binding: ManagedBinding, patch: Partial<ManagedBinding>) {
     await state.mutate('PATCH', `${serverPath.value}/bindings/${encode(binding.id)}`, patch, binding.revision)
   }
-  async function publish(binding: ManagedBinding) {
-    const versionId = bindingVersion.value[binding.id] ?? binding.desiredVersionId ?? binding.effectiveVersionId
-    if (!versionId) {
-      error.value = '请先选择已准备的固定版本。'
-      return
-    }
-    await state.mutate(
-      'POST',
-      `${serverPath.value}/bindings/${encode(binding.id)}/publish`,
-      { versionId },
-      binding.revision,
-    )
+  async function reloadEnvironment(binding: ManagedBinding) {
+    await state.mutate('POST', `${serverPath.value}/bindings/${encode(binding.id)}/reload`, {}, binding.revision)
   }
   async function setDefault(binding: ManagedBinding) {
     if (server.value)
@@ -567,7 +549,7 @@ export function useManagementController(
     managementPrincipalId,
     server,
     environments,
-    versions,
+    installations,
     bindings,
     operations,
     grants,
@@ -596,13 +578,12 @@ export function useManagementController(
     serverName,
     nameRevision,
     settingsSaveSequence,
-    bindingVersion,
     principalId,
     newPrincipalName,
     newPrincipalAccount,
     deletingBinding,
-    referenceVersion,
-    versionReferences,
+    referenceEnvironment,
+    environmentReferences,
     downloading,
     issuedCredential,
     deleteBinding,
@@ -631,7 +612,7 @@ export function useManagementController(
     prepareEnvironment,
     deleteEnvironment,
     terminateBattle,
-    useVersion,
+    useEnvironment,
     inspectReferences,
     exportEnvironment,
     importEnvironment,
@@ -639,7 +620,7 @@ export function useManagementController(
     createBackup,
     downloadBackup,
     patchBinding,
-    publish,
+    reloadEnvironment,
     setDefault,
     saveServerName,
     saveServerSettings,

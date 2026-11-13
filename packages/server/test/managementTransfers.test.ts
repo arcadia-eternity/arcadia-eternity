@@ -73,7 +73,7 @@ async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
   cleanups.push(() => workspace.close())
   const document = { schemaVersion: 1, id: 'source', name: 'Source', packages: shippedCatalogMembers, sources: [] }
   const draft = await workspace.saveDraft({ document, expectedRevision: null })
-  const version = await workspace.prepareVersion(
+  const version = await workspace.prepareEnvironment(
     { environmentId: 'source', expectedRevision: draft.revision },
     validateWorkspaceProject,
   )
@@ -108,7 +108,7 @@ async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
     storage,
     workspace,
     document,
-    draft,
+    draft: await workspace.getDraft('source'),
     version,
     scope,
     owner,
@@ -147,7 +147,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
       })
       it('exports a real immutable environment and downloads only a bounded artifact with no private paths in SQL', async () => {
         const env = await fixture()
-        const operation = await env.transfers.export(env.owner.actor, env.version.versionId, 'export-one')
+        const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'export-one')
         const finished = await complete(env.operations, operation.id)
         expect(finished.status, JSON.stringify(finished)).toBe('succeeded')
         expect(finished.result).toMatchObject({
@@ -157,7 +157,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         const download = await env.transfers.download(env.owner.actor, operation.id)
         const bytes = await readFile(download.file)
         const bundle = JSON.parse(bytes.toString('utf8')) as EnvironmentExport
-        expect(bundle.format).toBe('arcadia.environment-export/1')
+        expect(bundle.format).toBe('arcadia.environment-export/2')
         expect(bundle.document.id).toBe('source')
         expect(download.bytes).toBe(bytes.length)
         expect(bytes.toString('utf8')).not.toContain(env.root)
@@ -165,13 +165,13 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         expect(rows).not.toContain(env.root)
         expect(rows).not.toContain(bundle.files[0].data)
         await download.release()
-        const replay = await env.transfers.export(env.owner.actor, env.version.versionId, 'export-one')
+        const replay = await env.transfers.export(env.owner.actor, env.version.installationId, 'export-one')
         expect(replay.id).toBe(operation.id)
       })
 
       it('imports the portable bundle as a new fixed version and stores only a digest/reference in task input', async () => {
         const env = await fixture()
-        const bundle = await env.workspace.exportVersion(env.version.versionId)
+        const bundle = await env.workspace.exportEnvironment(env.version.installationId)
         const started = await env.transfers.import(env.owner.actor, bundle, {
           environmentId: 'copy',
           idempotencyKey: 'import-one',
@@ -180,8 +180,10 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         expect(finished.status, JSON.stringify(finished)).toBe('succeeded')
         expect(finished.result).toMatchObject({ environmentId: 'copy', status: 'ready' })
         expect(finished.committed).toBe(true)
-        const result = finished.result as { versionId: string }
-        expect((await env.workspace.getVersion(result.versionId)).contentRevision).toBe(env.version.contentRevision)
+        const result = finished.result as { installationId: string }
+        expect((await env.workspace.getInstallation(result.installationId)).contentRevision).toBe(
+          env.version.contentRevision,
+        )
         expect(JSON.stringify(finished)).not.toContain(env.root)
         expect(JSON.stringify(finished.input)).not.toContain(bundle.files[0].data)
         expect((await env.workspace.getDraft('copy')).document.name).toBe('Source')
@@ -189,14 +191,16 @@ for (const driver of ['sqlite', 'postgres'] as const) {
 
       it('rejects unprivileged export/import/download and rejects mismatched idempotency input', async () => {
         const env = await fixture()
-        const bundle = await env.workspace.exportVersion(env.version.versionId)
-        await expect(env.transfers.export(env.viewer.actor, env.version.versionId, 'forbidden')).rejects.toMatchObject({
+        const bundle = await env.workspace.exportEnvironment(env.version.installationId)
+        await expect(
+          env.transfers.export(env.viewer.actor, env.version.installationId, 'forbidden'),
+        ).rejects.toMatchObject({
           status: 403,
         })
         await expect(
           env.transfers.import(env.viewer.actor, bundle, { idempotencyKey: 'forbidden' }),
         ).rejects.toMatchObject({ status: 403 })
-        const exported = await env.transfers.export(env.owner.actor, env.version.versionId, 'allowed')
+        const exported = await env.transfers.export(env.owner.actor, env.version.installationId, 'allowed')
         await complete(env.operations, exported.id)
         await expect(env.transfers.download(env.viewer.actor, exported.id)).rejects.toMatchObject({ status: 403 })
         await expect(env.transfers.download(env.owner.actor, '../outside')).rejects.toMatchObject({ status: 404 })
@@ -208,9 +212,9 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         await complete(env.operations, pending.id)
       })
 
-      it('preserves the original draft and versions when an imported archive contains an escaping file', async () => {
+      it('preserves the original draft and installations when an imported archive contains an escaping file', async () => {
         const env = await fixture()
-        const bundle = await env.workspace.exportVersion(env.version.versionId)
+        const bundle = await env.workspace.exportEnvironment(env.version.installationId)
         bundle.files.push({ path: '../outside.json', data: Buffer.from('bad').toString('base64') })
         const operation = await env.transfers.import(env.owner.actor, bundle, {
           environmentId: 'source',
@@ -219,7 +223,9 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         })
         expect((await complete(env.operations, operation.id)).status).toBe('failed')
         expect((await env.workspace.getDraft('source')).revision).toBe(env.draft.revision)
-        expect((await env.workspace.listVersions()).map(version => version.versionId)).toEqual([env.version.versionId])
+        expect((await env.workspace.listInstallations()).map(version => version.installationId)).toEqual([
+          env.version.installationId,
+        ])
       })
 
       it('cancels validation before the import commit without creating the requested draft', async () => {
@@ -233,7 +239,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         })
         const operation = await env.transfers.import(
           env.owner.actor,
-          await env.workspace.exportVersion(env.version.versionId),
+          await env.workspace.exportEnvironment(env.version.installationId),
           { environmentId: 'cancelled', idempotencyKey: 'cancel-me' },
         )
         await entered.promise
@@ -241,7 +247,9 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         proceed.resolve()
         expect((await complete(env.operations, operation.id)).status).toBe('cancelled')
         await expect(env.workspace.getDraft('cancelled')).rejects.toMatchObject({ code: 'ENOENT' })
-        expect((await env.workspace.listVersions()).map(version => version.versionId)).toEqual([env.version.versionId])
+        expect((await env.workspace.listInstallations()).map(version => version.installationId)).toEqual([
+          env.version.installationId,
+        ])
         const retry = await env.transfers.retry(env.owner.actor, operation.id, 'retry-cancelled')
         const retried = await complete(env.operations, retry.id)
         expect(retried).toMatchObject({ status: 'succeeded', attempt: 2, rootOperationId: operation.id })
@@ -250,7 +258,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
 
       it('expires downloads, protects already open downloads from GC, and removes expired artifacts', async () => {
         const env = await fixture()
-        const operation = await env.transfers.export(env.owner.actor, env.version.versionId, 'expires')
+        const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'expires')
         await complete(env.operations, operation.id)
         const download = await env.transfers.download(env.owner.actor, operation.id)
         env.advance(5000)
@@ -267,7 +275,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
 
       it('refuses symlink artifacts and sanitizes version references', async () => {
         const env = await fixture()
-        const operation = await env.transfers.export(env.owner.actor, env.version.versionId, 'tamper')
+        const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'tamper')
         await complete(env.operations, operation.id)
         const file = join(env.directory, `export-${operation.id}.json`)
         await rm(file)
@@ -275,8 +283,8 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         await expect(env.transfers.download(env.owner.actor, operation.id)).rejects.toMatchObject({
           code: 'TRANSFER_ARTIFACT_INVALID',
         })
-        await env.workspace.retain(env.version.versionId, 'server:managed:binding:one')
-        const references = await env.transfers.references(env.viewer.actor, env.version.versionId)
+        await env.workspace.retain(env.version.installationId, 'server:managed:binding:one')
+        const references = await env.transfers.references(env.viewer.actor, env.version.installationId)
         expect(references.references).toContainEqual(
           expect.objectContaining({ retentionId: 'server:managed:binding:one' }),
         )
@@ -285,7 +293,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
       })
       it('reopens completed downloads from the same owner after the management service restarts', async () => {
         const env = await fixture()
-        const operation = await env.transfers.export(env.owner.actor, env.version.versionId, 'restart')
+        const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'restart')
         await complete(env.operations, operation.id)
         await env.transfers.close()
         await env.operations.close()
@@ -317,7 +325,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         })
         const operation = await env.transfers.import(
           env.owner.actor,
-          await env.workspace.exportVersion(env.version.versionId),
+          await env.workspace.exportEnvironment(env.version.installationId),
           { environmentId: 'revoked', idempotencyKey: 'revoke-me' },
         )
         await entered.promise
@@ -330,7 +338,9 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         expect(final.status).toBe('failed')
         expect(final.error?.code).toBe('MANAGEMENT_FORBIDDEN')
         await expect(env.workspace.getDraft('revoked')).rejects.toMatchObject({ code: 'ENOENT' })
-        expect((await env.workspace.listVersions()).map(version => version.versionId)).toEqual([env.version.versionId])
+        expect((await env.workspace.listInstallations()).map(version => version.installationId)).toEqual([
+          env.version.installationId,
+        ])
       })
 
       it('preserves a downloadable export when the database commit succeeded but its acknowledgement was lost', async () => {
@@ -347,16 +357,16 @@ for (const driver of ['sqlite', 'postgres'] as const) {
             }),
           ),
         )
-        const operation = await env.transfers.export(env.owner.actor, env.version.versionId, 'uncertain-commit')
+        const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'uncertain-commit')
         const finished = await complete(env.operations, operation.id)
         expect(finished.status).toBe('succeeded')
         const download = await env.transfers.download(env.owner.actor, operation.id)
-        expect(JSON.parse(await readFile(download.file, 'utf8')).format).toBe('arcadia.environment-export/1')
+        expect(JSON.parse(await readFile(download.file, 'utf8')).format).toBe('arcadia.environment-export/2')
         await download.release()
       })
       it('serializes a renewed upload behind expiry deletion of the same content artifact', async () => {
         const env = await fixture()
-        const bundle = await env.workspace.exportVersion(env.version.versionId)
+        const bundle = await env.workspace.exportEnvironment(env.version.installationId)
         const previous = await env.transfers.import(env.owner.actor, bundle, {
           environmentId: 'old-copy',
           idempotencyKey: 'old-upload',
@@ -387,10 +397,10 @@ for (const driver of ['sqlite', 'postgres'] as const) {
       })
       it('retries an export after a transient material read failure with the same task lineage', async () => {
         const env = await fixture()
-        vi.spyOn(env.workspace, 'exportVersion').mockRejectedValueOnce(
+        vi.spyOn(env.workspace, 'exportEnvironment').mockRejectedValueOnce(
           Object.assign(new Error('transient read'), { code: 'MATERIAL_BUSY' }),
         )
-        const operation = await env.transfers.export(env.owner.actor, env.version.versionId, 'read-failure')
+        const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'read-failure')
         expect((await complete(env.operations, operation.id)).status).toBe('failed')
         const retried = await env.transfers.retry(env.owner.actor, operation.id, 'retry-export')
         expect(await complete(env.operations, retried.id)).toMatchObject({
@@ -404,9 +414,9 @@ for (const driver of ['sqlite', 'postgres'] as const) {
       })
       it('recovers an import after its DB commit succeeds but the caller loses the response', async () => {
         const env = await fixture()
-        const bundle = await env.workspace.exportVersion(env.version.versionId)
-        const original = env.workspace.importVersion.bind(env.workspace)
-        vi.spyOn(env.workspace, 'importVersion').mockImplementationOnce((archive, input, validate) =>
+        const bundle = await env.workspace.exportEnvironment(env.version.installationId)
+        const original = env.workspace.importEnvironment.bind(env.workspace)
+        vi.spyOn(env.workspace, 'importEnvironment').mockImplementationOnce((archive, input, validate) =>
           original(
             archive,
             {
@@ -429,7 +439,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         expect(resumed).toMatchObject({ id: operation.id, status: 'succeeded', committed: true })
         expect((await env.workspace.getDraft('recover-copy')).document.id).toBe('recover-copy')
         await env.transfers.cleanup()
-        expect(await env.workspace.listVersions('recover-copy')).toHaveLength(1)
+        expect(await env.workspace.listInstallations('recover-copy')).toHaveLength(1)
         expect(await readdir(join(env.workspace.root, 'imports'))).toEqual([])
       })
     },
