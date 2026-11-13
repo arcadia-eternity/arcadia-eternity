@@ -170,6 +170,16 @@ export class SessionRegistry {
     return structuredClone(session)
   }
 
+  /** Called only after the host has excluded connections and active room membership. */
+  replaceProfile(token: string, value: unknown): ServerSession {
+    const previous = this.authenticate(token)
+    if (!previous) throw new SessionError('INVALID_SESSION', 401)
+    const profile = readProfile(value)
+    const next = { ...previous, profile, sessionId: nanoid(), seatId: nanoid() }
+    this.sessions.set(token, next)
+    return structuredClone(next)
+  }
+
   /** A bounded public view for administration; capabilities and profile IDs stay private. */
   managementPlayers() {
     void this.size

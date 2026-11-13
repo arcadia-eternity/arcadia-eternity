@@ -89,7 +89,8 @@
     "ua-parser-js": "^2.0.10",
     "vue": "^3.5.45",
     "vue-router": "^5.4.0",
-    "yaml": "catalog:"
+    "yaml": "catalog:",
+    "@arcadia-eternity/local-profile": "workspace:^"
   },
   "devDependencies": {
     "@electron/rebuild": "4.2.1",

@@ -330,6 +330,22 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     await rooms.revoke(session)
     res.sendStatus(204)
   })
+  app.post('/api/v1/session/profile', async (req, res) => {
+    const credential = token(req)
+    const session = sessions.authenticate(credential) ?? (credential && (await accountLogins?.resume(credential)))
+    if (!session) throw new SessionError('INVALID_SESSION', 401)
+    const profile = readProfile(object(req.body).profile)
+    const release = rooms.beginProfileChange(session)
+    try {
+      if (session.principal.kind === 'account') {
+        if (!accountLogins) throw new SessionError('ACCOUNT_AUTH_UNAVAILABLE', 503)
+        await accountLogins.replaceProfile(session.token, profile)
+      }
+      res.json(sessions.replaceProfile(session.token, profile))
+    } finally {
+      release()
+    }
+  })
   if (options.accounts) {
     const accounts = options.accounts
     const source = (req: Request) => req.socket.remoteAddress ?? 'unknown'
@@ -577,6 +593,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     }
     if (error instanceof SessionError) {
       res.status(error.statusCode).json({ code: error.code })
+      return
+    }
+    if (error instanceof RoomError && error.code === 'PROFILE_BUSY') {
+      res.status(409).json({ code: 'PROFILE_BUSY' })
       return
     }
     if (error instanceof RoomError || error instanceof SyntaxError) {

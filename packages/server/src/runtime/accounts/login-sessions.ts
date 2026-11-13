@@ -73,4 +73,17 @@ export class AccountLoginSessions {
       this.sessions.revoke(token)
     })
   }
+
+  async replaceProfile(token: string, profile: LocalProfile): Promise<void> {
+    await this.storage.transaction(async tx => {
+      const row = await tx.get<AccountLogin>('sessions', this.key(token))
+      if (
+        !row ||
+        row.value.expiresAt <= Date.now() ||
+        (await tx.accountStatus(this.sessions.serverId, row.value.accountId)) !== 'active'
+      )
+        throw new SessionError('INVALID_SESSION', 401)
+      await tx.replace('sessions', row.id, row.revision, { ...row.value, profile })
+    })
+  }
 }

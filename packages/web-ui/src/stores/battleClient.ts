@@ -19,8 +19,10 @@ import { ref, shallowRef, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
 import { checkBackendSelection } from '@/bootstrap/deployment'
+import { holdProfileConnection, profileSwitching, profileInitialized } from '@/services/profile'
 
 export const useBattleClientStore = defineStore('battleClient', () => {
+  let releaseProfile: (() => void) | undefined
   const authStore = useAuthStore()
   const playerId = computed(() => authStore.session?.seatId ?? '')
 
@@ -233,11 +235,28 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const isConnecting = ref(false)
   let connectionTask: Promise<void> | null = null
   const connect = (): Promise<void> => {
+    if (profileSwitching.value) return Promise.reject(new Error('正在切换个人资料'))
     if (connectionTask) return connectionTask
     isConnecting.value = true
     connectionError.value = ''
-    const task = performConnect()
+    const generation = connectionGeneration
+    const start = profileInitialized()
+      ? holdProfileConnection().then(async release => {
+          if (generation !== connectionGeneration) {
+            release()
+            throw new Error('连接已取消')
+          }
+          releaseProfile?.()
+          releaseProfile = release
+          await performConnect()
+        })
+      : performConnect()
+    const task = start
       .catch(error => {
+        if (generation === connectionGeneration) {
+          releaseProfile?.()
+          releaseProfile = undefined
+        }
         if (connectionTask === task) connectionError.value = error instanceof Error ? error.message : '连接失败，请重试'
         throw error
       })
@@ -262,6 +281,8 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     if (_instance.value) {
       _instance.value.disconnect()
     }
+    releaseProfile?.()
+    releaseProfile = undefined
     handlersAttached = false
     attachmentGeneration++
     attachedHandlers.clear()

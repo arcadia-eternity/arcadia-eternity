@@ -1,7 +1,7 @@
 // Source entries include CLI subprocesses, Electron preloads and standalone content templates.
 // Generated dist declarations are excluded even when source imports resolve through package exports.
 // Public package entry exports are retained; unused enum members are not a deletion policy.
-// Desktop scripts resolve tools using createRequire from web-ui/content-dev, not the root.
+// Desktop tools resolve through web-ui/content-dev; the packaged profile owner resolves local-profile from the staged root.
 // Ruffle is copied by Vite; rebuild and npm are used by desktop staging; base loads pack-loader in its build script.
 // The SWF verifier imports /src/... through the running Vite server.
 // Vite/Vitest configs import built workspace packages: scan them as source entries, never execute them.
@@ -13,7 +13,7 @@
     ".": {
       "entry": ["scripts/*.{ts,mjs}", "examples/*.ts"],
       "project": ["bin/**/*.ts", "scripts/**/*.{ts,mjs}", "examples/**/*.ts", "*.{js,mjs,ts}"],
-      "ignoreDependencies": ["@typescript/native"],
+      "ignoreDependencies": ["@typescript/native", "@arcadia-eternity/local-profile"],
     },
     "packages/web-ui": {
       "entry": [

@@ -68,7 +68,66 @@ const localServerController = new LocalServerController({
 
 const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
 
+let personalProfile
+let personalProfileBusy = true
+async function getPersonalProfile() {
+  if (!personalProfile)
+    personalProfile = (async () => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { ProfileRepository, validateEnvelope, validateData } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/local-profile')).href
+      )
+      const { FileProfileStorage } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/local-profile/node')).href
+      )
+      const storage = new FileProfileStorage(path.join(app.getPath('userData'), 'profile'))
+      await storage.acquireOwner()
+      return { storage, repository: new ProfileRepository(storage), validateEnvelope, validateData }
+    })().catch(error => {
+      personalProfile = undefined
+      throw error
+    })
+  return personalProfile
+}
 const remotePlay = createRemotePlayController({
+  validateProfile: value => {
+    if (JSON.stringify(value).length > 20 * 1024 * 1024) throw new Error('Profile too large')
+    return structuredClone(value)
+  },
+  confirmProfileClose: async window => {
+    const result = await dialog.showMessageBox(window, {
+      type: 'question',
+      message: '远程窗口有未保存修改',
+      buttons: ['取消', '保存到个人资料', '放弃修改'],
+      defaultId: 0,
+      cancelId: 0,
+    })
+    return ['cancel', 'save', 'discard'][result.response]
+  },
+  readProfile: async () => (await (await getPersonalProfile()).repository.open())?.current ?? null,
+  saveProfile: async input => {
+    if (personalProfileBusy) throw new Error('请先在主窗口退出房间、匹配或对局')
+    const { repository, validateData } = await getPersonalProfile()
+    const data = validateData(input?.data)
+    const preview = await repository.inspectImport(JSON.stringify(await repository.exportBackup(data)))
+    if (preview.expectedRevision !== input.expectedRevision) throw new Error('个人资料已改变，请重新打开远程窗口')
+    if (!mainWindow || mainWindow.isDestroyed()) throw new Error('主窗口不可用')
+    const answer = await dialog.showMessageBox(mainWindow, {
+      type: 'question',
+      message: '保存远程窗口的个人资料？',
+      detail: `昵称：${preview.current?.data.profile.name ?? '—'} → ${data.profile.name}\n仓库：${preview.current?.data.library.storage.length ?? 0} → ${data.library.storage.length}\n队伍：${preview.current?.data.library.teams.length ?? 0} → ${data.library.teams.length}\n设置变化：${Object.keys(data.settings).filter(key => JSON.stringify(data.settings[key]) !== JSON.stringify(preview.current?.data.settings[key])).length} 项`,
+      buttons: ['取消', '保存资料'],
+      defaultId: 0,
+      cancelId: 0,
+    })
+    if (answer.response !== 1) throw new Error('已取消保存')
+    if (personalProfileBusy) throw new Error('请先在主窗口退出房间、匹配或对局')
+    const result = await repository.commitImport({ ...preview, decision: 'restore' })
+    mainWindow.webContents.send('desktop:profile-changed')
+    return result
+  },
   BrowserWindow,
   session,
   rendererUrl,
@@ -696,6 +755,28 @@ function setupIpcHandlers() {
       requireLocalBattleCaller(event)
       return handler(event, ...args)
     })
+  handle('desktop:profile', async (_event, input) => {
+    try {
+      if (input?.action === 'activity') {
+        personalProfileBusy = input.busy !== false
+        return { value: true }
+      }
+      const { storage, validateEnvelope } = await getPersonalProfile()
+      if (input?.action === 'read') return { value: await storage.read() }
+      if (input?.action === 'raw') return { value: await storage.readRaw() }
+      if (input?.action !== 'commit') throw new Error('Invalid profile action')
+      const next = await validateEnvelope(input.next)
+      if (
+        next.current.revision !==
+        (typeof input.expected === 'object' && input.expected !== null ? 1 : (input.expected ?? 0) + 1)
+      )
+        throw new Error('Invalid profile revision')
+      await storage.commit(input.expected, next)
+      return { value: true }
+    } catch (error) {
+      return { error: { code: error.code ?? 'STORAGE_DENIED', message: error.message } }
+    }
+  })
   handle('desktop:local-server', (_event, input) => localServerController.request(input))
   handle('desktop:local-environment', async (_event, input) => {
     try {
@@ -755,6 +836,8 @@ function setupIpcHandlers() {
     return getAuthorWorkspaces().teamLibrary(authorPreviewProjects.get(window.webContents), action, input)
   })
   ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
+  ipcMain.handle('remote-play:profile-draft', (event, input) => remotePlay.updateProfileDraft(event, input))
+  ipcMain.handle('remote-play:save-profile', (event, input) => remotePlay.saveProfile(event, input))
   ipcMain.handle('remote-play:close', event => remotePlay.close(event))
   handle('desktop:open-server-website', (_event, input) => shell.openExternal(normalizeRemoteBackend(input?.url)))
   handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url, { mode: input?.mode }))
@@ -1115,30 +1198,38 @@ let stoppedForQuit = false
 app.on('before-quit', event => {
   if (stoppedForQuit) return
   event.preventDefault()
-  stoppingForQuit ??= stopForQuit(
-    [
-      () => swfHost.dispose(),
-      () => remotePlay.destroy(),
-      () => localEnvironments?.close(),
-      () => localContentSessions?.close(),
-      () => localServerController.close(),
-      () => localBattleHost.stop(),
-      () => managementWorkspaceOwner?.close(),
-      () => contentLibrary?.close(),
-      () => contentProjects?.close(),
-      () => authorWorkspaces?.close(),
-      () => {
-        for (const window of authorPreviewWindows.values()) window.destroy()
+  stoppingForQuit ??= (async () => {
+    if (!(await remotePlay.prepareQuit())) {
+      stoppingForQuit = undefined
+      return
+    }
+    await stopForQuit(
+      [
+        () => swfHost.dispose(),
+        () => remotePlay.destroy(),
+        async () => {
+          if (personalProfile) await (await personalProfile).storage.close()
+        },
+        () => localEnvironments?.close(),
+        () => localContentSessions?.close(),
+        () => localServerController.close(),
+        () => localBattleHost.stop(),
+        () => managementWorkspaceOwner?.close(),
+        () => contentLibrary?.close(),
+        () => contentProjects?.close(),
+        () => authorWorkspaces?.close(),
+        () => {
+          for (const window of authorPreviewWindows.values()) window.destroy()
+        },
+        () => stopLocalServer(),
+      ],
+      {
+        forceStop: () => localBattleHost.forceStop(),
       },
-      () => stopLocalServer(),
-    ],
-    {
-      forceStop: () => localBattleHost.forceStop(),
-    },
-  ).finally(() => {
+    )
     stoppedForQuit = true
     app.quit()
-  })
+  })()
 })
 
 app.on('activate', () => {

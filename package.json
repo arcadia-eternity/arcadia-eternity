@@ -83,7 +83,8 @@
     "dotenv": "^18.0.10",
     "nodemailer": "^10.4.0",
     "pg": "^8.23.1",
-    "yaml": "catalog:"
+    "yaml": "catalog:",
+    "@arcadia-eternity/local-profile": "workspace:^"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

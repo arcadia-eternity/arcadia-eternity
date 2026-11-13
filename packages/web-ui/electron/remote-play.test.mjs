@@ -114,6 +114,86 @@ test('all legacy desktop handlers register through the shared manager guard', as
   assert.match(source, /requireLocalBattleCaller\(event\)\s+return handler\(event, \.\.\.args\)/)
   const preload = await readFile(new URL('./remote-preload.cjs', import.meta.url), 'utf8')
   assert.ok(!preload.includes("'arcadiaDesktop'"))
-  assert.equal(preload.match(/ipcRenderer.invoke/g).length, 6)
+  assert.equal(preload.match(/ipcRenderer.invoke/g).length, 8)
   assert.ok(!preload.includes('invoke: ipcRenderer'))
+})
+
+test('remote edits need owner confirmation, preserve newer drafts and block cancelled quit', async () => {
+  let current,
+    nextId = 100,
+    action = 'cancel',
+    finishSave
+  const original = { revision: 1, data: { profile: { id: 'uid', name: 'Original' } }, digest: 'fixture' }
+  class Window extends EventEmitter {
+    constructor() {
+      super()
+      this.webContents = new EventEmitter()
+      Object.assign(this.webContents, {
+        id: nextId++,
+        mainFrame: { url: 'https://ui.test/' },
+        setWindowOpenHandler() {},
+      })
+    }
+    async loadURL() {}
+    isDestroyed() {
+      return this.destroyed === true
+    }
+    close() {
+      let prevented = false
+      this.emit('close', {
+        preventDefault() {
+          prevented = true
+        },
+      })
+      if (!prevented) this.destroy()
+    }
+    destroy() {
+      this.destroyed = true
+      this.emit('closed')
+    }
+  }
+  const controller = createRemotePlayController({
+    BrowserWindow: Window,
+    rendererUrl: 'https://ui.test/',
+    preload: 'fixture',
+    onWindow: w => {
+      current = w
+    },
+    session: {
+      fromPartition() {
+        return Object.assign(new EventEmitter(), {
+          setPermissionRequestHandler() {},
+          setPermissionCheckHandler() {},
+          webRequest: { onBeforeRequest() {} },
+          async closeAllConnections() {},
+          async clearStorageData() {},
+          async clearCache() {},
+        })
+      },
+    },
+    readProfile: async () => structuredClone(original),
+    saveProfile: input =>
+      new Promise(resolve => {
+        finishSave = () => resolve({ ...original, revision: 2, data: input.data })
+      }),
+    confirmProfileClose: async () => action,
+  })
+  await controller.open('https://server.test')
+  const event = { sender: current.webContents, senderFrame: current.webContents.mainFrame }
+  assert.deepEqual(controller.getBootConfig(event).profile, original)
+  assert.throws(() => controller.updateProfileDraft(event, { profile: { id: 'forged' } }))
+  const edited = { profile: { id: 'uid', name: 'Edited' } }
+  controller.updateProfileDraft(event, edited)
+  assert.equal(await controller.prepareQuit(), false)
+  await assert.rejects(controller.open('https://other.test'), /保存或关闭/)
+  const saving = controller.saveProfile(event, { data: edited })
+  controller.updateProfileDraft(event, { profile: { id: 'uid', name: 'Newer' } })
+  finishSave()
+  await saving
+  // A completed save of the older snapshot must not silently discard newer work.
+  assert.equal(await controller.prepareQuit(), false)
+  action = 'discard'
+  assert.equal(await controller.prepareQuit(), true)
+  controller.destroy()
+  assert.equal(current.isDestroyed(), true)
 })

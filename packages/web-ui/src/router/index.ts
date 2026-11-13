@@ -20,6 +20,12 @@ const LocalBattleReports = () => import('@/components/battleReport/LocalBattleRe
 const LocalContentOnlyPage = () => import('@/features/content/LocalContentOnlyPage.vue')
 const routes: RouteRecordRaw[] = [
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/pages/profilePage.vue'),
+    meta: { title: '个人资料' },
+  },
+  {
     path: '/servers',
     name: 'Servers',
     component: () => import('@/features/servers/ServersPage.vue'),

@@ -1,6 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  profile: input => ipcRenderer.invoke('desktop:profile', input),
+  onProfileChanged: callback => {
+    const listener = () => callback()
+    ipcRenderer.on('desktop:profile-changed', listener)
+    return () => ipcRenderer.removeListener('desktop:profile-changed', listener)
+  },
   author: input => ipcRenderer.invoke('desktop:author', input),
   localEnvironment: input => ipcRenderer.invoke('desktop:local-environment', input),
   managementRequest: input => ipcRenderer.invoke('desktop:management-request', input),

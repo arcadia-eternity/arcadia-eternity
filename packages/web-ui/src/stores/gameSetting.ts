@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watchEffect } from 'vue'
-import { useDebounceFn } from '@vueuse/core'
+import { ref, watch } from 'vue'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import { readLocalData, writeLocalData } from '@/services/localStorage'
 
@@ -35,13 +34,13 @@ function saveToStorage(key: string, value: unknown) {
   writeLocalData(STORAGE_PREFIX + key, JSON.stringify(value))
 }
 
-const debouncedSaveAllSettings = useDebounceFn((settings: Record<string, unknown>) => {
+const saveAllSettings = (settings: Record<string, unknown>) => {
   for (const key in settings) {
     if (Object.prototype.hasOwnProperty.call(settings, key)) {
       saveToStorage(key, settings[key])
     }
   }
-}, 300)
+}
 
 export const useGameSettingStore = defineStore('gameSetting', () => {
   const battleRenderer = ref<'swf' | 'image'>(
@@ -66,8 +65,8 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
     new Set(loadFromStorage('visibleLogTypes', Array.from(DEFAULT_VISIBLE_LOG_TYPES))),
   )
 
-  watchEffect(() => {
-    debouncedSaveAllSettings({
+  watch(
+    () => ({
       battleRenderer: battleRenderer.value,
       battleMotion: battleMotion.value,
       mute: mute.value,
@@ -78,8 +77,23 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
       background: background.value,
       battleMusic: battleMusic.value,
       visibleLogTypes: Array.from(visibleLogTypes.value),
-    })
-  })
+    }),
+    saveAllSettings,
+    { flush: 'sync', immediate: true },
+  )
+
+  function reloadFromLocal() {
+    battleRenderer.value = loadFromStorage('battleRenderer', battleRenderer.value)
+    battleMotion.value = loadFromStorage('battleMotion', battleMotion.value)
+    mute.value = loadFromStorage('mute', mute.value)
+    musicVolume.value = loadFromStorage('musicVolume', musicVolume.value)
+    musicMute.value = loadFromStorage('musicMute', musicMute.value)
+    soundVolume.value = loadFromStorage('soundVolume', soundVolume.value)
+    soundMute.value = loadFromStorage('soundMute', soundMute.value)
+    background.value = loadFromStorage('background', background.value)
+    battleMusic.value = loadFromStorage('battleMusic', battleMusic.value)
+    visibleLogTypes.value = new Set(loadFromStorage('visibleLogTypes', [...visibleLogTypes.value]))
+  }
 
   // 日志类型管理方法
   const toggleLogType = (logType: BattleMessageType) => {
@@ -105,6 +119,7 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
   }
 
   return {
+    reloadFromLocal,
     battleRenderer,
     battleMotion,
     mute,

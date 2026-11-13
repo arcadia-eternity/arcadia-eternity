@@ -14,6 +14,7 @@
               <div class="flex items-center">
                 <el-icon class="mr-2"><User /></el-icon>
                 <span>本地档案</span>
+                <router-link to="/profile" class="ml-auto">备份与恢复</router-link>
               </div>
             </template>
 
