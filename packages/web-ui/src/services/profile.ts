@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getDefaultTeam } from './defaultTeam'
 import {
   ProfileRepository,
   ProfileError,
@@ -18,7 +19,12 @@ export const profileMigrationNotice = ref('')
 export const profileSwitching = ref(false)
 let repository: ProfileRepository
 let snapshot: ProfileSnapshot | null = null
-let data = defaultData()
+function defaultWebProfile() {
+  const value = defaultData()
+  value.library.teams = [getDefaultTeam()]
+  return value
+}
+let data = defaultWebProfile()
 let writable = false
 let remote = false
 let queue: Promise<void> = Promise.resolve()
@@ -84,7 +90,7 @@ export async function retryProfileSave() {
 }
 
 function migrate(prefer?: 'player' | 'player-data'): ProfileData {
-  const result = defaultData()
+  const result = defaultWebProfile()
   const read = (key: string) => {
     const value = localStorage.getItem(key)
     if (value === null) return undefined
@@ -165,7 +171,7 @@ export async function initializeProfile(prefer?: 'player' | 'player-data') {
   try {
     if (remote) {
       const config = await window.arcadiaRemotePlay!.getBootConfig()
-      data = config.profile ? validateData(config.profile.data) : defaultData()
+      data = config.profile ? validateData(config.profile.data) : defaultWebProfile()
       snapshot = config.profile ?? null
       writable = false
       profileStatus.value = 'memory-only'

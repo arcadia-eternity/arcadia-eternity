@@ -140,8 +140,8 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build SQLite native driver for Node 24
         run: pnpm --filter @arcadia-eternity/database rebuild better-sqlite3
-      - name: Build server, console and native runtime dependencies
-        run: pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/console... --filter @arcadia-eternity/p2p-transport... run build
+      - name: Build server, CLI and native runtime dependencies
+        run: pnpm --filter @arcadia-eternity/server... --filter "@arcadia-eternity/cli^..." --filter @arcadia-eternity/p2p-transport... run build
       - name: Verify native metadata and converted JSON locale loading
         run: pnpm --filter @arcadia-eternity/pack-loader exec vitest run test/native-loader.test.ts --maxWorkers=1
       - name: Check native server source and test types
@@ -323,6 +323,8 @@ jobs:
         run: pnpm --filter '@arcadia-eternity/cli^...' --filter @arcadia-eternity/content-sdk... run build
       - name: Check CLI types
         run: pnpm typecheck:cli
+      - name: Verify portable profile persistence and recovery
+        run: pnpm --filter @arcadia-eternity/local-profile test:run
       - name: Run relocated offline CLI and lifecycle regressions
         run: pnpm test:cli
       - name: Verify standard npm artifacts, admission and content environments

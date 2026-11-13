@@ -1,3 +1,4 @@
+import { readPersistedProfile } from './helpers/profile'
 import { expect, test } from 'playwright/test'
 
 async function seedUnresolvedTeam(page: import('playwright/test').Page, missingSpecies = false) {
@@ -43,12 +44,12 @@ test('editing recognized skills and saving never removes unresolved references',
   await page.getByPlaceholder('输入精灵名称').fill('仍然保留')
   await page.getByRole('button', { name: '保存', exact: true }).click()
   await expect
-    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets[0].skills))
+    .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.skills)
     .toEqual(['custom:missing-skill', 'skill_fenlitupo'])
   await page.reload()
   await page.getByText('仍然保留', { exact: true }).click()
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-skill')
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets[0])
+  const saved = (await readPersistedProfile(page))!.library.teams[0].pets[0]
   expect(saved.ability).toBe('custom:missing-ability')
   expect(saved.emblem).toBe('custom:missing-emblem')
   expect(saved.gender).toBe('Female')
@@ -61,13 +62,14 @@ test('a missing species remains editable, exportable and saved with its original
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
   await page.getByPlaceholder('输入精灵名称').fill('失联但保留')
   await page.getByRole('button', { name: '保存', exact: true }).click()
+  await expect.poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.name).toBe('失联但保留')
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: '导出', exact: true }).click()
   expect((await download).suggestedFilename()).toMatch(/\.yaml$/)
   await page.reload()
   await page.getByText('失联但保留', { exact: true }).click()
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets[0])
+  const saved = (await readPersistedProfile(page))!.library.teams[0].pets[0]
   expect(saved.species).toBe('custom:missing-pet')
   expect(saved.skills).toEqual(['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'])
 })
@@ -87,6 +89,9 @@ test('the editor opens and saves while the animation runtime is still loading', 
     await page.getByText('休罗斯', { exact: true }).first().click()
     await page.getByPlaceholder('输入精灵名称').fill('白屏修复测试')
     await page.getByRole('button', { name: '保存', exact: true }).click()
+    await expect
+      .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.name)
+      .toBe('白屏修复测试')
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.getByText('白屏修复测试', { exact: true }).click()
     await expect(page.getByPlaceholder('输入精灵名称')).toHaveValue('白屏修复测试')
