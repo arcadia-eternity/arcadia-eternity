@@ -290,7 +290,11 @@ test('paired production management backs up, revokes service credentials and ret
       .getByRole('navigation', { name: '选择环境' })
       .getByRole('button', { name: /备份验收环境/ })
       .click()
-    await expect(page.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
+    await expect(
+      page
+        .getByRole('region', { name: '环境工作区', exact: true })
+        .getByRole('heading', { name: '备份验收环境', exact: true }),
+    ).toBeVisible()
     await page.getByRole('menuitem', { name: '管理员', exact: true }).click()
     await expect(credentialList).toContainText(survivingCredentialId)
     await expect(credentialList.locator('article').filter({ hasText: credentialId })).toHaveCount(0)

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub, type VueWrapper } from '@vue/test-utils'
+import ManagementEnvironments from '../ManagementEnvironments.vue'
 import ManagementPermissions from '../ManagementPermissions.vue'
 import ManagementConsole from '../ManagementConsole.vue'
 import type { ManagementIpcRequest } from '@/services/managementClient'
@@ -110,6 +111,40 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
+  it('moves environments between available and used, without adding the same environment twice', async () => {
+    let used = false
+    const request = vi.fn(async (input: ManagementIpcRequest) => {
+      if (input.method === 'POST' && input.path.endsWith('/bindings')) used = true
+      if (input.method === 'DELETE' && input.path.endsWith('/bindings/binding-main')) used = false
+      const body = response(input.path)
+      if (input.path === '/servers')
+        (body as { servers: { defaultBindingId?: string }[] }).servers[0].defaultBindingId = undefined
+      if (input.path.endsWith('/bindings') && !used) return { status: 200, body: { bindings: [] } }
+      return { status: 200, body }
+    })
+    const { page } = await open(request)
+    await page.setProps({ initialTab: 'environments' })
+    await flushPromises()
+    const available = () => page.get('[aria-label="可用环境"]')
+    const usedPane = () => page.get('[aria-label="本服已使用"]')
+    expect(available().text()).toContain('好友环境 local')
+    expect(usedPane().text()).not.toContain('好友环境 local')
+    await button(page, '添加到本服').trigger('click')
+    await flushPromises()
+    expect(available().text()).not.toContain('好友环境 local')
+    expect(usedPane().text()).toContain('好友环境 local')
+    const controller = page.findComponent(ManagementEnvironments).props('controller')
+    await Promise.all([controller.useEnvironment(version()), controller.useEnvironment(version())])
+    expect(
+      request.mock.calls.filter(([input]) => input.method === 'POST' && input.path.endsWith('/bindings')),
+    ).toHaveLength(1)
+    expect(page.text()).not.toContain('P2P 使用')
+    await button(page, '移回可用环境').trigger('click')
+    await button(page, '确认移除').trigger('click')
+    await flushPromises()
+    expect(available().text()).toContain('好友环境 local')
+    expect(usedPane().text()).not.toContain('好友环境 local')
+  })
   it('adds and removes administrators with one revision-checked request each', async () => {
     const { page, request } = await open()
     await page.setProps({ initialTab: 'permissions' })

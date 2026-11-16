@@ -297,3 +297,74 @@ it('saves and applies in one operation, preserving both the manifest and install
   expect((await terminal(f.storage, next.id)).status).toBe('succeeded')
   expect((await f.workspace.getDraft('shared')).document.name).toBe('Updated')
 }, 30_000)
+
+it('rejects repeated and concurrent additions and allows adding again after removal', async () => {
+  const f = await setup()
+  const draft = await f.draft('Shared', null)
+  await f.prepare(draft.revision)
+  const results = await Promise.allSettled([f.createBinding(), f.createBinding()])
+  expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+  expect(results.find(result => result.status === 'rejected')).toMatchObject({
+    reason: { code: 'ENVIRONMENT_ALREADY_BOUND' },
+  })
+  const rows = await f.storage.list<Binding>('bindings')
+  expect(rows).toHaveLength(1)
+  await expect(
+    f.service.request(f.owner.actor, {
+      method: 'POST',
+      path: '/servers/binding-server/bindings',
+      body: { environmentId: 'shared', executionPolicy: 'peer' },
+    }),
+  ).rejects.toMatchObject({ code: 'ENVIRONMENT_ALREADY_BOUND' })
+  await f.request(
+    {
+      method: 'DELETE',
+      path: `/servers/binding-server/bindings/${rows[0].id}`,
+      headers: { 'if-match': String(rows[0].revision) },
+    },
+    f.owner.actor,
+  )
+  expect(await f.storage.list('bindings')).toHaveLength(0)
+  await f.createBinding()
+  expect(await f.storage.list('bindings')).toHaveLength(1)
+}, 30_000)
+
+it('changes execution mode on the existing binding without creating another one', async () => {
+  const f = await setup()
+  const draft = await f.draft('Shared', null)
+  await f.prepare(draft.revision)
+  let binding = await f.createBinding()
+  const original = f.app.environments.list()[0]
+  const lease = f.app.environments.acquire(original.id)
+  cleanups.push(() => lease.release())
+  for (const executionPolicy of ['peer', 'server'] as const) {
+    binding = await f.request(
+      {
+        method: 'PATCH',
+        path: `/servers/binding-server/bindings/${binding.id}`,
+        headers: { 'if-match': String(binding.revision) },
+        body: { executionPolicy },
+      },
+      f.owner.actor,
+    )
+    expect(binding).toMatchObject({ executionPolicy, condition: 'available' })
+    expect(await f.storage.list('bindings')).toHaveLength(1)
+    expect(lease.executionPolicy).toBe('server')
+    expect(f.app.environments.content(original.id)).toBeDefined()
+    if (executionPolicy === 'peer') {
+      await expect
+        .poll(
+          () => {
+            try {
+              f.app.environments.selectDefault(original.id)
+              return false
+            } catch (error) {
+              return (error as Error).message === 'ENVIRONMENT_RETIRED'
+            }
+          },
+          { timeout: 5000 },
+        )
+        .toBe(true)
+    }
+  }
+}, 30_000)

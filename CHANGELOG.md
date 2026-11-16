@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.5.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.1...arcadia-eternity-v4.5.2) (2026-11-16)
+
+
+### 🐛 Bug Fixes
+
+* **management:** prevent duplicate server environments ([a851df3](https://github.com/arcadia-eternity/arcadia-eternity/commit/a851df380dcf66e08a1a0c474c7932886d64f297))
+
 ## [4.5.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.0...arcadia-eternity-v4.5.1) (2026-11-16)
 
 
