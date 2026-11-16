@@ -332,8 +332,13 @@ export function useManagementController(
     version: ManagedEnvironmentInstallation,
     executionPolicy: 'server' | 'peer' = 'server',
   ) {
-    if (version.status !== 'ready') return
-    if (!server.value || !isAdministrator.value || !isAdministrator.value) {
+    if (
+      version.status !== 'ready' ||
+      busy.value ||
+      bindings.value.some(binding => binding.environmentId === version.environmentId)
+    )
+      return
+    if (!server.value || !isAdministrator.value) {
       error.value = '需要本服管理员身份。'
       return
     }

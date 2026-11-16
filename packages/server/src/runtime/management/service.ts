@@ -574,7 +574,7 @@ export class ManagementService {
       await this.applyPublication()
     })
   }
-  private async reloadBinding(row: StoredRecord<Binding>, force = false) {
+  private async reloadBinding(row: StoredRecord<Binding>, force = false): Promise<StoredRecord<Binding>> {
     let reason: string | undefined
     try {
       await this.ensureRuntime(row.id, row.value.environmentId, row.value.executionPolicy, force)
@@ -582,7 +582,7 @@ export class ManagementService {
       const failure = error as { code?: string; diagnostics?: { code?: string }[] }
       reason = failure?.code ?? failure?.diagnostics?.[0]?.code ?? 'ENVIRONMENT_UNAVAILABLE'
     }
-    return this.options.storage.replace('bindings', row.id, row.revision, {
+    return this.options.storage.replace<Binding>('bindings', row.id, row.revision, {
       ...row.value,
       condition: reason ? 'unavailable' : 'available',
       reason,
@@ -1025,36 +1025,42 @@ export class ManagementService {
           await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
           if (input.enabled === true || input.visibility === 'public' || input.matchmakingEnabled === true)
             await this.auth.authorize(actor, this.serverScope, 'publish')
-          const value: Binding = {
-            serverId: this.options.serverId,
-            workspaceId: this.options.workspace.workspaceId,
-            environmentId: text(input.environmentId),
-            executionPolicy: 'server',
-            enabled: false,
-            visibility: 'private',
-            matchmakingEnabled: false,
-            condition: 'unavailable',
-            observedBootId: this.bootId,
-          }
-          this.patchBinding(value, input)
-          await this.options.workspace.getInstallation(value.environmentId)
-          const row = await this.options.storage.transaction(async tx => {
-            await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
-            await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
-            if (value.enabled || value.visibility === 'public' || value.matchmakingEnabled)
-              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
-            const saved = await tx.create('bindings', {
-              id: randomUUID(),
-              scope: managementScopeKey(this.serverScope),
-              value,
+          return this.exclusive(async () => {
+            const value: Binding = {
+              serverId: this.options.serverId,
+              workspaceId: this.options.workspace.workspaceId,
+              environmentId: text(input.environmentId),
+              executionPolicy: 'server',
+              enabled: false,
+              visibility: 'private',
+              matchmakingEnabled: false,
+              condition: 'unavailable',
+              observedBootId: this.bootId,
+            }
+            this.patchBinding(value, input)
+            await this.options.workspace.getInstallation(value.environmentId)
+            const row = await this.options.storage.transaction(async tx => {
+              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
+              await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
+              if (value.enabled || value.visibility === 'public' || value.matchmakingEnabled)
+                await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
+              const existing = (await tx.list<Binding>('bindings', managementScopeKey(this.serverScope))).find(
+                row => row.value.workspaceId === value.workspaceId && row.value.environmentId === value.environmentId,
+              )
+              if (existing) fail('ENVIRONMENT_ALREADY_BOUND', 409)
+              const saved = await tx.create('bindings', {
+                id: randomUUID(),
+                scope: managementScopeKey(this.serverScope),
+                value,
+              })
+              await this.audit(tx, actor, 'binding.create', saved.id)
+              return saved
             })
-            await this.audit(tx, actor, 'binding.create', saved.id)
-            return saved
+            await this.options.workspace.retain(value.environmentId, `binding:${row.id}`)
+            const loaded = await this.reloadBinding(row)
+            await this.applyPublication()
+            return ok(flatten(loaded), 201)
           })
-          await this.options.workspace.retain(value.environmentId, `binding:${row.id}`)
-          const loaded = await this.reloadBinding(row)
-          await this.applyPublication()
-          return ok(flatten(loaded), 201)
         }
         if (parts.length === 4 && method === 'PATCH') {
           await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
@@ -1081,8 +1087,9 @@ export class ManagementService {
               await this.audit(tx, actor, 'binding.update', row.id)
               return result
             })
+            const loaded = value.executionPolicy !== row.value.executionPolicy ? await this.reloadBinding(saved) : saved
             await this.applyPublication()
-            return ok(flatten(saved))
+            return ok(flatten(loaded))
           })
         }
         if (parts.length === 5 && parts[4] === 'reload' && method === 'POST')
@@ -1228,16 +1235,13 @@ export class ManagementService {
           continue
         }
       }
-      if (!this.options.environments.retainedIds().includes(runtime.runtimeId)) {
-        this.runtimes.delete(key)
-      }
+      // Retired instances may remain alive for existing rooms, but must never be reused.
+      this.runtimes.delete(key)
     }
   }
   private patchBinding(value: Binding, input: Record<string, unknown>) {
     if (input.executionPolicy !== undefined) {
       if (!['server', 'peer'].includes(text(input.executionPolicy))) fail('INVALID_EXECUTION_POLICY')
-      if (value.condition === 'available' && input.executionPolicy !== value.executionPolicy)
-        fail('BINDING_EXECUTION_POLICY_IMMUTABLE', 409)
       value.executionPolicy = input.executionPolicy as 'server' | 'peer'
     }
     if (input.visibility !== undefined) {

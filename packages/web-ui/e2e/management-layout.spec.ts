@@ -63,3 +63,30 @@ for (const viewport of [
     expect(errors).toEqual([])
   })
 }
+
+for (const width of [1440, 390]) {
+  test(`moves environments between columns at width ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/e2e/fixtures/management-layout.html')
+    if (width < 800) await page.getByRole('button', { name: '管理菜单' }).click()
+    await page.getByRole('menuitem', { name: '运行环境', exact: true }).click()
+    const available = page.getByRole('region', { name: '可用环境', exact: true })
+    const used = page.getByRole('region', { name: '本服已使用', exact: true })
+    await expect(available.getByText('好友环境')).toBeVisible()
+    await available.getByRole('button', { name: '添加到本服' }).click()
+    await expect(used.getByRole('heading', { name: '好友环境' })).toBeVisible()
+    await expect(available.getByText('好友环境')).toHaveCount(0)
+    await used.getByLabel('对局执行').focus()
+    await used.getByLabel('对局执行').press('ArrowDown')
+    await page.getByRole('option', { name: '由玩家托管' }).click()
+    await expect(used.locator('.el-select')).toContainText('由玩家托管')
+    await expect(used.locator('.binding-card')).toHaveCount(1)
+    expect(
+      await page.locator('.fixture-route').evaluate(node => node.scrollWidth - node.clientWidth),
+    ).toBeLessThanOrEqual(1)
+    await used.getByRole('button', { name: '移回可用环境' }).click()
+    await used.getByRole('button', { name: '确认移除' }).click()
+    await expect(available.getByText('好友环境')).toBeVisible()
+    await expect(used.locator('.binding-card')).toHaveCount(0)
+  })
+}

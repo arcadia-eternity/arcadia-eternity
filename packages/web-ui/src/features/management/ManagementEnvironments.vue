@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ElTag, ElCard, ElCheckbox, ElButton } from 'element-plus'
+import { computed } from 'vue'
+import { ElTag, ElCard, ElCheckbox, ElButton, ElSelect, ElOption } from 'element-plus'
 import type { ManagementController } from './useManagementController'
 import EnvironmentWorkspace from './EnvironmentWorkspace.vue'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
@@ -38,80 +39,119 @@ const {
   reloadEnvironment,
   setDefault,
 } = controller
+const availableEnvironments = computed(() =>
+  environments.value.filter(
+    environment => !bindings.value.some(binding => binding.environmentId === environment.document.id),
+  ),
+)
+function installationFor(id: string) {
+  return installations.value.find(installation => installation.environmentId === id && installation.status === 'ready')
+}
+function addEnvironment(id: string) {
+  const installation = installationFor(id)
+  if (installation) void useEnvironment(installation)
+}
 </script>
 <template>
   <section v-if="tab === 'environments' && server" aria-label="服务器玩法">
     <h2>运行环境</h2>
-    <ElCard shadow="never" v-for="binding in bindings" :key="binding.id" class="binding-card">
-      <header>
-        <h3>
-          {{
-            environments.find(env => env.document.id === binding.environmentId)?.document.name ?? binding.environmentId
-          }}
-          <ElTag v-if="server.defaultBindingId === binding.id" size="small">默认</ElTag>
-        </h3>
-        <span>{{ conditionLabels[binding.condition] ?? binding.condition }}</span>
-      </header>
-      <dl>
-        <dt>对局执行</dt>
-        <dd>{{ binding.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行' }}</dd>
-      </dl>
-      <p v-if="binding.reason" class="message error">{{ contentTaskError(binding.reason) }}</p>
-      <div class="binding-options">
-        <ElCheckbox
-          :model-value="binding.enabled"
-          :disabled="
-            busy ||
-            !isAdministrator ||
-            (!binding.enabled && !canActivateBinding) ||
-            server.defaultBindingId === binding.id
-          "
-          :title="server.defaultBindingId === binding.id ? '先选择其他默认环境，再停用此环境' : undefined"
-          @change="patchBinding(binding, { enabled: Boolean($event) })"
-          >接纳新房间</ElCheckbox
-        >
-        <ElCheckbox
-          :model-value="binding.visibility === 'public'"
-          :disabled="busy || !isAdministrator || (binding.visibility !== 'public' && !canActivateBinding)"
-          @change="
-            patchBinding(binding, {
-              visibility: Boolean($event) ? 'public' : 'private',
-            })
-          "
-          >公开展示</ElCheckbox
-        >
-        <ElCheckbox
-          :model-value="binding.matchmakingEnabled"
-          :disabled="busy || !isAdministrator || (!binding.matchmakingEnabled && !canActivateBinding)"
-          @change="patchBinding(binding, { matchmakingEnabled: Boolean($event) })"
-          >开放匹配</ElCheckbox
-        >
-      </div>
-      <div class="actions">
-        <ElButton :disabled="busy || !canActivateBinding" @click="reloadEnvironment(binding)" native-type="button"
-          >重新加载</ElButton
-        >
-        <ElButton
-          :disabled="busy || !isAdministrator || binding.condition !== 'available'"
-          @click="setDefault(binding)"
-          native-type="button"
-        >
-          设为默认
-        </ElButton>
-        <ElButton
-          :disabled="busy || !isAdministrator || server.defaultBindingId === binding.id"
-          :title="server.defaultBindingId === binding.id ? '先选择其他默认环境' : undefined"
-          @click="deletingBinding = binding.id"
-          native-type="button"
-        >
-          移除绑定
-        </ElButton>
-        <span v-if="deletingBinding === binding.id">
-          <ElButton :disabled="busy" @click="deleteBinding(binding)" native-type="button">确认移除</ElButton>
-          <ElButton @click="deletingBinding = ''" native-type="button">取消</ElButton>
-        </span>
-      </div>
-    </ElCard>
+    <div class="environment-transfer">
+      <section aria-label="可用环境" class="transfer-column">
+        <h3>可用环境</h3>
+        <ElCard v-for="environment in availableEnvironments" :key="environment.document.id" shadow="never">
+          <h4>{{ environment.document.name }}</h4>
+          <ElButton
+            :disabled="busy || !isAdministrator || !installationFor(environment.document.id)"
+            @click="addEnvironment(environment.document.id)"
+            >添加到本服</ElButton
+          >
+        </ElCard>
+      </section>
+      <section aria-label="本服已使用" class="transfer-column">
+        <h3>本服已使用</h3>
+        <ElCard shadow="never" v-for="binding in bindings" :key="binding.id" class="binding-card">
+          <header>
+            <h3>
+              {{
+                environments.find(env => env.document.id === binding.environmentId)?.document.name ??
+                binding.environmentId
+              }}
+              <ElTag v-if="server.defaultBindingId === binding.id" size="small">默认</ElTag>
+            </h3>
+            <span>{{ conditionLabels[binding.condition] ?? binding.condition }}</span>
+          </header>
+          <dl>
+            <dt>对局执行</dt>
+            <dd>
+              <ElSelect
+                :model-value="binding.executionPolicy ?? 'server'"
+                aria-label="对局执行"
+                :disabled="busy || !isAdministrator"
+                @change="patchBinding(binding, { executionPolicy: $event })"
+              >
+                <ElOption label="服务器执行" value="server" />
+                <ElOption label="由玩家托管" value="peer" />
+              </ElSelect>
+            </dd>
+          </dl>
+          <p v-if="binding.reason" class="message error">{{ contentTaskError(binding.reason) }}</p>
+          <div class="binding-options">
+            <ElCheckbox
+              :model-value="binding.enabled"
+              :disabled="
+                busy ||
+                !isAdministrator ||
+                (!binding.enabled && !canActivateBinding) ||
+                server.defaultBindingId === binding.id
+              "
+              :title="server.defaultBindingId === binding.id ? '先选择其他默认环境，再停用此环境' : undefined"
+              @change="patchBinding(binding, { enabled: Boolean($event) })"
+              >接纳新房间</ElCheckbox
+            >
+            <ElCheckbox
+              :model-value="binding.visibility === 'public'"
+              :disabled="busy || !isAdministrator || (binding.visibility !== 'public' && !canActivateBinding)"
+              @change="
+                patchBinding(binding, {
+                  visibility: Boolean($event) ? 'public' : 'private',
+                })
+              "
+              >公开展示</ElCheckbox
+            >
+            <ElCheckbox
+              :model-value="binding.matchmakingEnabled"
+              :disabled="busy || !isAdministrator || (!binding.matchmakingEnabled && !canActivateBinding)"
+              @change="patchBinding(binding, { matchmakingEnabled: Boolean($event) })"
+              >开放匹配</ElCheckbox
+            >
+          </div>
+          <div class="actions">
+            <ElButton :disabled="busy || !canActivateBinding" @click="reloadEnvironment(binding)" native-type="button"
+              >重新加载</ElButton
+            >
+            <ElButton
+              :disabled="busy || !isAdministrator || binding.condition !== 'available'"
+              @click="setDefault(binding)"
+              native-type="button"
+            >
+              设为默认
+            </ElButton>
+            <ElButton
+              :disabled="busy || !isAdministrator || server.defaultBindingId === binding.id"
+              :title="server.defaultBindingId === binding.id ? '先选择其他默认环境' : undefined"
+              @click="deletingBinding = binding.id"
+              native-type="button"
+            >
+              移回可用环境
+            </ElButton>
+            <span v-if="deletingBinding === binding.id">
+              <ElButton :disabled="busy" @click="deleteBinding(binding)" native-type="button">确认移除</ElButton>
+              <ElButton @click="deletingBinding = ''" native-type="button">取消</ElButton>
+            </span>
+          </div>
+        </ElCard>
+      </section>
+    </div>
   </section>
   <EnvironmentWorkspace
     v-if="tab === 'environments' && supported('workspace.environments')"
@@ -121,7 +161,8 @@ const {
     :installations="installations"
     :can-edit="isAdministrator"
     :can-prepare="isAdministrator"
-    :can-use="isAdministrator"
+    :can-use="false"
+    :show-use-actions="false"
     :can-delete="isAdministrator"
     :save-sequence="environmentSaveSequence"
     :busy="busy"
@@ -174,3 +215,37 @@ const {
     此管理目标尚不支持环境工作区。
   </p>
 </template>
+
+<style scoped>
+.environment-transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.transfer-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.transfer-column h3,
+.transfer-column h4 {
+  margin: 0;
+}
+.transfer-column :deep(.el-card__body) {
+  min-width: 0;
+}
+.transfer-column .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.transfer-column .actions :deep(.el-button) {
+  margin-left: 0;
+}
+@media (max-width: 800px) {
+  .environment-transfer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+</style>

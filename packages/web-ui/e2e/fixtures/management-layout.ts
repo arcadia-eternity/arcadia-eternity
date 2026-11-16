@@ -23,6 +23,7 @@ const document = {
   rules: { schemaVersion: 1 },
   requires: {},
 }
+let binding: Record<string, unknown> | undefined
 const data = (path: string): unknown => {
   if (path === '/capabilities')
     return {
@@ -59,8 +60,24 @@ const data = (path: string): unknown => {
         },
       ],
     }
-  if (path.endsWith('/environments')) return { environments: [{ document, revision: 'draft-1' }], versions: [] }
-  if (path.endsWith('/bindings')) return { bindings: [] }
+  if (path.endsWith('/environments'))
+    return {
+      environments: [{ document, revision: 'draft-1' }],
+      installations: [
+        {
+          installationId: 'installed',
+          environmentId: 'friends',
+          workspaceId: 'workspace',
+          document,
+          draftRevision: 'draft-1',
+          contentRevision: 'content-1',
+          packages: [],
+          createdAt: 1,
+          status: 'ready',
+        },
+      ],
+    }
+  if (path.endsWith('/bindings')) return { bindings: binding ? [binding] : [] }
   if (path.startsWith('/servers/server/accounts')) return { accounts: [] }
   if (path.startsWith('/servers/server/players')) return { players: [] }
   if (path.startsWith('/servers/server/battles')) return { battles: [] }
@@ -90,7 +107,15 @@ const data = (path: string): unknown => {
 Object.assign(window, {
   arcadiaDesktop: {
     getBackendConfig: async () => ({ schemaVersion: 1, backendOrigin: window.location.origin }),
-    managementRequest: async (input: { path: string; method: string }) => ({ status: 200, body: data(input.path) }),
+    managementRequest: async (input: { path: string; method: string; body?: Record<string, unknown> }) => {
+      if (input.method === 'POST' && input.path.endsWith('/bindings'))
+        binding = { ...input.body, id: 'binding', revision: 1, condition: 'available' }
+      if (input.path.endsWith('/bindings/binding')) {
+        if (input.method === 'DELETE') binding = undefined
+        if (input.method === 'PATCH') binding = { ...binding, ...input.body, revision: 2 }
+      }
+      return { status: 200, body: data(input.path) }
+    },
   },
 })
 await loadDeploymentConfig()

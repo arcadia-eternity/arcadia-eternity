@@ -4,17 +4,21 @@ import { ElButton, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
 
-const props = defineProps<{
-  heading?: string
-  environments: ManagedEnvironment[]
-  installations: ManagedEnvironmentInstallation[]
-  canEdit: boolean
-  canPrepare: boolean
-  canDelete?: boolean
-  canUse?: boolean
-  saveSequence?: number
-  busy: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    heading?: string
+    environments: ManagedEnvironment[]
+    installations: ManagedEnvironmentInstallation[]
+    canEdit: boolean
+    canPrepare: boolean
+    canDelete?: boolean
+    canUse?: boolean
+    showUseActions?: boolean
+    saveSequence?: number
+    busy: boolean
+  }>(),
+  { showUseActions: true },
+)
 const emit = defineEmits<{
   packageState: [environment: ManagedEnvironment, name: string, enabled: boolean, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
@@ -382,8 +386,15 @@ function save() {
         </ElForm>
         <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
           <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
-          <ElButton :disabled="busy || !canUse" @click="emit('use', latestVersion)">服务器使用</ElButton>
-          <ElButton :disabled="busy || !canUse" @click="emit('use', latestVersion, 'peer')">P2P 使用</ElButton>
+          <ElButton v-if="showUseActions !== false" :disabled="busy || !canUse" @click="emit('use', latestVersion)"
+            >服务器使用</ElButton
+          >
+          <ElButton
+            v-if="showUseActions !== false"
+            :disabled="busy || !canUse"
+            @click="emit('use', latestVersion, 'peer')"
+            >P2P 使用</ElButton
+          >
         </section>
       </div>
     </div>
