@@ -16,10 +16,13 @@ const props = withDefaults(
     canDelete?: boolean
     canUse?: boolean
     showUseActions?: boolean
+    useLabel?: string
+    showPeerUse?: boolean
+    currentEnvironmentId?: string
     saveSequence?: number
     busy: boolean
   }>(),
-  { showUseActions: true },
+  { showUseActions: true, showPeerUse: true, useLabel: '服务器使用' },
 )
 const emit = defineEmits<{
   packageState: [environment: ManagedEnvironment, name: string, enabled: boolean, cascade: boolean]
@@ -174,6 +177,7 @@ function save() {
           native-type="button"
         >
           <strong>{{ environment.document.name }}</strong>
+          <small v-if="environment.document.id === currentEnvironmentId">本地使用中</small>
           <small
             >{{
               Object.keys(environment.document.packages).length + environment.document.sources.length
@@ -195,7 +199,8 @@ function save() {
               >
               <ElButton
                 v-if="canDelete && !selectedEnvironment.builtin"
-                :disabled="busy"
+                :disabled="busy || selectedEnvironment.document.id === currentEnvironmentId"
+                :title="selectedEnvironment.document.id === currentEnvironmentId ? '请先切换本地使用的环境' : undefined"
                 @click="deletingDraft = selectedEnvironment.document.id"
                 native-type="button"
               >
@@ -411,11 +416,14 @@ function save() {
         <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
           <ElButton v-if="canExport" :disabled="busy" @click="emit('export', latestVersion)">导出环境</ElButton>
           <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
-          <ElButton v-if="showUseActions !== false" :disabled="busy || !canUse" @click="emit('use', latestVersion)"
-            >服务器使用</ElButton
-          >
           <ElButton
             v-if="showUseActions !== false"
+            :disabled="busy || !canUse || latestVersion.environmentId === currentEnvironmentId"
+            @click="emit('use', latestVersion)"
+            >{{ latestVersion.environmentId === currentEnvironmentId ? '本地使用中' : useLabel }}</ElButton
+          >
+          <ElButton
+            v-if="showUseActions !== false && showPeerUse"
             :disabled="busy || !canUse"
             @click="emit('use', latestVersion, 'peer')"
             >P2P 使用</ElButton
@@ -435,7 +443,6 @@ function save() {
 .workspace-columns {
   display: grid;
   grid-template-columns: minmax(170px, 25%) minmax(0, 1fr);
-  flex: 1;
   min-height: 0;
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
@@ -469,7 +476,7 @@ function save() {
 }
 .environment-detail {
   overflow: auto;
-  padding: 0 20px;
+  padding: 0 20px 12px;
   min-width: 0;
 }
 .environment-detail .section-heading {

@@ -1028,6 +1028,33 @@ export class ContentLibrary {
       await rm(await this.#directory(plan.project), { recursive: true, force: true })
     })
   }
+  /** After local environments capture the legacy selection, retain only the shipped fallback. */
+  async retireSelection() {
+    return this.#exclusive(async () => {
+      const base = this.#state.installed.find(entry => entry.bundled)
+      if (!base) throw new Error('默认内容包不可用')
+      if (
+        this.#state.activeIds.length === 1 &&
+        this.#state.activeIds[0] === base.id &&
+        this.#state.desiredIds.length === 1 &&
+        this.#state.desiredIds[0] === base.id
+      )
+        return
+      const revision = this.#state.goalRevision + 1
+      await this.#update(state => ({
+        ...state,
+        activeIds: [base.id],
+        desiredIds: [base.id],
+        revision: state.revision + 1,
+        activeProject: base.id,
+        activeGraph: base.graph,
+        goalRevision: revision,
+        activeGoalRevision: revision,
+      }))
+      this.#settledGoal = revision
+      this.#sync = { status: 'ready' }
+    })
+  }
   async uninstall(id) {
     return this.#exclusive(async () => {
       if (this.#entry(id).bundled) throw new Error('默认环境必须保留基础内容包')

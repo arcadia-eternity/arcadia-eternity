@@ -1,11 +1,7 @@
 import { expect, test } from 'playwright/test'
-import type {
-  ContentLibrarySnapshot,
-  InstalledContentPackage,
-  ContentPackageAction,
-} from '../src/types/contentPackages'
+import type { ContentLibrarySnapshot, InstalledContentPackage } from '../src/types/contentPackages'
 
-test('content choices converge without apply controls or restarting the running host', async ({ page }, testInfo) => {
+test('packages stay installed without global enable controls', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     const pkg: InstalledContentPackage = {
       id: 'package',
@@ -36,7 +32,6 @@ test('content choices converge without apply controls or restarting the running 
       serviceStatus: { status: 'running', url: 'http://127.0.0.1:12345', projectName: 'local', serverId: 'test' },
       serviceNeedsRestart: false,
     }
-    let revision = 0
     Object.defineProperty(window, 'arcadiaDesktop', {
       value: {
         getLocalServerPort: async () => null,
@@ -65,19 +60,7 @@ test('content choices converge without apply controls or restarting the running 
         installNpmContentPackage: async () => {
           throw new Error('Exact versions only')
         },
-        contentPackageAction: async (input: ContentPackageAction) => {
-          if (input.action === 'set-selection') {
-            snapshot.desiredIds = [...input.ids]
-            snapshot.selection = { status: 'preparing' }
-            const current = ++revision
-            setTimeout(() => {
-              if (revision !== current) return
-              snapshot.activeIds = [...input.ids]
-              snapshot.selection = { status: 'ready' }
-            }, 200)
-          }
-          return null
-        },
+        contentPackageAction: async () => null,
       },
     })
   })
@@ -87,10 +70,10 @@ test('content choices converge without apply controls or restarting the running 
   await page.getByRole('button', { name: /创作测试内容/ }).click()
   await page.getByRole('tab', { name: '依赖', exact: true }).click()
   await expect(main).toContainText('library')
-  await page.getByLabel('启用 创作测试内容', { exact: true }).check()
+  await expect(page.getByLabel('启用 创作测试内容', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '检查并应用更改', exact: true })).toHaveCount(0)
-  await expect(main.locator('.package-detail > .detail-subtitle')).toContainText('本机已启用')
+  await expect(main.locator('.package-detail > .detail-subtitle')).toContainText('已安装')
   await page.getByRole('button', { name: '添加内容包', exact: true }).click()
   await page.getByRole('dialog', { name: '安装内容包' }).getByRole('button', { name: '安装本地 .tgz 文件' }).click()
   const downloads = page.getByRole('dialog', { name: '下载与安装' })
@@ -153,6 +136,7 @@ test('environment import and export share the content entry and stay scoped to t
       contentRevision: 'revision',
       members: [],
     }
+    let selectedEnvironmentId: string | undefined
     const calls: Record<string, unknown>[] = []
     Object.assign(window, {
       environmentCalls: calls,
@@ -173,11 +157,13 @@ test('environment import and export share the content entry and stay scoped to t
             return {
               result: {
                 workspaceId: 'local',
+                selectedEnvironmentId,
                 environments: [{ document, revision: 'draft-1' }],
                 installations: [installation],
                 operations: [],
               },
             }
+          if (input.action === 'select') selectedEnvironmentId = String(input.environmentId)
           if (input.action === 'export')
             return {
               result: { format: 'arcadia.environment-export/2', document, files: [], contentRevision: 'revision' },
@@ -190,6 +176,9 @@ test('environment import and export share the content entry and stay scoped to t
   await page.goto('/content?target=local&tab=environments')
   const hub = page.locator('.content-hub')
   await expect(hub.getByRole('heading', { name: '好友环境', exact: true })).toBeVisible()
+  await hub.getByRole('button', { name: '本地使用', exact: true }).click()
+  await expect(hub.getByRole('button', { name: '本地使用中', exact: true })).toBeDisabled()
+  await page.screenshot({ path: testInfo.outputPath('environment-selected-desktop.png'), fullPage: true })
   await hub.getByRole('button', { name: '编辑', exact: true }).click()
   await hub.locator('form.environment-editor input').first().fill('未保存名称')
   await hub.getByRole('button', { name: '任务', exact: true }).click()

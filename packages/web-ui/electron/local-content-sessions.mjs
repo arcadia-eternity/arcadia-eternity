@@ -137,6 +137,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         }
       const result = {
         token,
+        rules: lease.document?.rules,
         ...(displayOnly ? {} : { environment: prepared.sandbox }),
         content,
         resources: resourceIndex,
@@ -220,6 +221,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
       if (owner !== undefined && retiredOwners.has(owner)) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
       return {
         environment: captured.environment,
+        rules: captured.rules,
         content,
         runtime: session.runtimeIdentity,
         packages: session.packages,

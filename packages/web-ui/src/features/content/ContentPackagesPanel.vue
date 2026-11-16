@@ -6,7 +6,6 @@ import { createLocalContentLibraryClient } from './contentLibraryClient'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
-import { isRemoteContentActive } from '@/i18n/serverContent'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
@@ -70,8 +69,7 @@ const battle = useBattleClientStore()
 const pets = usePetStorageStore()
 const room = computed(() => rooms.currentRoom)
 const snapshot = ref<ContentLibrarySnapshot>()
-const draftIds = ref<string[]>([])
-const mode = ref<'installed' | 'enabled' | 'issues' | 'server' | 'room'>(
+const mode = ref<'installed' | 'issues' | 'server' | 'room'>(
   props.location === 'server'
     ? 'server'
     : props.location === 'room'
@@ -101,8 +99,6 @@ const remoteError = ref('')
 const adding = ref(false)
 const npmSpec = ref('')
 let disposed = false
-const pendingSelections = ref(0)
-let intent = 0
 let refreshRequest = 0
 let pollTimer: ReturnType<typeof setTimeout> | undefined
 const readonly = computed(() => mode.value === 'server' || mode.value === 'room')
@@ -119,17 +115,6 @@ const remoteEnvironment = computed(() =>
   mode.value === 'room'
     ? room.value?.environment
     : serverEnvironments.value.find(environment => environment.id === serverEnvironmentId.value),
-)
-const activeIds = computed(() => snapshot.value?.activeIds ?? [])
-const selectionLabel = computed(() =>
-  pendingSelections.value
-    ? '正在保存内容选择…'
-    : {
-        idle: '',
-        preparing: '正在准备所选内容…',
-        ready: '',
-        failed: '未能启用所选内容，原有内容仍可用。',
-      }[snapshot.value?.selection.status ?? 'idle'],
 )
 const emptyIds = (): ContentIds => ({ species: [], skills: [], marks: [] })
 const publicIds = (content: ServerEnvironmentContent, namespace?: string): ContentIds =>
@@ -172,7 +157,7 @@ const packages = computed<PackageView[]>(() => {
     description: pkg.description,
     source: pkg.source.label,
     contentIds: pkg.contentIds,
-    graph: activeIds.value.includes(pkg.id) ? (snapshot.value?.activeGraph ?? pkg.graph) : pkg.graph,
+    graph: pkg.graph,
     counts: pkg.counts,
     builtin: pkg.bundled,
     local: pkg,
@@ -199,7 +184,6 @@ const selected = computed(() => packages.value.find(pkg => pkg.id === selectedId
 const visiblePackages = computed(() =>
   packages.value.filter(
     pkg =>
-      (mode.value !== 'enabled' || activeIds.value.includes(pkg.id)) &&
       (mode.value !== 'issues' || !!pkg.error) &&
       (pkg.title + pkg.name + pkg.author).toLowerCase().includes(query.value.toLowerCase()),
   ),
@@ -210,11 +194,13 @@ const proposedLookup = computed<TeamContentLookup>(() => {
   if (readonly.value && remoteContent.value) {
     for (const kind of ['species', 'skills', 'marks'] as const)
       available[kind] = remoteContent.value[kind].map(item => item.id)
-  } else
-    for (const pkg of snapshot.value?.packages ?? [])
-      if (draftIds.value.includes(pkg.id) && !pkg.error) {
-        for (const kind of ['species', 'skills', 'marks'] as const) available[kind].push(...pkg.contentIds[kind])
-      }
+  } else {
+    return {
+      getSpecies: id => gameData.getSpecies(id),
+      getSkill: id => gameData.getSkill(id),
+      getMark: id => gameData.getMark(id),
+    }
+  }
   const sets = {
     species: new Set(available.species),
     skills: new Set(available.skills),
@@ -256,10 +242,7 @@ async function refresh() {
   const request = ++refreshRequest
   const result = await libraryClient!.list()
   if (disposed || request !== refreshRequest) return
-  const changed = snapshot.value && JSON.stringify(snapshot.value.activeIds) !== JSON.stringify(result.activeIds)
   snapshot.value = result
-  if (changed && !isRemoteContentActive()) await gameData.reload()
-  if (!pendingSelections.value) draftIds.value = [...result.desiredIds]
 }
 async function poll() {
   try {
@@ -267,31 +250,8 @@ async function poll() {
   } catch (cause) {
     if (!disposed) error.value = cause instanceof Error ? cause.message : '无法读取内容状态'
   } finally {
-    if (!disposed) pollTimer = setTimeout(poll, snapshot.value?.selection.status === 'preparing' ? 400 : 1500)
+    if (!disposed) pollTimer = setTimeout(poll, 1500)
   }
-}
-async function setSelection(ids: string[]) {
-  if (!local) return
-  const current = ++intent
-  pendingSelections.value++
-  error.value = ''
-  notice.value = ''
-  try {
-    await libraryClient!.action({ action: 'set-selection', ids, offline: offline.value })
-  } catch (cause) {
-    if (current === intent && !disposed) error.value = cause instanceof Error ? cause.message : '无法保存内容选择'
-  } finally {
-    if (!disposed)
-      await refresh().catch(() => {
-        if (current === intent) error.value = '内容选择已保存，暂时无法读取进度'
-      })
-    pendingSelections.value--
-    if (!disposed && !pendingSelections.value && current === intent && snapshot.value)
-      draftIds.value = [...snapshot.value.desiredIds]
-  }
-}
-function retrySelection() {
-  void setSelection([...draftIds.value])
 }
 async function run(action: () => Promise<void>) {
   if (busy.value) return
@@ -306,16 +266,6 @@ async function run(action: () => Promise<void>) {
     busy.value = false
   }
 }
-function toggle(pkg: PackageView, checked: boolean) {
-  if (readonly.value || !pkg.local || pkg.builtin || busy.value) return
-  if (checked)
-    draftIds.value = [
-      ...draftIds.value.filter(id => snapshot.value?.packages.find(p => p.id === id)?.name !== pkg.name),
-      pkg.id,
-    ]
-  else draftIds.value = draftIds.value.filter(id => id !== pkg.id)
-  void setSelection([...draftIds.value])
-}
 async function installSource(source: () => Promise<string | null>) {
   if (!local) return
   await run(async () => {
@@ -327,7 +277,7 @@ async function installSource(source: () => Promise<string | null>) {
     adding.value = false
     selectedId.value = id
     detailOpen.value = true
-    notice.value = '已安装到资源库，添加到环境并准备版本后即可使用。'
+    notice.value = '内容包已安装。'
   })
 }
 async function inspectFile() {
@@ -430,49 +380,39 @@ onBeforeUnmount(() => {
     :class="{ 'detail-open': detailOpen, 'remote-packages': props.location && props.location !== 'local' }"
   >
     <span v-if="readonly" class="scope">只读</span>
-    <header v-if="local && !readonly" class="page-heading">
-      <button @click="tasksOpen = true">
-        下载与安装 {{ snapshot?.operations?.filter(job => ['queued', 'running'].includes(job.status)).length || '' }}
-      </button>
-    </header>
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <p v-if="notice" class="message" role="status">{{ notice }}</p>
-    <section v-if="!readonly && selectionLabel" class="message selection-state" role="status" aria-live="polite">
-      <p>{{ selectionLabel }}</p>
-      <template v-if="snapshot?.selection.status === 'failed'">
-        <p class="problem">{{ snapshot.selection.message }}</p>
-        <button :disabled="busy || !!pendingSelections" @click="retrySelection">重试准备</button>
-      </template>
-    </section>
     <div class="workspace">
-      <nav v-if="!props.location || props.location === 'local'" class="task-nav" aria-label="内容包导航">
-        <template v-if="local && (!props.location || props.location === 'local')"
-          ><p class="nav-label">本机内容包</p>
-          <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
-            本机内容 <span>{{ snapshot?.packages.length ?? 0 }}</span></button
-          ><button :aria-current="mode === 'enabled' ? 'page' : undefined" @click="changeMode('enabled')">
-            已启用 <span>{{ activeIds.length }}</span></button
-          ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
-            需处理 <span>{{ issueCount }}</span>
-          </button>
-          <hr
-        /></template>
-        <template v-if="!props.location"
-          ><p class="nav-label">联机内容包</p>
-          <button :aria-current="mode === 'server' ? 'page' : undefined" @click="changeMode('server')">
-            服务器内容
-          </button>
-          <button v-if="room" :aria-current="mode === 'room' ? 'page' : undefined" @click="changeMode('room')">
-            房间内容
-          </button></template
-        >
-      </nav>
       <section class="package-workspace" aria-label="内容包管理">
         <div class="toolbar">
+          <nav v-if="!props.location || props.location === 'local'" class="task-nav" aria-label="内容包导航">
+            <template v-if="local && (!props.location || props.location === 'local')"
+              ><p class="nav-label">本机内容包</p>
+              <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
+                本机内容 <span>{{ snapshot?.packages.length ?? 0 }}</span></button
+              ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
+                需处理 <span>{{ issueCount }}</span>
+              </button>
+              <hr
+            /></template>
+            <template v-if="!props.location"
+              ><p class="nav-label">联机内容包</p>
+              <button :aria-current="mode === 'server' ? 'page' : undefined" @click="changeMode('server')">
+                服务器内容
+              </button>
+              <button v-if="room" :aria-current="mode === 'room' ? 'page' : undefined" @click="changeMode('room')">
+                房间内容
+              </button></template
+            >
+          </nav>
           <input v-model="query" type="search" aria-label="搜索内容包" placeholder="搜索内容包名称或作者" /><template
             v-if="!readonly"
             ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
-            ><button :disabled="busy" @click="run(() => refresh())">刷新</button></template
+            ><button :disabled="busy" @click="run(() => refresh())">刷新</button>
+            <button @click="tasksOpen = true">
+              下载与安装
+              {{ snapshot?.operations?.filter(job => ['queued', 'running'].includes(job.status)).length || '' }}
+            </button></template
           >
         </div>
         <template v-if="mode === 'server'">
@@ -543,24 +483,8 @@ onBeforeUnmount(() => {
                 >
               </button>
               <div class="row-status">
-                <span v-if="pkg.builtin" class="tag">默认环境必需</span
-                ><span v-else-if="readonly" class="tag">服务器提供</span
-                ><label v-else class="enable"
-                  ><input
-                    type="checkbox"
-                    :aria-label="'启用 ' + pkg.title"
-                    :checked="draftIds.includes(pkg.id)"
-                    :disabled="busy || (!!pkg.error && !draftIds.includes(pkg.id))"
-                    @change="toggle(pkg, ($event.target as HTMLInputElement).checked)"
-                  />启用</label
-                ><span v-if="pkg.error" class="problem">安装不可用</span
-                ><small v-if="!readonly && draftIds.includes(pkg.id) !== activeIds.includes(pkg.id)">{{
-                  snapshot?.selection.status === 'failed'
-                    ? '未能完成'
-                    : draftIds.includes(pkg.id)
-                      ? '正在启用'
-                      : '正在停用'
-                }}</small>
+                <span v-if="pkg.builtin" class="tag">内置</span><span v-else-if="readonly" class="tag">服务器提供</span
+                ><span v-else class="tag">已安装</span><span v-if="pkg.error" class="problem">安装不可用</span>
               </div>
             </div>
             <p
@@ -575,19 +499,7 @@ onBeforeUnmount(() => {
             <h2>{{ selected.title }}</h2>
             <p class="detail-subtitle">
               {{ selected.version }} ·
-              {{
-                readonly
-                  ? mode === 'room'
-                    ? '本局固定版本'
-                    : '服务器已发布版本'
-                  : draftIds.includes(selected.id) !== activeIds.includes(selected.id)
-                    ? snapshot?.selection.status === 'failed'
-                      ? '未能完成选择'
-                      : '正在准备'
-                    : activeIds.includes(selected.id)
-                      ? '本机已启用'
-                      : '已安装，未启用'
-              }}
+              {{ readonly ? (mode === 'room' ? '本局固定版本' : '服务器已发布版本') : '已安装' }}
             </p>
             <button v-if="canAuthor && !readonly" class="primary" :disabled="busy" @click="browsePackage(selected.id)">
               浏览内容（只读）
@@ -640,32 +552,13 @@ onBeforeUnmount(() => {
                 </details>
                 <div v-if="!readonly && selected.local && !selected.builtin" class="detail-actions">
                   <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
-                  ><button
-                    :title="
-                      draftIds.includes(selected.id) || activeIds.includes(selected.id)
-                        ? '请先停用后卸载'
-                        : snapshot?.selection.status === 'preparing'
-                          ? '内容准备完成后可卸载'
-                          : undefined
-                    "
-                    :disabled="
-                      busy ||
-                      snapshot?.selection.status === 'preparing' ||
-                      draftIds.includes(selected.id) ||
-                      activeIds.includes(selected.id)
-                    "
-                    @click="uninstall"
-                  >
-                    卸载此版本
-                  </button>
+                  ><button :disabled="busy" @click="uninstall">卸载此版本</button>
                 </div>
               </template>
               <template v-else-if="detailTab === 'dependencies'"
                 ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
                 <template v-else-if="selected.graph"
-                  ><p class="detail-subtitle">
-                    {{ activeIds.includes(selected.id) ? '当前可用组合的实际依赖' : '安装时的内容包及依赖' }}
-                  </p>
+                  ><p class="detail-subtitle">安装时的内容包及依赖</p>
                   <p v-for="(range, name) in selected.local?.dependencyRanges" :key="name">{{ name }}：{{ range }}</p>
                   <ul class="dependencies">
                     <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
@@ -778,7 +671,7 @@ onBeforeUnmount(() => {
   --accent: #2467c8;
   max-width: 1280px;
   margin: auto;
-  padding: 24px 20px 12px;
+  padding: 8px 20px 12px;
   color: var(--text);
 }
 .page-heading {
@@ -843,15 +736,22 @@ input[type='checkbox'] {
 }
 .workspace {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
   overflow: clip;
 }
 .task-nav {
-  padding: 16px 9px;
-  border-right: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.nav-label,
+.task-nav hr {
+  display: none;
 }
 .nav-label {
   font-size: 12px;
@@ -861,7 +761,8 @@ input[type='checkbox'] {
 .task-nav button {
   display: flex;
   justify-content: space-between;
-  width: 100%;
+  width: auto;
+  gap: 8px;
   border: 0;
   text-align: left;
   margin: 4px 0;
@@ -924,8 +825,8 @@ hr {
 }
 .columns {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 310px;
-  height: clamp(360px, calc(100dvh - 260px), 780px);
+  grid-template-columns: minmax(220px, 1fr) minmax(310px, 36%);
+  align-items: start;
   min-height: 0;
   overflow: hidden;
 }
@@ -1169,7 +1070,7 @@ summary {
     grid-template-columns: minmax(200px, 1fr) 260px;
   }
   .workspace {
-    grid-template-columns: 114px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
   .package-row {
     padding: 9px;
@@ -1180,7 +1081,7 @@ summary {
 }
 @media (max-width: 720px) {
   .content-page {
-    padding: 20px 12px 48px;
+    padding: 8px 12px 24px;
   }
   .page-heading h1 {
     font-size: 23px;

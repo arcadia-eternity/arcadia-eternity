@@ -18,6 +18,7 @@ export async function acquireLocalContent() {
     validateEnvironmentContent(result.content)
     return {
       content: result.content,
+      rules: result.rules,
       resources: result.resources ?? [],
       async readRuntime() {
         if (released) throw new Error('本地内容会话已释放')

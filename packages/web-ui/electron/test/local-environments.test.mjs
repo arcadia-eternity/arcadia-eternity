@@ -174,7 +174,7 @@ test('relocated desktop environment module loads without workspace packages and 
   const file = join(root, 'local-environments.mjs')
   await copyFile(new URL('../local-environments.mjs', import.meta.url), file)
   const { LocalEnvironments: Relocated } = await import(pathToFileURL(file).href)
-  const workspace = { close: async () => {} }
+  const workspace = { root, close: async () => {} }
   const input = { action: 'package-state', environmentId: 'friends', packageName: 'sample', enabled: false }
   const api = new Relocated({
     openWorkspace: async () => workspace,
@@ -204,4 +204,48 @@ test('one apply action creates and updates the installation without saving a dra
   })
   assert.equal((await complete(api, submitted.operationId)).status, 'failed')
   assert.deepEqual((await api.snapshot()).environments[0], original)
+})
+
+test('migrates the working local selection once and preserves selected environments and live leases', async t => {
+  const f = await fixture(t)
+  let migrations = 0
+  f.library.list = async () => ({
+    packages: [{ id: 'legacy', name: 'sample', version: '1.0.0' }],
+    activeIds: ['legacy'],
+  })
+  f.library.acquireProject = async () => {
+    migrations++
+    return { directory: f.project, release: async () => {} }
+  }
+  let api = f.open()
+  const first = await api.snapshot()
+  assert.equal(first.environments.length, 1)
+  assert.equal(first.selectedEnvironmentId, first.environments[0].document.id)
+  assert.deepEqual(first.environments[0].document.packages, { sample: '1.0.0' })
+  const original = await api.acquireProject()
+  const apply = await api.request({ action: 'apply', document, expectedRevision: null })
+  assert.equal((await complete(api, apply.operationId)).status, 'succeeded')
+  const select = await api.request({ action: 'select', environmentId: document.id })
+  assert.equal((await complete(api, select.operationId)).status, 'succeeded')
+  assert.ok(
+    (await api.request({ action: 'references', installationId: document.id })).references.some(
+      reference => reference.kind === 'local-selection',
+    ),
+  )
+  const next = await api.acquireProject()
+  assert.equal(next.document.id, document.id)
+  assert.equal(original.document.id, first.selectedEnvironmentId)
+  assert.notEqual(original.directory, next.directory)
+  await assert.rejects(api.request({ action: 'clear-installation', installationId: document.id }), {
+    code: 'ENVIRONMENT_IN_USE',
+  })
+  const invalid = await api.request({ action: 'select', environmentId: 'missing' })
+  assert.equal((await complete(api, invalid.operationId)).status, 'failed')
+  assert.equal((await api.snapshot()).selectedEnvironmentId, document.id)
+  await original.release()
+  await next.release()
+  await api.close()
+  api = f.open()
+  assert.equal((await api.snapshot()).selectedEnvironmentId, document.id)
+  assert.equal(migrations, 1)
 })

@@ -101,6 +101,7 @@ async function login(page: Page, directory: string, origin: string) {
   const credential = await hostCommand(directory, ['admin', 'login-code', '--data-dir', directory])
   const identity = { serverId: String(credential.serverId), workspaceId: String(credential.workspaceId) }
   await page.goto(origin + '/management?tab=environments')
+  await page.getByRole('button', { name: '管理员登录', exact: true }).click()
   await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
   await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
   await page.getByLabel('一次性登录码', { exact: true }).fill(credential.code)
@@ -149,7 +150,7 @@ test('paired production management backs up, revokes service credentials and ret
     expect(identity.serverId).toBe(server.serverId)
     checks.push('host one-use code claimed through paired production UI')
     await expect(page.getByRole('navigation', { name: '选择环境' }).getByRole('button')).toHaveCount(1)
-    await page.getByRole('menuitem', { name: '概览', exact: true }).click()
+    await page.goto(server.origin + '/management?target=server&tab=server')
     await expect(page.locator('.overview-stats')).toContainText('活跃对战')
     await page.screenshot({ path: testInfo.outputPath('server-overview.png'), fullPage: true })
     await page.getByRole('menuitem', { name: '活跃对战', exact: true }).click()
@@ -161,7 +162,7 @@ test('paired production management backs up, revokes service credentials and ret
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('server-users-mobile.png'), fullPage: true })
     await page.setViewportSize({ width: 1440, height: 1000 })
-    await page.getByRole('menuitem', { name: '运行环境', exact: true }).click()
+    await page.goto(server.origin + '/content?target=server&tab=environments')
     checks.push('server overview, live battles and users render on desktop and mobile')
 
     await page.getByRole('button', { name: '新建环境', exact: true }).click()
@@ -178,7 +179,7 @@ test('paired production management backs up, revokes service credentials and ret
       .click()
     const backupEnvironment = page.getByRole('region', { name: '环境工作区' })
     await expect(backupEnvironment.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
-    await page.getByRole('menuitem', { name: /^操作记录与备份/ }).click()
+    await page.goto(server.origin + '/management?target=server&tab=tasks')
     const preparation = page
       .getByRole('region', { name: '管理任务' })
       .getByRole('row')
@@ -295,7 +296,7 @@ test('paired production management backs up, revokes service credentials and ret
         .getByRole('region', { name: '环境工作区', exact: true })
         .getByRole('heading', { name: '备份验收环境', exact: true }),
     ).toBeVisible()
-    await page.getByRole('menuitem', { name: '管理员', exact: true }).click()
+    await page.goto(server.origin + '/management?target=server&tab=permissions')
     await expect(credentialList).toContainText(survivingCredentialId)
     await expect(credentialList.locator('article').filter({ hasText: credentialId })).toHaveCount(0)
     await credentialList.screenshot({ path: testInfo.outputPath('credential-metadata-after-restart.png') })

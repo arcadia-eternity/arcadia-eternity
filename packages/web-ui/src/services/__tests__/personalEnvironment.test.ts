@@ -666,3 +666,10 @@ describe('explicit personal environment download', () => {
     expect(createObjectURL).not.toHaveBeenCalled()
   })
 })
+
+it('preserves selected local environment rules when creating a personal share', async () => {
+  const original = await capture()
+  const rules = { schemaVersion: 1 as const, team: { maxSize: 2 } }
+  const bundle = await createPersonalEnvironmentBundle({ ...original, rules })
+  expect(bundle.rules).toEqual(rules)
+})

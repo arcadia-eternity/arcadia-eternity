@@ -133,7 +133,7 @@ button[aria-current='page'] {
 }
 .hub-body > :deep(.local-environments) {
   height: auto;
-  min-height: 100%;
+  min-height: 0;
   padding: 0 20px 20px;
 }
 </style>

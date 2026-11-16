@@ -2,12 +2,12 @@
 import { ElButton, ElDrawer } from 'element-plus'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import ServerEnvironmentPanel from './ServerEnvironmentPanel.vue'
-import { useLocalServerStore } from '@/stores/localServer'
+import { useGameDataStore } from '@/stores/gameData'
+import { isRemoteContentActive } from '@/i18n/serverContent'
 import EnvironmentImportDialog from '@/features/management/EnvironmentImportDialog.vue'
 import EnvironmentWorkspace from '@/features/management/EnvironmentWorkspace.vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
-const localServer = useLocalServerStore()
+const gameData = useGameDataStore()
 const canImportSources = !!window.arcadiaDesktop?.contentPackageAction
 interface Job {
   id: string
@@ -18,6 +18,7 @@ interface Job {
   result?: ManagedEnvironmentInstallation
 }
 interface Snapshot {
+  selectedEnvironmentId?: string
   workspaceId: string
   environments: ManagedEnvironment[]
   installations: ManagedEnvironmentInstallation[]
@@ -69,7 +70,19 @@ async function refresh() {
   const sequence = ++refreshSequence
   try {
     const next = await call<Snapshot>({ action: 'snapshot' })
-    if (!disposed && sequence === refreshSequence) snapshot.value = next
+    if (!disposed && sequence === refreshSequence) {
+      const before = snapshot.value.installations.find(
+        item => item.environmentId === snapshot.value.selectedEnvironmentId,
+      )
+      const after = next.installations.find(item => item.environmentId === next.selectedEnvironmentId)
+      const changed =
+        snapshot.value.workspaceId &&
+        (snapshot.value.selectedEnvironmentId !== next.selectedEnvironmentId ||
+          (before?.status === 'ready' ? before.draftRevision : undefined) !==
+            (after?.status === 'ready' ? after.draftRevision : undefined))
+      snapshot.value = next
+      if (changed && !isRemoteContentActive()) await gameData.reload()
+    }
   } catch (cause) {
     if (!disposed && sequence === refreshSequence)
       error.value = cause instanceof Error ? cause.message : '无法读取环境库'
@@ -152,7 +165,6 @@ async function importEnvironment(input: { bundle: unknown; environmentId?: strin
 onMounted(async () => {
   const poll = async () => {
     await refresh()
-    await localServer.refresh().catch(() => undefined)
     if (!disposed) timer = setTimeout(poll, preparing.value ? 1000 : 4000)
   }
   await poll()
@@ -172,11 +184,15 @@ onBeforeUnmount(() => {
       :installations="snapshot.installations"
       :can-export="true"
       @export="exportEnvironment"
-      :show-use-actions="false"
+      :show-use-actions="true"
+      use-label="本地使用"
+      :show-peer-use="false"
+      :current-environment-id="snapshot.selectedEnvironmentId"
+      @use="version => run({ action: 'select', environmentId: version.environmentId }, '')"
       :can-edit="true"
       :can-prepare="true"
       :can-delete="true"
-      :can-use="false"
+      :can-use="!preparing"
       :busy="busy"
       :save-sequence="saveSequence"
       @save="save"
@@ -209,15 +225,6 @@ onBeforeUnmount(() => {
         <ElButton @click="tasksOpen = true">任务{{ activeTasks ? `（${activeTasks}）` : '' }}</ElButton>
         <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>
       </template>
-      <template #detail="{ environment }">
-        <ServerEnvironmentPanel
-          v-if="localServer.running"
-          :key="environment.document.id"
-          target="local"
-          bindings-only
-          :environment-id="environment.document.id"
-        />
-      </template>
     </EnvironmentWorkspace>
     <EnvironmentImportDialog v-model="importing" :busy="busy || preparing" :error="error" @import="importEnvironment" />
     <details class="source-settings">
@@ -237,7 +244,16 @@ onBeforeUnmount(() => {
         <button @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</button>
         <p v-if="!snapshot.operations.length">暂无任务。</p>
         <article v-for="job in snapshot.operations" :key="job.id">
-          <span>{{ job.kind === 'environment.apply' ? '保存并应用' : '导入环境' }} · {{ jobLabels[job.status] }}</span>
+          <span
+            >{{
+              job.kind === 'environment.apply'
+                ? '保存并应用'
+                : job.kind === 'environment.select'
+                  ? '切换环境'
+                  : '导入环境'
+            }}
+            · {{ jobLabels[job.status] }}</span
+          >
           <button
             v-if="['queued', 'running'].includes(job.status)"
             @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')"
@@ -275,7 +291,6 @@ onBeforeUnmount(() => {
   border-color: var(--el-color-primary);
 }
 .local-environments :deep(.environment-workspace) {
-  flex: 1;
   height: auto;
   min-height: 0;
 }
@@ -286,7 +301,7 @@ onBeforeUnmount(() => {
 .local-environments {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 230px);
+  height: auto;
   min-height: 0;
   color: var(--el-text-color-primary);
 }

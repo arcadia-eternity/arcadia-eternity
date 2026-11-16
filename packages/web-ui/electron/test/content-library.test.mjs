@@ -726,3 +726,25 @@ it('cancels queued and running installation tasks and retries without changing e
     await f.manager.close()
   }
 })
+
+it('retires the migrated legacy selection and allows uninstalling its independent packages', async () => {
+  const f = await fixture('retire-legacy-selection')
+  f.manager.withDefaultArchive = async use => use(await f.file('base'))
+  try {
+    const base = (await f.manager.list()).packages[0]
+    const custom = await f.manager.installFile(await f.file('water'), true)
+    await f.manager.setSelection([base.id, custom], true)
+    await settled(f.manager)
+    const old = await f.manager.acquireProject()
+    await f.manager.retireSelection()
+    assert.deepEqual((await f.manager.list()).activeIds, [base.id])
+    await f.manager.uninstall(custom)
+    assert.ok(await readFile(join(old.directory, 'package.json'), 'utf8'))
+    await old.release()
+    const fallback = await f.manager.acquireProject()
+    assert.ok(await readFile(join(fallback.directory, 'package.json'), 'utf8'))
+    await fallback.release()
+  } finally {
+    await f.manager.close()
+  }
+})

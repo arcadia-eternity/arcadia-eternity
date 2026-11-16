@@ -374,7 +374,7 @@ async function loadLocalContentRuntime() {
 }
 function getLocalContentSessions() {
   localContentSessions ??= createLocalContentSessions({
-    library: getContentLibrary(),
+    library: { acquireProject: () => getLocalEnvironments().acquireProject() },
     load: loadLocalContentRuntime,
     assetUrl: (token, hash) => `http://127.0.0.1:${localServerPort}/local-content/${token}/${hash}`,
   })
@@ -1071,21 +1071,13 @@ function setupIpcHandlers() {
       library.clearInstallTasks()
       return null
     }
-    if (input.action === 'set-selection') {
-      await library.setSelection(input.ids, input.offline === true)
-      return null
-    }
     if (input.action === 'confirm-install') return library.confirmInstall(input.planId, input.allowCode === true)
-    if (input.action === 'plan-selection') return library.planSelection(input.ids, input.offline === true)
-    if (input.action === 'apply-selection') {
-      await library.applySelection(input.planId, input.allowCode === true)
-      return null
-    }
     if (input.action === 'cancel') {
       await library.cancel(input.planId)
       return null
     }
     if (input.action === 'uninstall') {
+      await getLocalEnvironments().ready()
       await library.uninstall(input.packageId)
       return null
     }
@@ -1222,8 +1214,8 @@ app.on('before-quit', event => {
         async () => {
           if (personalProfile) await (await personalProfile).storage.close()
         },
-        () => localEnvironments?.close(),
         () => localContentSessions?.close(),
+        () => localEnvironments?.close(),
         () => localServerController.close(),
         () => localBattleHost.stop(),
         () => managementWorkspaceOwner?.close(),

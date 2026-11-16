@@ -297,3 +297,22 @@ it('detaches the store even when native cleanup fails', async () => {
   expect(target.battle.battleInterface).toBeNull()
   expect(native.system.cleanup).toHaveBeenCalledOnce()
 })
+
+it('checks the captured environment rules before creating a local battle', async () => {
+  const release = vi.fn(async () => {})
+  vi.stubGlobal('arcadiaDesktop', {
+    prepareLocalContent: vi.fn(async () => ({
+      token: 'rules',
+      content: emptyData,
+      resources: [],
+      rules: { schemaVersion: 1, team: { minSize: 1 } },
+    })),
+    releaseLocalContent: release,
+  })
+  const create = vi.fn(async () => prepared())
+  const value = session(create)
+  await expect(value.start(player, player, {}, destination())).rejects.toThrow('ENVIRONMENT_TEAM_REJECTED')
+  expect(create).not.toHaveBeenCalled()
+  await value.dispose()
+  expect(release).toHaveBeenCalledOnce()
+})
