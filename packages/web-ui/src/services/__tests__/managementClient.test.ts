@@ -34,7 +34,7 @@ describe('management transport contexts', () => {
     const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => response({ id: 'job-1' }, 202))
     const api = createHttpManagementClient(httpContext(), fetchImpl)
     api.setCsrfToken('csrf-a')
-    await api.request('POST', '/workspaces/my-workspace/environments/test/prepare', {
+    await api.request('POST', '/workspaces/my-workspace/environments/apply', {
       body: { version: 'v1' },
       revision: 2,
       idempotencyKey: 'attempt:1',
@@ -257,12 +257,12 @@ describe('shared IPC/HTTP command contract', () => {
     const a = createIpcManagementClient(ipcContext(), bridge)
     const b = createIpcManagementClient(ipcContext(), bridge)
     a.setCsrfToken('token-a')
-    const body = { selection: { versionId: 'version-a' } }
+    const body = { selection: { installationId: 'version-a' } }
     const pending = a.request('PATCH', '/servers/server-a', { body, revision: 7, idempotencyKey: 'retry-7' })
-    body.selection.versionId = 'version-b'
+    body.selection.installationId = 'version-b'
     await pending
     await b.request('POST', '/session/bootstrap', { body: { code: 'one-time' } })
-    expect(requests[0]!.body).toEqual({ selection: { versionId: 'version-a' } })
+    expect(requests[0]!.body).toEqual({ selection: { installationId: 'version-a' } })
     expect(requests[0]!.headers).toEqual({ 'If-Match': '"7"', 'Idempotency-Key': 'retry-7' })
     expect(requests[1]!.headers).toEqual({})
   })

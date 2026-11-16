@@ -30,7 +30,7 @@ export interface EnvironmentPublication {
   environmentId?: string
   environmentName?: string
   bindingId?: string
-  versionId?: string
+  installationId?: string
   enabled: boolean
   public: boolean
   matchmaking: boolean
@@ -41,7 +41,7 @@ export interface EnvironmentLease {
   readonly environmentId?: string
   readonly environmentName?: string
   readonly bindingId?: string
-  readonly versionId?: string
+  readonly installationId?: string
   readonly admissionKey?: string
   readonly runtime: ServerRuntime
   readonly descriptor: ServerEnvironmentDescriptor
@@ -347,13 +347,13 @@ export class ServerEnvironmentRegistry {
     return {
       runtime: entry.runtime,
       bindingId: publication?.bindingId,
-      versionId: publication?.versionId,
+      installationId: publication?.installationId,
       environmentId: publication?.environmentId,
       environmentName: publication?.environmentName,
       admissionKey: digest({
         runtimeId: entry.descriptor.id,
         bindingId: publication?.bindingId,
-        versionId: publication?.versionId,
+        installationId: publication?.installationId,
         rules: publication?.rules,
         executionPolicy: publication?.executionPolicy,
       }),

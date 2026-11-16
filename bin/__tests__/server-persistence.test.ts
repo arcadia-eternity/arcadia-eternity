@@ -275,11 +275,11 @@ describe('durable workspace retention roots', () => {
     target = 'b'
     release()
     await held
-    expect(await pending).toEqual([{ versionId: 'old', retentionId: 'pin' }])
+    expect(await pending).toEqual([{ installationId: 'old', retentionId: 'pin' }])
     expect(await roots.list('old')).toEqual([])
   })
 
-  it('derives both binding versions and isolates explicit roots by workspace', async () => {
+  it('derives both binding installations and isolates explicit roots by workspace', async () => {
     const dataDir = await directory(),
       owner = await open(dataDir)
     const local = workspaceRetentions(owner.storage, () => 'local'),
@@ -289,30 +289,24 @@ describe('durable workspace retention roots', () => {
     await owner.storage.create('bindings', {
       id: 'ours',
       scope: 'server:one',
-      value: { workspaceId: 'local', desiredVersionId: 'new', effectiveVersionId: 'old' },
+      value: { workspaceId: 'local', environmentId: 'new' },
     })
     await owner.storage.create('bindings', {
       id: 'theirs',
       scope: 'server:two',
-      value: { workspaceId: 'remote', desiredVersionId: 'new', effectiveVersionId: 'old' },
+      value: { workspaceId: 'remote', environmentId: 'new' },
     })
-    expect(await local.list('new')).toEqual([{ versionId: 'new', retentionId: 'binding:ours' }])
-    expect(await local.list('old')).toEqual([
-      { versionId: 'old', retentionId: 'rollback' },
-      { versionId: 'old', retentionId: 'binding:ours' },
-    ])
+    expect(await local.list('new')).toEqual([{ installationId: 'new', retentionId: 'binding:ours' }])
+    expect(await local.list('old')).toEqual([{ installationId: 'old', retentionId: 'rollback' }])
     await local.remove('rollback')
-    expect(await local.list('old')).toEqual([{ versionId: 'old', retentionId: 'binding:ours' }])
-    expect(await remote.list('old')).toEqual([
-      { versionId: 'old', retentionId: 'rollback' },
-      { versionId: 'old', retentionId: 'binding:theirs' },
-    ])
+    expect(await local.list('old')).toEqual([])
+    expect(await remote.list('old')).toEqual([{ installationId: 'old', retentionId: 'rollback' }])
     const id = owner.serverId
     await close(owner)
     const restarted = await open(dataDir)
     expect(restarted.serverId).toBe(id)
     expect(await workspaceRetentions(restarted.storage, () => 'local').list('new')).toEqual([
-      { versionId: 'new', retentionId: 'binding:ours' },
+      { installationId: 'new', retentionId: 'binding:ours' },
     ])
   })
 })

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { flushProfile, profileInitialized } from '@/services/profile'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -132,6 +133,7 @@ async function remote(value: string, mode: 'play' | 'management' = 'play') {
   try {
     const url = serverOrigin(value)
     if (window.arcadiaDesktop) {
+      if (mode !== 'management' && profileInitialized()) await flushProfile()
       await window.arcadiaDesktop.openRemotePlay({ url, mode })
       recent.value = [...new Set([url, ...recent.value])].slice(0, 8)
       writeLocalData('servers.recent', JSON.stringify(recent.value))

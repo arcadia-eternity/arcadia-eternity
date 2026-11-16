@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub, type VueWrapper } from '@vue/test-utils'
 import ManagementConsole from '../ManagementConsole.vue'
 import type { ManagementIpcRequest } from '@/services/managementClient'
-import type { ManagedEnvironment, ManagedEnvironmentVersion } from '@/types/management'
+import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@/types/management'
 
 vi.mock('@/bootstrap/deployment', () => ({ getBackendOrigin: () => 'https://paired.example' }))
 vi.mock('@/stores/auth', () => ({
@@ -24,8 +24,8 @@ const draft = (suffix = 'local'): ManagedEnvironment => ({
     requires: {},
   },
 })
-const version = (suffix = 'local'): ManagedEnvironmentVersion => ({
-  versionId: `version-${suffix}`,
+const version = (suffix = 'local'): ManagedEnvironmentInstallation => ({
+  installationId: `version-${suffix}`,
   environmentId: 'friends',
   workspaceId: `workspace-${suffix}`,
   document: draft(suffix).document,
@@ -78,7 +78,7 @@ function response(path: string, suffix = 'local', readonly = false): unknown {
         },
       ],
     }
-  if (path.endsWith('/environments')) return { environments: [draft(suffix)], versions: [version(suffix)] }
+  if (path.endsWith('/environments')) return { environments: [draft(suffix)], installations: [version(suffix)] }
   if (path.endsWith('/bindings'))
     return {
       bindings: [
@@ -89,8 +89,6 @@ function response(path: string, suffix = 'local', readonly = false): unknown {
           workspaceId: `workspace-${suffix}`,
           environmentId: 'friends',
           selection: 'pinned',
-          desiredVersionId: `version-${suffix}`,
-          effectiveVersionId: `version-${suffix}`,
           enabled: true,
           visibility: 'public',
           matchmakingEnabled: false,
@@ -189,9 +187,9 @@ describe('shared management console', () => {
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('修改的环境')
     await page.get('form.environment-editor').trigger('submit')
     await flushPromises()
-    const save = request.mock.calls.map(([input]) => input).find(input => input.method === 'PATCH')!
-    expect(save.path).toBe('/workspaces/workspace-local/environments/friends')
-    expect(save.headers?.['If-Match']).toBe('"draft-4"')
+    const save = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/environments/apply'))!
+    expect(save.path).toBe('/workspaces/workspace-local/environments/apply')
+    expect(save.headers?.['If-Match']).toBeUndefined()
     expect(save.headers?.['Idempotency-Key']).toBeTruthy()
     expect(save.body).toEqual({ document: { ...draft().document, name: '修改的环境' }, expectedRevision: 'draft-4' })
   })
@@ -205,27 +203,21 @@ describe('shared management console', () => {
     await flushPromises()
     const created = request.mock.calls
       .map(([input]) => input)
-      .find(input => input.method === 'POST' && input.path.endsWith('/environments'))!
-    expect(created.path).toBe('/workspaces/workspace-local/environments')
+      .find(input => input.method === 'POST' && input.path.endsWith('/environments/apply'))!
+    expect(created.path).toBe('/workspaces/workspace-local/environments/apply')
     expect(created.body).toMatchObject({
       document: { id: 'new-env', name: '新环境', schemaVersion: 2 },
       expectedRevision: null,
     })
     expect(created.headers?.['If-Match']).toBeUndefined()
-    await button(page, '准备版本').trigger('click')
-    await flushPromises()
-    const prepared = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/prepare'))!
-    expect(prepared.path).toBe('/workspaces/workspace-local/environments/friends/prepare')
-    expect(prepared.body).toEqual({ expectedRevision: 'draft-4' })
-    expect(prepared.headers?.['If-Match']).toBe('"draft-4"')
-    expect(page.find('[aria-label="管理任务"]').exists()).toBe(true)
+    expect(page.text()).not.toContain('准备环境')
   })
 
   it('uses the newly saved revision for the next edit instead of leaving the editor permanently stale', async () => {
     let current = draft()
     const savedRevisions: string[] = []
     const request = vi.fn(async (input: ManagementIpcRequest) => {
-      if (input.path.endsWith('/environments/friends') && input.method === 'PATCH') {
+      if (input.path.endsWith('/environments/apply') && input.method === 'POST') {
         const body = input.body as { document: ManagedEnvironment['document']; expectedRevision: string }
         if (body.expectedRevision !== current.revision)
           return { status: 412, body: { error: { code: 'REVISION_CONFLICT', message: '资源已更新' } } }
@@ -234,7 +226,7 @@ describe('shared management console', () => {
         return { status: 200, body: current }
       }
       if (input.path.endsWith('/environments'))
-        return { status: 200, body: { environments: [current], versions: [version()] } }
+        return { status: 200, body: { environments: [current], installations: [version()] } }
       return { status: 200, body: response(input.path) }
     })
     const { page } = await open(request)
@@ -253,7 +245,7 @@ describe('shared management console', () => {
 
   it('keeps unsaved edits visible when another administrator changed the draft', async () => {
     const request = vi.fn(async (input: ManagementIpcRequest) =>
-      input.method === 'PATCH'
+      input.path.endsWith('/environments/apply')
         ? { status: 412, body: { error: { code: 'REVISION_CONFLICT', message: '资源已被另一管理员更新' } } }
         : { status: 200, body: response(input.path) },
     )
@@ -267,27 +259,27 @@ describe('shared management console', () => {
     expect((page.get('form.environment-editor').findAll('input')[0]!.element as HTMLInputElement).value).toBe(
       '尚未保存的内容',
     )
-    expect(request.mock.calls.filter(([input]) => input.method === 'PATCH')).toHaveLength(1)
+    expect(request.mock.calls.filter(([input]) => input.path.endsWith('/environments/apply'))).toHaveLength(1)
   })
 
   it('publishes the selected fixed version with the binding revision rather than the server revision', async () => {
     const { page, request } = await open()
     await button(page, '运行环境').trigger('click')
-    await button(page, '发布所选版本').trigger('click')
+    await button(page, '重新加载').trigger('click')
     await flushPromises()
-    const published = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/publish'))!
-    expect(published.path).toBe('/servers/server-local/bindings/binding-main/publish')
+    const published = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/reload'))!
+    expect(published.path).toBe('/servers/server-local/bindings/binding-main/reload')
     expect(published.headers?.['If-Match']).toBe('"6"')
-    expect(published.body).toEqual({ versionId: 'version-local' })
+    expect(published.body).toEqual({})
   })
 
   it('keeps the server catalogue readable but makes no publishing request for a viewer', async () => {
     const { page, request } = await open(bridge(true))
     expect(button(page, '新建环境').attributes('disabled')).toBeDefined()
     await button(page, '运行环境').trigger('click')
-    expect(page.text()).toContain('实际版本')
-    expect(button(page, '发布所选版本').attributes('disabled')).toBeDefined()
-    await button(page, '发布所选版本').trigger('click')
+    expect(page.text()).not.toContain('实际版本')
+    expect(button(page, '重新加载').attributes('disabled')).toBeDefined()
+    await button(page, '重新加载').trigger('click')
     expect(request.mock.calls.every(([input]) => input.method === 'GET')).toBe(true)
     expect(page.find('[aria-label="管理员授权"]').exists()).toBe(false)
   })

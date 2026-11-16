@@ -1,3 +1,4 @@
+import { readPersistedProfile } from './helpers/profile'
 import { expect, test, type Page } from 'playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -64,7 +65,10 @@ async function formCustomTeam(page: Page) {
   await expect(page.getByPlaceholder('输入精灵名称')).toHaveValue('展示精灵')
   await page.getByRole('button', { name: '保存', exact: true }).click()
   // Read-only evidence verifies the visible editor persisted the real UGC team.
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets)
+  await expect
+    .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.species)
+    .toBe('example-slow:pet')
+  const saved = (await readPersistedProfile(page))!.library.teams[0].pets
   expect(saved).toHaveLength(1)
   expect(saved[0].species).toBe('example-slow:pet')
   expect(saved[0].skills).toEqual(['example-slow:strike'])

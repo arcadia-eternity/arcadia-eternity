@@ -38,12 +38,6 @@ export const usePlayerStore = defineStore('player', {
       this.name = trimmed
       this.saveToLocal()
     },
-    generateNewId() {
-      this.id = nanoid()
-      this.name = `游客-${this.id.slice(-4)}`
-      this.isInitialized = true
-      this.saveToLocal()
-    },
   },
   getters: {
     player: (state): PlayerSchemaType => ({

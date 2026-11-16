@@ -176,7 +176,11 @@ async function fixture(t, options = {}) {
     host,
     sources: options.sources?.(source),
     createManagedProjects: async (directory, input) => {
-      const managed = new ManagedProjects(directory, { ...input, offline: true })
+      const managed = new ManagedProjects(directory, {
+        ...input,
+        offline: true,
+        bundledPackageRoot: options.bundledPackageRoot,
+      })
       projects.push(managed)
       if (!options.cancelOnConsume) return managed
       return {
@@ -293,7 +297,9 @@ test(
     assert.equal(chosen.directory, active.directory)
     await chosen.release()
     assert.deepEqual((await f.library.list()).activeIds, [firstId])
-    await f.library.setSelection([], true)
+    const other = await contentPackage(f.root, '@sample/other')
+    const otherId = await f.library.installFile(other.archive, true)
+    await f.library.setSelection([otherId], true)
     await settled(f.library)
     await assert.rejects(f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true }), {
       code: 'INSTALL_SOURCE_AMBIGUOUS',
@@ -345,3 +351,62 @@ test('cancelled managed acquisition leaves no adoptable project or changed selec
   await f.library.collectGarbage()
   assert.deepEqual(await readdir(join(f.libraryRoot, 'projects')), [])
 })
+
+test('environment preparation uses its own persistent manifest and lock', { timeout: 60000 }, async t => {
+  const f = await fixture(t, { sources: source => ({ [source.name]: { kind: 'archive', file: source.archive } }) })
+  const first = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
+  try {
+    const manifestPath = join(first.directory, 'package.json')
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+    manifest.customEnvironmentField = 'preserved'
+    await writeFile(manifestPath, JSON.stringify(manifest))
+    const lock = await readFile(join(first.directory, 'package-lock.json'), 'utf8')
+    const next = await f.library.prepareEnvironmentProject(
+      { ...environment([]), packages: manifest.dependencies },
+      { offline: true, projectDirectory: first.directory },
+    )
+    try {
+      assert.equal(
+        JSON.parse(await readFile(join(next.directory, 'package.json'), 'utf8')).customEnvironmentField,
+        'preserved',
+      )
+      assert.equal(await readFile(join(next.directory, 'package-lock.json'), 'utf8'), lock)
+      assert.equal(
+        (await inspectNpmProject(next.directory)).packages.find(pkg => pkg.name === f.source.name).version,
+        '1.0.0',
+      )
+    } finally {
+      await next.release()
+    }
+  } finally {
+    await first.release()
+  }
+})
+
+test(
+  'desktop apply uses the bundled base without downloading or requiring a library installation',
+  { timeout: 60000 },
+  async t => {
+    const { fileURLToPath } = await import('node:url')
+    const bundledPackageRoot = fileURLToPath(new URL('../../../../packs/base/', import.meta.url))
+    const base = JSON.parse(await readFile(join(bundledPackageRoot, 'package.json'), 'utf8'))
+    const f = await fixture(t, { bundledPackageRoot })
+    const lease = await f.library.prepareEnvironmentProject(
+      { ...environment([]), packages: { [base.name]: base.version } },
+      { offline: true },
+    )
+    try {
+      const actual = JSON.parse(
+        await readFile(join(lease.directory, 'node_modules', base.name, 'package.json'), 'utf8'),
+      )
+      assert.equal(actual.version, base.version)
+      assert.equal(
+        f.calls.some(args => args[2] === 'stage'),
+        false,
+      )
+      assert.deepEqual((await f.library.list()).activeIds, [])
+    } finally {
+      await lease.release()
+    }
+  },
+)

@@ -16,6 +16,7 @@ import { usePrivateRoomStore } from './stores/privateRoom'
 import { ensureRuffleRuntime } from './bootstrap/ruffle'
 import { isStaticMode } from './utils/env'
 import { localDataStorage } from './services/localStorage'
+import { initializeProfile } from './services/profile'
 
 async function bootstrap() {
   const animationRuntime = ensureRuffleRuntime().catch(error => {
@@ -26,6 +27,8 @@ async function bootstrap() {
   })
   // Editing teams and other web pages can mount while the optional animation runtime loads.
   if (isStaticMode) await animationRuntime
+
+  if (!window.arcadiaAuthorPreview) await initializeProfile()
 
   const app = createApp(window.arcadiaAuthorPreview ? AuthorPreviewShell : App)
   const pinia = createPinia()

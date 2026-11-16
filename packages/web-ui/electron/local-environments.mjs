@@ -1,11 +1,12 @@
+import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
-const safeVersion = version => {
-  const { directory, materialDirectory, adopted, ...metadata } = version
+const safeInstallation = version => {
+  const { directory, materialDirectory, ...metadata } = version
   return metadata
 }
-/** The local library owns drafts and copied immutable versions without a server process.
+/** The local library owns persistent environment npm projects without a server process.
  * Published servers import their own copy; no server binding points into this workspace.
  */
 export class LocalEnvironments {
@@ -21,10 +22,20 @@ export class LocalEnvironments {
   }
   ready() {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
-    this.#opening ??= this.openWorkspace().catch(error => {
-      this.#opening = undefined
-      throw error
-    })
+    this.#opening ??= this.openWorkspace()
+      .then(async workspace => {
+        try {
+          await this.library?.synchronizeEnvironments?.(workspace, this.validate)
+          return workspace
+        } catch (error) {
+          await workspace.close()
+          throw error
+        }
+      })
+      .catch(error => {
+        this.#opening = undefined
+        throw error
+      })
     return this.#opening
   }
   async snapshot() {
@@ -32,7 +43,7 @@ export class LocalEnvironments {
     return {
       workspaceId: workspace.workspaceId,
       environments: await workspace.listDrafts(),
-      versions: (await workspace.listVersions()).map(safeVersion),
+      installations: (await workspace.listInstallations()).map(safeInstallation),
       operations: [...this.#jobs.values()].map(({ controller, promise, execute, ...job }) => job).reverse(),
     }
   }
@@ -81,20 +92,61 @@ export class LocalEnvironments {
     switch (input.action) {
       case 'snapshot':
         return this.snapshot()
-      case 'package-state':
-        return this.setPackageEnabled(workspace, input)
-      case 'save':
-        return workspace.saveDraft({ document: input.document, expectedRevision: input.expectedRevision })
+      case 'package-state': {
+        const draft = await this.setPackageEnabled(
+          {
+            listDrafts: () => workspace.listDrafts(),
+            listInstallations: () => workspace.listInstallations(),
+            saveDraft: async ({ document, expectedRevision }) => ({ document, revision: expectedRevision }),
+          },
+          input,
+        )
+        return this.request({ ...input, action: 'apply', document: draft.document })
+      }
+      case 'apply': {
+        const document = structuredClone(input.document)
+        const environmentId = document.id
+        return this.start('environment.apply', async (signal, onProgress) => {
+          const current = await workspace.getDraft(environmentId).catch(error => {
+            if (error.code !== 'ENOENT') throw error
+            return undefined
+          })
+          if ((current?.revision ?? null) !== input.expectedRevision) throw fail('REVISION_CONFLICT')
+          const lease = await this.library.prepareEnvironmentProject(document, {
+            projectDirectory: join(workspace.root, 'environments', environmentId),
+            signal,
+            offline: input.allowDownload !== true,
+            onProgress,
+          })
+          try {
+            return safeInstallation(
+              await workspace.prepareEnvironment(
+                {
+                  environmentId,
+                  document,
+                  expectedRevision: input.expectedRevision,
+                  projectDirectory: lease.directory,
+                  signal,
+                  onProgress,
+                },
+                this.validate,
+              ),
+            )
+          } finally {
+            await lease.release()
+          }
+        })
+      }
       case 'delete-draft':
         await workspace.deleteDraft({ environmentId: input.environmentId, expectedRevision: input.expectedRevision })
         return { deleted: true }
-      case 'delete-version':
-        await workspace.deleteVersion(input.versionId)
+      case 'clear-installation':
+        await workspace.clearInstallation(input.installationId)
         return { deleted: true }
       case 'references':
-        return { references: await workspace.references(input.versionId) }
+        return { references: await workspace.references(input.installationId) }
       case 'export':
-        return workspace.exportVersion(input.versionId)
+        return workspace.exportEnvironment(input.installationId)
       case 'cancel': {
         const job = this.#jobs.get(input.operationId)
         if (!job) throw fail('OPERATION_NOT_FOUND')
@@ -117,35 +169,10 @@ export class LocalEnvironments {
         if (!['failed', 'cancelled'].includes(job.status)) throw fail('OPERATION_NOT_RETRYABLE')
         return this.start(job.kind, job.execute)
       }
-      case 'prepare': {
-        const environmentId = input.environmentId,
-          expectedRevision = input.expectedRevision
-        const draft = await workspace.getDraft(environmentId)
-        if (draft.revision !== expectedRevision) throw fail('REVISION_CONFLICT', '环境已被修改，请刷新后重试')
-        return this.start('environment.prepare', async (signal, onProgress) => {
-          if ((await workspace.getDraft(environmentId)).revision !== expectedRevision)
-            throw fail('REVISION_CONFLICT', '环境已被修改，请从当前草稿发起新任务')
-          const lease = await this.library.prepareEnvironmentProject(draft.document, {
-            signal,
-            offline: input.allowDownload !== true,
-            onProgress,
-          })
-          try {
-            return safeVersion(
-              await workspace.prepareVersion(
-                { environmentId, expectedRevision, projectDirectory: lease.directory, signal, onProgress },
-                this.validate,
-              ),
-            )
-          } finally {
-            await lease.release()
-          }
-        })
-      }
       case 'import':
         return this.start('environment.import', async signal =>
-          safeVersion(
-            await workspace.importVersion(
+          safeInstallation(
+            await workspace.importEnvironment(
               input.bundle,
               { environmentId: input.environmentId, expectedRevision: null, signal },
               this.validate,

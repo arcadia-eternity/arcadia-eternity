@@ -1,0 +1,43 @@
+{
+  "name": "@arcadia-eternity/local-profile",
+  "version": "4.4.1",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/src/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    },
+    "./browser": {
+      "types": "./dist/src/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    }
+  },
+  "scripts": {
+    "build": "run-s build:code build:types",
+    "build:code": "rolldown -c",
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "typecheck": "pnpm exec tsgo --noEmit",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@arcadia-eternity/schema": "workspace:*",
+    "@arcadia-eternity/const": "workspace:*",
+    "@sinclair/typebox": "catalog:",
+    "nanoid": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "vitest": "catalog:",
+    "fake-indexeddb": "^6.2.4"
+  }
+}

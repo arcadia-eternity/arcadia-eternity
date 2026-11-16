@@ -128,32 +128,26 @@ export async function openServerStorage(options: Options, mode: ServerStorageMod
 /** Durable roots are separate from the workspace's current-process leases. */
 export function workspaceRetentions(storage: DurableStorage, workspaceId: () => string) {
   return {
-    async list(versionId: string) {
+    async list(installationId: string) {
       const target = workspaceId(),
         scope = 'workspace:' + target
       return storage.transaction(async tx => {
-        const rows = await tx.list<{ versionId: string; retentionId: string }>('retentions', scope)
-        const bindings = await tx.list<{ workspaceId: string; desiredVersionId?: string; effectiveVersionId?: string }>(
-          'bindings',
-        )
+        const rows = await tx.list<{ installationId: string; retentionId: string }>('retentions', scope)
+        const bindings = await tx.list<{ workspaceId: string; environmentId: string }>('bindings')
         return [
-          ...rows.filter(row => row.value.versionId === versionId).map(row => row.value),
+          ...rows.filter(row => row.value.installationId === installationId).map(row => row.value),
           ...bindings
-            .filter(
-              row =>
-                row.value.workspaceId === target &&
-                (row.value.desiredVersionId === versionId || row.value.effectiveVersionId === versionId),
-            )
-            .map(row => ({ versionId, retentionId: 'binding:' + row.id })),
+            .filter(row => row.value.workspaceId === target && row.value.environmentId === installationId)
+            .map(row => ({ installationId, retentionId: 'binding:' + row.id })),
         ]
       })
     },
-    async put(versionId: string, retentionId: string) {
+    async put(installationId: string, retentionId: string) {
       const scope = 'workspace:' + workspaceId(),
         id = scope + ':' + retentionId
       await storage.transaction(async tx => {
         const existing = await tx.get('retentions', id),
-          value = { versionId, retentionId }
+          value = { installationId, retentionId }
         if (existing) await tx.replace('retentions', id, existing.revision, value)
         else await tx.create('retentions', { id, scope, value })
       })

@@ -493,3 +493,38 @@ describe('server session identity boundaries', () => {
     expect(accountCleanupCall[1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
   })
 })
+
+it('rebinds a restored UID using the verified account token and persists the new seat', async () => {
+  const data = storage()
+  const old = makeSession('old', { principal: { kind: 'account', accountId: 'account-a' } })
+  const nextProfile = { id: 'restored-uid', name: 'Restored' }
+  const next = { ...old, profile: nextProfile, seatId: 'new-seat', sessionId: 'new-session' }
+  const request = requester()
+    .mockResolvedValueOnce(json(info))
+    .mockResolvedValueOnce(json(old))
+    .mockResolvedValueOnce(json(info))
+    .mockResolvedValueOnce(json(old))
+    .mockResolvedValueOnce(json(next))
+  const client = new ServerSessionClient('https://game.example/api/v1', data, request)
+  await client.ensure(profile)
+  expect(await client.ensure(nextProfile)).toEqual(next)
+  const [url, init] = request.mock.calls[4]
+  expect(url).toBe('https://game.example/api/v1/session/profile')
+  expect(JSON.parse(String(init?.body))).toEqual({ profile: nextProfile })
+  expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${old.token}`)
+  expect(client.session?.principal).toEqual(old.principal)
+})
+
+it('does not silently continue with the old UID when the server rejects rebind', async () => {
+  const old = makeSession('old')
+  const request = requester()
+    .mockResolvedValueOnce(json(info))
+    .mockResolvedValueOnce(json(old))
+    .mockResolvedValueOnce(json(info))
+    .mockResolvedValueOnce(json(old))
+    .mockResolvedValueOnce(json({ code: 'PROFILE_BUSY' }, 409))
+  const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+  await client.ensure(profile)
+  await expect(client.ensure({ id: 'new', name: 'New' })).rejects.toThrow('PROFILE_BUSY')
+  expect(client.session).toEqual(old)
+})

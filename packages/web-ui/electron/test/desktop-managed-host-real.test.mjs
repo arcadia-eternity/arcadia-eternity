@@ -154,29 +154,27 @@ test(
       const firstBindings = (await request('GET', `/servers/${first.serverId}/bindings`)).bindings
       const binding = firstBindings.find(item => item.id === firstServer.defaultBindingId)
       assert.equal(binding.condition, 'available')
-      const version = await workspace.getVersion(binding.effectiveVersionId)
-      assert.equal(version.directory, local.directory, 'same client project, not another installation/copy')
-      assert.equal(version.adopted, true)
+      const version = await workspace.getInstallation(binding.environmentId)
+      assert.equal(version.directory, join(workspace.root, 'environments', binding.environmentId))
       assert.deepEqual(await readdir(join(root, 'library/projects')), existingProjects)
       await local.release()
       const selectedBeforeManagement = (await library.list()).activeIds
-      const tournament = await request('POST', `/workspaces/${workspace.workspaceId}/environments`, {
-        document: {
-          schemaVersion: 2,
-          id: 'tournament',
-          name: '独立比赛环境',
-          packages: { [fixtureManifest.name]: fixtureManifest.version },
-          sources: [],
-          rules: { schemaVersion: 1 },
-          requires: {},
-        },
-        expectedRevision: null,
-      })
       const preparation = await request(
         'POST',
-        `/workspaces/${workspace.workspaceId}/environments/tournament/prepare`,
-        { expectedRevision: tournament.revision },
-        { 'idempotency-key': 'prepare-tournament' },
+        `/workspaces/${workspace.workspaceId}/environments/apply`,
+        {
+          document: {
+            schemaVersion: 2,
+            id: 'tournament',
+            name: '独立比赛环境',
+            packages: { [fixtureManifest.name]: fixtureManifest.version },
+            sources: [],
+            rules: { schemaVersion: 1 },
+            requires: {},
+          },
+          expectedRevision: null,
+        },
+        { 'idempotency-key': 'apply-tournament' },
       )
       let prepared
       for (let i = 0; i < 1200; i++) {
@@ -190,12 +188,15 @@ test(
         selectedBeforeManagement,
         'management preparation leaves local selection intact',
       )
-      assert.equal((await workspace.getVersion(prepared.result.versionId)).adopted, true)
+      assert.equal(
+        (await workspace.getInstallation(prepared.result.installationId)).directory,
+        join(workspace.root, 'environments/tournament'),
+      )
       await library.setSelection([base.id], true)
       await settle()
       assert.equal(
-        (await request('GET', `/servers/${first.serverId}/bindings`)).bindings[0].effectiveVersionId,
-        binding.effectiveVersionId,
+        (await request('GET', `/servers/${first.serverId}/bindings`)).bindings[0].environmentId,
+        binding.environmentId,
       )
       const anonymous = await fetch(`${first.url}/api/management/v1/servers`)
       assert.equal(anonymous.status, 401)
@@ -217,9 +218,9 @@ test(
       const restored = (await request('GET', `/servers/${second.serverId}/bindings`)).bindings.find(
         item => item.id === binding.id,
       )
-      assert.equal(restored.effectiveVersionId, binding.effectiveVersionId)
+      assert.equal(restored.environmentId, binding.environmentId)
       assert.equal(restored.condition, 'available')
-      assert.equal((await workspace.listVersions()).filter(item => item.status === 'ready').length, 2)
+      assert.equal((await workspace.listInstallations()).filter(item => item.status === 'ready').length, 2)
     } finally {
       await host.stop()
       await owner.close()

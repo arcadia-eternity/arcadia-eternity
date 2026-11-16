@@ -175,19 +175,20 @@ describe('unified management HTTP and durable environment publication', () => {
   it('deletes only revision-matching drafts and treats repeated termination of an ended match as one operation', async () => {
     const env = await setup()
     const path = `/workspaces/${env.workspace.workspaceId}/environments`
-    const draft = await env.request(path, 'POST', {
-      document: {
-        schemaVersion: 2,
-        id: 'unused',
-        name: 'Unused',
-        packages: {},
-        sources: [],
-        rules: { schemaVersion: 1 },
-        requires: {},
-      },
-      expectedRevision: null,
-    })
-    expect(draft.response.status).toBe(200)
+    const draft = {
+      body: await env.workspace.saveDraft({
+        document: {
+          schemaVersion: 2,
+          id: 'unused',
+          name: 'Unused',
+          packages: {},
+          sources: [],
+          rules: { schemaVersion: 1 },
+          requires: {},
+        },
+        expectedRevision: null,
+      }),
+    }
     expect((await env.request(path + '/unused', 'DELETE', undefined, { 'If-Match': 'stale' })).response.status).toBe(
       412,
     )
@@ -294,31 +295,32 @@ describe('unified management HTTP and durable environment publication', () => {
     expect((await env.request('/servers')).response.status).toBe(401)
   })
 
-  it('prepares actual captured npm materials, publishes only explicitly, survives restart, and preserves versions', async () => {
+  it('prepares actual captured npm materials, publishes only explicitly, survives restart, and preserves installations', async () => {
     const source = await portableFixture()
     cleanups.push(() => source.dispose())
     const env = await setup(source.directory)
     const base = `/workspaces/${env.workspace.workspaceId}/environments`
-    const draft = await env.request(base, 'POST', {
-      document: { schemaVersion: 1, id: 'community', name: 'Community', packages: {}, sources: [] },
-      expectedRevision: null,
-    })
-    expect(draft.response.status).toBe(200)
+    const draft = {
+      body: await env.workspace.saveDraft({
+        document: { schemaVersion: 1, id: 'community', name: 'Community', packages: {}, sources: [] },
+        expectedRevision: null,
+      }),
+    }
     const prepared = await env.request(
-      base + '/community/prepare',
+      base + '/apply',
       'POST',
-      { expectedRevision: draft.body.revision },
+      { document: draft.body.document, expectedRevision: draft.body.revision },
       { 'Idempotency-Key': 'prepare-1' },
     )
     expect(prepared.response.status).toBe(202)
     const preparation = await completed(env.storage, prepared.body.id)
     expect(preparation.status, JSON.stringify(preparation)).toBe('succeeded')
-    const version = preparation.result as { versionId: string }
+    const version = preparation.result as { installationId: string; environmentId: string }
     expect(JSON.stringify(preparation.result)).not.toContain(source.directory)
     expect(env.app.environments.list()).toHaveLength(0)
     const created = await env.request('/servers/managed-test/bindings', 'POST', {
       environmentId: 'community',
-      versionId: version.versionId,
+      installationId: version.installationId,
       enabled: true,
       visibility: 'public',
       matchmakingEnabled: true,
@@ -326,18 +328,18 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(created.response.status).toBe(201)
     const path = `/servers/managed-test/bindings/${created.body.id}`
     const publication = await env.request(
-      path + '/publish',
+      path + '/reload',
       'POST',
-      { versionId: version.versionId },
+      { installationId: version.installationId },
       { 'If-Match': String(created.body.revision), 'Idempotency-Key': 'publish-1' },
     )
     expect(publication.response.status).toBe(202)
     expect((await completed(env.storage, publication.body.id)).status).toBe('succeeded')
     await expect.poll(() => env.app.environments.list().length).toBe(1)
     const replay = await env.request(
-      path + '/publish',
+      path + '/reload',
       'POST',
-      { versionId: version.versionId },
+      { installationId: version.installationId },
       { 'If-Match': String(created.body.revision), 'Idempotency-Key': 'publish-1' },
     )
     expect(replay.response.status).toBe(202)
@@ -352,11 +354,13 @@ describe('unified management HTTP and durable environment publication', () => {
     ).toBe(200)
     expect(env.app.environments.list()).toHaveLength(0)
     expect(lease.descriptor.id).toBe(previousRuntime)
-    await expect(env.workspace.deleteVersion(version.versionId)).rejects.toMatchObject({ code: 'ENVIRONMENT_IN_USE' })
+    await expect(env.workspace.clearInstallation(version.installationId)).rejects.toMatchObject({
+      code: 'ENVIRONMENT_IN_USE',
+    })
     await lease.release()
     await env.restart()
     const restored = (await env.request('/servers/managed-test/bindings')).body.bindings[0]
-    expect(restored.effectiveVersionId).toBe(version.versionId)
+    expect(restored.environmentId).toBe(version.environmentId)
     expect(restored.condition).toBe('available')
     expect(restored.observedBootId).toBe(env.app.management!.bootId)
   }, 30000)
@@ -367,21 +371,23 @@ describe('unified management HTTP and durable environment publication', () => {
     const project = await stageShippedCatalog(root)
     const env = await setup(project)
     const base = `/workspaces/${env.workspace.workspaceId}`
-    const draft = await env.request(base + '/environments', 'POST', {
-      document: { schemaVersion: 1, id: 'exported', name: 'Exported', packages: shippedCatalogMembers, sources: [] },
-      expectedRevision: null,
-    })
+    const draft = {
+      body: await env.workspace.saveDraft({
+        document: { schemaVersion: 1, id: 'exported', name: 'Exported', packages: shippedCatalogMembers, sources: [] },
+        expectedRevision: null,
+      }),
+    }
     const prepared = await env.request(
-      base + '/environments/exported/prepare',
+      base + '/environments/apply',
       'POST',
-      { expectedRevision: draft.body.revision },
+      { document: draft.body.document, expectedRevision: draft.body.revision },
       { 'Idempotency-Key': 'export-prepare' },
     )
     const preparation = await completed(env.storage, prepared.body.id)
     expect(preparation.status).toBe('succeeded')
-    const versionId = (preparation.result as { versionId: string }).versionId
+    const installationId = (preparation.result as { installationId: string }).installationId
     const exported = await env.request(
-      `${base}/versions/${versionId}/export`,
+      `${base}/installations/${installationId}/export`,
       'POST',
       {},
       { 'Idempotency-Key': 'export-file' },
@@ -405,7 +411,7 @@ describe('unified management HTTP and durable environment publication', () => {
     const importOperation = await completed(env.storage, imported.body.id)
     expect(importOperation.status, JSON.stringify(importOperation)).toBe('succeeded')
     expect((importOperation.result as { environmentId: string }).environmentId).toBe('copied')
-    expect((await env.request(`${base}/versions/${versionId}/references`)).body.references).toEqual([])
+    expect((await env.request(`${base}/installations/${installationId}/references`)).body.references).toEqual([])
   }, 30000)
 
   it('keeps unauthorized tokens out of mutation and refuses content publication on an official-policy host', async () => {
@@ -430,23 +436,23 @@ describe('unified management HTTP and durable environment publication', () => {
     })
     const prepared = await local.localRequest({
       method: 'POST',
-      path: `/workspaces/${env.workspace.workspaceId}/environments/private/prepare`,
-      body: { expectedRevision: draft.revision },
+      path: `/workspaces/${env.workspace.workspaceId}/environments/apply`,
+      body: { document: draft.document, expectedRevision: draft.revision },
       headers: { 'idempotency-key': 'p' },
     })
     const task = await completed(env.storage, (prepared.body as { id: string }).id)
     expect(task.status).toBe('succeeded')
-    const version = task.result as { versionId: string }
+    const version = task.result as { installationId: string }
     const created = await env.request('/servers/managed-test/bindings', 'POST', {
       environmentId: 'private',
-      versionId: version.versionId,
+      installationId: version.installationId,
       enabled: true,
       visibility: 'public',
     })
     const publication = await env.request(
-      `/servers/managed-test/bindings/${created.body.id}/publish`,
+      `/servers/managed-test/bindings/${created.body.id}/reload`,
       'POST',
-      { versionId: version.versionId },
+      { installationId: version.installationId },
       { 'If-Match': String(created.body.revision), 'Idempotency-Key': 'official-deny' },
     )
     expect((await completed(env.storage, publication.body.id)).status).toBe('failed')
@@ -454,34 +460,38 @@ describe('unified management HTTP and durable environment publication', () => {
   }, 30000)
 })
 
-it('changes package state through the owning workspace with revision checks and no implicit publication', async () => {
+it('applies package state through the owner and preserves the declaration when installation fails', async () => {
   const env = await setup()
   const base = `/workspaces/${env.workspace.workspaceId}/environments`
-  const created = await env.request(base, 'POST', {
-    expectedRevision: null,
-    document: {
-      schemaVersion: 2,
-      id: 'toggle',
-      name: 'Toggle',
-      packages: {},
-      sources: [],
-      disabled: { packages: { '@test/shared': '^1.5.0' }, sources: [] },
-      rules: { schemaVersion: 1 },
-      requires: {},
-    },
-  })
-  expect(created.response.status).toBe(200)
+  const created = {
+    body: await env.workspace.saveDraft({
+      expectedRevision: null,
+      document: {
+        schemaVersion: 2,
+        id: 'toggle',
+        name: 'Toggle',
+        packages: {},
+        sources: [],
+        disabled: { packages: { '@test/shared': '^1.5.0' }, sources: [] },
+        rules: { schemaVersion: 1 },
+        requires: {},
+      },
+    }),
+  }
   const input = { expectedRevision: created.body.revision, name: '@test/shared', enabled: true }
-  const enabled = await env.request(base + '/toggle/package-state', 'POST', input)
-  expect(enabled.response.status).toBe(200)
-  expect(enabled.body.document.packages).toEqual({ '@test/shared': '^1.5.0' })
-  expect((await env.request(base + '/toggle/package-state', 'POST', input)).response.status).toBe(412)
-  const unresolved = await env.request(base + '/toggle/package-state', 'POST', {
-    ...input,
-    expectedRevision: enabled.body.revision,
-    enabled: false,
+  const enabled = await env.request(base + '/toggle/package-state', 'POST', input, {
+    'Idempotency-Key': 'toggle-apply',
   })
-  expect(unresolved.body.error.code).toBe('ENVIRONMENT_DEPENDENCIES_UNRESOLVED')
-  expect(await env.workspace.listVersions()).toEqual([])
+  expect(enabled.response.status).toBe(202)
+  expect((await completed(env.storage, enabled.body.id)).status).toBe('failed')
+  expect((await env.workspace.getDraft('toggle')).document.packages).toEqual({})
+  const stale = await env.request(
+    base + '/toggle/package-state',
+    'POST',
+    { ...input, expectedRevision: 'stale' },
+    { 'Idempotency-Key': 'toggle-stale' },
+  )
+  expect(stale.response.status).toBe(412)
+  expect(await env.workspace.listInstallations()).toEqual([])
   expect(env.app.environments.list().filter(item => item.id !== 'official')).toEqual([])
 })

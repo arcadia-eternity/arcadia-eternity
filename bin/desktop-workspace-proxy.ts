@@ -3,8 +3,8 @@ import type {
   ContentWorkspace,
   ContentWorkspaceOptions,
   EnvironmentDocument,
-  EnvironmentVersion,
-  PrepareVersionInput,
+  EnvironmentInstallation,
+  PrepareEnvironmentInput,
   StaticPreparer,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 
@@ -27,7 +27,7 @@ type Pending = {
   controller: AbortController
   preparer?: StaticPreparer
   beforeCommit?: () => Promise<void>
-  onProgress?: PrepareVersionInput['onProgress']
+  onProgress?: PrepareEnvironmentInput['onProgress']
 }
 
 const namespace = 'arcadia.desktop.workspace'
@@ -102,7 +102,7 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
     signal?: AbortSignal,
     preparer?: StaticPreparer,
     beforeCommit?: () => Promise<void>,
-    onProgress?: PrepareVersionInput['onProgress'],
+    onProgress?: PrepareEnvironmentInput['onProgress'],
   ): Promise<T> {
     if (disconnected || channel.connected === false) return Promise.reject(error('WORKSPACE_PARENT_DISCONNECTED'))
     if (closing && method !== 'close') return Promise.reject(error('WORKSPACE_CLOSED'))
@@ -178,13 +178,13 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
         await active.beforeCommit()
         active.controller.signal.throwIfAborted()
       } else if (message.kind === 'retention.list') {
-        if (typeof input.versionId !== 'string') throw error('WORKSPACE_CALLBACK_INVALID')
-        value = await options.retentions.list(input.versionId)
+        if (typeof input.installationId !== 'string') throw error('WORKSPACE_CALLBACK_INVALID')
+        value = await options.retentions.list(input.installationId)
       } else if (message.kind === 'retention.put') {
-        if (typeof input.versionId !== 'string' || typeof input.retentionId !== 'string')
+        if (typeof input.installationId !== 'string' || typeof input.retentionId !== 'string')
           throw error('WORKSPACE_CALLBACK_INVALID')
         if (!options.retentions.put) throw error('RETENTION_UNAVAILABLE')
-        await options.retentions.put(input.versionId, input.retentionId)
+        await options.retentions.put(input.installationId, input.retentionId)
       } else if (message.kind === 'retention.remove') {
         if (typeof input.retentionId !== 'string') throw error('WORKSPACE_CALLBACK_INVALID')
         if (!options.retentions.remove) throw error('RETENTION_UNAVAILABLE')
@@ -221,9 +221,9 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
   channel.on('message', onMessage)
   channel.on('disconnect', disconnect)
 
-  const prepare = (method: 'prepareVersion' | 'adoptVersion', input: PrepareVersionInput, preparer: StaticPreparer) => {
+  const prepare = (method: 'prepareEnvironment', input: PrepareEnvironmentInput, preparer: StaticPreparer) => {
     const { signal, beforeCommit, onProgress, ...serializable } = input
-    return request<EnvironmentVersion>(
+    return request<EnvironmentInstallation>(
       method,
       [{ ...serializable, hasBeforeCommit: !!beforeCommit, hasProgress: !!onProgress }],
       signal,
@@ -265,11 +265,11 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
       getDraft: id => request('getDraft', [id]),
       saveDraft: input => request('saveDraft', [input]),
       deleteDraft: input => request('deleteDraft', [input]),
-      listVersions: id => request('listVersions', id === undefined ? [] : [id]),
-      getVersion: id => request('getVersion', [id]),
-      async acquire(versionId, owner) {
-        const lease = await request<EnvironmentVersion & { leaseToken: string }>('acquire', [
-          versionId,
+      listInstallations: id => request('listInstallations', id === undefined ? [] : [id]),
+      getInstallation: id => request('getInstallation', [id]),
+      async acquire(installationId, owner) {
+        const lease = await request<EnvironmentInstallation & { leaseToken: string }>('acquire', [
+          installationId,
           owner ?? 'runtime',
         ])
         if (!lease || typeof lease.leaseToken !== 'string' || !lease.leaseToken) throw error('WORKSPACE_LEASE_INVALID')
@@ -286,15 +286,15 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
       retain: (id, retentionId) => request('retain', [id, retentionId]),
       releaseRetention: id => request('releaseRetention', [id]),
       references: id => request('references', [id]),
-      deleteVersion: id => request('deleteVersion', [id]),
-      exportVersion: id => request('exportVersion', [id]),
+      clearInstallation: id => request('clearInstallation', [id]),
+      exportEnvironment: id => request('exportEnvironment', [id]),
       exportSnapshot: () => request('exportSnapshot'),
       captureSnapshot: () => request('captureSnapshot'),
       isSnapshotCurrent: stamp => request('isSnapshotCurrent', [stamp]),
       recoverImport: id => request('recoverImport', [id]),
       forgetImport: (id, input) => request('forgetImport', [id, input ?? {}]),
       async restoreSnapshot(snapshot, input, preparer) {
-        const restored = await request<{ workspaceId: string; versionIds: Record<string, string> }>(
+        const restored = await request<{ workspaceId: string; installationIds: Record<string, string> }>(
           'restoreSnapshot',
           [snapshot, input],
           undefined,
@@ -303,18 +303,17 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
         descriptor.workspaceId = restored.workspaceId
         return restored
       },
-      importVersion(bundle, input, preparer) {
+      importEnvironment(bundle, input, preparer) {
         const { signal, beforeCommit, ...serializable } = input
         return request(
-          'importVersion',
+          'importEnvironment',
           [bundle, { ...serializable, hasBeforeCommit: !!beforeCommit }],
           signal,
           preparer,
           beforeCommit,
         )
       },
-      prepareVersion: (input, preparer) => prepare('prepareVersion', input, preparer),
-      adoptVersion: (input, preparer) => prepare('adoptVersion', input, preparer),
+      prepareEnvironment: (input, preparer) => prepare('prepareEnvironment', input, preparer),
       reconcile: () => request('reconcile'),
       cleanupStaging: () => request('cleanupStaging'),
       close,

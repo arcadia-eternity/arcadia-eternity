@@ -422,7 +422,10 @@
     </el-dialog>
 
     <div v-if="localStorageUnavailable" role="alert" class="bg-amber-50 text-amber-900 px-4 py-3 text-sm">
-      浏览器存储不可用或空间不足。仍可在当前页面对战，但资料和设置可能未保存；关闭页面前请导出精灵与队伍备份。
+      资料尚未保存。关闭前请<router-link to="/profile">导出备份</router-link>。
+    </div>
+    <div v-if="profileStatus === 'blocked'" role="alert" class="p-4 bg-amber-50">
+      {{ profileFailure }} <router-link to="/profile">恢复个人资料</router-link>
     </div>
     <OfflineResources v-if="isStaticMode && $route.name !== 'Management'" />
 
@@ -470,6 +473,7 @@ import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import { isStaticMode } from '@/utils/env'
 import LocalServerStatus from '@/features/servers/LocalServerStatus.vue'
 import { localStorageUnavailable } from '@/services/localStorage'
+import { profileStatus, profileFailure, profileSwitching } from '@/services/profile'
 import OfflineResources from '@/components/OfflineResources.vue'
 
 import { useAuthStore } from '@/stores/auth'
@@ -497,6 +501,17 @@ const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
 const privateRoomStore = usePrivateRoomStore()
+watch(
+  () =>
+    !!privateRoomStore.currentRoom ||
+    battleClientStore.currentState.matchmaking !== 'idle' ||
+    battleClientStore.currentState.battle !== 'idle',
+  busy => {
+    void window.arcadiaDesktop?.profile?.({ action: 'activity', busy })
+  },
+  { immediate: true, flush: 'sync' },
+)
+
 const matchmaking = isStaticMode ? null : useMatchmakingStore()
 watch(
   () => matchmaking?.error,
@@ -663,7 +678,14 @@ const needsOnlineConnection = computed(() => {
 let onlineConnection: Promise<void> | null = null
 
 async function connectOnlineRoute() {
-  if (!localInitializationComplete.value || !needsOnlineConnection.value || onlineConnection) return
+  if (
+    profileSwitching.value ||
+    profileStatus.value === 'blocked' ||
+    !localInitializationComplete.value ||
+    !needsOnlineConnection.value ||
+    onlineConnection
+  )
+    return
   onlineConnection = connectAndResumeOnlineRoom({
     allowConnect: () => connectionSettings.shouldAutoConnect,
     isConnected: () => battleClientStore.isConnected,

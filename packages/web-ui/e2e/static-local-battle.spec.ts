@@ -140,7 +140,7 @@ test('a cache quota failure is visible and does not block a local battle', async
 })
 
 for (const blockedAccess of ['methods', 'object'] as const) {
-  test(`blocked browser storage ${blockedAccess} keeps the default team playable and warns that changes are not saved`, async ({
+  test(`blocked browser storage ${blockedAccess} offers an explicit temporary profile with the default playable team`, async ({
     page,
     context,
     baseURL,
@@ -157,7 +157,11 @@ for (const blockedAccess of ['methods', 'object'] as const) {
       }
     }, blockedAccess)
     await page.goto(localPage)
-    await expect(page.getByText(/浏览器存储不可用或空间不足/)).toBeVisible()
+    await page.getByRole('link', { name: '恢复个人资料', exact: true }).click()
+    await expect(page.getByRole('status')).toHaveText('需要恢复')
+    await page.getByRole('button', { name: '临时使用', exact: true }).click()
+    await expect(page.getByRole('status')).toHaveText('仅本次窗口')
+    await page.getByRole('button', { name: '人机对战', exact: true }).click()
     await configureSinglePetBattle(page)
     await enterBattle(page)
     await expect(page.locator('[data-skill-base-id="skill_fenlitupo"]')).toBeEnabled()

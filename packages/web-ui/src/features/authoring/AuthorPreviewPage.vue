@@ -36,7 +36,7 @@ const delegates = shallowRef<TeamEditorDelegate[]>([])
 const environments = ref<DebugEnvironment[]>([])
 const environmentId = ref('default')
 const preparedEnvironmentId = ref('default')
-const preparedEnvironmentVersion = ref<string | null>(null)
+const preparedEnvironmentInstallation = ref<string | null>(null)
 const sourceMappingChanged = ref(false)
 const setupWarning = ref('')
 const environmentReady = computed(
@@ -45,7 +45,7 @@ const environmentReady = computed(
     !sourceMappingChanged.value &&
     (!window.arcadiaAuthorPreview ||
       (environments.value.find(item => item.id === environmentId.value)?.version ?? null) ===
-        preparedEnvironmentVersion.value),
+        preparedEnvironmentInstallation.value),
 )
 const battleConfig = ref(createBattleConfiguration())
 const timerConfig = ref({ ...DEFAULT_TIMER_CONFIG, enabled: false })
@@ -344,7 +344,7 @@ onMounted(async () => {
     await loadEnvironments()
     environmentId.value = setup.candidate.environmentId
     preparedEnvironmentId.value = environmentId.value
-    preparedEnvironmentVersion.value = setup.candidate.environmentConfigVersion
+    preparedEnvironmentInstallation.value = setup.candidate.environmentConfigVersion
     setupWarning.value = setup.warning ?? ''
     active.value = setup.active
     const storage = window.arcadiaAuthorPreview

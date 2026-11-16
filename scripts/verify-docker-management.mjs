@@ -87,8 +87,8 @@ async function authenticateAndCheck(name, serverId, phase) {
     assert.equal(binding.visibility,'public');
     assert.equal(binding.matchmakingEnabled,true);
     assert.equal(binding.condition,'available');
-    assert.equal(typeof binding.effectiveVersionId,'string');
-    assert.equal(binding.desiredVersionId,binding.effectiveVersionId);
+    assert.equal(typeof binding.environmentId,'string');
+    assert.equal(binding.environmentId,binding.environmentId);
     const catalogResponse = await fetch(origin + '/api/v1/environments');
     assert.equal(catalogResponse.status,200);
     const catalog = await catalogResponse.json();
@@ -128,14 +128,14 @@ async function authenticateAndCheck(name, serverId, phase) {
     const environmentsResponse = await fetch(base + '/workspaces/' + encodeURIComponent(workspaceId) + '/environments',{headers});
     assert.equal(environmentsResponse.status,200);
     const environments = await environmentsResponse.json();
-    const version = environments.versions.find(item => item.versionId === binding.effectiveVersionId);
+    const version = environments.installations.find(item => item.installationId === binding.environmentId);
     assert.ok(version,'The effective builtin version must remain in the shared workspace');
     assert.equal(version.status,'ready');
     assert.equal(version.environmentId,binding.environmentId);
     assert.deepEqual(version.document.packages,{});
     console.log(JSON.stringify({serverId:id,workspaceId,revision:server.revision,
       requiresRestart:server.requiresRestart,defaultBindingId:server.defaultBindingId,
-      environmentId:binding.environmentId,versionId:binding.effectiveVersionId,
+      environmentId:binding.environmentId,installationId:binding.environmentId,
       catalogEnvironmentId:builtin.id,runtime:builtin.runtime,
       resourceRevision:builtin.resourceRevision,builtinSpeciesCount:content.species.length}));
   `,
@@ -240,7 +240,7 @@ async function runCase(driver, postgresHost) {
   assert.equal(after.revision, before.revision)
   assert.equal(after.defaultBindingId, before.defaultBindingId)
   assert.equal(after.environmentId, before.environmentId)
-  assert.equal(after.versionId, before.versionId)
+  assert.equal(after.installationId, before.installationId)
   assert.deepEqual(after.runtime, before.runtime)
   assert.equal(after.resourceRevision, before.resourceRevision)
   assert.equal(after.builtinSpeciesCount, before.builtinSpeciesCount)

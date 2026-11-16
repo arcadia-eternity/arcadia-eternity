@@ -67,8 +67,8 @@ export interface ManagedEnvironment {
   revision: string
   requiredPackages?: string[]
 }
-export interface ManagedReadyEnvironmentVersion {
-  versionId: string
+export interface ManagedReadyEnvironmentInstallation {
+  installationId: string
   environmentId: string
   workspaceId: string
   document: ManagedEnvironmentDocument
@@ -87,23 +87,21 @@ export interface ManagedReadyEnvironmentVersion {
   createdAt: number
   status: 'ready'
 }
-export interface ManagedUnavailableEnvironmentVersion {
-  versionId: string
+export interface ManagedUnavailableEnvironmentInstallation {
+  installationId: string
   workspaceId: string
   environmentId?: string
   status: 'unavailable'
   reason: string
 }
-export type ManagedEnvironmentVersion = ManagedReadyEnvironmentVersion | ManagedUnavailableEnvironmentVersion
+export type ManagedEnvironmentInstallation =
+  ManagedReadyEnvironmentInstallation | ManagedUnavailableEnvironmentInstallation
 export interface ManagedBinding {
   id: string
   revision: number
   serverId: string
   workspaceId: string
   environmentId: string
-  selection: 'pinned' | 'follow-ready'
-  desiredVersionId?: string
-  effectiveVersionId?: string
   enabled: boolean
   visibility: 'public' | 'private'
   matchmakingEnabled: boolean
@@ -157,7 +155,7 @@ export interface ManagedBattle {
   environmentId: string
   environmentName: string
   bindingId?: string
-  versionId?: string
+  installationId?: string
   execution: 'server' | 'peer'
   state: 'running' | 'reconnecting'
   startedAt: number

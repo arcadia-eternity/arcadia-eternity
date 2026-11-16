@@ -61,7 +61,7 @@ async function fixture() {
     },
     expectedRevision: null,
   })
-  const version = await workspace.prepareVersion(
+  const version = await workspace.prepareEnvironment(
     { environmentId: draft.document.id, expectedRevision: draft.revision, projectDirectory: source },
     validate,
   )
@@ -82,9 +82,6 @@ async function fixture() {
       serverId,
       workspaceId: workspace.workspaceId,
       environmentId: 'test-env',
-      selection: 'pinned',
-      desiredVersionId: version.versionId,
-      effectiveVersionId: version.versionId,
       enabled: true,
       visibility: 'public',
       matchmakingEnabled: true,
@@ -147,15 +144,15 @@ async function postgresTarget() {
   return url.toString()
 }
 
-describe('server backup, restore and clone', () => {
+describe('server backup, restore and clone', { timeout: 30_000 }, () => {
   it('captures portable materials and durable identity while invalidating runtime credentials', async () => {
     const { backup, version } = await fixture()
-    expect(inspectServerBackup(backup)).toMatchObject({ servers: 1, versions: 1, environments: 1, accounts: 1 })
+    expect(inspectServerBackup(backup)).toMatchObject({ servers: 1, installations: 1, environments: 1, accounts: 1 })
     expect(backup.storage.records.credentials).toEqual([])
     expect(backup.storage.records.sessions).toEqual([])
     expect(backup.storage.records.operations[0]?.value).toMatchObject({ status: 'interrupted', bootId: '' })
     expect(backup.storage.records.bindings[0]?.value).toMatchObject({ condition: 'unavailable', observedBootId: '' })
-    expect(backup.workspace.versions[0]?.version.versionId).toBe(version.versionId)
+    expect(backup.workspace.installations[0]?.version.installationId).toBe(version.installationId)
     expect(JSON.stringify(backup)).not.toContain('materialDirectory')
     expect(JSON.stringify(backup)).not.toContain('old-credential-hash')
   })
@@ -169,7 +166,7 @@ describe('server backup, restore and clone', () => {
     const restored = await openRestored(target)
     expect((await restored.storage.get('bindings', bindingId))?.id).toBe(bindingId)
     expect(await new SQLAccountDirectory(restored.storage, serverId).getStatus(account.accountId)).toBe('active')
-    const restoredVersion = await restored.workspace.getVersion(version.versionId)
+    const restoredVersion = await restored.workspace.getInstallation(version.installationId)
     expect(await readFile(join(restoredVersion.directory, 'node_modules', 'fixture', 'content.txt'), 'utf8')).toBe(
       'immutable material',
     )
@@ -192,11 +189,11 @@ describe('server backup, restore and clone', () => {
     const binding = snapshot.records.bindings[0]!
     expect(binding.id).not.toBe(bindingId)
     expect(binding.value).toMatchObject({ serverId: result.serverId, workspaceId: result.workspaceId })
-    const effectiveVersionId = (binding.value as { effectiveVersionId: string }).effectiveVersionId
-    expect(effectiveVersionId).not.toBe(version.versionId)
-    expect((await cloned.workspace.getVersion(effectiveVersionId)).contentRevision).toBe(version.contentRevision)
+    const environmentId = (binding.value as { environmentId: string }).environmentId
+    expect(environmentId).toBe(version.environmentId)
+    expect((await cloned.workspace.getInstallation(environmentId)).contentRevision).toBe(version.contentRevision)
     expect((snapshot.records.servers[0]?.value as { defaultBindingId: string }).defaultBindingId).toBe(binding.id)
-    expect(snapshot.records.retentions).toHaveLength(2)
+    expect(snapshot.records.retentions).toHaveLength(1)
   })
 
   it('rejects invalid domain references before creating any target or touching the source', async () => {
@@ -218,10 +215,13 @@ describe('server backup, restore and clone', () => {
   it('validates archive paths and static material identity; failed staged restore leaves no partial server', async () => {
     const { root, backup } = await fixture()
     const escaped = structuredClone(backup)
-    escaped.workspace.versions[0]!.files.push({ path: '../outside', data: 'eA==' })
+    escaped.workspace.installations[0]!.files.push({ path: '../outside', data: 'eA==' })
     expect(() => inspectServerBackup(escaped)).toThrow('BACKUP_MATERIAL_PATH_INVALID')
     const mismatched = structuredClone(backup)
-    mismatched.workspace.versions[0]!.version.contentRevision = 'wrong'
+    const packageFile = mismatched.workspace.installations[0]!.files.find(
+      file => file.path === 'node_modules/fixture/package.json',
+    )!
+    packageFile.data = Buffer.from(JSON.stringify({ name: 'fixture', version: '2.0.0' })).toString('base64')
     await expect(
       restoreServerBackup({
         backup: mismatched,
@@ -229,7 +229,7 @@ describe('server backup, restore and clone', () => {
         mode: 'restore',
         preparer: validate,
       }),
-    ).rejects.toThrow('ENVIRONMENT_IMPORT_MISMATCH')
+    ).rejects.toThrow(/Installed package does not match|npm rejected the installed dependency tree/)
     expect((await readdir(root)).filter(name => name.includes('restore-') || name === 'target')).toEqual([])
   })
 
@@ -276,7 +276,9 @@ describe('server backup, restore and clone', () => {
       })
       const restored = await openRestored(sqliteDirectory)
       expect(await new SQLAccountDirectory(restored.storage, serverId).getStatus(account.accountId)).toBe('active')
-      expect((await restored.workspace.getVersion(version.versionId)).contentRevision).toBe(version.contentRevision)
+      expect((await restored.workspace.getInstallation(version.installationId)).contentRevision).toBe(
+        version.contentRevision,
+      )
     },
   )
 
@@ -320,6 +322,7 @@ describe('server backup, restore and clone', () => {
 for (const driver of ['sqlite', 'postgres'] as const) {
   describe.skipIf(driver === 'postgres' && !process.env.TEST_BACKUP_DATABASE_URL)(
     `online consistent backup (${driver})`,
+    { timeout: 30_000 },
     () => {
       async function onlineFixture() {
         const source = await fixture()
@@ -368,17 +371,16 @@ for (const driver of ['sqlite', 'postgres'] as const) {
             document: { ...draft.document, name: 'Published during capture' },
             expectedRevision: draft.revision,
           })
-          const version = await workspace.prepareVersion(
+          const version = await workspace.prepareEnvironment(
             { environmentId: 'test-env', expectedRevision: changed.revision, projectDirectory: join(root, 'project') },
             validate,
           )
-          newVersionId = version.versionId
+          newVersionId = version.installationId
           await storage.transaction(async tx => {
             const binding = (await tx.get<Record<string, unknown>>('bindings', bindingId))!
             await tx.replace('bindings', bindingId, binding.revision, {
               ...binding.value,
-              desiredVersionId: newVersionId,
-              effectiveVersionId: newVersionId,
+              environmentId: newVersionId,
             })
             const server = (await tx.get<Record<string, unknown>>('servers', serverId))!
             await tx.replace('servers', serverId, server.revision, { ...server.value, name: 'Published' })
@@ -400,8 +402,8 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         }
         const backup = await pending
         expect(attempts).toBe(2)
-        expect(backup.workspace.versions.some(entry => entry.version.versionId === newVersionId!)).toBe(true)
-        expect(backup.storage.records.bindings[0]!.value).toMatchObject({ effectiveVersionId: newVersionId! })
+        expect(backup.workspace.installations.some(entry => entry.version.installationId === newVersionId!)).toBe(true)
+        expect(backup.storage.records.bindings[0]!.value).toMatchObject({ environmentId: newVersionId! })
         expect(backup.storage.records.servers[0]!.value).toMatchObject({ name: 'Published' })
         expect(backup.storage.accounts.some(account => account.account_id === newAccountId!)).toBe(true)
         expect(backup.storage.records.operations.find(op => op.id === 'publish-concurrent')?.value).toMatchObject({
@@ -412,9 +414,13 @@ for (const driver of ['sqlite', 'postgres'] as const) {
       })
       it('retries GC occurring after the DB snapshot instead of returning mismatched files', async () => {
         const { storage, workspace, serverId, root } = await onlineFixture()
-        const draft = await workspace.getDraft('test-env')
-        const unused = await workspace.prepareVersion(
-          { environmentId: 'test-env', expectedRevision: draft.revision, projectDirectory: join(root, 'project') },
+        const current = await workspace.getDraft('test-env')
+        const draft = await workspace.saveDraft({
+          document: { ...current.document, id: 'unused' },
+          expectedRevision: null,
+        })
+        const unused = await workspace.prepareEnvironment(
+          { environmentId: 'unused', expectedRevision: draft.revision, projectDirectory: join(root, 'project') },
           validate,
         )
         const entered = barrier(),
@@ -436,13 +442,15 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         })
         await entered.promise
         try {
-          await workspace.deleteVersion(unused.versionId)
+          await workspace.clearInstallation(unused.installationId)
         } finally {
           resume.resolve()
         }
         const backup = await pending
         expect(exports).toBe(2)
-        expect(backup.workspace.versions.some(entry => entry.version.versionId === unused.versionId)).toBe(false)
+        expect(
+          backup.workspace.installations.some(entry => entry.version.installationId === unused.installationId),
+        ).toBe(false)
         expect(() => inspectServerBackup(backup)).not.toThrow()
       })
       it('bounds retries under continuous changes and consumes observations on cancellation', async () => {

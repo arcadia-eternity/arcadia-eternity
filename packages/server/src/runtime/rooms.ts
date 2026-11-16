@@ -191,7 +191,7 @@ export class RoomRegistry {
           ('environmentName' in room.environment ? room.environment.environmentName : undefined) ??
           (room.environment.descriptor.packages.map(pkg => pkg.name).join(' + ') || '基础环境'),
         ...('bindingId' in room.environment ? { bindingId: room.environment.bindingId } : {}),
-        ...('versionId' in room.environment ? { versionId: room.environment.versionId } : {}),
+        ...('installationId' in room.environment ? { installationId: room.environment.installationId } : {}),
         execution: room.info.config.battleMode === 'p2p' ? 'peer' : 'server',
         state: room.info.players.some(player => !this.sockets.get(player.playerId)?.size) ? 'reconnecting' : 'running',
         startedAt: room.startedAt ?? room.info.createdAt,
@@ -252,6 +252,19 @@ export class RoomRegistry {
   }
   get onlinePlayers() {
     return this.sockets.size
+  }
+  private profileChanges = new Set<string>()
+  beginProfileChange(session: ServerSession): () => void {
+    this.assertOpen()
+    if (
+      this.profileChanges.has(session.token) ||
+      this.seats.has(session.seatId) ||
+      this.matchmaking.has(session.seatId) ||
+      this.sockets.get(session.seatId)?.size
+    )
+      fail('PROFILE_BUSY')
+    this.profileChanges.add(session.token)
+    return () => this.profileChanges.delete(session.token)
   }
   get playersInRooms() {
     return this.seats.size
@@ -919,6 +932,13 @@ export class RoomRegistry {
     }
   }
   async connect(socket: Socket, session: ServerSession) {
+    if (
+      this.profileChanges.has(session.token) ||
+      this.sessions.authenticate(session.token)?.seatId !== session.seatId
+    ) {
+      socket.disconnect(true)
+      return
+    }
     const connections = this.sockets.get(session.seatId) ?? new Set<Socket>()
     if (connections.size >= 8) {
       socket.disconnect(true)

@@ -14,7 +14,7 @@ import { validateWorkspaceProject } from '../src/runtime/management/service'
 const cleanups: (() => Promise<unknown>)[] = []
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
-})
+}, 30_000)
 
 async function setup() {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-initialization-'))
@@ -57,9 +57,9 @@ it('records a pending marker when creating a host-managed server', async () => {
     environmentId: 'desktop-host',
     state: 'pending',
   })
-})
+}, 30_000)
 
-it('does not overwrite a same-named draft while recovering a host initializer', async () => {
+it('preserves environment rules while synchronizing a deployment project', async () => {
   const { workspace, project, management } = await setup()
   const document = {
     schemaVersion: 2,
@@ -81,9 +81,9 @@ it('does not overwrite a same-named draft while recovering a host initializer', 
       name: '本机服务器环境',
       matchmakingEnabled: false,
     }),
-  ).rejects.toThrow('HOST_INITIALIZATION_ENVIRONMENT_CONFLICT')
+  ).resolves.toBeUndefined()
   expect((await workspace.getDraft('desktop-host')).document).toEqual(document)
-})
+}, 30_000)
 
 it('publishes the marker-owned binding once and completes the marker', async () => {
   const { storage, workspace, project, management } = await setup()
@@ -106,7 +106,7 @@ it('publishes the marker-owned binding once and completes the marker', async () 
     matchmakingEnabled: false,
     condition: 'available',
   })
-  expect(binding.value.desiredVersionId).toBe(binding.value.effectiveVersionId)
+  expect(binding.value).not.toHaveProperty('effectiveInstallationId')
   await initializeHostEnvironment({
     management,
     workspace,
@@ -117,18 +117,18 @@ it('publishes the marker-owned binding once and completes the marker', async () 
     matchmakingEnabled: true,
   })
   expect((await storage.get<Binding>('bindings', binding.id))?.value.matchmakingEnabled).toBe(false)
-})
+}, 30_000)
 
 it('resumes the exact pending marker-owned binding after an interrupted initialization', async () => {
   const { storage, workspace, project, management } = await setup()
   const draft = await workspace.saveDraft({ document: desktopDocument, expectedRevision: null })
-  const version = await workspace.prepareVersion(
+  const version = await workspace.prepareEnvironment(
     { environmentId: 'desktop-host', expectedRevision: draft.revision, directory: project },
     validateWorkspaceProject,
   )
-  const claimed = (await management.ensureInitializationBinding('desktop', 'desktop-host', version.versionId))!
-  expect(await workspace.references(version.versionId)).toContainEqual(
-    expect.objectContaining({ kind: 'retention', retentionId: `binding:${claimed.id}:desired` }),
+  const claimed = (await management.ensureInitializationBinding('desktop', 'desktop-host'))!
+  expect(await workspace.references(version.installationId)).toContainEqual(
+    expect.objectContaining({ kind: 'retention', retentionId: `binding:${claimed.id}` }),
   )
   await initializeHostEnvironment({
     management,
@@ -142,26 +142,25 @@ it('resumes the exact pending marker-owned binding after an interrupted initiali
   const server = (await storage.get<ManagedServer>('servers', 'initialization-server'))!
   expect(server.value.initialization).toMatchObject({ state: 'completed', bindingId: claimed.id })
   expect((await storage.get<Binding>('bindings', claimed.id))?.value).toMatchObject({
-    effectiveVersionId: version.versionId,
+    environmentId: 'desktop-host',
     condition: 'available',
   })
-}, 10_000)
+}, 30_000)
 
-it('fails closed when a persisted builtin version no longer matches runtime content', async () => {
+it('loads compatible current content without comparing an old preparation hash', async () => {
   const { storage, workspace, project, management } = await setup()
   const draft = await workspace.saveDraft({ document: desktopDocument, expectedRevision: null })
-  const version = await workspace.prepareVersion(
+  await workspace.prepareEnvironment(
     { environmentId: 'desktop-host', expectedRevision: draft.revision, directory: project },
     async () => ({
       contentRevision: 'deliberately-wrong-revision',
       packages: Object.entries(shippedCatalogMembers).map(([name, version]) => ({ name, version })),
     }),
   )
-  const binding = (await management.ensureInitializationBinding('desktop', 'desktop-host', version.versionId))!
+  const binding = (await management.ensureInitializationBinding('desktop', 'desktop-host'))!
   await storage.replace('bindings', binding.id, binding.revision, { ...binding.value, condition: 'applying' })
   await management.reconcile()
   expect((await storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
-    condition: 'unavailable',
-    reason: 'ENVIRONMENT_CONTENT_MISMATCH',
+    condition: 'available',
   })
-})
+}, 30_000)

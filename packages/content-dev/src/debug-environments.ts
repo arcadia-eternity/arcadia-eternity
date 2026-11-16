@@ -22,7 +22,9 @@ const sharedFields = {
       .string()
       .min(1)
       .refine(
-        value => !!value.trim() && !/(?:file:|link:|workspace:|\/|\\)/.test(value),
+        value =>
+          /^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(value) ||
+          (!!value.trim() && !/(?:file:|link:|workspace:|\/|\\)/.test(value)),
         '额外 npm 包需要可共享的注册表版本约束',
       ),
   ),

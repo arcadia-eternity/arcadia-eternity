@@ -156,9 +156,8 @@ test(
       const binding = (await request('GET', `/servers/${local.serverId}/bindings`)).bindings.find(
         item => item.id === before.defaultBindingId,
       )
-      const version = await workspace.getVersion(binding.effectiveVersionId)
-      assert.equal(version.adopted, true)
-      assert.ok(version.directory.startsWith(join(root, 'library/projects') + '/'))
+      const version = await workspace.getInstallation(binding.environmentId)
+      assert.equal(version.directory, join(workspace.root, 'environments', binding.environmentId))
       const port = Number(new URL(local.url).port)
       const lanUrl = `http://${network.address}:${port}`
       const desired = await request(

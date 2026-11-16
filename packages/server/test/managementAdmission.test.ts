@@ -379,7 +379,7 @@ it('does not match queues captured before and after a rule-only publication chan
   const publication = {
     runtimeId: id,
     bindingId: 'binding',
-    versionId: 'old',
+    installationId: 'old',
     enabled: true,
     public: true,
     matchmaking: true,
@@ -401,7 +401,7 @@ it('does not match queues captured before and after a rule-only publication chan
   }
   await success(a.socket, 'joinMatchmaking', request)
   app.environments.setPublication(
-    [{ ...publication, versionId: 'new', rules: { schemaVersion: 1, team: { maxSize: 5 } } }],
+    [{ ...publication, installationId: 'new', rules: { schemaVersion: 1, team: { maxSize: 5 } } }],
     id,
   )
   await success(b.socket, 'joinMatchmaking', request)

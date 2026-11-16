@@ -50,6 +50,12 @@ export function createRemotePlayController({
   onWindow,
   setupSession,
   isManagementUrl = () => false,
+  readProfile = async () => null,
+  saveProfile = async () => {
+    throw new Error('Profile saving unavailable')
+  },
+  validateProfile = value => value,
+  confirmProfileClose = async () => 'cancel',
 }) {
   let active
   const windows = new Map()
@@ -59,7 +65,36 @@ export function createRemotePlayController({
       throw new Error('Unauthorized remote frame')
     return record
   }
+  const approveClose = record => {
+    if (!record.dirty || record.closingApproved) return Promise.resolve(true)
+    if (record.closePending) return record.closePending
+    record.closePending = (async () => {
+      try {
+        const action = await confirmProfileClose(record.window)
+        if (action === 'cancel') return false
+        if (action === 'save') {
+          const generation = record.draftGeneration
+          record.config.profile = await saveProfile({
+            data: record.draft,
+            expectedRevision: record.config.profile.revision,
+          })
+          if (generation !== record.draftGeneration) return false
+        }
+        record.closingApproved = true
+        return true
+      } catch {
+        return false
+      } finally {
+        record.closePending = undefined
+      }
+    })()
+    return record.closePending
+  }
   return {
+    async prepareQuit() {
+      for (const record of windows.values()) if (!(await approveClose(record))) return false
+      return true
+    },
     isTrusted(event) {
       try {
         trustedRecord(event)
@@ -71,6 +106,27 @@ export function createRemotePlayController({
     getBootConfig(event) {
       return trustedRecord(event).config
     },
+    updateProfileDraft(event, input) {
+      const record = trustedRecord(event)
+      if (!record.config.profile || input?.profile?.id !== record.config.profile.data.profile.id)
+        throw new Error('Invalid profile identity')
+      record.draftGeneration = (record.draftGeneration ?? 0) + 1
+      record.draft = validateProfile(input)
+      record.dirty = JSON.stringify(record.draft) !== JSON.stringify(record.config.profile.data)
+    },
+    async saveProfile(event, input) {
+      const record = trustedRecord(event)
+      const original = record.config.profile
+      if (!original || input?.data?.profile?.id !== original.data.profile.id)
+        throw new Error('Remote profile identity cannot change')
+      const draftGeneration = record.draftGeneration
+      const result = await saveProfile({ ...input, expectedRevision: original.revision })
+      record.config.profile = result
+      record.dirty =
+        record.draftGeneration !== draftGeneration ||
+        JSON.stringify(record.draft ?? result.data) !== JSON.stringify(result.data)
+      return result
+    },
     close(event) {
       trustedRecord(event).window.close()
     },
@@ -79,7 +135,12 @@ export function createRemotePlayController({
       const backendOrigin = normalizeRemoteBackend(value)
       if (isManagementUrl(backendOrigin)) throw new Error('Local management endpoint is not a game server')
       // Do not reuse the manager partition, or even a previous visit to the same server.
-      if (mode === 'play') active?.destroy()
+      if (mode === 'play' && active) {
+        const previous = active
+        previous.close()
+        if (!previous.isDestroyed()) throw new Error('请先保存或关闭当前远程窗口')
+      }
+      const profile = mode === 'play' ? await readProfile() : undefined
       const sessionId = randomUUID()
       const isolatedSession = session.fromPartition(`remote-play-${sessionId}`, { cache: false })
       setupSession?.(isolatedSession)
@@ -124,6 +185,7 @@ export function createRemotePlayController({
           mode: 'remote-play',
           backendOrigin,
           sessionId,
+          ...(mode === 'play' ? { profile } : {}),
           ...(mode === 'management' ? { autoConnect: false } : {}),
         },
       }
@@ -131,6 +193,13 @@ export function createRemotePlayController({
       windows.set(contentsId, record)
       if (mode === 'play') active = window
       protectDesktopNavigation(window, rendererUrl)
+      window.on('close', event => {
+        if (!record.dirty || record.closingApproved) return
+        event.preventDefault()
+        void approveClose(record).then(approved => {
+          if (approved && !window.isDestroyed()) window.close()
+        })
+      })
       window.on('closed', () => {
         windows.delete(contentsId)
         if (active === window) active = undefined

@@ -226,7 +226,7 @@ function elapsed(start: number) {
           <dt>环境</dt>
           <dd>{{ battle.environmentName }}</dd>
           <dt>开局版本</dt>
-          <dd>{{ battle.versionId ?? '主机预置版本' }}</dd>
+          <dd>{{ battle.installationId ?? '主机预置版本' }}</dd>
           <dt>开始时间</dt>
           <dd>{{ new Date(battle.startedAt).toLocaleString() }}</dd>
         </dl>

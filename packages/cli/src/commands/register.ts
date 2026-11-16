@@ -7,6 +7,7 @@ import { registerEnvironmentCommands } from './environment'
 import { registerNpmCommands } from './npm'
 import { registerProjectCommands } from './project'
 import { registerDevPreviewCommands } from './dev-preview'
+import { registerProfileCommands } from './profile'
 
 function positive(value: string) {
   const n = Number(value)
@@ -14,9 +15,11 @@ function positive(value: string) {
     throw new InvalidArgumentError('Expected a positive safe integer')
   return n
 }
-function battleOptions(command: Command) {
-  return command
-    .requiredOption('-1, --player1 <path>', 'First team YAML/JSON')
+function battleOptions(command: Command, profile = false) {
+  const c = profile
+    ? command.option('-1, --player1 <path>', 'First team YAML/JSON')
+    : command.requiredOption('-1, --player1 <path>', 'First team YAML/JSON')
+  return c
     .requiredOption('-2, --player2 <path>', 'Second team YAML/JSON')
     .option('--pack-ref <ref>', 'Content manifest or built-in pack', 'builtin:workspace')
     .option('--works <path>', 'Selected immutable works from an .arcadia archive')
@@ -36,6 +39,7 @@ function outputOptions(command: Command) {
     .option('--out <path>', 'Write result JSON to a new file')
 }
 export function registerCommands(program: Command, context: CommandContext) {
+  registerProfileCommands(program, context)
   let exitCode = 0
   async function emit(report: unknown, options: { out?: string; json?: boolean; format: string }, text: string) {
     if (options.out) await writeJson(resolve(context.cwd, options.out), report)
@@ -85,7 +89,10 @@ export function registerCommands(program: Command, context: CommandContext) {
       exitCode = result.exitCode
     })
   async function local(options: {
-    player1: string
+    player1?: string
+    useProfile?: boolean
+    profileDir?: string
+    team?: string
     player2: string
     seed: string
     maxTurns: number
@@ -122,7 +129,12 @@ export function registerCommands(program: Command, context: CommandContext) {
     exitCode = run.result.status === 'completed' ? 0 : run.result.status === 'cancelled' ? 130 : 1
   }
   function localOptions(c: Command) {
-    return battleOptions(c).option('--ai <players>', 'AI seats: player1,player2').option('--debug', 'Terminal debug')
+    return battleOptions(c, true)
+      .option('--use-profile', 'Use personal profile for player 1')
+      .option('--profile-dir <directory>', 'Personal profile directory')
+      .option('--team <index>', 'Profile team (1 based)')
+      .option('--ai <players>', 'AI seats: player1,player2')
+      .option('--debug', 'Terminal debug')
   }
   localOptions(battle.command('local')).action(local)
   localOptions(program.command('local').description('Alias for battle local')).action(local)

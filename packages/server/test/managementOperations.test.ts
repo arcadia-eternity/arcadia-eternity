@@ -32,7 +32,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
       let admin: pg.Pool | undefined
       let schemaName: string | undefined
       const actor = { principalId: 'owner', credentialId: 'session-a', kind: 'session' }
-      const command = (idempotencyKey: string, input: unknown = { versionId: 'v1' }) => ({
+      const command = (idempotencyKey: string, input: unknown = { installationId: 'v1' }) => ({
         kind: 'publish',
         scope: 'server:test',
         actor,
@@ -87,19 +87,19 @@ for (const driver of ['sqlite', 'postgres'] as const) {
           executions++
           await context.progress({ stage: 'capturing', completed: 1, total: 2 })
           await release.promise
-          return { versionId: 'v1' }
+          return { installationId: 'v1' }
         }
         const [a, b] = await Promise.all([
           operations.submit(command('duplicate'), work),
-          operations.submit(command('duplicate', { versionId: 'v1' }), work),
+          operations.submit(command('duplicate', { installationId: 'v1' }), work),
         ])
         expect(a.id).toBe(b.id)
-        await expect(operations.submit(command('duplicate', { versionId: 'v2' }), work)).rejects.toMatchObject({
+        await expect(operations.submit(command('duplicate', { installationId: 'v2' }), work)).rejects.toMatchObject({
           code: 'IDEMPOTENCY_CONFLICT',
         })
         await expect.poll(() => executions).toBe(1)
         release.resolve()
-        expect(await settle(a.id)).toMatchObject({ status: 'succeeded', result: { versionId: 'v1' } })
+        expect(await settle(a.id)).toMatchObject({ status: 'succeeded', result: { installationId: 'v1' } })
         const audits = await storage.list<{ operationId: string; action: string }>('audit', 'server:test')
         expect(
           audits
@@ -311,7 +311,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         expect(await storage.get('bindings', 'late')).toBeNull()
         await expect(
           operations.submit(
-            { ...command('wrong-input', { versionId: 'other' }), retryOf: operation.id },
+            { ...command('wrong-input', { installationId: 'other' }), retryOf: operation.id },
             async () => {},
           ),
         ).rejects.toMatchObject({ code: 'OPERATION_RETRY_MISMATCH' })

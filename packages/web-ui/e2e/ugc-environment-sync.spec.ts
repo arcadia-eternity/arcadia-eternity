@@ -1,3 +1,4 @@
+import { readPersistedProfile } from './helpers/profile'
 import { expect, test, type Page } from 'playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
@@ -47,7 +48,10 @@ async function formCustomTeam(page: Page) {
   await page.getByRole('option', { name: /展示精灵/ }).click()
   await expect(page.getByPlaceholder('输入精灵名称')).toHaveValue('展示精灵')
   await page.getByRole('button', { name: '保存', exact: true }).click()
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets[0])
+  await expect
+    .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.species)
+    .toBe('example-slow:pet')
+  const saved = (await readPersistedProfile(page))!.library.teams[0].pets[0]
   expect(saved.species).toBe('example-slow:pet')
   expect(saved.skills).toEqual(['example-slow:strike'])
   await page.getByRole('link', { name: '返回房间', exact: true }).click()

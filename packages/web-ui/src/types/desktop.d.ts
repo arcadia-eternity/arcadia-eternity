@@ -24,6 +24,9 @@ export type LocalBattleHostStatus =
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  onProfileChanged?: (callback: () => void) => () => void
+  profile?: (input: { action: 'read' | 'raw' } | { action: 'activity'; busy: boolean } | { action: 'commit'; expected: import('@arcadia-eternity/local-profile').ProfileExpectation; next: import('@arcadia-eternity/local-profile').Envelope }) => Promise<{ value?: unknown; error?: { code: string; message: string } }>
+
   localEnvironment?: (input: Record<string, unknown>) => Promise<{ result?: unknown; error?: { code: string; message: string } }>
   managementRequest?: import('@/services/managementClient').ManagementIpcBridge
   author?: (
@@ -122,7 +125,9 @@ declare global {
       returnToEditor(): void
     }
     arcadiaRemotePlay?: {
-      getBootConfig(): Promise<{ schemaVersion: 1; mode: 'remote-play'; backendOrigin: string; sessionId: string }>
+      updateProfileDraft?: (data: import('@arcadia-eternity/local-profile').ProfileData) => Promise<void>
+      requestProfileSave?: (input: { data: import('@arcadia-eternity/local-profile').ProfileData; expectedRevision: number | null }) => Promise<void>
+      getBootConfig(): Promise<{ schemaVersion: 1; mode: 'remote-play'; backendOrigin: string; sessionId: string; profile?: import('@arcadia-eternity/local-profile').ProfileSnapshot }>
       close(): Promise<void>
     }
   }

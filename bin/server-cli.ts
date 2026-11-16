@@ -12,10 +12,11 @@ import { createOnlineServerBackup } from './server-backup'
 import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { attachDesktopContentControl } from './desktop-content-control'
-import { initializeHostEnvironment, refreshBuiltinEnvironment } from './host-environment-initialize'
+import { initializeHostEnvironment } from './host-environment-initialize'
 import { parseDesktopLaunch, saveDesktopLaunch } from './desktop-launch'
 import {
   createSingleProcessApp,
+  validateWorkspaceProject,
   parseBattleCapacityEnv,
   EmailCodeVerifier,
   GithubAppVerifier,
@@ -316,6 +317,9 @@ export async function runServerCli(args: string[]): Promise<number> {
         sources = value as ManagedProjectsOptions['sources']
       }
       projects = new ManagedProjects(join(config.dataDirectory, 'projects'), {
+        bundledPackageRoot: dirname(
+          fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
+        ),
         allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
         registry: options.npmRegistry,
         offline: options.offlineContent,
@@ -364,13 +368,19 @@ export async function runServerCli(args: string[]): Promise<number> {
             ? { kind: 'npm', environmentId: 'startup-npm' }
             : { kind: 'builtin', environmentId: 'builtin-server' },
         ...(projects
-          ? { prepareEnvironment: (input, validator) => projects!.prepareVersion(workspace!, input, validator) }
+          ? { prepareEnvironment: (input, validator) => projects!.prepareEnvironment(workspace!, input, validator) }
           : {}),
       },
       ...(options.developmentProject
         ? { development: { directory: resolve(options.developmentProject), token: developmentToken! } }
         : {}),
     })
+    if (projects)
+      await projects.synchronizeBundledBase(workspace, input =>
+        validateWorkspaceProject(input, {
+          effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
+        }),
+      )
     await server.environments.ready()
     const builtinId = server.environments.descriptor().id
     if (desktopControl && ((!options.desktopManagedNetwork && options.host !== '127.0.0.1') || accounts))
@@ -385,16 +395,23 @@ export async function runServerCli(args: string[]): Promise<number> {
         kind: desktopLaunch?.officialContent || (!desktopLaunch && pending?.kind === 'builtin') ? 'builtin' : 'desktop',
       })
     } else if (!desktopControl && options.npmProject?.[0]) {
-      await initializeHostEnvironment({
-        management: server.management!,
-        workspace,
-        projectDirectory: options.npmProject[0],
-        kind: 'npm',
-        environmentId: 'startup-npm',
-        name: '启动时批准的 npm 环境',
-        matchmakingEnabled: true,
+      const initialize = (projectDirectory: string) =>
+        initializeHostEnvironment({
+          management: server!.management!,
+          workspace: workspace!,
+          projectDirectory,
+          kind: 'npm',
+          environmentId: 'startup-npm',
+          name: '启动时批准的 npm 环境',
+          matchmakingEnabled: true,
+        })
+      let refreshed = false
+      await projects!.synchronizeProject(options.npmProject[0], async directory => {
+        refreshed = true
+        await initialize(directory)
       })
-    } else if (!desktopControl && (await server.management!.pendingInitializationInfo())) {
+      if (!refreshed) await initialize(options.npmProject[0])
+    } else if (!desktopControl) {
       await initializeShippedEnvironment(projectDirectory =>
         initializeHostEnvironment({
           management: server!.management!,
@@ -404,14 +421,6 @@ export async function runServerCli(args: string[]): Promise<number> {
           environmentId: 'builtin-server',
           name: '内置服务器环境',
           matchmakingEnabled: true,
-        }),
-      )
-    } else if (!desktopControl && !options.npmProject?.[0]) {
-      await initializeShippedEnvironment(projectDirectory =>
-        refreshBuiltinEnvironment({
-          management: server!.management!,
-          workspace: workspace!,
-          projectDirectory,
         }),
       )
     }

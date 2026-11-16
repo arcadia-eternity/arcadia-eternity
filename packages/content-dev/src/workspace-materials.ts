@@ -38,7 +38,9 @@ export async function materialFiles(
     maxBytes = 256 * 1024 * 1024,
     maxFiles = 50000,
     onRead,
+    allowMissingLock = false,
   }: {
+    allowMissingLock?: boolean
     signal?: AbortSignal
     maxBytes?: number
     maxFiles?: number
@@ -90,7 +92,12 @@ export async function materialFiles(
     try {
       await lstat(join(root, name))
     } catch (error) {
-      if (errorCode(error) === 'ENOENT' && name !== 'package.json' && name !== 'package-lock.json') continue
+      if (
+        errorCode(error) === 'ENOENT' &&
+        name !== 'package.json' &&
+        (allowMissingLock || name !== 'package-lock.json')
+      )
+        continue
       throw error
     }
     try {
@@ -124,7 +131,8 @@ export async function writeMaterials(
     signal,
     maxBytes = 256 * 1024 * 1024,
     maxFiles = 50000,
-  }: { signal?: AbortSignal; maxBytes?: number; maxFiles?: number } = {},
+    allowMissingLock = false,
+  }: { signal?: AbortSignal; maxBytes?: number; maxFiles?: number; allowMissingLock?: boolean } = {},
 ): Promise<void> {
   if (!Array.isArray(files) || files.length > maxFiles) throw contentError('MATERIAL_LIMIT')
   const seen = new Set()
@@ -151,7 +159,9 @@ export async function writeMaterials(
     await mkdir(dirname(join(root, path)), { recursive: true })
     await writeFile(join(root, path), bytes, { flag: 'wx', mode: 0o600 })
   }
-  if (!seen.has('package.json') || !seen.has('package-lock.json')) throw contentError('MATERIAL_LOCK_REQUIRED')
+  if (!seen.has('package.json') || (!allowMissingLock && !seen.has('package-lock.json')))
+    throw contentError('MATERIAL_LOCK_REQUIRED')
+  if (!seen.has('package-lock.json')) return
   // npm may omit this directory for a valid empty dependency graph. Static npm
   // inspection still expects it, including after a file-only archive round trip.
   await mkdir(join(root, 'node_modules'), { recursive: true })

@@ -228,7 +228,8 @@ export class ServerSessionClient {
   }
 
   ensure(profile: LocalProfile): Promise<ServerSession> {
-    if (this.pending) return this.pending
+    if (this.pending)
+      return this.pending.then(session => (session.profile.id === profile.id ? session : this.ensure(profile)))
     this.pending = this.resumeOrCreate(profile, this.identityEpoch).finally(() => {
       this.pending = null
     })
@@ -284,7 +285,18 @@ export class ServerSessionClient {
 
   private async resumeOrCreate(profile: LocalProfile, epoch: number): Promise<ServerSession> {
     const resumed = await this.resumeIfPresent(epoch)
-    if (resumed) return resumed
+    if (resumed) {
+      if (resumed.profile.id !== profile.id) {
+        const changed = await this.call<ServerSession>('/session/profile', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resumed.token}` },
+          body: JSON.stringify({ profile }),
+        })
+        if (epoch !== this.identityEpoch) throw new Error('会话操作已取消')
+        return this.save(changed)
+      }
+      return resumed
+    }
     const info = this.info!
     if (!info.authModes.includes('guest')) throw new Error('此服务器需要登录账号')
     const created = await this.call<ServerSession>('/sessions', { method: 'POST', body: JSON.stringify({ profile }) })

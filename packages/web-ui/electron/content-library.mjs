@@ -1,6 +1,7 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
-import { basename, isAbsolute, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { basename, dirname, isAbsolute, join } from 'node:path'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const exactPackage = /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
@@ -158,7 +159,12 @@ export class ContentLibrary {
       createManagedProjects ??
       (async (root, options) => {
         const { ManagedProjects } = await import('@arcadia-eternity/content-sdk/managed-projects')
-        return new ManagedProjects(root, options)
+        return new ManagedProjects(root, {
+          ...options,
+          bundledPackageRoot: dirname(
+            fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
+          ),
+        })
       })
   }
   async #load() {
@@ -214,7 +220,10 @@ export class ContentLibrary {
       )
         throw new Error('本机内容选择记录格式不正确')
       if (fresh && this.withDefaultArchive) await this.#initializeDefault(state)
-      else this.#state = state
+      else {
+        if (this.withDefaultArchive) await this.#synchronizeDefault(state)
+        this.#state ??= state
+      }
     })().catch(error => {
       this.#loading = undefined
       throw error
@@ -240,6 +249,9 @@ export class ContentLibrary {
         const entry = { ...plan.entry, bundled: true }
         await this.#save({
           ...state,
+          bundledDigest: createHash('sha256')
+            .update(await readFile(file))
+            .digest('hex'),
           installed: [entry],
           desiredIds: [entry.id],
           activeIds: [entry.id],
@@ -255,6 +267,93 @@ export class ContentLibrary {
         this.#plans.delete(candidate.id)
       }
     })
+  }
+  async #synchronizeDefault(state) {
+    const oldBase = state.installed.find(entry => entry.bundled)
+    if (!oldBase) return
+    await this.withDefaultArchive(async file => {
+      const digest = createHash('sha256')
+        .update(await readFile(file))
+        .digest('hex')
+      if (state.bundledDigest === digest) return
+      const candidate = await this.#stageInstall(
+        { kind: 'file', file, label: '随应用提供' },
+        true,
+        this.#controller.signal,
+        { ...state, installed: state.installed.filter(entry => entry.id !== oldBase.id) },
+      )
+      const plan = this.#plans.get(candidate.id)
+      const created = [plan.project]
+      const replacements = new Map([[oldBase.id, { ...plan.entry, bundled: true }]])
+      const projects = new Map([[oldBase.id, plan.project]])
+      let installer
+      try {
+        installer = await this.#createManagedProjects(join(this.root, 'acquisition'), { offline: true })
+        await this.run(
+          ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
+          this.#controller.signal,
+        )
+        for (const id of new Set([...state.installed.map(entry => entry.id), state.activeProject].filter(Boolean))) {
+          if (id === oldBase.id) continue
+          await installer.synchronizeProject(await this.#directory(id), async directory => {
+            const next = randomUUID()
+            const target = join(this.root, 'projects', storageName(next))
+            await rename(directory, target)
+            created.push(next)
+            const inspection = checkedInspection(
+              await this.run(['content', 'npm', 'inspect', target], this.#controller.signal),
+            )
+            await this.run(
+              ['content', 'npm', 'approve', target, '--profile', 'local-development'],
+              this.#controller.signal,
+            )
+            projects.set(id, next)
+            const entry = state.installed.find(entry => entry.id === id)
+            if (entry)
+              replacements.set(id, {
+                ...entry,
+                id: next,
+                graph: graphFor(inspection),
+                contentIds: idsFor(inspection.packages),
+              })
+          })
+        }
+        const activeProject = projects.get(state.activeProject) ?? state.activeProject
+        const activeInspection = checkedInspection(
+          await this.run(['content', 'npm', 'inspect', await this.#directory(activeProject)], this.#controller.signal),
+        )
+        await this.run(
+          ['content', 'validate', '--npm-project', await this.#directory(activeProject)],
+          this.#controller.signal,
+        )
+        await this.#save({
+          ...state,
+          revision: state.revision + 1,
+          bundledDigest: digest,
+          installed: state.installed.map(entry => replacements.get(entry.id) ?? entry),
+          activeIds: state.activeIds.map(id => projects.get(id) ?? id),
+          desiredIds: state.desiredIds.map(id => projects.get(id) ?? id),
+          activeProject,
+          activeGraph: graphFor(activeInspection),
+        })
+      } catch (error) {
+        await Promise.all(
+          created.map(id => rm(join(this.root, 'projects', storageName(id)), { recursive: true, force: true })),
+        )
+        throw error
+      } finally {
+        this.#plans.delete(candidate.id)
+        await installer?.close()
+      }
+    })
+  }
+  async synchronizeEnvironments(workspace, validate) {
+    const installer = await this.#createManagedProjects(join(this.root, 'acquisition'), { offline: true })
+    try {
+      await installer.synchronizeBundledBase(workspace, validate)
+    } finally {
+      await installer.close()
+    }
   }
   #update(change) {
     const update = this.#writes.then(() => {
@@ -698,7 +797,7 @@ export class ContentLibrary {
   /** Prepare a named management environment without changing local-play selection.
    * Reuse the active installed combination whenever its exact packages match.
    */
-  async prepareEnvironmentProject(document, { signal, offline = false, onProgress } = {}) {
+  async prepareEnvironmentProject(document, { signal, offline = false, onProgress, projectDirectory } = {}) {
     return this.#exclusive(async () => {
       if (!document || typeof document.packages !== 'object' || !document.packages || Array.isArray(document.packages))
         throw new Error('环境包配置无效')
@@ -715,8 +814,8 @@ export class ContentLibrary {
             !packageName.test(name) ||
             typeof version !== 'string' ||
             !version.trim() ||
-            /[\/\\]/.test(version) ||
-            /^(?:file|link|workspace):/.test(version),
+            (!/^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(version) &&
+              (/[\/\\]/.test(version) || /^(?:file|link|workspace):/.test(version))),
         )
       )
         throw new Error('环境包配置无效')
@@ -726,6 +825,7 @@ export class ContentLibrary {
       const selectedSources = {},
         installedSources = new Map()
       for (const name of sourceIds) {
+        if (name === '@arcadia-eternity/data-pack-base') continue
         if (Object.hasOwn(document.packages, name)) throw sourceError('INSTALL_DUPLICATE_PACKAGE')
         if (Object.hasOwn(registry, name)) selectedSources[name] = registry[name]
         else {
@@ -745,22 +845,41 @@ export class ContentLibrary {
         .sort(([a], [b]) => a.localeCompare(b))
       let id = this.#state.activeProject,
         directory
-      if (!Object.keys(selectedSources).length && id && JSON.stringify(active) === JSON.stringify(requested))
+      if (
+        !projectDirectory &&
+        !requested.some(([name]) => name === '@arcadia-eternity/data-pack-base') &&
+        !sourceIds.includes('@arcadia-eternity/data-pack-base') &&
+        !Object.keys(selectedSources).length &&
+        id &&
+        JSON.stringify(active) === JSON.stringify(requested)
+      )
         directory = await this.#directory(id)
       else {
         let project
-        if (Object.keys(selectedSources).length) {
+        if (
+          projectDirectory ||
+          requested.some(([name]) => name === '@arcadia-eternity/data-pack-base') ||
+          sourceIds.includes('@arcadia-eternity/data-pack-base') ||
+          Object.keys(selectedSources).length
+        ) {
           // Share the headless source/lock/install pipeline, then transfer its one
-          // tree into the client library. The hosted server only adopts this tree.
+          // tree into the client library before committing the persistent environment.
           const packages = Object.fromEntries(requested)
-          for (const [name, entry] of installedSources)
-            if (entry.source.kind === 'file') {
+          for (const [name, version] of requested) {
+            if (name === '@arcadia-eternity/data-pack-base') continue
+            const entry =
+              installedSources.get(name) ??
+              this.#state.installed.find(
+                item => item.name === name && item.version === version && item.source.kind === 'file',
+              )
+            if (entry?.source.kind === 'file') {
               selectedSources[name] = {
                 kind: 'archive',
                 file: join(await this.#directory(entry.id), entry.source.file),
               }
               delete packages[name]
             }
+          }
           const acquisition = join(this.root, 'acquisition')
           await mkdir(acquisition, { recursive: true })
           if ((await realpath(acquisition)) !== acquisition) throw sourceError('INSTALL_ROOT_INVALID')
@@ -771,8 +890,15 @@ export class ContentLibrary {
           })
           try {
             project = await installer.prepareProject(
-              { ...document, packages, sources: Object.keys(selectedSources) },
-              { signal: combined, onProgress },
+              {
+                ...document,
+                packages,
+                sources: [
+                  ...sourceIds.filter(name => name === '@arcadia-eternity/data-pack-base'),
+                  ...Object.keys(selectedSources),
+                ],
+              },
+              { signal: combined, onProgress, projectDirectory },
               async staged => {
                 combined.throwIfAborted()
                 const id = randomUUID(),

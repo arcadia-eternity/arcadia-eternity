@@ -7,6 +7,9 @@ import {
   type NativePackLoadResult,
 } from '@arcadia-eternity/pack-loader/native'
 import { resolve } from 'node:path'
+import { ProfileRepository } from '@arcadia-eternity/local-profile'
+import { FileProfileStorage, profileDirectory } from '@arcadia-eternity/local-profile/node'
+import { NativePlayerSchema } from '@arcadia-eternity/battle/engine'
 import { fileURLToPath } from 'node:url'
 import {
   emptyNpmContentHost,
@@ -88,14 +91,13 @@ export async function prepareContent(
     if ((await stat(file)).size > limits.bytes) throw new Error('作品文件超过大小限制')
     const archive = await parseArchive(await readFile(file, 'utf8'))
     if (!archive.selected.length) throw new Error('作品文件没有选定的发布版本；草稿须先发布')
-    const selected = archive.selected.map(
-      lock =>
-        archive.releases.find(
-          release =>
-            release.project.id === lock.projectId &&
-            release.releaseVersion === lock.version &&
-            release.digest === lock.digest,
-        )!,
+    const selected = archive.selected.map(lock =>
+      archive.releases.find(
+        release =>
+          release.project.id === lock.projectId &&
+          release.releaseVersion === lock.version &&
+          release.digest === lock.digest,
+      )!,
     )
     const prepared = await loader.fromWorks(loaded.data, selected, archive.releases)
     return { ...loaded, ...prepared, works: { base: loaded.data, selected, installed: prepared.releases } }
@@ -106,7 +108,10 @@ export async function prepareContent(
 }
 export async function prepareRun(
   options: {
-    player1: string
+    player1?: string
+    useProfile?: boolean
+    profileDir?: string
+    team?: string
     player2: string
     seed: string
     maxTurns: number
@@ -116,7 +121,30 @@ export async function prepareRun(
   cwd: string,
   content: Pick<ContentCatalog | ContentIndex, 'getSpecies' | 'getSkill' | 'getMark'>,
 ): Promise<RunSpec> {
-  const teams = await Promise.all([readTeam(resolve(cwd, options.player1)), readTeam(resolve(cwd, options.player2))])
+  if (options.useProfile && options.player1)
+    throw new CliError('ARGUMENT_INVALID', '--use-profile conflicts with --player1')
+  if (!options.useProfile && !options.player1)
+    throw new CliError('ARGUMENT_INVALID', '--player1 or --use-profile is required')
+  if (options.team && !options.useProfile) throw new CliError('ARGUMENT_INVALID', '--team requires --use-profile')
+  let first
+  if (options.useProfile) {
+    const state = await new ProfileRepository(
+      new FileProfileStorage(profileDirectory(options.profileDir ? resolve(cwd, options.profileDir) : undefined)),
+    ).open()
+    if (!state) throw new CliError('PROFILE_EMPTY', 'Initialize or import a personal profile first')
+    const index = options.team === undefined ? state.current.data.library.currentTeamIndex : Number(options.team) - 1
+    if (!Number.isSafeInteger(index) || index < 0 || !state.current.data.library.teams[index])
+      throw new CliError('TEAM_INVALID', 'Profile team does not exist')
+    try {
+      first = NativePlayerSchema.parse({
+        name: state.current.data.profile.name,
+        team: state.current.data.library.teams[index].pets,
+      })
+    } catch (error) {
+      throw new CliError('TEAM_INVALID', message(error))
+    }
+  } else first = await readTeam(resolve(cwd, options.player1!))
+  const teams = [first, await readTeam(resolve(cwd, options.player2))]
   try {
     for (const team of teams)
       for (const pet of team.team) {

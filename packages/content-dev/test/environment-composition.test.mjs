@@ -27,7 +27,7 @@ function fixture() {
   }
   return {
     listDrafts: async () => [structuredClone(draft)],
-    listVersions: async () => [version],
+    listInstallations: async () => [version],
     saveDraft: async input => {
       assert.equal(input.expectedRevision, draft.revision)
       draft = { document: normalizeEnvironmentDocument(input.document), revision: String(Number(draft.revision) + 1) }
@@ -51,7 +51,7 @@ test('shared dependency blocks disable; explicit cascade retains ranges and reen
   })
   assert.deepEqual(enabled.document.packages, { forest: '^1' })
   assert.deepEqual(enabled.document.disabled.packages, { arena: '^2' })
-  assert.deepEqual((await workspace.listVersions())[0].document.packages, { forest: '^1', arena: '^2' })
+  assert.deepEqual((await workspace.listInstallations())[0].document.packages, { forest: '^1', arena: '^2' })
 })
 test('stale revision and changed unresolved composition cannot authorize a dependency toggle', async () => {
   const workspace = fixture()
