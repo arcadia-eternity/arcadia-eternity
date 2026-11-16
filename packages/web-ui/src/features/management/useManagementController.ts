@@ -1,3 +1,4 @@
+import { managementScopeActions } from './managementPermissions'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { getBackendOrigin } from '@/bootstrap/deployment'
@@ -104,7 +105,7 @@ export function useManagementController(
     deletingBinding.value = ''
     await state.mutate('DELETE', `${serverPath.value}/bindings/${encode(binding.id)}`, undefined, binding.revision)
   }
-  const grantRole = ref<'viewer' | 'server-admin' | 'workspace-admin'>('viewer')
+  const grantRole = ref<'admin' | 'viewer' | 'server-admin' | 'workspace-admin'>('viewer')
   const tab = ref<
     'environments' | 'server' | 'network' | 'tasks' | 'security' | 'permissions' | 'accounts' | 'battles'
   >(props.initialTab ?? 'environments')
@@ -491,36 +492,40 @@ export function useManagementController(
     }
   }
   async function addGrant() {
-    const workspace = grantRole.value === 'workspace-admin'
-    const actions = workspace
-      ? ['read', 'environment.use', 'edit', 'prepare', 'delete', 'export', 'grants.manage']
-      : grantRole.value === 'server-admin'
-        ? [
-            'read',
-            'bindings.manage',
-            'publish',
-            'settings.manage',
-            'drain',
-            'accounts.manage',
-            'grants.manage',
-            'players.read',
-            'battles.read',
-            'battles.terminate',
-            'backup',
-          ]
-        : ['read']
+    const kinds: ManagementScope['kind'][] =
+      grantRole.value === 'admin'
+        ? ['workspace', 'server']
+        : [grantRole.value === 'workspace-admin' ? 'workspace' : 'server']
     if (
-      await state.mutate('POST', '/grants', {
-        principalId: principalId.value.trim(),
-        scope: {
-          kind: workspace ? 'workspace' : 'server',
-          id: workspace ? workspaceId.value : capabilities.value?.serverId,
-        },
-        actions,
-      })
+      !capabilities.value ||
+      kinds.some(
+        kind =>
+          !can(kind, 'grants.manage') ||
+          (grantRole.value !== 'viewer' && managementScopeActions[kind].some(action => !can(kind, action))),
+      )
     )
-      principalId.value = ''
+      return
+    const subject = principalId.value.trim()
+    for (const kind of kinds) {
+      const scope = { kind, id: kind === 'workspace' ? workspaceId.value : capabilities.value.serverId }
+      const existing = grants.value.find(
+        grant => grant.principalId === subject && grant.scope.kind === scope.kind && grant.scope.id === scope.id,
+      )
+      const succeeded = await state.mutate(
+        'POST',
+        '/grants',
+        {
+          principalId: subject,
+          scope,
+          actions: grantRole.value === 'viewer' ? ['read'] : [...managementScopeActions[kind]],
+        },
+        existing?.revision,
+      )
+      if (!succeeded) return
+    }
+    principalId.value = ''
   }
+
   const operationError = contentTaskError
 
   onMounted(() => void changeTarget(target.value))

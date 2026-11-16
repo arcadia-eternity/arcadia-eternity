@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ElCard, ElForm, ElFormItem, ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
 import type { ManagementController } from './useManagementController'
+import ManagementGrantEditor from './ManagementGrantEditor.vue'
+import { managementActionLabels, managementScopeActions } from './managementPermissions'
 import ManagementCredentials from './ManagementCredentials.vue'
 const { controller } = defineProps<{ controller: ManagementController }>()
 const {
@@ -47,9 +49,26 @@ const {
       </ElFormItem>
       <ElFormItem label="角色">
         <ElSelect v-model="grantRole">
+          <ElOption
+            value="admin"
+            :disabled="
+              !(['server', 'workspace'] as const).every(kind =>
+                managementScopeActions[kind].every(action => can(kind, action)),
+              )
+            "
+            label="管理员（服务器和环境）"
+          />
           <ElOption value="viewer" :disabled="!can('server', 'grants.manage')" label="服务器只读" />
-          <ElOption value="server-admin" :disabled="!can('server', 'grants.manage')" label="服务器管理员" />
-          <ElOption value="workspace-admin" :disabled="!can('workspace', 'grants.manage')" label="工作区管理员" />
+          <ElOption
+            value="server-admin"
+            :disabled="!managementScopeActions.server.every(action => can('server', action))"
+            label="仅服务器管理"
+          />
+          <ElOption
+            value="workspace-admin"
+            :disabled="!managementScopeActions.workspace.every(action => can('workspace', action))"
+            label="仅环境管理"
+          />
         </ElSelect>
       </ElFormItem>
       <ElButton class="primary" :disabled="busy || !principalId.trim()" native-type="submit" type="primary"
@@ -59,9 +78,23 @@ const {
     <ElCard shadow="never" v-for="grant in grants" :key="grant.id" class="grant">
       <strong>{{ grant.principalId }}</strong>
       <p>{{ grant.scope.kind === 'server' ? '服务器' : '工作区' }} · {{ grant.scope.id }}</p>
-      <p>{{ grant.actions.join('、') }}</p>
+      <p>{{ grant.actions.map(action => managementActionLabels[action] ?? action).join('、') }}</p>
+      <ManagementGrantEditor
+        :grant="grant"
+        :busy="busy"
+        :allowed-actions="managementScopeActions[grant.scope.kind].filter(action => can(grant.scope.kind, action))"
+        @save="
+          (current, actions) =>
+            state.mutate(
+              'POST',
+              '/grants',
+              { principalId: current.principalId, scope: current.scope, actions },
+              current.revision,
+            )
+        "
+      />
       <ElButton
-        :disabled="busy"
+        :disabled="busy || !can(grant.scope.kind, 'grants.manage')"
         @click="
           state.mutate('POST', `/grants/${encode(grant.id)}/revoke`, { revision: grant.revision }, grant.revision)
         "

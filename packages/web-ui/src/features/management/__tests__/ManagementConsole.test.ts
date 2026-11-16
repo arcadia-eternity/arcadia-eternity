@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub, type VueWrapper } from '@vue/test-utils'
+import ManagementPermissions from '../ManagementPermissions.vue'
+import { managementScopeActions } from '../managementPermissions'
 import ManagementConsole from '../ManagementConsole.vue'
 import type { ManagementIpcRequest } from '@/services/managementClient'
 import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@/types/management'
@@ -121,6 +123,62 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
+  it('does not start a combined administrator grant when the caller lacks any required permission', async () => {
+    const { page, request } = await open()
+    await page.setProps({ initialTab: 'permissions' })
+    await flushPromises()
+    const controller = page.findComponent(ManagementPermissions).props('controller')
+    controller.principalId.value = 'new-admin'
+    controller.grantRole.value = 'admin'
+    await controller.addGrant()
+    expect(request.mock.calls.some(([input]) => input.method === 'POST' && input.path === '/grants')).toBe(false)
+    expect(controller.principalId.value).toBe('new-admin')
+  })
+
+  it('grants both scopes with the administrator preset and updates existing grants with their revision', async () => {
+    const request = vi.fn(async (input: ManagementIpcRequest) => {
+      const body = response(input.path) as Record<string, unknown>
+      if (input.path === '/capabilities')
+        body.effectivePermissions = (['server', 'workspace'] as const).map(kind => ({
+          scope: { kind, id: `${kind}-local` },
+          actions: managementScopeActions[kind],
+        }))
+      if (input.path === '/grants' && input.method === 'GET')
+        body.grants = [
+          {
+            id: 'existing',
+            revision: 7,
+            principalId: 'new-admin',
+            scope: { kind: 'server', id: 'server-local' },
+            actions: ['read'],
+          },
+        ]
+      return { status: 200, body }
+    })
+    const { page } = await open(request)
+    await page.setProps({ initialTab: 'permissions' })
+    await flushPromises()
+    const controller = page.findComponent(ManagementPermissions).props('controller')
+    controller.principalId.value = 'new-admin'
+    controller.grantRole.value = 'admin'
+    await controller.addGrant()
+    const writes = request.mock.calls
+      .map(([input]) => input)
+      .filter(input => input.method === 'POST' && input.path === '/grants')
+    expect(writes).toHaveLength(2)
+    expect(writes[0].body).toEqual({
+      principalId: 'new-admin',
+      scope: { kind: 'workspace', id: 'workspace-local' },
+      actions: managementScopeActions.workspace,
+    })
+    expect(writes[1].body).toEqual({
+      principalId: 'new-admin',
+      scope: { kind: 'server', id: 'server-local' },
+      actions: managementScopeActions.server,
+    })
+    expect(writes[1].headers?.['If-Match']).toBe('"7"')
+  })
+
   it('navigates without discarding the console and follows a restored tab', async () => {
     const { page, request } = await open()
     const reads = request.mock.calls.length
