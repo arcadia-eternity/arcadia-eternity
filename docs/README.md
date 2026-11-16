@@ -10,6 +10,7 @@
 | TypeScript 效果、参数与持续取值       | [Effect SDK](guides/effect-sdk.md)、[效果编写](guides/effect-authoring.md)                                                                   |
 | 行为定义与独立使用                    | [行为使用](guides/behavior-uses.md)                                                                                                          |
 | 包安装、版本选择与源码编辑边界        | [内容管理](guides/content-management.md)、[管理界面](guides/content-manager-design.md)                                                       |
+| 各运行场景的内容包读取与准备          | [内容包读取边界](guides/content-loading-boundaries.md)                                                                                       |
 | npm 依赖、准入、环境与项目导出        | [npm 内容包](guides/npm-content.md)                                                                                                          |
 | 资源、表现、语言与描述配色            | [内容表现](guides/content-presentation.md)                                                                                                   |
 | 本机候选与草稿试战                    | [候选预览](guides/development-preview.md)、[试战生命周期](guides/local-trial-lifecycle.md)                                                   |
