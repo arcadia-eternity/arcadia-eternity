@@ -190,7 +190,7 @@ test('paired production management backs up, revokes service credentials and ret
     await page.getByRole('button', { name: '创建凭据', exact: true }).click()
     const issued = page.getByRole('region', { name: '新建凭据' })
     await expect(issued).toBeVisible()
-    let token = await issued.getByLabel('凭证', { exact: true }).inputValue()
+    let token = await issued.getByLabel('凭据', { exact: true }).inputValue()
     const credentialId = await issued.locator('code').innerText()
     // Assert booleans only, so failed assertions cannot print the raw service token.
     expect(token.length > 20).toBe(true)
