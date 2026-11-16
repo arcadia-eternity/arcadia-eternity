@@ -231,12 +231,12 @@ test('paired production management backs up, revokes service credentials and ret
       archive.workspace.drafts.some((draft: { document: { id: string } }) => draft.document.id === 'backup-acceptance'),
     ).toBe(true)
     expect(archive.workspace.drafts).toHaveLength(2)
-    expect(archive.workspace.versions).toHaveLength(2)
-    const preparedVersions = archive.workspace.versions.filter(
+    expect(archive.workspace.installations).toHaveLength(2)
+    const preparedInstallations = archive.workspace.installations.filter(
       (entry: { version: { environmentId: string } }) => entry.version.environmentId === 'backup-acceptance',
     )
-    expect(preparedVersions).toHaveLength(1)
-    expect(preparedVersions[0].files.length).toBeGreaterThan(0)
+    expect(preparedInstallations).toHaveLength(1)
+    expect(preparedInstallations[0].files.length).toBeGreaterThan(0)
     expect(Array.isArray(archive.storage.accounts)).toBe(true)
     expect(archive.storage.records.credentials).toEqual([])
     expect(archive.storage.records.sessions).toEqual([])
@@ -251,7 +251,7 @@ test('paired production management backs up, revokes service credentials and ret
       workspaceId: identity.workspaceId,
       servers: 1,
       environments: 2,
-      versions: 2,
+      installations: 2,
       accounts: 0,
     })
     checks.push(
