@@ -27,12 +27,7 @@ function rows(path: string, { suffix = 'local', supported = true, authorized = t
       serverId: `server-${suffix}`,
       workspaceId: `workspace-${suffix}`,
       supportedFeatures: supported ? ['accounts'] : [],
-      effectivePermissions: [
-        {
-          scope: { kind: 'server', id: `server-${suffix}` },
-          actions: authorized ? ['read', 'accounts.manage'] : ['read'],
-        },
-      ],
+      isAdministrator: authorized,
       resourceRestrictions: [],
     }
   if (path === '/servers')

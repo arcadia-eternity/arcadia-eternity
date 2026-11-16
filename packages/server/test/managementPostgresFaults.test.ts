@@ -1,20 +1,22 @@
+import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { validateWorkspaceProject } from '../src/runtime/management/service'
 import { randomInt, randomUUID } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pg from 'pg'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { workspaceRetentions } from '../../../bin/server-persistence'
 import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 import { openStorage, SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { createSingleProcessApp, type SingleProcessApp } from '../src/runtime/app'
 import { ManagementAccounts } from '../src/runtime/management/accounts'
-import type { ManagementGrant, ManagementSession } from '../src/runtime/management/auth'
+import type { ManagementSession } from '../src/runtime/management/auth'
 import type { ManagementService } from '../src/runtime/management/service'
 import { SessionRegistry } from '../src/runtime/session'
 
 const SERVER = 'postgres-fault-server'
-const scope = { kind: 'server' as const, id: SERVER }
 const email = (subject: string) => ({ providerId: 'email', issuer: 'mailto', subject, verifiedAt: Date.now() })
 
 describe.skipIf(!process.env.TEST_DATABASE_URL)(
@@ -41,15 +43,17 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)(
       cleanups.push(() => storage.close())
       await storage.migrate()
       directory = new SQLAccountDirectory(storage, SERVER)
-      const workspace = await ContentWorkspace.open(join(root, 'workspace'))
+      const project = await stageShippedCatalog(root)
+      const workspace: ContentWorkspace = await ContentWorkspace.open(join(root, 'workspace'), {
+        resolveProject: () => project,
+        retentions: workspaceRetentions(storage, () => workspace.workspaceId),
+      })
       cleanups.push(() => workspace.close())
       app = createSingleProcessApp({ serverId: SERVER, management: { storage, workspace } })
       cleanups.push(() => app.stop())
       service = app.management!
       await service.ready()
-      owner = await service.auth.exchangeBootstrap(
-        (await service.auth.issueBootstrapCode(service.ownerPermissions)).code,
-      )
+      owner = await service.auth.exchangeBootstrap((await service.auth.issueBootstrapCode()).code)
     })
 
     afterEach(async () => {
@@ -76,7 +80,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)(
     }
 
     async function interruptBeforeAudit(
-      action: 'account.deactivate' | 'binding.create' | 'grant.replace',
+      action: 'account.deactivate' | 'binding.create' | 'administrator.add',
       mutation: () => Promise<unknown>,
     ) {
       const namespace = 174281,
@@ -173,13 +177,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)(
         },
         service.auth,
       )
-      const principal = await service.auth.createPrincipal(owner.actor, {
-        displayName: 'Target manager',
-        scope,
-        accountId: target.accountId,
-        serverId: SERVER,
-      })
-      await service.auth.grant(owner.actor, { principalId: principal.id, scope, actions: ['read'] })
+      await service.auth.addAdministrator(
+        owner.actor,
+        { accountId: target.accountId },
+        (await service.auth.listAdministrators(owner.actor)).revision,
+      )
       const management = await service.auth.exchangeAccount(SERVER, target.accountId)
       const before = await independentSnapshot()
 
@@ -198,6 +200,20 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)(
     })
 
     it('rolls back a newly created binding and audit without changing the published catalog', async () => {
+      const draft = await service.options.workspace.saveDraft({
+        document: {
+          schemaVersion: 1,
+          id: 'private-draft',
+          name: 'Private',
+          packages: shippedCatalogMembers,
+          sources: [],
+        },
+        expectedRevision: null,
+      })
+      await service.options.workspace.prepareEnvironment(
+        { environmentId: 'private-draft', expectedRevision: draft.revision },
+        validateWorkspaceProject,
+      )
       const before = await independentSnapshot()
       const catalog = app.environments.list()
       const create = () =>
@@ -219,32 +235,23 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)(
       expect(app.environments.list()).toEqual(catalog)
     })
 
-    it('rolls back a grant replacement and audit, then reuses the surviving storage pool successfully', async () => {
-      const principal = await service.auth.createPrincipal(owner.actor, { displayName: 'Viewer', scope })
-      const grant = await service.auth.grant(owner.actor, { principalId: principal.id, scope, actions: ['read'] })
-      const before = await independentSnapshot()
-      const replace = () =>
-        service.auth.grant(
-          owner.actor,
-          {
-            principalId: principal.id,
-            scope,
-            actions: ['read', 'settings.manage'],
-          },
-          grant.revision,
-        )
-
-      await interruptBeforeAudit('grant.replace', replace)
-
-      expect(await independentSnapshot()).toEqual(before)
-      expect(await storage.get<ManagementGrant>('grants', grant.id)).toEqual(grant)
-      await expect(replace()).resolves.toMatchObject({
-        revision: grant.revision + 1,
-        value: { actions: ['read', 'settings.manage'] },
+    it('rolls back an administrator addition and audit, then reuses the storage pool', async () => {
+      const directory = new SQLAccountDirectory(storage, SERVER)
+      const target = await directory.resolveOrCreate({
+        providerId: 'email',
+        issuer: 'mailto',
+        subject: 'new-admin@example.test',
+        verifiedAt: Date.now(),
       })
+      const list = await service.auth.listAdministrators(owner.actor)
+      const before = await independentSnapshot()
+      const add = () => service.auth.addAdministrator(owner.actor, { accountId: target.accountId }, list.revision)
+      await interruptBeforeAudit('administrator.add', add)
+      expect(await independentSnapshot()).toEqual(before)
+      await expect(add()).resolves.toMatchObject({ principalId: expect.any(String) })
       expect(
-        (await storage.list<{ action: string }>('audit')).filter(row => row.value.action === 'grant.replace'),
-      ).toHaveLength(2)
+        (await service.auth.listAdministrators(owner.actor)).administrators.some(a => a.accountId === target.accountId),
+      ).toBe(true)
     })
 
     it('discards an idle connection after backend termination and reports only a safe diagnostic', async () => {

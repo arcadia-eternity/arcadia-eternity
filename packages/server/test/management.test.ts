@@ -1,3 +1,4 @@
+import { legacySession } from './fixtures/management'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { execFile } from 'node:child_process'
@@ -82,7 +83,7 @@ async function setup(project?: string, allowThirdPartyExecution = true) {
     return { response, body: await response.json() }
   }
   const login = async () => {
-    const code = await app.management!.auth.issueBootstrapCode(app.management!.ownerPermissions)
+    const code = await app.management!.auth.issueBootstrapCode()
     const response = await request('/session/bootstrap', 'POST', { code: code.code })
     expect(response.response.status).toBe(200)
     cookie = response.response.headers.get('set-cookie')!.split(';')[0]
@@ -152,11 +153,11 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(secondPage.body.players).toHaveLength(1)
     expect(secondPage.body.players[0].seatId).not.toBe(firstPage.body.players[0].seatId)
     expect((await env.request('/servers/managed-test/players?limit=10000')).response.status).toBe(422)
-    const code = await env.app.management!.auth.issueBootstrapCode(
+    const viewer = await legacySession(
+      env.app.management!.auth,
       [{ scope: { kind: 'server', id: 'managed-test' }, actions: ['read'] }],
       'viewer',
     )
-    const viewer = await env.app.management!.auth.exchangeBootstrap(code.code)
     for (const path of ['/servers/managed-test/players', '/servers/managed-test/battles']) {
       await expect(env.app.management!.request(viewer.actor, { method: 'GET', path })).rejects.toMatchObject({
         code: 'MANAGEMENT_FORBIDDEN',
@@ -244,7 +245,7 @@ describe('unified management HTTP and durable environment publication', () => {
 
   it('issues HttpOnly remembered-device cookies, requires an origin to refresh and clears them at logout', async () => {
     const env = await setup()
-    const code = await env.app.management!.auth.issueBootstrapCode(env.app.management!.ownerPermissions)
+    const code = await env.app.management!.auth.issueBootstrapCode()
     const login = await env.request('/session/bootstrap', 'POST', { code: code.code, remember: true })
     const cookies = login.response.headers.getSetCookie()
     expect(cookies).toHaveLength(2)
@@ -276,7 +277,7 @@ describe('unified management HTTP and durable environment publication', () => {
     const anonymous = await fetch(env.url + '/servers')
     expect(anonymous.status).toBe(401)
     const capabilities = await fetch(env.url + '/capabilities').then(r => r.json())
-    expect(capabilities.effectivePermissions).toEqual([])
+    expect(capabilities.isAdministrator).toBe(false)
     expect((await env.request('/servers')).body.servers[0].id).toBe('managed-test')
     expect((await env.request('/servers/other/drain', 'POST')).response.status).toBe(404)
     expect(
@@ -419,11 +420,9 @@ describe('unified management HTTP and durable environment publication', () => {
     cleanups.push(() => source.dispose())
     const env = await setup(source.directory, false)
     const local = env.app.management!
-    const issued = await local.auth.issueBootstrapCode(local.ownerPermissions)
-    const owner = await local.auth.exchangeBootstrap(issued.code)
-    const limited = await local.auth.createServiceToken(owner.actor, {
-      permissions: [{ scope: local.serverScope, actions: ['read'] }],
-    })
+    const issued = await local.auth.issueBootstrapCode()
+    await local.auth.exchangeBootstrap(issued.code)
+    const limited = await legacySession(local.auth, [{ scope: local.serverScope, actions: ['read'] }])
     const response = await fetch(env.url + '/servers/managed-test/drain', {
       method: 'POST',
       headers: { Authorization: `Bearer ${limited.token}`, 'Content-Type': 'application/json' },

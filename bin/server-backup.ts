@@ -198,8 +198,21 @@ export function inspectServerBackup(value: unknown): BackupSummary {
       fail('BACKUP_PRINCIPAL_REFERENCE_INVALID')
   }
   for (const row of maps.grants.values()) {
-    const grant = object(row.value),
-      scope = object(grant.scope)
+    const grant = object(row.value)
+    if (grant.format === 'arcadia.administrators/1') {
+      const id = row.scope.startsWith('server:') ? row.scope.slice(7) : ''
+      if (
+        !serverIds.has(id) ||
+        row.id !== `administrators:${id}` ||
+        grant.workspaceId !== workspaceId ||
+        !Array.isArray(grant.principalIds) ||
+        new Set(grant.principalIds).size !== grant.principalIds.length ||
+        grant.principalIds.some(principalId => typeof principalId !== 'string' || !maps.principals.has(principalId))
+      )
+        fail('BACKUP_ADMINISTRATOR_REFERENCE_INVALID')
+      continue
+    }
+    const scope = object(grant.scope)
     if (
       !maps.principals.has(string(grant.principalId)) ||
       !validScope(string(scope.kind) + ':' + string(scope.id)) ||

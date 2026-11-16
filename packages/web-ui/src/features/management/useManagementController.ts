@@ -10,7 +10,6 @@ import type {
   ManagedEnvironmentInstallation,
   ManagedServerSettings,
   ManagementOperation,
-  ManagementScope,
 } from '@/types/management'
 import { useManagementConsole } from './useManagementConsole'
 import { suppressManagementAccount } from '@/services/managementSession'
@@ -38,7 +37,7 @@ export function useManagementController(
     installations,
     bindings,
     operations,
-    grants,
+    administrators,
     credentials,
     accounts,
     players,
@@ -50,7 +49,7 @@ export function useManagementController(
     loginRequired,
     error,
     notice,
-    can,
+    isAdministrator,
     canBackup,
   } = state
   const localBridge = window.arcadiaDesktop?.managementRequest
@@ -65,9 +64,6 @@ export function useManagementController(
   const serverName = ref('')
   const nameRevision = ref<number>()
   const settingsSaveSequence = ref(0)
-  const principalId = ref('')
-  const newPrincipalName = ref('')
-  const newPrincipalAccount = ref('')
   const deletingBinding = ref('')
   const referenceEnvironment = ref('')
   const environmentReferences = ref<Record<string, string>[]>([])
@@ -104,7 +100,6 @@ export function useManagementController(
     deletingBinding.value = ''
     await state.mutate('DELETE', `${serverPath.value}/bindings/${encode(binding.id)}`, undefined, binding.revision)
   }
-  const grantRole = ref<'viewer' | 'server-admin' | 'workspace-admin'>('viewer')
   const tab = ref<
     'environments' | 'server' | 'network' | 'tasks' | 'security' | 'permissions' | 'accounts' | 'battles'
   >(props.initialTab ?? 'environments')
@@ -143,7 +138,11 @@ export function useManagementController(
     failed: '任务失败',
     'battle.terminate': '终止对战',
     'account.deactivate': '停用账户',
-    'grant.replace': '更新授权',
+    'administrator.add': '添加管理员',
+    'administrator.remove': '移除管理员',
+    'administrator.invite': '创建管理员登录码',
+    'administrators.migrate': '升级管理员名单',
+    'grant.replace': '更新旧授权',
     'grant.revoke': '撤销授权',
     'principal.create': '创建管理身份',
   }
@@ -168,25 +167,19 @@ export function useManagementController(
     stopped: '已停止',
     disabled: '已停用',
   }
-  const reason = (kind: 'workspace' | 'server', action: string) => (can(kind, action) ? undefined : '没有此操作的权限')
   const encode = encodeURIComponent
   const supported = (feature: string) => capabilities.value?.supportedFeatures.includes(feature) ?? false
-  const manageGrants = computed(
-    () => supported('grants') && (can('server', 'grants.manage') || can('workspace', 'grants.manage')),
-  )
-  const canActivateBinding = computed(() => can('server', 'publish') && can('workspace', 'environment.use'))
+  const manageAdministrators = computed(() => supported('administrators') && !!capabilities.value?.isAdministrator)
+  const canActivateBinding = computed(() => isAdministrator.value)
   const accessibleTabs = computed(() => {
     const allowed: NonNullable<typeof props.initialTab>[] = []
-    if (can('server', 'read')) allowed.push('server', 'network')
-    if (can('server', 'read') || can('workspace', 'read')) allowed.push('environments')
-    if (supported('server.battles') && can('server', 'battles.read')) allowed.push('battles')
-    if (
-      (supported('server.players') && can('server', 'players.read')) ||
-      (supported('accounts') && can('server', 'accounts.manage'))
-    )
+    if (isAdministrator.value) allowed.push('server', 'network')
+    if (isAdministrator.value) allowed.push('environments')
+    if (supported('server.battles') && isAdministrator.value) allowed.push('battles')
+    if ((supported('server.players') && isAdministrator.value) || (supported('accounts') && isAdministrator.value))
       allowed.push('accounts')
     if (supported('operations')) allowed.push('tasks')
-    if (manageGrants.value) allowed.push('permissions')
+    if (manageAdministrators.value) allowed.push('permissions')
     if (target.value === 'server') allowed.push('security')
     return allowed
   })
@@ -195,7 +188,7 @@ export function useManagementController(
       tab.value = accessibleTabs.value[0]
   })
 
-  watch(manageGrants, allowed => {
+  watch(manageAdministrators, allowed => {
     if (!allowed) issuedCredential.value = undefined
   })
   const accountLoginAvailable = computed(
@@ -210,9 +203,6 @@ export function useManagementController(
     accountLoginSupported.value = false
     serverName.value = ''
     nameRevision.value = undefined
-    principalId.value = ''
-    newPrincipalName.value = ''
-    newPrincipalAccount.value = ''
     deletingBinding.value = ''
     referenceEnvironment.value = ''
     environmentReferences.value = []
@@ -343,8 +333,8 @@ export function useManagementController(
     executionPolicy: 'server' | 'peer' = 'server',
   ) {
     if (version.status !== 'ready') return
-    if (!server.value || !can('server', 'bindings.manage') || !can('workspace', 'environment.use')) {
-      error.value = '使用环境需要该工作区的使用权限，以及目标服务器的绑定管理权限。'
+    if (!server.value || !isAdministrator.value || !isAdministrator.value) {
+      error.value = '需要本服管理员身份。'
       return
     }
     const succeeded = await state.mutate('POST', `${serverPath.value}/bindings`, {
@@ -450,30 +440,10 @@ export function useManagementController(
   async function drain() {
     await state.mutate('POST', `${serverPath.value}/drain`, { draining: !server.value?.draining })
   }
-  async function createPrincipal() {
-    const id = crypto.randomUUID()
-    const kind = can('server', 'grants.manage') ? 'server' : 'workspace'
-    if (
-      await state.mutate('POST', '/principals', {
-        id,
-        displayName: newPrincipalName.value.trim(),
-        scope: { kind, id: kind === 'server' ? capabilities.value?.serverId : workspaceId.value },
-        ...(newPrincipalAccount.value.trim() ? { accountId: newPrincipalAccount.value.trim() } : {}),
-      })
-    ) {
-      principalId.value = id
-      newPrincipalName.value = ''
-      newPrincipalAccount.value = ''
-    }
-  }
   async function deactivateAccount(accountId: string) {
     await state.mutate('POST', `${serverPath.value}/accounts/${encode(accountId)}/deactivate`)
   }
-  async function issueCredential(input: {
-    principalId?: string
-    permissions: { scope: ManagementScope; actions: string[] }[]
-    expiresAt: number
-  }) {
+  async function issueCredential(input: { expiresAt: number }) {
     issuedCredential.value = undefined
     await state.mutate<{ token: string; credentialId: string; expiresAt: number }>(
       'POST',
@@ -490,37 +460,26 @@ export function useManagementController(
       if (issuedCredential.value?.credentialId === id) issuedCredential.value = undefined
     }
   }
-  async function addGrant() {
-    const workspace = grantRole.value === 'workspace-admin'
-    const actions = workspace
-      ? ['read', 'environment.use', 'edit', 'prepare', 'delete', 'export', 'grants.manage']
-      : grantRole.value === 'server-admin'
-        ? [
-            'read',
-            'bindings.manage',
-            'publish',
-            'settings.manage',
-            'drain',
-            'accounts.manage',
-            'grants.manage',
-            'players.read',
-            'battles.read',
-            'battles.terminate',
-            'backup',
-          ]
-        : ['read']
-    if (
-      await state.mutate('POST', '/grants', {
-        principalId: principalId.value.trim(),
-        scope: {
-          kind: workspace ? 'workspace' : 'server',
-          id: workspace ? workspaceId.value : capabilities.value?.serverId,
-        },
-        actions,
-      })
-    )
-      principalId.value = ''
+  async function addAdministrator(accountId: string) {
+    await state.mutate('POST', '/administrators', { accountId }, administrators.value.revision)
   }
+  async function inviteAdministrator(displayName: string) {
+    let invitation: { code: string; expiresAt: number } | undefined
+    await state.mutate<{ code: string; expiresAt: number }>(
+      'POST',
+      '/administrators',
+      { displayName },
+      administrators.value.revision,
+      result => {
+        invitation = result
+      },
+    )
+    return invitation
+  }
+  async function removeAdministrator(principalId: string) {
+    await state.mutate('DELETE', `/administrators/${encode(principalId)}`, undefined, administrators.value.revision)
+  }
+
   const operationError = contentTaskError
 
   onMounted(() => void changeTarget(target.value))
@@ -542,7 +501,7 @@ export function useManagementController(
     installations,
     bindings,
     operations,
-    grants,
+    administrators,
     credentials,
     accounts,
     players,
@@ -554,7 +513,7 @@ export function useManagementController(
     loginRequired,
     error,
     notice,
-    can,
+    isAdministrator,
     canBackup,
     localBridge,
     target,
@@ -568,16 +527,12 @@ export function useManagementController(
     serverName,
     nameRevision,
     settingsSaveSequence,
-    principalId,
-    newPrincipalName,
-    newPrincipalAccount,
     deletingBinding,
     referenceEnvironment,
     environmentReferences,
     downloading,
     issuedCredential,
     deleteBinding,
-    grantRole,
     tab,
     serverPath,
     workspacePath,
@@ -587,10 +542,9 @@ export function useManagementController(
     auditLabels,
     taskStages,
     conditionLabels,
-    reason,
     encode,
     supported,
-    manageGrants,
+    manageAdministrators,
     canActivateBinding,
     accessibleTabs,
     accountLoginAvailable,
@@ -614,11 +568,12 @@ export function useManagementController(
     saveServerName,
     saveServerSettings,
     drain,
-    createPrincipal,
     deactivateAccount,
     issueCredential,
     revokeCredential,
-    addGrant,
+    addAdministrator,
+    inviteAdministrator,
+    removeAdministrator,
     operationError,
   }
 }

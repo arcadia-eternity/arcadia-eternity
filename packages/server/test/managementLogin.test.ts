@@ -1,3 +1,4 @@
+import { legacySession } from './fixtures/management'
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -5,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { isoCBOR } from '@simplewebauthn/server/helpers'
 import { openStorage, type DurableStorage } from '@arcadia-eternity/database'
-import { ManagementAuth, MANAGEMENT_ACTIONS, type ManagementSession } from '../src/runtime/management/auth'
+import { ManagementAuth, type ManagementSession } from '../src/runtime/management/auth'
 
 const origin = 'https://admin.example.test'
 const scope = { kind: 'server' as const, id: 'server' }
@@ -88,10 +89,8 @@ describe('management passkeys and remembered devices', () => {
     directory = await mkdtemp(join(tmpdir(), 'management-login-'))
     store = openStorage({ driver: 'sqlite', filename: join(directory, 'state.sqlite') })
     await store.migrate()
-    auth = new ManagementAuth(store, { now: () => now })
-    owner = await auth.exchangeBootstrap(
-      (await auth.issueBootstrapCode([{ scope, actions: [...MANAGEMENT_ACTIONS.server] }])).code,
-    )
+    auth = new ManagementAuth(store, { serverId: scope.id, workspaceId: 'workspace', now: () => now })
+    owner = await auth.exchangeBootstrap((await auth.issueBootstrapCode()).code)
   })
   afterEach(async () => {
     await store.close()
@@ -157,7 +156,7 @@ describe('management passkeys and remembered devices', () => {
   it('binds registration challenges to the verified session and rejects expired challenges and service tokens', async () => {
     const key = authenticator()
     const request = await auth.passkeyRegistrationOptions(owner.actor, origin)
-    const other = await auth.exchangeBootstrap((await auth.issueBootstrapCode([{ scope, actions: ['read'] }])).code)
+    const other = await auth.exchangeBootstrap((await auth.issueBootstrapCode()).code)
     await expect(
       auth.registerPasskey(other.actor, origin, {
         challengeId: request.challengeId,
@@ -174,7 +173,7 @@ describe('management passkeys and remembered devices', () => {
         label: 'Expired',
       }),
     ).rejects.toMatchObject({ status: 401 })
-    const service = await auth.createServiceToken(owner.actor, { permissions: [{ scope, actions: ['read'] }] })
+    const service = await auth.createServiceToken(owner.actor, {})
     await expect(auth.passkeyRegistrationOptions(await auth.authenticate(service.token), origin)).rejects.toMatchObject(
       { code: 'SESSION_REQUIRED' },
     )
@@ -202,28 +201,13 @@ describe('management passkeys and remembered devices', () => {
     await expect(auth.authenticate(owner.token)).rejects.toMatchObject({ status: 401 })
     await expect(auth.authenticate(refreshed.session.token)).rejects.toMatchObject({ status: 401 })
   })
-  it('cannot turn a restricted session into broader passkey or remembered-device rights', async () => {
-    const limited = await auth.exchangeBootstrap((await auth.issueBootstrapCode([{ scope, actions: ['read'] }])).code)
-    const key = authenticator(),
-      request = await auth.passkeyRegistrationOptions(limited.actor, origin)
-    await auth.registerPasskey(limited.actor, origin, {
-      challengeId: request.challengeId,
-      response: key.registration(request.options.challenge),
-      label: 'Read only',
+  it('requires reauthentication instead of turning a legacy restricted login into a new device', async () => {
+    const limited = await legacySession(auth, [{ scope, actions: ['read'] }])
+    await expect(auth.passkeyRegistrationOptions(limited.actor, origin)).rejects.toMatchObject({
+      code: 'SESSION_REQUIRED',
     })
-    const challenge = await auth.passkeyLoginOptions(origin)
-    const session = await auth.loginPasskey(origin, {
-      challengeId: challenge.challengeId,
-      response: key.authentication(challenge.options.challenge),
+    await expect(auth.rememberDevice(limited.actor, 'Restricted browser')).rejects.toMatchObject({
+      code: 'SESSION_REQUIRED',
     })
-    await expect(auth.authorize(session.actor, scope, 'settings.manage')).rejects.toMatchObject({ status: 403 })
-    const device = await auth.rememberDevice(session.actor, 'Read only browser')
-    const refreshed = await auth.refreshDevice(device.token)
-    await expect(auth.authorize(refreshed.session.actor, scope, 'settings.manage')).rejects.toMatchObject({
-      status: 403,
-    })
-    const grants = await auth.listGrants(owner.actor, scope)
-    await auth.revokeGrant(owner.actor, grants[0].id, grants[0].revision)
-    await expect(auth.refreshDevice(refreshed.token)).rejects.toMatchObject({ status: 403 })
   })
 })

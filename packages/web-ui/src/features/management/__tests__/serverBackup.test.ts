@@ -20,10 +20,7 @@ const capabilities = (): ManagementCapabilities => ({
   serverId: 'server-a',
   workspaceId: 'workspace-a',
   supportedFeatures: ['server.backup', 'operations'],
-  effectivePermissions: [
-    { scope: { kind: 'server', id: 'server-a' }, actions: ['read', 'backup'] },
-    { scope: { kind: 'workspace', id: 'workspace-a' }, actions: ['export'] },
-  ],
+  isAdministrator: true,
   resourceRestrictions: [],
 })
 function deferred<T = unknown>() {
@@ -85,7 +82,7 @@ describe('whole-server backup management', () => {
     async missing => {
       const cap = capabilities()
       if (missing === 'capability') cap.supportedFeatures = ['operations']
-      else cap.effectivePermissions[missing === 'server-permission' ? 0 : 1]!.actions = ['read']
+      else cap.isAdministrator = false
       const { state, request, operation } = await open({ cap })
       expect(state.canBackup.value).toBe(false)
       expect(await state.createServerBackup()).toBe(false)
@@ -150,7 +147,7 @@ describe('whole-server backup management', () => {
       })
     else {
       const cap = capabilities()
-      cap.effectivePermissions[1]!.actions = []
+      cap.isAdministrator = false
       updateCapabilities(cap)
       await state.refresh()
     }

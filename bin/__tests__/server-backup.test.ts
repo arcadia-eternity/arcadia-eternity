@@ -105,6 +105,11 @@ async function fixture() {
     scope: 'server:' + serverId,
     value: { principalId: 'owner', scope: { kind: 'server', id: serverId }, actions: ['read'] },
   })
+  await storage.create('grants', {
+    id: `administrators:${serverId}`,
+    scope: `server:${serverId}`,
+    value: { format: 'arcadia.administrators/1', workspaceId: workspace.workspaceId, principalIds: ['owner'] },
+  })
   await storage.create('credentials', {
     id: 'old-credential-hash',
     scope: 'owner',
@@ -165,6 +170,10 @@ describe('server backup, restore and clone', { timeout: 30_000 }, () => {
     expect(JSON.parse(await readFile(join(target, 'identity.json'), 'utf8')).serverId).toBe(serverId)
     const restored = await openRestored(target)
     expect((await restored.storage.get('bindings', bindingId))?.id).toBe(bindingId)
+    expect((await restored.storage.get('grants', `administrators:${serverId}`))?.value).toMatchObject({
+      principalIds: ['owner'],
+      workspaceId: backup.workspace.workspaceId,
+    })
     expect(await new SQLAccountDirectory(restored.storage, serverId).getStatus(account.accountId)).toBe('active')
     const restoredVersion = await restored.workspace.getInstallation(version.installationId)
     expect(await readFile(join(restoredVersion.directory, 'node_modules', 'fixture', 'content.txt'), 'utf8')).toBe(

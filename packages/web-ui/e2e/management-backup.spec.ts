@@ -186,11 +186,11 @@ test('paired production management backs up, revokes service credentials and ret
     await expect(preparation.getByText('已完成', { exact: true })).toBeVisible({ timeout: 90000 })
     checks.push('real fixed environment prepared for backup materials')
 
-    await page.getByRole('menuitem', { name: '访问权限', exact: true }).click()
-    await page.getByRole('button', { name: '签发凭证', exact: true }).click()
-    const issued = page.getByRole('region', { name: '新签发的凭证' })
+    await page.getByRole('menuitem', { name: '管理员', exact: true }).click()
+    await page.getByRole('button', { name: '创建凭据', exact: true }).click()
+    const issued = page.getByRole('region', { name: '新建凭据' })
     await expect(issued).toBeVisible()
-    let token = await issued.getByLabel('凭证', { exact: true }).inputValue()
+    let token = await issued.getByLabel('凭据', { exact: true }).inputValue()
     const credentialId = await issued.locator('code').innerText()
     // Assert booleans only, so failed assertions cannot print the raw service token.
     expect(token.length > 20).toBe(true)
@@ -203,10 +203,10 @@ test('paired production management backs up, revokes service credentials and ret
     await issued.getByRole('button', { name: '已保存，关闭', exact: true }).click()
     await expect(issued).not.toBeVisible()
     await page.reload()
-    await page.getByRole('menuitem', { name: '访问权限', exact: true }).click()
-    const credentialList = page.getByRole('region', { name: '已有服务凭证' })
+    await page.getByRole('menuitem', { name: '管理员', exact: true }).click()
+    const credentialList = page.getByRole('region', { name: '已有自动化凭据' })
     await expect(credentialList).toContainText(credentialId)
-    await expect(page.getByRole('region', { name: '新签发的凭证' })).not.toBeVisible()
+    await expect(page.getByRole('region', { name: '新建凭据' })).not.toBeVisible()
     await credentialList.screenshot({ path: testInfo.outputPath('credential-metadata.png') })
     checks.push('service token issued once, absent from browser storage, only credential metadata survives reload')
 
@@ -258,21 +258,21 @@ test('paired production management backs up, revokes service credentials and ret
       'manual download contains original identity and prepared materials, excludes active credentials, passes host offline inspection',
     )
 
-    await page.getByRole('menuitem', { name: '访问权限', exact: true }).click()
+    await page.getByRole('menuitem', { name: '管理员', exact: true }).click()
     await credentialList
       .locator('article')
       .filter({ hasText: credentialId })
-      .getByRole('button', { name: '撤销此凭证', exact: true })
+      .getByRole('button', { name: '撤销凭据', exact: true })
       .click()
     await page
-      .getByRole('group', { name: '确认撤销凭证' })
+      .getByRole('group', { name: '确认撤销凭据' })
       .getByRole('button', { name: '确认撤销', exact: true })
       .click()
     await expect(credentialList.locator('article').filter({ hasText: credentialId })).toHaveCount(0)
     checks.push('service credential revoked through metadata UI')
 
     // Keep a second credential active to distinguish durable listing from an empty-list restart.
-    await page.getByRole('button', { name: '签发凭证', exact: true }).click()
+    await page.getByRole('button', { name: '创建凭据', exact: true }).click()
     await expect(issued).toBeVisible()
     const survivingCredentialId = await issued.locator('code').innerText()
     await issued.getByRole('button', { name: '已保存，关闭', exact: true }).click()
@@ -291,17 +291,17 @@ test('paired production management backs up, revokes service credentials and ret
       .getByRole('button', { name: /备份验收环境/ })
       .click()
     await expect(page.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
-    await page.getByRole('menuitem', { name: '访问权限', exact: true }).click()
+    await page.getByRole('menuitem', { name: '管理员', exact: true }).click()
     await expect(credentialList).toContainText(survivingCredentialId)
     await expect(credentialList.locator('article').filter({ hasText: credentialId })).toHaveCount(0)
     await credentialList.screenshot({ path: testInfo.outputPath('credential-metadata-after-restart.png') })
     await credentialList
       .locator('article')
       .filter({ hasText: survivingCredentialId })
-      .getByRole('button', { name: '撤销此凭证', exact: true })
+      .getByRole('button', { name: '撤销凭据', exact: true })
       .click()
     await page
-      .getByRole('group', { name: '确认撤销凭证' })
+      .getByRole('group', { name: '确认撤销凭据' })
       .getByRole('button', { name: '确认撤销', exact: true })
       .click()
     await expect(credentialList).not.toBeVisible()

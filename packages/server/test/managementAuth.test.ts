@@ -1,380 +1,335 @@
+import { Pool } from 'pg'
+import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { openStorage, type DurableStorage } from '@arcadia-eternity/database'
-import {
-  MANAGEMENT_ACTIONS,
-  ManagementAuth,
-  type ManagementPermission,
-  type ManagementSession,
-} from '../src/runtime/management/auth'
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { openStorage, SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
+import { ManagementAuth, MANAGEMENT_ACTIONS, type ManagementSession } from '../src/runtime/management/auth'
+import { legacySession } from './fixtures/management'
 const server = { kind: 'server' as const, id: 'server-one' }
 const workspace = { kind: 'workspace' as const, id: 'workspace-one' }
-const ownerPermissions: ManagementPermission[] = [
-  { scope: server, actions: [...MANAGEMENT_ACTIONS.server] },
-  { scope: workspace, actions: [...MANAGEMENT_ACTIONS.workspace] },
-]
-
-describe('durable management authentication and scoped delegation', () => {
-  let directory: string, filename: string, storage: DurableStorage, auth: ManagementAuth, owner: ManagementSession
-  let now = 1_790_000_000_000
-  beforeEach(async () => {
-    directory = await mkdtemp(join(tmpdir(), 'arcadia-management-auth-'))
-    filename = join(directory, 'management.sqlite')
-    storage = openStorage({ driver: 'sqlite', filename })
-    await storage.migrate()
-    auth = new ManagementAuth(storage, { now: () => now })
-    owner = await auth.exchangeBootstrap((await auth.issueBootstrapCode(ownerPermissions)).code)
-  })
-  afterEach(async () => {
-    await storage.close()
-    await rm(directory, { recursive: true, force: true })
-  })
-
-  it('stores only credential digests and audit metadata, never bootstrap/session/CSRF secrets', async () => {
-    const issued = await auth.issueBootstrapCode(ownerPermissions)
-    const rows = JSON.stringify(await storage.exportSnapshot())
-    for (const secret of [issued.code, owner.token, owner.csrfToken]) expect(rows).not.toContain(secret)
-    await expect(auth.authenticate(issued.code)).rejects.toMatchObject({ code: 'MANAGEMENT_UNAUTHENTICATED' })
-    expect(await auth.authenticate(owner.token)).toEqual(owner.actor)
-    await expect(auth.authorize(owner.actor, server, 'publish')).resolves.toBeUndefined()
-    await expect(auth.authorize(owner.actor, { ...server, id: 'other-server' }, 'publish')).rejects.toMatchObject({
-      status: 403,
-    })
-  })
-
-  it('consumes a bootstrap code once even with concurrent exchanges', async () => {
-    const { code } = await auth.issueBootstrapCode(ownerPermissions)
-    const results = await Promise.allSettled(Array.from({ length: 8 }, () => auth.exchangeBootstrap(code)))
-    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
-    await expect(auth.exchangeBootstrap(code)).rejects.toMatchObject({ code: 'INVALID_BOOTSTRAP_CODE' })
-  })
-
-  it('expires bootstrap codes and sessions independently', async () => {
-    const { code } = await auth.issueBootstrapCode(ownerPermissions)
-    now += 11 * 60 * 1000
-    await expect(auth.exchangeBootstrap(code)).rejects.toMatchObject({ code: 'INVALID_BOOTSTRAP_CODE' })
-    await expect(auth.authenticate(owner.token)).resolves.toEqual(owner.actor)
-    now += 8 * 60 * 60 * 1000
-    await expect(auth.authenticate(owner.token)).rejects.toMatchObject({ status: 401 })
-  })
-
-  it('recovers a session and CSRF token after reopening the database', async () => {
-    await storage.close()
-    storage = openStorage({ driver: 'sqlite', filename })
-    await storage.checkSchema()
-    auth = new ManagementAuth(storage, { now: () => now })
-    expect(await auth.sessionInfo(owner.token)).toEqual({
-      actor: owner.actor,
-      csrfToken: owner.csrfToken,
-      expiresAt: owner.expiresAt,
-    })
-    await expect(auth.validateCsrf(owner.actor, owner.csrfToken)).resolves.toBeUndefined()
-    await expect(auth.validateCsrf(owner.actor, 'forged')).rejects.toMatchObject({ code: 'CSRF_REJECTED' })
-    await expect(auth.validateCsrf(owner.actor, undefined)).rejects.toMatchObject({ code: 'CSRF_REJECTED' })
-  })
-
-  it('grants only explicit scope permissions and prevents delegation of unheld actions', async () => {
-    const delegate = await auth.createPrincipal(owner.actor, { id: 'delegate', displayName: 'Delegate', scope: server })
-    await auth.grant(owner.actor, { principalId: delegate.id, scope: server, actions: ['read', 'grants.manage'] })
-    const credential = await auth.createServiceToken(owner.actor, {
-      principalId: delegate.id,
-      permissions: [{ scope: server, actions: ['read', 'grants.manage', 'publish'] }],
-    })
-    const actor = await auth.authenticate(credential.token)
-    await expect(auth.authorize(actor, server, 'read')).resolves.toBeUndefined()
-    await expect(auth.authorize(actor, server, 'publish')).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-    await expect(
-      auth.grant(actor, { principalId: delegate.id, scope: server, actions: ['publish'] }),
-    ).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-    await expect(
-      auth.grant(actor, { principalId: delegate.id, scope: workspace, actions: ['delete'] }),
-    ).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-    await expect(
-      auth.createServiceToken(actor, { permissions: [{ scope: server, actions: ['publish'] }] }),
-    ).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-  })
-
-  it('intersects service credential limits with current grants on every operation', async () => {
-    const service = await auth.createServiceToken(owner.actor, { permissions: [{ scope: server, actions: ['read'] }] })
-    const actor = await auth.authenticate(service.token)
-    expect(await auth.effectivePermissions(actor)).toEqual([{ scope: server, actions: ['read'] }])
-    await expect(auth.authorize(actor, server, 'publish')).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-    await expect(auth.authorize(actor, workspace, 'read')).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-    await expect(auth.sessionInfo(service.token)).rejects.toMatchObject({ code: 'SESSION_REQUIRED' })
-    await auth.revokeCredential(owner.actor, service.credentialId)
-    await expect(auth.authorize(actor, server, 'read')).rejects.toMatchObject({ status: 401 })
-    await expect(auth.authenticate(service.token)).rejects.toMatchObject({ status: 401 })
-  })
-
-  it('revokes grants without relying on cached session permissions', async () => {
-    const principal = await auth.createPrincipal(owner.actor, { displayName: 'Reader', scope: server })
-    const grant = await auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['read'] })
-    const token = await auth.createServiceToken(owner.actor, {
-      principalId: principal.id,
-      permissions: [{ scope: server, actions: ['read'] }],
-    })
-    const actor = await auth.authenticate(token.token)
-    await auth.authorize(actor, server, 'read')
-    await auth.revokeGrant(owner.actor, grant.id, grant.revision)
-    await expect(auth.authorize(actor, server, 'read')).rejects.toMatchObject({ status: 403 })
-  })
-
-  it('requires revision matches when revoking a grant and rolls back audits on conflict', async () => {
-    const principal = await auth.createPrincipal(owner.actor, { displayName: 'Reader', scope: server })
-    const first = await auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['read'] })
-    const second = await auth.grant(
-      owner.actor,
-      { principalId: principal.id, scope: server, actions: ['read', 'drain'] },
-      first.revision,
-    )
-    const auditCount = (await storage.list('audit')).length
-    await expect(auth.revokeGrant(owner.actor, first.id, first.revision)).rejects.toMatchObject({
-      code: 'REVISION_CONFLICT',
-    })
-    expect((await storage.get('grants', second.id))?.revision).toBe(second.revision)
-    expect((await storage.list('audit')).length).toBe(auditCount)
-  })
-
-  it('does not accept a forged actor with a different principal or credential kind', async () => {
-    await expect(auth.authorize({ ...owner.actor, principalId: 'someone-else' }, server, 'read')).rejects.toMatchObject(
-      { status: 401 },
-    )
-    await expect(auth.authorize({ ...owner.actor, kind: 'service' }, server, 'read')).rejects.toMatchObject({
-      status: 401,
-    })
-    await auth.revokeCredential(owner.actor, owner.actor.credentialId)
-    await expect(auth.authenticate(owner.token)).rejects.toMatchObject({ status: 401 })
-  })
-
-  it('rejects malformed permissions before persistence', async () => {
-    await expect(auth.issueBootstrapCode([{ scope: server, actions: ['*'] }])).rejects.toMatchObject({
-      code: 'INVALID_ACTION',
-    })
-    await expect(auth.issueBootstrapCode([{ scope: { ...server, id: '' }, actions: ['read'] }])).rejects.toMatchObject({
-      code: 'INVALID_SCOPE',
-    })
-    await expect(
-      auth.createPrincipal(owner.actor, {
-        displayName: 'Forged account',
-        scope: server,
-        accountId: 'account',
-        serverId: 'other',
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_ACCOUNT_SCOPE' })
-  })
-
-  it('requires explicit account grants and rechecks account deactivation inside management transactions', async () => {
-    const accountId = 'a3e240de-e3a9-4e32-94eb-3d47767f2911'
-    await storage
-      .accountDatabase()
-      .insertInto('accounts')
-      .values({
-        server_id: server.id,
-        account_id: accountId,
-        status: 'active',
-        created_at: now,
-        deactivated_at: null,
+const target = { serverId: server.id, workspaceId: workspace.id }
+const digest = (s: string) => createHash('sha256').update(s).digest('hex')
+for (const driver of ['sqlite', 'postgres'] as const)
+  describe.skipIf(driver === 'postgres' && !process.env.TEST_DATABASE_URL)(
+    `${driver} server administrator membership`,
+    () => {
+      let closeDatabase: (() => Promise<void>) | undefined
+      let root: string, storage: DurableStorage, auth: ManagementAuth, owner: ManagementSession
+      let now: number
+      beforeEach(async () => {
+        root = await mkdtemp(join(tmpdir(), 'admin-roster-'))
+        if (driver === 'postgres') {
+          const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL })
+          const name = `admin_roster_${randomUUID().replaceAll('-', '')}`
+          await pool.query(`CREATE DATABASE "${name}"`)
+          const url = new URL(process.env.TEST_DATABASE_URL!)
+          url.pathname = `/${name}`
+          storage = openStorage({ driver: 'postgres', connectionString: url.href })
+          closeDatabase = async () => {
+            try {
+              await dropTestDatabase(pool, name)
+            } finally {
+              await pool.end()
+            }
+          }
+        } else storage = openStorage({ driver: 'sqlite', filename: join(root, 'db.sqlite') })
+        await storage.migrate()
+        now = Date.now()
+        auth = new ManagementAuth(storage, { ...target, now: () => now })
+        owner = await auth.exchangeBootstrap((await auth.issueBootstrapCode()).code)
       })
-      .execute()
-    await expect(auth.exchangeAccount(server.id, accountId)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-    const principal = await auth.createPrincipal(owner.actor, {
-      displayName: 'Account admin',
-      scope: server,
-      serverId: server.id,
-      accountId,
-    })
-    await expect(auth.exchangeAccount(server.id, accountId)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
-    await auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['read', 'grants.manage'] })
-    const session = await auth.exchangeAccount(server.id, accountId)
-    await auth.authorize(session.actor, server, 'read')
-    await expect(
-      auth.createPrincipal(owner.actor, { displayName: 'Duplicate', scope: server, serverId: server.id, accountId }),
-    ).rejects.toMatchObject({ code: 'ACCOUNT_PRINCIPAL_EXISTS' })
-    await storage
-      .accountDatabase()
-      .updateTable('accounts')
-      .set({ status: 'deactivated', deactivated_at: now })
-      .where('server_id', '=', server.id)
-      .where('account_id', '=', accountId)
-      .execute()
-    await expect(auth.authorize(session.actor, server, 'read')).rejects.toMatchObject({ status: 401 })
-    await expect(
-      auth.createPrincipal(session.actor, { displayName: 'No longer allowed', scope: server }),
-    ).rejects.toMatchObject({ status: 401 })
-    await expect(auth.exchangeAccount(server.id, accountId)).rejects.toMatchObject({ status: 401 })
-  })
-
-  it('requires the current revision when replacing a grant', async () => {
-    const principal = await auth.createPrincipal(owner.actor, { displayName: 'Reader', scope: server })
-    const grant = await auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['read'] })
-    await expect(
-      auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['read', 'drain'] }),
-    ).rejects.toMatchObject({ status: 412 })
-    expect((await storage.get('grants', grant.id))?.revision).toBe(grant.revision)
-  })
-
-  it('bounds each bootstrap session to its code scope even when an owner has other grants', async () => {
-    const other = { kind: 'server' as const, id: 'server-two' }
-    const session = await auth.exchangeBootstrap(
-      (await auth.issueBootstrapCode([{ scope: other, actions: [...MANAGEMENT_ACTIONS.server] }])).code,
-    )
-    await auth.authorize(session.actor, other, 'publish')
-    await expect(auth.authorize(session.actor, server, 'publish')).rejects.toMatchObject({ status: 403 })
-    await expect(auth.authorize(owner.actor, other, 'publish')).rejects.toMatchObject({ status: 403 })
-    await expect(
-      auth.createServiceToken(session.actor, { permissions: [{ scope: server, actions: ['read'] }] }),
-    ).rejects.toMatchObject({ status: 403 })
-  })
-
-  it('checks revocation inside the protected write transaction rather than trusting an earlier check', async () => {
-    const principal = await auth.createPrincipal(owner.actor, { displayName: 'Publisher', scope: server })
-    const grant = await auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['publish'] })
-    const service = await auth.createServiceToken(owner.actor, {
-      principalId: principal.id,
-      permissions: [{ scope: server, actions: ['publish'] }],
-    })
-    const actor = await auth.authenticate(service.token)
-    await auth.authorize(actor, server, 'publish')
-    await auth.revokeGrant(owner.actor, grant.id, grant.revision)
-    await expect(
-      storage.transaction(async tx => {
-        await auth.authorizeInTransaction(tx, actor, server, 'publish')
-        await tx.create('bindings', { id: 'forbidden-write', scope: 'server:server-one', value: {} })
-      }),
-    ).rejects.toMatchObject({ status: 403 })
-    expect(await storage.get('bindings', 'forbidden-write')).toBeNull()
-  })
-
-  it('continues a configured policy after its configuring credential expires but stops when grants are revoked', async () => {
-    const principal = await auth.createPrincipal(owner.actor, { displayName: 'Policy owner', scope: server })
-    const grant = await auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['publish'] })
-    await auth.grant(owner.actor, { principalId: principal.id, scope: workspace, actions: ['environment.use'] })
-    const token = await auth.createServiceToken(owner.actor, {
-      principalId: principal.id,
-      expiresAt: now + 1000,
-      permissions: [
-        { scope: server, actions: ['publish'] },
-        { scope: workspace, actions: ['environment.use'] },
-      ],
-    })
-    const actor = await auth.authenticate(token.token)
-    await auth.authorize(actor, server, 'publish')
-    now += 2000
-    await expect(auth.authorize(actor, server, 'publish')).rejects.toMatchObject({ status: 401 })
-    await storage.transaction(async tx => {
-      await auth.authorizePolicyInTransaction(tx, principal.id, server, 'publish')
-      await auth.authorizePolicyInTransaction(tx, principal.id, workspace, 'environment.use')
-    })
-    await expect(
-      storage.transaction(tx => auth.authorizePolicyInTransaction(tx, principal.id, server, 'settings.manage')),
-    ).rejects.toMatchObject({ status: 403 })
-    await auth.revokeGrant(owner.actor, grant.id, grant.revision)
-    await expect(
-      storage.transaction(tx => auth.authorizePolicyInTransaction(tx, principal.id, server, 'publish')),
-    ).rejects.toMatchObject({ status: 403 })
-  })
-
-  it('stops durable policies when the linked account is deactivated or the principal is disabled', async () => {
-    const accountId = 'b311b1b6-41b2-456b-ae4f-3e2c46adf1f0'
-    await storage
-      .accountDatabase()
-      .insertInto('accounts')
-      .values({
-        server_id: server.id,
-        account_id: accountId,
-        status: 'active',
-        created_at: now,
-        deactivated_at: null,
+      afterEach(async () => {
+        vi.restoreAllMocks()
+        await storage.close()
+        await closeDatabase?.()
+        closeDatabase = undefined
+        await rm(root, { recursive: true, force: true })
       })
-      .execute()
-    const principal = await auth.createPrincipal(owner.actor, {
-      displayName: 'Account policy owner',
-      scope: server,
-      accountId,
-      serverId: server.id,
-    })
-    await auth.grant(owner.actor, { principalId: principal.id, scope: server, actions: ['publish'] })
-    await storage.transaction(tx => auth.authorizePolicyInTransaction(tx, principal.id, server, 'publish'))
-    const disabled = await storage.replace('principals', principal.id, principal.revision, {
-      ...principal.value,
-      status: 'disabled',
-    })
-    await expect(
-      storage.transaction(tx => auth.authorizePolicyInTransaction(tx, principal.id, server, 'publish')),
-    ).rejects.toMatchObject({ status: 401 })
-    await storage.replace('principals', principal.id, disabled.revision, principal.value)
-    await storage
-      .accountDatabase()
-      .updateTable('accounts')
-      .set({ status: 'deactivated', deactivated_at: now })
-      .where('server_id', '=', server.id)
-      .where('account_id', '=', accountId)
-      .execute()
-    await expect(
-      storage.transaction(tx => auth.authorizePolicyInTransaction(tx, principal.id, server, 'publish')),
-    ).rejects.toMatchObject({ status: 401 })
-  })
-
-  it('lists reloadable service credential metadata without secrets or storage hashes', async () => {
-    const service = await auth.createServiceToken(owner.actor, { permissions: [{ scope: server, actions: ['read'] }] })
-    const issued = await auth.issueBootstrapCode(ownerPermissions)
-    const serviceActor = await auth.authenticate(service.token)
-    const listed = await auth.listCredentials(owner.actor)
-    expect(listed).toEqual([
-      {
-        id: service.credentialId,
-        principalId: owner.actor.principalId,
-        createdAt: now,
-        expiresAt: service.expiresAt,
-        permissions: [{ scope: server, actions: ['read'] }],
-      },
-    ])
-    expect(listed[0].id).not.toBe(serviceActor.credentialId)
-    const serialized = JSON.stringify(listed)
-    for (const value of [
-      service.token,
-      serviceActor.credentialId,
-      owner.token,
-      owner.actor.credentialId,
-      owner.csrfToken,
-      issued.code,
-    ])
-      expect(serialized).not.toContain(value)
-    await storage.close()
-    storage = openStorage({ driver: 'sqlite', filename })
-    await storage.checkSchema()
-    auth = new ManagementAuth(storage, { now: () => now })
-    expect(await auth.listCredentials(owner.actor)).toEqual(listed)
-    await auth.revokeCredential(owner.actor, listed[0].id)
-    expect(await auth.listCredentials(owner.actor)).toEqual([])
-    await expect(auth.authenticate(service.token)).rejects.toMatchObject({ status: 401 })
-  })
-
-  it('limits credential discovery and revocation to delegated scope even for the same principal', async () => {
-    const serverToken = await auth.createServiceToken(owner.actor, {
-      permissions: [{ scope: server, actions: ['read'] }],
-    })
-    const workspaceToken = await auth.createServiceToken(owner.actor, {
-      permissions: [{ scope: workspace, actions: ['read'] }],
-    })
-    const serverManagerToken = await auth.createServiceToken(owner.actor, {
-      permissions: [{ scope: server, actions: ['read', 'grants.manage'] }],
-    })
-    const serverManager = await auth.authenticate(serverManagerToken.token)
-    expect((await auth.listCredentials(serverManager)).map(item => item.id).sort()).toEqual(
-      [serverToken.credentialId, serverManagerToken.credentialId].sort(),
-    )
-    await expect(auth.revokeCredential(serverManager, workspaceToken.credentialId)).rejects.toMatchObject({
-      status: 403,
-    })
-    const reader = await auth.authenticate(serverToken.token)
-    expect((await auth.listCredentials(reader)).map(item => item.id)).toEqual([serverToken.credentialId])
-    await expect(auth.revokeCredential(reader, serverManagerToken.credentialId)).rejects.toMatchObject({ status: 403 })
-    await auth.revokeCredential(reader, serverToken.credentialId)
-    await expect(auth.authenticate(serverToken.token)).rejects.toMatchObject({ status: 401 })
-    await expect(auth.authenticate(workspaceToken.token)).resolves.toBeDefined()
-  })
-})
+      async function account(subject = 'admin@example.test') {
+        return new SQLAccountDirectory(storage, server.id).resolveOrCreate({
+          providerId: 'email',
+          issuer: 'mailto',
+          subject,
+          verifiedAt: now,
+        })
+      }
+      async function add(subject?: string) {
+        const user = await account(subject)
+        const list = await auth.listAdministrators(owner.actor)
+        const added = await auth.addAdministrator(owner.actor, { accountId: user.accountId }, list.revision)
+        return { ...added, ...user, session: await auth.exchangeAccount(server.id, user.accountId) }
+      }
+      it('grants all server and environment operations with one administrator membership', async () => {
+        const user = await add()
+        for (const scope of [server, workspace])
+          for (const action of MANAGEMENT_ACTIONS[scope.kind])
+            await expect(auth.authorize(user.session.actor, scope, action)).resolves.toBeUndefined()
+        const list = await auth.listAdministrators(owner.actor)
+        expect(list.administrators).toHaveLength(2)
+        expect(list.administrators.some(row => row.accountId === user.accountId)).toBe(true)
+        expect((await storage.list('grants')).length).toBe(1)
+      })
+      it('does not promote ordinary player accounts', async () => {
+        const user = await account()
+        await expect(auth.exchangeAccount(server.id, user.accountId)).rejects.toMatchObject({
+          code: 'MANAGEMENT_FORBIDDEN',
+        })
+      })
+      it('revokes existing account sessions, service tokens, remembered devices and policy writes', async () => {
+        const user = await add()
+        const token = await auth.createServiceToken(user.session.actor)
+        const device = await auth.rememberDevice(user.session.actor, 'Browser')
+        const list = await auth.listAdministrators(owner.actor)
+        await auth.removeAdministrator(owner.actor, user.principalId, list.revision)
+        for (const value of [user.session.token, token.token])
+          await expect(auth.authenticate(value)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
+        await expect(auth.refreshDevice(device.token)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
+        await expect(
+          storage.transaction(tx => auth.authorizePolicyInTransaction(tx, user.principalId, workspace, 'prepare')),
+        ).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
+      })
+      it('rejects the last administrator removal and stale concurrent changes', async () => {
+        const first = await auth.listAdministrators(owner.actor)
+        await expect(
+          auth.removeAdministrator(owner.actor, owner.actor.principalId, first.revision),
+        ).rejects.toMatchObject({ code: 'LAST_ADMINISTRATOR' })
+        const user = await add()
+        await expect(auth.removeAdministrator(owner.actor, user.principalId, first.revision)).rejects.toMatchObject({
+          code: 'REVISION_CONFLICT',
+        })
+        const list = await auth.listAdministrators(owner.actor)
+        const results = await Promise.allSettled([
+          auth.removeAdministrator(owner.actor, user.principalId, list.revision),
+          auth.removeAdministrator(user.session.actor, owner.actor.principalId, list.revision),
+        ])
+        expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+        const roster = await storage.get<{ principalIds: string[] }>('grants', `administrators:${server.id}`)
+        expect(roster!.value.principalIds).toHaveLength(1)
+      })
+      it('rolls back the new identity, membership and audit together on failure', async () => {
+        const user = await account()
+        const before = await storage.exportSnapshot()
+        const transaction = storage.transaction.bind(storage)
+        vi.spyOn(storage, 'transaction').mockImplementation(work =>
+          transaction(tx =>
+            work(
+              new Proxy(tx, {
+                get(object, key) {
+                  if (key === 'create')
+                    return async (...args: Parameters<typeof tx.create>) => {
+                      if (args[0] === 'audit') throw new Error('audit unavailable')
+                      return tx.create(...args)
+                    }
+                  const value = Reflect.get(object, key)
+                  return typeof value === 'function' ? value.bind(object) : value
+                },
+              }),
+            ),
+          ),
+        )
+        await expect(auth.addAdministrator(owner.actor, { accountId: user.accountId }, 2)).rejects.toThrow(
+          'audit unavailable',
+        )
+        expect(await storage.exportSnapshot()).toEqual(before)
+      })
+      it('rejects foreign server and workspace access, including a shared principal recovery login', async () => {
+        for (const scope of [
+          { ...server, id: 'other' },
+          { ...workspace, id: 'other' },
+        ])
+          await expect(auth.authorize(owner.actor, scope, 'read')).rejects.toMatchObject({
+            code: 'MANAGEMENT_FORBIDDEN',
+          })
+        const other = new ManagementAuth(storage, { serverId: 'other', workspaceId: 'other-workspace' })
+        const login = await other.exchangeBootstrap((await other.issueBootstrapCode()).code)
+        await expect(auth.authenticate(login.token)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
+      })
+      it('rechecks account deactivation on existing sessions', async () => {
+        const user = await add()
+        await storage.transaction(tx => tx.deactivateAccount(server.id, user.accountId))
+        await expect(auth.authenticate(user.session.token)).rejects.toMatchObject({ status: 401 })
+      })
+      it('stores hashes only, consumes recovery codes once and expires sessions', async () => {
+        const issued = await auth.issueBootstrapCode()
+        const results = await Promise.allSettled([
+          auth.exchangeBootstrap(issued.code),
+          auth.exchangeBootstrap(issued.code),
+        ])
+        expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+        const snapshot = JSON.stringify(await storage.exportSnapshot())
+        for (const secret of [issued.code, owner.token, owner.csrfToken]) expect(snapshot).not.toContain(secret)
+        await expect(auth.validateCsrf(owner.actor, 'forged')).rejects.toMatchObject({ code: 'CSRF_REJECTED' })
+        await expect(auth.validateCsrf(owner.actor, owner.csrfToken)).resolves.toBeUndefined()
+        now += 9 * 3600000
+        await expect(auth.authenticate(owner.token)).rejects.toMatchObject({ status: 401 })
+      })
+      it('lists and revokes service credentials by public handle without leaking secrets', async () => {
+        const issued = await auth.createServiceToken(owner.actor)
+        const actor = await auth.authenticate(issued.token)
+        const list = await auth.listCredentials(owner.actor)
+        expect(list).toEqual([
+          {
+            id: issued.credentialId,
+            principalId: owner.actor.principalId,
+            createdAt: now,
+            expiresAt: issued.expiresAt,
+            serverId: server.id,
+            legacyRestricted: false,
+          },
+        ])
+        expect(JSON.stringify(list)).not.toContain(actor.credentialId)
+        expect(JSON.stringify(list)).not.toContain(issued.token)
+        await auth.revokeCredential(owner.actor, issued.credentialId)
+        await expect(auth.authenticate(issued.token)).rejects.toMatchObject({ status: 401 })
+      })
+      it('keeps old service token limits and prevents them from minting broader credentials or administrators', async () => {
+        const limited = await legacySession(auth, [{ scope: server, actions: ['read'] }], 'legacy-reader')
+        await expect(auth.authorize(limited.actor, server, 'read')).resolves.toBeUndefined()
+        await expect(auth.authorize(limited.actor, workspace, 'edit')).rejects.toMatchObject({ status: 403 })
+        await expect(auth.createServiceToken(limited.actor)).rejects.toMatchObject({ status: 403 })
+        await expect(
+          auth.addAdministrator(limited.actor, { accountId: (await account()).accountId }, 3),
+        ).rejects.toMatchObject({ status: 403 })
+        const broad = await auth.createServiceToken(owner.actor)
+        await expect(auth.revokeCredential(limited.actor, broad.credentialId)).rejects.toMatchObject({ status: 403 })
+      })
+      it('requires a fresh full login for old restricted human credentials', async () => {
+        const row = (await storage.get<Record<string, unknown>>('credentials', owner.actor.credentialId))!
+        await storage.replace('credentials', row.id, row.revision, {
+          ...row.value,
+          serverId: undefined,
+          permissions: [{ scope: server, actions: ['read'] }],
+        })
+        await expect(auth.authenticate(owner.token)).rejects.toMatchObject({ code: 'ADMIN_LOGIN_REQUIRED' })
+      })
+      it('excludes deactivated player identities from legacy migration', async () => {
+        const user = await account('deactivated@example.test')
+        await new SQLAccountDirectory(storage, server.id).deactivate(user.accountId)
+        await storage.create('principals', {
+          id: 'deactivated',
+          scope: 'management',
+          value: {
+            displayName: 'Former admin',
+            status: 'active',
+            serverId: server.id,
+            accountId: user.accountId,
+          },
+        })
+        for (const scope of [server, workspace])
+          await storage.create('grants', {
+            id: digest(`deactivated:${scope.kind}`),
+            scope: `${scope.kind}:${scope.id}`,
+            value: { principalId: 'deactivated', scope, actions: [...MANAGEMENT_ACTIONS[scope.kind]] },
+          })
+        const roster = (await storage.get('grants', `administrators:${server.id}`))!
+        await storage.delete('grants', roster.id, roster.revision)
+        await auth.ready()
+        const result = await storage.get<{ principalIds: string[] }>('grants', roster.id)
+        expect(result!.value.principalIds).not.toContain('deactivated')
+      })
+      it('migrates only full legacy administrators, records exclusions and does not resurrect revoked members', async () => {
+        const roster = (await storage.get('grants', `administrators:${server.id}`))!
+        await storage.delete('grants', roster.id, roster.revision)
+        for (const [id, full] of [
+          ['old-owner', true],
+          ['reader', false],
+        ] as const) {
+          await storage.create('principals', { id, scope: 'management', value: { displayName: id, status: 'active' } })
+          for (const scope of [server, workspace])
+            await storage.create('grants', {
+              id: digest(`${id}\0${scope.kind}:${scope.id}`),
+              scope: `${scope.kind}:${scope.id}`,
+              value: { principalId: id, scope, actions: full ? [...MANAGEMENT_ACTIONS[scope.kind]] : ['read'] },
+            })
+        }
+        await auth.ready()
+        const migrated = (await storage.get<{ principalIds: string[] }>('grants', roster.id))!
+        expect(migrated.value.principalIds).toEqual(['old-owner'])
+        expect(JSON.stringify(await storage.list('audit'))).toContain('excludedPrincipalIds')
+        await auth.exchangeBootstrap((await auth.issueBootstrapCode()).code)
+        const list = await auth.listAdministrators(owner.actor)
+        await auth.removeAdministrator(owner.actor, 'old-owner', list.revision)
+        await auth.ready()
+        expect((await auth.listAdministrators(owner.actor)).administrators.map(a => a.principalId)).toEqual(['owner'])
+      })
+      it('isolates remembered devices for the same recovery principal on different servers', async () => {
+        const other = new ManagementAuth(storage, { serverId: 'other', workspaceId: 'other-workspace' })
+        const login = await other.exchangeBootstrap((await other.issueBootstrapCode()).code)
+        await other.rememberDevice(login.actor, 'Other browser')
+        const methods = await other.loginMethods(login.actor)
+        expect(await auth.loginMethods(owner.actor)).toEqual([])
+        await expect(auth.revokeLoginMethod(owner.actor, methods[0].id)).rejects.toMatchObject({
+          code: 'CREDENTIAL_NOT_FOUND',
+        })
+        expect(await other.loginMethods(login.actor)).toHaveLength(1)
+      })
+      it('creates a separate named administrator using a one-time invitation', async () => {
+        const list = await auth.listAdministrators(owner.actor)
+        const code = await auth.inviteAdministrator(owner.actor, 'Operator', list.revision)
+        expect((await auth.listAdministrators(owner.actor)).administrators).toHaveLength(1)
+        const login = await auth.exchangeBootstrap(code.code)
+        expect(login.actor.principalId).not.toBe(owner.actor.principalId)
+        expect(
+          (await auth.listAdministrators(owner.actor)).administrators.some(a => a.displayName === 'Operator'),
+        ).toBe(true)
+        await expect(auth.exchangeBootstrap(code.code)).rejects.toMatchObject({ code: 'INVALID_BOOTSTRAP_CODE' })
+      })
+      it('rejects pending invitations after the inviting administrator is removed', async () => {
+        const user = await add()
+        const code = await auth.inviteAdministrator(
+          user.session.actor,
+          'Invitee',
+          (await auth.listAdministrators(owner.actor)).revision,
+        )
+        await auth.removeAdministrator(
+          owner.actor,
+          user.principalId,
+          (await auth.listAdministrators(owner.actor)).revision,
+        )
+        await expect(auth.exchangeBootstrap(code.code)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
+      })
+      it('reports migration choices without mutating storage or exposing credentials', async () => {
+        const user = await add()
+        const credential = (await storage.get<Record<string, unknown>>('credentials', user.session.actor.credentialId))!
+        const { serverId: _serverId, ...legacyValue } = credential.value
+        await storage.replace('credentials', credential.id, credential.revision, legacyValue)
+        const before = await storage.exportSnapshot()
+        const report = await auth.migrationReport()
+        expect(report.identities.find(row => row.principalId === user.principalId)?.credentials).toContainEqual(
+          expect.objectContaining({ kind: 'session', disposition: 'reauthenticate' }),
+        )
+        expect(report.identities).toContainEqual(expect.objectContaining({ principalId: 'owner', administrator: true }))
+        expect(JSON.stringify(report)).not.toContain(owner.token)
+        expect(await storage.exportSnapshot()).toEqual(before)
+      })
+      it('guards the last account-backed administrator inside an account-deactivation transaction', async () => {
+        const user = await add()
+        await auth.removeAdministrator(
+          user.session.actor,
+          owner.actor.principalId,
+          (await auth.listAdministrators(owner.actor)).revision,
+        )
+        await expect(
+          storage.transaction(async tx => {
+            await auth.beforeAccountDeactivation(tx, user.principalId, user.accountId)
+            await tx.deactivateAccount(server.id, user.accountId)
+          }),
+        ).rejects.toMatchObject({ code: 'LAST_ADMINISTRATOR' })
+        expect(await storage.accountStatus(server.id, user.accountId)).toBe('active')
+      })
+      it('blocks shared workspaces before migrating administrator scope', async () => {
+        const roster = (await storage.get('grants', `administrators:${server.id}`))!
+        await storage.delete('grants', roster.id, roster.revision)
+        await storage.create('servers', {
+          id: 'other-server',
+          scope: 'server:other-server',
+          value: { workspaceId: workspace.id },
+        })
+        await expect(auth.ready()).rejects.toMatchObject({ code: 'SHARED_WORKSPACE_MIGRATION_REQUIRED' })
+        expect(await storage.get('grants', roster.id)).toBeNull()
+      })
+    },
+  )

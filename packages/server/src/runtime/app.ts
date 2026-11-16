@@ -1,3 +1,4 @@
+import { ManagementAuthError } from './management/auth'
 import { SQLAccountDirectory } from '@arcadia-eternity/database'
 import { AccountLoginSessions } from './accounts/login-sessions'
 import { createServer, type Server as HttpServer, type IncomingMessage } from 'node:http'
@@ -376,6 +377,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
         return await action()
       } catch (error) {
         if (error instanceof AccountDirectoryError || error instanceof SessionError) throw error
+        if (error instanceof ManagementAuthError) throw new SessionError(error.code, error.status)
         throw new SessionError('ACCOUNT_STORE_UNAVAILABLE', 503)
       }
     }
@@ -539,7 +541,9 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       }
       try {
         // The directory serializes this commit with in-flight account issuance.
-        await accountStore(() => accounts.directory.deactivate(accountId))
+        await accountStore(() =>
+          management ? management.accounts.deactivateSelf(accountId) : accounts.directory.deactivate(accountId),
+        )
       } catch (error) {
         let status: Awaited<ReturnType<AccountDirectory['getStatus']>> | undefined
         try {

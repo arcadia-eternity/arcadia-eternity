@@ -20,6 +20,11 @@ export async function exhaustSqlitePages(storage: DurableStorage) {
           AND json_array_length(json_extract(value, '$.actions')) = 2
       )
     ) OR (
+      json_extract(NEW.value, '$.action') = 'administrator.add' AND EXISTS (
+        SELECT 1 FROM arcadia_grants, json_each(arcadia_grants.value, '$.principalIds')
+        WHERE json_each.value = json_extract(NEW.value, '$.principalId')
+      )
+    ) OR (
       json_extract(NEW.value, '$.action') = 'binding.update' AND EXISTS (
         SELECT 1 FROM arcadia_bindings WHERE id = json_extract(NEW.value, '$.target')
           AND json_extract(value, '$.visibility') = 'private'

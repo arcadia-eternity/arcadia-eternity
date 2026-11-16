@@ -43,7 +43,7 @@ const {
   loginRequired,
   error,
   notice,
-  can,
+  isAdministrator,
   localBridge,
   target,
   loginCode,
@@ -145,10 +145,10 @@ watch(compact, () => {
             :players="players"
             :battles="battles"
             :accounts="accounts"
-            :can-read-players="can('server', 'players.read')"
-            :can-read-battles="can('server', 'battles.read')"
-            :can-manage-accounts="supported('accounts') && can('server', 'accounts.manage')"
-            :can-terminate="can('server', 'battles.terminate')"
+            :can-read-players="isAdministrator"
+            :can-read-battles="isAdministrator"
+            :can-manage-accounts="supported('accounts') && isAdministrator"
+            :can-terminate="isAdministrator"
             :more-accounts="!!accountCursor"
             :busy="busy"
             @terminate="terminateBattle"
@@ -166,7 +166,7 @@ watch(compact, () => {
             :listen-address="server.listenAddress"
             :pending-restart="server.pendingRestart"
             :busy="busy"
-            :can-edit="can('server', 'settings.manage')"
+            :can-edit="isAdministrator"
             @save="saveServerSettings"
           >
           </ServerSettingsForm>

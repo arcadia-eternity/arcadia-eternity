@@ -53,9 +53,7 @@ async function setup() {
   cleanups.push(() => app.stop())
   const service = app.management!
   await service.ready()
-  const owner = await service.auth.exchangeBootstrap(
-    (await service.auth.issueBootstrapCode(service.ownerPermissions)).code,
-  )
+  const owner = await service.auth.exchangeBootstrap((await service.auth.issueBootstrapCode()).code)
   const request = async <T>(input: ManagementRequest): Promise<T> => {
     const result = await service.request(owner.actor, input)
     expect(result.status, JSON.stringify(result.body)).toBeLessThan(300)
@@ -100,22 +98,14 @@ async function setup() {
     },
     service.auth,
   )
-  const principal = await service.auth.createPrincipal(owner.actor, {
-    displayName: 'Viewer',
-    scope: service.serverScope,
-  })
-  const grant = await service.auth.grant(owner.actor, {
-    principalId: principal.id,
-    scope: service.serverScope,
-    actions: ['read'],
-  })
+  const nextAdmin = await accounts.resolveOrCreate(identity('admin@example.test'))
+  const grant = (await storage.get('grants', `administrators:${SERVER}`))!
   const mutations = [
     { name: 'first login', run: () => accounts.resolveOrCreate(identity('new@example.test')) },
     { name: 'account deactivation', run: () => administration.deactivate(owner.actor, account.accountId) },
     {
-      name: 'grant expansion',
-      run: () =>
-        service.auth.grant(owner.actor, { ...grant.value, actions: ['read', 'settings.manage'] }, grant.revision),
+      name: 'administrator addition',
+      run: () => service.auth.addAdministrator(owner.actor, { accountId: nextAdmin.accountId }, grant.revision),
     },
     {
       name: 'binding visibility',

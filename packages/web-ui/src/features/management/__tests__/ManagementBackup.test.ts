@@ -24,10 +24,7 @@ const cap = (suffix = 'local'): ManagementCapabilities => ({
   serverId: `server-${suffix}`,
   workspaceId: `workspace-${suffix}`,
   supportedFeatures: ['server.backup', 'operations'],
-  effectivePermissions: [
-    { scope: { kind: 'server', id: `server-${suffix}` }, actions: ['read', 'backup'] },
-    { scope: { kind: 'workspace', id: `workspace-${suffix}` }, actions: ['export'] },
-  ],
+  isAdministrator: true,
   resourceRestrictions: [],
 })
 function rows(path: string, operations: ManagementOperation[], capabilities = cap()) {
@@ -131,7 +128,7 @@ describe('whole-server backup controls', () => {
     async missing => {
       const capabilities = cap()
       if (missing === 'feature') capabilities.supportedFeatures = ['operations']
-      else capabilities.effectivePermissions[missing === 'backup' ? 0 : 1]!.actions = ['read']
+      else capabilities.isAdministrator = false
       const operations = [
         completed(),
         { id: 'failed', kind: 'server.backup', status: 'failed' as const },

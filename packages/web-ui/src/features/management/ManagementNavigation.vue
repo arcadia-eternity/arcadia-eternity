@@ -11,7 +11,7 @@ const items = [
   { id: 'accounts', label: '用户管理', icon: User },
   { id: 'network', label: '网络与容量', icon: Setting },
   { id: 'tasks', label: '操作记录与备份', icon: Tickets },
-  { id: 'permissions', label: '访问权限', icon: Lock },
+  { id: 'permissions', label: '管理员', icon: Lock },
   { id: 'security', label: '登录与安全', icon: Key },
 ] as const
 </script>
