@@ -66,6 +66,7 @@ export interface ManagedEnvironmentDocument {
 export interface ManagedEnvironment {
   document: ManagedEnvironmentDocument
   revision: string
+  builtin?: boolean
   requiredPackages?: string[]
 }
 export interface ManagedReadyEnvironmentInstallation {

@@ -170,6 +170,7 @@ function responseError(status: number, body: unknown): ManagementError {
     MANAGEMENT_FORBIDDEN: '此身份没有管理目标资源的权限。',
     CSRF_REJECTED: '管理会话校验失败，请重新登录后再试。',
     THIRD_PARTY_EXECUTION_FORBIDDEN: '此服务器未允许执行第三方内容，请选择受支持的托管方式。',
+    BUILTIN_ENVIRONMENT_REQUIRED: '内置环境不能删除。',
     ENVIRONMENT_ALREADY_BOUND: '此环境已在本服使用。',
     DEFAULT_BINDING_REQUIRED: '请先为服务器选择其他默认环境。',
     LAST_ADMINISTRATOR: '请先添加另一位管理员。',

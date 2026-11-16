@@ -63,6 +63,7 @@ function duplicate(environment: ManagedEnvironment) {
   document.value!.name += ' 副本'
 }
 function deleteDraft(environment: ManagedEnvironment) {
+  if (environment.builtin) return
   deletingDraft.value = ''
   emit('deleteDraft', environment)
 }
@@ -174,7 +175,7 @@ function save() {
                 >复制环境</ElButton
               >
               <ElButton
-                v-if="canDelete"
+                v-if="canDelete && !selectedEnvironment.builtin"
                 :disabled="busy"
                 @click="deletingDraft = selectedEnvironment.document.id"
                 native-type="button"
@@ -183,7 +184,11 @@ function save() {
               </ElButton>
             </div>
           </header>
-          <div v-if="deletingDraft === selectedEnvironment.document.id" role="group" aria-label="删除环境确认">
+          <div
+            v-if="!selectedEnvironment.builtin && deletingDraft === selectedEnvironment.document.id"
+            role="group"
+            aria-label="删除环境确认"
+          >
             <p>删除后将移除此环境及其安装文件。</p>
             <ElButton :disabled="busy" @click="deleteDraft(selectedEnvironment)" native-type="button"
               >确认删除环境</ElButton
