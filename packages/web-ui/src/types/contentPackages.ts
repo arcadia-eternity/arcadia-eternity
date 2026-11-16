@@ -58,6 +58,4 @@ export type ContentPackageAction =
   | { action: 'cancel-install' | 'retry-install'; operationId: string }
   | { action: 'clear-install-tasks' }
   | { action: 'import-sources' }
-  | { action: 'confirm-install'; planId: string; allowCode: boolean }
-  | { action: 'cancel'; planId: string }
   | { action: 'uninstall'; packageId: string }

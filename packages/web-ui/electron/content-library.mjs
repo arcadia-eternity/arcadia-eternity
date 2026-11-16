@@ -78,7 +78,6 @@ async function readJson(file, limit = 8 * 1024 * 1024) {
   if (!stat.isFile() || stat.size > limit) throw new Error('内容包记录无效')
   return JSON.parse(await readFile(file, 'utf8'))
 }
-const identity = pkg => [pkg.name, pkg.version, pkg.integrity ?? '', pkg.projectId ?? '', pkg.namespace ?? ''].join('|')
 const idsFor = packages =>
   Object.fromEntries(
     ['species', 'skills', 'marks'].map(kind => [
@@ -130,29 +129,15 @@ export class ContentLibrary {
   #installJobs = new Map()
   #installTail = Promise.resolve()
   #writes = Promise.resolve()
-  #scheduled
-  #reconciling
   #sync = { status: 'idle' }
-  #settledGoal
   #leases = new Map()
   #gcTimer
   #sources
   #createManagedProjects
-  constructor({
-    root,
-    run,
-    host,
-    withDefaultArchive,
-    prepare = async () => {},
-    selected = () => {},
-    sources = {},
-    createManagedProjects,
-  }) {
+  constructor({ root, run, host, withDefaultArchive, sources = {}, createManagedProjects }) {
     this.root = root
     this.run = run
     this.host = host
-    this.prepare = prepare
-    this.selected = selected
     this.withDefaultArchive = withDefaultArchive
     this.#sources = sourceRegistry(sources)
     this.#createManagedProjects =
@@ -518,14 +503,6 @@ export class ContentLibrary {
     if (!entry) throw new Error('未安装此内容包')
     return entry
   }
-  #selectionEntries(ids) {
-    const required = this.#state.installed.find(entry => entry.bundled)
-    if (required && !ids.includes(required.id)) throw new Error('默认环境必须启用基础内容包')
-    const entries = ids.map(id => this.#entry(id))
-    if (new Set(entries.map(entry => entry.name)).size !== entries.length)
-      throw new Error('同一个内容包只能启用一个版本')
-    return entries
-  }
   #plan(id, kind) {
     const plan = this.#plans.get(id)
     if (!plan || plan.kind !== kind) throw new Error('操作清单已失效，请重新准备')
@@ -603,7 +580,7 @@ export class ContentLibrary {
         status.status === 'running' && this.host.projectDirectory?.() !== activeDirectory,
     })
   }
-  async stageFile(file, offline = false, signal = this.#controller.signal) {
+  async #stageFile(file, offline = false, signal = this.#controller.signal) {
     return this.#exclusive(async () => {
       if (typeof file !== 'string' || !file.endsWith('.tgz')) throw new Error('请选择 npm 内容包文件（.tgz）')
       const source = await realpath(file),
@@ -613,10 +590,10 @@ export class ContentLibrary {
     })
   }
   async installFile(file, offline = false) {
-    return this.#installTask(basename(file), signal => this.stageFile(file, offline, signal))
+    return this.#installTask(basename(file), signal => this.#stageFile(file, offline, signal))
   }
   async installNpm(spec, offline = false) {
-    return this.#installTask(String(spec), signal => this.stageNpm(spec, offline, signal))
+    return this.#installTask(String(spec), signal => this.#stageNpm(spec, offline, signal))
   }
   #installTask(label, execute) {
     if ([...this.#installJobs.values()].filter(job => ['queued', 'running'].includes(job.status)).length >= 30)
@@ -647,7 +624,7 @@ export class ContentLibrary {
         job.status = 'succeeded'
         return id
       } catch (error) {
-        if (plan) await this.cancel(plan.id).catch(() => {})
+        if (plan) await this.#cancel(plan.id).catch(() => {})
         job.status = signal.aborted ? 'cancelled' : 'failed'
         job.error = signal.aborted ? '已取消' : error.message
         throw error
@@ -683,14 +660,14 @@ export class ContentLibrary {
     let id
     try {
       signal.throwIfAborted()
-      id = await this.confirmInstall(plan.id, true)
+      id = await this.#confirmInstall(plan.id, true)
     } catch (error) {
-      await this.cancel(plan.id).catch(() => {})
+      await this.#cancel(plan.id).catch(() => {})
       throw error
     }
     return id
   }
-  async stageNpm(spec, offline = false, signal = this.#controller.signal) {
+  async #stageNpm(spec, offline = false, signal = this.#controller.signal) {
     return this.#exclusive(async () => {
       if (typeof spec !== 'string' || spec.length > 256 || !exactPackage.test(spec))
         throw new Error('请输入 npm 包名和明确版本，例如 @author/pets@1.0.0')
@@ -750,7 +727,7 @@ export class ContentLibrary {
       throw error
     }
   }
-  async confirmInstall(id, allowCode) {
+  async #confirmInstall(id, allowCode) {
     return this.#exclusive(async () => {
       const plan = this.#plan(id, 'install')
       if (allowCode !== true) throw new Error('安装需要明确允许此内容包及其依赖在本机运行')
@@ -766,9 +743,6 @@ export class ContentLibrary {
       this.#plans.delete(id)
       return plan.entry.id
     })
-  }
-  async planSelection(ids, offline = false) {
-    return this.#exclusive(() => this.#prepareSelection(ids, offline))
   }
   async #registeredSources() {
     let sources = {}
@@ -795,7 +769,7 @@ export class ContentLibrary {
     })
   }
   /** Prepare a named management environment without changing local-play selection.
-   * Reuse the active installed combination whenever its exact packages match.
+   * Material resolution depends only on explicit declarations and registered sources.
    */
   async prepareEnvironmentProject(document, { signal, offline = false, onProgress, projectDirectory } = {}) {
     return this.#exclusive(async () => {
@@ -830,31 +804,16 @@ export class ContentLibrary {
         if (Object.hasOwn(registry, name)) selectedSources[name] = registry[name]
         else {
           const installed = this.#state.installed.filter(entry => entry.name === name)
-          const active = installed.filter(entry => this.#state.activeIds.includes(entry.id))
           if (!installed.length) throw sourceError('INSTALL_SOURCE_NOT_REGISTERED')
-          if (active.length !== 1 && installed.length !== 1) throw sourceError('INSTALL_SOURCE_AMBIGUOUS')
-          const entry = active[0] ?? installed[0]
+          if (installed.length !== 1) throw sourceError('INSTALL_SOURCE_AMBIGUOUS')
+          const entry = installed[0]
           installedSources.set(name, entry)
           requested.push([name, entry.version])
         }
       }
       requested.sort(([a], [b]) => a.localeCompare(b))
-      const active = this.#state.activeIds
-        .map(id => this.#entry(id))
-        .map(entry => [entry.name, entry.version])
-        .sort(([a], [b]) => a.localeCompare(b))
-      let id = this.#state.activeProject,
-        directory
-      if (
-        !projectDirectory &&
-        !requested.some(([name]) => name === '@arcadia-eternity/data-pack-base') &&
-        !sourceIds.includes('@arcadia-eternity/data-pack-base') &&
-        !Object.keys(selectedSources).length &&
-        id &&
-        JSON.stringify(active) === JSON.stringify(requested)
-      )
-        directory = await this.#directory(id)
-      else {
+      let id, directory
+      {
         let project
         if (
           projectDirectory ||
@@ -951,76 +910,7 @@ export class ContentLibrary {
       }
     })
   }
-  async #prepareSelection(ids, offline = false) {
-    if (!Array.isArray(ids) || ids.length > 100 || new Set(ids).size !== ids.length) throw new Error('内容包选择无效')
-    if (this.#plans.size >= 8) throw new Error('请先完成或取消已有操作')
-    if (!ids.length) throw new Error('请至少启用一个内容包')
-    const entries = this.#selectionEntries(ids)
-    const sources = []
-    for (const entry of entries)
-      sources.push(
-        entry.source.kind === 'file'
-          ? { kind: 'file', file: join(await this.#directory(entry.id), entry.source.file) }
-          : { kind: 'npm', spec: entry.name + '@' + entry.version },
-      )
-    const project = await this.#createProject(sources, offline)
-    const graph = graphFor(project.inspection)
-    const admitted = new Set(entries.flatMap(item => item.graph.map(identity)))
-    const newDependencies = graph.filter(pkg => !admitted.has(identity(pkg)))
-    const plan = {
-      id: randomUUID(),
-      kind: 'selection',
-      revision: this.#state.revision,
-      project: project.id,
-      ids: [...ids],
-      graph,
-      contentIds: idsFor(project.inspection.packages),
-      newDependencies,
-    }
-    this.#plans.set(plan.id, plan)
-    return structuredClone({
-      id: plan.id,
-      kind: plan.kind,
-      ids: plan.ids,
-      graph,
-      contentIds: plan.contentIds,
-      newDependencies,
-      requiresApproval: newDependencies.length > 0,
-    })
-  }
-  async applySelection(id, allowCode = false) {
-    return this.#exclusive(async () => {
-      const plan = this.#plan(id, 'selection')
-      if (plan.newDependencies.length && allowCode !== true) throw new Error('依赖发生变化，请先确认新的依赖清单')
-      const directory = await this.#directory(plan.project)
-      try {
-        await this.run(
-          ['content', 'npm', 'approve', directory, '--profile', 'local-development'],
-          this.#controller.signal,
-        )
-        await this.run(['content', 'validate', '--npm-project', directory], this.#controller.signal)
-        await this.prepare({ directory })
-        await this.#update(state => ({
-          ...state,
-          revision: state.revision + 1,
-          activeIds: plan.ids,
-          activeProject: plan.project,
-          activeGraph: plan.graph,
-          desiredIds: plan.ids,
-          goalRevision: state.goalRevision + 1,
-          activeGoalRevision: state.goalRevision + 1,
-        }))
-        this.#plans.delete(id)
-        this.selected({ directory })
-        await this.#collectGarbage().catch(() => {})
-      } catch (error) {
-        this.#plans.delete(id)
-        await rm(directory, { recursive: true, force: true })
-        throw error
-      }
-    })
-  }
-  async cancel(id) {
+  async #cancel(id) {
     return this.#exclusive(async () => {
       const plan = this.#plans.get(id)
       if (!plan) return
@@ -1051,7 +941,6 @@ export class ContentLibrary {
         goalRevision: revision,
         activeGoalRevision: revision,
       }))
-      this.#settledGoal = revision
       this.#sync = { status: 'ready' }
     })
   }
@@ -1059,7 +948,7 @@ export class ContentLibrary {
     return this.#exclusive(async () => {
       if (this.#entry(id).bundled) throw new Error('默认环境必须保留基础内容包')
       if (this.#state.activeIds.includes(id) || this.#state.desiredIds.includes(id))
-        throw new Error('请先停用此包，等待内容准备完成后再卸载')
+        throw new Error('内容仍被旧本地选择引用，暂时无法卸载')
       const directory = join(this.root, 'projects', storageName(id))
       try {
         await this.#directory(id)
@@ -1067,7 +956,8 @@ export class ContentLibrary {
         if ((await lstat(directory).catch(() => null)) !== null) throw error
       }
       await this.#update(state => {
-        if (state.activeIds.includes(id) || state.desiredIds.includes(id)) throw new Error('内容仍在使用，请先停用')
+        if (state.activeIds.includes(id) || state.desiredIds.includes(id))
+          throw new Error('内容仍被旧本地选择引用，暂时无法卸载')
         return { ...state, revision: state.revision + 1, installed: state.installed.filter(item => item.id !== id) }
       })
       await rm(directory, { recursive: true, force: true })
@@ -1076,105 +966,11 @@ export class ContentLibrary {
   async resume() {
     await this.#load()
     await this.collectGarbage().catch(() => {})
-    if (this.#state.activeProject && this.#state.activeGoalRevision === this.#state.goalRevision) {
-      this.#sync = { status: 'ready' }
-      this.#settledGoal = this.#state.goalRevision
-      return
-    }
-    this.#settledGoal = undefined
-    if (this.#state.activeProject || this.#state.desiredIds.length) this.#schedule()
-  }
-  async setSelection(ids, offline = false) {
-    await this.#load()
-    if (!Array.isArray(ids) || ids.length > 100 || new Set(ids).size !== ids.length) throw new Error('内容包选择无效')
-    await this.#update(state => {
-      this.#selectionEntries(ids)
-      return { ...state, desiredIds: [...ids], goalRevision: state.goalRevision + 1, offline: offline === true }
-    })
-    this.#sync = { status: 'preparing' }
-    this.#schedule()
-  }
-  #schedule(delay = 150) {
-    if (this.#controller.signal.aborted) return
-    clearTimeout(this.#scheduled)
-    this.#scheduled = setTimeout(() => {
-      this.#scheduled = undefined
-      if (this.#settledGoal === this.#state.goalRevision) return
-      if (this.#busy || this.#reconciling) return this.#schedule()
-      const job = this.#reconcile().finally(() => {
-        if (this.#reconciling === job) this.#reconciling = undefined
-      })
-      this.#reconciling = job
-    }, delay)
-    this.#scheduled.unref?.()
-  }
-  async #reconcile() {
-    while (!this.#controller.signal.aborted) {
-      const goal = { revision: this.#state.goalRevision, ids: [...this.#state.desiredIds] }
-      let plan, directory
-      try {
-        await this.#exclusive(async () => {
-          this.#sync = { status: 'preparing' }
-          const same = this.#state.activeProject && JSON.stringify(goal.ids) === JSON.stringify(this.#state.activeIds)
-          if (same) directory = await this.#directory(this.#state.activeProject)
-          else {
-            const result = await this.#prepareSelection(goal.ids, this.#state.offline)
-            plan = this.#plans.get(result.id)
-            directory = await this.#directory(plan.project)
-            if (goal.revision !== this.#state.goalRevision) return
-            // Explicitly installing a package authorizes its declared dependency closure.
-            await this.run(
-              ['content', 'npm', 'approve', directory, '--profile', 'local-development'],
-              this.#controller.signal,
-            )
-            await this.run(['content', 'validate', '--npm-project', directory], this.#controller.signal)
-          }
-          await this.prepare({ directory })
-          if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
-          // Local selection is independent from a server's published binding.
-          // The running host retains its own project until explicitly switched.
-          await this.#update(state => ({
-            ...state,
-            activeIds: goal.ids,
-            activeProject: plan?.project ?? state.activeProject,
-            activeGoalRevision: goal.revision,
-            activeGraph: plan?.graph ?? state.activeGraph,
-          }))
-          this.selected({ directory })
-        })
-        if (goal.revision === this.#state.goalRevision) {
-          this.#settledGoal = goal.revision
-          this.#sync = { status: 'ready' }
-          return
-        }
-      } catch (error) {
-        if (goal.revision === this.#state.goalRevision) {
-          this.#settledGoal = goal.revision
-          this.#sync = { status: 'failed', message: error.message || '内容准备失败，原有内容仍可用' }
-          return
-        }
-      } finally {
-        if (plan) this.#plans.delete(plan.id)
-        if (!this.#controller.signal.aborted) await this.collectGarbage().catch(() => {})
-      }
-    }
-  }
-  async start() {
-    const lease = await this.acquireProject()
-    try {
-      if (!lease.directory) throw new Error('请先准备本机内容选择')
-      if (this.#controller.signal.aborted) throw new Error('内容包管理已关闭')
-      return await this.host.start(lease.directory)
-    } finally {
-      await lease.release()
-    }
   }
   async close() {
     this.#controller.abort()
-    clearTimeout(this.#scheduled)
     clearTimeout(this.#gcTimer)
     await this.#installTail
-    await this.#reconciling
     await this.#idle
     await this.#writes
     for (const plan of this.#plans.values()) {

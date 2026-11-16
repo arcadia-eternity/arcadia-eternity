@@ -78,7 +78,7 @@ node dist/cli.js server --data-dir /srv/arcadia \
 
 应用复用环境的标准锁文件，以 `--ignore-scripts` 解析并安装依赖，校验通过后替换同一环境的当前安装。失败或提交前取消保留原配置和安装；不创建可选历史版本。`.arcadia-prepared.json` 仅记录当前准备结果，不决定服务器使用哪个版本。离线模式拒绝新的远程 Git/URL 获取；本地归档/目录可继续使用，但 npm 所需依赖必须已在缓存中。私有 registry 凭据通过受保护的 `ARCADIA_NPM_USERCONFIG` 文件提供，不进入来源文件、公开环境或分享包。
 
-桌面“内容包 → 本机 → 环境 → 内容来源”提供“导入来源配置”，由可信主进程打开文件选择器并保存同一格式的 `content-sources.json`，渲染页面不能提交任意本机路径。环境的 `sources` 可以引用已登记来源；未登记但已有安装材料时，使用唯一已安装版本或唯一选中的版本，有歧义则要求用户明确选择。
+桌面“内容包 → 本机 → 环境 → 内容来源”提供“导入来源配置”，由可信主进程打开文件选择器并保存同一格式的 `content-sources.json`，渲染页面不能提交任意本机路径。环境的 `sources` 可以引用已登记来源；未登记但已有安装材料时，使用唯一已安装版本，有多个版本时须明确指定版本或登记来源。
 
 桌面应用复用 `ManagedProjects` 的来源获取、标准锁和安装管线，完成后将校验后的材料提交到环境的持久 npm 项目。托管服务器通过私有桥访问桌面 owner 的同一工作区。应用管理环境不会改变客户端本地游玩选择。
 
@@ -224,7 +224,23 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 
 环境的 `packages` / `sources` 保存用户选择的直接依赖；`disabled` 可选字段保留停用的直接依赖及原版本范围。当前安装的 `members`，显式列出所有资源包的名称、精确版本、内容身份、直接/自动依赖身份，以及 `dependencies` / `requiredBy`。普通 JavaScript 工具库仍使用 npm 的多版本树；同一个资源包名、内容身份或命名空间不能出现多个安装实例。安装采用严格 peer 约束，建议作者以 `peerDependencies` 声明共享资源包的兼容范围。精确版本可以使用，但所有约束必须同时满足；不能通过强制安装或忽略 peer 约束绕过校验。
 
-`POST /workspaces/:workspace/environments/:id/package-state` 接受 `{ expectedRevision, name, enabled, cascade? }`，要求本服管理员身份（旧受限凭据仍检查 `edit` 和 `prepare` 上限），返回应用任务。停用依赖项时，默认拒绝影响其他启用包；明确传入 `cascade: true` 才连带停用依赖它的直接包。依赖图尚未解析或草稿增加/修改了依赖约束时，先应用当前组合再执行停用。启用或停用会安装并校验新的组合，成功后一起更新环境 manifest 和安装内容，关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
+环境内的包成员操作统一为两个接口（路径相对于 `/api/management/v1`）：
+
+- `POST /workspaces/:workspace/environments/:id/packages/add`：`{ expectedRevision, name, version?, source? }`。新增包须提供 `version`（版本或版本范围）或 `source: true`（使用宿主来源登记）；二者不能同时提供。不带声明时恢复该环境之前移出的声明；若已经加入，则保持现有声明；新包缺少声明时返回 `ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED`。显式声明可更新已有包的版本，或在版本声明与来源声明之间切换。
+- `POST /workspaces/:workspace/environments/:id/packages/remove`：`{ expectedRevision, name, cascade? }`。默认拒绝移出仍被其他包依赖的包；明确传入 `cascade: true` 才连同依赖它的直接包一起移出。依赖图未解析或与当前组合不匹配时，须先应用当前组合。
+
+两者均要求本服管理员身份（旧受限凭据仍检查 `edit` 和 `prepare` 上限），返回应用任务。仅在下载、安装与校验全部成功后更新环境 manifest 和安装内容；失败保留原环境。加入已登记来源不会允许调用者传入任意宿主文件路径。默认环境的基础包不能移出，连带移出也不能绕过此限制。已移出的声明保留在环境文档的 `disabled` 字段中，用于恢复；这里是历史声明，不是另一套全局启用配置。关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
+
+CLI 与上述操作对应，通用连接参数仍使用 `--server`、`--token-file`、`--workspace`：
+
+```sh
+pnpm cli content environment add friends @author/forest --revision "$revision" --version '^2.0.0'
+pnpm cli content environment add friends @author/local --revision "$revision" --source
+pnpm cli content environment add friends @author/forest --revision "$revision"
+pnpm cli content environment remove friends @author/nature --revision "$revision" --cascade
+```
+
+桌面环境桥对应 `add-package` 与 `remove-package`，额外携带 `environmentId`，共享相同的成员变更规则。旧的 `package-state`／`enabled` 请求和 CLI `enable`／`disable` 命令已移除，不保留别名。桌面安装仅暴露直接安装与安装任务操作；分步安装确认和全局选择写入接口已移除，旧本地选择只用于一次性迁移到具名环境。
 
 应用任务通过既有 operation 接口报告 `resolving`、`acquiring`、`installing`、`verifying`、`capturing`、`preparing` 阶段。只有实际可计数的来源报告 completed/total；npm 未提供可用字节总量时不生成百分比、下载速度或预计时间。服务器任务记录持久化，可查询、取消或重试。桌面资源库安装和本机环境应用有进程内队列、取消、失败重试及清理结束记录，关闭客户端后不恢复该队列。重试仍使用原任务的草稿修订，修改后的草稿须发起新任务。
 

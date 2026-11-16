@@ -196,19 +196,31 @@ onBeforeUnmount(() => {
       :busy="busy"
       :save-sequence="saveSequence"
       @save="save"
-      @package-state="
-        (environment, name, enabled, cascade) =>
+      @add-package="
+        (environment, name) =>
           run(
             {
-              action: 'package-state',
+              action: 'add-package',
               environmentId: environment.document.id,
               expectedRevision: environment.revision,
               name,
-              enabled,
-              cascade,
-              allowDownload: allowDownload,
+              allowDownload,
             },
-            '正在保存并应用。',
+            '正在加入环境。',
+          )
+      "
+      @remove-package="
+        (environment, name, cascade) =>
+          run(
+            {
+              action: 'remove-package',
+              environmentId: environment.document.id,
+              expectedRevision: environment.revision,
+              name,
+              cascade,
+              allowDownload,
+            },
+            '正在移出环境。',
           )
       "
       @references="inspect"

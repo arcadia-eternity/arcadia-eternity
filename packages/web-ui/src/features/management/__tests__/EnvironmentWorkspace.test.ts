@@ -139,3 +139,30 @@ describe('shared environment workspace', () => {
     expect(saved.rules.tier).toBe('casual')
   })
 })
+
+it('emits explicit add and remove operations, including confirmed dependency removal', async () => {
+  const draft = environment()
+  draft.document.disabled = { packages: { '@test/removed': '^1' }, sources: [] }
+  const installation = {
+    ...version(draft),
+    members: [
+      {
+        name: '@test/dependency',
+        version: '1.0.0',
+        projectId: 'dependency',
+        namespace: 'dependency',
+        direct: false,
+        dependencies: [],
+        requiredBy: ['@test/ice'],
+      },
+    ],
+  }
+  const { page } = open({ environments: [draft], installations: [installation] })
+  await button(page, '加入环境').trigger('click')
+  expect(page.emitted('addPackage')![0]).toEqual([draft, '@test/removed'])
+  await button(page, '移出环境').trigger('click')
+  expect(page.emitted('removePackage')).toBeUndefined()
+  await button(page, '连同依赖它的包一起移出环境').trigger('click')
+  expect(page.emitted('removePackage')![0]).toEqual([draft, '@test/dependency', true])
+  expect(page.emitted('packageState')).toBeUndefined()
+})

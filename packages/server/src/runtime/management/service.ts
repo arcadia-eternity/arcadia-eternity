@@ -1,5 +1,6 @@
 import {
-  setEnvironmentPackageEnabled,
+  addEnvironmentPackage,
+  removeEnvironmentPackage,
   normalizeEnvironmentDocument,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import type {
@@ -873,17 +874,31 @@ export class ManagementService {
           })
           return ok({ deleted: true })
         }
-        if (method === 'POST' && parts[4] === 'package-state' && parts.length === 5) {
+        if (
+          method === 'POST' &&
+          parts[4] === 'packages' &&
+          ['add', 'remove'].includes(parts[5]) &&
+          parts.length === 6
+        ) {
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
-          if (typeof input.enabled !== 'boolean' || (input.cascade !== undefined && typeof input.cascade !== 'boolean'))
+          const adding = parts[5] === 'add'
+          const allowed = adding
+            ? ['expectedRevision', 'name', 'version', 'source']
+            : ['expectedRevision', 'name', 'cascade']
+          if (Object.keys(input).some(key => !allowed.includes(key))) fail('INVALID_REQUEST')
+          if (
+            adding &&
+            ((input.version !== undefined && typeof input.version !== 'string') ||
+              (input.source !== undefined && typeof input.source !== 'boolean'))
+          )
             fail('INVALID_REQUEST')
+          if (!adding && input.cascade !== undefined && typeof input.cascade !== 'boolean') fail('INVALID_REQUEST')
           await this.authorizeEnvironmentUpdate(actor, parts[3])
           const name = text(input.name, 214)
           const workspace = this.options.workspace
           const builtin = parts[3] === (await this.builtinEnvironmentId())
-          if (builtin && !input.enabled && name === shippedBasePackage)
-            fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
-          const draft = await setEnvironmentPackageEnabled(
+          if (builtin && !adding && name === shippedBasePackage) fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
+          const draft = await (adding ? addEnvironmentPackage : removeEnvironmentPackage)(
             {
               listDrafts: () => workspace.listDrafts(),
               listInstallations: () => workspace.listInstallations(),
@@ -896,8 +911,9 @@ export class ManagementService {
               environmentId: parts[3],
               expectedRevision: text(input.expectedRevision),
               name,
-              enabled: input.enabled as boolean,
-              cascade: input.cascade as boolean | undefined,
+              ...(adding
+                ? { version: input.version as string | undefined, source: input.source as boolean | undefined }
+                : { cascade: input.cascade as boolean | undefined }),
             },
           )
           return this.applyEnvironment(actor, request, draft.document, text(input.expectedRevision))

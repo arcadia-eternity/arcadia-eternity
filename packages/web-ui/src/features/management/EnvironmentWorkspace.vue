@@ -25,7 +25,8 @@ const props = withDefaults(
   { showUseActions: true, showPeerUse: true, useLabel: '服务器使用' },
 )
 const emit = defineEmits<{
-  packageState: [environment: ManagedEnvironment, name: string, enabled: boolean, cascade: boolean]
+  addPackage: [environment: ManagedEnvironment, name: string]
+  removePackage: [environment: ManagedEnvironment, name: string, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
   export: [version: ManagedEnvironmentInstallation]
@@ -64,11 +65,14 @@ const latestVersion = computed(
       .sort((a, b) => (b.status === 'ready' ? b.createdAt : 0) - (a.status === 'ready' ? a.createdAt : 0))[0],
 )
 const deletingDraft = ref('')
-const disablingPackage = ref('')
-function changePackage(name: string, enabled: boolean, cascade = false) {
+const removingPackage = ref('')
+function addPackage(name: string) {
+  if (selectedEnvironment.value) emit('addPackage', selectedEnvironment.value, name)
+}
+function removePackage(name: string, cascade = false) {
   if (!selectedEnvironment.value) return
-  disablingPackage.value = ''
-  emit('packageState', selectedEnvironment.value, name, enabled, cascade)
+  removingPackage.value = ''
+  emit('removePackage', selectedEnvironment.value, name, cascade)
 }
 async function duplicate(environment: ManagedEnvironment) {
   if (!(await edit(environment))) return
@@ -233,7 +237,7 @@ function save() {
               </ul>
             </template>
             <template v-if="latestVersion?.status === 'ready' && latestVersion.members">
-              <h4>已安装资源包</h4>
+              <h4>环境内的内容包</h4>
               <p v-if="latestVersion.draftRevision !== selectedEnvironment.revision" class="hint">
                 依赖已更改，请重新准备。
               </p>
@@ -246,34 +250,34 @@ function save() {
                 <ElButton
                   v-else
                   :disabled="busy || !canEdit || !canPrepare"
-                  @click="disablingPackage = member.name"
+                  @click="removingPackage = member.name"
                   native-type="button"
-                  >停用</ElButton
+                  >移出环境</ElButton
                 >
-                <div v-if="disablingPackage === member.name" role="group" aria-label="停用资源包确认">
+                <div v-if="removingPackage === member.name" role="group" aria-label="移出环境确认">
                   <p>
-                    {{ member.requiredBy.length ? '其他包依赖它，可以选择连带停用。' : '' }}
+                    {{ member.requiredBy.length ? '其他内容包依赖它，可一并移出环境。' : '' }}
                   </p>
                   <ElButton
                     :disabled="busy || !canEdit || !canPrepare"
-                    @click="changePackage(member.name, false)"
+                    @click="removePackage(member.name)"
                     native-type="button"
-                    >确认停用</ElButton
+                    >确认移出环境</ElButton
                   >
                   <ElButton
                     v-if="member.requiredBy.length"
                     :disabled="busy || !canEdit || !canPrepare"
-                    @click="changePackage(member.name, false, true)"
+                    @click="removePackage(member.name, true)"
                     native-type="button"
                   >
-                    连带停用依赖它的包
+                    连同依赖它的包一起移出环境
                   </ElButton>
-                  <ElButton @click="disablingPackage = ''" native-type="button">取消</ElButton>
+                  <ElButton @click="removingPackage = ''" native-type="button">取消</ElButton>
                 </div>
               </article>
             </template>
             <template v-if="selectedEnvironment.document.disabled">
-              <h4>已停用的直接依赖</h4>
+              <h4>已移出的内容包</h4>
               <article
                 v-for="(range, name) in selectedEnvironment.document.disabled.packages"
                 :key="name"
@@ -282,18 +286,15 @@ function save() {
                 {{ name }} · {{ range }}
                 <ElButton
                   :disabled="busy || !canEdit || !canPrepare"
-                  @click="changePackage(String(name), true)"
+                  @click="addPackage(String(name))"
                   native-type="button"
-                  >启用</ElButton
+                  >加入环境</ElButton
                 >
               </article>
               <article v-for="name in selectedEnvironment.document.disabled.sources" :key="name" class="member">
                 {{ name }} · 已登记来源
-                <ElButton
-                  :disabled="busy || !canEdit || !canPrepare"
-                  @click="changePackage(name, true)"
-                  native-type="button"
-                  >启用</ElButton
+                <ElButton :disabled="busy || !canEdit || !canPrepare" @click="addPackage(name)" native-type="button"
+                  >加入环境</ElButton
                 >
               </article>
             </template>

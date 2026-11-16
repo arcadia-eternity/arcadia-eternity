@@ -16,11 +16,12 @@ export class LocalEnvironments {
   #jobs = new Map()
   #closed = false
   #tail = Promise.resolve()
-  constructor({ openWorkspace, library, validate, setPackageEnabled }) {
+  constructor({ openWorkspace, library, validate, addPackage, removePackage }) {
     this.openWorkspace = openWorkspace
     this.library = library
     this.validate = validate
-    this.setPackageEnabled = setPackageEnabled
+    this.addPackage = addPackage
+    this.removePackage = removePackage
   }
   ready() {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
@@ -161,8 +162,14 @@ export class LocalEnvironments {
       }
       case 'snapshot':
         return this.snapshot()
-      case 'package-state': {
-        const draft = await this.setPackageEnabled(
+      case 'add-package':
+      case 'remove-package': {
+        const adding = input.action === 'add-package'
+        const allowed = adding
+          ? ['action', 'environmentId', 'expectedRevision', 'name', 'version', 'source', 'allowDownload']
+          : ['action', 'environmentId', 'expectedRevision', 'name', 'cascade', 'allowDownload']
+        if (Object.keys(input).some(key => !allowed.includes(key))) throw fail('INVALID_REQUEST')
+        const draft = await (adding ? this.addPackage : this.removePackage)(
           {
             listDrafts: () => workspace.listDrafts(),
             listInstallations: () => workspace.listInstallations(),

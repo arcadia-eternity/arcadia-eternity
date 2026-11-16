@@ -32,8 +32,6 @@ test(
     const makeLibrary = () =>
       new ContentLibrary({
         root: join(root, 'library'),
-        prepare: async () => {},
-        selected: () => {},
         host: { status: () => ({ status: 'idle' }), retainedProjectDirectories: async () => [] },
         withDefaultArchive: use => withShippedCatalogArchive(bundled, undefined, use),
         createManagedProjects: (directory, options) =>
@@ -70,14 +68,6 @@ test(
       { cwd: helper },
     )
     const helperId = await library.installFile(join(root, JSON.parse(packed.stdout)[0].filename), true)
-    await library.setSelection([initial.activeIds[0], helperId], true)
-    for (let i = 0; i < 600; i++) {
-      const snapshot = await library.list()
-      if (snapshot.selection.status === 'failed') throw new Error(snapshot.selection.message)
-      if (snapshot.selection.status === 'ready') break
-      await new Promise(resolve => setTimeout(resolve, 50))
-    }
-    assert.equal((await library.list()).selection.status, 'ready')
     await rm(helper, { recursive: true })
 
     const openLocal = () => ContentWorkspace.open(join(root, 'local'))
@@ -85,6 +75,32 @@ test(
       new DesktopWorkspaceOwner({ root: join(root, 'managed'), openWorkspace: ContentWorkspace.open, library })
     let owner = makeOwner()
     let local = new LocalEnvironments({ openWorkspace: openLocal, library, validate: validateWorkspaceProject })
+    const operation = await local.request({
+      action: 'apply',
+      expectedRevision: null,
+      document: {
+        schemaVersion: 2,
+        id: 'with-helper',
+        name: 'With helper',
+        packages: { [base]: '1.0.0', helper: '1.0.0' },
+        sources: [],
+        rules: { schemaVersion: 1 },
+        requires: {},
+      },
+    })
+    const finish = async (api, id) => {
+      for (let i = 0; i < 1200; i++) {
+        const job = (await api.snapshot()).operations.find(job => job.id === id)
+        if (!['queued', 'running'].includes(job.status)) {
+          assert.equal(job.status, 'succeeded', JSON.stringify(job.error))
+          return
+        }
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+      throw new Error('environment operation timed out')
+    }
+    await finish(local, operation.operationId)
+    await finish(local, (await local.request({ action: 'select', environmentId: 'with-helper' })).operationId)
     const installer = new ManagedProjects(join(root, 'installer'), { bundledPackageRoot: bundled, offline: true })
     for (const workspace of [await owner.ready(), await local.ready()])
       await installer.prepareEnvironment(
@@ -123,7 +139,7 @@ test(
       const updated = await library.list()
       assert.equal(updated.packages.find(item => item.bundled).version, '2.0.0')
       assert.notEqual(updated.activeIds[0], initial.activeIds[0])
-      assert.equal(updated.activeIds[1], helperId)
+      assert.equal(updated.activeIds.length, 1)
       assert.equal(updated.packages.find(item => item.id === helperId).version, '1.0.0')
       for (const workspace of [await owner.ready(), await local.ready()]) {
         const draft = await workspace.getDraft('existing')
@@ -136,7 +152,7 @@ test(
           '2.0.0',
         )
       }
-      const active = await library.acquireProject()
+      const active = await local.acquireProject()
       assert.equal(
         JSON.parse(await readFile(join(active.directory, 'node_modules', base, 'package.json'), 'utf8')).version,
         '2.0.0',

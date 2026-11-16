@@ -63,13 +63,12 @@ it('uses the owning server and captured revision for explicit cascade changes', 
   const f = await fixture()
   const fetcher = vi.fn(async () => Response.json({ revision: 'next' }))
   vi.stubGlobal('fetch', fetcher)
-  await f.run(['disable', 'friends', '@author/nature', '--revision', 'old', '--cascade'])
+  await f.run(['remove', 'friends', '@author/nature', '--revision', 'old', '--cascade'])
   const [url, request] = fetcher.mock.calls[0] as unknown as [URL, RequestInit]
-  expect(url.pathname).toBe('/api/management/v1/workspaces/shared/environments/friends/package-state')
+  expect(url.pathname).toBe('/api/management/v1/workspaces/shared/environments/friends/packages/remove')
   expect(JSON.parse(request.body as string)).toEqual({
     expectedRevision: 'old',
     name: '@author/nature',
-    enabled: false,
     cascade: true,
   })
   expect(request.redirect).toBe('error')
@@ -87,4 +86,29 @@ it('waits for a real operation and reports stages separately from the final JSON
   expect(f.stderr.join('')).toContain('installing')
   expect(JSON.parse(f.stdout[0]!)).toMatchObject({ status: 'succeeded', result: { installationId: 'fixed' } })
   expect(String(fetcher.mock.calls[1]![0])).toContain('/operations/job')
+})
+
+it('adds a new version, a registered source, or restores a removed declaration', async () => {
+  for (const [args, extra] of [
+    [['--version', '^2.0.0'], { version: '^2.0.0' }],
+    [['--source'], { source: true }],
+    [[], {}],
+  ] as const) {
+    const f = await fixture()
+    const fetcher = vi.fn(async () => Response.json({ id: 'apply' }))
+    vi.stubGlobal('fetch', fetcher)
+    await f.run(['add', 'friends', '@author/new', '--revision', 'current', ...args])
+    const [url, request] = fetcher.mock.calls[0] as unknown as [URL, RequestInit]
+    expect(url.pathname).toBe('/api/management/v1/workspaces/shared/environments/friends/packages/add')
+    expect(JSON.parse(request.body as string)).toEqual({ expectedRevision: 'current', name: '@author/new', ...extra })
+  }
+})
+it('rejects conflicting add options before requesting the server', async () => {
+  const f = await fixture()
+  const fetcher = vi.fn()
+  vi.stubGlobal('fetch', fetcher)
+  await expect(
+    f.run(['add', 'friends', '@author/new', '--revision', 'current', '--source', '--version', '^1']),
+  ).rejects.toThrow('Choose either')
+  expect(fetcher).not.toHaveBeenCalled()
 })

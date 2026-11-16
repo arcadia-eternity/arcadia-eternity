@@ -5,7 +5,6 @@ import { promisify } from 'node:util'
 import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import { ContentLibrary } from '../content-library.mjs'
 import { ManagedProjects } from '../../../content-dev/src/managed-projects.ts'
 import { packBuiltProject } from '../../../content-dev/src/pack-project.ts'
@@ -200,16 +199,7 @@ async function fixture(t, options = {}) {
   })
   return { root, libraryRoot, library, calls, source }
 }
-async function settled(library) {
-  const deadline = Date.now() + 30000
-  while (Date.now() < deadline) {
-    const value = await library.list()
-    if (value.selection.status === 'failed') throw new Error(value.selection.message)
-    if (value.selection.status === 'ready') return value
-    await delay(25)
-  }
-  throw new Error('Local selection did not settle')
-}
+
 const selection = snapshot => ({
   revision: snapshot.revision,
   activeIds: snapshot.activeIds,
@@ -242,9 +232,8 @@ for (const kind of ['archive', 'directory', 'zip']) {
           ),
         )
       const local = await contentPackage(f.root, '@sample/local')
-      const localId = await f.library.installFile(local.archive, true)
-      await f.library.setSelection([localId], true)
-      const before = selection(await settled(f.library))
+      await f.library.installFile(local.archive, true)
+      const before = selection(await f.library.list())
       const lease = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
       try {
         assert.equal(lease.directory, join(f.libraryRoot, 'projects', basename(lease.directory)))
@@ -273,40 +262,32 @@ for (const kind of ['archive', 'directory', 'zip']) {
 }
 
 test(
-  'an installed source name reuses the active project and ambiguous inactive versions are rejected',
+  'an installed source is usable and multiple installed versions require an explicit declaration',
   { timeout: 60000 },
   async t => {
     const f = await fixture(t)
-    const firstId = await f.library.installFile(f.source.archive, true)
-    await f.library.setSelection([firstId], true)
-    await settled(f.library)
-    const installed = (await f.library.list()).packages[0]
-    assert.equal(installed.containsCode, true)
-    assert.equal(installed.graph.find(pkg => pkg.name === f.source.name).containsCode, true)
-    const active = await f.library.acquireProject()
-    const stageCalls = f.calls.filter(args => args[2] === 'stage').length
+    await f.library.installFile(f.source.archive, true)
     const lease = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
-    assert.equal(lease.directory, active.directory)
-    assert.equal(f.calls.filter(args => args[2] === 'stage').length, stageCalls)
+    assert.equal(
+      (await inspectNpmProject(lease.directory)).packages.find(pkg => pkg.name === f.source.name).version,
+      '1.0.0',
+    )
     await lease.release()
-    await active.release()
     const newer = await contentPackage(f.root, f.source.name, '2.0.0')
-    const staged = await f.library.stageFile(newer.archive, true)
-    await f.library.confirmInstall(staged.id, true)
-    const chosen = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
-    assert.equal(chosen.directory, active.directory)
-    await chosen.release()
-    assert.deepEqual((await f.library.list()).activeIds, [firstId])
-    const other = await contentPackage(f.root, '@sample/other')
-    const otherId = await f.library.installFile(other.archive, true)
-    await f.library.setSelection([otherId], true)
-    await settled(f.library)
+    await f.library.installFile(newer.archive, true)
     await assert.rejects(f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true }), {
       code: 'INSTALL_SOURCE_AMBIGUOUS',
     })
-    await assert.rejects(f.library.prepareEnvironmentProject(environment(['@sample/missing']), { offline: true }), {
-      code: 'INSTALL_SOURCE_NOT_REGISTERED',
-    })
+    const chosen = await f.library.prepareEnvironmentProject(
+      { ...environment([]), packages: { [f.source.name]: '2.0.0' } },
+      { offline: true },
+    )
+    assert.equal(
+      (await inspectNpmProject(chosen.directory)).packages.find(pkg => pkg.name === f.source.name).version,
+      '2.0.0',
+    )
+    await chosen.release()
+    assert.deepEqual((await f.library.list()).activeIds, [])
   },
 )
 
@@ -315,9 +296,8 @@ test(
   { timeout: 60000 },
   async t => {
     const f = await fixture(t)
-    const installedId = await f.library.installFile(f.source.archive, true)
-    await f.library.setSelection([installedId], true)
-    const before = selection(await settled(f.library))
+    await f.library.installFile(f.source.archive, true)
+    const before = selection(await f.library.list())
     const newer = await contentPackage(f.root, f.source.name, '2.0.0')
     const file = join(f.root, 'trusted-sources.json')
     const sources = { [f.source.name]: { kind: 'archive', file: newer.archive } }

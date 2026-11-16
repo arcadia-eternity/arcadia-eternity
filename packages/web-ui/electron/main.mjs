@@ -267,8 +267,6 @@ function getContentLibrary() {
       const root = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
       return withShippedCatalogArchive(root, localBattleHost.npmCliPath, use)
     },
-    prepare: options => getLocalContentSessions().prepareProject(options),
-    selected: options => getLocalContentSessions().selectProject(options),
     createManagedProjects: async (root, options) => {
       const runtimeRequire = app.isPackaged
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
@@ -300,11 +298,17 @@ function getLocalEnvironments() {
     : require
   localEnvironments ??= new LocalEnvironments({
     library: getContentLibrary(),
-    setPackageEnabled: async (workspace, input) => {
-      const { setEnvironmentPackageEnabled } = await import(
+    addPackage: async (workspace, input) => {
+      const { addEnvironmentPackage } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
-      return setEnvironmentPackageEnabled(workspace, input)
+      return addEnvironmentPackage(workspace, input)
+    },
+    removePackage: async (workspace, input) => {
+      const { removeEnvironmentPackage } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+      )
+      return removeEnvironmentPackage(workspace, input)
     },
     openWorkspace: async () => {
       const { ContentWorkspace } = await import(
@@ -1017,25 +1021,10 @@ function setupIpcHandlers() {
     if (typeof token !== 'string') throw new Error('本地内容会话无效')
     return getLocalContentSessions().release(token)
   })
-  handle('desktop:select-content-package-file', async (event, options) => {
-    requireLocalBattleCaller(event)
-    const selected = await dialog.showOpenDialog(mainWindow, {
-      title: '添加内容包',
-      properties: ['openFile'],
-      filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
-    })
-    requireLocalBattleCaller(event)
-    if (selected.canceled || !selected.filePaths[0]) return null
-    return getContentLibrary().stageFile(selected.filePaths[0], options?.offline === true)
-  })
-  handle('desktop:inspect-npm-content-package', (event, options) => {
-    requireLocalBattleCaller(event)
-    return getContentLibrary().stageNpm(options?.spec, options?.offline === true)
-  })
   handle('desktop:install-content-package-file', async (event, options) => {
     requireLocalBattleCaller(event)
     const selected = await dialog.showOpenDialog(mainWindow, {
-      title: '安装并启用内容包',
+      title: '安装内容包',
       properties: ['openFile'],
       filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
     })
@@ -1069,11 +1058,6 @@ function setupIpcHandlers() {
     if (input.action === 'retry-install') return library.retryInstall(input.operationId)
     if (input.action === 'clear-install-tasks') {
       library.clearInstallTasks()
-      return null
-    }
-    if (input.action === 'confirm-install') return library.confirmInstall(input.planId, input.allowCode === true)
-    if (input.action === 'cancel') {
-      await library.cancel(input.planId)
       return null
     }
     if (input.action === 'uninstall') {

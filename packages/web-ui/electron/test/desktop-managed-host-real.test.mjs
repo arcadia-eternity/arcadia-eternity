@@ -78,15 +78,6 @@ test(
       assert.ok(response.status >= 200 && response.status < 300, JSON.stringify(response))
       return response.body
     }
-    const settle = async () => {
-      for (let i = 0; i < 1200; i++) {
-        const state = await library.list()
-        if (state.selection.status === 'failed') throw new Error(state.selection.message)
-        if (state.selection.status === 'ready') return state
-        await new Promise(resolve => setTimeout(resolve, 50))
-      }
-      throw new Error('CONTENT_NOT_READY')
-    }
     try {
       const workspace = await owner.ready()
       const example = join(repository, 'examples/ugc/slow')
@@ -127,9 +118,6 @@ test(
       const { packages, activeIds } = await library.list()
       const base = packages.find(item => item.bundled)
       assert.deepEqual(activeIds, [base.id])
-      await assert.rejects(library.setSelection([installed], true), /默认环境必须启用/)
-      await library.setSelection([base.id, installed], true)
-      await settle()
       const local = await library.prepareEnvironmentProject(
         { packages: { [fixtureManifest.name]: fixtureManifest.version }, sources: [] },
         { offline: true },
@@ -192,8 +180,7 @@ test(
         (await workspace.getInstallation(prepared.result.installationId)).directory,
         join(workspace.root, 'environments/tournament'),
       )
-      await library.setSelection([base.id], true)
-      await settle()
+      await library.uninstall(installed)
       assert.equal(
         (await request('GET', `/servers/${first.serverId}/bindings`)).bindings[0].environmentId,
         binding.environmentId,
@@ -326,8 +313,8 @@ test(
       assert.deepEqual(draft.requiredPackages, ['@arcadia-eternity/data-pack-base'])
       const disabled = await host.managementRequest({
         method: 'POST',
-        path: `${path}/desktop-host/package-state`,
-        body: { name: draft.requiredPackages[0], enabled: false, expectedRevision: draft.revision },
+        path: `${path}/desktop-host/packages/remove`,
+        body: { name: draft.requiredPackages[0], expectedRevision: draft.revision },
       })
       assert.equal(disabled.status, 409)
       const snapshot = await library.list()

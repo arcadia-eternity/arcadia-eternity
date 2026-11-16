@@ -54,16 +54,9 @@ export interface ArcadiaDesktopApi {
     assets: { id: string; mime: string; data: string }[]
   }>
   releaseLocalContent?: (token: string) => Promise<void>
-  selectContentPackageFile?: (options: {
-    offline?: boolean
-  }) => Promise<import('./contentPackages').ContentPackagePlan | null>
-  inspectNpmContentPackage?: (options: {
-    spec: string
-    offline?: boolean
-  }) => Promise<import('./contentPackages').ContentPackagePlan>
   contentPackageAction?: (
     input: import('./contentPackages').ContentPackageAction,
-  ) => Promise<import('./contentPackages').ContentPackagePlan | string | null>
+  ) => Promise<string | null>
   listContentProjects?: () => Promise<ContentProjectSummary[]>
   addContentProject?: () => Promise<string | null>
   contentProjectAction?: (input: ContentProjectAction) => Promise<unknown>

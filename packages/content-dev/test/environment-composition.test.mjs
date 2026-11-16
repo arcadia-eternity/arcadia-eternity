@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { setEnvironmentPackageEnabled } from '../src/content-workspace.ts'
+import { addEnvironmentPackage, removeEnvironmentPackage } from '../src/content-workspace.ts'
 import { normalizeEnvironmentDocument } from '../src/debug-environments.ts'
 
 function fixture() {
@@ -35,32 +35,30 @@ function fixture() {
     },
   }
 }
-test('shared dependency blocks disable; explicit cascade retains ranges and reenable does not publish', async () => {
+test('shared dependency blocks removal; explicit cascade retains ranges and restoration does not publish', async () => {
   const workspace = fixture()
-  const input = { environmentId: 'shared', expectedRevision: '1', name: 'nature', enabled: false }
-  await assert.rejects(setEnvironmentPackageEnabled(workspace, input), { code: 'ENVIRONMENT_PACKAGE_REQUIRED' })
+  const input = { environmentId: 'shared', expectedRevision: '1', name: 'nature' }
+  await assert.rejects(removeEnvironmentPackage(workspace, input), { code: 'ENVIRONMENT_PACKAGE_REQUIRED' })
   assert.equal((await workspace.listDrafts())[0].revision, '1')
-  const disabled = await setEnvironmentPackageEnabled(workspace, { ...input, cascade: true })
+  const disabled = await removeEnvironmentPackage(workspace, { ...input, cascade: true })
   assert.deepEqual(disabled.document.packages, {})
   assert.deepEqual(disabled.document.disabled.packages, { forest: '^1', arena: '^2' })
-  const enabled = await setEnvironmentPackageEnabled(workspace, {
+  const enabled = await addEnvironmentPackage(workspace, {
     ...input,
     expectedRevision: disabled.revision,
     name: 'forest',
-    enabled: true,
   })
   assert.deepEqual(enabled.document.packages, { forest: '^1' })
   assert.deepEqual(enabled.document.disabled.packages, { arena: '^2' })
   assert.deepEqual((await workspace.listInstallations())[0].document.packages, { forest: '^1', arena: '^2' })
 })
-test('stale revision and changed unresolved composition cannot authorize a dependency toggle', async () => {
+test('stale revision and changed unresolved composition cannot authorize a dependency removal', async () => {
   const workspace = fixture()
   await assert.rejects(
-    setEnvironmentPackageEnabled(workspace, {
+    removeEnvironmentPackage(workspace, {
       environmentId: 'shared',
       expectedRevision: 'old',
       name: 'nature',
-      enabled: false,
       cascade: true,
     }),
     { code: 'REVISION_CONFLICT' },
@@ -69,11 +67,10 @@ test('stale revision and changed unresolved composition cannot authorize a depen
   draft.document.packages.forest = '^3'
   await workspace.saveDraft({ ...draft, expectedRevision: draft.revision })
   await assert.rejects(
-    setEnvironmentPackageEnabled(workspace, {
+    removeEnvironmentPackage(workspace, {
       environmentId: 'shared',
       expectedRevision: '2',
       name: 'nature',
-      enabled: false,
       cascade: true,
     }),
     { code: 'ENVIRONMENT_DEPENDENCIES_UNRESOLVED' },
@@ -94,4 +91,46 @@ test('active and disabled declarations cannot overlap', () => {
       }),
     { code: 'ENVIRONMENT_INVALID' },
   )
+})
+
+test('adds new versioned and registered-source packages and restores removed declarations', async () => {
+  const workspace = fixture()
+  const added = await addEnvironmentPackage(workspace, {
+    environmentId: 'shared',
+    expectedRevision: '1',
+    name: '@test/new',
+    version: '^3.0.0',
+  })
+  assert.equal(added.document.packages['@test/new'], '^3.0.0')
+  const source = await addEnvironmentPackage(workspace, {
+    environmentId: 'shared',
+    expectedRevision: added.revision,
+    name: '@test/source',
+    source: true,
+  })
+  assert.deepEqual(source.document.sources, ['@test/source'])
+  const replaced = await addEnvironmentPackage(workspace, {
+    environmentId: 'shared',
+    expectedRevision: source.revision,
+    name: '@test/source',
+    version: '2.0.0',
+  })
+  assert.deepEqual(replaced.document.sources, [])
+  assert.equal(replaced.document.packages['@test/source'], '2.0.0')
+})
+test('rejects missing, conflicting, unsafe and stale new declarations without saving', async () => {
+  const workspace = fixture()
+  const base = { environmentId: 'shared', expectedRevision: '1', name: '@test/new' }
+  await assert.rejects(addEnvironmentPackage(workspace, base), { code: 'ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED' })
+  for (const input of [{ version: '' }, { version: '^1', source: true }, { source: 'yes' }])
+    await assert.rejects(addEnvironmentPackage(workspace, { ...base, ...input }), {
+      code: 'ENVIRONMENT_PACKAGE_INVALID',
+    })
+  await assert.rejects(addEnvironmentPackage(workspace, { ...base, version: 'file:/tmp/private' }), {
+    code: 'ENVIRONMENT_INVALID',
+  })
+  await assert.rejects(addEnvironmentPackage(workspace, { ...base, version: '^1', expectedRevision: 'old' }), {
+    code: 'REVISION_CONFLICT',
+  })
+  assert.equal((await workspace.listDrafts())[0].revision, '1')
 })

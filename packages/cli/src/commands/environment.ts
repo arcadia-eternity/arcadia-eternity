@@ -97,23 +97,42 @@ export function registerEnvironmentCommands(content: Command, context: CommandCo
         throw new CliError('ENVIRONMENT_APPLY_FAILED', `Application ${operation.status}: ${operation.id}`)
       await report(operation)
     })
-  for (const enabled of [true, false])
-    command
-      .command(enabled ? 'enable' : 'disable')
-      .argument('<id>')
-      .argument('<package>')
-      .requiredOption('--revision <revision>', 'Captured draft revision')
-      .option('--cascade', 'Also disable packages that require this package')
-      .action(async (id: string, name: string, options: { revision: string; cascade?: boolean }) =>
-        report(
-          await request('POST', workspace() + '/environments/' + segment(id) + '/package-state', {
-            expectedRevision: options.revision,
-            name,
-            enabled,
-            cascade: options.cascade ?? false,
-          }),
-        ),
+  command
+    .command('add')
+    .argument('<id>')
+    .argument('<package>')
+    .description('Add a package to an environment, or restore its removed declaration')
+    .requiredOption('--revision <revision>', 'Captured environment revision')
+    .option('--version <range>', 'Package version or version range')
+    .option('--source', 'Use a host-registered source')
+    .action(async (id: string, name: string, options: { revision: string; version?: string; source?: boolean }) => {
+      if (options.version !== undefined && options.source)
+        throw new CliError('ENVIRONMENT_PACKAGE_INVALID', 'Choose either --version or --source')
+      await report(
+        await request('POST', workspace() + '/environments/' + segment(id) + '/packages/add', {
+          expectedRevision: options.revision,
+          name,
+          ...(options.version !== undefined ? { version: options.version } : {}),
+          ...(options.source ? { source: true } : {}),
+        }),
       )
+    })
+  command
+    .command('remove')
+    .argument('<id>')
+    .argument('<package>')
+    .description('Remove a package from an environment')
+    .requiredOption('--revision <revision>', 'Captured environment revision')
+    .option('--cascade', 'Also remove packages that require this package')
+    .action(async (id: string, name: string, options: { revision: string; cascade?: boolean }) =>
+      report(
+        await request('POST', workspace() + '/environments/' + segment(id) + '/packages/remove', {
+          expectedRevision: options.revision,
+          name,
+          cascade: options.cascade ?? false,
+        }),
+      ),
+    )
   command.command('tasks').action(async () => report(await request('GET', '/operations')))
   for (const action of ['cancel', 'retry'])
     command

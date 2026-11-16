@@ -4,7 +4,11 @@ import { mkdtemp, mkdir, writeFile, rm, realpath, copyFile } from 'node:fs/promi
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
+import {
+  ContentWorkspace,
+  addEnvironmentPackage,
+  removeEnvironmentPackage,
+} from '../../../content-dev/src/content-workspace.ts'
 import { LocalEnvironments } from '../local-environments.mjs'
 
 const document = {
@@ -55,6 +59,8 @@ async function fixture(t) {
       openWorkspace: () => ContentWorkspace.open(join(root, 'workspace'), { retentions: { list: async () => [] } }),
       library,
       validate,
+      addPackage: addEnvironmentPackage,
+      removePackage: removeEnvironmentPackage,
     })
     instances.push(api)
     return api
@@ -175,10 +181,10 @@ test('relocated desktop environment module loads without workspace packages and 
   await copyFile(new URL('../local-environments.mjs', import.meta.url), file)
   const { LocalEnvironments: Relocated } = await import(pathToFileURL(file).href)
   const workspace = { root, close: async () => {} }
-  const input = { action: 'package-state', environmentId: 'friends', packageName: 'sample', enabled: false }
+  const input = { action: 'remove-package', environmentId: 'friends', name: 'sample' }
   const api = new Relocated({
     openWorkspace: async () => workspace,
-    setPackageEnabled: async (actualWorkspace, actualInput) => {
+    removePackage: async (actualWorkspace, actualInput) => {
       assert.equal(typeof actualWorkspace.saveDraft, 'function')
       assert.equal(actualInput, input)
       return { document, revision: 'updated' }
@@ -248,4 +254,26 @@ test('migrates the working local selection once and preserves selected environme
   api = f.open()
   assert.equal((await api.snapshot()).selectedEnvironmentId, document.id)
   assert.equal(migrations, 1)
+})
+
+test('local add-package accepts a new version declaration and applies it atomically', async t => {
+  const f = await fixture(t)
+  const api = f.open()
+  const workspace = await api.ready()
+  const saved = await workspace.saveDraft({ expectedRevision: null, document: { ...document, packages: {} } })
+  const input = {
+    action: 'add-package',
+    environmentId: document.id,
+    name: 'sample',
+    version: '1.0.0',
+    expectedRevision: saved.revision,
+  }
+  await assert.rejects(api.request({ ...input, enabled: true }), { code: 'INVALID_REQUEST' })
+  await assert.rejects(api.request({ ...input, action: 'package-state' }), { code: 'INVALID_ACTION' })
+  const started = await api.request(input)
+  assert.equal((await complete(api, started.operationId)).status, 'succeeded')
+  assert.equal((await workspace.getDraft(document.id)).document.packages.sample, '1.0.0')
+  const revision = (await workspace.getDraft(document.id)).revision
+  await assert.rejects(api.request(input), { code: 'REVISION_CONFLICT' })
+  assert.equal((await workspace.getDraft(document.id)).revision, revision)
 })
