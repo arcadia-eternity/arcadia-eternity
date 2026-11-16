@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import './managementStyles'
+import { registerEnvironmentDraft, discardEnvironmentChanges } from '@/features/content/unsavedEnvironment'
 import { ElButton, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
@@ -11,6 +12,7 @@ const props = withDefaults(
     installations: ManagedEnvironmentInstallation[]
     canEdit: boolean
     canPrepare: boolean
+    canExport?: boolean
     canDelete?: boolean
     canUse?: boolean
     showUseActions?: boolean
@@ -23,6 +25,7 @@ const emit = defineEmits<{
   packageState: [environment: ManagedEnvironment, name: string, enabled: boolean, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
+  export: [version: ManagedEnvironmentInstallation]
   delete: [version: ManagedEnvironmentInstallation]
   references: [version: ManagedEnvironmentInstallation]
   deleteDraft: [environment: ManagedEnvironment]
@@ -38,6 +41,14 @@ const revision = ref<string | null>(null)
 const document = ref<ManagedEnvironmentDocument>()
 const packageRows = ref<{ name: string; version: string }[]>([])
 const sourceText = ref('')
+const originalDraft = ref('')
+const draftValue = () =>
+  JSON.stringify({ document: document.value, packages: packageRows.value, sources: sourceText.value })
+const dirty = computed(() => editing.value && draftValue() !== originalDraft.value)
+registerEnvironmentDraft(() => dirty.value)
+async function closeEditor() {
+  if (!dirty.value || (await discardEnvironmentChanges())) editing.value = false
+}
 const validation = ref('')
 const selectedId = ref('')
 const selectedEnvironment = computed(
@@ -56,8 +67,8 @@ function changePackage(name: string, enabled: boolean, cascade = false) {
   disablingPackage.value = ''
   emit('packageState', selectedEnvironment.value, name, enabled, cascade)
 }
-function duplicate(environment: ManagedEnvironment) {
-  edit(environment)
+async function duplicate(environment: ManagedEnvironment) {
+  if (!(await edit(environment))) return
   revision.value = null
   document.value!.id = `${environment.document.id.slice(0, 60)}-copy-${crypto.randomUUID().slice(0, 6)}`
   document.value!.name += ' 副本'
@@ -67,7 +78,8 @@ function deleteDraft(environment: ManagedEnvironment) {
   deletingDraft.value = ''
   emit('deleteDraft', environment)
 }
-function selectEnvironment(environment: ManagedEnvironment) {
+async function selectEnvironment(environment: ManagedEnvironment) {
+  if (dirty.value && !(await discardEnvironmentChanges())) return
   selectedId.value = environment.document.id
   editing.value = false
 }
@@ -98,7 +110,8 @@ function setTeamSize(key: 'minSize' | 'maxSize', value: string) {
 }
 const clone = (value: ManagedEnvironmentDocument): ManagedEnvironmentDocument => JSON.parse(JSON.stringify(value))
 
-function edit(environment?: ManagedEnvironment) {
+async function edit(environment?: ManagedEnvironment) {
+  if (dirty.value && !(await discardEnvironmentChanges())) return false
   if (environment) selectedId.value = environment.document.id
   revision.value = environment?.revision ?? null
   document.value = environment
@@ -107,7 +120,9 @@ function edit(environment?: ManagedEnvironment) {
   packageRows.value = Object.entries(document.value.packages).map(([name, version]) => ({ name, version }))
   sourceText.value = document.value.sources.join('\n')
   validation.value = ''
+  originalDraft.value = draftValue()
   editing.value = true
+  return true
 }
 function save() {
   if (!document.value) return
@@ -135,14 +150,17 @@ function save() {
   <section class="environment-workspace" aria-label="环境工作区">
     <header class="section-heading">
       <h2>{{ heading ?? '环境' }}</h2>
-      <ElButton
-        :disabled="!canEdit || busy"
-        :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
-        @click="edit()"
-        native-type="button"
-      >
-        新建环境
-      </ElButton>
+      <div class="actions">
+        <slot name="toolbar" />
+        <ElButton
+          :disabled="!canEdit || busy"
+          :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
+          @click="edit()"
+          native-type="button"
+        >
+          新建环境
+        </ElButton>
+      </div>
     </header>
     <p v-if="!canEdit" class="hint">无编辑权限。</p>
     <div class="workspace-columns">
@@ -150,6 +168,7 @@ function save() {
         <ElButton
           v-for="environment in environments"
           :key="environment.document.id"
+          :disabled="busy"
           :aria-current="selectedEnvironment?.document.id === environment.document.id ? 'true' : undefined"
           @click="selectEnvironment(environment)"
           native-type="button"
@@ -386,10 +405,11 @@ function save() {
             <ElButton class="primary" :disabled="busy || !canEdit || !canPrepare" native-type="submit" type="primary"
               >保存并应用</ElButton
             >
-            <ElButton @click="editing = false" native-type="button">关闭编辑</ElButton>
+            <ElButton @click="closeEditor" native-type="button">关闭编辑</ElButton>
           </div>
         </ElForm>
         <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
+          <ElButton v-if="canExport" :disabled="busy" @click="emit('export', latestVersion)">导出环境</ElButton>
           <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
           <ElButton v-if="showUseActions !== false" :disabled="busy || !canUse" @click="emit('use', latestVersion)"
             >服务器使用</ElButton
@@ -401,6 +421,7 @@ function save() {
             >P2P 使用</ElButton
           >
         </section>
+        <slot v-if="selectedEnvironment && !editing" name="detail" :environment="selectedEnvironment" />
       </div>
     </div>
   </section>
@@ -452,6 +473,7 @@ function save() {
   min-width: 0;
 }
 .environment-detail .section-heading {
+  flex-wrap: wrap;
   margin: 16px 0 12px;
 }
 .members h4 {
@@ -516,6 +538,7 @@ function save() {
 }
 
 .section-heading {
+  flex-wrap: wrap;
   display: flex;
   justify-content: space-between;
   align-items: center;

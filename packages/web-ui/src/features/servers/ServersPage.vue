@@ -258,7 +258,7 @@ async function copy(value: string) {
           </button>
           <RouterLink class="server-link" to="/management?target=local&tab=server">管理后台</RouterLink>
           <RouterLink class="server-link" to="/management?target=local&tab=network">网络与容量</RouterLink>
-          <RouterLink to="/management?target=local&tab=environments">玩法与版本</RouterLink>
+          <RouterLink to="/content?target=local&tab=environments">内容包与环境</RouterLink>
           <button @click="operate({ action: 'stop' })">等待对局结束后停止</button>
         </div>
         <div v-if="summary?.pendingRestart?.length" class="server-notice server-gap">

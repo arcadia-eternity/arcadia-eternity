@@ -4,6 +4,7 @@ import type { ManagementController } from './useManagementController'
 
 const { controller } = defineProps<{ controller: ManagementController }>()
 const {
+  target,
   server,
   bindings,
   players,
@@ -21,10 +22,13 @@ const {
 <template>
   <section v-if="tab === 'server' && server" aria-label="服务器管理">
     <div class="overview-stats">
-      <ElButton @click="tab = 'environments'" native-type="button">
-        <strong>{{ bindings.filter(item => item.enabled && item.condition === 'available').length }}</strong
-        >运行环境
-      </ElButton>
+      <RouterLink
+        :to="{ path: '/content', query: { target: target === 'local' ? 'local' : 'server', tab: 'environments' } }"
+        ><ElButton native-type="button">
+          <strong>{{ bindings.filter(item => item.enabled && item.condition === 'available').length }}</strong
+          >运行环境
+        </ElButton></RouterLink
+      >
       <ElButton :disabled="!isAdministrator" @click="tab = 'battles'" native-type="button">
         <strong>{{ server.activeBattles ?? '—' }}</strong
         >活跃对战

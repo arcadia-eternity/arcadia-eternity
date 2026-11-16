@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub, type VueWrapper } from '@vue/test-utils'
 import ManagementEnvironments from '../ManagementEnvironments.vue'
 import ManagementPermissions from '../ManagementPermissions.vue'
+import ServerEnvironmentPanel from '@/features/content/ServerEnvironmentPanel.vue'
 import ManagementConsole from '../ManagementConsole.vue'
 import type { ManagementIpcRequest } from '@/services/managementClient'
 import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@/types/management'
@@ -104,6 +105,16 @@ async function open(request = bridge()) {
   await flushPromises()
   return { page, request }
 }
+async function openEnvironment(request = bridge()) {
+  vi.stubGlobal('arcadiaDesktop', { managementRequest: request })
+  const page = mount(ServerEnvironmentPanel, {
+    props: { target: 'local' },
+    global: { stubs: { RouterLink: RouterLinkStub } },
+  })
+  pages.push(page)
+  await flushPromises()
+  return { page, request }
+}
 beforeEach(() => vi.stubGlobal('arcadiaDesktop', undefined))
 afterEach(() => {
   pages.splice(0).forEach(page => page.unmount())
@@ -111,7 +122,7 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
-  it('moves environments between available and used, without adding the same environment twice', async () => {
+  it('updates usage for the selected environment without adding it twice', async () => {
     let used = false
     const request = vi.fn(async (input: ManagementIpcRequest) => {
       if (input.method === 'POST' && input.path.endsWith('/bindings')) used = true
@@ -122,28 +133,53 @@ describe('shared management console', () => {
       if (input.path.endsWith('/bindings') && !used) return { status: 200, body: { bindings: [] } }
       return { status: 200, body }
     })
-    const { page } = await open(request)
-    await page.setProps({ initialTab: 'environments' })
+    const { page } = await openEnvironment(request)
     await flushPromises()
-    const available = () => page.get('[aria-label="可用环境"]')
-    const usedPane = () => page.get('[aria-label="本服已使用"]')
-    expect(available().text()).toContain('好友环境 local')
-    expect(usedPane().text()).not.toContain('好友环境 local')
+    const usage = () => page.get('[aria-label="服务器使用"]')
+    expect(usage().text()).toContain('未使用')
     await button(page, '添加到本服').trigger('click')
     await flushPromises()
-    expect(available().text()).not.toContain('好友环境 local')
-    expect(usedPane().text()).toContain('好友环境 local')
+    expect(usage().text()).toContain('好友环境 local')
+    expect(button(page, '添加到本服')).toBeUndefined()
     const controller = page.findComponent(ManagementEnvironments).props('controller')
     await Promise.all([controller.useEnvironment(version()), controller.useEnvironment(version())])
     expect(
       request.mock.calls.filter(([input]) => input.method === 'POST' && input.path.endsWith('/bindings')),
     ).toHaveLength(1)
     expect(page.text()).not.toContain('P2P 使用')
-    await button(page, '移回可用环境').trigger('click')
+    await button(page, '停止使用').trigger('click')
     await button(page, '确认移除').trigger('click')
     await flushPromises()
-    expect(available().text()).toContain('好友环境 local')
-    expect(usedPane().text()).not.toContain('好友环境 local')
+    expect(usage().text()).toContain('未使用')
+    expect(button(page, '添加到本服')).toBeDefined()
+  })
+  it('shows and updates server usage only for the selected environment', async () => {
+    const second = { ...draft(), document: { ...draft().document, id: 'second', name: '第二环境' } }
+    const request = vi.fn(async (input: ManagementIpcRequest) => {
+      if (input.path.endsWith('/environments'))
+        return {
+          status: 200,
+          body: {
+            environments: [draft(), second],
+            installations: [
+              version(),
+              { ...version(), installationId: 'version-second', environmentId: 'second', document: second.document },
+            ],
+          },
+        }
+      return { status: 200, body: response(input.path) }
+    })
+    const { page } = await openEnvironment(request)
+    expect(page.get('[aria-label="服务器使用"]').text()).toContain('好友环境 local')
+    await page.get('[aria-label="选择环境"]').findAll('button')[1]!.trigger('click')
+    expect(page.get('[aria-label="服务器使用"]').text()).toContain('未使用')
+    expect(page.get('[aria-label="服务器使用"]').text()).not.toContain('好友环境 local')
+    await button(page, '添加到本服').trigger('click')
+    await flushPromises()
+    const write = request.mock.calls
+      .map(([input]) => input)
+      .find(input => input.method === 'POST' && input.path.endsWith('/bindings'))
+    expect(write?.body).toMatchObject({ environmentId: 'second' })
   })
   it('adds and removes administrators with one revision-checked request each', async () => {
     const { page, request } = await open()
@@ -228,8 +264,7 @@ describe('shared management console', () => {
   })
 
   it('loads real-shaped IPC data and saves an edited draft with its captured revision', async () => {
-    const { page, request } = await open()
-    expect(page.get('.management-context').text()).toContain('本机服务器')
+    const { page, request } = await openEnvironment()
     expect(page.text()).toContain('好友环境 local')
     await button(page, '编辑').trigger('click')
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('修改的环境')
@@ -243,7 +278,7 @@ describe('shared management console', () => {
   })
 
   it('creates a draft with an explicit absent revision then prepares the existing revision', async () => {
-    const { page, request } = await open()
+    const { page, request } = await openEnvironment()
     await button(page, '新建环境').trigger('click')
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('新环境')
     await page.get('input[placeholder="friends"]').setValue('new-env')
@@ -277,7 +312,7 @@ describe('shared management console', () => {
         return { status: 200, body: { environments: [current], installations: [version()] } }
       return { status: 200, body: response(input.path) }
     })
-    const { page } = await open(request)
+    const { page } = await openEnvironment(request)
     await button(page, '编辑').trigger('click')
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('第一次修改')
     await page.get('form.environment-editor').trigger('submit')
@@ -297,7 +332,7 @@ describe('shared management console', () => {
         ? { status: 412, body: { error: { code: 'REVISION_CONFLICT', message: '资源已被另一管理员更新' } } }
         : { status: 200, body: response(input.path) },
     )
-    const { page } = await open(request)
+    const { page } = await openEnvironment(request)
     await button(page, '编辑').trigger('click')
     await page.get('form.environment-editor').findAll('input')[0]!.setValue('尚未保存的内容')
     await page.get('form.environment-editor').trigger('submit')
@@ -311,8 +346,7 @@ describe('shared management console', () => {
   })
 
   it('publishes the selected fixed version with the binding revision rather than the server revision', async () => {
-    const { page, request } = await open()
-    await button(page, '运行环境').trigger('click')
+    const { page, request } = await openEnvironment()
     await button(page, '重新加载').trigger('click')
     await flushPromises()
     const published = request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/reload'))!
@@ -348,13 +382,45 @@ describe('shared management console', () => {
     const { page } = await open(request)
     await button(page, '当前部署服务器').trigger('click')
     await flushPromises()
-    expect(page.text()).toContain('好友环境 remote')
+    expect(page.text()).toContain('服务器 remote')
     completeLocal({ status: 200, body: response('/environments') })
     await flushPromises()
-    expect(page.text()).toContain('好友环境 remote')
-    expect(page.text()).not.toContain('好友环境 local')
+    expect(page.text()).toContain('服务器 remote')
+    expect(page.text()).not.toContain('服务器 local')
     expect(
       fetchMock.mock.calls.every(([url]) => String(url).startsWith('https://paired.example/api/management/v1/')),
     ).toBe(true)
+  })
+  it('returns to public browsing after remote authority expires without touching the desktop bridge', async () => {
+    let expired = false
+    const local = bridge()
+    vi.stubGlobal('arcadiaDesktop', { managementRequest: local })
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const path = String(url).replace('https://paired.example/api/management/v1', '')
+      if (expired)
+        return new Response(JSON.stringify({ error: { code: 'MANAGEMENT_UNAUTHENTICATED', message: '登录已过期' } }), {
+          status: 401,
+        })
+      return new Response(JSON.stringify(response(path, 'remote')), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const page = mount(ServerEnvironmentPanel, {
+      props: { target: 'server' },
+      global: { stubs: { RouterLink: RouterLinkStub, PublicEnvironments: { template: '<div>公开环境</div>' } } },
+    })
+    pages.push(page)
+    await flushPromises()
+    expect(page.text()).toContain('好友环境 remote')
+    expect(button(page, '编辑')).toBeDefined()
+    expired = true
+    await button(page, '刷新').trigger('click')
+    await flushPromises()
+    expect(button(page, '编辑')).toBeUndefined()
+    expect(page.text()).toContain('公开环境')
+    expect(button(page, '管理员登录')).toBeDefined()
+    expect(local).not.toHaveBeenCalled()
   })
 })

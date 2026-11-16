@@ -283,6 +283,8 @@ const managementRoute = useRoute()
 watch(
   () => authStore.isAccount,
   loggedIn => {
+    if (loggedIn && managementRoute.query.returnTo === 'content')
+      void managementRouter.replace('/content?target=server&tab=environments')
     if (loggedIn && managementRoute.query.returnTo === 'management')
       void managementRouter.replace('/management?target=server')
   },

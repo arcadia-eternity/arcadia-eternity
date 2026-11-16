@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import { ElButton, ElDrawer } from 'element-plus'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import ServerEnvironmentPanel from './ServerEnvironmentPanel.vue'
+import { useLocalServerStore } from '@/stores/localServer'
+import EnvironmentImportDialog from '@/features/management/EnvironmentImportDialog.vue'
 import EnvironmentWorkspace from '@/features/management/EnvironmentWorkspace.vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
+const localServer = useLocalServerStore()
+const canImportSources = !!window.arcadiaDesktop?.contentPackageAction
 interface Job {
   id: string
   kind: string
@@ -33,17 +39,22 @@ const jobLabels: Record<string, string> = {
   cancelled: '已取消',
 }
 const snapshot = ref<Snapshot>({ workspaceId: '', environments: [], installations: [], operations: [] })
-const localTab = ref<'workspace' | 'tasks' | 'transfers'>('workspace')
+const tasksOpen = ref(false)
+const activeTasks = computed(
+  () => snapshot.value.operations.filter(job => ['queued', 'running'].includes(job.status)).length,
+)
 const busy = ref(false),
   error = ref(''),
   notice = ref(''),
   saveSequence = ref(0),
   allowDownload = ref(false)
-const selectedExport = ref(''),
-  importId = ref(''),
-  references = ref<unknown[]>()
+const importing = ref(false)
+function openImport() {
+  importing.value = true
+  error.value = ''
+}
+const references = ref<unknown[]>()
 const preparing = computed(() => snapshot.value.operations.some(job => ['queued', 'running'].includes(job.status)))
-const readyVersions = computed(() => snapshot.value.installations.filter(version => version.status === 'ready'))
 let disposed = false,
   timer: ReturnType<typeof setTimeout> | undefined
 let refreshSequence = 0
@@ -98,20 +109,20 @@ async function inspect(version: ManagedEnvironmentInstallation) {
     error.value = cause instanceof Error ? cause.message : '无法读取引用'
   }
 }
-async function exportEnvironment() {
-  if (!selectedExport.value || busy.value) return
+async function exportEnvironment(version: ManagedEnvironmentInstallation) {
+  if (busy.value) return
   busy.value = true
   error.value = ''
   let url: string | undefined
   try {
-    const bundle = await call({ action: 'export', installationId: selectedExport.value })
+    const bundle = await call({ action: 'export', installationId: version.installationId })
     if (disposed) return
     url = URL.createObjectURL(new Blob([JSON.stringify(bundle)], { type: 'application/json' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = `environment-${selectedExport.value}.json`
+    link.download = `environment-${version.installationId}.json`
     link.click()
-    notice.value = '环境文件已导出，可在目标服务器的环境库中导入并发布。'
+    notice.value = '环境已导出。'
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '导出失败'
   } finally {
@@ -119,31 +130,29 @@ async function exportEnvironment() {
     if (!disposed) busy.value = false
   }
 }
-async function importFile(event: Event) {
-  const input = event.target as HTMLInputElement,
-    file = input.files?.[0]
-  input.value = ''
-  if (!file) return
-  if (file.size > 128 * 1024 * 1024) {
-    error.value = '环境文件不能超过 128 MiB'
-    return
-  }
+async function importSources() {
+  if (busy.value) return
+  busy.value = true
+  error.value = ''
   try {
-    await run(
-      {
-        action: 'import',
-        bundle: JSON.parse(await file.text()),
-        ...(importId.value.trim() ? { environmentId: importId.value.trim() } : {}),
-      },
-      '已开始校验导入材料；不会覆盖同名环境。',
-    )
-  } catch {
-    error.value = '无法读取环境文件'
+    const result = await window.arcadiaDesktop!.contentPackageAction!({ action: 'import-sources' })
+    if (!disposed && typeof result === 'string') notice.value = result ? `已登记来源：${result}` : '来源登记已清空'
+  } catch (cause) {
+    if (!disposed) error.value = cause instanceof Error ? cause.message : '无法导入来源配置'
+  } finally {
+    if (!disposed) busy.value = false
+  }
+}
+async function importEnvironment(input: { bundle: unknown; environmentId?: string }) {
+  if (await run({ action: 'import', ...input }, '正在导入环境。')) {
+    importing.value = false
+    tasksOpen.value = true
   }
 }
 onMounted(async () => {
   const poll = async () => {
     await refresh()
+    await localServer.refresh().catch(() => undefined)
     if (!disposed) timer = setTimeout(poll, preparing.value ? 1000 : 4000)
   }
   await poll()
@@ -155,22 +164,15 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="local-environments" aria-label="本机环境库">
-    <h2>本机环境库</h2>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <nav class="local-tabs" aria-label="环境工具">
-      <button :aria-pressed="localTab === 'workspace'" @click="localTab = 'workspace'">环境组合</button
-      ><button :aria-pressed="localTab === 'tasks'" @click="localTab = 'tasks'">
-        准备任务 {{ preparing ? '· 处理中' : '' }}</button
-      ><button :aria-pressed="localTab === 'transfers'" @click="localTab = 'transfers'">导入与导出</button>
-    </nav>
-    <label v-if="localTab === 'workspace'" class="download-policy"
-      ><input v-model="allowDownload" type="checkbox" />允许下载缺失的第三方包</label
-    >
     <EnvironmentWorkspace
-      v-if="localTab === 'workspace'"
+      heading="本机环境库"
       :environments="snapshot.environments"
       :installations="snapshot.installations"
+      :can-export="true"
+      @export="exportEnvironment"
+      :show-use-actions="false"
       :can-edit="true"
       :can-prepare="true"
       :can-delete="true"
@@ -202,66 +204,75 @@ onBeforeUnmount(() => {
             '环境草稿已删除。',
           )
       "
-    />
+    >
+      <template #toolbar>
+        <ElButton @click="tasksOpen = true">任务{{ activeTasks ? `（${activeTasks}）` : '' }}</ElButton>
+        <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>
+      </template>
+      <template #detail="{ environment }">
+        <ServerEnvironmentPanel
+          v-if="localServer.running"
+          :key="environment.document.id"
+          target="local"
+          bindings-only
+          :environment-id="environment.document.id"
+        />
+      </template>
+    </EnvironmentWorkspace>
+    <EnvironmentImportDialog v-model="importing" :busy="busy || preparing" :error="error" @import="importEnvironment" />
+    <details class="source-settings">
+      <summary>内容来源</summary>
+      <label class="download-policy"><input v-model="allowDownload" type="checkbox" />允许下载缺失的第三方包</label>
+      <ElButton v-if="canImportSources" :disabled="busy" @click="importSources">导入来源配置</ElButton>
+    </details>
     <section v-if="references" class="panel" aria-label="本地版本引用">
       <h3>版本引用</h3>
       <p v-if="!references.length">没有引用，可删除此版本。</p>
       <pre v-else>{{ references }}</pre>
       <button @click="references = undefined">关闭引用</button>
     </section>
-    <section v-if="localTab === 'transfers'" class="panel" aria-label="环境导入导出">
-      <h3>在本机与服务器之间传递环境</h3>
-      <label
-        >导出的环境<select v-model="selectedExport">
-          <option value="">选择版本</option>
-          <option v-for="version in readyVersions" :key="version.installationId" :value="version.installationId">
-            {{ version.document.name }} · {{ new Date(version.createdAt).toLocaleString() }}
-          </option>
-        </select></label
-      >
-      <button :disabled="busy || !selectedExport" @click="exportEnvironment">导出环境文件</button>
-      <label>导入为新环境标识（可选）<input v-model="importId" placeholder="保留原标识；不能与现有环境重名" /></label>
-      <label
-        >导入环境文件<input
-          type="file"
-          accept="application/json,.json"
-          :disabled="busy || preparing"
-          @change="importFile"
-      /></label>
-    </section>
-    <section v-if="localTab === 'tasks'" class="panel" aria-label="本地环境任务">
-      <h3>下载与准备任务</h3>
-      <button @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</button>
-      <p v-if="!snapshot.operations.length">暂无任务。</p>
-      <article v-for="job in snapshot.operations" :key="job.id">
-        <span>{{ job.kind === 'environment.apply' ? '保存并应用' : '导入环境' }} · {{ jobLabels[job.status] }}</span>
-        <button
-          v-if="['queued', 'running'].includes(job.status)"
-          @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')"
-        >
-          取消任务
-        </button>
-        <p v-if="job.progress">{{ stageLabels[job.progress.stage] ?? job.progress.stage }}</p>
-        <progress v-if="job.status === 'running'" aria-label="正在处理" />
-        <button
-          v-if="['failed', 'cancelled'].includes(job.status)"
-          @click="run({ action: 'retry', operationId: job.id }, '已重新加入队列。')"
-        >
-          重试
-        </button>
-        <p v-if="job.error" class="error">{{ contentTaskError(job.error) }}</p>
-      </article>
-    </section>
+    <ElDrawer v-model="tasksOpen" title="环境任务" size="min(680px, 100vw)" append-to-body
+      ><section class="panel" aria-label="本地环境任务">
+        <h3>下载与准备任务</h3>
+        <button @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</button>
+        <p v-if="!snapshot.operations.length">暂无任务。</p>
+        <article v-for="job in snapshot.operations" :key="job.id">
+          <span>{{ job.kind === 'environment.apply' ? '保存并应用' : '导入环境' }} · {{ jobLabels[job.status] }}</span>
+          <button
+            v-if="['queued', 'running'].includes(job.status)"
+            @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')"
+          >
+            取消任务
+          </button>
+          <p v-if="job.progress">{{ stageLabels[job.progress.stage] ?? job.progress.stage }}</p>
+          <progress v-if="job.status === 'running'" aria-label="正在处理" />
+          <button
+            v-if="['failed', 'cancelled'].includes(job.status)"
+            @click="run({ action: 'retry', operationId: job.id }, '已重新加入队列。')"
+          >
+            重试
+          </button>
+          <p v-if="job.error" class="error">{{ contentTaskError(job.error) }}</p>
+        </article>
+      </section></ElDrawer
+    >
   </section>
 </template>
 <style scoped>
+.source-settings {
+  margin: 16px 0;
+}
+.source-settings summary {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
 .local-tabs {
   display: flex;
   gap: 8px;
 }
 .local-tabs button[aria-pressed='true'] {
-  background: #eff6ff;
-  border-color: #2563eb;
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
 }
 .local-environments :deep(.environment-workspace) {
   flex: 1;
@@ -277,7 +288,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: calc(100dvh - 230px);
   min-height: 0;
-  color: #243042;
+  color: var(--el-text-color-primary);
 }
 .download-policy {
   display: flex;
@@ -285,11 +296,11 @@ onBeforeUnmount(() => {
   margin: 16px 0;
 }
 .panel {
-  border: 1px solid #dce2ea;
+  border: 1px solid var(--el-border-color);
   border-radius: 10px;
   padding: 18px;
   margin: 20px 0;
-  background: white;
+  background: var(--el-bg-color);
 }
 .panel h3 {
   font-size: 17px;
@@ -305,7 +316,7 @@ onBeforeUnmount(() => {
 .panel select {
   font: inherit;
   padding: 8px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--el-border-color);
   border-radius: 6px;
 }
 .panel article {
@@ -314,7 +325,7 @@ onBeforeUnmount(() => {
 }
 .panel button {
   margin: 6px;
-  background: white;
+  background: var(--el-bg-color);
 }
 .error {
   color: #b42318;

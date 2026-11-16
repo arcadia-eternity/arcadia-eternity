@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
-import ContentManagerPage from '../ContentManagerPage.vue'
+import ContentManagerPage from '../ContentPackagesPanel.vue'
 import type { ContentLibrarySnapshot, InstalledContentPackage, ContentPackageAction } from '@/types/contentPackages'
 
 const { read, list } = vi.hoisted(() => ({ read: vi.fn(), list: vi.fn() }))

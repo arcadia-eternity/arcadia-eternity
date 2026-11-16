@@ -52,7 +52,7 @@ export function serverBackupDownload(operation: ManagementOperation) {
 }
 
 /** Each async operation captures a client; results cannot cross a management target switch. */
-export function useManagementConsole() {
+export function useManagementConsole(scope: 'server' | 'content' = 'server') {
   const client = shallowRef<ManagementClient>()
   const capabilities = ref<ManagementCapabilities>()
   const servers = ref<ManagedServer[]>([])
@@ -84,6 +84,7 @@ export function useManagementConsole() {
   const isAdministrator = computed(() => capabilities.value?.isAdministrator === true)
   const canBackup = computed(
     () =>
+      scope === 'server' &&
       !!capabilities.value?.supportedFeatures.includes('server.backup') &&
       isAdministrator.value &&
       isAdministrator.value,
@@ -232,22 +233,22 @@ export function useManagementConsole() {
         supports('operations')
           ? current.request<{ operations: ManagementOperation[] }>('GET', '/operations')
           : Promise.resolve({ operations: [] }),
-        supports('administrators') && cap.isAdministrator
+        scope === 'server' && supports('administrators') && cap.isAdministrator
           ? current.request<AdministratorList>('GET', '/administrators')
           : Promise.resolve({ revision: 0, administrators: [] }),
-        supports('accounts') && cap.isAdministrator
+        scope === 'server' && supports('accounts') && cap.isAdministrator
           ? accountWindow()
           : Promise.resolve({ accounts: [], nextCursor: undefined }),
-        supports('credentials')
+        scope === 'server' && supports('credentials')
           ? current.request<{ credentials: ManagedServiceCredential[] }>('GET', '/credentials')
           : Promise.resolve({ credentials: [] }),
-        supports('server.players') && cap.isAdministrator
+        scope === 'server' && supports('server.players') && cap.isAdministrator
           ? liveWindow<ManagedPlayer>('players', player => player.seatId)
           : Promise.resolve([]),
-        supports('server.battles') && cap.isAdministrator
+        scope === 'server' && supports('server.battles') && cap.isAdministrator
           ? liveWindow<ManagedBattle>('battles', battle => battle.id)
           : Promise.resolve([]),
-        supports('audit') && cap.isAdministrator
+        scope === 'server' && supports('audit') && cap.isAdministrator
           ? current.request<{ entries: ManagementAuditEntry[] }>('GET', '/audit')
           : Promise.resolve({ entries: [] }),
       ])
@@ -257,7 +258,12 @@ export function useManagementConsole() {
       environments.value = envRows.environments
       installations.value = envRows.installations
       bindings.value = bindingRows.bindings
-      operations.value = operationRows.operations
+      operations.value =
+        scope === 'content'
+          ? operationRows.operations.filter(
+              operation => operation.kind.startsWith('environment.') || operation.kind === 'binding.reload',
+            )
+          : operationRows.operations
       administrators.value = administratorRows
       credentials.value = credentialRows.credentials
       accounts.value = accountRows.accounts

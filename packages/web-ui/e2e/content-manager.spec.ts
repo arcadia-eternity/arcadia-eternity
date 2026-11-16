@@ -82,7 +82,7 @@ test('content choices converge without apply controls or restarting the running 
     })
   })
   await page.goto('/content')
-  const main = page.locator('main.content-page')
+  const main = page.locator('.content-page')
   await expect(page.getByRole('heading', { name: '内容包', exact: true })).toBeVisible()
   await page.getByRole('button', { name: /创作测试内容/ }).click()
   await page.getByRole('tab', { name: '依赖', exact: true }).click()
@@ -115,13 +115,149 @@ test('browser content is read-only and desktop authoring and host routes stay cl
   )
   await page.route('**/api/v1/environments', route => route.fulfill({ json: { protocolVersion: 1, environments: [] } }))
   await page.goto('/content')
-  await expect(page.locator('main.content-page .scope')).toHaveText('只读')
+  await expect(page.locator('.content-page .scope')).toHaveText('只读')
   await expect(page.getByRole('button', { name: '添加内容包', exact: true })).toHaveCount(0)
-  await expect(page.locator('main.content-page input[type=checkbox]')).toHaveCount(0)
-  await expect(page.locator('main.content-page')).toContainText('服务器暂无公开环境')
+  await expect(page.locator('.content-page input[type=checkbox]')).toHaveCount(0)
+  await expect(page.locator('.content-page')).toContainText('服务器暂无公开环境')
   for (const route of ['/content/edit', '/content/development', '/settings/local-service']) {
     await page.goto(route)
     await expect(page.getByRole('heading', { name: '本地内容工具', exact: true })).toBeVisible()
     await expect(page.locator('main button')).toHaveCount(0)
   }
+})
+
+test('environment import and export share the content entry and stay scoped to the selected location', async ({
+  page,
+}, testInfo) => {
+  await page.route('**/api/v1/environments', route => route.fulfill({ json: { protocolVersion: 1, environments: [] } }))
+  await page.route('**/api/management/v1/**', route =>
+    route.fulfill({ status: 401, json: { error: { code: 'MANAGEMENT_UNAUTHENTICATED', message: '需要登录' } } }),
+  )
+  await page.addInitScript(() => {
+    const document = {
+      schemaVersion: 2,
+      id: 'friends',
+      name: '好友环境',
+      packages: {},
+      sources: [],
+      rules: { schemaVersion: 1 },
+      requires: {},
+    }
+    const installation = {
+      installationId: 'local-version',
+      environmentId: 'friends',
+      draftRevision: 'draft-1',
+      status: 'ready',
+      document,
+      createdAt: 1,
+      contentRevision: 'revision',
+      members: [],
+    }
+    const calls: Record<string, unknown>[] = []
+    Object.assign(window, {
+      environmentCalls: calls,
+      arcadiaDesktop: {
+        getLocalServerPort: async () => null,
+        prepareLocalContent: async () => ({
+          token: 'test-metadata',
+          content: { species: [], skills: [], marks: [] },
+          environment: { revision: 'test', data: { species: [], skills: [], marks: [] }, modules: [] },
+        }),
+        releaseLocalContent: async () => {},
+        listCachedPets: async () => [],
+        getAppVersion: async () => 'test',
+
+        localEnvironment: async (input: Record<string, unknown>) => {
+          calls.push(input)
+          if (input.action === 'snapshot')
+            return {
+              result: {
+                workspaceId: 'local',
+                environments: [{ document, revision: 'draft-1' }],
+                installations: [installation],
+                operations: [],
+              },
+            }
+          if (input.action === 'export')
+            return {
+              result: { format: 'arcadia.environment-export/2', document, files: [], contentRevision: 'revision' },
+            }
+          return { result: { id: 'import-task' } }
+        },
+      },
+    })
+  })
+  await page.goto('/content?target=local&tab=environments')
+  const hub = page.locator('.content-hub')
+  await expect(hub.getByRole('heading', { name: '好友环境', exact: true })).toBeVisible()
+  await hub.getByRole('button', { name: '编辑', exact: true }).click()
+  await hub.locator('form.environment-editor input').first().fill('未保存名称')
+  await hub.getByRole('button', { name: '任务', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: '环境任务', exact: true })
+    .getByRole('button', { name: 'Close this dialog' })
+    .click()
+  await expect(hub.locator('form.environment-editor input').first()).toHaveValue('未保存名称')
+  await hub.getByLabel('内容位置').selectOption('server')
+  await page.getByRole('button', { name: '继续编辑', exact: true }).click()
+  await expect(hub.getByLabel('内容位置')).toHaveValue('local')
+  await expect(hub.locator('form.environment-editor input').first()).toHaveValue('未保存名称')
+  await hub.getByRole('button', { name: '关闭编辑', exact: true }).click()
+  await page.getByRole('button', { name: '放弃修改', exact: true }).click()
+  await expect(hub.getByRole('button', { name: '导出环境', exact: true })).toBeVisible()
+  const download = page.waitForEvent('download')
+  await hub.getByRole('button', { name: '导出环境', exact: true }).click()
+  expect((await download).suggestedFilename()).toBe('environment-local-version.json')
+  await hub.getByRole('button', { name: '导入环境', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: '导入环境', exact: true })
+    .locator('input[type=file]')
+    .setInputFiles({
+      name: 'environment.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(
+        JSON.stringify({
+          format: 'arcadia.environment-export/2',
+          document: { schemaVersion: 2, id: 'imported', name: '导入环境', packages: {} },
+          files: [],
+          contentRevision: 'revision',
+        }),
+      ),
+    })
+  await expect(page.getByRole('button', { name: '确认导入新环境' })).toBeVisible()
+  await expect(page.locator('.dialog-fade-enter-active')).toHaveCount(0)
+  await page.screenshot({ path: testInfo.outputPath('environment-desktop.png'), fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.evaluate(() => document.documentElement.classList.add('dark'))
+  await expect(page.getByRole('button', { name: '确认导入新环境' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  const confirmBox = await page.getByRole('button', { name: '确认导入新环境' }).boundingBox()
+  expect(confirmBox!.y + confirmBox!.height).toBeLessThan(844)
+  await expect(page.getByRole('button', { name: '更换文件' })).toBeVisible()
+  expect(
+    await page.locator('.el-dialog input[type=file]').evaluate((input: HTMLInputElement) => input.files?.length),
+  ).toBe(1)
+  await page.screenshot({ path: testInfo.outputPath('environment-mobile-dark.png'), fullPage: true })
+  await page.getByRole('button', { name: '确认导入新环境' }).click()
+  await expect(page.getByRole('heading', { name: '下载与准备任务' })).toBeVisible()
+  const calls = await page.evaluate(
+    () => (window as unknown as { environmentCalls: Record<string, unknown>[] }).environmentCalls,
+  )
+  expect(calls.filter(input => input.action === 'import')).toHaveLength(1)
+  expect(calls.find(input => input.action === 'export')).toMatchObject({ installationId: 'local-version' })
+  await page
+    .getByRole('dialog', { name: '环境任务', exact: true })
+    .getByRole('button', { name: 'Close this dialog' })
+    .click()
+  await hub.getByLabel('内容位置').selectOption('server')
+  await expect(hub.getByRole('button', { name: '管理员登录', exact: true })).toBeVisible()
+  await expect(hub.getByRole('button', { name: '导入环境', exact: true })).toHaveCount(0)
+  await expect(hub.getByRole('heading', { name: '公开环境', exact: true })).toBeVisible()
+  await hub.getByLabel('内容位置').selectOption('local')
+  await expect(hub.getByRole('heading', { name: '好友环境', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '确认导入新环境' })).toHaveCount(0)
+  await page.goto('/management?target=local&tab=environments')
+  await expect(page).toHaveURL(/\/content\?target=local&tab=environments$/)
+  await expect(page.locator('.content-hub').getByRole('heading', { name: '好友环境', exact: true })).toBeVisible()
 })

@@ -358,3 +358,50 @@ describe('management console authentication and mutations', () => {
     expect(console.environments.value).toEqual([])
   })
 })
+
+describe('content management data scope', () => {
+  it('loads environments and bindings without requesting unrelated administration data', async () => {
+    const state = useManagementConsole('content')
+    const stub = stubClient('content', async (_method, path) => {
+      if (path === '/capabilities')
+        return {
+          ...capabilities('content'),
+          supportedFeatures: [
+            'workspace.environments',
+            'server.bindings',
+            'operations',
+            'administrators',
+            'accounts',
+            'credentials',
+            'server.players',
+            'server.battles',
+            'audit',
+            'server.backup',
+          ],
+        }
+      if (path === '/operations')
+        return {
+          operations: [
+            { id: 'import', kind: 'environment.import', status: 'succeeded' },
+            { id: 'backup', kind: 'server.backup', status: 'succeeded' },
+          ],
+        }
+      return rows('content', path)
+    })
+    state.setClient(stub.client)
+    await state.refresh()
+    expect(state.error.value).toBe('')
+    expect(stub.request.mock.calls.map(([, path]) => path).sort()).toEqual(
+      [
+        '/capabilities',
+        '/operations',
+        '/servers',
+        '/servers/content/bindings',
+        '/workspaces/workspace-content/environments',
+      ].sort(),
+    )
+    expect(state.operations.value.map(operation => operation.id)).toEqual(['import'])
+    expect(state.canBackup.value).toBe(false)
+    expect(state.environments.value).toHaveLength(1)
+  })
+})

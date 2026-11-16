@@ -35,7 +35,15 @@ const routes: RouteRecordRaw[] = [
     path: '/management',
     name: 'Management',
     component: () => import('@/features/management/ManagementPage.vue'),
-    meta: { title: '环境与服务器管理' },
+    beforeEnter: to =>
+      to.query.tab === 'environments'
+        ? {
+            path: '/content',
+            query: { target: to.query.target === 'local' ? 'local' : 'server', tab: 'environments' },
+            replace: true,
+          }
+        : true,
+    meta: { title: '服务器管理' },
   },
   {
     path: '/content/preview',

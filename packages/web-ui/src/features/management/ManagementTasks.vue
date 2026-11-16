@@ -17,7 +17,7 @@ import {
 import type { ManagementController } from './useManagementController'
 import type { ManagementOperation } from '@/types/management'
 import { serverBackupDownload } from './useManagementConsole'
-const { controller } = defineProps<{ controller: ManagementController }>()
+const { controller } = defineProps<{ controller: ManagementController; contentOnly?: boolean }>()
 const {
   state,
   operations,
@@ -90,8 +90,8 @@ const statusType = (value: string) =>
         : 'info'
 </script>
 <template>
-  <section v-if="tab === 'tasks'" aria-label="管理任务">
-    <h2>操作记录与备份</h2>
+  <section v-if="contentOnly || tab === 'tasks'" aria-label="管理任务">
+    <h2>{{ contentOnly ? '环境任务' : '操作记录与备份' }}</h2>
     <ElCard v-if="canBackup" shadow="never" class="server-backup">
       <div class="actions">
         <strong>服务器备份</strong>
@@ -197,7 +197,7 @@ const statusType = (value: string) =>
           hide-on-single-page
         />
       </ElTabPane>
-      <ElTabPane v-if="supported('audit')" label="审计记录" name="audit">
+      <ElTabPane v-if="!contentOnly && supported('audit')" label="审计记录" name="audit">
         <ElTable :data="visibleAudit" row-key="id" stripe empty-text="没有符合条件的管理操作。">
           <ElTableColumn label="操作" min-width="160">
             <template #default="{ row }">{{ auditLabels[row.action] ?? row.action }}</template>
