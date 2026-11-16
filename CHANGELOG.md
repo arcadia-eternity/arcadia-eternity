@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.5.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.0...arcadia-eternity-v4.5.1) (2026-11-16)
+
+
+### 🐛 Bug Fixes
+
+* **web:** add complete administrator preset and editable grants ([99666a2](https://github.com/arcadia-eternity/arcadia-eternity/commit/99666a2a9dd5bd884265351a698aee21e531c20f))
+
 ## [4.5.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.4.2...arcadia-eternity-v4.5.0) (2026-11-16)
 
 
