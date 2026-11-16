@@ -19,7 +19,7 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 }, 30_000)
 
-async function setup() {
+async function setup(builtin = false) {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-binding-integration-'))
   cleanups.push(() => rm(directory, { recursive: true, force: true }))
   const source = await stageShippedCatalog(directory)
@@ -46,6 +46,7 @@ async function setup() {
       port: 0,
       serverId: 'binding-server',
       management: {
+        ...(builtin ? { initialization: { kind: 'builtin' as const, environmentId: 'shared' } } : {}),
         storage,
         workspace,
         prepareEnvironment: (input, validator: StaticPreparer) =>
@@ -367,4 +368,36 @@ it('changes execution mode on the existing binding without creating another one'
         .toBe(true)
     }
   }
+}, 30_000)
+
+it('protects the builtin environment and installation even when no server binding uses it', async () => {
+  const f = await setup(true)
+  const draft = await f.draft('Builtin', null)
+  await f.prepare(draft.revision)
+  const current = await f.workspace.getDraft('shared')
+  const workspacePath = `/workspaces/${f.workspace.workspaceId}`
+  const listed = await f.request<{ environments: { builtin?: boolean }[] }>({
+    method: 'GET',
+    path: `${workspacePath}/environments`,
+  })
+  for (const path of ['environments/shared', 'installations/shared']) {
+    await expect(
+      f.service.request(f.owner.actor, {
+        method: 'DELETE',
+        path: `${workspacePath}/${path}`,
+        headers: { 'if-match': current.revision },
+      }),
+    ).rejects.toMatchObject({ code: 'BUILTIN_ENVIRONMENT_REQUIRED', status: 409 })
+  }
+  expect(listed.environments[0].builtin).toBe(true)
+  expect((await f.workspace.getDraft('shared')).revision).toBe(current.revision)
+  expect((await f.workspace.getInstallation('shared')).status).toBe('ready')
+  expect(await f.storage.list('bindings')).toHaveLength(0)
+  const copy = await f.workspace.saveDraft({ document: { ...draft.document, id: 'copy' }, expectedRevision: null })
+  await f.request({
+    method: 'DELETE',
+    path: `${workspacePath}/environments/copy`,
+    headers: { 'if-match': copy.revision },
+  })
+  expect((await f.workspace.listDrafts()).map(item => item.document.id)).toEqual(['shared'])
 }, 30_000)

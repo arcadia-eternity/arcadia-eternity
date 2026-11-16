@@ -51,6 +51,16 @@ afterEach(() => {
 })
 
 describe('shared environment workspace', () => {
+  it('hides deletion for builtin environments but allows deleting user environments', async () => {
+    const builtin = { ...environment(), builtin: true }
+    const { page } = open({ environments: [builtin] })
+    expect(page.findAll('button').some(item => item.text() === '删除环境')).toBe(false)
+    expect(button(page, '复制环境').exists()).toBe(true)
+    await page.setProps({ environments: [environment()] })
+    await button(page, '删除环境').trigger('click')
+    await button(page, '确认删除环境').trigger('click')
+    expect(page.emitted('deleteDraft')).toHaveLength(1)
+  })
   it('edits reactive input without changing the source and preserves rules and compatibility requirements', async () => {
     const { page, draft } = open()
     await button(page, '编辑').trigger('click')

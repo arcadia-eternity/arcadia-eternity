@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.5.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.2...arcadia-eternity-v4.5.3) (2026-11-16)
+
+
+### 🐛 Bug Fixes
+
+* prevent deletion of builtin environments ([5519fbd](https://github.com/arcadia-eternity/arcadia-eternity/commit/5519fbdc75d072c89c21c5b476a91567f01ef2dd))
+
 ## [4.5.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.1...arcadia-eternity-v4.5.2) (2026-11-16)
 
 

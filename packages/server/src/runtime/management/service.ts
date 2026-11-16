@@ -856,13 +856,16 @@ export class ManagementService {
           const builtinId = await this.builtinEnvironmentId()
           return ok({
             environments: (await this.options.workspace.listDrafts()).map(draft =>
-              draft.document.id === builtinId ? { ...draft, requiredPackages: [shippedBasePackage] } : draft,
+              draft.document.id === builtinId
+                ? { ...draft, builtin: true, requiredPackages: [shippedBasePackage] }
+                : draft,
             ),
             installations: (await this.options.workspace.listInstallations()).map(safeInstallation),
           })
         }
         if (method === 'DELETE' && parts.length === 4) {
           await this.auth.authorize(actor, this.workspaceScope, 'delete')
+          if (parts[3] === (await this.builtinEnvironmentId())) fail('BUILTIN_ENVIRONMENT_REQUIRED', 409)
           if ((await this.bindings()).some(row => row.value.environmentId === parts[3])) fail('ENVIRONMENT_IN_USE', 409)
           await this.options.workspace.deleteDraft({
             environmentId: parts[3],
@@ -902,6 +905,9 @@ export class ManagementService {
       }
       if (parts[2] === 'installations' && parts.length === 4 && method === 'DELETE') {
         await this.auth.authorize(actor, this.workspaceScope, 'delete')
+        const installation = await this.options.workspace.getInstallation(parts[3])
+        if (installation.environmentId === (await this.builtinEnvironmentId()))
+          fail('BUILTIN_ENVIRONMENT_REQUIRED', 409)
         await this.options.workspace.clearInstallation(parts[3])
         return ok({ deleted: true })
       }
