@@ -170,7 +170,7 @@ test('paired production management backs up, revokes service credentials and ret
     await editor.getByLabel('标识', { exact: true }).fill('backup-acceptance')
     await editor.getByText('来源与规则', { exact: true }).click()
     await editor.getByLabel('已登记的来源包名（每行一个）').fill(catalogPackage)
-    await editor.getByRole('button', { name: '保存环境', exact: true }).click()
+    await editor.getByRole('button', { name: '保存并应用', exact: true }).click()
     await expect(editor).not.toBeVisible()
     await page
       .getByRole('navigation', { name: '选择环境' })
@@ -178,11 +178,11 @@ test('paired production management backs up, revokes service credentials and ret
       .click()
     const backupEnvironment = page.getByRole('region', { name: '环境工作区' })
     await expect(backupEnvironment.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
-    await backupEnvironment.getByRole('button', { name: '准备版本', exact: true }).click()
+    await page.getByRole('menuitem', { name: /^操作记录与备份/ }).click()
     const preparation = page
       .getByRole('region', { name: '管理任务' })
       .getByRole('row')
-      .filter({ has: page.getByRole('cell', { name: '准备环境', exact: true }) })
+      .filter({ has: page.getByRole('cell', { name: '保存并应用', exact: true }) })
     await expect(preparation.getByText('已完成', { exact: true })).toBeVisible({ timeout: 90000 })
     checks.push('real fixed environment prepared for backup materials')
 

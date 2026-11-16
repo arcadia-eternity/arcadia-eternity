@@ -225,7 +225,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       const editor = page.getByRole('form', { name: '编辑环境' })
       await editor.getByLabel('名称', { exact: true }).fill('安装保留环境')
       await editor.getByLabel('标识', { exact: true }).fill('installation-persistence')
-      await editor.getByRole('button', { name: '保存环境', exact: true }).click()
+      await editor.getByRole('button', { name: '保存并应用', exact: true }).click()
       await expect(editor).not.toBeVisible()
     }
     const environments = await request('GET', `/workspaces/${capabilities.workspaceId}/environments`)

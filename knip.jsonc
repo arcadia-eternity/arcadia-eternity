@@ -75,7 +75,7 @@
       },
     },
     "packs/base": {
-      "entry": ["effects.ts", "src/effects/**/*.effect.ts", "src/templates/*.effect.ts"],
+      "entry": ["effects.ts", "src/effects/**/*.effect.ts"],
     },
     "packages/server": {
       "vitest": {
