@@ -4,7 +4,6 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     let snapshot: Record<string, unknown> = { host: { status: 'idle' }, phase: 'idle', configured: false }
     const calls: unknown[] = []
-    const scope = { kind: 'server', id: 'desktop-test' }
     Object.assign(window, { serverUxCalls: calls })
     const server = {
       id: 'desktop-test',
@@ -68,7 +67,7 @@ test.beforeEach(async ({ page }) => {
                     serverId: server.id,
                     workspaceId: 'workspace',
                     supportedFeatures: ['server.bindings'],
-                    effectivePermissions: [{ scope, actions: ['read', 'settings.manage'] }],
+                    isAdministrator: true,
                     resourceRestrictions: [],
                   }
                 : input.path === '/servers'

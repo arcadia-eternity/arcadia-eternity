@@ -18,18 +18,12 @@ function deferred<T = unknown>() {
   return { promise, resolve, reject }
 }
 
-function capabilities(serverId: string, workspaceOnly = false): ManagementCapabilities {
+function capabilities(serverId: string, administrator = true): ManagementCapabilities {
   return {
     serverId,
     workspaceId: `workspace-${serverId}`,
-    supportedFeatures: ['workspace.environments', 'server.bindings', 'server.drain', 'operations', 'grants'],
-    effectivePermissions: [
-      {
-        scope: { kind: 'workspace', id: `workspace-${serverId}` },
-        actions: workspaceOnly ? ['read', 'environment.use'] : ['*'],
-      },
-      ...(workspaceOnly ? [] : [{ scope: { kind: 'server' as const, id: serverId }, actions: ['*'] }]),
-    ],
+    supportedFeatures: ['workspace.environments', 'server.bindings', 'server.drain', 'operations', 'administrators'],
+    isAdministrator: administrator,
     resourceRestrictions: [],
   }
 }
@@ -66,7 +60,7 @@ function rows(serverId: string, path: string) {
   if (path.endsWith('/bindings')) return { bindings: [] }
   if (path === '/operations')
     return { operations: [{ id: `operation-${serverId}`, kind: 'prepare', status: 'succeeded' }] }
-  if (path === '/grants') return { grants: [] }
+  if (path === '/administrators') return { revision: 1, administrators: [] }
   return undefined
 }
 
@@ -306,21 +300,17 @@ describe('management console authentication and mutations', () => {
     expect(mutations[2]![2]?.idempotencyKey).not.toBe(mutations[1]![2]?.idempotencyKey)
   })
 
-  it('loads workspace resources without requiring server-read permission', async () => {
+  it('does not fetch server or environment resources for a non-administrator', async () => {
     const a = stubClient('a', async (_method, path) => {
-      if (path === '/capabilities') return capabilities('a', true)
-      if (path === '/servers' || path.endsWith('/bindings') || path === '/grants')
-        throw new ManagementError('FORBIDDEN', '没有服务器管理权限', 403)
+      if (path === '/capabilities') return capabilities('a', false)
       return rows('a', path)
     })
     const console = useManagementConsole()
     console.setClient(a.client)
     await console.refresh()
-    expect(console.error.value).toBe('')
-    expect(console.environments.value[0]?.document.id).toBe('environment-a')
+    expect(console.isAdministrator.value).toBe(false)
+    expect(console.environments.value).toEqual([])
     expect(console.servers.value).toEqual([])
-    expect(console.can('workspace', 'read')).toBe(true)
-    expect(console.can('server', 'read')).toBe(false)
     expect(a.request.mock.calls.some(call => call[1] === '/servers')).toBe(false)
   })
 
@@ -345,7 +335,6 @@ describe('management console authentication and mutations', () => {
       console.installations,
       console.bindings,
       console.operations,
-      console.grants,
     ])
       expect(values.value).toEqual([])
     expect(console.error.value).toBe('管理会话已过期')

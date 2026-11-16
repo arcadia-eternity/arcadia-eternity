@@ -4,7 +4,8 @@ export interface ManagedServiceCredential {
   principalId: string
   createdAt: number
   expiresAt: number
-  permissions: { scope: ManagementScope; actions: string[] }[]
+  serverId: string
+  legacyRestricted: boolean
 }
 export interface ManagementScope {
   kind: 'workspace' | 'server'
@@ -14,7 +15,7 @@ export interface ManagementCapabilities {
   serverId: string
   workspaceId: string
   supportedFeatures: string[]
-  effectivePermissions: { scope: ManagementScope; actions: string[] }[]
+  isAdministrator: boolean
   resourceRestrictions: { resourceId?: string; action?: string; reason: string }[]
 }
 export interface ManagedServer {
@@ -125,12 +126,14 @@ export interface ManagementOperation {
   retryOf?: string
   rootOperationId?: string
 }
-export interface ManagementGrant {
-  id: string
-  revision: number
+export interface ManagedAdministrator {
   principalId: string
-  scope: ManagementScope
-  actions: string[]
+  displayName: string
+  accountId?: string
+}
+export interface AdministratorList {
+  revision: number
+  administrators: ManagedAdministrator[]
 }
 export interface ManagedAccount {
   accountId: string

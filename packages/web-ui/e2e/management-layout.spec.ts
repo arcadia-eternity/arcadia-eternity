@@ -52,6 +52,14 @@ for (const viewport of [
     await page.getByLabel('连接范围').press('ArrowDown')
     await page.getByRole('option', { name: '允许网络连接' }).click()
     await expect(page.locator('.el-select').filter({ has: page.getByLabel('连接范围') })).toContainText('允许网络连接')
+    if (viewport.width < 800) {
+      await page.getByRole('button', { name: '管理菜单' }).click()
+      await page.getByRole('dialog').getByRole('menuitem', { name: '管理员', exact: true }).click()
+    } else await page.getByRole('menuitem', { name: '管理员', exact: true }).click()
+    await expect(page.getByRole('heading', { name: '管理员', exact: true })).toBeVisible()
+    await expect(page.getByText('Owner', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '添加管理员', exact: true })).toBeVisible()
+    await expect(page.getByText('角色', { exact: true })).toHaveCount(0)
     expect(errors).toEqual([])
   })
 }

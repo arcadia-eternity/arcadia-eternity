@@ -1,3 +1,4 @@
+import { legacySession } from './fixtures/management'
 import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
 import { mkdtemp, readFile, readdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -13,7 +14,7 @@ import {
   type StaticPreparer,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import { workspaceRetentions } from '../../../bin/server-persistence'
-import { ManagementAuth, MANAGEMENT_ACTIONS } from '../src/runtime/management/auth'
+import { ManagementAuth } from '../src/runtime/management/auth'
 import { OperationService, type Operation, type OperationContext } from '../src/runtime/management/operations'
 import { ManagementTransfers } from '../src/runtime/management/transfers'
 import { validateWorkspaceProject } from '../src/runtime/management/service'
@@ -77,14 +78,10 @@ async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
     { environmentId: 'source', expectedRevision: draft.revision },
     validateWorkspaceProject,
   )
-  const auth = new ManagementAuth(storage)
+  const auth = new ManagementAuth(storage, { serverId: 'transfer-test', workspaceId: workspace.workspaceId })
   const scope = { kind: 'workspace' as const, id: workspace.workspaceId }
-  const owner = await auth.exchangeBootstrap(
-    (await auth.issueBootstrapCode([{ scope, actions: [...MANAGEMENT_ACTIONS.workspace] }], 'export-owner')).code,
-  )
-  const viewer = await auth.exchangeBootstrap(
-    (await auth.issueBootstrapCode([{ scope, actions: ['read'] }], 'viewer')).code,
-  )
+  const owner = await auth.exchangeBootstrap((await auth.issueBootstrapCode('export-owner')).code)
+  const viewer = await legacySession(auth, [{ scope, actions: ['read'] }], 'viewer')
   const operations = new OperationService(storage, { ownerId: 'transfer-test' })
   await operations.ready()
   cleanups.push(() => operations.close())
@@ -329,10 +326,12 @@ for (const driver of ['sqlite', 'postgres'] as const) {
           { environmentId: 'revoked', idempotencyKey: 'revoke-me' },
         )
         await entered.promise
-        const grant = (await env.auth.listGrants(env.owner.actor, env.scope)).find(
-          item => item.value.principalId === env.owner.actor.principalId,
-        )!
-        await env.auth.revokeGrant(env.owner.actor, grant.id, grant.revision)
+        const recovery = await env.auth.exchangeBootstrap((await env.auth.issueBootstrapCode('recovery')).code)
+        await env.auth.removeAdministrator(
+          recovery.actor,
+          env.owner.actor.principalId,
+          (await env.auth.listAdministrators(recovery.actor)).revision,
+        )
         proceed.resolve()
         const final = await complete(env.operations, operation.id)
         expect(final.status).toBe('failed')

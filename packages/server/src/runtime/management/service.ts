@@ -23,7 +23,7 @@ import type {
 import type { DurableStorage, StoredRecord, StorageTransaction } from '@arcadia-eternity/database'
 import {
   ManagementAuth,
-  MANAGEMENT_ACTIONS,
+  ManagementAuthError,
   managementScopeKey,
   type ManagementActor,
   type ManagementScope,
@@ -207,7 +207,10 @@ export class ManagementService {
   private readyPromise?: Promise<void>
   private closed = false
   constructor(readonly options: ManagementOptions) {
-    this.auth = new ManagementAuth(options.storage)
+    this.auth = new ManagementAuth(options.storage, {
+      serverId: options.serverId,
+      workspaceId: options.workspace.workspaceId,
+    })
     this.operations = new OperationService(options.storage, {
       bootId: this.bootId,
       ownerId: `${options.workspace.workspaceId}:${options.serverId}`,
@@ -269,12 +272,6 @@ export class ManagementService {
   get workspaceScope(): ManagementScope {
     return { kind: 'workspace', id: this.options.workspace.workspaceId }
   }
-  get ownerPermissions() {
-    return [this.serverScope, this.workspaceScope].map(scope => ({
-      scope,
-      actions: [...MANAGEMENT_ACTIONS[scope.kind]],
-    }))
-  }
   private exclusive<T>(action: () => Promise<T>): Promise<T> {
     const result = this.pending.catch(() => undefined).then(action)
     this.pending = result.catch(() => undefined)
@@ -307,6 +304,7 @@ export class ManagementService {
         },
       })
     else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
+    await this.auth.ready()
     await this.reconcile()
     this.collector = setInterval(() => {
       void this.exclusive(async () => {
@@ -603,13 +601,13 @@ export class ManagementService {
         'audit',
         'server.drain',
         'operations',
-        'grants',
+        'administrators',
         'credentials',
         ...(this.accounts.enabled ? ['accounts'] : []),
         ...(this.transfers ? ['workspace.transfers'] : []),
         ...(this.backups ? ['server.backup'] : []),
       ],
-      effectivePermissions: actor ? await this.auth.effectivePermissions(actor) : [],
+      isAdministrator: actor ? await this.auth.isAdministrator(actor) : false,
       resourceRestrictions: [],
     }
   }
@@ -723,8 +721,16 @@ export class ManagementService {
   }
   /** Called only by trusted private IPC; remote requests cannot select this authentication path. */
   async localRequest(request: ManagementRequest): Promise<ManagementResponse> {
+    if (this.localSession) {
+      try {
+        await this.auth.isAdministrator(this.localSession.actor)
+      } catch (error) {
+        if (!(error instanceof ManagementAuthError)) throw error
+        this.localSession = undefined
+      }
+    }
     if (!this.localSession || this.localSession.expiresAt <= Date.now() + 60_000) {
-      const issued = await this.auth.issueBootstrapCode(this.ownerPermissions, `local-owner:${this.options.serverId}`)
+      const issued = await this.auth.issueBootstrapCode(`local-owner:${this.options.serverId}`)
       this.localSession = await this.auth.exchangeBootstrap(issued.code)
     }
     try {
@@ -1112,10 +1118,15 @@ export class ManagementService {
       return ok(await this.backups.download(actor, parts[1]))
     if (parts[0] === 'operations') {
       if (parts.length === 1 && method === 'GET') {
-        const permissions = await this.auth.effectivePermissions(actor)
-        const scopes = new Set(
-          permissions.filter(p => p.actions.includes('read')).map(p => managementScopeKey(p.scope)),
-        )
+        const scopes = new Set<string>()
+        for (const scope of [this.serverScope, this.workspaceScope]) {
+          try {
+            await this.auth.authorize(actor, scope, 'read')
+            scopes.add(managementScopeKey(scope))
+          } catch (error) {
+            if (!(error instanceof ManagementAuthError) || error.status !== 403) throw error
+          }
+        }
         return ok({
           operations: (await this.operations.list()).filter(op => scopes.has(op.scope)).map(publicOperation),
         })
@@ -1183,60 +1194,19 @@ export class ManagementService {
         return ok(publicOperation(await this.operations.cancel(op.id)))
       }
     }
-    if (parts[0] === 'grants') {
-      if (parts.length === 1 && method === 'GET') {
-        const grants = []
-        for (const scope of [this.serverScope, this.workspaceScope]) {
-          try {
-            grants.push(...(await this.auth.listGrants(actor, scope)).map(flatten))
-          } catch (error) {
-            if ((error as { status?: number }).status !== 403) throw error
-          }
-        }
-        return ok({ grants })
-      }
-      if (parts.length === 1 && method === 'POST') {
-        const scope = object(input.scope) as unknown as ManagementScope
-        this.checkOwnedScope(scope)
-        return ok(
-          flatten(
-            await this.auth.grant(
-              actor,
-              { principalId: text(input.principalId), scope, actions: input.actions as string[] },
-              request.headers?.['if-match'] ? revision(request) : undefined,
-            ),
-          ),
-          201,
-        )
-      }
-      if (parts.length === 3 && parts[2] === 'revoke' && method === 'POST') {
-        await this.auth.revokeGrant(
-          actor,
-          parts[1],
-          input.revision === undefined ? revision(request) : Number(input.revision),
-        )
-        return ok({ revoked: true })
-      }
+    if (path === '/administrators' && method === 'GET') return ok(await this.auth.listAdministrators(actor))
+    if (path === '/administrators' && method === 'POST') {
+      if (this.accounts.enabled)
+        return ok(await this.auth.addAdministrator(actor, { accountId: text(input.accountId) }, revision(request)), 201)
+      return ok(await this.auth.inviteAdministrator(actor, text(input.displayName, 80), revision(request)), 201)
     }
-    if (path === '/principals' && method === 'POST') {
-      const scope = object(input.scope) as unknown as ManagementScope
-      this.checkOwnedScope(scope)
-      return ok(
-        flatten(
-          await this.auth.createPrincipal(actor, {
-            scope,
-            displayName: text(input.displayName),
-            ...(input.id ? { id: text(input.id) } : {}),
-            ...(input.accountId ? { accountId: text(input.accountId), serverId: this.options.serverId } : {}),
-          }),
-        ),
-        201,
-      )
+    if (parts[0] === 'administrators' && parts.length === 2 && method === 'DELETE') {
+      await this.auth.removeAdministrator(actor, parts[1], revision(request))
+      return ok({ removed: true })
     }
     if (path === '/credentials' && method === 'POST') {
-      if (!Array.isArray(input.permissions)) fail('INVALID_PERMISSIONS')
-      for (const permission of input.permissions as { scope: ManagementScope }[]) this.checkOwnedScope(permission.scope)
-      return ok(await this.auth.createServiceToken(actor, input as never), 201)
+      if (input.permissions !== undefined || input.principalId !== undefined) fail('INVALID_REQUEST')
+      return ok(await this.auth.createServiceToken(actor, { expiresAt: input.expiresAt as number | undefined }), 201)
     }
     if (path === '/credentials' && method === 'GET') return ok({ credentials: await this.auth.listCredentials(actor) })
     if (parts[0] === 'credentials' && parts.length === 3 && parts[2] === 'revoke' && method === 'POST') {
@@ -1262,14 +1232,6 @@ export class ManagementService {
         this.runtimes.delete(key)
       }
     }
-  }
-  private checkOwnedScope(scope: ManagementScope) {
-    if (
-      scope.kind === 'server'
-        ? scope.id !== this.options.serverId
-        : scope.kind !== 'workspace' || scope.id !== this.options.workspace.workspaceId
-    )
-      fail('SCOPE_NOT_FOUND', 404)
   }
   private patchBinding(value: Binding, input: Record<string, unknown>) {
     if (input.executionPolicy !== undefined) {

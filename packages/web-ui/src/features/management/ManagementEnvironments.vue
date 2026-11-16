@@ -14,7 +14,7 @@ const {
   bindings,
   operations,
   busy,
-  can,
+  isAdministrator,
   environmentSaveSequence,
   deletingBinding,
   referenceEnvironment,
@@ -62,7 +62,7 @@ const {
           :model-value="binding.enabled"
           :disabled="
             busy ||
-            !can('server', 'bindings.manage') ||
+            !isAdministrator ||
             (!binding.enabled && !canActivateBinding) ||
             server.defaultBindingId === binding.id
           "
@@ -72,9 +72,7 @@ const {
         >
         <ElCheckbox
           :model-value="binding.visibility === 'public'"
-          :disabled="
-            busy || !can('server', 'bindings.manage') || (binding.visibility !== 'public' && !canActivateBinding)
-          "
+          :disabled="busy || !isAdministrator || (binding.visibility !== 'public' && !canActivateBinding)"
           @change="
             patchBinding(binding, {
               visibility: Boolean($event) ? 'public' : 'private',
@@ -84,7 +82,7 @@ const {
         >
         <ElCheckbox
           :model-value="binding.matchmakingEnabled"
-          :disabled="busy || !can('server', 'bindings.manage') || (!binding.matchmakingEnabled && !canActivateBinding)"
+          :disabled="busy || !isAdministrator || (!binding.matchmakingEnabled && !canActivateBinding)"
           @change="patchBinding(binding, { matchmakingEnabled: Boolean($event) })"
           >开放匹配</ElCheckbox
         >
@@ -94,14 +92,14 @@ const {
           >重新加载</ElButton
         >
         <ElButton
-          :disabled="busy || !can('server', 'settings.manage') || binding.condition !== 'available'"
+          :disabled="busy || !isAdministrator || binding.condition !== 'available'"
           @click="setDefault(binding)"
           native-type="button"
         >
           设为默认
         </ElButton>
         <ElButton
-          :disabled="busy || !can('server', 'bindings.manage') || server.defaultBindingId === binding.id"
+          :disabled="busy || !isAdministrator || server.defaultBindingId === binding.id"
           :title="server.defaultBindingId === binding.id ? '先选择其他默认环境' : undefined"
           @click="deletingBinding = binding.id"
           native-type="button"
@@ -121,10 +119,10 @@ const {
     :key="client?.context.endpoint"
     :environments="environments"
     :installations="installations"
-    :can-edit="can('workspace', 'edit')"
-    :can-prepare="can('workspace', 'prepare')"
-    :can-use="can('workspace', 'environment.use') && can('server', 'bindings.manage')"
-    :can-delete="can('workspace', 'delete')"
+    :can-edit="isAdministrator"
+    :can-prepare="isAdministrator"
+    :can-use="isAdministrator"
+    :can-delete="isAdministrator"
     :save-sequence="environmentSaveSequence"
     :busy="busy"
     @save="saveEnvironment"
@@ -165,8 +163,8 @@ const {
     :installations="installations"
     :operations="operations"
     :busy="busy || !!downloading"
-    :can-import="can('workspace', 'edit') && can('workspace', 'prepare')"
-    :can-export="can('workspace', 'export')"
+    :can-import="isAdministrator"
+    :can-export="isAdministrator"
     @import="importEnvironment"
     @export="exportEnvironment"
     @download="downloadEnvironment"

@@ -87,6 +87,16 @@ export class ManagementAccounts {
     }
     this.pendingRevocations.delete(account)
   }
+  /** Caller supplies an account ID from the verified player session. */
+  async deactivateSelf(id: string) {
+    this.requireEnabled()
+    const target = accountId(id)
+    await this.storage.transaction(async tx => {
+      await this.auth.beforeAccountDeactivation(tx, target, target)
+      if (!(await tx.deactivateAccount(this.options.serverId, target)))
+        throw new ManagementAccountError('ACCOUNT_NOT_FOUND', 404)
+    })
+  }
   async deactivate(actor: ManagementActor, id: string) {
     this.requireEnabled()
     const target = accountId(id)
@@ -94,6 +104,7 @@ export class ManagementAccounts {
       await this.storage.transaction(async tx => {
         // Authority and the account transition serialize with revocation/login in the same transaction.
         await this.auth.authorizeInTransaction(tx, actor, this.scope, 'accounts.manage')
+        await this.auth.beforeAccountDeactivation(tx, actor.principalId, target)
         if (!(await tx.deactivateAccount(this.options.serverId, target)))
           throw new ManagementAccountError('ACCOUNT_NOT_FOUND', 404)
         await tx.create('audit', {

@@ -1,3 +1,4 @@
+import { legacySession } from './fixtures/management'
 import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -103,27 +104,19 @@ async function fixture(driver: 'sqlite' | 'postgres', enabled = true) {
   cleanups.push(() => app.stop())
   await app.start()
   const management = app.management!
-  const owner = await management.auth.exchangeBootstrap(
-    (await management.auth.issueBootstrapCode(management.ownerPermissions, 'backup-owner')).code,
+  const owner = await management.auth.exchangeBootstrap((await management.auth.issueBootstrapCode('backup-owner')).code)
+  const viewer = await legacySession(
+    management.auth,
+    [
+      { scope: management.serverScope, actions: ['read'] },
+      { scope: management.workspaceScope, actions: ['read', 'export'] },
+    ],
+    'viewer',
   )
-  const viewer = await management.auth.exchangeBootstrap(
-    (
-      await management.auth.issueBootstrapCode(
-        [
-          { scope: management.serverScope, actions: ['read'] },
-          { scope: management.workspaceScope, actions: ['read', 'export'] },
-        ],
-        'viewer',
-      )
-    ).code,
-  )
-  const serverOnly = await management.auth.exchangeBootstrap(
-    (
-      await management.auth.issueBootstrapCode(
-        [{ scope: management.serverScope, actions: ['read', 'backup'] }],
-        'server-only',
-      )
-    ).code,
+  const serverOnly = await legacySession(
+    management.auth,
+    [{ scope: management.serverScope, actions: ['read', 'backup'] }],
+    'server-only',
   )
   const base = `http://127.0.0.1:${app.address!.port}/api/management/v1`
   const request = async (
@@ -257,7 +250,7 @@ for (const driver of ['sqlite', 'postgres'] as const)
         expect((await complete(env.management.operations, started.body.id)).status).toBe('failed')
         expect(await readdir(env.directory)).toEqual([])
         const renewed = await env.management.auth.exchangeBootstrap(
-          (await env.management.auth.issueBootstrapCode(env.management.ownerPermissions, 'backup-owner')).code,
+          (await env.management.auth.issueBootstrapCode('backup-owner')).code,
         )
         env.setCapture(() => env.archive())
         const retry = await env.request(`/operations/${started.body.id}/retry`, 'POST', {}, renewed, {

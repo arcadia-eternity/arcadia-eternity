@@ -323,6 +323,7 @@ const identityProviderLabel = (identity: AccountIdentity) =>
 const accountError = (error: unknown): string => {
   if (error instanceof SessionRequestError) {
     if (error.status === 409) {
+      if (error.code === 'LAST_ADMINISTRATOR') return '请先添加另一位管理员，再停用此账号。'
       if (error.code?.includes('LAST')) return '必须保留至少一种已验证的登录或找回方式。'
       return '该身份已绑定到其他账号，不能合并或接管。'
     }

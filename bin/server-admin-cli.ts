@@ -1,8 +1,9 @@
 import { Command, CommanderError } from 'commander'
 import { readFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
-import { ManagementAuth, MANAGEMENT_ACTIONS } from '@arcadia-eternity/server'
+import { ManagementAuth } from '@arcadia-eternity/server'
 import { openServerStorage, readServerStorageStatus } from './server-persistence'
 
 /** Explicit host-side maintenance commands; never exposed as public server routes. */
@@ -10,9 +11,10 @@ export async function runServerAdminCli(args: string[]): Promise<number> {
   const group = args[0]
   const program = new Command('arcadia server ' + group)
     .exitOverride()
-    .argument('<action>', group === 'db' ? 'status or migrate' : 'login-code')
+    .argument('<action>', group === 'db' ? 'status or migrate' : 'login-code or status')
     .option('--data-dir <directory>', 'Persistent server data directory', process.env.ARCADIA_DATA_DIR)
     .option('--workspace-root <directory>', 'Content workspace root', process.env.ARCADIA_WORKSPACE_ROOT)
+    .option('--name <name>', 'Create a separate named administrator login code')
     .option('--server-id <id>', 'Expected persistent server identity', process.env.SERVER_ID)
   let opened: Awaited<ReturnType<typeof openServerStorage>> | undefined
   try {
@@ -20,7 +22,7 @@ export async function runServerAdminCli(args: string[]): Promise<number> {
     const action = program.args[0]
     if (
       (group === 'db' && !['status', 'migrate'].includes(action)) ||
-      (group === 'admin' && action !== 'login-code') ||
+      (group === 'admin' && !['login-code', 'status'].includes(action)) ||
       !['db', 'admin'].includes(group)
     )
       throw new Error('Unknown server maintenance command')
@@ -30,7 +32,7 @@ export async function runServerAdminCli(args: string[]): Promise<number> {
     }
     opened = await openServerStorage(
       program.opts(),
-      action === 'migrate' ? 'migrate' : group === 'db' ? 'inspect' : 'admin',
+      action === 'migrate' ? 'migrate' : group === 'db' || action === 'status' ? 'inspect' : 'admin',
     )
     if (group === 'db') {
       console.log(JSON.stringify({ driver: opened.storage.driver, status: await opened.storage.schemaStatus() }))
@@ -44,14 +46,18 @@ export async function runServerAdminCli(args: string[]): Promise<number> {
       workspaceId = metadata.workspaceId
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      if (action === 'status') throw new Error('WORKSPACE_NOT_INITIALIZED', { cause: error })
       const workspace = await ContentWorkspace.open(opened.config.workspaceRoot)
       workspaceId = workspace.workspaceId
       await workspace.close()
     }
-    const credentials = await new ManagementAuth(opened.storage).issueBootstrapCode([
-      { scope: { kind: 'server', id: opened.serverId! }, actions: [...MANAGEMENT_ACTIONS.server] },
-      { scope: { kind: 'workspace', id: workspaceId }, actions: [...MANAGEMENT_ACTIONS.workspace] },
-    ])
+    const auth = new ManagementAuth(opened.storage, { serverId: opened.serverId!, workspaceId })
+    if (action === 'status') {
+      console.log(JSON.stringify(await auth.migrationReport()))
+      return 0
+    }
+    const name = program.opts().name as string | undefined
+    const credentials = await auth.issueBootstrapCode(name ? randomUUID() : 'owner', name ?? 'Owner')
     // This is the explicit host-side credential delivery action, not a server startup log.
     console.log(JSON.stringify({ ...credentials, serverId: opened.serverId, workspaceId }))
     return 0

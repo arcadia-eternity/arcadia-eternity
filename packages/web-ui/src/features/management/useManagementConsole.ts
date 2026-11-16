@@ -16,11 +16,9 @@ import type {
   ManagedEnvironmentInstallation,
   ManagedServer,
   ManagementCapabilities,
-  ManagementGrant,
+  AdministratorList,
   ManagementOperation,
-  ManagementScope,
 } from '@/types/management'
-import { hasManagementPermission } from '@/types/management'
 
 const MAX_BACKUP_BYTES = 512 * 1024 * 1024
 /** Accept download metadata only for this completed operation's bounded, same-target archive. */
@@ -62,7 +60,7 @@ export function useManagementConsole() {
   const installations = ref<ManagedEnvironmentInstallation[]>([])
   const bindings = ref<ManagedBinding[]>([])
   const operations = ref<ManagementOperation[]>([])
-  const grants = ref<ManagementGrant[]>([])
+  const administrators = ref<AdministratorList>({ revision: 0, administrators: [] })
   const credentials = ref<ManagedServiceCredential[]>([])
   const accounts = ref<ManagedAccount[]>([])
   const players = ref<ManagedPlayer[]>([])
@@ -83,17 +81,12 @@ export function useManagementConsole() {
   const pendingKeys = new Map<string, string>()
   const server = computed(() => servers.value.find(item => item.id === capabilities.value?.serverId))
   const workspaceId = computed(() => capabilities.value?.workspaceId)
-  const scope = (kind: ManagementScope['kind']): ManagementScope => ({
-    kind,
-    id: kind === 'server' ? (capabilities.value?.serverId ?? '') : (workspaceId.value ?? ''),
-  })
-  const can = (kind: ManagementScope['kind'], action: string) =>
-    hasManagementPermission(capabilities.value, scope(kind), action)
+  const isAdministrator = computed(() => capabilities.value?.isAdministrator === true)
   const canBackup = computed(
     () =>
       !!capabilities.value?.supportedFeatures.includes('server.backup') &&
-      can('server', 'backup') &&
-      can('workspace', 'export'),
+      isAdministrator.value &&
+      isAdministrator.value,
   )
   function clear() {
     capabilities.value = undefined
@@ -103,7 +96,7 @@ export function useManagementConsole() {
     installations.value = []
     bindings.value = []
     operations.value = []
-    grants.value = []
+    administrators.value = { revision: 0, administrators: [] }
     credentials.value = []
     accounts.value = []
     players.value = []
@@ -129,7 +122,7 @@ export function useManagementConsole() {
   function failure(cause: unknown) {
     const initialLogin =
       !capabilities.value && cause instanceof ManagementError && cause.code === 'MANAGEMENT_UNAUTHENTICATED'
-    if (cause instanceof ManagementError && cause.status === 401) {
+    if (cause instanceof ManagementError && (cause.status === 401 || cause.code === 'MANAGEMENT_FORBIDDEN')) {
       loginRequired.value = true
       clear()
     }
@@ -174,8 +167,6 @@ export function useManagementConsole() {
         throw new Error('管理目标身份已变化，请重新连接')
       }
       observedIdentity = { serverId: cap.serverId, workspaceId: cap.workspaceId }
-      const allowed = (kind: ManagementScope['kind'], action: string) =>
-        hasManagementPermission(cap, { kind, id: kind === 'server' ? cap.serverId : cap.workspaceId }, action)
       const supports = (feature: string) => cap.supportedFeatures.includes(feature)
       async function liveWindow<T>(resource: 'players' | 'battles', key: (item: T) => string) {
         const result = new Map<string, T>()
@@ -216,23 +207,23 @@ export function useManagementConsole() {
         envRows,
         bindingRows,
         operationRows,
-        grantRows,
+        administratorRows,
         accountRows,
         credentialRows,
         playerRows,
         battleRows,
         auditRows,
       ] = await Promise.all([
-        allowed('server', 'read')
+        cap.isAdministrator
           ? current.request<{ servers: ManagedServer[] }>('GET', '/servers')
           : Promise.resolve({ servers: [] }),
-        supports('workspace.environments') && allowed('workspace', 'read')
+        supports('workspace.environments') && cap.isAdministrator
           ? current.request<{ environments: ManagedEnvironment[]; installations: ManagedEnvironmentInstallation[] }>(
               'GET',
               `/workspaces/${encodeURIComponent(cap.workspaceId)}/environments`,
             )
           : Promise.resolve({ environments: [], installations: [] }),
-        supports('server.bindings') && allowed('server', 'read')
+        supports('server.bindings') && cap.isAdministrator
           ? current.request<{ bindings: ManagedBinding[] }>(
               'GET',
               `/servers/${encodeURIComponent(cap.serverId)}/bindings`,
@@ -241,22 +232,22 @@ export function useManagementConsole() {
         supports('operations')
           ? current.request<{ operations: ManagementOperation[] }>('GET', '/operations')
           : Promise.resolve({ operations: [] }),
-        supports('grants') && (allowed('server', 'grants.manage') || allowed('workspace', 'grants.manage'))
-          ? current.request<{ grants: ManagementGrant[] }>('GET', '/grants')
-          : Promise.resolve({ grants: [] }),
-        supports('accounts') && allowed('server', 'accounts.manage')
+        supports('administrators') && cap.isAdministrator
+          ? current.request<AdministratorList>('GET', '/administrators')
+          : Promise.resolve({ revision: 0, administrators: [] }),
+        supports('accounts') && cap.isAdministrator
           ? accountWindow()
           : Promise.resolve({ accounts: [], nextCursor: undefined }),
         supports('credentials')
           ? current.request<{ credentials: ManagedServiceCredential[] }>('GET', '/credentials')
           : Promise.resolve({ credentials: [] }),
-        supports('server.players') && allowed('server', 'players.read')
+        supports('server.players') && cap.isAdministrator
           ? liveWindow<ManagedPlayer>('players', player => player.seatId)
           : Promise.resolve([]),
-        supports('server.battles') && allowed('server', 'battles.read')
+        supports('server.battles') && cap.isAdministrator
           ? liveWindow<ManagedBattle>('battles', battle => battle.id)
           : Promise.resolve([]),
-        supports('audit') && allowed('server', 'read')
+        supports('audit') && cap.isAdministrator
           ? current.request<{ entries: ManagementAuditEntry[] }>('GET', '/audit')
           : Promise.resolve({ entries: [] }),
       ])
@@ -267,7 +258,7 @@ export function useManagementConsole() {
       installations.value = envRows.installations
       bindings.value = bindingRows.bindings
       operations.value = operationRows.operations
-      grants.value = grantRows.grants
+      administrators.value = administratorRows
       credentials.value = credentialRows.credentials
       accounts.value = accountRows.accounts
       players.value = playerRows
@@ -437,7 +428,7 @@ export function useManagementConsole() {
     installations,
     bindings,
     operations,
-    grants,
+    administrators,
     credentials,
     accounts,
     players,
@@ -450,7 +441,7 @@ export function useManagementConsole() {
     loginRequired,
     error,
     notice,
-    can,
+    isAdministrator,
     canBackup,
     setClient,
     restoreSession,

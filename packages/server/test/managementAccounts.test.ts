@@ -1,3 +1,4 @@
+import { legacySession } from './fixtures/management'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -7,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openStorage, SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
 import { dropTestDatabase } from '../../../bin/__tests__/helpers/postgres'
 import { ManagementAccounts } from '../src/runtime/management/accounts'
-import { ManagementAuth, MANAGEMENT_ACTIONS, type ManagementSession } from '../src/runtime/management/auth'
+import { ManagementAuth, type ManagementSession } from '../src/runtime/management/auth'
 import type { ServerSession } from '@arcadia-eternity/protocol'
 import { SessionRegistry } from '../src/runtime/session'
 
@@ -42,10 +43,8 @@ for (const driver of ['sqlite', 'postgres'] as const)
         } else storage = openStorage({ driver: 'sqlite', filename: join(root, 'state.sqlite') })
         await storage.migrate()
         directory = new SQLAccountDirectory(storage, SERVER)
-        auth = new ManagementAuth(storage)
-        owner = await auth.exchangeBootstrap(
-          (await auth.issueBootstrapCode([{ scope, actions: [...MANAGEMENT_ACTIONS.server] }])).code,
-        )
+        auth = new ManagementAuth(storage, { serverId: scope.id, workspaceId: 'workspace' })
+        owner = await auth.exchangeBootstrap((await auth.issueBootstrapCode()).code)
         sessions = new SessionRegistry({ serverId: SERVER, accountEnabled: true })
         revokeSession.mockReset()
         revokeSession.mockImplementation(async () => {})
@@ -94,16 +93,11 @@ for (const driver of ['sqlite', 'postgres'] as const)
 
       it('requires accounts.manage and target-server authority even for read-only listings', async () => {
         const account = await directory.resolveOrCreate(email('target@example.test'))
-        const viewer = await auth.exchangeBootstrap(
-          (await auth.issueBootstrapCode([{ scope, actions: ['read'] }], 'viewer')).code,
-        )
-        const foreign = await auth.exchangeBootstrap(
-          (
-            await auth.issueBootstrapCode(
-              [{ scope: { ...scope, id: 'other-server' }, actions: ['accounts.manage'] }],
-              'foreign',
-            )
-          ).code,
+        const viewer = await legacySession(auth, [{ scope, actions: ['read'] }], 'viewer')
+        const foreign = await legacySession(
+          auth,
+          [{ scope: { ...scope, id: 'other-server' }, actions: ['accounts.manage'] }],
+          'foreign',
         )
         for (const actor of [viewer.actor, foreign.actor]) {
           await expect(accounts.list(actor)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
@@ -123,13 +117,11 @@ for (const driver of ['sqlite', 'postgres'] as const)
         const first = sessions.issueVerifiedAccount({ id: 'local-a', name: 'A' }, target.accountId)
         const second = sessions.issueVerifiedAccount({ id: 'local-b', name: 'B' }, target.accountId)
         const unrelated = sessions.issueVerifiedAccount({ id: 'other', name: 'Other' }, other.accountId)
-        const linked = await auth.createPrincipal(owner.actor, {
-          displayName: 'Target manager',
-          scope,
-          accountId: target.accountId,
-          serverId: SERVER,
-        })
-        await auth.grant(owner.actor, { principalId: linked.id, scope, actions: ['read'] })
+        await auth.addAdministrator(
+          owner.actor,
+          { accountId: target.accountId },
+          (await auth.listAdministrators(owner.actor)).revision,
+        )
         const managementSession = await auth.exchangeAccount(SERVER, target.accountId)
         expect(await auth.authenticate(managementSession.token)).toEqual(managementSession.actor)
 

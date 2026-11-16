@@ -34,15 +34,12 @@ const data = (path: string): unknown => {
         'server.drain',
         'operations',
         'audit',
-        'grants',
+        'administrators',
         'accounts',
         'server.players',
         'server.battles',
       ],
-      effectivePermissions: [
-        { scope: { kind: 'server', id: 'server' }, actions: ['*'] },
-        { scope: { kind: 'workspace', id: 'workspace' }, actions: ['*'] },
-      ],
+      isAdministrator: true,
       resourceRestrictions: [],
     }
   if (path === '/servers')
@@ -67,7 +64,8 @@ const data = (path: string): unknown => {
   if (path.startsWith('/servers/server/accounts')) return { accounts: [] }
   if (path.startsWith('/servers/server/players')) return { players: [] }
   if (path.startsWith('/servers/server/battles')) return { battles: [] }
-  if (path === '/grants') return { grants: [] }
+  if (path === '/administrators')
+    return { revision: 1, administrators: [{ principalId: 'owner', displayName: 'Owner' }] }
   if (path === '/operations')
     return {
       operations: Array.from({ length: 40 }, (_, i) => ({

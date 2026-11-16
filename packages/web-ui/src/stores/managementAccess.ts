@@ -15,8 +15,7 @@ export const useManagementAccessStore = defineStore('management-access', {
       try {
         await restoreManagementSession(client, accountProof)
         const capabilities = await client.request<ManagementCapabilities>('GET', '/capabilities')
-        if (generation === this.generation)
-          this.allowed = capabilities.effectivePermissions.some(item => item.actions.length > 0)
+        if (generation === this.generation) this.allowed = capabilities.isAdministrator === true
       } catch {
         /* Unknown identity never exposes the main navigation entry. */
       }

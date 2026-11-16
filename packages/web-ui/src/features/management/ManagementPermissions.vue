@@ -1,118 +1,94 @@
 <script setup lang="ts">
-import { ElCard, ElForm, ElFormItem, ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
+import { computed, ref } from 'vue'
+import { ElCard, ElInput, ElForm, ElFormItem, ElButton, ElSelect, ElOption } from 'element-plus'
 import type { ManagementController } from './useManagementController'
-import ManagementGrantEditor from './ManagementGrantEditor.vue'
-import { managementActionLabels, managementScopeActions } from './managementPermissions'
 import ManagementCredentials from './ManagementCredentials.vue'
 const { controller } = defineProps<{ controller: ManagementController }>()
 const {
   state,
   client,
   capabilities,
-  grants,
+  administrators,
   credentials,
   busy,
-  can,
-  principalId,
-  newPrincipalName,
-  newPrincipalAccount,
   issuedCredential,
-  grantRole,
   tab,
-  encode,
-  manageGrants,
-  createPrincipal,
+  manageAdministrators,
+  addAdministrator,
+  inviteAdministrator,
+  removeAdministrator,
   issueCredential,
   revokeCredential,
-  addGrant,
 } = controller
+const accountId = ref('')
+const name = ref('')
+const invitation = ref<{ code: string; expiresAt: number }>()
+const removing = ref('')
+const availableAccounts = computed(() =>
+  state.accounts.value.filter(
+    account =>
+      account.status === 'active' &&
+      !administrators.value.administrators.some(admin => admin.accountId === account.accountId),
+  ),
+)
+async function invite() {
+  invitation.value = await inviteAdministrator(name.value)
+}
+async function add() {
+  await addAdministrator(accountId.value)
+  if (!state.error.value) accountId.value = ''
+}
+async function remove() {
+  await removeAdministrator(removing.value)
+  if (!state.error.value) removing.value = ''
+}
 </script>
 <template>
-  <section v-if="tab === 'permissions' && manageGrants && capabilities" aria-label="管理员授权">
-    <h2>管理员与授权</h2>
-    <details>
-      <summary>新建管理主体</summary>
-      <ElForm class="grant-form" @submit.prevent="createPrincipal" label-position="top">
-        <ElFormItem label="显示名称">
-          <ElInput v-model="newPrincipalName" required maxlength="80" />
-        </ElFormItem>
-        <ElFormItem v-if="can('server', 'grants.manage')" label="关联本服账户标识（可选）">
-          <ElInput v-model="newPrincipalAccount" />
-        </ElFormItem>
-        <ElButton :disabled="busy || !newPrincipalName.trim()" native-type="submit">创建主体</ElButton>
-      </ElForm>
-      <p class="hint">关联账户后仍需单独授权。</p>
-    </details>
-    <ElForm class="grant-form" @submit.prevent="addGrant" label-position="top">
-      <ElFormItem label="管理主体标识">
-        <ElInput v-model="principalId" required autocomplete="off" />
-      </ElFormItem>
-      <ElFormItem label="角色">
-        <ElSelect v-model="grantRole">
+  <section v-if="tab === 'permissions' && manageAdministrators && capabilities" aria-label="管理员">
+    <h2>管理员</h2>
+    <ElForm v-if="capabilities.supportedFeatures.includes('accounts')" @submit.prevent="add" label-position="top">
+      <ElFormItem label="本服账户">
+        <ElSelect v-model="accountId" filterable :disabled="busy">
           <ElOption
-            value="admin"
-            :disabled="
-              !(['server', 'workspace'] as const).every(kind =>
-                managementScopeActions[kind].every(action => can(kind, action)),
-              )
-            "
-            label="管理员（服务器和环境）"
-          />
-          <ElOption value="viewer" :disabled="!can('server', 'grants.manage')" label="服务器只读" />
-          <ElOption
-            value="server-admin"
-            :disabled="!managementScopeActions.server.every(action => can('server', action))"
-            label="仅服务器管理"
-          />
-          <ElOption
-            value="workspace-admin"
-            :disabled="!managementScopeActions.workspace.every(action => can('workspace', action))"
-            label="仅环境管理"
+            v-for="account in availableAccounts"
+            :key="account.accountId"
+            :value="account.accountId"
+            :label="account.accountId"
           />
         </ElSelect>
       </ElFormItem>
-      <ElButton class="primary" :disabled="busy || !principalId.trim()" native-type="submit" type="primary"
-        >添加授权</ElButton
+      <ElButton :disabled="busy || !accountId" native-type="submit">添加管理员</ElButton>
+      <ElButton v-if="state.accountCursor.value" :disabled="busy" @click="state.loadMoreAccounts"
+        >加载更多账户</ElButton
       >
     </ElForm>
-    <ElCard shadow="never" v-for="grant in grants" :key="grant.id" class="grant">
-      <strong>{{ grant.principalId }}</strong>
-      <p>{{ grant.scope.kind === 'server' ? '服务器' : '工作区' }} · {{ grant.scope.id }}</p>
-      <p>{{ grant.actions.map(action => managementActionLabels[action] ?? action).join('、') }}</p>
-      <ManagementGrantEditor
-        :grant="grant"
-        :busy="busy"
-        :allowed-actions="managementScopeActions[grant.scope.kind].filter(action => can(grant.scope.kind, action))"
-        @save="
-          (current, actions) =>
-            state.mutate(
-              'POST',
-              '/grants',
-              { principalId: current.principalId, scope: current.scope, actions },
-              current.revision,
-            )
-        "
-      />
-      <ElButton
-        :disabled="busy || !can(grant.scope.kind, 'grants.manage')"
-        @click="
-          state.mutate('POST', `/grants/${encode(grant.id)}/revoke`, { revision: grant.revision }, grant.revision)
-        "
-        native-type="button"
+    <ElForm v-else @submit.prevent="invite" label-position="top">
+      <ElFormItem label="管理员名称"><ElInput v-model="name" maxlength="80" :disabled="busy" /></ElFormItem>
+      <ElButton :disabled="busy || !name.trim()" native-type="submit">创建管理员登录码</ElButton>
+    </ElForm>
+    <section v-if="invitation" aria-label="管理员登录码">
+      <ElInput :model-value="invitation.code" readonly />
+      <p>到期 {{ new Date(invitation.expiresAt).toLocaleString() }}</p>
+      <ElButton @click="invitation = undefined">关闭</ElButton>
+    </section>
+    <ElCard v-for="admin in administrators.administrators" :key="admin.principalId" shadow="never">
+      <strong>{{ admin.displayName }}</strong>
+      <ElButton :disabled="busy || administrators.administrators.length <= 1" @click="removing = admin.principalId"
+        >移除管理员</ElButton
       >
-        撤销授权
-      </ElButton>
+      <div v-if="removing === admin.principalId">
+        <ElButton :disabled="busy" @click="remove">确认移除</ElButton>
+        <ElButton :disabled="busy" @click="removing = ''">取消</ElButton>
+      </div>
     </ElCard>
     <ManagementCredentials
       :credentials="credentials"
       :key="client?.context.endpoint"
-      :capabilities="capabilities"
       :busy="busy"
       :issued="issuedCredential"
       @issue="issueCredential"
       @revoke="revokeCredential"
       @dismiss="issuedCredential = undefined"
-    >
-    </ManagementCredentials>
+    />
   </section>
 </template>

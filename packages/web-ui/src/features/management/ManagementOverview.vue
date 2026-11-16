@@ -8,12 +8,11 @@ const {
   bindings,
   players,
   busy,
-  can,
+  isAdministrator,
   serverName,
   nameRevision,
   tab,
   conditionLabels,
-  reason,
   supported,
   saveServerName,
   drain,
@@ -26,12 +25,12 @@ const {
         <strong>{{ bindings.filter(item => item.enabled && item.condition === 'available').length }}</strong
         >运行环境
       </ElButton>
-      <ElButton :disabled="!can('server', 'battles.read')" @click="tab = 'battles'" native-type="button">
+      <ElButton :disabled="!isAdministrator" @click="tab = 'battles'" native-type="button">
         <strong>{{ server.activeBattles ?? '—' }}</strong
         >活跃对战
       </ElButton>
-      <ElButton :disabled="!can('server', 'players.read')" @click="tab = 'accounts'" native-type="button">
-        <strong>{{ can('server', 'players.read') ? players.filter(item => item.connected).length : '—' }}</strong
+      <ElButton :disabled="!isAdministrator" @click="tab = 'accounts'" native-type="button">
+        <strong>{{ isAdministrator ? players.filter(item => item.connected).length : '—' }}</strong
         >在线玩家
       </ElButton>
       <div>
@@ -49,16 +48,9 @@ const {
         <ElFormItem label="服务器名称">
           <ElInput v-model="serverName" required maxlength="80" @input="nameRevision ??= server.revision" />
         </ElFormItem>
+        <ElButton :disabled="busy || !isAdministrator" native-type="submit"> 保存名称</ElButton>
         <ElButton
-          :disabled="busy || !can('server', 'settings.manage')"
-          :title="reason('server', 'settings.manage')"
-          native-type="submit"
-        >
-          保存名称</ElButton
-        >
-        <ElButton
-          :disabled="busy || !supported('server.drain') || !can('server', 'drain')"
-          :title="reason('server', 'drain')"
+          :disabled="busy || !supported('server.drain') || !isAdministrator"
           @click="drain"
           native-type="button"
           >{{ server.draining ? '恢复接纳新局' : '停止接纳并排空' }}</ElButton

@@ -44,13 +44,17 @@ interface Credential {
   passkey?: { id: string; publicKey: string; counter: number; rpId: string }
   csrfHash?: string
   permissions?: ManagementPermission[]
+  serverId?: string
+  displayName?: string
+  issuerPrincipalId?: string
 }
 export interface ServiceCredentialMetadata {
   id: string
   principalId: string
   createdAt: number
   expiresAt: number
-  permissions: ManagementPermission[]
+  serverId: string
+  legacyRestricted: boolean
 }
 export interface ManagementSession {
   token: string
@@ -99,24 +103,19 @@ export const managementScopeKey = (scope: ManagementScope): string => {
   if (!scope || !['server', 'workspace'].includes(scope.kind) || !validText(scope.id)) fail('INVALID_SCOPE', 422)
   return `${scope.kind}:${scope.id}`
 }
-function permissions(input: ManagementPermission[]): ManagementPermission[] {
-  if (!Array.isArray(input) || !input.length || input.length > 64) fail('INVALID_PERMISSIONS', 422)
-  return input.map(item => {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) fail('INVALID_PERMISSIONS', 422)
-    managementScopeKey(item.scope)
-    if (
-      !Array.isArray(item.actions) ||
-      !item.actions.length ||
-      item.actions.length > 16 ||
-      item.actions.some(action => !(MANAGEMENT_ACTIONS[item.scope.kind] as readonly string[]).includes(action))
-    )
-      fail('INVALID_ACTION', 422)
-    return { scope: { ...item.scope }, actions: [...new Set(item.actions)] }
-  })
-}
-const grantId = (principalId: string, scope: ManagementScope) => hash(`${principalId}\0${managementScopeKey(scope)}`)
+// Only used to read pre-administrator credentials and migration records.
 const matches = (permission: ManagementPermission, scope: ManagementScope, action: string) =>
   managementScopeKey(permission.scope) === managementScopeKey(scope) && permission.actions.includes(action)
+interface AdministratorRoster {
+  format: 'arcadia.administrators/1'
+  workspaceId: string
+  principalIds: string[]
+}
+export interface Administrator {
+  principalId: string
+  displayName: string
+  accountId?: string
+}
 
 /** Host-issued bootstrap codes and all web/API credentials use the same durable authorization boundary. */
 export class ManagementAuth {
@@ -125,12 +124,15 @@ export class ManagementAuth {
   private readonly bootstrapTtlMs: number
   constructor(
     private readonly store: DurableStorage,
-    options: {
+    private readonly options: {
+      serverId: string
+      workspaceId: string
       now?: () => number
       sessionTtlMs?: number
       bootstrapTtlMs?: number
-    } = {},
+    },
   ) {
+    if (!validText(options.serverId) || !validText(options.workspaceId)) fail('INVALID_SCOPE', 422)
     this.now = options.now ?? Date.now
     this.sessionTtlMs = options.sessionTtlMs ?? 8 * 60 * 60 * 1000
     this.bootstrapTtlMs = options.bootstrapTtlMs ?? 10 * 60 * 1000
@@ -138,19 +140,97 @@ export class ManagementAuth {
       fail('INVALID_CREDENTIAL_TTL', 422)
   }
 
-  /** Trusted host/CLI only. Never expose code issuance as an unauthenticated HTTP endpoint. */
-  async issueBootstrapCode(input: ManagementPermission[], ownerId = 'owner') {
-    if (!validText(ownerId)) fail('INVALID_PRINCIPAL', 422)
-    const allowed = permissions(input)
+  private get rosterId() {
+    return `administrators:${this.options.serverId}`
+  }
+  private ownedScope(scope: ManagementScope) {
+    managementScopeKey(scope)
+    if (scope.id !== (scope.kind === 'server' ? this.options.serverId : this.options.workspaceId))
+      fail('MANAGEMENT_FORBIDDEN')
+  }
+  private fullLegacyPermissions(allowed: ManagementPermission[] = []) {
+    return (['server', 'workspace'] as const).every(kind => {
+      const scope = { kind, id: kind === 'server' ? this.options.serverId : this.options.workspaceId }
+      return MANAGEMENT_ACTIONS[kind].every(action => allowed.some(p => matches(p, scope, action)))
+    })
+  }
+  private async roster(tx: StorageTransaction) {
+    const existing = await tx.get<AdministratorRoster>('grants', this.rosterId)
+    if (existing) {
+      if (
+        existing.value.format !== 'arcadia.administrators/1' ||
+        existing.value.workspaceId !== this.options.workspaceId
+      )
+        fail('SERVER_WORKSPACE_MISMATCH', 409)
+      return existing
+    }
+    const servers = await tx.list<{ workspaceId: string }>('servers')
+    if (servers.some(row => row.id !== this.options.serverId && row.value.workspaceId === this.options.workspaceId))
+      fail('SHARED_WORKSPACE_MIGRATION_REQUIRED', 409)
+    const legacy = (await tx.list<ManagementGrant>('grants')).filter(
+      row => row.value.scope && Array.isArray(row.value.actions),
+    )
+    const candidates = [
+      ...new Set(
+        legacy
+          .filter(row => row.value.scope.kind === 'server' && row.value.scope.id === this.options.serverId)
+          .map(row => row.value.principalId),
+      ),
+    ]
+    const principalIds: string[] = []
+    for (const id of candidates) {
+      const principal = await tx.get<ManagementPrincipal>('principals', id)
+      if (
+        principal?.value.status === 'active' &&
+        (!principal.value.accountId ||
+          (!!principal.value.serverId &&
+            (await tx.accountStatus(principal.value.serverId, principal.value.accountId)) === 'active')) &&
+        this.fullLegacyPermissions(legacy.filter(row => row.value.principalId === id).map(row => row.value))
+      )
+        principalIds.push(id)
+    }
+    // Reuse the existing document collection: old grants remain inert migration evidence.
+    const result = await tx.create<AdministratorRoster>('grants', {
+      id: this.rosterId,
+      scope: `server:${this.options.serverId}`,
+      value: { format: 'arcadia.administrators/1', workspaceId: this.options.workspaceId, principalIds },
+    })
+    await this.audit(tx, 'host', 'administrators.migrate', `server:${this.options.serverId}`, {
+      principalIds,
+      excludedPrincipalIds: candidates.filter(id => !principalIds.includes(id)),
+    })
+    return result
+  }
+  async ready() {
+    await this.store.transaction(tx => this.roster(tx))
+  }
+  private async requireMember(tx: StorageTransaction, principalId: string) {
+    await this.activePrincipal(tx, principalId)
+    if (!(await this.roster(tx)).value.principalIds.includes(principalId)) fail('MANAGEMENT_FORBIDDEN')
+  }
+  /** Trusted host/CLI recovery, never an HTTP endpoint. */
+  async issueBootstrapCode(ownerId = 'owner', displayName = 'Owner') {
+    if (!validText(ownerId) || !validText(displayName, 80)) fail('INVALID_PRINCIPAL', 422)
     const code = secret(),
       expiresAt = this.now() + this.bootstrapTtlMs
     await this.store.transaction(async tx => {
+      await this.roster(tx)
       await tx.create<Credential>('credentials', {
         id: hash(code),
         scope: ownerId,
-        value: { principalId: ownerId, kind: 'bootstrap', expiresAt, createdAt: this.now(), permissions: allowed },
+        value: {
+          principalId: ownerId,
+          kind: 'bootstrap',
+          expiresAt,
+          createdAt: this.now(),
+          serverId: this.options.serverId,
+          displayName,
+        },
       })
-      await this.audit(tx, 'host', 'bootstrap.issue', 'management', { principalId: ownerId, expiresAt })
+      await this.audit(tx, 'host', 'bootstrap.issue', `server:${this.options.serverId}`, {
+        principalId: ownerId,
+        expiresAt,
+      })
     })
     return { code, expiresAt, principalId: ownerId }
   }
@@ -164,6 +244,7 @@ export class ManagementAuth {
       const existing = await tx.get<Credential>('credentials', hash(code))
       if (!existing || existing.value.kind !== 'bootstrap' || existing.value.expiresAt <= this.now())
         return fail('INVALID_BOOTSTRAP_CODE', 401)
+      if (existing.value.issuerPrincipalId) await this.requireMember(tx, existing.value.issuerPrincipalId)
       const principalId = existing.value.principalId
       await tx.delete('credentials', existing.id, existing.revision)
       const principal = await tx.get<ManagementPrincipal>('principals', principalId)
@@ -171,24 +252,24 @@ export class ManagementAuth {
         await tx.create<ManagementPrincipal>('principals', {
           id: principalId,
           scope: 'management',
-          value: { displayName: 'Owner', status: 'active' },
+          value: { displayName: existing.value.displayName ?? 'Owner', status: 'active' },
         })
       else if (principal.value.status !== 'active')
         await tx.replace('principals', principal.id, principal.revision, {
           ...principal.value,
           status: 'active',
         })
-      for (const permission of existing.value.permissions ?? []) {
-        const id = grantId(principalId, permission.scope)
-        const grant = await tx.get<ManagementGrant>('grants', id)
-        const value = {
-          ...permission,
-          principalId,
-          actions: [...new Set([...(grant?.value.actions ?? []), ...permission.actions])],
-        }
-        if (grant) await tx.replace('grants', id, grant.revision, value)
-        else await tx.create('grants', { id, scope: managementScopeKey(permission.scope), value })
-      }
+      if (
+        existing.value.serverId !== this.options.serverId &&
+        (existing.value.serverId || !this.fullLegacyPermissions(existing.value.permissions))
+      )
+        fail('INVALID_BOOTSTRAP_CODE', 401)
+      const roster = await this.roster(tx)
+      if (!roster.value.principalIds.includes(principalId))
+        await tx.replace('grants', roster.id, roster.revision, {
+          ...roster.value,
+          principalIds: [...roster.value.principalIds, principalId],
+        })
       const credentialId = hash(token)
       await tx.create<Credential>('credentials', {
         id: credentialId,
@@ -199,8 +280,7 @@ export class ManagementAuth {
           expiresAt,
           createdAt: this.now(),
           csrfHash: hash(csrfToken),
-          // A recovery code for one scope cannot inherit this owner's other deployments.
-          permissions: existing.value.permissions,
+          serverId: this.options.serverId,
         },
       })
       await this.audit(tx, principalId, 'bootstrap.exchange', 'management', { principalId })
@@ -221,17 +301,13 @@ export class ManagementAuth {
       )
       if (principals.length !== 1) return fail('MANAGEMENT_FORBIDDEN')
       const principalId = principals[0].id
-      if (
-        !(await tx.list<ManagementGrant>('grants')).some(
-          grant => grant.value.principalId === principalId && grant.value.actions.length,
-        )
-      )
-        fail('MANAGEMENT_FORBIDDEN')
+      if (serverId !== this.options.serverId) fail('MANAGEMENT_FORBIDDEN')
+      await this.requireMember(tx, principalId)
       const credentialId = hash(token)
       await tx.create<Credential>('credentials', {
         id: credentialId,
         scope: principalId,
-        value: { principalId, kind: 'session', expiresAt, createdAt: this.now(), csrfHash: hash(csrfToken) },
+        value: { principalId, kind: 'session', expiresAt, createdAt: this.now(), csrfHash: hash(csrfToken), serverId },
       })
       await this.audit(tx, principalId, 'account.session', `server:${serverId}`, { principalId })
       return { token, csrfToken, expiresAt, actor: { principalId, credentialId, kind: 'session' } }
@@ -255,7 +331,15 @@ export class ManagementAuth {
     )
       return fail('MANAGEMENT_UNAUTHENTICATED', 401)
     await this.validateParent(tx, credential.value)
-    await this.activePrincipal(tx, actor.principalId)
+    await this.requireMember(tx, actor.principalId)
+    if (credential.value.serverId !== undefined && credential.value.serverId !== this.options.serverId)
+      fail('MANAGEMENT_FORBIDDEN')
+    if (
+      !credential.value.serverId &&
+      credential.value.kind === 'session' &&
+      !this.fullLegacyPermissions(credential.value.permissions)
+    )
+      fail('ADMIN_LOGIN_REQUIRED', 401)
     return credential
   }
 
@@ -296,64 +380,34 @@ export class ManagementAuth {
 
   private async authorizeIn(tx: StorageTransaction, actor: ManagementActor, scope: ManagementScope, action: string) {
     managementScopeKey(scope)
-    if (!(MANAGEMENT_ACTIONS[scope.kind] as readonly string[]).includes(action)) fail('INVALID_ACTION', 422)
     const credential = await this.credential(tx, actor)
     if (
+      credential.value.kind === 'service' &&
       credential.value.permissions &&
       !credential.value.permissions.some(permission => matches(permission, scope, action))
     )
       fail('MANAGEMENT_FORBIDDEN')
-    const grant = await tx.get<ManagementGrant>('grants', grantId(actor.principalId, scope))
-    if (!grant || !grant.value.actions.includes(action)) fail('MANAGEMENT_FORBIDDEN')
+    this.ownedScope(scope)
   }
 
   async authorize(actor: ManagementActor, scope: ManagementScope, action: string): Promise<void> {
     await this.authorizeIn(this.store, actor, scope, action)
   }
-
-  /** Check revocation and authorization in the same transaction as the protected domain write. */
-  async authorizeInTransaction(
-    tx: StorageTransaction,
-    actor: ManagementActor,
-    scope: ManagementScope,
-    action: string,
-  ): Promise<void> {
+  async authorizeInTransaction(tx: StorageTransaction, actor: ManagementActor, scope: ManagementScope, action: string) {
     await this.authorizeIn(tx, actor, scope, action)
   }
-
-  /**
-   * Trusted policy runner only. Its persisted policy must have been created using
-   * credential authorization and must fix the resource and permitted action.
-   * Never use a request-supplied principal here: this deliberately survives the
-   * configuring session's expiry/logout, but still observes principal/grant revocation.
-   */
   async authorizePolicyInTransaction(
     tx: StorageTransaction,
     principalId: string,
     scope: ManagementScope,
-    action: string,
-  ): Promise<void> {
-    managementScopeKey(scope)
-    if (!(MANAGEMENT_ACTIONS[scope.kind] as readonly string[]).includes(action)) fail('INVALID_ACTION', 422)
-    await this.activePrincipal(tx, principalId)
-    const grant = await tx.get<ManagementGrant>('grants', grantId(principalId, scope))
-    if (!grant || !grant.value.actions.includes(action)) fail('MANAGEMENT_FORBIDDEN')
+    _action: string,
+  ) {
+    this.ownedScope(scope)
+    await this.requireMember(tx, principalId)
   }
-
-  async effectivePermissions(actor: ManagementActor): Promise<ManagementPermission[]> {
-    const credential = await this.credential(this.store, actor)
-    const grants = await this.store.list<ManagementGrant>('grants')
-    return grants
-      .filter(grant => grant.value.principalId === actor.principalId)
-      .map(({ value }) => ({
-        scope: value.scope,
-        actions: value.actions.filter(
-          action =>
-            !credential.value.permissions ||
-            credential.value.permissions.some(permission => matches(permission, value.scope, action)),
-        ),
-      }))
-      .filter(permission => permission.actions.length > 0)
+  async isAdministrator(actor: ManagementActor) {
+    await this.credential(this.store, actor)
+    return true
   }
 
   async validateCsrf(actor: ManagementActor, csrfToken: string | undefined): Promise<void> {
@@ -367,106 +421,191 @@ export class ManagementAuth {
       fail('CSRF_REJECTED')
   }
 
-  async createPrincipal(
-    actor: ManagementActor,
-    input: {
-      id?: string
-      displayName: string
-      scope: ManagementScope
-      accountId?: string
-      serverId?: string
-    },
-  ): Promise<StoredRecord<ManagementPrincipal>> {
-    const id = input.id ?? randomUUID()
+  async listAdministrators(actor: ManagementActor) {
+    await this.requireFullAdministrator(this.store, actor)
+    const roster = await this.roster(this.store)
+    const administrators: Administrator[] = []
+    for (const principalId of roster.value.principalIds) {
+      const row = await this.store.get<ManagementPrincipal>('principals', principalId)
+      if (row) administrators.push({ principalId, displayName: row.value.displayName, accountId: row.value.accountId })
+    }
+    return { revision: roster.revision, administrators }
+  }
+  private async requireFullAdministrator(tx: StorageTransaction, actor: ManagementActor) {
+    const credential = await this.credential(tx, actor)
     if (
-      !validText(id) ||
-      !validText(input.displayName, 80) ||
-      !!input.accountId !== !!input.serverId ||
-      (input.accountId && (!validText(input.accountId) || !validText(input.serverId)))
+      credential.value.permissions &&
+      credential.value.kind === 'service' &&
+      !this.fullLegacyPermissions(credential.value.permissions)
     )
-      fail('INVALID_PRINCIPAL', 422)
-    if (input.accountId && (input.scope.kind !== 'server' || input.scope.id !== input.serverId))
-      fail('INVALID_ACCOUNT_SCOPE', 422)
-    return this.store.transaction(async tx => {
-      await this.authorizeIn(tx, actor, input.scope, 'grants.manage')
-      if (input.accountId && (await tx.accountStatus(input.serverId!, input.accountId)) !== 'active')
-        fail('ACCOUNT_NOT_ACTIVE', 422)
-      if (
-        input.accountId &&
-        (await tx.list<ManagementPrincipal>('principals')).some(
-          row => row.value.accountId === input.accountId && row.value.serverId === input.serverId,
-        )
-      )
-        fail('ACCOUNT_PRINCIPAL_EXISTS', 409)
-      const principal = await tx.create<ManagementPrincipal>('principals', {
-        id,
-        scope: managementScopeKey(input.scope),
+      fail('MANAGEMENT_FORBIDDEN')
+  }
+  async inviteAdministrator(actor: ManagementActor, displayName: string, revision: number) {
+    if (!validText(displayName, 80)) fail('INVALID_PRINCIPAL', 422)
+    const code = secret(),
+      expiresAt = this.now() + this.bootstrapTtlMs
+    await this.store.transaction(async tx => {
+      await this.requireFullAdministrator(tx, actor)
+      const roster = await this.roster(tx)
+      if (roster.revision !== revision) fail('REVISION_CONFLICT', 412)
+      // Serializes invitation creation with concurrent removal of the issuer.
+      await tx.replace('grants', roster.id, roster.revision, roster.value)
+      await tx.create<Credential>('credentials', {
+        id: hash(code),
+        scope: `server:${this.options.serverId}`,
         value: {
-          displayName: input.displayName,
-          status: 'active',
-          ...(input.accountId ? { accountId: input.accountId, serverId: input.serverId } : {}),
+          principalId: randomUUID(),
+          kind: 'bootstrap',
+          serverId: this.options.serverId,
+          displayName,
+          issuerPrincipalId: actor.principalId,
+          createdAt: this.now(),
+          expiresAt,
         },
       })
-      await this.audit(tx, actor.principalId, 'principal.create', managementScopeKey(input.scope), { principalId: id })
-      return principal
-    })
-  }
-
-  async grant(
-    actor: ManagementActor,
-    input: ManagementGrant,
-    expectedRevision?: number,
-  ): Promise<StoredRecord<ManagementGrant>> {
-    const permission = permissions([input])[0]
-    if (!validText(input.principalId)) fail('INVALID_PRINCIPAL', 422)
-    return this.store.transaction(async tx => {
-      await this.authorizeIn(tx, actor, input.scope, 'grants.manage')
-      for (const action of permission.actions) await this.authorizeIn(tx, actor, input.scope, action)
-      const principal = await tx.get<ManagementPrincipal>('principals', input.principalId)
-      if (!principal || principal.value.status !== 'active') fail('PRINCIPAL_NOT_FOUND', 404)
-      const id = grantId(input.principalId, input.scope),
-        value = { ...permission, principalId: input.principalId }
-      const existing = await tx.get<ManagementGrant>('grants', id)
-      if (existing && expectedRevision !== existing.revision) fail('REVISION_CONFLICT', 412)
-      if (!existing && expectedRevision !== undefined) fail('REVISION_CONFLICT', 412)
-      const saved = existing
-        ? await tx.replace('grants', id, existing.revision, value)
-        : await tx.create('grants', { id, scope: managementScopeKey(input.scope), value })
-      await this.audit(tx, actor.principalId, 'grant.replace', managementScopeKey(input.scope), {
-        grantId: id,
-        principalId: input.principalId,
-        actions: permission.actions,
+      await this.audit(tx, actor.principalId, 'administrator.invite', `server:${this.options.serverId}`, {
+        displayName,
+        expiresAt,
       })
-      return saved
+    })
+    return { code, expiresAt }
+  }
+  /** Read-only host preflight. Old rows are retained for inspection and rollback. */
+  async migrationReport() {
+    const roster = await this.store.get<AdministratorRoster>('grants', this.rosterId)
+    const principals = await this.store.list<ManagementPrincipal>('principals')
+    const legacy = (await this.store.list<ManagementGrant>('grants')).filter(
+      row => row.value.scope && Array.isArray(row.value.actions),
+    )
+    const credentials = await this.store.list<Credential>('credentials')
+    return {
+      serverId: this.options.serverId,
+      workspaceId: this.options.workspaceId,
+      migrated: !!roster,
+      sharedServers: (await this.store.list<{ workspaceId: string }>('servers'))
+        .filter(row => row.id !== this.options.serverId && row.value.workspaceId === this.options.workspaceId)
+        .map(row => row.id),
+      identities: await Promise.all(
+        principals
+          .filter(
+            row =>
+              roster?.value.principalIds.includes(row.id) ||
+              legacy.some(
+                grant =>
+                  grant.value.principalId === row.id &&
+                  grant.value.scope.kind === 'server' &&
+                  grant.value.scope.id === this.options.serverId,
+              ),
+          )
+          .map(async row => {
+            const permissions = legacy
+              .filter(grant => grant.value.principalId === row.id)
+              .map(grant => ({ scope: grant.value.scope, actions: grant.value.actions }))
+            return {
+              principalId: row.id,
+              displayName: row.value.displayName,
+              accountId: row.value.accountId,
+              administrator: roster
+                ? roster.value.principalIds.includes(row.id)
+                : row.value.status === 'active' &&
+                  (!row.value.accountId ||
+                    (!!row.value.serverId &&
+                      (await this.store.accountStatus(row.value.serverId, row.value.accountId)) === 'active')) &&
+                  this.fullLegacyPermissions(permissions),
+              legacyPermissions: permissions,
+              credentials: credentials
+                .filter(
+                  c =>
+                    c.value.principalId === row.id &&
+                    (this.ownsCredential(c.value) ||
+                      (!c.value.serverId && row.value.serverId === this.options.serverId)),
+                )
+                .map(c => ({
+                  kind: c.value.kind,
+                  expiresAt: c.value.expiresAt,
+                  disposition:
+                    c.value.serverId || this.fullLegacyPermissions(c.value.permissions)
+                      ? 'current-membership'
+                      : c.value.kind === 'service'
+                        ? 'retain-ceiling'
+                        : 'reauthenticate',
+                })),
+            }
+          }),
+      ),
+    }
+  }
+  async addAdministrator(actor: ManagementActor, input: { accountId: string }, revision: number) {
+    if (!validText(input.accountId)) fail('INVALID_ACCOUNT', 422)
+    return this.store.transaction(async tx => {
+      await this.requireFullAdministrator(tx, actor)
+      const roster = await this.roster(tx)
+      if (roster.revision !== revision) fail('REVISION_CONFLICT', 412)
+      if ((await tx.accountStatus(this.options.serverId, input.accountId)) !== 'active') fail('ACCOUNT_NOT_ACTIVE', 422)
+      const existing = (await tx.list<ManagementPrincipal>('principals')).find(
+        row => row.value.serverId === this.options.serverId && row.value.accountId === input.accountId,
+      )
+      const principalId = existing?.id ?? randomUUID()
+      if (roster.value.principalIds.includes(principalId)) fail('ADMINISTRATOR_EXISTS', 409)
+      if (existing && existing.value.status !== 'active') fail('PRINCIPAL_DISABLED', 409)
+      if (!existing)
+        await tx.create<ManagementPrincipal>('principals', {
+          id: principalId,
+          scope: `server:${this.options.serverId}`,
+          value: {
+            displayName: input.accountId,
+            status: 'active',
+            accountId: input.accountId,
+            serverId: this.options.serverId,
+          },
+        })
+      await tx.replace('grants', roster.id, roster.revision, {
+        ...roster.value,
+        principalIds: [...roster.value.principalIds, principalId],
+      })
+      await this.audit(tx, actor.principalId, 'administrator.add', `server:${this.options.serverId}`, { principalId })
+      return { principalId }
     })
   }
-
-  async listGrants(actor: ManagementActor, scope: ManagementScope): Promise<StoredRecord<ManagementGrant>[]> {
-    await this.authorize(actor, scope, 'grants.manage')
-    return this.store.list<ManagementGrant>('grants', managementScopeKey(scope))
+  private async removeMember(tx: StorageTransaction, principalId: string, revision?: number) {
+    const roster = await this.roster(tx)
+    if (revision !== undefined && roster.revision !== revision) fail('REVISION_CONFLICT', 412)
+    if (!roster.value.principalIds.includes(principalId)) fail('ADMINISTRATOR_NOT_FOUND', 404)
+    const remaining = roster.value.principalIds.filter(id => id !== principalId)
+    let active = false
+    for (const id of remaining) {
+      try {
+        await this.activePrincipal(tx, id)
+        active = true
+      } catch (error) {
+        if (!(error instanceof ManagementAuthError)) throw error
+      }
+    }
+    if (!active) fail('LAST_ADMINISTRATOR', 409)
+    await tx.replace('grants', roster.id, roster.revision, { ...roster.value, principalIds: remaining })
   }
-
-  async revokeGrant(actor: ManagementActor, id: string, revision: number): Promise<void> {
+  async removeAdministrator(actor: ManagementActor, principalId: string, revision: number) {
     await this.store.transaction(async tx => {
-      const grant = await tx.get<ManagementGrant>('grants', id)
-      if (!grant) return fail('GRANT_NOT_FOUND', 404)
-      await this.authorizeIn(tx, actor, grant.value.scope, 'grants.manage')
-      for (const action of grant.value.actions) await this.authorizeIn(tx, actor, grant.value.scope, action)
-      await tx.delete('grants', id, revision)
-      await this.audit(tx, actor.principalId, 'grant.revoke', managementScopeKey(grant.value.scope), { grantId: id })
+      await this.requireFullAdministrator(tx, actor)
+      await this.removeMember(tx, principalId, revision)
+      await this.audit(tx, actor.principalId, 'administrator.remove', `server:${this.options.serverId}`, {
+        principalId,
+      })
+    })
+  }
+  async beforeAccountDeactivation(tx: StorageTransaction, actorId: string, accountId: string) {
+    const principal = (await tx.list<ManagementPrincipal>('principals')).find(
+      row => row.value.serverId === this.options.serverId && row.value.accountId === accountId,
+    )
+    if (!principal || !(await this.roster(tx)).value.principalIds.includes(principal.id)) return
+    await this.removeMember(tx, principal.id)
+    await this.audit(tx, actorId, 'administrator.remove', `server:${this.options.serverId}`, {
+      principalId: principal.id,
     })
   }
 
-  async createServiceToken(
-    actor: ManagementActor,
-    input: {
-      principalId?: string
-      permissions: ManagementPermission[]
-      expiresAt?: number
-    },
-  ) {
-    const allowed = permissions(input.permissions),
-      principalId = input.principalId ?? actor.principalId
+  async createServiceToken(actor: ManagementActor, input: { expiresAt?: number } = {}) {
+    const principalId = actor.principalId
     const expiresAt = input.expiresAt ?? this.now() + 30 * 24 * 60 * 60 * 1000
     if (
       !validText(principalId) ||
@@ -479,13 +618,7 @@ export class ManagementAuth {
       storageId = hash(token),
       credentialId = randomUUID()
     await this.store.transaction(async tx => {
-      for (const permission of allowed) {
-        await this.authorizeIn(tx, actor, permission.scope, 'grants.manage')
-        for (const action of permission.actions) await this.authorizeIn(tx, actor, permission.scope, action)
-      }
-      const principal = await tx.get<ManagementPrincipal>('principals', principalId)
-      if (!principal || principal.value.status !== 'active') fail('PRINCIPAL_NOT_FOUND', 404)
-      // The credential only narrows existing grants; it does not grant permissions to its subject.
+      await this.requireFullAdministrator(tx, actor)
       await tx.create<Credential>('credentials', {
         id: storageId,
         scope: principalId,
@@ -495,7 +628,7 @@ export class ManagementAuth {
           kind: 'service',
           expiresAt,
           createdAt: this.now(),
-          permissions: allowed,
+          serverId: this.options.serverId,
         },
       })
       await this.audit(tx, actor.principalId, 'credential.create', principalId, { credentialId, principalId })
@@ -503,6 +636,16 @@ export class ManagementAuth {
     return { token, credentialId, expiresAt }
   }
 
+  private ownsCredential(value: Credential) {
+    return (
+      value.serverId === this.options.serverId ||
+      (!value.serverId &&
+        !!value.permissions?.length &&
+        value.permissions.every(
+          p => p.scope.id === (p.scope.kind === 'server' ? this.options.serverId : this.options.workspaceId),
+        ))
+    )
+  }
   private async authorizeCredentialManagement(
     tx: StorageTransaction,
     actor: ManagementActor,
@@ -511,16 +654,8 @@ export class ManagementAuth {
     // A credential may always revoke itself. Shared principal identity does not
     // let an attenuated service token manage that principal's broader tokens.
     if (credential.id === actor.credentialId) return
-    const targetPermissions =
-      credential.value.permissions ??
-      (await tx.list<ManagementGrant>('grants'))
-        .filter(grant => grant.value.principalId === credential.value.principalId)
-        .map(grant => grant.value)
-    if (!targetPermissions.length) fail('MANAGEMENT_FORBIDDEN')
-    for (const permission of targetPermissions) {
-      await this.authorizeIn(tx, actor, permission.scope, 'grants.manage')
-      for (const action of permission.actions) await this.authorizeIn(tx, actor, permission.scope, action)
-    }
+    await this.requireFullAdministrator(tx, actor)
+    if (!this.ownsCredential(credential.value)) fail('MANAGEMENT_FORBIDDEN')
   }
 
   /** Only service tokens manageable by this actor are returned; no storage digests or secrets. */
@@ -545,7 +680,8 @@ export class ManagementAuth {
           principalId: credential.value.principalId,
           createdAt: credential.value.createdAt,
           expiresAt: credential.value.expiresAt,
-          permissions: structuredClone(credential.value.permissions ?? []),
+          serverId: this.options.serverId,
+          legacyRestricted: !credential.value.serverId && !this.fullLegacyPermissions(credential.value.permissions),
         })
       }
       return result.sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id))
@@ -588,20 +724,13 @@ export class ManagementAuth {
     await this.validateParent(tx, parent!.value, depth + 1)
   }
 
-  private async loginSession(
-    tx: StorageTransaction,
-    principalId: string,
-    allowed: ManagementPermission[],
-    parentId?: string,
-  ) {
-    await this.activePrincipal(tx, principalId)
-    const grants = (await tx.list<ManagementGrant>('grants')).filter(row => row.value.principalId === principalId)
+  private async loginSession(tx: StorageTransaction, principalId: string, source: Credential, parentId?: string) {
+    await this.requireMember(tx, principalId)
     if (
-      !allowed.some(permission =>
-        permission.actions.some(action => grants.some(grant => matches(grant.value, permission.scope, action))),
-      )
+      source.serverId !== this.options.serverId &&
+      (source.serverId || !this.fullLegacyPermissions(source.permissions))
     )
-      fail('MANAGEMENT_FORBIDDEN')
+      fail('ADMIN_LOGIN_REQUIRED', 401)
     const token = secret(),
       csrfToken = sessionCsrf(token),
       expiresAt = this.now() + this.sessionTtlMs
@@ -615,7 +744,7 @@ export class ManagementAuth {
         createdAt: this.now(),
         expiresAt,
         csrfHash: hash(csrfToken),
-        permissions: allowed,
+        serverId: this.options.serverId,
         parentId,
       },
     })
@@ -661,7 +790,12 @@ export class ManagementAuth {
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
       excludeCredentials: (await this.store.list<Credential>('credentials', actor.principalId))
-        .filter(row => row.value.kind === 'passkey' && row.value.passkey?.rpId === new URL(origin).hostname)
+        .filter(
+          row =>
+            this.ownsCredential(row.value) &&
+            row.value.kind === 'passkey' &&
+            row.value.passkey?.rpId === new URL(origin).hostname,
+        )
         .map(row => ({ id: row.value.passkey!.id })),
     })
     return { options, challengeId: this.challenge(origin, options.challenge, actor) }
@@ -688,11 +822,10 @@ export class ManagementAuth {
     }
     if (!verification.verified || !verification.registrationInfo) return fail('PASSKEY_INVALID', 401)
     const key = verification.registrationInfo.credential
-    const allowed = await this.effectivePermissions(actor)
     await this.store.transaction(async tx => {
       await this.credential(tx, actor)
       if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
-      // Save the registering session's ceiling; a limited session cannot acquire broader login rights.
+      // Human credentials identify this server; current membership supplies authority.
       await tx.create<Credential>('credentials', {
         id: `passkey:${hash(key.id)}`,
         scope: actor.principalId,
@@ -703,7 +836,7 @@ export class ManagementAuth {
           label: input.label,
           createdAt: this.now(),
           expiresAt: Number.MAX_SAFE_INTEGER,
-          permissions: allowed,
+          serverId: this.options.serverId,
           passkey: {
             id: key.id,
             publicKey: Buffer.from(key.publicKey).toString('base64url'),
@@ -754,7 +887,7 @@ export class ManagementAuth {
         ...row.value,
         passkey: { ...key, counter: verification.authenticationInfo.newCounter },
       })
-      const session = await this.loginSession(tx, row.value.principalId, row.value.permissions ?? [], id)
+      const session = await this.loginSession(tx, row.value.principalId, row.value, id)
       await this.audit(tx, row.value.principalId, 'passkey.login', 'management', {})
       return session
     })
@@ -762,7 +895,6 @@ export class ManagementAuth {
 
   async rememberDevice(actor: ManagementActor, label: string) {
     if (!validText(label, 80)) fail('INVALID_CREDENTIAL', 422)
-    const allowed = await this.effectivePermissions(actor)
     return this.store.transaction(async tx => {
       const current = await this.credential(tx, actor)
       if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
@@ -780,7 +912,7 @@ export class ManagementAuth {
           createdAt: this.now(),
           expiresAt,
           secretHash: hash(token),
-          permissions: allowed,
+          serverId: this.options.serverId,
           parentId: current.value.parentId,
         },
       })
@@ -805,7 +937,7 @@ export class ManagementAuth {
       await this.validateParent(tx, row.value)
       const rotated = `${row.value.publicId}.${secret()}`
       await tx.replace('credentials', id, row.revision, { ...row.value, secretHash: hash(rotated) })
-      const session = await this.loginSession(tx, row.value.principalId, row.value.permissions ?? [], id)
+      const session = await this.loginSession(tx, row.value.principalId, row.value, id)
       return { session, token: rotated, expiresAt: row.value.expiresAt }
     })
   }
@@ -814,7 +946,12 @@ export class ManagementAuth {
     await this.credential(this.store, actor)
     if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
     return (await this.store.list<Credential>('credentials', actor.principalId))
-      .filter(row => ['device', 'passkey'].includes(row.value.kind) && row.value.expiresAt > this.now())
+      .filter(
+        row =>
+          this.ownsCredential(row.value) &&
+          ['device', 'passkey'].includes(row.value.kind) &&
+          row.value.expiresAt > this.now(),
+      )
       .map(row => ({
         id: row.value.publicId!,
         kind: row.value.kind,
@@ -829,11 +966,12 @@ export class ManagementAuth {
       await this.credential(tx, actor)
       if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
       const row = (await tx.list<Credential>('credentials', actor.principalId)).find(
-        row => ['device', 'passkey'].includes(row.value.kind) && row.value.publicId === publicId,
+        row =>
+          this.ownsCredential(row.value) &&
+          ['device', 'passkey'].includes(row.value.kind) &&
+          row.value.publicId === publicId,
       )
       if (!row) return fail('CREDENTIAL_NOT_FOUND', 404)
-      for (const permission of row.value.permissions ?? [])
-        for (const action of permission.actions) await this.authorizeIn(tx, actor, permission.scope, action)
       await tx.delete('credentials', row.id, row.revision)
       await this.audit(tx, actor.principalId, 'login-method.revoke', 'management', { credentialId: publicId })
     })

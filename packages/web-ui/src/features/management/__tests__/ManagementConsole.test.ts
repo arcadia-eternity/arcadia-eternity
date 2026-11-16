@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub, type VueWrapper } from '@vue/test-utils'
 import ManagementPermissions from '../ManagementPermissions.vue'
-import { managementScopeActions } from '../managementPermissions'
 import ManagementConsole from '../ManagementConsole.vue'
 import type { ManagementIpcRequest } from '@/services/managementClient'
 import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@/types/management'
@@ -49,21 +48,8 @@ function response(path: string, suffix = 'local', readonly = false): unknown {
     return {
       serverId: `server-${suffix}`,
       workspaceId: `workspace-${suffix}`,
-      supportedFeatures: ['workspace.environments', 'server.bindings', 'server.drain', 'operations', 'grants'],
-      effectivePermissions: [
-        {
-          scope: { kind: 'workspace', id: `workspace-${suffix}` },
-          actions: readonly
-            ? ['read']
-            : ['read', 'environment.use', 'edit', 'prepare', 'delete', 'export', 'grants.manage'],
-        },
-        {
-          scope: { kind: 'server', id: `server-${suffix}` },
-          actions: readonly
-            ? ['read']
-            : ['read', 'bindings.manage', 'publish', 'settings.manage', 'drain', 'grants.manage'],
-        },
-      ],
+      supportedFeatures: ['workspace.environments', 'server.bindings', 'server.drain', 'operations', 'administrators'],
+      isAdministrator: !readonly,
       resourceRestrictions: [],
     }
   if (path === '/servers')
@@ -99,7 +85,8 @@ function response(path: string, suffix = 'local', readonly = false): unknown {
       ],
     }
   if (path === '/operations') return { operations: [] }
-  if (path === '/grants') return { grants: [] }
+  if (path === '/administrators')
+    return { revision: 7, administrators: [{ principalId: 'admin', displayName: 'Owner' }] }
   return {}
 }
 function bridge(readonly = false) {
@@ -123,62 +110,30 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
-  it('does not start a combined administrator grant when the caller lacks any required permission', async () => {
+  it('adds and removes administrators with one revision-checked request each', async () => {
     const { page, request } = await open()
     await page.setProps({ initialTab: 'permissions' })
     await flushPromises()
     const controller = page.findComponent(ManagementPermissions).props('controller')
-    controller.principalId.value = 'new-admin'
-    controller.grantRole.value = 'admin'
-    await controller.addGrant()
-    expect(request.mock.calls.some(([input]) => input.method === 'POST' && input.path === '/grants')).toBe(false)
-    expect(controller.principalId.value).toBe('new-admin')
-  })
-
-  it('grants both scopes with the administrator preset and updates existing grants with their revision', async () => {
-    const request = vi.fn(async (input: ManagementIpcRequest) => {
-      const body = response(input.path) as Record<string, unknown>
-      if (input.path === '/capabilities')
-        body.effectivePermissions = (['server', 'workspace'] as const).map(kind => ({
-          scope: { kind, id: `${kind}-local` },
-          actions: managementScopeActions[kind],
-        }))
-      if (input.path === '/grants' && input.method === 'GET')
-        body.grants = [
-          {
-            id: 'existing',
-            revision: 7,
-            principalId: 'new-admin',
-            scope: { kind: 'server', id: 'server-local' },
-            actions: ['read'],
-          },
-        ]
-      return { status: 200, body }
-    })
-    const { page } = await open(request)
-    await page.setProps({ initialTab: 'permissions' })
-    await flushPromises()
-    const controller = page.findComponent(ManagementPermissions).props('controller')
-    controller.principalId.value = 'new-admin'
-    controller.grantRole.value = 'admin'
-    await controller.addGrant()
-    const writes = request.mock.calls
-      .map(([input]) => input)
-      .filter(input => input.method === 'POST' && input.path === '/grants')
+    await controller.addAdministrator('account-1')
+    await controller.removeAdministrator('member-1')
+    const writes = request.mock.calls.map(([input]) => input).filter(input => input.method !== 'GET')
     expect(writes).toHaveLength(2)
-    expect(writes[0].body).toEqual({
-      principalId: 'new-admin',
-      scope: { kind: 'workspace', id: 'workspace-local' },
-      actions: managementScopeActions.workspace,
+    expect(writes[0]).toMatchObject({
+      path: '/administrators',
+      method: 'POST',
+      body: { accountId: 'account-1' },
+      headers: { 'If-Match': '"7"' },
     })
-    expect(writes[1].body).toEqual({
-      principalId: 'new-admin',
-      scope: { kind: 'server', id: 'server-local' },
-      actions: managementScopeActions.server,
+    expect(writes[1]).toMatchObject({
+      path: '/administrators/member-1',
+      method: 'DELETE',
+      headers: { 'If-Match': '"7"' },
     })
-    expect(writes[1].headers?.['If-Match']).toBe('"7"')
+    expect(page.text()).not.toContain('管理主体标识')
+    expect(page.text()).not.toContain('工作区管理员')
+    expect(page.text()).not.toContain('角色')
   })
-
   it('navigates without discarding the console and follows a restored tab', async () => {
     const { page, request } = await open()
     const reads = request.mock.calls.length
@@ -331,15 +286,12 @@ describe('shared management console', () => {
     expect(published.body).toEqual({})
   })
 
-  it('keeps the server catalogue readable but makes no publishing request for a viewer', async () => {
+  it('does not expose management resources or mutations to non-administrators', async () => {
     const { page, request } = await open(bridge(true))
-    expect(button(page, '新建环境').attributes('disabled')).toBeDefined()
-    await button(page, '运行环境').trigger('click')
-    expect(page.text()).not.toContain('实际版本')
-    expect(button(page, '重新加载').attributes('disabled')).toBeDefined()
-    await button(page, '重新加载').trigger('click')
+    expect(button(page, '新建环境')).toBeUndefined()
+    expect(button(page, '重新加载')).toBeUndefined()
     expect(request.mock.calls.every(([input]) => input.method === 'GET')).toBe(true)
-    expect(page.find('[aria-label="管理员授权"]').exists()).toBe(false)
+    expect(page.find('[aria-label="管理员"]').exists()).toBe(false)
   })
 
   it('uses the paired HTTP endpoint after a target switch and never paints a late local refresh into it', async () => {

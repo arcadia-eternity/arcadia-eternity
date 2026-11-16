@@ -1,3 +1,4 @@
+import { legacySession } from './fixtures/management'
 import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -59,9 +60,7 @@ async function setup() {
   cleanups.push(() => app.stop())
   let service = app.management!
   await service.ready()
-  const owner = await service.auth.exchangeBootstrap(
-    (await service.auth.issueBootstrapCode(service.ownerPermissions, 'configured-owner')).code,
-  )
+  const owner = await service.auth.exchangeBootstrap((await service.auth.issueBootstrapCode('configured-owner')).code)
   let sequence = 0
   const request = async <T>(input: ManagementRequest, actor?: ManagementActor): Promise<T> => {
     const result = actor ? await service.request(actor, input) : await service.localRequest(input)
@@ -204,13 +203,10 @@ it('removes snapshot publication and requires permission to activate a binding',
     body: {},
   })
   expect(result.status).toBe(404)
-  const viewer = await f.service.auth.exchangeBootstrap(
-    (
-      await f.service.auth.issueBootstrapCode(
-        [{ scope: { kind: 'server', id: 'binding-server' }, actions: ['read'] }],
-        'viewer',
-      )
-    ).code,
+  const viewer = await legacySession(
+    f.service.auth,
+    [{ scope: { kind: 'server', id: 'binding-server' }, actions: ['read'] }],
+    'viewer',
   )
   await expect(
     f.service.request(viewer.actor, {
@@ -226,18 +222,15 @@ it('preparing a bound environment requires publish permission before replacement
   const draft = await f.draft('Shared', null)
   await f.prepare(draft.revision)
   await f.createBinding()
-  const editor = await f.service.auth.exchangeBootstrap(
-    (
-      await f.service.auth.issueBootstrapCode(
-        [
-          {
-            scope: { kind: 'workspace', id: f.workspace.workspaceId },
-            actions: ['read', 'edit', 'prepare', 'environment.use'],
-          },
-        ],
-        'workspace-editor',
-      )
-    ).code,
+  const editor = await legacySession(
+    f.service.auth,
+    [
+      {
+        scope: { kind: 'workspace', id: f.workspace.workspaceId },
+        actions: ['read', 'edit', 'prepare', 'environment.use'],
+      },
+    ],
+    'workspace-editor',
   )
   const current = await f.workspace.getDraft('shared')
   await expect(
