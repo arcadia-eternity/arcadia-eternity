@@ -162,7 +162,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     assert.equal(player.name, name)
     if (baseline) assert.deepEqual(player, baseline.player)
 
-    await page.goto('arcadia-client://app/content')
+    await page.goto('arcadia-client://app/creation')
     let project
     if (!baseline) {
       await page.getByRole('button', { name: '新建内容包', exact: true }).click()
@@ -219,7 +219,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       item => item.id === server.defaultBindingId,
     )
     assert.equal(binding.condition, 'available')
-    await page.goto('arcadia-client://app/management?tab=environments')
+    await page.goto('arcadia-client://app/environments?target=local')
     if (!baseline) {
       await page.getByRole('button', { name: '新建环境', exact: true }).click()
       const editor = page.getByRole('form', { name: '编辑环境' })

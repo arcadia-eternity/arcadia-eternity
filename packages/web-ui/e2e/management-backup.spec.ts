@@ -100,7 +100,7 @@ async function hostCommand(directory: string, args: string[]) {
 async function login(page: Page, directory: string, origin: string) {
   const credential = await hostCommand(directory, ['admin', 'login-code', '--data-dir', directory])
   const identity = { serverId: String(credential.serverId), workspaceId: String(credential.workspaceId) }
-  await page.goto(origin + '/management?tab=environments')
+  await page.goto(origin + '/environments?target=server')
   await page.getByRole('button', { name: '管理员登录', exact: true }).click()
   await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
   await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
