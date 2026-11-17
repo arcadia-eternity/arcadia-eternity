@@ -215,9 +215,9 @@ it('bootstraps playable builtin content once and preserves administrator removal
   expect(draft.requiredPackages).toEqual([base])
   const draftPath = `${draftsPath}/${draft.document.id}`
   await request(
-    draftPath + '/package-state',
+    draftPath + '/packages/remove',
     'POST',
-    { name: base, enabled: false, cascade: true, expectedRevision: draft.revision },
+    { name: base, cascade: true, expectedRevision: draft.revision },
     undefined,
     409,
   )

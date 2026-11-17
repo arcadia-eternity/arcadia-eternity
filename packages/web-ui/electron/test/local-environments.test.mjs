@@ -1,10 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, writeFile, rm, realpath, copyFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, rm, realpath, copyFile, readFile, readdir, cp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
+import {
+  ContentWorkspace,
+  addEnvironmentPackage,
+  removeEnvironmentPackage,
+} from '../../../content-dev/src/content-workspace.ts'
 import { LocalEnvironments } from '../local-environments.mjs'
 
 const document = {
@@ -55,6 +60,8 @@ async function fixture(t) {
       openWorkspace: () => ContentWorkspace.open(join(root, 'workspace'), { retentions: { list: async () => [] } }),
       library,
       validate,
+      addPackage: addEnvironmentPackage,
+      removePackage: removeEnvironmentPackage,
     })
     instances.push(api)
     return api
@@ -174,11 +181,11 @@ test('relocated desktop environment module loads without workspace packages and 
   const file = join(root, 'local-environments.mjs')
   await copyFile(new URL('../local-environments.mjs', import.meta.url), file)
   const { LocalEnvironments: Relocated } = await import(pathToFileURL(file).href)
-  const workspace = { close: async () => {} }
-  const input = { action: 'package-state', environmentId: 'friends', packageName: 'sample', enabled: false }
+  const workspace = { root, close: async () => {} }
+  const input = { action: 'remove-package', environmentId: 'friends', name: 'sample' }
   const api = new Relocated({
     openWorkspace: async () => workspace,
-    setPackageEnabled: async (actualWorkspace, actualInput) => {
+    removePackage: async (actualWorkspace, actualInput) => {
       assert.equal(typeof actualWorkspace.saveDraft, 'function')
       assert.equal(actualInput, input)
       return { document, revision: 'updated' }
@@ -204,4 +211,119 @@ test('one apply action creates and updates the installation without saving a dra
   })
   assert.equal((await complete(api, submitted.operationId)).status, 'failed')
   assert.deepEqual((await api.snapshot()).environments[0], original)
+})
+
+test('migrates the working local selection once and preserves selected environments and live leases', async t => {
+  const f = await fixture(t)
+  let migrations = 0
+  f.library.acquireInitialEnvironment = async () => {
+    migrations++
+    return { directory: f.project, packages: [{ name: 'sample', version: '1.0.0' }], release: async () => {} }
+  }
+  let api = f.open()
+  const first = await api.snapshot()
+  assert.equal(first.environments.length, 1)
+  assert.equal(first.selectedEnvironmentId, first.environments[0].document.id)
+  assert.deepEqual(first.environments[0].document.packages, { sample: '1.0.0' })
+  const original = await api.acquireProject()
+  const apply = await api.request({ action: 'apply', document, expectedRevision: null })
+  assert.equal((await complete(api, apply.operationId)).status, 'succeeded')
+  const select = await api.request({ action: 'select', environmentId: document.id })
+  assert.equal((await complete(api, select.operationId)).status, 'succeeded')
+  assert.ok(
+    (await api.request({ action: 'references', installationId: document.id })).references.some(
+      reference => reference.kind === 'local-selection',
+    ),
+  )
+  const next = await api.acquireProject()
+  assert.equal(next.document.id, document.id)
+  assert.equal(original.document.id, first.selectedEnvironmentId)
+  assert.notEqual(original.directory, next.directory)
+  await assert.rejects(api.request({ action: 'clear-installation', installationId: document.id }), {
+    code: 'ENVIRONMENT_IN_USE',
+  })
+  const invalid = await api.request({ action: 'select', environmentId: 'missing' })
+  assert.equal((await complete(api, invalid.operationId)).status, 'failed')
+  assert.equal((await api.snapshot()).selectedEnvironmentId, document.id)
+  await original.release()
+  await next.release()
+  await api.close()
+  api = f.open()
+  assert.equal((await api.snapshot()).selectedEnvironmentId, document.id)
+  assert.equal(migrations, 1)
+})
+
+test('local add-package accepts a new version declaration and applies it atomically', async t => {
+  const f = await fixture(t)
+  const api = f.open()
+  const workspace = await api.ready()
+  const saved = await workspace.saveDraft({ expectedRevision: null, document: { ...document, packages: {} } })
+  const input = {
+    action: 'add-package',
+    environmentId: document.id,
+    name: 'sample',
+    version: '1.0.0',
+    expectedRevision: saved.revision,
+  }
+  await assert.rejects(api.request({ ...input, enabled: true }), { code: 'INVALID_REQUEST' })
+  await assert.rejects(api.request({ ...input, action: 'package-state' }), { code: 'INVALID_ACTION' })
+  const started = await api.request(input)
+  assert.equal((await complete(api, started.operationId)).status, 'succeeded')
+  assert.equal((await workspace.getDraft(document.id)).document.packages.sample, '1.0.0')
+  const revision = (await workspace.getDraft(document.id)).revision
+  await assert.rejects(api.request(input), { code: 'REVISION_CONFLICT' })
+  assert.equal((await workspace.getDraft(document.id)).revision, revision)
+})
+
+test('archives legacy removed declarations before rewriting an environment', async t => {
+  const f = await fixture(t)
+  const api = f.open()
+  const workspace = await api.ready()
+  await workspace.saveDraft({ document, expectedRevision: null })
+  const manifestFile = join(workspace.root, 'environments', document.id, 'package.json')
+  const legacy = JSON.parse(await readFile(manifestFile, 'utf8'))
+  legacy.arcadiaEnvironment.disabled = { packages: { old: '^1' }, sources: [] }
+  const original = JSON.stringify(legacy)
+  await writeFile(manifestFile, original)
+  const loaded = await workspace.getDraft(document.id)
+  assert.equal(loaded.document.disabled, undefined)
+  await workspace.saveDraft({ document: loaded.document, expectedRevision: loaded.revision })
+  const backups = await readdir(join(workspace.root, 'migration-backups'))
+  assert.equal(backups.length, 1)
+  assert.equal(await readFile(join(workspace.root, 'migration-backups', backups[0]), 'utf8'), original)
+  assert.equal(JSON.parse(await readFile(manifestFile, 'utf8')).arcadiaEnvironment.disabled, undefined)
+})
+
+test('recovering an interrupted import archives legacy declarations before replacing the manifest', async t => {
+  const f = await fixture(t)
+  const workspace = await f.open().ready()
+  await workspace.prepareEnvironment(
+    { environmentId: document.id, document, expectedRevision: null, projectDirectory: f.project },
+    async () => ({ contentRevision: 'test', packages: [] }),
+  )
+  const directory = join(workspace.root, 'environments', document.id)
+  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+  manifest.arcadiaEnvironment.disabled = { packages: { old: '^1' }, sources: [] }
+  const original = JSON.stringify(manifest)
+  await writeFile(join(directory, 'package.json'), original)
+  const draft = await workspace.getDraft(document.id)
+  const importId = 'a'.repeat(64)
+  const staging = 'prepare-' + randomUUID()
+  const stagedDirectory = join(workspace.root, 'staging', staging)
+  await cp(directory, stagedDirectory, { recursive: true })
+  delete manifest.arcadiaEnvironment.disabled
+  await writeFile(join(stagedDirectory, 'package.json'), JSON.stringify(manifest))
+  const metadata = JSON.parse(await readFile(join(stagedDirectory, '.arcadia-prepared.json'), 'utf8'))
+  await writeFile(join(stagedDirectory, '.arcadia-prepared.json'), JSON.stringify({ ...metadata, importId }))
+  await writeFile(
+    join(workspace.root, 'imports', importId + '.json'),
+    JSON.stringify({ environmentId: document.id, staging, expectedRevision: draft.revision, completed: false }),
+  )
+  await workspace.recoverImport(importId)
+  const backups = await readdir(join(workspace.root, 'migration-backups'))
+  assert.equal(await readFile(join(workspace.root, 'migration-backups', backups[0]), 'utf8'), original)
+  assert.equal(
+    JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).arcadiaEnvironment.disabled,
+    undefined,
+  )
 })

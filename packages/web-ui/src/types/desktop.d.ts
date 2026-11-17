@@ -39,12 +39,14 @@ export interface ArcadiaDesktopApi {
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
   prepareLocalContent?: () => Promise<{
     token: string
+    rules?: import('@arcadia-eternity/protocol').PersonalEnvironmentReference['rules']
     environment?: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
     resources: import('@arcadia-eternity/schema').PresentationManifest['resources']
   }>
   readLocalRuntime?: (token: string) => Promise<import('@arcadia-eternity/battle/sandbox').SandboxEnvironment>
   capturePersonalEnvironment?: () => Promise<{
+    rules?: import('@arcadia-eternity/protocol').PersonalEnvironmentReference['rules']
     environment: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
     runtime: import('@arcadia-eternity/protocol').NativeRuntimeIdentity
@@ -52,16 +54,9 @@ export interface ArcadiaDesktopApi {
     assets: { id: string; mime: string; data: string }[]
   }>
   releaseLocalContent?: (token: string) => Promise<void>
-  selectContentPackageFile?: (options: {
-    offline?: boolean
-  }) => Promise<import('./contentPackages').ContentPackagePlan | null>
-  inspectNpmContentPackage?: (options: {
-    spec: string
-    offline?: boolean
-  }) => Promise<import('./contentPackages').ContentPackagePlan>
   contentPackageAction?: (
     input: import('./contentPackages').ContentPackageAction,
-  ) => Promise<import('./contentPackages').ContentPackagePlan | string | null>
+  ) => Promise<string | null>
   listContentProjects?: () => Promise<ContentProjectSummary[]>
   addContentProject?: () => Promise<string | null>
   contentProjectAction?: (input: ContentProjectAction) => Promise<unknown>

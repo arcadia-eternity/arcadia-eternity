@@ -47,6 +47,7 @@ export interface PersonalEnvironmentBundle {
   assets?: PersonalEnvironmentAsset[]
 }
 export interface PersonalEnvironmentCapture {
+  rules?: PersonalRules
   environment: SandboxEnvironment
   content: ServerEnvironmentContent
   runtime: NativeRuntimeIdentity
@@ -306,12 +307,13 @@ export async function createPersonalEnvironmentBundle(
   signal?.throwIfAborted()
   const fixed = captureJson({
     environment: capture.environment,
+    ...(capture.rules ? { rules: capture.rules } : {}),
     content: capture.content,
     runtime: capture.runtime,
     packages: capture.packages,
     ...(capture.assets !== undefined ? { assets: capture.assets } : {}),
   }) as PersonalEnvironmentCapture
-  const rules = validateEnvironmentRules(inputRules)
+  const rules = validateEnvironmentRules(inputRules ?? fixed.rules)
   validateEnvironmentContent(fixed.content)
   checkedAssets(fixed.assets)
   const portableAssets = normalizedAssets(fixed.assets)

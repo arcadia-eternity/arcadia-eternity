@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
+import { ElMessageBox } from 'element-plus'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { reactive } from 'vue'
 import EnvironmentWorkspace from '../EnvironmentWorkspace.vue'
@@ -48,6 +50,7 @@ function open(overrides: Record<string, unknown> = {}) {
 }
 afterEach(() => {
   pages.splice(0).forEach(page => page.unmount())
+  vi.restoreAllMocks()
 })
 
 describe('shared environment workspace', () => {
@@ -138,4 +141,72 @@ describe('shared environment workspace', () => {
     expect(saved.rules.deny?.species).toEqual(['base:boss', 'custom:pet'])
     expect(saved.rules.tier).toBe('casual')
   })
+})
+
+it('emits confirmed dependency removal without a removed-packages list', async () => {
+  const draft = environment()
+  const installation = {
+    ...version(draft),
+    members: [
+      {
+        name: '@test/dependency',
+        version: '1.0.0',
+        projectId: 'dependency',
+        namespace: 'dependency',
+        direct: false,
+        dependencies: [],
+        requiredBy: ['@test/ice'],
+      },
+    ],
+  }
+  const { page } = open({ environments: [draft], installations: [installation] })
+  await button(page, '移出环境').trigger('click')
+  expect(page.emitted('removePackage')).toBeUndefined()
+  await button(page, '连同依赖它的包一起移出环境').trigger('click')
+  expect(page.emitted('removePackage')![0]).toEqual([draft, '@test/dependency', true])
+  expect(page.emitted('packageState')).toBeUndefined()
+  expect(page.text()).not.toContain('已移出的内容包')
+})
+
+it('merges a selected build into unsaved dependencies and configuration without applying automatically', async () => {
+  const { page, draft } = open()
+  await button(page, '编辑').trigger('click')
+  await page.get('form.environment-editor').findAll('input')[0]!.setValue('未保存的名字')
+  await page.setProps({ pendingPackage: { id: 'build-2', name: '@test/ice', version: '2.0.0' } })
+  expect(page.emitted('save')).toBeUndefined()
+  expect(page.emitted('packageAccepted')).toHaveLength(1)
+  await page.get('form.environment-editor').trigger('submit')
+  const saved = page.emitted('save')![0]![0] as ManagedEnvironment['document']
+  expect(saved.name).toBe('未保存的名字')
+  expect(saved.packages).toEqual({ '@test/ice': '2.0.0' })
+  expect(saved.rules).toEqual(draft.document.rules)
+  expect(draft.document.packages).toEqual({ '@test/ice': '1.2.3' })
+})
+
+it('honors the build target and preserves another environment draft when switching is cancelled', async () => {
+  const first = environment()
+  const second = {
+    ...environment(),
+    revision: 'b',
+    document: { ...environment().document, id: 'second', name: '另一个环境' },
+  }
+  const { page } = open({ environments: [first, second] })
+  await button(page, '编辑').trigger('click')
+  await page.get('form.environment-editor').findAll('input')[0]!.setValue('未保存')
+  const confirm = vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel')
+  await page.setProps({
+    packageEnvironmentId: 'second',
+    pendingPackage: { id: 'build', name: 'new-package', version: '2.0.0' },
+  })
+  await flushPromises()
+  expect(page.emitted('packageAccepted')).toBeUndefined()
+  expect(page.get('form.environment-editor').findAll('input')[0]!.element.value).toBe('未保存')
+  confirm.mockResolvedValueOnce(Object.assign('confirm' as const, { value: '', action: 'confirm' as const }))
+  await page.setProps({ pendingPackage: { id: 'build', name: 'new-package', version: '2.0.0' } })
+  await flushPromises()
+  await page.get('form.environment-editor').trigger('submit')
+  const [saved, revision] = page.emitted('save')![0]! as [ManagedEnvironment['document'], string]
+  expect(saved.id).toBe('second')
+  expect(saved.packages['new-package']).toBe('2.0.0')
+  expect(revision).toBe('b')
 })

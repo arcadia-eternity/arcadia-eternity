@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
-import ContentManagerPage from '../ContentManagerPage.vue'
+import ContentManagerPage from '../ContentPackagesPanel.vue'
 import type { ContentLibrarySnapshot, InstalledContentPackage, ContentPackageAction } from '@/types/contentPackages'
 
 const { read, list } = vi.hoisted(() => ({ read: vi.fn(), list: vi.fn() }))
@@ -20,6 +20,9 @@ const pets = reactive({
   ],
 })
 const gameData = {
+  getSpecies: () => undefined,
+  getSkill: () => undefined,
+  getMark: () => undefined,
   loaded: true,
   serverFallback: null,
   species: { allIds: [], byId: {} },
@@ -69,23 +72,14 @@ const button = (page: ReturnType<typeof mount>, name: string) =>
 const pickPackage = async (page: ReturnType<typeof mount>) => {
   await page.get('.package-select').trigger('click')
 }
-function bridge(active = false) {
+function bridge(_active = false) {
   const snapshot: ContentLibrarySnapshot = {
     revision: 1,
     packages: [structuredClone(pkg)],
-    activeIds: active ? [pkg.id] : [],
-    desiredIds: active ? [pkg.id] : [],
-    selection: { status: active ? 'ready' : 'idle' },
-    hasSelection: active,
     serviceStatus: { status: 'idle' },
     serviceNeedsRestart: false,
   }
-  const action = vi.fn(async (input: ContentPackageAction) => {
-    if (input.action === 'set-selection') {
-      snapshot.desiredIds = [...input.ids]
-      snapshot.selection = { status: 'preparing' }
-    }
-  })
+  const action = vi.fn(async (_input: ContentPackageAction) => {})
   const install = vi.fn(async () => pkg.id)
   vi.stubGlobal('arcadiaDesktop', {
     listContentPackages: async () => structuredClone(snapshot),
@@ -214,49 +208,15 @@ it('does not claim teams are compatible when room content cannot be read', async
   expect(page.text()).toContain('暂时无法检查队伍引用')
   expect(page.text()).not.toContain('暂无队伍引用')
 })
-it('sends the desired state as soon as a checkbox changes, without apply or confirmation controls', async () => {
+it('keeps package installation separate from local environment selection', async () => {
   const { action } = bridge(true)
-  const before = JSON.stringify(pets.teams)
   const page = open()
   await flushPromises()
   await pickPackage(page)
-  await page.get('input[aria-label="启用 创作内容"]').setValue(false)
-  await flushPromises()
-  expect(action).toHaveBeenCalledWith({ action: 'set-selection', ids: [], offline: false })
-  expect(page.find('[role=dialog]').exists()).toBe(false)
-  expect(button(page, '检查并应用更改')).toBeUndefined()
-  expect(page.text()).toContain('正在准备所选内容')
-  await button(page, '队伍影响').trigger('click')
-  expect(page.text()).toContain('custom:pet')
-  expect(JSON.stringify(pets.teams)).toBe(before)
-})
-it('keeps rapid checkbox changes responsive and does not restore an older response', async () => {
-  const { snapshot, action } = bridge()
-  let finish!: () => void
-  const original = action.getMockImplementation()!
-  action.mockImplementation(async input => {
-    await original(input)
-    if (input.action === 'set-selection' && input.ids.length)
-      await new Promise<void>(resolve => {
-        finish = resolve
-      })
-  })
-  const page = open()
-  await flushPromises()
-  const checkbox = page.get('input[aria-label="启用 创作内容"]')
-  await checkbox.setValue(true)
-  await flushPromises()
-  expect(checkbox.attributes('disabled')).toBeUndefined()
-  await checkbox.setValue(false)
-  await flushPromises()
-  finish()
-  await flushPromises()
-  expect(snapshot.desiredIds).toEqual([])
-  expect((checkbox.element as HTMLInputElement).checked).toBe(false)
-  expect(action.mock.calls.map(([input]) => (input.action === 'set-selection' ? input.ids : null))).toEqual([
-    ['package'],
-    [],
-  ])
+  expect(page.find('input[aria-label="启用 创作内容"]').exists()).toBe(false)
+  expect(page.text()).not.toContain('本机已启用')
+  expect(page.text()).toContain('已安装')
+  expect(action).not.toHaveBeenCalled()
 })
 it('installs into the library and shows task management without enabling', async () => {
   const { install, action } = bridge()
@@ -269,41 +229,5 @@ it('installs into the library and shows task management without enabling', async
   expect(install).toHaveBeenCalledWith({ offline: false })
   expect(action).not.toHaveBeenCalled()
   expect(page.get('[role=dialog]').text()).toContain('下载与安装')
-  expect((page.get('input[aria-label="启用 创作内容"]').element as HTMLInputElement).checked).toBe(false)
-})
-it('shows a failed desired selection and retries it while retaining the old available content', async () => {
-  const { snapshot, action } = bridge(true)
-  snapshot.desiredIds = []
-  snapshot.selection = { status: 'failed', message: '内容冲突' }
-  const page = open()
-  await flushPromises()
-  expect(page.text()).toContain('未能启用所选内容，原有内容仍可用')
-  expect(page.text()).toContain('内容冲突')
-  await button(page, '重试准备').trigger('click')
-  await flushPromises()
-  expect(action).toHaveBeenCalledWith({ action: 'set-selection', ids: [], offline: false })
-  expect(snapshot.activeIds).toEqual(['package'])
-  expect(page.find('[role=dialog]').exists()).toBe(false)
-})
-it('lets an accepted desired selection continue after leaving the page', async () => {
-  const { action, snapshot } = bridge(true)
-  let finish!: () => void
-  const original = action.getMockImplementation()!
-  action.mockImplementation(async input => {
-    await original(input)
-    await new Promise<void>(resolve => {
-      finish = resolve
-    })
-  })
-  const page = open()
-  await flushPromises()
-  await page.get('input[aria-label="启用 创作内容"]').setValue(false)
-  await flushPromises()
-  page.unmount()
-  pages = []
-  finish()
-  await flushPromises()
-  expect(snapshot.desiredIds).toEqual([])
-  expect(action).toHaveBeenCalledTimes(1)
-  expect(action).toHaveBeenCalledWith({ action: 'set-selection', ids: [], offline: false })
+  expect(page.find('input[aria-label="启用 创作内容"]').exists()).toBe(false)
 })

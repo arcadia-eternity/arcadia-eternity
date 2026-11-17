@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { readFile, writeFile, rename, rm } from 'node:fs/promises'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
 const safeInstallation = version => {
@@ -11,14 +12,16 @@ const safeInstallation = version => {
  */
 export class LocalEnvironments {
   #opening
+  #selectedId
   #jobs = new Map()
   #closed = false
   #tail = Promise.resolve()
-  constructor({ openWorkspace, library, validate, setPackageEnabled }) {
+  constructor({ openWorkspace, library, validate, addPackage, removePackage }) {
     this.openWorkspace = openWorkspace
     this.library = library
     this.validate = validate
-    this.setPackageEnabled = setPackageEnabled
+    this.addPackage = addPackage
+    this.removePackage = removePackage
   }
   ready() {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
@@ -26,6 +29,39 @@ export class LocalEnvironments {
       .then(async workspace => {
         try {
           await this.library?.synchronizeEnvironments?.(workspace, this.validate)
+          const file = join(workspace.root, 'local-selection.json')
+          const saved = await readFile(file, 'utf8').catch(error => {
+            if (error.code !== 'ENOENT') throw error
+          })
+          if (saved) {
+            const selection = JSON.parse(saved)
+            if (typeof selection.environmentId !== 'string') throw fail('INVALID_LOCAL_SELECTION')
+            this.#selectedId = selection.environmentId
+          } else if (this.library?.acquireInitialEnvironment) {
+            // Copy the last working legacy selection once. Never replace existing user environments.
+            const lease = await this.library.acquireInitialEnvironment()
+            try {
+              const id = `local-${randomUUID()}`
+              const document = {
+                schemaVersion: 2,
+                id,
+                name: '默认环境',
+                packages: Object.fromEntries(lease.packages.map(pkg => [pkg.name, pkg.version])),
+                sources: [],
+                rules: { schemaVersion: 1 },
+                requires: {},
+              }
+              await workspace.prepareEnvironment(
+                { environmentId: id, document, expectedRevision: null, projectDirectory: lease.directory },
+                this.validate,
+              )
+              await this.#saveSelection(workspace, id)
+            } finally {
+              await lease.release()
+            }
+          }
+          // The package library no longer owns the user's runtime selection.
+          if (this.#selectedId) await this.library?.retireLegacySelection?.()
           return workspace
         } catch (error) {
           await workspace.close()
@@ -38,10 +74,27 @@ export class LocalEnvironments {
       })
     return this.#opening
   }
+  async #saveSelection(workspace, environmentId) {
+    const file = join(workspace.root, 'local-selection.json')
+    const temporary = `${file}.${randomUUID()}.tmp`
+    try {
+      await writeFile(temporary, JSON.stringify({ environmentId }), { flag: 'wx' })
+      await rename(temporary, file)
+      this.#selectedId = environmentId
+    } finally {
+      await rm(temporary, { force: true })
+    }
+  }
+  async acquireProject() {
+    const workspace = await this.ready()
+    if (!this.#selectedId) throw fail('LOCAL_ENVIRONMENT_NOT_SELECTED', '请选择本地使用的环境')
+    return workspace.acquire(this.#selectedId, 'local-play')
+  }
   async snapshot() {
     const workspace = await this.ready()
     return {
       workspaceId: workspace.workspaceId,
+      selectedEnvironmentId: this.#selectedId,
       environments: await workspace.listDrafts(),
       installations: (await workspace.listInstallations()).map(safeInstallation),
       operations: [...this.#jobs.values()].map(({ controller, promise, execute, ...job }) => job).reverse(),
@@ -90,10 +143,28 @@ export class LocalEnvironments {
       throw fail('REQUEST_TOO_LARGE')
     const workspace = await this.ready()
     switch (input.action) {
+      case 'select': {
+        return this.start('environment.select', async signal => {
+          const lease = await workspace.acquire(input.environmentId, 'select-local-play')
+          try {
+            signal.throwIfAborted()
+            await this.#saveSelection(workspace, input.environmentId)
+            return { environmentId: input.environmentId }
+          } finally {
+            await lease.release()
+          }
+        })
+      }
       case 'snapshot':
         return this.snapshot()
-      case 'package-state': {
-        const draft = await this.setPackageEnabled(
+      case 'add-package':
+      case 'remove-package': {
+        const adding = input.action === 'add-package'
+        const allowed = adding
+          ? ['action', 'environmentId', 'expectedRevision', 'name', 'version', 'source', 'allowDownload']
+          : ['action', 'environmentId', 'expectedRevision', 'name', 'cascade', 'allowDownload']
+        if (Object.keys(input).some(key => !allowed.includes(key))) throw fail('INVALID_REQUEST')
+        const draft = await (adding ? this.addPackage : this.removePackage)(
           {
             listDrafts: () => workspace.listDrafts(),
             listInstallations: () => workspace.listInstallations(),
@@ -138,13 +209,20 @@ export class LocalEnvironments {
         })
       }
       case 'delete-draft':
+        if (input.environmentId === this.#selectedId) throw fail('ENVIRONMENT_IN_USE', '请先切换本地使用的环境')
         await workspace.deleteDraft({ environmentId: input.environmentId, expectedRevision: input.expectedRevision })
         return { deleted: true }
       case 'clear-installation':
+        if (input.installationId === this.#selectedId) throw fail('ENVIRONMENT_IN_USE', '请先切换本地使用的环境')
         await workspace.clearInstallation(input.installationId)
         return { deleted: true }
       case 'references':
-        return { references: await workspace.references(input.installationId) }
+        return {
+          references: [
+            ...(input.installationId === this.#selectedId ? [{ kind: 'local-selection', owner: '本地使用' }] : []),
+            ...(await workspace.references(input.installationId)),
+          ],
+        }
       case 'export':
         return workspace.exportEnvironment(input.installationId)
       case 'cancel': {

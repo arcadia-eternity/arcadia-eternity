@@ -1,4 +1,5 @@
 import 'element-plus/theme-chalk/base.css'
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import 'element-plus/theme-chalk/el-alert.css'
 import 'element-plus/theme-chalk/el-badge.css'
 import 'element-plus/theme-chalk/el-button.css'
@@ -22,3 +23,6 @@ import 'element-plus/theme-chalk/el-table.css'
 import 'element-plus/theme-chalk/el-table-column.css'
 import 'element-plus/theme-chalk/el-tabs.css'
 import 'element-plus/theme-chalk/el-tag.css'
+
+import 'element-plus/theme-chalk/el-dialog.css'
+import 'element-plus/theme-chalk/el-message-box.css'

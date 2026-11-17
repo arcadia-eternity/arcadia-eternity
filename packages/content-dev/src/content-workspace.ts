@@ -4,7 +4,11 @@ import { join, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
 import semver from 'semver'
 import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
+import {
+  normalizeEnvironmentDocument,
+  EnvironmentDocumentV2Schema,
+  type EnvironmentDocumentV2,
+} from './debug-environments.ts'
 import { withSourceLock } from './source-lock.ts'
 import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
@@ -312,6 +316,16 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
   #directory(id: string) {
     return join(this.root, 'environments', checkId(id, envId))
   }
+  async #archiveRemovedDeclarations(id: string) {
+    const text = await readFile(join(this.#directory(id), 'package.json'), 'utf8').catch(error => {
+      if (errorCode(error) !== 'ENOENT') throw error
+      return undefined
+    })
+    if (!text || !Object.hasOwn(JSON.parse(text).arcadiaEnvironment ?? {}, 'disabled')) return
+    const archive = join(this.root, 'migration-backups')
+    await regularDirectory(archive)
+    await writeFileAtomic(join(archive, `${id}-${revision(text)}.json`), text)
+  }
   #manifest(document: EnvironmentDocument, previous: UnknownRecord = {}): UnknownRecord {
     const { packages, ...metadata } = document
     const priorDependencies = isRecord(previous.dependencies) ? previous.dependencies : {}
@@ -374,6 +388,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       if ((previous === null ? null : revision(previous)) !== input.expectedRevision)
         throw contentError('REVISION_CONFLICT')
       await regularDirectory(directory)
+      await this.#archiveRemovedDeclarations(document.id)
       await writeFileAtomic(file, json(this.#manifest(document, previous ? JSON.parse(previous) : {})))
       return this.#draft(document.id)
     }, true)
@@ -529,6 +544,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       }
       await input.beforeCommit?.()
       signal.throwIfAborted()
+      await this.#archiveRemovedDeclarations(document.id)
       if (input.importId) return this.#finishImport(input.importId)
       try {
         await rename(target, previous)
@@ -795,6 +811,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     const prepared = await readJson(join(staging, '.arcadia-prepared.json'))
     if (prepared.importId !== id || prepared.installationId !== environmentId)
       throw contentError('IMPORT_INTENT_INVALID')
+    await this.#archiveRemovedDeclarations(environmentId)
     const previous = join(this.root, 'staging', `replaced-${environmentId}`)
     let moved = false
     try {
@@ -879,41 +896,67 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
 export const ContentWorkspace: ContentWorkspaceConstructor = ContentWorkspaceImplementation
 
 /** Change desired roots only. Resolved material and all published installations remain immutable. */
-export async function setEnvironmentPackageEnabled(
-  workspace: Pick<ContentWorkspace, 'listDrafts' | 'listInstallations' | 'saveDraft'>,
-  input: { environmentId: string; expectedRevision: string; name: string; enabled: boolean; cascade?: boolean },
+export type AddEnvironmentPackageInput = {
+  environmentId: string
+  expectedRevision: string
+  name: string
+  version?: string
+  source?: boolean
+}
+export type RemoveEnvironmentPackageInput = {
+  environmentId: string
+  expectedRevision: string
+  name: string
+  cascade?: boolean
+}
+type PackageWorkspace = Pick<ContentWorkspace, 'listDrafts' | 'listInstallations' | 'saveDraft'>
+export function addEnvironmentPackage(workspace: PackageWorkspace, input: AddEnvironmentPackageInput) {
+  return changeEnvironmentPackage(workspace, { ...input, action: 'add' })
+}
+export function removeEnvironmentPackage(workspace: PackageWorkspace, input: RemoveEnvironmentPackageInput) {
+  return changeEnvironmentPackage(workspace, { ...input, action: 'remove' })
+}
+async function changeEnvironmentPackage(
+  workspace: PackageWorkspace,
+  input: (AddEnvironmentPackageInput & { action: 'add' }) | (RemoveEnvironmentPackageInput & { action: 'remove' }),
 ): Promise<EnvironmentDraft> {
-  const { environmentId, expectedRevision, name, enabled, cascade = false } = input
-  if (typeof name !== 'string' || typeof enabled !== 'boolean' || typeof cascade !== 'boolean')
+  const { environmentId, expectedRevision, name } = input
+  const cascade = input.action === 'remove' ? (input.cascade ?? false) : false
+  if (!EnvironmentDocumentV2Schema.shape.sources.safeParse([name]).success || typeof cascade !== 'boolean')
+    throw contentError('ENVIRONMENT_PACKAGE_INVALID')
+  if (
+    input.action === 'add' &&
+    ((input.version !== undefined && (typeof input.version !== 'string' || !input.version.trim())) ||
+      (input.source !== undefined && typeof input.source !== 'boolean') ||
+      (input.version !== undefined && input.source === true))
+  )
     throw contentError('ENVIRONMENT_PACKAGE_INVALID')
   const draft = (await workspace.listDrafts()).find(item => item.document.id === environmentId)
   if (!draft) throw contentError('ENVIRONMENT_NOT_FOUND')
   if (draft.revision !== expectedRevision) throw contentError('REVISION_CONFLICT')
   const document = structuredClone(draft.document)
-  const disabled = document.disabled ?? { packages: {}, sources: [] }
-  document.disabled = disabled
   const active = new Set([...Object.keys(document.packages), ...document.sources])
-  if (enabled) {
-    if (active.has(name)) return draft
-    if (Object.hasOwn(disabled.packages, name)) {
-      document.packages[name] = disabled.packages[name]
-      delete disabled.packages[name]
-    } else if (disabled.sources.includes(name)) {
-      document.sources.push(name)
-      disabled.sources = disabled.sources.filter(value => value !== name)
-    } else throw contentError('ENVIRONMENT_PACKAGE_NOT_FOUND')
+  if (input.action === 'add') {
+    const version = input.version?.trim()
+    if (version !== undefined) {
+      document.packages[name] = version
+      document.sources = document.sources.filter(value => value !== name)
+    } else if (input.source === true) {
+      delete document.packages[name]
+      if (!document.sources.includes(name)) document.sources.push(name)
+    } else throw contentError('ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED', '新增内容包需要指定版本或已登记来源')
   } else {
     const version = (await workspace.listInstallations())
       .filter((item): item is EnvironmentInstallation => item.status === 'ready')
       .filter(item => item.environmentId === environmentId && item.members)
       .sort((a, b) => b.createdAt - a.createdAt)[0]
-    // A graph captured for different roots/ranges cannot justify disabling a shared dependency.
+    // A graph captured for different roots/ranges cannot justify removing a shared dependency.
     if (
       !version ||
       Object.entries(document.packages).some(([key, range]) => version.document.packages[key] !== range) ||
       document.sources.some(key => !version.document.sources.includes(key))
     )
-      throw contentError('ENVIRONMENT_DEPENDENCIES_UNRESOLVED', '先准备当前组合，再调整依赖的启用状态')
+      throw contentError('ENVIRONMENT_DEPENDENCIES_UNRESOLVED', '请先准备当前组合，再移出内容包')
     const affected = new Set([name])
     for (let changed = true; changed;) {
       changed = false
@@ -931,14 +974,9 @@ export async function setEnvironmentPackageEnabled(
         `仍被这些资源包依赖：${roots.filter(key => key !== name).join('、')}`,
       )
     for (const key of roots) {
-      if (Object.hasOwn(document.packages, key)) {
-        disabled.packages[key] = document.packages[key]
-        delete document.packages[key]
-      } else {
-        disabled.sources.push(key)
-        document.sources = document.sources.filter(value => value !== key)
-      }
+      delete document.packages[key]
+      document.sources = document.sources.filter(value => value !== key)
     }
   }
-  return workspace.saveDraft({ document, expectedRevision })
+  return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
 }

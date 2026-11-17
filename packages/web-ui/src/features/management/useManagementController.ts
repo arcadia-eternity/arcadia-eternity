@@ -20,12 +20,13 @@ export type ManagementTab =
 export interface ManagementConsoleProps {
   initialTarget?: 'local' | 'server'
   initialTab?: ManagementTab
+  scope?: 'server' | 'content'
 }
 export function useManagementController(
   props: ManagementConsoleProps,
   emit: (event: 'navigate', value: { target: 'local' | 'server'; tab: ManagementTab }) => void,
 ) {
-  const state = useManagementConsole()
+  const state = useManagementConsole(props.scope)
   const auth = useAuthStore()
   const {
     client,
@@ -102,7 +103,7 @@ export function useManagementController(
   }
   const tab = ref<
     'environments' | 'server' | 'network' | 'tasks' | 'security' | 'permissions' | 'accounts' | 'battles'
-  >(props.initialTab ?? 'environments')
+  >(props.initialTab ?? (props.scope === 'content' ? 'environments' : 'server'))
   let disposed = false
   let targetGeneration = 0
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -172,9 +173,9 @@ export function useManagementController(
   const manageAdministrators = computed(() => supported('administrators') && !!capabilities.value?.isAdministrator)
   const canActivateBinding = computed(() => isAdministrator.value)
   const accessibleTabs = computed(() => {
+    if (props.scope === 'content') return isAdministrator.value ? (['environments', 'tasks'] as ManagementTab[]) : []
     const allowed: NonNullable<typeof props.initialTab>[] = []
     if (isAdministrator.value) allowed.push('server', 'network')
-    if (isAdministrator.value) allowed.push('environments')
     if (supported('server.battles') && isAdministrator.value) allowed.push('battles')
     if ((supported('server.players') && isAdministrator.value) || (supported('accounts') && isAdministrator.value))
       allowed.push('accounts')
@@ -209,7 +210,7 @@ export function useManagementController(
     referenceRequest++
     clearDownloads()
     issuedCredential.value = undefined
-    tab.value = props.initialTab ?? 'environments'
+    tab.value = props.initialTab ?? (props.scope === 'content' ? 'environments' : 'server')
     try {
       if (next === 'local') {
         if (!localBridge) throw new Error('此窗口不支持本机管理，请在客户端本机内容页面打开。')
@@ -371,7 +372,9 @@ export function useManagementController(
     environmentId?: string
     expectedRevision?: string | null
   }) {
-    if (await state.mutate('POST', `${workspacePath.value}/import`, input)) tab.value = 'tasks'
+    const succeeded = await state.mutate('POST', `${workspacePath.value}/import`, input)
+    if (succeeded) tab.value = 'tasks'
+    return succeeded
   }
   async function downloadEnvironment(operation: ManagementOperation) {
     const result = operation.result as { downloadPath?: unknown; filename?: unknown; expiresAt?: unknown } | undefined

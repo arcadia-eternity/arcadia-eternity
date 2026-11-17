@@ -14,6 +14,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     library: {
       acquireProject: async () => ({
         directory: fixture.directory,
+        document: { rules: { schemaVersion: 1, team: { maxSize: 2 } } },
         release: async () => {
           releases++
         },
@@ -30,6 +31,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
   try {
     await sessions.prepareProject({ directory: fixture.directory })
     const first = await sessions.prepare()
+    expect(first.rules).toEqual({ schemaVersion: 1, team: { maxSize: 2 } })
     expect(first.content.locales.bundles.en.species['example-slow:pet'].name).toBe('Display pet')
     expect(first.content.locales.bundles['zh-CN'].species.pet_dilan.name).toBe('迪兰')
     const icon = first.content.species.find((row: { id: string }) => row.id === 'example-slow:pet').presentation.icon
@@ -53,6 +55,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     expect(await readFile(sessions.assetFile(first.token, hash).file)).toEqual(fixture.asset)
     expect(sessions.assetFile('wrong-token', hash)).toBeUndefined()
     const shared = await sessions.capturePersonalEnvironment()
+    expect(shared.rules).toEqual(first.rules)
     expect(shared.environment).toEqual(first.environment)
     expect(shared.runtime.contentRevision).toBe(shared.environment.revision.split('/effects:')[0])
     expect(shared.packages.some((pkg: { namespace: string }) => pkg.namespace === 'example-slow')).toBe(true)

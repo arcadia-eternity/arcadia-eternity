@@ -4,6 +4,8 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vu
 import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
 const props = defineProps<{
+  mode?: 'all' | 'import' | 'results'
+  dialog?: boolean
   installations: ManagedEnvironmentInstallation[]
   operations: ManagementOperation[]
   busy: boolean
@@ -25,6 +27,7 @@ const preview = ref<{ name: string; id: string; contentRevision: string; package
 const validation = ref('')
 const reading = ref(false)
 const fileInput = ref<HTMLInputElement>()
+const chooseButton = ref<InstanceType<typeof ElButton>>()
 const now = ref(Date.now())
 let readGeneration = 0
 let reader: FileReader | undefined
@@ -42,7 +45,12 @@ const statuses: Record<ManagementOperation['status'], string> = {
 const record = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0
-const formatBytes = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MiB`
+const formatBytes = (bytes: number) =>
+  bytes < 1024
+    ? `${bytes} B`
+    : bytes < 1024 * 1024
+      ? `${(bytes / 1024).toFixed(1)} KiB`
+      : `${(bytes / 1024 / 1024).toFixed(2)} MiB`
 function downloadInfo(operation: ManagementOperation) {
   const result = operation.result
   if (
@@ -60,7 +68,7 @@ function downloadInfo(operation: ManagementOperation) {
     return undefined
   return { filename: result.filename, bytes: result.bytes, expiresAt: result.expiresAt }
 }
-function clearFile() {
+function clearFile(resetInput = true) {
   readGeneration++
   reader?.abort()
   reader = undefined
@@ -71,11 +79,11 @@ function clearFile() {
   fileBytes.value = 0
   importId.value = ''
   validation.value = ''
-  if (fileInput.value) fileInput.value.value = ''
+  if (resetInput && fileInput.value) fileInput.value.value = ''
 }
 async function chooseFile(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
-  clearFile()
+  clearFile(false)
   if (!file || !props.canImport || props.busy) return
   if (file.size > maxBytes) {
     validation.value = '环境文件超过 128 MiB，请缩小导出内容后重试。'
@@ -152,6 +160,10 @@ function download(operation: ManagementOperation) {
   if (!props.busy && props.canExport && info && info.expiresAt > Date.now()) emit('download', operation)
 }
 watch(
+  () => props.mode,
+  () => clearFile(),
+)
+watch(
   () => props.canImport,
   allowed => {
     if (!allowed) clearFile()
@@ -169,13 +181,24 @@ onBeforeUnmount(() => {
   clearInterval(timer)
   clearFile()
 })
+const canSubmit = computed(() => !!preview.value && !reading.value && props.canImport && !props.busy)
+defineExpose({
+  submit: importEnvironment,
+  canSubmit,
+  focusFile: () => (chooseButton.value?.$el as HTMLButtonElement | undefined)?.focus(),
+})
 </script>
 
 <template>
-  <section class="environment-transfers" aria-label="环境导入导出">
-    <h2>导入与导出</h2>
-    <div class="transfer-grid">
-      <ElForm aria-label="导出环境" @submit.prevent="exportEnvironment" label-position="top">
+  <section class="environment-transfers" :class="{ dialog }" aria-label="环境导入导出">
+    <h2 v-if="!mode || mode === 'all'">导入与导出</h2>
+    <div v-if="mode !== 'results'" class="transfer-grid">
+      <ElForm
+        v-if="!mode || mode === 'all'"
+        aria-label="导出环境"
+        @submit.prevent="exportEnvironment"
+        label-position="top"
+      >
         <h3>导出环境</h3>
         <ElFormItem label="环境">
           <ElSelect v-model="selectedVersion" :disabled="busy || !canExport">
@@ -193,15 +216,20 @@ onBeforeUnmount(() => {
         <p v-else-if="!readyVersions.length" class="hint">请先准备环境。</p>
       </ElForm>
       <ElForm aria-label="导入环境" @submit.prevent="importEnvironment" label-position="top">
-        <h3>导入环境文件</h3>
+        <h3 v-if="!dialog">导入环境文件</h3>
         <ElFormItem label="环境 JSON 文件">
           <input
+            hidden
             ref="fileInput"
             type="file"
             accept=".json,application/json"
             :disabled="busy || !canImport || reading"
             @change="chooseFile"
           />
+          <ElButton ref="chooseButton" :disabled="busy || !canImport || reading" @click="fileInput?.click()">{{
+            selectedFile ? '更换文件' : '选择环境文件'
+          }}</ElButton>
+          <span v-if="selectedFile" class="selected-file">{{ selectedFile }}</span>
         </ElFormItem>
         <p class="hint">文件上限 128 MiB。导入需要唯一的环境标识。</p>
         <p v-if="!canImport" class="hint">导入需要此工作区的编辑和准备权限。</p>
@@ -214,7 +242,9 @@ onBeforeUnmount(() => {
             <dt>环境</dt>
             <dd>{{ preview.name }}（{{ preview.id }}）</dd>
             <dt>内容版本</dt>
-            <dd>{{ preview.contentRevision }}</dd>
+            <dd>
+              <code :title="preview.contentRevision">{{ preview.contentRevision.slice(0, 12) }}</code>
+            </dd>
             <dt>内容材料</dt>
             <dd>{{ preview.packageCount }} 个额外内容包 · {{ preview.fileCount }} 个文件</dd>
           </dl>
@@ -227,16 +257,16 @@ onBeforeUnmount(() => {
               :disabled="busy || !canImport"
             />
           </ElFormItem>
-          <div class="actions">
+          <div v-if="!dialog" class="actions">
             <ElButton class="primary" :disabled="busy || !canImport || reading" native-type="submit" type="primary"
               >确认导入新环境</ElButton
             >
-            <ElButton :disabled="busy" @click="clearFile" native-type="button">取消导入</ElButton>
+            <ElButton :disabled="busy" @click="clearFile()" native-type="button">取消导入</ElButton>
           </div>
         </div>
       </ElForm>
     </div>
-    <div v-if="exports.length" class="export-results" aria-label="导出任务">
+    <div v-if="mode !== 'import' && exports.length" class="export-results" aria-label="导出任务">
       <h3>导出文件</h3>
       <article v-for="operation in exports" :key="operation.id" class="export-result">
         <strong>{{ downloadInfo(operation)?.filename ?? '环境导出' }}</strong>
@@ -263,6 +293,17 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.dialog.environment-transfers {
+  margin: 0;
+}
+.dialog form {
+  border: 0;
+  padding: 0;
+}
+.selected-file {
+  margin-left: 10px;
+  overflow-wrap: anywhere;
+}
 .environment-transfers {
   margin-top: 2rem;
 }

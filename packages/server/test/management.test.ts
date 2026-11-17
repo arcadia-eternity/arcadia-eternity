@@ -459,7 +459,7 @@ describe('unified management HTTP and durable environment publication', () => {
   }, 30000)
 })
 
-it('applies package state through the owner and preserves the declaration when installation fails', async () => {
+it('adds explicit package requirements through the owner and preserves the environment when installation fails', async () => {
   const env = await setup()
   const base = `/workspaces/${env.workspace.workspaceId}/environments`
   const created = {
@@ -477,15 +477,15 @@ it('applies package state through the owner and preserves the declaration when i
       },
     }),
   }
-  const input = { expectedRevision: created.body.revision, name: '@test/shared', enabled: true }
-  const enabled = await env.request(base + '/toggle/package-state', 'POST', input, {
+  const input = { expectedRevision: created.body.revision, name: '@test/shared', version: '^1.5.0' }
+  const enabled = await env.request(base + '/toggle/packages/add', 'POST', input, {
     'Idempotency-Key': 'toggle-apply',
   })
   expect(enabled.response.status).toBe(202)
   expect((await completed(env.storage, enabled.body.id)).status).toBe('failed')
   expect((await env.workspace.getDraft('toggle')).document.packages).toEqual({})
   const stale = await env.request(
-    base + '/toggle/package-state',
+    base + '/toggle/packages/add',
     'POST',
     { ...input, expectedRevision: 'stale' },
     { 'Idempotency-Key': 'toggle-stale' },
@@ -494,3 +494,42 @@ it('applies package state through the owner and preserves the declaration when i
   expect(await env.workspace.listInstallations()).toEqual([])
   expect(env.app.environments.list().filter(item => item.id !== 'official')).toEqual([])
 })
+
+it('adds a new package through the API and rejects obsolete or conflicting requests', async () => {
+  const fixture = await portableFixture()
+  cleanups.push(fixture.dispose)
+  const env = await setup(fixture.directory)
+  const draft = await env.workspace.saveDraft({
+    expectedRevision: null,
+    document: {
+      schemaVersion: 2,
+      id: 'membership',
+      name: 'Membership',
+      packages: {},
+      sources: [],
+      rules: { schemaVersion: 1 },
+      requires: {},
+    },
+  })
+  const manifest = JSON.parse(await readFile(join(fixture.directory, 'package.json'), 'utf8'))
+  const name = Object.keys(manifest.dependencies)[0]
+  const pkg = JSON.parse(await readFile(join(fixture.directory, 'node_modules', name, 'package.json'), 'utf8'))
+  const path = `/workspaces/${env.workspace.workspaceId}/environments/membership`
+  const body = { expectedRevision: draft.revision, name, version: pkg.version }
+  expect((await env.request(path + '/package-state', 'POST', { ...body, enabled: true })).response.status).toBe(404)
+  expect(
+    (await env.request(path + '/packages/add', 'POST', { ...body, source: true })).response.status,
+  ).toBeGreaterThanOrEqual(400)
+  expect((await env.request(path + '/packages/remove', 'POST', { ...body, enabled: false })).response.status).toBe(422)
+  const added = await env.request(path + '/packages/add', 'POST', body, { 'Idempotency-Key': 'add-new' })
+  expect(added.response.status).toBe(202)
+  const result = await completed(env.storage, added.body.id)
+  expect(result.status, JSON.stringify(result.error)).toBe('succeeded')
+  const current = await env.workspace.getDraft('membership')
+  expect(current.document.packages[name]).toBe(manifest.dependencies[name])
+  const installation = await env.workspace.getInstallation('membership')
+  expect(installation.members?.find(member => member.name === name)?.version).toBe(pkg.version)
+  const stale = await env.request(path + '/packages/remove', 'POST', { expectedRevision: draft.revision, name })
+  expect(stale.response.status).toBe(412)
+  expect((await env.workspace.getDraft('membership')).revision).toBe(current.revision)
+}, 30000)

@@ -1,28 +1,38 @@
 <script setup lang="ts">
 import './managementStyles'
+import { registerEnvironmentDraft, discardEnvironmentChanges } from '@/features/content/unsavedEnvironment'
 import { ElButton, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
 
 const props = withDefaults(
   defineProps<{
+    availablePackages?: { id: string; name: string; version: string }[]
+    packageEnvironmentId?: string
+    pendingPackage?: { id: string; name: string; version: string }
     heading?: string
     environments: ManagedEnvironment[]
     installations: ManagedEnvironmentInstallation[]
     canEdit: boolean
     canPrepare: boolean
+    canExport?: boolean
     canDelete?: boolean
     canUse?: boolean
     showUseActions?: boolean
+    useLabel?: string
+    showPeerUse?: boolean
+    currentEnvironmentId?: string
     saveSequence?: number
     busy: boolean
   }>(),
-  { showUseActions: true },
+  { showUseActions: true, showPeerUse: true, useLabel: '服务器使用' },
 )
 const emit = defineEmits<{
-  packageState: [environment: ManagedEnvironment, name: string, enabled: boolean, cascade: boolean]
+  packageAccepted: []
+  removePackage: [environment: ManagedEnvironment, name: string, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
+  export: [version: ManagedEnvironmentInstallation]
   delete: [version: ManagedEnvironmentInstallation]
   references: [version: ManagedEnvironmentInstallation]
   deleteDraft: [environment: ManagedEnvironment]
@@ -38,6 +48,14 @@ const revision = ref<string | null>(null)
 const document = ref<ManagedEnvironmentDocument>()
 const packageRows = ref<{ name: string; version: string }[]>([])
 const sourceText = ref('')
+const originalDraft = ref('')
+const draftValue = () =>
+  JSON.stringify({ document: document.value, packages: packageRows.value, sources: sourceText.value })
+const dirty = computed(() => editing.value && draftValue() !== originalDraft.value)
+registerEnvironmentDraft(() => dirty.value)
+async function closeEditor() {
+  if (!dirty.value || (await discardEnvironmentChanges())) editing.value = false
+}
 const validation = ref('')
 const selectedId = ref('')
 const selectedEnvironment = computed(
@@ -50,14 +68,14 @@ const latestVersion = computed(
       .sort((a, b) => (b.status === 'ready' ? b.createdAt : 0) - (a.status === 'ready' ? a.createdAt : 0))[0],
 )
 const deletingDraft = ref('')
-const disablingPackage = ref('')
-function changePackage(name: string, enabled: boolean, cascade = false) {
+const removingPackage = ref('')
+function removePackage(name: string, cascade = false) {
   if (!selectedEnvironment.value) return
-  disablingPackage.value = ''
-  emit('packageState', selectedEnvironment.value, name, enabled, cascade)
+  removingPackage.value = ''
+  emit('removePackage', selectedEnvironment.value, name, cascade)
 }
-function duplicate(environment: ManagedEnvironment) {
-  edit(environment)
+async function duplicate(environment: ManagedEnvironment) {
+  if (!(await edit(environment))) return
   revision.value = null
   document.value!.id = `${environment.document.id.slice(0, 60)}-copy-${crypto.randomUUID().slice(0, 6)}`
   document.value!.name += ' 副本'
@@ -67,7 +85,8 @@ function deleteDraft(environment: ManagedEnvironment) {
   deletingDraft.value = ''
   emit('deleteDraft', environment)
 }
-function selectEnvironment(environment: ManagedEnvironment) {
+async function selectEnvironment(environment: ManagedEnvironment) {
+  if (dirty.value && !(await discardEnvironmentChanges())) return
   selectedId.value = environment.document.id
   editing.value = false
 }
@@ -98,7 +117,8 @@ function setTeamSize(key: 'minSize' | 'maxSize', value: string) {
 }
 const clone = (value: ManagedEnvironmentDocument): ManagedEnvironmentDocument => JSON.parse(JSON.stringify(value))
 
-function edit(environment?: ManagedEnvironment) {
+async function edit(environment?: ManagedEnvironment) {
+  if (dirty.value && !(await discardEnvironmentChanges())) return false
   if (environment) selectedId.value = environment.document.id
   revision.value = environment?.revision ?? null
   document.value = environment
@@ -107,8 +127,33 @@ function edit(environment?: ManagedEnvironment) {
   packageRows.value = Object.entries(document.value.packages).map(([name, version]) => ({ name, version }))
   sourceText.value = document.value.sources.join('\n')
   validation.value = ''
+  originalDraft.value = draftValue()
   editing.value = true
+  return true
 }
+function putPackage(pkg: { name: string; version: string }) {
+  const existing = packageRows.value.find(row => row.name === pkg.name)
+  if (existing) existing.version = pkg.version
+  else packageRows.value.push({ name: pkg.name, version: pkg.version })
+  sourceText.value = sourceText.value
+    .split(/\r?\n/)
+    .filter(name => name.trim() !== pkg.name)
+    .join('\n')
+}
+watch(
+  () => props.pendingPackage,
+  async pkg => {
+    if (!pkg) return
+    const target = props.environments.find(item => item.document.id === props.packageEnvironmentId)
+    if (target && document.value?.id !== target.document.id) {
+      if (!(await edit(target))) return
+    } else if (!editing.value && !(await edit(target ?? selectedEnvironment.value))) return
+    // Same-environment additions merge into the existing draft.
+    putPackage(pkg)
+    emit('packageAccepted')
+  },
+  { immediate: true },
+)
 function save() {
   if (!document.value) return
   const rows = packageRows.value.map(row => ({ name: row.name.trim(), version: row.version.trim() }))
@@ -135,14 +180,17 @@ function save() {
   <section class="environment-workspace" aria-label="环境工作区">
     <header class="section-heading">
       <h2>{{ heading ?? '环境' }}</h2>
-      <ElButton
-        :disabled="!canEdit || busy"
-        :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
-        @click="edit()"
-        native-type="button"
-      >
-        新建环境
-      </ElButton>
+      <div class="actions">
+        <slot name="toolbar" />
+        <ElButton
+          :disabled="!canEdit || busy"
+          :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
+          @click="edit()"
+          native-type="button"
+        >
+          新建环境
+        </ElButton>
+      </div>
     </header>
     <p v-if="!canEdit" class="hint">无编辑权限。</p>
     <div class="workspace-columns">
@@ -150,11 +198,13 @@ function save() {
         <ElButton
           v-for="environment in environments"
           :key="environment.document.id"
+          :disabled="busy"
           :aria-current="selectedEnvironment?.document.id === environment.document.id ? 'true' : undefined"
           @click="selectEnvironment(environment)"
           native-type="button"
         >
           <strong>{{ environment.document.name }}</strong>
+          <small v-if="environment.document.id === currentEnvironmentId">本地使用中</small>
           <small
             >{{
               Object.keys(environment.document.packages).length + environment.document.sources.length
@@ -176,7 +226,8 @@ function save() {
               >
               <ElButton
                 v-if="canDelete && !selectedEnvironment.builtin"
-                :disabled="busy"
+                :disabled="busy || selectedEnvironment.document.id === currentEnvironmentId"
+                :title="selectedEnvironment.document.id === currentEnvironmentId ? '请先切换本地使用的环境' : undefined"
                 @click="deletingDraft = selectedEnvironment.document.id"
                 native-type="button"
               >
@@ -209,7 +260,7 @@ function save() {
               </ul>
             </template>
             <template v-if="latestVersion?.status === 'ready' && latestVersion.members">
-              <h4>已安装资源包</h4>
+              <h4>环境内的内容包</h4>
               <p v-if="latestVersion.draftRevision !== selectedEnvironment.revision" class="hint">
                 依赖已更改，请重新准备。
               </p>
@@ -222,55 +273,30 @@ function save() {
                 <ElButton
                   v-else
                   :disabled="busy || !canEdit || !canPrepare"
-                  @click="disablingPackage = member.name"
+                  @click="removingPackage = member.name"
                   native-type="button"
-                  >停用</ElButton
+                  >移出环境</ElButton
                 >
-                <div v-if="disablingPackage === member.name" role="group" aria-label="停用资源包确认">
+                <div v-if="removingPackage === member.name" role="group" aria-label="移出环境确认">
                   <p>
-                    {{ member.requiredBy.length ? '其他包依赖它，可以选择连带停用。' : '' }}
+                    {{ member.requiredBy.length ? '其他内容包依赖它，可一并移出环境。' : '' }}
                   </p>
                   <ElButton
                     :disabled="busy || !canEdit || !canPrepare"
-                    @click="changePackage(member.name, false)"
+                    @click="removePackage(member.name)"
                     native-type="button"
-                    >确认停用</ElButton
+                    >确认移出环境</ElButton
                   >
                   <ElButton
                     v-if="member.requiredBy.length"
                     :disabled="busy || !canEdit || !canPrepare"
-                    @click="changePackage(member.name, false, true)"
+                    @click="removePackage(member.name, true)"
                     native-type="button"
                   >
-                    连带停用依赖它的包
+                    连同依赖它的包一起移出环境
                   </ElButton>
-                  <ElButton @click="disablingPackage = ''" native-type="button">取消</ElButton>
+                  <ElButton @click="removingPackage = ''" native-type="button">取消</ElButton>
                 </div>
-              </article>
-            </template>
-            <template v-if="selectedEnvironment.document.disabled">
-              <h4>已停用的直接依赖</h4>
-              <article
-                v-for="(range, name) in selectedEnvironment.document.disabled.packages"
-                :key="name"
-                class="member"
-              >
-                {{ name }} · {{ range }}
-                <ElButton
-                  :disabled="busy || !canEdit || !canPrepare"
-                  @click="changePackage(String(name), true)"
-                  native-type="button"
-                  >启用</ElButton
-                >
-              </article>
-              <article v-for="name in selectedEnvironment.document.disabled.sources" :key="name" class="member">
-                {{ name }} · 已登记来源
-                <ElButton
-                  :disabled="busy || !canEdit || !canPrepare"
-                  @click="changePackage(name, true)"
-                  native-type="button"
-                  >启用</ElButton
-                >
               </article>
             </template>
           </section>
@@ -299,7 +325,27 @@ function save() {
             </ElFormItem>
           </div>
           <fieldset>
-            <legend>直接依赖</legend>
+            <legend>依赖</legend>
+            <label v-if="availablePackages?.length"
+              >已有材料
+              <select
+                aria-label="选择已有包版本"
+                @change="
+                  event => {
+                    const select = event.target as HTMLSelectElement
+                    const pkg = availablePackages?.find(item => item.id === select.value)
+                    if (pkg) putPackage(pkg)
+                    select.value = ''
+                  }
+                "
+              >
+                <option value="">选择内容包版本</option>
+                <option v-for="pkg in availablePackages" :key="pkg.id" :value="pkg.id">
+                  {{ pkg.name }} {{ pkg.version }}
+                </option>
+              </select>
+            </label>
+            <slot name="package-source" />
             <div v-for="(row, index) in packageRows" :key="index" class="package-row">
               <ElFormItem label="包名">
                 <ElInput
@@ -318,16 +364,19 @@ function save() {
                 @click="packageRows.splice(index, 1)"
                 native-type="button"
               >
-                移除
+                移出环境
               </ElButton>
             </div>
             <ElButton @click="packageRows.push({ name: '', version: '' })" native-type="button">添加内容包</ElButton>
           </fieldset>
           <details>
-            <summary>来源与规则</summary>
-            <ElFormItem label="已登记的来源包名（每行一个）">
+            <summary>已登记来源</summary>
+            <ElFormItem label="来源包名（每行一个）">
               <ElInput v-model="sourceText" :rows="3" type="textarea" />
             </ElFormItem>
+          </details>
+          <fieldset>
+            <legend>配置</legend>
             <ElFormItem label="环境分级">
               <ElInput
                 :model-value="document.rules.tier ?? ''"
@@ -380,33 +429,57 @@ function save() {
                 />
               </ElFormItem>
             </fieldset>
-            <p class="hint">仅可使用宿主已登记的来源。</p>
-          </details>
+          </fieldset>
           <div class="actions">
             <ElButton class="primary" :disabled="busy || !canEdit || !canPrepare" native-type="submit" type="primary"
               >保存并应用</ElButton
             >
-            <ElButton @click="editing = false" native-type="button">关闭编辑</ElButton>
+            <ElButton @click="closeEditor" native-type="button">关闭编辑</ElButton>
           </div>
         </ElForm>
         <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
+          <ElButton v-if="canExport" :disabled="busy" @click="emit('export', latestVersion)">导出环境</ElButton>
           <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
-          <ElButton v-if="showUseActions !== false" :disabled="busy || !canUse" @click="emit('use', latestVersion)"
-            >服务器使用</ElButton
-          >
           <ElButton
             v-if="showUseActions !== false"
+            :disabled="busy || !canUse || latestVersion.environmentId === currentEnvironmentId"
+            @click="emit('use', latestVersion)"
+            >{{ latestVersion.environmentId === currentEnvironmentId ? '本地使用中' : useLabel }}</ElButton
+          >
+          <ElButton
+            v-if="showUseActions !== false && showPeerUse"
             :disabled="busy || !canUse"
             @click="emit('use', latestVersion, 'peer')"
             >P2P 使用</ElButton
           >
         </section>
+        <slot v-if="selectedEnvironment && !editing" name="detail" :environment="selectedEnvironment" />
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
+.material-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.material-picker select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  background: var(--el-bg-color);
+  color: inherit;
+  font: inherit;
+}
+.environment-editor fieldset {
+  padding: 12px;
+}
 .environment-workspace {
   display: flex;
   flex-direction: column;
@@ -414,7 +487,6 @@ function save() {
 .workspace-columns {
   display: grid;
   grid-template-columns: minmax(170px, 25%) minmax(0, 1fr);
-  flex: 1;
   min-height: 0;
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
@@ -448,10 +520,11 @@ function save() {
 }
 .environment-detail {
   overflow: auto;
-  padding: 0 20px;
+  padding: 0 20px 12px;
   min-width: 0;
 }
 .environment-detail .section-heading {
+  flex-wrap: wrap;
   margin: 16px 0 12px;
 }
 .members h4 {
@@ -516,6 +589,7 @@ function save() {
 }
 
 .section-heading {
+  flex-wrap: wrap;
   display: flex;
   justify-content: space-between;
   align-items: center;

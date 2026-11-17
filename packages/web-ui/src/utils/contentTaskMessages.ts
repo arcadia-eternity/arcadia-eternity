@@ -8,8 +8,9 @@ export function contentTaskError(value: unknown): string {
     ENVIRONMENT_UNAVAILABLE: '环境加载失败。请检查内容包和已准备版本后重新发布。',
     ENVIRONMENT_DEPENDENCY_CONFLICT: '依赖版本范围不兼容。请调整资源包组合或版本范围后重试；已有固定版本保持不变。',
     CONTENT_VERSION_CONFLICT: '同一资源包出现了多个版本。请选择兼容的组合后重试。',
-    ENVIRONMENT_DEPENDENCIES_UNRESOLVED: '请先准备当前组合，确认完整依赖关系后再停用。',
-    ENVIRONMENT_PACKAGE_REQUIRED: '其他资源包仍依赖它，请查看依赖关系或选择连带停用。',
+    ENVIRONMENT_DEPENDENCIES_UNRESOLVED: '请先准备当前组合，确认完整依赖关系后再移出环境。',
+    ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED: '新增内容包需要指定版本或已登记来源。',
+    ENVIRONMENT_PACKAGE_REQUIRED: '其他内容包仍依赖它，请查看依赖关系或将它们一起移出环境。',
     NPM_INSTALL_FAILED: '下载或安装失败。请检查来源、网络与离线缓存后重试。',
     REVISION_CONFLICT: '环境草稿已更改，请从当前草稿发起新任务。',
   }

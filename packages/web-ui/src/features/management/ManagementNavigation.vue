@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ElMenu, ElMenuItem, ElBadge, ElIcon } from 'element-plus'
-import { House, Box, Connection, User, Setting, Tickets, Lock, Key } from '@element-plus/icons-vue'
+import { House, Connection, User, Setting, Tickets, Lock, Key } from '@element-plus/icons-vue'
 import type { ManagementTab } from './useManagementController'
 defineProps<{ tab: ManagementTab; available: ManagementTab[]; activeOperations: number }>()
 const emit = defineEmits<{ select: [tab: ManagementTab] }>()
 const items = [
   { id: 'server', label: '概览', icon: House },
-  { id: 'environments', label: '运行环境', icon: Box },
   { id: 'battles', label: '活跃对战', icon: Connection },
   { id: 'accounts', label: '用户管理', icon: User },
   { id: 'network', label: '网络与容量', icon: Setting },

@@ -18,7 +18,7 @@ const exec = promisify(execFile)
 const { io } = createRequire(new URL('../../../server/package.json', import.meta.url))('socket.io-client')
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
 test(
-  'real local selection and hosted environment remain independent without reinstalling content',
+  'real environment preparation and hosted copies remain independent of package installation',
   {
     timeout: 120000,
     skip: process.env.ARCADIA_DESKTOP_REAL_HOST !== '1',
@@ -53,15 +53,6 @@ test(
         if (data === undefined) socket.timeout(5000).emit(event, done)
         else socket.timeout(5000).emit(event, data, done)
       })
-    const settled = async () => {
-      for (let i = 0; i < 600; i++) {
-        const snapshot = await library.list()
-        if (snapshot.selection.status === 'failed') throw new Error(snapshot.selection.message)
-        if (snapshot.selection.status === 'ready') return snapshot
-        await new Promise(resolve => setTimeout(resolve, 50))
-      }
-      throw new Error('Content did not become ready')
-    }
     const connect = async url => {
       const response = await fetch(url + '/api/v1/sessions', {
         method: 'POST',
@@ -92,19 +83,24 @@ test(
       )
       const tarball = join(root, parseNpmPackOutput(packed.stdout)[0].filename)
       const id = await library.installFile(tarball, true)
-      assert.deepEqual((await library.list()).desiredIds, [])
-      await library.setSelection([id], true)
-      const installed = await settled()
-      assert.deepEqual(installed.desiredIds, [id])
-      assert.deepEqual(installed.activeIds, [id])
+      assert.equal((await library.list()).desiredIds, undefined)
+      const installed = (await library.list()).packages.find(pkg => pkg.id === id)
       assert.equal(host.status().status, 'idle')
-      const localProject = await library.acquireProject()
-      await library.start() // User explicitly chooses to host the same already installed material.
+      const localProject = await library.prepareEnvironmentProject(
+        { packages: { [installed.name]: installed.version }, sources: [] },
+        { offline: true },
+      )
+      await host.start(localProject.directory)
       assert.equal(host.projectDirectory(), localProject.directory)
       await localProject.release()
       const ready = host.status()
       assert.equal(ready.status, 'running')
       const customDirectory = host.projectDirectory()
+      const persisted = (await (await owner.ready()).listInstallations()).find(
+        version => version.status === 'ready' && Object.hasOwn(version.document.packages, installed.name),
+      )
+      assert.ok(persisted)
+      assert.notEqual(persisted.directory, customDirectory)
       const catalogue = async () => (await (await fetch(ready.url + '/api/v1/environments')).json()).environments
       const custom = (await catalogue()).find(env => env.packages.some(pkg => pkg.name === '@arcadia-example/slow'))
       assert.ok(custom)
@@ -114,9 +110,10 @@ test(
       await ack(first, 'createPrivateRoom', { config: { battleMode: 'server' } })
       assert.equal((await ack(first, 'getCurrentPrivateRoom')).environment.id, custom.id)
       t.diagnostic('Real tarball was inspected, admitted, composed, validated and served')
-      await library.setSelection([], true)
-      const official = await settled()
-      assert.deepEqual(official.activeIds, [])
+      const alternative = await library.prepareEnvironmentProject({ packages: {}, sources: [] }, { offline: true })
+      await alternative.release()
+      const official = await library.list()
+      assert.equal(official.activeIds, undefined)
       assert.equal(host.status().serverId, ready.serverId)
       assert.equal(host.status().url, ready.url)
       assert.equal(official.serviceNeedsRestart, false)
@@ -140,11 +137,11 @@ test(
       assert.deepEqual(await host.retainedProjectDirectories(), [])
       await library.collectGarbage()
       assert.ok(
-        await readFile(join(customDirectory, 'package.json')),
-        'fixed workspace versions retain materials after the server stops',
+        await readFile(join(persisted.directory, 'package.json')),
+        'the independent server installation retains materials after the borrowed source is collected',
       )
       t.diagnostic(
-        'Local selection became official-only while both old and new server rooms retained custom content; fixed versions retained materials after server shutdown',
+        'Preparing another environment and uninstalling its library source leave server rooms and persisted server materials intact',
       )
     } finally {
       for (const socket of sockets) socket.disconnect()
