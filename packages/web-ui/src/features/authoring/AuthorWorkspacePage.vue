@@ -393,11 +393,15 @@ const testFiles = computed(() => snapshot.value?.files.filter(row => /^(test|tes
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
 const builtPack = computed(() => jobs.value.find(job => job.kind === 'pack' && job.state === 'succeeded'))
 async function installBuiltPack() {
-  if (!builtPack.value) return
-  const result = await action<{ packageId: string }>({
-    action: 'install-built-author-pack',
-    jobId: builtPack.value.jobId,
-  })
+  const pack = builtPack.value
+  if (!pack) return
+  const result = await attempt(() =>
+    action<{ packageId: string }>({
+      action: 'install-built-author-pack',
+      jobId: pack.jobId,
+    }),
+  )
+  if (!result) return
   await router.push({ path: '/environments', query: { target: 'local', packageId: result.packageId } })
 }
 const latestJob = computed(() => jobs.value[0])
@@ -555,13 +559,13 @@ watch(
 async function action<T>(input: Record<string, unknown>) {
   return authorCall<T>({ id: project.value?.id, ...input })
 }
-async function attempt(operation: () => Promise<unknown>) {
+async function attempt<T>(operation: () => Promise<T>) {
   if (busy.value) return
   busy.value = true
   error.value = ''
   notice.value = ''
   try {
-    await operation()
+    return await operation()
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause)
   } finally {
@@ -1183,8 +1187,7 @@ onBeforeUnmount(() => {
           连接本机 SDK</button
         ><button v-if="!readOnly" :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">
           构建内容包</button
-        ><button v-if="!readOnly && builtPack" :disabled="busy || running" @click="attempt(installBuiltPack)">
-          用于环境</button
+        ><button v-if="!readOnly && builtPack" :disabled="busy || running" @click="installBuiltPack">用于环境</button
         ><small>{{ project.directory }}</small>
       </div>
     </details>

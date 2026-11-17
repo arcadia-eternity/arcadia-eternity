@@ -56,7 +56,14 @@ test('the installed package includes compiled content, local artwork, remote dec
     item => item.namespace === example.manifest.arcadia.namespace,
   )
   assert.ok(presentation)
-  assert.equal(presentation.resources.length, 4, 'only the four packaged images have local file paths')
+  const local = presentation.manifest.resources.filter(resource => resource.kind === 'file')
+  assert.deepEqual(
+    presentation.resources.map(resource => resource.id).sort(),
+    local.map(resource => resource.id).sort(),
+    'every declared local resource has a prepared file path',
+  )
+  for (const resource of local)
+    assert.ok(example.files.includes(resource.source), `Missing packaged file: ${resource.source}`)
   const remote = presentation.manifest.resources.filter(resource => resource.kind === 'http')
   assert.equal(remote.length, 3)
   assert.ok(remote.some(resource => resource.mime === 'application/x-shockwave-flash'))

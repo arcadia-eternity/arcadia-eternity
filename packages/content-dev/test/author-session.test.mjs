@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createSourceProject, openAuthorSession } from '../src/author-api.ts'
@@ -23,6 +23,11 @@ test(
     const temporary = await mkdtemp(join(tmpdir(), 'arcadia-author-session-')),
       root = join(temporary, '项目 with spaces')
     await createSourceProject(root, 'author-test')
+    await copyFile(join(root, 'assets/marks/slow.png'), join(root, 'assets/imported.png'))
+    await writeFile(
+      join(root, 'data/resources/imported.yaml'),
+      'id: imported-image\nkind: image\nsource: assets/imported.png\n',
+    )
     const session = await openAuthorSession(root, { watch: false, execute: true })
     t.after(async () => {
       await session.close()
