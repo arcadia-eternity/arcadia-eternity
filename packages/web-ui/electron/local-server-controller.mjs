@@ -188,13 +188,6 @@ export class LocalServerController {
       if (!profile.projectDirectory) {
         const library = this.library()
         if (config.content === 'current') {
-          const snapshot = await library.list()
-          if (
-            snapshot.selection.status === 'preparing' ||
-            snapshot.selection.status === 'failed' ||
-            (snapshot.desiredIds?.length && !snapshot.hasSelection)
-          )
-            throw fail('CONTENT_NOT_READY', snapshot.selection.message || '本地玩法尚未准备完成，请在内容库完成准备')
           lease = await library.acquireProject()
         } else lease = await library.acquireDefaultProject()
         if (!lease.directory) throw fail('CONTENT_NOT_READY', '请先准备所选内容环境')

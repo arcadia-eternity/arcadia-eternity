@@ -38,24 +38,9 @@ interface PackageView {
 }
 const props = defineProps<{ location?: 'local' | 'server' | 'room' }>()
 const router = useRouter()
-const sourceProjects = ref<SourceProject[]>([])
-const creating = ref(false)
-const projectName = ref('')
 const canAuthor = (!props.location || props.location === 'local') && !!window.arcadiaDesktop?.author
 async function openSource(project: SourceProject) {
   await router.push({ name: 'AuthorWorkspace', params: { projectId: project.id } })
-}
-async function createSource() {
-  await run(async () => {
-    const project = await authorCall<SourceProject>({ action: 'create', name: projectName.value })
-    await openSource(project)
-  })
-}
-async function chooseSource() {
-  await run(async () => {
-    const project = await authorCall<SourceProject | null>({ action: 'open' })
-    if (project) await openSource(project)
-  })
 }
 async function browsePackage(id: string) {
   await run(async () => openSource(await authorCall<SourceProject>({ action: 'browse-package', packageId: id })))
@@ -353,14 +338,6 @@ watch(
   { immediate: true },
 )
 onMounted(() => {
-  if (canAuthor)
-    void authorCall<SourceProject[]>({ action: 'list' })
-      .then(rows => {
-        if (!disposed) sourceProjects.value = rows
-      })
-      .catch(cause => {
-        error.value = String(cause)
-      })
   if (local) {
     loading.value = true
     void poll().finally(() => {
@@ -433,32 +410,6 @@ onBeforeUnmount(() => {
         </template>
         <p v-else-if="mode === 'room' && room" class="context-note">房间 {{ room.config.roomCode }}</p>
         <p v-if="readonly && remoteError" class="message error" role="alert">{{ remoteError }}</p>
-        <section v-if="canAuthor && mode === 'installed'" class="source-projects" aria-label="本地源项目">
-          <header>
-            <h2>本地项目</h2>
-            <button :disabled="busy" @click="chooseSource">打开项目文件夹</button>
-            <button :disabled="busy" @click="creating = !creating">新建内容包</button>
-          </header>
-          <form v-if="creating" class="source-create" @submit.prevent="createSource">
-            <label
-              >内容包名称<input v-model="projectName" required maxlength="80" placeholder="给新内容包起个名字"
-            /></label>
-            <button class="primary" :disabled="busy || !projectName.trim()">创建并打开</button>
-            <button type="button" @click="creating = false">取消</button>
-          </form>
-          <div class="source-project-list">
-            <button
-              v-for="project in sourceProjects.filter(
-                row => !row.readOnly && row.name.toLowerCase().includes(query.toLowerCase()),
-              )"
-              :key="project.id"
-              @click="openSource(project)"
-            >
-              <strong>{{ project.name }}</strong
-              ><small>{{ project.readOnly === false ? '源项目 · 可编辑' : '源项目' }}</small>
-            </button>
-          </div>
-        </section>
         <div class="columns">
           <div class="package-list">
             <p v-if="loading || (readonly && (serverLoading || remoteLoading))" class="list-note" role="status">

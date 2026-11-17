@@ -129,7 +129,6 @@ export class ContentLibrary {
   #installJobs = new Map()
   #installTail = Promise.resolve()
   #writes = Promise.resolve()
-  #sync = { status: 'idle' }
   #leases = new Map()
   #gcTimer
   #sources
@@ -167,47 +166,54 @@ export class ContentLibrary {
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
         fresh = true
+        state = { version: 3, revision: 0, installed: [] }
+      }
+      if (state.version === 2) {
+        if (
+          !Array.isArray(state.installed) ||
+          !Array.isArray(state.activeIds) ||
+          state.activeIds.some(id => !state.installed.some(entry => entry.id === id)) ||
+          (state.activeProject !== null && !uuid.test(state.activeProject))
+        )
+          throw new Error('旧内容选择记录格式不正确')
+        await writeFile(join(this.root, 'library-v2.backup.json'), JSON.stringify(state), { flag: 'wx' }).catch(
+          error => {
+            if (error.code !== 'EEXIST') throw error
+          },
+        )
         state = {
-          version: 2,
-          revision: 0,
-          installed: [],
-          activeIds: [],
-          activeProject: null,
-          desiredIds: [],
-          goalRevision: 0,
-          activeGoalRevision: -1,
+          version: 3,
+          revision: state.revision,
+          installed: state.installed,
+          bundledDigest: state.bundledDigest,
+          ...(state.activeProject
+            ? {
+                legacySelection: {
+                  project: state.activeProject,
+                  packages: state.installed
+                    .filter(entry => state.activeIds.includes(entry.id))
+                    .map(entry => ({ name: entry.name, version: entry.version })),
+                },
+              }
+            : {}),
         }
       }
       if (
-        state.version !== 2 ||
+        state.version !== 3 ||
         !Number.isSafeInteger(state.revision) ||
         state.revision < 0 ||
         !Array.isArray(state.installed) ||
         state.installed.length > 200 ||
         state.installed.some(item => !validEntry(item)) ||
         new Set(state.installed.map(item => item.id)).size !== state.installed.length ||
-        !Array.isArray(state.activeIds) ||
-        new Set(state.activeIds).size !== state.activeIds.length ||
-        state.activeIds.some(id => !state.installed.some(item => item.id === id)) ||
-        (state.activeIds.length > 0 && state.activeProject === null) ||
-        (state.activeProject !== null && !uuid.test(state.activeProject))
+        (state.legacySelection &&
+          (!uuid.test(state.legacySelection.project) || !Array.isArray(state.legacySelection.packages)))
       )
         throw new Error('本机内容包记录格式不正确')
-      if (
-        !Array.isArray(state.desiredIds) ||
-        state.desiredIds.some(id => !state.installed.some(item => item.id === id)) ||
-        !Number.isSafeInteger(state.goalRevision) ||
-        state.goalRevision < 0 ||
-        !Number.isSafeInteger(state.activeGoalRevision) ||
-        state.installed.some(
-          item => item.bundled && (!state.activeIds.includes(item.id) || !state.desiredIds.includes(item.id)),
-        )
-      )
-        throw new Error('本机内容选择记录格式不正确')
       if (fresh && this.withDefaultArchive) await this.#initializeDefault(state)
       else {
         if (this.withDefaultArchive) await this.#synchronizeDefault(state)
-        this.#state ??= state
+        if (!this.#state) await this.#save(state)
       }
     })().catch(error => {
       this.#loading = undefined
@@ -238,13 +244,7 @@ export class ContentLibrary {
             .update(await readFile(file))
             .digest('hex'),
           installed: [entry],
-          desiredIds: [entry.id],
-          activeIds: [entry.id],
-          activeProject: plan.project,
-          activeGraph: entry.graph,
-          activeGoalRevision: state.goalRevision,
         })
-        this.#sync = { status: 'ready' }
       } catch (error) {
         await rm(await this.#directory(plan.project), { recursive: true, force: true })
         throw error
@@ -278,7 +278,9 @@ export class ContentLibrary {
           ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
           this.#controller.signal,
         )
-        for (const id of new Set([...state.installed.map(entry => entry.id), state.activeProject].filter(Boolean))) {
+        for (const id of new Set(
+          [...state.installed.map(entry => entry.id), state.legacySelection?.project].filter(Boolean),
+        )) {
           if (id === oldBase.id) continue
           await installer.synchronizeProject(await this.#directory(id), async directory => {
             const next = randomUUID()
@@ -303,23 +305,20 @@ export class ContentLibrary {
               })
           })
         }
-        const activeProject = projects.get(state.activeProject) ?? state.activeProject
-        const activeInspection = checkedInspection(
-          await this.run(['content', 'npm', 'inspect', await this.#directory(activeProject)], this.#controller.signal),
-        )
-        await this.run(
-          ['content', 'validate', '--npm-project', await this.#directory(activeProject)],
-          this.#controller.signal,
-        )
+        const legacySelection = state.legacySelection
+          ? {
+              project: projects.get(state.legacySelection.project) ?? state.legacySelection.project,
+              packages: state.legacySelection.packages.map(entry =>
+                entry.name === plan.entry.name ? { name: entry.name, version: plan.entry.version } : entry,
+              ),
+            }
+          : undefined
         await this.#save({
           ...state,
           revision: state.revision + 1,
           bundledDigest: digest,
           installed: state.installed.map(entry => replacements.get(entry.id) ?? entry),
-          activeIds: state.activeIds.map(id => projects.get(id) ?? id),
-          desiredIds: state.desiredIds.map(id => projects.get(id) ?? id),
-          activeProject,
-          activeGraph: graphFor(activeInspection),
+          ...(legacySelection ? { legacySelection } : {}),
         })
       } catch (error) {
         await Promise.all(
@@ -390,9 +389,14 @@ export class ContentLibrary {
     }
     return dir
   }
-  /** Capture the active project before a local session starts; release after its runtime disposes. */
-  async acquireProject() {
-    return this.#exclusive(() => this.#leaseProject(this.#state.activeProject))
+  /** Only used to seed the first named environment, never as a runtime selection. */
+  async acquireInitialEnvironment() {
+    return this.#exclusive(async () => {
+      const base = this.#state.installed.find(entry => entry.bundled)
+      const legacy = this.#state.legacySelection
+      const lease = await this.#leaseProject(legacy?.project ?? base?.id ?? null)
+      return { ...lease, packages: legacy?.packages ?? (base ? [{ name: base.name, version: base.version }] : []) }
+    })
   }
   async acquireDefaultProject() {
     return this.#exclusive(() => this.#leaseProject(this.#state.installed.find(entry => entry.bundled)?.id ?? null))
@@ -452,7 +456,7 @@ export class ContentLibrary {
     this.#gcTimer = undefined
     const protectedIds = new Set([
       ...this.#state.installed.map(entry => entry.id),
-      this.#state.activeProject,
+      this.#state.legacySelection?.project,
       ...Array.from(this.#plans.values(), plan => plan.project),
       ...this.#leases.keys(),
     ])
@@ -551,7 +555,6 @@ export class ContentLibrary {
     await this.#load()
     const state = this.#state
     const status = this.host.status()
-    const activeDirectory = state.activeProject ? join(this.root, 'projects', storageName(state.activeProject)) : null
     return structuredClone({
       revision: state.revision,
       operations: [...this.#installJobs.values()].map(({ controller, execute, promise, ...job }) => job).reverse(),
@@ -569,15 +572,8 @@ export class ContentLibrary {
           }
         }),
       ),
-      activeIds: state.activeIds,
-      activeGraph: state.activeGraph,
-      desiredIds: state.desiredIds,
-      selection: this.#sync,
-      hasSelection: !!activeDirectory,
       serviceStatus: status,
       serviceNeedsRestart: false,
-      serviceUsesDifferentEnvironment:
-        status.status === 'running' && this.host.projectDirectory?.() !== activeDirectory,
     })
   }
   async #stageFile(file, offline = false, signal = this.#controller.signal) {
@@ -657,6 +653,8 @@ export class ContentLibrary {
       if (!['queued', 'running'].includes(job.status)) this.#installJobs.delete(id)
   }
   async #installOnly(plan, signal) {
+    signal.throwIfAborted()
+    if (plan.existingId) return plan.existingId
     let id
     try {
       signal.throwIfAborted()
@@ -684,8 +682,18 @@ export class ContentLibrary {
       if (names.length !== 1) throw new Error('一次只能添加一个根内容包')
       const root = project.inspection.packages.find(pkg => pkg.location === 'node_modules/' + names[0])
       if (!root?.catalogIds && (!root?.manifest || !root.draft)) throw new Error('该 npm 包没有 Arcadia 内容声明')
-      if (state.installed.some(item => item.name === root.name && item.version === root.version))
-        throw new Error('已安装此包的同一版本；请先移除未启用的旧安装，或使用新的包版本')
+      const existing = state.installed.find(item => item.name === root.name && item.version === root.version)
+      if (existing) {
+        if (source.kind === 'file' && existing.source.kind === 'file') {
+          const previous = await readFile(join(await this.#directory(existing.id), existing.source.file))
+          const next = await readFile(join(project.directory, 'candidates/content-0.tgz'))
+          if (previous.equals(next)) {
+            await rm(project.directory, { recursive: true, force: true })
+            return { existingId: existing.id }
+          }
+        }
+        throw new Error('此包版本已有不同材料，请使用新的版本号')
+      }
       const packageManifest = await readJson(join(project.directory, root.location, 'package.json'))
       const author = typeof packageManifest.author === 'string' ? packageManifest.author : packageManifest.author?.name
       const entry = {
@@ -918,37 +926,20 @@ export class ContentLibrary {
       await rm(await this.#directory(plan.project), { recursive: true, force: true })
     })
   }
-  /** After local environments capture the legacy selection, retain only the shipped fallback. */
-  async retireSelection() {
+  /** Forget migration-only state after the named environment has been committed. */
+  async retireLegacySelection() {
     return this.#exclusive(async () => {
-      const base = this.#state.installed.find(entry => entry.bundled)
-      if (!base) throw new Error('默认内容包不可用')
-      if (
-        this.#state.activeIds.length === 1 &&
-        this.#state.activeIds[0] === base.id &&
-        this.#state.desiredIds.length === 1 &&
-        this.#state.desiredIds[0] === base.id
-      )
-        return
-      const revision = this.#state.goalRevision + 1
-      await this.#update(state => ({
-        ...state,
-        activeIds: [base.id],
-        desiredIds: [base.id],
-        revision: state.revision + 1,
-        activeProject: base.id,
-        activeGraph: base.graph,
-        goalRevision: revision,
-        activeGoalRevision: revision,
-      }))
-      this.#sync = { status: 'ready' }
+      if (!this.#state.legacySelection) return
+      await this.#update(state => {
+        const { legacySelection: _legacy, ...current } = state
+        return { ...current, revision: state.revision + 1 }
+      })
     })
   }
   async uninstall(id) {
     return this.#exclusive(async () => {
       if (this.#entry(id).bundled) throw new Error('默认环境必须保留基础内容包')
-      if (this.#state.activeIds.includes(id) || this.#state.desiredIds.includes(id))
-        throw new Error('内容仍被旧本地选择引用，暂时无法卸载')
+      if (this.#state.legacySelection?.project === id) throw new Error('内容仍用于旧环境迁移')
       const directory = join(this.root, 'projects', storageName(id))
       try {
         await this.#directory(id)
@@ -956,8 +947,6 @@ export class ContentLibrary {
         if ((await lstat(directory).catch(() => null)) !== null) throw error
       }
       await this.#update(state => {
-        if (state.activeIds.includes(id) || state.desiredIds.includes(id))
-          throw new Error('内容仍被旧本地选择引用，暂时无法卸载')
         return { ...state, revision: state.revision + 1, installed: state.installed.filter(item => item.id !== id) }
       })
       await rm(directory, { recursive: true, force: true })

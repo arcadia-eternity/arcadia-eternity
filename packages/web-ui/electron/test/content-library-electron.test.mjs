@@ -13,7 +13,7 @@ const exec = promisify(execFile)
 const frontend = fileURLToPath(new URL('../../', import.meta.url))
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
 test(
-  'actual Electron window automatically converges package choices without confirmation or restart',
+  'actual Electron window applies environment dependencies and uses them in local battle',
   {
     timeout: 240000,
     skip: process.env.ARCADIA_DESKTOP_GUI_TEST !== '1',
@@ -71,19 +71,25 @@ test(
           body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><circle cx="60" cy="60" r="45" fill="#7e9bbc"/></svg>',
         }),
       )
-      await page.goto(rendererUrl + '/content', { timeout: 20000 })
-      await page.getByRole('button', { name: '添加内容包', exact: true }).click()
-      await page.getByRole('button', { name: '安装本地 .tgz 文件', exact: true }).click()
-      await expect(page.getByRole('dialog')).toHaveCount(0)
-      await expect(page.locator('.package-detail > .detail-subtitle')).toContainText('本机已启用')
+      await page.goto(rendererUrl + '/content?target=local&tab=environments', { timeout: 20000 })
+      await page.getByRole('button', { name: '编辑', exact: true }).click()
+      await page.getByRole('button', { name: '从文件加入内容包', exact: true }).click()
+      await expect(page.getByRole('button', { name: '保存并应用', exact: true })).toBeEnabled()
       const packages = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())
-      assert.equal(packages.packages.length, 1)
-      const pkg = packages.packages[0]
-      assert.equal(pkg.name, '@arcadia-example/slow')
-      await expect(page.getByLabel('启用 ' + pkg.title, { exact: true })).toBeChecked()
-      const status = await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())
-      assert.equal(status.status, 'idle')
-      // Personal editing and the ordinary local page consume the installed selection.
+      const pkg = packages.packages.find(item => item.name === '@arcadia-example/slow')
+      assert.ok(pkg)
+      await expect(page.getByRole('textbox', { name: '包名' }).last()).toHaveValue('@arcadia-example/slow')
+      await page.getByRole('button', { name: '保存并应用', exact: true }).click()
+      await expect
+        .poll(() =>
+          page.evaluate(async () => {
+            const { result } = await window.arcadiaDesktop.localEnvironment({ action: 'snapshot' })
+            return result.operations.find(job => job.kind === 'environment.apply')?.status
+          }),
+        )
+        .toBe('succeeded')
+      assert.equal((await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())).status, 'idle')
+      // Personal editing and the ordinary local page consume the selected environment.
       await page.evaluate(async () => {
         const path = '/src/stores/petStorage.ts'
         const { usePetStorageStore } = await import(path)
@@ -161,17 +167,13 @@ test(
         const path = '/src/stores/battle.ts'
         await (await import(path)).useBattleStore().resetBattleWithoutSurrender()
       })
-      await page.goto(rendererUrl + '/content')
+      await page.goto(rendererUrl + '/content?target=local&tab=environments')
+      await page.getByText('内容来源', { exact: true }).click()
+      await page.getByRole('button', { name: '本机材料', exact: true }).click()
       await page.locator('.package-select').filter({ hasText: pkg.title }).click()
       await page.screenshot({ path: join(output, 'installed.png'), fullPage: true })
-      await page.getByLabel('启用 ' + pkg.title, { exact: true }).uncheck()
-      await expect(page.locator('.package-detail > .detail-subtitle')).toContainText('已安装，未启用')
       const current = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())
-      assert.deepEqual(current.activeIds, [])
-      assert.equal(current.serviceStatus.url, status.url)
-      assert.equal(current.serviceStatus.serverId, status.serverId)
-      assert.equal(current.serviceNeedsRestart, false)
-      assert.equal(await page.getByRole('dialog').count(), 0)
+      assert.equal(current.activeIds, undefined)
       assert.equal(current.serviceStatus.status, 'idle')
       await page.getByRole('button', { name: '浏览内容（只读）', exact: true }).click()
       await expect(page.locator('.app-header .badge')).toHaveText('只读')

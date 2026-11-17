@@ -88,11 +88,10 @@ it('waits for a real operation and reports stages separately from the final JSON
   expect(String(fetcher.mock.calls[1]![0])).toContain('/operations/job')
 })
 
-it('adds a new version, a registered source, or restores a removed declaration', async () => {
+it('adds a new version or a registered source', async () => {
   for (const [args, extra] of [
     [['--version', '^2.0.0'], { version: '^2.0.0' }],
     [['--source'], { source: true }],
-    [[], {}],
   ] as const) {
     const f = await fixture()
     const fetcher = vi.fn(async () => Response.json({ id: 'apply' }))
@@ -110,5 +109,8 @@ it('rejects conflicting add options before requesting the server', async () => {
   await expect(
     f.run(['add', 'friends', '@author/new', '--revision', 'current', '--source', '--version', '^1']),
   ).rejects.toThrow('Choose either')
+  await expect(f.run(['add', 'friends', '@author/new', '--revision', 'current'])).rejects.toThrow(
+    'Specify --version or --source',
+  )
   expect(fetcher).not.toHaveBeenCalled()
 })

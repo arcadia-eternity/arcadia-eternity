@@ -287,7 +287,7 @@ test(
       '2.0.0',
     )
     await chosen.release()
-    assert.deepEqual((await f.library.list()).activeIds, [])
+    assert.equal((await f.library.list()).activeIds, undefined)
   },
 )
 
@@ -384,7 +384,7 @@ test(
         f.calls.some(args => args[2] === 'stage'),
         false,
       )
-      assert.deepEqual((await f.library.list()).activeIds, [])
+      assert.equal((await f.library.list()).activeIds, undefined)
     } finally {
       await lease.release()
     }

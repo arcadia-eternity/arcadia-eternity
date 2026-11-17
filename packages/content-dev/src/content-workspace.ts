@@ -316,6 +316,16 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
   #directory(id: string) {
     return join(this.root, 'environments', checkId(id, envId))
   }
+  async #archiveRemovedDeclarations(id: string) {
+    const text = await readFile(join(this.#directory(id), 'package.json'), 'utf8').catch(error => {
+      if (errorCode(error) !== 'ENOENT') throw error
+      return undefined
+    })
+    if (!text || !Object.hasOwn(JSON.parse(text).arcadiaEnvironment ?? {}, 'disabled')) return
+    const archive = join(this.root, 'migration-backups')
+    await regularDirectory(archive)
+    await writeFileAtomic(join(archive, `${id}-${revision(text)}.json`), text)
+  }
   #manifest(document: EnvironmentDocument, previous: UnknownRecord = {}): UnknownRecord {
     const { packages, ...metadata } = document
     const priorDependencies = isRecord(previous.dependencies) ? previous.dependencies : {}
@@ -378,6 +388,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       if ((previous === null ? null : revision(previous)) !== input.expectedRevision)
         throw contentError('REVISION_CONFLICT')
       await regularDirectory(directory)
+      await this.#archiveRemovedDeclarations(document.id)
       await writeFileAtomic(file, json(this.#manifest(document, previous ? JSON.parse(previous) : {})))
       return this.#draft(document.id)
     }, true)
@@ -533,6 +544,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       }
       await input.beforeCommit?.()
       signal.throwIfAborted()
+      await this.#archiveRemovedDeclarations(document.id)
       if (input.importId) return this.#finishImport(input.importId)
       try {
         await rename(target, previous)
@@ -799,6 +811,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     const prepared = await readJson(join(staging, '.arcadia-prepared.json'))
     if (prepared.importId !== id || prepared.installationId !== environmentId)
       throw contentError('IMPORT_INTENT_INVALID')
+    await this.#archiveRemovedDeclarations(environmentId)
     const previous = join(this.root, 'staging', `replaced-${environmentId}`)
     let moved = false
     try {
@@ -922,8 +935,6 @@ async function changeEnvironmentPackage(
   if (!draft) throw contentError('ENVIRONMENT_NOT_FOUND')
   if (draft.revision !== expectedRevision) throw contentError('REVISION_CONFLICT')
   const document = structuredClone(draft.document)
-  const disabled = document.disabled ?? { packages: {}, sources: [] }
-  document.disabled = disabled
   const active = new Set([...Object.keys(document.packages), ...document.sources])
   if (input.action === 'add') {
     const version = input.version?.trim()
@@ -933,12 +944,7 @@ async function changeEnvironmentPackage(
     } else if (input.source === true) {
       delete document.packages[name]
       if (!document.sources.includes(name)) document.sources.push(name)
-    } else if (active.has(name)) return draft
-    else if (Object.hasOwn(disabled.packages, name)) document.packages[name] = disabled.packages[name]
-    else if (disabled.sources.includes(name)) document.sources.push(name)
-    else throw contentError('ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED', '新增内容包需要指定版本或已登记来源')
-    delete disabled.packages[name]
-    disabled.sources = disabled.sources.filter(value => value !== name)
+    } else throw contentError('ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED', '新增内容包需要指定版本或已登记来源')
   } else {
     const version = (await workspace.listInstallations())
       .filter((item): item is EnvironmentInstallation => item.status === 'ready')
@@ -968,13 +974,8 @@ async function changeEnvironmentPackage(
         `仍被这些资源包依赖：${roots.filter(key => key !== name).join('、')}`,
       )
     for (const key of roots) {
-      if (Object.hasOwn(document.packages, key)) {
-        disabled.packages[key] = document.packages[key]
-        delete document.packages[key]
-      } else {
-        disabled.sources.push(key)
-        document.sources = document.sources.filter(value => value !== key)
-      }
+      delete document.packages[key]
+      document.sources = document.sources.filter(value => value !== key)
     }
   }
   return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })

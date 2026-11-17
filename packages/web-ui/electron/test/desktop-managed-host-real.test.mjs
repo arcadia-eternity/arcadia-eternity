@@ -117,7 +117,8 @@ test(
       const installed = await library.installFile(join(root, archive.filename), true)
       const { packages, activeIds } = await library.list()
       const base = packages.find(item => item.bundled)
-      assert.deepEqual(activeIds, [base.id])
+      assert.equal(activeIds, undefined)
+      assert.ok(base)
       const local = await library.prepareEnvironmentProject(
         { packages: { [fixtureManifest.name]: fixtureManifest.version }, sources: [] },
         { offline: true },
@@ -146,7 +147,7 @@ test(
       assert.equal(version.directory, join(workspace.root, 'environments', binding.environmentId))
       assert.deepEqual(await readdir(join(root, 'library/projects')), existingProjects)
       await local.release()
-      const selectedBeforeManagement = (await library.list()).activeIds
+      const packagesBeforeManagement = (await library.list()).packages.map(item => item.id)
       const preparation = await request(
         'POST',
         `/workspaces/${workspace.workspaceId}/environments/apply`,
@@ -172,9 +173,9 @@ test(
       }
       assert.equal(prepared.status, 'succeeded', JSON.stringify(prepared.error))
       assert.deepEqual(
-        (await library.list()).activeIds,
-        selectedBeforeManagement,
-        'management preparation leaves local selection intact',
+        (await library.list()).packages.map(item => item.id),
+        packagesBeforeManagement,
+        'management preparation leaves shared materials intact',
       )
       assert.equal(
         (await workspace.getInstallation(prepared.result.installationId)).directory,
@@ -318,7 +319,8 @@ test(
       })
       assert.equal(disabled.status, 409)
       const snapshot = await library.list()
-      assert.deepEqual(snapshot.activeIds, [snapshot.packages.find(item => item.bundled).id])
+      assert.equal(snapshot.activeIds, undefined)
+      assert.ok(snapshot.packages.find(item => item.bundled))
       await controller.request({ action: 'stop' })
       const resumed = await controller.request({ action: 'start' })
       assert.equal(resumed.host.status, 'running', JSON.stringify(resumed.error))

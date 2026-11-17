@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { LocalServerController, launchConfiguration } from '../local-server-controller.mjs'
 
 const configuration = { name: '好友服', content: 'official', scope: 'lan', port: 8102 }
-function fixture({ saved = false, prepare, start, stop, wait, selection, startProject } = {}) {
+function fixture({ saved = false, prepare, start, stop, wait, acquireCurrent, startProject } = {}) {
   let state = { status: 'idle' }
   const calls = []
   const lease = { directory: '/owned/official', release: async () => calls.push('release') }
@@ -31,8 +31,7 @@ function fixture({ saved = false, prepare, start, stop, wait, selection, startPr
       await prepare?.()
       return lease
     },
-    list: async () => selection ?? { selection: { status: 'ready' } },
-    acquireProject: async () => ({ ...lease, directory: '/owned/local-play' }),
+    acquireProject: acquireCurrent ?? (async () => ({ ...lease, directory: '/owned/local-play' })),
   }
   const controller = new LocalServerController({
     host,
@@ -161,7 +160,9 @@ test('rejects directory/command injection and malformed network settings', async
 
 test('unprepared current content never silently falls back to official content', async () => {
   const { controller, calls } = fixture({
-    selection: { selection: { status: 'idle' }, desiredIds: ['unfinished'], hasSelection: false },
+    acquireCurrent: async () => {
+      throw Object.assign(new Error('请选择环境'), { code: 'CONTENT_NOT_READY' })
+    },
   })
   const result = await controller.request({ action: 'start', configuration: { ...configuration, content: 'current' } })
   assert.equal(result.error.code, 'CONTENT_NOT_READY')

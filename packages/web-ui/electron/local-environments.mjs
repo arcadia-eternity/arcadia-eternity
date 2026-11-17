@@ -37,21 +37,16 @@ export class LocalEnvironments {
             const selection = JSON.parse(saved)
             if (typeof selection.environmentId !== 'string') throw fail('INVALID_LOCAL_SELECTION')
             this.#selectedId = selection.environmentId
-          } else if (this.library?.acquireProject) {
+          } else if (this.library?.acquireInitialEnvironment) {
             // Copy the last working legacy selection once. Never replace existing user environments.
-            const snapshot = await this.library.list()
-            const lease = await this.library.acquireProject()
+            const lease = await this.library.acquireInitialEnvironment()
             try {
               const id = `local-${randomUUID()}`
               const document = {
                 schemaVersion: 2,
                 id,
                 name: '默认环境',
-                packages: Object.fromEntries(
-                  snapshot.packages
-                    .filter(pkg => snapshot.activeIds.includes(pkg.id))
-                    .map(pkg => [pkg.name, pkg.version]),
-                ),
+                packages: Object.fromEntries(lease.packages.map(pkg => [pkg.name, pkg.version])),
                 sources: [],
                 rules: { schemaVersion: 1 },
                 requires: {},
@@ -66,7 +61,7 @@ export class LocalEnvironments {
             }
           }
           // The package library no longer owns the user's runtime selection.
-          if (this.#selectedId) await this.library?.retireSelection?.()
+          if (this.#selectedId) await this.library?.retireLegacySelection?.()
           return workspace
         } catch (error) {
           await workspace.close()

@@ -46,11 +46,6 @@ export interface ContentLibrarySnapshot {
   }[]
   revision: number
   packages: InstalledContentPackage[]
-  activeIds: string[]
-  activeGraph?: PackageGraphEntry[]
-  desiredIds: string[]
-  selection: { status: 'idle' | 'preparing' | 'ready' | 'failed'; message?: string }
-  hasSelection: boolean
   serviceStatus: LocalBattleHostStatus
   serviceNeedsRestart: boolean
 }

@@ -83,7 +83,7 @@ test(
       )
       const tarball = join(root, parseNpmPackOutput(packed.stdout)[0].filename)
       const id = await library.installFile(tarball, true)
-      assert.deepEqual((await library.list()).desiredIds, [])
+      assert.equal((await library.list()).desiredIds, undefined)
       const installed = (await library.list()).packages.find(pkg => pkg.id === id)
       assert.equal(host.status().status, 'idle')
       const localProject = await library.prepareEnvironmentProject(
@@ -113,7 +113,7 @@ test(
       const alternative = await library.prepareEnvironmentProject({ packages: {}, sources: [] }, { offline: true })
       await alternative.release()
       const official = await library.list()
-      assert.deepEqual(official.activeIds, [])
+      assert.equal(official.activeIds, undefined)
       assert.equal(host.status().serverId, ready.serverId)
       assert.equal(host.status().url, ready.url)
       assert.equal(official.serviceNeedsRestart, false)

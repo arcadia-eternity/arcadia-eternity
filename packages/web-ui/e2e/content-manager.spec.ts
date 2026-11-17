@@ -1,95 +1,94 @@
 import { expect, test } from 'playwright/test'
 import type { ContentLibrarySnapshot, InstalledContentPackage } from '../src/types/contentPackages'
 
-test('packages stay installed without global enable controls', async ({ page }, testInfo) => {
+test('UGC projects and environment dependencies are managed separately', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     const pkg: InstalledContentPackage = {
       id: 'package',
       name: '@example/content',
-      title: '创作测试内容',
+      title: '发行材料',
       version: '1.0.0',
       namespace: 'custom',
       projectId: 'custom',
-      author: '测试作者',
-      description: '精灵与技能扩展',
-      source: { kind: 'file', label: 'content-1.0.0.tgz' },
+      author: '',
+      description: '',
+      source: { kind: 'file', label: 'content.tgz' },
       contentIds: { species: [], skills: [], marks: [] },
       counts: { species: 0, skills: 0, marks: 0 },
       containsCode: true,
-      graph: [
-        { name: '@example/content', version: '1.0.0', dependencies: { library: '2.0.0' } },
-        { name: 'library', version: '2.0.0', dependencies: {} },
-      ],
-      installedAt: '2026-10-29T00:00:00Z',
+      graph: [],
+      installedAt: '2026-11-17T00:00:00Z',
     }
-    const snapshot: ContentLibrarySnapshot = {
+    const library: ContentLibrarySnapshot = {
       revision: 1,
       packages: [pkg],
-      activeIds: [],
-      desiredIds: [],
-      selection: { status: 'ready' },
-      hasSelection: true,
-      serviceStatus: { status: 'running', url: 'http://127.0.0.1:12345', projectName: 'local', serverId: 'test' },
+      serviceStatus: { status: 'idle' },
       serviceNeedsRestart: false,
     }
+    const environment = {
+      revision: 'r1',
+      document: {
+        schemaVersion: 2,
+        id: 'friends',
+        name: '好友环境',
+        packages: {},
+        sources: [],
+        rules: { schemaVersion: 1 },
+        requires: {},
+      },
+    }
+    const snapshot = { workspaceId: 'local', environments: [environment], installations: [], operations: [] }
     Object.defineProperty(window, 'arcadiaDesktop', {
       value: {
         getLocalServerPort: async () => null,
         prepareLocalContent: async () => ({
-          token: 'test-metadata',
+          token: 'test',
           content: { species: [], skills: [], marks: [] },
           environment: { revision: 'test', data: { species: [], skills: [], marks: [] }, modules: [] },
         }),
         releaseLocalContent: async () => {},
         listCachedPets: async () => [],
         getAppVersion: async () => 'test',
-        listContentPackages: async () => structuredClone(snapshot),
         listContentProjects: async () => [],
-        getLocalBattleStatus: async () => structuredClone(snapshot.serviceStatus),
-        stopLocalBattle: async () => {
-          snapshot.serviceStatus = { status: 'idle' }
-          return snapshot.serviceStatus
-        },
-        installContentPackageFile: async () => {
-          snapshot.packages.push({ ...pkg, id: 'second', title: '另一个包', name: '@example/second' })
-          snapshot.desiredIds.push('second')
-          snapshot.activeIds = [...snapshot.desiredIds]
-          snapshot.selection = { status: 'ready' }
-          return 'second'
-        },
-        installNpmContentPackage: async () => {
-          throw new Error('Exact versions only')
-        },
+        listContentPackages: async () => structuredClone(library),
         contentPackageAction: async () => null,
+        author: async (input: { action: string }) => ({
+          result:
+            input.action === 'list'
+              ? [
+                  { id: 'project', name: '森林项目', directory: '/source', readOnly: false },
+                  { id: 'material', name: '发行材料', directory: '/material', readOnly: true },
+                ]
+              : null,
+        }),
+        localEnvironment: async (input: { action: string; document: typeof environment.document }) => {
+          if (input.action === 'apply') {
+            environment.document = input.document
+            environment.revision = 'r2'
+          }
+          return { result: input.action === 'snapshot' ? structuredClone(snapshot) : { operationId: 'job' } }
+        },
       },
     })
   })
-  await page.goto('/content')
-  const main = page.locator('.content-page')
-  await expect(page.getByRole('heading', { name: '内容包', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: /创作测试内容/ }).click()
-  await page.getByRole('tab', { name: '依赖', exact: true }).click()
-  await expect(main).toContainText('library')
-  await expect(page.getByLabel('启用 创作测试内容', { exact: true })).toHaveCount(0)
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: '检查并应用更改', exact: true })).toHaveCount(0)
-  await expect(main.locator('.package-detail > .detail-subtitle')).toContainText('已安装')
-  await page.getByRole('button', { name: '添加内容包', exact: true }).click()
-  await page.getByRole('dialog', { name: '安装内容包' }).getByRole('button', { name: '安装本地 .tgz 文件' }).click()
-  const downloads = page.getByRole('dialog', { name: '下载与安装' })
-  await downloads.getByRole('button', { name: '关闭', exact: true }).click()
-  await expect(downloads).toHaveCount(0)
-  await expect(main.getByRole('heading', { name: '另一个包', exact: true })).toBeVisible()
-  await page.screenshot({ path: testInfo.outputPath('content-packages-desktop.png'), fullPage: true })
+  await page.goto('/content?target=local')
+  await expect(page.getByRole('region', { name: 'UGC 项目' })).toContainText('森林项目')
+  await expect(page.getByRole('region', { name: 'UGC 项目' })).not.toContainText('发行材料')
+  await expect(page.getByRole('button', { name: '添加内容包', exact: true })).toHaveCount(0)
+  await page.screenshot({ path: testInfo.outputPath('ugc-projects.png'), fullPage: true })
+  await page.getByRole('button', { name: '环境', exact: true }).click()
+  await page.getByRole('button', { name: '编辑', exact: true }).click()
+  await page.getByLabel('选择已有包版本').selectOption('package')
+  await expect(page.getByLabel('版本范围', { exact: true })).toHaveValue('1.0.0')
+  await expect(page.locator('.environment-editor')).toContainText('配置')
+  await page.getByRole('button', { name: '保存并应用', exact: true }).click()
+  await expect(page.locator('.environment-workspace')).toContainText('@example/content')
+  await expect(page.locator('.environment-workspace')).not.toContainText('已移出的内容包')
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.getByRole('button', { name: '返回内容包列表', exact: true }).click()
-  await page.getByRole('button', { name: /创作测试内容/ }).click()
-  await expect(main.getByRole('heading', { name: '创作测试内容', exact: true })).toBeVisible()
-  expect(await main.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
-  await page.screenshot({ path: testInfo.outputPath('content-packages-mobile.png'), fullPage: true })
-  await page.goto('/settings/local-service')
-  await expect(page.getByRole('heading', { name: '高级本机工具', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '启动本机服务', exact: true })).not.toBeVisible()
+  await page.getByRole('button', { name: '编辑', exact: true }).click()
+  const workspace = page.locator('.environment-workspace')
+  expect(await workspace.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('environment-dependencies-mobile.png'), fullPage: true })
 })
 
 test('browser content is read-only and desktop authoring and host routes stay closed', async ({ page }) => {
@@ -142,6 +141,15 @@ test('environment import and export share the content entry and stay scoped to t
       environmentCalls: calls,
       arcadiaDesktop: {
         getLocalServerPort: async () => null,
+        prepareLocalContent: async () => ({
+          token: 'test',
+          content: { species: [], skills: [], marks: [] },
+          environment: { revision: 'test', data: { species: [], skills: [], marks: [] }, modules: [] },
+        }),
+        releaseLocalContent: async () => {},
+        listCachedPets: async () => [],
+        getAppVersion: async () => 'test',
+        listContentProjects: async () => [],
         prepareLocalContent: async () => ({
           token: 'test-metadata',
           content: { species: [], skills: [], marks: [] },

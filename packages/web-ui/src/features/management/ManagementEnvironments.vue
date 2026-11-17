@@ -54,13 +54,6 @@ function openImport() {
     :save-sequence="environmentSaveSequence"
     :busy="busy"
     @save="saveEnvironment"
-    @add-package="
-      (environment, name) =>
-        state.mutate('POST', `${workspacePath}/environments/${encode(environment.document.id)}/packages/add`, {
-          expectedRevision: environment.revision,
-          name,
-        })
-    "
     @remove-package="
       (environment, name, cascade) =>
         state.mutate('POST', `${workspacePath}/environments/${encode(environment.document.id)}/packages/remove`, {

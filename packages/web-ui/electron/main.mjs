@@ -62,7 +62,10 @@ const localBattleHost = new LocalBattleHost({
 
 const localServerController = new LocalServerController({
   host: localBattleHost,
-  library: getContentLibrary,
+  library: () => ({
+    acquireProject: () => getLocalEnvironments().acquireProject(),
+    acquireDefaultProject: () => getContentLibrary().acquireDefaultProject(),
+  }),
   startProject: id => getContentProjects().start(id),
 })
 

@@ -5,6 +5,7 @@ import { getBackendOrigin } from '@/bootstrap/deployment'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { isStaticMode } from '@/utils/env'
 import ContentPackagesPanel from './ContentPackagesPanel.vue'
+import ContentProjectsPanel from './ContentProjectsPanel.vue'
 import LocalEnvironmentPage from './LocalEnvironmentPage.vue'
 import ServerEnvironmentPanel from './ServerEnvironmentPanel.vue'
 import { environmentDraftsKey, discardEnvironmentChanges } from './unsavedEnvironment'
@@ -80,6 +81,7 @@ async function navigate(nextTarget: string, nextTab = tab.value) {
     <div :key="target" class="hub-body">
       <LocalEnvironmentPage v-if="tab === 'environments' && target === 'local'" />
       <ServerEnvironmentPanel v-else-if="tab === 'environments' && target !== 'room'" target="server" />
+      <ContentProjectsPanel v-else-if="target === 'local'" />
       <ContentPackagesPanel v-else :location="target" />
     </div>
   </main>

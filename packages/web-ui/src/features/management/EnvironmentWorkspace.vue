@@ -7,6 +7,9 @@ import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironment
 
 const props = withDefaults(
   defineProps<{
+    availablePackages?: { id: string; name: string; version: string }[]
+    packageEnvironmentId?: string
+    pendingPackage?: { id: string; name: string; version: string }
     heading?: string
     environments: ManagedEnvironment[]
     installations: ManagedEnvironmentInstallation[]
@@ -25,7 +28,7 @@ const props = withDefaults(
   { showUseActions: true, showPeerUse: true, useLabel: '服务器使用' },
 )
 const emit = defineEmits<{
-  addPackage: [environment: ManagedEnvironment, name: string]
+  packageAccepted: []
   removePackage: [environment: ManagedEnvironment, name: string, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
@@ -66,9 +69,6 @@ const latestVersion = computed(
 )
 const deletingDraft = ref('')
 const removingPackage = ref('')
-function addPackage(name: string) {
-  if (selectedEnvironment.value) emit('addPackage', selectedEnvironment.value, name)
-}
 function removePackage(name: string, cascade = false) {
   if (!selectedEnvironment.value) return
   removingPackage.value = ''
@@ -131,6 +131,29 @@ async function edit(environment?: ManagedEnvironment) {
   editing.value = true
   return true
 }
+function putPackage(pkg: { name: string; version: string }) {
+  const existing = packageRows.value.find(row => row.name === pkg.name)
+  if (existing) existing.version = pkg.version
+  else packageRows.value.push({ name: pkg.name, version: pkg.version })
+  sourceText.value = sourceText.value
+    .split(/\r?\n/)
+    .filter(name => name.trim() !== pkg.name)
+    .join('\n')
+}
+watch(
+  () => props.pendingPackage,
+  async pkg => {
+    if (!pkg) return
+    const target = props.environments.find(item => item.document.id === props.packageEnvironmentId)
+    if (target && document.value?.id !== target.document.id) {
+      if (!(await edit(target))) return
+    } else if (!editing.value && !(await edit(target ?? selectedEnvironment.value))) return
+    // Same-environment additions merge into the existing draft.
+    putPackage(pkg)
+    emit('packageAccepted')
+  },
+  { immediate: true },
+)
 function save() {
   if (!document.value) return
   const rows = packageRows.value.map(row => ({ name: row.name.trim(), version: row.version.trim() }))
@@ -276,28 +299,6 @@ function save() {
                 </div>
               </article>
             </template>
-            <template v-if="selectedEnvironment.document.disabled">
-              <h4>已移出的内容包</h4>
-              <article
-                v-for="(range, name) in selectedEnvironment.document.disabled.packages"
-                :key="name"
-                class="member"
-              >
-                {{ name }} · {{ range }}
-                <ElButton
-                  :disabled="busy || !canEdit || !canPrepare"
-                  @click="addPackage(String(name))"
-                  native-type="button"
-                  >加入环境</ElButton
-                >
-              </article>
-              <article v-for="name in selectedEnvironment.document.disabled.sources" :key="name" class="member">
-                {{ name }} · 已登记来源
-                <ElButton :disabled="busy || !canEdit || !canPrepare" @click="addPackage(name)" native-type="button"
-                  >加入环境</ElButton
-                >
-              </article>
-            </template>
           </section>
         </template>
         <ElForm
@@ -324,7 +325,27 @@ function save() {
             </ElFormItem>
           </div>
           <fieldset>
-            <legend>直接依赖</legend>
+            <legend>依赖</legend>
+            <label v-if="availablePackages?.length"
+              >已有材料
+              <select
+                aria-label="选择已有包版本"
+                @change="
+                  event => {
+                    const select = event.target as HTMLSelectElement
+                    const pkg = availablePackages?.find(item => item.id === select.value)
+                    if (pkg) putPackage(pkg)
+                    select.value = ''
+                  }
+                "
+              >
+                <option value="">选择内容包版本</option>
+                <option v-for="pkg in availablePackages" :key="pkg.id" :value="pkg.id">
+                  {{ pkg.name }} {{ pkg.version }}
+                </option>
+              </select>
+            </label>
+            <slot name="package-source" />
             <div v-for="(row, index) in packageRows" :key="index" class="package-row">
               <ElFormItem label="包名">
                 <ElInput
@@ -343,16 +364,19 @@ function save() {
                 @click="packageRows.splice(index, 1)"
                 native-type="button"
               >
-                移除
+                移出环境
               </ElButton>
             </div>
             <ElButton @click="packageRows.push({ name: '', version: '' })" native-type="button">添加内容包</ElButton>
           </fieldset>
           <details>
-            <summary>来源与规则</summary>
-            <ElFormItem label="已登记的来源包名（每行一个）">
+            <summary>已登记来源</summary>
+            <ElFormItem label="来源包名（每行一个）">
               <ElInput v-model="sourceText" :rows="3" type="textarea" />
             </ElFormItem>
+          </details>
+          <fieldset>
+            <legend>配置</legend>
             <ElFormItem label="环境分级">
               <ElInput
                 :model-value="document.rules.tier ?? ''"
@@ -405,8 +429,7 @@ function save() {
                 />
               </ElFormItem>
             </fieldset>
-            <p class="hint">仅可使用宿主已登记的来源。</p>
-          </details>
+          </fieldset>
           <div class="actions">
             <ElButton class="primary" :disabled="busy || !canEdit || !canPrepare" native-type="submit" type="primary"
               >保存并应用</ElButton
@@ -437,6 +460,26 @@ function save() {
 </template>
 
 <style scoped>
+.material-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.material-picker select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  background: var(--el-bg-color);
+  color: inherit;
+  font: inherit;
+}
+.environment-editor fieldset {
+  padding: 12px;
+}
 .environment-workspace {
   display: flex;
   flex-direction: column;

@@ -85,12 +85,18 @@ it('installs without selecting content and preserves user sources on uninstall',
     const [pkg] = (await f.manager.list()).packages
     assert.equal(pkg.id, id)
     assert.deepEqual(pkg.contentIds.species, ['water:pet'])
-    assert.deepEqual((await f.manager.list()).activeIds, [])
+    assert.equal((await f.manager.list()).activeIds, undefined)
     const directory = await f.manager.sourceDirectory(id)
     assert.equal(JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).name, pkg.name)
     await assert.rejects(f.manager.sourceDirectory('not-installed'), /未安装/)
     await assert.rejects(f.manager.installNpm('@test/water@latest'), /明确版本/)
-    await assert.rejects(f.manager.installFile(source), /同一版本/)
+    assert.equal(await f.manager.installFile(source), id)
+    await writeFile(
+      source,
+      JSON.stringify({ name: pkg.name, version: pkg.version, namespace: 'changed', title: 'changed' }),
+    )
+    await assert.rejects(f.manager.installFile(source), /不同材料/)
+    assert.equal((await f.manager.list()).packages.length, 1)
     await f.manager.uninstall(id)
     assert.equal((await f.manager.list()).packages.length, 0)
     assert.ok(await readFile(source))
@@ -117,6 +123,9 @@ it('reads saved legacy choices for migration without resuming unfinished global 
   await f.manager.close()
   const file = join(f.libraryRoot, 'library.json')
   const state = JSON.parse(await readFile(file, 'utf8'))
+  state.version = 2
+  state.goalRevision = 1
+  state.activeGoalRevision = 0
   state.activeIds = [base.id, custom]
   state.activeProject = custom
   state.activeGraph = state.installed.find(entry => entry.id === custom).graph
@@ -126,15 +135,15 @@ it('reads saved legacy choices for migration without resuming unfinished global 
   const restored = new ContentLibrary({ root: f.libraryRoot, run: f.run, host: f.host })
   try {
     await restored.resume()
-    assert.deepEqual((await restored.list()).activeIds, [base.id, custom])
-    const old = await restored.acquireProject()
-    await restored.retireSelection()
-    assert.deepEqual((await restored.list()).activeIds, [base.id])
+    assert.equal((await restored.list()).activeIds, undefined)
+    const old = await restored.acquireInitialEnvironment()
+    await restored.retireLegacySelection()
+    assert.equal(JSON.parse(await readFile(file, 'utf8')).legacySelection, undefined)
     const captured = await readFile(join(old.directory, 'package.json'), 'utf8')
     assert.ok(captured)
     await old.release()
     await restored.uninstall(custom)
-    const fallback = await restored.acquireProject()
+    const fallback = await restored.acquireInitialEnvironment()
     assert.ok(await readFile(join(fallback.directory, 'package.json')))
     await fallback.release()
   } finally {
@@ -217,13 +226,13 @@ it('cancels queued and running installation tasks and retries without changing e
     f.manager.cancelInstall(running.id)
     await Promise.all([firstRejected, secondRejected])
     assert.ok((await f.manager.list()).operations.every(job => job.status === 'cancelled'))
-    assert.deepEqual((await f.manager.list()).desiredIds, [])
+    assert.equal((await f.manager.list()).desiredIds, undefined)
     block = false
     await f.manager.retryInstall(running.id)
     const snapshot = await f.manager.list()
     assert.equal(snapshot.packages.length, 1)
     assert.equal(snapshot.operations[0].status, 'succeeded')
-    assert.deepEqual(snapshot.activeIds, [])
+    assert.equal(snapshot.activeIds, undefined)
     f.manager.clearInstallTasks()
     assert.deepEqual((await f.manager.list()).operations, [])
   } finally {

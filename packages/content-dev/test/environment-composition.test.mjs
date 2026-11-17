@@ -35,21 +35,22 @@ function fixture() {
     },
   }
 }
-test('shared dependency blocks removal; explicit cascade retains ranges and restoration does not publish', async () => {
+test('shared dependency blocks removal; explicit cascade deletes declarations without history', async () => {
   const workspace = fixture()
   const input = { environmentId: 'shared', expectedRevision: '1', name: 'nature' }
   await assert.rejects(removeEnvironmentPackage(workspace, input), { code: 'ENVIRONMENT_PACKAGE_REQUIRED' })
   assert.equal((await workspace.listDrafts())[0].revision, '1')
   const disabled = await removeEnvironmentPackage(workspace, { ...input, cascade: true })
   assert.deepEqual(disabled.document.packages, {})
-  assert.deepEqual(disabled.document.disabled.packages, { forest: '^1', arena: '^2' })
+  assert.equal('disabled' in disabled.document, false)
   const enabled = await addEnvironmentPackage(workspace, {
     ...input,
     expectedRevision: disabled.revision,
     name: 'forest',
+    version: '^1',
   })
   assert.deepEqual(enabled.document.packages, { forest: '^1' })
-  assert.deepEqual(enabled.document.disabled.packages, { arena: '^2' })
+  assert.equal('disabled' in enabled.document, false)
   assert.deepEqual((await workspace.listInstallations())[0].document.packages, { forest: '^1', arena: '^2' })
 })
 test('stale revision and changed unresolved composition cannot authorize a dependency removal', async () => {
@@ -76,24 +77,22 @@ test('stale revision and changed unresolved composition cannot authorize a depen
     { code: 'ENVIRONMENT_DEPENDENCIES_UNRESOLVED' },
   )
 })
-test('active and disabled declarations cannot overlap', () => {
-  assert.throws(
-    () =>
-      normalizeEnvironmentDocument({
-        schemaVersion: 2,
-        id: 'test',
-        name: 'Test',
-        packages: { sample: '^1' },
-        sources: [],
-        disabled: { packages: { sample: '^2' }, sources: [] },
-        rules: { schemaVersion: 1 },
-        requires: {},
-      }),
-    { code: 'ENVIRONMENT_INVALID' },
-  )
+test('legacy removed declarations are discarded without affecting active requirements', () => {
+  const document = normalizeEnvironmentDocument({
+    schemaVersion: 2,
+    id: 'test',
+    name: 'Test',
+    packages: { sample: '^1' },
+    sources: [],
+    disabled: { packages: { sample: '^2', old: '^3' }, sources: [] },
+    rules: { schemaVersion: 1 },
+    requires: {},
+  })
+  assert.equal('disabled' in document, false)
+  assert.deepEqual(document.packages, { sample: '^1' })
 })
 
-test('adds new versioned and registered-source packages and restores removed declarations', async () => {
+test('adds new versioned and registered-source packages without implicit restoration', async () => {
   const workspace = fixture()
   const added = await addEnvironmentPackage(workspace, {
     environmentId: 'shared',

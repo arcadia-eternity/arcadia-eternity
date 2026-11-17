@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, writeFile, rm, realpath, copyFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, rm, realpath, copyFile, readFile, readdir, cp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
@@ -215,13 +216,9 @@ test('one apply action creates and updates the installation without saving a dra
 test('migrates the working local selection once and preserves selected environments and live leases', async t => {
   const f = await fixture(t)
   let migrations = 0
-  f.library.list = async () => ({
-    packages: [{ id: 'legacy', name: 'sample', version: '1.0.0' }],
-    activeIds: ['legacy'],
-  })
-  f.library.acquireProject = async () => {
+  f.library.acquireInitialEnvironment = async () => {
     migrations++
-    return { directory: f.project, release: async () => {} }
+    return { directory: f.project, packages: [{ name: 'sample', version: '1.0.0' }], release: async () => {} }
   }
   let api = f.open()
   const first = await api.snapshot()
@@ -276,4 +273,57 @@ test('local add-package accepts a new version declaration and applies it atomica
   const revision = (await workspace.getDraft(document.id)).revision
   await assert.rejects(api.request(input), { code: 'REVISION_CONFLICT' })
   assert.equal((await workspace.getDraft(document.id)).revision, revision)
+})
+
+test('archives legacy removed declarations before rewriting an environment', async t => {
+  const f = await fixture(t)
+  const api = f.open()
+  const workspace = await api.ready()
+  await workspace.saveDraft({ document, expectedRevision: null })
+  const manifestFile = join(workspace.root, 'environments', document.id, 'package.json')
+  const legacy = JSON.parse(await readFile(manifestFile, 'utf8'))
+  legacy.arcadiaEnvironment.disabled = { packages: { old: '^1' }, sources: [] }
+  const original = JSON.stringify(legacy)
+  await writeFile(manifestFile, original)
+  const loaded = await workspace.getDraft(document.id)
+  assert.equal(loaded.document.disabled, undefined)
+  await workspace.saveDraft({ document: loaded.document, expectedRevision: loaded.revision })
+  const backups = await readdir(join(workspace.root, 'migration-backups'))
+  assert.equal(backups.length, 1)
+  assert.equal(await readFile(join(workspace.root, 'migration-backups', backups[0]), 'utf8'), original)
+  assert.equal(JSON.parse(await readFile(manifestFile, 'utf8')).arcadiaEnvironment.disabled, undefined)
+})
+
+test('recovering an interrupted import archives legacy declarations before replacing the manifest', async t => {
+  const f = await fixture(t)
+  const workspace = await f.open().ready()
+  await workspace.prepareEnvironment(
+    { environmentId: document.id, document, expectedRevision: null, projectDirectory: f.project },
+    async () => ({ contentRevision: 'test', packages: [] }),
+  )
+  const directory = join(workspace.root, 'environments', document.id)
+  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+  manifest.arcadiaEnvironment.disabled = { packages: { old: '^1' }, sources: [] }
+  const original = JSON.stringify(manifest)
+  await writeFile(join(directory, 'package.json'), original)
+  const draft = await workspace.getDraft(document.id)
+  const importId = 'a'.repeat(64)
+  const staging = 'prepare-' + randomUUID()
+  const stagedDirectory = join(workspace.root, 'staging', staging)
+  await cp(directory, stagedDirectory, { recursive: true })
+  delete manifest.arcadiaEnvironment.disabled
+  await writeFile(join(stagedDirectory, 'package.json'), JSON.stringify(manifest))
+  const metadata = JSON.parse(await readFile(join(stagedDirectory, '.arcadia-prepared.json'), 'utf8'))
+  await writeFile(join(stagedDirectory, '.arcadia-prepared.json'), JSON.stringify({ ...metadata, importId }))
+  await writeFile(
+    join(workspace.root, 'imports', importId + '.json'),
+    JSON.stringify({ environmentId: document.id, staging, expectedRevision: draft.revision, completed: false }),
+  )
+  await workspace.recoverImport(importId)
+  const backups = await readdir(join(workspace.root, 'migration-backups'))
+  assert.equal(await readFile(join(workspace.root, 'migration-backups', backups[0]), 'utf8'), original)
+  assert.equal(
+    JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).arcadiaEnvironment.disabled,
+    undefined,
+  )
 })

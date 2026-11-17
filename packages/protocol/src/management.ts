@@ -53,7 +53,6 @@ export interface ManagedEnvironmentDocument {
   name: string
   packages: Record<string, string>
   sources: string[]
-  disabled?: { packages: Record<string, string>; sources: string[] }
   rules: {
     schemaVersion: 1
     tier?: string

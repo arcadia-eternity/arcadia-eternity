@@ -459,7 +459,7 @@ describe('unified management HTTP and durable environment publication', () => {
   }, 30000)
 })
 
-it('adds removed packages through the owner and preserves the declaration when installation fails', async () => {
+it('adds explicit package requirements through the owner and preserves the environment when installation fails', async () => {
   const env = await setup()
   const base = `/workspaces/${env.workspace.workspaceId}/environments`
   const created = {
@@ -477,7 +477,7 @@ it('adds removed packages through the owner and preserves the declaration when i
       },
     }),
   }
-  const input = { expectedRevision: created.body.revision, name: '@test/shared' }
+  const input = { expectedRevision: created.body.revision, name: '@test/shared', version: '^1.5.0' }
   const enabled = await env.request(base + '/toggle/packages/add', 'POST', input, {
     'Idempotency-Key': 'toggle-apply',
   })

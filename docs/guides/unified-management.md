@@ -56,7 +56,7 @@ SQLite 与 PostgreSQL 共用 Kysely 查询和业务合同。G3 仍要求配置�
 
 ### 宿主内容来源
 
-环境保存在 `environments/<id>/` 的 npm 项目中。`package.json.dependencies` 指定包和版本范围，`arcadiaEnvironment` 保存名称、规则、来源及停用项。管理 API 的 `packages` 是 dependencies 的视图，`sources` 引用宿主来源注册表中的包名。来源文件是包名到描述对象的 JSON，例如：
+环境保存在 `environments/<id>/` 的 npm 项目中。`package.json.dependencies` 指定包和版本范围，`arcadiaEnvironment` 保存名称、规则和来源。管理 API 的 `packages` 是 dependencies 的视图，`sources` 引用宿主来源注册表中的包名。来源文件是包名到描述对象的 JSON，例如：
 
 ```json
 {
@@ -84,7 +84,7 @@ node dist/cli.js server --data-dir /srv/arcadia \
 
 ## 内容与环境入口
 
-`/content` 统一内容包浏览和环境管理，通过“位置”区分本机、当前部署服务器与当前房间。本机环境库无需启动服务器，选择“本地使用”后供队伍展示、本地对战和个人环境分享使用。内容包页只管理安装材料；包组合、版本和准入规则统一由环境管理。首次使用会将旧的本地启用组合复制为具名默认环境，后续持久保存所选环境，切换不改变已捕获的对局材料。当前选用的环境须先切换后才能删除。服务器使用设置管理服务器自身工作区，不按同名标识隐式绑定本机环境；跨工作区通过导出、导入转移。远程服务器的普通访问只读取公开目录，管理员认证后提供环境编辑、导入、导出、任务和服务器使用设置。房间内容保持只读。
+`/content` 统一内容包浏览和环境管理，通过“位置”区分本机、当前部署服务器与当前房间。本机环境库无需启动服务器，选择“本地使用”后供队伍展示、本地对战和个人环境分享使用。内容包页管理 UGC 源项目、构建与试战；环境页管理依赖、版本与配置。作者构建产物可通过“用于环境”进入目标环境的依赖编辑，不自动切换环境。首次使用会将旧的本地启用组合复制为具名默认环境，后续持久保存所选环境，切换不改变已捕获的对局材料。当前选用的环境须先切换后才能删除。服务器使用设置管理服务器自身工作区，不按同名标识隐式绑定本机环境；跨工作区通过导出、导入转移。远程服务器的普通访问只读取公开目录，管理员认证后提供环境编辑、导入、导出、任务和服务器使用设置。房间内容保持只读。
 
 导入入口位于环境列表，导出针对当前选中环境的已准备版本。来源配置与完整环境文件分别导入；导入环境不自动添加服务器绑定或公开发布。服务器列表和管理概览仅链接到内容页，旧 `/management?tab=environments` 地址重定向到对应位置。
 
@@ -222,21 +222,20 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 
 ### 环境成员与安装任务
 
-环境的 `packages` / `sources` 保存用户选择的直接依赖；`disabled` 可选字段保留停用的直接依赖及原版本范围。当前安装的 `members`，显式列出所有资源包的名称、精确版本、内容身份、直接/自动依赖身份，以及 `dependencies` / `requiredBy`。普通 JavaScript 工具库仍使用 npm 的多版本树；同一个资源包名、内容身份或命名空间不能出现多个安装实例。安装采用严格 peer 约束，建议作者以 `peerDependencies` 声明共享资源包的兼容范围。精确版本可以使用，但所有约束必须同时满足；不能通过强制安装或忽略 peer 约束绕过校验。
+环境的 `packages` / `sources` 保存用户选择的直接依赖；移出直接删除声明，不保留启用状态或已移出列表。当前安装的 `members`，显式列出所有资源包的名称、精确版本、内容身份、直接/自动依赖身份，以及 `dependencies` / `requiredBy`。普通 JavaScript 工具库仍使用 npm 的多版本树；同一个资源包名、内容身份或命名空间不能出现多个安装实例。安装采用严格 peer 约束，建议作者以 `peerDependencies` 声明共享资源包的兼容范围。精确版本可以使用，但所有约束必须同时满足；不能通过强制安装或忽略 peer 约束绕过校验。
 
 环境内的包成员操作统一为两个接口（路径相对于 `/api/management/v1`）：
 
-- `POST /workspaces/:workspace/environments/:id/packages/add`：`{ expectedRevision, name, version?, source? }`。新增包须提供 `version`（版本或版本范围）或 `source: true`（使用宿主来源登记）；二者不能同时提供。不带声明时恢复该环境之前移出的声明；若已经加入，则保持现有声明；新包缺少声明时返回 `ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED`。显式声明可更新已有包的版本，或在版本声明与来源声明之间切换。
+- `POST /workspaces/:workspace/environments/:id/packages/add`：`{ expectedRevision, name, version?, source? }`。须提供 `version`（版本或版本范围）或 `source: true`（使用宿主来源登记）；二者不能同时提供。缺少声明时返回 `ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED`。显式声明可更新已有包的版本，或在版本声明与来源声明之间切换。
 - `POST /workspaces/:workspace/environments/:id/packages/remove`：`{ expectedRevision, name, cascade? }`。默认拒绝移出仍被其他包依赖的包；明确传入 `cascade: true` 才连同依赖它的直接包一起移出。依赖图未解析或与当前组合不匹配时，须先应用当前组合。
 
-两者均要求本服管理员身份（旧受限凭据仍检查 `edit` 和 `prepare` 上限），返回应用任务。仅在下载、安装与校验全部成功后更新环境 manifest 和安装内容；失败保留原环境。加入已登记来源不会允许调用者传入任意宿主文件路径。默认环境的基础包不能移出，连带移出也不能绕过此限制。已移出的声明保留在环境文档的 `disabled` 字段中，用于恢复；这里是历史声明，不是另一套全局启用配置。关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
+两者均要求本服管理员身份（旧受限凭据仍检查 `edit` 和 `prepare` 上限），返回应用任务。仅在下载、安装与校验全部成功后更新环境 manifest 和安装内容；失败保留原环境。加入已登记来源不会允许调用者传入任意宿主文件路径。默认环境的基础包不能移出，连带移出也不能绕过此限制。旧 `disabled` 字段只在读取旧文档时忽略；工作区改写旧 manifest 前保存迁移备份，新声明不再包含此字段。能力 `workspace.environment-dependencies` 表示 add 必须携带声明、remove 不保留恢复记录。关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
 
 CLI 与上述操作对应，通用连接参数仍使用 `--server`、`--token-file`、`--workspace`：
 
 ```sh
 pnpm cli content environment add friends @author/forest --revision "$revision" --version '^2.0.0'
 pnpm cli content environment add friends @author/local --revision "$revision" --source
-pnpm cli content environment add friends @author/forest --revision "$revision"
 pnpm cli content environment remove friends @author/nature --revision "$revision" --cascade
 ```
 
@@ -255,7 +254,7 @@ pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/s
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token retry OPERATION
 ```
 
-`apply` 不带 `--revision` 创建并应用新环境。`installations` 输出当前安装及完整成员表；`enable` 恢复已停用的直接依赖。`--wait` 将阶段变化写到 stderr，最终结果 JSON 写到 stdout；退出等待不等于取消服务器任务。`content npm install` 从现有 lockfile 恢复材料，`content npm stage` 在新目录解析新组合，两者均禁止生命周期脚本并检查资源包唯一性。
+`apply` 不带 `--revision` 创建并应用新环境。`installations` 输出当前安装及完整成员表；`add` 要求显式指定版本或来源，`remove` 删除依赖声明。`--wait` 将阶段变化写到 stderr，最终结果 JSON 写到 stdout；退出等待不等于取消服务器任务。`content npm install` 从现有 lockfile 恢复材料，`content npm stage` 在新目录解析新组合，两者均禁止生命周期脚本并检查资源包唯一性。
 
 ### 格式边界
 

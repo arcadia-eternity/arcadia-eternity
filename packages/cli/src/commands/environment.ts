@@ -101,13 +101,15 @@ export function registerEnvironmentCommands(content: Command, context: CommandCo
     .command('add')
     .argument('<id>')
     .argument('<package>')
-    .description('Add a package to an environment, or restore its removed declaration')
+    .description('Add a package version or registered source to an environment')
     .requiredOption('--revision <revision>', 'Captured environment revision')
     .option('--version <range>', 'Package version or version range')
     .option('--source', 'Use a host-registered source')
     .action(async (id: string, name: string, options: { revision: string; version?: string; source?: boolean }) => {
       if (options.version !== undefined && options.source)
         throw new CliError('ENVIRONMENT_PACKAGE_INVALID', 'Choose either --version or --source')
+      if (!options.version && !options.source)
+        throw new CliError('ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED', 'Specify --version or --source')
       await report(
         await request('POST', workspace() + '/environments/' + segment(id) + '/packages/add', {
           expectedRevision: options.revision,

@@ -72,14 +72,10 @@ const button = (page: ReturnType<typeof mount>, name: string) =>
 const pickPackage = async (page: ReturnType<typeof mount>) => {
   await page.get('.package-select').trigger('click')
 }
-function bridge(active = false) {
+function bridge(_active = false) {
   const snapshot: ContentLibrarySnapshot = {
     revision: 1,
     packages: [structuredClone(pkg)],
-    activeIds: active ? [pkg.id] : [],
-    desiredIds: active ? [pkg.id] : [],
-    selection: { status: active ? 'ready' : 'idle' },
-    hasSelection: active,
     serviceStatus: { status: 'idle' },
     serviceNeedsRestart: false,
   }

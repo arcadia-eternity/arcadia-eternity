@@ -394,8 +394,11 @@ const running = computed(() => jobs.value.some(job => ['queued', 'running'].incl
 const builtPack = computed(() => jobs.value.find(job => job.kind === 'pack' && job.state === 'succeeded'))
 async function installBuiltPack() {
   if (!builtPack.value) return
-  await action<{ packageId: string }>({ action: 'install-built-author-pack', jobId: builtPack.value.jobId })
-  notice.value = '此构建版本已安装，正在准备启用。可在内容包管理中查看状态。'
+  const result = await action<{ packageId: string }>({
+    action: 'install-built-author-pack',
+    jobId: builtPack.value.jobId,
+  })
+  await router.push({ path: '/content', query: { target: 'local', tab: 'environments', packageId: result.packageId } })
 }
 const latestJob = computed(() => jobs.value[0])
 const latestOutput = computed(() =>
@@ -1181,7 +1184,7 @@ onBeforeUnmount(() => {
         ><button v-if="!readOnly" :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">
           构建内容包</button
         ><button v-if="!readOnly && builtPack" :disabled="busy || running" @click="attempt(installBuiltPack)">
-          安装此版本</button
+          用于环境</button
         ><small>{{ project.directory }}</small>
       </div>
     </details>

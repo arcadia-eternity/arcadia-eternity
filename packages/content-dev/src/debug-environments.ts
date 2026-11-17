@@ -88,7 +88,6 @@ export const EnvironmentDocumentV2Schema = z
   .object({
     schemaVersion: z.literal(2),
     ...sharedFields,
-    disabled: z.object({ packages: sharedFields.packages, sources: sharedFields.sources }).strict().optional(),
     rules: EnvironmentRulesSchema,
     requires: EnvironmentRequirementsSchema,
   })
@@ -103,20 +102,15 @@ export type EnvironmentDocumentV2 = z.infer<typeof EnvironmentDocumentV2Schema>
 export type ListedEnvironment = EnvironmentDocument & { version: string | null }
 
 export function environmentDocument(input: unknown): EnvironmentDocument {
+  // Legacy removed declarations are not environment members. Keep old files readable;
+  // the workspace archives the original manifest before its next write.
+  if (input && typeof input === 'object' && !Array.isArray(input) && 'disabled' in input) {
+    const { disabled: _removed, ...current } = input
+    input = current
+  }
   const parsed = EnvironmentDocumentSchema.safeParse(input)
   if (!parsed.success) fail(`环境配置无效：${parsed.error.issues[0]?.message ?? ''}`)
-  const value = parsed.data
-  const disabled = value.schemaVersion === 2 ? value.disabled : undefined
-  if (
-    disabled &&
-    (Object.keys(disabled.packages).some(name => Object.hasOwn(value.packages, name) || value.sources.includes(name)) ||
-      disabled.sources.some(
-        name =>
-          Object.hasOwn(value.packages, name) || value.sources.includes(name) || Object.hasOwn(disabled.packages, name),
-      ))
-  )
-    fail('启用和停用的资源包不能重复')
-  return value
+  return parsed.data
 }
 
 /** Read legacy documents into the shared domain model without rewriting source files. */

@@ -596,6 +596,7 @@ export class ManagementService {
       workspaceId: this.options.workspace.workspaceId,
       supportedFeatures: [
         'workspace.environments',
+        'workspace.environment-dependencies',
         'server.bindings',
         'server.players',
         'server.battles',

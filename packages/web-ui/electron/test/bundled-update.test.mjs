@@ -138,8 +138,8 @@ test(
       await library.resume()
       const updated = await library.list()
       assert.equal(updated.packages.find(item => item.bundled).version, '2.0.0')
-      assert.notEqual(updated.activeIds[0], initial.activeIds[0])
-      assert.equal(updated.activeIds.length, 1)
+      assert.notEqual(updated.packages.find(pkg => pkg.bundled).id, initial.packages.find(pkg => pkg.bundled).id)
+      assert.equal(updated.activeIds, undefined)
       assert.equal(updated.packages.find(item => item.id === helperId).version, '1.0.0')
       for (const workspace of [await owner.ready(), await local.ready()]) {
         const draft = await workspace.getDraft('existing')

@@ -291,12 +291,6 @@ async function initializeLocalBattle() {
   try {
     if (desktop) {
       await session.prepareContent(dataStore)
-      const status = await desktop.listContentPackages?.()
-      if (!isCurrent()) return
-      if (status?.selection.status === 'preparing')
-        contentNotice.value = '新选择正在准备，本次使用最近可用组合。重新进入本页可使用准备完成后的内容。'
-      if (status?.selection.status === 'failed')
-        contentNotice.value = `新选择未能启用，本次使用最近可用组合：${status.selection.message ?? ''}`
     } else if (!dataStore.loaded && !dataStore.gameDataLoaded) {
       await dataStore.initialize()
     }
