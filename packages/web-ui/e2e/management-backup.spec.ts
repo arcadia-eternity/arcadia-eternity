@@ -169,8 +169,8 @@ test('paired production management backs up, revokes service credentials and ret
     const editor = page.getByRole('form', { name: '编辑环境' })
     await editor.getByLabel('名称', { exact: true }).fill('备份验收环境')
     await editor.getByLabel('标识', { exact: true }).fill('backup-acceptance')
-    await editor.getByText('来源与规则', { exact: true }).click()
-    await editor.getByLabel('已登记的来源包名（每行一个）').fill(catalogPackage)
+    await editor.getByText('已登记来源', { exact: true }).click()
+    await editor.getByLabel('来源包名（每行一个）').fill(catalogPackage)
     await editor.getByRole('button', { name: '保存并应用', exact: true }).click()
     await expect(editor).not.toBeVisible()
     await page
