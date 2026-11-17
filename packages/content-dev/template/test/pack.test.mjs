@@ -65,16 +65,28 @@ test('the installed package includes compiled content, local artwork, remote dec
   for (const resource of local)
     assert.ok(example.files.includes(resource.source), `Missing packaged file: ${resource.source}`)
   const remote = presentation.manifest.resources.filter(resource => resource.kind === 'http')
-  assert.equal(remote.length, 3)
-  assert.ok(remote.some(resource => resource.mime === 'application/x-shockwave-flash'))
-  assert.ok(remote.some(resource => resource.mime === 'audio/mpeg'))
+  for (const [id, mime] of [
+    ['dilan-portrait', 'image/png'],
+    ['dilan-animation', 'application/x-shockwave-flash'],
+    ['strike-sound', 'audio/mpeg'],
+  ])
+    assert.equal(remote.find(resource => resource.id === id)?.mime, mime)
   for (const resource of remote) {
     assert.notEqual(resource.id, resource.source)
     assert.equal('sha256' in resource, false)
     assert.equal('bytes' in resource, false)
   }
   assert.equal(presentation.manifest.version, 2)
-  assert.equal(presentation.manifest.bindings.length, 5)
+  for (const [kind, id, field, resource] of [
+    ['skills', 'strike', 'sfx', 'strike-sound'],
+    ['skills', 'rest', 'sfx', 'strike-sound'],
+    ['species', 'pet', 'icon', 'frostling-icon'],
+    ['species', 'pet-swf', 'icon', 'dilan-portrait'],
+    ['marks', 'slow', 'icon', 'slow'],
+  ]) {
+    const binding = presentation.manifest.bindings.find(item => item.target.kind === kind && item.target.id === id)
+    assert.equal(binding?.[field], resource, `Missing sample binding: ${kind}.${id}.${field}`)
+  }
   for (const kind of ['species', 'skills', 'marks'])
     assert.ok(example.environment.data[kind].every(row => !('presentation' in row)))
   assert.equal(presentation.manifest.defaultLocale, 'zh-CN')

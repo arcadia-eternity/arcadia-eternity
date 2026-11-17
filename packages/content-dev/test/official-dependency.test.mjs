@@ -2,11 +2,11 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createSourceProject } from '../src/author-api.ts'
+import { createSourceProject, openAuthorSession } from '../src/author-api.ts'
 import { attack, prepareContentPack } from '../src/testing.ts'
 import { EffectTrigger, setGlobalLogger } from '@arcadia-eternity/battle/engine'
 import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
@@ -54,14 +54,39 @@ test(
     const manifest = JSON.parse(await readFile(file, 'utf8'))
     manifest.dependencies = { '@arcadia-eternity/data-pack-base': `file:${join(base, packed.filename)}` }
     await writeFile(file, JSON.stringify(manifest))
-    const species = join(project, 'data/species/pet.yaml')
-    await writeFile(
-      species,
-      (await readFile(species, 'utf8')) + '\n  - skill_id: skill_zhuangji\n    level: 1\n    hidden: false\n',
-    )
+    await symlink(base, join(project, 'node_modules/@arcadia-eternity/data-pack-base'), 'junction')
+    const session = await openAuthorSession(project, { watch: false })
+    try {
+      const choices = await session.dependencyReferences('zh-CN')
+      assert.deepEqual(choices.diagnostics, [])
+      const skill = choices.items.find(item => item.kind === 'skills' && item.id === 'skill_zhuangji')
+      assert.equal(skill?.label, '撞击')
+      assert.equal(skill.projectId, 'base')
+      assert.ok(choices.items.some(item => item.kind === 'marks' && item.id.startsWith('mark_ability_')))
+      const pet = (await session.workspace.snapshot()).records.find(
+        row => row.kind === 'species' && row.record.id === 'pet',
+      )
+      pet.record.learnable_skills.push({
+        skill_id: { $ref: { projectId: skill.projectId, kind: 'skill', id: skill.id } },
+        level: 1,
+        hidden: false,
+      })
+      const result = await session.workspace.saveChanges(
+        { changes: [{ ...pet, kind: 'record', expectedVersion: pet.version }] },
+        { fromForm: true },
+      )
+      assert.equal(result.complete, true)
+    } finally {
+      await session.close()
+    }
     await exec(process.execPath, [fileURLToPath(new URL('../src/cli.ts', import.meta.url)), 'build'], { cwd: project })
     prepared = await prepareContentPack(project, { cache })
     assert.equal(prepared.environment.content.getSkill('skill_zhuangji').power, 35)
+    assert.ok(
+      prepared.environment.data.species
+        .find(row => row.id === 'official-dependent:pet')
+        .learnable_skills.some(item => item.skill_id === 'skill_zhuangji'),
+    )
     assert.ok(prepared.environment.installation.members.some(pkg => pkg.name === '@arcadia-eternity/data-pack-base'))
     assert.equal(
       prepared.environment.presentation.find(pkg => pkg.namespace === '').manifest.locales['zh-CN'].skill.skill_zhuangji

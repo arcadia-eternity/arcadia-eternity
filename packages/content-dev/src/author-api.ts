@@ -9,12 +9,13 @@ import {
 } from './workspace.ts'
 import { readWorkbenchContext } from './workbench-context.ts'
 import { AuthorJobs } from './jobs.ts'
-import { queryContent } from './content-query.ts'
+import { dependencyReferences, queryContent } from './content-query.ts'
 import { authorReference } from './author-reference.ts'
 import { inspectAsset } from './asset-inspect.ts'
 import { callPreviewControl } from './preview-control.ts'
 import { isRecord, type UnknownRecord } from './types.ts'
 export { createSourceProject, connectDevelopmentSdk, authorConnection } from './project.ts'
+export type DependencyReferenceCatalog = Awaited<ReturnType<typeof dependencyReferences>>
 export { ContentWorkspace } from './content-workspace.ts'
 export { normalizeEnvironmentDocument } from './debug-environments.ts'
 
@@ -46,6 +47,9 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
         capabilities: { ...snapshot.capabilities, codeExecution: !workspace.readOnly && jobs.execute },
         diagnostics: snapshot.diagnostics,
       }
+    },
+    dependencyReferences(locale: string) {
+      return dependencyReferences(workspace, locale)
     },
     async query(input: UnknownRecord = {}) {
       return queryContent(workspace, input)

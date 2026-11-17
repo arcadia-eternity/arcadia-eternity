@@ -22,7 +22,9 @@ test('install resolves project-owned successful receipts and captures verified a
   const workspace = new AuthorWorkspace(root)
   let job = { jobId: 'owned', kind: 'pack', state: 'succeeded', result }
   let refreshes = 0
+  let newerPack
   const jobs = {
+    list: () => (newerPack ? [newerPack, job] : [job]),
     refresh: async () => {
       refreshes++
     },
@@ -49,6 +51,11 @@ test('install resolves project-owned successful receipts and captures verified a
   assert.deepEqual(await readdir(join(root, 'app/state')), [])
   await assert.rejects(manager.installBuiltPack('other', 'owned', install), /unknown project/)
   await assert.rejects(manager.installBuiltPack('project', 'foreign-job', install), /unknown job/)
+  newerPack = { jobId: 'newer', kind: 'pack', state: 'failed' }
+  await assert.rejects(manager.installBuiltPack('project', 'owned', install), /构建已过期/)
+  newerPack = undefined
+  job = { ...job, stale: true }
+  await assert.rejects(manager.installBuiltPack('project', 'owned', install), /构建已过期/)
   for (const patch of [
     { kind: 'preview' },
     { state: 'running' },

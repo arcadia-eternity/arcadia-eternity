@@ -32,7 +32,7 @@ afterEach(() => {
   delete window.arcadiaDesktop
 })
 
-async function openWorkspace() {
+async function openWorkspace(receipts: AuthorJob[] = [pack]) {
   let finishInstall!: (value: { result?: unknown; error?: { code: string; message: string } }) => void
   const install = new Promise<{ result?: unknown; error?: { code: string; message: string } }>(resolve => {
     finishInstall = resolve
@@ -44,7 +44,9 @@ async function openWorkspace() {
       case 'snapshot':
         return { result: snapshot }
       case 'jobs':
-        return { result: [pack] }
+        return { result: receipts }
+      case 'start':
+        return { result: { ...pack, jobId: 'rebuilt', state: 'running' } }
       case 'install-built-author-pack':
         return install
       default:
@@ -65,7 +67,7 @@ async function openWorkspace() {
   await flushPromises()
   await wrapper.get('button.project-switch').trigger('click')
   await vi.waitFor(() => expect(wrapper.text()).toContain('用于环境'), { timeout: 2500 })
-  const button = wrapper.findAll('button').find(button => button.text() === '用于环境')!
+  const button = wrapper.findAll('button').find(button => button.text().endsWith('用于环境'))!
   return { wrapper, router, button, author, finishInstall }
 }
 
@@ -97,6 +99,30 @@ it('keeps the editor available and shows the installation error when installatio
     expect(button.attributes('disabled')).toBeUndefined()
     await router.push('/creation')
     expect(router.currentRoute.value.path).toBe('/creation')
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it('rebuilds after a failed pack and installs only that new successful build', async () => {
+  const receipts = [
+    { ...pack, jobId: 'failed', state: 'failed' },
+    { ...pack, stale: true },
+  ]
+  const { wrapper, button, author, finishInstall } = await openWorkspace(receipts)
+  try {
+    expect(button.text()).toBe('重新构建并用于环境')
+    await button.trigger('click')
+    expect(author).toHaveBeenCalledWith({ action: 'start', kind: 'pack', id: project.id })
+    expect(author).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'install-built-author-pack' }))
+    receipts.unshift({ ...pack, jobId: 'rebuilt' })
+    await vi.waitFor(
+      () =>
+        expect(author).toHaveBeenCalledWith({ action: 'install-built-author-pack', id: project.id, jobId: 'rebuilt' }),
+      { timeout: 2500 },
+    )
+    finishInstall({ result: { packageId: 'new-package' } })
+    await flushPromises()
   } finally {
     wrapper.unmount()
   }

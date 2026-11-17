@@ -28,6 +28,18 @@ test(
       join(root, 'data/resources/imported.yaml'),
       'id: imported-image\nkind: image\nsource: assets/imported.png\n',
     )
+    await writeFile(
+      join(root, 'data/skills/echo.yaml'),
+      'id: echo\nelement: Normal\ncategory: Physical\npower: 1\nrage: 0\naccuracy: 100\n',
+    )
+    await writeFile(
+      join(root, 'data/resources/echo.yaml'),
+      'id: echo-sound\nkind: audio\nsource: https://example.com/echo.mp3\n',
+    )
+    await writeFile(
+      join(root, 'data/presentations/echo.yaml'),
+      'id: skills.echo\ntarget: { kind: skills, id: echo }\nsfx: echo-sound\n',
+    )
     const session = await openAuthorSession(root, { watch: false, execute: true })
     t.after(async () => {
       await session.close()

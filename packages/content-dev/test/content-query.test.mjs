@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, rm, readFile, symlink } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { AuthorWorkspace } from '../src/workspace.ts'
-import { queryContent } from '../src/content-query.ts'
+import { dependencyReferences, queryContent } from '../src/content-query.ts'
 
 async function json(root, file, value) {
   await mkdir(dirname(join(root, file)), { recursive: true })
@@ -155,6 +155,26 @@ test('dependency queries read declared installed artifacts only and never import
   assert.ok(combined.diagnostics.some(entry => entry.code === 'CONTENT_AMBIGUOUS'))
   assert.equal((await queryContent(workspace, { scope: 'all', id: 'dependency:hit' })).total, 1)
   assert.equal((await queryContent(workspace, { scope: 'all', id: 'hit', packageName: '@packs/visible' })).total, 1)
+})
+
+test('reference choices preserve distinct providers and suppress ambiguous project identities', async t => {
+  const { root, workspace } = await fixture(t, { dependencies: { first: '2.0.0', second: '2.0.0' } })
+  await dependency(root, 'first', 'one')
+  const second = await dependency(root, 'second', 'two')
+  const choices = await dependencyReferences(workspace, 'zh-CN')
+  assert.deepEqual(
+    choices.items.map(item => [item.projectId, item.id, item.label]),
+    [
+      ['first', 'hit', '依赖技能'],
+      ['second', 'hit', '依赖技能'],
+    ],
+  )
+  const manifest = JSON.parse(await readFile(join(second, 'package.json'), 'utf8'))
+  manifest.arcadia.projectId = 'first'
+  await json(second, 'package.json', manifest)
+  const ambiguous = await dependencyReferences(workspace, 'zh-CN')
+  assert.deepEqual(ambiguous.items, [])
+  assert.ok(ambiguous.diagnostics.some(message => message.includes('first')))
 })
 
 test('visible dependencies traverse ordinary declared libraries but stop at a content boundary', async t => {

@@ -920,6 +920,9 @@ function setupIpcHandlers() {
             case 'snapshot':
               result = await session.workspace.snapshot()
               break
+            case 'dependency-references':
+              result = await session.dependencyReferences(input.locale)
+              break
             case 'save-changes':
               result = await session.workspace.saveChanges(input, { fromForm: true })
               break

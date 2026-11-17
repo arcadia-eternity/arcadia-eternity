@@ -54,6 +54,8 @@ interface Provenance {
   readOnly: boolean
 }
 
+type QueryDiagnostic = Record<string, unknown> & { message: string }
+
 interface Catalog {
   snapshot: WorkspaceSnapshot
   owner: Provenance
@@ -173,12 +175,12 @@ function provenance(snapshot: WorkspaceSnapshot, scope: QueryScope, manifest: Pa
 async function catalogs(
   workspace: AuthorWorkspace,
   scope: QueryScope,
-): Promise<{ catalogs: Catalog[]; diagnostics: Array<Record<string, unknown>> }> {
+): Promise<{ catalogs: Catalog[]; diagnostics: QueryDiagnostic[] }> {
   const manifest = JSON.parse((await workspace.read('package.json')).text) as PackageManifest
   const project = await workspace.snapshot()
   const own: Catalog = { snapshot: project, owner: provenance(project, 'project', manifest) }
   const result: Catalog[] = scope === 'dependencies' ? [] : [own]
-  const diagnostics: Array<Record<string, unknown>> = []
+  const diagnostics: QueryDiagnostic[] = []
   if (scope === 'project') return { catalogs: result, diagnostics }
   const queue: DependencyRequest[] = runtimeDependencies(manifest).map(([name, optional]) => ({
     from: workspace.root,
@@ -270,6 +272,45 @@ function nameFields(localizations: Localization[], requested: string | undefined
         : {}),
     ...(names.length > 1 ? { ambiguousName: true } : {}),
   }
+}
+
+export interface DependencyReference {
+  projectId: string
+  packageName: string
+  kind: 'skills' | 'marks'
+  id: string
+  label: string
+}
+
+export async function dependencyReferences(workspace: AuthorWorkspace, locale: string) {
+  const { catalogs: sources, diagnostics } = await catalogs(workspace, 'all')
+  const items: DependencyReference[] = []
+  const projectIds = new Set<string>()
+  const conflicts = new Set<string>()
+  for (const { owner } of sources) {
+    if (!owner.projectId) continue
+    if (projectIds.has(owner.projectId)) {
+      conflicts.add(owner.projectId)
+      diagnostics.push({ message: `多个内容包使用项目标识 ${owner.projectId}，请检查项目依赖。` })
+    }
+    projectIds.add(owner.projectId)
+  }
+  for (const { owner, snapshot } of sources) {
+    if (owner.scope !== 'dependencies' || !owner.projectId || !owner.packageName || conflicts.has(owner.projectId))
+      continue
+    for (const row of snapshot.records) {
+      if (row.kind !== 'skills' && row.kind !== 'marks') continue
+      const { name } = nameFields(translations(snapshot, row, locale), locale, row.record.name)
+      items.push({
+        projectId: owner.projectId,
+        packageName: owner.packageName,
+        kind: row.kind,
+        id: row.record.id,
+        label: name ?? row.record.id,
+      })
+    }
+  }
+  return { items, diagnostics: diagnostics.map(entry => entry.message) }
 }
 
 function rowsFor(catalog: Catalog, query: QueryOptions): QueryRow[] {

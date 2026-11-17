@@ -85,3 +85,52 @@ describe('shared YAML fields', () => {
     }
   })
 })
+
+it('distinguishes local and dependency references with the same ID and name', async () => {
+  const wrapper = form({ id: 'pet', learnable_skills: [{ skill_id: 'hit', level: 1 }] }, [], 'species')
+  try {
+    await wrapper.setProps({
+      records: [
+        { kind: 'skills', file: 'data/skills/hit.yaml', index: 0, version: '1', record: { id: 'hit', name: '撞击' } },
+      ],
+      dependencyCatalog: {
+        items: [
+          {
+            kind: 'skills',
+            projectId: 'base',
+            packageName: '@arcadia-eternity/data-pack-base',
+            id: 'hit',
+            label: '撞击',
+          },
+          { kind: 'skills', projectId: 'friend', packageName: '@friend/skills', id: 'hit', label: '撞击' },
+        ],
+        diagnostics: [],
+      },
+    })
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === '关联已有技能…')!
+      .trigger('click')
+    await wrapper.get('.choice-picker input').setValue('撞击')
+    const options = wrapper.findAll('.choice-picker li button')
+    expect(options).toHaveLength(3)
+    expect(options.find(button => button.text().includes('data-pack-base'))!.attributes('disabled')).toBeDefined()
+    await options.find(button => button.text().includes('@friend/skills'))!.trigger('click')
+    const record = wrapper.emitted('change')![0]![0] as ContentRow
+    expect(record.learnable_skills).toEqual([
+      { skill_id: 'hit', level: 1 },
+      {
+        skill_id: { $ref: { projectId: 'friend', kind: 'skill', id: 'hit' } },
+        level: 1,
+        hidden: false,
+      },
+    ])
+    await wrapper.setProps({ record })
+    expect(wrapper.findAll('.reference-name').map(button => button.text())).toEqual([
+      '撞击 · @arcadia-eternity/data-pack-base',
+      '撞击 · @friend/skills',
+    ])
+  } finally {
+    wrapper.unmount()
+  }
+})

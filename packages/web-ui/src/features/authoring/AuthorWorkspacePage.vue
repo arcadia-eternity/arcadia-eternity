@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import { nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { localStorageUnavailable } from '@/services/localStorage'
@@ -391,10 +392,26 @@ function editAssetSource(event: Event) {
 const files = computed(() => snapshot.value?.files.filter(row => row.file.startsWith('src/')) ?? [])
 const testFiles = computed(() => snapshot.value?.files.filter(row => /^(test|tests)\//.test(row.file)) ?? [])
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
-const builtPack = computed(() => jobs.value.find(job => job.kind === 'pack' && job.state === 'succeeded'))
-async function installBuiltPack() {
-  const pack = builtPack.value
-  if (!pack) return
+const latestPack = computed(() => jobs.value.find(job => job.kind === 'pack'))
+const packIsCurrent = computed(() => latestPack.value?.state === 'succeeded' && !latestPack.value.stale)
+const packToInstall = ref('')
+async function useBuiltPack() {
+  if (dirty.value) return
+  if (packIsCurrent.value && latestPack.value) return installBuiltPack(latestPack.value)
+  const job = await attempt(() => start('pack'))
+  if (job) packToInstall.value = job.jobId
+}
+watch([jobs, packToInstall, dirty, busy], ([result, jobId, hasDrafts, isBusy]) => {
+  if (!jobId) return
+  const job = result.find(item => item.jobId === jobId)
+  if (hasDrafts) packToInstall.value = ''
+  else if (!isBusy && job && !['queued', 'running'].includes(job.state)) {
+    packToInstall.value = ''
+    if (job.jobId === latestPack.value?.jobId && packIsCurrent.value) void installBuiltPack(job)
+    else if (job.state === 'succeeded') notice.value = '构建已过期，请重新构建后用于环境。'
+  }
+})
+async function installBuiltPack(pack: AuthorJob) {
   const result = await attempt(() =>
     action<{ packageId: string }>({
       action: 'install-built-author-pack',
@@ -556,6 +573,37 @@ watch(
   },
 )
 
+const dependencyCatalog = shallowRef<DependencyReferenceCatalog>()
+watch(
+  [
+    () =>
+      section.value === 'references' && selected.value?.kind === 'species' && screen.value === 'editor'
+        ? project.value?.id
+        : undefined,
+    locale,
+    () => snapshot.value?.files.find(file => file.file === 'package.json')?.modified,
+    () => snapshot.value?.files.find(file => file.file === 'package-lock.json')?.modified,
+  ],
+  async ([id, language], _, onCleanup) => {
+    dependencyCatalog.value = undefined
+    if (!id) return
+    let current = true
+    onCleanup(() => {
+      current = false
+    })
+    try {
+      const result = await authorCall<DependencyReferenceCatalog>({
+        action: 'dependency-references',
+        id,
+        locale: language,
+      })
+      if (current) dependencyCatalog.value = result
+    } catch (cause) {
+      if (current)
+        dependencyCatalog.value = { items: [], diagnostics: [cause instanceof Error ? cause.message : String(cause)] }
+    }
+  },
+)
 async function action<T>(input: Record<string, unknown>) {
   return authorCall<T>({ id: project.value?.id, ...input })
 }
@@ -615,6 +663,7 @@ async function openProject(next: SourceProject) {
   clearTimeout(contextTimer)
   lastFocused.value = undefined
   autoOpenPreview.value = ''
+  packToInstall.value = ''
   runPanelOpen.value = false
   if (runActions.value) runActions.value.open = false
   project.value = next
@@ -1187,7 +1236,8 @@ onBeforeUnmount(() => {
           连接本机 SDK</button
         ><button v-if="!readOnly" :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">
           构建内容包</button
-        ><button v-if="!readOnly && builtPack" :disabled="busy || running" @click="installBuiltPack">用于环境</button
+        ><button v-if="!readOnly && latestPack" :disabled="busy || running || dirty" @click="useBuiltPack">
+          {{ packIsCurrent ? '用于环境' : '重新构建并用于环境' }}</button
         ><small>{{ project.directory }}</small>
       </div>
     </details>
@@ -1511,6 +1561,7 @@ onBeforeUnmount(() => {
                   :record="section === 'media' ? currentMedia.record : currentRecord"
                   :kind="selected.kind"
                   :records="effectiveRecords"
+                  :dependency-catalog="dependencyCatalog"
                   :project-id="projectId"
                   :assets="assets"
                   :shared-fields="

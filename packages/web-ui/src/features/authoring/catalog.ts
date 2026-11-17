@@ -40,7 +40,8 @@ export function referenceTarget(
   kind: string,
   projectId: string,
 ): { kind: string; id: string } | undefined {
-  if (typeof value === 'string') return { kind, id: value }
+  if (typeof value === 'string')
+    return ['base', 'arcadia-eternity.base'].includes(projectId) ? { kind, id: value } : undefined
   if (object(value) && object(value.$ref) && value.$ref.projectId === projectId && typeof value.$ref.id === 'string')
     return {
       kind:

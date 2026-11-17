@@ -12,7 +12,8 @@ const source = (kind: string, record: ContentRow): SourceRecord => ({
 describe('catalog indexes', () => {
   it('deduplicates references and retains direct media users independently of rule consumers', () => {
     const skill = source('skills', { id: 'hit' })
-    const pet = source('species', { id: 'pet', learnable_skills: [{ skill_id: 'hit' }, { skill_id: 'hit' }] })
+    const hit = { $ref: { projectId: 'test', kind: 'skill', id: 'hit' } }
+    const pet = source('species', { id: 'pet', learnable_skills: [{ skill_id: hit }, { skill_id: hit }] })
     const binding = source('presentations', {
       id: 'pet-art',
       target: { kind: 'species', id: 'pet' },
@@ -29,7 +30,7 @@ describe('catalog indexes', () => {
     const updated = createCatalogIndex(
       [
         skill,
-        source('species', { ...pet.record, learnable_skills: [] }),
+        source('species', { ...pet.record, learnable_skills: [{ skill_id: 'hit' }] }),
         binding,
         source('resources', { ...resource.record, source: 'moved/pet.png' }),
       ],

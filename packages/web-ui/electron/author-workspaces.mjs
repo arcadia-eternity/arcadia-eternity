@@ -247,6 +247,8 @@ export class AuthorWorkspaces {
     await session.jobs.refresh()
     const job = session.jobs.get(jobId)
     if (job.kind !== 'pack' || job.state !== 'succeeded') throw new Error('请先完成此项目的构建打包')
+    if (job.stale || session.jobs.list().find(item => item.kind === 'pack')?.jobId !== jobId)
+      throw new Error('构建已过期，请重新构建后用于环境')
     const { filename, shasum, integrity } = job.result ?? {}
     if (
       typeof filename !== 'string' ||
