@@ -296,7 +296,7 @@ export async function startPreview(
       await close()
       throw new Error('PREVIEW_CANCELLED')
     }
-    const clientPath = `/content/preview?endpoint=${encodeURIComponent(endpoint)}`
+    const clientPath = `/creation/preview?endpoint=${encodeURIComponent(endpoint)}`
     return {
       endpoint,
       clientPath,

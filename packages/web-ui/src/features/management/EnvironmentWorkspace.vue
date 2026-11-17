@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import './managementStyles'
 import { registerEnvironmentDraft, discardEnvironmentChanges } from '@/features/content/unsavedEnvironment'
-import { ElButton, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
+import { ElButton, ElForm, ElFormItem, ElInput, ElCheckbox, ElSelect, ElOption } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
 
@@ -328,22 +328,24 @@ function save() {
             <legend>依赖</legend>
             <label v-if="availablePackages?.length"
               >已有材料
-              <select
+              <ElSelect
+                :model-value="''"
                 aria-label="选择已有包版本"
+                placeholder="选择内容包版本"
                 @change="
-                  event => {
-                    const select = event.target as HTMLSelectElement
-                    const pkg = availablePackages?.find(item => item.id === select.value)
+                  id => {
+                    const pkg = availablePackages?.find(item => item.id === id)
                     if (pkg) putPackage(pkg)
-                    select.value = ''
                   }
                 "
               >
-                <option value="">选择内容包版本</option>
-                <option v-for="pkg in availablePackages" :key="pkg.id" :value="pkg.id">
-                  {{ pkg.name }} {{ pkg.version }}
-                </option>
-              </select>
+                <ElOption
+                  v-for="pkg in availablePackages"
+                  :key="pkg.id"
+                  :value="pkg.id"
+                  :label="`${pkg.name} ${pkg.version}`"
+                />
+              </ElSelect>
             </label>
             <slot name="package-source" />
             <div v-for="(row, index) in packageRows" :key="index" class="package-row">
@@ -467,16 +469,6 @@ function save() {
   gap: 8px;
   margin-bottom: 12px;
 }
-.material-picker select {
-  min-width: 0;
-  max-width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 6px;
-  background: var(--el-bg-color);
-  color: inherit;
-  font: inherit;
-}
 .environment-editor fieldset {
   padding: 12px;
 }
@@ -486,7 +478,7 @@ function save() {
 }
 .workspace-columns {
   display: grid;
-  grid-template-columns: minmax(170px, 25%) minmax(0, 1fr);
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
   min-height: 0;
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;

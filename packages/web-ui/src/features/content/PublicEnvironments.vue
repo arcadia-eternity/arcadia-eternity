@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { ElButton, ElTag } from 'element-plus'
+import { ElButton, ElTag, ElSkeleton } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { listServerEnvironments } from '@/services/serverEnvironment'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
@@ -13,6 +13,7 @@ const selected = computed(
     environments.value[0],
 )
 const loading = ref(false)
+const initialized = ref(false)
 const error = ref('')
 const name = (environment: ServerEnvironmentDescriptor) =>
   environment.isDefault ? '默认环境' : `环境 ${environment.id.slice(0, 8)}`
@@ -29,7 +30,10 @@ async function refresh() {
   } catch (cause) {
     if (!request.signal.aborted) error.value = cause instanceof Error ? cause.message : '无法读取公开环境'
   } finally {
-    if (!request.signal.aborted) loading.value = false
+    if (!request.signal.aborted) {
+      loading.value = false
+      initialized.value = true
+    }
   }
 }
 onMounted(refresh)
@@ -41,7 +45,8 @@ onBeforeUnmount(() => controller?.abort())
       <h2>公开环境</h2>
       <ElButton :loading="loading" @click="refresh">刷新</ElButton>
     </header>
-    <p v-if="error" role="alert">{{ error }}</p>
+    <ElSkeleton v-if="!initialized" :rows="6" animated aria-label="正在加载公开环境" />
+    <p v-else-if="error" role="alert">{{ error }}</p>
     <p v-else-if="!loading && !environments.length">服务器暂无公开环境。</p>
     <div v-else class="environment-columns">
       <nav aria-label="选择公开环境">
@@ -84,7 +89,7 @@ header {
 }
 .environment-columns {
   display: grid;
-  grid-template-columns: minmax(160px, 25%) minmax(0, 1fr);
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
 }

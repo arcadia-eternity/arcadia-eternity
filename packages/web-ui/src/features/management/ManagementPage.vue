@@ -7,8 +7,7 @@ const router = useRouter()
 const target = computed(() => (route.query.target === 'server' ? 'server' : window.arcadiaDesktop ? 'local' : 'server'))
 const tab = computed(() => {
   const value = route.query.tab
-  return value === 'environments' ||
-    value === 'network' ||
+  return value === 'network' ||
     value === 'battles' ||
     value === 'accounts' ||
     value === 'tasks' ||

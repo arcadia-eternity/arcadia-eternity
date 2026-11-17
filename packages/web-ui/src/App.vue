@@ -9,6 +9,7 @@
       <div v-if="compactNavigation" class="flex justify-between items-center px-4 h-full">
         <div class="flex items-center gap-3">
           <button
+            aria-label="打开导航"
             @click="showMobileMenu = !showMobileMenu"
             class="bg-transparent border-none text-white p-2 rounded-md cursor-pointer transition-colors hover:bg-white/10"
           >
@@ -91,7 +92,8 @@
           <el-button v-if="managementAccess.allowed" @click="router.push('/management?target=server')"
             >管理后台</el-button
           >
-          <el-button @click="router.push('/content')">内容包</el-button>
+          <el-button @click="router.push('/environments')">环境</el-button>
+          <el-button v-if="isDesktop" @click="router.push('/creation')">创作</el-button>
           <!-- 房间状态显示 -->
           <el-button
             v-if="!isStaticMode && privateRoomStore.currentRoom"
@@ -141,6 +143,7 @@
             <span class="text-xl font-bold text-gray-800">Arcadia Eternity</span>
           </div>
           <button
+            aria-label="关闭导航"
             @click="showMobileMenu = false"
             class="bg-transparent border-none text-gray-500 p-2 rounded-md cursor-pointer transition-colors hover:bg-black/5"
           >
@@ -189,10 +192,17 @@
             <span>精灵仓库</span>
           </router-link>
           <router-link
-            to="/content"
+            to="/environments"
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600"
-            >内容包</router-link
+            >环境</router-link
+          >
+          <router-link
+            v-if="isDesktop"
+            to="/creation"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >创作</router-link
           >
           <router-link
             to="/local-battle-reports"
@@ -470,7 +480,7 @@ import { createAppBootstrap } from '@/app/bootstrap'
 import { connectAndResumeOnlineRoom } from '@/app/onlineSession'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { isStaticMode } from '@/utils/env'
+import { isStaticMode, isDesktop } from '@/utils/env'
 import LocalServerStatus from '@/features/servers/LocalServerStatus.vue'
 import { localStorageUnavailable } from '@/services/localStorage'
 import { profileStatus, profileFailure, profileSwitching } from '@/services/profile'

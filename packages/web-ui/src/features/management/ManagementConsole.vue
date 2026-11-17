@@ -81,10 +81,10 @@ watch(compact, () => {
           </template>
           <RouterLink
             :to="{
-              path: '/content',
-              query: { target: target === 'local' ? 'local' : 'server', tab: 'environments' },
+              path: '/environments',
+              query: { target: target === 'local' ? 'local' : 'server' },
             }"
-            ><ElButton text>内容包</ElButton></RouterLink
+            ><ElButton text>环境</ElButton></RouterLink
           >
           <RouterLink to="/servers">
             <ElButton text>服务器列表</ElButton>

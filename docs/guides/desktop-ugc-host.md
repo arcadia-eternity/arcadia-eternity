@@ -2,7 +2,7 @@
 
 Electron 主进程提供独立本机对战子进程管理，并作为客户端内容工作区的唯一写入 owner。Renderer 保持 `contextIsolation` 和 `nodeIntegration: false`；服务端权威对战读取公开内容，个人/peer 对战的作者代码由受限 Worker 执行，不能在 Renderer 主线程或特权 IPC 中求值。持久环境绑定、网络设置和远程权限见[统一管理](unified-management.md)。
 
-`/content` 已接入命名项目登记、内容包与依赖查看、安装、显式准入、校验、启停和导出；队伍缺失内容的保留策略及边界见[内容包与环境管理](content-management.md)。
+`/creation` 管理 UGC 源项目；`/environments` 管理依赖、配置、准备和导出；队伍缺失内容的保留策略及边界见[内容包与环境管理](content-management.md)。
 
 普通开服从原首页“在本机开服”或一级导航“服务器”进入。首次在应用内选择名称、官方或当前已准备玩法、连接范围及可选端口，不弹项目目录选择器。启动后显示邀请地址，用户明确选择是否进入本机大厅。项目目录登记保留在“项目与开发工具”。完整交互与接口职责见[服务器交互与接口](server-ux.md)。
 

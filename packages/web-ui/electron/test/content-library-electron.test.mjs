@@ -71,7 +71,7 @@ test(
           body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><circle cx="60" cy="60" r="45" fill="#7e9bbc"/></svg>',
         }),
       )
-      await page.goto(rendererUrl + '/content?target=local&tab=environments', { timeout: 20000 })
+      await page.goto(rendererUrl + '/environments?target=local', { timeout: 20000 })
       await page.getByRole('button', { name: '编辑', exact: true }).click()
       await page.getByRole('button', { name: '从文件加入内容包', exact: true }).click()
       await expect(page.getByRole('button', { name: '保存并应用', exact: true })).toBeEnabled()
@@ -167,7 +167,7 @@ test(
         const path = '/src/stores/battle.ts'
         await (await import(path)).useBattleStore().resetBattleWithoutSurrender()
       })
-      await page.goto(rendererUrl + '/content?target=local&tab=environments')
+      await page.goto(rendererUrl + '/environments?target=local')
       await page.getByText('内容来源', { exact: true }).click()
       await page.getByRole('button', { name: '本机材料', exact: true }).click()
       await page.locator('.package-select').filter({ hasText: pkg.title }).click()

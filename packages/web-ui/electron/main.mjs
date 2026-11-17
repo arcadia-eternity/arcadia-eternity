@@ -219,7 +219,7 @@ async function openAuthorPreview(id, job) {
     authorPreviewWindows.delete(key)
     void isolated.closeAllConnections()
   })
-  const url = new URL('/content/preview', rendererUrl)
+  const url = new URL('/creation/preview', rendererUrl)
   url.searchParams.set('endpoint', job.result.preview.endpoint)
   try {
     await window.loadURL(url.href)

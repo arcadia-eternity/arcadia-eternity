@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ElButton, ElDrawer } from 'element-plus'
+import { ElButton, ElDrawer, ElSkeleton } from 'element-plus'
 import { useManagementController } from '@/features/management/useManagementController'
 import ManagementLogin from '@/features/management/ManagementLogin.vue'
 import ManagementEnvironments from '@/features/management/ManagementEnvironments.vue'
@@ -15,8 +15,19 @@ const controller = useManagementController(
   { initialTarget: props.target, initialTab: 'environments', scope: 'content' },
   () => {},
 )
-const { isAdministrator, loginRequired, error, notice, busy, loading, state, tab, logout, activeOperations } =
-  controller
+const {
+  isAdministrator,
+  loginRequired,
+  error,
+  notice,
+  busy,
+  loading,
+  initialized,
+  state,
+  tab,
+  logout,
+  activeOperations,
+} = controller
 const loginOpen = ref(false)
 const tasksOpen = ref(false)
 watch(tab, value => {
@@ -31,7 +42,8 @@ watch(isAdministrator, allowed => {
 </script>
 <template>
   <section class="server-content" aria-label="服务器环境">
-    <div v-if="!bindingsOnly" class="actions">
+    <ElSkeleton v-if="!initialized" :rows="8" animated aria-label="正在加载环境" />
+    <div v-if="initialized && !bindingsOnly" class="actions">
       <template v-if="isAdministrator && !loginRequired">
         <ElButton @click="tasksOpen = true">任务{{ activeOperations ? `（${activeOperations}）` : '' }}</ElButton>
         <ElButton :disabled="busy" :loading="loading" @click="state.refresh">刷新</ElButton>
@@ -43,7 +55,7 @@ watch(isAdministrator, allowed => {
     </div>
     <p v-if="error" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <template v-if="isAdministrator && !loginRequired">
+    <template v-if="initialized && isAdministrator && !loginRequired">
       <EnvironmentServerUsage
         v-if="bindingsOnly && environmentId"
         :controller="controller"
@@ -54,11 +66,11 @@ watch(isAdministrator, allowed => {
         ><ManagementTasks :controller="controller" content-only
       /></ElDrawer>
     </template>
-    <template v-else-if="target === 'server'">
-      <ManagementLogin v-if="loginOpen" :controller="controller" account-return-to="/account?returnTo=content" />
+    <template v-else-if="initialized && target === 'server'">
+      <ManagementLogin v-if="loginOpen" :controller="controller" account-return-to="/account?returnTo=environments" />
       <PublicEnvironments v-else />
     </template>
-    <RouterLink v-else-if="!loading" to="/servers">启动本机服务器</RouterLink>
+    <RouterLink v-else-if="initialized && !loading" to="/servers">启动本机服务器</RouterLink>
   </section>
 </template>
 <style scoped>

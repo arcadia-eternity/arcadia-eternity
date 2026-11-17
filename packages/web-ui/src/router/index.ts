@@ -35,27 +35,25 @@ const routes: RouteRecordRaw[] = [
     path: '/management',
     name: 'Management',
     component: () => import('@/features/management/ManagementPage.vue'),
-    beforeEnter: to =>
-      to.query.tab === 'environments'
-        ? {
-            path: '/content',
-            query: { target: to.query.target === 'local' ? 'local' : 'server', tab: 'environments' },
-            replace: true,
-          }
-        : true,
     meta: { title: '服务器管理' },
   },
   {
-    path: '/content/preview',
+    path: '/creation/preview',
     name: 'AuthorPreview',
     component: () => import('@/features/authoring/AuthorPreviewPage.vue'),
     meta: { title: '内容包试玩' },
   },
   {
-    path: '/content',
-    name: 'ContentManager',
-    component: () => import('@/features/content/ContentManagerPage.vue'),
-    meta: { title: '内容包' },
+    path: '/creation',
+    name: 'Creation',
+    component: isDesktop ? () => import('@/features/content/CreationPage.vue') : LocalContentOnlyPage,
+    meta: { title: '创作' },
+  },
+  {
+    path: '/environments',
+    name: 'Environments',
+    component: () => import('@/features/content/EnvironmentManagerPage.vue'),
+    meta: { title: '环境' },
   },
   {
     path: '/settings/local-service',
@@ -64,13 +62,13 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '高级本机工具' },
   },
   {
-    path: '/content/development',
+    path: '/creation/development',
     name: 'DevelopmentWorkspace',
     component: isDesktop ? () => import('@/features/development/DevelopmentWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '开发服务工作区' },
   },
   {
-    path: '/content/edit/:projectId?',
+    path: '/creation/edit/:projectId?',
     name: 'AuthorWorkspace',
     component: isDesktop ? () => import('@/features/authoring/AuthorWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '编辑内容包' },

@@ -1,6 +1,7 @@
 import { ElSelect, ElOption } from 'element-plus'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { dismissedExportRecords } from '../exportRecords'
 import EnvironmentTransfers from '../EnvironmentTransfers.vue'
 import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
@@ -61,6 +62,7 @@ async function choose(page: VueWrapper, content: unknown = bundle()) {
   await flushPromises()
 }
 afterEach(() => {
+  dismissedExportRecords.clear()
   pages.splice(0).forEach(page => page.unmount())
   vi.restoreAllMocks()
 })
@@ -162,4 +164,20 @@ describe('environment transfers', () => {
     expect(page.emitted('import')).toBeUndefined()
     expect(page.emitted('export')).toBeUndefined()
   })
+})
+
+it('clears completed export records while keeping running exports', async () => {
+  const completed = exportTask()
+  const running = { ...exportTask(), id: 'running-export', status: 'running' as const, result: undefined }
+  const page = open({ operations: [completed, running], mode: 'results' })
+  await button(page, '清空已完成记录').trigger('click')
+  expect(page.text()).not.toContain('environment-friends.json')
+  expect(page.text()).toContain('导出中')
+  const reopened = open({ operations: [completed, running], mode: 'results' })
+  expect(reopened.text()).not.toContain('environment-friends.json')
+  expect(reopened.text()).toContain('导出中')
+  expect(button(page, '清空已完成记录').attributes('disabled')).toBeDefined()
+  await page.setProps({ operations: [completed, { ...running, status: 'succeeded' }] })
+  await page.get('[aria-label="移除导出记录"]').trigger('click')
+  expect(page.find('[aria-label="导出任务"]').exists()).toBe(false)
 })

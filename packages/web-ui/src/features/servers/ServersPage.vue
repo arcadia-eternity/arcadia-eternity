@@ -258,7 +258,7 @@ async function copy(value: string) {
           </button>
           <RouterLink class="server-link" to="/management?target=local&tab=server">管理后台</RouterLink>
           <RouterLink class="server-link" to="/management?target=local&tab=network">网络与容量</RouterLink>
-          <RouterLink to="/content?target=local&tab=environments">内容包与环境</RouterLink>
+          <RouterLink to="/environments?target=local">环境</RouterLink>
           <button @click="operate({ action: 'stop' })">等待对局结束后停止</button>
         </div>
         <div v-if="summary?.pendingRestart?.length" class="server-notice server-gap">
@@ -323,7 +323,7 @@ async function copy(value: string) {
           <div class="server-actions">
             <button class="server-primary" :disabled="local.busy">启动服务器</button
             ><button type="button" @click="showForm = false">取消</button
-            ><RouterLink class="server-link" to="/content">管理内容</RouterLink>
+            ><RouterLink class="server-link" to="/environments?target=local">管理环境</RouterLink>
           </div>
         </form>
       </template>
@@ -336,7 +336,7 @@ async function copy(value: string) {
       <summary>高级工具</summary>
       <div class="server-actions">
         <RouterLink class="server-link" to="/settings/local-service">服务器项目与诊断</RouterLink
-        ><RouterLink class="server-link" to="/content/development">开发服务工作区</RouterLink>
+        ><RouterLink class="server-link" to="/creation/development">开发服务工作区</RouterLink>
       </div>
     </details>
   </main>

@@ -162,7 +162,7 @@ test('paired production management backs up, revokes service credentials and ret
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('server-users-mobile.png'), fullPage: true })
     await page.setViewportSize({ width: 1440, height: 1000 })
-    await page.goto(server.origin + '/content?target=server&tab=environments')
+    await page.goto(server.origin + '/environments?target=server')
     checks.push('server overview, live battles and users render on desktop and mobile')
 
     await page.getByRole('button', { name: '新建环境', exact: true }).click()

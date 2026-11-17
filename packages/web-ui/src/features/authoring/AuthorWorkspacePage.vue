@@ -398,7 +398,7 @@ async function installBuiltPack() {
     action: 'install-built-author-pack',
     jobId: builtPack.value.jobId,
   })
-  await router.push({ path: '/content', query: { target: 'local', tab: 'environments', packageId: result.packageId } })
+  await router.push({ path: '/environments', query: { target: 'local', packageId: result.packageId } })
 }
 const latestJob = computed(() => jobs.value[0])
 const latestOutput = computed(() =>
@@ -1039,7 +1039,7 @@ onMounted(async () => {
       typeof route.params.projectId === 'string'
         ? projects.value.find(row => row.id === route.params.projectId)
         : undefined
-    if (route.params.projectId && !requested) throw new Error('此源项目不存在，请从内容包列表重新打开。')
+    if (route.params.projectId && !requested) throw new Error('此源项目不存在，请从创作页面重新打开。')
     if (requested || last) await openProject((requested || last)!)
   })
 })
@@ -1062,7 +1062,7 @@ onBeforeUnmount(() => {
   <main class="author-page">
     <header class="app-header">
       <div class="brand">
-        <router-link to="/content">内容包</router-link><span aria-hidden="true">/</span>
+        <router-link to="/creation">创作</router-link><span aria-hidden="true">/</span>
         <button
           v-if="project"
           class="project-switch"

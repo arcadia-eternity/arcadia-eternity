@@ -33,3 +33,20 @@ it('lists editable UGC projects and removes only project registration', async ()
   expect(install).not.toHaveBeenCalled()
   page.unmount()
 })
+it('keeps the initial empty state hidden until projects finish loading', async () => {
+  let resolve!: (value: unknown) => void
+  vi.stubGlobal('arcadiaDesktop', {
+    author: () =>
+      new Promise(done => {
+        resolve = done
+      }),
+  })
+  const page = mount(ContentProjectsPanel)
+  expect(page.find('[aria-label="正在加载项目"]').exists()).toBe(true)
+  expect(page.text()).not.toContain('暂无项目')
+  resolve({ result: [] })
+  await flushPromises()
+  expect(page.find('[aria-label="正在加载项目"]').exists()).toBe(false)
+  expect(page.text()).toContain('暂无项目')
+  page.unmount()
+})

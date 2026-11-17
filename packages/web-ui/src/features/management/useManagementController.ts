@@ -196,7 +196,9 @@ export function useManagementController(
     () => target.value === 'server' && auth.isAccount && auth.serverUrl === client.value?.context.endpoint,
   )
 
+  const initialized = ref(false)
   async function changeTarget(next: 'local' | 'server') {
+    initialized.value = false
     const generation = ++targetGeneration
     clearTimeout(timer)
     target.value = next
@@ -247,6 +249,8 @@ export function useManagementController(
       schedule(generation)
     } catch (cause) {
       if (generation === targetGeneration) error.value = cause instanceof Error ? cause.message : '无法读取管理目标'
+    } finally {
+      if (generation === targetGeneration && !disposed) initialized.value = true
     }
   }
   function schedule(generation: number) {
@@ -516,6 +520,7 @@ export function useManagementController(
     battles,
     audit,
     accountCursor,
+    initialized,
     loading,
     busy,
     loginRequired,

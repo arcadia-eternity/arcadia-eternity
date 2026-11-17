@@ -339,7 +339,7 @@ onBeforeUnmount(() => {
       <p>
         目标服务器：<code>{{ server }}</code>
       </p>
-      <router-link to="/content/edit">内容创作工作台</router-link>
+      <router-link to="/creation/edit">内容创作工作台</router-link>
     </header>
     <section class="panel">
       <label

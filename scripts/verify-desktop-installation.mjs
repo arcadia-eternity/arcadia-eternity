@@ -183,7 +183,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       project = projects.find(item => item.id === baseline.project.id)
       assert.ok(project, 'author source project survives application replacement')
       assert.equal(project.directory, baseline.project.directory)
-      await page.goto(`arcadia-client://app/content/edit/${encodeURIComponent(project.id)}`)
+      await page.goto(`arcadia-client://app/creation/edit/${encodeURIComponent(project.id)}`)
       await page.getByRole('navigation', { name: '内容分类' }).getByRole('button', { name: /^技能/ }).click()
       await page.locator('.content-card').filter({ hasText: '霜击' }).click()
       await expect(page.getByLabel('威力', { exact: true })).toHaveValue('77')

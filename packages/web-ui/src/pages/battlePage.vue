@@ -1100,7 +1100,7 @@ const navigateToHome = async () => {
   }
   if (typeof route.query.authorPreview === 'string') {
     if (window.arcadiaAuthorPreview) window.arcadiaAuthorPreview.returnToEditor()
-    else await router.push('/content')
+    else await router.push('/creation')
     return
   }
   router.push(isLocalBattle.value ? '/local-battle' : '/')

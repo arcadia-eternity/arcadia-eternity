@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { dismissedExportRecords } from './exportRecords'
 import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
 const props = defineProps<{
@@ -33,7 +34,14 @@ let readGeneration = 0
 let reader: FileReader | undefined
 let timer: ReturnType<typeof setInterval> | undefined
 const readyVersions = computed(() => props.installations.filter(version => version.status === 'ready'))
-const exports = computed(() => props.operations.filter(operation => operation.kind === 'environment.export'))
+const dismissed = dismissedExportRecords
+const exports = computed(() =>
+  props.operations.filter(operation => operation.kind === 'environment.export' && !dismissed.has(operation.id)),
+)
+const canDismiss = (operation: ManagementOperation) => !['queued', 'running'].includes(operation.status)
+function dismissCompleted() {
+  for (const operation of exports.value) if (canDismiss(operation)) dismissed.add(operation.id)
+}
 const statuses: Record<ManagementOperation['status'], string> = {
   queued: '等待中',
   running: '导出中',
@@ -267,10 +275,16 @@ defineExpose({
       </ElForm>
     </div>
     <div v-if="mode !== 'import' && exports.length" class="export-results" aria-label="导出任务">
-      <h3>导出文件</h3>
+      <header class="results-heading">
+        <h3>导出文件</h3>
+        <ElButton text :disabled="!exports.some(canDismiss)" @click="dismissCompleted">清空已完成记录</ElButton>
+      </header>
       <article v-for="operation in exports" :key="operation.id" class="export-result">
         <strong>{{ downloadInfo(operation)?.filename ?? '环境导出' }}</strong>
         <span>{{ statuses[operation.status] }}</span>
+        <ElButton v-if="canDismiss(operation)" text aria-label="移除导出记录" @click="dismissed.add(operation.id)"
+          >移除记录</ElButton
+        >
         <template v-if="downloadInfo(operation)">
           <p>
             {{ formatBytes(downloadInfo(operation)!.bytes) }} · 有效至
@@ -293,6 +307,19 @@ defineExpose({
 </template>
 
 <style scoped>
+.results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.results-heading h3 {
+  margin: 0;
+}
+.export-results {
+  display: grid;
+  gap: 12px;
+}
 .dialog.environment-transfers {
   margin: 0;
 }
@@ -355,11 +382,23 @@ dd {
   margin-top: 1rem;
 }
 .export-result {
-  margin: 0.6rem 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   overflow-wrap: anywhere;
 }
-.export-result span {
-  float: right;
+.export-result > strong {
+  flex: 1;
+  min-width: 160px;
+}
+.export-result > p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--el-text-color-secondary);
+}
+.export-result :deep(.el-button) {
+  margin-left: 0;
 }
 .error {
   color: var(--el-color-danger);

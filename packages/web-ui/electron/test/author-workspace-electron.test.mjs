@@ -32,7 +32,7 @@ test(
       app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
       page = await app.firstWindow()
       page.setDefaultTimeout(15000)
-      await page.goto(origin + '/content/edit')
+      await page.goto(origin + '/creation/edit')
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
       await page.getByLabel('新项目名称').fill('寒霜工作区验收')
       await page.getByRole('button', { name: '从模板创建项目', exact: true }).click()
@@ -198,8 +198,8 @@ test(
       assert.equal(configured.team[0].name, '测试首发')
       assert.equal(configured.team[0].level, 95)
       await expect(preview.locator('body')).toContainText('霜击')
-      await page.getByRole('link', { name: '内容包', exact: true }).click()
-      await page.waitForURL(/\/content$/)
+      await page.getByRole('link', { name: '创作', exact: true }).click()
+      await page.waitForURL(/\/creation$/)
       const beforeReload = await preview.evaluate(() =>
         window.__APP_DEBUG__.pinia._s.get('battle').battleInterface.getState(undefined, true),
       )
@@ -357,7 +357,7 @@ test(
       const secondProject = await page.evaluate(
         async () => (await window.arcadiaDesktop.author({ action: 'create', name: '单试玩跨项目验收' })).result,
       )
-      await page.goto(origin + '/content/edit/' + secondProject.id)
+      await page.goto(origin + '/creation/edit/' + secondProject.id)
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       const otherWindow = app.waitForEvent('window', { timeout: 45000 })
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()

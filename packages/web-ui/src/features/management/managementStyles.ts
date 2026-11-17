@@ -26,3 +26,7 @@ import 'element-plus/theme-chalk/el-tag.css'
 
 import 'element-plus/theme-chalk/el-dialog.css'
 import 'element-plus/theme-chalk/el-message-box.css'
+
+import 'element-plus/theme-chalk/el-skeleton.css'
+import 'element-plus/theme-chalk/el-skeleton-item.css'
+import 'element-plus/theme-chalk/el-empty.css'

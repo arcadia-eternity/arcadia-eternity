@@ -263,7 +263,7 @@ function saveTeamName() {
 }
 function windowReturn() {
   if (window.arcadiaAuthorPreview) window.arcadiaAuthorPreview.returnToEditor()
-  else void router.push('/content')
+  else void router.push('/creation')
 }
 async function discard() {
   await cleanup?.()

@@ -31,7 +31,7 @@ test(
       app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
       page = await app.firstWindow()
       page.setDefaultTimeout(15000)
-      await page.goto(origin + '/content')
+      await page.goto(origin + '/creation')
       await page.getByRole('button', { name: '新建内容包', exact: true }).click()
       await page.getByLabel('内容包名称', { exact: true }).fill('独立对象验收')
       await page.getByRole('button', { name: '创建并打开', exact: true }).click()

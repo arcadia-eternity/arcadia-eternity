@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElButton, ElDrawer } from 'element-plus'
+import { ElButton, ElDrawer, ElSkeleton, ElSelect, ElOption } from 'element-plus'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -82,6 +82,7 @@ const jobLabels: Record<string, string> = {
 }
 const snapshot = ref<Snapshot>({ workspaceId: '', environments: [], installations: [], operations: [] })
 const tasksOpen = ref(false)
+const initialized = ref(false)
 const activeTasks = computed(
   () => snapshot.value.operations.filter(job => ['queued', 'running'].includes(job.status)).length,
 )
@@ -127,6 +128,8 @@ async function refresh() {
   } catch (cause) {
     if (!disposed && sequence === refreshSequence)
       error.value = cause instanceof Error ? cause.message : '无法读取环境库'
+  } finally {
+    if (!disposed && sequence === refreshSequence) initialized.value = true
   }
 }
 async function run(input: Record<string, unknown>, message: string) {
@@ -235,20 +238,20 @@ onBeforeUnmount(() => {
     <form v-if="candidate" class="panel" aria-label="选择目标环境" @submit.prevent="useCandidate">
       <strong>{{ candidate.name }} {{ candidate.version }}</strong>
       <label
-        >目标环境<select v-model="packageEnvironmentId" required>
-          <option
+        >目标环境<ElSelect v-model="packageEnvironmentId" aria-label="目标环境">
+          <ElOption
             v-for="environment in snapshot.environments"
             :key="environment.document.id"
             :value="environment.document.id"
-          >
-            {{ environment.document.name }}
-          </option>
-        </select></label
-      >
-      <button :disabled="!packageEnvironmentId">编辑环境依赖</button>
-      <button type="button" @click="candidate = undefined">取消</button>
+            :label="environment.document.name"
+          /> </ElSelect
+      ></label>
+      <ElButton native-type="submit" type="primary" :disabled="!packageEnvironmentId">编辑环境依赖</ElButton>
+      <ElButton @click="candidate = undefined">取消</ElButton>
     </form>
+    <ElSkeleton v-if="!initialized" :rows="8" animated aria-label="正在加载环境" />
     <EnvironmentWorkspace
+      v-else
       :available-packages="materials"
       :pending-package="pendingPackage"
       :package-environment-id="packageEnvironmentId"
