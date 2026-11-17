@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.6.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.3...arcadia-eternity-v4.6.0) (2026-11-17)
+
+
+### ✨ Features
+
+* **web:** unify content and environment management ([fa062d3](https://github.com/arcadia-eternity/arcadia-eternity/commit/fa062d3502833774f1667a4d1c1166b2a3a8bbfe))
+
+
+### 🐛 Bug Fixes
+
+* **web:** select local content through named environments ([97f9510](https://github.com/arcadia-eternity/arcadia-eternity/commit/97f951007afe751af54f83ef41e0975f9d809567))
+
+
+### ♻️ Code Refactoring
+
+* **content:** separate UGC projects from environment dependencies ([c8eaf48](https://github.com/arcadia-eternity/arcadia-eternity/commit/c8eaf48d640630d6f1b4d3cd3b5cdf94112a053f))
+* **content:** unify environment package add and remove operations ([8d8a222](https://github.com/arcadia-eternity/arcadia-eternity/commit/8d8a22227307e13b400f577f6f2e3d35dccd8e72))
+
 ## [4.5.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.2...arcadia-eternity-v4.5.3) (2026-11-16)
 
 
