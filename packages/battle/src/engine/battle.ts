@@ -54,6 +54,8 @@ export class Battle extends Context implements MarkOwner {
   public id: string = nanoid()
   private readonly logger = createChildLogger('Battle')
 
+  public readonly elementMultipliers?: Record<string, Record<string, number>>
+  public readonly enhancementActive: boolean
   public allowFaintSwitch: boolean
   public showHidden: boolean
 
@@ -107,6 +109,10 @@ export class Battle extends Context implements MarkOwner {
     public readonly playerA: Player,
     public readonly playerB: Player,
     options?: {
+      skillParameters?: import('@arcadia-eternity/const').SkillParameterPolicy
+      matchups?: import('@arcadia-eternity/const').MatchupPolicy
+      elementMultipliers?: Record<string, Record<string, number>>
+      enhancementActive?: boolean
       allowFaintSwitch?: boolean
       rngSeed?: number | string
       rng?: BattleRng
@@ -121,6 +127,8 @@ export class Battle extends Context implements MarkOwner {
     this.configSystem = configSystem || ConfigSystem.createInstance(this.id)
     ConfigSystem.bindBattle(this)
 
+    this.elementMultipliers = options?.elementMultipliers
+    this.enhancementActive = options?.enhancementActive === true
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false
 

@@ -13,6 +13,7 @@ import type {
   UpdatePrivateRoomConfigRequest,
   ServerEnvironmentAcceptance,
   MatchmakingRequest,
+  SubmitPrivateRoomTeamRequest,
 } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
 import { ref, shallowRef, computed } from 'vue'
@@ -439,6 +440,11 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.joinPrivateRoomAsSpectator(data)
   }
 
+  const submitRoomTeam = async (request: SubmitPrivateRoomTeamRequest): Promise<void> => {
+    if (!_instance.value) throw new Error('BattleClient not initialized')
+    await _instance.value.submitPrivateRoomTeam(request)
+  }
+
   const toggleRoomReady = async (team?: PetSchemaType[], environment?: ServerEnvironmentAcceptance): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
@@ -602,6 +608,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     joinPrivateRoomAsSpectator,
     leavePrivateRoom,
     toggleRoomReady,
+    submitRoomTeam,
     startRoomBattle,
     sendPrivateRoomPeerSignal,
     switchToSpectator,

@@ -1,3 +1,4 @@
+import { prepareSkillParameters, type SkillParameterPolicy } from '@arcadia-eternity/const'
 import * as sdk from '../../authoring'
 import { createContentCatalog } from '../engine/content/definition-catalog'
 import { ArenaEffectModule } from './effect-module'
@@ -6,6 +7,7 @@ import type { SandboxEnvironment } from './runtime'
 
 export interface SandboxContentOptions {
   readonly grouping?: 'package' | 'environment'
+  readonly skillParameters?: SkillParameterPolicy
   readonly catalogMs?: number
 }
 /** Prepared immutable logic, leased to one native battle at a time. */
@@ -55,9 +57,10 @@ export async function prepareSandboxContent(environment: SandboxEnvironment, opt
         raw => (raw as { implementation: { exportId: string } }).implementation.exportId,
       ),
     )
+    const tuned = await prepareSkillParameters(environment.data, environment.revision, options.skillParameters)
     const content = createContentCatalog(
-      environment.data,
-      environment.revision,
+      tuned.data,
+      tuned.revision,
       marks => {
         const effects = new Map(),
           parameters = new Map()
@@ -100,7 +103,7 @@ export async function prepareSandboxContent(environment: SandboxEnvironment, opt
               seen.has(effect.id) ||
               !effect.parameters ||
               typeof effect.parameters !== 'object' ||
-              Object.keys(effect.parameters).length
+              (Object.keys(effect.parameters).length > 0 && !usedExports.has(effect.id))
             )
               throw new SandboxFault(
                 'artifact',

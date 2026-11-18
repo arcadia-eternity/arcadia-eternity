@@ -1,6 +1,7 @@
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
-import { mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
-import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
+import { digestJson, mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
+import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
+import type { EnvironmentRules, NativeRuntimeIdentity, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
 import { isDesktop } from '@/utils/env'
 import { publicHttpUrl, readResourceBytes } from './resourceTransport'
@@ -9,8 +10,11 @@ import { validateEnvironmentContent } from './serverContentValidation'
 import type { EffectMarkRelations } from './skillMarkRelationService'
 
 type PreparedCatalog = {
+  rules?: EnvironmentRules
   content: ServerEnvironmentContent
   resources: PresentationManifest['resources']
+  gameplayRevision: string
+  runtimeIdentity?: NativeRuntimeIdentity
   runtimeRevision: string
   effectMarkRelations?: EffectMarkRelations
 }
@@ -39,10 +43,26 @@ export function readPreparedWebCatalog(refresh = false): Promise<PreparedCatalog
       fetch,
       undefined,
       true,
-    ).then(value => {
+    ).then(async value => {
+      const rules = validateEnvironmentRules(value?.rules)
       validateEnvironmentContent(value?.content, { includeRuleDetails: true })
       if (!Array.isArray(value.resources) || typeof value.runtimeRevision !== 'string' || !value.runtimeRevision)
         throw new Error('本机展示资源索引无效')
+      if (value.runtimeIdentity) {
+        const identity = value.runtimeIdentity
+        if (
+          identity.kind !== 'native-v4' ||
+          !identity.coreBuildId ||
+          !identity.registryBuildId ||
+          !identity.contentRevision ||
+          value.gameplayRevision !== (await digestJson({ runtime: identity, material: value.runtimeRevision, rules }))
+        )
+          throw new Error('网页环境的规则或材料与玩法版本不符')
+      } else if (value.gameplayRevision === undefined) {
+        value.gameplayRevision = await digestJson({ material: value.runtimeRevision, rules })
+      } else if (!/^[a-f0-9]{64}$/.test(value.gameplayRevision)) {
+        throw new Error('网页环境玩法版本无效')
+      }
       const resolve = (source: string) => {
         const path = source.startsWith('pack-assets/') ? source.split('/').map(encodeURIComponent).join('/') : source
         return publicHttpUrl(new URL(path, root).href).href

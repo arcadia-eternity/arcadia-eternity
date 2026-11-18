@@ -217,3 +217,9 @@ mark_ability_yinji:
 mark_ability_houjin:
   name: 后劲
   description: 后出手时造成的伤害增加<damage>10%</damage>。
+mark_ability_ganjue:
+  name: 感觉
+  description: 对手已经失去任意一种感觉时，自身的技能命中后增加5点怒气。
+mark_ability_fengzhen:
+  name: 蜂针
+  description: 开战时获得3根蜂皇针，耗尽后免疫异常状态。

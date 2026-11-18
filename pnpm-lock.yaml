@@ -260,6 +260,9 @@ importers:
       '@arcadia-eternity/const':
         specifier: workspace:^
         version: link:../const
+      '@arcadia-eternity/content-sdk':
+        specifier: workspace:^
+        version: link:../content-dev
       '@arcadia-eternity/data-pack-base':
         specifier: workspace:^
         version: link:../../packs/base
@@ -346,12 +349,18 @@ importers:
       jsondiffpatch:
         specifier: 'catalog:'
         version: 0.7.7
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   packages/content-dev:
     dependencies:
       '@arcadia-eternity/battle':
         specifier: workspace:*
         version: link:../battle
+      '@arcadia-eternity/const':
+        specifier: workspace:*
+        version: link:../const
       '@arcadia-eternity/pack-loader':
         specifier: workspace:*
         version: link:../pack-loader
@@ -476,6 +485,9 @@ importers:
       '@arcadia-eternity/battle':
         specifier: workspace:*
         version: link:../battle
+      '@arcadia-eternity/const':
+        specifier: workspace:*
+        version: link:../const
       '@arcadia-eternity/schema':
         specifier: workspace:*
         version: link:../schema

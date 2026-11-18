@@ -1,3 +1,12 @@
+import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
+import {
+  resolveSkillParameters,
+  skillParameterCatalogSchema,
+  validateElementReferences,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
+import { toRaw } from 'vue'
 import { Value } from '@sinclair/typebox/value'
 import { SpeciesSchema, SkillSchema, MarkSchema } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
@@ -45,6 +54,10 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   const descriptor = value as ServerEnvironmentDescriptor
   if (descriptor?.protocolVersion !== 1 || descriptor?.runtime?.kind !== 'native-v4')
     throw new Error('服务器环境协议不兼容')
+  if (descriptor.environmentId !== undefined && !identifier(descriptor.environmentId)) invalid()
+  if (descriptor.environmentName !== undefined && !identifier(descriptor.environmentName)) invalid()
+  if (descriptor.gameplayRevision !== undefined && !HASH.test(descriptor.gameplayRevision)) invalid()
+  if (descriptor.rules !== undefined) validateEnvironmentRules(toRaw(descriptor.rules))
   if (descriptor.isDefault !== undefined && typeof descriptor.isDefault !== 'boolean') invalid()
   if (descriptor.executionPolicy !== undefined && !['server', 'peer'].includes(descriptor.executionPolicy)) invalid()
   if (descriptor.peerRevision !== undefined && !identifier(descriptor.peerRevision)) invalid()
@@ -119,7 +132,29 @@ export function validateEnvironmentContent(
 ): asserts value is ServerEnvironmentContent {
   validateMetadataTree(value)
   const content = value as ServerEnvironmentContent
-  if (!content || Object.keys(content).some(key => !['species', 'skills', 'marks', 'locales'].includes(key))) invalid()
+  if (
+    !content ||
+    Object.keys(content).some(
+      key =>
+        ![
+          'species',
+          'skills',
+          'marks',
+          'locales',
+          'skillParameters',
+          'natures',
+          'enhancements',
+          'elements',
+          'matchupTables',
+        ].includes(key),
+    )
+  )
+    invalid()
+  if (content.skillParameters !== undefined)
+    resolveSkillParameters(skillParameterCatalogSchema.parse(content.skillParameters))
+  readEnhancementStages(content.enhancements)
+  if (content.elements !== undefined || content.matchupTables !== undefined) validateElementReferences(content)
+  if (content.natures !== undefined) readNatureCatalog(content.natures)
   const rows = [content.species, content.skills, content.marks]
   const schemas = [SpeciesSchema, SkillSchema, MarkSchema]
   const ids = rows.map((items, index) => {
@@ -149,6 +184,7 @@ export function validateEnvironmentContent(
     return seen
   })
   for (const species of content.species) {
+    for (const skill of species.inheritance?.skills ?? []) if (!ids[1].has(skill)) invalid()
     for (const skill of species.learnable_skills) if (!ids[1].has(skill.skill_id)) invalid()
     for (const mark of [...species.ability, ...species.emblem]) if (!ids[2].has(mark)) invalid()
   }

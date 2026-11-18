@@ -1,4 +1,8 @@
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
+import { fileURLToPath } from 'node:url'
+import { withShippedCatalogArchive } from '../src/npm/official-host'
+import { readSkillParameterCatalog, resolveSkillParameters } from '@arcadia-eternity/const'
+import sampleTeams from '../../battle/test/fixtures/official-switch.input.json'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises'
@@ -7,6 +11,8 @@ import { homedir, tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import {
   AttackTargetOpinion,
+  DamageContext,
+  EffectContext,
   BattleMessageType,
   EffectTrigger,
   Nature,
@@ -941,3 +947,166 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
   const standalone = await prepare(baseOnly)
   expect(standalone.content.getSkill('skill_zhuangji').power).toBe(35)
 })
+
+it('prepares a community HP baseline with the official profile and restores scoped battle modifiers', async () => {
+  const group = 'base:max-hp-excess-baseline'
+  const use = { skill: 'frost:ice-burst', useId: 'bonus', parameter: 'baseline' }
+  const parameters = { baseline: { kind: 'number', default: 500, minimum: 0, integer: true } }
+  const frost = await pack(
+    'frost',
+    {
+      name: '@arcadia-test/frost',
+      version: '1.0.0',
+      type: 'module',
+      arcadia: {
+        formatVersion: 1,
+        projectId: 'frost',
+        namespace: 'frost',
+        content: 'content.json',
+        effects: 'effects.js',
+        sdkApi: 2,
+      },
+    },
+    {
+      'content.json': JSON.stringify({
+        data: {
+          species: [],
+          skills: [
+            {
+              id: 'ice-burst',
+              element: 'Ice',
+              category: 'Special',
+              power: 40,
+              rage: 0,
+              accuracy: 100,
+              behaviors: [{ useId: 'bonus', definitionId: workRef('frost', 'behavior', 'burst') }],
+            },
+          ],
+          marks: [
+            {
+              id: 'threshold-mark',
+              tags: [],
+              config: { persistent: true },
+              behaviors: [{ useId: 'raise', definitionId: workRef('frost', 'behavior', 'raise') }],
+            },
+          ],
+          behaviors: [
+            {
+              id: 'burst',
+              formatVersion: 1,
+              sourceKind: 'skill',
+              parameters,
+              implementation: { kind: 'native', exportId: 'frost:burst' },
+            },
+          ],
+          ruleSets: [
+            { id: 'classic', rules: { schemaVersion: 2, include: ['base:classic'] } },
+            { id: 'cup', rules: { schemaVersion: 2, include: ['classic'], skillParameters: { profile: 'base:120' } } },
+          ],
+          parameterBindings: [{ ...use, id: 'ice-baseline', skill: 'ice-burst', group }],
+        },
+      }),
+      'effects.js': `
+      export function createEffects({ id, sdk }) {
+        return [
+          sdk.defineNativeBehavior({ id: id('burst'), sourceKind: 'skill', parameters: ${JSON.stringify(parameters)},
+            build({ effectId, params }) {
+              const baseline = sdk.numberParam({ default: params.baseline, tags: ['frost:baseline'] })
+              const hp = sdk.targets.ownerPet.first().attribute('maxHp')
+              const extra = sdk.values.combine(hp, baseline, (maximum, threshold) => Math.max(0, maximum - threshold))
+              return { id: effectId, triggers: [sdk.EffectTrigger.OnBeforeCalculateDamage], parameters: { baseline },
+                when: sdk.conditions.selfUsesSkill, apply: sdk.contexts.damage.apply(sdk.ops.modifyDamage({ percent: 0, delta: extra })) }
+            }
+          }),
+          sdk.defineCodeEffect({ id: id('raise'), sourceKind: 'petMark', build: ({effectId}) => ({
+            id: effectId, triggers: [sdk.EffectTrigger.OnBattleStart],
+            apply: sdk.targets.ownerPet.apply(sdk.ops.addTaggedParameterModifier('frost:baseline', 'delta', 10))
+          }) })
+        ]
+      }`,
+    },
+  )
+  const dir = await mkdtemp(join(root, 'hp-profile-'))
+  const official = fileURLToPath(new URL('../../../packs/base/', import.meta.url))
+  await withShippedCatalogArchive(official, undefined, async archive => {
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        name: 'hp-profile',
+        version: '1.0.0',
+        dependencies: { '@arcadia-eternity/data-pack-base': 'file:' + archive, '@arcadia-test/frost': 'file:' + frost },
+      }),
+    )
+    await exec('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir })
+  })
+  const prepared = await prepare(dir)
+  expect(prepared.sandbox.data.ruleSets).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: 'base:classic' }),
+      {
+        id: 'frost:cup',
+        rules: { schemaVersion: 2, include: ['frost:classic'], skillParameters: { profile: 'base:120' } },
+      },
+    ]),
+  )
+  const catalog = readSkillParameterCatalog(prepared.sandbox.data)
+  const values = resolveSkillParameters(catalog, { profile: 'base:120' })
+  expect(values.filter(row => row.group === group)).toHaveLength(5)
+  expect(values.find(row => row.skill === use.skill)).toMatchObject({ value: 576, source: 'profile' })
+  const policy = { profile: 'base:120', overrides: [{ ...use, value: 550 }] }
+  const vm = await prepareSandboxContent(prepared.sandbox, { skillParameters: policy })
+  vm.beginSession()
+  let battle: Battle | undefined
+  let running: Promise<unknown> | undefined
+  try {
+    const teams = sampleTeams.teams.map((player, i) => ({
+      ...player,
+      team: [
+        {
+          ...player.team[0],
+          ability: undefined,
+          emblem: i === 0 ? 'frost:threshold-mark' : undefined,
+          maxHp: 600,
+          skills: ['skill_dongqipenshe', use.skill],
+        },
+      ],
+    }))
+    const [a, b] = vm.content.parsePlayers(teams)
+    battle = vm.content.createBattle(a, b, { timerConfig: { enabled: false } })
+    running = battle.startBattle().catch(() => {})
+    await battle.waitForInputReady()
+    function bonuses(current: Battle, seat: 'playerA' | 'playerB') {
+      const owner = current[seat],
+        pet = owner.activePet
+      const [jet, burst] = pet.skills.map(skill => {
+        const use = new UseSkillContext(new TurnContext(current), owner, pet, AttackTargetOpinion.opponent, skill)
+        use.updateActualTarget()
+        return use
+      })
+      current.applyEffects(jet, EffectTrigger.BeforeHit)
+      const damage = new DamageContext(burst, pet, burst.actualTarget!, 100)
+      current.applyEffects(damage, EffectTrigger.OnBeforeCalculateDamage)
+      return [jet.power - 70, damage.modified[1]]
+    }
+    expect(bonuses(battle, 'playerA')).toEqual([24, 40])
+    expect(bonuses(battle, 'playerB')).toEqual([24, 50])
+    const saved = vm.content.snapshot(battle)
+    await battle.cleanup()
+    await running
+    vm.endSession()
+    vm.beginSession()
+    battle = vm.content.restore(saved)
+    expect(bonuses(battle, 'playerA')).toEqual([24, 40])
+    const pet = battle.playerA.activePet
+    const mark = pet.marks.find(item => item.baseId === 'frost:threshold-mark')!
+    battle.removeMark(
+      new RemoveMarkContext(new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, pet.skills[0]), mark),
+    )
+    expect(bonuses(battle, 'playerA')).toEqual([24, 50])
+  } finally {
+    await battle?.cleanup()
+    await running
+    vm.endSession()
+    vm.dispose()
+  }
+}, 60000)

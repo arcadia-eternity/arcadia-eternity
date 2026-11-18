@@ -111,4 +111,4 @@ const native = defineNativeBehavior({
 - [行为目录校验](../../packages/battle/test/engine/behavior-catalog-validation.test.ts)覆盖正式目录拒绝非法输入；[行为使用测试](../../packages/battle/test/engine/behavior-uses.test.ts)覆盖实例隔离与已有等待点恢复，使用可信原生行为。
 - `pnpm verify:battle-behaviors` 用 Node、压缩构建与真实 Chrome 验证原生行为的独立参数、印记绑定及初始／行动等待点恢复。宿主探针不代替完整作者产品验收。
 
-作品编译、作者工作台调试试玩和 CLI 加载／replay 已接入。普通组队与本地对战入口、Electron 安装版、服务端批准环境目录及真实房间匹配仍见 #243/#244/#209/#224。完整 Mod 安装准入由 #218 跟踪。房间只校验事先具备的环境，不下载或同步作品。
+作品编译、作者工作台调试试玩和 CLI 加载／replay 已接入。普通组队与本地对战入口、Electron 安装版、服务端批准环境目录及真实房间匹配仍见 #243/#244/#209/#224。完整 Mod 安装准入由 #218 跟踪。房间按建房时锁定的版本使用行为定义。服务器发布的环境从本房对应的服务器目录取材；私人 P2P 由参战者核对分享材料。取材和 Ready 均不修改环境声明或授予代码执行许可。见[内容读取边界](content-loading-boundaries.md)。

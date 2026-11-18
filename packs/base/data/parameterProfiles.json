@@ -1,0 +1,9 @@
+[
+  {
+    "id": "base:120",
+    "name": "120 资质实验",
+    "groups": {
+      "base:max-hp-excess-baseline": 576
+    }
+  }
+]

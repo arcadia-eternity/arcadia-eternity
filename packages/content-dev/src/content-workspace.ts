@@ -1,3 +1,9 @@
+import {
+  skillParameterCatalogSchema,
+  type SkillParameterCatalog,
+  readElementCatalog,
+  type ElementCatalogInput,
+} from '@arcadia-eternity/const'
 import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -7,12 +13,17 @@ import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import {
   normalizeEnvironmentDocument,
   EnvironmentDocumentV2Schema,
+  EnvironmentRulesSchema,
+  EnvironmentRuleDeclarationSchema,
   type EnvironmentDocumentV2,
 } from './debug-environments.ts'
+import { z } from 'zod'
 import { withSourceLock } from './source-lock.ts'
-import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
+import { contentError, readJson, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
+import { parseManifestDraft, preparedDocument } from './prepared-document.ts'
+export { readInstalledEnvironmentDocument } from './prepared-document.ts'
 export { normalizeEnvironmentDocument } from './debug-environments.ts'
 export type { EnvironmentRules } from './debug-environments.ts'
 export type EnvironmentDocument = EnvironmentDocumentV2
@@ -20,6 +31,22 @@ export interface EnvironmentDraft {
   document: EnvironmentDocument
   revision: string
 }
+const compositionSchema = z
+  .object({
+    rules: EnvironmentRulesSchema,
+    fields: z.array(
+      z.object({
+        path: z.array(z.string()),
+        value: z.unknown(),
+        sources: z.array(z.string()),
+        effectiveSources: z.array(z.string()),
+      }),
+    ),
+    ruleSets: z.array(z.object({ id: z.string(), name: z.string(), rules: EnvironmentRuleDeclarationSchema })),
+  })
+  .strict()
+export type PreparedRuleComposition = z.infer<typeof compositionSchema>
+
 export interface EnvironmentInstallation {
   format: 'arcadia.environment-installation/1'
   installationId: string
@@ -28,6 +55,9 @@ export interface EnvironmentInstallation {
   document: EnvironmentDocument
   draftRevision: string
   contentRevision: string
+  ruleComposition?: PreparedRuleComposition
+  skillParameters?: SkillParameterCatalog
+  elementCatalog?: ReturnType<typeof readElementCatalog>
   members?: EnvironmentMember[]
   packages: unknown[]
   createdAt: number
@@ -59,6 +89,9 @@ export type StaticPreparer = (input: {
 }) => Promise<{
   contentRevision: string
   packages?: unknown[]
+  ruleComposition?: PreparedRuleComposition
+  skillParameters?: SkillParameterCatalog
+  elementCatalog?: ReturnType<typeof readElementCatalog>
 }>
 export interface ContentWorkspaceOptions {
   maxBytes?: number
@@ -157,11 +190,6 @@ const checkId = (id: unknown, pattern = uuid): string => {
   if (typeof id !== 'string' || !pattern.test(id)) throw contentError('RESOURCE_ID_INVALID')
   return id
 }
-async function readJson<T = UnknownRecord>(file: string, limit = 4 * 1024 * 1024): Promise<T> {
-  const info = await lstat(file)
-  if (!info.isFile() || info.isSymbolicLink() || info.size > limit) throw contentError('WORKSPACE_FILE_INVALID')
-  return JSON.parse(await readFile(file, 'utf8')) as T
-}
 async function regularDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true, mode: 0o700 })
   const info = await lstat(path)
@@ -179,6 +207,9 @@ export interface EnvironmentMember {
 }
 
 interface PreparationResult {
+  ruleComposition?: PreparedRuleComposition
+  skillParameters?: SkillParameterCatalog
+  elementCatalog?: ReturnType<typeof readElementCatalog>
   contentRevision: string
   packages: unknown[]
   members: EnvironmentMember[]
@@ -218,6 +249,13 @@ async function checkedPreparation(
   return {
     contentRevision: result.contentRevision,
     packages,
+    ...(result.ruleComposition !== undefined && { ruleComposition: compositionSchema.parse(result.ruleComposition) }),
+    ...(result.skillParameters !== undefined && {
+      skillParameters: skillParameterCatalogSchema.parse(result.skillParameters),
+    }),
+    ...(isRecord(result.elementCatalog) && {
+      elementCatalog: readElementCatalog(result.elementCatalog as ElementCatalogInput),
+    }),
     members: (inspection.members ?? []) as EnvironmentMember[],
   }
 }
@@ -234,8 +272,7 @@ function activeProcess(pid: number): boolean {
   }
 }
 
-/** One owner edits persistent npm projects. Prepared metadata is a disposable receipt,
- * never a selectable historical version. Runtime loaders capture their own inputs. */
+/** One write owner publishes prepared documents alongside the locked npm materials. */
 class ContentWorkspaceImplementation implements ContentWorkspace {
   readonly root: string
   readonly bootId = randomUUID()
@@ -350,17 +387,9 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     if ((await realpath(directory)) !== directory) throw contentError('WORKSPACE_PATH_INVALID')
     await readJson(join(directory, 'package.json'))
     const text = await readFile(join(this.#directory(id), 'package.json'), 'utf8')
-    const manifest = JSON.parse(text) as UnknownRecord
-    if (!isRecord(manifest.arcadiaEnvironment) || !isRecord(manifest.dependencies))
-      throw contentError('ENVIRONMENT_MANIFEST_INVALID')
-    const sources = manifest.arcadiaEnvironment.sources
-    if (!Array.isArray(sources)) throw contentError('ENVIRONMENT_MANIFEST_INVALID')
-    const document = normalizeEnvironmentDocument({
-      ...manifest.arcadiaEnvironment,
-      packages: Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !sources.includes(name))),
-    })
-    if (document.id !== id) throw contentError('ENVIRONMENT_ID_MISMATCH')
-    return { document, revision: revision(text) }
+    const draft = parseManifestDraft(text)
+    if (draft.document.id !== id) throw contentError('ENVIRONMENT_ID_MISMATCH')
+    return draft
   }
   listDrafts() {
     return this.#exclusive(() => this.#listDrafts())
@@ -389,6 +418,15 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         throw contentError('REVISION_CONFLICT')
       await regularDirectory(directory)
       await this.#archiveRemovedDeclarations(document.id)
+      if (previous !== null) {
+        const receiptFile = join(directory, '.arcadia-prepared.json')
+        const receipt = await readJson(receiptFile).catch(error => {
+          if (errorCode(error) !== 'ENOENT') throw error
+          return undefined
+        })
+        if (receipt && !receipt.document && receipt.draftRevision === revision(previous))
+          await writeFileAtomic(receiptFile, json({ ...receipt, document: parseManifestDraft(previous).document }))
+      }
       await writeFileAtomic(file, json(this.#manifest(document, previous ? JSON.parse(previous) : {})))
       return this.#draft(document.id)
     }, true)
@@ -406,7 +444,6 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     const directory = this.#directory(id)
     await readJson(join(directory, 'package-lock.json'), 16 * 1024 * 1024)
     await lstat(join(directory, 'node_modules'))
-    const draft = await this.#draft(id)
     const metadata = await readJson(join(directory, '.arcadia-prepared.json'))
     if (
       metadata.format !== 'arcadia.environment-installation/1' ||
@@ -414,13 +451,16 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       typeof metadata.contentRevision !== 'string'
     )
       throw contentError('ENVIRONMENT_INSTALLATION_INVALID')
-    // The manifest is authoritative. Metadata describes preparation, not a frozen document.
+    const document = preparedDocument(
+      metadata,
+      metadata.document === undefined ? await readFile(join(directory, 'package.json'), 'utf8') : '',
+    )
     return {
       ...metadata,
       installationId: id,
       environmentId: id,
       workspaceId: this.workspaceId,
-      document: draft.document,
+      document,
       directory,
       materialDirectory: `environments/${id}`,
       status: 'ready',
@@ -518,10 +558,14 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         json({
           format: 'arcadia.environment-installation/1',
           installationId: document.id,
+          document,
           draftRevision: revision(text),
           contentRevision: result.contentRevision,
           packages: result.packages,
           members: result.members,
+          ruleComposition: result.ruleComposition,
+          skillParameters: result.skillParameters,
+          elementCatalog: result.elementCatalog,
           createdAt: Date.now(),
           ...(input.importId ? { importId: input.importId } : {}),
         }),
@@ -720,7 +764,9 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
             join(staging, 'package.json'),
             json({ ...manifest, dependencies: lock.packages['']?.dependencies ?? {} }),
           )
-          const result = await preparer({ directory: staging, draft: drafts.get(id)! })
+          const applied = normalizeEnvironmentDocument(entry.version.document)
+          if (applied.id !== id) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+          const result = await preparer({ directory: staging, draft: applied })
           await inspectNpmProject(staging)
           await writeFile(join(staging, 'package.json'), manifestText)
           await writeFile(
@@ -730,6 +776,9 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
               format: 'arcadia.environment-installation/1',
               contentRevision: result.contentRevision,
               packages: result.packages ?? [],
+              ruleComposition: result.ruleComposition,
+              skillParameters: result.skillParameters,
+              elementCatalog: result.elementCatalog,
             }),
           )
           await rename(staging, this.#directory(id))

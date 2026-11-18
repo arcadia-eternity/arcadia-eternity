@@ -49,6 +49,7 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:*",
+    "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/schema": "workspace:*",
     "es-module-lexer": "3.0.4",
     "rolldown": "1.3.1",

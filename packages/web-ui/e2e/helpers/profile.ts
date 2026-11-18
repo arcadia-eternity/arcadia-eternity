@@ -1,5 +1,5 @@
 import type { Page } from 'playwright/test'
-import type { ProfileData } from '@arcadia-eternity/local-profile'
+import { expandTeam, type ProfileData } from '@arcadia-eternity/local-profile'
 
 /** Read committed browser data without accessing stores or mutating the application. */
 export async function readPersistedProfile(page: Page): Promise<ProfileData | null> {
@@ -26,4 +26,9 @@ export async function readPersistedProfile(page: Page): Promise<ProfileData | nu
         }
       }),
   )
+}
+
+export async function readPersistedTeam(page: Page, index = 0) {
+  const data = await readPersistedProfile(page)
+  return data?.library.teams[index] ? expandTeam(data.library, index).pets : null
 }

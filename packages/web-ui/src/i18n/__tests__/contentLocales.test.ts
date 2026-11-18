@@ -2,6 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import YAML from 'yaml'
 import { mount } from '@vue/test-utils'
+import { readSkillParameterCatalog } from '@arcadia-eternity/const'
+import { useGameDataStore } from '@/stores/gameData'
 import { createPinia } from 'pinia'
 import i18next from 'i18next'
 import I18NextVue from 'i18next-vue'
@@ -83,6 +85,12 @@ it.each([
   ['author template', template],
 ] as const)('renders every %s description with the production formatter', (_name, rows) => {
   expect(rows.length).toBeGreaterThan(0)
+  const game = useGameDataStore(createPinia())
+  if (rows === base) {
+    const { data } = JSON.parse(readFileSync(join(root, 'packs/base/dist/content.json'), 'utf8'))
+    game.skillParameterCatalog = readSkillParameterCatalog(data)
+  }
+  const parameters = game.descriptionParameters
   const errors: string[] = []
   for (const row of rows) {
     // Exercise plural zero/one/other and all skill categories, not just syntax compilation.
@@ -92,7 +100,11 @@ it.each([
       [40, 'Status'],
     ] as const) {
       try {
-        formatRichDescription(row.text, row.language, descriptionValues({ power, category, accuracy: 95, stack: 12 }))
+        formatRichDescription(
+          row.text,
+          row.language,
+          descriptionValues({ power, category, accuracy: 95, stack: 12, ...parameters.get(row.id) }),
+        )
       } catch (error) {
         errors.push(`${row.file} → ${row.id}.description: ${(error as Error).message}`)
         break

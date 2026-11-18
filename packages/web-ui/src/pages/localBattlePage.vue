@@ -162,7 +162,6 @@ const timerConfig = ref<TimerConfig>({
 const presets = {
   default: {
     battle: {
-      allowFaintSwitch: true,
       showHidden: true,
       rngSeed: undefined,
       teamSelection: {
@@ -184,7 +183,6 @@ const presets = {
   },
   fast: {
     battle: {
-      allowFaintSwitch: true,
       showHidden: true,
       rngSeed: undefined,
       teamSelection: {
@@ -210,7 +208,6 @@ const presets = {
   },
   competitive: {
     battle: {
-      allowFaintSwitch: true,
       showHidden: false, // 竞技模式不显示隐藏信息
       rngSeed: undefined,
       teamSelection: {
@@ -236,7 +233,6 @@ const presets = {
   },
   teamSelection: {
     battle: {
-      allowFaintSwitch: true,
       showHidden: true,
       rngSeed: undefined,
       teamSelection: {

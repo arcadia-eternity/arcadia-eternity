@@ -1,0 +1,210 @@
+[
+  {
+    "id": "base:evolve-1",
+    "name": "神化一星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 30,
+      "atk": 10,
+      "def": 10,
+      "spa": 10,
+      "spd": 10,
+      "spe": 5
+    }
+  },
+  {
+    "id": "base:evolve-2",
+    "name": "神化二星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 35,
+      "atk": 15,
+      "def": 15,
+      "spa": 15,
+      "spd": 15,
+      "spe": 10
+    }
+  },
+  {
+    "id": "base:evolve-3",
+    "name": "神化三星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 40,
+      "atk": 20,
+      "def": 20,
+      "spa": 20,
+      "spd": 20,
+      "spe": 15
+    }
+  },
+  {
+    "id": "base:evolve-4",
+    "name": "神化四星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 45,
+      "atk": 25,
+      "def": 25,
+      "spa": 25,
+      "spd": 25,
+      "spe": 20
+    }
+  },
+  {
+    "id": "base:evolve-5",
+    "name": "圣化一星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 50,
+      "atk": 30,
+      "def": 30,
+      "spa": 30,
+      "spd": 30,
+      "spe": 25
+    }
+  },
+  {
+    "id": "base:evolve-6",
+    "name": "圣化二星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 55,
+      "atk": 35,
+      "def": 35,
+      "spa": 35,
+      "spd": 35,
+      "spe": 30
+    }
+  },
+  {
+    "id": "base:evolve-7",
+    "name": "圣化三星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 60,
+      "atk": 40,
+      "def": 40,
+      "spa": 40,
+      "spd": 40,
+      "spe": 35
+    }
+  },
+  {
+    "id": "base:evolve-8",
+    "name": "圣化四星",
+    "branch": "divine",
+    "bonus": {
+      "hp": 65,
+      "atk": 45,
+      "def": 45,
+      "spa": 45,
+      "spd": 45,
+      "spe": 40
+    }
+  },
+  {
+    "id": "base:evolve-1001",
+    "name": "魔化一星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 30,
+      "atk": 20,
+      "def": 0,
+      "spa": 20,
+      "spd": 0,
+      "spe": 5
+    }
+  },
+  {
+    "id": "base:evolve-1002",
+    "name": "魔化二星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 35,
+      "atk": 30,
+      "def": 0,
+      "spa": 30,
+      "spd": 0,
+      "spe": 10
+    }
+  },
+  {
+    "id": "base:evolve-1003",
+    "name": "魔化三星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 40,
+      "atk": 40,
+      "def": 0,
+      "spa": 40,
+      "spd": 0,
+      "spe": 15
+    }
+  },
+  {
+    "id": "base:evolve-1004",
+    "name": "魔化四星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 45,
+      "atk": 50,
+      "def": 0,
+      "spa": 50,
+      "spd": 0,
+      "spe": 20
+    }
+  },
+  {
+    "id": "base:evolve-1005",
+    "name": "冥化一星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 50,
+      "atk": 60,
+      "def": 0,
+      "spa": 60,
+      "spd": 0,
+      "spe": 25
+    }
+  },
+  {
+    "id": "base:evolve-1006",
+    "name": "冥化二星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 55,
+      "atk": 70,
+      "def": 0,
+      "spa": 70,
+      "spd": 0,
+      "spe": 30
+    }
+  },
+  {
+    "id": "base:evolve-1007",
+    "name": "冥化三星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 60,
+      "atk": 80,
+      "def": 0,
+      "spa": 80,
+      "spd": 0,
+      "spe": 35
+    }
+  },
+  {
+    "id": "base:evolve-1008",
+    "name": "冥化四星",
+    "branch": "demonic",
+    "bonus": {
+      "hp": 65,
+      "atk": 90,
+      "def": 0,
+      "spa": 90,
+      "spd": 0,
+      "spe": 40
+    }
+  }
+]

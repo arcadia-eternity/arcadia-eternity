@@ -2,7 +2,6 @@ import type { TimerConfig } from '@arcadia-eternity/const'
 import type { NativeWebBattleConfig } from './nativeBattleFactory'
 
 export interface BattleConfiguration {
-  allowFaintSwitch: boolean
   showHidden: boolean
   rngSeed?: number
   teamSelection: {
@@ -18,7 +17,6 @@ export interface BattleConfiguration {
 }
 export function createBattleConfiguration(): BattleConfiguration {
   return {
-    allowFaintSwitch: true,
     showHidden: true,
     rngSeed: undefined,
     teamSelection: {
@@ -38,7 +36,6 @@ export function battleOptions(config: BattleConfiguration, timer: TimerConfig): 
   const { enabled, ...selection } = config.teamSelection
   return JSON.parse(
     JSON.stringify({
-      allowFaintSwitch: config.allowFaintSwitch,
       showHidden: config.showHidden,
       ...(typeof config.rngSeed === 'number' ? { rngSeed: config.rngSeed } : {}),
       timerConfig: timer,

@@ -8,7 +8,7 @@
     <div v-else-if="teams.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
       <button
         v-for="(team, index) in teams"
-        :key="index"
+        :key="team.id"
         type="button"
         :aria-pressed="selectedTeamIndex === index"
         :data-testid="`team-option-${index}`"
@@ -23,6 +23,7 @@
         <div class="text-sm text-gray-600 mt-1">{{ team.pets.map(pet => pet.name).join('、') }}</div>
       </button>
     </div>
+    <p v-if="roomCode && modelValue && selectedTeamIndex < 0">{{ modelValue.name }} · 本场配法</p>
     <ul v-if="validationErrors.length" class="text-sm text-orange-600 space-y-1" role="alert">
       <li v-for="error in validationErrors" :key="error">{{ error }}</li>
     </ul>
@@ -39,7 +40,7 @@ import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
 
-type SelectedTeam = { name: string; pets: unknown[]; ruleSetId?: string }
+type SelectedTeam = { id?: string; name: string; pets: unknown[]; ruleSetId?: string }
 const props = defineProps<{ modelValue: SelectedTeam | null; roomCode?: string }>()
 const emit = defineEmits<{
   'update:modelValue': [team: SelectedTeam | null]
@@ -58,7 +59,7 @@ const selectedTeamIndex = computed(() =>
   props.modelValue
     ? teams.value.findIndex(
         team =>
-          team === props.modelValue || (team.name === props.modelValue?.name && team.pets === props.modelValue?.pets),
+          team.id === props.modelValue?.id || team === props.modelValue || (team.name === props.modelValue?.name && team.pets === props.modelValue?.pets),
       )
     : -1,
 )
@@ -66,7 +67,10 @@ const validationErrors = computed(() =>
   isInitialized.value && props.modelValue ? validateBasicTeam(props.modelValue.pets, gameDataStore) : [],
 )
 function selectTeam(index: number) {
-  emit('update:modelValue', teams.value[index] ?? null)
+  const team = teams.value[index]
+  if (!team) return
+  emit('update:modelValue', { id: team.id, name: team.name, ruleSetId: team.ruleSetId,
+    pets: JSON.parse(JSON.stringify(team.pets)) })
 }
 watch(
   [isInitialized, () => props.modelValue, validationErrors],

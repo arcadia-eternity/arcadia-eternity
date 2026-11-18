@@ -28,10 +28,13 @@
   },
   "files": [
     "assets/**/*",
+    "environment/*.json",
     "dist/**/*",
     "LICENSE"
   ],
   "exports": {
+    "./environment/test-120-rules.json": "./environment/test-120-rules.json",
+    "./environment/base-rules.json": "./environment/base-rules.json",
     "./metadata": {
       "types": "./dist/metadata.d.ts",
       "import": "./dist/metadata.mjs",

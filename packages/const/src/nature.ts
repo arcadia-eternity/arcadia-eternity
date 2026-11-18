@@ -55,3 +55,40 @@ export const NatureMap: Record<Nature, Record<StatType, number>> = {
   Careful: { hp: 1, atk: 1, def: 1, spa: 0.9, spd: 1.1, spe: 1 },
   Quirky: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 },
 } as const
+
+export interface NatureDefinition {
+  id: string
+  name: string
+  generation: 1 | 2
+  multipliers: Record<StatType, number>
+}
+
+/** Compatibility catalog for content created before packages could supply natures. */
+export function legacyNatures(): NatureDefinition[] {
+  return Object.values(Nature).map(id => ({ id, name: id, generation: 1, multipliers: { ...NatureMap[id] } }))
+}
+
+export function readNatureCatalog(input?: readonly unknown[]): NatureDefinition[] {
+  if (input === undefined) return legacyNatures()
+  if (!Array.isArray(input) || input.length > 10000) throw new Error('INVALID_NATURE_CATALOG')
+  const ids = new Set<string>()
+  const stats = Object.values(StatType)
+  return input.map(row => {
+    const nature = row as Partial<NatureDefinition> | null
+    if (
+      !nature ||
+      typeof nature.id !== 'string' ||
+      !/^[\w.:/-]{1,256}$/.test(nature.id) ||
+      ids.has(nature.id) ||
+      typeof nature.name !== 'string' ||
+      !nature.name.trim() ||
+      ![1, 2].includes(nature.generation ?? 0) ||
+      !nature.multipliers ||
+      Object.keys(nature.multipliers).length !== stats.length ||
+      stats.some(stat => !Number.isFinite(nature.multipliers?.[stat]) || nature.multipliers![stat] <= 0)
+    )
+      throw new Error('INVALID_NATURE_DEFINITION: ' + nature?.id)
+    ids.add(nature.id)
+    return { id: nature.id, name: nature.name, generation: nature.generation!, multipliers: { ...nature.multipliers } }
+  })
+}

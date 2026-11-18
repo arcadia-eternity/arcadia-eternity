@@ -9,6 +9,7 @@ import {
   IgnoreStageStrategy,
   Nature,
   NatureMap,
+  trainingStat,
   type petId,
   type PetMessage,
   RAGE_PER_TURN,
@@ -83,7 +84,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     public readonly level: number,
     public readonly evs: StatOutBattle,
     public readonly ivs: StatOutBattle,
-    public readonly nature: Nature,
+    public readonly nature: string,
     public readonly baseSkills: BaseSkill[],
     public readonly ability?: BaseMark,
     public readonly emblem?: BaseMark,
@@ -91,6 +92,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     public readonly height?: number,
     gender?: Gender,
     public readonly maxHp?: number, //可以额外手动设置hp
+    public readonly natureMultipliers?: StatOutBattle,
+    public readonly enhancementBonus?: StatOutBattle,
   ) {
     this._base = originalSpecies
 
@@ -223,14 +226,15 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   private calculateStatWithoutHp(type: StatTypeWithoutHp): number {
-    const baseStat = this.base.baseStats[type]
-    const natureMultiplier = NatureMap[this.nature][type]
-    const level = this.level
-    const iv = this.ivs[type]
-    const ev = this.evs[type]
-    const base = Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100 + 5) * natureMultiplier
-
-    return base
+    return trainingStat(
+      type,
+      this.base.baseStats[type],
+      this.level,
+      this.ivs[type],
+      this.evs[type],
+      (this.natureMultipliers ?? NatureMap[this.nature as Nature])[type],
+      this.owner?.battle?.enhancementActive ? this.enhancementBonus?.[type] : 0,
+    )
   }
 
   private calculateStatOnlyBattle(type: StatTypeOnBattle): number {
@@ -272,12 +276,15 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   private calculateMaxHp(): number {
     if (this.maxHp !== undefined) return this.maxHp
-    const baseStat = this.base.baseStats.hp
-    const level = this.level
-    const iv = this.ivs.hp
-    const ev = this.evs.hp
-    const base = Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + level + 10
-    return base
+    return trainingStat(
+      'hp',
+      this.base.baseStats.hp,
+      this.level,
+      this.ivs.hp,
+      this.evs.hp,
+      (this.natureMultipliers ?? NatureMap[this.nature as Nature]).hp,
+      this.owner?.battle?.enhancementActive ? this.enhancementBonus?.hp : 0,
+    )
   }
 
   public setOwner(player: Player, emitter: Emitter<Events>) {

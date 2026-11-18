@@ -63,7 +63,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useTranslation } from 'i18next-vue'
-import { Element, Category } from '@arcadia-eternity/const'
+import { useGameDataStore } from '@/stores/gameData'
+import { type Element, Category } from '@arcadia-eternity/const'
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 const { i18next } = useTranslation()
@@ -82,7 +83,8 @@ const emit = defineEmits<{
 }>()
 
 // 属性选项
-const elementOptions = computed(() => Object.values(Element))
+const data = useGameDataStore()
+const elementOptions = computed(() => data.elementCatalog.elements.map(row => row.id))
 
 // 分类选项
 const categoryOptions = computed(() => Object.values(Category))
@@ -101,7 +103,7 @@ function handleElementChange(event: Event) {
 // 获取属性名称
 function getElementName(element: Element): string {
   try {
-    return i18next.t(`element.${element}`, { ns: 'battle' }) || element
+    return i18next.t(`element.${element}`, { ns: 'battle', defaultValue: data.getElement(element)?.name ?? element })
   } catch {
     return element
   }

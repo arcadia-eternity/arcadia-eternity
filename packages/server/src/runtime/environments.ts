@@ -1,5 +1,10 @@
-import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
-import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
+import {
+  prepareEnvironmentRules,
+  validateEnvironmentRules,
+  assertRuleContentReferences,
+} from '@arcadia-eternity/content-sdk/environment-rules'
+import { buildDisplayCatalog, buildDisplayLocales, canonical } from '@arcadia-eternity/pack-loader/native'
+import { resolveSkillParameters, requireElementChart } from '@arcadia-eternity/const'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
@@ -205,6 +210,20 @@ export class ServerEnvironmentRegistry {
   retainedIds(): string[] {
     return [...new Set([...this.entries.keys(), ...this.disposingIds])]
   }
+  /** Resolve admission against the same captured catalog that the room host will use. */
+  prepareRules(runtimeId: string, declaration: unknown) {
+    const composition = prepareEnvironmentRules(declaration, this.entry(runtimeId).runtime.sandbox?.data.ruleSets)
+    const { rules } = composition
+    const catalog = this.content(runtimeId)
+    resolveSkillParameters(catalog.skillParameters ?? { groups: [], profiles: [], members: [] }, rules.skillParameters)
+    requireElementChart(catalog, rules.matchups)
+    const species = new Set(catalog.species.map(row => row.id))
+    const skills = new Set(catalog.skills.map(row => row.id))
+    const marks = new Set(catalog.marks.map(row => row.id))
+    const stages = new Set(catalog.enhancements?.map(row => row.id))
+    assertRuleContentReferences(rules, { species, skill: skills, mark: marks, stage: stages }, composition.fields)
+    return composition
+  }
   /** Atomically replace admission policy; removing publication never invalidates existing leases. */
   setPublication(entries: readonly EnvironmentPublication[], defaultRuntimeId?: string): void {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
@@ -214,7 +233,7 @@ export class ServerEnvironmentRegistry {
       if (entry.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
       let rules: EnvironmentAdmissionRules
       try {
-        rules = validateEnvironmentRules(publication.rules)
+        rules = this.prepareRules(publication.runtimeId, publication.rules).rules
       } catch (error) {
         const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined
         throw new EnvironmentError(code === 'ENVIRONMENT_RULES_UNSUPPORTED' ? code : 'ENVIRONMENT_RULES_INVALID')
@@ -258,10 +277,27 @@ export class ServerEnvironmentRegistry {
   }
   private publicDescriptor(entry: PublishedEnvironment): ServerEnvironmentDescriptor {
     const descriptor = structuredClone(entry.descriptor)
-    const policy = this.publication?.get(entry.descriptor.id)?.executionPolicy
+    const publication = this.publication?.get(entry.descriptor.id)
+    const policy = publication?.executionPolicy
+    const rules = structuredClone(publication?.rules ?? { schemaVersion: 1 as const })
+    const gameplayRevision = createHash('sha256')
+      .update(
+        canonical({
+          runtime: descriptor.runtime,
+          material: entry.runtime.sandbox?.revision ?? descriptor.runtime.contentRevision,
+          rules,
+        }),
+      )
+      .digest('hex')
     const peerRevision = (entry.bundled || this.peerMaterialIds.has(descriptor.id)) && entry.runtime.sandbox?.revision
     return {
       ...descriptor,
+      gameplayRevision,
+      ...(publication?.environmentId && {
+        environmentId: publication.environmentId,
+        environmentName: publication.environmentName,
+      }),
+      rules,
       ...(policy ? { executionPolicy: policy } : {}),
       ...(peerRevision ? { peerRevision } : {}),
     }

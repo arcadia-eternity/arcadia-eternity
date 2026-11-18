@@ -14,6 +14,15 @@ export const PackPathsSchema = Type.Object({
 })
 
 export const PackDataFilesSchema = Type.Object({
+  behaviors: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  parameterGroups: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  parameterProfiles: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  ruleSets: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  parameterBindings: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  elements: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  matchupTables: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  enhancements: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  natures: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
   effects: Type.Array(Type.String({ minLength: 1 })),
   marks: Type.Array(Type.String({ minLength: 1 })),
   skills: Type.Array(Type.String({ minLength: 1 })),

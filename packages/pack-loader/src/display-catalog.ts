@@ -8,6 +8,12 @@ import {
   type PresentationManifest,
   type ResourceReference,
 } from '@arcadia-eternity/schema'
+import {
+  readSkillParameterCatalog,
+  readElementCatalog,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
 import { presentationIndex } from './presentation'
 
 type DisplayPackage = { namespace: string; manifest: PresentationManifest }
@@ -45,7 +51,14 @@ export function buildDisplayCatalog(
       ...(typeof record.description === 'string' && { description: record.description }),
     }
   }
+  const skillParameters = readSkillParameterCatalog(data)
   const result = {
+    ...(skillParameters.members.length || skillParameters.groups.length || skillParameters.profiles.length
+      ? { skillParameters }
+      : {}),
+    ...((data.elements !== undefined || data.matchupTables !== undefined) && readElementCatalog(data)),
+    ...(data.enhancements !== undefined && { enhancements: readEnhancementStages(data.enhancements) }),
+    ...(data.natures !== undefined && { natures: readNatureCatalog(data.natures) }),
     species: data.species.map(raw => ({ ...parseWithErrors(SpeciesSchema, raw), ...text(raw) })),
     skills: data.skills.map(raw => {
       const { effect: _effect, ...display } = parseWithErrors(SkillSchema, raw)

@@ -15,7 +15,22 @@ import { recordSharing } from './lib/yaml-sharing.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
 const kinds = ['content', 'presentations', 'resources', 'assets', 'files', 'locales', 'diagnostics'] as const
-const contentKinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources'] as const
+const contentKinds = [
+  'species',
+  'skills',
+  'marks',
+  'behaviors',
+  'natures',
+  'enhancements',
+  'elements',
+  'parameterGroups',
+  'parameterProfiles',
+  'parameterBindings',
+  'ruleSets',
+  'matchupTables',
+  'presentations',
+  'resources',
+] as const
 const scopes = ['project', 'dependencies', 'all'] as const
 const details = ['summary', 'full'] as const
 const localeKinds: Record<string, string | undefined> = {

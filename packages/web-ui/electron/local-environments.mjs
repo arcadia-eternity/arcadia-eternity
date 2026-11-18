@@ -16,7 +16,8 @@ export class LocalEnvironments {
   #jobs = new Map()
   #closed = false
   #tail = Promise.resolve()
-  constructor({ openWorkspace, library, validate, addPackage, removePackage }) {
+  constructor({ openWorkspace, library, validate, addPackage, removePackage, baseRules }) {
+    this.baseRules = baseRules
     this.openWorkspace = openWorkspace
     this.library = library
     this.validate = validate
@@ -48,7 +49,7 @@ export class LocalEnvironments {
                 name: '默认环境',
                 packages: Object.fromEntries(lease.packages.map(pkg => [pkg.name, pkg.version])),
                 sources: [],
-                rules: { schemaVersion: 1 },
+                rules: this.baseRules ?? { schemaVersion: 1 },
                 requires: {},
               }
               await workspace.prepareEnvironment(
@@ -85,10 +86,11 @@ export class LocalEnvironments {
       await rm(temporary, { force: true })
     }
   }
-  async acquireProject() {
+  async acquireProject(environmentId) {
     const workspace = await this.ready()
-    if (!this.#selectedId) throw fail('LOCAL_ENVIRONMENT_NOT_SELECTED', '请选择本地使用的环境')
-    return workspace.acquire(this.#selectedId, 'local-play')
+    const id = environmentId ?? this.#selectedId
+    if (!id) throw fail('LOCAL_ENVIRONMENT_NOT_SELECTED', '请选择本地使用的环境')
+    return workspace.acquire(id, 'local-play')
   }
   async snapshot() {
     const workspace = await this.ready()

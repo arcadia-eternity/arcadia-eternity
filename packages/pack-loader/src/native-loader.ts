@@ -202,7 +202,20 @@ export class PackMetadataLoader extends PackTransport {
   }
 
   private async readMetadata(packs: readonly MetadataPack[], options: MetadataOptions) {
-    const data = { marks: [] as unknown[], skills: [] as unknown[], species: [] as unknown[] }
+    const data: {
+      parameterGroups?: unknown[]
+      parameterProfiles?: unknown[]
+      parameterBindings?: unknown[]
+      ruleSets?: unknown[]
+      behaviors?: unknown[]
+      elements?: unknown[]
+      matchupTables?: unknown[]
+      natures?: unknown[]
+      enhancements?: unknown[]
+      marks: unknown[]
+      skills: unknown[]
+      species: unknown[]
+    } = { marks: [], skills: [], species: [] }
     const locales: LocaleBundles = {}
     for (const pack of packs) {
       if (!pack.manifest.id || !pack.manifest.version || pack.manifest.engine !== 'seer2-v2' || !pack.manifest.data)
@@ -226,6 +239,27 @@ export class PackMetadataLoader extends PackTransport {
           data[kind].push(...rows)
         } else if (options.includeData !== false)
           for (const file of pack.manifest.data[kind]) data[kind].push(...(await pack.readData(file)))
+      for (const kind of [
+        'behaviors',
+        'natures',
+        'enhancements',
+        'elements',
+        'parameterGroups',
+        'parameterProfiles',
+        'parameterBindings',
+        'ruleSets',
+        'matchupTables',
+      ] as const) {
+        const rows = compiled?.[kind]
+        const files = pack.manifest.data[kind]
+        if (rows !== undefined) {
+          if (!Array.isArray(rows) || files?.length) throw new Error('Invalid compiled content: ' + kind)
+          ;(data[kind] ??= []).push(...rows)
+        } else if (options.includeData !== false && files) {
+          const entries = (data[kind] ??= [])
+          for (const file of files) entries.push(...(await pack.readData(file)))
+        }
+      }
       if (options.includeLocales === false) continue
       const entries = Array.isArray(pack.manifest.locales)
         ? pack.manifest.locales.map(item => ({

@@ -1,9 +1,9 @@
-import { readPersistedProfile } from './helpers/profile'
+import { readPersistedProfile, readPersistedTeam } from './helpers/profile'
 import { expect, test } from 'playwright/test'
 
-async function seedUnresolvedTeam(page: import('playwright/test').Page, missingSpecies = false) {
+async function seedUnresolvedTeam(page: import('playwright/test').Page, missingSpecies = false, replacement = false) {
   await page.addInitScript(
-    ({ missingSpecies }) => {
+    ({ missingSpecies, replacement }) => {
       if (localStorage.getItem('missing-content-seeded')) return
       localStorage.setItem('missing-content-seeded', '1')
       const pet = {
@@ -22,14 +22,25 @@ async function seedUnresolvedTeam(page: import('playwright/test').Page, missingS
       localStorage.setItem(
         'petStorage',
         JSON.stringify({
-          storage: [],
+          storage: replacement
+            ? [
+                {
+                  ...pet,
+                  id: 'b'.repeat(21),
+                  name: '常用配法',
+                  skills: ['skill_qili'],
+                  ability: undefined,
+                  emblem: undefined,
+                },
+              ]
+            : [],
           teams: [{ name: '缺失内容队伍', pets: [pet], ruleSetId: 'casual_standard_ruleset' }],
           currentTeamIndex: 0,
           lastMatchingConfig: null,
         }),
       )
     },
-    { missingSpecies },
+    { missingSpecies, replacement },
   )
 }
 
@@ -38,18 +49,22 @@ test('editing recognized skills and saving never removes unresolved references',
   await page.goto('/team-builder')
   await page.getByText('保留精灵', { exact: true }).click()
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-skill')
+  await page.getByRole('tab', { name: '养成' }).click()
+  await expect(page.getByRole('heading', { name: '能力值配置' })).toBeVisible()
+  await expect(page.getByTestId('normal-skill-0')).toBeHidden()
+  await page.getByRole('tab', { name: '配招' }).click()
   const skill = page.getByTestId('normal-skill-0')
   await skill.hover()
   await skill.locator('.el-select__clear').click()
   await page.getByPlaceholder('输入精灵名称').fill('仍然保留')
   await page.getByRole('button', { name: '保存', exact: true }).click()
   await expect
-    .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.skills)
+    .poll(async () => (await readPersistedTeam(page))?.[0]?.skills)
     .toEqual(['custom:missing-skill', 'skill_fenlitupo'])
   await page.reload()
   await page.getByText('仍然保留', { exact: true }).click()
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-skill')
-  const saved = (await readPersistedProfile(page))!.library.teams[0].pets[0]
+  const saved = (await readPersistedTeam(page))![0]
   expect(saved.ability).toBe('custom:missing-ability')
   expect(saved.emblem).toBe('custom:missing-emblem')
   expect(saved.gender).toBe('Female')
@@ -62,14 +77,14 @@ test('a missing species remains editable, exportable and saved with its original
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
   await page.getByPlaceholder('输入精灵名称').fill('失联但保留')
   await page.getByRole('button', { name: '保存', exact: true }).click()
-  await expect.poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.name).toBe('失联但保留')
+  await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.name).toBe('失联但保留')
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: '导出', exact: true }).click()
   expect((await download).suggestedFilename()).toMatch(/\.yaml$/)
   await page.reload()
   await page.getByText('失联但保留', { exact: true }).click()
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
-  const saved = (await readPersistedProfile(page))!.library.teams[0].pets[0]
+  const saved = (await readPersistedTeam(page))![0]
   expect(saved.species).toBe('custom:missing-pet')
   expect(saved.skills).toEqual(['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'])
 })
@@ -89,9 +104,7 @@ test('the editor opens and saves while the animation runtime is still loading', 
     await page.getByText('休罗斯', { exact: true }).first().click()
     await page.getByPlaceholder('输入精灵名称').fill('白屏修复测试')
     await page.getByRole('button', { name: '保存', exact: true }).click()
-    await expect
-      .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.name)
-      .toBe('白屏修复测试')
+    await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.name).toBe('白屏修复测试')
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.getByText('白屏修复测试', { exact: true }).click()
     await expect(page.getByPlaceholder('输入精灵名称')).toHaveValue('白屏修复测试')
@@ -117,4 +130,133 @@ test('navigation keeps the editor in the viewport from its first rendered frame'
     throw new Error('队伍编辑器未渲染')
   })
   expect(position.top).toBeLessThan(position.viewport)
+})
+
+test('previews a warehouse replacement in the current environment and saves just the member reference', async ({
+  page,
+}) => {
+  await seedUnresolvedTeam(page, false, true)
+  await page.goto('/team-builder')
+  await page.getByRole('button', { name: '更换精灵', exact: true }).click()
+  await page.getByRole('radio', { name: /常用配法/ }).check()
+  await expect(page.getByText('替换后整队可用')).toBeVisible()
+  await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.name).toBe('保留精灵')
+  await page.getByRole('button', { name: '更换本队成员' }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.name).toBe('常用配法')
+  const profile = await readPersistedProfile(page)
+  expect(profile?.library.storage).toHaveLength(2)
+  expect(profile?.library.storage.find(pet => pet.name === '保留精灵')?.skills).toContain('custom:missing-skill')
+})
+
+test('compares training under one environment and only persists an adopted spread', async ({ page }) => {
+  await seedUnresolvedTeam(page)
+  await page.goto('/team-builder')
+  await page.getByRole('tab', { name: '养成' }).click()
+  const iv = page.getByRole('spinbutton', { name: '体力个体值' })
+  await page.getByRole('button', { name: '试算养成' }).click()
+  await iv.fill('17')
+  const hp = page.getByLabel('原体力', { exact: true })
+  const before = Number((await hp.innerText()).replace('→', '').trim())
+  expect(before).toBeGreaterThan(31)
+  await expect(hp.locator('..')).toContainText(String(before - 14))
+  await page.getByLabel('体力计算明细').click()
+  await expect(page.getByText(/等级折算/).first()).toContainText('+ 17')
+  expect((await readPersistedTeam(page))?.[0]?.ivs.hp).toBe(31)
+  await page.getByRole('button', { name: '取消试算' }).click()
+  await expect(iv).toHaveValue('31')
+  await page.getByRole('button', { name: '试算养成' }).click()
+  await iv.fill('')
+  await iv.blur()
+  await expect(iv).toHaveValue('31')
+  await iv.fill('17')
+  await page.getByRole('button', { name: '采用配法' }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.ivs.hp).toBe(17)
+  expect((await readPersistedTeam(page))?.[0]?.skills).toContain('custom:missing-skill')
+})
+
+for (const scope of ['copy', 'original'] as const) {
+  test(`adopts a shared member trial using the ${scope} save scope`, async ({ page }) => {
+    await seedUnresolvedTeam(page)
+    await page.goto('/storage')
+    await page.getByRole('button', { name: '复制', exact: true }).first().click()
+    await expect.poll(async () => (await readPersistedProfile(page))?.library.teams.length).toBe(2)
+    await page.goto('/team-builder')
+    await page.getByRole('tab', { name: '养成' }).click()
+    await page.getByRole('button', { name: '试算养成' }).click()
+    await page.getByRole('spinbutton', { name: '体力个体值' }).fill('20')
+    await expect(page.getByText(/共用这只精灵的队伍/)).toContainText('缺失内容队伍 (副本)')
+    await expect(page.getByRole('list', { name: '试算改动' })).toContainText('体力个体值 31 → 20')
+    await page.getByRole('button', { name: '采用配法' }).click()
+    const apply = page.getByRole('button', {
+      name: scope === 'copy' ? '复制一只给本队' : /修改原精灵（同时影响 缺失内容队伍）/,
+    })
+    await expect(apply).toBeVisible()
+    expect((await readPersistedTeam(page, 1))?.[0]?.ivs.hp).toBe(31)
+    await apply.click()
+    await expect.poll(async () => (await readPersistedTeam(page, 1))?.[0]?.ivs.hp).toBe(20)
+    expect((await readPersistedTeam(page, 0))?.[0]?.ivs.hp).toBe(scope === 'copy' ? 31 : 20)
+    const teams = (await readPersistedProfile(page))!.library.teams
+    expect(teams[0].memberIds[0] === teams[1].memberIds[0]).toBe(scope === 'original')
+  })
+}
+
+test('previews a partial pet preset, checks dependencies and undoes the saved edit', async ({ page }) => {
+  await seedUnresolvedTeam(page)
+  await page.goto('/team-builder')
+  await page.getByText('保留精灵', { exact: true }).click()
+  await page.getByText('单宠预设', { exact: true }).click()
+  const file = page.getByLabel('导入预设')
+  const preset = {
+    format: 'arcadia.pet-preset',
+    version: 1,
+    species: 'pet_xiuluosi',
+    name: '体力试配',
+    fields: { ivs: { hp: 18 } },
+  }
+  const upload = (value: unknown) =>
+    file.setInputFiles({
+      name: 'pet.preset.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(value)),
+    })
+  const original = (await readPersistedTeam(page))![0]
+  await upload({ ...preset, species: 'other' })
+  await expect(page.getByRole('alert').filter({ hasText: '预设适用物种' })).toBeVisible()
+  await upload({ ...preset, requiredContent: { skills: ['absent:move'] } })
+  await expect(page.getByRole('list', { name: '预设依赖' })).toContainText('absent:move')
+  const apply = page.getByRole('button', { name: '应用为草稿' })
+  await expect(apply).toBeDisabled()
+  await upload(preset)
+  await expect(page.getByRole('list', { name: '预设改动' })).toContainText('体力个体值 31 → 18')
+  await expect(page.getByRole('list', { name: '预设能力值' })).toContainText(/体力 \d+ → \d+/)
+  expect((await readPersistedTeam(page))![0]).toEqual(original)
+  await apply.click()
+  await expect
+    .poll(async () => (await readPersistedTeam(page))![0])
+    .toEqual({
+      ...original,
+      ivs: { ...original.ivs, hp: 18 },
+    })
+  await page.getByRole('button', { name: '撤销预设' }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))![0]).toEqual(original)
+})
+
+test('confirms and undoes all changes to a member when switching species', async ({ page }) => {
+  await seedUnresolvedTeam(page)
+  await page.goto('/team-builder')
+  await page.getByText('保留精灵', { exact: true }).click()
+  const original = (await readPersistedTeam(page))![0]
+  const select = page.locator('[data-team-field="species"]')
+  await select.click()
+  await select.getByRole('combobox').fill('迪兰')
+  await page
+    .getByRole('option')
+    .filter({ has: page.getByText('迪兰', { exact: true }) })
+    .click()
+  await expect(page.getByRole('region', { name: '更换种族预览' })).toContainText('custom:missing-skill')
+  expect((await readPersistedTeam(page))![0]).toEqual(original)
+  await page.getByRole('button', { name: '确认更换种族' }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))![0].species).toBe('pet_dilan')
+  await page.getByRole('button', { name: '撤销更换种族' }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))![0]).toEqual(original)
 })

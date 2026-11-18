@@ -142,7 +142,7 @@ export class Player {
     }
 
     // 击破奖励更换逻辑（非SwitchPhase时）
-    if (this.battle?.lastKiller === this)
+    if (this.battle?.allowFaintSwitch && this.battle.lastKiller === this)
       return [
         {
           player: this.id,
@@ -216,7 +216,10 @@ export class Player {
     }
 
     // 正常情况下的do-nothing检查
-    return this.battle?.lastKiller === this || this.getAvailableSkills().length === 0
+    return (
+      (this.battle?.allowFaintSwitch === true && this.battle.lastKiller === this) ||
+      this.getAvailableSkills().length === 0
+    )
   }
 
   private checkSwitchAvailable(selection: SwitchPetSelection) {

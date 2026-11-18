@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { Gender, Nature } from '@arcadia-eternity/const'
-import { validateBasicTeam } from '../basicTeamValidation'
+import { memberIssues, validateBasicTeam } from '../basicTeamValidation'
 
 const pet = {
   id: 'a'.repeat(21),
@@ -42,5 +42,16 @@ describe('basic friend-room team validation', () => {
   })
   it('rejects duplicate pet instance IDs within one team', () => {
     expect(validateBasicTeam([pet, { ...pet }], content)).toEqual([expect.stringContaining('编号重复')])
+  })
+})
+
+it('evaluates a warehouse build independently of the minimum team size', () => {
+  const environment = { ...content, rules: { schemaVersion: 2 as const, team: { minSize: 2 } } }
+  expect(memberIssues(pet, environment)).toEqual([])
+  expect(validateBasicTeam([pet], environment)).toEqual([expect.stringContaining('2–6')])
+  expect(memberIssues({ ...pet, enhancement: 'test:divine' }, environment)).toContainEqual({
+    objectId: pet.id,
+    section: 'training',
+    message: expect.stringContaining('强化阶段'),
   })
 })

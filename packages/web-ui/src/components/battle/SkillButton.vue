@@ -75,7 +75,11 @@ const typeEffectivenessConfig = computed(() => {
   const opponentActivePet = battleStore.getPetById(opponent.activePet)
   if (!opponentActivePet) return { multiplier: 1, bgColor: '', type: 'normal' }
 
-  const effectivenessConfig = getSkillTypeEffectiveness(props.skill, opponentActivePet)
+  const effectivenessConfig = getSkillTypeEffectiveness(
+    props.skill,
+    opponentActivePet,
+    gameDataStore.elementMultipliers,
+  )
   return {
     multiplier: effectivenessConfig.multiplier,
     bgColor: effectivenessConfig.bgColor,

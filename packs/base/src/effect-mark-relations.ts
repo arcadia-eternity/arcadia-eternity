@@ -5,6 +5,26 @@ export interface EffectMarkRelation {
 }
 
 export const officialEffectMarkRelations: Readonly<Record<string, readonly EffectMarkRelation[]>> = {
+  effect_shifeng_ability_init_needles: [{ markId: 'mark_fenghuangzhen', relationType: 'adds' }],
+  effect_shifeng_skill_fenghuangduzhen: [
+    { markId: 'mark_fenghuangzhen', relationType: 'consumes' },
+    { markId: 'mark_zhongdu', relationType: 'adds' },
+  ],
+  effect_shifeng_skill_fenghuangjinzhen: [
+    { markId: 'mark_fenghuangzhen', relationType: 'consumes' },
+    { markId: 'mark_mabi', relationType: 'adds' },
+  ],
+  effect_shifeng_skill_fenghuangmizhen: [{ markId: 'mark_fenghuangzhen', relationType: 'consumes' }],
+  effect_skill_ganjuebaoli: [
+    { markId: 'mark_shiqutingjue', relationType: 'adds' },
+    { markId: 'mark_shiquxiujue', relationType: 'adds' },
+    { markId: 'mark_shiquweijue', relationType: 'adds' },
+  ],
+  effect_skill_chaogansangshibo: [
+    { markId: 'mark_shiqutingjue', relationType: 'adds' },
+    { markId: 'mark_shiquxiujue', relationType: 'adds' },
+    { markId: 'mark_shiquweijue', relationType: 'adds' },
+  ],
   effect_ability_add_shoufashanghaizengjia_on_lead: [
     {
       markId: 'mark_shoufashanghaizengjia',

@@ -17,6 +17,10 @@
     },
     "./testing": "./dist/testing.js",
     "./workspace": "./dist/author-api.js",
+    "./prepared-document": {
+      "types": "./dist/prepared-document.d.ts",
+      "import": "./dist/prepared-document.js"
+    },
     "./management-workspace": {
       "types": "./dist/content-workspace.d.ts",
       "import": "./dist/content-workspace.js",
@@ -50,6 +54,7 @@
     "clear": "rm -rf dist"
   },
   "dependencies": {
+    "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/battle": "workspace:*",
     "@arcadia-eternity/pack-loader": "workspace:*",
     "@arcadia-eternity/schema": "workspace:*",

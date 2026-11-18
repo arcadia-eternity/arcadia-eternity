@@ -2401,10 +2401,10 @@ skill_dongqisilie:
   description: 最大体力＞对手时使对手获得30点流血
 skill_fansheguike:
   name: 反射龟壳
-  description: 【95】使自身获得反射龟壳
+  description: 【95】自身最大体力每超过{bonus_baseline}一点，获得{bonus_scale}层反射龟壳
 skill_dongqipenshe:
   name: 冻气喷射
-  description: 附加自身最大体力-500的威力
+  description: 附加自身最大体力超过{bonus_baseline}的部分作为威力
 skill_wuxianbingjie:
   name: 无限冰洁
   description: '<guaranteedHit>必中</guaranteedHit> 10%使对手冰冻'
@@ -2413,10 +2413,10 @@ skill_hanbingdongqi:
   description: 对手冰冻时威力2倍
 skill_hanbingbaofa:
   name: 寒冰爆发
-  description: 附加自身最大体力-500 的伤害
+  description: 附加自身最大体力超过{bonus_baseline}的部分作为伤害
 skill_hanbinghujia:
   name: 寒冰护甲
-  description: 【95】使自身获得自身最大体力-500的2倍的寒冰护甲
+  description: 【95】自身最大体力每超过{bonus_baseline}一点，获得{bonus_scale}层寒冰护甲
 skill_hanbingtuji:
   name: 寒冰突击
   description: 消耗冻气附体造成暴击
@@ -3024,3 +3024,84 @@ skill_binglengyiji:
 skill_binglengpifu:
   name: 冰冷皮肤
   description: 依靠冰冷的皮肤，使自身获得<markName>免疫不良</markName>。
+skill_duzhenlianshe:
+  name: 毒针连射
+  description: 对手中毒时连击数从2次增加到4次
+skill_jinzhensheji:
+  name: 金针射击
+  description: 对手麻痹时威力增加50
+skill_zhenchituji:
+  name: 振翅突击
+  description: 先出手时威力增加50
+skill_mizhenlianshe:
+  name: 迷针连射
+  description: 连续攻击2次，先出手时致命率增加95%
+skill_guaiyichongji:
+  name: 怪异冲击
+  description: 对手失去嗅觉时，使其物防下降1级
+skill_kusechouda:
+  name: 苦涩抽打
+  description: 对手失去味觉时，使其特防下降1级
+skill_chouda_hema:
+  name: 抽打
+  description: 命中后使对手物防下降1级。
+skill_ganjuebaoli:
+  name: 感觉剥离
+  description: 命中后随机使对手失去听觉、嗅觉或味觉。
+skill_huiwuchouda:
+  name: 挥舞抽打
+  description: 对手失去任意一种感觉时，威力增加<damage>50</damage>点。
+skill_chandouchongji:
+  name: 颤抖冲击
+  description: 对手失去听觉时，命中后使其速度下降1级。
+skill_beiheyimi:
+  name: 倍荷依米
+  description: 对手失去听觉、嗅觉、味觉时，分别使自身速度、特防、物防提升1级。
+skill_chaohema:
+  name: 超荷玛
+  description: 恢复自身最大体力的<heal>1/4</heal>。
+skill_chaoheyimi:
+  name: 超荷依米
+  description: 对手失去任意一种感觉时，威力增加<damage>50</damage>点。
+skill_chaogansangshibo:
+  name: 超感丧失波
+  description: <guaranteedHit>必中</guaranteedHit>。使对手同时失去听觉、嗅觉和味觉。
+skill_jianxiaochandou:
+  name: 尖啸颤抖
+  description: 对手失去听觉时，命中后使其速度下降1级。
+skill_jianxiaochongji:
+  name: 尖啸冲击
+  description: 对手失去嗅觉时，命中后使其物防下降1级。
+skill_fuyou:
+  name: 浮游
+  description: 使自身进入<status>逃避</status>，无法行动且不会受到攻击伤害。
+skill_jianxiaochouda:
+  name: 尖啸抽打
+  description: 对手失去味觉时，命中后使其特防下降1级。
+skill_fenghuangduzhen:
+  name: 蜂皇毒针
+  description: 使对手中毒的概率为40%，消耗1根蜂皇针时必定中毒
+skill_fenghuangjinzhen:
+  name: 蜂皇金针
+  description: 使对手麻痹的概率为40%，消耗1根蜂皇针时必定麻痹
+skill_fenghuangmizhen:
+  name: 蜂皇迷针
+  description: 有40%概率使对手速度下降1级，消耗1根蜂皇针时必定下降
+skill_zhenchihuiji:
+  name: 振翅回击
+  description: 必中
+skill_fenghuangzhenwu:
+  name: 蜂皇针舞
+  description: 必中，雌性使用时威力增加10
+skill_xiongfengtuxi:
+  name: 雄蜂突袭
+  description: 雄性使用时威力增加50
+skill_fenghuangchuji:
+  name: 蜂皇出击
+  description: 雌性使用时威力增加50
+skill_xiongfengzhici:
+  name: 雄蜂之刺
+  description: 雄性使用时吸取对手50点体力
+skill_fenghuangjuezhen:
+  name: 蜂皇绝针
+  description: 雌性使用时吸取对手65点体力

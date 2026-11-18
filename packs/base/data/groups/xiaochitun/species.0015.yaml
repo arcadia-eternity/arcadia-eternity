@@ -1,5 +1,53 @@
 - id: pet_xiaochitun
   num: 39
+  # 父方显性技能按原作形态编号排列。同种类无法配对。
+  inheritance: &inherited_moves
+    skills:
+      # 15 笑笑葵
+      - skill_sanyecao
+      - skill_yepianbaohu
+      - skill_gundongzhuiji
+      - skill_jieducao
+      # 27 安迷亚
+      - skill_mozhipao
+      - skill_ningju
+      - skill_mozhishuiyu
+      - skill_lianxuchouda
+      # 50 多摩桑
+      - skill_shengbo
+      - skill_shenhuxi
+      - skill_siyao
+      - skill_xuanzhuansiyao
+      # 69 蛋壳鸡
+      - skill_jianying
+      - skill_yingkezhuangji
+      - skill_feisha
+      - skill_shazhijiao
+      # 89 皮皮格
+      - skill_niandong
+      - skill_zhenfen
+      - skill_cuimianshexian
+      - skill_niandongfanshe
+      # 112 砂吉塔
+      - skill_dengmu
+      - skill_chuanci
+      - skill_qutizhuangji
+      - skill_shaduchuanci
+      # 123 寒冰龟
+      - skill_dongqiqianghua
+      - skill_ningjudongqi
+      - skill_dongqiguanchuan
+      - skill_fansheguike
+      # 143 荷依米
+      - skill_miaozhun
+      - skill_yili
+      - skill_guaiyichongji
+      - skill_kusechouda
+      # 203 碎晶蜂
+      - skill_duzhenlianshe
+      - skill_jinzhensheji
+      - skill_zhenchituji
+      - skill_mizhenlianshe
   element: Fire
   baseStats:
     hp: 83
@@ -42,6 +90,7 @@
       hidden: false
 - id: pet_chiyanshou
   num: 40
+  inheritance: *inherited_moves
   element: Fire
   baseStats:
     hp: 173

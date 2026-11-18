@@ -296,6 +296,14 @@ groups:
       - pet_tuntun
       - pet_binghutun
       - pet_bingchuantun
+  - id: hema
+    species:
+      - pet_hema
+      - pet_heyimi
+  - id: shifeng
+    species:
+      - pet_shifeng
+      - pet_suijingfeng
 relations:
   - from: pet_dilan
     to: pet_didilan
@@ -590,4 +598,10 @@ relations:
     kind: evolution
   - from: pet_binghutun
     to: pet_bingchuantun
+    kind: evolution
+  - from: pet_hema
+    to: pet_heyimi
+    kind: evolution
+  - from: pet_shifeng
+    to: pet_suijingfeng
     kind: evolution

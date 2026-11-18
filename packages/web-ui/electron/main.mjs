@@ -300,6 +300,7 @@ function getLocalEnvironments() {
     ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
     : require
   localEnvironments ??= new LocalEnvironments({
+    baseRules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
     library: getContentLibrary(),
     addPackage: async (workspace, input) => {
       const { addEnvironmentPackage } = await import(
@@ -370,6 +371,7 @@ async function loadLocalContentRuntime() {
     return {
       host: node.emptyNpmContentHost,
       prepareNpmProject: node.prepareNpmProject,
+      canonical: native.canonical,
       buildDisplayCatalog: native.buildDisplayCatalog,
       buildDisplayLocales: native.buildDisplayLocales,
     }
@@ -381,7 +383,7 @@ async function loadLocalContentRuntime() {
 }
 function getLocalContentSessions() {
   localContentSessions ??= createLocalContentSessions({
-    library: { acquireProject: () => getLocalEnvironments().acquireProject() },
+    library: { acquireProject: id => getLocalEnvironments().acquireProject(id) },
     load: loadLocalContentRuntime,
     assetUrl: (token, hash) => `http://127.0.0.1:${localServerPort}/local-content/${token}/${hash}`,
   })
@@ -780,9 +782,17 @@ function setupIpcHandlers() {
         personalProfileBusy = input.busy !== false
         return { value: true }
       }
-      const { storage, validateEnvelope } = await getPersonalProfile()
+      const { storage, repository, validateEnvelope } = await getPersonalProfile()
       if (input?.action === 'read') return { value: await storage.read() }
       if (input?.action === 'raw') return { value: await storage.readRaw() }
+      if (input?.action === 'commit' && input.expected && 'legacy' in Object(input.expected)) {
+        // The main process validates and derives the migration from the exact owned bytes.
+        if ((await storage.readRaw()) !== input.expected.legacy)
+          throw Object.assign(new Error('REVISION_CONFLICT'), { code: 'REVISION_CONFLICT' })
+        const migrated = await repository.open()
+        if (migrated?.current.digest !== input.next?.current?.digest) throw new Error('Invalid migration')
+        return { value: true }
+      }
       if (input?.action !== 'commit') throw new Error('Invalid profile action')
       const next = await validateEnvelope(input.next)
       if (
@@ -1011,9 +1021,14 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return getContentLibrary().list()
   })
-  handle('desktop:prepare-local-content', event => {
+  handle('desktop:prepare-local-content', (event, environmentId) => {
     requireLocalBattleCaller(event)
-    return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true })
+    if (
+      environmentId !== undefined &&
+      (typeof environmentId !== 'string' || !environmentId || environmentId.length > 256)
+    )
+      throw new Error('INVALID_ENVIRONMENT_ID')
+    return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true, environmentId })
   })
   handle('desktop:read-local-runtime', (_event, token) => {
     return getLocalContentSessions().readRuntime(token, localContentOwner.current())

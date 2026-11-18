@@ -1,5 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { Element } from './element'
+import { ElementSchema } from './element'
 import { withUIHint } from './uiMetadata'
 import { ContentPresentationSchema } from './presentation'
 
@@ -13,12 +13,7 @@ export const SpeciesSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   num: Type.Number({ default: 0 }),
   presentation: Type.Optional(ContentPresentationSchema),
-  element: Type.Union(
-    Object.values(Element).map(v => Type.Literal(v)),
-    {
-      default: Element.Normal,
-    },
-  ),
+  element: ElementSchema,
   baseStats: withUIHint(
     Type.Object(
       {
@@ -51,6 +46,7 @@ export const SpeciesSchema = Type.Object({
   weightRange: Type.Tuple([Type.Number(), Type.Number()], {
     default: [10, 20],
   }),
+  inheritance: Type.Optional(Type.Object({ skills: Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true }) })),
   learnable_skills: withUIHint(Type.Array(LearnableSkillSchema, { default: [] }), {
     display: 'inline',
     itemLabel: 'skill_id',

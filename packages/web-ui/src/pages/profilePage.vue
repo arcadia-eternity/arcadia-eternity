@@ -46,7 +46,7 @@ const status = computed(
 )
 const missing = computed(() => {
   if (!preview.value || !catalog.loaded) return []
-  const entries = [...preview.value.data.library.storage, ...preview.value.data.library.teams.flatMap(t => t.pets)]
+  const entries = preview.value.data.library.storage
   const ids = new Set<string>()
   for (const pet of entries) {
     if (!catalog.species.byId[pet.species]) ids.add(pet.species)

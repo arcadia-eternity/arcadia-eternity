@@ -57,11 +57,11 @@ beforeAll(async () => {
   const runtime = join(temporary, 'runtime')
   await cp(join(root, 'dist'), join(runtime, 'dist'), { recursive: true })
   await mkdir(join(runtime, 'packs/base/assets'), { recursive: true })
-  for (const file of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'dist'])
+  for (const file of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'environment', 'dist'])
     await cp(join(root, 'packs/base', file), join(runtime, 'packs/base', file), { recursive: true })
   const installedBase = join(runtime, 'node_modules/@arcadia-eternity/data-pack-base')
   await mkdir(installedBase, { recursive: true })
-  for (const file of ['package.json', 'pack.json', 'dist'])
+  for (const file of ['package.json', 'pack.json', 'environment', 'dist'])
     await cp(join(root, 'packs/base', file), join(installedBase, file), { recursive: true })
   await writeFile(join(runtime, 'package.json'), '{"type":"module"}')
   cli = join(runtime, 'dist/cli.js')
@@ -80,7 +80,7 @@ beforeAll(async () => {
   teams = fixture.teams.map((_: unknown, i: number) => join(temporary, `team-${i}.json`))
   for (const [i, team] of fixture.teams.entries()) {
     for (const pet of team.team) {
-      pet.skills = ['skill_paida']
+      pet.skills = [pet.species === 'pet_huanli' ? 'skill_zhuangji' : 'skill_paida']
       pet.maxHp = 25
     }
     await writeFile(teams[i], JSON.stringify(team))

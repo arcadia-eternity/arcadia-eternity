@@ -40,7 +40,7 @@ vi.mock('@/stores/petStorage', () => ({
     saveLastMatchingConfig: vi.fn(),
   }),
 }))
-const prepared = { content: { species: [], skills: [], marks: [] } }
+const prepared = { descriptor: { rules: { schemaVersion: 1 } }, content: { species: [], skills: [], marks: [] } }
 const stubs = {
   ElButton: { props: ['disabled'], template: '<button :disabled="disabled"><slot /></button>' },
   RouterLink: { template: '<a><slot /></a>' },

@@ -1,4 +1,3 @@
-import { Element } from '@arcadia-eternity/const'
 import { z } from 'zod'
 
-export const ElementSchema = z.nativeEnum(Element)
+export const ElementSchema = z.string().min(1).max(256)

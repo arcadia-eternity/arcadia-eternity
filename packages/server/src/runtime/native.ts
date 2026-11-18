@@ -1,3 +1,4 @@
+import { assertSkillSlots } from '@arcadia-eternity/const'
 import { LocalBattleSystem, type BattleHost } from '@arcadia-eternity/battle/host'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
@@ -14,6 +15,12 @@ import {
   type PlayerSchemaType,
   type SpeciesSchemaType,
 } from '@arcadia-eternity/schema'
+import {
+  assertEnvironmentTeam,
+  assertNatureChoice,
+  learningIssues,
+  type validateEnvironmentRules,
+} from '@arcadia-eternity/content-sdk/environment-rules'
 import { nanoid } from 'nanoid'
 
 export interface ServerRuntime {
@@ -75,7 +82,11 @@ export async function getServerRuntimeIdentity(): Promise<NativeRuntimeIdentity>
 }
 
 /** Check drafts without allocating players, pets, timers or attribute systems. */
-export async function validateServerTeam(team: unknown, runtime?: ServerRuntime): Promise<PetSchemaType[]> {
+export async function validateServerTeam(
+  team: unknown,
+  runtime?: ServerRuntime,
+  rules?: ReturnType<typeof validateEnvironmentRules>,
+): Promise<PetSchemaType[]> {
   // The offline runtime deliberately permits fixture HP overrides. Online rooms
   // always derive HP from official species/stats and start each pet at full health.
   // Inspect before schema cleaning, which otherwise silently drops hp/currentHp.
@@ -86,6 +97,7 @@ export async function validateServerTeam(team: unknown, runtime?: ServerRuntime)
           if (field in pet && pet[field] !== undefined) throw new Error(`Online teams cannot override ${field}`)
   const parsed = parseWithErrors(PlayerSchema, { id: nanoid(), name: 'team', team }).team
   const { content, species } = runtime ?? (await loadOfficialContent())
+  assertEnvironmentTeam(rules, parsed)
   for (const pet of parsed) {
     // Keep admission aligned with the native runtime's bounds, which are stricter
     // than the shared draft schema.
@@ -97,9 +109,14 @@ export async function validateServerTeam(team: unknown, runtime?: ServerRuntime)
     if (pet.ability) content.getMark(pet.ability as Parameters<ContentCatalog['getMark']>[0])
     if (pet.emblem) content.getMark(pet.emblem as Parameters<ContentCatalog['getMark']>[0])
     const definition = species.get(pet.species)!
-    for (const skill of pet.skills)
-      if (!definition.learnable_skills.some(entry => entry.skill_id === skill && entry.level <= pet.level))
-        throw new Error(`Skill ${skill} is not learnable by ${pet.species} at level ${pet.level}`)
+    if (pet.inheritedSkill) content.getSkill(pet.inheritedSkill as Parameters<ContentCatalog['getSkill']>[0])
+    if (pet.enhancement) content.getEnhancement(pet.enhancement)
+    assertNatureChoice(rules, pet.nature, content.getNature, () => definition)
+    assertSkillSlots(rules?.mechanics?.skillSlots, pet.skills, id =>
+      content.getSkill(id as Parameters<ContentCatalog['getSkill']>[0]),
+    )
+    const issues = learningIssues(rules, definition, pet)
+    if (issues.length) throw new Error(issues.join('、'))
     if (pet.ability && !definition.ability.includes(pet.ability))
       throw new Error(`Ability ${pet.ability} is not allowed for ${pet.species}`)
     if (pet.emblem && !definition.emblem.includes(pet.emblem))
@@ -116,6 +133,7 @@ export async function createServerBattle(
   runtime?: ServerRuntime,
   workers = sandboxWorkers,
   signal?: AbortSignal,
+  rules?: ReturnType<typeof validateEnvironmentRules>,
 ): Promise<BattleHost> {
   signal?.throwIfAborted()
   if (playerA.id === playerB.id) throw new Error('Battle players must have distinct identities')
@@ -123,17 +141,28 @@ export async function createServerBattle(
   signal?.throwIfAborted()
   const { content } = runtime
   const players = await Promise.all(
-    [playerA, playerB].map(async player => ({ ...player, team: await validateServerTeam(player.team, runtime) })),
+    [playerA, playerB].map(async player => ({
+      ...player,
+      team: await validateServerTeam(player.team, runtime, rules),
+    })),
   )
   signal?.throwIfAborted()
   const teams = players.map(player => ({
     ...structuredClone(player),
     team: player.team.map(pet => ({ ...structuredClone(pet), id: nanoid() })),
   }))
-  const capturedOptions = options && { ...options, timerConfig: options.timerConfig && { ...options.timerConfig } }
+  const capturedOptions = {
+    ...options,
+    skillParameters: rules?.skillParameters,
+    matchups: rules?.matchups,
+    enhancementActive: rules?.mechanics?.enhancement?.mode === 'active',
+    allowFaintSwitch: rules?.mechanics?.allowFaintSwitch ?? options?.allowFaintSwitch ?? true,
+    timerConfig: options?.timerConfig && { ...options.timerConfig },
+  }
   if (runtime.sandbox)
     return workers.create({ environment: runtime.sandbox, players: teams, options: capturedOptions }, signal)
   if (!('parsePlayers' in content)) throw new Error('Battle environment has no executable recipe')
-  const [a, b] = content.parsePlayers(teams)
-  return new LocalBattleSystem(content.createBattle(a, b, capturedOptions), content)
+  const native = await content.withSkillParameters(rules?.skillParameters)
+  const [a, b] = native.parsePlayers(teams)
+  return new LocalBattleSystem(native.createBattle(a, b, capturedOptions), native)
 }

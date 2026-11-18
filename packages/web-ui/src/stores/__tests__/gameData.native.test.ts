@@ -48,6 +48,7 @@ it('desktop local names and descriptions survive a remote room round trip and re
   const pet = {
     ...structuredClone(data.species[0]),
     id: 'local:pet',
+    inheritance: { skills: [] },
     learnable_skills: [],
     ability: [],
     emblem: [],

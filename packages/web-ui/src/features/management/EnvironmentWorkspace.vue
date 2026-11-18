@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import './managementStyles'
+import testEnvironmentRules from '@arcadia-eternity/data-pack-base/environment/test-120-rules.json'
+import {
+  prepareEnvironmentRules,
+  validateEnvironmentRuleDeclaration,
+} from '@arcadia-eternity/content-sdk/environment-rules'
+import EnvironmentConstraintFields from './EnvironmentConstraintFields.vue'
+import EnvironmentSkillParameterFields from './EnvironmentSkillParameterFields.vue'
+import EnvironmentMatchupFields from './EnvironmentMatchupFields.vue'
+import EnvironmentLearningFields from './EnvironmentLearningFields.vue'
 import { registerEnvironmentDraft, discardEnvironmentChanges } from '@/features/content/unsavedEnvironment'
 import { ElButton, ElForm, ElFormItem, ElInput, ElCheckbox, ElSelect, ElOption } from 'element-plus'
 import { computed, ref, watch } from 'vue'
@@ -67,6 +76,59 @@ const latestVersion = computed(
       .filter(item => item.environmentId === selectedEnvironment.value?.document.id && item.status === 'ready')
       .sort((a, b) => (b.status === 'ready' ? b.createdAt : 0) - (a.status === 'ready' ? a.createdAt : 0))[0],
 )
+const parameterPreviewVersion = computed(() => {
+  const version = latestVersion.value
+  if (version?.status === 'ready' && version.environmentId === document.value?.id && revision.value) return version
+  return undefined
+})
+const previewComposition = computed(() => {
+  const installed = parameterPreviewVersion.value
+  if (!document.value || !installed?.ruleComposition) return undefined
+  const packages = Object.fromEntries(packageRows.value.map(row => [row.name, row.version]))
+  const samePackages =
+    packageRows.value.length === Object.keys(installed.document.packages).length &&
+    Object.entries(installed.document.packages).every(([name, version]) => packages[name] === version)
+  const sources = sourceText.value
+    .split(/\r?\n/)
+    .map(id => id.trim())
+    .filter(Boolean)
+    .sort()
+  if (!samePackages || JSON.stringify(sources) !== JSON.stringify([...installed.document.sources].sort()))
+    return undefined
+  try {
+    return {
+      value: prepareEnvironmentRules(
+        JSON.parse(JSON.stringify(document.value.rules)),
+        JSON.parse(JSON.stringify(installed.ruleComposition.ruleSets)),
+      ),
+    }
+  } catch (error) {
+    return { issue: error instanceof Error ? error.message : String(error) }
+  }
+})
+const inheritedConstraints = computed(() => {
+  if (
+    !previewComposition.value ||
+    !parameterPreviewVersion.value?.ruleComposition ||
+    !document.value?.rules.include?.length
+  )
+    return []
+  try {
+    return (
+      prepareEnvironmentRules(
+        { schemaVersion: 2, include: [...document.value.rules.include] },
+        JSON.parse(JSON.stringify(parameterPreviewVersion.value.ruleComposition.ruleSets)),
+      ).rules.constraints ?? []
+    )
+  } catch {
+    return []
+  }
+})
+function inheritMechanic(key: 'individualValues' | 'individualValueDefault' | 'allowFaintSwitch') {
+  if (!document.value?.rules.mechanics) return
+  delete document.value.rules.mechanics[key]
+  if (!Object.keys(document.value.rules.mechanics).length) delete document.value.rules.mechanics
+}
 const deletingDraft = ref('')
 const removingPackage = ref('')
 function removePackage(name: string, cascade = false) {
@@ -108,6 +170,28 @@ function setRuleList(side: 'allow' | 'deny', kind: (typeof contentKinds)[number]
   if (Object.keys(current).length) document.value.rules[side] = current
   else delete document.value.rules[side]
 }
+function setRuleSets(include: string[]) {
+  if (!document.value) return
+  if (include.length) document.value.rules = { ...document.value.rules, schemaVersion: 2, include }
+  else delete document.value.rules.include
+}
+function setMechanics(change: NonNullable<ManagedEnvironmentDocument['rules']['mechanics']>) {
+  if (!document.value) return
+  document.value.rules = {
+    ...document.value.rules,
+    schemaVersion: 2,
+    mechanics: { ...document.value.rules.mechanics, ...change },
+  }
+}
+function setIVLimit(input: string) {
+  const max = Number(input)
+  if (input.trim() && Number.isInteger(max) && max >= 0 && max <= 120) setMechanics({ individualValues: { max } })
+}
+function setIVDefault(input: string) {
+  const value = Number(input)
+  if (input.trim() && Number.isInteger(value) && value >= 0 && value <= 120)
+    setMechanics({ individualValueDefault: value })
+}
 function setTeamSize(key: 'minSize' | 'maxSize', value: string) {
   if (!document.value) return
   const team = { ...document.value.rules.team }
@@ -130,6 +214,19 @@ async function edit(environment?: ManagedEnvironment) {
   originalDraft.value = draftValue()
   editing.value = true
   return true
+}
+async function createTestEnvironment() {
+  if (!(await edit())) return
+  const base = '@arcadia-eternity/data-pack-base'
+  const version =
+    props.availablePackages?.find(pkg => pkg.name === base)?.version ??
+    props.environments.find(item => item.document.packages[base])?.document.packages[base] ??
+    '*'
+  document.value!.id = 'test-120-' + crypto.randomUUID().slice(0, 8)
+  document.value!.name = '120 资质测试环境'
+  const { rules, include } = validateEnvironmentRuleDeclaration(testEnvironmentRules)
+  document.value!.rules = { ...rules, include }
+  packageRows.value = [{ name: base, version }]
 }
 function putPackage(pkg: { name: string; version: string }) {
   const existing = packageRows.value.find(row => row.name === pkg.name)
@@ -182,6 +279,9 @@ function save() {
       <h2>{{ heading ?? '环境' }}</h2>
       <div class="actions">
         <slot name="toolbar" />
+        <ElButton :disabled="!canEdit || busy" native-type="button" @click="createTestEnvironment"
+          >从 120 资质测试方案新建</ElButton
+        >
         <ElButton
           :disabled="!canEdit || busy"
           :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
@@ -379,19 +479,130 @@ function save() {
           </details>
           <fieldset>
             <legend>配置</legend>
-            <ElFormItem label="环境分级">
+            <ElFormItem label="引用规则集">
+              <ElSelect
+                multiple
+                filterable
+                allow-create
+                default-first-option
+                :model-value="document.rules.include ?? []"
+                @update:model-value="setRuleSets"
+              >
+                <ElOption
+                  v-for="entry in parameterPreviewVersion?.ruleComposition?.ruleSets ?? []"
+                  :key="entry.id"
+                  :value="entry.id"
+                  :label="entry.name"
+                />
+              </ElSelect>
+            </ElFormItem>
+            <p v-if="previewComposition?.issue" role="alert">{{ previewComposition.issue }}</p>
+            <details v-if="previewComposition?.value?.fields.length">
+              <summary>按已准备内容预览规则</summary>
+              <dl v-for="field in previewComposition.value.fields" :key="JSON.stringify(field.path)">
+                <dt>{{ field.path.join(' / ') }} · {{ JSON.stringify(field.value) }}</dt>
+                <dd>
+                  {{
+                    field.sources
+                      .map(
+                        id =>
+                          (id === '$environment' ? '环境声明' : id) +
+                          (field.effectiveSources.includes(id) ? '' : '（已覆盖）'),
+                      )
+                      .join('、')
+                  }}
+                </dd>
+              </dl>
+            </details>
+            <EnvironmentConstraintFields
+              v-model="document.rules"
+              :inherited="inheritedConstraints"
+              :key="document.id"
+            />
+            <EnvironmentLearningFields v-model="document.rules" :resolved="previewComposition?.value?.rules" />
+            <EnvironmentSkillParameterFields
+              v-model="document.rules"
+              :catalog="parameterPreviewVersion?.skillParameters"
+              :preview-policy="previewComposition?.value?.rules.skillParameters"
+              :applied-policy="
+                parameterPreviewVersion?.ruleComposition?.rules.skillParameters ??
+                parameterPreviewVersion?.document.rules.skillParameters
+              "
+              :key="'skills-' + document.id"
+            />
+            <EnvironmentMatchupFields
+              v-model="document.rules"
+              :preview-policy="previewComposition?.value?.rules.matchups"
+              :catalog="parameterPreviewVersion?.elementCatalog"
+            />
+            <ElFormItem label="单项资质上限">
               <ElInput
-                :model-value="document.rules.tier ?? ''"
-                @input="document.rules.tier = $event || undefined"
-                placeholder="可选"
+                type="number"
+                min="0"
+                max="120"
+                :model-value="
+                  document.rules.mechanics?.individualValues?.max ??
+                  previewComposition?.value?.rules.mechanics?.individualValues?.max ??
+                  (document.rules.include?.length ? undefined : 31)
+                "
+                @change="setIVLimit($event)"
               />
             </ElFormItem>
+            <ElButton v-if="document.rules.mechanics?.individualValues" @click="inheritMechanic('individualValues')"
+              >恢复继承个体上限</ElButton
+            >
+            <ElFormItem label="新精灵初始个体值">
+              <ElInput
+                type="number"
+                min="0"
+                max="120"
+                :model-value="
+                  document.rules.mechanics?.individualValueDefault ??
+                  previewComposition?.value?.rules.mechanics?.individualValueDefault
+                "
+                :placeholder="
+                  String(
+                    Math.min(
+                      31,
+                      previewComposition?.value?.rules.mechanics?.individualValues?.max ??
+                        document.rules.mechanics?.individualValues?.max ??
+                        31,
+                    ),
+                  )
+                "
+                @change="setIVDefault($event)"
+              />
+            </ElFormItem>
+            <ElButton
+              v-if="document.rules.mechanics?.individualValueDefault !== undefined"
+              @click="inheritMechanic('individualValueDefault')"
+              >恢复继承初始个体值</ElButton
+            >
+            <ElCheckbox
+              :indeterminate="
+                !!document.rules.include?.length &&
+                !previewComposition?.value &&
+                document.rules.mechanics?.allowFaintSwitch === undefined
+              "
+              :model-value="
+                document.rules.mechanics?.allowFaintSwitch ??
+                previewComposition?.value?.rules.mechanics?.allowFaintSwitch ??
+                true
+              "
+              @change="setMechanics({ allowFaintSwitch: Boolean($event) })"
+              >击破奖励换宠</ElCheckbox
+            >
+            <ElButton
+              v-if="document.rules.mechanics?.allowFaintSwitch !== undefined"
+              @click="inheritMechanic('allowFaintSwitch')"
+              >恢复继承击破奖励</ElButton
+            >
             <div class="field-row">
               <ElFormItem label="队伍最少数量">
                 <ElInput
                   type="number"
                   min="1"
-                  max="100"
+                  max="6"
                   :model-value="document.rules.team?.minSize"
                   @input="setTeamSize('minSize', $event)"
                 />
@@ -400,7 +611,7 @@ function save() {
                 <ElInput
                   type="number"
                   min="1"
-                  max="100"
+                  max="6"
                   :model-value="document.rules.team?.maxSize"
                   @input="setTeamSize('maxSize', $event)"
                 />

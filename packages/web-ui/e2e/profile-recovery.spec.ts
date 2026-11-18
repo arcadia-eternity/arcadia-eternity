@@ -144,12 +144,16 @@ test('uses the valid legacy identity and exports corrupt source bytes separately
 })
 
 test('a new web profile retains the existing starter team across reloads', async ({ page }) => {
-  const { readPersistedProfile } = await import('./helpers/profile')
+  const { readPersistedProfile, readPersistedTeam } = await import('./helpers/profile')
   await page.route('**/api/**', route => route.abort())
   await page.goto('/profile')
   await expect(page.getByRole('status')).toHaveText('已保存')
   const first = await readPersistedProfile(page)
-  expect(first?.library.teams[0].pets.map(pet => pet.species)).toEqual(['pet_xiuluosi', 'pet_dilante', 'pet_laaoye'])
+  expect((await readPersistedTeam(page))?.map(pet => pet.species)).toEqual([
+    'pet_xiuluosi',
+    'pet_dilante',
+    'pet_laaoye',
+  ])
   await page.reload()
   await expect(page.getByRole('status')).toHaveText('已保存')
   expect((await readPersistedProfile(page))?.library).toEqual(first?.library)

@@ -110,7 +110,13 @@ const loading = ref(false)
 const configurationError = ref('')
 const environmentId = ref('')
 const selectedEnvironment = computed(() => rooms.environments.find(item => item.id === environmentId.value))
-const team = ref<{ name: string; pets: unknown[] } | null>(null)
+const selectedTeamId = ref<string>()
+const team = computed<{ id?: string; name: string; pets: unknown[] } | null>({
+  get: () => storage.teams.find(candidate => candidate.id === selectedTeamId.value) ?? null,
+  set: candidate => {
+    selectedTeamId.value = candidate?.id
+  },
+})
 const valid = ref(false)
 const environmentReady = ref(false)
 let previewSpecies: typeof gameData.species | undefined
@@ -123,9 +129,9 @@ async function prepareEnvironment() {
   environmentReady.value = false
   configurationError.value = ''
   try {
-    const { content } = await rooms.prepareMatchmakingEnvironment(environmentId.value)
+    const { content, descriptor } = await rooms.prepareMatchmakingEnvironment(environmentId.value)
     if (attempt === generation) {
-      gameData.applyServerEnvironment(content)
+      gameData.applyServerEnvironment(content, { rules: descriptor.rules })
       previewSpecies = gameData.species
       environmentReady.value = true
     }
@@ -146,7 +152,8 @@ async function loadEnvironments() {
     environmentId.value =
       selectedEnvironment.value?.id ?? rooms.defaultEnvironment?.id ?? rooms.environments[0]?.id ?? ''
     const last = storage.getLastMatchingConfig()
-    team.value = storage.teams[last?.teamIndex ?? storage.currentTeamIndex] ?? null
+    team.value =
+      storage.teams.find(candidate => candidate.id === last?.teamId) ?? storage.teams[storage.currentTeamIndex] ?? null
     await prepareEnvironment()
   } catch (cause) {
     if (attempt === generation) {
@@ -158,10 +165,7 @@ async function loadEnvironments() {
 
 function start() {
   if (!team.value || !valid.value || !environmentReady.value || loading.value) return
-  storage.saveLastMatchingConfig(
-    storage.teams.findIndex(item => item === team.value),
-    'standard',
-  )
+  if (team.value.id) storage.saveLastMatchingConfig(team.value.id, 'standard')
   void matchmaking.start(team.value.pets as PetSchemaType[], environmentId.value)
 }
 

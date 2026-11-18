@@ -1,447 +1,290 @@
-// src/stores/petStorage.ts
 import { defineStore } from 'pinia'
+import { nanoid } from 'nanoid'
+import { ElMessage } from 'element-plus'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { PetSchema, parseWithErrors } from '@arcadia-eternity/schema'
-import { Type, type Static } from '@sinclair/typebox'
+import {
+  MAX_STORED_TEAM_MEMBERS,
+  canonical,
+  expandTeam,
+  migrateEmbeddedLibrary,
+  newPersonalTeam,
+  validateLibrary,
+  type PersonalLibrary,
+  type TeamSelection,
+  type EnvironmentPreference,
+  type PetOrigin,
+} from '@arcadia-eternity/local-profile'
 import { getDefaultTeam } from '@/services/defaultTeam'
 import { readLocalData, writeLocalData } from '@/services/localStorage'
 
-interface Team {
-  name: string
-  pets: PetSchemaType[]
-  ruleSetId: string // 队伍对应的规则集ID
-}
-
+const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value))
+const initialLibrary = () => migrateEmbeddedLibrary({ storage: [], teams: [getDefaultTeam()], currentTeamIndex: 0 })
 interface LastMatchingConfig {
-  teamIndex: number
+  teamId: string
   ruleSetId: string
   timestamp: number
 }
 
-/** Data shape that may appear in localStorage during team migration */
-interface MigratableTeamData {
-  ruleSetId?: string
-  gameMode?: string
-  [key: string]: unknown
-}
-
-interface PetStorageState {
-  storage: PetSchemaType[]
-  teams: Team[]
-  currentTeamIndex: number
-  initialized: boolean
-  lastMatchingConfig: LastMatchingConfig | null
-}
-
-// TypeBox 校验 schema
-const TeamSchema = Type.Object({
-  name: Type.String({ minLength: 1 }),
-  pets: Type.Array(PetSchema, { maxItems: 6 }),
-  ruleSetId: Type.String({ minLength: 1 }),
-})
-
-const LastMatchingConfigSchema = Type.Object({
-  teamIndex: Type.Integer({ minimum: 0 }),
-  ruleSetId: Type.String({ minLength: 1 }),
-  timestamp: Type.Number(),
-})
-
-const PetStorageStateSchema = Type.Object({
-  storage: Type.Array(PetSchema),
-  teams: Type.Array(TeamSchema, { minItems: 1 }),
-  currentTeamIndex: Type.Integer({ minimum: 0 }),
-  lastMatchingConfig: Type.Optional(Type.Union([LastMatchingConfigSchema, Type.Null()])),
-})
-
-// 定义持久化数据的类型（不包含initialized）
-type PersistentPetStorageData = Omit<PetStorageState, 'initialized'>
-
-function createPersistentSnapshot(
-  state: Pick<PetStorageState, 'storage' | 'teams' | 'currentTeamIndex' | 'lastMatchingConfig'>,
-): PersistentPetStorageData {
-  return JSON.parse(
-    JSON.stringify({
-      storage: state.storage,
-      teams: state.teams,
-      currentTeamIndex: state.currentTeamIndex,
-      lastMatchingConfig: state.lastMatchingConfig,
-    }),
-  ) as PersistentPetStorageData
-}
-
-// 校验函数
-function validatePetStorageData(data: unknown): { valid: boolean; data?: PersistentPetStorageData; errors?: string[] } {
-  try {
-    const validatedData = parseWithErrors(PetStorageStateSchema, data) as Static<typeof PetStorageStateSchema>
-
-    // 额外校验：确保 currentTeamIndex 不超出 teams 数组范围
-    if (validatedData.currentTeamIndex >= validatedData.teams.length) {
-      return {
-        valid: false,
-        errors: [
-          `当前队伍索引 ${validatedData.currentTeamIndex} 超出了队伍数量范围 (0-${validatedData.teams.length - 1})`,
-        ],
-      }
-    }
-
-    return {
-      valid: true,
-      data: {
-        ...validatedData,
-        lastMatchingConfig: validatedData.lastMatchingConfig || null,
-      },
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      return { valid: false, errors: [error.message] }
-    }
-    return { valid: false, errors: ['未知的校验错误'] }
-  }
-}
-
 export const usePetStorageStore = defineStore('petStorage', {
-  state: (): PetStorageState => ({
-    storage: [],
-    teams: [getDefaultTeam()],
-    currentTeamIndex: 0,
+  state: () => ({
+    library: initialLibrary(),
     initialized: false,
-    lastMatchingConfig: null,
+    loadFailed: false,
+    lastMatchingConfig: null as LastMatchingConfig | null,
   }),
-
+  getters: {
+    storage: state => state.library.storage,
+    currentTeamIndex: state => state.library.currentTeamIndex,
+    teams: state => {
+      const pets = new Map(
+        state.library.storage.map(({ revision: _revision, origin: _origin, ...pet }) => [pet.id, pet]),
+      )
+      return state.library.teams.map(team => ({ ...team, pets: team.memberIds.map(id => pets.get(id)!) }))
+    },
+    currentTeam(): PetSchemaType[] {
+      return this.teams[this.currentTeamIndex].pets
+    },
+  },
   actions: {
     loadFromLocal() {
       const saved = readLocalData('petStorage')
+      this.loadFailed = false
       if (saved) {
         try {
-          const parsedData = JSON.parse(saved)
-
-          // 数据迁移：为没有ruleSetId的队伍添加默认ruleSetId
-          let needsMigration = false
-          if (parsedData.teams && Array.isArray(parsedData.teams)) {
-            parsedData.teams = parsedData.teams.map((team: MigratableTeamData) => {
-              const updatedTeam = { ...team }
-
-              // 处理缺少 ruleSetId 的情况
-              if (!team.ruleSetId) {
-                needsMigration = true
-                updatedTeam.ruleSetId = 'casual_standard_ruleset' // 为旧队伍设置默认的规则集
-              }
-
-              // 处理旧的 gameMode 字段（向后兼容）
-              if (team.gameMode && !team.ruleSetId) {
-                needsMigration = true
-                // 根据旧的 gameMode 映射到对应的 ruleSetId
-                if (team.gameMode === 'competitive') {
-                  updatedTeam.ruleSetId = 'competitive_ruleset'
-                } else {
-                  updatedTeam.ruleSetId = 'casual_standard_ruleset'
-                }
-                // 移除旧的 gameMode 字段
-                delete updatedTeam.gameMode
-              }
-
-              return updatedTeam
+          const data = JSON.parse(saved)
+          let library
+          if (data.version === undefined) {
+            library = migrateEmbeddedLibrary({
+              ...data,
+              teams: data.teams.map((team: TeamSelection & { gameMode?: string }) => ({
+                ...team,
+                ruleSetId:
+                  team.ruleSetId ||
+                  (team.gameMode === 'competitive' ? 'competitive_ruleset' : 'casual_standard_ruleset'),
+              })),
             })
-
-            if (needsMigration) {
-              console.log('检测到旧版本队伍数据，已自动迁移到新格式')
-            }
-          }
-
-          const validation = validatePetStorageData(parsedData)
-
-          if (validation.valid && validation.data) {
-            // 只更新持久化的数据，不包含initialized
-            this.storage = validation.data.storage
-            this.teams = validation.data.teams
-            this.currentTeamIndex = validation.data.currentTeamIndex
-            this.lastMatchingConfig = validation.data.lastMatchingConfig || null
-            this.initialized = true // 加载完成后设置为已初始化
-
-            // 如果进行了数据迁移，保存更新后的数据
-            if (needsMigration) {
-              this.saveToLocal()
-            }
           } else {
-            // 校验失败，显示错误提示并重置为默认数据
-            const errorMessage = validation.errors?.join('; ') || '数据格式错误'
-            ElMessage.error(`精灵仓库数据校验失败: ${errorMessage}`)
-            console.error('精灵仓库数据校验失败:', validation.errors)
-
-            // 重置为默认数据
-            this.resetToDefault()
-            ElMessage.warning('已重置为默认数据')
+            const { lastMatchingConfig: _matching, ...stored } = data
+            library = stored
           }
+          this.library = validateLibrary(library)
+          const last = data.lastMatchingConfig
+          const teamId = last?.teamId ?? this.library.teams[last?.teamIndex]?.id
+          this.lastMatchingConfig =
+            last && teamId && this.library.teams.some(team => team.id === teamId)
+              ? { teamId, ruleSetId: last.ruleSetId, timestamp: last.timestamp }
+              : null
         } catch (error) {
-          // JSON 解析失败
-          ElMessage.error('精灵仓库数据解析失败，已重置为默认数据')
-          console.error('精灵仓库数据解析失败:', error)
-          this.resetToDefault()
+          this.loadFailed = true
+          this.initialized = false
+          ElMessage.error(`无法读取仓库，原数据已保留：${String(error)}`)
+          return
         }
-      } else {
-        // 没有保存的数据，使用默认数据并标记为已初始化
-        console.log('没有找到保存的精灵仓库数据，使用默认数据')
-        this.initialized = true // 设置为已初始化
-        this.saveToLocal() // 保存默认数据到本地存储
+      }
+      this.initialized = true
+      if (!saved) this.saveToLocal()
+    },
+    resetToDefault() {
+      this.applyLibrary(initialLibrary())
+    },
+    applyLibrary(next: PersonalLibrary) {
+      if (this.loadFailed) return false
+      const snapshot = validateLibrary(copy(next))
+      this.library = snapshot
+      return this.saveToLocal()
+    },
+    saveToLocal() {
+      if (this.loadFailed) return false
+      try {
+        const library = validateLibrary(copy(this.library))
+        return writeLocalData('petStorage', JSON.stringify({ ...library, lastMatchingConfig: this.lastMatchingConfig }))
+      } catch (error) {
+        ElMessage.error(String(error))
+        return false
       }
     },
-
-    resetToDefault() {
-      this.storage = []
-      this.teams = [getDefaultTeam()]
-      this.currentTeamIndex = 0
-      this.initialized = true // 重置后也设置为已初始化
+    validateAndSave() {
+      return this.saveToLocal()
+    },
+    clearStorage() {
+      this.applyLibrary({
+        version: 2,
+        storage: [],
+        teams: [newPersonalTeam('默认队伍', 'casual_standard_ruleset')],
+        currentTeamIndex: 0,
+      })
+    },
+    addToStorage(pet: PetSchemaType, origin?: PetOrigin) {
+      const next = copy(this.library)
+      next.storage.push({ ...copy(pet), ...(origin && { origin }), revision: 1 })
+      return this.applyLibrary(next)
+    },
+    createNewTeam(name?: string, ruleSetId = 'casual_standard_ruleset', includeDefaultPets = true) {
+      return this.importTeam({
+        name: name || `队伍 ${this.teams.length + 1}`,
+        ruleSetId,
+        pets: includeDefaultPets ? getDefaultTeam().pets : [],
+      })
+    },
+    importTeam(selection: TeamSelection) {
+      const next = copy(this.library)
+      const team = newPersonalTeam(selection.name, selection.ruleSetId)
+      for (const pet of selection.pets) {
+        const id = nanoid()
+        next.storage.push({ ...copy(pet), id, revision: 1 })
+        team.memberIds.push(id)
+      }
+      next.currentTeamIndex = next.teams.push(team) - 1
+      return this.applyLibrary(next)
+    },
+    copyTeam(index: number) {
+      const next = copy(this.library)
+      const original = next.teams[index]
+      if (!original) return false
+      next.currentTeamIndex =
+        next.teams.push({
+          ...original,
+          name: original.name + ' (副本)',
+          id: nanoid(),
+          revision: 1,
+          memberIds: [...original.memberIds],
+        }) - 1
+      return this.applyLibrary(next)
+    },
+    renameTeam(index: number, name: string) {
+      const next = copy(this.library)
+      next.teams[index].name = name
+      next.teams[index].revision++
+      return this.applyLibrary(next)
+    },
+    switchTeam(index: number) {
+      if (!this.library.teams[index]) return false
+      this.library.currentTeamIndex = index
+      return this.saveToLocal()
+    },
+    setEnvironmentPreference(index: number, preference?: EnvironmentPreference) {
+      const next = copy(this.library)
+      const team = next.teams[index]
+      if (!team) return false
+      if (preference) team.environmentPreference = preference
+      else delete team.environmentPreference
+      team.revision++
+      return this.applyLibrary(next)
+    },
+    getCurrentTeamRuleSetId(): string {
+      return this.teams[this.currentTeamIndex].ruleSetId
+    },
+    getTeamRuleSetId(index: number): string {
+      return this.teams[index]?.ruleSetId ?? 'casual_standard_ruleset'
+    },
+    updateTeamRuleSetId(index: number, id: string) {
+      const team = this.library.teams[index]
+      if (team) {
+        team.ruleSetId = id
+        team.revision++
+        this.saveToLocal()
+      }
+    },
+    saveLastMatchingConfig(teamId: string, ruleSetId: string) {
+      this.lastMatchingConfig = { teamId, ruleSetId, timestamp: Date.now() }
       this.saveToLocal()
     },
-
-    // 校验当前状态并保存
-    validateAndSave(): boolean {
-      const currentState = createPersistentSnapshot({
-        storage: this.storage,
-        teams: this.teams,
-        currentTeamIndex: this.currentTeamIndex,
-        lastMatchingConfig: this.lastMatchingConfig,
-      })
-
-      const validation = validatePetStorageData(currentState)
-
-      if (validation.valid) {
-        return this.saveToLocal()
-      } else {
-        // 校验失败，只显示错误提示，不自动重置数据
-        const errorMessage = validation.errors?.join('; ') || '数据格式错误'
-        ElMessage.error(`数据校验失败: ${errorMessage}`)
-        console.error('精灵仓库数据校验失败:', validation.errors)
-        return false
-      }
-    },
-
-    saveToLocal() {
-      const snapshot = createPersistentSnapshot({
-        storage: this.storage,
-        teams: this.teams,
-        currentTeamIndex: this.currentTeamIndex,
-        lastMatchingConfig: this.lastMatchingConfig,
-      })
-      return writeLocalData('petStorage', JSON.stringify(snapshot))
-    },
-
-    clearStorage() {
-      this.storage = []
-      this.teams = []
-      this.currentTeamIndex = 0
-      this.createNewTeam()
-      this.validateAndSave()
-    },
-
-    updateTeamOrder(teamIndex: number, newOrder: PetSchemaType[]) {
-      if (teamIndex >= 0 && teamIndex < this.teams.length) {
-        this.teams[teamIndex].pets = newOrder
-        this.validateAndSave()
-      }
-    },
-
-    // 其他方法保持原有逻辑，移除playerId参数
-    addToStorage(pet: PetSchemaType) {
-      // 先校验单个精灵数据
-      try {
-        parseWithErrors(PetSchema, pet)
-        this.storage.push(pet)
-        this.validateAndSave()
-      } catch (error) {
-        if (error instanceof Error) {
-          ElMessage.error(`精灵数据校验失败: ${error.message}`)
-          console.error('精灵数据校验失败:', error.message)
-        } else {
-          ElMessage.error('添加精灵失败')
-          console.error('添加精灵失败:', error)
-        }
-      }
-    },
-
-    createNewTeam(name?: string, ruleSetId: string = 'casual_standard_ruleset', includeDefaultPets: boolean = true) {
-      const teamName = name || `队伍 ${this.teams.length + 1}`
-
-      if (includeDefaultPets) {
-        this.teams.push({
-          ...getDefaultTeam(),
-          name: teamName,
-          ruleSetId,
-        })
-      } else {
-        // 创建空队伍，不包含默认精灵
-        this.teams.push({
-          name: teamName,
-          ruleSetId,
-          pets: [],
-        })
-      }
-
-      this.currentTeamIndex = this.teams.length - 1
-      this.validateAndSave()
-    },
-
-    switchTeam(index: number) {
-      if (index >= 0 && index < this.teams.length) {
-        this.currentTeamIndex = index
-        this.validateAndSave()
-        return true
-      }
-      return false
-    },
-
-    // 规则集相关方法
-    getCurrentTeamRuleSetId(): string {
-      const team = this.teams[this.currentTeamIndex]
-      return team?.ruleSetId || 'casual_standard_ruleset'
-    },
-
-    getTeamRuleSetId(index: number): string {
-      const team = this.teams[index]
-      return team?.ruleSetId || 'casual_standard_ruleset'
-    },
-
-    updateTeamRuleSetId(index: number, ruleSetId: string) {
-      if (index >= 0 && index < this.teams.length) {
-        this.teams[index].ruleSetId = ruleSetId
-        this.validateAndSave()
-      }
-    },
-
-    // 上一次匹配配置相关方法
-    saveLastMatchingConfig(teamIndex: number, ruleSetId: string) {
-      this.lastMatchingConfig = {
-        teamIndex,
-        ruleSetId,
-        timestamp: Date.now(),
-      }
-      this.validateAndSave()
-    },
-
-    getLastMatchingConfig(): LastMatchingConfig | null {
-      // 检查配置是否过期（7天）
-      if (this.lastMatchingConfig) {
-        const isExpired = Date.now() - this.lastMatchingConfig.timestamp > 7 * 24 * 60 * 60 * 1000
-        if (isExpired) {
-          this.lastMatchingConfig = null
-          this.validateAndSave()
-          return null
-        }
-      }
+    getLastMatchingConfig() {
+      if (this.lastMatchingConfig && Date.now() - this.lastMatchingConfig.timestamp > 7 * 86400000)
+        this.clearLastMatchingConfig()
       return this.lastMatchingConfig
     },
-
     clearLastMatchingConfig() {
       this.lastMatchingConfig = null
-      this.validateAndSave()
+      this.saveToLocal()
     },
-
-    moveToTeam(petId: string, targetTeamIndex: number) {
-      // 检查目标队伍是否存在且未满
-      if (!this.teams[targetTeamIndex] || this.teams[targetTeamIndex].pets.length >= 6) {
-        console.error('Target team does not exist or is full:', targetTeamIndex)
+    moveToTeam(petId: string, index: number) {
+      const next = copy(this.library)
+      const team = next.teams[index]
+      if (
+        !team ||
+        team.memberIds.includes(petId) ||
+        team.memberIds.length >= MAX_STORED_TEAM_MEMBERS ||
+        !next.storage.some(pet => pet.id === petId)
+      )
         return false
-      }
-
-      let pet: PetSchemaType | undefined = undefined
-
-      // 首先从其他队伍中查找并移除精灵
-      this.teams.forEach(team => {
-        const index = team.pets.findIndex(p => p.id === petId)
-        if (index > -1) {
-          pet = team.pets[index]
-          team.pets.splice(index, 1)
-        }
-      })
-
-      // 如果在队伍中没找到，从仓库中查找
-      if (!pet) {
-        const storageIndex = this.storage.findIndex(p => p.id === petId)
-        if (storageIndex > -1) {
-          pet = this.storage[storageIndex]
-          this.storage.splice(storageIndex, 1)
-        }
-      } else {
-        // 如果从队伍中找到了，也要从仓库中移除（如果存在）
-        const storageIndex = this.storage.findIndex(p => p.id === petId)
-        if (storageIndex > -1) {
-          this.storage.splice(storageIndex, 1)
-        }
-      }
-
-      // 添加到目标队伍
-      if (pet) {
-        this.teams[targetTeamIndex].pets.push(pet)
-        this.validateAndSave()
-        return true
-      } else {
-        return false
-      }
+      team.memberIds.push(petId)
+      team.revision++
+      return this.applyLibrary(next)
     },
-
+    replaceMember(teamId: string, current: string, replacement: string) {
+      const next = copy(this.library)
+      const team = next.teams.find(row => row.id === teamId)
+      if (!team || team.memberIds.includes(replacement) || !next.storage.some(row => row.id === replacement))
+        return false
+      const index = team.memberIds.indexOf(current)
+      if (index < 0) return false
+      team.memberIds[index] = replacement
+      team.revision++
+      return this.applyLibrary(next)
+    },
+    moveToPC(petId: string, index?: number) {
+      const next = copy(this.library)
+      const team = next.teams[index ?? this.currentTeamIndex]
+      if (!team?.memberIds.includes(petId)) return false
+      team.memberIds = team.memberIds.filter(id => id !== petId)
+      team.revision++
+      return this.applyLibrary(next)
+    },
     getCurrentTeam(): PetSchemaType[] {
-      return this.teams[this.currentTeamIndex].pets
+      return expandTeam(copy(this.library), this.currentTeamIndex).pets
     },
-
-    moveToPC(petId: string) {
-      let moved = false
-      this.teams.forEach(team => {
-        const index = team.pets.findIndex(p => p.id === petId)
-        if (index > -1) {
-          const [removedPet] = team.pets.splice(index, 1)
-          // 添加到仓库（如果不存在）
-          if (!this.storage.some(p => p.id === petId)) {
-            this.storage.push(removedPet)
-            moved = true
-          }
-        }
-      })
-      if (moved) {
-        this.validateAndSave()
-      }
-      return moved
-    },
-
-    updateTeam(index: number, newTeam: PetSchemaType[]) {
-      if (index >= 0 && index < this.teams.length) {
-        this.teams[index].pets = newTeam
-        this.validateAndSave()
-      }
-    },
-
-    deleteTeam(index: number) {
-      if (this.teams.length <= 1) return
-      this.teams.splice(index, 1)
-      this.currentTeamIndex = Math.min(this.currentTeamIndex, this.teams.length - 1)
-      this.validateAndSave()
-    },
-
     getTeam(index: number) {
-      return this.teams[index] || []
+      return this.teams[index]
     },
-
-    removeFromStorage(petId: string) {
-      let removed = false
-      this.teams.forEach(team => {
-        const index = team.pets.findIndex(p => p.id === petId)
-        if (index > -1) {
-          team.pets.splice(index, 1)
-          removed = true
+    affectedTeams(petId: string) {
+      return this.library.teams.filter(team => team.memberIds.includes(petId))
+    },
+    updateTeamOrder(index: number, selections: PetSchemaType[], shared: 'copy' | 'original' = 'copy') {
+      const next = copy(this.library)
+      const team = next.teams[index]
+      const ids = selections.map(pet => {
+        const original = next.storage.find(row => row.id === pet.id)
+        if (!original) {
+          next.storage.push({ ...copy(pet), revision: 1 })
+          return pet.id
         }
+        const { revision, origin, ...before } = original
+        if (canonical(before) === canonical(pet)) return pet.id
+        if (shared === 'copy' && next.teams.some(other => other.id !== team.id && other.memberIds.includes(pet.id))) {
+          const id = nanoid()
+          next.storage.push({ ...copy(pet), ...(origin && { origin }), id, revision: 1 })
+          return id
+        }
+        next.storage[next.storage.indexOf(original)] = {
+          ...copy(pet),
+          ...(origin && { origin }),
+          revision: revision + 1,
+        }
+        return pet.id
       })
-      const index = this.storage.findIndex(p => p.id === petId)
-      if (index > -1) {
-        this.storage.splice(index, 1)
-        removed = true
+      if (canonical(team.memberIds) !== canonical(ids)) {
+        team.memberIds = ids
+        team.revision++
       }
-      if (removed) {
-        this.validateAndSave()
-      }
+      return this.applyLibrary(next)
     },
-  },
-  getters: {
-    currentTeam(): PetSchemaType[] {
-      return this.teams[this.currentTeamIndex].pets
+    updateTeam(index: number, pets: PetSchemaType[]) {
+      return this.updateTeamOrder(index, pets)
+    },
+    deleteTeam(index: number) {
+      const next = copy(this.library)
+      if (next.teams.length <= 1 || !next.teams[index]) return false
+      next.teams.splice(index, 1)
+      if (index < next.currentTeamIndex) next.currentTeamIndex--
+      next.currentTeamIndex = Math.min(next.currentTeamIndex, next.teams.length - 1)
+      return this.applyLibrary(next)
+    },
+    removeFromStorage(id: string) {
+      if (this.affectedTeams(id).length) return false
+      const next = copy(this.library)
+      next.storage = next.storage.filter(pet => pet.id !== id)
+      return this.applyLibrary(next)
     },
   },
 })

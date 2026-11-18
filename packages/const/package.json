@@ -19,7 +19,8 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "jsondiffpatch": "catalog:"
+    "jsondiffpatch": "catalog:",
+    "zod": "4.6.7"
   },
   "repository": {
     "type": "git",

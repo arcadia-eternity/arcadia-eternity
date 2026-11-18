@@ -28,11 +28,13 @@ const ContentDescription = defineComponent({
     const resources = useResourceStore()
     return () => {
       const value = serverText(props.namespace, props.contentId, 'description', contentLanguage.value) ?? props.fallback
+      const values = descriptionValues(props.context)
+      if (props.namespace === 'skill') Object.assign(values, data.descriptionParameters?.get(props.contentId))
       try {
         return h(
           'div',
           { class: 'content-description' },
-          formatRichDescription(value, i18next.language || 'zh-CN', descriptionValues(props.context), id => {
+          formatRichDescription(value, i18next.language || 'zh-CN', values, id => {
             const mark = data.getMark(id)
             const kind = descriptionMarkKind(mark?.tags)
             const appearance = { class: descriptionStyles[kind], 'data-description-kind': kind }

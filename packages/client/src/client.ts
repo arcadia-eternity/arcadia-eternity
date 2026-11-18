@@ -22,6 +22,7 @@ import {
   type JoinPrivateRoomSpectatorRequest,
   type ServerEnvironmentAcceptance,
   type MatchmakingRequest,
+  type SubmitPrivateRoomTeamRequest,
   type SendPrivateRoomPeerSignalRequest,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
@@ -671,6 +672,12 @@ export class BattleClient {
         }
       })
     })
+  }
+
+  async submitPrivateRoomTeam(request: SubmitPrivateRoomTeamRequest): Promise<void> {
+    this.verifyConnection()
+    const result = await this.socket.timeout(this.options.actionTimeout).emitWithAck('submitPrivateRoomTeam', request)
+    if (result.status !== 'SUCCESS') throw this.parseError(result)
   }
 
   async togglePrivateRoomReady(team?: PetSchemaType[], environment?: ServerEnvironmentAcceptance): Promise<void> {

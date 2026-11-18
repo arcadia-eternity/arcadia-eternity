@@ -177,6 +177,60 @@ it('preparing an edited environment updates its binding without a second publica
   expect((await f.workspace.getDraft('shared')).document.name).toBe('Updated')
 }, 30_000)
 
+it('continues publishing the loaded rules until a replacement runtime loads successfully', async () => {
+  const f = await setup()
+  const initial = await f.draft('Old room rules', null)
+  await f.prepare(initial.revision)
+  const binding = await f.createBinding()
+  const [first] = f.app.environments.list()
+  const waiting = f.app.environments.acquire(first.id)
+  try {
+    const failure = vi
+      .spyOn(f.app.environments, 'prepareNpm')
+      .mockRejectedValueOnce(Object.assign(new Error('load failed'), { code: 'ENVIRONMENT_LOAD_FAILED' }))
+    const current = await f.workspace.getDraft('shared')
+    const next = await f.workspace.saveDraft({
+      expectedRevision: current.revision,
+      document: {
+        ...current.document,
+        schemaVersion: 2,
+        requires: {},
+        name: 'New room rules',
+        rules: { schemaVersion: 2, include: ['base:classic'], mechanics: { individualValues: { max: 120 } } },
+      },
+    })
+    await f.prepare(next.revision)
+    expect(failure).toHaveBeenCalled()
+    const installed = await f.workspace.getInstallation('shared')
+    expect(installed.document.name).toBe('New room rules')
+    expect(installed.document.rules.include).toEqual(['base:classic'])
+    expect(installed.ruleComposition?.rules.mechanics?.secondGenerationNatures).toBe('species')
+    expect((await f.storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
+      condition: 'degraded',
+      reason: 'ENVIRONMENT_LOAD_FAILED',
+    })
+    expect(f.app.environments.list()).toEqual([first])
+    const duringFailure = f.app.environments.acquire(first.id)
+    try {
+      expect(duringFailure.rules).toEqual(waiting.rules)
+    } finally {
+      await duringFailure.release()
+    }
+
+    await f.service.reconcile()
+    const [second] = f.app.environments.list()
+    expect(second.environmentName).toBe('New room rules')
+    expect(second.rules?.mechanics?.individualValues?.max).toBe(120)
+    expect(second.rules?.mechanics?.secondGenerationNatures).toBe('species')
+    expect(second.rules).not.toHaveProperty('include')
+    expect(second.gameplayRevision).not.toBe(first.gameplayRevision)
+    expect(waiting.descriptor).toMatchObject({ id: first.id, gameplayRevision: first.gameplayRevision })
+    expect(waiting.rules).toEqual(first.rules)
+  } finally {
+    await waiting.release()
+  }
+}, 60_000)
+
 it('failed preparation preserves the usable installation and binding', async () => {
   const f = await setup()
   const draft = await f.draft('Shared', null)

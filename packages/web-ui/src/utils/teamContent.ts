@@ -1,6 +1,8 @@
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 export interface TeamContentLookup {
+  getEnhancement?: (id: string) => unknown
+  getNature?: (id: string) => { generation: 1 | 2 } | undefined
   getSpecies: (id: string) => unknown
   getSkill: (id: string) => unknown
   getMark: (id: string) => unknown
@@ -9,14 +11,22 @@ export interface TeamContentLookup {
 export interface MissingTeamContent {
   petId: string
   petName: string
-  kind: 'species' | 'skill' | 'ability' | 'emblem'
+  kind: 'species' | 'skill' | 'inheritedSkill' | 'ability' | 'emblem' | 'nature' | 'enhancement'
   contentId: string
   skillIndex?: number
   namespace?: string
   message: string
 }
 
-const labels = { species: '精灵', skill: '技能', ability: '特性', emblem: '纹章' }
+const labels = {
+  species: '精灵',
+  skill: '技能',
+  inheritedSkill: '遗传技能',
+  ability: '特性',
+  emblem: '纹章',
+  nature: '性格',
+  enhancement: '强化阶段',
+}
 
 /** Resolution is a view of a saved draft; it must never repair or remove its references. */
 export function findMissingTeamContent(
@@ -24,12 +34,20 @@ export function findMissingTeamContent(
   content: TeamContentLookup,
 ): MissingTeamContent[] {
   const missing: MissingTeamContent[] = []
+  const lookup = {
+    species: content.getSpecies,
+    skill: content.getSkill,
+    inheritedSkill: content.getSkill,
+    ability: content.getMark,
+    emblem: content.getMark,
+    nature: content.getNature,
+    enhancement: content.getEnhancement,
+  }
   for (const pet of pets) {
     const check = (kind: MissingTeamContent['kind'], id: string | undefined, skillIndex?: number) => {
       if (id === undefined || (!id && kind !== 'skill')) return
-      const found =
-        kind === 'species' ? content.getSpecies(id) : kind === 'skill' ? content.getSkill(id) : content.getMark(id)
-      if (found) return
+      const resolve = lookup[kind]
+      if (!resolve || resolve(id)) return
       missing.push({
         petId: pet.id,
         petName: pet.name,
@@ -44,6 +62,9 @@ export function findMissingTeamContent(
     pet.skills.forEach((id, index) => check('skill', id, index))
     check('ability', pet.ability)
     check('emblem', pet.emblem)
+    check('inheritedSkill', pet.inheritedSkill)
+    check('nature', pet.nature)
+    check('enhancement', pet.enhancement)
   }
   return missing
 }

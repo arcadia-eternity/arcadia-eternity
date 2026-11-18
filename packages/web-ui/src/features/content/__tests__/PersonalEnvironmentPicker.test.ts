@@ -108,7 +108,7 @@ describe('personal challenge environment picker', () => {
     vi.stubGlobal('arcadiaRemotePlay', { capturePersonalEnvironment: capture })
     const page = open({ expected: reference(undefined, true) })
     expect(page.text()).toContain('@friend/ice')
-    expect(page.text()).toContain('revision-aaaa')
+    expect(page.text()).toContain('a'.repeat(16))
     expect(page.text()).toContain('双方需接受同一版本才能准备')
     expect(services.download).not.toHaveBeenCalled()
     expect(services.read).not.toHaveBeenCalled()
@@ -148,25 +148,17 @@ describe('personal challenge environment picker', () => {
     expect(result.release).toHaveBeenCalledTimes(1)
   })
 
-  it.each([false, true])(
-    'enforces expected version identity unless replacement is explicitly allowed (%s)',
-    async allowReplace => {
-      const result = prepared('b'.repeat(64))
-      services.parse.mockResolvedValue(result)
-      const page = open({ expected: reference(), allowReplace })
-      await chooseFile(page)
-      await vi.waitFor(() => expect(services.parse).toHaveBeenCalled())
-      await flushPromises()
-      if (allowReplace) {
-        expect(page.emitted('prepared')![0]![0]).toBe(result)
-        expect(result.release).not.toHaveBeenCalled()
-      } else {
-        expect(page.emitted('prepared')).toBeUndefined()
-        expect(result.release).toHaveBeenCalledTimes(1)
-        expect(page.get('[role="alert"]').text()).toContain('版本不同')
-      }
-    },
-  )
+  it('requires the material locked by the room', async () => {
+    const result = prepared('b'.repeat(64))
+    services.parse.mockResolvedValue(result)
+    const page = open({ expected: reference() })
+    await chooseFile(page)
+    await vi.waitFor(() => expect(services.parse).toHaveBeenCalled())
+    await flushPromises()
+    expect(page.emitted('prepared')).toBeUndefined()
+    expect(result.release).toHaveBeenCalledOnce()
+    expect(page.get('[role="alert"]').text()).toContain('版本不同')
+  })
 
   it.each(['expected', 'disabled', 'unmount'] as const)(
     'cancels pending work and releases a late result on %s change',

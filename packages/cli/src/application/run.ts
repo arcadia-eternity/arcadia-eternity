@@ -1,3 +1,9 @@
+import {
+  assertEnvironmentTeam,
+  assertLearningChoices,
+  resolveEnvironmentMechanics,
+  validateEnvironmentRules,
+} from '@arcadia-eternity/content-sdk/environment-rules'
 import { setImmediate as nextTick } from 'node:timers/promises'
 import { randomBytes } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
@@ -39,13 +45,29 @@ export async function runBattle(
     team: team.team.map(pet => ({ ...structuredClone(pet), id: freshId() })),
   }))
   const environment = sandboxEnvironmentFor(content)
+  const rules = validateEnvironmentRules(spec.rules)
+  for (const player of teams) {
+    assertEnvironmentTeam(rules, player.team)
+    assertLearningChoices(
+      rules,
+      player.team,
+      id => content.getSpecies(id as import('@arcadia-eternity/const').speciesId),
+      content.getNature,
+      content.getEnhancement,
+      id => content.getSkill(id as import('@arcadia-eternity/const').baseSkillId),
+    )
+  }
   const battleOptions = {
     rngSeed: spec.seed,
     showHidden: true,
-    allowFaintSwitch: true,
+    skillParameters: rules.skillParameters,
+    matchups: rules.matchups,
+    enhancementActive: rules.mechanics?.enhancement?.mode === 'active',
+    allowFaintSwitch: resolveEnvironmentMechanics(rules).allowFaintSwitch,
     timerConfig: { enabled: false },
   }
-  const native = 'parsePlayers' in content ? content : undefined
+  const native =
+    !environment && 'parsePlayers' in content ? await content.withSkillParameters(rules.skillParameters) : undefined
   if (!environment && !native) throw new Error('Battle environment has no executable recipe')
   const [a, b] = environment ? [] : native!.parsePlayers(teams)
   const battle = environment ? undefined : native!.createBattle(a, b, battleOptions)

@@ -3,7 +3,7 @@ import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import * as sdk from '@arcadia-eternity/battle/authoring'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
-import { createContentIndex, type ContentIndex } from '@arcadia-eternity/battle/engine'
+import { createContentIndex, normalizeBehaviorDefinitions, type ContentIndex } from '@arcadia-eternity/battle/engine'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
 import {
@@ -162,7 +162,10 @@ async function compileInstallation(
     ...host,
     build,
     allowedExports: [
-      ...(host.allowedExports ?? host.templates.map(def => def.implementation.exportId)),
+      ...(host.allowedExports ??
+        normalizeBehaviorDefinitions([...host.templates, ...(host.base.behaviors ?? [])]).map(
+          def => def.implementation.exportId,
+        )),
       ...contentPackages.flatMap(pkg =>
         [...codeUses.get(pkg.location)!.keys(), ...pkg.draft!.data.behaviors.map(definition => definition.id)].map(id =>
           runtimeId(pkg.manifest!.namespace, id),

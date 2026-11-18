@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import { validateWorkspaceProject, type ManagementService } from '@arcadia-eternity/server'
@@ -41,7 +43,18 @@ export async function initializeHostEnvironment({
       ...(existing?.document ?? {}),
       packages: Object.fromEntries(members.map(({ name, version }) => [name, version])),
       sources: [],
-      rules: existing?.document.rules ?? { schemaVersion: 1 as const },
+      rules:
+        existing?.document.rules ??
+        (kind === 'builtin'
+          ? validateEnvironmentRules(
+              JSON.parse(
+                await readFile(
+                  new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+                  'utf8',
+                ),
+              ),
+            )
+          : { schemaVersion: 1 as const }),
       requires: existing?.document.requires ?? {},
     }
     const draft = await workspace.saveDraft({ document, expectedRevision: existing?.revision ?? null })

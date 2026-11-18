@@ -1,11 +1,17 @@
 import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises'
 import type { Stats } from 'node:fs'
 import { dirname, isAbsolute, join, relative } from 'node:path'
-import { errorCode, isRecord } from './types.ts'
+import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
 export function contentError(code: string, message: string = code) {
   return Object.assign(new Error(message), { code })
 }
+export async function readJson<T = UnknownRecord>(file: string, limit = 4 * 1024 * 1024): Promise<T> {
+  const info = await lstat(file)
+  if (!info.isFile() || info.isSymbolicLink() || info.size > limit) throw contentError('WORKSPACE_FILE_INVALID')
+  return JSON.parse(await readFile(file, 'utf8')) as T
+}
+
 const materialRoots = new Set(['package.json', 'package-lock.json', 'node_modules', 'candidates'])
 const forbidden = new Set(['.git', '.env', '.npmrc', '.arcadia', '.bin'])
 function checkedMaterialPath(value: unknown): string {

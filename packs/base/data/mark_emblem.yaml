@@ -376,3 +376,14 @@
     - emblem
   effect:
     - effect_bingchuantun_emblem_jianren_flat_reduction
+- id: mark_emblem_tingjue
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_emblem_tingjue_prevent_hearing_loss
+- id: mark_emblem_zhenci
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_shifeng_emblem_male_damage
+    - effect_shifeng_emblem_female_reduction

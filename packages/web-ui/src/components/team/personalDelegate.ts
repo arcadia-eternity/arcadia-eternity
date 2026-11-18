@@ -1,10 +1,11 @@
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { nanoid } from 'nanoid'
-import { Gender, Nature } from '@arcadia-eternity/const'
+import { createTeamPet } from './createTeamPet'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { usePlayerStore } from '@/stores/player'
 import { usePetManagement } from '@/composition/usePetManagement'
+import { canonical } from '@arcadia-eternity/local-profile'
+import { flushProfile } from '@/services/profile'
 import { useTeamExport } from '@/composition/useTeamExport'
 import type { TeamEditorDelegate } from './delegate'
 
@@ -13,39 +14,88 @@ export function usePersonalTeamEditor(): TeamEditorDelegate {
   const player = usePlayerStore()
   const management = usePetManagement()
   const exporter = useTeamExport()
+  const draft = ref(storage.getCurrentTeam())
+  const source = computed(() => storage.library.teams[storage.currentTeamIndex])
+  const stamp = computed(() =>
+    canonical([
+      source.value.id,
+      source.value.memberIds.map(id => [
+        id,
+        storage.storage.find(pet => pet.id === id)?.revision,
+        storage.affectedTeams(id).map(team => team.id),
+      ]),
+    ]),
+  )
+  let baseStamp = stamp.value
+  let original = canonical(draft.value)
+  function reload() {
+    draft.value = storage.getCurrentTeam()
+    original = canonical(draft.value)
+    baseStamp = stamp.value
+  }
+  watch(() => source.value.id, reload, { flush: 'sync' })
+  watch(stamp, () => {
+    if (original === canonical(draft.value)) reload()
+  })
+  const affected = computed(() => {
+    const teams = new Map<string, string>()
+    const before = new Map(storage.getCurrentTeam().map(pet => [pet.id, canonical(pet)]))
+    for (const pet of draft.value) {
+      if (!before.has(pet.id) || before.get(pet.id) === canonical(pet)) continue
+      for (const team of storage.affectedTeams(pet.id)) if (team.id !== source.value.id) teams.set(team.id, team.name)
+    }
+    const counts = new Map<string, number>()
+    for (const name of teams.values()) counts.set(name, (counts.get(name) ?? 0) + 1)
+    return [...teams].map(([id, name]) => (counts.get(name)! > 1 ? `${name}（${id}）` : name))
+  })
+  function commit(scope: 'original' | 'copy' = 'copy') {
+    if (baseStamp !== stamp.value) {
+      ElMessage.warning('队伍或精灵引用已变化，请重新打开队伍再保存')
+      return false
+    }
+    if (original === canonical(draft.value)) return storage.saveToLocal()
+    const saved = storage.updateTeamOrder(storage.currentTeamIndex, draft.value, scope)
+    if (saved) reload()
+    return saved
+  }
   return {
-    team: computed({
-      get: () => storage.getCurrentTeam(),
-      set: value => storage.updateTeamOrder(storage.currentTeamIndex, value),
-    }),
+    team: draft,
+    affected,
+    warehouse: {
+      pets: computed(() => storage.storage),
+      teamsUsing: id => storage.affectedTeams(id),
+      replace(current, next) {
+        if (baseStamp !== stamp.value || original !== canonical(draft.value)) {
+          ElMessage.warning('请先保存当前修改，再更换队伍成员')
+          return false
+        }
+        if (!storage.replaceMember(source.value.id, current, next)) return false
+        reload()
+        return true
+      },
+    },
     name: computed(() => storage.teams[storage.currentTeamIndex]?.name || '未知队伍'),
     subtitle: computed(() => player.name || '未命名训练师'),
     ready: computed(() => storage.initialized),
-    persist: () => storage.saveToLocal(),
-    createPet() {
-      return {
-        id: nanoid(),
-        name: '迪兰特',
-        species: 'pet_dilante',
-        level: 100,
-        evs: { hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 },
-        ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-        skills: ['skill_wujindaxuanwo', 'skill_ruodianbiaoji', 'skill_feiliupubu', 'skill_yanmo'], // 4个普通技能，必杀技能会在handleSpeciesChange中自动添加
-        gender: Gender.Male,
-        nature: Nature.Modest,
-        ability: 'mark_ability_zhongjie',
-        emblem: 'mark_emblem_zhuiji',
-        height: 102,
-        weight: 31,
-      }
+    persist: () => {
+      if (!affected.value.length && original !== canonical(draft.value)) commit()
     },
-    removePet: management.deletePet,
-    removeLabel: '永久删除',
+    createPet: createTeamPet,
+    removePet(id, removed) {
+      const previous = draft.value
+      draft.value = previous.filter(pet => pet.id !== id)
+      if (affected.value.length || commit()) removed()
+      else draft.value = previous
+    },
+    removeLabel: '移出本队',
     storageRoute: '/storage',
-    moveToStorage: management.moveToStorage,
     importTeam: management.importTeamConfig,
     exportTeam: exporter.exportTeamConfig,
-    save: () => storage.validateAndSave(),
+    async save(scope) {
+      if (!commit(scope)) return false
+      await flushProfile()
+      return true
+    },
     clearLabel: '清理所有数据',
     async clear() {
       try {

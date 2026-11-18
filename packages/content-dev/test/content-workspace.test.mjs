@@ -70,7 +70,7 @@ async function ready(workspace) {
 test('environment is a persistent npm project and package.json is authoritative', async t => {
   const { open, location } = await fixture(t)
   const workspace = await open()
-  await ready(workspace)
+  const prepared = await ready(workspace)
   const file = join(location, 'environments/main/package.json')
   const manifest = JSON.parse(await readFile(file, 'utf8'))
   assert.equal(manifest.dependencies.sample, '1.0.0')
@@ -85,6 +85,7 @@ test('environment is a persistent npm project and package.json is authoritative'
   })
   assert.equal(JSON.parse(await readFile(file, 'utf8')).arcadiaEnvironment.name, 'Edited')
   assert.equal(saved.document.packages.sample, '^2.0.0')
+  assert.deepEqual((await workspace.getInstallation('main')).document, prepared.document)
   await assert.rejects(workspace.saveDraft({ document: saved.document, expectedRevision: current.revision }), {
     code: 'REVISION_CONFLICT',
   })

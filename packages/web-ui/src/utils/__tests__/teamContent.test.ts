@@ -57,3 +57,27 @@ it('reports every missing reference with its owner and skill position without mo
   )
   expect(pet).toEqual(before)
 })
+
+it('retains unresolved inherited skills, community natures and stages as distinct build choices', () => {
+  const pet = {
+    id: 'one',
+    name: '一号',
+    species: 'pet_x',
+    skills: [],
+    inheritedSkill: 'mod:heal',
+    enhancement: 'mod:stage',
+    nature: 'mod:nature',
+  } as unknown as PetSchemaType
+  const missing = findMissingTeamContent([pet], {
+    getSpecies: () => true,
+    getMark: () => true,
+    getSkill: () => undefined,
+    getNature: () => undefined,
+    getEnhancement: () => undefined,
+  })
+  expect(missing.map(row => [row.kind, row.contentId])).toEqual([
+    ['inheritedSkill', 'mod:heal'],
+    ['nature', 'mod:nature'],
+    ['enhancement', 'mod:stage'],
+  ])
+})

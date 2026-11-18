@@ -203,6 +203,7 @@ export async function startPreview(
       if (request.method === 'GET' && route === 'content')
         return json(200, {
           content: publicContent(),
+          rules: prepared.effectiveRules,
           candidate: prepared.candidate,
           teams: prepared.teams,
           draftKey: createHash('sha256')

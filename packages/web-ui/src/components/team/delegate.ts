@@ -12,10 +12,16 @@ export interface TeamEditorDelegate {
   removeLabel?: string
   subtitle?: Readonly<Ref<string>>
   storageRoute?: string
-  moveToStorage?(id: string, onRemoved: () => void): void
   importTeam?(): void | Promise<void>
   exportTeam?(team: PetSchemaType[]): void
-  save?(): boolean | void
+  warehouse?: {
+    pets: Readonly<Ref<readonly PetSchemaType[]>>
+    teamsUsing(id: string): readonly { id: string; name: string }[]
+    replace(current: string, next: string): boolean
+  }
+  affected?: Readonly<Ref<string[]>>
+  save?(scope?: 'original' | 'copy'): boolean | void | Promise<boolean | void>
+  saveLabel?: string
   clearLabel?: string
   clear?(): Promise<boolean>
 }

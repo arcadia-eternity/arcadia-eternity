@@ -15,8 +15,13 @@ import {
 import { AuthorWorkspace, type ManifestArcadia, type PackageManifest } from './workspace.ts'
 import { ProjectTeams, playersFromTeams, type ProjectTeam } from './project-teams.ts'
 import { createHash } from 'node:crypto'
+import { canonical } from '@arcadia-eternity/pack-loader/native'
 import { DebugEnvironments, normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
-import { assertEnvironmentRequirements, validateEnvironmentRules } from './environment-rules.ts'
+import {
+  assertEnvironmentRequirements,
+  prepareRulesForContent,
+  validateEnvironmentRuleDeclaration,
+} from './environment-rules.ts'
 import { siblingModulePath } from './module-path.ts'
 import { errorCode } from './types.ts'
 
@@ -52,6 +57,7 @@ export interface ContentCandidate {
 export interface PreparedBattleEnvironment {
   environment: PreparedNpmEnvironment
   environmentDocument: EnvironmentDocumentV2
+  effectiveRules: ReturnType<typeof prepareRulesForContent>['rules']
   candidate: ContentCandidate
   environmentLock: { file: string; version: string } | undefined
   sourceRevisions: Record<string, string>
@@ -120,7 +126,7 @@ export async function prepareBattleEnvironment(
           }
         : normalizeEnvironmentDocument(selectedDocument)
     assertEnvironmentRequirements(environmentDocument.requires)
-    validateEnvironmentRules(environmentDocument.rules)
+    validateEnvironmentRuleDeclaration(environmentDocument.rules)
     const lockFile = environmentId === 'default' ? undefined : `debug/environments/${environmentId}.package-lock.json`
     let oldLock: { file: string; text: string; version: string } | undefined
     if (lockFile) {
@@ -212,6 +218,7 @@ export async function prepareBattleEnvironment(
     environment = await prepareNpmProject(installation, emptyNpmContentHost, {
       policy: { profile: 'local-development' },
     })
+    const { rules: effectiveRules } = prepareRulesForContent(environmentDocument.rules, environment.sandbox.data)
     let environmentLock: { file: string; version: string } | undefined
     if (lockFile) {
       const text = await readFile(join(installation, 'package-lock.json'), 'utf8')
@@ -232,7 +239,20 @@ export async function prepareBattleEnvironment(
       shasum: packed.shasum,
       sdkApi: manifest.arcadia.sdkApi,
       build: environment.build,
-      environmentRevision: environment.revision,
+      environmentRevision: createHash('sha256')
+        .update(
+          canonical({
+            runtime: {
+              kind: 'native-v4',
+              contentRevision: environment.revision,
+              coreBuildId: environment.build.coreBuildId,
+              registryBuildId: environment.build.registryBuildId,
+            },
+            material: environment.sandbox.revision,
+            rules: effectiveRules,
+          }),
+        )
+        .digest('hex'),
       environmentId,
       environmentConfigVersion: selected.version,
     }
@@ -241,6 +261,7 @@ export async function prepareBattleEnvironment(
     return {
       environment,
       environmentDocument,
+      effectiveRules,
       candidate,
       environmentLock,
       sourceRevisions,

@@ -1,5 +1,6 @@
 import { ElMessage } from 'element-plus'
 import { stringify } from 'yaml'
+import type { PetOrigin } from '@arcadia-eternity/local-profile'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { usePetStorageStore } from '@/stores/petStorage'
 
@@ -9,22 +10,27 @@ export function useTeamExport() {
   /**
    * 导出队伍配置为YAML格式 (teamBuilder使用)
    */
-  function exportTeamConfig(team: PetSchemaType[]): void {
+  function exportTeamConfig(team: PetSchemaType[], context?: { name: string; origin?: PetOrigin }): void {
     try {
       const filename = `team-${new Date().toISOString().slice(0, 10)}.yaml`
 
       // 创建数据副本
+      const ownedOrigins = new Map(petStorage.storage.map(pet => [pet.id, pet.origin]))
       const exportData = team.map(pet => ({
         ...pet,
+        origin: context ? context.origin : ownedOrigins.get(pet.id),
         id: undefined,
         maxHp: undefined,
       }))
 
       // 使用YAML序列化
-      const content = stringify(exportData, {
-        indent: 2,
-        aliasDuplicateObjects: false,
-      })
+      const content = stringify(
+        { version: 2, name: context?.name ?? petStorage.teams[petStorage.currentTeamIndex].name, pets: exportData },
+        {
+          indent: 2,
+          aliasDuplicateObjects: false,
+        },
+      )
 
       // 创建下载链接
       const blob = new Blob([content], {
@@ -56,9 +62,11 @@ export function useTeamExport() {
         return
       }
 
+      const ownedOrigins = new Map(petStorage.storage.map(pet => [pet.id, pet.origin]))
       const teamData = {
+        version: 2,
         name: team.name,
-        pets: team.pets,
+        pets: team.pets.map(pet => ({ ...pet, origin: ownedOrigins.get(pet.id) })),
       }
 
       const dataStr = JSON.stringify(teamData, null, 2)

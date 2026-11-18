@@ -45,7 +45,7 @@ const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8')) as
   data: Record<'marks' | 'skills' | 'species', string[]>
 }
 const dataRoot = new URL(`${manifest.paths?.dataDir ?? 'data'}/`, root)
-const read = (kind: 'marks' | 'skills' | 'species') =>
+const read = (kind: keyof typeof manifest.data) =>
   manifest.data[kind].flatMap(
     file => parse(readFileSync(new URL(file, dataRoot), 'utf8'), { merge: true }) as { id: string }[],
   )
@@ -102,7 +102,7 @@ async function createNativeWebBattleSession(
     loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent, {
       templates: [],
     }),
-    metadata = { marks: records('marks'), skills: records('skills'), species: records('species') },
+    metadata = { ...environment.data, marks: records('marks'), skills: records('skills'), species: records('species') },
     loaded = await loader.fromMetadata(metadata),
     aiSlots = new Set(options.ai?.enabled ? (options.ai.players ?? ['playerB']) : []),
     [a, b] = loaded.content.parsePlayers(teams, {

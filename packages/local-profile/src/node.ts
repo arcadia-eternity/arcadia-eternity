@@ -90,7 +90,11 @@ export class FileProfileStorage implements ProfileStorage {
     const temporary = join(this.directory, `.profile-${randomUUID()}.tmp`)
     try {
       if (typeof expected === 'object' && expected !== null) {
-        if ((await this.readRaw()) !== expected.corrupt) throw new ProfileError('REVISION_CONFLICT')
+        const raw = await this.readRaw()
+        if (raw !== ('legacy' in expected ? expected.legacy : expected.corrupt))
+          throw new ProfileError('REVISION_CONFLICT')
+        if ('legacy' in expected)
+          await link(join(this.directory, 'profile.json'), join(this.directory, `profile-v1-${randomUUID()}.json`))
       } else {
         const old = await this.read()
         if ((old?.current.revision ?? null) !== expected) throw new ProfileError('REVISION_CONFLICT')

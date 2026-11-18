@@ -1,3 +1,4 @@
+import { readElementCatalog } from '@arcadia-eternity/const'
 import {
   addEnvironmentPackage,
   removeEnvironmentPackage,
@@ -10,10 +11,7 @@ import type {
 } from '@arcadia-eternity/protocol'
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import {
-  assertEnvironmentRequirements,
-  validateEnvironmentRules,
-} from '@arcadia-eternity/content-sdk/environment-rules'
+import { assertEnvironmentRequirements } from '@arcadia-eternity/content-sdk/environment-rules'
 import type {
   ContentWorkspace,
   EnvironmentInstallation,
@@ -173,7 +171,11 @@ const safeInstallation = (version: WorkspaceInstallation | UnavailableInstallati
 
 /** Static preparation only; metadata capture does not execute author module code. */
 export async function validateWorkspaceProject(
-  { directory, signal }: { directory: string; signal?: AbortSignal },
+  {
+    directory,
+    signal,
+    draft,
+  }: { directory: string; signal?: AbortSignal; draft?: PrepareEnvironmentInput['document'] },
   preparation: { effectPreparation?: 'compile' | 'prebuilt-only' } = {},
 ) {
   signal?.throwIfAborted()
@@ -181,7 +183,15 @@ export async function validateWorkspaceProject(
   try {
     const descriptor = await temporary.prepareNpm(directory, { policy: { profile: 'self-hosted' } }, preparation)
     signal?.throwIfAborted()
-    return { contentRevision: descriptor.runtime.contentRevision, packages: descriptor.packages }
+    const catalog = temporary.content(descriptor.id)
+    const ruleComposition = temporary.prepareRules(descriptor.id, draft?.rules)
+    return {
+      ruleComposition,
+      contentRevision: descriptor.runtime.contentRevision,
+      packages: descriptor.packages,
+      elementCatalog: readElementCatalog(catalog),
+      skillParameters: catalog.skillParameters,
+    }
   } catch (error) {
     const code = (error as { diagnostics?: { code?: string }[] }).diagnostics?.[0]?.code
     if (code && /^[A-Z][A-Z0-9_]+$/.test(code)) throw new ManagementError(code)
@@ -202,7 +212,16 @@ export class ManagementService {
   private lastTransferCleanup = 0
   readonly bootId = randomUUID()
   private readonly activeRuntimes = new Map<string, string>()
-  private readonly runtimes = new Map<string, { runtimeId: string; installationId: string }>()
+  private readonly runtimes = new Map<
+    string,
+    {
+      runtimeId: string
+      installationKey: string
+      environmentName: string
+      rules: EnvironmentAdmissionRules
+      executionPolicy: 'server' | 'peer'
+    }
+  >()
   private pending: Promise<unknown> = Promise.resolve()
   private localSession?: { actor: ManagementActor; expiresAt: number }
   private readyPromise?: Promise<void>
@@ -506,17 +525,22 @@ export class ManagementService {
     force = false,
   ) {
     const version = await this.options.workspace.getInstallation(installationId)
-    const key = `${bindingId}:${installationId}:${executionPolicy}:${version.createdAt}:${version.draftRevision}${force ? `:${randomUUID()}` : ''}`
-    const existing = this.runtimes.get(key)
-    if (existing) {
-      this.activeRuntimes.set(bindingId, key)
-      return existing.runtimeId
-    }
-    if (version.workspaceId !== this.options.workspace.workspaceId) fail('WORKSPACE_MISMATCH')
-    assertEnvironmentRequirements(version.document.requires)
-    validateEnvironmentRules(version.document.rules)
+    const instanceKey = (version: WorkspaceInstallation) =>
+      JSON.stringify([
+        bindingId,
+        installationId,
+        executionPolicy,
+        version.createdAt,
+        version.draftRevision,
+        version.contentRevision,
+      ])
+    const existing = this.runtimes.get(this.activeRuntimes.get(bindingId) ?? '')
+    if (!force && existing?.installationKey === instanceKey(version)) return existing.runtimeId
     const lease = await this.options.workspace.acquire(installationId, `server:${this.options.serverId}:${this.bootId}`)
+    let candidateId: string | undefined
     try {
+      if (lease.workspaceId !== this.options.workspace.workspaceId) fail('WORKSPACE_MISMATCH')
+      assertEnvironmentRequirements(lease.document.requires)
       const descriptor = await this.options.environments.prepareNpm(
         lease.directory,
         {
@@ -526,20 +550,31 @@ export class ManagementService {
         },
         { effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
       )
+      candidateId = descriptor.id
       if (
         executionPolicy === 'server' &&
         !this.options.allowThirdPartyExecution &&
         this.options.environments.hasThirdPartyPackages(descriptor.id)
       ) {
-        await this.options.environments.retire(descriptor.id)
         fail('THIRD_PARTY_EXECUTION_FORBIDDEN', 403)
       }
-      this.activeRuntimes.set(bindingId, key)
+      const { rules } = this.options.environments.prepareRules(descriptor.id, lease.document.rules)
       await lease.release()
-      this.runtimes.set(key, { installationId, runtimeId: descriptor.id })
+      this.runtimes.set(descriptor.id, {
+        runtimeId: descriptor.id,
+        installationKey: instanceKey(lease),
+        environmentName: lease.document.name,
+        rules,
+        executionPolicy,
+      })
+      this.activeRuntimes.set(bindingId, descriptor.id)
       return descriptor.id
     } catch (error) {
-      await lease.release()
+      try {
+        if (candidateId) await this.options.environments.retire(candidateId)
+      } finally {
+        await lease.release()
+      }
       throw error
     }
   }
@@ -550,20 +585,19 @@ export class ManagementService {
     let defaultRuntimeId: string | undefined
     for (const row of rows) {
       const binding = row.value
-      if (binding.condition !== 'available') continue
+      if (binding.condition !== 'available' && binding.condition !== 'degraded') continue
       const runtime = this.runtimes.get(this.activeRuntimes.get(row.id) ?? '')
-      if (!runtime) continue
-      const installation = await this.options.workspace.getInstallation(binding.environmentId)
+      if (!runtime || runtime.executionPolicy !== binding.executionPolicy) continue
       entries.push({
         runtimeId: runtime.runtimeId,
         environmentId: binding.environmentId,
-        environmentName: installation.document.name,
+        environmentName: runtime.environmentName,
         bindingId: row.id,
         executionPolicy: binding.executionPolicy,
         enabled: binding.enabled,
         public: binding.visibility === 'public',
         matchmaking: binding.matchmakingEnabled,
-        rules: installation.document.rules as EnvironmentAdmissionRules | undefined,
+        rules: runtime.rules,
       })
       if (row.id === server?.value.defaultBindingId && binding.enabled) defaultRuntimeId = runtime.runtimeId
     }
@@ -583,9 +617,11 @@ export class ManagementService {
       const failure = error as { code?: string; diagnostics?: { code?: string }[] }
       reason = failure?.code ?? failure?.diagnostics?.[0]?.code ?? 'ENVIRONMENT_UNAVAILABLE'
     }
+    const previous = this.runtimes.get(this.activeRuntimes.get(row.id) ?? '')
+    const canKeepServing = previous && previous.executionPolicy === row.value.executionPolicy
     return this.options.storage.replace<Binding>('bindings', row.id, row.revision, {
       ...row.value,
-      condition: reason ? 'unavailable' : 'available',
+      condition: reason ? (canKeepServing ? 'degraded' : 'unavailable') : 'available',
       reason,
       observedBootId: this.bootId,
     })

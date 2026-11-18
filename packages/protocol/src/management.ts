@@ -47,6 +47,7 @@ export interface ManagedServerSettings {
     battleQueueTimeoutMs: number
   }
 }
+export type SpeciesEligibility = 'species' | 'all' | 'off' | string[]
 export interface ManagedEnvironmentDocument {
   schemaVersion: 2
   id: string
@@ -54,7 +55,32 @@ export interface ManagedEnvironmentDocument {
   packages: Record<string, string>
   sources: string[]
   rules: {
-    schemaVersion: 1
+    include?: string[]
+    constraintEdits?: import('@arcadia-eternity/const').ConstraintEdits
+    schemaVersion: 1 | 2
+    mechanics?: {
+      skillSlots?: import('@arcadia-eternity/const').SkillSlots
+      individualValues?: { max: number }
+      individualValueDefault?: number
+      allowFaintSwitch?: boolean
+      inheritance?: {
+        eligible: SpeciesEligibility
+        pool?: { mode: 'fallback' | 'append' | 'replace'; skills: string[] }
+      }
+      enhancement?: { mode: 'forbidden' | 'suppressed' | 'active'; stages?: string[]; species?: string[] }
+      secondGenerationNatures?: SpeciesEligibility
+    }
+    collections?: import('@arcadia-eternity/const').RuleCollection[]
+    constraints?: import('@arcadia-eternity/const').DeclaredTeamConstraint[]
+    skillParameters?: import('@arcadia-eternity/const').SkillParameterPolicy
+    matchups?: import('@arcadia-eternity/const').MatchupPolicy
+    learnsetAdjustments?: {
+      species: string
+      source: 'normal' | 'inherited'
+      skill: string
+      action: 'add' | 'remove'
+      level?: number
+    }[]
     tier?: string
     allow?: { species?: string[]; skills?: string[]; marks?: string[] }
     deny?: { species?: string[]; skills?: string[]; marks?: string[] }
@@ -75,6 +101,16 @@ export interface ManagedReadyEnvironmentInstallation {
   document: ManagedEnvironmentDocument
   draftRevision: string
   contentRevision: string
+  ruleComposition?: {
+    rules: import('./environment').EnvironmentRules
+    fields: { path: string[]; value: unknown; sources: string[]; effectiveSources: string[] }[]
+    ruleSets: { id: string; name: string; rules: ManagedEnvironmentDocument['rules'] }[]
+  }
+  skillParameters?: import('@arcadia-eternity/const').SkillParameterCatalog
+  elementCatalog?: {
+    elements: import('@arcadia-eternity/const').ElementDefinition[]
+    matchupTables: import('@arcadia-eternity/const').MatchupTable[]
+  }
   members?: {
     name: string
     version: string

@@ -62,7 +62,7 @@ export function registerCommands(program: Command, context: CommandContext) {
         import('../application/simulate'),
       ])
       const loaded = await prepareContent(options.packRef, context.cwd, options)
-      const spec = await prepareRun(options, context.cwd, loaded.content)
+      const spec = { ...(await prepareRun(options, context.cwd, loaded.content)), rules: loaded.rules }
       const run = await simulate(loaded, spec, options.runs, {
         signal: context.signal,
         captureReplay: !!options.replayOut,
@@ -113,7 +113,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       import('@arcadia-eternity/console'),
     ])
     const loaded = await prepareContent(options.packRef, context.cwd, options)
-    const spec = await prepareRun(options, context.cwd, loaded.content)
+    const spec = { ...(await prepareRun(options, context.cwd, loaded.content)), rules: loaded.rules }
     const run = await runBattle(loaded.content, spec, {
       signal: context.signal,
       humans: [0, 1].filter(seat => !ai.includes(`player${seat + 1}`)),

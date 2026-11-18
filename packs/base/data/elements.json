@@ -1,0 +1,117 @@
+[
+  {
+    "id": "Normal",
+    "name": "普通",
+    "emoji": "⚪"
+  },
+  {
+    "id": "Grass",
+    "name": "草",
+    "emoji": "🌱"
+  },
+  {
+    "id": "Water",
+    "name": "水",
+    "emoji": "💧"
+  },
+  {
+    "id": "Fire",
+    "name": "火",
+    "emoji": "🔥"
+  },
+  {
+    "id": "Wind",
+    "name": "风",
+    "emoji": "🌬️"
+  },
+  {
+    "id": "Bug",
+    "name": "虫",
+    "emoji": "🐛"
+  },
+  {
+    "id": "Flying",
+    "name": "飞行",
+    "emoji": "🕊️"
+  },
+  {
+    "id": "Electric",
+    "name": "电",
+    "emoji": "⚡"
+  },
+  {
+    "id": "Ground",
+    "name": "地面",
+    "emoji": "🌍"
+  },
+  {
+    "id": "Ice",
+    "name": "冰",
+    "emoji": "🧊"
+  },
+  {
+    "id": "Psychic",
+    "name": "超能",
+    "emoji": "🧠"
+  },
+  {
+    "id": "Fighting",
+    "name": "战斗",
+    "emoji": "🥋"
+  },
+  {
+    "id": "Trait",
+    "name": "特质",
+    "emoji": "✨"
+  },
+  {
+    "id": "Light",
+    "name": "光",
+    "emoji": "💡"
+  },
+  {
+    "id": "Mystery",
+    "name": "神秘",
+    "emoji": "🔯"
+  },
+  {
+    "id": "Shadow",
+    "name": "暗影",
+    "emoji": "🌑"
+  },
+  {
+    "id": "Dragon",
+    "name": "龙",
+    "emoji": "🐉"
+  },
+  {
+    "id": "Desert",
+    "name": "沙漠",
+    "emoji": "🏜️"
+  },
+  {
+    "id": "Ancient",
+    "name": "上古",
+    "emoji": "🗿"
+  },
+  {
+    "id": "Divine",
+    "name": "神遁",
+    "emoji": "🙏"
+  },
+  {
+    "id": "Miracle",
+    "name": "神迹",
+    "emoji": "🌟"
+  },
+  {
+    "id": "Holy",
+    "name": "圣灵",
+    "emoji": "👼"
+  },
+  {
+    "id": "ElfKing",
+    "name": "精灵王",
+    "emoji": "🧝‍♂️"
+  }
+]

@@ -141,6 +141,7 @@ export interface ClientToServerEvents {
   joinPrivateRoom: (data: JoinPrivateRoomRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
   joinPrivateRoomAsSpectator: (data: JoinPrivateRoomSpectatorRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
+  submitPrivateRoomTeam: (data: SubmitPrivateRoomTeamRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
   startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<PrivateRoomBattleStartInfo>) => void
   finishPrivateRoomBattle: (
@@ -195,6 +196,13 @@ export interface JoinPrivateRoomSpectatorRequest {
   clientAssetLock?: AssetLock
 }
 
+export interface SubmitPrivateRoomTeamRequest {
+  roomId: string
+  seatId: string
+  environment: ServerEnvironmentAcceptance
+  team: PetSchemaType[]
+}
+
 export interface TogglePrivateRoomReadyRequest {
   environment?: ServerEnvironmentAcceptance
   team?: PetSchemaType[]
@@ -205,7 +213,6 @@ export interface UpdatePrivateRoomRuleSetRequest {
 }
 
 export interface UpdatePrivateRoomConfigRequest {
-  personalEnvironment?: PersonalEnvironmentReference
   ruleSetId?: string
   isPrivate?: boolean
   password?: string

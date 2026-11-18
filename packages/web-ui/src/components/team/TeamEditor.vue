@@ -13,14 +13,14 @@
   </div>
 
   <!-- 主要内容 -->
-  <div v-else class="bg-gray-50" :class="{ 'min-h-screen': !compact }">
+  <div v-else ref="editorRoot" class="bg-gray-50" :class="{ 'min-h-screen': !compact }">
     <!-- 头部信息栏 -->
     <header v-if="!compact" class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center space-x-4">
             <h1 class="text-xl font-semibold text-gray-900">队伍编辑器</h1>
-            <div class="hidden sm:block">
+            <div class="min-w-0">
               <span
                 class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
               >
@@ -65,7 +65,7 @@
     </header>
 
     <!-- 队伍管理指引 -->
-    <div v-if="showGuide" class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3">
+    <div v-if="showGuide && delegate.storageRoute" class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
         <div class="flex items-start space-x-3">
           <div class="flex-shrink-0">
@@ -173,6 +173,10 @@
                 v-for="(error, index) in teamValidationResult.errors"
                 :key="`${getErrorCode(error)}-${index}`"
                 class="bg-white border border-red-200 rounded-md p-3 cursor-pointer hover:bg-red-50 transition-colors"
+                role="button"
+                tabindex="0"
+                @keydown.enter.prevent="handleErrorClick(error)"
+                @keydown.space.prevent="handleErrorClick(error)"
                 @click="handleErrorClick(error)"
               >
                 <div class="flex items-start space-x-2">
@@ -212,7 +216,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
-                  <p class="text-xs text-gray-500 mt-1">{{ currentTeam.length }}/6 只精灵</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ currentTeam.length }}/{{ teamCapacity }} 只精灵</p>
                 </div>
                 <el-tooltip content="使用教程" placement="left" :show-after="500" class="md:hidden">
                   <button
@@ -363,22 +367,6 @@
                             />
                           </svg>
                         </button>
-                        <!-- 移入仓库按钮 -->
-                        <button
-                          v-if="delegate.moveToStorage"
-                          @click.stop="handleMoveToStorage(pet.id)"
-                          class="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50"
-                          title="移入仓库"
-                        >
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                            />
-                          </svg>
-                        </button>
                         <!-- 删除按钮 -->
                         <button
                           @click.stop="handleDeletePet(pet.id)"
@@ -402,7 +390,7 @@
 
               <button
                 @click="addNewPet"
-                :disabled="currentTeam.length >= 6"
+                :disabled="currentTeam.length >= teamCapacity"
                 class="w-full flex items-center justify-center px-3 py-2 border-2 border-dashed border-gray-300 rounded-md text-xs font-medium text-gray-600 hover:border-gray-400 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -439,6 +427,7 @@
                     v-if="item.kind === 'skill'"
                     type="button"
                     class="ml-2 underline"
+                    :data-team-field="'skills.' + item.skillIndex"
                     :aria-label="`移除缺失技能 ${item.contentId}`"
                     @click="removeMissingSkill(item.skillIndex!)"
                   >
@@ -447,6 +436,15 @@
                 </li>
               </ul>
             </section>
+            <WarehouseMemberPicker
+              v-if="delegate.warehouse"
+              :key="selectedPet.id"
+              :current="selectedPet"
+              :team="currentTeam"
+              :warehouse="delegate.warehouse"
+              @replaced="selectedPetId = $event"
+            />
+            <PetPresetPanel :pet="selectedPet" :team="currentTeam" @apply="applyPetBuild" />
             <!-- 基础信息卡片 -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
               <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
@@ -458,14 +456,6 @@
                   >
                     <el-icon class="mr-1" :size="12"><StarFilled /></el-icon>
                     设置首发
-                  </button>
-                  <button
-                    v-if="delegate.moveToStorage"
-                    @click="handleMoveToStorage(selectedPet.id)"
-                    class="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                  >
-                    <el-icon class="mr-1" :size="12"><FolderOpened /></el-icon>
-                    移入仓库
                   </button>
                   <button
                     @click="handleDeletePet(selectedPet.id)"
@@ -493,12 +483,12 @@
                     <div>
                       <label class="block text-xs font-medium text-gray-700 mb-1">种族</label>
                       <el-select-v2
-                        v-model="selectedPet.species"
+                        :model-value="selectedPet.species"
+                        data-team-field="species"
                         :options="speciesOptions"
-                        @change="handleSpeciesChange"
+                        @update:model-value="previewSpeciesChange"
                         placeholder="选择种族"
                         filterable
-                        clearable
                         class="w-full"
                         style="width: 100%"
                       >
@@ -527,6 +517,16 @@
                           </div>
                         </template>
                       </el-select-v2>
+                      <section v-if="speciesCandidate" aria-label="更换种族预览" class="mt-2">
+                        <ul>
+                          <li v-for="change in buildDifferences(selectedPet, speciesCandidate)" :key="change">
+                            {{ change }}
+                          </li>
+                        </ul>
+                        <button type="button" @click="applySpeciesChange">确认更换种族</button>
+                        <button type="button" @click="speciesChoice = undefined">取消</button>
+                      </section>
+                      <button v-if="canUndoSpecies" type="button" @click="restoreSpecies">撤销更换种族</button>
                     </div>
                   </div>
 
@@ -582,63 +582,276 @@
                       />
                     </div>
                   </div>
+                </form>
+              </div>
+            </div>
 
-                  <!-- 第三行：特性、纹章与性格 -->
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <!-- 特性选择 -->
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">特性</label>
-                      <el-select-v2
-                        v-model="selectedPet.ability"
-                        :options="abilitySelectOptions"
-                        :disabled="!currentSpecies"
-                        placeholder="选择特性"
-                        clearable
-                        class="w-full"
-                        style="width: 100%"
-                        :height="300"
-                        :item-height="80"
-                      >
-                        <template #default="{ item }">
-                          <div class="flex flex-col space-y-1 p-3 min-w-0">
-                            <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
-                            <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
-                              {{ item.description }}
+            <el-tabs v-model="editSection" aria-label="精灵配置">
+              <el-tab-pane label="配招" name="moves">
+                <!-- 技能配置 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div class="px-4 py-3 border-b border-gray-200">
+                    <h3 class="text-base font-medium text-gray-900">技能配置</h3>
+                  </div>
+                  <div class="p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <!-- 特性选择 -->
+                      <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">特性</label>
+                        <el-select-v2
+                          v-model="selectedPet.ability"
+                          data-team-field="ability"
+                          :options="abilitySelectOptions"
+                          :disabled="!currentSpecies"
+                          placeholder="选择特性"
+                          clearable
+                          class="w-full"
+                          style="width: 100%"
+                          :height="300"
+                          :item-height="80"
+                        >
+                          <template #default="{ item }">
+                            <div class="flex flex-col space-y-1 p-3 min-w-0">
+                              <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
+                              <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
+                                {{ item.description }}
+                              </div>
                             </div>
-                          </div>
-                        </template>
-                      </el-select-v2>
+                          </template>
+                        </el-select-v2>
+                      </div>
+
+                      <!-- 纹章选择 -->
+                      <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">纹章</label>
+                        <el-select-v2
+                          v-model="selectedPet.emblem"
+                          data-team-field="emblem"
+                          :options="emblemSelectOptions"
+                          placeholder="选择纹章"
+                          clearable
+                          class="w-full"
+                          style="width: 100%"
+                          :height="300"
+                          :item-height="80"
+                        >
+                          <template #default="{ item }">
+                            <div class="flex flex-col space-y-1 p-3 min-w-0">
+                              <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
+                              <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
+                                {{ item.description }}
+                              </div>
+                            </div>
+                          </template>
+                        </el-select-v2>
+                      </div>
+                    </div>
+                    <label v-if="learning?.eligible || selectedPet.inheritedSkill" class="block mb-3"
+                      >遗传技能
+                      <select
+                        data-team-field="inheritedSkill"
+                        :value="selectedPet.inheritedSkill ?? ''"
+                        @change="setInheritedSkill"
+                      >
+                        <option value="">无</option>
+                        <option
+                          v-if="selectedPet.inheritedSkill && !learning?.inherited.has(selectedPet.inheritedSkill)"
+                          data-team-field="inheritedSkill"
+                          :value="selectedPet.inheritedSkill"
+                        >
+                          {{ selectedPet.inheritedSkill }}（当前不可用）
+                        </option>
+                        <option
+                          v-for="id in learning?.inherited"
+                          :key="id"
+                          :value="id"
+                          :disabled="!allowsTeamContent(gameDataStore.rules, 'skills', id)"
+                        >
+                          {{ contentName(id, 'skill') }}
+                        </option>
+                      </select>
+                    </label>
+                    <!-- 普通技能配置 -->
+                    <div class="mb-6">
+                      <h4 class="text-sm font-medium text-gray-800 mb-3">
+                        普通技能（最多 {{ skillSlots.normalMax }} 个）
+                      </h4>
+                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div v-for="(_, index) in displayedNormalSkills" :key="`normal-${index}`" class="space-y-2">
+                          <label class="block text-xs font-medium text-gray-700">
+                            普通技能 {{ index + 1 }}
+                            <span v-if="index >= skillSlots.normalMax">超出槽位</span>
+                          </label>
+                          <el-select-v2
+                            :model-value="displayedNormalSkills[index]"
+                            :data-testid="`normal-skill-${index}`"
+                            @update:model-value="value => changeSkill(false, index, value)"
+                            :options="normalSkillSelectOptions"
+                            :disabled="!currentSpecies"
+                            placeholder="选择普通技能"
+                            clearable
+                            class="w-full"
+                            style="width: 100%"
+                            :height="400"
+                            :item-height="140"
+                          >
+                            <template #default="{ item }">
+                              <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
+                                <!-- 技能名称 -->
+                                <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
+                                  <ElementIcon
+                                    v-if="item.element"
+                                    :element="item.element"
+                                    class="w-4 h-4 flex-shrink-0"
+                                  />
+                                  <span class="font-medium">{{ item.label }}</span>
+                                </div>
+                                <!-- 技能标签 -->
+                                <div class="flex flex-wrap gap-1">
+                                  <span
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                                  >
+                                    威力: {{ item.power }}
+                                  </span>
+                                  <span
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+                                  >
+                                    {{ item.category }}
+                                  </span>
+                                  <span
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
+                                  >
+                                    怒气: {{ item.rage }}
+                                  </span>
+                                  <span
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+                                  >
+                                    命中: {{ item.accuracy }}%
+                                  </span>
+                                </div>
+                                <!-- 技能描述 -->
+                                <ContentDescription
+                                  class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
+                                  namespace="skill"
+                                  :content-id="item.value"
+                                  :fallback="item.description"
+                                  :context="{ skill: gameDataStore.getSkill(item.value) }"
+                                />
+                              </div>
+                            </template>
+                          </el-select-v2>
+                        </div>
+                      </div>
                     </div>
 
-                    <!-- 纹章选择 -->
+                    <!-- 必杀技能配置 -->
                     <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">纹章</label>
-                      <el-select-v2
-                        v-model="selectedPet.emblem"
-                        :options="emblemSelectOptions"
-                        placeholder="选择纹章"
-                        clearable
-                        class="w-full"
-                        style="width: 100%"
-                        :height="300"
-                        :item-height="80"
-                      >
-                        <template #default="{ item }">
-                          <div class="flex flex-col space-y-1 p-3 min-w-0">
-                            <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
-                            <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
-                              {{ item.description }}
+                      <h4 class="text-sm font-medium text-gray-800 mb-3">
+                        必杀技能（最多 {{ skillSlots.climaxMax }} 个）
+                      </h4>
+                      <div v-for="(_, index) in displayedClimaxSkills" :key="index" class="max-w-md">
+                        <label class="block text-xs font-medium text-gray-700 mb-2">
+                          必杀技能 {{ index + 1 }}
+                          <span v-if="index >= skillSlots.climaxMax">超出槽位</span>
+                          <span v-else-if="index < (skillSlots.climaxMin ?? 0)">必选</span>
+                        </label>
+                        <el-select-v2
+                          :model-value="displayedClimaxSkills[index]"
+                          @update:model-value="value => changeSkill(true, index, value)"
+                          :options="climaxSkillSelectOptions"
+                          :disabled="!displayedClimaxSkills[index] && (!currentSpecies || !hasClimaxSkills)"
+                          :placeholder="hasClimaxSkills ? '选择必杀技能' : '该种族无必杀技能'"
+                          clearable
+                          class="w-full"
+                          style="width: 100%"
+                          :height="400"
+                          :item-height="140"
+                        >
+                          <template #default="{ item }">
+                            <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
+                              <!-- 技能名称 -->
+                              <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
+                                <ElementIcon
+                                  v-if="item.element"
+                                  :element="item.element"
+                                  class="w-4 h-4 flex-shrink-0"
+                                />
+                                <span class="font-medium">{{ item.label }}</span>
+                              </div>
+                              <!-- 技能标签 -->
+                              <div class="flex flex-wrap gap-1">
+                                <span
+                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                                >
+                                  威力: {{ item.power }}
+                                </span>
+                                <span
+                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+                                >
+                                  {{ item.category }}
+                                </span>
+                                <span
+                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
+                                >
+                                  怒气: {{ item.rage }}
+                                </span>
+                                <span
+                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+                                >
+                                  命中: {{ item.accuracy }}%
+                                </span>
+                              </div>
+                              <!-- 技能描述 -->
+                              <ContentDescription
+                                class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
+                                namespace="skill"
+                                :content-id="item.value"
+                                :fallback="item.description"
+                                :context="{ skill: gameDataStore.getSkill(item.value) }"
+                              />
                             </div>
-                          </div>
-                        </template>
-                      </el-select-v2>
+                          </template>
+                        </el-select-v2>
+                      </div>
                     </div>
-
+                  </div>
+                </div>
+              </el-tab-pane>
+              <el-tab-pane label="养成" name="training">
+                <!-- 能力值配置 -->
+                <div v-if="trainingPet" class="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-base font-medium text-gray-900">能力值配置</h3>
+                    <button v-if="!trialPet" type="button" @click="startTrainingTrial">试算养成</button>
+                    <div v-else class="flex flex-wrap gap-2">
+                      <button type="button" @click="applyTrainingTrial">采用配法</button>
+                      <button type="button" @click="trialPet = null">取消试算</button>
+                    </div>
+                    <span
+                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                      :class="currentEVTotal > 510 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'"
+                    >
+                      学习力总和: {{ currentEVTotal }}/510
+                    </span>
+                  </div>
+                  <div class="p-4">
+                    <div v-if="trialChanges.length" class="mb-2 text-sm">
+                      <ul aria-label="试算改动">
+                        <li v-for="change in trialChanges" :key="change">{{ change }}</li>
+                      </ul>
+                      <p v-if="trialTeams.length > 1">
+                        共用这只精灵的队伍：{{ trialTeams.map(team => team.name).join('、') }}
+                      </p>
+                    </div>
+                    <ul v-if="trialPet && trialIssues.length" aria-live="polite" class="mb-2 text-sm">
+                      <li v-for="issue in trialIssues" :key="issue">{{ issue }}</li>
+                    </ul>
                     <!-- 性格选择 -->
                     <div>
                       <label class="block text-xs font-medium text-gray-700 mb-1">性格</label>
                       <el-select-v2
-                        v-model="selectedPet.nature"
+                        v-model="trainingPet.nature"
+                        data-team-field="nature"
                         :options="natureSelectOptions"
                         placeholder="选择性格"
                         class="w-full"
@@ -667,252 +880,160 @@
                         </template>
                       </el-select-v2>
                     </div>
-                  </div>
-
-                  <!-- 性格效果显示 -->
-                  <div v-if="selectedPet.nature" class="p-3 bg-gray-50 rounded-md">
-                    <p class="text-sm font-medium text-gray-700 mb-2">性格效果：</p>
-                    <div class="flex flex-wrap gap-1">
-                      <span
-                        v-for="(value, stat) in NatureMap[selectedPet.nature as Nature]"
-                        :key="stat"
-                        class="inline-flex items-center px-2 py-1 rounded text-sm font-medium"
-                        :class="{
-                          'bg-green-100 text-green-800': value > 1,
-                          'bg-red-100 text-red-800': value < 1,
-                          'bg-gray-100 text-gray-800': value === 1,
-                        }"
-                      >
-                        {{ stat.toUpperCase() }} {{ value }}x
-                      </span>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            <!-- 能力值配置 -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                <h3 class="text-base font-medium text-gray-900">能力值配置</h3>
-                <span
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                  :class="currentEVTotal > 510 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'"
-                >
-                  学习力总和: {{ currentEVTotal }}/510
-                </span>
-              </div>
-              <div class="p-4">
-                <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-                  <div v-for="stat in statList" :key="stat" class="bg-gray-50 rounded-md p-3">
-                    <!-- 能力值头部 -->
-                    <div class="flex items-center justify-between mb-2">
-                      <h4 class="text-xs font-medium text-gray-900">{{ statChineseMap[stat] }}</h4>
-                      <div class="text-right">
-                        <div class="text-sm font-bold text-gray-900">
-                          {{ currentSpecies ? computedStats[stat] : '—' }}
-                        </div>
-                        <div class="text-xs text-gray-500">最终值</div>
-                      </div>
-                    </div>
-
-                    <!-- 学习力滑块 -->
-                    <div class="mb-3">
-                      <label class="block text-xs font-medium text-gray-700 mb-1">
-                        学习力: {{ selectedPet?.evs[stat] || 0 }}
+                    <fieldset v-if="availableStages.length || trainingPet.enhancement">
+                      <legend>神魔化</legend>
+                      <label
+                        >强化阶段
+                        <select
+                          data-team-field="enhancement"
+                          :value="trainingPet.enhancement ?? ''"
+                          @change="selectStage(($event.target as HTMLSelectElement).value)"
+                        >
+                          <option value="">无</option>
+                          <option
+                            v-if="
+                              trainingPet.enhancement &&
+                              !availableStages.some(row => row.id === trainingPet?.enhancement)
+                            "
+                            data-team-field="enhancement"
+                            :value="trainingPet.enhancement"
+                            disabled
+                          >
+                            {{ gameDataStore.getEnhancement(trainingPet.enhancement)?.name ?? trainingPet.enhancement }}
+                            {{ enhancementPolicy?.mode === 'suppressed' ? '（本局不生效）' : '（当前不可用）' }}
+                          </option>
+                          <optgroup
+                            v-for="(stages, branch) in stagesByBranch"
+                            :key="branch"
+                            :label="
+                              branch === 'divine' ? '神化／圣化' : branch === 'demonic' ? '魔化／冥化' : String(branch)
+                            "
+                          >
+                            <option v-for="stage in stages" :key="stage.id" :value="stage.id">{{ stage.name }}</option>
+                          </optgroup>
+                        </select>
                       </label>
-                      <input
-                        type="range"
-                        :value="selectedPet.evs[stat]"
-                        @input="handleEVUpdate(stat, Number(($event.target as HTMLInputElement).value))"
-                        min="0"
-                        max="255"
-                        step="4"
-                        class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                      />
-                      <div class="flex justify-between text-xs text-gray-500 mt-0.5">
-                        <span>0</span>
-                        <span>255</span>
-                      </div>
-                    </div>
-
-                    <!-- 详细数值 -->
-                    <div class="space-y-1">
-                      <div class="flex justify-between text-xs">
-                        <span class="text-gray-600">种族值</span>
-                        <span class="font-medium">{{ currentSpecies?.baseStats[stat] ?? '—' }}</span>
-                      </div>
-                      <div class="flex justify-between text-xs">
-                        <span class="text-gray-600">个体值</span>
-                        <input
-                          v-model.number="selectedPet.ivs[stat]"
-                          type="number"
-                          min="0"
-                          max="31"
-                          class="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div v-if="stat !== 'hp'" class="flex justify-between text-xs">
-                        <span class="text-gray-600">性格修正</span>
+                      <span v-if="activeStage" class="ml-2 text-xs">
+                        {{
+                          statList
+                            .filter(stat => activeStage!.bonus[stat])
+                            .map(stat => statChineseMap[stat] + ' +' + activeStage!.bonus[stat])
+                            .join('，')
+                        }}
+                      </span>
+                    </fieldset>
+                    <!-- 性格效果显示 -->
+                    <div v-if="trainingPet.nature" class="p-3 bg-gray-50 rounded-md">
+                      <p class="text-sm font-medium text-gray-700 mb-2">性格效果：</p>
+                      <div class="flex flex-wrap gap-1">
                         <span
-                          class="font-medium"
+                          v-for="(value, stat) in gameDataStore.getNature(trainingPet.nature)?.multipliers"
+                          :key="stat"
+                          class="inline-flex items-center px-2 py-1 rounded text-sm font-medium"
                           :class="{
-                            'text-green-600': getNatureMultiplier(selectedPet.nature, stat) > 1,
-                            'text-red-600': getNatureMultiplier(selectedPet.nature, stat) < 1,
-                            'text-gray-600': getNatureMultiplier(selectedPet.nature, stat) === 1,
+                            'bg-green-100 text-green-800': value > 1,
+                            'bg-red-100 text-red-800': value < 1,
+                            'bg-gray-100 text-gray-800': value === 1,
                           }"
                         >
-                          {{ getNatureMultiplier(selectedPet.nature, stat) }}x
+                          {{ String(stat).toUpperCase() }} {{ value }}x
                         </span>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+                      <div v-for="stat in statList" :key="stat" class="bg-gray-50 rounded-md p-3">
+                        <!-- 能力值头部 -->
+                        <div class="flex items-center justify-between mb-2">
+                          <h4 class="text-xs font-medium text-gray-900">{{ statChineseMap[stat] }}</h4>
+                          <div class="text-right">
+                            <div class="text-sm font-bold text-gray-900">
+                              <span v-if="trialPet" :aria-label="'原' + statChineseMap[stat]"
+                                >{{ originalStats[stat]?.total ?? '—' }} →
+                              </span>
+                              {{ computedStats[stat]?.total ?? '—' }}
+                            </div>
+                            <div class="text-xs text-gray-500">最终值</div>
+                          </div>
+                        </div>
 
-            <!-- 技能配置 -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div class="px-4 py-3 border-b border-gray-200">
-                <h3 class="text-base font-medium text-gray-900">技能配置</h3>
-                <p class="text-xs text-gray-500 mt-1">最多可配置4个普通技能和1个必杀技能</p>
-              </div>
-              <div class="p-4">
-                <!-- 普通技能配置 -->
-                <div class="mb-6">
-                  <h4 class="text-sm font-medium text-gray-800 mb-3">普通技能 (最多4个)</h4>
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div v-for="(_, index) in 4" :key="`normal-${index}`" class="space-y-2">
-                      <label class="block text-xs font-medium text-gray-700">
-                        普通技能 {{ index + 1 }}
-                        <span v-if="index === 0" class="text-red-500">*</span>
-                      </label>
-                      <el-select-v2
-                        :model-value="displayedNormalSkills[index]"
-                        :data-testid="`normal-skill-${index}`"
-                        @update:model-value="value => handleNormalSkillChange(value, index)"
-                        :options="normalSkillSelectOptions"
-                        :disabled="!currentSpecies"
-                        placeholder="选择普通技能"
-                        clearable
-                        class="w-full"
-                        style="width: 100%"
-                        :height="400"
-                        :item-height="140"
-                      >
-                        <template #default="{ item }">
-                          <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
-                            <!-- 技能名称 -->
-                            <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
-                              <ElementIcon v-if="item.element" :element="item.element" class="w-4 h-4 flex-shrink-0" />
-                              <span class="font-medium">{{ item.label }}</span>
-                            </div>
-                            <!-- 技能标签 -->
-                            <div class="flex flex-wrap gap-1">
-                              <span
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-                              >
-                                威力: {{ item.power }}
-                              </span>
-                              <span
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
-                              >
-                                {{ item.category }}
-                              </span>
-                              <span
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
-                              >
-                                怒气: {{ item.rage }}
-                              </span>
-                              <span
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
-                              >
-                                命中: {{ item.accuracy }}%
-                              </span>
-                            </div>
-                            <!-- 技能描述 -->
-                            <ContentDescription
-                              class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
-                              namespace="skill"
-                              :content-id="item.value"
-                              :fallback="item.description"
-                              :context="{ skill: gameDataStore.getSkill(item.value) }"
+                        <details v-if="computedStats[stat]" class="mb-2 text-xs">
+                          <summary :aria-label="statChineseMap[stat] + '计算明细'">计算明细</summary>
+                          <div>学习力折算 ⌊{{ trainingPet.evs[stat] }} ÷ 4⌋ = {{ computedStats[stat]!.effort }}</div>
+                          <div>
+                            等级折算 ⌊(2 × {{ currentSpecies?.baseStats[stat] }} + {{ trainingPet.ivs[stat] }} +
+                            {{ computedStats[stat]!.effort }}) × {{ trainingPet.level }} ÷ 100⌋ =
+                            {{ computedStats[stat]!.scaled }}
+                          </div>
+                          <div>
+                            性格 ({{ computedStats[stat]!.scaled }} + {{ computedStats[stat]!.levelBonus }}) ×
+                            {{ computedStats[stat]!.natureMultiplier }} = {{ computedStats[stat]!.afterNature }}
+                          </div>
+                          <div>阶段加成 +{{ computedStats[stat]!.stageBonus }}</div>
+                        </details>
+                        <!-- 学习力滑块 -->
+                        <div class="mb-3">
+                          <label class="block text-xs font-medium text-gray-700 mb-1">
+                            学习力: {{ trainingPet?.evs[stat] || 0 }}
+                          </label>
+                          <input
+                            type="range"
+                            :value="trainingPet.evs[stat]"
+                            @input="handleEVUpdate(stat, Number(($event.target as HTMLInputElement).value))"
+                            min="0"
+                            max="255"
+                            step="4"
+                            class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                          />
+                          <div class="flex justify-between text-xs text-gray-500 mt-0.5">
+                            <span>0</span>
+                            <span>255</span>
+                          </div>
+                        </div>
+
+                        <!-- 详细数值 -->
+                        <div class="space-y-1">
+                          <div class="flex justify-between text-xs">
+                            <span class="text-gray-600">种族值</span>
+                            <span class="font-medium">{{ currentSpecies?.baseStats[stat] ?? '—' }}</span>
+                          </div>
+                          <div class="flex justify-between text-xs">
+                            <span class="text-gray-600">个体值</span>
+                            <input
+                              :aria-label="statChineseMap[stat] + '个体值'"
+                              :data-team-field="'ivs.' + stat"
+                              :value="trainingPet.ivs[stat]"
+                              @input="changeIndividualValue(stat, $event)"
+                              @blur="restoreIndividualInput(stat, $event)"
+                              type="number"
+                              min="0"
+                              :max="gameDataStore.rules?.mechanics?.individualValues?.max ?? 31"
+                              class="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
                           </div>
-                        </template>
-                      </el-select-v2>
+                          <div class="flex justify-between text-xs">
+                            <span class="text-gray-600">性格修正</span>
+                            <span
+                              class="font-medium"
+                              :class="{
+                                'text-green-600': (getNatureMultiplier(trainingPet.nature, stat) ?? 1) > 1,
+                                'text-red-600': (getNatureMultiplier(trainingPet.nature, stat) ?? 1) < 1,
+                                'text-gray-600': getNatureMultiplier(trainingPet.nature, stat) === 1,
+                              }"
+                            >
+                              {{
+                                gameDataStore.getNature(trainingPet.nature)
+                                  ? getNatureMultiplier(trainingPet.nature, stat) + 'x'
+                                  : '—'
+                              }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <!-- 必杀技能配置 -->
-                <div>
-                  <h4 class="text-sm font-medium text-gray-800 mb-3">
-                    必杀技能 {{ climaxSkillSelectOptions.length > 0 ? '(必须1个)' : '(无可用必杀技能)' }}
-                  </h4>
-                  <div class="max-w-md">
-                    <label class="block text-xs font-medium text-gray-700 mb-2">
-                      必杀技能
-                      <span v-if="climaxSkillSelectOptions.length > 0" class="text-red-500">*</span>
-                      <span v-else class="text-gray-400">(无)</span>
-                    </label>
-                    <el-select-v2
-                      :model-value="displayedClimaxSkill"
-                      @update:model-value="value => handleClimaxSkillChange(value)"
-                      :options="climaxSkillSelectOptions"
-                      :disabled="!currentSpecies || !hasClimaxSkills"
-                      :placeholder="hasClimaxSkills ? '选择必杀技能' : '该种族无必杀技能'"
-                      clearable
-                      class="w-full"
-                      style="width: 100%"
-                      :height="400"
-                      :item-height="140"
-                    >
-                      <template #default="{ item }">
-                        <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
-                          <!-- 技能名称 -->
-                          <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
-                            <ElementIcon v-if="item.element" :element="item.element" class="w-4 h-4 flex-shrink-0" />
-                            <span class="font-medium">{{ item.label }}</span>
-                          </div>
-                          <!-- 技能标签 -->
-                          <div class="flex flex-wrap gap-1">
-                            <span
-                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-                            >
-                              威力: {{ item.power }}
-                            </span>
-                            <span
-                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
-                            >
-                              {{ item.category }}
-                            </span>
-                            <span
-                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
-                            >
-                              怒气: {{ item.rage }}
-                            </span>
-                            <span
-                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
-                            >
-                              命中: {{ item.accuracy }}%
-                            </span>
-                          </div>
-                          <!-- 技能描述 -->
-                          <ContentDescription
-                            class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
-                            namespace="skill"
-                            :content-id="item.value"
-                            :fallback="item.description"
-                            :context="{ skill: gameDataStore.getSkill(item.value) }"
-                          />
-                        </div>
-                      </template>
-                    </el-select-v2>
-                  </div>
-                </div>
-              </div>
-            </div>
+              </el-tab-pane>
+            </el-tabs>
           </div>
         </div>
 
@@ -929,7 +1050,6 @@
                 />
               </svg>
               <h3 class="text-lg font-medium text-gray-900 mb-2">队伍为空</h3>
-              <p class="text-gray-500 mb-6">当前队伍中没有精灵。您可以添加新的精灵，或者从仓库中移入精灵来组建队伍。</p>
               <div class="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
                   @click="addNewPet"
@@ -996,15 +1116,20 @@
         <!-- 保存按钮 - 在移动端更突出 -->
         <button
           v-if="delegate.save"
-          @click="saveCurrentTeam"
+          @click="saveCurrentTeam()"
           class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
         >
           <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-          <span class="ml-1 md:ml-0">保存</span>
+          <span class="ml-1 md:ml-0">{{
+            delegate.affected?.value.length ? '复制一只给本队' : delegate.saveLabel || '保存'
+          }}</span>
         </button>
 
+        <button v-if="delegate.affected?.value.length" @click="saveCurrentTeam('original')">
+          修改原精灵（同时影响 {{ delegate.affected.value.join('、') }}）
+        </button>
         <!-- 导出按钮 -->
         <button
           v-if="delegate.exportTeam"
@@ -1079,7 +1204,7 @@
                 <ul class="space-y-1 list-disc list-inside">
                   <li>拖拽左侧列表中的精灵可以调整出战顺序。</li>
                   <li>点击“添加精灵”按钮可以向当前队伍中添加新的精灵。</li>
-                  <li>在精灵卡片上，可以将精灵移入仓库或永久删除。</li>
+                  <li v-if="delegate.warehouse">从队伍移出后，这只精灵仍保存在仓库中。</li>
                 </ul>
               </div>
               <div>
@@ -1093,9 +1218,8 @@
               <div>
                 <h4 class="font-medium text-gray-900 mb-2">数据管理</h4>
                 <ul class="space-y-1 list-disc list-inside">
-                  <li>点击“保存”按钮，可以将当前队伍的修改保存到本地。</li>
+                  <li v-if="delegate.warehouse">多个队伍共用一只时，保存可以修改原只，也可以复制一只给本队。</li>
                   <li>使用“导出”和“导入”功能，可以方便地备份和分享你的队伍配置。</li>
-                  <li>在仓库管理页面，可以管理多个队伍和所有未编队的精灵。</li>
                 </ul>
               </div>
             </div>
@@ -1158,18 +1282,29 @@
 
 <script setup lang="ts">
 import type { TeamEditorDelegate } from './delegate'
-import { ref, computed, watch, nextTick, onMounted, markRaw } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useGameDataStore } from '@/stores/gameData'
 import { useValidationStore } from '@/stores/validation'
 
+import { resolveLearnset, isEligible } from '@arcadia-eternity/content-sdk/environment-rules'
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
-import { Gender, NatureMap } from '@arcadia-eternity/const'
-import { Nature } from '@arcadia-eternity/const'
+import { defaultEditorSkillSlots, Gender } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
+import { allowsTeamContent, startingSkills } from './createTeamPet'
+import {
+  buildDifferences,
+  buildStatSteps,
+  statNames as statChineseMap,
+  statList,
+  type StatKey,
+} from '@/utils/teamBuildComparison'
+import { Value } from '@sinclair/typebox/value'
+import PetPresetPanel from './PetPresetPanel.vue'
+import WarehouseMemberPicker from './WarehouseMemberPicker.vue'
 import ContentDescription from '@/components/ContentDescription'
 import {
   InfoFilled,
@@ -1200,6 +1335,7 @@ const importTeamConfig = () => delegate.importTeam?.()
 const { isMobile } = useMobile()
 
 // 响应式状态
+const editSection = ref<'moves' | 'training'>('moves')
 const selectedPetId = ref<string | null>(delegate.team.value[0]?.id ?? null)
 const showGuide = ref(!props.compact && !!delegate.storageRoute && readLocalData('teamBuilderGuideHidden') !== 'true') // 控制指引显示
 const showDragTip = ref(!props.compact && readLocalData('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
@@ -1208,10 +1344,6 @@ const showHelp = ref(false) // 控制帮助对话框显示
 
 // 排序锁状态 - PC端默认关闭，移动端默认开启
 const sortLocked = ref(isMobile.value)
-
-type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
-
-const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
 
 const drag = ref(false)
 
@@ -1320,6 +1452,8 @@ interface ValidationError {
   code: string
   message: string
   objectId?: string
+  section?: 'moves' | 'training'
+  field?: string
   objectType?: string
   context?: Record<string, unknown>
 }
@@ -1330,143 +1464,101 @@ type ValidationResult = {
   warnings: ValidationError[]
 }
 
-const teamValidationResultRef = ref<ValidationResult>({
-  isValid: true,
-  errors: [] as ValidationError[],
-  warnings: [] as ValidationError[],
-})
-
-// 验证状态管理
-const isValidating = ref(false)
-
-// 防抖验证函数
-const debouncedValidate = useDebounceFn(async () => {
-  if (isValidating.value) return // 防止重复验证
-
-  try {
-    isValidating.value = true
-
-    const team = currentTeam.value
-
-    console.log(`验证队伍大小: ${team.length}`)
-
-    // 检查数据是否已加载完成
-    if (!gameDataStore.loaded) {
-      console.log('⏳ 游戏数据尚未加载完成，跳过验证')
-      teamValidationResultRef.value = {
-        isValid: true,
-        errors: [] as ValidationError[],
-        warnings: [
-          {
-            type: 'info' as const,
-            code: 'DATA_LOADING',
-            message: '正在加载游戏数据，请稍候...',
-            objectId: undefined,
-            objectType: undefined,
-            context: {},
-          },
-        ],
-      }
-      return
-    }
-
-    // 检查验证系统是否已初始化
-    if (!validationStore.isInitialized) {
-      console.log('⏳ 验证系统尚未初始化，跳过验证')
-      teamValidationResultRef.value = {
-        isValid: true,
-        errors: [] as ValidationError[],
-        warnings: [
-          {
-            type: 'info' as const,
-            code: 'VALIDATION_LOADING',
-            message: '正在初始化验证系统，请稍候...',
-            objectId: undefined,
-            objectType: undefined,
-            context: {},
-          },
-        ],
-      }
-      return
-    }
-
-    // 使用规则集验证队伍
-    const result = await validationStore.validateTeam(team)
-
-    // 直接使用 validation store 返回的完整格式
-    teamValidationResultRef.value = markRaw(result)
-  } catch (error) {
-    console.error('队伍验证出错:', error)
-    teamValidationResultRef.value = {
-      isValid: false,
-      errors: [
-        {
-          type: 'system_error' as const,
-          code: 'VALIDATION_ERROR',
-          message: '验证系统出现错误，请检查队伍配置',
-          objectId: undefined,
-          objectType: undefined,
-          context: {},
-        },
-      ],
-      warnings: [] as ValidationError[],
-    }
-  } finally {
-    isValidating.value = false
-  }
-}, 300) // 300ms防抖
-
-// 监听队伍和规则集变化
-watch(
-  [
-    currentTeam,
-    () => gameDataStore.loaded,
-    () => validationStore.isInitialized,
-    () => (gameDataStore.loaded ? findMissingTeamContent(currentTeam.value, gameDataStore) : []),
-  ],
-  () => debouncedValidate(),
-  { deep: true, immediate: true, flush: 'post' },
+const isValidating = computed(() => !gameDataStore.loaded || !validationStore.isInitialized)
+const teamValidationResult = computed<ValidationResult>(() =>
+  isValidating.value ? { isValid: false, errors: [], warnings: [] } : validationStore.validateTeam(currentTeam.value),
 )
-
-// 实时队伍验证结果
-const teamValidationResult = computed(() => {
-  return teamValidationResultRef.value
-})
-
-// 当前精灵的验证结果
-const currentPetValidationResult = ref<ValidationResult>({
-  isValid: true,
-  errors: [] as ValidationError[],
-  warnings: [] as ValidationError[],
-})
-
-// 精灵级别的防抖验证
-const debouncedValidatePet = useDebounceFn(async () => {
-  if (!selectedPet.value || !gameDataStore.loaded) {
-    currentPetValidationResult.value = {
-      isValid: true,
-      errors: [] as ValidationError[],
-      warnings: [] as ValidationError[],
-    }
-    return
-  }
-
-  try {
-    const result = await validationStore.validatePet(selectedPet.value, currentTeam.value)
-    currentPetValidationResult.value = markRaw(result)
-  } catch (error) {
-    console.error('精灵验证出错:', error)
-    currentPetValidationResult.value = {
-      isValid: true, // 验证失败时不显示错误，避免干扰用户
-      errors: [] as ValidationError[],
-      warnings: [] as ValidationError[],
-    }
-  }
-}, 200)
 
 const selectedPet = computed<PetSchemaType | null>(() => {
   return currentTeam.value.find(p => p.id === selectedPetId.value) || null
 })
+watch(
+  () => currentTeam.value.map(pet => pet.id),
+  ids => {
+    if (!selectedPetId.value || !ids.includes(selectedPetId.value)) selectedPetId.value = ids[0] ?? null
+  },
+)
+function applyPetBuild(pet: PetSchemaType) {
+  if (pet.id !== selectedPetId.value) return
+  currentTeam.value = currentTeam.value.map(member => (member.id === pet.id ? pet : member))
+}
+const trialPet = ref<PetSchemaType | null>(null)
+const trainingPet = computed(() => trialPet.value ?? selectedPet.value)
+
+function startTrainingTrial() {
+  if (selectedPet.value) trialPet.value = JSON.parse(JSON.stringify(selectedPet.value))
+}
+
+// A trial belongs to one member in one editor context.
+watch(
+  [selectedPet, () => gameDataStore.rules, () => gameDataStore.species],
+  () => {
+    trialPet.value = null
+  },
+  { flush: 'sync' },
+)
+
+function applyTrainingTrial() {
+  const pet = selectedPet.value
+  const trial = trialPet.value
+  if (!pet || !trial || pet.id !== trial.id) return
+  pet.ivs = { ...trial.ivs }
+  pet.evs = { ...trial.evs }
+  pet.nature = trial.nature
+  if (trial.enhancement) pet.enhancement = trial.enhancement
+  else delete pet.enhancement
+  trialPet.value = null
+}
+
+const trialTeams = computed(() => (trialPet.value ? (delegate.warehouse?.teamsUsing(trialPet.value.id) ?? []) : []))
+const trialChanges = computed(() => {
+  const before = selectedPet.value
+  const after = trialPet.value
+  if (!before || !after) return []
+  const changes: string[] = []
+  for (const stat of statList) {
+    if (before.ivs[stat] !== after.ivs[stat])
+      changes.push(`${statChineseMap[stat]}个体值 ${before.ivs[stat]} → ${after.ivs[stat]}`)
+    if (before.evs[stat] !== after.evs[stat])
+      changes.push(`${statChineseMap[stat]}学习力 ${before.evs[stat]} → ${after.evs[stat]}`)
+  }
+  if (before.nature !== after.nature)
+    changes.push(`性格 ${getNatureName(before.nature)} → ${getNatureName(after.nature)}`)
+  if (before.enhancement !== after.enhancement) {
+    const name = (id?: string) => (id ? (gameDataStore.getEnhancement(id)?.name ?? id) : '无')
+    changes.push(`强化阶段 ${name(before.enhancement)} → ${name(after.enhancement)}`)
+  }
+  return changes
+})
+
+const trialIssues = computed(() => {
+  const trial = trialPet.value
+  if (!trial) return []
+  const candidate = currentTeam.value.map(pet => (pet.id === trial.id ? trial : pet))
+  const before = new Set(teamValidationResult.value.errors.map(error => error.message))
+  const after = new Set(validationStore.validateTeam(candidate).errors.map(error => error.message))
+  return [
+    ...[...after].filter(message => !before.has(message)).map(message => '新增问题 · ' + message),
+    ...[...before].filter(message => !after.has(message)).map(message => '已解决 · ' + message),
+  ]
+})
+
+function changeIndividualValue(stat: StatKey, event: Event) {
+  const input = event.currentTarget as HTMLInputElement
+  if (
+    trainingPet.value &&
+    Number.isSafeInteger(input.valueAsNumber) &&
+    input.valueAsNumber >= 0 &&
+    input.valueAsNumber <= 120
+  ) {
+    trainingPet.value.ivs[stat] = input.valueAsNumber
+  }
+}
+
+function restoreIndividualInput(stat: StatKey, event: Event) {
+  if (trainingPet.value) (event.currentTarget as HTMLInputElement).value = String(trainingPet.value.ivs[stat])
+}
+
 const selectedMissingContent = computed(() =>
   selectedPet.value && gameDataStore.loaded ? findMissingTeamContent([selectedPet.value], gameDataStore) : [],
 )
@@ -1475,15 +1567,6 @@ const removeMissingSkill = (index: number) => {
   selectedPet.value.skills.splice(index, 1)
   debouncedSave()
 }
-
-// 监听当前精灵变化，触发精灵级别验证
-watch(
-  () => selectedPet.value,
-  () => {
-    debouncedValidatePet()
-  },
-  { deep: true },
-)
 
 const currentSpecies = computed(() => {
   return gameDataStore.speciesList.find(v => v.id === selectedPet.value?.species || '')
@@ -1504,64 +1587,26 @@ const filteredElblem = computed(() => {
 })
 
 // 额外技能状态
-const extraLearnableSkills = ref<Array<{ skill_id: string; level: number; hidden: boolean }>>([])
-
-// 加载额外技能
-const loadExtraSkills = async (speciesId: string) => {
-  try {
-    const skills = await validationStore.getSpeciesExtraLearnableSkills(speciesId)
-    extraLearnableSkills.value = markRaw(skills)
-  } catch (error) {
-    console.warn('获取额外技能失败:', error)
-    extraLearnableSkills.value = []
-  }
-}
-
+const learning = computed(() =>
+  currentSpecies.value && selectedPet.value
+    ? resolveLearnset(gameDataStore.rules, currentSpecies.value, selectedPet.value.level)
+    : undefined,
+)
 const filteredSkills = computed(() => {
-  if (!currentSpecies.value) return []
-
-  // 获取原始可学习技能
-  const originalSkills = currentSpecies.value.learnable_skills.filter(
-    learnable => (selectedPet.value?.level ?? 0) >= learnable.level,
-  )
-
-  // 获取规则系统提供的额外技能
-  const extraSkills = extraLearnableSkills.value.filter(learnable => (selectedPet.value?.level ?? 0) >= learnable.level)
-
-  // 合并原始技能和额外技能
-  const allLearnableSkills = [...originalSkills, ...extraSkills]
-
-  // 转换为技能对象并过滤
-  return allLearnableSkills
-    .map(learnable => gameDataStore.skillList.find(v => v.id === learnable.skill_id))
-    .filter(Boolean)
+  const sources = learning.value
+  if (!sources) return []
+  const skills = new Set(sources.normal)
+  const inherited = selectedPet.value?.inheritedSkill
+  if (inherited && sources.inherited.has(inherited)) skills.add(inherited)
+  return [...skills].map(skill => gameDataStore.getSkill(skill)).filter(Boolean)
 })
+const hasClimaxSkills = computed(() => filteredSkills.value.some(skill => skill?.category === 'Climax'))
 
-// 检查当前种族是否有必杀技能
-const hasClimaxSkills = computed(() => {
-  if (!currentSpecies.value) return false
-
-  // 检查原始技能中是否有必杀技能
-  const hasOriginalClimax =
-    currentSpecies.value.learnable_skills?.some(
-      ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
-    ) ?? false
-
-  // 检查额外技能中是否有必杀技能
-  const hasExtraClimax = extraLearnableSkills.value.some(
-    ls => gameDataStore.skillList.find(s => s.id === ls.skill_id)?.category === 'Climax',
-  )
-
-  return hasOriginalClimax || hasExtraClimax
-})
-
-const statChineseMap: Record<StatKey, string> = {
-  hp: '体力',
-  atk: '攻击',
-  def: '防御',
-  spa: '特攻',
-  spd: '特防',
-  spe: '速度',
+function setInheritedSkill(event: Event) {
+  if (!selectedPet.value) return
+  const id = (event.target as HTMLSelectElement).value
+  if (id) selectedPet.value.inheritedSkill = id
+  else delete selectedPet.value.inheritedSkill
 }
 
 const genderChineseMap: Record<Gender, string> = {
@@ -1571,62 +1616,23 @@ const genderChineseMap: Record<Gender, string> = {
 }
 
 // 获取性格中文名称
-const getNatureName = (nature: Nature): string => {
-  try {
-    return i18next.t(`${nature}.name`, { ns: 'nature' }) || nature
-  } catch {
-    return nature
-  }
+const getNatureName = (id: string) =>
+  i18next.t(id + '.name', { ns: 'nature', nsSeparator: false, defaultValue: gameDataStore.getNature(id)?.name ?? id })
+
+const skillSlots = computed(() => gameDataStore.rules?.mechanics?.skillSlots ?? defaultEditorSkillSlots)
+function categorySlots(climax: boolean) {
+  return computed(() => {
+    const limit = climax ? skillSlots.value.climaxMax : skillSlots.value.normalMax
+    const equipped = (selectedPet.value?.skills ?? []).filter(id => {
+      const skill = gameDataStore.getSkill(id)
+      return skill && (skill.category === 'Climax') === climax
+    })
+    // A smaller target format must leave every occupied slot visible and removable.
+    return [...equipped, ...Array<string>(Math.max(0, limit - equipped.length)).fill('')]
+  })
 }
-
-// 分离普通技能和必杀技能的计算属性
-const displayedNormalSkills = computed({
-  get: () => {
-    if (!selectedPet.value) return ['', '', '', '']
-    const normalSkills = selectedPet.value.skills.filter(skillId => {
-      const skill = gameDataStore.skillList.find(s => s.id === skillId)
-      return skill && skill.category !== 'Climax'
-    })
-    return Array.from({ length: 4 }, (_, i) => normalSkills[i] || '')
-  },
-  set: newValues => {
-    if (!selectedPet.value) return
-    try {
-      selectedPet.value.skills = replaceResolvedSkills(
-        selectedPet.value.skills,
-        newValues,
-        false,
-        gameDataStore.getSkill,
-      )
-    } catch (error) {
-      ElMessage.error((error as Error).message)
-    }
-  },
-})
-
-const displayedClimaxSkill = computed({
-  get: () => {
-    if (!selectedPet.value) return ''
-    const climaxSkill = selectedPet.value.skills.find(skillId => {
-      const skill = gameDataStore.skillList.find(s => s.id === skillId)
-      return skill && skill.category === 'Climax'
-    })
-    return climaxSkill || ''
-  },
-  set: newValue => {
-    if (!selectedPet.value) return
-    try {
-      selectedPet.value.skills = replaceResolvedSkills(
-        selectedPet.value.skills,
-        newValue ? [newValue] : [],
-        true,
-        gameDataStore.getSkill,
-      )
-    } catch (error) {
-      ElMessage.error((error as Error).message)
-    }
-  },
-})
+const displayedNormalSkills = categorySlots(false)
+const displayedClimaxSkills = categorySlots(true)
 
 // Namespaced server content may not include a browser translation catalog.
 const contentName = (id: string, ns: string | string[]) =>
@@ -1636,6 +1642,7 @@ const contentName = (id: string, ns: string | string[]) =>
 const speciesOptions = computed(() => {
   const options = gameDataStore.speciesList.map(species => ({
     value: species.id,
+    disabled: !allowsTeamContent(gameDataStore.rules, 'species', species.id),
     id: species.id,
     presentation: species.presentation,
     label: contentName(species.id, 'species'),
@@ -1663,10 +1670,7 @@ watch(
 
     try {
       // 并行加载性别限制和额外技能
-      const [allowedGenders] = await Promise.all([
-        validationStore.getAllowedGendersForSpecies(newSpecies),
-        loadExtraSkills(newSpecies),
-      ])
+      const allowedGenders = await validationStore.getAllowedGendersForSpecies(newSpecies)
 
       allowedGendersForCurrentSpecies.value = allowedGenders
 
@@ -1701,7 +1705,7 @@ const abilitySelectOptions = computed(() => {
       description: i18next.t(`${ability.id}.description`, {
         ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
       }),
-      disabled: currentAblity === ability.id,
+      disabled: currentAblity === ability.id || !allowsTeamContent(gameDataStore.rules, 'marks', ability.id),
     }))
   return currentAblity && !gameDataStore.getMark(currentAblity)
     ? [
@@ -1722,7 +1726,7 @@ const emblemSelectOptions = computed(() => {
       description: i18next.t(`${elblem.id}.description`, {
         ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
       }),
-      disabled: currentElblem === elblem.id,
+      disabled: currentElblem === elblem.id || !allowsTeamContent(gameDataStore.rules, 'marks', elblem.id),
     }))
   return currentElblem && !gameDataStore.getMark(currentElblem)
     ? [
@@ -1732,18 +1736,57 @@ const emblemSelectOptions = computed(() => {
     : options
 })
 
+const enhancementPolicy = computed(() => gameDataStore.rules?.mechanics?.enhancement)
+const availableStages = computed(() => {
+  const policy = enhancementPolicy.value
+  const species = selectedPet.value?.species
+  if (!species || policy?.mode !== 'active' || (policy.species && !policy.species.includes(species))) return []
+  return gameDataStore.enhancements.filter(stage => !policy.stages || policy.stages.includes(stage.id))
+})
+const stagesByBranch = computed(() => {
+  const groups = Object.create(null) as Record<string, typeof availableStages.value>
+  for (const stage of availableStages.value) (groups[stage.branch] ??= []).push(stage)
+  return groups
+})
+const activeStage = computed(() => availableStages.value.find(stage => stage.id === trainingPet.value?.enhancement))
+function selectStage(id: string) {
+  if (!trainingPet.value) return
+  if (!id) delete trainingPet.value.enhancement
+  else if (availableStages.value.some(stage => stage.id === id)) trainingPet.value.enhancement = id
+}
+
 const natureSelectOptions = computed(() => {
-  return Object.values(Nature).map(nature => ({
-    value: nature,
-    label: getNatureName(nature),
-    effects: NatureMap[nature],
-  }))
+  const choices = gameDataStore.natures
+    .filter(
+      nature =>
+        nature.generation === 1 ||
+        (currentSpecies.value &&
+          isEligible(currentSpecies.value, gameDataStore.rules?.mechanics?.secondGenerationNatures)),
+    )
+    .map(nature => ({
+      value: nature.id,
+      label: (nature.generation === 2 ? '二代 · ' : '') + getNatureName(nature.id),
+      effects: nature.multipliers,
+      disabled: false,
+    }))
+  const id = trainingPet.value?.nature
+  if (id && !choices.some(option => option.value === id))
+    return [
+      {
+        value: id,
+        label: getNatureName(id) + '（当前不可用）',
+        effects: gameDataStore.getNature(id)?.multipliers,
+        disabled: true,
+      },
+      ...choices,
+    ]
+  return choices
 })
 
 // 普通技能选项
 const normalSkillSelectOptions = computed(() => {
   const currentNormalSkills = displayedNormalSkills.value.filter(s => s)
-  const currentClimaxSkill = displayedClimaxSkill.value
+  const currentClimaxSkills = displayedClimaxSkills.value
 
   return filteredSkills.value
     .filter((skill): skill is NonNullable<typeof skill> => !!skill && skill.category !== 'Climax')
@@ -1756,7 +1799,10 @@ const normalSkillSelectOptions = computed(() => {
       category: skill.category,
       rage: skill.rage,
       accuracy: skill.accuracy,
-      disabled: currentNormalSkills.includes(skill.id) || skill.id === currentClimaxSkill,
+      disabled:
+        !allowsTeamContent(gameDataStore.rules, 'skills', skill.id) ||
+        currentNormalSkills.includes(skill.id) ||
+        currentClimaxSkills.includes(skill.id),
     }))
 })
 
@@ -1775,44 +1821,21 @@ const climaxSkillSelectOptions = computed(() => {
       category: skill.category,
       rage: skill.rage,
       accuracy: skill.accuracy,
-      disabled: currentNormalSkills.includes(skill.id),
+      disabled:
+        !allowsTeamContent(gameDataStore.rules, 'skills', skill.id) ||
+        currentNormalSkills.includes(skill.id) ||
+        displayedClimaxSkills.value.includes(skill.id),
     }))
 })
 
-const addNewPet = async () => {
-  // 使用规则系统检查是否可以添加更多精灵
-  try {
-    const canAdd = await validationStore.canAddMorePets(currentTeam.value)
-    if (!canAdd) {
-      const limitations = await validationStore.getRuleLimitations()
-      ElMessage.warning(`队伍已满，最多只能添加${limitations.teamSize.max}个精灵`)
-      return
-    }
-  } catch (error) {
-    console.error('检查队伍大小限制出错:', error)
-    // 回退到简单检查
-    if (currentTeam.value.length >= 6) {
-      ElMessage.warning('队伍已满，最多只能添加六个精灵')
-      return
-    }
-  }
-
+const teamCapacity = computed(() => validationStore.getRuleLimitations().teamSize.max)
+const addNewPet = () => {
+  if (currentTeam.value.length >= teamCapacity.value) return
   const newPet = delegate.createPet()
   if (!newPet) return
   currentTeam.value = [...currentTeam.value, newPet]
   selectedPetId.value = newPet.id
   delegate.persist()
-}
-
-// 移入仓库处理函数
-const handleMoveToStorage = (petId: string) => {
-  delegate.moveToStorage?.(petId, () => {
-    // 如果移动的是当前选中的精灵，选择队伍中的第一个精灵
-    if (selectedPetId.value === petId) {
-      const remainingTeam = currentTeam.value
-      selectedPetId.value = remainingTeam.length > 0 ? remainingTeam[0].id : null
-    }
-  })
 }
 
 // 删除精灵处理函数
@@ -1853,9 +1876,12 @@ const setAsStarter = (petId: string) => {
   ElMessage.success('已设置为首发精灵')
 }
 
-const saveCurrentTeam = async () => {
+const saveCurrentTeam = async (scope: 'original' | 'copy' = 'copy') => {
   try {
-    if (delegate.save?.() === false) return
+    const position = currentTeam.value.findIndex(pet => pet.id === selectedPetId.value)
+    if ((await delegate.save?.(scope)) === false) return
+    if (position >= 0) selectedPetId.value = currentTeam.value[position]?.id ?? null
+    if (delegate.saveLabel) return
     ElMessage.success(selectedMissingContent.value.length ? '队伍已保存，缺失内容的原始配置已保留' : '队伍保存成功')
   } catch {
     ElMessage.error('保存失败，请检查数据')
@@ -1926,85 +1952,79 @@ const formatErrorContext = (context: Record<string, unknown>) => {
   return parts.join(', ')
 }
 
-const handleErrorClick = (error: ValidationError) => {
+const editorRoot = ref<HTMLElement>()
+const handleErrorClick = async (error: ValidationError) => {
   // 如果错误关联到特定精灵，选中该精灵
   if (error.objectId) {
     const pet = currentTeam.value.find(p => p.id === error.objectId)
     if (pet) {
       selectedPetId.value = pet.id
-      ElMessage.info(`已选中精灵: ${pet.name}`)
+      if (error.section) editSection.value = error.section
+      await nextTick()
+      if (error.field) {
+        const target = editorRoot.value?.querySelector<HTMLElement>(`[data-team-field="${CSS.escape(error.field)}"]`)
+        const control = target?.matches('input, select, button')
+          ? target
+          : target?.querySelector<HTMLElement>('input, select, button')
+        control?.focus()
+      }
     }
   }
 }
 
-const handleSpeciesChange = (newSpeciesId: string) => {
-  if (!selectedPet.value) return
-
-  // 获取新的种族数据
-  const species = gameDataStore.getSpecies(newSpeciesId)
-  if (!species) return
-
-  {
-    const pet = selectedPet.value
-    if (pet) {
-      pet.skills = []
-
-      // 获取可学习的普通技能和必杀技能
-      const normalSkills = species.learnable_skills
-        ?.filter((ls: { skill_id: string }) => {
-          const skill = gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)
-          return skill && skill.category !== 'Climax'
-        })
-        ?.slice(0, 4) // 最多4个普通技能
-
-      const climaxSkills = species.learnable_skills?.filter((ls: { skill_id: string }) => {
-        const skill = gameDataStore.skillList.find((s: { id: string }) => s.id === ls.skill_id)
-        return skill && skill.category === 'Climax'
-      })
-
-      // 添加普通技能
-      if (normalSkills && normalSkills.length > 0) {
-        pet.skills.push(...normalSkills.map(ls => ls.skill_id))
-      }
-
-      // 添加必杀技能（仅当种族有必杀技能时）
-      if (climaxSkills && climaxSkills.length > 0) {
-        pet.skills.push(climaxSkills[0].skill_id)
-      }
-      // 如果没有必杀技能，不添加任何技能到必杀技能槽
-      pet.name = contentName(species.id, 'species')
-      pet.evs = {
-        hp: 0,
-        atk: 0,
-        def: 0,
-        spa: 0,
-        spd: 0,
-        spe: 0,
-      }
-      pet.ability = species.ability[0] ?? undefined
-      pet.emblem = species.emblem[0] ?? undefined
-      if (!species.genderRatio) {
-        pet.gender = Gender.NoGender
-      } else {
-        pet.gender = species.genderRatio[0] > 0 ? Gender.Female : Gender.Male
-      }
-
-      pet.height = species.heightRange[1]
-      pet.weight = species.weightRange[1]
-    }
-  }
-  debouncedSave()
+const speciesChoice = ref<string>()
+const speciesUndo = ref<{ before: PetSchemaType; after: PetSchemaType }>()
+watch(
+  [selectedPetId, () => gameDataStore.species, () => gameDataStore.rules],
+  () => {
+    speciesChoice.value = undefined
+    speciesUndo.value = undefined
+  },
+  { flush: 'sync' },
+)
+function previewSpeciesChange(id: string) {
+  speciesChoice.value = id !== selectedPet.value?.species ? id : undefined
+}
+const speciesCandidate = computed(() => {
+  const current = selectedPet.value
+  const species = speciesChoice.value && gameDataStore.getSpecies(speciesChoice.value)
+  if (!current || !species || !allowsTeamContent(gameDataStore.rules, 'species', species.id)) return
+  const pet = Value.Clone(current)
+  pet.species = species.id
+  pet.name = contentName(species.id, 'species')
+  pet.skills = startingSkills(gameDataStore, species, pet.level)
+  pet.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
+  pet.ability = species.ability.find(id => allowsTeamContent(gameDataStore.rules, 'marks', id))
+  pet.emblem = species.emblem.find(id => allowsTeamContent(gameDataStore.rules, 'marks', id))
+  if (!pet.ability) delete pet.ability
+  if (!pet.emblem) delete pet.emblem
+  pet.gender = !species.genderRatio ? Gender.NoGender : species.genderRatio[0] > 0 ? Gender.Female : Gender.Male
+  pet.height = species.heightRange[1]
+  pet.weight = species.weightRange[1]
+  return pet
+})
+const canUndoSpecies = computed(() => !!speciesUndo.value && Value.Equal(speciesUndo.value.after, selectedPet.value))
+function applySpeciesChange() {
+  if (!selectedPet.value || !speciesCandidate.value) return
+  speciesUndo.value = { before: Value.Clone(selectedPet.value), after: Value.Clone(speciesCandidate.value) }
+  applyPetBuild(speciesCandidate.value)
+  speciesChoice.value = undefined
+}
+function restoreSpecies() {
+  if (!canUndoSpecies.value || !speciesUndo.value) return
+  applyPetBuild(speciesUndo.value.before)
+  speciesUndo.value = undefined
 }
 
 const currentEVTotal = computed(() => {
-  if (!selectedPet.value) return 0
-  return Object.values(selectedPet.value.evs).reduce((a, b) => a + b, 0)
+  if (!trainingPet.value) return 0
+  return Object.values(trainingPet.value.evs).reduce((a, b) => a + b, 0)
 })
 
 const handleEVUpdate = (stat: StatKey, value: number) => {
-  if (!selectedPet.value) return
+  if (!trainingPet.value) return
 
-  const currentStatEV = selectedPet.value.evs[stat]
+  const currentStatEV = trainingPet.value.evs[stat]
   const otherEVSum = currentEVTotal.value - currentStatEV
   let maxAllowed = Math.min(255, 510 - otherEVSum)
 
@@ -2014,61 +2034,20 @@ const handleEVUpdate = (stat: StatKey, value: number) => {
   const roundedValue = Math.round(value / 4) * 4
   const clampedValue = Math.min(Math.max(0, roundedValue), maxAllowed)
 
-  selectedPet.value.evs[stat] = clampedValue
+  trainingPet.value.evs[stat] = clampedValue
 }
 
-const computedStats = computed(() => {
-  if (!selectedPet.value || !currentSpecies.value) return {} as Record<StatKey, number>
-
-  const stats: Record<StatKey, number> = {
-    hp: 0,
-    atk: 0,
-    def: 0,
-    spa: 0,
-    spd: 0,
-    spe: 0,
-  }
-
-  const level = selectedPet.value.level
-  const baseStats = currentSpecies.value.baseStats
-  const nature = selectedPet.value.nature // 从宠物数据获取性格
-
-  // HP计算
-  stats.hp = Math.floor(
-    ((2 * baseStats.hp + selectedPet.value.ivs.hp + Math.floor(selectedPet.value.evs.hp / 4)) * level) / 100 +
-      level +
-      10,
-  )
-
-  // 其他属性计算
-  const otherStats: Exclude<StatKey, 'hp'>[] = ['atk', 'def', 'spa', 'spd', 'spe']
-  otherStats.forEach(stat => {
-    const base = Math.floor(
-      ((2 * baseStats[stat] + selectedPet.value!.ivs[stat] + Math.floor(selectedPet.value!.evs[stat] / 4)) * level) /
-        100 +
-        5,
-    )
-
-    // 应用性格修正
-    const natureMultiplier = getNatureMultiplier(nature, stat)
-    stats[stat] = Math.floor(base * natureMultiplier)
-  })
-
-  return stats
-})
+const computedStats = computed(() => buildStatSteps(trainingPet.value, gameDataStore))
+const originalStats = computed(() => buildStatSteps(selectedPet.value, gameDataStore))
 
 // 添加性格修正映射
-const getNatureMultiplier = (nature: Nature, stat: Exclude<StatKey, 'hp'>): number => {
-  return NatureMap[nature]?.[stat] ?? 1.0
-}
+const getNatureMultiplier = (id: string, stat: StatKey) => gameDataStore.getNature(id)?.multipliers[stat]
 
 const debouncedSave = useDebounceFn(() => {
   if (!selectedPet.value) return
 
   try {
     delegate.persist()
-    // 保存后触发验证
-    debouncedValidate()
   } catch {
     ElMessage.error('自动保存失败')
   }
@@ -2076,64 +2055,26 @@ const debouncedSave = useDebounceFn(() => {
 
 // 监听精灵属性变化，触发保存和验证
 watch(
-  () => ({
-    skills: selectedPet.value?.skills,
-    name: selectedPet.value?.name,
-    evs: selectedPet.value?.evs,
-    ability: selectedPet.value?.ability,
-    emblem: selectedPet.value?.emblem,
-    species: selectedPet.value?.species,
-    nature: selectedPet.value?.nature,
-    level: selectedPet.value?.level,
-  }),
-  (newVal, oldVal) => {
-    if (JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
-      debouncedSave()
-    }
-  },
-  { deep: true },
+  () => JSON.stringify(selectedPet.value),
+  () => debouncedSave(),
 )
 
 // 普通技能变更处理
-const handleNormalSkillChange = (newVal: string, index: number) => {
-  const newSkills = [...displayedNormalSkills.value]
-  const value = newVal ?? ''
-
-  // 检查重复技能
-  if (value && newSkills.filter(s => s === value).length > 1) {
-    ElMessage.warning('该技能已存在于其他槽位')
+function changeSkill(climax: boolean, index: number, next: string | undefined) {
+  const pet = selectedPet.value
+  if (!pet) return
+  const selected = [...(climax ? displayedClimaxSkills.value : displayedNormalSkills.value)]
+  if (next && selected[index] !== next && pet.skills.includes(next)) {
+    ElMessage.warning('该技能已在其他槽位')
     return
   }
-
-  // 检查是否与必杀技能重复
-  if (value && value === displayedClimaxSkill.value) {
-    ElMessage.warning('该技能已被设置为必杀技能')
-    return
+  selected[index] = next ?? ''
+  try {
+    pet.skills = replaceResolvedSkills(pet.skills, selected, climax, gameDataStore.getSkill)
+    debouncedSave()
+  } catch (error) {
+    ElMessage.error((error as Error).message)
   }
-
-  newSkills[index] = value
-  displayedNormalSkills.value = newSkills
-  debouncedSave() // 这会触发保存和验证
-}
-
-// 必杀技能变更处理
-const handleClimaxSkillChange = (newVal: string) => {
-  const value = newVal ?? ''
-
-  // 检查是否与普通技能重复
-  if (value && displayedNormalSkills.value.includes(value)) {
-    ElMessage.warning('该技能已被设置为普通技能')
-    return
-  }
-
-  // 如果种族有必杀技能但用户试图清空，并且当前等级下有可选的必杀技能，给出警告
-  if (hasClimaxSkills.value && !value && climaxSkillSelectOptions.value.length > 0) {
-    ElMessage.warning('必须选择一个必杀技能')
-    return
-  }
-
-  displayedClimaxSkill.value = value
-  debouncedSave() // 这会触发保存和验证
 }
 
 // 导出队伍配置的包装函数

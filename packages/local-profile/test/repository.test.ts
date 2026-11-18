@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, writeFile, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ProfileRepository, defaultData, parseBackup, rawProfileBytes } from '../src/index'
+import { ProfileRepository, defaultData, digest, parseBackup, rawProfileBytes } from '../src/index'
 import { BrowserProfileStorage } from '../src/browser'
 import { FileProfileStorage } from '../src/node'
 
@@ -76,13 +76,13 @@ it('exchanges a browser backup with a file repository without losing settings or
 it('rejects credentials, unknown versions and malformed data instead of stripping fields', () => {
   const backup = {
     format: 'arcadia.profile',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     appVersion: 'test',
     data: defaultData(),
   }
   expect(() => parseBackup(JSON.stringify({ ...backup, token: 'secret' }))).toThrow()
-  expect(() => parseBackup(JSON.stringify({ ...backup, version: 2 }))).toThrow('UNSUPPORTED_VERSION')
+  expect(() => parseBackup(JSON.stringify({ ...backup, version: 3 }))).toThrow('UNSUPPORTED_VERSION')
   backup.data.library.currentTeamIndex = 9
   expect(() => parseBackup(JSON.stringify(backup))).toThrow()
 })
@@ -202,6 +202,55 @@ it('preserves undecodable corrupt file bytes through raw export and compare-and-
     const backup = await repo.exportBackup(defaultData())
     await repo.repair(JSON.stringify(backup), raw)
     expect((await repo.open())?.current.data).toEqual(backup.data)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+it('migrates both v1 snapshots, keeping independent builds, order and the original file', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'profile-library-'))
+  try {
+    const { profile, settings } = defaultData()
+    const ivs = { hp: 10, atk: 10, def: 10, spa: 10, spd: 10, spe: 10 }
+    const pet = {
+      id: 'x'.repeat(21),
+      name: 'one',
+      species: 'pet_dilante',
+      level: 100,
+      nature: 'Modest',
+      ivs,
+      evs: ivs,
+      skills: [],
+    }
+    const old = (name: string) => ({
+      profile,
+      settings,
+      library: {
+        storage: [pet],
+        currentTeamIndex: 0,
+        teams: [{ name, ruleSetId: 'standard', pets: [{ ...pet, name }] }],
+      },
+    })
+    const current = old('current'),
+      recovery = old('historical')
+    const raw = JSON.stringify({
+      version: 1,
+      current: { revision: 5, data: current, digest: await digest(current) },
+      recovery: { revision: 2, data: recovery, digest: await digest(recovery) },
+    })
+    await writeFile(join(dir, 'profile.json'), raw)
+    const repository = new ProfileRepository(new FileProfileStorage(dir))
+    const migrated = await repository.open()
+    expect(migrated?.version).toBe(2)
+    expect(migrated?.current.revision).toBe(6)
+    const library = migrated!.current.data.library
+    expect(library.storage.map(row => row.name)).toEqual(['one', 'current'])
+    expect(library.teams[0].memberIds).toEqual([library.storage[1].id])
+    expect(library.storage[0].id).not.toBe(library.storage[1].id)
+    expect(await repository.open()).toEqual(migrated)
+    expect((await repository.recover({ expectedRevision: 6 })).data.library.storage[1].name).toBe('historical')
+    const [backup] = (await readdir(dir)).filter(file => file.startsWith('profile-v1-'))
+    expect(await readFile(join(dir, backup), 'utf8')).toBe(raw)
   } finally {
     await rm(dir, { recursive: true, force: true })
   }

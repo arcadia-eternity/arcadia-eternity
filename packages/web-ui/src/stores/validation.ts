@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
-import { validateBasicTeam } from '@/utils/basicTeamValidation'
+import { memberIssues, teamIssues, type TeamIssue } from '@/utils/basicTeamValidation'
 
 interface ValidationError {
   type: string
@@ -24,25 +24,23 @@ export const useValidationStore = defineStore('validation', () => {
   const initialize = async () => {
     isInitialized.value = true
   }
-  const check = (team: PetSchemaType[]): ValidationResult => {
-    const data = useGameDataStore()
-    const errors = validateBasicTeam(team, data.loaded ? data : undefined).map(message => ({
-      type: 'validation',
-      code: 'INVALID_TEAM',
-      message,
-    }))
+  function result(issues: TeamIssue[]): ValidationResult {
+    const errors = issues.map(issue => ({ type: 'validation', code: 'INVALID_TEAM', ...issue }))
     return { isValid: errors.length === 0, errors, warnings: [] }
   }
-  const validateTeam = async (team: PetSchemaType[]) => check(team)
-  const validatePet = async (pet: PetSchemaType, _team: PetSchemaType[]) => check([pet])
+  const validateTeam = (team: PetSchemaType[]) => result(teamIssues(team, useGameDataStore()))
+  const validatePet = (pet: PetSchemaType) => result(memberIssues(pet, useGameDataStore()))
   const getAllowedGendersForSpecies = async (id: string): Promise<string[]> => {
     const species = useGameDataStore().getSpecies(id)
     if (!species) return ['Male', 'Female', 'NoGender']
     if (!species.genderRatio || species.genderRatio.every(ratio => ratio <= 0)) return ['NoGender']
     return [species.genderRatio[0] > 0 && 'Female', species.genderRatio[1] > 0 && 'Male'].filter(Boolean) as string[]
   }
-  const canAddMorePets = async (team: PetSchemaType[]) => team.length < 6
-  const getRuleLimitations = async () => ({ teamSize: { min: 1, max: 6 } })
+  const getRuleLimitations = () => {
+    const rule = useGameDataStore().rules?.team
+    return { teamSize: { min: rule?.minSize ?? 1, max: rule?.maxSize ?? 6 } }
+  }
+  const canAddMorePets = (team: PetSchemaType[]) => team.length < getRuleLimitations().teamSize.max
   const getSpeciesExtraLearnableSkills = async (_id: string): Promise<LearnableSkill[]> => []
   return {
     isInitialized,

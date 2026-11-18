@@ -139,7 +139,19 @@ it('applies publication and team policy to socket admissions, preserving earlier
     code: 'ENVIRONMENT_MATCHMAKING_DISABLED',
   })
   await success(visitor.socket, 'createPrivateRoom', { config: {} })
-  expect(await ack(visitor.socket, 'togglePrivateRoomReady', { team })).toMatchObject({
+  const limited = app.environments.descriptor(id)
+  expect(
+    await ack(visitor.socket, 'togglePrivateRoomReady', {
+      team,
+      environment: {
+        environmentId: id,
+        protocolVersion: 1,
+        resourcesReady: true,
+        resourceRevision: limited.resourceRevision,
+        gameplayRevision: limited.gameplayRevision,
+      },
+    }),
+  ).toMatchObject({
     status: 'ERROR',
     code: 'ENVIRONMENT_TEAM_REJECTED',
   })
@@ -395,6 +407,7 @@ it('does not match queues captured before and after a rule-only publication chan
       environmentId: id,
       protocolVersion: 1,
       resourceRevision: descriptor.resourceRevision,
+      gameplayRevision: descriptor.gameplayRevision,
       peerRevision: descriptor.peerRevision,
       resourcesReady: true,
     },
@@ -404,7 +417,14 @@ it('does not match queues captured before and after a rule-only publication chan
     [{ ...publication, installationId: 'new', rules: { schemaVersion: 1, team: { maxSize: 5 } } }],
     id,
   )
-  await success(b.socket, 'joinMatchmaking', request)
+  expect(await ack(b.socket, 'joinMatchmaking', request)).toMatchObject({ code: 'CLIENT_GAMEPLAY_VERSION_MISMATCH' })
+  await success(b.socket, 'joinMatchmaking', {
+    ...request,
+    environment: {
+      ...request.environment,
+      gameplayRevision: app.environments.descriptor(id).gameplayRevision,
+    },
+  })
   expect(app.rooms.managementStatus).toMatchObject({ rooms: 0, queued: 2 })
   app.environments.setPublication([publication], id)
   await success(c.socket, 'joinMatchmaking', request)
@@ -413,3 +433,78 @@ it('does not match queues captured before and after a rule-only publication chan
   expect((await success<PrivateRoomInfo>(a.socket, 'getCurrentPrivateRoom')).status).toBe('started')
   expect(app.rooms.battleWorkerStats.workers).toBe(0)
 })
+
+it('plays a 40-IV team in a waiting room after the same publication returns to 31', async () => {
+  const { app, user } = await fixture()
+  const id = app.environments.descriptor().id
+  const publish = (max: number, allowFaintSwitch: boolean) => {
+    app.environments.setPublication(
+      [
+        {
+          runtimeId: id,
+          enabled: true,
+          public: true,
+          matchmaking: true,
+          rules: { schemaVersion: 2, mechanics: { individualValues: { max }, allowFaintSwitch } },
+        },
+      ],
+      id,
+    )
+    const d = app.environments.descriptor(id)
+    return {
+      environmentId: id,
+      resourceRevision: d.resourceRevision,
+      gameplayRevision: d.gameplayRevision,
+      protocolVersion: 1,
+      resourcesReady: true,
+    }
+  }
+  const earlier = publish(50, false)
+  const [a, b, c] = await Promise.all([user(), user(), user()])
+  const first = await success<{ roomCode: string }>(a.socket, 'createPrivateRoom', { config: {} })
+  const later = publish(31, true)
+  expect(earlier.resourceRevision).toBe(later.resourceRevision)
+  expect(earlier.gameplayRevision).not.toBe(later.gameplayRevision)
+  await success(c.socket, 'createPrivateRoom', { config: {} })
+  const raised = team.map(pet => ({ ...pet, ivs: { ...pet.ivs, hp: 40 } }))
+  expect(await ack(c.socket, 'togglePrivateRoomReady', { team: raised, environment: earlier })).toMatchObject({
+    code: 'CLIENT_GAMEPLAY_VERSION_MISMATCH',
+  })
+  expect(await ack(c.socket, 'togglePrivateRoomReady', { team: raised, environment: later })).toMatchObject({
+    code: 'ENVIRONMENT_TEAM_REJECTED',
+  })
+  await success(b.socket, 'joinPrivateRoom', first)
+  expect(await ack(a.socket, 'updatePrivateRoomConfig', { allowFaintSwitch: true })).toMatchObject({
+    code: 'ENVIRONMENT_FIXED',
+  })
+  const oldRoom = await success<PrivateRoomInfo>(b.socket, 'getCurrentPrivateRoom')
+  const submitted = { roomId: oldRoom.id, seatId: b.session.seatId, team: raised, environment: earlier }
+  await success(b.socket, 'togglePrivateRoomReady', { team, environment: earlier })
+  for (const [invalid, code] of [
+    [{ ...submitted, seatId: a.session.seatId }, 'ROOM_CONTEXT_MISMATCH'],
+    [{ ...submitted, roomId: 'another-room' }, 'ROOM_CONTEXT_MISMATCH'],
+    [{ ...submitted, environment: later }, 'CLIENT_GAMEPLAY_VERSION_MISMATCH'],
+    [{ ...submitted, team: [] }, 'INVALID_TEAM'],
+  ] as const) {
+    expect(await ack(b.socket, 'submitPrivateRoomTeam', invalid)).toMatchObject({ code })
+    const own = (await success<PrivateRoomInfo>(b.socket, 'getCurrentPrivateRoom')).players.find(
+      p => p.playerId === b.session.seatId,
+    )!
+    expect(own.isReady).toBe(true)
+    expect(own.team?.[0].ivs.hp).toBe(team[0].ivs.hp)
+  }
+  await success(b.socket, 'submitPrivateRoomTeam', submitted)
+  const own = (await success<PrivateRoomInfo>(b.socket, 'getCurrentPrivateRoom')).players.find(
+    p => p.playerId === b.session.seatId,
+  )!
+  expect(own.isReady).toBe(false)
+  expect(own.team?.[0].ivs.hp).toBe(40)
+  await success(b.socket, 'togglePrivateRoomReady', { team: raised, environment: earlier })
+  await success(a.socket, 'startPrivateRoomBattle', { hostTeam: raised, environment: earlier })
+  const started = await success<PrivateRoomInfo>(a.socket, 'getCurrentPrivateRoom')
+  expect(started).toMatchObject({
+    status: 'started',
+    environment: { gameplayRevision: earlier.gameplayRevision },
+    config: { allowFaintSwitch: false },
+  })
+}, 30000)

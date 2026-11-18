@@ -10,7 +10,7 @@ import type { PrototypeLookup } from '../prototype-lookup'
 export class PlayerParser {
   static parse(
     rawData: unknown,
-    repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark'>,
+    repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark' | 'getNature' | 'getEnhancement'>,
     options: { ai?: boolean } = {},
   ): Player {
     let validated: ReturnType<typeof PlayerSchema.parse>

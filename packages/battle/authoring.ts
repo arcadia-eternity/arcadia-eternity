@@ -16,7 +16,7 @@ export {
   type CodeEffectContext,
   type NativeCodeEffectDefinition,
 } from './src/engine/content/code-effects'
-export type { NativeBehaviorExport } from './src/engine/content/behaviors'
+export { defineNativeBehavior, type NativeBehaviorExport } from './src/engine/content/behaviors'
 export type { EffectSdk, CodeEffectModuleContext, CodeEffectModule } from './src/engine/content/effect-sdk'
 export {
   defineNativeEffect,

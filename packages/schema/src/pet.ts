@@ -1,4 +1,4 @@
-import { Gender, Nature } from '@arcadia-eternity/const'
+import { Gender } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Type, type Static } from '@sinclair/typebox'
 import { StringEnum, parseWithErrors } from './utils'
@@ -15,12 +15,12 @@ export const StatOutBattleEVSSchema = Type.Object({
 })
 
 export const StatOutBattleIVSSchema = Type.Object({
-  hp: Type.Integer({ minimum: 0, maximum: 31 }),
-  atk: Type.Integer({ minimum: 0, maximum: 31 }),
-  def: Type.Integer({ minimum: 0, maximum: 31 }),
-  spa: Type.Integer({ minimum: 0, maximum: 31 }),
-  spd: Type.Integer({ minimum: 0, maximum: 31 }),
-  spe: Type.Integer({ minimum: 0, maximum: 31 }),
+  hp: Type.Integer({ minimum: 0, maximum: 120 }),
+  atk: Type.Integer({ minimum: 0, maximum: 120 }),
+  def: Type.Integer({ minimum: 0, maximum: 120 }),
+  spa: Type.Integer({ minimum: 0, maximum: 120 }),
+  spd: Type.Integer({ minimum: 0, maximum: 120 }),
+  spe: Type.Integer({ minimum: 0, maximum: 120 }),
 })
 
 export const PetSchema = Type.Object({
@@ -31,10 +31,12 @@ export const PetSchema = Type.Object({
   level: Type.Integer({ minimum: 1 }),
   evs: StatOutBattleEVSSchema,
   ivs: StatOutBattleIVSSchema,
-  nature: StringEnum(Object.values(Nature)),
+  nature: Type.String({ minLength: 1, maxLength: 256 }),
   gender: Type.Optional(StringEnum(Object.values(Gender))),
   height: Type.Optional(Type.Number()),
   weight: Type.Optional(Type.Number()),
+  enhancement: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
+  inheritedSkill: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
   skills: Type.Array(Type.String(), { minItems: 0, maxItems: 5 }),
   maxHp: Type.Optional(Type.Integer({ exclusiveMinimum: 0 })),
   ability: Type.Optional(Type.String()),

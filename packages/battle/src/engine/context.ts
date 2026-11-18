@@ -244,7 +244,9 @@ export class UseSkillContext extends Context {
         }
     }
 
-    const typeMultiplierValue = ELEMENT_CHART[this.skill.element][this.actualTarget.element]
+    const typeMultiplierValue = (this.battle.elementMultipliers ?? ELEMENT_CHART)[this.skill.element]?.[
+      this.actualTarget.element
+    ]
     this.typeMultiplier = typeMultiplierValue === undefined ? 1 : typeMultiplierValue
 
     const baseDamage = Math.floor((((2 * this.actualTarget.level) / 5 + 2) * this.power * (atk / def)) / 50 + 2)

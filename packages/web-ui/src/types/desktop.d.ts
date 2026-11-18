@@ -37,7 +37,9 @@ export interface ArcadiaDesktopApi {
   openServerWebsite(input: { url: string }): Promise<void>
   openRemotePlay(input: { url: string; mode?: 'play' | 'management' }): Promise<unknown>
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
-  prepareLocalContent?: () => Promise<{
+  prepareLocalContent?: (environmentId?: string) => Promise<{
+    gameplayRevision?: string
+    environmentId?: string
     token: string
     rules?: import('@arcadia-eternity/protocol').PersonalEnvironmentReference['rules']
     environment?: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment

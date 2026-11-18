@@ -1,21 +1,16 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { nanoid } from 'nanoid'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { PetSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { usePetStorageStore } from '@/stores/petStorage'
 
-// 仓库数据结构定义
-interface StorageData {
-  version: string
-  exportDate: string
-  storage: PetSchemaType[]
-  teams: Array<{
-    name: string
-    pets: PetSchemaType[]
-  }>
-}
-
+import {
+  migrateEmbeddedLibrary,
+  newPersonalTeam,
+  validateLibrary,
+  type PersonalLibrary,
+} from '@arcadia-eternity/local-profile'
+type StorageData = PersonalLibrary
 // 导入选项
 interface ImportOptions {
   mode: 'merge' | 'replace'
@@ -38,12 +33,7 @@ export function useStorageImportExport() {
    */
   function exportFullStorage(): void {
     try {
-      const storageData: StorageData = {
-        version: '1.0.0',
-        exportDate: new Date().toISOString(),
-        storage: petStorage.storage,
-        teams: petStorage.teams,
-      }
+      const storageData = { format: 'arcadia.storage', library: petStorage.library }
 
       const dataStr = JSON.stringify(storageData, null, 2)
       const dataBlob = new Blob([dataStr], { type: 'application/json' })
@@ -75,10 +65,8 @@ export function useStorageImportExport() {
       }
 
       const storageData = {
-        version: '1.0.0',
-        exportDate: new Date().toISOString(),
-        storage: petStorage.storage,
-        teams: [],
+        format: 'arcadia.storage',
+        library: { ...petStorage.library, teams: [], currentTeamIndex: 0 },
       }
 
       const dataStr = JSON.stringify(storageData, null, 2)
@@ -105,162 +93,69 @@ export function useStorageImportExport() {
    */
   function validateImportData(data: unknown): StorageData | null {
     try {
-      // 基本结构验证
-      if (!data || typeof data !== 'object') {
-        throw new Error('无效的数据格式')
-      }
-
+      if (!data || typeof data !== 'object') throw new Error('无效的数据格式')
       const record = data as Record<string, unknown>
-
-      // 检查必要字段
-      if (!record.storage || !Array.isArray(record.storage)) {
-        throw new Error('缺少有效的仓库数据')
-      }
-
-      if (!record.teams || !Array.isArray(record.teams)) {
-        throw new Error('缺少有效的队伍数据')
-      }
-
-      // 验证精灵数据
-      const validatedStorage: PetSchemaType[] = []
-      for (const pet of record.storage) {
-        try {
-          const validatedPet = parseWithErrors(PetSchema, pet)
-          validatedStorage.push(validatedPet)
-        } catch (error) {
-          console.warn('跳过无效精灵数据:', pet, error)
-        }
-      }
-
-      // 验证队伍数据
-      const validatedTeams: Array<{ name: string; pets: PetSchemaType[] }> = []
-      for (const teamRaw of record.teams) {
-        const team = teamRaw as Record<string, unknown>
-        if (!team.name || typeof team.name !== 'string') {
-          console.warn('跳过无效队伍数据:', team)
-          continue
-        }
-
-        const validatedPets: PetSchemaType[] = []
-        if (Array.isArray(team.pets)) {
-          for (const pet of team.pets) {
-            try {
-              const validatedPet = parseWithErrors(PetSchema, pet)
-              validatedPets.push(validatedPet)
-            } catch (error) {
-              console.warn('跳过队伍中的无效精灵数据:', pet, error)
-            }
-          }
-        }
-
-        validatedTeams.push({
-          name: team.name,
-          pets: validatedPets,
+      let library: PersonalLibrary
+      if (record.format === 'arcadia.storage') {
+        library = record.library as PersonalLibrary
+      } else {
+        if (
+          record.format !== undefined ||
+          (record.version !== undefined && record.version !== '1.0.0') ||
+          !Array.isArray(record.storage) ||
+          !Array.isArray(record.teams)
+        )
+          throw new Error('仓库格式无效')
+        const readPet = (pet: unknown) => parseWithErrors(PetSchema, pet)
+        library = migrateEmbeddedLibrary({
+          storage: record.storage.map(readPet),
+          currentTeamIndex: 0,
+          teams: record.teams.map(team => ({
+            name: team.name,
+            ruleSetId: team.ruleSetId ?? 'casual_standard_ruleset',
+            pets: team.pets.map(readPet),
+          })),
         })
       }
-
-      return {
-        version: (typeof record.version === 'string' ? record.version : '1.0.0') as string,
-        exportDate: (typeof record.exportDate === 'string' ? record.exportDate : new Date().toISOString()) as string,
-        storage: validatedStorage,
-        teams: validatedTeams,
+      if (!library.teams.length) {
+        const checked = validateLibrary({ ...library, teams: [newPersonalTeam('仓库', 'casual_standard_ruleset')] })
+        return { ...checked, teams: [] }
       }
+      return validateLibrary(library)
     } catch (error) {
       ElMessage.error(`数据验证失败: ${error instanceof Error ? error.message : '未知错误'}`)
       return null
     }
   }
 
-  /**
-   * 生成唯一ID
-   */
-  function generateUniqueIds(pets: PetSchemaType[]): PetSchemaType[] {
-    return pets.map(pet => ({
-      ...pet,
-      id: nanoid(),
-    }))
-  }
-
-  /**
-   * 执行导入操作
-   */
   async function performImport(data: StorageData, options: ImportOptions): Promise<void> {
-    try {
-      if (options.mode === 'replace') {
-        // 替换模式：清空现有数据
-        const confirmReplace = await ElMessageBox.confirm(
-          '替换模式将清空所有现有数据，此操作无法撤销！确定要继续吗？',
-          '确认替换',
-          {
-            confirmButtonText: '确定替换',
-            cancelButtonText: '取消',
-            type: 'warning',
-            customStyle: { zIndex: '10000' },
-          },
-        )
-
-        if (confirmReplace) {
-          petStorage.clearStorage()
-        } else {
-          return
-        }
-      }
-
-      let importedPetsCount = 0
-      let importedTeamsCount = 0
-
-      // 导入仓库精灵
-      if (options.importStorage && data.storage.length > 0) {
-        const uniquePets = generateUniqueIds(data.storage)
-        petStorage.storage.push(...uniquePets)
-        importedPetsCount = uniquePets.length
-      }
-
-      // 导入队伍
-      if (options.importTeams && data.teams.length > 0) {
-        for (const teamData of data.teams) {
-          // 检查队伍名称是否已存在
-          let teamName = teamData.name
-          let counter = 1
-          while (petStorage.teams.some(t => t.name === teamName)) {
-            teamName = `${teamData.name} (${counter})`
-            counter++
-          }
-
-          // 创建新队伍（不包含默认精灵）
-          petStorage.createNewTeam(teamName, 'casual', false)
-          const newTeamIndex = petStorage.teams.length - 1
-
-          // 添加精灵到队伍
-          if (teamData.pets.length > 0) {
-            const uniquePets = generateUniqueIds(teamData.pets)
-            // 先添加到仓库，再移动到队伍
-            petStorage.storage.push(...uniquePets)
-            for (const pet of uniquePets) {
-              petStorage.moveToTeam(pet.id, newTeamIndex)
-            }
-          }
-
-          importedTeamsCount++
-        }
-      }
-
-      petStorage.saveToLocal()
-
-      // 显示导入结果
-      const messages = []
-      if (importedPetsCount > 0) {
-        messages.push(`${importedPetsCount} 只精灵`)
-      }
-      if (importedTeamsCount > 0) {
-        messages.push(`${importedTeamsCount} 个队伍`)
-      }
-
-      ElMessage.success(`导入成功！已导入 ${messages.join('、')}`)
-    } catch (error) {
-      console.error('导入失败:', error)
-      ElMessage.error('导入失败，请重试')
+    if (!options.importStorage && !options.importTeams) throw new Error('请选择导入内容')
+    if (options.mode === 'replace')
+      await ElMessageBox.confirm('替换当前仓库及所有队伍？', '替换仓库', {
+        confirmButtonText: '替换',
+        cancelButtonText: '取消',
+        type: 'warning',
+      })
+    const next: PersonalLibrary =
+      options.mode === 'replace'
+        ? { version: 2, currentTeamIndex: 0, storage: [], teams: [] }
+        : JSON.parse(JSON.stringify(petStorage.library))
+    const teams = options.importTeams ? data.teams : []
+    const selected = new Set(teams.flatMap(team => team.memberIds))
+    const mapping = new Map<string, string>()
+    for (const pet of data.storage) {
+      if (!options.importStorage && !selected.has(pet.id)) continue
+      const id = nanoid()
+      mapping.set(pet.id, id)
+      next.storage.push({ ...pet, id, revision: 1 })
     }
+    const offset = next.teams.length
+    for (const team of teams)
+      next.teams.push({ ...team, id: nanoid(), revision: 1, memberIds: team.memberIds.map(id => mapping.get(id)!) })
+    if (!next.teams.length) next.teams.push(newPersonalTeam('默认队伍', 'casual_standard_ruleset'))
+    if (teams.length) next.currentTeamIndex = offset + data.currentTeamIndex
+    if (!petStorage.applyLibrary(next)) throw new Error('仓库未保存')
+    ElMessage.success(`已导入 ${mapping.size} 只精灵、${teams.length} 支队伍`)
   }
 
   /**

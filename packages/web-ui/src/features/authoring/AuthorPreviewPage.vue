@@ -289,7 +289,7 @@ async function launch(reconfigure = false) {
       battle.errorMessage = cause.message
     })
     ownedSystem = prepared.system
-    const restore = data.useLocalBattleContent(prepared.content)
+    const restore = data.useLocalBattleContent(prepared.content, prepared.rules)
     const stop = prepared.system.cleanup.bind(prepared.system)
     prepared.system.cleanup = async () => {
       restore()
@@ -340,7 +340,7 @@ onMounted(async () => {
     }
     const setup = await loadAuthorPreviewSetup(endpoint)
     if (disposed) return
-    restoreSetup = data.useLocalBattleContent(setup.content)
+    restoreSetup = data.useLocalBattleContent(setup.content, setup.rules)
     await loadEnvironments()
     environmentId.value = setup.candidate.environmentId
     preparedEnvironmentId.value = environmentId.value

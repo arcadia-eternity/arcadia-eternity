@@ -769,3 +769,15 @@ mark_hongxinlianjie:
 mark_hanbingjianren:
   name: 寒冰坚韧
   description: 受到物攻伤害减少<shield>25%</shield>，受到特攻伤害减少<shield>15%</shield>；被冻气冲撞、急速冰锥、冰雹或冰冷一击消耗。
+mark_shiquxiujue:
+  name: 失去嗅觉
+  description: 5回合内受到的伤害增加50%
+mark_shiqutingjue:
+  name: 失去听觉
+  description: 5回合内，以自身为目标的攻击技能必中。
+mark_shiquweijue:
+  name: 失去味觉
+  description: 5回合内，以自身为目标的属性技能必中。
+mark_fenghuangzhen:
+  name: 蜂皇针
+  description: 消耗1根可保证蜂皇毒针、金针或迷针的附加效果生效。

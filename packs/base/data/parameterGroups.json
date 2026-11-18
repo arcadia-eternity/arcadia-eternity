@@ -1,0 +1,9 @@
+[
+  {
+    "id": "base:max-hp-excess-baseline",
+    "name": "最大体力超额基准",
+    "unit": "HP",
+    "minimum": 0,
+    "integer": true
+  }
+]

@@ -6,8 +6,12 @@ import { join } from 'node:path'
 import {
   assertEnvironmentRequirements,
   assertEnvironmentTeam,
+  prepareEnvironmentRules,
+  prepareRulesForContent,
+  resolveEnvironmentMechanics,
   validateEnvironmentRules,
 } from '../src/environment-rules.ts'
+import { readInstalledEnvironmentDocument } from '../src/prepared-document.ts'
 import { prepareBattleEnvironment } from '../src/environment.ts'
 import { prepareContentPack } from '../src/testing.ts'
 
@@ -21,7 +25,7 @@ test('supported rules are copied and unsupported policies fail before admission'
   checked.team.maxSize = 5
   assert.equal(input.team.maxSize, 4)
   assert.deepEqual(validateEnvironmentRules(), rules({}))
-  for (const input of [rules({ tier: 'unknown-tier' }), { schemaVersion: 2 }])
+  for (const input of [rules({ tier: 'unknown-tier' }), { schemaVersion: 3 }])
     assert.throws(() => validateEnvironmentRules(input), { code: 'ENVIRONMENT_RULES_UNSUPPORTED' })
   for (const input of [
     null,
@@ -39,6 +43,9 @@ test('supported rules are copied and unsupported policies fail before admission'
 test('capability requirements are explicitly supported or rejected, never ignored', () => {
   assert.doesNotThrow(() => assertEnvironmentRequirements())
   assert.doesNotThrow(() => assertEnvironmentRequirements({ capabilities: [] }))
+  assert.doesNotThrow(() =>
+    assertEnvironmentRequirements({ capabilities: ['rules.composition.v1', 'team.skill-slots.v1'] }),
+  )
   assert.throws(() => assertEnvironmentRequirements({ capabilities: ['future-rules'] }), {
     code: 'ENVIRONMENT_CAPABILITY_UNSUPPORTED',
   })
@@ -148,4 +155,200 @@ test('the legacy default author environment keeps working with an explicit empty
   assert.deepEqual(prepared.environmentDocument.rules, { schemaVersion: 1 })
   assert.deepEqual(prepared.environmentDocument.requires, {})
   assert.ok(prepared.environment.revision)
+})
+
+test('scopes combinations, exceptions and member quotas to the selected environment', () => {
+  const pet = { species: 'pet_a', skills: ['fire', 'water'], emblem: 'ward' }
+  const other = { species: 'pet_b', skills: ['ice', 'fire'] }
+  const allOf = [
+    { kind: 'species', ids: ['pet_a'] },
+    { kind: 'skill', ids: ['ice'] },
+  ]
+  const rule = { id: 'custom:ice', kind: 'ban', scope: 'pet', allOf }
+  const admitted = constraints => ({ schemaVersion: 2, constraints })
+  assert.doesNotThrow(() => assertEnvironmentTeam(admitted([rule]), [pet, other]))
+  assert.throws(() => assertEnvironmentTeam(admitted([rule]), [{ ...pet, skills: ['ice'] }]), {
+    code: 'ENVIRONMENT_TEAM_REJECTED',
+  })
+  const teamBan = { ...rule, scope: 'team' }
+  assert.throws(() => assertEnvironmentTeam(admitted([teamBan]), [pet, other]), { code: 'ENVIRONMENT_TEAM_REJECTED' })
+  const exception = { ...teamBan, exceptWhen: [{ kind: 'mark', ids: ['ward'] }] }
+  assert.doesNotThrow(() => assertEnvironmentTeam(admitted([exception]), [pet, other]))
+  const quota = { id: 'custom:quota', kind: 'memberLimit', max: 1, allOf: [{ kind: 'skill', ids: ['fire', 'water'] }] }
+  assert.doesNotThrow(() => assertEnvironmentTeam(admitted([quota]), [pet]))
+  assert.throws(() => assertEnvironmentTeam(admitted([exception, quota]), [pet, other]), {
+    code: 'ENVIRONMENT_TEAM_REJECTED',
+  })
+  assert.throws(() => validateEnvironmentRules(admitted([rule, rule])), { code: 'ENVIRONMENT_RULES_INVALID' })
+})
+
+test('locked rule sets compose diamonds, report both sides of a conflict, and keep room rules portable', async () => {
+  const { prepareEnvironmentRules } = await import('../src/environment-rules.ts')
+  const rules = (include, local = {}) => ({ schemaVersion: 2, include, ...local })
+  const cell = multiplier => ({
+    matchups: { adjustments: [{ attack: 'crystal:type', defense: 'sound:type', multiplier }] },
+  })
+  const base = {
+    id: 'base:common',
+    rules: rules([], { mechanics: { individualValues: { max: 31 } }, allow: { skills: ['a', 'b', 'c'] } }),
+  }
+  const left = {
+    id: 'crystal:cup',
+    rules: rules([base.id], { ...cell(2), allow: { skills: ['a', 'c'] }, team: { maxSize: 5 } }),
+  }
+  const right = {
+    id: 'sound:cup',
+    rules: rules([base.id], { ...cell(0.5), allow: { skills: ['b', 'c'] }, team: { maxSize: 3 } }),
+  }
+  const catalog = [base, left, right]
+  const mix = { id: 'mod:mix', rules: rules([left.id, right.id]) }
+  assert.throws(() => prepareEnvironmentRules(mix.rules, catalog), /crystal:cup.*sound:cup/)
+  const root = rules([mix.id], cell(0))
+  const resolved = prepareEnvironmentRules(root, [...catalog, mix])
+  assert.deepEqual(resolved, prepareEnvironmentRules(root, [mix, ...catalog.reverse()]))
+  assert.deepEqual(resolved.rules.allow.skills, ['c'])
+  assert.equal(resolved.rules.team.maxSize, 3)
+  assert.equal(resolved.rules.mechanics.individualValues.max, 31)
+  assert.equal(resolved.rules.matchups.adjustments[0].multiplier, 0)
+  assert.deepEqual(resolved.fields.find(f => f.path.includes('adjustments')).effectiveSources, ['$environment'])
+  assert.deepEqual(resolved.fields.find(f => f.path.includes('adjustments')).sources, [
+    '$environment',
+    left.id,
+    right.id,
+  ])
+  assert.deepEqual(validateEnvironmentRules(resolved.rules), resolved.rules)
+  assert.throws(() => validateEnvironmentRules(root), /RULES_INVALID/)
+  assert.throws(() => prepareEnvironmentRules(root, catalog), /RULE_SET_MISSING.*mod:mix/)
+  assert.throws(() => prepareEnvironmentRules(root, [{ ...mix, rules: rules([mix.id]) }]), /RULE_CYCLE.*mod:mix/)
+})
+
+test('constraint amendments bind exceptions to their declared ban and explicitly handle replaced targets', async () => {
+  const { prepareEnvironmentRules } = await import('../src/environment-rules.ts')
+  const condition = (kind, ...ids) => ({ kind, ids })
+  const ban = { id: 'cup:ban', kind: 'ban', scope: 'team', allOf: [condition('skill', 'sample:strike')] }
+  const base = { id: 'cup:base', rules: { schemaVersion: 2, constraints: [ban] } }
+  const exception = { target: ban.id, allOf: [condition('species', 'sample:pet')] }
+  const narrow = {
+    id: 'cup:narrow',
+    rules: { schemaVersion: 2, include: [base.id], constraintEdits: { exceptions: [exception] } },
+  }
+  const data = [base, narrow]
+  const prepare = changes =>
+    prepareEnvironmentRules(
+      {
+        schemaVersion: 2,
+        include: [narrow.id],
+        constraintEdits: changes,
+      },
+      data,
+    ).rules
+  assert.doesNotThrow(() => assertEnvironmentTeam(prepare({}), [pet()]))
+  rejected(() => assertEnvironmentTeam(prepare({}), [pet('sample:other')]))
+  assert.throws(() => prepare({ remove: [ban.id] }), /EXCEPTION_DANGLING/)
+  assert.throws(() => prepare({ replace: [{ ...ban, scope: 'pet' }] }), /EXCEPTION_DANGLING/)
+  assert.throws(() => prepare({ exceptions: [{ ...exception, target: 'missing' }] }), /TARGET_MISSING/)
+  const cleared = prepare({ clearExceptions: [ban.id], replace: [{ ...ban, scope: 'pet' }] })
+  rejected(() => assertEnvironmentTeam(cleared, [pet()]))
+  assert.equal(prepare({ clearExceptions: [ban.id], remove: [ban.id] }).constraints, undefined)
+  assert.throws(
+    () => prepareEnvironmentRules({ schemaVersion: 2, include: [base.id], constraints: [ban] }, data),
+    /ALREADY_EXISTS/,
+  )
+})
+
+test('preparation expands typed collections in limits and exceptions against the selected version', async () => {
+  const { prepareEnvironmentRules } = await import('../src/environment-rules.ts')
+  const collection = { id: 'league:starters', kind: 'species', ids: ['sample:pet'] }
+  const condition = { kind: 'species', ids: ['sample:other'], fromCollections: [collection.id] }
+  const rule = { id: 'league:quota', kind: 'memberLimit', allOf: [condition], max: 1 }
+  const base = { id: 'league:cup', rules: { schemaVersion: 2, constraints: [rule], collections: [collection] } }
+  const root = { schemaVersion: 2, include: [base.id] }
+  const prepared = prepareEnvironmentRules(root, [base]).rules
+  assert.deepEqual(prepared.constraints[0].allOf[0], { kind: 'species', ids: ['sample:other', 'sample:pet'] })
+  assert.equal(prepared.collections, undefined)
+  rejected(() => assertEnvironmentTeam(prepared, [pet(), pet('sample:other')]))
+  const changed = prepareEnvironmentRules({ ...root, collections: [{ ...collection, ids: ['sample:third'] }] }, [
+    base,
+  ]).rules
+  assert.doesNotThrow(() => assertEnvironmentTeam(changed, [pet(), pet('sample:other')]))
+  assert.throws(
+    () => prepareEnvironmentRules({ ...root, collections: [{ ...collection, kind: 'skill' }] }, [base]),
+    /COLLECTION_KIND/,
+  )
+  assert.throws(() => prepareEnvironmentRules({ schemaVersion: 2, constraints: [rule] }), /COLLECTION_MISSING/)
+})
+
+test('host slot rules classify equipped skills against captured content and preserve older formats', async () => {
+  const { assertLearningChoices } = await import('../src/environment-rules.ts')
+  const rules = validateEnvironmentRules({
+    schemaVersion: 2,
+    mechanics: { skillSlots: { normalMax: 2, climaxMax: 3, climaxMin: 1 } },
+  })
+  const inspect = (policy, skills) =>
+    assertLearningChoices(
+      policy,
+      [{ species: 'cup:pet', nature: 'cup:nature', level: 100, skills }],
+      () => undefined,
+      () => ({ generation: 1 }),
+      () => undefined,
+      id => (id.startsWith('climax') ? { category: 'Climax' } : { category: 'Physical' }),
+    )
+  assert.doesNotThrow(() => inspect(rules, ['a', 'b', 'climax-1', 'climax-2', 'climax-3']))
+  assert.throws(() => inspect(rules, ['a', 'b', 'c', 'climax-1']), /普通技能最多/)
+  assert.throws(() => inspect(rules, ['a']), /必杀技能至少/)
+  assert.doesNotThrow(() => inspect({ schemaVersion: 1 }, ['a', 'b', 'c', 'd', 'e']))
+  assert.throws(() =>
+    validateEnvironmentRules({ schemaVersion: 2, mechanics: { skillSlots: { normalMax: 3, climaxMax: 3 } } }),
+  )
+})
+
+test('new-pet IV defaults inherit independently of the admission limit', () => {
+  const cap = { id: 'sample:cap', rules: { schemaVersion: 2, mechanics: { individualValues: { max: 120 } } } }
+  const defaults = { id: 'sample:start', rules: { schemaVersion: 2, mechanics: { individualValueDefault: 60 } } }
+  const prepared = prepareEnvironmentRules({ schemaVersion: 2, include: [cap.id, defaults.id] }, [cap, defaults])
+  assert.deepEqual(resolveEnvironmentMechanics(prepared.rules).individualValues, { max: 120, defaultValue: 60 })
+  assert.equal(resolveEnvironmentMechanics(cap.rules).individualValues.defaultValue, 31)
+  assert.equal(
+    resolveEnvironmentMechanics({ mechanics: { individualValues: { max: 12 } } }).individualValues.defaultValue,
+    12,
+  )
+  assert.throws(
+    () => prepareEnvironmentRules({ schemaVersion: 2, include: [defaults.id] }, [defaults]),
+    /IV_DEFAULT_EXCEEDS_MAX/,
+  )
+  assert.throws(() => validateEnvironmentRules(defaults.rules), /IV_DEFAULT_EXCEEDS_MAX/)
+  assertEnvironmentTeam(prepared.rules, [pet('sample:pet', { ivs: { hp: 120 } })])
+})
+
+test('offline consumers bind prepared declarations to the captured material and its references', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-applied-rules-'))
+  try {
+    const document = {
+      schemaVersion: 2,
+      id: 'custom',
+      name: 'Custom',
+      sources: [],
+      packages: {},
+      requires: {},
+      rules: { schemaVersion: 2, allow: { skills: ['custom:move'] } },
+    }
+    await writeFile(join(directory, 'package.json'), JSON.stringify({ name: 'editable', private: true }))
+    await writeFile(
+      join(directory, '.arcadia-prepared.json'),
+      JSON.stringify({
+        format: 'arcadia.environment-installation/1',
+        installationId: 'custom',
+        contentRevision: 'A',
+        document,
+      }),
+    )
+    await assert.rejects(readInstalledEnvironmentDocument(directory, 'B'), { code: 'ENVIRONMENT_PREPARATION_REQUIRED' })
+    const applied = await readInstalledEnvironmentDocument(directory, 'A')
+    const data = { species: [], skills: [], marks: [] }
+    assert.throws(() => prepareRulesForContent(applied.rules, data), { code: 'ENVIRONMENT_REFERENCE_MISSING' })
+    data.skills.push({ id: 'custom:move' })
+    assert.deepEqual(prepareRulesForContent(applied.rules, data).rules.allow.skills, ['custom:move'])
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
 })

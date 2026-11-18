@@ -1,6 +1,14 @@
 <template>
+  <PersonalEnvironmentView @ready="environmentReady = $event">
+    <template #unresolved>
+      <ul class="p-3">
+        <li v-for="pet in petStorage.storage" :key="pet.id">{{ pet.name }} · {{ pet.species }}</li>
+      </ul>
+      <button type="button" @click="exportFullStorage()">导出仓库与队伍</button>
+    </template>
+  </PersonalEnvironmentView>
   <!-- 加载界面 -->
-  <div v-if="!isInitialized" class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div v-if="environmentReady && !isInitialized" class="min-h-screen bg-gray-50 flex items-center justify-center">
     <div class="text-center">
       <div class="mb-4">
         <el-icon class="animate-spin text-4xl text-blue-500" :size="48">
@@ -13,7 +21,7 @@
   </div>
 
   <!-- 主要内容 -->
-  <div v-else class="min-h-screen bg-gray-50">
+  <div v-else-if="environmentReady" class="min-h-screen bg-gray-50">
     <!-- 头部导航 -->
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,9 +68,7 @@
             </div>
           </div>
           <div class="flex items-center space-x-3">
-            <span class="text-sm text-gray-500 hidden lg:inline">
-              总计: {{ petStorage.storage.length + totalTeamPets }} 只精灵
-            </span>
+            <span class="text-sm text-gray-500 hidden lg:inline"> 总计: {{ petStorage.storage.length }} 只精灵 </span>
             <button
               @click="clearAllData"
               class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -238,7 +244,7 @@
             </div>
             <div>
               <p class="text-xs font-medium text-gray-500">总计</p>
-              <p class="text-lg font-semibold text-gray-900">{{ petStorage.storage.length + totalTeamPets }}</p>
+              <p class="text-lg font-semibold text-gray-900">{{ petStorage.storage.length }}</p>
             </div>
           </div>
         </div>
@@ -351,7 +357,7 @@
                           <span
                             class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex-shrink-0"
                           >
-                            {{ team.pets.length }}/6
+                            {{ team.pets.length }} 只
                           </span>
                         </div>
 
@@ -404,30 +410,16 @@
                       <div class="flex items-center space-x-3 flex-wrap gap-y-2">
                         <!-- 校验状态 -->
                         <span
-                          v-if="teamValidationStatus[petStorage.teams.indexOf(team)]"
-                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer"
-                          :class="{
-                            'bg-yellow-100 text-yellow-800':
-                              teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating,
-                            'bg-green-100 text-green-800':
-                              !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
-                              teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
-                            'bg-red-100 text-red-800':
-                              !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
-                              !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
-                          }"
-                          @click="validateTeam(petStorage.teams.indexOf(team))"
+                          v-if="teamValidationStatus.has(team.id)"
+                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                          :class="
+                            teamValidationStatus.get(team.id)?.length
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-green-100 text-green-800'
+                          "
+                          :title="teamValidationStatus.get(team.id)?.join('、')"
                         >
-                          <el-icon class="mr-1" :size="12">
-                            <Refresh v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating" />
-                            <Check v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid" />
-                            <Close v-else />
-                          </el-icon>
-                          <span v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating">校验中</span>
-                          <span v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid"
-                            >规则通过</span
-                          >
-                          <span v-else>规则失败</span>
+                          {{ teamValidationStatus.get(team.id)?.length ? '规则失败' : '规则通过' }}
                         </span>
                       </div>
                     </div>
@@ -454,7 +446,7 @@
                           <span
                             class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex-shrink-0"
                           >
-                            {{ team.pets.length }}/6
+                            {{ team.pets.length }} 只
                           </span>
                           <span
                             v-if="petStorage.teams.indexOf(team) === petStorage.currentTeamIndex"
@@ -465,32 +457,16 @@
 
                           <!-- 校验状态 -->
                           <span
-                            v-if="teamValidationStatus[petStorage.teams.indexOf(team)]"
-                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer"
-                            :class="{
-                              'bg-yellow-100 text-yellow-800':
-                                teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating,
-                              'bg-green-100 text-green-800':
-                                !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
-                                teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
-                              'bg-red-100 text-red-800':
-                                !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating &&
-                                !teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid,
-                            }"
-                            @click="validateTeam(petStorage.teams.indexOf(team))"
+                            v-if="teamValidationStatus.has(team.id)"
+                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                            :class="
+                              teamValidationStatus.get(team.id)?.length
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-green-100 text-green-800'
+                            "
+                            :title="teamValidationStatus.get(team.id)?.join('、')"
                           >
-                            <el-icon class="mr-1" :size="12">
-                              <Refresh v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating" />
-                              <Check v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid" />
-                              <Close v-else />
-                            </el-icon>
-                            <span v-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValidating"
-                              >校验中</span
-                            >
-                            <span v-else-if="teamValidationStatus[petStorage.teams.indexOf(team)]?.isValid"
-                              >规则通过</span
-                            >
-                            <span v-else>规则失败</span>
+                            {{ teamValidationStatus.get(team.id)?.length ? '规则失败' : '规则通过' }}
                           </span>
                         </div>
 
@@ -885,7 +861,7 @@
                   />
                 </svg>
                 <p class="text-lg font-medium">仓库为空</p>
-                <p class="text-sm">双击队伍精灵或使用右键菜单将精灵移动到仓库</p>
+                <p class="text-sm">双击队伍精灵或使用右键菜单将精灵移出该队</p>
               </div>
 
               <!-- 无筛选结果提示 -->
@@ -1170,7 +1146,11 @@
 
                 <!-- 空槽位 -->
                 <div
-                  v-for="n in Math.max(0, 6 - (petStorage.teams[petStorage.currentTeamIndex]?.pets.length || 0))"
+                  v-for="n in Math.max(
+                    0,
+                    (gameDataStore.rules?.team?.maxSize ?? 6) -
+                      (petStorage.teams[petStorage.currentTeamIndex]?.pets.length || 0),
+                  )"
                   :key="`empty-${n}`"
                   class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-2 flex items-center justify-center text-gray-400 hover:border-gray-400 transition-colors duration-200"
                 >
@@ -1382,7 +1362,7 @@
                   />
                 </svg>
                 <p class="text-lg font-medium">仓库为空</p>
-                <p class="text-sm">双击队伍精灵或使用右键菜单将精灵移动到仓库</p>
+                <p class="text-sm">双击队伍精灵或使用右键菜单将精灵移出该队</p>
               </div>
 
               <!-- 无筛选结果提示 -->
@@ -1570,7 +1550,7 @@
                 <h4 class="font-medium text-gray-900 mb-2">快捷操作</h4>
                 <ul class="space-y-1 list-disc list-inside">
                   <li>双击仓库精灵加入当前队伍</li>
-                  <li>双击队伍精灵移入仓库</li>
+                  <li>双击队伍精灵移出该队</li>
                   <li>双击队伍容器切换当前队伍</li>
                   <li>右键精灵查看更多操作</li>
                   <li>点击队伍名称编辑名称</li>
@@ -1631,6 +1611,9 @@
                     {{ getSpeciesName(selectedPetForDetail.species) }}
                   </p>
                   <p class="text-sm text-gray-500">等级 {{ selectedPetForDetail.level }}</p>
+                  <p v-if="detailOrigin" class="text-sm break-all">
+                    原约战环境 · {{ detailOrigin.name }} · {{ detailOrigin.version }}
+                  </p>
                 </div>
               </div>
 
@@ -1650,7 +1633,7 @@
                       <span class="text-gray-600">性格:</span>
                       {{
                         selectedPetForDetail && selectedPetForDetail.nature !== undefined
-                          ? natureMap[selectedPetForDetail.nature]
+                          ? getNatureText(selectedPetForDetail.nature)
                           : '未知'
                       }}
                     </p>
@@ -1819,24 +1802,26 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 import { onLongPress, useEventListener } from '@vueuse/core'
-import { nanoid } from 'nanoid'
 import { usePetStorageStore } from '../stores/petStorage'
 import { usePlayerStore } from '../stores/player'
 import { useGameDataStore } from '../stores/gameData'
 import { useTranslation } from 'i18next-vue'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { Gender, Nature, NatureMap, ELEMENT_MAP } from '@arcadia-eternity/const'
+import { buildStatSteps, type StatKey } from '@/utils/teamBuildComparison'
+import { Gender } from '@arcadia-eternity/const'
 import PetIcon from '../components/PetIcon.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useStorageImportExport } from '@/composition/useStorageImportExport'
-import { Loading, Check, Close, Refresh } from '@element-plus/icons-vue'
+import PersonalEnvironmentView from '@/components/team/PersonalEnvironmentView.vue'
+import { Loading } from '@element-plus/icons-vue'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
+const environmentReady = ref(false)
 const { i18next } = useTranslation()
 
 // 使用组合式函数
@@ -1852,6 +1837,7 @@ const {
   closeContextMenu,
 } = usePetManagement()
 
+const detailOrigin = computed(() => petStorage.storage.find(pet => pet.id === selectedPetForDetail.value?.id)?.origin)
 const { exportTeam } = useTeamExport()
 
 // 使用仓库导入导出功能
@@ -1898,18 +1884,9 @@ const handleMobileTap = (pet: PetSchemaType, teamIndex?: number) => {
 }
 
 // 简化的双击处理
-const handleDoubleTap = (pet: PetSchemaType) => {
-  console.log('双击', pet.name)
-  const result = findPetById(pet.id)
-  if (!result) return
-
-  const { location } = result
-
-  if (location === 'storage') {
-    handleAddToCurrentTeam(pet)
-  } else {
-    handleMoveToStorage(pet.id)
-  }
+const handleDoubleTap = (pet: PetSchemaType, teamIndex?: number) => {
+  if (teamIndex === undefined) handleAddToCurrentTeam(pet)
+  else handleMoveToStorage(pet.id, teamIndex)
 }
 
 // 用于跟踪已设置交互的元素，避免重复设置
@@ -1972,7 +1949,7 @@ const setupPetInteraction = (
         clickTimer = null
       }
       console.log('移动端双击 - 移动精灵', pet.name)
-      handleDoubleTap(pet)
+      handleDoubleTap(pet, teamIndex)
       clickCount = 0
     }
   })
@@ -1980,7 +1957,7 @@ const setupPetInteraction = (
   // 桌面端双击处理
   useEventListener(element, 'dblclick', () => {
     if (!isMobile()) {
-      handleDoubleTap(pet)
+      handleDoubleTap(pet, teamIndex)
     }
   })
 
@@ -2042,17 +2019,12 @@ const sortBy = ref('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
 
 // 队伍校验状态
-const teamValidationStatus = ref<
-  Record<
-    number,
-    {
-      isValidating: boolean
-      isValid: boolean
-      errors: string[]
-      warnings: string[]
-    }
-  >
->({})
+const teamValidationStatus = computed(() => {
+  const issues = new Map<string, string[]>()
+  if (gameDataStore.loaded)
+    for (const team of petStorage.teams) issues.set(team.id, validateBasicTeam(team.pets, gameDataStore))
+  return issues
+})
 
 // 容器尺寸监听
 const teamContainerRef = ref<HTMLElement>()
@@ -2082,34 +2054,6 @@ const genderMap = {
   [Gender.NoGender]: '无性别',
 }
 
-const natureMap = {
-  [Nature.Adamant]: '固执',
-  [Nature.Bashful]: '害羞',
-  [Nature.Bold]: '大胆',
-  [Nature.Brave]: '勇敢',
-  [Nature.Calm]: '冷静',
-  [Nature.Careful]: '慎重',
-  [Nature.Docile]: '坦率',
-  [Nature.Gentle]: '温和',
-  [Nature.Hardy]: '勤奋',
-  [Nature.Hasty]: '急躁',
-  [Nature.Impish]: '淘气',
-  [Nature.Jolly]: '爽朗',
-  [Nature.Lax]: '乐天',
-  [Nature.Lonely]: '怕寂寞',
-  [Nature.Mild]: '温和',
-  [Nature.Modest]: '内敛',
-  [Nature.Naive]: '天真',
-  [Nature.Naughty]: '顽皮',
-  [Nature.Quiet]: '冷静',
-  [Nature.Quirky]: '古怪',
-  [Nature.Rash]: '马虎',
-  [Nature.Relaxed]: '悠闲',
-  [Nature.Sassy]: '自大',
-  [Nature.Serious]: '认真',
-  [Nature.Timid]: '胆小',
-}
-
 // 计算属性
 const totalTeamPets = computed(() => {
   return petStorage.teams.reduce((total, team) => total + team.pets.length, 0)
@@ -2127,7 +2071,7 @@ const availableElements = computed(() => {
 
   return Array.from(elements)
     .map(element => ({
-      label: ELEMENT_MAP[element]?.name || element,
+      label: gameDataStore.getElement(element)?.name || element,
       value: element,
     }))
     .sort((a, b) => a.label.localeCompare(b.label))
@@ -2389,8 +2333,6 @@ onMounted(() => {
   // 初始计算
   nextTick(() => {
     calculatePageSizes()
-    // 初始化规则校验
-    validateAllTeams()
   })
 
   // 设置 ResizeObserver
@@ -2423,34 +2365,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', debouncedCalculatePageSizes)
 })
 
-// 监听队伍数据变化，自动重新校验
-watch(
-  () => petStorage.teams,
-  async (newTeams, oldTeams) => {
-    // 如果队伍数量变化，校验所有队伍
-    if (!oldTeams || newTeams.length !== oldTeams.length) {
-      await validateAllTeams()
-      return
-    }
-
-    // 检查每个队伍是否有变化
-    for (let i = 0; i < newTeams.length; i++) {
-      const newTeam = newTeams[i]
-      const oldTeam = oldTeams[i]
-
-      if (
-        !oldTeam ||
-        newTeam.ruleSetId !== oldTeam.ruleSetId ||
-        newTeam.pets.length !== oldTeam.pets.length ||
-        JSON.stringify(newTeam.pets) !== JSON.stringify(oldTeam.pets)
-      ) {
-        await validateTeam(i)
-      }
-    }
-  },
-  { deep: true },
-)
-
 // 队伍名称编辑
 const editTeamName = (index: number) => {
   tempTeamName.value = petStorage.teams[index].name
@@ -2467,8 +2381,7 @@ const editTeamName = (index: number) => {
 
 const saveTeamName = (index: number) => {
   if (tempTeamName.value.trim()) {
-    petStorage.teams[index].name = tempTeamName.value.trim()
-    petStorage.saveToLocal()
+    petStorage.renameTeam(index, tempTeamName.value.trim())
   }
   editingIndex.value = -1
 }
@@ -2523,8 +2436,7 @@ const deleteTeam = async (index: number) => {
 
 const setCurrentTeam = (index: number) => {
   closeContextMenu()
-  petStorage.currentTeamIndex = index
-  petStorage.saveToLocal()
+  petStorage.switchTeam(index)
 }
 
 // 双击队伍选择当前队伍
@@ -2549,32 +2461,17 @@ const isMobile = () => {
   )
 }
 
-// 统一的精灵查找函数
-const findPetById = (petId: string) => {
-  // 先在仓库中查找
-  let pet = petStorage.storage.find(p => p.id === petId)
-  if (pet) {
-    return { pet, location: 'storage' as const }
-  }
-
-  // 再在队伍中查找
-  for (let i = 0; i < petStorage.teams.length; i++) {
-    pet = petStorage.teams[i].pets.find(p => p.id === petId)
-    if (pet) {
-      return { pet, location: 'team' as const, teamIndex: i }
-    }
-  }
-
-  return null
-}
-
 // 精灵操作函数已移动到组合式函数中，但需要包装以处理缓存清理
-const handleMoveToStorage = (petId: string) => {
-  moveToStorage(petId, () => {
-    nextTick(() => {
-      checkAndFixPagination()
-    })
-  })
+const handleMoveToStorage = (petId: string, teamIndex: number) => {
+  moveToStorage(
+    petId,
+    () => {
+      nextTick(() => {
+        checkAndFixPagination()
+      })
+    },
+    teamIndex,
+  )
 }
 
 const handleAddToCurrentTeam = (pet: PetSchemaType) => {
@@ -2593,47 +2490,6 @@ const handleShowTeamPetContextMenu = (event: MouseEvent, pet: PetSchemaType, tea
   showTeamPetContextMenu(event, pet, teamIndex)
 }
 
-// 规则校验相关方法
-const validateTeam = async (teamIndex: number) => {
-  const team = petStorage.teams[teamIndex]
-  if (!team) return
-
-  // 设置校验状态
-  teamValidationStatus.value[teamIndex] = {
-    isValidating: true,
-    isValid: false,
-    errors: [],
-    warnings: [],
-  }
-
-  try {
-    const errors = validateBasicTeam(team.pets)
-    const result = { isValid: errors.length === 0, errors, warnings: [] as string[] }
-
-    teamValidationStatus.value[teamIndex] = {
-      isValidating: false,
-      isValid: result.isValid,
-      errors: result.errors?.map((e: { message?: string; toString(): string }) => e.message || e.toString()) || [],
-      warnings: result.warnings?.map((w: { message?: string; toString(): string }) => w.message || w.toString()) || [],
-    }
-  } catch (error) {
-    console.error('队伍校验失败:', error)
-    teamValidationStatus.value[teamIndex] = {
-      isValidating: false,
-      isValid: false,
-      errors: ['校验系统出现错误'],
-      warnings: [],
-    }
-  }
-}
-
-// 校验所有队伍
-const validateAllTeams = async () => {
-  for (let i = 0; i < petStorage.teams.length; i++) {
-    await validateTeam(i)
-  }
-}
-
 // 复制队伍
 const copyTeam = (index: number) => {
   try {
@@ -2643,24 +2499,7 @@ const copyTeam = (index: number) => {
       return
     }
 
-    // 创建新队伍
-    const newTeamName = `${originalTeam.name} (副本)`
-    petStorage.createNewTeam(newTeamName, originalTeam.ruleSetId)
-    const newTeamIndex = petStorage.teams.length - 1
-    petStorage.teams[newTeamIndex].pets = []
-
-    // 复制队伍中的所有精灵
-    originalTeam.pets.forEach(pet => {
-      const petCopy = JSON.parse(JSON.stringify(pet))
-      petCopy.id = nanoid()
-      petCopy.name = `${pet.name} (副本)`
-
-      // 先添加到仓库，再移动到新队伍
-      petStorage.storage.push(petCopy)
-      petStorage.moveToTeam(petCopy.id, newTeamIndex)
-    })
-
-    petStorage.saveToLocal()
+    if (!petStorage.copyTeam(index)) return
     ElMessage.success(`队伍 "${originalTeam.name}" 复制成功！`)
   } catch (error) {
     console.error('队伍复制失败:', error)
@@ -2686,22 +2525,8 @@ const clearAllData = async () => {
 }
 
 // 计算精灵能力值
-const computePetStat = (pet: PetSchemaType, stat: 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe') => {
-  const species = gameDataStore.getSpecies(pet.species)
-  if (!species) return 0
-
-  const baseStat = species.baseStats[stat] || 0
-  const iv = pet.ivs[stat] || 0
-  const ev = pet.evs[stat] || 0
-  const level = pet.level
-
-  if (stat === 'hp') {
-    return Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + level + 10
-  } else {
-    const natureMultiplier = NatureMap[pet.nature as Nature]?.[stat] || 1
-    return Math.floor((Math.floor(((2 * baseStat + iv + Math.floor(ev / 4)) * level) / 100) + 5) * natureMultiplier)
-  }
-}
+const computePetStat = (pet: PetSchemaType, stat: StatKey) =>
+  buildStatSteps(pet, gameDataStore, [stat])[stat]?.total ?? '—'
 
 // 获取性别文本
 const getGenderText = (gender?: Gender) => {
@@ -2719,13 +2544,8 @@ const getGenderText = (gender?: Gender) => {
 }
 
 // 获取性格文本
-const getNatureText = (nature: Nature) => {
-  try {
-    return i18next.t(`${nature}.name`, { ns: 'nature' }) || nature
-  } catch {
-    return nature
-  }
-}
+const getNatureText = (id: string) =>
+  i18next.t(id + '.name', { ns: 'nature', nsSeparator: false, defaultValue: gameDataStore.getNature(id)?.name ?? id })
 
 // 获取技能名称
 const getSpeciesName = (speciesId: string) =>

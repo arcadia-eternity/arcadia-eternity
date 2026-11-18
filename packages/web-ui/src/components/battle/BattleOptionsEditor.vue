@@ -21,16 +21,6 @@ const enableTotalTimeLimit = computed({
   <!-- 基础配置 -->
   <div class="mb-6 p-4 bg-white rounded-md border border-gray-200">
     <h3 class="text-lg font-medium text-gray-600 mb-4 pb-2 border-b-2 border-blue-500">基础设置</h3>
-    <div class="mb-3 flex items-center">
-      <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-        <input
-          type="checkbox"
-          v-model="battleConfig.allowFaintSwitch"
-          class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-        />
-        允许击破奖励切换
-      </label>
-    </div>
     <!-- 暂时隐藏显示隐藏信息选项 -->
     <!-- <div class="mb-3 flex items-center">
           <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 
-type MetadataKind = 'marks' | 'skills' | 'species'
+type MetadataKind = keyof ContentPrototypeData
 const root = new URL('../../../../packs/base/', import.meta.url)
 const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8')) as {
   paths?: { dataDir?: string }
@@ -20,8 +20,17 @@ export function loadBaseMetadata(kind: MetadataKind): unknown[] {
 
 export function loadBasePrototypeData(): ContentPrototypeData {
   return {
+    elements: loadBaseMetadata('elements'),
+    matchupTables: loadBaseMetadata('matchupTables'),
+    enhancements: loadBaseMetadata('enhancements'),
+    natures: loadBaseMetadata('natures'),
     marks: loadBaseMetadata('marks'),
     skills: loadBaseMetadata('skills'),
+    behaviors: loadBaseMetadata('behaviors'),
+    parameterProfiles: loadBaseMetadata('parameterProfiles'),
+    ruleSets: loadBaseMetadata('ruleSets'),
+    parameterGroups: loadBaseMetadata('parameterGroups'),
+    parameterBindings: loadBaseMetadata('parameterBindings'),
     species: loadBaseMetadata('species'),
   }
 }

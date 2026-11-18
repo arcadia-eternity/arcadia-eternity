@@ -3,12 +3,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import type { BattleState } from '@arcadia-eternity/const'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
+import { getDefaultTeam } from '../defaultTeam'
 import { LocalBattleSession } from '../localBattleSession'
 import type { createSandboxWebBattleSession } from '../nativeBattleFactory'
 
 type Prepared = Awaited<ReturnType<typeof createSandboxWebBattleSession>>
 const emptyData = { marks: [], skills: [], species: [] }
-const player = { name: 'test', team: [] }
+const player = { name: 'test', team: getDefaultTeam().pets }
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>(done => {
@@ -117,8 +118,8 @@ it('captures player and option inputs, transfers to battle, and releases its run
     target = destination(),
     original = target.data.species
   const restore = vi.spyOn(target.data, 'useLocalBattleContent')
-  const first = { name: 'Player A', team: [] },
-    second = { name: 'Player B', team: [] }
+  const first = { name: 'Player A', team: getDefaultTeam().pets },
+    second = { name: 'Player B', team: getDefaultTeam().pets }
   const config = { timerConfig: { enabled: false } }
   target.navigate.mockImplementation(async () => {
     await value.releaseConfiguration()
@@ -305,7 +306,7 @@ it('checks the captured environment rules before creating a local battle', async
       token: 'rules',
       content: emptyData,
       resources: [],
-      rules: { schemaVersion: 1, team: { minSize: 1 } },
+      rules: { schemaVersion: 1, deny: { species: [player.team[0].species] } },
     })),
     releaseLocalContent: release,
   })

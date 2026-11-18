@@ -129,14 +129,26 @@ describe('shared environment workspace', () => {
   it('edits content and team rules without dropping unrelated rule fields', async () => {
     const { page } = open()
     await button(page, '编辑').trigger('click')
-    const numbers = page.findAll('input[type="number"]')
-    await numbers[0]!.setValue('2')
-    await numbers[1]!.setValue('4')
-    await page.get('input[type="checkbox"]').setValue(true)
+    const numberField = (label: string) =>
+      page
+        .findAll('.el-form-item')
+        .find(field => field.find('label').text() === label)!
+        .get('input')
+    await numberField('单项资质上限').setValue('50')
+    await numberField('队伍最少数量').setValue('2')
+    await numberField('队伍最多数量').setValue('4')
+    const checkbox = (text: string) =>
+      page
+        .findAll('label')
+        .find(label => label.text() === text)!
+        .get('input')
+    await checkbox('击破奖励换宠').setValue(false)
+    await checkbox('队伍内精灵不重复').setValue(true)
     const denySpecies = page.findAll('fieldset').find(fieldset => fieldset.find('legend').text() === '禁止内容')!
     await denySpecies.findAll('textarea')[0]!.setValue('base:boss\nbase:boss\ncustom:pet')
     await page.get('form.environment-editor').trigger('submit')
     const saved = page.emitted('save')![0]![0] as ManagedEnvironment['document']
+    expect(saved.rules.mechanics).toEqual({ individualValues: { max: 50 }, allowFaintSwitch: false })
     expect(saved.rules.team).toEqual({ minSize: 2, maxSize: 4, uniqueSpecies: true })
     expect(saved.rules.deny?.species).toEqual(['base:boss', 'custom:pet'])
     expect(saved.rules.tier).toBe('casual')
@@ -209,4 +221,71 @@ it('honors the build target and preserves another environment draft when switchi
   expect(saved.id).toBe('second')
   expect(saved.packages['new-package']).toBe('2.0.0')
   expect(revision).toBe('b')
+})
+
+it('previews group inheritance and a single exception and saves only explicit choices', async () => {
+  const draft = environment()
+  const group = 'base:max-hp-excess-baseline'
+  const address = { skill: 'frost:ice-burst', useId: 'bonus', parameter: 'baseline' }
+  const catalog = {
+    groups: [{ id: group, name: '最大体力超额基准', unit: 'HP' }],
+    profiles: [{ id: 'base:120', name: '120 资质', groups: { [group]: 576 } }],
+    members: [address, { ...address, skill: 'skill_dongqipenshe' }].map(row => ({ ...row, group, base: 500 })),
+  }
+  const { page } = open({ installations: [{ ...version(draft), skillParameters: catalog }] })
+  await button(page, '编辑').trigger('click')
+  const section = page.findAll('details').find(item => item.find('summary').text() === '技能数值')!
+  const profile = section.get('input[list="skill-parameter-profiles"]')
+  await profile.setValue('base:120')
+  await profile.trigger('change')
+  expect(section.text()).toContain('500 → 576（数值方案）')
+  await section.get('input[list="skill-parameter-groups"]').setValue(group)
+  await section.findAll('input[type="number"]')[0]!.setValue(580)
+  await button(page, '设置组值').trigger('click')
+  expect(section.text()).toContain('500 → 580（参数组覆盖）')
+  const target = section.findAll('option').find(option => option.text().includes(address.skill))!
+  await section.get('select').setValue(target.attributes('value'))
+  await section.findAll('input[type="number"]')[1]!.setValue(550)
+  await button(page, '固定此招').trigger('click')
+  expect(section.text()).toContain('500 → 550（单招例外）')
+  expect(section.text()).toContain('500 → 580（参数组覆盖）')
+  await button(page, '跟随方案').trigger('click')
+  expect(section.text()).toContain('500 → 576（数值方案）')
+  await button(page, '恢复跟随').trigger('click')
+  expect(section.text()).not.toContain('500 → 550')
+  await page.get('form.environment-editor').trigger('submit')
+  const [saved] = page.emitted('save')![0]! as [ManagedEnvironment['document']]
+  expect(saved.rules.skillParameters).toEqual({ profile: 'base:120' })
+  expect(draft.document.rules.skillParameters).toBeUndefined()
+})
+
+it('edits reusable rule references while keeping the loaded values and their origins read-only', async () => {
+  const draft = environment()
+  const loaded = {
+    rules: { schemaVersion: 2, mechanics: { individualValues: { max: 50 } } },
+    ruleSets: [
+      { id: 'cup:other', name: '社区测试', rules: { schemaVersion: 2, mechanics: { individualValues: { max: 50 } } } },
+    ],
+    fields: [
+      {
+        path: ['mechanics', 'individualValues'],
+        value: { max: 50 },
+        sources: ['cup:classic', '$environment'],
+        effectiveSources: ['$environment'],
+      },
+    ],
+  }
+  draft.document.rules = { schemaVersion: 2 }
+  const { page } = open({ environments: [draft], installations: [{ ...version(draft), ruleComposition: loaded }] })
+  await button(page, '编辑').trigger('click')
+  const choice = page.findAllComponents({ name: 'ElFormItem' }).find(item => item.props('label') === '引用规则集')!
+  choice.getComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', ['cup:other'])
+  await page.vm.$nextTick()
+  expect(page.text()).toContain('按已准备内容预览规则')
+  expect(page.text()).toContain('individualValues')
+  await page.get('form.environment-editor').trigger('submit')
+  const [saved] = page.emitted('save')![0]! as [ManagedEnvironment['document']]
+  expect(saved.rules.include).toEqual(['cup:other'])
+  expect(saved.rules.mechanics).toBeUndefined()
+  expect(saved.rules).not.toHaveProperty('fields')
 })

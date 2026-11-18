@@ -2,11 +2,11 @@ import { getDesktopApi } from '@/utils/env'
 import { validateEnvironmentContent } from './serverContentValidation'
 
 /** A captured desktop selection. Each consumer owns its own resource lifetime. */
-export async function acquireLocalContent() {
+export async function acquireLocalContent(environmentId?: string) {
   const api = getDesktopApi()
   if (!api) return undefined
   if (!api.prepareLocalContent || !api.releaseLocalContent) throw new Error('本地内容服务不可用，请重启客户端')
-  const result = await api.prepareLocalContent()
+  const result = await api.prepareLocalContent(environmentId)
   let runtime: ReturnType<NonNullable<typeof api.readLocalRuntime>> | undefined
   let released = false
   const release = async () => {
@@ -17,6 +17,8 @@ export async function acquireLocalContent() {
   try {
     validateEnvironmentContent(result.content)
     return {
+      environmentId: result.environmentId,
+      gameplayRevision: result.gameplayRevision,
       content: result.content,
       rules: result.rules,
       resources: result.resources ?? [],

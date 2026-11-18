@@ -236,21 +236,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { useGameDataStore } from '@/stores/gameData'
+import { ref, computed, watch } from 'vue'
 import { useTranslation } from 'i18next-vue'
-import { Element, ELEMENT_CHART, ELEMENT_MAP } from '@arcadia-eternity/const'
+import { Element } from '@arcadia-eternity/const'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 
 const { i18next } = useTranslation()
 
 // 所有属性列表
-const elements = computed(() => Object.values(Element))
+const data = useGameDataStore()
+const elements = computed(() => data.elementCatalog.elements.map(entry => entry.id))
 
 // 移动端视图模式
 const viewMode = ref<'attack' | 'defense'>('attack')
 
 // 移动端选中的属性
 const selectedElement = ref<Element>(Element.Fire)
+watch(
+  elements,
+  ids => {
+    if (!ids.includes(selectedElement.value)) selectedElement.value = ids[0] ?? ''
+  },
+  { immediate: true },
+)
 
 // 选中的效果详情
 const selectedEffectiveness = ref<{
@@ -261,7 +270,7 @@ const selectedEffectiveness = ref<{
 
 // 获取效果值
 function getEffectiveness(attacking: Element, defending: Element): number {
-  return ELEMENT_CHART[attacking][defending]
+  return data.elementMultipliers[attacking]?.[defending] ?? 1
 }
 
 // 获取效果颜色
@@ -291,11 +300,7 @@ function formatEffectiveness(value: number): string {
 
 // 获取属性名称
 function getElementName(element: Element): string {
-  try {
-    return i18next.t(`element.${element}`, { ns: 'battle' }) || ELEMENT_MAP[element]?.name || element
-  } catch {
-    return ELEMENT_MAP[element]?.name || element
-  }
+  return i18next.t('element.' + element, { ns: 'battle', defaultValue: data.getElement(element)?.name ?? element })
 }
 
 // 显示效果详情

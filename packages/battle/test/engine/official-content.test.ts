@@ -1,5 +1,9 @@
 import {
   AIPlayer,
+  AttackTargetOpinion,
+  TurnContext,
+  UseSkillContext,
+  EffectTrigger,
   AttributeSystem,
   BattleMessageType,
   BattleStatus,
@@ -320,4 +324,50 @@ async function play(checkpoint: boolean) {
 
 it('runs the complete native official game and resumes identical events with a fresh content directory', async () => {
   expect(await play(true)).toEqual(await play(false))
+})
+
+it('reads the same per-use HP threshold for the Frozen Gas Jet trigger and power, including after restore', async () => {
+  const base = content()
+  const test = await base.withSkillParameters({ profile: 'base:120' })
+  const exception = await base.withSkillParameters({
+    profile: 'base:120',
+    overrides: [{ skill: 'skill_dongqipenshe', useId: 'bonus', parameter: 'baseline', value: 550 }],
+  })
+  expect(new Set([base.revision, test.revision, exception.revision]).size).toBe(3)
+  for (const [catalog, baseline] of [
+    [base, 500],
+    [test, 576],
+    [exception, 550],
+  ] as const) {
+    for (const maximum of [baseline - 1, baseline, baseline + 1, 600]) {
+      const teams = input.teams.map(team => ({
+        ...team,
+        team: [
+          { ...team.team[0], ability: undefined, emblem: undefined, maxHp: maximum, skills: ['skill_dongqipenshe'] },
+        ],
+      }))
+      const [first, second] = catalog.parsePlayers(teams)
+      const battle = catalog.createBattle(first, second, { timerConfig: { enabled: false } })
+      battles.push(battle)
+      const saved = catalog.snapshot(battle)
+      await battle.cleanup()
+      if (catalog !== base) expect(() => base.restore(saved)).toThrow()
+      const restored = catalog.restore(saved)
+      battles.push(restored)
+      {
+        const current = restored
+        const player = current.playerA
+        const use = new UseSkillContext(
+          new TurnContext(current),
+          player,
+          player.activePet,
+          AttackTargetOpinion.opponent,
+          player.activePet.skills[0],
+        )
+        use.updateActualTarget()
+        current.applyEffects(use, EffectTrigger.BeforeHit)
+        expect(use.power).toBe(70 + Math.max(0, maximum - baseline))
+      }
+    }
+  }
 })

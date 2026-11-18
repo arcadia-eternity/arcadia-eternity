@@ -55,10 +55,20 @@ export async function buildBaseEnvironmentArtifact() {
       `${pathToFileURL(resolve(dir, 'environment-runtime.mjs')).href}?build=${identity.registryBuildId}`
     )
     const data = Object.fromEntries(
-      ['marks', 'skills', 'species'].map(kind => [
-        kind,
-        sources.filter(source => source.kind === kind).flatMap(source => source.records),
-      ]),
+      [
+        'marks',
+        'skills',
+        'species',
+        'behaviors',
+        'natures',
+        'enhancements',
+        'elements',
+        'parameterGroups',
+        'parameterProfiles',
+        'parameterBindings',
+        'ruleSets',
+        'matchupTables',
+      ].map(kind => [kind, sources.filter(source => source.kind === kind).flatMap(source => source.records)]),
     )
     const catalog = official.createOfficialContent(data, identity.registryBuildId)
     const metadata = {

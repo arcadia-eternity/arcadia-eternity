@@ -1,0 +1,457 @@
+[
+  {
+    "id": "Hardy",
+    "name": "勤奋",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Lonely",
+    "name": "怕寂寞",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.1,
+      "def": 0.9,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Brave",
+    "name": "勇敢",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.1,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 0.9
+    }
+  },
+  {
+    "id": "Adamant",
+    "name": "固执",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.1,
+      "def": 1.0,
+      "spa": 0.9,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Naughty",
+    "name": "顽皮",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.1,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 0.9,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Bold",
+    "name": "大胆",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 0.9,
+      "def": 1.1,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Docile",
+    "name": "坦率",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Relaxed",
+    "name": "悠闲",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.1,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 0.9
+    }
+  },
+  {
+    "id": "Impish",
+    "name": "淘气",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.1,
+      "spa": 0.9,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Lax",
+    "name": "乐天",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.1,
+      "spa": 1.0,
+      "spd": 0.9,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Timid",
+    "name": "胆小",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 0.9,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.1
+    }
+  },
+  {
+    "id": "Hasty",
+    "name": "急躁",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 0.9,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.1
+    }
+  },
+  {
+    "id": "Serious",
+    "name": "认真",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Jolly",
+    "name": "爽朗",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 0.9,
+      "spd": 1.0,
+      "spe": 1.1
+    }
+  },
+  {
+    "id": "Naive",
+    "name": "天真",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 0.9,
+      "spe": 1.1
+    }
+  },
+  {
+    "id": "Modest",
+    "name": "内敛",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 0.9,
+      "def": 1.0,
+      "spa": 1.1,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Mild",
+    "name": "慢吞吞",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 0.9,
+      "spa": 1.1,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Quiet",
+    "name": "冷静",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.1,
+      "spd": 1.0,
+      "spe": 0.9
+    }
+  },
+  {
+    "id": "Bashful",
+    "name": "害羞",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Rash",
+    "name": "马虎",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.1,
+      "spd": 0.9,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Calm",
+    "name": "温和",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 0.9,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.1,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Gentle",
+    "name": "温顺",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 0.9,
+      "spa": 1.0,
+      "spd": 1.1,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Sassy",
+    "name": "自大",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.1,
+      "spe": 0.9
+    }
+  },
+  {
+    "id": "Careful",
+    "name": "慎重",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 0.9,
+      "spd": 1.1,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "Quirky",
+    "name": "浮躁",
+    "generation": 1,
+    "multipliers": {
+      "hp": 1.0,
+      "atk": 1.0,
+      "def": 1.0,
+      "spa": 1.0,
+      "spd": 1.0,
+      "spe": 1.0
+    }
+  },
+  {
+    "id": "base:nature-25",
+    "name": "孤傲",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 1.1,
+      "def": 1.1,
+      "spa": 0.9,
+      "spd": 0.9,
+      "spe": 1
+    }
+  },
+  {
+    "id": "base:nature-26",
+    "name": "直率",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 1.1,
+      "def": 0.9,
+      "spa": 1.1,
+      "spd": 0.9,
+      "spe": 1
+    }
+  },
+  {
+    "id": "base:nature-27",
+    "name": "古怪",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 1.1,
+      "def": 0.9,
+      "spa": 0.9,
+      "spd": 1.1,
+      "spe": 1
+    }
+  },
+  {
+    "id": "base:nature-28",
+    "name": "狂野",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 1.1,
+      "def": 0.9,
+      "spa": 1,
+      "spd": 0.9,
+      "spe": 1.1
+    }
+  },
+  {
+    "id": "base:nature-29",
+    "name": "清纯",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 0.9,
+      "def": 1.1,
+      "spa": 1.1,
+      "spd": 0.9,
+      "spe": 1
+    }
+  },
+  {
+    "id": "base:nature-30",
+    "name": "温柔",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 0.9,
+      "def": 1.1,
+      "spa": 0.9,
+      "spd": 1.1,
+      "spe": 1
+    }
+  },
+  {
+    "id": "base:nature-31",
+    "name": "活泼",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 0.9,
+      "def": 1.1,
+      "spa": 0.9,
+      "spd": 1,
+      "spe": 1.1
+    }
+  },
+  {
+    "id": "base:nature-32",
+    "name": "仁慈",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 0.9,
+      "def": 0.9,
+      "spa": 1.1,
+      "spd": 1.1,
+      "spe": 1
+    }
+  },
+  {
+    "id": "base:nature-33",
+    "name": "忧郁",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 1,
+      "def": 0.9,
+      "spa": 1.1,
+      "spd": 0.9,
+      "spe": 1.1
+    }
+  },
+  {
+    "id": "base:nature-34",
+    "name": "可爱",
+    "generation": 2,
+    "multipliers": {
+      "hp": 1,
+      "atk": 0.9,
+      "def": 1,
+      "spa": 0.9,
+      "spd": 1.1,
+      "spe": 1.1
+    }
+  }
+]

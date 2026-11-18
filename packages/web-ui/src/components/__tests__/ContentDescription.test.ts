@@ -101,3 +101,40 @@ it.each(['locales', 'inline'])(
     broken.unmount()
   },
 )
+
+it('shows the local and pinned room baselines and restores the original skill description on exit', async () => {
+  const store = useGameDataStore()
+  const skill = 'skill_dongqipenshe'
+  const group = 'base:max-hp-excess-baseline'
+  const content = {
+    species: [],
+    skills: [],
+    marks: [],
+    skillParameters: {
+      groups: [{ id: group, name: '最大体力超额基准', unit: 'HP' }],
+      profiles: [{ id: 'base:120', name: '120 资质', groups: { [group]: 576 } }],
+      members: [{ skill, useId: 'bonus', parameter: 'baseline', base: 500, group }],
+    },
+  }
+  const release = store.useLocalBattleContent(content)
+  const wrapper = mount(ContentDescription, {
+    global: { plugins: [[I18NextVue, { i18next }]] },
+    props: { namespace: 'skill', contentId: skill, fallback: '超过{bonus_baseline}的部分' },
+  })
+  try {
+    expect(wrapper.text()).toBe('超过500的部分')
+    const leave = store.useLocalBattleContent(
+      content,
+      { schemaVersion: 2, skillParameters: { profile: 'base:120' } },
+      true,
+    )
+    await flushPromises()
+    expect(wrapper.text()).toBe('超过576的部分')
+    leave()
+    await flushPromises()
+    expect(wrapper.text()).toBe('超过500的部分')
+  } finally {
+    wrapper.unmount()
+    release()
+  }
+})

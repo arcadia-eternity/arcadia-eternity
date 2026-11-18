@@ -1,6 +1,6 @@
 # 内容包管理：信息结构与布局
 
-历史设计（2026-10-29）：包级启停和全局本机选择已由 [UGC 项目与环境模型](../proposals/content-environment-model.md) 取代；当前行为见 [内容包管理](./content-management.md)。下文保留当时的设计取舍。
+历史设计（2026-10-29）：包级启停和全局本机选择已由 [UGC 项目与环境模型](../proposals/content-environment-model.md) 取代；当前行为见 [内容包管理](./content-management.md)。下文保留当时的设计取舍。文中“建房只能选择服务器实际提供的组合”适用于服务器发布的环境。私人约战使用双方核对的个人材料；两类房间都在创建时锁定已准备版本。见[房间与 P2P 的版本约定](../proposals/environment-rule-composition.md#7-身份更新与兼容)。
 
 当时已选择“列表与侧栏”布局。本文替代上一版以服务器项目／“环境”为主对象的界面设计。包级管理已接入本地 IPC、实际 npm 安装与本机服务；当前落地范围见 [内容包管理](./content-management.md)，不以交互草图作为功能验收。
 

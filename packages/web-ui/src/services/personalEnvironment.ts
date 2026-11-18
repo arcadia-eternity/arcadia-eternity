@@ -1,3 +1,12 @@
+import { assertSkillSlots } from '@arcadia-eternity/const'
+import {
+  readSkillParameterCatalog,
+  resolveSkillParameters,
+  requireElementChart,
+  readElementCatalog,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import type {
   NativeRuntimeIdentity,
@@ -8,7 +17,13 @@ import type {
 } from '@arcadia-eternity/protocol'
 import { digestJson } from '@arcadia-eternity/pack-loader/native'
 import { Value } from '@sinclair/typebox/value'
-import { assertEnvironmentTeam, validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
+import {
+  assertEnvironmentTeam,
+  assertNatureChoice,
+  learningIssues,
+  assertRuleContentReferences,
+  validateEnvironmentRules,
+} from '@arcadia-eternity/content-sdk/environment-rules'
 import { PlayerSchema, SpeciesSchema, parseWithErrors, type PetSchemaType } from '@arcadia-eternity/schema'
 import { validatePeerMaterials } from './peerEnvironment'
 import { readResourceBytes, registerOwnedResource, RESOURCE_MAX_BYTES } from './resourceTransport'
@@ -273,6 +288,11 @@ async function validateBundle(value: unknown) {
   const rules = validateEnvironmentRules(value.rules)
   const descriptor = await checkedDescriptor(value.descriptor, rules)
   validateEnvironmentContent(value.content)
+  const speciesIds = new Set(value.content.species.map(row => row.id))
+  const skillIds = new Set(value.content.skills.map(row => row.id))
+  const stageIds = new Set(value.content.enhancements?.map(row => row.id))
+  const markIds = new Set(value.content.marks.map(row => row.id))
+  assertRuleContentReferences(rules, { species: speciesIds, skill: skillIds, mark: markIds, stage: stageIds })
   const environment = await validatePeerMaterials(
     {
       protocolVersion: 1,
@@ -288,6 +308,32 @@ async function validateBundle(value: unknown) {
     const ids = new Set(environment.data[kind].map(raw => (raw as { id: string }).id))
     if (ids.size !== value.content[kind].length || value.content[kind].some(row => !ids.has(row.id))) invalid()
   }
+  if (
+    environment.data.elements !== undefined ||
+    environment.data.matchupTables !== undefined ||
+    value.content.elements !== undefined ||
+    value.content.matchupTables !== undefined
+  ) {
+    if (
+      (await digestJson(readElementCatalog(environment.data))) !== (await digestJson(readElementCatalog(value.content)))
+    )
+      invalid()
+  }
+  const parameters = readSkillParameterCatalog(environment.data)
+  if (
+    (await digestJson(parameters)) !==
+    (await digestJson(value.content.skillParameters ?? { groups: [], profiles: [], members: [] }))
+  )
+    throw new Error('技能参数目录与对战材料不匹配')
+  resolveSkillParameters(parameters, rules?.skillParameters)
+  requireElementChart(environment.data, rules?.matchups)
+  if ((await digestJson(environment.data.enhancements ?? [])) !== (await digestJson(value.content.enhancements ?? [])))
+    invalid()
+  if (
+    (await digestJson(readNatureCatalog(environment.data.natures))) !==
+    (await digestJson(readNatureCatalog(value.content.natures)))
+  )
+    invalid()
   const assets = checkedAssets(value.assets)
   if (
     descriptor.resourceRevision !==
@@ -427,18 +473,26 @@ export function validatePersonalEnvironmentTeam(prepared: PreparedPersonalEnviro
       return [definition.id, definition] as const
     }),
   )
-  const skills = new Set(prepared.environment.data.skills.map(raw => (raw as { id: string }).id))
+  const skills = new Map(prepared.environment.data.skills.map(raw => [(raw as { id: string }).id, raw]))
   const marks = new Set(prepared.environment.data.marks.map(raw => (raw as { id: string }).id))
+  const stages = new Set(readEnhancementStages(prepared.environment.data.enhancements).map(row => row.id))
+  const natures = new Map(readNatureCatalog(prepared.environment.data.natures).map(row => [row.id, row]))
   for (const pet of parsed) {
     const definition = species.get(pet.species)
     if (!definition || pet.level > 100 || Object.values(pet.evs).reduce((sum, value) => sum + value, 0) > 510)
       throw new Error('个人挑战队伍的精灵、等级或学习力不符合环境要求')
-    for (const skill of pet.skills)
-      if (
-        !skills.has(skill) ||
-        !definition.learnable_skills.some(entry => entry.skill_id === skill && entry.level <= pet.level)
-      )
-        throw new Error(`个人挑战队伍不能学习技能：${skill}`)
+    for (const skill of [...pet.skills, ...(pet.inheritedSkill ? [pet.inheritedSkill] : [])])
+      if (!skills.has(skill)) throw new Error(`个人挑战队伍不能学习技能：${skill}`)
+    if (pet.enhancement && !stages.has(pet.enhancement)) throw new Error('缺少强化阶段 ' + pet.enhancement)
+    assertNatureChoice(
+      prepared.reference.rules,
+      pet.nature,
+      id => natures.get(id),
+      () => definition,
+    )
+    assertSkillSlots(prepared.reference.rules?.mechanics?.skillSlots, pet.skills, id => skills.get(id))
+    const issues = learningIssues(prepared.reference.rules, definition, pet)
+    if (issues.length) throw new Error(issues.join('、'))
     if (pet.ability && (!marks.has(pet.ability) || !definition.ability.includes(pet.ability)))
       throw new Error(`个人挑战队伍不能使用特性：${pet.ability}`)
     if (pet.emblem && (!marks.has(pet.emblem) || !definition.emblem.includes(pet.emblem)))

@@ -16,9 +16,38 @@ import { withSourceLock } from './source-lock.ts'
 import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.ts'
 
 const ignored = new Set(['node_modules', 'dist', '.git', '.arcadia', '.DS_Store', 'Thumbs.db'])
-const kinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources'] as const
-const contentKinds = ['species', 'skills', 'marks', 'behaviors'] as const
-const contentFilePattern = /^data\/(species|skills|marks|behaviors|presentations|resources)\/.+\.(json|ya?ml)$/
+const kinds = [
+  'species',
+  'skills',
+  'marks',
+  'behaviors',
+  'natures',
+  'enhancements',
+  'elements',
+  'parameterGroups',
+  'parameterProfiles',
+  'parameterBindings',
+  'ruleSets',
+  'matchupTables',
+  'presentations',
+  'resources',
+] as const
+const contentKinds = [
+  'species',
+  'skills',
+  'marks',
+  'behaviors',
+  'natures',
+  'enhancements',
+  'elements',
+  'parameterGroups',
+  'parameterProfiles',
+  'parameterBindings',
+  'ruleSets',
+  'matchupTables',
+] as const
+const contentFilePattern =
+  /^data\/(species|skills|marks|behaviors|natures|enhancements|elements|parameterGroups|parameterProfiles|parameterBindings|ruleSets|matchupTables|presentations|resources)\/.+\.(json|ya?ml)$/
 const localeFilePattern = /^locales\/([^/]+)\/([^/]+)\.(json|ya?ml)$/
 const basePackageName = '@arcadia-eternity/data-pack-base'
 const baseProjectId = 'arcadia-eternity.base'
@@ -780,7 +809,7 @@ export class AuthorWorkspace extends EventEmitter {
         !(
           isLocale
             ? /^locales\/[^/]+\/[^/]+\.(json|ya?ml)$/
-            : /^data\/(species|skills|marks|behaviors|presentations|resources)\/.+\.(json|ya?ml)$/
+            : /^data\/(species|skills|marks|behaviors|natures|enhancements|elements|parameterGroups|parameterProfiles|parameterBindings|ruleSets|matchupTables|presentations|resources)\/.+\.(json|ya?ml)$/
         ).test(file)
       )
         fail('PATH_INVALID', '请选择已有的内容或语言源文件', file)

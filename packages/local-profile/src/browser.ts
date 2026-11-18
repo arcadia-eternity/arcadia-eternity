@@ -45,7 +45,7 @@ export class BrowserProfileStorage implements ProfileStorage {
           const current = request.result as Envelope | undefined
           if (
             typeof expected === 'object' && expected !== null
-              ? JSON.stringify(current) !== expected.corrupt
+              ? JSON.stringify(current) !== ('legacy' in expected ? expected.legacy : expected.corrupt)
               : (current?.current?.revision ?? null) !== expected
           ) {
             conflict = true
@@ -53,6 +53,8 @@ export class BrowserProfileStorage implements ProfileStorage {
             return
           }
           try {
+            if (expected && typeof expected === 'object' && 'legacy' in expected)
+              store.add(current, 'legacy-v1-' + globalThis.crypto.randomUUID())
             store.put(next, 'current')
           } catch (error) {
             writeError = error as DOMException

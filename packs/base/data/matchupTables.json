@@ -1,0 +1,2653 @@
+[
+  {
+    "id": "base:standard",
+    "name": "基础属性相克表",
+    "cells": [
+      {
+        "attack": "Normal",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Trait",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Normal",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Normal",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Normal",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Normal",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Grass",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Grass",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Grass",
+        "defense": "Water",
+        "multiplier": 2
+      },
+      {
+        "attack": "Grass",
+        "defense": "Fire",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Grass",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Bug",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Grass",
+        "defense": "Flying",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Grass",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Ice",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Grass",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Grass",
+        "defense": "Light",
+        "multiplier": 2
+      },
+      {
+        "attack": "Grass",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "Desert",
+        "multiplier": 2
+      },
+      {
+        "attack": "Grass",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Grass",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Grass",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Grass",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Grass",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Water",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Grass",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Water",
+        "defense": "Water",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Water",
+        "defense": "Fire",
+        "multiplier": 2
+      },
+      {
+        "attack": "Water",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Ground",
+        "multiplier": 2
+      },
+      {
+        "attack": "Water",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Water",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Mystery",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Water",
+        "defense": "Shadow",
+        "multiplier": 2
+      },
+      {
+        "attack": "Water",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "Desert",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Water",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Water",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Water",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Water",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Water",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Fire",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Grass",
+        "multiplier": 2
+      },
+      {
+        "attack": "Fire",
+        "defense": "Water",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fire",
+        "defense": "Fire",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fire",
+        "defense": "Wind",
+        "multiplier": 2
+      },
+      {
+        "attack": "Fire",
+        "defense": "Bug",
+        "multiplier": 2
+      },
+      {
+        "attack": "Fire",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Ice",
+        "multiplier": 2
+      },
+      {
+        "attack": "Fire",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Fighting",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fire",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fire",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "Dragon",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fire",
+        "defense": "Desert",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fire",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Fire",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fire",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Fire",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fire",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Wind",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Wind",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Wind",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Flying",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Wind",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Ground",
+        "multiplier": 2
+      },
+      {
+        "attack": "Wind",
+        "defense": "Ice",
+        "multiplier": 0
+      },
+      {
+        "attack": "Wind",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Fighting",
+        "multiplier": 2
+      },
+      {
+        "attack": "Wind",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Wind",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Mystery",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Wind",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "Dragon",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Wind",
+        "defense": "Desert",
+        "multiplier": 2
+      },
+      {
+        "attack": "Wind",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Wind",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Wind",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Wind",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Wind",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Bug",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Grass",
+        "multiplier": 2
+      },
+      {
+        "attack": "Bug",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Fire",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Bug",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Flying",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Bug",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Ice",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Bug",
+        "defense": "Psychic",
+        "multiplier": 2
+      },
+      {
+        "attack": "Bug",
+        "defense": "Fighting",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Bug",
+        "defense": "Trait",
+        "multiplier": 2
+      },
+      {
+        "attack": "Bug",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Shadow",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Bug",
+        "defense": "Dragon",
+        "multiplier": 2
+      },
+      {
+        "attack": "Bug",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Bug",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Bug",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Bug",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Bug",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Flying",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Grass",
+        "multiplier": 2
+      },
+      {
+        "attack": "Flying",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Wind",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Flying",
+        "defense": "Bug",
+        "multiplier": 2
+      },
+      {
+        "attack": "Flying",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Electric",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Flying",
+        "defense": "Ground",
+        "multiplier": 2
+      },
+      {
+        "attack": "Flying",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Flying",
+        "defense": "Light",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Flying",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Shadow",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Flying",
+        "defense": "Dragon",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Flying",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Flying",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Flying",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Flying",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Flying",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Electric",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Grass",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Electric",
+        "defense": "Water",
+        "multiplier": 2
+      },
+      {
+        "attack": "Electric",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Wind",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Electric",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Flying",
+        "multiplier": 2
+      },
+      {
+        "attack": "Electric",
+        "defense": "Electric",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Electric",
+        "defense": "Ground",
+        "multiplier": 0
+      },
+      {
+        "attack": "Electric",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Electric",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Mystery",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Electric",
+        "defense": "Shadow",
+        "multiplier": 2
+      },
+      {
+        "attack": "Electric",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Electric",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Electric",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Electric",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Electric",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Ground",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "Grass",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ground",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "Fire",
+        "multiplier": 2
+      },
+      {
+        "attack": "Ground",
+        "defense": "Wind",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ground",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "Flying",
+        "multiplier": 0
+      },
+      {
+        "attack": "Ground",
+        "defense": "Electric",
+        "multiplier": 2
+      },
+      {
+        "attack": "Ground",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "Psychic",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ground",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "Trait",
+        "multiplier": 2
+      },
+      {
+        "attack": "Ground",
+        "defense": "Light",
+        "multiplier": 2
+      },
+      {
+        "attack": "Ground",
+        "defense": "Mystery",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ground",
+        "defense": "Shadow",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ground",
+        "defense": "Dragon",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ground",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Ground",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ground",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Ground",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ground",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Ice",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Water",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ice",
+        "defense": "Fire",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ice",
+        "defense": "Wind",
+        "multiplier": 2
+      },
+      {
+        "attack": "Ice",
+        "defense": "Bug",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ice",
+        "defense": "Flying",
+        "multiplier": 2
+      },
+      {
+        "attack": "Ice",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Ice",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ice",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Fighting",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ice",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ice",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "Desert",
+        "multiplier": 2
+      },
+      {
+        "attack": "Ice",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Ice",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ice",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Ice",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ice",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Wind",
+        "multiplier": 2
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Bug",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Electric",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Ground",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Psychic",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Fighting",
+        "multiplier": 2
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Light",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Mystery",
+        "multiplier": 2
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Psychic",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Psychic",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Water",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Wind",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Bug",
+        "multiplier": 2
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Ice",
+        "multiplier": 2
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Psychic",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Fighting",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Dragon",
+        "multiplier": 2
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Fighting",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Fighting",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Trait",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Trait",
+        "defense": "Grass",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Water",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Fire",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Wind",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Bug",
+        "multiplier": 2
+      },
+      {
+        "attack": "Trait",
+        "defense": "Flying",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Electric",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Ground",
+        "multiplier": 2
+      },
+      {
+        "attack": "Trait",
+        "defense": "Ice",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Psychic",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Fighting",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Light",
+        "multiplier": 2
+      },
+      {
+        "attack": "Trait",
+        "defense": "Mystery",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Shadow",
+        "multiplier": 2
+      },
+      {
+        "attack": "Trait",
+        "defense": "Dragon",
+        "multiplier": 2
+      },
+      {
+        "attack": "Trait",
+        "defense": "Desert",
+        "multiplier": 2
+      },
+      {
+        "attack": "Trait",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Trait",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Trait",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Trait",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Trait",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Light",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Grass",
+        "multiplier": 0
+      },
+      {
+        "attack": "Light",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Bug",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Light",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Ice",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Light",
+        "defense": "Psychic",
+        "multiplier": 2
+      },
+      {
+        "attack": "Light",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Trait",
+        "multiplier": 2
+      },
+      {
+        "attack": "Light",
+        "defense": "Light",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Light",
+        "defense": "Mystery",
+        "multiplier": 2
+      },
+      {
+        "attack": "Light",
+        "defense": "Shadow",
+        "multiplier": 2
+      },
+      {
+        "attack": "Light",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "Desert",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Light",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Light",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Light",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Light",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Light",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Bug",
+        "multiplier": 2
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Flying",
+        "multiplier": 2
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Ground",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Fighting",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Trait",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Mystery",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Dragon",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Desert",
+        "multiplier": 2
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Mystery",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Mystery",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Water",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Bug",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Ground",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Psychic",
+        "multiplier": 2
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Trait",
+        "multiplier": 2
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Light",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Shadow",
+        "multiplier": 2
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Dragon",
+        "multiplier": 2
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Shadow",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Shadow",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Water",
+        "multiplier": 2
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Flying",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Electric",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Ice",
+        "multiplier": 2
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Psychic",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Trait",
+        "multiplier": 2
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Mystery",
+        "multiplier": 2
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Shadow",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Dragon",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Dragon",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Desert",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Grass",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Desert",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Fire",
+        "multiplier": 2
+      },
+      {
+        "attack": "Desert",
+        "defense": "Wind",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Desert",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Flying",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Desert",
+        "defense": "Electric",
+        "multiplier": 2
+      },
+      {
+        "attack": "Desert",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Ice",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Desert",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Trait",
+        "multiplier": 2
+      },
+      {
+        "attack": "Desert",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Mystery",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Desert",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "Desert",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Desert",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Desert",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Desert",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Desert",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Desert",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Normal",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Grass",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Water",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Fire",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Wind",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Bug",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Flying",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Electric",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Ground",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Ice",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Psychic",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Fighting",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Trait",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Light",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Mystery",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Shadow",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Dragon",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Desert",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Ancient",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Ancient",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Ancient",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Normal",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Grass",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Water",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Fire",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Wind",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Bug",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Flying",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Electric",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Ground",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Ice",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Psychic",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Fighting",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Trait",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Light",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Mystery",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Shadow",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Dragon",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Desert",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Divine",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Divine",
+        "defense": "Holy",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Divine",
+        "defense": "ElfKing",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Normal",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Grass",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Water",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Fire",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Wind",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Bug",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Flying",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Electric",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Ground",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Ice",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Psychic",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Fighting",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Trait",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Light",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Mystery",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Shadow",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Dragon",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Desert",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Ancient",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Divine",
+        "multiplier": 1
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Miracle",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "Miracle",
+        "defense": "Holy",
+        "multiplier": 2
+      },
+      {
+        "attack": "Miracle",
+        "defense": "ElfKing",
+        "multiplier": 1
+      },
+      {
+        "attack": "Holy",
+        "defense": "Normal",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Grass",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Water",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Fire",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Wind",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Bug",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Flying",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Electric",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Ground",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Ice",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Psychic",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Fighting",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Trait",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Light",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Mystery",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Shadow",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Dragon",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Desert",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Ancient",
+        "multiplier": 1
+      },
+      {
+        "attack": "Holy",
+        "defense": "Divine",
+        "multiplier": 0.5
+      },
+      {
+        "attack": "Holy",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "Holy",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "Holy",
+        "defense": "ElfKing",
+        "multiplier": 1
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Normal",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Grass",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Water",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Fire",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Wind",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Bug",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Flying",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Electric",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Ground",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Ice",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Psychic",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Fighting",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Trait",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Light",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Mystery",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Shadow",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Dragon",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Desert",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Ancient",
+        "multiplier": 1
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Divine",
+        "multiplier": 0.75
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Miracle",
+        "multiplier": 1.25
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "Holy",
+        "multiplier": 1
+      },
+      {
+        "attack": "ElfKing",
+        "defense": "ElfKing",
+        "multiplier": 0.5
+      }
+    ]
+  }
+]

@@ -1,3 +1,4 @@
+import { RuleCompositionError } from '@arcadia-eternity/content-sdk/environment-rules'
 import { createHash, randomUUID } from 'node:crypto'
 import type { DurableStorage, StoredRecord } from '@arcadia-eternity/database'
 
@@ -111,6 +112,7 @@ function actorIdentity(actor: unknown): string {
 }
 
 function failure(error: unknown): OperationFailure {
+  if (error instanceof RuleCompositionError) return { code: error.code, message: error.message, retryable: false }
   // Exception text may contain private paths, connection strings or provider responses.
   // Only deliberately exposed, stable codes cross the operation API boundary.
   const code =

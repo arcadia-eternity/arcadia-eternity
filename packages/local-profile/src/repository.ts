@@ -4,6 +4,7 @@ import {
   ProfileError,
   parseBackup,
   validateData,
+  migrateLegacyData,
   type ProfileData,
   type ProfileBackup,
 } from './schema'
@@ -14,11 +15,11 @@ export interface ProfileSnapshot {
   digest: string
 }
 export interface Envelope {
-  version: 1
+  version: 2
   current: ProfileSnapshot
   recovery: ProfileSnapshot | null
 }
-export type ProfileExpectation = number | null | { corrupt: string }
+export type ProfileExpectation = number | null | { corrupt: string } | { legacy: string }
 export interface ProfileStorage {
   readRaw(): Promise<string | null>
   read(): Promise<Envelope | null>
@@ -28,7 +29,7 @@ export interface ProfileStorage {
 export async function validateEnvelope(value: unknown): Promise<Envelope> {
   try {
     if (!value || typeof value !== 'object' || !('version' in value)) throw new Error()
-    if (value.version !== 1) throw new ProfileError('UNSUPPORTED_VERSION')
+    if (value.version !== 2) throw new ProfileError('UNSUPPORTED_VERSION')
     const envelope = value as Envelope
     for (const snapshot of [envelope.current, envelope.recovery]) {
       if (snapshot === null) continue
@@ -50,8 +51,36 @@ export class ProfileRepository {
     private appVersion = '4.4.1',
   ) {}
   async open() {
-    const value = await this.storage.read()
-    return value ? validateEnvelope(value) : null
+    const raw = await this.storage.readRaw()
+    if (raw === null) return null
+    let value
+    try {
+      value = JSON.parse(raw)
+    } catch {
+      throw new ProfileError('PROFILE_CORRUPT')
+    }
+    if (value?.version !== 1) return validateEnvelope(value)
+    const migrate = async (snapshot: ProfileSnapshot): Promise<ProfileSnapshot> => {
+      if (
+        !snapshot ||
+        !Number.isSafeInteger(snapshot.revision) ||
+        snapshot.revision < 1 ||
+        snapshot.digest !== (await digest(snapshot.data))
+      )
+        throw new ProfileError('PROFILE_CORRUPT')
+      const data = migrateLegacyData(snapshot.data)
+      return { revision: snapshot.revision, data, digest: await digest(data) }
+    }
+    let next: Envelope
+    try {
+      const current = await migrate(value.current)
+      const recovery = value.recovery === null ? null : await migrate(value.recovery)
+      next = { version: 2, current: { ...current, revision: current.revision + 1 }, recovery }
+    } catch {
+      throw new ProfileError('PROFILE_CORRUPT', '旧版个人资料校验失败，原始数据已保留')
+    }
+    await this.storage.commit({ legacy: raw }, next)
+    return next
   }
   async rawData() {
     return this.storage.readRaw()
@@ -65,7 +94,7 @@ export class ProfileRepository {
     }
     const data = parseBackup(bytes).data
     const current = { revision: 1, data, digest: await digest(data) }
-    await this.storage.commit({ corrupt: expectedRaw }, { version: 1, current, recovery: null })
+    await this.storage.commit({ corrupt: expectedRaw }, { version: 2, current, recovery: null })
     return current
   }
   async create(input: { name?: string; data?: ProfileData } = {}) {
@@ -82,7 +111,7 @@ export class ProfileRepository {
     if (old?.current.digest === hash) return old.current
     const current = { revision: (expected ?? 0) + 1, digest: hash, data }
     await this.storage.commit(expected, {
-      version: 1,
+      version: 2,
       current,
       recovery: restore ? (old?.current ?? null) : (old?.recovery ?? null),
     })
@@ -93,7 +122,7 @@ export class ProfileRepository {
     if (!selected) throw new ProfileError('PROFILE_EMPTY')
     const backup: ProfileBackup = {
       format: 'arcadia.profile',
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       appVersion: this.appVersion,
       data: validateData(selected),
