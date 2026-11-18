@@ -1,9 +1,14 @@
 import { readPersistedProfile, readPersistedTeam } from './helpers/profile'
 import { expect, test } from 'playwright/test'
 
-async function seedUnresolvedTeam(page: import('playwright/test').Page, missingSpecies = false, replacement = false) {
+async function seedUnresolvedTeam(
+  page: import('playwright/test').Page,
+  missingSpecies = false,
+  replacement = false,
+  inheritance = false,
+) {
   await page.addInitScript(
-    ({ missingSpecies, replacement }) => {
+    ({ missingSpecies, replacement, inheritance }) => {
       if (localStorage.getItem('missing-content-seeded')) return
       localStorage.setItem('missing-content-seeded', '1')
       const pet = {
@@ -18,6 +23,15 @@ async function seedUnresolvedTeam(page: import('playwright/test').Page, missingS
         skills: ['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'],
         ability: 'custom:missing-ability',
         emblem: 'custom:missing-emblem',
+      }
+      if (inheritance) {
+        Object.assign(pet, {
+          species: 'pet_heyimi',
+          name: '荷依米',
+          skills: ['skill_kusechouda'],
+          ability: 'mark_ability_ganjue',
+          emblem: 'mark_emblem_tingjue',
+        })
       }
       localStorage.setItem(
         'petStorage',
@@ -40,7 +54,7 @@ async function seedUnresolvedTeam(page: import('playwright/test').Page, missingS
         }),
       )
     },
-    { missingSpecies, replacement },
+    { missingSpecies, replacement, inheritance },
   )
 }
 
@@ -138,7 +152,7 @@ test('previews a warehouse replacement in the current environment and saves just
   await seedUnresolvedTeam(page, false, true)
   await page.goto('/team-builder')
   await page.getByRole('button', { name: '更换精灵', exact: true }).click()
-  await page.getByRole('radio', { name: /常用配法/ }).check()
+  await page.getByRole('radio', { name: /常用配法/ }).press('Space')
   await expect(page.getByText('替换后整队可用')).toBeVisible()
   await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.name).toBe('保留精灵')
   await page.getByRole('button', { name: '更换本队成员' }).click()
@@ -188,8 +202,10 @@ for (const scope of ['copy', 'original'] as const) {
     await expect(page.getByRole('list', { name: '试算改动' })).toContainText('体力个体值 31 → 20')
     await page.getByRole('button', { name: '采用配法' }).click()
     const apply = page.getByRole('button', {
-      name: scope === 'copy' ? '复制一只给本队' : /修改原精灵（同时影响 缺失内容队伍）/,
+      name: scope === 'copy' ? '复制一只给本队' : '修改原精灵',
+      exact: true,
     })
+    await expect(page.getByText('修改原精灵会同步到：缺失内容队伍', { exact: true })).toBeVisible()
     await expect(apply).toBeVisible()
     expect((await readPersistedTeam(page, 1))?.[0]?.ivs.hp).toBe(31)
     await apply.click()
@@ -259,4 +275,30 @@ test('confirms and undoes all changes to a member when switching species', async
   await expect.poll(async () => (await readPersistedTeam(page))![0].species).toBe('pet_dilan')
   await page.getByRole('button', { name: '撤销更换种族' }).click()
   await expect.poll(async () => (await readPersistedTeam(page))![0]).toEqual(original)
+})
+
+test('equips, replaces and clears an inherited move from the same skill slot', async ({ page }) => {
+  await seedUnresolvedTeam(page, false, false, true)
+  await page.goto('/team-builder')
+  const second = page.getByRole('combobox', { name: '普通技能 2', exact: true })
+  const third = page.getByRole('combobox', { name: '普通技能 3', exact: true })
+  const option = (name: string) => page.getByRole('option').filter({ hasText: name })
+  await second.fill('毒针连射')
+  await option('毒针连射').click()
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.inheritedSkill).toBe('skill_duzhenlianshe')
+  await page.reload()
+  await expect(page.getByTestId('normal-skill-1')).toContainText('毒针连射')
+  await third.fill('金针射击')
+  await expect(option('金针射击')).toBeDisabled()
+  await third.press('Escape')
+  await second.fill('金针射击')
+  await option('金针射击').click()
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.inheritedSkill).toBe('skill_jinzhensheji')
+  await page.getByTestId('normal-skill-1').hover()
+  await page.getByTestId('normal-skill-1').locator('.el-select__clear').click()
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.skills).toEqual(['skill_kusechouda'])
+  expect((await readPersistedTeam(page))![0]?.inheritedSkill).toBeUndefined()
 })

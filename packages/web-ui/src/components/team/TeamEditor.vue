@@ -24,7 +24,7 @@
               <span
                 class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
               >
-                {{ delegate.subtitle?.value || currentTeamName }}
+                {{ delegate.storageRoute ? currentTeamName : delegate.subtitle?.value || currentTeamName }}
               </span>
             </div>
           </div>
@@ -63,45 +63,6 @@
         </div>
       </div>
     </header>
-
-    <!-- 队伍管理指引 -->
-    <div v-if="showGuide && delegate.storageRoute" class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3">
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
-        <div class="flex items-start space-x-3">
-          <div class="flex-shrink-0">
-            <el-icon class="text-blue-600" :size="20"><InfoFilled /></el-icon>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-sm font-medium text-blue-800 mb-1">队伍管理提示</h3>
-            <p class="text-sm text-blue-700 mb-2">
-              当前正在编辑：<span class="font-medium">{{ currentTeamName }}</span>
-            </p>
-            <p class="text-sm text-blue-700 mb-3">
-              您可以在
-              <router-link
-                v-if="delegate.storageRoute"
-                :to="delegate.storageRoute || '/'"
-                class="font-medium text-blue-800 hover:text-blue-900 underline"
-                >精灵仓库</router-link
-              >
-              中管理多个队伍，包括创建新队伍、复制队伍、导入导出队伍等功能。
-            </p>
-            <div class="flex flex-wrap gap-2">
-              <router-link
-                :to="delegate.storageRoute || '/'"
-                class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
-              >
-                <el-icon class="mr-1" :size="14"><FolderOpened /></el-icon>
-                管理所有队伍
-              </router-link>
-            </div>
-          </div>
-          <button @click="hideGuide" class="flex-shrink-0 text-blue-400 hover:text-blue-600 transition-colors">
-            <el-icon :size="16"><Close /></el-icon>
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- 队伍规则验证状态 -->
     <div
@@ -207,7 +168,7 @@
     </div>
 
     <!-- 主要内容区域 -->
-    <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-3 pb-20">
+    <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-3 pb-36 md:pb-24">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <!-- 队伍列表 - 移动端全宽，桌面端占3列 -->
         <div class="lg:col-span-3">
@@ -646,92 +607,58 @@
                         </el-select-v2>
                       </div>
                     </div>
-                    <label v-if="learning?.eligible || selectedPet.inheritedSkill" class="block mb-3"
-                      >遗传技能
-                      <select
+                    <div
+                      v-if="selectedPet.inheritedSkill && !selectedPet.skills.includes(selectedPet.inheritedSkill)"
+                      class="mb-3"
+                    >
+                      <el-tag
+                        closable
+                        type="info"
                         data-team-field="inheritedSkill"
-                        :value="selectedPet.inheritedSkill ?? ''"
-                        @change="setInheritedSkill"
+                        @close="delete selectedPet.inheritedSkill"
                       >
-                        <option value="">无</option>
-                        <option
-                          v-if="selectedPet.inheritedSkill && !learning?.inherited.has(selectedPet.inheritedSkill)"
-                          data-team-field="inheritedSkill"
-                          :value="selectedPet.inheritedSkill"
-                        >
-                          {{ selectedPet.inheritedSkill }}（当前不可用）
-                        </option>
-                        <option
-                          v-for="id in learning?.inherited"
-                          :key="id"
-                          :value="id"
-                          :disabled="!allowsTeamContent(gameDataStore.rules, 'skills', id)"
-                        >
-                          {{ contentName(id, 'skill') }}
-                        </option>
-                      </select>
-                    </label>
-                    <!-- 普通技能配置 -->
-                    <div class="mb-6">
-                      <h4 class="text-sm font-medium text-gray-800 mb-3">
-                        普通技能（最多 {{ skillSlots.normalMax }} 个）
-                      </h4>
-                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div v-for="(_, index) in displayedNormalSkills" :key="`normal-${index}`" class="space-y-2">
-                          <label class="block text-xs font-medium text-gray-700">
-                            普通技能 {{ index + 1 }}
-                            <span v-if="index >= skillSlots.normalMax">超出槽位</span>
-                          </label>
+                        未装备的遗传技能 · {{ contentName(selectedPet.inheritedSkill, 'skill') }}
+                      </el-tag>
+                    </div>
+                    <section v-for="group in skillGroups" :key="group.name" class="mb-4 last:mb-0">
+                      <h4 class="text-sm font-medium text-gray-800 mb-2">{{ group.name }}</h4>
+                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        <div v-for="(slot, index) in group.slots" :key="index">
+                          <div class="mb-1 flex items-center gap-2 text-xs text-gray-600">
+                            <span>{{ group.name }} {{ index + 1 }}</span>
+                            <el-tag v-if="slot && slot === selectedPet.inheritedSkill" size="small">遗传</el-tag>
+                            <el-tag v-if="index >= group.max" size="small" type="danger">超出槽位</el-tag>
+                            <span v-else-if="index < group.min">必选</span>
+                          </div>
                           <el-select-v2
-                            :model-value="displayedNormalSkills[index]"
-                            :data-testid="`normal-skill-${index}`"
-                            @update:model-value="value => changeSkill(false, index, value)"
-                            :options="normalSkillSelectOptions"
-                            :disabled="!currentSpecies"
-                            placeholder="选择普通技能"
+                            :model-value="slot"
+                            :aria-label="group.name + ' ' + (index + 1)"
+                            :data-testid="(group.climax ? 'climax' : 'normal') + '-skill-' + index"
+                            :data-team-field="slot === selectedPet.inheritedSkill ? 'inheritedSkill' : undefined"
+                            :options="skillOptions(group.climax, slot)"
+                            :disabled="!slot && !group.available"
+                            :placeholder="'选择' + group.name"
+                            filterable
                             clearable
                             class="w-full"
-                            style="width: 100%"
-                            :height="400"
-                            :item-height="140"
+                            :height="320"
+                            :item-height="90"
+                            @update:model-value="value => changeSkill(group.climax, index, value)"
                           >
                             <template #default="{ item }">
-                              <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
-                                <!-- 技能名称 -->
-                                <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
-                                  <ElementIcon
-                                    v-if="item.element"
-                                    :element="item.element"
-                                    class="w-4 h-4 flex-shrink-0"
-                                  />
-                                  <span class="font-medium">{{ item.label }}</span>
+                              <div class="flex flex-col gap-1 py-2 leading-normal">
+                                <div class="flex items-center gap-2">
+                                  <ElementIcon :element="item.element" class="w-4 h-4" />
+                                  <strong>{{ item.label }}</strong>
+                                  <el-tag v-if="item.inherited" size="small" effect="plain">遗传</el-tag>
+                                  <span v-if="item.reason" class="text-xs">{{ item.reason }}</span>
                                 </div>
-                                <!-- 技能标签 -->
-                                <div class="flex flex-wrap gap-1">
-                                  <span
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-                                  >
-                                    威力: {{ item.power }}
-                                  </span>
-                                  <span
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
-                                  >
-                                    {{ item.category }}
-                                  </span>
-                                  <span
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
-                                  >
-                                    怒气: {{ item.rage }}
-                                  </span>
-                                  <span
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
-                                  >
-                                    命中: {{ item.accuracy }}%
-                                  </span>
-                                </div>
-                                <!-- 技能描述 -->
+                                <span class="text-xs"
+                                  >{{ item.category }} · 威力 {{ item.power }} · 怒气 {{ item.rage }} · 命中
+                                  {{ item.accuracy }}%</span
+                                >
                                 <ContentDescription
-                                  class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
+                                  class="text-xs truncate"
                                   namespace="skill"
                                   :content-id="item.value"
                                   :fallback="item.description"
@@ -742,78 +669,7 @@
                           </el-select-v2>
                         </div>
                       </div>
-                    </div>
-
-                    <!-- 必杀技能配置 -->
-                    <div>
-                      <h4 class="text-sm font-medium text-gray-800 mb-3">
-                        必杀技能（最多 {{ skillSlots.climaxMax }} 个）
-                      </h4>
-                      <div v-for="(_, index) in displayedClimaxSkills" :key="index" class="max-w-md">
-                        <label class="block text-xs font-medium text-gray-700 mb-2">
-                          必杀技能 {{ index + 1 }}
-                          <span v-if="index >= skillSlots.climaxMax">超出槽位</span>
-                          <span v-else-if="index < (skillSlots.climaxMin ?? 0)">必选</span>
-                        </label>
-                        <el-select-v2
-                          :model-value="displayedClimaxSkills[index]"
-                          @update:model-value="value => changeSkill(true, index, value)"
-                          :options="climaxSkillSelectOptions"
-                          :disabled="!displayedClimaxSkills[index] && (!currentSpecies || !hasClimaxSkills)"
-                          :placeholder="hasClimaxSkills ? '选择必杀技能' : '该种族无必杀技能'"
-                          clearable
-                          class="w-full"
-                          style="width: 100%"
-                          :height="400"
-                          :item-height="140"
-                        >
-                          <template #default="{ item }">
-                            <div class="flex flex-col space-y-2 p-3 min-w-0 max-w-full">
-                              <!-- 技能名称 -->
-                              <div class="flex items-center space-x-1 text-sm font-medium text-gray-900">
-                                <ElementIcon
-                                  v-if="item.element"
-                                  :element="item.element"
-                                  class="w-4 h-4 flex-shrink-0"
-                                />
-                                <span class="font-medium">{{ item.label }}</span>
-                              </div>
-                              <!-- 技能标签 -->
-                              <div class="flex flex-wrap gap-1">
-                                <span
-                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-                                >
-                                  威力: {{ item.power }}
-                                </span>
-                                <span
-                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
-                                >
-                                  {{ item.category }}
-                                </span>
-                                <span
-                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800"
-                                >
-                                  怒气: {{ item.rage }}
-                                </span>
-                                <span
-                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
-                                >
-                                  命中: {{ item.accuracy }}%
-                                </span>
-                              </div>
-                              <!-- 技能描述 -->
-                              <ContentDescription
-                                class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
-                                namespace="skill"
-                                :content-id="item.value"
-                                :fallback="item.description"
-                                :context="{ skill: gameDataStore.getSkill(item.value) }"
-                              />
-                            </div>
-                          </template>
-                        </el-select-v2>
-                      </div>
-                    </div>
+                    </section>
                   </div>
                 </div>
               </el-tab-pane>
@@ -822,10 +678,10 @@
                 <div v-if="trainingPet" class="bg-white rounded-lg shadow-sm border border-gray-200">
                   <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                     <h3 class="text-base font-medium text-gray-900">能力值配置</h3>
-                    <button v-if="!trialPet" type="button" @click="startTrainingTrial">试算养成</button>
+                    <el-button v-if="!trialPet" size="small" @click="startTrainingTrial">试算养成</el-button>
                     <div v-else class="flex flex-wrap gap-2">
-                      <button type="button" @click="applyTrainingTrial">采用配法</button>
-                      <button type="button" @click="trialPet = null">取消试算</button>
+                      <el-button type="primary" size="small" @click="applyTrainingTrial">采用配法</el-button>
+                      <el-button size="small" @click="trialPet = null">取消试算</el-button>
                     </div>
                     <span
                       class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
@@ -873,46 +729,44 @@
                                   'bg-gray-100 text-gray-800': value === 1,
                                 }"
                               >
-                                {{ String(stat).toUpperCase() }} {{ value }}x
+                                {{ statChineseMap[stat as StatKey] }} {{ value }}x
                               </span>
                             </div>
                           </div>
                         </template>
                       </el-select-v2>
                     </div>
-                    <fieldset v-if="availableStages.length || trainingPet.enhancement">
-                      <legend>神魔化</legend>
-                      <label
-                        >强化阶段
-                        <select
-                          data-team-field="enhancement"
-                          :value="trainingPet.enhancement ?? ''"
-                          @change="selectStage(($event.target as HTMLSelectElement).value)"
+                    <fieldset v-if="availableStages.length || trainingPet.enhancement" class="mt-3">
+                      <legend class="mb-1 text-xs font-medium text-gray-700">神魔化</legend>
+                      <el-select
+                        data-team-field="enhancement"
+                        :model-value="trainingPet.enhancement"
+                        aria-label="强化阶段"
+                        placeholder="无"
+                        clearable
+                        @update:model-value="value => selectStage(value || '')"
+                      >
+                        <el-option
+                          v-if="
+                            trainingPet.enhancement && !availableStages.some(row => row.id === trainingPet?.enhancement)
+                          "
+                          :value="trainingPet.enhancement"
+                          disabled
+                          :label="
+                            (gameDataStore.getEnhancement(trainingPet.enhancement)?.name ?? trainingPet.enhancement) +
+                            (enhancementPolicy?.mode === 'suppressed' ? '（本局不生效）' : '（当前不可用）')
+                          "
+                        />
+                        <el-option-group
+                          v-for="(stages, branch) in stagesByBranch"
+                          :key="branch"
+                          :label="
+                            branch === 'divine' ? '神化／圣化' : branch === 'demonic' ? '魔化／冥化' : String(branch)
+                          "
                         >
-                          <option value="">无</option>
-                          <option
-                            v-if="
-                              trainingPet.enhancement &&
-                              !availableStages.some(row => row.id === trainingPet?.enhancement)
-                            "
-                            data-team-field="enhancement"
-                            :value="trainingPet.enhancement"
-                            disabled
-                          >
-                            {{ gameDataStore.getEnhancement(trainingPet.enhancement)?.name ?? trainingPet.enhancement }}
-                            {{ enhancementPolicy?.mode === 'suppressed' ? '（本局不生效）' : '（当前不可用）' }}
-                          </option>
-                          <optgroup
-                            v-for="(stages, branch) in stagesByBranch"
-                            :key="branch"
-                            :label="
-                              branch === 'divine' ? '神化／圣化' : branch === 'demonic' ? '魔化／冥化' : String(branch)
-                            "
-                          >
-                            <option v-for="stage in stages" :key="stage.id" :value="stage.id">{{ stage.name }}</option>
-                          </optgroup>
-                        </select>
-                      </label>
+                          <el-option v-for="stage in stages" :key="stage.id" :label="stage.name" :value="stage.id" />
+                        </el-option-group>
+                      </el-select>
                       <span v-if="activeStage" class="ml-2 text-xs">
                         {{
                           statList
@@ -936,7 +790,7 @@
                             'bg-gray-100 text-gray-800': value === 1,
                           }"
                         >
-                          {{ String(stat).toUpperCase() }} {{ value }}x
+                          {{ statChineseMap[stat as StatKey] }} {{ value }}x
                         </span>
                       </div>
                     </div>
@@ -947,10 +801,12 @@
                           <h4 class="text-xs font-medium text-gray-900">{{ statChineseMap[stat] }}</h4>
                           <div class="text-right">
                             <div class="text-sm font-bold text-gray-900">
-                              <span v-if="trialPet" :aria-label="'原' + statChineseMap[stat]"
-                                >{{ originalStats[stat]?.total ?? '—' }} →
+                              <span
+                                v-if="trialPet && originalStats[stat]?.total !== computedStats[stat]?.total"
+                                :aria-label="'原' + statChineseMap[stat]"
+                                >{{ displayStat(originalStats[stat]?.total) }} →
                               </span>
-                              {{ computedStats[stat]?.total ?? '—' }}
+                              {{ displayStat(computedStats[stat]?.total) }}
                             </div>
                             <div class="text-xs text-gray-500">最终值</div>
                           </div>
@@ -966,7 +822,8 @@
                           </div>
                           <div>
                             性格 ({{ computedStats[stat]!.scaled }} + {{ computedStats[stat]!.levelBonus }}) ×
-                            {{ computedStats[stat]!.natureMultiplier }} = {{ computedStats[stat]!.afterNature }}
+                            {{ computedStats[stat]!.natureMultiplier }} =
+                            {{ displayStat(computedStats[stat]!.afterNature) }}
                           </div>
                           <div>阶段加成 +{{ computedStats[stat]!.stageBonus }}</div>
                         </details>
@@ -1105,77 +962,30 @@
       </div>
     </main>
 
-    <!-- 全局操作栏 -->
-    <div
-      v-if="!compact"
-      class="fixed bottom-0 left-4 right-4 z-50 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 md:max-w-fit"
-    >
-      <div
-        class="flex items-center justify-center space-x-2 bg-white shadow-lg border border-gray-200 rounded-t-lg px-4 py-3 md:rounded-lg"
-      >
-        <!-- 保存按钮 - 在移动端更突出 -->
-        <button
-          v-if="delegate.save"
-          @click="saveCurrentTeam()"
-          class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
-        >
-          <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          <span class="ml-1 md:ml-0">{{
-            delegate.affected?.value.length ? '复制一只给本队' : delegate.saveLabel || '保存'
-          }}</span>
-        </button>
-
-        <button v-if="delegate.affected?.value.length" @click="saveCurrentTeam('original')">
-          修改原精灵（同时影响 {{ delegate.affected.value.join('、') }}）
-        </button>
-        <!-- 导出按钮 -->
-        <button
-          v-if="delegate.exportTeam"
-          @click="handleExportTeamConfig"
-          class="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
-        >
-          <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          <span class="ml-1 md:ml-0">导出</span>
-        </button>
-
-        <!-- 导入按钮 -->
-        <button
-          v-if="delegate.importTeam"
-          @click="importTeamConfig"
-          class="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 text-sm md:px-3 md:py-1.5 md:rounded-md"
-        >
-          <svg class="w-4 h-4 md:w-3 md:h-3 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-            />
-          </svg>
-          <span class="ml-1 md:ml-0">导入</span>
-        </button>
-
-        <!-- 仓库管理提示 -->
-        <div class="hidden md:flex items-center ml-3 pl-3 border-l border-gray-300">
-          <el-tooltip content="查看使用教程" placement="top" :show-after="500">
-            <button
-              @click="showHelp = true"
-              class="inline-flex items-center text-xs text-gray-500 hover:text-blue-600 transition-colors"
-            >
-              <el-icon class="mr-1" :size="12"><InfoFilled /></el-icon>
-              使用教程
-            </button>
-          </el-tooltip>
-        </div>
+    <div v-if="!compact" class="team-action-bar">
+      <div v-if="delegate.affected?.value.length" class="team-save-impact" role="status">
+        修改原精灵会同步到：{{ delegate.affected.value.join('、') }}
+      </div>
+      <div class="team-actions">
+        <el-button v-if="delegate.save" type="primary" @click="saveCurrentTeam()">
+          {{ delegate.affected?.value.length ? '复制一只给本队' : delegate.saveLabel || '保存' }}
+        </el-button>
+        <el-button v-if="delegate.affected?.value.length" @click="saveCurrentTeam('original')">修改原精灵</el-button>
+        <el-dropdown v-if="isMobile" trigger="click" placement="top-end" @command="handleTeamAction">
+          <el-button text aria-label="更多操作">更多</el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-if="delegate.exportTeam" command="export">导出</el-dropdown-item>
+              <el-dropdown-item v-if="delegate.importTeam" command="import">导入</el-dropdown-item>
+              <el-dropdown-item command="help">使用教程</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <template v-else>
+          <el-button v-if="delegate.exportTeam" text @click="handleExportTeamConfig">导出</el-button>
+          <el-button v-if="delegate.importTeam" text @click="importTeamConfig">导入</el-button>
+          <el-button text :icon="InfoFilled" aria-label="使用教程" title="使用教程" @click="showHelp = true" />
+        </template>
       </div>
     </div>
     <!-- 帮助对话框 -->
@@ -1231,6 +1041,38 @@
 </template>
 
 <style scoped>
+.team-action-bar {
+  position: fixed;
+  z-index: 50;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 1rem);
+  padding: 0.5rem;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
+}
+.team-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.team-actions :deep(.el-button) {
+  margin: 0;
+}
+.team-save-impact {
+  font-size: 0.8rem;
+  margin-bottom: 0.4rem;
+  color: var(--el-text-color-regular);
+  max-height: 3.5rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
 .touch-panning-y .drag-handle {
   touch-action: pan-y;
 }
@@ -1308,7 +1150,6 @@ import WarehouseMemberPicker from './WarehouseMemberPicker.vue'
 import ContentDescription from '@/components/ContentDescription'
 import {
   InfoFilled,
-  FolderOpened,
   Close,
   SuccessFilled,
   WarningFilled,
@@ -1337,7 +1178,6 @@ const { isMobile } = useMobile()
 // 响应式状态
 const editSection = ref<'moves' | 'training'>('moves')
 const selectedPetId = ref<string | null>(delegate.team.value[0]?.id ?? null)
-const showGuide = ref(!props.compact && !!delegate.storageRoute && readLocalData('teamBuilderGuideHidden') !== 'true') // 控制指引显示
 const showDragTip = ref(!props.compact && readLocalData('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
 const showValidationDetails = ref(false) // 控制验证详情显示
 const showHelp = ref(false) // 控制帮助对话框显示
@@ -1350,12 +1190,6 @@ const drag = ref(false)
 onMounted(() => {
   void validationStore.initialize()
 })
-
-// 关闭指引
-const hideGuide = () => {
-  showGuide.value = false
-  writeLocalData('teamBuilderGuideHidden', 'true')
-}
 
 // 关闭拖拽提示
 const hideDragTip = () => {
@@ -1564,6 +1398,7 @@ const selectedMissingContent = computed(() =>
 )
 const removeMissingSkill = (index: number) => {
   if (!selectedPet.value || gameDataStore.getSkill(selectedPet.value.skills[index])) return
+  if (selectedPet.value.inheritedSkill === selectedPet.value.skills[index]) delete selectedPet.value.inheritedSkill
   selectedPet.value.skills.splice(index, 1)
   debouncedSave()
 }
@@ -1595,18 +1430,11 @@ const learning = computed(() =>
 const filteredSkills = computed(() => {
   const sources = learning.value
   if (!sources) return []
-  const skills = new Set(sources.normal)
-  const inherited = selectedPet.value?.inheritedSkill
-  if (inherited && sources.inherited.has(inherited)) skills.add(inherited)
-  return [...skills].map(skill => gameDataStore.getSkill(skill)).filter(Boolean)
+  const ids = new Set([...sources.normal, ...sources.inherited, ...(selectedPet.value?.skills ?? [])])
+  return [...ids].map(id => gameDataStore.getSkill(id)).filter(skill => skill !== undefined)
 })
-const hasClimaxSkills = computed(() => filteredSkills.value.some(skill => skill?.category === 'Climax'))
-
-function setInheritedSkill(event: Event) {
-  if (!selectedPet.value) return
-  const id = (event.target as HTMLSelectElement).value
-  if (id) selectedPet.value.inheritedSkill = id
-  else delete selectedPet.value.inheritedSkill
+function requiresInheritance(id: string) {
+  return !!learning.value?.inherited.has(id) && !learning.value.normal.has(id)
 }
 
 const genderChineseMap: Record<Gender, string> = {
@@ -1783,50 +1611,60 @@ const natureSelectOptions = computed(() => {
   return choices
 })
 
-// 普通技能选项
-const normalSkillSelectOptions = computed(() => {
-  const currentNormalSkills = displayedNormalSkills.value.filter(s => s)
-  const currentClimaxSkills = displayedClimaxSkills.value
-
+const skillGroups = computed(() => [
+  {
+    name: '普通技能',
+    climax: false,
+    slots: displayedNormalSkills.value,
+    min: 0,
+    max: skillSlots.value.normalMax,
+    available: filteredSkills.value.some(skill => skill.category !== 'Climax'),
+  },
+  {
+    name: '必杀技能',
+    climax: true,
+    slots: displayedClimaxSkills.value,
+    min: skillSlots.value.climaxMin ?? 0,
+    max: skillSlots.value.climaxMax,
+    available: filteredSkills.value.some(skill => skill.category === 'Climax'),
+  },
+])
+function inheritedInOtherSlot(slot: string) {
+  const pet = selectedPet.value
+  return pet?.skills.some(
+    id => id !== slot && (requiresInheritance(id) || (id === pet.inheritedSkill && !learning.value?.normal.has(id))),
+  )
+}
+function skillOptions(climax: boolean, slot: string) {
+  const equipped = selectedPet.value?.skills ?? []
+  const occupied = inheritedInOtherSlot(slot)
   return filteredSkills.value
-    .filter((skill): skill is NonNullable<typeof skill> => !!skill && skill.category !== 'Climax')
-    .map(skill => ({
-      value: skill.id,
-      label: contentName(skill.id, 'skill'),
-      description: i18next.t(`${skill.id}.description`, { ns: 'skill' }),
-      element: skill.element,
-      power: skill.power,
-      category: skill.category,
-      rage: skill.rage,
-      accuracy: skill.accuracy,
-      disabled:
+    .filter(skill => (skill.category === 'Climax') === climax)
+    .map(skill => {
+      const inherited = requiresInheritance(skill.id)
+      let reason = ''
+      if (
         !allowsTeamContent(gameDataStore.rules, 'skills', skill.id) ||
-        currentNormalSkills.includes(skill.id) ||
-        currentClimaxSkills.includes(skill.id),
-    }))
-})
-
-// 必杀技能选项
-const climaxSkillSelectOptions = computed(() => {
-  const currentNormalSkills = displayedNormalSkills.value.filter(s => s)
-
-  return filteredSkills.value
-    .filter((skill): skill is NonNullable<typeof skill> => !!skill && skill.category === 'Climax')
-    .map(skill => ({
-      value: skill.id,
-      label: contentName(skill.id, 'skill'),
-      description: i18next.t(`${skill.id}.description`, { ns: 'skill' }),
-      element: skill.element,
-      power: skill.power,
-      category: skill.category,
-      rage: skill.rage,
-      accuracy: skill.accuracy,
-      disabled:
-        !allowsTeamContent(gameDataStore.rules, 'skills', skill.id) ||
-        currentNormalSkills.includes(skill.id) ||
-        displayedClimaxSkills.value.includes(skill.id),
-    }))
-})
+        (!inherited && !learning.value?.normal.has(skill.id))
+      )
+        reason = '当前不可用'
+      else if (slot !== skill.id && equipped.includes(skill.id)) reason = '已装备'
+      else if (inherited && occupied) reason = '已装备其他遗传技能'
+      return {
+        value: skill.id,
+        label: contentName(skill.id, 'skill'),
+        inherited,
+        reason,
+        disabled: !!reason,
+        description: i18next.t(skill.id + '.description', { ns: 'skill', nsSeparator: false }),
+        element: skill.element,
+        power: skill.power,
+        category: i18next.t('category.' + skill.category, { ns: 'battle', defaultValue: skill.category }),
+        rage: skill.rage,
+        accuracy: skill.accuracy,
+      }
+    })
+}
 
 const teamCapacity = computed(() => validationStore.getRuleLimitations().teamSize.max)
 const addNewPet = () => {
@@ -2037,6 +1875,8 @@ const handleEVUpdate = (stat: StatKey, value: number) => {
   trainingPet.value.evs[stat] = clampedValue
 }
 
+const statFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 6, useGrouping: false })
+const displayStat = (value?: number) => (value === undefined ? '—' : statFormat.format(value))
 const computedStats = computed(() => buildStatSteps(trainingPet.value, gameDataStore))
 const originalStats = computed(() => buildStatSteps(selectedPet.value, gameDataStore))
 
@@ -2068,9 +1908,16 @@ function changeSkill(climax: boolean, index: number, next: string | undefined) {
     ElMessage.warning('该技能已在其他槽位')
     return
   }
+  const previous = selected[index]
   selected[index] = next ?? ''
   try {
+    if (next && requiresInheritance(next) && inheritedInOtherSlot(previous)) {
+      ElMessage.warning('只能装备一个遗传技能')
+      return
+    }
     pet.skills = replaceResolvedSkills(pet.skills, selected, climax, gameDataStore.getSkill)
+    if (next && requiresInheritance(next)) pet.inheritedSkill = next
+    else if (previous && previous === pet.inheritedSkill && previous !== next) delete pet.inheritedSkill
     debouncedSave()
   } catch (error) {
     ElMessage.error((error as Error).message)
@@ -2082,7 +1929,11 @@ const handleExportTeamConfig = () => {
   delegate.exportTeam?.(currentTeam.value)
 }
 
-// 导入和导出函数已移动到组合式函数中
+function handleTeamAction(action: string) {
+  if (action === 'export') handleExportTeamConfig()
+  else if (action === 'import') importTeamConfig()
+  else if (action === 'help') showHelp.value = true
+}
 </script>
 
 <style scoped>

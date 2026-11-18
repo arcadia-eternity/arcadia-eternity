@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import i18next from 'i18next'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 import { memberIssues, teamIssues } from '@/utils/basicTeamValidation'
@@ -49,31 +50,48 @@ function replace() {
 <template>
   <section class="rounded-lg border bg-white p-3">
     <div class="flex flex-wrap items-center gap-2">
-      <span>当前成员 · {{ current.name }} · {{ current.id.slice(-8) }}</span>
-      <details>
-        <summary>使用队伍（{{ warehouse.teamsUsing(current.id).length }}）</summary>
+      <span class="font-medium"
+        >{{ current.name }} <small class="text-gray-500">#{{ current.id.slice(-8) }}</small></span
+      >
+      <el-popover trigger="click" placement="bottom-start">
+        <template #reference
+          ><el-button link type="primary"
+            >使用队伍（{{ warehouse.teamsUsing(current.id).length }}）</el-button
+          ></template
+        >
         <ul>
           <li v-for="team in warehouse.teamsUsing(current.id)" :key="team.id">{{ team.name }}</li>
         </ul>
-      </details>
-      <button type="button" class="ml-auto" :aria-expanded="open" @click="open = !open">更换精灵</button>
+      </el-popover>
+      <el-button size="small" class="ml-auto" :aria-expanded="open" @click="open = !open">更换精灵</el-button>
     </div>
     <div v-if="open" class="mt-3 space-y-2">
-      <input v-model="query" aria-label="搜索仓库精灵" placeholder="昵称、物种或编号" class="border rounded px-2" />
-      <label><input v-model="allSpecies" type="checkbox" /> 全部物种</label>
-      <ul>
-        <li v-for="{ pet, issues: memberProblems } in visible" :key="pet.id">
-          <label
-            ><input v-model="selectedId" type="radio" :value="pet.id" /> {{ pet.name }} · {{ pet.id.slice(-8) }} ·
-            {{ memberProblems[0]?.message ?? '单宠可用' }}
-          </label>
-        </li>
-      </ul>
+      <div class="flex flex-wrap gap-3">
+        <el-input
+          v-model="query"
+          clearable
+          aria-label="搜索仓库精灵"
+          placeholder="昵称、物种或编号"
+          style="width: min(16rem, 100%)"
+        />
+        <el-checkbox v-model="allSpecies">全部物种</el-checkbox>
+      </div>
+      <el-radio-group v-model="selectedId" aria-label="仓库精灵" class="gap-x-3">
+        <el-radio v-for="{ pet, issues: memberProblems } in visible" :key="pet.id" :value="pet.id">
+          {{ pet.name }} · {{ pet.id.slice(-8) }} · {{ memberProblems[0]?.message ?? '单宠可用' }}
+        </el-radio>
+      </el-radio-group>
       <p v-if="!matches.length">没有符合条件的仓库精灵</p>
-      <button v-if="matches.length > limit" type="button" @click="limit += 20">显示更多</button>
+      <el-button v-if="matches.length > limit" link type="primary" @click="limit += 20">显示更多</el-button>
       <div v-if="selected" class="space-y-1">
         <p>
-          {{ selected.name }} · {{ selected.skills.join('、') }} ·
+          {{ selected.name }} ·
+          {{
+            selected.skills
+              .map(id => i18next.t(id + '.name', { ns: 'skill', nsSeparator: false, defaultValue: id }))
+              .join('、')
+          }}
+          ·
           {{ data.getNature(selected.nature)?.name ?? selected.nature }}
         </p>
         <p>
@@ -86,7 +104,7 @@ function replace() {
           <li v-for="(issue, i) in issues" :key="i">{{ issue.message }}</li>
         </ul>
         <p v-else>替换后整队可用</p>
-        <button type="button" @click="replace">更换本队成员</button>
+        <el-button type="primary" @click="replace">更换本队成员</el-button>
       </div>
     </div>
   </section>

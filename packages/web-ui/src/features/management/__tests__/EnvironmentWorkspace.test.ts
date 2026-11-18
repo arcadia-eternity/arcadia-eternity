@@ -1,6 +1,7 @@
+import { skillParameterKey } from '@arcadia-eternity/const'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
-import { ElMessageBox } from 'element-plus'
+import { ElInputNumber, ElMessageBox, ElSelect } from 'element-plus'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { reactive } from 'vue'
 import EnvironmentWorkspace from '../EnvironmentWorkspace.vue'
@@ -235,17 +236,18 @@ it('previews group inheritance and a single exception and saves only explicit ch
   const { page } = open({ installations: [{ ...version(draft), skillParameters: catalog }] })
   await button(page, '编辑').trigger('click')
   const section = page.findAll('details').find(item => item.find('summary').text() === '技能数值')!
-  const profile = section.get('input[list="skill-parameter-profiles"]')
-  await profile.setValue('base:120')
-  await profile.trigger('change')
+  const [profile, groups, targets] = section.findAllComponents(ElSelect)
+  profile!.vm.$emit('update:modelValue', 'base:120')
+  await flushPromises()
   expect(section.text()).toContain('500 → 576（数值方案）')
-  await section.get('input[list="skill-parameter-groups"]').setValue(group)
-  await section.findAll('input[type="number"]')[0]!.setValue(580)
+  groups!.vm.$emit('update:modelValue', group)
+  section.findAllComponents(ElInputNumber)[0]!.vm.$emit('update:modelValue', 580)
+  await flushPromises()
   await button(page, '设置组值').trigger('click')
   expect(section.text()).toContain('500 → 580（参数组覆盖）')
-  const target = section.findAll('option').find(option => option.text().includes(address.skill))!
-  await section.get('select').setValue(target.attributes('value'))
-  await section.findAll('input[type="number"]')[1]!.setValue(550)
+  targets!.vm.$emit('update:modelValue', skillParameterKey(address))
+  section.findAllComponents(ElInputNumber)[1]!.vm.$emit('update:modelValue', 550)
+  await flushPromises()
   await button(page, '固定此招').trigger('click')
   expect(section.text()).toContain('500 → 550（单招例外）')
   expect(section.text()).toContain('500 → 580（参数组覆盖）')

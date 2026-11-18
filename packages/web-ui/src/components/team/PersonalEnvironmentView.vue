@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Refresh } from '@element-plus/icons-vue'
 import { computed, ref, shallowRef, watch } from 'vue'
 import type { EnvironmentPreference } from '@arcadia-eternity/local-profile'
 import type { ManagedEnvironmentInstallation, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
@@ -123,8 +124,7 @@ watch(
   },
   { immediate: true },
 )
-function select(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
+function select(value: string) {
   storage.setEnvironmentPreference(
     storage.currentTeamIndex,
     choices.value.find(choice => key(choice.preference) === value)?.preference,
@@ -133,21 +133,30 @@ function select(event: Event) {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-3 p-3">
-    <label
-      >查看环境
-      <select :value="key(preference)" @change="select">
-        <option value="">{{ desktop ? '本机当前环境' : '网页默认环境' }}</option>
-        <option v-if="preference && !selected" :value="key(preference)">
-          {{ preference.environmentId }}（不可用）
-        </option>
-        <option v-for="choice in choices" :key="key(choice.preference)" :value="key(choice.preference)">
-          {{ choice.server ? '服务器' : '本机' }} · {{ choice.name }}
-        </option>
-      </select>
-    </label>
-    <code v-if="version" :title="version">{{ version.slice(0, 12) }}</code>
-    <button type="button" @click="attempt++">刷新环境</button>
+  <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-3">
+    <span class="text-sm font-medium">对战环境</span>
+    <el-select
+      aria-label="查看环境"
+      :model-value="key(preference) || 'current'"
+      style="width: min(16rem, 100%)"
+      @change="select"
+    >
+      <el-option value="current" :label="desktop ? '本机当前环境' : '网页默认环境'" />
+      <el-option
+        v-if="preference && !selected"
+        :value="key(preference)"
+        :label="preference.environmentId + '（不可用）'"
+        disabled
+      />
+      <el-option
+        v-for="choice in choices"
+        :key="key(choice.preference)"
+        :value="key(choice.preference)"
+        :label="(choice.server ? '服务器 · ' : '本机 · ') + choice.name"
+      />
+    </el-select>
+    <el-button :icon="Refresh" circle aria-label="刷新环境" title="刷新环境" @click="attempt++" />
+    <el-text v-if="version" size="small" type="info" :title="version">版本 {{ version.slice(0, 8) }}</el-text>
     <span v-if="discoveryError" role="status">{{ discoveryError }}</span>
   </div>
   <slot v-if="ready" />

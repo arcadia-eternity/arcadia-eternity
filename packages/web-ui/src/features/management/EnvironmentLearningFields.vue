@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { defaultEditorSkillSlots, skillSlotsSchema } from '@arcadia-eternity/const'
 import { computed, ref, watch } from 'vue'
+import { ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
 import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 const rules = defineModel<EnvironmentRules>({ required: true })
 type Inheritance = NonNullable<NonNullable<EnvironmentRules['mechanics']>['inheritance']>
@@ -32,6 +33,7 @@ function restore(key: 'inheritance' | 'secondGenerationNatures' | 'enhancement' 
   delete next.mechanics[key]
   rules.value = next
 }
+const eligibilityLabels = { off: '关闭', species: '按物种', all: '全部物种', list: '指定物种' }
 const mode = (eligible?: Target) => (Array.isArray(eligible) ? 'list' : (eligible ?? 'off'))
 const list = (value: string) => [...new Set(value.split(/[\s,，]+/u).filter(Boolean))]
 function updateInheritance(next: Inheritance) {
@@ -88,145 +90,152 @@ function removeRow(index: number) {
 </script>
 
 <template>
-  <fieldset>
+  <fieldset class="learning-fields">
     <legend>遗传与配招</legend>
-    <details>
-      <summary>技能槽位</summary>
-      <label>普通槽上限 <input v-model.number="slots.normalMax" type="number" min="0" max="5" /></label>
-      <label>必杀槽上限 <input v-model.number="slots.climaxMax" type="number" min="0" max="5" /></label>
-      <label>必杀至少装备 <input v-model.number="slots.climaxMin" type="number" min="0" max="5" /></label>
-      <button type="button" @click="saveSlots">应用槽位设置</button>
-      <button v-if="rules.mechanics?.skillSlots" type="button" @click="restore('skillSlots')">恢复继承槽位</button>
-      <p v-if="slotError" role="alert">{{ slotError }}</p>
-    </details>
-    <label
-      >二代性格资格
-      <select
-        :value="mode(mechanics.secondGenerationNatures)"
-        @change="
-          setNatureTarget(
-            ($event.target as HTMLSelectElement).value === 'list'
-              ? []
-              : (($event.target as HTMLSelectElement).value as 'species' | 'all' | 'off'),
-          )
-        "
+    <div class="learning-row">
+      <ElFormItem label="二代性格资格"
+        ><ElSelect
+          :model-value="mode(mechanics.secondGenerationNatures)"
+          @change="value => setNatureTarget(value === 'list' ? [] : value)"
+        >
+          <ElOption v-for="(label, value) in eligibilityLabels" :key="value" :value="value" :label="label" /> </ElSelect
+      ></ElFormItem>
+      <ElFormItem v-if="Array.isArray(mechanics.secondGenerationNatures)" label="二代性格物种 ID">
+        <ElInput
+          :model-value="mechanics.secondGenerationNatures.join('，')"
+          @change="value => setNatureTarget(list(value))"
+        />
+      </ElFormItem>
+      <ElButton
+        v-if="rules.mechanics?.secondGenerationNatures !== undefined"
+        link
+        type="primary"
+        @click="restore('secondGenerationNatures')"
+        >恢复继承性格资格</ElButton
       >
-        <option value="off">关闭</option>
-        <option value="species">按物种</option>
-        <option value="all">全部物种</option>
-        <option value="list">指定物种</option>
-      </select>
-    </label>
-    <label v-if="Array.isArray(mechanics.secondGenerationNatures)"
-      >二代性格物种 ID
-      <input
-        :value="mechanics.secondGenerationNatures.join('，')"
-        @change="setNatureTarget(list(($event.target as HTMLInputElement).value))"
-      />
-    </label>
-    <label
-      >遗传资格
-      <select :value="mode(inherited?.eligible)" @change="setTarget(($event.target as HTMLSelectElement).value)">
-        <option value="off">关闭</option>
-        <option value="species">按物种</option>
-        <option value="all">全部物种</option>
-        <option value="list">指定物种</option>
-      </select>
-    </label>
-    <label v-if="Array.isArray(inherited?.eligible)"
-      >物种 ID
-      <input
-        :value="inherited.eligible.join('，')"
-        @change="updateInheritance({ ...inherited!, eligible: list(($event.target as HTMLInputElement).value) })"
-      />
-    </label>
-    <template v-if="inherited && inherited.eligible !== 'off'">
-      <label
-        >遗传池
-        <select :value="inherited.pool?.mode ?? ''" @change="setPool(($event.target as HTMLSelectElement).value)">
-          <option value="">沿用物种池</option>
-          <option value="fallback">为空时使用公共池</option>
-          <option value="append">追加公共池</option>
-          <option value="replace">统一使用公共池</option>
-        </select>
-      </label>
-      <label v-if="inherited.pool"
-        >公共池技能 ID
-        <input
-          :value="inherited.pool.skills.join('，')"
+    </div>
+    <div class="learning-row">
+      <ElFormItem label="遗传资格"
+        ><ElSelect :model-value="mode(inherited?.eligible)" @change="setTarget">
+          <ElOption v-for="(label, value) in eligibilityLabels" :key="value" :value="value" :label="label" /> </ElSelect
+      ></ElFormItem>
+      <ElFormItem v-if="Array.isArray(inherited?.eligible)" label="物种 ID">
+        <ElInput
+          :model-value="inherited.eligible.join('，')"
+          @change="value => updateInheritance({ ...inherited!, eligible: list(value) })"
+        />
+      </ElFormItem>
+      <ElButton v-if="rules.mechanics?.inheritance" link type="primary" @click="restore('inheritance')"
+        >恢复继承遗传规则</ElButton
+      >
+    </div>
+    <div v-if="inherited && inherited.eligible !== 'off'" class="learning-row">
+      <ElFormItem label="遗传池"
+        ><ElSelect
+          :model-value="inherited.pool?.mode ?? 'species'"
+          @change="value => setPool(value === 'species' ? '' : value)"
+        >
+          <ElOption value="species" label="沿用物种池" /><ElOption value="fallback" label="为空时使用公共池" />
+          <ElOption value="append" label="追加公共池" /><ElOption value="replace" label="统一使用公共池" /> </ElSelect
+      ></ElFormItem>
+      <ElFormItem v-if="inherited.pool" label="公共池技能 ID">
+        <ElInput
+          :model-value="inherited.pool.skills.join('，')"
           @change="
-            updateInheritance({
-              ...inherited,
-              pool: { ...inherited.pool!, skills: list(($event.target as HTMLInputElement).value) },
-            })
+            value =>
+              updateInheritance({
+                ...inherited!,
+                pool: { ...inherited!.pool!, skills: list(value) },
+              })
           "
         />
-      </label>
-    </template>
-    <div v-for="(row, i) in rules.learnsetAdjustments" :key="i" class="field-row">
-      <label>物种 ID <input v-model.trim="row.species" /></label>
-      <label
-        >来源
-        <select v-model="row.source" @change="delete row.level">
-          <option value="normal">普通</option>
-          <option value="inherited">遗传</option>
-        </select></label
-      >
-      <label
-        >操作
-        <select v-model="row.action" @change="delete row.level">
-          <option value="add">增加</option>
-          <option value="remove">移除</option>
-        </select></label
-      >
-      <label>技能 ID <input v-model.trim="row.skill" /></label>
-      <label v-if="row.source === 'normal' && row.action === 'add'"
-        >学习等级
-        <input
-          type="number"
-          min="1"
-          max="100"
-          :value="row.level ?? 1"
-          @change="row.level = Number(($event.target as HTMLInputElement).value)"
-        />
-      </label>
-      <button type="button" @click="removeRow(i)">删除调整</button>
+      </ElFormItem>
     </div>
-    <button
-      v-if="rules.mechanics?.secondGenerationNatures !== undefined"
-      type="button"
-      @click="restore('secondGenerationNatures')"
-    >
-      恢复继承性格资格
-    </button>
-    <button v-if="rules.mechanics?.inheritance" type="button" @click="restore('inheritance')">恢复继承遗传规则</button>
-    <button type="button" @click="addRow">添加物种技能调整</button>
+    <details>
+      <summary>技能槽位</summary>
+      <div class="learning-row">
+        <ElFormItem label="普通槽上限"><ElInputNumber v-model="slots.normalMax" :min="0" :max="5" /></ElFormItem>
+        <ElFormItem label="必杀槽上限"><ElInputNumber v-model="slots.climaxMax" :min="0" :max="5" /></ElFormItem>
+        <ElFormItem label="必杀至少装备"><ElInputNumber v-model="slots.climaxMin" :min="0" :max="5" /></ElFormItem>
+        <ElButton @click="saveSlots">应用槽位设置</ElButton>
+        <ElButton v-if="rules.mechanics?.skillSlots" link @click="restore('skillSlots')">恢复继承槽位</ElButton>
+      </div>
+      <p v-if="slotError" role="alert">{{ slotError }}</p>
+    </details>
+    <div v-for="(row, index) in rules.learnsetAdjustments" :key="index" class="learning-row">
+      <ElFormItem label="物种 ID"><ElInput v-model.trim="row.species" /></ElFormItem>
+      <ElFormItem label="来源"
+        ><ElSelect v-model="row.source" @change="delete row.level">
+          <ElOption value="normal" label="普通" /><ElOption value="inherited" label="遗传" /> </ElSelect
+      ></ElFormItem>
+      <ElFormItem label="操作"
+        ><ElSelect v-model="row.action" @change="delete row.level">
+          <ElOption value="add" label="增加" /><ElOption value="remove" label="移除" /> </ElSelect
+      ></ElFormItem>
+      <ElFormItem label="技能 ID"><ElInput v-model.trim="row.skill" /></ElFormItem>
+      <ElFormItem v-if="row.source === 'normal' && row.action === 'add'" label="学习等级">
+        <ElInputNumber
+          :model-value="row.level ?? 1"
+          :min="1"
+          :max="100"
+          @update:model-value="value => (row.level = value ?? undefined)"
+        />
+      </ElFormItem>
+      <ElButton type="danger" link @click="removeRow(index)">删除调整</ElButton>
+    </div>
+    <ElButton @click="addRow">添加物种技能调整</ElButton>
   </fieldset>
-  <fieldset>
+  <fieldset class="learning-fields">
     <legend>神魔化</legend>
-    <button v-if="rules.mechanics?.enhancement" type="button" @click="restore('enhancement')">
-      恢复继承神魔化规则
-    </button>
-    <select
-      aria-label="神魔化规则"
-      :value="mechanics.enhancement?.mode ?? 'forbidden'"
-      @change="setEnhancement({ mode: ($event.target as HTMLSelectElement).value as Enhancement['mode'] })"
-    >
-      <option value="forbidden">禁止携带</option>
-      <option value="suppressed">可携带，本局不生效</option>
-      <option value="active">启用阶段加成</option>
-    </select>
-    <template v-if="mechanics.enhancement && mechanics.enhancement.mode !== 'forbidden'">
-      <label
-        >允许阶段 ID（留空为全部）<input
-          :value="mechanics.enhancement.stages?.join('，')"
-          @change="setEnhancementList('stages', ($event.target as HTMLInputElement).value)"
-      /></label>
-      <label
-        >适用物种 ID（留空为全部）<input
-          :value="mechanics.enhancement.species?.join('，')"
-          @change="setEnhancementList('species', ($event.target as HTMLInputElement).value)"
-      /></label>
-    </template>
+    <div class="learning-row">
+      <ElSelect
+        aria-label="神魔化规则"
+        :model-value="mechanics.enhancement?.mode ?? 'forbidden'"
+        @change="value => setEnhancement({ mode: value })"
+      >
+        <ElOption value="forbidden" label="禁止携带" /><ElOption
+          value="suppressed"
+          label="可携带，本局不生效"
+        /><ElOption value="active" label="启用阶段加成" />
+      </ElSelect>
+      <ElButton v-if="rules.mechanics?.enhancement" link type="primary" @click="restore('enhancement')"
+        >恢复继承神魔化规则</ElButton
+      >
+    </div>
+    <div v-if="mechanics.enhancement && mechanics.enhancement.mode !== 'forbidden'" class="learning-row">
+      <ElFormItem label="允许阶段 ID"
+        ><ElInput
+          placeholder="全部阶段"
+          :model-value="mechanics.enhancement.stages?.join('，')"
+          @change="value => setEnhancementList('stages', value)"
+      /></ElFormItem>
+      <ElFormItem label="适用物种 ID"
+        ><ElInput
+          placeholder="全部物种"
+          :model-value="mechanics.enhancement.species?.join('，')"
+          @change="value => setEnhancementList('species', value)"
+      /></ElFormItem>
+    </div>
   </fieldset>
 </template>
+
+<style scoped>
+.learning-fields {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+.learning-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px 12px;
+  max-width: 100%;
+}
+.learning-row :deep(.el-select) {
+  width: min(15rem, 100%);
+}
+.learning-row :deep(.el-form-item) {
+  margin: 0;
+}
+</style>

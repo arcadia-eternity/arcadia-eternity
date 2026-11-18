@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import i18next from 'i18next'
+import { ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
 import {
   resolveSkillParameters,
   skillParameterKey,
@@ -16,9 +18,9 @@ const props = defineProps<{
 }>()
 const policy = computed(() => rules.value.skillParameters ?? {})
 const groupId = ref('')
-const groupInput = ref('')
+const groupInput = ref<number>()
 const selected = ref('')
-const singleInput = ref('')
+const singleInput = ref<number>()
 const manual = ref({ skill: '', useId: '', parameter: '' })
 const issue = ref('')
 const previous = computed(() => {
@@ -49,6 +51,13 @@ const sourceNames = { base: '技能基础值', profile: '数值方案', group: '
   string
 >
 
+function addressLabel(row: { skill: string; useId: string; parameter: string; group?: string }) {
+  const skill =
+    i18next.t(row.skill + '.name', { ns: 'skill', nsSeparator: false, defaultValue: row.skill }) || row.skill
+  const group = props.catalog?.groups.find(group => group.id === row.group)?.name
+  return [skill, group, row.useId + ' / ' + row.parameter].filter(Boolean).join(' · ')
+}
+
 function update(next: SkillParameterPolicy) {
   rules.value = { ...rules.value, schemaVersion: 2, skillParameters: next }
   issue.value = ''
@@ -59,11 +68,11 @@ function selectProfile(id: string) {
   else delete next.profile
   update(next)
 }
-function resetGroupSelection(value = '') {
+function resetGroupSelection(value?: number) {
   groupInput.value = value
   selected.value = ''
 }
-function selectGroup(id: string, value: string) {
+function selectGroup(id: string, value?: number) {
   groupId.value = id
   resetGroupSelection(value)
 }
@@ -73,7 +82,7 @@ function setGroup(remove = false) {
   const groups = { ...policy.value.groups }
   if (remove) delete groups[id]
   else {
-    if (groupInput.value === '' || !Number.isFinite(Number(groupInput.value))) {
+    if (groupInput.value == null || !Number.isFinite(Number(groupInput.value))) {
       issue.value = '请输入组值'
       return
     }
@@ -92,7 +101,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
   const key = skillParameterKey(row)
   const overrides = (policy.value.overrides ?? []).filter(entry => skillParameterKey(entry) !== key)
   if (!remove) {
-    if (singleInput.value === '' || !Number.isFinite(Number(singleInput.value))) {
+    if (singleInput.value == null || !Number.isFinite(Number(singleInput.value))) {
       issue.value = '请输入单招数值'
       return
     }
@@ -106,76 +115,135 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
 </script>
 
 <template>
-  <details>
+  <details class="skill-parameters">
     <summary>技能数值</summary>
-    <label
-      >数值方案
-      <input
-        list="skill-parameter-profiles"
-        :value="policy.profile ?? ''"
-        placeholder="内容基础值"
-        @change="selectProfile(($event.target as HTMLInputElement).value.trim())"
-      />
-    </label>
-    <datalist id="skill-parameter-profiles">
-      <option v-for="row in catalog?.profiles" :key="row.id" :value="row.id">{{ row.name }}</option>
-    </datalist>
-    <div class="field-row">
-      <label
-        >参数组 <input v-model.trim="groupId" list="skill-parameter-groups" @input="resetGroupSelection()"
-      /></label>
-      <datalist id="skill-parameter-groups">
-        <option v-for="row in catalog?.groups" :key="row.id" :value="row.id">{{ row.name }} · {{ row.unit }}</option>
-      </datalist>
-      <label
-        >组值
-        <input v-model="groupInput" type="number" step="any" :placeholder="String(policy.groups?.[groupId] ?? '')"
-      /></label>
-      <button type="button" :disabled="!groupId || groupInput === ''" @click="setGroup()">设置组值</button>
-      <button type="button" :disabled="policy.groups?.[groupId] === undefined" @click="setGroup(true)">跟随方案</button>
-    </div>
-    <ul v-if="policy.groups">
-      <li v-for="(value, id) in policy.groups" :key="id">
-        <button type="button" @click="selectGroup(String(id), String(value))">{{ id }} · {{ value }}</button>
-      </li>
-    </ul>
-    <div class="field-row">
-      <label v-if="catalog"
-        >单招参数
-        <select v-model="selected" @change="singleInput = ''">
-          <option value="">选择技能及使用位置</option>
-          <option v-for="row in members" :key="skillParameterKey(row)" :value="skillParameterKey(row)">
-            {{ row.skill }} · {{ row.useId }} / {{ row.parameter }}
-          </option>
-        </select></label
-      >
-      <template v-else>
-        <label>技能 ID <input v-model.trim="manual.skill" /></label>
-        <label>使用位置 <input v-model.trim="manual.useId" /></label>
-        <label>参数名 <input v-model.trim="manual.parameter" /></label>
-      </template>
-      <label>单招数值 <input v-model="singleInput" type="number" step="any" /></label>
-      <button type="button" :disabled="!(catalog ? member : manualTarget) || singleInput === ''" @click="applyOverride">
-        固定此招
-      </button>
-    </div>
-    <ul v-if="policy.overrides?.length">
-      <li v-for="row in policy.overrides" :key="skillParameterKey(row)">
-        {{ row.skill }} · {{ row.useId }} / {{ row.parameter }} · {{ row.value }}
-        <button type="button" @click="setOverride(row, true)">恢复跟随</button>
-      </li>
-    </ul>
-    <p v-if="issue || preview?.error" role="alert">{{ issue || preview?.error }}</p>
-    <details v-if="preview?.rows?.length">
-      <summary>按上次准备的内容预览</summary>
-      <ul>
-        <li v-for="row in preview.rows.filter(row => !groupId || row.group === groupId)" :key="skillParameterKey(row)">
-          {{ row.skill }} · {{ row.useId }} / {{ row.parameter }} ·
-          <template v-if="previous.get(skillParameterKey(row)) !== row.value"
-            >{{ previous.get(skillParameterKey(row)) }} → </template
-          >{{ row.value }}（{{ sourceNames[row.source] }}）
+    <div class="parameter-fields">
+      <ElFormItem label="数值方案">
+        <ElSelect
+          :model-value="policy.profile"
+          filterable
+          allow-create
+          default-first-option
+          clearable
+          aria-label="数值方案"
+          placeholder="内容基础值"
+          @update:model-value="id => selectProfile(id || '')"
+        >
+          <ElOption v-for="row in catalog?.profiles" :key="row.id" :value="row.id" :label="row.name" />
+        </ElSelect>
+      </ElFormItem>
+      <div class="parameter-row">
+        <ElFormItem label="参数组">
+          <ElSelect
+            :model-value="groupId"
+            filterable
+            allow-create
+            default-first-option
+            clearable
+            aria-label="参数组"
+            placeholder="选择参数组"
+            @update:model-value="id => selectGroup(id || '', policy.groups?.[id])"
+          >
+            <ElOption
+              v-for="row in catalog?.groups"
+              :key="row.id"
+              :value="row.id"
+              :label="row.name + ' · ' + row.unit"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="组值"><ElInputNumber v-model="groupInput" aria-label="组值" :controls="false" /></ElFormItem>
+        <ElButton :disabled="!groupId || groupInput == null" @click="setGroup()">设置组值</ElButton>
+        <ElButton :disabled="policy.groups?.[groupId] === undefined" @click="setGroup(true)">跟随方案</ElButton>
+      </div>
+      <ul v-if="policy.groups">
+        <li v-for="(value, id) in policy.groups" :key="id">
+          <ElButton link @click="selectGroup(String(id), value)"
+            >{{ catalog?.groups.find(group => group.id === id)?.name ?? id }} · {{ value }}</ElButton
+          >
         </li>
       </ul>
-    </details>
+      <div class="parameter-row">
+        <ElFormItem v-if="catalog" label="单招参数">
+          <ElSelect
+            v-model="selected"
+            filterable
+            aria-label="单招参数"
+            placeholder="选择技能及参数"
+            @change="singleInput = undefined"
+          >
+            <ElOption
+              v-for="row in members"
+              :key="skillParameterKey(row)"
+              :value="skillParameterKey(row)"
+              :label="addressLabel(row)"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <template v-else>
+          <ElFormItem label="技能 ID"><ElInput v-model.trim="manual.skill" /></ElFormItem>
+          <ElFormItem label="使用位置"><ElInput v-model.trim="manual.useId" /></ElFormItem>
+          <ElFormItem label="参数名"><ElInput v-model.trim="manual.parameter" /></ElFormItem>
+        </template>
+        <ElFormItem label="单招数值"
+          ><ElInputNumber v-model="singleInput" aria-label="单招数值" :controls="false"
+        /></ElFormItem>
+        <ElButton :disabled="!(catalog ? member : manualTarget) || singleInput == null" @click="applyOverride"
+          >固定此招</ElButton
+        >
+      </div>
+      <ul v-if="policy.overrides?.length">
+        <li v-for="row in policy.overrides" :key="skillParameterKey(row)">
+          {{ addressLabel(catalog?.members.find(item => skillParameterKey(item) === skillParameterKey(row)) ?? row) }} ·
+          {{ row.value }}
+          <ElButton link type="primary" @click="setOverride(row, true)">恢复跟随</ElButton>
+        </li>
+      </ul>
+      <p v-if="issue || preview?.error" role="alert">{{ issue || preview?.error }}</p>
+      <details v-if="preview?.rows?.length">
+        <summary>按上次准备的内容预览</summary>
+        <ul>
+          <li
+            v-for="row in preview.rows.filter(row => !groupId || row.group === groupId)"
+            :key="skillParameterKey(row)"
+          >
+            {{ addressLabel(row) }} ·
+            <template v-if="previous.get(skillParameterKey(row)) !== row.value"
+              >{{ previous.get(skillParameterKey(row)) }} → </template
+            >{{ row.value }}（{{ sourceNames[row.source] }}）
+          </li>
+        </ul>
+      </details>
+    </div>
   </details>
 </template>
+
+<style scoped>
+.parameter-fields {
+  display: grid;
+  gap: 12px;
+  padding: 12px 0;
+}
+.parameter-row {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.parameter-fields :deep(.el-form-item) {
+  margin: 0;
+}
+.parameter-row > .el-form-item:first-child {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+.parameter-fields :deep(.el-select) {
+  width: 100%;
+}
+.parameter-fields > .el-form-item {
+  max-width: 24rem;
+}
+.parameter-fields :deep(.el-input-number) {
+  width: 7rem;
+}
+</style>
