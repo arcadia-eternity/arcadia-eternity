@@ -5,19 +5,13 @@ import { composeRuleSets, splitRuleDeclaration } from './rule-composition.ts'
 import {
   validateConstraintReferences,
   type RuleCollection,
-  skillSlotsSchema,
-  teamConstraintsSchema,
+  EnvironmentRulesSchema,
+  parseRuleData,
+  EnvironmentRequirementsSchema,
   teamConstraintIssues,
-  skillParameterPolicySchema,
 } from '@arcadia-eternity/const'
 import type { EnvironmentRules } from './content-workspace.ts'
-import {
-  validateLearningReferences,
-  eligibilitySchema,
-  enhancementSchema,
-  inheritanceSchema,
-  learnsetAdjustmentsSchema,
-} from './learnsets.ts'
+import { assertLearningChoices, validateLearningReferences } from './learnsets.ts'
 export {
   resolveLearnset,
   learningIssues,
@@ -32,160 +26,12 @@ function fail(code: string): never {
   throw Object.assign(new Error(code), { code })
 }
 const record = (value: unknown): value is UnknownRecord => isRecord(value)
-const keysAllowed = (value: UnknownRecord, names: readonly string[]) =>
-  Object.keys(value).every(name => names.includes(name))
 const identifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 256 && !/\p{Cc}/u.test(value)
 
 /** Validate the currently implemented rule vocabulary before admitting an environment. */
 function validateRuleFields(input?: unknown): EnvironmentRules {
-  const rules: unknown = input === undefined ? { schemaVersion: 1 } : input
-  if (
-    !record(rules) ||
-    !keysAllowed(rules, [
-      'schemaVersion',
-      'tier',
-      'allow',
-      'deny',
-      'team',
-      'mechanics',
-      'learnsetAdjustments',
-      'matchups',
-      'skillParameters',
-      'constraints',
-    ])
-  )
-    fail('ENVIRONMENT_RULES_INVALID')
-  if (
-    (rules.schemaVersion !== 1 && rules.schemaVersion !== 2) ||
-    (rules.tier !== undefined && rules.tier !== 'standard')
-  )
-    fail('ENVIRONMENT_RULES_UNSUPPORTED')
-  if (
-    rules.constraints !== undefined &&
-    (rules.schemaVersion !== 2 || !teamConstraintsSchema.safeParse(rules.constraints).success)
-  )
-    fail('ENVIRONMENT_RULES_INVALID')
-  if (
-    rules.skillParameters !== undefined &&
-    (rules.schemaVersion !== 2 || !skillParameterPolicySchema.safeParse(rules.skillParameters).success)
-  )
-    fail('ENVIRONMENT_RULES_INVALID')
-  if (rules.matchups !== undefined) {
-    const policy = rules.matchups
-    if (
-      rules.schemaVersion !== 2 ||
-      !record(policy) ||
-      !keysAllowed(policy, ['table', 'adjustments']) ||
-      (policy.table !== undefined && !identifier(policy.table))
-    )
-      fail('ENVIRONMENT_RULES_INVALID')
-    if (policy.adjustments !== undefined) {
-      if (!Array.isArray(policy.adjustments) || policy.adjustments.length > 50000) fail('ENVIRONMENT_RULES_INVALID')
-      const seen = new Set<string>()
-      for (const cell of policy.adjustments) {
-        if (
-          !record(cell) ||
-          !keysAllowed(cell, ['attack', 'defense', 'multiplier']) ||
-          !identifier(cell.attack) ||
-          !identifier(cell.defense) ||
-          typeof cell.multiplier !== 'number' ||
-          !Number.isFinite(cell.multiplier) ||
-          cell.multiplier < 0
-        )
-          fail('ENVIRONMENT_RULES_INVALID')
-        const key = JSON.stringify([cell.attack, cell.defense])
-        if (seen.has(key)) fail('ENVIRONMENT_RULES_INVALID')
-        seen.add(key)
-      }
-    }
-  }
-  const mechanics = rules.mechanics
-  if (mechanics !== undefined) {
-    if (
-      rules.schemaVersion !== 2 ||
-      !record(mechanics) ||
-      !keysAllowed(mechanics, [
-        'skillSlots',
-        'individualValues',
-        'individualValueDefault',
-        'allowFaintSwitch',
-        'inheritance',
-        'secondGenerationNatures',
-        'enhancement',
-      ])
-    )
-      fail('ENVIRONMENT_RULES_INVALID')
-    if (mechanics.skillSlots !== undefined && !skillSlotsSchema.safeParse(mechanics.skillSlots).success)
-      fail('ENVIRONMENT_RULES_INVALID')
-    if (mechanics.allowFaintSwitch !== undefined && typeof mechanics.allowFaintSwitch !== 'boolean')
-      fail('ENVIRONMENT_RULES_INVALID')
-    if (mechanics.enhancement !== undefined && !enhancementSchema.safeParse(mechanics.enhancement).success)
-      fail('ENVIRONMENT_RULES_INVALID')
-    if (mechanics.inheritance !== undefined && !inheritanceSchema.safeParse(mechanics.inheritance).success)
-      fail('ENVIRONMENT_RULES_INVALID')
-    if (
-      mechanics.secondGenerationNatures !== undefined &&
-      !eligibilitySchema.safeParse(mechanics.secondGenerationNatures).success
-    )
-      fail('ENVIRONMENT_RULES_INVALID')
-    const initial = mechanics.individualValueDefault
-    if (
-      initial !== undefined &&
-      (typeof initial !== 'number' || !Number.isInteger(initial) || initial < 0 || initial > 120)
-    )
-      fail('ENVIRONMENT_IV_DEFAULT_INVALID')
-    const ivs = mechanics.individualValues
-    if (
-      ivs !== undefined &&
-      (!record(ivs) ||
-        !keysAllowed(ivs, ['max']) ||
-        typeof ivs.max !== 'number' ||
-        !Number.isInteger(ivs.max) ||
-        ivs.max < 0 ||
-        ivs.max > 120)
-    )
-      fail('ENVIRONMENT_RULES_INVALID')
-  }
-  if (
-    rules.learnsetAdjustments !== undefined &&
-    (rules.schemaVersion !== 2 || !learnsetAdjustmentsSchema.safeParse(rules.learnsetAdjustments).success)
-  )
-    fail('ENVIRONMENT_RULES_INVALID')
-  for (const group of [rules.allow, rules.deny]) {
-    if (group === undefined) continue
-    if (!record(group) || !keysAllowed(group, ['species', 'skills', 'marks'])) fail('ENVIRONMENT_RULES_INVALID')
-    for (const values of Object.values(group)) {
-      if (
-        !Array.isArray(values) ||
-        values.length > 10000 ||
-        values.some(value => !identifier(value)) ||
-        new Set(values).size !== values.length
-      )
-        fail('ENVIRONMENT_RULES_INVALID')
-    }
-  }
-  if (
-    rules.team !== undefined &&
-    (!record(rules.team) || !keysAllowed(rules.team, ['minSize', 'maxSize', 'uniqueSpecies']))
-  )
-    fail('ENVIRONMENT_RULES_INVALID')
-  const team = record(rules.team) ? rules.team : {}
-  const minSize = team.minSize === undefined ? 1 : team.minSize
-  const maxSize = team.maxSize === undefined ? 6 : team.maxSize
-  const uniqueSpecies = team.uniqueSpecies
-  if (
-    typeof minSize !== 'number' ||
-    typeof maxSize !== 'number' ||
-    !Number.isInteger(minSize) ||
-    !Number.isInteger(maxSize) ||
-    minSize < 1 ||
-    maxSize > 6 ||
-    minSize > maxSize ||
-    (uniqueSpecies !== undefined && typeof uniqueSpecies !== 'boolean')
-  )
-    fail('ENVIRONMENT_RULES_INVALID')
-  return structuredClone(rules) as unknown as EnvironmentRules
+  return parseRuleData(EnvironmentRulesSchema, input)
 }
 
 function checkIVDefault(rules: EnvironmentRules) {
@@ -207,38 +53,31 @@ export function resolveEnvironmentMechanics(rules?: EnvironmentRules) {
   }
 }
 
-export const environmentCapabilities = Object.freeze([
-  'rules.composition.v1',
-  'team.constraints.v1',
-  'team.skill-slots.v1',
-  'training.individual-values.v1',
-  'training.inheritance.v1',
-  'training.enhancement.v1',
-  'battle.skill-parameters.v1',
-  'battle.type-chart.v1',
-])
-/** Version requirements fail closed until a host implements capability negotiation. */
-export function assertEnvironmentRequirements(input?: unknown): void {
-  const requires: unknown = input === undefined ? {} : input
-  if (!record(requires) || !keysAllowed(requires, ['engine', 'sdk', 'capabilities']))
-    fail('ENVIRONMENT_REQUIREMENT_INVALID')
-  for (const key of ['engine', 'sdk'] as const) {
-    const value = requires[key]
-    if (value !== undefined && (typeof value !== 'string' || !value.trim())) fail('ENVIRONMENT_REQUIREMENT_INVALID')
-  }
-  if (
-    requires.capabilities !== undefined &&
-    (!Array.isArray(requires.capabilities) || requires.capabilities.some(value => !identifier(value)))
-  )
-    fail('ENVIRONMENT_REQUIREMENT_INVALID')
-  if (Array.isArray(requires.capabilities)) {
-    const missing = requires.capabilities.filter(value => !environmentCapabilities.includes(value))
-    if (missing.length)
-      throw Object.assign(new Error('ENVIRONMENT_CAPABILITY_UNSUPPORTED: ' + missing.join(', ')), {
-        code: 'ENVIRONMENT_CAPABILITY_UNSUPPORTED',
-      })
-  }
-  if (requires.engine !== undefined || requires.sdk !== undefined) fail('ENVIRONMENT_REQUIREMENT_UNSUPPORTED')
+const capabilityFields = {
+  'team.constraints.v1': (rules: EnvironmentRules) => rules.constraints?.length,
+  'team.skill-slots.v1': (rules: EnvironmentRules) => rules.mechanics?.skillSlots,
+  'training.individual-values.v1': (rules: EnvironmentRules) =>
+    rules.mechanics?.individualValues || rules.mechanics?.individualValueDefault !== undefined,
+  'training.inheritance.v1': (rules: EnvironmentRules) =>
+    rules.mechanics?.inheritance || rules.mechanics?.secondGenerationNatures || rules.learnsetAdjustments?.length,
+  'training.enhancement.v1': (rules: EnvironmentRules) => rules.mechanics?.enhancement,
+  'battle.skill-parameters.v1': (rules: EnvironmentRules) => rules.skillParameters,
+  'battle.type-chart.v1': (rules: EnvironmentRules) => rules.matchups,
+  'battle.faint-switch.v1': (rules: EnvironmentRules) => rules.mechanics?.allowFaintSwitch !== undefined,
+}
+export const environmentCapabilities = Object.freeze(['rules.composition.v1', ...Object.keys(capabilityFields)])
+const currentHost = { engine: '4', sdk: '2', capabilities: environmentCapabilities }
+export function assertEnvironmentRequirements(input?: unknown, host = currentHost): void {
+  const parsed = EnvironmentRequirementsSchema.safeParse(input === undefined ? {} : input)
+  if (!parsed.success) fail('ENVIRONMENT_REQUIREMENT_INVALID')
+  const requires = parsed.data
+  for (const name of ['engine', 'sdk'] as const)
+    if (requires[name] !== undefined && requires[name] !== host[name]) fail('ENVIRONMENT_REQUIREMENT_UNSUPPORTED')
+  const missing = requires.capabilities?.filter(id => !host.capabilities.includes(id)) ?? []
+  if (missing.length)
+    throw Object.assign(new Error('ENVIRONMENT_CAPABILITY_UNSUPPORTED: ' + missing.join(', ')), {
+      code: 'ENVIRONMENT_CAPABILITY_UNSUPPORTED',
+    })
 }
 
 /** Admission checks apply to normalized team definitions, before creating any battle. */
@@ -249,6 +88,15 @@ export function assertEnvironmentTeam(input: unknown, team: unknown): void {
   for (const pet of team) assertEnvironmentMember(rules, pet)
   if (teamConstraintIssues(rules.constraints, team, 'team').length) fail('ENVIRONMENT_TEAM_REJECTED')
   if (uniqueSpecies && new Set(team.map(pet => pet.species)).size !== team.length) fail('ENVIRONMENT_TEAM_REJECTED')
+}
+
+export function assertPlayableTeam(
+  rules: EnvironmentRules | undefined,
+  team: readonly unknown[],
+  ...content: import('./learnsets.ts').LearningLookups
+) {
+  assertEnvironmentTeam(rules, team)
+  assertLearningChoices(rules, team, ...content)
 }
 
 /** Check one build against prepared rules independently of team size and composition. */
@@ -317,13 +165,26 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
 }
 
 /** Author declarations are expanded only against a captured installation. */
-export function prepareEnvironmentRules(input: unknown, definitions: readonly unknown[] = []) {
-  const prepared = composeRuleSets(input, definitions, validateRuleFields)
+export function defaultRuleDeclaration(definitions: readonly unknown[] = []) {
+  return definitions.some(row => isRecord(row) && row.id === 'base:classic')
+    ? { schemaVersion: 2 as const, include: ['base:classic'] }
+    : { schemaVersion: 1 as const }
+}
+
+export function prepareEnvironmentRules(input: unknown, definitions: readonly unknown[] = [], host = currentHost) {
+  const declaration = input === undefined ? defaultRuleDeclaration(definitions) : input
+  const prepared = composeRuleSets(declaration, definitions, validateRuleFields)
   checkIVDefault(prepared.rules)
-  return prepared
+  const requiredCapabilities = Object.entries(capabilityFields)
+    .filter(([, used]) => used(prepared.rules))
+    .map(([key]) => key)
+  if (isRecord(declaration) && ['include', 'constraintEdits', 'collections'].some(field => field in declaration))
+    requiredCapabilities.unshift('rules.composition.v1')
+  assertEnvironmentRequirements({ capabilities: requiredCapabilities }, host)
+  return { ...prepared, requiredCapabilities }
 }
 export function validateEnvironmentRuleDeclaration(input: unknown) {
-  return splitRuleDeclaration(input, validateRuleFields)
+  return splitRuleDeclaration(input)
 }
 
 /** Validate selectors once against the catalog held by this preparation. */

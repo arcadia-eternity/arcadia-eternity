@@ -107,7 +107,7 @@ it('rejects unknown tier policies atomically and captures accepted rules in the 
   registry.setPublication([{ ...publication, rules: { schemaVersion: 1, team: { maxSize: 2 } } }], id)
   const lease = registry.acquire()
   expect(() =>
-    registry.setPublication([{ ...publication, rules: { schemaVersion: 1, tier: 'unknown-tier' } }]),
+    registry.setPublication([{ ...publication, rules: JSON.parse('{"schemaVersion":1,"tier":"unknown-tier"}') }]),
   ).toThrow('ENVIRONMENT_RULES_UNSUPPORTED')
   expect(registry.list()).toHaveLength(1)
   registry.setPublication([{ ...publication, rules: { schemaVersion: 1, team: { maxSize: 1 } } }])
@@ -366,6 +366,7 @@ it('partitions queued players by captured execution policy during publication ch
       environmentId: id,
       protocolVersion: 1,
       resourceRevision: descriptor.resourceRevision,
+      gameplayRevision: descriptor.gameplayRevision,
       peerRevision: descriptor.peerRevision,
       resourcesReady: true,
     },

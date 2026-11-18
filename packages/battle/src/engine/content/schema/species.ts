@@ -26,6 +26,10 @@ export const SpeciesSchema = z.object({
   weightRange: z.tuple([z.number(), z.number()]).refine(([min, max]) => min < max, {
     message: '第一个元素必须小于第二个元素',
   }),
+  enhancementBranches: z
+    .array(z.string().min(1))
+    .refine(values => new Set(values).size === values.length, '强化分支不能重复')
+    .optional(),
   inheritance: z.object({ skills: z.array(z.string().min(1)) }).optional(),
   learnable_skills: z.array(LearnableSkillSchema),
   ability: z.array(z.string()),

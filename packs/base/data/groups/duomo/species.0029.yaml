@@ -1,5 +1,6 @@
 - id: pet_duomo
   num: 49
+  enhancementBranches: [divine, demonic]
   # 父方显性技能按原作形态编号排列。同种类无法配对。
   inheritance: &inherited_moves
     skills:
@@ -90,6 +91,7 @@
     - mark_emblem_yinbo
 - id: pet_duomosang
   num: 50
+  enhancementBranches: [divine, demonic]
   inheritance: *inherited_moves
   element: Normal
   baseStats:

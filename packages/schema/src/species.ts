@@ -46,6 +46,7 @@ export const SpeciesSchema = Type.Object({
   weightRange: Type.Tuple([Type.Number(), Type.Number()], {
     default: [10, 20],
   }),
+  enhancementBranches: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true })),
   inheritance: Type.Optional(Type.Object({ skills: Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true }) })),
   learnable_skills: withUIHint(Type.Array(LearnableSkillSchema, { default: [] }), {
     display: 'inline',

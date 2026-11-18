@@ -67,6 +67,14 @@ it('returns a cancelled replay and cleans up when interrupted with recorded inpu
     players: ['a', 'b'].map(id => ({ id, rage: 0, activePet: '', team: [] })),
   } as unknown as BattleState
   const content = {
+    getSkill: (id: string) => ({ id }),
+    getSpecies: (id: string) => ({
+      id,
+      learnable_skills: ['skill_hunzhuoshuiyu', 'skill_qili', 'skill_shuipao', 'skill_paida'].map(skill_id => ({
+        skill_id,
+        level: 1,
+      })),
+    }),
     getNature: (id: string) => legacyNatures().find(nature => nature.id === id),
     withSkillParameters: async () => content,
     parsePlayers: () => [],

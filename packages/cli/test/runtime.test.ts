@@ -22,7 +22,7 @@ async function fixture() {
   )
   for (const team of replay.teams)
     for (const pet of team.team) {
-      pet.skills = ['skill_paida']
+      pet.skills = [pet.species === 'pet_huanli' ? 'skill_zhuangji' : 'skill_paida']
       pet.maxHp = 25
     }
   const spec: RunSpec = {

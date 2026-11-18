@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { createLocalContentSessions } from '../local-content-sessions.mjs'
 import { createNpmFixture } from '../../../server/test/fixtures/npm'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { canonical, buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
+import { gameplayRevision, buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 
 it('captures real npm display and resources, preserves prepared recipes across edits, and evaluates effects only in Workers', async () => {
@@ -23,7 +23,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     load: async () => ({
       host: emptyNpmContentHost,
       prepareNpmProject,
-      canonical,
+      gameplayRevision,
       buildDisplayCatalog,
       buildDisplayLocales,
     }),
@@ -130,7 +130,7 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
     host: {},
-    canonical,
+    gameplayRevision,
     buildDisplayCatalog,
     buildDisplayLocales,
     prepareNpmProject: async () => {
@@ -220,7 +220,7 @@ it('releases document owners and rejects late preparation after document retirem
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
     host: {},
-    canonical,
+    gameplayRevision,
     buildDisplayCatalog,
     buildDisplayLocales,
     prepareNpmProject: async () => {

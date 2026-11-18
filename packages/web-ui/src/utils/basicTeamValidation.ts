@@ -56,7 +56,8 @@ export function memberIssues(input: unknown, content?: Content): TeamIssue[] {
     }
   }
   if (content) {
-    for (const missing of findMissingTeamContent([pet], content)) {
+    const missingContent = findMissingTeamContent([pet], content)
+    for (const missing of missingContent) {
       const training = missing.kind === 'enhancement' || missing.kind === 'nature'
       issue(
         missing.message,
@@ -64,6 +65,7 @@ export function memberIssues(input: unknown, content?: Content): TeamIssue[] {
         missing.kind === 'skill' ? 'skills.' + missing.skillIndex : missing.kind,
       )
     }
+    if (missingContent.length) return issues
     try {
       assertLearningChoices(
         rules,

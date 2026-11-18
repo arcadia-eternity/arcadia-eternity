@@ -54,38 +54,7 @@ export interface ManagedEnvironmentDocument {
   name: string
   packages: Record<string, string>
   sources: string[]
-  rules: {
-    include?: string[]
-    constraintEdits?: import('@arcadia-eternity/const').ConstraintEdits
-    schemaVersion: 1 | 2
-    mechanics?: {
-      skillSlots?: import('@arcadia-eternity/const').SkillSlots
-      individualValues?: { max: number }
-      individualValueDefault?: number
-      allowFaintSwitch?: boolean
-      inheritance?: {
-        eligible: SpeciesEligibility
-        pool?: { mode: 'fallback' | 'append' | 'replace'; skills: string[] }
-      }
-      enhancement?: { mode: 'forbidden' | 'suppressed' | 'active'; stages?: string[]; species?: string[] }
-      secondGenerationNatures?: SpeciesEligibility
-    }
-    collections?: import('@arcadia-eternity/const').RuleCollection[]
-    constraints?: import('@arcadia-eternity/const').DeclaredTeamConstraint[]
-    skillParameters?: import('@arcadia-eternity/const').SkillParameterPolicy
-    matchups?: import('@arcadia-eternity/const').MatchupPolicy
-    learnsetAdjustments?: {
-      species: string
-      source: 'normal' | 'inherited'
-      skill: string
-      action: 'add' | 'remove'
-      level?: number
-    }[]
-    tier?: string
-    allow?: { species?: string[]; skills?: string[]; marks?: string[] }
-    deny?: { species?: string[]; skills?: string[]; marks?: string[] }
-    team?: { minSize?: number; maxSize?: number; uniqueSpecies?: boolean }
-  }
+  rules: import('@arcadia-eternity/const').EnvironmentRuleDeclaration
   requires: { engine?: string; sdk?: string; capabilities?: string[] }
 }
 export interface ManagedEnvironment {
@@ -102,6 +71,7 @@ export interface ManagedReadyEnvironmentInstallation {
   draftRevision: string
   contentRevision: string
   ruleComposition?: {
+    requiredCapabilities?: string[]
     rules: import('./environment').EnvironmentRules
     fields: { path: string[]; value: unknown; sources: string[]; effectiveSources: string[] }[]
     ruleSets: { id: string; name: string; rules: ManagedEnvironmentDocument['rules'] }[]

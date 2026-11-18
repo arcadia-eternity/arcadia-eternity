@@ -8,7 +8,7 @@ import { assertEnvironmentRequirements, prepareRulesForContent } from '@arcadia-
 import {
   buildDisplayCatalog,
   buildDisplayLocales,
-  digestJson,
+  gameplayRevision,
   mapPresentationResources,
   PackMetadataLoader,
 } from '@arcadia-eternity/pack-loader/native'
@@ -97,7 +97,7 @@ export async function buildWebContent(
       resources: resources.filter(resource => resource.tags?.length),
       runtimeRevision: sandbox.revision,
       runtimeIdentity,
-      gameplayRevision: await digestJson({ runtime: runtimeIdentity, material: sandbox.revision, rules }),
+      gameplayRevision: await gameplayRevision(runtimeIdentity, sandbox.revision, rules),
       effectMarkRelations: authoring.effectMarkRelations,
     })
     writeJson('environment/runtime.json', sandbox)

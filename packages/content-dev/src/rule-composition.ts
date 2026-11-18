@@ -1,7 +1,6 @@
 import {
-  declaredConstraintsSchema,
-  ruleCollectionsSchema,
-  constraintEditsSchema,
+  EnvironmentRuleDeclarationSchema,
+  parseRuleData,
   type ConstraintEdits,
   type TeamConstraint,
   type DeclaredTeamConstraint,
@@ -28,34 +27,14 @@ function issue(code: string, detail: string): never {
   throw new RuleCompositionError(code, detail)
 }
 
-export function splitRuleDeclaration(input: unknown, validate: ValidateRules) {
-  if (!isRecord(input))
-    return {
-      rules: validate(input),
-      include: [] as string[],
-      edits: {} as ConstraintEdits,
-      collections: [] as RuleCollection[],
-    }
-  const { include = [], constraintEdits, collections, constraints, ...local } = input
-  if (
-    (('include' in input || constraintEdits !== undefined || collections !== undefined || constraints !== undefined) &&
-      local.schemaVersion !== 2) ||
-    !Array.isArray(include) ||
-    include.length > 128 ||
-    !include.every((id): id is string => typeof id === 'string' && /^[A-Za-z0-9_./:-]{1,256}$/.test(id)) ||
-    new Set(include).size !== include.length
-  )
-    issue('ENVIRONMENT_RULES_INVALID', 'include')
-  const parsed = constraintEditsSchema.safeParse(constraintEdits ?? {})
-  if (!parsed.success || constraintEdits === null) issue('ENVIRONMENT_RULES_INVALID', 'constraintEdits')
-  const rules = validate(local)
-  if (constraints !== undefined) rules.constraints = declaredConstraintsSchema.parse(constraints)
-  return {
-    rules,
-    include,
-    edits: parsed.data,
-    collections: collections === undefined ? [] : ruleCollectionsSchema.parse(collections),
-  }
+export function splitRuleDeclaration(input: unknown) {
+  const {
+    include = [],
+    constraintEdits: edits = {},
+    collections = [],
+    ...rules
+  } = parseRuleData(EnvironmentRuleDeclarationSchema, input)
+  return { rules, include, edits, collections }
 }
 
 // Arrays that describe eligibility or a selector are sets. Domain records with several
@@ -100,7 +79,7 @@ function merge(fields: Fields, path: Path, choice: Choice, sources: Iterable<str
     field = { path, choices: new Map(), sources: new Set() }
     fields.set(key, field)
   }
-  if (replace && !['allow', 'deny', 'team'].includes(path[0]!)) field.choices.clear()
+  if (replace) field.choices.clear()
   for (const source of sources) field.sources.add(source)
   const identity = canonical(choice.value)
   const previous = field.choices.get(identity)
@@ -204,7 +183,7 @@ function applyConstraintEdits(fields: Fields, source: string, edits: ConstraintE
 }
 
 export function composeRuleSets(input: unknown, definitions: readonly unknown[], validate: ValidateRules) {
-  const root = splitRuleDeclaration(input, validate)
+  const root = splitRuleDeclaration(input)
   const catalog = new Map<string, unknown>()
   const ruleSets = []
   if (!Array.isArray(definitions) || definitions.length > 10000) issue('ENVIRONMENT_RULE_SET_INVALID', '规则集目录无效')
@@ -218,7 +197,7 @@ export function composeRuleSets(input: unknown, definitions: readonly unknown[],
       (row.name !== undefined && (typeof row.name !== 'string' || row.name.length > 256))
     )
       issue('ENVIRONMENT_RULE_SET_INVALID', isRecord(row) && typeof row.id === 'string' ? row.id : '规则集 ID 无效')
-    const { rules, include, edits, collections } = splitRuleDeclaration(row.rules, validate)
+    const { rules, include, edits, collections } = splitRuleDeclaration(row.rules)
     const declaration = {
       ...rules,
       ...(collections.length && { collections }),
@@ -237,7 +216,7 @@ export function composeRuleSets(input: unknown, definitions: readonly unknown[],
     if (!catalog.has(id)) issue('ENVIRONMENT_RULE_SET_MISSING', [...stack, id].join(' → '))
     if (stack.size >= 128) issue('ENVIRONMENT_RULES_INVALID', '规则集引用超过 128 层')
     stack.add(id)
-    const fields = combine(id, splitRuleDeclaration(catalog.get(id), validate))
+    const fields = combine(id, splitRuleDeclaration(catalog.get(id)))
     stack.delete(id)
     done.set(id, fields)
     return fields

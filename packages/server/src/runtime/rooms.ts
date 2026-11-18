@@ -357,7 +357,10 @@ export class RoomRegistry {
   }
   private checkClientEnvironment(room: Pick<Room, 'environment'> & Partial<Pick<Room, 'info'>>, raw: unknown) {
     const rules = room.environment.rules
-    const legacyDefault = !rules || (rules.schemaVersion === 1 && !rules.allow && !rules.deny && !rules.team)
+    const legacyDefault =
+      ('legacyBuiltinAcceptance' in room.environment && room.environment.legacyBuiltinAcceptance) ||
+      !rules ||
+      (rules.schemaVersion === 1 && !rules.allow && !rules.deny && !rules.team)
     if (legacyDefault && !room.environment.isNpm && raw === undefined && room.environment.executionPolicy !== 'peer')
       return
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('CLIENT_ENVIRONMENT_REQUIRED')

@@ -49,7 +49,8 @@ export class LocalEnvironments {
                 name: '默认环境',
                 packages: Object.fromEntries(lease.packages.map(pkg => [pkg.name, pkg.version])),
                 sources: [],
-                rules: this.baseRules ?? { schemaVersion: 1 },
+                rules: (lease.packages.some(pkg => pkg.name === '@arcadia-eternity/data-pack-base') &&
+                  this.baseRules) || { schemaVersion: 1 },
                 requires: {},
               }
               await workspace.prepareEnvironment(

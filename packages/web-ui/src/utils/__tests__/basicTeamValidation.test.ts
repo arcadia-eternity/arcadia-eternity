@@ -17,7 +17,10 @@ const pet = {
   emblem: 'mark_emblem_test',
 }
 const content = {
-  getSpecies: (id: string) => id === pet.species,
+  getSpecies: (id: string) =>
+    id === pet.species
+      ? { id, learnable_skills: [{ skill_id: 'skill_test', level: 1 }], ability: [pet.ability], emblem: [pet.emblem] }
+      : undefined,
   getSkill: (id: string) => id === 'skill_test',
   getMark: (id: string) => [pet.ability, pet.emblem].includes(id),
 }

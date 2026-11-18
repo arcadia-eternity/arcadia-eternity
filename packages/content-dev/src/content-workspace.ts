@@ -34,6 +34,7 @@ export interface EnvironmentDraft {
 const compositionSchema = z
   .object({
     rules: EnvironmentRulesSchema,
+    requiredCapabilities: z.array(z.string()).optional(),
     fields: z.array(
       z.object({
         path: z.array(z.string()),

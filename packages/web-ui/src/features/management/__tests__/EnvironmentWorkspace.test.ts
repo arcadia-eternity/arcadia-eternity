@@ -15,7 +15,7 @@ const environment = (): ManagedEnvironment => ({
     name: '好友环境',
     packages: { '@test/ice': '1.2.3' },
     sources: ['@test/local'],
-    rules: { schemaVersion: 1, tier: 'casual', deny: { species: ['base:boss'] }, team: { maxSize: 3 } },
+    rules: { schemaVersion: 1, tier: 'standard', deny: { species: ['base:boss'] }, team: { maxSize: 3 } },
     requires: { engine: '4', capabilities: ['custom-effects'] },
   },
 })
@@ -152,7 +152,7 @@ describe('shared environment workspace', () => {
     expect(saved.rules.mechanics).toEqual({ individualValues: { max: 50 }, allowFaintSwitch: false })
     expect(saved.rules.team).toEqual({ minSize: 2, maxSize: 4, uniqueSpecies: true })
     expect(saved.rules.deny?.species).toEqual(['base:boss', 'custom:pet'])
-    expect(saved.rules.tier).toBe('casual')
+    expect(saved.rules.tier).toBe('standard')
   })
 })
 
@@ -300,4 +300,36 @@ it('edits reusable rule references while keeping the loaded values and their ori
   expect(saved.rules.include).toEqual(['cup:other'])
   expect(saved.rules.mechanics).toBeUndefined()
   expect(saved.rules).not.toHaveProperty('fields')
+})
+
+it('can lift an inherited ban and uniqueness requirement and then restore inheritance', async () => {
+  const draft = environment()
+  draft.document.rules = { schemaVersion: 2, include: ['cup:classic'] }
+  const rules = { schemaVersion: 2, deny: { species: ['cup:boss'] }, team: { uniqueSpecies: true } }
+  const ruleComposition = { rules, fields: [], ruleSets: [{ id: 'cup:classic', name: '联赛', rules }] }
+  const { page } = open({ environments: [draft], installations: [{ ...version(draft), ruleComposition }] })
+  await button(page, '编辑').trigger('click')
+  const unique = page
+    .findAll('label')
+    .find(label => label.text() === '队伍内精灵不重复')!
+    .get('input')
+  expect(unique.element.checked).toBe(true)
+  const denied = page.findAll('fieldset').find(field => field.find('legend').text() === '禁止内容')!
+  expect(denied.get('textarea').attributes('placeholder')).toBe('cup:boss')
+  await unique.setValue(false)
+  await denied
+    .findAll('button')
+    .find(control => control.text() === '清除禁用')!
+    .trigger('click')
+  const form = page.get('form.environment-editor')
+  await form.trigger('submit')
+  const saved = (index: number) => (page.emitted('save')![index]![0] as ManagedEnvironment['document']).rules
+  expect(saved(0).team?.uniqueSpecies).toBe(false)
+  expect(saved(0).deny?.species).toEqual([])
+  const restores = page.findAll('button').filter(control => control.text() === '恢复继承')
+  for (const control of restores) await control.trigger('click')
+  await form.trigger('submit')
+  expect(saved(1).team?.uniqueSpecies).toBeUndefined()
+  expect(saved(1).deny?.species).toBeUndefined()
+  expect(unique.element.checked).toBe(true)
 })

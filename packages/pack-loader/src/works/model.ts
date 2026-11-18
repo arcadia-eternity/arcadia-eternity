@@ -180,6 +180,17 @@ export function canonical(value: unknown): string {
       .join(',')}}`
   return JSON.stringify(value)
 }
+export function gameplayIdentity(
+  runtime: { kind: 'native-v4'; contentRevision: string; coreBuildId: string; registryBuildId: string },
+  material: string,
+  rules: unknown,
+) {
+  return canonical({ runtime, material, rules })
+}
+export function gameplayRevision(...input: Parameters<typeof gameplayIdentity>) {
+  return digestBytes(new TextEncoder().encode(gameplayIdentity(...input)))
+}
+
 export async function digestBytes(bytes: Uint8Array): Promise<string> {
   const value = await globalThis.crypto.subtle.digest('SHA-256', new Uint8Array(bytes))
   return [...new Uint8Array(value)].map(byte => byte.toString(16).padStart(2, '0')).join('')

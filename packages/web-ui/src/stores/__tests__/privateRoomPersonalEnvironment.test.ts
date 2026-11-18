@@ -16,7 +16,17 @@ const mocks = vi.hoisted(() => ({
   gameData: {
     loaded: true,
     getSkill: () => ({}),
-    getSpecies: () => ({}),
+    getSpecies: (id: string) => {
+      const pet = getDefaultTeam().pets.find(member => member.species === id)
+      return (
+        pet && {
+          id,
+          learnable_skills: pet.skills.map(skill_id => ({ skill_id, level: 1 })),
+          ability: [pet.ability],
+          emblem: [pet.emblem],
+        }
+      )
+    },
     getMark: () => ({}),
     applyServerEnvironment: vi.fn(),
     clearServerEnvironment: vi.fn(),

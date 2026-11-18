@@ -49,7 +49,8 @@ test('capability requirements are explicitly supported or rejected, never ignore
   assert.throws(() => assertEnvironmentRequirements({ capabilities: ['future-rules'] }), {
     code: 'ENVIRONMENT_CAPABILITY_UNSUPPORTED',
   })
-  for (const input of [{ engine: '4' }, { sdk: '2' }])
+  assert.doesNotThrow(() => assertEnvironmentRequirements({ engine: '4', sdk: '2' }))
+  for (const input of [{ engine: '5' }, { sdk: '3' }])
     assert.throws(() => assertEnvironmentRequirements(input), { code: 'ENVIRONMENT_REQUIREMENT_UNSUPPORTED' })
   for (const input of [null, { engine: '' }, { sdk: 2 }, { capabilities: 'future' }, { command: 'execute' }])
     assert.throws(() => assertEnvironmentRequirements(input), { code: 'ENVIRONMENT_REQUIREMENT_INVALID' })
@@ -81,6 +82,65 @@ test('team size, species uniqueness and allow/deny policies cover all selected c
     rejected(() => assertEnvironmentTeam(rules({ deny: { [kind]: [id] } }), team))
     rejected(() => assertEnvironmentTeam(rules({ allow: { [kind]: [id] }, deny: { [kind]: [id] } }), team))
   }
+})
+
+test('local restrictions replace each inherited field and retain its provenance', () => {
+  const base = {
+    id: 'base:cup',
+    rules: {
+      schemaVersion: 2,
+      team: { maxSize: 3, uniqueSpecies: true },
+      deny: { species: ['x:a'] },
+      allow: { skills: ['x:s1'] },
+    },
+  }
+  const local = {
+    schemaVersion: 2,
+    include: [base.id],
+    team: { maxSize: 6 },
+    deny: { species: [] },
+    allow: { skills: ['x:s1', 'x:s2'] },
+  }
+  const result = prepareEnvironmentRules(local, [base])
+  assert.deepEqual(result.rules.team, { maxSize: 6, uniqueSpecies: true })
+  assert.deepEqual(result.rules.allow, local.allow)
+  assert.deepEqual(result.rules.deny, local.deny)
+  assert.deepEqual(result.fields.find(field => field.path.join('.') === 'team.maxSize').effectiveSources, [
+    '$environment',
+  ])
+  assert.deepEqual(result.requiredCapabilities, ['rules.composition.v1'])
+  assert.throws(() => prepareEnvironmentRules(local, [base], { engine: '4', sdk: '2', capabilities: [] }), {
+    code: 'ENVIRONMENT_CAPABILITY_UNSUPPORTED',
+  })
+})
+
+test('plain and composed environments validate equipped skills and species enhancement eligibility', async () => {
+  const { assertPlayableTeam } = await import('../src/environment-rules.ts')
+  const draft = { species: 'x:a', nature: 'Hardy', level: 10, skills: ['x:other'] }
+  const species = {
+    id: draft.species,
+    learnable_skills: [{ level: 1, skill_id: 'x:strike' }],
+    enhancementBranches: ['divine'],
+  }
+  const check = (rules, pet) =>
+    assertPlayableTeam(
+      rules,
+      [pet],
+      () => species,
+      () => ({ generation: 1 }),
+      () => ({ branch: 'demonic' }),
+      () => ({}),
+    )
+  for (const schemaVersion of [1, 2]) assert.throws(() => check({ schemaVersion }, draft), /不能学习/)
+  for (const mode of ['active', 'suppressed'])
+    assert.throws(
+      () =>
+        check(
+          { schemaVersion: 2, mechanics: { enhancement: { mode } } },
+          { ...draft, skills: [], enhancement: 'x:stage' },
+        ),
+      /强化阶段/,
+    )
 })
 
 async function fixture(t, definition) {
@@ -123,7 +183,7 @@ test('author preparation rejects unsupported environment rules and requirements'
   })
   const second = await fixture(t, { rules: rules({ tier: 'unsupported' }) })
   await assert.rejects(prepareBattleEnvironment(second, { environmentId: 'restricted' }), {
-    code: 'ENVIRONMENT_RULES_UNSUPPORTED',
+    code: 'ENVIRONMENT_INVALID',
   })
 })
 
@@ -288,7 +348,7 @@ test('host slot rules classify equipped skills against captured content and pres
     assertLearningChoices(
       policy,
       [{ species: 'cup:pet', nature: 'cup:nature', level: 100, skills }],
-      () => undefined,
+      () => ({ id: 'cup:pet', learnable_skills: skills.map(skill_id => ({ skill_id, level: 1 })) }),
       () => ({ generation: 1 }),
       () => undefined,
       id => (id.startsWith('climax') ? { category: 'Climax' } : { category: 'Physical' }),

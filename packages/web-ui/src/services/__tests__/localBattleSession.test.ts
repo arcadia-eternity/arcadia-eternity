@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { parseWithErrors, SkillSchema, MarkSchema, SpeciesSchema } from '@arcadia-eternity/schema'
 import { createPinia, setActivePinia } from 'pinia'
 import type { BattleState } from '@arcadia-eternity/const'
 import { useBattleStore } from '@/stores/battle'
@@ -10,6 +11,21 @@ import type { createSandboxWebBattleSession } from '../nativeBattleFactory'
 type Prepared = Awaited<ReturnType<typeof createSandboxWebBattleSession>>
 const emptyData = { marks: [], skills: [], species: [] }
 const player = { name: 'test', team: getDefaultTeam().pets }
+const fixtureCatalog = {
+  marks: player.team.flatMap(pet => [pet.ability, pet.emblem].flatMap(id => (id ? [{ id, tags: [] }] : []))),
+  skills: [...new Set(player.team.flatMap(pet => pet.skills))].map(id => {
+    const { effect: _effect, ...skill } = parseWithErrors(SkillSchema, { id })
+    return skill
+  }),
+  species: player.team.map(pet =>
+    parseWithErrors(SpeciesSchema, {
+      id: pet.species,
+      learnable_skills: pet.skills.map(skill_id => ({ skill_id, level: 1 })),
+      ability: pet.ability ? [pet.ability] : [],
+      emblem: pet.emblem ? [pet.emblem] : [],
+    }),
+  ),
+}
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>(done => {
@@ -45,6 +61,9 @@ function prepared(): Prepared {
 function destination() {
   const data = useGameDataStore(),
     battle = useBattleStore()
+  data.species = data.normalizeData(fixtureCatalog.species)
+  data.skills = data.normalizeData(fixtureCatalog.skills.map(skill => parseWithErrors(SkillSchema, skill)))
+  data.marks = data.normalizeData(fixtureCatalog.marks.map(mark => parseWithErrors(MarkSchema, mark)))
   data.loaded = true
   return { data, battle, navigate: vi.fn(async () => {}) }
 }
@@ -62,7 +81,7 @@ afterEach(async () => {
 })
 
 it('pins desktop content from configuration through retries and battle cleanup', async () => {
-  const content = { species: [], skills: [], marks: [] }
+  const content = fixtureCatalog
   const environment = { revision: 'fixed-local', data: emptyData, modules: [] }
   const releaseLocalContent = vi.fn(async () => {})
   const prepareLocalContent = vi.fn(async () => ({ token: 'configuration', environment, content }))
@@ -195,7 +214,7 @@ it('aborts queued creation immediately and releases its desktop content lease', 
       prepareLocalContent: vi.fn(async () => ({
         token: 'queued',
         environment: { revision: 'queued', data: emptyData, modules: [] },
-        content: emptyData,
+        content: fixtureCatalog,
       })),
       releaseLocalContent,
     },

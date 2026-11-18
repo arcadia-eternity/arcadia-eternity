@@ -179,6 +179,7 @@ export async function validateWorkspaceProject(
   preparation: { effectPreparation?: 'compile' | 'prebuilt-only' } = {},
 ) {
   signal?.throwIfAborted()
+  assertEnvironmentRequirements(draft?.requires)
   const temporary = new ServerEnvironmentRegistry()
   try {
     const descriptor = await temporary.prepareNpm(directory, { policy: { profile: 'self-hosted' } }, preparation)

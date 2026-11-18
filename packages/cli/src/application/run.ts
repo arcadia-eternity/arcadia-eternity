@@ -1,6 +1,5 @@
 import {
-  assertEnvironmentTeam,
-  assertLearningChoices,
+  assertPlayableTeam,
   resolveEnvironmentMechanics,
   validateEnvironmentRules,
 } from '@arcadia-eternity/content-sdk/environment-rules'
@@ -13,6 +12,9 @@ import {
   type BattleState,
   type PlayerSelection,
   type playerId,
+  type speciesId,
+  type baseSkillId,
+  type baseMarkId,
 } from '@arcadia-eternity/const'
 import { GameRng, ExecutionBudgetExceeded, type ContentIndex } from '@arcadia-eternity/battle/engine'
 import { LocalBattleSystem, type BattleHost } from '@arcadia-eternity/battle/host'
@@ -47,14 +49,14 @@ export async function runBattle(
   const environment = sandboxEnvironmentFor(content)
   const rules = validateEnvironmentRules(spec.rules)
   for (const player of teams) {
-    assertEnvironmentTeam(rules, player.team)
-    assertLearningChoices(
+    assertPlayableTeam(
       rules,
       player.team,
-      id => content.getSpecies(id as import('@arcadia-eternity/const').speciesId),
+      id => content.getSpecies(id as speciesId),
       content.getNature,
       content.getEnhancement,
-      id => content.getSkill(id as import('@arcadia-eternity/const').baseSkillId),
+      id => content.getSkill(id as baseSkillId),
+      id => content.getMark(id as baseMarkId),
     )
   }
   const battleOptions = {

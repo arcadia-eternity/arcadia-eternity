@@ -47,6 +47,7 @@ export interface Species extends Prototype {
   genderRatio: [number, number] | null
   heightRange: [number, number]
   weightRange: [number, number]
+  enhancementBranches?: string[]
   ability?: BaseMark[]
   emblem?: BaseMark[]
 }

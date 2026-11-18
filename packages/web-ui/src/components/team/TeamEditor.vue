@@ -1577,7 +1577,10 @@ const availableStages = computed(() => {
   const policy = enhancementPolicy.value
   const species = selectedPet.value?.species
   if (!species || policy?.mode !== 'active' || (policy.species && !policy.species.includes(species))) return []
-  return gameDataStore.enhancements.filter(stage => !policy.stages || policy.stages.includes(stage.id))
+  const branches = gameDataStore.getSpecies(species)?.enhancementBranches
+  return gameDataStore.enhancements.filter(
+    stage => branches?.includes(stage.branch) && (!policy.stages || policy.stages.includes(stage.id)),
+  )
 })
 const stagesByBranch = computed(() => {
   const groups = Object.create(null) as Record<string, typeof availableStages.value>

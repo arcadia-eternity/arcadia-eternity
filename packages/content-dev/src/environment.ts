@@ -15,10 +15,11 @@ import {
 import { AuthorWorkspace, type ManifestArcadia, type PackageManifest } from './workspace.ts'
 import { ProjectTeams, playersFromTeams, type ProjectTeam } from './project-teams.ts'
 import { createHash } from 'node:crypto'
-import { canonical } from '@arcadia-eternity/pack-loader/native'
+import { gameplayRevision } from '@arcadia-eternity/pack-loader/native'
 import { DebugEnvironments, normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
 import {
   assertEnvironmentRequirements,
+  defaultRuleDeclaration,
   prepareRulesForContent,
   validateEnvironmentRuleDeclaration,
 } from './environment-rules.ts'
@@ -218,6 +219,8 @@ export async function prepareBattleEnvironment(
     environment = await prepareNpmProject(installation, emptyNpmContentHost, {
       policy: { profile: 'local-development' },
     })
+    if (environmentId === 'default')
+      environmentDocument.rules = defaultRuleDeclaration(environment.sandbox.data.ruleSets)
     const { rules: effectiveRules } = prepareRulesForContent(environmentDocument.rules, environment.sandbox.data)
     let environmentLock: { file: string; version: string } | undefined
     if (lockFile) {
@@ -239,20 +242,16 @@ export async function prepareBattleEnvironment(
       shasum: packed.shasum,
       sdkApi: manifest.arcadia.sdkApi,
       build: environment.build,
-      environmentRevision: createHash('sha256')
-        .update(
-          canonical({
-            runtime: {
-              kind: 'native-v4',
-              contentRevision: environment.revision,
-              coreBuildId: environment.build.coreBuildId,
-              registryBuildId: environment.build.registryBuildId,
-            },
-            material: environment.sandbox.revision,
-            rules: effectiveRules,
-          }),
-        )
-        .digest('hex'),
+      environmentRevision: await gameplayRevision(
+        {
+          kind: 'native-v4',
+          contentRevision: environment.revision,
+          coreBuildId: environment.build.coreBuildId,
+          registryBuildId: environment.build.registryBuildId,
+        },
+        environment.sandbox.revision,
+        effectiveRules,
+      ),
       environmentId,
       environmentConfigVersion: selected.version,
     }

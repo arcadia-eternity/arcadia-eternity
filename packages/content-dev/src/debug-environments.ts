@@ -1,14 +1,11 @@
-import {
-  skillSlotsSchema,
-  declaredConstraintsSchema,
-  ruleCollectionsSchema,
-  constraintEditsSchema,
-  teamConstraintsSchema,
-  skillParameterPolicySchema,
+import { EnvironmentRuleDeclarationSchema, EnvironmentRequirementsSchema } from '@arcadia-eternity/const'
+export {
+  EnvironmentRuleDeclarationSchema,
+  EnvironmentRulesSchema,
+  type EnvironmentRules,
 } from '@arcadia-eternity/const'
 import { WorkspaceError, type AuthorWorkspace } from './workspace.ts'
 import { z } from 'zod'
-import { eligibilitySchema, enhancementSchema, inheritanceSchema, learnsetAdjustmentsSchema } from './learnsets.ts'
 const idPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const packagePattern = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
 function fail(message: string): never {
@@ -42,105 +39,6 @@ const sharedFields = {
     .max(20)
     .refine(value => new Set(value).size === value.length, '源码包标识不能重复'),
 }
-
-const reference = z
-  .string()
-  .min(1)
-  .max(256)
-  .regex(/^[a-zA-Z0-9_./:-]+$/)
-const uniqueList = <T extends z.ZodType>(schema: T) =>
-  z
-    .array(schema)
-    .max(10000)
-    .refine(value => new Set(value).size === value.length, '引用不能重复')
-const contentSelection = z
-  .object({
-    species: uniqueList(reference).optional(),
-    skills: uniqueList(reference).optional(),
-    marks: uniqueList(reference).optional(),
-  })
-  .strict()
-
-/** Portable rule data. Runtime consumers must explicitly support every declared capability. */
-export const EnvironmentRulesSchema = z
-  .object({
-    schemaVersion: z.union([z.literal(1), z.literal(2)]),
-    constraints: teamConstraintsSchema.optional(),
-    mechanics: z
-      .object({
-        skillSlots: skillSlotsSchema.optional(),
-        individualValueDefault: z.number().int().min(0).max(120).optional(),
-        individualValues: z
-          .object({ max: z.number().int().min(0).max(120) })
-          .strict()
-          .optional(),
-        allowFaintSwitch: z.boolean().optional(),
-        inheritance: inheritanceSchema.optional(),
-        enhancement: enhancementSchema.optional(),
-        secondGenerationNatures: eligibilitySchema.optional(),
-      })
-      .strict()
-      .optional(),
-    skillParameters: skillParameterPolicySchema.optional(),
-    matchups: z
-      .object({
-        table: reference.optional(),
-        adjustments: z
-          .array(z.object({ attack: reference, defense: reference, multiplier: z.number().nonnegative() }).strict())
-          .max(50000)
-          .optional(),
-      })
-      .strict()
-      .optional(),
-    learnsetAdjustments: learnsetAdjustmentsSchema.optional(),
-    tier: z.string().regex(idPattern).optional(),
-    allow: contentSelection.optional(),
-    deny: contentSelection.optional(),
-    team: z
-      .object({
-        minSize: z.number().int().min(1).max(100).optional(),
-        maxSize: z.number().int().min(1).max(100).optional(),
-        uniqueSpecies: z.boolean().optional(),
-      })
-      .strict()
-      .refine(
-        value => value.minSize === undefined || value.maxSize === undefined || value.minSize <= value.maxSize,
-        '队伍最小数量不能大于最大数量',
-      )
-      .optional(),
-  })
-  .strict()
-  .refine(
-    rules =>
-      rules.schemaVersion === 2 ||
-      (rules.mechanics === undefined &&
-        rules.learnsetAdjustments === undefined &&
-        rules.constraints === undefined &&
-        rules.matchups === undefined &&
-        rules.skillParameters === undefined),
-    '玩法机制需要规则版本 2',
-  )
-export type EnvironmentRules = z.infer<typeof EnvironmentRulesSchema>
-
-export const EnvironmentRuleDeclarationSchema = EnvironmentRulesSchema.safeExtend({
-  constraints: declaredConstraintsSchema.optional(),
-  collections: ruleCollectionsSchema.optional(),
-  include: uniqueList(reference).optional(),
-  constraintEdits: constraintEditsSchema.optional(),
-}).refine(
-  value =>
-    (value.include === undefined && value.constraintEdits === undefined && value.collections === undefined) ||
-    value.schemaVersion === 2,
-  '规则集引用需要规则版本 2',
-)
-
-const EnvironmentRequirementsSchema = z
-  .object({
-    engine: z.string().trim().min(1).max(128).optional(),
-    sdk: z.string().trim().min(1).max(128).optional(),
-    capabilities: uniqueList(z.string().regex(/^[a-zA-Z0-9_.:-]{1,128}$/)).optional(),
-  })
-  .strict()
 
 const EnvironmentDocumentV1Schema = z.object({ schemaVersion: z.literal(1), ...sharedFields }).strict()
 export const EnvironmentDocumentV2Schema = z

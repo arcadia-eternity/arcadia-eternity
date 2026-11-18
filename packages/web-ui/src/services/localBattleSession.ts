@@ -1,9 +1,5 @@
 import { toRaw } from 'vue'
-import {
-  assertEnvironmentTeam,
-  assertLearningChoices,
-  resolveEnvironmentMechanics,
-} from '@arcadia-eternity/content-sdk/environment-rules'
+import { assertPlayableTeam, resolveEnvironmentMechanics } from '@arcadia-eternity/content-sdk/environment-rules'
 import { isNavigationFailure, type NavigationFailure } from 'vue-router'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { useBattleStore } from '@/stores/battle'
@@ -94,16 +90,15 @@ export class LocalBattleSession {
       this.#preparing = (async () => {
         await this.prepareContent(target.data)
         launch.signal.throwIfAborted()
-        assertEnvironmentTeam(this.#rules, firstInput.team)
-        assertEnvironmentTeam(this.#rules, secondInput.team)
         for (const player of [firstInput, secondInput])
-          assertLearningChoices(
+          assertPlayableTeam(
             this.#rules,
             player.team,
             id => target.data.getSpecies(id),
             target.data.getNature,
             target.data.getEnhancement,
             id => target.data.getSkill(id),
+            id => target.data.getMark(id),
           )
         const environment = await this.#content?.readRuntime()
         launch.signal.throwIfAborted()

@@ -1,5 +1,5 @@
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
-import { digestJson, mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
+import { digestJson, gameplayRevision, mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
 import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import type { EnvironmentRules, NativeRuntimeIdentity, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
@@ -48,20 +48,35 @@ export function readPreparedWebCatalog(refresh = false): Promise<PreparedCatalog
       validateEnvironmentContent(value?.content, { includeRuleDetails: true })
       if (!Array.isArray(value.resources) || typeof value.runtimeRevision !== 'string' || !value.runtimeRevision)
         throw new Error('本机展示资源索引无效')
+      const legacy = !value.runtimeIdentity
+      if (legacy) {
+        const material = /^(.+)\/effects:[a-f0-9]{64}$/.exec(value.runtimeRevision)
+        if (material) {
+          const metadata = await readEnvironmentJson<{
+            build: Pick<NativeRuntimeIdentity, 'coreBuildId' | 'registryBuildId'>
+          }>(new URL('dist/catalog.json', root).href, fetch, undefined, true)
+          value.runtimeIdentity = {
+            kind: 'native-v4',
+            contentRevision: material[1],
+            coreBuildId: metadata.build.coreBuildId,
+            registryBuildId: metadata.build.registryBuildId,
+          }
+        }
+      }
       if (value.runtimeIdentity) {
         const identity = value.runtimeIdentity
+        const revision = await gameplayRevision(identity, value.runtimeRevision, rules)
         if (
           identity.kind !== 'native-v4' ||
           !identity.coreBuildId ||
           !identity.registryBuildId ||
           !identity.contentRevision ||
-          value.gameplayRevision !== (await digestJson({ runtime: identity, material: value.runtimeRevision, rules }))
+          ((!legacy || value.gameplayRevision !== undefined) && value.gameplayRevision !== revision)
         )
           throw new Error('网页环境的规则或材料与玩法版本不符')
-      } else if (value.gameplayRevision === undefined) {
-        value.gameplayRevision = await digestJson({ material: value.runtimeRevision, rules })
-      } else if (!/^[a-f0-9]{64}$/.test(value.gameplayRevision)) {
-        throw new Error('网页环境玩法版本无效')
+        value.gameplayRevision = revision
+      } else {
+        value.gameplayRevision = 'legacy:' + (await digestJson({ material: value.runtimeRevision, rules }))
       }
       const resolve = (source: string) => {
         const path = source.startsWith('pack-assets/') ? source.split('/').map(encodeURIComponent).join('/') : source

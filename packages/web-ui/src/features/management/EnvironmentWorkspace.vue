@@ -154,18 +154,18 @@ async function selectEnvironment(environment: ManagedEnvironment) {
 }
 const contentKinds = ['species', 'skills', 'marks'] as const
 const contentLabels = { species: '精灵', skills: '技能', marks: '印记' }
-function setRuleList(side: 'allow' | 'deny', kind: (typeof contentKinds)[number], value: string) {
+function setRuleList(side: 'allow' | 'deny', kind: (typeof contentKinds)[number], value?: string) {
   if (!document.value) return
   const values = [
     ...new Set(
-      value
+      (value ?? '')
         .split(/[\n,，]/)
         .map(item => item.trim())
         .filter(Boolean),
     ),
   ]
   const current: Partial<Record<(typeof contentKinds)[number], string[]>> = { ...document.value.rules[side] }
-  if (values.length) current[kind] = values
+  if (value !== undefined && (values.length || document.value.rules.include?.length)) current[kind] = values
   else delete current[kind]
   if (Object.keys(current).length) document.value.rules[side] = current
   else delete document.value.rules[side]
@@ -192,12 +192,15 @@ function setIVDefault(input: string) {
   if (input.trim() && Number.isInteger(value) && value >= 0 && value <= 120)
     setMechanics({ individualValueDefault: value })
 }
+function inheritTeamField(key: 'minSize' | 'maxSize' | 'uniqueSpecies') {
+  if (!document.value?.rules.team) return
+  delete document.value.rules.team[key]
+  if (!Object.keys(document.value.rules.team).length) delete document.value.rules.team
+}
 function setTeamSize(key: 'minSize' | 'maxSize', value: string) {
   if (!document.value) return
-  const team = { ...document.value.rules.team }
-  if (value === '') delete team[key]
-  else team[key] = Number(value)
-  document.value.rules.team = team
+  if (value === '') inheritTeamField(key)
+  else document.value.rules.team = { ...document.value.rules.team, [key]: Number(value) }
 }
 const clone = (value: ManagedEnvironmentDocument): ManagedEnvironmentDocument => JSON.parse(JSON.stringify(value))
 
@@ -603,6 +606,7 @@ function save() {
                   type="number"
                   min="1"
                   max="6"
+                  :placeholder="String(previewComposition?.value?.rules.team?.minSize ?? 1)"
                   :model-value="document.rules.team?.minSize"
                   @input="setTeamSize('minSize', $event)"
                 />
@@ -612,13 +616,16 @@ function save() {
                   type="number"
                   min="1"
                   max="6"
+                  :placeholder="String(previewComposition?.value?.rules.team?.maxSize ?? 6)"
                   :model-value="document.rules.team?.maxSize"
                   @input="setTeamSize('maxSize', $event)"
                 />
               </ElFormItem>
             </div>
             <ElCheckbox
-              :model-value="document.rules.team?.uniqueSpecies"
+              :model-value="
+                document.rules.team?.uniqueSpecies ?? previewComposition?.value?.rules.team?.uniqueSpecies ?? false
+              "
               @change="
                 document.rules.team = {
                   ...document.rules.team,
@@ -627,19 +634,37 @@ function save() {
               "
               >队伍内精灵不重复</ElCheckbox
             >
+            <ElButton
+              v-if="document.rules.include?.length && document.rules.team?.uniqueSpecies !== undefined"
+              @click="inheritTeamField('uniqueSpecies')"
+              >恢复继承</ElButton
+            >
             <fieldset v-for="side in ['allow', 'deny'] as const" :key="side">
-              <legend>{{ side === 'allow' ? '允许内容（留空表示不额外限制）' : '禁止内容' }}</legend>
+              <legend>{{ side === 'allow' ? '允许内容' : '禁止内容' }}</legend>
               <ElFormItem
                 v-for="kind in contentKinds"
                 :key="kind"
                 :label="String(contentLabels[kind]) + '标识（每行一个）'"
               >
                 <ElInput
+                  :placeholder="
+                    document.rules[side]?.[kind] === undefined
+                      ? previewComposition?.value?.rules[side]?.[kind]?.join('\n')
+                      : undefined
+                  "
                   :model-value="document.rules[side]?.[kind]?.join('\n') ?? ''"
                   :rows="2"
                   @input="setRuleList(side, kind, $event)"
                   type="textarea"
                 />
+                <ElButton
+                  v-if="document.rules.include?.length && document.rules[side]?.[kind] !== undefined"
+                  @click="setRuleList(side, kind)"
+                  >恢复继承</ElButton
+                >
+                <ElButton v-else-if="document.rules.include?.length" @click="setRuleList(side, kind, '')">{{
+                  side === 'deny' ? '清除禁用' : '全部禁用'
+                }}</ElButton>
               </ElFormItem>
             </fieldset>
           </fieldset>

@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { open } from 'node:fs/promises'
 
 /** Static preparation only: author modules are compiled by the loader, never evaluated here. */
@@ -135,7 +135,9 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
             for (const key of ['source', 'fallback'])
               if (p.battle[key]) p.battle[key] = resolveResource(row.id, p.battle[key])
         }
-      const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
+      const { prepareEnvironmentRules, assertEnvironmentRequirements } =
+        await import('@arcadia-eternity/content-sdk/environment-rules')
+      assertEnvironmentRequirements(lease.document?.requires)
       const { rules } = prepareEnvironmentRules(lease.document?.rules, prepared.sandbox.data?.ruleSets)
       const result = {
         token,
@@ -151,15 +153,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         coreBuildId: prepared.build.coreBuildId,
         registryBuildId: prepared.build.registryBuildId,
       }
-      result.gameplayRevision = createHash('sha256')
-        .update(
-          runtime.canonical({
-            runtime: runtimeIdentity,
-            material: prepared.sandbox.revision,
-            rules,
-          }),
-        )
-        .digest('hex')
+      result.gameplayRevision = await runtime.gameplayRevision(runtimeIdentity, prepared.sandbox.revision, rules)
       const members = prepared.installation.members
       const packages = members.map(({ name, version, projectId, namespace }) => ({
         name,

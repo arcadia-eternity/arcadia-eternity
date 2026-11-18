@@ -3,7 +3,7 @@ import {
   validateEnvironmentRules,
   assertRuleContentReferences,
 } from '@arcadia-eternity/content-sdk/environment-rules'
-import { buildDisplayCatalog, buildDisplayLocales, canonical } from '@arcadia-eternity/pack-loader/native'
+import { buildDisplayCatalog, buildDisplayLocales, gameplayIdentity } from '@arcadia-eternity/pack-loader/native'
 import { resolveSkillParameters, requireElementChart } from '@arcadia-eternity/const'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
@@ -50,6 +50,7 @@ export interface EnvironmentLease {
   readonly admissionKey?: string
   readonly runtime: ServerRuntime
   readonly descriptor: ServerEnvironmentDescriptor
+  readonly legacyBuiltinAcceptance?: boolean
   readonly isNpm: boolean
   readonly executionPolicy?: 'server' | 'peer'
   readonly rules?: EnvironmentAdmissionRules
@@ -279,14 +280,14 @@ export class ServerEnvironmentRegistry {
     const descriptor = structuredClone(entry.descriptor)
     const publication = this.publication?.get(entry.descriptor.id)
     const policy = publication?.executionPolicy
-    const rules = structuredClone(publication?.rules ?? { schemaVersion: 1 as const })
+    const rules = structuredClone(publication?.rules ?? entry.runtime.defaultRules ?? { schemaVersion: 1 as const })
     const gameplayRevision = createHash('sha256')
       .update(
-        canonical({
-          runtime: descriptor.runtime,
-          material: entry.runtime.sandbox?.revision ?? descriptor.runtime.contentRevision,
+        gameplayIdentity(
+          descriptor.runtime,
+          entry.runtime.sandbox?.revision ?? descriptor.runtime.contentRevision,
           rules,
-        }),
+        ),
       )
       .digest('hex')
     const peerRevision = (entry.bundled || this.peerMaterialIds.has(descriptor.id)) && entry.runtime.sandbox?.revision
@@ -394,9 +395,10 @@ export class ServerEnvironmentRegistry {
         executionPolicy: publication?.executionPolicy,
       }),
       descriptor: this.publicDescriptor(entry),
+      legacyBuiltinAcceptance: !publication && entry.descriptor.id === this.builtinId,
       isNpm: !entry.bundled,
       ...(publication ? { executionPolicy: publication.executionPolicy ?? 'server' } : {}),
-      ...(publication?.rules ? { rules: structuredClone(publication.rules) } : {}),
+      rules: structuredClone(publication?.rules ?? entry.runtime.defaultRules),
       release: async () => {
         if (released) return
         released = true

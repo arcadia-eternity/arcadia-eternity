@@ -1,4 +1,3 @@
-import { assertSkillSlots } from '@arcadia-eternity/const'
 import {
   readSkillParameterCatalog,
   resolveSkillParameters,
@@ -18,9 +17,7 @@ import type {
 import { digestJson } from '@arcadia-eternity/pack-loader/native'
 import { Value } from '@sinclair/typebox/value'
 import {
-  assertEnvironmentTeam,
-  assertNatureChoice,
-  learningIssues,
+  assertPlayableTeam,
   assertRuleContentReferences,
   validateEnvironmentRules,
 } from '@arcadia-eternity/content-sdk/environment-rules'
@@ -475,30 +472,17 @@ export function validatePersonalEnvironmentTeam(prepared: PreparedPersonalEnviro
   )
   const skills = new Map(prepared.environment.data.skills.map(raw => [(raw as { id: string }).id, raw]))
   const marks = new Set(prepared.environment.data.marks.map(raw => (raw as { id: string }).id))
-  const stages = new Set(readEnhancementStages(prepared.environment.data.enhancements).map(row => row.id))
+  const stages = new Map(readEnhancementStages(prepared.environment.data.enhancements).map(stage => [stage.id, stage]))
   const natures = new Map(readNatureCatalog(prepared.environment.data.natures).map(row => [row.id, row]))
-  for (const pet of parsed) {
-    const definition = species.get(pet.species)
-    if (!definition || pet.level > 100 || Object.values(pet.evs).reduce((sum, value) => sum + value, 0) > 510)
-      throw new Error('个人挑战队伍的精灵、等级或学习力不符合环境要求')
-    for (const skill of [...pet.skills, ...(pet.inheritedSkill ? [pet.inheritedSkill] : [])])
-      if (!skills.has(skill)) throw new Error(`个人挑战队伍不能学习技能：${skill}`)
-    if (pet.enhancement && !stages.has(pet.enhancement)) throw new Error('缺少强化阶段 ' + pet.enhancement)
-    assertNatureChoice(
-      prepared.reference.rules,
-      pet.nature,
-      id => natures.get(id),
-      () => definition,
-    )
-    assertSkillSlots(prepared.reference.rules?.mechanics?.skillSlots, pet.skills, id => skills.get(id))
-    const issues = learningIssues(prepared.reference.rules, definition, pet)
-    if (issues.length) throw new Error(issues.join('、'))
-    if (pet.ability && (!marks.has(pet.ability) || !definition.ability.includes(pet.ability)))
-      throw new Error(`个人挑战队伍不能使用特性：${pet.ability}`)
-    if (pet.emblem && (!marks.has(pet.emblem) || !definition.emblem.includes(pet.emblem)))
-      throw new Error(`个人挑战队伍不能使用纹章：${pet.emblem}`)
-  }
-  assertEnvironmentTeam(Value.Clone(prepared.reference.rules), parsed)
+  assertPlayableTeam(
+    Value.Clone(prepared.reference.rules),
+    parsed,
+    id => species.get(id),
+    id => natures.get(id),
+    id => stages.get(id),
+    id => skills.get(id),
+    id => marks.has(id),
+  )
   return parsed
 }
 

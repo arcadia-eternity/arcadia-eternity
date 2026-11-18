@@ -1,13 +1,6 @@
 import type { MarkSchemaType, SkillSchemaType, SpeciesSchemaType, ContentPresentation } from '@arcadia-eternity/schema'
 import type { NativeRuntimeIdentity } from './session'
-import type { ManagedEnvironmentDocument } from './management'
-
-export type EnvironmentRules = Omit<
-  ManagedEnvironmentDocument['rules'],
-  'include' | 'constraintEdits' | 'collections' | 'constraints'
-> & {
-  constraints?: import('@arcadia-eternity/const').TeamConstraint[]
-}
+export type EnvironmentRules = import('@arcadia-eternity/const').EnvironmentRules
 
 /** A fixed, player-owned recipe. The signaling server never acquires or executes its materials. */
 export interface PersonalEnvironmentReference {

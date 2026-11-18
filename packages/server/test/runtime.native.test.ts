@@ -94,7 +94,8 @@ it('checks inherited skills and second-generation natures independently against 
   const pet = { ...starter, species: 'pet_duomo', skills: ['skill_chongfeng'], nature: 'base:nature-34' }
   const eligible = { schemaVersion: 2, mechanics: { secondGenerationNatures: 'species' } } as const
   await expect(validateServerTeam([pet], undefined, eligible)).resolves.toEqual([pet])
-  await expect(validateServerTeam([pet])).rejects.toThrow('二代性格')
+  await expect(validateServerTeam([pet])).resolves.toEqual([pet])
+  await expect(validateServerTeam([pet], undefined, { schemaVersion: 1 })).rejects.toThrow('二代性格')
   const poolRules = { schemaVersion: 2, mechanics: { inheritance: { eligible: 'species' } } } as const
   const hatchling = {
     ...starter,
@@ -124,8 +125,10 @@ it('checks inherited skills and second-generation natures independently against 
 
 it('allows each new breeding family to inherit from the other under the official base rules', async () => {
   const { readFile } = await import('node:fs/promises')
-  const rules = JSON.parse(
-    await readFile(new URL('../../../packs/base/environment/base-rules.json', import.meta.url), 'utf8'),
+  const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
+  const { rules } = prepareEnvironmentRules(
+    JSON.parse(await readFile(new URL('../../../packs/base/environment/base-rules.json', import.meta.url), 'utf8')),
+    (await loadServerBase()).data.ruleSets,
   )
   const starter = fixture()[0].team[0]
   for (const [species, inheritedSkill, ownDonorMove] of [

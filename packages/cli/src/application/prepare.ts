@@ -105,7 +105,7 @@ export async function prepareContent(
     }
     const loader = await createLoader()
     const loaded = await loader.load(ref, { source: 'node-fs', enforceLockfile: true })
-    if (!workFile) return loaded
+    if (!workFile) return { ...loaded, rules: prepareRulesForContent(undefined, loaded.data).rules }
     const file = resolve(cwd, workFile)
     if ((await stat(file)).size > limits.bytes) throw new Error('作品文件超过大小限制')
     const archive = await parseArchive(await readFile(file, 'utf8'))
@@ -119,7 +119,12 @@ export async function prepareContent(
       )!,
     )
     const prepared = await loader.fromWorks(loaded.data, selected, archive.releases)
-    return { ...loaded, ...prepared, works: { base: loaded.data, selected, installed: prepared.releases } }
+    return {
+      ...loaded,
+      ...prepared,
+      rules: prepareRulesForContent(undefined, prepared.data).rules,
+      works: { base: loaded.data, selected, installed: prepared.releases },
+    }
   } catch (error) {
     if (error instanceof WorkError || error instanceof CliError) throw error
     throw new CliError('CONTENT_INVALID', message(error), 2, ref)

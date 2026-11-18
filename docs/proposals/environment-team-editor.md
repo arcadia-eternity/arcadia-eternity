@@ -1,6 +1,6 @@
 # 环境驱动的队伍编辑器
 
-日期：2026-11-18。状态：交互与契约提案，尚未实现。配合[对战环境总设计](environment-system-design.md)、[机制配置](environment-rule-composition.md)与[参考调研](environment-reference-research.md)。本文细化具体页面组织，不新增另一套环境或存储模型。
+日期：2026-11-18。已接入按环境配队、共享成员编辑与技能槽，后文列出交互验收要求。配合[对战环境总设计](environment-system-design.md)、[机制配置](environment-rule-composition.md)与[参考调研](environment-reference-research.md)。本文细化具体页面组织，不新增另一套环境或存储模型。
 
 ## 页面骨架
 
@@ -181,4 +181,4 @@ suppressed 环境保留已存方案，显示“本局不生效”，不把加成
 - 从甲房返回后，用相同个人队伍进入同版本的乙房。乙房看不到甲房未提交的改招；甲房迟到的加载结果和提交回执也不能改变乙房或仓库。
 - 手机端无需横向滚动整张属性表，也能完成数值编辑、查看修正与处理错误。
 
-本次仅形成设计规格，未实现界面或执行交互验收。
+跨版本房间和归档恢复用例集中在[实施计划](environment-implementation-plan.md)。

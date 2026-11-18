@@ -31,7 +31,7 @@ test('v2 environment preserves explicit versioned rules and capabilities', () =>
     schemaVersion: 2,
     rules: {
       schemaVersion: 1,
-      tier: 'community-standard',
+      tier: 'standard',
       allow: { species: ['example:pet'] },
       deny: { skills: ['example:unsafe'] },
       team: { minSize: 1, maxSize: 6, uniqueSpecies: true },
@@ -45,6 +45,8 @@ test('unknown versions and executable or unrecognized fields are rejected withou
   const source = normalizeEnvironmentDocument(legacy())
   for (const value of [
     { ...source, schemaVersion: 99 },
+    { ...source, rules: { schemaVersion: 1, tier: 'unknown' } },
+    { ...source, rules: { schemaVersion: 2, team: { maxSize: 7 } } },
     { ...legacy(), rules: source.rules },
     { ...source, databaseUrl: 'postgres://localhost/secret' },
     { ...source, rules: { schemaVersion: 1, script: 'run.js' } },

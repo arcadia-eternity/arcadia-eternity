@@ -1,4 +1,3 @@
-import { assertSkillSlots } from '@arcadia-eternity/const'
 import { LocalBattleSystem, type BattleHost } from '@arcadia-eternity/battle/host'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
@@ -16,14 +15,14 @@ import {
   type SpeciesSchemaType,
 } from '@arcadia-eternity/schema'
 import {
-  assertEnvironmentTeam,
-  assertNatureChoice,
-  learningIssues,
+  assertPlayableTeam,
+  prepareEnvironmentRules,
   type validateEnvironmentRules,
 } from '@arcadia-eternity/content-sdk/environment-rules'
 import { nanoid } from 'nanoid'
 
 export interface ServerRuntime {
+  defaultRules?: ReturnType<typeof validateEnvironmentRules>
   sandbox?: SandboxEnvironment
   content: ContentCatalog | ContentIndex
   species: ReadonlyMap<string, SpeciesSchemaType>
@@ -50,6 +49,7 @@ export function createServerRuntime(
   },
 ): ServerRuntime {
   return {
+    defaultRules: prepareEnvironmentRules(undefined, loaded.data.ruleSets).rules,
     content: loaded.content,
     sandbox: loaded.sandbox,
     species: new Map(
@@ -96,32 +96,17 @@ export async function validateServerTeam(
         for (const field of ['maxHp', 'currentHp', 'hp'])
           if (field in pet && pet[field] !== undefined) throw new Error(`Online teams cannot override ${field}`)
   const parsed = parseWithErrors(PlayerSchema, { id: nanoid(), name: 'team', team }).team
-  const { content, species } = runtime ?? (await loadOfficialContent())
-  assertEnvironmentTeam(rules, parsed)
-  for (const pet of parsed) {
-    // Keep admission aligned with the native runtime's bounds, which are stricter
-    // than the shared draft schema.
-    if (pet.level > 100) throw new Error('Pet level must not exceed 100')
-    if (Object.values(pet.evs).reduce((sum, value) => sum + value, 0) > 510)
-      throw new Error('Pet total EVs must not exceed 510')
-    content.getSpecies(pet.species as Parameters<ContentCatalog['getSpecies']>[0])
-    for (const skill of pet.skills) content.getSkill(skill as Parameters<ContentCatalog['getSkill']>[0])
-    if (pet.ability) content.getMark(pet.ability as Parameters<ContentCatalog['getMark']>[0])
-    if (pet.emblem) content.getMark(pet.emblem as Parameters<ContentCatalog['getMark']>[0])
-    const definition = species.get(pet.species)!
-    if (pet.inheritedSkill) content.getSkill(pet.inheritedSkill as Parameters<ContentCatalog['getSkill']>[0])
-    if (pet.enhancement) content.getEnhancement(pet.enhancement)
-    assertNatureChoice(rules, pet.nature, content.getNature, () => definition)
-    assertSkillSlots(rules?.mechanics?.skillSlots, pet.skills, id =>
-      content.getSkill(id as Parameters<ContentCatalog['getSkill']>[0]),
-    )
-    const issues = learningIssues(rules, definition, pet)
-    if (issues.length) throw new Error(issues.join('、'))
-    if (pet.ability && !definition.ability.includes(pet.ability))
-      throw new Error(`Ability ${pet.ability} is not allowed for ${pet.species}`)
-    if (pet.emblem && !definition.emblem.includes(pet.emblem))
-      throw new Error(`Emblem ${pet.emblem} is not allowed for ${pet.species}`)
-  }
+  const { content, species, defaultRules } = runtime ?? (await loadOfficialContent())
+  rules ??= defaultRules
+  assertPlayableTeam(
+    rules,
+    parsed,
+    id => species.get(id),
+    content.getNature,
+    content.getEnhancement,
+    id => content.getSkill(id as Parameters<ContentCatalog['getSkill']>[0]),
+    id => content.getMark(id as Parameters<ContentCatalog['getMark']>[0]),
+  )
   return parsed
 }
 
@@ -139,6 +124,7 @@ export async function createServerBattle(
   if (playerA.id === playerB.id) throw new Error('Battle players must have distinct identities')
   runtime ??= await loadOfficialContent()
   signal?.throwIfAborted()
+  rules ??= runtime.defaultRules
   const { content } = runtime
   const players = await Promise.all(
     [playerA, playerB].map(async player => ({

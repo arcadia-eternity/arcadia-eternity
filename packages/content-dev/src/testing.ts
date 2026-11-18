@@ -3,12 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.ts'
-import {
-  assertEnvironmentTeam,
-  assertLearningChoices,
-  resolveEnvironmentMechanics,
-  validateEnvironmentRules,
-} from './environment-rules.ts'
+import { assertPlayableTeam, resolveEnvironmentMechanics, validateEnvironmentRules } from './environment-rules.ts'
 import { playersFromTeams } from './project-teams.ts'
 import { prepareSandboxContent, type SandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
@@ -65,14 +60,14 @@ export async function prepareContentPack(
       })),
     }))
     for (const player of players) {
-      assertEnvironmentTeam(environmentRules, player.team)
-      assertLearningChoices(
+      assertPlayableTeam(
         environmentRules,
         player.team,
         id => environment.content.getSpecies(id),
         environment.content.getNature,
         environment.content.getEnhancement,
         environment.content.getSkill,
+        environment.content.getMark,
       )
     }
     return players

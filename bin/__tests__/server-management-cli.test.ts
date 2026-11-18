@@ -328,6 +328,7 @@ it('refreshes stale builtin content after a release without changing administrat
 
   const manifestFile = join(directory, 'workspace', 'environments', binding.environmentId, 'package.json')
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'))
+  manifest.arcadiaEnvironment.rules = { schemaVersion: 1 }
   manifest.dependencies['@arcadia-eternity/data-pack-base'] = '0.0.0-stale'
   await writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n')
 
@@ -338,6 +339,11 @@ it('refreshes stale builtin content after a release without changing administrat
     runtime: { contentRevision: string }
   }
   expect(environments[0].runtime.contentRevision).toBe(info.runtime.contentRevision)
+  expect(environments[0].rules?.mechanics?.inheritance?.eligible).toBe('species')
+  expect(JSON.parse(await readFile(manifestFile, 'utf8')).arcadiaEnvironment.rules).toEqual({
+    schemaVersion: 2,
+    include: ['base:classic'],
+  })
 
   request = await administrator(running.origin, directory)
   server = (await request<{ servers: Server[] }>('/servers')).servers[0]

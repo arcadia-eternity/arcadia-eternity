@@ -1,69 +1,17 @@
-import { assertSkillSlots, type SkillSlots } from '@arcadia-eternity/const'
+import { assertSkillSlots, type EnvironmentRules } from '@arcadia-eternity/const'
 import { z } from 'zod'
 
-const id = z
-  .string()
-  .min(1)
-  .max(256)
-  .regex(/^[^\p{Cc}]+$/u)
-const ids = z
-  .array(id)
-  .max(10000)
-  .refine(values => new Set(values).size === values.length, '重复的内容 ID')
-export const eligibilitySchema = z.union([z.enum(['species', 'all', 'off']), ids])
-export const enhancementSchema = z
-  .object({
-    mode: z.enum(['forbidden', 'suppressed', 'active']),
-    stages: ids.optional(),
-    species: ids.optional(),
-  })
-  .strict()
-export const inheritanceSchema = z
-  .object({
-    eligible: eligibilitySchema,
-    pool: z
-      .object({ mode: z.enum(['fallback', 'append', 'replace']), skills: ids })
-      .strict()
-      .optional(),
-  })
-  .strict()
-export const learnsetAdjustmentsSchema = z
-  .array(
-    z
-      .object({
-        species: id,
-        source: z.enum(['normal', 'inherited']),
-        skill: id,
-        action: z.enum(['add', 'remove']),
-        level: z.number().int().min(1).max(100).optional(),
-      })
-      .strict()
-      .refine(
-        row => row.level === undefined || (row.action === 'add' && row.source === 'normal'),
-        '只有普通学习条目的新增操作能指定等级',
-      ),
-  )
-  .max(10000)
-  .refine(
-    rows => new Set(rows.map(row => JSON.stringify([row.species, row.source, row.skill]))).size === rows.length,
-    '同一物种、来源与技能只能调整一次',
-  )
-
+const id = z.string().min(1).max(256)
 export interface LearnsetSpecies {
   id: string
   learnable_skills: readonly { skill_id: string; level: number }[]
+  enhancementBranches?: readonly string[]
+  ability?: readonly (string | { id: string })[]
+  emblem?: readonly (string | { id: string })[]
   inheritance?: { skills: string[] }
 }
-type Eligibility = z.infer<typeof eligibilitySchema>
-type LearningRules = {
-  mechanics?: {
-    skillSlots?: SkillSlots
-    inheritance?: z.infer<typeof inheritanceSchema>
-    secondGenerationNatures?: Eligibility
-    enhancement?: z.infer<typeof enhancementSchema>
-  }
-  learnsetAdjustments?: z.infer<typeof learnsetAdjustmentsSchema>
-}
+type LearningRules = Pick<EnvironmentRules, 'mechanics' | 'learnsetAdjustments'>
+type Eligibility = NonNullable<EnvironmentRules['mechanics']>['secondGenerationNatures']
 export function isEligible(species: Pick<LearnsetSpecies, 'id' | 'inheritance'>, selection?: Eligibility) {
   return (
     selection === 'all' ||
@@ -148,27 +96,52 @@ const learningSelection = z.object({
   species: id,
   nature: id,
   enhancement: id.optional(),
-  level: z.number().int().positive(),
+  level: z.number().int().min(1).max(100),
+  evs: z.record(z.string(), z.number()).optional(),
+  ability: z.string().optional(),
+  emblem: z.string().optional(),
   skills: z.array(id),
   inheritedSkill: id.optional(),
 })
-export function assertLearningChoices(
-  rules: LearningRules | undefined,
-  team: readonly unknown[],
+export type LearningLookups = [
   speciesById: (id: string) => unknown,
   natureById: NatureLookup,
   stageById: (id: string) => unknown,
-  skillById: (id: string) => unknown = () => undefined,
+  skillById?: (id: string) => unknown,
+  markById?: (id: string) => unknown,
+]
+export function assertLearningChoices(
+  rules: LearningRules | undefined,
+  team: readonly unknown[],
+  ...[speciesById, natureById, stageById, skillById, markById]: LearningLookups
 ) {
   for (const input of team) {
     const pet = learningSelection.parse(input)
-    assertSkillSlots(rules?.mechanics?.skillSlots, pet.skills, skillById)
-    if (pet.enhancement && !stageById(pet.enhancement)) throw new Error('缺少强化阶段 ' + pet.enhancement)
+    if (skillById) {
+      for (const id of new Set(pet.inheritedSkill ? [...pet.skills, pet.inheritedSkill] : pet.skills))
+        if (!skillById(id)) throw new Error('缺少技能定义 ' + id)
+    }
+    assertSkillSlots(rules?.mechanics?.skillSlots, pet.skills, skillById ?? (() => undefined))
+    if (pet.evs && Object.values(pet.evs).reduce((sum, value) => sum + value, 0) > 510)
+      throw new Error('学习力总和不能超过 510')
     const species = () => speciesById(pet.species) as LearnsetSpecies | undefined
     assertNatureChoice(rules, pet.nature, natureById, species)
-    if (!rules?.mechanics?.inheritance && !rules?.learnsetAdjustments?.length && !pet.inheritedSkill) continue
     const definition = species()
     if (!definition || !Array.isArray(definition.learnable_skills)) throw new Error('缺少物种学习表 ' + pet.species)
+    if (pet.enhancement) {
+      const stage = stageById(pet.enhancement) as { branch: string } | undefined
+      if (!stage) throw new Error('缺少强化阶段 ' + pet.enhancement)
+      if (!definition.enhancementBranches?.includes(stage.branch))
+        throw new Error('该物种不能使用强化阶段 ' + pet.enhancement)
+    }
+    for (const kind of ['ability', 'emblem'] as const) {
+      const selected = pet[kind]
+      if (selected && markById && !markById(selected)) throw new Error('缺少印记定义 ' + selected)
+      if (selected && !definition[kind]?.some(mark => (typeof mark === 'string' ? mark : mark.id) === selected))
+        throw new Error(
+          (kind === 'ability' ? 'Ability' : 'Emblem') + ' ' + selected + ' is not allowed for ' + pet.species,
+        )
+    }
     const issues = learningIssues(rules, definition, pet)
     if (issues.length) throw new Error(issues.join('、'))
   }

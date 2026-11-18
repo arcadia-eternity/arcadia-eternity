@@ -393,7 +393,7 @@ async function loadLocalContentRuntime() {
     return {
       host: node.emptyNpmContentHost,
       prepareNpmProject: node.prepareNpmProject,
-      canonical: native.canonical,
+      gameplayRevision: native.gameplayRevision,
       buildDisplayCatalog: native.buildDisplayCatalog,
       buildDisplayLocales: native.buildDisplayLocales,
     }
