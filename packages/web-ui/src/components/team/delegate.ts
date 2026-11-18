@@ -20,6 +20,8 @@ export interface TeamEditorDelegate {
     replace(current: string, next: string): boolean
   }
   affected?: Readonly<Ref<string[]>>
+  stale?: Readonly<Ref<boolean>>
+  discardDraft?(): Promise<void>
   save?(scope?: 'original' | 'copy'): boolean | void | Promise<boolean | void>
   saveLabel?: string
   clearLabel?: string

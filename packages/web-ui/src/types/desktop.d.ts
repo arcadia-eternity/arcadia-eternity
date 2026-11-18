@@ -24,6 +24,7 @@ export type LocalBattleHostStatus =
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  setTeamDraftPending?(pending: boolean): void
   onProfileChanged?: (callback: () => void) => () => void
   profile?: (input: { action: 'read' | 'raw' } | { action: 'activity'; busy: boolean } | { action: 'commit'; expected: import('@arcadia-eternity/local-profile').ProfileExpectation; next: import('@arcadia-eternity/local-profile').Envelope }) => Promise<{ value?: unknown; error?: { code: string; message: string } }>
 
@@ -122,6 +123,7 @@ declare global {
       returnToEditor(): void
     }
     arcadiaRemotePlay?: {
+  setTeamDraftPending?(pending: boolean): void
       updateProfileDraft?: (data: import('@arcadia-eternity/local-profile').ProfileData) => Promise<void>
       requestProfileSave?: (input: { data: import('@arcadia-eternity/local-profile').ProfileData; expectedRevision: number | null }) => Promise<void>
       getBootConfig(): Promise<{ schemaVersion: 1; mode: 'remote-play'; backendOrigin: string; sessionId: string; profile?: import('@arcadia-eternity/local-profile').ProfileSnapshot }>

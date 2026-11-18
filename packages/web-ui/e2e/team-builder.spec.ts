@@ -6,9 +6,10 @@ async function seedUnresolvedTeam(
   missingSpecies = false,
   replacement = false,
   inheritance = false,
+  hp = 31,
 ) {
   await page.addInitScript(
-    ({ missingSpecies, replacement, inheritance }) => {
+    ({ missingSpecies, replacement, inheritance, hp }) => {
       if (localStorage.getItem('missing-content-seeded')) return
       localStorage.setItem('missing-content-seeded', '1')
       const pet = {
@@ -19,7 +20,7 @@ async function seedUnresolvedTeam(
         nature: 'Jolly',
         gender: 'Female',
         evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-        ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+        ivs: { hp, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
         skills: ['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'],
         ability: 'custom:missing-ability',
         emblem: 'custom:missing-emblem',
@@ -54,7 +55,7 @@ async function seedUnresolvedTeam(
         }),
       )
     },
-    { missingSpecies, replacement, inheritance },
+    { missingSpecies, replacement, inheritance, hp },
   )
 }
 
@@ -301,4 +302,76 @@ test('equips, replaces and clears an inherited move from the same skill slot', a
   await page.getByRole('button', { name: '保存', exact: true }).click()
   await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.skills).toEqual(['skill_kusechouda'])
   expect((await readPersistedTeam(page))![0]?.inheritedSkill).toBeUndefined()
+})
+
+test('keeps a shared move draft on warehouse visits and team switches until explicitly discarded', async ({ page }) => {
+  await seedUnresolvedTeam(page, false, false, true)
+  await page.goto('/storage')
+  await page.getByRole('button', { name: '复制', exact: true }).first().click()
+  await expect.poll(async () => (await readPersistedProfile(page))?.library.teams.length).toBe(2)
+  await page.goto('/team-builder')
+  await page.getByRole('combobox', { name: '普通技能 2', exact: true }).fill('毒针连射')
+  await page.getByRole('option').filter({ hasText: '毒针连射' }).click()
+  const copy = page.getByRole('button', { name: '复制一只给本队', exact: true })
+  const warehouse = page.getByRole('link', { name: '仓库管理', exact: true })
+  const slot = page.getByTestId('normal-skill-1')
+  await expect(copy).toBeVisible()
+  await warehouse.click()
+  await page.goBack()
+  await expect(slot).toContainText('毒针连射')
+  for (const other of [true, false]) {
+    await warehouse.click()
+    await page.getByRole('button', { name: '设为当前', exact: true }).and(page.locator(':enabled')).click()
+    await page.goBack()
+    if (other) await expect(slot).not.toContainText('毒针连射')
+    else await expect(slot).toContainText('毒针连射')
+  }
+  expect((await readPersistedTeam(page, 1))![0].inheritedSkill).toBeUndefined()
+  const discard = page.getByRole('button', { name: '放弃草稿', exact: true })
+  await discard.click()
+  await page.getByRole('button', { name: '继续编辑' }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(slot).toContainText('毒针连射')
+  await discard.click()
+  await page.getByRole('dialog').getByRole('button', { name: '放弃草稿' }).click()
+  await expect(slot).not.toContainText('毒针连射')
+  await expect(copy).toHaveCount(0)
+})
+
+test('opens the offending field directly from a single IV violation', async ({ page }) => {
+  await seedUnresolvedTeam(page, false, false, true, 120)
+  await page.goto('/team-builder')
+  const issue = page.getByRole('button', { name: /荷依米 的体力资质 120 超过当前环境上限 31/ })
+  await expect(issue).toBeVisible()
+  await expect(page.getByRole('button', { name: /详情/ })).toHaveCount(0)
+  await issue.click()
+  const hp = page.getByRole('spinbutton', { name: '体力个体值' })
+  await expect(hp).toBeFocused()
+  await expect(hp).toHaveValue('120')
+})
+
+test('blocks a parked draft from overwriting a newer shared warehouse member', async ({ page }) => {
+  await seedUnresolvedTeam(page, false, false, true)
+  await page.goto('/storage')
+  await page.getByRole('button', { name: '复制', exact: true }).first().click()
+  await expect.poll(async () => (await readPersistedProfile(page))?.library.teams.length).toBe(2)
+  await page.goto('/team-builder')
+  const nickname = page.getByPlaceholder('输入精灵名称')
+  const switchTeam = async () => {
+    await page.getByRole('link', { name: '仓库管理' }).click()
+    await page.getByRole('button', { name: '设为当前', exact: true }).and(page.locator(':enabled')).click()
+    await page.goBack()
+  }
+  await nickname.fill('副队配法')
+  await switchTeam()
+  await expect(nickname).toHaveValue('荷依米')
+  await nickname.fill('新仓库配法')
+  await page.getByRole('button', { name: '修改原精灵', exact: true }).click()
+  await expect.poll(async () => (await readPersistedTeam(page, 0))?.[0].name).toBe('新仓库配法')
+  await switchTeam()
+  await expect(nickname).toHaveValue('副队配法')
+  await expect(page.getByRole('button', { name: '修改原精灵', exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: '放弃草稿', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: '放弃草稿', exact: true }).click()
+  await expect(nickname).toHaveValue('新仓库配法')
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import i18next from 'i18next'
 import { ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
 import {
@@ -21,6 +21,7 @@ const groupId = ref('')
 const groupInput = ref<number>()
 const selected = ref('')
 const singleInput = ref<number>()
+const editingSingle = ref(false)
 const manual = ref({ skill: '', useId: '', parameter: '' })
 const issue = ref('')
 const previous = computed(() => {
@@ -51,11 +52,40 @@ const sourceNames = { base: '技能基础值', profile: '数值方案', group: '
   string
 >
 
+const effective = computed(() => preview.value?.rows?.find(row => skillParameterKey(row) === selected.value))
+const effectiveSource = computed(() => {
+  const row = effective.value
+  if (!row) return ''
+  if (row.source === 'profile') {
+    const profile = (props.previewPolicy ?? policy.value).profile
+    return '跟随 ' + (props.catalog?.profiles.find(item => item.id === profile)?.name ?? profile)
+  }
+  if (row.source === 'group')
+    return '跟随参数组「' + (props.catalog?.groups.find(item => item.id === row.group)?.name ?? row.group) + '」'
+  return sourceNames[row.source]
+})
+watch(selected, () => {
+  editingSingle.value = false
+  singleInput.value = undefined
+})
+function editSingle() {
+  singleInput.value =
+    effective.value?.value ?? policy.value.overrides?.find(row => skillParameterKey(row) === selected.value)?.value
+  editingSingle.value = true
+}
+
 function addressLabel(row: { skill: string; useId: string; parameter: string; group?: string }) {
   const skill =
     i18next.t(row.skill + '.name', { ns: 'skill', nsSeparator: false, defaultValue: row.skill }) || row.skill
   const group = props.catalog?.groups.find(group => group.id === row.group)?.name
-  return [skill, group, row.useId + ' / ' + row.parameter].filter(Boolean).join(' · ')
+  const label = group ?? row.parameter
+  const ambiguous = props.catalog?.members.some(
+    other =>
+      other.skill === row.skill &&
+      skillParameterKey(other) !== skillParameterKey(row) &&
+      (group ? other.group === row.group : !other.group && other.parameter === row.parameter),
+  )
+  return ambiguous ? [skill, label, row.useId + ' / ' + row.parameter].join(' · ') : skill + ' · ' + label
 }
 
 function update(next: SkillParameterPolicy) {
@@ -95,7 +125,7 @@ function setGroup(remove = false) {
 }
 function applyOverride() {
   const target = props.catalog ? member.value : manualTarget.value
-  if (target) setOverride(target)
+  if (target && setOverride(target)) editingSingle.value = false
 }
 function setOverride(row: { skill: string; useId: string; parameter: string }, remove = false) {
   const key = skillParameterKey(row)
@@ -111,6 +141,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
   if (overrides.length) next.overrides = overrides
   else delete next.overrides
   update(next)
+  return true
 }
 </script>
 
@@ -165,13 +196,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
       </ul>
       <div class="parameter-row">
         <ElFormItem v-if="catalog" label="单招参数">
-          <ElSelect
-            v-model="selected"
-            filterable
-            aria-label="单招参数"
-            placeholder="选择技能及参数"
-            @change="singleInput = undefined"
-          >
+          <ElSelect v-model="selected" filterable aria-label="单招参数" placeholder="选择技能及参数">
             <ElOption
               v-for="row in members"
               :key="skillParameterKey(row)"
@@ -185,12 +210,21 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
           <ElFormItem label="使用位置"><ElInput v-model.trim="manual.useId" /></ElFormItem>
           <ElFormItem label="参数名"><ElInput v-model.trim="manual.parameter" /></ElFormItem>
         </template>
-        <ElFormItem label="单招数值"
-          ><ElInputNumber v-model="singleInput" aria-label="单招数值" :controls="false"
-        /></ElFormItem>
-        <ElButton :disabled="!(catalog ? member : manualTarget) || singleInput == null" @click="applyOverride"
-          >固定此招</ElButton
+      </div>
+      <div v-if="member || !catalog" class="parameter-row single-edit-row">
+        <span v-if="effective" role="status"
+          >当前 <strong>{{ effective.value }}</strong> · {{ effectiveSource }}</span
         >
+        <ElButton v-if="catalog && !editingSingle" @click="editSingle">单独调整</ElButton>
+        <template v-else>
+          <ElFormItem label="单招数值"
+            ><ElInputNumber v-model="singleInput" aria-label="单招数值" :controls="false"
+          /></ElFormItem>
+          <ElButton :disabled="!(catalog ? member : manualTarget) || singleInput == null" @click="applyOverride"
+            >固定此招</ElButton
+          >
+          <ElButton v-if="catalog" text @click="editingSingle = false">取消调整</ElButton>
+        </template>
       </div>
       <ul v-if="policy.overrides?.length">
         <li v-for="row in policy.overrides" :key="skillParameterKey(row)">
@@ -236,6 +270,12 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
 .parameter-row > .el-form-item:first-child {
   flex: 1 1 20rem;
   min-width: 0;
+}
+.single-edit-row {
+  align-items: center;
+}
+.single-edit-row > .el-form-item:first-child {
+  flex: 0 0 auto;
 }
 .parameter-fields :deep(.el-select) {
   width: 100%;

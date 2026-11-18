@@ -113,23 +113,19 @@
           <div class="flex-1">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-red-800">队伍未通过基本检查</h3>
-              <div class="flex items-center space-x-2">
-                <button
-                  @click="showValidationDetails = !showValidationDetails"
-                  class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                >
-                  <el-icon class="mr-1" :size="12">
-                    <ArrowDown v-if="!showValidationDetails" />
-                    <ArrowUp v-else />
-                  </el-icon>
-                  {{ showValidationDetails ? '收起' : '详情' }}
-                </button>
-              </div>
+              <el-button
+                v-if="teamValidationResult.errors.length > 1"
+                size="small"
+                text
+                type="danger"
+                :aria-expanded="showValidationDetails"
+                @click="showValidationDetails = !showValidationDetails"
+              >
+                {{ showValidationDetails ? '收起' : '详情' }}（{{ teamValidationResult.errors.length }}）
+              </el-button>
             </div>
-            <p class="text-sm text-red-700 mb-3">发现 {{ teamValidationResult.errors.length }} 个问题需要解决</p>
-
             <!-- 错误详情列表 -->
-            <div v-if="showValidationDetails" class="space-y-2">
+            <div v-if="teamValidationResult.errors.length === 1 || showValidationDetails" class="space-y-2">
               <div
                 v-for="(error, index) in teamValidationResult.errors"
                 :key="`${getErrorCode(error)}-${index}`"
@@ -963,14 +959,28 @@
     </main>
 
     <div v-if="!compact" class="team-action-bar">
-      <div v-if="delegate.affected?.value.length" class="team-save-impact" role="status">
+      <div v-if="delegate.stale?.value" class="team-save-impact" role="alert">
+        仓库成员或引用关系已变更。可先导出配法，再放弃草稿以载入当前队伍。
+      </div>
+      <div v-else-if="delegate.affected?.value.length" class="team-save-impact" role="status">
         修改原精灵会同步到：{{ delegate.affected.value.join('、') }}
       </div>
       <div class="team-actions">
-        <el-button v-if="delegate.save" type="primary" @click="saveCurrentTeam()">
+        <el-button v-if="delegate.save" :disabled="delegate.stale?.value" type="primary" @click="saveCurrentTeam()">
           {{ delegate.affected?.value.length ? '复制一只给本队' : delegate.saveLabel || '保存' }}
         </el-button>
-        <el-button v-if="delegate.affected?.value.length" @click="saveCurrentTeam('original')">修改原精灵</el-button>
+        <el-button
+          v-if="delegate.affected?.value.length"
+          :disabled="delegate.stale?.value"
+          @click="saveCurrentTeam('original')"
+          >修改原精灵</el-button
+        >
+        <el-button
+          v-if="delegate.discardDraft && (delegate.affected?.value.length || delegate.stale?.value)"
+          text
+          @click="delegate.discardDraft()"
+          >放弃草稿</el-button
+        >
         <el-dropdown v-if="isMobile" trigger="click" placement="top-end" @command="handleTeamAction">
           <el-button text aria-label="更多操作">更多</el-button>
           <template #dropdown>
@@ -1153,8 +1163,6 @@ import {
   Close,
   SuccessFilled,
   WarningFilled,
-  ArrowDown,
-  ArrowUp,
   ArrowRight,
   Loading,
   StarFilled,

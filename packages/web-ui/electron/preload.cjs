@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  setTeamDraftPending: pending => ipcRenderer.send('team-draft:pending', pending),
   profile: input => ipcRenderer.invoke('desktop:profile', input),
   onProfileChanged: callback => {
     const listener = () => callback()

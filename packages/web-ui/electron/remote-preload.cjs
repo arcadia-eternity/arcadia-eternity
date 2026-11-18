@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 // No generic IPC and no manager, filesystem, package, updater or process APIs.
 contextBridge.exposeInMainWorld('arcadiaRemotePlay', {
+  setTeamDraftPending: pending => ipcRenderer.send('team-draft:pending', pending),
   updateProfileDraft: input => ipcRenderer.invoke('remote-play:profile-draft', input),
   requestProfileSave: input => ipcRenderer.invoke('remote-play:save-profile', input),
   getBootConfig: () => ipcRenderer.invoke('remote-play:get-boot-config'),

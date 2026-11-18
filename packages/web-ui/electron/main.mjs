@@ -94,7 +94,29 @@ async function getPersonalProfile() {
     })
   return personalProfile
 }
+const windowsWithTeamDrafts = new Set()
+
+function confirmDraftExit(window) {
+  return (
+    dialog.showMessageBoxSync(window, {
+      type: 'warning',
+      message: '离开会丢失尚未保存的队伍草稿。',
+      buttons: ['继续编辑', '放弃并离开'],
+      defaultId: 0,
+      cancelId: 0,
+    }) === 1
+  )
+}
+
+function guardTeamDrafts(window) {
+  window.on('closed', () => windowsWithTeamDrafts.delete(window))
+  window.webContents.on('will-prevent-unload', event => {
+    if (windowsWithTeamDrafts.has(window) && (stoppedForQuit || confirmDraftExit(window))) event.preventDefault()
+  })
+  window.webContents.on('did-navigate', () => windowsWithTeamDrafts.delete(window))
+}
 const remotePlay = createRemotePlayController({
+  onWindow: guardTeamDrafts,
   validateProfile: value => {
     if (JSON.stringify(value).length > 20 * 1024 * 1024) throw new Error('Profile too large')
     return structuredClone(value)
@@ -864,6 +886,13 @@ function setupIpcHandlers() {
     // Identity comes from the owning window; the renderer cannot choose a project or path.
     return getAuthorWorkspaces().teamLibrary(authorPreviewProjects.get(window.webContents), action, input)
   })
+  ipcMain.on('team-draft:pending', (event, pending) => {
+    if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl) && !remotePlay.isTrusted(event)) return
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return
+    if (pending === true) windowsWithTeamDrafts.add(window)
+    else if (pending === false) windowsWithTeamDrafts.delete(window)
+  })
   ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
   ipcMain.handle('remote-play:profile-draft', (event, input) => remotePlay.updateProfileDraft(event, input))
   ipcMain.handle('remote-play:save-profile', (event, input) => remotePlay.saveProfile(event, input))
@@ -1170,6 +1199,7 @@ function createMainWindow() {
     },
   })
 
+  guardTeamDrafts(mainWindow)
   protectDesktopNavigation(mainWindow, rendererUrl)
   localContentOwner = bindLocalContentOwner(mainWindow.webContents, owner => localContentSessions?.releaseOwner(owner))
   setupContextMenu(mainWindow)
@@ -1207,6 +1237,7 @@ let stoppedForQuit = false
 app.on('before-quit', event => {
   if (stoppedForQuit) return
   event.preventDefault()
+  if (!stoppingForQuit && [...windowsWithTeamDrafts].some(window => !confirmDraftExit(window))) return
   stoppingForQuit ??= (async () => {
     if (!(await remotePlay.prepareQuit())) {
       stoppingForQuit = undefined
