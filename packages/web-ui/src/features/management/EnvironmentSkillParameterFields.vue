@@ -59,6 +59,14 @@ function selectProfile(id: string) {
   else delete next.profile
   update(next)
 }
+function resetGroupSelection(value = '') {
+  groupInput.value = value
+  selected.value = ''
+}
+function selectGroup(id: string, value: string) {
+  groupId.value = id
+  resetGroupSelection(value)
+}
 function setGroup(remove = false) {
   const id = groupId.value.trim()
   if (!id) return
@@ -114,14 +122,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
     </datalist>
     <div class="field-row">
       <label
-        >参数组
-        <input
-          v-model.trim="groupId"
-          list="skill-parameter-groups"
-          @input="
-            selected = ''
-            groupInput = ''
-          "
+        >参数组 <input v-model.trim="groupId" list="skill-parameter-groups" @input="resetGroupSelection()"
       /></label>
       <datalist id="skill-parameter-groups">
         <option v-for="row in catalog?.groups" :key="row.id" :value="row.id">{{ row.name }} · {{ row.unit }}</option>
@@ -135,16 +136,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
     </div>
     <ul v-if="policy.groups">
       <li v-for="(value, id) in policy.groups" :key="id">
-        <button
-          type="button"
-          @click="
-            groupId = String(id)
-            groupInput = String(value)
-            selected = ''
-          "
-        >
-          {{ id }} · {{ value }}
-        </button>
+        <button type="button" @click="selectGroup(String(id), String(value))">{{ id }} · {{ value }}</button>
       </li>
     </ul>
     <div class="field-row">
