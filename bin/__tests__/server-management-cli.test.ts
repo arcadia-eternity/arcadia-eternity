@@ -241,7 +241,18 @@ it('bootstraps playable builtin content once and preserves administrator removal
     ...pet,
     skills: ['skill_paida', 'skill_shuipao'],
   }))
-  await accepted(socket, 'joinMatchmaking', { playerSchema: { team } })
+  const [environment] = environments
+  await accepted(socket, 'joinMatchmaking', {
+    playerSchema: { team },
+    environmentId: environment.id,
+    environment: {
+      environmentId: environment.id,
+      protocolVersion: 1,
+      gameplayRevision: environment.gameplayRevision,
+      resourceRevision: environment.resourceRevision,
+      resourcesReady: true,
+    },
+  })
   expect(await accepted(socket, 'getServerState')).toMatchObject({ matchmakingQueue: 1 })
   await accepted(socket, 'cancelMatchmaking')
   expect(await accepted(socket, 'getServerState')).toMatchObject({ matchmakingQueue: 0 })
