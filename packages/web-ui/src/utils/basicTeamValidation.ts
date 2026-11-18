@@ -10,7 +10,6 @@ import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 import { toRaw } from 'vue'
 import { Value } from '@sinclair/typebox/value'
 import { findMissingTeamContent, type TeamContentLookup } from './teamContent'
-export type { TeamContentLookup } from './teamContent'
 
 const legacy = new Map(legacyNatures().map(nature => [nature.id, nature]))
 
