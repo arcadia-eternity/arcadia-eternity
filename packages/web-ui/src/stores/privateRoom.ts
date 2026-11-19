@@ -269,6 +269,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       ? environments.value.find(item => item.id === environmentId)
       : defaultEnvironment.value
     if (!descriptor) throw new Error('对战内容不可用，请重新选择')
+    if (descriptor.matchmakingEnabled === false) throw new Error('这个环境未开放匹配，请选择其他环境')
     matchmakingController?.abort()
     matchmakingController = new AbortController()
     const prepare = descriptor.executionPolicy === 'peer' ? preparePeerEnvironment : prepareServerEnvironment

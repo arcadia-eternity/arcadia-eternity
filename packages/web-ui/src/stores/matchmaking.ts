@@ -5,6 +5,36 @@ import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { useBattleClientStore } from './battleClient'
 import { usePrivateRoomStore } from './privateRoom'
 
+export function matchmakingErrorMessage(cause: unknown, fallback = '匹配未完成，请重试'): string {
+  const message = cause instanceof Error ? cause.message : typeof cause === 'string' ? cause : ''
+  const code = message.split(':', 1)[0]
+  switch (code) {
+    case 'ENVIRONMENT_MATCHMAKING_DISABLED':
+      return '这个环境未开放匹配，请选择其他环境'
+    case 'ENVIRONMENT_NOT_FOUND':
+    case 'ENVIRONMENT_NOT_PUBLISHED':
+    case 'ENVIRONMENT_RETIRED':
+    case 'CLIENT_ENVIRONMENT_MISMATCH':
+    case 'CLIENT_PEER_ENVIRONMENT_MISMATCH':
+      return '对战环境已变更，请重新选择'
+    case 'ENVIRONMENT_TEAM_REJECTED':
+    case 'INVALID_TEAM':
+      return '队伍不符合这个环境的规则，请调整队伍后再匹配'
+    case 'SERVER_DRAINING':
+    case 'SERVER_STOPPED':
+      return '服务器已停止接收新的匹配'
+    case 'ROOM_CAPACITY':
+    case 'BATTLE_QUEUE_TIMEOUT':
+      return '服务器繁忙，请稍后重试'
+    case 'ALREADY_IN_ROOM':
+      return '请先退出当前房间'
+    case 'Matchmaking timeout':
+      return '匹配请求超时，请稍后重试'
+    default:
+      return /^\p{Script=Han}/u.test(message) && !/\b[A-Z]+(?:_[A-Z0-9]+)+\b/.test(message) ? message : fallback
+  }
+}
+
 export const useMatchmakingStore = defineStore('matchmaking', () => {
   const client = useBattleClientStore()
   const rooms = usePrivateRoomStore()
@@ -31,8 +61,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     try {
       await rooms.joinMatchmaking(team, environmentId)
     } catch (cause) {
-      if (attempt === generation && !canceling.value)
-        error.value = cause instanceof Error ? cause.message : String(cause)
+      if (attempt === generation && !canceling.value) error.value = matchmakingErrorMessage(cause)
     } finally {
       if (attempt === generation) joining.value = false
     }
@@ -52,12 +81,12 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     } catch (cause) {
       if (attempt !== generation) return
       canceling.value = false
-      error.value = cause instanceof Error ? cause.message : String(cause)
+      error.value = matchmakingErrorMessage(cause)
     }
   }
 
   client.on('matchmakingError', (response: ErrorResponse) => {
-    if (response.code !== 'MATCHMAKING_CANCELED') error.value = `匹配未完成（${response.code}），请重试`
+    if (response.code !== 'MATCHMAKING_CANCELED') error.value = matchmakingErrorMessage(response.code)
   })
 
   watch(

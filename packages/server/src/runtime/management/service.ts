@@ -624,7 +624,7 @@ export class ManagementService {
           executionPolicy: 'server',
           enabled: true,
           public: true,
-          matchmaking: false,
+          matchmaking: true,
         })
       } finally {
         await lease.release()
@@ -1163,7 +1163,7 @@ export class ManagementService {
               executionPolicy: 'server',
               enabled: false,
               visibility: 'private',
-              matchmakingEnabled: false,
+              matchmakingEnabled: input.enabled === true,
               condition: 'unavailable',
               observedBootId: this.bootId,
             }

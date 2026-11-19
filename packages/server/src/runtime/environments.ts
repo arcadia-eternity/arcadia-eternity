@@ -261,6 +261,7 @@ export class ServerEnvironmentRegistry {
       )
       .map(entry => ({
         ...this.publicDescriptor(entry),
+        matchmakingEnabled: this.publication?.get(entry.descriptor.id)?.matchmaking ?? true,
         ...(entry.descriptor.id === this.defaultId && { isDefault: true }),
       }))
   }

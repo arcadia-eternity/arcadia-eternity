@@ -89,7 +89,7 @@ it('restricts new admission and public discovery without invalidating existing e
   expect(() => registry.acquire(original.id, false, 'matchmaking')).toThrow('ENVIRONMENT_MATCHMAKING_DISABLED')
   registry.setPublication([{ runtimeId: original.id, enabled: true, public: true, matchmaking: true }], original.id)
   const queuedLease = registry.acquire(undefined, false, 'matchmaking')
-  expect(registry.list().map(item => item.id)).toEqual([original.id])
+  expect(registry.list()).toEqual([expect.objectContaining({ id: original.id, matchmakingEnabled: true })])
   registry.setPublication([])
   expect(retained.descriptor).toEqual(original)
   expect(privateLease.runtime).toBe(retained.runtime)
@@ -133,6 +133,8 @@ it('applies publication and team policy to socket admissions, preserving earlier
     ],
     id,
   )
+  const published = await (await fetch(url + '/api/v1/environments')).json()
+  expect(published.environments).toContainEqual(expect.objectContaining({ id, matchmakingEnabled: false }))
   const visitor = await user()
   expect(await ack(visitor.socket, 'joinMatchmaking', { playerSchema: { team } })).toMatchObject({
     status: 'ERROR',

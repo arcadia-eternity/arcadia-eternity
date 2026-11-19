@@ -96,7 +96,6 @@ async function setup(builtin = false) {
           environmentId: 'shared',
           enabled: true,
           visibility: 'public',
-          matchmakingEnabled: true,
         },
       },
       owner.actor,

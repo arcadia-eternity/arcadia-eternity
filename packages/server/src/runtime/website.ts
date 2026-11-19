@@ -36,6 +36,7 @@ export function mountPairedWebsite(app: Express, directory: string, autoConnect 
   const routes = new Set([
     '/',
     '/lobby',
+    '/matchmaking',
     '/account',
     '/management',
     '/servers',

@@ -6,6 +6,7 @@ import { afterEach, expect, it } from 'vitest'
 import { openStorage } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { workspaceRetentions } from '../../../bin/server-persistence'
+import { initializeDesktopHost } from '../../../bin/desktop-host-initialize'
 import { initializeHostEnvironment } from '../../../bin/host-environment-initialize'
 import { createSingleProcessApp } from '@arcadia-eternity/server'
 import type { Binding, ManagedServer } from '../src/runtime/management/service'
@@ -87,6 +88,35 @@ it('preserves environment rules while synchronizing a deployment project', async
 
 it('publishes the marker-owned binding once and completes the marker', async () => {
   const { storage, workspace, project, management } = await setup()
+  await initializeDesktopHost({
+    management,
+    workspace,
+    projectDirectory: project,
+    kind: 'desktop',
+  })
+  const server = (await storage.get<ManagedServer>('servers', 'initialization-server'))!
+  expect(server.value.initialization).toMatchObject({ state: 'completed' })
+  const binding = (await storage.get<Binding>('bindings', server.value.defaultBindingId!))!
+  expect(binding.value).toMatchObject({
+    environmentId: 'desktop-host',
+    enabled: true,
+    visibility: 'public',
+    matchmakingEnabled: true,
+    condition: 'available',
+  })
+  expect(binding.value).not.toHaveProperty('effectiveInstallationId')
+  await management.localRequest({
+    method: 'PATCH',
+    path: `/servers/initialization-server/bindings/${binding.id}`,
+    headers: { 'if-match': String(binding.revision) },
+    body: { matchmakingEnabled: false },
+  })
+  await initializeDesktopHost({ management, workspace, projectDirectory: project, kind: 'desktop' })
+  expect((await storage.get<Binding>('bindings', binding.id))?.value.matchmakingEnabled).toBe(false)
+}, 30_000)
+
+it('enables matchmaking for an untouched legacy desktop default when the host reopens', async () => {
+  const { storage, workspace, project, management } = await setup()
   await initializeHostEnvironment({
     management,
     workspace,
@@ -97,26 +127,10 @@ it('publishes the marker-owned binding once and completes the marker', async () 
     matchmakingEnabled: false,
   })
   const server = (await storage.get<ManagedServer>('servers', 'initialization-server'))!
-  expect(server.value.initialization).toMatchObject({ state: 'completed' })
-  const binding = (await storage.get<Binding>('bindings', server.value.defaultBindingId!))!
-  expect(binding.value).toMatchObject({
-    environmentId: 'desktop-host',
-    enabled: true,
-    visibility: 'public',
-    matchmakingEnabled: false,
-    condition: 'available',
-  })
-  expect(binding.value).not.toHaveProperty('effectiveInstallationId')
-  await initializeHostEnvironment({
-    management,
-    workspace,
-    projectDirectory: project,
-    kind: 'desktop',
-    environmentId: 'desktop-host',
-    name: 'changed name must not be applied after completion',
-    matchmakingEnabled: true,
-  })
-  expect((await storage.get<Binding>('bindings', binding.id))?.value.matchmakingEnabled).toBe(false)
+  const id = server.value.defaultBindingId!
+  expect((await storage.get<Binding>('bindings', id))?.value.matchmakingEnabled).toBe(false)
+  await initializeDesktopHost({ management, workspace, projectDirectory: project, kind: 'desktop' })
+  expect((await storage.get<Binding>('bindings', id))?.value.matchmakingEnabled).toBe(true)
 }, 30_000)
 
 it('resumes the exact pending marker-owned binding after an interrupted initialization', async () => {

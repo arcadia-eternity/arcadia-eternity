@@ -39,7 +39,7 @@
         </router-link>
       </div>
       <template v-else>
-        <div class="mb-4">
+        <div v-if="queueEnvironments.length" class="mb-4">
           <label for="matchmaking-environment" class="block font-medium mb-2">对战环境</label>
           <el-select
             id="matchmaking-environment"
@@ -50,33 +50,39 @@
             @change="prepareEnvironment"
           >
             <el-option
-              v-for="environment in rooms.environments"
+              v-for="environment in queueEnvironments"
               :key="environment.id"
               :value="environment.id"
               :label="
-                (environment.packages.length
-                  ? environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
-                  : '官方内容') + (environment.executionPolicy === 'peer' ? ' · 玩家主机' : ' · 服务器')
+                (environment.environmentName ||
+                  (environment.packages.length
+                    ? environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
+                    : '官方内容')) + (environment.executionPolicy === 'peer' ? ' · 玩家主机' : ' · 服务器')
               "
             />
           </el-select>
         </div>
         <p v-if="loading" role="status">正在加载对战内容…</p>
+        <p v-else-if="!configurationError && !queueEnvironments.length" role="status">当前服务器没有开放匹配的环境。</p>
         <TeamSelector
-          v-else-if="environmentReady"
+          v-else-if="environmentReady && selectedEnvironment"
           v-model="team"
           data-testid="matchmaking-team-selector"
           @update:is-valid="valid = $event"
         />
         <div class="mt-5 flex justify-end border-t border-gray-200 pt-4">
-          <el-button v-if="configurationError" size="large" @click="loadEnvironments">重新加载</el-button>
           <el-button
-            v-else
+            v-if="configurationError || (!loading && !queueEnvironments.length)"
+            size="large"
+            @click="loadEnvironments"
+            >重新加载</el-button
+          >
+          <el-button
             type="primary"
             size="large"
             :icon="Search"
             data-testid="start-matchmaking-button"
-            :disabled="loading || !environmentReady || !valid"
+            :disabled="loading || !selectedEnvironment || !environmentReady || !valid"
             @click="start"
           >
             开始匹配
@@ -98,7 +104,7 @@ import TeamSelector from '@/components/TeamSelector.vue'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { useMatchmakingStore } from '@/stores/matchmaking'
+import { matchmakingErrorMessage, useMatchmakingStore } from '@/stores/matchmaking'
 import { useGameDataStore } from '@/stores/gameData'
 
 const rooms = usePrivateRoomStore()
@@ -109,7 +115,8 @@ const gameData = useGameDataStore()
 const loading = ref(false)
 const configurationError = ref('')
 const environmentId = ref('')
-const selectedEnvironment = computed(() => rooms.environments.find(item => item.id === environmentId.value))
+const queueEnvironments = computed(() => rooms.environments.filter(item => item.matchmakingEnabled !== false))
+const selectedEnvironment = computed(() => queueEnvironments.value.find(item => item.id === environmentId.value))
 const selectedTeamId = ref<string>()
 const team = computed<{ id?: string; name: string; pets: unknown[] } | null>({
   get: () => storage.teams.find(candidate => candidate.id === selectedTeamId.value) ?? null,
@@ -136,13 +143,16 @@ async function prepareEnvironment() {
       environmentReady.value = true
     }
   } catch (cause) {
-    if (attempt === generation) configurationError.value = cause instanceof Error ? cause.message : String(cause)
+    if (attempt === generation)
+      configurationError.value = matchmakingErrorMessage(cause, '对战环境加载失败，请重新加载')
   } finally {
     if (attempt === generation) loading.value = false
   }
 }
 
 async function loadEnvironments() {
+  environmentReady.value = false
+  valid.value = false
   const attempt = ++generation
   loading.value = true
   configurationError.value = ''
@@ -150,21 +160,28 @@ async function loadEnvironments() {
     await rooms.refreshEnvironments()
     if (attempt !== generation) return
     environmentId.value =
-      selectedEnvironment.value?.id ?? rooms.defaultEnvironment?.id ?? rooms.environments[0]?.id ?? ''
+      selectedEnvironment.value?.id ??
+      queueEnvironments.value.find(item => item.isDefault)?.id ??
+      queueEnvironments.value[0]?.id ??
+      ''
+    if (!environmentId.value) {
+      loading.value = false
+      return
+    }
     const last = storage.getLastMatchingConfig()
     team.value =
       storage.teams.find(candidate => candidate.id === last?.teamId) ?? storage.teams[storage.currentTeamIndex] ?? null
     await prepareEnvironment()
   } catch (cause) {
     if (attempt === generation) {
-      configurationError.value = cause instanceof Error ? cause.message : String(cause)
+      configurationError.value = matchmakingErrorMessage(cause, '对战环境加载失败，请重新加载')
       loading.value = false
     }
   }
 }
 
 function start() {
-  if (!team.value || !valid.value || !environmentReady.value || loading.value) return
+  if (!selectedEnvironment.value || !team.value || !valid.value || !environmentReady.value || loading.value) return
   if (team.value.id) storage.saveLastMatchingConfig(team.value.id, 'standard')
   void matchmaking.start(team.value.pets as PetSchemaType[], environmentId.value)
 }

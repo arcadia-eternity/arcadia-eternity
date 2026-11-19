@@ -39,6 +39,7 @@ it('serves config and deep links while missing service/resource paths remain err
     '/',
     '/management',
     '/management/',
+    '/matchmaking',
     '/room/invite',
     '/team-builder',
     '/creation',

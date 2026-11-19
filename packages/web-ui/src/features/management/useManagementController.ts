@@ -357,7 +357,7 @@ export function useManagementController(
       environmentId: version.environmentId,
       enabled: true,
       visibility: 'private',
-      matchmakingEnabled: false,
+      matchmakingEnabled: true,
       executionPolicy,
     })
     if (succeeded) tab.value = 'environments'
