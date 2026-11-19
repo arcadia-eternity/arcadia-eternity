@@ -33,7 +33,8 @@ export class DesktopWorkspaceOwner {
   #workspace
   #connections = new Set()
   #retentionConnection
-  constructor({ root, openWorkspace, library, synchronize, timeoutMs = 120000 }) {
+  constructor({ root, openWorkspace, library, synchronize, builtinId, timeoutMs = 120000 }) {
+    this.builtinId = builtinId
     this.root = root
     this.openWorkspace = openWorkspace
     this.library = library
@@ -125,7 +126,12 @@ export class DesktopWorkspaceOwner {
       }
       const workspace = await this.ready()
       if (method === 'describe')
-        return { workspaceId: workspace.workspaceId, root: workspace.root, bootId: workspace.bootId }
+        return {
+          workspaceId: workspace.workspaceId,
+          root: workspace.root,
+          bootId: workspace.bootId,
+          builtinEnvironmentId: this.builtinId?.(),
+        }
       if ((method === 'listClientEnvironmentIds' || method === 'acquireClientEnvironment') && !openClientWorkspace)
         throw failure('WORKSPACE_METHOD_INVALID')
       if (method === 'listClientEnvironmentIds') {

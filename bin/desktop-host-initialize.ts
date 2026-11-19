@@ -9,11 +9,13 @@ export async function initializeDesktopHost({
   projectDirectory,
   kind,
   timeoutMs,
+  builtinId,
 }: {
   management: ManagementService
   workspace: ContentWorkspace
   projectDirectory: string
   kind: 'builtin' | 'desktop'
+  builtinId?: string
   timeoutMs?: number
 }): Promise<void> {
   await initializeHostEnvironment({
@@ -21,8 +23,8 @@ export async function initializeDesktopHost({
     workspace,
     projectDirectory,
     kind,
-    environmentId: 'desktop-host',
-    name: '本机服务器环境',
+    environmentId: kind === 'builtin' && builtinId ? builtinId : 'desktop-host',
+    name: kind === 'builtin' && builtinId ? '默认环境' : '本机服务器环境',
     matchmakingEnabled: false,
     timeoutMs,
   })

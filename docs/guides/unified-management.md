@@ -237,7 +237,7 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 - `POST /workspaces/:workspace/environments/:id/packages/add`：`{ expectedRevision, name, version?, source? }`。须提供 `version`（版本或版本范围）或 `source: true`（使用宿主来源登记）；二者不能同时提供。缺少声明时返回 `ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED`。显式声明可更新已有包的版本，或在版本声明与来源声明之间切换。
 - `POST /workspaces/:workspace/environments/:id/packages/remove`：`{ expectedRevision, name, cascade? }`。默认拒绝移出仍被其他包依赖的包；明确传入 `cascade: true` 才连同依赖它的直接包一起移出。依赖图未解析或与当前组合不匹配时，须先应用当前组合。
 
-两者均要求本服管理员身份（旧受限凭据仍检查 `edit` 和 `prepare` 上限），返回应用任务。仅在下载、安装与校验全部成功后更新环境 manifest 和安装内容；失败保留原环境。加入已登记来源不会允许调用者传入任意宿主文件路径。默认环境的基础包不能移出，连带移出也不能绕过此限制。旧 `disabled` 字段只在读取旧文档时忽略；工作区改写旧 manifest 前保存迁移备份，新声明不再包含此字段。能力 `workspace.environment-dependencies` 表示 add 必须携带声明、remove 不保留恢复记录。关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
+两者均要求本服管理员身份（旧受限凭据仍检查 `edit` 和 `prepare` 上限），返回应用任务。仅在下载、安装与校验全部成功后更新环境 manifest 和安装内容；失败保留原环境。加入已登记来源不会允许调用者传入任意宿主文件路径。内置默认环境的依赖和规则只读；自定义依赖时先复制环境。旧 `disabled` 字段只在读取旧文档时忽略；工作区改写旧 manifest 前保存迁移备份，新声明不再包含此字段。能力 `workspace.environment-dependencies` 表示 add 必须携带声明、remove 不保留恢复记录。关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
 
 CLI 与上述操作对应，通用连接参数仍使用 `--server`、`--token-file`、`--workspace`：
 

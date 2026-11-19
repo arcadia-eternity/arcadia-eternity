@@ -430,7 +430,11 @@ export class ContentLibrary {
       const base = this.#state.installed.find(entry => entry.bundled)
       const legacy = this.#state.legacySelection
       const lease = await this.#leaseProject(legacy?.project ?? base?.id ?? null)
-      return { ...lease, packages: legacy?.packages ?? (base ? [{ name: base.name, version: base.version }] : []) }
+      return {
+        ...lease,
+        legacy: !!legacy,
+        packages: legacy?.packages ?? (base ? [{ name: base.name, version: base.version }] : []),
+      }
     })
   }
   async acquireDefaultProject() {

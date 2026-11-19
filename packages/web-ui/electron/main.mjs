@@ -21,6 +21,7 @@ import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
+import { openBuiltinEnvironment } from './builtin-environment.mjs'
 import { LocalEnvironments } from './local-environments.mjs'
 import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
@@ -52,8 +53,9 @@ const localBattleHost = new LocalBattleHost({
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
   stateDirectory: path.join(app.getPath('userData'), 'local-server'),
   workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
+  builtinId: () => builtinEnvironment?.id,
   attachWorkspace: (child, publish) =>
-    getManagementWorkspaceOwner().attach(child, publish ? () => getLocalEnvironments().ready() : undefined),
+    getManagementWorkspaceOwner().attach(child, publish ? () => getLocalEnvironments().hostingWorkspace() : undefined),
   ...(app.isPackaged
     ? {
         npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
@@ -328,12 +330,17 @@ function getContentLibrary() {
   })
   return contentLibrary
 }
+let builtinEnvironment
 let localEnvironments
 function getLocalEnvironments() {
   const runtimeRequire = app.isPackaged
     ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
     : require
   localEnvironments ??= new LocalEnvironments({
+    openBuiltin: async () => {
+      await getManagementWorkspaceOwner().ready()
+      return builtinEnvironment
+    },
     baseRules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
     library: getContentLibrary(),
     addPackage: async (workspace, input) => {
@@ -372,6 +379,7 @@ function getLocalEnvironments() {
 function getManagementWorkspaceOwner() {
   managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
     root: path.join(app.getPath('userData'), 'content-packages'),
+    builtinId: () => builtinEnvironment?.id,
     library: getContentLibrary(),
     synchronize: async workspace => {
       const runtimeRequire = app.isPackaged
@@ -380,7 +388,40 @@ function getManagementWorkspaceOwner() {
       const { validateWorkspaceProject } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
       )
-      await getContentLibrary().synchronizeEnvironments(workspace, validateWorkspaceProject)
+      const library = getContentLibrary()
+      await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
+      builtinEnvironment = await openBuiltinEnvironment({
+        workspace,
+        library,
+        validate: validateWorkspaceProject,
+        rules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
+        legacyBuiltinId: async () => {
+          const directory = path.join(app.getPath('userData'), 'local-server')
+          const profile = await fs.readFile(path.join(directory, 'server.json'), 'utf8').catch(error => {
+            if (error.code !== 'ENOENT') throw error
+          })
+          if (
+            !profile ||
+            !(await fs.stat(path.join(directory, 'server.sqlite')).catch(error => {
+              if (error.code !== 'ENOENT') throw error
+            }))
+          )
+            return undefined
+          const { openStorage } = await import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/database')).href)
+          const db = openStorage({ driver: 'sqlite', filename: path.join(directory, 'server.sqlite'), readonly: true })
+          try {
+            const row = await db.get('servers', JSON.parse(profile).serverId)
+            const init = row?.value.initialization
+            return row?.value.workspaceId === workspace.workspaceId &&
+              init?.kind === 'builtin' &&
+              init.environmentId === 'desktop-host'
+              ? init.environmentId
+              : undefined
+          } finally {
+            await db.close()
+          }
+        },
+      })
     },
     openWorkspace: async (root, options) => {
       const runtimeRequire = app.isPackaged

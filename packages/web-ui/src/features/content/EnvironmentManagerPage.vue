@@ -27,10 +27,12 @@ const route = useRoute()
 const router = useRouter()
 const rooms = usePrivateRoomStore()
 const local = !!(window.arcadiaDesktop?.localEnvironment || window.arcadiaDesktop?.listContentPackages)
+const canManageHost = !!window.arcadiaDesktop?.managementRequest
 const serverLabel = isStaticMode ? '' : new URL(getBackendOrigin()).host
 const target = computed(() => {
   const value = route.query.target
   if (value === 'local' && local) return 'local'
+  if (value === 'host' && canManageHost) return 'host'
   if (value === 'room' && rooms.currentRoom) return 'room'
   // Explicit remote URLs never fall back to the local bridge.
   if (value) return 'server'
@@ -48,6 +50,7 @@ async function navigate(nextTarget: string) {
         >位置
         <ElSelect :model-value="target" aria-label="环境位置" class="target-select" @change="value => navigate(value)">
           <ElOption v-if="local" value="local" label="本机" />
+          <ElOption v-if="canManageHost" value="host" label="本机服务器" />
           <ElOption v-if="!isStaticMode" value="server" :label="`服务器 · ${serverLabel}`" />
           <ElOption v-if="rooms.currentRoom" value="room" label="当前房间" />
         </ElSelect>
@@ -55,6 +58,7 @@ async function navigate(nextTarget: string) {
     </header>
     <div :key="target" class="hub-body">
       <LocalEnvironmentPage v-if="target === 'local'" />
+      <ServerEnvironmentPanel v-else-if="target === 'host'" target="local" />
       <ServerEnvironmentPanel v-else-if="target === 'server'" target="server" />
       <ContentPackagesPanel v-else :location="target" />
     </div>

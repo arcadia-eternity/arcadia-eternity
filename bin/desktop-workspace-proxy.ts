@@ -51,6 +51,7 @@ const serializedError = (value: unknown) => {
 }
 
 export interface DesktopWorkspaceProxy extends ContentWorkspace {
+  builtinEnvironmentId?: string
   listClientEnvironmentIds(): Promise<string[]>
   acquireClientEnvironment: ContentWorkspace['acquire']
 }
@@ -270,7 +271,12 @@ export async function createDesktopWorkspaceProxy(
     }
   }
   try {
-    const descriptor = await request<{ root: string; workspaceId: string; bootId: string }>('describe')
+    const descriptor = await request<{
+      root: string
+      workspaceId: string
+      bootId: string
+      builtinEnvironmentId?: string
+    }>('describe')
     if (
       !descriptor ||
       [descriptor.root, descriptor.workspaceId, descriptor.bootId].some(value => typeof value !== 'string' || !value)
@@ -278,6 +284,7 @@ export async function createDesktopWorkspaceProxy(
       throw error('WORKSPACE_DESCRIPTOR_INVALID')
     return {
       root: descriptor.root,
+      builtinEnvironmentId: descriptor.builtinEnvironmentId,
       get workspaceId() {
         return descriptor.workspaceId
       },

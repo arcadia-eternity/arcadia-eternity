@@ -9,7 +9,7 @@ import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-works
 import type { EnvironmentInstallation, StaticPreparer } from '@arcadia-eternity/content-sdk/management-workspace'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 import { createSingleProcessApp } from '../src/runtime/app'
-import type { Binding, ManagementRequest } from '../src/runtime/management/service'
+import { validateWorkspaceProject, type Binding, type ManagementRequest } from '../src/runtime/management/service'
 import type { ManagementActor } from '../src/runtime/management/auth'
 import type { Operation } from '../src/runtime/management/operations'
 
@@ -428,7 +428,10 @@ it('changes execution mode on the existing binding without creating another one'
 it('protects the builtin environment and installation even when no server binding uses it', async () => {
   const f = await setup(true)
   const draft = await f.draft('Builtin', null)
-  await f.prepare(draft.revision)
+  await f.workspace.prepareEnvironment(
+    { environmentId: 'shared', expectedRevision: draft.revision },
+    validateWorkspaceProject,
+  )
   const current = await f.workspace.getDraft('shared')
   const workspacePath = `/workspaces/${f.workspace.workspaceId}`
   const listed = await f.request<{ environments: { builtin?: boolean }[] }>({
@@ -444,6 +447,20 @@ it('protects the builtin environment and installation even when no server bindin
       }),
     ).rejects.toMatchObject({ code: 'BUILTIN_ENVIRONMENT_REQUIRED', status: 409 })
   }
+  for (const [path, body] of [
+    [
+      `${workspacePath}/environments/apply`,
+      { document: { ...current.document, name: 'changed' }, expectedRevision: current.revision },
+    ],
+    [
+      `${workspacePath}/environments/shared/packages/add`,
+      { name: 'extra', version: '1.0.0', expectedRevision: current.revision },
+    ],
+  ] as const)
+    await expect(f.service.request(f.owner.actor, { method: 'POST', path, body })).rejects.toMatchObject({
+      code: 'BUILTIN_ENVIRONMENT_READ_ONLY',
+      status: 409,
+    })
   expect(listed.environments[0].builtin).toBe(true)
   expect((await f.workspace.getDraft('shared')).revision).toBe(current.revision)
   expect((await f.workspace.getInstallation('shared')).status).toBe('ready')

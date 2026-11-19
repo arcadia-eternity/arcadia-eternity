@@ -69,11 +69,24 @@ describe('shared environment workspace', () => {
     const builtin = { ...environment(), builtin: true }
     const { page } = open({ environments: [builtin] })
     expect(page.findAll('button').some(item => item.text() === '删除环境')).toBe(false)
+    expect(page.findAll('button').some(item => item.text() === '编辑')).toBe(false)
     expect(button(page, '复制环境').exists()).toBe(true)
     await page.setProps({ environments: [environment()] })
     await button(page, '删除环境').trigger('click')
     await button(page, '确认删除环境').trigger('click')
     expect(page.emitted('deleteDraft')).toHaveLength(1)
+  })
+  it('saves a copy of the builtin with a new ID and editable rules', async () => {
+    const builtin = { ...environment(), builtin: true }
+    const { page } = open({ environments: [builtin] })
+    await button(page, '复制环境').trigger('click')
+    await page.get('form.environment-editor').trigger('submit')
+    const [copy, revision] = page.emitted('save')![0]! as [ManagedEnvironment['document'], null]
+    expect(copy.id).not.toBe(builtin.document.id)
+    expect(copy.rules).toEqual(builtin.document.rules)
+    expect(copy.name).toBe(builtin.document.name + ' 副本')
+    expect(revision).toBeNull()
+    expect(builtin.document.name).toBe('好友环境')
   })
   it('edits reactive input without changing the source and preserves rules and compatibility requirements', async () => {
     const { page, draft } = open()

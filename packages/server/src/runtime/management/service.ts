@@ -116,6 +116,7 @@ export interface ManagementOptions {
   runtimeSettings?: ServerSettings
   listenAddress?: () => { host: string; port: number } | undefined
   settingsConstraints?: ServerSettingsConstraints
+  builtinEnvironmentId?: string
   clientEnvironments?: {
     listClientEnvironmentIds(): Promise<string[]>
     acquireClientEnvironment: ContentWorkspace['acquire']
@@ -298,6 +299,7 @@ export class ManagementService {
     })
   }
   private async builtinEnvironmentId() {
+    if (this.options.builtinEnvironmentId) return this.options.builtinEnvironmentId
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
     const initialization = server?.value.initialization
     return initialization?.kind === 'builtin' ? initialization.environmentId : undefined
@@ -367,6 +369,7 @@ export class ManagementService {
     return this.options.storage.list<Binding>('bindings', managementScopeKey(this.serverScope))
   }
   private async authorizeEnvironmentUpdate(actor: ManagementActor, environmentId: string) {
+    if (environmentId === (await this.builtinEnvironmentId())) fail('BUILTIN_ENVIRONMENT_READ_ONLY', 409)
     const bindings = (await this.options.storage.list<Binding>('bindings')).filter(
       row => row.value.workspaceId === this.options.workspace.workspaceId && row.value.environmentId === environmentId,
     )
@@ -1003,8 +1006,6 @@ export class ManagementService {
           await this.authorizeEnvironmentUpdate(actor, parts[3])
           const name = text(input.name, 214)
           const workspace = this.options.workspace
-          const builtin = parts[3] === (await this.builtinEnvironmentId())
-          if (builtin && !adding && name === shippedBasePackage) fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
           const draft = await (adding ? addEnvironmentPackage : removeEnvironmentPackage)(
             {
               listDrafts: () => workspace.listDrafts(),

@@ -102,6 +102,7 @@ const jobLabels: Record<string, string> = {
   cancelled: '已取消',
 }
 const snapshot = ref<Snapshot>({ workspaceId: '', environments: [], installations: [], operations: [] })
+const editableEnvironments = computed(() => snapshot.value.environments.filter(item => !item.builtin))
 const tasksOpen = ref(false)
 const initialized = ref(false)
 const activeTasks = computed(
@@ -260,7 +261,10 @@ onMounted(async () => {
       candidate.value = materials.value.find(pkg => pkg.id === route.query.packageId)
       if (!candidate.value) error.value = '构建产物不可用，请重新构建。'
       packageEnvironmentId.value =
-        snapshot.value.selectedEnvironmentId ?? snapshot.value.environments[0]?.document.id ?? ''
+        editableEnvironments.value.find(item => item.document.id === snapshot.value.selectedEnvironmentId)?.document
+          .id ??
+        editableEnvironments.value[0]?.document.id ??
+        ''
       const { packageId: _packageId, ...query } = route.query
       await router.replace({ query })
     }
@@ -288,7 +292,7 @@ onBeforeUnmount(() => {
       <ElFormItem label="目标环境"
         ><ElSelect filterable v-model="packageEnvironmentId" aria-label="目标环境">
           <ElOption
-            v-for="environment in snapshot.environments"
+            v-for="environment in editableEnvironments"
             :key="environment.document.id"
             :value="environment.document.id"
             :label="environment.document.name"
@@ -347,7 +351,9 @@ onBeforeUnmount(() => {
     >
       <template #member-actions="{ environment, packageName: name, integrity }">
         <ElButton
-          :disabled="busy || preparing || snapshot.environments.length < 2"
+          :disabled="
+            busy || preparing || !editableEnvironments.some(item => item.document.id !== environment.document.id)
+          "
           @click="chooseTarget(environment.document.id, name, integrity)"
           >用于其他环境</ElButton
         >
@@ -375,7 +381,7 @@ onBeforeUnmount(() => {
       <p>{{ transferMember?.name }}</p>
       <ElSelect v-model="targetId" filterable placeholder="选择目标环境" aria-label="目标环境">
         <ElOption
-          v-for="item in snapshot.environments.filter(item => item.document.id !== transferMember?.environmentId)"
+          v-for="item in editableEnvironments.filter(item => item.document.id !== transferMember?.environmentId)"
           :key="item.document.id"
           :label="item.document.name"
           :value="item.document.id"

@@ -22,7 +22,7 @@ const {
 <template>
   <section v-if="tab === 'server' && server" aria-label="服务器管理">
     <div class="overview-stats">
-      <RouterLink :to="{ path: '/environments', query: { target: target === 'local' ? 'local' : 'server' } }"
+      <RouterLink :to="{ path: '/environments', query: { target: target === 'local' ? 'host' : 'server' } }"
         ><ElButton native-type="button">
           <strong>{{ bindings.filter(item => item.enabled && item.condition === 'available').length }}</strong
           >运行环境

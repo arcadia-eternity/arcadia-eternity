@@ -139,6 +139,7 @@ export class LocalBattleHost {
     stateDirectory,
     workspaceRoot,
     attachWorkspace,
+    builtinId,
     startupTimeoutMs = 60000,
     shutdownTimeoutMs = 5000,
   }) {
@@ -150,6 +151,7 @@ export class LocalBattleHost {
     this.packsDirectory = packsDirectory
     this.stateDirectory = stateDirectory
     this.workspaceRoot = workspaceRoot
+    this.builtinId = builtinId
     this.attachWorkspace = attachWorkspace
     this.startupTimeoutMs = startupTimeoutMs
     this.shutdownTimeoutMs = shutdownTimeoutMs
@@ -275,10 +277,10 @@ export class LocalBattleHost {
           throw problem('BASE_PACK_MISSING', '未找到打包的官方基础内容')
         }
       }
-      await verifyProject(
-        directory,
-        !!this.workspaceRoot && resolve(directory) === join(this.workspaceRoot, 'environments', 'desktop-host'),
-      )
+      const builtinId = this.builtinId?.() ?? 'desktop-host'
+      const sharedDirectory = this.workspaceRoot && join(this.workspaceRoot, 'environments', builtinId)
+      const projectHostDirectory = this.workspaceRoot && join(this.workspaceRoot, 'environments', 'desktop-host')
+      await verifyProject(directory, [sharedDirectory, projectHostDirectory].includes(resolve(directory)))
       const projectDirectory = await realpath(directory)
       this.#lastProject = { projectDirectory }
       cache = await mkdtemp(join(tmpdir(), 'arcadia-desktop-server-'))
@@ -438,7 +440,8 @@ export class LocalBattleHost {
       if (this.stateDirectory) {
         // Managed startup adopts its source into this persistent environment.
         // The library project is only a launch lease and can be collected later.
-        const managedDirectory = this.workspaceRoot && join(this.workspaceRoot, 'environments', 'desktop-host')
+        const managedDirectory =
+          launch?.officialContent || projectDirectory === sharedDirectory ? sharedDirectory : projectHostDirectory
         const persistent = managedDirectory
           ? await stat(join(managedDirectory, 'package.json')).then(
               () => managedDirectory,

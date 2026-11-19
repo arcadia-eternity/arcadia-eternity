@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { customAlphabet } from 'nanoid'
 import type {
   EnvironmentExportPreview,
   EnvironmentExportSelection,
@@ -189,10 +190,11 @@ function removePackage(name: string, cascade = false) {
   removingPackage.value = ''
   emit('removePackage', selectedEnvironment.value, name, cascade)
 }
+const environmentSuffix = customAlphabet('0123456789abcdef')
 async function duplicate(environment: ManagedEnvironment) {
-  if (!(await edit(environment))) return
+  if (!(await edit(environment, true))) return
   revision.value = null
-  document.value!.id = `${environment.document.id.slice(0, 60)}-copy-${crypto.randomUUID().slice(0, 6)}`
+  document.value!.id = `${environment.document.id.slice(0, 60)}-copy-${environmentSuffix(6)}`
   document.value!.name += ' 副本'
 }
 function deleteDraft(environment: ManagedEnvironment) {
@@ -253,7 +255,8 @@ function setTeamSize(key: 'minSize' | 'maxSize', value: number | null | undefine
 }
 const clone = (value: ManagedEnvironmentDocument): ManagedEnvironmentDocument => JSON.parse(JSON.stringify(value))
 
-async function edit(environment?: ManagedEnvironment) {
+async function edit(environment?: ManagedEnvironment, duplicate = false) {
+  if (environment?.builtin && !duplicate) return false
   if (dirty.value && !(await discardEnvironmentChanges())) return false
   if (environment) selectedId.value = environment.document.id
   editingFromId.value = environment?.document.id
@@ -279,7 +282,7 @@ async function createTestEnvironment() {
       .find(member => member.name === base)?.version ??
     props.environments.map(item => item.document.packages[base]).find(range => range && !range.startsWith('file:')) ??
     '*'
-  document.value!.id = 'test-120-' + crypto.randomUUID().slice(0, 8)
+  document.value!.id = 'test-120-' + environmentSuffix(8)
   document.value!.name = '120 资质测试环境'
   const { rules, include } = validateEnvironmentRuleDeclaration(testEnvironmentRules)
   document.value!.rules = { ...rules, include }
@@ -378,9 +381,13 @@ function save() {
       <div class="environment-detail">
         <template v-if="selectedEnvironment && !editing">
           <header class="section-heading">
-            <h3>{{ selectedEnvironment.document.name }}</h3>
+            <h3>{{ selectedEnvironment.document.name }} <small v-if="selectedEnvironment.builtin">只读</small></h3>
             <div class="actions">
-              <ElButton :disabled="!canEdit || busy" @click="edit(selectedEnvironment)" native-type="button"
+              <ElButton
+                v-if="!selectedEnvironment.builtin"
+                :disabled="!canEdit || busy"
+                @click="edit(selectedEnvironment)"
+                native-type="button"
                 >编辑</ElButton
               >
               <ElButton :disabled="!canEdit || busy" @click="duplicate(selectedEnvironment)" native-type="button"
@@ -433,7 +440,7 @@ function save() {
                 <small v-if="member.dependencies.length">需要：{{ member.dependencies.join('、') }}</small>
                 <small v-if="selectedEnvironment.requiredPackages?.includes(member.name)">默认环境必需</small>
                 <ElButton
-                  v-else
+                  v-else-if="!selectedEnvironment.builtin"
                   :disabled="busy || !canEdit || !canPrepare"
                   @click="removingPackage = member.name"
                   native-type="button"

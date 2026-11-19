@@ -374,11 +374,17 @@ export async function runServerCli(args: string[]): Promise<number> {
         trustedProxyAddresses: process.env.MANAGEMENT_TRUSTED_PROXY_IPS?.split(',')
           .map(value => value.trim())
           .filter(Boolean),
+        builtinEnvironmentId: desktopWorkspace?.builtinEnvironmentId,
         clientEnvironments: options.desktopClientEnvironments ? desktopWorkspace : undefined,
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
         initialization: desktopControl
           ? options.desktopProject
-            ? { kind: desktopLaunch?.officialContent ? 'builtin' : 'desktop', environmentId: 'desktop-host' }
+            ? {
+                kind: desktopLaunch?.officialContent ? 'builtin' : 'desktop',
+                environmentId: desktopLaunch?.officialContent
+                  ? (desktopWorkspace?.builtinEnvironmentId ?? 'desktop-host')
+                  : 'desktop-host',
+              }
             : undefined
           : options.npmProject?.[0]
             ? { kind: 'npm', environmentId: 'startup-npm' }
@@ -407,6 +413,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       await initializeDesktopHost({
         management: server.management!,
         workspace,
+        builtinId: desktopWorkspace?.builtinEnvironmentId,
         projectDirectory: options.desktopProject,
         kind: desktopLaunch?.officialContent || (!desktopLaunch && pending?.kind === 'builtin') ? 'builtin' : 'desktop',
       })
@@ -435,7 +442,7 @@ export async function runServerCli(args: string[]): Promise<number> {
           projectDirectory,
           kind: 'builtin',
           environmentId: 'builtin-server',
-          name: '内置服务器环境',
+          name: '默认环境',
           matchmakingEnabled: true,
         }),
       )
