@@ -33,11 +33,14 @@ export class AuthorWorkspaces {
               typeof entry.directory !== 'string' ||
               typeof entry.name !== 'string' ||
               typeof entry.readOnly !== 'boolean' ||
-              typeof entry.published !== 'boolean',
+              (entry.published !== undefined && typeof entry.published !== 'boolean'),
           )
         )
           throw new Error('源项目登记格式无效，请恢复备份')
-        this.#entries = entries
+        // Source registrations written before published-package browsing have no published flag.
+        if (entries.some(entry => entry.published === undefined))
+          await this.#save(entries.map(entry => ({ published: false, ...entry })))
+        else this.#entries = entries
       })().catch(error => {
         this.#loading = undefined
         throw error

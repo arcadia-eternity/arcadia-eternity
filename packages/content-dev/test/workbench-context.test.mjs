@@ -171,6 +171,25 @@ test('current registrations retain read-only metadata and missing source project
   assert.equal(JSON.parse(await readFile(file, 'utf8'))[0].readOnly, true)
 })
 
+test('opening the project list upgrades source registrations missing only the published flag', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-source-registry-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, 'state'))
+  const file = join(root, 'state/projects.json')
+  const entries = [
+    { id: 'base', name: '基础包', directory: join(root, 'base'), readOnly: true },
+    { id: 'author', name: '我的项目', directory: join(root, 'source'), readOnly: false },
+    { id: 'built', name: '已发布包', directory: join(root, 'built'), readOnly: true, published: true },
+  ]
+  await writeFile(file, JSON.stringify(entries))
+  const expected = entries.map(entry => ({ published: false, ...entry }))
+  const manager = new AuthorWorkspaces({ root })
+  const lists = await Promise.all([manager.list(), manager.list()])
+  assert.deepEqual(lists, [expected, expected])
+  assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), expected)
+  assert.deepEqual(await new AuthorWorkspaces({ root }).list(), expected)
+})
+
 test('source registry rejects incomplete metadata without rewriting the file', async t => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-registry-schema-'))
   await mkdir(join(root, 'state'))
