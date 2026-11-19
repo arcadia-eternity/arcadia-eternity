@@ -1,4 +1,4 @@
-import { resolveEnvironmentTeam, teamConstraintIssues } from '@arcadia-eternity/const'
+import { allowsEnhancementRecord, resolveEnvironmentTeam, teamConstraintIssues } from '@arcadia-eternity/const'
 import { legacyNatures } from '@arcadia-eternity/const'
 import { PetSchema, parseWithErrors, type PetSchemaType } from '@arcadia-eternity/schema'
 import {
@@ -40,14 +40,7 @@ export function memberIssues(input: unknown, content?: Content): TeamIssue[] {
   }
   for (const problem of teamConstraintIssues(rules?.constraints, [pet], 'pet')) issue(problem.message, 'moves')
   if (rules) {
-    const stage = rules.mechanics?.enhancement
-    if (
-      pet.enhancement &&
-      (!stage ||
-        stage.mode === 'forbidden' ||
-        (stage.species && !stage.species.includes(pet.species)) ||
-        (stage.stages && !stage.stages.includes(pet.enhancement)))
-    )
+    if (pet.enhancement && !allowsEnhancementRecord(rules.mechanics?.enhancement, pet.species, pet.enhancement))
       issue(pet.name + ' 的强化阶段在本环境不可用。', 'training')
     try {
       assertEnvironmentMember(rules, pet)
@@ -56,7 +49,7 @@ export function memberIssues(input: unknown, content?: Content): TeamIssue[] {
     }
   }
   if (content) {
-    const missingContent = findMissingTeamContent([pet], content)
+    const missingContent = findMissingTeamContent([pet], content, rules?.mechanics?.enhancement?.mode === 'active')
     for (const missing of missingContent) {
       const training = missing.kind === 'enhancement' || missing.kind === 'nature'
       issue(

@@ -134,9 +134,9 @@ test('UGC projects and environment dependencies are managed separately', async (
   await expect(faintSwitch.getByRole('radio', { name: '关闭' })).toBeChecked()
   await editor.getByRole('tab', { name: '对战机制' }).click()
   const enhancement = editor.getByRole('radiogroup', { name: '神魔化规则' })
-  const activeMode = enhancement.getByText('启用阶段加成', { exact: true })
+  const activeMode = enhancement.getByText('启用', { exact: true })
   await activeMode.click()
-  await expect(enhancement.getByRole('radio', { name: '启用阶段加成', exact: true })).toBeChecked()
+  await expect(enhancement.getByRole('radio', { name: '启用', exact: true })).toBeChecked()
   await editor.getByRole('tab', { name: '内容限制' }).click()
   const allowed = editor.getByRole('combobox', { name: '精灵允许名单', exact: true })
   await allowed.fill('custom:f')
@@ -157,8 +157,8 @@ test('UGC projects and environment dependencies are managed separately', async (
   const workspace = page.locator('.environment-workspace')
   expect(await workspace.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
   await editor.getByRole('tab', { name: '对战机制' }).click()
-  await expect(enhancement.getByRole('radio', { name: '启用阶段加成', exact: true })).toBeChecked()
-  for (const label of ['继承（禁止携带）', '禁止携带', '保留记录，本局不生效', '启用阶段加成']) {
+  await expect(enhancement.getByRole('radio', { name: '启用', exact: true })).toBeChecked()
+  for (const label of ['继承（禁用）', '启用', '禁用']) {
     const text = enhancement.getByText(label, { exact: true })
     await expect(text).toBeVisible()
     expect(

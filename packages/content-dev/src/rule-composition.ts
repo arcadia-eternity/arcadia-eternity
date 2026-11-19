@@ -1,5 +1,6 @@
 import {
   readEnvironmentRuleSets,
+  resolveEnhancement,
   splitRuleDeclaration,
   RuleCompositionError,
   type ConstraintEdits,
@@ -40,7 +41,11 @@ function entries(rules: EnvironmentRules): Entry[] {
   const out: Entry[] = []
   const add = (path: Path, value: unknown) => out.push({ path, value })
   for (const section of ['mechanics', 'allow', 'deny', 'team'] as const)
-    for (const [key, value] of Object.entries(rules[section] ?? {})) add([section, key], value)
+    for (const [key, value] of Object.entries(rules[section] ?? {}))
+      add(
+        [section, key],
+        section === 'mechanics' && key === 'enhancement' ? resolveEnhancement(rules.mechanics?.enhancement) : value,
+      )
   if (rules.tier !== undefined) add(['tier'], rules.tier)
   for (const row of rules.constraints ?? []) add(['constraints', row.id], row)
   for (const row of rules.learnsetAdjustments ?? [])
@@ -88,6 +93,12 @@ function effective(field: Field): unknown {
     return key === 'minSize' ? Math.max(...(values as number[])) : Math.min(...(values as number[]))
   }
   if (values.length === 1) return values[0]
+  if (
+    section === 'mechanics' &&
+    key === 'enhancement' &&
+    values.every(value => isRecord(value) && value.mode === 'suppressed')
+  )
+    return { mode: 'suppressed' }
   const contenders = [...field.choices.values()].map(
     choice => [...choice.sources].sort().join(', ') + ' = ' + canonical(choice.value),
   )

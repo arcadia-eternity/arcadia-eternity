@@ -70,8 +70,11 @@ export function validateLearningReferences(
   const check = (kind: string, value: string, exists: (id: string) => boolean) => {
     if (!exists(value)) throw new Error(`ENVIRONMENT_REFERENCE_MISSING: ${kind} ${value}`)
   }
-  for (const id of rules?.mechanics?.enhancement?.stages ?? []) check('enhancement', id, knownStage)
-  for (const id of rules?.mechanics?.enhancement?.species ?? []) check('species', id, knownSpecies)
+  const enhancement = rules?.mechanics?.enhancement
+  if (enhancement?.mode === 'active') {
+    for (const id of enhancement.stages ?? []) check('enhancement', id, knownStage)
+    for (const id of enhancement.species ?? []) check('species', id, knownSpecies)
+  }
   for (const eligible of [rules?.mechanics?.inheritance?.eligible, rules?.mechanics?.secondGenerationNatures])
     if (Array.isArray(eligible)) for (const id of eligible) check('species', id, knownSpecies)
   for (const id of rules?.mechanics?.inheritance?.pool?.skills ?? []) check('skill', id, knownSkill)
@@ -133,7 +136,7 @@ export function assertLearningChoices(
     assertNatureChoice(rules, pet.nature, natureById, species)
     const definition = species()
     if (!definition || !Array.isArray(definition.learnable_skills)) throw new Error('缺少物种学习表 ' + pet.species)
-    if (pet.enhancement) {
+    if (pet.enhancement && rules?.mechanics?.enhancement?.mode === 'active') {
       const stage = stageById(pet.enhancement) as { branch: string } | undefined
       if (!stage) throw new Error('缺少强化阶段 ' + pet.enhancement)
       if (!definition.enhancementBranches?.includes(stage.branch))

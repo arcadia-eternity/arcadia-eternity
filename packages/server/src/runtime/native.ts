@@ -150,6 +150,6 @@ export async function createServerBattle(
     return workers.create({ environment: runtime.sandbox, players: teams, options: capturedOptions }, signal)
   if (!('parsePlayers' in content)) throw new Error('Battle environment has no executable recipe')
   const native = await content.withSkillParameters(rules?.skillParameters)
-  const [a, b] = native.parsePlayers(teams)
+  const [a, b] = native.parsePlayers(teams, capturedOptions)
   return new LocalBattleSystem(native.createBattle(a, b, capturedOptions), native)
 }

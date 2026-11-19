@@ -3,6 +3,7 @@ import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import { readSkillParameterCatalog, resolveSkillParameters, requireElementChart } from '@arcadia-eternity/const'
 import { composeRuleSets } from './rule-composition.ts'
 import {
+  allowsEnhancementRecord,
   splitRuleDeclaration,
   resolveEnvironmentMechanics,
   resolveEnvironmentTeam,
@@ -107,12 +108,9 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
   if ([petRecord.ability, petRecord.emblem].some(mark => mark !== undefined && mark !== '' && !identifier(mark)))
     fail('ENVIRONMENT_TEAM_REJECTED')
   if (petRecord.enhancement !== undefined) {
-    const policy = resolveEnvironmentMechanics(rules).enhancement
     if (
       !identifier(petRecord.enhancement) ||
-      policy.mode === 'forbidden' ||
-      (policy.species && !policy.species.includes(petRecord.species)) ||
-      (policy.stages && !policy.stages.includes(petRecord.enhancement))
+      !allowsEnhancementRecord(rules.mechanics?.enhancement, petRecord.species, petRecord.enhancement)
     )
       fail('ENVIRONMENT_TEAM_REJECTED')
   }

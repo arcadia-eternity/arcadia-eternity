@@ -7,6 +7,7 @@ import {
   defaultEditorSkillSlots,
   maxEquippedSkills,
   resolveEnvironmentMechanics,
+  resolveEnhancement,
   skillSlotsSchema,
   type SkillSlots,
 } from '@arcadia-eternity/const'
@@ -64,10 +65,11 @@ function setPool(value: string) {
     })
 }
 type Enhancement = NonNullable<NonNullable<EnvironmentRules['mechanics']>['enhancement']>
-const enhancementModes = { forbidden: '禁止携带', suppressed: '保留记录，本局不生效', active: '启用阶段加成' }
+const enhancementModes = { active: '启用', suppressed: '禁用' }
+const enhancementOverride = computed(() => rules.value.mechanics?.enhancement)
 function selectEnhancement(value: unknown) {
   if (value === 'inherit') return restore('enhancement')
-  if (value !== 'active' && value !== 'suppressed' && value !== 'forbidden') return
+  if (value !== 'active' && value !== 'suppressed') return
   const enhancement = { ...mechanics.value?.enhancement, mode: value } satisfies Enhancement
   rules.value = { ...rules.value, schemaVersion: 2, mechanics: { ...rules.value.mechanics, enhancement } }
 }
@@ -262,16 +264,18 @@ function removeRow(index: number) {
       <ElRadioGroup
         class="enhancement-modes"
         aria-label="神魔化规则"
-        :model-value="rules.mechanics?.enhancement?.mode ?? 'inherit'"
+        :model-value="enhancementOverride ? resolveEnhancement(enhancementOverride).mode : 'inherit'"
         @update:model-value="selectEnhancement"
       >
         <ElRadio value="inherit">{{
-          inheritedEnhancement ? '继承（' + enhancementModes[inheritedEnhancement.mode] + '）' : '继承规则集'
+          inheritedEnhancement
+            ? '继承（' + enhancementModes[resolveEnhancement(inheritedEnhancement).mode] + '）'
+            : '继承规则集'
         }}</ElRadio>
         <ElRadio v-for="(label, value) in enhancementModes" :key="value" :value="value">{{ label }}</ElRadio>
       </ElRadioGroup>
     </ElFormItem>
-    <div v-if="mechanics?.enhancement && mechanics.enhancement.mode !== 'forbidden'" class="learning-row">
+    <div v-if="mechanics?.enhancement?.mode === 'active'" class="learning-row">
       <ElFormItem label="允许阶段 ID"
         ><EnvironmentIdList
           :placeholder="mechanics.enhancement.stages ? '未允许任何阶段' : '全部阶段'"

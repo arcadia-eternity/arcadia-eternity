@@ -171,6 +171,8 @@ it('applies the 120 test environment’s selected nature and stage to all six ba
   await expect(validateServerTeam([lead])).rejects.toThrow('ENVIRONMENT_TEAM_REJECTED')
   const baseStats = { maxHp: 210, atk: 179 * 0.9, def: 186, spa: 193 * 0.9, spd: 186 * 1.1, spe: 168 * 1.1 }
   for (const mode of ['active', 'suppressed'] as const) {
+    const stage = mode === 'active' ? 'base:evolve-1' : 'other:uninstalled'
+    lead.enhancement = stage
     const policy = {
       ...rules,
       mechanics: { ...rules.mechanics, enhancement: { ...rules.mechanics?.enhancement, mode } },
@@ -183,7 +185,7 @@ it('applies the 120 test environment’s selected nature and stage to all six ba
     for (const key of Object.keys(baseStats) as Array<keyof typeof baseStats>)
       expect(actual.stats?.[key], mode + ' ' + key).toBeCloseTo(baseStats[key] + (bonus?.[key] ?? 0))
     expect(actual.currentHp).toBe(actual.maxHp)
-    expect(lead.enhancement).toBe('base:evolve-1')
+    expect(lead.enhancement).toBe(stage)
   }
 }, 30000)
 

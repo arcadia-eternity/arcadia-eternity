@@ -414,8 +414,10 @@ it('shows the inherited enhancement mode and preserves stage restrictions when c
   await button(page, '编辑').trigger('click')
   await openTab(page, '对战机制')
   const group = page.get('[aria-label="神魔化规则"]')
-  expect(group.text()).toContain('继承（启用阶段加成）')
+  expect(group.text()).toContain('继承（启用）')
+  expect(group.findAll('input[type=radio]')).toHaveLength(3)
   await group.get('input[value="suppressed"]').setValue()
+  expect(page.get('[aria-label="神魔化"]').text()).not.toContain('允许阶段 ID')
   const form = page.get('form.environment-editor')
   await form.trigger('submit')
   const saved = (index: number) => (page.emitted('save')![index]![0] as ManagedEnvironment['document']).rules

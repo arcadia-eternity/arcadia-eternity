@@ -52,7 +52,15 @@ it('evaluates a warehouse build independently of the minimum team size', () => {
   const environment = { ...content, rules: { schemaVersion: 2 as const, team: { minSize: 2 } } }
   expect(memberIssues(pet, environment)).toEqual([])
   expect(validateBasicTeam([pet], environment)).toEqual([expect.stringContaining('2–6')])
-  expect(memberIssues({ ...pet, enhancement: 'test:divine' }, environment)).toContainEqual({
+  const trained = { ...pet, enhancement: 'test:divine' }
+  expect(memberIssues(trained, { ...environment, getEnhancement: () => undefined })).toEqual([])
+  expect(trained.enhancement).toBe('test:divine')
+  expect(
+    memberIssues(trained, {
+      ...content,
+      rules: { schemaVersion: 2, mechanics: { enhancement: { mode: 'active', stages: [] } } },
+    }),
+  ).toContainEqual({
     objectId: pet.id,
     section: 'training',
     message: expect.stringContaining('强化阶段'),

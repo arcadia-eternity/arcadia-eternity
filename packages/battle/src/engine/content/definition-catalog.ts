@@ -262,13 +262,18 @@ export function createContentCatalog(
     parametersFor: (id: string) => effectParameters.get(id),
     parsePlayer: (raw: unknown) => PlayerParser.parse(raw, lookup),
     /** Validate the whole creation batch before allocating any domain instances. */
-    parsePlayers(raw: readonly unknown[], options: { aiPlayerIds?: readonly string[] } = {}): Player[] {
+    parsePlayers(
+      raw: readonly unknown[],
+      options: { aiPlayerIds?: readonly string[]; enhancementActive?: boolean } = {},
+    ): Player[] {
       const players = raw.map(value => PlayerSchema.parse(value))
       const ai = new Set(options.aiPlayerIds)
       for (const id of ai) if (!players.some(player => player.id === id)) throw new Error(`Unknown AI player: ${id}`)
       for (const player of players)
         for (const pet of player.team) {
-          if (pet.enhancement) lookup.getEnhancement(pet.enhancement)
+          // PlayerSchema.parse produced a battle-local copy. A disabled stage is saved training history only.
+          if (options.enhancementActive === false) delete pet.enhancement
+          else if (pet.enhancement) lookup.getEnhancement(pet.enhancement)
           lookup.getNature(pet.nature)
           lookup.getSpecies(pet.species as Parameters<PrototypeLookup['getSpecies']>[0])
           for (const skill of pet.skills) lookup.getSkill(skill as Parameters<PrototypeLookup['getSkill']>[0])

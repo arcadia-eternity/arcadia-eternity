@@ -145,6 +145,20 @@ export function resolveEnvironmentTeam(rules?: Pick<EnvironmentRules, 'team'>) {
   return { minSize, maxSize, uniqueSpecies }
 }
 
+type EnhancementPolicy = z.infer<typeof enhancementSchema>
+
+export function resolveEnhancement(policy?: EnhancementPolicy) {
+  const mode = policy?.mode === 'active' ? 'active' : 'suppressed'
+  return { ...policy, mode } as const
+}
+
+export function allowsEnhancementRecord(policy: EnhancementPolicy | undefined, species: string, stage: string) {
+  return (
+    policy?.mode !== 'active' ||
+    ((!policy.species || policy.species.includes(species)) && (!policy.stages || policy.stages.includes(stage)))
+  )
+}
+
 export function resolveEnvironmentMechanics(rules?: Pick<EnvironmentRules, 'mechanics'>) {
   const mechanics = rules?.mechanics
   const max = mechanics?.individualValues?.max ?? 31
@@ -153,7 +167,7 @@ export function resolveEnvironmentMechanics(rules?: Pick<EnvironmentRules, 'mech
     allowFaintSwitch: mechanics?.allowFaintSwitch ?? true,
     inheritance: mechanics?.inheritance ?? { eligible: 'off' as const },
     secondGenerationNatures: mechanics?.secondGenerationNatures ?? 'off',
-    enhancement: mechanics?.enhancement ?? { mode: 'forbidden' as const },
+    enhancement: resolveEnhancement(mechanics?.enhancement),
     skillSlots: mechanics?.skillSlots,
   }
 }

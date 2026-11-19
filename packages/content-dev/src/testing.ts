@@ -114,6 +114,7 @@ export async function prepareContentPack(
     })
     try {
       const players = effects.content.parsePlayers(input, {
+        enhancementActive,
         aiPlayerIds: ai && input[1] ? [input[1].id] : [],
       })
       if (players.length !== 2) throw new Error('The demo requires exactly two players')

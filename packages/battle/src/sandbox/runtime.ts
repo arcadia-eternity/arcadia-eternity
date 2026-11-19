@@ -139,7 +139,10 @@ export class SandboxBattleRuntime {
       this.effects.beginSession()
       const { content } = this.effects
       this.health()
-      const [first, second] = content.parsePlayers(input.players, { aiPlayerIds: input.aiPlayerIds })
+      const [first, second] = content.parsePlayers(input.players, {
+        aiPlayerIds: input.aiPlayerIds,
+        enhancementActive: input.options?.enhancementActive === true,
+      })
       this.battle = content.createBattle(first, second, input.options)
       this.observe(this.battle)
       this.system = new LocalBattleSystem(

@@ -539,7 +539,7 @@
                       disabled
                       :label="
                         getEnhancementName(selectedPet.enhancement) +
-                        (enhancementPolicy?.mode === 'suppressed' ? '（本局不生效）' : '（当前不可用）')
+                        (enhancementPolicy?.mode !== 'active' ? '（本局不生效）' : '（当前不可用）')
                       "
                     />
                     <el-option-group
@@ -880,7 +880,7 @@ import { useValidationStore } from '@/stores/validation'
 import { resolveLearnset, isEligible } from '@arcadia-eternity/content-sdk/environment-rules'
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
-import { Gender, maxEquippedSkills } from '@arcadia-eternity/const'
+import { allowsEnhancementRecord, Gender, maxEquippedSkills } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
@@ -1012,7 +1012,9 @@ function applyPetBuild(pet: PetSchemaType) {
   currentTeam.value = currentTeam.value.map(member => (member.id === pet.id ? pet : member))
 }
 const selectedMissingContent = computed(() =>
-  selectedPet.value && gameDataStore.loaded ? findMissingTeamContent([selectedPet.value], gameDataStore) : [],
+  selectedPet.value && gameDataStore.loaded
+    ? findMissingTeamContent([selectedPet.value], gameDataStore, enhancementPolicy.value?.mode === 'active')
+    : [],
 )
 const removeMissingSkill = (index: number) => {
   if (!selectedPet.value || gameDataStore.getSkill(selectedPet.value.skills[index])) return
@@ -1180,10 +1182,10 @@ const enhancementPolicy = computed(() => gameDataStore.rules?.mechanics?.enhance
 const availableStages = computed(() => {
   const policy = enhancementPolicy.value
   const species = selectedPet.value?.species
-  if (!species || policy?.mode !== 'active' || (policy.species && !policy.species.includes(species))) return []
+  if (!species || policy?.mode !== 'active') return []
   const branches = gameDataStore.getSpecies(species)?.enhancementBranches
   return gameDataStore.enhancements.filter(
-    stage => branches?.includes(stage.branch) && (!policy.stages || policy.stages.includes(stage.id)),
+    stage => branches?.includes(stage.branch) && allowsEnhancementRecord(policy, species, stage.id),
   )
 })
 const stagesByBranch = computed(() => {

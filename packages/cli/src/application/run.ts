@@ -71,7 +71,7 @@ export async function runBattle(
   const native =
     !environment && 'parsePlayers' in content ? await content.withSkillParameters(rules.skillParameters) : undefined
   if (!environment && !native) throw new Error('Battle environment has no executable recipe')
-  const [a, b] = environment ? [] : native!.parsePlayers(teams)
+  const [a, b] = environment ? [] : native!.parsePlayers(teams, battleOptions)
   const battle = environment ? undefined : native!.createBattle(a, b, battleOptions)
   const workers = environment ? createNodeBattleWorkerManager() : undefined
   const aiSeeds = [0, 1].map(seat => `${spec.seed}/ai/${seat}`)

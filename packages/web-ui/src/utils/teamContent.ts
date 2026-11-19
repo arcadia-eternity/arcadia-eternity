@@ -33,6 +33,7 @@ const labels = {
 export function findMissingTeamContent(
   pets: readonly PetSchemaType[],
   content: TeamContentLookup,
+  checkEnhancements = true,
 ): MissingTeamContent[] {
   const missing: MissingTeamContent[] = []
   const lookup = {
@@ -65,7 +66,7 @@ export function findMissingTeamContent(
     check('emblem', pet.emblem)
     check('inheritedSkill', pet.inheritedSkill)
     check('nature', pet.nature)
-    check('enhancement', pet.enhancement)
+    if (checkEnhancements) check('enhancement', pet.enhancement)
   }
   return missing
 }

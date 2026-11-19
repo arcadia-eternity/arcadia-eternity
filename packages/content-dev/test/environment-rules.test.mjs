@@ -132,15 +132,16 @@ test('plain and composed environments validate equipped skills and species enhan
       () => ({}),
     )
   for (const schemaVersion of [1, 2]) assert.throws(() => check({ schemaVersion }, draft), /不能学习/)
-  for (const mode of ['active', 'suppressed'])
-    assert.throws(
-      () =>
-        check(
-          { schemaVersion: 2, mechanics: { enhancement: { mode } } },
-          { ...draft, skills: [], enhancement: 'x:stage' },
-        ),
-      /强化阶段/,
-    )
+  const trained = { ...draft, skills: [], enhancement: 'x:stage' }
+  assert.throws(() => check({ schemaVersion: 2, mechanics: { enhancement: { mode: 'active' } } }, trained), /强化阶段/)
+  const ruleSets = ['forbidden', 'suppressed'].map(mode => ({
+    id: 'x:' + mode,
+    rules: { schemaVersion: 2, mechanics: { enhancement: { mode, stages: [mode] } } },
+  }))
+  for (const policy of [{ schemaVersion: 1 }, ...ruleSets.map(row => row.rules)]) check(policy, trained)
+  const combined = prepareEnvironmentRules({ schemaVersion: 2, include: ruleSets.map(row => row.id) }, ruleSets)
+  assert.equal(combined.rules.mechanics.enhancement.mode, 'suppressed')
+  assert.equal(trained.enhancement, 'x:stage')
 })
 
 async function fixture(t, definition) {
