@@ -64,7 +64,6 @@ function useCandidate() {
 }
 const gameData = useGameDataStore()
 const canAuthor = !!window.arcadiaDesktop?.author
-const canImportSources = !!window.arcadiaDesktop?.contentPackageAction
 interface Job {
   id: string
   kind: string
@@ -140,7 +139,6 @@ function openImport() {
   importing.value = true
   error.value = ''
 }
-const references = ref<unknown[]>()
 const preparing = computed(() => snapshot.value.operations.some(job => ['queued', 'running'].includes(job.status)))
 let disposed = false,
   timer: ReturnType<typeof setTimeout> | undefined
@@ -217,15 +215,6 @@ async function save(document: ManagedEnvironmentDocument, expectedRevision: stri
   )
     saveSequence.value++
 }
-async function inspect(version: ManagedEnvironmentInstallation) {
-  try {
-    references.value = (
-      await call<{ references: unknown[] }>({ action: 'references', installationId: version.installationId })
-    ).references
-  } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '无法读取引用'
-  }
-}
 function previewExport(installationId: string) {
   return call<EnvironmentExportPreview>({ action: 'export-preview', installationId })
 }
@@ -250,19 +239,6 @@ async function exportEnvironment(version: ManagedEnvironmentInstallation, mode: 
     error.value = cause instanceof Error ? cause.message : '导出失败'
   } finally {
     if (url) setTimeout(() => URL.revokeObjectURL(url!), 1000)
-    if (!disposed) busy.value = false
-  }
-}
-async function importSources() {
-  if (busy.value) return
-  busy.value = true
-  error.value = ''
-  try {
-    const result = await window.arcadiaDesktop!.contentPackageAction!({ action: 'import-sources' })
-    if (!disposed && typeof result === 'string') notice.value = result ? `已登记来源：${result}` : '来源登记已清空'
-  } catch (cause) {
-    if (!disposed) error.value = cause instanceof Error ? cause.message : '无法导入来源配置'
-  } finally {
     if (!disposed) busy.value = false
   }
 }
@@ -360,7 +336,6 @@ onBeforeUnmount(() => {
             '正在移出环境。',
           )
       "
-      @references="inspect"
       @delete="version => run({ action: 'clear-installation', installationId: version.installationId }, '安装已清理。')"
       @delete-draft="
         environment =>
@@ -419,17 +394,7 @@ onBeforeUnmount(() => {
       :error="error"
       @import="importEnvironment"
     />
-    <details class="source-settings">
-      <summary>内容来源</summary>
-      <ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
-      <ElButton v-if="canImportSources" :disabled="busy" @click="importSources">导入来源配置</ElButton>
-    </details>
-    <section v-if="references" class="panel" aria-label="本地版本引用">
-      <h3>版本引用</h3>
-      <p v-if="!references.length">没有引用，可删除此版本。</p>
-      <pre v-else>{{ references }}</pre>
-      <ElButton @click="references = undefined">关闭引用</ElButton>
-    </section>
+    <ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
     <ElDrawer v-model="tasksOpen" title="环境任务" size="min(680px, 100vw)" append-to-body
       ><section class="panel" aria-label="本地环境任务">
         <h3>下载与准备任务</h3>
@@ -464,13 +429,6 @@ onBeforeUnmount(() => {
   </section>
 </template>
 <style scoped>
-.source-settings {
-  margin: 16px 0;
-}
-.source-settings summary {
-  cursor: pointer;
-  margin-bottom: 8px;
-}
 .local-tabs {
   display: flex;
   gap: 8px;
@@ -533,10 +491,6 @@ onBeforeUnmount(() => {
 }
 .error {
   color: #b42318;
-}
-.panel pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 button:disabled {
   opacity: 0.5;

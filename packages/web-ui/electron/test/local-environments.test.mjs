@@ -230,11 +230,7 @@ test('migrates the working local selection once and preserves selected environme
   assert.equal((await complete(api, apply.operationId)).status, 'succeeded')
   const select = await api.request({ action: 'select', environmentId: document.id })
   assert.equal((await complete(api, select.operationId)).status, 'succeeded')
-  assert.ok(
-    (await api.request({ action: 'references', installationId: document.id })).references.some(
-      reference => reference.kind === 'local-selection',
-    ),
-  )
+  await assert.rejects(api.request({ action: 'references', installationId: document.id }), { code: 'INVALID_ACTION' })
   const next = await api.acquireProject()
   assert.equal(next.document.id, document.id)
   assert.equal(original.document.id, first.selectedEnvironmentId)

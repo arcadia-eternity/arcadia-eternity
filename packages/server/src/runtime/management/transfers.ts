@@ -20,7 +20,6 @@ type TransferWorkspace = Pick<
   | 'forgetImport'
   | 'retain'
   | 'releaseRetention'
-  | 'references'
 >
 export interface ManagementTransfersOptions {
   storage: DurableStorage
@@ -407,21 +406,6 @@ export class ManagementTransfers {
     } catch (error) {
       unpin()
       throw error
-    }
-  }
-  async references(actor: ManagementActor, installationId: string) {
-    await this.options.auth.authorize(actor, this.scope, 'read')
-    const references = await this.options.workspace.references(installationId)
-    return {
-      references: references.map(reference => {
-        const result: Record<string, unknown> = {}
-        for (const key of ['kind', 'installationId', 'retentionId', 'serverId', 'bindingId', 'owner', 'id']) {
-          const value = reference[key]
-          // IDs have a bounded printable shape; user-controlled paths/diagnostics aren't sent.
-          if (safeString(value, 256) && !/[\\/]/.test(value)) result[key] = value
-        }
-        return result
-      }),
     }
   }
   private recoverImport(operation: Operation): Promise<Operation> {

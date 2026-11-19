@@ -303,6 +303,7 @@ test('environment import and export use the environment entry and stay scoped to
         listCachedPets: async () => [],
         getAppVersion: async () => 'test',
 
+        contentPackageAction: async () => null,
         localEnvironment: async (input: Record<string, unknown>) => {
           calls.push(input)
           if (input.action === 'snapshot')
@@ -351,6 +352,11 @@ test('environment import and export use the environment entry and stay scoped to
   await expect(hub.getByRole('heading', { name: '好友环境', exact: true })).toBeVisible()
   await hub.getByRole('button', { name: '本地使用', exact: true }).click()
   await expect(hub.getByRole('button', { name: '本地使用中', exact: true })).toBeDisabled()
+  const downloadPolicy = hub.getByText('允许下载缺失的第三方包', { exact: true })
+  await downloadPolicy.click()
+  await expect(hub.getByRole('checkbox', { name: '允许下载缺失的第三方包' })).toBeChecked()
+  await downloadPolicy.click()
+  await expect(hub.getByText(/^(查看使用情况|查看引用|导入内容包位置清单|导入来源配置)$/)).toHaveCount(0)
   await page.screenshot({ path: testInfo.outputPath('environment-selected-desktop.png'), fullPage: true })
   await hub.getByRole('button', { name: '编辑', exact: true }).click()
   await hub.locator('form.environment-editor input').first().fill('未保存名称')

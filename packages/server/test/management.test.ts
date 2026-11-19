@@ -423,7 +423,7 @@ describe('unified management HTTP and durable environment publication', () => {
     const importOperation = await completed(env.storage, imported.body.id)
     expect(importOperation.status, JSON.stringify(importOperation)).toBe('succeeded')
     expect((importOperation.result as { environmentId: string }).environmentId).toBe('copied')
-    expect((await env.request(`${base}/installations/${installationId}/references`)).body.references).toEqual([])
+    expect((await env.request(`${base}/installations/${installationId}/references`)).response.status).toBe(404)
   }, 30000)
 
   it('keeps unauthorized tokens out of mutation and refuses content publication on an official-policy host', async () => {

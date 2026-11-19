@@ -12,7 +12,6 @@ const methods = new Set([
   'getInstallation',
   'retain',
   'releaseRetention',
-  'references',
   'clearInstallation',
   'exportEnvironment',
   'previewEnvironmentExport',

@@ -17,8 +17,6 @@ const {
   busy,
   isAdministrator,
   environmentSaveSequence,
-  referenceEnvironment,
-  environmentReferences,
   downloading,
   workspacePath,
   encode,
@@ -26,7 +24,6 @@ const {
   saveEnvironment,
   deleteEnvironment,
   useEnvironment,
-  inspectReferences,
   previewExport,
   checkArchives,
   exportEnvironment,
@@ -67,7 +64,6 @@ function openImport() {
     "
     @delete-draft="deleteEnvironment"
     @use="useEnvironment"
-    @references="inspectReferences"
     @delete="version => state.mutate('DELETE', `${workspacePath}/installations/${encode(version.installationId)}`)"
   >
     <template #toolbar
@@ -82,22 +78,6 @@ function openImport() {
         :environment-id="environment.document.id"
     /></template>
   </EnvironmentWorkspace>
-  <section v-if="referenceEnvironment" aria-label="环境引用" class="message">
-    <h3>环境引用</h3>
-    <p>
-      <code>{{ referenceEnvironment }}</code>
-    </p>
-    <p v-if="!environmentReferences.length">无环境引用</p>
-    <template v-else>
-      <p>以下使用方仍保留此环境。解除绑定或等待正在使用的对局结束后，才可以删除。</p>
-      <p v-for="(reference, index) in environmentReferences" :key="index">
-        {{ reference.kind === 'runtime' ? '正在使用' : '持久引用' }} ·
-        {{ reference.serverId ?? reference.owner ?? reference.id ?? reference.retentionId
-        }}<span v-if="reference.bindingId"> · 绑定 {{ reference.bindingId }}</span>
-      </p>
-    </template>
-    <ElButton @click="referenceEnvironment = ''" native-type="button">关闭引用</ElButton>
-  </section>
   <EnvironmentImportDialog
     :key="client?.context.endpoint"
     :check-archives="checkArchives"

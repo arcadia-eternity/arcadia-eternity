@@ -65,7 +65,6 @@ export type ManagementWorkspace = Pick<
   | 'importEnvironment'
   | 'recoverImport'
   | 'forgetImport'
-  | 'references'
 >
 export interface Binding {
   serverId: string
@@ -933,14 +932,6 @@ export class ManagementService {
           202,
         )
       if (parts[2] === 'installations' && parts.length === 5) {
-        if (parts[4] === 'references' && method === 'GET') {
-          await this.auth.authorize(actor, this.workspaceScope, 'read')
-          return ok(
-            this.transfers
-              ? await this.transfers.references(actor, parts[3])
-              : { references: await this.options.workspace.references(parts[3]) },
-          )
-        }
         if (this.transfers && parts[4] === 'export-preview' && method === 'GET') {
           await this.auth.authorize(actor, this.workspaceScope, 'export')
           return ok(await this.options.workspace.previewEnvironmentExport(parts[3]))

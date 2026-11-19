@@ -1,3 +1,5 @@
+import { lstatSync, readFileSync } from 'node:fs'
+import { parseArgs } from 'node:util'
 import { createHash, randomUUID } from 'node:crypto'
 import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -39,6 +41,27 @@ function sourceRegistry(value) {
     }
   }
   return structuredClone(value)
+}
+// Called once by the desktop main process, before environment preparation.
+export function readDesktopContentSources(args, root) {
+  const { values } = parseArgs({
+    args,
+    options: { 'content-sources': { type: 'string' } },
+    allowPositionals: true,
+    strict: false,
+  })
+  const explicit = values['content-sources']
+  if (explicit !== undefined && (typeof explicit !== 'string' || !explicit.trim()))
+    throw new Error('--content-sources 需要指定 JSON 文件')
+  const file = explicit ?? join(root, 'content-sources.json')
+  try {
+    const stat = lstatSync(file)
+    if (!stat.isFile() || stat.size > 128 * 1024) throw new Error('内容包来源清单无效')
+    return JSON.parse(readFileSync(file, 'utf8'))
+  } catch (error) {
+    if (explicit === undefined && error.code === 'ENOENT') return {}
+    throw error
+  }
 }
 function validEntry(item) {
   return (
@@ -838,30 +861,6 @@ export class ContentLibrary {
     }))
     return plan.entry.id
   }
-  async #registeredSources() {
-    let sources = {}
-    try {
-      sources = sourceRegistry(await readJson(join(this.root, 'content-sources.json'), 128 * 1024))
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error
-    }
-    return { ...sources, ...this.#sources }
-  }
-  /** The main process obtains this path from a native file chooser, never a renderer path. */
-  async importSourceRegistry(file) {
-    return this.#exclusive(async () => {
-      const sources = sourceRegistry(await readJson(file, 128 * 1024))
-      const target = join(this.root, 'content-sources.json'),
-        temporary = target + '.' + randomUUID() + '.tmp'
-      try {
-        await writeFile(temporary, JSON.stringify(sources, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
-        await rename(temporary, target)
-      } finally {
-        await rm(temporary, { force: true })
-      }
-      return { sourceIds: Object.keys(sources).sort() }
-    })
-  }
   /** Prepare a named management environment without changing local-play selection.
    * Material resolution depends only on explicit declarations and registered sources.
    */
@@ -889,13 +888,12 @@ export class ContentLibrary {
         throw new Error('环境包配置无效')
       const combined = signal ? AbortSignal.any([signal, this.#controller.signal]) : this.#controller.signal
       combined.throwIfAborted()
-      const registry = sourceIds.length ? await this.#registeredSources() : {}
       const selectedSources = {},
         installedSources = new Map()
       for (const name of sourceIds) {
         if (name === '@arcadia-eternity/data-pack-base') continue
         if (Object.hasOwn(document.packages, name)) throw sourceError('INSTALL_DUPLICATE_PACKAGE')
-        if (Object.hasOwn(registry, name)) selectedSources[name] = registry[name]
+        if (Object.hasOwn(this.#sources, name)) selectedSources[name] = this.#sources[name]
         else {
           const installed = this.#state.installed.filter(entry => entry.name === name)
           if (!installed.length) throw sourceError('INSTALL_SOURCE_NOT_REGISTERED')

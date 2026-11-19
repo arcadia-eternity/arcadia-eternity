@@ -168,7 +168,6 @@ test('runtime and persistent references roundtrip and protect shared materials u
   const lease = await proxy.acquire(version.installationId, 'room:one')
   await proxy.retain(version.installationId, 'binding:main')
   assert.equal(f.roots.get('binding:main'), version.installationId)
-  assert.equal((await proxy.references(version.installationId)).length, 2)
   await assert.rejects(proxy.clearInstallation(version.installationId), { code: 'ENVIRONMENT_IN_USE' })
   await Promise.all([lease.release(), lease.release()])
   assert.equal(connection.sent.filter(message => message.method === 'release').length, 1)
@@ -258,13 +257,17 @@ test('IPC disconnect rejects child requests but holds runtime leases until proce
     code: 'RETENTION_UNAVAILABLE',
   })
   const second = await f.connect()
-  assert.ok(
-    (await second.proxy.references(version.installationId)).some(reference => reference.owner === 'room:old-child'),
-  )
   await assert.rejects(second.proxy.clearInstallation(version.installationId), { code: 'ENVIRONMENT_IN_USE' })
   first.connection.exit()
-  await eventually(async () => (await second.proxy.references(version.installationId)).length === 0)
-  await second.proxy.clearInstallation(version.installationId)
+  await eventually(async () => {
+    try {
+      await second.proxy.clearInstallation(version.installationId)
+      return true
+    } catch (error) {
+      if (error.code !== 'ENVIRONMENT_IN_USE') throw error
+      return false
+    }
+  })
   assert.equal(f.materialLeases.size, 0)
 })
 

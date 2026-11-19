@@ -192,7 +192,6 @@ export interface ContentWorkspace {
   acquire(installationId: string, owner?: string): Promise<EnvironmentInstallation & { release(): Promise<void> }>
   retain(installationId: string, retentionId: string): Promise<void>
   releaseRetention(retentionId: string): Promise<void>
-  references(installationId: string): Promise<Record<string, unknown>[]>
   clearInstallation(installationId: string): Promise<void>
   previewEnvironmentExport(installationId: string): Promise<EnvironmentExportPreview>
   missingEnvironmentArchives(probe: EnvironmentImportProbe): Promise<string[]>
@@ -723,9 +722,6 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       ...[...this.#leases.values()].filter(x => x.installationId === id).map(x => ({ kind: 'runtime', ...x })),
       ...((await this.#options.retentions?.list(id)) ?? []).map(x => ({ kind: 'retention', ...x })),
     ]
-  }
-  references(id: string) {
-    return this.#exclusive(() => this.#references(id))
   }
   clearInstallation(id: string) {
     return this.#exclusive(async () => {

@@ -228,13 +228,6 @@ export class LocalEnvironments {
         if (input.installationId === this.#selectedId) throw fail('ENVIRONMENT_IN_USE', '请先切换本地使用的环境')
         await workspace.clearInstallation(input.installationId)
         return { deleted: true }
-      case 'references':
-        return {
-          references: [
-            ...(input.installationId === this.#selectedId ? [{ kind: 'local-selection', owner: '本地使用' }] : []),
-            ...(await workspace.references(input.installationId)),
-          ],
-        }
       case 'save-member':
       case 'use-member': {
         return this.start('environment.' + input.action, async signal => {

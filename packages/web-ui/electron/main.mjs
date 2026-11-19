@@ -14,7 +14,7 @@ import { createSwfHost } from './swf-host.mjs'
 import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
-import { ContentLibrary } from './content-library.mjs'
+import { ContentLibrary, readDesktopContentSources } from './content-library.mjs'
 import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
 import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
@@ -279,8 +279,10 @@ function getAuthorWorkspaces() {
   return authorWorkspaces
 }
 function getContentLibrary() {
+  const root = path.join(app.getPath('userData'), 'content-packages')
   contentLibrary ??= new ContentLibrary({
-    root: path.join(app.getPath('userData'), 'content-packages'),
+    root,
+    sources: readDesktopContentSources(process.argv.slice(1), root),
     host: localBattleHost,
     copyMember: async (...args) => {
       const runtimeRequire = app.isPackaged
@@ -1108,17 +1110,6 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
-    if (input.action === 'import-sources') {
-      const selected = await dialog.showOpenDialog(mainWindow, {
-        title: '导入环境来源登记',
-        properties: ['openFile'],
-        filters: [{ name: '来源登记', extensions: ['json'] }],
-      })
-      requireLocalBattleCaller(event)
-      if (selected.canceled || !selected.filePaths[0]) return null
-      const result = await library.importSourceRegistry(selected.filePaths[0])
-      return result.sourceIds.join('、')
-    }
     if (input.action === 'cancel-install') {
       library.cancelInstall(input.operationId)
       return null

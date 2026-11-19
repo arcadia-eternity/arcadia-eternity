@@ -58,5 +58,4 @@ export interface ContentLibrarySnapshot {
 export type ContentPackageAction =
   | { action: 'cancel-install' | 'retry-install'; operationId: string }
   | { action: 'clear-install-tasks' }
-  | { action: 'import-sources' }
   | { action: 'uninstall'; packageId: string }

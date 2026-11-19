@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { ContentLibrary } from '../content-library.mjs'
+import { ContentLibrary, readDesktopContentSources } from '../content-library.mjs'
 import { ManagedProjects } from '../../../content-dev/src/managed-projects.ts'
 import { packBuiltProject } from '../../../content-dev/src/pack-project.ts'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
@@ -173,7 +173,7 @@ async function fixture(t, options = {}) {
     root: libraryRoot,
     run,
     host,
-    sources: options.sources?.(source),
+    sources: await options.sources?.(source, root),
     createManagedProjects: async (directory, input) => {
       const managed = new ManagedProjects(directory, {
         ...input,
@@ -298,30 +298,33 @@ test(
   },
 )
 
-test(
-  'persisted trusted sources override installed names without replacing the active selection',
-  { timeout: 60000 },
-  async t => {
-    const f = await fixture(t)
-    await f.library.installFile(f.source.archive, true)
-    const before = selection(await f.library.list())
-    const newer = await contentPackage(f.root, f.source.name, '2.0.0')
-    const file = join(f.root, 'trusted-sources.json')
-    const sources = { [f.source.name]: { kind: 'archive', file: newer.archive } }
-    await writeFile(file, JSON.stringify(sources))
-    assert.deepEqual(await f.library.importSourceRegistry(file), { sourceIds: [f.source.name] })
-    assert.deepEqual(JSON.parse(await readFile(join(f.libraryRoot, 'content-sources.json'), 'utf8')), sources)
-    const lease = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
-    try {
-      const inspection = await inspectNpmProject(lease.directory)
-      assert.equal(inspection.packages.find(pkg => pkg.name === f.source.name).version, '2.0.0')
-      await validateProject(lease.directory)
-      assert.deepEqual(selection(await f.library.list()), before)
-    } finally {
-      await lease.release()
-    }
-  },
-)
+test('desktop uses the launch-time package locations until restart', { timeout: 60000 }, async t => {
+  const f = await fixture(t, {
+    sources: async (source, root) => {
+      const newer = await contentPackage(root, source.name, '2.0.0')
+      const file = join(root, 'package-locations.json')
+      const sources = { [source.name]: { kind: 'archive', file: newer.archive } }
+      await writeFile(file, JSON.stringify(sources))
+      assert.deepEqual(readDesktopContentSources(['--content-sources=' + file], root), sources)
+      return readDesktopContentSources(['--content-sources', file], root)
+    },
+  })
+  await f.library.installFile(f.source.archive, true)
+  const before = selection(await f.library.list())
+  const changed = { [f.source.name]: { kind: 'archive', file: f.source.archive } }
+  await writeFile(join(f.root, 'package-locations.json'), JSON.stringify(changed))
+  await writeFile(join(f.libraryRoot, 'content-sources.json'), JSON.stringify(changed))
+  assert.deepEqual(readDesktopContentSources([], f.libraryRoot), changed)
+  const lease = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
+  try {
+    const inspection = await inspectNpmProject(lease.directory)
+    assert.equal(inspection.packages.find(pkg => pkg.name === f.source.name).version, '2.0.0')
+    await validateProject(lease.directory)
+    assert.deepEqual(selection(await f.library.list()), before)
+  } finally {
+    await lease.release()
+  }
+})
 
 test('cancelled managed acquisition leaves no adoptable project or changed selection', { timeout: 60000 }, async t => {
   const controller = new AbortController()

@@ -303,7 +303,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         expect(await readdir(env.directory)).toEqual([])
       })
 
-      it('refuses symlink artifacts and sanitizes version references', async () => {
+      it('refuses symlink artifacts', async () => {
         const env = await fixture()
         const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'tamper')
         await complete(env.operations, operation.id)
@@ -313,13 +313,6 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         await expect(env.transfers.download(env.owner.actor, operation.id)).rejects.toMatchObject({
           code: 'TRANSFER_ARTIFACT_INVALID',
         })
-        await env.workspace.retain(env.version.installationId, 'server:managed:binding:one')
-        const references = await env.transfers.references(env.viewer.actor, env.version.installationId)
-        expect(references.references).toContainEqual(
-          expect.objectContaining({ retentionId: 'server:managed:binding:one' }),
-        )
-        expect(JSON.stringify(references)).not.toContain(env.root)
-        await env.workspace.releaseRetention('server:managed:binding:one')
       })
       it('reopens completed downloads from the same owner after the management service restarts', async () => {
         const env = await fixture()

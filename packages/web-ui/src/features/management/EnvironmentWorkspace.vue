@@ -73,7 +73,6 @@ const emit = defineEmits<{
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
   export: [version: ManagedEnvironmentInstallation, selection: EnvironmentExportSelection]
   delete: [version: ManagedEnvironmentInstallation]
-  references: [version: ManagedEnvironmentInstallation]
   deleteDraft: [environment: ManagedEnvironment]
 }>()
 const editing = ref(false)
@@ -419,7 +418,7 @@ function save() {
                   <strong>{{ name }}</strong>
                   <span>{{ range }}</span>
                 </li>
-                <li v-for="name in selectedEnvironment.document.sources" :key="name">{{ name }} · 已登记来源</li>
+                <li v-for="name in selectedEnvironment.document.sources" :key="name">{{ name }} · 按包名查找</li>
               </ul>
             </template>
             <template v-if="latestVersion?.status === 'ready' && latestVersion.members">
@@ -558,8 +557,8 @@ function save() {
                 </div>
               </div>
               <ElButton @click="addPackageRow" native-type="button">添加内容包</ElButton>
-              <ElFormItem label="已登记来源">
-                <EnvironmentIdList v-model="document.sources" placeholder="输入来源包名" />
+              <ElFormItem label="按包名查找">
+                <EnvironmentIdList v-model="document.sources" placeholder="输入包名" />
               </ElFormItem>
             </ElTabPane>
             <ElTabPane lazy name="mechanics" label="基础规则">
@@ -770,7 +769,6 @@ function save() {
             :busy="busy"
             @export="(version, selection) => emit('export', version, selection)"
           />
-          <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
           <ElButton
             v-if="showUseActions !== false"
             :disabled="busy || !canUse || latestVersion.environmentId === currentEnvironmentId"

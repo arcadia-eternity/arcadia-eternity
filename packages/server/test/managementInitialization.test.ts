@@ -127,9 +127,10 @@ it('resumes the exact pending marker-owned binding after an interrupted initiali
     validateWorkspaceProject,
   )
   const claimed = (await management.ensureInitializationBinding('desktop', 'desktop-host'))!
-  expect(await workspace.references(version.installationId)).toContainEqual(
-    expect.objectContaining({ kind: 'retention', retentionId: `binding:${claimed.id}` }),
-  )
+  await expect(workspace.clearInstallation(version.installationId)).rejects.toMatchObject({
+    code: 'ENVIRONMENT_IN_USE',
+    references: expect.arrayContaining([expect.objectContaining({ retentionId: `binding:${claimed.id}` })]),
+  })
   await initializeHostEnvironment({
     management,
     workspace,

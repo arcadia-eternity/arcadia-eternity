@@ -71,9 +71,6 @@ export function useManagementController(
   const nameRevision = ref<number>()
   const settingsSaveSequence = ref(0)
   const deletingBinding = ref('')
-  const referenceEnvironment = ref('')
-  const environmentReferences = ref<Record<string, string>[]>([])
-  let referenceRequest = 0
   const downloading = ref('')
   const downloadUrls = new Map<string, ReturnType<typeof setTimeout>>()
   function clearDownloads() {
@@ -212,9 +209,6 @@ export function useManagementController(
     serverName.value = ''
     nameRevision.value = undefined
     deletingBinding.value = ''
-    referenceEnvironment.value = ''
-    environmentReferences.value = []
-    referenceRequest++
     clearDownloads()
     issuedCredential.value = undefined
     tab.value = props.initialTab ?? (props.scope === 'content' ? 'environments' : 'server')
@@ -365,18 +359,6 @@ export function useManagementController(
       executionPolicy,
     })
     if (succeeded) tab.value = 'environments'
-  }
-  async function inspectReferences(version: ManagedEnvironmentInstallation) {
-    const sequence = ++referenceRequest
-    referenceEnvironment.value = ''
-    environmentReferences.value = []
-    const result = await state.read<{ references: Record<string, string>[] }>(
-      `${workspacePath.value}/installations/${encode(version.installationId)}/references`,
-    )
-    if (result && sequence === referenceRequest) {
-      referenceEnvironment.value = version.installationId
-      environmentReferences.value = result.references
-    }
   }
   function previewExport(id: string) {
     if (!client.value) throw new Error('管理连接已断开')
@@ -564,8 +546,6 @@ export function useManagementController(
     nameRevision,
     settingsSaveSequence,
     deletingBinding,
-    referenceEnvironment,
-    environmentReferences,
     downloading,
     issuedCredential,
     deleteBinding,
@@ -592,7 +572,6 @@ export function useManagementController(
     deleteEnvironment,
     terminateBattle,
     useEnvironment,
-    inspectReferences,
     previewExport,
     checkArchives,
     exportEnvironment,

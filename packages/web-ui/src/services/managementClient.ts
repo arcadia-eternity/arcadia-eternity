@@ -188,7 +188,7 @@ function responseError(status: number, body: unknown): ManagementError {
     ENVIRONMENT_DEPENDENCY_CONFLICT: '资源包的依赖范围不兼容，请调整组合后重试。已有固定版本保持不变。',
     CONTENT_VERSION_CONFLICT: '资源包版本发生冲突。请调整版本范围后重试，已有版本保持不变。',
     ENVIRONMENT_IN_USE: '服务器仍在使用此环境，请先移除绑定。',
-    VERSION_IN_USE: '此版本仍有引用，请查看引用并先解除使用关系。',
+    VERSION_IN_USE: '此环境仍在使用。请先结束相关对局或解除服务器绑定。',
     BATTLE_NOT_FOUND: '此对战已结束或不再活跃。',
     PEER_BATTLE_ADMIN_UNSUPPORTED: '玩家执行的对战无法由服务器直接终止。',
   }
