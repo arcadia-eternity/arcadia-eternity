@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { computed, defineComponent, inject, provide, reactive, type ComputedRef } from 'vue'
 import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import LobbyPage from '../lobbyPage.vue'
@@ -139,6 +140,7 @@ const stubs = {
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia())
   vi.clearAllMocks()
   deployment.desktop = false
   remotePlay.mockReset().mockResolvedValue(undefined)

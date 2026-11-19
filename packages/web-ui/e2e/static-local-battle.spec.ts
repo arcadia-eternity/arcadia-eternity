@@ -172,7 +172,7 @@ for (const blockedAccess of ['methods', 'object'] as const) {
       }
     }, blockedAccess)
     await page.goto(localPage)
-    await page.getByRole('link', { name: '恢复个人资料', exact: true }).click()
+    await page.getByRole('alert').getByRole('link', { name: '查看个人资料', exact: true }).click()
     await expect(page.getByRole('status')).toHaveText('需要恢复')
     await page.getByRole('button', { name: '临时使用', exact: true }).click()
     await expect(page.getByRole('status')).toHaveText('仅本次窗口')
