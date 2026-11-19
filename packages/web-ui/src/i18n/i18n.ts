@@ -18,7 +18,20 @@ export async function initI18n(debug = false): Promise<void> {
     lng: 'zh-CN',
     fallbackLng: 'zh-CN',
     load: 'currentOnly',
-    ns: ['webui', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global', 'species', 'battle', 'nature'],
+    ns: [
+      'webui',
+      'skill',
+      'mark',
+      'mark_ability',
+      'mark_emblem',
+      'mark_global',
+      'species',
+      'battle',
+      'element',
+      'nature',
+      'environment',
+      'enhancement',
+    ],
     backend: {
       backends: [httpBackend],
       backendOptions: [

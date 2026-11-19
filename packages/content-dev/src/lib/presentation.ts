@@ -1,3 +1,4 @@
+import { isContentLocaleField, contentLocaleCollection } from '@arcadia-eternity/schema'
 import { createHash } from 'node:crypto'
 import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join, relative, extname } from 'node:path'
@@ -222,16 +223,7 @@ export async function buildPresentation(
     const text = await readFile(file, 'utf8')
     const value = match[3] === 'json' ? JSON.parse(text) : YAML.parse(text, { uniqueKeys: true, merge: true })
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Expected locale object: ${path}`)
-    const records = (
-      {
-        species: 'species',
-        skill: 'skills',
-        mark: 'marks',
-        mark_ability: 'marks',
-        mark_emblem: 'marks',
-        mark_global: 'marks',
-      } as Record<string, string | undefined>
-    )[namespace]
+    const records = contentLocaleCollection(namespace)
     if (!records) throw new Error(`Unsupported content locale namespace: ${path}`)
     const ids = new Set(
       sources.filter(source => source.kind === records).flatMap(source => source.records.map(record => record.id)),
@@ -243,7 +235,7 @@ export async function buildPresentation(
         typeof entry !== 'object' ||
         Array.isArray(entry) ||
         Object.entries(entry).some(
-          ([field, text]) => !['name', 'description'].includes(field) || typeof text !== 'string',
+          ([field, text]) => !isContentLocaleField(namespace, field) || typeof text !== 'string',
         )
       )
         throw new Error(`${path}: Expected name/description strings for ${id}`)

@@ -24,7 +24,10 @@ it('loads only the shipped locale during startup and keeps dynamic languages ava
     'mark_global',
     'species',
     'battle',
+    'element',
     'nature',
+    'environment',
+    'enhancement',
   ]
   expect(requests.sort()).toEqual(namespaces.map(namespace => `/locales/zh-CN/${namespace}.json`).sort())
   expect(i18next.t('title', { ns: 'webui' })).toBe('星域永恒')

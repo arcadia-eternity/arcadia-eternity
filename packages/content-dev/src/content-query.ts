@@ -1,3 +1,4 @@
+import { contentLocaleCollection } from '@arcadia-eternity/schema'
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import {
@@ -33,14 +34,6 @@ const contentKinds = [
 ] as const
 const scopes = ['project', 'dependencies', 'all'] as const
 const details = ['summary', 'full'] as const
-const localeKinds: Record<string, string | undefined> = {
-  species: 'species',
-  skill: 'skills',
-  mark: 'marks',
-  mark_ability: 'marks',
-  mark_emblem: 'marks',
-  mark_global: 'marks',
-}
 
 type QueryKind = (typeof kinds)[number]
 type QueryScope = (typeof scopes)[number]
@@ -261,7 +254,9 @@ function translations(snapshot: WorkspaceSnapshot, row: WorkspaceRecord, locale:
     .flatMap((source: WorkspaceLocaleSource): Localization[] => {
       const entries = isRecord(source.entries) ? source.entries : undefined
       const entry = entries?.[row.record.id]
-      return localeKinds[source.namespace] === row.kind && (!locale || source.language === locale) && isRecord(entry)
+      return contentLocaleCollection(source.namespace) === row.kind &&
+        (!locale || source.language === locale) &&
+        isRecord(entry)
         ? [{ locale: source.language, localeNamespace: source.namespace, ...entry }]
         : []
     })
@@ -343,7 +338,7 @@ function rowsFor(catalog: Catalog, query: QueryOptions): QueryRow[] {
       return Object.entries(entries).flatMap(([id, record]): QueryRow[] => {
         if (!isRecord(record)) return []
         const row = identify(id, 'locales', {
-          contentKind: localeKinds[source.namespace],
+          contentKind: contentLocaleCollection(source.namespace),
           file: source.file,
           version: source.version,
           locale: source.language,

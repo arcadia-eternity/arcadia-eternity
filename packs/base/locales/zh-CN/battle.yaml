@@ -39,29 +39,3 @@ teamSelection:
     in_progress: 选择中...
     completed: 已完成
     unknown: 未知
-
-# 属性翻译
-element:
-  Normal: 普通
-  Grass: 草
-  Water: 水
-  Fire: 火
-  Wind: 风
-  Bug: 虫
-  Flying: 飞行
-  Electric: 电
-  Ground: 地面
-  Ice: 冰
-  Psychic: 超能
-  Fighting: 战斗
-  Trait: 特质
-  Light: 光
-  Mystery: 神秘
-  Shadow: 暗影
-  Dragon: 龙
-  Desert: 沙漠
-  Ancient: 上古
-  Divine: 神遁
-  Miracle: 神迹
-  Holy: 圣灵
-  ElfKing: 精灵王

@@ -200,7 +200,7 @@ flowchart TD
 }
 ```
 
-上例放在环境声明的 `rules` 内。内容包把可复用规则放在静态 `ruleSets` 目录项，每项写 `id`、可选的 `name` 和同形的 `rules`。普通社区作品的规则集使用包内 ID，发布时获得作品命名空间。引用同作品规则集可写短名；跨作品引用写完整 ID，并在包中声明依赖。规则中的物种、技能和属性沿用准备目录中的内容 ID。官方 120 示例引用基础规则，再选择强化阶段和数值方案。[扩展环境声明](../../packs/base/environment/test-120-rules.json)
+上例放在环境声明的 `rules` 内。内容包把可复用规则放在静态 `ruleSets` 目录项，每项写 `id`、可选的 `name` 和同形的 `rules`。普通社区作品的规则集使用包内 ID，发布时获得作品命名空间。引用同作品规则集可写短名；跨作品引用写完整 ID，并在包中声明依赖。规则中的物种、技能和属性沿用准备目录中的内容 ID。官方 120 示例引用基础规则，再选择强化阶段和数值方案。[扩展环境声明](../../packs/base/environment/test-120-rules.yaml)
 
 同层的 `constraints` 新增具名禁令或限额。`constraintEdits` 可包含 `remove`、`replace`、`exceptions`（每项写 `target` 和 `allOf`）以及 `clearExceptions`。替换带豁免的继承禁令时，作者明确清除旧豁免，再按需要重新指定。`collections` 中的每项写 `id`、`kind` 和成员 `ids`。条件的 `ids` 与 `fromCollections` 取并集，例如 `{"kind":"skill","ids":[],"fromCollections":["cup:ice-skills"]}`。集合类型须与条件一致。准备阶段展开集合和继承关系，房间收到可直接校验的有效规则。当前配招格式最多保存五个已装备技能，超出五槽的规则在准备时报告。旧版规则沿用已有参战校验。
 

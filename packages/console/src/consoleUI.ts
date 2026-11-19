@@ -209,7 +209,7 @@ export class ConsoleUI {
    */
   private renderActivePet(pet: PetMessage) {
     const hpBar = this.generateHpBar(pet.currentHp, pet.maxHp)
-    const elementEmoji = ELEMENT_MAP[pet.element]?.emoji || '❓'
+    const elementEmoji = this.getElementEmoji(pet.element)
 
     console.log(
       `
@@ -262,7 +262,13 @@ export class ConsoleUI {
   }
 
   private getElementName(element: string): string {
-    return ELEMENT_MAP[element]?.name || element
+    const fallback = ELEMENT_MAP[element]?.name ?? element
+    return i18next.t(element + '.name', { ns: 'element', nsSeparator: false, defaultValue: fallback }) || fallback
+  }
+
+  private getElementEmoji(element: string): string {
+    const fallback = ELEMENT_MAP[element]?.emoji ?? '❓'
+    return i18next.t(element + '.emoji', { ns: 'element', nsSeparator: false, defaultValue: fallback }) || fallback
   }
 
   private renderMessage(message: BattleMessage) {
@@ -509,7 +515,7 @@ export class ConsoleUI {
   private getPetNameById(petId: string): string {
     if (!this.battleState) return petId
     const pet = this.getPetById(petId)
-    return pet ? `${ELEMENT_MAP[pet.element].emoji}${pet.name}` : petId
+    return pet ? `${this.getElementEmoji(pet.element)}${pet.name}` : petId
   }
 
   private getSkillById(skillId: string): SkillMessage | undefined {
@@ -747,7 +753,7 @@ export class ConsoleUI {
 
           const powerText = skill!.category === Category.Status ? '' : `, 威力:${skill!.power}`
           console.log(
-            `${index}. [技能] ${ELEMENT_MAP[skill!.element].emoji}${this.getSkillNameById(skill!.id)} (${skillTypeIcon}${powerText}, 消耗:${skill!.rage},${description})`,
+            `${index}. [技能] ${this.getElementEmoji(skill!.element)}${this.getSkillNameById(skill!.id)} (${skillTypeIcon}${powerText}, 消耗:${skill!.rage},${description})`,
           )
           break
         }

@@ -13,13 +13,13 @@ export interface ElementRelation {
 }
 export interface ElementDefinition {
   id: string
-  name: string
+  name?: string
   emoji?: string
   relations?: ElementRelation[]
 }
 export interface MatchupTable {
   id: string
-  name: string
+  name?: string
   cells: MatchupCell[]
 }
 export interface MatchupPolicy {
@@ -36,14 +36,12 @@ const validId = (value: unknown): value is string =>
   !['constructor', 'prototype', '__proto__'].includes(value)
 const validMultiplier = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0
-const named = (value: unknown): value is { id: string; name: string } =>
+const validDefinition = (value: unknown): value is { id: string; name?: string } =>
   !!value &&
   typeof value === 'object' &&
   'id' in value &&
   validId(value.id) &&
-  'name' in value &&
-  typeof value.name === 'string' &&
-  !!value.name.trim()
+  (!('name' in value) || (typeof value.name === 'string' && !!value.name.trim()))
 
 export function legacyElements(): ElementDefinition[] {
   return Object.values(Element).map(id => ({ id, ...ELEMENT_MAP[id] }))
@@ -75,7 +73,11 @@ export function readElementCatalog(data: ElementCatalogInput) {
     throw new Error('INVALID_ELEMENT_CATALOG')
   const ids = new Set<string>()
   const elements = definitions.map((element: ElementDefinition) => {
-    if (!named(element) || ids.has(element.id) || (element.emoji !== undefined && typeof element.emoji !== 'string'))
+    if (
+      !validDefinition(element) ||
+      ids.has(element.id) ||
+      (element.emoji !== undefined && typeof element.emoji !== 'string')
+    )
       throw new Error('INVALID_ELEMENT: ' + element?.id)
     ids.add(element.id)
     return element
@@ -102,14 +104,14 @@ export function readElementCatalog(data: ElementCatalogInput) {
   }
   const tableIds = new Set<string>()
   const matchupTables = tables.map((table: MatchupTable) => {
-    if (!named(table) || tableIds.has(table.id)) throw new Error('INVALID_MATCHUP_TABLE')
+    if (!validDefinition(table) || tableIds.has(table.id)) throw new Error('INVALID_MATCHUP_TABLE')
     tableIds.add(table.id)
     const entries = cells(table.cells)
     for (const entry of entries) {
       check(entry.attack)
       check(entry.defense)
     }
-    return { id: table.id, name: table.name, cells: entries }
+    return { id: table.id, ...(table.name !== undefined && { name: table.name }), cells: entries }
   })
   return { elements, matchupTables }
 }

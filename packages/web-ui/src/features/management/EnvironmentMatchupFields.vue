@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { environmentName } from '@/i18n/environment'
 import { computed, ref } from 'vue'
 import { resolveElementChart, type ElementDefinition, type MatchupTable } from '@arcadia-eternity/const'
 import type { EnvironmentRules } from '@arcadia-eternity/protocol'
@@ -79,10 +80,14 @@ function setCell(value?: number) {
       />
     </label>
     <datalist id="environment-tables">
-      <option v-for="table in catalog?.matchupTables" :key="table.id" :value="table.id">{{ table.name }}</option>
+      <option v-for="table in catalog?.matchupTables" :key="table.id" :value="table.id">
+        {{ environmentName('matchupTables', table.id, table.name) }}
+      </option>
     </datalist>
     <datalist id="environment-elements">
-      <option v-for="element in catalog?.elements" :key="element.id" :value="element.id">{{ element.name }}</option>
+      <option v-for="element in catalog?.elements" :key="element.id" :value="element.id">
+        {{ environmentName('elements', element.id, element.name) }}
+      </option>
     </datalist>
     <div class="field-row">
       <label>攻击属性 <input v-model.trim="attack" list="environment-elements" @input="input = ''" /></label>

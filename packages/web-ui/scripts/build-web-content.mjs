@@ -58,8 +58,17 @@ export async function buildWebContent(
     writeJson(manifest.content, { data })
     writeJson('dist/catalog.json', authoring)
     for (const [locale, namespaces] of Object.entries(locales))
-      for (const [namespace, value] of Object.entries(namespaces))
-        writeJson(`${localesDir}/${locale}/${namespace}.json`, value)
+      for (const [namespace, value] of Object.entries(namespaces)) {
+        // Older web clients request the element names from the battle namespace.
+        const bundle =
+          namespace === 'battle' && namespaces.element && !value.element
+            ? {
+                ...value,
+                element: Object.fromEntries(Object.entries(namespaces.element).map(([id, row]) => [id, row.name])),
+              }
+            : value
+        writeJson(`${localesDir}/${locale}/${namespace}.json`, bundle)
+      }
 
     const content = buildDisplayCatalog(data, [], prepared.presentation, { includeRuleDetails: true })
     const resources = stageEnvironmentMedia(content, prepared.presentation, media)

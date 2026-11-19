@@ -749,7 +749,7 @@
                           :value="trainingPet.enhancement"
                           disabled
                           :label="
-                            (gameDataStore.getEnhancement(trainingPet.enhancement)?.name ?? trainingPet.enhancement) +
+                            getEnhancementName(trainingPet.enhancement) +
                             (enhancementPolicy?.mode === 'suppressed' ? '（本局不生效）' : '（当前不可用）')
                           "
                         />
@@ -760,7 +760,12 @@
                             branch === 'divine' ? '神化／圣化' : branch === 'demonic' ? '魔化／冥化' : String(branch)
                           "
                         >
-                          <el-option v-for="stage in stages" :key="stage.id" :label="stage.name" :value="stage.id" />
+                          <el-option
+                            v-for="stage in stages"
+                            :key="stage.id"
+                            :label="gameplayName('enhancement', stage.id, stage.name)"
+                            :value="stage.id"
+                          />
                         </el-option-group>
                       </el-select>
                       <span v-if="activeStage" class="ml-2 text-xs">
@@ -1133,6 +1138,7 @@
 </style>
 
 <script setup lang="ts">
+import { gameplayName } from '@/i18n/environment'
 import type { TeamEditorDelegate } from './delegate'
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
@@ -1367,7 +1373,7 @@ const trialChanges = computed(() => {
   if (before.nature !== after.nature)
     changes.push(`性格 ${getNatureName(before.nature)} → ${getNatureName(after.nature)}`)
   if (before.enhancement !== after.enhancement) {
-    const name = (id?: string) => (id ? (gameDataStore.getEnhancement(id)?.name ?? id) : '无')
+    const name = (id?: string) => (id ? getEnhancementName(id) : '无')
     changes.push(`强化阶段 ${name(before.enhancement)} → ${name(after.enhancement)}`)
   }
   return changes
@@ -1452,8 +1458,8 @@ const genderChineseMap: Record<Gender, string> = {
 }
 
 // 获取性格中文名称
-const getNatureName = (id: string) =>
-  i18next.t(id + '.name', { ns: 'nature', nsSeparator: false, defaultValue: gameDataStore.getNature(id)?.name ?? id })
+const getEnhancementName = (id: string) => gameplayName('enhancement', id, gameDataStore.getEnhancement(id)?.name)
+const getNatureName = (id: string) => gameplayName('nature', id, gameDataStore.getNature(id)?.name)
 
 const skillSlots = computed(() => gameDataStore.rules?.mechanics?.skillSlots ?? defaultEditorSkillSlots)
 function categorySlots(climax: boolean) {

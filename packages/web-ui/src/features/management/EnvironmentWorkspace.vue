@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { environmentName } from '@/i18n/environment'
 import './managementStyles'
 import testEnvironmentRules from '@arcadia-eternity/data-pack-base/environment/test-120-rules.json'
 import {
@@ -495,7 +496,7 @@ function save() {
                   v-for="entry in parameterPreviewVersion?.ruleComposition?.ruleSets ?? []"
                   :key="entry.id"
                   :value="entry.id"
-                  :label="entry.name"
+                  :label="environmentName('ruleSets', entry.id, entry.name)"
                 />
               </ElSelect>
             </ElFormItem>

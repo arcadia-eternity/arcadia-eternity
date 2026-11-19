@@ -1,3 +1,4 @@
+import { isContentLocaleField, contentLocaleCollection } from '@arcadia-eternity/schema'
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { lstat, mkdir, readdir, readFile, realpath, unlink } from 'node:fs/promises'
@@ -533,12 +534,7 @@ export class AuthorWorkspace extends EventEmitter {
         ? [entry.file, baseKind]
         : contentFilePattern.exec(entry.file)
       const locale = localeFilePattern.exec(entry.file)
-      if (
-        this.baseProject &&
-        locale &&
-        !['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'].includes(locale[2])
-      )
-        continue
+      if (this.baseProject && locale && !contentLocaleCollection(locale[2])) continue
       if (!match && !locale) continue
       try {
         const source = await this.read(entry.file),
@@ -551,7 +547,7 @@ export class AuthorWorkspace extends EventEmitter {
               entry =>
                 !object(entry) ||
                 Object.entries(entry).some(
-                  ([key, text]) => !['name', 'description'].includes(key) || typeof text !== 'string',
+                  ([key, text]) => !isContentLocaleField(locale[2], key) || typeof text !== 'string',
                 ),
             )
           )
@@ -857,6 +853,7 @@ export class AuthorWorkspace extends EventEmitter {
           fail('SOURCE_INVALID', '请将表现关联和资源定义分别保存到 data/presentations 与 data/resources', file)
       }
       if (isLocale) {
+        const namespace = /^locales\/[^/]+\/([^/]+)\.(json|ya?ml)$/.exec(file)?.[1] ?? ''
         const target = prepared.next
         if (
           typeof id !== 'string' ||
@@ -864,21 +861,11 @@ export class AuthorWorkspace extends EventEmitter {
           ['__proto__', 'constructor', 'prototype'].includes(id) ||
           !object(target) ||
           Object.entries(record).some(
-            ([key, value]) => !['name', 'description'].includes(key) || typeof value !== 'string',
+            ([key, value]) => !isContentLocaleField(namespace, key) || typeof value !== 'string',
           )
         )
           fail('SOURCE_INVALID', '名称与描述需要文本值', file)
-        const namespace = /^locales\/[^/]+\/([^/]+)\.(json|ya?ml)$/.exec(file)?.[1]
-        const contentKind = (
-          {
-            species: 'species',
-            skill: 'skills',
-            mark: 'marks',
-            mark_ability: 'marks',
-            mark_emblem: 'marks',
-            mark_global: 'marks',
-          } as Record<string, string | undefined>
-        )[namespace ?? '']
+        const contentKind = contentLocaleCollection(namespace)
         if (
           !contentKind ||
           catalog!.records.filter(row => row.kind === contentKind && row.record.id === id).length +

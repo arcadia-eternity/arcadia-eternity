@@ -1,0 +1,69 @@
+Normal:
+  name: 普通
+  emoji: ⚪
+Grass:
+  name: 草
+  emoji: 🌱
+Water:
+  name: 水
+  emoji: 💧
+Fire:
+  name: 火
+  emoji: 🔥
+Wind:
+  name: 风
+  emoji: 🌬️
+Bug:
+  name: 虫
+  emoji: 🐛
+Flying:
+  name: 飞行
+  emoji: 🕊️
+Electric:
+  name: 电
+  emoji: ⚡
+Ground:
+  name: 地面
+  emoji: 🌍
+Ice:
+  name: 冰
+  emoji: 🧊
+Psychic:
+  name: 超能
+  emoji: 🧠
+Fighting:
+  name: 战斗
+  emoji: 🥋
+Trait:
+  name: 特质
+  emoji: ✨
+Light:
+  name: 光
+  emoji: 💡
+Mystery:
+  name: 神秘
+  emoji: 🔯
+Shadow:
+  name: 暗影
+  emoji: 🌑
+Dragon:
+  name: 龙
+  emoji: 🐉
+Desert:
+  name: 沙漠
+  emoji: 🏜️
+Ancient:
+  name: 上古
+  emoji: 🗿
+Divine:
+  name: 神遁
+  emoji: 🙏
+Miracle:
+  name: 神迹
+  emoji: 🌟
+Holy:
+  name: 圣灵
+  emoji: 👼
+ElfKing:
+  name: 精灵王
+  emoji: 🧝‍♂️

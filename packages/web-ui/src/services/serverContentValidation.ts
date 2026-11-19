@@ -8,10 +8,16 @@ import {
 } from '@arcadia-eternity/const'
 import { toRaw } from 'vue'
 import { Value } from '@sinclair/typebox/value'
-import { SpeciesSchema, SkillSchema, MarkSchema } from '@arcadia-eternity/schema'
+import {
+  contentLocaleIds,
+  isContentLocaleField,
+  contentLocaleCollection,
+  SpeciesSchema,
+  SkillSchema,
+  MarkSchema,
+} from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 
-const CONTENT_NAMESPACES = ['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'] as const
 const HASH = /^[a-f0-9]{64}$/
 const identifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 256
@@ -198,21 +204,17 @@ export function validateEnvironmentContent(
       Object.keys(bundles).length > 32
     )
       invalid()
+    const idsByCollection = contentLocaleIds(content)
     for (const [language, namespaces] of Object.entries(bundles)) {
       if (!identifier(language) || !namespaces || typeof namespaces !== 'object' || Array.isArray(namespaces)) invalid()
       for (const [namespace, entries] of Object.entries(namespaces)) {
-        if (
-          !(CONTENT_NAMESPACES as readonly string[]).includes(namespace) ||
-          !entries ||
-          typeof entries !== 'object' ||
-          Array.isArray(entries)
-        )
-          invalid()
-        const known = ids[namespace === 'species' ? 0 : namespace === 'skill' ? 1 : 2]
+        const collection = contentLocaleCollection(namespace)
+        if (!collection || !entries || typeof entries !== 'object' || Array.isArray(entries)) invalid()
+        const known = idsByCollection[collection]
         for (const [id, fields] of Object.entries(entries)) {
           if (!known.has(id) || !fields || typeof fields !== 'object' || Array.isArray(fields)) invalid()
           for (const [key, field] of Object.entries(fields))
-            if (!['name', 'description'].includes(key) || typeof field !== 'string') invalid()
+            if (!isContentLocaleField(namespace, key) || typeof field !== 'string') invalid()
         }
       }
     }

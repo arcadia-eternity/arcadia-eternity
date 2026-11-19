@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { gameplayName } from '@/i18n/environment'
 import { computed, ref } from 'vue'
 import i18next from 'i18next'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
@@ -92,12 +93,15 @@ function replace() {
               .join('、')
           }}
           ·
-          {{ data.getNature(selected.nature)?.name ?? selected.nature }}
+          {{ gameplayName('nature', selected.nature, data.getNature(selected.nature)?.name) }}
         </p>
         <p>
           资质 {{ Object.values(selected.ivs).join(' / ')
           }}<template v-if="selected.enhancement">
-            · {{ data.getEnhancement(selected.enhancement)?.name ?? selected.enhancement }}</template
+            ·
+            {{
+              gameplayName('enhancement', selected.enhancement, data.getEnhancement(selected.enhancement)?.name)
+            }}</template
           >
         </p>
         <ul v-if="issues.length">

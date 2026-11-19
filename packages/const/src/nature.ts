@@ -58,7 +58,7 @@ export const NatureMap: Record<Nature, Record<StatType, number>> = {
 
 export interface NatureDefinition {
   id: string
-  name: string
+  name?: string
   generation: 1 | 2
   multipliers: Record<StatType, number>
 }
@@ -80,8 +80,7 @@ export function readNatureCatalog(input?: readonly unknown[]): NatureDefinition[
       typeof nature.id !== 'string' ||
       !/^[\w.:/-]{1,256}$/.test(nature.id) ||
       ids.has(nature.id) ||
-      typeof nature.name !== 'string' ||
-      !nature.name.trim() ||
+      (nature.name !== undefined && (typeof nature.name !== 'string' || !nature.name.trim())) ||
       ![1, 2].includes(nature.generation ?? 0) ||
       !nature.multipliers ||
       Object.keys(nature.multipliers).length !== stats.length ||
@@ -89,6 +88,11 @@ export function readNatureCatalog(input?: readonly unknown[]): NatureDefinition[
     )
       throw new Error('INVALID_NATURE_DEFINITION: ' + nature?.id)
     ids.add(nature.id)
-    return { id: nature.id, name: nature.name, generation: nature.generation!, multipliers: { ...nature.multipliers } }
+    return {
+      id: nature.id,
+      ...(nature.name !== undefined && { name: nature.name }),
+      generation: nature.generation!,
+      multipliers: { ...nature.multipliers },
+    }
   })
 }

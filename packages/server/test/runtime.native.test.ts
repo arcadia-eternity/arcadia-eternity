@@ -127,7 +127,12 @@ it('allows each new breeding family to inherit from the other under the official
   const { readFile } = await import('node:fs/promises')
   const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
   const { rules } = prepareEnvironmentRules(
-    JSON.parse(await readFile(new URL('../../../packs/base/environment/base-rules.json', import.meta.url), 'utf8')),
+    JSON.parse(
+      await readFile(
+        new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+        'utf8',
+      ),
+    ),
     (await loadServerBase()).data.ruleSets,
   )
   const starter = fixture()[0].team[0]
@@ -149,7 +154,10 @@ it('applies the 120 test environment’s selected nature and stage to all six ba
   const { readFile } = await import('node:fs/promises')
   const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
   const declaration = JSON.parse(
-    await readFile(new URL('../../../packs/base/environment/test-120-rules.json', import.meta.url), 'utf8'),
+    await readFile(
+      new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/test-120-rules.json')),
+      'utf8',
+    ),
   )
   const { rules } = prepareEnvironmentRules(declaration, (await loadServerBase()).data.ruleSets)
   expect(rules.mechanics?.secondGenerationNatures).toBe('species')

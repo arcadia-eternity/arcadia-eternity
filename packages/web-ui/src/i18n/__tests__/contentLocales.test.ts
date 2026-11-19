@@ -8,6 +8,9 @@ import { createPinia } from 'pinia'
 import i18next from 'i18next'
 import I18NextVue from 'i18next-vue'
 import { afterEach, beforeEach, expect, it } from 'vitest'
+import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
+import { environmentName, gameplayName, parameterGroupLabel } from '../environment'
+import { validateEnvironmentContent } from '@/services/serverContentValidation'
 import { descriptionValues, formatRichDescription } from '../richDescription'
 import { setServerContentText } from '../serverContent'
 import AuthorDescription from '@/features/authoring/AuthorDescription'
@@ -119,6 +122,40 @@ beforeEach(async () => {
   await i18next.init({ lng: 'zh-CN', resources: {} })
 })
 afterEach(() => setServerContentText(null))
+
+it('resolves the shipped environment labels from locales with gameplay-only catalog records', () => {
+  const dist = join(root, 'packs/base/dist')
+  const { data } = JSON.parse(readFileSync(join(dist, 'content.json'), 'utf8'))
+  const manifest = JSON.parse(readFileSync(join(dist, 'presentation.json'), 'utf8'))
+  const catalog = buildDisplayCatalog(data)
+  const locales = buildDisplayLocales([{ namespace: '', manifest }], {}, catalog)
+  const content = { ...catalog, locales }
+  validateEnvironmentContent(content)
+  setServerContentText(content)
+  for (const [kind, rows] of [
+    ['element', catalog.elements],
+    ['nature', catalog.natures],
+    ['enhancement', catalog.enhancements],
+  ] as const) {
+    expect(rows?.length).toBeGreaterThan(0)
+    for (const row of rows!) {
+      expect(row).not.toHaveProperty('name')
+      expect(gameplayName(kind, row.id)).not.toBe(row.id)
+    }
+  }
+  expect(gameplayName('nature', 'base:nature-25')).toBe('孤傲')
+  expect(gameplayName('enhancement', 'base:evolve-1')).toBe('神化一星')
+  expect(locales.bundles['zh-CN'].element.Fire).toEqual({ name: '火', emoji: '🔥' })
+  i18next.addResourceBundle(
+    'zh-CN',
+    'environment',
+    JSON.parse(readFileSync(join(dist, 'locales/zh-CN/environment.json'), 'utf8')),
+  )
+  expect(parameterGroupLabel(catalog.skillParameters!.groups[0])).toBe('最大体力超额基准 · HP')
+  expect(environmentName('ruleSets', 'base:classic')).toBe('基础养成')
+  expect(gameplayName('nature', 'custom:quiet', '旧包名称')).toBe('旧包名称')
+  expect(gameplayName('nature', 'custom:missing')).toBe('custom:missing')
+})
 
 it('previews actual official skill styling and mark values in the workbench', async () => {
   const wrapper = mount(AuthorDescription, {

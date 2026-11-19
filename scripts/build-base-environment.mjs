@@ -1,3 +1,4 @@
+import { contentLocaleCollection } from '@arcadia-eternity/schema'
 import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { bundledNotices } from './build-battle-environment.mjs'
 import { readContentSources } from '../packages/content-dev/src/lib/content.ts'
@@ -9,6 +10,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import YAML from 'yaml'
+
+export const environmentRuleExamples = ['base-rules', 'test-120-rules']
 
 /** Host identity covers both the engine and the installed native content implementation. */
 export function identifyBaseEnvironmentArtifact(code, core) {
@@ -31,7 +34,11 @@ export async function buildBaseEnvironmentArtifact() {
   const dir = resolve(root, 'packs/base/dist')
   const sources = await readContentSources(resolve(root, 'packs/base'))
   const presentation = await buildPresentation(resolve(root, 'packs/base'), sources, { includeLocales: false })
-  await mkdir(dir, { recursive: true })
+  await mkdir(resolve(dir, 'environment'), { recursive: true })
+  for (const name of environmentRuleExamples) {
+    const source = await readFile(resolve(root, 'packs/base/environment', name + '.yaml'), 'utf8')
+    await writeFile(resolve(dir, 'environment', name + '.json'), JSON.stringify(YAML.parse(source)) + '\n')
+  }
   await writeFile(resolve(dir, 'presentation.json'), JSON.stringify(presentation, null, 2) + '\n')
   const core = JSON.parse(await readFile(resolve(root, 'packages/battle/dist/environment-build.json'), 'utf8'))
   const bundle = await rolldown({
@@ -86,11 +93,10 @@ export async function buildBaseEnvironmentArtifact() {
       pathToFileURL(require.resolve('@arcadia-eternity/pack-loader/native')).href
     )
     const loaded = await new PackMetadataLoader().loadMetadata(resolve(root, 'packs/base/pack.json'))
-    const contentNamespaces = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
     const locales = Object.fromEntries(
       Object.entries(loaded.locales).map(([language, namespaces]) => [
         language,
-        Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentNamespaces.has(name))),
+        Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentLocaleCollection(name))),
       ]),
     )
     const localeFiles = Object.entries(loaded.locales).map(([language, namespaces]) => ({

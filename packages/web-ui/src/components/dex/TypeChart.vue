@@ -236,6 +236,7 @@
 </template>
 
 <script setup lang="ts">
+import { gameplayName } from '@/i18n/environment'
 import { useGameDataStore } from '@/stores/gameData'
 import { ref, computed, watch } from 'vue'
 import { useTranslation } from 'i18next-vue'
@@ -300,7 +301,7 @@ function formatEffectiveness(value: number): string {
 
 // 获取属性名称
 function getElementName(element: Element): string {
-  return i18next.t('element.' + element, { ns: 'battle', defaultValue: data.getElement(element)?.name ?? element })
+  return gameplayName('element', element, data.getElement(element)?.name)
 }
 
 // 显示效果详情

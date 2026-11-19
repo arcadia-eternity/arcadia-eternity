@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import { gameplayName } from '@/i18n/environment'
 import { computed } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import { useGameDataStore } from '@/stores/gameData'
@@ -102,11 +103,7 @@ function handleElementChange(event: Event) {
 
 // 获取属性名称
 function getElementName(element: Element): string {
-  try {
-    return i18next.t(`element.${element}`, { ns: 'battle', defaultValue: data.getElement(element)?.name ?? element })
-  } catch {
-    return element
-  }
+  return gameplayName('element', element, data.getElement(element)?.name)
 }
 
 // 获取分类名称

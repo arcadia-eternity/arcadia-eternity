@@ -31,7 +31,7 @@ export function trainingStatSteps(
 
 export interface EnhancementStage {
   id: string
-  name: string
+  name?: string
   branch: string
   bonus: StatOutBattle
 }
@@ -46,8 +46,7 @@ export function readEnhancementStages(input: readonly unknown[] = []): Enhanceme
       typeof stage.id !== 'string' ||
       !/^[\w.:/-]{1,256}$/.test(stage.id) ||
       ids.has(stage.id) ||
-      typeof stage.name !== 'string' ||
-      !stage.name.trim() ||
+      (stage.name !== undefined && (typeof stage.name !== 'string' || !stage.name.trim())) ||
       typeof stage.branch !== 'string' ||
       !stage.branch.trim() ||
       !stage.bonus ||
@@ -56,6 +55,11 @@ export function readEnhancementStages(input: readonly unknown[] = []): Enhanceme
     )
       throw new Error('INVALID_ENHANCEMENT_STAGE: ' + stage?.id)
     ids.add(stage.id)
-    return { id: stage.id, name: stage.name, branch: stage.branch, bonus: { ...stage.bonus } }
+    return {
+      id: stage.id,
+      ...(stage.name !== undefined && { name: stage.name }),
+      branch: stage.branch,
+      bonus: { ...stage.bonus },
+    }
   })
 }

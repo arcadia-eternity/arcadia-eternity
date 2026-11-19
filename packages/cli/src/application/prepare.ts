@@ -62,7 +62,7 @@ async function toCliContent(prepared: Readonly<PreparedNpmEnvironment>, explicit
     return {
       ...prepared,
       packs: prepared.installation.members.map(({ projectId, version }) => ({ id: projectId, version })),
-      locales: buildDisplayLocales(prepared.presentation, {}, prepared.content).bundles,
+      locales: buildDisplayLocales(prepared.presentation, {}, prepared.data).bundles,
       ...(explicitlyInstalled && { npm: { installationDigest: prepared.installation.digest } }),
     }
   } finally {

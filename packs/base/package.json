@@ -28,13 +28,14 @@
   },
   "files": [
     "assets/**/*",
-    "environment/*.json",
+    "environment/*.yaml",
     "dist/**/*",
     "LICENSE"
   ],
   "exports": {
-    "./environment/test-120-rules.json": "./environment/test-120-rules.json",
-    "./environment/base-rules.json": "./environment/base-rules.json",
+    "./environment/*.yaml": "./environment/*.yaml",
+    "./environment/test-120-rules.json": "./dist/environment/test-120-rules.json",
+    "./environment/base-rules.json": "./dist/environment/base-rules.json",
     "./metadata": {
       "types": "./dist/metadata.d.ts",
       "import": "./dist/metadata.mjs",

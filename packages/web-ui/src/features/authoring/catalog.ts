@@ -5,6 +5,9 @@ import { object } from './fields'
 export const namespaces: Record<string, string[]> = {
   species: ['species'],
   skills: ['skill'],
+  elements: ['element'],
+  natures: ['nature'],
+  enhancements: ['enhancement'],
   marks: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
 }
 export function textSource(sources: LocaleSource[], row: SourceRecord, language: string) {

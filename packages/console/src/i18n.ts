@@ -15,7 +15,7 @@ export async function initI18n(debug = false, resources?: Record<string, Record<
     debug: debug,
     resources: resources as Resource | undefined,
     lng: 'zh-CN',
-    ns: ['skill', 'mark', 'mark_ability', 'mark_emblem', 'species'],
+    ns: ['skill', 'mark', 'mark_ability', 'mark_emblem', 'species', 'element'],
     backend: {
       backends: [fsBackend],
       backendOptions: [

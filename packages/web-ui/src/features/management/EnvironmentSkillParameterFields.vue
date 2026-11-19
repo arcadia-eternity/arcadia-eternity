@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { environmentName, parameterGroupLabel } from '@/i18n/environment'
 import { computed, ref, watch } from 'vue'
 import i18next from 'i18next'
 import { ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
@@ -57,11 +58,13 @@ const effectiveSource = computed(() => {
   const row = effective.value
   if (!row) return ''
   if (row.source === 'profile') {
-    const profile = (props.previewPolicy ?? policy.value).profile
-    return '跟随 ' + (props.catalog?.profiles.find(item => item.id === profile)?.name ?? profile)
+    const profile = (props.previewPolicy ?? policy.value).profile!
+    return (
+      '跟随 ' +
+      environmentName('parameterProfiles', profile, props.catalog?.profiles.find(item => item.id === profile)?.name)
+    )
   }
-  if (row.source === 'group')
-    return '跟随参数组「' + (props.catalog?.groups.find(item => item.id === row.group)?.name ?? row.group) + '」'
+  if (row.source === 'group') return '跟随参数组「' + groupName(row.group!) + '」'
   return sourceNames[row.source]
 })
 watch(selected, () => {
@@ -74,10 +77,14 @@ function editSingle() {
   editingSingle.value = true
 }
 
+function groupName(id: string) {
+  return environmentName('parameterGroups', id, props.catalog?.groups.find(group => group.id === id)?.name)
+}
+
 function addressLabel(row: { skill: string; useId: string; parameter: string; group?: string }) {
   const skill =
     i18next.t(row.skill + '.name', { ns: 'skill', nsSeparator: false, defaultValue: row.skill }) || row.skill
-  const group = props.catalog?.groups.find(group => group.id === row.group)?.name
+  const group = row.group && groupName(row.group)
   const label = group ?? row.parameter
   const ambiguous = props.catalog?.members.some(
     other =>
@@ -160,7 +167,12 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
           placeholder="内容基础值"
           @update:model-value="id => selectProfile(id || '')"
         >
-          <ElOption v-for="row in catalog?.profiles" :key="row.id" :value="row.id" :label="row.name" />
+          <ElOption
+            v-for="row in catalog?.profiles"
+            :key="row.id"
+            :value="row.id"
+            :label="environmentName('parameterProfiles', row.id, row.name)"
+          />
         </ElSelect>
       </ElFormItem>
       <div class="parameter-row">
@@ -175,12 +187,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
             placeholder="选择参数组"
             @update:model-value="id => selectGroup(id || '', policy.groups?.[id])"
           >
-            <ElOption
-              v-for="row in catalog?.groups"
-              :key="row.id"
-              :value="row.id"
-              :label="row.name + ' · ' + row.unit"
-            />
+            <ElOption v-for="row in catalog?.groups" :key="row.id" :value="row.id" :label="parameterGroupLabel(row)" />
           </ElSelect>
         </ElFormItem>
         <ElFormItem label="组值"><ElInputNumber v-model="groupInput" aria-label="组值" :controls="false" /></ElFormItem>
@@ -189,9 +196,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
       </div>
       <ul v-if="policy.groups">
         <li v-for="(value, id) in policy.groups" :key="id">
-          <ElButton link @click="selectGroup(String(id), value)"
-            >{{ catalog?.groups.find(group => group.id === id)?.name ?? id }} · {{ value }}</ElButton
-          >
+          <ElButton link @click="selectGroup(String(id), value)">{{ groupName(String(id)) }} · {{ value }}</ElButton>
         </li>
       </ul>
       <div class="parameter-row">

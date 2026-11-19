@@ -1800,6 +1800,7 @@
 </style>
 
 <script setup lang="ts">
+import { gameplayName } from '@/i18n/environment'
 import { ref, computed, nextTick, watch, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 import { onLongPress, useEventListener } from '@vueuse/core'
 import { usePetStorageStore } from '../stores/petStorage'
@@ -2071,7 +2072,7 @@ const availableElements = computed(() => {
 
   return Array.from(elements)
     .map(element => ({
-      label: gameDataStore.getElement(element)?.name || element,
+      label: gameplayName('element', element, gameDataStore.getElement(element)?.name),
       value: element,
     }))
     .sort((a, b) => a.label.localeCompare(b.label))
@@ -2544,8 +2545,7 @@ const getGenderText = (gender?: Gender) => {
 }
 
 // 获取性格文本
-const getNatureText = (id: string) =>
-  i18next.t(id + '.name', { ns: 'nature', nsSeparator: false, defaultValue: gameDataStore.getNature(id)?.name ?? id })
+const getNatureText = (id: string) => gameplayName('nature', id, gameDataStore.getNature(id)?.name)
 
 // 获取技能名称
 const getSpeciesName = (speciesId: string) =>
