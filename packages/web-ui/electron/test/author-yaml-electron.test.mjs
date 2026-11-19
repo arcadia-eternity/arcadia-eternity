@@ -46,7 +46,9 @@ test(
     )
     await writeFile(
       join(userData, 'ugc/state/projects.json'),
-      JSON.stringify([{ id: 'yaml', name: 'YAML test', directory: await realpath(project) }]),
+      JSON.stringify([
+        { id: 'yaml', name: 'YAML test', readOnly: false, published: false, directory: await realpath(project) },
+      ]),
     )
     const entry = join(root, 'entry.mjs')
     const main = fileURLToPath(new URL('../main.mjs', import.meta.url))
@@ -109,7 +111,7 @@ test(
       await rename(file, moved)
       await page.getByRole('button', { name: '核对外部变化', exact: true }).click()
       await expect(page.getByText('对象的来源位置已改变。完成核对后，草稿将使用新的位置。')).toBeVisible()
-      await page.getByLabel('这一项保留哪个值？').selectOption('draft')
+      await page.getByText('使用我的草稿', { exact: true }).click()
       await page.getByRole('button', { name: '按选择更新草稿', exact: true }).click()
       assert.match(await readFile(moved, 'utf8'), /duration: 9/)
       await save()

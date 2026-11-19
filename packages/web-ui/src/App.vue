@@ -434,8 +434,8 @@
     <div v-if="localStorageUnavailable" role="alert" class="bg-amber-50 text-amber-900 px-4 py-3 text-sm">
       资料尚未保存。关闭前请<router-link to="/profile">导出备份</router-link>。
     </div>
-    <div v-if="profileStatus === 'blocked'" role="alert" class="p-4 bg-amber-50">
-      {{ profileFailure }} <router-link to="/profile">恢复个人资料</router-link>
+    <div v-if="profileStatus === 'blocked' && $route.name !== 'Profile'" role="alert" class="p-4 bg-amber-50">
+      {{ profileFailure }} <router-link to="/profile">查看个人资料</router-link>
     </div>
     <OfflineResources v-if="isStaticMode && $route.name !== 'Management'" />
 

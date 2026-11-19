@@ -11,6 +11,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import {
   profileStatus,
   profileFailure,
+  profileReadErrorCode,
   profileMigrationNotice,
   rawLegacyProfileData,
   profileSwitching,
@@ -38,11 +39,16 @@ const preview = ref<Awaited<ReturnType<typeof inspectProfile>> | null>(null)
 const error = ref(''),
   busy = ref(false)
 const remote = !!window.arcadiaRemotePlay
+const occupied = computed(() => profileStatus.value === 'blocked' && profileReadErrorCode.value === 'PROFILE_BUSY')
 const status = computed(
   () =>
-    ({ loading: '正在读取', saved: '已保存', unsaved: '未保存', 'memory-only': '仅本次窗口', blocked: '需要恢复' })[
-      profileStatus.value
-    ],
+    ({
+      loading: '正在读取',
+      saved: '已保存',
+      unsaved: '未保存',
+      'memory-only': '仅本次窗口',
+      blocked: occupied.value ? '资料被占用' : '需要恢复',
+    })[profileStatus.value],
 )
 const missing = computed(() => {
   if (!preview.value || !catalog.loaded) return []
@@ -230,12 +236,12 @@ async function retry(prefer?: 'player' | 'player-data') {
     </div>
     <p v-if="profileMigrationNotice" role="alert">{{ profileMigrationNotice }}</p>
     <el-button
-      v-if="!remote && (profileStatus === 'blocked' || profileMigrationNotice)"
+      v-if="!remote && !occupied && (profileStatus === 'blocked' || profileMigrationNotice)"
       @click="perform(async () => download(rawLegacyProfileData(), 'profile-legacy-raw.json'))"
       >导出旧原始数据</el-button
     >
     <div v-if="profileStatus === 'blocked'" class="flex flex-wrap gap-3">
-      <el-button @click="retry()">重新读取</el-button>
+      <el-button :loading="busy" @click="retry()">重新读取</el-button>
       <el-button v-if="profileFailure.includes('身份不一致')" @click="retry('player')">使用 player 资料</el-button>
       <el-button v-if="profileFailure.includes('身份不一致')" @click="retry('player-data')"
         >使用 player-data 资料</el-button

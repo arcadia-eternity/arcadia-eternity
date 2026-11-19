@@ -185,9 +185,10 @@ it('reveals preparation when an environment changes and blocks launch until prep
     await flushPromises()
     expect(wrapper.find('#environment-panel').exists()).toBe(false)
     await wrapper.get('[aria-controls="environment-panel"]').trigger('click')
-    await wrapper.get('#environment-panel select').setValue('other')
+    wrapper.get('#environment-panel').getComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', 'other')
+    await wrapper.vm.$nextTick()
     expect(wrapper.get('button.start').attributes('disabled')).toBeDefined()
-    expect(wrapper.get('#environment-panel').text()).toContain('队伍草稿会保留')
+    expect(wrapper.get('[aria-controls="environment-panel"]').text()).toContain('待准备')
     await wrapper.get('[aria-controls="environment-panel"]').trigger('click')
     expect(wrapper.find('#environment-panel').exists()).toBe(false)
     expect(wrapper.get('[aria-controls="environment-panel"]').attributes('aria-expanded')).toBe('false')
@@ -211,7 +212,7 @@ it('closes a rename form when its team is switched and makes selection the editi
       .find(item => item.text() === '重命名')!
       .trigger('click')
     await wrapper.get('.rename-form input').setValue('不要误改另一队')
-    await wrapper.get('select[aria-label="对方队伍"]').trigger('focusin')
+    await wrapper.get('input[aria-label="对方队伍"]').trigger('focusin')
     expect(wrapper.find('.rename-form').exists()).toBe(false)
     expect(wrapper.get('.team-identity').text()).toContain('orange')
     await wrapper.get('[aria-label="编辑我方队伍"]').trigger('click')
@@ -250,6 +251,40 @@ it('revalidates externally edited environments before starting without altering 
   }
 })
 
+it('keeps semver ranges intact and rejects duplicate extra packages', async () => {
+  desktopLibrary()
+  const wrapper = mount(AuthorPreviewPage)
+  try {
+    await flushPromises()
+    await wrapper.get('[aria-controls="environment-panel"]').trigger('click')
+    const click = (name: string) =>
+      wrapper
+        .findAll('button')
+        .find(control => control.text() === name)!
+        .trigger('click')
+    await click('管理环境')
+    for (let index = 0; index < 2; index++) {
+      await click('添加 npm 包')
+      await wrapper.findAll('input[placeholder="@author/package"]')[index]!.setValue('@scope/extra')
+      await wrapper.findAll('input[placeholder="^1.0.0"]')[index]!.setValue('>=1 <2')
+    }
+    await wrapper.get('form.environment-form').trigger('submit')
+    expect(wrapper.get('[role="alert"]').text()).toContain('额外包重复')
+    await click('移除包')
+    await wrapper.get('form.environment-form').trigger('submit')
+    await flushPromises()
+    expect(window.arcadiaAuthorPreview!.environment).toHaveBeenCalledWith(
+      'save',
+      expect.objectContaining({
+        expectedVersion: 'prepared-config-hash',
+        document: expect.objectContaining({ packages: { '@scope/extra': '>=1 <2' } }),
+      }),
+    )
+  } finally {
+    wrapper.unmount()
+  }
+})
+
 it('refreshes externally changed environment choices on focus without replacing the environment form draft', async () => {
   desktopLibrary()
   const wrapper = mount(AuthorPreviewPage)
@@ -261,7 +296,12 @@ it('refreshes externally changed environment choices on focus without replacing 
       .find(button => button.text() === '管理环境')!
       .trigger('click')
     await wrapper.get('.environment-form input').setValue('My unsaved environment')
-    await wrapper.get('.environment-form textarea').setValue('@example/pack=1.0.0')
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === '添加 npm 包')!
+      .trigger('click')
+    await wrapper.get('input[placeholder="@author/package"]').setValue('@example/pack')
+    await wrapper.get('input[placeholder="^1.0.0"]').setValue('1.0.0')
     vi.mocked(
       window.arcadiaAuthorPreview!.environment as (action: 'list') => Promise<DebugEnvironment[]>,
     ).mockResolvedValue([
@@ -280,7 +320,10 @@ it('refreshes externally changed environment choices on focus without replacing 
     expect(wrapper.text()).toContain('External name')
     expect(wrapper.get('button.start').attributes('disabled')).toBeDefined()
     expect((wrapper.get('.environment-form input').element as HTMLInputElement).value).toBe('My unsaved environment')
-    expect((wrapper.get('.environment-form textarea').element as HTMLTextAreaElement).value).toBe('@example/pack=1.0.0')
+    expect((wrapper.get('input[placeholder="@author/package"]').element as HTMLInputElement).value).toBe(
+      '@example/pack',
+    )
+    expect((wrapper.get('input[placeholder="^1.0.0"]').element as HTMLInputElement).value).toBe('1.0.0')
     expect(context.battle.initBattle).not.toHaveBeenCalled()
   } finally {
     wrapper.unmount()
@@ -315,7 +358,7 @@ it('receives project edits without focus changes and preserves drafts while repo
     changed!()
     await vi.waitFor(() => expect(wrapper.get('.save-status').text()).toContain('项目文件已在外部修改'))
     expect(wrapper.get('.team-identity').text()).toContain('Unsaved user name')
-    expect(wrapper.get('select[aria-label="对方队伍"]').text()).toContain('AI orange')
+    expect(wrapper.findAll('.team-library-select')[1]!.text()).toContain('AI orange')
     expect(context.battle.initBattle).not.toHaveBeenCalled()
     expect(context.battle.resetBattleWithoutSurrender).not.toHaveBeenCalled()
   } finally {
@@ -389,7 +432,7 @@ it('retains notifications received while a team save is busy', async () => {
       { schemaVersion: 1, id: 'orange', name: 'Changed while busy', team: [], version: 'v2' },
     ])
     release()
-    await vi.waitFor(() => expect(wrapper.get('select[aria-label="对方队伍"]').text()).toContain('Changed while busy'))
+    await vi.waitFor(() => expect(wrapper.findAll('.team-library-select')[1]!.text()).toContain('Changed while busy'))
   } finally {
     wrapper.unmount()
   }

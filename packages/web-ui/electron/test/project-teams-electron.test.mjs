@@ -11,7 +11,8 @@ const require = createRequire(import.meta.url)
 test(
   'project libraries survive candidate replacement and app restart, conflict safely, and run the same team on both sides',
   {
-    timeout: 120000,
+    // Includes three app launches and multiple real environment preparations.
+    timeout: 300000,
     skip: process.env.ARCADIA_AUTHOR_GUI_TEST !== '1',
   },
   async () => {
@@ -91,9 +92,7 @@ test(
         window.addEventListener('focus', () => window.__previewFocusCount++)
       })
       await saveTeam('orange', { name: 'MCP即刻队伍' })
-      await expect(preview.getByLabel('对方队伍', { exact: true }).locator('option:checked')).toContainText(
-        'MCP即刻队伍',
-      )
+      await expect(preview.locator('.team-library-select').filter({ hasText: '对方队伍' })).toContainText('MCP即刻队伍')
       assert.equal(await preview.evaluate(() => window.__previewFocusCount), 0)
       const errors = []
       preview.on('pageerror', error => errors.push(error.message))
@@ -124,13 +123,14 @@ test(
       await preview.getByRole('button', { name: '复制当前队伍', exact: true }).click()
       await preview.getByLabel('队伍名称', { exact: true }).fill('客户端重命名副本')
       await preview.getByRole('button', { name: '确认名称', exact: true }).click()
-      await expect(preview.getByLabel('我方队伍', { exact: true }).locator('option:checked')).toContainText(
+      await expect(preview.locator('.team-library-select').filter({ hasText: '我方队伍' })).toContainText(
         '客户端重命名副本',
       )
       await preview.getByRole('button', { name: '保存队伍', exact: true }).click()
       await expect.poll(async () => (await readdir(join(project.directory, 'debug/teams'))).length).toBe(3)
-      const selected = await preview.getByLabel('我方队伍', { exact: true }).inputValue()
-      await preview.getByLabel('对方队伍', { exact: true }).selectOption(selected)
+      const selected = (await call('team_list')).items.find(team => team.name === '客户端重命名副本').id
+      await preview.getByRole('combobox', { name: '对方队伍' }).press('Enter')
+      await preview.getByRole('option', { name: /客户端重命名副本/ }).click()
       await expect(preview.getByText('双方使用同一套队伍，编辑会同步应用到双方。')).toBeVisible()
       // A real extra-source environment is prepared through the same singleton owner.
       const other = await page.evaluate(
@@ -149,7 +149,9 @@ test(
       preview = await replacement
       await preview.getByRole('heading', { name: '测试队伍', exact: true }).waitFor()
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
-      await expect(preview.getByLabel('对方队伍', { exact: true })).toHaveValue(selected)
+      await expect(preview.locator('.team-library-select').filter({ hasText: '对方队伍' })).toContainText(
+        '客户端重命名副本',
+      )
       assert.equal(app.windows().length, 2)
       await preview.getByRole('button', { name: /真实双包环境.*已准备/ }).click()
       await preview.getByRole('button', { name: '管理环境', exact: true }).click()
@@ -211,7 +213,9 @@ test(
       preview = await open()
       await expect(preview.getByRole('button', { name: /真实双包环境改名.*已准备/ })).toBeVisible()
       await preview.getByRole('button', { name: /真实双包环境改名.*已准备/ }).click()
-      await expect(preview.getByLabel('我方队伍', { exact: true })).toHaveValue(selected)
+      await expect(preview.locator('.team-library-select').filter({ hasText: '我方队伍' })).toContainText(
+        'MCP战斗中修改',
+      )
       const orangeFile = join(project.directory, 'debug/teams/orange.yaml')
       await rm(orangeFile)
       const afterDeletion = app.waitForEvent('window', { timeout: 45000 })

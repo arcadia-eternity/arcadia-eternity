@@ -94,6 +94,7 @@ it('keeps a live desktop owner exclusive, and only recovers a dead owner', async
   try {
     await owner.acquireOwner()
     await new ProfileRepository(owner).create()
+    await expect(other.acquireOwner()).rejects.toMatchObject({ code: 'PROFILE_BUSY' })
     await expect(other.unlock()).rejects.toMatchObject({ code: 'PROFILE_BUSY' })
     const repo = new ProfileRepository(other),
       state = (await repo.open())!
@@ -103,10 +104,11 @@ it('keeps a live desktop owner exclusive, and only recovers a dead owner', async
     })
     await owner.close()
     await writeFile(join(dir, 'owner.lock'), JSON.stringify({ pid: 2147483647 }))
-    await other.unlock()
+    await other.acquireOwner()
     await repo.update({ expectedRevision: 1, data: state.current.data })
     expect((await repo.open())?.current.data.profile.name).toBe('Other')
   } finally {
+    await other.close()
     await owner.close()
     await rm(dir, { recursive: true, force: true })
   }

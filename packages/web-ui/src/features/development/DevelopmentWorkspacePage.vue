@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ElInput, ElSelect, ElOption } from 'element-plus'
+import { confirmAction } from '@/utils/confirmAction'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Element } from '@arcadia-eternity/const'
 import { runtimeId, workRef, type Json } from '@arcadia-eternity/pack-loader/native'
@@ -271,7 +273,15 @@ function applyResult(result: DevelopmentWorkspaceSnapshot) {
 }
 async function run(mode: 'read' | 'save') {
   if (busy.value || !token.value) return
-  if (mode === 'read' && dirty.value && !window.confirm('重新读取会丢弃当前未保存的修改，继续吗？')) return
+  if (mode === 'read' && dirty.value) {
+    const currentGeneration = generation
+    if (
+      !(await confirmAction('重新读取', '当前未保存的修改将丢失。')) ||
+      generation !== currentGeneration ||
+      busy.value
+    )
+      return
+  }
   if (mode === 'save' && (!sameServer.value || !document.value || dataProblem.value)) return
   const requestedServer = server.value
   const epoch = ++generation
@@ -343,7 +353,12 @@ onBeforeUnmount(() => {
     </header>
     <section class="panel">
       <label
-        >开发令牌<input v-model="token" data-testid="development-token" type="password" autocomplete="off"
+        >开发令牌<ElInput
+          v-model="token"
+          data-testid="development-token"
+          type="password"
+          show-password
+          autocomplete="off"
       /></label>
       <p>请向本机服务器管理员获取开发令牌。</p>
       <button :disabled="busy || !token" data-testid="development-load" @click="run('read')">读取工作区</button>
@@ -406,15 +421,23 @@ onBeforeUnmount(() => {
           </button>
         </div>
         <label
-          >编辑内容<select v-model="activeId" data-testid="development-record">
-            <option value="">请选择</option>
-            <option v-for="item in records" :key="item.id" :value="item.id">
-              {{ string(item.name) || item.id }} · {{ item.id }}
-            </option>
-          </select></label
-        >
+          >编辑内容<ElSelect
+            filterable
+            clearable
+            :disabled="busy || !sameServer || !!dataProblem"
+            aria-label="编辑内容"
+            v-model="activeId"
+            data-testid="development-record"
+          >
+            <ElOption
+              v-for="item in records"
+              :key="item.id"
+              :value="item.id"
+              :label="(string(item.name) || item.id) + ' · ' + item.id"
+            /> </ElSelect
+        ></label>
         <div class="fields">
-          <label>新内容 ID<input v-model="newId" data-testid="development-new-id" /></label
+          <label>新内容 ID<ElInput v-model="newId" data-testid="development-new-id" /></label
           ><button @click="addRecord">添加{{ labels[kind] }}</button>
         </div>
       </section>
@@ -423,15 +446,17 @@ onBeforeUnmount(() => {
         <p v-if="recordProblem" class="error" role="alert">{{ recordProblem }}</p>
         <fieldset :disabled="!!recordProblem">
           <label
-            >名称<input
-              :value="string(value(selected, 'name'))"
+            >名称<ElInput
+              :model-value="string(value(selected, 'name'))"
               data-testid="development-name"
-              @input="change('name', ($event.target as HTMLInputElement).value)"
+              @input="change('name', $event)"
           /></label>
           <label
-            >说明<textarea
-              :value="string(value(selected, 'description'))"
-              @input="change('description', ($event.target as HTMLTextAreaElement).value)"
+            >说明<ElInput
+              type="textarea"
+              :autosize="{ minRows: 3, maxRows: 10 }"
+              :model-value="string(value(selected, 'description'))"
+              @input="change('description', $event)"
             />
           </label>
           <div v-if="kind !== 'mark'" class="fields">
@@ -524,12 +549,20 @@ onBeforeUnmount(() => {
               <button @click="removeListItem('learnable_skills', index)">移除</button>
             </div>
             <label
-              >添加技能<select v-model="skillId" data-testid="development-skill-reference">
-                <option value="">请选择</option>
-                <option v-for="item in skillOptions" :key="keyFor(item)" :value="keyFor(item)">
-                  {{ item.label }} · {{ item.id }}
-                </option>
-              </select></label
+              >添加技能<ElSelect
+                filterable
+                clearable
+                :disabled="busy || !sameServer || !!dataProblem || !!recordProblem"
+                aria-label="添加技能"
+                v-model="skillId"
+                data-testid="development-skill-reference"
+              >
+                <ElOption
+                  v-for="item in skillOptions"
+                  :key="keyFor(item)"
+                  :value="keyFor(item)"
+                  :label="item.label + ' · ' + item.id"
+                /> </ElSelect></label
             ><button :disabled="!skillId" @click="addSkill">添加技能引用</button>
             <h3>特性与纹章</h3>
             <div v-for="slot in ['ability', 'emblem'] as const" :key="slot">
@@ -546,12 +579,20 @@ onBeforeUnmount(() => {
                   <option value="emblem">纹章</option>
                 </select></label
               ><label
-                >印记<select v-model="markId" data-testid="development-mark-reference">
-                  <option value="">请选择</option>
-                  <option v-for="item in markOptions" :key="keyFor(item)" :value="keyFor(item)">
-                    {{ item.label }} · {{ item.id }}
-                  </option>
-                </select></label
+                >印记<ElSelect
+                  filterable
+                  clearable
+                  :disabled="busy || !sameServer || !!dataProblem || !!recordProblem"
+                  aria-label="印记"
+                  v-model="markId"
+                  data-testid="development-mark-reference"
+                >
+                  <ElOption
+                    v-for="item in markOptions"
+                    :key="keyFor(item)"
+                    :value="keyFor(item)"
+                    :label="item.label + ' · ' + item.id"
+                  /> </ElSelect></label
               ><button :disabled="!markId" @click="addMark">添加印记引用</button>
             </div>
           </div>
@@ -562,8 +603,8 @@ onBeforeUnmount(() => {
               <code>{{ JSON.stringify(item) }}</code
               ><button @click="removeListItem('behaviors', index)">移除引用</button>
             </div>
-            <label>效果 ID<input v-model="effectId" data-testid="development-effect" /></label
-            ><label>使用 ID<input v-model="useId" data-testid="development-effect-use-id" /></label
+            <label>效果 ID<ElInput v-model="effectId" data-testid="development-effect" /></label
+            ><label>使用 ID<ElInput v-model="useId" data-testid="development-effect-use-id" /></label
             ><button :disabled="!effectId || !useId" @click="addEffect">添加效果引用</button>
           </div>
         </fieldset>

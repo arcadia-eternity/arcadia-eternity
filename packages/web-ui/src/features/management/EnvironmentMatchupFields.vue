@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElCollapseItem, ElFormItem, ElInputNumber, ElSelect, ElOption, ElButton } from 'element-plus'
 import { environmentName } from '@/i18n/environment'
 import { computed, ref } from 'vue'
 import { resolveElementChart, type ElementDefinition, type MatchupTable } from '@arcadia-eternity/const'
@@ -11,7 +12,7 @@ const props = defineProps<{
 }>()
 const attack = ref('')
 const defense = ref('')
-const input = ref('')
+const input = ref<number | null>()
 const issue = ref('')
 const policy = computed(() => rules.value.matchups ?? {})
 const preview = computed(() => {
@@ -43,7 +44,7 @@ function setTable(table: string) {
 function pick(a: string, d: string) {
   attack.value = a
   defense.value = d
-  input.value = ''
+  input.value = undefined
   issue.value = ''
 }
 function setCell(value?: number) {
@@ -68,64 +69,115 @@ function setCell(value?: number) {
 </script>
 
 <template>
-  <details>
-    <summary>属性相克</summary>
-    <label
-      >基础相克表
-      <input
-        list="environment-tables"
-        :value="policy.table"
+  <ElCollapseItem name="matchups" title="属性相克">
+    <ElFormItem label="基础相克表"
+      ><ElSelect
+        :model-value="policy.table"
+        filterable
+        clearable
+        allow-create
+        default-first-option
+        aria-label="基础相克表"
         placeholder="默认表"
-        @change="setTable(($event.target as HTMLInputElement).value.trim())"
-      />
-    </label>
-    <datalist id="environment-tables">
-      <option v-for="table in catalog?.matchupTables" :key="table.id" :value="table.id">
-        {{ environmentName('matchupTables', table.id, table.name) }}
-      </option>
-    </datalist>
-    <datalist id="environment-elements">
-      <option v-for="element in catalog?.elements" :key="element.id" :value="element.id">
-        {{ environmentName('elements', element.id, element.name) }}
-      </option>
-    </datalist>
-    <div class="field-row">
-      <label>攻击属性 <input v-model.trim="attack" list="environment-elements" @input="input = ''" /></label>
-      <label>防守属性 <input v-model.trim="defense" list="environment-elements" @input="input = ''" /></label>
+        @change="setTable(String($event ?? '').trim())"
+      >
+        <ElOption
+          v-for="table in catalog?.matchupTables"
+          :key="table.id"
+          :value="table.id"
+          :label="environmentName('matchupTables', table.id, table.name) + ' · ' + table.id"
+        />
+      </ElSelect>
+    </ElFormItem>
+    <div class="matchup-row">
+      <ElFormItem label="攻击属性"
+        ><ElSelect
+          v-model="attack"
+          filterable
+          clearable
+          allow-create
+          default-first-option
+          value-on-clear=""
+          aria-label="攻击属性"
+          @change="input = undefined"
+        >
+          <ElOption
+            v-for="element in catalog?.elements"
+            :key="element.id"
+            :value="element.id"
+            :label="environmentName('elements', element.id, element.name) + ' · ' + element.id"
+          /> </ElSelect
+      ></ElFormItem>
+      <ElFormItem label="防守属性"
+        ><ElSelect
+          v-model="defense"
+          filterable
+          clearable
+          allow-create
+          default-first-option
+          value-on-clear=""
+          aria-label="防守属性"
+          @change="input = undefined"
+        >
+          <ElOption
+            v-for="element in catalog?.elements"
+            :key="element.id"
+            :value="element.id"
+            :label="environmentName('elements', element.id, element.name) + ' · ' + element.id"
+          /> </ElSelect
+      ></ElFormItem>
     </div>
     <p v-if="conflict">来源冲突 · {{ conflict.proposals.map(row => row.source + ' ' + row.value + '×').join('，') }}</p>
     <p v-else-if="known && preview">
       倍率 {{ preview.values[attack]?.[defense] ?? 1 }}× · {{ cell ? '环境覆盖' : sources?.join('，') || '默认中性' }}
     </p>
-    <div class="field-row">
-      <label
-        >本环境倍率
-        <input
-          v-model.trim="input"
-          type="number"
-          min="0"
-          step="any"
+    <div class="matchup-row">
+      <ElFormItem label="本环境倍率">
+        <ElInputNumber
+          v-model="input"
+          :min="0"
+          :step="0.25"
+          controls-position="right"
           :placeholder="cell ? String(cell.multiplier) : undefined"
-      /></label>
-      <button type="button" :disabled="!attack || !defense || input === ''" @click="setCell(Number(input))">
+      /></ElFormItem>
+      <ElButton
+        native-type="button"
+        :disabled="!attack || !defense || input == null"
+        @click="input != null && setCell(input)"
+      >
         设置此格
-      </button>
-      <button type="button" :disabled="!cell" @click="setCell()">恢复继承</button>
+      </ElButton>
+      <ElButton native-type="button" :disabled="!cell" @click="setCell()">恢复继承</ElButton>
     </div>
     <p v-if="issue" role="alert">{{ issue }}</p>
     <ul v-if="preview?.conflicts.length">
       <li v-for="row in preview.conflicts" :key="row.attack + '>' + row.defense">
-        <button type="button" @click="pick(row.attack, row.defense)">
+        <ElButton native-type="button" @click="pick(row.attack, row.defense)">
           解决冲突 · {{ row.attack }} → {{ row.defense }}
-        </button>
+        </ElButton>
       </li>
     </ul>
     <ul v-if="policy.adjustments?.length">
       <li v-for="row in policy.adjustments" :key="row.attack + '>' + row.defense">
-        <button type="button" @click="pick(row.attack, row.defense)">
+        <ElButton native-type="button" @click="pick(row.attack, row.defense)">
           {{ row.attack }} → {{ row.defense }} · {{ row.multiplier }}×
-        </button>
+        </ElButton>
       </li>
     </ul>
-  </details>
+  </ElCollapseItem>
 </template>
+
+<style scoped>
+.matchup-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 12px 0;
+}
+.matchup-row > .el-form-item {
+  flex: 1 1 11rem;
+  min-width: 0;
+  margin: 0;
+}
+</style>

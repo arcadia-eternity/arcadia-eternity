@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { ElButton, ElDrawer, ElSkeleton, ElSelect, ElOption } from 'element-plus'
+import {
+  ElButton,
+  ElForm,
+  ElFormItem,
+  ElDrawer,
+  ElSkeleton,
+  ElSelect,
+  ElOption,
+  ElCheckbox,
+  ElProgress,
+} from 'element-plus'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -235,20 +245,26 @@ onBeforeUnmount(() => {
   <section class="local-environments" aria-label="本机环境库">
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <form v-if="candidate" class="panel" aria-label="选择目标环境" @submit.prevent="useCandidate">
+    <ElForm
+      label-position="top"
+      v-if="candidate"
+      class="panel"
+      aria-label="选择目标环境"
+      @submit.prevent="useCandidate"
+    >
       <strong>{{ candidate.name }} {{ candidate.version }}</strong>
-      <label
-        >目标环境<ElSelect v-model="packageEnvironmentId" aria-label="目标环境">
+      <ElFormItem label="目标环境"
+        ><ElSelect filterable v-model="packageEnvironmentId" aria-label="目标环境">
           <ElOption
             v-for="environment in snapshot.environments"
             :key="environment.document.id"
             :value="environment.document.id"
             :label="environment.document.name"
           /> </ElSelect
-      ></label>
+      ></ElFormItem>
       <ElButton native-type="submit" type="primary" :disabled="!packageEnvironmentId">编辑环境依赖</ElButton>
       <ElButton @click="candidate = undefined">取消</ElButton>
-    </form>
+    </ElForm>
     <ElSkeleton v-if="!initialized" :rows="8" animated aria-label="正在加载环境" />
     <EnvironmentWorkspace
       v-else
@@ -308,7 +324,7 @@ onBeforeUnmount(() => {
     <EnvironmentImportDialog v-model="importing" :busy="busy || preparing" :error="error" @import="importEnvironment" />
     <details class="source-settings">
       <summary>内容来源</summary>
-      <label class="download-policy"><input v-model="allowDownload" type="checkbox" />允许下载缺失的第三方包</label>
+      <ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
       <ElButton v-if="library" @click="materialsOpen = true">本机材料</ElButton>
       <ElButton v-if="canImportSources" :disabled="busy" @click="importSources">导入来源配置</ElButton>
     </details>
@@ -316,7 +332,7 @@ onBeforeUnmount(() => {
       <h3>版本引用</h3>
       <p v-if="!references.length">没有引用，可删除此版本。</p>
       <pre v-else>{{ references }}</pre>
-      <button @click="references = undefined">关闭引用</button>
+      <ElButton @click="references = undefined">关闭引用</ElButton>
     </section>
     <ElDrawer
       v-model="materialsOpen"
@@ -330,7 +346,7 @@ onBeforeUnmount(() => {
     <ElDrawer v-model="tasksOpen" title="环境任务" size="min(680px, 100vw)" append-to-body
       ><section class="panel" aria-label="本地环境任务">
         <h3>下载与准备任务</h3>
-        <button @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</button>
+        <ElButton @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</ElButton>
         <p v-if="!snapshot.operations.length">暂无任务。</p>
         <article v-for="job in snapshot.operations" :key="job.id">
           <span
@@ -343,20 +359,26 @@ onBeforeUnmount(() => {
             }}
             · {{ jobLabels[job.status] }}</span
           >
-          <button
+          <ElButton
             v-if="['queued', 'running'].includes(job.status)"
             @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')"
           >
             取消任务
-          </button>
+          </ElButton>
           <p v-if="job.progress">{{ stageLabels[job.progress.stage] ?? job.progress.stage }}</p>
-          <progress v-if="job.status === 'running'" aria-label="正在处理" />
-          <button
+          <ElProgress
+            v-if="job.status === 'running'"
+            indeterminate
+            :percentage="100"
+            :show-text="false"
+            aria-label="正在处理"
+          />
+          <ElButton
             v-if="['failed', 'cancelled'].includes(job.status)"
             @click="run({ action: 'retry', operationId: job.id }, '已重新加入队列。')"
           >
             重试
-          </button>
+          </ElButton>
           <p v-if="job.error" class="error">{{ contentTaskError(job.error) }}</p>
         </article>
       </section></ElDrawer

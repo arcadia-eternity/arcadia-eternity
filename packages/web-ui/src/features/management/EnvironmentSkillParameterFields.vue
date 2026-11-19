@@ -2,7 +2,7 @@
 import { environmentName, parameterGroupLabel } from '@/i18n/environment'
 import { computed, ref, watch } from 'vue'
 import i18next from 'i18next'
-import { ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
+import { ElCollapseItem, ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
 import {
   resolveSkillParameters,
   skillParameterKey,
@@ -153,8 +153,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
 </script>
 
 <template>
-  <details class="skill-parameters">
-    <summary>技能数值</summary>
+  <ElCollapseItem class="skill-parameters" name="skillValues" title="技能数值">
     <div class="parameter-fields">
       <ElFormItem label="数值方案">
         <ElSelect
@@ -254,7 +253,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
         </ul>
       </details>
     </div>
-  </details>
+  </ElCollapseItem>
 </template>
 
 <style scoped>

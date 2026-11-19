@@ -11,7 +11,7 @@ export class ProfileError extends Error {
     message = code,
     readonly path?: string,
   ) {
-    super(message)
+    super(message === 'PROFILE_BUSY' ? '个人资料暂时被占用，请稍后重试。' : message)
   }
 }
 export const MAX_BACKUP_BYTES = 24 * 1024 * 1024

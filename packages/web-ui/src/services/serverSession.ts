@@ -169,7 +169,9 @@ export class ServerSessionClient {
           body && typeof body === 'object' && 'code' in body && typeof body.code === 'string' ? body.code : undefined
         throw new SessionRequestError(
           response.status,
-          `服务器账号请求失败 (${response.status}${code ? `: ${code}` : ''})`,
+          code === 'PROFILE_BUSY'
+            ? '当前身份仍在服务器上使用。请先退出房间、匹配并断开其他连接后重试。'
+            : `服务器账号请求失败 (${response.status}${code ? `: ${code}` : ''})`,
           code,
         )
       }

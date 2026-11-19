@@ -14,43 +14,24 @@
       <BattleOptionsEditor v-model:battle-config="battleConfig" v-model:timer-config="timerConfig" />
 
       <!-- 预设配置按钮 -->
-      <div class="flex gap-3 justify-center mt-6 pt-6 border-t border-gray-200">
-        <button
-          @click="loadPreset('default')"
-          class="px-4 py-2 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded-md cursor-pointer transition-all duration-200 hover:bg-gray-200 hover:border-gray-400"
-        >
-          默认配置
-        </button>
-        <button
-          @click="loadPreset('fast')"
-          class="px-4 py-2 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded-md cursor-pointer transition-all duration-200 hover:bg-gray-200 hover:border-gray-400"
-        >
-          快速对战
-        </button>
-        <button
-          @click="loadPreset('competitive')"
-          class="px-4 py-2 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded-md cursor-pointer transition-all duration-200 hover:bg-gray-200 hover:border-gray-400"
-        >
-          竞技模式
-        </button>
-        <button
-          @click="loadPreset('teamSelection')"
-          class="px-4 py-2 text-sm bg-green-100 text-green-700 border border-green-300 rounded-md cursor-pointer transition-all duration-200 hover:bg-green-200 hover:border-green-400"
-        >
-          团队选择测试
-        </button>
+      <div class="flex flex-wrap gap-2 justify-center mt-6 pt-6 border-t border-gray-200">
+        <el-button @click="loadPreset('default')">默认配置 </el-button>
+        <el-button @click="loadPreset('fast')">快速对战 </el-button>
+        <el-button @click="loadPreset('competitive')">竞技模式 </el-button>
+        <el-button @click="loadPreset('teamSelection')">团队选择测试 </el-button>
       </div>
     </div>
 
     <!-- 对战控制区域 -->
     <div class="text-center">
-      <button
+      <el-button
+        type="primary"
+        size="large"
+        :loading="loadingPhase !== null"
         @click="startLocalBattle"
         :disabled="loadingPhase !== null || matchmaking?.blocksOtherBattles"
-        class="px-6 py-3 text-lg font-medium text-white bg-blue-500 border-none rounded-md cursor-pointer transition-colors duration-200 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >{{ startLabel }}</el-button
       >
-        {{ startLabel }}
-      </button>
 
       <!-- 错误提示 -->
       <div v-if="errorMessage" class="mt-4 p-3 text-red-600 border border-red-400 rounded-md bg-red-50">

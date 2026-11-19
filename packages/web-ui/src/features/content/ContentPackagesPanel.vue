@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElSelectV2, ElDialog, ElInput, ElCheckbox, ElProgress, ElTabs, ElTabPane } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { useRouter } from 'vue-router'
@@ -75,6 +76,14 @@ const error = ref('')
 const notice = ref('')
 const offline = ref(false)
 const serverEnvironments = shallowRef<ServerEnvironmentDescriptor[]>([])
+const serverEnvironmentOptions = computed(() =>
+  serverEnvironments.value.map(environment => ({
+    value: environment.id,
+    label:
+      (environment.isDefault ? '默认环境 · ' : '') +
+      (environment.packages.map(pkg => pkg.name + ' ' + pkg.version).join('、') || '空环境'),
+  })),
+)
 const serverEnvironmentId = ref('')
 const serverLoading = ref(false)
 const serverError = ref('')
@@ -382,8 +391,14 @@ onBeforeUnmount(() => {
               </button></template
             >
           </nav>
-          <input v-model="query" type="search" aria-label="搜索内容包" placeholder="搜索内容包名称或作者" /><template
-            v-if="!readonly"
+          <ElInput
+            clearable
+            style="width: min(100%, 22rem)"
+            v-model="query"
+            type="search"
+            aria-label="搜索内容包"
+            placeholder="搜索内容包名称或作者"
+          /><template v-if="!readonly"
             ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
             ><button :disabled="busy" @click="run(() => refresh())">刷新</button>
             <button @click="tasksOpen = true">
@@ -400,12 +415,13 @@ onBeforeUnmount(() => {
           <p v-else-if="!serverLoading && !serverEnvironments.length" class="context-note">服务器暂无公开环境。</p>
           <label v-else-if="serverEnvironments.length" class="server-environment-picker">
             服务器环境
-            <select v-model="serverEnvironmentId" @change="changeMode('server')">
-              <option v-for="environment in serverEnvironments" :key="environment.id" :value="environment.id">
-                {{ environment.isDefault ? '默认环境 · ' : '' }}
-                {{ environment.packages.map(pkg => `${pkg.name} ${pkg.version}`).join('、') || '空环境' }}
-              </option>
-            </select>
+            <ElSelectV2
+              v-model="serverEnvironmentId"
+              :options="serverEnvironmentOptions"
+              filterable
+              aria-label="服务器环境"
+              @change="changeMode('server')"
+            />
           </label>
         </template>
         <p v-else-if="mode === 'room' && room" class="context-note">房间 {{ room.config.roomCode }}</p>
@@ -455,21 +471,8 @@ onBeforeUnmount(() => {
             <button v-if="canAuthor && !readonly" class="primary" :disabled="busy" @click="browsePackage(selected.id)">
               浏览内容（只读）
             </button>
-            <div class="detail-tabs" role="tablist" aria-label="包详情">
-              <button
-                v-for="tab in ['overview', 'dependencies', 'impact'] as const"
-                :id="'package-tab-' + tab"
-                :key="tab"
-                role="tab"
-                :aria-selected="detailTab === tab"
-                aria-controls="package-detail-panel"
-                @click="detailTab = tab"
-              >
-                {{ { overview: '简介', dependencies: '依赖', impact: '队伍影响' }[tab] }}
-              </button>
-            </div>
-            <div id="package-detail-panel" role="tabpanel" :aria-labelledby="'package-tab-' + detailTab">
-              <template v-if="detailTab === 'overview'"
+            <ElTabs v-model="detailTab" aria-label="包详情">
+              <ElTabPane label="简介" name="overview"
                 ><p v-if="selected.description">{{ selected.description }}</p>
                 <p v-if="selected.counts" class="detail-subtitle">
                   {{ selected.counts.species }} 只精灵 · {{ selected.counts.skills }} 个技能 ·
@@ -505,8 +508,8 @@ onBeforeUnmount(() => {
                   <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
                   ><button :disabled="busy" @click="uninstall">卸载此版本</button>
                 </div>
-              </template>
-              <template v-else-if="detailTab === 'dependencies'"
+              </ElTabPane>
+              <ElTabPane label="依赖" name="dependencies"
                 ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
                 <template v-else-if="selected.graph"
                   ><p class="detail-subtitle">安装时的内容包及依赖</p>
@@ -522,9 +525,9 @@ onBeforeUnmount(() => {
                     </li>
                   </ul></template
                 >
-                <p v-else>服务器未提供依赖清单。</p></template
+                <p v-else>服务器未提供依赖清单。</p></ElTabPane
               >
-              <template v-else
+              <ElTabPane label="队伍影响" name="impact"
                 ><p v-if="readonly && remoteLoading">正在读取环境内容…</p>
                 <p v-else-if="readonly && remoteError" class="problem">环境内容尚未读取成功，暂时无法检查队伍引用。</p>
                 <p v-else-if="!gameData.loaded && !remoteContent">正在读取基础内容…</p>
@@ -540,61 +543,76 @@ onBeforeUnmount(() => {
                     </ul>
                   </li>
                 </ul>
-              </template>
-            </div>
+              </ElTabPane>
+            </ElTabs>
           </aside>
         </div>
       </section>
     </div>
-    <div v-if="tasksOpen" class="dialog-backdrop" @keydown.esc="tasksOpen = false">
-      <section role="dialog" aria-modal="true" aria-labelledby="install-tasks-title" class="dialog">
-        <h2 id="install-tasks-title">下载与安装</h2>
-        <p v-if="!snapshot?.operations?.length">暂无安装任务。</p>
-        <article v-for="job in snapshot?.operations" :key="job.id" class="install-task">
-          <strong>{{ job.label }}</strong>
-          <p>
-            {{ job.stage === 'recording' && job.status === 'running' ? '保存安装记录' : installLabels[job.status] }}
-          </p>
-          <progress v-if="job.status === 'running'" aria-label="正在安装" />
-          <p v-if="job.error">{{ contentTaskError(job.error) }}</p>
-          <button
-            v-if="['queued', 'running'].includes(job.status)"
-            :disabled="job.stage === 'recording'"
-            @click="installTaskAction('cancel-install', job.id)"
-          >
-            {{ job.status === 'queued' ? '移出队列' : '取消' }}
-          </button>
-          <button
-            v-if="['failed', 'cancelled'].includes(job.status)"
-            @click="installTaskAction('retry-install', job.id)"
-          >
-            重试
-          </button>
-        </article>
-        <div class="dialog-actions">
-          <button @click="installTaskAction('clear-install-tasks')">清除已结束</button
-          ><button @click="tasksOpen = false">关闭</button>
-        </div>
-      </section>
-    </div>
-    <div v-if="adding" class="dialog-backdrop" @keydown.esc="!busy && (adding = false)">
-      <section role="dialog" aria-modal="true" aria-labelledby="add-package-title" class="dialog">
-        <h2 id="add-package-title">安装内容包</h2>
-        <button :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</button
-        ><label class="field"
-          >npm 包名与版本<input v-model="npmSpec" placeholder="@author/pets@1.0.0" :disabled="busy" /></label
-        ><label class="offline"
-          ><input v-model="offline" type="checkbox" :disabled="busy" />仅使用本机已有的 npm 缓存</label
+    <ElDialog
+      v-model="tasksOpen"
+      title="下载与安装"
+      width="min(32rem, calc(100vw - 24px))"
+      append-to-body
+      destroy-on-close
+    >
+      <p v-if="error" role="alert" class="problem">{{ error }}</p>
+      <p v-if="!snapshot?.operations?.length">暂无安装任务。</p>
+      <article v-for="job in snapshot?.operations" :key="job.id" class="install-task">
+        <strong>{{ job.label }}</strong>
+        <p>
+          {{ job.stage === 'recording' && job.status === 'running' ? '保存安装记录' : installLabels[job.status] }}
+        </p>
+        <ElProgress
+          v-if="job.status === 'running'"
+          indeterminate
+          :percentage="100"
+          :show-text="false"
+          aria-label="正在安装"
+        />
+        <p v-if="job.error">{{ contentTaskError(job.error) }}</p>
+        <ElButton
+          v-if="['queued', 'running'].includes(job.status)"
+          :disabled="job.stage === 'recording'"
+          @click="installTaskAction('cancel-install', job.id)"
         >
+          {{ job.status === 'queued' ? '移出队列' : '取消' }}
+        </ElButton>
+        <ElButton
+          v-if="['failed', 'cancelled'].includes(job.status)"
+          @click="installTaskAction('retry-install', job.id)"
+        >
+          重试
+        </ElButton>
+      </article>
+      <template #footer>
+        <ElButton @click="installTaskAction('clear-install-tasks')">清除已结束</ElButton>
+        <ElButton type="primary" @click="tasksOpen = false">关闭</ElButton>
+      </template>
+    </ElDialog>
+    <ElDialog
+      v-model="adding"
+      title="安装内容包"
+      width="min(32rem, calc(100vw - 24px))"
+      append-to-body
+      destroy-on-close
+      :close-on-click-modal="false"
+    >
+      <form class="grid gap-4" @submit.prevent="npmSpec.trim() && inspectNpm()">
+        <label
+          >npm 包名与版本<ElInput v-model="npmSpec" placeholder="@author/pets@1.0.0" clearable :disabled="busy"
+        /></label>
+        <ElCheckbox v-model="offline" :disabled="busy">仅使用本机已有的 npm 缓存</ElCheckbox>
+        <div><ElButton :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</ElButton></div>
         <p v-if="error" role="alert" class="problem">{{ error }}</p>
-        <div class="dialog-actions">
-          <button :disabled="busy" @click="adding = false">取消</button
-          ><button class="primary" :disabled="busy || !npmSpec.trim()" @click="inspectNpm">
-            {{ busy ? '正在安装…' : '安装到资源库' }}
-          </button>
+        <div class="flex justify-end gap-2">
+          <ElButton @click="adding = false">取消</ElButton>
+          <ElButton native-type="submit" type="primary" :loading="busy" :disabled="!npmSpec.trim()"
+            >安装到资源库</ElButton
+          >
         </div>
-      </section>
-    </div>
+      </form>
+    </ElDialog>
   </section>
 </template>
 
@@ -660,7 +678,7 @@ button,
 input {
   font: inherit;
 }
-button {
+button:not(.el-button) {
   border: 1px solid var(--line);
   border-radius: 5px;
   padding: 8px 11px;
@@ -709,7 +727,7 @@ input[type='checkbox'] {
   color: var(--muted);
   padding: 0 8px;
 }
-.task-nav button {
+.task-nav button:not(.el-button) {
   display: flex;
   justify-content: space-between;
   width: auto;
@@ -752,7 +770,7 @@ hr {
   background: var(--page);
   border-radius: 5px;
 }
-.toolbar button {
+.toolbar button:not(.el-button) {
   white-space: nowrap;
 }
 .context-note {
@@ -767,12 +785,9 @@ hr {
   padding: 12px 16px;
   font-size: 13px;
 }
-.server-environment-picker select {
+.server-environment-picker .el-select-v2 {
+  flex: 1;
   min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--page);
 }
 .columns {
   display: grid;
@@ -868,23 +883,6 @@ hr {
   color: var(--muted);
   margin: 6px 0 14px;
 }
-.detail-tabs {
-  display: flex;
-  gap: 7px;
-  border-bottom: 1px solid var(--line);
-  margin: 16px 0;
-}
-.detail-tabs button {
-  border: 0;
-  border-radius: 0;
-  padding: 8px 5px;
-  border-bottom: 2px solid transparent;
-  color: var(--muted);
-}
-.detail-tabs button[aria-selected='true'] {
-  border-bottom-color: var(--accent);
-  color: var(--accent);
-}
 .package-detail p,
 .package-detail li,
 .package-detail dd {
@@ -947,7 +945,7 @@ summary {
   flex-wrap: wrap;
   margin: 16px 0;
 }
-.detail-actions button {
+.detail-actions button:not(.el-button) {
   font-size: 12px;
 }
 .message {
@@ -967,54 +965,6 @@ summary {
 }
 .back {
   display: none;
-}
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  background: #15223870;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.dialog {
-  background: var(--surface);
-  border-radius: 9px;
-  padding: 24px;
-  width: 520px;
-  max-width: 100%;
-  max-height: calc(100dvh - 40px);
-  overflow: auto;
-  box-shadow: 0 14px 45px #0003;
-}
-.dialog p,
-.dialog li {
-  overflow-wrap: anywhere;
-}
-.field {
-  display: grid;
-  gap: 8px;
-  margin: 20px 0 14px;
-}
-.field input {
-  min-width: 0;
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 9px;
-}
-.offline {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  font-size: 13px;
-}
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 22px;
 }
 @media (max-width: 1000px) {
   .columns {
@@ -1048,7 +998,7 @@ summary {
     border-bottom: 1px solid var(--line);
     padding: 7px;
   }
-  .task-nav button {
+  .task-nav button:not(.el-button) {
     width: auto;
     gap: 10px;
     margin: 0;
@@ -1083,13 +1033,6 @@ summary {
   }
   .pending {
     align-items: flex-start;
-  }
-  .dialog-backdrop {
-    padding: 12px;
-  }
-  .dialog {
-    padding: 20px;
-    max-height: calc(100dvh - 24px);
   }
 }
 </style>
@@ -1143,7 +1086,7 @@ summary {
   gap: 8px;
   margin-top: 12px;
 }
-.source-project-list button {
+.source-project-list button:not(.el-button) {
   text-align: left;
   padding: 12px;
 }

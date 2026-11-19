@@ -145,8 +145,13 @@ describe('shared environment workspace', () => {
         .get('input')
     await checkbox('击破奖励换宠').setValue(false)
     await checkbox('队伍内精灵不重复').setValue(true)
-    const denySpecies = page.findAll('fieldset').find(fieldset => fieldset.find('legend').text() === '禁止内容')!
-    await denySpecies.findAll('textarea')[0]!.setValue('base:boss\nbase:boss\ncustom:pet')
+    const denySpecies = page
+      .findAllComponents({ name: 'ElCollapseItem' })
+      .find(item => item.props('title') === '禁止内容')!
+    denySpecies
+      .getComponent({ name: 'ElInputTag' })
+      .vm.$emit('update:modelValue', ['base:boss', 'base:boss', 'custom:pet'])
+    await page.vm.$nextTick()
     await page.get('form.environment-editor').trigger('submit')
     const saved = page.emitted('save')![0]![0] as ManagedEnvironment['document']
     expect(saved.rules.mechanics).toEqual({ individualValues: { max: 50 }, allowFaintSwitch: false })
@@ -235,7 +240,7 @@ it('previews group inheritance and a single exception and saves only explicit ch
   }
   const { page } = open({ installations: [{ ...version(draft), skillParameters: catalog }] })
   await button(page, '编辑').trigger('click')
-  const section = page.findAll('details').find(item => item.find('summary').text() === '技能数值')!
+  const section = page.get('.skill-parameters')
   const [profile, groups, targets] = section.findAllComponents(ElSelect)
   profile!.vm.$emit('update:modelValue', 'base:120')
   await flushPromises()
@@ -314,8 +319,8 @@ it('can lift an inherited ban and uniqueness requirement and then restore inheri
     .find(label => label.text() === '队伍内精灵不重复')!
     .get('input')
   expect(unique.element.checked).toBe(true)
-  const denied = page.findAll('fieldset').find(field => field.find('legend').text() === '禁止内容')!
-  expect(denied.get('textarea').attributes('placeholder')).toBe('cup:boss')
+  const denied = page.findAllComponents({ name: 'ElCollapseItem' }).find(item => item.props('title') === '禁止内容')!
+  expect(denied.get('input').attributes('placeholder')).toBe('cup:boss')
   await unique.setValue(false)
   await denied
     .findAll('button')

@@ -424,16 +424,15 @@
                 </div>
               </div>
               <div class="p-4">
-                <form class="space-y-4">
+                <form class="space-y-4" @submit.prevent>
                   <!-- 第一行：精灵名称和种族 -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label class="block text-xs font-medium text-gray-700 mb-1">精灵名称</label>
-                      <input
+                      <el-input
                         v-model="selectedPet.name"
                         aria-label="精灵名称"
                         type="text"
-                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                         placeholder="输入精灵名称"
                       />
                     </div>
@@ -491,13 +490,18 @@
                   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
                       <label class="block text-xs font-medium text-gray-700 mb-1">等级</label>
-                      <input
-                        v-model.number="selectedPet.level"
+                      <el-input-number
+                        controls-position="right"
+                        style="width: 100%"
                         aria-label="等级"
-                        type="number"
-                        min="1"
-                        max="100"
-                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        :model-value="selectedPet.level"
+                        @update:model-value="
+                          value => {
+                            if (selectedPet && value != null) selectedPet.level = value
+                          }
+                        "
+                        :min="1"
+                        :max="100"
                       />
                     </div>
                     <div>
@@ -520,22 +524,34 @@
                     </div>
                     <div>
                       <label class="block text-xs font-medium text-gray-700 mb-1">身高</label>
-                      <input
-                        v-model.number="selectedPet.height"
-                        type="number"
+                      <el-input-number
+                        controls-position="right"
+                        style="width: 100%"
+                        aria-label="身高"
+                        :model-value="selectedPet.height"
+                        @update:model-value="
+                          value => {
+                            if (selectedPet && value != null) selectedPet.height = value
+                          }
+                        "
                         :min="currentSpecies?.heightRange[0]"
                         :max="currentSpecies?.heightRange[1]"
-                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                       />
                     </div>
                     <div>
                       <label class="block text-xs font-medium text-gray-700 mb-1">体重</label>
-                      <input
-                        v-model.number="selectedPet.weight"
-                        type="number"
+                      <el-input-number
+                        controls-position="right"
+                        style="width: 100%"
+                        aria-label="体重"
+                        :model-value="selectedPet.weight"
+                        @update:model-value="
+                          value => {
+                            if (selectedPet && value != null) selectedPet.weight = value
+                          }
+                        "
                         :min="currentSpecies?.weightRange[0]"
                         :max="currentSpecies?.weightRange[1]"
-                        class="block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                       />
                     </div>
                   </div>
@@ -833,18 +849,21 @@
                           <label class="block text-xs font-medium text-gray-700 mb-1">
                             学习力: {{ trainingPet?.evs[stat] || 0 }}
                           </label>
-                          <input
-                            type="range"
-                            :value="trainingPet.evs[stat]"
-                            @input="handleEVUpdate(stat, Number(($event.target as HTMLInputElement).value))"
-                            min="0"
-                            max="255"
-                            step="4"
-                            class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                          <el-slider
+                            :model-value="trainingPet.evs[stat]"
+                            :aria-label="statChineseMap[stat] + '学习力'"
+                            :min="0"
+                            :max="Math.max(252, trainingPet.evs[stat])"
+                            :step="4"
+                            @update:model-value="
+                              value => {
+                                if (typeof value === 'number') handleEVUpdate(stat, value)
+                              }
+                            "
                           />
                           <div class="flex justify-between text-xs text-gray-500 mt-0.5">
                             <span>0</span>
-                            <span>255</span>
+                            <span>{{ Math.max(252, trainingPet.evs[stat]) }}</span>
                           </div>
                         </div>
 
@@ -1004,54 +1023,33 @@
       </div>
     </div>
     <!-- 帮助对话框 -->
-    <div v-if="showHelp" class="fixed inset-0 z-[9998] overflow-y-auto" @click="showHelp = false">
-      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-black/50 transition-opacity"></div>
-
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-
-        <div
-          class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-10"
-          @click.stop
-        >
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-medium text-gray-900">使用帮助</h3>
-              <button @click="showHelp = false" class="text-gray-400 hover:text-gray-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div class="space-y-4 text-sm text-gray-600">
-              <div>
-                <h4 class="font-medium text-gray-900 mb-2">队伍操作</h4>
-                <ul class="space-y-1 list-disc list-inside">
-                  <li>拖拽左侧列表中的精灵可以调整出战顺序。</li>
-                  <li>点击“添加精灵”按钮可以向当前队伍中添加新的精灵。</li>
-                  <li v-if="delegate.warehouse">从队伍移出后，这只精灵仍保存在仓库中。</li>
-                </ul>
-              </div>
-              <div>
-                <h4 class="font-medium text-gray-900 mb-2">配置精灵</h4>
-                <ul class="space-y-1 list-disc list-inside">
-                  <li>在右侧配置区域，可以修改精灵的名称、种族、等级、性别等基础信息。</li>
-                  <li>通过滑块和输入框精确调整精灵的能力值（学习力、个体值）。</li>
-                  <li>为精灵选择合适的技能，包括普通技能和必杀技能。</li>
-                </ul>
-              </div>
-              <div>
-                <h4 class="font-medium text-gray-900 mb-2">数据管理</h4>
-                <ul class="space-y-1 list-disc list-inside">
-                  <li v-if="delegate.warehouse">多个队伍共用一只时，保存可以修改原只，也可以复制一只给本队。</li>
-                  <li>使用“导出”和“导入”功能，可以方便地备份和分享你的队伍配置。</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+    <el-dialog v-model="showHelp" title="使用帮助" width="min(32rem, calc(100vw - 2rem))" append-to-body>
+      <div class="space-y-4 text-sm text-gray-600">
+        <div>
+          <h4 class="font-medium text-gray-900 mb-2">队伍操作</h4>
+          <ul class="space-y-1 list-disc list-inside">
+            <li>拖拽左侧列表中的精灵可以调整出战顺序。</li>
+            <li>点击“添加精灵”按钮可以向当前队伍中添加新的精灵。</li>
+            <li v-if="delegate.warehouse">从队伍移出后，这只精灵仍保存在仓库中。</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-900 mb-2">配置精灵</h4>
+          <ul class="space-y-1 list-disc list-inside">
+            <li>在右侧配置区域，可以修改精灵的名称、种族、等级、性别等基础信息。</li>
+            <li>通过滑块和输入框精确调整精灵的能力值（学习力、个体值）。</li>
+            <li>为精灵选择合适的技能，包括普通技能和必杀技能。</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-900 mb-2">数据管理</h4>
+          <ul class="space-y-1 list-disc list-inside">
+            <li v-if="delegate.warehouse">多个队伍共用一只时，保存可以修改原只，也可以复制一只给本队。</li>
+            <li>使用“导出”和“导入”功能，可以方便地备份和分享你的队伍配置。</li>
+          </ul>
         </div>
       </div>
-    </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -1978,32 +1976,6 @@ function handleTeamAction(action: string) {
 .sortable-drag {
   opacity: 0.8;
   transform: rotate(2deg);
-}
-
-/* 学习力滑块样式 */
-.slider {
-  background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--value, 0%), #e5e7eb var(--value, 0%), #e5e7eb 100%);
-}
-
-.slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #3b82f6;
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #3b82f6;
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* 过渡动画 */

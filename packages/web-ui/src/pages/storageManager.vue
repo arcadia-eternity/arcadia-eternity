@@ -339,20 +339,25 @@
                       <!-- 第一行：队伍名称和数量 -->
                       <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center space-x-3 flex-1 min-w-0 pr-4">
-                          <h3
+                          <button
+                            type="button"
                             v-if="editingIndex !== petStorage.teams.indexOf(team)"
                             class="text-lg font-medium text-gray-900 cursor-pointer truncate"
                             @click="editTeamName(petStorage.teams.indexOf(team))"
+                            aria-label="修改队伍名称"
+                            :title="team.name"
                           >
                             {{ team.name }}
-                          </h3>
+                          </button>
                           <input
                             v-else
                             v-model="tempTeamName"
                             @blur="saveTeamName(petStorage.teams.indexOf(team))"
                             @keyup.enter="saveTeamName(petStorage.teams.indexOf(team))"
                             class="text-lg font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-0"
-                            ref="editInput"
+                            aria-label="队伍名称"
+                            data-team-rename
+                            @keydown.esc.prevent="editingIndex = -1"
                           />
                           <span
                             class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex-shrink-0"
@@ -428,20 +433,25 @@
                     <div class="hidden sm:block">
                       <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center space-x-3 flex-1 min-w-0 pr-4">
-                          <h3
+                          <button
+                            type="button"
                             v-if="editingIndex !== petStorage.teams.indexOf(team)"
                             class="text-lg font-medium text-gray-900 cursor-pointer truncate"
                             @click="editTeamName(petStorage.teams.indexOf(team))"
+                            aria-label="修改队伍名称"
+                            :title="team.name"
                           >
                             {{ team.name }}
-                          </h3>
+                          </button>
                           <input
                             v-else
                             v-model="tempTeamName"
                             @blur="saveTeamName(petStorage.teams.indexOf(team))"
                             @keyup.enter="saveTeamName(petStorage.teams.indexOf(team))"
                             class="text-lg font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-0"
-                            ref="editInput"
+                            aria-label="队伍名称"
+                            data-team-rename
+                            @keydown.esc.prevent="editingIndex = -1"
                           />
                           <span
                             class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex-shrink-0"
@@ -1526,49 +1536,28 @@
     </main>
 
     <!-- 帮助对话框 -->
-    <div v-if="showHelp" class="fixed inset-0 z-[9998] overflow-y-auto" @click="showHelp = false">
-      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-black/50 transition-opacity"></div>
-
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-
-        <div
-          class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-10"
-          @click.stop
-        >
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-medium text-gray-900">使用帮助</h3>
-              <button @click="showHelp = false" class="text-gray-400 hover:text-gray-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div class="space-y-4 text-sm text-gray-600">
-              <div>
-                <h4 class="font-medium text-gray-900 mb-2">快捷操作</h4>
-                <ul class="space-y-1 list-disc list-inside">
-                  <li>双击仓库精灵加入当前队伍</li>
-                  <li>双击队伍精灵移出该队</li>
-                  <li>双击队伍容器切换当前队伍</li>
-                  <li>右键精灵查看更多操作</li>
-                  <li>点击队伍名称编辑名称</li>
-                </ul>
-              </div>
-              <div>
-                <h4 class="font-medium text-gray-900 mb-2">队伍管理</h4>
-                <ul class="space-y-1 list-disc list-inside">
-                  <li>创建多个队伍配置</li>
-                  <li>导出/导入队伍文件</li>
-                  <li>设置当前使用的队伍</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+    <el-dialog v-model="showHelp" title="使用帮助" width="min(32rem, calc(100vw - 2rem))" append-to-body>
+      <div class="space-y-4 text-sm text-gray-600">
+        <div>
+          <h4 class="font-medium text-gray-900 mb-2">快捷操作</h4>
+          <ul class="space-y-1 list-disc list-inside">
+            <li>双击仓库精灵加入当前队伍</li>
+            <li>双击队伍精灵移出该队</li>
+            <li>双击队伍容器切换当前队伍</li>
+            <li>右键精灵查看更多操作</li>
+            <li>点击队伍名称编辑名称</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-900 mb-2">队伍管理</h4>
+          <ul class="space-y-1 list-disc list-inside">
+            <li>创建多个队伍配置</li>
+            <li>导出/导入队伍文件</li>
+            <li>设置当前使用的队伍</li>
+          </ul>
         </div>
       </div>
-    </div>
+    </el-dialog>
 
     <!-- 右键菜单 -->
     <ContextMenu
@@ -1579,117 +1568,98 @@
     />
 
     <!-- 精灵详情对话框 -->
-    <div v-if="showPetDetail" class="fixed inset-0 z-[9999] overflow-y-auto">
-      <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="fixed inset-0 bg-black/50 transition-opacity" @click="showPetDetail = false"></div>
+    <el-dialog v-model="showPetDetail" title="精灵详情" width="min(42rem, calc(100vw - 2rem))" append-to-body>
+      <div v-if="selectedPetForDetail" class="space-y-4">
+        <div class="flex items-center space-x-4">
+          <PetIcon
+            :uncached="!!gameDataStore.serverFallback"
+            :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num"
+            :species="gameDataStore.getSpecies(selectedPetForDetail.species)"
+            :is-unknown="!gameDataStore.getSpecies(selectedPetForDetail.species)"
+            class="w-16 h-16"
+          />
+          <div>
+            <h4 class="text-xl font-semibold text-gray-900">{{ selectedPetForDetail.name }}</h4>
+            <p class="text-gray-600">
+              {{ getSpeciesName(selectedPetForDetail.species) }}
+            </p>
+            <p class="text-sm text-gray-500">等级 {{ selectedPetForDetail.level }}</p>
+            <p v-if="detailOrigin" class="text-sm break-all">
+              原约战环境 · {{ detailOrigin.name }} · {{ detailOrigin.version }}
+            </p>
+          </div>
+        </div>
 
-        <div
-          class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all max-w-2xl w-full"
-        >
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-medium text-gray-900">精灵详情</h3>
-              <button @click="showPetDetail = false" class="text-gray-400 hover:text-gray-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <h5 class="font-medium text-gray-900 mb-2">基础信息</h5>
+            <div class="space-y-1 text-sm">
+              <p>
+                <span class="text-gray-600">性别:</span>
+                {{
+                  selectedPetForDetail && selectedPetForDetail.gender !== undefined
+                    ? genderMap[selectedPetForDetail.gender]
+                    : '未知'
+                }}
+              </p>
+              <p>
+                <span class="text-gray-600">性格:</span>
+                {{
+                  selectedPetForDetail && selectedPetForDetail.nature !== undefined
+                    ? getNatureText(selectedPetForDetail.nature)
+                    : '未知'
+                }}
+              </p>
+              <p><span class="text-gray-600">身高:</span> {{ selectedPetForDetail.height }}cm</p>
+              <p><span class="text-gray-600">体重:</span> {{ selectedPetForDetail.weight }}kg</p>
             </div>
+          </div>
 
-            <div v-if="selectedPetForDetail" class="space-y-4">
-              <div class="flex items-center space-x-4">
-                <PetIcon
-                  :uncached="!!gameDataStore.serverFallback"
-                  :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num"
-                  :species="gameDataStore.getSpecies(selectedPetForDetail.species)"
-                  :is-unknown="!gameDataStore.getSpecies(selectedPetForDetail.species)"
-                  class="w-16 h-16"
-                />
-                <div>
-                  <h4 class="text-xl font-semibold text-gray-900">{{ selectedPetForDetail.name }}</h4>
-                  <p class="text-gray-600">
-                    {{ getSpeciesName(selectedPetForDetail.species) }}
-                  </p>
-                  <p class="text-sm text-gray-500">等级 {{ selectedPetForDetail.level }}</p>
-                  <p v-if="detailOrigin" class="text-sm break-all">
-                    原约战环境 · {{ detailOrigin.name }} · {{ detailOrigin.version }}
-                  </p>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <h5 class="font-medium text-gray-900 mb-2">基础信息</h5>
-                  <div class="space-y-1 text-sm">
-                    <p>
-                      <span class="text-gray-600">性别:</span>
-                      {{
-                        selectedPetForDetail && selectedPetForDetail.gender !== undefined
-                          ? genderMap[selectedPetForDetail.gender]
-                          : '未知'
-                      }}
-                    </p>
-                    <p>
-                      <span class="text-gray-600">性格:</span>
-                      {{
-                        selectedPetForDetail && selectedPetForDetail.nature !== undefined
-                          ? getNatureText(selectedPetForDetail.nature)
-                          : '未知'
-                      }}
-                    </p>
-                    <p><span class="text-gray-600">身高:</span> {{ selectedPetForDetail.height }}cm</p>
-                    <p><span class="text-gray-600">体重:</span> {{ selectedPetForDetail.weight }}kg</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h5 class="font-medium text-gray-900 mb-2">能力值</h5>
-                  <div class="space-y-1 text-sm">
-                    <p>
-                      <span class="text-gray-600">体力:</span>
-                      {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'hp') : 0 }}
-                    </p>
-                    <p>
-                      <span class="text-gray-600">攻击:</span>
-                      {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'atk') : 0 }}
-                    </p>
-                    <p>
-                      <span class="text-gray-600">防御:</span>
-                      {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'def') : 0 }}
-                    </p>
-                    <p>
-                      <span class="text-gray-600">特攻:</span>
-                      {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'spa') : 0 }}
-                    </p>
-                    <p>
-                      <span class="text-gray-600">特防:</span>
-                      {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'spd') : 0 }}
-                    </p>
-                    <p>
-                      <span class="text-gray-600">速度:</span>
-                      {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'spe') : 0 }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h5 class="font-medium text-gray-900 mb-2">技能</h5>
-                <div class="flex flex-wrap gap-2">
-                  <span
-                    v-for="skillId in selectedPetForDetail?.skills || []"
-                    :key="skillId"
-                    class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                  >
-                    {{ i18next.t(`${skillId}.name`, { ns: 'skill' }) }}
-                  </span>
-                </div>
-              </div>
+          <div>
+            <h5 class="font-medium text-gray-900 mb-2">能力值</h5>
+            <div class="space-y-1 text-sm">
+              <p>
+                <span class="text-gray-600">体力:</span>
+                {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'hp') : 0 }}
+              </p>
+              <p>
+                <span class="text-gray-600">攻击:</span>
+                {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'atk') : 0 }}
+              </p>
+              <p>
+                <span class="text-gray-600">防御:</span>
+                {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'def') : 0 }}
+              </p>
+              <p>
+                <span class="text-gray-600">特攻:</span>
+                {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'spa') : 0 }}
+              </p>
+              <p>
+                <span class="text-gray-600">特防:</span>
+                {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'spd') : 0 }}
+              </p>
+              <p>
+                <span class="text-gray-600">速度:</span>
+                {{ selectedPetForDetail ? computePetStat(selectedPetForDetail, 'spe') : 0 }}
+              </p>
             </div>
           </div>
         </div>
+
+        <div>
+          <h5 class="font-medium text-gray-900 mb-2">技能</h5>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="skillId in selectedPetForDetail?.skills || []"
+              :key="skillId"
+              class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800"
+            >
+              {{ i18next.t(`${skillId}.name`, { ns: 'skill' }) }}
+            </span>
+          </div>
+        </div>
       </div>
-    </div>
+    </el-dialog>
 
     <!-- 仓库导入选项对话框 -->
     <el-dialog
@@ -2372,7 +2342,9 @@ const editTeamName = (index: number) => {
   editingIndex.value = index
 
   nextTick(() => {
-    const input = document.querySelector('input[ref="editInput"]') as HTMLInputElement
+    const input = [...document.querySelectorAll<HTMLInputElement>('input[data-team-rename]')].find(
+      field => field.getClientRects().length,
+    )
     if (input) {
       input.focus()
       input.select()
@@ -2381,6 +2353,7 @@ const editTeamName = (index: number) => {
 }
 
 const saveTeamName = (index: number) => {
+  if (editingIndex.value !== index) return
   if (tempTeamName.value.trim()) {
     petStorage.renameTeam(index, tempTeamName.value.trim())
   }

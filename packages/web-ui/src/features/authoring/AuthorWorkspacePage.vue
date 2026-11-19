@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElInput } from 'element-plus'
 import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import { nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -381,10 +382,9 @@ function editMedia(record: ContentRow) {
   else store.editRecord(row, record)
   if (snapshot.value) store.sync(snapshot.value)
 }
-function editAssetSource(event: Event) {
+function editAssetSource(location: string) {
   if (readOnly.value || !assetRecord.value) return
   const row = assetRecord.value
-  const location = (event.target as HTMLInputElement).value
   store.editRecord(row, { ...row.record, source: location })
   void attempt(() => readAsset(location, row.record.id))
   notice.value = '资源位置已加入草稿；所有使用者继续使用原资源 ID。'
@@ -1196,7 +1196,7 @@ onBeforeUnmount(() => {
           "
         >
           打开项目</button
-        ><label>新项目名称<input v-model="name" placeholder="例如：寒霜故事" /></label
+        ><label>新项目名称<ElInput v-model="name" placeholder="例如：寒霜故事" /></label
         ><button
           :disabled="busy || dirty || !name.trim()"
           @click="
@@ -1380,11 +1380,11 @@ onBeforeUnmount(() => {
                 </option>
               </select></label
             >
-            <label>显示名称<input v-model="newName" required /></label>
+            <label>显示名称<ElInput v-model="newName" required /></label>
             <details>
               <summary>对象标识与保存位置</summary>
-              <label>稳定标识<input v-model="newId" @input="suggestFile" required /></label
-              ><label>新文件位置<input v-model="newFile" required /></label
+              <label>稳定标识<ElInput v-model="newId" @input="suggestFile" required /></label
+              ><label>新文件位置<ElInput v-model="newFile" required /></label
               ><small>在对应数据目录内自由安排新文件；已有文件的合并与整理可在外部完成。</small>
             </details>
             <button class="primary" :disabled="busy" type="submit">创建草稿</button>
@@ -1406,7 +1406,7 @@ onBeforeUnmount(() => {
             @submit.prevent="/^[A-Za-z][A-Za-z0-9-]*$/.test(languageInput) && (locale = languageInput)"
           >
             <label
-              >添加编辑语言<input
+              >添加编辑语言<ElInput
                 v-model="languageInput"
                 placeholder="例如 en"
                 pattern="[A-Za-z][A-Za-z0-9-]*"
@@ -1419,7 +1419,7 @@ onBeforeUnmount(() => {
               <button @click="navigate(row.kind, row.record.id)">打开对象</button>
             </header>
             <LocaleFields
-              :read-only="readOnly"
+              :read-only="readOnly || busy"
               :text="localized(row, locale)"
               :fallback="locale !== defaultLanguage ? localized(row, defaultLanguage) : {}"
               :record="row.record"
@@ -1450,7 +1450,7 @@ onBeforeUnmount(() => {
               <div>
                 <h1>{{ search.trim() ? '搜索结果' : tabs[tab] }}</h1>
               </div>
-              <input v-model="search" type="search" aria-label="搜索内容" placeholder="搜索包内名称或 ID" />
+              <ElInput clearable v-model="search" type="search" aria-label="搜索内容" placeholder="搜索包内名称或 ID" />
               <button v-if="!readOnly" class="primary" @click="beginCreate(tab)">新建内容</button>
             </header>
             <nav v-if="tab === 'skills' && !search.trim()" class="skill-categories" aria-label="技能类别">
@@ -1556,7 +1556,7 @@ onBeforeUnmount(() => {
             <fieldset :disabled="busy" class="editor-fields">
               <div class="form-panel">
                 <RecordForm
-                  :read-only="readOnly"
+                  :read-only="readOnly || busy"
                   :key="recordKey(selected)"
                   :record="section === 'media' ? currentMedia.record : currentRecord"
                   :kind="selected.kind"
@@ -1590,7 +1590,7 @@ onBeforeUnmount(() => {
               </div>
               <LocaleFields
                 v-if="section === 'base'"
-                :read-only="readOnly"
+                :read-only="readOnly || busy"
                 :text="currentText"
                 :fallback="fallbackText"
                 :record="currentRecord"
@@ -1627,7 +1627,7 @@ onBeforeUnmount(() => {
             <div>
               <h1>资源</h1>
             </div>
-            <input v-model="search" type="search" aria-label="搜索资源" placeholder="搜索资源名称" />
+            <ElInput clearable v-model="search" type="search" aria-label="搜索资源" placeholder="搜索资源名称" />
             <button v-if="!readOnly" :disabled="busy" @click="attempt(importAsset)">导入资源</button>
           </header>
           <div class="asset-layout">
@@ -1654,8 +1654,9 @@ onBeforeUnmount(() => {
               <SourceMediaPreview v-if="asset.bytes.length" :file="asset.file.split('?')[0]!" :bytes="asset.bytes" />
               <label v-if="assetRecord"
                 >素材位置
-                <input
-                  :value="String(assetRecord.record.source)"
+                <ElInput
+                  :model-value="String(assetRecord.record.source)"
+                  :model-modifiers="{ lazy: true }"
                   :disabled="readOnly || !!sharedAt(assetRecord.sharedFields ?? [], ['source'])"
                   @change="editAssetSource"
                 />

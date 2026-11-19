@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElInput, ElButton, ElCheckbox, ElSelect, ElOption } from 'element-plus'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ContentProjectSummary, ContentProjectAction, LocalBattleHostStatus } from '@/types/desktop'
 import type { ContentLibrarySnapshot } from '@/types/contentPackages'
@@ -98,30 +99,35 @@ onBeforeUnmount(() => {
     <RouterLink to="/servers">服务器列表</RouterLink>
     <details>
       <summary>高级服务器项目管理</summary>
-      <button :disabled="busy" @click="add">登记项目目录</button
+      <ElButton :disabled="busy" @click="add">登记项目目录</ElButton
       ><label
-        >已有项目<select v-model="selected" @change="selectProject">
-          <option value="">请选择</option>
-          <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
-        </select></label
-      >
+        >已有项目<ElSelect filterable aria-label="已有项目" v-model="selected" @change="selectProject">
+          <ElOption value="" label="请选择" />
+          <ElOption
+            v-for="project in projects"
+            :key="project.id"
+            :value="project.id"
+            :label="project.name"
+          /> </ElSelect
+      ></label>
       <template v-if="selected"
-        ><label>项目名称<input v-model="name" maxlength="80" /></label>
+        ><label>项目名称<ElInput v-model="name" maxlength="80" /></label>
         <div class="actions">
-          <button :disabled="busy" @click="operate('rename')">保存名称</button
-          ><button :disabled="busy" @click="operate('inspect')">检查项目</button
-          ><button :disabled="busy" @click="operate('install')">安装锁定依赖</button
-          ><button :disabled="busy" @click="operate('validate')">校验项目</button
-          ><button :disabled="busy || status.status === 'running'" @click="startProject">使用此项目托管联机对战</button
-          ><button :disabled="busy" @click="operate('forget')">移出列表</button>
+          <ElButton :disabled="busy" @click="operate('rename')">保存名称</ElButton
+          ><ElButton :disabled="busy" @click="operate('inspect')">检查项目</ElButton
+          ><ElButton :disabled="busy" @click="operate('install')">安装锁定依赖</ElButton
+          ><ElButton :disabled="busy" @click="operate('validate')">校验项目</ElButton
+          ><ElButton :disabled="busy || status.status === 'running'" @click="startProject"
+            >使用此项目托管联机对战</ElButton
+          ><ElButton :disabled="busy" @click="operate('forget')">移出列表</ElButton>
         </div>
-        <label><input v-model="offline" type="checkbox" />仅离线安装</label
-        ><label><input v-model="trusted" type="checkbox" />我信任此项目的代码及依赖，允许其在本机运行</label
-        ><button :disabled="busy || !trusted" @click="operate('approve')">准入此项目</button
-        ><label><input v-model="includeLocal" type="checkbox" />导出时包含有权再分发的本地 tgz</label>
+        <ElCheckbox v-model="offline">仅离线安装</ElCheckbox
+        ><ElCheckbox v-model="trusted">我信任此项目的代码及依赖，允许其在本机运行</ElCheckbox
+        ><ElButton :disabled="busy || !trusted" @click="operate('approve')">准入此项目</ElButton
+        ><ElCheckbox v-model="includeLocal">导出时包含有权再分发的本地 tgz</ElCheckbox>
         <div class="actions">
-          <button :disabled="busy" @click="operate('export')">导出到新目录</button
-          ><button :disabled="busy" @click="operate('verify')">验证导出项目</button>
+          <ElButton :disabled="busy" @click="operate('export')">导出到新目录</ElButton
+          ><ElButton :disabled="busy" @click="operate('verify')">验证导出项目</ElButton>
         </div></template
       >
     </details>
@@ -159,22 +165,6 @@ p {
   flex-wrap: wrap;
   gap: 10px;
   margin: 14px 0;
-}
-button,
-input,
-select {
-  font: inherit;
-  border: 1px solid #bcc7d4;
-  border-radius: 5px;
-  background: white;
-  padding: 8px 10px;
-}
-button {
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 label {
   display: flex;

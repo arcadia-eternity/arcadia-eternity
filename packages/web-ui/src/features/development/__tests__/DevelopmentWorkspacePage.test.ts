@@ -1,3 +1,4 @@
+import { ElOption } from 'element-plus'
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -70,7 +71,7 @@ describe('development workspace page', () => {
     vi.stubGlobal('fetch', fetch)
     const wrapper = mountPage()
     await load(wrapper)
-    await wrapper.get('[data-testid="development-record"]').setValue('pet')
+    await wrapper.getComponent('[data-testid="development-record"]').setValue('pet')
     await wrapper.get('[data-testid="development-name"]').setValue('After')
     await wrapper.get('[data-testid="development-save"]').trigger('click')
     await flushPromises()
@@ -101,7 +102,7 @@ describe('development workspace page', () => {
     vi.stubGlobal('fetch', fetch)
     const wrapper = mountPage()
     await load(wrapper)
-    await wrapper.get('[data-testid="development-record"]').setValue('pet')
+    await wrapper.getComponent('[data-testid="development-record"]').setValue('pet')
     await wrapper.get('[data-testid="development-name"]').setValue('Unsaved')
     await wrapper.get('[data-testid="development-save"]').trigger('click')
     await flushPromises()
@@ -116,7 +117,7 @@ describe('development workspace page', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(bad)))
     const wrapper = mountPage()
     await load(wrapper)
-    await wrapper.get('[data-testid="development-record"]').setValue('pet')
+    await wrapper.getComponent('[data-testid="development-record"]').setValue('pet')
     expect(wrapper.text()).toContain('baseStats 不是对象')
     expect(wrapper.get('[data-testid="development-editor"] fieldset').attributes('disabled')).toBeDefined()
     wrapper.unmount()
@@ -131,7 +132,7 @@ describe('development workspace page', () => {
       .findAll('button')
       .find(button => button.text().startsWith('技能（'))!
       .trigger('click')
-    await wrapper.get('[data-testid="development-record"]').setValue('attack')
+    await wrapper.getComponent('[data-testid="development-record"]').setValue('attack')
     await wrapper.get('[data-testid="development-effect"]').setValue('effect')
     await wrapper.get('[data-testid="development-effect-use-id"]').setValue('new-use')
     await wrapper
@@ -169,9 +170,9 @@ describe('development workspace page', () => {
     await flushPromises()
     await wrapper.get('[data-testid="development-reference-environment"]').setValue(id)
     await flushPromises()
-    await wrapper.get('[data-testid="development-record"]').setValue('pet')
+    await wrapper.getComponent('[data-testid="development-record"]').setValue('pet')
     const add = async (selector: string, projectId: string, id: string, label: string) => {
-      await wrapper.get(selector).setValue(JSON.stringify([projectId, id]))
+      await wrapper.getComponent(selector).setValue(JSON.stringify([projectId, id]))
       await wrapper
         .findAll('button')
         .find(button => button.text() === label)!
@@ -235,9 +236,21 @@ describe('development workspace page', () => {
     await flushPromises()
     finishFirst(response({ species: [], skills: [publicSkill('other:old')], marks: [] }))
     await flushPromises()
-    await wrapper.get('[data-testid="development-record"]').setValue('pet')
-    expect(wrapper.get('[data-testid="development-skill-reference"]').text()).toContain('new')
-    expect(wrapper.get('[data-testid="development-skill-reference"]').text()).not.toContain('old')
+    await wrapper.getComponent('[data-testid="development-record"]').setValue('pet')
+    expect(
+      wrapper
+        .getComponent('[data-testid="development-skill-reference"]')
+        .findAllComponents(ElOption)
+        .map(option => option.props('label'))
+        .join(' '),
+    ).toContain('new')
+    expect(
+      wrapper
+        .getComponent('[data-testid="development-skill-reference"]')
+        .findAllComponents(ElOption)
+        .map(option => option.props('label'))
+        .join(' '),
+    ).not.toContain('old')
     wrapper.unmount()
   })
 
@@ -246,7 +259,7 @@ describe('development workspace page', () => {
     vi.stubGlobal('fetch', fetch)
     const wrapper = mountPage()
     await load(wrapper)
-    await wrapper.get('[data-testid="development-record"]').setValue('pet')
+    await wrapper.getComponent('[data-testid="development-record"]').setValue('pet')
     await wrapper.get('[data-testid="development-name"]').setValue('Unsaved')
     state.serverUrl = 'http://127.0.0.1:8103'
     await flushPromises()

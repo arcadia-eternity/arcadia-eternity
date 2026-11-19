@@ -11,7 +11,7 @@ export class BrowserProfileStorage implements ProfileStorage {
       const request = (this.factory ?? indexedDB).open(this.name, 1)
       request.onupgradeneeded = () => request.result.createObjectStore('profile')
       request.onerror = () => reject(storageError(request.error))
-      request.onblocked = () => reject(new ProfileError('PROFILE_BUSY'))
+      request.onblocked = () => reject(new ProfileError('PROFILE_BUSY', '请关闭其他使用个人资料的标签页，再重新读取。'))
       request.onsuccess = () => resolve(request.result)
     })
   }

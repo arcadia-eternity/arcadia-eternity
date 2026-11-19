@@ -18,7 +18,14 @@ export class FileProfileStorage implements ProfileStorage {
   constructor(readonly directory: string) {}
   async acquireOwner() {
     if (this.closing) throw new ProfileError('STORAGE_CLOSED')
-    this.ownerRelease ??= await this.acquire()
+    if (this.ownerRelease) return
+    try {
+      this.ownerRelease = await this.acquire()
+    } catch (error) {
+      if (!(error instanceof ProfileError) || error.code !== 'PROFILE_BUSY') throw error
+      await this.unlock()
+      this.ownerRelease = await this.acquire()
+    }
   }
   async close() {
     this.closing = true
@@ -184,6 +191,9 @@ export class FileProfileStorage implements ProfileStorage {
         return
       }
     }
-    throw new ProfileError('PROFILE_BUSY', '资料仍被其他进程占用')
+    throw new ProfileError(
+      'PROFILE_BUSY',
+      '个人资料正由另一个进程使用。请先关闭占用资料的客户端或命令行工具，再重新读取。',
+    )
   }
 }

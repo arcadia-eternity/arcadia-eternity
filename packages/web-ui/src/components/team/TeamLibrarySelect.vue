@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElSelect, ElOption } from 'element-plus'
 import type { TeamLibraryDelegate } from './library'
 const props = defineProps<{ delegate: TeamLibraryDelegate; label: string; disabled?: boolean }>()
 const delegate = props.delegate
@@ -6,24 +7,20 @@ const delegate = props.delegate
 <template>
   <label class="team-library-select"
     >{{ label }}
-    <select v-model="delegate.selected.value" :aria-label="label" :disabled="disabled">
-      <option v-for="entry in delegate.entries.value" :key="entry.id" :value="entry.id">
-        {{ entry.name }} · {{ entry.size }} 只
-      </option>
-    </select>
+    <ElSelect filterable v-model="delegate.selected.value" :aria-label="label" :disabled="disabled">
+      <ElOption
+        v-for="entry in delegate.entries.value"
+        :key="entry.id"
+        :value="entry.id"
+        :label="entry.name + ' · ' + entry.size + ' 只'"
+      />
+    </ElSelect>
   </label>
 </template>
 <style scoped>
 .team-library-select {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-select {
-  border: 1px solid #cbd5e1;
-  padding: 8px;
-  border-radius: 6px;
-  background: white;
-  color: #243042;
+  display: grid;
+  gap: 4px;
+  min-width: min(100%, 12rem);
 }
 </style>

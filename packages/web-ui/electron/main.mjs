@@ -1175,10 +1175,8 @@ function setupIpcHandlers() {
   })
 
   handle('desktop:relaunch', async () => {
-    await localBattleHost.stop()
-    await stopLocalServer()
-    app.relaunch()
-    app.exit(0)
+    relaunchAfterQuit = true
+    app.quit()
   })
 }
 
@@ -1234,12 +1232,17 @@ app.on('window-all-closed', () => {
 
 let stoppingForQuit
 let stoppedForQuit = false
+let relaunchAfterQuit = false
 app.on('before-quit', event => {
   if (stoppedForQuit) return
   event.preventDefault()
-  if (!stoppingForQuit && [...windowsWithTeamDrafts].some(window => !confirmDraftExit(window))) return
+  if (!stoppingForQuit && [...windowsWithTeamDrafts].some(window => !confirmDraftExit(window))) {
+    relaunchAfterQuit = false
+    return
+  }
   stoppingForQuit ??= (async () => {
     if (!(await remotePlay.prepareQuit())) {
+      relaunchAfterQuit = false
       stoppingForQuit = undefined
       return
     }
@@ -1268,6 +1271,7 @@ app.on('before-quit', event => {
       },
     )
     stoppedForQuit = true
+    if (relaunchAfterQuit) app.relaunch()
     app.quit()
   })()
 })

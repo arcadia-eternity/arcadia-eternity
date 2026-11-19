@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElInput, ElSelect, ElOption } from 'element-plus'
 import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import { computed, ref } from 'vue'
 import { Element } from '@arcadia-eternity/const'
@@ -30,7 +31,8 @@ const emit = defineEmits<{
   create: [type: string, slot: string]
 }>()
 const visible = (section: string) => !props.section || props.section === 'all' || props.section === section
-const locked = (path: string) => props.readOnly || sharedAt(props.sharedFields ?? [], path.split('.'))
+const locked = (path: string) =>
+  props.readOnly || !!problem.value || sharedAt(props.sharedFields ?? [], path.split('.'))
 const get = (path: string) => atField(props.record, path.split('.'))
 const text = (path: string) => {
   const value = get(path)
@@ -244,47 +246,49 @@ const media = computed(() =>
     <template v-if="visible('base')">
       <div class="fields">
         <label v-if="!hideIdentity"
-          >名称<input
-            :disabled="locked('name')"
-            :value="text('name')"
-            @input="change('name', ($event.target as HTMLInputElement).value)"
+          >名称<ElInput :disabled="locked('name')" :model-value="text('name')" @input="change('name', $event)"
         /></label>
         <label v-if="kind !== 'marks'"
           >属性<span class="element-select">
             <ElementIcon v-if="isElement(record.element)" :element="record.element" :size="24" aria-hidden="true" />
-            <select
+            <ElSelect
+              filterable
               aria-label="属性"
               :disabled="locked('element')"
-              :value="text('element')"
-              @change="change('element', ($event.target as HTMLSelectElement).value)"
+              :model-value="text('element')"
+              @update:model-value="change('element', $event)"
             >
-              <option v-for="element in Object.values(Element)" :key="element" :value="element">
-                {{ elementName(element) }}
-              </option>
-            </select></span
-          ></label
-        >
+              <ElOption
+                v-for="element in Object.values(Element)"
+                :key="element"
+                :value="element"
+                :label="elementName(element)"
+              /> </ElSelect></span
+        ></label>
         <label v-if="kind === 'skills'"
-          >类别<select
+          >类别<ElSelect
             aria-label="类别"
             :disabled="locked('category')"
-            :value="text('category')"
-            @change="change('category', ($event.target as HTMLSelectElement).value)"
+            :model-value="text('category')"
+            @update:model-value="change('category', $event)"
           >
-            <option v-for="(label, category) in skillCategories" :key="category" :value="category">
-              {{ label }}
-            </option>
-          </select></label
-        >
+            <ElOption
+              v-for="(label, category) in skillCategories"
+              :key="category"
+              :value="category"
+              :label="label"
+            /> </ElSelect
+        ></label>
         <label
-          >标签<input
-            :value="list('tags').join(', ')"
+          >标签<ElInput
+            :model-value="list('tags').join(', ')"
+            :model-modifiers="{ lazy: true }"
             :disabled="locked('tags')"
             placeholder="用逗号分隔"
             @change="
               change(
                 'tags',
-                ($event.target as HTMLInputElement).value
+                $event
                   .split(/[,，]/)
                   .map(tag => tag.trim())
                   .filter(Boolean),
@@ -385,16 +389,15 @@ const media = computed(() =>
     <template v-if="visible('media')">
       <h3>形象与声音</h3>
       <label v-if="kind === 'species'"
-        >战斗表现<select
+        >战斗表现<ElSelect
           :disabled="locked('battle.renderer')"
-          :value="text('battle.renderer')"
-          @change="change('battle.renderer', ($event.target as HTMLSelectElement).value)"
+          :model-value="text('battle.renderer')"
+          @update:model-value="change('battle.renderer', $event)"
         >
-          <option value="">请选择</option>
-          <option value="image">图片</option>
-          <option value="seer2-swf">赛尔号 2 SWF</option>
-        </select></label
-      >
+          <ElOption value="" label="请选择" />
+          <ElOption value="image" label="图片" />
+          <ElOption value="seer2-swf" label="赛尔号 2 SWF" /> </ElSelect
+      ></label>
       <section v-for="(label, key) in media" :key="key" class="media-slot">
         <header>
           <strong>{{ label }}</strong>

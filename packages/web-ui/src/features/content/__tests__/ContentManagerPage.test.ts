@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { DOMWrapper, flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import ContentManagerPage from '../ContentPackagesPanel.vue'
 import type { ContentLibrarySnapshot, InstalledContentPackage, ContentPackageAction } from '@/types/contentPackages'
@@ -63,7 +63,7 @@ const pkg: InstalledContentPackage = {
 }
 let pages: ReturnType<typeof mount>[] = []
 const open = () => {
-  const page = mount(ContentManagerPage)
+  const page = mount(ContentManagerPage, { attachTo: document.body })
   pages.push(page)
   return page
 }
@@ -108,7 +108,7 @@ it('shows only the current room packages in the browser and never changes saved 
   const page = open()
   await flushPromises()
   await pickPackage(page)
-  await button(page, '队伍影响').trigger('click')
+  await page.get('[role=tab][id$=impact]').trigger('click')
   expect(page.text()).toContain('内容引用齐全')
   expect(page.text()).toContain('收藏队伍')
   expect(page.get('.scope').text()).toBe('只读')
@@ -132,7 +132,7 @@ it('shows the paired server default package before connecting or joining a room'
     expect.any(Function),
     expect.any(AbortSignal),
   )
-  await page.get('select').setValue(customEnvironment.id)
+  page.getComponent({ name: 'ElSelectV2' }).vm.$emit('update:modelValue', customEnvironment.id)
   await flushPromises()
   expect(page.get('.package-select').text()).toContain('@test/custom')
   expect(page.findAll('.package-row')).toHaveLength(1)
@@ -194,7 +194,7 @@ it('discards stale room content when the connection changes', async () => {
   resolveOld(content)
   await flushPromises()
   await pickPackage(page)
-  await button(page, '队伍影响').trigger('click')
+  await page.get('[role=tab][id$=impact]').trigger('click')
   expect(page.text()).not.toContain('内容引用齐全')
   expect(page.text()).toContain('暂无队伍引用')
 })
@@ -204,7 +204,7 @@ it('does not claim teams are compatible when room content cannot be read', async
   const page = open()
   await flushPromises()
   await pickPackage(page)
-  await button(page, '队伍影响').trigger('click')
+  await page.get('[role=tab][id$=impact]').trigger('click')
   expect(page.text()).toContain('暂时无法检查队伍引用')
   expect(page.text()).not.toContain('暂无队伍引用')
 })
@@ -223,11 +223,17 @@ it('installs into the library and shows task management without enabling', async
   const page = open()
   await flushPromises()
   await button(page, '添加内容包').trigger('click')
-  expect(page.get('[role=dialog] h2').text()).toBe('安装内容包')
-  await button(page, '安装本地 .tgz 文件').trigger('click')
+  await flushPromises()
+  const dialogs = new DOMWrapper(document.body)
+  const installDialog = dialogs.get('[role=dialog][aria-label="安装内容包"]')
+  expect(installDialog.isVisible()).toBe(true)
+  await installDialog
+    .findAll('button')
+    .find(item => item.text() === '安装本地 .tgz 文件')!
+    .trigger('click')
   await flushPromises()
   expect(install).toHaveBeenCalledWith({ offline: false })
   expect(action).not.toHaveBeenCalled()
-  expect(page.get('[role=dialog]').text()).toContain('下载与安装')
+  expect(dialogs.get('[role=dialog][aria-label="下载与安装"]').isVisible()).toBe(true)
   expect(page.find('input[aria-label="启用 创作内容"]').exists()).toBe(false)
 })
