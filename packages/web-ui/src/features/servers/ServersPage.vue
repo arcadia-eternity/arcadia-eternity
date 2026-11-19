@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { flushProfile, profileInitialized } from '@/services/profile'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { ElMessageBox, ElInput, ElSelect, ElOption, ElButton, ElInputNumber } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
@@ -14,11 +14,9 @@ import type { LocalServerRequest } from '@/types/localServer'
 import type { ManagedServer } from '@/types/management'
 import { isDesktop, isStaticMode } from '@/utils/env'
 import './serverPages.css'
-const route = useRoute()
 const router = useRouter()
 const client = useBattleClientStore()
 const local = useLocalServerStore()
-const showForm = ref(route.query.host === '1')
 const address = ref('')
 const error = ref('')
 const notice = ref('')
@@ -99,21 +97,14 @@ async function operate(input: LocalServerRequest) {
   error.value = ''
   notice.value = ''
   try {
-    const result = await local.execute(input)
-    if (result?.host.status === 'running') showForm.value = false
+    await local.execute(input)
     await refresh()
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '操作失败，请重试'
   }
 }
 async function start() {
-  await operate({
-    action: 'start',
-    configuration: {
-      ...configuration.value,
-      content: local.snapshot.configured ? 'saved' : configuration.value.content,
-    },
-  })
+  await operate({ action: 'start', configuration: { ...configuration.value } })
 }
 async function editSavedSettings() {
   await operate({ action: 'recover' })
@@ -279,27 +270,18 @@ async function copy(value: string) {
       </template>
       <template v-else>
         <p v-if="host.status === 'failed'" role="alert" class="server-error">{{ host.message }}</p>
-        <div v-if="!showForm || snapshot.configured" class="server-actions">
-          <ElButton type="primary" @click="snapshot.configured ? operate({ action: 'start' }) : (showForm = true)">
-            {{ snapshot.configured ? '使用已保存配置启动' : '在本机开服' }}
-          </ElButton>
-          <ElButton v-if="snapshot.configured" @click="editSavedSettings">修改已保存设置</ElButton>
+        <div v-if="snapshot.configured" class="server-actions">
+          <ElButton type="primary" @click="operate({ action: 'start' })"> 使用已保存配置启动 </ElButton>
+          <ElButton @click="editSavedSettings">修改已保存设置</ElButton>
           <ElButton
-            v-if="snapshot.configured && (host.status === 'failed' || snapshot.phase === 'failed')"
+            v-if="host.status === 'failed' || snapshot.phase === 'failed'"
             @click="operate({ action: 'recover' })"
           >
             仅本机启动以修复
           </ElButton>
         </div>
-        <form v-if="showForm && !snapshot.configured" class="server-stack" @submit.prevent="start">
-          <div class="server-grid">
-            <label>服务器名称<ElInput v-model="configuration.name" required maxlength="80" /></label>
-            <label
-              >玩法<ElSelect aria-label="玩法" v-model="configuration.content">
-                <ElOption value="official" label="官方基础玩法" />
-                <ElOption value="current" label="当前本地玩法（复用已准备内容）" /> </ElSelect
-            ></label>
-          </div>
+        <form v-else class="server-stack" @submit.prevent="start">
+          <label>服务器名称<ElInput v-model="configuration.name" required maxlength="80" /></label>
           <label
             >谁可以连接<ElSelect aria-label="谁可以连接" v-model="configuration.scope">
               <ElOption value="lan" label="同一局域网的朋友" />
@@ -327,9 +309,8 @@ async function copy(value: string) {
             /></label>
           </details>
           <div class="server-actions">
-            <ElButton type="primary" native-type="submit" :loading="hostBusy">启动服务器</ElButton
-            ><ElButton native-type="button" @click="showForm = false">取消</ElButton
-            ><RouterLink class="server-link" to="/environments?target=local">管理环境</RouterLink>
+            <ElButton type="primary" native-type="submit" :loading="hostBusy">启动服务器</ElButton>
+            <RouterLink class="server-link" to="/environments?target=local">管理环境</RouterLink>
           </div>
         </form>
       </template>

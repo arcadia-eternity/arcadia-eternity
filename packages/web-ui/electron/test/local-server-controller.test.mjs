@@ -2,8 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { LocalServerController, launchConfiguration } from '../local-server-controller.mjs'
 
-const configuration = { name: '好友服', content: 'official', scope: 'lan', port: 8102 }
-function fixture({ saved = false, prepare, start, stop, wait, acquireCurrent, startProject } = {}) {
+const configuration = { name: '好友服', scope: 'lan', port: 8102 }
+function fixture({ saved = false, prepare, start, stop, wait, startProject } = {}) {
   let state = { status: 'idle' }
   const calls = []
   const lease = { directory: '/owned/official', release: async () => calls.push('release') }
@@ -31,7 +31,6 @@ function fixture({ saved = false, prepare, start, stop, wait, acquireCurrent, st
       await prepare?.()
       return lease
     },
-    acquireProject: acquireCurrent ?? (async () => ({ ...lease, directory: '/owned/local-play' })),
   }
   const controller = new LocalServerController({
     host,
@@ -42,7 +41,7 @@ function fixture({ saved = false, prepare, start, stop, wait, acquireCurrent, st
   })
   return { controller, calls, host }
 }
-test('first launch prepares official content independently and sends settings before starting', async () => {
+test('first launch publishes the client library and keeps the official server default', async () => {
   const { controller, calls } = fixture()
   const result = await controller.request({ action: 'start', configuration })
   assert.equal(result.host.status, 'running')
@@ -51,15 +50,18 @@ test('first launch prepares official content independently and sends settings be
     [
       'start',
       '/owned/official',
-      { launch: { name: '好友服', host: '0.0.0.0', port: 8102, publicOrigin: null, officialContent: true } },
+      {
+        publishClientEnvironments: true,
+        launch: { name: '好友服', host: '0.0.0.0', port: 8102, publicOrigin: null, officialContent: true },
+      },
     ],
     'release',
   ])
 })
 test('saved hosting ignores later local-play selections and preserves database settings', async () => {
   const { controller, calls } = fixture({ saved: true })
-  await controller.request({ action: 'start' })
-  assert.deepEqual(calls, [['start', '/owned/saved', {}]])
+  await controller.request({ action: 'start', configuration })
+  assert.deepEqual(calls, [['start', '/owned/saved', { publishClientEnvironments: true }]])
   await controller.request({ action: 'start' })
   assert.equal(calls.length, 1)
 })
@@ -158,16 +160,6 @@ test('rejects directory/command injection and malformed network settings', async
   await assert.rejects(controller.request({ action: 'restart', configuration }))
 })
 
-test('unprepared current content never silently falls back to official content', async () => {
-  const { controller, calls } = fixture({
-    acquireCurrent: async () => {
-      throw Object.assign(new Error('请选择环境'), { code: 'CONTENT_NOT_READY' })
-    },
-  })
-  const result = await controller.request({ action: 'start', configuration: { ...configuration, content: 'current' } })
-  assert.equal(result.error.code, 'CONTENT_NOT_READY')
-  assert.deepEqual(calls, [])
-})
 test('registered-project hosting shares the same lifecycle lock', async () => {
   let release
   const waiting = new Promise(resolve => {

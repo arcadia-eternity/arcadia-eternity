@@ -196,7 +196,6 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     await page.goto('arcadia-client://app/servers')
     if (baseline) await page.getByRole('button', { name: '使用已保存配置启动', exact: true }).click()
     else {
-      await page.getByRole('button', { name: '在本机开服', exact: true }).click()
       await page.getByRole('combobox', { name: '谁可以连接' }).press('Enter')
       await page.getByRole('option', { name: '仅我自己（测试）' }).click()
       await page.getByRole('button', { name: '启动服务器', exact: true }).click()

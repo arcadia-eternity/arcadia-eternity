@@ -41,7 +41,7 @@ import {
   type ServerSettingsConstraints,
 } from './settings'
 import { OperationService, type Operation, type OperationContext } from './operations'
-import { ServerEnvironmentRegistry, type EnvironmentAdmissionRules } from '../environments'
+import { ServerEnvironmentRegistry, type EnvironmentAdmissionRules, type EnvironmentPublication } from '../environments'
 import type { RoomRegistry } from '../rooms'
 
 export type WorkspaceInstallation = EnvironmentInstallation
@@ -114,6 +114,10 @@ export interface ManagementOptions {
   runtimeSettings?: ServerSettings
   listenAddress?: () => { host: string; port: number } | undefined
   settingsConstraints?: ServerSettingsConstraints
+  clientEnvironments?: {
+    listClientEnvironmentIds(): Promise<string[]>
+    acquireClientEnvironment: ContentWorkspace['acquire']
+  }
   /** Host-registered environment sources. Never populated from remote request paths. */
   resolveProject?: (environmentId: string) => Promise<string>
   prepareEnvironment?: (input: PrepareEnvironmentInput, validator: StaticPreparer) => Promise<EnvironmentInstallation>
@@ -228,6 +232,7 @@ export class ManagementService {
   private collector?: ReturnType<typeof setInterval>
   private lastTransferCleanup = 0
   readonly bootId = randomUUID()
+  private readonly clientPublications: EnvironmentPublication[] = []
   private readonly activeRuntimes = new Map<string, string>()
   private readonly runtimes = new Map<
     string,
@@ -342,6 +347,7 @@ export class ManagementService {
       })
     else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
     await this.auth.ready()
+    await this.loadClientEnvironments()
     await this.reconcile()
     this.collector = setInterval(() => {
       void this.exclusive(async () => {
@@ -554,9 +560,25 @@ export class ManagementService {
     const existing = this.runtimes.get(this.activeRuntimes.get(bindingId) ?? '')
     if (!force && existing?.installationKey === instanceKey(version)) return existing.runtimeId
     const lease = await this.options.workspace.acquire(installationId, `server:${this.options.serverId}:${this.bootId}`)
-    let candidateId: string | undefined
     try {
       if (lease.workspaceId !== this.options.workspace.workspaceId) fail('WORKSPACE_MISMATCH')
+      const { runtimeId, rules } = await this.prepareRuntime(lease, executionPolicy)
+      this.runtimes.set(runtimeId, {
+        runtimeId,
+        installationKey: instanceKey(lease),
+        environmentName: lease.document.name,
+        rules,
+        executionPolicy,
+      })
+      this.activeRuntimes.set(bindingId, runtimeId)
+      return runtimeId
+    } finally {
+      await lease.release()
+    }
+  }
+  private async prepareRuntime(lease: EnvironmentInstallation, executionPolicy: 'server' | 'peer') {
+    let candidateId: string | undefined
+    try {
       assertEnvironmentRequirements(lease.document.requires)
       const descriptor = await this.options.environments.prepareNpm(
         lease.directory,
@@ -576,29 +598,38 @@ export class ManagementService {
         fail('THIRD_PARTY_EXECUTION_FORBIDDEN', 403)
       }
       const { rules } = this.options.environments.prepareRules(descriptor.id, lease.document.rules)
-      await lease.release()
-      this.runtimes.set(descriptor.id, {
-        runtimeId: descriptor.id,
-        installationKey: instanceKey(lease),
-        environmentName: lease.document.name,
-        rules,
-        executionPolicy,
-      })
-      this.activeRuntimes.set(bindingId, descriptor.id)
-      return descriptor.id
+      return { runtimeId: descriptor.id, rules }
     } catch (error) {
+      if (candidateId) await this.options.environments.retire(candidateId)
+      throw error
+    }
+  }
+  private async loadClientEnvironments() {
+    const library = this.options.clientEnvironments
+    if (!library) return
+    for (const id of await library.listClientEnvironmentIds()) {
+      const lease = await library.acquireClientEnvironment(id, 'local-server')
       try {
-        if (candidateId) await this.options.environments.retire(candidateId)
+        const { runtimeId, rules } = await this.prepareRuntime(lease, 'server')
+        this.clientPublications.push({
+          runtimeId,
+          environmentId: lease.environmentId,
+          environmentName: lease.document.name,
+          rules,
+          executionPolicy: 'server',
+          enabled: true,
+          public: true,
+          matchmaking: false,
+        })
       } finally {
         await lease.release()
       }
-      throw error
     }
   }
   private async applyPublication() {
     const rows = await this.bindings()
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
-    const entries = []
+    const entries = [...this.clientPublications]
     let defaultRuntimeId: string | undefined
     for (const row of rows) {
       const binding = row.value

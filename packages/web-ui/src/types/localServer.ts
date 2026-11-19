@@ -5,7 +5,6 @@ export interface LocalServerConfiguration {
   scope: 'local' | 'lan' | 'public'
   port: number
   publicOrigin?: string
-  content: 'official' | 'current' | 'saved'
 }
 export type LocalServerRequest =
   | { action: 'status' | 'restart' | 'recover' }

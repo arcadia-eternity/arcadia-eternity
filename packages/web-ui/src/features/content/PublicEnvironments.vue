@@ -16,7 +16,7 @@ const loading = ref(false)
 const initialized = ref(false)
 const error = ref('')
 const name = (environment: ServerEnvironmentDescriptor) =>
-  environment.isDefault ? '默认环境' : `环境 ${environment.id.slice(0, 8)}`
+  environment.environmentName || (environment.isDefault ? '默认环境' : `环境 ${environment.id.slice(0, 8)}`)
 let controller: AbortController | undefined
 async function refresh() {
   controller?.abort()

@@ -8,7 +8,7 @@ const safeInstallation = version => {
   return metadata
 }
 /** The local library owns persistent environment npm projects without a server process.
- * Published servers import their own copy; no server binding points into this workspace.
+ * Local hosting borrows read leases for its room catalog. Persistent server bindings live in the management workspace.
  */
 export class LocalEnvironments {
   #opening

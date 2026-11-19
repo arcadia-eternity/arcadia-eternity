@@ -242,7 +242,7 @@ export class LocalBattleHost {
     if (!saved?.projectDirectory) throw problem('PROJECT_NOT_READY', '请先选择本机托管的内容或服务器项目')
     return this.start(saved.projectDirectory, { localRecovery: true })
   }
-  async start(directory, { localRecovery = false, launch } = {}) {
+  async start(directory, { localRecovery = false, launch, publishClientEnvironments = false } = {}) {
     if (this.#child || ['starting', 'stopping', 'running'].includes(this.#state.status))
       throw problem('HOST_BUSY', '本机对战服务已经启动或正在启动')
     const generation = ++this.#generation
@@ -296,6 +296,7 @@ export class LocalBattleHost {
           ...(managedNetwork
             ? ['--desktop-managed-network', '--desktop-origin', this.rendererOrigin]
             : ['--host', '127.0.0.1', '--port', '0', '--cors-origin', this.rendererOrigin]),
+          ...(publishClientEnvironments ? ['--desktop-client-environments'] : []),
           ...(managedNetwork && localRecovery
             ? ['--host', '127.0.0.1', '--port', '0', '--cors-origin', this.rendererOrigin]
             : []),
@@ -317,7 +318,7 @@ export class LocalBattleHost {
         },
       )
       spawnedChild = child
-      const detachWorkspace = this.attachWorkspace?.(child)
+      const detachWorkspace = this.attachWorkspace?.(child, publishClientEnvironments)
       this.#child = child
       this.#projectDirectory = projectDirectory
       const done = new Promise(resolve => {
@@ -382,6 +383,13 @@ export class LocalBattleHost {
           )
         }
         const onListener = message => {
+          // Large libraries can take several startup intervals. Bound idle time per environment.
+          if (
+            publishClientEnvironments &&
+            message?.type === 'arcadia.desktop.workspace' &&
+            message.method === 'acquireClientEnvironment'
+          )
+            timeout.refresh()
           if (managedNetwork && message?.type === 'arcadia.desktop.listener') check(message)
         }
         child.on('message', onListener)

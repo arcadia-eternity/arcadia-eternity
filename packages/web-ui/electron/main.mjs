@@ -51,7 +51,8 @@ const localBattleHost = new LocalBattleHost({
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
   stateDirectory: path.join(app.getPath('userData'), 'local-server'),
   workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
-  attachWorkspace: child => getManagementWorkspaceOwner().attach(child),
+  attachWorkspace: (child, publish) =>
+    getManagementWorkspaceOwner().attach(child, publish ? () => getLocalEnvironments().ready() : undefined),
   ...(app.isPackaged
     ? {
         npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
@@ -63,7 +64,6 @@ const localBattleHost = new LocalBattleHost({
 const localServerController = new LocalServerController({
   host: localBattleHost,
   library: () => ({
-    acquireProject: () => getLocalEnvironments().acquireProject(),
     acquireDefaultProject: () => getContentLibrary().acquireDefaultProject(),
   }),
   startProject: id => getContentProjects().start(id),
@@ -340,8 +340,7 @@ function getLocalEnvironments() {
       const { ContentWorkspace } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
-      // Server publication always imports a separate copy, so only local runtime
-      // leases can retain versions in this independently owned workspace.
+      // Local play and hosting borrow read leases. Persistent server bindings belong to the management workspace.
       return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
         retentions: { list: async () => [] },
       })

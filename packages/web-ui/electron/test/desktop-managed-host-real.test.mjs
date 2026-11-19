@@ -8,6 +8,7 @@ import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/pro
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { validateWorkspaceProject } from '@arcadia-eternity/server'
 import { ContentLibrary } from '../content-library.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { LocalServerController } from '../local-server-controller.mjs'
@@ -50,12 +51,12 @@ test(
       rendererOrigin: 'http://localhost:5173',
       stateDirectory: join(root, 'server'),
       workspaceRoot: join(root, 'library'),
-      attachWorkspace: child => {
+      attachWorkspace: (child, publishClientEnvironments) => {
         child.on('message', message => {
           if (message?.type === 'arcadia.desktop.workspace.callback.result' && !message.ok)
             t.diagnostic(JSON.stringify(message.error))
         })
-        return owner.attach(child)
+        return owner.attach(child, publishClientEnvironments ? () => personal : undefined)
       },
       startupTimeoutMs: 90000,
       shutdownTimeoutMs: 5000,
@@ -67,7 +68,14 @@ test(
       run: (args, signal) => runContentCommand({ ...host, npmCacheDirectory: join(root, 'cache') }, args, signal),
     })
     const controller = new LocalServerController({ host, library: () => library })
-    owner = new DesktopWorkspaceOwner({ root: join(root, 'library'), library, openWorkspace: ContentWorkspace.open })
+    const personal = await ContentWorkspace.open(join(root, 'local-environments'), {
+      retentions: { list: async () => [] },
+    })
+    owner = new DesktopWorkspaceOwner({
+      root: join(root, 'library'),
+      library,
+      openWorkspace: ContentWorkspace.open,
+    })
     const request = async (method, path, body, headers) => {
       const response = await host.managementRequest({
         method,
@@ -212,6 +220,7 @@ test(
     } finally {
       await host.stop()
       await owner.close()
+      await personal.close()
       await library.close()
       await rm(root, { recursive: true, force: true })
       assert.equal(
@@ -230,9 +239,9 @@ test(
 )
 
 test(
-  'clean first launch prepares official content without a project picker or local-play selection',
+  'first launch and saved restart expose ready client environments alongside the managed default',
   {
-    timeout: 90000,
+    timeout: 180000,
     skip: process.env.ARCADIA_DESKTOP_REAL_HOST !== '1',
   },
   async () => {
@@ -247,7 +256,7 @@ test(
       rendererOrigin: 'http://localhost:5173',
       stateDirectory: join(root, 'server'),
       workspaceRoot: join(root, 'library'),
-      attachWorkspace: child => owner.attach(child),
+      attachWorkspace: (child, publish) => owner.attach(child, publish ? () => personal : undefined),
       startupTimeoutMs: 60000,
       shutdownTimeoutMs: 5000,
     })
@@ -257,13 +266,46 @@ test(
       withDefaultArchive: defaultArchive,
       run: (args, signal) => runContentCommand({ ...host, npmCacheDirectory: join(root, 'cache') }, args, signal),
     })
-    owner = new DesktopWorkspaceOwner({ root: join(root, 'library'), library, openWorkspace: ContentWorkspace.open })
+    const personal = await ContentWorkspace.open(join(root, 'local-environments'), {
+      retentions: { list: async () => [] },
+    })
+    owner = new DesktopWorkspaceOwner({
+      root: join(root, 'library'),
+      library,
+      openWorkspace: ContentWorkspace.open,
+    })
     const controller = new LocalServerController({ host, library: () => library })
     try {
       await owner.ready()
+      const lease = await library.acquireInitialEnvironment()
+      const template = {
+        schemaVersion: 2,
+        packages: Object.fromEntries(lease.packages.map(pkg => [pkg.name, pkg.version])),
+        sources: [],
+        requires: {},
+      }
+      const roomEnvironments = [
+        ['duel', '单宠房', 1],
+        ['doubles', '双宠房', 2],
+      ]
+      try {
+        for (const [id, name, maxSize] of roomEnvironments) {
+          await personal.prepareEnvironment(
+            {
+              environmentId: id,
+              document: { ...template, id, name, rules: { schemaVersion: 1, team: { maxSize } } },
+              expectedRevision: null,
+              projectDirectory: lease.directory,
+            },
+            validateWorkspaceProject,
+          )
+        }
+      } finally {
+        await lease.release()
+      }
       const launched = await controller.request({
         action: 'start',
-        configuration: { name: '官方玩法好友服', content: 'official', scope: 'local', port: 0 },
+        configuration: { name: '官方玩法好友服', scope: 'local', port: 0 },
       })
       assert.equal(launched.host.status, 'running', JSON.stringify(launched.error))
       const { environments } = await (await fetch(launched.host.url + '/api/v1/environments')).json()
@@ -271,6 +313,11 @@ test(
         environments.find(item => item.isDefault).packages.map(item => item.name),
         ['@arcadia-eternity/data-pack-base'],
       )
+      for (const [id, name, maxSize] of roomEnvironments) {
+        const published = environments.find(item => item.environmentId === id)
+        assert.equal(published?.environmentName, name)
+        assert.equal(published.rules.team.maxSize, maxSize)
+      }
       const homepage = await fetch(launched.host.url)
       assert.equal(homepage.status, 200)
       assert.match(await homepage.text(), /<html/)
@@ -297,7 +344,13 @@ test(
       await page
         .getByRole('button', { name: `已连接当前网页的服务器：${launched.host.url}，连接设置`, exact: true })
         .waitFor({ timeout: 30000 })
-      await page.getByRole('button', { name: '服务器', exact: true }).click()
+      await page.getByTestId('create-private-room-button').click()
+      await page.getByTestId('room-environment-select').click()
+      await page.getByRole('option', { name: '双宠房', exact: true }).waitFor()
+      await page.getByRole('option', { name: '单宠房', exact: true }).click()
+      await page.getByTestId('confirm-create-private-room-button').click()
+      await page.waitForURL(/\/room\/[^/?#]+/)
+      await page.goto(launched.host.url + '/servers')
       await page.getByRole('heading', { name: '当前网页的服务器', exact: true }).waitFor()
       assert.deepEqual(failures, [])
       if (process.env.ARCADIA_UX_SCREENSHOT)
@@ -321,15 +374,23 @@ test(
       const snapshot = await library.list()
       assert.equal(snapshot.activeIds, undefined)
       assert.ok(snapshot.packages.find(item => item.bundled))
-      await controller.request({ action: 'stop' })
+      await controller.request({ action: 'stop', force: true })
+      await personal.deleteDraft({
+        environmentId: 'duel',
+        expectedRevision: (await personal.getDraft('duel')).revision,
+      })
       const resumed = await controller.request({ action: 'start' })
       assert.equal(resumed.host.status, 'running', JSON.stringify(resumed.error))
       assert.equal(resumed.host.serverId, launched.host.serverId)
+      const refreshed = await (await fetch(resumed.host.url + '/api/v1/environments')).json()
+      assert.ok(refreshed.environments.some(item => item.environmentId === 'doubles'))
+      assert.ok(!refreshed.environments.some(item => item.environmentId === 'duel'))
     } finally {
       await browser?.close()
       controller.close()
       await host.stop()
       await owner.close()
+      await personal.close()
       await library.close()
       await rm(root, { recursive: true, force: true })
     }

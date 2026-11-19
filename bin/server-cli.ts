@@ -60,6 +60,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     .option('--server-id <id>', 'Stable identity (generated once when omitted)', process.env.SERVER_ID)
     .option('--data-dir <directory>', 'Persistent server data directory', process.env.ARCADIA_DATA_DIR)
     .option('--workspace-root <directory>', 'Content workspace root', process.env.ARCADIA_WORKSPACE_ROOT)
+    .option('--desktop-client-environments', 'Publish prepared environments from the desktop client library')
     .option('--desktop-project <directory>', 'Trusted desktop host initial content project')
     .option('--desktop-managed-network', 'Trusted desktop owner controls persistent listener settings')
     .option('--desktop-origin <origin>', 'Trusted desktop renderer origin')
@@ -114,6 +115,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       serverId?: string
       dataDir?: string
       workspaceRoot?: string
+      desktopClientEnvironments?: boolean
       desktopProject?: string
       desktopManagedNetwork?: boolean
       desktopOrigin?: string
@@ -175,6 +177,8 @@ export async function runServerCli(args: string[]): Promise<number> {
       !desktopControl
     )
       throw new Error('Desktop options require the private desktop host')
+    if (options.desktopClientEnvironments && !(desktopControl && options.desktopManagedNetwork))
+      throw new Error('Client environments require managed desktop hosting')
     if (!desktopControl && (options.npmProject?.length ?? 0) > 1)
       throw new Error(
         'Only one --npm-project can initialize a persistent server; publish additional environments through management',
@@ -302,9 +306,8 @@ export async function runServerCli(args: string[]): Promise<number> {
     const { persistentServerConfig } = await import('./server-config')
     const config = persistentServerConfig(options)
     const retentions = workspaceRetentions(storage, () => workspace!.workspaceId)
-    workspace = desktopControl
-      ? await createDesktopWorkspaceProxy({ retentions })
-      : await ContentWorkspace.open(config.workspaceRoot, { retentions })
+    const desktopWorkspace = desktopControl ? await createDesktopWorkspaceProxy({ retentions }) : undefined
+    workspace = desktopWorkspace ?? (await ContentWorkspace.open(config.workspaceRoot, { retentions }))
     if (!desktopControl) {
       let sources: ManagedProjectsOptions['sources']
       if (options.contentSources) {
@@ -359,6 +362,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         trustedProxyAddresses: process.env.MANAGEMENT_TRUSTED_PROXY_IPS?.split(',')
           .map(value => value.trim())
           .filter(Boolean),
+        clientEnvironments: options.desktopClientEnvironments ? desktopWorkspace : undefined,
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
         initialization: desktopControl
           ? options.desktopProject

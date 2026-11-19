@@ -8,7 +8,6 @@ export const useLocalServerStore = defineStore('localServer', () => {
     name: '我的服务器',
     scope: 'lan',
     port: 8102,
-    content: 'official',
   })
   const error = ref('')
   const pending = ref(false)
