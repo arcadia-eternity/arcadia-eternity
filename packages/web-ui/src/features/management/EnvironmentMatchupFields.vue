@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { ElCollapseItem, ElFormItem, ElInputNumber, ElSelect, ElOption, ElButton } from 'element-plus'
+import { ElCard, ElFormItem, ElInputNumber, ElSelect, ElOption, ElButton } from 'element-plus'
 import { environmentName } from '@/i18n/environment'
 import { computed, ref } from 'vue'
-import { resolveElementChart, type ElementDefinition, type MatchupTable } from '@arcadia-eternity/const'
+import {
+  elementMultiplier,
+  resolveElementChart,
+  type ElementDefinition,
+  type MatchupTable,
+} from '@arcadia-eternity/const'
 import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 
 const rules = defineModel<EnvironmentRules>({ required: true })
 const props = defineProps<{
-  previewPolicy?: EnvironmentRules['matchups']
+  resolved?: EnvironmentRules
   catalog?: { elements: ElementDefinition[]; matchupTables: MatchupTable[] }
 }>()
 const attack = ref('')
@@ -16,25 +21,26 @@ const input = ref<number | null>()
 const issue = ref('')
 const policy = computed(() => rules.value.matchups ?? {})
 const preview = computed(() => {
-  if (!props.catalog) return undefined
+  if (!props.catalog || !props.resolved) return undefined
   try {
-    return resolveElementChart(props.catalog, props.previewPolicy ?? policy.value)
-  } catch {
-    return undefined
+    return { chart: resolveElementChart(props.catalog, props.resolved.matchups) }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) }
   }
 })
+const chart = computed(() => preview.value?.chart)
 const cell = computed(() =>
   policy.value.adjustments?.find(cell => cell.attack === attack.value && cell.defense === defense.value),
 )
 const conflict = computed(() =>
-  preview.value?.conflicts.find(row => row.attack === attack.value && row.defense === defense.value),
+  chart.value?.conflicts.find(row => row.attack === attack.value && row.defense === defense.value),
 )
 const known = computed(
   () =>
     props.catalog?.elements.some(el => el.id === attack.value) &&
     props.catalog.elements.some(el => el.id === defense.value),
 )
-const sources = computed(() => preview.value?.sources.get(attack.value + '>' + defense.value))
+const sources = computed(() => chart.value?.sources.get(attack.value + '>' + defense.value))
 function setTable(table: string) {
   const next = { ...policy.value }
   if (table) next.table = table
@@ -69,16 +75,17 @@ function setCell(value?: number) {
 </script>
 
 <template>
-  <ElCollapseItem name="matchups" title="属性相克">
+  <ElCard shadow="never"
+    ><template #header><h4>属性相克</h4></template>
     <ElFormItem label="基础相克表"
       ><ElSelect
-        :model-value="policy.table"
+        :model-value="resolved?.matchups?.table ?? policy.table ?? chart?.tableId"
         filterable
-        clearable
+        :clearable="policy.table !== undefined"
         allow-create
         default-first-option
         aria-label="基础相克表"
-        placeholder="默认表"
+        :placeholder="chart ? '无基础相克表' : '选择基础相克表'"
         @change="setTable(String($event ?? '').trim())"
       >
         <ElOption
@@ -128,8 +135,9 @@ function setCell(value?: number) {
       ></ElFormItem>
     </div>
     <p v-if="conflict">来源冲突 · {{ conflict.proposals.map(row => row.source + ' ' + row.value + '×').join('，') }}</p>
-    <p v-else-if="known && preview">
-      倍率 {{ preview.values[attack]?.[defense] ?? 1 }}× · {{ cell ? '环境覆盖' : sources?.join('，') || '默认中性' }}
+    <p v-else-if="known && chart">
+      倍率 {{ elementMultiplier(chart.values, attack, defense) }}× ·
+      {{ cell ? '环境覆盖' : sources?.includes('environment') ? '继承规则' : sources?.join('，') || '默认中性' }}
     </p>
     <div class="matchup-row">
       <ElFormItem label="本环境倍率">
@@ -149,9 +157,9 @@ function setCell(value?: number) {
       </ElButton>
       <ElButton native-type="button" :disabled="!cell" @click="setCell()">恢复继承</ElButton>
     </div>
-    <p v-if="issue" role="alert">{{ issue }}</p>
-    <ul v-if="preview?.conflicts.length">
-      <li v-for="row in preview.conflicts" :key="row.attack + '>' + row.defense">
+    <p v-if="issue || preview?.error" role="alert">{{ issue || preview?.error }}</p>
+    <ul v-if="chart?.conflicts.length">
+      <li v-for="row in chart.conflicts" :key="row.attack + '>' + row.defense">
         <ElButton native-type="button" @click="pick(row.attack, row.defense)">
           解决冲突 · {{ row.attack }} → {{ row.defense }}
         </ElButton>
@@ -164,7 +172,7 @@ function setCell(value?: number) {
         </ElButton>
       </li>
     </ul>
-  </ElCollapseItem>
+  </ElCard>
 </template>
 
 <style scoped>

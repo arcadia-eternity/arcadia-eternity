@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, it } from 'vitest'
-import { findMissingTeamContent, replaceResolvedSkills } from '../teamContent'
+import { categorySkillSlots, findMissingTeamContent, replaceResolvedSkills } from '../teamContent'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 const skills = new Map([
@@ -9,6 +9,14 @@ const skills = new Map([
   ['climax', { category: 'Climax' }],
 ])
 const getSkill = (id: string) => skills.get(id)
+it('shares unreserved slots across categories and counts unresolved skills against capacity', () => {
+  const lookup = (id: string) => (id.startsWith('n') ? { category: 'Physical' } : getSkill(id))
+  const four = ['n1', 'n2', 'n3', 'n4']
+  expect(categorySkillSlots(four, undefined, false, lookup)).toEqual([...four, ''])
+  expect(categorySkillSlots(['climax'], undefined, true, lookup)).toEqual(['climax', ''])
+  expect(categorySkillSlots([...four, 'missing'], undefined, true, lookup)).toEqual([])
+  expect(categorySkillSlots(four, { normalMax: 1, climaxMax: 2 }, false, lookup)).toEqual(four)
+})
 it('preserves unknown references and their order when replacing either recognized category', () => {
   const original = ['mod:missing', 'normal', 'mod:another', 'climax']
   expect(replaceResolvedSkills(original, ['other'], false, getSkill)).toEqual([

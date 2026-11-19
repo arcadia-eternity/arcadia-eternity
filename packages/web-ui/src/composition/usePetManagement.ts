@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import { chooseTeamFile } from '@/services/teamFile'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { MAX_STORED_TEAM_MEMBERS, readSharedTeam } from '@arcadia-eternity/local-profile'
-import { Gender } from '@arcadia-eternity/const'
+import { Gender, resolveEnvironmentTeam } from '@arcadia-eternity/const'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
 
@@ -110,7 +110,7 @@ export function usePetManagement() {
    */
   function addToCurrentTeam(pet: PetSchemaType, onSuccess?: () => void): void {
     const currentTeam = petStorage.teams[petStorage.currentTeamIndex]
-    if (currentTeam.pets.length >= (gameDataStore.rules?.team?.maxSize ?? 6)) {
+    if (currentTeam.pets.length >= resolveEnvironmentTeam(gameDataStore.rules).maxSize) {
       ElMessage.warning('当前队伍已满')
       return
     }
@@ -221,7 +221,8 @@ export function usePetManagement() {
 
     const currentTeam = petStorage.teams[petStorage.currentTeamIndex]
     const canAddToTeam =
-      !currentTeam.memberIds.includes(pet.id) && currentTeam.pets.length < (gameDataStore.rules?.team?.maxSize ?? 6)
+      !currentTeam.memberIds.includes(pet.id) &&
+      currentTeam.pets.length < resolveEnvironmentTeam(gameDataStore.rules).maxSize
 
     contextMenu.value = {
       visible: true,

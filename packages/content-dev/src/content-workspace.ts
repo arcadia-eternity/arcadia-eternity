@@ -46,6 +46,14 @@ const compositionSchema = z
     ruleSets: z.array(z.object({ id: z.string(), name: z.string(), rules: EnvironmentRuleDeclarationSchema })),
   })
   .strict()
+const contentChoices = z.array(z.object({ id: z.string(), name: z.string().optional() }))
+const contentCatalogSchema = z.object({
+  species: contentChoices,
+  skills: contentChoices,
+  marks: contentChoices,
+  stages: contentChoices,
+})
+type EnvironmentContentCatalog = z.infer<typeof contentCatalogSchema>
 export type PreparedRuleComposition = z.infer<typeof compositionSchema>
 
 export interface EnvironmentInstallation {
@@ -58,6 +66,7 @@ export interface EnvironmentInstallation {
   contentRevision: string
   ruleComposition?: PreparedRuleComposition
   skillParameters?: SkillParameterCatalog
+  contentCatalog?: EnvironmentContentCatalog
   elementCatalog?: ReturnType<typeof readElementCatalog>
   members?: EnvironmentMember[]
   packages: unknown[]
@@ -92,6 +101,7 @@ export type StaticPreparer = (input: {
   packages?: unknown[]
   ruleComposition?: PreparedRuleComposition
   skillParameters?: SkillParameterCatalog
+  contentCatalog?: EnvironmentContentCatalog
   elementCatalog?: ReturnType<typeof readElementCatalog>
 }>
 export interface ContentWorkspaceOptions {
@@ -210,6 +220,7 @@ export interface EnvironmentMember {
 interface PreparationResult {
   ruleComposition?: PreparedRuleComposition
   skillParameters?: SkillParameterCatalog
+  contentCatalog?: EnvironmentContentCatalog
   elementCatalog?: ReturnType<typeof readElementCatalog>
   contentRevision: string
   packages: unknown[]
@@ -250,6 +261,7 @@ async function checkedPreparation(
   return {
     contentRevision: result.contentRevision,
     packages,
+    ...(result.contentCatalog !== undefined && { contentCatalog: contentCatalogSchema.parse(result.contentCatalog) }),
     ...(result.ruleComposition !== undefined && { ruleComposition: compositionSchema.parse(result.ruleComposition) }),
     ...(result.skillParameters !== undefined && {
       skillParameters: skillParameterCatalogSchema.parse(result.skillParameters),
@@ -566,6 +578,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
           members: result.members,
           ruleComposition: result.ruleComposition,
           skillParameters: result.skillParameters,
+          contentCatalog: result.contentCatalog,
           elementCatalog: result.elementCatalog,
           createdAt: Date.now(),
           ...(input.importId ? { importId: input.importId } : {}),
@@ -779,6 +792,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
               packages: result.packages ?? [],
               ruleComposition: result.ruleComposition,
               skillParameters: result.skillParameters,
+              contentCatalog: result.contentCatalog,
               elementCatalog: result.elementCatalog,
             }),
           )

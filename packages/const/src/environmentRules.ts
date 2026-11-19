@@ -34,6 +34,7 @@ export const inheritanceSchema = z
       .optional(),
   })
   .strict()
+export const defaultLearnsetLevel = 1
 export const learnsetAdjustmentsSchema = z
   .array(
     z
@@ -139,6 +140,24 @@ export const EnvironmentRulesSchema = z
   )
 export type EnvironmentRules = z.infer<typeof EnvironmentRulesSchema>
 
+export function resolveEnvironmentTeam(rules?: Pick<EnvironmentRules, 'team'>) {
+  const { minSize = 1, maxSize = 6, uniqueSpecies = false } = rules?.team ?? {}
+  return { minSize, maxSize, uniqueSpecies }
+}
+
+export function resolveEnvironmentMechanics(rules?: Pick<EnvironmentRules, 'mechanics'>) {
+  const mechanics = rules?.mechanics
+  const max = mechanics?.individualValues?.max ?? 31
+  return {
+    individualValues: { max, defaultValue: mechanics?.individualValueDefault ?? Math.min(31, max) },
+    allowFaintSwitch: mechanics?.allowFaintSwitch ?? true,
+    inheritance: mechanics?.inheritance ?? { eligible: 'off' as const },
+    secondGenerationNatures: mechanics?.secondGenerationNatures ?? 'off',
+    enhancement: mechanics?.enhancement ?? { mode: 'forbidden' as const },
+    skillSlots: mechanics?.skillSlots,
+  }
+}
+
 export const EnvironmentRuleDeclarationSchema = EnvironmentRulesSchema.safeExtend({
   constraints: declaredConstraintsSchema.optional(),
   collections: ruleCollectionsSchema.optional(),
@@ -169,4 +188,55 @@ export function parseRuleData<Schema extends z.ZodType>(schema: Schema, input: u
   const code = unsupported ? 'ENVIRONMENT_RULES_UNSUPPORTED' : 'ENVIRONMENT_RULES_INVALID'
   const detail = parsed.error.issues[0]?.path.join('.')
   throw Object.assign(new Error(detail ? code + ': ' + detail : code), { code })
+}
+
+export class RuleCompositionError extends Error {
+  readonly code: string
+  constructor(code: string, detail: string) {
+    super(code + ': ' + detail.slice(0, 1600))
+    this.code = code
+  }
+}
+export function splitRuleDeclaration(input: unknown) {
+  const {
+    include = [],
+    constraintEdits: edits = {},
+    collections = [],
+    ...rules
+  } = parseRuleData(EnvironmentRuleDeclarationSchema, input)
+  return { rules, include, edits, collections }
+}
+
+/** The package inspector and runtime compose rules from the same canonical catalog. */
+export function readEnvironmentRuleSets(definitions: readonly unknown[]) {
+  function invalid(detail: string): never {
+    throw new RuleCompositionError('ENVIRONMENT_RULE_SET_INVALID', detail)
+  }
+  function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+  }
+  const ids = new Set<string>()
+  const ruleSets = []
+  if (!Array.isArray(definitions) || definitions.length > 10000) invalid('规则集目录无效')
+  for (const row of definitions) {
+    if (
+      !isRecord(row) ||
+      typeof row.id !== 'string' ||
+      !/^[A-Za-z0-9_./:-]{1,256}$/.test(row.id) ||
+      !isRecord(row.rules) ||
+      ids.has(row.id) ||
+      (row.name !== undefined && (typeof row.name !== 'string' || row.name.length > 256))
+    )
+      invalid(isRecord(row) && typeof row.id === 'string' ? row.id : '规则集 ID 无效')
+    const { rules, include, edits, collections } = splitRuleDeclaration(row.rules)
+    const declaration = {
+      ...rules,
+      ...(collections.length && { collections }),
+      ...(include.length && { include }),
+      ...(Object.keys(edits).length && { constraintEdits: edits }),
+    }
+    ruleSets.push({ id: row.id, name: typeof row.name === 'string' ? row.name : row.id, rules: declaration })
+    ids.add(row.id)
+  }
+  return ruleSets.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 }

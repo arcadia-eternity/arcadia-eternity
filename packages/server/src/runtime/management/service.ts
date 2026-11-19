@@ -186,7 +186,23 @@ export async function validateWorkspaceProject(
     signal?.throwIfAborted()
     const catalog = temporary.content(descriptor.id)
     const ruleComposition = temporary.prepareRules(descriptor.id, draft?.rules)
+    const locale = catalog.locales?.bundles[catalog.locales.defaultLocale]
+    const choices = (rows: { id: string; name?: string }[], namespaces: string[]) =>
+      rows.map(({ id, name }) => {
+        for (const ns of namespaces) {
+          const entry = locale?.[ns]?.[id]
+          if (entry && typeof entry === 'object' && 'name' in entry && typeof entry.name === 'string')
+            return { id, name: entry.name }
+        }
+        return { id, name }
+      })
     return {
+      contentCatalog: {
+        species: choices(catalog.species, ['species']),
+        skills: choices(catalog.skills, ['skill']),
+        marks: choices(catalog.marks, ['mark', 'mark_ability', 'mark_emblem', 'mark_global']),
+        stages: choices(catalog.enhancements ?? [], ['enhancement']),
+      },
       ruleComposition,
       contentRevision: descriptor.runtime.contentRevision,
       packages: descriptor.packages,

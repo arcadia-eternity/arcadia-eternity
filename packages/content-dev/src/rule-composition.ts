@@ -1,6 +1,7 @@
 import {
-  EnvironmentRuleDeclarationSchema,
-  parseRuleData,
+  readEnvironmentRuleSets,
+  splitRuleDeclaration,
+  RuleCompositionError,
   type ConstraintEdits,
   type TeamConstraint,
   type DeclaredTeamConstraint,
@@ -16,25 +17,8 @@ type Choice = { value: unknown; sources: Set<string> }
 type Field = { path: Path; choices: Map<string, Choice>; sources: Set<string> }
 type Fields = Map<string, Field>
 
-export class RuleCompositionError extends Error {
-  readonly code: string
-  constructor(code: string, detail: string) {
-    super(code + ': ' + detail.slice(0, 1600))
-    this.code = code
-  }
-}
 function issue(code: string, detail: string): never {
   throw new RuleCompositionError(code, detail)
-}
-
-export function splitRuleDeclaration(input: unknown) {
-  const {
-    include = [],
-    constraintEdits: edits = {},
-    collections = [],
-    ...rules
-  } = parseRuleData(EnvironmentRuleDeclarationSchema, input)
-  return { rules, include, edits, collections }
 }
 
 // Arrays that describe eligibility or a selector are sets. Domain records with several
@@ -184,29 +168,8 @@ function applyConstraintEdits(fields: Fields, source: string, edits: ConstraintE
 
 export function composeRuleSets(input: unknown, definitions: readonly unknown[], validate: ValidateRules) {
   const root = splitRuleDeclaration(input)
-  const catalog = new Map<string, unknown>()
-  const ruleSets = []
-  if (!Array.isArray(definitions) || definitions.length > 10000) issue('ENVIRONMENT_RULE_SET_INVALID', '规则集目录无效')
-  for (const row of definitions) {
-    if (
-      !isRecord(row) ||
-      typeof row.id !== 'string' ||
-      !/^[A-Za-z0-9_./:-]{1,256}$/.test(row.id) ||
-      !isRecord(row.rules) ||
-      catalog.has(row.id) ||
-      (row.name !== undefined && (typeof row.name !== 'string' || row.name.length > 256))
-    )
-      issue('ENVIRONMENT_RULE_SET_INVALID', isRecord(row) && typeof row.id === 'string' ? row.id : '规则集 ID 无效')
-    const { rules, include, edits, collections } = splitRuleDeclaration(row.rules)
-    const declaration = {
-      ...rules,
-      ...(collections.length && { collections }),
-      ...(include.length && { include }),
-      ...(Object.keys(edits).length && { constraintEdits: edits }),
-    }
-    ruleSets.push({ id: row.id, name: typeof row.name === 'string' ? row.name : row.id, rules: declaration })
-    catalog.set(row.id, declaration)
-  }
+  const ruleSets = readEnvironmentRuleSets(definitions)
+  const catalog = new Map(ruleSets.map(row => [row.id, row.rules]))
   const done = new Map<string, Fields>()
   const stack = new Set<string>()
   function visit(id: string): Fields {
@@ -263,12 +226,18 @@ export function composeRuleSets(input: unknown, definitions: readonly unknown[],
       }),
     }
   }
+  const constraintDeclarations: DeclaredTeamConstraint[] = []
   const fieldsWithSources: { path: string[]; value: unknown; sources: string[]; effectiveSources: string[] }[] = []
   const result: Record<string, unknown> = { schemaVersion: root.rules.schemaVersion }
   for (const key of [...fields.keys()].sort()) {
     const field = fields.get(key)!
     const raw = effective(field)
-    const value = raw && field.path[0] === 'constraints' ? expandConstraint(raw as DeclaredTeamConstraint) : raw
+    let value = raw
+    if (raw && field.path[0] === 'constraints') {
+      const declaration = raw as DeclaredTeamConstraint
+      constraintDeclarations.push(declaration)
+      value = expandConstraint(declaration)
+    }
     if (field.path[0] !== 'collections' && !(field.path[0] === 'constraints' && value === null))
       writeField(result, field.path, value)
     const effectiveSources = new Set([...field.choices.values()].flatMap(choice => [...choice.sources]))
@@ -285,7 +254,8 @@ export function composeRuleSets(input: unknown, definitions: readonly unknown[],
       root.include.length || root.collections.length || root.rules.constraints?.length || Object.keys(root.edits).length
         ? validate(result)
         : root.rules,
+    declarations: { constraints: constraintDeclarations, collections: [...collections.values()] },
     fields: fieldsWithSources,
-    ruleSets: ruleSets.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
+    ruleSets,
   }
 }

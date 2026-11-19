@@ -1,4 +1,4 @@
-import { Gender } from '@arcadia-eternity/const'
+import { Gender, maxEquippedSkills } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Type, type Static } from '@sinclair/typebox'
 import { StringEnum, parseWithErrors } from './utils'
@@ -37,7 +37,7 @@ export const PetSchema = Type.Object({
   weight: Type.Optional(Type.Number()),
   enhancement: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
   inheritedSkill: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
-  skills: Type.Array(Type.String(), { minItems: 0, maxItems: 5 }),
+  skills: Type.Array(Type.String(), { minItems: 0, maxItems: maxEquippedSkills }),
   maxHp: Type.Optional(Type.Integer({ exclusiveMinimum: 0 })),
   ability: Type.Optional(Type.String()),
   emblem: Type.Optional(Type.String()),

@@ -89,6 +89,9 @@ const idsFor = packages =>
       ),
     ]),
   )
+function ruleCatalogFor(inspection) {
+  return { members: inspection.members ?? [], ruleSets: inspection.ruleSets ?? [] }
+}
 function graphFor(inspection) {
   const byLocation = new Map(inspection.packages.map(pkg => [pkg.location, pkg]))
   return inspection.packages.map(pkg => ({
@@ -125,6 +128,8 @@ export class ContentLibrary {
   #busy = false
   #idle
   #controller = new AbortController()
+  #legacyRuleCatalogs = new Map()
+  #inspectTail = Promise.resolve()
   #plans = new Map()
   #installJobs = new Map()
   #installTail = Promise.resolve()
@@ -288,7 +293,7 @@ export class ContentLibrary {
             await rename(directory, target)
             created.push(next)
             const inspection = checkedInspection(
-              await this.run(['content', 'npm', 'inspect', target], this.#controller.signal),
+              await this.run(['content', 'npm', 'inspect', target, '--rule-sets'], this.#controller.signal),
             )
             await this.run(
               ['content', 'npm', 'approve', target, '--profile', 'local-development'],
@@ -301,6 +306,7 @@ export class ContentLibrary {
                 ...entry,
                 id: next,
                 graph: graphFor(inspection),
+                ruleCatalog: ruleCatalogFor(inspection),
                 contentIds: idsFor(inspection.packages),
               })
           })
@@ -539,6 +545,7 @@ export class ContentLibrary {
             'npm',
             'stage',
             directory,
+            '--rule-sets',
             ...(offline ? ['--offline'] : []),
             ...(inputs.length ? ['--package', ...inputs] : []),
           ],
@@ -561,9 +568,22 @@ export class ContentLibrary {
       packages: await Promise.all(
         state.installed.map(async entry => {
           try {
-            await this.#directory(entry.id)
+            const directory = await this.#directory(entry.id)
             await lstat(join(this.root, 'projects', storageName(entry.id), 'node_modules', entry.name, 'package.json'))
-            return entry
+            if (entry.ruleCatalog) return entry
+            let catalog = this.#legacyRuleCatalogs.get(entry.id)
+            if (!catalog) {
+              catalog = this.#inspectTail
+                .then(() => this.run(['content', 'npm', 'inspect', directory, '--rule-sets'], this.#controller.signal))
+                .then(value => ruleCatalogFor(checkedInspection(value)))
+                .catch(() => {
+                  this.#legacyRuleCatalogs.delete(entry.id)
+                  return undefined
+                })
+              this.#inspectTail = catalog.then(() => {})
+              this.#legacyRuleCatalogs.set(entry.id, catalog)
+            }
+            return { ...entry, ruleCatalog: await catalog }
           } catch (error) {
             return {
               ...entry,
@@ -715,6 +735,7 @@ export class ContentLibrary {
             ? { kind: 'npm', spec: source.spec, label: source.label }
             : { kind: 'file', file: 'candidates/content-0.tgz', label: source.label },
         graph: graphFor(project.inspection),
+        ruleCatalog: ruleCatalogFor(project.inspection),
         contentIds: idsFor(project.inspection.packages),
         counts: Object.fromEntries(
           ['species', 'skills', 'marks'].map(kind => [
@@ -949,6 +970,7 @@ export class ContentLibrary {
       await this.#update(state => {
         return { ...state, revision: state.revision + 1, installed: state.installed.filter(item => item.id !== id) }
       })
+      this.#legacyRuleCatalogs.delete(id)
       await rm(directory, { recursive: true, force: true })
     })
   }

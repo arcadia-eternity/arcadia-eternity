@@ -1152,7 +1152,7 @@
                 <div
                   v-for="n in Math.max(
                     0,
-                    (gameDataStore.rules?.team?.maxSize ?? 6) -
+                    resolveEnvironmentTeam(gameDataStore.rules).maxSize -
                       (petStorage.teams[petStorage.currentTeamIndex]?.pets.length || 0),
                   )"
                   :key="`empty-${n}`"
@@ -1773,7 +1773,7 @@ import { useGameDataStore } from '../stores/gameData'
 import { useTranslation } from 'i18next-vue'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { buildStatSteps, type StatKey } from '@/utils/teamBuildComparison'
-import { Gender } from '@arcadia-eternity/const'
+import { Gender, resolveEnvironmentTeam } from '@arcadia-eternity/const'
 import PetIcon from '../components/PetIcon.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'

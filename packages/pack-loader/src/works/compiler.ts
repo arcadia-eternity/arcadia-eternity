@@ -157,6 +157,41 @@ export async function resolveReleases(
   return Object.freeze(output)
 }
 
+function linkedReference(
+  project: WorkDraft['project'],
+  dependencies: ReadonlySet<string>,
+  target: Json | undefined,
+  kind: '规则集' | '参数组',
+) {
+  if (typeof target !== 'string')
+    fail('INVALID_REFERENCE', kind === '规则集' ? 'include' : 'group', '需要' + kind + ' ID', project.id)
+  if (!target.includes(':')) return runtimeId(project.namespace, target)
+  const namespace = target.split(':')[0]!
+  if (namespace !== 'base' && namespace !== project.namespace && !dependencies.has(namespace))
+    fail('UNDECLARED_DEPENDENCY', target, '请声明' + kind + '提供者', project.id)
+  return target
+}
+
+export function linkWorkRuleSets(work: Pick<WorkDraft, 'project' | 'data'>, dependencies: ReadonlySet<string>) {
+  return (work.data.ruleSets ?? []).map(row => {
+    const rules = row.rules
+    if (!rules || typeof rules !== 'object' || Array.isArray(rules))
+      fail('INVALID_DATA', row.id, '规则集缺少规则声明', work.project.id)
+    if (rules.include !== undefined && !Array.isArray(rules.include))
+      fail('INVALID_DATA', row.id, '规则集引用需要列表', work.project.id)
+    return {
+      ...row,
+      id: runtimeId(work.project.namespace, row.id),
+      rules: {
+        ...rules,
+        ...(Array.isArray(rules.include) && {
+          include: rules.include.map(target => linkedReference(work.project, dependencies, target, '规则集')),
+        }),
+      },
+    }
+  })
+}
+
 /** Rewrite only declared reference slots; text, tags and unexposed TS callback references never get guessed. */
 function linkData(
   host: WorkHost<unknown>,
@@ -171,33 +206,13 @@ function linkData(
   const extraElements = []
   const extraTables = []
   for (const work of works) {
-    const groupId = (target: Json | undefined): string => {
-      if (typeof target !== 'string') fail('INVALID_REFERENCE', 'group', '需要参数组 ID', work.project.id)
-      if (!target.includes(':')) return runtimeId(work.project.namespace, target)
-      const namespace = target.split(':')[0]
-      if (
-        namespace !== 'base' &&
-        namespace !== work.project.namespace &&
-        !work.dependencies.some(dep => dep.projectId === namespacesInEnvironment.get(namespace))
-      )
-        fail('UNDECLARED_DEPENDENCY', target, '请声明参数组提供者', work.project.id)
-      return target
-    }
-    for (const row of work.data.ruleSets ?? []) {
-      const rules = row.rules
-      if (!rules || typeof rules !== 'object' || Array.isArray(rules))
-        fail('INVALID_DATA', row.id, '规则集缺少规则声明', work.project.id)
-      if (rules.include !== undefined && !Array.isArray(rules.include))
-        fail('INVALID_DATA', row.id, '规则集引用需要列表', work.project.id)
-      ruleSets.push({
-        ...row,
-        id: runtimeId(work.project.namespace, row.id),
-        rules: {
-          ...rules,
-          ...(Array.isArray(rules.include) && { include: rules.include.map(target => groupId(target)) }),
-        },
-      })
-    }
+    const dependencyNamespaces = new Set(
+      works
+        .filter(provider => work.dependencies.some(dep => dep.projectId === provider.project.id))
+        .map(provider => provider.project.namespace),
+    )
+    const groupId = (target: Json | undefined) => linkedReference(work.project, dependencyNamespaces, target, '参数组')
+    ruleSets.push(...linkWorkRuleSets(work, dependencyNamespaces))
     for (const group of work.data.parameterGroups ?? [])
       parameterGroups.push({ ...group, id: runtimeId(work.project.namespace, group.id) })
     for (const profile of work.data.parameterProfiles ?? []) {

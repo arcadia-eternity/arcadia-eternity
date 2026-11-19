@@ -1,3 +1,4 @@
+import type { ManagedReadyEnvironmentInstallation } from '@arcadia-eternity/protocol'
 import type { LocalBattleHostStatus } from './desktop'
 
 export interface PackageGraphEntry {
@@ -13,6 +14,10 @@ export interface ContentIds {
   species: string[]
   skills: string[]
   marks: string[]
+}
+export interface PackageRuleCatalog {
+  members: NonNullable<ManagedReadyEnvironmentInstallation['members']>
+  ruleSets: NonNullable<ManagedReadyEnvironmentInstallation['ruleComposition']>['ruleSets']
 }
 export interface InstalledContentPackage {
   id: string
@@ -30,6 +35,7 @@ export interface InstalledContentPackage {
   dependencyRanges?: Record<string, string>
   source: { kind: 'file' | 'npm'; label: string; spec?: string; file?: string }
   graph: PackageGraphEntry[]
+  ruleCatalog?: PackageRuleCatalog
   contentIds: ContentIds
   counts: { species: number; skills: number; marks: number }
   containsCode: boolean

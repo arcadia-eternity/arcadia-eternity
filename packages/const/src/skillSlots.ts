@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-const capacity = z.number().int().min(0).max(5)
+export const maxEquippedSkills = 5
+const capacity = z.number().int().min(0).max(maxEquippedSkills)
 export const skillSlotsSchema = z
   .object({
     normalMax: capacity,
@@ -9,7 +10,7 @@ export const skillSlotsSchema = z
   })
   .strict()
   .refine(
-    value => value.normalMax + value.climaxMax <= 5 && (value.climaxMin ?? 0) <= value.climaxMax,
+    value => value.normalMax + value.climaxMax <= maxEquippedSkills && (value.climaxMin ?? 0) <= value.climaxMax,
     '普通槽与必杀槽合计最多五个，必杀最低数量不能超过槽数',
   )
 export type SkillSlots = z.infer<typeof skillSlotsSchema>

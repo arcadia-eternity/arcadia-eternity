@@ -1,4 +1,9 @@
-import { assertSkillSlots, type EnvironmentRules } from '@arcadia-eternity/const'
+import {
+  defaultLearnsetLevel,
+  assertSkillSlots,
+  resolveEnvironmentMechanics,
+  type EnvironmentRules,
+} from '@arcadia-eternity/const'
 import { z } from 'zod'
 
 const id = z.string().min(1).max(256)
@@ -23,10 +28,10 @@ export function isEligible(species: Pick<LearnsetSpecies, 'id' | 'inheritance'>,
 /** Static acquisition sources. Choosing an inherited skill does not create an equipment slot. */
 export function resolveLearnset(rules: LearningRules | undefined, species: LearnsetSpecies, level: number) {
   const normal = new Set(species.learnable_skills.filter(entry => entry.level <= level).map(entry => entry.skill_id))
-  const inheritance = rules?.mechanics?.inheritance
-  const eligible = isEligible(species, inheritance?.eligible)
+  const { inheritance } = resolveEnvironmentMechanics(rules)
+  const eligible = isEligible(species, inheritance.eligible)
   const inherited = new Set(species.inheritance?.skills)
-  const pool = inheritance?.pool
+  const pool = inheritance.pool
   if (pool && (pool.mode !== 'fallback' || !inherited.size)) {
     if (pool.mode === 'replace') inherited.clear()
     for (const skill of pool.skills) inherited.add(skill)
@@ -35,7 +40,7 @@ export function resolveLearnset(rules: LearningRules | undefined, species: Learn
     if (row.species !== species.id) continue
     const source = row.source === 'normal' ? normal : inherited
     if (row.action === 'remove') source.delete(row.skill)
-    else if ((row.level ?? 1) <= level) source.add(row.skill)
+    else if ((row.level ?? defaultLearnsetLevel) <= level) source.add(row.skill)
   }
   if (!eligible) inherited.clear()
   return { normal, inherited, eligible }
@@ -88,7 +93,7 @@ export function assertNatureChoice(
   if (!nature) throw new Error('缺少性格定义 ' + natureId)
   if (nature.generation === 1) return
   const species = speciesById()
-  if (!species || !isEligible(species, rules?.mechanics?.secondGenerationNatures))
+  if (!species || !isEligible(species, resolveEnvironmentMechanics(rules).secondGenerationNatures))
     throw new Error('该精灵不能使用二代性格 ' + natureId)
 }
 

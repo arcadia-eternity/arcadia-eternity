@@ -43,8 +43,8 @@ export async function prepareContentPack(
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
   const environmentRules = validateEnvironmentRules(prepared.effectiveRules)
-  const enhancementActive = environmentRules.mechanics?.enhancement?.mode === 'active'
-  const { allowFaintSwitch } = resolveEnvironmentMechanics(environmentRules)
+  const { allowFaintSwitch, enhancement } = resolveEnvironmentMechanics(environmentRules)
+  const enhancementActive = enhancement.mode === 'active'
   // Four automation sessions, one human preview, and room for their validated replacements.
   const workers = createNodeBattleWorkerManager({ maxBattles: 7 })
   function defaultPlayers() {

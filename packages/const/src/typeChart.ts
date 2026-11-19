@@ -179,7 +179,11 @@ export function resolveElementChart(input: ElementCatalogInput, policy: MatchupP
     values[cell.attack][cell.defense] = cell.multiplier
     sources.set(keyOf(cell.attack, cell.defense), ['environment'])
   }
-  return { values, sources, conflicts }
+  return { values, sources, conflicts, tableId }
+}
+
+export function elementMultiplier(chart: Record<string, Record<string, number>>, attack: string, defense: string) {
+  return chart[attack]?.[defense] ?? 1
 }
 
 export function requireElementChart(data: ElementCatalogInput, policy?: MatchupPolicy) {

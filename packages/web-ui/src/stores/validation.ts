@@ -1,3 +1,4 @@
+import { resolveEnvironmentTeam } from '@arcadia-eternity/const'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
@@ -37,8 +38,8 @@ export const useValidationStore = defineStore('validation', () => {
     return [species.genderRatio[0] > 0 && 'Female', species.genderRatio[1] > 0 && 'Male'].filter(Boolean) as string[]
   }
   const getRuleLimitations = () => {
-    const rule = useGameDataStore().rules?.team
-    return { teamSize: { min: rule?.minSize ?? 1, max: rule?.maxSize ?? 6 } }
+    const { minSize, maxSize } = resolveEnvironmentTeam(useGameDataStore().rules)
+    return { teamSize: { min: minSize, max: maxSize } }
   }
   const canAddMorePets = (team: PetSchemaType[]) => team.length < getRuleLimitations().teamSize.max
   const getSpeciesExtraLearnableSkills = async (_id: string): Promise<LearnableSkill[]> => []

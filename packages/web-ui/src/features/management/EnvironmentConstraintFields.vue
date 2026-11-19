@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import type { ReferenceOptions } from './environmentReferences'
 import EnvironmentIdList from './EnvironmentIdList.vue'
 import {
-  ElCollapse,
-  ElCollapseItem,
+  ElCard,
+  ElAlert,
+  ElTable,
+  ElTableColumn,
   ElFormItem,
   ElInput,
   ElSelect,
@@ -22,10 +25,18 @@ import type { ConstraintEdits } from '@arcadia-eternity/const'
 
 type Condition = TeamConstraint['allOf'][number]
 type Field = { kind: Condition['kind']; ids: string[]; collections: string[] }
-const props = defineProps<{ inherited?: TeamConstraint[] }>()
+const props = defineProps<{
+  inherited?: TeamConstraint[]
+  effective?: TeamConstraint[]
+  collections?: RuleCollection[]
+  options: ReferenceOptions
+}>()
 const rules = defineModel<ManagedEnvironmentDocument['rules']>({ required: true })
 const editMode = ref<'local' | 'replace' | 'exception'>('local')
 const inheritedById = computed(() => new Map(props.inherited?.map(row => [row.id, row])))
+const effectiveById = computed(() => new Map(props.effective?.map(row => [row.id, row])))
+const collections = computed(() => props.collections ?? rules.value.collections ?? [])
+const localCollection = (id: string) => rules.value.collections?.some(row => row.id === id)
 const rows = computed(() => rules.value.constraints ?? [])
 const id = ref('')
 const originalId = ref('')
@@ -35,12 +46,23 @@ const allOf = ref<Field[]>([])
 const exceptions = ref<Field[]>([])
 const priorAlternatives = ref<TeamConstraint['allOf'][]>()
 const issue = ref('')
+const editingCollection = ref(false)
 const collectionId = ref('')
 const collectionKind = ref<RuleCollection['kind']>('species')
 const collectionIds = ref<string[]>([])
 const collectionError = ref('')
+function resetCollection() {
+  editingCollection.value = false
+  collectionId.value = collectionError.value = ''
+  collectionIds.value = []
+  collectionKind.value = 'species'
+}
 function saveCollection(remove = false) {
   const id = collectionId.value.trim()
+  if (!editingCollection.value && rules.value.collections?.some(row => row.id === id)) {
+    collectionError.value = '集合 ID 已存在'
+    return
+  }
   const next = (rules.value.collections ?? []).filter(row => row.id !== id)
   if (!remove) next.push({ id, kind: collectionKind.value, ids: [...collectionIds.value] })
   const result = ruleCollectionsSchema.safeParse(next)
@@ -52,16 +74,22 @@ function saveCollection(remove = false) {
   if (next.length) declaration.collections = next
   else delete declaration.collections
   rules.value = declaration
-  collectionError.value = collectionId.value = ''
-  collectionIds.value = []
+  resetCollection()
 }
 function selectCollection(row: RuleCollection) {
+  editingCollection.value = true
+  collectionError.value = ''
   collectionId.value = row.id
   collectionKind.value = row.kind
   collectionIds.value = [...row.ids]
 }
+const listKeys = { species: 'species', skill: 'skills', mark: 'marks' } as const
 const choices = { species: '物种', skill: '装备技能', mark: '特性或纹章' }
 const field = (): Field => ({ kind: 'species', ids: [], collections: [] })
+function resetCondition(item: Field) {
+  item.ids = []
+  item.collections = []
+}
 function edit(row?: TeamConstraint, mode: 'local' | 'replace' | 'exception' = 'local') {
   editMode.value = mode
   const fields = (conditions: Condition[]) =>
@@ -159,29 +187,45 @@ function remove(id: string) {
 </script>
 
 <template>
-  <ElCollapseItem name="constraints" title="组合禁令与限额">
-    <ElCollapse
-      ><ElCollapseItem name="collections" title="具名集合">
-        <ElButton v-for="row in rules.collections" :key="row.id" native-type="button" @click="selectCollection(row)">
-          {{ row.id }}
-        </ElButton>
-        <ElFormItem label="集合 ID"><ElInput v-model.trim="collectionId" /></ElFormItem>
-        <ElFormItem label="集合类型"
-          ><ElSelect v-model="collectionKind">
-            <ElOption v-for="(name, key) in choices" :key="key" :value="key" :label="name" /> </ElSelect
-        ></ElFormItem>
-        <ElFormItem label="成员 ID"><EnvironmentIdList v-model="collectionIds" /></ElFormItem>
-        <ElButton native-type="button" @click="saveCollection()">保存集合</ElButton>
-        <ElButton
-          v-if="rules.collections?.some(row => row.id === collectionId)"
-          native-type="button"
-          @click="saveCollection(true)"
-        >
-          移除本地集合
-        </ElButton>
-        <p v-if="collectionError" role="alert">{{ collectionError }}</p>
-      </ElCollapseItem></ElCollapse
+  <ElCard shadow="never">
+    <template #header><h4>具名集合</h4></template>
+    <ElTable v-if="collections.length" :data="collections" row-key="id" size="small">
+      <ElTableColumn prop="id" label="集合 ID" min-width="100" />
+      <ElTableColumn label="类型" width="100"
+        ><template #default="{ row }">{{ choices[(row as RuleCollection).kind] }}</template></ElTableColumn
+      >
+      <ElTableColumn label="成员" width="62"
+        ><template #default="{ row }">{{ row.ids.length }}</template></ElTableColumn
+      >
+      <ElTableColumn width="62"
+        ><template #default="{ row }"
+          ><ElButton link type="primary" @click="selectCollection(row as RuleCollection)">{{
+            localCollection(row.id) ? '编辑' : '覆盖'
+          }}</ElButton></template
+        ></ElTableColumn
+      >
+    </ElTable>
+    <div class="collection-fields">
+      <ElFormItem label="集合 ID"><ElInput v-model.trim="collectionId" :readonly="editingCollection" /></ElFormItem>
+      <ElFormItem label="集合类型"
+        ><ElSelect v-model="collectionKind" @change="collectionIds = []">
+          <ElOption v-for="(name, key) in choices" :key="key" :value="key" :label="name" /> </ElSelect
+      ></ElFormItem>
+    </div>
+    <ElFormItem label="成员 ID"
+      ><EnvironmentIdList :options="options[listKeys[collectionKind]]" v-model="collectionIds"
+    /></ElFormItem>
+    <ElAlert v-if="collectionError" :title="collectionError" type="error" :closable="false" />
+    <ElButton type="primary" plain @click="saveCollection()">{{
+      editingCollection ? '更新集合' : '添加集合'
+    }}</ElButton>
+    <ElButton v-if="editingCollection" @click="resetCollection">取消编辑</ElButton>
+    <ElButton v-if="editingCollection && localCollection(collectionId)" type="danger" link @click="saveCollection(true)"
+      >移除集合</ElButton
     >
+  </ElCard>
+  <ElCard shadow="never">
+    <template #header><h4>组合禁令与限额</h4></template>
     <ul v-if="inherited?.length">
       <li v-for="row in inherited" :key="row.id">
         {{ row.id }}
@@ -193,7 +237,12 @@ function remove(id: string) {
           >
             替换规则及豁免
           </ElButton>
-          <ElButton v-if="row.kind === 'ban'" native-type="button" @click="edit(row, 'exception')">追加豁免</ElButton>
+          <ElButton
+            v-if="effectiveById.get(row.id)?.kind === 'ban'"
+            native-type="button"
+            @click="edit(effectiveById.get(row.id), 'exception')"
+            >追加豁免</ElButton
+          >
           <ElButton native-type="button" @click="changeTarget(row.id, { remove: true })">移除继承规则及豁免</ElButton>
         </template>
         <ElButton
@@ -222,7 +271,7 @@ function remove(id: string) {
     <div v-else>
       <ElFormItem label="规则 ID"><ElInput v-model.trim="id" :readonly="editMode !== 'local'" /></ElFormItem>
       <ElFormItem label="限制方式"
-        ><ElSelect v-model="kind">
+        ><ElSelect v-model="kind" :disabled="editMode === 'exception'">
           <ElOption value="pet" label="单宠禁令" />
           <ElOption value="team" label="全队禁令" />
           <ElOption value="memberLimit" label="成员限额" /> </ElSelect
@@ -240,7 +289,7 @@ function remove(id: string) {
       >
         <legend>{{ group === allOf ? '同时满足' : '豁免条件' }}</legend>
         <div v-for="(item, i) in group" :key="i">
-          <ElSelect v-model="item.kind" aria-label="条件类型">
+          <ElSelect v-model="item.kind" aria-label="条件类型" @change="resetCondition(item)">
             <ElOption v-for="(name, key) in choices" :key="key" :value="key" :label="name" />
           </ElSelect>
           <ElFormItem label="引用集合"
@@ -252,12 +301,14 @@ function remove(id: string) {
               default-first-option
               placeholder="选择或输入集合 ID"
               ><ElOption
-                v-for="row in rules.collections?.filter(row => row.kind === item.kind)"
+                v-for="row in collections.filter(row => row.kind === item.kind)"
                 :key="row.id"
                 :value="row.id"
                 :label="row.id" /></ElSelect
           ></ElFormItem>
-          <ElFormItem label="任一内容 ID"><EnvironmentIdList v-model="item.ids" /></ElFormItem>
+          <ElFormItem label="任一内容 ID"
+            ><EnvironmentIdList :options="options[listKeys[item.kind]]" v-model="item.ids"
+          /></ElFormItem>
           <ElButton native-type="button" :disabled="group === allOf && group.length === 1" @click="group.splice(i, 1)">
             移除条件
           </ElButton>
@@ -268,5 +319,22 @@ function remove(id: string) {
       <ElButton native-type="button" @click="apply">应用组合规则</ElButton>
       <ElButton native-type="button" @click="allOf = []">取消</ElButton>
     </div>
-  </ElCollapseItem>
+  </ElCard>
 </template>
+
+<style scoped>
+.collection-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0 12px;
+}
+.el-table + .collection-fields {
+  margin-top: 14px;
+}
+fieldset {
+  min-width: 0;
+  margin: 12px 0;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+}
+</style>

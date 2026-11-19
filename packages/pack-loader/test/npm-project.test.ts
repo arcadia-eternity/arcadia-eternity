@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { withShippedCatalogArchive } from '../src/npm/official-host'
-import { readSkillParameterCatalog, resolveSkillParameters } from '@arcadia-eternity/const'
+import { readEnvironmentRuleSets, readSkillParameterCatalog, resolveSkillParameters } from '@arcadia-eternity/const'
 import sampleTeams from '../../battle/test/fixtures/official-switch.input.json'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -1039,7 +1039,9 @@ it('prepares a community HP baseline with the official profile and restores scop
     )
     await exec('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir })
   })
+  const preview = await inspectNpmProject(dir, { includeRuleSets: true })
   const prepared = await prepare(dir)
+  expect(preview.ruleSets).toEqual(readEnvironmentRuleSets(prepared.sandbox.data.ruleSets ?? []))
   expect(prepared.sandbox.data.ruleSets).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ id: 'base:classic' }),

@@ -102,6 +102,7 @@ export class LocalBattleSession {
           )
         const environment = await this.#content?.readRuntime()
         launch.signal.throwIfAborted()
+        const mechanics = resolveEnvironmentMechanics(this.#rules)
         const prepared = await this.create(
           firstInput,
           secondInput,
@@ -110,8 +111,8 @@ export class LocalBattleSession {
             ...options,
             skillParameters: this.#rules?.skillParameters,
             matchups: this.#rules?.matchups,
-            enhancementActive: this.#rules?.mechanics?.enhancement?.mode === 'active',
-            allowFaintSwitch: resolveEnvironmentMechanics(this.#rules).allowFaintSwitch,
+            enhancementActive: mechanics.enhancement.mode === 'active',
+            allowFaintSwitch: mechanics.allowFaintSwitch,
             ...(environment ? { environment } : {}),
           },
           launch.signal,

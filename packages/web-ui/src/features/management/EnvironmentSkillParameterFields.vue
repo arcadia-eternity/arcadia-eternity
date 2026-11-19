@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import EnvironmentReferenceInput from './EnvironmentReferenceInput.vue'
+import type { ReferenceOption } from './environmentReferences'
 import { environmentName, parameterGroupLabel } from '@/i18n/environment'
 import { computed, ref, watch } from 'vue'
 import i18next from 'i18next'
-import { ElCollapseItem, ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
+import { ElCard, ElScrollbar, ElButton, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
 import {
+  resolveSkillGroupValue,
   resolveSkillParameters,
   skillParameterKey,
   type SkillParameterCatalog,
@@ -13,8 +16,11 @@ import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 
 const rules = defineModel<EnvironmentRules>({ required: true })
 const props = defineProps<{
+  skillOptions: ReferenceOption[]
   catalog?: SkillParameterCatalog
-  previewPolicy?: SkillParameterPolicy
+  resolved?: EnvironmentRules
+  appliedKnown: boolean
+  hasIncludes: boolean
   appliedPolicy?: SkillParameterPolicy
 }>()
 const policy = computed(() => rules.value.skillParameters ?? {})
@@ -26,7 +32,7 @@ const editingSingle = ref(false)
 const manual = ref({ skill: '', useId: '', parameter: '' })
 const issue = ref('')
 const previous = computed(() => {
-  if (!props.catalog) return new Map<string, number>()
+  if (!props.catalog || !props.appliedKnown) return new Map<string, number>()
   return new Map(
     resolveSkillParameters(props.catalog, props.appliedPolicy).map(row => [skillParameterKey(row), row.value]),
   )
@@ -37,9 +43,9 @@ const manualTarget = computed(() => {
   return undefined
 })
 const preview = computed(() => {
-  if (!props.catalog) return undefined
+  if (!props.catalog || !props.resolved) return undefined
   try {
-    return { rows: resolveSkillParameters(props.catalog, props.previewPolicy ?? policy.value) }
+    return { rows: resolveSkillParameters(props.catalog, props.resolved.skillParameters) }
   } catch (error) {
     return { error: String(error) }
   }
@@ -53,12 +59,21 @@ const sourceNames = { base: '技能基础值', profile: '数值方案', group: '
   string
 >
 
+const effectiveGroup = computed(() => {
+  if (!props.resolved) return undefined
+  const policy = props.resolved.skillParameters
+  return resolveSkillGroupValue(
+    groupId.value,
+    policy,
+    props.catalog?.profiles.find(row => row.id === policy?.profile),
+  )
+})
 const effective = computed(() => preview.value?.rows?.find(row => skillParameterKey(row) === selected.value))
 const effectiveSource = computed(() => {
   const row = effective.value
   if (!row) return ''
   if (row.source === 'profile') {
-    const profile = (props.previewPolicy ?? policy.value).profile!
+    const profile = props.resolved!.skillParameters!.profile!
     return (
       '跟随 ' +
       environmentName('parameterProfiles', profile, props.catalog?.profiles.find(item => item.id === profile)?.name)
@@ -105,13 +120,13 @@ function selectProfile(id: string) {
   else delete next.profile
   update(next)
 }
-function resetGroupSelection(value?: number) {
-  groupInput.value = value
+function resetGroupSelection() {
+  groupInput.value = undefined
   selected.value = ''
 }
-function selectGroup(id: string, value?: number) {
+function selectGroup(id: string) {
   groupId.value = id
-  resetGroupSelection(value)
+  resetGroupSelection()
 }
 function setGroup(remove = false) {
   const id = groupId.value.trim()
@@ -129,6 +144,7 @@ function setGroup(remove = false) {
   if (Object.keys(groups).length) next.groups = groups
   else delete next.groups
   update(next)
+  groupInput.value = undefined
 }
 function applyOverride() {
   const target = props.catalog ? member.value : manualTarget.value
@@ -153,17 +169,18 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
 </script>
 
 <template>
-  <ElCollapseItem class="skill-parameters" name="skillValues" title="技能数值">
+  <ElCard shadow="never" class="skill-parameters"
+    ><template #header><h4>技能数值</h4></template>
     <div class="parameter-fields">
       <ElFormItem label="数值方案">
         <ElSelect
-          :model-value="policy.profile"
+          :model-value="resolved?.skillParameters?.profile ?? policy.profile"
           filterable
           allow-create
           default-first-option
-          clearable
+          :clearable="policy.profile !== undefined"
           aria-label="数值方案"
-          placeholder="内容基础值"
+          :placeholder="resolved ? '内容基础值' : '选择数值方案'"
           @update:model-value="id => selectProfile(id || '')"
         >
           <ElOption
@@ -184,18 +201,26 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
             clearable
             aria-label="参数组"
             placeholder="选择参数组"
-            @update:model-value="id => selectGroup(id || '', policy.groups?.[id])"
+            @update:model-value="id => selectGroup(id || '')"
           >
             <ElOption v-for="row in catalog?.groups" :key="row.id" :value="row.id" :label="parameterGroupLabel(row)" />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="组值"><ElInputNumber v-model="groupInput" aria-label="组值" :controls="false" /></ElFormItem>
+        <ElFormItem label="组值"
+          ><ElInputNumber
+            v-model="groupInput"
+            aria-label="组值"
+            :controls="false"
+            :placeholder="effectiveGroup?.value.toString()"
+        /></ElFormItem>
         <ElButton :disabled="!groupId || groupInput == null" @click="setGroup()">设置组值</ElButton>
-        <ElButton :disabled="policy.groups?.[groupId] === undefined" @click="setGroup(true)">跟随方案</ElButton>
+        <ElButton :disabled="policy.groups?.[groupId] === undefined" @click="setGroup(true)">{{
+          hasIncludes ? '恢复继承组值' : '跟随方案'
+        }}</ElButton>
       </div>
       <ul v-if="policy.groups">
         <li v-for="(value, id) in policy.groups" :key="id">
-          <ElButton link @click="selectGroup(String(id), value)">{{ groupName(String(id)) }} · {{ value }}</ElButton>
+          <ElButton link @click="selectGroup(String(id))">{{ groupName(String(id)) }} · {{ value }}</ElButton>
         </li>
       </ul>
       <div class="parameter-row">
@@ -210,7 +235,9 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
           </ElSelect>
         </ElFormItem>
         <template v-else>
-          <ElFormItem label="技能 ID"><ElInput v-model.trim="manual.skill" /></ElFormItem>
+          <ElFormItem label="技能 ID"
+            ><EnvironmentReferenceInput :options="skillOptions" v-model.trim="manual.skill"
+          /></ElFormItem>
           <ElFormItem label="使用位置"><ElInput v-model.trim="manual.useId" /></ElFormItem>
           <ElFormItem label="参数名"><ElInput v-model.trim="manual.parameter" /></ElFormItem>
         </template>
@@ -238,22 +265,25 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
         </li>
       </ul>
       <p v-if="issue || preview?.error" role="alert">{{ issue || preview?.error }}</p>
-      <details v-if="preview?.rows?.length">
-        <summary>按上次准备的内容预览</summary>
-        <ul>
-          <li
-            v-for="row in preview.rows.filter(row => !groupId || row.group === groupId)"
-            :key="skillParameterKey(row)"
-          >
-            {{ addressLabel(row) }} ·
-            <template v-if="previous.get(skillParameterKey(row)) !== row.value"
-              >{{ previous.get(skillParameterKey(row)) }} → </template
-            >{{ row.value }}（{{ sourceNames[row.source] }}）
-          </li>
-        </ul>
-      </details>
+      <section v-if="preview?.rows?.length">
+        <h5>按上次准备的内容预览</h5>
+        <ElScrollbar max-height="18rem">
+          <ul>
+            <li
+              v-for="row in preview.rows.filter(row => !groupId || row.group === groupId)"
+              :key="skillParameterKey(row)"
+            >
+              {{ addressLabel(row) }} ·
+              <template
+                v-if="previous.has(skillParameterKey(row)) && previous.get(skillParameterKey(row)) !== row.value"
+                >{{ previous.get(skillParameterKey(row)) }} → </template
+              >{{ row.value }}（{{ sourceNames[row.source] }}）
+            </li>
+          </ul>
+        </ElScrollbar>
+      </section>
     </div>
-  </ElCollapseItem>
+  </ElCard>
 </template>
 
 <style scoped>

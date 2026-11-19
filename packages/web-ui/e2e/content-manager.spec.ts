@@ -1,4 +1,5 @@
 import { expect, test } from 'playwright/test'
+import type { ManagedEnvironmentInstallation, ManagedEnvironment } from '../src/types/management'
 import type { ContentLibrarySnapshot, InstalledContentPackage } from '../src/types/contentPackages'
 
 test('UGC projects and environment dependencies are managed separately', async ({ page }, testInfo) => {
@@ -13,8 +14,8 @@ test('UGC projects and environment dependencies are managed separately', async (
       author: '',
       description: '',
       source: { kind: 'file', label: 'content.tgz' },
-      contentIds: { species: [], skills: [], marks: [] },
-      counts: { species: 0, skills: 0, marks: 0 },
+      contentIds: { species: ['custom:fox'], skills: [], marks: [] },
+      counts: { species: 1, skills: 0, marks: 0 },
       containsCode: true,
       graph: [],
       installedAt: '2026-11-17T00:00:00Z',
@@ -25,7 +26,7 @@ test('UGC projects and environment dependencies are managed separately', async (
       serviceStatus: { status: 'idle' },
       serviceNeedsRestart: false,
     }
-    const environment = {
+    const environment: ManagedEnvironment = {
       revision: 'r1',
       document: {
         schemaVersion: 2,
@@ -37,7 +38,12 @@ test('UGC projects and environment dependencies are managed separately', async (
         requires: {},
       },
     }
-    const snapshot = { workspaceId: 'local', environments: [environment], installations: [], operations: [] }
+    const snapshot = {
+      workspaceId: 'local',
+      environments: [environment],
+      installations: [] as ManagedEnvironmentInstallation[],
+      operations: [],
+    }
     Object.defineProperty(window, 'arcadiaDesktop', {
       value: {
         getLocalServerPort: async () => null,
@@ -65,6 +71,28 @@ test('UGC projects and environment dependencies are managed separately', async (
           if (input.action === 'apply') {
             environment.document = input.document
             environment.revision = 'r2'
+            snapshot.installations = [
+              {
+                installationId: 'friends',
+                environmentId: 'friends',
+                workspaceId: 'local',
+                document: input.document,
+                draftRevision: 'r2',
+                contentRevision: 'content-2',
+                packages: [],
+                status: 'ready',
+                createdAt: 1,
+                contentCatalog: {
+                  species: [
+                    { id: 'custom:fox', name: '火狐' },
+                    { id: 'custom:wolf', name: '冰狼' },
+                  ],
+                  skills: [],
+                  marks: [],
+                  stages: [],
+                },
+              },
+            ]
           }
           return { result: input.action === 'snapshot' ? structuredClone(snapshot) : { operationId: 'job' } }
         },
@@ -89,15 +117,71 @@ test('UGC projects and environment dependencies are managed separately', async (
     .click()
   await page.getByRole('option', { name: '@example/content 1.0.0', exact: true }).click()
   await expect(page.getByLabel('版本范围', { exact: true })).toHaveValue('1.0.0')
-  await expect(page.locator('.environment-editor')).toContainText('配置')
+  const editor = page.getByRole('form', { name: '编辑环境' })
+  const save = editor.getByRole('button', { name: '保存并应用' })
+  await editor.getByRole('button', { name: '添加内容包', exact: true }).click()
+  const addedPackage = editor.getByLabel('包名', { exact: true }).last()
+  await expect(addedPackage).toBeFocused()
+  await editor.getByRole('tab', { name: '基础规则' }).click()
+  const faintSwitch = editor.getByRole('radiogroup', { name: '击破奖励换宠' })
+  await faintSwitch.getByText('关闭', { exact: true }).click()
+  await save.click()
+  await expect(editor.getByRole('tab', { name: '内容包依赖' })).toHaveAttribute('aria-selected', 'true')
+  await expect(addedPackage).toBeFocused()
+  await expect(editor.getByText('请填写包名')).toBeVisible()
+  await editor.locator('.package-row').last().getByRole('button', { name: '移出环境' }).click()
+  await editor.getByRole('tab', { name: '基础规则' }).click()
+  await expect(faintSwitch.getByRole('radio', { name: '关闭' })).toBeChecked()
+  await editor.getByRole('tab', { name: '对战机制' }).click()
+  const enhancement = editor.getByRole('radiogroup', { name: '神魔化规则' })
+  const activeMode = enhancement.getByText('启用阶段加成', { exact: true })
+  await activeMode.click()
+  await expect(enhancement.getByRole('radio', { name: '启用阶段加成', exact: true })).toBeChecked()
+  await editor.getByRole('tab', { name: '内容限制' }).click()
+  const allowed = editor.getByRole('combobox', { name: '精灵允许名单', exact: true })
+  await allowed.fill('custom:f')
+  await expect(page.getByRole('option', { name: 'custom:fox', exact: true })).toBeVisible()
+  await allowed.press('Enter')
+  await allowed.fill('other:wolf，other:cub')
+  await expect(page.getByRole('option', { name: /使用 other:wolf，other:cub/ })).toBeVisible()
+  await allowed.press('Tab')
+  await expect(editor.locator('.el-tag').filter({ hasText: 'other:cub' })).toBeVisible()
+  await expect(editor.locator('.el-tag').filter({ hasText: 'custom:fox' })).toBeVisible()
   await page.getByRole('button', { name: '保存并应用', exact: true }).click()
-  await expect(page.locator('.environment-workspace')).toContainText('@example/content')
+  await expect(editor).not.toBeVisible()
   await expect(page.locator('.environment-workspace')).not.toContainText('已移出的内容包')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: '编辑', exact: true }).click()
+  await editor.getByRole('tab', { name: '基础规则' }).click()
+  await expect(faintSwitch.getByRole('radio', { name: '关闭' })).toBeChecked()
   const workspace = page.locator('.environment-workspace')
   expect(await workspace.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
-  await page.screenshot({ path: testInfo.outputPath('environment-dependencies-mobile.png'), fullPage: true })
+  await editor.getByRole('tab', { name: '对战机制' }).click()
+  await expect(enhancement.getByRole('radio', { name: '启用阶段加成', exact: true })).toBeChecked()
+  for (const label of ['继承（禁止携带）', '禁止携带', '保留记录，本局不生效', '启用阶段加成']) {
+    const text = enhancement.getByText(label, { exact: true })
+    await expect(text).toBeVisible()
+    expect(
+      await text.evaluate(el => {
+        const range = document.createRange()
+        range.selectNodeContents(el)
+        const bounds = el.closest('[role="radiogroup"]')!.getBoundingClientRect()
+        return Array.from(range.getClientRects()).every(
+          rect => rect.width > 0 && rect.left >= bounds.left && rect.right <= Math.min(bounds.right + 1, innerWidth),
+        )
+      }),
+    ).toBe(true)
+  }
+  await editor
+    .getByRole('region', { name: '神魔化', exact: true })
+    .screenshot({ path: testInfo.outputPath('enhancement-mobile.png') })
+  await editor.getByRole('tab', { name: '内容限制' }).click()
+  await expect(editor.locator('.el-tag').filter({ hasText: 'other:cub' })).toBeVisible()
+  await allowed.fill('冰')
+  await page.getByRole('option', { name: '冰狼 · custom:wolf' }).click()
+  await expect(editor.locator('.el-tag').filter({ hasText: 'custom:wolf' })).toBeVisible()
+  await save.click()
+  await expect(editor).not.toBeVisible()
   await page.getByRole('button', { name: '打开导航', exact: true }).click()
   await page.getByRole('link', { name: '创作', exact: true }).click()
   await expect(page).toHaveURL(/\/creation$/)

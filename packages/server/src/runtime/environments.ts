@@ -1,10 +1,5 @@
-import {
-  prepareEnvironmentRules,
-  validateEnvironmentRules,
-  assertRuleContentReferences,
-} from '@arcadia-eternity/content-sdk/environment-rules'
+import { prepareRulesForContent, validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import { buildDisplayCatalog, buildDisplayLocales, gameplayIdentity } from '@arcadia-eternity/pack-loader/native'
-import { resolveSkillParameters, requireElementChart } from '@arcadia-eternity/const'
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
@@ -18,6 +13,7 @@ import { createServerRuntime, loadServerBase, type ServerRuntime } from './nativ
 
 interface Environment {
   runtime: ServerRuntime
+  data: PreparedNpmEnvironment['data']
   descriptor: ServerEnvironmentDescriptor
   content: ServerEnvironmentContent
   thirdParty?: boolean
@@ -198,6 +194,7 @@ export class ServerEnvironmentRegistry {
     }
     this.publish({
       runtime,
+      data: prepared.data,
       descriptor,
       content,
       ...options,
@@ -213,17 +210,7 @@ export class ServerEnvironmentRegistry {
   }
   /** Resolve admission against the same captured catalog that the room host will use. */
   prepareRules(runtimeId: string, declaration: unknown) {
-    const composition = prepareEnvironmentRules(declaration, this.entry(runtimeId).runtime.sandbox?.data.ruleSets)
-    const { rules } = composition
-    const catalog = this.content(runtimeId)
-    resolveSkillParameters(catalog.skillParameters ?? { groups: [], profiles: [], members: [] }, rules.skillParameters)
-    requireElementChart(catalog, rules.matchups)
-    const species = new Set(catalog.species.map(row => row.id))
-    const skills = new Set(catalog.skills.map(row => row.id))
-    const marks = new Set(catalog.marks.map(row => row.id))
-    const stages = new Set(catalog.enhancements?.map(row => row.id))
-    assertRuleContentReferences(rules, { species, skill: skills, mark: marks, stage: stages }, composition.fields)
-    return composition
+    return prepareRulesForContent(declaration, this.entry(runtimeId).data)
   }
   /** Atomically replace admission policy; removing publication never invalidates existing leases. */
   setPublication(entries: readonly EnvironmentPublication[], defaultRuntimeId?: string): void {

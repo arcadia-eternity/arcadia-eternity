@@ -1,3 +1,4 @@
+import { maxEquippedSkills, type SkillSlots } from '@arcadia-eternity/const'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 export interface TeamContentLookup {
@@ -69,6 +70,22 @@ export function findMissingTeamContent(
   return missing
 }
 
+export function categorySkillSlots(
+  skills: readonly string[],
+  policy: SkillSlots | undefined,
+  climax: boolean,
+  getSkill: (id: string) => { category: string } | undefined,
+) {
+  const equipped = skills.filter(id => {
+    const skill = getSkill(id)
+    return skill && (skill.category === 'Climax') === climax
+  })
+  if (!policy) return skills.length < maxEquippedSkills ? [...equipped, ''] : equipped
+  const limit = climax ? policy.climaxMax : policy.normalMax
+  // Keep slots that exceed a new format's limit visible until the player removes them.
+  return [...equipped, ...Array<string>(Math.max(0, limit - equipped.length)).fill('')]
+}
+
 /** Edit one recognized category while preserving unresolved skills and the other category. */
 export function replaceResolvedSkills(
   original: readonly string[],
@@ -86,6 +103,6 @@ export function replaceResolvedSkills(
     } else result.push(id)
   }
   result.push(...pending)
-  if (result.length > 5) throw new Error('未加载的技能仍占用槽位，请先明确移除或恢复缺失技能。')
+  if (result.length > maxEquippedSkills) throw new Error('未加载的技能仍占用槽位，请先明确移除或恢复缺失技能。')
   return result
 }

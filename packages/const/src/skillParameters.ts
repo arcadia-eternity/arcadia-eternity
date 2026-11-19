@@ -111,6 +111,17 @@ export function readSkillParameterCatalog(data: ParameterSource): SkillParameter
   return catalog
 }
 
+export function resolveSkillGroupValue(
+  id: string,
+  policy?: SkillParameterPolicy,
+  profile?: SkillParameterCatalog['profiles'][number],
+) {
+  const group = policy?.groups?.[id]
+  if (group !== undefined) return { value: group, source: 'group' as const }
+  const preset = profile?.groups[id]
+  if (preset !== undefined) return { value: preset, source: 'profile' as const }
+}
+
 export function resolveSkillParameters(catalog: SkillParameterCatalog, policy: SkillParameterPolicy = {}) {
   const groups = unique(catalog.groups, row => row.id)
   const profiles = unique(catalog.profiles, row => row.id)
@@ -134,16 +145,15 @@ export function resolveSkillParameters(catalog: SkillParameterCatalog, policy: S
     const group = member.group && groups.get(member.group)
     if (member.group && !group) throw new Error(key + ' 引用了未知参数组 ' + member.group)
     if (group) inRange(member.base, group, key)
-    const groupValue = group ? policy.groups?.[group.id] : undefined
-    const preset = group ? profile?.groups[group.id] : undefined
+    const groupValue = group ? resolveSkillGroupValue(group.id, policy, profile) : undefined
     const override = overrides.get(key)
-    const value = override?.value ?? groupValue ?? preset ?? member.base
+    const value = override?.value ?? groupValue?.value ?? member.base
     inRange(value, member, key)
     if (group) inRange(value, group, key)
     return {
       ...member,
       value,
-      source: override ? 'override' : groupValue !== undefined ? 'group' : preset !== undefined ? 'profile' : 'base',
+      source: override ? 'override' : (groupValue?.source ?? 'base'),
     }
   })
 }

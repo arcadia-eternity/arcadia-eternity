@@ -1,4 +1,4 @@
-import { teamConstraintIssues } from '@arcadia-eternity/const'
+import { resolveEnvironmentTeam, teamConstraintIssues } from '@arcadia-eternity/const'
 import { legacyNatures } from '@arcadia-eternity/const'
 import { PetSchema, parseWithErrors, type PetSchemaType } from '@arcadia-eternity/schema'
 import {
@@ -84,7 +84,7 @@ export function memberIssues(input: unknown, content?: Content): TeamIssue[] {
 }
 
 export function teamIssues(team: unknown, content?: Content): TeamIssue[] {
-  const { minSize = 1, maxSize = 6, uniqueSpecies } = content?.rules?.team ?? {}
+  const { minSize, maxSize, uniqueSpecies } = resolveEnvironmentTeam(content?.rules)
   if (!Array.isArray(team)) return [{ message: '队伍数据格式错误。' }]
   const issues: TeamIssue[] = []
   if (team.length < minSize || team.length > maxSize)

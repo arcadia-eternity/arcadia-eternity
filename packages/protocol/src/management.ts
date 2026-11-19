@@ -77,6 +77,7 @@ export interface ManagedReadyEnvironmentInstallation {
     ruleSets: { id: string; name: string; rules: ManagedEnvironmentDocument['rules'] }[]
   }
   skillParameters?: import('@arcadia-eternity/const').SkillParameterCatalog
+  contentCatalog?: Record<'species' | 'skills' | 'marks' | 'stages', { id: string; name?: string }[]>
   elementCatalog?: {
     elements: import('@arcadia-eternity/const').ElementDefinition[]
     matchupTables: import('@arcadia-eternity/const').MatchupTable[]

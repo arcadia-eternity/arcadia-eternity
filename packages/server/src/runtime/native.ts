@@ -16,6 +16,7 @@ import {
 } from '@arcadia-eternity/schema'
 import {
   assertPlayableTeam,
+  resolveEnvironmentMechanics,
   prepareEnvironmentRules,
   type validateEnvironmentRules,
 } from '@arcadia-eternity/content-sdk/environment-rules'
@@ -141,7 +142,7 @@ export async function createServerBattle(
     ...options,
     skillParameters: rules?.skillParameters,
     matchups: rules?.matchups,
-    enhancementActive: rules?.mechanics?.enhancement?.mode === 'active',
+    enhancementActive: resolveEnvironmentMechanics(rules).enhancement.mode === 'active',
     allowFaintSwitch: rules?.mechanics?.allowFaintSwitch ?? options?.allowFaintSwitch ?? true,
     timerConfig: options?.timerConfig && { ...options.timerConfig },
   }

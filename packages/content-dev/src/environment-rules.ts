@@ -1,8 +1,11 @@
-export { RuleCompositionError } from './rule-composition.ts'
+export { RuleCompositionError, resolveEnvironmentMechanics } from '@arcadia-eternity/const'
 import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import { readSkillParameterCatalog, resolveSkillParameters, requireElementChart } from '@arcadia-eternity/const'
-import { composeRuleSets, splitRuleDeclaration } from './rule-composition.ts'
+import { composeRuleSets } from './rule-composition.ts'
 import {
+  splitRuleDeclaration,
+  resolveEnvironmentMechanics,
+  resolveEnvironmentTeam,
   validateConstraintReferences,
   type RuleCollection,
   EnvironmentRulesSchema,
@@ -44,15 +47,6 @@ export function validateEnvironmentRules(input?: unknown): EnvironmentRules {
   return checkIVDefault(validateRuleFields(input))
 }
 
-/** Shared defaults for environments created before mechanics were configurable. */
-export function resolveEnvironmentMechanics(rules?: EnvironmentRules) {
-  const max = rules?.mechanics?.individualValues?.max ?? 31
-  return {
-    individualValues: { max, defaultValue: rules?.mechanics?.individualValueDefault ?? Math.min(31, max) },
-    allowFaintSwitch: rules?.mechanics?.allowFaintSwitch ?? true,
-  }
-}
-
 const capabilityFields = {
   'team.constraints.v1': (rules: EnvironmentRules) => rules.constraints?.length,
   'team.skill-slots.v1': (rules: EnvironmentRules) => rules.mechanics?.skillSlots,
@@ -83,7 +77,7 @@ export function assertEnvironmentRequirements(input?: unknown, host = currentHos
 /** Admission checks apply to normalized team definitions, before creating any battle. */
 export function assertEnvironmentTeam(input: unknown, team: unknown): void {
   const rules = validateEnvironmentRules(input)
-  const { minSize = 1, maxSize = 6, uniqueSpecies = false } = rules.team ?? {}
+  const { minSize, maxSize, uniqueSpecies } = resolveEnvironmentTeam(rules)
   if (!Array.isArray(team) || team.length < minSize || team.length > maxSize) fail('ENVIRONMENT_TEAM_REJECTED')
   for (const pet of team) assertEnvironmentMember(rules, pet)
   if (teamConstraintIssues(rules.constraints, team, 'team').length) fail('ENVIRONMENT_TEAM_REJECTED')
@@ -113,10 +107,9 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
   if ([petRecord.ability, petRecord.emblem].some(mark => mark !== undefined && mark !== '' && !identifier(mark)))
     fail('ENVIRONMENT_TEAM_REJECTED')
   if (petRecord.enhancement !== undefined) {
-    const policy = rules.mechanics?.enhancement
+    const policy = resolveEnvironmentMechanics(rules).enhancement
     if (
       !identifier(petRecord.enhancement) ||
-      !policy ||
       policy.mode === 'forbidden' ||
       (policy.species && !policy.species.includes(petRecord.species)) ||
       (policy.stages && !policy.stages.includes(petRecord.enhancement))
@@ -232,17 +225,12 @@ export function prepareRulesForContent(declaration: unknown, data: ContentProtot
   const { rules, fields } = composition
   resolveSkillParameters(readSkillParameterCatalog(data), rules.skillParameters)
   requireElementChart(data, rules.matchups)
+  assertRuleContentReferences(rules, indexRuleContent(data), fields)
+  return { rules, fields, ruleSets: composition.ruleSets, requiredCapabilities: composition.requiredCapabilities }
+}
+
+export function indexRuleContent(data: Pick<ContentPrototypeData, 'species' | 'skills' | 'marks' | 'enhancements'>) {
   const ids = (rows: readonly unknown[] = []) =>
     new Set(rows.flatMap(row => (isRecord(row) && typeof row.id === 'string' ? [row.id] : [])))
-  assertRuleContentReferences(
-    rules,
-    {
-      species: ids(data.species),
-      skill: ids(data.skills),
-      mark: ids(data.marks),
-      stage: ids(data.enhancements),
-    },
-    fields,
-  )
-  return composition
+  return { species: ids(data.species), skill: ids(data.skills), mark: ids(data.marks), stage: ids(data.enhancements) }
 }

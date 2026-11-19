@@ -234,7 +234,7 @@ import { gameplayName } from '@/i18n/environment'
 import { useGameDataStore } from '@/stores/gameData'
 import { ref, computed, watch } from 'vue'
 import { useTranslation } from 'i18next-vue'
-import { Element } from '@arcadia-eternity/const'
+import { Element, elementMultiplier } from '@arcadia-eternity/const'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 
 const { i18next } = useTranslation()
@@ -265,7 +265,7 @@ const selectedEffectiveness = ref<{
 
 // 获取效果值
 function getEffectiveness(attacking: Element, defending: Element): number {
-  return data.elementMultipliers[attacking]?.[defending] ?? 1
+  return elementMultiplier(data.elementMultipliers, attacking, defending)
 }
 
 // 获取效果颜色

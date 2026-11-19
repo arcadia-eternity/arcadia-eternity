@@ -722,6 +722,9 @@ importers:
       seer2-pet-animator:
         specifier: ^0.0.37
         version: 0.0.37
+      semver:
+        specifier: 7.8.6
+        version: 7.8.6
       sortablejs:
         specifier: ^1.15.7
         version: 1.15.7
@@ -759,6 +762,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
+      '@types/semver':
+        specifier: 7.8.0
+        version: 7.8.0
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.7(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.45(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))

@@ -880,7 +880,7 @@ import { useValidationStore } from '@/stores/validation'
 import { resolveLearnset, isEligible } from '@arcadia-eternity/content-sdk/environment-rules'
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
-import { defaultEditorSkillSlots, Gender } from '@arcadia-eternity/const'
+import { Gender, maxEquippedSkills } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
@@ -899,7 +899,7 @@ import { Box, Delete, InfoFilled, Plus, StarFilled, Top } from '@element-plus/ic
 import { ElMessage } from 'element-plus'
 import { useMobile } from '@/composition/useMobile'
 import { readLocalData, writeLocalData } from '@/services/localStorage'
-import { findMissingTeamContent, replaceResolvedSkills } from '@/utils/teamContent'
+import { categorySkillSlots, findMissingTeamContent, replaceResolvedSkills } from '@/utils/teamContent'
 
 const { i18next } = useTranslation()
 
@@ -1065,17 +1065,11 @@ const genderChineseMap: Record<Gender, string> = {
 const getEnhancementName = (id: string) => gameplayName('enhancement', id, gameDataStore.getEnhancement(id)?.name)
 const getNatureName = (id: string) => gameplayName('nature', id, gameDataStore.getNature(id)?.name)
 
-const skillSlots = computed(() => gameDataStore.rules?.mechanics?.skillSlots ?? defaultEditorSkillSlots)
+const skillSlots = computed(() => gameDataStore.rules?.mechanics?.skillSlots)
 function categorySlots(climax: boolean) {
-  return computed(() => {
-    const limit = climax ? skillSlots.value.climaxMax : skillSlots.value.normalMax
-    const equipped = (selectedPet.value?.skills ?? []).filter(id => {
-      const skill = gameDataStore.getSkill(id)
-      return skill && (skill.category === 'Climax') === climax
-    })
-    // A smaller target format must leave every occupied slot visible and removable.
-    return [...equipped, ...Array<string>(Math.max(0, limit - equipped.length)).fill('')]
-  })
+  return computed(() =>
+    categorySkillSlots(selectedPet.value?.skills ?? [], skillSlots.value, climax, gameDataStore.getSkill),
+  )
 }
 const displayedNormalSkills = categorySlots(false)
 const displayedClimaxSkills = categorySlots(true)
@@ -1238,15 +1232,15 @@ const skillGroups = computed(() => [
     climax: false,
     slots: displayedNormalSkills.value,
     min: 0,
-    max: skillSlots.value.normalMax,
+    max: skillSlots.value?.normalMax ?? maxEquippedSkills,
     available: filteredSkills.value.some(skill => skill.category !== 'Climax'),
   },
   {
     name: '必杀技能',
     climax: true,
     slots: displayedClimaxSkills.value,
-    min: skillSlots.value.climaxMin ?? 0,
-    max: skillSlots.value.climaxMax,
+    min: skillSlots.value?.climaxMin ?? 0,
+    max: skillSlots.value?.climaxMax ?? maxEquippedSkills,
     available: filteredSkills.value.some(skill => skill.category === 'Climax'),
   },
 ])

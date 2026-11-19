@@ -202,6 +202,7 @@ it('continues publishing the loaded rules until a replacement runtime loads succ
     await f.prepare(next.revision)
     expect(failure).toHaveBeenCalled()
     const installed = await f.workspace.getInstallation('shared')
+    expect(installed.contentCatalog?.species).toContainEqual(expect.objectContaining({ id: 'pet_dilan' }))
     expect(installed.document.name).toBe('New room rules')
     expect(installed.document.rules.include).toEqual(['base:classic'])
     expect(installed.ruleComposition?.rules.mechanics?.secondGenerationNatures).toBe('species')

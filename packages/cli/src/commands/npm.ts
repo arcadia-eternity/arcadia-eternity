@@ -8,6 +8,8 @@ import type { CommandContext } from '../context'
 import { CliError } from '../reporting/errors'
 import { writeJson } from '../io/files'
 
+type StageOptions = { package?: string[]; ruleSets?: boolean; offline?: boolean; json?: boolean }
+
 const exec = promisify(execFile)
 
 export function registerNpmCommands(content: Command, context: CommandContext) {
@@ -19,10 +21,11 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
     .command('stage')
     .description('Install a package source into a fresh host-owned project without running lifecycle scripts')
     .argument('<directory>')
+    .option('--rule-sets', 'Include linked rule declarations in the inspection')
     .option('--package <source...>', 'Exact npm package versions or host-selected local tarballs')
     .option('--offline', 'Use only already cached npm artifacts')
     .option('--json', 'JSON output')
-    .action(async (directory: string, options: { package?: string[]; offline?: boolean; json?: boolean }) => {
+    .action(async (directory: string, options: StageOptions) => {
       const cwd = resolve(context.cwd, directory)
       try {
         await lstat(resolve(cwd, 'node_modules'))
@@ -51,7 +54,7 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
         windowsHide: true,
       })
       await mkdir(resolve(cwd, 'node_modules'), { recursive: true })
-      const result = await inspectNpmProject(cwd)
+      const result = await inspectNpmProject(cwd, { includeRuleSets: options.ruleSets })
       await report(result, !!options.json, `Prepared ${result.packages.length} packages; code has not been admitted.`)
     })
   npm
@@ -94,10 +97,11 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
     })
   npm
     .command('inspect')
+    .option('--rule-sets', 'Include linked rule declarations in the inspection')
     .argument('<directory>')
     .option('--json', 'JSON output')
-    .action(async (directory: string, options: { json?: boolean }) => {
-      const result = await inspectNpmProject(resolve(context.cwd, directory))
+    .action(async (directory: string, options: { json?: boolean; ruleSets?: boolean }) => {
+      const result = await inspectNpmProject(resolve(context.cwd, directory), { includeRuleSets: options.ruleSets })
       await report(
         result,
         !!options.json,

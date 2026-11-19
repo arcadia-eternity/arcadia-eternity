@@ -14,9 +14,10 @@ import {
   type Json,
   type WorkDraft,
 } from '../works/model'
-import { verifyAssets } from '../works/compiler'
+import { linkWorkRuleSets, verifyAssets } from '../works/compiler'
 import { PresentationManifestSchema, parseWithErrors, type PresentationManifest } from '@arcadia-eternity/schema'
 import { effectSdkApiVersion } from '@arcadia-eternity/battle/authoring'
+import { readEnvironmentRuleSets } from '@arcadia-eternity/const'
 import { resolveNpmInvocation } from './runner'
 
 const exec = promisify(execFile)
@@ -65,6 +66,7 @@ export interface NpmProjectInspection {
   digest: string
   /** Audit identity of npm's source/solver record, not a replacement for tarball integrity. */
   lockfileDigest: string
+  ruleSets?: ReturnType<typeof readEnvironmentRuleSets>
   members: readonly NpmContentMember[]
   packages: readonly InstalledNpmPackage[]
 }
@@ -176,7 +178,10 @@ function readManifest(value: unknown): NpmContentManifest {
 }
 
 /** npm owns semver/peer resolution. This command only reads its installed tree; it never runs lifecycle scripts. */
-export async function inspectNpmProject(directory: string): Promise<NpmProjectInspection> {
+export async function inspectNpmProject(
+  directory: string,
+  options: { includeRuleSets?: boolean } = {},
+): Promise<NpmProjectInspection> {
   const root = await realpath(directory)
   let lock: Record<string, Json>
   try {
@@ -262,6 +267,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
   }
   for (const [name, child] of Object.entries(tree.dependencies ?? {})) await visit(child, root, name)
   await checkInstalledDirectories(root, nodes)
+  const ruleSets: unknown[] = []
   const packages: InstalledNpmPackage[] = []
   const contentNames = new Set<string>()
   const projects = new Map<string, string>(),
@@ -315,6 +321,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
         fail('NPM_METADATA', 'arcadia.content', 'Expected a catalog content file')
       const content = await jsonFile(packageFile(dir, manifest.content))
       const data = record(content.data, 'content.data')
+      if (options.includeRuleSets && Array.isArray(data.ruleSets)) ruleSets.push(...data.ruleSets)
       entry.catalogIds = { species: [], skills: [], marks: [] }
       for (const kind of ['species', 'skills', 'marks'] as const) {
         const rows = data[kind]
@@ -416,11 +423,21 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       .filter(other => other.dependencies.includes(member.name))
       .map(other => other.name)
       .sort()
+  if (options.includeRuleSets) {
+    const namespaces = new Map(members.map(member => [member.name, member.namespace]))
+    for (const pkg of packages) {
+      if (!pkg.draft) continue
+      const work = pkg.draft
+      const dependencies = members.find(member => member.name === pkg.name)!.dependencies
+      ruleSets.push(...linkWorkRuleSets(work, new Set(dependencies.map(name => namespaces.get(name)!))))
+    }
+  }
   const identity = packages.map(({ integrity: _integrity, dependencyRanges: _ranges, ...pkg }) => pkg)
   return freeze({
     format: 'arcadia.npm-installation',
     version: 1,
     digest: await digestJson(identity),
+    ...(options.includeRuleSets && { ruleSets: readEnvironmentRuleSets(ruleSets) }),
     lockfileDigest: createHash('sha256').update(canonical(lock)).digest('hex'),
     packages,
     members,

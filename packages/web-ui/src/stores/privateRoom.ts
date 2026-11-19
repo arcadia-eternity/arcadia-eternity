@@ -5,7 +5,13 @@ import { useBattleClientStore } from './battleClient'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
 import { usePetStorageStore } from './petStorage'
-import { DEFAULT_TIMER_CONFIG, BattleMessageType, type BattleState, type playerId } from '@arcadia-eternity/const'
+import {
+  resolveEnvironmentMechanics,
+  DEFAULT_TIMER_CONFIG,
+  BattleMessageType,
+  type BattleState,
+  type playerId,
+} from '@arcadia-eternity/const'
 import type {
   CreatePrivateRoomRequest,
   PrivateRoomBattleStartInfo,
@@ -1178,8 +1184,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
                   ),
                 ),
                 enhancementActive:
-                  (currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules)?.mechanics
-                    ?.enhancement?.mode === 'active',
+                  resolveEnvironmentMechanics(
+                    currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules,
+                  ).enhancement.mode === 'active',
                 allowFaintSwitch: currentRoom.value!.config.allowFaintSwitch ?? true,
                 showHidden: currentRoom.value!.config.showHidden ?? false,
                 timerConfig,

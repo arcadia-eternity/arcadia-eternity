@@ -1,4 +1,4 @@
-import { Gender } from '@arcadia-eternity/const'
+import { Gender, maxEquippedSkills } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 
@@ -39,7 +39,7 @@ export const PetSchema = z.object({
   weight: z.number().optional(),
   enhancement: z.string().min(1).max(256).optional(),
   inheritedSkill: z.string().min(1).max(256).optional(),
-  skills: z.array(z.string()).min(0).max(5),
+  skills: z.array(z.string()).min(0).max(maxEquippedSkills),
   maxHp: z.number().int().positive().optional(),
   ability: z.string().optional(),
   emblem: z.string().optional(),
