@@ -19,7 +19,7 @@ import type {
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ContentPackagesPanel from './ContentPackagesPanel.vue'
+import ContentProjectsPanel from './ContentProjectsPanel.vue'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import type { InstalledContentPackage } from '@/types/contentPackages'
 import { useGameDataStore } from '@/stores/gameData'
@@ -31,7 +31,12 @@ const route = useRoute()
 const router = useRouter()
 const library = createLocalContentLibraryClient(window.arcadiaDesktop)
 const materials = ref<InstalledContentPackage[]>([])
-const materialsOpen = ref(false)
+const materialsOpen = computed({
+  get: () => route.query.panel === 'packages',
+  set: open => {
+    void router.replace({ query: { ...route.query, panel: open ? 'packages' : undefined } })
+  },
+})
 const candidate = ref<InstalledContentPackage>()
 const pendingPackage = ref<InstalledContentPackage>()
 const packageEnvironmentId = ref('')
@@ -65,6 +70,7 @@ function useCandidate() {
   pendingPackage.value = { ...candidate.value }
 }
 const gameData = useGameDataStore()
+const canAuthor = !!window.arcadiaDesktop?.author
 const canImportSources = !!window.arcadiaDesktop?.contentPackageAction
 interface Job {
   id: string
@@ -387,6 +393,7 @@ onBeforeUnmount(() => {
         <ElButton v-if="library" :disabled="busy" @click="importPackage">从文件加入内容包</ElButton>
       </template>
       <template #toolbar>
+        <ElButton v-if="library || canAuthor" @click="materialsOpen = true">内容包与创作</ElButton>
         <ElButton @click="tasksOpen = true">任务{{ activeTasks ? `（${activeTasks}）` : '' }}</ElButton>
         <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>
       </template>
@@ -422,7 +429,6 @@ onBeforeUnmount(() => {
     <details class="source-settings">
       <summary>内容来源</summary>
       <ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
-      <ElButton v-if="library" @click="materialsOpen = true">本机材料</ElButton>
       <ElButton v-if="canImportSources" :disabled="busy" @click="importSources">导入来源配置</ElButton>
     </details>
     <section v-if="references" class="panel" aria-label="本地版本引用">
@@ -433,12 +439,12 @@ onBeforeUnmount(() => {
     </section>
     <ElDrawer
       v-model="materialsOpen"
-      title="本机材料"
+      title="内容包与创作"
       size="min(1000px, 100vw)"
       append-to-body
       @closed="refreshMaterials"
     >
-      <ContentPackagesPanel v-if="materialsOpen" location="local" />
+      <ContentProjectsPanel v-if="materialsOpen" />
     </ElDrawer>
     <ElDrawer v-model="tasksOpen" title="环境任务" size="min(680px, 100vw)" append-to-body
       ><section class="panel" aria-label="本地环境任务">

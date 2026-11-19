@@ -1,23 +1,21 @@
 <script setup lang="ts">
 import '@/features/management/managementStyles'
-import { ElButton, ElInput, ElDialog, ElForm, ElFormItem, ElSkeleton, ElEmpty, ElAlert } from 'element-plus'
+import { ElButton, ElInput, ElDialog, ElForm, ElFormItem, ElAlert } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
+import ContentPackagesPanel from './ContentPackagesPanel.vue'
 import { useRouter } from 'vue-router'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
 import { useNewPackageRange } from '@/features/authoring/useNewPackageRange'
 const { arcadiaRange, defaultRange, rangeError } = useNewPackageRange()
 const router = useRouter()
 const projects = ref<SourceProject[]>([])
-const query = ref('')
 const name = ref('')
 const creating = ref(false)
 const busy = ref(false)
 const initialized = ref(false)
 const error = ref('')
 const canAuthor = !!window.arcadiaDesktop?.author
-const visible = computed(() =>
-  projects.value.filter(project => !project.readOnly && project.name.toLowerCase().includes(query.value.toLowerCase())),
-)
+const editable = computed(() => projects.value.filter(project => !project.readOnly))
 async function run(action: () => Promise<void>) {
   if (busy.value) return
   busy.value = true
@@ -70,38 +68,37 @@ onMounted(() => {
 </script>
 <template>
   <section class="projects" aria-label="UGC 项目" :aria-busy="busy">
-    <header>
-      <ElInput v-model="query" clearable aria-label="搜索项目" placeholder="搜索项目" class="search" />
-      <div v-if="canAuthor" class="actions">
-        <ElButton :disabled="busy" @click="choose">打开项目文件夹</ElButton>
-        <ElButton type="primary" :disabled="busy" @click="creating = true">新建内容包</ElButton>
-      </div>
-    </header>
-    <ElAlert v-if="!canAuthor" title="编辑项目需要桌面客户端。" type="info" :closable="false" />
     <ElAlert v-if="error" :title="error" type="error" :closable="false" role="alert" />
-    <ElSkeleton v-if="!initialized" :rows="4" animated aria-label="正在加载项目" />
-    <template v-else>
-      <ul v-if="visible.length">
-        <li v-for="project in visible" :key="project.id">
-          <ElButton class="project" text :disabled="busy" @click="open(project)">{{ project.name }}</ElButton>
-          <div class="actions">
-            <ElButton
-              :disabled="busy"
-              @click="
-                run(async () => {
-                  await authorCall({ action: 'export', id: project.id })
-                })
-              "
-              >导出源码</ElButton
-            >
-            <ElButton text :disabled="busy" title="保留源文件" @click="forget(project)">从列表移除</ElButton>
-          </div>
-        </li>
-      </ul>
-      <ElEmpty v-else-if="canAuthor && !error" :description="query ? '无匹配项目' : '暂无项目'" :image-size="72" />
-    </template>
+    <ContentPackagesPanel
+      location="local"
+      :projects="editable"
+      :projects-loading="!initialized"
+      @refresh-projects="canAuthor && run(refresh)"
+    >
+      <template v-if="canAuthor" #toolbar>
+        <ElButton type="primary" :disabled="busy" @click="creating = true">新建内容包</ElButton>
+        <ElButton :disabled="busy" @click="choose">打开项目文件夹</ElButton>
+      </template>
+      <template #project-detail="{ project }">
+        <p class="project-path">{{ project.directory }}</p>
+        <div class="project-actions">
+          <ElButton type="primary" :disabled="busy" @click="open(project)">编辑项目</ElButton>
+          <ElButton
+            :disabled="busy"
+            @click="
+              run(async () => {
+                await authorCall({ action: 'export', id: project.id })
+              })
+            "
+            >导出源码</ElButton
+          >
+          <ElButton text :disabled="busy" title="保留源文件" @click="forget(project)">从列表移除</ElButton>
+        </div>
+      </template>
+    </ContentPackagesPanel>
     <ElDialog
       v-model="creating"
+      append-to-body
       title="新建内容包"
       @closed="arcadiaRange = defaultRange"
       width="min(440px, calc(100vw - 32px))"
@@ -125,66 +122,20 @@ onMounted(() => {
   </section>
 </template>
 <style scoped>
-.projects {
-  padding: 8px 20px 24px;
+.project-path {
+  overflow-wrap: anywhere;
+  margin-block: 8px;
 }
-header,
-li,
-.actions,
+.project-actions,
 .dialog-actions {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
-header {
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-.search {
-  width: 280px;
-  max-width: 100%;
-}
-.actions {
-  flex-wrap: wrap;
-}
-.actions :deep(.el-button) {
-  margin-left: 0;
-}
-ul {
-  padding: 0;
-  list-style: none;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  background: var(--el-bg-color);
-  overflow: hidden;
-}
-li {
-  padding: 12px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--el-border-color-light);
-}
-li:last-child {
-  border-bottom: 0;
-}
-.project {
-  flex: 1;
-  min-width: 140px;
-  justify-content: flex-start;
-  font-weight: 600;
+.project-actions :deep(.el-button) {
+  margin: 0;
 }
 .dialog-actions {
   justify-content: flex-end;
-}
-@media (max-width: 600px) {
-  .search {
-    width: 100%;
-  }
-  li {
-    align-items: flex-start;
-  }
-  .project {
-    flex-basis: 100%;
-  }
 }
 </style>

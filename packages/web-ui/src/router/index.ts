@@ -45,7 +45,9 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/creation',
     name: 'Creation',
-    component: isDesktop ? () => import('@/features/content/CreationPage.vue') : LocalContentOnlyPage,
+    ...(isDesktop
+      ? { redirect: { name: 'Environments', query: { target: 'local', panel: 'packages' } } }
+      : { component: LocalContentOnlyPage }),
     meta: { title: '创作' },
   },
   {

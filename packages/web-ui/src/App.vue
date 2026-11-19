@@ -93,7 +93,6 @@
             >管理后台</el-button
           >
           <el-button @click="router.push('/environments')">环境</el-button>
-          <el-button v-if="isDesktop" @click="router.push('/creation')">创作</el-button>
           <!-- 房间状态显示 -->
           <el-button
             v-if="!isStaticMode && privateRoomStore.currentRoom"
@@ -196,13 +195,6 @@
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600"
             >环境</router-link
-          >
-          <router-link
-            v-if="isDesktop"
-            to="/creation"
-            @click="showMobileMenu = false"
-            class="flex items-center gap-4 px-6 py-4 text-gray-600"
-            >创作</router-link
           >
           <router-link
             to="/local-battle-reports"
@@ -480,7 +472,7 @@ import { createAppBootstrap } from '@/app/bootstrap'
 import { connectAndResumeOnlineRoom } from '@/app/onlineSession'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { isStaticMode, isDesktop } from '@/utils/env'
+import { isStaticMode } from '@/utils/env'
 import LocalServerStatus from '@/features/servers/LocalServerStatus.vue'
 import { localStorageUnavailable } from '@/services/localStorage'
 import { profileStatus, profileFailure, profileSwitching } from '@/services/profile'

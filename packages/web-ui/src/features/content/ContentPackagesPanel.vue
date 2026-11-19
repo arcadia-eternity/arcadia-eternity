@@ -25,19 +25,26 @@ interface PackageView {
   id: string
   name: string
   title: string
-  version: string
+  version?: string
   namespace?: string
-  author: string
-  description: string
+  author?: string
+  description?: string
   source: string
   counts?: { species: number; skills: number; marks: number }
   graph?: PackageGraphEntry[]
-  contentIds: ContentIds
+  contentIds?: ContentIds
   builtin?: boolean
+  project?: SourceProject
   local?: InstalledContentPackage
   error?: string
 }
-const props = defineProps<{ location?: 'local' | 'server' | 'room' }>()
+const props = defineProps<{
+  location?: 'local' | 'server' | 'room'
+  projects?: SourceProject[]
+  projectsLoading?: boolean
+}>()
+const emit = defineEmits<{ refreshProjects: [] }>()
+const filter = ref<'all' | 'projects' | 'installed' | 'issues'>('all')
 const router = useRouter()
 const canAuthor = (!props.location || props.location === 'local') && !!window.arcadiaDesktop?.author
 async function openSource(project: SourceProject) {
@@ -60,7 +67,7 @@ const mode = ref<'installed' | 'issues' | 'server' | 'room'>(
     ? 'server'
     : props.location === 'room'
       ? 'room'
-      : local
+      : local || props.location === 'local'
         ? 'installed'
         : room.value
           ? 'room'
@@ -141,7 +148,14 @@ const packages = computed<PackageView[]>(() => {
           : undefined,
       }
     })
-  return (snapshot.value?.packages ?? []).map(pkg => ({
+  const sources: PackageView[] = (props.projects ?? []).map(project => ({
+    id: 'project:' + project.id,
+    name: project.name,
+    title: project.name,
+    source: project.directory,
+    project,
+  }))
+  const installed = (snapshot.value?.packages ?? []).map(pkg => ({
     id: pkg.id,
     name: pkg.name,
     title: pkg.title,
@@ -157,6 +171,7 @@ const packages = computed<PackageView[]>(() => {
     local: pkg,
     error: pkg.error,
   }))
+  return [...sources, ...installed]
 })
 const tasksOpen = ref(false)
 const installLabels: Record<string, string> = {
@@ -174,13 +189,17 @@ async function installTaskAction(action: 'cancel-install' | 'retry-install' | 'c
     error.value = cause instanceof Error ? cause.message : '任务操作失败'
   }
 }
-const selected = computed(() => packages.value.find(pkg => pkg.id === selectedId.value) ?? packages.value[0])
 const visiblePackages = computed(() =>
   packages.value.filter(
     pkg =>
-      (mode.value !== 'issues' || !!pkg.error) &&
-      (pkg.title + pkg.name + pkg.author).toLowerCase().includes(query.value.toLowerCase()),
+      (filter.value !== 'projects' || !!pkg.project) &&
+      (filter.value !== 'installed' || !!pkg.local) &&
+      ((mode.value !== 'issues' && filter.value !== 'issues') || !!pkg.error) &&
+      [pkg.title, pkg.name, pkg.author].join(' ').toLowerCase().includes(query.value.toLowerCase()),
   ),
+)
+const selected = computed(
+  () => visiblePackages.value.find(pkg => pkg.id === selectedId.value) ?? visiblePackages.value[0],
 )
 const issueCount = computed(() => snapshot.value?.packages.filter(pkg => pkg.error).length ?? 0)
 const proposedLookup = computed<TeamContentLookup>(() => {
@@ -207,7 +226,7 @@ const proposedLookup = computed<TeamContentLookup>(() => {
   }
 })
 const relatedTeams = computed(() => {
-  if (!selected.value) return []
+  if (!selected.value?.contentIds) return []
   const ids = new Set(Object.values(selected.value.contentIds).flat())
   return pets.teams
     .filter(team =>
@@ -237,6 +256,10 @@ async function refresh() {
   const result = await libraryClient!.list()
   if (disposed || request !== refreshRequest) return
   snapshot.value = result
+}
+function refreshLists() {
+  emit('refreshProjects')
+  void run(refresh)
 }
 async function poll() {
   try {
@@ -269,6 +292,8 @@ async function installSource(source: () => Promise<string | null>) {
     if (!id || disposed) return
     await refresh()
     adding.value = false
+    filter.value = 'all'
+    query.value = ''
     selectedId.value = id
     detailOpen.value = true
     notice.value = '内容包已安装。'
@@ -363,7 +388,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     class="content-page"
-    :class="{ 'detail-open': detailOpen, 'remote-packages': props.location && props.location !== 'local' }"
+    :class="{ 'detail-open': detailOpen && selected, 'remote-packages': props.location && props.location !== 'local' }"
   >
     <span v-if="readonly" class="scope">只读</span>
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
@@ -371,11 +396,20 @@ onBeforeUnmount(() => {
     <div class="workspace">
       <section class="package-workspace" aria-label="内容包管理">
         <div class="toolbar">
-          <nav v-if="!props.location || props.location === 'local'" class="task-nav" aria-label="内容包导航">
+          <label v-if="projects" class="package-filter"
+            >类型
+            <select v-model="filter" aria-label="内容包类型" @change="detailOpen = false">
+              <option value="all">全部</option>
+              <option value="projects">创作包</option>
+              <option value="installed">本地包</option>
+              <option v-if="issueCount || filter === 'issues'" value="issues">需处理</option>
+            </select>
+          </label>
+          <nav v-else-if="!props.location || props.location === 'local'" class="task-nav" aria-label="内容包导航">
             <template v-if="local && (!props.location || props.location === 'local')"
               ><p class="nav-label">本机内容包</p>
               <button :aria-current="mode === 'installed' ? 'page' : undefined" @click="changeMode('installed')">
-                本机内容 <span>{{ snapshot?.packages.length ?? 0 }}</span></button
+                全部 <span>{{ snapshot?.packages.length ?? 0 }}</span></button
               ><button :aria-current="mode === 'issues' ? 'page' : undefined" @click="changeMode('issues')">
                 需处理 <span>{{ issueCount }}</span>
               </button>
@@ -398,9 +432,12 @@ onBeforeUnmount(() => {
             type="search"
             aria-label="搜索内容包"
             placeholder="搜索内容包名称或作者"
-          /><template v-if="!readonly"
-            ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
-            ><button :disabled="busy" @click="run(() => refresh())">刷新</button>
+          />
+          <slot name="toolbar" />
+          <template v-if="local && !readonly"
+            ><button class="primary" :disabled="busy" @click="adding = true">
+              {{ projects ? '安装内容包' : '添加内容包' }}</button
+            ><button :disabled="busy" @click="refreshLists">刷新</button>
             <button @click="tasksOpen = true">
               下载与安装
               {{ snapshot?.operations?.filter(job => ['queued', 'running'].includes(job.status)).length || '' }}
@@ -428,7 +465,11 @@ onBeforeUnmount(() => {
         <p v-if="readonly && remoteError" class="message error" role="alert">{{ remoteError }}</p>
         <div class="columns">
           <div class="package-list">
-            <p v-if="loading || (readonly && (serverLoading || remoteLoading))" class="list-note" role="status">
+            <p
+              v-if="projectsLoading || loading || (readonly && (serverLoading || remoteLoading))"
+              class="list-note"
+              role="status"
+            >
               正在读取内容包…
             </p>
             <div
@@ -446,16 +487,24 @@ onBeforeUnmount(() => {
                   pkg.builtin ? 'AE' : pkg.title.replace(/^@/, '').slice(0, 1).toUpperCase()
                 }}</span
                 ><span class="package-title"
-                  >{{ pkg.title }}<small>{{ pkg.version }}{{ pkg.author ? ' · ' + pkg.author : '' }}</small></span
+                  >{{ pkg.title
+                  }}<small v-if="pkg.version">{{ pkg.version }}{{ pkg.author ? ' · ' + pkg.author : '' }}</small></span
                 >
               </button>
               <div class="row-status">
+                <span v-if="projects" class="tag">{{ pkg.project ? '创作包' : '本地包' }}</span>
                 <span v-if="pkg.builtin" class="tag">内置</span><span v-else-if="readonly" class="tag">服务器提供</span
-                ><span v-else class="tag">已安装</span><span v-if="pkg.error" class="problem">安装不可用</span>
+                ><span v-else-if="!projects" class="tag">已安装</span
+                ><span v-if="pkg.error" class="problem">安装不可用</span>
               </div>
             </div>
             <p
-              v-if="!visiblePackages.length && !loading && (!readonly || (remoteEnvironment && !remoteLoading))"
+              v-if="
+                !visiblePackages.length &&
+                !projectsLoading &&
+                !loading &&
+                (!readonly || (remoteEnvironment && !remoteLoading))
+              "
               class="list-note"
             >
               没有符合条件的内容包。
@@ -464,87 +513,97 @@ onBeforeUnmount(() => {
           <aside v-if="selected" class="package-detail" aria-label="内容包详情">
             <button class="back" @click="detailOpen = false">返回内容包列表</button>
             <h2>{{ selected.title }}</h2>
-            <p class="detail-subtitle">
-              {{ selected.version }} ·
-              {{ readonly ? (mode === 'room' ? '本局固定版本' : '服务器已发布版本') : '已安装' }}
-            </p>
-            <button v-if="canAuthor && !readonly" class="primary" :disabled="busy" @click="browsePackage(selected.id)">
-              浏览内容（只读）
-            </button>
-            <ElTabs v-model="detailTab" aria-label="包详情">
-              <ElTabPane label="简介" name="overview"
-                ><p v-if="selected.description">{{ selected.description }}</p>
-                <p v-if="selected.counts" class="detail-subtitle">
-                  {{ selected.counts.species }} 只精灵 · {{ selected.counts.skills }} 个技能 ·
-                  {{ selected.counts.marks }} 个印记
-                </p>
-                <dl>
-                  <template v-if="selected.local?.license"
-                    ><dt>许可证</dt>
-                    <dd>{{ selected.local.license }}</dd></template
-                  >
-                  <template v-if="selected.local?.installedAt"
-                    ><dt>安装时间</dt>
-                    <dd>{{ new Date(selected.local.installedAt).toLocaleString() }}</dd></template
-                  >
-                  <template v-for="(range, engine) in selected.local?.engines" :key="engine"
-                    ><dt>{{ engine }} 兼容范围</dt>
-                    <dd>{{ range }}</dd></template
-                  >
-                  <dt>来源</dt>
-                  <dd>{{ selected.source }}</dd>
-                  <template v-if="selected.author"
-                    ><dt>作者</dt>
-                    <dd>{{ selected.author }}</dd></template
-                  >
-                </dl>
-                <p v-if="selected.error" class="problem">{{ selected.error }}</p>
-                <details>
-                  <summary>包标识与版本信息</summary>
-                  <p>{{ selected.name }} {{ selected.version }}</p>
-                  <p v-if="selected.namespace">命名空间：{{ selected.namespace }}</p>
-                </details>
-                <div v-if="!readonly && selected.local && !selected.builtin" class="detail-actions">
-                  <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
-                  ><button :disabled="busy" @click="uninstall">卸载此版本</button>
-                </div>
-              </ElTabPane>
-              <ElTabPane label="依赖" name="dependencies"
-                ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
-                <template v-else-if="selected.graph"
-                  ><p class="detail-subtitle">安装时的内容包及依赖</p>
-                  <p v-for="(range, name) in selected.local?.dependencyRanges" :key="name">{{ name }}：{{ range }}</p>
-                  <ul class="dependencies">
-                    <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
-                      <strong>{{ dependency.name }}</strong> {{ dependency.version
-                      }}<small v-if="dependency.namespace">内容命名空间：{{ dependency.namespace }}</small>
-                      <details v-if="Object.keys(dependency.dependencies).length">
-                        <summary>所需依赖</summary>
-                        <p v-for="(version, name) in dependency.dependencies" :key="name">{{ name }} {{ version }}</p>
-                      </details>
-                    </li>
-                  </ul></template
-                >
-                <p v-else>服务器未提供依赖清单。</p></ElTabPane
+            <slot v-if="selected.project" name="project-detail" :project="selected.project" />
+            <template v-else>
+              <p class="detail-subtitle">
+                {{ selected.version }} ·
+                {{ readonly ? (mode === 'room' ? '本局固定版本' : '服务器已发布版本') : '已安装' }}
+              </p>
+              <button
+                v-if="canAuthor && !readonly"
+                class="primary"
+                :disabled="busy"
+                @click="browsePackage(selected.id)"
               >
-              <ElTabPane label="队伍影响" name="impact"
-                ><p v-if="readonly && remoteLoading">正在读取环境内容…</p>
-                <p v-else-if="readonly && remoteError" class="problem">环境内容尚未读取成功，暂时无法检查队伍引用。</p>
-                <p v-else-if="!gameData.loaded && !remoteContent">正在读取基础内容…</p>
-                <p v-else-if="!relatedTeams.length">暂无队伍引用此包的内容。</p>
-                <ul v-else class="team-impact">
-                  <li v-for="(team, index) in relatedTeams" :key="index">
-                    <strong>{{ team.name }}</strong
-                    ><span class="tag" :class="{ warning: team.missing.length }">{{
-                      team.missing.length ? '存在不可用引用' : '内容引用齐全'
-                    }}</span>
-                    <ul v-if="team.missing.length">
-                      <li v-for="(item, itemIndex) in team.missing" :key="itemIndex">{{ item.message }}</li>
-                    </ul>
-                  </li>
-                </ul>
-              </ElTabPane>
-            </ElTabs>
+                浏览内容（只读）
+              </button>
+              <ElTabs v-model="detailTab" aria-label="包详情">
+                <ElTabPane label="简介" name="overview"
+                  ><p v-if="selected.description">{{ selected.description }}</p>
+                  <p v-if="selected.counts" class="detail-subtitle">
+                    {{ selected.counts.species }} 只精灵 · {{ selected.counts.skills }} 个技能 ·
+                    {{ selected.counts.marks }} 个印记
+                  </p>
+                  <dl>
+                    <template v-if="selected.local?.license"
+                      ><dt>许可证</dt>
+                      <dd>{{ selected.local.license }}</dd></template
+                    >
+                    <template v-if="selected.local?.installedAt"
+                      ><dt>安装时间</dt>
+                      <dd>{{ new Date(selected.local.installedAt).toLocaleString() }}</dd></template
+                    >
+                    <template v-for="(range, engine) in selected.local?.engines" :key="engine"
+                      ><dt>{{ engine }} 兼容范围</dt>
+                      <dd>{{ range }}</dd></template
+                    >
+                    <dt>来源</dt>
+                    <dd>{{ selected.source }}</dd>
+                    <template v-if="selected.author"
+                      ><dt>作者</dt>
+                      <dd>{{ selected.author }}</dd></template
+                    >
+                  </dl>
+                  <p v-if="selected.error" class="problem">{{ selected.error }}</p>
+                  <details>
+                    <summary>包标识与版本信息</summary>
+                    <p>{{ selected.name }} {{ selected.version }}</p>
+                    <p v-if="selected.namespace">命名空间：{{ selected.namespace }}</p>
+                  </details>
+                  <div v-if="!readonly && selected.local && !selected.builtin" class="detail-actions">
+                    <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
+                    ><button :disabled="busy" @click="uninstall">卸载此版本</button>
+                  </div>
+                </ElTabPane>
+                <ElTabPane label="依赖" name="dependencies"
+                  ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
+                  <template v-else-if="selected.graph"
+                    ><p class="detail-subtitle">安装时的内容包及依赖</p>
+                    <p v-for="(range, name) in selected.local?.dependencyRanges" :key="name">{{ name }}：{{ range }}</p>
+                    <ul class="dependencies">
+                      <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
+                        <strong>{{ dependency.name }}</strong> {{ dependency.version
+                        }}<small v-if="dependency.namespace">内容命名空间：{{ dependency.namespace }}</small>
+                        <details v-if="Object.keys(dependency.dependencies).length">
+                          <summary>所需依赖</summary>
+                          <p v-for="(version, name) in dependency.dependencies" :key="name">{{ name }} {{ version }}</p>
+                        </details>
+                      </li>
+                    </ul></template
+                  >
+                  <p v-else>服务器未提供依赖清单。</p></ElTabPane
+                >
+                <ElTabPane label="队伍影响" name="impact"
+                  ><p v-if="readonly && remoteLoading">正在读取环境内容…</p>
+                  <p v-else-if="readonly && remoteError" class="problem">
+                    环境内容尚未读取成功，暂时无法检查队伍引用。
+                  </p>
+                  <p v-else-if="!gameData.loaded && !remoteContent">正在读取基础内容…</p>
+                  <p v-else-if="!relatedTeams.length">暂无队伍引用此包的内容。</p>
+                  <ul v-else class="team-impact">
+                    <li v-for="(team, index) in relatedTeams" :key="index">
+                      <strong>{{ team.name }}</strong
+                      ><span class="tag" :class="{ warning: team.missing.length }">{{
+                        team.missing.length ? '存在不可用引用' : '内容引用齐全'
+                      }}</span>
+                      <ul v-if="team.missing.length">
+                        <li v-for="(item, itemIndex) in team.missing" :key="itemIndex">{{ item.message }}</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </ElTabPane>
+              </ElTabs>
+            </template>
           </aside>
         </div>
       </section>
@@ -617,6 +676,19 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.package-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.package-filter select {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
 .install-task {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
@@ -756,6 +828,7 @@ hr {
 }
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   border-bottom: 1px solid var(--line);

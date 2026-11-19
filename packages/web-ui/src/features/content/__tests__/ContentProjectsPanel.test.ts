@@ -2,6 +2,10 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ContentProjectsPanel from '../ContentProjectsPanel.vue'
 import { getVersionInfo } from '@/utils/version'
+vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => ({ currentRoom: null }) }))
+vi.mock('@/stores/battleClient', () => ({ useBattleClientStore: () => ({}) }))
+vi.mock('@/stores/petStorage', () => ({ usePetStorageStore: () => ({ teams: [] }) }))
+vi.mock('@/stores/gameData', () => ({ useGameDataStore: () => ({}) }))
 const push = vi.fn()
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
 afterEach(() => {
@@ -22,7 +26,10 @@ it('lists editable UGC projects and removes only project registration', async ()
   await flushPromises()
   expect(page.text()).toContain('森林')
   expect(page.text()).not.toContain('发行材料')
-  await page.get('.project').trigger('click')
+  await page
+    .findAll('button')
+    .find(button => button.text() === '编辑项目')!
+    .trigger('click')
   expect(push).toHaveBeenCalledWith({ name: 'AuthorWorkspace', params: { projectId: 'source' } })
   await page
     .findAll('button')
@@ -30,7 +37,7 @@ it('lists editable UGC projects and removes only project registration', async ()
     .trigger('click')
   await flushPromises()
   expect(author).toHaveBeenCalledWith({ action: 'forget', id: 'source' })
-  expect(page.findAll('li')).toHaveLength(0)
+  expect(page.findAll('.package-row')).toHaveLength(0)
   expect(install).not.toHaveBeenCalled()
   page.unmount()
 })
@@ -43,12 +50,12 @@ it('keeps the initial empty state hidden until projects finish loading', async (
       }),
   })
   const page = mount(ContentProjectsPanel)
-  expect(page.find('[aria-label="正在加载项目"]').exists()).toBe(true)
-  expect(page.text()).not.toContain('暂无项目')
+  expect(page.find('p.list-note[role=status]').exists()).toBe(true)
+  expect(page.text()).not.toContain('没有符合条件的内容包。')
   resolve({ result: [] })
   await flushPromises()
-  expect(page.find('[aria-label="正在加载项目"]').exists()).toBe(false)
-  expect(page.text()).toContain('暂无项目')
+  expect(page.find('p.list-note[role=status]').exists()).toBe(false)
+  expect(page.text()).toContain('没有符合条件的内容包。')
   page.unmount()
 })
 
