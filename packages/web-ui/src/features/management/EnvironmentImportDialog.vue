@@ -5,6 +5,7 @@ import { ElDialog, ElButton } from 'element-plus'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import './managementStyles'
 const props = defineProps<{
+  target?: string
   modelValue: boolean
   busy: boolean
   checkArchives?: (probe: EnvironmentImportProbe) => Promise<string[]>
@@ -35,7 +36,9 @@ function close(done: () => void) {
   >
     <div class="import-body">
       <p v-if="error" role="alert" class="error">{{ error }}</p>
+      <slot />
       <EnvironmentTransfers
+        :key="target"
         ref="transfer"
         mode="import"
         :allow-download="allowDownload"

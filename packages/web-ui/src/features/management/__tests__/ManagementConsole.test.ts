@@ -1,3 +1,7 @@
+import { createPinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import LocalEnvironmentPage from '@/features/content/LocalEnvironmentPage.vue'
+import { useLocalServerStore } from '@/stores/localServer'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub, type VueWrapper } from '@vue/test-utils'
 import ManagementEnvironments from '../ManagementEnvironments.vue'
@@ -122,6 +126,57 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
+  it('lists the shared default once and keeps same-ID personal and server environments distinct', async () => {
+    const builtin = { ...draft(), builtin: true, document: { ...draft().document, id: 'builtin', name: '默认环境' } }
+    const personal = draft('个人')
+    const managed = draft('开服')
+    const request = vi.fn(async (input: ManagementIpcRequest) => ({
+      status: 200,
+      body: input.path.endsWith('/environments')
+        ? { environments: [builtin, managed], installations: [version()] }
+        : response(input.path),
+    }))
+    vi.stubGlobal('arcadiaDesktop', {
+      localEnvironment: async () => ({
+        result: {
+          workspaceId: 'personal',
+          selectedEnvironmentId: 'builtin',
+          environments: [builtin, personal],
+          installations: [],
+          operations: [],
+        },
+      }),
+      managementRequest: request,
+      localServer: async () => ({ host: { status: 'running' }, phase: 'running', configured: true }),
+    })
+    const pinia = createPinia()
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/environments', component: LocalEnvironmentPage }],
+    })
+    await router.push('/environments')
+    const page = mount(LocalEnvironmentPage, {
+      global: { plugins: [router, pinia], stubs: { RouterLink: RouterLinkStub } },
+    })
+    pages.push(page)
+    await flushPromises()
+    expect(request).not.toHaveBeenCalled()
+    await useLocalServerStore(pinia).refresh()
+    await flushPromises()
+    const list = page.get('nav[aria-label="选择环境"]')
+    expect(list.findAll('button').map(row => row.get('strong').text())).toEqual([
+      '默认环境',
+      '好友环境 个人',
+      '好友环境 开服',
+    ])
+    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(true)
+    await list.findAll('button')[1]!.trigger('click')
+    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(false)
+    await list.findAll('button')[2]!.trigger('click')
+    await flushPromises()
+    expect(page.get('[aria-label="服务器使用"]').text()).toContain('好友环境 开服')
+    expect(page.findAll('nav[aria-label="选择环境"]')).toHaveLength(1)
+  })
   it('updates usage for the selected environment without adding it twice', async () => {
     let used = false
     const request = vi.fn(async (input: ManagementIpcRequest) => {

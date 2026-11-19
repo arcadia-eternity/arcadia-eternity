@@ -1,3 +1,9 @@
+<script lang="ts">
+export interface EnvironmentNavigation {
+  entries: { key: string; environment: ManagedEnvironment; current?: boolean; label?: string }[]
+  selected: string
+}
+</script>
 <script setup lang="ts">
 import { customAlphabet } from 'nanoid'
 import type {
@@ -31,6 +37,7 @@ import {
   ElAlert,
   ElButton,
   ElCard,
+  ElCheckbox,
   ElScrollbar,
   ElInputNumber,
   ElForm,
@@ -49,6 +56,8 @@ const props = withDefaults(
     availablePackages?: EditorPackage[]
     packageEnvironmentId?: string
     pendingPackage?: { id: string; name: string; version: string }
+    allowServerCreation?: boolean
+    navigation?: EnvironmentNavigation
     heading?: string
     environments: ManagedEnvironment[]
     installations: ManagedEnvironmentInstallation[]
@@ -68,6 +77,8 @@ const props = withDefaults(
   { showUseActions: true, showPeerUse: true, useLabel: '服务器使用' },
 )
 const emit = defineEmits<{
+  createOnServer: [document: ManagedEnvironmentDocument]
+  navigate: [key: string]
   packageAccepted: []
   removePackage: [environment: ManagedEnvironment, name: string, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null, copyFrom?: string]
@@ -77,6 +88,7 @@ const emit = defineEmits<{
   deleteDraft: [environment: ManagedEnvironment]
 }>()
 const editing = ref(false)
+const createOnServer = ref(false)
 watch(
   () => props.saveSequence,
   () => {
@@ -109,16 +121,28 @@ function addPackageRow() {
   void focusPackage(packageRows.value.length - 1, 'name')
 }
 const originalDraft = ref('')
-const draftValue = () => JSON.stringify({ document: document.value, packages: packageRows.value })
+const draftValue = () =>
+  JSON.stringify({ document: document.value, packages: packageRows.value, createOnServer: createOnServer.value })
 const dirty = computed(() => editing.value && draftValue() !== originalDraft.value)
 registerEnvironmentDraft(() => dirty.value)
 async function closeEditor() {
   if (!dirty.value || (await discardEnvironmentChanges())) editing.value = false
 }
 const selectedId = ref('')
-const selectedEnvironment = computed(
-  () => props.environments.find(item => item.document.id === selectedId.value) ?? props.environments[0],
+const entries = computed(
+  () =>
+    props.navigation?.entries ??
+    props.environments.map(environment => ({
+      key: environment.document.id,
+      environment,
+      current: environment.document.id === props.currentEnvironmentId,
+      label: undefined,
+    })),
 )
+const selectedEntry = computed(
+  () => entries.value.find(item => item.key === (props.navigation?.selected ?? selectedId.value)) ?? entries.value[0],
+)
+const selectedEnvironment = computed(() => selectedEntry.value?.environment)
 const latestVersion = computed(
   () =>
     props.installations
@@ -202,9 +226,10 @@ function deleteDraft(environment: ManagedEnvironment) {
   deletingDraft.value = ''
   emit('deleteDraft', environment)
 }
-async function selectEnvironment(environment: ManagedEnvironment) {
+async function selectEnvironment(key: string) {
   if (dirty.value && !(await discardEnvironmentChanges())) return
-  selectedId.value = environment.document.id
+  selectedId.value = key
+  emit('navigate', key)
   editing.value = false
 }
 const packageOptions = computed(() =>
@@ -258,8 +283,15 @@ const clone = (value: ManagedEnvironmentDocument): ManagedEnvironmentDocument =>
 async function edit(environment?: ManagedEnvironment, duplicate = false) {
   if (environment?.builtin && !duplicate) return false
   if (dirty.value && !(await discardEnvironmentChanges())) return false
-  if (environment) selectedId.value = environment.document.id
+  if (environment) {
+    const entry = entries.value.find(item => item.environment === environment)
+    if (entry) {
+      selectedId.value = entry.key
+      emit('navigate', entry.key)
+    }
+  }
   editingFromId.value = environment?.document.id
+  createOnServer.value = false
   revision.value = environment?.revision ?? null
   document.value = environment
     ? clone(environment.document)
@@ -324,12 +356,17 @@ function save() {
       }
     }
   }
+  const result = {
+    ...clone(document.value),
+    packages: Object.fromEntries(rows.map(row => [row.name, row.version])),
+  }
+  if (revision.value === null && createOnServer.value) {
+    emit('createOnServer', result)
+    return
+  }
   emit(
     'save',
-    {
-      ...clone(document.value),
-      packages: Object.fromEntries(rows.map(row => [row.name, row.version])),
-    },
+    result,
     revision.value,
     ...(revision.value === null && editingFromId.value && rows.some(row => row.version.startsWith('file:candidates/'))
       ? ([editingFromId.value] as const)
@@ -361,18 +398,19 @@ function save() {
     <div class="workspace-columns">
       <nav class="environment-list" aria-label="选择环境">
         <ElButton
-          v-for="environment in environments"
-          :key="environment.document.id"
+          v-for="entry in entries"
+          :key="entry.key"
           :disabled="busy"
-          :aria-current="selectedEnvironment?.document.id === environment.document.id ? 'true' : undefined"
-          @click="selectEnvironment(environment)"
+          :aria-current="selectedEntry?.key === entry.key ? 'true' : undefined"
+          @click="selectEnvironment(entry.key)"
           native-type="button"
         >
-          <strong>{{ environment.document.name }}</strong>
-          <small v-if="environment.document.id === currentEnvironmentId">本地使用中</small>
+          <strong>{{ entry.environment.document.name }}</strong>
+          <small v-if="entry.label">{{ entry.label }}</small>
+          <small v-if="entry.current">本地使用中</small>
           <small
             >{{
-              Object.keys(environment.document.packages).length + environment.document.sources.length
+              Object.keys(entry.environment.document.packages).length + entry.environment.document.sources.length
             }}
             个直接添加的包</small
           >
@@ -501,6 +539,15 @@ function save() {
               />
             </ElFormItem>
           </div>
+          <ElCheckbox
+            v-if="
+              revision === null &&
+              (allowServerCreation || createOnServer) &&
+              (!editingFromId || selectedEnvironment?.builtin)
+            "
+            v-model="createOnServer"
+            >保存到本机服务器</ElCheckbox
+          >
           <ElAlert
             v-if="ruleIssue"
             class="rule-preview-issue"

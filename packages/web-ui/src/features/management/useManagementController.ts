@@ -30,6 +30,7 @@ export interface ManagementConsoleProps {
 export function useManagementController(
   props: ManagementConsoleProps,
   emit: (event: 'navigate', value: { target: 'local' | 'server'; tab: ManagementTab }) => void,
+  connected: () => boolean = () => true,
 ) {
   const state = useManagementConsole(props.scope)
   const auth = useAuthStore()
@@ -325,6 +326,7 @@ export function useManagementController(
     if (submitted) {
       environmentSaveSequence.value++
     }
+    return submitted
   }
   async function deleteEnvironment(environment: ManagedEnvironment) {
     await state.mutate(
@@ -499,7 +501,22 @@ export function useManagementController(
 
   const operationError = contentTaskError
 
-  onMounted(() => void changeTarget(target.value))
+  onMounted(() => {
+    watch(
+      connected,
+      active => {
+        if (active) void changeTarget(target.value)
+        else {
+          targetGeneration++
+          clearTimeout(timer)
+          clearDownloads()
+          state.setClient(undefined)
+          initialized.value = false
+        }
+      },
+      { immediate: true },
+    )
+  })
   onBeforeUnmount(() => {
     disposed = true
     targetGeneration++

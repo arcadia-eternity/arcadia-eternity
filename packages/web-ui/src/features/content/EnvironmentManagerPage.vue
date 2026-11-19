@@ -14,7 +14,7 @@ provide(environmentDraftsKey, drafts)
 const hasDraft = () => [...drafts].some(isDirty => isDirty())
 const allowLeave = () => !hasDraft() || discardEnvironmentChanges()
 onBeforeRouteLeave(allowLeave)
-onBeforeRouteUpdate((to, from) => (to.query.target === from.query.target ? true : allowLeave()))
+onBeforeRouteUpdate((to, from) => locationFor(to.query.target) === locationFor(from.query.target) || allowLeave())
 function beforeUnload(event: BeforeUnloadEvent) {
   if (hasDraft()) {
     event.preventDefault()
@@ -27,17 +27,16 @@ const route = useRoute()
 const router = useRouter()
 const rooms = usePrivateRoomStore()
 const local = !!(window.arcadiaDesktop?.localEnvironment || window.arcadiaDesktop?.listContentPackages)
-const canManageHost = !!window.arcadiaDesktop?.managementRequest
 const serverLabel = isStaticMode ? '' : new URL(getBackendOrigin()).host
-const target = computed(() => {
-  const value = route.query.target
-  if (value === 'local' && local) return 'local'
-  if (value === 'host' && canManageHost) return 'host'
+function locationFor(value: unknown) {
+  if ((value === 'local' || value === 'host') && local) return 'local'
   if (value === 'room' && rooms.currentRoom) return 'room'
   // Explicit remote URLs never fall back to the local bridge.
   if (value) return 'server'
   return local ? 'local' : 'server'
-})
+}
+const target = computed(() => locationFor(route.query.target))
+const showLocations = computed(() => Number(local) + Number(!isStaticMode) + Number(!!rooms.currentRoom) > 1)
 async function navigate(nextTarget: string) {
   await router.replace({ path: '/environments', query: { target: nextTarget } })
 }
@@ -46,11 +45,10 @@ async function navigate(nextTarget: string) {
   <main class="environment-hub">
     <header class="hub-heading">
       <h1>环境</h1>
-      <label
+      <label v-if="showLocations"
         >位置
         <ElSelect :model-value="target" aria-label="环境位置" class="target-select" @change="value => navigate(value)">
           <ElOption v-if="local" value="local" label="本机" />
-          <ElOption v-if="canManageHost" value="host" label="本机服务器" />
           <ElOption v-if="!isStaticMode" value="server" :label="`服务器 · ${serverLabel}`" />
           <ElOption v-if="rooms.currentRoom" value="room" label="当前房间" />
         </ElSelect>
@@ -58,7 +56,6 @@ async function navigate(nextTarget: string) {
     </header>
     <div :key="target" class="hub-body">
       <LocalEnvironmentPage v-if="target === 'local'" />
-      <ServerEnvironmentPanel v-else-if="target === 'host'" target="local" />
       <ServerEnvironmentPanel v-else-if="target === 'server'" target="server" />
       <ContentPackagesPanel v-else :location="target" />
     </div>

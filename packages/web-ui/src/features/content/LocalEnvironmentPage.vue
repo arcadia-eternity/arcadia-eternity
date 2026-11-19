@@ -17,14 +17,19 @@ import type {
   EnvironmentImportProbe,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import { contentTaskError } from '@/utils/contentTaskMessages'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import type { InstalledContentPackage } from '@/types/contentPackages'
 import { useGameDataStore } from '@/stores/gameData'
 import { isRemoteContentActive } from '@/i18n/serverContent'
 import EnvironmentImportDialog from '@/features/management/EnvironmentImportDialog.vue'
-import EnvironmentWorkspace from '@/features/management/EnvironmentWorkspace.vue'
+import EnvironmentWorkspace, { type EnvironmentNavigation } from '@/features/management/EnvironmentWorkspace.vue'
+import EnvironmentServerUsage from '@/features/management/EnvironmentServerUsage.vue'
+import ManagementEnvironments from '@/features/management/ManagementEnvironments.vue'
+import ManagementTasks from '@/features/management/ManagementTasks.vue'
+import { useManagementController } from '@/features/management/useManagementController'
+import { useLocalServerStore } from '@/stores/localServer'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
 const route = useRoute()
 const router = useRouter()
@@ -102,8 +107,38 @@ const jobLabels: Record<string, string> = {
   cancelled: '已取消',
 }
 const snapshot = ref<Snapshot>({ workspaceId: '', environments: [], installations: [], operations: [] })
+const localServer = useLocalServerStore()
+const host = window.arcadiaDesktop?.managementRequest
+  ? useManagementController(
+      { initialTarget: 'local', initialTab: 'environments', scope: 'content' },
+      () => {},
+      () => localServer.running,
+    )
+  : undefined
+const selectedKey = ref('')
+const navigation = computed<EnvironmentNavigation>(() => {
+  const personal = snapshot.value.environments.map(environment => ({
+    key: 'local/' + environment.document.id,
+    environment,
+    current: environment.document.id === snapshot.value.selectedEnvironmentId,
+  }))
+  const builtinId = personal.find(entry => entry.environment.builtin)?.environment.document.id
+  const managed = (host?.environments.value ?? [])
+    .filter(environment => !(environment.builtin && environment.document.id === builtinId))
+    .map(environment => ({ key: 'host/' + environment.document.id, environment, label: '本机服务器' }))
+  const entries = [...personal, ...managed]
+  return { entries, selected: entries.find(item => item.key === selectedKey.value)?.key ?? entries[0]?.key ?? '' }
+})
+const viewingHosted = computed(() => navigation.value.selected.startsWith('host/'))
 const editableEnvironments = computed(() => snapshot.value.environments.filter(item => !item.builtin))
 const tasksOpen = ref(false)
+if (host)
+  watch(host.tab, tab => {
+    if (tab === 'tasks') {
+      tasksOpen.value = true
+      host.tab.value = 'environments'
+    }
+  })
 const initialized = ref(false)
 const activeTasks = computed(
   () => snapshot.value.operations.filter(job => ['queued', 'running'].includes(job.status)).length,
@@ -135,8 +170,21 @@ async function useMember() {
       expectedRevision: target.revision,
     })
 }
+const canManageHost = computed(() => !!host?.isAdministrator.value && !!host.server.value)
+const importingToHost = ref(false)
+async function createOnServer(document: ManagedEnvironmentDocument) {
+  if (!host || !canManageHost.value) {
+    error.value = '本机服务器未运行'
+    return
+  }
+  if (await host.saveEnvironment(document, null)) {
+    saveSequence.value++
+    selectedKey.value = 'host/' + document.id
+  }
+}
 const importing = ref(false)
 function openImport() {
+  importingToHost.value = false
   importing.value = true
   error.value = ''
 }
@@ -244,6 +292,14 @@ async function exportEnvironment(version: ManagedEnvironmentInstallation, mode: 
   }
 }
 async function importEnvironment(input: { bundle: unknown; environmentId?: string }) {
+  if (importingToHost.value) {
+    if (!host || !canManageHost.value) {
+      error.value = '本机服务器未运行'
+      return
+    }
+    if (await host.importEnvironment(input)) importing.value = false
+    return
+  }
   if (await run({ action: 'import', allowDownload: allowDownload.value, ...input }, '正在导入环境。')) {
     importing.value = false
     tasksOpen.value = true
@@ -281,9 +337,11 @@ onBeforeUnmount(() => {
   <section class="local-environments" aria-label="本机环境库">
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
+    <p v-if="host?.error.value" role="alert" class="error">{{ host.error.value }}</p>
+    <p v-if="host?.notice.value" role="status">{{ host.notice.value }}</p>
     <ElForm
       label-position="top"
-      v-if="candidate"
+      v-if="candidate && !viewingHosted"
       class="panel"
       aria-label="选择目标环境"
       @submit.prevent="useCandidate"
@@ -302,12 +360,27 @@ onBeforeUnmount(() => {
       <ElButton @click="candidate = undefined">取消</ElButton>
     </ElForm>
     <ElSkeleton v-if="!initialized" :rows="8" animated aria-label="正在加载环境" />
+    <ManagementEnvironments
+      v-else-if="host && viewingHosted"
+      :controller="host"
+      :navigation="navigation"
+      @navigate="selectedKey = $event"
+    >
+      <template #toolbar>
+        <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">内容包与创作</ElButton>
+        <ElButton @click="tasksOpen = true">任务</ElButton>
+      </template>
+    </ManagementEnvironments>
     <EnvironmentWorkspace
       v-else
+      :navigation="navigation"
+      @navigate="selectedKey = $event"
       :available-packages="materials"
       :pending-package="pendingPackage"
       :package-environment-id="packageEnvironmentId"
       @package-accepted="acceptPackage"
+      :allow-server-creation="canManageHost"
+      @create-on-server="createOnServer"
       heading="本机环境库"
       :environments="snapshot.environments"
       :installations="snapshot.installations"
@@ -323,7 +396,7 @@ onBeforeUnmount(() => {
       :can-prepare="true"
       :can-delete="true"
       :can-use="!preparing"
-      :busy="busy"
+      :busy="busy || !!host?.busy.value"
       :save-sequence="saveSequence"
       @save="save"
       @remove-package="
@@ -349,6 +422,17 @@ onBeforeUnmount(() => {
           )
       "
     >
+      <template #detail="{ environment }">
+        <EnvironmentServerUsage
+          v-if="
+            environment.builtin &&
+            host?.server.value &&
+            host.environments.value.some(item => item.builtin && item.document.id === environment.document.id)
+          "
+          :controller="host"
+          :environment-id="environment.document.id"
+        />
+      </template>
       <template #member-actions="{ environment, packageName: name, integrity }">
         <ElButton
           :disabled="
@@ -393,14 +477,17 @@ onBeforeUnmount(() => {
       >
     </ElDialog>
     <EnvironmentImportDialog
-      :check-archives="checkArchives"
+      :target="importingToHost ? 'host' : 'local'"
+      :check-archives="importingToHost ? host?.checkArchives : checkArchives"
       :allow-download="allowDownload"
       v-model="importing"
-      :busy="busy || preparing"
-      :error="error"
+      :busy="busy || preparing || !!host?.busy.value"
+      :error="(importingToHost && host?.error.value) || error"
       @import="importEnvironment"
-    />
-    <ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
+    >
+      <ElCheckbox v-if="canManageHost || importingToHost" v-model="importingToHost">导入到本机服务器</ElCheckbox>
+    </EnvironmentImportDialog>
+    <ElCheckbox v-if="!viewingHosted" v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
     <ElDrawer v-model="tasksOpen" title="环境任务" size="min(680px, 100vw)" append-to-body
       ><section class="panel" aria-label="本地环境任务">
         <h3>下载与准备任务</h3>
@@ -430,8 +517,9 @@ onBeforeUnmount(() => {
           </ElButton>
           <p v-if="job.error" class="error">{{ contentTaskError(job.error) }}</p>
         </article>
-      </section></ElDrawer
-    >
+      </section>
+      <ManagementTasks v-if="host?.server.value" :controller="host" content-only
+    /></ElDrawer>
   </section>
 </template>
 <style scoped>

@@ -82,7 +82,7 @@ watch(compact, () => {
           <RouterLink
             :to="{
               path: '/environments',
-              query: { target: target === 'local' ? 'host' : 'server' },
+              query: { target },
             }"
             ><ElButton text>环境</ElButton></RouterLink
           >

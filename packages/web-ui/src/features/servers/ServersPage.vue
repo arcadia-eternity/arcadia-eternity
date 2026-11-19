@@ -260,7 +260,7 @@ async function copy(value: string) {
           <ElButton type="primary" :disabled="connecting || !initComplete" @click="enter"> 进入本机大厅 </ElButton>
           <RouterLink class="server-link" to="/management?target=local&tab=server">管理后台</RouterLink>
           <RouterLink class="server-link" to="/management?target=local&tab=network">网络与容量</RouterLink>
-          <RouterLink to="/environments?target=host">服务器环境</RouterLink>
+          <RouterLink class="server-link" to="/environments?target=local">管理环境</RouterLink>
           <ElButton @click="operate({ action: 'stop' })">等待对局结束后停止</ElButton>
         </div>
         <div v-if="summary?.pendingRestart?.length" class="server-notice server-gap">

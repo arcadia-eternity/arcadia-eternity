@@ -2,11 +2,15 @@
 import { ref } from 'vue'
 import { ElButton } from 'element-plus'
 import type { ManagementController } from './useManagementController'
-import EnvironmentWorkspace from './EnvironmentWorkspace.vue'
+import EnvironmentWorkspace, { type EnvironmentNavigation } from './EnvironmentWorkspace.vue'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import EnvironmentServerUsage from './EnvironmentServerUsage.vue'
 import EnvironmentImportDialog from './EnvironmentImportDialog.vue'
-const { controller } = defineProps<{ controller: ManagementController }>()
+const { controller, navigation } = defineProps<{
+  controller: ManagementController
+  navigation?: EnvironmentNavigation
+}>()
+const emit = defineEmits<{ navigate: [key: string] }>()
 const {
   state,
   error,
@@ -39,7 +43,9 @@ function openImport() {
 <template>
   <EnvironmentWorkspace
     v-if="supported('workspace.environments')"
-    heading="服务器环境库"
+    :heading="navigation ? '本机环境库' : '服务器环境库'"
+    :navigation="navigation"
+    @navigate="emit('navigate', $event)"
     :key="client?.context.endpoint"
     :preview-export="previewExport"
     :environments="environments"
@@ -67,7 +73,7 @@ function openImport() {
     @delete="version => state.mutate('DELETE', `${workspacePath}/installations/${encode(version.installationId)}`)"
   >
     <template #toolbar
-      ><ElButton v-if="supported('workspace.transfers')" :disabled="busy" @click="openImport"
+      ><slot name="toolbar" /><ElButton v-if="supported('workspace.transfers')" :disabled="busy" @click="openImport"
         >导入环境</ElButton
       ></template
     >

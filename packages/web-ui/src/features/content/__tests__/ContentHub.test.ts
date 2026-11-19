@@ -50,11 +50,11 @@ it('keeps an explicit server target remote even when a local bridge is available
   expect(page.get('[data-remote]').text()).toBe('server')
   expect(local).not.toHaveBeenCalled()
 })
-it('opens host environment settings through the desktop management bridge', async () => {
+it('opens old host links in the same local library', async () => {
   vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn(), managementRequest: vi.fn() })
   const { page } = await open('/environments?target=host')
-  expect(page.get('[data-remote]').text()).toBe('local')
-  expect(page.find('[aria-label="本机草稿"]').exists()).toBe(false)
+  expect(page.find('[data-remote]').exists()).toBe(false)
+  expect(page.find('[aria-label="本机草稿"]').exists()).toBe(true)
 })
 it.each(['local', 'host'])('keeps a %s bookmark unprivileged in a browser', async target => {
   vi.stubGlobal('arcadiaDesktop', undefined)
