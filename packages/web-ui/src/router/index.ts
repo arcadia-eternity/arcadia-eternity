@@ -45,14 +45,16 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/creation',
     name: 'Creation',
-    ...(isDesktop
-      ? { redirect: { name: 'Environments', query: { target: 'local', panel: 'packages' } } }
-      : { component: LocalContentOnlyPage }),
-    meta: { title: '创作' },
+    component: isDesktop ? () => import('@/features/content/CreationPage.vue') : LocalContentOnlyPage,
+    meta: { title: '内容包与创作' },
   },
   {
     path: '/environments',
     name: 'Environments',
+    beforeEnter: to => {
+      if (isDesktop && to.query.panel === 'packages' && (!to.query.target || to.query.target === 'local'))
+        return { name: 'Creation', replace: true }
+    },
     component: () => import('@/features/content/EnvironmentManagerPage.vue'),
     meta: { title: '环境' },
   },

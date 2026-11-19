@@ -19,7 +19,6 @@ import type {
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ContentProjectsPanel from './ContentProjectsPanel.vue'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import type { InstalledContentPackage } from '@/types/contentPackages'
 import { useGameDataStore } from '@/stores/gameData'
@@ -31,12 +30,6 @@ const route = useRoute()
 const router = useRouter()
 const library = createLocalContentLibraryClient(window.arcadiaDesktop)
 const materials = ref<InstalledContentPackage[]>([])
-const materialsOpen = computed({
-  get: () => route.query.panel === 'packages',
-  set: open => {
-    void router.replace({ query: { ...route.query, panel: open ? 'packages' : undefined } })
-  },
-})
 const candidate = ref<InstalledContentPackage>()
 const pendingPackage = ref<InstalledContentPackage>()
 const packageEnvironmentId = ref('')
@@ -393,7 +386,7 @@ onBeforeUnmount(() => {
         <ElButton v-if="library" :disabled="busy" @click="importPackage">从文件加入内容包</ElButton>
       </template>
       <template #toolbar>
-        <ElButton v-if="library || canAuthor" @click="materialsOpen = true">内容包与创作</ElButton>
+        <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">内容包与创作</ElButton>
         <ElButton @click="tasksOpen = true">任务{{ activeTasks ? `（${activeTasks}）` : '' }}</ElButton>
         <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>
       </template>
@@ -437,15 +430,6 @@ onBeforeUnmount(() => {
       <pre v-else>{{ references }}</pre>
       <ElButton @click="references = undefined">关闭引用</ElButton>
     </section>
-    <ElDrawer
-      v-model="materialsOpen"
-      title="内容包与创作"
-      size="min(1000px, 100vw)"
-      append-to-body
-      @closed="refreshMaterials"
-    >
-      <ContentProjectsPanel v-if="materialsOpen" />
-    </ElDrawer>
     <ElDrawer v-model="tasksOpen" title="环境任务" size="min(680px, 100vw)" append-to-body
       ><section class="panel" aria-label="本地环境任务">
         <h3>下载与准备任务</h3>

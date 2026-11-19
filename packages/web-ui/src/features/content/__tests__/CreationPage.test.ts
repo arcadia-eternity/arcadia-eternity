@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import ContentProjectsPanel from '../ContentProjectsPanel.vue'
+import CreationPage from '../CreationPage.vue'
 import { getVersionInfo } from '@/utils/version'
 vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => ({ currentRoom: null }) }))
 vi.mock('@/stores/battleClient', () => ({ useBattleClientStore: () => ({}) }))
@@ -22,7 +22,7 @@ it('lists editable UGC projects and removes only project registration', async ()
   })
   const install = vi.fn()
   vi.stubGlobal('arcadiaDesktop', { author, listContentPackages: install })
-  const page = mount(ContentProjectsPanel)
+  const page = mount(CreationPage)
   await flushPromises()
   expect(page.text()).toContain('森林')
   expect(page.text()).not.toContain('发行材料')
@@ -49,7 +49,7 @@ it('keeps the initial empty state hidden until projects finish loading', async (
         resolve = done
       }),
   })
-  const page = mount(ContentProjectsPanel)
+  const page = mount(CreationPage)
   expect(page.find('p.list-note[role=status]').exists()).toBe(true)
   expect(page.text()).not.toContain('没有符合条件的内容包。')
   resolve({ result: [] })
@@ -64,7 +64,7 @@ it('prefills the host compatibility range and submits the author’s override', 
     result: input.action === 'list' ? [] : { id: 'new-pack' },
   }))
   vi.stubGlobal('arcadiaDesktop', { author })
-  const page = mount(ContentProjectsPanel, { global: { stubs: { teleport: true } } })
+  const page = mount(CreationPage, { global: { stubs: { teleport: true } } })
   try {
     await flushPromises()
     await page

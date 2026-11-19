@@ -67,7 +67,8 @@ onMounted(() => {
 })
 </script>
 <template>
-  <section class="projects" aria-label="UGC 项目" :aria-busy="busy">
+  <section class="creation-page" aria-labelledby="creation-title" :aria-busy="busy">
+    <h1 id="creation-title">内容包与创作</h1>
     <ElAlert v-if="error" :title="error" type="error" :closable="false" role="alert" />
     <ContentPackagesPanel
       location="local"
@@ -122,6 +123,15 @@ onMounted(() => {
   </section>
 </template>
 <style scoped>
+.creation-page {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.creation-page h1 {
+  margin: 16px clamp(12px, 2vw, 20px) 4px;
+  font-size: 24px;
+  font-weight: 600;
+}
 .project-path {
   overflow-wrap: anywhere;
   margin-block: 8px;
