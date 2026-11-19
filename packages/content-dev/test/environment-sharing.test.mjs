@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -59,6 +61,15 @@ test('registry references retain locked bytes and accept a matching recipient-su
       expandSharedMaterials(files, share.archives, { ...options, supplied: { [integrity]: 'AA==' } }),
       { code: 'SOURCE_INTEGRITY_MISMATCH' },
     )
+    const npmCache = join(root, 'populated-cache')
+    await promisify(execFile)('npm', ['cache', 'add', file, '--offline', '--ignore-scripts', '--cache', npmCache])
+    const cached = await expandSharedMaterials(files, share.archives, { ...options, cache: npmCache })
+    assert.deepEqual(cached.at(-1), materials.at(-1))
+    const legacyCache = await expandSharedMaterials(files, share.archives, {
+      ...options,
+      cache: join(npmCache, '_cacache'),
+    })
+    assert.deepEqual(legacyCache.at(-1), materials.at(-1))
   }
 })
 

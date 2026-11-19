@@ -98,7 +98,7 @@ function checkedPath(path: string): string {
 }
 
 function requestLimit(method: ManagementMethod, path: string): number {
-  return method === 'POST' && /^\/workspaces\/[^/?]+\/import$/.test(path)
+  return method === 'POST' && /^\/workspaces\/[^/?]+\/import(?:-preview)?$/.test(path)
     ? MAX_IMPORT_ENVELOPE_BYTES
     : MAX_COMMAND_BYTES
 }

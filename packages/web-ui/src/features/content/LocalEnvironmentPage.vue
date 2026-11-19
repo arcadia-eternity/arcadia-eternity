@@ -11,6 +11,11 @@ import {
   ElCheckbox,
   ElProgress,
 } from 'element-plus'
+import type {
+  EnvironmentExportPreview,
+  EnvironmentExportSelection,
+  EnvironmentImportProbe,
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -222,7 +227,13 @@ async function inspect(version: ManagedEnvironmentInstallation) {
     error.value = cause instanceof Error ? cause.message : '无法读取引用'
   }
 }
-async function exportEnvironment(version: ManagedEnvironmentInstallation, mode: 'share' | 'offline' = 'share') {
+function previewExport(installationId: string) {
+  return call<EnvironmentExportPreview>({ action: 'export-preview', installationId })
+}
+function checkArchives(probe: EnvironmentImportProbe) {
+  return call<string[]>({ action: 'import-preview', probe })
+}
+async function exportEnvironment(version: ManagedEnvironmentInstallation, mode: EnvironmentExportSelection) {
   if (busy.value) return
   busy.value = true
   error.value = ''
@@ -322,6 +333,7 @@ onBeforeUnmount(() => {
       :environments="snapshot.environments"
       :installations="snapshot.installations"
       :can-export="true"
+      :preview-export="previewExport"
       @export="exportEnvironment"
       :show-use-actions="true"
       use-label="本地使用"
@@ -400,6 +412,7 @@ onBeforeUnmount(() => {
       >
     </ElDialog>
     <EnvironmentImportDialog
+      :check-archives="checkArchives"
       :allow-download="allowDownload"
       v-model="importing"
       :busy="busy || preparing"

@@ -1,3 +1,8 @@
+import type {
+  EnvironmentExportPreview,
+  EnvironmentExportSelection,
+  EnvironmentImportProbe,
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { getBackendOrigin } from '@/bootstrap/deployment'
@@ -373,7 +378,18 @@ export function useManagementController(
       environmentReferences.value = result.references
     }
   }
-  async function exportEnvironment(version: ManagedEnvironmentInstallation, mode: 'share' | 'offline' = 'share') {
+  function previewExport(id: string) {
+    if (!client.value) throw new Error('管理连接已断开')
+    return client.value.request<EnvironmentExportPreview>(
+      'GET',
+      `${workspacePath.value}/installations/${encode(id)}/export-preview`,
+    )
+  }
+  function checkArchives(probe: EnvironmentImportProbe) {
+    if (!client.value) throw new Error('管理连接已断开')
+    return client.value.request<string[]>('POST', `${workspacePath.value}/import-preview`, { body: { probe } })
+  }
+  async function exportEnvironment(version: ManagedEnvironmentInstallation, mode?: EnvironmentExportSelection) {
     await state.mutate('POST', `${workspacePath.value}/installations/${encode(version.installationId)}/export`, {
       mode,
     })
@@ -577,6 +593,8 @@ export function useManagementController(
     terminateBattle,
     useEnvironment,
     inspectReferences,
+    previewExport,
+    checkArchives,
     exportEnvironment,
     importEnvironment,
     downloadEnvironment,

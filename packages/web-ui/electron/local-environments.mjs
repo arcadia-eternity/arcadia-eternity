@@ -142,7 +142,10 @@ export class LocalEnvironments {
   }
   async request(input) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw fail('INVALID_REQUEST')
-    if (Buffer.byteLength(JSON.stringify(input)) > (input.action === 'import' ? 130 : 2) * 1024 * 1024)
+    if (
+      Buffer.byteLength(JSON.stringify(input)) >
+      (['import', 'import-preview'].includes(input.action) ? 130 : 2) * 1024 * 1024
+    )
       throw fail('REQUEST_TOO_LARGE')
     const workspace = await this.ready()
     switch (input.action) {
@@ -275,6 +278,10 @@ export class LocalEnvironments {
           }
         })
       }
+      case 'export-preview':
+        return workspace.previewEnvironmentExport(input.installationId)
+      case 'import-preview':
+        return workspace.missingEnvironmentArchives(input.probe)
       case 'export':
         return workspace.exportEnvironment(input.installationId, input.mode)
       case 'cancel': {

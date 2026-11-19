@@ -330,7 +330,11 @@ test('portable environment export/import validates received materials through th
   const f = await fixture(t),
     { proxy, connection } = await f.connect()
   const version = await ready(proxy, f.project)
-  const bundle = await proxy.exportEnvironment(version.installationId)
+  const preview = await proxy.previewEnvironmentExport(version.installationId)
+  assert.deepEqual(preview.dependencies, [])
+  const bundle = await proxy.exportEnvironment(version.installationId, { revision: preview.revision, locations: [] })
+  const lock = bundle.files.find(file => file.path === 'package-lock.json')
+  assert.deepEqual(await proxy.missingEnvironmentArchives({ lock, archives: [] }), [])
   assert.equal(bundle.format, 'arcadia.environment-export/2')
   assert.equal(JSON.stringify(bundle).includes(f.root), false)
   const imported = await proxy.importEnvironment(bundle, { environmentId: 'copy' }, prepare)

@@ -287,6 +287,24 @@ test('environment import and export use the environment entry and stay scoped to
               },
             }
           if (input.action === 'select') selectedEnvironmentId = String(input.environmentId)
+          if (input.action === 'export-preview')
+            return {
+              result: {
+                revision: 'preview',
+                dependencies: calls.some(call => call.action === 'export')
+                  ? []
+                  : [
+                      { name: 'pet', location: 'node_modules/pet', version: '1.0.0', manual: false, bytes: 1024 },
+                      {
+                        name: 'private-pet',
+                        location: 'node_modules/private-pet',
+                        version: '2.0.0',
+                        manual: true,
+                        bytes: 1024,
+                      },
+                    ],
+              },
+            }
           if (input.action === 'export')
             return {
               result: { format: 'arcadia.environment-export/2', document, files: [], contentRevision: 'revision' },
@@ -327,9 +345,17 @@ test('environment import and export use the environment entry and stay scoped to
   await tasks.getByRole('button', { name: 'Close this dialog' }).click()
   await hub.getByRole('button', { name: '保存到本机包库', exact: true }).click()
   await tasks.getByRole('button', { name: 'Close this dialog' }).click()
-  const offline = page.waitForEvent('download')
-  await hub.getByRole('button', { name: '离线导出', exact: true }).click()
-  await offline
+  await expect(hub.getByRole('button', { name: '离线导出' })).toHaveCount(0)
+  await hub.getByRole('button', { name: '导出环境', exact: true }).click()
+  const exportDialog = page.getByRole('dialog', { name: '导出环境', exact: true })
+  await expect(exportDialog.getByRole('checkbox', { name: /private-pet/ })).not.toBeChecked()
+  const includePublic = exportDialog.getByRole('checkbox', { name: /公共依赖/ })
+  await expect(includePublic).not.toBeChecked()
+  await exportDialog.getByText(/随文件附上公共依赖/).click()
+  await expect(includePublic).toBeChecked()
+  const withPublic = page.waitForEvent('download')
+  await exportDialog.getByRole('button', { name: '导出', exact: true }).click()
+  await withPublic
   const download = page.waitForEvent('download')
   await hub.getByRole('button', { name: '导出环境', exact: true }).click()
   expect((await download).suggestedFilename()).toBe('environment-local-version.json')
@@ -370,7 +396,10 @@ test('environment import and export use the environment entry and stay scoped to
     () => (window as unknown as { environmentCalls: Record<string, unknown>[] }).environmentCalls,
   )
   expect(calls.filter(input => input.action === 'import')).toHaveLength(1)
-  expect(calls.filter(input => input.action === 'export').map(input => input.mode)).toEqual(['offline', 'share'])
+  expect(calls.filter(input => input.action === 'export').map(input => input.mode)).toEqual([
+    { revision: 'preview', locations: ['node_modules/pet'] },
+    { revision: 'preview', locations: [] },
+  ])
   expect(calls.find(input => input.action === 'use-member')).toMatchObject({
     environmentId: 'friends',
     targetId: 'practice',

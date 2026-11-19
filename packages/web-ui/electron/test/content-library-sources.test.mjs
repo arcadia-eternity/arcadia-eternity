@@ -447,7 +447,9 @@ test(
       } finally {
         await lease.release()
       }
-      const bundle = await host.exportEnvironment(doc.id)
+      const preview = await host.previewEnvironmentExport(doc.id)
+      assert.deepEqual(preview.dependencies, [])
+      const bundle = await host.exportEnvironment(doc.id, { revision: preview.revision, locations: [] })
       const full = await host.exportEnvironment(doc.id, 'offline')
       assert.equal(bundle.format, 'arcadia.environment-export/3')
       assert.equal(full.format, 'arcadia.environment-export/2')

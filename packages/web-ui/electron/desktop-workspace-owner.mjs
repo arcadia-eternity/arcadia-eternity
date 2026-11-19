@@ -15,6 +15,8 @@ const methods = new Set([
   'references',
   'clearInstallation',
   'exportEnvironment',
+  'previewEnvironmentExport',
+  'missingEnvironmentArchives',
   'exportSnapshot',
   'captureSnapshot',
   'isSnapshotCurrent',

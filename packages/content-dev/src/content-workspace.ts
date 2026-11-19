@@ -22,7 +22,12 @@ import { withSourceLock } from './source-lock.ts'
 import { contentError, readJson, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
-import { compactMaterials, expandSharedMaterials, type ArchiveReference } from './environment-sharing.ts'
+import {
+  compactMaterials,
+  expandSharedMaterials,
+  exportDependencies,
+  type ArchiveReference,
+} from './environment-sharing.ts'
 import { environmentShareMaterials } from './environment-host-base.ts'
 export { copyEnvironmentMember } from './environment-member-transfer.ts'
 import { parseManifestDraft, preparedDocument } from './prepared-document.ts'
@@ -122,6 +127,28 @@ export interface ContentWorkspaceOptions {
     remove?(retentionId: string): Promise<void>
   }
 }
+export const exportSelectionSchema = z
+  .object({
+    revision: z.string().min(1),
+    locations: z.array(z.string().min(1)).max(50000),
+  })
+  .strict()
+export type EnvironmentExportSelection = z.infer<typeof exportSelectionSchema>
+export type EnvironmentExportMode = 'share' | 'offline' | EnvironmentExportSelection
+export interface EnvironmentExportPreview {
+  revision: string
+  dependencies: ReturnType<typeof exportDependencies>
+}
+function exportRevision(draft: string, content: string, dependencies: EnvironmentExportPreview['dependencies']) {
+  return createHash('sha256')
+    .update(JSON.stringify([draft, content, dependencies]))
+    .digest('hex')
+}
+// Only the lock and external references are needed to check the receiving workspace.
+export interface EnvironmentImportProbe {
+  lock: { path: string; data: string }
+  archives: ArchiveReference[]
+}
 export interface EnvironmentExport {
   format: 'arcadia.environment-export/2' | 'arcadia.environment-export/3' | 'arcadia.environment-export/4'
   suppliedArchives?: Record<string, string>
@@ -167,7 +194,9 @@ export interface ContentWorkspace {
   releaseRetention(retentionId: string): Promise<void>
   references(installationId: string): Promise<Record<string, unknown>[]>
   clearInstallation(installationId: string): Promise<void>
-  exportEnvironment(installationId: string, mode?: 'share' | 'offline'): Promise<EnvironmentExport>
+  previewEnvironmentExport(installationId: string): Promise<EnvironmentExportPreview>
+  missingEnvironmentArchives(probe: EnvironmentImportProbe): Promise<string[]>
+  exportEnvironment(installationId: string, mode?: EnvironmentExportMode): Promise<EnvironmentExport>
   exportSnapshot(): Promise<WorkspaceSnapshot>
   captureSnapshot(): Promise<WorkspaceSnapshotCapture>
   isSnapshotCurrent(stamp: WorkspaceSnapshotStamp): Promise<boolean>
@@ -707,22 +736,67 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       await rm(join(directory, '.arcadia-prepared.json'), { force: true })
     }, true)
   }
-  async #export(id: string, mode: 'share' | 'offline'): Promise<EnvironmentExport> {
+  async #exportVersion(id: string) {
     const draft = await this.#draft(id)
     const installation = await this.#installation(id)
     if (installation.draftRevision !== draft.revision)
       throw contentError('ENVIRONMENT_PREPARATION_REQUIRED', '环境已修改，请先准备环境再导出')
-    const shared = await environmentShareMaterials(
-      await materialFiles(this.#directory(id), this.#options),
-      draft.document,
-    )
+    return { draft, installation }
+  }
+  async #shareFiles(id: string, document: EnvironmentDocument) {
+    return environmentShareMaterials(await materialFiles(this.#directory(id), this.#options), document)
+  }
+  previewEnvironmentExport(id: string) {
+    return this.#exclusive(async () => {
+      const { draft, installation } = await this.#exportVersion(id)
+      const lock = await readJson(join(this.#directory(id), 'package-lock.json'), 16 * 1024 * 1024)
+      const hasOnline = Object.values(lock.packages ?? {}).some(
+        entry => isRecord(entry) && typeof entry.resolved === 'string' && entry.resolved.startsWith('https:'),
+      )
+      const dependencies = hasOnline ? exportDependencies((await this.#shareFiles(id, draft.document)).files) : []
+      return { revision: exportRevision(draft.revision, installation.contentRevision, dependencies), dependencies }
+    })
+  }
+  missingEnvironmentArchives(probe: EnvironmentImportProbe) {
+    return this.#exclusive(async () => {
+      if (
+        probe?.lock?.path !== 'package-lock.json' ||
+        !Array.isArray(probe.archives) ||
+        probe.archives.length > (this.#options.maxFiles ?? 50000) ||
+        probe.archives.some(ref => !ref?.external)
+      )
+        throw contentError('ENVIRONMENT_EXPORT_INVALID')
+      const missing = new Set<string>()
+      await expandSharedMaterials([probe.lock], probe.archives, {
+        ...this.#options,
+        offline: true,
+        missing,
+        signal: this.#controller.signal,
+        environments: join(this.root, 'environments'),
+        cache: this.#options.npmCache ?? join(this.root, 'npm-cache'),
+      })
+      return [...missing]
+    })
+  }
+  async #export(id: string, mode: EnvironmentExportMode): Promise<EnvironmentExport> {
+    const { draft, installation } = await this.#exportVersion(id)
+    const { contentRevision } = installation
+    const shared = await this.#shareFiles(id, draft.document)
     let files = shared.files
     let archives: ArchiveReference[] = []
-    if (mode === 'share') {
-      const compact = await compactMaterials(files, this.#options)
+    if (mode !== 'offline') {
+      let locations: string[] = []
+      if (mode !== 'share') {
+        const selection = exportSelectionSchema.safeParse(mode)
+        if (!selection.success) throw contentError('ENVIRONMENT_EXPORT_INVALID')
+        if (exportRevision(draft.revision, contentRevision, exportDependencies(files)) !== selection.data.revision)
+          throw contentError('REVISION_CONFLICT', '环境已修改，请重新导出')
+        locations = selection.data.locations
+      }
+      const compact = await compactMaterials(files, this.#options, locations)
       files = compact.materials
       archives = compact.archives
-    } else if (mode !== 'offline') throw contentError('ENVIRONMENT_EXPORT_INVALID')
+    }
     return {
       format: shared.usesBase
         ? 'arcadia.environment-export/4'
@@ -731,11 +805,11 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
           : 'arcadia.environment-export/2',
       ...(archives.length || shared.usesBase ? { archives } : {}),
       document: shared.document,
-      contentRevision: installation.contentRevision,
+      contentRevision,
       files: files.map(({ path, bytes }) => ({ path, data: bytes.toString('base64') })),
     }
   }
-  exportEnvironment(id: string, mode: 'share' | 'offline' = 'share') {
+  exportEnvironment(id: string, mode: EnvironmentExportMode = 'share') {
     return this.#exclusive(() => this.#export(id, mode))
   }
   async #snapshot(): Promise<WorkspaceSnapshot> {

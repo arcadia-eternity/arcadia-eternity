@@ -202,7 +202,7 @@ export function mountManagementApi(
         await service.auth.validateCsrf(actor, req.headers['x-csrf-token'] as string | undefined)
       }
       if (unsafe) {
-        const importing = /^\/workspaces\/[^/]+\/import$/.test(path)
+        const importing = /^\/workspaces\/[^/]+\/import(?:-preview)?$/.test(path)
         if (importing) {
           if (decodeURIComponent(path.split('/')[2]) !== service.options.workspace.workspaceId)
             throw new ManagementAuthError('WORKSPACE_NOT_FOUND', 404)

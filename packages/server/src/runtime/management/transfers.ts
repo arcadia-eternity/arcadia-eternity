@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import { exportSelectionSchema } from '@arcadia-eternity/content-sdk/management-workspace'
 import type { DurableStorage } from '@arcadia-eternity/database'
 import type {
   ContentWorkspace,
@@ -174,11 +175,17 @@ export class ManagementTransfers {
     installationId: string,
     idempotencyKey: string,
     retryOf?: string,
-    mode: 'share' | 'offline' = 'share',
+    requestedMode: unknown = 'share',
   ): Promise<Operation> {
     await this.ready()
     await this.options.auth.authorize(actor, this.scope, 'export')
-    if (mode !== 'share' && mode !== 'offline') fail('ENVIRONMENT_EXPORT_INVALID')
+    const selection = exportSelectionSchema.safeParse(requestedMode)
+    const mode =
+      requestedMode === 'share' || requestedMode === 'offline'
+        ? requestedMode
+        : selection.success
+          ? selection.data
+          : fail('ENVIRONMENT_EXPORT_INVALID')
     if (!safeString(installationId)) fail('ENVIRONMENT_VERSION_INVALID')
     return this.options.operations.submit(
       {
@@ -186,7 +193,7 @@ export class ManagementTransfers {
         scope: managementScopeKey(this.scope),
         actor,
         idempotencyKey,
-        input: { installationId, ...(mode === 'offline' ? { mode } : {}) },
+        input: { installationId, ...(mode === 'share' ? {} : { mode }) },
         ...(retryOf ? { retryOf } : {}),
       },
       async context => {
@@ -344,7 +351,7 @@ export class ManagementTransfers {
     }
     if (!['failed', 'cancelled', 'interrupted'].includes(previous.status)) return fail('OPERATION_NOT_RETRYABLE', 409)
     if (previous.kind === 'environment.export') {
-      const input = previous.input as { installationId: string; mode?: 'share' | 'offline' }
+      const input = previous.input as { installationId: string; mode?: unknown }
       return this.export(actor, input.installationId, idempotencyKey, previous.id, input.mode)
     }
     await this.options.auth.authorize(actor, this.scope, 'edit')

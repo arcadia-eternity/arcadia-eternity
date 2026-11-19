@@ -14,6 +14,7 @@ import { readFile } from 'node:fs/promises'
 import { assertEnvironmentRequirements } from '@arcadia-eternity/content-sdk/environment-rules'
 import type {
   ContentWorkspace,
+  EnvironmentImportProbe,
   EnvironmentInstallation,
   UnavailableInstallation,
   PrepareEnvironmentInput,
@@ -58,6 +59,8 @@ export type ManagementWorkspace = Pick<
   | 'releaseRetention'
   | 'prepareEnvironment'
   | 'clearInstallation'
+  | 'previewEnvironmentExport'
+  | 'missingEnvironmentArchives'
   | 'exportEnvironment'
   | 'importEnvironment'
   | 'recoverImport'
@@ -910,6 +913,11 @@ export class ManagementService {
     }
     if (parts[0] === 'workspaces') {
       if (parts[1] !== this.options.workspace.workspaceId) fail('WORKSPACE_NOT_FOUND', 404)
+      if (this.transfers && parts[2] === 'import-preview' && parts.length === 3 && method === 'POST') {
+        await this.auth.authorize(actor, this.workspaceScope, 'edit')
+        await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+        return ok(await this.options.workspace.missingEnvironmentArchives(input.probe as EnvironmentImportProbe))
+      }
       if (this.transfers && parts[2] === 'import' && parts.length === 3 && method === 'POST')
         return ok(
           publicOperation(
@@ -933,6 +941,10 @@ export class ManagementService {
               : { references: await this.options.workspace.references(parts[3]) },
           )
         }
+        if (this.transfers && parts[4] === 'export-preview' && method === 'GET') {
+          await this.auth.authorize(actor, this.workspaceScope, 'export')
+          return ok(await this.options.workspace.previewEnvironmentExport(parts[3]))
+        }
         if (this.transfers && parts[4] === 'export' && method === 'POST')
           return ok(
             publicOperation(
@@ -941,7 +953,7 @@ export class ManagementService {
                 parts[3],
                 text(request.headers?.['idempotency-key']),
                 undefined,
-                input.mode === 'offline' ? 'offline' : 'share',
+                input.mode,
               ),
             ),
             202,

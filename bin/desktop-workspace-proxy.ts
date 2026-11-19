@@ -295,6 +295,8 @@ export async function createDesktopWorkspaceProxy(
       releaseRetention: id => request('releaseRetention', [id]),
       references: id => request('references', [id]),
       clearInstallation: id => request('clearInstallation', [id]),
+      previewEnvironmentExport: id => request('previewEnvironmentExport', [id]),
+      missingEnvironmentArchives: probe => request('missingEnvironmentArchives', [probe]),
       exportEnvironment: (id, mode) => request('exportEnvironment', mode ? [id, mode] : [id]),
       exportSnapshot: () => request('exportSnapshot'),
       captureSnapshot: () => request('captureSnapshot'),

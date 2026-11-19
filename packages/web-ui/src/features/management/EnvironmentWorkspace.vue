@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import type {
+  EnvironmentExportPreview,
+  EnvironmentExportSelection,
+} from '@arcadia-eternity/content-sdk/management-workspace'
+import EnvironmentExportButton from './EnvironmentExportButton.vue'
 import EnvironmentReferenceInput from './EnvironmentReferenceInput.vue'
 import EnvironmentBooleanField from './EnvironmentBooleanField.vue'
 import EnvironmentIdList from './EnvironmentIdList.vue'
@@ -48,6 +53,7 @@ const props = withDefaults(
     installations: ManagedEnvironmentInstallation[]
     canEdit: boolean
     canPrepare: boolean
+    previewExport?: (id: string) => Promise<EnvironmentExportPreview>
     canExport?: boolean
     canDelete?: boolean
     canUse?: boolean
@@ -65,7 +71,7 @@ const emit = defineEmits<{
   removePackage: [environment: ManagedEnvironment, name: string, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null, copyFrom?: string]
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
-  export: [version: ManagedEnvironmentInstallation, mode?: 'share' | 'offline']
+  export: [version: ManagedEnvironmentInstallation, selection: EnvironmentExportSelection]
   delete: [version: ManagedEnvironmentInstallation]
   references: [version: ManagedEnvironmentInstallation]
   deleteDraft: [environment: ManagedEnvironment]
@@ -754,10 +760,16 @@ function save() {
           </div>
         </ElForm>
         <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
-          <ElButton v-if="canExport" :disabled="busy" @click="emit('export', latestVersion)">导出环境</ElButton>
-          <ElButton v-if="canExport" :disabled="busy" @click="emit('export', latestVersion, 'offline')"
-            >离线导出</ElButton
-          >
+          <EnvironmentExportButton
+            v-if="canExport && previewExport"
+            :key="
+              JSON.stringify([latestVersion.installationId, latestVersion.draftRevision, latestVersion.contentRevision])
+            "
+            :version="latestVersion"
+            :preview="previewExport"
+            :busy="busy"
+            @export="(version, selection) => emit('export', version, selection)"
+          />
           <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
           <ElButton
             v-if="showUseActions !== false"

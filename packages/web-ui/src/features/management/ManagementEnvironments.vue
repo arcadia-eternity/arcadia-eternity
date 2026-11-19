@@ -27,6 +27,8 @@ const {
   deleteEnvironment,
   useEnvironment,
   inspectReferences,
+  previewExport,
+  checkArchives,
   exportEnvironment,
   importEnvironment,
   downloadEnvironment,
@@ -42,6 +44,7 @@ function openImport() {
     v-if="supported('workspace.environments')"
     heading="服务器环境库"
     :key="client?.context.endpoint"
+    :preview-export="previewExport"
     :environments="environments"
     :installations="installations"
     :can-export="isAdministrator && supported('workspace.transfers')"
@@ -96,6 +99,8 @@ function openImport() {
     <ElButton @click="referenceEnvironment = ''" native-type="button">关闭引用</ElButton>
   </section>
   <EnvironmentImportDialog
+    :key="client?.context.endpoint"
+    :check-archives="checkArchives"
     v-model="importing"
     :busy="busy"
     :error="error"

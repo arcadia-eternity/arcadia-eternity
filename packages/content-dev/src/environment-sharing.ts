@@ -1,11 +1,11 @@
-import { readdir } from 'node:fs/promises'
+import { lstat, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { Readable } from 'node:stream'
 import { tarFiles } from './managed-sources.ts'
 import { isBaseMaterial } from './environment-host-base.ts'
 import { contentError, materialFiles, readJson } from './workspace-materials.ts'
-import { isRecord } from './types.ts'
+import { errorCode, isRecord } from './types.ts'
 
 type Material = { path: string; bytes: Buffer }
 export type ArchiveReference = {
@@ -63,21 +63,45 @@ export async function readArchiveFiles(bytes: Buffer, limits: Limits) {
   // npm strips the first directory component, including in older non-package/ tarballs.
   return new Map(files.map(file => [file.name.slice(file.name.indexOf('/') + 1), file.bytes]))
 }
-export async function compactMaterials(materials: Material[], limits: Limits) {
+function externalDependency(source: NonNullable<ReturnType<typeof sourceFor>>, location: string) {
+  if (!source.resolved.startsWith('https:')) return
+  return {
+    name: location.slice(location.lastIndexOf('node_modules/') + 13),
+    version: source.version,
+    integrity: source.integrity,
+    manual: !publicTarball.test(source.resolved),
+  }
+}
+
+export function exportDependencies(materials: Material[]) {
+  const lock = JSON.parse(materials.find(file => file.path === 'package-lock.json')!.bytes.toString())
+  return [...Map.groupBy(materials, file => packageLocation(file.path))].flatMap(([location, files]) => {
+    const source = sourceFor(lock, location)
+    const dependency = source && externalDependency(source, location)
+    if (!dependency) return []
+    const bytes = files.reduce((total, file) => total + Math.ceil(file.bytes.length / 3) * 4, 0)
+    return [{ ...dependency, location, bytes }]
+  })
+}
+
+export async function compactMaterials(materials: Material[], limits: Limits, included: string[] = []) {
   const byPath = new Map(materials.map(file => [file.path, file.bytes]))
   const lock = JSON.parse(byPath.get('package-lock.json')!.toString())
   const groups = Map.groupBy(materials, file => packageLocation(file.path))
   const archives: ArchiveReference[] = []
   const omitted = new Set<string>()
+  const selected = new Set(included)
   for (const [location, files] of groups) {
     const source = sourceFor(lock, location)
     const paths = files.map(file => file.path.slice(location.length + 1))
     if (!source) {
       const locked = lock.packages?.[location]
       if (typeof locked?.resolved === 'string' && /^https?:/.test(locked.resolved))
-        throw contentError('MATERIAL_INTEGRITY_REQUIRED', `无法核对 ${location} 的归档摘要。可使用离线导出。`)
+        throw contentError('MATERIAL_INTEGRITY_REQUIRED', `无法核对 ${location} 的归档摘要，请重新准备环境后再试。`)
       continue
     }
+    const external = externalDependency(source, location)
+    if (external && selected.delete(location)) continue
     if (source.resolved.startsWith('file:')) {
       const bytes = byPath.get(source.resolved.slice(5))
       if (!bytes) throw contentError('ENVIRONMENT_SOURCE_MISSING')
@@ -89,17 +113,11 @@ export async function compactMaterials(materials: Material[], limits: Limits) {
       location,
       paths,
       digest: fileDigest(files),
-      ...(source.resolved.startsWith('https:') && {
-        external: {
-          name: location.slice(location.lastIndexOf('node_modules/') + 13),
-          version: source.version,
-          integrity: source.integrity,
-          manual: !publicTarball.test(source.resolved),
-        },
-      }),
+      ...(external && { external }),
     })
     omitted.add(location)
   }
+  if (selected.size) throw contentError('ENVIRONMENT_EXPORT_INVALID')
   return {
     archives,
     materials: materials.filter(file => !omitted.has(packageLocation(file.path))),
@@ -129,15 +147,16 @@ type ImportOptions = Limits & {
   offline: boolean
   cache: string
   environments?: string
+  missing?: Set<string>
   supplied?: Record<string, string>
 }
 
 async function registryTarball(source: NonNullable<ReturnType<typeof sourceFor>>, name: string, limits: ImportOptions) {
-  if (!publicTarball.test(source.resolved))
-    throw contentError('PACKAGE_ARCHIVE_REQUIRED', `请补充 ${name}@${source.version} 的归档（${source.integrity}）`)
+  const manual = !publicTarball.test(source.resolved)
   const options = {
-    cache: limits.cache,
-    offline: limits.offline,
+    cache: join(limits.cache, '_cacache'),
+    resolved: source.resolved,
+    offline: manual || limits.offline,
     preferOffline: true,
     integrity: source.integrity,
     retry: { retries: 0 },
@@ -146,23 +165,45 @@ async function registryTarball(source: NonNullable<ReturnType<typeof sourceFor>>
   }
   try {
     const { tarball } = (await import('pacote')).default
-    return await tarball.stream(
-      source.resolved,
-      async stream => {
-        const chunks: Buffer[] = []
-        let size = 0
-        for await (const chunk of stream) {
-          size += chunk.length
-          if (size > (limits.maxBytes ?? 256 * 1024 * 1024)) throw contentError('MATERIAL_LIMIT')
-          chunks.push(chunk)
-        }
-        return Buffer.concat(chunks)
-      },
-      options,
-    )
+    const read = (settings: typeof options) =>
+      tarball.stream(
+        // A private lock entry can be a hosted Git URL. Keep it on npm's registry/cache path.
+        manual ? name : source.resolved,
+        async stream => {
+          const chunks: Buffer[] = []
+          let size = 0
+          for await (const chunk of stream) {
+            size += chunk.length
+            if (size > (limits.maxBytes ?? 256 * 1024 * 1024)) throw contentError('MATERIAL_LIMIT')
+            chunks.push(chunk)
+          }
+          return Buffer.concat(chunks)
+        },
+        settings,
+      )
+    // Older Arcadia imports populated the cache root directly, alongside npm's _cacache.
+    if (
+      await lstat(join(limits.cache, 'content-v2')).then(
+        stat => stat.isDirectory(),
+        () => false,
+      )
+    ) {
+      try {
+        return await read({ ...options, cache: limits.cache, offline: true })
+      } catch (error) {
+        limits.signal?.throwIfAborted()
+        if (errorCode(error) === 'MATERIAL_LIMIT') throw error
+      }
+    }
+    return await read(options)
   } catch (cause) {
     limits.signal?.throwIfAborted()
-    throw new Error(`无法取得 ${name} 的锁定归档，请检查下载设置或使用离线导出。`, { cause })
+    if (errorCode(cause) === 'MATERIAL_LIMIT') throw cause
+    if (manual)
+      throw contentError('PACKAGE_ARCHIVE_REQUIRED', `请补充 ${name}@${source.version} 的归档（${source.integrity}）`)
+    throw Object.assign(new Error(`无法取得 ${name} 的锁定归档，请允许下载或补充对应的 .tgz 文件。`, { cause }), {
+      code: 'PACKAGE_ARCHIVE_REQUIRED',
+    })
   }
 }
 
@@ -208,6 +249,7 @@ export async function expandSharedMaterials(
   const expanded: Material[] = []
   const locations = new Set<string>()
   let installed: Awaited<ReturnType<typeof installedArchives>> | undefined
+  let fileCount = files.length
   for (const ref of references) {
     limits.signal?.throwIfAborted()
     // Old exports can describe a sender-specific base, including a registry reference.
@@ -219,12 +261,26 @@ export async function expandSharedMaterials(
       locations.has(ref.location) ||
       !Array.isArray(ref.paths) ||
       !ref.paths.length ||
-      ref.paths.length + files.length + expanded.length > maxFiles
+      ref.paths.length + fileCount > maxFiles ||
+      ref.paths.some(path => typeof path !== 'string')
     )
       throw contentError('ENVIRONMENT_EXPORT_INVALID')
+    fileCount += ref.paths.length
     locations.add(ref.location)
     const source = sourceFor(lock, ref.location)
     if (!source) throw contentError('MATERIAL_LOCK_NOT_PORTABLE')
+    if (limits.missing) {
+      const external = externalDependency(source, ref.location)
+      if (
+        !external ||
+        !ref.external ||
+        external.integrity !== ref.external.integrity ||
+        external.manual !== ref.external.manual ||
+        external.name !== ref.external.name ||
+        external.version !== ref.external.version
+      )
+        throw contentError('ENVIRONMENT_EXPORT_INVALID')
+    }
     if (!source.resolved.startsWith('file:') && limits.environments && !supplied.has(source.integrity)) {
       installed ??= await installedArchives(limits.environments)
       let reused = false
@@ -240,7 +296,7 @@ export async function expandSharedMaterials(
         if (matches) {
           remaining -= matches.reduce((sum, file) => sum + file.bytes.length, 0)
           if (remaining < 0) throw contentError('MATERIAL_LIMIT')
-          expanded.push(...matches)
+          if (!limits.missing) expanded.push(...matches)
           reused = true
           break
         }
@@ -255,7 +311,18 @@ export async function expandSharedMaterials(
     } else if (supplied.has(source.integrity)) {
       bytes = supplied.get(source.integrity)!
     } else {
-      bytes = await registryTarball(source, ref.location.slice(13), limits)
+      try {
+        bytes = await registryTarball(
+          source,
+          ref.location.slice(ref.location.lastIndexOf('node_modules/') + 13),
+          limits,
+        )
+      } catch (error) {
+        limits.signal?.throwIfAborted()
+        if (!limits.missing || !limits.offline || errorCode(error) !== 'PACKAGE_ARCHIVE_REQUIRED') throw error
+        limits.missing.add(source.integrity)
+        continue
+      }
     }
     verifyArchive(bytes, source.integrity)
     const archive = await readArchiveFiles(bytes, { ...limits, maxBytes: remaining })
@@ -263,7 +330,7 @@ export async function expandSharedMaterials(
     if (!restored) throw contentError('SOURCE_INTEGRITY_MISMATCH')
     remaining -= restored.reduce((sum, file) => sum + file.bytes.length, 0)
     if (remaining < 0) throw contentError('MATERIAL_LIMIT')
-    expanded.push(...restored)
+    if (!limits.missing) expanded.push(...restored)
   }
   return [...files, ...expanded]
 }

@@ -34,7 +34,8 @@ export function managementRequest(input) {
   if (method === 'GET' && body !== undefined) throw new Error('读取操作不能带请求正文')
   const result = { method, path, ...(body === undefined ? {} : { body }), headers: normalized }
   const encoded = JSON.stringify(result)
-  const isImport = method === 'POST' && /^(?:\/api\/management\/v1)?\/workspaces\/[^/]+\/import$/.test(decoded)
+  const isImport =
+    method === 'POST' && /^(?:\/api\/management\/v1)?\/workspaces\/[^/]+\/import(?:-preview)?$/.test(decoded)
   const limit = (isImport ? 130 : 2) * 1024 * 1024
   if (Buffer.byteLength(encoded) > limit) throw new Error('管理请求过大')
   return JSON.parse(encoded)

@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import type { EnvironmentImportProbe } from '@arcadia-eternity/content-sdk/management-workspace'
 import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput, ElCheckbox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { dismissedExportRecords } from './exportRecords'
 import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
 const props = defineProps<{
+  checkArchives?: (probe: EnvironmentImportProbe) => Promise<string[]>
   allowDownload?: boolean
   mode?: 'all' | 'import' | 'results'
   dialog?: boolean
@@ -27,6 +29,7 @@ const fileBytes = ref(0)
 const importId = ref('')
 type ExternalArchive = { name: string; version: string; integrity: string; manual: boolean }
 const external = ref<ExternalArchive[]>([])
+const hasReferences = ref(false)
 const supplied = shallowRef<Record<string, string>>({})
 const downloadMissing = ref(false)
 async function supplyArchive(event: Event, dependency: ExternalArchive) {
@@ -122,6 +125,7 @@ function clearFile(resetInput = true) {
   preview.value = undefined
   supplied.value = {}
   external.value = []
+  hasReferences.value = false
   downloadMissing.value = props.allowDownload === true
   selectedFile.value = ''
   fileBytes.value = 0
@@ -192,7 +196,24 @@ async function chooseFile(event: Event) {
           manual: item.manual,
         })
       }
-      external.value = [...items.values()]
+      hasReferences.value = items.size > 0
+      if (record(parsed.suppliedArchives)) {
+        for (const [integrity, data] of Object.entries(parsed.suppliedArchives)) {
+          if (items.has(integrity) && typeof data === 'string') items.delete(integrity)
+        }
+      }
+      if (items.size && props.checkArchives) {
+        const lock = parsed.files.find(file => record(file) && file.path === 'package-lock.json')
+        if (!lock || typeof lock.data !== 'string') throw new Error('环境文件缺少依赖锁')
+        const missing = new Set(
+          await props.checkArchives({
+            lock: { path: 'package-lock.json', data: lock.data },
+            archives: parsed.archives.filter(ref => ref.external && items.has(ref.external.integrity)),
+          }),
+        )
+        if (generation !== readGeneration) return
+        external.value = [...items.values()].filter(item => missing.has(item.integrity))
+      } else external.value = [...items.values()]
     }
     bundle.value = parsed
     selectedFile.value = file.name
@@ -229,11 +250,17 @@ function importEnvironment() {
   validation.value = ''
   const complete =
     Object.keys(supplied.value).length && record(bundle.value)
-      ? { ...bundle.value, suppliedArchives: supplied.value }
+      ? {
+          ...bundle.value,
+          suppliedArchives: {
+            ...(record(bundle.value.suppliedArchives) ? bundle.value.suppliedArchives : {}),
+            ...supplied.value,
+          },
+        }
       : bundle.value
   emit('import', {
     bundle: complete,
-    ...(external.value.length ? { allowDownload: downloadMissing.value } : {}),
+    ...(hasReferences.value ? { allowDownload: publicMissing.value.length > 0 && downloadMissing.value } : {}),
     ...(environmentId ? { environmentId } : {}),
     expectedRevision: null,
   })
@@ -268,7 +295,16 @@ onBeforeUnmount(() => {
   clearInterval(timer)
   clearFile()
 })
-const canSubmit = computed(() => !!preview.value && !reading.value && props.canImport && !props.busy)
+const publicMissing = computed(() => external.value.filter(item => !item.manual && !supplied.value[item.integrity]))
+const canSubmit = computed(
+  () =>
+    !!preview.value &&
+    !reading.value &&
+    props.canImport &&
+    !props.busy &&
+    (!props.checkArchives ||
+      external.value.every(item => supplied.value[item.integrity] || (!item.manual && downloadMissing.value))),
+)
 defineExpose({
   submit: importEnvironment,
   canSubmit,
@@ -335,17 +371,12 @@ defineExpose({
             <dt>内容材料</dt>
             <dd>{{ preview.packageCount }} 个额外内容包 · {{ preview.fileCount }} 个文件</dd>
           </dl>
-          <ElCheckbox v-if="external.some(item => !item.manual)" v-model="downloadMissing"
-            >允许从 npm 下载缺失的包</ElCheckbox
+          <ElCheckbox v-if="publicMissing.length" v-model="downloadMissing"
+            >下载缺失的 {{ publicMissing.length }} 个公共依赖</ElCheckbox
           >
           <details v-if="external.length" :open="external.some(item => item.manual)">
             <summary>补充依赖归档（{{ external.length }}）</summary>
-            <ElFormItem
-              v-for="item in external"
-              :key="item.integrity"
-              :label="item.name + '@' + item.version"
-              :title="item.manual ? '本机缺少此版本时请补充归档' : undefined"
-            >
+            <ElFormItem v-for="item in external" :key="item.integrity" :label="item.name + '@' + item.version">
               <code>{{ item.integrity }}</code>
               <input
                 type="file"
