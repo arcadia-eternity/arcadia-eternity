@@ -176,6 +176,60 @@ test('preparation checks authorization before replacing the environment', async 
   assert.equal((await workspace.getInstallation('main')).createdAt, first.createdAt)
 })
 
+test('import checks every declared Arcadia range against the recipient and preserves the current installation on rejection', async t => {
+  const { open, project, root } = await fixture(t)
+  const { version } = JSON.parse(await readFile(new URL('../../pack-loader/package.json', import.meta.url)))
+  const sampleFile = join(project, 'node_modules/sample/package.json')
+  const sample = JSON.parse(await readFile(sampleFile))
+  sample.dependencies = { helper: '1.0.0' }
+  const helper = { name: 'helper', version: '1.0.0', engines: { arcadia: '^' + version.split('.')[0] + '.0.0' } }
+  const helperLocation = 'node_modules/sample/node_modules/helper'
+  await mkdir(join(project, helperLocation), { recursive: true })
+  await writeFile(join(project, helperLocation, 'package.json'), JSON.stringify(helper))
+  await writeFile(sampleFile, JSON.stringify(sample))
+  const lockFile = join(project, 'package-lock.json')
+  const lock = JSON.parse(await readFile(lockFile))
+  lock.packages['node_modules/sample'].dependencies = sample.dependencies
+  lock.packages[helperLocation] = { version: helper.version, engines: helper.engines }
+  await writeFile(lockFile, JSON.stringify(lock))
+  const sender = await open()
+  await ready(sender)
+  const target = await ContentWorkspace.open(join(root, 'recipient'))
+  try {
+    const bundle = await sender.exportEnvironment('main')
+    const installed = await target.importEnvironment(bundle, {}, prepare)
+    const previous = await target.getDraft('main')
+    for (const [range, code] of [
+      ['>', 'ARCADIA_VERSION_RANGE_INVALID'],
+      ['>' + version, 'ARCADIA_VERSION_INCOMPATIBLE'],
+    ]) {
+      const incoming = structuredClone(bundle)
+      helper.engines.arcadia = range
+      lock.packages[helperLocation].engines = helper.engines
+      for (const [path, json] of [
+        [helperLocation + '/package.json', helper],
+        ['package-lock.json', lock],
+      ]) {
+        incoming.files.find(file => file.path === path).data = Buffer.from(JSON.stringify(json)).toString('base64')
+      }
+      await assert.rejects(
+        target.importEnvironment(incoming, { expectedRevision: previous.revision }, prepare),
+        err =>
+          err.code === code &&
+          err.message.includes('helper') &&
+          (code !== 'ARCADIA_VERSION_INCOMPATIBLE' || (err.message.includes(range) && err.message.includes(version))),
+      )
+      assert.deepEqual(await target.getDraft('main'), previous)
+      assert.equal((await target.getInstallation('main')).contentRevision, installed.contentRevision)
+      assert.deepEqual(JSON.parse(await readFile(join(installed.directory, helperLocation, 'package.json'))).engines, {
+        arcadia: '^' + version.split('.')[0] + '.0.0',
+      })
+    }
+  } finally {
+    await target.close()
+  }
+})
+
 test('export and import revalidate current materials without matching an old runtime hash', async t => {
   const { open, root } = await fixture(t)
   const workspace = await open()

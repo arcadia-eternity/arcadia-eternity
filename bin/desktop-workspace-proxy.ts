@@ -17,6 +17,7 @@ interface DesktopWorkspaceChannel {
 }
 
 export interface DesktopWorkspaceProxyOptions {
+  allowShareDownloads?: boolean
   retentions: NonNullable<ContentWorkspaceOptions['retentions']>
   timeoutMs?: number
   channel?: DesktopWorkspaceChannel
@@ -294,7 +295,7 @@ export async function createDesktopWorkspaceProxy(
       releaseRetention: id => request('releaseRetention', [id]),
       references: id => request('references', [id]),
       clearInstallation: id => request('clearInstallation', [id]),
-      exportEnvironment: id => request('exportEnvironment', [id]),
+      exportEnvironment: (id, mode) => request('exportEnvironment', mode ? [id, mode] : [id]),
       exportSnapshot: () => request('exportSnapshot'),
       captureSnapshot: () => request('captureSnapshot'),
       isSnapshotCurrent: stamp => request('isSnapshotCurrent', [stamp]),
@@ -314,7 +315,14 @@ export async function createDesktopWorkspaceProxy(
         const { signal, beforeCommit, ...serializable } = input
         return request(
           'importEnvironment',
-          [bundle, { ...serializable, hasBeforeCommit: !!beforeCommit }],
+          [
+            bundle,
+            {
+              ...serializable,
+              allowDownload: options.allowShareDownloads === true && input.allowDownload !== false,
+              hasBeforeCommit: !!beforeCommit,
+            },
+          ],
           signal,
           preparer,
           beforeCommit,

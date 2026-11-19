@@ -107,6 +107,30 @@ async function fixture(t, options = { watch: false }) {
   })
   return { workspace, root }
 }
+test('project settings update only the Arcadia range and reject stale or invalid edits', async t => {
+  const { root, workspace } = await fixture(t)
+  const file = join(root, 'package.json')
+  const initial = JSON.parse(await readFile(file))
+  assert.equal((await workspace.snapshot()).arcadiaRange, '')
+  await writeFile(file, JSON.stringify({ ...initial, engines: { node: '>=24' }, description: 'External edit' }))
+  await workspace.saveArcadiaRange(' ^4.6.0 ', '')
+  assert.deepEqual(JSON.parse(await readFile(file)), {
+    ...initial,
+    engines: { node: '>=24', arcadia: '^4.6.0' },
+    description: 'External edit',
+  })
+  assert.equal((await workspace.snapshot()).arcadiaRange, '^4.6.0')
+  await assert.rejects(workspace.saveArcadiaRange('~4.6.0', ''), { code: 'REVISION_CONFLICT' })
+  await assert.rejects(workspace.saveArcadiaRange('invalid', '^4.6.0'), { code: 'ARCADIA_VERSION_RANGE_INVALID' })
+  const reader = await AuthorWorkspace.open(root, { watch: false, readOnly: true })
+  try {
+    await assert.rejects(reader.saveArcadiaRange('', '^4.6.0'), { code: 'WRITE_DISABLED' })
+  } finally {
+    await reader.close()
+  }
+  await workspace.saveArcadiaRange('', '^4.6.0')
+  assert.deepEqual(JSON.parse(await readFile(file)).engines, { node: '>=24' })
+})
 test('form save preserves YAML comments, unknown fields and sibling array records', async t => {
   const { workspace, root } = await fixture(t)
   let source = (await workspace.snapshot()).records[0]

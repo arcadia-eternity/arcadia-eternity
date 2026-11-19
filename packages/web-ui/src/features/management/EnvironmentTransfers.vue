@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput } from 'element-plus'
+import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput, ElCheckbox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { dismissedExportRecords } from './exportRecords'
 import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
 const props = defineProps<{
+  allowDownload?: boolean
   mode?: 'all' | 'import' | 'results'
   dialog?: boolean
   installations: ManagedEnvironmentInstallation[]
@@ -14,15 +15,51 @@ const props = defineProps<{
   canExport: boolean
 }>()
 const emit = defineEmits<{
-  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null }]
+  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null; allowDownload?: boolean }]
   export: [version: ManagedEnvironmentInstallation]
   download: [operation: ManagementOperation]
 }>()
+const basePackageName = '@arcadia-eternity/data-pack-base'
 const maxBytes = 128 * 1024 * 1024
 const selectedVersion = ref('')
 const selectedFile = ref('')
 const fileBytes = ref(0)
 const importId = ref('')
+type ExternalArchive = { name: string; version: string; integrity: string; manual: boolean }
+const external = ref<ExternalArchive[]>([])
+const supplied = shallowRef<Record<string, string>>({})
+const downloadMissing = ref(false)
+async function supplyArchive(event: Event, dependency: ExternalArchive) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  const next = { ...supplied.value }
+  delete next[dependency.integrity]
+  supplied.value = next
+  if (!file) return
+  const bytes = Object.values(next).reduce((total, data) => total + data.length, fileBytes.value)
+  if (bytes + Math.ceil(file.size / 3) * 4 > maxBytes) {
+    validation.value = '环境与补充归档合计超过 128 MiB。'
+    return
+  }
+  const generation = readGeneration
+  const reader = new FileReader()
+  reading.value = true
+  try {
+    const result = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(String(reader.result).split(',')[1])
+      reader.onerror = () => reject(new Error('无法读取依赖归档'))
+      reader.readAsDataURL(file)
+    })
+    if (generation === readGeneration) {
+      supplied.value = { ...next, [dependency.integrity]: result }
+      validation.value = ''
+    }
+  } catch {
+    if (generation === readGeneration) validation.value = '无法读取依赖归档'
+  } finally {
+    if (generation === readGeneration) reading.value = false
+  }
+}
 const bundle = shallowRef<unknown>()
 const preview = ref<{ name: string; id: string; contentRevision: string; packageCount: number; fileCount: number }>()
 const validation = ref('')
@@ -83,6 +120,9 @@ function clearFile(resetInput = true) {
   reading.value = false
   bundle.value = undefined
   preview.value = undefined
+  supplied.value = {}
+  external.value = []
+  downloadMissing.value = props.allowDownload === true
   selectedFile.value = ''
   fileBytes.value = 0
   importId.value = ''
@@ -112,7 +152,9 @@ async function chooseFile(event: Event) {
     const parsed: unknown = JSON.parse(contents)
     if (
       !record(parsed) ||
-      parsed.format !== 'arcadia.environment-export/2' ||
+      (parsed.format !== 'arcadia.environment-export/2' &&
+        ((parsed.format !== 'arcadia.environment-export/3' && parsed.format !== 'arcadia.environment-export/4') ||
+          !Array.isArray(parsed.archives))) ||
       !record(parsed.document) ||
       parsed.document.schemaVersion !== 2 ||
       !text(parsed.document.id) ||
@@ -124,6 +166,34 @@ async function chooseFile(event: Event) {
     ) {
       throw new Error('此文件不是支持的环境导出文件。')
     }
+    if (Array.isArray(parsed.archives)) {
+      const items = new Map<string, ExternalArchive>()
+      for (const archive of parsed.archives) {
+        if (!record(archive)) throw new Error('环境材料清单无效')
+        const item = archive.external
+        if (
+          item === undefined ||
+          (typeof archive.location === 'string' &&
+            ('/' + archive.location.toLowerCase() + '/').includes('/node_modules/' + basePackageName + '/'))
+        )
+          continue
+        if (
+          !record(item) ||
+          !text(item.name) ||
+          !text(item.version) ||
+          !text(item.integrity) ||
+          typeof item.manual !== 'boolean'
+        )
+          throw new Error('环境依赖清单无效')
+        items.set(item.integrity, {
+          name: item.name,
+          version: item.version,
+          integrity: item.integrity,
+          manual: item.manual,
+        })
+      }
+      external.value = [...items.values()]
+    }
     bundle.value = parsed
     selectedFile.value = file.name
     fileBytes.value = file.size
@@ -131,7 +201,7 @@ async function chooseFile(event: Event) {
       name: parsed.document.name,
       id: parsed.document.id,
       contentRevision: parsed.contentRevision,
-      packageCount: Object.keys(parsed.document.packages).length,
+      packageCount: Object.keys(parsed.document.packages).filter(name => name !== basePackageName).length,
       fileCount: parsed.files.length,
     }
   } catch (cause) {
@@ -150,14 +220,23 @@ async function chooseFile(event: Event) {
   }
 }
 function importEnvironment() {
-  if (props.busy || !props.canImport || !bundle.value || !preview.value || reading.value) return
+  if (!canSubmit.value || !bundle.value) return
   const environmentId = importId.value.trim()
   if (environmentId && !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId)) {
     validation.value = '环境标识须为小写字母、数字、下划线或连字符，最多 80 个字符。'
     return
   }
   validation.value = ''
-  emit('import', { bundle: bundle.value, ...(environmentId ? { environmentId } : {}), expectedRevision: null })
+  const complete =
+    Object.keys(supplied.value).length && record(bundle.value)
+      ? { ...bundle.value, suppliedArchives: supplied.value }
+      : bundle.value
+  emit('import', {
+    bundle: complete,
+    ...(external.value.length ? { allowDownload: downloadMissing.value } : {}),
+    ...(environmentId ? { environmentId } : {}),
+    expectedRevision: null,
+  })
 }
 function exportEnvironment() {
   const version = readyVersions.value.find(version => version.installationId === selectedVersion.value)
@@ -256,6 +335,27 @@ defineExpose({
             <dt>内容材料</dt>
             <dd>{{ preview.packageCount }} 个额外内容包 · {{ preview.fileCount }} 个文件</dd>
           </dl>
+          <ElCheckbox v-if="external.some(item => !item.manual)" v-model="downloadMissing"
+            >允许从 npm 下载缺失的包</ElCheckbox
+          >
+          <details v-if="external.length" :open="external.some(item => item.manual)">
+            <summary>补充依赖归档（{{ external.length }}）</summary>
+            <ElFormItem
+              v-for="item in external"
+              :key="item.integrity"
+              :label="item.name + '@' + item.version"
+              :title="item.manual ? '本机缺少此版本时请补充归档' : undefined"
+            >
+              <code>{{ item.integrity }}</code>
+              <input
+                type="file"
+                accept=".tgz,.gz"
+                :disabled="reading || busy"
+                :aria-label="'补充 ' + item.name"
+                @change="supplyArchive($event, item)"
+              />
+            </ElFormItem>
+          </details>
           <ElFormItem label="新环境标识（可选）">
             <ElInput
               v-model="importId"
@@ -266,7 +366,7 @@ defineExpose({
             />
           </ElFormItem>
           <div v-if="!dialog" class="actions">
-            <ElButton class="primary" :disabled="busy || !canImport || reading" native-type="submit" type="primary"
+            <ElButton class="primary" :disabled="!canSubmit" native-type="submit" type="primary"
               >确认导入新环境</ElButton
             >
             <ElButton :disabled="busy" @click="clearFile()" native-type="button">取消导入</ElButton>

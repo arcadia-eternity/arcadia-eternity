@@ -229,7 +229,7 @@ it('installs into the library and shows task management without enabling', async
   expect(installDialog.isVisible()).toBe(true)
   await installDialog
     .findAll('button')
-    .find(item => item.text() === '安装本地 .tgz 文件')!
+    .find(item => item.text() === '安装本地内容包')!
     .trigger('click')
   await flushPromises()
   expect(install).toHaveBeenCalledWith({ offline: false })

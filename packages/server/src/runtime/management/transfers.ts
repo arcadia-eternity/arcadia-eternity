@@ -174,9 +174,11 @@ export class ManagementTransfers {
     installationId: string,
     idempotencyKey: string,
     retryOf?: string,
+    mode: 'share' | 'offline' = 'share',
   ): Promise<Operation> {
     await this.ready()
     await this.options.auth.authorize(actor, this.scope, 'export')
+    if (mode !== 'share' && mode !== 'offline') fail('ENVIRONMENT_EXPORT_INVALID')
     if (!safeString(installationId)) fail('ENVIRONMENT_VERSION_INVALID')
     return this.options.operations.submit(
       {
@@ -184,7 +186,7 @@ export class ManagementTransfers {
         scope: managementScopeKey(this.scope),
         actor,
         idempotencyKey,
-        input: { installationId },
+        input: { installationId, ...(mode === 'offline' ? { mode } : {}) },
         ...(retryOf ? { retryOf } : {}),
       },
       async context => {
@@ -196,7 +198,7 @@ export class ManagementTransfers {
           await context.checkCurrent()
           await this.options.auth.authorize(actor, this.scope, 'export')
           await context.progress({ stage: 'exporting' })
-          const bundle = await this.options.workspace.exportEnvironment(installationId)
+          const bundle = await this.options.workspace.exportEnvironment(installationId, mode)
           const bytes = Buffer.from(JSON.stringify(bundle))
           await context.checkCurrent()
           await this.write(name, bytes)
@@ -233,6 +235,7 @@ export class ManagementTransfers {
       expectedRevision?: string | null
       idempotencyKey: string
       retryOf?: string
+      allowDownload?: boolean
     },
   ): Promise<Operation> {
     await this.ready()
@@ -242,7 +245,9 @@ export class ManagementTransfers {
       !bundle ||
       typeof bundle !== 'object' ||
       Array.isArray(bundle) ||
-      (bundle as { format?: unknown }).format !== 'arcadia.environment-export/2'
+      !['arcadia.environment-export/2', 'arcadia.environment-export/3', 'arcadia.environment-export/4'].includes(
+        (bundle as { format: string }).format,
+      )
     )
       fail('ENVIRONMENT_EXPORT_INVALID')
     if (input.environmentId !== undefined && !safeString(input.environmentId)) fail('ENVIRONMENT_ID_INVALID')
@@ -269,6 +274,7 @@ export class ManagementTransfers {
           idempotencyKey: input.idempotencyKey,
           ...(input.retryOf ? { retryOf: input.retryOf } : {}),
           input: {
+            ...(input.allowDownload !== undefined ? { allowDownload: input.allowDownload } : {}),
             bundleDigest,
             uploadId,
             environmentId: input.environmentId ?? null,
@@ -290,6 +296,7 @@ export class ManagementTransfers {
               parsed,
               {
                 importId: context.operationId,
+                allowDownload: input.allowDownload === true,
                 ...(input.environmentId ? { environmentId: input.environmentId } : {}),
                 expectedRevision: input.expectedRevision ?? null,
                 signal: context.signal,
@@ -337,12 +344,13 @@ export class ManagementTransfers {
     }
     if (!['failed', 'cancelled', 'interrupted'].includes(previous.status)) return fail('OPERATION_NOT_RETRYABLE', 409)
     if (previous.kind === 'environment.export') {
-      const input = previous.input as { installationId: string }
-      return this.export(actor, input.installationId, idempotencyKey, previous.id)
+      const input = previous.input as { installationId: string; mode?: 'share' | 'offline' }
+      return this.export(actor, input.installationId, idempotencyKey, previous.id, input.mode)
     }
     await this.options.auth.authorize(actor, this.scope, 'edit')
     await this.options.auth.authorize(actor, this.scope, 'prepare')
     const input = previous.input as {
+      allowDownload?: boolean
       uploadId: string
       bundleDigest: string
       environmentId: string | null
@@ -359,6 +367,7 @@ export class ManagementTransfers {
         expectedRevision: input.expectedRevision,
         idempotencyKey,
         retryOf: previous.id,
+        allowDownload: input.allowDownload,
       })
     } finally {
       unpin()

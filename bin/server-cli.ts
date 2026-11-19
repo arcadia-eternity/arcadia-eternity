@@ -306,8 +306,22 @@ export async function runServerCli(args: string[]): Promise<number> {
     const { persistentServerConfig } = await import('./server-config')
     const config = persistentServerConfig(options)
     const retentions = workspaceRetentions(storage, () => workspace!.workspaceId)
-    const desktopWorkspace = desktopControl ? await createDesktopWorkspaceProxy({ retentions }) : undefined
-    workspace = desktopWorkspace ?? (await ContentWorkspace.open(config.workspaceRoot, { retentions }))
+    const bundledPackageRoot = dirname(
+      fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
+    )
+    const allowShareDownloads =
+      !options.offlineContent && !!(options.allowThirdPartyContent || options.allowThirdPartyExecution)
+    const desktopWorkspace = desktopControl
+      ? await createDesktopWorkspaceProxy({ retentions, allowShareDownloads })
+      : undefined
+    workspace =
+      desktopWorkspace ??
+      (await ContentWorkspace.open(config.workspaceRoot, {
+        retentions,
+        allowShareDownloads,
+        bundledPackageRoot,
+        npmCache: join(config.dataDirectory, 'projects', 'npm-cache'),
+      }))
     if (!desktopControl) {
       let sources: ManagedProjectsOptions['sources']
       if (options.contentSources) {
@@ -320,9 +334,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         sources = value as ManagedProjectsOptions['sources']
       }
       projects = new ManagedProjects(join(config.dataDirectory, 'projects'), {
-        bundledPackageRoot: dirname(
-          fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
-        ),
+        bundledPackageRoot,
         allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
         registry: options.npmRegistry,
         offline: options.offlineContent,

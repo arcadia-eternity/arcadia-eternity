@@ -49,6 +49,7 @@ interface AuthorDiagnostic {
   column?: number
 }
 export interface AuthorSnapshot {
+  arcadiaRange?: string
   version?: string
   root: string
   name: string

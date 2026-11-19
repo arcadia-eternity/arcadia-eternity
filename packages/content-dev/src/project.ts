@@ -2,7 +2,7 @@ import { cp, lstat, mkdir, readFile, realpath, readdir, symlink, writeFile } fro
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
-import { WorkspaceError } from './workspace.ts'
+import { WorkspaceError, normalizeArcadiaRange } from './workspace.ts'
 import { siblingModulePath } from './module-path.ts'
 import { errorCode } from './types.ts'
 const require = createRequire(import.meta.url)
@@ -113,8 +113,13 @@ export async function connectDevelopmentSdk(root: string) {
   }
   return { linked }
 }
-export async function createSourceProject(directory: string, identity: string) {
+export async function createSourceProject(
+  directory: string,
+  identity: string,
+  arcadiaRange: string = '^' + require('../package.json').version,
+) {
   if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(identity)) throw new WorkspaceError('PROJECT_INVALID', '项目 ID 无效')
+  const range = normalizeArcadiaRange(arcadiaRange)
   await mkdir(directory) // No overwrite or merge with existing directories.
   let template = fileURLToPath(new URL('./template/', import.meta.url))
   try {
@@ -135,7 +140,9 @@ export async function createSourceProject(directory: string, identity: string) {
     }
   }
   await renameText(directory)
-  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')) as Record<string, unknown>
+  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+  if (range) manifest.engines.arcadia = range
+  else delete manifest.engines.arcadia
   manifest.name = `@arcadia-local/${identity}`
   await writeFile(join(directory, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
   await connectDevelopmentSdk(directory)

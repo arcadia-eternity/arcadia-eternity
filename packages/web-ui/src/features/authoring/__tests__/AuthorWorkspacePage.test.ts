@@ -37,12 +37,18 @@ async function openWorkspace(receipts: AuthorJob[] = [pack]) {
   const install = new Promise<{ result?: unknown; error?: { code: string; message: string } }>(resolve => {
     finishInstall = resolve
   })
+  const current = { ...snapshot, arcadiaRange: '^4.6.0' }
   const author = vi.fn(async (input: Record<string, unknown>) => {
     switch (input.action) {
       case 'list':
         return { result: [project] }
       case 'snapshot':
-        return { result: snapshot }
+        return { result: { ...current } }
+      case 'save-arcadia-range':
+        if (input.expectedRange !== current.arcadiaRange)
+          return { error: { code: 'REVISION_CONFLICT', message: '外部修改' } }
+        current.arcadiaRange = String(input.range)
+        return { result: null }
       case 'jobs':
         return { result: receipts }
       case 'start':
@@ -68,7 +74,7 @@ async function openWorkspace(receipts: AuthorJob[] = [pack]) {
   await wrapper.get('button.project-switch').trigger('click')
   await vi.waitFor(() => expect(wrapper.text()).toContain('用于环境'), { timeout: 2500 })
   const button = wrapper.findAll('button').find(button => button.text().endsWith('用于环境'))!
-  return { wrapper, router, button, author, finishInstall }
+  return { wrapper, router, button, author, finishInstall, current }
 }
 
 it('blocks leaving during installation, then opens environments with the installed package', async () => {
@@ -123,6 +129,39 @@ it('rebuilds after a failed pack and installs only that new successful build', a
     )
     finishInstall({ result: { packageId: 'new-package' } })
     await flushPromises()
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it('edits the opened project range, preserves conflicting input and supports clearing the requirement', async () => {
+  const { wrapper, author, current } = await openWorkspace()
+  try {
+    const input = wrapper.get<HTMLInputElement>('input[aria-label="Arcadia 兼容范围"]')
+    const submit = wrapper.get('form button[type="submit"]')
+    expect(input.element.value).toBe('^4.6.0')
+    await input.setValue('abc')
+    expect(submit.attributes('disabled')).toBeDefined()
+    await input.setValue('~4.6.0')
+    current.arcadiaRange = '^5.0.0'
+    await submit.trigger('submit')
+    await flushPromises()
+    expect(input.element.value).toBe('~4.6.0')
+    expect(wrapper.text()).toContain('文件中的范围已变为 ^5.0.0')
+    expect(submit.text()).toBe('覆盖并保存范围')
+    await submit.trigger('submit')
+    await flushPromises()
+    expect(author).toHaveBeenCalledWith({
+      action: 'save-arcadia-range',
+      id: project.id,
+      range: '~4.6.0',
+      expectedRange: '^5.0.0',
+    })
+    expect(submit.attributes('disabled')).toBeDefined()
+    await input.setValue('')
+    await submit.trigger('submit')
+    await flushPromises()
+    expect(current.arcadiaRange).toBe('')
   } finally {
     wrapper.unmount()
   }

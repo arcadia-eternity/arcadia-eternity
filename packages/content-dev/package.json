@@ -54,13 +54,14 @@
     "clear": "rm -rf dist"
   },
   "dependencies": {
-    "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/battle": "workspace:*",
+    "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/pack-loader": "workspace:*",
     "@arcadia-eternity/schema": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "chokidar": "^6.0.0",
     "mime-types": "^3.0.2",
+    "pacote": "^22.0.1",
     "semver": "7.8.6",
     "tar": "^7.5.22",
     "typescript": "catalog:",
@@ -80,6 +81,7 @@
   },
   "devDependencies": {
     "@types/mime-types": "^3.0.1",
+    "@types/pacote": "^11.1.8",
     "@types/semver": "7.8.0",
     "@types/write-file-atomic": "^4.0.3",
     "@types/yauzl": "^3.4.0"

@@ -4,6 +4,7 @@ import {
   ElForm,
   ElFormItem,
   ElDrawer,
+  ElDialog,
   ElSkeleton,
   ElSelect,
   ElOption,
@@ -75,6 +76,13 @@ interface Snapshot {
   installations: ManagedEnvironmentInstallation[]
   operations: Job[]
 }
+const jobNames: Record<string, string> = {
+  'environment.apply': '保存并应用',
+  'environment.select': '切换环境',
+  'environment.import': '导入环境',
+  'environment.save-member': '保存到本机包库',
+  'environment.use-member': '用于其他环境',
+}
 const stageLabels: Record<string, string> = {
   resolving: '解析依赖',
   acquiring: '获取来源',
@@ -101,6 +109,28 @@ const busy = ref(false),
   notice = ref(''),
   saveSequence = ref(0),
   allowDownload = ref(false)
+const transferMember = ref<{ environmentId: string; name: string; integrity: string }>()
+const targetId = ref('')
+function chooseTarget(environmentId: string, name: string, integrity: string) {
+  targetId.value = ''
+  transferMember.value = { environmentId, name, integrity }
+}
+async function memberAction(input: Record<string, unknown>) {
+  if (await run(input, '')) {
+    transferMember.value = undefined
+    tasksOpen.value = true
+  }
+}
+async function useMember() {
+  const target = snapshot.value.environments.find(item => item.document.id === targetId.value)
+  if (target && transferMember.value)
+    await memberAction({
+      action: 'use-member',
+      ...transferMember.value,
+      targetId: target.document.id,
+      expectedRevision: target.revision,
+    })
+}
 const importing = ref(false)
 function openImport() {
   importing.value = true
@@ -132,7 +162,14 @@ async function refresh() {
         (snapshot.value.selectedEnvironmentId !== next.selectedEnvironmentId ||
           (before?.status === 'ready' ? before.draftRevision : undefined) !==
             (after?.status === 'ready' ? after.draftRevision : undefined))
+      const savedPackage = next.operations.some(
+        job =>
+          job.kind === 'environment.save-member' &&
+          job.status === 'succeeded' &&
+          !snapshot.value.operations.some(previous => previous.id === job.id && previous.status === 'succeeded'),
+      )
       snapshot.value = next
+      if (savedPackage) await refreshMaterials()
       if (changed && !isRemoteContentActive()) await gameData.reload()
     }
   } catch (cause) {
@@ -161,9 +198,18 @@ async function run(input: Record<string, unknown>, message: string) {
     if (!disposed) busy.value = false
   }
 }
-async function save(document: ManagedEnvironmentDocument, expectedRevision: string | null) {
+async function save(document: ManagedEnvironmentDocument, expectedRevision: string | null, copyFrom?: string) {
   if (
-    await run({ action: 'apply', document, expectedRevision, allowDownload: allowDownload.value }, '正在保存并应用。')
+    await run(
+      {
+        action: 'apply',
+        document,
+        expectedRevision,
+        ...(copyFrom && { copyFrom }),
+        allowDownload: allowDownload.value,
+      },
+      '正在保存并应用。',
+    )
   )
     saveSequence.value++
 }
@@ -176,13 +222,13 @@ async function inspect(version: ManagedEnvironmentInstallation) {
     error.value = cause instanceof Error ? cause.message : '无法读取引用'
   }
 }
-async function exportEnvironment(version: ManagedEnvironmentInstallation) {
+async function exportEnvironment(version: ManagedEnvironmentInstallation, mode: 'share' | 'offline' = 'share') {
   if (busy.value) return
   busy.value = true
   error.value = ''
   let url: string | undefined
   try {
-    const bundle = await call({ action: 'export', installationId: version.installationId })
+    const bundle = await call({ action: 'export', installationId: version.installationId, mode })
     if (disposed) return
     url = URL.createObjectURL(new Blob([JSON.stringify(bundle)], { type: 'application/json' }))
     const link = document.createElement('a')
@@ -211,7 +257,7 @@ async function importSources() {
   }
 }
 async function importEnvironment(input: { bundle: unknown; environmentId?: string }) {
-  if (await run({ action: 'import', ...input }, '正在导入环境。')) {
+  if (await run({ action: 'import', allowDownload: allowDownload.value, ...input }, '正在导入环境。')) {
     importing.value = false
     tasksOpen.value = true
   }
@@ -313,6 +359,18 @@ onBeforeUnmount(() => {
           )
       "
     >
+      <template #member-actions="{ environment, packageName: name, integrity }">
+        <ElButton
+          :disabled="busy || preparing || snapshot.environments.length < 2"
+          @click="chooseTarget(environment.document.id, name, integrity)"
+          >用于其他环境</ElButton
+        >
+        <ElButton
+          :disabled="busy || preparing"
+          @click="memberAction({ action: 'save-member', environmentId: environment.document.id, name, integrity })"
+          >保存到本机包库</ElButton
+        >
+      </template>
       <template #package-source>
         <ElButton v-if="library" :disabled="busy" @click="importPackage">从文件加入内容包</ElButton>
       </template>
@@ -321,7 +379,33 @@ onBeforeUnmount(() => {
         <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>
       </template>
     </EnvironmentWorkspace>
-    <EnvironmentImportDialog v-model="importing" :busy="busy || preparing" :error="error" @import="importEnvironment" />
+    <ElDialog
+      :model-value="!!transferMember"
+      title="用于其他环境"
+      width="min(460px, 94vw)"
+      @close="transferMember = undefined"
+    >
+      <p>{{ transferMember?.name }}</p>
+      <ElSelect v-model="targetId" filterable placeholder="选择目标环境" aria-label="目标环境">
+        <ElOption
+          v-for="item in snapshot.environments.filter(item => item.document.id !== transferMember?.environmentId)"
+          :key="item.document.id"
+          :label="item.document.name"
+          :value="item.document.id"
+        />
+      </ElSelect>
+      <template #footer
+        ><ElButton @click="transferMember = undefined">取消</ElButton>
+        <ElButton type="primary" :disabled="busy || !targetId" @click="useMember">加入环境</ElButton></template
+      >
+    </ElDialog>
+    <EnvironmentImportDialog
+      :allow-download="allowDownload"
+      v-model="importing"
+      :busy="busy || preparing"
+      :error="error"
+      @import="importEnvironment"
+    />
     <details class="source-settings">
       <summary>内容来源</summary>
       <ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
@@ -349,16 +433,7 @@ onBeforeUnmount(() => {
         <ElButton @click="run({ action: 'clear-completed' }, '已清除结束的任务记录。')">清除已结束</ElButton>
         <p v-if="!snapshot.operations.length">暂无任务。</p>
         <article v-for="job in snapshot.operations" :key="job.id">
-          <span
-            >{{
-              job.kind === 'environment.apply'
-                ? '保存并应用'
-                : job.kind === 'environment.select'
-                  ? '切换环境'
-                  : '导入环境'
-            }}
-            · {{ jobLabels[job.status] }}</span
-          >
+          <span>{{ jobNames[job.kind] ?? job.kind }} · {{ jobLabels[job.status] }}</span>
           <ElButton
             v-if="['queued', 'running'].includes(job.status)"
             @click="run({ action: 'cancel', operationId: job.id }, '已请求取消。')"

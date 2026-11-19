@@ -63,9 +63,9 @@ const props = withDefaults(
 const emit = defineEmits<{
   packageAccepted: []
   removePackage: [environment: ManagedEnvironment, name: string, cascade: boolean]
-  save: [document: ManagedEnvironmentDocument, expectedRevision: string | null]
+  save: [document: ManagedEnvironmentDocument, expectedRevision: string | null, copyFrom?: string]
   use: [version: ManagedEnvironmentInstallation, executionPolicy?: 'server' | 'peer']
-  export: [version: ManagedEnvironmentInstallation]
+  export: [version: ManagedEnvironmentInstallation, mode?: 'share' | 'offline']
   delete: [version: ManagedEnvironmentInstallation]
   references: [version: ManagedEnvironmentInstallation]
   deleteDraft: [environment: ManagedEnvironment]
@@ -323,6 +323,9 @@ function save() {
       packages: Object.fromEntries(rows.map(row => [row.name, row.version])),
     },
     revision.value,
+    ...(revision.value === null && editingFromId.value && rows.some(row => row.version.startsWith('file:candidates/'))
+      ? ([editingFromId.value] as const)
+      : []),
   )
 }
 </script>
@@ -431,6 +434,13 @@ function save() {
                   native-type="button"
                   >移出环境</ElButton
                 >
+                <slot
+                  v-if="member.archiveIntegrity"
+                  name="member-actions"
+                  :environment="selectedEnvironment"
+                  :package-name="member.name"
+                  :integrity="member.archiveIntegrity"
+                />
                 <div v-if="removingPackage === member.name" role="group" aria-label="移出环境确认">
                   <p>
                     {{ member.requiredBy.length ? '其他内容包依赖它，可一并移出环境。' : '' }}
@@ -745,6 +755,9 @@ function save() {
         </ElForm>
         <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
           <ElButton v-if="canExport" :disabled="busy" @click="emit('export', latestVersion)">导出环境</ElButton>
+          <ElButton v-if="canExport" :disabled="busy" @click="emit('export', latestVersion, 'offline')"
+            >离线导出</ElButton
+          >
           <ElButton :disabled="busy" @click="emit('references', latestVersion)">查看引用</ElButton>
           <ElButton
             v-if="showUseActions !== false"

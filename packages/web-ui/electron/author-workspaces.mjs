@@ -198,12 +198,12 @@ export class AuthorWorkspaces {
     }
     throw new Error('不支持的项目队伍操作')
   }
-  async create(name) {
+  async create(name, arcadiaRange) {
     if (typeof name !== 'string' || !name.trim() || name.length > 80) throw new Error('请输入 1–80 个字符的项目名称')
     const directory = join(this.root, 'projects', `pack-${randomUUID().slice(0, 12)}`)
     await mkdir(dirname(directory), { recursive: true })
     const { createSourceProject } = await this.api()
-    await createSourceProject(directory, basename(directory))
+    await createSourceProject(directory, basename(directory), arcadiaRange)
     const entry = await this.add(directory)
     await this.#mutate(async () =>
       this.#save((await this.list()).map(item => (item.id === entry.id ? { ...item, name: name.trim() } : item))),

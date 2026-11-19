@@ -742,7 +742,9 @@ export class ManagementService {
     request: ManagementRequest,
     value: unknown,
     expectedRevision: string | null,
+    copyFrom?: string,
   ) {
+    if (copyFrom && expectedRevision !== null) fail('INVALID_REQUEST')
     const document = normalizeEnvironmentDocument(value)
     await this.auth.authorize(actor, this.workspaceScope, 'edit')
     await this.auth.authorize(actor, this.workspaceScope, 'prepare')
@@ -753,10 +755,11 @@ export class ManagementService {
       request,
       'environment.apply',
       this.workspaceScope,
-      { document, expectedRevision },
+      { document, expectedRevision, ...(copyFrom && { copyFrom }) },
       async ctx => {
         const authorize = async () => {
           await ctx.checkCurrent()
+          if (copyFrom) await this.auth.authorize(actor, this.workspaceScope, 'read')
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
           await this.auth.authorize(actor, this.workspaceScope, 'prepare')
           await this.authorizeEnvironmentUpdate(actor, document.id)
@@ -764,20 +767,26 @@ export class ManagementService {
         await authorize()
         const prepare =
           this.options.prepareEnvironment ?? this.options.workspace.prepareEnvironment.bind(this.options.workspace)
-        const installation = await prepare(
-          {
-            environmentId: document.id,
-            document,
-            expectedRevision,
-            projectDirectory: await this.options.resolveProject?.(document.id),
-            signal: ctx.signal,
-            onProgress: progress => ctx.progress(progress),
-            beforeCommit: authorize,
-          },
-          this.validator,
-        )
-        await this.reconcile()
-        return safeInstallation(installation)
+        const seed = copyFrom ? await this.options.workspace.acquire(copyFrom, 'copy-environment') : undefined
+        try {
+          const installation = await prepare(
+            {
+              environmentId: document.id,
+              document,
+              expectedRevision,
+              projectDirectory: seed ? undefined : await this.options.resolveProject?.(document.id),
+              seedDirectory: seed?.directory,
+              signal: ctx.signal,
+              onProgress: progress => ctx.progress(progress),
+              beforeCommit: authorize,
+            },
+            this.validator,
+          )
+          await this.reconcile()
+          return safeInstallation(installation)
+        } finally {
+          await seed?.release()
+        }
       },
     )
   }
@@ -905,6 +914,7 @@ export class ManagementService {
         return ok(
           publicOperation(
             await this.transfers.import(actor, input.bundle, {
+              ...(input.allowDownload !== undefined ? { allowDownload: input.allowDownload === true } : {}),
               ...(input.environmentId ? { environmentId: text(input.environmentId) } : {}),
               ...(input.expectedRevision !== undefined
                 ? { expectedRevision: input.expectedRevision === null ? null : text(input.expectedRevision) }
@@ -925,7 +935,15 @@ export class ManagementService {
         }
         if (this.transfers && parts[4] === 'export' && method === 'POST')
           return ok(
-            publicOperation(await this.transfers.export(actor, parts[3], text(request.headers?.['idempotency-key']))),
+            publicOperation(
+              await this.transfers.export(
+                actor,
+                parts[3],
+                text(request.headers?.['idempotency-key']),
+                undefined,
+                input.mode === 'offline' ? 'offline' : 'share',
+              ),
+            ),
             202,
           )
       }
@@ -936,6 +954,7 @@ export class ManagementService {
             request,
             input.document,
             input.expectedRevision === null ? null : text(input.expectedRevision),
+            input.copyFrom === undefined ? undefined : text(input.copyFrom),
           )
         if (method === 'GET' && parts.length === 3) {
           await this.auth.authorize(actor, this.workspaceScope, 'read')
@@ -1273,6 +1292,7 @@ export class ManagementService {
             { ...request, retryOf: op.id },
             original.document,
             original.expectedRevision === null ? null : text(original.expectedRevision),
+            original.copyFrom === undefined ? undefined : text(original.copyFrom),
           )
         if (op.kind === 'binding.reload')
           return this.reload(

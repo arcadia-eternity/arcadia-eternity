@@ -3,10 +3,10 @@ import { ref } from 'vue'
 import { ElDialog, ElButton } from 'element-plus'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import './managementStyles'
-const props = defineProps<{ modelValue: boolean; busy: boolean; error?: string }>()
+const props = defineProps<{ modelValue: boolean; busy: boolean; error?: string; allowDownload?: boolean }>()
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null }]
+  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null; allowDownload?: boolean }]
 }>()
 const transfer = ref<InstanceType<typeof EnvironmentTransfers>>()
 function close(done: () => void) {
@@ -31,6 +31,7 @@ function close(done: () => void) {
       <EnvironmentTransfers
         ref="transfer"
         mode="import"
+        :allow-download="allowDownload"
         dialog
         :installations="[]"
         :operations="[]"

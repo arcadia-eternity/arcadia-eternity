@@ -83,6 +83,7 @@ export interface ManagedReadyEnvironmentInstallation {
     matchupTables: import('@arcadia-eternity/const').MatchupTable[]
   }
   members?: {
+    archiveIntegrity?: string
     name: string
     version: string
     projectId: string

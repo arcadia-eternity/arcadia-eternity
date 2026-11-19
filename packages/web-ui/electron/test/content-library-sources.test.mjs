@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { ContentLibrary } from '../content-library.mjs'
@@ -231,6 +231,13 @@ for (const kind of ['archive', 'directory', 'zip']) {
             ),
           ),
         )
+      if (kind === 'zip') {
+        const id = await f.library.installFile(join(f.source.directory, 'source.zip'), true)
+        const entry = (await f.library.list()).packages.find(pkg => pkg.id === id)
+        assert.equal(entry.name, f.source.name)
+        assert.equal(entry.source.label, 'source.zip')
+        await f.library.uninstall(id)
+      }
       const local = await contentPackage(f.root, '@sample/local')
       await f.library.installFile(local.archive, true)
       const before = selection(await f.library.list())
@@ -387,6 +394,167 @@ test(
       assert.equal((await f.library.list()).activeIds, undefined)
     } finally {
       await lease.release()
+    }
+  },
+)
+
+test(
+  'shared ZIP member and its unpublished dependency survive reuse, library save, and source removal',
+  { timeout: 120000 },
+  async t => {
+    const { ContentWorkspace } = await import('../../../content-dev/src/content-workspace.ts')
+    const { LocalEnvironments } = await import('../local-environments.mjs')
+    const childName = '@sample/helper'
+    const f = await fixture(t, {
+      sources: source => ({
+        [source.name]: { kind: 'archive', file: join(source.directory, 'source.zip') },
+        [childName]: { kind: 'directory', directory: join(source.directory, 'helper') },
+      }),
+    })
+    const helper = await contentPackage(f.root, childName)
+    await rename(helper.directory, join(f.source.directory, 'helper'))
+    const pkg = JSON.parse(await readFile(join(f.source.directory, 'package.json')))
+    pkg.dependencies = { [childName]: '1.0.0' }
+    await writeFile(
+      join(f.source.directory, 'source.zip'),
+      zipArchive([
+        ['package.json', Buffer.from(JSON.stringify(pkg))],
+        ...(await Promise.all(
+          ['content.json', 'effect.json'].map(async path => [path, await readFile(join(f.source.directory, path))]),
+        )),
+      ]),
+    )
+    const host = await ContentWorkspace.open(join(f.root, 'sender'))
+    const recipient = await ContentWorkspace.open(join(f.root, 'recipient'), { retentions: { list: async () => [] } })
+    const validate = async ({ directory }) => ({ contentRevision: (await inspectNpmProject(directory)).digest })
+    const api = new LocalEnvironments({
+      openWorkspace: async () => recipient,
+      library: {
+        copyMember: f.library.copyMember,
+        prepareEnvironmentProject: (...args) => f.library.prepareEnvironmentProject(...args),
+        saveEnvironmentMember: (...args) => f.library.saveEnvironmentMember(...args),
+      },
+      validate,
+    })
+    try {
+      const doc = environment([f.source.name, childName])
+      const lease = await f.library.prepareEnvironmentProject(doc, { offline: true })
+      try {
+        await host.prepareEnvironment(
+          { environmentId: doc.id, document: doc, expectedRevision: null, directory: lease.directory },
+          validate,
+        )
+      } finally {
+        await lease.release()
+      }
+      const bundle = await host.exportEnvironment(doc.id)
+      const full = await host.exportEnvironment(doc.id, 'offline')
+      assert.equal(bundle.format, 'arcadia.environment-export/3')
+      assert.equal(full.format, 'arcadia.environment-export/2')
+      assert.equal(bundle.archives.length, 2)
+      assert.ok(!bundle.files.some(file => file.path.endsWith('/effect.json')))
+      const tampered = structuredClone(bundle)
+      tampered.archives[0].digest = 'invalid'
+      await assert.rejects(recipient.importEnvironment(tampered, {}, validate), { code: 'SOURCE_INTEGRITY_MISMATCH' })
+      const imported = await recipient.importEnvironment(bundle, {}, validate)
+      assert.equal((await f.library.list()).packages.length, 0)
+      const member = imported.members.find(member => member.name === f.source.name)
+      assert.ok(member.archiveIntegrity)
+      const target = await recipient.saveDraft({
+        document: { ...environment([]), id: 'target' },
+        expectedRevision: null,
+      })
+      async function run(action, extra = {}) {
+        const { operationId } = await api.request({
+          action,
+          environmentId: doc.id,
+          name: member.name,
+          integrity: member.archiveIntegrity,
+          ...extra,
+        })
+        const deadline = Date.now() + 30000
+        while (Date.now() < deadline) {
+          const job = (await api.snapshot()).operations.find(job => job.id === operationId)
+          if (job.status === 'succeeded') return job.result
+          if (job.status === 'failed') throw Object.assign(new Error(job.error.message), { code: job.error.code })
+          await new Promise(resolve => setTimeout(resolve, 40))
+        }
+        assert.fail('Member transfer timed out')
+      }
+      const importedDraft = await recipient.getDraft(doc.id)
+      await run('apply', {
+        copyFrom: doc.id,
+        document: { ...importedDraft.document, id: 'clone' },
+        expectedRevision: null,
+      })
+      await run('use-member', { targetId: 'target', expectedRevision: target.revision })
+      assert.equal((await f.library.list()).packages.length, 0)
+      await run('save-member')
+      assert.deepEqual(
+        (await f.library.list()).packages.map(item => item.name),
+        [member.name],
+      )
+      await recipient.deleteDraft({ environmentId: doc.id, expectedRevision: imported.draftRevision })
+      const clone = await recipient.getInstallation('clone')
+      assert.deepEqual(clone.members.map(member => member.name).sort(), [childName, member.name].sort())
+      const targetVersion = await recipient.getInstallation('target')
+      assert.deepEqual(
+        (await inspectNpmProject(targetVersion.directory)).packages.map(pkg => pkg.name).sort(),
+        [childName, member.name].sort(),
+      )
+      await writeFile(
+        join(f.source.directory, 'source.zip'),
+        zipArchive([
+          ['package.json', Buffer.from(JSON.stringify({ ...pkg, description: 'second build' }))],
+          ...(await Promise.all(
+            ['content.json', 'effect.json'].map(async path => [path, await readFile(join(f.source.directory, path))]),
+          )),
+        ]),
+      )
+      const alternative = { ...doc, id: 'alternative' }
+      const second = await f.library.prepareEnvironmentProject(alternative, { offline: true })
+      try {
+        await host.prepareEnvironment(
+          { environmentId: alternative.id, document: alternative, expectedRevision: null, directory: second.directory },
+          validate,
+        )
+      } finally {
+        await second.release()
+      }
+      const importedSecond = await recipient.importEnvironment(
+        await host.exportEnvironment(alternative.id),
+        {},
+        validate,
+      )
+      const changed = importedSecond.members.find(item => item.name === member.name)
+      assert.equal(changed.version, member.version)
+      assert.notEqual(changed.archiveIntegrity, member.archiveIntegrity)
+      await assert.rejects(
+        run('use-member', {
+          environmentId: alternative.id,
+          integrity: changed.archiveIntegrity,
+          targetId: 'target',
+          expectedRevision: targetVersion.draftRevision,
+        }),
+        { code: 'ENVIRONMENT_DEPENDENCY_CONFLICT' },
+      )
+      assert.equal((await recipient.getInstallation('target')).draftRevision, targetVersion.draftRevision)
+      const saved = await f.library.prepareEnvironmentProject(
+        { ...environment([]), packages: { [member.name]: member.version } },
+        { offline: true },
+      )
+      try {
+        assert.deepEqual(
+          (await inspectNpmProject(saved.directory)).packages.map(pkg => pkg.name).sort(),
+          [childName, member.name].sort(),
+        )
+      } finally {
+        await saved.release()
+      }
+    } finally {
+      await api.close()
+      await host.close()
+      await recipient.close()
     }
   },
 )

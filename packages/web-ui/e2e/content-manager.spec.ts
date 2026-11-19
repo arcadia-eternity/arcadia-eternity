@@ -234,7 +234,18 @@ test('environment import and export use the environment entry and stay scoped to
       document,
       createdAt: 1,
       contentRevision: 'revision',
-      members: [],
+      members: [
+        {
+          name: '@friends/pet',
+          version: '1.0.0',
+          direct: true,
+          requiredBy: [],
+          dependencies: [],
+          archiveIntegrity: 'sha512-test',
+          projectId: 'pet',
+          namespace: 'pet',
+        },
+      ],
     }
     let selectedEnvironmentId: string | undefined
     const calls: Record<string, unknown>[] = []
@@ -267,7 +278,10 @@ test('environment import and export use the environment entry and stay scoped to
               result: {
                 workspaceId: 'local',
                 selectedEnvironmentId,
-                environments: [{ document, revision: 'draft-1' }],
+                environments: [
+                  { document, revision: 'draft-1' },
+                  { document: { ...document, id: 'practice', name: '练习场' }, revision: 'draft-2' },
+                ],
                 installations: [installation],
                 operations: [],
               },
@@ -304,6 +318,18 @@ test('environment import and export use the environment entry and stay scoped to
   await hub.getByRole('button', { name: '关闭编辑', exact: true }).click()
   await page.getByRole('button', { name: '放弃修改', exact: true }).click()
   await expect(hub.getByRole('button', { name: '导出环境', exact: true })).toBeVisible()
+  await hub.getByRole('button', { name: '用于其他环境', exact: true }).click()
+  const targetDialog = page.getByRole('dialog', { name: '用于其他环境' })
+  await targetDialog.getByRole('combobox').click()
+  await page.getByRole('option', { name: '练习场' }).click()
+  await targetDialog.getByRole('button', { name: '加入环境' }).click()
+  const tasks = page.getByRole('dialog', { name: '环境任务', exact: true })
+  await tasks.getByRole('button', { name: 'Close this dialog' }).click()
+  await hub.getByRole('button', { name: '保存到本机包库', exact: true }).click()
+  await tasks.getByRole('button', { name: 'Close this dialog' }).click()
+  const offline = page.waitForEvent('download')
+  await hub.getByRole('button', { name: '离线导出', exact: true }).click()
+  await offline
   const download = page.waitForEvent('download')
   await hub.getByRole('button', { name: '导出环境', exact: true }).click()
   expect((await download).suggestedFilename()).toBe('environment-local-version.json')
@@ -344,7 +370,19 @@ test('environment import and export use the environment entry and stay scoped to
     () => (window as unknown as { environmentCalls: Record<string, unknown>[] }).environmentCalls,
   )
   expect(calls.filter(input => input.action === 'import')).toHaveLength(1)
-  expect(calls.find(input => input.action === 'export')).toMatchObject({ installationId: 'local-version' })
+  expect(calls.filter(input => input.action === 'export').map(input => input.mode)).toEqual(['offline', 'share'])
+  expect(calls.find(input => input.action === 'use-member')).toMatchObject({
+    environmentId: 'friends',
+    targetId: 'practice',
+    name: '@friends/pet',
+    integrity: 'sha512-test',
+    expectedRevision: 'draft-2',
+  })
+  expect(calls.find(input => input.action === 'save-member')).toMatchObject({
+    environmentId: 'friends',
+    name: '@friends/pet',
+    integrity: 'sha512-test',
+  })
   await page
     .getByRole('dialog', { name: '环境任务', exact: true })
     .getByRole('button', { name: 'Close this dialog' })

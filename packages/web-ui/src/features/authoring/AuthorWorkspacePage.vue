@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { arcadiaRangeError, useNewPackageRange } from './useNewPackageRange'
 import { ElInput } from 'element-plus'
 import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import { nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
@@ -28,6 +29,7 @@ import {
   type AuthorJob,
 } from './types'
 
+const { arcadiaRange, defaultRange, rangeError } = useNewPackageRange()
 const projects = ref<SourceProject[]>([]),
   project = ref<SourceProject>(),
   snapshot = shallowRef<AuthorSnapshot>()
@@ -55,6 +57,34 @@ const copyFrom = ref<ContentRow>()
 const copyMediaFrom = ref<ContentRow>()
 const languageInput = ref('')
 const projectSettingsOpen = ref(false)
+const rangeDraft = ref<{ original: string; value: string }>()
+const savedRange = computed(() => snapshot.value?.arcadiaRange ?? '')
+const projectRange = computed({
+  get: () => rangeDraft.value?.value ?? savedRange.value,
+  set: (value: string) => {
+    rangeDraft.value =
+      value === savedRange.value ? undefined : { original: rangeDraft.value?.original ?? savedRange.value, value }
+  },
+})
+const rangeConflict = computed(() => !!rangeDraft.value && rangeDraft.value.original !== savedRange.value)
+const projectRangeError = computed(() => arcadiaRangeError(projectRange.value))
+
+function mayDiscardRange() {
+  return !rangeDraft.value || window.confirm('放弃未保存的兼容范围修改？')
+}
+async function saveProjectRange() {
+  if (!rangeDraft.value || projectRangeError.value) return
+  try {
+    await action({ action: 'save-arcadia-range', range: projectRange.value.trim(), expectedRange: savedRange.value })
+    rangeDraft.value = undefined
+    await refresh()
+    updateJobs(await action<AuthorJob[]>({ action: 'jobs' }))
+    notice.value = '已保存兼容范围。'
+  } catch (cause) {
+    if (cause instanceof Error && 'code' in cause && cause.code === 'REVISION_CONFLICT') await refresh()
+    throw cause
+  }
+}
 const readOnly = computed(() => snapshot.value?.capabilities?.sourceEditing === false)
 const libraryLimit = ref(60)
 const skillCategory = ref('all')
@@ -146,6 +176,7 @@ let timer: ReturnType<typeof setInterval>,
   mediaController: AbortController | undefined
 let reviewedPayload = ''
 const dirty = computed(() => pending.value.length > 0)
+const hasUnsavedChanges = computed(() => dirty.value || !!rangeDraft.value)
 const pendingFiles = computed(() => [...new Set(pending.value.map(draft => draft.file))])
 const projectId = computed(() => snapshot.value?.project.projectId ?? '')
 const keyFor = (kind: string, id: string) => recordKey({ kind, record: { id } })
@@ -396,12 +427,12 @@ const latestPack = computed(() => jobs.value.find(job => job.kind === 'pack'))
 const packIsCurrent = computed(() => latestPack.value?.state === 'succeeded' && !latestPack.value.stale)
 const packToInstall = ref('')
 async function useBuiltPack() {
-  if (dirty.value) return
+  if (hasUnsavedChanges.value) return
   if (packIsCurrent.value && latestPack.value) return installBuiltPack(latestPack.value)
   const job = await attempt(() => start('pack'))
   if (job) packToInstall.value = job.jobId
 }
-watch([jobs, packToInstall, dirty, busy], ([result, jobId, hasDrafts, isBusy]) => {
+watch([jobs, packToInstall, hasUnsavedChanges, busy], ([result, jobId, hasDrafts, isBusy]) => {
   if (!jobId) return
   const job = result.find(item => item.jobId === jobId)
   if (hasDrafts) packToInstall.value = ''
@@ -434,7 +465,7 @@ const activePreview = computed(() =>
   jobs.value.find(job => job.kind === 'preview' && job.state === 'succeeded' && job.result?.preview),
 )
 const previewStatus = computed(() => {
-  if (dirty.value) return '有未保存修改 · 保存后可试玩'
+  if (hasUnsavedChanges.value) return '有未保存修改 · 保存后可试玩'
   if (latestPreview.value && ['queued', 'running'].includes(latestPreview.value.state))
     return '正在准备试玩，可继续编辑'
   if (latestPreview.value?.state === 'failed')
@@ -656,6 +687,8 @@ async function refresh() {
 }
 async function openProject(next: SourceProject) {
   if (dirty.value) throw new Error('请先保存或放弃草稿，再切换项目。')
+  if (!mayDiscardRange()) return
+  rangeDraft.value = undefined
   const previous = project.value?.id
   epoch++
   mediaEpoch++
@@ -987,7 +1020,7 @@ async function copyConnection() {
   notice.value = '已复制 MCP 配置。'
 }
 async function start(kind: string) {
-  if (dirty.value) throw new Error('请先保存草稿，运行任务读取的是磁盘内容。')
+  if (hasUnsavedChanges.value) throw new Error('请先保存修改，运行任务读取的是磁盘内容。')
   if (runActions.value) runActions.value.open = false
   if (kind !== 'preview') runPanelOpen.value = true
   const job = await action<AuthorJob>({ action: 'start', kind })
@@ -996,7 +1029,7 @@ async function start(kind: string) {
   return job
 }
 async function playPreview() {
-  if (dirty.value) throw new Error('请先保存草稿，再开始调试。')
+  if (hasUnsavedChanges.value) throw new Error('请先保存修改，再开始调试。')
   // Recheck disk state on click; the periodic UI refresh may still show the previous revision.
   const currentJobs = await action<AuthorJob[]>({ action: 'jobs' })
   updateJobs(currentJobs)
@@ -1047,7 +1080,7 @@ async function preview(file: string, resourceId?: string) {
   await readAsset(file, resourceId)
 }
 function beforeUnload(event: BeforeUnloadEvent) {
-  if (dirty.value && localStorageUnavailable.value) {
+  if (rangeDraft.value || (dirty.value && localStorageUnavailable.value)) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -1061,7 +1094,7 @@ watch(pendingFiles, (next, previous) => {
       error.value = String(cause)
     })
 })
-onBeforeRouteLeave(() => !busy.value)
+onBeforeRouteLeave(() => !busy.value && mayDiscardRange())
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload)
   contextHeartbeat = setInterval(() => void publishContext(), 30000)
@@ -1156,13 +1189,19 @@ onBeforeUnmount(() => {
       <details ref="runActions" class="run-actions">
         <summary>更多操作</summary>
         <div class="run-actions-menu">
-          <button :disabled="busy || running || dirty" @click="attempt(() => start('check'))">检查内容与类型</button>
-          <button :disabled="busy || running || dirty" @click="attempt(() => start('test'))">运行场景测试</button>
-          <button :disabled="busy || running || dirty" @click="attempt(() => start('demo'))">无界面演示对战</button>
+          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('check'))">
+            检查内容与类型
+          </button>
+          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('test'))">
+            运行场景测试
+          </button>
+          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('demo'))">
+            无界面演示对战
+          </button>
           <small>任务使用已保存的内容</small>
         </div>
       </details>
-      <button class="primary" :disabled="busy || running || dirty" @click="attempt(playPreview)">
+      <button class="primary" :disabled="busy || running || hasUnsavedChanges" @click="attempt(playPreview)">
         {{ running && latestPreview && ['queued', 'running'].includes(latestPreview.state) ? '正在准备…' : '调试试玩' }}
       </button>
     </section>
@@ -1197,20 +1236,45 @@ onBeforeUnmount(() => {
         >
           打开项目</button
         ><label>新项目名称<ElInput v-model="name" placeholder="例如：寒霜故事" /></label
-        ><button
-          :disabled="busy || dirty || !name.trim()"
+        ><label
+          >新包兼容范围<ElInput v-model="arcadiaRange" aria-label="新包兼容范围" maxlength="256" /><span
+            v-if="rangeError"
+            role="alert"
+            >{{ rangeError }}</span
+          ></label
+        >
+        <button
+          :disabled="busy || dirty || !name.trim() || !!rangeError"
           @click="
             attempt(async () => {
-              const row = await authorCall<SourceProject>({ action: 'create', name })
+              const row = await authorCall<SourceProject>({ action: 'create', name, arcadiaRange: arcadiaRange.trim() })
               projects = await authorCall({ action: 'list' })
               await openProject(row)
               name = ''
+              arcadiaRange = defaultRange
             })
           "
         >
           从模板创建项目
         </button>
       </div>
+      <form v-if="project && snapshot" class="tools" @submit.prevent="attempt(saveProjectRange)">
+        <label
+          >Arcadia 兼容范围<ElInput
+            v-model="projectRange"
+            aria-label="Arcadia 兼容范围"
+            :readonly="readOnly"
+            :disabled="busy"
+            maxlength="256"
+            placeholder="未声明"
+        /></label>
+        <span v-if="projectRangeError" role="alert">{{ projectRangeError }}</span>
+        <span v-if="rangeConflict" role="alert">文件中的范围已变为 {{ savedRange || '未声明' }}。</span>
+        <button v-if="!readOnly" type="submit" :disabled="busy || !rangeDraft || !!projectRangeError">
+          {{ rangeConflict ? '覆盖并保存范围' : '保存兼容范围' }}
+        </button>
+        <button v-if="rangeDraft" type="button" :disabled="busy" @click="rangeDraft = undefined">取消修改</button>
+      </form>
       <div v-if="project" class="tools">
         <label v-if="!readOnly"
           >外部编辑器<select v-model="editor">
@@ -1221,7 +1285,7 @@ onBeforeUnmount(() => {
           </select></label
         ><button v-if="!readOnly" :disabled="busy" @click="attempt(() => external())">打开编辑器</button
         ><button :disabled="busy" @click="attempt(() => action({ action: 'show' }))">显示项目文件夹</button
-        ><button :disabled="busy || dirty" @click="attempt(() => action({ action: 'export' }))">
+        ><button :disabled="busy || hasUnsavedChanges" @click="attempt(() => action({ action: 'export' }))">
           {{ project.published ? '导出包目录' : '导出源项目' }}</button
         ><button
           v-if="!readOnly"
@@ -1234,9 +1298,13 @@ onBeforeUnmount(() => {
           "
         >
           连接本机 SDK</button
-        ><button v-if="!readOnly" :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">
+        ><button
+          v-if="!readOnly"
+          :disabled="busy || running || hasUnsavedChanges"
+          @click="attempt(() => start('pack'))"
+        >
           构建内容包</button
-        ><button v-if="!readOnly && latestPack" :disabled="busy || running || dirty" @click="useBuiltPack">
+        ><button v-if="!readOnly && latestPack" :disabled="busy || running || hasUnsavedChanges" @click="useBuiltPack">
           {{ packIsCurrent ? '用于环境' : '重新构建并用于环境' }}</button
         ><small>{{ project.directory }}</small>
       </div>

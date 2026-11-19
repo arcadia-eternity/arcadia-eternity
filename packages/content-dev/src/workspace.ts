@@ -6,6 +6,7 @@ import { dirname, extname, isAbsolute, join, relative, sep } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
 import YAML from 'yaml'
+import { validRange } from 'semver'
 import type { Document, LineCounter } from 'yaml'
 import chokidar from 'chokidar'
 import type { FSWatcher } from 'chokidar'
@@ -142,6 +143,7 @@ export interface WorkspaceSnapshot {
   root: string
   project: ManifestArcadia
   name: string | undefined
+  arcadiaRange: string
   version: string | undefined
   records: WorkspaceRecord[]
   files: WorkspaceFile[]
@@ -229,6 +231,16 @@ export class WorkspaceError extends Error {
 
 function fail(code: string, message: string, file?: string): never {
   throw new WorkspaceError(code, message, file)
+}
+
+export function normalizeArcadiaRange(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 256 || (value.trim() && !validRange(value.trim())))
+    fail('ARCADIA_VERSION_RANGE_INVALID', '请输入有效的 Arcadia 版本范围。')
+  return value.trim()
+}
+
+function manifestRange(manifest: PackageManifest): string {
+  return isRecord(manifest.engines) && typeof manifest.engines.arcadia === 'string' ? manifest.engines.arcadia : ''
 }
 
 export function diagnostic(error: unknown): Diagnostic {
@@ -669,6 +681,7 @@ export class AuthorWorkspace extends EventEmitter {
       root: this.root,
       project,
       name: this.baseProject ? '基础包' : manifest.name,
+      arcadiaRange: manifestRange(manifest),
       version: manifest.version,
       records,
       files,
@@ -742,6 +755,26 @@ export class AuthorWorkspace extends EventEmitter {
       if (fromForm) this.#dirty.delete(file)
       this.emit('change', { type: 'change', file })
       return { file, version: hash(text) }
+    })
+  }
+  async saveArcadiaRange(value: string, expectedRange: string): Promise<void> {
+    await this.assertWritable()
+    const range = normalizeArcadiaRange(value)
+    const source = await this.read('package.json')
+    const manifest = JSON.parse(source.text) as PackageManifest
+    if (manifestRange(manifest) !== expectedRange)
+      fail('REVISION_CONFLICT', '兼容范围已在外部修改，请核对后再保存。', source.file)
+    if (manifest.engines !== undefined && !isRecord(manifest.engines))
+      fail('SOURCE_INVALID', 'package.json 的 engines 必须是对象。', source.file)
+    const engines = manifest.engines ?? {}
+    if (range) engines.arcadia = range
+    else delete engines.arcadia
+    if (Object.keys(engines).length) manifest.engines = engines
+    else delete manifest.engines
+    await this.write({
+      file: source.file,
+      expectedVersion: source.version,
+      text: JSON.stringify(manifest, null, 2) + '\n',
     })
   }
   async remove({ file, expectedVersion }: RemoveInput): Promise<void> {

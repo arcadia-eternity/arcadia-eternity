@@ -313,10 +313,15 @@ export function useManagementController(
     emit('navigate', { target: target.value, tab: tab.value })
   })
   watch(target, () => emit('navigate', { target: target.value, tab: tab.value }))
-  async function saveEnvironment(document: ManagedEnvironmentDocument, expectedRevision: string | null) {
+  async function saveEnvironment(
+    document: ManagedEnvironmentDocument,
+    expectedRevision: string | null,
+    copyFrom?: string,
+  ) {
     const submitted = await state.mutate('POST', `${workspacePath.value}/environments/apply`, {
       document,
       expectedRevision,
+      ...(copyFrom && { copyFrom }),
     })
     if (submitted) {
       environmentSaveSequence.value++
@@ -368,8 +373,10 @@ export function useManagementController(
       environmentReferences.value = result.references
     }
   }
-  async function exportEnvironment(version: ManagedEnvironmentInstallation) {
-    await state.mutate('POST', `${workspacePath.value}/installations/${encode(version.installationId)}/export`, {})
+  async function exportEnvironment(version: ManagedEnvironmentInstallation, mode: 'share' | 'offline' = 'share') {
+    await state.mutate('POST', `${workspacePath.value}/installations/${encode(version.installationId)}/export`, {
+      mode,
+    })
   }
   async function importEnvironment(input: {
     bundle: unknown

@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { openStorage, type DurableStorage } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { createSingleProcessApp } from '../src/runtime/app'
-import { createNpmFixture, shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { createNpmFixture, shippedCatalogMembers, shippedCatalogRoot, stageShippedCatalog } from './fixtures/npm'
 import type { Binding } from '../src/runtime/management/service'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 
@@ -45,6 +45,7 @@ async function setup(project?: string, allowThirdPartyExecution = true) {
   const workspace: ContentWorkspace = await ContentWorkspace.open(join(directory, 'workspace'), {
     retentions: workspaceRetentions(storage, () => workspace.workspaceId),
     resolveProject: () => project,
+    bundledPackageRoot: shippedCatalogRoot,
   })
   cleanups.push(() => workspace.close())
   const make = () =>

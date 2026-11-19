@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { readFile, writeFile, rename, rm } from 'node:fs/promises'
+import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
 const safeInstallation = version => {
@@ -186,13 +186,18 @@ export class LocalEnvironments {
             return undefined
           })
           if ((current?.revision ?? null) !== input.expectedRevision) throw fail('REVISION_CONFLICT')
-          const lease = await this.library.prepareEnvironmentProject(document, {
-            projectDirectory: join(workspace.root, 'environments', environmentId),
-            signal,
-            offline: input.allowDownload !== true,
-            onProgress,
-          })
+          const seed =
+            input.copyFrom && input.expectedRevision === null
+              ? await workspace.acquire(input.copyFrom, 'copy-environment')
+              : undefined
+          let lease
           try {
+            lease = await this.library.prepareEnvironmentProject(document, {
+              projectDirectory: seed?.directory ?? join(workspace.root, 'environments', environmentId),
+              signal,
+              offline: input.allowDownload !== true,
+              onProgress,
+            })
             return safeInstallation(
               await workspace.prepareEnvironment(
                 {
@@ -207,7 +212,8 @@ export class LocalEnvironments {
               ),
             )
           } finally {
-            await lease.release()
+            await lease?.release()
+            await seed?.release()
           }
         })
       }
@@ -226,8 +232,51 @@ export class LocalEnvironments {
             ...(await workspace.references(input.installationId)),
           ],
         }
+      case 'save-member':
+      case 'use-member': {
+        return this.start('environment.' + input.action, async signal => {
+          const source = await workspace.acquire(input.environmentId, 'share-member')
+          try {
+            const member = source.members?.find(item => item.name === input.name)
+            if (!member?.archiveIntegrity || member.archiveIntegrity !== input.integrity)
+              throw fail('REVISION_CONFLICT', '内容包已更改，请重新选择')
+            if (input.action === 'save-member')
+              return { packageId: await this.library.saveEnvironmentMember(source.directory, input.name, signal) }
+            if (input.targetId === input.environmentId) throw fail('INVALID_REQUEST')
+            const target = await workspace.getDraft(input.targetId)
+            if (target.revision !== input.expectedRevision) throw fail('REVISION_CONFLICT')
+            const directory = join(workspace.root, 'staging', 'member-' + randomUUID())
+            await mkdir(directory)
+            try {
+              const targetDirectory = join(workspace.root, 'environments', input.targetId)
+              const { archive } = await this.library.copyMember(
+                source.directory,
+                input.name,
+                targetDirectory,
+                directory,
+                signal,
+              )
+              const document = {
+                ...target.document,
+                packages: { ...target.document.packages, [input.name]: 'file:' + archive },
+                sources: target.document.sources.filter(name => name !== input.name),
+              }
+              return safeInstallation(
+                await workspace.prepareEnvironment(
+                  { environmentId: input.targetId, document, expectedRevision: target.revision, directory, signal },
+                  this.validate,
+                ),
+              )
+            } finally {
+              await rm(directory, { recursive: true, force: true })
+            }
+          } finally {
+            await source.release()
+          }
+        })
+      }
       case 'export':
-        return workspace.exportEnvironment(input.installationId)
+        return workspace.exportEnvironment(input.installationId, input.mode)
       case 'cancel': {
         const job = this.#jobs.get(input.operationId)
         if (!job) throw fail('OPERATION_NOT_FOUND')
@@ -255,7 +304,12 @@ export class LocalEnvironments {
           safeInstallation(
             await workspace.importEnvironment(
               input.bundle,
-              { environmentId: input.environmentId, expectedRevision: null, signal },
+              {
+                environmentId: input.environmentId,
+                expectedRevision: null,
+                signal,
+                allowDownload: input.allowDownload === true,
+              },
               this.validate,
             ),
           ),

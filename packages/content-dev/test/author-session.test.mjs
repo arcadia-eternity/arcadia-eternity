@@ -16,6 +16,24 @@ async function finish(session, kind) {
   }
   return job
 }
+test('new projects default to the current Arcadia release and accept an author range or no requirement', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'arcadia-author-compat-'))
+  t.after(() => rm(dir, { recursive: true, force: true }))
+  const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url)))
+  for (const [name, input, expected] of [
+    ['default', undefined, '^' + version],
+    ['custom', ' >=4.5 <5 ', '>=4.5 <5'],
+    ['unset', '', ''],
+  ]) {
+    const project = await createSourceProject(join(dir, name), name, input)
+    const manifest = JSON.parse(await readFile(join(project, 'package.json')))
+    assert.equal(manifest.engines.arcadia, expected || undefined)
+    assert.equal(manifest.engines.node, '>=24 <25')
+  }
+  const invalid = join(dir, 'invalid')
+  await assert.rejects(createSourceProject(invalid, 'invalid', 'abc'), { code: 'ARCADIA_VERSION_RANGE_INVALID' })
+  await assert.rejects(readFile(join(invalid, 'package.json')), { code: 'ENOENT' })
+})
 test(
   'a new source project checks, tests the actual installed package and runs a real demonstration',
   { timeout: 45000 },

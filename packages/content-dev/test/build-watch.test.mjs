@@ -33,6 +33,8 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
     await mkdir(join(root, 'docs/guides', skill), { recursive: true })
     await writeFile(join(root, 'docs/guides', skill, 'SKILL.md'), 'original skill')
   }
+  await writeFile(join(directory, 'package.json'), JSON.stringify({ version: '5.2.1' }))
+  await writeFile(join(directory, 'template/package.json'), JSON.stringify({ engines: { node: '>=24' } }))
   await cp(new URL('../build.mjs', import.meta.url), join(directory, 'build.mjs'))
   await symlink(
     fileURLToPath(new URL('../node_modules', import.meta.url)),
@@ -64,6 +66,10 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
   await writeFile(join(directory, 'template/example.txt'), 'original template')
   const errors = []
   watcher = await watchContentDev(directory, { onBuild() {}, onError: error => errors.push(error) })
+  assert.deepEqual(JSON.parse(await readFile(join(directory, 'dist/template/package.json'))).engines, {
+    node: '>=24',
+    arcadia: '^5.2.1',
+  })
   assert.match(await readFile(join(directory, 'dist/cli.js'), 'utf8'), /\/\/ original/)
   assert.match(await readFile(join(directory, 'dist/index.d.ts'), 'utf8'), /from '\.\/example\.js'/)
 

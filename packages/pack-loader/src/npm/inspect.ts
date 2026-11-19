@@ -1,3 +1,5 @@
+import { satisfies, validRange } from 'semver'
+import release from '../../package.json' with { type: 'json' }
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
@@ -177,6 +179,20 @@ function readManifest(value: unknown): NpmContentManifest {
   return input
 }
 
+/** The loader is versioned with the Arcadia distribution, including on hosts without the base pack. */
+function checkArcadiaVersion(name: string, engines: Json | undefined) {
+  if (!engines || typeof engines !== 'object' || Array.isArray(engines) || !Object.hasOwn(engines, 'arcadia')) return
+  const range = engines.arcadia
+  if (typeof range !== 'string' || !range.trim() || range.length > 256 || !validRange(range))
+    throw Object.assign(new Error(`${name} 的 engines.arcadia 必须是有效的版本范围。`), {
+      code: 'ARCADIA_VERSION_RANGE_INVALID',
+    })
+  if (!satisfies(release.version, range))
+    throw Object.assign(new Error(`${name} 要求 Arcadia ${range}，当前版本为 ${release.version}。`), {
+      code: 'ARCADIA_VERSION_INCOMPATIBLE',
+    })
+}
+
 /** npm owns semver/peer resolution. This command only reads its installed tree; it never runs lifecycle scripts. */
 export async function inspectNpmProject(
   directory: string,
@@ -286,6 +302,7 @@ export async function inspectNpmProject(
       node.version !== pkg.version
     )
       fail('NPM_LOCK', location, 'Installed package does not match its npm lock entry')
+    checkArcadiaVersion(pkg.name, pkg.engines)
     for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies'])
       if (canonical(pkg[field] ?? {}) !== canonical(locked[field] ?? {}))
         fail('NPM_LOCK', location, 'Installed dependency declarations differ from the npm lockfile')

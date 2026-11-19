@@ -603,7 +603,7 @@ onBeforeUnmount(() => {
           >npm 包名与版本<ElInput v-model="npmSpec" placeholder="@author/pets@1.0.0" clearable :disabled="busy"
         /></label>
         <ElCheckbox v-model="offline" :disabled="busy">仅使用本机已有的 npm 缓存</ElCheckbox>
-        <div><ElButton :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</ElButton></div>
+        <div><ElButton :disabled="busy" @click="inspectFile">安装本地内容包</ElButton></div>
         <p v-if="error" role="alert" class="problem">{{ error }}</p>
         <div class="flex justify-end gap-2">
           <ElButton @click="adding = false">取消</ElButton>

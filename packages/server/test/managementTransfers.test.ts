@@ -1,5 +1,5 @@
 import { legacySession } from './fixtures/management'
-import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { shippedCatalogMembers, shippedCatalogRoot, stageShippedCatalog } from './fixtures/npm'
 import { mkdtemp, readFile, readdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
@@ -69,6 +69,7 @@ async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
   cleanups.push(() => storage.close())
   const workspace: ContentWorkspace = await ContentWorkspace.open(join(root, 'workspace'), {
     resolveProject: () => project,
+    bundledPackageRoot: shippedCatalogRoot,
     retentions: workspaceRetentions(storage, () => workspace.workspaceId),
   })
   cleanups.push(() => workspace.close())
@@ -154,8 +155,9 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         const download = await env.transfers.download(env.owner.actor, operation.id)
         const bytes = await readFile(download.file)
         const bundle = JSON.parse(bytes.toString('utf8')) as EnvironmentExport
-        expect(bundle.format).toBe('arcadia.environment-export/2')
+        expect(bundle.format).toBe('arcadia.environment-export/4')
         expect(bundle.document.id).toBe('source')
+        expect(bundle.files.map(file => file.path).sort()).toEqual(['package-lock.json', 'package.json'])
         expect(download.bytes).toBe(bytes.length)
         expect(bytes.toString('utf8')).not.toContain(env.root)
         const rows = JSON.stringify(await env.storage.list('operations'))
@@ -184,6 +186,37 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         expect(JSON.stringify(finished)).not.toContain(env.root)
         expect(JSON.stringify(finished.input)).not.toContain(bundle.files[0].data)
         expect((await env.workspace.getDraft('copy')).document.name).toBe('Source')
+      })
+
+      it('reports the incompatible package range without committing an import', async () => {
+        const env = await fixture()
+        const bundle = await env.workspace.exportEnvironment(env.version.installationId)
+        const name = 'future-content'
+        const range = '>9999.0.0'
+        bundle.document.packages[name] = '1.0.0'
+        const pkg = { name, version: '1.0.0', engines: { arcadia: range } }
+        for (const file of bundle.files) {
+          const json = JSON.parse(Buffer.from(file.data, 'base64').toString())
+          if (file.path === 'package.json') json.dependencies[name] = pkg.version
+          else if (file.path === 'package-lock.json') {
+            json.packages[''].dependencies[name] = pkg.version
+            json.packages['node_modules/' + name] = pkg
+          }
+          file.data = Buffer.from(JSON.stringify(json)).toString('base64')
+        }
+        bundle.files.push({
+          path: 'node_modules/' + name + '/package.json',
+          data: Buffer.from(JSON.stringify(pkg)).toString('base64'),
+        })
+        const started = await env.transfers.import(env.owner.actor, bundle, {
+          environmentId: 'future',
+          idempotencyKey: 'range-check',
+        })
+        const finished = await complete(env.operations, started.id)
+        expect(finished.status).toBe('failed')
+        expect(finished.error).toMatchObject({ code: 'ARCADIA_VERSION_INCOMPATIBLE', retryable: false })
+        expect(finished.error?.message).toContain(name + ' 要求 Arcadia ' + range)
+        expect((await env.workspace.listDrafts()).map(draft => draft.document.id)).toEqual(['source'])
       })
 
       it('rejects unprivileged export/import/download and rejects mismatched idempotency input', async () => {
@@ -360,7 +393,7 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         const finished = await complete(env.operations, operation.id)
         expect(finished.status).toBe('succeeded')
         const download = await env.transfers.download(env.owner.actor, operation.id)
-        expect(JSON.parse(await readFile(download.file, 'utf8')).format).toBe('arcadia.environment-export/2')
+        expect(JSON.parse(await readFile(download.file, 'utf8')).format).toBe('arcadia.environment-export/4')
         await download.release()
       })
       it('serializes a renewed upload behind expiry deletion of the same content artifact', async () => {

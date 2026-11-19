@@ -4,6 +4,8 @@ import { ElButton, ElInput, ElDialog, ElForm, ElFormItem, ElSkeleton, ElEmpty, E
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
+import { useNewPackageRange } from '@/features/authoring/useNewPackageRange'
+const { arcadiaRange, defaultRange, rangeError } = useNewPackageRange()
 const router = useRouter()
 const projects = ref<SourceProject[]>([])
 const query = ref('')
@@ -35,7 +37,16 @@ async function open(project: SourceProject) {
   await router.push({ name: 'AuthorWorkspace', params: { projectId: project.id } })
 }
 async function create() {
-  await run(async () => open(await authorCall<SourceProject>({ action: 'create', name: name.value.trim() })))
+  if (rangeError.value) return
+  await run(async () =>
+    open(
+      await authorCall<SourceProject>({
+        action: 'create',
+        name: name.value.trim(),
+        arcadiaRange: arcadiaRange.value.trim(),
+      }),
+    ),
+  )
 }
 async function choose() {
   await run(async () => {
@@ -92,6 +103,7 @@ onMounted(() => {
     <ElDialog
       v-model="creating"
       title="新建内容包"
+      @closed="arcadiaRange = defaultRange"
       width="min(440px, calc(100vw - 32px))"
       :close-on-click-modal="false"
     >
@@ -99,9 +111,14 @@ onMounted(() => {
         <ElFormItem label="内容包名称">
           <ElInput v-model="name" aria-label="内容包名称" maxlength="80" />
         </ElFormItem>
+        <ElFormItem label="Arcadia 兼容范围" :error="rangeError">
+          <ElInput v-model="arcadiaRange" aria-label="Arcadia 兼容范围" maxlength="256" />
+        </ElFormItem>
         <div class="dialog-actions">
           <ElButton :disabled="busy" @click="creating = false">取消</ElButton>
-          <ElButton type="primary" native-type="submit" :loading="busy" :disabled="!name.trim()">创建并打开</ElButton>
+          <ElButton type="primary" native-type="submit" :loading="busy" :disabled="!name.trim() || !!rangeError"
+            >创建并打开</ElButton
+          >
         </div>
       </ElForm>
     </ElDialog>

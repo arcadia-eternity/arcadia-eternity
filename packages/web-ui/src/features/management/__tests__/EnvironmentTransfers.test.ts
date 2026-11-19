@@ -83,6 +83,60 @@ describe('environment transfers', () => {
     expect(page.find('.import-preview').exists()).toBe(false)
   })
 
+  it('accepts host-base exports and ignores base download prompts in old exports', async () => {
+    const page = open()
+    for (const input of [
+      { ...bundle(), format: 'arcadia.environment-export/4', archives: [] },
+      {
+        ...bundle(),
+        format: 'arcadia.environment-export/3',
+        archives: [
+          {
+            location: 'node_modules/@arcadia-eternity/data-pack-base',
+            external: {
+              name: '@arcadia-eternity/data-pack-base',
+              version: '0.0.1',
+              integrity: 'sha512-old',
+              manual: true,
+            },
+          },
+        ],
+      },
+    ]) {
+      await choose(page, input)
+      expect(page.find('input[aria-label^="补充"]').exists()).toBe(false)
+      expect(button(page, '确认导入新环境').attributes('disabled')).toBeUndefined()
+      await page.get('form[aria-label="导入环境"]').trigger('submit')
+      expect(page.emitted('import')?.at(-1)?.[0]).toMatchObject({ bundle: input })
+    }
+  })
+
+  it('includes the selected private archive in the confirmed import and only downloads by explicit choice', async () => {
+    const page = open()
+    const input = {
+      ...bundle(),
+      format: 'arcadia.environment-export/3',
+      archives: [
+        { external: { name: '@author/private', version: '1.0.0', integrity: 'sha512-test', manual: true } },
+        { external: { name: 'public', version: '1.0.0', integrity: 'sha512-public', manual: false } },
+      ],
+    }
+    await choose(page, input)
+    expect(page.text()).toContain('@author/private@1.0.0')
+    const archive = page.get('input[aria-label="补充 @author/private"]')
+    Object.defineProperty(archive.element, 'files', { configurable: true, value: [new File(['abc'], 'private.tgz')] })
+    await archive.trigger('change')
+    await vi.waitFor(() => expect(button(page, '确认导入新环境').attributes('disabled')).toBeUndefined())
+    await page.get('form[aria-label="导入环境"]').trigger('submit')
+    expect(page.emitted('import')?.[0]).toEqual([
+      {
+        bundle: { ...input, suppliedArchives: { 'sha512-test': 'YWJj' } },
+        allowDownload: false,
+        expectedRevision: null,
+      },
+    ])
+  })
+
   it('rejects malformed JSON and unrelated JSON without retaining previous pending imports', async () => {
     const page = open()
     await choose(page)

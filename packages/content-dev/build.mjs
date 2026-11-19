@@ -29,6 +29,10 @@ execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', 'ts
 })
 await rewriteDeclarationImports(output)
 await cp(new URL('./template/', import.meta.url), new URL('./dist/template/', import.meta.url), { recursive: true })
+const templateManifest = new URL('template/package.json', output)
+const manifest = JSON.parse(await readFile(templateManifest, 'utf8'))
+manifest.engines.arcadia = '^' + require('./package.json').version
+await writeFile(templateManifest, JSON.stringify(manifest, null, 2) + '\n')
 await cp(
   new URL('../../docs/guides/ugc-authoring-agent/', import.meta.url),
   new URL('./dist/template/skills/arcadia-content-authoring/', import.meta.url),

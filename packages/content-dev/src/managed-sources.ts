@@ -147,10 +147,10 @@ async function readBounded(stream: Readable, expectedSize: number, options: Boun
     if (options.signal.aborted) abort()
   })
 }
-async function tarFiles(file: string, options: BoundedOptions): Promise<SourceFile[]> {
+export async function tarFiles(file: string | Readable, options: BoundedOptions): Promise<SourceFile[]> {
   const output = boundedFiles(options)
   await new Promise<void>((resolve, reject) => {
-    const input = createReadStream(file)
+    const input = typeof file === 'string' ? createReadStream(file) : file
     const parser = new Parser({ strict: true, maxMetaEntrySize: 64 * 1024, maxDecompressionRatio: 1000 })
     let failed = false
     const stop = (error: unknown) => {

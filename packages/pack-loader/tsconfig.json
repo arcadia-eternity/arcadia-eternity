@@ -19,6 +19,6 @@
     "declarationMap": true,
     "types": ["node"]
   },
-  "include": ["./src/**/*", "./native.ts", "./node.ts", "./effect-build.ts"],
+  "include": ["./src/**/*", "./native.ts", "./node.ts", "./effect-build.ts", "./package.json"],
   "exclude": ["./node_modules", "./dist"]
 }

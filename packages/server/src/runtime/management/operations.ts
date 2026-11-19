@@ -123,6 +123,8 @@ function failure(error: unknown): OperationFailure {
     /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code)
       ? error.code
       : 'OPERATION_FAILED'
+  if (error instanceof Error && (code === 'ARCADIA_VERSION_INCOMPATIBLE' || code === 'ARCADIA_VERSION_RANGE_INVALID'))
+    return { code, message: error.message, retryable: false }
   return { code, message: code, retryable: !['FORBIDDEN', 'UNAUTHORIZED', 'OPERATION_INPUT_INVALID'].includes(code) }
 }
 

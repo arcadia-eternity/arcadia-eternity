@@ -180,7 +180,7 @@ export class DesktopWorkspaceOwner {
             })
             if ((draft?.revision ?? null) !== input.expectedRevision) throw failure('REVISION_CONFLICT')
             projectLease = await this.library.prepareEnvironmentProject(input.document ?? draft.document, {
-              projectDirectory: join(workspace.root, 'environments', input.environmentId),
+              projectDirectory: input.seedDirectory ?? join(workspace.root, 'environments', input.environmentId),
               signal: controller.signal,
               onProgress: input.onProgress,
             })

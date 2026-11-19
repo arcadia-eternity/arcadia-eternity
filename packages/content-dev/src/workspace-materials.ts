@@ -44,12 +44,14 @@ export async function materialFiles(
     maxBytes = 256 * 1024 * 1024,
     maxFiles = 50000,
     onRead,
+    subtree,
     allowMissingLock = false,
   }: {
     allowMissingLock?: boolean
     signal?: AbortSignal
     maxBytes?: number
     maxFiles?: number
+    subtree?: string
     onRead?: (path: string, stats: Stats) => void
   } = {},
 ): Promise<Array<{ path: string; bytes: Buffer }>> {
@@ -94,7 +96,7 @@ export async function materialFiles(
     onRead?.(actual, after)
     result.push({ path: name, bytes })
   }
-  for (const name of materialRoots) {
+  for (const name of subtree ? [checkedMaterialPath(subtree)] : materialRoots) {
     try {
       await lstat(join(root, name))
     } catch (error) {

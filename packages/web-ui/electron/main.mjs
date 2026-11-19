@@ -282,6 +282,15 @@ function getContentLibrary() {
   contentLibrary ??= new ContentLibrary({
     root: path.join(app.getPath('userData'), 'content-packages'),
     host: localBattleHost,
+    copyMember: async (...args) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { copyEnvironmentMember } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+      )
+      return copyEnvironmentMember(...args)
+    },
     withDefaultArchive: async use => {
       const runtimeRequire = app.isPackaged
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
@@ -342,6 +351,9 @@ function getLocalEnvironments() {
       )
       // Local play and hosting borrow read leases. Persistent server bindings belong to the management workspace.
       return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
+        allowShareDownloads: true,
+        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+        npmCache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
         retentions: { list: async () => [] },
       })
     },
@@ -374,7 +386,11 @@ function getManagementWorkspaceOwner() {
       const { ContentWorkspace } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
-      return ContentWorkspace.open(root, options)
+      return ContentWorkspace.open(root, {
+        ...options,
+        allowShareDownloads: true,
+        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+      })
     },
   })
   return managementWorkspaceOwner
@@ -912,7 +928,7 @@ function setupIpcHandlers() {
       else if (input.action === 'browse-package') {
         const directory = await getContentLibrary().sourceDirectory(input.packageId)
         result = await manager.add(directory, { readOnly: true, published: true })
-      } else if (input.action === 'create') result = await manager.create(input.name)
+      } else if (input.action === 'create') result = await manager.create(input.name, input.arcadiaRange)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
           title: '打开内容包源项目',
@@ -954,6 +970,9 @@ function setupIpcHandlers() {
             }
             case 'context':
               result = await manager.setContext(input.id, input.state)
+              break
+            case 'save-arcadia-range':
+              result = await session.workspace.saveArcadiaRange(input.range, input.expectedRange)
               break
             case 'snapshot':
               result = await session.workspace.snapshot()
@@ -1075,7 +1094,7 @@ function setupIpcHandlers() {
     const selected = await dialog.showOpenDialog(mainWindow, {
       title: '安装内容包',
       properties: ['openFile'],
-      filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
+      filters: [{ name: '内容包', extensions: ['tgz', 'zip'] }],
     })
     requireLocalBattleCaller(event)
     if (selected.canceled || !selected.filePaths[0]) return null
