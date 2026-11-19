@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sha256Hex } from '../packages/const/src/sha256.ts'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
@@ -60,7 +61,7 @@ async function readRelease() {
   for (const pkg of release.packages) {
     const bytes = await readFile(join(output, pkg.filename))
     assert.equal(`sha512-${createHash('sha512').update(bytes).digest('base64')}`, pkg.integrity)
-    assert.equal(createHash('sha256').update(bytes).digest('hex'), pkg.sha256)
+    assert.equal(sha256Hex(bytes), pkg.sha256)
   }
   return release
 }
@@ -141,9 +142,7 @@ if (command === 'pack') {
       integrity: `sha512-${createHash('sha512')
         .update(await readFile(archive))
         .digest('base64')}`,
-      sha256: createHash('sha256')
-        .update(await readFile(archive))
-        .digest('hex'),
+      sha256: sha256Hex(await readFile(archive)),
     })
   }
   const build = JSON.parse(await readFile(join(root, 'packages/battle/dist/environment-build.json'), 'utf8'))

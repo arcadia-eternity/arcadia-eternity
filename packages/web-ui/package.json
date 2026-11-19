@@ -48,6 +48,7 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@noble/hashes": "catalog:",
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",

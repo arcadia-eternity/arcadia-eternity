@@ -1,4 +1,5 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { sha256Bytes } from '@arcadia-eternity/const'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import * as oidc from 'openid-client'
 import { ProviderError, sameIntent, validIntent, type AuthIntent, type VerifiedIdentity } from './types.js'
 
@@ -15,7 +16,7 @@ export interface OidcVerifierOptions {
 
 interface PendingAuthorization {
   intent: AuthIntent
-  browserDigest: Buffer
+  browserDigest: Uint8Array
   nonce: string
   codeVerifier: string
   expiresAt: number
@@ -111,7 +112,7 @@ export class OidcVerifier {
     const expiresAt = now + this.challengeTtlMs
     this.pending.set(state, {
       intent: structuredClone(intent),
-      browserDigest: sha256(browserSecret),
+      browserDigest: sha256Bytes(browserSecret),
       nonce,
       codeVerifier,
       expiresAt,
@@ -152,7 +153,7 @@ export class OidcVerifier {
     }
     if (!sameIntent(pending.intent, intent)) throw new ProviderError('AUTH_PROOF_MISMATCH', 401)
     pending.attempts++
-    if (!timingSafeEqual(pending.browserDigest, sha256(browserSecret))) {
+    if (!timingSafeEqual(pending.browserDigest, sha256Bytes(browserSecret))) {
       if (pending.attempts >= MAX_BROWSER_ATTEMPTS) this.pending.delete(state)
       throw new ProviderError('AUTH_PROOF_MISMATCH', 401)
     }
@@ -192,10 +193,6 @@ export class OidcVerifier {
       throw new ProviderError('AUTH_PROOF_INVALID', 401)
     }
   }
-}
-
-function sha256(value: string): Buffer {
-  return createHash('sha256').update(value).digest()
 }
 
 function secureOrLoopback(url: URL): boolean {

@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
+import { randomUUID } from 'node:crypto'
 import { constants } from 'node:fs'
 import { lstat, mkdir, open, readdir, realpath, rename, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -36,7 +37,6 @@ class ManagementBackupError extends Error {
 const fail = (code: string, status = 422): never => {
   throw new ManagementBackupError(code, status)
 }
-const digest = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
 const validId = (id: string) => {
   if (typeof id !== 'string' || !/^[a-f0-9]{64}$/.test(id)) fail('BACKUP_NOT_FOUND', 404)
   return id
@@ -62,7 +62,7 @@ export class ManagementBackups {
   constructor(private readonly options: ManagementBackupsOptions) {
     this.serverScope = { kind: 'server', id: options.serverId }
     this.workspaceScope = { kind: 'workspace', id: options.workspaceId }
-    this.root = resolve(options.directory, `backup-owner-${digest(options.operations.ownerId)}`)
+    this.root = resolve(options.directory, `backup-owner-${sha256Hex(options.operations.ownerId)}`)
     this.maxBytes = options.maxBytes ?? 512 * 1024 * 1024
     this.ttlMs = options.ttlMs ?? 24 * 60 * 60 * 1000
     this.now = options.now ?? Date.now
@@ -237,7 +237,7 @@ export class ManagementBackups {
               filename: `server-backup-${context.operationId.slice(0, 12)}.json`,
               bytes: bytes.length,
               expiresAt: this.now() + this.ttlMs,
-              sha256: digest(bytes),
+              sha256: sha256Hex(bytes),
             }
             commitAttempted = true
             return await context.commit(async tx => {
@@ -303,7 +303,7 @@ export class ManagementBackups {
         } finally {
           await handle.close()
         }
-        if (bytes.length > this.maxBytes || digest(bytes) !== result!.sha256) fail('BACKUP_ARTIFACT_INVALID', 409)
+        if (bytes.length > this.maxBytes || sha256Hex(bytes) !== result!.sha256) fail('BACKUP_ARTIFACT_INVALID', 409)
         const archive: unknown = JSON.parse(bytes.toString('utf8'))
         await this.authorize(actor, this.archiveServers(archive))
         if (this.closed) fail('MANAGEMENT_STOPPED', 503)

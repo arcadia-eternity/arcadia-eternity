@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
 import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { packageLocation, verifyArchive, readArchiveFiles } from './environment-sharing.ts'
@@ -54,7 +54,7 @@ export async function copyEnvironmentMember(
         if (!archive.get(file.path.slice(location.length + 1))?.equals(file.bytes))
           throw contentError('SOURCE_INTEGRITY_MISMATCH', '已安装文件与锁定的包归档不一致')
       }
-      const path = 'candidates/' + createHash('sha256').update(bytes).digest('hex') + '.tgz'
+      const path = 'candidates/' + sha256Hex(bytes) + '.tgz'
       copied.set(path, bytes)
       entry.resolved = 'file:' + path
       if (location === root.location) rootArchive = path

@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import { ProfileError } from './schema'
 import { type Envelope, type ProfileStorage, type ProfileExpectation } from './repository'
 
@@ -54,7 +55,7 @@ export class BrowserProfileStorage implements ProfileStorage {
           }
           try {
             if (expected && typeof expected === 'object' && 'legacy' in expected)
-              store.add(current, 'legacy-v1-' + globalThis.crypto.randomUUID())
+              store.add(current, 'legacy-v1-' + nanoid())
             store.put(next, 'current')
           } catch (error) {
             writeError = error as DOMException

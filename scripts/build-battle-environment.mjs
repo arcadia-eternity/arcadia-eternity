@@ -1,5 +1,5 @@
+import { sha256Hex } from '../packages/const/src/sha256.ts'
 import { rolldown } from 'rolldown'
-import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
@@ -40,7 +40,7 @@ export async function bundledNotices(moduleIds) {
 }
 
 export function identifyEnvironmentArtifact(code) {
-  const digest = domain => createHash('sha256').update(`${domain}\0`).update(code).digest('hex')
+  const digest = domain => sha256Hex(`${domain}\0`, code)
   // One bundled runtime currently contains core, schemas, capabilities and restoration code.
   // Both identities cover all of it, conservatively invalidating either boundary on any change.
   return { formatVersion: 1, coreBuildId: digest('arcadia-core/1'), registryBuildId: digest('arcadia-registry/1') }

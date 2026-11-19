@@ -1,3 +1,4 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -6,7 +7,7 @@ import {
   type RegistrationResponseJSON,
   type AuthenticationResponseJSON,
 } from '@simplewebauthn/server'
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import type { DurableStorage, StorageTransaction, StoredRecord } from '@arcadia-eternity/database'
 
 export interface ManagementScope {
@@ -91,8 +92,7 @@ const fail = (code: string, status = 403): never => {
   throw new ManagementAuthError(code, status)
 }
 const secret = () => `ae_mgt_${randomBytes(32).toString('base64url')}`
-const hash = (value: string) => createHash('sha256').update(value).digest('hex')
-const sessionCsrf = (token: string) => hash(`arcadia-management-csrf\0${token}`)
+const sessionCsrf = (token: string) => sha256Hex(`arcadia-management-csrf\0${token}`)
 const validText = (value: unknown, max = 128): value is string =>
   typeof value === 'string' &&
   value.length > 0 &&
@@ -216,7 +216,7 @@ export class ManagementAuth {
     await this.store.transaction(async tx => {
       await this.roster(tx)
       await tx.create<Credential>('credentials', {
-        id: hash(code),
+        id: sha256Hex(code),
         scope: ownerId,
         value: {
           principalId: ownerId,
@@ -241,7 +241,7 @@ export class ManagementAuth {
       csrfToken = sessionCsrf(token),
       expiresAt = this.now() + this.sessionTtlMs
     return this.store.transaction(async tx => {
-      const existing = await tx.get<Credential>('credentials', hash(code))
+      const existing = await tx.get<Credential>('credentials', sha256Hex(code))
       if (!existing || existing.value.kind !== 'bootstrap' || existing.value.expiresAt <= this.now())
         return fail('INVALID_BOOTSTRAP_CODE', 401)
       if (existing.value.issuerPrincipalId) await this.requireMember(tx, existing.value.issuerPrincipalId)
@@ -270,7 +270,7 @@ export class ManagementAuth {
           ...roster.value,
           principalIds: [...roster.value.principalIds, principalId],
         })
-      const credentialId = hash(token)
+      const credentialId = sha256Hex(token)
       await tx.create<Credential>('credentials', {
         id: credentialId,
         scope: principalId,
@@ -279,7 +279,7 @@ export class ManagementAuth {
           kind: 'session',
           expiresAt,
           createdAt: this.now(),
-          csrfHash: hash(csrfToken),
+          csrfHash: sha256Hex(csrfToken),
           serverId: this.options.serverId,
         },
       })
@@ -303,11 +303,18 @@ export class ManagementAuth {
       const principalId = principals[0].id
       if (serverId !== this.options.serverId) fail('MANAGEMENT_FORBIDDEN')
       await this.requireMember(tx, principalId)
-      const credentialId = hash(token)
+      const credentialId = sha256Hex(token)
       await tx.create<Credential>('credentials', {
         id: credentialId,
         scope: principalId,
-        value: { principalId, kind: 'session', expiresAt, createdAt: this.now(), csrfHash: hash(csrfToken), serverId },
+        value: {
+          principalId,
+          kind: 'session',
+          expiresAt,
+          createdAt: this.now(),
+          csrfHash: sha256Hex(csrfToken),
+          serverId,
+        },
       })
       await this.audit(tx, principalId, 'account.session', `server:${serverId}`, { principalId })
       return { token, csrfToken, expiresAt, actor: { principalId, credentialId, kind: 'session' } }
@@ -358,7 +365,7 @@ export class ManagementAuth {
 
   async authenticate(token: string | undefined): Promise<ManagementActor> {
     if (!validText(token, 256)) return fail('MANAGEMENT_UNAUTHENTICATED', 401)
-    const credentialId = hash(token)
+    const credentialId = sha256Hex(token)
     const credential = await this.store.get<Credential>('credentials', credentialId)
     if (!credential || !['session', 'service'].includes(credential.value.kind))
       return fail('MANAGEMENT_UNAUTHENTICATED', 401)
@@ -416,7 +423,7 @@ export class ManagementAuth {
       actor.kind !== 'session' ||
       !validText(csrfToken, 256) ||
       !credential.value.csrfHash ||
-      !timingSafeEqual(Buffer.from(hash(csrfToken), 'hex'), Buffer.from(credential.value.csrfHash, 'hex'))
+      !timingSafeEqual(Buffer.from(sha256Hex(csrfToken), 'hex'), Buffer.from(credential.value.csrfHash, 'hex'))
     )
       fail('CSRF_REJECTED')
   }
@@ -451,7 +458,7 @@ export class ManagementAuth {
       // Serializes invitation creation with concurrent removal of the issuer.
       await tx.replace('grants', roster.id, roster.revision, roster.value)
       await tx.create<Credential>('credentials', {
-        id: hash(code),
+        id: sha256Hex(code),
         scope: `server:${this.options.serverId}`,
         value: {
           principalId: randomUUID(),
@@ -615,7 +622,7 @@ export class ManagementAuth {
     )
       fail('INVALID_CREDENTIAL', 422)
     const token = secret(),
-      storageId = hash(token),
+      storageId = sha256Hex(token),
       credentialId = randomUUID()
     await this.store.transaction(async tx => {
       await this.requireFullAdministrator(tx, actor)
@@ -734,7 +741,7 @@ export class ManagementAuth {
     const token = secret(),
       csrfToken = sessionCsrf(token),
       expiresAt = this.now() + this.sessionTtlMs
-    const actor: ManagementActor = { principalId, credentialId: hash(token), kind: 'session' }
+    const actor: ManagementActor = { principalId, credentialId: sha256Hex(token), kind: 'session' }
     await tx.create<Credential>('credentials', {
       id: actor.credentialId,
       scope: principalId,
@@ -743,7 +750,7 @@ export class ManagementAuth {
         kind: 'session',
         createdAt: this.now(),
         expiresAt,
-        csrfHash: hash(csrfToken),
+        csrfHash: sha256Hex(csrfToken),
         serverId: this.options.serverId,
         parentId,
       },
@@ -786,7 +793,7 @@ export class ManagementAuth {
       rpName: 'Arcadia 管理后台',
       rpID: new URL(origin).hostname,
       userName: principal!.value.displayName,
-      userID: Buffer.from(hash(actor.principalId), 'hex'),
+      userID: Buffer.from(sha256Hex(actor.principalId), 'hex'),
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
       excludeCredentials: (await this.store.list<Credential>('credentials', actor.principalId))
@@ -827,7 +834,7 @@ export class ManagementAuth {
       if (actor.kind !== 'session') fail('SESSION_REQUIRED', 403)
       // Human credentials identify this server; current membership supplies authority.
       await tx.create<Credential>('credentials', {
-        id: `passkey:${hash(key.id)}`,
+        id: `passkey:${sha256Hex(key.id)}`,
         scope: actor.principalId,
         value: {
           publicId: randomUUID(),
@@ -860,7 +867,7 @@ export class ManagementAuth {
   async loginPasskey(origin: string, input: { challengeId: string; response: AuthenticationResponseJSON }) {
     const challenge = this.takeChallenge(input.challengeId, origin)
     if (!input.response || !validText(input.response.id, 2048)) return fail('PASSKEY_INVALID', 401)
-    const id = `passkey:${hash(input.response.id)}`
+    const id = `passkey:${sha256Hex(input.response.id)}`
     const row = await this.store.get<Credential>('credentials', id)
     const key = row?.value.passkey
     if (!row || row.value.kind !== 'passkey' || !key || key.rpId !== challenge.rpId) return fail('PASSKEY_INVALID', 401)
@@ -911,7 +918,7 @@ export class ManagementAuth {
           label,
           createdAt: this.now(),
           expiresAt,
-          secretHash: hash(token),
+          secretHash: sha256Hex(token),
           serverId: this.options.serverId,
           parentId: current.value.parentId,
         },
@@ -931,12 +938,12 @@ export class ManagementAuth {
         !row ||
         row.value.kind !== 'device' ||
         row.value.expiresAt <= this.now() ||
-        row.value.secretHash !== hash(token)
+        row.value.secretHash !== sha256Hex(token)
       )
         return fail('MANAGEMENT_UNAUTHENTICATED', 401)
       await this.validateParent(tx, row.value)
       const rotated = `${row.value.publicId}.${secret()}`
-      await tx.replace('credentials', id, row.revision, { ...row.value, secretHash: hash(rotated) })
+      await tx.replace('credentials', id, row.revision, { ...row.value, secretHash: sha256Hex(rotated) })
       const session = await this.loginSession(tx, row.value.principalId, row.value, id)
       return { session, token: rotated, expiresAt: row.value.expiresAt }
     })

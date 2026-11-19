@@ -1,10 +1,11 @@
 import {
+  sha256Hex,
   skillParameterCatalogSchema,
   type SkillParameterCatalog,
   readElementCatalog,
   type ElementCatalogInput,
 } from '@arcadia-eternity/const'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
@@ -140,9 +141,7 @@ export interface EnvironmentExportPreview {
   dependencies: ReturnType<typeof exportDependencies>
 }
 function exportRevision(draft: string, content: string, dependencies: EnvironmentExportPreview['dependencies']) {
-  return createHash('sha256')
-    .update(JSON.stringify([draft, content, dependencies]))
-    .digest('hex')
+  return sha256Hex(JSON.stringify([draft, content, dependencies]))
 }
 // Only the lock and external references are needed to check the receiving workspace.
 export interface EnvironmentImportProbe {
@@ -233,7 +232,6 @@ export interface ContentWorkspaceConstructor {
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const envId = /^[a-z0-9][a-z0-9_-]{0,79}$/
-const revision = (text: string | Buffer) => createHash('sha256').update(text).digest('hex')
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
 const checkId = (id: unknown, pattern = uuid): string => {
   if (typeof id !== 'string' || !pattern.test(id)) throw contentError('RESOURCE_ID_INVALID')
@@ -413,7 +411,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     if (!text || !Object.hasOwn(JSON.parse(text).arcadiaEnvironment ?? {}, 'disabled')) return
     const archive = join(this.root, 'migration-backups')
     await regularDirectory(archive)
-    await writeFileAtomic(join(archive, `${id}-${revision(text)}.json`), text)
+    await writeFileAtomic(join(archive, `${id}-${sha256Hex(text)}.json`), text)
   }
   #manifest(document: EnvironmentDocument, previous: UnknownRecord = {}): UnknownRecord {
     const { packages, ...metadata } = document
@@ -466,7 +464,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         if (errorCode(error) !== 'ENOENT') throw error
         return null
       })
-      if ((previous === null ? null : revision(previous)) !== input.expectedRevision)
+      if ((previous === null ? null : sha256Hex(previous)) !== input.expectedRevision)
         throw contentError('REVISION_CONFLICT')
       await regularDirectory(directory)
       await this.#archiveRemovedDeclarations(document.id)
@@ -476,7 +474,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
           if (errorCode(error) !== 'ENOENT') throw error
           return undefined
         })
-        if (receipt && !receipt.document && receipt.draftRevision === revision(previous))
+        if (receipt && !receipt.document && receipt.draftRevision === sha256Hex(previous))
           await writeFileAtomic(receiptFile, json({ ...receipt, document: parseManifestDraft(previous).document }))
       }
       await writeFileAtomic(file, json(this.#manifest(document, previous ? JSON.parse(previous) : {})))
@@ -631,7 +629,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
           format: 'arcadia.environment-installation/1',
           installationId: document.id,
           document,
-          draftRevision: revision(text),
+          draftRevision: sha256Hex(text),
           contentRevision: result.contentRevision,
           packages: result.packages,
           members: result.members,
@@ -838,7 +836,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
   captureSnapshot() {
     return this.#exclusive(async () => {
       const snapshot = await this.#snapshot()
-      this.#snapshotFingerprint = revision(json(snapshot))
+      this.#snapshotFingerprint = sha256Hex(json(snapshot))
       const stamp = { workspaceId: this.workspaceId, bootId: this.bootId, generation: ++this.#snapshotGeneration }
       return { snapshot, stamp }
     })
@@ -854,7 +852,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         return false
       const expected = this.#snapshotFingerprint
       this.#snapshotFingerprint = undefined
-      return revision(json(await this.#snapshot())) === expected
+      return sha256Hex(json(await this.#snapshot())) === expected
     })
   }
   restoreSnapshot(snapshot: WorkspaceSnapshot, { mode }: { mode: 'restore' | 'clone' }, preparer: StaticPreparer) {

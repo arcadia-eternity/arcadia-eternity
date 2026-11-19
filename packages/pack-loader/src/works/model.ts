@@ -1,4 +1,4 @@
-import { readEnhancementStages, readNatureCatalog } from '@arcadia-eternity/const'
+import { readEnhancementStages, readNatureCatalog, sha256Hex } from '@arcadia-eternity/const'
 import type {
   BehaviorDefinition,
   ContentCatalog,
@@ -192,8 +192,7 @@ export function gameplayRevision(...input: Parameters<typeof gameplayIdentity>) 
 }
 
 export async function digestBytes(bytes: Uint8Array): Promise<string> {
-  const value = await globalThis.crypto.subtle.digest('SHA-256', new Uint8Array(bytes))
-  return [...new Uint8Array(value)].map(byte => byte.toString(16).padStart(2, '0')).join('')
+  return sha256Hex(bytes)
 }
 export const digestJson = (value: unknown) => digestBytes(new TextEncoder().encode(canonical(value)))
 

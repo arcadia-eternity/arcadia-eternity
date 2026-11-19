@@ -19,6 +19,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@noble/hashes": "catalog:",
     "jsondiffpatch": "catalog:",
     "zod": "4.6.7"
   },

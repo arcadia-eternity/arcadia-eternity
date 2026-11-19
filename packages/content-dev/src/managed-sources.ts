@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { sha256, sha384, sha512 } from '@noble/hashes/sha2.js'
 import { constants, createReadStream } from 'node:fs'
 import { mkdir, open, readdir, lstat, realpath, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative } from 'node:path'
@@ -25,6 +25,13 @@ export interface SourceAcquisitionOptions {
 }
 
 const exec = promisify(execFile)
+export function matchesArchiveIntegrity(bytes: Uint8Array, integrity: string): boolean {
+  const match = /^(sha256|sha384|sha512)-([A-Za-z0-9+/]+={0,2})$/.exec(integrity)
+  if (!match) return false
+  const hash = match[1] === 'sha256' ? sha256 : match[1] === 'sha384' ? sha384 : sha512
+  return Buffer.from(hash(bytes)).toString('base64') === match[2]
+}
+
 function fail(code: string): never {
   throw Object.assign(new Error(code), { code })
 }
@@ -344,12 +351,7 @@ async function download(
       const tokens = source.integrity.trim().split(/\s+/)
       if (!tokens.length || tokens.some((token: string) => !/^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$/.test(token)))
         throw fail('SOURCE_INTEGRITY_INVALID')
-      if (
-        !tokens.some((token: string) => {
-          const [algorithm, expected] = token.split('-')
-          return createHash(algorithm).update(bytes).digest('base64') === expected
-        })
-      )
+      if (!tokens.some((token: string) => matchesArchiveIntegrity(bytes, token)))
         throw fail('SOURCE_INTEGRITY_MISMATCH')
     }
     await writeFile(file, bytes, { flag: 'wx', mode: 0o600 })

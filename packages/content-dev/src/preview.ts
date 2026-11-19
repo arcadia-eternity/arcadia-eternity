@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { createServer } from 'node:http'
-import { randomBytes, createHash } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { setGlobalLogger } from '@arcadia-eternity/battle/engine'
 import {
@@ -10,7 +10,7 @@ import {
   mapPresentationResources,
 } from '@arcadia-eternity/pack-loader/native'
 import type { PreparedPresentation } from '@arcadia-eternity/pack-loader/node'
-import type { BattleMessage, BattleState, Events } from '@arcadia-eternity/const'
+import { sha256Hex, type BattleMessage, type BattleState, type Events } from '@arcadia-eternity/const'
 import type { ResourceReference } from '@arcadia-eternity/schema'
 import { prepareContentPack } from './testing.ts'
 import { PreviewAutomation } from './preview-control.ts'
@@ -206,9 +206,7 @@ export async function startPreview(
           rules: prepared.effectiveRules,
           candidate: prepared.candidate,
           teams: prepared.teams,
-          draftKey: createHash('sha256')
-            .update(resolve(environmentOptions.lockRoot ?? root))
-            .digest('hex'),
+          draftKey: sha256Hex(resolve(environmentOptions.lockRoot ?? root)),
           ...manualSetup(),
           active: !!system,
         })

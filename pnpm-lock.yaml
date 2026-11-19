@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@noble/hashes':
+      specifier: 2.4.0
+      version: 2.4.0
     '@sinclair/typebox':
       specifier: 0.34.52
       version: 0.34.52
@@ -346,6 +349,9 @@ importers:
 
   packages/const:
     dependencies:
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 2.4.0
       jsondiffpatch:
         specifier: 'catalog:'
         version: 0.7.7
@@ -370,6 +376,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.2
         version: 1.32.2(supports-color@10.2.2)(zod@4.6.7)
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 2.4.0
       chokidar:
         specifier: ^6.0.0
         version: 6.0.0
@@ -497,6 +506,9 @@ importers:
       '@arcadia-eternity/schema':
         specifier: workspace:*
         version: link:../schema
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 2.4.0
       es-module-lexer:
         specifier: 3.0.4
         version: 3.0.4
@@ -574,6 +586,9 @@ importers:
       '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 2.4.0
       '@simplewebauthn/server':
         specifier: 14.1.0
         version: 14.1.0
@@ -662,6 +677,9 @@ importers:
       '@heroicons/vue':
         specifier: ^2.2.0
         version: 2.2.0(vue@3.5.45(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 2.4.0
       '@ruffle-rs/ruffle':
         specifier: 0.7.1
         version: 0.7.1

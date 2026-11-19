@@ -1,5 +1,5 @@
+import { sha256Hex, sha256StreamHex } from '@arcadia-eternity/const'
 import { isContentLocaleField, contentLocaleCollection } from '@arcadia-eternity/schema'
-import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { lstat, mkdir, readdir, readFile, realpath, unlink } from 'node:fs/promises'
 import { dirname, extname, isAbsolute, join, relative, sep } from 'node:path'
@@ -213,7 +213,6 @@ interface PreparedDraft {
 
 const object = (value: unknown): value is UnknownRecord =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
-const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
 
 const isBaseManifest = (manifest: PackageManifest) =>
   manifest.name === basePackageName || manifest.arcadia?.projectId === baseProjectId
@@ -411,7 +410,7 @@ export class AuthorWorkspace extends EventEmitter {
     if ((await lstat(path)).size > textLimit) fail('SOURCE_TOO_LARGE', '文本超过 2 MiB，请在外部编辑器打开', file)
     const bytes = await readFile(path)
     if (bytes.length > textLimit || bytes.includes(0)) fail('SOURCE_INVALID', '文件不是受支持的源文本', file)
-    return { file, text: bytes.toString('utf8'), version: hash(bytes) }
+    return { file, text: bytes.toString('utf8'), version: sha256Hex(bytes) }
   }
   async files(): Promise<WorkspaceFile[]> {
     const result: WorkspaceFile[] = []
@@ -445,11 +444,9 @@ export class AuthorWorkspace extends EventEmitter {
     for (const entry of await this.files()) {
       if (entry.file === excludeFile || (contentOnly && entry.file.startsWith('debug/teams/'))) continue
       if (entry.error) fail('PATH_INVALID', entry.error, entry.file)
-      const digest = createHash('sha256')
-      for await (const chunk of createReadStream(await this.path(entry.file))) digest.update(chunk)
-      hashes.push([entry.file, digest.digest('hex')])
+      hashes.push([entry.file, await sha256StreamHex(createReadStream(await this.path(entry.file)))])
     }
-    return hash(JSON.stringify(hashes))
+    return sha256Hex(JSON.stringify(hashes))
   }
   async snapshot(): Promise<WorkspaceSnapshot> {
     const manifest = JSON.parse((await this.read('package.json')).text) as PackageManifest
@@ -713,7 +710,7 @@ export class AuthorWorkspace extends EventEmitter {
     const path = await this.path(file)
     if ((await lstat(path)).size > 64 * 1024 * 1024) fail('SOURCE_TOO_LARGE', '素材超过 64 MiB', file)
     const bytes = await readFile(path)
-    return { file, bytes, version: hash(bytes) }
+    return { file, bytes, version: sha256Hex(bytes) }
   }
   async #serialize<T>(file: string, action: () => Promise<T>): Promise<T> {
     const pending = (this.#queues.get(file) ?? Promise.resolve())
@@ -754,7 +751,7 @@ export class AuthorWorkspace extends EventEmitter {
       await writeFileAtomic(path, text)
       if (fromForm) this.#dirty.delete(file)
       this.emit('change', { type: 'change', file })
-      return { file, version: hash(text) }
+      return { file, version: sha256Hex(text) }
     })
   }
   async saveArcadiaRange(value: string, expectedRange: string): Promise<void> {

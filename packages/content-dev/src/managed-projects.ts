@@ -1,5 +1,5 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { isDeepStrictEqual, promisify } from 'node:util'
@@ -472,7 +472,7 @@ export class ManagedProjects {
       if (includesBase) {
         await withShippedCatalogArchive(baseRoot!, undefined, async file => {
           const bytes = await readFile(file)
-          const filename = `candidates/base-${createHash('sha256').update(bytes).digest('hex')}.tgz`
+          const filename = `candidates/base-${sha256Hex(bytes)}.tgz`
           await writeFile(join(directory!, filename), bytes)
           dependencies[baseName] = 'file:' + filename
         })
@@ -488,9 +488,7 @@ export class ManagedProjects {
         await input.onProgress?.({ stage: 'acquiring', completed: index, total: document.sources.length })
         const staged = join(directory, 'source-' + index)
         const captured = await this.#packSource(source, staged, signal, name)
-        const archiveDigest = createHash('sha256')
-          .update(await readFile(captured.file))
-          .digest('hex')
+        const archiveDigest = sha256Hex(await readFile(captured.file))
         const filename = `candidates/source-${index}-${archiveDigest}.tgz`
         await rename(captured.file, join(directory, filename))
         dependencies[name] = 'file:' + filename

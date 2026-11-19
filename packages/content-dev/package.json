@@ -54,6 +54,7 @@
     "clear": "rm -rf dist"
   },
   "dependencies": {
+    "@noble/hashes": "catalog:",
     "@arcadia-eternity/battle": "workspace:*",
     "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/pack-loader": "workspace:*",

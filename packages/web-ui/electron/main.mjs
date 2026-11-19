@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } from 'electron'
 import { createRequire } from 'node:module'
+import { isDeepStrictEqual } from 'node:util'
 import http from 'node:http'
 import { randomUUID } from 'node:crypto'
 import net from 'node:net'
@@ -829,7 +830,7 @@ function setupIpcHandlers() {
         if ((await storage.readRaw()) !== input.expected.legacy)
           throw Object.assign(new Error('REVISION_CONFLICT'), { code: 'REVISION_CONFLICT' })
         const migrated = await repository.open()
-        if (migrated?.current.digest !== input.next?.current?.digest) throw new Error('Invalid migration')
+        if (!isDeepStrictEqual(migrated, await validateEnvelope(input.next))) throw new Error('Invalid migration')
         return { value: true }
       }
       if (input?.action !== 'commit') throw new Error('Invalid profile action')
@@ -1285,15 +1286,6 @@ app.on('before-quit', event => {
   })()
 })
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createMainWindow()
-    void getContentLibrary()
-      .resume()
-      .catch(() => {})
-  }
-})
-
 app
   .whenReady()
   .then(async () => {
@@ -1321,6 +1313,14 @@ app
     setupIpcHandlers()
     swfHost.registerIpc(ipcMain)
     createMainWindow()
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createMainWindow()
+        void getContentLibrary()
+          .resume()
+          .catch(() => {})
+      }
+    })
     void getContentLibrary()
       .resume()
       .catch(() => {})

@@ -1,6 +1,8 @@
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import { lstatSync, readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { basename, dirname, isAbsolute, join } from 'node:path'
@@ -276,9 +278,7 @@ export class ContentLibrary {
         const entry = { ...plan.entry, bundled: true }
         await this.#save({
           ...state,
-          bundledDigest: createHash('sha256')
-            .update(await readFile(file))
-            .digest('hex'),
+          bundledDigest: bytesToHex(sha256(await readFile(file))),
           installed: [entry],
         })
       } catch (error) {
@@ -293,9 +293,7 @@ export class ContentLibrary {
     const oldBase = state.installed.find(entry => entry.bundled)
     if (!oldBase) return
     await this.withDefaultArchive(async file => {
-      const digest = createHash('sha256')
-        .update(await readFile(file))
-        .digest('hex')
+      const digest = bytesToHex(sha256(await readFile(file)))
       if (state.bundledDigest === digest) return
       const candidate = await this.#stageInstall(
         { kind: 'file', file, label: '随应用提供' },

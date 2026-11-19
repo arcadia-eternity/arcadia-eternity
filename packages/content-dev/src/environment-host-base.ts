@@ -1,3 +1,4 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { withShippedEnvironmentProject, withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
@@ -66,7 +67,7 @@ export async function environmentShareMaterials(files: Material[], document: Env
     // Mixed projects use the same local npm candidate as a normal managed installation.
     if (Object.keys(lock.packages).some(location => location && location !== baseLocation)) {
       const bytes = await withShippedCatalogArchive(receiver.bundledPackageRoot, undefined, path => readFile(path))
-      const path = 'candidates/base-' + createHash('sha256').update(bytes).digest('hex') + '.tgz'
+      const path = 'candidates/base-' + sha256Hex(bytes) + '.tgz'
       spec = 'file:' + path
       entry.resolved = spec
       entry.integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64')

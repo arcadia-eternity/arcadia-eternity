@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
 import { execFile } from 'node:child_process'
 import { constants } from 'node:fs'
 import { lstat, mkdir, mkdtemp, open, readFile, realpath, rm, writeFile } from 'node:fs/promises'
@@ -56,7 +56,7 @@ async function readLocalArtifact(file: string, root: string): Promise<Buffer> {
     if (!opened.isFile() || opened.size > maxArtifactBytes || opened.dev !== before.dev || opened.ino !== before.ino)
       throw new CliError('PROJECT_SOURCE', 'Local tarball changed while opening')
     const bytes = Buffer.alloc(opened.size)
-    for (let offset = 0; offset < bytes.length; ) {
+    for (let offset = 0; offset < bytes.length;) {
       const { bytesRead } = await handle.read(bytes, offset, bytes.length - offset, offset)
       if (!bytesRead) throw new CliError('PROJECT_SOURCE', 'Local tarball changed while reading')
       offset += bytesRead
@@ -230,7 +230,7 @@ function checkTarball(bytes: Uint8Array) {
 function packageName(location: string): string {
   const parts = location.split('/')
   let name = ''
-  for (let i = 0; i < parts.length; ) {
+  for (let i = 0; i < parts.length;) {
     if (parts[i++] !== 'node_modules' || !parts[i])
       throw new CliError('PROJECT_SOURCE', 'Invalid lockfile package location')
     name = parts[i++]
@@ -305,7 +305,6 @@ interface Deployment {
     containsEffectCode: boolean | null
   }[]
 }
-const hash = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex')
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
 async function npmVersion(): Promise<string> {
   const npm = await resolveNpmInvocation(['--version'])
@@ -404,7 +403,7 @@ export async function exportProject(
     )
       throw new CliError('PROJECT_SOURCE', 'Only directly installed, approved local tarballs are supported')
     checkTarball(bytes)
-    const path = `artifacts/${hash(bytes)}.tgz`
+    const path = `artifacts/${sha256Hex(bytes)}.tgz`
     local.set(name, { path, bytes, integrity: locked.integrity as string })
   }
   function rewriteRoot(map: Record<string, string>) {

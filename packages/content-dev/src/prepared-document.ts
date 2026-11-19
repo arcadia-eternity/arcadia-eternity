@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { normalizeEnvironmentDocument } from './debug-environments.ts'
@@ -15,7 +15,7 @@ export function parseManifestDraft(text: string) {
     ...manifest.arcadiaEnvironment,
     packages: Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !sources.includes(name))),
   })
-  return { document, revision: createHash('sha256').update(text).digest('hex') }
+  return { document, revision: sha256Hex(text) }
 }
 
 export function preparedDocument(metadata: UnknownRecord, legacyManifest: string) {

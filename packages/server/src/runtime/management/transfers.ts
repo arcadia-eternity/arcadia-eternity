@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
+import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { exportSelectionSchema } from '@arcadia-eternity/content-sdk/management-workspace'
@@ -57,7 +58,6 @@ interface ExportResult {
 const fail = (code: string, status = 422): never => {
   throw new ManagementTransferError(code, status)
 }
-const digest = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
 const validId = (id: string) => {
   if (typeof id !== 'string' || !/^[a-f0-9]{64}$/.test(id)) fail('TRANSFER_NOT_FOUND', 404)
   return id
@@ -82,7 +82,7 @@ export class ManagementTransfers {
   private closed = false
   constructor(private readonly options: ManagementTransfersOptions) {
     this.scope = { kind: 'workspace', id: options.workspace.workspaceId }
-    this.root = resolve(options.directory, `owner-${digest(options.operations.ownerId)}`)
+    this.root = resolve(options.directory, `owner-${sha256Hex(options.operations.ownerId)}`)
     this.now = options.now ?? Date.now
     this.maxBytes = options.maxBytes ?? 128 * 1024 * 1024
     this.ttlMs = options.ttlMs ?? 24 * 60 * 60 * 1000
@@ -266,8 +266,8 @@ export class ManagementTransfers {
       return fail('ENVIRONMENT_EXPORT_INVALID')
     }
     if (bytes.length > this.maxBytes) fail('TRANSFER_TOO_LARGE', 413)
-    const bundleDigest = digest(bytes)
-    const uploadId = digest(`${this.options.operations.ownerId}\0${managementScopeKey(this.scope)}\0${bundleDigest}`)
+    const bundleDigest = sha256Hex(bytes)
+    const uploadId = sha256Hex(`${this.options.operations.ownerId}\0${managementScopeKey(this.scope)}\0${bundleDigest}`)
     const name = `upload-${uploadId}.json`
     const unpin = this.pin(name)
     try {
@@ -295,7 +295,7 @@ export class ManagementTransfers {
             await this.options.auth.authorize(actor, this.scope, 'prepare')
             const { file } = await this.metadata(name)
             const contents = await readFile(file)
-            if (digest(contents) !== bundleDigest) fail('TRANSFER_ARTIFACT_INVALID', 409)
+            if (sha256Hex(contents) !== bundleDigest) fail('TRANSFER_ARTIFACT_INVALID', 409)
             const parsed = JSON.parse(contents.toString('utf8')) as EnvironmentExport
             await context.progress({ stage: 'importing' })
             const version = await this.options.workspace.importEnvironment(
@@ -367,7 +367,7 @@ export class ManagementTransfers {
     try {
       const { file } = await this.metadata(name)
       const bytes = await readFile(file)
-      if (digest(bytes) !== input.bundleDigest) return fail('TRANSFER_ARTIFACT_INVALID', 409)
+      if (sha256Hex(bytes) !== input.bundleDigest) return fail('TRANSFER_ARTIFACT_INVALID', 409)
       return await this.import(actor, JSON.parse(bytes.toString('utf8')), {
         ...(input.environmentId ? { environmentId: input.environmentId } : {}),
         expectedRevision: input.expectedRevision,

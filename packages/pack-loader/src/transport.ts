@@ -1,3 +1,4 @@
+import { sha512 } from '@noble/hashes/sha2.js'
 import type { AssetManifest } from '@arcadia-eternity/schema'
 import type { resolvePackLoadOrder, resolvePackEntriesFromRef } from '@arcadia-eternity/battle/pack'
 import type { AssetConflict, PackLoaderOptions, PackLockfile, DataPackManifest } from './types'
@@ -603,8 +604,7 @@ export class PackTransport {
 
   protected async computeIntegrity(content: string): Promise<string> {
     const bytes = new TextEncoder().encode(content)
-    const digest = await globalThis.crypto.subtle.digest('SHA-512', bytes)
-    const hashBytes = new Uint8Array(digest)
+    const hashBytes = sha512(bytes)
     let base64: string
     if (typeof Buffer !== 'undefined') {
       base64 = Buffer.from(hashBytes).toString('base64')

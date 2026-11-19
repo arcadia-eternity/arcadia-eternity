@@ -1,5 +1,5 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { isContentLocaleField, contentLocaleCollection } from '@arcadia-eternity/schema'
-import { createHash } from 'node:crypto'
 import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join, relative, extname } from 'node:path'
 import YAML from 'yaml'
@@ -170,7 +170,7 @@ export async function buildPresentation(
         kind: 'file',
         id,
         source: location,
-        sha256: createHash('sha256').update(bytes).digest('hex'),
+        sha256: sha256Hex(bytes),
         bytes: bytes.length,
         mime,
         ...(record.tags ? { tags: record.tags } : {}),

@@ -1,5 +1,5 @@
+import { sha256Hex } from '../packages/const/src/sha256.ts'
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -8,7 +8,6 @@ import { createDesktopInstallerWorkspace } from './desktop-installer-artifacts.m
 import { bounded, shutdownDesktopProcess } from './desktop-acceptance-process.mjs'
 
 const require = createRequire(new URL('../packages/web-ui/package.json', import.meta.url))
-const hash = value => createHash('sha256').update(value).digest('hex')
 
 /** Runs the application entry in its actual ASAR. Neither a replacement main
  * module nor ELECTRON_RUN_AS_NODE is used for GUI acceptance. */
@@ -89,12 +88,12 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       const asar = createRequire(builderRequire.resolve('app-builder-lib/package.json'))('@electron/asar')
       const runtime = join(identity.resourcesPath, 'arcadia-server')
       const actual = {
-        mainSha256: hash(asar.extractFile(identity.appPath, 'electron/main.mjs')),
-        contentLibrarySha256: hash(asar.extractFile(identity.appPath, 'electron/content-library.mjs')),
-        rendererIndexSha256: hash(asar.extractFile(identity.appPath, 'dist/index.html')),
-        cliSha256: hash(await readFile(join(runtime, 'cli.js'))),
-        serverSha256: hash(await readFile(join(runtime, 'node_modules/@arcadia-eternity/server/dist/index.js'))),
-        runtimeManifestSha256: hash(await readFile(join(runtime, 'arcadia-desktop-runtime.json'))),
+        mainSha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/main.mjs')),
+        contentLibrarySha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/content-library.mjs')),
+        rendererIndexSha256: sha256Hex(asar.extractFile(identity.appPath, 'dist/index.html')),
+        cliSha256: sha256Hex(await readFile(join(runtime, 'cli.js'))),
+        serverSha256: sha256Hex(await readFile(join(runtime, 'node_modules/@arcadia-eternity/server/dist/index.js'))),
+        runtimeManifestSha256: sha256Hex(await readFile(join(runtime, 'arcadia-desktop-runtime.json'))),
       }
       assert.deepEqual(actual, sourceProof, 'installed application uses the recorded renderer, main and server inputs')
     }
@@ -190,7 +189,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     }
     const source = await readFile(join(project.directory, 'data/skills/strike.yaml'))
     assert.match(source.toString(), /power: 77/)
-    const sourceSha256 = hash(source)
+    const sourceSha256 = sha256Hex(source)
     if (baseline) assert.equal(sourceSha256, baseline.sourceSha256)
 
     await page.goto('arcadia-client://app/servers')

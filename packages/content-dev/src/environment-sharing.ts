@@ -1,8 +1,10 @@
+import { sha256Bytes } from '@arcadia-eternity/const'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import { lstat, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { createHash } from 'node:crypto'
 import { Readable } from 'node:stream'
-import { tarFiles } from './managed-sources.ts'
+import { matchesArchiveIntegrity, tarFiles } from './managed-sources.ts'
 import { isBaseMaterial } from './environment-host-base.ts'
 import { contentError, materialFiles, readJson } from './workspace-materials.ts'
 import { errorCode, isRecord } from './types.ts'
@@ -43,14 +45,12 @@ export function packageLocation(path: string) {
   return path.slice(0, start + 13) + parts.slice(0, parts[0].startsWith('@') ? 2 : 1).join('/')
 }
 function fileDigest(files: Material[]) {
-  const digest = createHash('sha256')
-  for (const file of files)
-    digest.update(file.path).update('\0').update(createHash('sha256').update(file.bytes).digest())
-  return digest.digest('hex')
+  const digest = sha256.create()
+  for (const file of files) digest.update(Buffer.from(file.path + '\0')).update(sha256Bytes(file.bytes))
+  return bytesToHex(digest.digest())
 }
 export function verifyArchive(bytes: Buffer, integrity: string) {
-  const [algorithm, expected] = integrity.split('-')
-  if (!/^sha(256|384|512)$/.test(algorithm) || createHash(algorithm).update(bytes).digest('base64') !== expected)
+  if (!matchesArchiveIntegrity(bytes, integrity))
     throw contentError('SOURCE_INTEGRITY_MISMATCH', '内容包归档与锁定摘要不符')
 }
 export async function readArchiveFiles(bytes: Buffer, limits: Limits) {

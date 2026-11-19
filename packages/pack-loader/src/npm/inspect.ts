@@ -2,7 +2,6 @@ import { satisfies, validRange } from 'semver'
 import release from '../../package.json' with { type: 'json' }
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import {
@@ -19,7 +18,7 @@ import {
 import { linkWorkRuleSets, verifyAssets } from '../works/compiler'
 import { PresentationManifestSchema, parseWithErrors, type PresentationManifest } from '@arcadia-eternity/schema'
 import { effectSdkApiVersion } from '@arcadia-eternity/battle/authoring'
-import { readEnvironmentRuleSets } from '@arcadia-eternity/const'
+import { readEnvironmentRuleSets, sha256Hex } from '@arcadia-eternity/const'
 import { resolveNpmInvocation } from './runner'
 
 const exec = promisify(execFile)
@@ -455,7 +454,7 @@ export async function inspectNpmProject(
     version: 1,
     digest: await digestJson(identity),
     ...(options.includeRuleSets && { ruleSets: readEnvironmentRuleSets(ruleSets) }),
-    lockfileDigest: createHash('sha256').update(canonical(lock)).digest('hex'),
+    lockfileDigest: sha256Hex(canonical(lock)),
     packages,
     members,
   })

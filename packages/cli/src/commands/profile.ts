@@ -46,7 +46,6 @@ export function registerProfileCommands(program: Command, context: CommandContex
   }
   const summary = (s: Awaited<ReturnType<ProfileRepository['create']>>) => ({
     revision: s.revision,
-    digest: s.digest,
     profile: s.data.profile,
     pets: s.data.library.storage.length,
     teams: s.data.library.teams.length,

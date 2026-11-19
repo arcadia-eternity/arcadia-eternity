@@ -1,12 +1,12 @@
+import { sha256Bytes, sha256Hex } from '@arcadia-eternity/const'
 import { constants } from 'node:fs'
 import { lstat, open, realpath, rename, unlink } from 'node:fs/promises'
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
+import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { isAbsolute, join, resolve } from 'node:path'
 
 const MAX_BYTES = 2 * 1024 * 1024
 // Editor revisions cover the content and the metadata used to construct references.
-const digest = (data: Uint8Array, project: unknown) =>
-  createHash('sha256').update(JSON.stringify(project)).update('\0').update(data).digest('hex')
+const digest = (data: Uint8Array, project: unknown) => sha256Hex(JSON.stringify(project), '\0', data)
 export class DevelopmentError extends Error {
   constructor(
     readonly code: string,
@@ -25,18 +25,16 @@ function record(value: unknown): value is Record<string, unknown> {
 /** Restricted to the administrator-selected package root and its two fixed filenames. */
 export class DevelopmentWorkspace {
   private readonly root: string
-  private readonly tokenHash: Buffer
+  private readonly tokenHash: Uint8Array
   private rootIdentity?: { dev: number; ino: number }
   constructor(directory: string, token: string) {
     if (!isAbsolute(directory) || typeof token !== 'string' || token.length < 32 || token.length > 256)
       throw new Error('Development workspace requires an absolute directory and a 32–256 character administrator token')
     this.root = resolve(directory)
-    this.tokenHash = createHash('sha256').update(token).digest()
+    this.tokenHash = sha256Bytes(token)
   }
   authorize(value: string | undefined) {
-    const candidate = createHash('sha256')
-      .update(value ?? '')
-      .digest()
+    const candidate = sha256Bytes(value ?? '')
     if (!value || !timingSafeEqual(candidate, this.tokenHash)) fail('DEVELOPMENT_UNAUTHORIZED', 401)
   }
   private async checkRoot() {

@@ -1,6 +1,7 @@
+import { Value } from '@sinclair/typebox/value'
+import { nanoid } from 'nanoid'
 import {
   defaultData,
-  digest,
   ProfileError,
   parseBackup,
   validateData,
@@ -12,7 +13,6 @@ import {
 export interface ProfileSnapshot {
   revision: number
   data: ProfileData
-  digest: string
 }
 export interface Envelope {
   version: 2
@@ -26,19 +26,22 @@ export interface ProfileStorage {
   /** Compare and publish in one transaction. A null expectation requires empty storage. */
   commit(expected: ProfileExpectation, next: Envelope): Promise<void>
 }
+function readSnapshot(snapshot: ProfileSnapshot, readData = validateData): ProfileSnapshot {
+  if (!snapshot || !Number.isSafeInteger(snapshot.revision) || snapshot.revision < 1)
+    throw new ProfileError('PROFILE_CORRUPT')
+  return { revision: snapshot.revision, data: readData(snapshot.data) }
+}
+
 export async function validateEnvelope(value: unknown): Promise<Envelope> {
   try {
     if (!value || typeof value !== 'object' || !('version' in value)) throw new Error()
     if (value.version !== 2) throw new ProfileError('UNSUPPORTED_VERSION')
     const envelope = value as Envelope
-    for (const snapshot of [envelope.current, envelope.recovery]) {
-      if (snapshot === null) continue
-      if (!snapshot || !Number.isSafeInteger(snapshot.revision) || snapshot.revision < 1) throw new Error()
-      const data = validateData(snapshot.data)
-      if (snapshot.digest !== (await digest(data))) throw new Error()
+    return {
+      version: 2,
+      current: readSnapshot(envelope.current),
+      recovery: envelope.recovery === null ? null : readSnapshot(envelope.recovery),
     }
-    if (!envelope.current) throw new Error()
-    return structuredClone(envelope)
   } catch (error) {
     if (error instanceof ProfileError && error.code === 'UNSUPPORTED_VERSION') throw error
     throw new ProfileError('PROFILE_CORRUPT', '个人资料损坏，原始数据已保留')
@@ -60,21 +63,10 @@ export class ProfileRepository {
       throw new ProfileError('PROFILE_CORRUPT')
     }
     if (value?.version !== 1) return validateEnvelope(value)
-    const migrate = async (snapshot: ProfileSnapshot): Promise<ProfileSnapshot> => {
-      if (
-        !snapshot ||
-        !Number.isSafeInteger(snapshot.revision) ||
-        snapshot.revision < 1 ||
-        snapshot.digest !== (await digest(snapshot.data))
-      )
-        throw new ProfileError('PROFILE_CORRUPT')
-      const data = migrateLegacyData(snapshot.data)
-      return { revision: snapshot.revision, data, digest: await digest(data) }
-    }
     let next: Envelope
     try {
-      const current = await migrate(value.current)
-      const recovery = value.recovery === null ? null : await migrate(value.recovery)
+      const current = readSnapshot(value.current, migrateLegacyData)
+      const recovery = value.recovery === null ? null : readSnapshot(value.recovery, migrateLegacyData)
       next = { version: 2, current: { ...current, revision: current.revision + 1 }, recovery }
     } catch {
       throw new ProfileError('PROFILE_CORRUPT', '旧版个人资料校验失败，原始数据已保留')
@@ -93,7 +85,7 @@ export class ProfileRepository {
       if (!(error instanceof ProfileError) || error.code !== 'PROFILE_CORRUPT') throw error
     }
     const data = parseBackup(bytes).data
-    const current = { revision: 1, data, digest: await digest(data) }
+    const current = { revision: 1, data }
     await this.storage.commit({ corrupt: expectedRaw }, { version: 2, current, recovery: null })
     return current
   }
@@ -105,11 +97,10 @@ export class ProfileRepository {
   }
   private async write(data: ProfileData, expected: number | null, restore: boolean): Promise<ProfileSnapshot> {
     data = validateData(data)
-    const hash = await digest(data)
     const old = await this.open()
     if ((old?.current.revision ?? null) !== expected) throw new ProfileError('REVISION_CONFLICT')
-    if (old?.current.digest === hash) return old.current
-    const current = { revision: (expected ?? 0) + 1, digest: hash, data }
+    if (old && Value.Equal(old.current.data, data)) return old.current
+    const current = { revision: (expected ?? 0) + 1, data }
     await this.storage.commit(expected, {
       version: 2,
       current,
@@ -132,7 +123,7 @@ export class ProfileRepository {
   async inspectImport(bytes: string | Uint8Array) {
     const backup = parseBackup(bytes),
       old = await this.open()
-    const planId = globalThis.crypto.randomUUID()
+    const planId = nanoid()
     this.plans.clear()
     this.plans.set(planId, { data: backup.data, expected: old?.current.revision ?? null })
     return {
@@ -140,7 +131,7 @@ export class ProfileRepository {
       expectedRevision: old?.current.revision ?? null,
       data: structuredClone(backup.data),
       current: old?.current ?? null,
-      unchanged: old?.current.digest === (await digest(backup.data)),
+      unchanged: old !== null && Value.Equal(old.current.data, backup.data),
     }
   }
   async commitImport(input: { planId: string; expectedRevision: number | null; decision: 'restore' }) {

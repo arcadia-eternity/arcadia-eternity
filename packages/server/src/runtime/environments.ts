@@ -1,6 +1,7 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { prepareRulesForContent, validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import { buildDisplayCatalog, buildDisplayLocales, gameplayIdentity } from '@arcadia-eternity/pack-loader/native'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
   emptyNpmContentHost,
@@ -57,7 +58,7 @@ export class EnvironmentError extends Error {
     super(code)
   }
 }
-const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
+const digest = (value: unknown) => sha256Hex(JSON.stringify(value))
 
 /** Local administrator API. Public HTTP/socket clients can only select prepared entries. */
 export class ServerEnvironmentRegistry {
@@ -268,15 +269,13 @@ export class ServerEnvironmentRegistry {
     const publication = this.publication?.get(entry.descriptor.id)
     const policy = publication?.executionPolicy
     const rules = structuredClone(publication?.rules ?? entry.runtime.defaultRules ?? { schemaVersion: 1 as const })
-    const gameplayRevision = createHash('sha256')
-      .update(
-        gameplayIdentity(
-          descriptor.runtime,
-          entry.runtime.sandbox?.revision ?? descriptor.runtime.contentRevision,
-          rules,
-        ),
-      )
-      .digest('hex')
+    const gameplayRevision = sha256Hex(
+      gameplayIdentity(
+        descriptor.runtime,
+        entry.runtime.sandbox?.revision ?? descriptor.runtime.contentRevision,
+        rules,
+      ),
+    )
     const peerRevision = (entry.bundled || this.peerMaterialIds.has(descriptor.id)) && entry.runtime.sandbox?.revision
     return {
       ...descriptor,

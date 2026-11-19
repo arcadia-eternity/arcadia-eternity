@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { sha256Hex } from './sha256'
 
 const id = z
   .string()
@@ -189,7 +190,6 @@ export async function prepareSkillParameters<T extends ParameterSource>(
   const entries = changed
     .map(row => [skillParameterKey(row), row.value] as const)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(entries)))
-  const suffix = Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('')
+  const suffix = sha256Hex(JSON.stringify(entries))
   return { data: { ...data, skills }, revision: revision + '/parameters:' + suffix }
 }

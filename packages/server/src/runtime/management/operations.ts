@@ -1,5 +1,6 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { RuleCompositionError } from '@arcadia-eternity/content-sdk/environment-rules'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import type { DurableStorage, StoredRecord } from '@arcadia-eternity/database'
 
 type OperationStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted'
@@ -68,7 +69,6 @@ export class OperationError extends Error {
 }
 
 const terminal = (status: OperationStatus) => !['queued', 'running'].includes(status)
-const digest = (value: string) => createHash('sha256').update(value).digest('hex')
 const present = (record: StoredRecord<OperationValue>): Operation => ({
   ...structuredClone(record.value),
   id: record.id,
@@ -181,8 +181,8 @@ export class OperationService {
     }
     const principalId = actorIdentity(input.actor)
     canonical(input.actor)
-    const inputFingerprint = digest(canonical(input.input))
-    const id = digest(canonical([this.ownerId, principalId, input.scope, input.kind, input.idempotencyKey]))
+    const inputFingerprint = sha256Hex(canonical(input.input))
+    const id = sha256Hex(canonical([this.ownerId, principalId, input.scope, input.kind, input.idempotencyKey]))
     let created = false
     let record: StoredRecord<OperationValue>
     const compatible = (existing: StoredRecord<OperationValue>) => {

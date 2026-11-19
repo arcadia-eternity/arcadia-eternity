@@ -111,6 +111,7 @@ async function editSavedSettings() {
   if (local.running) await router.push('/management?target=local&tab=network')
 }
 async function enter() {
+  local.error = ''
   connecting.value = true
   error.value = ''
   try {

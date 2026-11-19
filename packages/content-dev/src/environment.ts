@@ -1,3 +1,4 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import type { ExecFileOptions } from 'node:child_process'
@@ -14,7 +15,6 @@ import {
 } from '@arcadia-eternity/pack-loader/node'
 import { AuthorWorkspace, type ManifestArcadia, type PackageManifest } from './workspace.ts'
 import { ProjectTeams, playersFromTeams, type ProjectTeam } from './project-teams.ts'
-import { createHash } from 'node:crypto'
 import { gameplayRevision } from '@arcadia-eternity/pack-loader/native'
 import { DebugEnvironments, normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
 import {
@@ -229,7 +229,7 @@ export async function prepareBattleEnvironment(
         lockWorkspace = await AuthorWorkspace.open(resolve(lockRoot), { watch: false })
         const saved = await lockWorkspace.write({ file: lockFile, expectedVersion: oldLock?.version ?? null, text })
         environmentLock = { file: lockFile, version: saved.version }
-      } else environmentLock = { file: lockFile, version: createHash('sha256').update(text).digest('hex') }
+      } else environmentLock = { file: lockFile, version: sha256Hex(text) }
     }
     const teamLibrary = await new ProjectTeams(workspace).list()
     function loadTeams(ids: string[]) {

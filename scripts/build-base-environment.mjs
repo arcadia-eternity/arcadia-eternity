@@ -1,3 +1,4 @@
+import { sha256Hex } from '../packages/const/src/sha256.ts'
 import { contentLocaleCollection } from '@arcadia-eternity/schema'
 import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { bundledNotices } from './build-battle-environment.mjs'
@@ -20,12 +21,7 @@ export function identifyBaseEnvironmentArtifact(code, core) {
   return {
     formatVersion: 1,
     coreBuildId: core.coreBuildId,
-    registryBuildId: createHash('sha256')
-      .update('arcadia-base-registry/1\0')
-      .update(core.coreBuildId)
-      .update('\0')
-      .update(code)
-      .digest('hex'),
+    registryBuildId: sha256Hex('arcadia-base-registry/1\0', core.coreBuildId, '\0', code),
   }
 }
 

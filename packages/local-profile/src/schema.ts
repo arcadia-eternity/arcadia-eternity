@@ -105,6 +105,8 @@ export function validateData(value: unknown): ProfileData {
   if (error) throw new ProfileError('INVALID_BACKUP', error.message, error.path)
   const data = value as ProfileData
   checkReferences(data.library)
+  if (new TextEncoder().encode(JSON.stringify(data)).byteLength > MAX_BACKUP_BYTES)
+    throw new ProfileError('BACKUP_TOO_LARGE')
   return structuredClone(data)
 }
 function checkReferences(library: ProfileData['library']) {
@@ -233,14 +235,6 @@ export function canonical(value: unknown): string {
     )
   return JSON.stringify(value)
 }
-export async function digest(data: unknown): Promise<string> {
-  const bytes = new TextEncoder().encode(canonical(data))
-  if (bytes.length > MAX_BACKUP_BYTES) throw new ProfileError('BACKUP_TOO_LARGE')
-  return Array.from(new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', bytes)), b =>
-    b.toString(16).padStart(2, '0'),
-  ).join('')
-}
-
 // A non-JSON sentinel carries undecodable file bytes through the narrow string IPC contract.
 export const RAW_BINARY_PREFIX = '\0arcadia-profile-bytes:'
 export function rawProfileBytes(raw: string): Uint8Array {

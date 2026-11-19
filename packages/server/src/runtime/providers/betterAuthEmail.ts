@@ -1,4 +1,7 @@
-import { createHmac, randomBytes } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
+import { hmac } from '@noble/hashes/hmac.js'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
 import { betterAuth } from 'better-auth'
 import { memoryAdapter } from 'better-auth/adapters/memory'
 import { emailOTP } from 'better-auth/plugins'
@@ -34,7 +37,7 @@ export class BetterAuthEmailProofs {
           allowedAttempts: 5,
           // Better Auth invokes this hook for both storage and comparison. A
           // process-only key protects eight-digit OTPs from offline guessing.
-          storeOTP: { hash: async otp => createHmac('sha256', digestKey).update(otp).digest('hex') },
+          storeOTP: { hash: async otp => bytesToHex(hmac(sha256, digestKey, utf8ToBytes(otp))) },
           // Only createVerificationOTP is used; delivery belongs to the host.
           sendVerificationOTP: async () => {
             throw new Error('Use the purpose-bound Arcadia email challenge')

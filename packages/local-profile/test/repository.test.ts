@@ -3,7 +3,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { mkdtemp, rm, readFile, writeFile, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ProfileRepository, defaultData, digest, parseBackup, rawProfileBytes } from '../src/index'
+import { ProfileRepository, defaultData, parseBackup, rawProfileBytes } from '../src/index'
 import { BrowserProfileStorage } from '../src/browser'
 import { FileProfileStorage } from '../src/node'
 
@@ -54,6 +54,27 @@ for (const kind of ['browser', 'file'])
       }
     })
   })
+it('reads old v2 snapshots regardless of digest and writes only revisions and data', async () => {
+  const storage = new BrowserProfileStorage(new IDBFactory())
+  const repository = new ProfileRepository(storage)
+  const data = defaultData('局域网玩家')
+  const legacy = { revision: 1, data, digest: 'obsolete' }
+  await storage.commit(null, { version: 2, current: legacy, recovery: legacy })
+  expect((await repository.open())?.current).toEqual({ revision: 1, data })
+  const reordered = { settings: data.settings, library: data.library, profile: data.profile }
+  const backup = await repository.exportBackup(reordered)
+  expect((await repository.inspectImport(JSON.stringify(backup))).unchanged).toBe(true)
+  const updated = await repository.update({
+    expectedRevision: 1,
+    data: { ...data, profile: { ...data.profile, name: '访客' } },
+  })
+  expect(updated.revision).toBe(2)
+  expect(await storage.read()).toEqual({
+    version: 2,
+    current: { revision: 2, data: updated.data },
+    recovery: { revision: 1, data },
+  })
+})
 it('exchanges a browser backup with a file repository without losing settings or unresolved references', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'profile-exchange-'))
   try {
@@ -237,8 +258,8 @@ it('migrates both v1 snapshots, keeping independent builds, order and the origin
       recovery = old('historical')
     const raw = JSON.stringify({
       version: 1,
-      current: { revision: 5, data: current, digest: await digest(current) },
-      recovery: { revision: 2, data: recovery, digest: await digest(recovery) },
+      current: { revision: 5, data: current, digest: 'obsolete' },
+      recovery: { revision: 2, data: recovery, digest: 'obsolete' },
     })
     await writeFile(join(dir, 'profile.json'), raw)
     const repository = new ProfileRepository(new FileProfileStorage(dir))

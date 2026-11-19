@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex, sha256StreamHex } from '../packages/const/src/sha256.ts'
 import { createReadStream } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -24,10 +24,7 @@ export async function packageDesktopInstallers({ webDist, runtime, output }) {
   try {
     const web = resolve(prepared.inputs.webDist ?? fileURLToPath(new URL('../packages/web-ui/dist', import.meta.url)))
     const staged = resolve(runtime ?? fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url)))
-    const digestFile = async file =>
-      createHash('sha256')
-        .update(await readFile(file))
-        .digest('hex')
+    const digestFile = async file => sha256Hex(await readFile(file))
     const sourceProof = {
       mainSha256: await digestFile(fileURLToPath(new URL('../packages/web-ui/electron/main.mjs', import.meta.url))),
       contentLibrarySha256: await digestFile(
@@ -74,11 +71,9 @@ export async function packageDesktopInstallers({ webDist, runtime, output }) {
               : 'win-zip'
             : undefined
       if (!format) continue
-      const digest = createHash('sha256')
-      for await (const chunk of createReadStream(path)) digest.update(chunk)
       const artifact = {
         artifact: resolve(path),
-        sha256: digest.digest('hex'),
+        sha256: await sha256StreamHex(createReadStream(path)),
         format,
         sourceProof,
         ...(format === 'appimage'

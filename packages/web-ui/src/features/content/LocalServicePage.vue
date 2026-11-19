@@ -2,6 +2,7 @@
 import { ElInput, ElButton, ElCheckbox, ElSelect, ElOption } from 'element-plus'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ContentProjectSummary, ContentProjectAction, LocalBattleHostStatus } from '@/types/desktop'
+import { useLocalServerStore } from '@/stores/localServer'
 import type { ContentLibrarySnapshot } from '@/types/contentPackages'
 const api = window.arcadiaDesktop
 const library = ref<ContentLibrarySnapshot>()
@@ -59,8 +60,8 @@ function selectProject() {
 async function startProject() {
   if (!selected.value) return
   await run(async () => {
-    const result = await api!.localServer!({ action: 'start-project', projectId: selected.value })
-    if (result.error) throw new Error(result.error.message)
+    const result = await useLocalServerStore().execute({ action: 'start-project', projectId: selected.value })
+    if (!result) return
     await refresh()
     notice.value = '服务器已启动，在服务器页查看连接地址和管理设置'
   })
