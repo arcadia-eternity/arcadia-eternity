@@ -441,7 +441,7 @@
 
     <main class="flex-1 min-h-0 overflow-auto relative">
       <router-view v-slot="{ Component }">
-        <component :is="Component" class="w-full" :key="$route.path" />
+        <component :is="Component" class="w-full" :key="String($route.meta.viewKey ?? $route.path)" />
       </router-view>
 
       <!-- 编辑工作区的底栏用于任务输出，避免浮动版本信息遮挡。 -->

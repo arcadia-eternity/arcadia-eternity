@@ -128,19 +128,6 @@ export function usePersonalTeamEditor(): TeamEditorDelegate {
       }
       if (source.value.id === draftTeam) reload()
     },
-    warehouse: {
-      pets: computed(() => storage.storage),
-      teamsUsing: id => storage.affectedTeams(id),
-      replace(current, next) {
-        if (dirty.value) {
-          ElMessage.warning('请先保存当前修改，再更换队伍成员')
-          return false
-        }
-        if (!storage.replaceMember(source.value.id, current, next)) return false
-        reload()
-        return true
-      },
-    },
     name: computed(() => storage.teams[storage.currentTeamIndex]?.name || '未知队伍'),
     subtitle: computed(() => player.name || '未命名训练师'),
     ready: computed(() => storage.initialized),

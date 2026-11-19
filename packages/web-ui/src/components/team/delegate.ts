@@ -14,11 +14,6 @@ export interface TeamEditorDelegate {
   storageRoute?: string
   importTeam?(): void | Promise<void>
   exportTeam?(team: PetSchemaType[]): void
-  warehouse?: {
-    pets: Readonly<Ref<readonly PetSchemaType[]>>
-    teamsUsing(id: string): readonly { id: string; name: string }[]
-    replace(current: string, next: string): boolean
-  }
   affected?: Readonly<Ref<string[]>>
   stale?: Readonly<Ref<boolean>>
   discardDraft?(): Promise<void>

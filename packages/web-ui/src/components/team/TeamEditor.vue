@@ -1,166 +1,78 @@
 <template>
-  <!-- 加载界面 -->
-  <div v-if="!isInitialized" class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center">
-      <div class="mb-4">
-        <el-icon class="animate-spin text-4xl text-blue-500" :size="48">
-          <Loading />
-        </el-icon>
-      </div>
-      <h2 class="text-xl font-semibold text-gray-700 mb-2">正在初始化队伍编辑器</h2>
-      <p class="text-gray-500">{{ loadingMessage }}</p>
-    </div>
-  </div>
+  <el-card v-if="!isInitialized" shadow="never" aria-busy="true" class="m-4">
+    <template #header><h1 class="font-medium">队伍编辑器</h1></template>
+    <el-skeleton animated :rows="3" aria-label="正在加载队伍" />
+  </el-card>
 
   <!-- 主要内容 -->
-  <div v-else ref="editorRoot" class="bg-gray-50" :class="{ 'min-h-screen': !compact }">
+  <div v-else ref="editorRoot" class="team-editor" :class="{ 'min-h-screen': !compact }">
     <!-- 头部信息栏 -->
-    <header v-if="!compact" class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <div class="flex items-center space-x-4">
-            <h1 class="text-xl font-semibold text-gray-900">队伍编辑器</h1>
-            <div class="min-w-0">
-              <span
-                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-              >
-                {{ delegate.storageRoute ? currentTeamName : delegate.subtitle?.value || currentTeamName }}
-              </span>
-            </div>
-          </div>
-          <div class="flex items-center space-x-3">
-            <button
-              v-if="delegate.clear"
-              @click="clearAllData"
-              class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-              {{ delegate.clearLabel || '清空队伍' }}
-            </button>
-            <router-link
-              v-if="delegate.storageRoute"
-              :to="delegate.storageRoute"
-              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-              仓库管理
-            </router-link>
-          </div>
+    <header v-if="!compact" class="editor-header" :inert="environmentBusy">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <h1 class="text-xl font-semibold shrink-0">队伍编辑器</h1>
+          <el-tag class="truncate">{{
+            delegate.storageRoute ? currentTeamName : delegate.subtitle?.value || currentTeamName
+          }}</el-tag>
+        </div>
+        <div class="flex items-center">
+          <el-button v-if="delegate.clear" type="danger" plain :icon="Delete" @click="clearAllData">
+            {{ delegate.clearLabel || '清空队伍' }}
+          </el-button>
+          <el-button
+            v-if="delegate.storageRoute"
+            :tag="RouterLink"
+            :to="delegate.storageRoute"
+            type="primary"
+            :icon="Box"
+            >仓库管理</el-button
+          >
         </div>
       </div>
     </header>
 
-    <!-- 队伍规则验证状态 -->
     <div
       v-if="!compact || !teamValidationResult.isValid || teamValidationResult.warnings.length"
       class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-3"
     >
-      <!-- 验证中状态 -->
-      <div v-if="isValidating" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
-        <div class="flex items-center space-x-3">
-          <div class="flex-shrink-0">
-            <el-icon class="text-blue-600 animate-spin" :size="20"><Loading /></el-icon>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-sm font-medium text-blue-800">正在验证队伍</h3>
-            <p class="text-sm text-blue-700">正在检查队伍...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 验证成功状态 -->
-      <div v-else-if="teamValidationResult.isValid" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-3">
-        <div class="flex items-center space-x-3">
-          <div class="flex-shrink-0">
-            <el-icon class="text-green-600" :size="20"><SuccessFilled /></el-icon>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-sm font-medium text-green-800">队伍验证通过</h3>
-            <p class="text-sm text-green-700">当前队伍通过基本检查</p>
-          </div>
-        </div>
-        <!-- 显示警告信息（如果有） -->
-        <div v-if="teamValidationResult.warnings.length > 0" class="mt-3 pt-3 border-t border-green-200">
-          <h4 class="text-xs font-medium text-green-800 mb-2">建议优化：</h4>
-          <ul class="space-y-1">
-            <li v-for="warning in teamValidationResult.warnings" :key="warning.code" class="text-xs text-green-700">
-              • {{ warning.message }}
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- 验证失败状态 -->
-      <div v-else class="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
-        <div class="flex items-start space-x-3">
-          <div class="flex-shrink-0">
-            <el-icon class="text-red-600" :size="20"><WarningFilled /></el-icon>
-          </div>
-          <div class="flex-1">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-medium text-red-800">队伍未通过基本检查</h3>
-              <el-button
-                v-if="teamValidationResult.errors.length > 1"
-                size="small"
-                text
-                type="danger"
-                :aria-expanded="showValidationDetails"
-                @click="showValidationDetails = !showValidationDetails"
+      <el-alert v-if="isValidating" type="info" title="正在验证队伍" show-icon :closable="false" />
+      <el-alert
+        v-else-if="teamValidationResult.isValid"
+        type="success"
+        title="队伍验证通过"
+        show-icon
+        :closable="false"
+      >
+        <ul v-if="teamValidationResult.warnings.length">
+          <li v-for="warning in teamValidationResult.warnings" :key="warning.code">{{ warning.message }}</li>
+        </ul>
+      </el-alert>
+      <el-alert v-else type="error" show-icon :closable="false">
+        <template #title>
+          队伍未通过基本检查
+          <el-button
+            v-if="teamValidationResult.errors.length > 1"
+            size="small"
+            link
+            type="danger"
+            :aria-expanded="showValidationDetails"
+            @click="showValidationDetails = !showValidationDetails"
+          >
+            {{ showValidationDetails ? '收起' : '详情' }}（{{ teamValidationResult.errors.length }}）
+          </el-button>
+        </template>
+        <ul v-if="teamValidationResult.errors.length === 1 || showValidationDetails" class="space-y-1">
+          <li v-for="(error, index) in teamValidationResult.errors" :key="error.code + index">
+            <el-button link type="danger" class="validation-issue" @click="handleErrorClick(error)">
+              {{ error.message }}
+              <span v-if="error.objectId" class="ml-2"
+                >相关精灵 {{ getPetNameById(error.objectId) || error.objectId }}</span
               >
-                {{ showValidationDetails ? '收起' : '详情' }}（{{ teamValidationResult.errors.length }}）
-              </el-button>
-            </div>
-            <!-- 错误详情列表 -->
-            <div v-if="teamValidationResult.errors.length === 1 || showValidationDetails" class="space-y-2">
-              <div
-                v-for="(error, index) in teamValidationResult.errors"
-                :key="`${getErrorCode(error)}-${index}`"
-                class="bg-white border border-red-200 rounded-md p-3 cursor-pointer hover:bg-red-50 transition-colors"
-                role="button"
-                tabindex="0"
-                @keydown.enter.prevent="handleErrorClick(error)"
-                @keydown.space.prevent="handleErrorClick(error)"
-                @click="handleErrorClick(error)"
-              >
-                <div class="flex items-start space-x-2">
-                  <el-icon class="text-red-500 mt-0.5" :size="14">
-                    <component :is="getErrorIcon(getErrorType(error))" />
-                  </el-icon>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-red-800">{{ error.message }}</p>
-                    <div v-if="getErrorObjectId(error) || getErrorContext(error)" class="mt-1 text-xs text-red-600">
-                      <span v-if="getErrorObjectId(error)">
-                        相关精灵: {{ getPetNameById(getErrorObjectId(error)!) || getErrorObjectId(error) }}
-                      </span>
-                      <span
-                        v-if="getErrorContext(error) && Object.keys(getErrorContext(error)).length > 0"
-                        class="ml-2"
-                      >
-                        {{ formatErrorContext(getErrorContext(error)) }}
-                      </span>
-                    </div>
-                  </div>
-                  <el-icon class="text-red-400" :size="12"><ArrowRight /></el-icon>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              <span v-if="error.context" class="ml-2">{{ formatErrorContext(error.context) }}</span>
+            </el-button>
+          </li>
+        </ul>
+      </el-alert>
     </div>
 
     <!-- 主要内容区域 -->
@@ -168,79 +80,30 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <!-- 队伍列表 - 移动端全宽，桌面端占3列 -->
         <div class="lg:col-span-3">
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="p-3 border-b border-gray-200">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
-                  <p class="text-xs text-gray-500 mt-1">{{ currentTeam.length }}/{{ teamCapacity }} 只精灵</p>
-                </div>
-                <el-tooltip content="使用教程" placement="left" :show-after="500" class="md:hidden">
-                  <button
-                    @click="showHelp = true"
-                    class="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 transition-colors"
-                  >
-                    <el-icon :size="16"><InfoFilled /></el-icon>
-                  </button>
-                </el-tooltip>
+          <el-card shadow="never">
+            <template #header>
+              <div class="section-header">
+                <h2 class="font-medium">当前队伍</h2>
+                <el-text size="small">{{ currentTeam.length }}/{{ teamCapacity }} 只精灵</el-text>
+                <el-button text circle :icon="InfoFilled" aria-label="队伍操作帮助" @click="showHelp = true" />
               </div>
-              <!-- 拖拽提示 -->
-              <div
+              <slot name="environment" />
+              <el-alert
                 v-if="currentTeam.length > 1 && showDragTip"
-                class="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200"
-              >
-                <div class="flex items-start space-x-2">
-                  <el-icon class="text-blue-600 mt-0.5 flex-shrink-0" :size="14">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path
-                        d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-                      />
-                    </svg>
-                  </el-icon>
-                  <div class="flex-1">
-                    <p class="text-xs text-blue-700 leading-relaxed">
-                      可拖拽精灵调整出战顺序，<span class="font-medium">第一位为首发精灵</span>
-                    </p>
-                  </div>
-                  <button
-                    @click="hideDragTip"
-                    class="flex-shrink-0 p-0.5 rounded-full text-blue-400 hover:text-blue-600 hover:bg-blue-100 transition-colors"
-                    title="关闭提示"
-                  >
-                    <el-icon :size="12"><Close /></el-icon>
-                  </button>
-                </div>
-              </div>
-
-              <!-- 排序锁控件 -->
-              <div v-if="currentTeam.length > 1" class="mt-2 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <el-icon :size="14" class="text-gray-500">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path
-                        v-if="sortLocked"
-                        d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10A2,2 0 0,1 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
-                      />
-                      <path
-                        v-else
-                        d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3M6,10V20H18V10H6Z"
-                      />
-                    </svg>
-                  </el-icon>
-                  <span class="text-xs text-gray-600">排序锁</span>
-                </div>
-                <el-switch
-                  v-model="sortLocked"
-                  size="small"
-                  :active-text="sortLocked ? '已锁定' : ''"
-                  :inactive-text="!sortLocked ? '可拖拽' : ''"
-                  active-color="#ef4444"
-                  inactive-color="#10b981"
-                />
-              </div>
-            </div>
-
-            <div class="p-3 space-y-2">
+                class="mt-2"
+                type="info"
+                title="拖拽调整出战顺序，第一只为首发精灵"
+                @close="hideDragTip"
+              />
+              <el-switch
+                v-if="currentTeam.length > 1"
+                v-model="sortLocked"
+                size="small"
+                active-text="锁定顺序"
+                aria-label="锁定顺序"
+              />
+            </template>
+            <div class="space-y-2" :inert="environmentBusy">
               <Sortable
                 :list="currentTeam"
                 item-key="id"
@@ -261,11 +124,11 @@
                 <template #item="{ element: pet }">
                   <div
                     :key="pet.id"
-                    class="group relative bg-gray-50 rounded-md p-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 drag-handle"
-                    :class="{
-                      'ring-2 ring-blue-500 bg-blue-50': selectedPetId === pet.id,
-                      'hover:shadow-md': selectedPetId !== pet.id,
-                    }"
+                    class="team-member drag-handle"
+                    tabindex="0"
+                    @keydown.enter.self.prevent="selectedPetId = pet.id"
+                    @keydown.space.self.prevent="selectedPetId = pet.id"
+                    :class="{ 'is-selected': selectedPetId === pet.id }"
                     @click="selectedPetId = pet.id"
                   >
                     <div class="flex items-center space-x-2">
@@ -285,9 +148,9 @@
                             :element="gameDataStore.getSpecies(pet.species)?.element"
                             class="w-3 h-3 flex-shrink-0"
                           />
-                          <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
+                          <p class="text-xs font-medium text-(--el-text-color-primary) truncate">{{ pet.name }}</p>
                         </div>
-                        <p class="text-xs text-gray-500 truncate">
+                        <p class="text-xs text-(--el-text-color-secondary) truncate">
                           {{
                             gameDataStore.getSpecies(pet.species)
                               ? contentName(pet.species, 'species')
@@ -295,694 +158,547 @@
                           }}
                         </p>
                         <div class="flex items-center space-x-1 mt-0.5">
-                          <span
-                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800"
-                          >
-                            Lv.{{ pet.level }}
-                          </span>
-                          <span
-                            v-if="!compact"
-                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                          >
-                            #{{ pet.id.slice(-4) }}
-                          </span>
+                          <el-tag size="small" type="info">Lv.{{ pet.level }}</el-tag>
+                          <el-tag v-if="!compact" size="small" effect="plain">#{{ pet.id.slice(-4) }}</el-tag>
                         </div>
                       </div>
-                      <div class="flex items-center space-x-1">
-                        <!-- 设置首发按钮 -->
-                        <button
-                          @click.stop="setAsStarter(pet.id)"
-                          class="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-green-500 hover:bg-green-50"
-                          title="设置为首发"
-                        >
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M11 3L5 9h4v8h4V9h4l-6-6z"
-                            />
-                          </svg>
-                        </button>
-                        <!-- 删除按钮 -->
-                        <button
-                          @click.stop="handleDeletePet(pet.id)"
-                          class="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
-                          :title="delegate.removeLabel || '移出队伍'"
-                        >
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                      <el-button
+                        text
+                        circle
+                        size="small"
+                        :icon="Top"
+                        aria-label="设置为首发"
+                        title="设置为首发"
+                        @click.stop="setAsStarter(pet.id)"
+                      />
+                      <el-button
+                        text
+                        circle
+                        size="small"
+                        type="danger"
+                        :icon="Delete"
+                        :aria-label="delegate.removeLabel || '移出队伍'"
+                        :title="delegate.removeLabel || '移出队伍'"
+                        @click.stop="handleDeletePet(pet.id)"
+                      />
                     </div>
                   </div>
                 </template>
               </Sortable>
 
-              <button
-                @click="addNewPet"
-                :disabled="currentTeam.length >= teamCapacity"
-                class="w-full flex items-center justify-center px-3 py-2 border-2 border-dashed border-gray-300 rounded-md text-xs font-medium text-gray-600 hover:border-gray-400 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              <el-button class="w-full" :icon="Plus" :disabled="currentTeam.length >= teamCapacity" @click="addNewPet"
+                >添加精灵</el-button
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                添加精灵
-              </button>
             </div>
-          </div>
+          </el-card>
         </div>
 
         <!-- 配置区域 - 移动端全宽，桌面端占9列 -->
-        <div class="lg:col-span-9" v-if="selectedPet">
+        <div class="lg:col-span-9" :inert="environmentBusy" v-if="selectedPet">
           <div class="space-y-3">
-            <section
+            <el-alert
               v-if="selectedMissingContent.length"
-              class="bg-amber-50 border border-amber-300 rounded-lg p-4"
-              role="status"
+              title="当前对局缺少内容"
+              type="warning"
+              show-icon
+              :closable="false"
               data-testid="missing-team-content"
             >
-              <h3 class="font-medium text-amber-900">当前对局缺少内容</h3>
-              <p class="text-sm text-amber-800 mt-1">
-                原始配置会保留，可以保存和导出；恢复对应内容后会重新检查。此队伍暂时无法出战。
-              </p>
-              <ul class="text-sm text-amber-900 mt-2 space-y-2">
+              <p>此队伍暂时无法出战，仍可保存和导出原始配置。</p>
+              <ul class="text-sm mt-2 space-y-2">
                 <li v-for="item in selectedMissingContent" :key="`${item.kind}-${item.skillIndex ?? item.contentId}`">
                   {{ item.message }}
-                  <button
+                  <el-button
+                    link
+                    type="primary"
                     v-if="item.kind === 'skill'"
-                    type="button"
-                    class="ml-2 underline"
+                    class="ml-2"
                     :data-team-field="'skills.' + item.skillIndex"
                     :aria-label="`移除缺失技能 ${item.contentId}`"
                     @click="removeMissingSkill(item.skillIndex!)"
                   >
                     移除此技能
-                  </button>
+                  </el-button>
                 </li>
               </ul>
-            </section>
-            <WarehouseMemberPicker
-              v-if="delegate.warehouse"
-              :key="selectedPet.id"
-              :current="selectedPet"
-              :team="currentTeam"
-              :warehouse="delegate.warehouse"
-              @replaced="selectedPetId = $event"
-            />
-            <PetPresetPanel :pet="selectedPet" :team="currentTeam" @apply="applyPetBuild" />
-            <!-- 基础信息卡片 -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                <h3 class="text-base font-medium text-gray-900">基础信息</h3>
-                <div>
-                  <button
-                    @click="setAsStarter(selectedPet.id)"
-                    class="inline-flex items-center px-2 py-1 text-xs font-medium text-green-600 bg-green-100 rounded hover:bg-green-200 transition-colors"
-                  >
-                    <el-icon class="mr-1" :size="12"><StarFilled /></el-icon>
-                    设置首发
-                  </button>
-                  <button
-                    @click="handleDeletePet(selectedPet.id)"
-                    class="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded hover:bg-red-200 transition-colors"
-                  >
-                    <el-icon class="mr-1" :size="12"><Delete /></el-icon>
-                    {{ delegate.removeLabel || '移出队伍' }}
-                  </button>
-                </div>
-              </div>
-              <div class="p-4">
-                <form class="space-y-4" @submit.prevent>
-                  <!-- 第一行：精灵名称和种族 -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">精灵名称</label>
-                      <el-input
-                        v-model="selectedPet.name"
-                        aria-label="精灵名称"
-                        type="text"
-                        placeholder="输入精灵名称"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">种族</label>
-                      <el-select-v2
-                        :model-value="selectedPet.species"
-                        data-team-field="species"
-                        :options="speciesOptions"
-                        @update:model-value="previewSpeciesChange"
-                        placeholder="选择种族"
-                        filterable
-                        class="w-full"
-                        style="width: 100%"
-                      >
-                        <template #default="{ item }">
-                          <div class="flex items-center space-x-2">
-                            <PetIcon
-                              :uncached="!!gameDataStore.serverFallback"
-                              :id="item.num"
-                              :species="item"
-                              class="w-6 h-6 flex-shrink-0"
-                            />
-                            <div class="flex-1 min-w-0">
-                              <div class="flex items-center space-x-1 text-xs font-medium text-gray-900 truncate">
-                                <ElementIcon
-                                  v-if="item.element"
-                                  :element="item.element"
-                                  class="w-3 h-3 flex-shrink-0"
-                                />
-                                <span class="truncate">{{ item.label }}</span>
-                              </div>
-                              <div class="flex items-center space-x-1 text-xs text-gray-500 truncate">
-                                <span>#{{ item.num }}</span>
-                                <span>{{ item.element || '未知' }}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </template>
-                      </el-select-v2>
-                      <section v-if="speciesCandidate" aria-label="更换种族预览" class="mt-2">
-                        <ul>
-                          <li v-for="change in buildDifferences(selectedPet, speciesCandidate)" :key="change">
-                            {{ change }}
-                          </li>
-                        </ul>
-                        <button type="button" @click="applySpeciesChange">确认更换种族</button>
-                        <button type="button" @click="speciesChoice = undefined">取消</button>
-                      </section>
-                      <button v-if="canUndoSpecies" type="button" @click="restoreSpecies">撤销更换种族</button>
-                    </div>
+            </el-alert>
+            <el-card shadow="never">
+              <template #header>
+                <div class="section-header">
+                  <div class="flex items-center flex-wrap gap-2">
+                    <h3 class="font-medium">基础信息</h3>
+                    <el-text v-if="delegate.storageRoute" size="small" type="info" :title="selectedPet.id">
+                      #{{ selectedPet.id.slice(-8) }}
+                    </el-text>
                   </div>
-
-                  <!-- 第二行：基础属性 -->
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">等级</label>
-                      <el-input-number
-                        controls-position="right"
-                        style="width: 100%"
-                        aria-label="等级"
-                        :model-value="selectedPet.level"
-                        @update:model-value="
-                          value => {
-                            if (selectedPet && value != null) selectedPet.level = value
-                          }
-                        "
-                        :min="1"
-                        :max="100"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">性别</label>
-                      <el-select-v2
-                        v-model="selectedPet.gender"
-                        :options="genderOptions"
-                        :disabled="!currentSpecies?.genderRatio"
-                        placeholder="选择性别"
-                        class="w-full"
-                        style="width: 100%"
-                      >
-                        <template #default="{ item }">
-                          <div class="flex items-center space-x-1">
-                            <span class="text-sm">{{ item.icon }}</span>
-                            <span class="text-xs font-medium">{{ item.label }}</span>
-                          </div>
-                        </template>
-                      </el-select-v2>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">身高</label>
-                      <el-input-number
-                        controls-position="right"
-                        style="width: 100%"
-                        aria-label="身高"
-                        :model-value="selectedPet.height"
-                        @update:model-value="
-                          value => {
-                            if (selectedPet && value != null) selectedPet.height = value
-                          }
-                        "
-                        :min="currentSpecies?.heightRange[0]"
-                        :max="currentSpecies?.heightRange[1]"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">体重</label>
-                      <el-input-number
-                        controls-position="right"
-                        style="width: 100%"
-                        aria-label="体重"
-                        :model-value="selectedPet.weight"
-                        @update:model-value="
-                          value => {
-                            if (selectedPet && value != null) selectedPet.weight = value
-                          }
-                        "
-                        :min="currentSpecies?.weightRange[0]"
-                        :max="currentSpecies?.weightRange[1]"
-                      />
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            <el-tabs v-model="editSection" aria-label="精灵配置">
-              <el-tab-pane label="配招" name="moves">
-                <!-- 技能配置 -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div class="px-4 py-3 border-b border-gray-200">
-                    <h3 class="text-base font-medium text-gray-900">技能配置</h3>
-                  </div>
-                  <div class="p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <!-- 特性选择 -->
-                      <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">特性</label>
-                        <el-select-v2
-                          v-model="selectedPet.ability"
-                          data-team-field="ability"
-                          :options="abilitySelectOptions"
-                          :disabled="!currentSpecies"
-                          placeholder="选择特性"
-                          clearable
-                          class="w-full"
-                          style="width: 100%"
-                          :height="300"
-                          :item-height="80"
-                        >
-                          <template #default="{ item }">
-                            <div class="flex flex-col space-y-1 p-3 min-w-0">
-                              <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
-                              <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
-                                {{ item.description }}
-                              </div>
-                            </div>
-                          </template>
-                        </el-select-v2>
-                      </div>
-
-                      <!-- 纹章选择 -->
-                      <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">纹章</label>
-                        <el-select-v2
-                          v-model="selectedPet.emblem"
-                          data-team-field="emblem"
-                          :options="emblemSelectOptions"
-                          placeholder="选择纹章"
-                          clearable
-                          class="w-full"
-                          style="width: 100%"
-                          :height="300"
-                          :item-height="80"
-                        >
-                          <template #default="{ item }">
-                            <div class="flex flex-col space-y-1 p-3 min-w-0">
-                              <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
-                              <div class="text-xs text-gray-500 leading-relaxed break-words whitespace-normal">
-                                {{ item.description }}
-                              </div>
-                            </div>
-                          </template>
-                        </el-select-v2>
-                      </div>
-                    </div>
-                    <div
-                      v-if="selectedPet.inheritedSkill && !selectedPet.skills.includes(selectedPet.inheritedSkill)"
-                      class="mb-3"
+                  <div>
+                    <el-button size="small" :icon="StarFilled" @click="setAsStarter(selectedPet.id)"
+                      >设置首发</el-button
                     >
-                      <el-tag
-                        closable
-                        type="info"
-                        data-team-field="inheritedSkill"
-                        @close="delete selectedPet.inheritedSkill"
-                      >
-                        未装备的遗传技能 · {{ contentName(selectedPet.inheritedSkill, 'skill') }}
-                      </el-tag>
-                    </div>
-                    <section v-for="group in skillGroups" :key="group.name" class="mb-4 last:mb-0">
-                      <h4 class="text-sm font-medium text-gray-800 mb-2">{{ group.name }}</h4>
-                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        <div v-for="(slot, index) in group.slots" :key="index">
-                          <div class="mb-1 flex items-center gap-2 text-xs text-gray-600">
-                            <span>{{ group.name }} {{ index + 1 }}</span>
-                            <el-tag v-if="slot && slot === selectedPet.inheritedSkill" size="small">遗传</el-tag>
-                            <el-tag v-if="index >= group.max" size="small" type="danger">超出槽位</el-tag>
-                            <span v-else-if="index < group.min">必选</span>
+                    <el-button
+                      size="small"
+                      type="danger"
+                      plain
+                      :icon="Delete"
+                      @click="handleDeletePet(selectedPet.id)"
+                      >{{ delegate.removeLabel || '移出队伍' }}</el-button
+                    >
+                  </div>
+                </div>
+              </template>
+              <el-form label-position="top" @submit.prevent>
+                <!-- 第一行：精灵名称和种族 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <el-form-item label="精灵名称">
+                    <el-input v-model="selectedPet.name" aria-label="精灵名称" type="text" placeholder="输入精灵名称" />
+                  </el-form-item>
+                  <el-form-item label="种族">
+                    <el-select-v2
+                      :model-value="selectedPet.species"
+                      data-team-field="species"
+                      :options="speciesOptions"
+                      @update:model-value="previewSpeciesChange"
+                      placeholder="选择种族"
+                      filterable
+                      class="w-full"
+                      style="width: 100%"
+                    >
+                      <template #default="{ item }">
+                        <div class="flex items-center space-x-2">
+                          <PetIcon
+                            :uncached="!!gameDataStore.serverFallback"
+                            :id="item.num"
+                            :species="item"
+                            class="w-6 h-6 flex-shrink-0"
+                          />
+                          <div class="flex-1 min-w-0">
+                            <div
+                              class="flex items-center space-x-1 text-xs font-medium text-(--el-text-color-primary) truncate"
+                            >
+                              <ElementIcon v-if="item.element" :element="item.element" class="w-3 h-3 flex-shrink-0" />
+                              <span class="truncate">{{ item.label }}</span>
+                            </div>
+                            <div class="flex items-center space-x-1 text-xs text-(--el-text-color-secondary) truncate">
+                              <span>#{{ item.num }}</span>
+                              <span>{{ item.element || '未知' }}</span>
+                            </div>
                           </div>
-                          <el-select-v2
-                            :model-value="slot"
-                            :aria-label="group.name + ' ' + (index + 1)"
-                            :data-testid="(group.climax ? 'climax' : 'normal') + '-skill-' + index"
-                            :data-team-field="slot === selectedPet.inheritedSkill ? 'inheritedSkill' : undefined"
-                            :options="skillOptions(group.climax, slot)"
-                            :disabled="!slot && !group.available"
-                            :placeholder="'选择' + group.name"
-                            filterable
-                            clearable
-                            class="w-full"
-                            :height="320"
-                            :item-height="90"
-                            @update:model-value="value => changeSkill(group.climax, index, value)"
-                          >
-                            <template #default="{ item }">
-                              <div class="flex flex-col gap-1 py-2 leading-normal">
-                                <div class="flex items-center gap-2">
-                                  <ElementIcon :element="item.element" class="w-4 h-4" />
-                                  <strong>{{ item.label }}</strong>
-                                  <el-tag v-if="item.inherited" size="small" effect="plain">遗传</el-tag>
-                                  <span v-if="item.reason" class="text-xs">{{ item.reason }}</span>
-                                </div>
-                                <span class="text-xs"
-                                  >{{ item.category }} · 威力 {{ item.power }} · 怒气 {{ item.rage }} · 命中
-                                  {{ item.accuracy }}%</span
-                                >
-                                <ContentDescription
-                                  class="text-xs truncate"
-                                  namespace="skill"
-                                  :content-id="item.value"
-                                  :fallback="item.description"
-                                  :context="{ skill: gameDataStore.getSkill(item.value) }"
-                                />
-                              </div>
-                            </template>
-                          </el-select-v2>
+                        </div>
+                      </template>
+                    </el-select-v2>
+                    <el-button v-if="canUndoSpecies" link type="primary" @click="restoreSpecies"
+                      >撤销更换种族</el-button
+                    >
+                  </el-form-item>
+                </div>
+
+                <!-- 第二行：基础属性 -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <el-form-item label="等级">
+                    <el-input-number
+                      controls-position="right"
+                      style="width: 100%"
+                      aria-label="等级"
+                      :model-value="selectedPet.level"
+                      @update:model-value="
+                        value => {
+                          if (selectedPet && value != null) selectedPet.level = value
+                        }
+                      "
+                      :min="1"
+                      :max="100"
+                    />
+                  </el-form-item>
+                  <el-form-item label="性别">
+                    <el-select-v2
+                      v-model="selectedPet.gender"
+                      :options="genderOptions"
+                      :disabled="!currentSpecies?.genderRatio"
+                      placeholder="选择性别"
+                      class="w-full"
+                      style="width: 100%"
+                    >
+                      <template #default="{ item }">
+                        <div class="flex items-center space-x-1">
+                          <span class="text-sm">{{ item.icon }}</span>
+                          <span class="text-xs font-medium">{{ item.label }}</span>
+                        </div>
+                      </template>
+                    </el-select-v2>
+                  </el-form-item>
+                  <el-form-item label="身高">
+                    <el-input-number
+                      controls-position="right"
+                      style="width: 100%"
+                      aria-label="身高"
+                      :model-value="selectedPet.height"
+                      @update:model-value="
+                        value => {
+                          if (selectedPet && value != null) selectedPet.height = value
+                        }
+                      "
+                      :min="currentSpecies?.heightRange[0]"
+                      :max="currentSpecies?.heightRange[1]"
+                    />
+                  </el-form-item>
+                  <el-form-item label="体重">
+                    <el-input-number
+                      controls-position="right"
+                      style="width: 100%"
+                      aria-label="体重"
+                      :model-value="selectedPet.weight"
+                      @update:model-value="
+                        value => {
+                          if (selectedPet && value != null) selectedPet.weight = value
+                        }
+                      "
+                      :min="currentSpecies?.weightRange[0]"
+                      :max="currentSpecies?.weightRange[1]"
+                    />
+                  </el-form-item>
+                </div>
+              </el-form>
+            </el-card>
+
+            <el-card shadow="never">
+              <template #header><h3 class="font-medium">技能配置</h3></template>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- 特性选择 -->
+                <div>
+                  <label class="block text-xs font-medium text-(--el-text-color-regular) mb-1">特性</label>
+                  <el-select-v2
+                    v-model="selectedPet.ability"
+                    data-team-field="ability"
+                    :options="abilitySelectOptions"
+                    :disabled="!currentSpecies"
+                    placeholder="选择特性"
+                    clearable
+                    class="w-full"
+                    style="width: 100%"
+                    :height="300"
+                    :item-height="80"
+                  >
+                    <template #default="{ item }">
+                      <div class="flex flex-col space-y-1 p-3 min-w-0">
+                        <div class="text-sm font-medium text-(--el-text-color-primary) truncate">{{ item.label }}</div>
+                        <div
+                          class="text-xs text-(--el-text-color-secondary) leading-relaxed break-words whitespace-normal"
+                        >
+                          {{ item.description }}
                         </div>
                       </div>
-                    </section>
+                    </template>
+                  </el-select-v2>
+                </div>
+
+                <!-- 纹章选择 -->
+                <div>
+                  <label class="block text-xs font-medium text-(--el-text-color-regular) mb-1">纹章</label>
+                  <el-select-v2
+                    v-model="selectedPet.emblem"
+                    data-team-field="emblem"
+                    :options="emblemSelectOptions"
+                    placeholder="选择纹章"
+                    clearable
+                    class="w-full"
+                    style="width: 100%"
+                    :height="300"
+                    :item-height="80"
+                  >
+                    <template #default="{ item }">
+                      <div class="flex flex-col space-y-1 p-3 min-w-0">
+                        <div class="text-sm font-medium text-(--el-text-color-primary) truncate">{{ item.label }}</div>
+                        <div
+                          class="text-xs text-(--el-text-color-secondary) leading-relaxed break-words whitespace-normal"
+                        >
+                          {{ item.description }}
+                        </div>
+                      </div>
+                    </template>
+                  </el-select-v2>
+                </div>
+              </div>
+              <div
+                v-if="selectedPet.inheritedSkill && !selectedPet.skills.includes(selectedPet.inheritedSkill)"
+                class="mb-3"
+              >
+                <el-tag
+                  closable
+                  type="info"
+                  data-team-field="inheritedSkill"
+                  @close="delete selectedPet.inheritedSkill"
+                >
+                  未装备的遗传技能 · {{ contentName(selectedPet.inheritedSkill, 'skill') }}
+                </el-tag>
+              </div>
+              <section v-for="group in skillGroups" :key="group.name" class="mt-4">
+                <h4 class="text-sm font-medium text-(--el-text-color-primary) mb-2">{{ group.name }}</h4>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div v-for="(slot, index) in group.slots" :key="index">
+                    <div class="mb-1 flex items-center gap-2 text-xs text-(--el-text-color-regular)">
+                      <span>{{ group.name }} {{ index + 1 }}</span>
+                      <el-tag v-if="slot && slot === selectedPet.inheritedSkill" size="small">遗传</el-tag>
+                      <el-tag v-if="index >= group.max" size="small" type="danger">超出槽位</el-tag>
+                      <span v-else-if="index < group.min">必选</span>
+                    </div>
+                    <el-select-v2
+                      :model-value="slot"
+                      :aria-label="group.name + ' ' + (index + 1)"
+                      :data-testid="(group.climax ? 'climax' : 'normal') + '-skill-' + index"
+                      :data-team-field="slot === selectedPet.inheritedSkill ? 'inheritedSkill' : undefined"
+                      :options="skillOptions(group.climax, slot)"
+                      :disabled="!slot && !group.available"
+                      :placeholder="'选择' + group.name"
+                      filterable
+                      clearable
+                      class="w-full"
+                      :height="320"
+                      :item-height="90"
+                      @update:model-value="value => changeSkill(group.climax, index, value)"
+                    >
+                      <template #default="{ item }">
+                        <div class="flex flex-col gap-1 py-2 leading-normal">
+                          <div class="flex items-center gap-2">
+                            <ElementIcon :element="item.element" class="w-4 h-4" />
+                            <strong>{{ item.label }}</strong>
+                            <el-tag v-if="item.inherited" size="small" effect="plain">遗传</el-tag>
+                            <span v-if="item.reason" class="text-xs">{{ item.reason }}</span>
+                          </div>
+                          <span class="text-xs"
+                            >{{ item.category }} · 威力 {{ item.power }} · 怒气 {{ item.rage }} · 命中
+                            {{ item.accuracy }}%</span
+                          >
+                          <ContentDescription
+                            class="text-xs truncate"
+                            namespace="skill"
+                            :content-id="item.value"
+                            :fallback="item.description"
+                            :context="{ skill: gameDataStore.getSkill(item.value) }"
+                          />
+                        </div>
+                      </template>
+                    </el-select-v2>
                   </div>
                 </div>
-              </el-tab-pane>
-              <el-tab-pane label="养成" name="training">
-                <!-- 能力值配置 -->
-                <div v-if="trainingPet" class="bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                    <h3 class="text-base font-medium text-gray-900">能力值配置</h3>
-                    <el-button v-if="!trialPet" size="small" @click="startTrainingTrial">试算养成</el-button>
-                    <div v-else class="flex flex-wrap gap-2">
-                      <el-button type="primary" size="small" @click="applyTrainingTrial">采用配法</el-button>
-                      <el-button size="small" @click="trialPet = null">取消试算</el-button>
-                    </div>
-                    <span
-                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                      :class="currentEVTotal > 510 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'"
+              </section>
+            </el-card>
+
+            <el-card shadow="never">
+              <template #header>
+                <div class="section-header">
+                  <h3 class="font-medium">能力值配置</h3>
+                  <el-tag :type="currentEVTotal > 510 ? 'danger' : 'info'">学习力 {{ currentEVTotal }}/510</el-tag>
+                </div>
+              </template>
+              <div class="space-y-3">
+                <!-- 性格选择 -->
+                <div>
+                  <label class="block text-xs font-medium text-(--el-text-color-regular) mb-1">性格</label>
+                  <el-select-v2
+                    v-model="selectedPet.nature"
+                    data-team-field="nature"
+                    :options="natureSelectOptions"
+                    placeholder="选择性格"
+                    class="w-full"
+                    style="width: 100%"
+                    :height="300"
+                    :item-height="100"
+                  >
+                    <template #default="{ item }">
+                      <div class="flex flex-col space-y-2 p-3 min-w-0">
+                        <div class="text-sm font-medium text-(--el-text-color-primary) truncate">{{ item.label }}</div>
+                        <div class="flex flex-wrap gap-1">
+                          <el-tag
+                            v-for="(value, stat) in item.effects"
+                            :key="stat"
+                            size="small"
+                            :type="value > 1 ? 'success' : value < 1 ? 'danger' : 'info'"
+                          >
+                            {{ statChineseMap[stat as StatKey] }} {{ value }}x
+                          </el-tag>
+                        </div>
+                      </div>
+                    </template>
+                  </el-select-v2>
+                </div>
+                <fieldset v-if="availableStages.length || selectedPet.enhancement" class="mt-3">
+                  <legend class="mb-1 text-xs font-medium text-(--el-text-color-regular)">神魔化</legend>
+                  <el-select
+                    data-team-field="enhancement"
+                    :model-value="selectedPet.enhancement"
+                    aria-label="强化阶段"
+                    placeholder="无"
+                    clearable
+                    @update:model-value="value => selectStage(value || '')"
+                  >
+                    <el-option
+                      v-if="
+                        selectedPet.enhancement && !availableStages.some(row => row.id === selectedPet?.enhancement)
+                      "
+                      :value="selectedPet.enhancement"
+                      disabled
+                      :label="
+                        getEnhancementName(selectedPet.enhancement) +
+                        (enhancementPolicy?.mode === 'suppressed' ? '（本局不生效）' : '（当前不可用）')
+                      "
+                    />
+                    <el-option-group
+                      v-for="(stages, branch) in stagesByBranch"
+                      :key="branch"
+                      :label="branch === 'divine' ? '神化／圣化' : branch === 'demonic' ? '魔化／冥化' : String(branch)"
                     >
-                      学习力总和: {{ currentEVTotal }}/510
-                    </span>
+                      <el-option
+                        v-for="stage in stages"
+                        :key="stage.id"
+                        :label="gameplayName('enhancement', stage.id, stage.name)"
+                        :value="stage.id"
+                      />
+                    </el-option-group>
+                  </el-select>
+                  <span v-if="activeStage" class="ml-2 text-xs">
+                    {{
+                      statList
+                        .filter(stat => activeStage!.bonus[stat])
+                        .map(stat => statChineseMap[stat] + ' +' + activeStage!.bonus[stat])
+                        .join('，')
+                    }}
+                  </span>
+                </fieldset>
+                <!-- 性格效果显示 -->
+                <div v-if="selectedPet.nature" class="mt-2">
+                  <p class="text-sm font-medium text-(--el-text-color-regular) mb-2">性格效果</p>
+                  <div class="flex flex-wrap gap-1">
+                    <el-tag
+                      v-for="(value, stat) in gameDataStore.getNature(selectedPet.nature)?.multipliers"
+                      :key="stat"
+                      size="small"
+                      :type="value > 1 ? 'success' : value < 1 ? 'danger' : 'info'"
+                    >
+                      {{ statChineseMap[stat as StatKey] }} {{ value }}x
+                    </el-tag>
                   </div>
-                  <div class="p-4">
-                    <div v-if="trialChanges.length" class="mb-2 text-sm">
-                      <ul aria-label="试算改动">
-                        <li v-for="change in trialChanges" :key="change">{{ change }}</li>
-                      </ul>
-                      <p v-if="trialTeams.length > 1">
-                        共用这只精灵的队伍：{{ trialTeams.map(team => team.name).join('、') }}
-                      </p>
+                </div>
+                <div class="stat-grid">
+                  <div v-for="stat in statList" :key="stat" class="stat-card">
+                    <!-- 能力值头部 -->
+                    <div class="flex items-center justify-between mb-2">
+                      <h4 class="text-xs font-medium text-(--el-text-color-primary)">{{ statChineseMap[stat] }}</h4>
+                      <div class="text-right">
+                        <output
+                          :aria-label="statChineseMap[stat] + '最终值'"
+                          class="text-sm font-bold text-(--el-text-color-primary)"
+                        >
+                          {{ displayStat(computedStats[stat]?.total) }}
+                        </output>
+                        <div class="text-xs text-(--el-text-color-secondary)">最终值</div>
+                      </div>
                     </div>
-                    <ul v-if="trialPet && trialIssues.length" aria-live="polite" class="mb-2 text-sm">
-                      <li v-for="issue in trialIssues" :key="issue">{{ issue }}</li>
-                    </ul>
-                    <!-- 性格选择 -->
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1">性格</label>
-                      <el-select-v2
-                        v-model="trainingPet.nature"
-                        data-team-field="nature"
-                        :options="natureSelectOptions"
-                        placeholder="选择性格"
-                        class="w-full"
-                        style="width: 100%"
-                        :height="300"
-                        :item-height="100"
-                      >
-                        <template #default="{ item }">
-                          <div class="flex flex-col space-y-2 p-3 min-w-0">
-                            <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
-                            <div class="flex flex-wrap gap-1">
-                              <span
-                                v-for="(value, stat) in item.effects"
-                                :key="stat"
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0"
-                                :class="{
-                                  'bg-green-100 text-green-800': value > 1,
-                                  'bg-red-100 text-red-800': value < 1,
-                                  'bg-gray-100 text-gray-800': value === 1,
-                                }"
-                              >
-                                {{ statChineseMap[stat as StatKey] }} {{ value }}x
-                              </span>
-                            </div>
-                          </div>
-                        </template>
-                      </el-select-v2>
+
+                    <details v-if="computedStats[stat]" class="mb-2 text-xs">
+                      <summary :aria-label="statChineseMap[stat] + '计算明细'">计算明细</summary>
+                      <div>学习力折算 ⌊{{ selectedPet.evs[stat] }} ÷ 4⌋ = {{ computedStats[stat]!.effort }}</div>
+                      <div>
+                        等级折算 ⌊(2 × {{ currentSpecies?.baseStats[stat] }} + {{ selectedPet.ivs[stat] }} +
+                        {{ computedStats[stat]!.effort }}) × {{ selectedPet.level }} ÷ 100⌋ =
+                        {{ computedStats[stat]!.scaled }}
+                      </div>
+                      <div>
+                        性格 ({{ computedStats[stat]!.scaled }} + {{ computedStats[stat]!.levelBonus }}) ×
+                        {{ computedStats[stat]!.natureMultiplier }} =
+                        {{ displayStat(computedStats[stat]!.afterNature) }}
+                      </div>
+                      <div>阶段加成 +{{ computedStats[stat]!.stageBonus }}</div>
+                    </details>
+                    <!-- 学习力滑块 -->
+                    <div class="mb-3">
+                      <label class="block text-xs font-medium text-(--el-text-color-regular) mb-1">
+                        学习力: {{ selectedPet.evs[stat] }}
+                      </label>
+                      <el-slider
+                        :model-value="selectedPet.evs[stat]"
+                        :aria-label="statChineseMap[stat] + '学习力'"
+                        :min="0"
+                        :max="Math.max(252, selectedPet.evs[stat])"
+                        :step="4"
+                        @update:model-value="
+                          value => {
+                            if (typeof value === 'number') handleEVUpdate(stat, value)
+                          }
+                        "
+                      />
+                      <div class="flex justify-between text-xs text-(--el-text-color-secondary) mt-0.5">
+                        <span>0</span>
+                        <span>{{ Math.max(252, selectedPet.evs[stat]) }}</span>
+                      </div>
                     </div>
-                    <fieldset v-if="availableStages.length || trainingPet.enhancement" class="mt-3">
-                      <legend class="mb-1 text-xs font-medium text-gray-700">神魔化</legend>
-                      <el-select
-                        data-team-field="enhancement"
-                        :model-value="trainingPet.enhancement"
-                        aria-label="强化阶段"
-                        placeholder="无"
-                        clearable
-                        @update:model-value="value => selectStage(value || '')"
-                      >
-                        <el-option
-                          v-if="
-                            trainingPet.enhancement && !availableStages.some(row => row.id === trainingPet?.enhancement)
+
+                    <!-- 详细数值 -->
+                    <div class="space-y-1">
+                      <div class="flex justify-between text-xs">
+                        <span class="text-(--el-text-color-regular)">种族值</span>
+                        <span class="font-medium">{{ currentSpecies?.baseStats[stat] ?? '—' }}</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-(--el-text-color-regular)">个体值</span>
+                        <el-input-number
+                          :controls="false"
+                          size="small"
+                          style="width: 4.5rem"
+                          :aria-label="statChineseMap[stat] + '个体值'"
+                          :data-team-field="'ivs.' + stat"
+                          :model-value="selectedPet.ivs[stat]"
+                          :value-on-clear="selectedPet.ivs[stat]"
+                          :precision="0"
+                          :min="0"
+                          :max="
+                            Math.max(selectedPet.ivs[stat], gameDataStore.rules?.mechanics?.individualValues?.max ?? 31)
                           "
-                          :value="trainingPet.enhancement"
-                          disabled
-                          :label="
-                            getEnhancementName(trainingPet.enhancement) +
-                            (enhancementPolicy?.mode === 'suppressed' ? '（本局不生效）' : '（当前不可用）')
+                          @update:model-value="
+                            value => {
+                              if (selectedPet && value != null) selectedPet.ivs[stat] = value
+                            }
                           "
                         />
-                        <el-option-group
-                          v-for="(stages, branch) in stagesByBranch"
-                          :key="branch"
-                          :label="
-                            branch === 'divine' ? '神化／圣化' : branch === 'demonic' ? '魔化／冥化' : String(branch)
-                          "
-                        >
-                          <el-option
-                            v-for="stage in stages"
-                            :key="stage.id"
-                            :label="gameplayName('enhancement', stage.id, stage.name)"
-                            :value="stage.id"
-                          />
-                        </el-option-group>
-                      </el-select>
-                      <span v-if="activeStage" class="ml-2 text-xs">
-                        {{
-                          statList
-                            .filter(stat => activeStage!.bonus[stat])
-                            .map(stat => statChineseMap[stat] + ' +' + activeStage!.bonus[stat])
-                            .join('，')
-                        }}
-                      </span>
-                    </fieldset>
-                    <!-- 性格效果显示 -->
-                    <div v-if="trainingPet.nature" class="p-3 bg-gray-50 rounded-md">
-                      <p class="text-sm font-medium text-gray-700 mb-2">性格效果：</p>
-                      <div class="flex flex-wrap gap-1">
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-(--el-text-color-regular)">性格修正</span>
                         <span
-                          v-for="(value, stat) in gameDataStore.getNature(trainingPet.nature)?.multipliers"
-                          :key="stat"
-                          class="inline-flex items-center px-2 py-1 rounded text-sm font-medium"
+                          class="font-medium"
                           :class="{
-                            'bg-green-100 text-green-800': value > 1,
-                            'bg-red-100 text-red-800': value < 1,
-                            'bg-gray-100 text-gray-800': value === 1,
+                            'text-(--el-color-success)': (getNatureMultiplier(selectedPet.nature, stat) ?? 1) > 1,
+                            'text-(--el-color-danger)': (getNatureMultiplier(selectedPet.nature, stat) ?? 1) < 1,
+                            'text-(--el-text-color-regular)': getNatureMultiplier(selectedPet.nature, stat) === 1,
                           }"
                         >
-                          {{ statChineseMap[stat as StatKey] }} {{ value }}x
+                          {{
+                            gameDataStore.getNature(selectedPet.nature)
+                              ? getNatureMultiplier(selectedPet.nature, stat) + 'x'
+                              : '—'
+                          }}
                         </span>
                       </div>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-                      <div v-for="stat in statList" :key="stat" class="bg-gray-50 rounded-md p-3">
-                        <!-- 能力值头部 -->
-                        <div class="flex items-center justify-between mb-2">
-                          <h4 class="text-xs font-medium text-gray-900">{{ statChineseMap[stat] }}</h4>
-                          <div class="text-right">
-                            <div class="text-sm font-bold text-gray-900">
-                              <span
-                                v-if="trialPet && originalStats[stat]?.total !== computedStats[stat]?.total"
-                                :aria-label="'原' + statChineseMap[stat]"
-                                >{{ displayStat(originalStats[stat]?.total) }} →
-                              </span>
-                              {{ displayStat(computedStats[stat]?.total) }}
-                            </div>
-                            <div class="text-xs text-gray-500">最终值</div>
-                          </div>
-                        </div>
-
-                        <details v-if="computedStats[stat]" class="mb-2 text-xs">
-                          <summary :aria-label="statChineseMap[stat] + '计算明细'">计算明细</summary>
-                          <div>学习力折算 ⌊{{ trainingPet.evs[stat] }} ÷ 4⌋ = {{ computedStats[stat]!.effort }}</div>
-                          <div>
-                            等级折算 ⌊(2 × {{ currentSpecies?.baseStats[stat] }} + {{ trainingPet.ivs[stat] }} +
-                            {{ computedStats[stat]!.effort }}) × {{ trainingPet.level }} ÷ 100⌋ =
-                            {{ computedStats[stat]!.scaled }}
-                          </div>
-                          <div>
-                            性格 ({{ computedStats[stat]!.scaled }} + {{ computedStats[stat]!.levelBonus }}) ×
-                            {{ computedStats[stat]!.natureMultiplier }} =
-                            {{ displayStat(computedStats[stat]!.afterNature) }}
-                          </div>
-                          <div>阶段加成 +{{ computedStats[stat]!.stageBonus }}</div>
-                        </details>
-                        <!-- 学习力滑块 -->
-                        <div class="mb-3">
-                          <label class="block text-xs font-medium text-gray-700 mb-1">
-                            学习力: {{ trainingPet?.evs[stat] || 0 }}
-                          </label>
-                          <el-slider
-                            :model-value="trainingPet.evs[stat]"
-                            :aria-label="statChineseMap[stat] + '学习力'"
-                            :min="0"
-                            :max="Math.max(252, trainingPet.evs[stat])"
-                            :step="4"
-                            @update:model-value="
-                              value => {
-                                if (typeof value === 'number') handleEVUpdate(stat, value)
-                              }
-                            "
-                          />
-                          <div class="flex justify-between text-xs text-gray-500 mt-0.5">
-                            <span>0</span>
-                            <span>{{ Math.max(252, trainingPet.evs[stat]) }}</span>
-                          </div>
-                        </div>
-
-                        <!-- 详细数值 -->
-                        <div class="space-y-1">
-                          <div class="flex justify-between text-xs">
-                            <span class="text-gray-600">种族值</span>
-                            <span class="font-medium">{{ currentSpecies?.baseStats[stat] ?? '—' }}</span>
-                          </div>
-                          <div class="flex justify-between text-xs">
-                            <span class="text-gray-600">个体值</span>
-                            <input
-                              :aria-label="statChineseMap[stat] + '个体值'"
-                              :data-team-field="'ivs.' + stat"
-                              :value="trainingPet.ivs[stat]"
-                              @input="changeIndividualValue(stat, $event)"
-                              @blur="restoreIndividualInput(stat, $event)"
-                              type="number"
-                              min="0"
-                              :max="gameDataStore.rules?.mechanics?.individualValues?.max ?? 31"
-                              class="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div class="flex justify-between text-xs">
-                            <span class="text-gray-600">性格修正</span>
-                            <span
-                              class="font-medium"
-                              :class="{
-                                'text-green-600': (getNatureMultiplier(trainingPet.nature, stat) ?? 1) > 1,
-                                'text-red-600': (getNatureMultiplier(trainingPet.nature, stat) ?? 1) < 1,
-                                'text-gray-600': getNatureMultiplier(trainingPet.nature, stat) === 1,
-                              }"
-                            >
-                              {{
-                                gameDataStore.getNature(trainingPet.nature)
-                                  ? getNatureMultiplier(trainingPet.nature, stat) + 'x'
-                                  : '—'
-                              }}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
-              </el-tab-pane>
-            </el-tabs>
-          </div>
-        </div>
-
-        <!-- 空队伍提示 -->
-        <div class="lg:col-span-9" v-else-if="currentTeam.length === 0">
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <div class="max-w-md mx-auto">
-              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-              <h3 class="text-lg font-medium text-gray-900 mb-2">队伍为空</h3>
-              <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                <button
-                  @click="addNewPet"
-                  class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                  添加新精灵
-                </button>
-                <router-link
-                  v-if="delegate.storageRoute"
-                  :to="delegate.storageRoute || '/'"
-                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                  前往仓库
-                </router-link>
               </div>
-            </div>
+            </el-card>
           </div>
         </div>
 
-        <!-- 未选中精灵提示 -->
-        <div class="lg:col-span-9" v-else>
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <div class="max-w-md mx-auto">
-              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2h4a1 1 0 011 1v2a1 1 0 01-1 1h-1v9a2 2 0 01-2 2H8a2 2 0 01-2-2V8H5a1 1 0 01-1-1V5a1 1 0 011-1h2z"
-                />
-              </svg>
-              <h3 class="text-lg font-medium text-gray-900 mb-2">请选择精灵</h3>
-              <p class="text-gray-500">请从左侧队伍列表中选择一个精灵来查看和编辑其详细信息。</p>
-            </div>
-          </div>
-        </div>
+        <el-card v-else class="lg:col-span-9" :inert="environmentBusy" shadow="never">
+          <el-empty :description="currentTeam.length ? '请选择精灵' : '队伍为空'">
+            <template v-if="!currentTeam.length" #default>
+              <el-button type="primary" :icon="Plus" @click="addNewPet">添加新精灵</el-button>
+              <el-button v-if="delegate.storageRoute" :tag="RouterLink" :to="delegate.storageRoute" :icon="Box"
+                >前往仓库</el-button
+              >
+            </template>
+          </el-empty>
+        </el-card>
       </div>
     </main>
 
-    <div v-if="!compact" class="team-action-bar">
+    <div v-if="!compact" class="team-action-bar" :inert="environmentBusy">
       <div v-if="delegate.stale?.value" class="team-save-impact" role="alert">
         仓库成员或引用关系已变更。可先导出配法，再放弃草稿以载入当前队伍。
       </div>
@@ -1022,19 +738,36 @@
         </template>
       </div>
     </div>
+    <el-dialog
+      :model-value="!!speciesCandidate"
+      title="更换种族"
+      width="min(38rem, calc(100vw - 2rem))"
+      append-to-body
+      @update:model-value="speciesChoice = undefined"
+    >
+      <el-table v-if="speciesCandidate && selectedPet" :data="speciesChanges" max-height="50vh" size="small">
+        <el-table-column prop="label" label="项目" width="76" />
+        <el-table-column prop="before" label="当前" />
+        <el-table-column prop="after" label="更换后" />
+      </el-table>
+      <template #footer>
+        <el-button @click="speciesChoice = undefined">取消</el-button>
+        <el-button type="primary" @click="applySpeciesChange">确认更换种族</el-button>
+      </template>
+    </el-dialog>
     <!-- 帮助对话框 -->
     <el-dialog v-model="showHelp" title="使用帮助" width="min(32rem, calc(100vw - 2rem))" append-to-body>
-      <div class="space-y-4 text-sm text-gray-600">
+      <div class="space-y-4 text-sm text-(--el-text-color-regular)">
         <div>
-          <h4 class="font-medium text-gray-900 mb-2">队伍操作</h4>
+          <h4 class="font-medium text-(--el-text-color-primary) mb-2">队伍操作</h4>
           <ul class="space-y-1 list-disc list-inside">
             <li>拖拽左侧列表中的精灵可以调整出战顺序。</li>
             <li>点击“添加精灵”按钮可以向当前队伍中添加新的精灵。</li>
-            <li v-if="delegate.warehouse">从队伍移出后，这只精灵仍保存在仓库中。</li>
+            <li v-if="delegate.storageRoute">从队伍移出后，这只精灵仍保存在仓库中。</li>
           </ul>
         </div>
         <div>
-          <h4 class="font-medium text-gray-900 mb-2">配置精灵</h4>
+          <h4 class="font-medium text-(--el-text-color-primary) mb-2">配置精灵</h4>
           <ul class="space-y-1 list-disc list-inside">
             <li>在右侧配置区域，可以修改精灵的名称、种族、等级、性别等基础信息。</li>
             <li>通过滑块和输入框精确调整精灵的能力值（学习力、个体值）。</li>
@@ -1042,9 +775,9 @@
           </ul>
         </div>
         <div>
-          <h4 class="font-medium text-gray-900 mb-2">数据管理</h4>
+          <h4 class="font-medium text-(--el-text-color-primary) mb-2">数据管理</h4>
           <ul class="space-y-1 list-disc list-inside">
-            <li v-if="delegate.warehouse">多个队伍共用一只时，保存可以修改原只，也可以复制一只给本队。</li>
+            <li v-if="delegate.storageRoute">多个队伍共用一只时，保存可以修改原只，也可以复制一只给本队。</li>
             <li>使用“导出”和“导入”功能，可以方便地备份和分享你的队伍配置。</li>
           </ul>
         </div>
@@ -1054,6 +787,51 @@
 </template>
 
 <style scoped>
+.team-editor {
+  background: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+  --el-card-padding: 16px;
+}
+.editor-header {
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.team-member,
+.stat-card {
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+}
+.team-member {
+  padding: 8px;
+}
+.team-member:hover {
+  background: var(--el-fill-color-light);
+}
+.team-member.is-selected {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 12px;
+}
+.validation-issue {
+  white-space: normal;
+  height: auto;
+  text-align: start;
+}
 .team-action-bar {
   position: fixed;
   z-index: 50;
@@ -1089,56 +867,12 @@
 .touch-panning-y .drag-handle {
   touch-action: pan-y;
 }
-
-/* 技能下拉框样式优化 */
-:deep(.el-select-dropdown__item) {
-  height: auto !important;
-  min-height: 140px !important;
-  padding: 0 !important;
-}
-
-/* Markdown渲染样式 */
-:deep(.prose) {
-  color: inherit;
-}
-
-:deep(.prose p) {
-  margin: 0;
-  line-height: 1.4;
-}
-
-:deep(.prose strong) {
-  font-weight: 600;
-  color: #374151;
-}
-
-:deep(.prose em) {
-  font-style: italic;
-  color: #6b7280;
-}
-
-:deep(.prose ul) {
-  margin: 0.25rem 0;
-  padding-left: 1rem;
-}
-
-:deep(.prose li) {
-  margin: 0;
-  line-height: 1.3;
-}
-
-/* 确保HTML内容不会溢出 */
-:deep(.prose *) {
-  max-width: 100%;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
 </style>
 
 <script setup lang="ts">
 import { gameplayName } from '@/i18n/environment'
 import type { TeamEditorDelegate } from './delegate'
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useGameDataStore } from '@/stores/gameData'
 import { useValidationStore } from '@/stores/validation'
@@ -1159,18 +893,9 @@ import {
   type StatKey,
 } from '@/utils/teamBuildComparison'
 import { Value } from '@sinclair/typebox/value'
-import PetPresetPanel from './PetPresetPanel.vue'
-import WarehouseMemberPicker from './WarehouseMemberPicker.vue'
+import { RouterLink } from 'vue-router'
 import ContentDescription from '@/components/ContentDescription'
-import {
-  InfoFilled,
-  Close,
-  SuccessFilled,
-  WarningFilled,
-  ArrowRight,
-  Loading,
-  StarFilled,
-} from '@element-plus/icons-vue'
+import { Box, Delete, InfoFilled, Plus, StarFilled, Top } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useMobile } from '@/composition/useMobile'
 import { readLocalData, writeLocalData } from '@/services/localStorage'
@@ -1178,7 +903,7 @@ import { findMissingTeamContent, replaceResolvedSkills } from '@/utils/teamConte
 
 const { i18next } = useTranslation()
 
-const props = defineProps<{ delegate: TeamEditorDelegate; compact?: boolean }>()
+const props = defineProps<{ delegate: TeamEditorDelegate; compact?: boolean; environmentBusy?: boolean }>()
 const delegate = props.delegate
 const gameDataStore = useGameDataStore()
 const validationStore = useValidationStore()
@@ -1188,7 +913,6 @@ const importTeamConfig = () => delegate.importTeam?.()
 const { isMobile } = useMobile()
 
 // 响应式状态
-const editSection = ref<'moves' | 'training'>('moves')
 const selectedPetId = ref<string | null>(delegate.team.value[0]?.id ?? null)
 const showDragTip = ref(!props.compact && readLocalData('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
 const showValidationDetails = ref(false) // 控制验证详情显示
@@ -1199,9 +923,7 @@ const sortLocked = ref(isMobile.value)
 
 const drag = ref(false)
 
-onMounted(() => {
-  void validationStore.initialize()
-})
+void validationStore.initialize()
 
 // 关闭拖拽提示
 const hideDragTip = () => {
@@ -1240,45 +962,7 @@ const handleDragEnd = (event: { oldIndex: number | undefined; newIndex: number |
   }
 }
 
-// 初始化状态检查
-const isInitialized = computed(() => {
-  // 检查游戏数据是否加载完成
-  if (!gameDataStore.loaded) {
-    return false
-  }
-
-  // 检查petStorage是否已初始化
-  if (!delegate.ready.value) {
-    return false
-  }
-
-  // 检查验证系统是否准备就绪
-  if (!validationStore.isInitialized) {
-    return false
-  }
-
-  return true
-})
-
-const loadingMessage = computed(() => {
-  if (!gameDataStore.loaded) {
-    return '正在加载游戏数据...'
-  }
-
-  if (!delegate.ready.value) {
-    return '正在加载队伍数据...'
-  }
-
-  if (validationStore.isLoading) {
-    return '正在初始化验证...'
-  }
-
-  if (!validationStore.isInitialized) {
-    return '正在初始化验证...'
-  }
-
-  return '初始化完成'
-})
+const isInitialized = computed(() => gameDataStore.loaded && delegate.ready.value)
 
 // 计算属性
 const currentTeam = computed<PetSchemaType[]>({
@@ -1298,7 +982,6 @@ interface ValidationError {
   code: string
   message: string
   objectId?: string
-  section?: 'moves' | 'training'
   field?: string
   objectType?: string
   context?: Record<string, unknown>
@@ -1328,83 +1011,6 @@ function applyPetBuild(pet: PetSchemaType) {
   if (pet.id !== selectedPetId.value) return
   currentTeam.value = currentTeam.value.map(member => (member.id === pet.id ? pet : member))
 }
-const trialPet = ref<PetSchemaType | null>(null)
-const trainingPet = computed(() => trialPet.value ?? selectedPet.value)
-
-function startTrainingTrial() {
-  if (selectedPet.value) trialPet.value = JSON.parse(JSON.stringify(selectedPet.value))
-}
-
-// A trial belongs to one member in one editor context.
-watch(
-  [selectedPet, () => gameDataStore.rules, () => gameDataStore.species],
-  () => {
-    trialPet.value = null
-  },
-  { flush: 'sync' },
-)
-
-function applyTrainingTrial() {
-  const pet = selectedPet.value
-  const trial = trialPet.value
-  if (!pet || !trial || pet.id !== trial.id) return
-  pet.ivs = { ...trial.ivs }
-  pet.evs = { ...trial.evs }
-  pet.nature = trial.nature
-  if (trial.enhancement) pet.enhancement = trial.enhancement
-  else delete pet.enhancement
-  trialPet.value = null
-}
-
-const trialTeams = computed(() => (trialPet.value ? (delegate.warehouse?.teamsUsing(trialPet.value.id) ?? []) : []))
-const trialChanges = computed(() => {
-  const before = selectedPet.value
-  const after = trialPet.value
-  if (!before || !after) return []
-  const changes: string[] = []
-  for (const stat of statList) {
-    if (before.ivs[stat] !== after.ivs[stat])
-      changes.push(`${statChineseMap[stat]}个体值 ${before.ivs[stat]} → ${after.ivs[stat]}`)
-    if (before.evs[stat] !== after.evs[stat])
-      changes.push(`${statChineseMap[stat]}学习力 ${before.evs[stat]} → ${after.evs[stat]}`)
-  }
-  if (before.nature !== after.nature)
-    changes.push(`性格 ${getNatureName(before.nature)} → ${getNatureName(after.nature)}`)
-  if (before.enhancement !== after.enhancement) {
-    const name = (id?: string) => (id ? getEnhancementName(id) : '无')
-    changes.push(`强化阶段 ${name(before.enhancement)} → ${name(after.enhancement)}`)
-  }
-  return changes
-})
-
-const trialIssues = computed(() => {
-  const trial = trialPet.value
-  if (!trial) return []
-  const candidate = currentTeam.value.map(pet => (pet.id === trial.id ? trial : pet))
-  const before = new Set(teamValidationResult.value.errors.map(error => error.message))
-  const after = new Set(validationStore.validateTeam(candidate).errors.map(error => error.message))
-  return [
-    ...[...after].filter(message => !before.has(message)).map(message => '新增问题 · ' + message),
-    ...[...before].filter(message => !after.has(message)).map(message => '已解决 · ' + message),
-  ]
-})
-
-function changeIndividualValue(stat: StatKey, event: Event) {
-  const input = event.currentTarget as HTMLInputElement
-  if (
-    trainingPet.value &&
-    Number.isSafeInteger(input.valueAsNumber) &&
-    input.valueAsNumber >= 0 &&
-    input.valueAsNumber <= 120
-  ) {
-    trainingPet.value.ivs[stat] = input.valueAsNumber
-  }
-}
-
-function restoreIndividualInput(stat: StatKey, event: Event) {
-  if (trainingPet.value) (event.currentTarget as HTMLInputElement).value = String(trainingPet.value.ivs[stat])
-}
-
 const selectedMissingContent = computed(() =>
   selectedPet.value && gameDataStore.loaded ? findMissingTeamContent([selectedPet.value], gameDataStore) : [],
 )
@@ -1591,11 +1197,11 @@ const stagesByBranch = computed(() => {
   for (const stage of availableStages.value) (groups[stage.branch] ??= []).push(stage)
   return groups
 })
-const activeStage = computed(() => availableStages.value.find(stage => stage.id === trainingPet.value?.enhancement))
+const activeStage = computed(() => availableStages.value.find(stage => stage.id === selectedPet.value?.enhancement))
 function selectStage(id: string) {
-  if (!trainingPet.value) return
-  if (!id) delete trainingPet.value.enhancement
-  else if (availableStages.value.some(stage => stage.id === id)) trainingPet.value.enhancement = id
+  if (!selectedPet.value) return
+  if (!id) delete selectedPet.value.enhancement
+  else if (availableStages.value.some(stage => stage.id === id)) selectedPet.value.enhancement = id
 }
 
 const natureSelectOptions = computed(() => {
@@ -1612,7 +1218,7 @@ const natureSelectOptions = computed(() => {
       effects: nature.multipliers,
       disabled: false,
     }))
-  const id = trainingPet.value?.nature
+  const id = selectedPet.value?.nature
   if (id && !choices.some(option => option.value === id))
     return [
       {
@@ -1745,44 +1351,6 @@ const clearAllData = async () => {
   if (await delegate.clear?.()) selectedPetId.value = null
 }
 
-// 验证相关方法
-const getErrorIcon = (errorType: string) => {
-  switch (errorType) {
-    case 'team_validation':
-      return 'UserFilled'
-    case 'pet_validation':
-      return 'Avatar'
-    case 'skill_validation':
-      return 'MagicStick'
-    case 'mark_validation':
-      return 'Medal'
-    case 'rule_conflict':
-      return 'Warning'
-    case 'config_error':
-      return 'Setting'
-    case 'system_error':
-    default:
-      return 'CircleCloseFilled'
-  }
-}
-
-// 错误处理辅助函数
-const getErrorCode = (error: ValidationError): string => {
-  return error.code || 'UNKNOWN_ERROR'
-}
-
-const getErrorType = (error: ValidationError): string => {
-  return error.type || 'system_error'
-}
-
-const getErrorObjectId = (error: ValidationError): string | undefined => {
-  return error.objectId
-}
-
-const getErrorContext = (error: ValidationError): Record<string, unknown> => {
-  return error.context || {}
-}
-
 const getPetNameById = (petId: string) => {
   return currentTeam.value.find(pet => pet.id === petId)?.name
 }
@@ -1812,7 +1380,6 @@ const handleErrorClick = async (error: ValidationError) => {
     const pet = currentTeam.value.find(p => p.id === error.objectId)
     if (pet) {
       selectedPetId.value = pet.id
-      if (error.section) editSection.value = error.section
       await nextTick()
       if (error.field) {
         const target = editorRoot.value?.querySelector<HTMLElement>(`[data-team-field="${CSS.escape(error.field)}"]`)
@@ -1856,6 +1423,18 @@ const speciesCandidate = computed(() => {
   pet.weight = species.weightRange[1]
   return pet
 })
+const speciesChanges = computed(() =>
+  selectedPet.value && speciesCandidate.value
+    ? buildDifferences(selectedPet.value, speciesCandidate.value, (key, id) => {
+        if (key === 'species') return contentName(id, 'species')
+        if (key === 'skills') return contentName(id, 'skill')
+        if (key === 'ability' || key === 'emblem')
+          return contentName(id, ['mark', 'mark_ability', 'mark_emblem', 'mark_global'])
+        if (key === 'gender') return genderChineseMap[id as Gender] ?? id
+        return id
+      })
+    : [],
+)
 const canUndoSpecies = computed(() => !!speciesUndo.value && Value.Equal(speciesUndo.value.after, selectedPet.value))
 function applySpeciesChange() {
   if (!selectedPet.value || !speciesCandidate.value) return
@@ -1870,14 +1449,14 @@ function restoreSpecies() {
 }
 
 const currentEVTotal = computed(() => {
-  if (!trainingPet.value) return 0
-  return Object.values(trainingPet.value.evs).reduce((a, b) => a + b, 0)
+  if (!selectedPet.value) return 0
+  return Object.values(selectedPet.value.evs).reduce((a, b) => a + b, 0)
 })
 
 const handleEVUpdate = (stat: StatKey, value: number) => {
-  if (!trainingPet.value) return
+  if (!selectedPet.value) return
 
-  const currentStatEV = trainingPet.value.evs[stat]
+  const currentStatEV = selectedPet.value.evs[stat]
   const otherEVSum = currentEVTotal.value - currentStatEV
   let maxAllowed = Math.min(255, 510 - otherEVSum)
 
@@ -1887,13 +1466,12 @@ const handleEVUpdate = (stat: StatKey, value: number) => {
   const roundedValue = Math.round(value / 4) * 4
   const clampedValue = Math.min(Math.max(0, roundedValue), maxAllowed)
 
-  trainingPet.value.evs[stat] = clampedValue
+  selectedPet.value.evs[stat] = clampedValue
 }
 
 const statFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 6, useGrouping: false })
 const displayStat = (value?: number) => (value === undefined ? '—' : statFormat.format(value))
-const computedStats = computed(() => buildStatSteps(trainingPet.value, gameDataStore))
-const originalStats = computed(() => buildStatSteps(selectedPet.value, gameDataStore))
+const computedStats = computed(() => buildStatSteps(selectedPet.value, gameDataStore))
 
 // 添加性格修正映射
 const getNatureMultiplier = (id: string, stat: StatKey) => gameDataStore.getNature(id)?.multipliers[stat]
@@ -1966,7 +1544,7 @@ function handleTeamAction(action: string) {
 /* sortablejs 拖拽样式 */
 .sortable-ghost {
   opacity: 0.4;
-  background: #c8ebfb;
+  background: var(--el-color-primary-light-9);
 }
 
 .sortable-chosen {
@@ -1976,69 +1554,5 @@ function handleTeamAction(action: string) {
 .sortable-drag {
   opacity: 0.8;
   transform: rotate(2deg);
-}
-
-/* 过渡动画 */
-.pet-list-move,
-.pet-list-enter-active,
-.pet-list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.pet-list-enter-from,
-.pet-list-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
-}
-
-.pet-list-leave-active {
-  position: absolute;
-}
-
-/* 操作栏样式优化 */
-.fixed.bottom-0 {
-  box-shadow:
-    0 -4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 -2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-/* 响应式网格调整 */
-@media (max-width: 1024px) {
-  .lg\:col-span-3 {
-    grid-column: span 12 / span 12;
-  }
-
-  .lg\:col-span-9 {
-    grid-column: span 12 / span 12;
-  }
-}
-
-/* Element Plus 虚拟下拉框样式优化 */
-:deep(.el-select-v2__wrapper) {
-  width: 100% !important;
-}
-
-:deep(.el-select-dropdown__item) {
-  height: auto !important;
-  min-height: 34px;
-  padding: 0 !important;
-}
-
-:deep(.el-select-dropdown__item.is-hovering) {
-  background-color: #f5f7fa;
-}
-
-:deep(.el-select-dropdown__item.is-selected) {
-  background-color: #ecf5ff;
-  color: #409eff;
-}
-
-/* 确保文本不会被截断 */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 </style>

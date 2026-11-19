@@ -8,7 +8,6 @@ const LocalBattlePage = () => import('../pages/localBattlePage.vue')
 // 路由守卫
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
-import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
 import { isDesktop, isStaticMode } from '@/utils/env'
 import { captureOAuthCallbackAtBoot } from '@/services/serverSession'
@@ -126,14 +125,16 @@ const routes: RouteRecordRaw[] = [
     component: TeamBuilder,
     meta: {
       title: '队伍编辑器',
+      viewKey: 'team-library',
     },
   },
   {
     path: '/storage',
     name: 'StorageManager',
-    component: StorageManager,
+    component: TeamBuilder,
     meta: {
       title: '精灵仓库',
+      viewKey: 'team-library',
     },
   },
   {

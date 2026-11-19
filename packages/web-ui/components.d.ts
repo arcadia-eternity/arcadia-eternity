@@ -57,8 +57,11 @@ declare module 'vue' {
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSelectV2: typeof import('element-plus/es')['ElSelectV2']
+    ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSlider: typeof import('element-plus/es')['ElSlider']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
+    ElTable: typeof import('element-plus/es')['ElTable']
+    ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTabPane: typeof import('element-plus/es')['ElTabPane']
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
@@ -81,7 +84,6 @@ declare module 'vue' {
     PersonalTeamEditor: typeof import('./src/components/team/PersonalTeamEditor.vue')['default']
     PetButton: typeof import('./src/components/battle/PetButton.vue')['default']
     PetIcon: typeof import('./src/components/PetIcon.vue')['default']
-    PetPresetPanel: typeof import('./src/components/team/PetPresetPanel.vue')['default']
     PetSprite: typeof import('./src/components/battle/PetSprite.vue')['default']
     PlayerCard: typeof import('./src/components/PlayerCard.vue')['default']
     RelatedMarks: typeof import('./src/components/dex/RelatedMarks.vue')['default']
@@ -102,7 +104,6 @@ declare module 'vue' {
     TrainingPanel: typeof import('./src/components/battle/TrainingPanel.vue')['default']
     TypeChart: typeof import('./src/components/dex/TypeChart.vue')['default']
     VersionInfo: typeof import('./src/components/VersionInfo.vue')['default']
-    WarehouseMemberPicker: typeof import('./src/components/team/WarehouseMemberPicker.vue')['default']
     WindowsIcon: typeof import('./src/components/icons/WindowsIcon.vue')['default']
   }
 }

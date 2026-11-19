@@ -53,20 +53,25 @@ const labels = {
   enhancement: '强化阶段',
   inheritedSkill: '遗传技能',
 }
-function display(value: unknown) {
-  if (Array.isArray(value)) return value.join('、') || '无'
-  return String(value ?? '无')
-}
-export function buildDifferences(before: PetSchemaType, after: PetSchemaType) {
-  const changes: string[] = []
-  for (const key of Object.keys(labels) as (keyof typeof labels)[]) {
+type BuildField = keyof typeof labels
+type FormatField = (field: BuildField, value: string) => string
+
+export function buildDifferences(before: PetSchemaType, after: PetSchemaType, format: FormatField) {
+  const changes: { label: string; before: string; after: string }[] = []
+  for (const key of Object.keys(labels) as BuildField[]) {
     if (key === 'ivs' || key === 'evs') {
       for (const stat of statList) {
         if (before[key][stat] !== after[key][stat])
-          changes.push(`${statNames[stat]}${labels[key]} ${before[key][stat]} → ${after[key][stat]}`)
+          changes.push({
+            label: statNames[stat] + labels[key],
+            before: String(before[key][stat]),
+            after: String(after[key][stat]),
+          })
       }
     } else if (!Value.Equal(before[key], after[key])) {
-      changes.push(`${labels[key]} ${display(before[key])} → ${display(after[key])}`)
+      const display = (value: unknown) =>
+        Array.isArray(value) ? value.map(id => format(key, id)).join('、') || '无' : format(key, String(value ?? '无'))
+      changes.push({ label: labels[key], before: display(before[key]), after: display(after[key]) })
     }
   }
   return changes

@@ -29,6 +29,7 @@ function createMetadataLoader() {
 }
 
 interface GameDataState {
+  defaultGameplayRevision?: string
   rules?: EnvironmentRules
   skillParameterCatalog?: SkillParameterCatalog
   elementCatalog: ReturnType<typeof readElementCatalog>
@@ -105,6 +106,7 @@ function invalidateMetadata(store: object) {
 
 export const useGameDataStore = defineStore('gameData', {
   state: (): GameDataState => ({
+    defaultGameplayRevision: undefined,
     rules: undefined,
     skillParameterCatalog: undefined,
     elementCatalog: readElementCatalog({}),
@@ -205,6 +207,7 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     reset() {
+      this.defaultGameplayRevision = undefined
       void localMetadataReleases
         .get(this)?.()
         .catch(error => console.warn('本地内容释放失败', error))
@@ -322,6 +325,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.serverFallback = null
             this.loaded = this.gameDataLoaded = true
             this.error = null
+            this.defaultGameplayRevision = captured.gameplayRevision
             const previous = localMetadataReleases.get(this)
             localMetadataReleases.set(this, captured.release)
             setServerContentText(captured.content, false)
@@ -329,7 +333,7 @@ export const useGameDataStore = defineStore('gameData', {
             return
           }
           if (hasPreparedWebEnvironment()) {
-            const { content, rules, effectMarkRelations } = await readPreparedWebCatalog(forceReload)
+            const { content, rules, effectMarkRelations, gameplayRevision } = await readPreparedWebCatalog(forceReload)
             if (!isCurrent()) return
             this.species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
             this.skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
@@ -339,6 +343,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.enhancements = readEnhancementStages(content.enhancements)
             this.natures = readNatureCatalog(content.natures)
             this.rules = rules
+            this.defaultGameplayRevision = gameplayRevision
             this.effectMarkRelations = effectMarkRelations ?? {}
             if (content.locales) setServerContentText(content, false)
             this.loaded = this.gameDataLoaded = true

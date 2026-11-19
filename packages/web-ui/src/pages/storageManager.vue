@@ -1,29 +1,16 @@
 <template>
-  <PersonalEnvironmentView @ready="environmentReady = $event">
-    <template #unresolved>
-      <ul class="p-3">
-        <li v-for="pet in petStorage.storage" :key="pet.id">{{ pet.name }} · {{ pet.species }}</li>
-      </ul>
-      <button type="button" @click="exportFullStorage()">导出仓库与队伍</button>
-    </template>
-  </PersonalEnvironmentView>
-  <!-- 加载界面 -->
-  <div v-if="environmentReady && !isInitialized" class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center">
-      <div class="mb-4">
-        <el-icon class="animate-spin text-4xl text-blue-500" :size="48">
-          <Loading />
-        </el-icon>
-      </div>
-      <h2 class="text-xl font-semibold text-gray-700 mb-2">正在初始化精灵仓库</h2>
-      <p class="text-gray-500">{{ loadingMessage }}</p>
-    </div>
-  </div>
-
-  <!-- 主要内容 -->
-  <div v-else-if="environmentReady" class="min-h-screen bg-gray-50">
+  <el-card v-if="unavailable" class="m-4" shadow="never">
+    <template #header><h1 class="font-medium">精灵仓库</h1></template>
+    <el-alert :title="unavailable" type="warning" show-icon :closable="false" />
+    <ul class="my-3">
+      <li v-for="pet in petStorage.storage" :key="pet.id">{{ pet.name }} · {{ pet.species }}</li>
+    </ul>
+    <slot name="environment" />
+    <el-button @click="exportFullStorage()">导出仓库与队伍</el-button>
+  </el-card>
+  <div v-else class="min-h-screen bg-gray-50">
     <!-- 头部导航 -->
-    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <header :inert="environmentBusy" class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- 桌面端布局 -->
         <div class="hidden sm:flex items-center justify-between h-16">
@@ -255,7 +242,7 @@
         <!-- 队伍管理区域 -->
         <div class="lg:col-span-3">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="px-6 py-4 border-b border-gray-200">
+            <div :inert="environmentBusy" class="px-6 py-4 border-b border-gray-200">
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium text-gray-900">队伍管理</h2>
                 <div class="flex items-center space-x-3">
@@ -324,6 +311,7 @@
                 <div
                   v-for="team in paginatedTeams"
                   :key="petStorage.teams.indexOf(team)"
+                  :inert="environmentBusy && team.id !== petStorage.library.teams[petStorage.currentTeamIndex]?.id"
                   @dblclick="handleTeamDoubleClick(petStorage.teams.indexOf(team))"
                   :class="[
                     'border rounded-lg p-4 transition-all duration-200 cursor-pointer',
@@ -333,7 +321,7 @@
                   ]"
                 >
                   <!-- 队伍头部 -->
-                  <div class="mb-4">
+                  <div class="mb-4" :inert="environmentBusy">
                     <!-- 移动端：分行布局 -->
                     <div class="sm:hidden">
                       <!-- 第一行：队伍名称和数量 -->
@@ -513,8 +501,13 @@
                     </div>
                   </div>
 
+                  <slot
+                    v-if="team.id === petStorage.library.teams[petStorage.currentTeamIndex]?.id"
+                    name="environment"
+                  />
                   <!-- 队伍精灵 -->
                   <div
+                    :inert="environmentBusy"
                     class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 min-h-[100px] p-2 sm:p-3 border-2 border-dashed border-gray-200 rounded-lg"
                   >
                     <!-- 队伍精灵列表 -->
@@ -669,7 +662,7 @@
         </div>
 
         <!-- 仓库区域 -->
-        <div class="lg:col-span-1">
+        <div :inert="environmentBusy" class="lg:col-span-1">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">
               <div class="flex items-center justify-between">
@@ -1036,8 +1029,9 @@
             <div class="px-4 py-3 border-b border-gray-200">
               <h2 class="text-lg font-medium text-gray-900">当前队伍</h2>
               <p class="text-sm text-gray-500 mt-1">{{ petStorage.teams[petStorage.currentTeamIndex]?.name }}</p>
+              <slot name="environment" />
             </div>
-            <div class="p-4">
+            <div class="p-4" :inert="environmentBusy">
               <!-- 当前队伍精灵 -->
               <div class="grid grid-cols-2 gap-2 min-h-[200px]">
                 <!-- 队伍精灵列表 -->
@@ -1179,7 +1173,7 @@
         </div>
 
         <!-- 仓库区域（扩展显示） -->
-        <div class="lg:col-span-4">
+        <div :inert="environmentBusy" class="lg:col-span-4">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">
               <div class="flex items-center justify-between">
@@ -1785,14 +1779,12 @@ import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useStorageImportExport } from '@/composition/useStorageImportExport'
-import PersonalEnvironmentView from '@/components/team/PersonalEnvironmentView.vue'
-import { Loading } from '@element-plus/icons-vue'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
 
 const petStorage = usePetStorageStore()
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
-const environmentReady = ref(false)
+defineProps<{ unavailable: string; environmentBusy: boolean }>()
 const { i18next } = useTranslation()
 
 // 使用组合式函数
@@ -1944,33 +1936,6 @@ const setupPetInteraction = (
     }
   })
 }
-
-// 初始化状态检查
-const isInitialized = computed(() => {
-  // 检查游戏数据是否加载完成
-  if (!gameDataStore.loaded) {
-    return false
-  }
-
-  // 检查petStorage是否已初始化
-  if (!petStorage.initialized) {
-    return false
-  }
-
-  return true
-})
-
-const loadingMessage = computed(() => {
-  if (!gameDataStore.loaded) {
-    return '正在加载游戏数据...'
-  }
-
-  if (!petStorage.initialized) {
-    return '正在加载仓库数据...'
-  }
-
-  return '初始化完成'
-})
 
 // 响应式状态
 const showHelp = ref(false)

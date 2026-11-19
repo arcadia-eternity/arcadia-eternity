@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
 import { Value } from '@sinclair/typebox/value'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { nanoid } from 'nanoid'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
@@ -171,19 +171,25 @@ function saveCopy() {
 </script>
 
 <template>
-  <nav class="flex items-center gap-4 p-3">
-    <router-link :to="roomPath">返回房间</router-link>
-    <button v-if="ready && canUndoImport" type="button" @click="undoImport">撤销本场导入</button>
-    <button v-if="draft" type="button" @click="saveCopy">另存为个人队伍</button>
+  <nav class="flex flex-wrap items-center gap-y-2 p-3">
+    <el-button :tag="RouterLink" :to="roomPath">返回房间</el-button>
+    <el-button v-if="ready && canUndoImport" @click="undoImport">撤销本场导入</el-button>
+    <el-button v-if="draft" @click="saveCopy">另存为个人队伍</el-button>
   </nav>
   <TeamEditor v-if="ready" :delegate="delegate" />
-  <div v-else class="p-3">
-    <p role="status">
-      {{ error || (client.currentState.status === 'connected' ? '正在核对房间环境…' : '等待服务器连接…') }}
-    </p>
-    <button v-if="error" @click="attempt++">重新核对</button>
-    <ul v-if="draft">
+  <el-card v-else class="m-4" shadow="never" :aria-busy="!error">
+    <template #header><h1 class="font-medium">队伍编辑器</h1></template>
+    <el-alert v-if="error" :title="error" type="warning" show-icon :closable="false" />
+    <el-skeleton
+      v-else-if="client.currentState.status === 'connected'"
+      animated
+      :rows="3"
+      aria-label="正在核对房间环境"
+    />
+    <el-alert v-else title="等待服务器连接" type="info" show-icon :closable="false" />
+    <el-button v-if="error" class="mt-3" @click="attempt++">重新核对</el-button>
+    <ul v-if="draft && error" class="mt-3">
       <li v-for="pet in draft.pets" :key="pet.id">{{ pet.name }} · {{ pet.species }}</li>
     </ul>
-  </div>
+  </el-card>
 </template>
