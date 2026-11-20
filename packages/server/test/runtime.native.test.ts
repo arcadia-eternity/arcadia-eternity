@@ -163,13 +163,14 @@ it('applies the 120 test environment’s selected nature and stage to all six ba
   expect(rules.mechanics?.secondGenerationNatures).toBe('species')
   const players = fixture()
   const lead = players[0].team[0]
+  lead.level = 100
   lead.species = 'pet_duomo'
   lead.skills = ['skill_chongfeng']
   lead.nature = 'base:nature-34'
   lead.enhancement = 'base:evolve-1'
   lead.ivs = { hp: 120, atk: 120, def: 120, spa: 120, spd: 120, spe: 120 }
   await expect(validateServerTeam([lead])).rejects.toThrow('ENVIRONMENT_TEAM_REJECTED')
-  const baseStats = { maxHp: 210, atk: 179 * 0.9, def: 186, spa: 193 * 0.9, spd: 186 * 1.1, spe: 168 * 1.1 }
+  const baseStats = { maxHp: 410, atk: 353 * 0.9, def: 367, spa: 381 * 0.9, spd: 367 * 1.1, spe: 331 * 1.1 }
   for (const mode of ['active', 'suppressed'] as const) {
     const stage = mode === 'active' ? 'base:evolve-1' : 'other:uninstalled'
     lead.enhancement = stage

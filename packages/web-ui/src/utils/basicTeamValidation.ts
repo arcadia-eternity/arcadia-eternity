@@ -40,8 +40,14 @@ export function memberIssues(input: unknown, content?: Content): TeamIssue[] {
   }
   for (const problem of teamConstraintIssues(rules?.constraints, [pet], 'pet')) issue(problem.message, 'moves')
   if (rules) {
-    if (pet.enhancement && !allowsEnhancementRecord(rules.mechanics?.enhancement, pet.species, pet.enhancement))
-      issue(pet.name + ' 的强化阶段在本环境不可用。', 'training')
+    const policy = rules.mechanics?.enhancement
+    if (pet.enhancement && !allowsEnhancementRecord(policy, pet.species, pet.enhancement, pet.level)) {
+      const message =
+        policy?.minLevel !== undefined && pet.level < policy.minLevel
+          ? `${pet.name} 需要达到 ${policy.minLevel} 级才能使用强化阶段。`
+          : pet.name + ' 的强化阶段在本环境不可用。'
+      issue(message, 'training')
+    }
     try {
       assertEnvironmentMember(rules, pet)
     } catch {

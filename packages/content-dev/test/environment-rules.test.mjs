@@ -144,6 +144,28 @@ test('plain and composed environments validate equipped skills and species enhan
   assert.equal(trained.enhancement, 'x:stage')
 })
 
+test('new species inherit the environment enhancement branches at the required level', async () => {
+  const { assertPlayableTeam } = await import('../src/environment-rules.ts')
+  const pet = { species: 'new:pet', nature: 'Hardy', level: 100, skills: [], enhancement: 'new:stage' }
+  const policy = { mode: 'active', minLevel: 100, defaultBranches: ['divine', 'demonic'] }
+  const check = (branch, { level = 100, branches, enhancement = policy } = {}) =>
+    assertPlayableTeam(
+      { schemaVersion: 2, mechanics: { enhancement } },
+      [{ ...pet, level }],
+      () => ({ id: pet.species, learnable_skills: [], enhancementBranches: branches }),
+      () => ({ generation: 1 }),
+      () => ({ branch }),
+    )
+  for (const branch of policy.defaultBranches) check(branch)
+  rejected(() => check('divine', { level: 99 }))
+  rejected(() => check('divine', { enhancement: { ...policy, species: [] } }))
+  rejected(() => check('demonic', { enhancement: { ...policy, stages: [] } }))
+  assert.throws(() => check('demonic', { branches: ['divine'] }), /强化阶段/)
+  assert.throws(() => check('divine', { branches: [] }), /强化阶段/)
+  assert.throws(() => check('divine', { enhancement: { mode: 'active' } }), /强化阶段/)
+  check('divine', { level: 99, enhancement: { ...policy, mode: 'suppressed' } })
+})
+
 async function fixture(t, definition) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-rules-'))
   t.after(() => rm(root, { recursive: true, force: true }))

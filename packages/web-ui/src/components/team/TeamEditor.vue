@@ -880,7 +880,7 @@ import { useValidationStore } from '@/stores/validation'
 import { resolveLearnset, isEligible } from '@arcadia-eternity/content-sdk/environment-rules'
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
-import { allowsEnhancementRecord, Gender, maxEquippedSkills } from '@arcadia-eternity/const'
+import { canUseEnhancementStage, Gender, maxEquippedSkills } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
@@ -1180,12 +1180,11 @@ const emblemSelectOptions = computed(() => {
 
 const enhancementPolicy = computed(() => gameDataStore.rules?.mechanics?.enhancement)
 const availableStages = computed(() => {
-  const policy = enhancementPolicy.value
-  const species = selectedPet.value?.species
-  if (!species || policy?.mode !== 'active') return []
-  const branches = gameDataStore.getSpecies(species)?.enhancementBranches
-  return gameDataStore.enhancements.filter(
-    stage => branches?.includes(stage.branch) && allowsEnhancementRecord(policy, species, stage.id),
+  const pet = selectedPet.value
+  const species = currentSpecies.value
+  if (!pet || !species) return []
+  return gameDataStore.enhancements.filter(stage =>
+    canUseEnhancementStage(enhancementPolicy.value, species, pet.level, stage),
   )
 })
 const stagesByBranch = computed(() => {

@@ -32,6 +32,8 @@
           },
           "enhancement": {
             "mode": "active",
+            "minLevel": 100,
+            "defaultBranches": ["divine", "demonic"],
             "stages": [
               "base:evolve-1",
               "base:evolve-2",

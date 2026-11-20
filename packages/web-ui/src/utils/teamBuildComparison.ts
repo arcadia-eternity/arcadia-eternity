@@ -1,5 +1,5 @@
 import { Value } from '@sinclair/typebox/value'
-import { allowsEnhancementRecord, trainingStatSteps } from '@arcadia-eternity/const'
+import { canUseEnhancementStage, trainingStatSteps } from '@arcadia-eternity/const'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { useGameDataStore } from '@/stores/gameData'
 
@@ -20,7 +20,7 @@ export function buildStatSteps(
   const stageId = policy?.mode === 'active' ? pet.enhancement : undefined
   const stage = stageId ? game.getEnhancement(stageId) : undefined
   if (!species || !nature || (stageId && !stage)) return stats
-  const active = stage && allowsEnhancementRecord(policy, pet.species, stage.id)
+  const active = stage && canUseEnhancementStage(policy, species, pet.level, stage)
   for (const stat of keys) {
     stats[stat] = trainingStatSteps(
       stat,

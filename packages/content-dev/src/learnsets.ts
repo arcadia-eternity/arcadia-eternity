@@ -1,5 +1,6 @@
 import {
   defaultLearnsetLevel,
+  supportsEnhancementBranch,
   assertSkillSlots,
   resolveEnvironmentMechanics,
   type EnvironmentRules,
@@ -139,7 +140,7 @@ export function assertLearningChoices(
     if (pet.enhancement && rules?.mechanics?.enhancement?.mode === 'active') {
       const stage = stageById(pet.enhancement) as { branch: string } | undefined
       if (!stage) throw new Error('缺少强化阶段 ' + pet.enhancement)
-      if (!definition.enhancementBranches?.includes(stage.branch))
+      if (!supportsEnhancementBranch(rules.mechanics.enhancement, definition, stage.branch))
         throw new Error('该物种不能使用强化阶段 ' + pet.enhancement)
     }
     for (const kind of ['ability', 'emblem'] as const) {
