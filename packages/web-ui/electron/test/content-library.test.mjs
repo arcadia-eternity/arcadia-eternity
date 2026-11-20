@@ -86,9 +86,11 @@ it('installs without selecting content and preserves user sources on uninstall',
     assert.equal(pkg.id, id)
     assert.deepEqual(pkg.contentIds.species, ['water:pet'])
     assert.equal((await f.manager.list()).activeIds, undefined)
-    const directory = await f.manager.sourceDirectory(id)
+    const project = await f.manager.authorProject(id)
+    const { directory } = project
+    assert.deepEqual(project, { id, directory, name: pkg.name, readOnly: true, published: true })
     assert.equal(JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).name, pkg.name)
-    await assert.rejects(f.manager.sourceDirectory('not-installed'), /未安装/)
+    await assert.rejects(f.manager.authorProject('not-installed'), /未安装/)
     await assert.rejects(f.manager.installNpm('@test/water@latest'), /明确版本/)
     assert.equal(await f.manager.installFile(source), id)
     await writeFile(

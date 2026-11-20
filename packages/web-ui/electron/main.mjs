@@ -258,6 +258,7 @@ const creatorGitHub = new CreatorGitHub({ clientId: process.env.ARCADIA_CREATOR_
 function getAuthorWorkspaces() {
   authorWorkspaces ??= new AuthorWorkspaces({
     root: path.join(app.getPath('userData'), 'ugc'),
+    installedPackage: id => getContentLibrary().authorProject(id),
     api: () =>
       import(
         app.isPackaged
@@ -1001,10 +1002,8 @@ function setupIpcHandlers() {
       const manager = getAuthorWorkspaces()
       let result
       if (input.action === 'list') result = await manager.list()
-      else if (input.action === 'browse-package') {
-        const directory = await getContentLibrary().sourceDirectory(input.packageId)
-        result = await manager.add(directory, { readOnly: true, published: true })
-      } else if (input.action === 'create') result = await manager.create(input.name, input.arcadiaRange)
+      else if (input.action === 'browse-package') result = await getContentLibrary().authorProject(input.packageId)
+      else if (input.action === 'create') result = await manager.create(input.name, input.arcadiaRange)
       else if (input.action === 'creator-github') {
         result = await creatorAction(creatorGitHub, manager, input, {
           open: url => shell.openExternal(url),

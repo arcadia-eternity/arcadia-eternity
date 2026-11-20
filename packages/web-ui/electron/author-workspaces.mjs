@@ -12,8 +12,8 @@ export class AuthorWorkspaces {
   #transfers = new Map()
   #queue = Promise.resolve()
   #contextQueue = Promise.resolve()
-  constructor({ root, api, notify = () => {}, env = process.env }) {
-    Object.assign(this, { root, api, notify, env })
+  constructor({ root, api, installedPackage, notify = () => {}, env = process.env }) {
+    Object.assign(this, { root, api, installedPackage, notify, env })
   }
   async list() {
     if (!this.#entries) {
@@ -39,8 +39,8 @@ export class AuthorWorkspaces {
         )
           throw new Error('源项目登记格式无效，请恢复备份')
         // Source registrations written before published-package browsing have no published flag.
-        if (entries.some(entry => entry.published === undefined))
-          await this.#save(entries.map(entry => ({ published: false, ...entry })))
+        if (entries.some(entry => entry.published !== false))
+          await this.#save(entries.filter(entry => !entry.published).map(entry => ({ ...entry, published: false })))
         else this.#entries = entries
       })().catch(error => {
         this.#loading = undefined
@@ -67,22 +67,21 @@ export class AuthorWorkspaces {
       await rm(temp, { force: true })
     }
   }
-  async add(directory, { readOnly = false, published = false } = {}) {
+  async add(directory, { readOnly = false } = {}) {
     return this.#mutate(async () => {
       const entries = await this.list(),
         root = await realpath(directory)
       const existing = entries.find(entry => entry.directory === root)
       if (existing) {
-        if ((readOnly && !existing.readOnly) || (published && !existing.published)) {
+        if (readOnly && !existing.readOnly) {
           await this.release(existing.id)
           existing.readOnly = true
-          existing.published = published || existing.published
           await this.#save(entries)
         }
         return existing
       }
       const { openAuthorSession } = await this.api()
-      const probe = await openAuthorSession(root, { watch: false, readOnly, published })
+      const probe = await openAuthorSession(root, { watch: false, readOnly })
       let description
       try {
         description = await probe.describe()
@@ -94,7 +93,7 @@ export class AuthorWorkspaces {
         directory: root,
         name: description.name || basename(root),
         readOnly: !description.capabilities.sourceEditing,
-        published,
+        published: false,
       }
       await this.#save([...entries, entry])
       return entry
@@ -282,6 +281,7 @@ export class AuthorWorkspaces {
   }
   async entry(id) {
     const entry = (await this.list()).find(entry => entry.id === id)
+    if (!entry && this.installedPackage) return this.installedPackage(id)
     if (!entry) throw new Error('未登记此源项目')
     if ((await realpath(entry.directory)) !== entry.directory) throw new Error('目录已改变，请重新打开项目')
     return entry

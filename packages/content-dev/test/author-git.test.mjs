@@ -71,6 +71,24 @@ test('the real index, worktree and reopened project retain separate changes', as
   await assert.rejects(run('stage', { file }), /钩子/)
 })
 
+test('untracked desktop metadata does not block previews, staging all source changes or tagging', async t => {
+  const { root, run } = await fixture(t)
+  await mkdir(join(root, 'assets'))
+  await writeFile(join(root, '.DS_Store'), 'Finder')
+  await writeFile(join(root, 'assets/Thumbs.db'), 'Explorer')
+  const { files } = await run('status')
+  assert.deepEqual(
+    files.map(row => row.path),
+    ['package.json'],
+  )
+  assert.equal((await run('diff', { file: files[0].path })).text, manifest)
+  await run('stage-files', { files: files.map(row => row.path) })
+  await run('commit', { message: 'initial' })
+  assert.deepEqual((await run('tag', { tag: 'v1.0.0' })).tags, ['v1.0.0'])
+  await git(root, 'add', '-f', '.DS_Store')
+  assert.ok((await run('status')).files.find(row => row.path === '.DS_Store')?.staged)
+})
+
 test('a new creator can commit without a local Git identity', async t => {
   const { root, run } = await fixture(t)
   await git(root, 'config', 'user.name', '')
