@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.8.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.0...arcadia-eternity-v4.8.1) (2026-11-20)
+
+
+### 🐛 Bug Fixes
+
+* **content:** publish distribution-defined built-in environments ([fa3a7a4](https://github.com/arcadia-eternity/arcadia-eternity/commit/fa3a7a41c0471862a546d0b7a70449984896aa66))
+
 ## [4.8.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.7.1...arcadia-eternity-v4.8.0) (2026-11-20)
 
 
