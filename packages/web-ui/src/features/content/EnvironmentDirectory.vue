@@ -120,7 +120,7 @@ nav {
   max-height: 58vh;
   overflow-y: auto;
 }
-nav button {
+nav > .el-button {
   justify-content: flex-start;
   width: 100%;
   height: auto;
@@ -157,7 +157,7 @@ nav :deep(.el-button > span) {
   padding: 10px 6px 2px;
   border-top: 1px solid var(--el-border-color-lighter);
 }
-.edits button {
+.edits > .el-button {
   margin: 0;
 }
 @media (max-width: 760px) {

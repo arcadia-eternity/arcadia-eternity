@@ -566,5 +566,11 @@ test('environment import and export use the environment entry and stay scoped to
   await create.getByRole('button', { name: '保存并应用' }).click()
   await expect(hub.getByRole('heading', { name: '周末联赛', exact: true })).toBeVisible()
   await expect(hub.getByRole('navigation').getByRole('button', { name: /周末联赛/ })).toContainText('本机')
+  const rows = hub.getByRole('navigation', { name: '选择环境' }).getByRole('button')
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    const leftEdges = await rows.evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect().left))
+    expect(new Set(leftEdges).size).toBe(1)
+  }
   await expect(page).toHaveURL(/\/environments\?target=local$/)
 })
