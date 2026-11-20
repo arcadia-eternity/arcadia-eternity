@@ -32,7 +32,28 @@ type Choice = {
 const local = shallowRef<Choice[]>([])
 const published = shallowRef<Choice[]>([])
 const choices = computed(() => [...local.value, ...published.value])
-const selected = computed(() => choices.value.find(choice => key(choice.preference) === key(preference.value)))
+const choiceKey = (choice: Choice) =>
+  JSON.stringify([key(choice.preference), choice.revision, choice.server && client.serverUrl])
+const candidates = computed(() => {
+  const matching = choices.value.filter(choice => choice.preference.environmentId === preference.value?.environmentId)
+  return matching.sort(
+    (a, b) =>
+      Number(b.preference.source === preference.value?.source) -
+      Number(a.preference.source === preference.value?.source),
+  )
+})
+const failures = ref(new Map<string, string>())
+const selected = computed(() => candidates.value.find(choice => !failures.value.has(choiceKey(choice))))
+watch(
+  () => key(preference.value),
+  () => failures.value.clear(),
+  { flush: 'sync' },
+)
+watch(candidates, rows => {
+  const available = new Set(rows.map(choiceKey))
+  for (const failed of failures.value.keys()) if (!available.has(failed)) failures.value.delete(failed)
+})
+const currentId = ref<string>()
 const defaultName = ref(desktop ? '本机当前环境' : '网页默认环境')
 const [DefinePicker, EnvironmentPicker] = createReusableTemplate()
 const pickerOpen = ref(false)
@@ -63,7 +84,12 @@ watch(
         desktop.localEnvironment({ action: 'snapshot' }).then(response => {
           if (controller.signal.aborted) return
           if (response.error) throw new Error(response.error.message)
-          const snapshot = response.result as { workspaceId: string; installations: ManagedEnvironmentInstallation[] }
+          const snapshot = response.result as {
+            workspaceId: string
+            selectedEnvironmentId?: string
+            installations: ManagedEnvironmentInstallation[]
+          }
+          currentId.value = snapshot.selectedEnvironmentId
           local.value = snapshot.installations.flatMap(item =>
             item.status === 'ready'
               ? [
@@ -82,14 +108,13 @@ watch(
         readPreparedWebCatalog().then(catalog => {
           if (controller.signal.aborted) return
           const definitions = catalog.builtins ?? []
+          currentId.value = catalog.defaultEnvironment
           defaultName.value = definitions.find(doc => doc.id === catalog.defaultEnvironment)?.name ?? '网页默认环境'
-          local.value = definitions
-            .filter(doc => doc.id !== catalog.defaultEnvironment)
-            .map(doc => ({
-              name: doc.name,
-              revision: doc.gameplayRevision,
-              preference: { source: 'web', environmentId: doc.id },
-            }))
+          local.value = definitions.map(doc => ({
+            name: doc.name,
+            revision: doc.gameplayRevision,
+            preference: { source: 'web', environmentId: doc.id },
+          }))
         }),
       )
     if (client.isConnected) {
@@ -127,7 +152,7 @@ const target = computed(() => {
   if (!preference.value) return 'current'
   const choice = selected.value
   if (!choice) return discovering.value ? 'discovering' : 'missing'
-  return JSON.stringify([key(choice.preference), choice.revision, choice.server && client.serverUrl])
+  return choiceKey(choice)
 })
 
 watch(
@@ -140,7 +165,8 @@ watch(
     if (targetKey === 'discovering') return
     const choice = selected.value
     try {
-      if (preference.value && !choice) throw new Error('所选环境不可用，请重试或选择其他环境')
+      if (preference.value && !choice)
+        throw new Error(failures.value.values().next().value ?? '所选环境不可用，请重试或选择其他环境')
       if (choice?.server) {
         const prepared = await prepareServerEnvironment(client.serverUrl, choice.server, fetch, controller.signal)
         controller.signal.throwIfAborted()
@@ -182,7 +208,11 @@ watch(
       }
       displayed.value = true
     } catch (cause) {
-      if (!controller.signal.aborted) problem.value = cause instanceof Error ? cause.message : String(cause)
+      if (!controller.signal.aborted) {
+        const message = cause instanceof Error ? cause.message : String(cause)
+        if (choice) failures.value.set(targetKey, message)
+        else problem.value = message
+      }
     } finally {
       if (!controller.signal.aborted) busy.value = false
     }
@@ -190,13 +220,27 @@ watch(
   { immediate: true },
 )
 
-function select(value: string) {
-  storage.setEnvironmentPreference(
-    storage.currentTeamIndex,
-    choices.value.find(choice => key(choice.preference) === value)?.preference,
-  )
+const currentGroup = computed(() => currentId.value ?? '@current')
+const groupId = computed(() => preference.value?.environmentId ?? currentGroup.value)
+const options = computed(() => {
+  const names = new Map([[currentGroup.value, defaultName.value]])
+  for (const choice of choices.value) {
+    const id = choice.preference.environmentId
+    if (!names.has(id)) names.set(id, choice.name)
+  }
+  if (selected.value) names.set(groupId.value, selected.value.name)
+  else if (preference.value && !names.has(groupId.value)) names.set(groupId.value, groupId.value)
+  return names
+})
+function selectGroup(id: string) {
+  if (id === currentGroup.value) storage.setEnvironmentPreference(storage.currentTeamIndex, undefined)
+  else {
+    const choice = choices.value.find(item => item.preference.environmentId === id)
+    if (choice) storage.setEnvironmentPreference(storage.currentTeamIndex, choice.preference)
+  }
 }
 function retrySelection() {
+  failures.value.clear()
   refresh.value++
   if (problem.value) retry.value++
 }
@@ -209,17 +253,16 @@ function retrySelection() {
       <el-select
         size="small"
         aria-label="对战环境"
-        :model-value="key(preference)"
+        :model-value="groupId"
         @visible-change="pickerOpen = $event"
-        @change="select"
+        @change="selectGroup"
       >
-        <el-option value="current" :label="defaultName" />
-        <el-option v-if="preference && !selected" :value="key(preference)" :label="preference.environmentId" disabled />
         <el-option
-          v-for="choice in choices"
-          :key="key(choice.preference)"
-          :value="key(choice.preference)"
-          :label="(choice.server ? '服务器 · ' : desktop ? '本机 · ' : '') + choice.name"
+          v-for="[id, name] in options"
+          :key="id"
+          :value="id"
+          :label="name"
+          :disabled="id !== currentGroup && id === groupId && !candidates.length"
         />
         <template #footer>
           <div class="flex items-center justify-between gap-2">
@@ -233,9 +276,17 @@ function retrySelection() {
         </template>
       </el-select>
       <el-icon v-if="busy" class="animate-spin" role="status" aria-label="正在切换环境"><Loading /></el-icon>
-      <el-button v-if="problem || discoveryError" link type="primary" @click="retrySelection">重试</el-button>
+      <el-button v-if="problem || (discoveryError && !selected)" link type="primary" @click="retrySelection"
+        >重试</el-button
+      >
     </div>
-    <el-alert v-if="discoveryError" class="mt-1" :title="discoveryError" type="warning" :closable="false" />
+    <el-alert
+      v-if="discoveryError && !selected"
+      class="mt-1"
+      :title="discoveryError"
+      type="warning"
+      :closable="false"
+    />
   </DefinePicker>
   <div>
     <component
@@ -261,6 +312,7 @@ function retrySelection() {
 .environment-field {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-block: 8px;
 }

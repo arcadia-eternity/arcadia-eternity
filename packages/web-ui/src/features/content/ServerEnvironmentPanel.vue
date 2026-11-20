@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElButton, ElDrawer, ElSkeleton } from 'element-plus'
 import { useManagementController } from '@/features/management/useManagementController'
 import ManagementLogin from '@/features/management/ManagementLogin.vue'
@@ -9,7 +9,16 @@ import PublicEnvironments from './PublicEnvironments.vue'
 import EnvironmentServerUsage from '@/features/management/EnvironmentServerUsage.vue'
 import '@/features/management/managementStyles'
 import '@/features/management/management.css'
-const props = defineProps<{ target: 'local' | 'server'; bindingsOnly?: boolean; environmentId?: string }>()
+import { managedLocation, type EnvironmentLocation } from './environmentGroups'
+const editRequested = defineModel<boolean>('editRequested', { default: false })
+const emit = defineEmits<{ catalog: [rows: EnvironmentLocation[]]; busy: [value: boolean] }>()
+const props = defineProps<{
+  target: 'local' | 'server'
+  relatedEnvironmentId?: string
+  bindingsOnly?: boolean
+  environmentId?: string
+  selection?: string | null
+}>()
 // This component is remounted by the hub when its target changes.
 const controller = useManagementController(
   { initialTarget: props.target, initialTab: 'environments', scope: 'content' },
@@ -28,6 +37,21 @@ const {
   logout,
   activeOperations,
 } = controller
+const managed = computed(() => initialized.value && isAdministrator.value && !loginRequired.value)
+const publicRows = ref<EnvironmentLocation[]>([])
+const managedEntries = computed(() =>
+  controller.environments.value.map(environment => ({
+    ...managedLocation(environment, 'server', '服务器'),
+    workspaceId: state.workspaceId.value,
+    serverId: controller.server.value?.id,
+  })),
+)
+watch(
+  () => (managed.value ? managedEntries.value : publicRows.value),
+  rows => emit('catalog', rows),
+  { immediate: true },
+)
+watch(busy, value => emit('busy', value), { immediate: true })
 const loginOpen = ref(false)
 const tasksOpen = ref(false)
 watch(tab, value => {
@@ -41,7 +65,7 @@ watch(isAdministrator, allowed => {
 })
 </script>
 <template>
-  <section class="server-content" aria-label="服务器环境">
+  <section v-show="selection !== null" class="server-content" aria-label="服务器环境">
     <ElSkeleton v-if="!initialized" :rows="8" animated aria-label="正在加载环境" />
     <div v-if="initialized && !bindingsOnly" class="actions">
       <template v-if="isAdministrator && !loginRequired">
@@ -61,17 +85,30 @@ watch(isAdministrator, allowed => {
         :controller="controller"
         :environment-id="environmentId"
       />
-      <ManagementEnvironments v-else :controller="controller" />
+      <ManagementEnvironments
+        v-else-if="selection !== null"
+        :key="selection"
+        :controller="controller"
+        v-model:edit-requested="editRequested"
+        :hide-navigation="selection !== undefined"
+        :navigation="selection !== undefined ? { entries: managedEntries, selected: selection } : undefined"
+      />
       <ElDrawer v-if="!bindingsOnly" v-model="tasksOpen" title="环境任务" size="min(860px, 100vw)" append-to-body
         ><ManagementTasks :controller="controller" content-only
       /></ElDrawer>
     </template>
     <template v-else-if="initialized && target === 'server'">
       <ManagementLogin v-if="loginOpen" :controller="controller" account-return-to="/account?returnTo=environments" />
-      <PublicEnvironments v-else />
+      <PublicEnvironments v-else :selection="selection" @catalog="publicRows = $event" />
     </template>
     <RouterLink v-else-if="initialized && !loading" to="/servers">启动本机服务器</RouterLink>
   </section>
+  <EnvironmentServerUsage
+    v-if="managed && selection === null && relatedEnvironmentId"
+    class="server-content"
+    :controller="controller"
+    :environment-id="relatedEnvironmentId"
+  />
 </template>
 <style scoped>
 .server-content {

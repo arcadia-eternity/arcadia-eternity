@@ -6,11 +6,13 @@ import EnvironmentWorkspace, { type EnvironmentNavigation } from './EnvironmentW
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import EnvironmentServerUsage from './EnvironmentServerUsage.vue'
 import EnvironmentImportDialog from './EnvironmentImportDialog.vue'
-const { controller, navigation } = defineProps<{
+const { controller, navigation, hideNavigation } = defineProps<{
   controller: ManagementController
+  hideNavigation?: boolean
   navigation?: EnvironmentNavigation
 }>()
-const emit = defineEmits<{ navigate: [key: string] }>()
+const editRequested = defineModel<boolean>('editRequested', { default: false })
+const emit = defineEmits<{ navigate: [key: string, edit?: boolean] }>()
 const {
   state,
   error,
@@ -43,9 +45,11 @@ function openImport() {
 <template>
   <EnvironmentWorkspace
     v-if="supported('workspace.environments')"
-    :heading="navigation ? '本机环境库' : '服务器环境库'"
+    :heading="controller.target.value === 'local' && navigation ? '本机环境库' : '服务器环境库'"
     :navigation="navigation"
-    @navigate="emit('navigate', $event)"
+    :hide-navigation="hideNavigation"
+    v-model:edit-requested="editRequested"
+    @navigate="(key, edit) => emit('navigate', key, edit)"
     :key="client?.context.endpoint"
     :preview-export="previewExport"
     :environments="environments"

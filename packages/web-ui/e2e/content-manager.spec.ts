@@ -223,7 +223,28 @@ test('browser content is read-only and desktop authoring and host routes stay cl
   await page.route('**/arcadia-client.json', route =>
     route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
   )
-  await page.route('**/api/v1/environments', route => route.fulfill({ json: { protocolVersion: 1, environments: [] } }))
+  await page.route('**/api/management/v1/**', route =>
+    route.fulfill({ status: 401, json: { error: { code: 'MANAGEMENT_UNAUTHENTICATED' } } }),
+  )
+  await page.route('**/api/v1/environments', route =>
+    route.fulfill({
+      json: {
+        protocolVersion: 1,
+        environments: [
+          {
+            protocolVersion: 1,
+            environmentId: 'builtin-server',
+            environmentName: '联机默认规则',
+            id: 'a'.repeat(64),
+            resourceRevision: 'b'.repeat(64),
+            runtime: { kind: 'native-v4', coreBuildId: 'core', registryBuildId: 'registry', contentRevision: 'remote' },
+            resources: [],
+            packages: [],
+          },
+        ],
+      },
+    }),
+  )
   await page.goto('/')
   const tools = page.getByRole('navigation', { name: '游戏工具' })
   await expect(tools).toBeVisible()
@@ -233,7 +254,11 @@ test('browser content is read-only and desktop authoring and host routes stay cl
   await expect(page.getByRole('button', { name: '创作', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '添加内容包', exact: true })).toHaveCount(0)
   await expect(page.locator('.environment-hub input[type=checkbox]')).toHaveCount(0)
-  await expect(page.locator('.environment-hub')).toContainText('服务器暂无公开环境')
+  const directory = page.getByRole('navigation', { name: '选择环境' })
+  await expect(directory.getByRole('button', { name: /默认环境/ })).toHaveCount(1)
+  await expect(page.getByRole('group', { name: '环境来源' })).toHaveCount(0)
+  await expect(page.getByRole('article', { name: '网页内置环境详情' })).toContainText('默认环境')
+  await expect(page.getByRole('button', { name: '编辑', exact: true })).toHaveCount(0)
   for (const route of ['/creation', '/creation/edit', '/creation/development', '/settings/local-service']) {
     await page.goto(route)
     await expect(page.getByRole('heading', { name: '本地内容工具', exact: true })).toBeVisible()

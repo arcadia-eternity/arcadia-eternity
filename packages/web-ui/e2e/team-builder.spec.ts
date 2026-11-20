@@ -364,11 +364,11 @@ test('keeps the active environment through warehouse visits and releases a super
     await page.getByRole('option', { name, exact: true }).click()
   }
   await expect(page.locator('.el-card__header').filter({ hasText: '当前队伍' }).getByRole('combobox')).toBeVisible()
-  await choose('本机 · slow')
+  await choose('slow')
   await expect(page.getByRole('status', { name: '正在切换环境' })).toBeVisible()
   await expect(page.getByPlaceholder('输入精灵名称')).toBeVisible()
   await expect(page.getByRole('button', { name: '导出队伍', exact: true })).toHaveCount(0)
-  await choose('本机 · fast')
+  await choose('fast')
   finish()
   await expect.poll(() => releases).toEqual(['slow'])
   await page.getByRole('link', { name: '仓库管理' }).click()
@@ -390,7 +390,7 @@ test('keeps the active environment through warehouse visits and releases a super
   expect(started).toBe(2)
 
   unavailable = true
-  await choose('本机 · fast')
+  await choose('fast')
   await expect(page.getByRole('alert').filter({ hasText: '环境暂不可用' })).toBeVisible()
   await expect(page.getByRole('button', { name: '导出队伍', exact: true })).toBeVisible()
   unavailable = false

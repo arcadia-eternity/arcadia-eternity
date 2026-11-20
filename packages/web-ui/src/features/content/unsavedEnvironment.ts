@@ -1,10 +1,18 @@
-import { inject, onBeforeUnmount, type InjectionKey } from 'vue'
+import { inject, provide, shallowReactive, onBeforeUnmount, type InjectionKey } from 'vue'
 import { ElMessageBox } from 'element-plus'
 
-export const environmentDraftsKey: InjectionKey<Set<() => boolean>> = Symbol('environmentDrafts')
-export function registerEnvironmentDraft(isDirty: () => boolean) {
+const environmentDraftsKey: InjectionKey<Map<() => boolean, () => boolean>> = Symbol('environmentDrafts')
+export function useEnvironmentDrafts() {
+  const drafts = inject(environmentDraftsKey, undefined) ?? shallowReactive(new Map<() => boolean, () => boolean>())
+  provide(environmentDraftsKey, drafts)
+  return {
+    dirty: () => [...drafts.keys()].some(check => check()),
+    open: () => [...drafts.values()].some(check => check()),
+  }
+}
+export function registerEnvironmentDraft(isDirty: () => boolean, isOpen = isDirty) {
   const drafts = inject(environmentDraftsKey, undefined)
-  drafts?.add(isDirty)
+  drafts?.set(isDirty, isOpen)
   onBeforeUnmount(() => drafts?.delete(isDirty))
 }
 export async function discardEnvironmentChanges() {
