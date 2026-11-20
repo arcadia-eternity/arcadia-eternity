@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElInput, ElSelect, ElOption } from 'element-plus'
-import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
+import type { AuthorEffectCatalog, DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import { computed, ref } from 'vue'
 import { Element } from '@arcadia-eternity/const'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
@@ -15,6 +15,7 @@ const props = defineProps<{
   kind: string
   records: SourceRecord[]
   projectId: string
+  effectCatalog?: AuthorEffectCatalog
   dependencyCatalog?: DependencyReferenceCatalog
   assets: { id: string; source: string; kind: string; name?: string }[]
   sharedFields?: SharedField[]
@@ -114,10 +115,17 @@ const options = computed(() => {
         },
       ]),
   )
-  // Code-defined effects may have no standalone data record. Offer IDs already referenced by this project without executing code.
-  if (referenceKind.value === 'behaviors')
+  const sourceKind = props.kind === 'skills' ? 'skill' : 'petMark'
+  if (referenceKind.value === 'behaviors' && props.effectCatalog) {
+    for (const effect of props.effectCatalog.definitions) {
+      if (effect.sourceKind === sourceKind && !known.has(effect.id))
+        known.set(effect.id, { id: effect.id, label: effect.id, detail: effect.file })
+    }
+  }
+  // Older factory-based projects have no declaration catalog. Reuse references from the same attachment kind.
+  if (referenceKind.value === 'behaviors' && !props.effectCatalog)
     for (const row of props.records) {
-      if (!Array.isArray(row.record.behaviors)) continue
+      if (row.kind !== props.kind || !Array.isArray(row.record.behaviors)) continue
       for (const use of row.record.behaviors) {
         const value = object(use) ? use.definitionId : undefined
         if (!object(value) || !object(value.$ref)) continue

@@ -552,6 +552,24 @@ small,
 .error {
   color: var(--author-danger);
 }
+.effect-catalog {
+  margin-bottom: 16px;
+}
+.effect-catalog table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+}
+.effect-catalog th,
+.effect-catalog td {
+  padding: 8px;
+  border-bottom: 1px solid var(--author-border);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.effect-catalog thead {
+  color: var(--author-muted);
+}
 .file-links {
   display: flex;
   flex-wrap: wrap;

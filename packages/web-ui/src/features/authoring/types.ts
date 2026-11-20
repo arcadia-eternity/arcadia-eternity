@@ -1,3 +1,4 @@
+import type { AuthorEffectCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
 export type ContentRow = Record<string, Json> & { id: string }
 export interface SharedField {
@@ -58,6 +59,7 @@ export interface AuthorSnapshot {
   project: { projectId: string; namespace: string; sdkApi?: number }
   capabilities?: { sourceEditing: boolean; structuredSaving: boolean; localeEditing: boolean }
   records: SourceRecord[]
+  effectCatalog?: AuthorEffectCatalog
   files: SourceFile[]
   assets: SourceAsset[]
   locales: Record<string, Json>

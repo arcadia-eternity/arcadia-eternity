@@ -60,6 +60,33 @@ test(
         await page.getByRole('button', { name: '确认保存', exact: true }).click()
         await expect(page.getByRole('status').filter({ hasText: `已保存 ${count} 个源文件。` })).toBeVisible()
       }
+      await category('效果代码').click()
+      const effects = page.getByRole('region', { name: '已识别效果' })
+      await expect(effects.getByRole('row', { name: /apply-slow/ })).toContainText('霜击')
+      const effectFile = join(project.directory, 'src/effects/bonus.effect.ts')
+      await writeFile(
+        effectFile,
+        `
+import { effect, on, EffectTrigger } from '@arcadia-eternity/content-sdk'
+@effect({ id: 'bonus-hit', sourceKind: 'skill' })
+export class BonusHit { @on(EffectTrigger.OnHit) static apply() {} }
+`,
+      )
+      const newEffect = effects.getByRole('row', { name: /bonus-hit/ })
+      await expect(newEffect).toContainText('未关联')
+      await category(/^技能/).click()
+      await page.locator('.content-card').filter({ hasText: '霜击' }).click()
+      await page.getByRole('button', { name: '效果引用', exact: true }).click()
+      await page.getByRole('button', { name: '关联已有效果…' }).click()
+      await expect(page.getByRole('option', { name: /speed-penalty/ })).toHaveCount(0)
+      await page.getByRole('option', { name: /bonus-hit/ }).click()
+      await save(1)
+      assert.match(await readFile(join(project.directory, 'data/skills/strike.yaml'), 'utf8'), /id: bonus-hit/)
+      await category('效果代码').click()
+      await expect(newEffect).toContainText('霜击')
+      await category(/^技能/).click()
+      await page.getByRole('button', { name: '规则与资料', exact: true }).click()
+      await category(/^精灵/).click()
       // A mark is a first-class starting point, with no creature required.
       await page.getByRole('button', { name: '新建内容', exact: true }).click()
       await page.getByLabel('内容类型', { exact: true }).selectOption('marks')

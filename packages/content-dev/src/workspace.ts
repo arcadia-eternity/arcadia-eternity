@@ -2,7 +2,7 @@ import { sha256Hex, sha256StreamHex } from '@arcadia-eternity/const'
 import { isContentLocaleField, contentLocaleCollection } from '@arcadia-eternity/schema'
 import { createReadStream } from 'node:fs'
 import { lstat, mkdir, readdir, readFile, realpath, unlink } from 'node:fs/promises'
-import { dirname, extname, isAbsolute, join, relative, sep } from 'node:path'
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
 import YAML from 'yaml'
@@ -16,6 +16,8 @@ import { yamlSharing, recordSharing, changedSharedField, sharingSignature } from
 import type { NodePath, SharedField } from './lib/yaml-sharing.ts'
 import { withSourceLock } from './source-lock.ts'
 import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.ts'
+
+import type { AuthorEffectCatalog } from './effect-declarations.ts'
 
 const ignored = new Set(['node_modules', 'dist', '.git', '.arcadia', '.DS_Store', 'Thumbs.db'])
 const kinds = [
@@ -149,6 +151,7 @@ export interface WorkspaceSnapshot {
   version: string | undefined
   records: WorkspaceRecord[]
   files: WorkspaceFile[]
+  effectCatalog?: AuthorEffectCatalog
   assets: WorkspaceAsset[]
   locales: Record<string, unknown>
   localeSources: WorkspaceLocaleSource[]
@@ -320,6 +323,7 @@ export class AuthorWorkspace extends EventEmitter {
   baseProject?: ManifestArcadia & { projectId: string; namespace: string }
   #watcher: FSWatcher | undefined
   #queues = new Map<string, Promise<unknown>>()
+  #effectDeclarations = new Map<string, { version: string; namespace: string; catalog: AuthorEffectCatalog }>()
   #dirty = new Set<string>()
   #closed = false
   constructor(root: string) {
@@ -449,6 +453,55 @@ export class AuthorWorkspace extends EventEmitter {
       hashes.push([entry.file, await sha256StreamHex(createReadStream(await this.path(entry.file)))])
     }
     return sha256Hex(JSON.stringify(hashes))
+  }
+  async #effectCatalog(project: ManifestArcadia, files: WorkspaceFile[]): Promise<AuthorEffectCatalog | undefined> {
+    if (typeof project.effectSources !== 'string' || !project.effectSources || this.published) return
+    const catalog: AuthorEffectCatalog = { definitions: [], issues: [] }
+    if (!project.effectArtifact || project.effects) {
+      catalog.issues.push({
+        file: 'package.json',
+        message: 'effectSources 需要指定 effectArtifact，并移除 effects 入口。',
+      })
+      return catalog
+    }
+    const directory = relative(this.root, resolve(this.root, project.effectSources)).split(sep).join('/')
+    const sources = files.filter(
+      entry => (!directory || entry.file.startsWith(directory + '/')) && entry.file.endsWith('.effect.ts'),
+    )
+    const current = new Set(sources.map(entry => entry.file))
+    for (const file of this.#effectDeclarations.keys()) if (!current.has(file)) this.#effectDeclarations.delete(file)
+    const namespace = project.namespace ?? ''
+    for (const { file } of sources) {
+      try {
+        const source = await this.read(file)
+        let cached = this.#effectDeclarations.get(file)
+        if (!cached || cached.version !== source.version || cached.namespace !== namespace) {
+          const { inspectEffectDeclarations } = await import('./effect-declarations.ts')
+          cached = {
+            version: source.version,
+            namespace,
+            catalog: inspectEffectDeclarations(file, source.text, namespace),
+          }
+          this.#effectDeclarations.set(file, cached)
+        }
+        catalog.definitions.push(...cached.catalog.definitions)
+        catalog.issues.push(...cached.catalog.issues)
+      } catch (error) {
+        catalog.issues.push({ file, message: errorMessage(error) })
+      }
+    }
+    const seen = new Set<string>(),
+      duplicates = new Set<string>()
+    for (const effect of catalog.definitions) {
+      if (seen.has(effect.id)) duplicates.add(effect.id)
+      seen.add(effect.id)
+    }
+    catalog.definitions = catalog.definitions.filter(effect => {
+      if (!duplicates.has(effect.id)) return true
+      catalog.issues.push({ file: effect.file, message: `效果 ID 重复：${effect.id}` })
+      return false
+    })
+    return catalog
   }
   async snapshot(): Promise<WorkspaceSnapshot> {
     const source = await this.read('package.json')
@@ -693,6 +746,7 @@ export class AuthorWorkspace extends EventEmitter {
       version: manifest.version,
       records,
       files,
+      effectCatalog: await this.#effectCatalog(project, files),
       assets,
       locales,
       localeSources,

@@ -466,7 +466,17 @@ function editAssetSource(location: string) {
   void attempt(() => readAsset(location, row.record.id))
   notice.value = '资源位置已加入草稿；所有使用者继续使用原资源 ID。'
 }
-const files = computed(() => snapshot.value?.files.filter(row => row.file.startsWith('src/')) ?? [])
+const files = computed(
+  () => snapshot.value?.files.filter(row => row.file.startsWith('src/') || row.file.endsWith('.effect.ts')) ?? [],
+)
+const effectRows = computed(() =>
+  (snapshot.value?.effectCatalog?.definitions ?? []).map(effect => ({
+    ...effect,
+    users: catalogIndex.value
+      .consumers('behaviors', effect.id)
+      .filter(row => row.kind === 'skills' || row.kind === 'marks'),
+  })),
+)
 const testFiles = computed(() => snapshot.value?.files.filter(row => /^(test|tests)\//.test(row.file)) ?? [])
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
 const latestPack = computed(() => jobs.value.find(job => ['pack', 'release'].includes(job.kind)))
@@ -824,7 +834,8 @@ function navigate(kind: string, id: string, fromList = false) {
   const matches = effectiveRecords.value.filter(row => row.kind === kind && row.record.id === id)
   const row = matches.length === 1 ? matches[0] : undefined
   if (kind === 'behaviors') {
-    void attempt(() => external(row?.file))
+    const effect = snapshot.value?.effectCatalog?.definitions.find(effect => effect.id === id)
+    void attempt(() => external(row?.file ?? effect?.file, row ? undefined : effect?.line))
     return
   }
   if (!row || matches.length !== 1) {
@@ -1784,6 +1795,7 @@ onBeforeUnmount(() => {
                   :kind="selected.kind"
                   :records="effectiveRecords"
                   :dependency-catalog="dependencyCatalog"
+                  :effect-catalog="snapshot?.effectCatalog"
                   :project-id="projectId"
                   :assets="assets"
                   :shared-fields="
@@ -1930,12 +1942,47 @@ onBeforeUnmount(() => {
         </template>
         <template v-else-if="tab === 'effects'">
           <header class="page-heading">
-            <div>
-              <h1>效果代码</h1>
-              <p>在外部编辑器维护效果实现，保存后自动更新。</p>
-            </div>
+            <h1>效果代码</h1>
           </header>
-          <details v-if="files.length" class="source-details" open>
+          <section v-if="snapshot?.effectCatalog" class="effect-catalog" aria-label="已识别效果">
+            <h3>已识别效果 · {{ effectRows.length }}</h3>
+            <table v-if="effectRows.length">
+              <thead>
+                <tr>
+                  <th>效果 ID</th>
+                  <th>可关联到</th>
+                  <th>当前引用</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="effect in effectRows" :key="effect.id">
+                  <th scope="row">
+                    <code>{{ effect.id }}</code>
+                  </th>
+                  <td>{{ effect.sourceKind === 'skill' ? '技能' : '印记' }}</td>
+                  <td>
+                    <div v-if="effect.users.length" class="tools">
+                      <button
+                        v-for="row in effect.users"
+                        :key="recordKey(row)"
+                        @click="navigate(row.kind, row.record.id)"
+                      >
+                        {{ label(row) }}
+                      </button>
+                    </div>
+                    <span v-else>未关联</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-if="!effectRows.length && !snapshot.effectCatalog.issues.length" class="hint">
+              在效果目录的 *.effect.ts 文件中导出带 @effect 的类。
+            </p>
+            <p v-for="(issue, index) in snapshot.effectCatalog.issues" :key="index" class="error">
+              {{ issue.file }} · {{ issue.message }}
+            </p>
+          </section>
+          <details v-if="files.length" class="source-details">
             <summary>效果源文件</summary>
             <div class="file-links">
               <button v-for="file in files" :key="file.file" @click="attempt(() => external(file.file))">

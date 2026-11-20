@@ -21,6 +21,8 @@ export type DependencyReferenceCatalog = Awaited<ReturnType<typeof dependencyRef
 export { ContentWorkspace } from './content-workspace.ts'
 export { normalizeEnvironmentDocument } from './debug-environments.ts'
 
+export type { AuthorEffectCatalog } from './effect-declarations.ts'
+
 export interface AuthorSessionOptions extends WorkspaceOptions {
   execute?: boolean
   contextFile?: string
