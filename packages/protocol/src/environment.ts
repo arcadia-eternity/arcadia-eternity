@@ -17,6 +17,8 @@ export interface ServerEnvironmentDescriptor {
   protocolVersion: 1
   /** Logical source identity remains stable when a new revision is published. */
   environmentId?: string
+  /** Former workspace IDs for migrating saved selections after an upgrade. */
+  previousEnvironmentIds?: string[]
   environmentName?: string
   /** Set on the public list entry selected by the server as its default. */
   isDefault?: boolean

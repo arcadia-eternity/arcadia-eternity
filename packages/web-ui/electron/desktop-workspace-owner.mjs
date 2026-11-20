@@ -131,6 +131,7 @@ export class DesktopWorkspaceOwner {
           root: workspace.root,
           bootId: workspace.bootId,
           builtinEnvironmentId: this.builtinId?.(),
+          builtinEnvironmentAliases: workspace.builtinEnvironmentAliases,
           builtinEnvironmentIds: workspace.builtinEnvironmentIds,
         }
       if ((method === 'listClientEnvironmentIds' || method === 'acquireClientEnvironment') && !openClientWorkspace)

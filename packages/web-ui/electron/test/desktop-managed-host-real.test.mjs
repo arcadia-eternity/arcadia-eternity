@@ -338,9 +338,7 @@ test(
         assert.equal(published?.environmentName, name)
         assert.equal(published.rules.team.maxSize, maxSize)
       }
-      const extended = environments.find(
-        item => item.environmentId === builtin.workspace.builtinEnvironmentIds['training-120'],
-      )
+      const extended = environments.find(item => item.environmentId === 'training-120')
       assert.equal(extended.rules.mechanics.individualValues.max, 120)
       assert.equal(extended.rules.mechanics.secondGenerationNatures, 'species')
       assert.equal(extended.rules.mechanics.enhancement.stages.length, 16)

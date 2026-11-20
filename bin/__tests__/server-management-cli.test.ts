@@ -225,7 +225,10 @@ it('bootstraps playable builtin content once and preserves administrator removal
   const draft = drafts.find(item => item.document.id === binding.environmentId)!
   expect(draft.requiredPackages).toEqual([base])
   const extended = drafts.find(item => item.builtin && item.document.id !== draft.document.id)!
+  const published120 = environments.find(item => item.environmentId === extended.document.id)
+  expect(published120?.environmentId).toBe('training-120')
   expect(extended.document).toMatchObject({
+    id: 'training-120',
     name: '120 资质 · 神魔化与二代',
     rules: {
       include: ['base:classic'],
@@ -389,6 +392,80 @@ it('refreshes stale builtin content after a release without changing administrat
   expect(binding.environmentId).toBe(previousVersionId)
   expect(server.defaultBindingId).toBe(binding.id)
 }, 120_000)
+
+it('migrates a legacy 120 binding in place and keeps a removed default unpublished', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-legacy-120-'))
+  directories.push(directory)
+  await command(['db', 'migrate', '--data-dir', directory])
+  const { serverId } = JSON.parse(await readFile(join(directory, 'identity.json'), 'utf8'))
+  const root = join(directory, 'workspace')
+  const workspace = await ContentWorkspace.open(root)
+  const oldId = 'builtin-' + randomUUID()
+  const bindingId = randomUUID()
+  const scope = 'server:' + serverId
+  const storage = openStorage({ driver: 'sqlite', filename: join(directory, 'server.sqlite') })
+  try {
+    const { workspaceId } = workspace
+    const metadata = JSON.parse(await readFile(join(root, 'workspace.json'), 'utf8'))
+    await writeFile(
+      join(root, 'workspace.json'),
+      JSON.stringify({
+        ...metadata,
+        builtinEnvironmentIds: { 'builtin-server': 'builtin-server', 'training-120': oldId },
+      }),
+    )
+    await storage.create('servers', {
+      id: serverId,
+      scope,
+      value: {
+        name: 'Legacy',
+        workspaceId,
+        defaultBindingId: bindingId,
+        initialization: { kind: 'builtin', environmentId: 'builtin-server', state: 'completed' },
+        initializedBuiltinEnvironmentIds: ['builtin-server', oldId],
+      },
+    })
+    await storage.create('bindings', {
+      id: bindingId,
+      scope,
+      value: {
+        serverId,
+        workspaceId,
+        environmentId: oldId,
+        enabled: true,
+        visibility: 'public',
+        executionPolicy: 'server',
+        matchmakingEnabled: false,
+      },
+    })
+    await storage.create('retentions', {
+      id: 'workspace:' + workspaceId + ':binding:' + bindingId,
+      scope: 'workspace:' + workspaceId,
+      value: { installationId: oldId, retentionId: 'binding:' + bindingId },
+    })
+  } finally {
+    await workspace.close()
+    await storage.close()
+  }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const running = await start(directory)
+    const request = await administrator(running.origin, directory)
+    const [server] = (await request<{ servers: Server[] }>('/servers')).servers
+    expect(server.defaultBindingId).toBe(bindingId)
+    expect(await getBindings(request, server)).toEqual([
+      expect.objectContaining({
+        id: bindingId,
+        environmentId: 'training-120',
+        matchmakingEnabled: false,
+        condition: 'available',
+      }),
+    ])
+    expect(await catalog(running.origin)).toEqual([
+      expect.objectContaining({ environmentId: 'training-120', previousEnvironmentIds: [oldId], isDefault: true }),
+    ])
+    await stop(running.child)
+  }
+}, 90_000)
 
 it('publishes shipped environments on upgrade without resetting the server default', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-existing-publication-'))

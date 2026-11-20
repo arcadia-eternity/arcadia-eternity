@@ -42,7 +42,7 @@ it('groups the same logical ID and uses the available copy across team and wareh
           {
             status: 'ready',
             document: { name: '本地规则' },
-            environmentId: 'friends',
+            environmentId: 'training-120',
             draftRevision: 'local-r',
             contentRevision: 'local-c',
           },
@@ -50,11 +50,17 @@ it('groups the same logical ID and uses the available copy across team and wareh
       },
     }),
   })
-  const descriptor = { environmentId: 'friends', environmentName: '联机规则', id: 'remote-publication', packages: [] }
+  const descriptor = {
+    previousEnvironmentIds: ['builtin-previous'],
+    environmentId: 'training-120',
+    environmentName: '联机规则',
+    id: 'remote-publication',
+    packages: [],
+  }
   list.mockResolvedValue([descriptor])
   prepare.mockResolvedValue({ content: {} })
   capture.mockResolvedValue({ content: {}, release: async () => {} })
-  team.environmentPreference = { source: 'server:remote', environmentId: 'friends' }
+  team.environmentPreference = { source: 'server:remote', environmentId: 'builtin-previous' }
   const page = mount(PersonalEnvironmentView, {
     props: { warehouse: false },
     global: { plugins: [ElementPlus], stubs: { PersonalTeamEditor: slot, StorageManager: slot } },
@@ -69,25 +75,25 @@ it('groups the same logical ID and uses the available copy across team and wareh
     const options = () =>
       environment()
         .findAllComponents(ElOption)
-        .filter(item => item.props('value') === 'friends')
+        .filter(item => item.props('value') === 'training-120')
     expect(options()).toHaveLength(1)
     expect(prepare).toHaveBeenCalledWith(client.serverUrl, descriptor, expect.any(Function), expect.any(AbortSignal))
     await page.setProps({ warehouse: true })
     expect(picker('环境来源')).toBeUndefined()
-    expect(environment().props('modelValue')).toBe('friends')
+    expect(environment().props('modelValue')).toBe('training-120')
     client.isConnected = false
     await flushPromises()
     expect(options()).toHaveLength(1)
-    expect(capture).toHaveBeenCalledWith('friends', false)
-    expect(team.environmentPreference).toEqual({ source: 'server:remote', environmentId: 'friends' })
+    expect(capture).toHaveBeenCalledWith('training-120', false)
+    expect(team.environmentPreference).toEqual({ source: 'server:remote', environmentId: 'training-120' })
     capture.mockClear()
     prepare.mockRejectedValueOnce(new Error('服务器连接已中断'))
     client.isConnected = true
     await flushPromises()
-    expect(capture).toHaveBeenCalledWith('friends', false)
+    expect(capture).toHaveBeenCalledWith('training-120', false)
     expect(page.find('[role="alert"]').exists()).toBe(false)
     await page.setProps({ warehouse: false })
-    expect(environment().props('modelValue')).toBe('friends')
+    expect(environment().props('modelValue')).toBe('training-120')
   } finally {
     page.unmount()
   }
