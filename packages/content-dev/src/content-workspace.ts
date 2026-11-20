@@ -238,6 +238,7 @@ export interface ContentWorkspace {
   cleanupStaging(): Promise<string[]>
 }
 export interface OwnedContentWorkspace extends ContentWorkspace {
+  refreshBuiltinRules(documents: readonly EnvironmentDocument[]): Promise<void>
   registerBuiltinEnvironments(
     keys: string[],
     adopted: Record<string, string>,
@@ -424,6 +425,28 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       await workspace.close({ force: true })
       throw error
     }
+  }
+  /** Registered builtins use the declarations shipped with the app, including on the first startup after an update. */
+  refreshBuiltinRules(documents: readonly EnvironmentDocument[]) {
+    return this.#exclusive(async () => {
+      for (const document of documents) {
+        if (this.builtinEnvironmentIds[document.id] !== document.id) continue
+        const directory = this.#directory(document.id)
+        const resolved = await realpath(directory).catch(error => {
+          if (errorCode(error) !== 'ENOENT') throw error
+          return undefined
+        })
+        if (!resolved) continue
+        if (resolved !== directory) throw contentError('WORKSPACE_PATH_INVALID')
+        const file = join(directory, 'package.json')
+        const manifest = await readJson(file)
+        const declaration = manifest.arcadiaEnvironment
+        if (!isRecord(declaration) || declaration.id !== document.id) throw contentError('ENVIRONMENT_ID_MISMATCH')
+        if (isDeepStrictEqual(declaration.rules, document.rules)) continue
+        declaration.rules = document.rules
+        await writeFileAtomic(file, json(manifest))
+      }
+    }, true)
   }
   registerBuiltinEnvironments(keys: string[], adopted: Record<string, string>) {
     return this.#exclusive(async () => {
