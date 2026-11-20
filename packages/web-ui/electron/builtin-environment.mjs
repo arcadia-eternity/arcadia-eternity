@@ -10,10 +10,10 @@ const base = '@arcadia-eternity/data-pack-base'
 export async function openBuiltinEnvironment({
   workspace,
   library,
-  rules,
+  catalog,
   validate,
   legacyBuiltinId,
-  prepareExtended,
+  synchronizeShippedEnvironments,
 }) {
   const file = join(workspace.root, 'builtin-environment.json')
   const drafts = await workspace.listDrafts()
@@ -22,10 +22,15 @@ export async function openBuiltinEnvironment({
   })
   const marker = saved && JSON.parse(saved)
   const legacy = !saved && drafts.some(item => item.document.id === 'desktop-host') && (await legacyBuiltinId())
-  const id = saved
-    ? marker.id
-    : legacy ||
-      (drafts.some(item => item.document.id === 'builtin-server') ? 'builtin-' + randomUUID() : 'builtin-server')
+  const mapped = workspace.builtinEnvironmentIds?.[catalog.defaultEnvironment]
+  const id =
+    mapped ??
+    (saved
+      ? marker.id
+      : legacy ||
+        (drafts.some(item => item.document.id === catalog.defaultEnvironment)
+          ? 'builtin-' + randomUUID()
+          : catalog.defaultEnvironment))
   if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(id)) throw new Error('INVALID_BUILTIN_ENVIRONMENT')
   async function saveMarker(initialized) {
     const temporary = file + '.' + randomUUID()
@@ -36,18 +41,7 @@ export async function openBuiltinEnvironment({
   const current = drafts.find(item => item.document.id === id)
   const lease = await library.acquireDefaultProject()
   try {
-    const version = JSON.parse(
-      await readFile(join(lease.directory, 'node_modules', base, 'package.json'), 'utf8'),
-    ).version
-    const document = {
-      schemaVersion: 2,
-      id,
-      name: '默认环境',
-      packages: { [base]: version },
-      sources: [],
-      rules,
-      requires: {},
-    }
+    const document = { ...catalog.environments.find(doc => doc.id === catalog.defaultEnvironment), id }
     const existing = current && (await workspace.listInstallations(id))[0]
     if (!marker?.initialized && current && !isDeepStrictEqual(current.document, document)) {
       // Preserve edits made while earlier releases still allowed editing the official host.
@@ -71,17 +65,27 @@ export async function openBuiltinEnvironment({
           )
       }
     }
-    if (
-      !isDeepStrictEqual(current?.document, document) ||
-      existing?.status !== 'ready' ||
-      existing.draftRevision !== current.revision
+    await synchronizeShippedEnvironments(
+      workspace,
+      catalog,
+      { [catalog.defaultEnvironment]: id },
+      async (document, expectedRevision) => {
+        const input = { environmentId: document.id, document, expectedRevision }
+        if (
+          Object.keys(document.packages).length === 1 &&
+          Object.hasOwn(document.packages, base) &&
+          !document.sources.length
+        )
+          return workspace.prepareEnvironment({ ...input, projectDirectory: lease.directory }, validate)
+        const project = await library.prepareEnvironmentProject(document, { offline: true })
+        try {
+          return await workspace.prepareEnvironment({ ...input, projectDirectory: project.directory }, validate)
+        } finally {
+          await project.release()
+        }
+      },
     )
-      await workspace.prepareEnvironment(
-        { environmentId: id, document, expectedRevision: current?.revision ?? null, projectDirectory: lease.directory },
-        validate,
-      )
     if (!marker?.initialized) await saveMarker(true)
-    await prepareExtended(lease.directory)
     return { workspace, id }
   } finally {
     await lease.release()

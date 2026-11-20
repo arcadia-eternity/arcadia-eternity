@@ -2,8 +2,11 @@ import 'dotenv/config'
 import { Command, CommanderError, InvalidArgumentError, Option } from 'commander'
 import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
-import { withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
-import { ContentWorkspace, prepareBuiltin120Environment } from '@arcadia-eternity/content-sdk/management-workspace'
+import {
+  ContentWorkspace,
+  readShippedEnvironments,
+  synchronizeShippedEnvironments,
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-sdk/managed-projects'
 import { readFile, stat } from 'node:fs/promises'
 import { openServerStorage, workspaceRetentions } from './server-persistence'
@@ -22,14 +25,8 @@ import {
   GithubAppVerifier,
   getPersistedServerSettings,
   type G3AccountServices,
+  type ManagedServer,
 } from '@arcadia-eternity/server'
-
-function initializeShippedEnvironment<T>(initialize: (directory: string) => Promise<T>) {
-  return withShippedEnvironmentProject(
-    dirname(fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
-    initialize,
-  )
-}
 
 function portNumber(value: string): number {
   const port = Number(value)
@@ -314,15 +311,16 @@ export async function runServerCli(args: string[]): Promise<number> {
     const desktopWorkspace = desktopControl
       ? await createDesktopWorkspaceProxy({ retentions, allowShareDownloads })
       : undefined
-    workspace =
-      desktopWorkspace ??
-      (await ContentWorkspace.open(config.workspaceRoot, {
-        retentions,
-        includeBuiltin120: true,
-        allowShareDownloads,
-        bundledPackageRoot,
-        npmCache: join(config.dataDirectory, 'projects', 'npm-cache'),
-      }))
+    const ownedWorkspace = desktopWorkspace
+      ? undefined
+      : await ContentWorkspace.open(config.workspaceRoot, {
+          retentions,
+          allowShareDownloads,
+          bundledPackageRoot,
+          npmCache: join(config.dataDirectory, 'projects', 'npm-cache'),
+        })
+    workspace = desktopWorkspace ?? ownedWorkspace!
+    let defaultBuiltinId = desktopWorkspace?.builtinEnvironmentId
     if (!desktopControl) {
       let sources: ManagedProjectsOptions['sources']
       if (options.contentSources) {
@@ -343,20 +341,32 @@ export async function runServerCli(args: string[]): Promise<number> {
         sources,
       })
     }
-    if (projects) {
+    if (ownedWorkspace && projects) {
+      const manager = projects
       const validate = (input: Parameters<typeof validateWorkspaceProject>[0]) =>
         validateWorkspaceProject(input, {
           effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
         })
       await projects.synchronizeBundledBase(workspace, validate)
-      const rules = JSON.parse(
-        await readFile(
-          new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/test-120-rules.json')),
-          'utf8',
-        ),
-      )
-      await initializeShippedEnvironment(directory =>
-        prepareBuiltin120Environment(workspace!, directory, rules, validate),
+      const base = JSON.parse(await readFile(join(bundledPackageRoot, 'package.json'), 'utf8'))
+      const catalog = await readShippedEnvironments(new URL('./shipped-environments.json', import.meta.url), {
+        [base.name]: base.version,
+      })
+      const key = catalog.defaultEnvironment
+      const previous = (await storage.get<ManagedServer>('servers', serverId))?.value.initialization
+      const adopted: Record<string, string> = {}
+      if (previous?.kind === 'builtin') adopted[key] = previous.environmentId
+      else if (!(await ownedWorkspace.listDrafts()).some(draft => draft.document.id === key)) adopted[key] = key
+      defaultBuiltinId = await synchronizeShippedEnvironments(
+        ownedWorkspace,
+        catalog,
+        adopted,
+        (document, expectedRevision) =>
+          manager.prepareEnvironment(
+            ownedWorkspace,
+            { environmentId: document.id, document, expectedRevision },
+            validate,
+          ),
       )
     }
     const webRoot =
@@ -391,7 +401,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         trustedProxyAddresses: process.env.MANAGEMENT_TRUSTED_PROXY_IPS?.split(',')
           .map(value => value.trim())
           .filter(Boolean),
-        builtinEnvironmentId: desktopWorkspace?.builtinEnvironmentId,
+        builtinEnvironmentId: defaultBuiltinId,
         clientEnvironments: options.desktopClientEnvironments ? desktopWorkspace : undefined,
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
         initialization: desktopControl
@@ -405,7 +415,7 @@ export async function runServerCli(args: string[]): Promise<number> {
             : undefined
           : options.npmProject?.[0]
             ? { kind: 'npm', environmentId: 'startup-npm' }
-            : { kind: 'builtin', environmentId: 'builtin-server' },
+            : { kind: 'builtin', environmentId: defaultBuiltinId! },
         ...(projects
           ? { prepareEnvironment: (input, validator) => projects!.prepareEnvironment(workspace!, input, validator) }
           : {}),
@@ -446,17 +456,13 @@ export async function runServerCli(args: string[]): Promise<number> {
       })
       if (!refreshed) await initialize(options.npmProject[0])
     } else if (!desktopControl) {
-      await initializeShippedEnvironment(projectDirectory =>
-        initializeHostEnvironment({
-          management: server!.management!,
-          workspace: workspace!,
-          projectDirectory,
-          kind: 'builtin',
-          environmentId: 'builtin-server',
-          name: '默认环境',
-          matchmakingEnabled: true,
-        }),
-      )
+      await initializeHostEnvironment({
+        management: server.management!,
+        workspace,
+        kind: 'builtin',
+        environmentId: defaultBuiltinId!,
+        matchmakingEnabled: true,
+      })
     }
     if (desktopLaunch) await saveDesktopLaunch(server.management!, desktopLaunch)
     await server.start()

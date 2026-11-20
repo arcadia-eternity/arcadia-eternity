@@ -18,13 +18,11 @@ import { resolveDraftContent, rulePreviewIssue, type EditorPackage } from './env
 import { environmentReferences } from './environmentReferences'
 import { environmentName } from '@/i18n/environment'
 import './managementStyles'
-import testEnvironmentRules from '@arcadia-eternity/data-pack-base/environment/test-120-rules.json'
 import {
   assertRuleContentReferences,
   indexRuleContent,
   prepareEnvironmentRules,
   resolveEnvironmentMechanics,
-  validateEnvironmentRuleDeclaration,
 } from '@arcadia-eternity/content-sdk/environment-rules'
 import { resolveEnvironmentTeam, skillSlotsSchema } from '@arcadia-eternity/const'
 import EnvironmentContentLimits from './EnvironmentContentLimits.vue'
@@ -304,22 +302,6 @@ async function edit(environment?: ManagedEnvironment, duplicate = false) {
   editing.value = true
   return true
 }
-async function createTestEnvironment() {
-  if (!(await edit())) return
-  const base = '@arcadia-eternity/data-pack-base'
-  const version =
-    props.availablePackages?.find(pkg => pkg.name === base)?.version ??
-    props.installations
-      .flatMap(item => (item.status === 'ready' ? (item.members ?? []) : []))
-      .find(member => member.name === base)?.version ??
-    props.environments.map(item => item.document.packages[base]).find(range => range && !range.startsWith('file:')) ??
-    '*'
-  document.value!.id = 'test-120-' + environmentSuffix(8)
-  document.value!.name = '120 资质测试环境'
-  const { rules, include } = validateEnvironmentRuleDeclaration(testEnvironmentRules)
-  document.value!.rules = { ...rules, include }
-  packageRows.value = [{ name: base, version }]
-}
 function putPackage(pkg: { name: string; version: string }) {
   const existing = packageRows.value.find(row => row.name === pkg.name)
   if (existing) existing.version = pkg.version
@@ -381,9 +363,6 @@ function save() {
       <h2>{{ heading ?? '环境' }}</h2>
       <div class="actions">
         <slot name="toolbar" />
-        <ElButton :disabled="!canEdit || busy" native-type="button" @click="createTestEnvironment"
-          >从 120 资质测试方案新建</ElButton
-        >
         <ElButton
           :disabled="!canEdit || busy"
           :title="!canEdit ? '没有编辑此工作区的权限' : undefined"

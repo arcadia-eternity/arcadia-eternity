@@ -79,7 +79,7 @@ async function authenticateAndCheck(name, serverId, phase) {
     const bindingsResponse = await fetch(base + '/servers/' + encodeURIComponent(id) + '/bindings',{headers});
     assert.equal(bindingsResponse.status,200);
     const bindings = (await bindingsResponse.json()).bindings;
-    assert.equal(bindings.length,1,'Fresh initialization must create exactly one binding');
+    assert.ok(bindings.length >= 2,'Both shipped environments must be bound');
     const binding = bindings.find(item => item.id === server.defaultBindingId);
     assert.ok(binding,'The default must reference the durable builtin binding');
     assert.equal(binding.environmentId,'builtin-server');
@@ -93,9 +93,9 @@ async function authenticateAndCheck(name, serverId, phase) {
     assert.equal(catalogResponse.status,200);
     const catalog = await catalogResponse.json();
     assert.equal(catalog.protocolVersion,1);
-    assert.equal(catalog.environments.length,1,'Fresh public catalog must contain the builtin environment');
-    const builtin = catalog.environments[0];
-    assert.deepEqual(builtin.packages,[]);
+    assert.deepEqual(catalog.environments.map(item=>item.environmentId).sort(),bindings.map(item=>item.environmentId).sort());
+    const builtin = catalog.environments.find(item => item.isDefault);
+    assert.ok(builtin.packages.some(pkg=>pkg.name==='@arcadia-eternity/data-pack-base'));
     assert.equal(builtin.runtime.kind,'native-v4');
     const contentResponse = await fetch(origin + '/api/v1/environments/' + encodeURIComponent(builtin.id) + '/content');
     assert.equal(contentResponse.status,200);
@@ -132,7 +132,7 @@ async function authenticateAndCheck(name, serverId, phase) {
     assert.ok(version,'The effective builtin version must remain in the shared workspace');
     assert.equal(version.status,'ready');
     assert.equal(version.environmentId,binding.environmentId);
-    assert.deepEqual(version.document.packages,{});
+    assert.ok(version.document.packages['@arcadia-eternity/data-pack-base']);
     console.log(JSON.stringify({serverId:id,workspaceId,revision:server.revision,
       requiresRestart:server.requiresRestart,defaultBindingId:server.defaultBindingId,
       environmentId:binding.environmentId,installationId:binding.environmentId,

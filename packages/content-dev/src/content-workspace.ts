@@ -116,7 +116,6 @@ export type StaticPreparer = (input: {
   elementCatalog?: ReturnType<typeof readElementCatalog>
 }>
 export interface ContentWorkspaceOptions {
-  includeBuiltin120?: boolean
   allowShareDownloads?: boolean
   bundledPackageRoot?: string
   npmCache?: string
@@ -160,7 +159,7 @@ export interface EnvironmentExport {
 }
 export interface WorkspaceSnapshot {
   format: 'arcadia.workspace-snapshot/2'
-  builtin120EnvironmentId?: string
+  builtinEnvironmentIds?: Readonly<Record<string, string>>
   workspaceId: string
   drafts: (EnvironmentDraft & { files?: { path: string; data: string }[] })[]
   installations: {
@@ -184,7 +183,7 @@ export interface ContentWorkspace {
   readonly root: string
   readonly workspaceId: string
   readonly bootId: string
-  readonly builtin120EnvironmentId?: string
+  readonly builtinEnvironmentIds?: Readonly<Record<string, string>>
   listDrafts(): Promise<EnvironmentDraft[]>
   getDraft(environmentId: string): Promise<EnvironmentDraft>
   saveDraft(input: { document: unknown; expectedRevision: string | null }): Promise<EnvironmentDraft>
@@ -229,18 +228,36 @@ export interface ContentWorkspace {
   close(input?: { force?: boolean }): Promise<void>
   cleanupStaging(): Promise<string[]>
 }
+export interface OwnedContentWorkspace extends ContentWorkspace {
+  registerBuiltinEnvironments(
+    keys: string[],
+    adopted: Record<string, string>,
+  ): Promise<Readonly<Record<string, string>>>
+}
 export interface ContentWorkspaceConstructor {
   new (root: string, options?: ContentWorkspaceOptions): ContentWorkspace
-  open(directory: string, options?: ContentWorkspaceOptions): Promise<ContentWorkspace>
+  open(directory: string, options?: ContentWorkspaceOptions): Promise<OwnedContentWorkspace>
 }
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-const builtin120IdPattern = new RegExp('^builtin-120-' + uuid.source.slice(1))
 const envId = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
 const checkId = (id: unknown, pattern = uuid): string => {
   if (typeof id !== 'string' || !pattern.test(id)) throw contentError('RESOURCE_ID_INVALID')
   return id
+}
+// 4.8.0 wrote a single slot in both workspace metadata and backups.
+function readBuiltinEnvironmentIds(value: object): Record<string, string> {
+  if ('builtinEnvironmentIds' in value && value.builtinEnvironmentIds !== undefined) {
+    const entries = value.builtinEnvironmentIds
+    if (!isRecord(entries)) throw contentError('WORKSPACE_FORMAT_INVALID')
+    const ids = Object.entries(entries).map(([key, id]) => [checkId(key, envId), checkId(id, envId)] as const)
+    if (new Set(ids.map(([, id]) => id)).size !== ids.length) throw contentError('WORKSPACE_FORMAT_INVALID')
+    return Object.fromEntries(ids)
+  }
+  return 'builtin120EnvironmentId' in value && value.builtin120EnvironmentId !== undefined
+    ? { 'training-120': checkId(value.builtin120EnvironmentId, new RegExp('^builtin-120-' + uuid.source.slice(1))) }
+    : {}
 }
 async function regularDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true, mode: 0o700 })
@@ -328,11 +345,11 @@ function activeProcess(pid: number): boolean {
 }
 
 /** One write owner publishes prepared documents alongside the locked npm materials. */
-class ContentWorkspaceImplementation implements ContentWorkspace {
+class ContentWorkspaceImplementation implements OwnedContentWorkspace {
   readonly root: string
   readonly bootId = randomUUID()
   workspaceId!: string
-  builtin120EnvironmentId?: string
+  builtinEnvironmentIds: Readonly<Record<string, string>> = {}
   #queue: Promise<unknown> = Promise.resolve()
   #closed = false
   #controller = new AbortController()
@@ -344,7 +361,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     this.root = root
     this.#options = options
   }
-  static async open(directory: string, options: ContentWorkspaceOptions = {}): Promise<ContentWorkspace> {
+  static async open(directory: string, options: ContentWorkspaceOptions = {}): Promise<OwnedContentWorkspace> {
     await regularDirectory(resolve(directory))
     const root = await realpath(directory)
     const workspace = new ContentWorkspaceImplementation(root, options)
@@ -370,11 +387,8 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       } else {
         workspace.workspaceId = randomUUID()
       }
-      if (metadata?.builtin120EnvironmentId !== undefined)
-        workspace.builtin120EnvironmentId = checkId(metadata.builtin120EnvironmentId, builtin120IdPattern)
-      else if (options.includeBuiltin120) workspace.builtin120EnvironmentId = 'builtin-120-' + randomUUID()
-      if (!metadata || workspace.builtin120EnvironmentId !== metadata.builtin120EnvironmentId)
-        await workspace.#saveMetadata()
+      workspace.builtinEnvironmentIds = readBuiltinEnvironmentIds(metadata ?? {})
+      if (!metadata || 'builtin120EnvironmentId' in metadata) await workspace.#saveMetadata()
       // Recover an interrupted directory replacement before exposing projects.
       for (const name of await readdir(join(root, 'staging'))) {
         if (!name.startsWith('replaced-') || !envId.test(name.slice(9))) continue
@@ -393,13 +407,30 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       throw error
     }
   }
-  async #saveMetadata() {
+  registerBuiltinEnvironments(keys: string[], adopted: Record<string, string>) {
+    return this.#exclusive(async () => {
+      const entries = keys.map(key => {
+        checkId(key, envId)
+        const previous = Object.hasOwn(this.builtinEnvironmentIds, key) ? this.builtinEnvironmentIds[key] : undefined
+        const legacy = Object.hasOwn(adopted, key) ? checkId(adopted[key], envId) : undefined
+        const id = previous ?? legacy ?? 'builtin-' + randomUUID()
+        return [key, id] as const
+      })
+      const ids = readBuiltinEnvironmentIds({ builtinEnvironmentIds: Object.fromEntries(entries) })
+      if (!isDeepStrictEqual(ids, this.builtinEnvironmentIds)) {
+        await this.#saveMetadata(ids)
+        this.builtinEnvironmentIds = ids
+      }
+      return ids
+    }, true)
+  }
+  async #saveMetadata(ids = this.builtinEnvironmentIds) {
     await writeFileAtomic(
       join(this.root, 'workspace.json'),
       json({
         format: 'arcadia.content-workspace/2',
         workspaceId: this.workspaceId,
-        builtin120EnvironmentId: this.builtin120EnvironmentId,
+        builtinEnvironmentIds: ids,
       }),
     )
   }
@@ -851,7 +882,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     return {
       format: 'arcadia.workspace-snapshot/2',
       workspaceId: this.workspaceId,
-      builtin120EnvironmentId: this.builtin120EnvironmentId,
+      builtinEnvironmentIds: this.builtinEnvironmentIds,
       drafts,
       installations,
     }
@@ -890,10 +921,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         !Array.isArray(snapshot.installations)
       )
         throw contentError('WORKSPACE_SNAPSHOT_INVALID')
-      const builtin120EnvironmentId =
-        snapshot.builtin120EnvironmentId === undefined
-          ? this.builtin120EnvironmentId
-          : checkId(snapshot.builtin120EnvironmentId, builtin120IdPattern)
+      const builtinEnvironmentIds = readBuiltinEnvironmentIds(snapshot)
       if ((await this.#listDrafts()).length) throw contentError('WORKSPACE_NOT_EMPTY')
       const drafts = new Map(
         snapshot.drafts.map(draft => {
@@ -954,7 +982,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         if (json((await this.#draft(id)).document) !== json(document)) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
       }
       this.workspaceId = mode === 'restore' ? checkId(snapshot.workspaceId, uuid) : this.workspaceId
-      this.builtin120EnvironmentId = builtin120EnvironmentId
+      this.builtinEnvironmentIds = builtinEnvironmentIds
       await this.#saveMetadata()
       return { workspaceId: this.workspaceId, installationIds: Object.fromEntries([...ids].map(id => [id, id])) }
     }, true)
@@ -1216,35 +1244,47 @@ async function changeEnvironmentPackage(
   return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
 }
 
-/** Materialize the shipped preset with the host's own ID and bundled base project. */
-export async function prepareBuiltin120Environment(
-  workspace: ContentWorkspace,
-  projectDirectory: string,
-  rules: unknown,
-  validate: StaticPreparer,
+/** The host supplies this catalog from the application distribution. */
+export async function readShippedEnvironments(file: string | URL, bundledVersions: Record<string, string>) {
+  const schema = z
+    .object({
+      defaultEnvironment: z.string(),
+      environments: z.array(EnvironmentDocumentV2Schema).min(1),
+    })
+    .strict()
+  const catalog = schema.parse(JSON.parse(await readFile(file, 'utf8')))
+  const keys = new Set(catalog.environments.map(doc => doc.id))
+  if (keys.size !== catalog.environments.length || !keys.has(catalog.defaultEnvironment))
+    throw contentError('SHIPPED_ENVIRONMENT_CATALOG_INVALID')
+  for (const { packages } of catalog.environments)
+    for (const [name, version] of Object.entries(bundledVersions))
+      if (Object.hasOwn(packages, name)) {
+        if (!semver.satisfies(version, packages[name])) throw contentError('SHIPPED_PACKAGE_VERSION_MISMATCH')
+        packages[name] = version
+      }
+  return catalog
+}
+
+export async function synchronizeShippedEnvironments(
+  workspace: OwnedContentWorkspace,
+  catalog: Awaited<ReturnType<typeof readShippedEnvironments>>,
+  adopted: Record<string, string>,
+  prepare: (document: EnvironmentDocument, expectedRevision: string | null) => Promise<unknown>,
 ) {
-  const id = workspace.builtin120EnvironmentId
-  if (!id) throw contentError('BUILTIN_ENVIRONMENT_ID_MISSING')
-  const base = '@arcadia-eternity/data-pack-base'
-  const { version } = await readJson(join(projectDirectory, 'node_modules', base, 'package.json'))
-  const document = normalizeEnvironmentDocument({
-    schemaVersion: 2,
-    id,
-    name: '120 资质 · 神魔化与二代',
-    packages: { [base]: version },
-    sources: [],
-    rules,
-    requires: {},
-  })
-  const current = await workspace.getDraft(id).catch(error => {
-    if (errorCode(error) !== 'ENOENT') throw error
-  })
-  if (current && isDeepStrictEqual(current.document, document)) {
-    const [installed] = await workspace.listInstallations(id)
-    if (installed?.status === 'ready' && installed.draftRevision === current.revision) return
-  }
-  await workspace.prepareEnvironment(
-    { environmentId: id, document, expectedRevision: current?.revision ?? null, projectDirectory },
-    validate,
+  const ids = await workspace.registerBuiltinEnvironments(
+    catalog.environments.map(doc => doc.id),
+    adopted,
   )
+  const drafts = await workspace.listDrafts()
+  for (const definition of catalog.environments) {
+    const id = ids[definition.id]
+    const document = { ...definition, id }
+    const current = drafts.find(item => item.document.id === id)
+    if (current && isDeepStrictEqual(current.document, document)) {
+      const [installed] = await workspace.listInstallations(id)
+      if (installed?.status === 'ready' && installed.draftRevision === current.revision) continue
+    }
+    await prepare(document, current?.revision ?? null)
+  }
+  return ids[catalog.defaultEnvironment]
 }

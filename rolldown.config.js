@@ -1,4 +1,5 @@
 import { defineConfig } from 'rolldown'
+import { readFileSync } from 'node:fs'
 import { isBuiltin } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
@@ -20,6 +21,16 @@ export default defineConfig({
     cli: 'bin/cli.ts',
     'sandbox-node-worker': fileURLToPath(import.meta.resolve('@arcadia-eternity/battle/sandbox/node-worker')),
   },
+  plugins: [
+    {
+      name: 'shipped-environments',
+      generateBundle() {
+        const file = new URL('./bin/shipped-environments.json', import.meta.url)
+        this.addWatchFile(fileURLToPath(file))
+        this.emitFile({ type: 'asset', fileName: 'shipped-environments.json', source: readFileSync(file) })
+      },
+    },
+  ],
   platform: 'node',
   output: {
     dir: 'dist',

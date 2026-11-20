@@ -423,21 +423,22 @@ function getManagementWorkspaceOwner() {
       )
       const library = getContentLibrary()
       await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
-      const { prepareBuiltin120Environment } = await import(
+      const { synchronizeShippedEnvironments, readShippedEnvironments } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
       builtinEnvironment = await openBuiltinEnvironment({
         workspace,
         library,
         validate: validateWorkspaceProject,
-        rules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
-        prepareExtended: directory =>
-          prepareBuiltin120Environment(
-            workspace,
-            directory,
-            runtimeRequire('@arcadia-eternity/data-pack-base/environment/test-120-rules.json'),
-            validateWorkspaceProject,
-          ),
+        catalog: await readShippedEnvironments(
+          app.isPackaged
+            ? path.join(process.resourcesPath, 'arcadia-server/shipped-environments.json')
+            : path.resolve(projectRoot, '../../bin/shipped-environments.json'),
+          {
+            '@arcadia-eternity/data-pack-base': runtimeRequire('@arcadia-eternity/data-pack-base/package.json').version,
+          },
+        ),
+        synchronizeShippedEnvironments,
         legacyBuiltinId: async () => {
           const directory = path.join(app.getPath('userData'), 'local-server')
           const profile = await fs.readFile(path.join(directory, 'server.json'), 'utf8').catch(error => {
@@ -475,7 +476,6 @@ function getManagementWorkspaceOwner() {
       )
       return ContentWorkspace.open(root, {
         ...options,
-        includeBuiltin120: true,
         allowShareDownloads: true,
         bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
       })

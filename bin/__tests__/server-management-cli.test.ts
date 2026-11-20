@@ -184,13 +184,17 @@ async function catalog(origin: string) {
   return ((await response.json()) as { environments: ServerEnvironmentDescriptor[] }).environments
 }
 
+async function getBindings(request: Awaited<ReturnType<typeof administrator>>, server: Server) {
+  return (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings
+}
+
 it('bootstraps playable builtin content once and preserves administrator removal across restarts', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-first-publication-'))
   directories.push(directory)
   let running = await start(directory)
   let request = await administrator(running.origin, directory)
   let server = (await request<{ servers: Server[] }>('/servers')).servers[0]
-  let binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  let binding = (await getBindings(request, server)).find(item => item.id === server.defaultBindingId)!
   expect(binding).toMatchObject({
     enabled: true,
     visibility: 'public',
@@ -206,9 +210,9 @@ it('bootstraps playable builtin content once and preserves administrator removal
     installationId: binding.environmentId,
   }
   const environments = await catalog(running.origin)
-  expect(environments).toHaveLength(1)
+  expect(environments).toHaveLength(2)
   const base = '@arcadia-eternity/data-pack-base'
-  expect(environments[0].packages.map(pkg => pkg.name)).toEqual([base])
+  expect(environments.every(item => item.packages.some(pkg => pkg.name === base))).toBe(true)
   const draftsPath = `/workspaces/${server.workspaceId}/environments`
   const { environments: drafts } = await request<{
     environments: {
@@ -257,7 +261,7 @@ it('bootstraps playable builtin content once and preserves administrator removal
     ...pet,
     skills: ['skill_paida', 'skill_shuipao'],
   }))
-  const [environment] = environments
+  const environment = environments.find(item => item.isDefault)!
   await accepted(socket, 'joinMatchmaking', {
     playerSchema: { team },
     environmentId: environment.id,
@@ -279,7 +283,7 @@ it('bootstraps playable builtin content once and preserves administrator removal
   running = await start(directory)
   request = await administrator(running.origin, directory)
   server = (await request<{ servers: Server[] }>('/servers')).servers[0]
-  binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  binding = (await getBindings(request, server)).find(item => item.id === server.defaultBindingId)!
   expect({
     serverId: server.id,
     workspaceId: server.workspaceId,
@@ -288,28 +292,40 @@ it('bootstraps playable builtin content once and preserves administrator removal
   }).toEqual(initial)
   expect(server.defaultBindingId).toBe(binding.id)
   const restartedEnvironments = await catalog(running.origin)
-  expect(restartedEnvironments).toHaveLength(1)
-  expect(restartedEnvironments[0]).toMatchObject({
-    runtime: environments[0].runtime,
-    packages: environments[0].packages,
-    resourceRevision: environments[0].resourceRevision,
-    executionPolicy: environments[0].executionPolicy,
+  expect(restartedEnvironments).toHaveLength(2)
+  expect(restartedEnvironments.find(item => item.isDefault)).toMatchObject({
+    runtime: environment.runtime,
+    packages: environment.packages,
+    resourceRevision: environment.resourceRevision,
+    executionPolicy: environment.executionPolicy,
   })
 
+  const extra = (await getBindings(request, server)).find(item => item.environmentId === extended.document.id)!
+  expect(restartedEnvironments.find(item => item.environmentId === extra.environmentId)).toMatchObject({
+    matchmakingEnabled: true,
+    rules: {
+      mechanics: {
+        individualValues: { max: 120 },
+        enhancement: { mode: 'active' },
+        secondGenerationNatures: 'species',
+      },
+    },
+  })
+  await request(`/servers/${server.id}/bindings/${extra.id}`, 'DELETE', undefined, extra.revision)
   await request(`/servers/${server.id}`, 'PATCH', { defaultBindingId: null }, server.revision)
   await stop(running.child)
   running = await start(directory)
   request = await administrator(running.origin, directory)
   server = (await request<{ servers: Server[] }>('/servers')).servers[0]
   expect(server.defaultBindingId).toBeUndefined()
-  binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  binding = (await getBindings(request, server)).find(item => item.id === initial.bindingId)!
   await request(`/servers/${server.id}/bindings/${binding.id}`, 'PATCH', { enabled: false }, binding.revision)
   await stop(running.child)
 
   running = await start(directory)
   request = await administrator(running.origin, directory)
   server = (await request<{ servers: Server[] }>('/servers')).servers[0]
-  binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  binding = (await getBindings(request, server)).find(item => item.id === initial.bindingId)!
   expect(server.defaultBindingId).toBeUndefined()
   expect(binding.enabled).toBe(false)
   expect(await catalog(running.origin)).toEqual([])
@@ -337,7 +353,7 @@ it('refreshes stale builtin content after a release without changing administrat
   let running = await start(directory)
   let request = await administrator(running.origin, directory)
   let server = (await request<{ servers: Server[] }>('/servers')).servers[0]
-  let binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  let binding = (await getBindings(request, server)).find(item => item.id === server.defaultBindingId)!
   expect(binding.condition).toBe('available')
   const previousVersionId = binding.environmentId
   await stop(running.child)
@@ -350,12 +366,12 @@ it('refreshes stale builtin content after a release without changing administrat
 
   running = await start(directory)
   const environments = await catalog(running.origin)
-  expect(environments).toHaveLength(1)
+  expect(environments).toHaveLength(2)
   const info = (await (await fetch(running.origin + '/api/v1/server-info')).json()) as {
     runtime: { contentRevision: string }
   }
-  expect(environments[0].runtime.contentRevision).toBe(info.runtime.contentRevision)
-  expect(environments[0].rules?.mechanics?.inheritance?.eligible).toBe('species')
+  expect(environments.find(item => item.isDefault)!.runtime.contentRevision).toBe(info.runtime.contentRevision)
+  expect(environments.find(item => item.isDefault)!.rules?.mechanics?.inheritance?.eligible).toBe('species')
   expect(JSON.parse(await readFile(manifestFile, 'utf8')).arcadiaEnvironment.rules).toEqual({
     schemaVersion: 2,
     include: ['base:classic'],
@@ -363,7 +379,7 @@ it('refreshes stale builtin content after a release without changing administrat
 
   request = await administrator(running.origin, directory)
   server = (await request<{ servers: Server[] }>('/servers')).servers[0]
-  binding = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings[0]
+  binding = (await getBindings(request, server)).find(item => item.id === server.defaultBindingId)!
   expect(binding).toMatchObject({
     enabled: true,
     visibility: 'public',
@@ -374,7 +390,7 @@ it('refreshes stale builtin content after a release without changing administrat
   expect(server.defaultBindingId).toBe(binding.id)
 }, 120_000)
 
-it('does not auto-publish an existing managed server without bootstrap provenance', async () => {
+it('publishes shipped environments on upgrade without resetting the server default', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-existing-publication-'))
   directories.push(directory)
   await command(['db', 'migrate', '--data-dir', directory])
@@ -398,8 +414,8 @@ it('does not auto-publish an existing managed server without bootstrap provenanc
     const server = (await request<{ servers: Server[] }>('/servers')).servers[0]
     expect(server.id).toBe(identity.serverId)
     expect(server.defaultBindingId).toBeUndefined()
-    expect((await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings).toEqual([])
-    expect(await catalog(running.origin)).toEqual([])
+    expect(await getBindings(request, server)).toHaveLength(2)
+    expect(await catalog(running.origin)).toHaveLength(2)
     await stop(running.child)
   }
 }, 60_000)
@@ -429,7 +445,9 @@ it('runs guest management with SQLite, one-use owner login, restart identity, an
   expect((await (await fetch(second.origin + '/api/v1/server-info')).json()).serverId).toBe(identity)
   const originalRequest = await administrator(second.origin, directory)
   const originalServer = (await originalRequest<{ servers: Server[] }>('/servers')).servers[0]
-  const originalBinding = (await originalRequest<{ bindings: Binding[] }>(`/servers/${identity}/bindings`)).bindings[0]
+  const originalBinding = (await getBindings(originalRequest, originalServer)).find(
+    item => item.id === originalServer.defaultBindingId,
+  )!
   const getBuiltins = async (request: typeof originalRequest, workspaceId: string) => {
     const { environments } = await request<{ environments: { builtin?: boolean; document: { id: string } }[] }>(
       `/workspaces/${workspaceId}/environments`,
@@ -459,9 +477,9 @@ it('runs guest management with SQLite, one-use owner login, restart identity, an
     const bindings = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings
     expect(await getBuiltins(request, server.workspaceId)).toEqual(originalBuiltinIds)
     expect(server.id).toBe(result.serverId)
-    expect(bindings).toHaveLength(1)
-    expect(server.defaultBindingId).toBe(bindings[0].id)
-    expect(bindings[0]).toMatchObject({
+    expect(bindings.map(item => item.environmentId).sort()).toEqual(originalBuiltinIds)
+    const defaultBinding = bindings.find(item => item.id === server.defaultBindingId)!
+    expect(defaultBinding).toMatchObject({
       enabled: true,
       visibility: 'public',
       matchmakingEnabled: true,
@@ -469,17 +487,17 @@ it('runs guest management with SQLite, one-use owner login, restart identity, an
     })
     if (mode === 'clone') {
       expect(server.workspaceId).not.toBe(originalServer.workspaceId)
-      expect(bindings[0].id).not.toBe(originalBinding.id)
-      expect(bindings[0].environmentId).toBe(originalBinding.environmentId)
+      expect(defaultBinding.id).not.toBe(originalBinding.id)
+      expect(defaultBinding.environmentId).toBe(originalBinding.environmentId)
     } else {
       expect(server.workspaceId).toBe(originalServer.workspaceId)
-      expect(bindings[0].id).toBe(originalBinding.id)
-      expect(bindings[0].environmentId).toBe(originalBinding.environmentId)
+      expect(defaultBinding.id).toBe(originalBinding.id)
+      expect(defaultBinding.environmentId).toBe(originalBinding.environmentId)
     }
-    expect(await catalog(running.origin)).toHaveLength(1)
+    expect(await catalog(running.origin)).toHaveLength(2)
     await stop(running.child)
   }
-}, 90_000)
+}, 150_000)
 
 it('applies the bundled base from local files even when the registry is unreachable', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-local-base-'))
@@ -517,7 +535,7 @@ it('applies the bundled base from local files even when the registry is unreacha
   const after = await request<typeof before>(path)
   expect(after.environments).toContainEqual(builtin)
   expect(after.environments.find(env => env.document.id === custom.id)?.document).toEqual(custom)
-  expect(await catalog(running.origin)).toHaveLength(1)
+  expect(await catalog(running.origin)).toHaveLength(2)
 }, 90_000)
 
 it('synchronizes old base installations in existing custom environments on restart without applying', async () => {
@@ -570,7 +588,7 @@ it('synchronizes old base installations in existing custom environments on resta
   )
   expect(after.environments.find(item => item.document.id === 'custom')?.document.name).toBe('Keep this environment')
   for (const { document: env } of after.environments) expect(env.packages[base]).toBe(currentVersion)
-  expect(await catalog(running.origin)).toHaveLength(1)
+  expect(await catalog(running.origin)).toHaveLength(2)
 }, 90_000)
 
 it('replaces an old base from an external startup project without changing that source', async () => {
@@ -593,6 +611,8 @@ it('replaces an old base from an external startup project without changing that 
   await writeFile(join(project, 'package-lock.json'), JSON.stringify(lock))
   await writeFile(join(project, 'node_modules', base, 'package.json'), JSON.stringify(pkg))
   const running = await start(join(root, 'server'), ['--npm-project', project, '--npm-registry', 'https://127.0.0.1:1'])
-  expect((await catalog(running.origin))[0].packages.find(item => item.name === base)?.version).toBe(version)
+  expect(
+    (await catalog(running.origin)).find(item => item.isDefault)!.packages.find(item => item.name === base)?.version,
+  ).toBe(version)
   expect(JSON.parse(await readFile(join(project, 'package.json'), 'utf8')).dependencies[base]).toBe('0.0.1')
 }, 60_000)
