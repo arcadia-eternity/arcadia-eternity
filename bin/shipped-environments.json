@@ -1,0 +1,62 @@
+{
+  "defaultEnvironment": "builtin-server",
+  "environments": [
+    {
+      "schemaVersion": 2,
+      "id": "builtin-server",
+      "name": "默认环境",
+      "packages": {
+        "@arcadia-eternity/data-pack-base": "*"
+      },
+      "sources": [],
+      "rules": {
+        "schemaVersion": 2,
+        "include": ["base:classic"]
+      },
+      "requires": {}
+    },
+    {
+      "schemaVersion": 2,
+      "id": "training-120",
+      "name": "120 资质 · 神魔化与二代",
+      "packages": {
+        "@arcadia-eternity/data-pack-base": "*"
+      },
+      "sources": [],
+      "rules": {
+        "schemaVersion": 2,
+        "include": ["base:classic"],
+        "mechanics": {
+          "individualValues": {
+            "max": 120
+          },
+          "enhancement": {
+            "mode": "active",
+            "stages": [
+              "base:evolve-1",
+              "base:evolve-2",
+              "base:evolve-3",
+              "base:evolve-4",
+              "base:evolve-5",
+              "base:evolve-6",
+              "base:evolve-7",
+              "base:evolve-8",
+              "base:evolve-1001",
+              "base:evolve-1002",
+              "base:evolve-1003",
+              "base:evolve-1004",
+              "base:evolve-1005",
+              "base:evolve-1006",
+              "base:evolve-1007",
+              "base:evolve-1008"
+            ]
+          }
+        },
+        "skillParameters": {
+          "profile": "base:120"
+        }
+      },
+      "requires": {}
+    }
+  ]
+}

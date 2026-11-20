@@ -49,7 +49,7 @@ export type WorkspaceInstallation = EnvironmentInstallation
 export type ManagementWorkspace = Pick<
   ContentWorkspace,
   | 'workspaceId'
-  | 'builtin120EnvironmentId'
+  | 'builtinEnvironmentIds'
   | 'listDrafts'
   | 'saveDraft'
   | 'deleteDraft'
@@ -80,7 +80,7 @@ export interface Binding {
   observedBootId: string
 }
 export interface ManagedServer {
-  publishedClientBuiltin120?: boolean
+  initializedBuiltinEnvironmentIds?: string[]
   name: string
   workspaceId: string
   defaultBindingId?: string
@@ -145,7 +145,6 @@ export class ManagementError extends Error {
 const fail = (code: string, status = 422): never => {
   throw new ManagementError(code, status)
 }
-const shippedBasePackage = '@arcadia-eternity/data-pack-base'
 const object = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('INVALID_REQUEST')
   return value as Record<string, unknown>
@@ -295,28 +294,17 @@ export class ManagementService {
       })
   }
   private readonly validator: StaticPreparer = async input => {
-    await this.assertRequiredPackages(input.draft)
     return validateWorkspaceProject(input, {
       effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
     })
   }
   private async builtinEnvironmentIds() {
-    const ids = new Set<string>()
-    const extended = this.options.workspace.builtin120EnvironmentId
-    if (extended) ids.add(extended)
+    const ids = new Set(Object.values(this.options.workspace.builtinEnvironmentIds ?? {}))
     if (this.options.builtinEnvironmentId) return ids.add(this.options.builtinEnvironmentId)
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
     const initialization = server?.value.initialization
     if (initialization?.kind === 'builtin') ids.add(initialization.environmentId)
     return ids
-  }
-  private async assertRequiredPackages(document: { id?: unknown; packages?: unknown }) {
-    if (
-      typeof document.id === 'string' &&
-      (await this.builtinEnvironmentIds()).has(document.id) &&
-      !Object.hasOwn(object(document.packages), shippedBasePackage)
-    )
-      fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
   }
   get serverScope(): ManagementScope {
     return { kind: 'server', id: this.options.serverId }
@@ -357,8 +345,7 @@ export class ManagementService {
       })
     else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
     await this.auth.ready()
-    if (this.options.clientEnvironments && this.options.workspace.builtin120EnvironmentId)
-      await this.publishClientBuiltin120(this.options.workspace.builtin120EnvironmentId)
+    await this.publishNewBuiltinEnvironments()
     await this.loadClientEnvironments()
     await this.reconcile()
     this.collector = setInterval(() => {
@@ -617,37 +604,58 @@ export class ManagementService {
       throw error
     }
   }
-  // One-click hosting publishes ready local environments. Use a durable binding for this
-  // shared builtin so the host can later disable it, change matchmaking, or remove it.
-  private async publishClientBuiltin120(environmentId: string) {
-    const binding = await this.options.storage.transaction(async tx => {
+  /** Record first publication with the binding so removing or disabling it survives restart. */
+  private async publishNewBuiltinEnvironments() {
+    const ids = this.options.workspace.builtinEnvironmentIds
+    if (!ids || !Object.keys(ids).length) return
+    const bindings = await this.options.storage.transaction(async tx => {
       const server = await tx.get<ManagedServer>('servers', this.options.serverId)
-      if (!server || server.value.publishedClientBuiltin120) return
+      if (!server) fail('SERVER_NOT_FOUND', 404)
+      const { initialization, initializedBuiltinEnvironmentIds = [], ...settings } = server!.value
+      const seen = new Set(initializedBuiltinEnvironmentIds)
+      // Desktop 4.8.0 had already made this first-publication decision, including opt-outs.
+      const legacy = 'publishedClientBuiltin120' in settings
+      if (legacy) {
+        if (settings.publishedClientBuiltin120 && ids['training-120']) seen.add(ids['training-120'])
+        delete settings.publishedClientBuiltin120
+      }
+      // The default's bootstrap owns its binding and tracks removal independently.
+      if (initialization?.kind === 'builtin') seen.add(initialization.environmentId)
+      const pending = Object.values(ids).filter(id => !seen.has(id))
+      if (!legacy && !pending.length) return []
       const scope = managementScopeKey(this.serverScope)
-      const existing = (await tx.list<Binding>('bindings', scope)).find(
-        row => row.value.environmentId === environmentId,
-      )
-      const row =
-        existing ??
-        (await tx.create<Binding>('bindings', {
-          id: randomUUID(),
-          scope,
-          value: {
-            serverId: server.id,
-            workspaceId: this.options.workspace.workspaceId,
-            environmentId,
-            executionPolicy: 'server',
-            enabled: true,
-            visibility: 'public',
-            matchmakingEnabled: true,
-            condition: 'unavailable',
-            observedBootId: this.bootId,
-          },
-        }))
-      await tx.replace('servers', server.id, server.revision, { ...server.value, publishedClientBuiltin120: true })
-      return row
+      const existing = await tx.list<Binding>('bindings', scope)
+      const created = []
+      for (const environmentId of pending) {
+        seen.add(environmentId)
+        if (existing.some(row => row.value.environmentId === environmentId)) continue
+        created.push(
+          await tx.create<Binding>('bindings', {
+            id: randomUUID(),
+            scope,
+            value: {
+              serverId: server!.id,
+              workspaceId: this.options.workspace.workspaceId,
+              environmentId,
+              executionPolicy: 'server',
+              enabled: true,
+              visibility: 'public',
+              matchmakingEnabled: true,
+              condition: 'unavailable',
+              observedBootId: this.bootId,
+            },
+          }),
+        )
+      }
+      await tx.replace('servers', server!.id, server!.revision, {
+        ...settings,
+        initialization,
+        initializedBuiltinEnvironmentIds: [...seen],
+      })
+      return created
     })
-    if (binding) await this.options.workspace.retain(environmentId, 'binding:' + binding.id)
+    for (const binding of bindings)
+      await this.options.workspace.retain(binding.value.environmentId, 'binding:' + binding.id)
   }
   private async loadClientEnvironments() {
     const library = this.options.clientEnvironments
@@ -793,7 +801,6 @@ export class ManagementService {
     const document = normalizeEnvironmentDocument(value)
     await this.auth.authorize(actor, this.workspaceScope, 'edit')
     await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-    await this.assertRequiredPackages(document)
     await this.authorizeEnvironmentUpdate(actor, document.id)
     return this.startOperation(
       actor,
@@ -1008,7 +1015,7 @@ export class ManagementService {
           return ok({
             environments: (await this.options.workspace.listDrafts()).map(draft =>
               builtinIds.has(draft.document.id)
-                ? { ...draft, builtin: true, requiredPackages: [shippedBasePackage] }
+                ? { ...draft, builtin: true, requiredPackages: Object.keys(draft.document.packages) }
                 : draft,
             ),
             installations: (await this.options.workspace.listInstallations()).map(safeInstallation),

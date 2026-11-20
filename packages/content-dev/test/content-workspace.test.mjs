@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ContentWorkspace } from '../src/content-workspace.ts'
+import { ContentWorkspace, readShippedEnvironments, synchronizeShippedEnvironments } from '../src/content-workspace.ts'
 
 const document = { schemaVersion: 1, id: 'main', name: 'Main', packages: {}, sources: [] }
 async function fixture(t) {
@@ -323,6 +323,53 @@ test('backup and clone preserve npm projects, not historical versions', async t 
     assert.equal(target.workspaceId === workspace.workspaceId, mode === 'restore')
     await target.close()
   }
+})
+
+test('shipped definitions adopt 4.8 workspace and snapshot identities and accept new environment documents', async t => {
+  const { open, location, root, project } = await fixture(t)
+  const initial = await open()
+  const snapshot = await initial.exportSnapshot()
+  const legacyId = 'builtin-120-4a1f2470-8b31-4059-87f5-46fdf5d3c29e'
+  await initial.close()
+  const metadataFile = join(location, 'workspace.json')
+  const metadata = JSON.parse(await readFile(metadataFile, 'utf8'))
+  delete metadata.builtinEnvironmentIds
+  await writeFile(metadataFile, JSON.stringify({ ...metadata, builtin120EnvironmentId: legacyId }))
+  delete snapshot.builtinEnvironmentIds
+  snapshot.builtin120EnvironmentId = legacyId
+  const reopened = await open()
+  const restored = await ContentWorkspace.open(join(root, 'restored'), { resolveProject: () => project })
+  t.after(() => restored.close())
+  await restored.restoreSnapshot(snapshot, { mode: 'restore' }, prepare)
+  const definitions = ['classic', 'training-120', 'another'].map(id => ({
+    schemaVersion: 2,
+    id,
+    name: id,
+    packages: { sample: '*' },
+    sources: [],
+    requires: {},
+    rules: { schemaVersion: 2 },
+  }))
+  const file = join(root, 'catalog.json')
+  await writeFile(file, JSON.stringify({ defaultEnvironment: 'classic', environments: definitions }))
+  const catalog = await readShippedEnvironments(file, { sample: '1.0.0' })
+  for (const owner of [reopened, restored]) {
+    const prepared = []
+    const synchronize = () =>
+      synchronizeShippedEnvironments(owner, catalog, { classic: 'classic' }, async (doc, revision) => {
+        prepared.push(doc.id)
+        assert.equal(doc.packages.sample, '1.0.0')
+        const draft = await owner.saveDraft({ document: doc, expectedRevision: revision })
+        await owner.prepareEnvironment({ environmentId: doc.id, expectedRevision: draft.revision }, prepare)
+      })
+    assert.equal(await synchronize(), 'classic')
+    assert.equal(owner.builtinEnvironmentIds['training-120'], legacyId)
+    assert.deepEqual(prepared, ['classic', legacyId, owner.builtinEnvironmentIds.another])
+    await synchronize()
+    assert.equal(prepared.length, 3)
+    assert.deepEqual((await owner.exportSnapshot()).builtinEnvironmentIds, owner.builtinEnvironmentIds)
+  }
+  await restored.close()
 })
 
 test('online backup stamp detects edits to installed files and is single use', async t => {

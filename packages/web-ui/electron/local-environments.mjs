@@ -37,7 +37,7 @@ export class LocalEnvironments {
           await this.library?.synchronizeEnvironments?.(workspace, this.validate)
           this.#builtin = await this.openBuiltin?.()
           this.#builtinIds = this.#builtin
-            ? [this.#builtin.id, this.#builtin.workspace.builtin120EnvironmentId].filter(Boolean)
+            ? [...new Set([this.#builtin.id, ...Object.values(this.#builtin.workspace.builtinEnvironmentIds ?? {})])]
             : []
           const file = join(workspace.root, 'local-selection.json')
           const saved = await readFile(file, 'utf8').catch(error => {

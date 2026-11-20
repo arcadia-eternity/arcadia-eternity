@@ -15,7 +15,11 @@ import { LocalServerController } from '../local-server-controller.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 import { openBuiltinEnvironment } from '../builtin-environment.mjs'
-import { ContentWorkspace, prepareBuiltin120Environment } from '../../../content-dev/src/content-workspace.ts'
+import {
+  ContentWorkspace,
+  synchronizeShippedEnvironments,
+  readShippedEnvironments,
+} from '../../../content-dev/src/content-workspace.ts'
 import { buildEffects } from '@arcadia-eternity/content-sdk/build'
 import { parseNpmPackOutput, withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
 import { locateDesktopSqliteBinary } from '../../../../scripts/desktop-sqlite-native.mjs'
@@ -274,7 +278,7 @@ test(
     owner = new DesktopWorkspaceOwner({
       root: join(root, 'library'),
       library,
-      openWorkspace: (root, options) => ContentWorkspace.open(root, { ...options, includeBuiltin120: true }),
+      openWorkspace: ContentWorkspace.open,
       builtinId: () => builtin?.id,
       synchronize: async workspace => {
         const runtimeRequire = createRequire(join(dirname(cli), 'package.json'))
@@ -282,14 +286,10 @@ test(
           workspace,
           library,
           validate: validateWorkspaceProject,
-          rules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
-          prepareExtended: directory =>
-            prepareBuiltin120Environment(
-              workspace,
-              directory,
-              runtimeRequire('@arcadia-eternity/data-pack-base/environment/test-120-rules.json'),
-              validateWorkspaceProject,
-            ),
+          catalog: await readShippedEnvironments(join(dirname(cli), 'shipped-environments.json'), {
+            '@arcadia-eternity/data-pack-base': runtimeRequire('@arcadia-eternity/data-pack-base/package.json').version,
+          }),
+          synchronizeShippedEnvironments,
           legacyBuiltinId: async () => undefined,
         })
       },
@@ -338,7 +338,9 @@ test(
         assert.equal(published?.environmentName, name)
         assert.equal(published.rules.team.maxSize, maxSize)
       }
-      const extended = environments.find(item => item.environmentId === builtin.workspace.builtin120EnvironmentId)
+      const extended = environments.find(
+        item => item.environmentId === builtin.workspace.builtinEnvironmentIds['training-120'],
+      )
       assert.equal(extended.rules.mechanics.individualValues.max, 120)
       assert.equal(extended.rules.mechanics.secondGenerationNatures, 'species')
       assert.equal(extended.rules.mechanics.enhancement.stages.length, 16)

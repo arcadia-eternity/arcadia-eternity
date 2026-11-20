@@ -331,7 +331,7 @@ test('migrates the generated default to the shared installation, preserves edits
   const old = 'local-' + randomUUID()
   const edited = 'local-' + randomUUID()
   const builtin = { ...document, id, name: '默认环境' }
-  const host = await ContentWorkspace.open(join(f.root, 'managed'), { includeBuiltin120: true })
+  const host = await ContentWorkspace.open(join(f.root, 'managed'))
   f.instances.push(host)
   let api = f.open()
   const personal = await api.ready()
@@ -340,7 +340,7 @@ test('migrates the generated default to the shared installation, preserves edits
       { environmentId: doc.id, document: doc, projectDirectory: f.project, expectedRevision: null },
       f.validate,
     )
-  const extendedId = host.builtin120EnvironmentId
+  const { extended: extendedId } = await host.registerBuiltinEnvironments(['classic', 'extended'], { classic: id })
   await prepare(host, { ...builtin, id: extendedId, name: '120 资质 · 神魔化与二代' })
   await prepare(host, builtin)
   await prepare(personal, { ...builtin, id: old })

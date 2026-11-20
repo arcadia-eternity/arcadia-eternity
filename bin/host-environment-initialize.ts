@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { EnvironmentRuleDeclarationSchema } from '@arcadia-eternity/const'
 import { readInstalledEnvironmentDocument } from '@arcadia-eternity/content-sdk/prepared-document'
-import { isDeepStrictEqual } from 'node:util'
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import { validateWorkspaceProject, type ManagementService } from '@arcadia-eternity/server'
@@ -21,10 +20,10 @@ export async function initializeHostEnvironment({
 }: {
   management: ManagementService
   workspace: ContentWorkspace
-  projectDirectory: string
+  projectDirectory?: string
   kind: 'builtin' | 'desktop' | 'npm'
   environmentId: string
-  name: string
+  name?: string
   matchmakingEnabled: boolean
   timeoutMs?: number
 }): Promise<void> {
@@ -41,36 +40,18 @@ export async function initializeHostEnvironment({
     readFile(new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')), 'utf8').then(
       raw => EnvironmentRuleDeclarationSchema.parse(JSON.parse(raw)),
     )
-  if (existing && kind === 'builtin') {
-    const previousDefaults = [
-      { schemaVersion: 1 },
-      {
-        schemaVersion: 2,
-        mechanics: {
-          individualValues: { max: 31 },
-          inheritance: { eligible: 'species' },
-          secondGenerationNatures: 'species',
-        },
-      },
-    ]
-    if (previousDefaults.some(rules => isDeepStrictEqual(rules, existing.document.rules))) {
-      await workspace.prepareEnvironment(
-        {
-          environmentId,
-          expectedRevision: existing.revision,
-          document: { ...existing.document, rules: await baseRules() },
-          projectDirectory: resolve(workspace.root, 'environments', environmentId),
-        },
-        validate,
-      )
-    }
-  } else if (resolve(projectDirectory) !== resolve(workspace.root, 'environments', environmentId)) {
+  const shipped = Object.values(workspace.builtinEnvironmentIds ?? {}).includes(environmentId)
+  if (
+    projectDirectory &&
+    !shipped &&
+    resolve(projectDirectory) !== resolve(workspace.root, 'environments', environmentId)
+  ) {
     const { members } = await inspectNpmProject(projectDirectory)
     const installed = await readInstalledEnvironmentDocument(projectDirectory)
     const document = {
       schemaVersion: 2 as const,
       id: environmentId,
-      name,
+      name: name ?? environmentId,
       ...existing?.document,
       packages: Object.fromEntries(members.map(({ name, version }) => [name, version])),
       sources: [],

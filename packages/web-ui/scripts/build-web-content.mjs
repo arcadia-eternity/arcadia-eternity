@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
+import { readShippedEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
 import { readInstalledEnvironmentDocument } from '@arcadia-eternity/content-sdk/prepared-document'
 import { assertEnvironmentRequirements, prepareRulesForContent } from '@arcadia-eternity/content-sdk/environment-rules'
 import {
@@ -81,19 +82,20 @@ export async function buildWebContent(
       defaultLocale: content.locales.defaultLocale,
     }
     writeJson(manifest.presentation, webPresentation)
-    const document = projectDirectory
-      ? await readInstalledEnvironmentDocument(projectDirectory, prepared.revision)
-      : undefined
+    let document
+    if (projectDirectory) {
+      document = await readInstalledEnvironmentDocument(projectDirectory, prepared.revision)
+    } else {
+      const catalog = await readShippedEnvironments(
+        new URL('../../../bin/shipped-environments.json', import.meta.url),
+        {
+          [pkg.name]: pkg.version,
+        },
+      )
+      document = catalog.environments.find(item => item.id === catalog.defaultEnvironment)
+    }
     assertEnvironmentRequirements(document?.requires)
-    const declaration = projectDirectory
-      ? document?.rules
-      : JSON.parse(
-          await readFile(
-            new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
-            'utf8',
-          ),
-        )
-    const { rules } = prepareRulesForContent(declaration, sandbox.data)
+    const { rules } = prepareRulesForContent(document?.rules, sandbox.data)
     const runtimeIdentity = {
       kind: 'native-v4',
       contentRevision: prepared.revision,
