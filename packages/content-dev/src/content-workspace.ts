@@ -30,7 +30,7 @@ import {
   exportDependencies,
   type ArchiveReference,
 } from './environment-sharing.ts'
-import { environmentShareMaterials } from './environment-host-base.ts'
+import { environmentShareMaterials, hostBaseName } from './environment-host-base.ts'
 export { copyEnvironmentMember } from './environment-member-transfer.ts'
 import { parseManifestDraft, preparedDocument } from './prepared-document.ts'
 export { readInstalledEnvironmentDocument } from './prepared-document.ts'
@@ -40,6 +40,13 @@ export type EnvironmentDocument = EnvironmentDocumentV2
 export interface EnvironmentDraft {
   document: EnvironmentDocument
   revision: string
+}
+function hasHostBase(document: EnvironmentDocument) {
+  return Object.hasOwn(document.packages, hostBaseName) || document.sources.includes(hostBaseName)
+}
+function assertBaseRetained(before: EnvironmentDocument | undefined, after: EnvironmentDocument) {
+  if (before && hasHostBase(before) && !hasHostBase(after))
+    throw contentError('ENVIRONMENT_BASE_REQUIRED', '环境必须保留官方基础包。')
 }
 const compositionSchema = z
   .object({
@@ -555,6 +562,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       })
       if ((previous === null ? null : sha256Hex(previous)) !== input.expectedRevision)
         throw contentError('REVISION_CONFLICT')
+      if (previous !== null) assertBaseRetained(parseManifestDraft(previous).document, document)
       await regularDirectory(directory)
       await this.#archiveRemovedDeclarations(document.id)
       if (previous !== null) {
@@ -654,6 +662,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       if ((draft?.revision ?? null) !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
       const document = normalizeEnvironmentDocument(input.document ?? draft?.document)
       if (document.id !== input.environmentId) throw contentError('ENVIRONMENT_ID_MISMATCH')
+      assertBaseRetained(draft?.document, document)
       const source =
         input.projectDirectory ??
         input.directory ??
@@ -692,14 +701,13 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       }
       await writeMaterials(staging, materials, limits)
       const manifest = await readJson(join(staging, 'package.json'))
-      const base = '@arcadia-eternity/data-pack-base'
-      if (Object.hasOwn(document.packages, base) || document.sources.includes(base)) {
-        const installed = await readJson(join(staging, 'node_modules', base, 'package.json'))
+      if (hasHostBase(document)) {
+        const installed = await readJson(join(staging, 'node_modules', hostBaseName, 'package.json'))
         if (typeof installed.version !== 'string') throw contentError('BUNDLED_PACKAGE_INVALID')
         document = {
           ...document,
-          packages: { ...document.packages, [base]: installed.version },
-          sources: document.sources.filter(name => name !== base),
+          packages: { ...document.packages, [hostBaseName]: installed.version },
+          sources: document.sources.filter(name => name !== hostBaseName),
         }
       }
       await writeFile(
@@ -1058,6 +1066,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
         return undefined
       })
       if ((previous?.revision ?? null) !== (input.expectedRevision ?? null)) throw contentError('REVISION_CONFLICT')
+      assertBaseRetained(previous?.document, document)
       const staging = join(this.root, 'staging', `import-${randomUUID()}`)
       await mkdir(staging)
       try {
@@ -1272,6 +1281,7 @@ async function changeEnvironmentPackage(
           changed = true
         }
     }
+    if (affected.has(hostBaseName)) throw contentError('ENVIRONMENT_BASE_REQUIRED', '环境必须保留官方基础包。')
     const roots = [...active].filter(key => affected.has(key))
     if (!roots.length) throw contentError('ENVIRONMENT_PACKAGE_NOT_FOUND')
     if (!cascade && roots.some(key => key !== name))

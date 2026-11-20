@@ -91,6 +91,23 @@ test('environment is a persistent npm project and package.json is authoritative'
   })
 })
 
+test('saving or applying a replacement must retain the base package across both declaration forms', async t => {
+  const { open } = await fixture(t)
+  const workspace = await open()
+  const name = '@arcadia-eternity/data-pack-base'
+  const draft = await workspace.saveDraft({ document: { ...document, sources: [name] }, expectedRevision: null })
+  const pinned = await workspace.saveDraft({
+    document: { ...document, packages: { [name]: '1.0.0' } },
+    expectedRevision: draft.revision,
+  })
+  const removed = { document: { ...document, packages: { sample: '1.0.0' } }, expectedRevision: pinned.revision }
+  await assert.rejects(workspace.saveDraft(removed), { code: 'ENVIRONMENT_BASE_REQUIRED' })
+  await assert.rejects(workspace.prepareEnvironment({ ...removed, environmentId: document.id }, prepare), {
+    code: 'ENVIRONMENT_BASE_REQUIRED',
+  })
+  assert.equal((await workspace.getDraft(document.id)).revision, pinned.revision)
+})
+
 test('preparing updates one installation instead of creating selectable snapshots', async t => {
   const { open, project, location } = await fixture(t)
   const workspace = await open()

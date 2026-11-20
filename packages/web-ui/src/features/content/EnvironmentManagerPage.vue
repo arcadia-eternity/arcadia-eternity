@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ElSelect, ElOption } from 'element-plus'
+import { Grid } from '@element-plus/icons-vue'
+import EnvironmentLayout from './EnvironmentLayout.vue'
+import { ElIcon } from 'element-plus'
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
-import { getBackendOrigin } from '@/bootstrap/deployment'
+import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { isStaticMode } from '@/utils/env'
 import { hasPreparedWebEnvironment } from '@/services/preparedWebEnvironment'
@@ -18,7 +19,6 @@ type Location = 'local' | 'web' | 'server' | 'room'
 const { dirty: hasDraft, open: editorOpen } = useEnvironmentDrafts()
 const allowLeave = () => !hasDraft() || discardEnvironmentChanges()
 onBeforeRouteLeave(allowLeave)
-onBeforeRouteUpdate((to, from) => locationFor(to.query.target) === locationFor(from.query.target) || allowLeave())
 function beforeUnload(event: BeforeUnloadEvent) {
   if (hasDraft()) {
     event.preventDefault()
@@ -28,22 +28,9 @@ function beforeUnload(event: BeforeUnloadEvent) {
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
 onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 const route = useRoute()
-const router = useRouter()
 const rooms = usePrivateRoomStore()
 const local = !!(window.arcadiaDesktop?.localEnvironment || window.arcadiaDesktop?.listContentPackages)
 const bundled = !local && hasPreparedWebEnvironment()
-const serverLabel = isStaticMode ? '' : new URL(getBackendOrigin()).host
-const showLocations = computed(() => Number(local || bundled) + Number(!isStaticMode) + Number(!!rooms.currentRoom) > 1)
-const defaultAll = showLocations.value
-function locationFor(value: unknown) {
-  if ((!value && defaultAll) || value === 'all') return 'all'
-  if (value === 'room' && rooms.currentRoom) return 'room'
-  if (bundled && (value === 'web' || isStaticMode)) return 'web'
-  if ((value === 'local' || value === 'host') && local) return 'local'
-  if (value && value !== 'all') return 'server'
-  return local ? 'local' : 'server'
-}
-const target = computed(() => locationFor(route.query.target))
 const catalogs = ref<Record<Exclude<Location, 'room'>, EnvironmentLocation[]>>({ local: [], web: [], server: [] })
 const roomRows = computed<EnvironmentLocation[]>(() => {
   const descriptor = rooms.currentRoom?.personalEnvironment?.descriptor ?? rooms.currentRoom?.environment
@@ -68,7 +55,12 @@ const entries = computed(() =>
     })),
   ),
 )
-const preferredLocation: Location = local ? 'local' : bundled ? 'web' : 'server'
+// Old bookmarks and management links can focus a source without narrowing the directory.
+const target = route.query.target
+const defaultLocation: Location = local ? 'local' : bundled ? 'web' : 'server'
+const preferredLocation: Location =
+  target === 'server' && !isStaticMode ? 'server' : target === 'room' && rooms.currentRoom ? 'room' : defaultLocation
+let userSelected = false
 type CatalogEntry = (typeof entries.value)[number]
 const chosen = ref<{ id: string; location: Location; key: string }>()
 const localEdit = ref(false)
@@ -82,7 +74,7 @@ const activeLocation = computed(() => chosen.value?.location ?? preferredLocatio
 const activeKey = computed(() => chosen.value?.key ?? '')
 const selected = computed(() => activeLocation.value + '/' + activeKey.value)
 const relatedServerEnvironment = computed(() => {
-  if (target.value !== 'all' || activeLocation.value === 'server' || editorOpen()) return undefined
+  if (activeLocation.value === 'server' || editorOpen()) return undefined
   const active = entries.value.find(row => row.key === selected.value)
   const remote = active && catalogs.value.server.find(row => row.id === active.id && row.serverId)
   return remote && remote.serverId !== active?.serverId ? remote.id : undefined
@@ -93,80 +85,75 @@ const directoryBusy = computed(() =>
   activeLocation.value === 'local' ? localBusy.value : activeLocation.value === 'server' && serverBusy.value,
 )
 watch([entries, editorOpen, directoryBusy], ([rows, editing, busy]) => {
-  if (target.value !== 'all' || editing || busy || localEdit.value || serverEdit.value) return
-  const id = chosen.value?.id ?? (rows.find(row => row.location === preferredLocation) ?? rows[0])?.id
-  const next = resolveEnvironmentEntry(rows, id, selected.value)
+  if (editing || busy || localEdit.value || serverEdit.value) return
+  const first = rows.find(row => row.location === preferredLocation) ?? rows[0]
+  const next = userSelected
+    ? (resolveEnvironmentEntry(rows, chosen.value?.id, selected.value) ?? first)
+    : first?.location === target
+      ? first
+      : resolveEnvironmentEntry(rows, first?.id, first?.key)
   if (next && next.key !== selected.value) choose(next)
+  else if (!next) chosen.value = undefined
 })
 async function select(key: string, startEdit = false) {
   if (key === selected.value || directoryBusy.value || !(await allowLeave())) return
   const row = entries.value.find(entry => entry.key === key)
-  if (row && (!startEdit || row.editable)) choose(row, startEdit)
+  if (row && (!startEdit || row.editable)) {
+    userSelected = true
+    choose(row, startEdit)
+  }
 }
-function selectLocal(key: string) {
-  const row = entries.value.find(entry => entry.location === 'local' && entry.sourceKey === key)
+function selectWorkspaceEntry(location: 'local' | 'server', key: string) {
+  userSelected = true
+  const row = entries.value.find(entry => entry.location === location && entry.sourceKey === key)
   if (row) choose(row)
-  else chosen.value = { location: 'local', key, id: key.slice(key.indexOf('/') + 1) }
+  else chosen.value = { location, key, id: key.slice(key.indexOf('/') + 1) }
 }
 function selection(location: Location) {
-  if (target.value !== 'all') return undefined
   return activeLocation.value === location ? activeKey.value : null
-}
-async function navigate(nextTarget: string) {
-  await router.replace({ path: '/environments', query: { target: nextTarget } })
 }
 </script>
 <template>
   <main class="environment-hub">
     <header class="hub-heading">
-      <h1>环境</h1>
-      <label v-if="showLocations"
-        >位置
-        <ElSelect :model-value="target" aria-label="环境位置" class="target-select" @change="value => navigate(value)">
-          <ElOption value="all" label="全部来源" />
-          <ElOption v-if="bundled" value="web" label="网页内置" />
-          <ElOption v-if="local" value="local" label="本机" />
-          <ElOption v-if="!isStaticMode" value="server" :label="`服务器 · ${serverLabel}`" />
-          <ElOption v-if="rooms.currentRoom" value="room" label="当前房间" />
-        </ElSelect>
-      </label>
+      <div class="hub-title">
+        <ElIcon><Grid /></ElIcon>
+        <h1>环境</h1>
+      </div>
     </header>
-    <div :key="target" class="hub-body">
-      <EnvironmentDirectory
-        v-if="target === 'all'"
-        :entries="entries"
-        :selected="selected"
-        :busy="directoryBusy"
-        @select="select"
-      />
-      <PublicEnvironments
-        v-if="target === 'web' || (target === 'all' && bundled)"
-        bundled
-        :selection="selection('web')"
-        @catalog="catalogs.web = $event"
-      />
-      <LocalEnvironmentPage
-        v-if="target === 'local' || (target === 'all' && local)"
-        :selection="selection('local')"
-        @catalog="catalogs.local = $event"
-        @busy="localBusy = $event"
-        v-model:edit-requested="localEdit"
-        @select="selectLocal"
-      />
-      <ServerEnvironmentPanel
-        v-if="target === 'server' || (target === 'all' && !isStaticMode)"
-        target="server"
-        :selection="selection('server')"
-        v-model:edit-requested="serverEdit"
-        :related-environment-id="relatedServerEnvironment"
-        @catalog="catalogs.server = $event"
-        @busy="serverBusy = $event"
-      />
-      <ContentPackagesPanel
-        v-if="target === 'room' || (target === 'all' && activeLocation === 'room' && activeKey === roomRows[0]?.key)"
-        location="room"
-      />
-      <p v-else-if="target === 'all' && activeLocation === 'room'" role="status">此房间环境已不可用。</p>
+    <div class="hub-body">
+      <EnvironmentLayout class="hub-layout">
+        <template #directory>
+          <EnvironmentDirectory
+            show-sources
+            :entries="entries"
+            :selected="selected"
+            :busy="directoryBusy"
+            @select="select"
+          />
+        </template>
+        <PublicEnvironments v-if="bundled" bundled :selection="selection('web')" @catalog="catalogs.web = $event" />
+        <LocalEnvironmentPage
+          v-if="local"
+          :selection="selection('local')"
+          @catalog="catalogs.local = $event"
+          @busy="localBusy = $event"
+          v-model:edit-requested="localEdit"
+          @select="key => selectWorkspaceEntry('local', key)"
+        />
+        <ServerEnvironmentPanel
+          v-if="!isStaticMode"
+          target="server"
+          :selection="selection('server')"
+          v-model:edit-requested="serverEdit"
+          :related-environment-id="relatedServerEnvironment"
+          @catalog="catalogs.server = $event"
+          @busy="serverBusy = $event"
+          @select="key => selectWorkspaceEntry('server', key)"
+        />
+        <ContentPackagesPanel v-if="activeLocation === 'room' && activeKey === roomRows[0]?.key" location="room" />
+        <p v-else-if="activeLocation === 'room'" role="status">此房间环境已不可用。</p>
+      </EnvironmentLayout>
     </div>
   </main>
 </template>
@@ -181,37 +168,40 @@ async function navigate(nextTarget: string) {
 }
 .hub-heading {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 16px max(20px, calc((100% - 1440px) / 2));
+  border-bottom: 1px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
 }
-.hub-heading h1 {
-  font-size: 22px;
-  font-weight: 600;
-  margin-right: auto;
-}
-.hub-heading label {
+.hub-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 10px;
 }
-.target-select {
-  width: 240px;
-  max-width: 60vw;
+.hub-title .el-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 18px;
+}
+.hub-title h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
 }
 .hub-body {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  padding: clamp(12px, 2vw, 28px);
 }
-.hub-body > .environment-directory {
-  margin: 0 20px 12px;
-}
-.hub-body > :deep(.local-environments) {
-  height: auto;
-  min-height: 0;
-  padding: 0 20px 20px;
+.hub-layout {
+  max-width: 1440px;
+  margin-inline: auto;
 }
 </style>

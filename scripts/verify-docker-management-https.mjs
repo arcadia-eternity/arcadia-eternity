@@ -461,12 +461,13 @@ async function validate() {
     secrets.add(issued.code)
     assert.equal(issued.serverId, serverId)
     evidence.identity = { serverId, workspaceId: issued.workspaceId }
-    await page.goto(origin + '/environments?target=server')
-    await page.getByRole('button', { name: '管理员登录', exact: true }).click()
+    await page.goto(origin + '/management?target=server')
     await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
     await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
     await page.getByLabel('一次性登录码', { exact: true }).fill(issued.code)
     await page.getByRole('button', { name: '使用登录码进入', exact: true }).click()
+    await expect(page.getByRole('button', { name: '退出管理', exact: true })).toBeVisible()
+    await page.goto(origin + '/environments?target=server')
     await expect(page.getByRole('button', { name: '新建环境', exact: true })).toBeEnabled()
     authenticationPhase = 'authenticated'
     assert.equal(

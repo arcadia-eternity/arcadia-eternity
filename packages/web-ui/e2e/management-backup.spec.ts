@@ -100,13 +100,14 @@ async function hostCommand(directory: string, args: string[]) {
 async function login(page: Page, directory: string, origin: string) {
   const credential = await hostCommand(directory, ['admin', 'login-code', '--data-dir', directory])
   const identity = { serverId: String(credential.serverId), workspaceId: String(credential.workspaceId) }
-  await page.goto(origin + '/environments?target=server')
-  await page.getByRole('button', { name: '管理员登录', exact: true }).click()
+  await page.goto(origin + '/management?target=server')
   await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
   await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
   await page.getByLabel('一次性登录码', { exact: true }).fill(credential.code)
   delete credential.code
   await page.getByRole('button', { name: '使用登录码进入', exact: true }).click()
+  await expect(page.getByRole('button', { name: '退出管理', exact: true })).toBeVisible()
+  await page.goto(origin + '/environments?target=server')
   await expect(page.getByRole('button', { name: '新建环境', exact: true })).toBeEnabled()
   const verified = await page.evaluate(async () => (await fetch('/api/management/v1/session')).json())
   expect(verified).toMatchObject(identity)
@@ -169,15 +170,9 @@ test('paired production management backs up, revokes service credentials and ret
     const editor = page.getByRole('form', { name: '编辑环境' })
     await editor.getByLabel('名称', { exact: true }).fill('备份验收环境')
     await editor.getByLabel('标识', { exact: true }).fill('backup-acceptance')
-    const source = editor.getByRole('textbox', { name: '按包名查找' })
-    await source.fill(catalogPackage)
-    await source.press('Enter')
+    await expect(editor.getByText(catalogPackage, { exact: true })).toBeVisible()
     await editor.getByRole('button', { name: '保存并应用', exact: true }).click()
     await expect(editor).not.toBeVisible()
-    await page
-      .getByRole('navigation', { name: '选择环境' })
-      .getByRole('button', { name: /备份验收环境/ })
-      .click()
     const backupEnvironment = page.getByRole('region', { name: '环境工作区' })
     await expect(backupEnvironment.getByRole('heading', { name: '备份验收环境', exact: true })).toBeVisible()
     await page.goto(server.origin + '/management?target=server&tab=tasks')

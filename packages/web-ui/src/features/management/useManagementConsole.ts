@@ -377,7 +377,7 @@ export function useManagementConsole(scope: 'server' | 'content' = 'server') {
     path: string,
     body?: unknown,
     revision?: number | string,
-    receive?: (result: T) => void,
+    receive?: (result: T) => void | Promise<void>,
   ) {
     const current = client.value,
       epoch = generation
@@ -392,7 +392,8 @@ export function useManagementConsole(scope: 'server' | 'content' = 'server') {
       const result = await current.request<T>(method, path, { body, revision, idempotencyKey: key })
       if (epoch !== generation) return false
       pendingKeys.delete(signature)
-      receive?.(result)
+      await receive?.(result)
+      if (epoch !== generation) return false
       notice.value = '操作已提交，可在任务与资源状态中查看结果。'
       await refresh()
       return true

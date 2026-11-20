@@ -1,4 +1,3 @@
-import { ElSelect } from 'element-plus'
 import { afterEach, expect, it, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -6,7 +5,12 @@ import { defineComponent, ref } from 'vue'
 import * as drafts from '../unsavedEnvironment'
 import EnvironmentManagerPage from '../EnvironmentManagerPage.vue'
 vi.mock('@/bootstrap/deployment', () => ({ getBackendOrigin: () => 'https://paired.example' }))
-vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => ({ currentRoom: null }) }))
+const { roomStore } = vi.hoisted(() => ({
+  roomStore: {
+    currentRoom: null as { environment: { id: string; environmentId: string; environmentName: string } } | null,
+  },
+}))
+vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => roomStore }))
 const Local = defineComponent({
   props: { selection: String },
   emits: ['catalog'],
@@ -49,34 +53,23 @@ async function open(path: string) {
 }
 afterEach(() => {
   pages.splice(0).forEach(page => page.unmount())
+  roomStore.currentRoom = null
   vi.unstubAllGlobals()
 })
-it('switches explicit locations and discards the previous local draft', async () => {
-  vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn() })
-  const { page, router } = await open('/environments?target=local')
-  await page.get('[aria-label="本机草稿"]').setValue('unsaved')
-  page.getComponent(ElSelect).vm.$emit('change', 'server')
-  await flushPromises()
-  expect(router.currentRoute.value.query).toEqual({ target: 'server' })
-  expect(page.get('[data-remote]').text()).toBe('server')
-  expect(page.find('[aria-label="本机草稿"]').exists()).toBe(false)
-  page.getComponent(ElSelect).vm.$emit('change', 'local')
-  await flushPromises()
-  expect((page.get('[aria-label="本机草稿"]').element as HTMLInputElement).value).toBe('')
-})
-it('keeps an explicit server target remote even when a local bridge is available', async () => {
-  const local = vi.fn()
-  vi.stubGlobal('arcadiaDesktop', { localEnvironment: local })
-  const { page } = await open('/environments?target=server')
-  expect(page.get('[data-remote]').text()).toBe('server')
-  expect(local).not.toHaveBeenCalled()
-})
-it('opens old host links in the same local library', async () => {
-  vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn(), managementRequest: vi.fn() })
-  const { page } = await open('/environments?target=host')
-  expect(page.find('[data-remote]').exists()).toBe(false)
-  expect(page.find('[aria-label="本机草稿"]').exists()).toBe(true)
-})
+it.each(['local', 'host', 'web', 'server', 'all'])(
+  'shows the full merged directory for a %s bookmark',
+  async target => {
+    vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn() })
+    const { page } = await open(`/environments?target=${target}`)
+    await flushPromises()
+    const rows = page.get('nav[aria-label="选择环境"]').findAll('button')
+    expect(rows).toHaveLength(2)
+    expect(rows[0]!.text()).toContain('本机 · 服务器')
+    expect(rows[1]!.text()).toContain('服务器')
+    expect(page.find('[aria-label="环境位置"]').exists()).toBe(false)
+    if (target === 'server') expect(page.get('[data-remote]').attributes('data-selection')).toBe('publication')
+  },
+)
 it.each(['local', 'host'])('keeps a %s bookmark unprivileged in a browser', async target => {
   vi.stubGlobal('arcadiaDesktop', undefined)
   const { page } = await open(`/environments?target=${target}`)
@@ -90,7 +83,8 @@ it('lists a logical ID once across locations and opens an editable detail direct
   await flushPromises()
   const groups = page.get('nav[aria-label="选择环境"]').findAll('button')
   expect(groups).toHaveLength(2)
-  expect(groups[0]!.text()).toBe('好友环境')
+  expect(groups[0]!.get('strong').text()).toBe('好友环境')
+  expect(groups[0]!.text()).toContain('本机 · 服务器')
   expect(page.find('[aria-label="环境来源"]').exists()).toBe(false)
   await page.get('[aria-label="本机草稿"]').setValue('本机修改')
   const other = groups[1]!
@@ -106,6 +100,29 @@ it('lists a logical ID once across locations and opens an editable detail direct
   } finally {
     confirm.mockRestore()
   }
+})
+
+it('keeps every distinct origin on the same row, including a shared host workspace and a room publication', async () => {
+  vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn() })
+  roomStore.currentRoom = {
+    environment: { id: 'room-revision', environmentId: 'friends', environmentName: '房间好友环境' },
+  }
+  const { page } = await open('/environments')
+  page.getComponent(Local).vm.$emit('catalog', [
+    {
+      id: 'friends',
+      key: 'local/friends',
+      name: '好友环境',
+      source: '本机',
+      sources: ['本机', '本机服务器'],
+      editable: true,
+    },
+  ])
+  await flushPromises()
+  const rows = page.get('nav[aria-label="选择环境"]').findAll('button')
+  expect(rows.map(row => row.get('strong').text())).toEqual(['好友环境', '好友环境'])
+  expect(rows[0]!.get('small').text()).toBe('本机 · 本机服务器 · 服务器 · 当前房间')
+  expect(rows[1]!.get('small').text()).toBe('服务器')
 })
 
 it('automatically uses a remaining same-ID location when the viewed catalog entry disappears', async () => {

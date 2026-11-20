@@ -113,5 +113,8 @@ function openImport() {
     @download="downloadEnvironment"
   >
   </EnvironmentTransfers>
-  <p v-if="!supported('workspace.environments')" class="hint">此管理目标尚不支持环境工作区。</p>
+  <template v-if="!supported('workspace.environments')">
+    <slot name="toolbar" />
+    <p class="hint">此管理目标尚不支持环境工作区。</p>
+  </template>
 </template>

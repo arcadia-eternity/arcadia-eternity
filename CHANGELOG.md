@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.10.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.9.1...arcadia-eternity-v4.10.0) (2026-11-20)
+
+
+### ✨ Features
+
+* **environments:** unify the environment page and protect the base package ([5bec5fc](https://github.com/arcadia-eternity/arcadia-eternity/commit/5bec5fc6dd73115bc3695c917aab0e2109da332b))
+
+
+### 🐛 Bug Fixes
+
+* **web:** align rows in the environment list ([fb34d4e](https://github.com/arcadia-eternity/arcadia-eternity/commit/fb34d4e46fbf52431f75c2f98ef8709a03e55d10))
+
 ## [4.9.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.9.0...arcadia-eternity-v4.9.1) (2026-11-20)
 
 

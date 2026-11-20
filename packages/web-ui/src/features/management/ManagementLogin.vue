@@ -2,9 +2,8 @@
 import { ElButton, ElCheckbox, ElForm, ElFormItem, ElInput } from 'element-plus'
 import { allowManagementAccount } from '@/services/managementSession'
 import type { ManagementController } from './useManagementController'
-const { controller, accountReturnTo = '/account?returnTo=management' } = defineProps<{
+const { controller } = defineProps<{
   controller: ManagementController
-  accountReturnTo?: string
 }>()
 const {
   loginRequired,
@@ -36,7 +35,7 @@ const {
     <RouterLink
       v-if="accountLoginSupported || accountLoginAvailable"
       class="account-login"
-      :to="accountReturnTo"
+      to="/account?returnTo=management"
       @click="client && allowManagementAccount(client.context.endpoint)"
       >使用已授权账户登录</RouterLink
     >

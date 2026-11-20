@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ElButton, ElTag, ElSkeleton } from 'element-plus'
+import EnvironmentLayout from './EnvironmentLayout.vue'
+import EnvironmentDirectory from './EnvironmentDirectory.vue'
+import EnvironmentPanel from './EnvironmentPanel.vue'
+import EnvironmentDetailHeading from './EnvironmentDetailHeading.vue'
+import EnvironmentPackageRow from './EnvironmentPackageRow.vue'
+import { Refresh } from '@element-plus/icons-vue'
+import { ElButton, ElTag, ElSkeleton, ElAlert, ElEmpty } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { listServerEnvironments } from '@/services/serverEnvironment'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
@@ -22,7 +28,7 @@ const sourceKey = (row: EnvironmentRow) => (props.bundled ? row.id : 'server/' +
 const selected = computed(() =>
   props.selection
     ? environments.value.find(item => sourceKey(item) === props.selection)
-    : (environments.value.find(item => item.id === selectedId.value) ??
+    : (environments.value.find(item => sourceKey(item) === selectedId.value) ??
       environments.value.find(item => item.isDefault) ??
       environments.value[0]),
 )
@@ -31,20 +37,15 @@ const initialized = ref(false)
 const error = ref('')
 const name = (environment: EnvironmentRow) =>
   environment.environmentName || (environment.isDefault ? '默认环境' : `环境 ${environment.id.slice(0, 8)}`)
-watch(
-  environments,
-  rows =>
-    emit(
-      'catalog',
-      rows.map(row => ({
-        id: logicalId(row),
-        name: name(row),
-        key: sourceKey(row),
-        source: props.bundled ? '网页内置' : '服务器',
-      })),
-    ),
-  { immediate: true },
+const entries = computed(() =>
+  environments.value.map(row => ({
+    id: logicalId(row),
+    name: name(row),
+    key: sourceKey(row),
+    source: props.bundled ? '网页内置' : '服务器',
+  })),
 )
+watch(entries, rows => emit('catalog', rows), { immediate: true })
 let controller: AbortController | undefined
 async function refresh() {
   controller?.abort()
@@ -78,104 +79,71 @@ onBeforeUnmount(() => controller?.abort())
 </script>
 <template>
   <section v-if="selection !== null" :aria-label="heading" class="public-environments">
-    <header>
-      <h2>{{ heading }}</h2>
-      <ElButton :loading="loading" @click="refresh">刷新</ElButton>
-    </header>
-    <ElSkeleton v-if="!initialized" :rows="6" animated :aria-label="'正在加载' + heading" />
-    <p v-else-if="error" role="alert">{{ error }}</p>
-    <p v-else-if="!loading && !environments.length">{{ bundled ? '暂无网页内置环境。' : '服务器暂无公开环境。' }}</p>
-    <div v-else class="environment-columns" :class="{ 'detail-only': selection !== undefined }">
-      <nav v-if="selection === undefined" :aria-label="'选择' + heading">
-        <ElButton
-          v-for="environment in environments"
-          :key="environment.id"
-          :aria-current="selected?.id === environment.id ? 'true' : undefined"
-          @click="selectedId = environment.id"
-          >{{ name(environment) }}</ElButton
-        >
-      </nav>
-      <p v-if="selection && !selected" role="status">此来源的环境已不可用。</p>
-      <article v-if="selected" :aria-label="heading + '详情'">
-        <header>
-          <h3>{{ name(selected) }}</h3>
-          <ElTag>只读</ElTag>
-        </header>
-        <p v-if="!bundled">{{ selected.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行' }}</p>
-        <h4>包含的内容包</h4>
-        <ul>
-          <li v-for="pkg in selected.packages" :key="pkg.name">
-            <strong>{{ pkg.name }}</strong
-            ><span>{{ pkg.version }}</span>
-          </li>
-        </ul>
-        <details>
-          <summary>环境标识</summary>
-          <code>{{ selected.id }}</code>
-        </details>
-      </article>
-    </div>
+    <EnvironmentLayout>
+      <template v-if="selection === undefined" #directory>
+        <EnvironmentDirectory
+          :entries="entries"
+          :selected="selected && sourceKey(selected)"
+          :label="'选择' + heading"
+          @select="selectedId = $event"
+        />
+      </template>
+      <EnvironmentPanel :heading="heading">
+        <template #tools>
+          <ElButton :loading="loading" :icon="Refresh" @click="refresh">刷新</ElButton>
+        </template>
+        <ElSkeleton v-if="!initialized" :rows="6" animated :aria-label="'正在加载' + heading" />
+        <ElAlert v-else-if="error" type="error" role="alert" :title="error" show-icon :closable="false" />
+        <ElEmpty
+          v-else-if="!environments.length"
+          :image-size="64"
+          :description="bundled ? '暂无网页内置环境。' : '服务器暂无公开环境。'"
+        />
+        <article v-else-if="selected" :aria-label="heading + '详情'">
+          <EnvironmentDetailHeading :name="name(selected)" readonly>
+            <template #status>
+              <ElTag v-if="selected.isDefault" size="small">默认</ElTag>
+              <ElTag v-if="!bundled" size="small" type="info">{{
+                selected.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行'
+              }}</ElTag>
+            </template>
+          </EnvironmentDetailHeading>
+          <h4>环境内的内容包</h4>
+          <EnvironmentPackageRow
+            v-for="pkg in selected.packages"
+            :key="pkg.name"
+            :name="pkg.name"
+            :version="pkg.version"
+          />
+          <ElEmpty v-if="!selected.packages.length" :image-size="48" description="暂无内容包" />
+          <details>
+            <summary>环境标识</summary>
+            <code>{{ selected.id }}</code>
+          </details>
+        </article>
+        <ElEmpty v-else role="status" :image-size="64" description="此来源的环境已不可用。" />
+      </EnvironmentPanel>
+    </EnvironmentLayout>
   </section>
 </template>
 <style scoped>
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.environment-columns {
-  display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 12px;
-}
-.environment-columns.detail-only {
-  grid-template-columns: minmax(0, 1fr);
-}
-nav,
-article {
-  padding: 16px;
-  min-width: 0;
-}
-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-right: 1px solid var(--el-border-color-light);
-}
-nav :deep(.el-button) {
-  margin: 0;
-}
-nav button[aria-current='true'] {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-}
-li {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 12px 0;
-  overflow-wrap: anywhere;
-}
-code {
-  overflow-wrap: anywhere;
+h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
 }
 details {
-  margin-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 12px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 summary {
   cursor: pointer;
 }
-@media (max-width: 600px) {
-  .environment-columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  nav {
-    border-right: 0;
-    border-bottom: 1px solid var(--el-border-color-light);
-  }
+code {
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
 }
 </style>

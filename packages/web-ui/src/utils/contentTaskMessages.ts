@@ -3,6 +3,8 @@ export function contentTaskError(value: unknown): string {
   const detail = value && typeof value === 'object' ? (value as { code?: unknown; message?: unknown }) : undefined
   const code = typeof detail?.code === 'string' ? detail.code : typeof value === 'string' ? value : ''
   const messages: Record<string, string> = {
+    ENVIRONMENT_BASE_REQUIRED: '环境必须保留官方基础包。',
+    NPM_CONTENT_MISSING: '环境中没有可用的内容包，请添加官方基础包或其他内容包。',
     NPM_BASE_HOST_INVALID: '此环境的内容包与当前服务器版本不兼容。请使用适配当前服务器的内容包重新准备并发布环境。',
     ENVIRONMENT_CONTENT_MISMATCH: '此环境的内容校验与保存版本不一致。请重新准备并发布环境。',
     ENVIRONMENT_UNAVAILABLE: '环境加载失败。请检查内容包和已准备版本后重新发布。',
