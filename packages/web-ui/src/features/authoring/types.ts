@@ -101,6 +101,8 @@ export async function authorCall<T>(input: Record<string, unknown>): Promise<T> 
   if (!invoke) throw new Error('请使用新版桌面客户端打开源项目')
   // Vue forms contain reactive proxies; IPC accepts plain structured-cloneable data.
   const response = await invoke(JSON.parse(JSON.stringify(input)))
+  if (input.action === 'creator-github' && response.error?.message === '不支持的作者操作')
+    throw new Error('请保存修改，退出并重新打开桌面客户端，再使用 GitHub 同步。')
   if (response.error) throw Object.assign(new Error(response.error.message), { code: response.error.code })
   return response.result as T
 }

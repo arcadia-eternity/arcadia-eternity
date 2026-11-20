@@ -24,11 +24,10 @@ it('offers a private personal repository for a fresh package and recovers a part
         throw Error(String(input.operation))
     }
   })
-  const wrapper = mount(CreatorGitHubPanel, { props: { mode: 'sync', project: 'pack', projectName: 'frost' } })
+  const wrapper = mount(CreatorGitHubPanel, {
+    props: { mode: 'sync', project: 'pack', projectName: 'frost', createOnSync: true },
+  })
   try {
-    await flushPromises()
-    expect(wrapper.get('input[aria-label="仓库名称"]').element).toHaveProperty('value', 'frost')
-    await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(actions).toHaveBeenCalledWith({
       action: 'creator-github',
@@ -98,5 +97,57 @@ it('shows the install link automatically once the archive is public and copies t
     wrapper.unmount()
     vi.unstubAllGlobals()
     vi.useRealTimers()
+  }
+})
+
+it('continues first sync after device login and keeps a cancelled creation available for manual setup', async () => {
+  vi.useFakeTimers()
+  const create = vi.fn().mockResolvedValue(null)
+  let signedIn = false
+  vi.mocked(authorCall).mockImplementation(async input => {
+    if (input.operation === 'account') return { login: signedIn ? 'player' : undefined }
+    if (input.operation === 'connect') return { connecting: true }
+    if (input.operation === 'create') return create(input)
+    throw Error(String(input.operation))
+  })
+  const wrapper = mount(CreatorGitHubPanel, {
+    props: { mode: 'sync', project: 'pack', projectName: 'frost', createOnSync: true },
+  })
+  try {
+    await flushPromises()
+    expect(create).not.toHaveBeenCalled()
+    await wrapper.get('button').trigger('click')
+    await flushPromises()
+    signedIn = true
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('input[aria-label="仓库名称"]').element).toHaveProperty('value', 'frost')
+    await vi.advanceTimersByTimeAsync(20000)
+    expect(create).toHaveBeenCalledTimes(1)
+  } finally {
+    wrapper.unmount()
+    vi.useRealTimers()
+  }
+})
+
+it('uses the bound repository when opening sync again', async () => {
+  const actions = vi.mocked(authorCall)
+  actions.mockClear()
+  actions.mockImplementation(async input => {
+    if (input.operation === 'account') return { login: 'player' }
+    if (input.operation === 'sync-target') return { repository: 'player/frost' }
+    throw Error(String(input.operation))
+  })
+  const wrapper = mount(CreatorGitHubPanel, {
+    props: { mode: 'sync', project: 'pack', hasRemote: true, createOnSync: true },
+  })
+  try {
+    await flushPromises()
+    expect(wrapper.text()).toContain('player/frost')
+    expect(wrapper.find('form').exists()).toBe(false)
+    expect(actions.mock.calls.map(([input]) => input.operation)).toEqual(['account', 'sync-target'])
+  } finally {
+    wrapper.unmount()
   }
 })

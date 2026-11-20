@@ -72,7 +72,7 @@ test(
       const releasePanel = page.getByRole('region', { name: '发布新版本', exact: true })
       const panel = page.getByRole('region', { name: 'Git 版本管理' })
       await openGit()
-      await panel.getByRole('button', { name: '初始化 Git 仓库' }).click()
+      assert.equal((await git('symbolic-ref', '--short', 'HEAD')).stdout.trim(), 'main')
       await panel.getByRole('button', { name: '全部暂存' }).waitFor()
       await panel.getByRole('button', { name: 'GitHub 同步' }).click()
       await expect(panel.getByRole('button', { name: '连接 GitHub' })).toBeVisible()

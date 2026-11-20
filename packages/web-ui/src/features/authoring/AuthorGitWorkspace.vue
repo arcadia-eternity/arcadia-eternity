@@ -46,7 +46,9 @@ const state = shallowRef<GitState>(),
   selection = ref<{ path: string; staged: boolean }>()
 const difference = shallowRef<{ text?: string; patch?: string }>()
 const syncOpen = ref(false)
+const createOnSync = ref(false)
 function openSync() {
+  createOnSync.value = true
   syncOpen.value = true
   emit('git')
 }
@@ -208,10 +210,12 @@ onBeforeUnmount(() => {
         <span v-if="state.repository" class="muted">{{
           state.upstream ? state.upstream + ' · 待推送 ' + state.ahead + ' · 待拉取 ' + state.behind : '未跟踪远端分支'
         }}</span>
-        <div v-if="state.repository || syncOpen" class="actions sync">
-          <button :aria-expanded="syncOpen" @click="syncOpen = !syncOpen">GitHub 同步</button>
-          <button v-if="!syncOpen && !state.hasRemote" :disabled="busy" @click="run('bind')">绑定远端</button>
-          <template v-else-if="!syncOpen">
+        <div class="actions sync">
+          <button :aria-expanded="syncOpen" @click="syncOpen ? (syncOpen = false) : openSync()">GitHub 同步</button>
+          <button v-if="state.repository && !syncOpen && !state.hasRemote" :disabled="busy" @click="run('bind')">
+            绑定远端
+          </button>
+          <template v-else-if="state.repository && !syncOpen">
             <button :disabled="busy" @click="run('fetch')">获取更新</button>
             <button :disabled="busy || dirty || running || !!state.files?.length" @click="run('pull')">拉取</button>
             <button :disabled="busy" @click="run('push')">推送分支</button>
@@ -225,6 +229,8 @@ onBeforeUnmount(() => {
       <div v-if="syncOpen" class="sync-panel">
         <CreatorGitHubPanel
           mode="sync"
+          :create-on-sync="createOnSync"
+          @sync-started="createOnSync = false"
           :project-name="projectName"
           :has-commit="!!state.head"
           :project="project"
@@ -239,7 +245,6 @@ onBeforeUnmount(() => {
       <div v-if="!state.repository && !syncOpen" class="empty">
         <ArrowsRightLeftIcon aria-hidden="true" />
         <h2>项目尚未加入版本管理</h2>
-        <button class="primary" @click="syncOpen = true">创建 GitHub 仓库</button>
         <button :disabled="busy" @click="run('init')">初始化 Git 仓库</button>
       </div>
       <div v-if="state.repository" class="changes-layout">
@@ -405,7 +410,7 @@ onBeforeUnmount(() => {
                   :pack="pack"
                   @bound="refresh"
                 />
-                <button v-else @click="emit('git')">打开版本管理</button>
+                <button v-else @click="openSync">GitHub 同步</button>
               </div>
             </section>
           </div>

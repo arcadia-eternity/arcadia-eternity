@@ -64,7 +64,7 @@ npx arcadia-content workspace . release --execute
 
 ## 使用 GitHub App 同步源码
 
-在「Git 版本管理」打开「GitHub 同步」，点击「连接 GitHub」并按提示输入设备码。桌面默认连接组织的 [Arcadia Eternity Creator](https://github.com/apps/arcadia-eternity-creator)。首次使用时，把创作 App 安装到自己的 GitHub 账号。新内容包可直接选择「创建 GitHub 仓库」，确认账号、仓库名和可见性，点击「创建并绑定仓库」。默认创建个人私有仓库，并初始化本地 Git。已有仓库也可从授权列表中选择绑定。暂存文件、填写提交说明并完成首次提交后，选择「推送分支」。此处可获取更新、快进拉取或推送当前分支。推送分支只更新源代码，日常同步无需修改包版本、生成归档或创建标签。模板的正式发行工作流由作者手动启动。
+在「Git 版本管理」打开「GitHub 同步」，点击「连接 GitHub」并按提示输入设备码。桌面默认连接组织的 [Arcadia Eternity Creator](https://github.com/apps/arcadia-eternity-creator)。首次使用时，把创作 App 安装到自己的 GitHub 账号。桌面新建内容包时会初始化本地 Git。首次点「GitHub 同步」时，如果项目还没有远端，登录后桌面会提示用项目名创建个人私有仓库。确认后自动绑定；想改仓库名、设为公开或绑定已有仓库，可以取消此次确认，在同步面板选择。已有远端的项目直接进入同步。暂存文件、填写提交说明并完成首次提交后，选择「推送分支」。此处可获取更新、快进拉取或推送当前分支。推送分支只更新源代码，日常同步无需修改包版本、生成归档或创建标签。模板的正式发行工作流由作者手动启动。
 
 创作 App 启用 Device Flow。创建个人仓库需要 Repository creation 写入。同步需要 Metadata 读取和 Contents 读写；推送模板自带的 `.github/workflows/` 文件还需 Workflows 写入。GitHub 仓库自身的分支保护仍然生效。自托管客户端可以通过 `ARCADIA_CREATOR_GITHUB_CLIENT_ID` 覆盖公开 Client ID。设备授权仅用于创作，Git 传输使用所选仓库的临时凭据。断开账号或退出客户端即可清除会话。[GitHub App 权限](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app)
 

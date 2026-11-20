@@ -12,8 +12,9 @@ const props = defineProps<{
   pack?: AuthorJob
   dirty?: boolean
   hasRemote?: boolean
+  createOnSync?: boolean
 }>()
-const emit = defineEmits<{ bound: []; cloned: [project: SourceProject]; sync: [] }>()
+const emit = defineEmits<{ bound: []; cloned: [project: SourceProject]; sync: []; syncStarted: [] }>()
 interface Account {
   installationUrl?: string
   login?: string
@@ -44,7 +45,7 @@ const account = shallowRef<Account>(),
     (props.projectName ?? '')
       .replace(/[^a-z0-9._-]+/gi, '-')
       .replace(/^[^a-z0-9]+|-+$/gi, '')
-      .slice(0, 100) || 'content-pack',
+      .slice(0, 100) || 'content-pack-' + (props.project ?? '').slice(0, 8),
   ),
   createdRepo = ref(''),
   privateRepo = ref(true),
@@ -78,6 +79,7 @@ async function accountState() {
 }
 async function refresh() {
   await accountState()
+  if (!alive) return
   if (!account.value?.login) {
     dashboard.value = undefined
     return
@@ -87,8 +89,9 @@ async function refresh() {
     return
   }
   if (props.mode === 'sync') {
-    repoName.value = props.hasRemote ? ((await call<{ repository?: string }>('sync-target')).repository ?? '') : ''
-    if (!props.hasRemote && !repoName.value) await list()
+    if (props.createOnSync) emit('syncStarted')
+    if (props.hasRemote) repoName.value = (await call<{ repository?: string }>('sync-target')).repository ?? ''
+    else if (props.createOnSync && !createdRepo.value) await create()
     return
   }
   dashboard.value = await call<Dashboard>('dashboard')
@@ -97,13 +100,13 @@ async function refresh() {
 async function poll() {
   if (!alive) return
   if (!busy.value && !document.hidden) {
-    const wasConnecting = account.value?.connecting
+    const wasConnected = !!account.value?.login
     try {
-      if (wasConnecting) {
+      if (account.value?.login && dashboard.value?.target) await refresh()
+      else {
         await accountState()
-        if (account.value?.login) await refresh()
-      } else if (account.value?.login && dashboard.value?.target) await refresh()
-      else await accountState()
+        if (alive && !wasConnected && account.value?.login) await run(refresh)
+      }
     } catch (cause) {
       error.value = cause instanceof Error ? cause.message : String(cause)
     }
@@ -112,6 +115,7 @@ async function poll() {
 }
 async function connect() {
   account.value = await call<Account>('connect')
+  if (account.value.login) await refresh()
   clearTimeout(timer)
   timer = setTimeout(poll, 300)
 }

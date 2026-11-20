@@ -272,6 +272,12 @@ export class AuthorWorkspaces {
     await this.#mutate(async () =>
       this.#save((await this.list()).map(item => (item.id === entry.id ? { ...item, name: name.trim() } : item))),
     )
+    // Source editing also works on machines without system Git. The Git view offers a retry.
+    try {
+      await this.git(entry.id, { operation: 'init' })
+    } catch (error) {
+      console.warn('新项目的本地 Git 仓库初始化失败', error.message)
+    }
     return { ...entry, name: name.trim() }
   }
   async entry(id) {
