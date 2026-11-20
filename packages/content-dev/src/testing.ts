@@ -43,7 +43,7 @@ export async function prepareContentPack(
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
   const environmentRules = validateEnvironmentRules(prepared.effectiveRules)
-  const { allowFaintSwitch, enhancement } = resolveEnvironmentMechanics(environmentRules)
+  const { allowFaintSwitch, enhancement, individualValues } = resolveEnvironmentMechanics(environmentRules)
   const enhancementActive = enhancement.mode === 'active'
   // Four automation sessions, one human preview, and room for their validated replacements.
   const workers = createNodeBattleWorkerManager({ maxBattles: 7 })
@@ -114,6 +114,7 @@ export async function prepareContentPack(
     })
     try {
       const players = effects.content.parsePlayers(input, {
+        individualValueMax: individualValues.max,
         enhancementActive,
         aiPlayerIds: ai && input[1] ? [input[1].id] : [],
       })
@@ -174,6 +175,7 @@ export async function prepareContentPack(
       options: {
         ...battleOptions,
         allowFaintSwitch,
+        individualValueMax: individualValues.max,
         enhancementActive,
         skillParameters: environmentRules.skillParameters,
         matchups: environmentRules.matchups,

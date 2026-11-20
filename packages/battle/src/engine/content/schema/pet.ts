@@ -33,6 +33,7 @@ export const PetSchema = z.object({
     '学习力总和不能超过510',
   ),
   ivs: StatOutBattleIVSSchema,
+  ivMax: StatOutBattleIVSSchema.optional(),
   nature: z.string().min(1).max(256),
   gender: z.nativeEnum(Gender).optional(),
   height: z.number().optional(),

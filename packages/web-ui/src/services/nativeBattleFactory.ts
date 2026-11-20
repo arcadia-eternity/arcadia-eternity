@@ -21,7 +21,14 @@ export interface NativeWebPlayer {
 }
 export type NativeWebBattleConfig = Pick<
   NonNullable<BattleOptions>,
-  'rngSeed' | 'skillParameters' | 'matchups' | 'enhancementActive' | 'allowFaintSwitch' | 'showHidden' | 'timerConfig'
+  | 'rngSeed'
+  | 'skillParameters'
+  | 'matchups'
+  | 'individualValueMax'
+  | 'enhancementActive'
+  | 'allowFaintSwitch'
+  | 'showHidden'
+  | 'timerConfig'
 > &
   NativeBattleHostOptions & {
     ai?: { enabled?: boolean; players?: readonly ('playerA' | 'playerB')[] }
@@ -70,6 +77,7 @@ export async function createSandboxWebBattleSession(
         rngSeed: options.rngSeed,
         skillParameters: options.skillParameters,
         matchups: options.matchups,
+        individualValueMax: options.individualValueMax,
         enhancementActive: options.enhancementActive,
         allowFaintSwitch: options.allowFaintSwitch,
         showHidden: options.showHidden,

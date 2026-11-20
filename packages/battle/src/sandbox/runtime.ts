@@ -141,6 +141,7 @@ export class SandboxBattleRuntime {
       this.health()
       const [first, second] = content.parsePlayers(input.players, {
         aiPlayerIds: input.aiPlayerIds,
+        individualValueMax: input.options?.individualValueMax,
         enhancementActive: input.options?.enhancementActive === true,
       })
       this.battle = content.createBattle(first, second, input.options)

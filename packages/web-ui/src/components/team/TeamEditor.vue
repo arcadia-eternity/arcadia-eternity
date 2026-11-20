@@ -598,7 +598,7 @@
                       <summary :aria-label="statChineseMap[stat] + '计算明细'">计算明细</summary>
                       <div>学习力折算 ⌊{{ selectedPet.evs[stat] }} ÷ 4⌋ = {{ computedStats[stat]!.effort }}</div>
                       <div>
-                        等级折算 ⌊(2 × {{ currentSpecies?.baseStats[stat] }} + {{ selectedPet.ivs[stat] }} +
+                        等级折算 ⌊(2 × {{ currentSpecies?.baseStats[stat] }} + {{ displayedIVs![stat] }} +
                         {{ computedStats[stat]!.effort }}) × {{ selectedPet.level }} ÷ 100⌋ =
                         {{ computedStats[stat]!.scaled }}
                       </div>
@@ -646,16 +646,14 @@
                           style="width: 4.5rem"
                           :aria-label="statChineseMap[stat] + '个体值'"
                           :data-team-field="'ivs.' + stat"
-                          :model-value="selectedPet.ivs[stat]"
-                          :value-on-clear="selectedPet.ivs[stat]"
+                          :model-value="displayedIVs![stat]"
+                          :value-on-clear="displayedIVs![stat]"
                           :precision="0"
                           :min="0"
-                          :max="
-                            Math.max(selectedPet.ivs[stat], gameDataStore.rules?.mechanics?.individualValues?.max ?? 31)
-                          "
+                          :max="Math.max(displayedIVs![stat], individualMax)"
                           @update:model-value="
                             value => {
-                              if (selectedPet && value != null) selectedPet.ivs[stat] = value
+                              if (value != null) editIndividualValue(stat, value)
                             }
                           "
                         />
@@ -880,7 +878,14 @@ import { useValidationStore } from '@/stores/validation'
 import { resolveLearnset, isEligible } from '@arcadia-eternity/content-sdk/environment-rules'
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
-import { canUseEnhancementStage, Gender, maxEquippedSkills } from '@arcadia-eternity/const'
+import {
+  canUseEnhancementStage,
+  Gender,
+  individualValueSpread,
+  scaledIndividualValues,
+  resolveEnvironmentMechanics,
+  maxEquippedSkills,
+} from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
@@ -1466,6 +1471,16 @@ const handleEVUpdate = (stat: StatKey, value: number) => {
 
 const statFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 6, useGrouping: false })
 const displayStat = (value?: number) => (value === undefined ? '—' : statFormat.format(value))
+const individualMax = computed(() => resolveEnvironmentMechanics(gameDataStore.rules).individualValues.max)
+const displayedIVs = computed(() => selectedPet.value && scaledIndividualValues(selectedPet.value, individualMax.value))
+function editIndividualValue(stat: StatKey, value: number) {
+  const pet = selectedPet.value
+  if (!pet || value === displayedIVs.value?.[stat]) return
+  pet.ivMax ??= individualValueSpread(individualMax.value)
+  pet.ivMax[stat] = individualMax.value
+  pet.ivs[stat] = value
+}
+
 const computedStats = computed(() => buildStatSteps(selectedPet.value, gameDataStore))
 
 // 添加性格修正映射

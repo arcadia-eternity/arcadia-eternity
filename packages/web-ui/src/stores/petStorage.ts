@@ -1,3 +1,4 @@
+import { individualValueSpread } from '@arcadia-eternity/const'
 import { defineStore } from 'pinia'
 import { nanoid } from 'nanoid'
 import { ElMessage } from 'element-plus'
@@ -162,10 +163,29 @@ export const usePetStorageStore = defineStore('petStorage', {
       this.library.currentTeamIndex = index
       return this.saveToLocal()
     },
-    setEnvironmentPreference(index: number, preference?: EnvironmentPreference) {
+    setEnvironmentPreference(
+      index: number,
+      preference?: EnvironmentPreference,
+      previousMax?: number,
+      warehouse = false,
+    ) {
       const next = copy(this.library)
       const team = next.teams[index]
       if (!team) return false
+      // Capture the actual outgoing scale for legacy team members before their first switch.
+      if (previousMax !== undefined) {
+        const members = new Set(team.memberIds)
+        for (const pet of next.storage) {
+          if (
+            (warehouse || members.has(pet.id)) &&
+            !pet.ivMax &&
+            Object.values(pet.ivs).every(value => value <= previousMax)
+          ) {
+            pet.ivMax = individualValueSpread(previousMax)
+            pet.revision++
+          }
+        }
+      }
       if (preference) team.environmentPreference = preference
       else delete team.environmentPreference
       team.revision++

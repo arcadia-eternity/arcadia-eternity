@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { resolveEnvironmentMechanics } from '@arcadia-eternity/const'
 import { Refresh, Loading } from '@element-plus/icons-vue'
 import { createReusableTemplate } from '@vueuse/core'
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
@@ -15,7 +16,7 @@ import { getDesktopApi } from '@/utils/env'
 import PersonalTeamEditor from './PersonalTeamEditor.vue'
 import StorageManager from '@/pages/storageManager.vue'
 
-defineProps<{ warehouse: boolean }>()
+const props = defineProps<{ warehouse: boolean }>()
 const data = useGameDataStore()
 const storage = usePetStorageStore()
 const client = useBattleClientStore()
@@ -233,10 +234,16 @@ const options = computed(() => {
   return names
 })
 function selectGroup(id: string) {
-  if (id === currentGroup.value) storage.setEnvironmentPreference(storage.currentTeamIndex, undefined)
+  const previousMax =
+    displayed.value && !busy.value && !problem.value
+      ? resolveEnvironmentMechanics(data.rules).individualValues.max
+      : undefined
+  if (id === currentGroup.value)
+    storage.setEnvironmentPreference(storage.currentTeamIndex, undefined, previousMax, props.warehouse)
   else {
     const choice = choices.value.find(item => item.preference.environmentId === id)
-    if (choice) storage.setEnvironmentPreference(storage.currentTeamIndex, choice.preference)
+    if (choice)
+      storage.setEnvironmentPreference(storage.currentTeamIndex, choice.preference, previousMax, props.warehouse)
   }
 }
 function retrySelection() {

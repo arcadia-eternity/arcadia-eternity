@@ -111,6 +111,7 @@ export class LocalBattleSession {
             ...options,
             skillParameters: this.#rules?.skillParameters,
             matchups: this.#rules?.matchups,
+            individualValueMax: mechanics.individualValues.max,
             enhancementActive: mechanics.enhancement.mode === 'active',
             allowFaintSwitch: mechanics.allowFaintSwitch,
             ...(environment ? { environment } : {}),

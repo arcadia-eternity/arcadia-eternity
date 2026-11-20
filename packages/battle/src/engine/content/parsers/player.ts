@@ -11,7 +11,7 @@ export class PlayerParser {
   static parse(
     rawData: unknown,
     repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark' | 'getNature' | 'getEnhancement'>,
-    options: { ai?: boolean } = {},
+    options: { ai?: boolean; individualValueMax?: number } = {},
   ): Player {
     let validated: ReturnType<typeof PlayerSchema.parse>
     try {
@@ -31,7 +31,7 @@ export class PlayerParser {
 
     const pets = validated.team.map((pet, index) => {
       try {
-        return PetParser.parse(pet, repository)
+        return PetParser.parse(pet, repository, options.individualValueMax)
       } catch (e) {
         throw new Error(
           `[PlayerParser] 玩家 '${validated.name}' 的第 ${index + 1} 只精灵解析失败: ${(e as Error).message}`,

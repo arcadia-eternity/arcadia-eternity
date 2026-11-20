@@ -349,7 +349,9 @@ onMounted(async () => {
     const storage = window.arcadiaAuthorPreview
       ? window.arcadiaAuthorPreview.teams
       : createBrowserTeamStorage(setup.teams, setup.draftKey)
-    const project = await createProjectTeamLibrary(storage, setup.players, () => createPreviewPet(data.speciesList[0]))
+    const project = await createProjectTeamLibrary(storage, setup.players, () =>
+      createPreviewPet(data.speciesList[0], data.rules),
+    )
     if (disposed) {
       project.dispose()
       return

@@ -1,7 +1,7 @@
 import { Type, type Static, type TSchema } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { parseWithErrors, PetSetSchema, PetSchema } from '@arcadia-eternity/schema'
-import { BattleMessageType } from '@arcadia-eternity/const'
+import { BattleMessageType, individualValueSpread } from '@arcadia-eternity/const'
 import { MAX_STORED_TEAM_MEMBERS, migrateEmbeddedLibrary, newPersonalTeam } from './library'
 import { nanoid } from 'nanoid'
 
@@ -162,7 +162,9 @@ export function migrateLegacyData(value: unknown): ProfileData {
     )
       throw new ProfileError('INVALID_BACKUP', '旧版精灵数据无效')
   }
-  return validateData({ ...data, library: migrateEmbeddedLibrary(data.library) })
+  const library = migrateEmbeddedLibrary(data.library)
+  for (const pet of library.storage) pet.ivMax = individualValueSpread(31)
+  return validateData({ ...data, library })
 }
 
 export function parseBackup(input: string | Uint8Array): ProfileBackup {
