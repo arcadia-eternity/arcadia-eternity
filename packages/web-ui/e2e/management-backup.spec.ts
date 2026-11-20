@@ -149,7 +149,7 @@ test('paired production management backs up, revokes service credentials and ret
     const identity = await login(page, directory, server.origin)
     expect(identity.serverId).toBe(server.serverId)
     checks.push('host one-use code claimed through paired production UI')
-    await expect(page.getByRole('navigation', { name: '选择环境' }).getByRole('button')).toHaveCount(1)
+    await expect(page.getByRole('navigation', { name: '选择环境' }).getByRole('button')).toHaveCount(2)
     await page.goto(server.origin + '/management?target=server&tab=server')
     await expect(page.locator('.overview-stats')).toContainText('活跃对战')
     await page.screenshot({ path: testInfo.outputPath('server-overview.png'), fullPage: true })
@@ -232,8 +232,8 @@ test('paired production management backs up, revokes service credentials and ret
     expect(
       archive.workspace.drafts.some((draft: { document: { id: string } }) => draft.document.id === 'backup-acceptance'),
     ).toBe(true)
-    expect(archive.workspace.drafts).toHaveLength(2)
-    expect(archive.workspace.installations).toHaveLength(2)
+    expect(archive.workspace.drafts).toHaveLength(3)
+    expect(archive.workspace.installations).toHaveLength(3)
     const preparedInstallations = archive.workspace.installations.filter(
       (entry: { version: { environmentId: string } }) => entry.version.environmentId === 'backup-acceptance',
     )
@@ -252,8 +252,8 @@ test('paired production management backs up, revokes service credentials and ret
       serverId: identity.serverId,
       workspaceId: identity.workspaceId,
       servers: 1,
-      environments: 2,
-      installations: 2,
+      environments: 3,
+      installations: 3,
       accounts: 0,
     })
     checks.push(
@@ -287,7 +287,7 @@ test('paired production management backs up, revokes service credentials and ret
     server = await startServer(directory, port)
     const restored = await login(page, directory, server.origin)
     expect(restored).toEqual(identity)
-    await expect(page.getByRole('navigation', { name: '选择环境' }).getByRole('button')).toHaveCount(2)
+    await expect(page.getByRole('navigation', { name: '选择环境' }).getByRole('button')).toHaveCount(3)
     await page
       .getByRole('navigation', { name: '选择环境' })
       .getByRole('button', { name: /备份验收环境/ })

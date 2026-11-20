@@ -7,7 +7,14 @@ const base = '@arcadia-eternity/data-pack-base'
 
 // The managed workspace owns the installation even when the server is stopped.
 // Earlier official hosts already have a durable binding; keep its environment ID.
-export async function openBuiltinEnvironment({ workspace, library, rules, validate, legacyBuiltinId }) {
+export async function openBuiltinEnvironment({
+  workspace,
+  library,
+  rules,
+  validate,
+  legacyBuiltinId,
+  prepareExtended,
+}) {
   const file = join(workspace.root, 'builtin-environment.json')
   const drafts = await workspace.listDrafts()
   const saved = await readFile(file, 'utf8').catch(error => {
@@ -74,6 +81,7 @@ export async function openBuiltinEnvironment({ workspace, library, rules, valida
         validate,
       )
     if (!marker?.initialized) await saveMarker(true)
+    await prepareExtended(lease.directory)
     return { workspace, id }
   } finally {
     await lease.release()

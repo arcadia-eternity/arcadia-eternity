@@ -126,9 +126,11 @@ const navigation = computed<EnvironmentNavigation>(() => {
     environment,
     current: environment.document.id === snapshot.value.selectedEnvironmentId,
   }))
-  const builtinId = personal.find(entry => entry.environment.builtin)?.environment.document.id
+  const builtinIds = new Set(
+    personal.filter(entry => entry.environment.builtin).map(entry => entry.environment.document.id),
+  )
   const managed = (host?.environments.value ?? [])
-    .filter(environment => !(environment.builtin && environment.document.id === builtinId))
+    .filter(environment => !(environment.builtin && builtinIds.has(environment.document.id)))
     .map(environment => ({ key: 'host/' + environment.document.id, environment, label: '本机服务器' }))
   const entries = [...personal, ...managed]
   return { entries, selected: entries.find(item => item.key === selectedKey.value)?.key ?? entries[0]?.key ?? '' }

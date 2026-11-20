@@ -131,6 +131,7 @@ export class DesktopWorkspaceOwner {
           root: workspace.root,
           bootId: workspace.bootId,
           builtinEnvironmentId: this.builtinId?.(),
+          builtin120EnvironmentId: workspace.builtin120EnvironmentId,
         }
       if ((method === 'listClientEnvironmentIds' || method === 'acquireClientEnvironment') && !openClientWorkspace)
         throw failure('WORKSPACE_METHOD_INVALID')

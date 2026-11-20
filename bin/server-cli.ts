@@ -3,7 +3,7 @@ import { Command, CommanderError, InvalidArgumentError, Option } from 'commander
 import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
 import { withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
-import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
+import { ContentWorkspace, prepareBuiltin120Environment } from '@arcadia-eternity/content-sdk/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-sdk/managed-projects'
 import { readFile, stat } from 'node:fs/promises'
 import { openServerStorage, workspaceRetentions } from './server-persistence'
@@ -318,6 +318,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       desktopWorkspace ??
       (await ContentWorkspace.open(config.workspaceRoot, {
         retentions,
+        includeBuiltin120: true,
         allowShareDownloads,
         bundledPackageRoot,
         npmCache: join(config.dataDirectory, 'projects', 'npm-cache'),
@@ -341,6 +342,22 @@ export async function runServerCli(args: string[]): Promise<number> {
         npmUserConfig: process.env.ARCADIA_NPM_USERCONFIG,
         sources,
       })
+    }
+    if (projects) {
+      const validate = (input: Parameters<typeof validateWorkspaceProject>[0]) =>
+        validateWorkspaceProject(input, {
+          effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
+        })
+      await projects.synchronizeBundledBase(workspace, validate)
+      const rules = JSON.parse(
+        await readFile(
+          new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/test-120-rules.json')),
+          'utf8',
+        ),
+      )
+      await initializeShippedEnvironment(directory =>
+        prepareBuiltin120Environment(workspace!, directory, rules, validate),
+      )
     }
     const webRoot =
       options.headless || (desktopControl && (!options.desktopManagedNetwork || !options.webRoot))
@@ -397,12 +414,6 @@ export async function runServerCli(args: string[]): Promise<number> {
         ? { development: { directory: resolve(options.developmentProject), token: developmentToken! } }
         : {}),
     })
-    if (projects)
-      await projects.synchronizeBundledBase(workspace, input =>
-        validateWorkspaceProject(input, {
-          effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
-        }),
-      )
     await server.environments.ready()
     const builtinId = server.environments.descriptor().id
     if (desktopControl && ((!options.desktopManagedNetwork && options.host !== '127.0.0.1') || accounts))

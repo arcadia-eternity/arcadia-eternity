@@ -126,14 +126,15 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
-  it('lists the shared default once and keeps same-ID personal and server environments distinct', async () => {
+  it('lists each shared builtin once and keeps same-ID personal and server environments distinct', async () => {
     const builtin = { ...draft(), builtin: true, document: { ...draft().document, id: 'builtin', name: '默认环境' } }
+    const extended = { ...builtin, document: { ...builtin.document, id: 'extended', name: '120 资质 · 神魔化与二代' } }
     const personal = draft('个人')
     const managed = draft('开服')
     const request = vi.fn(async (input: ManagementIpcRequest) => ({
       status: 200,
       body: input.path.endsWith('/environments')
-        ? { environments: [builtin, managed], installations: [version()] }
+        ? { environments: [builtin, extended, managed], installations: [version()] }
         : response(input.path),
     }))
     vi.stubGlobal('arcadiaDesktop', {
@@ -141,7 +142,7 @@ describe('shared management console', () => {
         result: {
           workspaceId: 'personal',
           selectedEnvironmentId: 'builtin',
-          environments: [builtin, personal],
+          environments: [builtin, extended, personal],
           installations: [],
           operations: [],
         },
@@ -166,13 +167,14 @@ describe('shared management console', () => {
     const list = page.get('nav[aria-label="选择环境"]')
     expect(list.findAll('button').map(row => row.get('strong').text())).toEqual([
       '默认环境',
+      '120 资质 · 神魔化与二代',
       '好友环境 个人',
       '好友环境 开服',
     ])
     expect(page.find('[aria-label="服务器使用"]').exists()).toBe(true)
-    await list.findAll('button')[1]!.trigger('click')
-    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(false)
     await list.findAll('button')[2]!.trigger('click')
+    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(false)
+    await list.findAll('button')[3]!.trigger('click')
     await flushPromises()
     expect(page.get('[aria-label="服务器使用"]').text()).toContain('好友环境 开服')
     expect(page.findAll('nav[aria-label="选择环境"]')).toHaveLength(1)

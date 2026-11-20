@@ -49,6 +49,7 @@ export type WorkspaceInstallation = EnvironmentInstallation
 export type ManagementWorkspace = Pick<
   ContentWorkspace,
   | 'workspaceId'
+  | 'builtin120EnvironmentId'
   | 'listDrafts'
   | 'saveDraft'
   | 'deleteDraft'
@@ -79,6 +80,7 @@ export interface Binding {
   observedBootId: string
 }
 export interface ManagedServer {
+  publishedClientBuiltin120?: boolean
   name: string
   workspaceId: string
   defaultBindingId?: string
@@ -298,16 +300,20 @@ export class ManagementService {
       effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
     })
   }
-  private async builtinEnvironmentId() {
-    if (this.options.builtinEnvironmentId) return this.options.builtinEnvironmentId
+  private async builtinEnvironmentIds() {
+    const ids = new Set<string>()
+    const extended = this.options.workspace.builtin120EnvironmentId
+    if (extended) ids.add(extended)
+    if (this.options.builtinEnvironmentId) return ids.add(this.options.builtinEnvironmentId)
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
     const initialization = server?.value.initialization
-    return initialization?.kind === 'builtin' ? initialization.environmentId : undefined
+    if (initialization?.kind === 'builtin') ids.add(initialization.environmentId)
+    return ids
   }
   private async assertRequiredPackages(document: { id?: unknown; packages?: unknown }) {
     if (
       typeof document.id === 'string' &&
-      document.id === (await this.builtinEnvironmentId()) &&
+      (await this.builtinEnvironmentIds()).has(document.id) &&
       !Object.hasOwn(object(document.packages), shippedBasePackage)
     )
       fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
@@ -351,6 +357,8 @@ export class ManagementService {
       })
     else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
     await this.auth.ready()
+    if (this.options.clientEnvironments && this.options.workspace.builtin120EnvironmentId)
+      await this.publishClientBuiltin120(this.options.workspace.builtin120EnvironmentId)
     await this.loadClientEnvironments()
     await this.reconcile()
     this.collector = setInterval(() => {
@@ -369,7 +377,7 @@ export class ManagementService {
     return this.options.storage.list<Binding>('bindings', managementScopeKey(this.serverScope))
   }
   private async authorizeEnvironmentUpdate(actor: ManagementActor, environmentId: string) {
-    if (environmentId === (await this.builtinEnvironmentId())) fail('BUILTIN_ENVIRONMENT_READ_ONLY', 409)
+    if ((await this.builtinEnvironmentIds()).has(environmentId)) fail('BUILTIN_ENVIRONMENT_READ_ONLY', 409)
     const bindings = (await this.options.storage.list<Binding>('bindings')).filter(
       row => row.value.workspaceId === this.options.workspace.workspaceId && row.value.environmentId === environmentId,
     )
@@ -608,6 +616,38 @@ export class ManagementService {
       if (candidateId) await this.options.environments.retire(candidateId)
       throw error
     }
+  }
+  // One-click hosting publishes ready local environments. Use a durable binding for this
+  // shared builtin so the host can later disable it, change matchmaking, or remove it.
+  private async publishClientBuiltin120(environmentId: string) {
+    const binding = await this.options.storage.transaction(async tx => {
+      const server = await tx.get<ManagedServer>('servers', this.options.serverId)
+      if (!server || server.value.publishedClientBuiltin120) return
+      const scope = managementScopeKey(this.serverScope)
+      const existing = (await tx.list<Binding>('bindings', scope)).find(
+        row => row.value.environmentId === environmentId,
+      )
+      const row =
+        existing ??
+        (await tx.create<Binding>('bindings', {
+          id: randomUUID(),
+          scope,
+          value: {
+            serverId: server.id,
+            workspaceId: this.options.workspace.workspaceId,
+            environmentId,
+            executionPolicy: 'server',
+            enabled: true,
+            visibility: 'public',
+            matchmakingEnabled: true,
+            condition: 'unavailable',
+            observedBootId: this.bootId,
+          },
+        }))
+      await tx.replace('servers', server.id, server.revision, { ...server.value, publishedClientBuiltin120: true })
+      return row
+    })
+    if (binding) await this.options.workspace.retain(environmentId, 'binding:' + binding.id)
   }
   private async loadClientEnvironments() {
     const library = this.options.clientEnvironments
@@ -964,10 +1004,10 @@ export class ManagementService {
           )
         if (method === 'GET' && parts.length === 3) {
           await this.auth.authorize(actor, this.workspaceScope, 'read')
-          const builtinId = await this.builtinEnvironmentId()
+          const builtinIds = await this.builtinEnvironmentIds()
           return ok({
             environments: (await this.options.workspace.listDrafts()).map(draft =>
-              draft.document.id === builtinId
+              builtinIds.has(draft.document.id)
                 ? { ...draft, builtin: true, requiredPackages: [shippedBasePackage] }
                 : draft,
             ),
@@ -976,7 +1016,7 @@ export class ManagementService {
         }
         if (method === 'DELETE' && parts.length === 4) {
           await this.auth.authorize(actor, this.workspaceScope, 'delete')
-          if (parts[3] === (await this.builtinEnvironmentId())) fail('BUILTIN_ENVIRONMENT_REQUIRED', 409)
+          if ((await this.builtinEnvironmentIds()).has(parts[3])) fail('BUILTIN_ENVIRONMENT_REQUIRED', 409)
           if ((await this.bindings()).some(row => row.value.environmentId === parts[3])) fail('ENVIRONMENT_IN_USE', 409)
           await this.options.workspace.deleteDraft({
             environmentId: parts[3],
@@ -1030,7 +1070,7 @@ export class ManagementService {
       if (parts[2] === 'installations' && parts.length === 4 && method === 'DELETE') {
         await this.auth.authorize(actor, this.workspaceScope, 'delete')
         const installation = await this.options.workspace.getInstallation(parts[3])
-        if (installation.environmentId === (await this.builtinEnvironmentId()))
+        if ((await this.builtinEnvironmentIds()).has(installation.environmentId))
           fail('BUILTIN_ENVIRONMENT_REQUIRED', 409)
         await this.options.workspace.clearInstallation(parts[3])
         return ok({ deleted: true })

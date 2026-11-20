@@ -6,6 +6,7 @@ import {
   type ElementCatalogInput,
 } from '@arcadia-eternity/const'
 import { randomUUID } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
@@ -115,6 +116,7 @@ export type StaticPreparer = (input: {
   elementCatalog?: ReturnType<typeof readElementCatalog>
 }>
 export interface ContentWorkspaceOptions {
+  includeBuiltin120?: boolean
   allowShareDownloads?: boolean
   bundledPackageRoot?: string
   npmCache?: string
@@ -158,6 +160,7 @@ export interface EnvironmentExport {
 }
 export interface WorkspaceSnapshot {
   format: 'arcadia.workspace-snapshot/2'
+  builtin120EnvironmentId?: string
   workspaceId: string
   drafts: (EnvironmentDraft & { files?: { path: string; data: string }[] })[]
   installations: {
@@ -181,6 +184,7 @@ export interface ContentWorkspace {
   readonly root: string
   readonly workspaceId: string
   readonly bootId: string
+  readonly builtin120EnvironmentId?: string
   listDrafts(): Promise<EnvironmentDraft[]>
   getDraft(environmentId: string): Promise<EnvironmentDraft>
   saveDraft(input: { document: unknown; expectedRevision: string | null }): Promise<EnvironmentDraft>
@@ -231,6 +235,7 @@ export interface ContentWorkspaceConstructor {
 }
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const builtin120IdPattern = new RegExp('^builtin-120-' + uuid.source.slice(1))
 const envId = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
 const checkId = (id: unknown, pattern = uuid): string => {
@@ -327,6 +332,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
   readonly root: string
   readonly bootId = randomUUID()
   workspaceId!: string
+  builtin120EnvironmentId?: string
   #queue: Promise<unknown> = Promise.resolve()
   #closed = false
   #controller = new AbortController()
@@ -363,8 +369,12 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         workspace.workspaceId = checkId(metadata.workspaceId, uuid)
       } else {
         workspace.workspaceId = randomUUID()
-        await writeFileAtomic(file, json({ format: 'arcadia.content-workspace/2', workspaceId: workspace.workspaceId }))
       }
+      if (metadata?.builtin120EnvironmentId !== undefined)
+        workspace.builtin120EnvironmentId = checkId(metadata.builtin120EnvironmentId, builtin120IdPattern)
+      else if (options.includeBuiltin120) workspace.builtin120EnvironmentId = 'builtin-120-' + randomUUID()
+      if (!metadata || workspace.builtin120EnvironmentId !== metadata.builtin120EnvironmentId)
+        await workspace.#saveMetadata()
       // Recover an interrupted directory replacement before exposing projects.
       for (const name of await readdir(join(root, 'staging'))) {
         if (!name.startsWith('replaced-') || !envId.test(name.slice(9))) continue
@@ -382,6 +392,16 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       await workspace.close({ force: true })
       throw error
     }
+  }
+  async #saveMetadata() {
+    await writeFileAtomic(
+      join(this.root, 'workspace.json'),
+      json({
+        format: 'arcadia.content-workspace/2',
+        workspaceId: this.workspaceId,
+        builtin120EnvironmentId: this.builtin120EnvironmentId,
+      }),
+    )
   }
   async #assertOwner() {
     if (this.#closed) throw contentError('WORKSPACE_CLOSED')
@@ -828,7 +848,13 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       const files = await materialFiles(this.#directory(draft.document.id), this.#options)
       installations.push({ version, files: files.map(({ path, bytes }) => ({ path, data: bytes.toString('base64') })) })
     }
-    return { format: 'arcadia.workspace-snapshot/2', workspaceId: this.workspaceId, drafts, installations }
+    return {
+      format: 'arcadia.workspace-snapshot/2',
+      workspaceId: this.workspaceId,
+      builtin120EnvironmentId: this.builtin120EnvironmentId,
+      drafts,
+      installations,
+    }
   }
   exportSnapshot() {
     return this.#exclusive(() => this.#snapshot())
@@ -864,6 +890,10 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         !Array.isArray(snapshot.installations)
       )
         throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+      const builtin120EnvironmentId =
+        snapshot.builtin120EnvironmentId === undefined
+          ? this.builtin120EnvironmentId
+          : checkId(snapshot.builtin120EnvironmentId, builtin120IdPattern)
       if ((await this.#listDrafts()).length) throw contentError('WORKSPACE_NOT_EMPTY')
       const drafts = new Map(
         snapshot.drafts.map(draft => {
@@ -924,10 +954,8 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         if (json((await this.#draft(id)).document) !== json(document)) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
       }
       this.workspaceId = mode === 'restore' ? checkId(snapshot.workspaceId, uuid) : this.workspaceId
-      await writeFileAtomic(
-        join(this.root, 'workspace.json'),
-        json({ format: 'arcadia.content-workspace/2', workspaceId: this.workspaceId }),
-      )
+      this.builtin120EnvironmentId = builtin120EnvironmentId
+      await this.#saveMetadata()
       return { workspaceId: this.workspaceId, installationIds: Object.fromEntries([...ids].map(id => [id, id])) }
     }, true)
   }
@@ -1186,4 +1214,37 @@ async function changeEnvironmentPackage(
     }
   }
   return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
+}
+
+/** Materialize the shipped preset with the host's own ID and bundled base project. */
+export async function prepareBuiltin120Environment(
+  workspace: ContentWorkspace,
+  projectDirectory: string,
+  rules: unknown,
+  validate: StaticPreparer,
+) {
+  const id = workspace.builtin120EnvironmentId
+  if (!id) throw contentError('BUILTIN_ENVIRONMENT_ID_MISSING')
+  const base = '@arcadia-eternity/data-pack-base'
+  const { version } = await readJson(join(projectDirectory, 'node_modules', base, 'package.json'))
+  const document = normalizeEnvironmentDocument({
+    schemaVersion: 2,
+    id,
+    name: '120 资质 · 神魔化与二代',
+    packages: { [base]: version },
+    sources: [],
+    rules,
+    requires: {},
+  })
+  const current = await workspace.getDraft(id).catch(error => {
+    if (errorCode(error) !== 'ENOENT') throw error
+  })
+  if (current && isDeepStrictEqual(current.document, document)) {
+    const [installed] = await workspace.listInstallations(id)
+    if (installed?.status === 'ready' && installed.draftRevision === current.revision) return
+  }
+  await workspace.prepareEnvironment(
+    { environmentId: id, document, expectedRevision: current?.revision ?? null, projectDirectory },
+    validate,
+  )
 }

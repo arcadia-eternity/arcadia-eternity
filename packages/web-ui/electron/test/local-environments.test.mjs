@@ -331,7 +331,7 @@ test('migrates the generated default to the shared installation, preserves edits
   const old = 'local-' + randomUUID()
   const edited = 'local-' + randomUUID()
   const builtin = { ...document, id, name: '默认环境' }
-  const host = await ContentWorkspace.open(join(f.root, 'managed'))
+  const host = await ContentWorkspace.open(join(f.root, 'managed'), { includeBuiltin120: true })
   f.instances.push(host)
   let api = f.open()
   const personal = await api.ready()
@@ -340,6 +340,8 @@ test('migrates the generated default to the shared installation, preserves edits
       { environmentId: doc.id, document: doc, projectDirectory: f.project, expectedRevision: null },
       f.validate,
     )
+  const extendedId = host.builtin120EnvironmentId
+  await prepare(host, { ...builtin, id: extendedId, name: '120 资质 · 神魔化与二代' })
   await prepare(host, builtin)
   await prepare(personal, { ...builtin, id: old })
   await prepare(personal, { ...builtin, id: edited, name: '自定义规则' })
@@ -353,9 +355,9 @@ test('migrates the generated default to the shared installation, preserves edits
   assert.equal(migrated.selectedEnvironmentId, id)
   assert.deepEqual(
     migrated.environments.filter(item => item.builtin).map(item => item.document.id),
-    [id],
+    [id, extendedId],
   )
-  assert.equal(migrated.environments.length, 3)
+  assert.equal(migrated.environments.length, 4)
   const privateCopy = migrated.environments.find(item => item.document.name === '同 ID 的私人环境').document.id
   assert.notEqual(privateCopy, id)
   const listed = await (await api.hostingWorkspace()).listInstallations()
@@ -365,7 +367,7 @@ test('migrates the generated default to the shared installation, preserves edits
   await lease.release()
   const bundle = await api.request({ action: 'export', installationId: old })
   assert.equal(bundle.document.id, id)
-  for (const target of [id, old]) {
+  for (const target of [id, old, extendedId]) {
     for (const request of [
       { action: 'apply', document: { ...builtin, id: target, name: '新名称' } },
       { action: 'add-package', environmentId: target },
@@ -380,17 +382,22 @@ test('migrates the generated default to the shared installation, preserves edits
   await assert.rejects(api.request({ action: 'import', bundle }), { code: 'BUILTIN_ENVIRONMENT_READ_ONLY' })
   const copy = await api.request({
     action: 'apply',
-    copyFrom: id,
+    copyFrom: extendedId,
     document: { ...builtin, id: 'my-copy' },
     expectedRevision: null,
   })
   assert.equal((await complete(api, copy.operationId)).status, 'succeeded')
+  const selected = await api.request({ action: 'select', environmentId: extendedId })
+  assert.equal((await complete(api, selected.operationId)).status, 'succeeded')
   await api.close()
   api = f.open(shared)
   const restored = await api.snapshot()
   assert.deepEqual(
     restored.environments.map(item => item.document.id).sort(),
-    [privateCopy, edited, id, 'my-copy'].sort(),
+    [privateCopy, edited, id, extendedId, 'my-copy'].sort(),
   )
-  assert.equal(restored.selectedEnvironmentId, id)
+  assert.equal(restored.selectedEnvironmentId, extendedId)
+  const selectedLease = await api.acquireProject()
+  assert.equal(selectedLease.environmentId, extendedId)
+  await selectedLease.release()
 })

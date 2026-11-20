@@ -276,6 +276,7 @@ export async function createDesktopWorkspaceProxy(
       workspaceId: string
       bootId: string
       builtinEnvironmentId?: string
+      builtin120EnvironmentId?: string
     }>('describe')
     if (
       !descriptor ||
@@ -285,6 +286,7 @@ export async function createDesktopWorkspaceProxy(
     return {
       root: descriptor.root,
       builtinEnvironmentId: descriptor.builtinEnvironmentId,
+      builtin120EnvironmentId: descriptor.builtin120EnvironmentId,
       get workspaceId() {
         return descriptor.workspaceId
       },
