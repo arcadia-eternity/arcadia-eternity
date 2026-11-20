@@ -1,4 +1,11 @@
-import { createHash, randomUUID } from 'node:crypto'
+import {
+  sha256Hex,
+  skillParameterCatalogSchema,
+  type SkillParameterCatalog,
+  readElementCatalog,
+  type ElementCatalogInput,
+} from '@arcadia-eternity/const'
+import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
@@ -7,12 +14,25 @@ import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import {
   normalizeEnvironmentDocument,
   EnvironmentDocumentV2Schema,
+  EnvironmentRulesSchema,
+  EnvironmentRuleDeclarationSchema,
   type EnvironmentDocumentV2,
 } from './debug-environments.ts'
+import { z } from 'zod'
 import { withSourceLock } from './source-lock.ts'
-import { contentError, materialFiles, writeMaterials } from './workspace-materials.ts'
+import { contentError, readJson, materialFiles, writeMaterials } from './workspace-materials.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
+import {
+  compactMaterials,
+  expandSharedMaterials,
+  exportDependencies,
+  type ArchiveReference,
+} from './environment-sharing.ts'
+import { environmentShareMaterials } from './environment-host-base.ts'
+export { copyEnvironmentMember } from './environment-member-transfer.ts'
+import { parseManifestDraft, preparedDocument } from './prepared-document.ts'
+export { readInstalledEnvironmentDocument } from './prepared-document.ts'
 export { normalizeEnvironmentDocument } from './debug-environments.ts'
 export type { EnvironmentRules } from './debug-environments.ts'
 export type EnvironmentDocument = EnvironmentDocumentV2
@@ -20,6 +40,31 @@ export interface EnvironmentDraft {
   document: EnvironmentDocument
   revision: string
 }
+const compositionSchema = z
+  .object({
+    rules: EnvironmentRulesSchema,
+    requiredCapabilities: z.array(z.string()).optional(),
+    fields: z.array(
+      z.object({
+        path: z.array(z.string()),
+        value: z.unknown(),
+        sources: z.array(z.string()),
+        effectiveSources: z.array(z.string()),
+      }),
+    ),
+    ruleSets: z.array(z.object({ id: z.string(), name: z.string(), rules: EnvironmentRuleDeclarationSchema })),
+  })
+  .strict()
+const contentChoices = z.array(z.object({ id: z.string(), name: z.string().optional() }))
+const contentCatalogSchema = z.object({
+  species: contentChoices,
+  skills: contentChoices,
+  marks: contentChoices,
+  stages: contentChoices,
+})
+type EnvironmentContentCatalog = z.infer<typeof contentCatalogSchema>
+export type PreparedRuleComposition = z.infer<typeof compositionSchema>
+
 export interface EnvironmentInstallation {
   format: 'arcadia.environment-installation/1'
   installationId: string
@@ -28,6 +73,10 @@ export interface EnvironmentInstallation {
   document: EnvironmentDocument
   draftRevision: string
   contentRevision: string
+  ruleComposition?: PreparedRuleComposition
+  skillParameters?: SkillParameterCatalog
+  contentCatalog?: EnvironmentContentCatalog
+  elementCatalog?: ReturnType<typeof readElementCatalog>
   members?: EnvironmentMember[]
   packages: unknown[]
   createdAt: number
@@ -48,6 +97,7 @@ export interface PrepareEnvironmentInput {
   expectedRevision: string | null
   document?: EnvironmentDocument
   projectDirectory?: string
+  seedDirectory?: string
   directory?: string
   signal?: AbortSignal
   beforeCommit?: () => Promise<void>
@@ -59,8 +109,15 @@ export type StaticPreparer = (input: {
 }) => Promise<{
   contentRevision: string
   packages?: unknown[]
+  ruleComposition?: PreparedRuleComposition
+  skillParameters?: SkillParameterCatalog
+  contentCatalog?: EnvironmentContentCatalog
+  elementCatalog?: ReturnType<typeof readElementCatalog>
 }>
 export interface ContentWorkspaceOptions {
+  allowShareDownloads?: boolean
+  bundledPackageRoot?: string
+  npmCache?: string
   maxBytes?: number
   maxFiles?: number
   stagingRetentionMs?: number
@@ -71,8 +128,30 @@ export interface ContentWorkspaceOptions {
     remove?(retentionId: string): Promise<void>
   }
 }
+export const exportSelectionSchema = z
+  .object({
+    revision: z.string().min(1),
+    locations: z.array(z.string().min(1)).max(50000),
+  })
+  .strict()
+export type EnvironmentExportSelection = z.infer<typeof exportSelectionSchema>
+export type EnvironmentExportMode = 'share' | 'offline' | EnvironmentExportSelection
+export interface EnvironmentExportPreview {
+  revision: string
+  dependencies: ReturnType<typeof exportDependencies>
+}
+function exportRevision(draft: string, content: string, dependencies: EnvironmentExportPreview['dependencies']) {
+  return sha256Hex(JSON.stringify([draft, content, dependencies]))
+}
+// Only the lock and external references are needed to check the receiving workspace.
+export interface EnvironmentImportProbe {
+  lock: { path: string; data: string }
+  archives: ArchiveReference[]
+}
 export interface EnvironmentExport {
-  format: 'arcadia.environment-export/2'
+  format: 'arcadia.environment-export/2' | 'arcadia.environment-export/3' | 'arcadia.environment-export/4'
+  suppliedArchives?: Record<string, string>
+  archives?: ArchiveReference[]
   document: EnvironmentDocument
   contentRevision: string
   files: { path: string; data: string }[]
@@ -112,9 +191,10 @@ export interface ContentWorkspace {
   acquire(installationId: string, owner?: string): Promise<EnvironmentInstallation & { release(): Promise<void> }>
   retain(installationId: string, retentionId: string): Promise<void>
   releaseRetention(retentionId: string): Promise<void>
-  references(installationId: string): Promise<Record<string, unknown>[]>
   clearInstallation(installationId: string): Promise<void>
-  exportEnvironment(installationId: string): Promise<EnvironmentExport>
+  previewEnvironmentExport(installationId: string): Promise<EnvironmentExportPreview>
+  missingEnvironmentArchives(probe: EnvironmentImportProbe): Promise<string[]>
+  exportEnvironment(installationId: string, mode?: EnvironmentExportMode): Promise<EnvironmentExport>
   exportSnapshot(): Promise<WorkspaceSnapshot>
   captureSnapshot(): Promise<WorkspaceSnapshotCapture>
   isSnapshotCurrent(stamp: WorkspaceSnapshotStamp): Promise<boolean>
@@ -131,6 +211,7 @@ export interface ContentWorkspace {
       signal?: AbortSignal
       beforeCommit?: () => Promise<void>
       importId?: string
+      allowDownload?: boolean
     },
     preparer: StaticPreparer,
   ): Promise<EnvironmentInstallation>
@@ -151,16 +232,10 @@ export interface ContentWorkspaceConstructor {
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const envId = /^[a-z0-9][a-z0-9_-]{0,79}$/
-const revision = (text: string | Buffer) => createHash('sha256').update(text).digest('hex')
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
 const checkId = (id: unknown, pattern = uuid): string => {
   if (typeof id !== 'string' || !pattern.test(id)) throw contentError('RESOURCE_ID_INVALID')
   return id
-}
-async function readJson<T = UnknownRecord>(file: string, limit = 4 * 1024 * 1024): Promise<T> {
-  const info = await lstat(file)
-  if (!info.isFile() || info.isSymbolicLink() || info.size > limit) throw contentError('WORKSPACE_FILE_INVALID')
-  return JSON.parse(await readFile(file, 'utf8')) as T
 }
 async function regularDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true, mode: 0o700 })
@@ -169,6 +244,7 @@ async function regularDirectory(path: string): Promise<void> {
 }
 
 export interface EnvironmentMember {
+  archiveIntegrity?: string
   name: string
   version: string
   projectId: string
@@ -179,6 +255,10 @@ export interface EnvironmentMember {
 }
 
 interface PreparationResult {
+  ruleComposition?: PreparedRuleComposition
+  skillParameters?: SkillParameterCatalog
+  contentCatalog?: EnvironmentContentCatalog
+  elementCatalog?: ReturnType<typeof readElementCatalog>
   contentRevision: string
   packages: unknown[]
   members: EnvironmentMember[]
@@ -218,6 +298,14 @@ async function checkedPreparation(
   return {
     contentRevision: result.contentRevision,
     packages,
+    ...(result.contentCatalog !== undefined && { contentCatalog: contentCatalogSchema.parse(result.contentCatalog) }),
+    ...(result.ruleComposition !== undefined && { ruleComposition: compositionSchema.parse(result.ruleComposition) }),
+    ...(result.skillParameters !== undefined && {
+      skillParameters: skillParameterCatalogSchema.parse(result.skillParameters),
+    }),
+    ...(isRecord(result.elementCatalog) && {
+      elementCatalog: readElementCatalog(result.elementCatalog as ElementCatalogInput),
+    }),
     members: (inspection.members ?? []) as EnvironmentMember[],
   }
 }
@@ -234,8 +322,7 @@ function activeProcess(pid: number): boolean {
   }
 }
 
-/** One owner edits persistent npm projects. Prepared metadata is a disposable receipt,
- * never a selectable historical version. Runtime loaders capture their own inputs. */
+/** One write owner publishes prepared documents alongside the locked npm materials. */
 class ContentWorkspaceImplementation implements ContentWorkspace {
   readonly root: string
   readonly bootId = randomUUID()
@@ -324,7 +411,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     if (!text || !Object.hasOwn(JSON.parse(text).arcadiaEnvironment ?? {}, 'disabled')) return
     const archive = join(this.root, 'migration-backups')
     await regularDirectory(archive)
-    await writeFileAtomic(join(archive, `${id}-${revision(text)}.json`), text)
+    await writeFileAtomic(join(archive, `${id}-${sha256Hex(text)}.json`), text)
   }
   #manifest(document: EnvironmentDocument, previous: UnknownRecord = {}): UnknownRecord {
     const { packages, ...metadata } = document
@@ -350,17 +437,9 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     if ((await realpath(directory)) !== directory) throw contentError('WORKSPACE_PATH_INVALID')
     await readJson(join(directory, 'package.json'))
     const text = await readFile(join(this.#directory(id), 'package.json'), 'utf8')
-    const manifest = JSON.parse(text) as UnknownRecord
-    if (!isRecord(manifest.arcadiaEnvironment) || !isRecord(manifest.dependencies))
-      throw contentError('ENVIRONMENT_MANIFEST_INVALID')
-    const sources = manifest.arcadiaEnvironment.sources
-    if (!Array.isArray(sources)) throw contentError('ENVIRONMENT_MANIFEST_INVALID')
-    const document = normalizeEnvironmentDocument({
-      ...manifest.arcadiaEnvironment,
-      packages: Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !sources.includes(name))),
-    })
-    if (document.id !== id) throw contentError('ENVIRONMENT_ID_MISMATCH')
-    return { document, revision: revision(text) }
+    const draft = parseManifestDraft(text)
+    if (draft.document.id !== id) throw contentError('ENVIRONMENT_ID_MISMATCH')
+    return draft
   }
   listDrafts() {
     return this.#exclusive(() => this.#listDrafts())
@@ -385,10 +464,19 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         if (errorCode(error) !== 'ENOENT') throw error
         return null
       })
-      if ((previous === null ? null : revision(previous)) !== input.expectedRevision)
+      if ((previous === null ? null : sha256Hex(previous)) !== input.expectedRevision)
         throw contentError('REVISION_CONFLICT')
       await regularDirectory(directory)
       await this.#archiveRemovedDeclarations(document.id)
+      if (previous !== null) {
+        const receiptFile = join(directory, '.arcadia-prepared.json')
+        const receipt = await readJson(receiptFile).catch(error => {
+          if (errorCode(error) !== 'ENOENT') throw error
+          return undefined
+        })
+        if (receipt && !receipt.document && receipt.draftRevision === sha256Hex(previous))
+          await writeFileAtomic(receiptFile, json({ ...receipt, document: parseManifestDraft(previous).document }))
+      }
       await writeFileAtomic(file, json(this.#manifest(document, previous ? JSON.parse(previous) : {})))
       return this.#draft(document.id)
     }, true)
@@ -404,9 +492,8 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
   }
   async #installation(id: string): Promise<EnvironmentInstallation> {
     const directory = this.#directory(id)
-    await readJson(join(directory, 'package-lock.json'), 16 * 1024 * 1024)
+    const lock = await readJson(join(directory, 'package-lock.json'), 16 * 1024 * 1024)
     await lstat(join(directory, 'node_modules'))
-    const draft = await this.#draft(id)
     const metadata = await readJson(join(directory, '.arcadia-prepared.json'))
     if (
       metadata.format !== 'arcadia.environment-installation/1' ||
@@ -414,13 +501,30 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       typeof metadata.contentRevision !== 'string'
     )
       throw contentError('ENVIRONMENT_INSTALLATION_INVALID')
-    // The manifest is authoritative. Metadata describes preparation, not a frozen document.
+    const document = preparedDocument(
+      metadata,
+      metadata.document === undefined ? await readFile(join(directory, 'package.json'), 'utf8') : '',
+    )
+    const locked = isRecord(lock.packages) ? lock.packages : {}
+    const members = Array.isArray(metadata.members)
+      ? metadata.members.map(member => {
+          const entry = locked['node_modules/' + member.name]
+          return isRecord(entry) &&
+            typeof entry.resolved === 'string' &&
+            /^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(entry.resolved) &&
+            typeof entry.integrity === 'string' &&
+            member.name !== '@arcadia-eternity/data-pack-base'
+            ? { ...member, archiveIntegrity: entry.integrity }
+            : member
+        })
+      : undefined
     return {
       ...metadata,
+      members,
       installationId: id,
       environmentId: id,
       workspaceId: this.workspaceId,
-      document: draft.document,
+      document,
       directory,
       materialDirectory: `environments/${id}`,
       status: 'ready',
@@ -464,6 +568,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       const source =
         input.projectDirectory ??
         input.directory ??
+        input.seedDirectory ??
         (await this.#options.resolveProject?.(input.environmentId)) ??
         this.#directory(input.environmentId)
       return this.#install(document, source, preparer, input)
@@ -476,6 +581,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     input: Pick<PrepareEnvironmentInput, 'signal' | 'beforeCommit' | 'onProgress'> & {
       importId?: string
       expectedRevision?: string | null
+      importing?: boolean
     } = {},
   ) {
     const signal = input.signal ? AbortSignal.any([input.signal, this.#controller.signal]) : this.#controller.signal
@@ -488,10 +594,14 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
     let journaled = false
     try {
       await input.onProgress?.({ stage: 'preparing' })
-      await writeMaterials(staging, await materialFiles(source, { ...this.#options, signal }), {
-        ...this.#options,
-        signal,
-      })
+      const limits = { ...this.#options, signal }
+      let materials = await materialFiles(source, limits)
+      if (input.importing) {
+        const restored = await environmentShareMaterials(materials, document, limits)
+        materials = restored.files
+        document = restored.document
+      }
+      await writeMaterials(staging, materials, limits)
       const manifest = await readJson(join(staging, 'package.json'))
       const base = '@arcadia-eternity/data-pack-base'
       if (Object.hasOwn(document.packages, base) || document.sources.includes(base)) {
@@ -518,10 +628,15 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         json({
           format: 'arcadia.environment-installation/1',
           installationId: document.id,
-          draftRevision: revision(text),
+          document,
+          draftRevision: sha256Hex(text),
           contentRevision: result.contentRevision,
           packages: result.packages,
           members: result.members,
+          ruleComposition: result.ruleComposition,
+          skillParameters: result.skillParameters,
+          contentCatalog: result.contentCatalog,
+          elementCatalog: result.elementCatalog,
           createdAt: Date.now(),
           ...(input.importId ? { importId: input.importId } : {}),
         }),
@@ -606,9 +721,6 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       ...((await this.#options.retentions?.list(id)) ?? []).map(x => ({ kind: 'retention', ...x })),
     ]
   }
-  references(id: string) {
-    return this.#exclusive(() => this.#references(id))
-  }
   clearInstallation(id: string) {
     return this.#exclusive(async () => {
       const references = await this.#references(id)
@@ -618,21 +730,81 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       await rm(join(directory, '.arcadia-prepared.json'), { force: true })
     }, true)
   }
-  async #export(id: string): Promise<EnvironmentExport> {
+  async #exportVersion(id: string) {
     const draft = await this.#draft(id)
     const installation = await this.#installation(id)
     if (installation.draftRevision !== draft.revision)
       throw contentError('ENVIRONMENT_PREPARATION_REQUIRED', '环境已修改，请先准备环境再导出')
-    const files = await materialFiles(this.#directory(id), this.#options)
+    return { draft, installation }
+  }
+  async #shareFiles(id: string, document: EnvironmentDocument) {
+    return environmentShareMaterials(await materialFiles(this.#directory(id), this.#options), document)
+  }
+  previewEnvironmentExport(id: string) {
+    return this.#exclusive(async () => {
+      const { draft, installation } = await this.#exportVersion(id)
+      const lock = await readJson(join(this.#directory(id), 'package-lock.json'), 16 * 1024 * 1024)
+      const hasOnline = Object.values(lock.packages ?? {}).some(
+        entry => isRecord(entry) && typeof entry.resolved === 'string' && entry.resolved.startsWith('https:'),
+      )
+      const dependencies = hasOnline ? exportDependencies((await this.#shareFiles(id, draft.document)).files) : []
+      return { revision: exportRevision(draft.revision, installation.contentRevision, dependencies), dependencies }
+    })
+  }
+  missingEnvironmentArchives(probe: EnvironmentImportProbe) {
+    return this.#exclusive(async () => {
+      if (
+        probe?.lock?.path !== 'package-lock.json' ||
+        !Array.isArray(probe.archives) ||
+        probe.archives.length > (this.#options.maxFiles ?? 50000) ||
+        probe.archives.some(ref => !ref?.external)
+      )
+        throw contentError('ENVIRONMENT_EXPORT_INVALID')
+      const missing = new Set<string>()
+      await expandSharedMaterials([probe.lock], probe.archives, {
+        ...this.#options,
+        offline: true,
+        missing,
+        signal: this.#controller.signal,
+        environments: join(this.root, 'environments'),
+        cache: this.#options.npmCache ?? join(this.root, 'npm-cache'),
+      })
+      return [...missing]
+    })
+  }
+  async #export(id: string, mode: EnvironmentExportMode): Promise<EnvironmentExport> {
+    const { draft, installation } = await this.#exportVersion(id)
+    const { contentRevision } = installation
+    const shared = await this.#shareFiles(id, draft.document)
+    let files = shared.files
+    let archives: ArchiveReference[] = []
+    if (mode !== 'offline') {
+      let locations: string[] = []
+      if (mode !== 'share') {
+        const selection = exportSelectionSchema.safeParse(mode)
+        if (!selection.success) throw contentError('ENVIRONMENT_EXPORT_INVALID')
+        if (exportRevision(draft.revision, contentRevision, exportDependencies(files)) !== selection.data.revision)
+          throw contentError('REVISION_CONFLICT', '环境已修改，请重新导出')
+        locations = selection.data.locations
+      }
+      const compact = await compactMaterials(files, this.#options, locations)
+      files = compact.materials
+      archives = compact.archives
+    }
     return {
-      format: 'arcadia.environment-export/2',
-      document: draft.document,
-      contentRevision: installation.contentRevision,
+      format: shared.usesBase
+        ? 'arcadia.environment-export/4'
+        : archives.length
+          ? 'arcadia.environment-export/3'
+          : 'arcadia.environment-export/2',
+      ...(archives.length || shared.usesBase ? { archives } : {}),
+      document: shared.document,
+      contentRevision,
       files: files.map(({ path, bytes }) => ({ path, data: bytes.toString('base64') })),
     }
   }
-  exportEnvironment(id: string) {
-    return this.#exclusive(() => this.#export(id))
+  exportEnvironment(id: string, mode: EnvironmentExportMode = 'share') {
+    return this.#exclusive(() => this.#export(id, mode))
   }
   async #snapshot(): Promise<WorkspaceSnapshot> {
     for (const name of await readdir(join(this.root, 'imports'))) {
@@ -664,7 +836,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
   captureSnapshot() {
     return this.#exclusive(async () => {
       const snapshot = await this.#snapshot()
-      this.#snapshotFingerprint = revision(json(snapshot))
+      this.#snapshotFingerprint = sha256Hex(json(snapshot))
       const stamp = { workspaceId: this.workspaceId, bootId: this.bootId, generation: ++this.#snapshotGeneration }
       return { snapshot, stamp }
     })
@@ -680,7 +852,7 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
         return false
       const expected = this.#snapshotFingerprint
       this.#snapshotFingerprint = undefined
-      return revision(json(await this.#snapshot())) === expected
+      return sha256Hex(json(await this.#snapshot())) === expected
     })
   }
   restoreSnapshot(snapshot: WorkspaceSnapshot, { mode }: { mode: 'restore' | 'clone' }, preparer: StaticPreparer) {
@@ -720,7 +892,9 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
             join(staging, 'package.json'),
             json({ ...manifest, dependencies: lock.packages['']?.dependencies ?? {} }),
           )
-          const result = await preparer({ directory: staging, draft: drafts.get(id)! })
+          const applied = normalizeEnvironmentDocument(entry.version.document)
+          if (applied.id !== id) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
+          const result = await preparer({ directory: staging, draft: applied })
           await inspectNpmProject(staging)
           await writeFile(join(staging, 'package.json'), manifestText)
           await writeFile(
@@ -730,6 +904,10 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
               format: 'arcadia.environment-installation/1',
               contentRevision: result.contentRevision,
               packages: result.packages ?? [],
+              ruleComposition: result.ruleComposition,
+              skillParameters: result.skillParameters,
+              contentCatalog: result.contentCatalog,
+              elementCatalog: result.elementCatalog,
             }),
           )
           await rename(staging, this.#directory(id))
@@ -761,11 +939,17 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       signal?: AbortSignal
       beforeCommit?: () => Promise<void>
       importId?: string
+      allowDownload?: boolean
     },
     preparer: StaticPreparer,
   ) {
     return this.#exclusive(async () => {
-      if (bundle?.format !== 'arcadia.environment-export/2') throw contentError('ENVIRONMENT_EXPORT_INVALID')
+      if (
+        !['arcadia.environment-export/2', 'arcadia.environment-export/3', 'arcadia.environment-export/4'].includes(
+          bundle?.format,
+        )
+      )
+        throw contentError('ENVIRONMENT_EXPORT_INVALID')
       const document = normalizeEnvironmentDocument({
         ...bundle.document,
         ...(input.environmentId ? { id: input.environmentId } : {}),
@@ -778,8 +962,31 @@ class ContentWorkspaceImplementation implements ContentWorkspace {
       const staging = join(this.root, 'staging', `import-${randomUUID()}`)
       await mkdir(staging)
       try {
-        await writeMaterials(staging, bundle.files, this.#options)
-        const result = await this.#install(document, staging, preparer, input)
+        const files =
+          bundle.format !== 'arcadia.environment-export/2'
+            ? await expandSharedMaterials(bundle.files, bundle.archives!, {
+                ...this.#options,
+                signal: input.signal
+                  ? AbortSignal.any([input.signal, this.#controller.signal])
+                  : this.#controller.signal,
+                offline: this.#options.allowShareDownloads !== true || input.allowDownload === false,
+                environments: join(this.root, 'environments'),
+                supplied: bundle.suppliedArchives,
+                cache: this.#options.npmCache ?? join(this.root, 'npm-cache'),
+              })
+            : bundle.files
+        await writeMaterials(staging, files, { ...this.#options, signal: input.signal })
+        // The recipient owns the captured local archives, including registered ZIP sources.
+        const manifest = await readJson(join(staging, 'package.json'))
+        const dependencies = manifest.dependencies
+        for (const name of [...document.sources]) {
+          const spec = isRecord(dependencies) ? dependencies[name] : undefined
+          if (typeof spec === 'string' && /^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(spec)) {
+            document.packages[name] = spec
+            document.sources = document.sources.filter(source => source !== name)
+          }
+        }
+        const result = await this.#install(document, staging, preparer, { ...input, importing: true })
         return result
       } finally {
         await rm(staging, { recursive: true, force: true })

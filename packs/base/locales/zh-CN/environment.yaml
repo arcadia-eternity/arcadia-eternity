@@ -1,0 +1,13 @@
+matchupTables:
+  base:standard:
+    name: 基础属性相克表
+parameterGroups:
+  base:max-hp-excess-baseline:
+    name: 最大体力超额基准
+    unit: HP
+parameterProfiles:
+  base:120:
+    name: 120 资质实验
+ruleSets:
+  base:classic:
+    name: 基础养成

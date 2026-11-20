@@ -98,7 +98,7 @@ function checkedPath(path: string): string {
 }
 
 function requestLimit(method: ManagementMethod, path: string): number {
-  return method === 'POST' && /^\/workspaces\/[^/?]+\/import$/.test(path)
+  return method === 'POST' && /^\/workspaces\/[^/?]+\/import(?:-preview)?$/.test(path)
     ? MAX_IMPORT_ENVELOPE_BYTES
     : MAX_COMMAND_BYTES
 }
@@ -170,6 +170,7 @@ function responseError(status: number, body: unknown): ManagementError {
     MANAGEMENT_FORBIDDEN: '此身份没有管理目标资源的权限。',
     CSRF_REJECTED: '管理会话校验失败，请重新登录后再试。',
     THIRD_PARTY_EXECUTION_FORBIDDEN: '此服务器未允许执行第三方内容，请选择受支持的托管方式。',
+    BUILTIN_ENVIRONMENT_READ_ONLY: '默认环境为只读。',
     BUILTIN_ENVIRONMENT_REQUIRED: '内置环境不能删除。',
     ENVIRONMENT_ALREADY_BOUND: '此环境已在本服使用。',
     DEFAULT_BINDING_REQUIRED: '请先为服务器选择其他默认环境。',
@@ -188,7 +189,7 @@ function responseError(status: number, body: unknown): ManagementError {
     ENVIRONMENT_DEPENDENCY_CONFLICT: '资源包的依赖范围不兼容，请调整组合后重试。已有固定版本保持不变。',
     CONTENT_VERSION_CONFLICT: '资源包版本发生冲突。请调整版本范围后重试，已有版本保持不变。',
     ENVIRONMENT_IN_USE: '服务器仍在使用此环境，请先移除绑定。',
-    VERSION_IN_USE: '此版本仍有引用，请查看引用并先解除使用关系。',
+    VERSION_IN_USE: '此环境仍在使用。请先结束相关对局或解除服务器绑定。',
     BATTLE_NOT_FOUND: '此对战已结束或不再活跃。',
     PEER_BATTLE_ADMIN_UNSUPPORTED: '玩家执行的对战无法由服务器直接终止。',
   }

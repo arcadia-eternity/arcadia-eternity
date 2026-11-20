@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { Gender, Nature } from '@arcadia-eternity/const'
-import { validateBasicTeam } from '../basicTeamValidation'
+import { memberIssues, validateBasicTeam } from '../basicTeamValidation'
 
 const pet = {
   id: 'a'.repeat(21),
@@ -17,7 +17,10 @@ const pet = {
   emblem: 'mark_emblem_test',
 }
 const content = {
-  getSpecies: (id: string) => id === pet.species,
+  getSpecies: (id: string) =>
+    id === pet.species
+      ? { id, learnable_skills: [{ skill_id: 'skill_test', level: 1 }], ability: [pet.ability], emblem: [pet.emblem] }
+      : undefined,
   getSkill: (id: string) => id === 'skill_test',
   getMark: (id: string) => [pet.ability, pet.emblem].includes(id),
 }
@@ -42,5 +45,24 @@ describe('basic friend-room team validation', () => {
   })
   it('rejects duplicate pet instance IDs within one team', () => {
     expect(validateBasicTeam([pet, { ...pet }], content)).toEqual([expect.stringContaining('编号重复')])
+  })
+})
+
+it('evaluates a warehouse build independently of the minimum team size', () => {
+  const environment = { ...content, rules: { schemaVersion: 2 as const, team: { minSize: 2 } } }
+  expect(memberIssues(pet, environment)).toEqual([])
+  expect(validateBasicTeam([pet], environment)).toEqual([expect.stringContaining('2–6')])
+  const trained = { ...pet, enhancement: 'test:divine' }
+  expect(memberIssues(trained, { ...environment, getEnhancement: () => undefined })).toEqual([])
+  expect(trained.enhancement).toBe('test:divine')
+  expect(
+    memberIssues(trained, {
+      ...content,
+      rules: { schemaVersion: 2, mechanics: { enhancement: { mode: 'active', stages: [] } } },
+    }),
+  ).toContainEqual({
+    objectId: pet.id,
+    section: 'training',
+    message: expect.stringContaining('强化阶段'),
   })
 })

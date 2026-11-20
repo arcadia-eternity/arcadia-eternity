@@ -527,6 +527,13 @@
   effect:
     - effect_mark_evade_with_stack
 - id: mark_shiquweijue
+  config: &lost_sense_config
+    duration: 5
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+  effect:
+    - effect_mark_shiquweijue_status_skill_sure_hit
 - id: mark_wulicao
   config:
     duration: 3
@@ -2808,3 +2815,20 @@
   effect:
     - effect_bingchuantun_hanbingjianren_reduce_physical
     - effect_bingchuantun_hanbingjianren_reduce_special
+- id: mark_shiquxiujue
+  config: *lost_sense_config
+  effect:
+    - effect_mark_increase_damage_taken_50_percent
+- id: mark_shiqutingjue
+  config: *lost_sense_config
+  effect:
+    - effect_mark_shiqutingjue_attack_sure_hit
+- id: mark_fenghuangzhen
+  config:
+    persistent: true
+    duration: -1
+    stackable: true
+    maxStacks: 3
+    stackStrategy: stack
+    destroyable: false
+    keepOnSwitchOut: true

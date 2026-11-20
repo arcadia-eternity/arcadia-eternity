@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
     environments: [{ id: 'official', packages: [] }] as Array<{
       id: string
       packages: { name: string; version: string }[]
+      matchmakingEnabled?: boolean
+      isDefault?: boolean
       executionPolicy?: 'server' | 'peer'
     }>,
     currentRoom: null,
@@ -40,7 +42,7 @@ vi.mock('@/stores/petStorage', () => ({
     saveLastMatchingConfig: vi.fn(),
   }),
 }))
-const prepared = { content: { species: [], skills: [], marks: [] } }
+const prepared = { descriptor: { rules: { schemaVersion: 1 } }, content: { species: [], skills: [], marks: [] } }
 const stubs = {
   ElButton: { props: ['disabled'], template: '<button :disabled="disabled"><slot /></button>' },
   RouterLink: { template: '<a><slot /></a>' },
@@ -142,4 +144,38 @@ it('keeps joining after leaving the page and supports cancellation while prepara
   finish()
   await flushPromises()
   expect(matchmaking.waiting).toBe(false)
+})
+
+it('keeps closed environments out of the queue even when the default is closed', async () => {
+  mocks.rooms.environments = [
+    { id: 'closed', packages: [], isDefault: true, matchmakingEnabled: false },
+    { id: 'open', packages: [], matchmakingEnabled: true },
+  ]
+  mocks.rooms.prepareMatchmakingEnvironment.mockResolvedValue(prepared)
+  const panel = mount(MatchmakingPage, { global: { stubs } })
+  await flushPromises()
+  expect(mocks.rooms.prepareMatchmakingEnvironment).toHaveBeenCalledWith('open')
+  expect(panel.get('[data-testid="matchmaking-environment-select"]').findAll('span')).toHaveLength(1)
+  panel.unmount()
+})
+
+it('disables the queue and skips preparation when no environments offer matchmaking', async () => {
+  mocks.rooms.environments = [{ id: 'friends', packages: [], matchmakingEnabled: false }]
+  const panel = mount(MatchmakingPage, { global: { stubs } })
+  await flushPromises()
+  expect(panel.get('[data-testid="start-matchmaking-button"]').attributes('disabled')).toBeDefined()
+  expect(panel.get('[role="status"]').text()).toContain('没有开放匹配的环境')
+  expect(mocks.rooms.prepareMatchmakingEnvironment).not.toHaveBeenCalled()
+  expect(mocks.rooms.joinMatchmaking).not.toHaveBeenCalled()
+  panel.unmount()
+})
+
+it('shows readable queue errors from both a join response and a later server event', async () => {
+  const store = useMatchmakingStore()
+  mocks.rooms.joinMatchmaking.mockRejectedValueOnce(new Error('ENVIRONMENT_MATCHMAKING_DISABLED: disabled'))
+  await store.start([], 'official')
+  expect(store.error).toContain('未开放匹配')
+  const handler = mocks.client.on.mock.calls.find(([event]) => event === 'matchmakingError')![1]
+  handler({ code: 'UNEXPECTED_SERVER_CODE' })
+  expect(store.error).toBe('匹配未完成，请重试')
 })

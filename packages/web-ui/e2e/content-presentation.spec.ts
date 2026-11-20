@@ -5,10 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { createSingleProcessApp } from '../../server/src/runtime/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 
-test('the encyclopedia shares one prepared catalog and leaves runtime materials for battle', async ({
-  page,
-  baseURL,
-}) => {
+test('the encyclopedia loads one prepared catalog without Web Crypto on LAN HTTP', async ({ page, baseURL }) => {
+  await page.addInitScript(() => Object.defineProperty(window.crypto, 'subtle', { value: undefined }))
   const origin = new URL(baseURL!).origin
   await page.route('**/arcadia-client.json', route =>
     route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
@@ -22,6 +20,7 @@ test('the encyclopedia shares one prepared catalog and leaves runtime materials 
   await page.goto('/dex', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { name: '图鉴', exact: true })).toBeVisible()
   await expect(page.getByText(/共 [1-9][0-9]* 个/)).toBeVisible()
+  await expect(page.getByRole('alert').filter({ hasText: '查看个人资料' })).toHaveCount(0)
   expect(requests).toEqual(['/environment/catalog.json'])
 })
 

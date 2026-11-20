@@ -1,3 +1,4 @@
+import { contentLocaleCollection } from '@arcadia-eternity/schema'
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import {
@@ -15,17 +16,24 @@ import { recordSharing } from './lib/yaml-sharing.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
 const kinds = ['content', 'presentations', 'resources', 'assets', 'files', 'locales', 'diagnostics'] as const
-const contentKinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources'] as const
+const contentKinds = [
+  'species',
+  'skills',
+  'marks',
+  'behaviors',
+  'natures',
+  'enhancements',
+  'elements',
+  'parameterGroups',
+  'parameterProfiles',
+  'parameterBindings',
+  'ruleSets',
+  'matchupTables',
+  'presentations',
+  'resources',
+] as const
 const scopes = ['project', 'dependencies', 'all'] as const
 const details = ['summary', 'full'] as const
-const localeKinds: Record<string, string | undefined> = {
-  species: 'species',
-  skill: 'skills',
-  mark: 'marks',
-  mark_ability: 'marks',
-  mark_emblem: 'marks',
-  mark_global: 'marks',
-}
 
 type QueryKind = (typeof kinds)[number]
 type QueryScope = (typeof scopes)[number]
@@ -53,6 +61,8 @@ interface Provenance {
   scope: QueryScope
   readOnly: boolean
 }
+
+type QueryDiagnostic = Record<string, unknown> & { message: string }
 
 interface Catalog {
   snapshot: WorkspaceSnapshot
@@ -173,12 +183,12 @@ function provenance(snapshot: WorkspaceSnapshot, scope: QueryScope, manifest: Pa
 async function catalogs(
   workspace: AuthorWorkspace,
   scope: QueryScope,
-): Promise<{ catalogs: Catalog[]; diagnostics: Array<Record<string, unknown>> }> {
+): Promise<{ catalogs: Catalog[]; diagnostics: QueryDiagnostic[] }> {
   const manifest = JSON.parse((await workspace.read('package.json')).text) as PackageManifest
   const project = await workspace.snapshot()
   const own: Catalog = { snapshot: project, owner: provenance(project, 'project', manifest) }
   const result: Catalog[] = scope === 'dependencies' ? [] : [own]
-  const diagnostics: Array<Record<string, unknown>> = []
+  const diagnostics: QueryDiagnostic[] = []
   if (scope === 'project') return { catalogs: result, diagnostics }
   const queue: DependencyRequest[] = runtimeDependencies(manifest).map(([name, optional]) => ({
     from: workspace.root,
@@ -244,7 +254,9 @@ function translations(snapshot: WorkspaceSnapshot, row: WorkspaceRecord, locale:
     .flatMap((source: WorkspaceLocaleSource): Localization[] => {
       const entries = isRecord(source.entries) ? source.entries : undefined
       const entry = entries?.[row.record.id]
-      return localeKinds[source.namespace] === row.kind && (!locale || source.language === locale) && isRecord(entry)
+      return contentLocaleCollection(source.namespace) === row.kind &&
+        (!locale || source.language === locale) &&
+        isRecord(entry)
         ? [{ locale: source.language, localeNamespace: source.namespace, ...entry }]
         : []
     })
@@ -272,6 +284,45 @@ function nameFields(localizations: Localization[], requested: string | undefined
   }
 }
 
+export interface DependencyReference {
+  projectId: string
+  packageName: string
+  kind: 'skills' | 'marks'
+  id: string
+  label: string
+}
+
+export async function dependencyReferences(workspace: AuthorWorkspace, locale: string) {
+  const { catalogs: sources, diagnostics } = await catalogs(workspace, 'all')
+  const items: DependencyReference[] = []
+  const projectIds = new Set<string>()
+  const conflicts = new Set<string>()
+  for (const { owner } of sources) {
+    if (!owner.projectId) continue
+    if (projectIds.has(owner.projectId)) {
+      conflicts.add(owner.projectId)
+      diagnostics.push({ message: `多个内容包使用项目标识 ${owner.projectId}，请检查项目依赖。` })
+    }
+    projectIds.add(owner.projectId)
+  }
+  for (const { owner, snapshot } of sources) {
+    if (owner.scope !== 'dependencies' || !owner.projectId || !owner.packageName || conflicts.has(owner.projectId))
+      continue
+    for (const row of snapshot.records) {
+      if (row.kind !== 'skills' && row.kind !== 'marks') continue
+      const { name } = nameFields(translations(snapshot, row, locale), locale, row.record.name)
+      items.push({
+        projectId: owner.projectId,
+        packageName: owner.packageName,
+        kind: row.kind,
+        id: row.record.id,
+        label: name ?? row.record.id,
+      })
+    }
+  }
+  return { items, diagnostics: diagnostics.map(entry => entry.message) }
+}
+
 function rowsFor(catalog: Catalog, query: QueryOptions): QueryRow[] {
   const { snapshot, owner } = catalog
   const identify = (id: string, kind: string, source: UnknownRecord = {}): UnknownRecord => ({
@@ -287,7 +338,7 @@ function rowsFor(catalog: Catalog, query: QueryOptions): QueryRow[] {
       return Object.entries(entries).flatMap(([id, record]): QueryRow[] => {
         if (!isRecord(record)) return []
         const row = identify(id, 'locales', {
-          contentKind: localeKinds[source.namespace],
+          contentKind: contentLocaleCollection(source.namespace),
           file: source.file,
           version: source.version,
           locale: source.language,

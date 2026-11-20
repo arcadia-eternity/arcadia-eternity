@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { compileEffectModule, parseNpmPackOutput, stageCatalogProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
-const shippedCatalogRoot = fileURLToPath(new URL('../../../../packs/base/', import.meta.url))
+export const shippedCatalogRoot = fileURLToPath(new URL('../../../../packs/base/', import.meta.url))
 const shippedCatalog = JSON.parse(readFileSync(join(shippedCatalogRoot, 'package.json'), 'utf8'))
 export const shippedCatalogMembers: Record<string, string> = { [shippedCatalog.name]: shippedCatalog.version }
 export const stageShippedCatalog = (root: string) => stageCatalogProject(root, shippedCatalogRoot)

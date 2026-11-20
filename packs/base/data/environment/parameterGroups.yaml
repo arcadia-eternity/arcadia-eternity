@@ -1,0 +1,3 @@
+- id: base:max-hp-excess-baseline
+  minimum: 0
+  integer: true

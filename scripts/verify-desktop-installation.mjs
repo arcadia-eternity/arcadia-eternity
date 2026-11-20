@@ -1,5 +1,5 @@
+import { sha256Hex } from '../packages/const/src/sha256.ts'
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -8,7 +8,6 @@ import { createDesktopInstallerWorkspace } from './desktop-installer-artifacts.m
 import { bounded, shutdownDesktopProcess } from './desktop-acceptance-process.mjs'
 
 const require = createRequire(new URL('../packages/web-ui/package.json', import.meta.url))
-const hash = value => createHash('sha256').update(value).digest('hex')
 
 /** Runs the application entry in its actual ASAR. Neither a replacement main
  * module nor ELECTRON_RUN_AS_NODE is used for GUI acceptance. */
@@ -89,12 +88,12 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       const asar = createRequire(builderRequire.resolve('app-builder-lib/package.json'))('@electron/asar')
       const runtime = join(identity.resourcesPath, 'arcadia-server')
       const actual = {
-        mainSha256: hash(asar.extractFile(identity.appPath, 'electron/main.mjs')),
-        contentLibrarySha256: hash(asar.extractFile(identity.appPath, 'electron/content-library.mjs')),
-        rendererIndexSha256: hash(asar.extractFile(identity.appPath, 'dist/index.html')),
-        cliSha256: hash(await readFile(join(runtime, 'cli.js'))),
-        serverSha256: hash(await readFile(join(runtime, 'node_modules/@arcadia-eternity/server/dist/index.js'))),
-        runtimeManifestSha256: hash(await readFile(join(runtime, 'arcadia-desktop-runtime.json'))),
+        mainSha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/main.mjs')),
+        contentLibrarySha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/content-library.mjs')),
+        rendererIndexSha256: sha256Hex(asar.extractFile(identity.appPath, 'dist/index.html')),
+        cliSha256: sha256Hex(await readFile(join(runtime, 'cli.js'))),
+        serverSha256: sha256Hex(await readFile(join(runtime, 'node_modules/@arcadia-eternity/server/dist/index.js'))),
+        runtimeManifestSha256: sha256Hex(await readFile(join(runtime, 'arcadia-desktop-runtime.json'))),
       }
       assert.deepEqual(actual, sourceProof, 'installed application uses the recorded renderer, main and server inputs')
     }
@@ -162,7 +161,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
     assert.equal(player.name, name)
     if (baseline) assert.deepEqual(player, baseline.player)
 
-    await page.goto('arcadia-client://app/content')
+    await page.goto('arcadia-client://app/creation')
     let project
     if (!baseline) {
       await page.getByRole('button', { name: '新建内容包', exact: true }).click()
@@ -183,21 +182,21 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       project = projects.find(item => item.id === baseline.project.id)
       assert.ok(project, 'author source project survives application replacement')
       assert.equal(project.directory, baseline.project.directory)
-      await page.goto(`arcadia-client://app/content/edit/${encodeURIComponent(project.id)}`)
+      await page.goto(`arcadia-client://app/creation/edit/${encodeURIComponent(project.id)}`)
       await page.getByRole('navigation', { name: '内容分类' }).getByRole('button', { name: /^技能/ }).click()
       await page.locator('.content-card').filter({ hasText: '霜击' }).click()
       await expect(page.getByLabel('威力', { exact: true })).toHaveValue('77')
     }
     const source = await readFile(join(project.directory, 'data/skills/strike.yaml'))
     assert.match(source.toString(), /power: 77/)
-    const sourceSha256 = hash(source)
+    const sourceSha256 = sha256Hex(source)
     if (baseline) assert.equal(sourceSha256, baseline.sourceSha256)
 
     await page.goto('arcadia-client://app/servers')
     if (baseline) await page.getByRole('button', { name: '使用已保存配置启动', exact: true }).click()
     else {
-      await page.getByRole('button', { name: '在本机开服', exact: true }).click()
-      await page.getByLabel('谁可以连接').selectOption('local')
+      await page.getByRole('combobox', { name: '谁可以连接' }).press('Enter')
+      await page.getByRole('option', { name: '仅我自己（测试）' }).click()
       await page.getByRole('button', { name: '启动服务器', exact: true }).click()
     }
     await expect(page.getByRole('button', { name: '进入本机大厅', exact: true })).toBeVisible({ timeout: 90000 })
@@ -219,7 +218,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       item => item.id === server.defaultBindingId,
     )
     assert.equal(binding.condition, 'available')
-    await page.goto('arcadia-client://app/management?tab=environments')
+    await page.goto('arcadia-client://app/environments?target=local')
     if (!baseline) {
       await page.getByRole('button', { name: '新建环境', exact: true }).click()
       const editor = page.getByRole('form', { name: '编辑环境' })

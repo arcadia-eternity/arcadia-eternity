@@ -1,3 +1,6 @@
+import { readInstalledEnvironmentDocument } from '@arcadia-eternity/content-sdk/prepared-document'
+import { prepareRulesForContent, assertEnvironmentRequirements } from '@arcadia-eternity/content-sdk/environment-rules'
+import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 import { readFile, stat } from 'node:fs/promises'
 import {
   buildDisplayLocales,
@@ -7,7 +10,7 @@ import {
   type NativePackLoadResult,
 } from '@arcadia-eternity/pack-loader/native'
 import { resolve } from 'node:path'
-import { ProfileRepository } from '@arcadia-eternity/local-profile'
+import { ProfileRepository, expandTeam } from '@arcadia-eternity/local-profile'
 import { FileProfileStorage, profileDirectory } from '@arcadia-eternity/local-profile/node'
 import { NativePlayerSchema } from '@arcadia-eternity/battle/engine'
 import { fileURLToPath } from 'node:url'
@@ -47,7 +50,7 @@ export async function createLoader() {
 export type CliPreparedContent = Pick<
   NativePackLoadResult<ContentIndex>,
   'build' | 'content' | 'data' | 'locales' | 'npm' | 'packs' | 'revision' | 'sandbox' | 'works'
->
+> & { rules?: EnvironmentRules }
 export interface ContentSelectionOptions {
   works?: string
   npmProject?: string
@@ -59,7 +62,7 @@ async function toCliContent(prepared: Readonly<PreparedNpmEnvironment>, explicit
     return {
       ...prepared,
       packs: prepared.installation.members.map(({ projectId, version }) => ({ id: projectId, version })),
-      locales: buildDisplayLocales(prepared.presentation, {}, prepared.content).bundles,
+      locales: buildDisplayLocales(prepared.presentation, {}, prepared.data).bundles,
       ...(explicitlyInstalled && { npm: { installationDigest: prepared.installation.digest } }),
     }
   } finally {
@@ -79,14 +82,30 @@ export async function prepareContent(
       const approval = await readNpmAdmission(
         approvalFile ? resolve(cwd, approvalFile) : resolve(directory, 'arcadia-admission.json'),
       )
-      return await toCliContent(await prepareNpmProject(directory, emptyNpmContentHost, approval), true)
+      const content = await toCliContent(await prepareNpmProject(directory, emptyNpmContentHost, approval), true)
+      const document = await readInstalledEnvironmentDocument(directory, content.revision)
+      assertEnvironmentRequirements(document?.requires)
+      const { rules } = prepareRulesForContent(document?.rules, content.data)
+      return { ...content, rules }
     }
     if (approvalFile) throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
-    if (!workFile && !process.env.ARCADIA_PACKS_DIR?.trim() && (ref === 'builtin:base' || ref === 'builtin:workspace'))
-      return await toCliContent(await prepareShippedContent())
+    if (
+      !workFile &&
+      !process.env.ARCADIA_PACKS_DIR?.trim() &&
+      (ref === 'builtin:base' || ref === 'builtin:workspace')
+    ) {
+      const content = await toCliContent(await prepareShippedContent())
+      const declaration = JSON.parse(
+        await readFile(
+          fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+          'utf8',
+        ),
+      )
+      return { ...content, rules: prepareRulesForContent(declaration, content.data).rules }
+    }
     const loader = await createLoader()
     const loaded = await loader.load(ref, { source: 'node-fs', enforceLockfile: true })
-    if (!workFile) return loaded
+    if (!workFile) return { ...loaded, rules: prepareRulesForContent(undefined, loaded.data).rules }
     const file = resolve(cwd, workFile)
     if ((await stat(file)).size > limits.bytes) throw new Error('作品文件超过大小限制')
     const archive = await parseArchive(await readFile(file, 'utf8'))
@@ -100,7 +119,12 @@ export async function prepareContent(
       )!,
     )
     const prepared = await loader.fromWorks(loaded.data, selected, archive.releases)
-    return { ...loaded, ...prepared, works: { base: loaded.data, selected, installed: prepared.releases } }
+    return {
+      ...loaded,
+      ...prepared,
+      rules: prepareRulesForContent(undefined, prepared.data).rules,
+      works: { base: loaded.data, selected, installed: prepared.releases },
+    }
   } catch (error) {
     if (error instanceof WorkError || error instanceof CliError) throw error
     throw new CliError('CONTENT_INVALID', message(error), 2, ref)
@@ -138,7 +162,7 @@ export async function prepareRun(
     try {
       first = NativePlayerSchema.parse({
         name: state.current.data.profile.name,
-        team: state.current.data.library.teams[index].pets,
+        team: expandTeam(state.current.data.library, index).pets,
       })
     } catch (error) {
       throw new CliError('TEAM_INVALID', message(error))

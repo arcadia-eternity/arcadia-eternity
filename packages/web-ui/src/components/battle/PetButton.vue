@@ -217,7 +217,7 @@ const typeEffectivenessConfig = computed(() => {
 
   // 显示当前PetButton精灵的属性技能对敌方精灵的属性相性效果
   // 无论是否有选择技能都显示
-  return getCurrentSkillEffectiveness(virtualSkill, opponentActivePet)
+  return getCurrentSkillEffectiveness(virtualSkill, opponentActivePet, gameDataStore.elementMultipliers)
 })
 
 // 底部模式名字按钮的样式类（包含属性相性背景色）

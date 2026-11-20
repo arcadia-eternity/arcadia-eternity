@@ -1,4 +1,4 @@
-import { readPersistedProfile } from './helpers/profile'
+import { readPersistedTeam } from './helpers/profile'
 import { expect, test, type Page } from 'playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { createSingleProcessApp } from '../../server/src/runtime/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
+import { gameplayRevision, buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
 import { createLocalContentSessions } from '../electron/local-content-sessions.mjs'
 import { createPersonalEnvironmentBundle, encodePersonalEnvironmentBundle } from '../src/services/personalEnvironment'
 
@@ -30,6 +30,7 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
     load: async () => ({
       host: emptyNpmContentHost,
       prepareNpmProject,
+      gameplayRevision,
       buildDisplayCatalog,
       buildDisplayLocales,
     }),
@@ -49,31 +50,39 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
 async function formCustomTeam(page: Page) {
   await page.getByRole('link', { name: '编辑队伍', exact: true }).click()
   await expect(page.getByRole('heading', { name: '队伍编辑器', exact: true })).toBeVisible()
-  // A new profile contains a starter team; remove its pets through their ordinary editor controls.
-  const cards = page.locator('.drag-handle')
-  for (let remaining = await cards.count(); remaining > 0; remaining--) {
-    await cards.first().click()
-    await page.getByRole('button', { name: '永久删除', exact: true }).filter({ hasText: '永久删除' }).click()
-    await page.getByRole('button', { name: '删除', exact: true }).click()
-    await expect(cards).toHaveCount(remaining - 1)
+  const personalBefore = await readPersistedTeam(page)
+  const spread = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
+  const team = {
+    version: 2,
+    name: '私人测试队',
+    pets: [
+      {
+        name: '展示精灵',
+        species: 'example-slow:pet',
+        level: 100,
+        nature: 'Hardy',
+        ivs: spread,
+        evs: spread,
+        skills: ['example-slow:strike'],
+      },
+    ],
   }
-  await page.getByRole('button', { name: '添加精灵', exact: true }).click()
-  const species = page.locator('.el-select').first()
-  await species.click()
-  await species.locator('input[role=combobox]').fill('展示精灵')
-  await page.getByRole('option', { name: /展示精灵/ }).click()
+  async function importTeam() {
+    const chooser = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: '导入', exact: true }).click()
+    await (
+      await chooser
+    ).setFiles({ name: 'team.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(team)) })
+    await page.getByRole('button', { name: '替换', exact: true }).click()
+  }
+  await importTeam()
+  await page.getByRole('button', { name: '撤销本场导入', exact: true }).click()
+  await expect(page.getByRole('button', { name: '撤销本场导入', exact: true })).toHaveCount(0)
+  await importTeam()
   await expect(page.getByPlaceholder('输入精灵名称')).toHaveValue('展示精灵')
-  await page.getByRole('button', { name: '保存', exact: true }).click()
-  // Read-only evidence verifies the visible editor persisted the real UGC team.
-  await expect
-    .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.species)
-    .toBe('example-slow:pet')
-  const saved = (await readPersistedProfile(page))!.library.teams[0].pets
-  expect(saved).toHaveLength(1)
-  expect(saved[0].species).toBe('example-slow:pet')
-  expect(saved[0].skills).toEqual(['example-slow:strike'])
-  await page.getByRole('link', { name: '返回房间', exact: true }).click()
-  await page.getByTestId('room-team-selector').getByTestId('team-option-0').click()
+  await page.getByRole('button', { name: '用于本场', exact: true }).click()
+  await expect(page).toHaveURL(/\/room\//)
+  expect(await readPersistedTeam(page)).toEqual(personalBefore)
 }
 
 test('unpublished personal environment stays on two consenting clients through a real battle and rematch', async ({
@@ -99,6 +108,7 @@ test('unpublished personal environment stays on two consenting clients through a
       ...app.rooms.battleWorkerStats,
       environmentIds: app.environments.list().map(environment => environment.id),
     })
+  const unavailableScenes: { client: string; url: string }[] = []
   let sampler: ReturnType<typeof setInterval> | undefined
   let complete = false
   for (const [index, page] of pages.entries()) {
@@ -106,7 +116,16 @@ test('unpublished personal environment stays on two consenting clients through a
     page.on('request', request => requests.push({ client, url: request.url(), method: request.method() }))
     page.on('pageerror', error => errors.push({ client, message: error.message }))
     page.on('console', message => {
-      if (message.type() === 'error') errors.push({ client, message: message.text() })
+      if (message.type() !== 'error') return
+      const url = message.location().url
+      if (
+        message.text().startsWith('Failed to load resource:') &&
+        /^https:\/\/seer2-resource\.yuuinih\.com\/png\/battleBackground\/[\w-]+\.png$/.test(url)
+      ) {
+        unavailableScenes.push({ client, url })
+      } else {
+        errors.push({ client, message: message.text() })
+      }
     })
     page.on('websocket', socket => {
       sockets.add(client)
@@ -191,6 +210,7 @@ test('unpublished personal environment stays on two consenting clients through a
       page.getByText('胜利！', { exact: true }).or(page.getByText('失败...', { exact: true }))
     const skill = (page: Page) => page.locator('button').filter({ hasText: '私人冲击' }).first()
     const playBattle = async (round: number) => {
+      const firstSceneFailure = unavailableScenes.length
       console.log('Preparing battle', round)
       await guest.getByTestId('toggle-ready-button').click()
       await expect(guest.getByTestId('toggle-ready-button')).toContainText('取消准备')
@@ -228,6 +248,10 @@ test('unpublished personal environment stays on two consenting clients through a
       }
       for (const page of pages) await expect(ended(page)).toBeVisible({ timeout: 30_000 })
       for (const page of pages) await expect(page.getByText(/展示精灵 使用 私人冲击/).first()).toBeVisible()
+      for (const failure of unavailableScenes.slice(firstSceneFailure)) {
+        const page = failure.client === 'host' ? host : guest
+        await expect(page.getByRole('status').filter({ hasText: '战斗场景' })).toContainText('简化显示')
+      }
       const outcomes = await Promise.all(pages.map(page => ended(page).textContent()))
       expect(outcomes.sort()).toEqual(['失败...', '胜利！'].sort())
       await host.screenshot({ path: testInfo.outputPath(`battle-${round}-result.png`), fullPage: true })
@@ -242,7 +266,6 @@ test('unpublished personal environment stays on two consenting clients through a
       await expect(page.getByText('已接受此版本', { exact: true })).toBeVisible()
     }
     await expect(guest.getByTestId('toggle-ready-button')).toBeVisible({ timeout: 15_000 })
-    for (const page of pages) await page.getByTestId('room-team-selector').getByTestId('team-option-0').click()
     const rematch = await playBattle(2)
     sampleWorkers()
     expect(workers.every(status => status.workers === 0 && status.active === 0 && status.preparing === 0)).toBe(true)
@@ -285,7 +308,7 @@ test('unpublished personal environment stays on two consenting clients through a
     )
     await writeFile(
       testInfo.outputPath('network-events.json'),
-      JSON.stringify({ requests, frames, workers, errors, uiAlerts }, null, 2),
+      JSON.stringify({ requests, frames, workers, errors, unavailableScenes, uiAlerts }, null, 2),
     )
     if (!complete) {
       await Promise.all(

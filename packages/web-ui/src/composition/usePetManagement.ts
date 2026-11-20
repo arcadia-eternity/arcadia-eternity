@@ -1,10 +1,10 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { nanoid } from 'nanoid'
-import { parse } from 'yaml'
+import { chooseTeamFile } from '@/services/teamFile'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { PetSetSchema, parseWithErrors } from '@arcadia-eternity/schema'
-import { Gender } from '@arcadia-eternity/const'
+import { MAX_STORED_TEAM_MEMBERS, readSharedTeam } from '@arcadia-eternity/local-profile'
+import { Gender, resolveEnvironmentTeam } from '@arcadia-eternity/const'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
 
@@ -51,71 +51,12 @@ export function usePetManagement() {
    */
   async function importTeamConfig(): Promise<void> {
     try {
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = '.json,.yaml,.yml'
-
-      input.onchange = async e => {
-        const file = (e.target as HTMLInputElement).files?.[0]
-        if (!file) return
-
-        const reader = new FileReader()
-        reader.onload = async e => {
-          try {
-            const content = e.target?.result?.toString() || ''
-            const parsedData = parse(content, {
-              strict: true,
-              maxAliasCount: 100,
-            })
-
-            const importedTeam = parseWithErrors(PetSetSchema, parsedData)
-
-            if (importedTeam.length < 1 || importedTeam.length > 6) {
-              throw new Error('队伍数量必须在1-6之间')
-            }
-
-            const newTeam = importedTeam.map(pet => ({
-              ...pet,
-              id: nanoid(),
-              skills: [...pet.skills],
-              ...(gameDataStore.getSpecies(pet.species)
-                ? {
-                    gender: pet.gender ?? getDefaultGender(pet.species),
-                    height: pet.height ?? gameDataStore.getSpecies(pet.species)?.heightRange[1],
-                    weight: pet.weight ?? gameDataStore.getSpecies(pet.species)?.weightRange[1],
-                  }
-                : {}),
-            }))
-
-            // 创建新队伍（不包含默认精灵）
-            const teamName = `导入队伍 ${new Date().toLocaleString()}`
-            petStorage.createNewTeam(teamName, 'casual_standard_ruleset', false)
-            const newTeamIndex = petStorage.teams.length - 1
-
-            // 将导入的精灵添加到新队伍
-            newTeam.forEach(pet => {
-              petStorage.storage.push(pet)
-              petStorage.moveToTeam(pet.id, newTeamIndex)
-            })
-
-            // 切换到新导入的队伍
-            petStorage.switchTeam(newTeamIndex)
-
-            petStorage.saveToLocal()
-            ElMessage.success(`成功导入 ${newTeam.length} 只精灵到新队伍 "${teamName}"并已切换到该队伍（${file.name}）`)
-          } catch (err) {
-            console.error('导入失败:', err)
-            const errorMsg = err instanceof Error ? `YAML/JSON格式校验失败: ${err.message}` : (err as Error).message
-
-            ElMessage.error(`导入失败: ${errorMsg}`)
-          }
-        }
-        reader.readAsText(file)
-      }
-
-      input.click()
-    } catch {
-      ElMessage.error('导入过程中发生错误')
+      const team = await chooseTeamFile()
+      if (!team) return
+      if (!petStorage.importTeam(team)) throw new Error('队伍未保存')
+      ElMessage.success(`已导入队伍「${team.name}」的 ${team.pets.length} 只精灵`)
+    } catch (error) {
+      ElMessage.error(`导入失败：${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -136,24 +77,9 @@ export function usePetManagement() {
         try {
           const teamData = JSON.parse(e.target?.result as string)
 
-          if (!teamData.name || !Array.isArray(teamData.pets)) {
-            throw new Error('无效的队伍文件格式')
-          }
-
-          petStorage.createNewTeam(teamData.name, 'casual_standard_ruleset', false)
-          const newTeamIndex = petStorage.teams.length - 1
-
-          teamData.pets.forEach((pet: PetSchemaType) => {
-            const petCopy = { ...pet, id: nanoid() }
-            petStorage.storage.push(petCopy)
-            petStorage.moveToTeam(petCopy.id, newTeamIndex)
-          })
-
-          // 切换到新导入的队伍
-          petStorage.switchTeam(newTeamIndex)
-
-          petStorage.saveToLocal()
-          ElMessage.success(`成功导入队伍 "${teamData.name}"并已切换到该队伍！`)
+          const team = readSharedTeam(teamData, file.name)
+          if (!petStorage.importTeam(team)) throw new Error('队伍未保存')
+          ElMessage.success(`已导入队伍「${team.name}」的 ${team.pets.length} 只精灵`)
         } catch (error) {
           console.error('导入失败:', error)
           ElMessage.error('导入失败：文件格式错误或数据无效')
@@ -168,12 +94,12 @@ export function usePetManagement() {
   /**
    * 移动精灵到仓库
    */
-  function moveToStorage(petId: string, onSuccess?: () => void): void {
-    const success = petStorage.moveToPC(petId)
+  function moveToStorage(petId: string, onSuccess?: () => void, teamIndex = petStorage.currentTeamIndex): void {
+    const success = petStorage.moveToPC(petId, teamIndex)
 
     if (success) {
       onSuccess?.()
-      ElMessage.success('精灵已移入仓库')
+      ElMessage.success('精灵已移出本队')
     } else {
       ElMessage.error('移动精灵失败，请重试')
     }
@@ -184,7 +110,7 @@ export function usePetManagement() {
    */
   function addToCurrentTeam(pet: PetSchemaType, onSuccess?: () => void): void {
     const currentTeam = petStorage.teams[petStorage.currentTeamIndex]
-    if (currentTeam.pets.length >= 6) {
+    if (currentTeam.pets.length >= resolveEnvironmentTeam(gameDataStore.rules).maxSize) {
       ElMessage.warning('当前队伍已满')
       return
     }
@@ -215,15 +141,20 @@ export function usePetManagement() {
    * 移动精灵到指定队伍
    */
   function moveToTeam(petId: string, teamIndex: number, onSuccess?: () => void): void {
-    petStorage.moveToTeam(petId, teamIndex)
+    if (!petStorage.moveToTeam(petId, teamIndex)) return
     onSuccess?.()
-    ElMessage.success(`精灵已移动到 ${petStorage.teams[teamIndex].name}`)
+    ElMessage.success(`精灵已加入 ${petStorage.teams[teamIndex].name}`)
   }
 
   /**
    * 删除精灵
    */
   async function deletePet(petId: string, onSuccess?: () => void): Promise<void> {
+    const uses = petStorage.affectedTeams(petId)
+    if (uses.length) {
+      ElMessage.warning(`请先从这些队伍移出精灵：${uses.map(team => team.name).join('、')}`)
+      return
+    }
     try {
       // 添加调试日志
       console.log('开始删除精灵确认流程:', petId)
@@ -248,8 +179,7 @@ export function usePetManagement() {
       })
 
       console.log('用户确认删除:', result)
-      petStorage.removeFromStorage(petId)
-      petStorage.saveToLocal()
+      if (!petStorage.removeFromStorage(petId)) return
       onSuccess?.()
       ElMessage.success('精灵删除成功')
     } catch (error) {
@@ -267,8 +197,7 @@ export function usePetManagement() {
       petCopy.id = nanoid()
       petCopy.name = `${pet.name} (副本)`
 
-      petStorage.storage.push(petCopy)
-      petStorage.saveToLocal()
+      if (!petStorage.addToStorage(petCopy, petStorage.storage.find(row => row.id === pet.id)?.origin)) return
       ElMessage.success('精灵复制成功！')
     } catch (error) {
       console.error('复制失败:', error)
@@ -291,14 +220,16 @@ export function usePetManagement() {
     event.preventDefault()
 
     const currentTeam = petStorage.teams[petStorage.currentTeamIndex]
-    const canAddToTeam = currentTeam.pets.length < 6
+    const canAddToTeam =
+      !currentTeam.memberIds.includes(pet.id) &&
+      currentTeam.pets.length < resolveEnvironmentTeam(gameDataStore.rules).maxSize
 
     contextMenu.value = {
       visible: true,
       position: { x: event.clientX, y: event.clientY },
       items: [
         {
-          label: '快速移动到当前队伍',
+          label: '加入当前队伍',
           iconPath: 'M17 8l4 4m0 0l-4 4m4-4H3',
           action: () => addToCurrentTeam(pet, onSuccess),
           disabled: !canAddToTeam,
@@ -337,7 +268,9 @@ export function usePetManagement() {
   ): void {
     event.preventDefault()
 
-    const otherTeams = petStorage.teams.filter((_, index) => index !== teamIndex && _.pets.length < 6)
+    const otherTeams = petStorage.teams.filter(
+      (_, index) => index !== teamIndex && !_.memberIds.includes(pet.id) && _.pets.length < MAX_STORED_TEAM_MEMBERS,
+    )
 
     const menuItems: ContextMenuItem[] = [
       {
@@ -353,9 +286,9 @@ export function usePetManagement() {
         action: () => copyPet(pet),
       },
       {
-        label: '移回仓库',
+        label: '移出本队',
         iconPath: 'M7 16l-4-4m0 0l4-4m-4 4h18',
-        action: () => moveToStorage(pet.id, onSuccess),
+        action: () => moveToStorage(pet.id, onSuccess, teamIndex),
       },
     ]
 
@@ -363,7 +296,7 @@ export function usePetManagement() {
     otherTeams.forEach(team => {
       const realIndex = petStorage.teams.findIndex(t => t === team)
       menuItems.splice(-1, 0, {
-        label: `移动到 ${team.name}`,
+        label: `加入 ${team.name}`,
         iconPath: 'M17 8l4 4m0 0l-4 4m4-4H3',
         action: () => moveToTeam(pet.id, realIndex, onSuccess),
       })

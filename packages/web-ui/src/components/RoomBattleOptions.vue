@@ -19,9 +19,6 @@
       <el-input-number v-model="options.timerConfig.totalTimeLimit" :min="1" :max="86400" :precision="0" />
     </el-form-item>
   </template>
-  <el-form-item label="倒下后换宠">
-    <el-switch v-model="options.allowFaintSwitch" />
-  </el-form-item>
   <el-form-item label="公开战斗信息">
     <el-switch v-model="options.showHidden" />
   </el-form-item>

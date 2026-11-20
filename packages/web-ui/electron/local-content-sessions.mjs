@@ -55,10 +55,10 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
     pending.set(directory, task)
     return task
   }
-  async function prepare(owner, { displayOnly = false } = {}) {
+  async function prepare(owner, { displayOnly = false, environmentId } = {}) {
     assertOpen()
     if (owner !== undefined && retiredOwners.has(owner)) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
-    const acquired = await library.acquireProject()
+    const acquired = await library.acquireProject(environmentId)
     let leaseReleased = false
     const lease = {
       ...acquired,
@@ -135,9 +135,14 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
             for (const key of ['source', 'fallback'])
               if (p.battle[key]) p.battle[key] = resolveResource(row.id, p.battle[key])
         }
+      const { prepareEnvironmentRules, assertEnvironmentRequirements } =
+        await import('@arcadia-eternity/content-sdk/environment-rules')
+      assertEnvironmentRequirements(lease.document?.requires)
+      const { rules } = prepareEnvironmentRules(lease.document?.rules, prepared.sandbox.data?.ruleSets)
       const result = {
         token,
-        rules: lease.document?.rules,
+        rules,
+        environmentId: lease.document?.id,
         ...(displayOnly ? {} : { environment: prepared.sandbox }),
         content,
         resources: resourceIndex,
@@ -148,6 +153,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         coreBuildId: prepared.build.coreBuildId,
         registryBuildId: prepared.build.registryBuildId,
       }
+      result.gameplayRevision = await runtime.gameplayRevision(runtimeIdentity, prepared.sandbox.revision, rules)
       const members = prepared.installation.members
       const packages = members.map(({ name, version, projectId, namespace }) => ({
         name,

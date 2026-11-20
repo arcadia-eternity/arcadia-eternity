@@ -28,6 +28,7 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
+    "@noble/hashes": "catalog:",
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/content-sdk": "workspace:^",

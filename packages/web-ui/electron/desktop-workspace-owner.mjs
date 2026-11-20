@@ -12,9 +12,10 @@ const methods = new Set([
   'getInstallation',
   'retain',
   'releaseRetention',
-  'references',
   'clearInstallation',
   'exportEnvironment',
+  'previewEnvironmentExport',
+  'missingEnvironmentArchives',
   'exportSnapshot',
   'captureSnapshot',
   'isSnapshotCurrent',
@@ -32,7 +33,8 @@ export class DesktopWorkspaceOwner {
   #workspace
   #connections = new Set()
   #retentionConnection
-  constructor({ root, openWorkspace, library, synchronize, timeoutMs = 120000 }) {
+  constructor({ root, openWorkspace, library, synchronize, builtinId, timeoutMs = 120000 }) {
+    this.builtinId = builtinId
     this.root = root
     this.openWorkspace = openWorkspace
     this.library = library
@@ -72,7 +74,7 @@ export class DesktopWorkspaceOwner {
     if (!this.#retentionConnection) throw failure('RETENTION_UNAVAILABLE')
     return this.#retentionConnection.callback(kind, input)
   }
-  attach(child) {
+  attach(child, openClientWorkspace) {
     const leases = new Map(),
       pending = new Map(),
       controllers = new Map(),
@@ -124,9 +126,23 @@ export class DesktopWorkspaceOwner {
       }
       const workspace = await this.ready()
       if (method === 'describe')
-        return { workspaceId: workspace.workspaceId, root: workspace.root, bootId: workspace.bootId }
-      if (method === 'acquire') {
-        const lease = await workspace.acquire(...args)
+        return {
+          workspaceId: workspace.workspaceId,
+          root: workspace.root,
+          bootId: workspace.bootId,
+          builtinEnvironmentId: this.builtinId?.(),
+        }
+      if ((method === 'listClientEnvironmentIds' || method === 'acquireClientEnvironment') && !openClientWorkspace)
+        throw failure('WORKSPACE_METHOD_INVALID')
+      if (method === 'listClientEnvironmentIds') {
+        const local = await openClientWorkspace()
+        return (await local.listInstallations())
+          .filter(item => item.status === 'ready')
+          .map(item => item.installationId)
+      }
+      if (method === 'acquire' || method === 'acquireClientEnvironment') {
+        const source = method === 'acquire' ? workspace : await openClientWorkspace()
+        const lease = await source.acquire(...args)
         if (detached) {
           await lease.release()
           throw failure('HOST_UNAVAILABLE')
@@ -171,7 +187,7 @@ export class DesktopWorkspaceOwner {
             })
             if ((draft?.revision ?? null) !== input.expectedRevision) throw failure('REVISION_CONFLICT')
             projectLease = await this.library.prepareEnvironmentProject(input.document ?? draft.document, {
-              projectDirectory: join(workspace.root, 'environments', input.environmentId),
+              projectDirectory: input.seedDirectory ?? join(workspace.root, 'environments', input.environmentId),
               signal: controller.signal,
               onProgress: input.onProgress,
             })

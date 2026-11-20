@@ -1,0 +1,149 @@
+- id: pet_shifeng
+  num: 202
+  inheritance: &inherited_moves
+    skills:
+      # 15 笑笑葵
+      - skill_sanyecao
+      - skill_yepianbaohu
+      - skill_gundongzhuiji
+      - skill_jieducao
+      # 27 安迷亚
+      - skill_mozhipao
+      - skill_ningju
+      - skill_mozhishuiyu
+      - skill_lianxuchouda
+      # 40 赤焰兽
+      - skill_penhuo
+      - skill_moya
+      - skill_huozhiya
+      - skill_lieyanzhuangji
+      # 50 多摩桑
+      - skill_shengbo
+      - skill_shenhuxi
+      - skill_siyao
+      - skill_xuanzhuansiyao
+      # 69 蛋壳鸡
+      - skill_jianying
+      - skill_yingkezhuangji
+      - skill_feisha
+      - skill_shazhijiao
+      # 89 皮皮格
+      - skill_niandong
+      - skill_zhenfen
+      - skill_cuimianshexian
+      - skill_niandongfanshe
+      # 112 砂吉塔
+      - skill_dengmu
+      - skill_chuanci
+      - skill_qutizhuangji
+      - skill_shaduchuanci
+      # 123 寒冰龟
+      - skill_dongqiqianghua
+      - skill_ningjudongqi
+      - skill_dongqiguanchuan
+      - skill_fansheguike
+      # 143 荷依米
+      - skill_miaozhun
+      - skill_yili
+      - skill_guaiyichongji
+      - skill_kusechouda
+  element: Bug
+  baseStats:
+    hp: 87
+    atk: 120
+    def: 118
+    spa: 124
+    spd: 119
+    spe: 111
+  genderRatio: [3, 7]
+  heightRange: [11, 16]
+  weightRange: [8, 13]
+  ability: [mark_ability_fengzhen]
+  emblem: [mark_emblem_zhenci]
+  learnable_skills:
+    - skill_id: skill_chongzhuang_palading
+      level: 1
+      hidden: false
+    - skill_id: skill_fuchong
+      level: 5
+      hidden: false
+    - skill_id: skill_ruili
+      level: 11
+      hidden: false
+    - skill_id: skill_fenghuangduzhen
+      level: 16
+      hidden: false
+    - skill_id: skill_duzhenlianshe
+      level: 22
+      hidden: false
+    - skill_id: skill_fenghuangjinzhen
+      level: 27
+      hidden: false
+- id: pet_suijingfeng
+  num: 203
+  inheritance: *inherited_moves
+  element: Bug
+  baseStats:
+    hp: 177
+    atk: 170
+    def: 163
+    spa: 174
+    spd: 164
+    spe: 156
+  genderRatio: [3, 7]
+  heightRange: [39, 44]
+  weightRange: [32, 37]
+  ability: [mark_ability_fengzhen]
+  emblem: [mark_emblem_zhenci]
+  learnable_skills:
+    - skill_id: skill_chongzhuang_palading
+      level: 1
+      hidden: false
+    - skill_id: skill_fuchong
+      level: 5
+      hidden: false
+    - skill_id: skill_ruili
+      level: 11
+      hidden: false
+    - skill_id: skill_fenghuangduzhen
+      level: 16
+      hidden: false
+    - skill_id: skill_duzhenlianshe
+      level: 22
+      hidden: false
+    - skill_id: skill_fenghuangjinzhen
+      level: 27
+      hidden: false
+    - skill_id: skill_jinzhensheji
+      level: 32
+      hidden: false
+    - skill_id: skill_zhenchituji
+      level: 37
+      hidden: false
+    - skill_id: skill_fenghuangmizhen
+      level: 42
+      hidden: false
+    - skill_id: skill_mizhenlianshe
+      level: 47
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 52
+      hidden: false
+    - skill_id: skill_zhenchihuiji
+      level: 56
+      hidden: false
+    - skill_id: skill_fenghuangzhenwu
+      level: 60
+      hidden: false
+    - skill_id: skill_xiongfengtuxi
+      level: 60
+      hidden: true
+    - skill_id: skill_fenghuangchuji
+      level: 60
+      hidden: true
+    - skill_id: skill_xiongfengzhici
+      level: 60
+      hidden: true
+    - skill_id: skill_fenghuangjuezhen
+      level: 60
+      hidden: true

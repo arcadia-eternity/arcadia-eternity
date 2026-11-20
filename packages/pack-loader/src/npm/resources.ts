@@ -1,6 +1,9 @@
 import { createReadStream } from 'node:fs'
 import { resolve } from 'node:path'
 import {
+  isContentLocaleField,
+  contentLocaleCollection,
+  contentLocaleIds,
   ContentPresentationSchema,
   parseWithErrors,
   type ContentPresentation,
@@ -34,11 +37,7 @@ export async function preparePresentation(
   )
   for (const pkg of packages) {
     if (!pkg.manifest || !pkg.draft) continue
-    const ids = {
-      species: new Set(pkg.draft.data.species.map(record => record.id)),
-      skills: new Set(pkg.draft.data.skills.map(record => record.id)),
-      marks: new Set(pkg.draft.data.marks.map(record => record.id)),
-    }
+    const ids = contentLocaleIds(pkg.draft.data)
     const accessible = new Set<string>()
     function visit(dependency: InstalledNpmPackage) {
       if (accessible.has(dependency.location)) return
@@ -51,14 +50,7 @@ export async function preparePresentation(
     visit(pkg)
     for (const [language, namespaces] of Object.entries(pkg.presentation?.locales ?? {}))
       for (const [namespace, entries] of Object.entries(namespaces)) {
-        const kind = {
-          species: 'species',
-          skill: 'skills',
-          mark: 'marks',
-          mark_ability: 'marks',
-          mark_emblem: 'marks',
-          mark_global: 'marks',
-        }[namespace] as 'species' | 'skills' | 'marks' | undefined
+        const kind = contentLocaleCollection(namespace)
         if (!kind) throw new Error(`LOCALE_NAMESPACE: ${language}/${namespace}`)
         for (const [id, entry] of Object.entries(entries)) {
           if (!ids[kind].has(id)) throw new Error(`LOCALE_REFERENCE: ${language}/${namespace}/${id}`)
@@ -67,7 +59,7 @@ export async function preparePresentation(
             typeof entry !== 'object' ||
             Array.isArray(entry) ||
             Object.entries(entry).some(
-              ([field, value]) => !['name', 'description'].includes(field) || typeof value !== 'string',
+              ([field, value]) => !isContentLocaleField(namespace, field) || typeof value !== 'string',
             )
           )
             throw new Error(`LOCALE_FORMAT: ${language}/${namespace}/${id}`)

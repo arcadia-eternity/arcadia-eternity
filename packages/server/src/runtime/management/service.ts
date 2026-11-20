@@ -1,3 +1,4 @@
+import { readElementCatalog } from '@arcadia-eternity/const'
 import {
   addEnvironmentPackage,
   removeEnvironmentPackage,
@@ -10,12 +11,10 @@ import type {
 } from '@arcadia-eternity/protocol'
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import {
-  assertEnvironmentRequirements,
-  validateEnvironmentRules,
-} from '@arcadia-eternity/content-sdk/environment-rules'
+import { assertEnvironmentRequirements } from '@arcadia-eternity/content-sdk/environment-rules'
 import type {
   ContentWorkspace,
+  EnvironmentImportProbe,
   EnvironmentInstallation,
   UnavailableInstallation,
   PrepareEnvironmentInput,
@@ -43,7 +42,7 @@ import {
   type ServerSettingsConstraints,
 } from './settings'
 import { OperationService, type Operation, type OperationContext } from './operations'
-import { ServerEnvironmentRegistry, type EnvironmentAdmissionRules } from '../environments'
+import { ServerEnvironmentRegistry, type EnvironmentAdmissionRules, type EnvironmentPublication } from '../environments'
 import type { RoomRegistry } from '../rooms'
 
 export type WorkspaceInstallation = EnvironmentInstallation
@@ -60,11 +59,12 @@ export type ManagementWorkspace = Pick<
   | 'releaseRetention'
   | 'prepareEnvironment'
   | 'clearInstallation'
+  | 'previewEnvironmentExport'
+  | 'missingEnvironmentArchives'
   | 'exportEnvironment'
   | 'importEnvironment'
   | 'recoverImport'
   | 'forgetImport'
-  | 'references'
 >
 export interface Binding {
   serverId: string
@@ -116,6 +116,11 @@ export interface ManagementOptions {
   runtimeSettings?: ServerSettings
   listenAddress?: () => { host: string; port: number } | undefined
   settingsConstraints?: ServerSettingsConstraints
+  builtinEnvironmentId?: string
+  clientEnvironments?: {
+    listClientEnvironmentIds(): Promise<string[]>
+    acquireClientEnvironment: ContentWorkspace['acquire']
+  }
   /** Host-registered environment sources. Never populated from remote request paths. */
   resolveProject?: (environmentId: string) => Promise<string>
   prepareEnvironment?: (input: PrepareEnvironmentInput, validator: StaticPreparer) => Promise<EnvironmentInstallation>
@@ -173,15 +178,44 @@ const safeInstallation = (version: WorkspaceInstallation | UnavailableInstallati
 
 /** Static preparation only; metadata capture does not execute author module code. */
 export async function validateWorkspaceProject(
-  { directory, signal }: { directory: string; signal?: AbortSignal },
+  {
+    directory,
+    signal,
+    draft,
+  }: { directory: string; signal?: AbortSignal; draft?: PrepareEnvironmentInput['document'] },
   preparation: { effectPreparation?: 'compile' | 'prebuilt-only' } = {},
 ) {
   signal?.throwIfAborted()
+  assertEnvironmentRequirements(draft?.requires)
   const temporary = new ServerEnvironmentRegistry()
   try {
     const descriptor = await temporary.prepareNpm(directory, { policy: { profile: 'self-hosted' } }, preparation)
     signal?.throwIfAborted()
-    return { contentRevision: descriptor.runtime.contentRevision, packages: descriptor.packages }
+    const catalog = temporary.content(descriptor.id)
+    const ruleComposition = temporary.prepareRules(descriptor.id, draft?.rules)
+    const locale = catalog.locales?.bundles[catalog.locales.defaultLocale]
+    const choices = (rows: { id: string; name?: string }[], namespaces: string[]) =>
+      rows.map(({ id, name }) => {
+        for (const ns of namespaces) {
+          const entry = locale?.[ns]?.[id]
+          if (entry && typeof entry === 'object' && 'name' in entry && typeof entry.name === 'string')
+            return { id, name: entry.name }
+        }
+        return { id, name }
+      })
+    return {
+      contentCatalog: {
+        species: choices(catalog.species, ['species']),
+        skills: choices(catalog.skills, ['skill']),
+        marks: choices(catalog.marks, ['mark', 'mark_ability', 'mark_emblem', 'mark_global']),
+        stages: choices(catalog.enhancements ?? [], ['enhancement']),
+      },
+      ruleComposition,
+      contentRevision: descriptor.runtime.contentRevision,
+      packages: descriptor.packages,
+      elementCatalog: readElementCatalog(catalog),
+      skillParameters: catalog.skillParameters,
+    }
   } catch (error) {
     const code = (error as { diagnostics?: { code?: string }[] }).diagnostics?.[0]?.code
     if (code && /^[A-Z][A-Z0-9_]+$/.test(code)) throw new ManagementError(code)
@@ -201,8 +235,18 @@ export class ManagementService {
   private collector?: ReturnType<typeof setInterval>
   private lastTransferCleanup = 0
   readonly bootId = randomUUID()
+  private readonly clientPublications: EnvironmentPublication[] = []
   private readonly activeRuntimes = new Map<string, string>()
-  private readonly runtimes = new Map<string, { runtimeId: string; installationId: string }>()
+  private readonly runtimes = new Map<
+    string,
+    {
+      runtimeId: string
+      installationKey: string
+      environmentName: string
+      rules: EnvironmentAdmissionRules
+      executionPolicy: 'server' | 'peer'
+    }
+  >()
   private pending: Promise<unknown> = Promise.resolve()
   private localSession?: { actor: ManagementActor; expiresAt: number }
   private readyPromise?: Promise<void>
@@ -255,6 +299,7 @@ export class ManagementService {
     })
   }
   private async builtinEnvironmentId() {
+    if (this.options.builtinEnvironmentId) return this.options.builtinEnvironmentId
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
     const initialization = server?.value.initialization
     return initialization?.kind === 'builtin' ? initialization.environmentId : undefined
@@ -306,6 +351,7 @@ export class ManagementService {
       })
     else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
     await this.auth.ready()
+    await this.loadClientEnvironments()
     await this.reconcile()
     this.collector = setInterval(() => {
       void this.exclusive(async () => {
@@ -323,6 +369,7 @@ export class ManagementService {
     return this.options.storage.list<Binding>('bindings', managementScopeKey(this.serverScope))
   }
   private async authorizeEnvironmentUpdate(actor: ManagementActor, environmentId: string) {
+    if (environmentId === (await this.builtinEnvironmentId())) fail('BUILTIN_ENVIRONMENT_READ_ONLY', 409)
     const bindings = (await this.options.storage.list<Binding>('bindings')).filter(
       row => row.value.workspaceId === this.options.workspace.workspaceId && row.value.environmentId === environmentId,
     )
@@ -506,17 +553,38 @@ export class ManagementService {
     force = false,
   ) {
     const version = await this.options.workspace.getInstallation(installationId)
-    const key = `${bindingId}:${installationId}:${executionPolicy}:${version.createdAt}:${version.draftRevision}${force ? `:${randomUUID()}` : ''}`
-    const existing = this.runtimes.get(key)
-    if (existing) {
-      this.activeRuntimes.set(bindingId, key)
-      return existing.runtimeId
-    }
-    if (version.workspaceId !== this.options.workspace.workspaceId) fail('WORKSPACE_MISMATCH')
-    assertEnvironmentRequirements(version.document.requires)
-    validateEnvironmentRules(version.document.rules)
+    const instanceKey = (version: WorkspaceInstallation) =>
+      JSON.stringify([
+        bindingId,
+        installationId,
+        executionPolicy,
+        version.createdAt,
+        version.draftRevision,
+        version.contentRevision,
+      ])
+    const existing = this.runtimes.get(this.activeRuntimes.get(bindingId) ?? '')
+    if (!force && existing?.installationKey === instanceKey(version)) return existing.runtimeId
     const lease = await this.options.workspace.acquire(installationId, `server:${this.options.serverId}:${this.bootId}`)
     try {
+      if (lease.workspaceId !== this.options.workspace.workspaceId) fail('WORKSPACE_MISMATCH')
+      const { runtimeId, rules } = await this.prepareRuntime(lease, executionPolicy)
+      this.runtimes.set(runtimeId, {
+        runtimeId,
+        installationKey: instanceKey(lease),
+        environmentName: lease.document.name,
+        rules,
+        executionPolicy,
+      })
+      this.activeRuntimes.set(bindingId, runtimeId)
+      return runtimeId
+    } finally {
+      await lease.release()
+    }
+  }
+  private async prepareRuntime(lease: EnvironmentInstallation, executionPolicy: 'server' | 'peer') {
+    let candidateId: string | undefined
+    try {
+      assertEnvironmentRequirements(lease.document.requires)
       const descriptor = await this.options.environments.prepareNpm(
         lease.directory,
         {
@@ -526,44 +594,63 @@ export class ManagementService {
         },
         { effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only' },
       )
+      candidateId = descriptor.id
       if (
         executionPolicy === 'server' &&
         !this.options.allowThirdPartyExecution &&
         this.options.environments.hasThirdPartyPackages(descriptor.id)
       ) {
-        await this.options.environments.retire(descriptor.id)
         fail('THIRD_PARTY_EXECUTION_FORBIDDEN', 403)
       }
-      this.activeRuntimes.set(bindingId, key)
-      await lease.release()
-      this.runtimes.set(key, { installationId, runtimeId: descriptor.id })
-      return descriptor.id
+      const { rules } = this.options.environments.prepareRules(descriptor.id, lease.document.rules)
+      return { runtimeId: descriptor.id, rules }
     } catch (error) {
-      await lease.release()
+      if (candidateId) await this.options.environments.retire(candidateId)
       throw error
+    }
+  }
+  private async loadClientEnvironments() {
+    const library = this.options.clientEnvironments
+    if (!library) return
+    for (const id of await library.listClientEnvironmentIds()) {
+      const lease = await library.acquireClientEnvironment(id, 'local-server')
+      try {
+        const { runtimeId, rules } = await this.prepareRuntime(lease, 'server')
+        this.clientPublications.push({
+          runtimeId,
+          environmentId: lease.environmentId,
+          environmentName: lease.document.name,
+          rules,
+          executionPolicy: 'server',
+          enabled: true,
+          public: true,
+          matchmaking: true,
+        })
+      } finally {
+        await lease.release()
+      }
     }
   }
   private async applyPublication() {
     const rows = await this.bindings()
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
-    const entries = []
+    const entries = [...this.clientPublications]
     let defaultRuntimeId: string | undefined
     for (const row of rows) {
       const binding = row.value
-      if (binding.condition !== 'available') continue
+      if (binding.condition !== 'available' && binding.condition !== 'degraded') continue
       const runtime = this.runtimes.get(this.activeRuntimes.get(row.id) ?? '')
-      if (!runtime) continue
-      const installation = await this.options.workspace.getInstallation(binding.environmentId)
+      if (!runtime || runtime.executionPolicy !== binding.executionPolicy) continue
       entries.push({
         runtimeId: runtime.runtimeId,
         environmentId: binding.environmentId,
-        environmentName: installation.document.name,
+        environmentName: runtime.environmentName,
         bindingId: row.id,
         executionPolicy: binding.executionPolicy,
         enabled: binding.enabled,
         public: binding.visibility === 'public',
         matchmaking: binding.matchmakingEnabled,
-        rules: installation.document.rules as EnvironmentAdmissionRules | undefined,
+        rules: runtime.rules,
       })
       if (row.id === server?.value.defaultBindingId && binding.enabled) defaultRuntimeId = runtime.runtimeId
     }
@@ -583,9 +670,11 @@ export class ManagementService {
       const failure = error as { code?: string; diagnostics?: { code?: string }[] }
       reason = failure?.code ?? failure?.diagnostics?.[0]?.code ?? 'ENVIRONMENT_UNAVAILABLE'
     }
+    const previous = this.runtimes.get(this.activeRuntimes.get(row.id) ?? '')
+    const canKeepServing = previous && previous.executionPolicy === row.value.executionPolicy
     return this.options.storage.replace<Binding>('bindings', row.id, row.revision, {
       ...row.value,
-      condition: reason ? 'unavailable' : 'available',
+      condition: reason ? (canKeepServing ? 'degraded' : 'unavailable') : 'available',
       reason,
       observedBootId: this.bootId,
     })
@@ -658,7 +747,9 @@ export class ManagementService {
     request: ManagementRequest,
     value: unknown,
     expectedRevision: string | null,
+    copyFrom?: string,
   ) {
+    if (copyFrom && expectedRevision !== null) fail('INVALID_REQUEST')
     const document = normalizeEnvironmentDocument(value)
     await this.auth.authorize(actor, this.workspaceScope, 'edit')
     await this.auth.authorize(actor, this.workspaceScope, 'prepare')
@@ -669,10 +760,11 @@ export class ManagementService {
       request,
       'environment.apply',
       this.workspaceScope,
-      { document, expectedRevision },
+      { document, expectedRevision, ...(copyFrom && { copyFrom }) },
       async ctx => {
         const authorize = async () => {
           await ctx.checkCurrent()
+          if (copyFrom) await this.auth.authorize(actor, this.workspaceScope, 'read')
           await this.auth.authorize(actor, this.workspaceScope, 'edit')
           await this.auth.authorize(actor, this.workspaceScope, 'prepare')
           await this.authorizeEnvironmentUpdate(actor, document.id)
@@ -680,20 +772,26 @@ export class ManagementService {
         await authorize()
         const prepare =
           this.options.prepareEnvironment ?? this.options.workspace.prepareEnvironment.bind(this.options.workspace)
-        const installation = await prepare(
-          {
-            environmentId: document.id,
-            document,
-            expectedRevision,
-            projectDirectory: await this.options.resolveProject?.(document.id),
-            signal: ctx.signal,
-            onProgress: progress => ctx.progress(progress),
-            beforeCommit: authorize,
-          },
-          this.validator,
-        )
-        await this.reconcile()
-        return safeInstallation(installation)
+        const seed = copyFrom ? await this.options.workspace.acquire(copyFrom, 'copy-environment') : undefined
+        try {
+          const installation = await prepare(
+            {
+              environmentId: document.id,
+              document,
+              expectedRevision,
+              projectDirectory: seed ? undefined : await this.options.resolveProject?.(document.id),
+              seedDirectory: seed?.directory,
+              signal: ctx.signal,
+              onProgress: progress => ctx.progress(progress),
+              beforeCommit: authorize,
+            },
+            this.validator,
+          )
+          await this.reconcile()
+          return safeInstallation(installation)
+        } finally {
+          await seed?.release()
+        }
       },
     )
   }
@@ -817,10 +915,16 @@ export class ManagementService {
     }
     if (parts[0] === 'workspaces') {
       if (parts[1] !== this.options.workspace.workspaceId) fail('WORKSPACE_NOT_FOUND', 404)
+      if (this.transfers && parts[2] === 'import-preview' && parts.length === 3 && method === 'POST') {
+        await this.auth.authorize(actor, this.workspaceScope, 'edit')
+        await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+        return ok(await this.options.workspace.missingEnvironmentArchives(input.probe as EnvironmentImportProbe))
+      }
       if (this.transfers && parts[2] === 'import' && parts.length === 3 && method === 'POST')
         return ok(
           publicOperation(
             await this.transfers.import(actor, input.bundle, {
+              ...(input.allowDownload !== undefined ? { allowDownload: input.allowDownload === true } : {}),
               ...(input.environmentId ? { environmentId: text(input.environmentId) } : {}),
               ...(input.expectedRevision !== undefined
                 ? { expectedRevision: input.expectedRevision === null ? null : text(input.expectedRevision) }
@@ -831,17 +935,21 @@ export class ManagementService {
           202,
         )
       if (parts[2] === 'installations' && parts.length === 5) {
-        if (parts[4] === 'references' && method === 'GET') {
-          await this.auth.authorize(actor, this.workspaceScope, 'read')
-          return ok(
-            this.transfers
-              ? await this.transfers.references(actor, parts[3])
-              : { references: await this.options.workspace.references(parts[3]) },
-          )
+        if (this.transfers && parts[4] === 'export-preview' && method === 'GET') {
+          await this.auth.authorize(actor, this.workspaceScope, 'export')
+          return ok(await this.options.workspace.previewEnvironmentExport(parts[3]))
         }
         if (this.transfers && parts[4] === 'export' && method === 'POST')
           return ok(
-            publicOperation(await this.transfers.export(actor, parts[3], text(request.headers?.['idempotency-key']))),
+            publicOperation(
+              await this.transfers.export(
+                actor,
+                parts[3],
+                text(request.headers?.['idempotency-key']),
+                undefined,
+                input.mode,
+              ),
+            ),
             202,
           )
       }
@@ -852,6 +960,7 @@ export class ManagementService {
             request,
             input.document,
             input.expectedRevision === null ? null : text(input.expectedRevision),
+            input.copyFrom === undefined ? undefined : text(input.copyFrom),
           )
         if (method === 'GET' && parts.length === 3) {
           await this.auth.authorize(actor, this.workspaceScope, 'read')
@@ -897,8 +1006,6 @@ export class ManagementService {
           await this.authorizeEnvironmentUpdate(actor, parts[3])
           const name = text(input.name, 214)
           const workspace = this.options.workspace
-          const builtin = parts[3] === (await this.builtinEnvironmentId())
-          if (builtin && !adding && name === shippedBasePackage) fail('DEFAULT_ENVIRONMENT_PACKAGE_REQUIRED', 409)
           const draft = await (adding ? addEnvironmentPackage : removeEnvironmentPackage)(
             {
               listDrafts: () => workspace.listDrafts(),
@@ -1056,7 +1163,7 @@ export class ManagementService {
               executionPolicy: 'server',
               enabled: false,
               visibility: 'private',
-              matchmakingEnabled: false,
+              matchmakingEnabled: input.enabled === true,
               condition: 'unavailable',
               observedBootId: this.bootId,
             }
@@ -1189,6 +1296,7 @@ export class ManagementService {
             { ...request, retryOf: op.id },
             original.document,
             original.expectedRevision === null ? null : text(original.expectedRevision),
+            original.copyFrom === undefined ? undefined : text(original.copyFrom),
           )
         if (op.kind === 'binding.reload')
           return this.reload(

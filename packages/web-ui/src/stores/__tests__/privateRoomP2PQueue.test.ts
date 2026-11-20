@@ -14,13 +14,14 @@ const mocks = vi.hoisted(() => ({
     playerId: 'host',
     serverUrl: 'https://server-a.test',
     currentState: { matchmaking: 'idle' },
-    _instance: {},
+    _instance: { finishPrivateRoomBattle: vi.fn().mockResolvedValue(undefined) },
     on: vi.fn(),
     getPrivateRoomInfo: vi.fn(),
     leavePrivateRoom: vi.fn(),
   },
   battle: {
     initBattle: vi.fn(),
+    resetBattleWithoutSurrender: vi.fn().mockResolvedValue(undefined),
     ready: vi.fn(),
     fetchAvailableSelection: vi.fn(),
     battleInterface: null,
@@ -138,7 +139,7 @@ it('cancels a queued host immediately when leaving, before the server acknowledg
   const starting = start()
   await vi.waitFor(() => expect(mocks.createHost).toHaveBeenCalledOnce())
   expect(mocks.createHost.mock.calls[0][0].battleConfig.environment).toBe(prepared.environment)
-  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledWith(prepared.content)
+  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledWith(prepared.content, { rules: undefined })
   const signal = mocks.createHost.mock.calls[0][0].signal as AbortSignal
   let acknowledge!: () => void
   mocks.client.leavePrivateRoom.mockImplementationOnce(
@@ -249,4 +250,29 @@ it('does not allocate or install a P2P host when fixed materials cannot be prepa
   expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalled()
   expect(mocks.push).not.toHaveBeenCalled()
   expect(store.error).toContain('Fixed peer materials unavailable')
+})
+
+it('finishes a faulted P2P round once, returns both seats to the room and ignores older results', async () => {
+  mocks.createHost.mockResolvedValueOnce({
+    BattleEvent: () => () => {},
+    getState: async () => ({ sequenceId: 0 }),
+    cleanup: vi.fn(),
+  })
+  await start()
+  const { onFault } = mocks.createHost.mock.calls[0][0]
+  onFault()
+  onFault()
+  expect(mocks.client._instance.finishPrivateRoomBattle).toHaveBeenCalledTimes(1)
+  expect(mocks.client._instance.finishPrivateRoomBattle).toHaveBeenCalledWith({
+    battleRoomId: 'battle-a',
+    winner: null,
+    reason: 'environment_runtime_failed',
+  })
+  const handle = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
+  const result = { winner: null, reason: 'environment_runtime_failed', endedAt: 1 }
+  await handle({ type: 'battleFinished', data: { battleResult: { ...result, battleRoomId: 'older' } } })
+  expect(mocks.battle.resetBattleWithoutSurrender).not.toHaveBeenCalled()
+  await handle({ type: 'battleFinished', data: { battleResult: { ...result, battleRoomId: 'battle-a' } } })
+  expect(mocks.battle.resetBattleWithoutSurrender).toHaveBeenCalledOnce()
+  expect(mocks.push).toHaveBeenLastCalledWith('/room/ABC123')
 })

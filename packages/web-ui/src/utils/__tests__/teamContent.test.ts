@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, it } from 'vitest'
-import { findMissingTeamContent, replaceResolvedSkills } from '../teamContent'
+import { categorySkillSlots, findMissingTeamContent, replaceResolvedSkills } from '../teamContent'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 const skills = new Map([
@@ -9,6 +9,14 @@ const skills = new Map([
   ['climax', { category: 'Climax' }],
 ])
 const getSkill = (id: string) => skills.get(id)
+it('shares unreserved slots across categories and counts unresolved skills against capacity', () => {
+  const lookup = (id: string) => (id.startsWith('n') ? { category: 'Physical' } : getSkill(id))
+  const four = ['n1', 'n2', 'n3', 'n4']
+  expect(categorySkillSlots(four, undefined, false, lookup)).toEqual([...four, ''])
+  expect(categorySkillSlots(['climax'], undefined, true, lookup)).toEqual(['climax', ''])
+  expect(categorySkillSlots([...four, 'missing'], undefined, true, lookup)).toEqual([])
+  expect(categorySkillSlots(four, { normalMax: 1, climaxMax: 2 }, false, lookup)).toEqual(four)
+})
 it('preserves unknown references and their order when replacing either recognized category', () => {
   const original = ['mod:missing', 'normal', 'mod:another', 'climax']
   expect(replaceResolvedSkills(original, ['other'], false, getSkill)).toEqual([
@@ -56,4 +64,28 @@ it('reports every missing reference with its owner and skill position without mo
     [],
   )
   expect(pet).toEqual(before)
+})
+
+it('retains unresolved inherited skills, community natures and stages as distinct build choices', () => {
+  const pet = {
+    id: 'one',
+    name: '一号',
+    species: 'pet_x',
+    skills: [],
+    inheritedSkill: 'mod:heal',
+    enhancement: 'mod:stage',
+    nature: 'mod:nature',
+  } as unknown as PetSchemaType
+  const missing = findMissingTeamContent([pet], {
+    getSpecies: () => true,
+    getMark: () => true,
+    getSkill: () => undefined,
+    getNature: () => undefined,
+    getEnhancement: () => undefined,
+  })
+  expect(missing.map(row => [row.kind, row.contentId])).toEqual([
+    ['inheritedSkill', 'mod:heal'],
+    ['nature', 'mod:nature'],
+    ['enhancement', 'mod:stage'],
+  ])
 })

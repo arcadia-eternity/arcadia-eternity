@@ -1,4 +1,4 @@
-import { assertEnvironmentTeam } from '@arcadia-eternity/content-sdk/environment-rules'
+import { assertEnvironmentTeam, resolveEnvironmentMechanics } from '@arcadia-eternity/content-sdk/environment-rules'
 import { timingSafeEqual } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import type { Server, Socket } from 'socket.io'
@@ -79,7 +79,7 @@ type WaitingPlayer = {
   joinedAt: number
 }
 type Room = {
-  environment: RoomEnvironment
+  readonly environment: RoomEnvironment
   info: PrivateRoomInfo
   password?: string
   members: Map<string, Member>
@@ -356,7 +356,13 @@ export class RoomRegistry {
     if (expected.kind !== actual.kind) fail('RUNTIME_MISMATCH')
   }
   private checkClientEnvironment(room: Pick<Room, 'environment'> & Partial<Pick<Room, 'info'>>, raw: unknown) {
-    if (!room.environment.isNpm && raw === undefined && room.environment.executionPolicy !== 'peer') return
+    const rules = room.environment.rules
+    const legacyDefault =
+      ('legacyBuiltinAcceptance' in room.environment && room.environment.legacyBuiltinAcceptance) ||
+      !rules ||
+      (rules.schemaVersion === 1 && !rules.allow && !rules.deny && !rules.team)
+    if (legacyDefault && !room.environment.isNpm && raw === undefined && room.environment.executionPolicy !== 'peer')
+      return
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('CLIENT_ENVIRONMENT_REQUIRED')
     const accepted = raw as Record<string, unknown>
     const descriptor = room.environment.descriptor
@@ -364,6 +370,12 @@ export class RoomRegistry {
       fail('CLIENT_PREPARATION_STALE')
     if (accepted.protocolVersion !== descriptor.protocolVersion) fail('CLIENT_PROTOCOL_MISMATCH')
     if (accepted.environmentId !== descriptor.id) fail('CLIENT_ENVIRONMENT_MISMATCH')
+    if (
+      descriptor.gameplayRevision &&
+      (!legacyDefault || accepted.gameplayRevision !== undefined) &&
+      accepted.gameplayRevision !== descriptor.gameplayRevision
+    )
+      fail('CLIENT_GAMEPLAY_VERSION_MISMATCH')
     if (accepted.resourceRevision !== descriptor.resourceRevision || accepted.resourcesReady !== true)
       fail('CLIENT_RESOURCES_NOT_READY')
     if (
@@ -377,8 +389,8 @@ export class RoomRegistry {
       const validated =
         'personal' in room.environment
           ? validatePersonalTeam(team)
-          : await validateServerTeam(team, room.environment.runtime)
-      assertEnvironmentTeam(room.environment.rules, validated)
+          : await validateServerTeam(team, room.environment.runtime, room.environment.rules)
+      if ('personal' in room.environment) assertEnvironmentTeam(room.environment.rules, validated)
       return validated
     } catch (error) {
       if (error instanceof RoomError) throw error
@@ -471,6 +483,10 @@ export class RoomRegistry {
       if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
       if (!matchedEnvironment && this.matchmaking.has(session.seatId)) fail('ALREADY_QUEUED')
       if (this.rooms.size >= this.limits.maxRooms) fail('ROOM_CAPACITY')
+      const reward = resolveEnvironmentMechanics(environment.rules).allowFaintSwitch
+      if (object(input.config).allowFaintSwitch !== undefined && config.allowFaintSwitch !== reward)
+        fail('ENVIRONMENT_FIXED')
+      config.allowFaintSwitch = reward
       this.checkRuntime(input, environment)
       this.checkExecutionPolicy(environment, config.battleMode ?? 'server')
     } catch (error) {
@@ -672,6 +688,7 @@ export class RoomRegistry {
           room.environment.runtime,
           this.battleWorkers,
           controller.signal,
+          room.environment.rules,
         )
       }
       controller.signal.throwIfAborted()
@@ -894,6 +911,7 @@ export class RoomRegistry {
                 environmentId: first.environment!.descriptor.id,
                 protocolVersion: first.environment!.descriptor.protocolVersion,
                 resourceRevision: first.environment!.descriptor.resourceRevision,
+                gameplayRevision: first.environment!.descriptor.gameplayRevision,
                 ...(first.environment!.descriptor.peerRevision
                   ? { peerRevision: first.environment!.descriptor.peerRevision }
                   : {}),
@@ -1042,6 +1060,23 @@ export class RoomRegistry {
       true,
     )
     register(
+      'submitPrivateRoomTeam',
+      withRoom(async (room, data) => {
+        this.waiting(room)
+        this.player(room, session)
+        const input = object(data)
+        if (input.roomId !== room.info.id || input.seatId !== session.seatId) fail('ROOM_CONTEXT_MISMATCH')
+        if (!input.environment) fail('CLIENT_ENVIRONMENT_REQUIRED')
+        this.checkClientEnvironment(room, input.environment)
+        const team = await this.validateTeam(room, input.team)
+        const player = room.info.players.find(member => member.playerId === session.seatId)!
+        player.team = team
+        player.isReady = false
+        this.update(room)
+        return { status: 'UPDATED' }
+      }),
+    )
+    register(
       'togglePrivateRoomReady',
       withRoom(async (room, data) => {
         this.waiting(room)
@@ -1078,14 +1113,8 @@ export class RoomRegistry {
         this.checkExecutionPolicy(room.environment, config.battleMode ?? 'server')
         if (input.environmentId !== undefined && input.environmentId !== room.environment.descriptor.id)
           fail('ENVIRONMENT_FIXED')
-        if (input.personalEnvironment !== undefined) {
-          if (!('personal' in room.environment)) fail('ENVIRONMENT_FIXED')
-          const next = await acquirePersonalEnvironment(input.personalEnvironment)
-          this.checkExecutionPolicy(next, config.battleMode)
-          room.environment = next
-          room.info.environment = next.descriptor
-          room.info.personalEnvironment = next.personal
-        }
+        if (input.personalEnvironment !== undefined || config.allowFaintSwitch !== room.info.config.allowFaintSwitch)
+          fail('ENVIRONMENT_FIXED')
         room.info.config = config
         room.password = password
         this.invalidatePersonalPreparation(room)

@@ -100,7 +100,7 @@ async function hostCommand(directory: string, args: string[]) {
 async function login(page: Page, directory: string, origin: string) {
   const credential = await hostCommand(directory, ['admin', 'login-code', '--data-dir', directory])
   const identity = { serverId: String(credential.serverId), workspaceId: String(credential.workspaceId) }
-  await page.goto(origin + '/management?tab=environments')
+  await page.goto(origin + '/environments?target=server')
   await page.getByRole('button', { name: '管理员登录', exact: true }).click()
   await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
   await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
@@ -162,15 +162,16 @@ test('paired production management backs up, revokes service credentials and ret
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('server-users-mobile.png'), fullPage: true })
     await page.setViewportSize({ width: 1440, height: 1000 })
-    await page.goto(server.origin + '/content?target=server&tab=environments')
+    await page.goto(server.origin + '/environments?target=server')
     checks.push('server overview, live battles and users render on desktop and mobile')
 
     await page.getByRole('button', { name: '新建环境', exact: true }).click()
     const editor = page.getByRole('form', { name: '编辑环境' })
     await editor.getByLabel('名称', { exact: true }).fill('备份验收环境')
     await editor.getByLabel('标识', { exact: true }).fill('backup-acceptance')
-    await editor.getByText('已登记来源', { exact: true }).click()
-    await editor.getByLabel('来源包名（每行一个）').fill(catalogPackage)
+    const source = editor.getByRole('textbox', { name: '按包名查找' })
+    await source.fill(catalogPackage)
+    await source.press('Enter')
     await editor.getByRole('button', { name: '保存并应用', exact: true }).click()
     await expect(editor).not.toBeVisible()
     await page

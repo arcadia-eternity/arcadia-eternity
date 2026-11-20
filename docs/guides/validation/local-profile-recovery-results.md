@@ -4,7 +4,7 @@
 
 ## 交付内容
 
-- `packages/local-profile` 定义严格的便携资料格式、摘要、预览/提交、单个恢复点和 revision 比较交换。IndexedDB 与文件存储共享资料服务。
+- `packages/local-profile` 定义严格的便携资料格式、预览/提交、单个恢复点和 revision 比较交换。IndexedDB 与文件存储共享资料服务。
 - Web 的 `/profile` 提供导出、预览、恢复、失败重试和损坏旧记录导出；旧存储迁移不删除原键。设置保存进入统一队列。
 - Electron 主进程持有资料目录的写入所有权；远程窗口只获得临时快照，保存需要主窗口确认，较新编辑和取消退出均保留草稿。
 - CLI 提供 `profile init/show/set-name/export/inspect/import/recover/repair/unlock`；`battle local --use-profile --team` 使用本地昵称和队伍，战斗席位由引擎独立生成。

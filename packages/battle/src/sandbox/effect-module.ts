@@ -185,12 +185,12 @@ export class ArenaEffectModule implements PreparedEffectModule {
       this.rootCalls = 0
     }
     try {
-      if (
-        ++this.rootCalls > this.policy.callsPerRoot ||
-        ++this.totalCalls > this.policy.callsPerSession ||
-        performance.now() > this.deadline
-      )
-        this.reject(new SandboxFault('budget', this.packageId, 'Effect call budget exceeded'))
+      if (++this.rootCalls > this.policy.callsPerRoot)
+        this.reject(new SandboxFault('budget', this.packageId, 'Effect call budget exceeded within one invocation'))
+      if (++this.totalCalls > this.policy.callsPerSession)
+        this.reject(new SandboxFault('budget', this.packageId, 'Effect call budget exceeded across this session'))
+      if (performance.now() > this.deadline)
+        this.reject(new SandboxFault('budget', this.packageId, 'Effect call budget exceeded (deadline)'))
       const result = operation()
       if (root && this.arena)
         while (this.arena.context.runtime.hasPendingJob()) {
@@ -214,6 +214,9 @@ export class ArenaEffectModule implements PreparedEffectModule {
         if (author?.createCatalog) return []
         throw new SandboxFault('artifact', this.packageId, 'Missing createEffects')
       }
+      // A behavior may first read content.marks from an OnHit callback. Prepare the static
+      // mark projections with the catalog so that a single lookup never builds them mid-turn.
+      this.adapter!.output(context.marks)
       this.adapter!.output(context)
       const exports = author.createEffects(context)
       if (!Array.isArray(exports) || exports.length > 5000)

@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.ts'
-import { assertEnvironmentTeam, validateEnvironmentRules } from './environment-rules.ts'
+import { assertPlayableTeam, resolveEnvironmentMechanics, validateEnvironmentRules } from './environment-rules.ts'
 import { playersFromTeams } from './project-teams.ts'
 import { prepareSandboxContent, type SandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
@@ -42,7 +42,9 @@ export async function prepareContentPack(
   const teams = (config as { teams: string[] }).teams
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
-  const environmentRules = validateEnvironmentRules(prepared.environmentDocument.rules)
+  const environmentRules = validateEnvironmentRules(prepared.effectiveRules)
+  const { allowFaintSwitch, enhancement } = resolveEnvironmentMechanics(environmentRules)
+  const enhancementActive = enhancement.mode === 'active'
   // Four automation sessions, one human preview, and room for their validated replacements.
   const workers = createNodeBattleWorkerManager({ maxBattles: 7 })
   function defaultPlayers() {
@@ -57,7 +59,17 @@ export async function prepareContentPack(
         id: runtimeIds ? randomBytes(16).toString('base64url').slice(0, 21) : pet.id,
       })),
     }))
-    for (const player of players) assertEnvironmentTeam(environmentRules, player.team)
+    for (const player of players) {
+      assertPlayableTeam(
+        environmentRules,
+        player.team,
+        id => environment.content.getSpecies(id),
+        environment.content.getNature,
+        environment.content.getEnhancement,
+        environment.content.getSkill,
+        environment.content.getMark,
+      )
+    }
     return players
   }
   const referenceContent = new WeakMap<Battle, SandboxContent['content']>()
@@ -97,9 +109,12 @@ export async function prepareContentPack(
     } = {},
   ): Promise<Battle> {
     const input = runtimePlayers(supplied, runtimeIds)
-    const effects = await prepareSandboxContent(environment.sandbox)
+    const effects = await prepareSandboxContent(environment.sandbox, {
+      skillParameters: environmentRules.skillParameters,
+    })
     try {
       const players = effects.content.parsePlayers(input, {
+        enhancementActive,
         aiPlayerIds: ai && input[1] ? [input[1].id] : [],
       })
       if (players.length !== 2) throw new Error('The demo requires exactly two players')
@@ -108,6 +123,9 @@ export async function prepareContentPack(
       return ownBattle(
         effects.content.createBattle(players[0], players[1], {
           ...battleOptions,
+          allowFaintSwitch,
+          matchups: environmentRules.matchups,
+          enhancementActive,
           rngSeed: seed,
           timerConfig: battleOptions.timerConfig ?? { enabled: false },
         } as Parameters<typeof effects.content.createBattle>[2]),
@@ -119,7 +137,9 @@ export async function prepareContentPack(
     }
   }
   async function restoreBattle(snapshot: unknown): Promise<Battle> {
-    const effects = await prepareSandboxContent(environment.sandbox)
+    const effects = await prepareSandboxContent(environment.sandbox, {
+      skillParameters: environmentRules.skillParameters,
+    })
     try {
       return ownBattle(effects.content.restore(snapshot), effects)
     } catch (error) {
@@ -151,7 +171,15 @@ export async function prepareContentPack(
       environment: environment.sandbox,
       players,
       aiPlayerIds: ai ? [players[1]?.id] : [],
-      options: { ...battleOptions, rngSeed: seed, timerConfig: battleOptions.timerConfig ?? { enabled: false } },
+      options: {
+        ...battleOptions,
+        allowFaintSwitch,
+        enhancementActive,
+        skillParameters: environmentRules.skillParameters,
+        matchups: environmentRules.matchups,
+        rngSeed: seed,
+        timerConfig: battleOptions.timerConfig ?? { enabled: false },
+      },
       hostOptions: { teamSelection: battleOptions.teamSelection },
     } as Parameters<typeof workers.create>[0])
     return system

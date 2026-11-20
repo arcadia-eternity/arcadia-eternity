@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import {
   restoreManagementSession,
   managementSessionChanged,
@@ -385,7 +386,7 @@ export function useManagementConsole(scope: 'server' | 'content' = 'server') {
     error.value = ''
     notice.value = ''
     const signature = JSON.stringify([method, path, body, revision])
-    const key = pendingKeys.get(signature) ?? crypto.randomUUID()
+    const key = pendingKeys.get(signature) ?? nanoid()
     pendingKeys.set(signature, key)
     try {
       const result = await current.request<T>(method, path, { body, revision, idempotencyKey: key })

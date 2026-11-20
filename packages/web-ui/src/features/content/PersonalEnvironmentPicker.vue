@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElInput, ElButton, ElForm, ElFormItem } from 'element-plus'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { PersonalEnvironmentReference } from '@arcadia-eternity/protocol'
 import {
@@ -17,7 +18,6 @@ const props = defineProps<{
   expected?: PersonalEnvironmentReference
   prepared?: PreparedPersonalEnvironment
   disabled?: boolean
-  allowReplace?: boolean
 }>()
 const emit = defineEmits<{ prepared: [value: PreparedPersonalEnvironment]; error: [message: string] }>()
 const fileInput = ref<HTMLInputElement>()
@@ -26,8 +26,11 @@ const busy = ref(false)
 const error = ref('')
 const desktop = getDesktopApi()
 const captureLocal = desktop?.capturePersonalEnvironment?.bind(desktop)
-const shown = computed(() => props.prepared?.reference ?? props.expected)
-const revision = computed(() => shown.value?.descriptor.peerRevision ?? shown.value?.descriptor.id)
+const accepted = computed(
+  () => props.prepared && (!props.expected || props.prepared.reference.descriptor.id === props.expected.descriptor.id),
+)
+const shown = computed(() => props.expected ?? props.prepared?.reference)
+const revision = computed(() => shown.value?.descriptor.id)
 let pending: { controller: AbortController } | undefined
 let disposed = false
 const downloads = new Map<string, ReturnType<typeof setTimeout>>()
@@ -44,7 +47,7 @@ function cancel() {
   job?.controller.abort(new DOMException('准备已取消', 'AbortError'))
 }
 watch(
-  () => [props.expected?.descriptor.id, props.disabled, props.allowReplace],
+  () => [props.expected?.descriptor.id, props.disabled],
   () => {
     cancel()
     error.value = ''
@@ -61,7 +64,6 @@ async function prepare(
   const expected = props.expected
     ? (JSON.parse(JSON.stringify(props.expected)) as PersonalEnvironmentReference)
     : undefined
-  const allowReplace = !!props.allowReplace
   const job = { controller: new AbortController() }
   pending = job
   busy.value = true
@@ -73,7 +75,7 @@ async function prepare(
       candidate = undefined
       return
     }
-    if (expected && !allowReplace && candidate.reference.descriptor.id !== expected.descriptor.id)
+    if (expected && candidate.reference.descriptor.id !== expected.descriptor.id)
       throw new Error('此文件与房间约定的环境版本不同，请向房主取得相同版本。')
     // Accepted materials now belong to the parent. Do not abort their release-bound signal on unmount.
     pending = undefined
@@ -210,7 +212,7 @@ onBeforeUnmount(() => {
   <section class="personal-environment" aria-label="私人挑战环境">
     <header>
       <h3>私人挑战环境</h3>
-      <span v-if="prepared" class="accepted">已接受此版本</span>
+      <span v-if="accepted" class="accepted">已接受此版本</span>
     </header>
     <p>双方需接受同一版本才能准备。</p>
     <div v-if="shown" class="selection">
@@ -223,12 +225,14 @@ onBeforeUnmount(() => {
         </li>
       </ul>
       <p v-else>官方基础内容</p>
-      <p v-if="expected && !prepared">请确认来源后，选择文件或下载环境。</p>
+      <p v-if="expected && !accepted">请确认来源后，选择文件或下载环境。</p>
     </div>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="busy" role="status">正在读取并准备环境…</p>
     <div class="actions">
-      <button type="button" :disabled="disabled || busy" @click="fileInput?.click()">选择并接受环境文件</button>
+      <ElButton native-type="button" :disabled="disabled || busy" @click="fileInput?.click()"
+        >选择并接受环境文件</ElButton
+      >
       <input
         ref="fileInput"
         class="file-input"
@@ -238,25 +242,25 @@ onBeforeUnmount(() => {
         :disabled="disabled || busy"
         @change="importFile"
       />
-      <button v-if="captureLocal" type="button" :disabled="disabled || busy" @click="acceptLocal">
+      <ElButton v-if="captureLocal" native-type="button" :disabled="disabled || busy" @click="acceptLocal">
         使用并接受本机环境
-      </button>
-      <button
+      </ElButton>
+      <ElButton
         v-if="expected?.source.kind === 'https'"
-        type="button"
+        native-type="button"
         :disabled="disabled || busy"
         @click="acceptExpected"
       >
         下载并接受房间环境
-      </button>
-      <button v-if="prepared" type="button" :disabled="disabled || busy" @click="exportCurrent">
+      </ElButton>
+      <ElButton v-if="accepted" native-type="button" :disabled="disabled || busy" @click="exportCurrent">
         导出已接受的环境
-      </button>
-      <button v-if="busy" type="button" @click="cancel">取消准备</button>
+      </ElButton>
+      <ElButton v-if="busy" native-type="button" @click="cancel">取消准备</ElButton>
     </div>
-    <form v-if="!expected" class="url-form" @submit.prevent="acceptUrl">
-      <label
-        >环境分享链接<input
+    <ElForm label-position="top" v-if="!expected" class="url-form" @submit.prevent="acceptUrl">
+      <ElFormItem label="环境分享链接"
+        ><ElInput
           v-model="url"
           type="url"
           placeholder="https://…"
@@ -264,9 +268,11 @@ onBeforeUnmount(() => {
           required
           maxlength="8192"
           autocomplete="off"
-      /></label>
-      <button :disabled="disabled || busy || !url.trim()">下载并接受链接环境</button>
-    </form>
+      /></ElFormItem>
+      <ElButton native-type="submit" type="primary" :disabled="disabled || busy || !url.trim()"
+        >下载并接受链接环境</ElButton
+      >
+    </ElForm>
     <p class="hint">环境文件上限 128 MiB，链接下载上限 64 MiB。</p>
   </section>
 </template>
@@ -323,18 +329,6 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 0.55rem 0.8rem;
-  background: #fff;
-  color: #334155;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 .file-input {
   display: none;
 }
@@ -344,20 +338,10 @@ button:disabled {
   gap: 0.6rem;
   margin-top: 0.8rem;
 }
-.url-form label {
-  display: flex;
+.url-form .el-form-item {
   flex: 1;
-  flex-direction: column;
-  gap: 0.4rem;
-  font-size: 0.9rem;
-}
-.url-form input {
-  padding: 0.6rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  color: #0f172a;
-  background: #fff;
   min-width: 0;
+  margin-bottom: 0;
 }
 .hint {
   color: #64748b;

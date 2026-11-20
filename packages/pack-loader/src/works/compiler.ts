@@ -1,4 +1,9 @@
-import type { BehaviorDefinition, ContentPrototypeData } from '@arcadia-eternity/battle/engine'
+import { legacyNatures, legacyElements, legacyMatchupTables } from '@arcadia-eternity/const'
+import {
+  normalizeBehaviorDefinitions,
+  type BehaviorDefinition,
+  type ContentPrototypeData,
+} from '@arcadia-eternity/battle/engine'
 import { parse as parseVersion } from 'semver'
 import {
   WorkError,
@@ -152,22 +157,164 @@ export async function resolveReleases(
   return Object.freeze(output)
 }
 
+function linkedReference(
+  project: WorkDraft['project'],
+  dependencies: ReadonlySet<string>,
+  target: Json | undefined,
+  kind: '规则集' | '参数组',
+) {
+  if (typeof target !== 'string')
+    fail('INVALID_REFERENCE', kind === '规则集' ? 'include' : 'group', '需要' + kind + ' ID', project.id)
+  if (!target.includes(':')) return runtimeId(project.namespace, target)
+  const namespace = target.split(':')[0]!
+  if (namespace !== 'base' && namespace !== project.namespace && !dependencies.has(namespace))
+    fail('UNDECLARED_DEPENDENCY', target, '请声明' + kind + '提供者', project.id)
+  return target
+}
+
+export function linkWorkRuleSets(work: Pick<WorkDraft, 'project' | 'data'>, dependencies: ReadonlySet<string>) {
+  return (work.data.ruleSets ?? []).map(row => {
+    const rules = row.rules
+    if (!rules || typeof rules !== 'object' || Array.isArray(rules))
+      fail('INVALID_DATA', row.id, '规则集缺少规则声明', work.project.id)
+    if (rules.include !== undefined && !Array.isArray(rules.include))
+      fail('INVALID_DATA', row.id, '规则集引用需要列表', work.project.id)
+    return {
+      ...row,
+      id: runtimeId(work.project.namespace, row.id),
+      rules: {
+        ...rules,
+        ...(Array.isArray(rules.include) && {
+          include: rules.include.map(target => linkedReference(work.project, dependencies, target, '规则集')),
+        }),
+      },
+    }
+  })
+}
+
 /** Rewrite only declared reference slots; text, tags and unexposed TS callback references never get guessed. */
 function linkData(
   host: WorkHost<unknown>,
   works: readonly Pick<WorkRelease, 'project' | 'data' | 'dependencies' | 'requirements'>[],
 ): ContentPrototypeData {
+  const namespacesInEnvironment = new Map(works.map(work => [work.project.namespace, work.project.id]))
+  const linkedElements = new Map<string, string>()
+  const parameterGroups = [...(host.base.parameterGroups ?? [])]
+  const parameterProfiles = [...(host.base.parameterProfiles ?? [])]
+  const ruleSets = [...(host.base.ruleSets ?? [])]
+  const parameterBindings = [...(host.base.parameterBindings ?? [])]
+  const extraElements = []
+  const extraTables = []
+  for (const work of works) {
+    const dependencyNamespaces = new Set(
+      works
+        .filter(provider => work.dependencies.some(dep => dep.projectId === provider.project.id))
+        .map(provider => provider.project.namespace),
+    )
+    const groupId = (target: Json | undefined) => linkedReference(work.project, dependencyNamespaces, target, '参数组')
+    ruleSets.push(...linkWorkRuleSets(work, dependencyNamespaces))
+    for (const group of work.data.parameterGroups ?? [])
+      parameterGroups.push({ ...group, id: runtimeId(work.project.namespace, group.id) })
+    for (const profile of work.data.parameterProfiles ?? []) {
+      if (!profile.groups || Array.isArray(profile.groups) || typeof profile.groups !== 'object')
+        fail('INVALID_DATA', profile.id, '方案需要参数组及取值')
+      parameterProfiles.push({
+        ...profile,
+        id: runtimeId(work.project.namespace, profile.id),
+        groups: Object.fromEntries(Object.entries(profile.groups).map(([key, value]) => [groupId(key), value])),
+      })
+    }
+    for (const binding of work.data.parameterBindings ?? []) {
+      if (typeof binding.skill !== 'string' || !work.data.skills.some(row => row.id === binding.skill))
+        fail('INVALID_REFERENCE', binding.id, '只能把本作品技能的使用位置加入参数组', work.project.id)
+      parameterBindings.push({
+        ...binding,
+        skill: runtimeId(work.project.namespace, binding.skill),
+        group: groupId(binding.group),
+      })
+    }
+    const owned = new Set(work.data.elements?.map(row => row.id))
+    const resolveElement = (target: Json | undefined, conditional?: Json) => {
+      if (typeof target !== 'string') fail('INVALID_REFERENCE', 'element', '属性引用需要稳定 ID', work.project.id)
+      if (owned.has(target)) return runtimeId(work.project.namespace, target)
+      if (!target.includes(':')) return target
+      const namespace = target.split(':')[0]
+      if (conditional !== undefined && conditional !== namespace)
+        fail('INVALID_REFERENCE', target, '条件与目标属性的命名空间不一致')
+      const provider = namespacesInEnvironment.get(namespace)
+      if (
+        conditional === undefined &&
+        namespace !== work.project.namespace &&
+        (!provider || !work.dependencies.some(dep => dep.projectId === provider))
+      )
+        fail('UNDECLARED_DEPENDENCY', target, '请先声明属性依赖', work.project.id)
+      return target
+    }
+    for (const element of work.data.elements ?? []) {
+      const row = cloneJson(element)
+      row.id = runtimeId(work.project.namespace, element.id)
+      linkedElements.set(work.project.id + '/' + element.id, row.id)
+      if (row.relations !== undefined) {
+        if (!Array.isArray(row.relations)) fail('INVALID_DATA', row.id, '属性关系需要列表')
+        row.relations = row.relations.flatMap(relation => {
+          if (!relation || typeof relation !== 'object' || Array.isArray(relation))
+            fail('INVALID_DATA', row.id, '属性关系无效')
+          const other = resolveElement(relation.other, relation.whenNamespace)
+          if (typeof relation.whenNamespace === 'string' && !namespacesInEnvironment.has(relation.whenNamespace))
+            return []
+          // The condition is satisfied in this installation. Require the endpoint to exist.
+          const { whenNamespace: _condition, ...fields } = relation
+          return [{ ...fields, other }]
+        })
+      }
+      extraElements.push(row)
+    }
+    for (const table of work.data.matchupTables ?? []) {
+      const row = cloneJson(table)
+      row.id = runtimeId(work.project.namespace, table.id)
+      if (!Array.isArray(row.cells)) fail('INVALID_DATA', row.id, '相克表需要倍率格')
+      row.cells = row.cells.map(cell => {
+        if (!cell || typeof cell !== 'object' || Array.isArray(cell)) fail('INVALID_DATA', row.id, '倍率格无效')
+        return { ...cell, attack: resolveElement(cell.attack), defense: resolveElement(cell.defense) }
+      })
+      extraTables.push(row)
+    }
+  }
+  const legacyHost = host.base.species.length || host.base.skills.length
+  const extraStages = works.flatMap(work =>
+    (work.data.enhancements ?? []).map(row => ({ ...row, id: runtimeId(work.project.namespace, row.id) })),
+  )
+  const extraNatures = works.flatMap(work =>
+    (work.data.natures ?? []).map(row => ({ ...row, id: runtimeId(work.project.namespace, row.id) })),
+  )
   const data = cloneJson({
+    ...(parameterGroups.length > 0 && { parameterGroups }),
+    ...(parameterProfiles.length > 0 && { parameterProfiles }),
+    ...(ruleSets.length > 0 && { ruleSets }),
+    ...(parameterBindings.length > 0 && { parameterBindings }),
+    ...(host.base.elements || extraElements.length
+      ? { elements: [...(host.base.elements ?? (legacyHost ? legacyElements() : [])), ...extraElements] }
+      : {}),
+    ...(host.base.matchupTables || extraTables.length || (extraElements.length && legacyHost)
+      ? { matchupTables: [...(host.base.matchupTables ?? (legacyHost ? legacyMatchupTables() : [])), ...extraTables] }
+      : {}),
+    ...(host.base.enhancements || extraStages.length
+      ? { enhancements: [...(host.base.enhancements ?? []), ...extraStages] }
+      : {}),
+    ...(host.base.natures || extraNatures.length
+      ? { natures: [...(host.base.natures ?? (legacyHost ? legacyNatures() : [])), ...extraNatures] }
+      : {}),
     marks: [...host.base.marks],
     skills: [...host.base.skills],
     species: [...host.base.species],
     behaviors: [...(host.base.behaviors ?? [])],
   })
+  const baseBehaviors = normalizeBehaviorDefinitions([...host.templates, ...(host.base.behaviors ?? [])])
   const baseIds = new Map<WorkKind, Set<string>>()
   for (const kind of workKinds)
     baseIds.set(
       kind,
-      new Set((kind === 'behavior' ? host.templates : data[collection[kind]]).map(raw => (raw as { id: string }).id)),
+      new Set((kind === 'behavior' ? baseBehaviors : data[collection[kind]]).map(raw => (raw as { id: string }).id)),
     )
   const byProject = new Map(works.map(work => [work.project.id, work]))
   const namespaces = new Map<string, string>()
@@ -184,9 +331,9 @@ function linkData(
   }
   const allowedExports = new Set(
     host.allowedExports ??
-      host.templates.flatMap(def => (def.implementation.kind === 'native' ? [def.implementation.exportId] : [])),
+      baseBehaviors.flatMap(def => (def.implementation.kind === 'native' ? [def.implementation.exportId] : [])),
   )
-  const definitions = new Map<string, BehaviorDefinition>(host.templates.map(def => [def.id, def]))
+  const definitions = new Map<string, BehaviorDefinition>(baseBehaviors.map(def => [def.id, def]))
   for (const work of works) {
     for (const requirement of work.requirements) {
       if (!allowedExports.has(requirement.exportId))
@@ -242,10 +389,29 @@ function linkData(
         const linked = cloneJson(record)
         linked.id = runtimeId(work.project.namespace, record.id)
         const path = `data.${collection[kind]}.${record.id}`
+        if ((kind === 'species' || kind === 'skill') && typeof linked.element === 'string') {
+          const local = linkedElements.get(work.project.id + '/' + linked.element)
+          if (local) linked.element = local
+          else if (linked.element.includes(':')) {
+            const provider = namespacesInEnvironment.get(linked.element.split(':')[0])
+            if (!provider || !accessible.has(provider))
+              fail('UNDECLARED_DEPENDENCY', path + '.element', '请先声明属性依赖', work.project.id)
+          }
+        }
         if (kind === 'species') {
           for (const field of ['ability', 'emblem'])
             if (Array.isArray(linked[field]))
               linked[field] = linked[field].map((value, index) => reference(value, 'mark', `${path}.${field}.${index}`))
+          const inheritance = linked.inheritance
+          if (
+            inheritance &&
+            typeof inheritance === 'object' &&
+            !Array.isArray(inheritance) &&
+            Array.isArray(inheritance.skills)
+          )
+            inheritance.skills = inheritance.skills.map((skill, index) =>
+              reference(skill, 'skill', `${path}.inheritance.skills.${index}`),
+            )
           if (Array.isArray(linked.learnable_skills))
             linked.learnable_skills = linked.learnable_skills.map((item, index) => {
               if (!item || typeof item !== 'object' || Array.isArray(item))

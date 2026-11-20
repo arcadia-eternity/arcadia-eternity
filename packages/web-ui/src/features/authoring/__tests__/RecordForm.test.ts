@@ -1,3 +1,4 @@
+import { ElSelect, ElOption, ElSelectV2 } from 'element-plus'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import RecordForm from '../RecordForm.vue'
@@ -21,11 +22,16 @@ describe('shared YAML fields', () => {
     const wrapper = form({ id: 'hit', element: 'Water', category: 'Physical' }, [], 'skills')
     try {
       expect(wrapper.get('.element-icon').attributes('alt')).toBe('Water')
-      await wrapper.get('select[aria-label="属性"]').setValue('Fire')
+      await wrapper.findAllComponents(ElSelect)[0]!.setValue('Fire')
       expect(wrapper.emitted('change')?.[0]?.[0]).toMatchObject({ element: 'Fire', category: 'Physical' })
-      await wrapper.get('select[aria-label="类别"]').setValue('Special')
+      await wrapper.findAllComponents(ElSelect)[1]!.setValue('Special')
       expect(wrapper.emitted('change')?.[1]?.[0]).toMatchObject({ element: 'Water', category: 'Special' })
-      expect(wrapper.get('option[value="Special"]').text()).toBe('特攻')
+      expect(
+        wrapper
+          .findAllComponents(ElOption)
+          .find(option => option.props('value') === 'Special')!
+          .props('label'),
+      ).toBe('特攻')
       await wrapper.setProps({ record: { id: 'hit', element: 'Fire', category: 'Special' } })
       expect(wrapper.get('.element-icon').attributes('alt')).toBe('Fire')
     } finally {
@@ -84,4 +90,54 @@ describe('shared YAML fields', () => {
       wrapper.unmount()
     }
   })
+})
+
+it('distinguishes local and dependency references with the same ID and name', async () => {
+  const wrapper = form({ id: 'pet', learnable_skills: [{ skill_id: 'hit', level: 1 }] }, [], 'species')
+  try {
+    await wrapper.setProps({
+      records: [
+        { kind: 'skills', file: 'data/skills/hit.yaml', index: 0, version: '1', record: { id: 'hit', name: '撞击' } },
+      ],
+      dependencyCatalog: {
+        items: [
+          {
+            kind: 'skills',
+            projectId: 'base',
+            packageName: '@arcadia-eternity/data-pack-base',
+            id: 'hit',
+            label: '撞击',
+          },
+          { kind: 'skills', projectId: 'friend', packageName: '@friend/skills', id: 'hit', label: '撞击' },
+        ],
+        diagnostics: [],
+      },
+    })
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === '关联已有技能…')!
+      .trigger('click')
+    await wrapper.get('.choice-picker input').setValue('撞击')
+    const picker = wrapper.getComponent(ElSelectV2)
+    const options = picker.props('options')
+    expect(options).toHaveLength(3)
+    expect(options.find(option => option.detail.includes('data-pack-base'))?.disabled).toBe(true)
+    await picker.setValue(options.find(option => option.detail.includes('@friend/skills'))!.id)
+    const record = wrapper.emitted('change')![0]![0] as ContentRow
+    expect(record.learnable_skills).toEqual([
+      { skill_id: 'hit', level: 1 },
+      {
+        skill_id: { $ref: { projectId: 'friend', kind: 'skill', id: 'hit' } },
+        level: 1,
+        hidden: false,
+      },
+    ])
+    await wrapper.setProps({ record })
+    expect(wrapper.findAll('.reference-name').map(button => button.text())).toEqual([
+      '撞击 · @arcadia-eternity/data-pack-base',
+      '撞击 · @friend/skills',
+    ])
+  } finally {
+    wrapper.unmount()
+  }
 })

@@ -1,5 +1,53 @@
 - id: pet_anke
   num: 25
+  # 父方显性技能按原作形态编号排列。同种类无法配对。
+  inheritance: &inherited_moves
+    skills:
+      # 15 笑笑葵
+      - skill_sanyecao
+      - skill_yepianbaohu
+      - skill_gundongzhuiji
+      - skill_jieducao
+      # 40 赤焰兽
+      - skill_penhuo
+      - skill_moya
+      - skill_huozhiya
+      - skill_lieyanzhuangji
+      # 50 多摩桑
+      - skill_shengbo
+      - skill_shenhuxi
+      - skill_siyao
+      - skill_xuanzhuansiyao
+      # 69 蛋壳鸡
+      - skill_jianying
+      - skill_yingkezhuangji
+      - skill_feisha
+      - skill_shazhijiao
+      # 89 皮皮格
+      - skill_niandong
+      - skill_zhenfen
+      - skill_cuimianshexian
+      - skill_niandongfanshe
+      # 112 砂吉塔
+      - skill_dengmu
+      - skill_chuanci
+      - skill_qutizhuangji
+      - skill_shaduchuanci
+      # 123 寒冰龟
+      - skill_dongqiqianghua
+      - skill_ningjudongqi
+      - skill_dongqiguanchuan
+      - skill_fansheguike
+      # 143 荷依米
+      - skill_miaozhun
+      - skill_yili
+      - skill_guaiyichongji
+      - skill_kusechouda
+      # 203 碎晶蜂
+      - skill_duzhenlianshe
+      - skill_jinzhensheji
+      - skill_zhenchituji
+      - skill_mizhenlianshe
   element: Water
   baseStats:
     hp: 80
@@ -36,6 +84,7 @@
     - mark_emblem_zhixi
 - id: pet_anya
   num: 26
+  inheritance: *inherited_moves
   element: Water
   baseStats:
     hp: 120
@@ -84,6 +133,7 @@
     - mark_emblem_zhixi
 - id: pet_anmiya
   num: 27
+  inheritance: *inherited_moves
   element: Water
   baseStats:
     hp: 180

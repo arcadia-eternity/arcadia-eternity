@@ -9,6 +9,15 @@
   },
   "data": {
     "effects": [],
+    "parameterGroups": ["environment/parameterGroups.yaml"],
+    "parameterProfiles": ["environment/parameterProfiles.yaml"],
+    "ruleSets": ["environment/ruleSets.yaml"],
+    "parameterBindings": ["environment/parameterBindings.yaml"],
+    "behaviors": ["behaviors.yaml"],
+    "elements": ["environment/elements.yaml"],
+    "matchupTables": ["environment/matchupTables.yaml"],
+    "natures": ["environment/natures.yaml"],
+    "enhancements": ["environment/enhancements.yaml"],
     "marks": ["mark.yaml", "mark_ability.yaml", "mark_emblem.yaml", "mark_global.yaml"],
     "skills": ["skill.yaml"],
     "species": [
@@ -83,11 +92,26 @@
       "groups/sasa/species.0068.yaml",
       "groups/palading/species.0069.yaml",
       "groups/kadundudu/species.0070.yaml",
-      "groups/bingchuantun/species.0071.yaml"
+      "groups/bingchuantun/species.0071.yaml",
+      "groups/hema/species.0072.yaml",
+      "groups/shifeng/species.0073.yaml"
     ]
   },
   "locales": {
-    "zh-CN": ["battle", "mark", "mark_ability", "mark_emblem", "mark_global", "nature", "skill", "species", "webui"],
+    "zh-CN": [
+      "battle",
+      "element",
+      "environment",
+      "enhancement",
+      "mark",
+      "mark_ability",
+      "mark_emblem",
+      "mark_global",
+      "nature",
+      "skill",
+      "species",
+      "webui"
+    ],
     "en": ["species", "skill", "mark", "mark_ability", "mark_emblem"]
   },
   "presentation": "dist/presentation.json"

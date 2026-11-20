@@ -1,4 +1,11 @@
-import { BattlePhase, BattleStatus, type EffectTrigger, type effectId } from '@arcadia-eternity/const'
+import {
+  prepareSkillParameters,
+  type SkillParameterPolicy,
+  BattlePhase,
+  BattleStatus,
+  type EffectTrigger,
+  type effectId,
+} from '@arcadia-eternity/const'
 import { createBattle, type BattleOptions } from '../api'
 import type { Battle } from '../battle'
 import { ConfigSystem } from '../config'
@@ -22,6 +29,12 @@ import {
   type BehaviorOwner,
   type NativeBehaviorExport,
 } from './behaviors'
+import {
+  requireElementChart,
+  validateElementReferences,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
 import { MarkParser } from './parsers/mark'
 import { SkillParser } from './parsers/skill'
 import { SpeciesParser } from './parsers/species'
@@ -33,6 +46,14 @@ import { SpeciesSchema } from './schema/species'
 
 /** Serializable metadata shared by file adapters, editors and trusted content packages. */
 export interface ContentPrototypeData {
+  readonly parameterGroups?: readonly unknown[]
+  readonly parameterProfiles?: readonly unknown[]
+  readonly ruleSets?: readonly unknown[]
+  readonly parameterBindings?: readonly unknown[]
+  readonly elements?: readonly unknown[]
+  readonly matchupTables?: readonly unknown[]
+  readonly enhancements?: readonly unknown[]
+  readonly natures?: readonly unknown[]
   readonly marks: readonly unknown[]
   readonly skills: readonly unknown[]
   readonly species: readonly unknown[]
@@ -107,12 +128,17 @@ export function createContentCatalog(
     if (items.has(value.id)) throw new Error(`Duplicate content ${kind}: ${value.id}`)
     items.set(value.id, value)
   }
-  const lookup: PrototypeLookup = {
+  validateElementReferences(data)
+  const stages = new Map(readEnhancementStages(data.enhancements).map(entry => [entry.id, freezeContent(entry)]))
+  const natures = new Map(readNatureCatalog(data.natures).map(entry => [entry.id, freezeContent(entry)]))
+  const lookup = {
+    getEnhancement: (id: string) => required(stages, 'enhancement', id),
+    getNature: id => required(natures, 'nature', id),
     getEffect: id => required(effects, 'effect', id),
     getMark: id => required(marks, 'mark', id),
     getSkill: id => required(skills, 'skill', id),
     getSpecies: id => required(species, 'species', id),
-  }
+  } satisfies PrototypeLookup
   for (const { definition } of markEntries) add(marks, 'mark', MarkParser.parse({ ...definition, effect: [] }, lookup))
   const skillIds = new Set<string>()
   for (const { definition } of skillEntries) {
@@ -200,6 +226,7 @@ export function createContentCatalog(
   }
   for (const raw of inputSpecies) {
     const definition = SpeciesSchema.parse(raw)
+    for (const skill of definition.inheritance?.skills ?? []) required(skills, 'skill', skill)
     for (const entry of definition.learnable_skills) required(skills, 'skill', entry.skill_id)
     add(species, 'species', SpeciesParser.parse(definition, lookup))
   }
@@ -221,6 +248,12 @@ export function createContentCatalog(
   const token = Object.freeze({})
   return Object.freeze({
     revision,
+    async withSkillParameters(policy?: SkillParameterPolicy): Promise<ContentCatalog> {
+      const tuned = await prepareSkillParameters(data, revision, policy)
+      return tuned.data === data
+        ? this
+        : createContentCatalog(tuned.data, tuned.revision, createEffects, behaviorRegistrations)
+    },
     ...lookup,
     effects: Object.freeze([...effects.values()]),
     marks: Object.freeze([...marks.values()]),
@@ -229,12 +262,19 @@ export function createContentCatalog(
     parametersFor: (id: string) => effectParameters.get(id),
     parsePlayer: (raw: unknown) => PlayerParser.parse(raw, lookup),
     /** Validate the whole creation batch before allocating any domain instances. */
-    parsePlayers(raw: readonly unknown[], options: { aiPlayerIds?: readonly string[] } = {}): Player[] {
+    parsePlayers(
+      raw: readonly unknown[],
+      options: { aiPlayerIds?: readonly string[]; enhancementActive?: boolean } = {},
+    ): Player[] {
       const players = raw.map(value => PlayerSchema.parse(value))
       const ai = new Set(options.aiPlayerIds)
       for (const id of ai) if (!players.some(player => player.id === id)) throw new Error(`Unknown AI player: ${id}`)
       for (const player of players)
         for (const pet of player.team) {
+          // PlayerSchema.parse produced a battle-local copy. A disabled stage is saved training history only.
+          if (options.enhancementActive === false) delete pet.enhancement
+          else if (pet.enhancement) lookup.getEnhancement(pet.enhancement)
+          lookup.getNature(pet.nature)
           lookup.getSpecies(pet.species as Parameters<PrototypeLookup['getSpecies']>[0])
           for (const skill of pet.skills) lookup.getSkill(skill as Parameters<PrototypeLookup['getSkill']>[0])
           if (pet.ability) lookup.getMark(pet.ability as Parameters<PrototypeLookup['getMark']>[0])
@@ -255,7 +295,12 @@ export function createContentCatalog(
       const config = ConfigSystem.createInstance()
       try {
         for (const parameter of parameters) parameter.install(config)
-        const battle = createBattle(playerA, playerB, options, config)
+        const battle = createBattle(
+          playerA,
+          playerB,
+          { ...options, elementMultipliers: requireElementChart(data, options?.matchups) },
+          config,
+        )
         installed.set(battle, token)
         return battle
       } catch (error) {

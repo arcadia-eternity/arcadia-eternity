@@ -5,6 +5,9 @@ import { object } from './fields'
 export const namespaces: Record<string, string[]> = {
   species: ['species'],
   skills: ['skill'],
+  elements: ['element'],
+  natures: ['nature'],
+  enhancements: ['enhancement'],
   marks: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
 }
 export function textSource(sources: LocaleSource[], row: SourceRecord, language: string) {
@@ -40,7 +43,8 @@ export function referenceTarget(
   kind: string,
   projectId: string,
 ): { kind: string; id: string } | undefined {
-  if (typeof value === 'string') return { kind, id: value }
+  if (typeof value === 'string')
+    return ['base', 'arcadia-eternity.base'].includes(projectId) ? { kind, id: value } : undefined
   if (object(value) && object(value.$ref) && value.$ref.projectId === projectId && typeof value.$ref.id === 'string')
     return {
       kind:

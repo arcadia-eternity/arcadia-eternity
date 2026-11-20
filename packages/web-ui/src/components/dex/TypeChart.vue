@@ -178,79 +178,83 @@
           </div>
 
           <!-- 效果值 -->
-          <div
+          <button
+            type="button"
             v-for="defendingElement in elements"
             :key="`cell-${attackingElement}-${defendingElement}`"
             :class="[
               'flex items-center justify-center p-2 rounded text-xs font-bold text-white cursor-pointer transition-all hover:scale-105',
               getEffectivenessColor(attackingElement, defendingElement),
             ]"
+            :aria-label="getElementName(attackingElement) + ' → ' + getElementName(defendingElement)"
             :title="`${getElementName(attackingElement)} → ${getElementName(defendingElement)}: ${getEffectiveness(attackingElement, defendingElement)}×`"
             @click="showEffectivenessDetail(attackingElement, defendingElement)"
           >
             {{ formatEffectiveness(getEffectiveness(attackingElement, defendingElement)) }}
-          </div>
+          </button>
         </div>
       </div>
     </div>
 
     <!-- 详情弹窗 -->
-    <div
-      v-if="selectedEffectiveness"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click="selectedEffectiveness = null"
+    <ElDialog
+      :model-value="!!selectedEffectiveness"
+      @update:model-value="selectedEffectiveness = null"
+      :title="i18next.t('dex.typeChartDetail.effectiveness', { ns: 'webui' })"
+      width="min(28rem, calc(100vw - 2rem))"
+      append-to-body
     >
-      <div class="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-md mx-4" @click.stop>
-        <h3 class="text-xl font-bold text-white mb-4">
-          {{ i18next.t('dex.typeChartDetail.effectiveness', { ns: 'webui' }) }}
-        </h3>
-        <div class="space-y-3">
-          <div class="flex items-center space-x-3">
-            <ElementIcon :element="selectedEffectiveness.attacking" class="w-8 h-8" />
-            <span class="text-white">{{ getElementName(selectedEffectiveness.attacking) }}</span>
-            <span class="text-gray-400">→</span>
-            <ElementIcon :element="selectedEffectiveness.defending" class="w-8 h-8" />
-            <span class="text-white">{{ getElementName(selectedEffectiveness.defending) }}</span>
-          </div>
-          <div class="text-center">
-            <div
-              :class="[
-                'inline-block px-4 py-2 rounded-lg text-white font-bold text-lg',
-                getEffectivenessColor(selectedEffectiveness.attacking, selectedEffectiveness.defending),
-              ]"
-            >
-              {{ formatEffectiveness(selectedEffectiveness.multiplier) }}×
-              {{ i18next.t('dex.typeChartDetail.multiplier', { ns: 'webui' }) }}
-            </div>
+      <div v-if="selectedEffectiveness" class="space-y-3">
+        <div class="flex items-center space-x-3">
+          <ElementIcon :element="selectedEffectiveness.attacking" class="w-8 h-8" />
+          <span>{{ getElementName(selectedEffectiveness.attacking) }}</span>
+          <span class="text-gray-400">→</span>
+          <ElementIcon :element="selectedEffectiveness.defending" class="w-8 h-8" />
+          <span>{{ getElementName(selectedEffectiveness.defending) }}</span>
+        </div>
+        <div class="text-center">
+          <div
+            :class="[
+              'inline-block px-4 py-2 rounded-lg text-white font-bold text-lg',
+              getEffectivenessColor(selectedEffectiveness.attacking, selectedEffectiveness.defending),
+            ]"
+          >
+            {{ formatEffectiveness(selectedEffectiveness.multiplier) }}×
+            {{ i18next.t('dex.typeChartDetail.multiplier', { ns: 'webui' }) }}
           </div>
         </div>
-        <button
-          @click="selectedEffectiveness = null"
-          class="mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          关闭
-        </button>
       </div>
-    </div>
+    </ElDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ElDialog } from 'element-plus'
+import { gameplayName } from '@/i18n/environment'
+import { useGameDataStore } from '@/stores/gameData'
+import { ref, computed, watch } from 'vue'
 import { useTranslation } from 'i18next-vue'
-import { Element, ELEMENT_CHART, ELEMENT_MAP } from '@arcadia-eternity/const'
+import { Element, elementMultiplier } from '@arcadia-eternity/const'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 
 const { i18next } = useTranslation()
 
 // 所有属性列表
-const elements = computed(() => Object.values(Element))
+const data = useGameDataStore()
+const elements = computed(() => data.elementCatalog.elements.map(entry => entry.id))
 
 // 移动端视图模式
 const viewMode = ref<'attack' | 'defense'>('attack')
 
 // 移动端选中的属性
 const selectedElement = ref<Element>(Element.Fire)
+watch(
+  elements,
+  ids => {
+    if (!ids.includes(selectedElement.value)) selectedElement.value = ids[0] ?? ''
+  },
+  { immediate: true },
+)
 
 // 选中的效果详情
 const selectedEffectiveness = ref<{
@@ -261,7 +265,7 @@ const selectedEffectiveness = ref<{
 
 // 获取效果值
 function getEffectiveness(attacking: Element, defending: Element): number {
-  return ELEMENT_CHART[attacking][defending]
+  return elementMultiplier(data.elementMultipliers, attacking, defending)
 }
 
 // 获取效果颜色
@@ -291,11 +295,7 @@ function formatEffectiveness(value: number): string {
 
 // 获取属性名称
 function getElementName(element: Element): string {
-  try {
-    return i18next.t(`element.${element}`, { ns: 'battle' }) || ELEMENT_MAP[element]?.name || element
-  } catch {
-    return ELEMENT_MAP[element]?.name || element
-  }
+  return gameplayName('element', element, data.getElement(element)?.name)
 }
 
 // 显示效果详情

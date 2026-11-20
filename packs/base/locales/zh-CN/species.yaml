@@ -454,3 +454,15 @@ pet_binghutun:
 pet_bingchuantun:
   name: 冰川豚
   description: 冰川豚的尾部还留着当年的“救生圈”，不过它已经不再需要它了！
+pet_hema:
+  name: 荷玛
+  description: 荷玛用巨大的翼耳起飞，28级进化为荷依米。
+pet_heyimi:
+  name: 荷依米
+  description: 大大小小的战斗都和荷依米扯不上关系，如果可以的话一定会尽全力逃走。
+pet_shifeng:
+  name: 石蜂
+  description: 栖息在地下黑市，以矿石为食，32级进化为碎晶蜂。
+pet_suijingfeng:
+  name: 碎晶蜂
+  description: 石蜂的进化形态。长期食用矿石后，身体结成了晶体。

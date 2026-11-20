@@ -131,6 +131,10 @@ export async function prepareServerEnvironment(
       | ServerEnvironmentContent['marks'][number],
   ) => item.presentation && mapPresentationResources(item.presentation, ref => resourceUrl(item.id, ref)!)
   const displayContent: ServerEnvironmentContent = {
+    ...(content.elements && { elements: content.elements }),
+    ...(content.matchupTables && { matchupTables: content.matchupTables }),
+    ...(content.enhancements && { enhancements: content.enhancements }),
+    ...(content.natures && { natures: content.natures }),
     ...(content.locales ? { locales: content.locales } : {}),
     species: content.species.map(item => ({
       ...item,
@@ -150,6 +154,7 @@ export async function prepareServerEnvironment(
     readiness: { catalog: 'ready', compatibility: 'compatible', media: 'on-demand' },
     acceptance: {
       environmentId: descriptor.id,
+      ...(descriptor.gameplayRevision && { gameplayRevision: descriptor.gameplayRevision }),
       protocolVersion: 1,
       resourceRevision: descriptor.resourceRevision,
       resourcesReady: true,

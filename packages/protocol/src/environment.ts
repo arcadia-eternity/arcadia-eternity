@@ -1,8 +1,6 @@
 import type { MarkSchemaType, SkillSchemaType, SpeciesSchemaType, ContentPresentation } from '@arcadia-eternity/schema'
 import type { NativeRuntimeIdentity } from './session'
-import type { ManagedEnvironmentDocument } from './management'
-
-export type EnvironmentRules = ManagedEnvironmentDocument['rules']
+export type EnvironmentRules = import('@arcadia-eternity/const').EnvironmentRules
 
 /** A fixed, player-owned recipe. The signaling server never acquires or executes its materials. */
 export interface PersonalEnvironmentReference {
@@ -17,8 +15,13 @@ export interface PersonalEnvironmentReference {
 export interface ServerEnvironmentDescriptor {
   id: string
   protocolVersion: 1
+  /** Logical source identity remains stable when a new revision is published. */
+  environmentId?: string
+  environmentName?: string
   /** Set on the public list entry selected by the server as its default. */
   isDefault?: boolean
+  /** Omitted by older servers that do not advertise queue availability. */
+  matchmakingEnabled?: boolean
   /** Omitted by older servers. A peer-only listing must never be submitted for server execution. */
   executionPolicy?: 'server' | 'peer'
   /** Captured sandbox revision required before a client can acknowledge peer execution readiness. */
@@ -26,6 +29,9 @@ export interface ServerEnvironmentDescriptor {
   runtime: NativeRuntimeIdentity
   packages: { name: string; version: string; projectId: string; namespace: string }[]
   resourceRevision: string
+  /** Identity of the captured gameplay materials and rules, independent of the publication binding. */
+  gameplayRevision?: string
+  rules?: EnvironmentRules
   remoteResources?: { projectId: string; id: string; url: string; mime?: string }[]
   resources: {
     projectId: string
@@ -51,6 +57,11 @@ export interface ServerContentLocales {
 }
 
 export interface ServerEnvironmentContent {
+  skillParameters?: import('@arcadia-eternity/const').SkillParameterCatalog
+  elements?: import('@arcadia-eternity/const').ElementDefinition[]
+  matchupTables?: import('@arcadia-eternity/const').MatchupTable[]
+  enhancements?: import('@arcadia-eternity/const').EnhancementStage[]
+  natures?: import('@arcadia-eternity/const').NatureDefinition[]
   locales?: ServerContentLocales
   species: (SpeciesSchemaType & ContentDisplayText)[]
   skills: (Omit<SkillSchemaType, 'effect'> & ContentDisplayText)[]
@@ -62,6 +73,7 @@ export interface ServerEnvironmentAcceptance {
   environmentId: string
   protocolVersion: 1
   resourceRevision: string
+  gameplayRevision?: string
   peerRevision?: string
   /** Personal-room preparation is invalidated by a host or configuration change. */
   challengeGeneration?: number

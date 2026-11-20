@@ -184,6 +184,7 @@
 </template>
 
 <script setup lang="ts">
+import { gameplayName } from '@/i18n/environment'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGameDataStore } from '@/stores/gameData'
@@ -215,12 +216,8 @@ function getSpeciesName(): string {
 }
 
 function getElementName(): string {
-  if (!species.value) return ''
-  try {
-    return i18next.t(`element.${species.value.element}`, { ns: 'battle' }) || species.value.element
-  } catch {
-    return species.value.element
-  }
+  const element = species.value?.element
+  return element ? gameplayName('element', element, gameDataStore.getElement(element)?.name) : ''
 }
 
 function getStatName(stat: string): string {

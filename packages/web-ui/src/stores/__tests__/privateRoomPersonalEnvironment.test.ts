@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { getDefaultTeam } from '@/services/defaultTeam'
 import { nextTick, reactive } from 'vue'
 import type { PrivateRoomInfo } from '@arcadia-eternity/protocol'
 import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
@@ -12,7 +13,24 @@ const mocks = vi.hoisted(() => ({
   prepareServer: vi.fn(),
   validateTeam: vi.fn(),
   createHost: vi.fn(),
-  gameData: { loaded: true, applyServerEnvironment: vi.fn(), clearServerEnvironment: vi.fn() },
+  gameData: {
+    loaded: true,
+    getSkill: () => ({}),
+    getSpecies: (id: string) => {
+      const pet = getDefaultTeam().pets.find(member => member.species === id)
+      return (
+        pet && {
+          id,
+          learnable_skills: pet.skills.map(skill_id => ({ skill_id, level: 1 })),
+          ability: [pet.ability],
+          emblem: [pet.emblem],
+        }
+      )
+    },
+    getMark: () => ({}),
+    applyServerEnvironment: vi.fn(),
+    clearServerEnvironment: vi.fn(),
+  },
   client: {
     playerId: 'host',
     serverUrl: 'https://server-a.test',
@@ -26,6 +44,7 @@ const mocks = vi.hoisted(() => ({
     updatePrivateRoomConfig: vi.fn(),
     leavePrivateRoom: vi.fn(),
     toggleRoomReady: vi.fn(),
+    submitRoomTeam: vi.fn(),
     startRoomBattle: vi.fn(),
     disconnect: vi.fn(),
     replaceServer: vi.fn(),
@@ -169,13 +188,7 @@ function room(value: PreparedPersonalEnvironment, generation = 1, id = 'room-a')
     spectators: [],
   } as unknown as PrivateRoomInfo
 }
-function deferred<T = void>() {
-  let resolve!: (value: T) => void
-  const promise = new Promise<T>(done => {
-    resolve = done
-  })
-  return { promise, resolve }
-}
+
 let store: ReturnType<typeof usePrivateRoomStore>
 let serverRoom: PrivateRoomInfo | null
 beforeEach(() => {
@@ -291,24 +304,19 @@ it('releases a guest import that does not match the host and preserves the accep
   expect(mocks.client.updatePrivateRoomConfig).not.toHaveBeenCalled()
 })
 
-it('allows the host to replace the environment and acknowledges the new challenge generation', async () => {
+it('keeps the locked version when a host imports a different environment before starting', async () => {
   const old = prepared(),
     replacement = prepared('c')
   await store.setPersonalEnvironment(old)
   store.currentRoom = serverRoom = room(old, 1)
-  mocks.client.updatePrivateRoomConfig.mockImplementationOnce(async () => {
-    serverRoom = room(replacement, 2)
-  })
-  await store.setPersonalEnvironment(replacement)
-  expect(mocks.client.updatePrivateRoomConfig).toHaveBeenCalledWith({ personalEnvironment: replacement.reference })
-  expect(old.release).toHaveBeenCalledOnce()
-  expect(store.personalEnvironment).toBe(replacement)
-  expect(store.personalEnvironmentReady).toBe(true)
+  await expect(store.setPersonalEnvironment(replacement)).rejects.toThrow('不一致')
+  expect(replacement.release).toHaveBeenCalledOnce()
+  expect(old.release).not.toHaveBeenCalled()
+  expect(mocks.client.updatePrivateRoomConfig).not.toHaveBeenCalled()
   await store.startBattle()
-  expect(mocks.validateTeam).toHaveBeenCalledWith(replacement, [{ id: 'local-pet' }])
   expect(mocks.client.startRoomBattle).toHaveBeenCalledWith([{ id: 'local-pet' }], {
-    ...replacement.acceptance,
-    challengeGeneration: 2,
+    ...old.acceptance,
+    challengeGeneration: 1,
   })
 })
 
@@ -349,87 +357,6 @@ it('fences ready when a different room uses the same personal environment', asyn
   store.currentRoom = room(value, 1, 'room-b')
   await expect(pending).rejects.toThrow()
   expect(mocks.client.toggleRoomReady).not.toHaveBeenCalled()
-})
-
-it('does not replace a newer import after an older host configuration request finishes late', async () => {
-  const old = prepared(),
-    stale = prepared('c'),
-    newest = prepared('d')
-  await store.setPersonalEnvironment(old)
-  store.currentRoom = serverRoom = room(old)
-  const update = deferred()
-  mocks.client.updatePrivateRoomConfig.mockImplementationOnce(() => update.promise)
-  const pending = store.setPersonalEnvironment(stale)
-  const rejected = expect(pending).rejects.toThrow()
-  mocks.client.updatePrivateRoomConfig.mockImplementationOnce(async () => {
-    serverRoom = room(newest, 3)
-  })
-  await store.setPersonalEnvironment(newest)
-  mocks.gameData.applyServerEnvironment.mockClear()
-  update.resolve()
-  await rejected
-  expect(store.personalEnvironment).toBe(newest)
-  expect(stale.release).toHaveBeenCalledOnce()
-  expect(newest.release).not.toHaveBeenCalled()
-  expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalledWith(stale.content)
-})
-
-it('does not install a delayed host replacement after switching servers', async () => {
-  const old = prepared(),
-    stale = prepared('c')
-  await store.setPersonalEnvironment(old)
-  store.currentRoom = serverRoom = room(old)
-  const update = deferred()
-  mocks.client.updatePrivateRoomConfig.mockImplementationOnce(() => update.promise)
-  const pending = store.setPersonalEnvironment(stale)
-  const rejected = expect(pending).rejects.toThrow()
-  await store.switchServer('https://server-b.test')
-  mocks.gameData.applyServerEnvironment.mockClear()
-  update.resolve()
-  await rejected
-  expect(stale.release).toHaveBeenCalledOnce()
-  expect(old.release).toHaveBeenCalledOnce()
-  expect(store.personalEnvironment).toBeUndefined()
-  expect(store.currentRoom).toBeNull()
-  expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalled()
-})
-
-it('does not restore an older room snapshot after a newer import finishes first', async () => {
-  const old = prepared(),
-    stale = prepared('c'),
-    newest = prepared('d')
-  await store.setPersonalEnvironment(old)
-  store.currentRoom = serverRoom = room(old)
-  const lookup = deferred<PrivateRoomInfo>()
-  mocks.client.updatePrivateRoomConfig.mockImplementationOnce(async () => {
-    serverRoom = room(stale, 2)
-  })
-  mocks.client.getPrivateRoomInfo.mockImplementationOnce(() => lookup.promise)
-  const pending = store.setPersonalEnvironment(stale)
-  const rejected = expect(pending).rejects.toThrow()
-  await vi.waitFor(() => expect(mocks.client.getPrivateRoomInfo).toHaveBeenCalledOnce())
-  mocks.client.updatePrivateRoomConfig.mockImplementationOnce(async () => {
-    serverRoom = room(newest, 3)
-  })
-  await store.setPersonalEnvironment(newest)
-  lookup.resolve(room(stale, 2))
-  await rejected
-  expect(store.currentRoom?.challengeGeneration).toBe(3)
-  expect(store.currentRoom?.personalEnvironment?.descriptor.id).toBe(newest.reference.descriptor.id)
-  expect(store.personalEnvironment).toBe(newest)
-  expect(stale.release).toHaveBeenCalledOnce()
-})
-
-it('keeps the previous import when the server rejects a host environment change', async () => {
-  const old = prepared(),
-    rejected = prepared('c')
-  await store.setPersonalEnvironment(old)
-  store.currentRoom = serverRoom = room(old)
-  mocks.client.updatePrivateRoomConfig.mockRejectedValueOnce(new Error('Not host anymore'))
-  await expect(store.setPersonalEnvironment(rejected)).rejects.toThrow('Not host anymore')
-  expect(store.personalEnvironment).toBe(old)
-  expect(old.release).not.toHaveBeenCalled()
-  expect(rejected.release).toHaveBeenCalledOnce()
 })
 
 it('does not replace materials while a personal battle is running', async () => {
@@ -480,4 +407,57 @@ it.each(['host', 'peer'])('checks the %s team before allocating the personal hos
   expect(mocks.createHost).not.toHaveBeenCalled()
   expect(mocks.battle.initBattle).not.toHaveBeenCalled()
   expect(store.error).toContain(`Invalid ${invalidPlayer} team`)
+})
+
+it('isolates a room edit from the warehouse and keeps it while the original personal materials are missing', async () => {
+  const original = prepared()
+  const selection = getDefaultTeam().pets
+  serverRoom = room(original)
+  store.updateSelectedTeam(selection, '甲队')
+  await expect(store.openRoomTeamEditor('OTHER', () => true)).rejects.toThrow('席位')
+  expect(store.roomTeamDraft).toBeUndefined()
+  await expect(store.openRoomTeamEditor('ABC123', () => true)).rejects.toThrow('导入')
+  store.roomTeamDraft!.pets[0].name = '本场改名'
+  expect(selection[0].name).toBe('休罗斯')
+  expect(store.selectedTeam[0].name).toBe('休罗斯')
+  await expect(store.setPersonalEnvironment(prepared('z'))).rejects.toThrow()
+  await store.setPersonalEnvironment(original)
+  await store.openRoomTeamEditor('ABC123', () => true)
+  expect(store.roomTeamDraft!.pets[0].name).toBe('本场改名')
+  await store.applyRoomTeamDraft()
+  expect(mocks.client.submitRoomTeam).toHaveBeenCalledWith({
+    roomId: 'room-a',
+    seatId: 'host',
+    environment: { ...original.acceptance, challengeGeneration: 1 },
+    team: expect.arrayContaining([expect.objectContaining({ name: '本场改名' })]),
+  })
+  expect(store.selectedTeam[0].name).toBe('本场改名')
+  expect(selection[0].name).toBe('休罗斯')
+  store.roomTeamDraft!.pets[0].name = '未采用'
+  expect(store.selectedTeam[0].name).toBe('本场改名')
+})
+
+it('discards an old seat draft and ignores its late submission acknowledgement', async () => {
+  const capture = prepared()
+  serverRoom = room(capture)
+  store.updateSelectedTeam(getDefaultTeam().pets, '甲队')
+  await store.setPersonalEnvironment(capture)
+  await store.openRoomTeamEditor('ABC123', () => true)
+  store.roomTeamDraft!.pets[0].name = '原席位专用'
+  let acknowledge!: () => void
+  mocks.client.submitRoomTeam.mockImplementationOnce(
+    () =>
+      new Promise<void>(resolve => {
+        acknowledge = resolve
+      }),
+  )
+  const saving = store.applyRoomTeamDraft()
+  await vi.waitFor(() => expect(mocks.client.submitRoomTeam).toHaveBeenCalledOnce())
+  reactive(mocks.client).playerId = 'peer'
+  expect(store.roomTeamDraft).toBeUndefined()
+  await store.openRoomTeamEditor('ABC123', () => true)
+  expect(store.roomTeamDraft!.pets[0].id).toBe('peer-pet')
+  acknowledge()
+  await expect(saving).rejects.toThrow('房间已变化')
+  expect(store.selectedTeam).toEqual([])
 })

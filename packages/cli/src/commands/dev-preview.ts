@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
 import { execFile } from 'node:child_process'
 import { lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
@@ -9,7 +9,6 @@ import type { CommandContext } from '../context'
 import { CliError } from '../reporting/errors'
 
 const exec = promisify(execFile)
-const hash = (data: string | Uint8Array) => createHash('sha256').update(data).digest('hex')
 const ignored = new Set(['.git', 'node_modules', 'dist'])
 const maxBytes = 128 * 1024 * 1024
 
@@ -30,12 +29,12 @@ async function sourceRevision(root: string): Promise<string> {
         if (++entries.length > 10000 || bytes > maxBytes) throw new CliError('DEV_SOURCE', 'Source tree is too large')
         const contents = await readFile(path)
         if (contents.length !== stat.size) throw new CliError('DEV_SOURCE_CHANGED', 'Source changed while reading')
-        entries[entries.length - 1] = [key, hash(contents)]
+        entries[entries.length - 1] = [key, sha256Hex(contents)]
       } else throw new CliError('DEV_SOURCE', `Unsupported source file: ${key}`)
     }
   }
   await visit(root)
-  return `sha256:${hash(JSON.stringify(entries))}`
+  return `sha256:${sha256Hex(JSON.stringify(entries))}`
 }
 
 async function runNpm(args: string[], cwd: string, signal?: AbortSignal) {
@@ -89,7 +88,7 @@ export async function prepareDevPreview(
     if (artifact.length > maxBytes) throw new CliError('DEV_PACK', 'Package artifact is too large')
     if ((await sourceRevision(root)) !== initialRevision)
       throw new CliError('DEV_SOURCE_CHANGED', 'Source changed during packaging; prepare a new candidate')
-    const packageDigest = `sha256:${hash(artifact)}`
+    const packageDigest = `sha256:${sha256Hex(artifact)}`
     await mkdir(resolve(scratch, 'artifacts'))
     await rename(resolve(scratch, filename), resolve(scratch, 'artifacts', 'content.tgz'))
     await writeFile(

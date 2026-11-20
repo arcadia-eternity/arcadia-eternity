@@ -1,5 +1,10 @@
 import {
   AIPlayer,
+  AttackTargetOpinion,
+  SkillPhase,
+  TurnContext,
+  UseSkillContext,
+  EffectTrigger,
   AttributeSystem,
   BattleMessageType,
   BattleStatus,
@@ -320,4 +325,161 @@ async function play(checkpoint: boolean) {
 
 it('runs the complete native official game and resumes identical events with a fresh content directory', async () => {
   expect(await play(true)).toEqual(await play(false))
+})
+
+const training120 = {
+  level: 50,
+  nature: 'Hardy',
+  gender: 'Male',
+  evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+  ivs: { hp: 120, atk: 120, def: 120, spa: 120, spd: 120, spe: 120 },
+}
+
+function landFirstSkill(battle: Battle) {
+  const attacker = battle.playerA
+  attacker.settingRage(100)
+  const pet = attacker.activePet
+  const phase = new SkillPhase(
+    battle,
+    attacker,
+    pet,
+    AttackTargetOpinion.opponent,
+    pet.skills[0],
+    new TurnContext(battle),
+  )
+  phase.initialize()
+  phase.execute()
+  const hit = phase.context!
+  expect(hit.hitResult).toBe(true)
+  return hit
+}
+
+it.each([
+  { enhancementActive: false, maxHp: 210, extraDamage: 26 },
+  { enhancementActive: true, maxHp: 240, extraDamage: 30 },
+])(
+  'Corrosive Pollen uses the 120-IV target’s battle max HP (enhancementActive=$enhancementActive)',
+  async ({ enhancementActive, maxHp, extraDamage }) => {
+    const catalog = await content().withSkillParameters({ profile: 'base:120' })
+    const [attacker, defender] = catalog.parsePlayers(
+      [
+        {
+          name: 'A',
+          team: [{ ...training120, name: '荧光蝶', species: 'pet_yingguangdie', skills: ['skill_fushihuafen'] }],
+        },
+        {
+          name: 'B',
+          team: [
+            {
+              ...training120,
+              name: '多摩',
+              species: 'pet_duomo',
+              skills: ['skill_chongfeng'],
+              enhancement: 'base:evolve-1001',
+            },
+          ],
+        },
+      ],
+      { enhancementActive },
+    )
+    const battle = catalog.createBattle(attacker, defender, { enhancementActive, rngSeed: 'corrosive-pollen-120' })
+    battles.push(battle)
+    const target = defender.activePet
+    expect(target.stat.maxHp).toBe(maxHp)
+    // Same remaining HP in both battles distinguishes max-HP scaling from current-HP scaling.
+    const beforeHit = 150
+    target.currentHp = beforeHit
+    const hit = landFirstSkill(battle)
+    const ordinaryDamage = Math.floor(hit.baseDamage * hit.randomFactor)
+    expect(beforeHit - target.currentHp).toBe(ordinaryDamage + extraDamage)
+  },
+)
+
+it.each([
+  { hpEffort: 12, maxHp: 575, power: 70, damage: 82 },
+  { hpEffort: 16, maxHp: 576, power: 70, damage: 82 },
+  { hpEffort: 252, maxHp: 632, power: 126, damage: 148 },
+])(
+  'Frozen Gas Jet settles a hit from the user’s trained max HP of $maxHp in the 120 format',
+  async ({ hpEffort, maxHp, power, damage }) => {
+    const catalog = await content().withSkillParameters({ profile: 'base:120' })
+    const turtle = {
+      ...training120,
+      level: 95,
+      name: '寒冰龟',
+      species: 'pet_hanbinggui',
+      skills: ['skill_dongqipenshe'],
+      evs: { ...training120.evs, hp: hpEffort },
+    }
+    const target = {
+      ...training120,
+      level: 95,
+      name: '多摩桑',
+      species: 'pet_duomosang',
+      skills: ['skill_chongfeng'],
+      enhancement: 'base:evolve-1001',
+    }
+    const [attacker, defender] = catalog.parsePlayers(
+      [
+        { name: 'A', team: [turtle] },
+        { name: 'B', team: [target] },
+      ],
+      { enhancementActive: true },
+    )
+    const battle = catalog.createBattle(attacker, defender, { enhancementActive: true, rngSeed: 'frozen-gas-jet-120' })
+    battles.push(battle)
+    expect(attacker.activePet.stat.maxHp).toBe(maxHp)
+    expect(defender.activePet.stat.maxHp).toBe(591)
+    attacker.activePet.currentHp = 400
+    defender.activePet.currentHp = 400
+    const hit = landFirstSkill(battle)
+    expect(hit.power).toBe(power)
+    expect(400 - defender.activePet.currentHp).toBe(damage)
+  },
+)
+
+it('reads the same per-use HP threshold for the Frozen Gas Jet trigger and power, including after restore', async () => {
+  const base = content()
+  const test = await base.withSkillParameters({ profile: 'base:120' })
+  const exception = await base.withSkillParameters({
+    profile: 'base:120',
+    overrides: [{ skill: 'skill_dongqipenshe', useId: 'bonus', parameter: 'baseline', value: 550 }],
+  })
+  expect(new Set([base.revision, test.revision, exception.revision]).size).toBe(3)
+  for (const [catalog, baseline] of [
+    [base, 500],
+    [test, 576],
+    [exception, 550],
+  ] as const) {
+    for (const maximum of [baseline - 1, baseline, baseline + 1, 600]) {
+      const teams = input.teams.map(team => ({
+        ...team,
+        team: [
+          { ...team.team[0], ability: undefined, emblem: undefined, maxHp: maximum, skills: ['skill_dongqipenshe'] },
+        ],
+      }))
+      const [first, second] = catalog.parsePlayers(teams)
+      const battle = catalog.createBattle(first, second, { timerConfig: { enabled: false } })
+      battles.push(battle)
+      const saved = catalog.snapshot(battle)
+      await battle.cleanup()
+      if (catalog !== base) expect(() => base.restore(saved)).toThrow()
+      const restored = catalog.restore(saved)
+      battles.push(restored)
+      {
+        const current = restored
+        const player = current.playerA
+        const use = new UseSkillContext(
+          new TurnContext(current),
+          player,
+          player.activePet,
+          AttackTargetOpinion.opponent,
+          player.activePet.skills[0],
+        )
+        use.updateActualTarget()
+        current.applyEffects(use, EffectTrigger.BeforeHit)
+        expect(use.power).toBe(70 + Math.max(0, maximum - baseline))
+      }
+    }
+  }
 })

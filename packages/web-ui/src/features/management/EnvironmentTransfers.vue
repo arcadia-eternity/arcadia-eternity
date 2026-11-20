@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput } from 'element-plus'
+import type { EnvironmentImportProbe } from '@arcadia-eternity/content-sdk/management-workspace'
+import { ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInput, ElCheckbox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { dismissedExportRecords } from './exportRecords'
 import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
 const props = defineProps<{
+  checkArchives?: (probe: EnvironmentImportProbe) => Promise<string[]>
+  allowDownload?: boolean
   mode?: 'all' | 'import' | 'results'
   dialog?: boolean
   installations: ManagedEnvironmentInstallation[]
@@ -13,15 +17,52 @@ const props = defineProps<{
   canExport: boolean
 }>()
 const emit = defineEmits<{
-  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null }]
+  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null; allowDownload?: boolean }]
   export: [version: ManagedEnvironmentInstallation]
   download: [operation: ManagementOperation]
 }>()
+const basePackageName = '@arcadia-eternity/data-pack-base'
 const maxBytes = 128 * 1024 * 1024
 const selectedVersion = ref('')
 const selectedFile = ref('')
 const fileBytes = ref(0)
 const importId = ref('')
+type ExternalArchive = { name: string; version: string; integrity: string; manual: boolean }
+const external = ref<ExternalArchive[]>([])
+const hasReferences = ref(false)
+const supplied = shallowRef<Record<string, string>>({})
+const downloadMissing = ref(false)
+async function supplyArchive(event: Event, dependency: ExternalArchive) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  const next = { ...supplied.value }
+  delete next[dependency.integrity]
+  supplied.value = next
+  if (!file) return
+  const bytes = Object.values(next).reduce((total, data) => total + data.length, fileBytes.value)
+  if (bytes + Math.ceil(file.size / 3) * 4 > maxBytes) {
+    validation.value = '环境与补充归档合计超过 128 MiB。'
+    return
+  }
+  const generation = readGeneration
+  const reader = new FileReader()
+  reading.value = true
+  try {
+    const result = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(String(reader.result).split(',')[1])
+      reader.onerror = () => reject(new Error('无法读取依赖归档'))
+      reader.readAsDataURL(file)
+    })
+    if (generation === readGeneration) {
+      supplied.value = { ...next, [dependency.integrity]: result }
+      validation.value = ''
+    }
+  } catch {
+    if (generation === readGeneration) validation.value = '无法读取依赖归档'
+  } finally {
+    if (generation === readGeneration) reading.value = false
+  }
+}
 const bundle = shallowRef<unknown>()
 const preview = ref<{ name: string; id: string; contentRevision: string; packageCount: number; fileCount: number }>()
 const validation = ref('')
@@ -33,7 +74,14 @@ let readGeneration = 0
 let reader: FileReader | undefined
 let timer: ReturnType<typeof setInterval> | undefined
 const readyVersions = computed(() => props.installations.filter(version => version.status === 'ready'))
-const exports = computed(() => props.operations.filter(operation => operation.kind === 'environment.export'))
+const dismissed = dismissedExportRecords
+const exports = computed(() =>
+  props.operations.filter(operation => operation.kind === 'environment.export' && !dismissed.has(operation.id)),
+)
+const canDismiss = (operation: ManagementOperation) => !['queued', 'running'].includes(operation.status)
+function dismissCompleted() {
+  for (const operation of exports.value) if (canDismiss(operation)) dismissed.add(operation.id)
+}
 const statuses: Record<ManagementOperation['status'], string> = {
   queued: '等待中',
   running: '导出中',
@@ -75,6 +123,10 @@ function clearFile(resetInput = true) {
   reading.value = false
   bundle.value = undefined
   preview.value = undefined
+  supplied.value = {}
+  external.value = []
+  hasReferences.value = false
+  downloadMissing.value = props.allowDownload === true
   selectedFile.value = ''
   fileBytes.value = 0
   importId.value = ''
@@ -104,7 +156,9 @@ async function chooseFile(event: Event) {
     const parsed: unknown = JSON.parse(contents)
     if (
       !record(parsed) ||
-      parsed.format !== 'arcadia.environment-export/2' ||
+      (parsed.format !== 'arcadia.environment-export/2' &&
+        ((parsed.format !== 'arcadia.environment-export/3' && parsed.format !== 'arcadia.environment-export/4') ||
+          !Array.isArray(parsed.archives))) ||
       !record(parsed.document) ||
       parsed.document.schemaVersion !== 2 ||
       !text(parsed.document.id) ||
@@ -116,6 +170,51 @@ async function chooseFile(event: Event) {
     ) {
       throw new Error('此文件不是支持的环境导出文件。')
     }
+    if (Array.isArray(parsed.archives)) {
+      const items = new Map<string, ExternalArchive>()
+      for (const archive of parsed.archives) {
+        if (!record(archive)) throw new Error('环境材料清单无效')
+        const item = archive.external
+        if (
+          item === undefined ||
+          (typeof archive.location === 'string' &&
+            ('/' + archive.location.toLowerCase() + '/').includes('/node_modules/' + basePackageName + '/'))
+        )
+          continue
+        if (
+          !record(item) ||
+          !text(item.name) ||
+          !text(item.version) ||
+          !text(item.integrity) ||
+          typeof item.manual !== 'boolean'
+        )
+          throw new Error('环境依赖清单无效')
+        items.set(item.integrity, {
+          name: item.name,
+          version: item.version,
+          integrity: item.integrity,
+          manual: item.manual,
+        })
+      }
+      hasReferences.value = items.size > 0
+      if (record(parsed.suppliedArchives)) {
+        for (const [integrity, data] of Object.entries(parsed.suppliedArchives)) {
+          if (items.has(integrity) && typeof data === 'string') items.delete(integrity)
+        }
+      }
+      if (items.size && props.checkArchives) {
+        const lock = parsed.files.find(file => record(file) && file.path === 'package-lock.json')
+        if (!lock || typeof lock.data !== 'string') throw new Error('环境文件缺少依赖锁')
+        const missing = new Set(
+          await props.checkArchives({
+            lock: { path: 'package-lock.json', data: lock.data },
+            archives: parsed.archives.filter(ref => ref.external && items.has(ref.external.integrity)),
+          }),
+        )
+        if (generation !== readGeneration) return
+        external.value = [...items.values()].filter(item => missing.has(item.integrity))
+      } else external.value = [...items.values()]
+    }
     bundle.value = parsed
     selectedFile.value = file.name
     fileBytes.value = file.size
@@ -123,7 +222,7 @@ async function chooseFile(event: Event) {
       name: parsed.document.name,
       id: parsed.document.id,
       contentRevision: parsed.contentRevision,
-      packageCount: Object.keys(parsed.document.packages).length,
+      packageCount: Object.keys(parsed.document.packages).filter(name => name !== basePackageName).length,
       fileCount: parsed.files.length,
     }
   } catch (cause) {
@@ -142,14 +241,29 @@ async function chooseFile(event: Event) {
   }
 }
 function importEnvironment() {
-  if (props.busy || !props.canImport || !bundle.value || !preview.value || reading.value) return
+  if (!canSubmit.value || !bundle.value) return
   const environmentId = importId.value.trim()
   if (environmentId && !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId)) {
     validation.value = '环境标识须为小写字母、数字、下划线或连字符，最多 80 个字符。'
     return
   }
   validation.value = ''
-  emit('import', { bundle: bundle.value, ...(environmentId ? { environmentId } : {}), expectedRevision: null })
+  const complete =
+    Object.keys(supplied.value).length && record(bundle.value)
+      ? {
+          ...bundle.value,
+          suppliedArchives: {
+            ...(record(bundle.value.suppliedArchives) ? bundle.value.suppliedArchives : {}),
+            ...supplied.value,
+          },
+        }
+      : bundle.value
+  emit('import', {
+    bundle: complete,
+    ...(hasReferences.value ? { allowDownload: publicMissing.value.length > 0 && downloadMissing.value } : {}),
+    ...(environmentId ? { environmentId } : {}),
+    expectedRevision: null,
+  })
 }
 function exportEnvironment() {
   const version = readyVersions.value.find(version => version.installationId === selectedVersion.value)
@@ -181,7 +295,16 @@ onBeforeUnmount(() => {
   clearInterval(timer)
   clearFile()
 })
-const canSubmit = computed(() => !!preview.value && !reading.value && props.canImport && !props.busy)
+const publicMissing = computed(() => external.value.filter(item => !item.manual && !supplied.value[item.integrity]))
+const canSubmit = computed(
+  () =>
+    !!preview.value &&
+    !reading.value &&
+    props.canImport &&
+    !props.busy &&
+    (!props.checkArchives ||
+      external.value.every(item => supplied.value[item.integrity] || (!item.manual && downloadMissing.value))),
+)
 defineExpose({
   submit: importEnvironment,
   canSubmit,
@@ -248,6 +371,22 @@ defineExpose({
             <dt>内容材料</dt>
             <dd>{{ preview.packageCount }} 个额外内容包 · {{ preview.fileCount }} 个文件</dd>
           </dl>
+          <ElCheckbox v-if="publicMissing.length" v-model="downloadMissing"
+            >下载缺失的 {{ publicMissing.length }} 个公共依赖</ElCheckbox
+          >
+          <details v-if="external.length" :open="external.some(item => item.manual)">
+            <summary>补充依赖归档（{{ external.length }}）</summary>
+            <ElFormItem v-for="item in external" :key="item.integrity" :label="item.name + '@' + item.version">
+              <code>{{ item.integrity }}</code>
+              <input
+                type="file"
+                accept=".tgz,.gz"
+                :disabled="reading || busy"
+                :aria-label="'补充 ' + item.name"
+                @change="supplyArchive($event, item)"
+              />
+            </ElFormItem>
+          </details>
           <ElFormItem label="新环境标识（可选）">
             <ElInput
               v-model="importId"
@@ -258,7 +397,7 @@ defineExpose({
             />
           </ElFormItem>
           <div v-if="!dialog" class="actions">
-            <ElButton class="primary" :disabled="busy || !canImport || reading" native-type="submit" type="primary"
+            <ElButton class="primary" :disabled="!canSubmit" native-type="submit" type="primary"
               >确认导入新环境</ElButton
             >
             <ElButton :disabled="busy" @click="clearFile()" native-type="button">取消导入</ElButton>
@@ -267,10 +406,16 @@ defineExpose({
       </ElForm>
     </div>
     <div v-if="mode !== 'import' && exports.length" class="export-results" aria-label="导出任务">
-      <h3>导出文件</h3>
+      <header class="results-heading">
+        <h3>导出文件</h3>
+        <ElButton text :disabled="!exports.some(canDismiss)" @click="dismissCompleted">清空已完成记录</ElButton>
+      </header>
       <article v-for="operation in exports" :key="operation.id" class="export-result">
         <strong>{{ downloadInfo(operation)?.filename ?? '环境导出' }}</strong>
         <span>{{ statuses[operation.status] }}</span>
+        <ElButton v-if="canDismiss(operation)" text aria-label="移除导出记录" @click="dismissed.add(operation.id)"
+          >移除记录</ElButton
+        >
         <template v-if="downloadInfo(operation)">
           <p>
             {{ formatBytes(downloadInfo(operation)!.bytes) }} · 有效至
@@ -293,6 +438,19 @@ defineExpose({
 </template>
 
 <style scoped>
+.results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.results-heading h3 {
+  margin: 0;
+}
+.export-results {
+  display: grid;
+  gap: 12px;
+}
 .dialog.environment-transfers {
   margin: 0;
 }
@@ -355,11 +513,23 @@ dd {
   margin-top: 1rem;
 }
 .export-result {
-  margin: 0.6rem 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   overflow-wrap: anywhere;
 }
-.export-result span {
-  float: right;
+.export-result > strong {
+  flex: 1;
+  min-width: 160px;
+}
+.export-result > p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--el-text-color-secondary);
+}
+.export-result :deep(.el-button) {
+  margin-left: 0;
 }
 .error {
   color: var(--el-color-danger);

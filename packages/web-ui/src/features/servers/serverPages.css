@@ -66,7 +66,6 @@
 .server-hero {
   background: #edf3ff;
 }
-.server-page button,
 .server-page .server-link {
   display: inline-flex;
   justify-content: center;
@@ -81,31 +80,9 @@
   text-decoration: none;
   cursor: pointer;
 }
-.server-page button:hover,
 .server-page .server-link:hover {
   border-color: var(--server-blue);
   color: var(--server-blue);
-}
-.server-page .server-primary {
-  background: var(--server-blue);
-  color: #fff;
-  border-color: var(--server-blue);
-}
-.server-page button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-.server-page input,
-.server-page select {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  border: 1px solid #b9c7d8;
-  border-radius: 7px;
-  background: #fff;
-  color: var(--server-ink);
-  padding: 10px 12px;
-  font: inherit;
 }
 .server-page label {
   display: flex;
@@ -154,11 +131,6 @@
   .server-panel {
     padding: 20px;
   }
-  .server-page input,
-  .server-page select {
-    font-size: 16px;
-  }
-  .server-page button,
   .server-page .server-link {
     min-height: 44px;
   }

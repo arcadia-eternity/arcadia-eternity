@@ -1,7 +1,8 @@
 import { Type, type Static, type TSchema } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
-import { PetSchema } from '@arcadia-eternity/schema'
+import { parseWithErrors, PetSetSchema, PetSchema } from '@arcadia-eternity/schema'
 import { BattleMessageType } from '@arcadia-eternity/const'
+import { MAX_STORED_TEAM_MEMBERS, migrateEmbeddedLibrary, newPersonalTeam } from './library'
 import { nanoid } from 'nanoid'
 
 export class ProfileError extends Error {
@@ -10,10 +11,10 @@ export class ProfileError extends Error {
     message = code,
     readonly path?: string,
   ) {
-    super(message)
+    super(message === 'PROFILE_BUSY' ? '个人资料暂时被占用，请稍后重试。' : message)
   }
 }
-export const MAX_BACKUP_BYTES = 20 * 1024 * 1024
+export const MAX_BACKUP_BYTES = 24 * 1024 * 1024
 const object = <T extends Record<string, TSchema>>(properties: T) =>
   Type.Object(properties, { additionalProperties: false })
 const text = Type.String({ minLength: 1, maxLength: 2048 })
@@ -46,7 +47,7 @@ export const SettingsSchema = object({
     uniqueItems: true,
   }),
 })
-export const DataSchema = object({
+const LegacyDataSchema = object({
   profile: IdentitySchema,
   library: object({
     storage: Type.Array(pet, { maxItems: 10000 }),
@@ -58,10 +59,35 @@ export const DataSchema = object({
   }),
   settings: SettingsSchema,
 })
+const originSchema = object({ name: Type.String({ minLength: 1, maxLength: 256 }), version: text })
+const revision = Type.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER })
+const instanceId = PetSchema.properties.id
+export const DataSchema = object({
+  profile: IdentitySchema,
+  library: object({
+    version: Type.Literal(2),
+    storage: Type.Array(object({ ...pet.properties, origin: Type.Optional(originSchema), revision }), {
+      maxItems: 16000,
+    }),
+    teams: Type.Array(
+      object({
+        id: instanceId,
+        name: text,
+        ruleSetId: text,
+        revision,
+        environmentPreference: Type.Optional(object({ source: text, environmentId: text })),
+        memberIds: Type.Array(instanceId, { uniqueItems: true, maxItems: MAX_STORED_TEAM_MEMBERS }),
+      }),
+      { minItems: 1, maxItems: 1000 },
+    ),
+    currentTeamIndex: Type.Integer({ minimum: 0 }),
+  }),
+  settings: SettingsSchema,
+})
 export type ProfileData = Static<typeof DataSchema>
 export const BackupSchema = object({
   format: Type.Literal('arcadia.profile'),
-  version: Type.Literal(1),
+  version: Type.Literal(2),
   exportedAt: text,
   appVersion: text,
   data: DataSchema,
@@ -78,13 +104,67 @@ export function validateData(value: unknown): ProfileData {
   const error = Value.Errors(DataSchema, value).First()
   if (error) throw new ProfileError('INVALID_BACKUP', error.message, error.path)
   const data = value as ProfileData
-  if (data.library.currentTeamIndex >= data.library.teams.length)
-    throw new ProfileError('INVALID_BACKUP', '队伍索引不存在', '/library/currentTeamIndex')
-  for (const pets of [data.library.storage, ...data.library.teams.map(t => t.pets)]) {
-    if (new Set(pets.map(p => p.id)).size !== pets.length) throw new ProfileError('INVALID_BACKUP', '精灵 ID 重复')
-  }
+  checkReferences(data.library)
+  if (new TextEncoder().encode(JSON.stringify(data)).byteLength > MAX_BACKUP_BYTES)
+    throw new ProfileError('BACKUP_TOO_LARGE')
   return structuredClone(data)
 }
+function checkReferences(library: ProfileData['library']) {
+  if (library.currentTeamIndex >= library.teams.length)
+    throw new ProfileError('INVALID_BACKUP', '队伍索引不存在', '/library/currentTeamIndex')
+  const owned = new Set(library.storage.map(pet => pet.id))
+  if (owned.size !== library.storage.length) throw new ProfileError('INVALID_BACKUP', '仓库精灵 ID 重复')
+  if (new Set(library.teams.map(team => team.id)).size !== library.teams.length)
+    throw new ProfileError('INVALID_BACKUP', '队伍 ID 重复')
+  for (const team of library.teams)
+    for (const id of team.memberIds)
+      if (!owned.has(id)) throw new ProfileError('INVALID_BACKUP', `队伍 ${team.name} 引用了不存在的精灵 ${id}`)
+}
+
+export function validateLibrary(value: unknown): ProfileData['library'] {
+  bounds(value)
+  const error = Value.Errors(DataSchema.properties.library, value).First()
+  if (error) throw new ProfileError('INVALID_BACKUP', error.message, error.path)
+  const library = value as ProfileData['library']
+  checkReferences(library)
+  return structuredClone(library)
+}
+
+/** Read portable team selections without resolving or acquiring their source environment. */
+export function readSharedTeam(input: unknown, defaultName: string) {
+  const envelope = Array.isArray(input) ? { pets: input } : input
+  if (!envelope || typeof envelope !== 'object' || !('pets' in envelope) || !Array.isArray(envelope.pets))
+    throw new ProfileError('INVALID_TEAM', '队伍文件缺少成员列表')
+  if ('version' in envelope && envelope.version !== 2) throw new ProfileError('INVALID_TEAM', '队伍文件版本不受支持')
+  const name = 'name' in envelope ? envelope.name : defaultName
+  if (!Value.Check(text, name) || envelope.pets.length > MAX_STORED_TEAM_MEMBERS)
+    throw new ProfileError('INVALID_TEAM', '队伍名称或成员数量无效')
+  const hints = envelope.pets.map((row: unknown) => {
+    if (!row || typeof row !== 'object' || !('origin' in row)) return undefined
+    if (!Value.Check(originSchema, row.origin)) throw new ProfileError('INVALID_TEAM', '精灵来源信息无效')
+    return structuredClone(row.origin)
+  })
+  const pets = parseWithErrors(PetSetSchema, envelope.pets).map((item, index) =>
+    hints[index] ? { ...item, origin: hints[index] } : item,
+  )
+  return { name, pets, ruleSetId: 'casual_standard_ruleset' }
+}
+
+export function migrateLegacyData(value: unknown): ProfileData {
+  bounds(value)
+  const error = Value.Errors(LegacyDataSchema, value).First()
+  if (error) throw new ProfileError('INVALID_BACKUP', error.message, error.path)
+  const data = value as Static<typeof LegacyDataSchema>
+  for (const pets of [data.library.storage, ...data.library.teams.map(team => team.pets)]) {
+    if (
+      new Set(pets.map(pet => pet.id)).size !== pets.length ||
+      pets.some(pet => Object.values(pet.ivs).some(iv => iv > 31))
+    )
+      throw new ProfileError('INVALID_BACKUP', '旧版精灵数据无效')
+  }
+  return validateData({ ...data, library: migrateEmbeddedLibrary(data.library) })
+}
+
 export function parseBackup(input: string | Uint8Array): ProfileBackup {
   const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input
   if (bytes.byteLength > MAX_BACKUP_BYTES) throw new ProfileError('BACKUP_TOO_LARGE')
@@ -94,7 +174,9 @@ export function parseBackup(input: string | Uint8Array): ProfileBackup {
   } catch {
     throw new ProfileError('INVALID_BACKUP', '无法解析资料文件')
   }
-  if (value && typeof value === 'object' && 'version' in value && value.version !== 1)
+  if (value && typeof value === 'object' && 'version' in value && value.version === 1 && 'data' in value)
+    value = { ...value, version: 2, data: migrateLegacyData(value.data) }
+  if (value && typeof value === 'object' && 'version' in value && value.version !== 2)
     throw new ProfileError('UNSUPPORTED_VERSION')
   bounds(value)
   const error = Value.Errors(BackupSchema, value).First()
@@ -109,7 +191,8 @@ export function defaultData(name?: string): ProfileData {
     profile: { id, name: name?.trim() || `游客-${id.slice(-4)}` },
     library: {
       storage: [],
-      teams: [{ name: '默认队伍', pets: [], ruleSetId: 'casual_standard_ruleset' }],
+      version: 2,
+      teams: [newPersonalTeam('默认队伍', 'casual_standard_ruleset')],
       currentTeamIndex: 0,
     },
     settings: {
@@ -152,14 +235,6 @@ export function canonical(value: unknown): string {
     )
   return JSON.stringify(value)
 }
-export async function digest(data: ProfileData): Promise<string> {
-  const bytes = new TextEncoder().encode(canonical(data))
-  if (bytes.length > MAX_BACKUP_BYTES) throw new ProfileError('BACKUP_TOO_LARGE')
-  return Array.from(new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', bytes)), b =>
-    b.toString(16).padStart(2, '0'),
-  ).join('')
-}
-
 // A non-JSON sentinel carries undecodable file bytes through the narrow string IPC contract.
 export const RAW_BINARY_PREFIX = '\0arcadia-profile-bytes:'
 export function rawProfileBytes(raw: string): Uint8Array {

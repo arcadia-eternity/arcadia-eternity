@@ -242,27 +242,9 @@ packages:
   })
 
   it('captures current in-memory metadata and its identity without requesting effect DSL', async () => {
-    const manifest = JSON.parse(await readFile(resolve(basePath, 'pack.json'), 'utf8')) as {
-      paths?: { dataDir?: string }
-      data: Record<'marks' | 'skills' | 'species', string[]>
-    }
-    const read = async (kind: 'marks' | 'skills' | 'species') =>
-      (
-        await Promise.all(
-          manifest.data[kind].map(
-            async file =>
-              YAML.parse(await readFile(resolve(basePath, manifest.paths?.dataDir ?? 'data', file), 'utf8'), {
-                merge: true,
-              }) as unknown[],
-          ),
-        )
-      ).flat()
-    const data = {
-        marks: await read('marks'),
-        skills: await read('skills'),
-        species: await read('species'),
-      },
-      loader = new NativePackLoader(build, createOfficialContent)
+    const metadata = await new PackMetadataLoader().loadMetadata('builtin:base')
+    const data = structuredClone(metadata.data)
+    const loader = new NativePackLoader(build, createOfficialContent)
     const skill = data.skills.find(value => (value as { id: string }).id === 'skill_paida') as {
       id: string
       power: number

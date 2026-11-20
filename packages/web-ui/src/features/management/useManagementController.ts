@@ -1,3 +1,8 @@
+import type {
+  EnvironmentExportPreview,
+  EnvironmentExportSelection,
+  EnvironmentImportProbe,
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { getBackendOrigin } from '@/bootstrap/deployment'
@@ -25,6 +30,7 @@ export interface ManagementConsoleProps {
 export function useManagementController(
   props: ManagementConsoleProps,
   emit: (event: 'navigate', value: { target: 'local' | 'server'; tab: ManagementTab }) => void,
+  connected: () => boolean = () => true,
 ) {
   const state = useManagementConsole(props.scope)
   const auth = useAuthStore()
@@ -66,9 +72,6 @@ export function useManagementController(
   const nameRevision = ref<number>()
   const settingsSaveSequence = ref(0)
   const deletingBinding = ref('')
-  const referenceEnvironment = ref('')
-  const environmentReferences = ref<Record<string, string>[]>([])
-  let referenceRequest = 0
   const downloading = ref('')
   const downloadUrls = new Map<string, ReturnType<typeof setTimeout>>()
   function clearDownloads() {
@@ -196,7 +199,9 @@ export function useManagementController(
     () => target.value === 'server' && auth.isAccount && auth.serverUrl === client.value?.context.endpoint,
   )
 
+  const initialized = ref(false)
   async function changeTarget(next: 'local' | 'server') {
+    initialized.value = false
     const generation = ++targetGeneration
     clearTimeout(timer)
     target.value = next
@@ -205,9 +210,6 @@ export function useManagementController(
     serverName.value = ''
     nameRevision.value = undefined
     deletingBinding.value = ''
-    referenceEnvironment.value = ''
-    environmentReferences.value = []
-    referenceRequest++
     clearDownloads()
     issuedCredential.value = undefined
     tab.value = props.initialTab ?? (props.scope === 'content' ? 'environments' : 'server')
@@ -247,6 +249,8 @@ export function useManagementController(
       schedule(generation)
     } catch (cause) {
       if (generation === targetGeneration) error.value = cause instanceof Error ? cause.message : '无法读取管理目标'
+    } finally {
+      if (generation === targetGeneration && !disposed) initialized.value = true
     }
   }
   function schedule(generation: number) {
@@ -309,14 +313,20 @@ export function useManagementController(
     emit('navigate', { target: target.value, tab: tab.value })
   })
   watch(target, () => emit('navigate', { target: target.value, tab: tab.value }))
-  async function saveEnvironment(document: ManagedEnvironmentDocument, expectedRevision: string | null) {
+  async function saveEnvironment(
+    document: ManagedEnvironmentDocument,
+    expectedRevision: string | null,
+    copyFrom?: string,
+  ) {
     const submitted = await state.mutate('POST', `${workspacePath.value}/environments/apply`, {
       document,
       expectedRevision,
+      ...(copyFrom && { copyFrom }),
     })
     if (submitted) {
       environmentSaveSequence.value++
     }
+    return submitted
   }
   async function deleteEnvironment(environment: ManagedEnvironment) {
     await state.mutate(
@@ -347,25 +357,26 @@ export function useManagementController(
       environmentId: version.environmentId,
       enabled: true,
       visibility: 'private',
-      matchmakingEnabled: false,
+      matchmakingEnabled: true,
       executionPolicy,
     })
     if (succeeded) tab.value = 'environments'
   }
-  async function inspectReferences(version: ManagedEnvironmentInstallation) {
-    const sequence = ++referenceRequest
-    referenceEnvironment.value = ''
-    environmentReferences.value = []
-    const result = await state.read<{ references: Record<string, string>[] }>(
-      `${workspacePath.value}/installations/${encode(version.installationId)}/references`,
+  function previewExport(id: string) {
+    if (!client.value) throw new Error('管理连接已断开')
+    return client.value.request<EnvironmentExportPreview>(
+      'GET',
+      `${workspacePath.value}/installations/${encode(id)}/export-preview`,
     )
-    if (result && sequence === referenceRequest) {
-      referenceEnvironment.value = version.installationId
-      environmentReferences.value = result.references
-    }
   }
-  async function exportEnvironment(version: ManagedEnvironmentInstallation) {
-    await state.mutate('POST', `${workspacePath.value}/installations/${encode(version.installationId)}/export`, {})
+  function checkArchives(probe: EnvironmentImportProbe) {
+    if (!client.value) throw new Error('管理连接已断开')
+    return client.value.request<string[]>('POST', `${workspacePath.value}/import-preview`, { body: { probe } })
+  }
+  async function exportEnvironment(version: ManagedEnvironmentInstallation, mode?: EnvironmentExportSelection) {
+    await state.mutate('POST', `${workspacePath.value}/installations/${encode(version.installationId)}/export`, {
+      mode,
+    })
   }
   async function importEnvironment(input: {
     bundle: unknown
@@ -490,7 +501,22 @@ export function useManagementController(
 
   const operationError = contentTaskError
 
-  onMounted(() => void changeTarget(target.value))
+  onMounted(() => {
+    watch(
+      connected,
+      active => {
+        if (active) void changeTarget(target.value)
+        else {
+          targetGeneration++
+          clearTimeout(timer)
+          clearDownloads()
+          state.setClient(undefined)
+          initialized.value = false
+        }
+      },
+      { immediate: true },
+    )
+  })
   onBeforeUnmount(() => {
     disposed = true
     targetGeneration++
@@ -516,6 +542,7 @@ export function useManagementController(
     battles,
     audit,
     accountCursor,
+    initialized,
     loading,
     busy,
     loginRequired,
@@ -536,8 +563,6 @@ export function useManagementController(
     nameRevision,
     settingsSaveSequence,
     deletingBinding,
-    referenceEnvironment,
-    environmentReferences,
     downloading,
     issuedCredential,
     deleteBinding,
@@ -564,7 +589,8 @@ export function useManagementController(
     deleteEnvironment,
     terminateBattle,
     useEnvironment,
-    inspectReferences,
+    previewExport,
+    checkArchives,
     exportEnvironment,
     importEnvironment,
     downloadEnvironment,

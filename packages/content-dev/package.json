@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/content-sdk",
-  "version": "4.6.0",
+  "version": "4.7.0",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -17,6 +17,10 @@
     },
     "./testing": "./dist/testing.js",
     "./workspace": "./dist/author-api.js",
+    "./prepared-document": {
+      "types": "./dist/prepared-document.d.ts",
+      "import": "./dist/prepared-document.js"
+    },
     "./management-workspace": {
       "types": "./dist/content-workspace.d.ts",
       "import": "./dist/content-workspace.js",
@@ -39,6 +43,8 @@
   },
   "files": [
     "bin",
+    "release-payload.mjs",
+    "release-test-npm.mjs",
     "dist",
     "LICENSE"
   ],
@@ -50,19 +56,24 @@
     "clear": "rm -rf dist"
   },
   "dependencies": {
+    "@noble/hashes": "catalog:",
     "@arcadia-eternity/battle": "workspace:*",
+    "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/pack-loader": "workspace:*",
     "@arcadia-eternity/schema": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "chokidar": "^6.0.0",
     "mime-types": "^3.0.2",
+    "pacote": "^22.0.1",
     "semver": "7.8.6",
     "tar": "^7.5.22",
     "typescript": "catalog:",
     "write-file-atomic": "^8.0.0",
     "yaml": "catalog:",
     "yauzl": "3.4.0",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "fflate": "0.8.3",
+    "simple-git": "4.1.0"
   },
   "repository": {
     "type": "git",
@@ -75,6 +86,7 @@
   },
   "devDependencies": {
     "@types/mime-types": "^3.0.1",
+    "@types/pacote": "^11.1.8",
     "@types/semver": "7.8.0",
     "@types/write-file-atomic": "^4.0.3",
     "@types/yauzl": "^3.4.0"

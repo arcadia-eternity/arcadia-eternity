@@ -14,3 +14,5 @@ export * from './packLock'
 export * from './assets'
 export * from './presentation'
 export * from './uiMetadata'
+
+export * from './teamPreset'

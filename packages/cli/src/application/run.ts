@@ -1,3 +1,8 @@
+import {
+  assertPlayableTeam,
+  resolveEnvironmentMechanics,
+  validateEnvironmentRules,
+} from '@arcadia-eternity/content-sdk/environment-rules'
 import { setImmediate as nextTick } from 'node:timers/promises'
 import { randomBytes } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
@@ -7,6 +12,9 @@ import {
   type BattleState,
   type PlayerSelection,
   type playerId,
+  type speciesId,
+  type baseSkillId,
+  type baseMarkId,
 } from '@arcadia-eternity/const'
 import { GameRng, ExecutionBudgetExceeded, type ContentIndex } from '@arcadia-eternity/battle/engine'
 import { LocalBattleSystem, type BattleHost } from '@arcadia-eternity/battle/host'
@@ -39,15 +47,31 @@ export async function runBattle(
     team: team.team.map(pet => ({ ...structuredClone(pet), id: freshId() })),
   }))
   const environment = sandboxEnvironmentFor(content)
+  const rules = validateEnvironmentRules(spec.rules)
+  for (const player of teams) {
+    assertPlayableTeam(
+      rules,
+      player.team,
+      id => content.getSpecies(id as speciesId),
+      content.getNature,
+      content.getEnhancement,
+      id => content.getSkill(id as baseSkillId),
+      id => content.getMark(id as baseMarkId),
+    )
+  }
   const battleOptions = {
     rngSeed: spec.seed,
     showHidden: true,
-    allowFaintSwitch: true,
+    skillParameters: rules.skillParameters,
+    matchups: rules.matchups,
+    enhancementActive: rules.mechanics?.enhancement?.mode === 'active',
+    allowFaintSwitch: resolveEnvironmentMechanics(rules).allowFaintSwitch,
     timerConfig: { enabled: false },
   }
-  const native = 'parsePlayers' in content ? content : undefined
+  const native =
+    !environment && 'parsePlayers' in content ? await content.withSkillParameters(rules.skillParameters) : undefined
   if (!environment && !native) throw new Error('Battle environment has no executable recipe')
-  const [a, b] = environment ? [] : native!.parsePlayers(teams)
+  const [a, b] = environment ? [] : native!.parsePlayers(teams, battleOptions)
   const battle = environment ? undefined : native!.createBattle(a, b, battleOptions)
   const workers = environment ? createNodeBattleWorkerManager() : undefined
   const aiSeeds = [0, 1].map(seat => `${spec.seed}/ai/${seat}`)

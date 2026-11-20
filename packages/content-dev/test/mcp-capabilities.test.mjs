@@ -57,6 +57,9 @@ test('MCP exposes typed discovery, shared team/environment saves and native imag
   const { client, call } = await connect(t, root, ['--execute'])
   const listed = (await client.listTools()).tools
   assert.ok(listed.some(tool => tool.name === 'battle_create'))
+  assert.ok(listed.some(tool => tool.name === 'release_check'))
+  assert.ok(listed.some(tool => tool.name === 'git_diff' && tool.annotations.readOnlyHint))
+  assert.deepEqual(await call('git_status'), { repository: false })
   assert.equal(
     listed.find(tool => tool.name === 'job_get').outputSchema.properties.result.properties.jobId.type,
     'string',

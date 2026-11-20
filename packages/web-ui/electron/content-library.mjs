@@ -1,5 +1,9 @@
-import { createHash, randomUUID } from 'node:crypto'
-import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
+import { lstatSync, readFileSync } from 'node:fs'
+import { parseArgs } from 'node:util'
+import { randomUUID } from 'node:crypto'
+import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { basename, dirname, isAbsolute, join } from 'node:path'
 
@@ -40,6 +44,27 @@ function sourceRegistry(value) {
   }
   return structuredClone(value)
 }
+// Called once by the desktop main process, before environment preparation.
+export function readDesktopContentSources(args, root) {
+  const { values } = parseArgs({
+    args,
+    options: { 'content-sources': { type: 'string' } },
+    allowPositionals: true,
+    strict: false,
+  })
+  const explicit = values['content-sources']
+  if (explicit !== undefined && (typeof explicit !== 'string' || !explicit.trim()))
+    throw new Error('--content-sources 需要指定 JSON 文件')
+  const file = explicit ?? join(root, 'content-sources.json')
+  try {
+    const stat = lstatSync(file)
+    if (!stat.isFile() || stat.size > 128 * 1024) throw new Error('内容包来源清单无效')
+    return JSON.parse(readFileSync(file, 'utf8'))
+  } catch (error) {
+    if (explicit === undefined && error.code === 'ENOENT') return {}
+    throw error
+  }
+}
 function validEntry(item) {
   return (
     item &&
@@ -50,7 +75,9 @@ function validEntry(item) {
     item.namespace &&
     typeof item.title === 'string' &&
     typeof item.projectId === 'string' &&
-    ((item.source?.kind === 'file' && ['content-0.tgz', 'candidates/content-0.tgz'].includes(item.source.file)) ||
+    ((item.source?.kind === 'file' &&
+      (['content-0.tgz', 'candidates/content-0.tgz'].includes(item.source.file) ||
+        /^candidates\/[a-f0-9]{64}\.tgz$/.test(item.source.file))) ||
       (item.source?.kind === 'npm' && item.source.spec === item.name + '@' + item.version)) &&
     typeof item.source.label === 'string' &&
     Array.isArray(item.graph) &&
@@ -89,6 +116,9 @@ const idsFor = packages =>
       ),
     ]),
   )
+function ruleCatalogFor(inspection) {
+  return { members: inspection.members ?? [], ruleSets: inspection.ruleSets ?? [] }
+}
 function graphFor(inspection) {
   const byLocation = new Map(inspection.packages.map(pkg => [pkg.location, pkg]))
   return inspection.packages.map(pkg => ({
@@ -125,6 +155,8 @@ export class ContentLibrary {
   #busy = false
   #idle
   #controller = new AbortController()
+  #legacyRuleCatalogs = new Map()
+  #inspectTail = Promise.resolve()
   #plans = new Map()
   #installJobs = new Map()
   #installTail = Promise.resolve()
@@ -133,11 +165,29 @@ export class ContentLibrary {
   #gcTimer
   #sources
   #createManagedProjects
-  constructor({ root, run, host, withDefaultArchive, sources = {}, createManagedProjects }) {
+  constructor({
+    root,
+    run,
+    host,
+    withDefaultArchive,
+    sources = {},
+    createManagedProjects,
+    copyMember,
+    reviewInstall,
+    authorizeEnvironment,
+  }) {
     this.root = root
+    this.reviewInstall = reviewInstall
+    this.authorizeEnvironment = authorizeEnvironment
     this.run = run
     this.host = host
     this.withDefaultArchive = withDefaultArchive
+    this.copyMember =
+      copyMember ??
+      (async (...args) => {
+        const { copyEnvironmentMember } = await import('@arcadia-eternity/content-sdk/management-workspace')
+        return copyEnvironmentMember(...args)
+      })
     this.#sources = sourceRegistry(sources)
     this.#createManagedProjects =
       createManagedProjects ??
@@ -240,9 +290,7 @@ export class ContentLibrary {
         const entry = { ...plan.entry, bundled: true }
         await this.#save({
           ...state,
-          bundledDigest: createHash('sha256')
-            .update(await readFile(file))
-            .digest('hex'),
+          bundledDigest: bytesToHex(sha256(await readFile(file))),
           installed: [entry],
         })
       } catch (error) {
@@ -257,9 +305,7 @@ export class ContentLibrary {
     const oldBase = state.installed.find(entry => entry.bundled)
     if (!oldBase) return
     await this.withDefaultArchive(async file => {
-      const digest = createHash('sha256')
-        .update(await readFile(file))
-        .digest('hex')
+      const digest = bytesToHex(sha256(await readFile(file)))
       if (state.bundledDigest === digest) return
       const candidate = await this.#stageInstall(
         { kind: 'file', file, label: '随应用提供' },
@@ -288,12 +334,13 @@ export class ContentLibrary {
             await rename(directory, target)
             created.push(next)
             const inspection = checkedInspection(
-              await this.run(['content', 'npm', 'inspect', target], this.#controller.signal),
+              await this.run(['content', 'npm', 'inspect', target, '--rule-sets'], this.#controller.signal),
             )
-            await this.run(
-              ['content', 'npm', 'approve', target, '--profile', 'local-development'],
-              this.#controller.signal,
-            )
+            if (state.legacySelection?.project === id)
+              await this.run(
+                ['content', 'npm', 'approve', target, '--profile', 'local-development'],
+                this.#controller.signal,
+              )
             projects.set(id, next)
             const entry = state.installed.find(entry => entry.id === id)
             if (entry)
@@ -301,6 +348,7 @@ export class ContentLibrary {
                 ...entry,
                 id: next,
                 graph: graphFor(inspection),
+                ruleCatalog: ruleCatalogFor(inspection),
                 contentIds: idsFor(inspection.packages),
               })
           })
@@ -395,7 +443,11 @@ export class ContentLibrary {
       const base = this.#state.installed.find(entry => entry.bundled)
       const legacy = this.#state.legacySelection
       const lease = await this.#leaseProject(legacy?.project ?? base?.id ?? null)
-      return { ...lease, packages: legacy?.packages ?? (base ? [{ name: base.name, version: base.version }] : []) }
+      return {
+        ...lease,
+        legacy: !!legacy,
+        packages: legacy?.packages ?? (base ? [{ name: base.name, version: base.version }] : []),
+      }
     })
   }
   async acquireDefaultProject() {
@@ -539,6 +591,7 @@ export class ContentLibrary {
             'npm',
             'stage',
             directory,
+            '--rule-sets',
             ...(offline ? ['--offline'] : []),
             ...(inputs.length ? ['--package', ...inputs] : []),
           ],
@@ -561,9 +614,22 @@ export class ContentLibrary {
       packages: await Promise.all(
         state.installed.map(async entry => {
           try {
-            await this.#directory(entry.id)
+            const directory = await this.#directory(entry.id)
             await lstat(join(this.root, 'projects', storageName(entry.id), 'node_modules', entry.name, 'package.json'))
-            return entry
+            if (entry.ruleCatalog) return entry
+            let catalog = this.#legacyRuleCatalogs.get(entry.id)
+            if (!catalog) {
+              catalog = this.#inspectTail
+                .then(() => this.run(['content', 'npm', 'inspect', directory, '--rule-sets'], this.#controller.signal))
+                .then(value => ruleCatalogFor(checkedInspection(value)))
+                .catch(() => {
+                  this.#legacyRuleCatalogs.delete(entry.id)
+                  return undefined
+                })
+              this.#inspectTail = catalog.then(() => {})
+              this.#legacyRuleCatalogs.set(entry.id, catalog)
+            }
+            return { ...entry, ruleCatalog: await catalog }
           } catch (error) {
             return {
               ...entry,
@@ -578,11 +644,19 @@ export class ContentLibrary {
   }
   async #stageFile(file, offline = false, signal = this.#controller.signal) {
     return this.#exclusive(async () => {
-      if (typeof file !== 'string' || !file.endsWith('.tgz')) throw new Error('请选择 npm 内容包文件（.tgz）')
+      if (typeof file !== 'string' || !/\.(?:tgz|zip)$/i.test(file)) throw new Error('请选择 .tgz 或 .zip 内容包')
       const source = await realpath(file),
         info = await lstat(source)
       if (!info.isFile() || info.size > 64 * 1024 * 1024) throw new Error('内容包必须是小于 64 MiB 的普通文件')
-      return this.#stageInstall({ kind: 'file', file: source, label: basename(source) }, offline, signal)
+      const stage = archive =>
+        this.#stageInstall({ kind: 'file', file: archive, label: basename(source) }, offline, signal)
+      if (!/\.zip$/i.test(file)) return stage(source)
+      const installer = await this.#createManagedProjects(join(this.root, 'acquisition'), { offline })
+      try {
+        return await installer.withLocalArchive(source, signal, stage)
+      } finally {
+        await installer.close()
+      }
     })
   }
   async installFile(file, offline = false) {
@@ -590,6 +664,39 @@ export class ContentLibrary {
   }
   async installNpm(spec, offline = false) {
     return this.#installTask(String(spec), signal => this.#stageNpm(spec, offline, signal))
+  }
+  async installRemote(descriptor) {
+    if (!descriptor || !['url', 'git'].includes(descriptor.kind)) throw sourceError('SOURCE_KIND_UNSUPPORTED')
+    const { candidate: source } = sourceRegistry({ candidate: descriptor })
+    const url = new URL(source.url)
+    if (url.search || url.hash || url.href.length > 2048) throw sourceError('SOURCE_URL_INVALID')
+    if (
+      source.kind === 'url' &&
+      source.integrity !== undefined &&
+      (typeof source.integrity !== 'string' ||
+        source.integrity.length > 1024 ||
+        !source.integrity
+          .trim()
+          .split(/\s+/)
+          .every(token => /^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$/.test(token)))
+    )
+      throw sourceError('SOURCE_INTEGRITY_INVALID')
+    const label =
+      source.kind === 'git'
+        ? url.href + '@' + source.commit + (source.artifactPath ? '/' + source.artifactPath : '')
+        : url.href
+    return this.#installTask(label, signal =>
+      this.#exclusive(async () => {
+        const installer = await this.#createManagedProjects(join(this.root, 'acquisition'), {})
+        try {
+          return await installer.withSourceArchive(source, signal, (file, provenance) =>
+            this.#stageInstall({ kind: 'file', file, label, provenance }, false, signal),
+          )
+        } finally {
+          await installer.close()
+        }
+      }),
+    )
   }
   #installTask(label, execute) {
     if ([...this.#installJobs.values()].filter(job => ['queued', 'running'].includes(job.status)).length >= 30)
@@ -615,6 +722,11 @@ export class ContentLibrary {
         job.stage = 'installing'
         plan = await execute(signal)
         signal.throwIfAborted()
+        if (!plan.existingId && this.reviewInstall) {
+          job.stage = 'reviewing'
+          if (!(await this.reviewInstall(plan.package, signal))) job.controller.abort()
+          signal.throwIfAborted()
+        }
         job.stage = 'recording'
         const id = await this.#installOnly(plan, signal)
         job.status = 'succeeded'
@@ -658,7 +770,13 @@ export class ContentLibrary {
     let id
     try {
       signal.throwIfAborted()
-      id = await this.#confirmInstall(plan.id, true)
+      id = await this.#exclusive(async () => {
+        signal.throwIfAborted()
+        const current = this.#plan(plan.id, 'install')
+        const saved = await this.#saveInstalledPlan(current)
+        this.#plans.delete(plan.id)
+        return saved
+      })
     } catch (error) {
       await this.#cancel(plan.id).catch(() => {})
       throw error
@@ -676,18 +794,67 @@ export class ContentLibrary {
     if (this.#plans.size >= 8) throw new Error('请先完成或取消已有操作')
     if (state.installed.length >= 200) throw new Error('已安装内容包数量达到上限')
     const project = await this.#createProject([source], offline, signal)
+    return this.#recordInstall(source, project, state)
+  }
+  async saveEnvironmentMember(directory, name, signal) {
+    return this.#exclusive(async () => {
+      if (this.#state.installed.length >= 200) throw new Error('已安装内容包数量达到上限')
+      const id = randomUUID()
+      const destination = join(this.root, 'projects', storageName(id))
+      await mkdir(destination)
+      try {
+        const { archive, inspection } = await this.copyMember(directory, name, undefined, destination, signal)
+        const result = await this.#recordInstall(
+          { kind: 'file', archive, label: name },
+          { id, directory: destination, inspection },
+          this.#state,
+        )
+        if (result.existingId) {
+          const existing = this.#entry(result.existingId)
+          if (!existing.captured) {
+            signal.throwIfAborted()
+            await this.#update(state => ({
+              ...state,
+              revision: state.revision + 1,
+              installed: state.installed.map(item => (item.id === existing.id ? { ...item, captured: true } : item)),
+            }))
+          }
+          return existing.id
+        }
+        const plan = this.#plan(result.id, 'install')
+        try {
+          signal.throwIfAborted()
+          return await this.#saveInstalledPlan(plan)
+        } finally {
+          this.#plans.delete(plan.id)
+        }
+      } catch (error) {
+        await rm(destination, { recursive: true, force: true })
+        throw error
+      }
+    })
+  }
+  async #recordInstall(source, project, state) {
     try {
       const manifest = await readJson(join(project.directory, 'package.json'))
       const names = Object.keys(manifest.dependencies ?? {})
       if (names.length !== 1) throw new Error('一次只能添加一个根内容包')
       const root = project.inspection.packages.find(pkg => pkg.location === 'node_modules/' + names[0])
       if (!root?.catalogIds && (!root?.manifest || !root.draft)) throw new Error('该 npm 包没有 Arcadia 内容声明')
+      if (
+        source.provenance &&
+        project.inspection.packages.some(pkg => pkg.manifest?.effects && !pkg.manifest.effectArtifact)
+      )
+        throw new Error('远程安装需要预构建的 Effect 产物，请选择发行归档或预构建目录')
       const existing = state.installed.find(item => item.name === root.name && item.version === root.version)
       if (existing) {
         if (source.kind === 'file' && existing.source.kind === 'file') {
           const previous = await readFile(join(await this.#directory(existing.id), existing.source.file))
-          const next = await readFile(join(project.directory, 'candidates/content-0.tgz'))
-          if (previous.equals(next)) {
+          const next = await readFile(join(project.directory, source.archive ?? 'candidates/content-0.tgz'))
+          if (
+            previous.equals(next) &&
+            JSON.stringify(existing.graph) === JSON.stringify(graphFor(project.inspection))
+          ) {
             await rm(project.directory, { recursive: true, force: true })
             return { existingId: existing.id }
           }
@@ -698,6 +865,7 @@ export class ContentLibrary {
       const author = typeof packageManifest.author === 'string' ? packageManifest.author : packageManifest.author?.name
       const entry = {
         id: project.id,
+        ...(source.archive && { captured: true }),
         name: root.name,
         title: root.draft?.project.title || (root.officialHost ? '官方基础内容' : root.name),
         version: root.version,
@@ -713,8 +881,14 @@ export class ContentLibrary {
         source:
           source.kind === 'npm'
             ? { kind: 'npm', spec: source.spec, label: source.label }
-            : { kind: 'file', file: 'candidates/content-0.tgz', label: source.label },
+            : {
+                kind: 'file',
+                file: source.archive ?? 'candidates/content-0.tgz',
+                label: source.label,
+                ...(source.provenance && { provenance: source.provenance }),
+              },
         graph: graphFor(project.inspection),
+        ruleCatalog: ruleCatalogFor(project.inspection),
         contentIds: idsFor(project.inspection.packages),
         counts: Object.fromEntries(
           ['species', 'skills', 'marks'].map(kind => [
@@ -735,46 +909,13 @@ export class ContentLibrary {
       throw error
     }
   }
-  async #confirmInstall(id, allowCode) {
-    return this.#exclusive(async () => {
-      const plan = this.#plan(id, 'install')
-      if (allowCode !== true) throw new Error('安装需要明确允许此内容包及其依赖在本机运行')
-      await this.run(
-        ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
-        this.#controller.signal,
-      )
-      await this.#update(state => ({
-        ...state,
-        revision: state.revision + 1,
-        installed: [...state.installed, plan.entry],
-      }))
-      this.#plans.delete(id)
-      return plan.entry.id
-    })
-  }
-  async #registeredSources() {
-    let sources = {}
-    try {
-      sources = sourceRegistry(await readJson(join(this.root, 'content-sources.json'), 128 * 1024))
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error
-    }
-    return { ...sources, ...this.#sources }
-  }
-  /** The main process obtains this path from a native file chooser, never a renderer path. */
-  async importSourceRegistry(file) {
-    return this.#exclusive(async () => {
-      const sources = sourceRegistry(await readJson(file, 128 * 1024))
-      const target = join(this.root, 'content-sources.json'),
-        temporary = target + '.' + randomUUID() + '.tmp'
-      try {
-        await writeFile(temporary, JSON.stringify(sources, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
-        await rename(temporary, target)
-      } finally {
-        await rm(temporary, { force: true })
-      }
-      return { sourceIds: Object.keys(sources).sort() }
-    })
+  async #saveInstalledPlan(plan) {
+    await this.#update(state => ({
+      ...state,
+      revision: state.revision + 1,
+      installed: [...state.installed, plan.entry],
+    }))
+    return plan.entry.id
   }
   /** Prepare a named management environment without changing local-play selection.
    * Material resolution depends only on explicit declarations and registered sources.
@@ -803,13 +944,12 @@ export class ContentLibrary {
         throw new Error('环境包配置无效')
       const combined = signal ? AbortSignal.any([signal, this.#controller.signal]) : this.#controller.signal
       combined.throwIfAborted()
-      const registry = sourceIds.length ? await this.#registeredSources() : {}
       const selectedSources = {},
         installedSources = new Map()
       for (const name of sourceIds) {
         if (name === '@arcadia-eternity/data-pack-base') continue
         if (Object.hasOwn(document.packages, name)) throw sourceError('INSTALL_DUPLICATE_PACKAGE')
-        if (Object.hasOwn(registry, name)) selectedSources[name] = registry[name]
+        if (Object.hasOwn(this.#sources, name)) selectedSources[name] = this.#sources[name]
         else {
           const installed = this.#state.installed.filter(entry => entry.name === name)
           if (!installed.length) throw sourceError('INSTALL_SOURCE_NOT_REGISTERED')
@@ -823,8 +963,16 @@ export class ContentLibrary {
       let id, directory
       {
         let project
+        const savedMembers = new Map()
+        for (const [name, version] of requested) {
+          const stored = this.#state.installed.find(
+            entry => entry.captured && entry.name === name && entry.version === version,
+          )
+          if (stored) savedMembers.set(name, stored)
+        }
         if (
           projectDirectory ||
+          savedMembers.size ||
           requested.some(([name]) => name === '@arcadia-eternity/data-pack-base') ||
           sourceIds.includes('@arcadia-eternity/data-pack-base') ||
           Object.keys(selectedSources).length
@@ -833,6 +981,7 @@ export class ContentLibrary {
           // tree into the client library before committing the persistent environment.
           const packages = Object.fromEntries(requested)
           for (const [name, version] of requested) {
+            if (savedMembers.has(name)) continue
             if (name === '@arcadia-eternity/data-pack-base') continue
             const entry =
               installedSources.get(name) ??
@@ -855,7 +1004,26 @@ export class ContentLibrary {
             offline,
             allowThirdPartyContent: true,
           })
+          const seeds = []
           try {
+            for (const [name, entry] of savedMembers) {
+              const merged = await mkdtemp(join(acquisition, 'member-'))
+              seeds.push(merged)
+              const hasProject =
+                projectDirectory &&
+                (await lstat(join(projectDirectory, 'package.json')).catch(error => {
+                  if (error.code !== 'ENOENT') throw error
+                }))
+              const { archive } = await this.copyMember(
+                await this.#directory(entry.id),
+                name,
+                hasProject ? projectDirectory : undefined,
+                merged,
+                combined,
+              )
+              packages[name] = 'file:' + archive
+              projectDirectory = merged
+            }
             project = await installer.prepareProject(
               {
                 ...document,
@@ -875,6 +1043,7 @@ export class ContentLibrary {
               },
             )
           } finally {
+            for (const seed of seeds) await rm(seed, { recursive: true, force: true })
             await installer.close()
           }
         } else {
@@ -896,6 +1065,17 @@ export class ContentLibrary {
         directory = project.directory
         try {
           combined.throwIfAborted()
+          if (this.authorizeEnvironment) {
+            const inspection =
+              project.inspection ??
+              checkedInspection(await this.run(['content', 'npm', 'inspect', directory], combined))
+            const effects = inspection.packages.filter(
+              pkg => !pkg.officialHost && (pkg.manifest?.effects || pkg.manifest?.effectArtifact),
+            )
+            if (effects.length && !(await this.authorizeEnvironment(document, effects, combined)))
+              throw new Error('未授权本机环境使用这些效果')
+            combined.throwIfAborted()
+          }
           await this.run(['content', 'npm', 'approve', directory, '--profile', 'local-development'], combined)
           combined.throwIfAborted()
         } catch (error) {
@@ -949,6 +1129,7 @@ export class ContentLibrary {
       await this.#update(state => {
         return { ...state, revision: state.revision + 1, installed: state.installed.filter(item => item.id !== id) }
       })
+      this.#legacyRuleCatalogs.delete(id)
       await rm(directory, { recursive: true, force: true })
     })
   }

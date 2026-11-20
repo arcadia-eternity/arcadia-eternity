@@ -26,7 +26,7 @@ async function desktop(run) {
     app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
     const page = await app.firstWindow()
     page.setDefaultTimeout(30000)
-    await page.goto(origin + '/content/edit')
+    await page.goto(origin + '/creation/edit')
     try {
       await run({ app, page, expect })
     } catch (error) {
@@ -70,7 +70,7 @@ test(
   { skip: !enabled, timeout: 120000 },
   async () => {
     await desktop(async ({ page, expect }) => {
-      await page.goto((process.env.ARCADIA_AUTHOR_TEST_ORIGIN || 'http://127.0.0.1:5183') + '/content')
+      await page.goto((process.env.ARCADIA_AUTHOR_TEST_ORIGIN || 'http://127.0.0.1:5183') + '/creation')
       await page.getByRole('button', { name: '浏览内容（只读）', exact: true }).click()
       await expect(page.getByRole('heading', { name: '精灵', exact: true })).toBeVisible()
       await expect(page.locator('.content-card')).toHaveCount(60, { timeout: 30000 })

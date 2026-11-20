@@ -11,6 +11,7 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/console": "workspace:^",
+    "@arcadia-eternity/content-sdk": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",

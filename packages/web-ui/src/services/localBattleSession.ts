@@ -1,10 +1,12 @@
 import { toRaw } from 'vue'
-import { assertEnvironmentTeam } from '@arcadia-eternity/content-sdk/environment-rules'
+import { assertPlayableTeam, resolveEnvironmentMechanics } from '@arcadia-eternity/content-sdk/environment-rules'
 import { isNavigationFailure, type NavigationFailure } from 'vue-router'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { useBattleStore } from '@/stores/battle'
 import type { useGameDataStore } from '@/stores/gameData'
 import { createSandboxWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
+import { hasPreparedWebEnvironment, readPreparedWebCatalog } from './preparedWebEnvironment'
+import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 import { acquireLocalContent } from './localContent'
 
 type SessionState = 'configuring' | 'starting' | 'routing' | 'active' | 'disposed'
@@ -36,6 +38,7 @@ export class LocalBattleSession {
   #battle?: BattleStore
   #disposing?: Promise<void>
   #content?: Awaited<ReturnType<typeof acquireLocalContent>>
+  #rules?: EnvironmentRules
   #contentReady?: Promise<void>
   #restoreDisplay?: () => void
   constructor(private readonly create = createSandboxWebBattleSession) {}
@@ -50,8 +53,10 @@ export class LocalBattleSession {
         await content?.release()
         return
       }
+      this.#rules =
+        content?.rules ?? (!content && hasPreparedWebEnvironment() ? (await readPreparedWebCatalog()).rules : undefined)
       this.#content = content
-      if (content) this.#restoreDisplay = data.useLocalBattleContent(content.content)
+      if (content) this.#restoreDisplay = data.useLocalBattleContent(content.content, content.rules)
     })().catch(error => {
       this.#contentReady = undefined
       throw error
@@ -85,18 +90,29 @@ export class LocalBattleSession {
       this.#preparing = (async () => {
         await this.prepareContent(target.data)
         launch.signal.throwIfAborted()
-        if (this.#content?.rules) {
-          assertEnvironmentTeam(this.#content.rules, firstInput.team)
-          assertEnvironmentTeam(this.#content.rules, secondInput.team)
-        }
+        for (const player of [firstInput, secondInput])
+          assertPlayableTeam(
+            this.#rules,
+            player.team,
+            id => target.data.getSpecies(id),
+            target.data.getNature,
+            target.data.getEnhancement,
+            id => target.data.getSkill(id),
+            id => target.data.getMark(id),
+          )
         const environment = await this.#content?.readRuntime()
         launch.signal.throwIfAborted()
+        const mechanics = resolveEnvironmentMechanics(this.#rules)
         const prepared = await this.create(
           firstInput,
           secondInput,
           target.data,
           {
             ...options,
+            skillParameters: this.#rules?.skillParameters,
+            matchups: this.#rules?.matchups,
+            enhancementActive: mechanics.enhancement.mode === 'active',
+            allowFaintSwitch: mechanics.allowFaintSwitch,
             ...(environment ? { environment } : {}),
           },
           launch.signal,

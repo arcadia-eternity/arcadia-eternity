@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import { ProfileError } from './schema'
 import { type Envelope, type ProfileStorage, type ProfileExpectation } from './repository'
 
@@ -11,7 +12,7 @@ export class BrowserProfileStorage implements ProfileStorage {
       const request = (this.factory ?? indexedDB).open(this.name, 1)
       request.onupgradeneeded = () => request.result.createObjectStore('profile')
       request.onerror = () => reject(storageError(request.error))
-      request.onblocked = () => reject(new ProfileError('PROFILE_BUSY'))
+      request.onblocked = () => reject(new ProfileError('PROFILE_BUSY', '请关闭其他使用个人资料的标签页，再重新读取。'))
       request.onsuccess = () => resolve(request.result)
     })
   }
@@ -45,7 +46,7 @@ export class BrowserProfileStorage implements ProfileStorage {
           const current = request.result as Envelope | undefined
           if (
             typeof expected === 'object' && expected !== null
-              ? JSON.stringify(current) !== expected.corrupt
+              ? JSON.stringify(current) !== ('legacy' in expected ? expected.legacy : expected.corrupt)
               : (current?.current?.revision ?? null) !== expected
           ) {
             conflict = true
@@ -53,6 +54,8 @@ export class BrowserProfileStorage implements ProfileStorage {
             return
           }
           try {
+            if (expected && typeof expected === 'object' && 'legacy' in expected)
+              store.add(current, 'legacy-v1-' + nanoid())
             store.put(next, 'current')
           } catch (error) {
             writeError = error as DOMException

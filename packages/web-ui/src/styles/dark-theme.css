@@ -223,17 +223,17 @@
   color: var(--ae-text-secondary);
 }
 
-.el-input-number {
+:where(.dark, .dark-theme) .el-input-number {
   background-color: var(--ae-bg-elevated) !important;
   border-color: var(--ae-border-default) !important;
 }
 
-.el-input-number .el-input__wrapper {
+:where(.dark, .dark-theme) .el-input-number .el-input__wrapper {
   background-color: var(--ae-bg-elevated) !important;
   box-shadow: 0 0 0 1px var(--ae-border-default) inset !important;
 }
 
-.el-input-number .el-input__inner {
+:where(.dark, .dark-theme) .el-input-number .el-input__inner {
   color: var(--ae-text-primary) !important;
   background-color: transparent !important;
   width: 100% !important;
@@ -245,23 +245,23 @@
   flex: 1 !important;
 }
 
-.el-input-number .el-input-number__decrease,
-.el-input-number .el-input-number__increase {
+:where(.dark, .dark-theme) .el-input-number .el-input-number__decrease,
+:where(.dark, .dark-theme) .el-input-number .el-input-number__increase {
   background-color: var(--ae-bg-overlay) !important;
   color: var(--ae-text-secondary) !important;
   border-color: var(--ae-border-default) !important;
 }
 
-.el-input-number .el-input-number__decrease:hover,
-.el-input-number .el-input-number__increase:hover {
+:where(.dark, .dark-theme) .el-input-number .el-input-number__decrease:hover,
+:where(.dark, .dark-theme) .el-input-number .el-input-number__increase:hover {
   color: var(--ae-text-primary) !important;
 }
 
-.el-input-number:hover {
+:where(.dark, .dark-theme) .el-input-number:hover {
   border-color: var(--ae-border-strong) !important;
 }
 
-.el-input-number:focus-within,
-.el-input-number.is-active {
+:where(.dark, .dark-theme) .el-input-number:focus-within,
+:where(.dark, .dark-theme) .el-input-number.is-active {
   border-color: var(--ae-accent-primary) !important;
 }

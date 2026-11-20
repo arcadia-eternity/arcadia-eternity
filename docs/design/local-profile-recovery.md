@@ -15,7 +15,7 @@ Web、Electron、CLI 使用同一份可离线保存、导出、检查和恢复�
 - 资料恢复是完整快照替换。首版不提供字段合并；现有“仓库导入”继续作为独立的数据追加入口。
 - 每次恢复保留替换前的恢复点，先持久化再发布新状态。失败不能留下新 UID 配旧队伍。
 - 更换 UID 不允许在连接中直接生效；统一执行校验、断开、保存、重连。账号凭据与本地资料分别管理。
-- 导入只解析数据，不联网、不安装内容、不运行作者代码。缺失引用保留，使用时按当前环境重新验证。
+- 导入只解析数据，保留缺失的内容引用。个人组队按所选来源的已准备版本重新验证；带入房间时按建房锁定的版本另行检查。恢复备份不触发联网、安装或作者代码执行。见[仓库与组队适配](../proposals/environment-storage-adaptation.md)。
 - #212 负责实现和自动化回归；#263 独立记录真实平台、双服和换设备证据。两个 issue 不互相复制验收状态。
 
 ## 2. 当前实现与缺口
@@ -97,7 +97,7 @@ type ProfileBackupV1 = {
 5. schema 逐层拒绝未知字段，不做静默裁剪；不支持的版本返回 `UNSUPPORTED_VERSION`，源文件不变。新增便携字段须版本迁移，不靠某宿主忽略字段实现兼容。
 6. 结构损坏整份拒绝，返回精确字段路径；内容引用无法解析属于可恢复数据，不属于结构损坏。导入不能调用会静默跳过精灵的旧仓库验证器。
 
-本地保存外壳另外记录单调递增 `revision`、资料内容摘要和最近恢复点，不写入便携数据。摘要对 schema 规范化后的 data 计算 SHA-256：对象键排序，数组保持顺序；导出时间不参与比较。摘要用于重复检测和意外损坏检查，不代表真实性或所有权证明。
+本地保存当前快照和最近恢复点，每份快照包含资料和修订号 `revision`。重复保存或导入时直接比较资料字段和数组顺序。便携备份独立于本地修订号。
 
 ## 5. 统一模块接口
 
@@ -119,7 +119,7 @@ recover(input: { expectedRevision: number }): Promise<ProfileSnapshot>
 
 `ProfileOpenResult` 区分 `empty`、`ready`、`unavailable`、`corrupt`、`unsupported-version`，不能用 null 合并这些情况。快照包含 `revision`、数据和 `persistence: 'saved' | 'unsaved' | 'memory-only'`。成功保存表示宿主存储已提交，不保证浏览器永不清理数据。
 
-预览计划绑定解析后的不可变 data、目标 revision 和摘要；保存在当前模块实例内，重启失效。提交不能再读取可能已被替换的源文件。另一窗口或进程修改目标后返回 `REVISION_CONFLICT`，必须重新预览，不自动覆盖。重复内容返回 `unchanged`，不递增 revision、不制造恢复点。
+预览计划绑定解析后的不可变 data、目标 revision；保存在当前模块实例内，重启失效。提交不能再读取可能已被替换的源文件。另一窗口或进程修改目标后返回 `REVISION_CONFLICT`，必须重新预览，不自动覆盖。重复内容返回 `unchanged`，不递增 revision、不制造恢复点。
 
 所有普通编辑也经过 revision 检查，不能只有“导入”受保护而其他 store 仍直接落盘。导出会等待当前编辑队列；尚有无法持久化的编辑时允许明确导出当前内存快照，显示“未保存”，不能悄悄导出旧磁盘版本。
 
@@ -199,7 +199,7 @@ arcadia profile repair ./backup.arcadia-profile.json --profile-dir ./target --ra
 arcadia profile unlock --profile-dir ./target
 ```
 
-`init` 对已有资料报已存在，不重新生成；`show` 对空目录报未初始化，不写文件。`inspect` 输出来源/目标摘要、差异和目标 revision。`import` 在同一进程内重新读取并固定输入、校验目标，再提交；目标为空需 `--expect-empty`，非空需 `--replace --expect-revision`。不提供绕过 revision 或 schema 的 `--force`。重复内容导入成功且 `changed:false`。输出文件已存在时拒绝覆盖。
+`init` 对已有资料报已存在，不重新生成；`show` 对空目录报未初始化，不写文件。`inspect` 输出来源和目标的资料概况、差异及目标 revision。`import` 在同一进程内重新读取并固定输入、校验目标，再提交；目标为空需 `--expect-empty`，非空需 `--replace --expect-revision`。不提供绕过 revision 或 schema 的 `--force`。重复内容导入成功且 `changed:false`。输出文件已存在时拒绝覆盖。
 
 退出码：成功/重复导入 0，输入或版本不合法 2，冲突/忙 3，存储失败 4；JSON 错误沿用 CLI 的 `diagnostics` 数组，其中每项为 `{code, message, source?}`（source 可指向无效字段）。重定向输出不包含整份资料，只有显式 export 写备份。`repair` 先以排他创建方式保存损坏原文，再按原文比较交换恢复；未知版本不允许 repair。`unlock` 只清理已确认进程不存在的 owner，活进程或无法确认的 PID 均拒绝；恢复门使用唯一文件名，恢复操作中断后的死门可安全清理。
 
@@ -217,13 +217,13 @@ arcadia profile unlock --profile-dir ./target
 
 ## 11. 实施切片与完成标准
 
-| 顺序 | 工作与落点                                                                      | 可独立验证的结果                                               |
-| ---- | ------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| A    | `packages/local-profile` schema、摘要、预览/冲突、恢复事务；浏览器/Node adapter | 同一 fixtures 在两 adapter 往返一致，故障不出现部分资料        |
-| B    | player/petStorage/gameSetting 接入、启动迁移、资料页面、缺失内容呈现            | Web 离线创建、重启、备份和干净 origin 恢复；旧数据不被静默覆盖 |
-| C    | Electron 主进程 owner、可信 preload、远程快照和待确认保存                       | 安装版跨重启持久，远程窗口无管理越权，主窗口冲突可处理         |
-| D    | CLI profile 命令注册、Node adapter、本地对战入口                                | 干净目录可创建/恢复，CLI 导出可被另外两宿主接收                |
-| E    | 用户指南及 #263 自动化夹具、故障注入、证据模板                                  | 可按矩阵独立复现，不把计划标成通过                             |
+| 顺序 | 工作与落点                                                                | 可独立验证的结果                                               |
+| ---- | ------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| A    | `packages/local-profile` schema、预览/冲突、恢复事务；浏览器/Node adapter | 同一 fixtures 在两 adapter 往返一致，故障不出现部分资料        |
+| B    | player/petStorage/gameSetting 接入、启动迁移、资料页面、缺失内容呈现      | Web 离线创建、重启、备份和干净 origin 恢复；旧数据不被静默覆盖 |
+| C    | Electron 主进程 owner、可信 preload、远程快照和待确认保存                 | 安装版跨重启持久，远程窗口无管理越权，主窗口冲突可处理         |
+| D    | CLI profile 命令注册、Node adapter、本地对战入口                          | 干净目录可创建/恢复，CLI 导出可被另外两宿主接收                |
+| E    | 用户指南及 #263 自动化夹具、故障注入、证据模板                            | 可按矩阵独立复现，不把计划标成通过                             |
 
 每个切片补行为测试；类型检查前构建相关工作区依赖。A 覆盖损坏/未知版本/限额/原子性/CAS/幂等；B 覆盖真实 Pinia 启动与 watcher；C 用真实 Electron 窗口和非法 frame；D 用构建后的 CLI 子进程。最终执行项目规定的类型、lint 和相关测试；实际运行结果以执行记录为准。
 

@@ -1,7 +1,19 @@
 <script setup lang="ts">
-import { nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { arcadiaRangeError, useNewPackageRange } from './useNewPackageRange'
+import { ElInput, ElMessageBox } from 'element-plus'
+import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
+import { defineAsyncComponent, nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { localStorageUnavailable } from '@/services/localStorage'
+import {
+  PencilSquareIcon,
+  ArrowsRightLeftIcon,
+  CloudArrowUpIcon,
+  Cog6ToothIcon,
+  ChevronDownIcon,
+  ChatBubbleLeftRightIcon,
+} from '@heroicons/vue/24/outline'
+import AuthorConnectionPage from './AuthorConnectionPage.vue'
 import ObjectIcon from './ObjectIcon.vue'
 import ContentTraits from './ContentTraits.vue'
 import { skillCategories } from './traits'
@@ -18,6 +30,7 @@ import type { Json } from '@arcadia-eternity/pack-loader/native'
 import { createCatalogIndex, textSource } from './catalog'
 import {
   authorCall,
+  jobStates,
   type AuthorSnapshot,
   type SourceRecord,
   type SourceProject,
@@ -26,6 +39,7 @@ import {
   type AuthorJob,
 } from './types'
 
+const { arcadiaRange, defaultRange, rangeError } = useNewPackageRange()
 const projects = ref<SourceProject[]>([]),
   project = ref<SourceProject>(),
   snapshot = shallowRef<AuthorSnapshot>()
@@ -52,7 +66,79 @@ const createRelation = ref<{ row: SourceRecord; slot: string }>()
 const copyFrom = ref<ContentRow>()
 const copyMediaFrom = ref<ContentRow>()
 const languageInput = ref('')
-const projectSettingsOpen = ref(false)
+const AuthorGitWorkspace = defineAsyncComponent(() => import('./AuthorGitWorkspace.vue'))
+const commitMessage = ref('')
+type ProjectView = 'editor' | 'ai' | 'git' | 'release' | 'settings'
+const projectViews = [
+  { id: 'ai', label: 'AI 助手', icon: ChatBubbleLeftRightIcon },
+  { id: 'editor', label: '内容编辑', icon: PencilSquareIcon },
+  { id: 'git', label: 'Git 版本管理', icon: ArrowsRightLeftIcon },
+  { id: 'release', label: '发布新版本', icon: CloudArrowUpIcon },
+  { id: 'settings', label: '项目设置', icon: Cog6ToothIcon },
+] as const
+const visibleProjectViews = computed(() =>
+  projectViews.filter(view => !readOnly.value || view.id === 'editor' || view.id === 'ai' || view.id === 'settings'),
+)
+const projectView = computed<ProjectView>(
+  () => visibleProjectViews.value.find(view => view.id === route.query?.view)?.id ?? projectViews[0].id,
+)
+function projectLocation(view: ProjectView) {
+  return { path: route.path, query: { ...route.query, view } }
+}
+const rangeDraft = ref<{ original: string; value: string }>()
+const savedRange = computed(() => snapshot.value?.arcadiaRange ?? '')
+const projectRange = computed({
+  get: () => rangeDraft.value?.value ?? savedRange.value,
+  set: (value: string) => {
+    rangeDraft.value =
+      value === savedRange.value ? undefined : { original: rangeDraft.value?.original ?? savedRange.value, value }
+  },
+})
+const rangeConflict = computed(() => !!rangeDraft.value && rangeDraft.value.original !== savedRange.value)
+const projectRangeError = computed(() => arcadiaRangeError(projectRange.value))
+
+function mayDiscardRange() {
+  return !rangeDraft.value || window.confirm('放弃未保存的兼容范围修改？')
+}
+async function editPackage(field: 'version' | 'dependency', name?: string, remove = false) {
+  const current = snapshot.value,
+    id = project.value?.id
+  if (!current || !id) return
+  const options = { confirmButtonText: '保存', cancelButtonText: '取消' }
+  try {
+    if (field === 'dependency' && !name)
+      name = (await ElMessageBox.prompt('npm 包名', '添加运行依赖', options)).value.trim()
+    let value: string | null = null
+    if (remove) await ElMessageBox.confirm(name, '移除运行依赖？', { ...options, confirmButtonText: '移除' })
+    else
+      value = (
+        await ElMessageBox.prompt(field === 'version' ? 'npm 版本号' : '依赖版本范围', name || '更改包版本', {
+          ...options,
+          inputValue: field === 'version' ? current.version : current.dependencies?.[name!],
+        })
+      ).value.trim()
+    await authorCall({ action: 'edit-package', id, field, name, value, expectedVersion: current.manifestVersion })
+    await refresh()
+    updateJobs(await action<AuthorJob[]>({ action: 'jobs' }))
+  } catch (cause) {
+    if (cause === 'cancel' || cause === 'close') return
+    await refresh()
+    throw cause
+  }
+}
+async function saveProjectRange() {
+  if (!rangeDraft.value || projectRangeError.value) return
+  try {
+    await action({ action: 'save-arcadia-range', range: projectRange.value.trim(), expectedRange: savedRange.value })
+    rangeDraft.value = undefined
+    await refresh()
+    updateJobs(await action<AuthorJob[]>({ action: 'jobs' }))
+    notice.value = '已保存兼容范围。'
+  } catch (cause) {
+    if (cause instanceof Error && 'code' in cause && cause.code === 'REVISION_CONFLICT') await refresh()
+    throw cause
+  }
+}
 const readOnly = computed(() => snapshot.value?.capabilities?.sourceEditing === false)
 const libraryLimit = ref(60)
 const skillCategory = ref('all')
@@ -60,8 +146,7 @@ watch([tab, search, skillCategory], () => {
   libraryLimit.value = 60
 })
 const locale = ref(localStorage.getItem('arcadia-author-locale') || 'zh-CN')
-const editor = ref(localStorage.getItem('arcadia-author-editor') || 'code'),
-  assistantExecution = ref(false)
+const editor = ref(localStorage.getItem('arcadia-author-editor') || 'code')
 const jobs = ref<AuthorJob[]>([]),
   choices = ref<Record<string, string>>({}),
   reviewed = ref<Record<string, string>>({})
@@ -107,14 +192,6 @@ const selectedKind = ref('species')
 const selectedAssetId = ref('')
 const asset = ref<{ file: string; bytes: Uint8Array }>(),
   assetLoading = ref(false)
-const jobStates: Record<string, string> = {
-  queued: '排队中',
-  running: '进行中',
-  succeeded: '已完成',
-  failed: '未完成',
-  cancelled: '已停止',
-  interrupted: '已中断',
-}
 const autoOpenPreview = ref('')
 const runPanelOpen = ref(false)
 const runActions = ref<HTMLDetailsElement>()
@@ -124,13 +201,13 @@ const jobTitles: Record<string, string> = {
   demo: '演示对战',
   preview: '画面试玩',
   pack: '打包',
+  release: '发行检查',
 }
 const tabs: Record<string, string> = {
   ...contentTypes,
   assets: '资源',
   locales: '多语言',
   effects: '效果代码',
-  tools: '外部助手',
 }
 const visibleTabs = computed(() =>
   Object.fromEntries(Object.entries(tabs).filter(([key]) => !readOnly.value || key !== 'effects')),
@@ -144,7 +221,10 @@ let timer: ReturnType<typeof setInterval>,
   mediaController: AbortController | undefined
 let reviewedPayload = ''
 const dirty = computed(() => pending.value.length > 0)
-const pendingFiles = computed(() => [...new Set(pending.value.map(draft => draft.file))])
+const hasUnsavedChanges = computed(() => dirty.value || !!rangeDraft.value)
+const pendingFiles = computed(() => [
+  ...new Set([...pending.value.map(draft => draft.file), ...(rangeDraft.value ? ['package.json'] : [])]),
+])
 const projectId = computed(() => snapshot.value?.project.projectId ?? '')
 const keyFor = (kind: string, id: string) => recordKey({ kind, record: { id } })
 const effectiveRecords = computed<SourceRecord[]>(() =>
@@ -380,25 +460,54 @@ function editMedia(record: ContentRow) {
   else store.editRecord(row, record)
   if (snapshot.value) store.sync(snapshot.value)
 }
-function editAssetSource(event: Event) {
+function editAssetSource(location: string) {
   if (readOnly.value || !assetRecord.value) return
   const row = assetRecord.value
-  const location = (event.target as HTMLInputElement).value
   store.editRecord(row, { ...row.record, source: location })
   void attempt(() => readAsset(location, row.record.id))
   notice.value = '资源位置已加入草稿；所有使用者继续使用原资源 ID。'
 }
-const files = computed(() => snapshot.value?.files.filter(row => row.file.startsWith('src/')) ?? [])
+const files = computed(
+  () => snapshot.value?.files.filter(row => row.file.startsWith('src/') || row.file.endsWith('.effect.ts')) ?? [],
+)
+const effectRows = computed(() =>
+  (snapshot.value?.effectCatalog?.definitions ?? []).map(effect => ({
+    ...effect,
+    users: catalogIndex.value
+      .consumers('behaviors', effect.id)
+      .filter(row => row.kind === 'skills' || row.kind === 'marks'),
+  })),
+)
 const testFiles = computed(() => snapshot.value?.files.filter(row => /^(test|tests)\//.test(row.file)) ?? [])
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
-const builtPack = computed(() => jobs.value.find(job => job.kind === 'pack' && job.state === 'succeeded'))
-async function installBuiltPack() {
-  if (!builtPack.value) return
-  const result = await action<{ packageId: string }>({
-    action: 'install-built-author-pack',
-    jobId: builtPack.value.jobId,
-  })
-  await router.push({ path: '/content', query: { target: 'local', tab: 'environments', packageId: result.packageId } })
+const latestPack = computed(() => jobs.value.find(job => ['pack', 'release'].includes(job.kind)))
+const packIsCurrent = computed(() => latestPack.value?.state === 'succeeded' && !latestPack.value.stale)
+const packToInstall = ref('')
+async function useBuiltPack() {
+  if (hasUnsavedChanges.value) return
+  if (packIsCurrent.value && latestPack.value) return installBuiltPack(latestPack.value)
+  const job = await attempt(() => start('pack'))
+  if (job) packToInstall.value = job.jobId
+}
+watch([jobs, packToInstall, hasUnsavedChanges, busy], ([result, jobId, hasDrafts, isBusy]) => {
+  if (!jobId) return
+  const job = result.find(item => item.jobId === jobId)
+  if (hasDrafts) packToInstall.value = ''
+  else if (!isBusy && job && !['queued', 'running'].includes(job.state)) {
+    packToInstall.value = ''
+    if (job.jobId === latestPack.value?.jobId && packIsCurrent.value) void installBuiltPack(job)
+    else if (job.state === 'succeeded') notice.value = '构建已过期，请重新构建后用于环境。'
+  }
+})
+async function installBuiltPack(pack: AuthorJob) {
+  const result = await attempt(() =>
+    action<{ packageId: string }>({
+      action: 'install-built-author-pack',
+      jobId: pack.jobId,
+    }),
+  )
+  if (!result) return
+  await router.push({ path: '/environments', query: { target: 'local', packageId: result.packageId } })
 }
 const latestJob = computed(() => jobs.value[0])
 const latestOutput = computed(() =>
@@ -413,7 +522,7 @@ const activePreview = computed(() =>
   jobs.value.find(job => job.kind === 'preview' && job.state === 'succeeded' && job.result?.preview),
 )
 const previewStatus = computed(() => {
-  if (dirty.value) return '有未保存修改 · 保存后可试玩'
+  if (hasUnsavedChanges.value) return '有未保存修改 · 保存后可试玩'
   if (latestPreview.value && ['queued', 'running'].includes(latestPreview.value.state))
     return '正在准备试玩，可继续编辑'
   if (latestPreview.value?.state === 'failed')
@@ -482,6 +591,7 @@ const workbenchContext = computed(() => {
     published: !!project.value?.published,
     readOnly: readOnly.value,
     view: {
+      projectView: projectView.value,
       category: tab.value,
       section: section.value,
       screen: screen.value,
@@ -552,16 +662,47 @@ watch(
   },
 )
 
+const dependencyCatalog = shallowRef<DependencyReferenceCatalog>()
+watch(
+  [
+    () =>
+      section.value === 'references' && selected.value?.kind === 'species' && screen.value === 'editor'
+        ? project.value?.id
+        : undefined,
+    locale,
+    () => snapshot.value?.files.find(file => file.file === 'package.json')?.modified,
+    () => snapshot.value?.files.find(file => file.file === 'package-lock.json')?.modified,
+  ],
+  async ([id, language], _, onCleanup) => {
+    dependencyCatalog.value = undefined
+    if (!id) return
+    let current = true
+    onCleanup(() => {
+      current = false
+    })
+    try {
+      const result = await authorCall<DependencyReferenceCatalog>({
+        action: 'dependency-references',
+        id,
+        locale: language,
+      })
+      if (current) dependencyCatalog.value = result
+    } catch (cause) {
+      if (current)
+        dependencyCatalog.value = { items: [], diagnostics: [cause instanceof Error ? cause.message : String(cause)] }
+    }
+  },
+)
 async function action<T>(input: Record<string, unknown>) {
   return authorCall<T>({ id: project.value?.id, ...input })
 }
-async function attempt(operation: () => Promise<unknown>) {
+async function attempt<T>(operation: () => Promise<T>) {
   if (busy.value) return
   busy.value = true
   error.value = ''
   notice.value = ''
   try {
-    await operation()
+    return await operation()
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause)
   } finally {
@@ -602,8 +743,25 @@ async function refresh() {
 
   return next
 }
+async function chooseProjectFolder() {
+  const row = await authorCall<SourceProject | null>({ action: 'open' })
+  if (row) {
+    projects.value = await authorCall({ action: 'list' })
+    await openProject(row)
+  }
+}
+function switchProject(event: Event) {
+  const select = event.target as HTMLSelectElement
+  const selectedId = select.value
+  select.value = project.value?.id ?? ''
+  if (!selectedId) return void attempt(chooseProjectFolder)
+  const next = projects.value.find(row => row.id === selectedId)
+  if (next) void attempt(() => openProject(next))
+}
 async function openProject(next: SourceProject) {
   if (dirty.value) throw new Error('请先保存或放弃草稿，再切换项目。')
+  if (!mayDiscardRange()) return
+  rangeDraft.value = undefined
   const previous = project.value?.id
   epoch++
   mediaEpoch++
@@ -611,10 +769,11 @@ async function openProject(next: SourceProject) {
   clearTimeout(contextTimer)
   lastFocused.value = undefined
   autoOpenPreview.value = ''
+  packToInstall.value = ''
   runPanelOpen.value = false
   if (runActions.value) runActions.value.open = false
+  commitMessage.value = ''
   project.value = next
-  projectSettingsOpen.value = false
   snapshot.value = undefined
   selectedId.value = ''
   asset.value = undefined
@@ -677,7 +836,8 @@ function navigate(kind: string, id: string, fromList = false) {
   const matches = effectiveRecords.value.filter(row => row.kind === kind && row.record.id === id)
   const row = matches.length === 1 ? matches[0] : undefined
   if (kind === 'behaviors') {
-    void attempt(() => external(row?.file))
+    const effect = snapshot.value?.effectCatalog?.definitions.find(effect => effect.id === id)
+    void attempt(() => external(row?.file ?? effect?.file, row ? undefined : effect?.line))
     return
   }
   if (!row || matches.length !== 1) {
@@ -927,23 +1087,17 @@ async function external(file?: string, line?: number, column?: number) {
   localStorage.setItem('arcadia-author-editor', editor.value)
   await action({ action: 'editor', file, editor: editor.value, line, column })
 }
-async function copyConnection() {
-  await publishContext()
-  const config = await action({ action: 'connection', execute: assistantExecution.value })
-  await navigator.clipboard.writeText(JSON.stringify(config, null, 2))
-  notice.value = '已复制 MCP 配置。'
-}
 async function start(kind: string) {
-  if (dirty.value) throw new Error('请先保存草稿，运行任务读取的是磁盘内容。')
+  if (hasUnsavedChanges.value) throw new Error('请先保存修改，运行任务读取的是磁盘内容。')
   if (runActions.value) runActions.value.open = false
-  if (kind !== 'preview') runPanelOpen.value = true
+  if (kind !== 'preview' && projectView.value !== 'release') runPanelOpen.value = true
   const job = await action<AuthorJob>({ action: 'start', kind })
   if (job.state === 'failed') runPanelOpen.value = true
   jobs.value = [job, ...jobs.value.filter(row => row.jobId !== job.jobId)]
   return job
 }
 async function playPreview() {
-  if (dirty.value) throw new Error('请先保存草稿，再开始调试。')
+  if (hasUnsavedChanges.value) throw new Error('请先保存修改，再开始调试。')
   // Recheck disk state on click; the periodic UI refresh may still show the previous revision.
   const currentJobs = await action<AuthorJob[]>({ action: 'jobs' })
   updateJobs(currentJobs)
@@ -994,7 +1148,7 @@ async function preview(file: string, resourceId?: string) {
   await readAsset(file, resourceId)
 }
 function beforeUnload(event: BeforeUnloadEvent) {
-  if (dirty.value && localStorageUnavailable.value) {
+  if (rangeDraft.value || (dirty.value && localStorageUnavailable.value)) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -1008,7 +1162,7 @@ watch(pendingFiles, (next, previous) => {
       error.value = String(cause)
     })
 })
-onBeforeRouteLeave(() => !busy.value)
+onBeforeRouteLeave(() => !busy.value && mayDiscardRange())
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload)
   contextHeartbeat = setInterval(() => void publishContext(), 30000)
@@ -1039,7 +1193,7 @@ onMounted(async () => {
       typeof route.params.projectId === 'string'
         ? projects.value.find(row => row.id === route.params.projectId)
         : undefined
-    if (route.params.projectId && !requested) throw new Error('此源项目不存在，请从内容包列表重新打开。')
+    if (route.params.projectId && !requested) throw new Error('此源项目不存在，请从创作页面重新打开。')
     if (requested || last) await openProject((requested || last)!)
   })
 })
@@ -1062,24 +1216,79 @@ onBeforeUnmount(() => {
   <main class="author-page">
     <header class="app-header">
       <div class="brand">
-        <router-link to="/content">内容包</router-link><span aria-hidden="true">/</span>
-        <button
+        <router-link to="/creation">创作</router-link><span v-if="project" aria-hidden="true">/</span>
+        <select
           v-if="project"
           class="project-switch"
-          :aria-expanded="projectSettingsOpen"
-          @click="projectSettingsOpen = !projectSettingsOpen"
+          aria-label="切换项目"
+          :value="project.id"
+          :disabled="busy || dirty"
+          @change="switchProject"
         >
-          {{ project.name }} ▾
-        </button>
+          <option v-for="row in projects" :key="row.id" :value="row.id">{{ row.name }}</option>
+          <option value="">打开项目文件夹…</option>
+        </select>
         <span v-if="readOnly" class="badge">只读</span>
         <small v-if="project?.published">已安装 {{ snapshot?.version }}</small>
       </div>
-      <label v-if="project"
+      <label v-if="project && projectView === 'editor'"
         >内容语言<select v-model="locale" :disabled="busy">
           <option v-for="language in languages" :key="language">{{ language }}</option>
         </select></label
       >
-      <div v-if="dirty" class="tools save-actions">
+      <div v-if="project && snapshot">
+        <button class="external-tools-trigger" popovertarget="author-external-tools">
+          外部工具 <ChevronDownIcon aria-hidden="true" />
+        </button>
+        <div id="author-external-tools" class="external-tools-menu" popover="auto" role="group" aria-label="外部工具">
+          <label v-if="!readOnly"
+            >外部编辑器<select v-model="editor">
+              <option value="code">VS Code</option>
+              <option value="codium">VSCodium</option>
+              <option value="cursor">Cursor</option>
+              <option value="zed">Zed</option>
+            </select></label
+          ><button
+            v-if="!readOnly"
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="attempt(() => external())"
+          >
+            打开编辑器</button
+          ><button
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="attempt(() => action({ action: 'show' }))"
+          >
+            显示项目文件夹</button
+          ><button
+            v-if="!readOnly"
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="
+              attempt(async () => {
+                await action({ action: 'sdk' })
+                notice = '已连接本机开发 SDK。'
+              })
+            "
+          >
+            连接本机 SDK
+          </button>
+          <button
+            v-if="!readOnly"
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="attempt(() => external('skills/arcadia-content-authoring/SKILL.md'))"
+          >
+            打开项目 Skill ↗
+          </button>
+        </div>
+      </div>
+      <div v-if="dirty && projectView === 'editor'" class="tools save-actions">
         <button v-if="dirty" :disabled="busy" @click="screen = 'discard'">放弃修改</button
         ><button
           v-if="conflicts.length"
@@ -1098,27 +1307,50 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </header>
-    <section v-if="project && !readOnly" class="play-toolbar" aria-label="试玩控制">
-      <p role="status">{{ previewStatus }}</p>
-      <details ref="runActions" class="run-actions">
-        <summary>更多操作</summary>
-        <div class="run-actions-menu">
-          <button :disabled="busy || running || dirty" @click="attempt(() => start('check'))">检查内容与类型</button>
-          <button :disabled="busy || running || dirty" @click="attempt(() => start('test'))">运行场景测试</button>
-          <button :disabled="busy || running || dirty" @click="attempt(() => start('demo'))">无界面演示对战</button>
-          <small>任务使用已保存的内容</small>
-        </div>
-      </details>
-      <button class="primary" :disabled="busy || running || dirty" @click="attempt(playPreview)">
-        {{ running && latestPreview && ['queued', 'running'].includes(latestPreview.state) ? '正在准备…' : '调试试玩' }}
-      </button>
-    </section>
-    <details v-if="!project || projectSettingsOpen" class="project-settings" open>
-      <summary>{{ project ? '项目与外部工具' : '打开内容包源项目' }}</summary>
+    <div v-if="project && snapshot" class="play-toolbar">
+      <nav class="project-views" aria-label="项目视图">
+        <RouterLink
+          v-for="view in visibleProjectViews"
+          :key="view.id"
+          :to="projectLocation(view.id)"
+          :aria-current="projectView === view.id ? 'page' : undefined"
+        >
+          <component :is="view.icon" aria-hidden="true" />{{ view.label }}
+        </RouterLink>
+      </nav>
+      <template v-if="projectView === 'editor' && !readOnly">
+        <p role="status">{{ previewStatus }}</p>
+        <details ref="runActions" class="run-actions">
+          <summary>更多操作</summary>
+          <div class="run-actions-menu">
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('check'))">
+              检查内容与类型
+            </button>
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('test'))">
+              运行场景测试
+            </button>
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('demo'))">
+              无界面演示对战
+            </button>
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('release'))">
+              检查并生成发行包
+            </button>
+            <small>任务使用已保存的内容</small>
+          </div>
+        </details>
+        <button class="primary" :disabled="busy || running || hasUnsavedChanges" @click="attempt(playPreview)">
+          {{
+            running && latestPreview && ['queued', 'running'].includes(latestPreview.state) ? '正在准备…' : '调试试玩'
+          }}
+        </button>
+      </template>
+    </div>
+    <section v-if="!project" class="project-picker">
+      <h1>打开内容包源项目</h1>
       <div class="tools">
         <label
           >项目<select
-            :value="project?.id ?? ''"
+            value=""
             :disabled="busy || dirty"
             @change="
               attempt(async () => {
@@ -1130,73 +1362,140 @@ onBeforeUnmount(() => {
             <option value="">选择项目</option>
             <option v-for="row in projects" :key="row.id" :value="row.id">{{ row.name }}</option>
           </select></label
-        ><button
-          :disabled="busy || dirty"
-          @click="
-            attempt(async () => {
-              const row = await authorCall<SourceProject | null>({ action: 'open' })
-              if (row) {
-                projects = await authorCall({ action: 'list' })
-                await openProject(row)
-              }
-            })
-          "
+        ><button :disabled="busy || dirty" @click="attempt(chooseProjectFolder)">打开项目</button
+        ><label>新项目名称<ElInput v-model="name" placeholder="给内容包起个名字" /></label
+        ><label
+          >新包兼容范围<ElInput v-model="arcadiaRange" aria-label="新包兼容范围" maxlength="256" /><span
+            v-if="rangeError"
+            role="alert"
+            >{{ rangeError }}</span
+          ></label
         >
-          打开项目</button
-        ><label>新项目名称<input v-model="name" placeholder="例如：寒霜故事" /></label
-        ><button
-          :disabled="busy || dirty || !name.trim()"
+        <button
+          :disabled="busy || dirty || !name.trim() || !!rangeError"
           @click="
             attempt(async () => {
-              const row = await authorCall<SourceProject>({ action: 'create', name })
+              const row = await authorCall<SourceProject>({ action: 'create', name, arcadiaRange: arcadiaRange.trim() })
               projects = await authorCall({ action: 'list' })
               await openProject(row)
               name = ''
+              arcadiaRange = defaultRange
             })
           "
         >
           从模板创建项目
         </button>
       </div>
-      <div v-if="project" class="tools">
-        <label v-if="!readOnly"
-          >外部编辑器<select v-model="editor">
-            <option value="code">VS Code</option>
-            <option value="codium">VSCodium</option>
-            <option value="cursor">Cursor</option>
-            <option value="zed">Zed</option>
-          </select></label
-        ><button v-if="!readOnly" :disabled="busy" @click="attempt(() => external())">打开编辑器</button
-        ><button :disabled="busy" @click="attempt(() => action({ action: 'show' }))">显示项目文件夹</button
-        ><button :disabled="busy || dirty" @click="attempt(() => action({ action: 'export' }))">
-          {{ project.published ? '导出包目录' : '导出源项目' }}</button
-        ><button
-          v-if="!readOnly"
-          :disabled="busy"
-          @click="
-            attempt(async () => {
-              await action({ action: 'sdk' })
-              notice = '已连接本机开发 SDK。'
-            })
-          "
-        >
-          连接本机 SDK</button
-        ><button v-if="!readOnly" :disabled="busy || running || dirty" @click="attempt(() => start('pack'))">
-          构建内容包</button
-        ><button v-if="!readOnly && builtPack" :disabled="busy || running" @click="attempt(installBuiltPack)">
-          用于环境</button
-        ><small>{{ project.directory }}</small>
-      </div>
-    </details>
+    </section>
     <p v-if="error" class="banner error" role="alert">{{ error }}</p>
     <div v-if="notice" class="banner notice" role="status">
       <span>{{ notice }}</span
       ><button aria-label="关闭提示" @click="notice = ''">×</button>
     </div>
-    <div v-if="!project" class="welcome">
-      <h1>让你的内容加入战斗</h1>
-    </div>
-    <div v-else class="workspace">
+    <section v-if="projectView === 'settings' && project && snapshot" class="settings-view" aria-label="项目设置">
+      <section class="settings-group">
+        <h1>项目设置</h1>
+        <div class="tools">
+          <strong>{{ snapshot.name }}@{{ snapshot.version }}</strong>
+          <button v-if="!readOnly" :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('version'))">
+            更改包版本
+          </button>
+        </div>
+        <dl class="project-metadata">
+          <dt>项目 ID</dt>
+          <dd>{{ snapshot.project.projectId }}</dd>
+          <dt>命名空间</dt>
+          <dd>{{ snapshot.project.namespace }}</dd>
+          <dt>SDK API</dt>
+          <dd>{{ snapshot.project.sdkApi ?? '未声明' }}</dd>
+          <dt>项目文件夹</dt>
+          <dd>{{ project.directory }}</dd>
+        </dl>
+      </section>
+      <section class="settings-group">
+        <div class="tools">
+          <h3>运行依赖</h3>
+          <button v-if="!readOnly" :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('dependency'))">
+            添加依赖
+          </button>
+        </div>
+        <div v-for="(range, dependency) in snapshot.dependencies" :key="dependency" class="tools">
+          <code>{{ dependency }} {{ range }}</code>
+          <template v-if="!readOnly">
+            <button :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('dependency', dependency))">
+              调整版本
+            </button>
+            <button
+              :disabled="busy || !!rangeDraft"
+              @click="attempt(() => editPackage('dependency', dependency, true))"
+            >
+              移除依赖
+            </button>
+          </template>
+        </div>
+      </section>
+      <form class="settings-group tools" @submit.prevent="attempt(saveProjectRange)">
+        <label
+          >Arcadia 兼容范围<ElInput
+            v-model="projectRange"
+            aria-label="Arcadia 兼容范围"
+            :readonly="readOnly"
+            :disabled="busy"
+            maxlength="256"
+            placeholder="未声明"
+        /></label>
+        <span v-if="projectRangeError" role="alert">{{ projectRangeError }}</span>
+        <span v-if="rangeConflict" role="alert">文件中的范围已变为 {{ savedRange || '未声明' }}。</span>
+        <button v-if="!readOnly" type="submit" :disabled="busy || !rangeDraft || !!projectRangeError">
+          {{ rangeConflict ? '覆盖并保存范围' : '保存兼容范围' }}
+        </button>
+        <button v-if="rangeDraft" type="button" :disabled="busy" @click="rangeDraft = undefined">取消修改</button>
+      </form>
+      <section class="settings-group">
+        <h3>内容包</h3>
+        <div class="tools">
+          <button :disabled="busy || hasUnsavedChanges" @click="attempt(() => action({ action: 'export' }))">
+            {{ project.published ? '导出包目录' : '导出源项目' }}</button
+          ><button
+            v-if="!readOnly"
+            :disabled="busy || running || hasUnsavedChanges"
+            @click="attempt(() => start('pack'))"
+          >
+            构建内容包</button
+          ><button
+            v-if="!readOnly && latestPack"
+            :disabled="busy || running || hasUnsavedChanges"
+            @click="useBuiltPack"
+          >
+            {{ packIsCurrent ? '用于环境' : '重新构建并用于环境' }}
+          </button>
+        </div>
+      </section>
+    </section>
+    <AuthorConnectionPage
+      v-else-if="project && snapshot && projectView === 'ai'"
+      :key="project.id"
+      class="settings-view"
+      :project="project"
+      :read-only="readOnly"
+      :context-error="contextError"
+    />
+    <AuthorGitWorkspace
+      v-else-if="project && snapshot && (projectView === 'git' || projectView === 'release')"
+      :key="project.id"
+      :project="project.id"
+      :project-name="project.name"
+      v-model:message="commitMessage"
+      :release-open="projectView === 'release'"
+      :dirty="hasUnsavedChanges"
+      :running="running || busy"
+      :version="snapshot?.version"
+      :pack="jobs.find(job => job.kind === 'release')"
+      @git="router.push(projectLocation('git'))"
+      @release="attempt(() => start('release'))"
+      @version="attempt(() => editPackage('version'))"
+    />
+    <div v-else-if="project && projectView === 'editor'" class="workspace">
       <aside class="sidebar">
         <small>{{ project.name }}</small>
         <nav aria-label="内容分类">
@@ -1327,11 +1626,11 @@ onBeforeUnmount(() => {
                 </option>
               </select></label
             >
-            <label>显示名称<input v-model="newName" required /></label>
+            <label>显示名称<ElInput v-model="newName" required /></label>
             <details>
               <summary>对象标识与保存位置</summary>
-              <label>稳定标识<input v-model="newId" @input="suggestFile" required /></label
-              ><label>新文件位置<input v-model="newFile" required /></label
+              <label>稳定标识<ElInput v-model="newId" @input="suggestFile" required /></label
+              ><label>新文件位置<ElInput v-model="newFile" required /></label
               ><small>在对应数据目录内自由安排新文件；已有文件的合并与整理可在外部完成。</small>
             </details>
             <button class="primary" :disabled="busy" type="submit">创建草稿</button>
@@ -1353,7 +1652,7 @@ onBeforeUnmount(() => {
             @submit.prevent="/^[A-Za-z][A-Za-z0-9-]*$/.test(languageInput) && (locale = languageInput)"
           >
             <label
-              >添加编辑语言<input
+              >添加编辑语言<ElInput
                 v-model="languageInput"
                 placeholder="例如 en"
                 pattern="[A-Za-z][A-Za-z0-9-]*"
@@ -1366,7 +1665,7 @@ onBeforeUnmount(() => {
               <button @click="navigate(row.kind, row.record.id)">打开对象</button>
             </header>
             <LocaleFields
-              :read-only="readOnly"
+              :read-only="readOnly || busy"
               :text="localized(row, locale)"
               :fallback="locale !== defaultLanguage ? localized(row, defaultLanguage) : {}"
               :record="row.record"
@@ -1397,7 +1696,7 @@ onBeforeUnmount(() => {
               <div>
                 <h1>{{ search.trim() ? '搜索结果' : tabs[tab] }}</h1>
               </div>
-              <input v-model="search" type="search" aria-label="搜索内容" placeholder="搜索包内名称或 ID" />
+              <ElInput clearable v-model="search" type="search" aria-label="搜索内容" placeholder="搜索包内名称或 ID" />
               <button v-if="!readOnly" class="primary" @click="beginCreate(tab)">新建内容</button>
             </header>
             <nav v-if="tab === 'skills' && !search.trim()" class="skill-categories" aria-label="技能类别">
@@ -1503,11 +1802,13 @@ onBeforeUnmount(() => {
             <fieldset :disabled="busy" class="editor-fields">
               <div class="form-panel">
                 <RecordForm
-                  :read-only="readOnly"
+                  :read-only="readOnly || busy"
                   :key="recordKey(selected)"
                   :record="section === 'media' ? currentMedia.record : currentRecord"
                   :kind="selected.kind"
                   :records="effectiveRecords"
+                  :dependency-catalog="dependencyCatalog"
+                  :effect-catalog="snapshot?.effectCatalog"
                   :project-id="projectId"
                   :assets="assets"
                   :shared-fields="
@@ -1536,7 +1837,7 @@ onBeforeUnmount(() => {
               </div>
               <LocaleFields
                 v-if="section === 'base'"
-                :read-only="readOnly"
+                :read-only="readOnly || busy"
                 :text="currentText"
                 :fallback="fallbackText"
                 :record="currentRecord"
@@ -1573,7 +1874,7 @@ onBeforeUnmount(() => {
             <div>
               <h1>资源</h1>
             </div>
-            <input v-model="search" type="search" aria-label="搜索资源" placeholder="搜索资源名称" />
+            <ElInput clearable v-model="search" type="search" aria-label="搜索资源" placeholder="搜索资源名称" />
             <button v-if="!readOnly" :disabled="busy" @click="attempt(importAsset)">导入资源</button>
           </header>
           <div class="asset-layout">
@@ -1600,8 +1901,9 @@ onBeforeUnmount(() => {
               <SourceMediaPreview v-if="asset.bytes.length" :file="asset.file.split('?')[0]!" :bytes="asset.bytes" />
               <label v-if="assetRecord"
                 >素材位置
-                <input
-                  :value="String(assetRecord.record.source)"
+                <ElInput
+                  :model-value="String(assetRecord.record.source)"
+                  :model-modifiers="{ lazy: true }"
                   :disabled="readOnly || !!sharedAt(assetRecord.sharedFields ?? [], ['source'])"
                   @change="editAssetSource"
                 />
@@ -1632,33 +1934,49 @@ onBeforeUnmount(() => {
             <p v-else class="hint">{{ assetLoading ? '正在读取资源…' : '选择一项资源进行预览' }}</p>
           </div></template
         >
-        <template v-else-if="tab === 'tools'"
-          ><header class="page-heading">
-            <div>
-              <h1>连接外部助手</h1>
-              <p>连接后，助手可以读取未保存的修改。</p>
-              <p v-if="readOnly">只读连接</p>
-            </div>
-          </header>
-          <label v-if="!readOnly" class="checkbox"
-            ><input v-model="assistantExecution" type="checkbox" />允许助手会话运行项目测试、演示对战和打包</label
-          >
-          <div class="tools">
-            <button :disabled="busy" @click="attempt(copyConnection)">复制 MCP 连接配置</button
-            ><button v-if="!readOnly" @click="attempt(() => external('skills/arcadia-content-authoring/SKILL.md'))">
-              打开项目 Skill ↗
-            </button>
-          </div>
-          <p v-if="contextError" class="error" role="alert">上下文同步失败：{{ contextError }}</p>
-        </template>
         <template v-else-if="tab === 'effects'">
           <header class="page-heading">
-            <div>
-              <h1>效果代码</h1>
-              <p>在外部编辑器维护效果实现，保存后自动更新。</p>
-            </div>
+            <h1>效果代码</h1>
           </header>
-          <details v-if="files.length" class="source-details" open>
+          <section v-if="snapshot?.effectCatalog" class="effect-catalog" aria-label="已识别效果">
+            <h3>已识别效果 · {{ effectRows.length }}</h3>
+            <table v-if="effectRows.length">
+              <thead>
+                <tr>
+                  <th>效果 ID</th>
+                  <th>可关联到</th>
+                  <th>当前引用</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="effect in effectRows" :key="effect.id">
+                  <th scope="row">
+                    <code>{{ effect.id }}</code>
+                  </th>
+                  <td>{{ effect.sourceKind === 'skill' ? '技能' : '印记' }}</td>
+                  <td>
+                    <div v-if="effect.users.length" class="tools">
+                      <button
+                        v-for="row in effect.users"
+                        :key="recordKey(row)"
+                        @click="navigate(row.kind, row.record.id)"
+                      >
+                        {{ label(row) }}
+                      </button>
+                    </div>
+                    <span v-else>未关联</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-if="!effectRows.length && !snapshot.effectCatalog.issues.length" class="hint">
+              在效果目录的 *.effect.ts 文件中导出带 @effect 的类。
+            </p>
+            <p v-for="(issue, index) in snapshot.effectCatalog.issues" :key="index" class="error">
+              {{ issue.file }} · {{ issue.message }}
+            </p>
+          </section>
+          <details v-if="files.length" class="source-details">
             <summary>效果源文件</summary>
             <div class="file-links">
               <button v-for="file in files" :key="file.file" @click="attempt(() => external(file.file))">
@@ -1712,6 +2030,12 @@ onBeforeUnmount(() => {
               打开位置
             </button>
           </p>
+          <details v-if="latestJob.state === 'succeeded' && latestJob.result?.files?.length">
+            <summary>{{ latestJob.result.filename }} · {{ latestJob.result.files.length }} 个文件</summary>
+            <ul>
+              <li v-for="file in latestJob.result.files" :key="file">{{ file }}</li>
+            </ul>
+          </details>
           <pre>{{
             latestOutput || (['queued', 'running'].includes(latestJob.state) ? '等待输出…' : '没有额外输出。')
           }}</pre>

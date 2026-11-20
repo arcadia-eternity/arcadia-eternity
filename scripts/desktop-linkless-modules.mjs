@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex } from '../packages/const/src/sha256.ts'
 import { cp, lstat, mkdir, readFile, readdir, realpath } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -44,7 +44,7 @@ export async function materializeLinklessModules(source, destination) {
     }
   }
   async function visit(name, directory) {
-    const reference = createHash('sha256').update(relative(root, directory)).digest('hex')
+    const reference = sha256Hex(relative(root, directory))
     const key = `${name}@${reference}`
     if (nodes.has(key)) return nodes.get(key)
     if (nodes.size >= 10000) throw new Error('Staged dependency graph exceeds limit')

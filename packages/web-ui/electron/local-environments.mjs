@@ -1,6 +1,7 @@
+import { isDeepStrictEqual } from 'node:util'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { readFile, writeFile, rename, rm } from 'node:fs/promises'
+import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
 const safeInstallation = version => {
@@ -8,15 +9,19 @@ const safeInstallation = version => {
   return metadata
 }
 /** The local library owns persistent environment npm projects without a server process.
- * Published servers import their own copy; no server binding points into this workspace.
+ * Local hosting borrows read leases for its room catalog. Persistent server bindings live in the management workspace.
  */
 export class LocalEnvironments {
   #opening
+  #builtin
+  #aliases = new Set()
   #selectedId
   #jobs = new Map()
   #closed = false
   #tail = Promise.resolve()
-  constructor({ openWorkspace, library, validate, addPackage, removePackage }) {
+  constructor({ openWorkspace, library, validate, addPackage, removePackage, baseRules, openBuiltin }) {
+    this.openBuiltin = openBuiltin
+    this.baseRules = baseRules
     this.openWorkspace = openWorkspace
     this.library = library
     this.validate = validate
@@ -29,33 +34,93 @@ export class LocalEnvironments {
       .then(async workspace => {
         try {
           await this.library?.synchronizeEnvironments?.(workspace, this.validate)
+          this.#builtin = await this.openBuiltin?.()
           const file = join(workspace.root, 'local-selection.json')
           const saved = await readFile(file, 'utf8').catch(error => {
             if (error.code !== 'ENOENT') throw error
           })
-          if (saved) {
-            const selection = JSON.parse(saved)
+          const selection = saved ? JSON.parse(saved) : undefined
+          const aliases = selection?.builtinAliases ?? []
+          if (
+            !Array.isArray(aliases) ||
+            aliases.some(id => typeof id !== 'string' || !/^local-[a-f0-9-]{36}$/.test(id))
+          )
+            throw fail('INVALID_LOCAL_SELECTION')
+          this.#aliases = new Set(aliases)
+          if (this.#builtin && selection?.builtinAliases === undefined) {
+            const builtin = await this.#builtin.workspace.getInstallation(this.#builtin.id)
+            const drafts = await workspace.listDrafts()
+            for (const draft of drafts) {
+              if (draft.document.id === this.#builtin.id) {
+                // The old personal and server workspaces allowed independently chosen IDs.
+                const copy = { ...draft.document, id: 'previous-local-' + draft.revision.slice(0, 20) }
+                const preserved = drafts.find(item => item.document.id === copy.id)
+                if (preserved && !isDeepStrictEqual(preserved.document, copy))
+                  throw fail('BUILTIN_MIGRATION_COPY_CONFLICT')
+                if (!preserved) {
+                  const prior = (await workspace.listInstallations(draft.document.id))[0]
+                  if (prior?.status === 'ready') {
+                    await workspace.prepareEnvironment(
+                      {
+                        environmentId: copy.id,
+                        document: copy,
+                        projectDirectory: prior.directory,
+                        expectedRevision: null,
+                      },
+                      this.validate,
+                    )
+                  } else await workspace.saveDraft({ document: copy, expectedRevision: null })
+                }
+                if (selection?.environmentId === draft.document.id) selection.environmentId = copy.id
+                continue
+              }
+              // Only fold the automatically generated, unmodified base environment.
+              if (
+                !/^local-[a-f0-9-]{36}$/.test(draft.document.id) ||
+                !isDeepStrictEqual({ ...draft.document, id: builtin.environmentId }, builtin.document)
+              )
+                continue
+              const installed = (await workspace.listInstallations(draft.document.id))[0]
+              if (
+                installed?.status === 'ready' &&
+                installed.contentRevision === builtin.contentRevision &&
+                installed.draftRevision === draft.revision
+              )
+                this.#aliases.add(draft.document.id)
+            }
+          }
+          if (selection) {
             if (typeof selection.environmentId !== 'string') throw fail('INVALID_LOCAL_SELECTION')
             this.#selectedId = selection.environmentId
+            if (this.#builtin && (selection.builtinAliases === undefined || this.#aliases.has(this.#selectedId)))
+              await this.#saveSelection(
+                workspace,
+                this.#aliases.has(this.#selectedId) ? this.#builtin.id : this.#selectedId,
+              )
           } else if (this.library?.acquireInitialEnvironment) {
             // Copy the last working legacy selection once. Never replace existing user environments.
             const lease = await this.library.acquireInitialEnvironment()
             try {
-              const id = `local-${randomUUID()}`
-              const document = {
-                schemaVersion: 2,
-                id,
-                name: '默认环境',
-                packages: Object.fromEntries(lease.packages.map(pkg => [pkg.name, pkg.version])),
-                sources: [],
-                rules: { schemaVersion: 1 },
-                requires: {},
+              if (this.#builtin && !lease.legacy) {
+                await this.#saveSelection(workspace, this.#builtin.id)
+              } else {
+                const id = `local-${randomUUID()}`
+                const document = {
+                  schemaVersion: 2,
+                  id,
+                  name: this.#builtin ? '原本机环境' : '默认环境',
+                  packages: Object.fromEntries(lease.packages.map(pkg => [pkg.name, pkg.version])),
+                  sources: [],
+                  rules: (lease.packages.some(pkg => pkg.name === '@arcadia-eternity/data-pack-base') &&
+                    this.baseRules) || { schemaVersion: 1 },
+                  requires: {},
+                }
+                await workspace.prepareEnvironment(
+                  { environmentId: id, document, expectedRevision: null, projectDirectory: lease.directory },
+                  this.validate,
+                )
+                await this.#saveSelection(workspace, id)
               }
-              await workspace.prepareEnvironment(
-                { environmentId: id, document, expectedRevision: null, projectDirectory: lease.directory },
-                this.validate,
-              )
-              await this.#saveSelection(workspace, id)
             } finally {
               await lease.release()
             }
@@ -78,25 +143,52 @@ export class LocalEnvironments {
     const file = join(workspace.root, 'local-selection.json')
     const temporary = `${file}.${randomUUID()}.tmp`
     try {
-      await writeFile(temporary, JSON.stringify({ environmentId }), { flag: 'wx' })
+      await writeFile(
+        temporary,
+        JSON.stringify({ environmentId, ...(this.#builtin && { builtinAliases: [...this.#aliases] }) }),
+        { flag: 'wx' },
+      )
       await rename(temporary, file)
       this.#selectedId = environmentId
     } finally {
       await rm(temporary, { force: true })
     }
   }
-  async acquireProject() {
+  #source(workspace, id) {
+    return this.#builtin && (id === this.#builtin.id || this.#aliases.has(id)) ? this.#builtin : { workspace, id }
+  }
+  async hostingWorkspace() {
     const workspace = await this.ready()
-    if (!this.#selectedId) throw fail('LOCAL_ENVIRONMENT_NOT_SELECTED', '请选择本地使用的环境')
-    return workspace.acquire(this.#selectedId, 'local-play')
+    return {
+      listInstallations: async () =>
+        (await workspace.listInstallations()).filter(
+          item => this.#source(workspace, item.installationId).workspace === workspace,
+        ),
+      acquire: (id, owner) => workspace.acquire(id, owner),
+    }
+  }
+  async acquireProject(environmentId) {
+    const workspace = await this.ready()
+    const id = environmentId ?? this.#selectedId
+    if (!id) throw fail('LOCAL_ENVIRONMENT_NOT_SELECTED', '请选择本地使用的环境')
+    const source = this.#source(workspace, id)
+    return source.workspace.acquire(source.id, 'local-play')
   }
   async snapshot() {
     const workspace = await this.ready()
     return {
       workspaceId: workspace.workspaceId,
       selectedEnvironmentId: this.#selectedId,
-      environments: await workspace.listDrafts(),
-      installations: (await workspace.listInstallations()).map(safeInstallation),
+      environments: [
+        ...(this.#builtin ? [{ ...(await this.#builtin.workspace.getDraft(this.#builtin.id)), builtin: true }] : []),
+        ...(await workspace.listDrafts()).filter(d => this.#source(workspace, d.document.id).workspace === workspace),
+      ],
+      installations: [
+        ...(this.#builtin ? await this.#builtin.workspace.listInstallations(this.#builtin.id) : []),
+        ...(await workspace.listInstallations()).filter(
+          item => this.#source(workspace, item.installationId).workspace === workspace,
+        ),
+      ].map(safeInstallation),
       operations: [...this.#jobs.values()].map(({ controller, promise, execute, ...job }) => job).reverse(),
     }
   }
@@ -139,17 +231,32 @@ export class LocalEnvironments {
   }
   async request(input) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw fail('INVALID_REQUEST')
-    if (Buffer.byteLength(JSON.stringify(input)) > (input.action === 'import' ? 130 : 2) * 1024 * 1024)
+    if (
+      Buffer.byteLength(JSON.stringify(input)) >
+      (['import', 'import-preview'].includes(input.action) ? 130 : 2) * 1024 * 1024
+    )
       throw fail('REQUEST_TOO_LARGE')
     const workspace = await this.ready()
+    const source = this.#source(workspace, input.environmentId ?? input.installationId)
+    const target = {
+      apply: input.document?.id,
+      'add-package': input.environmentId,
+      'remove-package': input.environmentId,
+      'delete-draft': input.environmentId,
+      'clear-installation': input.installationId,
+      'use-member': input.targetId,
+      import: input.environmentId || input.bundle?.document?.id,
+    }[input.action]
+    if (target && this.#source(workspace, target) === this.#builtin)
+      throw fail('BUILTIN_ENVIRONMENT_READ_ONLY', '默认环境为只读')
     switch (input.action) {
       case 'select': {
         return this.start('environment.select', async signal => {
-          const lease = await workspace.acquire(input.environmentId, 'select-local-play')
+          const lease = await source.workspace.acquire(source.id, 'select-local-play')
           try {
             signal.throwIfAborted()
-            await this.#saveSelection(workspace, input.environmentId)
-            return { environmentId: input.environmentId }
+            await this.#saveSelection(workspace, source.id)
+            return { environmentId: source.id }
           } finally {
             await lease.release()
           }
@@ -183,13 +290,19 @@ export class LocalEnvironments {
             return undefined
           })
           if ((current?.revision ?? null) !== input.expectedRevision) throw fail('REVISION_CONFLICT')
-          const lease = await this.library.prepareEnvironmentProject(document, {
-            projectDirectory: join(workspace.root, 'environments', environmentId),
-            signal,
-            offline: input.allowDownload !== true,
-            onProgress,
-          })
+          const origin = this.#source(workspace, input.copyFrom)
+          const seed =
+            input.copyFrom && input.expectedRevision === null
+              ? await origin.workspace.acquire(origin.id, 'copy-environment')
+              : undefined
+          let lease
           try {
+            lease = await this.library.prepareEnvironmentProject(document, {
+              projectDirectory: seed?.directory ?? join(workspace.root, 'environments', environmentId),
+              signal,
+              offline: input.allowDownload !== true,
+              onProgress,
+            })
             return safeInstallation(
               await workspace.prepareEnvironment(
                 {
@@ -204,7 +317,8 @@ export class LocalEnvironments {
               ),
             )
           } finally {
-            await lease.release()
+            await lease?.release()
+            await seed?.release()
           }
         })
       }
@@ -216,15 +330,56 @@ export class LocalEnvironments {
         if (input.installationId === this.#selectedId) throw fail('ENVIRONMENT_IN_USE', '请先切换本地使用的环境')
         await workspace.clearInstallation(input.installationId)
         return { deleted: true }
-      case 'references':
-        return {
-          references: [
-            ...(input.installationId === this.#selectedId ? [{ kind: 'local-selection', owner: '本地使用' }] : []),
-            ...(await workspace.references(input.installationId)),
-          ],
-        }
+      case 'save-member':
+      case 'use-member': {
+        return this.start('environment.' + input.action, async signal => {
+          const origin = this.#source(workspace, input.environmentId)
+          const source = await origin.workspace.acquire(origin.id, 'share-member')
+          try {
+            const member = source.members?.find(item => item.name === input.name)
+            if (!member?.archiveIntegrity || member.archiveIntegrity !== input.integrity)
+              throw fail('REVISION_CONFLICT', '内容包已更改，请重新选择')
+            if (input.action === 'save-member')
+              return { packageId: await this.library.saveEnvironmentMember(source.directory, input.name, signal) }
+            if (input.targetId === input.environmentId) throw fail('INVALID_REQUEST')
+            const target = await workspace.getDraft(input.targetId)
+            if (target.revision !== input.expectedRevision) throw fail('REVISION_CONFLICT')
+            const directory = join(workspace.root, 'staging', 'member-' + randomUUID())
+            await mkdir(directory)
+            try {
+              const targetDirectory = join(workspace.root, 'environments', input.targetId)
+              const { archive } = await this.library.copyMember(
+                source.directory,
+                input.name,
+                targetDirectory,
+                directory,
+                signal,
+              )
+              const document = {
+                ...target.document,
+                packages: { ...target.document.packages, [input.name]: 'file:' + archive },
+                sources: target.document.sources.filter(name => name !== input.name),
+              }
+              return safeInstallation(
+                await workspace.prepareEnvironment(
+                  { environmentId: input.targetId, document, expectedRevision: target.revision, directory, signal },
+                  this.validate,
+                ),
+              )
+            } finally {
+              await rm(directory, { recursive: true, force: true })
+            }
+          } finally {
+            await source.release()
+          }
+        })
+      }
+      case 'export-preview':
+        return source.workspace.previewEnvironmentExport(source.id)
+      case 'import-preview':
+        return workspace.missingEnvironmentArchives(input.probe)
       case 'export':
-        return workspace.exportEnvironment(input.installationId)
+        return source.workspace.exportEnvironment(source.id, input.mode)
       case 'cancel': {
         const job = this.#jobs.get(input.operationId)
         if (!job) throw fail('OPERATION_NOT_FOUND')
@@ -252,7 +407,12 @@ export class LocalEnvironments {
           safeInstallation(
             await workspace.importEnvironment(
               input.bundle,
-              { environmentId: input.environmentId, expectedRevision: null, signal },
+              {
+                environmentId: input.environmentId,
+                expectedRevision: null,
+                signal,
+                allowDownload: input.allowDownload === true,
+              },
               this.validate,
             ),
           ),

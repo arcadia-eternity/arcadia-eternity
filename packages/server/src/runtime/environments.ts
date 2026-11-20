@@ -1,6 +1,7 @@
-import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
-import { buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
-import { createHash, randomUUID } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
+import { prepareRulesForContent, validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
+import { buildDisplayCatalog, buildDisplayLocales, gameplayIdentity } from '@arcadia-eternity/pack-loader/native'
+import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
   emptyNpmContentHost,
@@ -13,6 +14,7 @@ import { createServerRuntime, loadServerBase, type ServerRuntime } from './nativ
 
 interface Environment {
   runtime: ServerRuntime
+  data: PreparedNpmEnvironment['data']
   descriptor: ServerEnvironmentDescriptor
   content: ServerEnvironmentContent
   thirdParty?: boolean
@@ -45,6 +47,7 @@ export interface EnvironmentLease {
   readonly admissionKey?: string
   readonly runtime: ServerRuntime
   readonly descriptor: ServerEnvironmentDescriptor
+  readonly legacyBuiltinAcceptance?: boolean
   readonly isNpm: boolean
   readonly executionPolicy?: 'server' | 'peer'
   readonly rules?: EnvironmentAdmissionRules
@@ -55,7 +58,7 @@ export class EnvironmentError extends Error {
     super(code)
   }
 }
-const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
+const digest = (value: unknown) => sha256Hex(JSON.stringify(value))
 
 /** Local administrator API. Public HTTP/socket clients can only select prepared entries. */
 export class ServerEnvironmentRegistry {
@@ -192,6 +195,7 @@ export class ServerEnvironmentRegistry {
     }
     this.publish({
       runtime,
+      data: prepared.data,
       descriptor,
       content,
       ...options,
@@ -205,6 +209,10 @@ export class ServerEnvironmentRegistry {
   retainedIds(): string[] {
     return [...new Set([...this.entries.keys(), ...this.disposingIds])]
   }
+  /** Resolve admission against the same captured catalog that the room host will use. */
+  prepareRules(runtimeId: string, declaration: unknown) {
+    return prepareRulesForContent(declaration, this.entry(runtimeId).data)
+  }
   /** Atomically replace admission policy; removing publication never invalidates existing leases. */
   setPublication(entries: readonly EnvironmentPublication[], defaultRuntimeId?: string): void {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
@@ -214,7 +222,7 @@ export class ServerEnvironmentRegistry {
       if (entry.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
       let rules: EnvironmentAdmissionRules
       try {
-        rules = validateEnvironmentRules(publication.rules)
+        rules = this.prepareRules(publication.runtimeId, publication.rules).rules
       } catch (error) {
         const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined
         throw new EnvironmentError(code === 'ENVIRONMENT_RULES_UNSUPPORTED' ? code : 'ENVIRONMENT_RULES_INVALID')
@@ -253,15 +261,31 @@ export class ServerEnvironmentRegistry {
       )
       .map(entry => ({
         ...this.publicDescriptor(entry),
+        matchmakingEnabled: this.publication?.get(entry.descriptor.id)?.matchmaking ?? true,
         ...(entry.descriptor.id === this.defaultId && { isDefault: true }),
       }))
   }
   private publicDescriptor(entry: PublishedEnvironment): ServerEnvironmentDescriptor {
     const descriptor = structuredClone(entry.descriptor)
-    const policy = this.publication?.get(entry.descriptor.id)?.executionPolicy
+    const publication = this.publication?.get(entry.descriptor.id)
+    const policy = publication?.executionPolicy
+    const rules = structuredClone(publication?.rules ?? entry.runtime.defaultRules ?? { schemaVersion: 1 as const })
+    const gameplayRevision = sha256Hex(
+      gameplayIdentity(
+        descriptor.runtime,
+        entry.runtime.sandbox?.revision ?? descriptor.runtime.contentRevision,
+        rules,
+      ),
+    )
     const peerRevision = (entry.bundled || this.peerMaterialIds.has(descriptor.id)) && entry.runtime.sandbox?.revision
     return {
       ...descriptor,
+      gameplayRevision,
+      ...(publication?.environmentId && {
+        environmentId: publication.environmentId,
+        environmentName: publication.environmentName,
+      }),
+      rules,
       ...(policy ? { executionPolicy: policy } : {}),
       ...(peerRevision ? { peerRevision } : {}),
     }
@@ -358,9 +382,10 @@ export class ServerEnvironmentRegistry {
         executionPolicy: publication?.executionPolicy,
       }),
       descriptor: this.publicDescriptor(entry),
+      legacyBuiltinAcceptance: !publication && entry.descriptor.id === this.builtinId,
       isNpm: !entry.bundled,
       ...(publication ? { executionPolicy: publication.executionPolicy ?? 'server' } : {}),
-      ...(publication?.rules ? { rules: structuredClone(publication.rules) } : {}),
+      rules: structuredClone(publication?.rules ?? entry.runtime.defaultRules),
       release: async () => {
         if (released) return
         released = true

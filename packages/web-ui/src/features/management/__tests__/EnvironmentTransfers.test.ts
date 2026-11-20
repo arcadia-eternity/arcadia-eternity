@@ -1,6 +1,7 @@
 import { ElSelect, ElOption } from 'element-plus'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { dismissedExportRecords } from '../exportRecords'
 import EnvironmentTransfers from '../EnvironmentTransfers.vue'
 import type { ManagedEnvironmentInstallation, ManagementOperation } from '@/types/management'
 
@@ -61,6 +62,7 @@ async function choose(page: VueWrapper, content: unknown = bundle()) {
   await flushPromises()
 }
 afterEach(() => {
+  dismissedExportRecords.clear()
   pages.splice(0).forEach(page => page.unmount())
   vi.restoreAllMocks()
 })
@@ -79,6 +81,82 @@ describe('environment transfers', () => {
     ])
     await button(page, '取消导入').trigger('click')
     expect(page.find('.import-preview').exists()).toBe(false)
+  })
+
+  it('accepts host-base exports and ignores base download prompts in old exports', async () => {
+    const page = open()
+    for (const input of [
+      { ...bundle(), format: 'arcadia.environment-export/4', archives: [] },
+      {
+        ...bundle(),
+        format: 'arcadia.environment-export/3',
+        archives: [
+          {
+            location: 'node_modules/@arcadia-eternity/data-pack-base',
+            external: {
+              name: '@arcadia-eternity/data-pack-base',
+              version: '0.0.1',
+              integrity: 'sha512-old',
+              manual: true,
+            },
+          },
+        ],
+      },
+    ]) {
+      await choose(page, input)
+      expect(page.find('input[aria-label^="补充"]').exists()).toBe(false)
+      expect(button(page, '确认导入新环境').attributes('disabled')).toBeUndefined()
+      await page.get('form[aria-label="导入环境"]').trigger('submit')
+      expect(page.emitted('import')?.at(-1)?.[0]).toMatchObject({ bundle: input })
+    }
+  })
+
+  it('includes the selected private archive in the confirmed import and only downloads by explicit choice', async () => {
+    const page = open()
+    const input = {
+      ...bundle(),
+      format: 'arcadia.environment-export/3',
+      archives: [
+        { external: { name: '@author/private', version: '1.0.0', integrity: 'sha512-test', manual: true } },
+        { external: { name: 'public', version: '1.0.0', integrity: 'sha512-public', manual: false } },
+      ],
+    }
+    await choose(page, input)
+    expect(page.text()).toContain('@author/private@1.0.0')
+    const archive = page.get('input[aria-label="补充 @author/private"]')
+    Object.defineProperty(archive.element, 'files', { configurable: true, value: [new File(['abc'], 'private.tgz')] })
+    await archive.trigger('change')
+    await vi.waitFor(() => expect(button(page, '确认导入新环境').attributes('disabled')).toBeUndefined())
+    await page.get('form[aria-label="导入环境"]').trigger('submit')
+    expect(page.emitted('import')?.[0]).toEqual([
+      {
+        bundle: { ...input, suppliedArchives: { 'sha512-test': 'YWJj' } },
+        allowDownload: false,
+        expectedRevision: null,
+      },
+    ])
+  })
+
+  it('only asks for missing archives on the selected receiving workspace', async () => {
+    const archives = [false, true].map(manual => ({
+      external: {
+        name: manual ? 'saved' : 'needed',
+        version: '1.0.0',
+        integrity: manual ? 'saved' : 'missing',
+        manual,
+      },
+    }))
+    const lock = { path: 'package-lock.json', data: 'e30=' }
+    const checkArchives = vi.fn().mockResolvedValue(['missing'])
+    const page = open({ checkArchives })
+    await choose(page, { ...bundle(), format: 'arcadia.environment-export/3', files: [lock], archives })
+    expect(checkArchives).toHaveBeenCalledWith({ lock, archives })
+    expect(page.find('input[aria-label="补充 saved"]').exists()).toBe(false)
+    expect(page.text()).toContain('下载缺失的 1 个公共依赖')
+    expect(button(page, '确认导入新环境').attributes('disabled')).toBeDefined()
+    await page.get('input[type=checkbox]').setValue(true)
+    await page.get('form[aria-label="导入环境"]').trigger('submit')
+    expect(page.emitted('import')?.[0]?.[0]).toMatchObject({ allowDownload: true })
   })
 
   it('rejects malformed JSON and unrelated JSON without retaining previous pending imports', async () => {
@@ -162,4 +240,20 @@ describe('environment transfers', () => {
     expect(page.emitted('import')).toBeUndefined()
     expect(page.emitted('export')).toBeUndefined()
   })
+})
+
+it('clears completed export records while keeping running exports', async () => {
+  const completed = exportTask()
+  const running = { ...exportTask(), id: 'running-export', status: 'running' as const, result: undefined }
+  const page = open({ operations: [completed, running], mode: 'results' })
+  await button(page, '清空已完成记录').trigger('click')
+  expect(page.text()).not.toContain('environment-friends.json')
+  expect(page.text()).toContain('导出中')
+  const reopened = open({ operations: [completed, running], mode: 'results' })
+  expect(reopened.text()).not.toContain('environment-friends.json')
+  expect(reopened.text()).toContain('导出中')
+  expect(button(page, '清空已完成记录').attributes('disabled')).toBeDefined()
+  await page.setProps({ operations: [completed, { ...running, status: 'succeeded' }] })
+  await page.get('[aria-label="移除导出记录"]').trigger('click')
+  expect(page.find('[aria-label="导出任务"]').exists()).toBe(false)
 })

@@ -46,7 +46,9 @@ test(
     )
     await writeFile(
       join(userData, 'ugc/state/projects.json'),
-      JSON.stringify([{ id: 'yaml', name: 'YAML test', directory: await realpath(project) }]),
+      JSON.stringify([
+        { id: 'yaml', name: 'YAML test', readOnly: false, published: false, directory: await realpath(project) },
+      ]),
     )
     const entry = join(root, 'entry.mjs')
     const main = fileURLToPath(new URL('../main.mjs', import.meta.url))
@@ -62,9 +64,10 @@ test(
       app = await _electron.launch({ executablePath: require('electron'), args: [entry], env })
       page = await app.firstWindow()
       page.setDefaultTimeout(15000)
-      await page.goto(origin + '/content/edit')
+      await page.goto(origin + '/creation/edit')
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
-      await page.locator('.project-settings select').first().selectOption('yaml')
+      await page.getByRole('combobox', { name: '项目', exact: true }).selectOption('yaml')
+      await page.getByRole('navigation', { name: '项目视图' }).getByRole('link', { name: '内容编辑' }).click()
       await page.locator('nav').getByRole('button', { name: /^印记/ }).click()
       await page.locator('.content-card').filter({ hasText: 'second' }).click()
       const duration = page.getByLabel('持续回合（-1 为无限）', { exact: true })
@@ -109,7 +112,7 @@ test(
       await rename(file, moved)
       await page.getByRole('button', { name: '核对外部变化', exact: true }).click()
       await expect(page.getByText('对象的来源位置已改变。完成核对后，草稿将使用新的位置。')).toBeVisible()
-      await page.getByLabel('这一项保留哪个值？').selectOption('draft')
+      await page.getByText('使用我的草稿', { exact: true }).click()
       await page.getByRole('button', { name: '按选择更新草稿', exact: true }).click()
       assert.match(await readFile(moved, 'utf8'), /duration: 9/)
       await save()

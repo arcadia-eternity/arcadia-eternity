@@ -21,7 +21,7 @@ export interface NativeWebPlayer {
 }
 export type NativeWebBattleConfig = Pick<
   NonNullable<BattleOptions>,
-  'rngSeed' | 'allowFaintSwitch' | 'showHidden' | 'timerConfig'
+  'rngSeed' | 'skillParameters' | 'matchups' | 'enhancementActive' | 'allowFaintSwitch' | 'showHidden' | 'timerConfig'
 > &
   NativeBattleHostOptions & {
     ai?: { enabled?: boolean; players?: readonly ('playerA' | 'playerB')[] }
@@ -46,6 +46,7 @@ export async function createSandboxWebBattleSession(
   _dataStore: NativeGameDataStoreLike,
   config: NativeWebBattleConfig = {},
   signal?: AbortSignal,
+  onFault?: () => void,
 ): Promise<{ system: WebBattleHost; data: ContentPrototypeData }> {
   signal?.throwIfAborted()
   const copy = <T>(value: T): T => JSON.parse(JSON.stringify(toRaw(value))) as T
@@ -67,6 +68,9 @@ export async function createSandboxWebBattleSession(
       aiPlayerIds: teams.filter((_, index) => ai.has(index === 0 ? 'playerA' : 'playerB')).map(player => player.id),
       options: {
         rngSeed: options.rngSeed,
+        skillParameters: options.skillParameters,
+        matchups: options.matchups,
+        enhancementActive: options.enhancementActive,
         allowFaintSwitch: options.allowFaintSwitch,
         showHidden: options.showHidden,
         timerConfig: options.timerConfig,
@@ -75,5 +79,9 @@ export async function createSandboxWebBattleSession(
     },
     signal,
   )
+  if (onFault)
+    system.onClosed(() => {
+      if (!signal?.aborted && system.status().state === 'faulted') onFault()
+    })
   return { system, data }
 }

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex } from '../packages/const/src/sha256.ts'
 import { readFileSync } from 'node:fs'
 import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -288,7 +288,7 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
 
   async function preserve(file, source) {
     const data = await regularFile(file)
-    const digest = createHash('sha256').update(data).digest('hex')
+    const digest = sha256Hex(data)
     const destination = `licenses/${digest}.txt`
     if (!copied.has(digest)) {
       try {
@@ -377,9 +377,7 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
           isAbsolute(matched.publishedPath) ||
           !inside(path, published) ||
           !inside(path, await realpath(published)) ||
-          createHash('sha256')
-            .update(await regularFile(published))
-            .digest('hex') !== matched.sha256
+          sha256Hex(await regularFile(published)) !== matched.sha256
         )
           throw new Error('Published package differs from the reviewed upstream source match')
       }
@@ -397,8 +395,7 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
         if (!inside(await realpath(supplementalRoot), await realpath(source)))
           throw new Error('Supplemental license source escapes references')
         const bytes = await regularFile(source)
-        if (createHash('sha256').update(bytes).digest('hex') !== file.sha256)
-          throw new Error('Supplemental license bytes differ from provenance')
+        if (sha256Hex(bytes) !== file.sha256) throw new Error('Supplemental license bytes differ from provenance')
         const recognized =
           supplement.status === 'verified' && file.kind === 'license' && typeof file.license === 'string'
             ? [file.license]

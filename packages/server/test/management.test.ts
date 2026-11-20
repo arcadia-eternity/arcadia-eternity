@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { openStorage, type DurableStorage } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { createSingleProcessApp } from '../src/runtime/app'
-import { createNpmFixture, shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
+import { createNpmFixture, shippedCatalogMembers, shippedCatalogRoot, stageShippedCatalog } from './fixtures/npm'
 import type { Binding } from '../src/runtime/management/service'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 
@@ -45,6 +45,7 @@ async function setup(project?: string, allowThirdPartyExecution = true) {
   const workspace: ContentWorkspace = await ContentWorkspace.open(join(directory, 'workspace'), {
     retentions: workspaceRetentions(storage, () => workspace.workspaceId),
     resolveProject: () => project,
+    bundledPackageRoot: shippedCatalogRoot,
   })
   cleanups.push(() => workspace.close())
   const make = () =>
@@ -387,10 +388,12 @@ describe('unified management HTTP and durable environment publication', () => {
     const preparation = await completed(env.storage, prepared.body.id)
     expect(preparation.status).toBe('succeeded')
     const installationId = (preparation.result as { installationId: string }).installationId
+    const preview = await env.request(`${base}/installations/${installationId}/export-preview`)
+    expect(preview.body).toEqual({ revision: expect.any(String), dependencies: [] })
     const exported = await env.request(
       `${base}/installations/${installationId}/export`,
       'POST',
-      {},
+      { mode: { revision: preview.body.revision, locations: [] } },
       { 'Idempotency-Key': 'export-file' },
     )
     expect(exported.response.status).toBe(202)
@@ -402,6 +405,14 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(downloaded.response.status).toBe(200)
     expect(downloaded.response.headers.get('content-disposition')).toContain('attachment')
     expect(JSON.stringify(downloaded.body)).not.toContain(project)
+    const missing = await env.request(base + '/import-preview', 'POST', {
+      probe: {
+        lock: downloaded.body.files.find((file: { path: string }) => file.path === 'package-lock.json'),
+        archives: [],
+      },
+    })
+    expect(missing.response.status).toBe(200)
+    expect(missing.body).toEqual([])
     const imported = await env.request(
       base + '/import',
       'POST',
@@ -412,7 +423,7 @@ describe('unified management HTTP and durable environment publication', () => {
     const importOperation = await completed(env.storage, imported.body.id)
     expect(importOperation.status, JSON.stringify(importOperation)).toBe('succeeded')
     expect((importOperation.result as { environmentId: string }).environmentId).toBe('copied')
-    expect((await env.request(`${base}/installations/${installationId}/references`)).body.references).toEqual([])
+    expect((await env.request(`${base}/installations/${installationId}/references`)).response.status).toBe(404)
   }, 30000)
 
   it('keeps unauthorized tokens out of mutation and refuses content publication on an official-policy host', async () => {

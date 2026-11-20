@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { enterLocalServer } from '@/services/serverNavigation'
 import type { LocalServerConfiguration, LocalServerRequest, LocalServerSnapshot } from '@/types/localServer'
 
 export const useLocalServerStore = defineStore('localServer', () => {
@@ -8,7 +9,6 @@ export const useLocalServerStore = defineStore('localServer', () => {
     name: '我的服务器',
     scope: 'lan',
     port: 8102,
-    content: 'official',
   })
   const error = ref('')
   const pending = ref(false)
@@ -42,6 +42,9 @@ export const useLocalServerStore = defineStore('localServer', () => {
       ++sequence
       snapshot.value = result
       if (result.error) throw new Error(result.error.message)
+      if ((input.action === 'start' || input.action === 'start-project') && result.host.status === 'running') {
+        await enterLocalServer()
+      }
       return result
     } catch (cause) {
       error.value = cause instanceof Error ? cause.message : '服务器操作失败'

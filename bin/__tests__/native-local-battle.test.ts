@@ -74,7 +74,7 @@ it('runs the actual local command with native content, two AIs and strict valida
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-native-cli-'))
   directories.push(directory)
   const player = drafts()[0]
-  player.team = [{ ...player.team[0], skills: ['skill_paida'], maxHp: 25 }]
+  player.team = [{ ...player.team[0], skills: ['skill_zhuangji'], maxHp: 25 }]
   const file = join(directory, 'player.json')
   await writeFile(file, JSON.stringify(player))
   const { stdout } = await promisify(execFile)(

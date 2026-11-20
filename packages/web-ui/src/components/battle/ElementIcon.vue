@@ -36,6 +36,7 @@ const elementIndexMap: Record<Element, number> = {
 
 const iconUrl = computed(() => {
   const index = elementIndexMap[props.element]
+  if (index === undefined) return undefined
   return officialAssetUrl(`https://seer2-resource.yuuinih.com/png/petElementIcon/${index}.png`)
 })
 
@@ -50,7 +51,8 @@ const iconSizeStyle = computed(() => {
 </script>
 
 <template>
-  <img :src="iconUrl" :alt="element" class="element-icon" :style="iconSizeStyle" />
+  <img v-if="iconUrl" :src="iconUrl" :alt="element" class="element-icon" :style="iconSizeStyle" />
+  <span v-else class="element-icon" :title="element" :style="iconSizeStyle">{{ element }}</span>
 </template>
 
 <style scoped>

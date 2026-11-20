@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElRadioGroup, ElRadio } from 'element-plus'
 import { computed } from 'vue'
 import type { AuthorDraft } from './drafts'
 import { decisionKey } from './drafts'
@@ -70,19 +71,18 @@ const rows = computed(() =>
             </p>
           </div>
         </div>
-        <label v-if="mode === 'conflict'"
-          >这一项保留哪个值？<select
-            :disabled="!draft.latest"
-            :value="choices[decisionKey(draft, field)] ?? ''"
-            @change="emit('choose', decisionKey(draft, field), ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">请选择</option>
-            <option value="draft" :disabled="!!draft.latest && sharedAt(draft.latest.sharedFields, field.path)">
-              使用我的草稿
-            </option>
-            <option value="latest">使用外部最新值</option>
-          </select></label
+        <ElRadioGroup
+          v-if="mode === 'conflict'"
+          aria-label="这一项保留哪个值？"
+          :disabled="!draft.latest"
+          :model-value="choices[decisionKey(draft, field)]"
+          @update:model-value="emit('choose', decisionKey(draft, field), String($event))"
         >
+          <ElRadio value="draft" :disabled="!!draft.latest && sharedAt(draft.latest.sharedFields, field.path)"
+            >使用我的草稿</ElRadio
+          >
+          <ElRadio value="latest">使用外部最新值</ElRadio>
+        </ElRadioGroup>
         <p v-if="mode === 'conflict' && draft.latest && sharedAt(draft.latest.sharedFields, field.path)" class="hint">
           此字段现在属于共享配置，需采用外部值；共享定义请在外部修改。
         </p>

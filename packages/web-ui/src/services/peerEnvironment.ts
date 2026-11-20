@@ -1,6 +1,14 @@
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { digestJson } from '@arcadia-eternity/pack-loader/native'
+import {
+  readSkillParameterCatalog,
+  resolveSkillParameters,
+  requireElementChart,
+  readElementCatalog,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
 import { Value } from '@sinclair/typebox/value'
 import { MarkSchema, SkillSchema, SpeciesSchema } from '@arcadia-eternity/schema'
 import { environmentServerUrl, prepareServerEnvironment } from './serverEnvironment'
@@ -39,7 +47,20 @@ export async function validatePeerMaterials(
     !exact(environment, ['revision', 'data', 'modules']) ||
     environment.revision !== descriptor.peerRevision ||
     !record(environment.data) ||
-    !exact(environment.data, ['species', 'skills', 'marks', 'behaviors']) ||
+    !exact(environment.data, [
+      'species',
+      'skills',
+      'marks',
+      'behaviors',
+      'natures',
+      'enhancements',
+      'elements',
+      'parameterGroups',
+      'parameterProfiles',
+      'parameterBindings',
+      'ruleSets',
+      'matchupTables',
+    ]) ||
     !Array.isArray(environment.modules) ||
     environment.modules.length > 32
   )
@@ -60,6 +81,14 @@ export async function validatePeerMaterials(
       if (!Value.Check(schema, Value.Default(schema, structuredClone(row)))) invalid()
       ids.add(row.id)
     }
+  }
+  if (data.enhancements !== undefined) {
+    if (!Array.isArray(data.enhancements)) invalid()
+    readEnhancementStages(data.enhancements)
+  }
+  if (data.natures !== undefined) {
+    if (!Array.isArray(data.natures)) invalid()
+    readNatureCatalog(data.natures)
   }
   if (data.behaviors !== undefined && !Array.isArray(data.behaviors)) invalid()
   const packages = new Set<string>()
@@ -137,6 +166,35 @@ export async function preparePeerEnvironment(
     const ids = new Set(environment.data[kind].map(raw => (raw as { id: string }).id))
     if (ids.size !== display.content[kind].length || display.content[kind].some(row => !ids.has(row.id))) invalid()
   }
+  if (
+    environment.data.elements !== undefined ||
+    environment.data.matchupTables !== undefined ||
+    display.content.elements !== undefined ||
+    display.content.matchupTables !== undefined
+  ) {
+    if (
+      (await digestJson(readElementCatalog(environment.data))) !==
+      (await digestJson(readElementCatalog(display.content)))
+    )
+      invalid()
+  }
+  const parameters = readSkillParameterCatalog(environment.data)
+  if (
+    (await digestJson(parameters)) !==
+    (await digestJson(display.content.skillParameters ?? { groups: [], profiles: [], members: [] }))
+  )
+    invalid()
+  resolveSkillParameters(parameters, descriptor.rules?.skillParameters)
+  requireElementChart(environment.data, descriptor.rules?.matchups)
+  if (
+    (await digestJson(environment.data.enhancements ?? [])) !== (await digestJson(display.content.enhancements ?? []))
+  )
+    invalid()
+  if (
+    (await digestJson(readNatureCatalog(environment.data.natures))) !==
+    (await digestJson(readNatureCatalog(display.content.natures)))
+  )
+    invalid()
   signal?.throwIfAborted()
   return {
     ...display,

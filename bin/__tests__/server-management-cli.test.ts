@@ -241,7 +241,18 @@ it('bootstraps playable builtin content once and preserves administrator removal
     ...pet,
     skills: ['skill_paida', 'skill_shuipao'],
   }))
-  await accepted(socket, 'joinMatchmaking', { playerSchema: { team } })
+  const [environment] = environments
+  await accepted(socket, 'joinMatchmaking', {
+    playerSchema: { team },
+    environmentId: environment.id,
+    environment: {
+      environmentId: environment.id,
+      protocolVersion: 1,
+      gameplayRevision: environment.gameplayRevision,
+      resourceRevision: environment.resourceRevision,
+      resourcesReady: true,
+    },
+  })
   expect(await accepted(socket, 'getServerState')).toMatchObject({ matchmakingQueue: 1 })
   await accepted(socket, 'cancelMatchmaking')
   expect(await accepted(socket, 'getServerState')).toMatchObject({ matchmakingQueue: 0 })
@@ -317,6 +328,7 @@ it('refreshes stale builtin content after a release without changing administrat
 
   const manifestFile = join(directory, 'workspace', 'environments', binding.environmentId, 'package.json')
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'))
+  manifest.arcadiaEnvironment.rules = { schemaVersion: 1 }
   manifest.dependencies['@arcadia-eternity/data-pack-base'] = '0.0.0-stale'
   await writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n')
 
@@ -327,6 +339,11 @@ it('refreshes stale builtin content after a release without changing administrat
     runtime: { contentRevision: string }
   }
   expect(environments[0].runtime.contentRevision).toBe(info.runtime.contentRevision)
+  expect(environments[0].rules?.mechanics?.inheritance?.eligible).toBe('species')
+  expect(JSON.parse(await readFile(manifestFile, 'utf8')).arcadiaEnvironment.rules).toEqual({
+    schemaVersion: 2,
+    include: ['base:classic'],
+  })
 
   request = await administrator(running.origin, directory)
   server = (await request<{ servers: Server[] }>('/servers')).servers[0]
@@ -443,14 +460,25 @@ it('applies the bundled base from local files even when the registry is unreacha
   const request = await administrator(running.origin, directory)
   const server = (await request<{ servers: Server[] }>('/servers')).servers[0]
   const path = `/workspaces/${server.workspaceId}/environments`
-  const before = await request<{ environments: { document: Record<string, unknown>; revision: string }[] }>(path)
-  const draft = before.environments[0]
+  const before = await request<{ environments: { builtin?: boolean; document: { id: string }; revision: string }[] }>(
+    path,
+  )
+  const builtin = before.environments.find(env => env.builtin)!
+  const custom = { ...builtin.document, id: 'local-base', name: '本地基础包' }
+  const rejected = await request(
+    path + '/apply',
+    'POST',
+    { document: { ...builtin.document, name: custom.name }, expectedRevision: builtin.revision },
+    undefined,
+    409,
+  )
+  expect(rejected).toMatchObject({ error: { code: 'BUILTIN_ENVIRONMENT_READ_ONLY' } })
   const operation = await request<{ id: string }>(
     path + '/apply',
     'POST',
     {
-      document: { ...draft.document, name: '本地基础包' },
-      expectedRevision: draft.revision,
+      document: custom,
+      expectedRevision: null,
     },
     undefined,
     202,
@@ -458,8 +486,9 @@ it('applies the bundled base from local files even when the registry is unreacha
   await expect
     .poll(async () => (await request<{ status: string }>(`/operations/${operation.id}`)).status, { timeout: 30_000 })
     .toBe('succeeded')
-  const after = await request<{ environments: { document: { name: string } }[] }>(path)
-  expect(after.environments[0].document.name).toBe('本地基础包')
+  const after = await request<typeof before>(path)
+  expect(after.environments).toContainEqual(builtin)
+  expect(after.environments.find(env => env.document.id === custom.id)?.document).toEqual(custom)
   expect(await catalog(running.origin)).toHaveLength(1)
 }, 90_000)
 

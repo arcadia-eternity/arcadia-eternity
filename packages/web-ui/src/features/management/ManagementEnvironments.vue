@@ -2,11 +2,15 @@
 import { ref } from 'vue'
 import { ElButton } from 'element-plus'
 import type { ManagementController } from './useManagementController'
-import EnvironmentWorkspace from './EnvironmentWorkspace.vue'
+import EnvironmentWorkspace, { type EnvironmentNavigation } from './EnvironmentWorkspace.vue'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import EnvironmentServerUsage from './EnvironmentServerUsage.vue'
 import EnvironmentImportDialog from './EnvironmentImportDialog.vue'
-const { controller } = defineProps<{ controller: ManagementController }>()
+const { controller, navigation } = defineProps<{
+  controller: ManagementController
+  navigation?: EnvironmentNavigation
+}>()
+const emit = defineEmits<{ navigate: [key: string] }>()
 const {
   state,
   error,
@@ -17,8 +21,6 @@ const {
   busy,
   isAdministrator,
   environmentSaveSequence,
-  referenceEnvironment,
-  environmentReferences,
   downloading,
   workspacePath,
   encode,
@@ -26,7 +28,8 @@ const {
   saveEnvironment,
   deleteEnvironment,
   useEnvironment,
-  inspectReferences,
+  previewExport,
+  checkArchives,
   exportEnvironment,
   importEnvironment,
   downloadEnvironment,
@@ -40,8 +43,11 @@ function openImport() {
 <template>
   <EnvironmentWorkspace
     v-if="supported('workspace.environments')"
-    heading="服务器环境库"
+    :heading="navigation ? '本机环境库' : '服务器环境库'"
+    :navigation="navigation"
+    @navigate="emit('navigate', $event)"
     :key="client?.context.endpoint"
+    :preview-export="previewExport"
     :environments="environments"
     :installations="installations"
     :can-export="isAdministrator && supported('workspace.transfers')"
@@ -64,11 +70,10 @@ function openImport() {
     "
     @delete-draft="deleteEnvironment"
     @use="useEnvironment"
-    @references="inspectReferences"
     @delete="version => state.mutate('DELETE', `${workspacePath}/installations/${encode(version.installationId)}`)"
   >
     <template #toolbar
-      ><ElButton v-if="supported('workspace.transfers')" :disabled="busy" @click="openImport"
+      ><slot name="toolbar" /><ElButton v-if="supported('workspace.transfers')" :disabled="busy" @click="openImport"
         >导入环境</ElButton
       ></template
     >
@@ -79,23 +84,9 @@ function openImport() {
         :environment-id="environment.document.id"
     /></template>
   </EnvironmentWorkspace>
-  <section v-if="referenceEnvironment" aria-label="环境引用" class="message">
-    <h3>环境引用</h3>
-    <p>
-      <code>{{ referenceEnvironment }}</code>
-    </p>
-    <p v-if="!environmentReferences.length">无环境引用</p>
-    <template v-else>
-      <p>以下使用方仍保留此环境。解除绑定或等待正在使用的对局结束后，才可以删除。</p>
-      <p v-for="(reference, index) in environmentReferences" :key="index">
-        {{ reference.kind === 'runtime' ? '正在使用' : '持久引用' }} ·
-        {{ reference.serverId ?? reference.owner ?? reference.id ?? reference.retentionId
-        }}<span v-if="reference.bindingId"> · 绑定 {{ reference.bindingId }}</span>
-      </p>
-    </template>
-    <ElButton @click="referenceEnvironment = ''" native-type="button">关闭引用</ElButton>
-  </section>
   <EnvironmentImportDialog
+    :key="client?.context.endpoint"
+    :check-archives="checkArchives"
     v-model="importing"
     :busy="busy"
     :error="error"

@@ -55,13 +55,14 @@ async function fixture(t) {
     return { contentRevision: 'test:static', packages: [{ name: 'sample', version: '1.0.0' }] }
   }
   const instances = []
-  const open = () => {
+  const open = (options = {}) => {
     const api = new LocalEnvironments({
       openWorkspace: () => ContentWorkspace.open(join(root, 'workspace'), { retentions: { list: async () => [] } }),
       library,
       validate,
       addPackage: addEnvironmentPackage,
       removePackage: removeEnvironmentPackage,
+      ...options,
     })
     instances.push(api)
     return api
@@ -70,7 +71,7 @@ async function fixture(t) {
     for (const api of instances) await api.close()
     await rm(root, { recursive: true, force: true })
   })
-  return { open, requests, releases, library, project }
+  return { root, validate, instances, open, requests, releases, library, project }
 }
 async function complete(api, id) {
   // Preparation includes real npm inspection, which can take seconds on CI runners.
@@ -230,11 +231,7 @@ test('migrates the working local selection once and preserves selected environme
   assert.equal((await complete(api, apply.operationId)).status, 'succeeded')
   const select = await api.request({ action: 'select', environmentId: document.id })
   assert.equal((await complete(api, select.operationId)).status, 'succeeded')
-  assert.ok(
-    (await api.request({ action: 'references', installationId: document.id })).references.some(
-      reference => reference.kind === 'local-selection',
-    ),
-  )
+  await assert.rejects(api.request({ action: 'references', installationId: document.id }), { code: 'INVALID_ACTION' })
   const next = await api.acquireProject()
   assert.equal(next.document.id, document.id)
   assert.equal(original.document.id, first.selectedEnvironmentId)
@@ -326,4 +323,74 @@ test('recovering an interrupted import archives legacy declarations before repla
     JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).arcadiaEnvironment.disabled,
     undefined,
   )
+})
+
+test('migrates the generated default to the shared installation, preserves edits and protects every write path', async t => {
+  const f = await fixture(t)
+  const id = 'desktop-host'
+  const old = 'local-' + randomUUID()
+  const edited = 'local-' + randomUUID()
+  const builtin = { ...document, id, name: '默认环境' }
+  const host = await ContentWorkspace.open(join(f.root, 'managed'))
+  f.instances.push(host)
+  let api = f.open()
+  const personal = await api.ready()
+  const prepare = (workspace, doc) =>
+    workspace.prepareEnvironment(
+      { environmentId: doc.id, document: doc, projectDirectory: f.project, expectedRevision: null },
+      f.validate,
+    )
+  await prepare(host, builtin)
+  await prepare(personal, { ...builtin, id: old })
+  await prepare(personal, { ...builtin, id: edited, name: '自定义规则' })
+  await prepare(personal, { ...builtin, name: '同 ID 的私人环境' })
+  const select = await api.request({ action: 'select', environmentId: old })
+  assert.equal((await complete(api, select.operationId)).status, 'succeeded')
+  await api.close()
+  const shared = { openBuiltin: async () => ({ workspace: host, id }) }
+  api = f.open(shared)
+  const migrated = await api.snapshot()
+  assert.equal(migrated.selectedEnvironmentId, id)
+  assert.deepEqual(
+    migrated.environments.filter(item => item.builtin).map(item => item.document.id),
+    [id],
+  )
+  assert.equal(migrated.environments.length, 3)
+  const privateCopy = migrated.environments.find(item => item.document.name === '同 ID 的私人环境').document.id
+  assert.notEqual(privateCopy, id)
+  const listed = await (await api.hostingWorkspace()).listInstallations()
+  assert.deepEqual(listed.map(item => item.environmentId).sort(), [privateCopy, edited].sort())
+  const lease = await api.acquireProject(old)
+  assert.equal(lease.document.id, id)
+  await lease.release()
+  const bundle = await api.request({ action: 'export', installationId: old })
+  assert.equal(bundle.document.id, id)
+  for (const target of [id, old]) {
+    for (const request of [
+      { action: 'apply', document: { ...builtin, id: target, name: '新名称' } },
+      { action: 'add-package', environmentId: target },
+      { action: 'remove-package', environmentId: target },
+      { action: 'delete-draft', environmentId: target },
+      { action: 'clear-installation', installationId: target },
+      { action: 'use-member', targetId: target },
+      { action: 'import', bundle, environmentId: target },
+    ])
+      await assert.rejects(api.request(request), { code: 'BUILTIN_ENVIRONMENT_READ_ONLY' })
+  }
+  await assert.rejects(api.request({ action: 'import', bundle }), { code: 'BUILTIN_ENVIRONMENT_READ_ONLY' })
+  const copy = await api.request({
+    action: 'apply',
+    copyFrom: id,
+    document: { ...builtin, id: 'my-copy' },
+    expectedRevision: null,
+  })
+  assert.equal((await complete(api, copy.operationId)).status, 'succeeded')
+  await api.close()
+  api = f.open(shared)
+  const restored = await api.snapshot()
+  assert.deepEqual(
+    restored.environments.map(item => item.document.id).sort(),
+    [privateCopy, edited, id, 'my-copy'].sort(),
+  )
+  assert.equal(restored.selectedEnvironmentId, id)
 })

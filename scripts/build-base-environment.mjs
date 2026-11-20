@@ -1,3 +1,5 @@
+import { sha256Hex } from '../packages/const/src/sha256.ts'
+import { contentLocaleCollection } from '@arcadia-eternity/schema'
 import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { bundledNotices } from './build-battle-environment.mjs'
 import { readContentSources } from '../packages/content-dev/src/lib/content.ts'
@@ -10,6 +12,8 @@ import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import YAML from 'yaml'
 
+export const environmentRuleExamples = ['base-rules', 'test-120-rules']
+
 /** Host identity covers both the engine and the installed native content implementation. */
 export function identifyBaseEnvironmentArtifact(code, core) {
   if (core.formatVersion !== 1 || !/^[a-f0-9]{64}$/.test(core.coreBuildId))
@@ -17,12 +21,7 @@ export function identifyBaseEnvironmentArtifact(code, core) {
   return {
     formatVersion: 1,
     coreBuildId: core.coreBuildId,
-    registryBuildId: createHash('sha256')
-      .update('arcadia-base-registry/1\0')
-      .update(core.coreBuildId)
-      .update('\0')
-      .update(code)
-      .digest('hex'),
+    registryBuildId: sha256Hex('arcadia-base-registry/1\0', core.coreBuildId, '\0', code),
   }
 }
 
@@ -31,7 +30,11 @@ export async function buildBaseEnvironmentArtifact() {
   const dir = resolve(root, 'packs/base/dist')
   const sources = await readContentSources(resolve(root, 'packs/base'))
   const presentation = await buildPresentation(resolve(root, 'packs/base'), sources, { includeLocales: false })
-  await mkdir(dir, { recursive: true })
+  await mkdir(resolve(dir, 'environment'), { recursive: true })
+  for (const name of environmentRuleExamples) {
+    const source = await readFile(resolve(root, 'packs/base/environment', name + '.yaml'), 'utf8')
+    await writeFile(resolve(dir, 'environment', name + '.json'), JSON.stringify(YAML.parse(source)) + '\n')
+  }
   await writeFile(resolve(dir, 'presentation.json'), JSON.stringify(presentation, null, 2) + '\n')
   const core = JSON.parse(await readFile(resolve(root, 'packages/battle/dist/environment-build.json'), 'utf8'))
   const bundle = await rolldown({
@@ -55,10 +58,20 @@ export async function buildBaseEnvironmentArtifact() {
       `${pathToFileURL(resolve(dir, 'environment-runtime.mjs')).href}?build=${identity.registryBuildId}`
     )
     const data = Object.fromEntries(
-      ['marks', 'skills', 'species'].map(kind => [
-        kind,
-        sources.filter(source => source.kind === kind).flatMap(source => source.records),
-      ]),
+      [
+        'marks',
+        'skills',
+        'species',
+        'behaviors',
+        'natures',
+        'enhancements',
+        'elements',
+        'parameterGroups',
+        'parameterProfiles',
+        'parameterBindings',
+        'ruleSets',
+        'matchupTables',
+      ].map(kind => [kind, sources.filter(source => source.kind === kind).flatMap(source => source.records)]),
     )
     const catalog = official.createOfficialContent(data, identity.registryBuildId)
     const metadata = {
@@ -76,11 +89,10 @@ export async function buildBaseEnvironmentArtifact() {
       pathToFileURL(require.resolve('@arcadia-eternity/pack-loader/native')).href
     )
     const loaded = await new PackMetadataLoader().loadMetadata(resolve(root, 'packs/base/pack.json'))
-    const contentNamespaces = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
     const locales = Object.fromEntries(
       Object.entries(loaded.locales).map(([language, namespaces]) => [
         language,
-        Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentNamespaces.has(name))),
+        Object.fromEntries(Object.entries(namespaces).filter(([name]) => contentLocaleCollection(name))),
       ]),
     )
     const localeFiles = Object.entries(loaded.locales).map(([language, namespaces]) => ({

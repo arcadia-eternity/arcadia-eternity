@@ -43,7 +43,6 @@ import {
   BattleStatus as BattleStatusEnum,
   Category,
   DamageType,
-  ELEMENT_CHART,
   type BattleMessage,
   type BattleState,
   type BattleTeamSelection,
@@ -665,7 +664,7 @@ const getTypeEffectiveness = (skill: SkillMessage) => {
   if (!opponentActivePet || !skill.element) return 1
 
   // 从ELEMENT_CHART获取克制倍率
-  const effectiveness = ELEMENT_CHART[skill.element]?.[opponentActivePet.element]
+  const effectiveness = gameDataStore.elementMultipliers[skill.element]?.[opponentActivePet.element]
   return effectiveness !== undefined ? effectiveness : 1
 }
 
@@ -995,7 +994,7 @@ const initializeBattleResources = async () => {
     {
       id: 'background',
       label: '战斗场景',
-      required: true,
+      required: false,
       run: async () => {
         if (!background.value) throw new Error('没有可用的战斗场景')
         await new Promise<void>((resolve, reject) => {
@@ -1100,7 +1099,7 @@ const navigateToHome = async () => {
   }
   if (typeof route.query.authorPreview === 'string') {
     if (window.arcadiaAuthorPreview) window.arcadiaAuthorPreview.returnToEditor()
-    else await router.push('/content')
+    else await router.push('/creation')
     return
   }
   router.push(isLocalBattle.value ? '/local-battle' : '/')

@@ -3,7 +3,7 @@ import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import * as sdk from '@arcadia-eternity/battle/authoring'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
-import { createContentIndex, type ContentIndex } from '@arcadia-eternity/battle/engine'
+import { createContentIndex, normalizeBehaviorDefinitions, type ContentIndex } from '@arcadia-eternity/battle/engine'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
 import {
@@ -162,7 +162,10 @@ async function compileInstallation(
     ...host,
     build,
     allowedExports: [
-      ...(host.allowedExports ?? host.templates.map(def => def.implementation.exportId)),
+      ...(host.allowedExports ??
+        normalizeBehaviorDefinitions([...host.templates, ...(host.base.behaviors ?? [])]).map(
+          def => def.implementation.exportId,
+        )),
       ...contentPackages.flatMap(pkg =>
         [...codeUses.get(pkg.location)!.keys(), ...pkg.draft!.data.behaviors.map(definition => definition.id)].map(id =>
           runtimeId(pkg.manifest!.namespace, id),
@@ -172,35 +175,22 @@ async function compileInstallation(
     createContent: (data, revision) =>
       createContentIndex(data, revision, { templates: host.templates, effectIds: host.effectIds }),
   }
-  const byLocation = new Map(installation.packages.map(pkg => [pkg.location, pkg]))
+  const byName = new Map(contentPackages.map(pkg => [pkg.name, pkg]))
+  const dependenciesByName = new Map(installation.members.map(member => [member.name, member.dependencies]))
   const releases = new Map<string, WorkRelease>(),
     visiting = new Set<string>()
   const assetFiles = new Map<string, string>()
-  // npm resolves ordinary library versions. Only content registrations participate in the game dependency graph.
-  function contentDependencies(pkg: InstalledNpmPackage): InstalledNpmPackage[] {
-    const found = new Map<string, InstalledNpmPackage>(),
-      visited = new Set<string>()
-    function visit(location: string) {
-      if (visited.has(location)) return
-      visited.add(location)
-      const dep = byLocation.get(location)
-      if (!dep) fail('NPM_TREE', location, 'Dependency missing from inspected tree')
-      if (dep.manifest) {
-        found.set(location, dep)
-        return
-      }
-      for (const child of Object.values(dep.dependencies)) visit(child)
-    }
-    for (const location of Object.values(pkg.dependencies)) visit(location)
-    return [...found.values()]
-  }
   async function compile(pkg: InstalledNpmPackage): Promise<WorkRelease> {
     const existing = releases.get(pkg.location)
     if (existing) return existing
     if (visiting.has(pkg.location)) fail('DEPENDENCY_CYCLE', pkg.location, 'Content packages form a registration cycle')
     visiting.add(pkg.location)
     const dependencies: WorkRelease[] = []
-    for (const dep of contentDependencies(pkg)) dependencies.push(await compile(dep))
+    for (const name of dependenciesByName.get(pkg.name)!) {
+      const provider = byName.get(name)
+      // The official base is already part of the host.
+      if (provider) dependencies.push(await compile(provider))
+    }
     const draft = cloneJson(pkg.draft!),
       manifest = pkg.manifest!
     for (const [id, sourceKind] of codeUses.get(pkg.location)!) {

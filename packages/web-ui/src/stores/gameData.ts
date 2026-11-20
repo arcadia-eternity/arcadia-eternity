@@ -1,10 +1,21 @@
 import { officialEffectIds, officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/metadata'
-// src/stores/gameData.ts
+import {
+  readSkillParameterCatalog,
+  resolveSkillParameters,
+  type SkillParameterCatalog,
+  readElementCatalog,
+  requireElementChart,
+  readEnhancementStages,
+  type EnhancementStage,
+  readNatureCatalog,
+  legacyNatures,
+  type NatureDefinition,
+} from '@arcadia-eternity/const'
 import { defineStore } from 'pinia'
 import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
-import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
+import type { EnvironmentRules, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 import { acquireLocalContent } from '@/services/localContent'
@@ -18,6 +29,12 @@ function createMetadataLoader() {
 }
 
 interface GameDataState {
+  defaultGameplayRevision?: string
+  rules?: EnvironmentRules
+  skillParameterCatalog?: SkillParameterCatalog
+  elementCatalog: ReturnType<typeof readElementCatalog>
+  enhancements: EnhancementStage[]
+  natures: NatureDefinition[]
   species: {
     byId: Record<string, SpeciesSchemaType>
     allIds: string[] // 维护有序ID列表
@@ -38,6 +55,11 @@ interface GameDataState {
   serverFallback:
     | (Pick<
         GameDataState,
+        | 'rules'
+        | 'skillParameterCatalog'
+        | 'elementCatalog'
+        | 'enhancements'
+        | 'natures'
         | 'species'
         | 'skills'
         | 'marks'
@@ -84,6 +106,12 @@ function invalidateMetadata(store: object) {
 
 export const useGameDataStore = defineStore('gameData', {
   state: (): GameDataState => ({
+    defaultGameplayRevision: undefined,
+    rules: undefined,
+    skillParameterCatalog: undefined,
+    elementCatalog: readElementCatalog({}),
+    enhancements: [],
+    natures: legacyNatures(),
     loaded: false,
     error: null,
     species: {
@@ -108,6 +136,20 @@ export const useGameDataStore = defineStore('gameData', {
     speciesList: state => state.species.allIds.map(id => state.species.byId[id]),
     skillList: state => state.skills.allIds.map(id => state.skills.byId[id]),
     marksList: state => state.marks.allIds.map(id => state.marks.byId[id]),
+    descriptionParameters(state): Map<string, Record<string, number>> {
+      const values = new Map<string, Record<string, number>>()
+      if (!state.skillParameterCatalog) return values
+      for (const row of resolveSkillParameters(state.skillParameterCatalog, state.rules?.skillParameters)) {
+        const params = values.get(row.skill) ?? Object.create(null)
+        params[row.useId + '_' + row.parameter] = row.value
+        values.set(row.skill, params)
+      }
+      return values
+    },
+    elementMultipliers: state => requireElementChart(state.elementCatalog, state.rules?.matchups),
+    getElement: state => (id: string) => state.elementCatalog.elements.find(entry => entry.id === id),
+    getEnhancement: state => (id: string) => state.enhancements.find(entry => entry.id === id),
+    getNature: state => (id: string) => state.natures.find(entry => entry.id === id),
     getSpecies: state => (id: string) => state.species.byId[id],
     getSkill: state => (id: string) => state.skills.byId[id],
     getMark: state => (id: string) => state.marks.byId[id],
@@ -115,8 +157,13 @@ export const useGameDataStore = defineStore('gameData', {
 
   actions: {
     /** Local trial display lasts exactly as long as its battle, including failed launches. */
-    useLocalBattleContent(content: ServerEnvironmentContent): () => void {
+    useLocalBattleContent(content: ServerEnvironmentContent, rules?: EnvironmentRules, remote = false): () => void {
       const previous = {
+        rules: this.rules,
+        skillParameterCatalog: this.skillParameterCatalog,
+        elementCatalog: this.elementCatalog,
+        enhancements: this.enhancements,
+        natures: this.natures,
         species: this.species,
         skills: this.skills,
         marks: this.marks,
@@ -131,7 +178,7 @@ export const useGameDataStore = defineStore('gameData', {
       const parent = current?.displayed === this.species ? current : undefined
       const previousText = getServerContentText()
       const previousRemote = isRemoteContentActive()
-      this.applyServerEnvironment(content, { remote: false })
+      this.applyServerEnvironment(content, { remote, rules })
       const scope: LocalDisplayScope = {
         previous,
         previousText,
@@ -160,12 +207,18 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     reset() {
+      this.defaultGameplayRevision = undefined
       void localMetadataReleases
         .get(this)?.()
         .catch(error => console.warn('本地内容释放失败', error))
       localMetadataReleases.delete(this)
       invalidateMetadata(this)
       setServerContentText(null)
+      this.rules = undefined
+      this.skillParameterCatalog = undefined
+      this.elementCatalog = readElementCatalog({})
+      this.enhancements = []
+      this.natures = legacyNatures()
       this.loaded = false
       this.gameDataLoaded = false
       this.error = null
@@ -178,12 +231,20 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     /** Server room data is display-only; no native effect factory is loaded in the browser. */
-    applyServerEnvironment(content: ServerEnvironmentContent, options: { remote?: boolean } = {}) {
+    applyServerEnvironment(
+      content: ServerEnvironmentContent,
+      options: { remote?: boolean; rules?: EnvironmentRules } = {},
+    ) {
       const species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
       const skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
       const marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
       invalidateMetadata(this)
       const previous = this.serverFallback ?? {
+        rules: this.rules,
+        skillParameterCatalog: this.skillParameterCatalog,
+        elementCatalog: this.elementCatalog,
+        enhancements: this.enhancements,
+        natures: this.natures,
         species: this.species,
         skills: this.skills,
         marks: this.marks,
@@ -195,6 +256,11 @@ export const useGameDataStore = defineStore('gameData', {
         contentText: getServerContentText(),
         remoteText: isRemoteContentActive(),
       }
+      this.skillParameterCatalog = content.skillParameters
+      this.elementCatalog = readElementCatalog(content)
+      this.enhancements = readEnhancementStages(content.enhancements)
+      this.natures = readNatureCatalog(content.natures)
+      this.rules = options.rules
       this.species = species
       this.skills = skills
       this.marks = marks
@@ -212,6 +278,11 @@ export const useGameDataStore = defineStore('gameData', {
       if (!previous) return
       invalidateMetadata(this)
       setServerContentText(previous.contentText, previous.remoteText)
+      this.skillParameterCatalog = previous.skillParameterCatalog
+      this.elementCatalog = previous.elementCatalog
+      this.enhancements = previous.enhancements
+      this.natures = previous.natures
+      this.rules = previous.rules
       this.species = previous.species
       this.skills = previous.skills
       this.marks = previous.marks
@@ -246,9 +317,15 @@ export const useGameDataStore = defineStore('gameData', {
             this.marks = this.normalizeData(captured.content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
             this.nativeEffectIds = []
             this.effectMarkRelations = {}
+            this.skillParameterCatalog = captured.content.skillParameters
+            this.elementCatalog = readElementCatalog(captured.content)
+            this.enhancements = readEnhancementStages(captured.content.enhancements)
+            this.natures = readNatureCatalog(captured.content.natures)
+            this.rules = captured.rules
             this.serverFallback = null
             this.loaded = this.gameDataLoaded = true
             this.error = null
+            this.defaultGameplayRevision = captured.gameplayRevision
             const previous = localMetadataReleases.get(this)
             localMetadataReleases.set(this, captured.release)
             setServerContentText(captured.content, false)
@@ -256,11 +333,17 @@ export const useGameDataStore = defineStore('gameData', {
             return
           }
           if (hasPreparedWebEnvironment()) {
-            const { content, effectMarkRelations } = await readPreparedWebCatalog(forceReload)
+            const { content, rules, effectMarkRelations, gameplayRevision } = await readPreparedWebCatalog(forceReload)
             if (!isCurrent()) return
             this.species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
             this.skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
             this.marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
+            this.skillParameterCatalog = content.skillParameters
+            this.elementCatalog = readElementCatalog(content)
+            this.enhancements = readEnhancementStages(content.enhancements)
+            this.natures = readNatureCatalog(content.natures)
+            this.rules = rules
+            this.defaultGameplayRevision = gameplayRevision
             this.effectMarkRelations = effectMarkRelations ?? {}
             if (content.locales) setServerContentText(content, false)
             this.loaded = this.gameDataLoaded = true
@@ -336,6 +419,11 @@ export const useGameDataStore = defineStore('gameData', {
         includeLocales: false,
       })
       if (!isCurrent()) return
+      this.skillParameterCatalog = readSkillParameterCatalog(result.data)
+      this.elementCatalog = readElementCatalog(result.data)
+      this.enhancements = readEnhancementStages(result.data.enhancements)
+      this.natures = readNatureCatalog(result.data.natures)
+      this.rules = undefined
       const presentations = presentationIndex(result.presentation)
       this.species = this.normalizeData(
         result.data.species.map(raw => ({

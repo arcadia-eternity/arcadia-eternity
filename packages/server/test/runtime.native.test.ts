@@ -3,7 +3,7 @@ import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternit
 import type { BattleHost } from '@arcadia-eternity/battle/host'
 import { WorkerBattleSystem } from '@arcadia-eternity/battle/sandbox'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
-import { createServerBattle, getServerRuntimeIdentity, validateServerTeam } from '../src/runtime/native'
+import { createServerBattle, getServerRuntimeIdentity, loadServerBase, validateServerTeam } from '../src/runtime/native'
 import input from '../../battle/test/fixtures/official-switch.input.json'
 
 const systems: BattleHost[] = []
@@ -86,8 +86,108 @@ for (const invalid of ['foreign-skill', 'skill-level', 'foreign-ability', 'forei
     if (invalid === 'skill-level') team[0].level = 1
     if (invalid === 'foreign-ability') team[0].ability = 'mark_ability_yanhuo'
     if (invalid === 'foreign-emblem') team[0].emblem = 'mark_emblem_nuhuo'
-    await expect(validateServerTeam(team)).rejects.toThrow(/not learnable|not allowed/)
+    await expect(validateServerTeam(team)).rejects.toThrow(/不能学习|not allowed/)
   })
+
+it('checks inherited skills and second-generation natures independently against the prepared catalog', async () => {
+  const starter = fixture()[0].team[0]
+  const pet = { ...starter, species: 'pet_duomo', skills: ['skill_chongfeng'], nature: 'base:nature-34' }
+  const eligible = { schemaVersion: 2, mechanics: { secondGenerationNatures: 'species' } } as const
+  await expect(validateServerTeam([pet], undefined, eligible)).resolves.toEqual([pet])
+  await expect(validateServerTeam([pet])).resolves.toEqual([pet])
+  await expect(validateServerTeam([pet], undefined, { schemaVersion: 1 })).rejects.toThrow('二代性格')
+  const poolRules = { schemaVersion: 2, mechanics: { inheritance: { eligible: 'species' } } } as const
+  const hatchling = {
+    ...starter,
+    species: 'pet_dongqigui',
+    level: 1,
+    inheritedSkill: 'skill_shenhuxi',
+    skills: ['skill_shenhuxi'],
+  }
+  await expect(validateServerTeam([hatchling], undefined, poolRules)).resolves.toEqual([hatchling])
+  await expect(validateServerTeam([{ ...hatchling, species: 'pet_duomo' }], undefined, poolRules)).rejects.toThrow(
+    '遗传',
+  )
+  await expect(validateServerTeam([{ ...hatchling, species: 'pet_dilan' }], undefined, poolRules)).rejects.toThrow(
+    '遗传',
+  )
+  const other = { ...starter, nature: pet.nature }
+  await expect(validateServerTeam([other], undefined, eligible)).rejects.toThrow('二代性格')
+  const everyone = { schemaVersion: 2, mechanics: { secondGenerationNatures: 'all' } } as const
+  await expect(validateServerTeam([other], undefined, everyone)).resolves.toEqual([other])
+  await expect(validateServerTeam([{ ...other, inheritedSkill: 'skill_paida' }], undefined, everyone)).rejects.toThrow(
+    '遗传',
+  )
+  await expect(validateServerTeam([{ ...pet, nature: 'missing:nature' }], undefined, everyone)).rejects.toThrow(
+    /nature/,
+  )
+})
+
+it('allows each new breeding family to inherit from the other under the official base rules', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
+  const { rules } = prepareEnvironmentRules(
+    JSON.parse(
+      await readFile(
+        new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+        'utf8',
+      ),
+    ),
+    (await loadServerBase()).data.ruleSets,
+  )
+  const starter = fixture()[0].team[0]
+  for (const [species, inheritedSkill, ownDonorMove] of [
+    ['pet_hema', 'skill_duzhenlianshe', 'skill_kusechouda'],
+    ['pet_heyimi', 'skill_duzhenlianshe', 'skill_kusechouda'],
+    ['pet_shifeng', 'skill_kusechouda', 'skill_duzhenlianshe'],
+    ['pet_suijingfeng', 'skill_kusechouda', 'skill_duzhenlianshe'],
+  ]) {
+    const pet = { ...starter, species, level: 1, nature: 'base:nature-34', inheritedSkill, skills: [inheritedSkill] }
+    await expect(validateServerTeam([pet], undefined, rules)).resolves.toEqual([pet])
+    await expect(
+      validateServerTeam([{ ...pet, inheritedSkill: ownDonorMove, skills: [ownDonorMove] }], undefined, rules),
+    ).rejects.toThrow('遗传')
+  }
+})
+
+it('applies the 120 test environment’s selected nature and stage to all six battle stats', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
+  const declaration = JSON.parse(
+    await readFile(
+      new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/test-120-rules.json')),
+      'utf8',
+    ),
+  )
+  const { rules } = prepareEnvironmentRules(declaration, (await loadServerBase()).data.ruleSets)
+  expect(rules.mechanics?.secondGenerationNatures).toBe('species')
+  const players = fixture()
+  const lead = players[0].team[0]
+  lead.species = 'pet_duomo'
+  lead.skills = ['skill_chongfeng']
+  lead.nature = 'base:nature-34'
+  lead.enhancement = 'base:evolve-1'
+  lead.ivs = { hp: 120, atk: 120, def: 120, spa: 120, spd: 120, spe: 120 }
+  await expect(validateServerTeam([lead])).rejects.toThrow('ENVIRONMENT_TEAM_REJECTED')
+  const baseStats = { maxHp: 210, atk: 179 * 0.9, def: 186, spa: 193 * 0.9, spd: 186 * 1.1, spe: 168 * 1.1 }
+  for (const mode of ['active', 'suppressed'] as const) {
+    const stage = mode === 'active' ? 'base:evolve-1' : 'other:uninstalled'
+    lead.enhancement = stage
+    const policy = {
+      ...rules,
+      mechanics: { ...rules.mechanics, enhancement: { ...rules.mechanics?.enhancement, mode } },
+    }
+    const system = await createServerBattle(players[0], players[1], {}, undefined, undefined, undefined, policy)
+    systems.push(system)
+    const state = await system.getState(undefined, true)
+    const actual = state.players[0].team![0]
+    const bonus = mode === 'active' ? { maxHp: 30, atk: 10, def: 10, spa: 10, spd: 10, spe: 5 } : undefined
+    for (const key of Object.keys(baseStats) as Array<keyof typeof baseStats>)
+      expect(actual.stats?.[key], mode + ' ' + key).toBeCloseTo(baseStats[key] + (bonus?.[key] ?? 0))
+    expect(actual.currentHp).toBe(actual.maxHp)
+    expect(lead.enhancement).toBe(stage)
+  }
+}, 30000)
 
 it('accepts the species official ability and emblem', async () => {
   const team = fixture()[0].team

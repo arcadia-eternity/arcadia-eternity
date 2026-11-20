@@ -33,9 +33,7 @@ export function localeFor(sources: LocaleSource[], row: SourceRecord, language: 
     known[0] ??
     (row.kind === 'marks'
       ? (({ ability: 'mark_ability', emblem: 'mark_emblem' } as Record<string, string>)[objectType(row)] ?? 'mark')
-      : row.kind === 'skills'
-        ? 'skill'
-        : row.kind)
+      : (namespaces[row.kind]?.[0] ?? row.kind))
   const candidates = sources.filter(source => source.language === language && source.namespace === namespace)
   if (candidates.length) return candidates.length === 1 ? candidates[0] : undefined
   const file = `locales/${language}/${namespace}.yaml`

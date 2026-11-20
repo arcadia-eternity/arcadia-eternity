@@ -8,7 +8,6 @@ const LocalBattlePage = () => import('../pages/localBattlePage.vue')
 // 路由守卫
 import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
-import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
 import { isDesktop, isStaticMode } from '@/utils/env'
 import { captureOAuthCallbackAtBoot } from '@/services/serverSession'
@@ -35,27 +34,29 @@ const routes: RouteRecordRaw[] = [
     path: '/management',
     name: 'Management',
     component: () => import('@/features/management/ManagementPage.vue'),
-    beforeEnter: to =>
-      to.query.tab === 'environments'
-        ? {
-            path: '/content',
-            query: { target: to.query.target === 'local' ? 'local' : 'server', tab: 'environments' },
-            replace: true,
-          }
-        : true,
     meta: { title: '服务器管理' },
   },
   {
-    path: '/content/preview',
+    path: '/creation/preview',
     name: 'AuthorPreview',
     component: () => import('@/features/authoring/AuthorPreviewPage.vue'),
     meta: { title: '内容包试玩' },
   },
   {
-    path: '/content',
-    name: 'ContentManager',
-    component: () => import('@/features/content/ContentManagerPage.vue'),
-    meta: { title: '内容包' },
+    path: '/creation',
+    name: 'Creation',
+    component: isDesktop ? () => import('@/features/content/CreationPage.vue') : LocalContentOnlyPage,
+    meta: { title: '内容包与创作' },
+  },
+  {
+    path: '/environments',
+    name: 'Environments',
+    beforeEnter: to => {
+      if (isDesktop && to.query.panel === 'packages' && (!to.query.target || to.query.target === 'local'))
+        return { name: 'Creation', replace: true }
+    },
+    component: () => import('@/features/content/EnvironmentManagerPage.vue'),
+    meta: { title: '环境' },
   },
   {
     path: '/settings/local-service',
@@ -64,13 +65,13 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '高级本机工具' },
   },
   {
-    path: '/content/development',
+    path: '/creation/development',
     name: 'DevelopmentWorkspace',
     component: isDesktop ? () => import('@/features/development/DevelopmentWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '开发服务工作区' },
   },
   {
-    path: '/content/edit/:projectId?',
+    path: '/creation/edit/:projectId?',
     name: 'AuthorWorkspace',
     component: isDesktop ? () => import('@/features/authoring/AuthorWorkspacePage.vue') : LocalContentOnlyPage,
     meta: { title: '编辑内容包' },
@@ -128,14 +129,16 @@ const routes: RouteRecordRaw[] = [
     component: TeamBuilder,
     meta: {
       title: '队伍编辑器',
+      viewKey: 'team-library',
     },
   },
   {
     path: '/storage',
     name: 'StorageManager',
-    component: StorageManager,
+    component: TeamBuilder,
     meta: {
       title: '精灵仓库',
+      viewKey: 'team-library',
     },
   },
   {

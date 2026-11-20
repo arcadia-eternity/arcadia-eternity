@@ -4,6 +4,7 @@ import { reactive } from 'vue'
 
 const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
+  catalog: vi.fn(),
   content: { species: [], skills: [], marks: [] },
   apply: vi.fn(),
   client: {
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     currentState: { matchmaking: 'idle' },
     _instance: {},
     on: vi.fn(),
+    getCurrentPrivateRoom: vi.fn(),
     toggleRoomReady: vi.fn(),
     startRoomBattle: vi.fn(),
   },
@@ -30,7 +32,10 @@ vi.mock('@/stores/gameData', () => ({
   useGameDataStore: () => ({ applyServerEnvironment: mocks.apply, clearServerEnvironment: vi.fn() }),
 }))
 vi.mock('@/stores/serverState', () => ({ useServerStateStore: () => ({ updateServerState: vi.fn() }) }))
-vi.mock('@/services/serverEnvironment', () => ({ listServerEnvironments: vi.fn(), prepareServerEnvironment: vi.fn() }))
+vi.mock('@/services/serverEnvironment', () => ({
+  listServerEnvironments: vi.fn(),
+  prepareServerEnvironment: mocks.catalog,
+}))
 vi.mock('@/services/peerEnvironment', () => ({ preparePeerEnvironment: mocks.prepare }))
 
 import { usePrivateRoomStore } from '../privateRoom'
@@ -100,7 +105,7 @@ it('does not acknowledge ready until exact peer materials are acquired', async (
   resolve(prepared())
   await pending
   expect(mocks.client.toggleRoomReady).toHaveBeenCalledWith([{ id: 'pet' }], prepared().acceptance)
-  expect(mocks.apply).toHaveBeenCalledWith(mocks.content)
+  expect(mocks.apply).toHaveBeenCalledWith(mocks.content, { rules: undefined })
 })
 
 it('does not acknowledge mismatched or unavailable peer materials', async () => {
@@ -146,4 +151,44 @@ it('cannot start or acknowledge a metadata-only legacy peer room', async () => {
   await expect(store.startBattle()).rejects.toThrow('尚未准备完成')
   expect(mocks.client.toggleRoomReady).not.toHaveBeenCalled()
   expect(mocks.client.startRoomBattle).not.toHaveBeenCalled()
+})
+
+it('edits with the locked public catalog while peer execution materials are missing', async () => {
+  const room = { ...store.currentRoom!, id: 'room-a' }
+  mocks.client.getCurrentPrivateRoom.mockResolvedValue(room)
+  mocks.catalog.mockResolvedValueOnce({ content: mocks.content })
+  mocks.prepare.mockRejectedValueOnce(new Error('执行材料缺失'))
+  await store.openRoomTeamEditor('ABC123', () => true)
+  expect(mocks.catalog).toHaveBeenCalledWith(
+    'https://peer.test',
+    descriptor,
+    expect.any(Function),
+    expect.any(AbortSignal),
+  )
+  await store.openRoomTeamEditor('ABC123', () => true)
+  expect(mocks.catalog).toHaveBeenCalledOnce()
+  expect(mocks.prepare).not.toHaveBeenCalled()
+  expect(mocks.apply).toHaveBeenCalledWith(mocks.content, { rules: undefined })
+  await expect(store.toggleReady()).rejects.toThrow('执行材料缺失')
+  expect(store.roomTeamDraft?.pets).toHaveLength(1)
+  expect(mocks.client.toggleRoomReady).not.toHaveBeenCalled()
+})
+
+it('discards a late public catalog after entering another room with the same environment', async () => {
+  const first = { ...store.currentRoom!, id: 'first' }
+  mocks.client.getCurrentPrivateRoom.mockResolvedValue(first)
+  let finish!: (catalog: { content: typeof mocks.content }) => void
+  mocks.catalog.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const opening = store.openRoomTeamEditor('ABC123', () => true)
+  await vi.waitFor(() => expect(mocks.catalog).toHaveBeenCalledOnce())
+  store.currentRoom = { ...first, id: 'second' }
+  finish({ content: mocks.content })
+  await expect(opening).rejects.toThrow(/closed/)
+  expect(mocks.apply).not.toHaveBeenCalled()
+  expect(store.roomTeamDraft).toBeUndefined()
 })

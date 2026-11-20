@@ -4,6 +4,7 @@ import type { NativePlayerSchemaType } from '@arcadia-eternity/battle/engine'
 import type { PlayerSelection } from '@arcadia-eternity/const'
 
 export interface RunSpec {
+  rules?: import('@arcadia-eternity/protocol').EnvironmentRules
   teams: [NativePlayerSchemaType, NativePlayerSchemaType]
   seed: string
   maxTurns: number

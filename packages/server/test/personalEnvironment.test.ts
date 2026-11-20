@@ -388,35 +388,26 @@ describe('personal fixed-environment private room signaling', () => {
     await success(b.socket, 'finishPrivateRoomBattle', { winner: null, reason: 'transferred-finished' })
   })
 
-  it('replaces only personal room references and requires preparation of the replacement identity', async () => {
+  it('pins the personal environment at creation and preserves ready players on a rejected change', async () => {
     const { room, user } = await fixture()
     const { a, b, personal } = await room()
     await success(b.socket, 'togglePrivateRoomReady', { team, environment: acceptance(personal) })
     const replacement = await reference('personal-content-2')
-    await success(a.socket, 'updatePrivateRoomConfig', { personalEnvironment: replacement })
+    expect(
+      await ack(a.socket, 'updatePrivateRoomConfig', { personalEnvironment: replacement, showHidden: true }),
+    ).toMatchObject({ status: 'ERROR', code: 'ENVIRONMENT_FIXED' })
     const current = await success<PrivateRoomInfo>(b.socket, 'getCurrentPrivateRoom')
     expect(current).toMatchObject({
-      challengeGeneration: 2,
-      personalEnvironment: replacement,
-      environment: replacement.descriptor,
+      challengeGeneration: 1,
+      personalEnvironment: personal,
+      environment: personal.descriptor,
     })
-    expect(current.players.every(player => !player.isReady)).toBe(true)
-    expect(await ack(b.socket, 'togglePrivateRoomReady', { team, environment: acceptance(personal) })).toMatchObject({
-      status: 'ERROR',
-      code: 'CLIENT_PREPARATION_STALE',
-    })
-    expect(await ack(b.socket, 'togglePrivateRoomReady', { team, environment: acceptance(personal, 2) })).toMatchObject(
-      { status: 'ERROR', code: 'CLIENT_ENVIRONMENT_MISMATCH' },
-    )
+    expect(current.players.find(player => player.playerId === b.session.seatId)?.isReady).toBe(true)
     expect(
-      await ack(b.socket, 'togglePrivateRoomReady', {
-        team,
-        environment: { ...acceptance(replacement, 2), peerRevision: personal.descriptor.peerRevision },
-      }),
-    ).toMatchObject({ status: 'ERROR', code: 'CLIENT_PEER_ENVIRONMENT_MISMATCH' })
-    await success(b.socket, 'togglePrivateRoomReady', { team, environment: acceptance(replacement, 2) })
-    await success(a.socket, 'startPrivateRoomBattle', { hostTeam: team, environment: acceptance(replacement, 2) })
-    await success(a.socket, 'finishPrivateRoomBattle', { winner: null, reason: 'replacement-finished' })
+      await ack(a.socket, 'startPrivateRoomBattle', { hostTeam: team, environment: acceptance(replacement) }),
+    ).toMatchObject({ status: 'ERROR', code: 'CLIENT_ENVIRONMENT_MISMATCH' })
+    await success(a.socket, 'startPrivateRoomBattle', { hostTeam: team, environment: acceptance(personal) })
+    await success(a.socket, 'finishPrivateRoomBattle', { winner: null, reason: 'finished' })
 
     const ordinary = await user()
     await success(ordinary.socket, 'createPrivateRoom', { config: { battleMode: 'p2p' } })

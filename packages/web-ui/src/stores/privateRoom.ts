@@ -5,7 +5,13 @@ import { useBattleClientStore } from './battleClient'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
 import { usePetStorageStore } from './petStorage'
-import { DEFAULT_TIMER_CONFIG, BattleMessageType, type BattleState, type playerId } from '@arcadia-eternity/const'
+import {
+  resolveEnvironmentMechanics,
+  DEFAULT_TIMER_CONFIG,
+  BattleMessageType,
+  type BattleState,
+  type playerId,
+} from '@arcadia-eternity/const'
 import type {
   CreatePrivateRoomRequest,
   PrivateRoomBattleStartInfo,
@@ -43,6 +49,7 @@ import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleS
 import { listServerEnvironments, prepareServerEnvironment } from '@/services/serverEnvironment'
 import { preparePeerEnvironment } from '@/services/peerEnvironment'
 import { validatePersonalEnvironmentTeam, type PreparedPersonalEnvironment } from '@/services/personalEnvironment'
+import { validateBasicTeam } from '@/utils/basicTeamValidation'
 import { requireServerExecution } from '@/services/serverEnvironmentPolicy'
 import { useServerStateStore } from '@/stores/serverState'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
@@ -95,9 +102,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     controller: AbortController
     task: ReturnType<typeof prepareServerEnvironment> | ReturnType<typeof preparePeerEnvironment>
   } | null = null
+  let editorCatalog:
+    { key: string; controller: AbortController; task: ReturnType<typeof prepareServerEnvironment> } | undefined
+  const clearEditorCatalog = () => {
+    editorCatalog?.controller.abort()
+    editorCatalog = undefined
+  }
   let preparedPeerEnvironment: SandboxEnvironment | undefined
   const personalEnvironment = shallowRef<PreparedPersonalEnvironment>()
-  let personalImportGeneration = 0
   const personalEnvironmentReady = computed(
     () =>
       !!personalEnvironment.value &&
@@ -108,6 +120,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   let matchmakingController: AbortController | undefined
   const roomCreationControllers = new Set<AbortController>()
   const cancelEnvironmentRequests = () => {
+    clearEditorCatalog()
     preparedEnvironment?.controller.abort()
     catalogController?.abort()
     matchmakingController?.abort()
@@ -116,7 +129,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     preparedPeerEnvironment = undefined
     personalEnvironment.value?.release()
     personalEnvironment.value = undefined
-    personalImportGeneration++
   }
   let matchmakingGeneration = 0
   let matchmakingEnvironmentGeneration = 0
@@ -139,6 +151,31 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const selectedTeam = ref<PetSchemaType[]>([]) // 当前选择的队伍
+  const selectedTeamName = ref('')
+  const selectedTeamId = ref<string>()
+  const roomSeatKey = computed(() =>
+    currentRoom.value ? JSON.stringify([serverScope(), currentRoom.value.id, battleClientStore.playerId]) : undefined,
+  )
+  const roomEditorKey = computed(() => {
+    const room = currentRoom.value
+    if (!room?.environment) return undefined
+    return JSON.stringify([roomSeatKey.value, room.environment.id, room.environment.gameplayRevision])
+  })
+  const roomTeamDraft = ref<{ key: string; roomId: string; version: string; name: string; pets: PetSchemaType[] }>()
+  let roomEditorRequest = 0
+  watch(
+    roomSeatKey,
+    (_, previous) => {
+      if (!previous) return
+      clearEditorCatalog()
+      roomTeamDraft.value = undefined
+      selectedTeam.value = []
+      selectedTeamName.value = ''
+      selectedTeamId.value = undefined
+    },
+    { flush: 'sync' },
+  )
+  const copyTeam = (pets: PetSchemaType[]): PetSchemaType[] => JSON.parse(JSON.stringify(pets))
   const peerSignals = ref<PrivateRoomPeerSignalEvent[]>([])
   const peerSession = ref<PrivateRoomPeerSessionState>(createInitialPrivateRoomPeerSessionState())
   let peerTransport: PeerTransport | null = null
@@ -232,6 +269,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       ? environments.value.find(item => item.id === environmentId)
       : defaultEnvironment.value
     if (!descriptor) throw new Error('对战内容不可用，请重新选择')
+    if (descriptor.matchmakingEnabled === false) throw new Error('这个环境未开放匹配，请选择其他环境')
     matchmakingController?.abort()
     matchmakingController = new AbortController()
     const prepare = descriptor.executionPolicy === 'peer' ? preparePeerEnvironment : prepareServerEnvironment
@@ -292,7 +330,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       if (!personal || personal.reference.descriptor.id !== descriptor.id)
         throw new Error('请先导入房主分享的环境，确认后再准备')
       preparedPeerEnvironment = personal.environment
-      gameDataStore.applyServerEnvironment(personal.content)
+      gameDataStore.applyServerEnvironment(personal.content, { rules: personal.reference.rules })
       return { ...personal.acceptance, challengeGeneration: room.challengeGeneration }
     }
     const environmentKey = () => {
@@ -300,7 +338,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       const active = activeRoom?.environment
       return (
         active &&
-        `${serverScope()}|${activeRoom.config.roomCode}|${activeRoom.config.battleMode}|${active.id}|${active.resourceRevision}|${active.peerRevision ?? ''}`
+        `${roomEditorKey.value}|${activeRoom.config.roomCode}|${activeRoom.config.battleMode}|${active.id}|${active.resourceRevision}|${active.gameplayRevision ?? ''}|${active.peerRevision ?? ''}`
       )
     }
     const key = environmentKey()!
@@ -326,8 +364,37 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (environmentKey() !== key || preparedEnvironment !== entry) throw new Error('房间环境已变化，请重新准备')
     if (!isCurrent()) throw new DOMException('Room recovery cancelled', 'AbortError')
     preparedPeerEnvironment = 'environment' in prepared ? prepared.environment : undefined
-    gameDataStore.applyServerEnvironment(prepared.content)
+    gameDataStore.applyServerEnvironment(prepared.content, { rules: descriptor.rules })
     return prepared.acceptance
+  }
+
+  const showRoomContent = async (isCurrent: () => boolean = () => true) => {
+    const room = currentRoom.value
+    if (!room?.environment || room.personalEnvironment || room.config.battleMode !== 'p2p') {
+      await roomEnvironment(isCurrent)
+      return
+    }
+    const key = roomEditorKey.value!
+    if (editorCatalog?.key !== key) {
+      clearEditorCatalog()
+      const controller = new AbortController()
+      editorCatalog = {
+        key,
+        controller,
+        task: prepareServerEnvironment(battleClientStore.serverUrl, room.environment, fetch, controller.signal),
+      }
+    }
+    const entry = editorCatalog
+    let catalog: Awaited<typeof entry.task>
+    try {
+      catalog = await entry.task
+    } catch (error) {
+      if (editorCatalog === entry) clearEditorCatalog()
+      throw error
+    }
+    if (!isCurrent() || editorCatalog !== entry || roomEditorKey.value !== key)
+      throw new DOMException('Room preview closed', 'AbortError')
+    gameDataStore.applyServerEnvironment(catalog.content, { rules: room.environment.rules })
   }
 
   const createRoom = (
@@ -552,7 +619,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       const scope = serverScope()
       // 如果要准备，使用当前选择的队伍；如果取消准备，不传队伍
-      const roomId = currentRoom.value?.id
+      const preparedFor = roomEditorKey.value
       const challengeGeneration = currentRoom.value?.challengeGeneration
       const teamToSubmit = myReadyStatus.value ? undefined : selectedTeam.value
       const acceptance = myReadyStatus.value ? undefined : await roomEnvironment()
@@ -561,7 +628,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       if (!myReadyStatus.value && currentRoom.value?.config.battleMode === 'p2p' && !preparedPeerEnvironment)
         throw new Error('P2P 对战环境尚未准备完成')
       assertServerScope(scope)
-      if (currentRoom.value?.id !== roomId || currentRoom.value?.challengeGeneration !== challengeGeneration)
+      if (roomEditorKey.value !== preparedFor || currentRoom.value?.challengeGeneration !== challengeGeneration)
         throw new Error('房间或环境已变化，请重新准备')
       await battleClientStore.toggleRoomReady(teamToSubmit, acceptance)
     } catch (err) {
@@ -587,7 +654,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     try {
       const scope = serverScope()
       // 发送开始战斗请求
-      const roomId = currentRoom.value?.id
+      const preparedFor = roomEditorKey.value
       const challengeGeneration = currentRoom.value?.challengeGeneration
       // 如果房主是玩家，传递房主队伍；如果房主是观战者，传递空数组或undefined
       const hostTeam = isPlayer.value ? selectedTeam.value : []
@@ -597,7 +664,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       if (currentRoom.value?.config.battleMode === 'p2p' && !preparedPeerEnvironment)
         throw new Error('P2P 对战环境尚未准备完成')
       assertServerScope(scope)
-      if (currentRoom.value?.id !== roomId || currentRoom.value?.challengeGeneration !== challengeGeneration)
+      if (roomEditorKey.value !== preparedFor || currentRoom.value?.challengeGeneration !== challengeGeneration)
         throw new Error('房间或环境已变化，请重新准备')
       await battleClientStore.startRoomBattle(hostTeam, acceptance)
 
@@ -806,7 +873,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       assertServerScope(scope)
       if (!isCurrent()) throw new Error('房间或环境已变化，请重新准备')
       currentRoom.value = response
-      if (response && (!response.personalEnvironment || personalEnvironmentReady.value)) await roomEnvironment()
+      if (response && (!response.personalEnvironment || personalEnvironmentReady.value))
+        await showRoomContent(isCurrent)
       assertServerScope(scope)
     } catch (err) {
       throw err
@@ -815,37 +883,23 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   /** Takes ownership of imported materials; they remain private to this connection and room. */
   const setPersonalEnvironment = async (prepared: PreparedPersonalEnvironment): Promise<void> => {
-    const scope = serverScope()
-    const generation = ++personalImportGeneration
     const room = currentRoom.value
-    let adopted = false
-    try {
-      if (room) {
-        if (!room.personalEnvironment || !['waiting', 'ready', 'ended'].includes(room.status))
-          throw new Error('当前房间无法更换个人环境')
-        if (room.personalEnvironment.descriptor.id !== prepared.reference.descriptor.id) {
-          if (!isHost.value) throw new Error('环境版本与房主选择的不一致')
-          await updateRoomConfig({ personalEnvironment: prepared.reference })
-          assertServerScope(scope)
-          if (generation !== personalImportGeneration) throw new Error('已选择另一份环境')
-          if (currentRoom.value?.id !== room.id) throw new Error('房间已变化，请重新选择')
-        }
-      }
+    if (room && (!room.personalEnvironment || room.status === 'started')) {
+      if (personalEnvironment.value !== prepared) prepared.release()
+      throw new Error('当前房间无法更换个人环境')
+    }
+    if (room && room.personalEnvironment!.descriptor.id !== prepared.reference.descriptor.id) {
+      prepared.release()
+      throw new Error('导入的环境与建房时锁定的版本不一致')
+    }
+    if (personalEnvironment.value !== prepared) {
       personalEnvironment.value?.release()
       personalEnvironment.value = prepared
-      adopted = true
-      preparedEnvironment?.controller.abort()
-      preparedEnvironment = null
-      preparedPeerEnvironment = undefined
-      if (room)
-        await getRoomInfo(
-          room.config.roomCode,
-          () => generation === personalImportGeneration && currentRoom.value?.id === room.id,
-        )
-    } catch (error) {
-      if (!adopted) prepared.release()
-      throw error
     }
+    preparedEnvironment?.controller.abort()
+    preparedEnvironment = null
+    preparedPeerEnvironment = undefined
+    if (room) await roomEnvironment()
   }
 
   const stopRoomPolling = (): void => {
@@ -1081,6 +1135,16 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (!remotePlayer) {
       throw new Error('P2P 房间中未找到对手')
     }
+    const battleRoomId = currentRoom.value.battleRoomId
+    let reported = false
+    function reportResult(winner: string | null, reason: string) {
+      if (!isCurrent() || !battleRoomId || currentRoom.value?.battleRoomId !== battleRoomId || reported) return
+      reported = true
+      void battleClientStore._instance?.finishPrivateRoomBattle({ battleRoomId, winner, reason }).catch(error => {
+        reported = false
+        console.error('Failed to finish P2P room:', error)
+      })
+    }
     const battleInterface =
       peerSession.value.role === 'host'
         ? await (() => {
@@ -1102,10 +1166,28 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               remoteTeam: playerA.playerId === localPlayerId ? playerB.team : playerA.team,
               dataStore: gameDataStore,
               signal,
+              onFault: () => reportResult(null, 'environment_runtime_failed'),
               bridge: peerBridge,
               transport: peerTransport,
               battleConfig: {
                 environment,
+                skillParameters:
+                  JSON.parse(
+                    JSON.stringify(
+                      (currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules)
+                        ?.skillParameters ?? null,
+                    ),
+                  ) ?? undefined,
+                matchups: JSON.parse(
+                  JSON.stringify(
+                    (currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules)
+                      ?.matchups ?? {},
+                  ),
+                ),
+                enhancementActive:
+                  resolveEnvironmentMechanics(
+                    currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules,
+                  ).enhancement.mode === 'active',
                 allowFaintSwitch: currentRoom.value!.config.allowFaintSwitch ?? true,
                 showHidden: currentRoom.value!.config.showHidden ?? false,
                 timerConfig,
@@ -1127,27 +1209,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
 
     if (peerSession.value.role === 'host') {
-      const battleRoomId = currentRoom.value.battleRoomId
-      let reported = false
       peerBattleEndUnsubscribe = battleInterface.BattleEvent(message => {
-        if (
-          !isCurrent() ||
-          message.type !== BattleMessageType.BattleEnd ||
-          reported ||
-          currentRoom.value?.battleRoomId !== battleRoomId
-        )
-          return
-        reported = true
-        void battleClientStore._instance
-          ?.finishPrivateRoomBattle({
-            battleRoomId,
-            winner: message.data.winner ?? null,
-            reason: message.data.reason ?? 'completed',
-          })
-          .catch(error => {
-            reported = false
-            console.error('Failed to finish P2P room:', error)
-          })
+        if (message.type === BattleMessageType.BattleEnd)
+          reportResult(message.data.winner ?? null, message.data.reason ?? 'completed')
       })
     }
 
@@ -1573,9 +1637,27 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         handlePeerSignal(event.data)
         break
 
-      case 'battleFinished':
-        // 战斗结束，房间状态将通过 roomUpdate 事件同步
+      case 'battleFinished': {
+        const result = event.data.battleResult
+        const room = currentRoom.value
+        if (
+          !room ||
+          room.config.battleMode !== 'p2p' ||
+          room.battleRoomId !== result.battleRoomId ||
+          result.reason !== 'environment_runtime_failed'
+        )
+          break
+        cancelPendingBattleStart()
+        await Promise.all([useBattleStore().resetBattleWithoutSurrender(), teardownPeerTransport()])
+        if (
+          currentRoom.value?.id !== room.id ||
+          (currentRoom.value.battleRoomId && currentRoom.value.battleRoomId !== result.battleRoomId)
+        )
+          break
+        ElNotification({ title: '本场对战中止', message: '对战环境执行失败，可以返回房间重新准备。', type: 'warning' })
+        await router.push('/room/' + encodeURIComponent(room.config.roomCode))
         break
+      }
 
       case 'playerSwitchedToSpectator':
         // 房间状态会通过后续的 roomUpdate 事件更新
@@ -1622,8 +1704,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   }
 
   // 队伍管理方法
-  const updateSelectedTeam = (team: PetSchemaType[]): void => {
-    selectedTeam.value = team
+  const updateSelectedTeam = (team: PetSchemaType[], name = '', id?: string): void => {
+    roomTeamDraft.value = undefined
+    selectedTeam.value = copyTeam(team)
+    selectedTeamName.value = name
+    selectedTeamId.value = id
     // 如果已经准备了，更新队伍后自动取消准备
     if (myReadyStatus.value) {
       toggleReady().catch(err => {
@@ -1632,9 +1717,79 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
+  /** Check seat membership before using a route's room code to resolve its immutable editor context. */
+  const openRoomTeamEditor = async (code: string, isCurrent: () => boolean) => {
+    const request = ++roomEditorRequest
+    const scope = serverScope()
+    const seat = battleClientStore.playerId
+    const previousRoom = currentRoom.value?.id
+    const live = () =>
+      request === roomEditorRequest && isCurrent() && seat === battleClientStore.playerId && scope === serverScope()
+    const room = await battleClientStore.getCurrentPrivateRoom()
+    if (!live() || (currentRoom.value?.id !== previousRoom && currentRoom.value?.id !== room?.id))
+      throw new DOMException('Room editor closed', 'AbortError')
+    const player = room?.players.find(member => member.playerId === seat)
+    if (!room || room.config.roomCode !== code || !player) throw new Error('你已不在这个房间的参战席位')
+    if (!room.environment || room.status === 'started') throw new Error('当前房间无法编辑队伍')
+    currentRoom.value = room
+    const key = roomEditorKey.value!
+    const current = () =>
+      live() && roomEditorKey.value === key && isPlayer.value && currentRoom.value?.status !== 'started'
+    if (roomTeamDraft.value?.key !== key) {
+      const pets = selectedTeamName.value ? selectedTeam.value : (player.team ?? petStorageStore.getCurrentTeam())
+      roomTeamDraft.value = {
+        key,
+        roomId: room.id,
+        version: room.environment.gameplayRevision ?? room.environment.id,
+        name: selectedTeamName.value || '本场队伍',
+        pets: copyTeam(pets),
+      }
+    }
+    await showRoomContent(current)
+    if (!current()) throw new DOMException('Room editor closed', 'AbortError')
+    startRoomPolling()
+    return key
+  }
+
+  const applyRoomTeamDraft = async () => {
+    const draft = roomTeamDraft.value
+    const scope = serverScope()
+    const current = () =>
+      !!draft &&
+      roomTeamDraft.value === draft &&
+      draft.key === roomEditorKey.value &&
+      currentRoom.value?.status !== 'started' &&
+      isPlayer.value
+    if (!draft || !current()) throw new Error('房间或队伍已变化，请重新打开')
+    const pets = copyTeam(draft.pets)
+    const environment = await roomEnvironment(current)
+    if (!current() || !environment) throw new Error('房间已变化，请重新打开')
+    const issues = validateBasicTeam(pets, gameDataStore)
+    if (issues.length) throw new Error(issues.join('、'))
+    if (personalEnvironment.value && currentRoom.value?.personalEnvironment)
+      validatePersonalEnvironmentTeam(personalEnvironment.value, pets)
+    await battleClientStore.submitRoomTeam({
+      roomId: draft.roomId,
+      seatId: battleClientStore.playerId,
+      environment,
+      team: pets,
+    })
+    assertServerScope(scope)
+    if (!current()) throw new Error('房间已变化，请重新打开')
+    selectedTeam.value = pets
+    selectedTeamName.value = draft.name
+    selectedTeamId.value = undefined
+  }
+
   const initializeSelectedTeam = (): void => {
-    // 初始化时使用当前队伍
-    selectedTeam.value = petStorageStore.getCurrentTeam()
+    const accepted = currentRoom.value?.players.find(player => player.playerId === battleClientStore.playerId)?.team
+    if (accepted) {
+      selectedTeam.value = copyTeam(accepted)
+      selectedTeamName.value = '本场队伍'
+      selectedTeamId.value = undefined
+    } else {
+      selectedTeam.value = petStorageStore.getCurrentTeam()
+    }
   }
 
   // 全局状态检查方法
@@ -1645,10 +1800,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       assertServerScope(scope)
       if (roomInfo && isCurrent()) {
         currentRoom.value = roomInfo
-        if (!roomInfo.personalEnvironment || personalEnvironmentReady.value) await roomEnvironment(isCurrent)
+        if (!roomInfo.personalEnvironment || personalEnvironmentReady.value) await showRoomContent(isCurrent)
         assertServerScope(scope)
         startRoomPolling()
-        initializeSelectedTeam()
+        if (!selectedTeamName.value) initializeSelectedTeam()
       }
       return roomInfo
     } catch {
@@ -1685,6 +1840,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   // 完全清理房间状态（只在真正离开房间时使用）
   const cleanup = (): void => {
+    ++roomEditorRequest
     ++matchmakingEnvironmentGeneration
     cancelPendingBattleStart()
     battleStartGeneration++
@@ -1696,6 +1852,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     environments.value = []
     gameDataStore.clearServerEnvironment()
     selectedTeam.value = []
+    selectedTeamName.value = ''
+    selectedTeamId.value = undefined
+    roomTeamDraft.value = undefined
     peerSignals.value = []
     peerSession.value = closePrivateRoomPeerSession()
     error.value = null
@@ -1720,6 +1879,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     environments,
     defaultEnvironment,
     selectedTeam,
+    selectedTeamName,
+    selectedTeamId,
+    roomTeamDraft,
+    roomEditorKey,
+    openRoomTeamEditor,
+    applyRoomTeamDraft,
     peerSignals,
     peerSession,
     isLoading,

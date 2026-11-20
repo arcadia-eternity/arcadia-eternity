@@ -4,6 +4,8 @@ import {
   ProfileRepository,
   ProfileError,
   defaultData,
+  migrateEmbeddedLibrary,
+  validateLibrary,
   validateData,
   type ProfileData,
   type ProfileStorage,
@@ -15,13 +17,14 @@ import { installProfileStorage, localStorageUnavailable } from './localStorage'
 
 export const profileStatus = ref<'loading' | 'saved' | 'unsaved' | 'memory-only' | 'blocked'>('loading')
 export const profileFailure = ref('')
+export const profileReadErrorCode = ref<string>()
 export const profileMigrationNotice = ref('')
 export const profileSwitching = ref(false)
 let repository: ProfileRepository
 let snapshot: ProfileSnapshot | null = null
 function defaultWebProfile() {
   const value = defaultData()
-  value.library.teams = [getDefaultTeam()]
+  value.library = migrateEmbeddedLibrary({ storage: [], teams: [getDefaultTeam()], currentTeamIndex: 0 })
   return value
 }
 let data = defaultWebProfile()
@@ -125,17 +128,31 @@ function migrate(prefer?: 'player' | 'player-data'): ProfileData {
     : ''
   const pets = read('petStorage')
   if (pets)
-    result.library = {
-      storage: pets.storage,
-      teams: pets.teams?.map(
-        (t: { name: string; pets: ProfileData['library']['storage']; ruleSetId?: string; gameMode?: string }) => ({
-          name: t.name,
-          pets: t.pets,
-          ruleSetId: t.ruleSetId ?? (t.gameMode === 'competitive' ? 'competitive_ruleset' : 'casual_standard_ruleset'),
-        }),
-      ),
-      currentTeamIndex: pets.currentTeamIndex,
-    }
+    result.library =
+      pets.version === 2
+        ? validateLibrary({
+            version: 2,
+            storage: pets.storage,
+            teams: pets.teams,
+            currentTeamIndex: pets.currentTeamIndex,
+          })
+        : migrateEmbeddedLibrary({
+            storage: pets.storage,
+            teams: pets.teams?.map(
+              (t: {
+                name: string
+                pets: ProfileData['library']['storage']
+                ruleSetId?: string
+                gameMode?: string
+              }) => ({
+                name: t.name,
+                pets: t.pets,
+                ruleSetId:
+                  t.ruleSetId ?? (t.gameMode === 'competitive' ? 'competitive_ruleset' : 'casual_standard_ruleset'),
+              }),
+            ),
+            currentTeamIndex: pets.currentTeamIndex,
+          })
   for (const key of Object.keys(result.settings) as (keyof ProfileData['settings'])[]) {
     const value = read(`gameSetting.${key}`)
     if (value !== undefined) Object.assign(result.settings, { [key]: value })
@@ -146,6 +163,7 @@ function migrate(prefer?: 'player' | 'player-data'): ProfileData {
 export async function initializeProfile(prefer?: 'player' | 'player-data') {
   await queue
   profileStatus.value = 'loading'
+  profileReadErrorCode.value = undefined
   remote = !!window.arcadiaRemotePlay
   let storage: ProfileStorage
   if (window.arcadiaDesktop?.profile) {
@@ -191,6 +209,7 @@ export async function initializeProfile(prefer?: 'player' | 'player-data') {
           if (event.data.revision !== snapshot?.revision) {
             writable = false
             profileStatus.value = 'blocked'
+            profileReadErrorCode.value = undefined
             profileFailure.value = '其他窗口已修改资料，请重新载入'
           }
         }
@@ -199,17 +218,19 @@ export async function initializeProfile(prefer?: 'player' | 'player-data') {
   } catch (error) {
     writable = false
     profileStatus.value = 'blocked'
+    profileReadErrorCode.value = error instanceof ProfileError ? error.code : undefined
     profileFailure.value = error instanceof Error ? error.message : '无法读取个人资料'
   }
   desktopChangeSubscription ??= window.arcadiaDesktop?.onProfileChanged?.(() => {
     writable = false
     profileStatus.value = 'blocked'
+    profileReadErrorCode.value = undefined
     profileFailure.value = '个人资料已更新，请重新载入'
   })
   installProfileStorage({
     read(key) {
       if (key === 'player' || key === 'player-data') return JSON.stringify(data.profile)
-      if (key === 'petStorage') return JSON.stringify({ ...data.library, lastMatchingConfig: null })
+      if (key === 'petStorage') return JSON.stringify(data.library)
       const setting = key.slice('gameSetting.'.length) as keyof ProfileData['settings']
       return setting in data.settings ? JSON.stringify(data.settings[setting]) : null
     },
@@ -221,7 +242,12 @@ export async function initializeProfile(prefer?: 'player' | 'player-data') {
           if (parsed.id !== data.profile.id) throw new ProfileError('PROFILE_BUSY', '更换 UID 需要断开重连')
           data.profile = { id: parsed.id, name: parsed.name }
         } else if (key === 'petStorage')
-          data.library = { storage: parsed.storage, teams: parsed.teams, currentTeamIndex: parsed.currentTeamIndex }
+          data.library = validateLibrary({
+            version: parsed.version,
+            storage: parsed.storage,
+            teams: parsed.teams,
+            currentTeamIndex: parsed.currentTeamIndex,
+          })
         else {
           const setting = key.slice('gameSetting.'.length)
           if (setting in data.settings) Object.assign(data.settings, { [setting]: parsed })

@@ -11,7 +11,7 @@ const help = `arcadia-content <command>
   rename    Change package/project/namespace identities and local references
   demo      Run the battle configured in arcadia.config.mjs
   preview   Prepare a local candidate for the full battle client; stop with Ctrl+C
-  pack      Check, build and create an npm content package
+  pack [--release]  Build a content archive; --release verifies a distributable in a clean consumer
   setup     Install the pinned development SDK and tool
   workspace <directory> <operation> [--execute]  Structured author operations
 `
@@ -52,7 +52,10 @@ try {
     await setup(args)
   } else if (command === 'rename') await run(process.execPath, [siblingModulePath('rename'), ...args])
   else {
-    if (!['check', 'build', 'demo', 'preview', 'pack'].includes(command) || args.length)
+    if (
+      !['check', 'build', 'demo', 'preview', 'pack'].includes(command) ||
+      (args.length && !(command === 'pack' && args.length === 1 && args[0] === '--release'))
+    )
       throw new Error(`Unknown command or option.\n${help}`)
     if (command === 'check') {
       await data(true)
@@ -63,10 +66,10 @@ try {
     else {
       await build()
       const { packBuiltProject } = await import('./pack-project.ts')
-      const packed = await packBuiltProject()
+      const packed = await packBuiltProject(process.cwd(), { release: args[0] === '--release' })
       console.log(`Packed ${packed.filename}`)
       console.log(
-        `ARCADIA_RESULT=${JSON.stringify({ filename: packed.filename, integrity: packed.integrity, shasum: packed.shasum, files: packed.files.map((file: { path: string }) => file.path) })}`,
+        `ARCADIA_RESULT=${JSON.stringify({ ...(args[0] === '--release' ? { verifiedRelease: true } : {}), filename: packed.filename, integrity: packed.integrity, shasum: packed.shasum, files: packed.files.map((file: { path: string }) => file.path) })}`,
       )
     }
   }

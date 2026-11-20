@@ -120,25 +120,29 @@ export class SandboxBattleRuntime {
         input.players.length !== 2
       )
         throw new SandboxFault('artifact', 'battle', 'Invalid battle input')
-      const environment = JSON.stringify(input.environment)
+      const environment = JSON.stringify([input.environment, input.options?.skillParameters])
       if (
         this.effects &&
         (this.environment !== environment || this.grouping !== options.grouping || !options.reuseContent)
       )
         throw new SandboxFault('artifact', 'battle', 'Worker environment mismatch')
-      this.revision = input.environment.revision
       if (!this.effects) {
         this.effects = await prepareSandboxContent(input.environment, {
+          skillParameters: input.options?.skillParameters,
           grouping: options.grouping,
           catalogMs: this.catalogMs,
         })
         this.environment = environment
         this.grouping = options.grouping
       }
+      this.revision = this.effects.content.revision
       this.effects.beginSession()
       const { content } = this.effects
       this.health()
-      const [first, second] = content.parsePlayers(input.players, { aiPlayerIds: input.aiPlayerIds })
+      const [first, second] = content.parsePlayers(input.players, {
+        aiPlayerIds: input.aiPlayerIds,
+        enhancementActive: input.options?.enhancementActive === true,
+      })
       this.battle = content.createBattle(first, second, input.options)
       this.observe(this.battle)
       this.system = new LocalBattleSystem(

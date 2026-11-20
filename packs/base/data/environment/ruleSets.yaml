@@ -1,0 +1,9 @@
+- id: base:classic
+  rules:
+    schemaVersion: 2
+    mechanics:
+      individualValues:
+        max: 31
+      inheritance:
+        eligible: species
+      secondGenerationNatures: species

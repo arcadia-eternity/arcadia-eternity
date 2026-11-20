@@ -6,7 +6,20 @@ import { isDeepStrictEqual } from 'node:util'
 import type { Document } from 'yaml'
 import { errorCode, errorMessage, isRecord, type UnknownRecord } from '../types.ts'
 
-const contentKinds = ['species', 'skills', 'marks', 'behaviors'] as const
+const contentKinds = [
+  'species',
+  'skills',
+  'marks',
+  'behaviors',
+  'natures',
+  'enhancements',
+  'elements',
+  'parameterGroups',
+  'parameterProfiles',
+  'parameterBindings',
+  'ruleSets',
+  'matchupTables',
+] as const
 const sourceKinds = [...contentKinds, 'presentations', 'resources'] as const
 
 type SourceKind = (typeof sourceKinds)[number]
@@ -108,13 +121,27 @@ export async function readContentSources(root: string): Promise<ContentSource[]>
 export function assembleContent(sources: ContentSource[]) {
   return {
     data: Object.fromEntries(
-      contentKinds.map(kind => [
-        kind,
-        sources
-          .filter(source => source.kind === kind)
-          .flatMap(source => source.records)
-          .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
-      ]),
+      contentKinds
+        .filter(
+          kind =>
+            ![
+              'natures',
+              'enhancements',
+              'elements',
+              'parameterGroups',
+              'parameterProfiles',
+              'parameterBindings',
+              'ruleSets',
+              'matchupTables',
+            ].includes(kind) || sources.some(source => source.kind === kind),
+        )
+        .map(kind => [
+          kind,
+          sources
+            .filter(source => source.kind === kind)
+            .flatMap(source => source.records)
+            .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
+        ]),
     ),
   }
 }

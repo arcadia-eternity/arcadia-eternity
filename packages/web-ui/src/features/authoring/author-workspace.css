@@ -175,7 +175,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   flex-wrap: wrap;
 }
 .app-header button,
@@ -183,7 +184,7 @@
   padding: 6px 10px;
 }
 .brand .project-switch {
-  max-width: 320px;
+  max-width: min(320px, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -199,8 +200,9 @@
   gap: 8px;
   font-size: 12px;
 }
-.project-settings {
-  padding: 12px 24px;
+.project-picker {
+  overflow: auto;
+  padding: 16px 24px;
   background: var(--author-panel);
   border-bottom: 1px solid var(--author-border);
 }
@@ -225,7 +227,7 @@ summary {
   background: transparent;
   border: 0;
 }
-.project-settings .tools {
+.project-picker .tools {
   margin-top: 14px;
 }
 .tools label {
@@ -302,9 +304,71 @@ summary {
 .object-browser > :not(.object-library) {
   flex-shrink: 0;
 }
-.project-settings {
-  max-height: 40%;
+.author-page > .settings-view,
+.author-page > .project-picker {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
+}
+.settings-view {
+  padding: 0 clamp(16px, 3vw, 40px) 24px;
+  background: var(--author-panel);
+}
+.settings-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  max-width: 820px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--author-border);
+}
+section.settings-group {
+  display: grid;
+}
+.project-metadata {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+}
+.project-metadata dt {
+  color: var(--author-muted);
+}
+.project-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.external-tools-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  anchor-name: --author-tools-trigger;
+}
+.external-tools-trigger svg {
+  width: 14px;
+}
+.external-tools-menu {
+  position: fixed;
+  position-anchor: --author-tools-trigger;
+  position-area: bottom span-left;
+  justify-self: end;
+  position-try-fallbacks: flip-inline, flip-block;
+  inset: auto;
+  margin: 4px 0;
+  padding: 10px;
+  border: 1px solid var(--author-border);
+  border-radius: 8px;
+  background: var(--author-panel);
+  color: var(--author-text);
+  box-shadow: 0 4px 16px #0002;
+}
+.external-tools-menu:popover-open {
+  display: grid;
+  gap: 6px;
+}
+.external-tools-menu button {
+  text-align: left;
 }
 .diagnostics {
   max-height: 25%;
@@ -488,11 +552,22 @@ small,
 .error {
   color: var(--author-danger);
 }
-.welcome {
-  padding: 60px 28px;
-  max-width: 700px;
+.effect-catalog {
+  margin-bottom: 16px;
 }
-.welcome p {
+.effect-catalog table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+}
+.effect-catalog th,
+.effect-catalog td {
+  padding: 8px;
+  border-bottom: 1px solid var(--author-border);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.effect-catalog thead {
   color: var(--author-muted);
 }
 .file-links {
@@ -523,12 +598,6 @@ small,
   font-size: 12px;
   max-height: 360px;
   overflow: auto;
-}
-.checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 18px 0;
 }
 .diagnostics {
   padding: 16px 24px;
@@ -617,7 +686,7 @@ input[type='checkbox'] {
   .app-header {
     padding: 8px 12px;
   }
-  .project-settings {
+  .project-picker {
     padding: 12px 18px;
   }
   .asset-layout {
@@ -698,6 +767,36 @@ input[type='checkbox'] {
   padding: 8px 16px;
   border-bottom: 1px solid var(--author-border);
   background: var(--author-panel);
+}
+.project-views {
+  display: flex;
+  align-self: stretch;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.project-views a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  padding: 8px 12px;
+  color: var(--author-muted);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  font-weight: 550;
+}
+.project-views a:hover,
+.project-views a[aria-current='page'] {
+  color: var(--author-accent);
+  background: var(--author-soft);
+}
+.project-views a[aria-current='page'] {
+  border-color: var(--author-accent);
+}
+.project-views svg {
+  width: 17px;
+  height: 17px;
 }
 .play-toolbar p {
   flex: 1 1 220px;

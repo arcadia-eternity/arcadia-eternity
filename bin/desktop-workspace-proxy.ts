@@ -17,6 +17,7 @@ interface DesktopWorkspaceChannel {
 }
 
 export interface DesktopWorkspaceProxyOptions {
+  allowShareDownloads?: boolean
   retentions: NonNullable<ContentWorkspaceOptions['retentions']>
   timeoutMs?: number
   channel?: DesktopWorkspaceChannel
@@ -49,8 +50,16 @@ const serializedError = (value: unknown) => {
   }
 }
 
+export interface DesktopWorkspaceProxy extends ContentWorkspace {
+  builtinEnvironmentId?: string
+  listClientEnvironmentIds(): Promise<string[]>
+  acquireClientEnvironment: ContentWorkspace['acquire']
+}
+
 /** Borrow the desktop-owned workspace. The child never opens a second filesystem owner. */
-export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxyOptions): Promise<ContentWorkspace> {
+export async function createDesktopWorkspaceProxy(
+  options: DesktopWorkspaceProxyOptions,
+): Promise<DesktopWorkspaceProxy> {
   const timeoutMs = options.timeoutMs ?? 120_000
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw error('WORKSPACE_TIMEOUT_INVALID')
   const channel: DesktopWorkspaceChannel = options.channel ?? {
@@ -248,8 +257,26 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
     })()
     return closePromise
   }
+  async function acquire(method: 'acquire' | 'acquireClientEnvironment', installationId: string, owner = 'runtime') {
+    const lease = await request<EnvironmentInstallation & { leaseToken: string }>(method, [installationId, owner])
+    if (!lease || typeof lease.leaseToken !== 'string' || !lease.leaseToken) throw error('WORKSPACE_LEASE_INVALID')
+    const { leaseToken, ...version } = lease
+    let releasePromise: Promise<void> | undefined
+    return {
+      ...version,
+      release() {
+        releasePromise ??= disconnected || closing ? Promise.resolve() : request<void>('release', [leaseToken])
+        return releasePromise
+      },
+    }
+  }
   try {
-    const descriptor = await request<{ root: string; workspaceId: string; bootId: string }>('describe')
+    const descriptor = await request<{
+      root: string
+      workspaceId: string
+      bootId: string
+      builtinEnvironmentId?: string
+    }>('describe')
     if (
       !descriptor ||
       [descriptor.root, descriptor.workspaceId, descriptor.bootId].some(value => typeof value !== 'string' || !value)
@@ -257,6 +284,7 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
       throw error('WORKSPACE_DESCRIPTOR_INVALID')
     return {
       root: descriptor.root,
+      builtinEnvironmentId: descriptor.builtinEnvironmentId,
       get workspaceId() {
         return descriptor.workspaceId
       },
@@ -267,27 +295,15 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
       deleteDraft: input => request('deleteDraft', [input]),
       listInstallations: id => request('listInstallations', id === undefined ? [] : [id]),
       getInstallation: id => request('getInstallation', [id]),
-      async acquire(installationId, owner) {
-        const lease = await request<EnvironmentInstallation & { leaseToken: string }>('acquire', [
-          installationId,
-          owner ?? 'runtime',
-        ])
-        if (!lease || typeof lease.leaseToken !== 'string' || !lease.leaseToken) throw error('WORKSPACE_LEASE_INVALID')
-        const { leaseToken, ...version } = lease
-        let releasePromise: Promise<void> | undefined
-        return {
-          ...version,
-          release() {
-            releasePromise ??= disconnected || closing ? Promise.resolve() : request<void>('release', [leaseToken])
-            return releasePromise
-          },
-        }
-      },
+      acquire: (id, owner) => acquire('acquire', id, owner),
+      listClientEnvironmentIds: () => request('listClientEnvironmentIds'),
+      acquireClientEnvironment: (id, owner) => acquire('acquireClientEnvironment', id, owner),
       retain: (id, retentionId) => request('retain', [id, retentionId]),
       releaseRetention: id => request('releaseRetention', [id]),
-      references: id => request('references', [id]),
       clearInstallation: id => request('clearInstallation', [id]),
-      exportEnvironment: id => request('exportEnvironment', [id]),
+      previewEnvironmentExport: id => request('previewEnvironmentExport', [id]),
+      missingEnvironmentArchives: probe => request('missingEnvironmentArchives', [probe]),
+      exportEnvironment: (id, mode) => request('exportEnvironment', mode ? [id, mode] : [id]),
       exportSnapshot: () => request('exportSnapshot'),
       captureSnapshot: () => request('captureSnapshot'),
       isSnapshotCurrent: stamp => request('isSnapshotCurrent', [stamp]),
@@ -307,7 +323,14 @@ export async function createDesktopWorkspaceProxy(options: DesktopWorkspaceProxy
         const { signal, beforeCommit, ...serializable } = input
         return request(
           'importEnvironment',
-          [bundle, { ...serializable, hasBeforeCommit: !!beforeCommit }],
+          [
+            bundle,
+            {
+              ...serializable,
+              allowDownload: options.allowShareDownloads === true && input.allowDownload !== false,
+              hasBeforeCommit: !!beforeCommit,
+            },
+          ],
           signal,
           preparer,
           beforeCommit,

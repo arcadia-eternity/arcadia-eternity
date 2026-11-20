@@ -6,7 +6,17 @@ import { EnvironmentDocumentSchema } from './debug-environments.ts'
 import { WorkspaceError } from './workspace.ts'
 import { errorCode } from './types.ts'
 
-export const referenceTopics = ['species', 'skills', 'marks', 'team', 'environment', 'descriptions', 'effects'] as const
+export const referenceTopics = [
+  'species',
+  'skills',
+  'marks',
+  'team',
+  'environment',
+  'descriptions',
+  'effects',
+  'git',
+  'release',
+] as const
 const parserSchemas: Record<string, typeof NativeSpeciesSchema | typeof NativeSkillSchema | typeof NativeMarkSchema> = {
   species: NativeSpeciesSchema,
   skills: NativeSkillSchema,
@@ -31,6 +41,15 @@ async function template(file: string): Promise<string> {
 export async function authorReference({ topic }: { topic?: string } = {}) {
   if (!topic || !(referenceTopics as readonly string[]).includes(topic))
     throw new WorkspaceError('REFERENCE_UNKNOWN', '请选择有效的作者参考主题')
+  if (topic === 'git' || topic === 'release') {
+    const source = `skills/arcadia-content-${topic}/SKILL.md`
+    return {
+      topic,
+      title: topic === 'git' ? '提交与同步内容包' : '发布内容包',
+      source,
+      instructions: await template(source),
+    }
+  }
   if (parserSchemas[topic]) {
     return {
       topic,

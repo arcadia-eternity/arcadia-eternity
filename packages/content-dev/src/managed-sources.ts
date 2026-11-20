@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { sha256, sha384, sha512 } from '@noble/hashes/sha2.js'
 import { constants, createReadStream } from 'node:fs'
-import { mkdir, open, readdir, lstat, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, open, readdir, lstat, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import { promisify } from 'node:util'
 import type { Readable } from 'node:stream'
@@ -18,6 +18,7 @@ export type ManagedSource =
   | { kind: 'git'; url: string; commit: string; artifactPath?: string }
 export interface SourceAcquisitionOptions {
   destination: string
+  preserveNpmArchive?: boolean
   signal?: AbortSignal
   maxBytes?: number
   maxFiles?: number
@@ -25,6 +26,13 @@ export interface SourceAcquisitionOptions {
 }
 
 const exec = promisify(execFile)
+export function matchesArchiveIntegrity(bytes: Uint8Array, integrity: string): boolean {
+  const match = /^(sha256|sha384|sha512)-([A-Za-z0-9+/]+={0,2})$/.exec(integrity)
+  if (!match) return false
+  const hash = match[1] === 'sha256' ? sha256 : match[1] === 'sha384' ? sha384 : sha512
+  return Buffer.from(hash(bytes)).toString('base64') === match[2]
+}
+
 function fail(code: string): never {
   throw Object.assign(new Error(code), { code })
 }
@@ -70,6 +78,7 @@ const publicUrl = (value: string | URL): string => {
 }
 
 interface BoundedOptions {
+  rejectPrivateFiles?: boolean
   signal: AbortSignal
   maxBytes: number
   maxFiles: number
@@ -96,6 +105,7 @@ function boundedFiles(options: BoundedOptions): BoundedFiles {
   function track(name: string): string {
     options.signal.throwIfAborted()
     name = safePath(name)
+    if (options.rejectPrivateFiles && name.split('/').some(forbidden)) throw fail('SOURCE_PRIVATE_FILE')
     if (++entries > options.maxFiles) throw fail('SOURCE_LIMIT')
     const key = name.normalize('NFC').toLowerCase()
     if (names.has(key)) throw fail('SOURCE_PATH_DUPLICATE')
@@ -147,10 +157,10 @@ async function readBounded(stream: Readable, expectedSize: number, options: Boun
     if (options.signal.aborted) abort()
   })
 }
-async function tarFiles(file: string, options: BoundedOptions): Promise<SourceFile[]> {
+export async function tarFiles(file: string | Readable, options: BoundedOptions): Promise<SourceFile[]> {
   const output = boundedFiles(options)
   await new Promise<void>((resolve, reject) => {
-    const input = createReadStream(file)
+    const input = typeof file === 'string' ? createReadStream(file) : file
     const parser = new Parser({ strict: true, maxMetaEntrySize: 64 * 1024, maxDecompressionRatio: 1000 })
     let failed = false
     const stop = (error: unknown) => {
@@ -344,12 +354,7 @@ async function download(
       const tokens = source.integrity.trim().split(/\s+/)
       if (!tokens.length || tokens.some((token: string) => !/^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$/.test(token)))
         throw fail('SOURCE_INTEGRITY_INVALID')
-      if (
-        !tokens.some((token: string) => {
-          const [algorithm, expected] = token.split('-')
-          return createHash(algorithm).update(bytes).digest('base64') === expected
-        })
-      )
+      if (!tokens.some((token: string) => matchesArchiveIntegrity(bytes, token)))
         throw fail('SOURCE_INTEGRITY_MISMATCH')
     }
     await writeFile(file, bytes, { flag: 'wx', mode: 0o600 })
@@ -389,6 +394,7 @@ async function gitArchive(
     SystemRoot: process.env.SystemRoot,
     HOME: root,
     GIT_CONFIG_NOSYSTEM: '1',
+    ...(process.env.GIT_SSL_CAINFO ? { GIT_SSL_CAINFO: process.env.GIT_SSL_CAINFO } : {}),
     GIT_CONFIG_GLOBAL: join(root, 'no-config'),
     GIT_TERMINAL_PROMPT: '0',
   }
@@ -467,7 +473,7 @@ async function gitArchive(
 export async function acquireSource(
   source: ManagedSource,
   input: SourceAcquisitionOptions,
-): Promise<{ directory: string; provenance: Record<string, string> }> {
+): Promise<{ directory: string; archive?: string; provenance: Record<string, string> }> {
   if (
     !source ||
     typeof source !== 'object' ||
@@ -495,6 +501,7 @@ export async function acquireSource(
   try {
     const scratch = join(input.destination, '.source')
     await mkdir(scratch)
+    let original: string | undefined
     let files: SourceFile[], provenance: Record<string, string>
     if (source.kind === 'directory') {
       if (typeof source.directory !== 'string' || !isAbsolute(source.directory)) throw fail('SOURCE_PATH_INVALID')
@@ -523,7 +530,12 @@ export async function acquireSource(
       } finally {
         await handle.close()
       }
-      files = magic.readUInt32LE(0) === 0x04034b50 ? await zipFiles(file, options) : await tarFiles(file, options)
+      if (magic.readUInt32LE(0) === 0x04034b50) files = await zipFiles(file, options)
+      else {
+        const preserve = source.kind === 'url' && !!input.preserveNpmArchive && magic.readUInt16LE(0) === 0x8b1f
+        files = await tarFiles(file, { ...options, rejectPrivateFiles: preserve })
+        if (preserve && files.every(entry => entry.name.startsWith('package/'))) original = file
+      }
     }
     const packageFiles = files.filter(file => file.name === 'package.json' || file.name.endsWith('/package.json'))
     const rootManifest = packageFiles.find(file => file.name === 'package.json')
@@ -545,8 +557,10 @@ export async function acquireSource(
       await mkdir(dirname(output), { recursive: true })
       await writeFile(output, file.bytes, { flag: 'wx', mode: 0o600 })
     }
+    const archive = original && prefix === 'package/' ? join(input.destination, 'verified.tgz') : undefined
+    if (original && archive) await rename(original, archive)
     await rm(scratch, { recursive: true, force: true })
-    return { directory, provenance: { ...provenance, name: manifest.name, version: manifest.version } }
+    return { directory, archive, provenance: { ...provenance, name: manifest.name, version: manifest.version } }
   } catch (error) {
     await rm(input.destination, { recursive: true, force: true })
     const code = errorCode(error)

@@ -204,7 +204,7 @@ export class BattleWorkerManager {
     })
   }
   private async launch(captured: SandboxBattleInput, signal?: AbortSignal): Promise<WorkerBattleSystem> {
-    const environment = JSON.stringify(captured.environment)
+    const environment = JSON.stringify([captured.environment, captured.options?.skillParameters])
     this.creating++
     let slot: WorkerSlot | undefined
     let battle: WorkerBattleSystem | undefined

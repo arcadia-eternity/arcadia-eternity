@@ -54,6 +54,8 @@
       "project": ["src/**/*.ts", "test/**/*.mjs", "*.mjs"],
     },
     "packages/content-dev/template": {
+      // The SDK build copies release-payload.mjs into the generated template.
+      "ignoreDependencies": ["fflate"],
       "entry": ["src/effects/**/*.effect.ts", "arcadia.config.mjs", "test/*.test.mjs"],
       "project": ["src/**/*.ts", "test/*.mjs", "*.mjs"],
     },

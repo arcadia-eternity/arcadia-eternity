@@ -123,7 +123,7 @@ test('remote edits need owner confirmation, preserve newer drafts and block canc
     nextId = 100,
     action = 'cancel',
     finishSave
-  const original = { revision: 1, data: { profile: { id: 'uid', name: 'Original' } }, digest: 'fixture' }
+  const original = { revision: 1, data: { profile: { id: 'uid', name: 'Original' } } }
   class Window extends EventEmitter {
     constructor() {
       super()

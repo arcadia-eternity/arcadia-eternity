@@ -1,0 +1,154 @@
+- id: pet_hema
+  num: 142
+  # 父方显性技能按原作形态编号排列。同种类无法配对。
+  inheritance: &inherited_moves
+    skills:
+      # 15 笑笑葵
+      - skill_sanyecao
+      - skill_yepianbaohu
+      - skill_gundongzhuiji
+      - skill_jieducao
+      # 27 安迷亚
+      - skill_mozhipao
+      - skill_ningju
+      - skill_mozhishuiyu
+      - skill_lianxuchouda
+      # 40 赤焰兽
+      - skill_penhuo
+      - skill_moya
+      - skill_huozhiya
+      - skill_lieyanzhuangji
+      # 50 多摩桑
+      - skill_shengbo
+      - skill_shenhuxi
+      - skill_siyao
+      - skill_xuanzhuansiyao
+      # 69 蛋壳鸡
+      - skill_jianying
+      - skill_yingkezhuangji
+      - skill_feisha
+      - skill_shazhijiao
+      # 89 皮皮格
+      - skill_niandong
+      - skill_zhenfen
+      - skill_cuimianshexian
+      - skill_niandongfanshe
+      # 112 砂吉塔
+      - skill_dengmu
+      - skill_chuanci
+      - skill_qutizhuangji
+      - skill_shaduchuanci
+      # 123 寒冰龟
+      - skill_dongqiqianghua
+      - skill_ningjudongqi
+      - skill_dongqiguanchuan
+      - skill_fansheguike
+      # 203 碎晶蜂
+      - skill_duzhenlianshe
+      - skill_jinzhensheji
+      - skill_zhenchituji
+      - skill_mizhenlianshe
+  element: Flying
+  baseStats:
+    hp: 86
+    atk: 125
+    def: 115
+    spa: 125
+    spd: 115
+    spe: 110
+  genderRatio: [7, 3]
+  heightRange: [15, 20]
+  weightRange: [9, 14]
+  ability:
+    - mark_ability_ganjue
+  emblem:
+    - mark_emblem_tingjue
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_chouda_hema
+      level: 5
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 9
+      hidden: false
+    - skill_id: skill_ganjuebaoli
+      level: 13
+      hidden: false
+    - skill_id: skill_huiwuchouda
+      level: 18
+      hidden: false
+    - skill_id: skill_yili
+      level: 23
+      hidden: false
+- id: pet_heyimi
+  num: 143
+  inheritance: *inherited_moves
+  element: Flying
+  baseStats:
+    hp: 176
+    atk: 175
+    def: 160
+    spa: 175
+    spd: 160
+    spe: 155
+  genderRatio: [7, 3]
+  heightRange: [50, 55]
+  weightRange: [36, 41]
+  ability:
+    - mark_ability_ganjue
+  emblem:
+    - mark_emblem_tingjue
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_chouda_hema
+      level: 5
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 9
+      hidden: false
+    - skill_id: skill_ganjuebaoli
+      level: 13
+      hidden: false
+    - skill_id: skill_huiwuchouda
+      level: 18
+      hidden: false
+    - skill_id: skill_yili
+      level: 23
+      hidden: false
+    - skill_id: skill_chandouchongji
+      level: 28
+      hidden: false
+    - skill_id: skill_guaiyichongji
+      level: 33
+      hidden: false
+    - skill_id: skill_kusechouda
+      level: 38
+      hidden: false
+    - skill_id: skill_beiheyimi
+      level: 43
+      hidden: false
+    - skill_id: skill_chaohema
+      level: 48
+      hidden: false
+    - skill_id: skill_chaoheyimi
+      level: 53
+      hidden: false
+    - skill_id: skill_chaogansangshibo
+      level: 60
+      hidden: false
+    - skill_id: skill_jianxiaochandou
+      level: 60
+      hidden: true
+    - skill_id: skill_jianxiaochongji
+      level: 60
+      hidden: true
+    - skill_id: skill_fuyou
+      level: 60
+      hidden: true
+    - skill_id: skill_jianxiaochouda
+      level: 60
+      hidden: true

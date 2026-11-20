@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ElButton, ElForm, ElFormItem, ElInput, ElOption, ElSelect, ElTag, type InputInstance } from 'element-plus'
+import { confirmAction } from '@/utils/confirmAction'
 import BattleOptionsEditor from '@/components/battle/BattleOptionsEditor.vue'
 import { battleOptions, createBattleConfiguration } from '@/services/battleConfiguration'
 import { DEFAULT_TIMER_CONFIG } from '@arcadia-eternity/const'
@@ -56,7 +58,7 @@ watch(environmentReady, ready => {
 const managingEnvironment = ref(false)
 const moreActions = ref(false)
 const operation = ref('')
-const renameInput = ref<HTMLInputElement>()
+const renameInput = ref<InputInstance>()
 const environmentDraft = ref<DebugEnvironment>({
   schemaVersion: 1,
   id: '',
@@ -65,7 +67,7 @@ const environmentDraft = ref<DebugEnvironment>({
   sources: [],
   version: null,
 })
-const packageText = ref('')
+const environmentPackages = ref<{ name: string; version: string }[]>([])
 let environmentRead = 0
 async function loadEnvironments() {
   if (!window.arcadiaAuthorPreview) return
@@ -122,28 +124,22 @@ function editEnvironment(create = false) {
           sources: [],
           version: null,
         }
-  packageText.value = Object.entries(environmentDraft.value.packages)
-    .map(([name, spec]) => `${name}=${spec}`)
-    .join('\n')
+  environmentPackages.value = Object.entries(environmentDraft.value.packages).map(([name, version]) => ({
+    name,
+    version,
+  }))
   managingEnvironment.value = true
 }
 async function saveEnvironment() {
-  if (busy.value) return
+  if (busy.value || environmentConflict.value) return
   operation.value = '正在保存环境…'
   busy.value = true
   error.value = ''
   try {
-    const packages: Record<string, string> = {}
-    for (const line of packageText.value
-      .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean)) {
-      const index = line.indexOf('=')
-      if (index < 1) throw new Error('额外包请每行填写 包名=版本')
-      const name = line.slice(0, index).trim()
-      if (Object.hasOwn(packages, name)) throw new Error('额外包重复')
-      packages[name] = line.slice(index + 1).trim()
-    }
+    const rows = environmentPackages.value.map(row => [row.name.trim(), row.version.trim()] as const)
+    if (rows.some(([name, version]) => !name || !version)) throw new Error('请填写包名和版本范围')
+    const packages = Object.fromEntries(rows)
+    if (Object.keys(packages).length !== rows.length) throw new Error('额外包重复')
     const { version, ...document } = environmentDraft.value
     await window.arcadiaAuthorPreview!.environment(
       'save',
@@ -220,8 +216,10 @@ const problems = computed(() =>
 )
 async function teamAction(action: 'save' | 'remove' | 'reload') {
   if (!library.value?.files || busy.value) return
-  if (action === 'remove' && !window.confirm('删除此队伍及其草稿？')) return
-  if (action === 'reload' && !window.confirm('丢弃这套队伍的草稿，重新载入项目文件？')) return
+  const teamId = library.value.selected.value[side.value]
+  if (action === 'remove' && !(await confirmAction('删除队伍', '此队伍及其草稿将被删除。'))) return
+  if (action === 'reload' && !(await confirmAction('重新载入项目文件', '当前队伍尚未保存的修改将丢失。'))) return
+  if (disposed || busy.value || library.value?.selected.value[side.value] !== teamId) return
   busy.value = true
   operation.value = action === 'save' ? '正在保存队伍…' : '正在更新队伍…'
   moreActions.value = false
@@ -263,7 +261,7 @@ function saveTeamName() {
 }
 function windowReturn() {
   if (window.arcadiaAuthorPreview) window.arcadiaAuthorPreview.returnToEditor()
-  else void router.push('/content')
+  else void router.push('/creation')
 }
 async function discard() {
   await cleanup?.()
@@ -271,7 +269,8 @@ async function discard() {
 }
 async function launch(reconfigure = false) {
   if (busy.value || (reconfigure && !environmentReady.value)) return
-  if (reconfigure && active.value && !window.confirm('重新开始会结束当前测试对局，使用这里的队伍配置。继续吗？')) return
+  if (reconfigure && active.value && !(await confirmAction('重新开始', '当前测试对局将结束。'))) return
+  if (disposed || busy.value) return
   operation.value = '正在进入对战…'
   busy.value = true
   error.value = ''
@@ -289,7 +288,7 @@ async function launch(reconfigure = false) {
       battle.errorMessage = cause.message
     })
     ownedSystem = prepared.system
-    const restore = data.useLocalBattleContent(prepared.content)
+    const restore = data.useLocalBattleContent(prepared.content, prepared.rules)
     const stop = prepared.system.cleanup.bind(prepared.system)
     prepared.system.cleanup = async () => {
       restore()
@@ -340,7 +339,7 @@ onMounted(async () => {
     }
     const setup = await loadAuthorPreviewSetup(endpoint)
     if (disposed) return
-    restoreSetup = data.useLocalBattleContent(setup.content)
+    restoreSetup = data.useLocalBattleContent(setup.content, setup.rules)
     await loadEnvironments()
     environmentId.value = setup.candidate.environmentId
     preparedEnvironmentId.value = environmentId.value
@@ -443,51 +442,47 @@ onBeforeUnmount(() => {
         aria-label="环境设置"
       >
         <div class="environment-row">
-          <label
-            >对战环境<select v-model="environmentId" :disabled="busy">
-              <option v-for="item in environments" :key="item.id" :value="item.id">{{ item.name }}</option>
-            </select></label
+          <ElSelect v-model="environmentId" aria-label="对战环境" filterable :disabled="busy">
+            <ElOption v-for="item in environments" :key="item.id" :value="item.id" :label="item.name" />
+          </ElSelect>
+          <ElButton :disabled="busy || environmentId === 'default'" @click="editEnvironment()">管理环境</ElButton>
+          <ElButton :disabled="busy" @click="editEnvironment(true)">新建环境</ElButton>
+          <ElButton :disabled="busy" :type="environmentReady ? 'default' : 'primary'" @click="prepareEnvironment"
+            >准备所选环境</ElButton
           >
-          <button :disabled="busy || environmentId === 'default'" @click="editEnvironment()">管理环境</button>
-          <button :disabled="busy" @click="editEnvironment(true)">新建环境</button>
-          <button :disabled="busy" :class="{ start: !environmentReady }" @click="prepareEnvironment">
-            准备所选环境
-          </button>
         </div>
-        <p class="muted">
-          {{
-            environmentReady
-              ? '修改内容包后，在这里重新准备。只改队伍可以直接开局。'
-              : '环境已改变。准备后即可使用新环境，队伍草稿会保留。'
-          }}
-        </p>
-        <form v-if="managingEnvironment" class="environment-form" @submit.prevent="saveEnvironment">
+        <ElForm
+          v-if="managingEnvironment"
+          class="environment-form"
+          label-position="top"
+          :disabled="busy"
+          @submit.prevent="saveEnvironment"
+        >
           <p v-if="environmentConflict" class="notice warning" role="status">
             环境文件已在外部修改，当前输入保留。请取消后重新打开环境，核对最新配置。
           </p>
-          <label>环境名称<input v-model="environmentDraft.name" required maxlength="80" :disabled="busy" /></label>
-          <label
-            >额外 npm 包<textarea v-model="packageText" rows="3" placeholder="每行填写：包名=版本" :disabled="busy" />
-          </label>
-          <div class="source-list">
-            <span v-for="name in environmentDraft.sources" :key="name" class="source-chip"
-              >{{ name
-              }}<button
-                type="button"
-                :disabled="busy"
-                :aria-label="`移除 ${name}`"
-                @click="environmentDraft.sources = environmentDraft.sources.filter(item => item !== name)"
-              >
-                ×
-              </button></span
+          <ElFormItem label="环境名称"><ElInput v-model="environmentDraft.name" required maxlength="80" /></ElFormItem>
+          <div v-for="(row, index) in environmentPackages" :key="index" class="environment-package-row">
+            <ElFormItem label="包名"><ElInput v-model="row.name" required placeholder="@author/package" /></ElFormItem>
+            <ElFormItem label="版本范围"><ElInput v-model="row.version" required placeholder="^1.0.0" /></ElFormItem>
+            <ElButton @click="environmentPackages.splice(index, 1)">移除包</ElButton>
+          </div>
+          <div v-if="environmentDraft.sources.length" class="source-list">
+            <ElTag
+              v-for="name in environmentDraft.sources"
+              :key="name"
+              :closable="!busy"
+              @close="environmentDraft.sources = environmentDraft.sources.filter(item => item !== name)"
+              >{{ name }}</ElTag
             >
           </div>
           <div class="debug-actions">
-            <button type="button" :disabled="busy" @click="addSource">添加本机源码包</button
-            ><button type="submit" class="start" :disabled="busy">保存环境配置</button
-            ><button type="button" :disabled="busy" @click="managingEnvironment = false">取消</button>
+            <ElButton @click="environmentPackages.push({ name: '', version: '' })">添加 npm 包</ElButton>
+            <ElButton @click="addSource">添加本机源码包</ElButton>
+            <ElButton native-type="submit" type="primary" :disabled="environmentConflict">保存环境配置</ElButton>
+            <ElButton @click="managingEnvironment = false">取消</ElButton>
           </div>
-        </form>
+        </ElForm>
       </section>
       <div v-if="library" class="matchup" aria-label="测试双方">
         <section
@@ -547,7 +542,9 @@ onBeforeUnmount(() => {
         </div>
       </section>
       <div v-if="moreActions && library" id="team-more-actions" class="more-actions">
-        <label>训练师名称<input v-model="library.names.value[side]" :disabled="busy" @input="library.persist" /></label>
+        <label
+          >训练师名称<ElInput v-model="library.names.value[side]" :disabled="busy" @input="library.persist"
+        /></label>
         <button :disabled="busy" @click="renameTeam">重命名</button>
         <button v-if="library.files" :disabled="busy || !currentTeam?.version" @click="teamAction('reload')">
           重新载入项目文件
@@ -568,7 +565,7 @@ onBeforeUnmount(() => {
         @keydown.esc="renameDraft = undefined"
       >
         <label
-          >队伍名称<input ref="renameInput" v-model="renameDraft.name" required maxlength="80" :disabled="busy"
+          >队伍名称<ElInput ref="renameInput" v-model="renameDraft.name" required maxlength="80" :disabled="busy"
         /></label>
         <button type="submit" class="save-button" :disabled="busy || renameConflict">确认名称</button>
         <button type="button" @click="renameDraft = undefined">取消</button>
@@ -654,7 +651,7 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px;
 }
-.debug-setup button {
+.debug-setup button:not(.el-button) {
   cursor: pointer;
   border: 1px solid var(--preview-border);
   border-radius: 7px;
@@ -666,7 +663,7 @@ onBeforeUnmount(() => {
     background 0.15s,
     border-color 0.15s;
 }
-.debug-setup button:hover:not(:disabled) {
+.debug-setup button:not(.el-button):hover:not(:disabled) {
   background: #edf3fa;
   border-color: #aabed8;
 }
@@ -762,26 +759,25 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 12px;
 }
-.environment-form > label {
-  align-items: flex-start;
-  flex-direction: column;
+.environment-row > .el-select {
+  width: min(100%, 18rem);
 }
-.environment-form :is(input, textarea) {
-  width: 100%;
-  max-width: 600px;
-}
+.environment-package-row,
 .source-list {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  flex-wrap: wrap;
+  align-items: end;
 }
-.source-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-left: 8px;
-  background: #fff;
-  border-radius: 6px;
+.environment-package-row > .el-form-item {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.environment-form :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+.environment-panel .el-button + .el-button {
+  margin-left: 0;
 }
 .matchup {
   display: grid;
@@ -828,13 +824,6 @@ onBeforeUnmount(() => {
 .side-selection :deep(.team-library-select) {
   width: 100%;
   font-size: 12px;
-}
-.side-selection :deep(select) {
-  min-width: 0;
-  flex: 1;
-  width: 0;
-  padding: 6px 8px;
-  font-size: 13px;
 }
 .editor-toolbar {
   display: flex;

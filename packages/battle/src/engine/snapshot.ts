@@ -286,7 +286,7 @@ const ledger = {
   Battle: {
     ctor: Battle,
     fields:
-      'type lastStateMessage id allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap sequenceId playerA playerB',
+      'type lastStateMessage id elementMultipliers enhancementActive allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap sequenceId playerA playerB',
     runtime:
       'executionBudget battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
   },
@@ -303,7 +303,7 @@ const ledger = {
   Pet: {
     ctor: Pet,
     fields:
-      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes lastUsedSkillElement attributeSystem name id originalSpecies level evs ivs nature baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
+      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes lastUsedSkillElement attributeSystem name id originalSpecies level evs ivs nature natureMultipliers enhancementBonus baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
     runtime: 'emitter',
   },
   SkillInstance: {
@@ -932,6 +932,7 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
     s.nodes.length > 100000
   )
     throw new Error('Unsupported snapshot format/version/catalog')
+  if (s.catalog !== catalog.revision) throw new Error('Snapshot content revision mismatch')
   const valid = new Set([
     ...kinds,
     'effect',

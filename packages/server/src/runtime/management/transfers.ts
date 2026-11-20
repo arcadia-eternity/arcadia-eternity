@@ -1,6 +1,8 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
+import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import { exportSelectionSchema } from '@arcadia-eternity/content-sdk/management-workspace'
 import type { DurableStorage } from '@arcadia-eternity/database'
 import type {
   ContentWorkspace,
@@ -19,7 +21,6 @@ type TransferWorkspace = Pick<
   | 'forgetImport'
   | 'retain'
   | 'releaseRetention'
-  | 'references'
 >
 export interface ManagementTransfersOptions {
   storage: DurableStorage
@@ -57,7 +58,6 @@ interface ExportResult {
 const fail = (code: string, status = 422): never => {
   throw new ManagementTransferError(code, status)
 }
-const digest = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
 const validId = (id: string) => {
   if (typeof id !== 'string' || !/^[a-f0-9]{64}$/.test(id)) fail('TRANSFER_NOT_FOUND', 404)
   return id
@@ -82,7 +82,7 @@ export class ManagementTransfers {
   private closed = false
   constructor(private readonly options: ManagementTransfersOptions) {
     this.scope = { kind: 'workspace', id: options.workspace.workspaceId }
-    this.root = resolve(options.directory, `owner-${digest(options.operations.ownerId)}`)
+    this.root = resolve(options.directory, `owner-${sha256Hex(options.operations.ownerId)}`)
     this.now = options.now ?? Date.now
     this.maxBytes = options.maxBytes ?? 128 * 1024 * 1024
     this.ttlMs = options.ttlMs ?? 24 * 60 * 60 * 1000
@@ -174,9 +174,17 @@ export class ManagementTransfers {
     installationId: string,
     idempotencyKey: string,
     retryOf?: string,
+    requestedMode: unknown = 'share',
   ): Promise<Operation> {
     await this.ready()
     await this.options.auth.authorize(actor, this.scope, 'export')
+    const selection = exportSelectionSchema.safeParse(requestedMode)
+    const mode =
+      requestedMode === 'share' || requestedMode === 'offline'
+        ? requestedMode
+        : selection.success
+          ? selection.data
+          : fail('ENVIRONMENT_EXPORT_INVALID')
     if (!safeString(installationId)) fail('ENVIRONMENT_VERSION_INVALID')
     return this.options.operations.submit(
       {
@@ -184,7 +192,7 @@ export class ManagementTransfers {
         scope: managementScopeKey(this.scope),
         actor,
         idempotencyKey,
-        input: { installationId },
+        input: { installationId, ...(mode === 'share' ? {} : { mode }) },
         ...(retryOf ? { retryOf } : {}),
       },
       async context => {
@@ -196,7 +204,7 @@ export class ManagementTransfers {
           await context.checkCurrent()
           await this.options.auth.authorize(actor, this.scope, 'export')
           await context.progress({ stage: 'exporting' })
-          const bundle = await this.options.workspace.exportEnvironment(installationId)
+          const bundle = await this.options.workspace.exportEnvironment(installationId, mode)
           const bytes = Buffer.from(JSON.stringify(bundle))
           await context.checkCurrent()
           await this.write(name, bytes)
@@ -233,6 +241,7 @@ export class ManagementTransfers {
       expectedRevision?: string | null
       idempotencyKey: string
       retryOf?: string
+      allowDownload?: boolean
     },
   ): Promise<Operation> {
     await this.ready()
@@ -242,7 +251,9 @@ export class ManagementTransfers {
       !bundle ||
       typeof bundle !== 'object' ||
       Array.isArray(bundle) ||
-      (bundle as { format?: unknown }).format !== 'arcadia.environment-export/2'
+      !['arcadia.environment-export/2', 'arcadia.environment-export/3', 'arcadia.environment-export/4'].includes(
+        (bundle as { format: string }).format,
+      )
     )
       fail('ENVIRONMENT_EXPORT_INVALID')
     if (input.environmentId !== undefined && !safeString(input.environmentId)) fail('ENVIRONMENT_ID_INVALID')
@@ -255,8 +266,8 @@ export class ManagementTransfers {
       return fail('ENVIRONMENT_EXPORT_INVALID')
     }
     if (bytes.length > this.maxBytes) fail('TRANSFER_TOO_LARGE', 413)
-    const bundleDigest = digest(bytes)
-    const uploadId = digest(`${this.options.operations.ownerId}\0${managementScopeKey(this.scope)}\0${bundleDigest}`)
+    const bundleDigest = sha256Hex(bytes)
+    const uploadId = sha256Hex(`${this.options.operations.ownerId}\0${managementScopeKey(this.scope)}\0${bundleDigest}`)
     const name = `upload-${uploadId}.json`
     const unpin = this.pin(name)
     try {
@@ -269,6 +280,7 @@ export class ManagementTransfers {
           idempotencyKey: input.idempotencyKey,
           ...(input.retryOf ? { retryOf: input.retryOf } : {}),
           input: {
+            ...(input.allowDownload !== undefined ? { allowDownload: input.allowDownload } : {}),
             bundleDigest,
             uploadId,
             environmentId: input.environmentId ?? null,
@@ -283,13 +295,14 @@ export class ManagementTransfers {
             await this.options.auth.authorize(actor, this.scope, 'prepare')
             const { file } = await this.metadata(name)
             const contents = await readFile(file)
-            if (digest(contents) !== bundleDigest) fail('TRANSFER_ARTIFACT_INVALID', 409)
+            if (sha256Hex(contents) !== bundleDigest) fail('TRANSFER_ARTIFACT_INVALID', 409)
             const parsed = JSON.parse(contents.toString('utf8')) as EnvironmentExport
             await context.progress({ stage: 'importing' })
             const version = await this.options.workspace.importEnvironment(
               parsed,
               {
                 importId: context.operationId,
+                allowDownload: input.allowDownload === true,
                 ...(input.environmentId ? { environmentId: input.environmentId } : {}),
                 expectedRevision: input.expectedRevision ?? null,
                 signal: context.signal,
@@ -337,12 +350,13 @@ export class ManagementTransfers {
     }
     if (!['failed', 'cancelled', 'interrupted'].includes(previous.status)) return fail('OPERATION_NOT_RETRYABLE', 409)
     if (previous.kind === 'environment.export') {
-      const input = previous.input as { installationId: string }
-      return this.export(actor, input.installationId, idempotencyKey, previous.id)
+      const input = previous.input as { installationId: string; mode?: unknown }
+      return this.export(actor, input.installationId, idempotencyKey, previous.id, input.mode)
     }
     await this.options.auth.authorize(actor, this.scope, 'edit')
     await this.options.auth.authorize(actor, this.scope, 'prepare')
     const input = previous.input as {
+      allowDownload?: boolean
       uploadId: string
       bundleDigest: string
       environmentId: string | null
@@ -353,12 +367,13 @@ export class ManagementTransfers {
     try {
       const { file } = await this.metadata(name)
       const bytes = await readFile(file)
-      if (digest(bytes) !== input.bundleDigest) return fail('TRANSFER_ARTIFACT_INVALID', 409)
+      if (sha256Hex(bytes) !== input.bundleDigest) return fail('TRANSFER_ARTIFACT_INVALID', 409)
       return await this.import(actor, JSON.parse(bytes.toString('utf8')), {
         ...(input.environmentId ? { environmentId: input.environmentId } : {}),
         expectedRevision: input.expectedRevision,
         idempotencyKey,
         retryOf: previous.id,
+        allowDownload: input.allowDownload,
       })
     } finally {
       unpin()
@@ -391,21 +406,6 @@ export class ManagementTransfers {
     } catch (error) {
       unpin()
       throw error
-    }
-  }
-  async references(actor: ManagementActor, installationId: string) {
-    await this.options.auth.authorize(actor, this.scope, 'read')
-    const references = await this.options.workspace.references(installationId)
-    return {
-      references: references.map(reference => {
-        const result: Record<string, unknown> = {}
-        for (const key of ['kind', 'installationId', 'retentionId', 'serverId', 'bindingId', 'owner', 'id']) {
-          const value = reference[key]
-          // IDs have a bounded printable shape; user-controlled paths/diagnostics aren't sent.
-          if (safeString(value, 256) && !/[\\/]/.test(value)) result[key] = value
-        }
-        return result
-      }),
     }
   }
   private recoverImport(operation: Operation): Promise<Operation> {

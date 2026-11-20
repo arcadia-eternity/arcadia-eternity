@@ -1,13 +1,12 @@
 import * as authoringSdk from '@arcadia-eternity/battle/authoring'
 import { Worker } from 'node:worker_threads'
-import { readFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { pathToFileURL } from 'node:url'
 import { afterEach, expect, it } from 'vitest'
 import nodeEndpoint from 'comlink/dist/esm/node-adapter.mjs'
-import { parse } from 'yaml'
+import { loadBasePrototypeData } from './base-metadata'
 import { BattleWorkerManager } from '../../sandbox'
 import officialEffectArtifact from '@arcadia-eternity/data-pack-base/effects?effect-module'
 import { createCatalog, createEffects } from '@arcadia-eternity/data-pack-base/effects'
@@ -52,20 +51,10 @@ function fixture(): SandboxBattleInput {
     format: 'arcadia.effect-module',
     packageId: '@arcadia-eternity/data-pack-base',
   })
-  const root = new URL('../../../../packs/base/', import.meta.url)
-  const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8'))
-  const read = (kind: string) =>
-    manifest.data[kind].flatMap((file: string) =>
-      parse(readFileSync(new URL(`data/${file}`, root), 'utf8'), { merge: true }),
-    )
   return {
     environment: {
       revision: 'sandbox/official-test',
-      data: {
-        marks: read('marks'),
-        skills: read('skills'),
-        species: read('species'),
-      },
+      data: loadBasePrototypeData(),
       modules: [{ artifact: officialEffectArtifact, role: 'catalog', namespace: '' }],
     },
     players: structuredClone(input.teams),

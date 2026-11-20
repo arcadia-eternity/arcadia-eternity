@@ -1,4 +1,4 @@
-import { readPersistedProfile } from './helpers/profile'
+import { readPersistedTeam } from './helpers/profile'
 import { expect, test, type Page } from 'playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
@@ -46,16 +46,14 @@ async function formCustomTeam(page: Page) {
   await species.click()
   await species.locator('input[role=combobox]').fill('展示精灵')
   await page.getByRole('option', { name: /展示精灵/ }).click()
+  await page.getByRole('button', { name: '确认更换种族' }).click()
   await expect(page.getByPlaceholder('输入精灵名称')).toHaveValue('展示精灵')
-  await page.getByRole('button', { name: '保存', exact: true }).click()
-  await expect
-    .poll(async () => (await readPersistedProfile(page))?.library.teams[0].pets[0]?.species)
-    .toBe('example-slow:pet')
-  const saved = (await readPersistedProfile(page))!.library.teams[0].pets[0]
-  expect(saved.species).toBe('example-slow:pet')
-  expect(saved.skills).toEqual(['example-slow:strike'])
-  await page.getByRole('link', { name: '返回房间', exact: true }).click()
-  await page.getByTestId('room-team-selector').getByTestId('team-option-0').click()
+  await expect.poll(async () => (await readPersistedTeam(page))?.length).toBe(0)
+  await page.getByRole('button', { name: '另存为个人队伍', exact: true }).click()
+  await expect.poll(async () => (await readPersistedTeam(page, 1))?.[0]?.species).toBe('example-slow:pet')
+  expect((await readPersistedTeam(page, 1))![0].skills).toEqual(['example-slow:strike'])
+  await page.getByRole('button', { name: '用于本场', exact: true }).click()
+  await expect(page).toHaveURL(/\/room\//)
 }
 
 test('clean production clients synchronize custom content, form teams, play a turn, reconnect and finish naturally', async ({

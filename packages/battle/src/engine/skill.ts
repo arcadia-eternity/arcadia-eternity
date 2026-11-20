@@ -18,7 +18,7 @@ import { SkillAttributeSystem } from './attributeSystem'
 
 export class BaseSkillBuilder {
   #id = '' as baseSkillId
-  #type = Element.Normal
+  #type: Element = Element.Normal
   #power = 0
   #accuracy = 100
   #rageCost = 0

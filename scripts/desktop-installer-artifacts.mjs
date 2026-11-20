@@ -1,5 +1,6 @@
+import { sha256StreamHex } from '../packages/const/src/sha256.ts'
 import { execFile, spawn } from 'node:child_process'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
 import {
   chmod,
@@ -63,9 +64,7 @@ function safeRelative(value, windows = false) {
 }
 
 async function digest(file) {
-  const hash = createHash('sha256')
-  for await (const chunk of createReadStream(file)) hash.update(chunk)
-  return hash.digest('hex')
+  return sha256StreamHex(createReadStream(file))
 }
 
 async function zipEntries(file, visit) {

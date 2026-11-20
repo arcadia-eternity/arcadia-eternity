@@ -1,8 +1,23 @@
+import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
+import {
+  resolveSkillParameters,
+  skillParameterCatalogSchema,
+  validateElementReferences,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
+import { toRaw } from 'vue'
 import { Value } from '@sinclair/typebox/value'
-import { SpeciesSchema, SkillSchema, MarkSchema } from '@arcadia-eternity/schema'
+import {
+  contentLocaleIds,
+  isContentLocaleField,
+  contentLocaleCollection,
+  SpeciesSchema,
+  SkillSchema,
+  MarkSchema,
+} from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 
-const CONTENT_NAMESPACES = ['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'] as const
 const HASH = /^[a-f0-9]{64}$/
 const identifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 256
@@ -45,6 +60,11 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   const descriptor = value as ServerEnvironmentDescriptor
   if (descriptor?.protocolVersion !== 1 || descriptor?.runtime?.kind !== 'native-v4')
     throw new Error('服务器环境协议不兼容')
+  if (descriptor.environmentId !== undefined && !identifier(descriptor.environmentId)) invalid()
+  if (descriptor.environmentName !== undefined && !identifier(descriptor.environmentName)) invalid()
+  if (descriptor.gameplayRevision !== undefined && !HASH.test(descriptor.gameplayRevision)) invalid()
+  if (descriptor.rules !== undefined) validateEnvironmentRules(toRaw(descriptor.rules))
+  if (descriptor.matchmakingEnabled !== undefined && typeof descriptor.matchmakingEnabled !== 'boolean') invalid()
   if (descriptor.isDefault !== undefined && typeof descriptor.isDefault !== 'boolean') invalid()
   if (descriptor.executionPolicy !== undefined && !['server', 'peer'].includes(descriptor.executionPolicy)) invalid()
   if (descriptor.peerRevision !== undefined && !identifier(descriptor.peerRevision)) invalid()
@@ -119,7 +139,29 @@ export function validateEnvironmentContent(
 ): asserts value is ServerEnvironmentContent {
   validateMetadataTree(value)
   const content = value as ServerEnvironmentContent
-  if (!content || Object.keys(content).some(key => !['species', 'skills', 'marks', 'locales'].includes(key))) invalid()
+  if (
+    !content ||
+    Object.keys(content).some(
+      key =>
+        ![
+          'species',
+          'skills',
+          'marks',
+          'locales',
+          'skillParameters',
+          'natures',
+          'enhancements',
+          'elements',
+          'matchupTables',
+        ].includes(key),
+    )
+  )
+    invalid()
+  if (content.skillParameters !== undefined)
+    resolveSkillParameters(skillParameterCatalogSchema.parse(content.skillParameters))
+  readEnhancementStages(content.enhancements)
+  if (content.elements !== undefined || content.matchupTables !== undefined) validateElementReferences(content)
+  if (content.natures !== undefined) readNatureCatalog(content.natures)
   const rows = [content.species, content.skills, content.marks]
   const schemas = [SpeciesSchema, SkillSchema, MarkSchema]
   const ids = rows.map((items, index) => {
@@ -149,6 +191,7 @@ export function validateEnvironmentContent(
     return seen
   })
   for (const species of content.species) {
+    for (const skill of species.inheritance?.skills ?? []) if (!ids[1].has(skill)) invalid()
     for (const skill of species.learnable_skills) if (!ids[1].has(skill.skill_id)) invalid()
     for (const mark of [...species.ability, ...species.emblem]) if (!ids[2].has(mark)) invalid()
   }
@@ -162,21 +205,17 @@ export function validateEnvironmentContent(
       Object.keys(bundles).length > 32
     )
       invalid()
+    const idsByCollection = contentLocaleIds(content)
     for (const [language, namespaces] of Object.entries(bundles)) {
       if (!identifier(language) || !namespaces || typeof namespaces !== 'object' || Array.isArray(namespaces)) invalid()
       for (const [namespace, entries] of Object.entries(namespaces)) {
-        if (
-          !(CONTENT_NAMESPACES as readonly string[]).includes(namespace) ||
-          !entries ||
-          typeof entries !== 'object' ||
-          Array.isArray(entries)
-        )
-          invalid()
-        const known = ids[namespace === 'species' ? 0 : namespace === 'skill' ? 1 : 2]
+        const collection = contentLocaleCollection(namespace)
+        if (!collection || !entries || typeof entries !== 'object' || Array.isArray(entries)) invalid()
+        const known = idsByCollection[collection]
         for (const [id, fields] of Object.entries(entries)) {
           if (!known.has(id) || !fields || typeof fields !== 'object' || Array.isArray(fields)) invalid()
           for (const [key, field] of Object.entries(fields))
-            if (!['name', 'description'].includes(key) || typeof field !== 'string') invalid()
+            if (!isContentLocaleField(namespace, key) || typeof field !== 'string') invalid()
         }
       }
     }

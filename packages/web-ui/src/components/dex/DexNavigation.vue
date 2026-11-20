@@ -1,29 +1,16 @@
 <template>
-  <div class="mb-6 overflow-x-auto" style="touch-action: pan-x">
-    <div class="flex space-x-1 bg-gray-100 rounded-lg p-1 border border-gray-300 min-w-max">
-      <button
-        v-for="tab in tabs"
-        :key="tab.key"
-        :class="[
-          'px-4 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 text-sm sm:text-base',
-          'flex items-center space-x-2 flex-shrink-0',
-          activeTab === tab.key
-            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200',
-        ]"
-        @click="$emit('update:activeTab', tab.key)"
-      >
-        <component :is="tab.icon" class="w-5 h-5" />
-        <span>{{ tab.label }}</span>
-        <span class="text-xs opacity-75 bg-gray-500 text-white px-2 py-0.5 rounded-full">
-          {{ tab.count }}
-        </span>
-      </button>
-    </div>
+  <div class="mb-4 overflow-x-auto">
+    <ElRadioGroup :model-value="activeTab" aria-label="图鉴分类" class="flex-nowrap!" @update:model-value="choose">
+      <ElRadioButton v-for="tab in tabs" :key="tab.key" :value="tab.key">
+        <span class="inline-flex items-center gap-1.5"
+          ><component :is="tab.icon" class="size-4" />{{ tab.label }} ({{ tab.count }})</span
+        >
+      </ElRadioButton>
+    </ElRadioGroup>
   </div>
 </template>
-
 <script setup lang="ts">
+import { ElRadioButton, ElRadioGroup } from 'element-plus'
 import { computed } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { useTranslation } from 'i18next-vue'
@@ -36,7 +23,7 @@ defineProps<{
   activeTab: 'species' | 'skills' | 'marks' | 'typeChart'
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:activeTab': [value: 'species' | 'skills' | 'marks' | 'typeChart']
 }>()
 
@@ -63,27 +50,11 @@ const tabs = computed(() => [
     key: 'typeChart' as const,
     label: i18next.t('dex.typeChart', { ns: 'webui' }),
     icon: TableCellsIcon,
-    count: 23, // 总属性数量
+    count: gameDataStore.elementCatalog.elements.length,
   },
 ])
+function choose(value: string | number | boolean | undefined) {
+  const tab = tabs.value.find(item => item.key === value)
+  if (tab) emit('update:activeTab', tab.key)
+}
 </script>
-
-<style scoped>
-:deep(::-webkit-scrollbar) {
-  height: 6px;
-}
-
-:deep(::-webkit-scrollbar-track) {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-:deep(::-webkit-scrollbar-thumb) {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-:deep(::-webkit-scrollbar-thumb:hover) {
-  background: #a1a1a1;
-}
-</style>

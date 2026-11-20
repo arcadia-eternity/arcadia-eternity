@@ -12,6 +12,10 @@
 | 包安装、版本选择与源码编辑边界        | [内容管理](guides/content-management.md)、[管理界面](guides/content-manager-design.md)                                                       |
 | 各运行场景的内容包读取与准备          | [内容包读取边界](guides/content-loading-boundaries.md)                                                                                       |
 | npm 依赖、准入、环境与项目导出        | [npm 内容包](guides/npm-content.md)                                                                                                          |
+| 环境、数值与仓库组队设计              | [需求与完整设计](proposals/environment-system-design.md) · [规则与数值契约](proposals/environment-rule-composition.md)                       |
+| 跨系统改造的实施顺序与验收            | [整体复核与实施计划](proposals/environment-implementation-plan.md)                                                                           |
+| 环境驱动的队伍编辑器                  | [页面组织与配置流程](proposals/environment-team-editor.md)                                                                                   |
+| 仓库与组队的环境适配                  | [实例、队伍引用与迁移](proposals/environment-storage-adaptation.md)                                                                          |
 | 资源、表现、语言与描述配色            | [内容表现](guides/content-presentation.md)                                                                                                   |
 | 本机候选与草稿试战                    | [候选预览](guides/development-preview.md)、[试战生命周期](guides/local-trial-lifecycle.md)                                                   |
 | 作品文件与命名空间                    | [作品数据](guides/ugc-works.md)                                                                                                              |

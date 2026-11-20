@@ -1,12 +1,20 @@
 <script setup lang="ts">
+import type { EnvironmentImportProbe } from '@arcadia-eternity/content-sdk/management-workspace'
 import { ref } from 'vue'
 import { ElDialog, ElButton } from 'element-plus'
 import EnvironmentTransfers from './EnvironmentTransfers.vue'
 import './managementStyles'
-const props = defineProps<{ modelValue: boolean; busy: boolean; error?: string }>()
+const props = defineProps<{
+  target?: string
+  modelValue: boolean
+  busy: boolean
+  checkArchives?: (probe: EnvironmentImportProbe) => Promise<string[]>
+  error?: string
+  allowDownload?: boolean
+}>()
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null }]
+  import: [input: { bundle: unknown; environmentId?: string; expectedRevision: null; allowDownload?: boolean }]
 }>()
 const transfer = ref<InstanceType<typeof EnvironmentTransfers>>()
 function close(done: () => void) {
@@ -28,9 +36,13 @@ function close(done: () => void) {
   >
     <div class="import-body">
       <p v-if="error" role="alert" class="error">{{ error }}</p>
+      <slot />
       <EnvironmentTransfers
+        :key="target"
         ref="transfer"
         mode="import"
+        :allow-download="allowDownload"
+        :check-archives="checkArchives"
         dialog
         :installations="[]"
         :operations="[]"

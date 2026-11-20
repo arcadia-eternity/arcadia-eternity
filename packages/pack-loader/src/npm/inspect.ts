@@ -1,6 +1,7 @@
+import { satisfies, validRange } from 'semver'
+import release from '../../package.json' with { type: 'json' }
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import {
@@ -14,9 +15,10 @@ import {
   type Json,
   type WorkDraft,
 } from '../works/model'
-import { verifyAssets } from '../works/compiler'
+import { linkWorkRuleSets, verifyAssets } from '../works/compiler'
 import { PresentationManifestSchema, parseWithErrors, type PresentationManifest } from '@arcadia-eternity/schema'
 import { effectSdkApiVersion } from '@arcadia-eternity/battle/authoring'
+import { readEnvironmentRuleSets, sha256Hex } from '@arcadia-eternity/const'
 import { resolveNpmInvocation } from './runner'
 
 const exec = promisify(execFile)
@@ -65,6 +67,7 @@ export interface NpmProjectInspection {
   digest: string
   /** Audit identity of npm's source/solver record, not a replacement for tarball integrity. */
   lockfileDigest: string
+  ruleSets?: ReturnType<typeof readEnvironmentRuleSets>
   members: readonly NpmContentMember[]
   packages: readonly InstalledNpmPackage[]
 }
@@ -175,8 +178,25 @@ function readManifest(value: unknown): NpmContentManifest {
   return input
 }
 
+/** The loader is versioned with the Arcadia distribution, including on hosts without the base pack. */
+function checkArcadiaVersion(name: string, engines: Json | undefined) {
+  if (!engines || typeof engines !== 'object' || Array.isArray(engines) || !Object.hasOwn(engines, 'arcadia')) return
+  const range = engines.arcadia
+  if (typeof range !== 'string' || !range.trim() || range.length > 256 || !validRange(range))
+    throw Object.assign(new Error(`${name} 的 engines.arcadia 必须是有效的版本范围。`), {
+      code: 'ARCADIA_VERSION_RANGE_INVALID',
+    })
+  if (!satisfies(release.version, range))
+    throw Object.assign(new Error(`${name} 要求 Arcadia ${range}，当前版本为 ${release.version}。`), {
+      code: 'ARCADIA_VERSION_INCOMPATIBLE',
+    })
+}
+
 /** npm owns semver/peer resolution. This command only reads its installed tree; it never runs lifecycle scripts. */
-export async function inspectNpmProject(directory: string): Promise<NpmProjectInspection> {
+export async function inspectNpmProject(
+  directory: string,
+  options: { includeRuleSets?: boolean } = {},
+): Promise<NpmProjectInspection> {
   const root = await realpath(directory)
   let lock: Record<string, Json>
   try {
@@ -262,6 +282,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
   }
   for (const [name, child] of Object.entries(tree.dependencies ?? {})) await visit(child, root, name)
   await checkInstalledDirectories(root, nodes)
+  const ruleSets: unknown[] = []
   const packages: InstalledNpmPackage[] = []
   const contentNames = new Set<string>()
   const projects = new Map<string, string>(),
@@ -280,6 +301,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       node.version !== pkg.version
     )
       fail('NPM_LOCK', location, 'Installed package does not match its npm lock entry')
+    checkArcadiaVersion(pkg.name, pkg.engines)
     for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies'])
       if (canonical(pkg[field] ?? {}) !== canonical(locked[field] ?? {}))
         fail('NPM_LOCK', location, 'Installed dependency declarations differ from the npm lockfile')
@@ -315,6 +337,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
         fail('NPM_METADATA', 'arcadia.content', 'Expected a catalog content file')
       const content = await jsonFile(packageFile(dir, manifest.content))
       const data = record(content.data, 'content.data')
+      if (options.includeRuleSets && Array.isArray(data.ruleSets)) ruleSets.push(...data.ruleSets)
       entry.catalogIds = { species: [], skills: [], marks: [] }
       for (const kind of ['species', 'skills', 'marks'] as const) {
         const rows = data[kind]
@@ -416,12 +439,22 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       .filter(other => other.dependencies.includes(member.name))
       .map(other => other.name)
       .sort()
+  if (options.includeRuleSets) {
+    const namespaces = new Map(members.map(member => [member.name, member.namespace]))
+    for (const pkg of packages) {
+      if (!pkg.draft) continue
+      const work = pkg.draft
+      const dependencies = members.find(member => member.name === pkg.name)!.dependencies
+      ruleSets.push(...linkWorkRuleSets(work, new Set(dependencies.map(name => namespaces.get(name)!))))
+    }
+  }
   const identity = packages.map(({ integrity: _integrity, dependencyRanges: _ranges, ...pkg }) => pkg)
   return freeze({
     format: 'arcadia.npm-installation',
     version: 1,
     digest: await digestJson(identity),
-    lockfileDigest: createHash('sha256').update(canonical(lock)).digest('hex'),
+    ...(options.includeRuleSets && { ruleSets: readEnvironmentRuleSets(ruleSets) }),
+    lockfileDigest: sha256Hex(canonical(lock)),
     packages,
     members,
   })

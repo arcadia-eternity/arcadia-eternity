@@ -9,6 +9,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
   if (isStaticMode && to.query.privateRoom === 'true') return '/local-battle'
   if (
     !isStaticMode &&
+    !window.arcadiaAuthorPreview &&
     (to.name === 'LocalBattleReportPlay' || to.name === 'AuthorPreview') &&
     useMatchmakingStore().blocksOtherBattles
   ) {

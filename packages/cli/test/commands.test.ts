@@ -50,6 +50,20 @@ function battle(...extra: string[]) {
     ...extra,
   ]
 }
+function customSpecies(id: string, skill: string | { $ref: { projectId: string; kind: string; id: string } }) {
+  return {
+    id,
+    num: 1,
+    element: 'Normal',
+    baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
+    genderRatio: null,
+    heightRange: [1, 2],
+    weightRange: [1, 2],
+    ability: [],
+    emblem: [],
+    learnable_skills: [{ skill_id: skill, level: 1, hidden: false }],
+  }
+}
 const output = (name: string) => join(temporary, `${counter++}-${name}.json`)
 
 beforeAll(async () => {
@@ -57,11 +71,11 @@ beforeAll(async () => {
   const runtime = join(temporary, 'runtime')
   await cp(join(root, 'dist'), join(runtime, 'dist'), { recursive: true })
   await mkdir(join(runtime, 'packs/base/assets'), { recursive: true })
-  for (const file of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'dist'])
+  for (const file of ['package.json', 'pack.json', 'pack-lock.yaml', 'data', 'locales', 'environment', 'dist'])
     await cp(join(root, 'packs/base', file), join(runtime, 'packs/base', file), { recursive: true })
   const installedBase = join(runtime, 'node_modules/@arcadia-eternity/data-pack-base')
   await mkdir(installedBase, { recursive: true })
-  for (const file of ['package.json', 'pack.json', 'dist'])
+  for (const file of ['package.json', 'pack.json', 'environment', 'dist'])
     await cp(join(root, 'packs/base', file), join(installedBase, file), { recursive: true })
   await writeFile(join(runtime, 'package.json'), '{"type":"module"}')
   cli = join(runtime, 'dist/cli.js')
@@ -80,7 +94,7 @@ beforeAll(async () => {
   teams = fixture.teams.map((_: unknown, i: number) => join(temporary, `team-${i}.json`))
   for (const [i, team] of fixture.teams.entries()) {
     for (const pet of team.team) {
-      pet.skills = ['skill_paida']
+      pet.skills = [pet.species === 'pet_huanli' ? 'skill_zhuangji' : 'skill_paida']
       pet.maxHp = 25
     }
     await writeFile(teams[i], JSON.stringify(team))
@@ -241,7 +255,7 @@ it('freezes custom content and validates original workspace locks for multiple p
     version: '1.0.0',
     engine: 'seer2-v2',
     dependencies: [{ id: 'arcadia-eternity.base', path: base }],
-    data: { effects: [], marks: [], skills: ['skills.json'], species: [] },
+    data: { effects: [], marks: [], skills: ['skills.json'], species: ['species.json'] },
   }
   const raw = JSON.stringify(manifest)
   const entry = join(workspace, 'user/pack.json'),
@@ -249,6 +263,7 @@ it('freezes custom content and validates original workspace locks for multiple p
     source = join(workspace, 'user/skills.json')
   await writeFile(entry, raw)
   await writeFile(source, JSON.stringify([skill]))
+  await writeFile(join(workspace, 'user/species.json'), JSON.stringify([customSpecies('pet_cli_custom', skill.id)]))
   const lockData = {
     lockfileVersion: 1,
     generatedAt: '2026-10-23T00:00:00.000Z',
@@ -299,7 +314,10 @@ it('freezes custom content and validates original workspace locks for multiple p
   const customTeam = output('custom-team'),
     saved = output('custom-replay')
   const team = JSON.parse(await readFile(teams[0], 'utf8'))
-  for (const pet of team.team) pet.skills = ['skill_cli_custom']
+  for (const pet of team.team) {
+    pet.species = 'pet_cli_custom'
+    pet.skills = ['skill_cli_custom']
+  }
   await writeFile(customTeam, JSON.stringify(team))
   await invoke(battle('--player1', customTeam, '--replay-out', saved), 0, env)
   await writeFile(source, '[]')
@@ -382,13 +400,14 @@ it('cancels a running batch with SIGINT, writes partial JSON and exits 130', asy
 }, 15000)
 
 it('loads a namespaced work archive offline and verifies its replay in another process', async () => {
-  const { createDraft, compileRelease, exportArchive } = await import('@arcadia-eternity/pack-loader/native')
+  const { createDraft, compileRelease, exportArchive, workRef } = await import('@arcadia-eternity/pack-loader/native')
   const { prepareContent } = await import('../src/application/prepare')
   const { nativeBuildIdentity } = await import('@arcadia-eternity/data-pack-base/build')
   const { createOfficialContent } = await import('@arcadia-eternity/data-pack-base/effects')
   const base = await prepareContent('builtin:base', root)
   const draft = createDraft('command-work', '命令行作品', 'cli_pack')
   draft.data.skills.push({ id: 'strike', element: 'Normal', category: 'Physical', power: 80, rage: 0, accuracy: 100 })
+  draft.data.species.push(customSpecies('pet', workRef(draft.project.id, 'skill', 'strike')))
   const release = await compileRelease(draft, '1.0.0', {
     base: base.data,
     build: nativeBuildIdentity,
@@ -401,7 +420,10 @@ it('loads a namespaced work archive offline and verifies its replay in another p
   const customTeams = await Promise.all(
     teams.map(async (file, index) => {
       const team = JSON.parse(await readFile(file, 'utf8'))
-      for (const pet of team.team) pet.skills = ['cli_pack:strike']
+      for (const pet of team.team) {
+        pet.species = 'cli_pack:pet'
+        pet.skills = ['cli_pack:strike']
+      }
       const path = output(`work-team-${index}`)
       await writeFile(path, JSON.stringify(team))
       return path

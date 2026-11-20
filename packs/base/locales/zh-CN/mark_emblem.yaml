@@ -214,3 +214,9 @@ mark_emblem_hongxin:
 mark_emblem_jianren:
   name: 坚韧
   description: 具有<markName>寒冰坚韧</markName>时受到的伤害减少<shield>20</shield>点。
+mark_emblem_tingjue:
+  name: 听觉纹章
+  description: 自身不会失去听觉。
+mark_emblem_zhenci:
+  name: 针刺
+  description: 雄性造成的伤害增加5%，雌性受到的伤害减少5%。

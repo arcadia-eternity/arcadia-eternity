@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
 import type { DurableStorage } from '@arcadia-eternity/database'
 import type { LocalProfile, ServerSession } from '@arcadia-eternity/protocol'
 import { SessionRegistry, SessionError } from '../session'
@@ -18,7 +18,7 @@ export class AccountLoginSessions {
   ) {}
 
   private key(token: string) {
-    return `player-login:${this.sessions.serverId}:${createHash('sha256').update(token).digest('hex')}`
+    return `player-login:${this.sessions.serverId}:${sha256Hex(token)}`
   }
 
   async remember(session: ServerSession): Promise<void> {

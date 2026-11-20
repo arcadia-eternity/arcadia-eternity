@@ -1,7 +1,21 @@
 import { expect, test } from 'playwright/test'
+import { createSingleProcessApp } from '../../server/src/runtime/app'
+
+let server: ReturnType<typeof createSingleProcessApp>
+let hostUrl: string
+
+test.beforeAll(async ({}, testInfo) => {
+  const origin = new URL(testInfo.project.use.baseURL!).origin
+  server = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: [origin] })
+  await server.start()
+  hostUrl = `http://127.0.0.1:${server.address!.port}`
+})
+test.afterAll(async () => {
+  await server?.stop()
+})
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
+  await page.addInitScript(hostUrl => {
     let snapshot: Record<string, unknown> = { host: { status: 'idle' }, phase: 'idle', configured: false }
     const calls: unknown[] = []
     Object.assign(window, { serverUxCalls: calls })
@@ -43,7 +57,7 @@ test.beforeEach(async ({ page }) => {
               phase: 'ready',
               host: {
                 status: 'running',
-                url: 'http://127.0.0.1:8102',
+                url: hostUrl,
                 serverId: 'desktop-test',
                 projectName: 'official',
                 network: {
@@ -81,7 +95,7 @@ test.beforeEach(async ({ page }) => {
         },
       },
     })
-  })
+  }, hostUrl)
 })
 
 for (const width of [1280, 390]) {
@@ -95,15 +109,12 @@ for (const width of [1280, 390]) {
     await expect(page.getByRole('heading', { name: '私人房间', exact: true })).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true })
     await page.getByRole('button', { name: '在本机开服', exact: true }).click()
-    await expect(page.getByLabel('服务器名称')).toBeVisible()
-    await page.getByLabel('服务器名称').fill('朋友联机')
-    await page.getByRole('button', { name: '启动服务器', exact: true }).click()
     await expect(page.getByRole('button', { name: '进入本机大厅', exact: true })).toBeVisible()
     await expect(page.getByText('http://192.168.1.23:8102', { exact: true })).toBeVisible()
-    await expect(page.getByText('当前游玩：离线', { exact: true })).toBeVisible()
+    await expect(page.getByText(`当前游玩：${hostUrl}`, { exact: true })).toBeVisible()
     expect(fileChoosers).toBe(0)
     expect(await page.evaluate(() => (window as unknown as { serverUxCalls: unknown[] }).serverUxCalls)).toEqual([
-      { action: 'start', configuration: { name: '朋友联机', scope: 'lan', port: 8102, content: 'official' } },
+      { action: 'start', configuration: { name: '我的服务器', scope: 'lan', port: 8102 } },
     ])
     expect(await page.locator('main.server-page').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('server-running.png'), fullPage: true })
@@ -121,6 +132,16 @@ for (const width of [1280, 390]) {
     await expect(page.getByRole('button', { name: '使用已保存配置启动', exact: true })).toBeVisible()
   })
 }
+test('first launch settings are editable directly on the server page', async ({ page }) => {
+  await page.goto('/servers')
+  await page.getByLabel('服务器名称').fill('比赛服务器')
+  await page.getByRole('button', { name: '启动服务器', exact: true }).click()
+  await expect(page.getByText(`当前游玩：${hostUrl}`, { exact: true })).toBeVisible()
+  expect(await page.evaluate(() => (window as unknown as { serverUxCalls: unknown[] }).serverUxCalls)).toEqual([
+    { action: 'start', configuration: { name: '比赛服务器', scope: 'lan', port: 8102 } },
+  ])
+})
+
 test('joining and managing a remote server use separate explicit intents', async ({ page }) => {
   await page.goto('/servers')
   await page.getByLabel('服务器地址', { exact: true }).fill('https://friends.example.com')

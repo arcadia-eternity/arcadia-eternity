@@ -1,4 +1,4 @@
-import { Gender, Nature } from '@arcadia-eternity/const'
+import { Gender, maxEquippedSkills } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 
@@ -12,12 +12,12 @@ const StatOutBattleEVSSchema = z.object({
 })
 
 const StatOutBattleIVSSchema = z.object({
-  hp: z.number().int().nonnegative().min(0).max(31),
-  atk: z.number().int().nonnegative().min(0).max(31),
-  def: z.number().int().nonnegative().min(0).max(31),
-  spa: z.number().int().nonnegative().min(0).max(31),
-  spd: z.number().int().nonnegative().min(0).max(31),
-  spe: z.number().int().nonnegative().min(0).max(31),
+  hp: z.number().int().nonnegative().min(0).max(120),
+  atk: z.number().int().nonnegative().min(0).max(120),
+  def: z.number().int().nonnegative().min(0).max(120),
+  spa: z.number().int().nonnegative().min(0).max(120),
+  spd: z.number().int().nonnegative().min(0).max(120),
+  spe: z.number().int().nonnegative().min(0).max(120),
 })
 
 export const PetSchema = z.object({
@@ -33,11 +33,13 @@ export const PetSchema = z.object({
     '学习力总和不能超过510',
   ),
   ivs: StatOutBattleIVSSchema,
-  nature: z.nativeEnum(Nature),
+  nature: z.string().min(1).max(256),
   gender: z.nativeEnum(Gender).optional(),
   height: z.number().optional(),
   weight: z.number().optional(),
-  skills: z.array(z.string()).min(0).max(5),
+  enhancement: z.string().min(1).max(256).optional(),
+  inheritedSkill: z.string().min(1).max(256).optional(),
+  skills: z.array(z.string()).min(0).max(maxEquippedSkills),
   maxHp: z.number().int().positive().optional(),
   ability: z.string().optional(),
   emblem: z.string().optional(),

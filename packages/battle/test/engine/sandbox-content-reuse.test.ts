@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs'
-import { parse } from 'yaml'
+import { loadBasePrototypeData } from './base-metadata'
 import officialEffectArtifact from '@arcadia-eternity/data-pack-base/effects?effect-module'
 import { LocalBattleSystem } from '../../host'
 import { expect, it, vi } from 'vitest'
@@ -158,20 +157,10 @@ it.each(['package', 'environment'] as const)(
 )
 
 it('reuses the complete official catalog after actions, cleanup and checkpoint restoration', async () => {
-  const root = new URL('../../../../packs/base/', import.meta.url)
-  const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8'))
-  const read = (kind: string) =>
-    manifest.data[kind].flatMap((file: string) =>
-      parse(readFileSync(new URL(`data/${file}`, root), 'utf8'), { merge: true }),
-    )
   const prepared = await prepareSandboxContent(
     {
       revision: 'official-reuse',
-      data: {
-        marks: read('marks'),
-        skills: read('skills'),
-        species: read('species'),
-      },
+      data: loadBasePrototypeData(),
       modules: [{ artifact: officialEffectArtifact, role: 'catalog', namespace: '' }],
     },
     { grouping: 'environment' },

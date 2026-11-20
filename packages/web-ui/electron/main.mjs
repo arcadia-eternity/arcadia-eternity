@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } from 'electron'
 import { createRequire } from 'node:module'
+import { isDeepStrictEqual } from 'node:util'
 import http from 'node:http'
 import { randomUUID } from 'node:crypto'
 import net from 'node:net'
@@ -14,12 +15,14 @@ import { createSwfHost } from './swf-host.mjs'
 import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
-import { ContentLibrary } from './content-library.mjs'
+import { ContentLibrary, readDesktopContentSources } from './content-library.mjs'
 import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
 import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
+import { CreatorGitHub, creatorAction } from './creator-github.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
+import { openBuiltinEnvironment } from './builtin-environment.mjs'
 import { LocalEnvironments } from './local-environments.mjs'
 import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
@@ -51,7 +54,9 @@ const localBattleHost = new LocalBattleHost({
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
   stateDirectory: path.join(app.getPath('userData'), 'local-server'),
   workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
-  attachWorkspace: child => getManagementWorkspaceOwner().attach(child),
+  builtinId: () => builtinEnvironment?.id,
+  attachWorkspace: (child, publish) =>
+    getManagementWorkspaceOwner().attach(child, publish ? () => getLocalEnvironments().hostingWorkspace() : undefined),
   ...(app.isPackaged
     ? {
         npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
@@ -63,7 +68,6 @@ const localBattleHost = new LocalBattleHost({
 const localServerController = new LocalServerController({
   host: localBattleHost,
   library: () => ({
-    acquireProject: () => getLocalEnvironments().acquireProject(),
     acquireDefaultProject: () => getContentLibrary().acquireDefaultProject(),
   }),
   startProject: id => getContentProjects().start(id),
@@ -94,7 +98,29 @@ async function getPersonalProfile() {
     })
   return personalProfile
 }
+const windowsWithTeamDrafts = new Set()
+
+function confirmDraftExit(window) {
+  return (
+    dialog.showMessageBoxSync(window, {
+      type: 'warning',
+      message: '离开会丢失尚未保存的队伍草稿。',
+      buttons: ['继续编辑', '放弃并离开'],
+      defaultId: 0,
+      cancelId: 0,
+    }) === 1
+  )
+}
+
+function guardTeamDrafts(window) {
+  window.on('closed', () => windowsWithTeamDrafts.delete(window))
+  window.webContents.on('will-prevent-unload', event => {
+    if (windowsWithTeamDrafts.has(window) && (stoppedForQuit || confirmDraftExit(window))) event.preventDefault()
+  })
+  window.webContents.on('did-navigate', () => windowsWithTeamDrafts.delete(window))
+}
 const remotePlay = createRemotePlayController({
+  onWindow: guardTeamDrafts,
   validateProfile: value => {
     if (JSON.stringify(value).length > 20 * 1024 * 1024) throw new Error('Profile too large')
     return structuredClone(value)
@@ -219,7 +245,7 @@ async function openAuthorPreview(id, job) {
     authorPreviewWindows.delete(key)
     void isolated.closeAllConnections()
   })
-  const url = new URL('/content/preview', rendererUrl)
+  const url = new URL('/creation/preview', rendererUrl)
   url.searchParams.set('endpoint', job.result.preview.endpoint)
   try {
     await window.loadURL(url.href)
@@ -228,6 +254,7 @@ async function openAuthorPreview(id, job) {
     throw error
   }
 }
+const creatorGitHub = new CreatorGitHub({ clientId: process.env.ARCADIA_CREATOR_GITHUB_CLIENT_ID })
 function getAuthorWorkspaces() {
   authorWorkspaces ??= new AuthorWorkspaces({
     root: path.join(app.getPath('userData'), 'ugc'),
@@ -257,9 +284,50 @@ function getAuthorWorkspaces() {
   return authorWorkspaces
 }
 function getContentLibrary() {
+  const root = path.join(app.getPath('userData'), 'content-packages')
   contentLibrary ??= new ContentLibrary({
-    root: path.join(app.getPath('userData'), 'content-packages'),
+    root,
+    sources: readDesktopContentSources(process.argv.slice(1), root),
+    reviewInstall: async (pkg, signal) => {
+      const ranges = Object.entries(pkg.dependencyRanges).map(([name, range]) => name + ' ' + range)
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        buttons: ['取消', '安装'],
+        defaultId: 1,
+        cancelId: 0,
+        message: `安装 ${pkg.name}@${pkg.version}？`,
+        detail: [
+          pkg.projectId + ' · ' + pkg.namespace,
+          pkg.source.label,
+          'Arcadia ' + (pkg.engines?.arcadia || '未声明') + ' · SDK API ' + (pkg.sdkApi ?? '未声明'),
+          '运行依赖：' + (ranges.join('、') || '无'),
+        ].join('\n'),
+        signal,
+      })
+      return response === 1
+    },
+    authorizeEnvironment: async (document, effects, signal) => {
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        buttons: ['取消', '允许此环境使用'],
+        defaultId: 0,
+        cancelId: 0,
+        message: `允许「${document.name}」在本机运行以下内容包的效果？`,
+        detail: effects.map(pkg => pkg.name + '@' + pkg.version).join('\n'),
+        signal,
+      })
+      return response === 1
+    },
     host: localBattleHost,
+    copyMember: async (...args) => {
+      const runtimeRequire = app.isPackaged
+        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+        : require
+      const { copyEnvironmentMember } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+      )
+      return copyEnvironmentMember(...args)
+    },
     withDefaultArchive: async use => {
       const runtimeRequire = app.isPackaged
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
@@ -294,12 +362,18 @@ function getContentLibrary() {
   })
   return contentLibrary
 }
+let builtinEnvironment
 let localEnvironments
 function getLocalEnvironments() {
   const runtimeRequire = app.isPackaged
     ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
     : require
   localEnvironments ??= new LocalEnvironments({
+    openBuiltin: async () => {
+      await getManagementWorkspaceOwner().ready()
+      return builtinEnvironment
+    },
+    baseRules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
     library: getContentLibrary(),
     addPackage: async (workspace, input) => {
       const { addEnvironmentPackage } = await import(
@@ -317,9 +391,11 @@ function getLocalEnvironments() {
       const { ContentWorkspace } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
-      // Server publication always imports a separate copy, so only local runtime
-      // leases can retain versions in this independently owned workspace.
+      // Local play and hosting borrow read leases. Persistent server bindings belong to the management workspace.
       return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
+        allowShareDownloads: true,
+        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+        npmCache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
         retentions: { list: async () => [] },
       })
     },
@@ -335,6 +411,7 @@ function getLocalEnvironments() {
 function getManagementWorkspaceOwner() {
   managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
     root: path.join(app.getPath('userData'), 'content-packages'),
+    builtinId: () => builtinEnvironment?.id,
     library: getContentLibrary(),
     synchronize: async workspace => {
       const runtimeRequire = app.isPackaged
@@ -343,7 +420,40 @@ function getManagementWorkspaceOwner() {
       const { validateWorkspaceProject } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
       )
-      await getContentLibrary().synchronizeEnvironments(workspace, validateWorkspaceProject)
+      const library = getContentLibrary()
+      await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
+      builtinEnvironment = await openBuiltinEnvironment({
+        workspace,
+        library,
+        validate: validateWorkspaceProject,
+        rules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
+        legacyBuiltinId: async () => {
+          const directory = path.join(app.getPath('userData'), 'local-server')
+          const profile = await fs.readFile(path.join(directory, 'server.json'), 'utf8').catch(error => {
+            if (error.code !== 'ENOENT') throw error
+          })
+          if (
+            !profile ||
+            !(await fs.stat(path.join(directory, 'server.sqlite')).catch(error => {
+              if (error.code !== 'ENOENT') throw error
+            }))
+          )
+            return undefined
+          const { openStorage } = await import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/database')).href)
+          const db = openStorage({ driver: 'sqlite', filename: path.join(directory, 'server.sqlite'), readonly: true })
+          try {
+            const row = await db.get('servers', JSON.parse(profile).serverId)
+            const init = row?.value.initialization
+            return row?.value.workspaceId === workspace.workspaceId &&
+              init?.kind === 'builtin' &&
+              init.environmentId === 'desktop-host'
+              ? init.environmentId
+              : undefined
+          } finally {
+            await db.close()
+          }
+        },
+      })
     },
     openWorkspace: async (root, options) => {
       const runtimeRequire = app.isPackaged
@@ -352,7 +462,11 @@ function getManagementWorkspaceOwner() {
       const { ContentWorkspace } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
-      return ContentWorkspace.open(root, options)
+      return ContentWorkspace.open(root, {
+        ...options,
+        allowShareDownloads: true,
+        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+      })
     },
   })
   return managementWorkspaceOwner
@@ -370,6 +484,7 @@ async function loadLocalContentRuntime() {
     return {
       host: node.emptyNpmContentHost,
       prepareNpmProject: node.prepareNpmProject,
+      gameplayRevision: native.gameplayRevision,
       buildDisplayCatalog: native.buildDisplayCatalog,
       buildDisplayLocales: native.buildDisplayLocales,
     }
@@ -381,7 +496,7 @@ async function loadLocalContentRuntime() {
 }
 function getLocalContentSessions() {
   localContentSessions ??= createLocalContentSessions({
-    library: { acquireProject: () => getLocalEnvironments().acquireProject() },
+    library: { acquireProject: id => getLocalEnvironments().acquireProject(id) },
     load: loadLocalContentRuntime,
     assetUrl: (token, hash) => `http://127.0.0.1:${localServerPort}/local-content/${token}/${hash}`,
   })
@@ -780,9 +895,17 @@ function setupIpcHandlers() {
         personalProfileBusy = input.busy !== false
         return { value: true }
       }
-      const { storage, validateEnvelope } = await getPersonalProfile()
+      const { storage, repository, validateEnvelope } = await getPersonalProfile()
       if (input?.action === 'read') return { value: await storage.read() }
       if (input?.action === 'raw') return { value: await storage.readRaw() }
+      if (input?.action === 'commit' && input.expected && 'legacy' in Object(input.expected)) {
+        // The main process validates and derives the migration from the exact owned bytes.
+        if ((await storage.readRaw()) !== input.expected.legacy)
+          throw Object.assign(new Error('REVISION_CONFLICT'), { code: 'REVISION_CONFLICT' })
+        const migrated = await repository.open()
+        if (!isDeepStrictEqual(migrated, await validateEnvelope(input.next))) throw new Error('Invalid migration')
+        return { value: true }
+      }
       if (input?.action !== 'commit') throw new Error('Invalid profile action')
       const next = await validateEnvelope(input.next)
       if (
@@ -854,6 +977,13 @@ function setupIpcHandlers() {
     // Identity comes from the owning window; the renderer cannot choose a project or path.
     return getAuthorWorkspaces().teamLibrary(authorPreviewProjects.get(window.webContents), action, input)
   })
+  ipcMain.on('team-draft:pending', (event, pending) => {
+    if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl) && !remotePlay.isTrusted(event)) return
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return
+    if (pending === true) windowsWithTeamDrafts.add(window)
+    else if (pending === false) windowsWithTeamDrafts.delete(window)
+  })
   ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
   ipcMain.handle('remote-play:profile-draft', (event, input) => remotePlay.updateProfileDraft(event, input))
   ipcMain.handle('remote-play:save-profile', (event, input) => remotePlay.saveProfile(event, input))
@@ -874,7 +1004,25 @@ function setupIpcHandlers() {
       else if (input.action === 'browse-package') {
         const directory = await getContentLibrary().sourceDirectory(input.packageId)
         result = await manager.add(directory, { readOnly: true, published: true })
-      } else if (input.action === 'create') result = await manager.create(input.name)
+      } else if (input.action === 'create') result = await manager.create(input.name, input.arcadiaRange)
+      else if (input.action === 'creator-github') {
+        result = await creatorAction(creatorGitHub, manager, input, {
+          open: url => shell.openExternal(url),
+          confirm: async (message, detail) => {
+            const { response } = await dialog.showMessageBox(mainWindow, {
+              type: 'question',
+              message,
+              detail,
+              buttons: ['取消', '确认'],
+              defaultId: 0,
+              cancelId: 0,
+            })
+            requireLocalBattleCaller(event)
+            return response === 1
+          },
+        })
+      } else if (input.action === 'git-cancel') result = manager.cancelGit(input.id)
+      else if (input.action === 'clone') result = await manager.clone(input.url)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
           title: '打开内容包源项目',
@@ -896,6 +1044,27 @@ function setupIpcHandlers() {
         } else {
           const session = await manager.session(input.id)
           switch (input.action) {
+            case 'git': {
+              const tokenFor = input.githubApp === true ? creatorGitHub.gitCredentials() : undefined
+              if (input.operation === 'push' || input.operation === 'push-tag') {
+                const isTag = input.operation === 'push-tag'
+                const destination = await manager.git(input.id, { operation: isTag ? 'tag-target' : 'push-target' })
+                const { response } = await dialog.showMessageBox(mainWindow, {
+                  type: 'question',
+                  buttons: ['取消', '推送'],
+                  defaultId: 0,
+                  cancelId: 0,
+                  message: isTag ? '推送版本标签？' : '推送当前分支？',
+                  detail: destination,
+                })
+                requireLocalBattleCaller(event)
+                if (response !== 1) throw new Error('已取消推送')
+                result = await manager.git(input.id, { operation: input.operation, destination }, tokenFor)
+              } else if (input.operation === 'commit') {
+                result = await manager.git(input.id, { ...input, fallbackIdentity: creatorGitHub.commitIdentity() })
+              } else result = await manager.git(input.id, input, tokenFor)
+              break
+            }
             case 'install-built-author-pack':
               result = await manager.installBuiltPack(input.id, input.jobId, file =>
                 getContentLibrary().installFile(file),
@@ -917,8 +1086,20 @@ function setupIpcHandlers() {
             case 'context':
               result = await manager.setContext(input.id, input.state)
               break
+            case 'update-author-lock':
+              await (await manager.api()).updateAuthorLock(session.workspace)
+              break
+            case 'edit-package':
+              result = await session.workspace.editPackage(input)
+              break
+            case 'save-arcadia-range':
+              result = await session.workspace.saveArcadiaRange(input.range, input.expectedRange)
+              break
             case 'snapshot':
               result = await session.workspace.snapshot()
+              break
+            case 'dependency-references':
+              result = await session.dependencyReferences(input.locale)
               break
             case 'save-changes':
               result = await session.workspace.saveChanges(input, { fromForm: true })
@@ -1008,9 +1189,14 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return getContentLibrary().list()
   })
-  handle('desktop:prepare-local-content', event => {
+  handle('desktop:prepare-local-content', (event, environmentId) => {
     requireLocalBattleCaller(event)
-    return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true })
+    if (
+      environmentId !== undefined &&
+      (typeof environmentId !== 'string' || !environmentId || environmentId.length > 256)
+    )
+      throw new Error('INVALID_ENVIRONMENT_ID')
+    return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true, environmentId })
   })
   handle('desktop:read-local-runtime', (_event, token) => {
     return getLocalContentSessions().readRuntime(token, localContentOwner.current())
@@ -1029,7 +1215,7 @@ function setupIpcHandlers() {
     const selected = await dialog.showOpenDialog(mainWindow, {
       title: '安装内容包',
       properties: ['openFile'],
-      filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
+      filters: [{ name: '内容包', extensions: ['tgz', 'zip'] }],
     })
     requireLocalBattleCaller(event)
     if (selected.canceled || !selected.filePaths[0]) return null
@@ -1043,17 +1229,7 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
-    if (input.action === 'import-sources') {
-      const selected = await dialog.showOpenDialog(mainWindow, {
-        title: '导入环境来源登记',
-        properties: ['openFile'],
-        filters: [{ name: '来源登记', extensions: ['json'] }],
-      })
-      requireLocalBattleCaller(event)
-      if (selected.canceled || !selected.filePaths[0]) return null
-      const result = await library.importSourceRegistry(selected.filePaths[0])
-      return result.sourceIds.join('、')
-    }
+    if (input.action === 'install-remote') return library.installRemote(input.source)
     if (input.action === 'cancel-install') {
       library.cancelInstall(input.operationId)
       return null
@@ -1128,10 +1304,8 @@ function setupIpcHandlers() {
   })
 
   handle('desktop:relaunch', async () => {
-    await localBattleHost.stop()
-    await stopLocalServer()
-    app.relaunch()
-    app.exit(0)
+    relaunchAfterQuit = true
+    app.quit()
   })
 }
 
@@ -1152,6 +1326,7 @@ function createMainWindow() {
     },
   })
 
+  guardTeamDrafts(mainWindow)
   protectDesktopNavigation(mainWindow, rendererUrl)
   localContentOwner = bindLocalContentOwner(mainWindow.webContents, owner => localContentSessions?.releaseOwner(owner))
   setupContextMenu(mainWindow)
@@ -1186,11 +1361,17 @@ app.on('window-all-closed', () => {
 
 let stoppingForQuit
 let stoppedForQuit = false
+let relaunchAfterQuit = false
 app.on('before-quit', event => {
   if (stoppedForQuit) return
   event.preventDefault()
+  if (!stoppingForQuit && [...windowsWithTeamDrafts].some(window => !confirmDraftExit(window))) {
+    relaunchAfterQuit = false
+    return
+  }
   stoppingForQuit ??= (async () => {
     if (!(await remotePlay.prepareQuit())) {
+      relaunchAfterQuit = false
       stoppingForQuit = undefined
       return
     }
@@ -1219,17 +1400,9 @@ app.on('before-quit', event => {
       },
     )
     stoppedForQuit = true
+    if (relaunchAfterQuit) app.relaunch()
     app.quit()
   })()
-})
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createMainWindow()
-    void getContentLibrary()
-      .resume()
-      .catch(() => {})
-  }
 })
 
 app
@@ -1259,6 +1432,14 @@ app
     setupIpcHandlers()
     swfHost.registerIpc(ipcMain)
     createMainWindow()
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createMainWindow()
+        void getContentLibrary()
+          .resume()
+          .catch(() => {})
+      }
+    })
     void getContentLibrary()
       .resume()
       .catch(() => {})

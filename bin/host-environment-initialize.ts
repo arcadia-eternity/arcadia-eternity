@@ -1,3 +1,7 @@
+import { readFile } from 'node:fs/promises'
+import { EnvironmentRuleDeclarationSchema } from '@arcadia-eternity/const'
+import { readInstalledEnvironmentDocument } from '@arcadia-eternity/content-sdk/prepared-document'
+import { isDeepStrictEqual } from 'node:util'
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import { validateWorkspaceProject, type ManagementService } from '@arcadia-eternity/server'
@@ -29,26 +33,58 @@ export async function initializeHostEnvironment({
   const owned = await management.initializationBinding(kind, environmentId)
   if (!pending && !owned) return
   const existing = (await workspace.listDrafts()).find(item => item.document.id === environmentId)
-  if (
-    !(kind === 'builtin' && existing) &&
-    resolve(projectDirectory) !== resolve(workspace.root, 'environments', environmentId)
-  ) {
+  const validate = (input: Parameters<typeof validateWorkspaceProject>[0]) =>
+    validateWorkspaceProject(input, {
+      effectPreparation: management.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
+    })
+  const baseRules = () =>
+    readFile(new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')), 'utf8').then(
+      raw => EnvironmentRuleDeclarationSchema.parse(JSON.parse(raw)),
+    )
+  if (existing && kind === 'builtin') {
+    const previousDefaults = [
+      { schemaVersion: 1 },
+      {
+        schemaVersion: 2,
+        mechanics: {
+          individualValues: { max: 31 },
+          inheritance: { eligible: 'species' },
+          secondGenerationNatures: 'species',
+        },
+      },
+    ]
+    if (previousDefaults.some(rules => isDeepStrictEqual(rules, existing.document.rules))) {
+      await workspace.prepareEnvironment(
+        {
+          environmentId,
+          expectedRevision: existing.revision,
+          document: { ...existing.document, rules: await baseRules() },
+          projectDirectory: resolve(workspace.root, 'environments', environmentId),
+        },
+        validate,
+      )
+    }
+  } else if (resolve(projectDirectory) !== resolve(workspace.root, 'environments', environmentId)) {
     const { members } = await inspectNpmProject(projectDirectory)
+    const installed = await readInstalledEnvironmentDocument(projectDirectory)
     const document = {
       schemaVersion: 2 as const,
       id: environmentId,
       name,
-      ...(existing?.document ?? {}),
+      ...existing?.document,
       packages: Object.fromEntries(members.map(({ name, version }) => [name, version])),
       sources: [],
-      rules: existing?.document.rules ?? { schemaVersion: 1 as const },
-      requires: existing?.document.requires ?? {},
+      rules:
+        existing?.document.rules ??
+        installed?.rules ??
+        (members.some(pkg => pkg.name === '@arcadia-eternity/data-pack-base')
+          ? await baseRules()
+          : { schemaVersion: 1 as const }),
+      requires: existing?.document.requires ?? installed?.requires ?? {},
     }
-    const draft = await workspace.saveDraft({ document, expectedRevision: existing?.revision ?? null })
-    await workspace.prepareEnvironment({ environmentId, expectedRevision: draft.revision, projectDirectory }, input =>
-      validateWorkspaceProject(input, {
-        effectPreparation: management.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
-      }),
+    await workspace.prepareEnvironment(
+      { environmentId, expectedRevision: existing?.revision ?? null, document, projectDirectory },
+      validate,
     )
   }
   const binding = owned ?? (await management.ensureInitializationBinding(kind, environmentId))

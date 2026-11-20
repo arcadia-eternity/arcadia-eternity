@@ -34,8 +34,15 @@
           <strong v-if="privateRoomStore.currentRoom.lastBattleResult.winner" class="winner">
             🏆 胜利者: {{ getPlayerName(privateRoomStore.currentRoom.lastBattleResult.winner) }}
           </strong>
+          <strong v-else-if="privateRoomStore.currentRoom.lastBattleResult.reason === 'environment_runtime_failed'"
+            >对战环境执行失败</strong
+          >
           <strong v-else class="draw">🤝 平局</strong>
-          <span class="result-reason">{{ privateRoomStore.currentRoom.lastBattleResult.reason }}</span>
+          <span
+            v-if="privateRoomStore.currentRoom.lastBattleResult.reason !== 'environment_runtime_failed'"
+            class="result-reason"
+            >{{ privateRoomStore.currentRoom.lastBattleResult.reason }}</span
+          >
           <span class="result-time">{{ formatTime(privateRoomStore.currentRoom.lastBattleResult.endedAt) }}</span>
         </div>
 
@@ -43,6 +50,15 @@
           <el-tag>{{
             privateRoomStore.currentRoom.config.battleMode === 'p2p' ? '房主运行对战' : '服务器对战'
           }}</el-tag>
+          <span v-if="privateRoomStore.currentRoom.environment" class="text-sm">
+            环境版本
+            <code>{{
+              (
+                privateRoomStore.currentRoom.environment.gameplayRevision ?? privateRoomStore.currentRoom.environment.id
+              ).slice(0, 12)
+            }}</code>
+            · 击破奖励换宠{{ privateRoomStore.currentRoom.config.allowFaintSwitch === false ? '关闭' : '开启' }}
+          </span>
           <el-tag type="info">房主: {{ getHostPlayerName() }}</el-tag>
           <el-tag
             v-if="privateRoomStore.currentRoom.environment?.packages.length"
@@ -72,7 +88,6 @@
         :expected="privateRoomStore.currentRoom.personalEnvironment"
         :prepared="privateRoomStore.personalEnvironment"
         :disabled="privateRoomStore.currentRoom.status === 'started' || privateRoomStore.isLoading"
-        :allow-replace="privateRoomStore.isHost && privateRoomStore.currentRoom.status !== 'started'"
         @prepared="acceptPersonalEnvironment"
         @error="message => ElMessage.error(message)"
       />
@@ -344,7 +359,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import PersonalEnvironmentPicker from '@/features/content/PersonalEnvironmentPicker.vue'
 import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { useRoute, useRouter } from 'vue-router'
@@ -379,21 +394,23 @@ const canJoinRoom = () => !pageDisposed && !authStore.invalidationReason
 
 const roomCode = route.params.roomCode as string
 
-type TeamWithPets = { name: string; pets: unknown[]; ruleSetId?: string }
-const selectedTeam = ref<TeamWithPets | null>(null)
+type TeamWithPets = { id?: string; name: string; pets: unknown[]; ruleSetId?: string }
+const selectedTeam = computed<TeamWithPets | null>({
+  get: () =>
+    privateRoomStore.selectedTeamName
+      ? {
+          id: privateRoomStore.selectedTeamId,
+          name: privateRoomStore.selectedTeamName,
+          pets: privateRoomStore.selectedTeam,
+        }
+      : null,
+  set: team => privateRoomStore.updateSelectedTeam((team?.pets ?? []) as PetSchemaType[], team?.name, team?.id),
+})
 const isTeamValid = ref(false)
 const teamValidationErrors = ref<string[]>([])
 
 const showRoomConfigDialog = ref(false)
 const battleOptions = ref(createDefaultRoomBattleOptions())
-
-watch(selectedTeam, newTeam => {
-  if (newTeam) {
-    privateRoomStore.updateSelectedTeam(newTeam.pets as PetSchemaType[])
-  } else {
-    privateRoomStore.updateSelectedTeam([])
-  }
-})
 
 const getHostPlayerName = (): string => {
   if (!privateRoomStore.currentRoom) return ''
@@ -618,7 +635,6 @@ const openRoomConfigDialog = () => {
   battleOptions.value = {
     battleMode: config?.battleMode ?? defaults.battleMode,
     timerConfig: { ...defaults.timerConfig, ...config?.timerConfig },
-    allowFaintSwitch: config?.allowFaintSwitch ?? defaults.allowFaintSwitch,
     showHidden: config?.showHidden ?? defaults.showHidden,
   }
   showRoomConfigDialog.value = true
@@ -733,7 +749,8 @@ onMounted(async () => {
 onBeforeUnmount(async () => {
   pageDisposed = true
   // 页面离开时只取消准备状态，不离开房间
-  await privateRoomStore.handlePageLeave()
+  if (router.currentRoute.value.path !== '/team-builder' || router.currentRoute.value.query.roomCode !== roomCode)
+    await privateRoomStore.handlePageLeave()
 })
 </script>
 

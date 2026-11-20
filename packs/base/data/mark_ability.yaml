@@ -390,3 +390,14 @@
     - ability
   effect:
     - effect_bingchuantun_ability_houjin_damage
+- id: mark_ability_ganjue
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_ability_ganjue_add_rage
+- id: mark_ability_fengzhen
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_shifeng_ability_init_needles
+    - effect_shifeng_ability_immune_status

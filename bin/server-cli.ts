@@ -60,6 +60,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     .option('--server-id <id>', 'Stable identity (generated once when omitted)', process.env.SERVER_ID)
     .option('--data-dir <directory>', 'Persistent server data directory', process.env.ARCADIA_DATA_DIR)
     .option('--workspace-root <directory>', 'Content workspace root', process.env.ARCADIA_WORKSPACE_ROOT)
+    .option('--desktop-client-environments', 'Publish prepared environments from the desktop client library')
     .option('--desktop-project <directory>', 'Trusted desktop host initial content project')
     .option('--desktop-managed-network', 'Trusted desktop owner controls persistent listener settings')
     .option('--desktop-origin <origin>', 'Trusted desktop renderer origin')
@@ -114,6 +115,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       serverId?: string
       dataDir?: string
       workspaceRoot?: string
+      desktopClientEnvironments?: boolean
       desktopProject?: string
       desktopManagedNetwork?: boolean
       desktopOrigin?: string
@@ -175,6 +177,8 @@ export async function runServerCli(args: string[]): Promise<number> {
       !desktopControl
     )
       throw new Error('Desktop options require the private desktop host')
+    if (options.desktopClientEnvironments && !(desktopControl && options.desktopManagedNetwork))
+      throw new Error('Client environments require managed desktop hosting')
     if (!desktopControl && (options.npmProject?.length ?? 0) > 1)
       throw new Error(
         'Only one --npm-project can initialize a persistent server; publish additional environments through management',
@@ -302,9 +306,22 @@ export async function runServerCli(args: string[]): Promise<number> {
     const { persistentServerConfig } = await import('./server-config')
     const config = persistentServerConfig(options)
     const retentions = workspaceRetentions(storage, () => workspace!.workspaceId)
-    workspace = desktopControl
-      ? await createDesktopWorkspaceProxy({ retentions })
-      : await ContentWorkspace.open(config.workspaceRoot, { retentions })
+    const bundledPackageRoot = dirname(
+      fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
+    )
+    const allowShareDownloads =
+      !options.offlineContent && !!(options.allowThirdPartyContent || options.allowThirdPartyExecution)
+    const desktopWorkspace = desktopControl
+      ? await createDesktopWorkspaceProxy({ retentions, allowShareDownloads })
+      : undefined
+    workspace =
+      desktopWorkspace ??
+      (await ContentWorkspace.open(config.workspaceRoot, {
+        retentions,
+        allowShareDownloads,
+        bundledPackageRoot,
+        npmCache: join(config.dataDirectory, 'projects', 'npm-cache'),
+      }))
     if (!desktopControl) {
       let sources: ManagedProjectsOptions['sources']
       if (options.contentSources) {
@@ -317,9 +334,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         sources = value as ManagedProjectsOptions['sources']
       }
       projects = new ManagedProjects(join(config.dataDirectory, 'projects'), {
-        bundledPackageRoot: dirname(
-          fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
-        ),
+        bundledPackageRoot,
         allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
         registry: options.npmRegistry,
         offline: options.offlineContent,
@@ -359,10 +374,17 @@ export async function runServerCli(args: string[]): Promise<number> {
         trustedProxyAddresses: process.env.MANAGEMENT_TRUSTED_PROXY_IPS?.split(',')
           .map(value => value.trim())
           .filter(Boolean),
+        builtinEnvironmentId: desktopWorkspace?.builtinEnvironmentId,
+        clientEnvironments: options.desktopClientEnvironments ? desktopWorkspace : undefined,
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
         initialization: desktopControl
           ? options.desktopProject
-            ? { kind: desktopLaunch?.officialContent ? 'builtin' : 'desktop', environmentId: 'desktop-host' }
+            ? {
+                kind: desktopLaunch?.officialContent ? 'builtin' : 'desktop',
+                environmentId: desktopLaunch?.officialContent
+                  ? (desktopWorkspace?.builtinEnvironmentId ?? 'desktop-host')
+                  : 'desktop-host',
+              }
             : undefined
           : options.npmProject?.[0]
             ? { kind: 'npm', environmentId: 'startup-npm' }
@@ -391,6 +413,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       await initializeDesktopHost({
         management: server.management!,
         workspace,
+        builtinId: desktopWorkspace?.builtinEnvironmentId,
         projectDirectory: options.desktopProject,
         kind: desktopLaunch?.officialContent || (!desktopLaunch && pending?.kind === 'builtin') ? 'builtin' : 'desktop',
       })
@@ -419,7 +442,7 @@ export async function runServerCli(args: string[]): Promise<number> {
           projectDirectory,
           kind: 'builtin',
           environmentId: 'builtin-server',
-          name: '内置服务器环境',
+          name: '默认环境',
           matchmakingEnabled: true,
         }),
       )

@@ -1,4 +1,5 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { sha256Bytes } from '@arcadia-eternity/const'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { github } from 'better-auth/social-providers'
 import { authorizationCodeRequest, getOAuth2Tokens } from 'better-auth/oauth2'
 import { ProviderError, sameIntent, validIntent, type AuthIntent, type VerifiedIdentity } from './types.js'
@@ -18,7 +19,7 @@ export interface GithubAppVerifierOptions {
 
 interface PendingAuthorization {
   intent: AuthIntent
-  browserDigest: Buffer
+  browserDigest: Uint8Array
   codeVerifier: string
   redirectUri: string
   expiresAt: number
@@ -111,7 +112,7 @@ export class GithubAppVerifier {
     const expiresAt = now + this.challengeTtlMs
     this.pending.set(state, {
       intent: structuredClone(intent),
-      browserDigest: sha256(browserSecret),
+      browserDigest: sha256Bytes(browserSecret),
       codeVerifier,
       redirectUri: selectedRedirectUri,
       expiresAt,
@@ -147,7 +148,7 @@ export class GithubAppVerifier {
     }
     if (!sameIntent(pending.intent, intent)) throw new ProviderError('AUTH_PROOF_MISMATCH', 401)
     pending.attempts++
-    if (!timingSafeEqual(pending.browserDigest, sha256(browserSecret))) {
+    if (!timingSafeEqual(pending.browserDigest, sha256Bytes(browserSecret))) {
       if (pending.attempts >= MAX_BROWSER_ATTEMPTS) this.pending.delete(state)
       throw new ProviderError('AUTH_PROOF_MISMATCH', 401)
     }
@@ -258,10 +259,6 @@ export class GithubAppVerifier {
       ? new ProviderError('PROVIDER_UNAVAILABLE', 503)
       : new ProviderError('AUTH_PROOF_INVALID', 401)
   }
-}
-
-function sha256(value: string): Buffer {
-  return createHash('sha256').update(value).digest()
 }
 
 function secureOrLoopback(url: URL): boolean {

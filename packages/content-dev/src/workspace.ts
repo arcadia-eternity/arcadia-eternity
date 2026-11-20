@@ -1,10 +1,12 @@
-import { createHash } from 'node:crypto'
+import { sha256Hex, sha256StreamHex } from '@arcadia-eternity/const'
+import { isContentLocaleField, contentLocaleCollection } from '@arcadia-eternity/schema'
 import { createReadStream } from 'node:fs'
 import { lstat, mkdir, readdir, readFile, realpath, unlink } from 'node:fs/promises'
-import { dirname, extname, isAbsolute, join, relative, sep } from 'node:path'
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
 import YAML from 'yaml'
+import { valid, validRange } from 'semver'
 import type { Document, LineCounter } from 'yaml'
 import chokidar from 'chokidar'
 import type { FSWatcher } from 'chokidar'
@@ -15,10 +17,41 @@ import type { NodePath, SharedField } from './lib/yaml-sharing.ts'
 import { withSourceLock } from './source-lock.ts'
 import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.ts'
 
+import type { AuthorEffectCatalog } from './effect-declarations.ts'
+
 const ignored = new Set(['node_modules', 'dist', '.git', '.arcadia', '.DS_Store', 'Thumbs.db'])
-const kinds = ['species', 'skills', 'marks', 'behaviors', 'presentations', 'resources'] as const
-const contentKinds = ['species', 'skills', 'marks', 'behaviors'] as const
-const contentFilePattern = /^data\/(species|skills|marks|behaviors|presentations|resources)\/.+\.(json|ya?ml)$/
+const kinds = [
+  'species',
+  'skills',
+  'marks',
+  'behaviors',
+  'natures',
+  'enhancements',
+  'elements',
+  'parameterGroups',
+  'parameterProfiles',
+  'parameterBindings',
+  'ruleSets',
+  'matchupTables',
+  'presentations',
+  'resources',
+] as const
+const contentKinds = [
+  'species',
+  'skills',
+  'marks',
+  'behaviors',
+  'natures',
+  'enhancements',
+  'elements',
+  'parameterGroups',
+  'parameterProfiles',
+  'parameterBindings',
+  'ruleSets',
+  'matchupTables',
+] as const
+const contentFilePattern =
+  /^data\/(species|skills|marks|behaviors|natures|enhancements|elements|parameterGroups|parameterProfiles|parameterBindings|ruleSets|matchupTables|presentations|resources)\/.+\.(json|ya?ml)$/
 const localeFilePattern = /^locales\/([^/]+)\/([^/]+)\.(json|ya?ml)$/
 const basePackageName = '@arcadia-eternity/data-pack-base'
 const baseProjectId = 'arcadia-eternity.base'
@@ -112,9 +145,13 @@ export interface WorkspaceSnapshot {
   root: string
   project: ManifestArcadia
   name: string | undefined
+  manifestVersion: string
+  dependencies: Record<string, string>
+  arcadiaRange: string
   version: string | undefined
   records: WorkspaceRecord[]
   files: WorkspaceFile[]
+  effectCatalog?: AuthorEffectCatalog
   assets: WorkspaceAsset[]
   locales: Record<string, unknown>
   localeSources: WorkspaceLocaleSource[]
@@ -181,7 +218,6 @@ interface PreparedDraft {
 
 const object = (value: unknown): value is UnknownRecord =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
-const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
 
 const isBaseManifest = (manifest: PackageManifest) =>
   manifest.name === basePackageName || manifest.arcadia?.projectId === baseProjectId
@@ -199,6 +235,16 @@ export class WorkspaceError extends Error {
 
 function fail(code: string, message: string, file?: string): never {
   throw new WorkspaceError(code, message, file)
+}
+
+export function normalizeArcadiaRange(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 256 || (value.trim() && !validRange(value.trim())))
+    fail('ARCADIA_VERSION_RANGE_INVALID', '请输入有效的 Arcadia 版本范围。')
+  return value.trim()
+}
+
+function manifestRange(manifest: PackageManifest): string {
+  return isRecord(manifest.engines) && typeof manifest.engines.arcadia === 'string' ? manifest.engines.arcadia : ''
 }
 
 export function diagnostic(error: unknown): Diagnostic {
@@ -277,6 +323,7 @@ export class AuthorWorkspace extends EventEmitter {
   baseProject?: ManifestArcadia & { projectId: string; namespace: string }
   #watcher: FSWatcher | undefined
   #queues = new Map<string, Promise<unknown>>()
+  #effectDeclarations = new Map<string, { version: string; namespace: string; catalog: AuthorEffectCatalog }>()
   #dirty = new Set<string>()
   #closed = false
   constructor(root: string) {
@@ -369,7 +416,7 @@ export class AuthorWorkspace extends EventEmitter {
     if ((await lstat(path)).size > textLimit) fail('SOURCE_TOO_LARGE', '文本超过 2 MiB，请在外部编辑器打开', file)
     const bytes = await readFile(path)
     if (bytes.length > textLimit || bytes.includes(0)) fail('SOURCE_INVALID', '文件不是受支持的源文本', file)
-    return { file, text: bytes.toString('utf8'), version: hash(bytes) }
+    return { file, text: bytes.toString('utf8'), version: sha256Hex(bytes) }
   }
   async files(): Promise<WorkspaceFile[]> {
     const result: WorkspaceFile[] = []
@@ -403,14 +450,62 @@ export class AuthorWorkspace extends EventEmitter {
     for (const entry of await this.files()) {
       if (entry.file === excludeFile || (contentOnly && entry.file.startsWith('debug/teams/'))) continue
       if (entry.error) fail('PATH_INVALID', entry.error, entry.file)
-      const digest = createHash('sha256')
-      for await (const chunk of createReadStream(await this.path(entry.file))) digest.update(chunk)
-      hashes.push([entry.file, digest.digest('hex')])
+      hashes.push([entry.file, await sha256StreamHex(createReadStream(await this.path(entry.file)))])
     }
-    return hash(JSON.stringify(hashes))
+    return sha256Hex(JSON.stringify(hashes))
+  }
+  async #effectCatalog(project: ManifestArcadia, files: WorkspaceFile[]): Promise<AuthorEffectCatalog | undefined> {
+    if (typeof project.effectSources !== 'string' || !project.effectSources || this.published) return
+    const catalog: AuthorEffectCatalog = { definitions: [], issues: [] }
+    if (!project.effectArtifact || project.effects) {
+      catalog.issues.push({
+        file: 'package.json',
+        message: 'effectSources 需要指定 effectArtifact，并移除 effects 入口。',
+      })
+      return catalog
+    }
+    const directory = relative(this.root, resolve(this.root, project.effectSources)).split(sep).join('/')
+    const sources = files.filter(
+      entry => (!directory || entry.file.startsWith(directory + '/')) && entry.file.endsWith('.effect.ts'),
+    )
+    const current = new Set(sources.map(entry => entry.file))
+    for (const file of this.#effectDeclarations.keys()) if (!current.has(file)) this.#effectDeclarations.delete(file)
+    const namespace = project.namespace ?? ''
+    for (const { file } of sources) {
+      try {
+        const source = await this.read(file)
+        let cached = this.#effectDeclarations.get(file)
+        if (!cached || cached.version !== source.version || cached.namespace !== namespace) {
+          const { inspectEffectDeclarations } = await import('./effect-declarations.ts')
+          cached = {
+            version: source.version,
+            namespace,
+            catalog: inspectEffectDeclarations(file, source.text, namespace),
+          }
+          this.#effectDeclarations.set(file, cached)
+        }
+        catalog.definitions.push(...cached.catalog.definitions)
+        catalog.issues.push(...cached.catalog.issues)
+      } catch (error) {
+        catalog.issues.push({ file, message: errorMessage(error) })
+      }
+    }
+    const seen = new Set<string>(),
+      duplicates = new Set<string>()
+    for (const effect of catalog.definitions) {
+      if (seen.has(effect.id)) duplicates.add(effect.id)
+      seen.add(effect.id)
+    }
+    catalog.definitions = catalog.definitions.filter(effect => {
+      if (!duplicates.has(effect.id)) return true
+      catalog.issues.push({ file: effect.file, message: `效果 ID 重复：${effect.id}` })
+      return false
+    })
+    return catalog
   }
   async snapshot(): Promise<WorkspaceSnapshot> {
-    const manifest = JSON.parse((await this.read('package.json')).text) as PackageManifest
+    const source = await this.read('package.json')
+    const manifest = JSON.parse(source.text) as PackageManifest
     const project = this.baseProject ?? manifest.arcadia ?? {}
     const readOnly = this.readOnly || isBaseManifest(manifest)
     const baseSources = new Map<string, string>()
@@ -504,12 +599,7 @@ export class AuthorWorkspace extends EventEmitter {
         ? [entry.file, baseKind]
         : contentFilePattern.exec(entry.file)
       const locale = localeFilePattern.exec(entry.file)
-      if (
-        this.baseProject &&
-        locale &&
-        !['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'].includes(locale[2])
-      )
-        continue
+      if (this.baseProject && locale && !contentLocaleCollection(locale[2])) continue
       if (!match && !locale) continue
       try {
         const source = await this.read(entry.file),
@@ -522,7 +612,7 @@ export class AuthorWorkspace extends EventEmitter {
               entry =>
                 !object(entry) ||
                 Object.entries(entry).some(
-                  ([key, text]) => !['name', 'description'].includes(key) || typeof text !== 'string',
+                  ([key, text]) => !isContentLocaleField(locale[2], key) || typeof text !== 'string',
                 ),
             )
           )
@@ -644,9 +734,19 @@ export class AuthorWorkspace extends EventEmitter {
       root: this.root,
       project,
       name: this.baseProject ? '基础包' : manifest.name,
+      manifestVersion: source.version,
+      dependencies: isRecord(manifest.dependencies)
+        ? Object.fromEntries(
+            Object.entries(manifest.dependencies).filter(
+              (entry): entry is [string, string] => typeof entry[1] === 'string',
+            ),
+          )
+        : {},
+      arcadiaRange: manifestRange(manifest),
       version: manifest.version,
       records,
       files,
+      effectCatalog: await this.#effectCatalog(project, files),
       assets,
       locales,
       localeSources,
@@ -666,6 +766,9 @@ export class AuthorWorkspace extends EventEmitter {
     if (dirty) this.#dirty.add(file)
     else this.#dirty.delete(file)
   }
+  get hasDirtyFiles(): boolean {
+    return this.#dirty.size > 0
+  }
   clearDirty(): void {
     this.#dirty.clear()
   }
@@ -675,7 +778,7 @@ export class AuthorWorkspace extends EventEmitter {
     const path = await this.path(file)
     if ((await lstat(path)).size > 64 * 1024 * 1024) fail('SOURCE_TOO_LARGE', '素材超过 64 MiB', file)
     const bytes = await readFile(path)
-    return { file, bytes, version: hash(bytes) }
+    return { file, bytes, version: sha256Hex(bytes) }
   }
   async #serialize<T>(file: string, action: () => Promise<T>): Promise<T> {
     const pending = (this.#queues.get(file) ?? Promise.resolve())
@@ -716,7 +819,71 @@ export class AuthorWorkspace extends EventEmitter {
       await writeFileAtomic(path, text)
       if (fromForm) this.#dirty.delete(file)
       this.emit('change', { type: 'change', file })
-      return { file, version: hash(text) }
+      return { file, version: sha256Hex(text) }
+    })
+  }
+  async editPackage(input: UnknownRecord): Promise<void> {
+    await this.assertWritable()
+    const source = await this.read('package.json')
+    if (input.expectedVersion !== source.version)
+      fail('REVISION_CONFLICT', '包声明已在外部修改，请核对后重试。', source.file)
+    const manifest = JSON.parse(source.text) as PackageManifest
+    if (input.field === 'version') {
+      if (typeof input.value !== 'string' || valid(input.value) !== input.value)
+        fail('SOURCE_INVALID', '请输入完整的 npm 版本号。', source.file)
+      manifest.version = input.value
+    } else if (input.field === 'repository') {
+      if (
+        typeof input.value !== 'string' ||
+        !/^https:\/\/github\.com\/[a-z0-9-]+\/[a-z0-9._-]+\.git$/i.test(input.value)
+      )
+        fail('SOURCE_INVALID', '请输入完整的 GitHub HTTPS 仓库地址。', source.file)
+      manifest.repository = { type: 'git', url: input.value }
+    } else if (input.field === 'dependency') {
+      const name = input.name
+      if (
+        typeof name !== 'string' ||
+        name.length > 214 ||
+        !/^(?:@[a-z0-9][a-z0-9_.-]*\/)?[a-z0-9][a-z0-9_.-]*$/.test(name) ||
+        ['constructor', 'prototype', 'node_modules', 'favicon.ico', manifest.name].includes(name)
+      )
+        fail('SOURCE_INVALID', '依赖包名无效。', source.file)
+      if (manifest.dependencies !== undefined && !isRecord(manifest.dependencies))
+        fail('SOURCE_INVALID', 'dependencies 必须是对象。', source.file)
+      const dependencies = { ...manifest.dependencies }
+      if (input.value === null) delete dependencies[name]
+      else {
+        if (typeof input.value !== 'string' || !input.value.trim() || !validRange(input.value))
+          fail('SOURCE_INVALID', '请输入 npm 版本或兼容范围。', source.file)
+        dependencies[name] = input.value.trim()
+      }
+      if (Object.keys(dependencies).length) manifest.dependencies = dependencies
+      else delete manifest.dependencies
+    } else fail('SOURCE_INVALID', '未知的包声明修改。', source.file)
+    await this.write({
+      file: source.file,
+      expectedVersion: source.version,
+      text: JSON.stringify(manifest, null, 2) + '\n',
+    })
+  }
+  async saveArcadiaRange(value: string, expectedRange: string): Promise<void> {
+    await this.assertWritable()
+    const range = normalizeArcadiaRange(value)
+    const source = await this.read('package.json')
+    const manifest = JSON.parse(source.text) as PackageManifest
+    if (manifestRange(manifest) !== expectedRange)
+      fail('REVISION_CONFLICT', '兼容范围已在外部修改，请核对后再保存。', source.file)
+    if (manifest.engines !== undefined && !isRecord(manifest.engines))
+      fail('SOURCE_INVALID', 'package.json 的 engines 必须是对象。', source.file)
+    const engines = manifest.engines ?? {}
+    if (range) engines.arcadia = range
+    else delete engines.arcadia
+    if (Object.keys(engines).length) manifest.engines = engines
+    else delete manifest.engines
+    await this.write({
+      file: source.file,
+      expectedVersion: source.version,
+      text: JSON.stringify(manifest, null, 2) + '\n',
     })
   }
   async remove({ file, expectedVersion }: RemoveInput): Promise<void> {
@@ -780,7 +947,7 @@ export class AuthorWorkspace extends EventEmitter {
         !(
           isLocale
             ? /^locales\/[^/]+\/[^/]+\.(json|ya?ml)$/
-            : /^data\/(species|skills|marks|behaviors|presentations|resources)\/.+\.(json|ya?ml)$/
+            : /^data\/(species|skills|marks|behaviors|natures|enhancements|elements|parameterGroups|parameterProfiles|parameterBindings|ruleSets|matchupTables|presentations|resources)\/.+\.(json|ya?ml)$/
         ).test(file)
       )
         fail('PATH_INVALID', '请选择已有的内容或语言源文件', file)
@@ -828,6 +995,7 @@ export class AuthorWorkspace extends EventEmitter {
           fail('SOURCE_INVALID', '请将表现关联和资源定义分别保存到 data/presentations 与 data/resources', file)
       }
       if (isLocale) {
+        const namespace = /^locales\/[^/]+\/([^/]+)\.(json|ya?ml)$/.exec(file)?.[1] ?? ''
         const target = prepared.next
         if (
           typeof id !== 'string' ||
@@ -835,21 +1003,11 @@ export class AuthorWorkspace extends EventEmitter {
           ['__proto__', 'constructor', 'prototype'].includes(id) ||
           !object(target) ||
           Object.entries(record).some(
-            ([key, value]) => !['name', 'description'].includes(key) || typeof value !== 'string',
+            ([key, value]) => !isContentLocaleField(namespace, key) || typeof value !== 'string',
           )
         )
           fail('SOURCE_INVALID', '名称与描述需要文本值', file)
-        const namespace = /^locales\/[^/]+\/([^/]+)\.(json|ya?ml)$/.exec(file)?.[1]
-        const contentKind = (
-          {
-            species: 'species',
-            skill: 'skills',
-            mark: 'marks',
-            mark_ability: 'marks',
-            mark_emblem: 'marks',
-            mark_global: 'marks',
-          } as Record<string, string | undefined>
-        )[namespace ?? '']
+        const contentKind = contentLocaleCollection(namespace)
         if (
           !contentKind ||
           catalog!.records.filter(row => row.kind === contentKind && row.record.id === id).length +

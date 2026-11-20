@@ -9,6 +9,7 @@
       <div v-if="compactNavigation" class="flex justify-between items-center px-4 h-full">
         <div class="flex items-center gap-3">
           <button
+            aria-label="打开导航"
             @click="showMobileMenu = !showMobileMenu"
             class="bg-transparent border-none text-white p-2 rounded-md cursor-pointer transition-colors hover:bg-white/10"
           >
@@ -91,7 +92,7 @@
           <el-button v-if="managementAccess.allowed" @click="router.push('/management?target=server')"
             >管理后台</el-button
           >
-          <el-button @click="router.push('/content')">内容包</el-button>
+          <el-button @click="router.push('/environments')">环境</el-button>
           <!-- 房间状态显示 -->
           <el-button
             v-if="!isStaticMode && privateRoomStore.currentRoom"
@@ -141,6 +142,7 @@
             <span class="text-xl font-bold text-gray-800">Arcadia Eternity</span>
           </div>
           <button
+            aria-label="关闭导航"
             @click="showMobileMenu = false"
             class="bg-transparent border-none text-gray-500 p-2 rounded-md cursor-pointer transition-colors hover:bg-black/5"
           >
@@ -189,10 +191,10 @@
             <span>精灵仓库</span>
           </router-link>
           <router-link
-            to="/content"
+            to="/environments"
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600"
-            >内容包</router-link
+            >环境</router-link
           >
           <router-link
             to="/local-battle-reports"
@@ -424,14 +426,14 @@
     <div v-if="localStorageUnavailable" role="alert" class="bg-amber-50 text-amber-900 px-4 py-3 text-sm">
       资料尚未保存。关闭前请<router-link to="/profile">导出备份</router-link>。
     </div>
-    <div v-if="profileStatus === 'blocked'" role="alert" class="p-4 bg-amber-50">
-      {{ profileFailure }} <router-link to="/profile">恢复个人资料</router-link>
+    <div v-if="profileStatus === 'blocked' && $route.name !== 'Profile'" role="alert" class="p-4 bg-amber-50">
+      {{ profileFailure }} <router-link to="/profile">查看个人资料</router-link>
     </div>
     <OfflineResources v-if="isStaticMode && $route.name !== 'Management'" />
 
     <main class="flex-1 min-h-0 overflow-auto relative">
       <router-view v-slot="{ Component }">
-        <component :is="Component" class="w-full" :key="$route.path" />
+        <component :is="Component" class="w-full" :key="String($route.meta.viewKey ?? $route.path)" />
       </router-view>
 
       <!-- 编辑工作区的底栏用于任务输出，避免浮动版本信息遮挡。 -->

@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  setTeamDraftPending: pending => ipcRenderer.send('team-draft:pending', pending),
   profile: input => ipcRenderer.invoke('desktop:profile', input),
   onProfileChanged: callback => {
     const listener = () => callback()
@@ -19,7 +20,7 @@ const desktopApi = {
   openServerWebsite: input => ipcRenderer.invoke('desktop:open-server-website', input),
   openRemotePlay: input => ipcRenderer.invoke('desktop:open-remote-play', input),
   listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),
-  prepareLocalContent: () => ipcRenderer.invoke('desktop:prepare-local-content'),
+  prepareLocalContent: environmentId => ipcRenderer.invoke('desktop:prepare-local-content', environmentId),
   readLocalRuntime: token => ipcRenderer.invoke('desktop:read-local-runtime', token),
   capturePersonalEnvironment: () => ipcRenderer.invoke('desktop:capture-personal-environment'),
   releaseLocalContent: token => ipcRenderer.invoke('desktop:release-local-content', token),

@@ -3,9 +3,12 @@ import { readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
+import { readInstalledEnvironmentDocument } from '@arcadia-eternity/content-sdk/prepared-document'
+import { assertEnvironmentRequirements, prepareRulesForContent } from '@arcadia-eternity/content-sdk/environment-rules'
 import {
   buildDisplayCatalog,
   buildDisplayLocales,
+  gameplayRevision,
   mapPresentationResources,
   PackMetadataLoader,
 } from '@arcadia-eternity/pack-loader/native'
@@ -55,8 +58,17 @@ export async function buildWebContent(
     writeJson(manifest.content, { data })
     writeJson('dist/catalog.json', authoring)
     for (const [locale, namespaces] of Object.entries(locales))
-      for (const [namespace, value] of Object.entries(namespaces))
-        writeJson(`${localesDir}/${locale}/${namespace}.json`, value)
+      for (const [namespace, value] of Object.entries(namespaces)) {
+        // Older web clients request the element names from the battle namespace.
+        const bundle =
+          namespace === 'battle' && namespaces.element && !value.element
+            ? {
+                ...value,
+                element: Object.fromEntries(Object.entries(namespaces.element).map(([id, row]) => [id, row.name])),
+              }
+            : value
+        writeJson(`${localesDir}/${locale}/${namespace}.json`, bundle)
+      }
 
     const content = buildDisplayCatalog(data, [], prepared.presentation, { includeRuleDetails: true })
     const resources = stageEnvironmentMedia(content, prepared.presentation, media)
@@ -69,10 +81,32 @@ export async function buildWebContent(
       defaultLocale: content.locales.defaultLocale,
     }
     writeJson(manifest.presentation, webPresentation)
+    const document = projectDirectory
+      ? await readInstalledEnvironmentDocument(projectDirectory, prepared.revision)
+      : undefined
+    assertEnvironmentRequirements(document?.requires)
+    const declaration = projectDirectory
+      ? document?.rules
+      : JSON.parse(
+          await readFile(
+            new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+            'utf8',
+          ),
+        )
+    const { rules } = prepareRulesForContent(declaration, sandbox.data)
+    const runtimeIdentity = {
+      kind: 'native-v4',
+      contentRevision: prepared.revision,
+      coreBuildId: prepared.build.coreBuildId,
+      registryBuildId: prepared.build.registryBuildId,
+    }
     writeJson('environment/catalog.json', {
+      rules,
       content,
       resources: resources.filter(resource => resource.tags?.length),
       runtimeRevision: sandbox.revision,
+      runtimeIdentity,
+      gameplayRevision: await gameplayRevision(runtimeIdentity, sandbox.revision, rules),
       effectMarkRelations: authoring.effectMarkRelations,
     })
     writeJson('environment/runtime.json', sandbox)

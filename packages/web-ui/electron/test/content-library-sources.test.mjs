@@ -1,11 +1,12 @@
+import { createHash } from 'node:crypto'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { ContentLibrary } from '../content-library.mjs'
+import { ContentLibrary, readDesktopContentSources } from '../content-library.mjs'
 import { ManagedProjects } from '../../../content-dev/src/managed-projects.ts'
 import { packBuiltProject } from '../../../content-dev/src/pack-project.ts'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
@@ -158,6 +159,7 @@ async function fixture(t, options = {}) {
       await mkdir(join(directory, 'node_modules'), { recursive: true })
       return inspectNpmProject(directory)
     }
+    if (args[2] === 'inspect') return inspectNpmProject(directory)
     if (args[2] === 'approve') {
       await inspectNpmProject(directory)
       const value = { format: 'arcadia.npm-admission', version: 2, profile: args[args.indexOf('--profile') + 1] }
@@ -173,7 +175,9 @@ async function fixture(t, options = {}) {
     root: libraryRoot,
     run,
     host,
-    sources: options.sources?.(source),
+    sources: await options.sources?.(source, root),
+    reviewInstall: options.reviewInstall,
+    authorizeEnvironment: options.authorizeEnvironment,
     createManagedProjects: async (directory, input) => {
       const managed = new ManagedProjects(directory, {
         ...input,
@@ -231,6 +235,13 @@ for (const kind of ['archive', 'directory', 'zip']) {
             ),
           ),
         )
+      if (kind === 'zip') {
+        const id = await f.library.installFile(join(f.source.directory, 'source.zip'), true)
+        const entry = (await f.library.list()).packages.find(pkg => pkg.id === id)
+        assert.equal(entry.name, f.source.name)
+        assert.equal(entry.source.label, 'source.zip')
+        await f.library.uninstall(id)
+      }
       const local = await contentPackage(f.root, '@sample/local')
       await f.library.installFile(local.archive, true)
       const before = selection(await f.library.list())
@@ -291,30 +302,33 @@ test(
   },
 )
 
-test(
-  'persisted trusted sources override installed names without replacing the active selection',
-  { timeout: 60000 },
-  async t => {
-    const f = await fixture(t)
-    await f.library.installFile(f.source.archive, true)
-    const before = selection(await f.library.list())
-    const newer = await contentPackage(f.root, f.source.name, '2.0.0')
-    const file = join(f.root, 'trusted-sources.json')
-    const sources = { [f.source.name]: { kind: 'archive', file: newer.archive } }
-    await writeFile(file, JSON.stringify(sources))
-    assert.deepEqual(await f.library.importSourceRegistry(file), { sourceIds: [f.source.name] })
-    assert.deepEqual(JSON.parse(await readFile(join(f.libraryRoot, 'content-sources.json'), 'utf8')), sources)
-    const lease = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
-    try {
-      const inspection = await inspectNpmProject(lease.directory)
-      assert.equal(inspection.packages.find(pkg => pkg.name === f.source.name).version, '2.0.0')
-      await validateProject(lease.directory)
-      assert.deepEqual(selection(await f.library.list()), before)
-    } finally {
-      await lease.release()
-    }
-  },
-)
+test('desktop uses the launch-time package locations until restart', { timeout: 60000 }, async t => {
+  const f = await fixture(t, {
+    sources: async (source, root) => {
+      const newer = await contentPackage(root, source.name, '2.0.0')
+      const file = join(root, 'package-locations.json')
+      const sources = { [source.name]: { kind: 'archive', file: newer.archive } }
+      await writeFile(file, JSON.stringify(sources))
+      assert.deepEqual(readDesktopContentSources(['--content-sources=' + file], root), sources)
+      return readDesktopContentSources(['--content-sources', file], root)
+    },
+  })
+  await f.library.installFile(f.source.archive, true)
+  const before = selection(await f.library.list())
+  const changed = { [f.source.name]: { kind: 'archive', file: f.source.archive } }
+  await writeFile(join(f.root, 'package-locations.json'), JSON.stringify(changed))
+  await writeFile(join(f.libraryRoot, 'content-sources.json'), JSON.stringify(changed))
+  assert.deepEqual(readDesktopContentSources([], f.libraryRoot), changed)
+  const lease = await f.library.prepareEnvironmentProject(environment([f.source.name]), { offline: true })
+  try {
+    const inspection = await inspectNpmProject(lease.directory)
+    assert.equal(inspection.packages.find(pkg => pkg.name === f.source.name).version, '2.0.0')
+    await validateProject(lease.directory)
+    assert.deepEqual(selection(await f.library.list()), before)
+  } finally {
+    await lease.release()
+  }
+})
 
 test('cancelled managed acquisition leaves no adoptable project or changed selection', { timeout: 60000 }, async t => {
   const controller = new AbortController()
@@ -390,3 +404,214 @@ test(
     }
   },
 )
+
+test(
+  'shared ZIP member and its unpublished dependency survive reuse, library save, and source removal',
+  { timeout: 120000 },
+  async t => {
+    const { ContentWorkspace } = await import('../../../content-dev/src/content-workspace.ts')
+    const { LocalEnvironments } = await import('../local-environments.mjs')
+    const childName = '@sample/helper'
+    const f = await fixture(t, {
+      sources: source => ({
+        [source.name]: { kind: 'archive', file: join(source.directory, 'source.zip') },
+        [childName]: { kind: 'directory', directory: join(source.directory, 'helper') },
+      }),
+    })
+    const helper = await contentPackage(f.root, childName)
+    await rename(helper.directory, join(f.source.directory, 'helper'))
+    const pkg = JSON.parse(await readFile(join(f.source.directory, 'package.json')))
+    pkg.dependencies = { [childName]: '1.0.0' }
+    await writeFile(
+      join(f.source.directory, 'source.zip'),
+      zipArchive([
+        ['package.json', Buffer.from(JSON.stringify(pkg))],
+        ...(await Promise.all(
+          ['content.json', 'effect.json'].map(async path => [path, await readFile(join(f.source.directory, path))]),
+        )),
+      ]),
+    )
+    const host = await ContentWorkspace.open(join(f.root, 'sender'))
+    const recipient = await ContentWorkspace.open(join(f.root, 'recipient'), { retentions: { list: async () => [] } })
+    const validate = async ({ directory }) => ({ contentRevision: (await inspectNpmProject(directory)).digest })
+    const api = new LocalEnvironments({
+      openWorkspace: async () => recipient,
+      library: {
+        copyMember: f.library.copyMember,
+        prepareEnvironmentProject: (...args) => f.library.prepareEnvironmentProject(...args),
+        saveEnvironmentMember: (...args) => f.library.saveEnvironmentMember(...args),
+      },
+      validate,
+    })
+    try {
+      const doc = environment([f.source.name, childName])
+      const lease = await f.library.prepareEnvironmentProject(doc, { offline: true })
+      try {
+        await host.prepareEnvironment(
+          { environmentId: doc.id, document: doc, expectedRevision: null, directory: lease.directory },
+          validate,
+        )
+      } finally {
+        await lease.release()
+      }
+      const preview = await host.previewEnvironmentExport(doc.id)
+      assert.deepEqual(preview.dependencies, [])
+      const bundle = await host.exportEnvironment(doc.id, { revision: preview.revision, locations: [] })
+      const full = await host.exportEnvironment(doc.id, 'offline')
+      assert.equal(bundle.format, 'arcadia.environment-export/3')
+      assert.equal(full.format, 'arcadia.environment-export/2')
+      assert.equal(bundle.archives.length, 2)
+      assert.ok(!bundle.files.some(file => file.path.endsWith('/effect.json')))
+      const tampered = structuredClone(bundle)
+      tampered.archives[0].digest = 'invalid'
+      await assert.rejects(recipient.importEnvironment(tampered, {}, validate), { code: 'SOURCE_INTEGRITY_MISMATCH' })
+      const imported = await recipient.importEnvironment(bundle, {}, validate)
+      assert.equal((await f.library.list()).packages.length, 0)
+      const member = imported.members.find(member => member.name === f.source.name)
+      assert.ok(member.archiveIntegrity)
+      const target = await recipient.saveDraft({
+        document: { ...environment([]), id: 'target' },
+        expectedRevision: null,
+      })
+      async function run(action, extra = {}) {
+        const { operationId } = await api.request({
+          action,
+          environmentId: doc.id,
+          name: member.name,
+          integrity: member.archiveIntegrity,
+          ...extra,
+        })
+        const deadline = Date.now() + 30000
+        while (Date.now() < deadline) {
+          const job = (await api.snapshot()).operations.find(job => job.id === operationId)
+          if (job.status === 'succeeded') return job.result
+          if (job.status === 'failed') throw Object.assign(new Error(job.error.message), { code: job.error.code })
+          await new Promise(resolve => setTimeout(resolve, 40))
+        }
+        assert.fail('Member transfer timed out')
+      }
+      const importedDraft = await recipient.getDraft(doc.id)
+      await run('apply', {
+        copyFrom: doc.id,
+        document: { ...importedDraft.document, id: 'clone' },
+        expectedRevision: null,
+      })
+      await run('use-member', { targetId: 'target', expectedRevision: target.revision })
+      assert.equal((await f.library.list()).packages.length, 0)
+      await run('save-member')
+      assert.deepEqual(
+        (await f.library.list()).packages.map(item => item.name),
+        [member.name],
+      )
+      await recipient.deleteDraft({ environmentId: doc.id, expectedRevision: imported.draftRevision })
+      const clone = await recipient.getInstallation('clone')
+      assert.deepEqual(clone.members.map(member => member.name).sort(), [childName, member.name].sort())
+      const targetVersion = await recipient.getInstallation('target')
+      assert.deepEqual(
+        (await inspectNpmProject(targetVersion.directory)).packages.map(pkg => pkg.name).sort(),
+        [childName, member.name].sort(),
+      )
+      await writeFile(
+        join(f.source.directory, 'source.zip'),
+        zipArchive([
+          ['package.json', Buffer.from(JSON.stringify({ ...pkg, description: 'second build' }))],
+          ...(await Promise.all(
+            ['content.json', 'effect.json'].map(async path => [path, await readFile(join(f.source.directory, path))]),
+          )),
+        ]),
+      )
+      const alternative = { ...doc, id: 'alternative' }
+      const second = await f.library.prepareEnvironmentProject(alternative, { offline: true })
+      try {
+        await host.prepareEnvironment(
+          { environmentId: alternative.id, document: alternative, expectedRevision: null, directory: second.directory },
+          validate,
+        )
+      } finally {
+        await second.release()
+      }
+      const importedSecond = await recipient.importEnvironment(
+        await host.exportEnvironment(alternative.id),
+        {},
+        validate,
+      )
+      const changed = importedSecond.members.find(item => item.name === member.name)
+      assert.equal(changed.version, member.version)
+      assert.notEqual(changed.archiveIntegrity, member.archiveIntegrity)
+      await assert.rejects(
+        run('use-member', {
+          environmentId: alternative.id,
+          integrity: changed.archiveIntegrity,
+          targetId: 'target',
+          expectedRevision: targetVersion.draftRevision,
+        }),
+        { code: 'ENVIRONMENT_DEPENDENCY_CONFLICT' },
+      )
+      assert.equal((await recipient.getInstallation('target')).draftRevision, targetVersion.draftRevision)
+      const saved = await f.library.prepareEnvironmentProject(
+        { ...environment([]), packages: { [member.name]: member.version } },
+        { offline: true },
+      )
+      try {
+        assert.deepEqual(
+          (await inspectNpmProject(saved.directory)).packages.map(pkg => pkg.name).sort(),
+          [childName, member.name].sort(),
+        )
+      } finally {
+        await saved.release()
+      }
+    } finally {
+      await api.close()
+      await host.close()
+      await recipient.close()
+    }
+  },
+)
+
+test('public release URL uses the library review and requests execution only for the selected environment', async t => {
+  const reviews = [],
+    approvals = []
+  let install = false,
+    allow = false
+  const f = await fixture(t, {
+    reviewInstall: pkg => {
+      reviews.push(pkg)
+      return install
+    },
+    authorizeEnvironment: (_doc, effects) => {
+      approvals.push(effects.map(pkg => pkg.name))
+      return allow
+    },
+  })
+  const bytes = await readFile(f.source.archive)
+  const source = {
+    kind: 'url',
+    url: 'https://github.com/test/content/releases/download/v1.0.0/registered.tgz',
+    integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'),
+  }
+  t.mock.method(globalThis, 'fetch', async url => {
+    assert.equal(String(url), source.url)
+    return new Response(bytes)
+  })
+  await assert.rejects(f.library.installRemote({ ...source, integrity: 'sha512-YmFk' }), /INTEGRITY_MISMATCH/)
+  await assert.rejects(f.library.installRemote(source), { name: 'AbortError' })
+  assert.equal((await f.library.list()).packages.length, 0)
+  assert.equal(reviews[0].name, f.source.name)
+  assert.equal(reviews[0].sdkApi, 2)
+  install = true
+  const id = await f.library.installRemote(source)
+  const entry = (await f.library.list()).packages.find(pkg => pkg.id === id)
+  assert.equal(entry.source.provenance.integrity, source.integrity)
+  assert.equal(await f.library.installFile(f.source.archive, true), id)
+  assert.equal(
+    f.calls.some(args => args.includes('approve')),
+    false,
+  )
+  const document = { ...environment([]), packages: { [entry.name]: entry.version } }
+  await assert.rejects(f.library.prepareEnvironmentProject(document, { offline: true }), /未授权/)
+  assert.deepEqual(approvals, [[entry.name]])
+  allow = true
+  const lease = await f.library.prepareEnvironmentProject(document, { offline: true })
+  await validateProject(lease.directory)
+  await lease.release()
+})

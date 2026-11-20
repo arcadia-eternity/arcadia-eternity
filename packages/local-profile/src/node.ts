@@ -18,7 +18,14 @@ export class FileProfileStorage implements ProfileStorage {
   constructor(readonly directory: string) {}
   async acquireOwner() {
     if (this.closing) throw new ProfileError('STORAGE_CLOSED')
-    this.ownerRelease ??= await this.acquire()
+    if (this.ownerRelease) return
+    try {
+      this.ownerRelease = await this.acquire()
+    } catch (error) {
+      if (!(error instanceof ProfileError) || error.code !== 'PROFILE_BUSY') throw error
+      await this.unlock()
+      this.ownerRelease = await this.acquire()
+    }
   }
   async close() {
     this.closing = true
@@ -90,7 +97,11 @@ export class FileProfileStorage implements ProfileStorage {
     const temporary = join(this.directory, `.profile-${randomUUID()}.tmp`)
     try {
       if (typeof expected === 'object' && expected !== null) {
-        if ((await this.readRaw()) !== expected.corrupt) throw new ProfileError('REVISION_CONFLICT')
+        const raw = await this.readRaw()
+        if (raw !== ('legacy' in expected ? expected.legacy : expected.corrupt))
+          throw new ProfileError('REVISION_CONFLICT')
+        if ('legacy' in expected)
+          await link(join(this.directory, 'profile.json'), join(this.directory, `profile-v1-${randomUUID()}.json`))
       } else {
         const old = await this.read()
         if ((old?.current.revision ?? null) !== expected) throw new ProfileError('REVISION_CONFLICT')
@@ -180,6 +191,9 @@ export class FileProfileStorage implements ProfileStorage {
         return
       }
     }
-    throw new ProfileError('PROFILE_BUSY', '资料仍被其他进程占用')
+    throw new ProfileError(
+      'PROFILE_BUSY',
+      '个人资料正由另一个进程使用。请先关闭占用资料的客户端或命令行工具，再重新读取。',
+    )
   }
 }

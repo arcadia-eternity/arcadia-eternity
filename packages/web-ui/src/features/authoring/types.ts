@@ -1,3 +1,4 @@
+import type { AuthorEffectCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import type { Json } from '@arcadia-eternity/pack-loader/native'
 export type ContentRow = Record<string, Json> & { id: string }
 export interface SharedField {
@@ -49,12 +50,16 @@ interface AuthorDiagnostic {
   column?: number
 }
 export interface AuthorSnapshot {
+  manifestVersion?: string
+  dependencies?: Record<string, string>
+  arcadiaRange?: string
   version?: string
   root: string
   name: string
   project: { projectId: string; namespace: string; sdkApi?: number }
   capabilities?: { sourceEditing: boolean; structuredSaving: boolean; localeEditing: boolean }
   records: SourceRecord[]
+  effectCatalog?: AuthorEffectCatalog
   files: SourceFile[]
   assets: SourceAsset[]
   locales: Record<string, Json>
@@ -68,6 +73,15 @@ export interface SourceProject {
   directory: string
   name: string
 }
+export const jobStates: Record<string, string> = {
+  queued: '排队中',
+  running: '进行中',
+  succeeded: '已完成',
+  failed: '未完成',
+  cancelled: '已停止',
+  interrupted: '已中断',
+}
+
 export interface AuthorJob {
   jobId: string
   kind: string
@@ -77,6 +91,9 @@ export interface AuthorJob {
   output: string
   diagnostics: AuthorDiagnostic[]
   result?: {
+    filename?: string
+    integrity?: string
+    files?: string[]
     candidate?: { integrity: string; sdkApi: number; build: { coreBuildId: string; registryBuildId: string } }
     preview?: { endpoint: string; clientPath: string; url?: string }
   }
@@ -86,6 +103,8 @@ export async function authorCall<T>(input: Record<string, unknown>): Promise<T> 
   if (!invoke) throw new Error('请使用新版桌面客户端打开源项目')
   // Vue forms contain reactive proxies; IPC accepts plain structured-cloneable data.
   const response = await invoke(JSON.parse(JSON.stringify(input)))
+  if (input.action === 'creator-github' && response.error?.message === '不支持的作者操作')
+    throw new Error('请保存修改，退出并重新打开桌面客户端，再使用 GitHub 同步。')
   if (response.error) throw Object.assign(new Error(response.error.message), { code: response.error.code })
   return response.result as T
 }

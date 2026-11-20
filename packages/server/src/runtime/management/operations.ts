@@ -1,4 +1,6 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { sha256Hex } from '@arcadia-eternity/const'
+import { RuleCompositionError } from '@arcadia-eternity/content-sdk/environment-rules'
+import { randomUUID } from 'node:crypto'
 import type { DurableStorage, StoredRecord } from '@arcadia-eternity/database'
 
 type OperationStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted'
@@ -67,7 +69,6 @@ export class OperationError extends Error {
 }
 
 const terminal = (status: OperationStatus) => !['queued', 'running'].includes(status)
-const digest = (value: string) => createHash('sha256').update(value).digest('hex')
 const present = (record: StoredRecord<OperationValue>): Operation => ({
   ...structuredClone(record.value),
   id: record.id,
@@ -111,6 +112,7 @@ function actorIdentity(actor: unknown): string {
 }
 
 function failure(error: unknown): OperationFailure {
+  if (error instanceof RuleCompositionError) return { code: error.code, message: error.message, retryable: false }
   // Exception text may contain private paths, connection strings or provider responses.
   // Only deliberately exposed, stable codes cross the operation API boundary.
   const code =
@@ -121,6 +123,8 @@ function failure(error: unknown): OperationFailure {
     /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code)
       ? error.code
       : 'OPERATION_FAILED'
+  if (error instanceof Error && (code === 'ARCADIA_VERSION_INCOMPATIBLE' || code === 'ARCADIA_VERSION_RANGE_INVALID'))
+    return { code, message: error.message, retryable: false }
   return { code, message: code, retryable: !['FORBIDDEN', 'UNAUTHORIZED', 'OPERATION_INPUT_INVALID'].includes(code) }
 }
 
@@ -177,8 +181,8 @@ export class OperationService {
     }
     const principalId = actorIdentity(input.actor)
     canonical(input.actor)
-    const inputFingerprint = digest(canonical(input.input))
-    const id = digest(canonical([this.ownerId, principalId, input.scope, input.kind, input.idempotencyKey]))
+    const inputFingerprint = sha256Hex(canonical(input.input))
+    const id = sha256Hex(canonical([this.ownerId, principalId, input.scope, input.kind, input.idempotencyKey]))
     let created = false
     let record: StoredRecord<OperationValue>
     const compatible = (existing: StoredRecord<OperationValue>) => {

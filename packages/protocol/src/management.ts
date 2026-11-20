@@ -47,19 +47,14 @@ export interface ManagedServerSettings {
     battleQueueTimeoutMs: number
   }
 }
+export type SpeciesEligibility = 'species' | 'all' | 'off' | string[]
 export interface ManagedEnvironmentDocument {
   schemaVersion: 2
   id: string
   name: string
   packages: Record<string, string>
   sources: string[]
-  rules: {
-    schemaVersion: 1
-    tier?: string
-    allow?: { species?: string[]; skills?: string[]; marks?: string[] }
-    deny?: { species?: string[]; skills?: string[]; marks?: string[] }
-    team?: { minSize?: number; maxSize?: number; uniqueSpecies?: boolean }
-  }
+  rules: import('@arcadia-eternity/const').EnvironmentRuleDeclaration
   requires: { engine?: string; sdk?: string; capabilities?: string[] }
 }
 export interface ManagedEnvironment {
@@ -75,7 +70,20 @@ export interface ManagedReadyEnvironmentInstallation {
   document: ManagedEnvironmentDocument
   draftRevision: string
   contentRevision: string
+  ruleComposition?: {
+    requiredCapabilities?: string[]
+    rules: import('./environment').EnvironmentRules
+    fields: { path: string[]; value: unknown; sources: string[]; effectiveSources: string[] }[]
+    ruleSets: { id: string; name: string; rules: ManagedEnvironmentDocument['rules'] }[]
+  }
+  skillParameters?: import('@arcadia-eternity/const').SkillParameterCatalog
+  contentCatalog?: Record<'species' | 'skills' | 'marks' | 'stages', { id: string; name?: string }[]>
+  elementCatalog?: {
+    elements: import('@arcadia-eternity/const').ElementDefinition[]
+    matchupTables: import('@arcadia-eternity/const').MatchupTable[]
+  }
   members?: {
+    archiveIntegrity?: string
     name: string
     version: string
     projectId: string

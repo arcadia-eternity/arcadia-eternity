@@ -9,6 +9,7 @@ export class AuthorWorkspaces {
   #entries
   #loading
   #sessions = new Map()
+  #transfers = new Map()
   #queue = Promise.resolve()
   #contextQueue = Promise.resolve()
   constructor({ root, api, notify = () => {}, env = process.env }) {
@@ -33,11 +34,14 @@ export class AuthorWorkspaces {
               typeof entry.directory !== 'string' ||
               typeof entry.name !== 'string' ||
               typeof entry.readOnly !== 'boolean' ||
-              typeof entry.published !== 'boolean',
+              (entry.published !== undefined && typeof entry.published !== 'boolean'),
           )
         )
           throw new Error('源项目登记格式无效，请恢复备份')
-        this.#entries = entries
+        // Source registrations written before published-package browsing have no published flag.
+        if (entries.some(entry => entry.published === undefined))
+          await this.#save(entries.map(entry => ({ published: false, ...entry })))
+        else this.#entries = entries
       })().catch(error => {
         this.#loading = undefined
         throw error
@@ -198,16 +202,82 @@ export class AuthorWorkspaces {
     }
     throw new Error('不支持的项目队伍操作')
   }
-  async create(name) {
+  async clone(url, tokenFor) {
+    if (this.#transfers.has('clone')) throw new Error('正在克隆源项目')
+    const controller = new AbortController()
+    this.#transfers.set('clone', controller)
+    const directory = join(this.root, 'projects', `clone-${randomUUID()}`)
+    try {
+      await mkdir(dirname(directory), { recursive: true })
+      await (await this.api()).cloneAuthorRepository(directory, url, controller.signal, tokenFor)
+      return await this.add(directory)
+    } catch (error) {
+      await rm(directory, { recursive: true, force: true })
+      throw error
+    } finally {
+      this.#transfers.delete('clone')
+    }
+  }
+  cancelGit(id) {
+    this.#transfers.get(id)?.abort()
+  }
+  async git(id, input, tokenFor) {
+    const session = await this.session(id)
+    const { authorGit } = await this.api()
+    return this.#mutate(async () => {
+      if (input.operation === 'pull') {
+        await session.jobs.refresh()
+        if (session.jobs.list().some(job => ['running', 'queued'].includes(job.state)))
+          throw new Error('请等创作任务结束后再拉取')
+      }
+      if (input.operation === 'tag') {
+        const { job } = await this.#verifiedPack(session, input.jobId)
+        if (job.kind !== 'release') throw new Error('请先完成发行检查')
+        const manifest = JSON.parse((await session.workspace.read('package.json')).text)
+        return authorGit(session.workspace, { operation: 'tag', tag: 'v' + manifest.version })
+      }
+      if (!['fetch', 'pull', 'push', 'push-tag'].includes(input.operation)) return authorGit(session.workspace, input)
+      const controller = new AbortController()
+      this.#transfers.set(id, controller)
+      try {
+        return await authorGit(session.workspace, input, controller.signal, tokenFor)
+      } finally {
+        this.#transfers.delete(id)
+      }
+    })
+  }
+  async githubTarget(id, jobId) {
+    const session = await this.session(id)
+    const { authorGit } = await this.api()
+    const target = await authorGit(session.workspace, { operation: 'github-target' })
+    if (jobId === undefined) return target
+    const { job } = await this.#verifiedPack(session, jobId)
+    if (
+      !target?.head ||
+      !target.tagged ||
+      job.kind !== 'release' ||
+      session.workspace.hasDirtyFiles ||
+      target.filename !== job.result.filename
+    )
+      throw new Error('请先保存、完成发行检查并为当前提交创建版本标签。')
+    return { ...target, integrity: job.result.integrity }
+  }
+  async create(name, arcadiaRange) {
     if (typeof name !== 'string' || !name.trim() || name.length > 80) throw new Error('请输入 1–80 个字符的项目名称')
     const directory = join(this.root, 'projects', `pack-${randomUUID().slice(0, 12)}`)
     await mkdir(dirname(directory), { recursive: true })
     const { createSourceProject } = await this.api()
-    await createSourceProject(directory, basename(directory))
+    await createSourceProject(directory, basename(directory), arcadiaRange)
     const entry = await this.add(directory)
     await this.#mutate(async () =>
       this.#save((await this.list()).map(item => (item.id === entry.id ? { ...item, name: name.trim() } : item))),
     )
+    // Source editing also works on machines without system Git. The Git view offers a retry.
+    try {
+      await this.git(entry.id, { operation: 'init' })
+    } catch (error) {
+      console.warn('新项目的本地 Git 仓库初始化失败', error.message)
+    }
     return { ...entry, name: name.trim() }
   }
   async entry(id) {
@@ -241,12 +311,14 @@ export class AuthorWorkspaces {
     return this.#sessions.get(id)
   }
   /** Resolve only a successful task receipt owned by this registered project. */
-  async installBuiltPack(id, jobId, installFile) {
-    const session = await this.session(id)
+  async #verifiedPack(session, jobId) {
     await session.workspace.assertWritable()
     await session.jobs.refresh()
     const job = session.jobs.get(jobId)
-    if (job.kind !== 'pack' || job.state !== 'succeeded') throw new Error('请先完成此项目的构建打包')
+    if (!['pack', 'release'].includes(job.kind) || job.state !== 'succeeded')
+      throw new Error('请先完成此项目的构建打包')
+    if (job.stale || session.jobs.list().find(item => ['pack', 'release'].includes(item.kind))?.jobId !== jobId)
+      throw new Error('构建已过期，请重新构建后用于环境')
     const { filename, shasum, integrity } = job.result ?? {}
     if (
       typeof filename !== 'string' ||
@@ -264,6 +336,10 @@ export class AuthorWorkspaces {
       `sha512-${createHash('sha512').update(bytes).digest('base64')}` !== integrity
     )
       throw new Error('构建产物已改变，请重新构建打包后安装')
+    return { filename, bytes, job }
+  }
+  async installBuiltPack(id, jobId, installFile) {
+    const { filename, bytes } = await this.#verifiedPack(await this.session(id), jobId)
     // Copy verified bytes into a private staging directory. Source edits after verification
     // cannot change the archive consumed by the existing package installer.
     const staging = join(this.root, 'state', `install-${randomUUID()}`)
@@ -308,6 +384,7 @@ export class AuthorWorkspaces {
     return next
   }
   async release(id, { preservePreviews = false } = {}) {
+    this.cancelGit(id)
     const session = this.#sessions.get(id)
     const retained = session && preservePreviews && (await session).jobs.hasLivePreviews
     if (!retained) this.#sessions.delete(id)
@@ -385,6 +462,7 @@ export class AuthorWorkspaces {
     for (const pending of this.#sessions.values()) await (await pending).jobs.stopPreviews()
   }
   async close() {
+    for (const controller of this.#transfers.values()) controller.abort()
     await Promise.allSettled([...this.#sessions.keys()].map(id => this.release(id)))
     await this.#queue
   }

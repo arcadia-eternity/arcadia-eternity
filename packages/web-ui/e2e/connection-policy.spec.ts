@@ -9,7 +9,7 @@ for (const viewport of [
     await page.route('**/arcadia-client.json', route =>
       route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
     )
-    await page.goto('/content')
+    await page.goto('/environments')
     await page.getByRole('button', { name: '当前未连接服务器，连接设置', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: '服务器连接', exact: true })
     await expect(dialog).toBeVisible()

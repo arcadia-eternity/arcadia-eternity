@@ -1,8 +1,8 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { promisify } from 'node:util'
+import { isDeepStrictEqual, promisify } from 'node:util'
 import { valid, validRange } from 'semver'
 import {
   inspectNpmProject,
@@ -172,11 +172,102 @@ export class ManagedProjects {
       throw contentError('NPM_INSTALL_FAILED')
     }
   }
+  /** Resolve an author lock in isolation from the source tree and its linked development SDK. */
+  async authorLock(manifest: UnknownRecord, previous?: string) {
+    const allowed = [
+      'name',
+      'version',
+      'license',
+      'engines',
+      'dependencies',
+      'devDependencies',
+      'optionalDependencies',
+      'peerDependencies',
+      'peerDependenciesMeta',
+    ]
+    const metadata = Object.fromEntries(
+      allowed.filter(key => Object.hasOwn(manifest, key)).map(key => [key, manifest[key]]),
+    )
+    checkDependencySpecs(metadata)
+    checkDependencySpecs({ dependencies: metadata.devDependencies })
+    for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+      const specs = metadata[field]
+      if (isRecord(specs) && Object.values(specs).some(value => typeof value !== 'string' || !validRange(value)))
+        throw contentError('INSTALL_DEPENDENCY_SOURCE_FORBIDDEN')
+    }
+    if (previous) checkLock(JSON.parse(previous))
+    const project = join(this.root, 'project')
+    await mkdir(project)
+    await writeFile(join(project, 'package.json'), JSON.stringify(metadata))
+    const path = join(project, 'package-lock.json')
+    if (previous) await writeFile(path, previous)
+    await this.#npm(
+      ['install', '--package-lock-only', '--ignore-scripts', '--registry', this.#options.registry],
+      project,
+      this.#controller.signal,
+    )
+    const result = await readFile(path, 'utf8')
+    checkLock(JSON.parse(result))
+    return result
+  }
+  async #packSource(source: ManagedSource, destination: string, signal: AbortSignal, expectedName?: string) {
+    const captured = await acquireSource(source, {
+      destination,
+      preserveNpmArchive: true,
+      signal,
+      maxBytes: this.#options.maxBytes,
+      maxFiles: this.#options.maxFiles,
+      timeoutMs: this.#options.timeoutMs,
+    })
+    const manifest: UnknownRecord = JSON.parse(await readFile(join(captured.directory, 'package.json'), 'utf8'))
+    if (
+      typeof manifest.name !== 'string' ||
+      !packageName.test(manifest.name) ||
+      (expectedName && manifest.name !== expectedName)
+    )
+      throw contentError('INSTALL_SOURCE_IDENTITY')
+    if (typeof manifest.version !== 'string' || !valid(manifest.version)) throw contentError('INSTALL_SOURCE_VERSION')
+    checkDependencySpecs(manifest)
+    try {
+      checkLock(JSON.parse(await readFile(join(captured.directory, 'npm-shrinkwrap.json'), 'utf8')))
+    } catch (error) {
+      if (errorCode(error) !== 'ENOENT') throw error
+    }
+    if (captured.archive) return { file: captured.archive, provenance: captured.provenance }
+    const output = join(destination, 'packed')
+    await mkdir(output)
+    await this.#npm(
+      ['pack', '--ignore-scripts', '--json', '--pack-destination', output, '--registry', this.#options.registry],
+      captured.directory,
+      signal,
+    )
+    const files = await readdir(output)
+    if (files.length !== 1 || !files[0].endsWith('.tgz')) throw contentError('INSTALL_PACK_INVALID')
+    return { file: join(output, files[0]), provenance: captured.provenance }
+  }
+  async withLocalArchive<T>(file: string, signal: AbortSignal, consume: (archive: string) => Promise<T>) {
+    return this.withSourceArchive({ kind: 'archive', file }, signal, consume)
+  }
+  async withSourceArchive<T>(
+    source: ManagedSource,
+    signal: AbortSignal,
+    consume: (archive: string, provenance: Record<string, string>) => Promise<T>,
+  ) {
+    await mkdir(this.root, { recursive: true, mode: 0o700 })
+    const staging = await mkdtemp(join(this.root, 'archive-'))
+    try {
+      const captured = await this.#packSource(source, join(staging, 'source'), signal)
+      return await consume(captured.file, captured.provenance)
+    } finally {
+      await rm(staging, { recursive: true, force: true })
+    }
+  }
   prepareEnvironment(
     workspace: ContentWorkspace,
     input: {
       onProgress?: PrepareEnvironmentInput['onProgress']
       environmentId: string
+      seedDirectory?: string
       expectedRevision: string | null
       document?: PrepareEnvironmentInput['document']
       signal?: AbortSignal
@@ -195,7 +286,10 @@ export class ManagedProjects {
           if ((draft?.revision ?? null) !== input.expectedRevision) throw contentError('REVISION_CONFLICT')
           return input.document ?? draft?.document
         },
-        { ...input, projectDirectory: join(workspace.root, 'environments', input.environmentId) },
+        {
+          ...input,
+          projectDirectory: input.seedDirectory ?? join(workspace.root, 'environments', input.environmentId),
+        },
         async (directory, signal, document) => {
           return workspace.prepareEnvironment({ ...input, document, projectDirectory: directory, signal }, validate)
         },
@@ -396,9 +490,26 @@ export class ManagedProjects {
       await mkdir(join(this.root, 'staging'), { recursive: true, mode: 0o700 })
       directory = await mkdtemp(join(this.root, 'staging', 'prepare-'))
       await mkdir(join(directory, 'candidates'))
-      for (const [name, spec] of Object.entries(dependencies)) {
-        if (name === baseName) continue
-        if (!spec.startsWith('file:')) continue
+      const localSpecs = new Set(
+        Object.entries(dependencies)
+          .filter(([name, spec]) => name !== baseName && spec.startsWith('file:'))
+          .map(([, spec]) => spec),
+      )
+      if (input.projectDirectory && localSpecs.size) {
+        const previous = await readFile(join(input.projectDirectory, 'package-lock.json'), 'utf8').catch(error => {
+          if (errorCode(error) !== 'ENOENT') throw error
+        })
+        if (previous)
+          for (const entry of Object.values(JSON.parse(previous).packages ?? {})) {
+            if (
+              isRecord(entry) &&
+              typeof entry.resolved === 'string' &&
+              /^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(entry.resolved)
+            )
+              localSpecs.add(entry.resolved)
+          }
+      }
+      for (const spec of localSpecs) {
         if (!input.projectDirectory) throw contentError('ENVIRONMENT_SOURCE_MISSING')
         const relativeFile = spec.slice(5)
         const sourceFile = join(await realpath(input.projectDirectory), relativeFile)
@@ -408,7 +519,7 @@ export class ManagedProjects {
       if (includesBase) {
         await withShippedCatalogArchive(baseRoot!, undefined, async file => {
           const bytes = await readFile(file)
-          const filename = `candidates/base-${createHash('sha256').update(bytes).digest('hex')}.tgz`
+          const filename = `candidates/base-${sha256Hex(bytes)}.tgz`
           await writeFile(join(directory!, filename), bytes)
           dependencies[baseName] = 'file:' + filename
         })
@@ -422,42 +533,14 @@ export class ManagedProjects {
         if (this.#options.offline && (source.kind === 'url' || source.kind === 'git'))
           throw contentError('INSTALL_SOURCE_OFFLINE')
         await input.onProgress?.({ stage: 'acquiring', completed: index, total: document.sources.length })
-        const captured = await acquireSource(source, {
-          destination: join(directory, 'source-' + index),
-          signal,
-          maxBytes: this.#options.maxBytes,
-          maxFiles: this.#options.maxFiles,
-          timeoutMs: this.#options.timeoutMs,
-        })
-        const manifest = JSON.parse(await readFile(join(captured.directory, 'package.json'), 'utf8')) as UnknownRecord
-        if (manifest.name !== name) throw contentError('INSTALL_SOURCE_IDENTITY')
-        if (typeof manifest.version !== 'string' || !valid(manifest.version))
-          throw contentError('INSTALL_SOURCE_VERSION')
-        checkDependencySpecs(manifest)
-        try {
-          checkLock(JSON.parse(await readFile(join(captured.directory, 'npm-shrinkwrap.json'), 'utf8')))
-        } catch (error) {
-          if (errorCode(error) !== 'ENOENT') throw error
-        }
-        const output = join(directory, 'packed-' + index)
-        await mkdir(output)
-        await this.#npm(
-          ['pack', '--ignore-scripts', '--json', '--pack-destination', output, '--registry', this.#options.registry],
-          captured.directory,
-          signal,
-        )
-        const { readdir } = await import('node:fs/promises')
-        const files = await readdir(output)
-        if (files.length !== 1 || !files[0].endsWith('.tgz')) throw contentError('INSTALL_PACK_INVALID')
-        const archiveDigest = createHash('sha256')
-          .update(await readFile(join(output, files[0])))
-          .digest('hex')
+        const staged = join(directory, 'source-' + index)
+        const captured = await this.#packSource(source, staged, signal, name)
+        const archiveDigest = sha256Hex(await readFile(captured.file))
         const filename = `candidates/source-${index}-${archiveDigest}.tgz`
-        await rename(join(output, files[0]), join(directory, filename))
+        await rename(captured.file, join(directory, filename))
         dependencies[name] = 'file:' + filename
         provenance[name] = captured.provenance
-        await rm(captured.directory, { recursive: true, force: true })
-        await rm(output, { recursive: true, force: true })
+        await rm(staged, { recursive: true, force: true })
       }
       const savedManifest = input.projectDirectory
         ? (JSON.parse(
@@ -472,7 +555,28 @@ export class ManagedProjects {
           if (errorCode(error) !== 'ENOENT') throw error
           return undefined
         })
-        if (lock) await writeFile(join(directory, 'package-lock.json'), lock)
+        if (lock) {
+          await writeFile(join(directory, 'package-lock.json'), lock)
+          // A captured installation is sufficient for rule edits and reuse after the source/cache is gone.
+          if (
+            localSpecs.size &&
+            !document.sources.length &&
+            isDeepStrictEqual(savedManifest.dependencies, dependencies)
+          ) {
+            const locked = JSON.parse(lock.toString())
+            checkLock(locked, true)
+            if (isDeepStrictEqual(locked.packages['']?.dependencies, dependencies)) {
+              const inspection = await inspectNpmProject(input.projectDirectory).catch(() => undefined)
+              signal.throwIfAborted()
+              if (inspection) {
+                const captured = await mkdtemp(join(directory, 'captured-'))
+                const limits = { signal, maxBytes: this.#options.maxBytes, maxFiles: this.#options.maxFiles }
+                await writeMaterials(captured, await materialFiles(input.projectDirectory, limits), limits)
+                return await consume(captured, signal, document)
+              }
+            }
+          }
+        }
       }
       await writeFile(
         join(directory, 'package.json'),
@@ -506,7 +610,14 @@ export class ManagedProjects {
         directory,
         signal,
       )
-      checkLock(JSON.parse(await readFile(join(directory, 'package-lock.json'), 'utf8')), true)
+      const nextLock = JSON.parse(await readFile(join(directory, 'package-lock.json'), 'utf8'))
+      checkLock(nextLock, true)
+      const retained = new Set(
+        Object.values(nextLock.packages).flatMap(entry => (isRecord(entry) ? [entry.resolved] : [])),
+      )
+      for (const file of await readdir(join(directory, 'candidates')))
+        if (!retained.has('file:candidates/' + file)) await rm(join(directory, 'candidates', file))
+
       await input.onProgress?.({ stage: 'installing' })
       await this.#npm(
         [

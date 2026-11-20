@@ -155,6 +155,9 @@ export async function installedOfficialHost(root: string, installation: NpmProje
       species: [...metadata.data.species] as typeof draft.data.species,
       skills: [...metadata.data.skills] as typeof draft.data.skills,
       marks: [...metadata.data.marks] as typeof draft.data.marks,
+      elements: metadata.data.elements as typeof draft.data.elements,
+      natures: metadata.data.natures as typeof draft.data.natures,
+      enhancements: metadata.data.enhancements as typeof draft.data.enhancements,
       behaviors: [],
     }
     const presentationPackage: InstalledNpmPackage = {

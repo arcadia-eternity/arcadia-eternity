@@ -9,7 +9,7 @@ export function launchConfiguration(input) {
     !input ||
     typeof input !== 'object' ||
     Array.isArray(input) ||
-    Object.keys(input).some(key => !['name', 'scope', 'port', 'publicOrigin', 'content'].includes(key))
+    Object.keys(input).some(key => !['name', 'scope', 'port', 'publicOrigin'].includes(key))
   )
     throw fail('INVALID_LAUNCH', '开服设置无效')
   if (typeof input.name !== 'string' || !input.name.trim() || input.name.length > 80)
@@ -18,10 +18,9 @@ export function launchConfiguration(input) {
     !['local', 'lan', 'public'].includes(input.scope) ||
     !Number.isInteger(input.port) ||
     input.port < 0 ||
-    input.port > 65535 ||
-    !['official', 'current', 'saved'].includes(input.content)
+    input.port > 65535
   )
-    throw fail('INVALID_LAUNCH', '连接范围、端口或玩法选择无效')
+    throw fail('INVALID_LAUNCH', '连接范围或端口无效')
   let publicOrigin
   if (input.scope === 'public') {
     try {
@@ -44,7 +43,6 @@ export function launchConfiguration(input) {
     name: input.name.trim(),
     scope: input.scope,
     port: input.port,
-    content: input.content,
     ...(publicOrigin ? { publicOrigin } : {}),
   }
 }
@@ -176,25 +174,21 @@ export class LocalServerController {
       this.#phase = 'ready'
       return
     }
-    const config = configuration === undefined ? undefined : launchConfiguration(configuration)
     const profile = await this.profile()
-    if (profile.projectDirectory && config && config.content !== 'saved')
-      throw fail('CONTENT_ALREADY_CONFIGURED', '服务器已有独立玩法，请在“玩法与版本”中修改')
-    if (!profile.projectDirectory && (!config || config.content === 'saved'))
-      throw fail('LAUNCH_REQUIRED', '请先选择服务器名称、玩法与连接范围')
+    // Quick start can arrive before the renderer has read the saved profile.
+    const config = !profile.projectDirectory && configuration ? launchConfiguration(configuration) : undefined
+    if (!profile.projectDirectory && !config) throw fail('LAUNCH_REQUIRED', '请先设置服务器名称与连接范围')
     this.#phase = 'preparing'
     let lease
     try {
       if (!profile.projectDirectory) {
-        const library = this.library()
-        if (config.content === 'current') {
-          lease = await library.acquireProject()
-        } else lease = await library.acquireDefaultProject()
-        if (!lease.directory) throw fail('CONTENT_NOT_READY', '请先准备所选内容环境')
+        lease = await this.library().acquireDefaultProject()
+        if (!lease.directory) throw fail('CONTENT_NOT_READY', '官方基础环境尚未就绪')
       }
       if (this.#closed) throw fail('HOST_CLOSED', '客户端正在退出')
       this.#phase = 'starting'
       await this.host.start(profile.projectDirectory ?? lease.directory, {
+        publishClientEnvironments: true,
         ...(config
           ? {
               launch: {
@@ -202,7 +196,7 @@ export class LocalServerController {
                 host: config.scope === 'local' ? '127.0.0.1' : '0.0.0.0',
                 port: config.port,
                 publicOrigin: config.publicOrigin ?? null,
-                ...(config.content === 'official' ? { officialContent: true } : {}),
+                officialContent: true,
               },
             }
           : {}),

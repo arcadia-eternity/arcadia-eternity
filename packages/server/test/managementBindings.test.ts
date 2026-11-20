@@ -9,7 +9,7 @@ import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-works
 import type { EnvironmentInstallation, StaticPreparer } from '@arcadia-eternity/content-sdk/management-workspace'
 import { workspaceRetentions } from '../../../bin/server-persistence'
 import { createSingleProcessApp } from '../src/runtime/app'
-import type { Binding, ManagementRequest } from '../src/runtime/management/service'
+import { validateWorkspaceProject, type Binding, type ManagementRequest } from '../src/runtime/management/service'
 import type { ManagementActor } from '../src/runtime/management/auth'
 import type { Operation } from '../src/runtime/management/operations'
 
@@ -96,7 +96,6 @@ async function setup(builtin = false) {
           environmentId: 'shared',
           enabled: true,
           visibility: 'public',
-          matchmakingEnabled: true,
         },
       },
       owner.actor,
@@ -176,6 +175,61 @@ it('preparing an edited environment updates its binding without a second publica
   })
   expect((await f.workspace.getDraft('shared')).document.name).toBe('Updated')
 }, 30_000)
+
+it('continues publishing the loaded rules until a replacement runtime loads successfully', async () => {
+  const f = await setup()
+  const initial = await f.draft('Old room rules', null)
+  await f.prepare(initial.revision)
+  const binding = await f.createBinding()
+  const [first] = f.app.environments.list()
+  const waiting = f.app.environments.acquire(first.id)
+  try {
+    const failure = vi
+      .spyOn(f.app.environments, 'prepareNpm')
+      .mockRejectedValueOnce(Object.assign(new Error('load failed'), { code: 'ENVIRONMENT_LOAD_FAILED' }))
+    const current = await f.workspace.getDraft('shared')
+    const next = await f.workspace.saveDraft({
+      expectedRevision: current.revision,
+      document: {
+        ...current.document,
+        schemaVersion: 2,
+        requires: {},
+        name: 'New room rules',
+        rules: { schemaVersion: 2, include: ['base:classic'], mechanics: { individualValues: { max: 120 } } },
+      },
+    })
+    await f.prepare(next.revision)
+    expect(failure).toHaveBeenCalled()
+    const installed = await f.workspace.getInstallation('shared')
+    expect(installed.contentCatalog?.species).toContainEqual(expect.objectContaining({ id: 'pet_dilan' }))
+    expect(installed.document.name).toBe('New room rules')
+    expect(installed.document.rules.include).toEqual(['base:classic'])
+    expect(installed.ruleComposition?.rules.mechanics?.secondGenerationNatures).toBe('species')
+    expect((await f.storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
+      condition: 'degraded',
+      reason: 'ENVIRONMENT_LOAD_FAILED',
+    })
+    expect(f.app.environments.list()).toEqual([first])
+    const duringFailure = f.app.environments.acquire(first.id)
+    try {
+      expect(duringFailure.rules).toEqual(waiting.rules)
+    } finally {
+      await duringFailure.release()
+    }
+
+    await f.service.reconcile()
+    const [second] = f.app.environments.list()
+    expect(second.environmentName).toBe('New room rules')
+    expect(second.rules?.mechanics?.individualValues?.max).toBe(120)
+    expect(second.rules?.mechanics?.secondGenerationNatures).toBe('species')
+    expect(second.rules).not.toHaveProperty('include')
+    expect(second.gameplayRevision).not.toBe(first.gameplayRevision)
+    expect(waiting.descriptor).toMatchObject({ id: first.id, gameplayRevision: first.gameplayRevision })
+    expect(waiting.rules).toEqual(first.rules)
+  } finally {
+    await waiting.release()
+  }
+}, 60_000)
 
 it('failed preparation preserves the usable installation and binding', async () => {
   const f = await setup()
@@ -373,7 +427,10 @@ it('changes execution mode on the existing binding without creating another one'
 it('protects the builtin environment and installation even when no server binding uses it', async () => {
   const f = await setup(true)
   const draft = await f.draft('Builtin', null)
-  await f.prepare(draft.revision)
+  await f.workspace.prepareEnvironment(
+    { environmentId: 'shared', expectedRevision: draft.revision },
+    validateWorkspaceProject,
+  )
   const current = await f.workspace.getDraft('shared')
   const workspacePath = `/workspaces/${f.workspace.workspaceId}`
   const listed = await f.request<{ environments: { builtin?: boolean }[] }>({
@@ -389,6 +446,20 @@ it('protects the builtin environment and installation even when no server bindin
       }),
     ).rejects.toMatchObject({ code: 'BUILTIN_ENVIRONMENT_REQUIRED', status: 409 })
   }
+  for (const [path, body] of [
+    [
+      `${workspacePath}/environments/apply`,
+      { document: { ...current.document, name: 'changed' }, expectedRevision: current.revision },
+    ],
+    [
+      `${workspacePath}/environments/shared/packages/add`,
+      { name: 'extra', version: '1.0.0', expectedRevision: current.revision },
+    ],
+  ] as const)
+    await expect(f.service.request(f.owner.actor, { method: 'POST', path, body })).rejects.toMatchObject({
+      code: 'BUILTIN_ENVIRONMENT_READ_ONLY',
+      status: 409,
+    })
   expect(listed.environments[0].builtin).toBe(true)
   expect((await f.workspace.getDraft('shared')).revision).toBe(current.revision)
   expect((await f.workspace.getInstallation('shared')).status).toBe('ready')

@@ -9579,8 +9579,10 @@
   power: 0
   accuracy: 95
   rage: 20
-  effect:
-    - effect_skill_add_mark_fansheguike
+  behaviors:
+    - useId: bonus
+      definitionId: mark-from-max-hp-excess
+      params: { baseline: 500, mark: mark_fansheguike, scale: 1 }
 - id: skill_dongqipenshe
   element: Ice
   category: Special
@@ -9588,8 +9590,10 @@
   power: 70
   accuracy: 95
   rage: 20
-  effect:
-    - effect_skill_add_power_by_self_max_hp_minus_500
+  behaviors:
+    - useId: bonus
+      definitionId: power-from-max-hp-excess
+      params: { baseline: 500 }
 - id: skill_wuxianbingjie
   element: Ice
   category: Climax
@@ -9616,8 +9620,10 @@
   power: 65
   accuracy: 95
   rage: 15
-  effect:
-    - effect_skill_fixed_damage_by_self_max_hp_minus_500
+  behaviors:
+    - useId: bonus
+      definitionId: damage-from-max-hp-excess
+      params: { baseline: 500 }
 - id: skill_hanbinghujia
   element: Ice
   category: Status
@@ -9625,8 +9631,10 @@
   power: 0
   accuracy: 95
   rage: 20
-  effect:
-    - effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500
+  behaviors:
+    - useId: bonus
+      definitionId: mark-from-max-hp-excess
+      params: { baseline: 500, mark: mark_hanbinghujia, scale: 2 }
 - id: skill_hanbingtuji
   element: Ice
   category: Physical
@@ -11821,3 +11829,249 @@
   effect:
     - effect_bingchuantun_skill_jisubingzhui_priority
   tags: []
+- id: skill_duzhenlianshe
+  element: Bug
+  category: Special
+  target: opponent
+  power: 35
+  rage: 15
+  accuracy: 95
+  multihit: 2
+  effect:
+    - effect_skill_duzhenlianshe
+- id: skill_jinzhensheji
+  element: Bug
+  category: Special
+  target: opponent
+  power: 80
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_skill_jinzhensheji
+- id: skill_zhenchituji
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 65
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_skill_zhenchituji
+- id: skill_mizhenlianshe
+  element: Bug
+  category: Special
+  target: opponent
+  power: 35
+  rage: 15
+  accuracy: 85
+  multihit: 2
+  effect:
+    - effect_skill_mizhenlianshe
+- id: skill_guaiyichongji
+  element: Flying
+  category: Physical
+  target: opponent
+  power: 85
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_skill_guaiyichongji
+- id: skill_kusechouda
+  element: Flying
+  category: Special
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_skill_kusechouda
+- id: skill_chouda_hema
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 60
+  rage: 5
+  accuracy: 100
+  effect:
+    - effect_skill_reduce_opponent_def_1_stage
+- id: skill_ganjuebaoli
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 65
+  rage: 10
+  accuracy: 95
+  effect:
+    - effect_skill_ganjuebaoli
+- id: skill_huiwuchouda
+  element: Flying
+  category: Special
+  target: opponent
+  power: 70
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_skill_add_50_power_if_opponent_lost_sense
+- id: skill_chandouchongji
+  element: Flying
+  category: Physical
+  target: opponent
+  power: 80
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_skill_reduce_spe_if_opponent_lost_hearing
+- id: skill_beiheyimi
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 10
+  accuracy: 100
+  effect:
+    - effect_skill_beiheyimi
+- id: skill_chaohema
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 20
+  accuracy: 100
+  effect:
+    - effect_skill_heal_self_quarter
+- id: skill_chaoheyimi
+  element: Flying
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_skill_add_50_power_if_opponent_lost_sense
+- id: skill_chaogansangshibo
+  element: Flying
+  category: Climax
+  target: opponent
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  effect:
+    - effect_skill_chaogansangshibo
+- id: skill_jianxiaochandou
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 85
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_skill_reduce_spe_if_opponent_lost_hearing
+- id: skill_jianxiaochongji
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_skill_guaiyichongji
+- id: skill_fuyou
+  element: Normal
+  category: Status
+  target: self
+  power: 0
+  rage: 25
+  accuracy: 95
+  effect:
+    - effect_skill_add_mark_taobi
+- id: skill_jianxiaochouda
+  element: Normal
+  category: Special
+  target: opponent
+  power: 95
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_skill_kusechouda
+- id: skill_fenghuangduzhen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_shifeng_skill_fenghuangduzhen
+- id: skill_fenghuangjinzhen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_shifeng_skill_fenghuangjinzhen
+- id: skill_fenghuangmizhen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 75
+  rage: 15
+  accuracy: 95
+  effect:
+    - effect_shifeng_skill_fenghuangmizhen
+- id: skill_zhenchihuiji
+  element: Normal
+  category: Physical
+  target: opponent
+  power: 90
+  rage: 20
+  accuracy: 100
+  sureHit: true
+- id: skill_fenghuangzhenwu
+  element: Bug
+  category: Climax
+  target: opponent
+  power: 160
+  rage: 100
+  accuracy: 100
+  sureHit: true
+  effect:
+    - effect_shifeng_skill_fenghuangzhenwu
+- id: skill_xiongfengtuxi
+  element: Bug
+  category: Physical
+  target: opponent
+  power: 75
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_shifeng_skill_xiongfengtuxi
+- id: skill_fenghuangchuji
+  element: Bug
+  category: Physical
+  target: opponent
+  power: 70
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_shifeng_skill_fenghuangchuji
+- id: skill_xiongfengzhici
+  element: Bug
+  category: Special
+  target: opponent
+  power: 80
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_shifeng_skill_xiongfengzhici
+- id: skill_fenghuangjuezhen
+  element: Bug
+  category: Special
+  target: opponent
+  power: 85
+  rage: 20
+  accuracy: 95
+  effect:
+    - effect_shifeng_skill_fenghuangjuezhen

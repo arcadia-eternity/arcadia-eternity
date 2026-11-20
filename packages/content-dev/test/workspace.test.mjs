@@ -107,6 +107,75 @@ async function fixture(t, options = { watch: false }) {
   })
   return { workspace, root }
 }
+test('indexes saved SDK declarations in the configured effect directory before their first use', async t => {
+  const { workspace, root } = await fixture(t)
+  const manifest = JSON.parse(await readFile(join(root, 'package.json')))
+  Object.assign(manifest.arcadia, { effectSources: './custom', effectArtifact: 'dist/effects.json' })
+  await writeFile(join(root, 'package.json'), JSON.stringify(manifest))
+  await mkdir(join(root, 'custom/nested'), { recursive: true })
+  const file = 'custom/nested/sample.effect.ts'
+  const source = `
+import { effect as define, on, EffectTrigger } from '@arcadia-eternity/content-sdk'
+throw new Error('author code must not run during discovery')
+const id = 'new-hit'
+@define({ id, sourceKind: 'skill' })
+class Hit { @on(EffectTrigger.OnHit) static apply() {} }
+export { Hit as Sample, Hit as Alias }
+@define({id: 'private', sourceKind: 'petMark'}) class Hidden {}
+export type { Hidden }
+const effect = (_options: unknown) => () => {}
+@effect({id: 'unrelated', sourceKind: 'skill'}) export class Other { static create() {} }
+`
+  await writeFile(join(root, file), source)
+  await writeFile(join(root, 'custom/ignored.ts'), source)
+  await writeFile(join(root, 'outside.effect.ts'), source)
+  const catalog = async () => (await workspace.snapshot()).effectCatalog
+  const first = await catalog()
+  assert.deepEqual(first.issues, [])
+  assert.deepEqual(
+    first.definitions.map(({ id, sourceKind, file }) => [id, sourceKind, file]),
+    [['new-hit', 'skill', file]],
+  )
+  await writeFile(join(root, file), source.replace('new-hit', 'updated'))
+  assert.deepEqual(
+    (await catalog()).definitions.map(d => d.id),
+    ['updated'],
+  )
+  const duplicate = join(root, 'custom/duplicate.effect.ts')
+  await writeFile(duplicate, source.replace('new-hit', 'updated'))
+  assert.deepEqual((await catalog()).definitions, [])
+  assert.match((await catalog()).issues[0].message, /重复/)
+  await rm(duplicate)
+  await writeFile(join(root, file), 'export class {')
+  assert.equal((await catalog()).issues.length, 1)
+  await rm(join(root, file))
+  assert.deepEqual(await catalog(), { definitions: [], issues: [] })
+})
+
+test('project settings update only the Arcadia range and reject stale or invalid edits', async t => {
+  const { root, workspace } = await fixture(t)
+  const file = join(root, 'package.json')
+  const initial = JSON.parse(await readFile(file))
+  assert.equal((await workspace.snapshot()).arcadiaRange, '')
+  await writeFile(file, JSON.stringify({ ...initial, engines: { node: '>=24' }, description: 'External edit' }))
+  await workspace.saveArcadiaRange(' ^4.6.0 ', '')
+  assert.deepEqual(JSON.parse(await readFile(file)), {
+    ...initial,
+    engines: { node: '>=24', arcadia: '^4.6.0' },
+    description: 'External edit',
+  })
+  assert.equal((await workspace.snapshot()).arcadiaRange, '^4.6.0')
+  await assert.rejects(workspace.saveArcadiaRange('~4.6.0', ''), { code: 'REVISION_CONFLICT' })
+  await assert.rejects(workspace.saveArcadiaRange('invalid', '^4.6.0'), { code: 'ARCADIA_VERSION_RANGE_INVALID' })
+  const reader = await AuthorWorkspace.open(root, { watch: false, readOnly: true })
+  try {
+    await assert.rejects(reader.saveArcadiaRange('', '^4.6.0'), { code: 'WRITE_DISABLED' })
+  } finally {
+    await reader.close()
+  }
+  await workspace.saveArcadiaRange('', '^4.6.0')
+  assert.deepEqual(JSON.parse(await readFile(file)).engines, { node: '>=24' })
+})
 test('form save preserves YAML comments, unknown fields and sibling array records', async t => {
   const { workspace, root } = await fixture(t)
   let source = (await workspace.snapshot()).records[0]

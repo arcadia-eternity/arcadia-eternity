@@ -1,0 +1,105 @@
+- id: Hardy
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+- id: Lonely
+  generation: 1
+  multipliers: { hp: 1, atk: 1.1, def: 0.9, spa: 1, spd: 1, spe: 1 }
+- id: Brave
+  generation: 1
+  multipliers: { hp: 1, atk: 1.1, def: 1, spa: 1, spd: 1, spe: 0.9 }
+- id: Adamant
+  generation: 1
+  multipliers: { hp: 1, atk: 1.1, def: 1, spa: 0.9, spd: 1, spe: 1 }
+- id: Naughty
+  generation: 1
+  multipliers: { hp: 1, atk: 1.1, def: 1, spa: 1, spd: 0.9, spe: 1 }
+- id: Bold
+  generation: 1
+  multipliers: { hp: 1, atk: 0.9, def: 1.1, spa: 1, spd: 1, spe: 1 }
+- id: Docile
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+- id: Relaxed
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1.1, spa: 1, spd: 1, spe: 0.9 }
+- id: Impish
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1.1, spa: 0.9, spd: 1, spe: 1 }
+- id: Lax
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1.1, spa: 1, spd: 0.9, spe: 1 }
+- id: Timid
+  generation: 1
+  multipliers: { hp: 1, atk: 0.9, def: 1, spa: 1, spd: 1, spe: 1.1 }
+- id: Hasty
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 0.9, spa: 1, spd: 1, spe: 1.1 }
+- id: Serious
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+- id: Jolly
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 0.9, spd: 1, spe: 1.1 }
+- id: Naive
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1, spd: 0.9, spe: 1.1 }
+- id: Modest
+  generation: 1
+  multipliers: { hp: 1, atk: 0.9, def: 1, spa: 1.1, spd: 1, spe: 1 }
+- id: Mild
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 0.9, spa: 1.1, spd: 1, spe: 1 }
+- id: Quiet
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1.1, spd: 1, spe: 0.9 }
+- id: Bashful
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+- id: Rash
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1.1, spd: 0.9, spe: 1 }
+- id: Calm
+  generation: 1
+  multipliers: { hp: 1, atk: 0.9, def: 1, spa: 1, spd: 1.1, spe: 1 }
+- id: Gentle
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 0.9, spa: 1, spd: 1.1, spe: 1 }
+- id: Sassy
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1.1, spe: 0.9 }
+- id: Careful
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 0.9, spd: 1.1, spe: 1 }
+- id: Quirky
+  generation: 1
+  multipliers: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }
+- id: base:nature-25
+  generation: 2
+  multipliers: { hp: 1, atk: 1.1, def: 1.1, spa: 0.9, spd: 0.9, spe: 1 }
+- id: base:nature-26
+  generation: 2
+  multipliers: { hp: 1, atk: 1.1, def: 0.9, spa: 1.1, spd: 0.9, spe: 1 }
+- id: base:nature-27
+  generation: 2
+  multipliers: { hp: 1, atk: 1.1, def: 0.9, spa: 0.9, spd: 1.1, spe: 1 }
+- id: base:nature-28
+  generation: 2
+  multipliers: { hp: 1, atk: 1.1, def: 0.9, spa: 1, spd: 0.9, spe: 1.1 }
+- id: base:nature-29
+  generation: 2
+  multipliers: { hp: 1, atk: 0.9, def: 1.1, spa: 1.1, spd: 0.9, spe: 1 }
+- id: base:nature-30
+  generation: 2
+  multipliers: { hp: 1, atk: 0.9, def: 1.1, spa: 0.9, spd: 1.1, spe: 1 }
+- id: base:nature-31
+  generation: 2
+  multipliers: { hp: 1, atk: 0.9, def: 1.1, spa: 0.9, spd: 1, spe: 1.1 }
+- id: base:nature-32
+  generation: 2
+  multipliers: { hp: 1, atk: 0.9, def: 0.9, spa: 1.1, spd: 1.1, spe: 1 }
+- id: base:nature-33
+  generation: 2
+  multipliers: { hp: 1, atk: 1, def: 0.9, spa: 1.1, spd: 0.9, spe: 1.1 }
+- id: base:nature-34
+  generation: 2
+  multipliers: { hp: 1, atk: 0.9, def: 1, spa: 0.9, spd: 1.1, spe: 1.1 }

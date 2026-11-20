@@ -1,3 +1,4 @@
+import { readSharedTeam } from '@arcadia-eternity/local-profile'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, disposePinia, setActivePinia } from 'pinia'
 import { createApp } from 'vue'
@@ -88,7 +89,7 @@ describe('local play when browser storage cannot persist', () => {
       throw new DOMException('Quota exceeded', 'QuotaExceededError')
     })
 
-    pets.teams[0].name = 'Current session team'
+    pets.renameTeam(0, 'Current session team')
     expect(pets.validateAndSave()).toBe(false)
     expect(pets.teams[0].name).toBe('Current session team')
     expect(localStorage.getItem('petStorage')).toBe(saved)
@@ -98,4 +99,73 @@ describe('local play when browser storage cannot persist', () => {
     expect(writeLocalData('small-setting', '1')).toBe(true)
     expect(localStorageUnavailable.value).toBe(true)
   })
+})
+
+it('keeps shared builds and source-specific environment preferences independent', () => {
+  const pets = usePetStorageStore()
+  pets.loadFromLocal()
+  const source = pets.library.teams[0]
+  pets.copyTeam(0)
+  pets.setEnvironmentPreference(1, { source: 'server:example', environmentId: 'test' })
+  expect(pets.library.teams[0].environmentPreference).toBeUndefined()
+  expect(pets.library.teams[1].memberIds).toEqual(source.memberIds)
+  const builds = pets.getCurrentTeam()
+  builds[0].ivs.hp = 120
+  pets.updateTeamOrder(1, builds)
+  expect(pets.storage).toHaveLength(4)
+  expect(pets.library.teams[1].memberIds[0]).not.toBe(source.memberIds[0])
+  expect(pets.teams[0].pets[0].ivs.hp).toBe(31)
+  pets.loadFromLocal()
+  expect(pets.getCurrentTeam()[0].ivs.hp).toBe(120)
+  expect(pets.library.teams[1].environmentPreference).toEqual({ source: 'server:example', environmentId: 'test' })
+})
+
+it('keeps a private room source hint across reload and copying without attaching it to battle selections', () => {
+  const store = usePetStorageStore()
+  store.loadFromLocal()
+  const origin = { name: '好友冰系环境', version: 'a'.repeat(64) }
+  const original = store.getCurrentTeam()[0]
+  const imported = readSharedTeam(
+    {
+      version: 2,
+      name: '个人约战队',
+      pets: [
+        {
+          ...original,
+          origin,
+          inheritedSkill: 'lost:ice',
+          ivs: { ...original.ivs, hp: 120 },
+        },
+      ],
+    },
+    '队伍',
+  )
+  expect(store.importTeam(imported)).toBe(true)
+  const index = store.currentTeamIndex
+  store.loadFromLocal()
+  const id = store.library.teams[index].memberIds[0]
+  expect(store.storage.find(pet => pet.id === id)).toMatchObject({
+    origin,
+    inheritedSkill: 'lost:ice',
+    ivs: { hp: 120 },
+  })
+  expect(store.getCurrentTeam()[0]).not.toHaveProperty('origin')
+  expect(store.getTeam(index).pets[0]).not.toHaveProperty('origin')
+  store.copyTeam(index)
+  const next = store.currentTeamIndex
+  const draft = store.getCurrentTeam()
+  draft[0].name = '另一个配法'
+  store.updateTeamOrder(next, draft)
+  const copyId = store.library.teams[next].memberIds[0]
+  expect(copyId).not.toBe(id)
+  expect(store.storage.find(pet => pet.id === copyId)?.origin).toEqual(origin)
+  expect(store.replaceMember(store.library.teams[next].id, copyId, id)).toBe(true)
+  expect(store.storage.find(pet => pet.id === copyId)?.origin).toEqual(origin)
+  expect(store.affectedTeams(id).map(team => team.id)).toEqual([
+    store.library.teams[index].id,
+    store.library.teams[next].id,
+  ])
+  expect(() =>
+    readSharedTeam({ pets: [{ ...original, origin: { ...origin, url: 'https://example.org/private' } }] }, '队伍'),
+  ).toThrow('来源信息无效')
 })

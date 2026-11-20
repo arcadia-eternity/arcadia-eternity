@@ -116,7 +116,7 @@ const typeEffectivenessConfig = computed(() => {
       element: pet.element,
     } as SkillMessage
 
-    return getCurrentSkillEffectiveness(virtualSkill, opponentActivePet)
+    return getCurrentSkillEffectiveness(virtualSkill, opponentActivePet, gameDataStore.elementMultipliers)
   } else {
     // 敌方精灵：显示敌方精灵属性对己方精灵的效果
     const currentPlayer = battleStore.currentPlayer
@@ -130,7 +130,7 @@ const typeEffectivenessConfig = computed(() => {
       element: pet.element,
     } as SkillMessage
 
-    return getCurrentSkillEffectiveness(virtualSkill, currentActivePet)
+    return getCurrentSkillEffectiveness(virtualSkill, currentActivePet, gameDataStore.elementMultipliers)
   }
 })
 

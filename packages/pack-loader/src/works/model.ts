@@ -1,3 +1,4 @@
+import { readEnhancementStages, readNatureCatalog, sha256Hex } from '@arcadia-eternity/const'
 import type {
   BehaviorDefinition,
   ContentCatalog,
@@ -12,6 +13,14 @@ export interface WorkReference {
   $ref: { projectId: string; kind: WorkKind; id: string }
 }
 export interface WorkData {
+  parameterGroups?: WorkRecord[]
+  parameterProfiles?: WorkRecord[]
+  ruleSets?: WorkRecord[]
+  parameterBindings?: WorkRecord[]
+  elements?: WorkRecord[]
+  matchupTables?: WorkRecord[]
+  enhancements?: WorkRecord[]
+  natures?: WorkRecord[]
   species: WorkRecord[]
   skills: WorkRecord[]
   marks: WorkRecord[]
@@ -171,9 +180,19 @@ export function canonical(value: unknown): string {
       .join(',')}}`
   return JSON.stringify(value)
 }
+export function gameplayIdentity(
+  runtime: { kind: 'native-v4'; contentRevision: string; coreBuildId: string; registryBuildId: string },
+  material: string,
+  rules: unknown,
+) {
+  return canonical({ runtime, material, rules })
+}
+export function gameplayRevision(...input: Parameters<typeof gameplayIdentity>) {
+  return digestBytes(new TextEncoder().encode(gameplayIdentity(...input)))
+}
+
 export async function digestBytes(bytes: Uint8Array): Promise<string> {
-  const value = await globalThis.crypto.subtle.digest('SHA-256', new Uint8Array(bytes))
-  return [...new Uint8Array(value)].map(byte => byte.toString(16).padStart(2, '0')).join('')
+  return sha256Hex(bytes)
 }
 export const digestJson = (value: unknown) => digestBytes(new TextEncoder().encode(canonical(value)))
 
@@ -209,6 +228,35 @@ export function parseDraft(input: unknown): WorkDraft {
   if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 0)
     fail('INVALID_DATA', 'revision', '草稿修订号无效')
   object(value.data, 'data')
+  for (const kind of [
+    'parameterGroups',
+    'parameterProfiles',
+    'parameterBindings',
+    'ruleSets',
+    'elements',
+    'matchupTables',
+  ] as const) {
+    const records = value.data[kind]
+    if (records === undefined) continue
+    if (!Array.isArray(records) || records.length > limits.records) fail('INVALID_DATA', 'data.' + kind, '属性目录无效')
+    for (const row of records) {
+      object(row, kind)
+      identifier(row.id, kind + '.id')
+    }
+  }
+  if (value.data.enhancements !== undefined) {
+    if (!Array.isArray(value.data.enhancements)) fail('INVALID_DATA', 'data.enhancements', '强化阶段列表无效')
+    for (const stage of readEnhancementStages(value.data.enhancements)) identifier(stage.id, 'data.enhancements.id')
+  }
+  if (value.data.natures !== undefined) {
+    if (!Array.isArray(value.data.natures) || value.data.natures.length > limits.records)
+      fail('LIMIT_EXCEEDED', 'data.natures', '性格列表无效')
+    for (const row of value.data.natures) {
+      object(row, 'data.natures')
+      identifier(row.id, 'data.natures.id')
+    }
+    readNatureCatalog(value.data.natures)
+  }
   for (const kind of workKinds) {
     const records = value.data[collection[kind]]
     if (!Array.isArray(records) || records.length > limits.records)

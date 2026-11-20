@@ -1,5 +1,19 @@
 import { expect, test, type BrowserContext, type Page } from 'playwright/test'
 
+async function useStaticRules(page: Page, rules: import('@arcadia-eternity/protocol').EnvironmentRules) {
+  await page.route('**/environment/catalog.json', async route => {
+    const response = await route.fetch()
+    const catalog = await response.json()
+    const { digestJson } = await import('@arcadia-eternity/pack-loader/native')
+    const gameplayRevision = await digestJson({
+      runtime: catalog.runtimeIdentity,
+      material: catalog.runtimeRevision,
+      rules,
+    })
+    await route.fulfill({ response, json: { ...catalog, rules, gameplayRevision } })
+  })
+}
+
 const localPage = './#/local-battle'
 
 async function observeStaticOnly(context: BrowserContext, page: Page, baseURL: string) {
@@ -34,7 +48,7 @@ async function configureSinglePetBattle(page: Page) {
   await expect(page.getByRole('button', { name: '开始本地对战', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: '团队选择测试', exact: true }).click()
   await page.getByText('最大队伍大小:', { exact: true }).locator('..').locator('input').fill('1')
-  await page.getByLabel('允许击破奖励切换', { exact: true }).uncheck()
+
   await page.getByPlaceholder('留空使用随机种子').fill('208')
 }
 
@@ -76,9 +90,10 @@ test('a new player completes a production AI match and starts another without an
   baseURL,
 }, testInfo) => {
   const observed = await observeStaticOnly(context, page, baseURL!)
+  await useStaticRules(page, { schemaVersion: 2, mechanics: { allowFaintSwitch: false } })
   await page.goto('./')
   await expect(page).toHaveURL(/#\/local-battle$/)
-  // No profile seed, resource replacements, source imports, or debug hooks.
+  // The environment controls the knockout reward throughout both battles.
   await configureSinglePetBattle(page)
   await enterBattle(page)
   const turns = await attackUntilResult(page)
@@ -157,7 +172,7 @@ for (const blockedAccess of ['methods', 'object'] as const) {
       }
     }, blockedAccess)
     await page.goto(localPage)
-    await page.getByRole('link', { name: '恢复个人资料', exact: true }).click()
+    await page.getByRole('alert').getByRole('link', { name: '查看个人资料', exact: true }).click()
     await expect(page.getByRole('status')).toHaveText('需要恢复')
     await page.getByRole('button', { name: '临时使用', exact: true }).click()
     await expect(page.getByRole('status')).toHaveText('仅本次窗口')
@@ -202,4 +217,46 @@ test('a missing bundled runtime shows a recoverable startup error without using 
   await page.unroute('**/ruffle/ruffle.js*')
   await page.getByRole('button', { name: '刷新重试', exact: true }).click()
   await expect(page.getByRole('button', { name: '开始本地对战', exact: true })).toBeEnabled()
+})
+
+test('a smaller published slot limit keeps overflow equipped until the player removes it', async ({ page }) => {
+  await useStaticRules(page, { schemaVersion: 2, mechanics: { skillSlots: { normalMax: 1, climaxMax: 2 } } })
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'petStorage',
+      JSON.stringify({
+        storage: [],
+        currentTeamIndex: 0,
+        teams: [
+          {
+            name: '槽位队伍',
+            pets: [
+              {
+                id: 's'.repeat(21),
+                name: '保留技能',
+                species: 'pet_xiuluosi',
+                level: 100,
+                nature: 'Jolly',
+                gender: 'Female',
+                ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+                evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+                skills: ['skill_qili', 'skill_fenlitupo'],
+              },
+            ],
+          },
+        ],
+      }),
+    )
+  })
+  await page.goto('./#/team-builder')
+  await page.getByText('保留技能', { exact: true }).click()
+  await expect(page.getByRole('combobox', { name: '普通技能 2', exact: true })).toBeVisible()
+  await expect(page.getByText('超出槽位', { exact: true })).toBeVisible()
+  const extra = page.getByTestId('normal-skill-1')
+  await extra.hover()
+  await extra.locator('.el-select__clear').click()
+  await expect(extra).toHaveCount(0)
+  await expect(page.getByRole('combobox', { name: /^普通技能 \d+$/ })).toHaveCount(1)
+  await expect(page.getByTestId('normal-skill-0')).toContainText('气力')
+  await expect(page.getByText('必杀技能 2', { exact: true })).toBeVisible()
 })

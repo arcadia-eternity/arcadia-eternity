@@ -9,14 +9,19 @@ import {
 } from './workspace.ts'
 import { readWorkbenchContext } from './workbench-context.ts'
 import { AuthorJobs } from './jobs.ts'
-import { queryContent } from './content-query.ts'
+import { dependencyReferences, queryContent } from './content-query.ts'
 import { authorReference } from './author-reference.ts'
 import { inspectAsset } from './asset-inspect.ts'
 import { callPreviewControl } from './preview-control.ts'
 import { isRecord, type UnknownRecord } from './types.ts'
-export { createSourceProject, connectDevelopmentSdk, authorConnection } from './project.ts'
+import { authorGit } from './author-git.ts'
+export { authorGit, cloneAuthorRepository } from './author-git.ts'
+export { updateAuthorLock, createSourceProject, connectDevelopmentSdk, authorConnection } from './project.ts'
+export type DependencyReferenceCatalog = Awaited<ReturnType<typeof dependencyReferences>>
 export { ContentWorkspace } from './content-workspace.ts'
 export { normalizeEnvironmentDocument } from './debug-environments.ts'
+
+export type { AuthorEffectCatalog } from './effect-declarations.ts'
 
 export interface AuthorSessionOptions extends WorkspaceOptions {
   execute?: boolean
@@ -47,6 +52,9 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
         diagnostics: snapshot.diagnostics,
       }
     },
+    dependencyReferences(locale: string) {
+      return dependencyReferences(workspace, locale)
+    },
     async query(input: UnknownRecord = {}) {
       return queryContent(workspace, input)
     },
@@ -63,6 +71,10 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
           return authorReference(input as { topic?: string })
         case 'asset-inspect':
           return inspectAsset(workspace, input as Parameters<typeof inspectAsset>[1])
+        case 'git-status':
+          return authorGit(workspace, { operation: 'status' })
+        case 'git-diff':
+          return authorGit(workspace, { operation: 'diff', file: input.file, staged: input.staged })
         case 'snapshot':
           return workspace.snapshot()
         case 'read':

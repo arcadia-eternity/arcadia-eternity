@@ -53,6 +53,8 @@ export interface SingleProcessAppOptions extends RoomOptions {
     | 'workspace'
     | 'resolveProject'
     | 'prepareEnvironment'
+    | 'builtinEnvironmentId'
+    | 'clientEnvironments'
     | 'allowThirdPartyExecution'
     | 'transferDirectory'
     | 'createServerBackup'

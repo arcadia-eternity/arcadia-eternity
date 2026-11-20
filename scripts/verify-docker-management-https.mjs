@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { createHash, randomUUID, X509Certificate } from 'node:crypto'
+import { randomUUID, X509Certificate } from 'node:crypto'
 import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import http from 'node:http'
 import https from 'node:https'
@@ -116,6 +116,7 @@ async function runProxy() {
 
 async function validate() {
   const root = resolve(dirname(script), '..')
+  const { sha256Bytes, sha256Hex } = await import('../packages/const/src/sha256.ts')
   const image = process.argv[2] ?? DEFAULT_IMAGE
   const output = resolve(process.argv[3] ?? join(root, '.omo/evidence/docker-management-https.json'))
   const sourceEvidence = process.argv[4] ?? '.omo/evidence/docker-management.json'
@@ -219,7 +220,7 @@ async function validate() {
       previous?.imageIdentity?.id === inspected.Id
         ? {
             reference: sourceEvidence,
-            referenceSha256: createHash('sha256').update(previousBytes).digest('hex'),
+            referenceSha256: sha256Hex(previousBytes),
             scope:
               'Exact immutable image matches the referenced Docker evidence; not relabelled as current checkout HEAD.',
           }
@@ -251,9 +252,7 @@ async function validate() {
     await copyFile(script, join(temporary, 'harness.mjs'))
     const ca = await readFile(certificate)
     const x509 = new X509Certificate(ca)
-    const spki = createHash('sha256')
-      .update(x509.publicKey.export({ type: 'spki', format: 'der' }))
-      .digest('base64')
+    const spki = Buffer.from(sha256Bytes(x509.publicKey.export({ type: 'spki', format: 'der' }))).toString('base64')
     evidence.certificate = {
       fingerprint256: x509.fingerprint256,
       subjectAltName: x509.subjectAltName,
@@ -462,7 +461,8 @@ async function validate() {
     secrets.add(issued.code)
     assert.equal(issued.serverId, serverId)
     evidence.identity = { serverId, workspaceId: issued.workspaceId }
-    await page.goto(origin + '/management?tab=environments')
+    await page.goto(origin + '/environments?target=server')
+    await page.getByRole('button', { name: '管理员登录', exact: true }).click()
     await expect(page.getByRole('heading', { name: '登录管理后台', exact: true })).toBeVisible()
     await page.getByText('首次设置或恢复管理员访问', { exact: true }).click()
     await page.getByLabel('一次性登录码', { exact: true }).fill(issued.code)
@@ -602,7 +602,7 @@ async function validate() {
     assert.equal(inspectedBackup.workspaceId, issued.workspaceId)
     evidence.backup = {
       ...inspectedBackup,
-      sha256: createHash('sha256').update(archiveText).digest('hex'),
+      sha256: sha256Hex(archiveText),
       activeCredentialsExcluded: true,
     }
     check(

@@ -10,9 +10,12 @@
   data/
     mark*.yaml
     skill*.yaml
+    behaviors.yaml
+    environment/*.yaml
     groups/<group>/species.*.yaml
     presentations/*.yaml
     resources/*.yaml
+  environment/*.yaml      # base and 120-IV rule examples
   dist/presentation.json  # generated display manifest v2
   src/effects/
     *.ts
@@ -25,6 +28,8 @@ For this repository's built-in pack package:
 
 - `paths.dataDir = "data"`
 - `paths.localesDir = "locales"`
+
+Environment records in `data/environment/` use stable IDs for rule references. Put names and display units in `locales/<locale>/`. The base pack uses `element.yaml` for element names and emoji, `nature.yaml` for natures, `enhancement.yaml` for stages, and `environment.yaml` for rule sets, matchup tables and skill parameters.
 
 ## Published npm Layout
 
@@ -42,6 +47,7 @@ The npm package is an immutable distribution artifact. It does not include `pack
     presentation.json
     catalog.json
     arcadia-effects.json
+    environment/*.json
     locales/<locale>/<namespace>.json
 ```
 

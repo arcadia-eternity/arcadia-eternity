@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElInput, type InputInstance } from 'element-plus'
 import { computed, nextTick, ref } from 'vue'
 import { descriptionValues } from '@/i18n/richDescription'
 import type { ContentRow, LocaleText, SharedField } from './types'
@@ -20,7 +21,7 @@ const emit = defineEmits<{
   external: [line?: number, column?: number]
   navigate: [kind: string, id: string]
 }>()
-const textarea = ref<HTMLTextAreaElement>(),
+const editor = ref<InputInstance>(),
   pickingMark = ref(false)
 const locked = (field: string) => props.readOnly || !props.available || sharedAt(props.sharedFields, [field])
 const variables = computed(() =>
@@ -34,13 +35,13 @@ function update(key: 'name' | 'description', value: string) {
 }
 async function insert(value: string) {
   const text = props.text.description ?? '',
-    start = textarea.value?.selectionStart ?? text.length,
-    end = textarea.value?.selectionEnd ?? start
+    start = editor.value?.textarea?.selectionStart ?? text.length,
+    end = editor.value?.textarea?.selectionEnd ?? start
   update('description', text.slice(0, start) + value + text.slice(end))
   pickingMark.value = false
   await nextTick()
-  textarea.value?.focus()
-  textarea.value?.setSelectionRange(start + value.length, start + value.length)
+  editor.value?.textarea?.focus()
+  editor.value?.textarea?.setSelectionRange(start + value.length, start + value.length)
 }
 </script>
 <template>
@@ -59,20 +60,21 @@ async function insert(value: string) {
       <p>{{ fallback.description }}</p>
     </details>
     <label
-      >显示名称<input
-        :value="text.name ?? ''"
+      >显示名称<ElInput
+        :model-value="text.name ?? ''"
         :disabled="locked('name')"
         :placeholder="fallback.name || record.id"
-        @input="update('name', ($event.target as HTMLInputElement).value)"
+        @update:model-value="update('name', $event)"
     /></label>
     <label
-      >描述<textarea
-        ref="textarea"
-        :value="text.description ?? ''"
+      >描述<ElInput
+        type="textarea"
+        :autosize="{ minRows: 4, maxRows: 12 }"
+        ref="editor"
+        :model-value="text.description ?? ''"
         :disabled="locked('description')"
-        rows="4"
         :placeholder="fallback.description || '填写描述，可插入数值和印记引用'"
-        @input="update('description', ($event.target as HTMLTextAreaElement).value)"
+        @update:model-value="update('description', $event)"
       />
     </label>
     <details v-if="!locked('description')">
@@ -140,20 +142,6 @@ label {
   gap: 6px;
   font-size: 14px;
 }
-input,
-textarea {
-  box-sizing: border-box;
-  width: 100%;
-  font: inherit;
-  color: inherit;
-  background: var(--author-bg, #f8faf8);
-  border: 1px solid var(--author-border, #dce4dd);
-  border-radius: 8px;
-  padding: 10px;
-}
-textarea {
-  resize: vertical;
-}
 small,
 .hint,
 summary {
@@ -184,10 +172,6 @@ button {
 .error {
   color: var(--author-danger, #ae4728);
   overflow-wrap: anywhere;
-}
-input:disabled,
-textarea:disabled {
-  opacity: 0.65;
 }
 details p {
   margin-top: 8px;

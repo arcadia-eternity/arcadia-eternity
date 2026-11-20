@@ -59,8 +59,12 @@ function getTypeEffectivenessType(multiplier: number): TypeEffectivenessType {
 /**
  * 计算技能对目标精灵的属性相性倍率
  */
-function calculateTypeEffectiveness(skillElement: Element, targetElement: Element): number {
-  const effectiveness = ELEMENT_CHART[skillElement]?.[targetElement]
+function calculateTypeEffectiveness(
+  skillElement: Element,
+  targetElement: Element,
+  chart: typeof ELEMENT_CHART,
+): number {
+  const effectiveness = chart[skillElement]?.[targetElement]
   return effectiveness !== undefined ? effectiveness : 1
 }
 
@@ -81,12 +85,16 @@ function getTypeEffectivenessConfig(multiplier: number): TypeEffectivenessConfig
 /**
  * 计算技能对精灵的属性相性效果
  */
-export function getSkillTypeEffectiveness(skill: SkillMessage, target: PetMessage): TypeEffectivenessConfig {
+export function getSkillTypeEffectiveness(
+  skill: SkillMessage,
+  target: PetMessage,
+  chart = ELEMENT_CHART,
+): TypeEffectivenessConfig {
   if (!skill.element || target.isUnknown) {
     return TYPE_EFFECTIVENESS_STYLES.normal
   }
 
-  const multiplier = calculateTypeEffectiveness(skill.element, target.element)
+  const multiplier = calculateTypeEffectiveness(skill.element, target.element, chart)
   return getTypeEffectivenessConfig(multiplier)
 }
 
@@ -96,10 +104,11 @@ export function getSkillTypeEffectiveness(skill: SkillMessage, target: PetMessag
 export function getCurrentSkillEffectiveness(
   selectedSkill: SkillMessage | null,
   targetPet: PetMessage,
+  chart = ELEMENT_CHART,
 ): TypeEffectivenessConfig {
   if (!selectedSkill || !selectedSkill.element || targetPet.isUnknown) {
     return TYPE_EFFECTIVENESS_STYLES.normal
   }
 
-  return getSkillTypeEffectiveness(selectedSkill, targetPet)
+  return getSkillTypeEffectiveness(selectedSkill, targetPet, chart)
 }

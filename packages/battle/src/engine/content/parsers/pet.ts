@@ -7,7 +7,10 @@ import { ZodError } from 'zod'
 import type { PrototypeLookup } from '../prototype-lookup'
 
 export class PetParser {
-  static parse(rawData: unknown, repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark'>): Pet {
+  static parse(
+    rawData: unknown,
+    repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark' | 'getNature' | 'getEnhancement'>,
+  ): Pet {
     let validated: ReturnType<typeof PetSchema.parse>
     try {
       validated = PetSchema.parse(rawData)
@@ -74,6 +77,8 @@ export class PetParser {
     else if (species.genderRatio[0] != 0) gender = Gender.Female
     else gender = Gender.Male
 
+    const stage = validated.enhancement ? repository.getEnhancement?.(validated.enhancement) : undefined
+    if (validated.enhancement && !stage) throw new Error('Unknown enhancement: ' + validated.enhancement)
     return new Pet(
       validated.name,
       uid as petId,
@@ -89,6 +94,8 @@ export class PetParser {
       validated.height ?? species.heightRange[1],
       validated.gender ?? gender,
       validated.maxHp,
+      repository.getNature?.(validated.nature).multipliers,
+      stage?.bonus,
     )
   }
 }

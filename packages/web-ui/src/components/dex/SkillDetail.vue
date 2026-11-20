@@ -172,6 +172,7 @@
 </template>
 
 <script setup lang="ts">
+import { gameplayName } from '@/i18n/environment'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGameDataStore } from '@/stores/gameData'
@@ -219,12 +220,8 @@ function getSkillDescription(): string {
 }
 
 function getElementName(): string {
-  if (!skill.value) return ''
-  try {
-    return i18next.t(`element.${skill.value.element}`, { ns: 'battle' }) || skill.value.element
-  } catch {
-    return skill.value.element
-  }
+  const element = skill.value?.element
+  return element ? gameplayName('element', element, gameDataStore.getElement(element)?.name) : ''
 }
 
 function getCategoryName(): string {

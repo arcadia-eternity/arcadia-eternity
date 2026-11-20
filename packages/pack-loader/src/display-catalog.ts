@@ -1,5 +1,8 @@
 import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import {
+  isContentLocaleField,
+  contentLocaleCollection,
+  contentLocaleIds,
   MarkSchema,
   SkillSchema,
   SpeciesSchema,
@@ -8,6 +11,12 @@ import {
   type PresentationManifest,
   type ResourceReference,
 } from '@arcadia-eternity/schema'
+import {
+  readSkillParameterCatalog,
+  readElementCatalog,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
 import { presentationIndex } from './presentation'
 
 type DisplayPackage = { namespace: string; manifest: PresentationManifest }
@@ -45,7 +54,14 @@ export function buildDisplayCatalog(
       ...(typeof record.description === 'string' && { description: record.description }),
     }
   }
+  const skillParameters = readSkillParameterCatalog(data)
   const result = {
+    ...(skillParameters.members.length || skillParameters.groups.length || skillParameters.profiles.length
+      ? { skillParameters }
+      : {}),
+    ...((data.elements !== undefined || data.matchupTables !== undefined) && readElementCatalog(data)),
+    ...(data.enhancements !== undefined && { enhancements: readEnhancementStages(data.enhancements) }),
+    ...(data.natures !== undefined && { natures: readNatureCatalog(data.natures) }),
     species: data.species.map(raw => ({ ...parseWithErrors(SpeciesSchema, raw), ...text(raw) })),
     skills: data.skills.map(raw => {
       const { effect: _effect, ...display } = parseWithErrors(SkillSchema, raw)
@@ -92,19 +108,15 @@ export function buildDisplayCatalog(
 export function buildDisplayLocales(
   packages: readonly DisplayPackage[],
   official: Record<string, Record<string, unknown>>,
-  content: Record<'species' | 'skills' | 'marks', readonly { id: string }[]>,
+  content: ContentPrototypeData,
 ) {
   const bundles: Record<string, Record<string, Record<string, unknown>>> = {}
-  const allowed = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
-  const ids = {
-    species: new Set(content.species.map(row => row.id)),
-    skill: new Set(content.skills.map(row => row.id)),
-    mark: new Set(content.marks.map(row => row.id)),
-  }
+  const ids = contentLocaleIds(content)
   const add = (language: string, namespace: string, entries: unknown, prefix = '') => {
-    if (!allowed.has(namespace)) throw new Error('LOCALE_NAMESPACE_FORBIDDEN')
+    const collection = contentLocaleCollection(namespace)
+    if (!collection) throw new Error('LOCALE_NAMESPACE_FORBIDDEN')
     if (!entries || typeof entries !== 'object' || Array.isArray(entries)) throw new Error('LOCALE_INVALID')
-    const known = ids[namespace === 'species' ? 'species' : namespace === 'skill' ? 'skill' : 'mark']
+    const known = ids[collection]
     const target = ((bundles[language] ??= {})[namespace] ??= {})
     for (const [key, raw] of Object.entries(entries)) {
       const id = `${prefix}${key}`
@@ -117,7 +129,7 @@ export function buildDisplayLocales(
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('LOCALE_INVALID')
       const fields: Record<string, string> = {}
       for (const [field, value] of Object.entries(raw)) {
-        if (!['name', 'description'].includes(field)) {
+        if (!isContentLocaleField(namespace, field)) {
           if (prefix) throw new Error('LOCALE_FIELD_FORBIDDEN')
           continue
         }
@@ -129,7 +141,7 @@ export function buildDisplayLocales(
   }
   for (const [language, namespaces] of Object.entries(official ?? {}))
     for (const [namespace, entries] of Object.entries(namespaces))
-      if (allowed.has(namespace)) add(language, namespace, entries)
+      if (contentLocaleCollection(namespace)) add(language, namespace, entries)
   for (const pkg of packages)
     for (const [language, namespaces] of Object.entries(pkg.manifest.locales))
       for (const [namespace, entries] of Object.entries(namespaces))

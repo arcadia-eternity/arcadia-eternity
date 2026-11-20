@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ElInput, ElSelect, ElOption } from 'element-plus'
+import type { AuthorEffectCatalog, DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
 import { computed, ref } from 'vue'
 import { Element } from '@arcadia-eternity/const'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
@@ -13,6 +15,8 @@ const props = defineProps<{
   kind: string
   records: SourceRecord[]
   projectId: string
+  effectCatalog?: AuthorEffectCatalog
+  dependencyCatalog?: DependencyReferenceCatalog
   assets: { id: string; source: string; kind: string; name?: string }[]
   sharedFields?: SharedField[]
   section?: 'base' | 'references' | 'media' | 'all'
@@ -28,7 +32,8 @@ const emit = defineEmits<{
   create: [type: string, slot: string]
 }>()
 const visible = (section: string) => !props.section || props.section === 'all' || props.section === section
-const locked = (path: string) => props.readOnly || sharedAt(props.sharedFields ?? [], path.split('.'))
+const locked = (path: string) =>
+  props.readOnly || !!problem.value || sharedAt(props.sharedFields ?? [], path.split('.'))
 const get = (path: string) => atField(props.record, path.split('.'))
 const text = (path: string) => {
   const value = get(path)
@@ -80,6 +85,23 @@ function pickReference(key: string) {
   slot.value = key
   picking.value = true
 }
+const referenceKey = (projectId: string, id: string) => JSON.stringify([projectId, id])
+const dependencies = computed(
+  () =>
+    new Map(
+      (props.dependencyCatalog?.items ?? []).map(item => [JSON.stringify([item.kind, item.projectId, item.id]), item]),
+    ),
+)
+function identity(value: Json | undefined) {
+  if (typeof value === 'string') return { projectId: 'base', id: value }
+  if (
+    object(value) &&
+    object(value.$ref) &&
+    typeof value.$ref.projectId === 'string' &&
+    typeof value.$ref.id === 'string'
+  )
+    return { projectId: value.$ref.projectId, id: value.$ref.id }
+}
 const options = computed(() => {
   const known = new Map(
     props.records
@@ -89,14 +111,21 @@ const options = computed(() => {
         {
           id: row.record.id,
           label: props.labels?.[`${row.kind}:${row.record.id}`] || String(row.record.name || row.record.id),
-          detail: row.record.id,
+          detail: `当前项目 · ${row.record.id}`,
         },
       ]),
   )
-  // Code-defined effects may have no standalone data record. Offer IDs already referenced by this project without executing code.
-  if (referenceKind.value === 'behaviors')
+  const sourceKind = props.kind === 'skills' ? 'skill' : 'petMark'
+  if (referenceKind.value === 'behaviors' && props.effectCatalog) {
+    for (const effect of props.effectCatalog.definitions) {
+      if (effect.sourceKind === sourceKind && !known.has(effect.id))
+        known.set(effect.id, { id: effect.id, label: effect.id, detail: effect.file })
+    }
+  }
+  // Older factory-based projects have no declaration catalog. Reuse references from the same attachment kind.
+  if (referenceKind.value === 'behaviors' && !props.effectCatalog)
     for (const row of props.records) {
-      if (!Array.isArray(row.record.behaviors)) continue
+      if (row.kind !== props.kind || !Array.isArray(row.record.behaviors)) continue
       for (const use of row.record.behaviors) {
         const value = object(use) ? use.definitionId : undefined
         if (!object(value) || !object(value.$ref)) continue
@@ -105,13 +134,25 @@ const options = computed(() => {
           known.set(ref.id, { id: ref.id, label: ref.id, detail: '项目已有引用 · 实现在外部代码中维护' })
       }
     }
-  return [...known.values()].map(option => ({
-    ...option,
-    disabled: list(referenceSlot.value).some(entry => {
-      const ref = referenceTarget(referenceValue(entry, referenceSlot.value), referenceKind.value, props.projectId)
-      return ref?.id === option.id && ref.kind === referenceKind.value
+  const candidates = [
+    ...[...known.values()].map(option => ({ ...option, projectId: props.projectId })),
+    ...(props.dependencyCatalog?.items ?? [])
+      .filter(item => item.kind === referenceKind.value)
+      .map(item => ({
+        ...item,
+        detail: `${item.packageName} · ${item.id}`,
+      })),
+  ]
+  const attached = new Set(
+    list(referenceSlot.value).map(entry => {
+      const ref = identity(referenceValue(entry, referenceSlot.value))
+      return ref && referenceKey(ref.projectId, ref.id)
     }),
-  }))
+  )
+  return candidates.map(option => {
+    const key = referenceKey(option.projectId, option.id)
+    return { ...option, contentId: option.id, id: key, disabled: attached.has(key) }
+  })
 })
 function target(value: Json | undefined, key: string) {
   return referenceTarget(
@@ -123,20 +164,27 @@ function target(value: Json | undefined, key: string) {
 function referenceLabel(value: Json | undefined, key: string): string {
   const ref = target(value, key)
   if (ref) return props.labels?.[`${ref.kind}:${ref.id}`] || ref.id
-  if (object(value) && object(value.$ref)) return `${value.$ref.projectId}:${value.$ref.id}`
+  const owner = identity(value)
+  if (owner) {
+    const kind = key === 'learnable_skills' ? 'skills' : key === 'behaviors' ? 'behaviors' : 'marks'
+    const item = dependencies.value.get(JSON.stringify([kind, owner.projectId, owner.id]))
+    return item ? `${item.label} · ${item.packageName}` : `${owner.projectId}:${owner.id}`
+  }
   return '外部或未识别引用（保留原数据）'
 }
 function openReference(value: Json | undefined, key: string) {
   const ref = target(value, key)
   if (ref) emit('navigate', ref.kind, ref.id)
 }
-function addReference(id: string) {
-  if (!options.value.some(option => option.id === id && !option.disabled)) return
+function addReference(optionId: string) {
+  const option = options.value.find(item => item.id === optionId && !item.disabled)
+  if (!option) return
+  const id = option.contentId
   const key = referenceSlot.value
   const kind = ({ skills: 'skill', marks: 'mark', behaviors: 'behavior' } as Record<string, string>)[
     referenceKind.value
   ]!
-  const reference = { $ref: { projectId: props.projectId, kind, id } }
+  const reference = { $ref: { projectId: option.projectId, kind, id } }
   let useId = id,
     suffix = 2
   while (list(key).some(entry => object(entry) && entry.useId === useId)) useId = `${id}-${suffix++}`
@@ -206,47 +254,49 @@ const media = computed(() =>
     <template v-if="visible('base')">
       <div class="fields">
         <label v-if="!hideIdentity"
-          >名称<input
-            :disabled="locked('name')"
-            :value="text('name')"
-            @input="change('name', ($event.target as HTMLInputElement).value)"
+          >名称<ElInput :disabled="locked('name')" :model-value="text('name')" @input="change('name', $event)"
         /></label>
         <label v-if="kind !== 'marks'"
           >属性<span class="element-select">
             <ElementIcon v-if="isElement(record.element)" :element="record.element" :size="24" aria-hidden="true" />
-            <select
+            <ElSelect
+              filterable
               aria-label="属性"
               :disabled="locked('element')"
-              :value="text('element')"
-              @change="change('element', ($event.target as HTMLSelectElement).value)"
+              :model-value="text('element')"
+              @update:model-value="change('element', $event)"
             >
-              <option v-for="element in Object.values(Element)" :key="element" :value="element">
-                {{ elementName(element) }}
-              </option>
-            </select></span
-          ></label
-        >
+              <ElOption
+                v-for="element in Object.values(Element)"
+                :key="element"
+                :value="element"
+                :label="elementName(element)"
+              /> </ElSelect></span
+        ></label>
         <label v-if="kind === 'skills'"
-          >类别<select
+          >类别<ElSelect
             aria-label="类别"
             :disabled="locked('category')"
-            :value="text('category')"
-            @change="change('category', ($event.target as HTMLSelectElement).value)"
+            :model-value="text('category')"
+            @update:model-value="change('category', $event)"
           >
-            <option v-for="(label, category) in skillCategories" :key="category" :value="category">
-              {{ label }}
-            </option>
-          </select></label
-        >
+            <ElOption
+              v-for="(label, category) in skillCategories"
+              :key="category"
+              :value="category"
+              :label="label"
+            /> </ElSelect
+        ></label>
         <label
-          >标签<input
-            :value="list('tags').join(', ')"
+          >标签<ElInput
+            :model-value="list('tags').join(', ')"
+            :model-modifiers="{ lazy: true }"
             :disabled="locked('tags')"
             placeholder="用逗号分隔"
             @change="
               change(
                 'tags',
-                ($event.target as HTMLInputElement).value
+                $event
                   .split(/[,，]/)
                   .map(tag => tag.trim())
                   .filter(Boolean),
@@ -297,7 +347,7 @@ const media = computed(() =>
             :disabled="!target(referenceValue(item, key), key)"
             @click="openReference(referenceValue(item, key), key)"
           >
-            {{ referenceLabel(referenceValue(item, key), key) }} ↗
+            {{ referenceLabel(referenceValue(item, key), key) }}{{ target(referenceValue(item, key), key) ? ' ↗' : '' }}
           </button>
           <template v-if="key === 'learnable_skills' && object(item)"
             ><label
@@ -330,6 +380,10 @@ const media = computed(() =>
           </button>
         </div>
         <p v-if="!list(key).length" class="hint">尚未关联</p>
+        <template v-if="picking && referenceSlot === key && kind === 'species'">
+          <p v-if="!dependencyCatalog" role="status">正在读取依赖内容…</p>
+          <p v-for="message in dependencyCatalog?.diagnostics" :key="message" role="alert">{{ message }}</p>
+        </template>
         <ChoicePicker
           v-if="picking && referenceSlot === key"
           :label="key === 'learnable_skills' ? '选择技能' : key === 'behaviors' ? '选择效果' : '选择印记'"
@@ -343,16 +397,15 @@ const media = computed(() =>
     <template v-if="visible('media')">
       <h3>形象与声音</h3>
       <label v-if="kind === 'species'"
-        >战斗表现<select
+        >战斗表现<ElSelect
           :disabled="locked('battle.renderer')"
-          :value="text('battle.renderer')"
-          @change="change('battle.renderer', ($event.target as HTMLSelectElement).value)"
+          :model-value="text('battle.renderer')"
+          @update:model-value="change('battle.renderer', $event)"
         >
-          <option value="">请选择</option>
-          <option value="image">图片</option>
-          <option value="seer2-swf">赛尔号 2 SWF</option>
-        </select></label
-      >
+          <ElOption value="" label="请选择" />
+          <ElOption value="image" label="图片" />
+          <ElOption value="seer2-swf" label="赛尔号 2 SWF" /> </ElSelect
+      ></label>
       <section v-for="(label, key) in media" :key="key" class="media-slot">
         <header>
           <strong>{{ label }}</strong>

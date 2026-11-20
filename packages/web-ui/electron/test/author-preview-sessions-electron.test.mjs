@@ -30,7 +30,7 @@ test(
     };
     globalThis.openCandidate = async key => {
       const win = new BrowserWindow({show:false,webPreferences:{session:sessions(key),sandbox:true,contextIsolation:true}});
-      await win.loadURL('arcadia-client://app/content/preview');
+      await win.loadURL('arcadia-client://app/creation/preview');
       return win.id;
     };
     app.on('window-all-closed', () => {});

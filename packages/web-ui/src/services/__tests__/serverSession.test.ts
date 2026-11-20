@@ -525,6 +525,9 @@ it('does not silently continue with the old UID when the server rejects rebind',
     .mockResolvedValueOnce(json({ code: 'PROFILE_BUSY' }, 409))
   const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
   await client.ensure(profile)
-  await expect(client.ensure({ id: 'new', name: 'New' })).rejects.toThrow('PROFILE_BUSY')
+  await expect(client.ensure({ id: 'new', name: 'New' })).rejects.toMatchObject({
+    code: 'PROFILE_BUSY',
+    message: expect.stringContaining('当前身份仍在服务器上使用'),
+  })
   expect(client.session).toEqual(old)
 })

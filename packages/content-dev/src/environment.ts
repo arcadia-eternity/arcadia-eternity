@@ -1,3 +1,4 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import type { ExecFileOptions } from 'node:child_process'
@@ -14,9 +15,14 @@ import {
 } from '@arcadia-eternity/pack-loader/node'
 import { AuthorWorkspace, type ManifestArcadia, type PackageManifest } from './workspace.ts'
 import { ProjectTeams, playersFromTeams, type ProjectTeam } from './project-teams.ts'
-import { createHash } from 'node:crypto'
+import { gameplayRevision } from '@arcadia-eternity/pack-loader/native'
 import { DebugEnvironments, normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
-import { assertEnvironmentRequirements, validateEnvironmentRules } from './environment-rules.ts'
+import {
+  assertEnvironmentRequirements,
+  defaultRuleDeclaration,
+  prepareRulesForContent,
+  validateEnvironmentRuleDeclaration,
+} from './environment-rules.ts'
 import { siblingModulePath } from './module-path.ts'
 import { errorCode } from './types.ts'
 
@@ -52,6 +58,7 @@ export interface ContentCandidate {
 export interface PreparedBattleEnvironment {
   environment: PreparedNpmEnvironment
   environmentDocument: EnvironmentDocumentV2
+  effectiveRules: ReturnType<typeof prepareRulesForContent>['rules']
   candidate: ContentCandidate
   environmentLock: { file: string; version: string } | undefined
   sourceRevisions: Record<string, string>
@@ -74,7 +81,7 @@ async function npm(args: string[], options: ExecFileOptions) {
 export async function prepareBattleEnvironment(
   root: string = process.cwd(),
   {
-    offline = true,
+    offline = !process.env.ARCADIA_TEST_RELEASE_ARCHIVE,
     cache,
     environmentId = 'default',
     sources = {},
@@ -120,7 +127,7 @@ export async function prepareBattleEnvironment(
           }
         : normalizeEnvironmentDocument(selectedDocument)
     assertEnvironmentRequirements(environmentDocument.requires)
-    validateEnvironmentRules(environmentDocument.rules)
+    validateEnvironmentRuleDeclaration(environmentDocument.rules)
     const lockFile = environmentId === 'default' ? undefined : `debug/environments/${environmentId}.package-lock.json`
     let oldLock: { file: string; text: string; version: string } | undefined
     if (lockFile) {
@@ -130,13 +137,28 @@ export async function prepareBattleEnvironment(
         if (errorCode(error) !== 'ENOENT') throw error
       }
     }
-    const result = await npm(['pack', '--json', '--ignore-scripts', '--pack-destination', temporary, ...cacheArgs], {
-      cwd: root,
-    })
+    const archive = process.env.ARCADIA_TEST_RELEASE_ARCHIVE
+    if (archive && !/^[a-z0-9][a-z0-9._-]*\.tgz$/.test(archive)) throw new Error('Invalid release archive filename')
+    const result = await npm(
+      [
+        'pack',
+        ...(archive ? [join(root, archive)] : []),
+        '--json',
+        '--ignore-scripts',
+        '--pack-destination',
+        temporary,
+        ...cacheArgs,
+      ],
+      {
+        cwd: root,
+      },
+    )
     const packed = requirePackedInfo(parseNpmPackOutput(String(result.stdout))[0])
+    if (archive && packed.integrity !== process.env.ARCADIA_TEST_RELEASE_INTEGRITY)
+      throw new Error('Release archive integrity changed before testing')
     const files = packed.files.map(file => file.path)
     assert.ok(files.includes(manifest.arcadia.content!))
-    if (manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
+    if (!archive && manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
     assert.ok(
       !files.some(file => /^(?:\.arcadia|\.github|node_modules|test|scripts|debug)\//.test(file)),
       'the package must contain content, not a developer workspace',
@@ -209,9 +231,17 @@ export async function prepareBattleEnvironment(
       ],
       { cwd: installation },
     )
-    environment = await prepareNpmProject(installation, emptyNpmContentHost, {
-      policy: { profile: 'local-development' },
-    })
+    environment = await prepareNpmProject(
+      installation,
+      emptyNpmContentHost,
+      {
+        policy: { profile: 'local-development' },
+      },
+      archive ? { effectPreparation: 'prebuilt-only' } : {},
+    )
+    if (environmentId === 'default')
+      environmentDocument.rules = defaultRuleDeclaration(environment.sandbox.data.ruleSets)
+    const { rules: effectiveRules } = prepareRulesForContent(environmentDocument.rules, environment.sandbox.data)
     let environmentLock: { file: string; version: string } | undefined
     if (lockFile) {
       const text = await readFile(join(installation, 'package-lock.json'), 'utf8')
@@ -219,7 +249,7 @@ export async function prepareBattleEnvironment(
         lockWorkspace = await AuthorWorkspace.open(resolve(lockRoot), { watch: false })
         const saved = await lockWorkspace.write({ file: lockFile, expectedVersion: oldLock?.version ?? null, text })
         environmentLock = { file: lockFile, version: saved.version }
-      } else environmentLock = { file: lockFile, version: createHash('sha256').update(text).digest('hex') }
+      } else environmentLock = { file: lockFile, version: sha256Hex(text) }
     }
     const teamLibrary = await new ProjectTeams(workspace).list()
     function loadTeams(ids: string[]) {
@@ -232,7 +262,16 @@ export async function prepareBattleEnvironment(
       shasum: packed.shasum,
       sdkApi: manifest.arcadia.sdkApi,
       build: environment.build,
-      environmentRevision: environment.revision,
+      environmentRevision: await gameplayRevision(
+        {
+          kind: 'native-v4',
+          contentRevision: environment.revision,
+          coreBuildId: environment.build.coreBuildId,
+          registryBuildId: environment.build.registryBuildId,
+        },
+        environment.sandbox.revision,
+        effectiveRules,
+      ),
       environmentId,
       environmentConfigVersion: selected.version,
     }
@@ -241,6 +280,7 @@ export async function prepareBattleEnvironment(
     return {
       environment,
       environmentDocument,
+      effectiveRules,
       candidate,
       environmentLock,
       sourceRevisions,

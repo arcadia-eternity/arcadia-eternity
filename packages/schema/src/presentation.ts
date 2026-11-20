@@ -1,5 +1,41 @@
 import { Type, type Static } from '@sinclair/typebox'
 
+const localeCollections = {
+  species: 'species',
+  skill: 'skills',
+  mark: 'marks',
+  mark_ability: 'marks',
+  mark_emblem: 'marks',
+  mark_global: 'marks',
+  element: 'elements',
+  nature: 'natures',
+  enhancement: 'enhancements',
+} as const
+
+/** Only object-bound text is eligible for a prepared content presentation. */
+export function contentLocaleCollection(namespace: string) {
+  if (Object.hasOwn(localeCollections, namespace)) return localeCollections[namespace as keyof typeof localeCollections]
+}
+
+export function isContentLocaleField(namespace: string, field: string) {
+  return field === 'name' || field === 'description' || (namespace === 'element' && field === 'emoji')
+}
+
+type LocaleCollection = (typeof localeCollections)[keyof typeof localeCollections]
+
+/** Index object IDs from admitted pack data or its display catalog. */
+export function contentLocaleIds(content: Partial<Record<LocaleCollection, readonly unknown[]>>) {
+  const ids = (kind: LocaleCollection) => new Set(content[kind]?.map(row => (row as { id: string }).id))
+  return {
+    species: ids('species'),
+    skills: ids('skills'),
+    marks: ids('marks'),
+    natures: ids('natures'),
+    elements: ids('elements'),
+    enhancements: ids('enhancements'),
+  }
+}
+
 export const ResourceReferenceSchema = Type.Union([
   Type.String({ minLength: 1 }),
   Type.Object(

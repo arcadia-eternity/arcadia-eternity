@@ -5,7 +5,8 @@ import type { NativeWebBattleConfig } from './nativeBattleFactory'
 import { nanoid } from 'nanoid'
 import type { BattleMessage, Events } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
-import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
+import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
+import type { EnvironmentRules, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { validateEnvironmentContent } from './serverContentValidation'
 
 /** The capability points only at a local, captured Node candidate. No UGC code enters the renderer. */
@@ -48,6 +49,7 @@ async function previewRequest<T>(
 export async function loadAuthorPreviewSetup(value: string) {
   const result = await previewRequest<{
     content: ServerEnvironmentContent
+    rules?: EnvironmentRules
     players: PlayerSchemaType[]
     active: boolean
     teams: ProjectTeam[]
@@ -86,7 +88,7 @@ export async function loadAuthorPreviewSetup(value: string) {
       team: player.team.map(pet => ({ ...pet, id: pet.id ?? nanoid() })),
     }),
   )
-  return { ...result, players, teams }
+  return { ...result, rules: validateEnvironmentRules(result.rules), players, teams }
 }
 
 export async function configureAuthorPreview(
@@ -106,7 +108,7 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
   const timerListeners = new Map<keyof Events, Set<(data: never) => void>>()
   const listeners = new Set<(message: BattleMessage) => void>()
   const request = <T>(route: string, args?: unknown[]) => previewRequest<T>(endpoint, route, args, controller.signal)
-  const { content } = await request<{ content: ServerEnvironmentContent }>('content')
+  const { content, rules } = await request<{ content: ServerEnvironmentContent; rules?: EnvironmentRules }>('content')
   validateEnvironmentContent(content)
   const initial = await request<{ cursor: number; outcome?: { winner: string | null } }>('open', [])
   cursor = initial.cursor
@@ -176,5 +178,5 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
       await previewRequest(endpoint, 'cleanup', []).catch(() => {})
     },
   }
-  return { system, content, outcome: initial.outcome }
+  return { system, content, rules: validateEnvironmentRules(rules), outcome: initial.outcome }
 }

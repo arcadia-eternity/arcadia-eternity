@@ -1,8 +1,8 @@
-import type { ProfileData } from '@arcadia-eternity/local-profile'
+import type { TeamSelection } from '@arcadia-eternity/local-profile'
 import { Gender, Nature } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
-export const getDefaultTeam = (): ProfileData['library']['teams'][number] => ({
+export const getDefaultTeam = (): TeamSelection => ({
   name: '默认队伍',
   ruleSetId: 'casual_standard_ruleset', // 默认使用休闲规则集
   pets: [

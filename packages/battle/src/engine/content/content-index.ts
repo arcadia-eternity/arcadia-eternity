@@ -1,4 +1,10 @@
 import type { ContentPrototypeData } from './definition-catalog'
+import {
+  readSkillParameterCatalog,
+  validateElementReferences,
+  readEnhancementStages,
+  readNatureCatalog,
+} from '@arcadia-eternity/const'
 import { freezeContent } from './immutable'
 import {
   normalizeBehaviorDefinitions,
@@ -29,6 +35,10 @@ export function createContentIndex(
     }
     return result
   }
+  readSkillParameterCatalog({ ...data, behaviors: definitions })
+  validateElementReferences(data)
+  const stages = new Map(readEnhancementStages(data.enhancements).map(entry => [entry.id, freezeContent(entry)]))
+  const natures = new Map(readNatureCatalog(data.natures).map(entry => [entry.id, freezeContent(entry)]))
   const marks = index(data.marks, 'mark', raw => MarkSchema.parse(raw))
   const skills = index(data.skills, 'skill', raw => SkillSchema.parse(raw))
   const species = index(data.species, 'species', raw => SpeciesSchema.parse(raw))
@@ -59,6 +69,7 @@ export function createContentIndex(
       }
     }
   for (const entry of species.values()) {
+    for (const skill of entry.inheritance?.skills ?? []) required(skills, 'skill', skill)
     for (const skill of entry.learnable_skills) required(skills, 'skill', skill.skill_id)
     for (const mark of [...entry.ability, ...entry.emblem]) required(marks, 'mark', mark)
   }
@@ -68,6 +79,8 @@ export function createContentIndex(
     marks: Object.freeze([...marks.values()]),
     skills: Object.freeze([...skills.values()]),
     species: Object.freeze([...species.values()]),
+    getEnhancement: (id: string) => required(stages, 'enhancement', id),
+    getNature: (id: string) => required(natures, 'nature', id),
     getMark: (id: string) => required(marks, 'mark', id),
     getSkill: (id: string) => required(skills, 'skill', id),
     getSpecies: (id: string) => required(species, 'species', id),

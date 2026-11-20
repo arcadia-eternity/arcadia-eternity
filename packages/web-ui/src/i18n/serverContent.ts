@@ -20,9 +20,24 @@ export function serverText(
   language = contentLanguage.value,
 ): string | undefined {
   if (!contentNamespaces.has(namespace)) return undefined
+  const localized = environmentLocaleText(namespace, id, field, language)
+  if (localized !== undefined) return localized
   const content = activeContent.value
-  const locales = content?.locales
   const kind = namespace.startsWith('mark') ? 'mark' : namespace
+  const value = text.value.get(`${kind}/${id}.${field}`)
+  if (value !== undefined) return value
+  const rows = kind === 'species' ? content?.species : kind === 'skill' ? content?.skills : content?.marks
+  if (rows?.some(row => row.id === id)) return field === 'name' ? id : ''
+  return undefined
+}
+
+export function environmentLocaleText(
+  namespace: string,
+  id: string,
+  field: 'name' | 'description',
+  language = contentLanguage.value,
+): string | undefined {
+  const locales = activeContent.value?.locales
   const languages = [...new Set([language, language.split('-')[0], locales?.defaultLocale ?? 'zh-CN'])]
   for (const locale of languages) {
     for (const ns of namespace === 'mark' ? ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] : [namespace]) {
@@ -31,10 +46,6 @@ export function serverText(
         return Reflect.get(entry, field)
     }
   }
-  const value = text.value.get(`${kind}/${id}.${field}`)
-  if (value !== undefined) return value
-  const rows = kind === 'species' ? content?.species : kind === 'skill' ? content?.skills : content?.marks
-  if (rows?.some(row => row.id === id)) return field === 'name' ? id : ''
   return undefined
 }
 

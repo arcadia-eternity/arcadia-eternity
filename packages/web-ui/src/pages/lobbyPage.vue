@@ -14,10 +14,11 @@
       <h2 class="text-lg font-medium text-gray-800">对战服务器</h2>
       <div class="flex flex-wrap items-center gap-3 mt-3">
         <el-button
-          v-if="canStartLocalServer"
+          v-if="localServer.available"
           data-testid="start-local-server-button"
-          @click="router.push('/servers?host=1')"
-          >在本机开服</el-button
+          :disabled="localServer.busy"
+          @click="startLocalServer"
+          >{{ localServer.running ? '查看本机服务器' : '在本机开服' }}</el-button
         >
         <router-link to="/servers" class="text-blue-600">服务器列表</router-link>
       </div>
@@ -31,6 +32,14 @@
       >
         <el-icon :size="20"><User /></el-icon>
         <span class="text-sm md:text-base">队伍编辑</span>
+      </router-link>
+      <router-link
+        v-if="canAuthor"
+        :to="{ name: 'Creation' }"
+        class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
+      >
+        <el-icon :size="20"><EditPen /></el-icon>
+        <span class="text-sm md:text-base">内容包与创作</span>
       </router-link>
       <router-link
         to="/account"
@@ -247,9 +256,10 @@ import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
+import { useLocalServerStore } from '@/stores/localServer'
 import { useMatchmakingStore } from '@/stores/matchmaking'
 import { useAuthStore } from '@/stores/auth'
-import { Collection, Download, FolderOpened, Monitor, Search, Setting, User } from '@element-plus/icons-vue'
+import { Collection, Download, EditPen, FolderOpened, Monitor, Search, Setting, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 
@@ -258,6 +268,7 @@ import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { allowsServerExecution } from '@/services/serverEnvironmentPolicy'
 
+const canAuthor = !!window.arcadiaDesktop?.author
 const router = useRouter()
 const battleClientStore = useBattleClientStore()
 const privateRoomStore = usePrivateRoomStore()
@@ -276,7 +287,15 @@ async function acceptPersonalEnvironment(value: PreparedPersonalEnvironment) {
   }
 }
 const roomConfig = ref({ password: '', p2pTransport: 'auto' as 'auto' | 'webrtc' | 'relay' })
-const canStartLocalServer = !!window.arcadiaDesktop?.localServer
+const localServer = useLocalServerStore()
+async function startLocalServer() {
+  if (!localServer.running) {
+    void localServer.execute({ action: 'start', configuration: { ...localServer.configuration } }).catch(() => {
+      // The server page displays the operation error from the shared store.
+    })
+  }
+  await router.push('/servers')
+}
 const switchingServer = computed(() => privateRoomStore.isSwitchingServer)
 const selectedEnvironmentId = ref('')
 const environmentsLoading = ref(false)
@@ -302,7 +321,7 @@ watch(
 )
 
 function environmentLabel(environment: ServerEnvironmentDescriptor): string {
-  return environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
+  return environment.environmentName || environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
 }
 
 async function loadEnvironments() {

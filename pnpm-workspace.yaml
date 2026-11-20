@@ -13,6 +13,7 @@ allowBuilds:
   protobufjs: true
   vue-demi: true
 catalog:
+  '@noble/hashes': 2.4.0
   '@typescript/native-preview': 7.0.0-dev.20260707.2
   typescript: 'npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2'
   nanoid: 6.0.2
