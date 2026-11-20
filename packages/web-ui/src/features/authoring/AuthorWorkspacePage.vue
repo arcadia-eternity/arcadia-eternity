@@ -5,7 +5,13 @@ import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/w
 import { defineAsyncComponent, nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { localStorageUnavailable } from '@/services/localStorage'
-import { PencilSquareIcon, ArrowsRightLeftIcon, CloudArrowUpIcon } from '@heroicons/vue/24/outline'
+import {
+  PencilSquareIcon,
+  ArrowsRightLeftIcon,
+  CloudArrowUpIcon,
+  Cog6ToothIcon,
+  ChevronDownIcon,
+} from '@heroicons/vue/24/outline'
 import ObjectIcon from './ObjectIcon.vue'
 import ContentTraits from './ContentTraits.vue'
 import { skillCategories } from './traits'
@@ -60,20 +66,22 @@ const copyMediaFrom = ref<ContentRow>()
 const languageInput = ref('')
 const AuthorGitWorkspace = defineAsyncComponent(() => import('./AuthorGitWorkspace.vue'))
 const commitMessage = ref('')
-type ProjectView = 'editor' | 'git' | 'release'
+type ProjectView = 'editor' | 'git' | 'release' | 'settings'
 const projectViews = [
   { id: 'editor', label: '内容编辑', icon: PencilSquareIcon },
   { id: 'git', label: 'Git 版本管理', icon: ArrowsRightLeftIcon },
   { id: 'release', label: '发布新版本', icon: CloudArrowUpIcon },
+  { id: 'settings', label: '项目设置', icon: Cog6ToothIcon },
 ] as const
-const projectView = computed<ProjectView>(() => {
-  const view = route.query?.view
-  return snapshot.value && !readOnly.value && (view === 'git' || view === 'release') ? view : 'editor'
-})
+const visibleProjectViews = computed(() =>
+  projectViews.filter(view => !readOnly.value || view.id === 'editor' || view.id === 'settings'),
+)
+const projectView = computed<ProjectView>(
+  () => visibleProjectViews.value.find(view => view.id === route.query?.view)?.id ?? 'editor',
+)
 function projectLocation(view: ProjectView) {
   return { path: route.path, query: { ...route.query, view: view === 'editor' ? undefined : view } }
 }
-const projectSettingsOpen = ref(false)
 const rangeDraft = ref<{ original: string; value: string }>()
 const savedRange = computed(() => snapshot.value?.arcadiaRange ?? '')
 const projectRange = computed({
@@ -723,6 +731,21 @@ async function refresh() {
 
   return next
 }
+async function chooseProjectFolder() {
+  const row = await authorCall<SourceProject | null>({ action: 'open' })
+  if (row) {
+    projects.value = await authorCall({ action: 'list' })
+    await openProject(row)
+  }
+}
+function switchProject(event: Event) {
+  const select = event.target as HTMLSelectElement
+  const selectedId = select.value
+  select.value = project.value?.id ?? ''
+  if (!selectedId) return void attempt(chooseProjectFolder)
+  const next = projects.value.find(row => row.id === selectedId)
+  if (next) void attempt(() => openProject(next))
+}
 async function openProject(next: SourceProject) {
   if (dirty.value) throw new Error('请先保存或放弃草稿，再切换项目。')
   if (!mayDiscardRange()) return
@@ -739,7 +762,6 @@ async function openProject(next: SourceProject) {
   if (runActions.value) runActions.value.open = false
   commitMessage.value = ''
   project.value = next
-  projectSettingsOpen.value = false
   snapshot.value = undefined
   selectedId.value = ''
   asset.value = undefined
@@ -1187,16 +1209,18 @@ onBeforeUnmount(() => {
   <main class="author-page">
     <header class="app-header">
       <div class="brand">
-        <router-link to="/creation">创作</router-link><span aria-hidden="true">/</span>
-        <button
+        <router-link to="/creation">创作</router-link><span v-if="project" aria-hidden="true">/</span>
+        <select
           v-if="project"
           class="project-switch"
-          :disabled="busy || !snapshot"
-          :aria-expanded="projectSettingsOpen"
-          @click="projectSettingsOpen = !projectSettingsOpen"
+          aria-label="切换项目"
+          :value="project.id"
+          :disabled="busy || dirty"
+          @change="switchProject"
         >
-          {{ project.name }} ▾
-        </button>
+          <option v-for="row in projects" :key="row.id" :value="row.id">{{ row.name }}</option>
+          <option value="">打开项目文件夹…</option>
+        </select>
         <span v-if="readOnly" class="badge">只读</span>
         <small v-if="project?.published">已安装 {{ snapshot?.version }}</small>
       </div>
@@ -1205,6 +1229,49 @@ onBeforeUnmount(() => {
           <option v-for="language in languages" :key="language">{{ language }}</option>
         </select></label
       >
+      <div v-if="project && snapshot">
+        <button class="external-tools-trigger" popovertarget="author-external-tools">
+          外部工具 <ChevronDownIcon aria-hidden="true" />
+        </button>
+        <div id="author-external-tools" class="external-tools-menu" popover="auto" role="group" aria-label="外部工具">
+          <label v-if="!readOnly"
+            >外部编辑器<select v-model="editor">
+              <option value="code">VS Code</option>
+              <option value="codium">VSCodium</option>
+              <option value="cursor">Cursor</option>
+              <option value="zed">Zed</option>
+            </select></label
+          ><button
+            v-if="!readOnly"
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="attempt(() => external())"
+          >
+            打开编辑器</button
+          ><button
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="attempt(() => action({ action: 'show' }))"
+          >
+            显示项目文件夹</button
+          ><button
+            v-if="!readOnly"
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="
+              attempt(async () => {
+                await action({ action: 'sdk' })
+                notice = '已连接本机开发 SDK。'
+              })
+            "
+          >
+            连接本机 SDK
+          </button>
+        </div>
+      </div>
       <div v-if="dirty && projectView === 'editor'" class="tools save-actions">
         <button v-if="dirty" :disabled="busy" @click="screen = 'discard'">放弃修改</button
         ><button
@@ -1224,10 +1291,10 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </header>
-    <div v-if="project && !readOnly" class="play-toolbar">
+    <div v-if="project && snapshot" class="play-toolbar">
       <nav class="project-views" aria-label="项目视图">
         <RouterLink
-          v-for="view in projectViews"
+          v-for="view in visibleProjectViews"
           :key="view.id"
           :to="projectLocation(view.id)"
           :aria-current="projectView === view.id ? 'page' : undefined"
@@ -1235,7 +1302,7 @@ onBeforeUnmount(() => {
           <component :is="view.icon" aria-hidden="true" />{{ view.label }}
         </RouterLink>
       </nav>
-      <template v-if="projectView === 'editor'">
+      <template v-if="projectView === 'editor' && !readOnly">
         <p role="status">{{ previewStatus }}</p>
         <details ref="runActions" class="run-actions">
           <summary>更多操作</summary>
@@ -1262,12 +1329,12 @@ onBeforeUnmount(() => {
         </button>
       </template>
     </div>
-    <details v-if="!project || projectSettingsOpen" class="project-settings" open>
-      <summary>{{ project ? '项目与外部工具' : '打开内容包源项目' }}</summary>
+    <section v-if="!project" class="project-picker">
+      <h1>打开内容包源项目</h1>
       <div class="tools">
         <label
           >项目<select
-            :value="project?.id ?? ''"
+            value=""
             :disabled="busy || dirty"
             @change="
               attempt(async () => {
@@ -1279,19 +1346,7 @@ onBeforeUnmount(() => {
             <option value="">选择项目</option>
             <option v-for="row in projects" :key="row.id" :value="row.id">{{ row.name }}</option>
           </select></label
-        ><button
-          :disabled="busy || dirty"
-          @click="
-            attempt(async () => {
-              const row = await authorCall<SourceProject | null>({ action: 'open' })
-              if (row) {
-                projects = await authorCall({ action: 'list' })
-                await openProject(row)
-              }
-            })
-          "
-        >
-          打开项目</button
+        ><button :disabled="busy || dirty" @click="attempt(chooseProjectFolder)">打开项目</button
         ><label>新项目名称<ElInput v-model="name" placeholder="例如：寒霜故事" /></label
         ><label
           >新包兼容范围<ElInput v-model="arcadiaRange" aria-label="新包兼容范围" maxlength="256" /><span
@@ -1315,19 +1370,36 @@ onBeforeUnmount(() => {
           从模板创建项目
         </button>
       </div>
-      <section v-if="project && snapshot">
+    </section>
+    <p v-if="error" class="banner error" role="alert">{{ error }}</p>
+    <div v-if="notice" class="banner notice" role="status">
+      <span>{{ notice }}</span
+      ><button aria-label="关闭提示" @click="notice = ''">×</button>
+    </div>
+    <section v-if="projectView === 'settings' && project && snapshot" class="settings-view" aria-label="项目设置">
+      <section class="settings-group">
+        <h1>项目设置</h1>
         <div class="tools">
           <strong>{{ snapshot.name }}@{{ snapshot.version }}</strong>
-          <span>项目 ID {{ snapshot.project.projectId }}</span
-          ><span>命名空间 {{ snapshot.project.namespace }}</span>
-          <span>SDK API {{ snapshot.project.sdkApi ?? '未声明' }}</span>
           <button v-if="!readOnly" :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('version'))">
             更改包版本
           </button>
         </div>
+        <dl class="project-metadata">
+          <dt>项目 ID</dt>
+          <dd>{{ snapshot.project.projectId }}</dd>
+          <dt>命名空间</dt>
+          <dd>{{ snapshot.project.namespace }}</dd>
+          <dt>SDK API</dt>
+          <dd>{{ snapshot.project.sdkApi ?? '未声明' }}</dd>
+          <dt>项目文件夹</dt>
+          <dd>{{ project.directory }}</dd>
+        </dl>
+      </section>
+      <section class="settings-group">
         <div class="tools">
-          <strong>运行依赖</strong
-          ><button v-if="!readOnly" :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('dependency'))">
+          <h3>运行依赖</h3>
+          <button v-if="!readOnly" :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('dependency'))">
             添加依赖
           </button>
         </div>
@@ -1346,7 +1418,7 @@ onBeforeUnmount(() => {
           </template>
         </div>
       </section>
-      <form v-if="project && snapshot" class="tools" @submit.prevent="attempt(saveProjectRange)">
+      <form class="settings-group tools" @submit.prevent="attempt(saveProjectRange)">
         <label
           >Arcadia 兼容范围<ElInput
             v-model="projectRange"
@@ -1363,50 +1435,29 @@ onBeforeUnmount(() => {
         </button>
         <button v-if="rangeDraft" type="button" :disabled="busy" @click="rangeDraft = undefined">取消修改</button>
       </form>
-      <div v-if="project" class="tools">
-        <label v-if="!readOnly"
-          >外部编辑器<select v-model="editor">
-            <option value="code">VS Code</option>
-            <option value="codium">VSCodium</option>
-            <option value="cursor">Cursor</option>
-            <option value="zed">Zed</option>
-          </select></label
-        ><button v-if="!readOnly" :disabled="busy" @click="attempt(() => external())">打开编辑器</button
-        ><button :disabled="busy" @click="attempt(() => action({ action: 'show' }))">显示项目文件夹</button
-        ><button :disabled="busy || hasUnsavedChanges" @click="attempt(() => action({ action: 'export' }))">
-          {{ project.published ? '导出包目录' : '导出源项目' }}</button
-        ><button
-          v-if="!readOnly"
-          :disabled="busy"
-          @click="
-            attempt(async () => {
-              await action({ action: 'sdk' })
-              notice = '已连接本机开发 SDK。'
-            })
-          "
-        >
-          连接本机 SDK</button
-        ><button
-          v-if="!readOnly"
-          :disabled="busy || running || hasUnsavedChanges"
-          @click="attempt(() => start('pack'))"
-        >
-          构建内容包</button
-        ><button v-if="!readOnly && latestPack" :disabled="busy || running || hasUnsavedChanges" @click="useBuiltPack">
-          {{ packIsCurrent ? '用于环境' : '重新构建并用于环境' }}</button
-        ><small>{{ project.directory }}</small>
-      </div>
-    </details>
-    <p v-if="error" class="banner error" role="alert">{{ error }}</p>
-    <div v-if="notice" class="banner notice" role="status">
-      <span>{{ notice }}</span
-      ><button aria-label="关闭提示" @click="notice = ''">×</button>
-    </div>
-    <div v-if="!project" class="welcome">
-      <h1>让你的内容加入战斗</h1>
-    </div>
+      <section class="settings-group">
+        <h3>内容包</h3>
+        <div class="tools">
+          <button :disabled="busy || hasUnsavedChanges" @click="attempt(() => action({ action: 'export' }))">
+            {{ project.published ? '导出包目录' : '导出源项目' }}</button
+          ><button
+            v-if="!readOnly"
+            :disabled="busy || running || hasUnsavedChanges"
+            @click="attempt(() => start('pack'))"
+          >
+            构建内容包</button
+          ><button
+            v-if="!readOnly && latestPack"
+            :disabled="busy || running || hasUnsavedChanges"
+            @click="useBuiltPack"
+          >
+            {{ packIsCurrent ? '用于环境' : '重新构建并用于环境' }}
+          </button>
+        </div>
+      </section>
+    </section>
     <AuthorGitWorkspace
-      v-else-if="projectView !== 'editor'"
+      v-else-if="project && snapshot && (projectView === 'git' || projectView === 'release')"
       :key="project.id"
       :project="project.id"
       :project-name="project.name"
@@ -1420,7 +1471,7 @@ onBeforeUnmount(() => {
       @release="attempt(() => start('release'))"
       @version="attempt(() => editPackage('version'))"
     />
-    <div v-else class="workspace">
+    <div v-else-if="project" class="workspace">
       <aside class="sidebar">
         <small>{{ project.name }}</small>
         <nav aria-label="内容分类">

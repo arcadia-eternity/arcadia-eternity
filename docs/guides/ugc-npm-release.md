@@ -52,13 +52,13 @@ npx arcadia-content workspace . release --execute
 
 ## 桌面 Git 工作区
 
-在「创作」打开本地源项目，或选择「克隆源项目」并输入 HTTPS 仓库地址。首次使用克隆项目时，在「项目与外部工具」连接本机 SDK，或在源项目运行 `npm ci` 安装锁定的开发依赖。工作台使用系统 Git 和本机提交身份。输入 HTTPS 地址克隆时使用本机凭据；选择「从 GitHub 打开」可以用创作 App 授权并克隆所选仓库。
+在「创作」打开本地源项目，或选择「克隆源项目」并输入 HTTPS 仓库地址。首次使用克隆项目时，在「外部工具」连接本机 SDK，或在源项目运行 `npm ci` 安装锁定的开发依赖。工作台使用系统 Git 和本机提交身份。输入 HTTPS 地址克隆时使用本机凭据；选择「从 GitHub 打开」可以用创作 App 授权并克隆所选仓库。
 
 在「Git 版本管理」初始化仓库，点文件名查看磁盘上的修改。在「未暂存」与「已暂存」之间移动文件后填写提交说明。工作台会刷新外部编辑器产生的修改。保存表单草稿后再提交或拉取。拉取仅支持快进，分叉、合并冲突、带自定义钩子的仓库和链接工作树通过外部 Git 工具处理。
 
 计划发布到 npm 时，先选定你有发布权限的包名。首次分发前可使用模板已有的 `npm run rename -- --name @your-scope/my-pack --project-id my-pack --namespace my-pack` 一起更新引用。分发后的同一个包应保留项目身份与命名空间。
 
-在「项目与外部工具」查看身份、SDK API、宿主兼容范围，编辑 npm 版本与运行依赖。改动运行依赖后，在发行面板选择「更新 npm 锁文件」，或使用 npm 更新项目的开发安装和锁文件。在干净的源项目副本执行 `npm install --package-lock-only --ignore-scripts` 可仅生成锁文件。将 `package-lock.json` 与声明一同提交，以便 Actions 执行 `npm ci`。
+在「项目设置」查看身份、SDK API、宿主兼容范围，编辑 npm 版本与运行依赖。改动运行依赖后，在发行面板选择「更新 npm 锁文件」，或使用 npm 更新项目的开发安装和锁文件。在干净的源项目副本执行 `npm install --package-lock-only --ignore-scripts` 可仅生成锁文件。将 `package-lock.json` 与声明一同提交，以便 Actions 执行 `npm ci`。
 
 保存源码、提交版本变更，运行「检查并生成发行包」。成功后在「发布新版本」创建对应的本地版本标签；推送分支与推送标签有各自的目标确认。没有远端也可完成本地发行检查、标记版本，并将产物用于环境。只读工具可以用 `arcadia-content workspace . git-status`，或给 `git-diff` 传入 JSON，例如 `{"file":"data/skills/strike.yaml","staged":true}`。MCP 对应 `git_status` 和 `git_diff`。
 

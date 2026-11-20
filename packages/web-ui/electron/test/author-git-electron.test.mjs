@@ -44,7 +44,7 @@ test(
       assert.ok(project.directory.startsWith(await realpath(join(root, 'data/ugc/projects'))))
       const git = (...args) => promisify(execFile)('git', args, { cwd: project.directory })
       await page.waitForURL(origin + '/creation/edit/' + project.id)
-      await page.locator('.project-switch').click()
+      await page.getByRole('link', { name: '项目设置' }).click()
       const enter = async (title, value) => {
         const dialog = page.getByRole('dialog', { name: title, exact: true })
         await dialog.getByRole('textbox').fill(value)
@@ -66,7 +66,6 @@ test(
         .getByRole('button', { name: '移除', exact: true })
         .click()
       await expect(page.getByText('@example/shared ^2.0.0')).toHaveCount(0)
-      await page.locator('.project-switch').click()
       const openGit = () => page.getByRole('link', { name: 'Git 版本管理', exact: true }).click()
       const openRelease = () => page.getByRole('link', { name: '发布新版本', exact: true }).click()
       const releasePanel = page.getByRole('region', { name: '发布新版本', exact: true })

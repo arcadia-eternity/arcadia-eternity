@@ -71,7 +71,7 @@ async function openWorkspace(receipts: AuthorJob[] = [pack]) {
   await router.push(`/creation/edit/${project.id}`)
   const wrapper = mount(RouterView, { global: { plugins: [createPinia(), router] } })
   await flushPromises()
-  await wrapper.get('button.project-switch').trigger('click')
+  await wrapper.get('a[href$="view=settings"]').trigger('click')
   await vi.waitFor(() => expect(wrapper.text()).toContain('用于环境'), { timeout: 2500 })
   const button = wrapper.findAll('button').find(button => button.text().endsWith('用于环境'))!
   return { wrapper, router, button, author, finishInstall, current }

@@ -66,7 +66,7 @@ test(
       page.setDefaultTimeout(15000)
       await page.goto(origin + '/creation/edit')
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
-      await page.locator('.project-settings select').first().selectOption('yaml')
+      await page.getByRole('combobox', { name: '项目', exact: true }).selectOption('yaml')
       await page.locator('nav').getByRole('button', { name: /^印记/ }).click()
       await page.locator('.content-card').filter({ hasText: 'second' }).click()
       const duration = page.getByLabel('持续回合（-1 为无限）', { exact: true })
