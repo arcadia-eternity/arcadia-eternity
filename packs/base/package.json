@@ -28,12 +28,10 @@
   },
   "files": [
     "assets/**/*",
-    "environment/*.yaml",
     "dist/**/*",
     "LICENSE"
   ],
   "exports": {
-    "./environment/*.yaml": "./environment/*.yaml",
     "./environment/test-120-rules.json": "./dist/environment/test-120-rules.json",
     "./environment/base-rules.json": "./dist/environment/base-rules.json",
     "./metadata": {
