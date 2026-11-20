@@ -1005,7 +1005,23 @@ function setupIpcHandlers() {
         const directory = await getContentLibrary().sourceDirectory(input.packageId)
         result = await manager.add(directory, { readOnly: true, published: true })
       } else if (input.action === 'create') result = await manager.create(input.name, input.arcadiaRange)
-      else if (input.action === 'git-cancel') result = manager.cancelGit(input.id)
+      else if (input.action === 'creator-github') {
+        result = await creatorAction(creatorGitHub, manager, input, {
+          open: url => shell.openExternal(url),
+          confirm: async (message, detail) => {
+            const { response } = await dialog.showMessageBox(mainWindow, {
+              type: 'question',
+              message,
+              detail,
+              buttons: ['取消', '确认'],
+              defaultId: 0,
+              cancelId: 0,
+            })
+            requireLocalBattleCaller(event)
+            return response === 1
+          },
+        })
+      } else if (input.action === 'git-cancel') result = manager.cancelGit(input.id)
       else if (input.action === 'clone') result = await manager.clone(input.url)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
@@ -1028,24 +1044,8 @@ function setupIpcHandlers() {
         } else {
           const session = await manager.session(input.id)
           switch (input.action) {
-            case 'creator-github':
-              result = await creatorAction(creatorGitHub, manager, input, {
-                open: url => shell.openExternal(url),
-                confirm: async (message, detail) => {
-                  const { response } = await dialog.showMessageBox(mainWindow, {
-                    type: 'question',
-                    message,
-                    detail,
-                    buttons: ['取消', '确认'],
-                    defaultId: 0,
-                    cancelId: 0,
-                  })
-                  requireLocalBattleCaller(event)
-                  return response === 1
-                },
-              })
-              break
-            case 'git':
+            case 'git': {
+              const tokenFor = input.githubApp === true ? creatorGitHub.gitCredentials() : undefined
               if (input.operation === 'push' || input.operation === 'push-tag') {
                 const isTag = input.operation === 'push-tag'
                 const destination = await manager.git(input.id, { operation: isTag ? 'tag-target' : 'push-target' })
@@ -1059,9 +1059,12 @@ function setupIpcHandlers() {
                 })
                 requireLocalBattleCaller(event)
                 if (response !== 1) throw new Error('已取消推送')
-                result = await manager.git(input.id, { operation: input.operation, destination })
-              } else result = await manager.git(input.id, input)
+                result = await manager.git(input.id, { operation: input.operation, destination }, tokenFor)
+              } else if (input.operation === 'commit') {
+                result = await manager.git(input.id, { ...input, fallbackIdentity: creatorGitHub.commitIdentity() })
+              } else result = await manager.git(input.id, input, tokenFor)
               break
+            }
             case 'install-built-author-pack':
               result = await manager.installBuiltPack(input.id, input.jobId, file =>
                 getContentLibrary().installFile(file),

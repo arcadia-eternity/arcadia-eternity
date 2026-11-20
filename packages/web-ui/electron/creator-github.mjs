@@ -1,6 +1,8 @@
 import { Octokit } from '@octokit/rest'
 import { createOAuthDeviceAuth } from '@octokit/auth-oauth-device'
 
+const officialClientId = 'Iv23liP33KpjcCeaWnzh'
+const installationUrl = 'https://github.com/apps/arcadia-eternity-creator/installations/new'
 const workflow = 'release-pack.yml'
 const repositoryName = /^[a-z\d][a-z\d-]*\/[a-z\d._-]+$/i
 function repositoryParts(fullName) {
@@ -22,12 +24,13 @@ function failure(error) {
 export class CreatorGitHub {
   #client
   #login
+  #userId
   #expires = 0
   #pending
   #verification
   #error
   constructor({ clientId, makeClient = options => new Octokit(options), deviceAuth = createOAuthDeviceAuth } = {}) {
-    this.clientId = clientId
+    this.clientId = clientId || officialClientId
     this.makeClient = makeClient
     this.deviceAuth = deviceAuth
   }
@@ -37,16 +40,16 @@ export class CreatorGitHub {
       this.#error = failure({ status: 401 })
     }
     return {
-      configured: !!this.clientId,
+      installationUrl: this.clientId === officialClientId ? installationUrl : undefined,
       login: this.#login,
       connecting: !!this.#pending,
       verification: this.#verification,
       error: this.#error,
     }
   }
-  connect(publicId) {
+  connect() {
     if (this.account().connecting || this.#client) return this.account()
-    const clientId = this.clientId || publicId
+    const clientId = this.clientId
     if (typeof clientId !== 'string' || !/^Iv[0-9][A-Za-z0-9.]{10,64}$/.test(clientId))
       throw new Error('请输入专用 GitHub App 的公开 Client ID。')
     const controller = new AbortController()
@@ -76,6 +79,7 @@ export class CreatorGitHub {
           grant.expiresAt ? Date.parse(grant.expiresAt) : Infinity,
         )
         this.#client = client
+        this.#userId = data.id
         this.#login = data.login
       } catch (error) {
         if (this.#pending === controller) this.#error = failure(error)
@@ -95,6 +99,7 @@ export class CreatorGitHub {
     this.#verification = undefined
     this.#error = undefined
     this.#login = undefined
+    this.#userId = undefined
   }
   async #using(action) {
     if (!this.account().login) throw new Error('请连接 GitHub 创作账号。')
@@ -120,6 +125,25 @@ export class CreatorGitHub {
       }
       return [...repositories].sort()
     })
+  }
+  commitIdentity() {
+    const { login } = this.account()
+    if (login && Number.isSafeInteger(this.#userId))
+      return { name: login, email: this.#userId + '+' + login + '@users.noreply.github.com' }
+  }
+  gitCredentials() {
+    if (!this.account().login) throw new Error('请连接 GitHub 创作账号。')
+    const session = this.#client
+    return async url => {
+      const match = /^https:\/\/github\.com\/([a-z\d-]+\/[a-z\d._-]+?)(?:\.git)?\/?$/i.exec(url)
+      if (!match) throw new Error('GitHub App 只能同步 github.com 的 HTTPS 仓库。')
+      const allowed = await this.repositories()
+      if (!allowed.some(name => name.toLowerCase() === match[1].toLowerCase()))
+        throw new Error('请在 GitHub App 的安装范围中授权此仓库。')
+      const { token } = await session.auth()
+      if (!this.account().login || session !== this.#client) throw new Error('GitHub 创作会话已变化')
+      return token
+    }
   }
   async create(name, isPrivate) {
     if (typeof name !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,99}$/i.test(name) || typeof isPrivate !== 'boolean')
@@ -199,16 +223,24 @@ export class CreatorGitHub {
   }
 }
 
+async function prepareLocalRepository(manager, id) {
+  const state = await manager.git(id, { operation: 'status' })
+  if (state.hasRemote) throw new Error('项目已绑定远端仓库。')
+  if (!state.repository) await manager.git(id, { operation: 'init' })
+}
+
 // All external writes pass a native confirmation with the resolved repository and tag.
 export async function creatorAction(service, manager, input, { confirm, open }) {
   const { id, operation } = input
-  const { workspace } = await manager.session(id)
-  await workspace.assertWritable()
+  if (!['account', 'connect', 'disconnect', 'open', 'repositories', 'clone'].includes(operation)) {
+    const { workspace } = await manager.session(id)
+    await workspace.assertWritable()
+  }
   switch (operation) {
     case 'account':
       return service.account()
     case 'connect':
-      return service.connect(input.clientId)
+      return service.connect()
     case 'disconnect':
       service.disconnect()
       return service.account()
@@ -230,9 +262,15 @@ export async function creatorAction(service, manager, input, { confirm, open }) 
     }
     case 'repositories':
       return service.repositories()
+    case 'clone':
+      repositoryParts(input.repository)
+      return manager.clone('https://github.com/' + input.repository + '.git', service.gitCredentials())
+    case 'sync-target':
+      return { repository: (await manager.githubTarget(id))?.repository }
     case 'bind': {
       repositoryParts(input.repository)
       if (!(await service.repositories()).includes(input.repository)) throw new Error('未获得该仓库的创作授权')
+      await prepareLocalRepository(manager, id)
       return manager.git(id, { operation: 'bind', url: 'https://github.com/' + input.repository + '.git' })
     }
     case 'create': {
@@ -243,12 +281,21 @@ export async function creatorAction(service, manager, input, { confirm, open }) 
       )
         return null
       if (service.account().login !== login) throw new Error('GitHub 创作会话已变化')
-      return service.create(input.name, input.private)
+      await prepareLocalRepository(manager, id)
+      const repository = await service.create(input.name, input.private)
+      try {
+        repositoryParts(repository)
+        await manager.git(id, { operation: 'bind', url: 'https://github.com/' + repository + '.git' })
+        return { repository, bound: true }
+      } catch (error) {
+        return { repository, bound: false, error: '仓库已创建，本地绑定失败。' + error.message }
+      }
     }
     case 'save-repository': {
       const target = await manager.githubTarget(id)
       if (!target || input.repository !== target.repository || input.manifestVersion !== target.manifestVersion)
         throw new Error('仓库或包声明已变化，请刷新')
+      const { workspace } = await manager.session(id)
       await workspace.editPackage({
         field: 'repository',
         value: 'https://github.com/' + target.repository + '.git',

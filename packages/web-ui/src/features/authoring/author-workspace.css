@@ -699,6 +699,36 @@ input[type='checkbox'] {
   border-bottom: 1px solid var(--author-border);
   background: var(--author-panel);
 }
+.project-views {
+  display: flex;
+  align-self: stretch;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.project-views a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  padding: 8px 12px;
+  color: var(--author-muted);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  font-weight: 550;
+}
+.project-views a:hover,
+.project-views a[aria-current='page'] {
+  color: var(--author-accent);
+  background: var(--author-soft);
+}
+.project-views a[aria-current='page'] {
+  border-color: var(--author-accent);
+}
+.project-views svg {
+  width: 17px;
+  height: 17px;
+}
 .play-toolbar p {
   flex: 1 1 220px;
   margin: 0;

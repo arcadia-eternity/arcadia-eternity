@@ -48,7 +48,7 @@ test('device grant, selected repository binding, tag, release status and confirm
     }
     assert.match(options.headers.authorization, /private-test-token/)
     if (authenticated !== 200) return json({ message: 'denied' }, authenticated)
-    if (path === '/user') return json({ login: 'author' })
+    if (path === '/user') return json({ id: 1234, login: 'author' })
     if (path === '/user/installations') return json({ total_count: 1, installations: [{ id: 7 }] })
     if (path === '/user/installations/7/repositories')
       return json({ total_count: 1, repositories: [{ full_name: repository }] })
@@ -103,7 +103,10 @@ test('device grant, selected repository binding, tag, release status and confirm
   const manager = {
     session: () => ({ workspace: { assertWritable() {} } }),
     githubTarget: async () => ({ ...target }),
-    git: (id, input) => bound.push(input),
+    git: (id, input) => {
+      bound.push(input)
+      return { repository: false }
+    },
   }
   const action = (operation, input = {}, confirm = async () => true) =>
     creatorAction(
@@ -122,9 +125,31 @@ test('device grant, selected repository binding, tag, release status and confirm
   assert.deepEqual(await action('repositories'), [repository])
   await assert.rejects(action('bind', { repository: 'other/content' }), /授权/)
   await action('bind', { repository })
-  assert.deepEqual(bound, [{ operation: 'bind', url: 'https://github.com/author/content.git' }])
+  assert.deepEqual(bound, [
+    { operation: 'status' },
+    { operation: 'init' },
+    { operation: 'bind', url: 'https://github.com/author/content.git' },
+  ])
+  assert.deepEqual(service.commitIdentity(), { name: 'author', email: '1234+author@users.noreply.github.com' })
   assert.equal(await action('create', { name: 'content', private: true }, async () => false), null)
-  assert.equal(await action('create', { name: 'content', private: true }), repository)
+  bound.length = 0
+  assert.deepEqual(await action('create', { name: 'content', private: true }), { repository, bound: true })
+  assert.deepEqual(
+    bound.map(row => row.operation),
+    ['status', 'init', 'bind'],
+  )
+  manager.git = (_id, input) => {
+    if (input.operation === 'bind') throw new Error('Git lock')
+    return { repository: true }
+  }
+  const partial = await action('create', { name: 'content', private: true })
+  assert.equal(partial.repository, repository)
+  assert.equal(partial.bound, false)
+  assert.match(partial.error, /Git lock/)
+  manager.git = () => ({ repository: true, hasRemote: true })
+  const createdCount = requests.filter(row => row.path === '/user/repos').length
+  await assert.rejects(action('create', { name: 'content', private: true }), /已绑定/)
+  assert.equal(requests.filter(row => row.path === '/user/repos').length, createdCount)
   const dashboard = await action('dashboard')
   assert.equal(dashboard.runs[0].conclusion, 'failure')
   assert.equal(dashboard.release.integrity, 'sha256-' + Buffer.from('a'.repeat(64), 'hex').toString('base64'))
@@ -132,6 +157,11 @@ test('device grant, selected repository binding, tag, release status and confirm
     dashboard.release.archive,
     'https://github.com/author/content/releases/download/v0.1.0/content-0.1.0.tgz',
   )
+  const credential = service.gitCredentials()
+  assert.equal(await credential('https://github.com/Author/Content.git'), 'private-test-token')
+  await assert.rejects(credential('https://github.com/other/content'), /授权/)
+  await assert.rejects(credential('https://elsewhere.example/author/content'), /github.com/)
+  assert.deepEqual(await action('sync-target'), { repository })
   const publish = { jobId: 'verified', publishNpm: false }
   assert.equal(await action('dispatch', publish, async () => false), null)
   await assert.rejects(
@@ -156,6 +186,7 @@ test('device grant, selected repository binding, tag, release status and confirm
   authenticated = 401
   await assert.rejects(action('repositories'), /失效/)
   assert.equal(service.account().login, undefined)
+  await assert.rejects(credential('https://github.com/author/content'), /连接/)
 })
 
 test('a disconnected device grant cannot restore a session after the browser finishes', async () => {

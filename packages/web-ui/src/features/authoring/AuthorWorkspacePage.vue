@@ -5,6 +5,7 @@ import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/w
 import { defineAsyncComponent, nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { localStorageUnavailable } from '@/services/localStorage'
+import { PencilSquareIcon, ArrowsRightLeftIcon, CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import ObjectIcon from './ObjectIcon.vue'
 import ContentTraits from './ContentTraits.vue'
 import { skillCategories } from './traits'
@@ -57,12 +58,20 @@ const createRelation = ref<{ row: SourceRecord; slot: string }>()
 const copyFrom = ref<ContentRow>()
 const copyMediaFrom = ref<ContentRow>()
 const languageInput = ref('')
-const AuthorGitDialog = defineAsyncComponent(() => import('./AuthorGitDialog.vue'))
-const gitOpen = ref(false)
-const releaseOpen = ref(false)
-function openGit(release = false) {
-  releaseOpen.value = release
-  gitOpen.value = true
+const AuthorGitWorkspace = defineAsyncComponent(() => import('./AuthorGitWorkspace.vue'))
+const commitMessage = ref('')
+type ProjectView = 'editor' | 'git' | 'release'
+const projectViews = [
+  { id: 'editor', label: '内容编辑', icon: PencilSquareIcon },
+  { id: 'git', label: 'Git 版本管理', icon: ArrowsRightLeftIcon },
+  { id: 'release', label: '发布新版本', icon: CloudArrowUpIcon },
+] as const
+const projectView = computed<ProjectView>(() => {
+  const view = route.query?.view
+  return snapshot.value && !readOnly.value && (view === 'git' || view === 'release') ? view : 'editor'
+})
+function projectLocation(view: ProjectView) {
+  return { path: route.path, query: { ...route.query, view: view === 'editor' ? undefined : view } }
 }
 const projectSettingsOpen = ref(false)
 const rangeDraft = ref<{ original: string; value: string }>()
@@ -728,9 +737,9 @@ async function openProject(next: SourceProject) {
   packToInstall.value = ''
   runPanelOpen.value = false
   if (runActions.value) runActions.value.open = false
+  commitMessage.value = ''
   project.value = next
   projectSettingsOpen.value = false
-  gitOpen.value = false
   snapshot.value = undefined
   selectedId.value = ''
   asset.value = undefined
@@ -1049,14 +1058,10 @@ async function copyConnection() {
   await navigator.clipboard.writeText(JSON.stringify(config, null, 2))
   notice.value = '已复制 MCP 配置。'
 }
-function releaseFromGit() {
-  if (!releaseOpen.value) gitOpen.value = false
-  void attempt(() => start('release'))
-}
 async function start(kind: string) {
   if (hasUnsavedChanges.value) throw new Error('请先保存修改，运行任务读取的是磁盘内容。')
   if (runActions.value) runActions.value.open = false
-  if (kind !== 'preview') runPanelOpen.value = true
+  if (kind !== 'preview' && projectView.value !== 'release') runPanelOpen.value = true
   const job = await action<AuthorJob>({ action: 'start', kind })
   if (job.state === 'failed') runPanelOpen.value = true
   jobs.value = [job, ...jobs.value.filter(row => row.jobId !== job.jobId)]
@@ -1195,12 +1200,12 @@ onBeforeUnmount(() => {
         <span v-if="readOnly" class="badge">只读</span>
         <small v-if="project?.published">已安装 {{ snapshot?.version }}</small>
       </div>
-      <label v-if="project"
+      <label v-if="project && projectView === 'editor'"
         >内容语言<select v-model="locale" :disabled="busy">
           <option v-for="language in languages" :key="language">{{ language }}</option>
         </select></label
       >
-      <div v-if="dirty" class="tools save-actions">
+      <div v-if="dirty && projectView === 'editor'" class="tools save-actions">
         <button v-if="dirty" :disabled="busy" @click="screen = 'discard'">放弃修改</button
         ><button
           v-if="conflicts.length"
@@ -1219,45 +1224,44 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </header>
-    <section v-if="project && !readOnly" class="play-toolbar" aria-label="试玩控制">
-      <p role="status">{{ previewStatus }}</p>
-      <button :disabled="busy" @click="openGit(false)">Git 版本管理</button>
-      <button :disabled="busy" @click="openGit(true)">发布新版本</button>
-      <details ref="runActions" class="run-actions">
-        <summary>更多操作</summary>
-        <div class="run-actions-menu">
-          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('check'))">
-            检查内容与类型
-          </button>
-          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('test'))">
-            运行场景测试
-          </button>
-          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('demo'))">
-            无界面演示对战
-          </button>
-          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('release'))">
-            检查并生成发行包
-          </button>
-          <small>任务使用已保存的内容</small>
-        </div>
-      </details>
-      <button class="primary" :disabled="busy || running || hasUnsavedChanges" @click="attempt(playPreview)">
-        {{ running && latestPreview && ['queued', 'running'].includes(latestPreview.state) ? '正在准备…' : '调试试玩' }}
-      </button>
-    </section>
-    <AuthorGitDialog
-      v-if="gitOpen && project && !readOnly"
-      :key="project.id"
-      :project="project.id"
-      :release-open="releaseOpen"
-      :dirty="hasUnsavedChanges"
-      :running="running"
-      :version="snapshot?.version"
-      :pack="latestPack"
-      @close="gitOpen = false"
-      @release="releaseFromGit"
-      @version="attempt(() => editPackage('version'))"
-    />
+    <div v-if="project && !readOnly" class="play-toolbar">
+      <nav class="project-views" aria-label="项目视图">
+        <RouterLink
+          v-for="view in projectViews"
+          :key="view.id"
+          :to="projectLocation(view.id)"
+          :aria-current="projectView === view.id ? 'page' : undefined"
+        >
+          <component :is="view.icon" aria-hidden="true" />{{ view.label }}
+        </RouterLink>
+      </nav>
+      <template v-if="projectView === 'editor'">
+        <p role="status">{{ previewStatus }}</p>
+        <details ref="runActions" class="run-actions">
+          <summary>更多操作</summary>
+          <div class="run-actions-menu">
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('check'))">
+              检查内容与类型
+            </button>
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('test'))">
+              运行场景测试
+            </button>
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('demo'))">
+              无界面演示对战
+            </button>
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('release'))">
+              检查并生成发行包
+            </button>
+            <small>任务使用已保存的内容</small>
+          </div>
+        </details>
+        <button class="primary" :disabled="busy || running || hasUnsavedChanges" @click="attempt(playPreview)">
+          {{
+            running && latestPreview && ['queued', 'running'].includes(latestPreview.state) ? '正在准备…' : '调试试玩'
+          }}
+        </button>
+      </template>
+    </div>
     <details v-if="!project || projectSettingsOpen" class="project-settings" open>
       <summary>{{ project ? '项目与外部工具' : '打开内容包源项目' }}</summary>
       <div class="tools">
@@ -1401,6 +1405,21 @@ onBeforeUnmount(() => {
     <div v-if="!project" class="welcome">
       <h1>让你的内容加入战斗</h1>
     </div>
+    <AuthorGitWorkspace
+      v-else-if="projectView !== 'editor'"
+      :key="project.id"
+      :project="project.id"
+      :project-name="project.name"
+      v-model:message="commitMessage"
+      :release-open="projectView === 'release'"
+      :dirty="hasUnsavedChanges"
+      :running="running || busy"
+      :version="snapshot?.version"
+      :pack="jobs.find(job => job.kind === 'release')"
+      @git="router.push(projectLocation('git'))"
+      @release="attempt(() => start('release'))"
+      @version="attempt(() => editPackage('version'))"
+    />
     <div v-else class="workspace">
       <aside class="sidebar">
         <small>{{ project.name }}</small>

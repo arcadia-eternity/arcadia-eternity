@@ -71,6 +71,22 @@ test('the real index, worktree and reopened project retain separate changes', as
   await assert.rejects(run('stage', { file }), /钩子/)
 })
 
+test('a new creator can commit without a local Git identity', async t => {
+  const { root, run } = await fixture(t)
+  await git(root, 'config', 'user.name', '')
+  await git(root, 'config', 'user.email', '')
+  const identity = { name: 'creator', email: '1234+creator@users.noreply.github.com' }
+  assert.equal((await run('status')).head, '')
+  await run('stage', { file: 'package.json' })
+  const state = await run('commit', { message: '初始内容包', fallbackIdentity: identity })
+  assert.match(state.head, /^[a-f0-9]{40,64}$/)
+  assert.equal(
+    (await git(root, 'show', '-s', '--format=%an <%ae>')).stdout.trim(),
+    'creator <1234+creator@users.noreply.github.com>',
+  )
+  assert.equal((await git(root, 'config', 'user.email')).stdout.trim(), '')
+})
+
 test('linked repository metadata and read-only workspaces refuse writes', async t => {
   const { root, run } = await fixture(t)
   const readonly = await AuthorWorkspace.open(root, { watch: false, readOnly: true })
@@ -128,10 +144,17 @@ test('HTTPS clone, fetch, clean pull, explicit branch and tag pushes use a dispo
     ],
     { cwd: host },
   )
+  const credential = 'disposable-git-test'
+  const authorization = 'Basic ' + Buffer.from('x-access-token:' + credential).toString('base64')
+  let requireCredential = false
   let denied = false
   const server = createServer(
     { key: await readFile(join(host, 'key.pem')), cert: await readFile(join(host, 'cert.pem')) },
     (req, res) => {
+      if (requireCredential && req.headers.authorization !== authorization) {
+        res.writeHead(401).end()
+        return
+      }
       if (denied) {
         res.writeHead(403).end()
         return
@@ -204,6 +227,20 @@ test('HTTPS clone, fetch, clean pull, explicit branch and tag pushes use a dispo
   cloned.setDirty('package.json', false)
   await authorGit(cloned, { operation: 'pull' })
   assert.equal(await readFile(join(copy, 'external.txt'), 'utf8'), 'remote change\n')
+  requireCredential = true
+  const tokenFor = async target => {
+    assert.equal(target, url)
+    return credential
+  }
+  const appCopy = join(host, 'app-copy')
+  await cloneAuthorRepository(appCopy, url, undefined, tokenFor)
+  assert.equal(await readFile(join(appCopy, 'external.txt'), 'utf8'), 'remote change\n')
+  assert.equal((await git(appCopy, 'remote', 'get-url', 'origin')).stdout.trim(), url)
+  assert.doesNotMatch(await readFile(join(appCopy, '.git/config'), 'utf8'), /disposable-git-test|extraheader/i)
+  await authorGit(workspace, { operation: 'push', destination: await run('push-target') }, undefined, tokenFor)
+  await authorGit(cloned, { operation: 'fetch' }, undefined, tokenFor)
+  await authorGit(cloned, { operation: 'pull' }, undefined, tokenFor)
+  requireCredential = false
   const built = join(root, 'release')
   await mkdir(built)
   await writeFile(

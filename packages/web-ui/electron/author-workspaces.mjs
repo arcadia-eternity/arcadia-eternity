@@ -202,14 +202,14 @@ export class AuthorWorkspaces {
     }
     throw new Error('不支持的项目队伍操作')
   }
-  async clone(url) {
+  async clone(url, tokenFor) {
     if (this.#transfers.has('clone')) throw new Error('正在克隆源项目')
     const controller = new AbortController()
     this.#transfers.set('clone', controller)
     const directory = join(this.root, 'projects', `clone-${randomUUID()}`)
     try {
       await mkdir(dirname(directory), { recursive: true })
-      await (await this.api()).cloneAuthorRepository(directory, url, controller.signal)
+      await (await this.api()).cloneAuthorRepository(directory, url, controller.signal, tokenFor)
       return await this.add(directory)
     } catch (error) {
       await rm(directory, { recursive: true, force: true })
@@ -221,7 +221,7 @@ export class AuthorWorkspaces {
   cancelGit(id) {
     this.#transfers.get(id)?.abort()
   }
-  async git(id, input) {
+  async git(id, input, tokenFor) {
     const session = await this.session(id)
     const { authorGit } = await this.api()
     return this.#mutate(async () => {
@@ -240,7 +240,7 @@ export class AuthorWorkspaces {
       const controller = new AbortController()
       this.#transfers.set(id, controller)
       try {
-        return await authorGit(session.workspace, input, controller.signal)
+        return await authorGit(session.workspace, input, controller.signal, tokenFor)
       } finally {
         this.#transfers.delete(id)
       }

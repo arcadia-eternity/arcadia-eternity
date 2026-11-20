@@ -52,7 +52,7 @@ npx arcadia-content workspace . release --execute
 
 ## 桌面 Git 工作区
 
-在「创作」打开本地源项目，或选择「克隆源项目」并输入 HTTPS 仓库地址。首次使用克隆项目时，在「项目与外部工具」连接本机 SDK，或在源项目运行 `npm ci` 安装锁定的开发依赖。工作台使用系统 Git，沿用本机的提交身份和 HTTPS 凭据助手。
+在「创作」打开本地源项目，或选择「克隆源项目」并输入 HTTPS 仓库地址。首次使用克隆项目时，在「项目与外部工具」连接本机 SDK，或在源项目运行 `npm ci` 安装锁定的开发依赖。工作台使用系统 Git 和本机提交身份。输入 HTTPS 地址克隆时使用本机凭据；选择「从 GitHub 打开」可以用创作 App 授权并克隆所选仓库。
 
 在「Git 版本管理」初始化仓库，点文件名查看磁盘上的修改。在「未暂存」与「已暂存」之间移动文件后填写提交说明。工作台会刷新外部编辑器产生的修改。保存表单草稿后再提交或拉取。拉取仅支持快进，分叉、合并冲突、带自定义钩子的仓库和链接工作树通过外部 Git 工具处理。
 
@@ -60,13 +60,17 @@ npx arcadia-content workspace . release --execute
 
 在「项目与外部工具」查看身份、SDK API、宿主兼容范围，编辑 npm 版本与运行依赖。改动运行依赖后，在发行面板选择「更新 npm 锁文件」，或使用 npm 更新项目的开发安装和锁文件。在干净的源项目副本执行 `npm install --package-lock-only --ignore-scripts` 可仅生成锁文件。将 `package-lock.json` 与声明一同提交，以便 Actions 执行 `npm ci`。
 
-保存源码、提交版本变更，运行「检查并生成发行包」。成功后回到 Git 面板创建对应的本地版本标签；推送分支与推送标签有各自的目标确认。没有远端也可完成本地发行检查、标记版本，并将产物用于环境。只读工具可以用 `arcadia-content workspace . git-status`，或给 `git-diff` 传入 JSON，例如 `{"file":"data/skills/strike.yaml","staged":true}`。MCP 对应 `git_status` 和 `git_diff`。
+保存源码、提交版本变更，运行「检查并生成发行包」。成功后在「发布新版本」创建对应的本地版本标签；推送分支与推送标签有各自的目标确认。没有远端也可完成本地发行检查、标记版本，并将产物用于环境。只读工具可以用 `arcadia-content workspace . git-status`，或给 `git-diff` 传入 JSON，例如 `{"file":"data/skills/strike.yaml","staged":true}`。MCP 对应 `git_status` 和 `git_diff`。
+
+## 使用 GitHub App 同步源码
+
+在「Git 版本管理」打开「GitHub 同步」，点击「连接 GitHub」并按提示输入设备码。桌面默认连接组织的 [Arcadia Eternity Creator](https://github.com/apps/arcadia-eternity-creator)。首次使用时，把创作 App 安装到自己的 GitHub 账号。新内容包可直接选择「创建 GitHub 仓库」，确认账号、仓库名和可见性，点击「创建并绑定仓库」。默认创建个人私有仓库，并初始化本地 Git。已有仓库也可从授权列表中选择绑定。暂存文件、填写提交说明并完成首次提交后，选择「推送分支」。此处可获取更新、快进拉取或推送当前分支。推送分支只更新源代码，日常同步无需修改包版本、生成归档或创建标签。模板的正式发行工作流由作者手动启动。
+
+创作 App 启用 Device Flow。创建个人仓库需要 Repository creation 写入。同步需要 Metadata 读取和 Contents 读写；推送模板自带的 `.github/workflows/` 文件还需 Workflows 写入。GitHub 仓库自身的分支保护仍然生效。自托管客户端可以通过 `ARCADIA_CREATOR_GITHUB_CLIENT_ID` 覆盖公开 Client ID。设备授权仅用于创作，Git 传输使用所选仓库的临时凭据。断开账号或退出客户端即可清除会话。[GitHub App 权限](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app)
 
 ## GitHub Release 与 npm
 
-在工作台选择「发布新版本」，展开「GitHub 仓库与发行」。在 GitHub 安装专用创作 App，选择允许访问的仓库，再在桌面连接创作账号、输入设备码。桌面可列出这些仓库并绑定到项目。创建个人仓库可选公开或私有；在 GitHub 网页创建后，也可把新仓库加入 App 的安装范围。
-
-专用 GitHub App 需启用 Device Flow。桌面启动环境变量 `ARCADIA_CREATOR_GITHUB_CLIENT_ID` 可提供公开 Client ID，也可在连接时填写。仓库权限使用 Metadata 和 Contents 读取，手动启动发行工作流需要 Actions 写入。使用桌面 API 创建仓库另需 Administration 写入，可以直接选择「在 GitHub 创建」使用自己的浏览器会话。设备授权仅保存在 Electron 主进程内存中，断开或退出即清除本地会话；GitHub 设置中可撤销 App 授权。玩家登录仍使用服务器单独配置的身份提供方，Git 推送使用本机凭据助手。[GitHub 设备授权](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app) · [创建个人仓库权限](https://docs.github.com/en/rest/repos/repos#create-a-repository-for-the-authenticated-user)
+需要正式分发时，进入「发布新版本」检查归档、创建版本标签，再同步标签。通过 App 启动发行工作流另需 Actions 写入权限。
 
 推送分支和版本标签后，从桌面启动 **Release content pack**。工作流须先存在于仓库默认分支。GitHub 会在所选标签上使用 Node 24、锁定的公开 SDK 和模板脚本构建，检查发行清单，独立安装，再用临时消费者目录中的发行内容运行机制测试。桌面发起的工作流还要求归档 SHA-512 与本机已验证文件一致。工作台显示 Actions 的状态和失败记录，发行成功后可复制对应版本的归档地址。私有仓库的下载地址需要 GitHub 授权；公开分享安装请使用公开 Release，也可从浏览器下载后导入本地文件。
 

@@ -4,9 +4,12 @@ import { simpleGit, type SimpleGit } from 'simple-git'
 import { errorCode, type UnknownRecord } from './types.ts'
 import type { AuthorWorkspace } from './workspace.ts'
 
-function client(root: string, signal?: AbortSignal, disableHooks = true) {
+type GitTokenProvider = (url: string) => Promise<string>
+
+function client(root: string, signal?: AbortSignal, disableHooks = true, transportEnv: Record<string, string> = {}) {
   const env: Record<string, string> = {
     ...(process.env.GIT_SSL_CAINFO ? { GIT_SSL_CAINFO: process.env.GIT_SSL_CAINFO } : {}),
+    ...transportEnv,
     GIT_TERMINAL_PROMPT: '0',
     GIT_ALLOW_PROTOCOL: 'https',
     GIT_LITERAL_PATHSPECS: '1',
@@ -17,7 +20,14 @@ function client(root: string, signal?: AbortSignal, disableHooks = true) {
     baseDir: root,
     strict: true,
     allowEnvironment: Object.keys(env),
-    allowConfig: ['core.hooksPath', 'core.fsmonitor', 'submodule.recurse'],
+    allowConfig: [
+      'core.hooksPath',
+      'core.fsmonitor',
+      'submodule.recurse',
+      ...(transportEnv.GIT_CONFIG_COUNT
+        ? ['credential.helper', 'http.followRedirects', transportEnv.GIT_CONFIG_KEY_0!]
+        : []),
+    ],
     config: [
       ...(disableHooks ? ['core.hooksPath=' + (process.platform === 'win32' ? 'NUL' : '/dev/null')] : []),
       'core.fsmonitor=false',
@@ -39,8 +49,35 @@ function httpsRemote(value: unknown) {
   return url.href
 }
 
-export async function cloneAuthorRepository(directory: string, url: unknown, signal?: AbortSignal) {
-  await client(dirname(directory), signal).clone(httpsRemote(url), directory, ['--no-recurse-submodules'])
+// The credential is supplied by the desktop for this specific URL and transfer only.
+async function transferClient(root: string, url: string, signal?: AbortSignal, tokenFor?: GitTokenProvider) {
+  if (!tokenFor) return client(root, signal)
+  const token = await tokenFor(url)
+  const encoded = Buffer.from('x-access-token:' + token).toString('base64')
+  return client(root, signal, true, {
+    GIT_CONFIG_COUNT: '3',
+    GIT_CONFIG_KEY_0: 'http.' + url + '.extraHeader',
+    GIT_CONFIG_VALUE_0: 'Authorization: Basic ' + encoded,
+    GIT_CONFIG_KEY_1: 'http.followRedirects',
+    GIT_CONFIG_VALUE_1: 'false',
+    GIT_CONFIG_KEY_2: 'credential.helper',
+    GIT_CONFIG_VALUE_2: '',
+  })
+}
+
+export async function cloneAuthorRepository(
+  directory: string,
+  url: unknown,
+  signal?: AbortSignal,
+  tokenFor?: GitTokenProvider,
+) {
+  const remote = httpsRemote(url)
+  const transport = await transferClient(dirname(directory), remote, signal, tokenFor)
+  await transport.clone(remote, directory, ['--no-recurse-submodules', ...(tokenFor ? ['--no-checkout'] : [])])
+  if (tokenFor) {
+    const local = client(directory, signal)
+    if ((await local.branchLocal()).all.length) await local.reset(['--hard', 'HEAD'])
+  }
 }
 
 // A source project may sit inside a larger repository. Never operate on that parent
@@ -103,16 +140,15 @@ async function trackingRemote(git: SimpleGit, branch: string | null) {
 
 async function status(git: SimpleGit) {
   const state = await git.status(['--no-renames', '--untracked-files=all', '--ignore-submodules=all'])
+  const head = (await git.raw(['rev-parse', '--revs-only', 'HEAD'])).trim()
   return {
     repository: true,
+    head,
     branch: state.current,
     detached: state.detached,
     upstream: state.tracking,
     hasRemote: (await git.getRemotes(false)).length > 0,
-    tags:
-      state.isClean() && (await git.branchLocal()).all.length
-        ? (await git.tag(['--points-at', 'HEAD'])).trim().split('\n').filter(Boolean)
-        : [],
+    tags: state.isClean() && head ? (await git.tag(['--points-at', 'HEAD'])).trim().split('\n').filter(Boolean) : [],
     ahead: state.ahead,
     behind: state.behind,
     files: state.files.map(file => ({
@@ -125,7 +161,12 @@ async function status(git: SimpleGit) {
   }
 }
 
-export async function authorGit(workspace: AuthorWorkspace, input: UnknownRecord, signal?: AbortSignal) {
+export async function authorGit(
+  workspace: AuthorWorkspace,
+  input: UnknownRecord,
+  signal?: AbortSignal,
+  tokenFor?: GitTokenProvider,
+) {
   if (typeof input.operation !== 'string') throw new Error('不支持的 Git 操作')
   if (input.operation === 'status' || input.operation === 'diff') {
     await workspace.path('package.json')
@@ -164,7 +205,7 @@ export async function authorGit(workspace: AuthorWorkspace, input: UnknownRecord
     const packageRepositoryMatches =
       typeof url === 'string' && url.replace(/^git\+/, '').replace(/\.git$/, '') === 'https://github.com/' + match[1]
     const tag = 'v' + manifest.version
-    const head = (await git.branchLocal()).all.length ? (await git.revparse(['HEAD'])).trim() : undefined
+    const head = state.head || undefined
     return {
       repository: match[1],
       manifestVersion: declared.version,
@@ -214,7 +255,20 @@ export async function authorGit(workspace: AuthorWorkspace, input: UnknownRecord
       state.files.some(file => file.conflict)
     )
       throw new Error('请先保存草稿、处理冲突并填写提交说明')
-    await git.commit(input.message)
+    const identity = input.fallbackIdentity as { name?: string; email?: string } | undefined
+    if (
+      identity?.name &&
+      identity.email &&
+      (!(await git.getConfig('user.name')).value || !(await git.getConfig('user.email')).value)
+    ) {
+      const commitGit = client(workspace.root, signal, true, {
+        GIT_AUTHOR_NAME: identity.name,
+        GIT_COMMITTER_NAME: identity.name,
+        GIT_AUTHOR_EMAIL: identity.email,
+        GIT_COMMITTER_EMAIL: identity.email,
+      })
+      await commitGit.commit(input.message)
+    } else await git.commit(input.message)
   } else if (input.operation === 'tag') {
     if (state.files.length || workspace.hasDirtyFiles) throw new Error('请先保存并提交所有修改')
     if (typeof input.tag !== 'string' || !/^v?[0-9][\w.+-]{0,100}$/.test(input.tag)) throw new Error('版本标签无效')
@@ -244,14 +298,15 @@ export async function authorGit(workspace: AuthorWorkspace, input: UnknownRecord
     }
     if (pushing) destination += ' · ' + (await git.revparse([pushRef.split(':')[0]])).trim()
     if (input.operation === 'push-target' || input.operation === 'tag-target') return destination
+    if (pushing && input.destination !== destination) throw new Error('远端地址或分支已改变，请重新确认推送')
+    const transport = await transferClient(workspace.root, url, signal, tokenFor)
     if (pushing) {
-      if (input.destination !== destination) throw new Error('远端地址或分支已改变，请重新确认推送')
-      await git.push(target, pushRef, [...(tagPush ? [] : ['--set-upstream']), '--no-follow-tags'])
+      await transport.push(target, pushRef, [...(tagPush ? [] : ['--set-upstream']), '--no-follow-tags'])
     } else if (input.operation === 'fetch')
-      await git.fetch(target, '+refs/heads/*:refs/remotes/' + target + '/*', ['--no-tags'])
+      await transport.fetch(target, '+refs/heads/*:refs/remotes/' + target + '/*', ['--no-tags'])
     else {
       if (workspace.hasDirtyFiles || state.files.length) throw new Error('拉取前请先保存草稿并提交修改')
-      await git.fetch(target, ref, ['--no-tags'])
+      await transport.fetch(target, ref, ['--no-tags'])
       if (workspace.hasDirtyFiles || (await status(git)).files.length) throw new Error('下载期间有修改，请先保存并提交')
       await git.merge(['--ff-only', 'FETCH_HEAD'])
     }

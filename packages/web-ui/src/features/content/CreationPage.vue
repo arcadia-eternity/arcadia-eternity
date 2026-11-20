@@ -3,6 +3,7 @@ import '@/features/management/managementStyles'
 import { ElButton, ElMessageBox, ElInput, ElDialog, ElForm, ElFormItem, ElAlert } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 import ContentPackagesPanel from './ContentPackagesPanel.vue'
+import CreatorGitHubPanel from '@/features/authoring/CreatorGitHubPanel.vue'
 import { useRouter } from 'vue-router'
 import { authorCall, type SourceProject } from '@/features/authoring/types'
 import { useNewPackageRange } from '@/features/authoring/useNewPackageRange'
@@ -12,6 +13,7 @@ const projects = ref<SourceProject[]>([])
 const name = ref('')
 const creating = ref(false)
 const cloning = ref(false)
+const githubOpen = ref(false)
 const busy = ref(false)
 const initialized = ref(false)
 const error = ref('')
@@ -88,6 +90,9 @@ onMounted(() => {
   <section class="creation-page" aria-labelledby="creation-title" :aria-busy="busy">
     <h1 id="creation-title">内容包与创作</h1>
     <ElAlert v-if="error" :title="error" type="error" :closable="false" role="alert" />
+    <section v-if="canAuthor && githubOpen" class="github-clone" aria-label="从 GitHub 打开">
+      <CreatorGitHubPanel mode="clone" @cloned="open" />
+    </section>
     <ContentPackagesPanel
       location="local"
       :projects="editable"
@@ -97,6 +102,7 @@ onMounted(() => {
       <template v-if="canAuthor" #toolbar>
         <ElButton type="primary" :disabled="busy" @click="creating = true">新建内容包</ElButton>
         <ElButton :disabled="busy" @click="choose">打开项目文件夹</ElButton>
+        <ElButton :aria-expanded="githubOpen" @click="githubOpen = !githubOpen">从 GitHub 打开</ElButton>
         <ElButton :disabled="busy" @click="cloneProject">克隆源项目</ElButton>
         <ElButton v-if="cloning" @click="authorCall({ action: 'git-cancel', id: 'clone' })">取消克隆</ElButton>
       </template>
@@ -146,6 +152,12 @@ onMounted(() => {
 .creation-page {
   max-width: 1280px;
   margin: 0 auto;
+}
+.github-clone {
+  margin: 12px 20px;
+  padding: 14px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
 }
 .creation-page h1 {
   margin: 16px clamp(12px, 2vw, 20px) 4px;
