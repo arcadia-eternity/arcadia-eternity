@@ -19,7 +19,8 @@ import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.t
 
 import type { AuthorEffectCatalog } from './effect-declarations.ts'
 
-const ignored = new Set(['node_modules', 'dist', '.git', '.arcadia', '.DS_Store', 'Thumbs.db'])
+export const desktopMetadataNames: ReadonlySet<string> = new Set(['.DS_Store', 'Thumbs.db'])
+const ignored = new Set(['node_modules', 'dist', '.git', '.arcadia', ...desktopMetadataNames])
 const kinds = [
   'species',
   'skills',

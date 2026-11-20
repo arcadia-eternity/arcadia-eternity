@@ -793,6 +793,7 @@ async function openProject(next: SourceProject) {
   skillCategory.value = 'all'
   const lastTab = localStorage.getItem(`arcadia-author-tab:${next.id}`) || 'species'
   tab.value = Object.hasOwn(contentTypes, lastTab) ? lastTab : 'species'
+  if (next.published) return
   localStorage.setItem('arcadia-author-project', next.id)
   if (route.params.projectId !== next.id)
     await router.replace({ name: 'AuthorWorkspace', params: { projectId: next.id } })
@@ -815,7 +816,7 @@ function switchTab(key: string) {
     search.value = ''
     skillCategory.value = 'all'
   }
-  if (project.value && Object.hasOwn(contentTypes, key))
+  if (project.value && !project.value.published && Object.hasOwn(contentTypes, key))
     localStorage.setItem(`arcadia-author-tab:${project.value.id}`, key)
 }
 function navigate(kind: string, id: string, fromList = false) {
@@ -1189,11 +1190,13 @@ onMounted(async () => {
   await attempt(async () => {
     projects.value = await authorCall({ action: 'list' })
     const last = projects.value.find(row => row.id === localStorage.getItem('arcadia-author-project'))
+    const id = route.params.projectId
     const requested =
-      typeof route.params.projectId === 'string'
-        ? projects.value.find(row => row.id === route.params.projectId)
+      typeof id === 'string' && id
+        ? (projects.value.find(row => row.id === id) ??
+          (await authorCall<SourceProject>({ action: 'browse-package', packageId: id })))
         : undefined
-    if (route.params.projectId && !requested) throw new Error('此源项目不存在，请从创作页面重新打开。')
+    if (disposed) return
     if (requested || last) await openProject((requested || last)!)
   })
 })
@@ -1225,6 +1228,7 @@ onBeforeUnmount(() => {
           :disabled="busy || dirty"
           @change="switchProject"
         >
+          <option v-if="project.published" :value="project.id" disabled>{{ project.name }}</option>
           <option v-for="row in projects" :key="row.id" :value="row.id">{{ row.name }}</option>
           <option value="">打开项目文件夹…</option>
         </select>

@@ -3,3 +3,5 @@ dist/
 .arcadia/
 *.tgz
 release-output/
+.DS_Store
+Thumbs.db

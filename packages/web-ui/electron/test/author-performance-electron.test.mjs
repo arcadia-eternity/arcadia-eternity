@@ -74,6 +74,17 @@ test(
       await page.getByRole('button', { name: '浏览内容（只读）', exact: true }).click()
       await expect(page.getByRole('heading', { name: '精灵', exact: true })).toBeVisible()
       await expect(page.locator('.content-card')).toHaveCount(60, { timeout: 30000 })
+      const installedId = await page.evaluate(async () => {
+        const { packages } = await window.arcadiaDesktop.listContentPackages()
+        return packages.find(pkg => pkg.bundled).id
+      })
+      assert.equal(new URL(page.url()).pathname, '/creation/edit/' + installedId)
+      const projects = await page.evaluate(() => window.arcadiaDesktop.author({ action: 'list' }))
+      assert.deepEqual(projects.result, [])
+      assert.equal(await page.evaluate(() => localStorage.getItem('arcadia-author-project')), null)
+      await page.reload()
+      await expect(page.locator('.app-header .badge')).toHaveText('只读')
+      await expect(page.locator('.content-card')).toHaveCount(60, { timeout: 30000 })
       const cdp = process.env.ARCADIA_AUTHOR_PROFILE ? await page.context().newCDPSession(page) : undefined
       if (cdp) {
         await cdp.send('Profiler.enable')
@@ -128,11 +139,11 @@ test(
       assert.ok(scroll > 0)
       await expect(page.locator('.page-heading .element-icon')).toBeVisible()
       await expect(page.locator('.record-form .element-icon')).toBeVisible()
-      await expect(page.getByLabel('属性', { exact: true })).toBeDisabled()
+      await expect(page.getByRole('combobox', { name: '属性', exact: true })).toBeDisabled()
       const navigation = page.getByRole('navigation', { name: '内容分类' })
       await navigation.getByRole('button', { name: /^精灵/ }).click()
       await navigation.getByRole('button', { name: /^技能/ }).click()
-      await expect(page.getByLabel('属性', { exact: true })).toBeDisabled()
+      await expect(page.getByRole('combobox', { name: '属性', exact: true })).toBeDisabled()
       await expect(categories.getByRole('button', { name: /^必杀/ })).toHaveAttribute('aria-pressed', 'true')
       await expect.poll(() => page.locator('.object-library').evaluate(node => node.scrollTop)).toBe(scroll)
       // Search spans object types without changing the list or forcing a file-oriented view.

@@ -132,7 +132,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
           skillCount: snapshot.records.filter(row => row.kind === 'skills').length,
         }
       } finally {
-        await api.author({ action: 'forget', id: project.id })
+        await api.author({ action: 'close', id: project.id })
       }
     })
     assert.equal(base.project.published, true)

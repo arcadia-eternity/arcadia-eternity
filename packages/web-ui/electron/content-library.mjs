@@ -545,14 +545,14 @@ export class ContentLibrary {
     }, 30000)
     this.#gcTimer.unref?.()
   }
-  async sourceDirectory(id) {
+  async authorProject(id) {
     await this.#load()
     const entry = this.#entry(id)
     const root = await this.#directory(id)
     const directory = join(root, 'node_modules', entry.name)
     const resolved = await realpath(directory)
     if (resolved !== directory) throw new Error('安装内容目录已改变')
-    return resolved
+    return { id, name: entry.name, directory: resolved, readOnly: true, published: true }
   }
   #entry(id) {
     const entry = this.#state.installed.find(item => item.id === id)

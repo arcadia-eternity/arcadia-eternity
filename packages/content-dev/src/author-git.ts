@@ -1,8 +1,8 @@
 import { lstat, readdir, realpath } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { simpleGit, type SimpleGit } from 'simple-git'
 import { errorCode, type UnknownRecord } from './types.ts'
-import type { AuthorWorkspace } from './workspace.ts'
+import { desktopMetadataNames, type AuthorWorkspace } from './workspace.ts'
 
 type GitTokenProvider = (url: string) => Promise<string>
 
@@ -140,6 +140,7 @@ async function trackingRemote(git: SimpleGit, branch: string | null) {
 
 async function status(git: SimpleGit) {
   const state = await git.status(['--no-renames', '--untracked-files=all', '--ignore-submodules=all'])
+  const files = state.files.filter(file => file.index !== '?' || !desktopMetadataNames.has(basename(file.path)))
   const head = (await git.raw(['rev-parse', '--revs-only', 'HEAD'])).trim()
   return {
     repository: true,
@@ -148,10 +149,10 @@ async function status(git: SimpleGit) {
     detached: state.detached,
     upstream: state.tracking,
     hasRemote: (await git.getRemotes(false)).length > 0,
-    tags: state.isClean() && head ? (await git.tag(['--points-at', 'HEAD'])).trim().split('\n').filter(Boolean) : [],
+    tags: !files.length && head ? (await git.tag(['--points-at', 'HEAD'])).trim().split('\n').filter(Boolean) : [],
     ahead: state.ahead,
     behind: state.behind,
-    files: state.files.map(file => ({
+    files: files.map(file => ({
       path: file.path,
       staged: file.index !== ' ' && file.index !== '?',
       changed: file.working_dir !== ' ',

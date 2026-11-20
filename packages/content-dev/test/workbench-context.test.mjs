@@ -171,7 +171,7 @@ test('current registrations retain read-only metadata and missing source project
   assert.equal(JSON.parse(await readFile(file, 'utf8'))[0].readOnly, true)
 })
 
-test('opening the project list upgrades source registrations missing only the published flag', async t => {
+test('opening the project list removes browsed packages and preserves legacy source registrations', async t => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-source-registry-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, 'state'))
@@ -182,7 +182,7 @@ test('opening the project list upgrades source registrations missing only the pu
     { id: 'built', name: '已发布包', directory: join(root, 'built'), readOnly: true, published: true },
   ]
   await writeFile(file, JSON.stringify(entries))
-  const expected = entries.map(entry => ({ published: false, ...entry }))
+  const expected = entries.slice(0, 2).map(entry => ({ published: false, ...entry }))
   const manager = new AuthorWorkspaces({ root })
   const lists = await Promise.all([manager.list(), manager.list()])
   assert.deepEqual(lists, [expected, expected])
