@@ -101,6 +101,11 @@ const prompt = computed(() => {
     config.value,
     '加载服务后，调用 workspace_describe 核对项目目录，并告诉我实际返回的项目名与读写权限。需要我信任项目、启用服务或重开会话时，请告诉我具体操作。',
     '如果创作工作台已打开，再调用 workspace_context 获取当前选中对象和草稿。',
+    ...(props.readOnly
+      ? []
+      : [
+          '之后若我要求提交或同步，读取 author_reference 的 git 主题。准备或发布版本时读取 release 主题。使用本机 Git，以及你已获授权的 gh 或 GitHub 连接。',
+        ]),
   ].join('\n\n')
 })
 async function copy(value: string, success: string) {

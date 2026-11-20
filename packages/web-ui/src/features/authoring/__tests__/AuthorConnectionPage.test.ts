@@ -42,18 +42,24 @@ it('builds the prompt for the open project and respects read-only access', async
     await client.setValue('Cursor')
     expect(page.get('.code-header code').text()).toBe('.cursor/mcp.json')
     expect(JSON.parse(settings()).mcpServers.arcadia.args).toEqual(['first', '--execute'])
+    const copyPrompt = async () => {
+      await page
+        .findAll('button')
+        .find(button => button.text() === '复制连接提示词')!
+        .trigger('click')
+      await flushPromises()
+      return page.get('textarea').element.value
+    }
+    expect(await copyPrompt()).toContain('gh 或 GitHub 连接')
     await page.setProps({ project: projects[1]!, readOnly: true })
     await flushPromises()
     expect(author).toHaveBeenCalledWith({ action: 'connection', id: 'base', execute: false })
     expect(page.text()).toContain('只读访问')
     expect(page.text()).not.toContain('允许运行测试')
-    await page
-      .findAll('button')
-      .find(button => button.text() === '复制连接提示词')!
-      .trigger('click')
-    await flushPromises()
-    expect(page.get('textarea').element.value).toContain('--read-only')
-    expect(page.get('textarea').element.value).not.toContain('--execute')
+    const readOnlyPrompt = await copyPrompt()
+    expect(readOnlyPrompt).toContain('--read-only')
+    expect(readOnlyPrompt).not.toContain('--execute')
+    expect(readOnlyPrompt).not.toContain('GitHub 连接')
   } finally {
     page.unmount()
   }

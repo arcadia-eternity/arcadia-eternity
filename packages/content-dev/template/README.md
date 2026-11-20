@@ -6,7 +6,16 @@
 
 ## Agent 提示与 skill
 
-SDK 构建模板携带 `skills/arcadia-content-authoring/SKILL.md` 和 `skills/seer2-recreate-pet/SKILL.md`。通用内容创作使用前者；按提供的资料复刻精灵使用后者，其中包含文件组织、机制取舍和测试规范，不附带外部数据或获取地址。可让 Agent 直接读取相应文件，无需主仓库。已有项目也可读取安装的 `@arcadia-eternity/content-sdk/dist/template/skills/` 目录；SDK 更新不会自动覆盖项目中的 skill 副本。
+让助手按任务读取项目中的技能。
+
+| 任务                     | 文件                                        |
+| ------------------------ | ------------------------------------------- |
+| 创作内容、编写效果和测试 | `skills/arcadia-content-authoring/SKILL.md` |
+| 根据资料复刻精灵         | `skills/seer2-recreate-pet/SKILL.md`        |
+| 提交或同步源码           | `skills/arcadia-content-git/SKILL.md`       |
+| 检查发行归档、发布版本   | `skills/arcadia-content-release/SKILL.md`   |
+
+已有项目可通过新版 MCP 的 `author_reference` 读取 `git` 或 `release` 主题，也可直接读取已安装 SDK 的 `dist/template/skills/` 目录。
 
 ## 分离的表现与资源（v2）
 
