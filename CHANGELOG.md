@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.7.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.7.0...arcadia-eternity-v4.7.1) (2026-11-20)
+
+
+### 🐛 Bug Fixes
+
+* **authoring:** keep browsed packages and desktop metadata out of project lists ([7fd47cb](https://github.com/arcadia-eternity/arcadia-eternity/commit/7fd47cbbd763a3ece3b44245f78afd164a9d2491))
+* **release:** publish compiled environment rules in the base pack ([fa5869f](https://github.com/arcadia-eternity/arcadia-eternity/commit/fa5869fc871beb3c8ffec622891db90ab90c51c3))
+
 ## [4.7.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.6.0...arcadia-eternity-v4.7.0) (2026-11-20)
 
 
