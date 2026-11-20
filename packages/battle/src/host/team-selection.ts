@@ -1,5 +1,6 @@
 import {
   BattleMessageType,
+  resolveTeamSelectionConfig,
   BattlePhase,
   BattleStatus,
   type BattleTeamSelection,
@@ -50,15 +51,7 @@ export class NativeTeamSelection {
     private readonly battle: Battle,
     config: Partial<TeamSelectionConfig> = {},
   ) {
-    this.config = {
-      mode: config.mode ?? 'TEAM_SELECTION',
-      minTeamSize: config.minTeamSize ?? 1,
-      maxTeamSize: config.maxTeamSize ?? 6,
-      allowStarterSelection: config.allowStarterSelection ?? true,
-      showOpponentTeam: config.showOpponentTeam ?? false,
-      teamInfoVisibility: config.teamInfoVisibility ?? 'HIDDEN',
-      timeLimit: config.timeLimit ?? 60,
-    }
+    this.config = resolveTeamSelectionConfig(config)
     const c = this.config
     if (
       !['TEAM_SELECTION', 'FULL_TEAM', 'VIEW_ONLY'].includes(c.mode) ||

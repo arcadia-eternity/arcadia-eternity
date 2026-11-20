@@ -422,22 +422,24 @@ function getManagementWorkspaceOwner() {
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
       )
       const library = getContentLibrary()
-      await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
       const { synchronizeShippedEnvironments, readShippedEnvironments } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
       )
+      const catalog = await readShippedEnvironments(
+        app.isPackaged
+          ? path.join(process.resourcesPath, 'arcadia-server/shipped-environments.json')
+          : path.resolve(projectRoot, '../../bin/shipped-environments.json'),
+        {
+          '@arcadia-eternity/data-pack-base': runtimeRequire('@arcadia-eternity/data-pack-base/package.json').version,
+        },
+      )
+      await workspace.refreshBuiltinRules(catalog.environments)
+      await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
       builtinEnvironment = await openBuiltinEnvironment({
         workspace,
         library,
         validate: validateWorkspaceProject,
-        catalog: await readShippedEnvironments(
-          app.isPackaged
-            ? path.join(process.resourcesPath, 'arcadia-server/shipped-environments.json')
-            : path.resolve(projectRoot, '../../bin/shipped-environments.json'),
-          {
-            '@arcadia-eternity/data-pack-base': runtimeRequire('@arcadia-eternity/data-pack-base/package.json').version,
-          },
-        ),
+        catalog,
         synchronizeShippedEnvironments,
         legacyBuiltinId: async () => {
           const directory = path.join(app.getPath('userData'), 'local-server')

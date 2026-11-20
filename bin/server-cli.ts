@@ -347,11 +347,12 @@ export async function runServerCli(args: string[]): Promise<number> {
         validateWorkspaceProject(input, {
           effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
         })
-      await projects.synchronizeBundledBase(workspace, validate)
       const base = JSON.parse(await readFile(join(bundledPackageRoot, 'package.json'), 'utf8'))
       const catalog = await readShippedEnvironments(new URL('./shipped-environments.json', import.meta.url), {
         [base.name]: base.version,
       })
+      await ownedWorkspace.refreshBuiltinRules(catalog.environments)
+      await projects.synchronizeBundledBase(workspace, validate)
       const key = catalog.defaultEnvironment
       const previous = (await storage.get<ManagedServer>('servers', serverId))?.value.initialization
       const adopted: Record<string, string> = {}

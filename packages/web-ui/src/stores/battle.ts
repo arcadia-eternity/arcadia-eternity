@@ -7,6 +7,7 @@ import {
   type playerId,
   type PlayerSelection,
   type TeamSelectionConfig,
+  type TeamInfo,
 } from '@arcadia-eternity/const'
 import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
@@ -86,6 +87,7 @@ export const useBattleStore = defineStore('battle', {
     waitingForResponse: false,
     // 团队选择相关状态
     teamSelectionActive: false,
+    teamSelectionOpponent: null as TeamInfo | null,
     teamSelectionConfig: null as TeamSelectionConfig | null,
     teamSelectionTimeRemaining: 0,
   }),
@@ -236,6 +238,7 @@ export const useBattleStore = defineStore('battle', {
 
     endTeamSelection() {
       this.teamSelectionActive = false
+      this.teamSelectionOpponent = null
       this.teamSelectionConfig = null
       this.teamSelectionTimeRemaining = 0
     },
@@ -385,17 +388,9 @@ export const useBattleStore = defineStore('battle', {
     async handleBattleMessage(msg: BattleMessage) {
       // 处理团队选择相关消息
       if (msg.type === BattleMessageType.TeamSelectionStart) {
-        // 将消息中的 config 转换为 TeamSelectionConfig 格式
-        const config: TeamSelectionConfig = {
-          mode: msg.data.config.mode,
-          maxTeamSize: msg.data.config.maxTeamSize,
-          minTeamSize: msg.data.config.minTeamSize,
-          allowStarterSelection: msg.data.config.allowStarterSelection,
-          showOpponentTeam: msg.data.config.showOpponentTeam,
-          teamInfoVisibility: msg.data.config.teamInfoVisibility,
-          timeLimit: msg.data.config.timeLimit,
-        }
-        this.startTeamSelection(config, msg.data.config.timeLimit)
+        this.teamSelectionOpponent =
+          this.battleState?.players[0]?.id === this.playerId ? msg.data.playerBTeam : msg.data.playerATeam
+        this.startTeamSelection(msg.data.config, msg.data.config.timeLimit)
       } else if (msg.type === BattleMessageType.TeamSelectionComplete) {
         this.endTeamSelection()
       }
@@ -454,6 +449,7 @@ export const useBattleStore = defineStore('battle', {
 
       // 清理团队选择状态
       this.teamSelectionActive = false
+      this.teamSelectionOpponent = null
       this.teamSelectionConfig = null
       this.teamSelectionTimeRemaining = 0
 

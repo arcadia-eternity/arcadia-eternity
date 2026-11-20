@@ -47,8 +47,8 @@ import {
   type BattleState,
   type BattleTeamSelection,
   type TeamSelectionAction,
-  type TeamSelectionConfig,
-  type TeamInfo,
+  BattlePhase,
+  resolveTeamSelectionConfig,
   type petId,
   type playerId,
   type PetMessage,
@@ -308,25 +308,6 @@ const currentPlayerTeam = computed(() => {
   return player?.team || []
 })
 
-// 团队选择阶段的对手队伍数据
-const teamSelectionOpponentTeam = computed(() => {
-  if (!teamSelectionPlayerATeam.value || !teamSelectionPlayerBTeam.value) {
-    return []
-  }
-
-  const currentPlayerId = store.playerId
-  const players = store.battleState?.players || []
-
-  // 根据当前玩家ID确定对手队伍
-  if (players[0]?.id === currentPlayerId) {
-    // 当前玩家是 playerA，对手是 playerB
-    return teamSelectionPlayerBTeam.value?.pets || []
-  } else {
-    // 当前玩家是 playerB，对手是 playerA
-    return teamSelectionPlayerATeam.value?.pets || []
-  }
-})
-
 // Climax特效相关
 const showClimaxEffect = ref(false) // 控制climax特效显示
 const climaxEffectSide = ref<'left' | 'right' | null>(null) // 特效显示在哪一侧
@@ -384,12 +365,25 @@ const isTrainingMode = computed(() => {
 const isTrainingPanelOpen = ref(false)
 
 // 团队选择相关状态
-const showTeamSelectionPanel = ref(false)
-const teamSelectionConfig = ref<TeamSelectionConfig | null>(null)
-const teamSelectionTimeLimit = ref<number | undefined>(undefined)
+const selectionSubmitted = ref(false)
+const snapshotSelection = computed(() =>
+  store.battleState?.currentPhase === BattlePhase.TeamSelectionPhase
+    ? gameDataStore.rules?.mechanics?.teamSelection
+    : undefined,
+)
+const teamSelectionConfig = computed(
+  () =>
+    store.teamSelectionConfig ??
+    (snapshotSelection.value?.enabled ? resolveTeamSelectionConfig(snapshotSelection.value) : null),
+)
+const showTeamSelectionPanel = computed(
+  () =>
+    !props.replayMode &&
+    !selectionSubmitted.value &&
+    !!teamSelectionConfig.value &&
+    (store.teamSelectionActive || store.availableActions.some(action => action.type === 'team-selection')),
+)
 const currentTeamSelection = ref<BattleTeamSelection | null>(null)
-const teamSelectionPlayerATeam = ref<TeamInfo | null>(null)
-const teamSelectionPlayerBTeam = ref<TeamInfo | null>(null)
 
 // 对手团队选择状态（目前为占位符，实际应从战斗状态中获取）
 const opponentSelectionProgress = computed(() => {
@@ -737,8 +731,9 @@ const onTeamSelectionConfirm = async (selection: BattleTeamSelection) => {
       starterPetId: selection.starterPetId,
     }
 
+    store.errorMessage = null
     await store.sendplayerSelection(teamSelectionAction)
-    showTeamSelectionPanel.value = false
+    selectionSubmitted.value = !store.errorMessage
   } catch (error) {
     console.error('团队选择提交失败:', error)
   }
@@ -1033,7 +1028,9 @@ const initializeBattleResources = async () => {
               // The handshake can reveal the opposing starter. Keep the loading screen
               // until that state (or the team-selection phase) has reached the page.
               const started = () =>
-                store.battleState?.status !== BattleStatusEnum.Unstarted || store.teamSelectionActive
+                store.battleState?.status !== BattleStatusEnum.Unstarted ||
+                store.teamSelectionActive ||
+                !!snapshotSelection.value?.enabled
               if (!started()) {
                 await new Promise<void>(resolve => {
                   const stop = watch(started, value => {
@@ -2122,23 +2119,6 @@ const setupMessageSubscription = async () => {
                     if (msg.data && 'player' in msg.data && !(msg.data.player === currentPlayer.value?.id)) break
                     if (!props.replayMode) panelState.value = PanelState.PETS
                     break
-                  case BattleMessageType.TeamSelectionStart:
-                    // 处理团队选择开始消息
-                    if (!props.replayMode && msg.data) {
-                      teamSelectionConfig.value = msg.data.config
-                      teamSelectionTimeLimit.value = msg.data.config.timeLimit
-                      teamSelectionPlayerATeam.value = msg.data.playerATeam
-                      teamSelectionPlayerBTeam.value = msg.data.playerBTeam
-                      showTeamSelectionPanel.value = true
-                    }
-                    break
-                  case BattleMessageType.TeamSelectionComplete:
-                    // 处理团队选择完成消息
-                    showTeamSelectionPanel.value = false
-                    // 清理团队选择数据
-                    teamSelectionPlayerATeam.value = null
-                    teamSelectionPlayerBTeam.value = null
-                    break
                   // PetSwitch 类型的消息已在外部 if 条件中处理
                   default:
                     // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态
@@ -2532,9 +2512,9 @@ watch(
                 <TeamSelectionPanel
                   v-if="teamSelectionConfig"
                   :fullTeam="currentPlayerTeam"
-                  :opponentTeam="teamSelectionOpponentTeam"
+                  :opponentTeam="store.teamSelectionOpponent?.pets"
                   :config="teamSelectionConfig"
-                  :timeLimit="teamSelectionTimeLimit"
+                  :timeLimit="teamSelectionConfig.timeLimit"
                   :initialSelection="currentTeamSelection || undefined"
                   :opponentProgress="opponentSelectionProgress"
                   :opponentSelection="opponentTeamSelection || undefined"

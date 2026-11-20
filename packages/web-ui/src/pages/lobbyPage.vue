@@ -176,7 +176,7 @@
         <el-form-item label="房间密码">
           <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
         </el-form-item>
-        <RoomBattleOptions v-model="battleOptions" />
+        <RoomBattleOptions v-model="battleOptions" :environment-timer="!!roomRules?.mechanics?.timer" />
         <el-form-item v-if="battleOptions.battleMode === 'p2p'" label="环境来源">
           <el-radio-group v-model="personalEnvironmentSelected">
             <el-radio :value="false">服务器提供</el-radio>
@@ -298,6 +298,14 @@ async function startLocalServer() {
 }
 const switchingServer = computed(() => privateRoomStore.isSwitchingServer)
 const selectedEnvironmentId = ref('')
+const roomRules = computed(() =>
+  battleOptions.value.battleMode === 'p2p' && personalEnvironmentSelected.value
+    ? privateRoomStore.personalEnvironment?.reference.rules
+    : (
+        privateRoomStore.environments.find(item => item.id === selectedEnvironmentId.value) ??
+        privateRoomStore.defaultEnvironment
+      )?.rules,
+)
 const environmentsLoading = ref(false)
 const environmentsError = ref(false)
 const customEnvironments = computed(() =>
@@ -357,6 +365,7 @@ const createRoom = async () => {
     const roomCode = await privateRoomStore.createRoom(
       {
         ...battleOptions.value,
+        ...(roomRules.value?.mechanics?.timer && { timerConfig: undefined }),
         isPrivate: !!roomConfig.value.password,
         password: roomConfig.value.password || undefined,
         p2pTransport: roomConfig.value.p2pTransport,

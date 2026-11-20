@@ -20,7 +20,6 @@ const props = defineProps<{
   catalog?: SkillParameterCatalog
   resolved?: EnvironmentRules
   appliedKnown: boolean
-  hasIncludes: boolean
   appliedPolicy?: SkillParameterPolicy
 }>()
 const policy = computed(() => rules.value.skillParameters ?? {})
@@ -214,9 +213,7 @@ function setOverride(row: { skill: string; useId: string; parameter: string }, r
             :placeholder="effectiveGroup?.value.toString()"
         /></ElFormItem>
         <ElButton :disabled="!groupId || groupInput == null" @click="setGroup()">设置组值</ElButton>
-        <ElButton :disabled="policy.groups?.[groupId] === undefined" @click="setGroup(true)">{{
-          hasIncludes ? '恢复继承组值' : '跟随方案'
-        }}</ElButton>
+        <ElButton :disabled="policy.groups?.[groupId] === undefined" @click="setGroup(true)">跟随方案</ElButton>
       </div>
       <ul v-if="policy.groups">
         <li v-for="(value, id) in policy.groups" :key="id">

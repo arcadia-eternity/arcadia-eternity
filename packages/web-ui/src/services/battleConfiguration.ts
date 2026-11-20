@@ -1,19 +1,10 @@
-import type { TimerConfig } from '@arcadia-eternity/const'
+import { resolveTeamSelectionConfig, type TeamSelectionConfig, type TimerConfig } from '@arcadia-eternity/const'
 import type { NativeWebBattleConfig } from './nativeBattleFactory'
 
 export interface BattleConfiguration {
   showHidden: boolean
   rngSeed?: number
-  teamSelection: {
-    enabled: boolean
-    mode: 'VIEW_ONLY' | 'TEAM_SELECTION' | 'FULL_TEAM'
-    maxTeamSize: number
-    minTeamSize: number
-    allowStarterSelection: boolean
-    showOpponentTeam: boolean
-    teamInfoVisibility: 'HIDDEN' | 'BASIC' | 'FULL'
-    timeLimit: number
-  }
+  teamSelection: Required<TeamSelectionConfig> & { enabled: boolean }
 }
 export function createBattleConfiguration(): BattleConfiguration {
   return {
@@ -21,13 +12,7 @@ export function createBattleConfiguration(): BattleConfiguration {
     rngSeed: undefined,
     teamSelection: {
       enabled: false,
-      mode: 'TEAM_SELECTION',
-      maxTeamSize: 6,
-      minTeamSize: 1,
-      allowStarterSelection: true,
-      showOpponentTeam: false,
-      teamInfoVisibility: 'HIDDEN',
-      timeLimit: 60,
+      ...resolveTeamSelectionConfig(),
     },
   }
 }

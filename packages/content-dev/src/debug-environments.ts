@@ -1,4 +1,4 @@
-import { EnvironmentRuleDeclarationSchema, EnvironmentRequirementsSchema } from '@arcadia-eternity/const'
+import { IndependentEnvironmentRulesSchema, EnvironmentRequirementsSchema } from '@arcadia-eternity/const'
 export {
   EnvironmentRuleDeclarationSchema,
   EnvironmentRulesSchema,
@@ -45,7 +45,7 @@ export const EnvironmentDocumentV2Schema = z
   .object({
     schemaVersion: z.literal(2),
     ...sharedFields,
-    rules: EnvironmentRuleDeclarationSchema,
+    rules: IndependentEnvironmentRulesSchema,
     requires: EnvironmentRequirementsSchema,
   })
   .strict()

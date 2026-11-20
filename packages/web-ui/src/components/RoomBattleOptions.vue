@@ -8,10 +8,10 @@
       房主需保持页面开启；当前不支持 P2P 对战观战。
     </p>
   </el-form-item>
-  <el-form-item label="行动计时">
+  <el-form-item v-if="!environmentTimer" label="行动计时">
     <el-switch v-model="options.timerConfig.enabled" />
   </el-form-item>
-  <template v-if="options.timerConfig.enabled">
+  <template v-if="!environmentTimer && options.timerConfig.enabled">
     <el-form-item label="每回合秒数">
       <el-input-number v-model="options.timerConfig.turnTimeLimit" :min="1" :max="3600" :precision="0" />
     </el-form-item>
@@ -28,5 +28,5 @@
 import type { RoomBattleOptionsValue } from '@/utils/roomBattleOptions'
 
 const options = defineModel<RoomBattleOptionsValue>({ required: true })
-defineProps<{ serverOnly?: boolean }>()
+defineProps<{ serverOnly?: boolean; environmentTimer?: boolean }>()
 </script>

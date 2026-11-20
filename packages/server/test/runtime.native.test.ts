@@ -3,7 +3,8 @@ import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternit
 import type { BattleHost } from '@arcadia-eternity/battle/host'
 import { WorkerBattleSystem } from '@arcadia-eternity/battle/sandbox'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
-import { createServerBattle, getServerRuntimeIdentity, loadServerBase, validateServerTeam } from '../src/runtime/native'
+import { createServerBattle, getServerRuntimeIdentity, validateServerTeam } from '../src/runtime/native'
+import shipped from '../../../bin/shipped-environments.json'
 import input from '../../battle/test/fixtures/official-switch.input.json'
 
 const systems: BattleHost[] = []
@@ -126,15 +127,14 @@ it('checks inherited skills and second-generation natures independently against 
 it('allows each new breeding family to inherit from the other under the official base rules', async () => {
   const { readFile } = await import('node:fs/promises')
   const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
-  const { rules } = prepareEnvironmentRules(
-    JSON.parse(
-      await readFile(
-        new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
-        'utf8',
-      ),
+  const declaration = JSON.parse(
+    await readFile(
+      new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+      'utf8',
     ),
-    (await loadServerBase()).data.ruleSets,
   )
+  expect(declaration).toEqual(shipped.environments.find(env => env.id === shipped.defaultEnvironment)?.rules)
+  const { rules } = prepareEnvironmentRules(declaration)
   const starter = fixture()[0].team[0]
   for (const [species, inheritedSkill, ownDonorMove] of [
     ['pet_hema', 'skill_duzhenlianshe', 'skill_kusechouda'],
@@ -159,7 +159,8 @@ it('applies the 120 test environment’s selected nature and stage to all six ba
       'utf8',
     ),
   )
-  const { rules } = prepareEnvironmentRules(declaration, (await loadServerBase()).data.ruleSets)
+  expect(declaration).toEqual(shipped.environments.find(env => env.id === 'training-120')?.rules)
+  const { rules } = prepareEnvironmentRules(declaration)
   expect(rules.mechanics?.secondGenerationNatures).toBe('species')
   const players = fixture()
   const lead = players[0].team[0]
@@ -246,3 +247,25 @@ it('cancels battle creation before content or team preparation can allocate a ho
   during.abort(new Error('preparation canceled'))
   await expect(preparing).rejects.toThrow('preparation canceled')
 })
+
+it('applies environment clocks and selected roster sizes in the server worker', async () => {
+  const [a, b] = fixture()
+  const system = await createServerBattle(a, b, { timerConfig: { enabled: false } }, undefined, undefined, undefined, {
+    schemaVersion: 2,
+    mechanics: {
+      timer: { enabled: true, turnTimeLimit: 17, totalTimeLimit: 0 },
+      teamSelection: { enabled: true, maxTeamSize: 1, timeLimit: 0 },
+    },
+  })
+  systems.push(system)
+  expect(await system.getTimerConfig()).toMatchObject({ enabled: true, turnTimeLimit: 17, totalTimeLimit: 0 })
+  await system.ready()
+  const { players } = await system.getState(undefined, true)
+  for (const player of players) {
+    const choice = (await system.getAvailableSelection(player.id)).find(action => action.type === 'team-selection')
+    expect(choice?.selectedPets).toHaveLength(1)
+    await system.submitAction(choice!)
+  }
+  await system.waitForPendingDecision()
+  expect((await system.getState(undefined, true)).players.map(player => player.team?.length)).toEqual([1, 1])
+}, 30000)

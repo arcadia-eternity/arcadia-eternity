@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { resolveEnvironmentBattleOptions } from '@arcadia-eternity/const'
 import { randomBytes } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -44,6 +45,7 @@ export async function prepareContentPack(
   const { environment } = prepared
   const environmentRules = validateEnvironmentRules(prepared.effectiveRules)
   const { allowFaintSwitch, enhancement, individualValues } = resolveEnvironmentMechanics(environmentRules)
+  const { timerConfig, teamSelection } = resolveEnvironmentBattleOptions(environmentRules)
   const enhancementActive = enhancement.mode === 'active'
   // Four automation sessions, one human preview, and room for their validated replacements.
   const workers = createNodeBattleWorkerManager({ maxBattles: 7 })
@@ -128,7 +130,7 @@ export async function prepareContentPack(
           matchups: environmentRules.matchups,
           enhancementActive,
           rngSeed: seed,
-          timerConfig: battleOptions.timerConfig ?? { enabled: false },
+          timerConfig: timerConfig ?? battleOptions.timerConfig ?? { enabled: false },
         } as Parameters<typeof effects.content.createBattle>[2]),
         effects,
       )
@@ -180,9 +182,9 @@ export async function prepareContentPack(
         skillParameters: environmentRules.skillParameters,
         matchups: environmentRules.matchups,
         rngSeed: seed,
-        timerConfig: battleOptions.timerConfig ?? { enabled: false },
+        timerConfig: timerConfig ?? battleOptions.timerConfig ?? { enabled: false },
       },
-      hostOptions: { teamSelection: battleOptions.teamSelection },
+      hostOptions: { teamSelection: teamSelection ?? battleOptions.teamSelection },
     } as Parameters<typeof workers.create>[0])
     return system
   }

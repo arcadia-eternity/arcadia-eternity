@@ -433,7 +433,12 @@ onBeforeUnmount(() => {
         <details class="battle-options">
           <summary>对战参数</summary>
           <div class="options-panel">
-            <BattleOptionsEditor v-model:battle-config="battleConfig" v-model:timer-config="timerConfig" />
+            <BattleOptionsEditor
+              v-model:battle-config="battleConfig"
+              v-model:timer-config="timerConfig"
+              :environment-timer="!!data.rules?.mechanics?.timer"
+              :environment-selection="!!data.rules?.mechanics?.teamSelection"
+            />
           </div>
         </details>
       </div>

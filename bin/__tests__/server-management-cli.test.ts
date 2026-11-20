@@ -231,7 +231,6 @@ it('bootstraps playable builtin content once and preserves administrator removal
     id: 'training-120',
     name: '120 资质 · 神魔化与二代',
     rules: {
-      include: ['base:classic'],
       mechanics: { individualValues: { max: 120 }, enhancement: { mode: 'active' } },
     },
   })
@@ -362,10 +361,15 @@ it('refreshes stale builtin content after a release without changing administrat
   await stop(running.child)
 
   const manifestFile = join(directory, 'workspace', 'environments', binding.environmentId, 'package.json')
-  const manifest = JSON.parse(await readFile(manifestFile, 'utf8'))
-  manifest.arcadiaEnvironment.rules = { schemaVersion: 1 }
-  manifest.dependencies['@arcadia-eternity/data-pack-base'] = '0.0.0-stale'
-  await writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n')
+  for (const id of [binding.environmentId, 'training-120']) {
+    const project = join(directory, 'workspace', 'environments', id)
+    const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+    const receipt = JSON.parse(await readFile(join(project, '.arcadia-prepared.json'), 'utf8'))
+    manifest.arcadiaEnvironment.rules = receipt.document.rules = { schemaVersion: 2, include: ['base:classic'] }
+    manifest.dependencies['@arcadia-eternity/data-pack-base'] = '0.0.0-stale'
+    await writeFile(join(project, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
+    await writeFile(join(project, '.arcadia-prepared.json'), JSON.stringify(receipt))
+  }
 
   running = await start(directory)
   const environments = await catalog(running.origin)
@@ -377,7 +381,11 @@ it('refreshes stale builtin content after a release without changing administrat
   expect(environments.find(item => item.isDefault)!.rules?.mechanics?.inheritance?.eligible).toBe('species')
   expect(JSON.parse(await readFile(manifestFile, 'utf8')).arcadiaEnvironment.rules).toEqual({
     schemaVersion: 2,
-    include: ['base:classic'],
+    mechanics: {
+      individualValues: { max: 31 },
+      inheritance: { eligible: 'species' },
+      secondGenerationNatures: 'species',
+    },
   })
 
   request = await administrator(running.origin, directory)

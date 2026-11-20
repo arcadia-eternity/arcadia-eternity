@@ -20,7 +20,6 @@ type Target = Inheritance['eligible']
 const props = defineProps<{
   resolved?: EnvironmentRules
   options: ReferenceOptions
-  inheritedEnhancement?: Enhancement
 }>()
 const mechanics = computed(() => (props.resolved ? resolveEnvironmentMechanics(props.resolved) : rules.value.mechanics))
 const inherited = computed(() => mechanics.value?.inheritance)
@@ -68,7 +67,6 @@ type Enhancement = NonNullable<NonNullable<EnvironmentRules['mechanics']>['enhan
 const enhancementModes = { active: '启用', suppressed: '禁用' }
 const enhancementOverride = computed(() => rules.value.mechanics?.enhancement)
 function selectEnhancement(value: unknown) {
-  if (value === 'inherit') return restore('enhancement')
   if (value !== 'active' && value !== 'suppressed') return
   const enhancement = { ...mechanics.value?.enhancement, mode: value } satisfies Enhancement
   rules.value = { ...rules.value, schemaVersion: 2, mechanics: { ...rules.value.mechanics, enhancement } }
@@ -79,19 +77,6 @@ function setEnhancementList(field: 'species' | 'stages', values?: string[]) {
   if (values !== undefined) next[field] = values
   else delete next[field]
   rules.value = { ...rules.value, schemaVersion: 2, mechanics: { ...rules.value.mechanics, enhancement: next } }
-}
-type Adjustment = NonNullable<EnvironmentRules['learnsetAdjustments']>[number]
-const adjustmentKey = (row: Adjustment) => JSON.stringify([row.species, row.source, row.skill])
-const inheritedAdjustments = computed(() => {
-  const local = new Set(rules.value.learnsetAdjustments?.map(adjustmentKey))
-  return props.resolved?.learnsetAdjustments?.filter(row => !local.has(adjustmentKey(row)))
-})
-function overrideAdjustment(row: Adjustment) {
-  rules.value = {
-    ...rules.value,
-    schemaVersion: 2,
-    learnsetAdjustments: [...(rules.value.learnsetAdjustments ?? []), { ...row }],
-  }
 }
 function addRow() {
   rules.value = {
@@ -141,7 +126,7 @@ function removeRow(index: number) {
           link
           type="primary"
           @click="restore('secondGenerationNatures')"
-          >恢复继承性格资格</ElButton
+          >恢复默认性格资格</ElButton
         >
       </div>
       <div class="learning-row">
@@ -162,7 +147,7 @@ function removeRow(index: number) {
           />
         </ElFormItem>
         <ElButton v-if="rules.mechanics?.inheritance" link type="primary" @click="restore('inheritance')"
-          >恢复继承遗传规则</ElButton
+          >恢复默认遗传规则</ElButton
         >
       </div>
       <div v-if="inherited && inherited.eligible !== 'off'" class="learning-row">
@@ -212,7 +197,7 @@ function removeRow(index: number) {
               :max="maxEquippedSkills"
               @update:model-value="value => setSlot('climaxMin', value)"
           /></ElFormItem>
-          <ElButton v-if="rules.mechanics?.skillSlots" link @click="restore('skillSlots')">恢复继承槽位</ElButton>
+          <ElButton v-if="rules.mechanics?.skillSlots" link @click="restore('skillSlots')">恢复默认槽位</ElButton>
         </div>
         <template v-else>
           <span v-if="resolved">普通与必杀共用槽位（共 {{ maxEquippedSkills }} 个）</span>
@@ -220,16 +205,6 @@ function removeRow(index: number) {
         </template>
         <p v-if="slotIssue" role="alert">{{ slotIssue }}</p>
       </section>
-      <ul v-if="inheritedAdjustments?.length" aria-label="继承的技能调整">
-        <li v-for="row in inheritedAdjustments" :key="adjustmentKey(row)">
-          {{ row.species }} · {{ row.source === 'normal' ? '普通' : '遗传' }} ·
-          {{ row.action === 'add' ? '增加' : '移除' }} {{ row.skill }}
-          <span v-if="row.source === 'normal' && row.action === 'add'"
-            >（等级 {{ row.level ?? defaultLearnsetLevel }}）</span
-          >
-          <ElButton link @click="overrideAdjustment(row)">覆盖</ElButton>
-        </li>
-      </ul>
       <div v-for="(row, index) in rules.learnsetAdjustments" :key="index" class="learning-row">
         <ElFormItem label="物种 ID"
           ><EnvironmentReferenceInput :options="options.species" v-model.trim="row.species"
@@ -264,14 +239,9 @@ function removeRow(index: number) {
       <ElRadioGroup
         class="enhancement-modes"
         aria-label="神魔化规则"
-        :model-value="enhancementOverride ? resolveEnhancement(enhancementOverride).mode : 'inherit'"
+        :model-value="resolveEnhancement(enhancementOverride).mode"
         @update:model-value="selectEnhancement"
       >
-        <ElRadio value="inherit">{{
-          inheritedEnhancement
-            ? '继承（' + enhancementModes[resolveEnhancement(inheritedEnhancement).mode] + '）'
-            : '继承规则集'
-        }}</ElRadio>
         <ElRadio v-for="(label, value) in enhancementModes" :key="value" :value="value">{{ label }}</ElRadio>
       </ElRadioGroup>
     </ElFormItem>

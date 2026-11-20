@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import type { Server, Socket } from 'socket.io'
 import {
   BattleMessageType,
+  resolveEnvironmentBattleOptions,
   type Events,
   type PlayerSelection,
   type playerId,
@@ -487,6 +488,8 @@ export class RoomRegistry {
       if (object(input.config).allowFaintSwitch !== undefined && config.allowFaintSwitch !== reward)
         fail('ENVIRONMENT_FIXED')
       config.allowFaintSwitch = reward
+      const { timerConfig } = resolveEnvironmentBattleOptions(environment.rules)
+      if (timerConfig) config.timerConfig = timerConfig
       this.checkRuntime(input, environment)
       this.checkExecutionPolicy(environment, config.battleMode ?? 'server')
     } catch (error) {
@@ -1102,8 +1105,18 @@ export class RoomRegistry {
       withRoom(async (room, data) => {
         this.host(room, session)
         this.waiting(room)
-        const input = object(data),
-          config = this.config(input, room.info.config)
+        const input = object(data)
+        const fixedTimer = room.environment.rules?.mechanics?.timer
+        if (fixedTimer && input.timerConfig !== undefined) {
+          const current = room.info.config.timerConfig ?? {}
+          if (
+            Object.entries(object(input.timerConfig)).some(
+              ([key, value]) => !Object.hasOwn(current, key) || current[key as keyof TimerConfig] !== value,
+            )
+          )
+            fail('ENVIRONMENT_FIXED')
+        }
+        const config = this.config(fixedTimer ? { ...input, timerConfig: undefined } : input, room.info.config)
         const password = config.isPrivate
           ? input.password === undefined
             ? room.password

@@ -85,11 +85,11 @@ const state = computed(() => timerSnapshot.value?.state || TimerState.Stopped)
 
 // 判断是否应该显示时间
 const shouldShowTurnTime = computed(() => {
-  return timerConfig.value?.turnTimeLimit !== undefined
+  return !!timerConfig.value?.turnTimeLimit
 })
 
 const shouldShowTotalTime = computed(() => {
-  return timerConfig.value?.totalTimeLimit !== undefined
+  return !!timerConfig.value?.totalTimeLimit
 })
 
 // 计算时间百分比

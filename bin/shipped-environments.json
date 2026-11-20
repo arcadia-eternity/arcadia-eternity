@@ -11,7 +11,15 @@
       "sources": [],
       "rules": {
         "schemaVersion": 2,
-        "include": ["base:classic"]
+        "mechanics": {
+          "individualValues": {
+            "max": 31
+          },
+          "inheritance": {
+            "eligible": "species"
+          },
+          "secondGenerationNatures": "species"
+        }
       },
       "requires": {}
     },
@@ -25,11 +33,14 @@
       "sources": [],
       "rules": {
         "schemaVersion": 2,
-        "include": ["base:classic"],
         "mechanics": {
           "individualValues": {
             "max": 120
           },
+          "inheritance": {
+            "eligible": "species"
+          },
+          "secondGenerationNatures": "species",
           "enhancement": {
             "mode": "active",
             "minLevel": 100,

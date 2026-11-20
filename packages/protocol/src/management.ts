@@ -54,7 +54,7 @@ export interface ManagedEnvironmentDocument {
   name: string
   packages: Record<string, string>
   sources: string[]
-  rules: import('@arcadia-eternity/const').EnvironmentRuleDeclaration
+  rules: import('@arcadia-eternity/const').IndependentEnvironmentRules
   requires: { engine?: string; sdk?: string; capabilities?: string[] }
 }
 export interface ManagedEnvironment {
@@ -74,7 +74,7 @@ export interface ManagedReadyEnvironmentInstallation {
     requiredCapabilities?: string[]
     rules: import('./environment').EnvironmentRules
     fields: { path: string[]; value: unknown; sources: string[]; effectiveSources: string[] }[]
-    ruleSets: { id: string; name: string; rules: ManagedEnvironmentDocument['rules'] }[]
+    ruleSets: { id: string; name: string; rules: import('@arcadia-eternity/const').EnvironmentRuleDeclaration }[]
   }
   skillParameters?: import('@arcadia-eternity/const').SkillParameterCatalog
   contentCatalog?: Record<'species' | 'skills' | 'marks' | 'stages', { id: string; name?: string }[]>

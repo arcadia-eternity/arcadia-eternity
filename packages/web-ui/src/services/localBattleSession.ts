@@ -1,3 +1,4 @@
+import { resolveEnvironmentBattleOptions } from '@arcadia-eternity/const'
 import { toRaw } from 'vue'
 import { assertPlayableTeam, resolveEnvironmentMechanics } from '@arcadia-eternity/content-sdk/environment-rules'
 import { isNavigationFailure, type NavigationFailure } from 'vue-router'
@@ -109,6 +110,7 @@ export class LocalBattleSession {
           target.data,
           {
             ...options,
+            ...resolveEnvironmentBattleOptions(this.#rules),
             skillParameters: this.#rules?.skillParameters,
             matchups: this.#rules?.matchups,
             individualValueMax: mechanics.individualValues.max,

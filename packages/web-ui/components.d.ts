@@ -21,6 +21,8 @@ declare module 'vue' {
     BattleMarkInfo: typeof import('./src/components/battle/BattleMarkInfo.vue')['default']
     BattleOptionsEditor: typeof import('./src/components/battle/BattleOptionsEditor.vue')['default']
     BattleStatus: typeof import('./src/components/battle/BattleStatus.vue')['default']
+    BattleTeamSelectionFields: typeof import('./src/components/battle/BattleTeamSelectionFields.vue')['default']
+    BattleTimerFields: typeof import('./src/components/battle/BattleTimerFields.vue')['default']
     ClimaxEffectAnimation: typeof import('./src/components/ClimaxEffectAnimation.vue')['default']
     ConnectionStatus: typeof import('./src/components/ConnectionStatus.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']

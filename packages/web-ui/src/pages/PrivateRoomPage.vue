@@ -314,6 +314,7 @@
       <el-form :model="privateRoomStore.roomConfigForm" label-width="120px">
         <RoomBattleOptions
           v-model="battleOptions"
+          :environment-timer="!!roomRules?.mechanics?.timer"
           :server-only="
             !!privateRoomStore.currentRoom?.environment &&
             (privateRoomStore.currentRoom.environment.executionPolicy === 'server' ||
@@ -627,6 +628,9 @@ const confirmSwitchToPlayer = async () => {
 }
 
 // 房间配置相关方法
+const roomRules = computed(
+  () => privateRoomStore.currentRoom?.personalEnvironment?.rules ?? privateRoomStore.currentRoom?.environment?.rules,
+)
 const openRoomConfigDialog = () => {
   // 初始化配置表单
   privateRoomStore.initializeRoomConfigForm()
@@ -647,6 +651,7 @@ const saveRoomConfig = async () => {
       password: privateRoomStore.roomConfigForm.password,
       p2pTransport: privateRoomStore.roomConfigForm.p2pTransport,
       ...battleOptions.value,
+      ...(roomRules.value?.mechanics?.timer && { timerConfig: undefined }),
     }
 
     // 如果密码为空字符串，设置为undefined

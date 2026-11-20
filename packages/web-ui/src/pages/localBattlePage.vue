@@ -11,10 +11,18 @@
         <router-link to="/team-builder" class="text-blue-600">管理个人编队</router-link>
       </div>
 
-      <BattleOptionsEditor v-model:battle-config="battleConfig" v-model:timer-config="timerConfig" />
+      <BattleOptionsEditor
+        v-model:battle-config="battleConfig"
+        v-model:timer-config="timerConfig"
+        :environment-timer="!!dataStore.rules?.mechanics?.timer"
+        :environment-selection="!!dataStore.rules?.mechanics?.teamSelection"
+      />
 
       <!-- 预设配置按钮 -->
-      <div class="flex flex-wrap gap-2 justify-center mt-6 pt-6 border-t border-gray-200">
+      <div
+        v-if="!dataStore.rules?.mechanics?.timer || !dataStore.rules?.mechanics?.teamSelection"
+        class="flex flex-wrap gap-2 justify-center mt-6 pt-6 border-t border-gray-200"
+      >
         <el-button @click="loadPreset('default')">默认配置 </el-button>
         <el-button @click="loadPreset('fast')">快速对战 </el-button>
         <el-button @click="loadPreset('competitive')">竞技模式 </el-button>
