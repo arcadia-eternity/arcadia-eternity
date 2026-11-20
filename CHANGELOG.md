@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.11.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.10.0...arcadia-eternity-v4.11.0) (2026-11-20)
+
+
+### ✨ Features
+
+* **environments:** configure battle timers and team selection with standalone rules ([fb152ab](https://github.com/arcadia-eternity/arcadia-eternity/commit/fb152ab1d846a8a87af2610ce2749483d879df86))
+
+
+### 🐛 Bug Fixes
+
+* **environments:** refresh shipped rules before loading installed builtins ([745014b](https://github.com/arcadia-eternity/arcadia-eternity/commit/745014bf0785ec4d223cedfbaca614b15771ddc7))
+
 ## [4.10.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.9.1...arcadia-eternity-v4.10.0) (2026-11-20)
 
 
