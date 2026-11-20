@@ -460,14 +460,25 @@ it('applies the bundled base from local files even when the registry is unreacha
   const request = await administrator(running.origin, directory)
   const server = (await request<{ servers: Server[] }>('/servers')).servers[0]
   const path = `/workspaces/${server.workspaceId}/environments`
-  const before = await request<{ environments: { document: Record<string, unknown>; revision: string }[] }>(path)
-  const draft = before.environments[0]
+  const before = await request<{ environments: { builtin?: boolean; document: { id: string }; revision: string }[] }>(
+    path,
+  )
+  const builtin = before.environments.find(env => env.builtin)!
+  const custom = { ...builtin.document, id: 'local-base', name: '本地基础包' }
+  const rejected = await request(
+    path + '/apply',
+    'POST',
+    { document: { ...builtin.document, name: custom.name }, expectedRevision: builtin.revision },
+    undefined,
+    409,
+  )
+  expect(rejected).toMatchObject({ error: { code: 'BUILTIN_ENVIRONMENT_READ_ONLY' } })
   const operation = await request<{ id: string }>(
     path + '/apply',
     'POST',
     {
-      document: { ...draft.document, name: '本地基础包' },
-      expectedRevision: draft.revision,
+      document: custom,
+      expectedRevision: null,
     },
     undefined,
     202,
@@ -475,8 +486,9 @@ it('applies the bundled base from local files even when the registry is unreacha
   await expect
     .poll(async () => (await request<{ status: string }>(`/operations/${operation.id}`)).status, { timeout: 30_000 })
     .toBe('succeeded')
-  const after = await request<{ environments: { document: { name: string } }[] }>(path)
-  expect(after.environments[0].document.name).toBe('本地基础包')
+  const after = await request<typeof before>(path)
+  expect(after.environments).toContainEqual(builtin)
+  expect(after.environments.find(env => env.document.id === custom.id)?.document).toEqual(custom)
   expect(await catalog(running.origin)).toHaveLength(1)
 }, 90_000)
 
