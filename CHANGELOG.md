@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.8.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.1...arcadia-eternity-v4.8.2) (2026-11-20)
+
+
+### 🐛 Bug Fixes
+
+* **web:** ship every built-in environment in the team editor ([5f6fc37](https://github.com/arcadia-eternity/arcadia-eternity/commit/5f6fc37665611a382c7e447a14b8d254265c1a1a))
+
 ## [4.8.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.0...arcadia-eternity-v4.8.1) (2026-11-20)
 
 

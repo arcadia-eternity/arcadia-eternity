@@ -33,7 +33,7 @@ const local = shallowRef<Choice[]>([])
 const published = shallowRef<Choice[]>([])
 const choices = computed(() => [...local.value, ...published.value])
 const selected = computed(() => choices.value.find(choice => key(choice.preference) === key(preference.value)))
-const defaultName = desktop ? '本机当前环境' : '网页默认环境'
+const defaultName = ref(desktop ? '本机当前环境' : '网页默认环境')
 const [DefinePicker, EnvironmentPicker] = createReusableTemplate()
 const pickerOpen = ref(false)
 const refresh = ref(0)
@@ -75,6 +75,21 @@ watch(
                 ]
               : [],
           )
+        }),
+      )
+    else if (hasPreparedWebEnvironment())
+      loads.push(
+        readPreparedWebCatalog().then(catalog => {
+          if (controller.signal.aborted) return
+          const definitions = catalog.builtins ?? []
+          defaultName.value = definitions.find(doc => doc.id === catalog.defaultEnvironment)?.name ?? '网页默认环境'
+          local.value = definitions
+            .filter(doc => doc.id !== catalog.defaultEnvironment)
+            .map(doc => ({
+              name: doc.name,
+              revision: doc.gameplayRevision,
+              preference: { source: 'web', environmentId: doc.id },
+            }))
         }),
       )
     if (client.isConnected) {
@@ -204,7 +219,7 @@ function retrySelection() {
           v-for="choice in choices"
           :key="key(choice.preference)"
           :value="key(choice.preference)"
-          :label="(choice.server ? '服务器 · ' : '本机 · ') + choice.name"
+          :label="(choice.server ? '服务器 · ' : desktop ? '本机 · ' : '') + choice.name"
         />
         <template #footer>
           <div class="flex items-center justify-between gap-2">

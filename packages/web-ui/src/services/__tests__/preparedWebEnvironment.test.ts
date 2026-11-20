@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { gameplayRevision } from '@arcadia-eternity/pack-loader/native'
 import { readEnvironmentJson } from '../serverEnvironment'
-import { readPreparedWebCatalog } from '../preparedWebEnvironment'
+import { readBuiltinWebEnvironment, readPreparedWebCatalog } from '../preparedWebEnvironment'
 
 vi.mock('../serverEnvironment', () => ({ readEnvironmentJson: vi.fn() }))
 const identity = {
@@ -29,4 +29,42 @@ it('rejects a stale gameplay revision on the current catalog format', async () =
     gameplayRevision: '0'.repeat(64),
   })
   await expect(readPreparedWebCatalog(true)).rejects.toThrow('玩法版本不符')
+})
+
+it('uses the selected definition’s own material and verifies its rules against that material', async () => {
+  const otherIdentity = { ...identity, contentRevision: 'other' }
+  const otherMaterial = 'other-runtime'
+  const selectedRules = { schemaVersion: 2 as const, mechanics: { individualValues: { max: 90 } } }
+  const selectedRevision = await gameplayRevision(otherIdentity, otherMaterial, selectedRules)
+  const entry = {
+    id: 'other',
+    name: 'Other',
+    material: 'environment/other',
+    rules: selectedRules,
+    gameplayRevision: selectedRevision,
+  }
+  vi.mocked(readEnvironmentJson)
+    .mockResolvedValueOnce({
+      ...catalog,
+      runtimeIdentity: identity,
+      gameplayRevision: await gameplayRevision(identity, material, rules),
+      defaultEnvironment: 'main',
+      builtins: [{ ...entry, id: 'main', material: 'environment' }, entry],
+    })
+    .mockResolvedValueOnce({
+      ...catalog,
+      runtimeIdentity: otherIdentity,
+      runtimeRevision: otherMaterial,
+      gameplayRevision: await gameplayRevision(otherIdentity, otherMaterial, rules),
+    })
+  await readPreparedWebCatalog(true)
+  expect(await readBuiltinWebEnvironment('other')).toMatchObject({
+    rules: selectedRules,
+    gameplayRevision: selectedRevision,
+    runtimeRevision: otherMaterial,
+  })
+  expect(vi.mocked(readEnvironmentJson).mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+    '/environment/catalog.json',
+    '/environment/other/catalog.json',
+  ])
 })

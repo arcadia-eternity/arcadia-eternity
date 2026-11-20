@@ -4,7 +4,13 @@ import { ElButton, ElTag, ElSkeleton } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { listServerEnvironments } from '@/services/serverEnvironment'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
-const environments = ref<ServerEnvironmentDescriptor[]>([])
+import { readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
+const props = defineProps<{ bundled?: boolean }>()
+const heading = computed(() => (props.bundled ? '网页内置环境' : '公开环境'))
+type EnvironmentRow = Pick<ServerEnvironmentDescriptor, 'id' | 'environmentName' | 'isDefault' | 'executionPolicy'> & {
+  packages: { name: string; version: string }[]
+}
+const environments = ref<EnvironmentRow[]>([])
 const selectedId = ref('')
 const selected = computed(
   () =>
@@ -15,7 +21,7 @@ const selected = computed(
 const loading = ref(false)
 const initialized = ref(false)
 const error = ref('')
-const name = (environment: ServerEnvironmentDescriptor) =>
+const name = (environment: EnvironmentRow) =>
   environment.environmentName || (environment.isDefault ? '默认环境' : `环境 ${environment.id.slice(0, 8)}`)
 let controller: AbortController | undefined
 async function refresh() {
@@ -25,7 +31,16 @@ async function refresh() {
   loading.value = true
   error.value = ''
   try {
-    const result = await listServerEnvironments(getBackendOrigin(), fetch, request.signal)
+    let result: EnvironmentRow[]
+    if (props.bundled) {
+      const catalog = await readPreparedWebCatalog()
+      result = (catalog.builtins ?? []).map(doc => ({
+        id: doc.id,
+        environmentName: doc.name,
+        packages: doc.packages,
+        isDefault: doc.id === catalog.defaultEnvironment,
+      }))
+    } else result = await listServerEnvironments(getBackendOrigin(), fetch, request.signal)
     if (!request.signal.aborted) environments.value = result
   } catch (cause) {
     if (!request.signal.aborted) error.value = cause instanceof Error ? cause.message : '无法读取公开环境'
@@ -40,16 +55,16 @@ onMounted(refresh)
 onBeforeUnmount(() => controller?.abort())
 </script>
 <template>
-  <section aria-label="公开环境" class="public-environments">
+  <section :aria-label="heading" class="public-environments">
     <header>
-      <h2>公开环境</h2>
+      <h2>{{ heading }}</h2>
       <ElButton :loading="loading" @click="refresh">刷新</ElButton>
     </header>
-    <ElSkeleton v-if="!initialized" :rows="6" animated aria-label="正在加载公开环境" />
+    <ElSkeleton v-if="!initialized" :rows="6" animated :aria-label="'正在加载' + heading" />
     <p v-else-if="error" role="alert">{{ error }}</p>
-    <p v-else-if="!loading && !environments.length">服务器暂无公开环境。</p>
+    <p v-else-if="!loading && !environments.length">{{ bundled ? '暂无网页内置环境。' : '服务器暂无公开环境。' }}</p>
     <div v-else class="environment-columns">
-      <nav aria-label="选择公开环境">
+      <nav :aria-label="'选择' + heading">
         <ElButton
           v-for="environment in environments"
           :key="environment.id"
@@ -58,15 +73,15 @@ onBeforeUnmount(() => controller?.abort())
           >{{ name(environment) }}</ElButton
         >
       </nav>
-      <article v-if="selected" aria-label="公开环境详情">
+      <article v-if="selected" :aria-label="heading + '详情'">
         <header>
           <h3>{{ name(selected) }}</h3>
           <ElTag>只读</ElTag>
         </header>
-        <p>{{ selected.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行' }}</p>
+        <p v-if="!bundled">{{ selected.executionPolicy === 'peer' ? '由玩家托管' : '服务器执行' }}</p>
         <h4>包含的内容包</h4>
         <ul>
-          <li v-for="pkg in selected.packages" :key="pkg.projectId">
+          <li v-for="pkg in selected.packages" :key="pkg.name">
             <strong>{{ pkg.name }}</strong
             ><span>{{ pkg.version }}</span>
           </li>

@@ -1,10 +1,23 @@
 import { getDesktopApi } from '@/utils/env'
 import { validateEnvironmentContent } from './serverContentValidation'
+import { hasPreparedWebEnvironment, readBuiltinWebEnvironment, readPreparedWebRuntime } from './preparedWebEnvironment'
 
-/** A captured desktop selection. Each consumer owns its own resource lifetime. */
+/** A captured local selection. Each consumer owns its own resource lifetime. */
 export async function acquireLocalContent(environmentId?: string) {
   const api = getDesktopApi()
-  if (!api) return undefined
+  if (!api) {
+    if (!environmentId || !hasPreparedWebEnvironment()) return undefined
+    const catalog = await readBuiltinWebEnvironment(environmentId)
+    return {
+      environmentId,
+      gameplayRevision: catalog.gameplayRevision,
+      content: catalog.content,
+      rules: catalog.rules,
+      resources: catalog.resources,
+      readRuntime: () => readPreparedWebRuntime(undefined, catalog.material),
+      release: async () => {},
+    }
+  }
   if (!api.prepareLocalContent || !api.releaseLocalContent) throw new Error('本地内容服务不可用，请重启客户端')
   const result = await api.prepareLocalContent(environmentId)
   let runtime: ReturnType<NonNullable<typeof api.readLocalRuntime>> | undefined

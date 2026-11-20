@@ -9,7 +9,18 @@ import { readEnvironmentJson } from './serverEnvironment'
 import { validateEnvironmentContent } from './serverContentValidation'
 import type { EffectMarkRelations } from './skillMarkRelationService'
 
+type BuiltinWebEnvironment = {
+  id: string
+  name: string
+  material: string
+  packages: { name: string; version: string }[]
+  rules: EnvironmentRules
+  gameplayRevision: string
+}
+
 type PreparedCatalog = {
+  defaultEnvironment?: string
+  builtins?: BuiltinWebEnvironment[]
   rules?: EnvironmentRules
   content: ServerEnvironmentContent
   resources: PresentationManifest['resources']
@@ -29,17 +40,22 @@ export function hasPreparedWebEnvironment(): boolean {
 }
 
 const webRoot = () => new URL(import.meta.env.BASE_URL, window.location.href)
-let catalog: { promise: Promise<PreparedCatalog>; ready: boolean } | undefined
+const catalogs = new Map<string, { promise: Promise<PreparedCatalog>; ready: boolean }>()
 let runtime: SandboxEnvironment | undefined
 
 /** Stores share the decoded catalog for this bundled environment. */
 export function readPreparedWebCatalog(refresh = false): Promise<PreparedCatalog> {
+  return readMaterialCatalog('environment', refresh)
+}
+
+function readMaterialCatalog(material: string, refresh = false): Promise<PreparedCatalog> {
+  const catalog = catalogs.get(material)
   if (catalog && (!refresh || !catalog.ready)) return catalog.promise
   const root = webRoot()
   const entry = {
     ready: false,
     promise: readEnvironmentJson<PreparedCatalog>(
-      new URL('environment/catalog.json', root).href,
+      new URL(material + '/catalog.json', root).href,
       fetch,
       undefined,
       true,
@@ -90,26 +106,52 @@ export function readPreparedWebCatalog(refresh = false): Promise<PreparedCatalog
               return resolve(reference)
             })
       for (const resource of value.resources) resource.source = resolve(resource.source)
+      if (value.builtins !== undefined) {
+        if (
+          !Array.isArray(value.builtins) ||
+          new Set(value.builtins.map(doc => doc.id)).size !== value.builtins.length ||
+          !value.builtins.some(doc => doc.id === value.defaultEnvironment) ||
+          value.builtins.some(doc => !doc.name || !/^environment(?:\/[a-z0-9][a-z0-9_-]{0,79})?$/.test(doc.material))
+        )
+          throw new Error('网页内置环境清单无效')
+      }
       entry.ready = true
       return value
     }),
   }
-  catalog = entry
+  catalogs.set(material, entry)
   void entry.promise.catch(() => {
-    if (catalog === entry) catalog = undefined
+    if (catalogs.get(material) === entry) catalogs.delete(material)
   })
   return entry.promise
 }
 
+export async function readBuiltinWebEnvironment(id: string) {
+  const catalog = await readPreparedWebCatalog()
+  const definition = catalog.builtins?.find(doc => doc.id === id)
+  if (!definition) throw new Error('找不到所选的网页内置环境')
+  const material = await readMaterialCatalog(definition.material)
+  const rules = validateEnvironmentRules(definition.rules)
+  if (
+    !material.runtimeIdentity ||
+    (await gameplayRevision(material.runtimeIdentity, material.runtimeRevision, rules)) !== definition.gameplayRevision
+  )
+    throw new Error('网页环境的规则或材料与玩法版本不符')
+  return { ...material, rules, gameplayRevision: definition.gameplayRevision, material: definition.material }
+}
+
 /** The shipped environment carries its own executable recipe alongside its display catalog. */
-export async function readPreparedWebRuntime(signal?: AbortSignal): Promise<SandboxEnvironment> {
+export async function readPreparedWebRuntime(
+  signal?: AbortSignal,
+  material = 'environment',
+): Promise<SandboxEnvironment> {
   signal?.throwIfAborted()
   const explicit = import.meta.env.VITE_RUNTIME_REF?.trim()
   if (!explicit && !hasPreparedWebEnvironment()) throw new Error('当前环境缺少本地对战运行材料')
-  const expected = explicit ? undefined : (await readPreparedWebCatalog()).runtimeRevision
+  const expected = explicit ? undefined : (await readMaterialCatalog(material)).runtimeRevision
   signal?.throwIfAborted()
   if (runtime && expected === runtime.revision) return runtime
-  const url = explicit || new URL('environment/runtime.json', webRoot()).href
+  const url = explicit || new URL(material + '/runtime.json', webRoot()).href
   const bytes = await readResourceBytes(url, { signal, bundledEnvironment: !explicit })
   const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as SandboxEnvironment
   if (
