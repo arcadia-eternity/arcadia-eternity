@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.8.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.2...arcadia-eternity-v4.8.3) (2026-11-20)
+
+
+### 🐛 Bug Fixes
+
+* **team:** enable enhancement for all max-level pets in the 120 environment ([237deee](https://github.com/arcadia-eternity/arcadia-eternity/commit/237deee6a85515e976697415d8984cea1e34a385))
+
 ## [4.8.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.1...arcadia-eternity-v4.8.2) (2026-11-20)
 
 
