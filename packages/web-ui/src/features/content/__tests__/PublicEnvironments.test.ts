@@ -28,7 +28,7 @@ it('lists published environments and shows only the selected recipe packages', a
   expect(detail().text()).toContain('由玩家托管')
   expect(detail().text()).not.toContain('@test/base')
   expect(detail().text()).toContain('只读')
-  expect(page.findAll('button').map(button => button.text())).toEqual(['刷新', '默认环境', '环境 bbbbbbbb'])
+  expect(page.findAll('button').map(button => button.text())).toEqual(['默认环境', '环境 bbbbbbbb', '刷新'])
   expect(list).toHaveBeenCalledWith('https://paired.example', expect.any(Function), expect.any(AbortSignal))
 })
 it('aborts obsolete public requests on refresh and unmount', async () => {

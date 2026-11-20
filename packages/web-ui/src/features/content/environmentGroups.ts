@@ -16,6 +16,7 @@ export interface EnvironmentLocation {
   name: string
   key: string
   source: string
+  sources?: string[]
   workspaceId?: string
   serverId?: string
   editable?: boolean
@@ -29,7 +30,13 @@ export function resolveEnvironmentEntry<T extends EnvironmentLocation>(
 ) {
   const matching = entries.filter(entry => entry.id === id)
   const current = matching.find(entry => entry.key === currentKey)
-  return current?.editable ? current : (matching.find(entry => entry.editable) ?? matching[0])
+  if (current?.editable) return current
+  return (
+    matching.find(entry => entry.editable) ??
+    (current?.workspaceId ? current : matching.find(entry => entry.workspaceId)) ??
+    current ??
+    matching[0]
+  )
 }
 
 export function managedLocation(environment: ManagedEnvironment, prefix: string, source: string) {

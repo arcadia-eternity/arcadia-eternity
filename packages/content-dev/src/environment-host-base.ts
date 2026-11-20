@@ -5,7 +5,7 @@ import { withShippedEnvironmentProject, withShippedCatalogArchive } from '@arcad
 import type { EnvironmentDocumentV2 } from './debug-environments.ts'
 import { contentError, materialFiles } from './workspace-materials.ts'
 
-const hostBaseName = '@arcadia-eternity/data-pack-base'
+export const hostBaseName = '@arcadia-eternity/data-pack-base'
 const baseLocation = 'node_modules/' + hostBaseName
 type Material = { path: string; bytes: Buffer }
 type Host = { bundledPackageRoot?: string; signal?: AbortSignal; maxBytes?: number; maxFiles?: number }

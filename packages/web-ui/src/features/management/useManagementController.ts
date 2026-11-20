@@ -3,6 +3,7 @@ import type {
   EnvironmentExportSelection,
   EnvironmentImportProbe,
 } from '@arcadia-eternity/content-sdk/management-workspace'
+import { waitForEnvironmentApply } from '@/features/content/waitForEnvironmentApply'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { getBackendOrigin } from '@/bootstrap/deployment'
@@ -318,12 +319,27 @@ export function useManagementController(
     expectedRevision: string | null,
     copyFrom?: string,
   ) {
-    const submitted = await state.mutate('POST', `${workspacePath.value}/environments/apply`, {
-      document,
-      expectedRevision,
-      ...(copyFrom && { copyFrom }),
-    })
+    const current = client.value
+    if (!current) return false
+    const generation = targetGeneration
+    const submitted = await state.mutate<ManagementOperation>(
+      'POST',
+      `${workspacePath.value}/environments/apply`,
+      {
+        document,
+        expectedRevision,
+        ...(copyFrom && { copyFrom }),
+      },
+      undefined,
+      async operation => {
+        await waitForEnvironmentApply(
+          () => current.request<ManagementOperation>('GET', `/operations/${encodeURIComponent(operation.id)}`),
+          () => !disposed && generation === targetGeneration,
+        )
+      },
+    )
     if (submitted) {
+      notice.value = '环境已保存并应用。'
       environmentSaveSequence.value++
     }
     return submitted

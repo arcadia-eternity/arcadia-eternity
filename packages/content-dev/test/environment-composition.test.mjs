@@ -3,14 +3,14 @@ import assert from 'node:assert/strict'
 import { addEnvironmentPackage, removeEnvironmentPackage } from '../src/content-workspace.ts'
 import { normalizeEnvironmentDocument } from '../src/debug-environments.ts'
 
-function fixture() {
+function fixture(forest = 'forest') {
   let draft = {
     revision: '1',
     document: normalizeEnvironmentDocument({
       schemaVersion: 1,
       id: 'shared',
       name: 'Shared',
-      packages: { forest: '^1', arena: '^2' },
+      packages: { [forest]: '^1', arena: '^2' },
       sources: [],
     }),
   }
@@ -20,7 +20,7 @@ function fixture() {
     createdAt: 1,
     document: structuredClone(draft.document),
     members: [
-      { name: 'forest', dependencies: ['nature'] },
+      { name: forest, dependencies: ['nature'] },
       { name: 'arena', dependencies: ['nature'] },
       { name: 'nature', dependencies: [] },
     ],
@@ -53,6 +53,19 @@ test('shared dependency blocks removal; explicit cascade deletes declarations wi
   assert.equal('disabled' in enabled.document, false)
   assert.deepEqual((await workspace.listInstallations())[0].document.packages, { forest: '^1', arena: '^2' })
 })
+test('protects the base package from direct and cascading removal', async () => {
+  const base = '@arcadia-eternity/data-pack-base'
+  const workspace = fixture(base)
+  for (const name of [base, 'nature'])
+    await assert.rejects(
+      removeEnvironmentPackage(workspace, { environmentId: 'shared', expectedRevision: '1', name, cascade: true }),
+      {
+        code: 'ENVIRONMENT_BASE_REQUIRED',
+      },
+    )
+  assert.equal((await workspace.listDrafts())[0].revision, '1')
+})
+
 test('stale revision and changed unresolved composition cannot authorize a dependency removal', async () => {
   const workspace = fixture()
   await assert.rejects(

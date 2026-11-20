@@ -325,7 +325,7 @@ test('the web team editor selects shipped environments without a server and rest
   await page.getByRole('option', { name: '120 资质 · 神魔化与二代', exact: true }).click()
   await expect(defense).toHaveValue('59')
   await page.goto('./#/environments')
-  const builtins = page.getByRole('navigation', { name: '选择网页内置环境' })
+  const builtins = page.getByRole('navigation', { name: '选择环境' })
   await expect(builtins.getByRole('button')).toHaveCount(2)
   await builtins.getByRole('button', { name: /120 资质/ }).click()
   await expect(page.getByRole('article', { name: '网页内置环境详情' })).toContainText(

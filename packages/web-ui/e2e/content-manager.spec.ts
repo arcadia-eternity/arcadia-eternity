@@ -42,7 +42,7 @@ test('UGC projects and environment dependencies are managed separately', async (
       workspaceId: 'local',
       environments: [environment],
       installations: [] as ManagedEnvironmentInstallation[],
-      operations: [],
+      operations: [] as { id: string; kind: string; status: string }[],
     }
     Object.defineProperty(window, 'arcadiaDesktop', {
       value: {
@@ -69,6 +69,7 @@ test('UGC projects and environment dependencies are managed separately', async (
         }),
         localEnvironment: async (input: { action: string; document: typeof environment.document }) => {
           if (input.action === 'apply') {
+            snapshot.operations = [{ id: 'job', kind: 'environment.apply', status: 'succeeded' }]
             environment.document = input.document
             environment.revision = 'r2'
             snapshot.installations = [
@@ -219,7 +220,7 @@ test('UGC projects and environment dependencies are managed separately', async (
   await expect(rows).toHaveCount(2)
 })
 
-test('browser content is read-only and desktop authoring and host routes stay closed', async ({ page }) => {
+test('browser content is read-only and desktop authoring and host routes stay closed', async ({ page }, testInfo) => {
   await page.route('**/arcadia-client.json', route =>
     route.fulfill({ json: { schemaVersion: 1, backendOrigin: '/', autoConnect: false } }),
   )
@@ -231,7 +232,7 @@ test('browser content is read-only and desktop authoring and host routes stay cl
       json: {
         protocolVersion: 1,
         environments: [
-          { environmentId: 'builtin-server', environmentName: '联机默认规则', id: 'a'.repeat(64) },
+          { environmentId: 'league', environmentName: '联赛规则', id: 'a'.repeat(64) },
           { environmentId: 'training-120', environmentName: '联机 120', id: 'c'.repeat(64) },
         ].map(environment => ({
           ...environment,
@@ -239,7 +240,9 @@ test('browser content is read-only and desktop authoring and host routes stay cl
           resourceRevision: 'b'.repeat(64),
           runtime: { kind: 'native-v4', coreBuildId: 'core', registryBuildId: 'registry', contentRevision: 'remote' },
           resources: [],
-          packages: [],
+          packages: [
+            { name: '@arcadia-eternity/data-pack-base', projectId: 'base', namespace: 'base', version: '1.0.0' },
+          ],
         })),
       },
     }),
@@ -262,6 +265,21 @@ test('browser content is read-only and desktop authoring and host routes stay cl
   await training.click()
   await expect(page.getByRole('article', { name: '网页内置环境详情' })).toContainText('120')
   await expect(page.getByRole('button', { name: '编辑', exact: true })).toHaveCount(0)
+  await expect(training).toContainText('网页内置 · 服务器')
+  await expect(page.getByRole('combobox', { name: '环境位置' })).toHaveCount(0)
+  const remoteDetail = page.getByRole('article', { name: '公开环境详情' })
+  const league = directory.getByRole('button', { name: /联赛规则/ })
+  await league.click()
+  await expect(league).toHaveAttribute('aria-current', 'true')
+  await expect(remoteDetail.getByRole('heading', { name: '联赛规则' })).toBeVisible()
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await directory.evaluate(el => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(
+    await remoteDetail.evaluate(el => el.getBoundingClientRect().top),
+  )
+  expect(await page.locator('.hub-body').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+  await expect(page.getByRole('button', { name: '管理员登录' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '管理员登录' })).toHaveCount(0)
+  await page.screenshot({ path: testInfo.outputPath('environment-public-mobile.png') })
   for (const route of ['/creation', '/creation/edit', '/creation/development', '/settings/local-service']) {
     await page.goto(route)
     await expect(page.getByRole('heading', { name: '本地内容工具', exact: true })).toBeVisible()
@@ -272,7 +290,25 @@ test('browser content is read-only and desktop authoring and host routes stay cl
 test('environment import and export use the environment entry and stay scoped to the selected location', async ({
   page,
 }, testInfo) => {
-  await page.route('**/api/v1/environments', route => route.fulfill({ json: { protocolVersion: 1, environments: [] } }))
+  await page.route('**/api/v1/environments', route =>
+    route.fulfill({
+      json: {
+        protocolVersion: 1,
+        environments: [
+          {
+            environmentId: 'league',
+            environmentName: '联赛规则',
+            protocolVersion: 1,
+            id: 'a'.repeat(64),
+            resourceRevision: 'b'.repeat(64),
+            runtime: { kind: 'native-v4', contentRevision: 'remote', coreBuildId: 'core', registryBuildId: 'registry' },
+            resources: [],
+            packages: [],
+          },
+        ],
+      },
+    }),
+  )
   await page.route('**/api/management/v1/**', route =>
     route.fulfill({ status: 401, json: { error: { code: 'MANAGEMENT_UNAUTHENTICATED', message: '需要登录' } } }),
   )
@@ -307,6 +343,8 @@ test('environment import and export use the environment entry and stay scoped to
         },
       ],
     }
+    const saves: { id: string; kind: string; status: string; error?: { code: string; message: string } }[] = []
+    const created: { document: typeof document; revision: string }[] = []
     let selectedEnvironmentId: string | undefined
     const calls: Record<string, unknown>[] = []
     Object.assign(window, {
@@ -342,11 +380,29 @@ test('environment import and export use the environment entry and stay scoped to
                 environments: [
                   { document, revision: 'draft-1' },
                   { document: { ...document, id: 'practice', name: '练习场' }, revision: 'draft-2' },
+                  ...created,
                 ],
                 installations: [installation],
-                operations: [],
+                operations: saves,
               },
             }
+          if (input.action === 'apply' && input.expectedRevision === null) {
+            const saved = input.document as typeof document
+            const id = 'apply-' + saves.length
+            const hasBase = (saved.sources as string[]).includes('@arcadia-eternity/data-pack-base')
+            if (!saves.length || !hasBase) {
+              saves.push({
+                id,
+                kind: 'environment.apply',
+                status: 'failed',
+                error: { code: hasBase ? 'NPM_INSTALL_FAILED' : 'NPM_CONTENT_MISSING', message: 'prepare failed' },
+              })
+            } else {
+              created.push({ document: saved, revision: 'created' })
+              saves.push({ id, kind: 'environment.apply', status: 'succeeded' })
+            }
+            return { result: { operationId: id } }
+          }
           if (input.action === 'select') selectedEnvironmentId = String(input.environmentId)
           if (input.action === 'export-preview')
             return {
@@ -394,10 +450,15 @@ test('environment import and export use the environment entry and stay scoped to
     .getByRole('button', { name: 'Close this dialog' })
     .click()
   await expect(hub.locator('form.environment-editor input').first()).toHaveValue('未保存名称')
-  await hub.locator('.target-select').click()
-  await page.getByRole('option', { name: /服务器 ·/ }).click()
+  await hub
+    .getByRole('navigation', { name: '选择环境' })
+    .getByRole('button', { name: /联赛规则/ })
+    .click()
   await page.getByRole('button', { name: '继续编辑', exact: true }).click()
-  await expect(hub.locator('.target-select')).toContainText('本机')
+  await expect(hub.getByRole('navigation').getByRole('button', { name: /好友环境/ })).toHaveAttribute(
+    'aria-current',
+    'true',
+  )
   await expect(hub.locator('form.environment-editor input').first()).toHaveValue('未保存名称')
   await hub.getByRole('button', { name: '关闭编辑', exact: true }).click()
   await page.getByRole('button', { name: '放弃修改', exact: true }).click()
@@ -482,14 +543,28 @@ test('environment import and export use the environment entry and stay scoped to
     .getByRole('dialog', { name: '环境任务', exact: true })
     .getByRole('button', { name: 'Close this dialog' })
     .click()
-  await hub.locator('.target-select').click()
-  await page.getByRole('option', { name: /服务器 ·/ }).click()
-  await expect(hub.getByRole('button', { name: '管理员登录', exact: true })).toBeVisible()
+  await hub
+    .getByRole('navigation', { name: '选择环境' })
+    .getByRole('button', { name: /联赛规则/ })
+    .click()
+  await expect(hub.getByRole('button', { name: '管理员登录', exact: true })).toHaveCount(0)
   await expect(hub.getByRole('button', { name: '导入环境', exact: true })).toHaveCount(0)
   await expect(hub.getByRole('heading', { name: '公开环境', exact: true })).toBeVisible()
-  await hub.locator('.target-select').click()
-  await page.getByRole('option', { name: '本机', exact: true }).click()
+  await hub
+    .getByRole('navigation', { name: '选择环境' })
+    .getByRole('button', { name: /好友环境/ })
+    .click()
   await expect(hub.getByRole('heading', { name: '好友环境', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '确认导入新环境' })).toHaveCount(0)
+  await hub.getByRole('button', { name: '新建环境', exact: true }).click()
+  const create = hub.getByRole('form', { name: '编辑环境' })
+  await create.getByLabel('名称', { exact: true }).fill('周末联赛')
+  await create.getByLabel('标识', { exact: true }).fill('weekend')
+  await create.getByRole('button', { name: '保存并应用' }).click()
+  await expect(hub.getByRole('alert')).toContainText('下载或安装失败')
+  await expect(create.getByLabel('名称', { exact: true })).toHaveValue('周末联赛')
+  await create.getByRole('button', { name: '保存并应用' }).click()
+  await expect(hub.getByRole('heading', { name: '周末联赛', exact: true })).toBeVisible()
+  await expect(hub.getByRole('navigation').getByRole('button', { name: /周末联赛/ })).toContainText('本机')
   await expect(page).toHaveURL(/\/environments\?target=local$/)
 })

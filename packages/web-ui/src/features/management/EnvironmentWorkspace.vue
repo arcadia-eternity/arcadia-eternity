@@ -11,6 +11,11 @@ import type {
   EnvironmentExportSelection,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import type { EnvironmentLocation } from '@/features/content/environmentGroups'
+import { Plus } from '@element-plus/icons-vue'
+import EnvironmentLayout from '@/features/content/EnvironmentLayout.vue'
+import EnvironmentPanel from '@/features/content/EnvironmentPanel.vue'
+import EnvironmentDetailHeading from '@/features/content/EnvironmentDetailHeading.vue'
+import EnvironmentPackageRow from '@/features/content/EnvironmentPackageRow.vue'
 import EnvironmentDirectory from '@/features/content/EnvironmentDirectory.vue'
 import EnvironmentExportButton from './EnvironmentExportButton.vue'
 import EnvironmentReferenceInput from './EnvironmentReferenceInput.vue'
@@ -38,6 +43,8 @@ import {
   ElButton,
   ElCard,
   ElCheckbox,
+  ElEmpty,
+  ElTag,
   ElScrollbar,
   ElInputNumber,
   ElForm,
@@ -94,12 +101,31 @@ const createOnServer = ref(false)
 watch(
   () => props.saveSequence,
   () => {
+    if (editing.value && revision.value === null) {
+      const created = props.environments.find(item => item.document.id === document.value?.id)
+      const entry = entries.value.find(item => item.environment === created)
+      if (entry) {
+        selectedId.value = entry.key
+        emit('navigate', entry.key)
+      }
+    }
     editing.value = false
   },
 )
 const revision = ref<string | null>(null)
 const document = ref<ManagedEnvironmentDocument>()
-const packageRows = ref<{ name: string; version: string }[]>([])
+const basePackageName = '@arcadia-eternity/data-pack-base'
+const packageRows = ref<{ name: string; version: string; required?: boolean }[]>([])
+function requiredPackage(name: string) {
+  return name === basePackageName || !!selectedEnvironment.value?.requiredPackages?.includes(name)
+}
+const requiredSources = computed(() => document.value?.sources.filter(requiredPackage) ?? [])
+const editableSources = computed({
+  get: () => document.value?.sources.filter(name => !requiredPackage(name)) ?? [],
+  set: (sources: string[]) => {
+    if (document.value) document.value.sources = [...new Set([...requiredSources.value, ...sources])]
+  },
+})
 const activeTab = ref('packages')
 const editorSession = ref(0)
 const editingFromId = ref<string>()
@@ -139,6 +165,10 @@ const entries = computed(
     props.navigation?.entries ??
     props.environments.map(environment => ({
       key: environment.document.id,
+      id: environment.document.id,
+      name: environment.document.name,
+      source: props.heading ?? '',
+      editable: props.canEdit && !environment.builtin,
       environment,
       current: environment.document.id === props.currentEnvironmentId,
     })),
@@ -216,7 +246,7 @@ function inheritMechanic(key: 'individualValues' | 'individualValueDefault' | 'a
 const deletingDraft = ref('')
 const removingPackage = ref('')
 function removePackage(name: string, cascade = false) {
-  if (!selectedEnvironment.value) return
+  if (!selectedEnvironment.value || requiredPackage(name)) return
   removingPackage.value = ''
   emit('removePackage', selectedEnvironment.value, name, cascade)
 }
@@ -304,8 +334,20 @@ async function edit(environment?: ManagedEnvironment, duplicate = false) {
   revision.value = environment?.revision ?? null
   document.value = environment
     ? clone(environment.document)
-    : { schemaVersion: 2, id: '', name: '', packages: {}, sources: [], rules: { schemaVersion: 1 }, requires: {} }
-  packageRows.value = Object.entries(document.value.packages).map(([name, version]) => ({ name, version }))
+    : {
+        schemaVersion: 2,
+        id: '',
+        name: '',
+        packages: {},
+        sources: [basePackageName],
+        rules: { schemaVersion: 1 },
+        requires: {},
+      }
+  packageRows.value = Object.entries(document.value.packages).map(([name, version]) => ({
+    name,
+    version,
+    required: name === basePackageName || !!environment?.requiredPackages?.includes(name),
+  }))
   editorSession.value++
   activeTab.value = 'packages'
   validatePackages.value = false
@@ -325,8 +367,10 @@ watch(
 )
 function putPackage(pkg: { name: string; version: string }) {
   const existing = packageRows.value.find(row => row.name === pkg.name)
-  if (existing) existing.version = pkg.version
-  else packageRows.value.push({ name: pkg.name, version: pkg.version })
+  if (existing) {
+    existing.version = pkg.version
+    existing.required = requiredPackage(pkg.name)
+  } else packageRows.value.push({ name: pkg.name, version: pkg.version, required: requiredPackage(pkg.name) })
   if (document.value) document.value.sources = document.value.sources.filter(name => name !== pkg.name)
 }
 watch(
@@ -359,6 +403,10 @@ function save() {
       }
     }
   }
+  if (!rows.length && !document.value.sources.length) {
+    activeTab.value = 'packages'
+    return
+  }
   const result = {
     ...clone(document.value),
     packages: Object.fromEntries(rows.map(row => [row.name, row.version])),
@@ -380,75 +428,63 @@ function save() {
 
 <template>
   <section class="environment-workspace" aria-label="环境工作区">
-    <header class="section-heading">
-      <h2>{{ heading ?? '环境' }}</h2>
-      <div class="actions">
-        <slot name="toolbar" />
-        <ElButton
-          :disabled="!canEdit || busy"
-          :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
-          @click="edit()"
-          native-type="button"
-        >
-          新建环境
-        </ElButton>
-      </div>
-    </header>
-    <p v-if="!canEdit" class="hint">无编辑权限。</p>
-    <div class="workspace-columns" :class="{ 'detail-only': hideNavigation }">
-      <EnvironmentDirectory
-        v-if="navigation && !hideNavigation"
-        :entries="navigation.entries"
-        :selected="selectedEntry?.key"
-        :busy="busy"
-        @select="selectEnvironment"
-      />
-      <nav v-else-if="!hideNavigation" class="environment-list" aria-label="选择环境">
-        <ElButton
-          v-for="entry in entries"
-          :key="entry.key"
-          :disabled="busy"
-          :aria-current="selectedEntry?.key === entry.key ? 'true' : undefined"
-          @click="selectEnvironment(entry.key)"
-          native-type="button"
-        >
-          <strong>{{ entry.environment.document.name }}</strong>
-          <small v-if="entry.current">本地使用中</small>
-          <small
-            >{{
-              Object.keys(entry.environment.document.packages).length + entry.environment.document.sources.length
-            }}
-            个直接添加的包</small
+    <EnvironmentLayout>
+      <template v-if="!hideNavigation" #directory>
+        <EnvironmentDirectory
+          :entries="entries"
+          :selected="selectedEntry?.key"
+          :busy="busy"
+          @select="selectEnvironment"
+        />
+      </template>
+      <EnvironmentPanel :heading="heading ?? '环境'">
+        <template #tools>
+          <slot name="toolbar" />
+          <ElButton
+            type="primary"
+            :icon="Plus"
+            :disabled="!canEdit || busy"
+            :title="!canEdit ? '没有编辑此工作区的权限' : undefined"
+            @click="edit()"
+            >新建环境</ElButton
           >
-        </ElButton>
-      </nav>
-      <div class="environment-detail">
+        </template>
+        <ElAlert v-if="!canEdit" type="info" title="无编辑权限。" :closable="false" show-icon />
+        <ElEmpty v-if="!entries.length && !editing" :image-size="64" description="暂无环境" />
         <p v-if="navigation?.selected && !selectedEnvironment && !editing" role="status">此来源的环境已不可用。</p>
         <template v-if="selectedEnvironment && !editing">
-          <header class="section-heading">
-            <h3>{{ selectedEnvironment.document.name }} <small v-if="selectedEnvironment.builtin">只读</small></h3>
-            <div class="actions">
-              <ElButton
-                v-if="!selectedEnvironment.builtin"
-                :disabled="!canEdit || busy"
-                @click="edit(selectedEnvironment)"
-                native-type="button"
-                >编辑</ElButton
+          <EnvironmentDetailHeading :name="selectedEnvironment.document.name" :readonly="selectedEnvironment.builtin">
+            <template #status>
+              <ElTag
+                v-if="latestVersion?.status === 'ready' && latestVersion.draftRevision === selectedEnvironment.revision"
+                type="success"
+                size="small"
+                >已就绪</ElTag
               >
-              <ElButton :disabled="!canEdit || busy" @click="duplicate(selectedEnvironment)" native-type="button"
-                >复制环境</ElButton
-              >
-              <ElButton
-                v-if="canDelete && !selectedEnvironment.builtin"
-                :disabled="busy || selectedEnvironment.document.id === currentEnvironmentId"
-                :title="selectedEnvironment.document.id === currentEnvironmentId ? '请先切换本地使用的环境' : undefined"
-                @click="deletingDraft = selectedEnvironment.document.id"
-                native-type="button"
-              >
-                删除环境
-              </ElButton>
-            </div>
-          </header>
+              <ElTag v-else type="warning" size="small">待应用</ElTag>
+            </template>
+            <ElButton
+              v-if="!selectedEnvironment.builtin"
+              :disabled="!canEdit || busy"
+              @click="edit(selectedEnvironment)"
+              native-type="button"
+              >编辑</ElButton
+            >
+            <ElButton :disabled="!canEdit || busy" @click="duplicate(selectedEnvironment)" native-type="button"
+              >复制环境</ElButton
+            >
+            <ElButton
+              v-if="canDelete && !selectedEnvironment.builtin"
+              :disabled="busy || selectedEnvironment.document.id === currentEnvironmentId"
+              :title="selectedEnvironment.document.id === currentEnvironmentId ? '请先切换本地使用的环境' : undefined"
+              text
+              type="danger"
+              @click="deletingDraft = selectedEnvironment.document.id"
+              native-type="button"
+            >
+              删除环境
+            </ElButton>
+          </EnvironmentDetailHeading>
           <div
             v-if="!selectedEnvironment.builtin && deletingDraft === selectedEnvironment.document.id"
             role="group"
@@ -462,63 +498,89 @@ function save() {
           </div>
           <section class="members">
             <template
-              v-if="latestVersion?.status !== 'ready' || latestVersion.draftRevision !== selectedEnvironment.revision"
+              v-if="
+                latestVersion?.status !== 'ready' ||
+                !latestVersion.members ||
+                latestVersion.draftRevision !== selectedEnvironment.revision
+              "
             >
               <h4>依赖</h4>
-              <ul class="package-list">
-                <li v-for="(range, name) in selectedEnvironment.document.packages" :key="name">
-                  <strong>{{ name }}</strong>
-                  <span>{{ range }}</span>
-                </li>
-                <li v-for="name in selectedEnvironment.document.sources" :key="name">{{ name }} · 按包名查找</li>
-              </ul>
+              <EnvironmentPackageRow
+                v-for="(range, name) in selectedEnvironment.document.packages"
+                :key="name"
+                :name="String(name)"
+                :version="range"
+              />
+              <EnvironmentPackageRow v-for="name in selectedEnvironment.document.sources" :key="name" :name="name"
+                >按包名查找</EnvironmentPackageRow
+              >
+              <ElEmpty
+                v-if="
+                  !Object.keys(selectedEnvironment.document.packages).length &&
+                  !selectedEnvironment.document.sources.length
+                "
+                :image-size="48"
+                description="暂无依赖"
+              />
             </template>
             <template v-if="latestVersion?.status === 'ready' && latestVersion.members">
               <h4>环境内的内容包</h4>
               <p v-if="latestVersion.draftRevision !== selectedEnvironment.revision" class="hint">
                 依赖已更改，请重新准备。
               </p>
-              <article v-for="member in latestVersion.members" :key="member.name" class="member">
-                <strong>{{ member.name }}</strong>
-                <span>{{ member.version }} · {{ member.direct ? '直接添加' : '自动依赖' }}</span>
+              <ElEmpty v-if="!latestVersion.members.length" :image-size="48" description="暂无内容包" />
+              <EnvironmentPackageRow
+                v-for="member in latestVersion.members"
+                :key="member.name"
+                :name="member.name"
+                :version="member.version"
+              >
+                <span>{{ member.direct ? '直接添加' : '自动依赖' }}</span>
                 <small v-if="member.requiredBy.length">被依赖：{{ member.requiredBy.join('、') }}</small>
                 <small v-if="member.dependencies.length">需要：{{ member.dependencies.join('、') }}</small>
-                <small v-if="selectedEnvironment.requiredPackages?.includes(member.name)">内置环境必需</small>
-                <ElButton
-                  v-else-if="!selectedEnvironment.builtin"
-                  :disabled="busy || !canEdit || !canPrepare"
-                  @click="removingPackage = member.name"
-                  native-type="button"
-                  >移出环境</ElButton
-                >
-                <slot
-                  v-if="member.archiveIntegrity"
-                  name="member-actions"
-                  :environment="selectedEnvironment"
-                  :package-name="member.name"
-                  :integrity="member.archiveIntegrity"
-                />
-                <div v-if="removingPackage === member.name" role="group" aria-label="移出环境确认">
-                  <p>
-                    {{ member.requiredBy.length ? '其他内容包依赖它，可一并移出环境。' : '' }}
-                  </p>
+                <small v-if="requiredPackage(member.name)">环境必需</small>
+                <template #actions>
                   <ElButton
+                    v-if="!selectedEnvironment.builtin && !requiredPackage(member.name)"
                     :disabled="busy || !canEdit || !canPrepare"
-                    @click="removePackage(member.name)"
+                    link
+                    @click="removingPackage = member.name"
                     native-type="button"
-                    >确认移出环境</ElButton
+                    >移出环境</ElButton
                   >
-                  <ElButton
-                    v-if="member.requiredBy.length"
-                    :disabled="busy || !canEdit || !canPrepare"
-                    @click="removePackage(member.name, true)"
-                    native-type="button"
+                  <slot
+                    v-if="member.archiveIntegrity"
+                    name="member-actions"
+                    :environment="selectedEnvironment"
+                    :package-name="member.name"
+                    :integrity="member.archiveIntegrity"
+                  />
+                  <div
+                    v-if="removingPackage === member.name && !requiredPackage(member.name)"
+                    role="group"
+                    aria-label="移出环境确认"
                   >
-                    连同依赖它的包一起移出环境
-                  </ElButton>
-                  <ElButton @click="removingPackage = ''" native-type="button">取消</ElButton>
-                </div>
-              </article>
+                    <p>
+                      {{ member.requiredBy.length ? '其他内容包依赖它，可一并移出环境。' : '' }}
+                    </p>
+                    <ElButton
+                      :disabled="busy || !canEdit || !canPrepare"
+                      @click="removePackage(member.name)"
+                      native-type="button"
+                      >确认移出环境</ElButton
+                    >
+                    <ElButton
+                      v-if="member.requiredBy.length"
+                      :disabled="busy || !canEdit || !canPrepare"
+                      @click="removePackage(member.name, true)"
+                      native-type="button"
+                    >
+                      连同依赖它的包一起移出环境
+                    </ElButton>
+                    <ElButton @click="removingPackage = ''" native-type="button">取消</ElButton>
+                  </div>
+                </template>
+              </EnvironmentPackageRow>
             </template>
           </section>
         </template>
@@ -587,14 +649,22 @@ function save() {
                   />
                 </ElSelect>
               </ElFormItem>
+              <ElAlert
+                v-if="validatePackages && !packageRows.length && !document.sources.length"
+                type="error"
+                title="请添加至少一个内容包。"
+                show-icon
+                :closable="false"
+              />
               <slot name="package-source" />
               <div ref="packageList" class="package-fields">
                 <div v-for="(row, index) in packageRows" :key="index" class="package-row">
                   <ElFormItem label="包名" class="name-field" :error="packageIssue(index, 'name')">
+                    <ElInput v-if="row.required" :model-value="row.name" readonly />
                     <EnvironmentReferenceInput
+                      v-else
                       :options="packageOptions"
                       v-model="row.name"
-                      :readonly="!!revision && selectedEnvironment?.requiredPackages?.includes(row.name)"
                       placeholder="@author/package"
                       aria-required="true"
                     />
@@ -608,18 +678,16 @@ function save() {
                     >
                     </ElInput>
                   </ElFormItem>
-                  <ElButton
-                    v-if="!revision || !selectedEnvironment?.requiredPackages?.includes(row.name)"
-                    @click="packageRows.splice(index, 1)"
-                    native-type="button"
-                  >
-                    移出环境
-                  </ElButton>
+                  <ElTag v-if="row.required" type="info">环境必需</ElTag>
+                  <ElButton v-else @click="packageRows.splice(index, 1)" native-type="button"> 移出环境 </ElButton>
                 </div>
               </div>
               <ElButton @click="addPackageRow" native-type="button">添加内容包</ElButton>
               <ElFormItem label="按包名查找">
-                <EnvironmentIdList v-model="document.sources" placeholder="输入包名" />
+                <ElTag v-for="name in requiredSources" :key="name" type="info"
+                  ><span>{{ name }}</span> · 环境必需</ElTag
+                >
+                <EnvironmentIdList v-model="editableSources" placeholder="输入包名" />
               </ElFormItem>
             </ElTabPane>
             <ElTabPane lazy name="mechanics" label="基础规则">
@@ -813,13 +881,18 @@ function save() {
             </ElTabPane>
           </ElTabs>
           <div class="actions editor-actions">
-            <ElButton class="primary" :disabled="busy || !canEdit || !canPrepare" native-type="submit" type="primary"
+            <ElButton
+              class="primary"
+              :loading="busy"
+              :disabled="busy || !canEdit || !canPrepare"
+              native-type="submit"
+              type="primary"
               >保存并应用</ElButton
             >
             <ElButton @click="closeEditor" native-type="button">关闭编辑</ElButton>
           </div>
         </ElForm>
-        <section v-if="!editing && latestVersion?.status === 'ready'" class="actions">
+        <section v-if="!editing && latestVersion?.status === 'ready'" class="actions use-actions">
           <EnvironmentExportButton
             v-if="canExport && previewExport"
             :key="
@@ -832,6 +905,7 @@ function save() {
           />
           <ElButton
             v-if="showUseActions !== false"
+            :type="latestVersion.environmentId === currentEnvironmentId ? undefined : 'primary'"
             :disabled="busy || !canUse || latestVersion.environmentId === currentEnvironmentId"
             @click="emit('use', latestVersion)"
             >{{ latestVersion.environmentId === currentEnvironmentId ? '本地使用中' : useLabel }}</ElButton
@@ -844,8 +918,9 @@ function save() {
           >
         </section>
         <slot v-if="selectedEnvironment && !editing" name="detail" :environment="selectedEnvironment" />
-      </div>
-    </div>
+        <div v-if="$slots.settings" class="environment-settings"><slot name="settings" /></div>
+      </EnvironmentPanel>
+    </EnvironmentLayout>
   </section>
 </template>
 
@@ -899,201 +974,49 @@ function save() {
   max-width: 100%;
 }
 .environment-workspace {
-  display: flex;
-  flex-direction: column;
-}
-.workspace-columns {
-  display: grid;
-  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
-  min-height: 0;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.workspace-columns.detail-only {
-  grid-template-columns: minmax(0, 1fr);
-}
-.workspace-columns > .environment-directory {
-  padding: 12px;
-}
-.environment-list {
-  overflow: auto;
-  padding: 12px;
-  border-right: 1px solid var(--el-border-color-light);
-  background: var(--el-fill-color-light);
-}
-.environment-list :deep(.el-button > span) {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  white-space: normal;
-}
-.environment-list button {
-  height: auto;
-  padding: 12px;
-  margin-left: 0;
-  display: block;
-  width: 100%;
-  text-align: left;
-  margin-bottom: 8px;
-  overflow-wrap: anywhere;
-}
-.environment-list button[aria-current='true'] {
-  background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary);
-}
-.environment-detail {
-  overflow: auto;
-  padding: 0 20px 12px;
   min-width: 0;
 }
-.environment-detail .section-heading {
-  flex-wrap: wrap;
-  margin: 16px 0 12px;
+.members h4,
+.environment-editor h3 {
+  margin: 0 0 12px;
+  font-weight: 600;
 }
 .members h4 {
-  margin: 12px 0 8px;
+  font-size: 14px;
 }
-.member {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--el-border-color-light);
-  overflow-wrap: anywhere;
-}
-.member > strong,
-.member > span,
-.member > small {
-  grid-column: 1;
-}
-.member > button {
-  grid-column: 2;
-  grid-row: 1 / 4;
-  align-self: center;
-}
-.member > div {
-  grid-column: 1 / -1;
-}
-.member > small {
-  margin-top: 0;
-}
-.member > span {
-  font-size: 0.85rem;
-  display: block;
+.hint {
   color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
-.workspace-footer {
-  position: sticky;
-  bottom: 0;
-  background: var(--el-bg-color);
-  padding: 12px 0;
+.actions,
+.field-row,
+.package-row {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  border-top: 1px solid var(--el-border-color-light);
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.actions :deep(.el-button) {
+  margin: 0;
+}
+.environment-settings {
+  margin-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 8px;
+}
+.use-actions:not(:empty) {
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 16px;
+}
+.field-row > .el-form-item,
+.package-row > .el-form-item {
+  flex: 1;
+  min-width: min(140px, 100%);
 }
 @media (max-width: 600px) {
   .editor-tabs :deep(.el-tabs__item) {
     padding-inline: 6px;
     font-size: 13px;
   }
-  .workspace-columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .environment-list {
-    display: flex;
-    gap: 8px;
-    max-height: 180px;
-    border-right: 0;
-    border-bottom: 1px solid var(--el-border-color-light);
-  }
-  .environment-detail {
-    padding: 0 10px;
-  }
-  .workspace-footer {
-    flex-wrap: wrap;
-  }
-}
-
-.section-heading {
-  flex-wrap: wrap;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin: 1.5rem 0 1rem;
-}
-.section-heading h2,
-.section-heading h3 {
-  margin: 0;
-}
-.section-heading p,
-.hint {
-  color: var(--el-text-color-secondary);
-  font-size: 0.9rem;
-}
-.environment-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-}
-.environment-card,
-.environment-editor {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 12px;
-  padding: 1rem;
-  background: var(--el-bg-color);
-}
-.environment-card h3 {
-  margin: 0;
-}
-.environment-card p {
-  color: var(--el-text-color-secondary);
-  font-size: 0.9rem;
-}
-.package-list {
-  padding-left: 1rem;
-  font-size: 0.85rem;
-  overflow-wrap: anywhere;
-}
-.package-list span {
-  color: var(--el-text-color-secondary);
-}
-.actions,
-.field-row,
-.package-row {
-  display: flex;
-  align-items: end;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-.environment-editor .package-row,
-.environment-editor .field-row {
-  align-items: flex-start;
-}
-.environment-editor {
-  margin-top: 1rem;
-}
-.field-row > .el-form-item,
-.package-row > .el-form-item {
-  flex: 1;
-  min-width: 140px;
-}
-fieldset {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  margin: 1rem 0;
-}
-.table-wrap {
-  overflow: auto;
-}
-small {
-  display: block;
-  color: var(--el-text-color-secondary);
-  margin-top: 0.25rem;
-}
-.error {
-  color: var(--el-color-danger);
 }
 </style>

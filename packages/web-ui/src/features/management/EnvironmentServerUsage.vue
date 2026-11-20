@@ -46,7 +46,9 @@ const installation = computed(() =>
           }}
           <ElTag v-if="server.defaultBindingId === binding.id" size="small">默认</ElTag>
         </h3>
-        <span>{{ conditionLabels[binding.condition] ?? binding.condition }}</span>
+        <ElTag size="small" :type="binding.condition === 'available' ? 'success' : 'info'">{{
+          conditionLabels[binding.condition] ?? binding.condition
+        }}</ElTag>
       </header>
       <dl>
         <dt>对局执行</dt>
@@ -98,7 +100,9 @@ const installation = computed(() =>
           >重新加载</ElButton
         >
         <ElButton
-          :disabled="busy || !isAdministrator || binding.condition !== 'available'"
+          :disabled="
+            busy || !isAdministrator || binding.condition !== 'available' || server.defaultBindingId === binding.id
+          "
           @click="setDefault(binding)"
           native-type="button"
         >
@@ -126,11 +130,39 @@ const installation = computed(() =>
   margin-top: 20px;
   padding: 16px 0;
 }
-h3 {
+.binding-card + .binding-card {
+  margin-top: 12px;
+}
+.binding-card header,
+h3,
+dl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.binding-card header {
+  justify-content: space-between;
   margin-bottom: 12px;
 }
+h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.binding-card h3,
+dd {
+  margin: 0;
+}
+dt,
 small {
+  font-size: 13px;
+  font-weight: 400;
   color: var(--el-text-color-secondary);
+}
+dd {
+  width: 160px;
+  max-width: 100%;
 }
 .actions,
 .binding-options {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  ElAlert,
   ElButton,
   ElForm,
   ElFormItem,
@@ -16,6 +17,7 @@ import type {
   EnvironmentExportSelection,
   EnvironmentImportProbe,
 } from '@arcadia-eternity/content-sdk/management-workspace'
+import { waitForEnvironmentApply } from './waitForEnvironmentApply'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -129,13 +131,17 @@ const selectedKey = ref('')
 const entries = computed(() => {
   const hosted = host?.environments.value ?? []
   const hostedIds = new Set(hosted.map(item => item.document.id))
+  const sharedWorkspace = host?.state.workspaceId.value === snapshot.value.workspaceId
   const personal = snapshot.value.environments.map(environment => ({
     ...managedLocation(environment, 'local', '本机'),
+    sources:
+      hostedIds.has(environment.document.id) && (sharedWorkspace || environment.builtin)
+        ? ['本机', '本机服务器']
+        : undefined,
     workspaceId: snapshot.value.workspaceId,
     serverId: hostedIds.has(environment.document.id) ? host?.server.value?.id : undefined,
     current: environment.document.id === snapshot.value.selectedEnvironmentId,
   }))
-  const sharedWorkspace = host?.state.workspaceId.value === snapshot.value.workspaceId
   const sharedIds = new Set(
     personal.filter(entry => sharedWorkspace || entry.environment.builtin).map(entry => entry.id),
   )
@@ -313,19 +319,20 @@ async function addCandidate() {
   }
 }
 async function save(document: ManagedEnvironmentDocument, expectedRevision: string | null, copyFrom?: string) {
-  if (
-    await run(
-      {
-        action: 'apply',
-        document,
-        expectedRevision,
-        ...(copyFrom && { copyFrom }),
-        allowDownload: allowDownload.value,
-      },
-      '正在保存并应用。',
+  const saved = await run(async () => {
+    const { operationId } = await call<{ operationId: string }>({
+      action: 'apply',
+      document,
+      expectedRevision,
+      ...(copyFrom && { copyFrom }),
+      allowDownload: allowDownload.value,
+    })
+    await waitForEnvironmentApply(
+      async () => (await call<Snapshot>({ action: 'snapshot' })).operations.find(job => job.id === operationId),
+      () => !disposed,
     )
-  )
-    saveSequence.value++
+  }, '环境已保存并应用。')
+  if (saved && !disposed) saveSequence.value++
 }
 function previewExport(installationId: string) {
   return call<EnvironmentExportPreview>({ action: 'export-preview', installationId })
@@ -405,10 +412,17 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section v-if="selection !== null" class="local-environments" aria-label="本机环境库">
-    <p v-if="error" role="alert" class="error">{{ error }}</p>
-    <p v-if="notice" role="status">{{ notice }}</p>
-    <p v-if="host?.error.value" role="alert" class="error">{{ host.error.value }}</p>
-    <p v-if="host?.notice.value" role="status">{{ host.notice.value }}</p>
+    <ElAlert v-if="error" type="error" :title="error" role="alert" :closable="false" show-icon />
+    <ElAlert v-if="notice" type="success" :title="notice" role="status" :closable="false" show-icon />
+    <ElAlert v-if="host?.error.value" type="error" :title="host.error.value" role="alert" :closable="false" show-icon />
+    <ElAlert
+      v-if="host?.notice.value"
+      type="success"
+      :title="host.notice.value"
+      role="status"
+      :closable="false"
+      show-icon
+    />
     <ElForm
       label-position="top"
       v-if="(candidate || sourceProject) && !viewingHosted"
@@ -513,6 +527,8 @@ onBeforeUnmount(() => {
       </template>
       <template #member-actions="{ environment, packageName: name, integrity }">
         <ElButton
+          link
+          type="primary"
           :disabled="
             busy || preparing || !editableEnvironments.some(item => item.document.id !== environment.document.id)
           "
@@ -520,6 +536,8 @@ onBeforeUnmount(() => {
           >用于其他环境</ElButton
         >
         <ElButton
+          link
+          type="primary"
           :disabled="busy || preparing"
           @click="memberAction({ action: 'save-member', environmentId: environment.document.id, name, integrity })"
           >保存到本机包库</ElButton
@@ -533,6 +551,7 @@ onBeforeUnmount(() => {
         <ElButton @click="tasksOpen = true">任务{{ activeTasks ? `（${activeTasks}）` : '' }}</ElButton>
         <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>
       </template>
+      <template #settings><ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox></template>
     </EnvironmentWorkspace>
     <ElDialog
       :model-value="!!transferMember"
@@ -565,7 +584,6 @@ onBeforeUnmount(() => {
     >
       <ElCheckbox v-if="canManageHost || importingToHost" v-model="importingToHost">导入到本机服务器</ElCheckbox>
     </EnvironmentImportDialog>
-    <ElCheckbox v-if="!viewingHosted" v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox>
     <ElDrawer v-model="tasksOpen" title="环境任务" size="min(680px, 100vw)" append-to-body
       ><section class="panel" aria-label="本地环境任务">
         <h3>下载与准备任务</h3>
@@ -601,33 +619,10 @@ onBeforeUnmount(() => {
   </section>
 </template>
 <style scoped>
-.local-tabs {
-  display: flex;
-  gap: 8px;
-}
-.local-tabs button[aria-pressed='true'] {
-  background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary);
-}
-.local-environments :deep(.environment-workspace) {
-  height: auto;
-  min-height: 0;
-}
-.local-environments > .panel {
-  overflow: auto;
-  min-height: 0;
-}
 .local-environments {
-  display: flex;
-  flex-direction: column;
-  height: auto;
-  min-height: 0;
-  color: var(--el-text-color-primary);
-}
-.download-policy {
-  display: flex;
-  gap: 8px;
-  margin: 16px 0;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
 }
 .panel {
   border: 1px solid var(--el-border-color);
@@ -655,13 +650,13 @@ onBeforeUnmount(() => {
 }
 .panel article {
   padding: 12px 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 .panel button {
   margin: 6px;
 }
 .error {
-  color: #b42318;
+  color: var(--el-color-danger);
 }
 button:disabled {
   opacity: 0.5;

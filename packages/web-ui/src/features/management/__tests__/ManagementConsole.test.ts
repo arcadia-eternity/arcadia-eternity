@@ -91,6 +91,7 @@ function response(path: string, suffix = 'local', readonly = false): unknown {
         },
       ],
     }
+  if (path === '/operations/operation-1') return { id: 'operation-1', kind: 'environment.apply', status: 'succeeded' }
   if (path === '/operations') return { operations: [] }
   if (path === '/administrators')
     return { revision: 7, administrators: [{ principalId: 'admin', displayName: 'Owner' }] }
@@ -143,14 +144,17 @@ describe('shared management console', () => {
           ? { environments: [builtin, extended, managed], installations: [version()] }
           : response(input.path),
       }))
-      const localEnvironment = vi.fn(async (_input: Record<string, unknown>) => ({
-        result: {
-          workspaceId: shared ? 'workspace-local' : 'personal',
-          selectedEnvironmentId: 'builtin',
-          environments: [builtin, extended, personal],
-          installations: [],
-          operations: [],
-        },
+      const localEnvironment = vi.fn(async (input: Record<string, unknown>) => ({
+        result:
+          input.action === 'snapshot'
+            ? {
+                workspaceId: shared ? 'workspace-local' : 'personal',
+                selectedEnvironmentId: 'builtin',
+                environments: [builtin, extended, personal],
+                installations: [],
+                operations: [{ id: 'local-apply', kind: 'environment.apply', status: 'succeeded' }],
+              }
+            : { operationId: 'local-apply' },
       }))
       vi.stubGlobal('arcadiaDesktop', {
         localEnvironment,
@@ -171,6 +175,9 @@ describe('shared management console', () => {
       expect(request).not.toHaveBeenCalled()
       await useLocalServerStore(pinia).refresh()
       await flushPromises()
+      expect(page.emitted('catalog')?.at(-1)?.[0]).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: 'builtin', sources: ['本机', '本机服务器'] })]),
+      )
       const list = page.get('nav[aria-label="选择环境"]')
       expect(list.findAll('button').map(row => row.get('strong').text())).toEqual([
         '默认环境',
@@ -462,7 +469,7 @@ describe('shared management console', () => {
           return { status: 412, body: { error: { code: 'REVISION_CONFLICT', message: '资源已更新' } } }
         savedRevisions.push(body.expectedRevision)
         current = { document: body.document, revision: `draft-${4 + savedRevisions.length}` }
-        return { status: 200, body: current }
+        return { status: 202, body: { id: 'operation-1', kind: 'environment.apply', status: 'queued' } }
       }
       if (input.path.endsWith('/environments'))
         return { status: 200, body: { environments: [current], installations: [version()] } }
@@ -565,7 +572,12 @@ describe('shared management console', () => {
     vi.stubGlobal('fetch', fetchMock)
     const page = mount(ServerEnvironmentPanel, {
       props: { target: 'server' },
-      global: { stubs: { RouterLink: RouterLinkStub, PublicEnvironments: { template: '<div>公开环境</div>' } } },
+      global: {
+        stubs: {
+          RouterLink: RouterLinkStub,
+          PublicEnvironments: { template: '<div>公开环境</div>' },
+        },
+      },
     })
     pages.push(page)
     await flushPromises()
@@ -576,7 +588,7 @@ describe('shared management console', () => {
     await flushPromises()
     expect(button(page, '编辑')).toBeUndefined()
     expect(page.text()).toContain('公开环境')
-    expect(button(page, '管理员登录')).toBeDefined()
+    expect(button(page, '管理员登录')).toBeUndefined()
     expect(local).not.toHaveBeenCalled()
   })
 })

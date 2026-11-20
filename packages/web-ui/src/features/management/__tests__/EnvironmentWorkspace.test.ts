@@ -129,6 +129,36 @@ describe('shared environment workspace', () => {
     expect((page.emitted('save')![0]![0] as ManagedEnvironment['document']).id).toBe('new-env')
   })
 
+  it('keeps the base source when clearing optional sources in a new environment', async () => {
+    const { page } = open()
+    await button(page, '新建环境').trigger('click')
+    const sourceList = page.getComponent({ name: 'EnvironmentIdList' })
+    expect(sourceList.props('modelValue')).toEqual([])
+    sourceList.vm.$emit('update:modelValue', ['@test/local'])
+    await page.vm.$nextTick()
+    sourceList.vm.$emit('update:modelValue', [])
+    await page.vm.$nextTick()
+    await page.get('form.environment-editor').trigger('submit')
+    const saved = page.emitted('save')![0]![0] as ManagedEnvironment['document']
+    expect(saved.sources).toEqual(['@arcadia-eternity/data-pack-base'])
+  })
+
+  it.each(['编辑', '复制环境'])('locks the pinned base package during %s', async action => {
+    const draft = environment()
+    const base = '@arcadia-eternity/data-pack-base'
+    draft.document.packages[base] = '1.0.0'
+    const { page } = open({ environments: [draft] })
+    await button(page, action).trigger('click')
+    const row = page.findAll('.package-row').find(item => item.find('input[readonly]').exists())!
+    expect((row.get('input[readonly]').element as HTMLInputElement).value).toBe(base)
+    expect(row.text()).toContain('环境必需')
+    expect(row.find('button').exists()).toBe(false)
+    await button(page, '移出环境').trigger('click')
+    await page.get('form.environment-editor').trigger('submit')
+    const saved = page.emitted('save')![0]![0] as ManagedEnvironment['document']
+    expect(saved.packages).toEqual({ [base]: '1.0.0' })
+  })
+
   it('disables edits, preparation and version use for a viewer, while keeping version details readable', async () => {
     const { page } = open({ canEdit: false, canPrepare: false, canDelete: false, canUse: false })
     for (const label of ['新建环境', '编辑']) {
