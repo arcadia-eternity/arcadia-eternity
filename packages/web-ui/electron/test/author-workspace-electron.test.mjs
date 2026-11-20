@@ -36,6 +36,7 @@ test(
       await page.getByText('打开内容包源项目', { exact: true }).waitFor({ timeout: 45000 })
       await page.getByLabel('新项目名称').fill('寒霜工作区验收')
       await page.getByRole('button', { name: '从模板创建项目', exact: true }).click()
+      await page.getByRole('navigation', { name: '项目视图' }).getByRole('link', { name: '内容编辑' }).click()
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       const projects = await page.evaluate(async () => (await window.arcadiaDesktop.author({ action: 'list' })).result)
       assert.equal(projects.length, 1)
@@ -357,7 +358,7 @@ test(
       const secondProject = await page.evaluate(
         async () => (await window.arcadiaDesktop.author({ action: 'create', name: '单试玩跨项目验收' })).result,
       )
-      await page.goto(origin + '/creation/edit/' + secondProject.id)
+      await page.goto(origin + '/creation/edit/' + secondProject.id + '?view=editor')
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       const otherWindow = app.waitForEvent('window', { timeout: 45000 })
       await page.getByRole('button', { name: '调试试玩', exact: true }).click()

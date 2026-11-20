@@ -35,9 +35,43 @@ test(
       await page.getByRole('button', { name: '新建内容包', exact: true }).click()
       await page.getByLabel('内容包名称', { exact: true }).fill('独立对象验收')
       await page.getByRole('button', { name: '创建并打开', exact: true }).click()
+      const views = page.getByRole('navigation', { name: '项目视图' })
+      const firstView = views.getByRole('link').first()
+      await expect(firstView).toHaveText('AI 助手')
+      await expect(firstView).toHaveAttribute('aria-current', 'page')
+      await expect(views.getByRole('link').nth(1)).toHaveText('内容编辑')
+      await expect(page).toHaveURL(/\/creation\/edit\/[^/?]+$/)
+      await page.reload()
+      const connection = page.getByRole('region', { name: '连接 AI 助手' })
+      await page.evaluate(() => {
+        navigator.clipboard.writeText = async text => {
+          window.copiedConnection = text
+        }
+      })
+      await connection.getByRole('button', { name: '复制连接提示词' }).click()
+      const prompt = await page.evaluate(() => window.copiedConnection)
+      for (const client of ['Codex', 'Claude Code', 'Cursor', 'VS Code']) assert.ok(prompt.includes(client))
+      await connection.getByText('手动配置 MCP', { exact: true }).click()
+      await connection.getByRole('button', { name: '复制 MCP 配置' }).click()
+      const configText = await page.evaluate(() => window.copiedConnection)
+      assert.ok(prompt.includes(configText))
+      const config = JSON.parse(configText)
+      assert.ok(!config.mcpServers.arcadia.args.includes('--execute'))
+      const requireAuthor = createRequire(new URL('../../../content-dev/package.json', import.meta.url))
+      const { Client } = await import(requireAuthor.resolve('@modelcontextprotocol/sdk/client/index.js'))
+      const { StdioClientTransport } = await import(requireAuthor.resolve('@modelcontextprotocol/sdk/client/stdio.js'))
+      client = new Client({ name: 'workbench-gui', version: '1' })
+      await client.connect(new StdioClientTransport({ ...config.mcpServers.arcadia, stderr: 'pipe' }))
+      const context = async () =>
+        (await client.callTool({ name: 'workspace_context', arguments: {} })).structuredContent.result
+      const describe = await client.callTool({ name: 'workspace_describe', arguments: {} })
+      assert.equal(describe.structuredContent.result.root, config.mcpServers.arcadia.args[1])
+      await expect.poll(async () => (await context()).state?.view.projectView).toBe('ai')
+      await views.getByRole('link', { name: '内容编辑' }).click()
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       await expect(page.getByRole('region', { name: '项目设置' })).toHaveCount(0)
       await expect(page.locator('.savebar')).toHaveCount(0)
+      await expect(page.getByRole('link', { name: '项目设置' })).toBeVisible()
       const toolbar = await page.locator('.app-header').boundingBox()
       assert.ok(toolbar.height <= 64, `Clean toolbar should fit one row, got ${toolbar.height}`)
       const tools = page.getByRole('button', { name: '外部工具', exact: true })
@@ -105,6 +139,10 @@ export class BonusHit { @on(EffectTrigger.OnHit) static apply() {} }
       await expect(page.getByRole('region', { name: '对象列表' })).toBeVisible()
       await expect(page.locator('.content-card .object-icon')).toHaveCount(0)
       await page.getByLabel('威力', { exact: true }).fill('77')
+      await views.getByRole('link', { name: 'AI 助手' }).click()
+      await expect.poll(async () => (await context()).state?.drafts.some(d => d.value.power === 77)).toBe(true)
+      await views.getByRole('link', { name: '内容编辑' }).click()
+      await expect(page.getByLabel('威力', { exact: true })).toHaveValue('77')
       // Navigation retains the draft; translation is an object field, not the meaning of selection.
       await category(/^印记/).click()
       await page.locator('.content-card').filter({ hasText: '光辉印记' }).click()
@@ -113,17 +151,6 @@ export class BonusHit { @on(EffectTrigger.OnHit) static apply() {} }
       await page.getByRole('button', { name: '切换语言', exact: true }).click()
       await page.getByLabel('显示名称', { exact: true }).fill('Radiance')
       await page.getByLabel('描述', { exact: true }).fill('A shared radiant mark.')
-      const config = await page.evaluate(
-        async id => (await window.arcadiaDesktop.author({ action: 'connection', id })).result,
-        project.id,
-      )
-      const requireAuthor = createRequire(new URL('../../../content-dev/package.json', import.meta.url))
-      const { Client } = await import(requireAuthor.resolve('@modelcontextprotocol/sdk/client/index.js'))
-      const { StdioClientTransport } = await import(requireAuthor.resolve('@modelcontextprotocol/sdk/client/stdio.js'))
-      client = new Client({ name: 'workbench-gui', version: '1' })
-      await client.connect(new StdioClientTransport({ ...config.mcpServers.arcadia, stderr: 'pipe' }))
-      const context = async () =>
-        (await client.callTool({ name: 'workspace_context', arguments: {} })).structuredContent.result
       await expect.poll(async () => (await context()).state?.drafts.length).toBe(2)
       assert.equal((await context()).state.language, 'en')
       assert.equal((await context()).state.drafts.find(row => row.kind === 'skills').value.power, 77)
@@ -243,6 +270,7 @@ export class BonusHit { @on(EffectTrigger.OnHit) static apply() {} }
       await expect(editor).toHaveCount(0)
       await page.keyboard.press('Escape')
       await expect.poll(async () => (await context()).connected).toBe(false)
+      await views.getByRole('link', { name: '内容编辑' }).click()
       await expect(page.getByRole('button', { name: '新建内容', exact: true })).toHaveCount(0)
       await category(/^技能/).click()
       await page.locator('.content-card').filter({ hasText: '基础打击' }).click()

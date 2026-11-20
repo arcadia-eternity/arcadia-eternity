@@ -48,7 +48,7 @@ const filter = ref<'all' | 'projects' | 'installed' | 'issues'>('all')
 const router = useRouter()
 const canAuthor = (!props.location || props.location === 'local') && !!window.arcadiaDesktop?.author
 async function openSource(project: SourceProject) {
-  await router.push({ name: 'AuthorWorkspace', params: { projectId: project.id } })
+  await router.push({ name: 'AuthorWorkspace', params: { projectId: project.id }, query: { view: 'editor' } })
 }
 async function browsePackage(id: string) {
   await run(async () => openSource(await authorCall<SourceProject>({ action: 'browse-package', packageId: id })))

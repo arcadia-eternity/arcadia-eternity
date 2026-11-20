@@ -65,7 +65,7 @@ test(
           stderr: 'pipe',
         }),
       )
-      await page.goto(`${origin}/creation/edit/${project.id}`)
+      await page.goto(`${origin}/creation/edit/${project.id}?view=editor`)
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       const open = async () => {
         const opened = app.waitForEvent('window', { timeout: 45000 })
@@ -108,7 +108,7 @@ test(
       await preview.close()
       await stop()
       page = await launch()
-      await page.goto(`${origin}/creation/edit/${project.id}`)
+      await page.goto(`${origin}/creation/edit/${project.id}?view=editor`)
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       preview = await open()
       await expect(preview.getByLabel('精灵名称', { exact: true })).toHaveValue('重启保留的草稿')
@@ -208,7 +208,7 @@ test(
       )
       await stop()
       page = await launch()
-      await page.goto(`${origin}/creation/edit/${project.id}`)
+      await page.goto(`${origin}/creation/edit/${project.id}?view=editor`)
       await page.getByRole('heading', { name: '精灵', exact: true }).waitFor()
       preview = await open()
       await expect(preview.getByRole('button', { name: /真实双包环境改名.*已准备/ })).toBeVisible()

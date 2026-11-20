@@ -11,7 +11,9 @@ import {
   CloudArrowUpIcon,
   Cog6ToothIcon,
   ChevronDownIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/vue/24/outline'
+import AuthorConnectionPage from './AuthorConnectionPage.vue'
 import ObjectIcon from './ObjectIcon.vue'
 import ContentTraits from './ContentTraits.vue'
 import { skillCategories } from './traits'
@@ -66,21 +68,22 @@ const copyMediaFrom = ref<ContentRow>()
 const languageInput = ref('')
 const AuthorGitWorkspace = defineAsyncComponent(() => import('./AuthorGitWorkspace.vue'))
 const commitMessage = ref('')
-type ProjectView = 'editor' | 'git' | 'release' | 'settings'
+type ProjectView = 'editor' | 'ai' | 'git' | 'release' | 'settings'
 const projectViews = [
+  { id: 'ai', label: 'AI 助手', icon: ChatBubbleLeftRightIcon },
   { id: 'editor', label: '内容编辑', icon: PencilSquareIcon },
   { id: 'git', label: 'Git 版本管理', icon: ArrowsRightLeftIcon },
   { id: 'release', label: '发布新版本', icon: CloudArrowUpIcon },
   { id: 'settings', label: '项目设置', icon: Cog6ToothIcon },
 ] as const
 const visibleProjectViews = computed(() =>
-  projectViews.filter(view => !readOnly.value || view.id === 'editor' || view.id === 'settings'),
+  projectViews.filter(view => !readOnly.value || view.id === 'editor' || view.id === 'ai' || view.id === 'settings'),
 )
 const projectView = computed<ProjectView>(
-  () => visibleProjectViews.value.find(view => view.id === route.query?.view)?.id ?? 'editor',
+  () => visibleProjectViews.value.find(view => view.id === route.query?.view)?.id ?? projectViews[0].id,
 )
 function projectLocation(view: ProjectView) {
-  return { path: route.path, query: { ...route.query, view: view === 'editor' ? undefined : view } }
+  return { path: route.path, query: { ...route.query, view } }
 }
 const rangeDraft = ref<{ original: string; value: string }>()
 const savedRange = computed(() => snapshot.value?.arcadiaRange ?? '')
@@ -143,8 +146,7 @@ watch([tab, search, skillCategory], () => {
   libraryLimit.value = 60
 })
 const locale = ref(localStorage.getItem('arcadia-author-locale') || 'zh-CN')
-const editor = ref(localStorage.getItem('arcadia-author-editor') || 'code'),
-  assistantExecution = ref(false)
+const editor = ref(localStorage.getItem('arcadia-author-editor') || 'code')
 const jobs = ref<AuthorJob[]>([]),
   choices = ref<Record<string, string>>({}),
   reviewed = ref<Record<string, string>>({})
@@ -206,7 +208,6 @@ const tabs: Record<string, string> = {
   assets: '资源',
   locales: '多语言',
   effects: '效果代码',
-  tools: '外部助手',
 }
 const visibleTabs = computed(() =>
   Object.fromEntries(Object.entries(tabs).filter(([key]) => !readOnly.value || key !== 'effects')),
@@ -590,6 +591,7 @@ const workbenchContext = computed(() => {
     published: !!project.value?.published,
     readOnly: readOnly.value,
     view: {
+      projectView: projectView.value,
       category: tab.value,
       section: section.value,
       screen: screen.value,
@@ -1085,12 +1087,6 @@ async function external(file?: string, line?: number, column?: number) {
   localStorage.setItem('arcadia-author-editor', editor.value)
   await action({ action: 'editor', file, editor: editor.value, line, column })
 }
-async function copyConnection() {
-  await publishContext()
-  const config = await action({ action: 'connection', execute: assistantExecution.value })
-  await navigator.clipboard.writeText(JSON.stringify(config, null, 2))
-  notice.value = '已复制 MCP 配置。'
-}
 async function start(kind: string) {
   if (hasUnsavedChanges.value) throw new Error('请先保存修改，运行任务读取的是磁盘内容。')
   if (runActions.value) runActions.value.open = false
@@ -1281,6 +1277,15 @@ onBeforeUnmount(() => {
           >
             连接本机 SDK
           </button>
+          <button
+            v-if="!readOnly"
+            popovertarget="author-external-tools"
+            popovertargetaction="hide"
+            :disabled="busy"
+            @click="attempt(() => external('skills/arcadia-content-authoring/SKILL.md'))"
+          >
+            打开项目 Skill ↗
+          </button>
         </div>
       </div>
       <div v-if="dirty && projectView === 'editor'" class="tools save-actions">
@@ -1467,6 +1472,14 @@ onBeforeUnmount(() => {
         </div>
       </section>
     </section>
+    <AuthorConnectionPage
+      v-else-if="project && snapshot && projectView === 'ai'"
+      :key="project.id"
+      class="settings-view"
+      :project="project"
+      :read-only="readOnly"
+      :context-error="contextError"
+    />
     <AuthorGitWorkspace
       v-else-if="project && snapshot && (projectView === 'git' || projectView === 'release')"
       :key="project.id"
@@ -1482,7 +1495,7 @@ onBeforeUnmount(() => {
       @release="attempt(() => start('release'))"
       @version="attempt(() => editPackage('version'))"
     />
-    <div v-else-if="project" class="workspace">
+    <div v-else-if="project && projectView === 'editor'" class="workspace">
       <aside class="sidebar">
         <small>{{ project.name }}</small>
         <nav aria-label="内容分类">
@@ -1921,25 +1934,6 @@ onBeforeUnmount(() => {
             <p v-else class="hint">{{ assetLoading ? '正在读取资源…' : '选择一项资源进行预览' }}</p>
           </div></template
         >
-        <template v-else-if="tab === 'tools'"
-          ><header class="page-heading">
-            <div>
-              <h1>连接外部助手</h1>
-              <p>连接后，助手可以读取未保存的修改。</p>
-              <p v-if="readOnly">只读连接</p>
-            </div>
-          </header>
-          <label v-if="!readOnly" class="checkbox"
-            ><input v-model="assistantExecution" type="checkbox" />允许助手会话运行项目测试、演示对战和打包</label
-          >
-          <div class="tools">
-            <button :disabled="busy" @click="attempt(copyConnection)">复制 MCP 连接配置</button
-            ><button v-if="!readOnly" @click="attempt(() => external('skills/arcadia-content-authoring/SKILL.md'))">
-              打开项目 Skill ↗
-            </button>
-          </div>
-          <p v-if="contextError" class="error" role="alert">上下文同步失败：{{ contextError }}</p>
-        </template>
         <template v-else-if="tab === 'effects'">
           <header class="page-heading">
             <h1>效果代码</h1>
