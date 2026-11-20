@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { cp, mkdir, readFile, readdir, rm, chmod, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, rename, rm, chmod, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const output = new URL('./dist/', import.meta.url)
@@ -29,6 +29,10 @@ execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', 'ts
 })
 await rewriteDeclarationImports(output)
 await cp(new URL('./template/', import.meta.url), new URL('./dist/template/', import.meta.url), { recursive: true })
+for (const script of ['release-payload.mjs', 'release-test-npm.mjs'])
+  await cp(new URL(script, import.meta.url), new URL('template/.github/scripts/' + script, output))
+// npm excludes .gitignore files from published packages. Restore its name when scaffolding.
+await rename(new URL('template/.gitignore', output), new URL('template/gitignore-template', output))
 const templateManifest = new URL('template/package.json', output)
 const manifest = JSON.parse(await readFile(templateManifest, 'utf8'))
 manifest.engines.arcadia = '^' + require('./package.json').version

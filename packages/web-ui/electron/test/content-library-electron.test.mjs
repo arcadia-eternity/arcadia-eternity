@@ -54,6 +54,11 @@ test(
       delete env.ELECTRON_RUN_AS_NODE
       application = await _electron.launch({ executablePath: require('electron'), args: [entry], env, timeout: 30000 })
       await application.evaluate(({ dialog }, file) => {
+        const messageBox = dialog.showMessageBox.bind(dialog)
+        dialog.showMessageBox = (window, options) =>
+          options?.buttons?.includes('允许此环境使用') || options?.buttons?.includes('安装')
+            ? Promise.resolve({ response: 1 })
+            : messageBox(window, options)
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
       }, tarball)
       const page = await application.firstWindow({ timeout: 20000 })
@@ -72,13 +77,15 @@ test(
         }),
       )
       await page.goto(rendererUrl + '/environments?target=local', { timeout: 20000 })
-      await page.getByRole('button', { name: '编辑', exact: true }).click()
+      await page.getByRole('button', { name: '复制环境', exact: true }).click()
       await page.getByRole('button', { name: '从文件加入内容包', exact: true }).click()
       await expect(page.getByRole('button', { name: '保存并应用', exact: true })).toBeEnabled()
       const packages = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())
       const pkg = packages.packages.find(item => item.name === '@arcadia-example/slow')
       assert.ok(pkg)
-      await expect(page.getByRole('textbox', { name: '包名' }).last()).toHaveValue('@arcadia-example/slow')
+      await expect(page.getByPlaceholder('@author/package', { exact: true }).last()).toHaveValue(
+        '@arcadia-example/slow',
+      )
       await page.getByRole('button', { name: '保存并应用', exact: true }).click()
       await expect
         .poll(() =>
@@ -89,13 +96,17 @@ test(
         )
         .toBe('succeeded')
       assert.equal((await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())).status, 'idle')
+      await page.getByRole('navigation', { name: '选择环境' }).getByRole('button', { name: /副本/ }).click()
+      await page.getByRole('button', { name: '本地使用', exact: true }).click()
+      await expect(page.getByRole('button', { name: '本地使用中', exact: true })).toBeVisible()
       // Personal editing and the ordinary local page consume the selected environment.
       await page.evaluate(async () => {
         const path = '/src/stores/petStorage.ts'
         const { usePetStorageStore } = await import(path)
         const store = usePetStorageStore()
-        store.teams = [
-          {
+        store.clearStorage()
+        if (
+          !store.importTeam({
             name: 'UGC ordinary local',
             ruleSetId: 'casual_standard_ruleset',
             pets: [
@@ -111,11 +122,9 @@ test(
                 ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
               },
             ],
-          },
-        ]
-        store.currentTeamIndex = 0
-        store.initialized = true
-        if (!store.validateAndSave()) throw new Error('Invalid local UGC team fixture')
+          })
+        )
+          throw new Error('Invalid local UGC team fixture')
       })
       await page.goto(rendererUrl + '/team-builder')
       await expect(page.getByRole('heading', { name: '队伍编辑器', exact: true })).toBeVisible()

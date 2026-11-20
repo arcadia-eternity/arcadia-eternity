@@ -43,6 +43,8 @@
   },
   "files": [
     "bin",
+    "release-payload.mjs",
+    "release-test-npm.mjs",
     "dist",
     "LICENSE"
   ],
@@ -69,7 +71,9 @@
     "write-file-atomic": "^8.0.0",
     "yaml": "catalog:",
     "yauzl": "3.4.0",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "fflate": "0.8.3",
+    "simple-git": "4.1.0"
   },
   "repository": {
     "type": "git",

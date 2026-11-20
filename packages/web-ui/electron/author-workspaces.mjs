@@ -9,6 +9,7 @@ export class AuthorWorkspaces {
   #entries
   #loading
   #sessions = new Map()
+  #transfers = new Map()
   #queue = Promise.resolve()
   #contextQueue = Promise.resolve()
   constructor({ root, api, notify = () => {}, env = process.env }) {
@@ -201,6 +202,66 @@ export class AuthorWorkspaces {
     }
     throw new Error('不支持的项目队伍操作')
   }
+  async clone(url) {
+    if (this.#transfers.has('clone')) throw new Error('正在克隆源项目')
+    const controller = new AbortController()
+    this.#transfers.set('clone', controller)
+    const directory = join(this.root, 'projects', `clone-${randomUUID()}`)
+    try {
+      await mkdir(dirname(directory), { recursive: true })
+      await (await this.api()).cloneAuthorRepository(directory, url, controller.signal)
+      return await this.add(directory)
+    } catch (error) {
+      await rm(directory, { recursive: true, force: true })
+      throw error
+    } finally {
+      this.#transfers.delete('clone')
+    }
+  }
+  cancelGit(id) {
+    this.#transfers.get(id)?.abort()
+  }
+  async git(id, input) {
+    const session = await this.session(id)
+    const { authorGit } = await this.api()
+    return this.#mutate(async () => {
+      if (input.operation === 'pull') {
+        await session.jobs.refresh()
+        if (session.jobs.list().some(job => ['running', 'queued'].includes(job.state)))
+          throw new Error('请等创作任务结束后再拉取')
+      }
+      if (input.operation === 'tag') {
+        const { job } = await this.#verifiedPack(session, input.jobId)
+        if (job.kind !== 'release') throw new Error('请先完成发行检查')
+        const manifest = JSON.parse((await session.workspace.read('package.json')).text)
+        return authorGit(session.workspace, { operation: 'tag', tag: 'v' + manifest.version })
+      }
+      if (!['fetch', 'pull', 'push', 'push-tag'].includes(input.operation)) return authorGit(session.workspace, input)
+      const controller = new AbortController()
+      this.#transfers.set(id, controller)
+      try {
+        return await authorGit(session.workspace, input, controller.signal)
+      } finally {
+        this.#transfers.delete(id)
+      }
+    })
+  }
+  async githubTarget(id, jobId) {
+    const session = await this.session(id)
+    const { authorGit } = await this.api()
+    const target = await authorGit(session.workspace, { operation: 'github-target' })
+    if (jobId === undefined) return target
+    const { job } = await this.#verifiedPack(session, jobId)
+    if (
+      !target?.head ||
+      !target.tagged ||
+      job.kind !== 'release' ||
+      session.workspace.hasDirtyFiles ||
+      target.filename !== job.result.filename
+    )
+      throw new Error('请先保存、完成发行检查并为当前提交创建版本标签。')
+    return { ...target, integrity: job.result.integrity }
+  }
   async create(name, arcadiaRange) {
     if (typeof name !== 'string' || !name.trim() || name.length > 80) throw new Error('请输入 1–80 个字符的项目名称')
     const directory = join(this.root, 'projects', `pack-${randomUUID().slice(0, 12)}`)
@@ -244,13 +305,13 @@ export class AuthorWorkspaces {
     return this.#sessions.get(id)
   }
   /** Resolve only a successful task receipt owned by this registered project. */
-  async installBuiltPack(id, jobId, installFile) {
-    const session = await this.session(id)
+  async #verifiedPack(session, jobId) {
     await session.workspace.assertWritable()
     await session.jobs.refresh()
     const job = session.jobs.get(jobId)
-    if (job.kind !== 'pack' || job.state !== 'succeeded') throw new Error('请先完成此项目的构建打包')
-    if (job.stale || session.jobs.list().find(item => item.kind === 'pack')?.jobId !== jobId)
+    if (!['pack', 'release'].includes(job.kind) || job.state !== 'succeeded')
+      throw new Error('请先完成此项目的构建打包')
+    if (job.stale || session.jobs.list().find(item => ['pack', 'release'].includes(item.kind))?.jobId !== jobId)
       throw new Error('构建已过期，请重新构建后用于环境')
     const { filename, shasum, integrity } = job.result ?? {}
     if (
@@ -269,6 +330,10 @@ export class AuthorWorkspaces {
       `sha512-${createHash('sha512').update(bytes).digest('base64')}` !== integrity
     )
       throw new Error('构建产物已改变，请重新构建打包后安装')
+    return { filename, bytes, job }
+  }
+  async installBuiltPack(id, jobId, installFile) {
+    const { filename, bytes } = await this.#verifiedPack(await this.session(id), jobId)
     // Copy verified bytes into a private staging directory. Source edits after verification
     // cannot change the archive consumed by the existing package installer.
     const staging = join(this.root, 'state', `install-${randomUUID()}`)
@@ -313,6 +378,7 @@ export class AuthorWorkspaces {
     return next
   }
   async release(id, { preservePreviews = false } = {}) {
+    this.cancelGit(id)
     const session = this.#sessions.get(id)
     const retained = session && preservePreviews && (await session).jobs.hasLivePreviews
     if (!retained) this.#sessions.delete(id)
@@ -390,6 +456,7 @@ export class AuthorWorkspaces {
     for (const pending of this.#sessions.values()) await (await pending).jobs.stopPreviews()
   }
   async close() {
+    for (const controller of this.#transfers.values()) controller.abort()
     await Promise.allSettled([...this.#sessions.keys()].map(id => this.release(id)))
     await this.#queue
   }

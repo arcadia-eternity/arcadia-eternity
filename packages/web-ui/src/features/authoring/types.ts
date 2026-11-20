@@ -49,6 +49,8 @@ interface AuthorDiagnostic {
   column?: number
 }
 export interface AuthorSnapshot {
+  manifestVersion?: string
+  dependencies?: Record<string, string>
   arcadiaRange?: string
   version?: string
   root: string
@@ -69,6 +71,15 @@ export interface SourceProject {
   directory: string
   name: string
 }
+export const jobStates: Record<string, string> = {
+  queued: '排队中',
+  running: '进行中',
+  succeeded: '已完成',
+  failed: '未完成',
+  cancelled: '已停止',
+  interrupted: '已中断',
+}
+
 export interface AuthorJob {
   jobId: string
   kind: string
@@ -78,6 +89,9 @@ export interface AuthorJob {
   output: string
   diagnostics: AuthorDiagnostic[]
   result?: {
+    filename?: string
+    integrity?: string
+    files?: string[]
     candidate?: { integrity: string; sdkApi: number; build: { coreBuildId: string; registryBuildId: string } }
     preview?: { endpoint: string; clientPath: string; url?: string }
   }

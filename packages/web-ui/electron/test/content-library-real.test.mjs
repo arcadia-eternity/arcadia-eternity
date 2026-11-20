@@ -152,3 +152,121 @@ test(
     }
   },
 )
+
+test(
+  'an active sandbox battle keeps its original package while the consumer installs and applies a new release',
+  { timeout: 120000, skip: process.env.ARCADIA_DESKTOP_REAL_HOST !== '1' },
+  async t => {
+    const { createSourceProject } = await import('@arcadia-eternity/content-sdk/workspace')
+    const { createNodeBattleWorkerManager } = await import('@arcadia-eternity/battle/sandbox/node')
+    const { createLocalContentSessions } = await import('../local-content-sessions.mjs')
+    const { emptyNpmContentHost, prepareNpmProject } = await import('@arcadia-eternity/pack-loader/node')
+    const { gameplayRevision, buildDisplayCatalog, buildDisplayLocales } =
+      await import('@arcadia-eternity/pack-loader/native')
+    const { writeFile } = await import('node:fs/promises')
+    const root = await mkdtemp(join(tmpdir(), 'arcadia-consumer-update-')),
+      project = join(root, 'author')
+    const runtime = {
+      executable: process.execPath,
+      cli: resolve(repository, 'dist/cli.js'),
+      npmCacheDirectory: join(root, 'cache'),
+    }
+    const approvals = [],
+      reviews = []
+    const library = new ContentLibrary({
+      root: join(root, 'consumer'),
+      run: (args, signal) => runContentCommand(runtime, args, signal),
+      host: { status: () => ({ status: 'idle' }), retainedProjectDirectories: async () => [] },
+      reviewInstall: pkg => {
+        reviews.push(pkg.version)
+        return true
+      },
+      authorizeEnvironment: (_document, effects) => {
+        approvals.push(effects.map(pkg => pkg.version))
+        return true
+      },
+    })
+    const name = '@arcadia-local/consumer-test'
+    let selected = '0.1.0'
+    const sessions = createLocalContentSessions({
+      library: {
+        acquireProject: async () => {
+          const document = { id: 'local', name: 'Local', packages: { [name]: selected }, sources: [] }
+          return { ...(await library.prepareEnvironmentProject(document, { offline: true })), document }
+        },
+      },
+      load: async () => ({
+        host: emptyNpmContentHost,
+        prepareNpmProject,
+        gameplayRevision,
+        buildDisplayCatalog,
+        buildDisplayLocales,
+      }),
+      assetUrl: (token, hash) => 'http://localhost/' + token + '/' + hash,
+    })
+    const workers = createNodeBattleWorkerManager()
+    t.after(async () => {
+      await workers.dispose()
+      await sessions.close()
+      await library.close()
+      await rm(root, { recursive: true, force: true })
+    })
+    await createSourceProject(project, 'consumer-test')
+    async function installRelease() {
+      await exec(process.execPath, [join(repository, 'packages/content-dev/dist/cli.js'), 'pack', '--release'], {
+        cwd: project,
+      })
+      await library.installFile(join(project, 'arcadia-local-consumer-test-' + selected + '.tgz'), true)
+    }
+    await installRelease()
+    assert.deepEqual(approvals, [])
+    const first = await sessions.prepare()
+    const power = view => view.content.skills.find(skill => skill.id === 'consumer-test:strike').power
+    assert.equal(power(first), 40)
+    const battle = await workers.create({
+      environment: first.environment,
+      players: [0, 1].map(side => ({
+        id: String(side).repeat(21),
+        name: 'Player ' + side,
+        team: [
+          {
+            id: String(side + 2).repeat(21),
+            name: 'Pet',
+            species: 'consumer-test:pet',
+            level: 100,
+            nature: 'Hardy',
+            skills: ['consumer-test:strike'],
+            evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+            ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+          },
+        ],
+      })),
+      options: { timerConfig: { enabled: false } },
+    })
+    await battle.ready()
+    const pending = await battle.waitForPendingDecision()
+    const before = await battle.getState(undefined, true)
+    selected = '0.2.0'
+    const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+    manifest.version = selected
+    await writeFile(join(project, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
+    const skill = join(project, 'data/skills/strike.yaml')
+    await writeFile(skill, (await readFile(skill, 'utf8')).replace('power: 40', 'power: 90'))
+    await installRelease()
+    assert.deepEqual(approvals, [['0.1.0']])
+    const second = await sessions.prepare()
+    assert.deepEqual(reviews, ['0.1.0', '0.2.0'])
+    assert.deepEqual(approvals, [['0.1.0'], ['0.2.0']])
+    assert.equal(power(second), 90)
+    assert.notEqual(first.environment.revision, second.environment.revision)
+    assert.deepEqual(await battle.getState(undefined, true), before)
+    for (const actions of pending.selections)
+      await battle.submitAction(actions.find(action => action.type === 'use-skill'))
+    await battle.waitForPendingDecision()
+    const after = await battle.getState(undefined, true)
+    assert.ok(after.players[0].team[0].stats.spe < before.players[0].team[0].stats.spe)
+    await battle.cleanup()
+    await sessions.release(first.token)
+    await sessions.release(second.token)
+  },
+)

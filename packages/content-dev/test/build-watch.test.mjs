@@ -34,7 +34,10 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
     await writeFile(join(root, 'docs/guides', skill, 'SKILL.md'), 'original skill')
   }
   await writeFile(join(directory, 'package.json'), JSON.stringify({ version: '5.2.1' }))
+  await writeFile(join(directory, 'template/.gitignore'), 'dist/\nnode_modules/\n')
   await writeFile(join(directory, 'template/package.json'), JSON.stringify({ engines: { node: '>=24' } }))
+  await cp(new URL('../release-test-npm.mjs', import.meta.url), join(directory, 'release-test-npm.mjs'))
+  await cp(new URL('../release-payload.mjs', import.meta.url), join(directory, 'release-payload.mjs'))
   await cp(new URL('../build.mjs', import.meta.url), join(directory, 'build.mjs'))
   await symlink(
     fileURLToPath(new URL('../node_modules', import.meta.url)),
@@ -70,6 +73,7 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
     node: '>=24',
     arcadia: '^5.2.1',
   })
+  assert.equal(await readFile(join(directory, 'dist/template/gitignore-template'), 'utf8'), 'dist/\nnode_modules/\n')
   assert.match(await readFile(join(directory, 'dist/cli.js'), 'utf8'), /\/\/ original/)
   assert.match(await readFile(join(directory, 'dist/index.d.ts'), 'utf8'), /from '\.\/example\.js'/)
 

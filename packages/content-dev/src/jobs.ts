@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process'
 import { StringDecoder } from 'node:string_decoder'
-import { randomUUID } from 'node:crypto'
+import { x as extractTar } from 'tar'
+import { createHash, randomUUID } from 'node:crypto'
 import { cp, mkdir, mkdtemp, rm, symlink, readFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { AuthorWorkspace, WorkspaceError, diagnostic } from './workspace.ts'
 import { JobJournal } from './job-journal.ts'
@@ -30,6 +32,9 @@ interface JobDiagnostic {
 }
 
 interface JobResult {
+  filename?: string
+  integrity?: string
+  candidate?: { integrity?: string }
   preview?: { endpoint: string; clientPath: string; url?: string }
   environmentLock?: { file: string; version: string }
   sourceRevisions?: Record<string, string>
@@ -253,7 +258,7 @@ export class AuthorJobs {
   }): Promise<Job> {
     if (this.workspace.assertWritable) await this.workspace.assertWritable()
     if (this.#closed) throw new WorkspaceError('WORKSPACE_CLOSED', '任务宿主已关闭')
-    if (!['check', 'test', 'demo', 'preview', 'pack'].includes(kind))
+    if (!['check', 'test', 'demo', 'preview', 'pack', 'release'].includes(kind))
       throw new WorkspaceError('TASK_INVALID', '不支持的作者任务')
     if (kind !== 'check' && !this.execute) throw new WorkspaceError('EXECUTION_DISABLED', '此会话未启用项目代码执行')
     if (this.#active) throw new WorkspaceError('TASK_BUSY', '请等待或取消当前任务')
@@ -333,7 +338,8 @@ export class AuthorJobs {
     integer(offset, 0, Number.MAX_SAFE_INTEGER, 'offset')
     integer(limit, 1, 100, 'limit')
     if (state !== undefined && !['queued', 'running', ...terminal].includes(state)) queryError('任务状态无效')
-    if (kind !== undefined && !['check', 'test', 'demo', 'preview', 'pack'].includes(kind)) queryError('任务类型无效')
+    if (kind !== undefined && !['check', 'test', 'demo', 'preview', 'pack', 'release'].includes(kind))
+      queryError('任务类型无效')
     await this.refresh()
     const rows = [...this.#jobs.values()]
       .map(({ job }) => job)
@@ -470,7 +476,8 @@ export class AuthorJobs {
         await this.#process([cli, 'check'], job, signal)
       } else if (job.kind === 'pack') await this.#process([cli, 'pack'], job, signal)
       else {
-        await this.#process([cli, 'build'], job, signal, false, capture)
+        if (job.kind === 'release') await this.#process([cli, 'pack', '--release'], job, signal)
+        else await this.#process([cli, 'build'], job, signal, false, capture)
         if (job.kind === 'demo' || job.kind === 'preview')
           await this.#process([cli, job.kind], job, signal, job.kind === 'preview', capture)
         else {
@@ -479,7 +486,46 @@ export class AuthorJobs {
           )
           if (!files.length)
             throw new WorkspaceError('TESTS_MISSING', '未发现 test/ 或 tests/ 下的 *.test.mjs/js/cjs 场景')
-          await this.#process(['--test', '--test-reporter=tap', ...files.map(entry => entry.file)], job, signal)
+          const archive = job.kind === 'release' ? job.result : undefined
+          if (
+            job.kind === 'release' &&
+            (!archive?.verifiedRelease || typeof archive.filename !== 'string' || typeof archive.integrity !== 'string')
+          )
+            throw new WorkspaceError('RELEASE_INVALID', '缺少已验证的发行归档')
+          if (archive?.filename) {
+            if (!/^[a-z0-9][a-z0-9._-]*\.tgz$/.test(archive.filename))
+              throw new WorkspaceError('RELEASE_INVALID', '发行归档名无效')
+            capture = await mkdtemp(join(tmpdir(), 'arcadia-release-scenarios-'))
+            const file = join(capture, archive.filename)
+            await cp(join(this.workspace.root, archive.filename), file)
+            const integrity =
+              'sha512-' +
+              createHash('sha512')
+                .update(await readFile(file))
+                .digest('base64')
+            if (integrity !== archive.integrity) throw new WorkspaceError('RELEASE_INVALID', '发行归档已改变')
+            await extractTar({ file, cwd: capture, strip: 1, strict: true })
+            for (const entry of await this.workspace.files()) {
+              if (!/^(?:tests?\/|debug\/|arcadia\.config\.mjs$)/.test(entry.file)) continue
+              const target = join(capture, entry.file)
+              await mkdir(dirname(target), { recursive: true })
+              await cp(await this.workspace.path(entry.file), target)
+            }
+            await symlink(
+              join(this.workspace.root, 'node_modules'),
+              join(capture, 'node_modules'),
+              process.platform === 'win32' ? 'junction' : 'dir',
+            )
+          }
+          await this.#process(
+            ['--test', '--test-reporter=tap', ...files.map(entry => entry.file)],
+            job,
+            signal,
+            false,
+            capture,
+            archive,
+          )
+          if (archive) job.result = archive
         }
       }
     } catch (error) {
@@ -522,6 +568,7 @@ export class AuthorJobs {
     signal: AbortSignal,
     preview = false,
     capture: string | undefined = undefined,
+    release?: JobResult,
   ): Promise<void> {
     if (signal.aborted) throw new WorkspaceError('TASK_CANCELLED', '任务已取消')
     const phases: Record<string, string> = {
@@ -540,6 +587,15 @@ export class AuthorJobs {
           ...this.env,
           ELECTRON_RUN_AS_NODE: '1',
           ARCADIA_AUTHOR_RESULT: '1',
+          ...(release
+            ? {
+                ARCADIA_NPM_CLI: fileURLToPath(new URL('../release-test-npm.mjs', import.meta.url)),
+                ARCADIA_TEST_BASE_NPM: this.env.ARCADIA_NPM_CLI ?? '',
+                ARCADIA_TEST_RELEASE_ROOT: capture,
+                ARCADIA_TEST_RELEASE_ARCHIVE: release.filename,
+                ARCADIA_TEST_RELEASE_INTEGRITY: release.integrity,
+              }
+            : {}),
           ...(preview ? { ARCADIA_DEBUG_ENVIRONMENT: job.environmentId, ARCADIA_DEBUG_ROOT: this.workspace.root } : {}),
         },
         stdio: ['ignore', 'pipe', 'pipe', ...(preview ? ['ipc'] : [])] as import('node:child_process').StdioOptions,
@@ -563,21 +619,26 @@ export class AuthorJobs {
       signal.addEventListener('abort', abort, { once: true })
       if (signal.aborted) abort()
       let buffer = '',
-        ready = false
+        ready = false,
+        testedArchive = false
       const output = (text: string) => {
         if (!text) return
         job.outputCursor = outputRange(job).end + text.length
         job.output = (job.output + text).slice(-outputLimit)
         this.#notify()
-        if (!preview || ready) return
+        if ((!preview || ready) && (!release || testedArchive)) return
         buffer += text
         let newline
         while ((newline = buffer.indexOf('\n')) >= 0) {
-          const line = buffer.slice(0, newline)
+          const line = buffer.slice(0, newline).replace(/^# /, '')
           buffer = buffer.slice(newline + 1)
           if (!line.startsWith('ARCADIA_RESULT=')) continue
           try {
             const result = JSON.parse(line.slice('ARCADIA_RESULT='.length)) as JobResult
+            if (release) {
+              if (result.candidate?.integrity === release.integrity) testedArchive = true
+              continue
+            }
             if (!result.preview?.endpoint || signal.aborted) continue
             job.result = result
             ready = true
@@ -639,7 +700,14 @@ export class AuthorJobs {
               message: match[5],
             })
         }
-        if (code === 0 && !signal.aborted) resolve()
+        if (code === 0 && !signal.aborted && release && !testedArchive)
+          reject(
+            new WorkspaceError(
+              'RELEASE_TEST_ARCHIVE',
+              '项目场景未验证本次发行归档，请更新测试 SDK 或检查场景的归档来源。',
+            ),
+          )
+        else if (code === 0 && !signal.aborted) resolve()
         else
           reject(
             new WorkspaceError(

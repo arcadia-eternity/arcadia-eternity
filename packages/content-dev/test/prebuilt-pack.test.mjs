@@ -1,4 +1,6 @@
 import { test } from 'node:test'
+import { gzipSync, gunzipSync } from 'node:zlib'
+import { normalizeReleaseArchive } from '../release-payload.mjs'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, copyFile, symlink } from 'node:fs/promises'
@@ -294,3 +296,49 @@ test(
     }
   },
 )
+
+test('release mode prepares the staged archive and preserves the private author project', async t => {
+  const { project, cache } = await fixture(t, { files: ['dist'] })
+  const source = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+  Object.assign(source, {
+    private: true,
+    license: 'MIT',
+    repository: { type: 'git', url: 'https://github.com/example/pack.git' },
+  })
+  await writeFile(join(project, 'LICENSE'), 'MIT\n')
+  await writeFile(join(project, 'dist/effects.js.map'), 'author source')
+  await writeFile(join(project, 'dist/test.config.json'), 'local configuration')
+  await writeFile(join(project, 'package.json'), JSON.stringify(source))
+  const packed = await packBuiltProject(project, { cache, release: true })
+  assert.deepEqual(packed.files.map(file => file.path).sort(), [
+    'LICENSE',
+    'dist/arcadia-effects.json',
+    'dist/content.json',
+    'package.json',
+  ])
+  const published = JSON.parse(
+    (await exec('tar', ['-xOf', join(project, packed.filename), 'package/package.json'])).stdout,
+  )
+  assert.deepEqual(published.repository, { type: 'git', url: 'git+https://github.com/example/pack.git' })
+  for (const field of ['private', 'scripts', 'devDependencies']) assert.equal(published[field], undefined)
+  const original = await readFile(join(project, packed.filename))
+  assert.deepEqual(JSON.parse(await readFile(join(project, 'package.json'), 'utf8')), source)
+  source.engines = { arcadia: '<1' }
+  await writeFile(join(project, 'package.json'), JSON.stringify(source))
+  await assert.rejects(packBuiltProject(project, { cache, release: true }), /ARCADIA_VERSION_INCOMPATIBLE/)
+  assert.deepEqual(await readFile(join(project, packed.filename)), original)
+})
+
+test('release integrity is independent of the platform npm compressor', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-release-gzip-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const payload = Buffer.from('Arcadia package tar entry'.repeat(4096))
+  const fast = join(root, 'fast.tgz'),
+    compact = join(root, 'compact.tgz')
+  await writeFile(fast, gzipSync(payload, { level: 1 }))
+  await writeFile(compact, gzipSync(payload, { level: 9 }))
+  assert.notDeepEqual(await readFile(fast), await readFile(compact))
+  assert.deepEqual(await normalizeReleaseArchive(fast), await normalizeReleaseArchive(compact))
+  assert.deepEqual(await readFile(fast), await readFile(compact))
+  assert.deepEqual(gunzipSync(await readFile(fast)), payload)
+})

@@ -172,9 +172,48 @@ export class ManagedProjects {
       throw contentError('NPM_INSTALL_FAILED')
     }
   }
+  /** Resolve an author lock in isolation from the source tree and its linked development SDK. */
+  async authorLock(manifest: UnknownRecord, previous?: string) {
+    const allowed = [
+      'name',
+      'version',
+      'license',
+      'engines',
+      'dependencies',
+      'devDependencies',
+      'optionalDependencies',
+      'peerDependencies',
+      'peerDependenciesMeta',
+    ]
+    const metadata = Object.fromEntries(
+      allowed.filter(key => Object.hasOwn(manifest, key)).map(key => [key, manifest[key]]),
+    )
+    checkDependencySpecs(metadata)
+    checkDependencySpecs({ dependencies: metadata.devDependencies })
+    for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+      const specs = metadata[field]
+      if (isRecord(specs) && Object.values(specs).some(value => typeof value !== 'string' || !validRange(value)))
+        throw contentError('INSTALL_DEPENDENCY_SOURCE_FORBIDDEN')
+    }
+    if (previous) checkLock(JSON.parse(previous))
+    const project = join(this.root, 'project')
+    await mkdir(project)
+    await writeFile(join(project, 'package.json'), JSON.stringify(metadata))
+    const path = join(project, 'package-lock.json')
+    if (previous) await writeFile(path, previous)
+    await this.#npm(
+      ['install', '--package-lock-only', '--ignore-scripts', '--registry', this.#options.registry],
+      project,
+      this.#controller.signal,
+    )
+    const result = await readFile(path, 'utf8')
+    checkLock(JSON.parse(result))
+    return result
+  }
   async #packSource(source: ManagedSource, destination: string, signal: AbortSignal, expectedName?: string) {
     const captured = await acquireSource(source, {
       destination,
+      preserveNpmArchive: true,
       signal,
       maxBytes: this.#options.maxBytes,
       maxFiles: this.#options.maxFiles,
@@ -194,6 +233,7 @@ export class ManagedProjects {
     } catch (error) {
       if (errorCode(error) !== 'ENOENT') throw error
     }
+    if (captured.archive) return { file: captured.archive, provenance: captured.provenance }
     const output = join(destination, 'packed')
     await mkdir(output)
     await this.#npm(
@@ -206,11 +246,18 @@ export class ManagedProjects {
     return { file: join(output, files[0]), provenance: captured.provenance }
   }
   async withLocalArchive<T>(file: string, signal: AbortSignal, consume: (archive: string) => Promise<T>) {
+    return this.withSourceArchive({ kind: 'archive', file }, signal, consume)
+  }
+  async withSourceArchive<T>(
+    source: ManagedSource,
+    signal: AbortSignal,
+    consume: (archive: string, provenance: Record<string, string>) => Promise<T>,
+  ) {
     await mkdir(this.root, { recursive: true, mode: 0o700 })
     const staging = await mkdtemp(join(this.root, 'archive-'))
     try {
-      const captured = await this.#packSource({ kind: 'archive', file }, join(staging, 'source'), signal)
-      return await consume(captured.file)
+      const captured = await this.#packSource(source, join(staging, 'source'), signal)
+      return await consume(captured.file, captured.provenance)
     } finally {
       await rm(staging, { recursive: true, force: true })
     }

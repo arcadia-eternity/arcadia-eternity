@@ -81,7 +81,7 @@ async function npm(args: string[], options: ExecFileOptions) {
 export async function prepareBattleEnvironment(
   root: string = process.cwd(),
   {
-    offline = true,
+    offline = !process.env.ARCADIA_TEST_RELEASE_ARCHIVE,
     cache,
     environmentId = 'default',
     sources = {},
@@ -137,13 +137,28 @@ export async function prepareBattleEnvironment(
         if (errorCode(error) !== 'ENOENT') throw error
       }
     }
-    const result = await npm(['pack', '--json', '--ignore-scripts', '--pack-destination', temporary, ...cacheArgs], {
-      cwd: root,
-    })
+    const archive = process.env.ARCADIA_TEST_RELEASE_ARCHIVE
+    if (archive && !/^[a-z0-9][a-z0-9._-]*\.tgz$/.test(archive)) throw new Error('Invalid release archive filename')
+    const result = await npm(
+      [
+        'pack',
+        ...(archive ? [join(root, archive)] : []),
+        '--json',
+        '--ignore-scripts',
+        '--pack-destination',
+        temporary,
+        ...cacheArgs,
+      ],
+      {
+        cwd: root,
+      },
+    )
     const packed = requirePackedInfo(parseNpmPackOutput(String(result.stdout))[0])
+    if (archive && packed.integrity !== process.env.ARCADIA_TEST_RELEASE_INTEGRITY)
+      throw new Error('Release archive integrity changed before testing')
     const files = packed.files.map(file => file.path)
     assert.ok(files.includes(manifest.arcadia.content!))
-    if (manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
+    if (!archive && manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
     assert.ok(
       !files.some(file => /^(?:\.arcadia|\.github|node_modules|test|scripts|debug)\//.test(file)),
       'the package must contain content, not a developer workspace',
@@ -216,9 +231,14 @@ export async function prepareBattleEnvironment(
       ],
       { cwd: installation },
     )
-    environment = await prepareNpmProject(installation, emptyNpmContentHost, {
-      policy: { profile: 'local-development' },
-    })
+    environment = await prepareNpmProject(
+      installation,
+      emptyNpmContentHost,
+      {
+        policy: { profile: 'local-development' },
+      },
+      archive ? { effectPreparation: 'prebuilt-only' } : {},
+    )
     if (environmentId === 'default')
       environmentDocument.rules = defaultRuleDeclaration(environment.sandbox.data.ruleSets)
     const { rules: effectiveRules } = prepareRulesForContent(environmentDocument.rules, environment.sandbox.data)

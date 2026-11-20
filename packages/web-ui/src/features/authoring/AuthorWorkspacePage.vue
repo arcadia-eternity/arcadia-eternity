@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { arcadiaRangeError, useNewPackageRange } from './useNewPackageRange'
-import { ElInput } from 'element-plus'
+import { ElInput, ElMessageBox } from 'element-plus'
 import type { DependencyReferenceCatalog } from '@arcadia-eternity/content-sdk/workspace'
-import { nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { defineAsyncComponent, nextTick, computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { localStorageUnavailable } from '@/services/localStorage'
 import ObjectIcon from './ObjectIcon.vue'
@@ -21,6 +21,7 @@ import type { Json } from '@arcadia-eternity/pack-loader/native'
 import { createCatalogIndex, textSource } from './catalog'
 import {
   authorCall,
+  jobStates,
   type AuthorSnapshot,
   type SourceRecord,
   type SourceProject,
@@ -56,6 +57,13 @@ const createRelation = ref<{ row: SourceRecord; slot: string }>()
 const copyFrom = ref<ContentRow>()
 const copyMediaFrom = ref<ContentRow>()
 const languageInput = ref('')
+const AuthorGitDialog = defineAsyncComponent(() => import('./AuthorGitDialog.vue'))
+const gitOpen = ref(false)
+const releaseOpen = ref(false)
+function openGit(release = false) {
+  releaseOpen.value = release
+  gitOpen.value = true
+}
 const projectSettingsOpen = ref(false)
 const rangeDraft = ref<{ original: string; value: string }>()
 const savedRange = computed(() => snapshot.value?.arcadiaRange ?? '')
@@ -71,6 +79,32 @@ const projectRangeError = computed(() => arcadiaRangeError(projectRange.value))
 
 function mayDiscardRange() {
   return !rangeDraft.value || window.confirm('放弃未保存的兼容范围修改？')
+}
+async function editPackage(field: 'version' | 'dependency', name?: string, remove = false) {
+  const current = snapshot.value,
+    id = project.value?.id
+  if (!current || !id) return
+  const options = { confirmButtonText: '保存', cancelButtonText: '取消' }
+  try {
+    if (field === 'dependency' && !name)
+      name = (await ElMessageBox.prompt('npm 包名', '添加运行依赖', options)).value.trim()
+    let value: string | null = null
+    if (remove) await ElMessageBox.confirm(name, '移除运行依赖？', { ...options, confirmButtonText: '移除' })
+    else
+      value = (
+        await ElMessageBox.prompt(field === 'version' ? 'npm 版本号' : '依赖版本范围', name || '更改包版本', {
+          ...options,
+          inputValue: field === 'version' ? current.version : current.dependencies?.[name!],
+        })
+      ).value.trim()
+    await authorCall({ action: 'edit-package', id, field, name, value, expectedVersion: current.manifestVersion })
+    await refresh()
+    updateJobs(await action<AuthorJob[]>({ action: 'jobs' }))
+  } catch (cause) {
+    if (cause === 'cancel' || cause === 'close') return
+    await refresh()
+    throw cause
+  }
 }
 async function saveProjectRange() {
   if (!rangeDraft.value || projectRangeError.value) return
@@ -139,14 +173,6 @@ const selectedKind = ref('species')
 const selectedAssetId = ref('')
 const asset = ref<{ file: string; bytes: Uint8Array }>(),
   assetLoading = ref(false)
-const jobStates: Record<string, string> = {
-  queued: '排队中',
-  running: '进行中',
-  succeeded: '已完成',
-  failed: '未完成',
-  cancelled: '已停止',
-  interrupted: '已中断',
-}
 const autoOpenPreview = ref('')
 const runPanelOpen = ref(false)
 const runActions = ref<HTMLDetailsElement>()
@@ -156,6 +182,7 @@ const jobTitles: Record<string, string> = {
   demo: '演示对战',
   preview: '画面试玩',
   pack: '打包',
+  release: '发行检查',
 }
 const tabs: Record<string, string> = {
   ...contentTypes,
@@ -177,7 +204,9 @@ let timer: ReturnType<typeof setInterval>,
 let reviewedPayload = ''
 const dirty = computed(() => pending.value.length > 0)
 const hasUnsavedChanges = computed(() => dirty.value || !!rangeDraft.value)
-const pendingFiles = computed(() => [...new Set(pending.value.map(draft => draft.file))])
+const pendingFiles = computed(() => [
+  ...new Set([...pending.value.map(draft => draft.file), ...(rangeDraft.value ? ['package.json'] : [])]),
+])
 const projectId = computed(() => snapshot.value?.project.projectId ?? '')
 const keyFor = (kind: string, id: string) => recordKey({ kind, record: { id } })
 const effectiveRecords = computed<SourceRecord[]>(() =>
@@ -423,7 +452,7 @@ function editAssetSource(location: string) {
 const files = computed(() => snapshot.value?.files.filter(row => row.file.startsWith('src/')) ?? [])
 const testFiles = computed(() => snapshot.value?.files.filter(row => /^(test|tests)\//.test(row.file)) ?? [])
 const running = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.state)))
-const latestPack = computed(() => jobs.value.find(job => job.kind === 'pack'))
+const latestPack = computed(() => jobs.value.find(job => ['pack', 'release'].includes(job.kind)))
 const packIsCurrent = computed(() => latestPack.value?.state === 'succeeded' && !latestPack.value.stale)
 const packToInstall = ref('')
 async function useBuiltPack() {
@@ -701,6 +730,7 @@ async function openProject(next: SourceProject) {
   if (runActions.value) runActions.value.open = false
   project.value = next
   projectSettingsOpen.value = false
+  gitOpen.value = false
   snapshot.value = undefined
   selectedId.value = ''
   asset.value = undefined
@@ -1019,6 +1049,10 @@ async function copyConnection() {
   await navigator.clipboard.writeText(JSON.stringify(config, null, 2))
   notice.value = '已复制 MCP 配置。'
 }
+function releaseFromGit() {
+  if (!releaseOpen.value) gitOpen.value = false
+  void attempt(() => start('release'))
+}
 async function start(kind: string) {
   if (hasUnsavedChanges.value) throw new Error('请先保存修改，运行任务读取的是磁盘内容。')
   if (runActions.value) runActions.value.open = false
@@ -1152,6 +1186,7 @@ onBeforeUnmount(() => {
         <button
           v-if="project"
           class="project-switch"
+          :disabled="busy || !snapshot"
           :aria-expanded="projectSettingsOpen"
           @click="projectSettingsOpen = !projectSettingsOpen"
         >
@@ -1186,6 +1221,8 @@ onBeforeUnmount(() => {
     </header>
     <section v-if="project && !readOnly" class="play-toolbar" aria-label="试玩控制">
       <p role="status">{{ previewStatus }}</p>
+      <button :disabled="busy" @click="openGit(false)">Git 版本管理</button>
+      <button :disabled="busy" @click="openGit(true)">发布新版本</button>
       <details ref="runActions" class="run-actions">
         <summary>更多操作</summary>
         <div class="run-actions-menu">
@@ -1198,6 +1235,9 @@ onBeforeUnmount(() => {
           <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('demo'))">
             无界面演示对战
           </button>
+          <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('release'))">
+            检查并生成发行包
+          </button>
           <small>任务使用已保存的内容</small>
         </div>
       </details>
@@ -1205,6 +1245,19 @@ onBeforeUnmount(() => {
         {{ running && latestPreview && ['queued', 'running'].includes(latestPreview.state) ? '正在准备…' : '调试试玩' }}
       </button>
     </section>
+    <AuthorGitDialog
+      v-if="gitOpen && project && !readOnly"
+      :key="project.id"
+      :project="project.id"
+      :release-open="releaseOpen"
+      :dirty="hasUnsavedChanges"
+      :running="running"
+      :version="snapshot?.version"
+      :pack="latestPack"
+      @close="gitOpen = false"
+      @release="releaseFromGit"
+      @version="attempt(() => editPackage('version'))"
+    />
     <details v-if="!project || projectSettingsOpen" class="project-settings" open>
       <summary>{{ project ? '项目与外部工具' : '打开内容包源项目' }}</summary>
       <div class="tools">
@@ -1258,6 +1311,37 @@ onBeforeUnmount(() => {
           从模板创建项目
         </button>
       </div>
+      <section v-if="project && snapshot">
+        <div class="tools">
+          <strong>{{ snapshot.name }}@{{ snapshot.version }}</strong>
+          <span>项目 ID {{ snapshot.project.projectId }}</span
+          ><span>命名空间 {{ snapshot.project.namespace }}</span>
+          <span>SDK API {{ snapshot.project.sdkApi ?? '未声明' }}</span>
+          <button v-if="!readOnly" :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('version'))">
+            更改包版本
+          </button>
+        </div>
+        <div class="tools">
+          <strong>运行依赖</strong
+          ><button v-if="!readOnly" :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('dependency'))">
+            添加依赖
+          </button>
+        </div>
+        <div v-for="(range, dependency) in snapshot.dependencies" :key="dependency" class="tools">
+          <code>{{ dependency }} {{ range }}</code>
+          <template v-if="!readOnly">
+            <button :disabled="busy || !!rangeDraft" @click="attempt(() => editPackage('dependency', dependency))">
+              调整版本
+            </button>
+            <button
+              :disabled="busy || !!rangeDraft"
+              @click="attempt(() => editPackage('dependency', dependency, true))"
+            >
+              移除依赖
+            </button>
+          </template>
+        </div>
+      </section>
       <form v-if="project && snapshot" class="tools" @submit.prevent="attempt(saveProjectRange)">
         <label
           >Arcadia 兼容范围<ElInput
@@ -1835,6 +1919,12 @@ onBeforeUnmount(() => {
               打开位置
             </button>
           </p>
+          <details v-if="latestJob.state === 'succeeded' && latestJob.result?.files?.length">
+            <summary>{{ latestJob.result.filename }} · {{ latestJob.result.files.length }} 个文件</summary>
+            <ul>
+              <li v-for="file in latestJob.result.files" :key="file">{{ file }}</li>
+            </ul>
+          </details>
           <pre>{{
             latestOutput || (['queued', 'running'].includes(latestJob.state) ? '等待输出…' : '没有额外输出。')
           }}</pre>

@@ -22,7 +22,7 @@ export async function workspaceCli(args: string[]) {
   process.once('SIGINT', cancel)
   try {
     let result
-    if (['check', 'test', 'demo', 'preview', 'pack'].includes(operation)) {
+    if (['check', 'test', 'demo', 'preview', 'pack', 'release'].includes(operation)) {
       let job = await session.jobs.start({ kind: operation, ...(environmentId ? { environmentId } : {}) })
       while (['queued', 'running'].includes(job.state)) {
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -41,7 +41,7 @@ export async function workspaceCli(args: string[]) {
       }
     } else {
       let input = ''
-      if (operation !== 'describe')
+      if (operation !== 'describe' && operation !== 'git-status')
         for await (const chunk of process.stdin) {
           input += chunk
           if (Buffer.byteLength(input) > 3 * 1024 * 1024) throw new Error('JSON input exceeds 3 MiB')

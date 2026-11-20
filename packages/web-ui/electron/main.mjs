@@ -18,6 +18,7 @@ import { ContentProjectManager, runContentCommand } from './content-projects.mjs
 import { ContentLibrary, readDesktopContentSources } from './content-library.mjs'
 import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
 import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
+import { CreatorGitHub, creatorAction } from './creator-github.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
@@ -253,6 +254,7 @@ async function openAuthorPreview(id, job) {
     throw error
   }
 }
+const creatorGitHub = new CreatorGitHub({ clientId: process.env.ARCADIA_CREATOR_GITHUB_CLIENT_ID })
 function getAuthorWorkspaces() {
   authorWorkspaces ??= new AuthorWorkspaces({
     root: path.join(app.getPath('userData'), 'ugc'),
@@ -286,6 +288,36 @@ function getContentLibrary() {
   contentLibrary ??= new ContentLibrary({
     root,
     sources: readDesktopContentSources(process.argv.slice(1), root),
+    reviewInstall: async (pkg, signal) => {
+      const ranges = Object.entries(pkg.dependencyRanges).map(([name, range]) => name + ' ' + range)
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        buttons: ['取消', '安装'],
+        defaultId: 1,
+        cancelId: 0,
+        message: `安装 ${pkg.name}@${pkg.version}？`,
+        detail: [
+          pkg.projectId + ' · ' + pkg.namespace,
+          pkg.source.label,
+          'Arcadia ' + (pkg.engines?.arcadia || '未声明') + ' · SDK API ' + (pkg.sdkApi ?? '未声明'),
+          '运行依赖：' + (ranges.join('、') || '无'),
+        ].join('\n'),
+        signal,
+      })
+      return response === 1
+    },
+    authorizeEnvironment: async (document, effects, signal) => {
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        buttons: ['取消', '允许此环境使用'],
+        defaultId: 0,
+        cancelId: 0,
+        message: `允许「${document.name}」在本机运行以下内容包的效果？`,
+        detail: effects.map(pkg => pkg.name + '@' + pkg.version).join('\n'),
+        signal,
+      })
+      return response === 1
+    },
     host: localBattleHost,
     copyMember: async (...args) => {
       const runtimeRequire = app.isPackaged
@@ -973,6 +1005,8 @@ function setupIpcHandlers() {
         const directory = await getContentLibrary().sourceDirectory(input.packageId)
         result = await manager.add(directory, { readOnly: true, published: true })
       } else if (input.action === 'create') result = await manager.create(input.name, input.arcadiaRange)
+      else if (input.action === 'git-cancel') result = manager.cancelGit(input.id)
+      else if (input.action === 'clone') result = await manager.clone(input.url)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
           title: '打开内容包源项目',
@@ -994,6 +1028,40 @@ function setupIpcHandlers() {
         } else {
           const session = await manager.session(input.id)
           switch (input.action) {
+            case 'creator-github':
+              result = await creatorAction(creatorGitHub, manager, input, {
+                open: url => shell.openExternal(url),
+                confirm: async (message, detail) => {
+                  const { response } = await dialog.showMessageBox(mainWindow, {
+                    type: 'question',
+                    message,
+                    detail,
+                    buttons: ['取消', '确认'],
+                    defaultId: 0,
+                    cancelId: 0,
+                  })
+                  requireLocalBattleCaller(event)
+                  return response === 1
+                },
+              })
+              break
+            case 'git':
+              if (input.operation === 'push' || input.operation === 'push-tag') {
+                const isTag = input.operation === 'push-tag'
+                const destination = await manager.git(input.id, { operation: isTag ? 'tag-target' : 'push-target' })
+                const { response } = await dialog.showMessageBox(mainWindow, {
+                  type: 'question',
+                  buttons: ['取消', '推送'],
+                  defaultId: 0,
+                  cancelId: 0,
+                  message: isTag ? '推送版本标签？' : '推送当前分支？',
+                  detail: destination,
+                })
+                requireLocalBattleCaller(event)
+                if (response !== 1) throw new Error('已取消推送')
+                result = await manager.git(input.id, { operation: input.operation, destination })
+              } else result = await manager.git(input.id, input)
+              break
             case 'install-built-author-pack':
               result = await manager.installBuiltPack(input.id, input.jobId, file =>
                 getContentLibrary().installFile(file),
@@ -1014,6 +1082,12 @@ function setupIpcHandlers() {
             }
             case 'context':
               result = await manager.setContext(input.id, input.state)
+              break
+            case 'update-author-lock':
+              await (await manager.api()).updateAuthorLock(session.workspace)
+              break
+            case 'edit-package':
+              result = await session.workspace.editPackage(input)
               break
             case 'save-arcadia-range':
               result = await session.workspace.saveArcadiaRange(input.range, input.expectedRange)
@@ -1152,6 +1226,7 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
+    if (input.action === 'install-remote') return library.installRemote(input.source)
     if (input.action === 'cancel-install') {
       library.cancelInstall(input.operationId)
       return null

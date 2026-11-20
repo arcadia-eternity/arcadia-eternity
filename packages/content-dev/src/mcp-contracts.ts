@@ -17,7 +17,7 @@ const diagnosticSchema = z
   .passthrough()
 const saved = z.object({ file: z.string(), version })
 const jobState = z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled', 'interrupted'])
-export const jobKind = z.enum(['check', 'test', 'demo', 'preview', 'pack'])
+export const jobKind = z.enum(['check', 'test', 'demo', 'preview', 'pack', 'release'])
 export { jobState }
 const job = z
   .object({
@@ -70,6 +70,8 @@ const environment = z.discriminatedUnion('schemaVersion', [
 // Dynamic content and battle payloads keep their domain fields; the envelopes and
 // control fields are explicit so clients can handle pagination, conflicts and jobs.
 export const outputSchemas = {
+  'git-status': z.object({ repository: z.boolean() }).passthrough(),
+  'git-diff': z.union([z.object({ text: z.string() }), z.object({ patch: z.string() })]),
   describe: z.object({
     protocolVersion: z.number(),
     root: z.string(),

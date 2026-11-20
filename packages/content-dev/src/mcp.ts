@@ -80,6 +80,17 @@ function tool(
     },
   )
 }
+if (!session.workspace.published) {
+  tool('git_status', 'Read the bound Git worktree and index.', {}, 'git-status', undefined, true)
+  tool(
+    'git_diff',
+    'Read one changed source file. Set staged to compare its index entry to HEAD.',
+    { file: z.string(), staged: z.boolean().optional() },
+    'git-diff',
+    undefined,
+    true,
+  )
+}
 tool(
   'workspace_describe',
   'Read the bound project identity, source revision, SDK and execution capabilities without importing project code.',
@@ -184,6 +195,7 @@ for (const [name, kind] of [
   ['test_start', 'test'],
   ['preview_start', 'preview'],
   ['package_build', 'pack'],
+  ['release_check', 'release'],
 ]) {
   if (session.workspace.readOnly) continue
   if (kind !== 'check' && !options.has('--execute')) continue

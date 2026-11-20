@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
@@ -158,6 +159,7 @@ async function fixture(t, options = {}) {
       await mkdir(join(directory, 'node_modules'), { recursive: true })
       return inspectNpmProject(directory)
     }
+    if (args[2] === 'inspect') return inspectNpmProject(directory)
     if (args[2] === 'approve') {
       await inspectNpmProject(directory)
       const value = { format: 'arcadia.npm-admission', version: 2, profile: args[args.indexOf('--profile') + 1] }
@@ -174,6 +176,8 @@ async function fixture(t, options = {}) {
     run,
     host,
     sources: await options.sources?.(source, root),
+    reviewInstall: options.reviewInstall,
+    authorizeEnvironment: options.authorizeEnvironment,
     createManagedProjects: async (directory, input) => {
       const managed = new ManagedProjects(directory, {
         ...input,
@@ -563,3 +567,51 @@ test(
     }
   },
 )
+
+test('public release URL uses the library review and requests execution only for the selected environment', async t => {
+  const reviews = [],
+    approvals = []
+  let install = false,
+    allow = false
+  const f = await fixture(t, {
+    reviewInstall: pkg => {
+      reviews.push(pkg)
+      return install
+    },
+    authorizeEnvironment: (_doc, effects) => {
+      approvals.push(effects.map(pkg => pkg.name))
+      return allow
+    },
+  })
+  const bytes = await readFile(f.source.archive)
+  const source = {
+    kind: 'url',
+    url: 'https://github.com/test/content/releases/download/v1.0.0/registered.tgz',
+    integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'),
+  }
+  t.mock.method(globalThis, 'fetch', async url => {
+    assert.equal(String(url), source.url)
+    return new Response(bytes)
+  })
+  await assert.rejects(f.library.installRemote({ ...source, integrity: 'sha512-YmFk' }), /INTEGRITY_MISMATCH/)
+  await assert.rejects(f.library.installRemote(source), { name: 'AbortError' })
+  assert.equal((await f.library.list()).packages.length, 0)
+  assert.equal(reviews[0].name, f.source.name)
+  assert.equal(reviews[0].sdkApi, 2)
+  install = true
+  const id = await f.library.installRemote(source)
+  const entry = (await f.library.list()).packages.find(pkg => pkg.id === id)
+  assert.equal(entry.source.provenance.integrity, source.integrity)
+  assert.equal(await f.library.installFile(f.source.archive, true), id)
+  assert.equal(
+    f.calls.some(args => args.includes('approve')),
+    false,
+  )
+  const document = { ...environment([]), packages: { [entry.name]: entry.version } }
+  await assert.rejects(f.library.prepareEnvironmentProject(document, { offline: true }), /未授权/)
+  assert.deepEqual(approvals, [[entry.name]])
+  allow = true
+  const lease = await f.library.prepareEnvironmentProject(document, { offline: true })
+  await validateProject(lease.directory)
+  await lease.release()
+})

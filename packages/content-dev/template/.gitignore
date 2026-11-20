@@ -2,3 +2,4 @@ node_modules/
 dist/
 .arcadia/
 *.tgz
+release-output/

@@ -1,4 +1,7 @@
-import { cp, lstat, mkdir, readFile, realpath, readdir, symlink, writeFile } from 'node:fs/promises'
+import { cp, lstat, mkdir, mkdtemp, rm, readFile, realpath, readdir, symlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { ManagedProjects } from './managed-projects.ts'
+import type { AuthorWorkspace } from './workspace.ts'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -128,7 +131,22 @@ export async function createSourceProject(
     template = fileURLToPath(new URL('../template/', import.meta.url))
   }
   for (const entry of await readdir(template))
-    await cp(join(template, entry), join(directory, entry), { recursive: true, force: false, errorOnExist: true })
+    await cp(
+      join(template, entry),
+      join(
+        directory,
+        entry === 'gitignore-template'
+          ? '.gitignore'
+          : entry === 'npm-lock-template.json'
+            ? 'package-lock.json'
+            : entry,
+      ),
+      {
+        recursive: true,
+        force: false,
+        errorOnExist: true,
+      },
+    )
   async function renameText(root: string) {
     for (const entry of await readdir(root, { withFileTypes: true })) {
       const file = join(root, entry.name)
@@ -140,11 +158,38 @@ export async function createSourceProject(
     }
   }
   await renameText(directory)
+  for (const script of ['release-payload.mjs', 'release-test-npm.mjs'])
+    await cp(fileURLToPath(new URL('../' + script, import.meta.url)), join(directory, '.github/scripts', script))
   const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
   if (range) manifest.engines.arcadia = range
   else delete manifest.engines.arcadia
   manifest.name = `@arcadia-local/${identity}`
   await writeFile(join(directory, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
+  const lockPath = join(directory, 'package-lock.json')
+  const lock = JSON.parse(await readFile(lockPath, 'utf8'))
+  lock.name = lock.packages[''].name = manifest.name
+  lock.packages[''].engines = manifest.engines
+  await writeFile(lockPath, JSON.stringify(lock, null, 2) + '\n')
   await connectDevelopmentSdk(directory)
   return directory
+}
+
+export async function updateAuthorLock(workspace: AuthorWorkspace) {
+  await workspace.assertWritable()
+  const manifest = await workspace.read('package.json')
+  const previous = await workspace.read('package-lock.json').catch(error => {
+    if (errorCode(error) !== 'ENOENT') throw error
+    return undefined
+  })
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-author-lock-'))
+  const installer = new ManagedProjects(root)
+  try {
+    const text = await installer.authorLock(JSON.parse(manifest.text), previous?.text)
+    if ((await workspace.read('package.json')).version !== manifest.version)
+      throw new WorkspaceError('REVISION_CONFLICT', '生成锁文件期间包声明已改变，请重试')
+    await workspace.write({ file: 'package-lock.json', expectedVersion: previous?.version ?? null, text })
+  } finally {
+    await installer.close()
+    await rm(root, { recursive: true, force: true })
+  }
 }

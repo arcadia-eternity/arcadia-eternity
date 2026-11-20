@@ -4,9 +4,17 @@ import { copyFile, lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, writeF
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import type { Stats } from 'node:fs'
-import { compileEffectModule, parseNpmPackOutput, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import {
+  compileEffectModule,
+  emptyNpmContentHost,
+  parseNpmPackOutput,
+  prepareNpmProject,
+  resolveNpmInvocation,
+} from '@arcadia-eternity/pack-loader/node'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
 import type { PackageManifest } from './workspace.ts'
+import { releasePayload, normalizeReleaseArchive } from '../release-payload.mjs'
+import { ManagedProjects } from './managed-projects.ts'
 import { errorCode } from './types.ts'
 
 const exec = promisify(execFile)
@@ -77,10 +85,43 @@ async function stagingRoot(root: string): Promise<string> {
   return directory
 }
 
+async function verifyRelease(directory: string, archive: string, name: string) {
+  const project = join(directory, 'consumer')
+  await mkdir(join(project, 'candidates'), { recursive: true })
+  await copyFile(archive, join(project, 'candidates/release.tgz'))
+  const installer = new ManagedProjects(join(directory, 'installer'), { allowThirdPartyContent: true })
+  try {
+    await installer.prepareProject(
+      {
+        schemaVersion: 1,
+        id: 'release',
+        name: '发行检查',
+        packages: { [name]: 'file:candidates/release.tgz' },
+        sources: [],
+      },
+      { projectDirectory: project },
+      async installed => {
+        const prepared = await prepareNpmProject(
+          installed,
+          emptyNpmContentHost,
+          { policy: { profile: 'local-development' } },
+          { effectPreparation: 'prebuilt-only' },
+        )
+        await prepared.dispose()
+      },
+    )
+  } finally {
+    await installer.close()
+  }
+}
+
 /** Trusted author packaging: close the effect dependency graph without evaluating it.
  * Only the staged package gains artifact metadata; the source manifest is never rewritten.
  */
-export async function packBuiltProject(directory: string = process.cwd(), { cache }: { cache?: string } = {}) {
+export async function packBuiltProject(
+  directory: string = process.cwd(),
+  { cache, release = false }: { cache?: string; release?: boolean } = {},
+) {
   const root = await realpath(resolve(directory))
   const manifestText = await readFile(join(root, 'package.json'), 'utf8')
   const manifest = JSON.parse(manifestText) as PackageManifest & { name: string }
@@ -124,9 +165,17 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
   }
   for (const file of required) if (!included.has(file)) fail(`npm files omits required presentation file: ${file}`)
   const distributed = new Set<string>(['package.json'])
-  for (const file of included) if (file.startsWith('dist/') || distributionMetadata.test(file)) distributed.add(file)
+  for (const file of included)
+    if ((!release && file.startsWith('dist/')) || distributionMetadata.test(file)) distributed.add(file)
   for (const file of required) distributed.add(file)
 
+  const releasePackage = release ? releasePayload(manifest, included, presentation) : undefined
+  if (releasePackage) {
+    distributed.clear()
+    for (const file of releasePackage.files) {
+      if (file !== artifactFile || !manifest.arcadia?.effects) distributed.add(file)
+    }
+  }
   // Keep output on the destination filesystem so publishing can be one rename.
   const temporary = await mkdtemp(join(await stagingRoot(root), 'publish-'))
   const payload = join(temporary, 'package'),
@@ -135,7 +184,7 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
   try {
     await mkdir(payload)
     await mkdir(output)
-    const staged = structuredClone(manifest)
+    const staged = releasePackage ?? structuredClone(manifest)
     for (const file of distributed) {
       const source = await sourceFile(root, file)
       sources.set(source.path, source)
@@ -167,7 +216,7 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
       delete staged.arcadia.effectSources
       delete staged.arcadia.effects
     }
-    staged.files = [...distributed]
+    staged.files = releasePackage?.files ?? [...distributed]
     await writeFile(join(payload, 'package.json'), JSON.stringify(staged, null, 2) + '\n')
     const packed = parseNpmPackOutput(
       String((await npm(payload, ['pack', '--ignore-scripts', '--json', '--pack-destination', output], cache)).stdout),
@@ -179,6 +228,10 @@ export async function packBuiltProject(directory: string = process.cwd(), { cach
     for (const file of distributed) if (!actual.has(file)) fail(`npm omitted staged package file: ${file}`)
     for (const file of actual)
       if (!distributed.has(file) && !distributionMetadata.test(file)) fail(`npm included a non-artifact file: ${file}`)
+    if (release) {
+      Object.assign(packed, await normalizeReleaseArchive(join(output, packed.filename)))
+      await verifyRelease(temporary, join(output, packed.filename), manifest.name)
+    }
     if ((await readFile(join(root, 'package.json'), 'utf8')) !== manifestText)
       fail('Package manifest changed during packaging')
     await verifyCapture(sources)

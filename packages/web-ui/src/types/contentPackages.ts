@@ -33,7 +33,7 @@ export interface InstalledContentPackage {
   license?: string
   engines?: Record<string, string>
   dependencyRanges?: Record<string, string>
-  source: { kind: 'file' | 'npm'; label: string; spec?: string; file?: string }
+  source: { kind: 'file' | 'npm'; label: string; spec?: string; file?: string; provenance?: Record<string, string> }
   graph: PackageGraphEntry[]
   ruleCatalog?: PackageRuleCatalog
   contentIds: ContentIds
@@ -55,7 +55,10 @@ export interface ContentLibrarySnapshot {
   serviceStatus: LocalBattleHostStatus
   serviceNeedsRestart: boolean
 }
+export type RemotePackageSource =
+  { kind: 'url'; url: string; integrity?: string } | { kind: 'git'; url: string; commit: string; artifactPath?: string }
 export type ContentPackageAction =
+  | { action: 'install-remote'; source: RemotePackageSource }
   | { action: 'cancel-install' | 'retry-install'; operationId: string }
   | { action: 'clear-install-tasks' }
   | { action: 'uninstall'; packageId: string }

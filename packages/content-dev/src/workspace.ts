@@ -6,7 +6,7 @@ import { dirname, extname, isAbsolute, join, relative, sep } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
 import YAML from 'yaml'
-import { validRange } from 'semver'
+import { valid, validRange } from 'semver'
 import type { Document, LineCounter } from 'yaml'
 import chokidar from 'chokidar'
 import type { FSWatcher } from 'chokidar'
@@ -143,6 +143,8 @@ export interface WorkspaceSnapshot {
   root: string
   project: ManifestArcadia
   name: string | undefined
+  manifestVersion: string
+  dependencies: Record<string, string>
   arcadiaRange: string
   version: string | undefined
   records: WorkspaceRecord[]
@@ -449,7 +451,8 @@ export class AuthorWorkspace extends EventEmitter {
     return sha256Hex(JSON.stringify(hashes))
   }
   async snapshot(): Promise<WorkspaceSnapshot> {
-    const manifest = JSON.parse((await this.read('package.json')).text) as PackageManifest
+    const source = await this.read('package.json')
+    const manifest = JSON.parse(source.text) as PackageManifest
     const project = this.baseProject ?? manifest.arcadia ?? {}
     const readOnly = this.readOnly || isBaseManifest(manifest)
     const baseSources = new Map<string, string>()
@@ -678,6 +681,14 @@ export class AuthorWorkspace extends EventEmitter {
       root: this.root,
       project,
       name: this.baseProject ? '基础包' : manifest.name,
+      manifestVersion: source.version,
+      dependencies: isRecord(manifest.dependencies)
+        ? Object.fromEntries(
+            Object.entries(manifest.dependencies).filter(
+              (entry): entry is [string, string] => typeof entry[1] === 'string',
+            ),
+          )
+        : {},
       arcadiaRange: manifestRange(manifest),
       version: manifest.version,
       records,
@@ -700,6 +711,9 @@ export class AuthorWorkspace extends EventEmitter {
   setDirty(file: string, dirty: boolean): void {
     if (dirty) this.#dirty.add(file)
     else this.#dirty.delete(file)
+  }
+  get hasDirtyFiles(): boolean {
+    return this.#dirty.size > 0
   }
   clearDirty(): void {
     this.#dirty.clear()
@@ -752,6 +766,50 @@ export class AuthorWorkspace extends EventEmitter {
       if (fromForm) this.#dirty.delete(file)
       this.emit('change', { type: 'change', file })
       return { file, version: sha256Hex(text) }
+    })
+  }
+  async editPackage(input: UnknownRecord): Promise<void> {
+    await this.assertWritable()
+    const source = await this.read('package.json')
+    if (input.expectedVersion !== source.version)
+      fail('REVISION_CONFLICT', '包声明已在外部修改，请核对后重试。', source.file)
+    const manifest = JSON.parse(source.text) as PackageManifest
+    if (input.field === 'version') {
+      if (typeof input.value !== 'string' || valid(input.value) !== input.value)
+        fail('SOURCE_INVALID', '请输入完整的 npm 版本号。', source.file)
+      manifest.version = input.value
+    } else if (input.field === 'repository') {
+      if (
+        typeof input.value !== 'string' ||
+        !/^https:\/\/github\.com\/[a-z0-9-]+\/[a-z0-9._-]+\.git$/i.test(input.value)
+      )
+        fail('SOURCE_INVALID', '请输入完整的 GitHub HTTPS 仓库地址。', source.file)
+      manifest.repository = { type: 'git', url: input.value }
+    } else if (input.field === 'dependency') {
+      const name = input.name
+      if (
+        typeof name !== 'string' ||
+        name.length > 214 ||
+        !/^(?:@[a-z0-9][a-z0-9_.-]*\/)?[a-z0-9][a-z0-9_.-]*$/.test(name) ||
+        ['constructor', 'prototype', 'node_modules', 'favicon.ico', manifest.name].includes(name)
+      )
+        fail('SOURCE_INVALID', '依赖包名无效。', source.file)
+      if (manifest.dependencies !== undefined && !isRecord(manifest.dependencies))
+        fail('SOURCE_INVALID', 'dependencies 必须是对象。', source.file)
+      const dependencies = { ...manifest.dependencies }
+      if (input.value === null) delete dependencies[name]
+      else {
+        if (typeof input.value !== 'string' || !input.value.trim() || !validRange(input.value))
+          fail('SOURCE_INVALID', '请输入 npm 版本或兼容范围。', source.file)
+        dependencies[name] = input.value.trim()
+      }
+      if (Object.keys(dependencies).length) manifest.dependencies = dependencies
+      else delete manifest.dependencies
+    } else fail('SOURCE_INVALID', '未知的包声明修改。', source.file)
+    await this.write({
+      file: source.file,
+      expectedVersion: source.version,
+      text: JSON.stringify(manifest, null, 2) + '\n',
     })
   }
   async saveArcadiaRange(value: string, expectedRange: string): Promise<void> {

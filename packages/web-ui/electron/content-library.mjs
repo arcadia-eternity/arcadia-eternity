@@ -165,8 +165,20 @@ export class ContentLibrary {
   #gcTimer
   #sources
   #createManagedProjects
-  constructor({ root, run, host, withDefaultArchive, sources = {}, createManagedProjects, copyMember }) {
+  constructor({
+    root,
+    run,
+    host,
+    withDefaultArchive,
+    sources = {},
+    createManagedProjects,
+    copyMember,
+    reviewInstall,
+    authorizeEnvironment,
+  }) {
     this.root = root
+    this.reviewInstall = reviewInstall
+    this.authorizeEnvironment = authorizeEnvironment
     this.run = run
     this.host = host
     this.withDefaultArchive = withDefaultArchive
@@ -324,10 +336,11 @@ export class ContentLibrary {
             const inspection = checkedInspection(
               await this.run(['content', 'npm', 'inspect', target, '--rule-sets'], this.#controller.signal),
             )
-            await this.run(
-              ['content', 'npm', 'approve', target, '--profile', 'local-development'],
-              this.#controller.signal,
-            )
+            if (state.legacySelection?.project === id)
+              await this.run(
+                ['content', 'npm', 'approve', target, '--profile', 'local-development'],
+                this.#controller.signal,
+              )
             projects.set(id, next)
             const entry = state.installed.find(entry => entry.id === id)
             if (entry)
@@ -652,6 +665,39 @@ export class ContentLibrary {
   async installNpm(spec, offline = false) {
     return this.#installTask(String(spec), signal => this.#stageNpm(spec, offline, signal))
   }
+  async installRemote(descriptor) {
+    if (!descriptor || !['url', 'git'].includes(descriptor.kind)) throw sourceError('SOURCE_KIND_UNSUPPORTED')
+    const { candidate: source } = sourceRegistry({ candidate: descriptor })
+    const url = new URL(source.url)
+    if (url.search || url.hash || url.href.length > 2048) throw sourceError('SOURCE_URL_INVALID')
+    if (
+      source.kind === 'url' &&
+      source.integrity !== undefined &&
+      (typeof source.integrity !== 'string' ||
+        source.integrity.length > 1024 ||
+        !source.integrity
+          .trim()
+          .split(/\s+/)
+          .every(token => /^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$/.test(token)))
+    )
+      throw sourceError('SOURCE_INTEGRITY_INVALID')
+    const label =
+      source.kind === 'git'
+        ? url.href + '@' + source.commit + (source.artifactPath ? '/' + source.artifactPath : '')
+        : url.href
+    return this.#installTask(label, signal =>
+      this.#exclusive(async () => {
+        const installer = await this.#createManagedProjects(join(this.root, 'acquisition'), {})
+        try {
+          return await installer.withSourceArchive(source, signal, (file, provenance) =>
+            this.#stageInstall({ kind: 'file', file, label, provenance }, false, signal),
+          )
+        } finally {
+          await installer.close()
+        }
+      }),
+    )
+  }
   #installTask(label, execute) {
     if ([...this.#installJobs.values()].filter(job => ['queued', 'running'].includes(job.status)).length >= 30)
       throw new Error('安装队列已满')
@@ -676,6 +722,11 @@ export class ContentLibrary {
         job.stage = 'installing'
         plan = await execute(signal)
         signal.throwIfAborted()
+        if (!plan.existingId && this.reviewInstall) {
+          job.stage = 'reviewing'
+          if (!(await this.reviewInstall(plan.package, signal))) job.controller.abort()
+          signal.throwIfAborted()
+        }
         job.stage = 'recording'
         const id = await this.#installOnly(plan, signal)
         job.status = 'succeeded'
@@ -719,7 +770,13 @@ export class ContentLibrary {
     let id
     try {
       signal.throwIfAborted()
-      id = await this.#confirmInstall(plan.id, true)
+      id = await this.#exclusive(async () => {
+        signal.throwIfAborted()
+        const current = this.#plan(plan.id, 'install')
+        const saved = await this.#saveInstalledPlan(current)
+        this.#plans.delete(plan.id)
+        return saved
+      })
     } catch (error) {
       await this.#cancel(plan.id).catch(() => {})
       throw error
@@ -784,6 +841,11 @@ export class ContentLibrary {
       if (names.length !== 1) throw new Error('一次只能添加一个根内容包')
       const root = project.inspection.packages.find(pkg => pkg.location === 'node_modules/' + names[0])
       if (!root?.catalogIds && (!root?.manifest || !root.draft)) throw new Error('该 npm 包没有 Arcadia 内容声明')
+      if (
+        source.provenance &&
+        project.inspection.packages.some(pkg => pkg.manifest?.effects && !pkg.manifest.effectArtifact)
+      )
+        throw new Error('远程安装需要预构建的 Effect 产物，请选择发行归档或预构建目录')
       const existing = state.installed.find(item => item.name === root.name && item.version === root.version)
       if (existing) {
         if (source.kind === 'file' && existing.source.kind === 'file') {
@@ -819,7 +881,12 @@ export class ContentLibrary {
         source:
           source.kind === 'npm'
             ? { kind: 'npm', spec: source.spec, label: source.label }
-            : { kind: 'file', file: source.archive ?? 'candidates/content-0.tgz', label: source.label },
+            : {
+                kind: 'file',
+                file: source.archive ?? 'candidates/content-0.tgz',
+                label: source.label,
+                ...(source.provenance && { provenance: source.provenance }),
+              },
         graph: graphFor(project.inspection),
         ruleCatalog: ruleCatalogFor(project.inspection),
         contentIds: idsFor(project.inspection.packages),
@@ -841,19 +908,6 @@ export class ContentLibrary {
       await rm(project.directory, { recursive: true, force: true })
       throw error
     }
-  }
-  async #confirmInstall(id, allowCode) {
-    return this.#exclusive(async () => {
-      const plan = this.#plan(id, 'install')
-      if (allowCode !== true) throw new Error('安装需要明确允许此内容包及其依赖在本机运行')
-      await this.run(
-        ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
-        this.#controller.signal,
-      )
-      const installedId = await this.#saveInstalledPlan(plan)
-      this.#plans.delete(id)
-      return installedId
-    })
   }
   async #saveInstalledPlan(plan) {
     await this.#update(state => ({
@@ -1011,6 +1065,17 @@ export class ContentLibrary {
         directory = project.directory
         try {
           combined.throwIfAborted()
+          if (this.authorizeEnvironment) {
+            const inspection =
+              project.inspection ??
+              checkedInspection(await this.run(['content', 'npm', 'inspect', directory], combined))
+            const effects = inspection.packages.filter(
+              pkg => !pkg.officialHost && (pkg.manifest?.effects || pkg.manifest?.effectArtifact),
+            )
+            if (effects.length && !(await this.authorizeEnvironment(document, effects, combined)))
+              throw new Error('未授权本机环境使用这些效果')
+            combined.throwIfAborted()
+          }
           await this.run(['content', 'npm', 'approve', directory, '--profile', 'local-development'], combined)
           combined.throwIfAborted()
         } catch (error) {

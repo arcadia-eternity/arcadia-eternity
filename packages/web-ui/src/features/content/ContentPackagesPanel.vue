@@ -4,7 +4,7 @@ import { getBackendOrigin } from '@/bootstrap/deployment'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
-import { authorCall, type SourceProject } from '@/features/authoring/types'
+import { authorCall, type AuthorJob, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
@@ -99,6 +99,74 @@ const remoteLoading = ref(false)
 const remoteError = ref('')
 const adding = ref(false)
 const npmSpec = ref('')
+const installKind = ref<'npm' | 'url' | 'git' | 'project'>('npm')
+const archiveUrl = ref(''),
+  archiveIntegrity = ref(''),
+  gitUrl = ref(''),
+  commit = ref(''),
+  artifactPath = ref('')
+const buildProjects = ref<SourceProject[]>([]),
+  buildProject = ref(''),
+  latestBuild = ref<AuthorJob>()
+watch([adding, installKind], async ([show, kind], _, onCleanup) => {
+  let current = true
+  onCleanup(() => {
+    current = false
+  })
+  if (!show || kind !== 'project') return
+  try {
+    const rows = await authorCall<SourceProject[]>({ action: 'list' })
+    if (current) buildProjects.value = rows.filter(row => !row.readOnly)
+  } catch (cause) {
+    if (current) error.value = String(cause)
+  }
+})
+watch([adding, buildProject, installKind], async ([show, id, kind], _, onCleanup) => {
+  let current = true
+  onCleanup(() => {
+    current = false
+  })
+  latestBuild.value = undefined
+  if (!show || !id || kind !== 'project') return
+  try {
+    const jobs = await authorCall<AuthorJob[]>({ action: 'jobs', id })
+    const latest = jobs.find(job => ['release', 'pack'].includes(job.kind))
+    if (current && latest?.state === 'succeeded' && !latest.stale) latestBuild.value = latest
+  } catch (cause) {
+    if (current) error.value = String(cause)
+  }
+})
+const canInstall = computed(() =>
+  installKind.value === 'npm'
+    ? !!npmSpec.value.trim()
+    : installKind.value === 'url'
+      ? archiveUrl.value.startsWith('https://')
+      : installKind.value === 'git'
+        ? gitUrl.value.startsWith('https://') && /^[a-f0-9]{40}$/i.test(commit.value)
+        : !!latestBuild.value,
+)
+async function installSelected() {
+  if (!canInstall.value) return
+  if (installKind.value === 'npm') return inspectNpm()
+  if (installKind.value === 'project') {
+    const jobId = latestBuild.value?.jobId,
+      id = buildProject.value
+    return installSource(
+      async () =>
+        (await authorCall<{ packageId: string }>({ action: 'install-built-author-pack', id, jobId })).packageId,
+    )
+  }
+  const source =
+    installKind.value === 'url'
+      ? { kind: 'url' as const, url: archiveUrl.value.trim(), integrity: archiveIntegrity.value.trim() || undefined }
+      : {
+          kind: 'git' as const,
+          url: gitUrl.value.trim(),
+          commit: commit.value.trim(),
+          artifactPath: artifactPath.value.trim() || undefined,
+        }
+  return installSource(() => libraryClient!.action({ action: 'install-remote', source }))
+}
 let disposed = false
 let refreshRequest = 0
 let pollTimer: ReturnType<typeof setTimeout> | undefined
@@ -241,6 +309,7 @@ function select(pkg: PackageView) {
 }
 function addOtherVersion() {
   if (!selected.value) return
+  installKind.value = 'npm'
   npmSpec.value = selected.value.name + '@'
   adding.value = true
 }
@@ -547,6 +616,10 @@ onBeforeUnmount(() => {
                       ><dt>{{ engine }} 兼容范围</dt>
                       <dd>{{ range }}</dd></template
                     >
+                    <template v-if="selected.local?.sdkApi"
+                      ><dt>SDK API</dt>
+                      <dd>{{ selected.local.sdkApi }}</dd></template
+                    >
                     <dt>来源</dt>
                     <dd>{{ selected.source }}</dd>
                     <template v-if="selected.author"
@@ -657,18 +730,46 @@ onBeforeUnmount(() => {
       destroy-on-close
       :close-on-click-modal="false"
     >
-      <form class="grid gap-4" @submit.prevent="npmSpec.trim() && inspectNpm()">
+      <form class="grid gap-4" @submit.prevent="installSelected">
         <label
+          >安装来源<select aria-label="安装来源" v-model="installKind">
+            <option value="npm">npm 注册表</option>
+            <option value="url">HTTPS 发行归档</option>
+            <option value="git">Git 固定提交</option>
+            <option v-if="canAuthor" value="project">本机项目构建</option>
+          </select></label
+        >
+        <template v-if="installKind === 'url'">
+          <label
+            >发行归档地址<ElInput v-model="archiveUrl" placeholder="https://…/releases/download/…/pack.tgz"
+          /></label>
+          <label>完整性校验（可选）<ElInput v-model="archiveIntegrity" placeholder="sha512-…" /></label>
+        </template>
+        <template v-if="installKind === 'git'">
+          <label>HTTPS 仓库地址<ElInput v-model="gitUrl" /></label>
+          <label>完整提交 SHA<ElInput v-model="commit" maxlength="40" /></label>
+          <label>预构建包目录<ElInput v-model="artifactPath" placeholder="默认仓库根目录" /></label>
+        </template>
+        <template v-if="installKind === 'project'">
+          <label
+            >源项目<select v-model="buildProject">
+              <option value="">选择项目</option>
+              <option v-for="row in buildProjects" :key="row.id" :value="row.id">{{ row.name }}</option>
+            </select></label
+          >
+          <span v-if="buildProject">{{ latestBuild?.result?.filename || '请先在创作工作台构建当前版本。' }}</span>
+        </template>
+        <label v-if="installKind === 'npm'"
           >npm 包名与版本<ElInput v-model="npmSpec" placeholder="@author/pets@1.0.0" clearable :disabled="busy"
         /></label>
-        <ElCheckbox v-model="offline" :disabled="busy">仅使用本机已有的 npm 缓存</ElCheckbox>
+        <ElCheckbox v-if="installKind === 'npm'" v-model="offline" :disabled="busy"
+          >仅使用本机已有的 npm 缓存</ElCheckbox
+        >
         <div><ElButton :disabled="busy" @click="inspectFile">安装本地内容包</ElButton></div>
         <p v-if="error" role="alert" class="problem">{{ error }}</p>
         <div class="flex justify-end gap-2">
           <ElButton @click="adding = false">取消</ElButton>
-          <ElButton native-type="submit" type="primary" :loading="busy" :disabled="!npmSpec.trim()"
-            >安装到资源库</ElButton
-          >
+          <ElButton native-type="submit" type="primary" :loading="busy" :disabled="!canInstall">安装到资源库</ElButton>
         </div>
       </form>
     </ElDialog>

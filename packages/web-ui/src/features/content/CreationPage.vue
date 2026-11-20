@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/features/management/managementStyles'
-import { ElButton, ElInput, ElDialog, ElForm, ElFormItem, ElAlert } from 'element-plus'
+import { ElButton, ElMessageBox, ElInput, ElDialog, ElForm, ElFormItem, ElAlert } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 import ContentPackagesPanel from './ContentPackagesPanel.vue'
 import { useRouter } from 'vue-router'
@@ -11,6 +11,7 @@ const router = useRouter()
 const projects = ref<SourceProject[]>([])
 const name = ref('')
 const creating = ref(false)
+const cloning = ref(false)
 const busy = ref(false)
 const initialized = ref(false)
 const error = ref('')
@@ -46,6 +47,23 @@ async function create() {
     ),
   )
 }
+async function cloneProject() {
+  try {
+    const { value } = await ElMessageBox.prompt('HTTPS 仓库地址', '克隆源项目', {
+      inputPlaceholder: 'https://',
+      confirmButtonText: '克隆并打开',
+      cancelButtonText: '取消',
+    })
+    cloning.value = true
+    try {
+      await run(async () => open(await authorCall<SourceProject>({ action: 'clone', url: value })))
+    } finally {
+      cloning.value = false
+    }
+  } catch (cause) {
+    if (cause !== 'cancel' && cause !== 'close') error.value = String(cause)
+  }
+}
 async function choose() {
   await run(async () => {
     const project = await authorCall<SourceProject | null>({ action: 'open' })
@@ -79,6 +97,8 @@ onMounted(() => {
       <template v-if="canAuthor" #toolbar>
         <ElButton type="primary" :disabled="busy" @click="creating = true">新建内容包</ElButton>
         <ElButton :disabled="busy" @click="choose">打开项目文件夹</ElButton>
+        <ElButton :disabled="busy" @click="cloneProject">克隆源项目</ElButton>
+        <ElButton v-if="cloning" @click="authorCall({ action: 'git-cancel', id: 'clone' })">取消克隆</ElButton>
       </template>
       <template #project-detail="{ project }">
         <p class="project-path">{{ project.directory }}</p>
