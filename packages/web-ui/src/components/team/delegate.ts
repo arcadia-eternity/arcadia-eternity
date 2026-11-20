@@ -1,3 +1,4 @@
+import type { PetOrigin, ShareablePet } from '@arcadia-eternity/local-profile'
 import type { Ref } from 'vue'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
@@ -11,6 +12,7 @@ export interface TeamEditorDelegate {
   removePet(id: string, onRemoved: () => void): void | Promise<void>
   removeLabel?: string
   subtitle?: Readonly<Ref<string>>
+  originFor?(pet: ShareablePet): PetOrigin | undefined
   storageRoute?: string
   importTeam?(): void | Promise<void>
   exportTeam?(team: PetSchemaType[]): void

@@ -41,6 +41,7 @@ export interface ArcadiaDesktopApi {
   prepareLocalContent?: (environmentId?: string) => Promise<{
     gameplayRevision?: string
     environmentId?: string
+    environmentName?: string
     token: string
     rules?: import('@arcadia-eternity/protocol').PersonalEnvironmentReference['rules']
     environment?: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment

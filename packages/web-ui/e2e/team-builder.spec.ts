@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { parse } from 'yaml'
 import { readPersistedProfile, readPersistedTeam } from './helpers/profile'
 import { expect, test } from 'playwright/test'
 
@@ -14,13 +16,14 @@ async function seedUnresolvedTeam(
       const pet = {
         id: 'a'.repeat(21),
         name: '保留精灵',
+        origin: { name: '原配法环境', version: 'v1' },
         species: missingSpecies ? 'custom:missing-pet' : 'pet_xiuluosi',
         level: 100,
         nature: 'Jolly',
         gender: 'Female',
         evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
         ivs: { hp, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-        skills: ['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'],
+        skills: ['skill_qili', 'custom:missing-skill', 'skill_fenlitupo'],
         ability: 'custom:missing-ability',
         emblem: 'custom:missing-emblem',
       }
@@ -51,12 +54,13 @@ test('editing recognized skills and saving never removes unresolved references',
   await seedUnresolvedTeam(page)
   await page.goto('/team-builder')
   await page.getByText('保留精灵', { exact: true }).click()
-  await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-skill')
+  await expect(page.getByTestId('missing-skill-slot')).toContainText('custom:missing-skill')
   await expect(page.getByRole('heading', { name: '能力值配置' })).toBeVisible()
   await expect(page.getByTestId('normal-skill-0')).toBeVisible()
   await expect(page.getByRole('tab', { name: /配招|养成/ })).toHaveCount(0)
   await expect(page.getByText('单宠预设', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '试算养成' })).toHaveCount(0)
+  await expect(page.getByTestId('missing-skill-slot')).toHaveAttribute('data-team-field', 'skills.1')
   const skill = page.getByTestId('normal-skill-0')
   await skill.hover()
   await skill.locator('.el-select__clear').click()
@@ -67,7 +71,7 @@ test('editing recognized skills and saving never removes unresolved references',
     .toEqual(['custom:missing-skill', 'skill_fenlitupo'])
   await page.reload()
   await page.getByText('仍然保留', { exact: true }).click()
-  await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-skill')
+  await expect(page.getByTestId('missing-skill-slot')).toContainText('custom:missing-skill')
   const saved = (await readPersistedTeam(page))![0]
   expect(saved.ability).toBe('custom:missing-ability')
   expect(saved.emblem).toBe('custom:missing-emblem')
@@ -77,6 +81,7 @@ test('editing recognized skills and saving never removes unresolved references',
 test('a missing species remains editable, exportable and saved with its original configuration', async ({ page }) => {
   await seedUnresolvedTeam(page, true)
   await page.goto('/team-builder')
+  await expect(page.getByText('来源 · 原配法环境', { exact: true })).toBeVisible()
   await page.getByText('保留精灵', { exact: true }).click()
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
   await page.getByPlaceholder('输入精灵名称').fill('失联但保留')
@@ -84,13 +89,20 @@ test('a missing species remains editable, exportable and saved with its original
   await expect.poll(async () => (await readPersistedTeam(page))?.[0]?.name).toBe('失联但保留')
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: '导出', exact: true }).click()
-  expect((await download).suggestedFilename()).toMatch(/\.yaml$/)
+  const file = await download
+  const config = parse(await readFile((await file.path())!, 'utf8'))
+  expect(config.pets[0]).toMatchObject({
+    name: '失联但保留',
+    species: 'custom:missing-pet',
+    skills: ['skill_qili', 'custom:missing-skill', 'skill_fenlitupo'],
+    origin: { name: '原配法环境', version: 'v1' },
+  })
   await page.reload()
   await page.getByText('失联但保留', { exact: true }).click()
   await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
   const saved = (await readPersistedTeam(page))![0]
   expect(saved.species).toBe('custom:missing-pet')
-  expect(saved.skills).toEqual(['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'])
+  expect(saved.skills).toEqual(['skill_qili', 'custom:missing-skill', 'skill_fenlitupo'])
 })
 
 test('the editor opens and saves while the animation runtime is still loading', async ({ page }) => {
@@ -313,6 +325,7 @@ test('blocks a parked draft from overwriting a newer shared warehouse member', a
 })
 
 test('keeps the active environment through warehouse visits and releases a superseded selection', async ({ page }) => {
+  await seedUnresolvedTeam(page)
   let started = 0
   let unavailable = false
   const releases: string[] = []
@@ -364,6 +377,10 @@ test('keeps the active environment through warehouse visits and releases a super
     await page.getByRole('option', { name, exact: true }).click()
   }
   await expect(page.locator('.el-card__header').filter({ hasText: '当前队伍' }).getByRole('combobox')).toBeVisible()
+  await page.getByRole('button', { name: '添加精灵', exact: true }).click()
+  await expect.poll(async () => (await readPersistedTeam(page))?.length).toBe(2)
+  await page.getByText('保留精灵', { exact: true }).click()
+  const original = (await readPersistedTeam(page))!
   await choose('slow')
   await expect(page.getByRole('status', { name: '正在切换环境' })).toBeVisible()
   await expect(page.getByPlaceholder('输入精灵名称')).toBeVisible()
@@ -371,8 +388,12 @@ test('keeps the active environment through warehouse visits and releases a super
   await choose('fast')
   finish()
   await expect.poll(() => releases).toEqual(['slow'])
+  await expect(page.getByText('缺失物种 · pet_xiuluosi', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('missing-skill-slot').nth(2)).toHaveAttribute('data-team-field', 'skills.2')
+  await expect(page.getByTestId('missing-skill-slot').nth(2)).toContainText('skill_fenlitupo')
   await page.getByRole('link', { name: '仓库管理' }).click()
   await expect(page.getByRole('heading', { name: '精灵仓库' }).first()).toBeVisible()
+  await expect(page.getByText('来源 · 原配法环境', { exact: true }).first()).toBeVisible()
   await expect(page.locator('.environment-field').filter({ has: environment })).toContainText('fast')
   await page.getByRole('button', { name: '仓库管理', exact: true }).click()
   await expect(
@@ -387,12 +408,20 @@ test('keeps the active environment through warehouse visits and releases a super
   expect(releases).toEqual(['slow'])
   await choose('本机当前环境')
   await expect.poll(() => releases).toEqual(['slow', 'fast'])
+  await expect(page.getByText('缺失物种 · pet_xiuluosi', { exact: true })).toHaveCount(0)
+  await expect(page.getByTestId('missing-skill-slot')).toHaveCount(1)
+  await expect(page.getByTestId('normal-skill-0')).toBeVisible()
+  expect(await readPersistedTeam(page)).toMatchObject(original)
   expect(started).toBe(2)
 
   unavailable = true
   await choose('fast')
   await expect(page.getByRole('alert').filter({ hasText: '环境暂不可用' })).toBeVisible()
   await expect(page.getByRole('button', { name: '导出队伍', exact: true })).toBeVisible()
+  const members = page.locator('ol > li')
+  await expect(members).toHaveCount(2)
+  await expect(members.nth(0)).toContainText(original[0].name)
+  await expect(members.nth(1)).toContainText(original[1].name)
   unavailable = false
   await page.getByRole('button', { name: '重试', exact: true }).click()
   await expect(page.getByRole('heading', { name: '基础信息' })).toBeVisible()

@@ -2,9 +2,24 @@
   <el-card v-if="unavailable" class="m-4" shadow="never">
     <template #header><h1 class="font-medium">精灵仓库</h1></template>
     <el-alert :title="unavailable" type="warning" show-icon :closable="false" />
-    <ul class="my-3">
-      <li v-for="pet in petStorage.storage" :key="pet.id">{{ pet.name }} · {{ pet.species }}</li>
-    </ul>
+    <section v-for="team in petStorage.teams" :key="team.id" class="my-3">
+      <h2 class="font-medium">{{ team.name }}</h2>
+      <ol class="list-decimal pl-6 space-y-2">
+        <li v-for="pet in team.pets" :key="pet.id">
+          {{ pet.name }}
+          <UnresolvedSpecies :species="pet.species" :origin="ownedOrigins.get(pet.id)" unavailable />
+        </li>
+      </ol>
+    </section>
+    <section v-if="unassignedPets.length" class="my-3">
+      <h2 class="font-medium">未编入队伍</h2>
+      <ul class="space-y-2">
+        <li v-for="pet in unassignedPets" :key="pet.id">
+          {{ pet.name }}
+          <UnresolvedSpecies :species="pet.species" :origin="pet.origin" unavailable />
+        </li>
+      </ul>
+    </section>
     <slot name="environment" />
     <el-button @click="exportFullStorage()">导出仓库与队伍</el-button>
   </el-card>
@@ -604,7 +619,12 @@
                           <div class="text-center w-full">
                             <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                             <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
-                            <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
+                            <UnresolvedSpecies
+                              v-if="!gameDataStore.getSpecies(pet.species)"
+                              :species="pet.species"
+                              :origin="ownedOrigins.get(pet.id)"
+                            />
+                            <p v-else class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
                               {{ getSpeciesName(pet.species) }}
                             </p>
                           </div>
@@ -980,7 +1000,12 @@
                       <div class="text-center w-full">
                         <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
-                        <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
+                        <UnresolvedSpecies
+                          v-if="!gameDataStore.getSpecies(pet.species)"
+                          :species="pet.species"
+                          :origin="ownedOrigins.get(pet.id)"
+                        />
+                        <p v-else class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
                           {{ getSpeciesName(pet.species) }}
                         </p>
                       </div>
@@ -1128,6 +1153,11 @@
                       <div class="text-center w-full">
                         <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
+                        <UnresolvedSpecies
+                          v-if="!gameDataStore.getSpecies(pet.species)"
+                          :species="pet.species"
+                          :origin="ownedOrigins.get(pet.id)"
+                        />
                       </div>
                       <!-- 操作按钮 -->
                       <button
@@ -1487,7 +1517,12 @@
                       <div class="text-center w-full">
                         <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
-                        <p class="text-xs text-gray-400 truncate">
+                        <UnresolvedSpecies
+                          v-if="!gameDataStore.getSpecies(pet.species)"
+                          :species="pet.species"
+                          :origin="ownedOrigins.get(pet.id)"
+                        />
+                        <p v-else class="text-xs text-gray-400 truncate">
                           {{ getSpeciesName(pet.species) }}
                         </p>
                       </div>
@@ -1579,7 +1614,7 @@
             </p>
             <p class="text-sm text-gray-500">等级 {{ selectedPetForDetail.level }}</p>
             <p v-if="detailOrigin" class="text-sm break-all">
-              原约战环境 · {{ detailOrigin.name }} · {{ detailOrigin.version }}
+              来源环境 · {{ detailOrigin.name }} · {{ detailOrigin.version }}
             </p>
           </div>
         </div>
@@ -1644,11 +1679,12 @@
           <h5 class="font-medium text-gray-900 mb-2">技能</h5>
           <div class="flex flex-wrap gap-2">
             <span
-              v-for="skillId in selectedPetForDetail?.skills || []"
-              :key="skillId"
-              class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800"
+              v-for="(skillId, index) in selectedPetForDetail.skills"
+              :key="index"
+              class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
+              :class="gameDataStore.getSkill(skillId) ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-900'"
             >
-              {{ i18next.t(`${skillId}.name`, { ns: 'skill' }) }}
+              {{ getSkillName(skillId) }}
             </span>
           </div>
         </div>
@@ -1774,6 +1810,7 @@ import { useTranslation } from 'i18next-vue'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { buildStatSteps, type StatKey } from '@/utils/teamBuildComparison'
 import { Gender, resolveEnvironmentTeam } from '@arcadia-eternity/const'
+import UnresolvedSpecies from '@/components/team/UnresolvedSpecies.vue'
 import PetIcon from '../components/PetIcon.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'
@@ -1800,7 +1837,12 @@ const {
   closeContextMenu,
 } = usePetManagement()
 
-const detailOrigin = computed(() => petStorage.storage.find(pet => pet.id === selectedPetForDetail.value?.id)?.origin)
+const ownedOrigins = computed(() => new Map(petStorage.storage.map(pet => [pet.id, pet.origin])))
+const detailOrigin = computed(() => selectedPetForDetail.value && ownedOrigins.value.get(selectedPetForDetail.value.id))
+const unassignedPets = computed(() => {
+  const assigned = new Set(petStorage.library.teams.flatMap(team => team.memberIds))
+  return petStorage.storage.filter(pet => !assigned.has(pet.id))
+})
 const { exportTeam } = useTeamExport()
 
 // 使用仓库导入导出功能
@@ -2031,7 +2073,11 @@ const filteredPets = computed(() => {
     pets = pets.filter(pet => {
       const species = gameDataStore.getSpecies(pet.species)
       const speciesName = species ? i18next.t(`${species.id}.name`, { ns: 'species' }) : ''
-      return pet.name.toLowerCase().includes(query) || speciesName.toLowerCase().includes(query)
+      return (
+        pet.name.toLowerCase().includes(query) ||
+        pet.species.toLowerCase().includes(query) ||
+        speciesName.toLowerCase().includes(query)
+      )
     })
   }
 

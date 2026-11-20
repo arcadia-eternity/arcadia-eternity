@@ -3,7 +3,7 @@ import { resolveEnvironmentMechanics } from '@arcadia-eternity/const'
 import { Refresh, Loading } from '@element-plus/icons-vue'
 import { createReusableTemplate } from '@vueuse/core'
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
-import type { EnvironmentPreference } from '@arcadia-eternity/local-profile'
+import type { EnvironmentPreference, PetOrigin } from '@arcadia-eternity/local-profile'
 import type { ManagedEnvironmentInstallation, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { useAuthStore } from '@/stores/auth'
 import { useBattleClientStore } from '@/stores/battleClient'
@@ -146,9 +146,9 @@ const busy = ref(false)
 const displayed = ref(false)
 const problem = ref('')
 const version = ref('')
+const creationOrigin = ref<PetOrigin>()
 let disposeDisplay: (() => void) | undefined
 onScopeDispose(() => disposeDisplay?.())
-const retry = ref(0)
 const target = computed(() => {
   if (!preference.value) return 'current'
   const choice = selected.value
@@ -157,14 +157,16 @@ const target = computed(() => {
 })
 
 watch(
-  [target, () => key(preference.value), retry],
-  async ([targetKey], _, cleanup) => {
+  [target, () => key(preference.value), refresh],
+  async ([targetKey, , request], previous, cleanup) => {
+    const forceRefresh = previous?.[2] !== undefined && request !== previous[2]
     const controller = new AbortController()
     cleanup(() => controller.abort())
     busy.value = true
     problem.value = ''
     if (targetKey === 'discovering') return
     const choice = selected.value
+    let name = choice?.name
     try {
       if (preference.value && !choice)
         throw new Error(failures.value.values().next().value ?? '所选环境不可用，请重试或选择其他环境')
@@ -180,7 +182,7 @@ watch(
           disposeDisplay = undefined
         }
         if (choice || (desktop && data.serverFallback)) {
-          const captured = await acquireLocalContent(choice?.preference.environmentId)
+          const captured = await acquireLocalContent(choice?.preference.environmentId, forceRefresh)
           if (!captured) throw new Error('本地环境不可用')
           try {
             controller.signal.throwIfAborted()
@@ -190,23 +192,28 @@ watch(
               restore()
               void captured.release().catch(console.error)
             }
+            name ??= captured.environmentName ?? captured.environmentId
             version.value = captured.gameplayRevision ?? ''
           } catch (cause) {
             await captured.release()
             throw cause
           }
         } else if (data.serverFallback && hasPreparedWebEnvironment()) {
-          const catalog = await readPreparedWebCatalog()
+          const catalog = await readPreparedWebCatalog(forceRefresh)
           controller.signal.throwIfAborted()
           disposeDisplay = data.useLocalBattleContent(catalog.content, catalog.rules)
+          name =
+            catalog.builtins?.find(doc => doc.id === catalog.defaultEnvironment)?.name ?? catalog.defaultEnvironment
           version.value = catalog.gameplayRevision
         } else {
-          if (data.serverFallback) await data.reload()
+          if (forceRefresh || data.serverFallback) await data.reload()
           else if (!data.loaded) await data.whenReady()
           controller.signal.throwIfAborted()
+          name = data.defaultEnvironmentName
           version.value = data.defaultGameplayRevision ?? ''
         }
       }
+      creationOrigin.value = name && version.value ? { name, version: version.value } : undefined
       displayed.value = true
     } catch (cause) {
       if (!controller.signal.aborted) {
@@ -249,7 +256,6 @@ function selectGroup(id: string) {
 function retrySelection() {
   failures.value.clear()
   refresh.value++
-  if (problem.value) retry.value++
 }
 </script>
 
@@ -299,6 +305,7 @@ function retrySelection() {
     <component
       v-if="(displayed || problem) && storage.initialized"
       :is="warehouse ? StorageManager : PersonalTeamEditor"
+      v-bind="!warehouse ? { creationOrigin } : {}"
       :unavailable="problem"
       :environment-busy="busy"
     >

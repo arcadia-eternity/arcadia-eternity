@@ -3,13 +3,14 @@ import { validateEnvironmentContent } from './serverContentValidation'
 import { hasPreparedWebEnvironment, readBuiltinWebEnvironment, readPreparedWebRuntime } from './preparedWebEnvironment'
 
 /** A captured local selection. Each consumer owns its own resource lifetime. */
-export async function acquireLocalContent(environmentId?: string) {
+export async function acquireLocalContent(environmentId?: string, refresh = false) {
   const api = getDesktopApi()
   if (!api) {
     if (!environmentId || !hasPreparedWebEnvironment()) return undefined
-    const catalog = await readBuiltinWebEnvironment(environmentId)
+    const catalog = await readBuiltinWebEnvironment(environmentId, refresh)
     return {
       environmentId,
+      environmentName: catalog.environmentName,
       gameplayRevision: catalog.gameplayRevision,
       content: catalog.content,
       rules: catalog.rules,
@@ -31,6 +32,7 @@ export async function acquireLocalContent(environmentId?: string) {
     validateEnvironmentContent(result.content)
     return {
       environmentId: result.environmentId,
+      environmentName: result.environmentName,
       gameplayRevision: result.gameplayRevision,
       content: result.content,
       rules: result.rules,

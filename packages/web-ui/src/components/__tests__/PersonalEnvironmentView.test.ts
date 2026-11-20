@@ -78,13 +78,13 @@ it('groups the same logical ID and uses the available copy across team and wareh
     client.isConnected = false
     await flushPromises()
     expect(options()).toHaveLength(1)
-    expect(capture).toHaveBeenCalledWith('friends')
+    expect(capture).toHaveBeenCalledWith('friends', false)
     expect(team.environmentPreference).toEqual({ source: 'server:remote', environmentId: 'friends' })
     capture.mockClear()
     prepare.mockRejectedValueOnce(new Error('服务器连接已中断'))
     client.isConnected = true
     await flushPromises()
-    expect(capture).toHaveBeenCalledWith('friends')
+    expect(capture).toHaveBeenCalledWith('friends', false)
     expect(page.find('[role="alert"]').exists()).toBe(false)
     await page.setProps({ warehouse: false })
     expect(environment().props('modelValue')).toBe('friends')
