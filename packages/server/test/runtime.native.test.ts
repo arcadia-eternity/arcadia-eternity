@@ -170,6 +170,9 @@ it('applies the 120 test environment’s selected nature and stage to all six ba
   lead.enhancement = 'base:evolve-1'
   lead.ivs = { hp: 120, atk: 120, def: 120, spa: 120, spd: 120, spe: 120 }
   await expect(validateServerTeam([lead])).rejects.toThrow('ENVIRONMENT_TEAM_REJECTED')
+  // The stored 31-point build reaches the same six stats when the room captures its 120-point environment.
+  lead.ivs = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 }
+  lead.ivMax = { ...lead.ivs }
   const baseStats = { maxHp: 410, atk: 353 * 0.9, def: 367, spa: 381 * 0.9, spd: 367 * 1.1, spe: 331 * 1.1 }
   for (const mode of ['active', 'suppressed'] as const) {
     const stage = mode === 'active' ? 'base:evolve-1' : 'other:uninstalled'

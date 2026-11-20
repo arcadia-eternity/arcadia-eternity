@@ -64,6 +64,7 @@ export async function runBattle(
     showHidden: true,
     skillParameters: rules.skillParameters,
     matchups: rules.matchups,
+    individualValueMax: resolveEnvironmentMechanics(rules).individualValues.max,
     enhancementActive: rules.mechanics?.enhancement?.mode === 'active',
     allowFaintSwitch: resolveEnvironmentMechanics(rules).allowFaintSwitch,
     timerConfig: { enabled: false },

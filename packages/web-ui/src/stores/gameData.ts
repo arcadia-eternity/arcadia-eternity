@@ -29,6 +29,7 @@ function createMetadataLoader() {
 }
 
 interface GameDataState {
+  defaultEnvironmentName?: string
   defaultGameplayRevision?: string
   rules?: EnvironmentRules
   skillParameterCatalog?: SkillParameterCatalog
@@ -106,6 +107,7 @@ function invalidateMetadata(store: object) {
 
 export const useGameDataStore = defineStore('gameData', {
   state: (): GameDataState => ({
+    defaultEnvironmentName: undefined,
     defaultGameplayRevision: undefined,
     rules: undefined,
     skillParameterCatalog: undefined,
@@ -207,6 +209,7 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     reset() {
+      this.defaultEnvironmentName = undefined
       this.defaultGameplayRevision = undefined
       void localMetadataReleases
         .get(this)?.()
@@ -325,6 +328,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.serverFallback = null
             this.loaded = this.gameDataLoaded = true
             this.error = null
+            this.defaultEnvironmentName = captured.environmentName ?? captured.environmentId
             this.defaultGameplayRevision = captured.gameplayRevision
             const previous = localMetadataReleases.get(this)
             localMetadataReleases.set(this, captured.release)
@@ -333,7 +337,8 @@ export const useGameDataStore = defineStore('gameData', {
             return
           }
           if (hasPreparedWebEnvironment()) {
-            const { content, rules, effectMarkRelations, gameplayRevision } = await readPreparedWebCatalog(forceReload)
+            const { content, rules, effectMarkRelations, gameplayRevision, builtins, defaultEnvironment } =
+              await readPreparedWebCatalog(forceReload)
             if (!isCurrent()) return
             this.species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
             this.skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
@@ -343,6 +348,8 @@ export const useGameDataStore = defineStore('gameData', {
             this.enhancements = readEnhancementStages(content.enhancements)
             this.natures = readNatureCatalog(content.natures)
             this.rules = rules
+            this.defaultEnvironmentName =
+              builtins?.find(doc => doc.id === defaultEnvironment)?.name ?? defaultEnvironment
             this.defaultGameplayRevision = gameplayRevision
             this.effectMarkRelations = effectMarkRelations ?? {}
             if (content.locales) setServerContentText(content, false)

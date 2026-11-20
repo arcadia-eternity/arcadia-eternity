@@ -1,7 +1,6 @@
 import { ElMessage } from 'element-plus'
 import { stringify } from 'yaml'
-import type { PetOrigin } from '@arcadia-eternity/local-profile'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
+import type { PetOrigin, ShareablePet } from '@arcadia-eternity/local-profile'
 import { usePetStorageStore } from '@/stores/petStorage'
 
 export function useTeamExport() {
@@ -10,7 +9,7 @@ export function useTeamExport() {
   /**
    * 导出队伍配置为YAML格式 (teamBuilder使用)
    */
-  function exportTeamConfig(team: PetSchemaType[], context?: { name: string; origin?: PetOrigin }): void {
+  function exportTeamConfig(team: ShareablePet[], context?: { name: string; origin?: PetOrigin }): void {
     try {
       const filename = `team-${new Date().toISOString().slice(0, 10)}.yaml`
 
@@ -18,7 +17,7 @@ export function useTeamExport() {
       const ownedOrigins = new Map(petStorage.storage.map(pet => [pet.id, pet.origin]))
       const exportData = team.map(pet => ({
         ...pet,
-        origin: context ? context.origin : ownedOrigins.get(pet.id),
+        origin: context ? context.origin : (ownedOrigins.get(pet.id) ?? pet.origin),
         id: undefined,
         maxHp: undefined,
       }))

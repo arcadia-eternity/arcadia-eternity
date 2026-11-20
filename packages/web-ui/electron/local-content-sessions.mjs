@@ -143,6 +143,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         token,
         rules,
         environmentId: lease.document?.id,
+        environmentName: lease.document?.name,
         ...(displayOnly ? {} : { environment: prepared.sandbox }),
         content,
         resources: resourceIndex,

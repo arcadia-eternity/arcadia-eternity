@@ -142,6 +142,7 @@ export async function createServerBattle(
     ...options,
     skillParameters: rules?.skillParameters,
     matchups: rules?.matchups,
+    individualValueMax: resolveEnvironmentMechanics(rules).individualValues.max,
     enhancementActive: resolveEnvironmentMechanics(rules).enhancement.mode === 'active',
     allowFaintSwitch: rules?.mechanics?.allowFaintSwitch ?? options?.allowFaintSwitch ?? true,
     timerConfig: options?.timerConfig && { ...options.timerConfig },

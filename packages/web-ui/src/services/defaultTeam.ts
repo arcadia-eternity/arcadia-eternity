@@ -1,5 +1,5 @@
 import type { TeamSelection } from '@arcadia-eternity/local-profile'
-import { Gender, Nature } from '@arcadia-eternity/const'
+import { Gender, Nature, individualValueSpread } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
 export const getDefaultTeam = (): TeamSelection => ({
@@ -12,7 +12,8 @@ export const getDefaultTeam = (): TeamSelection => ({
       species: 'pet_xiuluosi',
       level: 100,
       evs: { hp: 4, atk: 252, def: 0, spa: 0, spd: 0, spe: 252 },
-      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      ivs: individualValueSpread(31),
+      ivMax: individualValueSpread(31),
       skills: ['skill_dixiulazhinu', 'skill_lieyanjuexiji', 'skill_qili', 'skill_fenlitupo', 'skill_yanggong'],
       gender: Gender.Male,
       nature: Nature.Jolly,
@@ -27,7 +28,8 @@ export const getDefaultTeam = (): TeamSelection => ({
       species: 'pet_dilante',
       level: 100,
       evs: { hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 },
-      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      ivs: individualValueSpread(31),
+      ivMax: individualValueSpread(31),
       skills: ['skill_wujindaxuanwo', 'skill_ruodianbiaoji', 'skill_feiliupubu', 'skill_yanmo', 'skill_shuihuajianshe'],
       gender: Gender.Male,
       nature: Nature.Modest,
@@ -42,7 +44,8 @@ export const getDefaultTeam = (): TeamSelection => ({
       species: 'pet_laaoye',
       level: 100,
       evs: { hp: 4, atk: 0, def: 252, spa: 0, spd: 252, spe: 0 },
-      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      ivs: individualValueSpread(31),
+      ivMax: individualValueSpread(31),
       skills: ['skill_laaodehuhuan', 'skill_xueruo', 'skill_qianyesha', 'skill_jishengzhongzi', 'skill_jishengzhadan'],
       gender: Gender.Female,
       nature: Nature.Bold,

@@ -119,12 +119,24 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
     )
       fail('ENVIRONMENT_TEAM_REJECTED')
   }
+  const sourceLimits = petRecord.ivMax
+  if (sourceLimits !== undefined && !record(sourceLimits)) fail('ENVIRONMENT_TEAM_REJECTED')
   if (
     petRecord.ivs !== undefined &&
     (!record(petRecord.ivs) ||
-      Object.values(petRecord.ivs).some(
-        value => typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > ivLimit,
-      ))
+      Object.entries(petRecord.ivs).some(([stat, value]) => {
+        const max = sourceLimits === undefined ? ivLimit : sourceLimits[stat]
+        return (
+          typeof max !== 'number' ||
+          !Number.isInteger(max) ||
+          max < 0 ||
+          max > 120 ||
+          typeof value !== 'number' ||
+          !Number.isInteger(value) ||
+          value < 0 ||
+          value > max
+        )
+      }))
   )
     fail('ENVIRONMENT_TEAM_REJECTED')
   if (

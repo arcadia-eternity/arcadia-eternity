@@ -35,8 +35,13 @@ export function memberIssues(input: unknown, content?: Content): TeamIssue[] {
   const max = resolveEnvironmentMechanics(rules).individualValues.max
   const names = { hp: '体力', atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' }
   for (const stat of Object.keys(names) as (keyof typeof names)[]) {
-    if (pet.ivs[stat] > max)
-      issue(`${pet.name} 的${names[stat]}资质 ${pet.ivs[stat]} 超过当前环境上限 ${max}。`, 'training', 'ivs.' + stat)
+    const limit = pet.ivMax?.[stat] ?? max
+    if (pet.ivs[stat] > limit)
+      issue(
+        `${pet.name} 的${names[stat]}资质 ${pet.ivs[stat]} 超过${pet.ivMax?.[stat] !== undefined && limit !== max ? '原始' : '当前环境'}上限 ${limit}。`,
+        'training',
+        'ivs.' + stat,
+      )
   }
   for (const problem of teamConstraintIssues(rules?.constraints, [pet], 'pet')) issue(problem.message, 'moves')
   if (rules) {

@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.9.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.3...arcadia-eternity-v4.9.0) (2026-11-20)
+
+
+### ✨ Features
+
+* **team:** preserve missing species and moves in their slots ([7457a55](https://github.com/arcadia-eternity/arcadia-eternity/commit/7457a55064afcf306bbdee092fe5fe0c1bc62c70))
+* **team:** scale individual values across environments ([e2d0fca](https://github.com/arcadia-eternity/arcadia-eternity/commit/e2d0fcae05f9f575db7f29b7c931a96a7b1ed98c))
+* **web:** unify environments across sources by ID ([5616c4d](https://github.com/arcadia-eternity/arcadia-eternity/commit/5616c4d71ff1213197a22ffab371ea0dc0a172ea))
+
 ## [4.8.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.2...arcadia-eternity-v4.8.3) (2026-11-20)
 
 

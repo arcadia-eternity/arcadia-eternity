@@ -1,6 +1,6 @@
 <script lang="ts">
 export interface EnvironmentNavigation {
-  entries: { key: string; environment: ManagedEnvironment; current?: boolean; label?: string }[]
+  entries: (EnvironmentLocation & { environment: ManagedEnvironment })[]
   selected: string
 }
 </script>
@@ -10,6 +10,8 @@ import type {
   EnvironmentExportPreview,
   EnvironmentExportSelection,
 } from '@arcadia-eternity/content-sdk/management-workspace'
+import type { EnvironmentLocation } from '@/features/content/environmentGroups'
+import EnvironmentDirectory from '@/features/content/EnvironmentDirectory.vue'
 import EnvironmentExportButton from './EnvironmentExportButton.vue'
 import EnvironmentReferenceInput from './EnvironmentReferenceInput.vue'
 import EnvironmentBooleanField from './EnvironmentBooleanField.vue'
@@ -55,6 +57,7 @@ const props = withDefaults(
     packageEnvironmentId?: string
     pendingPackage?: { id: string; name: string; version: string }
     allowServerCreation?: boolean
+    hideNavigation?: boolean
     navigation?: EnvironmentNavigation
     heading?: string
     environments: ManagedEnvironment[]
@@ -76,7 +79,7 @@ const props = withDefaults(
 )
 const emit = defineEmits<{
   createOnServer: [document: ManagedEnvironmentDocument]
-  navigate: [key: string]
+  navigate: [key: string, edit?: boolean]
   packageAccepted: []
   removePackage: [environment: ManagedEnvironment, name: string, cascade: boolean]
   save: [document: ManagedEnvironmentDocument, expectedRevision: string | null, copyFrom?: string]
@@ -85,6 +88,7 @@ const emit = defineEmits<{
   delete: [version: ManagedEnvironmentInstallation]
   deleteDraft: [environment: ManagedEnvironment]
 }>()
+const editRequested = defineModel<boolean>('editRequested', { default: false })
 const editing = ref(false)
 const createOnServer = ref(false)
 watch(
@@ -122,7 +126,10 @@ const originalDraft = ref('')
 const draftValue = () =>
   JSON.stringify({ document: document.value, packages: packageRows.value, createOnServer: createOnServer.value })
 const dirty = computed(() => editing.value && draftValue() !== originalDraft.value)
-registerEnvironmentDraft(() => dirty.value)
+registerEnvironmentDraft(
+  () => dirty.value,
+  () => editing.value,
+)
 async function closeEditor() {
   if (!dirty.value || (await discardEnvironmentChanges())) editing.value = false
 }
@@ -134,11 +141,12 @@ const entries = computed(
       key: environment.document.id,
       environment,
       current: environment.document.id === props.currentEnvironmentId,
-      label: undefined,
     })),
 )
 const selectedEntry = computed(
-  () => entries.value.find(item => item.key === (props.navigation?.selected ?? selectedId.value)) ?? entries.value[0],
+  () =>
+    entries.value.find(item => item.key === (props.navigation?.selected ?? selectedId.value)) ??
+    (props.navigation?.selected ? undefined : entries.value[0]),
 )
 const selectedEnvironment = computed(() => selectedEntry.value?.environment)
 const latestVersion = computed(
@@ -224,10 +232,13 @@ function deleteDraft(environment: ManagedEnvironment) {
   deletingDraft.value = ''
   emit('deleteDraft', environment)
 }
-async function selectEnvironment(key: string) {
+async function selectEnvironment(key: string, startEdit = false) {
+  if (key === selectedEntry.value?.key) return
   if (dirty.value && !(await discardEnvironmentChanges())) return
+  deletingDraft.value = ''
+  removingPackage.value = ''
   selectedId.value = key
-  emit('navigate', key)
+  emit('navigate', key, startEdit)
   editing.value = false
 }
 const packageOptions = computed(() =>
@@ -302,6 +313,16 @@ async function edit(environment?: ManagedEnvironment, duplicate = false) {
   editing.value = true
   return true
 }
+watch(
+  [editRequested, selectedEnvironment],
+  ([requested, environment]) => {
+    if (requested && environment) {
+      editRequested.value = false
+      if (props.canEdit && !props.busy) void edit(environment)
+    }
+  },
+  { immediate: true },
+)
 function putPackage(pkg: { name: string; version: string }) {
   const existing = packageRows.value.find(row => row.name === pkg.name)
   if (existing) existing.version = pkg.version
@@ -374,8 +395,15 @@ function save() {
       </div>
     </header>
     <p v-if="!canEdit" class="hint">无编辑权限。</p>
-    <div class="workspace-columns">
-      <nav class="environment-list" aria-label="选择环境">
+    <div class="workspace-columns" :class="{ 'detail-only': hideNavigation }">
+      <EnvironmentDirectory
+        v-if="navigation && !hideNavigation"
+        :entries="navigation.entries"
+        :selected="selectedEntry?.key"
+        :busy="busy"
+        @select="selectEnvironment"
+      />
+      <nav v-else-if="!hideNavigation" class="environment-list" aria-label="选择环境">
         <ElButton
           v-for="entry in entries"
           :key="entry.key"
@@ -385,7 +413,6 @@ function save() {
           native-type="button"
         >
           <strong>{{ entry.environment.document.name }}</strong>
-          <small v-if="entry.label">{{ entry.label }}</small>
           <small v-if="entry.current">本地使用中</small>
           <small
             >{{
@@ -396,6 +423,7 @@ function save() {
         </ElButton>
       </nav>
       <div class="environment-detail">
+        <p v-if="navigation?.selected && !selectedEnvironment && !editing" role="status">此来源的环境已不可用。</p>
         <template v-if="selectedEnvironment && !editing">
           <header class="section-heading">
             <h3>{{ selectedEnvironment.document.name }} <small v-if="selectedEnvironment.builtin">只读</small></h3>
@@ -881,6 +909,12 @@ function save() {
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   overflow: hidden;
+}
+.workspace-columns.detail-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+.workspace-columns > .environment-directory {
+  padding: 12px;
 }
 .environment-list {
   overflow: auto;

@@ -1,5 +1,25 @@
 import { StatType, type StatOutBattle } from './const'
 
+export function individualValueSpread(value: number): StatOutBattle {
+  return { hp: value, atk: value, def: value, spa: value, spd: value, spe: value }
+}
+
+/** Each stat keeps the scale on which it was entered. Unannotated team files use literal IVs. */
+function scaleIndividualValue(value: number, sourceMax: number | undefined, targetMax: number): number {
+  if (sourceMax === undefined || sourceMax === targetMax || value > sourceMax) return value
+  return sourceMax === 0 ? 0 : Math.round((value * targetMax) / sourceMax)
+}
+
+export function scaledIndividualValues(
+  pet: { ivs: StatOutBattle; ivMax?: StatOutBattle },
+  targetMax: number,
+): StatOutBattle {
+  const values = { ...pet.ivs }
+  for (const stat of Object.values(StatType))
+    values[stat] = scaleIndividualValue(pet.ivs[stat], pet.ivMax?.[stat], targetMax)
+  return values
+}
+
 /** Unmodified training stat. Nature is applied after the level step, preserving the engine's fractional values. */
 export function trainingStat(
   stat: `${keyof StatOutBattle}`,

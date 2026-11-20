@@ -103,6 +103,7 @@ declare module 'vue' {
     Tooltip: typeof import('./src/components/battle/Tooltip.vue')['default']
     TrainingPanel: typeof import('./src/components/battle/TrainingPanel.vue')['default']
     TypeChart: typeof import('./src/components/dex/TypeChart.vue')['default']
+    UnresolvedSpecies: typeof import('./src/components/team/UnresolvedSpecies.vue')['default']
     VersionInfo: typeof import('./src/components/VersionInfo.vue')['default']
     WindowsIcon: typeof import('./src/components/icons/WindowsIcon.vue')['default']
   }

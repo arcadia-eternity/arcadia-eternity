@@ -180,7 +180,7 @@ const serverCatalogUrl = computed(() =>
 )
 const remoteEnvironment = computed(() =>
   mode.value === 'room'
-    ? room.value?.environment
+    ? (room.value?.personalEnvironment?.descriptor ?? room.value?.environment)
     : serverEnvironments.value.find(environment => environment.id === serverEnvironmentId.value),
 )
 const emptyIds = (): ContentIds => ({ species: [], skills: [], marks: [] })
@@ -207,7 +207,7 @@ const packages = computed<PackageView[]>(() => {
         namespace: pkg.namespace,
         author: '',
         description: '',
-        source: mode.value === 'room' ? '房间服务器' : '当前服务器',
+        source: mode.value === 'room' ? (room.value?.personalEnvironment ? '私人环境' : '房间服务器') : '当前服务器',
         contentIds: ids,
         counts: remoteContent.value
           ? { species: ids.species.length, skills: ids.skills.length, marks: ids.marks.length }
@@ -417,11 +417,17 @@ watch(
     () => (mode.value === 'server' ? serverCatalogUrl.value : battle.serverUrl),
     () => remoteEnvironment.value?.id,
     () => remoteEnvironment.value?.resourceRevision,
+    () => (mode.value === 'room' && room.value?.personalEnvironment ? rooms.personalEnvironment?.content : undefined),
   ],
-  async ([server, id], _previous, onCleanup) => {
+  async ([server, id, , personalContent], _previous, onCleanup) => {
     remoteContent.value = undefined
     remoteError.value = ''
     remoteLoading.value = false
+    if (mode.value === 'room' && room.value?.personalEnvironment) {
+      if (rooms.personalEnvironment?.reference.descriptor.id === id && personalContent)
+        remoteContent.value = personalContent
+      return
+    }
     if (!id || !server) return
     const controller = new AbortController()
     const { signal } = controller

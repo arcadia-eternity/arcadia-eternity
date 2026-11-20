@@ -355,6 +355,26 @@ function landFirstSkill(battle: Battle) {
 }
 
 it.each([
+  [31, 15],
+  [120, 58],
+  [0, 0],
+])('scales IVs from their saved basis at battle creation (cap %i)', (individualValueMax, expectedAttack) => {
+  const catalog = content()
+  const drafts = input.teams.map(player => ({
+    ...player,
+    team: player.team.map(pet => ({
+      ...pet,
+      ivs: { ...pet.ivs, hp: 31, atk: 15, spe: 0 },
+      ivMax: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    })),
+  }))
+  const [a, b] = catalog.parsePlayers(drafts, { individualValueMax })
+  battles.push(catalog.createBattle(a, b))
+  expect(a.team[0].ivs).toMatchObject({ hp: individualValueMax, atk: expectedAttack, spe: 0 })
+  expect(drafts[0].team[0].ivs.atk).toBe(15)
+})
+
+it.each([
   { enhancementActive: false, maxHp: 210, extraDamage: 26 },
   { enhancementActive: true, maxHp: 240, extraDamage: 30 },
 ])(

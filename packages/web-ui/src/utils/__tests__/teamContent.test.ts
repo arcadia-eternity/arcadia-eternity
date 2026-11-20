@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, it } from 'vitest'
-import { categorySkillSlots, findMissingTeamContent, replaceResolvedSkills } from '../teamContent'
+import { findMissingTeamContent, teamSkillGroups } from '../teamContent'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 const skills = new Map([
@@ -9,35 +9,30 @@ const skills = new Map([
   ['climax', { category: 'Climax' }],
 ])
 const getSkill = (id: string) => skills.get(id)
-it('shares unreserved slots across categories and counts unresolved skills against capacity', () => {
-  const lookup = (id: string) => (id.startsWith('n') ? { category: 'Physical' } : getSkill(id))
-  const four = ['n1', 'n2', 'n3', 'n4']
-  expect(categorySkillSlots(four, undefined, false, lookup)).toEqual([...four, ''])
-  expect(categorySkillSlots(['climax'], undefined, true, lookup)).toEqual(['climax', ''])
-  expect(categorySkillSlots([...four, 'missing'], undefined, true, lookup)).toEqual([])
-  expect(categorySkillSlots(four, { normalMax: 1, climaxMax: 2 }, false, lookup)).toEqual(four)
-})
-it('preserves unknown references and their order when replacing either recognized category', () => {
-  const original = ['mod:missing', 'normal', 'mod:another', 'climax']
-  expect(replaceResolvedSkills(original, ['other'], false, getSkill)).toEqual([
-    'mod:missing',
-    'other',
-    'mod:another',
-    'climax',
+it('retains the saved slot positions when a definition disappears and resolves the same slots when it returns', () => {
+  const original = ['normal', 'mod:missing', 'climax', 'other']
+  const groups = teamSkillGroups(original, { normalMax: 1, climaxMax: 2 }, getSkill)
+  expect(groups[0].slots.map(s => [s.position, s.id, s.category])).toEqual([
+    [0, 'normal', 'normal'],
+    [1, 'mod:missing', 'missing'],
+    [2, 'climax', 'climax'],
+    [3, 'other', 'normal'],
   ])
-  expect(replaceResolvedSkills(original, [], true, getSkill)).toEqual(['mod:missing', 'normal', 'mod:another'])
-  expect(original).toEqual(['mod:missing', 'normal', 'mod:another', 'climax'])
+  expect(groups[0].slots[3].overflow).toBe(true)
+  expect(groups[1].slots[0]).toMatchObject({ position: 4, category: 'climax', id: '' })
+  const restored = teamSkillGroups(original, undefined, id =>
+    id === 'mod:missing' ? { category: 'Climax' } : getSkill(id),
+  )
+  expect(restored[1].slots.map(s => s.position)).toEqual([1, 2, 4])
+  expect(original).toEqual(['normal', 'mod:missing', 'climax', 'other'])
 })
-it('counts unresolved skills toward capacity instead of silently removing them', () => {
-  const original = ['mod:a', 'mod:b', 'mod:c', 'mod:d', 'climax']
-  expect(() => replaceResolvedSkills(original, ['normal'], false, getSkill)).toThrow('仍占用槽位')
-  expect(original).toHaveLength(5)
-})
-it('keeps a missing skill until its definition becomes available', () => {
-  const original = ['mod:missing', 'normal', 'climax']
-  expect(replaceResolvedSkills(original, ['other'], false, getSkill)).toEqual(['mod:missing', 'other', 'climax'])
-  const resolved = (id: string) => (id === 'mod:missing' ? { category: 'Physical' } : getSkill(id))
-  expect(replaceResolvedSkills(original, ['other', 'normal'], false, resolved)).toEqual(['other', 'normal', 'climax'])
+
+it('keeps both append choices for a free unreserved slot and none when unresolved moves fill the team member', () => {
+  const chosen = ['normal', 'other', 'climax', 'missing']
+  const emptySlots = (ids: string[]) =>
+    teamSkillGroups(ids, undefined, getSkill).flatMap(group => group.slots.filter(slot => !slot.id))
+  expect(emptySlots(chosen).map(slot => slot.category)).toEqual(['normal', 'climax'])
+  expect(emptySlots([...chosen, 'another'])).toEqual([])
 })
 it('reports every missing reference with its owner and skill position without modifying the saved pet', () => {
   const pet = {

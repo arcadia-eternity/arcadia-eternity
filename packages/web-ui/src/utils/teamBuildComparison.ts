@@ -1,5 +1,10 @@
 import { Value } from '@sinclair/typebox/value'
-import { canUseEnhancementStage, trainingStatSteps } from '@arcadia-eternity/const'
+import {
+  canUseEnhancementStage,
+  scaledIndividualValues,
+  resolveEnvironmentMechanics,
+  trainingStatSteps,
+} from '@arcadia-eternity/const'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { useGameDataStore } from '@/stores/gameData'
 
@@ -21,12 +26,13 @@ export function buildStatSteps(
   const stage = stageId ? game.getEnhancement(stageId) : undefined
   if (!species || !nature || (stageId && !stage)) return stats
   const active = stage && canUseEnhancementStage(policy, species, pet.level, stage)
+  const ivs = scaledIndividualValues(pet, resolveEnvironmentMechanics(game.rules).individualValues.max)
   for (const stat of keys) {
     stats[stat] = trainingStatSteps(
       stat,
       species.baseStats[stat],
       pet.level,
-      pet.ivs[stat],
+      ivs[stat],
       pet.evs[stat],
       nature.multipliers[stat],
       active ? stage.bonus[stat] : 0,

@@ -120,6 +120,19 @@ it('keeps shared builds and source-specific environment preferences independent'
   expect(pets.library.teams[1].environmentPreference).toEqual({ source: 'server:example', environmentId: 'test' })
 })
 
+it('remembers the outgoing scale of an older team once, including a custom environment cap', () => {
+  const store = usePetStorageStore()
+  store.loadFromLocal()
+  const old = store.getCurrentTeam()[0]
+  delete old.ivMax
+  old.ivs.atk = 29
+  store.importTeam({ name: '旧队伍', pets: [old], ruleSetId: 'casual_standard_ruleset' })
+  store.setEnvironmentPreference(store.currentTeamIndex, { source: 'web', environmentId: 'classic' }, 60)
+  store.loadFromLocal()
+  store.setEnvironmentPreference(store.currentTeamIndex, undefined, 31)
+  expect(store.getCurrentTeam()[0]).toMatchObject({ ivs: { atk: 29 }, ivMax: { atk: 60 } })
+})
+
 it('keeps a private room source hint across reload and copying without attaching it to battle selections', () => {
   const store = usePetStorageStore()
   store.loadFromLocal()

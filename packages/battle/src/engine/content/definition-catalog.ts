@@ -264,7 +264,7 @@ export function createContentCatalog(
     /** Validate the whole creation batch before allocating any domain instances. */
     parsePlayers(
       raw: readonly unknown[],
-      options: { aiPlayerIds?: readonly string[]; enhancementActive?: boolean } = {},
+      options: { aiPlayerIds?: readonly string[]; enhancementActive?: boolean; individualValueMax?: number } = {},
     ): Player[] {
       const players = raw.map(value => PlayerSchema.parse(value))
       const ai = new Set(options.aiPlayerIds)
@@ -280,7 +280,9 @@ export function createContentCatalog(
           if (pet.ability) lookup.getMark(pet.ability as Parameters<PrototypeLookup['getMark']>[0])
           if (pet.emblem) lookup.getMark(pet.emblem as Parameters<PrototypeLookup['getMark']>[0])
         }
-      return players.map(player => PlayerParser.parse(player, lookup, { ai: ai.has(player.id) }))
+      return players.map(player =>
+        PlayerParser.parse(player, lookup, { ai: ai.has(player.id), individualValueMax: options.individualValueMax }),
+      )
     },
     createBattle(playerA: Player, playerB: Player, options?: BattleOptions): Battle {
       for (const player of [playerA, playerB])

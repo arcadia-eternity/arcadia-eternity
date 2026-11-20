@@ -112,6 +112,7 @@ export class Battle extends Context implements MarkOwner {
       skillParameters?: import('@arcadia-eternity/const').SkillParameterPolicy
       matchups?: import('@arcadia-eternity/const').MatchupPolicy
       elementMultipliers?: Record<string, Record<string, number>>
+      individualValueMax?: number
       enhancementActive?: boolean
       allowFaintSwitch?: boolean
       rngSeed?: number | string

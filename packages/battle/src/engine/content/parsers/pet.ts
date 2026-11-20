@@ -1,5 +1,12 @@
 import { BaseMark, Pet, type Species } from '../../index'
-import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId } from '@arcadia-eternity/const'
+import {
+  Gender,
+  scaledIndividualValues,
+  type baseMarkId,
+  type baseSkillId,
+  type petId,
+  type speciesId,
+} from '@arcadia-eternity/const'
 import { PetSchema } from '../schema/pet'
 import { nanoid } from 'nanoid'
 import { fromZodError } from 'zod-validation-error'
@@ -10,6 +17,7 @@ export class PetParser {
   static parse(
     rawData: unknown,
     repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark' | 'getNature' | 'getEnhancement'>,
+    individualValueMax = 31,
   ): Pet {
     let validated: ReturnType<typeof PetSchema.parse>
     try {
@@ -85,7 +93,7 @@ export class PetParser {
       species,
       validated.level,
       validated.evs,
-      validated.ivs,
+      scaledIndividualValues(validated, individualValueMax),
       validated.nature,
       skills,
       ability,

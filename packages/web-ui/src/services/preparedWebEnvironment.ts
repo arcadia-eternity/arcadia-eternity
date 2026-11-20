@@ -126,18 +126,25 @@ function readMaterialCatalog(material: string, refresh = false): Promise<Prepare
   return entry.promise
 }
 
-export async function readBuiltinWebEnvironment(id: string) {
-  const catalog = await readPreparedWebCatalog()
+export async function readBuiltinWebEnvironment(id: string, refresh = false) {
+  const catalog = await readPreparedWebCatalog(refresh)
   const definition = catalog.builtins?.find(doc => doc.id === id)
   if (!definition) throw new Error('找不到所选的网页内置环境')
-  const material = await readMaterialCatalog(definition.material)
+  const material =
+    definition.material === 'environment' ? catalog : await readMaterialCatalog(definition.material, refresh)
   const rules = validateEnvironmentRules(definition.rules)
   if (
     !material.runtimeIdentity ||
     (await gameplayRevision(material.runtimeIdentity, material.runtimeRevision, rules)) !== definition.gameplayRevision
   )
     throw new Error('网页环境的规则或材料与玩法版本不符')
-  return { ...material, rules, gameplayRevision: definition.gameplayRevision, material: definition.material }
+  return {
+    ...material,
+    rules,
+    environmentName: definition.name,
+    gameplayRevision: definition.gameplayRevision,
+    material: definition.material,
+  }
 }
 
 /** The shipped environment carries its own executable recipe alongside its display catalog. */

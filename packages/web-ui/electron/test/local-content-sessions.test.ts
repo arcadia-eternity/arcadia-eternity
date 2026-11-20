@@ -14,7 +14,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     library: {
       acquireProject: async () => ({
         directory: fixture.directory,
-        document: { rules: { schemaVersion: 1, team: { maxSize: 2 } } },
+        document: { id: 'duel', name: '双宠对战', rules: { schemaVersion: 1, team: { maxSize: 2 } } },
         release: async () => {
           releases++
         },
@@ -32,6 +32,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
   try {
     await sessions.prepareProject({ directory: fixture.directory })
     const first = await sessions.prepare()
+    expect(first).toMatchObject({ environmentId: 'duel', environmentName: '双宠对战' })
     expect(first.rules).toEqual({ schemaVersion: 1, team: { maxSize: 2 } })
     expect(first.content.locales.bundles.en.species['example-slow:pet'].name).toBe('Display pet')
     expect(first.content.locales.bundles['zh-CN'].species.pet_dilan.name).toBe('迪兰')

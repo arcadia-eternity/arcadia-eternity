@@ -71,39 +71,53 @@ export function findMissingTeamContent(
   return missing
 }
 
-export function categorySkillSlots(
-  skills: readonly string[],
-  policy: SkillSlots | undefined,
-  climax: boolean,
-  getSkill: (id: string) => { category: string } | undefined,
-) {
-  const equipped = skills.filter(id => {
-    const skill = getSkill(id)
-    return skill && (skill.category === 'Climax') === climax
-  })
-  if (!policy) return skills.length < maxEquippedSkills ? [...equipped, ''] : equipped
-  const limit = climax ? policy.climaxMax : policy.normalMax
-  // Keep slots that exceed a new format's limit visible until the player removes them.
-  return [...equipped, ...Array<string>(Math.max(0, limit - equipped.length)).fill('')]
+interface EditorSkillSlot {
+  id: string
+  position: number
+  category: 'normal' | 'climax' | 'missing'
+  index: number
+  overflow?: boolean
+  required?: boolean
 }
 
-/** Edit one recognized category while preserving unresolved skills and the other category. */
-export function replaceResolvedSkills(
-  original: readonly string[],
-  replacement: readonly string[],
-  climax: boolean,
+/** Keep equipped moves in their saved order whenever a definition (and therefore its category) is unavailable. */
+export function teamSkillGroups(
+  skills: readonly string[],
+  policy: SkillSlots | undefined,
   getSkill: (id: string) => { category: string } | undefined,
-): string[] {
-  const pending = replacement.filter(Boolean)
-  const result: string[] = []
-  for (const id of original) {
-    const skill = getSkill(id)
-    if (skill && (skill.category === 'Climax') === climax) {
-      const next = pending.shift()
-      if (next) result.push(next)
-    } else result.push(id)
+) {
+  const counts = { normal: 0, climax: 0 }
+  const limits = { normal: policy?.normalMax ?? maxEquippedSkills, climax: policy?.climaxMax ?? maxEquippedSkills }
+  const equipped = skills.map((id, position): EditorSkillSlot => {
+    const definition = getSkill(id)
+    if (!definition) return { id, position, category: 'missing', index: position }
+    const category = definition.category === 'Climax' ? 'climax' : 'normal'
+    const index = counts[category]++
+    return {
+      id,
+      position,
+      index,
+      category,
+      overflow: index >= limits[category],
+      required: category === 'climax' && index < (policy?.climaxMin ?? 0),
+    }
+  })
+  const missing = equipped.some(slot => slot.category === 'missing')
+  const groups = missing ? [{ name: '已装备技能', savedOrder: true, slots: equipped }] : []
+  for (const category of ['normal', 'climax'] as const) {
+    const slots = missing ? [] : equipped.filter(slot => slot.category === category)
+    const empty = policy ? limits[category] - counts[category] : Number(skills.length < maxEquippedSkills)
+    for (let i = 0; i < empty; i++) {
+      const index = counts[category] + i
+      slots.push({
+        id: '',
+        position: skills.length,
+        category,
+        index,
+        required: category === 'climax' && index < (policy?.climaxMin ?? 0),
+      })
+    }
+    if (slots.length) groups.push({ name: category === 'climax' ? '必杀技能' : '普通技能', savedOrder: false, slots })
   }
-  result.push(...pending)
-  if (result.length > maxEquippedSkills) throw new Error('未加载的技能仍占用槽位，请先明确移除或恢复缺失技能。')
-  return result
+  return groups
 }

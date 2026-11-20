@@ -1,3 +1,4 @@
+import { ElMessageBox } from 'element-plus'
 import { createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import LocalEnvironmentPage from '@/features/content/LocalEnvironmentPage.vue'
@@ -126,59 +127,103 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
-  it('lists each shared builtin once and keeps same-ID personal and server environments distinct', async () => {
-    const builtin = { ...draft(), builtin: true, document: { ...draft().document, id: 'builtin', name: '默认环境' } }
-    const extended = { ...builtin, document: { ...builtin.document, id: 'extended', name: '120 资质 · 神魔化与二代' } }
-    const personal = draft('个人')
-    const managed = draft('开服')
-    const request = vi.fn(async (input: ManagementIpcRequest) => ({
-      status: 200,
-      body: input.path.endsWith('/environments')
-        ? { environments: [builtin, extended, managed], installations: [version()] }
-        : response(input.path),
-    }))
-    vi.stubGlobal('arcadiaDesktop', {
-      localEnvironment: async () => ({
+  it.each([true, false])(
+    'shares a single editor per workspace and saves at its captured revision (shared = %s)',
+    async shared => {
+      const builtin = { ...draft(), builtin: true, document: { ...draft().document, id: 'builtin', name: '默认环境' } }
+      const extended = {
+        ...builtin,
+        document: { ...builtin.document, id: 'extended', name: '120 资质 · 神魔化与二代' },
+      }
+      const personal = draft('个人')
+      const managed = shared ? personal : { ...draft('开服'), revision: 'host-revision' }
+      const request = vi.fn(async (input: ManagementIpcRequest) => ({
+        status: 200,
+        body: input.path.endsWith('/environments')
+          ? { environments: [builtin, extended, managed], installations: [version()] }
+          : response(input.path),
+      }))
+      const localEnvironment = vi.fn(async (_input: Record<string, unknown>) => ({
         result: {
-          workspaceId: 'personal',
+          workspaceId: shared ? 'workspace-local' : 'personal',
           selectedEnvironmentId: 'builtin',
           environments: [builtin, extended, personal],
           installations: [],
           operations: [],
         },
-      }),
-      managementRequest: request,
-      localServer: async () => ({ host: { status: 'running' }, phase: 'running', configured: true }),
-    })
-    const pinia = createPinia()
-    const router = createRouter({
-      history: createMemoryHistory(),
-      routes: [{ path: '/environments', component: LocalEnvironmentPage }],
-    })
-    await router.push('/environments')
-    const page = mount(LocalEnvironmentPage, {
-      global: { plugins: [router, pinia], stubs: { RouterLink: RouterLinkStub } },
-    })
-    pages.push(page)
-    await flushPromises()
-    expect(request).not.toHaveBeenCalled()
-    await useLocalServerStore(pinia).refresh()
-    await flushPromises()
-    const list = page.get('nav[aria-label="选择环境"]')
-    expect(list.findAll('button').map(row => row.get('strong').text())).toEqual([
-      '默认环境',
-      '120 资质 · 神魔化与二代',
-      '好友环境 个人',
-      '好友环境 开服',
-    ])
-    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(true)
-    await list.findAll('button')[2]!.trigger('click')
-    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(false)
-    await list.findAll('button')[3]!.trigger('click')
-    await flushPromises()
-    expect(page.get('[aria-label="服务器使用"]').text()).toContain('好友环境 开服')
-    expect(page.findAll('nav[aria-label="选择环境"]')).toHaveLength(1)
-  })
+      }))
+      vi.stubGlobal('arcadiaDesktop', {
+        localEnvironment,
+        managementRequest: request,
+        localServer: async () => ({ host: { status: 'running' }, phase: 'running', configured: true }),
+      })
+      const pinia = createPinia()
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [{ path: '/environments', component: LocalEnvironmentPage }],
+      })
+      await router.push('/environments')
+      const page = mount(LocalEnvironmentPage, {
+        global: { plugins: [router, pinia], stubs: { RouterLink: RouterLinkStub } },
+      })
+      pages.push(page)
+      await flushPromises()
+      expect(request).not.toHaveBeenCalled()
+      await useLocalServerStore(pinia).refresh()
+      await flushPromises()
+      const list = page.get('nav[aria-label="选择环境"]')
+      expect(list.findAll('button').map(row => row.get('strong').text())).toEqual([
+        '默认环境',
+        '120 资质 · 神魔化与二代',
+        '好友环境 个人',
+      ])
+      expect(page.find('[aria-label="服务器使用"]').exists()).toBe(true)
+      await list.findAll('button')[2]!.trigger('click')
+      expect(page.get('[aria-label="服务器使用"]').text()).toContain(managed.document.name)
+      expect(page.find('[aria-label="环境来源"]').exists()).toBe(false)
+      await button(page, '编辑').trigger('click')
+      const form = () => page.get('form.environment-editor')
+      await form().findAll('input')[0]!.setValue('个人修改')
+      if (shared) {
+        expect(button(page, '编辑本机服务器副本')).toBeUndefined()
+        await form().trigger('submit')
+        await flushPromises()
+        expect(localEnvironment.mock.calls.filter(([input]) => input.action === 'apply')).toHaveLength(1)
+        expect(request.mock.calls.some(([input]) => input.method === 'POST')).toBe(false)
+        return
+      }
+      const confirm = vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel')
+      try {
+        await button(page, '编辑本机服务器副本').trigger('click')
+        await flushPromises()
+        expect(confirm).toHaveBeenCalledOnce()
+        expect((form().findAll('input')[0]!.element as HTMLInputElement).value).toBe('个人修改')
+        await form().trigger('submit')
+        await flushPromises()
+        expect(localEnvironment).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: 'apply',
+            expectedRevision: personal.revision,
+            document: { ...personal.document, name: '个人修改' },
+          }),
+        )
+        expect(request.mock.calls.some(([input]) => input.method === 'POST')).toBe(false)
+      } finally {
+        confirm.mockRestore()
+      }
+      await button(page, '编辑本机服务器副本').trigger('click')
+      await flushPromises()
+      expect((form().findAll('input')[0]!.element as HTMLInputElement).value).toBe('好友环境 开服')
+      await form().findAll('input')[0]!.setValue('开服修改')
+      await form().trigger('submit')
+      await flushPromises()
+      expect(
+        request.mock.calls.map(([input]) => input).find(input => input.path.endsWith('/environments/apply'))?.body,
+      ).toEqual({ document: { ...managed.document, name: '开服修改' }, expectedRevision: managed.revision })
+      expect(localEnvironment.mock.calls.filter(([input]) => input.action === 'apply')).toHaveLength(1)
+      expect(page.findAll('nav[aria-label="选择环境"]')).toHaveLength(1)
+    },
+  )
   it.each(['packageId', 'projectId'])('adds the selected %s to an editable personal environment', async key => {
     const builtin = { ...draft(), builtin: true, document: { ...draft().document, id: 'default' } }
     const localEnvironment = vi.fn(async (input: { action: string }) => ({

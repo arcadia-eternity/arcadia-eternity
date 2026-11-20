@@ -31,6 +31,7 @@ export const PetSchema = Type.Object({
   level: Type.Integer({ minimum: 1 }),
   evs: StatOutBattleEVSSchema,
   ivs: StatOutBattleIVSSchema,
+  ivMax: Type.Optional(StatOutBattleIVSSchema),
   nature: Type.String({ minLength: 1, maxLength: 256 }),
   gender: Type.Optional(StringEnum(Object.values(Gender))),
   height: Type.Optional(Type.Number()),

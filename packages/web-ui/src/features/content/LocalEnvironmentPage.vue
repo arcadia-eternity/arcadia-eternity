@@ -33,6 +33,12 @@ import ManagementTasks from '@/features/management/ManagementTasks.vue'
 import { useManagementController } from '@/features/management/useManagementController'
 import { useLocalServerStore } from '@/stores/localServer'
 import type { ManagedEnvironment, ManagedEnvironmentDocument, ManagedEnvironmentInstallation } from '@/types/management'
+import { useEnvironmentDrafts } from './unsavedEnvironment'
+import { managedLocation, resolveEnvironmentEntry, type EnvironmentLocation } from './environmentGroups'
+const editRequested = defineModel<boolean>('editRequested', { default: false })
+const props = defineProps<{ selection?: string | null }>()
+const emit = defineEmits<{ catalog: [rows: EnvironmentLocation[]]; select: [key: string]; busy: [value: boolean] }>()
+const drafts = useEnvironmentDrafts()
 const route = useRoute()
 const router = useRouter()
 const library = createLocalContentLibraryClient(window.arcadiaDesktop)
@@ -120,21 +126,38 @@ const host = window.arcadiaDesktop?.managementRequest
     )
   : undefined
 const selectedKey = ref('')
-const navigation = computed<EnvironmentNavigation>(() => {
+const entries = computed(() => {
+  const hosted = host?.environments.value ?? []
+  const hostedIds = new Set(hosted.map(item => item.document.id))
   const personal = snapshot.value.environments.map(environment => ({
-    key: 'local/' + environment.document.id,
-    environment,
+    ...managedLocation(environment, 'local', '本机'),
+    workspaceId: snapshot.value.workspaceId,
+    serverId: hostedIds.has(environment.document.id) ? host?.server.value?.id : undefined,
     current: environment.document.id === snapshot.value.selectedEnvironmentId,
   }))
-  const builtinIds = new Set(
-    personal.filter(entry => entry.environment.builtin).map(entry => entry.environment.document.id),
+  const sharedWorkspace = host?.state.workspaceId.value === snapshot.value.workspaceId
+  const sharedIds = new Set(
+    personal.filter(entry => sharedWorkspace || entry.environment.builtin).map(entry => entry.id),
   )
-  const managed = (host?.environments.value ?? [])
-    .filter(environment => !(environment.builtin && builtinIds.has(environment.document.id)))
-    .map(environment => ({ key: 'host/' + environment.document.id, environment, label: '本机服务器' }))
-  const entries = [...personal, ...managed]
-  return { entries, selected: entries.find(item => item.key === selectedKey.value)?.key ?? entries[0]?.key ?? '' }
+  const managed = hosted
+    .filter(environment => !((sharedWorkspace || environment.builtin) && sharedIds.has(environment.document.id)))
+    .map(environment => ({
+      ...managedLocation(environment, 'host', '本机服务器'),
+      workspaceId: host?.state.workspaceId.value,
+      serverId: host?.server.value?.id,
+    }))
+  return [...personal, ...managed]
 })
+const navigation = computed<EnvironmentNavigation>(() => ({
+  entries: entries.value,
+  selected: props.selection || selectedKey.value || entries.value[0]?.key || '',
+}))
+watch(entries, rows => emit('catalog', rows), { immediate: true })
+function select(key: string, startEdit = false) {
+  if (startEdit) editRequested.value = true
+  selectedKey.value = key
+  emit('select', key)
+}
 const viewingHosted = computed(() => navigation.value.selected.startsWith('host/'))
 const editableEnvironments = computed(() => snapshot.value.environments.filter(item => !item.builtin))
 const targetEnvironment = computed(() =>
@@ -157,6 +180,18 @@ const busy = ref(false),
   notice = ref(''),
   saveSequence = ref(0),
   allowDownload = ref(false)
+watch(
+  () => busy.value || !!host?.busy.value,
+  value => emit('busy', value),
+  { immediate: true },
+)
+watch([entries, drafts.open, busy, () => host?.busy.value], ([rows, editing, writing, hostBusy]) => {
+  if (props.selection !== undefined || editing || writing || hostBusy || editRequested.value) return
+  const key = selectedKey.value
+  const id = key ? key.slice(key.indexOf('/') + 1) : rows[0]?.id
+  const next = resolveEnvironmentEntry(rows, id, key)
+  if (next && next.key !== key) select(next.key)
+})
 const transferMember = ref<{ environmentId: string; name: string; integrity: string }>()
 const targetId = ref('')
 function chooseTarget(environmentId: string, name: string, integrity: string) {
@@ -188,7 +223,7 @@ async function createOnServer(document: ManagedEnvironmentDocument) {
   }
   if (await host.saveEnvironment(document, null)) {
     saveSequence.value++
-    selectedKey.value = 'host/' + document.id
+    select('host/' + document.id)
   }
 }
 const importing = ref(false)
@@ -273,7 +308,7 @@ async function addCandidate() {
   ) {
     if (project) await refreshMaterials()
     acceptPackage()
-    selectedKey.value = 'local/' + target.document.id
+    select('local/' + target.document.id)
     tasksOpen.value = true
   }
 }
@@ -369,7 +404,7 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <section class="local-environments" aria-label="本机环境库">
+  <section v-if="selection !== null" class="local-environments" aria-label="本机环境库">
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <p v-if="host?.error.value" role="alert" class="error">{{ host.error.value }}</p>
@@ -402,8 +437,11 @@ onBeforeUnmount(() => {
     <ManagementEnvironments
       v-else-if="host && viewingHosted"
       :controller="host"
+      :key="selection || undefined"
+      :hide-navigation="selection !== undefined"
       :navigation="navigation"
-      @navigate="selectedKey = $event"
+      v-model:edit-requested="editRequested"
+      @navigate="select"
     >
       <template #toolbar>
         <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">内容包与创作</ElButton>
@@ -412,8 +450,11 @@ onBeforeUnmount(() => {
     </ManagementEnvironments>
     <EnvironmentWorkspace
       v-else
+      :key="selection || undefined"
+      :hide-navigation="selection !== undefined"
       :navigation="navigation"
-      @navigate="selectedKey = $event"
+      v-model:edit-requested="editRequested"
+      @navigate="select"
       :available-packages="materials"
       :pending-package="pendingPackage"
       :package-environment-id="packageEnvironmentId"
@@ -464,9 +505,7 @@ onBeforeUnmount(() => {
       <template #detail="{ environment }">
         <EnvironmentServerUsage
           v-if="
-            environment.builtin &&
-            host?.server.value &&
-            host.environments.value.some(item => item.builtin && item.document.id === environment.document.id)
+            host?.server.value && host.environments.value.some(item => item.document.id === environment.document.id)
           "
           :controller="host"
           :environment-id="environment.document.id"

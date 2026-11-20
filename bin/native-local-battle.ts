@@ -29,6 +29,7 @@ export async function createNativeLocalBattle(
     },
   )
   const [a, b] = loaded.content.parsePlayers(teams, {
+    individualValueMax: config.individualValueMax,
     enhancementActive: config.enhancementActive === true,
     aiPlayerIds: teams.filter((_, index) => ai.has(`player${index + 1}`)).map(team => team.id),
   })

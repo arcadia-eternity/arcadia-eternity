@@ -150,12 +150,13 @@
                           />
                           <p class="text-xs font-medium text-(--el-text-color-primary) truncate">{{ pet.name }}</p>
                         </div>
-                        <p class="text-xs text-(--el-text-color-secondary) truncate">
-                          {{
-                            gameDataStore.getSpecies(pet.species)
-                              ? contentName(pet.species, 'species')
-                              : `缺失精灵：${pet.species}`
-                          }}
+                        <UnresolvedSpecies
+                          v-if="!gameDataStore.getSpecies(pet.species)"
+                          :species="pet.species"
+                          :origin="delegate.originFor?.(pet)"
+                        />
+                        <p v-else class="text-xs text-(--el-text-color-secondary) truncate">
+                          {{ contentName(pet.species, 'species') }}
                         </p>
                         <div class="flex items-center space-x-1 mt-0.5">
                           <el-tag size="small" type="info">Lv.{{ pet.level }}</el-tag>
@@ -197,7 +198,7 @@
         <div class="lg:col-span-9" :inert="environmentBusy" v-if="selectedPet">
           <div class="space-y-3">
             <el-alert
-              v-if="selectedMissingContent.length"
+              v-if="otherMissingContent.length"
               title="当前对局缺少内容"
               type="warning"
               show-icon
@@ -206,19 +207,8 @@
             >
               <p>此队伍暂时无法出战，仍可保存和导出原始配置。</p>
               <ul class="text-sm mt-2 space-y-2">
-                <li v-for="item in selectedMissingContent" :key="`${item.kind}-${item.skillIndex ?? item.contentId}`">
+                <li v-for="item in otherMissingContent" :key="item.kind">
                   {{ item.message }}
-                  <el-button
-                    link
-                    type="primary"
-                    v-if="item.kind === 'skill'"
-                    class="ml-2"
-                    :data-team-field="'skills.' + item.skillIndex"
-                    :aria-label="`移除缺失技能 ${item.contentId}`"
-                    @click="removeMissingSkill(item.skillIndex!)"
-                  >
-                    移除此技能
-                  </el-button>
                 </li>
               </ul>
             </el-alert>
@@ -434,27 +424,49 @@
               <section v-for="group in skillGroups" :key="group.name" class="mt-4">
                 <h4 class="text-sm font-medium text-(--el-text-color-primary) mb-2">{{ group.name }}</h4>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  <div v-for="(slot, index) in group.slots" :key="index">
+                  <div v-for="slot in group.slots" :key="slot.category + '-' + slot.index">
                     <div class="mb-1 flex items-center gap-2 text-xs text-(--el-text-color-regular)">
-                      <span>{{ group.name }} {{ index + 1 }}</span>
-                      <el-tag v-if="slot && slot === selectedPet.inheritedSkill" size="small">遗传</el-tag>
-                      <el-tag v-if="index >= group.max" size="small" type="danger">超出槽位</el-tag>
-                      <span v-else-if="index < group.min">必选</span>
+                      <span>{{
+                        group.savedOrder
+                          ? `技能槽 ${slot.position + 1}`
+                          : `${skillCategoryLabel[slot.category]} ${slot.index + 1}`
+                      }}</span>
+                      <el-tag v-if="slot.id && slot.id === selectedPet.inheritedSkill" size="small">遗传</el-tag>
+                      <el-tag v-if="slot.overflow" size="small" type="danger">超出槽位</el-tag>
+                      <span v-else-if="slot.required">必选</span>
+                    </div>
+                    <div
+                      v-if="slot.category === 'missing'"
+                      :data-team-field="'skills.' + slot.position"
+                      class="flex items-center gap-2"
+                      data-testid="missing-skill-slot"
+                    >
+                      <el-text type="warning" class="break-all">缺失技能 · {{ slot.id }}</el-text>
+                      <el-button link :aria-label="`移除缺失技能 ${slot.id}`" @click="removeMissingSkill(slot.position)"
+                        >移除</el-button
+                      >
                     </div>
                     <el-select-v2
-                      :model-value="slot"
-                      :aria-label="group.name + ' ' + (index + 1)"
-                      :data-testid="(group.climax ? 'climax' : 'normal') + '-skill-' + index"
-                      :data-team-field="slot === selectedPet.inheritedSkill ? 'inheritedSkill' : undefined"
-                      :options="skillOptions(group.climax, slot)"
-                      :disabled="!slot && !group.available"
-                      :placeholder="'选择' + group.name"
+                      v-else
+                      :model-value="slot.id"
+                      :aria-label="skillCategoryLabel[slot.category] + ' ' + (slot.index + 1)"
+                      :data-testid="slot.category + '-skill-' + slot.index"
+                      :data-team-field="
+                        slot.id && slot.id === selectedPet.inheritedSkill ? 'inheritedSkill' : undefined
+                      "
+                      :options="skillOptions(slot.category === 'climax', slot.id)"
+                      :disabled="
+                        !slot.id &&
+                        (selectedPet.skills.length >= maxEquippedSkills ||
+                          !filteredSkills.some(skill => (skill.category === 'Climax') === (slot.category === 'climax')))
+                      "
+                      :placeholder="'选择' + skillCategoryLabel[slot.category]"
                       filterable
                       clearable
                       class="w-full"
                       :height="320"
                       :item-height="90"
-                      @update:model-value="value => changeSkill(group.climax, index, value)"
+                      @update:model-value="value => changeSkill(slot.position, value)"
                     >
                       <template #default="{ item }">
                         <div class="flex flex-col gap-1 py-2 leading-normal">
@@ -598,7 +610,7 @@
                       <summary :aria-label="statChineseMap[stat] + '计算明细'">计算明细</summary>
                       <div>学习力折算 ⌊{{ selectedPet.evs[stat] }} ÷ 4⌋ = {{ computedStats[stat]!.effort }}</div>
                       <div>
-                        等级折算 ⌊(2 × {{ currentSpecies?.baseStats[stat] }} + {{ selectedPet.ivs[stat] }} +
+                        等级折算 ⌊(2 × {{ currentSpecies?.baseStats[stat] }} + {{ displayedIVs![stat] }} +
                         {{ computedStats[stat]!.effort }}) × {{ selectedPet.level }} ÷ 100⌋ =
                         {{ computedStats[stat]!.scaled }}
                       </div>
@@ -646,16 +658,14 @@
                           style="width: 4.5rem"
                           :aria-label="statChineseMap[stat] + '个体值'"
                           :data-team-field="'ivs.' + stat"
-                          :model-value="selectedPet.ivs[stat]"
-                          :value-on-clear="selectedPet.ivs[stat]"
+                          :model-value="displayedIVs![stat]"
+                          :value-on-clear="displayedIVs![stat]"
                           :precision="0"
                           :min="0"
-                          :max="
-                            Math.max(selectedPet.ivs[stat], gameDataStore.rules?.mechanics?.individualValues?.max ?? 31)
-                          "
+                          :max="Math.max(displayedIVs![stat], individualMax)"
                           @update:model-value="
                             value => {
-                              if (selectedPet && value != null) selectedPet.ivs[stat] = value
+                              if (value != null) editIndividualValue(stat, value)
                             }
                           "
                         />
@@ -880,8 +890,16 @@ import { useValidationStore } from '@/stores/validation'
 import { resolveLearnset, isEligible } from '@arcadia-eternity/content-sdk/environment-rules'
 import { type PetSchemaType } from '@arcadia-eternity/schema'
 import { useTranslation } from 'i18next-vue'
-import { canUseEnhancementStage, Gender, maxEquippedSkills } from '@arcadia-eternity/const'
+import {
+  canUseEnhancementStage,
+  Gender,
+  individualValueSpread,
+  scaledIndividualValues,
+  resolveEnvironmentMechanics,
+  maxEquippedSkills,
+} from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
+import UnresolvedSpecies from './UnresolvedSpecies.vue'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import { allowsTeamContent, startingSkills } from './createTeamPet'
@@ -899,7 +917,7 @@ import { Box, Delete, InfoFilled, Plus, StarFilled, Top } from '@element-plus/ic
 import { ElMessage } from 'element-plus'
 import { useMobile } from '@/composition/useMobile'
 import { readLocalData, writeLocalData } from '@/services/localStorage'
-import { categorySkillSlots, findMissingTeamContent, replaceResolvedSkills } from '@/utils/teamContent'
+import { findMissingTeamContent, teamSkillGroups } from '@/utils/teamContent'
 
 const { i18next } = useTranslation()
 
@@ -1016,10 +1034,17 @@ const selectedMissingContent = computed(() =>
     ? findMissingTeamContent([selectedPet.value], gameDataStore, enhancementPolicy.value?.mode === 'active')
     : [],
 )
+const otherMissingContent = computed(() =>
+  selectedMissingContent.value.filter(
+    item =>
+      item.kind !== 'skill' && !(item.kind === 'inheritedSkill' && selectedPet.value?.skills.includes(item.contentId)),
+  ),
+)
 const removeMissingSkill = (index: number) => {
   if (!selectedPet.value || gameDataStore.getSkill(selectedPet.value.skills[index])) return
-  if (selectedPet.value.inheritedSkill === selectedPet.value.skills[index]) delete selectedPet.value.inheritedSkill
-  selectedPet.value.skills.splice(index, 1)
+  const [removed] = selectedPet.value.skills.splice(index, 1)
+  if (selectedPet.value.inheritedSkill === removed && !selectedPet.value.skills.includes(removed))
+    delete selectedPet.value.inheritedSkill
   debouncedSave()
 }
 
@@ -1068,14 +1093,6 @@ const getEnhancementName = (id: string) => gameplayName('enhancement', id, gameD
 const getNatureName = (id: string) => gameplayName('nature', id, gameDataStore.getNature(id)?.name)
 
 const skillSlots = computed(() => gameDataStore.rules?.mechanics?.skillSlots)
-function categorySlots(climax: boolean) {
-  return computed(() =>
-    categorySkillSlots(selectedPet.value?.skills ?? [], skillSlots.value, climax, gameDataStore.getSkill),
-  )
-}
-const displayedNormalSkills = categorySlots(false)
-const displayedClimaxSkills = categorySlots(true)
-
 // Namespaced server content may not include a browser translation catalog.
 const contentName = (id: string, ns: string | string[]) =>
   i18next.t(`${id}.name`, { ns, nsSeparator: false, defaultValue: id })
@@ -1227,24 +1244,10 @@ const natureSelectOptions = computed(() => {
   return choices
 })
 
-const skillGroups = computed(() => [
-  {
-    name: '普通技能',
-    climax: false,
-    slots: displayedNormalSkills.value,
-    min: 0,
-    max: skillSlots.value?.normalMax ?? maxEquippedSkills,
-    available: filteredSkills.value.some(skill => skill.category !== 'Climax'),
-  },
-  {
-    name: '必杀技能',
-    climax: true,
-    slots: displayedClimaxSkills.value,
-    min: skillSlots.value?.climaxMin ?? 0,
-    max: skillSlots.value?.climaxMax ?? maxEquippedSkills,
-    available: filteredSkills.value.some(skill => skill.category === 'Climax'),
-  },
-])
+const skillGroups = computed(() =>
+  teamSkillGroups(selectedPet.value?.skills ?? [], skillSlots.value, gameDataStore.getSkill),
+)
+const skillCategoryLabel = { normal: '普通技能', climax: '必杀技能', missing: '技能槽' }
 function inheritedInOtherSlot(slot: string) {
   const pet = selectedPet.value
   return pet?.skills.some(
@@ -1466,6 +1469,16 @@ const handleEVUpdate = (stat: StatKey, value: number) => {
 
 const statFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 6, useGrouping: false })
 const displayStat = (value?: number) => (value === undefined ? '—' : statFormat.format(value))
+const individualMax = computed(() => resolveEnvironmentMechanics(gameDataStore.rules).individualValues.max)
+const displayedIVs = computed(() => selectedPet.value && scaledIndividualValues(selectedPet.value, individualMax.value))
+function editIndividualValue(stat: StatKey, value: number) {
+  const pet = selectedPet.value
+  if (!pet || value === displayedIVs.value?.[stat]) return
+  pet.ivMax ??= individualValueSpread(individualMax.value)
+  pet.ivMax[stat] = individualMax.value
+  pet.ivs[stat] = value
+}
+
 const computedStats = computed(() => buildStatSteps(selectedPet.value, gameDataStore))
 
 // 添加性格修正映射
@@ -1488,28 +1501,27 @@ watch(
 )
 
 // 普通技能变更处理
-function changeSkill(climax: boolean, index: number, next: string | undefined) {
+function changeSkill(position: number, next: string | undefined) {
   const pet = selectedPet.value
   if (!pet) return
-  const selected = [...(climax ? displayedClimaxSkills.value : displayedNormalSkills.value)]
-  if (next && selected[index] !== next && pet.skills.includes(next)) {
+  const previous = pet.skills[position]
+  if (next && next !== previous && pet.skills.includes(next)) {
     ElMessage.warning('该技能已在其他槽位')
     return
   }
-  const previous = selected[index]
-  selected[index] = next ?? ''
-  try {
-    if (next && requiresInheritance(next) && inheritedInOtherSlot(previous)) {
-      ElMessage.warning('只能装备一个遗传技能')
-      return
-    }
-    pet.skills = replaceResolvedSkills(pet.skills, selected, climax, gameDataStore.getSkill)
-    if (next && requiresInheritance(next)) pet.inheritedSkill = next
-    else if (previous && previous === pet.inheritedSkill && previous !== next) delete pet.inheritedSkill
-    debouncedSave()
-  } catch (error) {
-    ElMessage.error((error as Error).message)
+  if (next && requiresInheritance(next) && inheritedInOtherSlot(previous ?? '')) {
+    ElMessage.warning('只能装备一个遗传技能')
+    return
   }
+  if (next) {
+    if (position >= maxEquippedSkills) return
+    pet.skills.splice(position, 1, next)
+    if (requiresInheritance(next)) pet.inheritedSkill = next
+  } else {
+    pet.skills.splice(position, 1)
+  }
+  if (previous && previous === pet.inheritedSkill && !pet.skills.includes(previous)) delete pet.inheritedSkill
+  debouncedSave()
 }
 
 // 导出队伍配置的包装函数

@@ -1,28 +1,50 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElButton, ElTag, ElSkeleton } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { listServerEnvironments } from '@/services/serverEnvironment'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
-const props = defineProps<{ bundled?: boolean }>()
+import type { EnvironmentLocation } from './environmentGroups'
+const props = defineProps<{ bundled?: boolean; selection?: string | null }>()
+const emit = defineEmits<{ catalog: [rows: EnvironmentLocation[]] }>()
 const heading = computed(() => (props.bundled ? '网页内置环境' : '公开环境'))
-type EnvironmentRow = Pick<ServerEnvironmentDescriptor, 'id' | 'environmentName' | 'isDefault' | 'executionPolicy'> & {
+type EnvironmentRow = Pick<
+  ServerEnvironmentDescriptor,
+  'id' | 'environmentId' | 'environmentName' | 'isDefault' | 'executionPolicy'
+> & {
   packages: { name: string; version: string }[]
 }
 const environments = ref<EnvironmentRow[]>([])
 const selectedId = ref('')
-const selected = computed(
-  () =>
-    environments.value.find(item => item.id === selectedId.value) ??
-    environments.value.find(item => item.isDefault) ??
-    environments.value[0],
+const logicalId = (row: EnvironmentRow) => row.environmentId ?? row.id
+const sourceKey = (row: EnvironmentRow) => (props.bundled ? row.id : 'server/' + logicalId(row))
+const selected = computed(() =>
+  props.selection
+    ? environments.value.find(item => sourceKey(item) === props.selection)
+    : (environments.value.find(item => item.id === selectedId.value) ??
+      environments.value.find(item => item.isDefault) ??
+      environments.value[0]),
 )
 const loading = ref(false)
 const initialized = ref(false)
 const error = ref('')
 const name = (environment: EnvironmentRow) =>
   environment.environmentName || (environment.isDefault ? '默认环境' : `环境 ${environment.id.slice(0, 8)}`)
+watch(
+  environments,
+  rows =>
+    emit(
+      'catalog',
+      rows.map(row => ({
+        id: logicalId(row),
+        name: name(row),
+        key: sourceKey(row),
+        source: props.bundled ? '网页内置' : '服务器',
+      })),
+    ),
+  { immediate: true },
+)
 let controller: AbortController | undefined
 async function refresh() {
   controller?.abort()
@@ -55,7 +77,7 @@ onMounted(refresh)
 onBeforeUnmount(() => controller?.abort())
 </script>
 <template>
-  <section :aria-label="heading" class="public-environments">
+  <section v-if="selection !== null" :aria-label="heading" class="public-environments">
     <header>
       <h2>{{ heading }}</h2>
       <ElButton :loading="loading" @click="refresh">刷新</ElButton>
@@ -63,8 +85,8 @@ onBeforeUnmount(() => controller?.abort())
     <ElSkeleton v-if="!initialized" :rows="6" animated :aria-label="'正在加载' + heading" />
     <p v-else-if="error" role="alert">{{ error }}</p>
     <p v-else-if="!loading && !environments.length">{{ bundled ? '暂无网页内置环境。' : '服务器暂无公开环境。' }}</p>
-    <div v-else class="environment-columns">
-      <nav :aria-label="'选择' + heading">
+    <div v-else class="environment-columns" :class="{ 'detail-only': selection !== undefined }">
+      <nav v-if="selection === undefined" :aria-label="'选择' + heading">
         <ElButton
           v-for="environment in environments"
           :key="environment.id"
@@ -73,6 +95,7 @@ onBeforeUnmount(() => controller?.abort())
           >{{ name(environment) }}</ElButton
         >
       </nav>
+      <p v-if="selection && !selected" role="status">此来源的环境已不可用。</p>
       <article v-if="selected" :aria-label="heading + '详情'">
         <header>
           <h3>{{ name(selected) }}</h3>
@@ -107,6 +130,9 @@ header {
   grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
+}
+.environment-columns.detail-only {
+  grid-template-columns: minmax(0, 1fr);
 }
 nav,
 article {

@@ -6,7 +6,7 @@ import { createTeamPet } from './createTeamPet'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { usePlayerStore } from '@/stores/player'
 import { usePetManagement } from '@/composition/usePetManagement'
-import { canonical } from '@arcadia-eternity/local-profile'
+import { canonical, type PetOrigin } from '@arcadia-eternity/local-profile'
 import { flushProfile } from '@/services/profile'
 import { useTeamExport } from '@/composition/useTeamExport'
 import type { TeamEditorDelegate } from './delegate'
@@ -103,7 +103,7 @@ const usePersonalTeamDrafts = defineStore('personalTeamDrafts', () => {
   return { draft, source, affected, dirty, stale, commit, reload }
 })
 
-export function usePersonalTeamEditor(): TeamEditorDelegate {
+export function usePersonalTeamEditor(creationOrigin: () => PetOrigin | undefined): TeamEditorDelegate {
   const storage = usePetStorageStore()
   const drafts = usePersonalTeamDrafts()
   const { draft, source, affected, dirty, stale } = storeToRefs(drafts)
@@ -134,7 +134,12 @@ export function usePersonalTeamEditor(): TeamEditorDelegate {
     persist: () => {
       if (!stale.value && !affected.value.length && dirty.value) commit()
     },
-    createPet: createTeamPet,
+    originFor: pet => pet.origin ?? storage.storage.find(owned => owned.id === pet.id)?.origin,
+    createPet() {
+      const pet = createTeamPet()
+      const origin = creationOrigin()
+      return pet && origin ? { ...pet, origin } : pet
+    },
     removePet(id, removed) {
       const previous = draft.value
       draft.value = previous.filter(pet => pet.id !== id)

@@ -1157,6 +1157,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               validatePersonalEnvironmentTeam(personalEnvironment.value, playerB.team)
             }
             const timerConfig = { ...DEFAULT_TIMER_CONFIG, ...currentRoom.value!.config.timerConfig }
+            const mechanics = resolveEnvironmentMechanics(
+              currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules,
+            )
             return createP2PHostBattleSystem({
               localPlayerId,
               remotePlayerId: remotePlayer.playerId as playerId,
@@ -1184,10 +1187,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
                       ?.matchups ?? {},
                   ),
                 ),
-                enhancementActive:
-                  resolveEnvironmentMechanics(
-                    currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules,
-                  ).enhancement.mode === 'active',
+                individualValueMax: mechanics.individualValues.max,
+                enhancementActive: mechanics.enhancement.mode === 'active',
                 allowFaintSwitch: currentRoom.value!.config.allowFaintSwitch ?? true,
                 showHidden: currentRoom.value!.config.showHidden ?? false,
                 timerConfig,
