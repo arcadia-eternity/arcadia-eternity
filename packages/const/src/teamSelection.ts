@@ -30,6 +30,18 @@ export interface TeamSelectionConfig {
   timeLimit?: number
 }
 
+export function resolveTeamSelectionConfig(config: Partial<TeamSelectionConfig> = {}): Required<TeamSelectionConfig> {
+  return {
+    mode: config.mode ?? 'TEAM_SELECTION',
+    minTeamSize: config.minTeamSize ?? 1,
+    maxTeamSize: config.maxTeamSize ?? 6,
+    allowStarterSelection: config.allowStarterSelection ?? true,
+    showOpponentTeam: config.showOpponentTeam ?? false,
+    teamInfoVisibility: config.teamInfoVisibility ?? 'HIDDEN',
+    timeLimit: config.timeLimit ?? 60,
+  }
+}
+
 /**
  * Team selection action for PlayerSelection
  */

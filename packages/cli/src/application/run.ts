@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import {
   BattleMessageType,
+  resolveEnvironmentBattleOptions,
   type BattleMessage,
   type BattleState,
   type PlayerSelection,
@@ -59,6 +60,7 @@ export async function runBattle(
       id => content.getMark(id as baseMarkId),
     )
   }
+  const { timerConfig, teamSelection } = resolveEnvironmentBattleOptions(rules)
   const battleOptions = {
     rngSeed: spec.seed,
     showHidden: true,
@@ -67,7 +69,7 @@ export async function runBattle(
     individualValueMax: resolveEnvironmentMechanics(rules).individualValues.max,
     enhancementActive: rules.mechanics?.enhancement?.mode === 'active',
     allowFaintSwitch: resolveEnvironmentMechanics(rules).allowFaintSwitch,
-    timerConfig: { enabled: false },
+    timerConfig: timerConfig ?? { enabled: false },
   }
   const native =
     !environment && 'parsePlayers' in content ? await content.withSkillParameters(rules.skillParameters) : undefined
@@ -90,7 +92,7 @@ export async function runBattle(
   let completion: Promise<'finished'> | undefined
   let initialState: BattleState
   let finalState: BattleState
-  const hostOptions = { teamSelection: { enabled: spec.teamSelection, config: { timeLimit: 0 } } }
+  const hostOptions = { teamSelection: teamSelection ?? { enabled: spec.teamSelection, config: { timeLimit: 0 } } }
   let runtime: BattleHost
   try {
     runtime =

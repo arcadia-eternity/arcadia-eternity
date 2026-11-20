@@ -437,6 +437,31 @@ it('does not match queues captured before and after a rule-only publication chan
   expect(app.rooms.battleWorkerStats.workers).toBe(0)
 })
 
+it('keeps the published clock when creating or editing a private room', async () => {
+  const { app, user } = await fixture()
+  const id = app.environments.descriptor().id
+  app.environments.setPublication(
+    [
+      {
+        runtimeId: id,
+        enabled: true,
+        public: true,
+        matchmaking: true,
+        rules: { schemaVersion: 2, mechanics: { timer: { enabled: true, turnTimeLimit: 15, totalTimeLimit: 0 } } },
+      },
+    ],
+    id,
+  )
+  const { socket } = await user()
+  await success(socket, 'createPrivateRoom', { config: { timerConfig: { enabled: false } } })
+  const room = await success<PrivateRoomInfo>(socket, 'getCurrentPrivateRoom')
+  expect(room.config.timerConfig).toMatchObject({ enabled: true, turnTimeLimit: 15, totalTimeLimit: 0 })
+  expect(await ack(socket, 'updatePrivateRoomConfig', { timerConfig: { turnTimeLimit: 20 } })).toMatchObject({
+    code: 'ENVIRONMENT_FIXED',
+  })
+  await success(socket, 'updatePrivateRoomConfig', { showHidden: true, timerConfig: room.config.timerConfig })
+})
+
 it('plays a 40-IV team in a waiting room after the same publication returns to 31', async () => {
   const { app, user } = await fixture()
   const id = app.environments.descriptor().id

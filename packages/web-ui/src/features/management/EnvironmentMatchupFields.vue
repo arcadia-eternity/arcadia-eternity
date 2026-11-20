@@ -137,7 +137,7 @@ function setCell(value?: number) {
     <p v-if="conflict">来源冲突 · {{ conflict.proposals.map(row => row.source + ' ' + row.value + '×').join('，') }}</p>
     <p v-else-if="known && chart">
       倍率 {{ elementMultiplier(chart.values, attack, defense) }}× ·
-      {{ cell ? '环境覆盖' : sources?.includes('environment') ? '继承规则' : sources?.join('，') || '默认中性' }}
+      {{ cell ? '环境覆盖' : sources?.join('，') || '默认中性' }}
     </p>
     <div class="matchup-row">
       <ElFormItem label="本环境倍率">
@@ -155,7 +155,7 @@ function setCell(value?: number) {
       >
         设置此格
       </ElButton>
-      <ElButton native-type="button" :disabled="!cell" @click="setCell()">恢复继承</ElButton>
+      <ElButton native-type="button" :disabled="!cell" @click="setCell()">恢复基础倍率</ElButton>
     </div>
     <p v-if="issue || preview?.error" role="alert">{{ issue || preview?.error }}</p>
     <ul v-if="chart?.conflicts.length">

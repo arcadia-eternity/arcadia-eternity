@@ -231,7 +231,6 @@ it('bootstraps playable builtin content once and preserves administrator removal
     id: 'training-120',
     name: '120 资质 · 神魔化与二代',
     rules: {
-      include: ['base:classic'],
       mechanics: { individualValues: { max: 120 }, enhancement: { mode: 'active' } },
     },
   })
@@ -377,7 +376,11 @@ it('refreshes stale builtin content after a release without changing administrat
   expect(environments.find(item => item.isDefault)!.rules?.mechanics?.inheritance?.eligible).toBe('species')
   expect(JSON.parse(await readFile(manifestFile, 'utf8')).arcadiaEnvironment.rules).toEqual({
     schemaVersion: 2,
-    include: ['base:classic'],
+    mechanics: {
+      individualValues: { max: 31 },
+      inheritance: { eligible: 'species' },
+      secondGenerationNatures: 'species',
+    },
   })
 
   request = await administrator(running.origin, directory)

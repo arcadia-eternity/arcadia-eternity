@@ -195,7 +195,7 @@ it('continues publishing the loaded rules until a replacement runtime loads succ
         schemaVersion: 2,
         requires: {},
         name: 'New room rules',
-        rules: { schemaVersion: 2, include: ['base:classic'], mechanics: { individualValues: { max: 120 } } },
+        rules: { schemaVersion: 2, mechanics: { individualValues: { max: 120 }, secondGenerationNatures: 'species' } },
       },
     })
     await f.prepare(next.revision)
@@ -203,7 +203,7 @@ it('continues publishing the loaded rules until a replacement runtime loads succ
     const installed = await f.workspace.getInstallation('shared')
     expect(installed.contentCatalog?.species).toContainEqual(expect.objectContaining({ id: 'pet_dilan' }))
     expect(installed.document.name).toBe('New room rules')
-    expect(installed.document.rules.include).toEqual(['base:classic'])
+    expect(installed.document.rules).not.toHaveProperty('include')
     expect(installed.ruleComposition?.rules.mechanics?.secondGenerationNatures).toBe('species')
     expect((await f.storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({
       condition: 'degraded',

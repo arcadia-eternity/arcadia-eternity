@@ -1,3 +1,7 @@
 schemaVersion: 2
-include:
-  - base:classic
+mechanics:
+  individualValues:
+    max: 31
+  inheritance:
+    eligible: species
+  secondGenerationNatures: species

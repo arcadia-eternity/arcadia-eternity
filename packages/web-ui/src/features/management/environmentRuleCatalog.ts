@@ -7,7 +7,7 @@ import type {
 import type { InstalledContentPackage, PackageRuleCatalog } from '@/types/contentPackages'
 
 type Member = PackageRuleCatalog['members'][number]
-type Candidate = { member: Member; catalog: PackageRuleCatalog }
+type Candidate = { member: Member; members: Member[] }
 
 export type EditorPackage = Pick<InstalledContentPackage, 'id' | 'name' | 'version'> &
   Partial<Pick<InstalledContentPackage, 'contentIds' | 'ruleCatalog'>>
@@ -39,35 +39,33 @@ export function resolveDraftContent({
       ? origin
       : undefined
   const lockedMembers = matching?.members
-  if (matching?.ruleComposition && lockedMembers?.length) {
+  if (matching && lockedMembers?.length) {
     return {
       installation: matching,
       catalog: matching,
-      ruleSets: matching.ruleComposition.ruleSets,
       packages: lockedMembers,
     }
   }
   const candidates = new Map<string, Candidate[]>()
-  function index(catalog: PackageRuleCatalog) {
-    for (const member of catalog.members) {
+  function index(members: Member[]) {
+    for (const member of members) {
       const entries = candidates.get(member.name) ?? []
-      entries.push({ member, catalog })
+      entries.push({ member, members })
       candidates.set(member.name, entries)
     }
   }
   function prepared(version: ManagedReadyEnvironmentInstallation) {
-    if (version.members && version.ruleComposition)
-      index({ members: version.members, ruleSets: version.ruleComposition.ruleSets })
+    if (version.members) index(version.members)
   }
   if (origin) prepared(origin)
-  for (const item of materials) if (item.ruleCatalog) index(item.ruleCatalog)
+  for (const item of materials) if (item.ruleCatalog) index(item.ruleCatalog.members)
   for (const item of installations) if (item.status === 'ready' && item !== origin) prepared(item)
 
   const selected = new Map<string, Candidate>()
   const conflicts = new Set<string>()
   const visited = new Set<Member>()
   function include(candidate: Candidate) {
-    const { member, catalog } = candidate
+    const { member, members } = candidate
     if (visited.has(member)) return
     visited.add(member)
     const previous = selected.get(member.namespace)
@@ -76,8 +74,8 @@ export function resolveDraftContent({
         conflicts.add(member.namespace)
     } else selected.set(member.namespace, candidate)
     for (const name of member.dependencies) {
-      const dependency = catalog.members.find(entry => entry.name === name)
-      if (dependency) include({ member: dependency, catalog })
+      const dependency = members.find(entry => entry.name === name)
+      if (dependency) include({ member: dependency, members })
     }
   }
 
@@ -129,20 +127,12 @@ export function resolveDraftContent({
   return {
     installation: matching,
     catalog,
-    ruleSets:
-      catalog?.ruleComposition?.ruleSets ??
-      members.flatMap(({ member, catalog }) =>
-        catalog.ruleSets.filter(row => row.id.startsWith(member.namespace + ':')),
-      ),
     packages: [...selectedPackages.values()],
   }
 }
 
 export function rulePreviewIssue(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
-  return message
-    .replace(/^ENVIRONMENT_RULE_SET_MISSING: /, '所选内容包中找不到规则集：')
-    .replace(/^ENVIRONMENT_REFERENCE_MISSING: /, '内容包中找不到引用：')
-    .replace(/^ENVIRONMENT_RULE_CYCLE: /, '规则集循环引用：')
-    .replace(/^ENVIRONMENT_RULE_CONFLICT: /, '继承规则有冲突：')
+  if (message === 'ENVIRONMENT_TEAM_SELECTION_EXCEEDS_ROSTER') return '最少出战数量超过了队伍最多数量'
+  return message.replace(/^ENVIRONMENT_REFERENCE_MISSING: /, '内容包中找不到引用：')
 }

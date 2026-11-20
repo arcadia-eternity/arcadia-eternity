@@ -886,8 +886,8 @@ export class P2PPeerBattleSystem implements IBattleSystem {
     const next: PlayerTimerState = {
       playerId: pid,
       state: TimerState.Stopped,
-      remainingTurnTime: this.timerConfig.turnTimeLimit ?? Number.MAX_SAFE_INTEGER,
-      remainingTotalTime: this.timerConfig.totalTimeLimit ?? Number.MAX_SAFE_INTEGER,
+      remainingTurnTime: this.timerConfig.turnTimeLimit || Number.MAX_SAFE_INTEGER,
+      remainingTotalTime: this.timerConfig.totalTimeLimit || Number.MAX_SAFE_INTEGER,
       lastUpdateTime: Date.now(),
     }
     this.timerStates.set(pid, next)

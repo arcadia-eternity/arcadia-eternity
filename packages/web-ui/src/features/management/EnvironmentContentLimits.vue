@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { ElButton, ElCard, ElFormItem, ElTag } from 'element-plus'
+import { ElButton, ElCard, ElFormItem } from 'element-plus'
 import type { EnvironmentRules, ManagedEnvironmentDocument } from '@arcadia-eternity/protocol'
 import EnvironmentIdList from './EnvironmentIdList.vue'
 import type { ReferenceOptions } from './environmentReferences'
@@ -11,16 +10,6 @@ const labels = { species: '精灵', skills: '技能', marks: '印记' }
 const sides = { allow: '允许名单', deny: '禁止名单' }
 type Kind = keyof typeof labels
 type Side = keyof typeof sides
-
-const missingPreview = computed(
-  () =>
-    !!rules.value.include?.length &&
-    !props.resolved &&
-    Object.keys(labels).some(key => {
-      const kind = key as Kind
-      return rules.value.allow?.[kind] === undefined || rules.value.deny?.[kind] === undefined
-    }),
-)
 
 function update(side: Side, kind: Kind, ids?: string[]) {
   const next = { ...rules.value }
@@ -35,8 +24,6 @@ function effective(side: Side, kind: Kind) {
   return props.resolved ? props.resolved[side]?.[kind] : rules.value[side]?.[kind]
 }
 function emptyLabel(side: Side, kind: Kind) {
-  if (rules.value[side]?.[kind] === undefined && missingPreview.value)
-    return props.options[kind].length ? '搜索名称或 ID' : '输入 ID'
   if (side === 'deny') return '未禁用' + labels[kind]
   return effective(side, kind) === undefined ? '不限制' + labels[kind] : '全部' + labels[kind] + '均不允许'
 }
@@ -56,39 +43,21 @@ function emptyLabel(side: Side, kind: Kind) {
     >
     <div class="limit-lists">
       <ElFormItem v-for="(label, side) in sides" :key="side" :label="label">
-        <template #label>
-          <span>{{ label }}</span>
-          <ElTag
-            v-if="rules.include?.length && (!missingPreview || rules[side]?.[kind] !== undefined)"
-            size="small"
-            effect="plain"
-            :type="rules[side]?.[kind] === undefined ? 'info' : 'primary'"
-          >
-            {{ rules[side]?.[kind] === undefined ? '继承' : '本环境' }}
-          </ElTag>
-        </template>
         <EnvironmentIdList
           :aria-label="name + label"
           :model-value="effective(side, kind)"
           :options="options[kind]"
           :placeholder="emptyLabel(side, kind)"
-          @update:model-value="ids => update(side, kind, ids.length || rules.include?.length ? ids : undefined)"
+          @update:model-value="ids => update(side, kind, ids.length ? ids : undefined)"
         />
         <div class="list-actions">
           <ElButton v-if="rules[side]?.[kind] !== undefined" link type="primary" @click="update(side, kind)">
-            {{ rules.include?.length ? '恢复继承' : '恢复默认' }}
+            恢复默认
           </ElButton>
           <ElButton v-if="side === 'allow' && effective(side, kind)?.length !== 0" link @click="update(side, kind, [])"
             >全部禁用</ElButton
           >
-          <ElButton
-            v-if="
-              side === 'deny' &&
-              (effective(side, kind)?.length ||
-                (rules.include?.length && !resolved && rules.deny?.[kind] === undefined))
-            "
-            link
-            @click="update(side, kind, [])"
+          <ElButton v-if="side === 'deny' && effective(side, kind)?.length" link @click="update(side, kind, [])"
             >清除禁用</ElButton
           >
         </div>

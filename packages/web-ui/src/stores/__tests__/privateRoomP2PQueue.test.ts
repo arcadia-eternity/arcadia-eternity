@@ -135,6 +135,34 @@ afterEach(() => {
   store.cleanup()
 })
 
+it('starts the peer host with the timer and team selection of the captured room environment', async () => {
+  const captured = room()
+  captured.environment = {
+    ...descriptor,
+    rules: {
+      schemaVersion: 2,
+      mechanics: {
+        timer: { enabled: true, turnTimeLimit: 12 },
+        teamSelection: { enabled: true, maxTeamSize: 2, showOpponentTeam: true },
+      },
+    },
+  }
+  captured.config.timerConfig = { enabled: false }
+  mocks.client.getPrivateRoomInfo.mockResolvedValue(captured)
+  store.currentRoom = captured
+  const starting = start()
+  try {
+    await vi.waitFor(() => expect(mocks.createHost).toHaveBeenCalledOnce())
+    expect(mocks.createHost.mock.calls[0][0].battleConfig).toMatchObject({
+      timerConfig: { enabled: true, turnTimeLimit: 12 },
+      teamSelection: { enabled: true, config: { maxTeamSize: 2, showOpponentTeam: true } },
+    })
+  } finally {
+    await store.leaveRoom()
+    await starting
+  }
+})
+
 it('cancels a queued host immediately when leaving, before the server acknowledges', async () => {
   const starting = start()
   await vi.waitFor(() => expect(mocks.createHost).toHaveBeenCalledOnce())

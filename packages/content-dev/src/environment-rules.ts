@@ -1,10 +1,11 @@
 export { RuleCompositionError, resolveEnvironmentMechanics } from '@arcadia-eternity/const'
 import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import { readSkillParameterCatalog, resolveSkillParameters, requireElementChart } from '@arcadia-eternity/const'
-import { composeRuleSets } from './rule-composition.ts'
+import { resolveDeclaredRules } from './rule-composition.ts'
 import {
   allowsEnhancementRecord,
-  splitRuleDeclaration,
+  IndependentEnvironmentRulesSchema,
+  readEnvironmentRuleSets,
   resolveEnvironmentMechanics,
   resolveEnvironmentTeam,
   validateConstraintReferences,
@@ -38,14 +39,16 @@ function validateRuleFields(input?: unknown): EnvironmentRules {
   return parseRuleData(EnvironmentRulesSchema, input)
 }
 
-function checkIVDefault(rules: EnvironmentRules) {
+function checkEffectiveRules(rules: EnvironmentRules) {
   const { max, defaultValue } = resolveEnvironmentMechanics(rules).individualValues
+  const team = resolveEnvironmentTeam(rules)
+  if (team.minSize > team.maxSize) fail('ENVIRONMENT_TEAM_SELECTION_EXCEEDS_ROSTER')
   if (defaultValue > max) fail('ENVIRONMENT_IV_DEFAULT_EXCEEDS_MAX')
   return rules
 }
 
 export function validateEnvironmentRules(input?: unknown): EnvironmentRules {
-  return checkIVDefault(validateRuleFields(input))
+  return checkEffectiveRules(validateRuleFields(input))
 }
 
 const capabilityFields = {
@@ -58,6 +61,8 @@ const capabilityFields = {
   'training.enhancement.v1': (rules: EnvironmentRules) => rules.mechanics?.enhancement,
   'battle.skill-parameters.v1': (rules: EnvironmentRules) => rules.skillParameters,
   'battle.type-chart.v1': (rules: EnvironmentRules) => rules.matchups,
+  'battle.timer.v1': (rules: EnvironmentRules) => rules.mechanics?.timer,
+  'battle.team-selection.v1': (rules: EnvironmentRules) => rules.mechanics?.teamSelection,
   'battle.faint-switch.v1': (rules: EnvironmentRules) => rules.mechanics?.allowFaintSwitch !== undefined,
 }
 export const environmentCapabilities = Object.freeze(['rules.composition.v1', ...Object.keys(capabilityFields)])
@@ -172,27 +177,33 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
   }
 }
 
-/** Author declarations are expanded only against a captured installation. */
+/** Compatibility defaults for unmanaged projects with the official base package. */
 export function defaultRuleDeclaration(definitions: readonly unknown[] = []) {
   return definitions.some(row => isRecord(row) && row.id === 'base:classic')
-    ? { schemaVersion: 2 as const, include: ['base:classic'] }
+    ? {
+        schemaVersion: 2 as const,
+        mechanics: {
+          individualValues: { max: 31 },
+          inheritance: { eligible: 'species' as const },
+          secondGenerationNatures: 'species' as const,
+        },
+      }
     : { schemaVersion: 1 as const }
 }
 
 export function prepareEnvironmentRules(input: unknown, definitions: readonly unknown[] = [], host = currentHost) {
   const declaration = input === undefined ? defaultRuleDeclaration(definitions) : input
-  const prepared = composeRuleSets(declaration, definitions, validateRuleFields)
-  checkIVDefault(prepared.rules)
+  const prepared = resolveDeclaredRules(validateEnvironmentRuleDeclaration(declaration))
+  checkEffectiveRules(prepared.rules)
   const requiredCapabilities = Object.entries(capabilityFields)
     .filter(([, used]) => used(prepared.rules))
     .map(([key]) => key)
-  if (isRecord(declaration) && ['include', 'constraintEdits', 'collections'].some(field => field in declaration))
-    requiredCapabilities.unshift('rules.composition.v1')
+  if (isRecord(declaration) && 'collections' in declaration) requiredCapabilities.unshift('rules.composition.v1')
   assertEnvironmentRequirements({ capabilities: requiredCapabilities }, host)
-  return { ...prepared, requiredCapabilities }
+  return { ...prepared, ruleSets: readEnvironmentRuleSets(definitions), requiredCapabilities }
 }
 export function validateEnvironmentRuleDeclaration(input: unknown) {
-  return splitRuleDeclaration(input)
+  return parseRuleData(IndependentEnvironmentRulesSchema, input)
 }
 
 /** Validate selectors once against the catalog held by this preparation. */

@@ -326,49 +326,22 @@ it('previews group inheritance and a single exception and saves only explicit ch
   expect(draft.document.rules.skillParameters).toBeUndefined()
 })
 
-it('edits reusable rule references while keeping the loaded values and their origins read-only', async () => {
-  const draft = environment()
-  const loaded = {
-    rules: { schemaVersion: 2, mechanics: { individualValues: { max: 50 } } },
-    ruleSets: [
-      { id: 'cup:other', name: '社区测试', rules: { schemaVersion: 2, mechanics: { individualValues: { max: 50 } } } },
-    ],
-    fields: [
-      {
-        path: ['mechanics', 'individualValues'],
-        value: { max: 50 },
-        sources: ['cup:classic', '$environment'],
-        effectiveSources: ['$environment'],
-      },
-    ],
-  }
-  draft.document.rules = { schemaVersion: 2 }
-  const { page } = open({ environments: [draft], installations: [{ ...version(draft), ruleComposition: loaded }] })
-  await button(page, '编辑').trigger('click')
+it('creates an independent environment without a rule-set picker', async () => {
+  const { page } = open()
+  await button(page, '新建环境').trigger('click')
   await openTab(page, '基础规则')
-  const choice = page.findAllComponents({ name: 'ElFormItem' }).find(item => item.props('label') === '引用规则集')!
-  choice.getComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', ['cup:other'])
-  await page.vm.$nextTick()
-  expect(page.text()).toContain('规则预览')
-  expect(page.text()).toContain('individualValues')
-  await page.get('form.environment-editor').trigger('submit')
-  const [saved] = page.emitted('save')![0]! as [ManagedEnvironment['document']]
-  expect(saved.rules.include).toEqual(['cup:other'])
-  expect(saved.rules.mechanics).toBeUndefined()
-  expect(saved.rules).not.toHaveProperty('fields')
+  expect(page.text()).not.toContain('引用规则集')
 })
 
-it('can lift an inherited ban and uniqueness requirement and then restore inheritance', async () => {
+it('can lift a ban and uniqueness requirement as independent edits', async () => {
   const draft = environment()
-  draft.document.rules = { schemaVersion: 2, include: ['cup:classic'] }
-  const rules = { schemaVersion: 2, deny: { species: ['cup:boss'] }, team: { uniqueSpecies: true } }
-  const ruleComposition = { rules, fields: [], ruleSets: [{ id: 'cup:classic', name: '联赛', rules }] }
-  const { page } = open({ environments: [draft], installations: [{ ...version(draft), ruleComposition }] })
+  draft.document.rules = { schemaVersion: 2, deny: { species: ['cup:boss'] }, team: { uniqueSpecies: true } }
+  const { page } = open({ environments: [draft] })
   await button(page, '编辑').trigger('click')
   await openTab(page, '基础规则')
   const unique = page.get('[aria-label="队伍内精灵不重复"]')
-  expect(unique.text()).toContain('继承（开）')
-  expect(unique.get<HTMLInputElement>('input[value="inherit"]').element.checked).toBe(true)
+  expect(unique.findAll('input')).toHaveLength(2)
+  expect(unique.get<HTMLInputElement>('input[value="true"]').element.checked).toBe(true)
   await unique.get('input[value="false"]').setValue()
   await openTab(page, '内容限制')
   const denied = limitField(page, '精灵', '禁止名单')
@@ -382,13 +355,8 @@ it('can lift an inherited ban and uniqueness requirement and then restore inheri
   const saved = (index: number) => (page.emitted('save')![index]![0] as ManagedEnvironment['document']).rules
   expect(saved(0).team?.uniqueSpecies).toBe(false)
   expect(saved(0).deny?.species).toEqual([])
-  await unique.get('input[value="inherit"]').setValue()
-  const restores = page.findAll('button').filter(control => control.text() === '恢复继承')
-  for (const control of restores) await control.trigger('click')
-  await form.trigger('submit')
-  expect(saved(1).team?.uniqueSpecies).toBeUndefined()
-  expect(saved(1).deny?.species).toBeUndefined()
-  expect(unique.get<HTMLInputElement>('input[value="inherit"]').element.checked).toBe(true)
+  expect(saved(0)).not.toHaveProperty('include')
+  expect(draft.document.rules.team?.uniqueSpecies).toBe(true)
 })
 
 it('scopes ID suggestions to the draft dependencies and keeps names separate from saved IDs', async () => {
@@ -415,12 +383,10 @@ it('scopes ID suggestions to the draft dependencies and keeps names separate fro
   expect(page.emitted('save')).toBeUndefined()
 })
 
-it('extends an inherited content list from its visible entries and restores it without changing the rule set', async () => {
+it('edits content lists and resets them to the environment defaults', async () => {
   const draft = environment()
-  draft.document.rules = { schemaVersion: 2, include: ['cup:classic'] }
-  const rules = { schemaVersion: 2, allow: { species: ['cup:fox'] }, deny: { skills: ['cup:ice'] } }
-  const ruleComposition = { rules, fields: [], ruleSets: [{ id: 'cup:classic', name: '联赛', rules }] }
-  const { page } = open({ environments: [draft], installations: [{ ...version(draft), ruleComposition }] })
+  draft.document.rules = { schemaVersion: 2, allow: { species: ['cup:fox'] }, deny: { skills: ['cup:ice'] } }
+  const { page } = open({ environments: [draft] })
   await button(page, '编辑').trigger('click')
   await openTab(page, '内容限制')
   const field = limitField(page, '精灵', '允许名单')
@@ -432,7 +398,7 @@ it('extends an inherited content list from its visible entries and restores it w
   await form.trigger('submit')
   const saved = (index: number) => (page.emitted('save')![index]![0] as ManagedEnvironment['document']).rules
   expect(saved(0).allow?.species).toEqual(['cup:fox', 'cup:wolf'])
-  expect(saved(0).deny).toBeUndefined()
+  expect(saved(0).deny?.skills).toEqual(['cup:ice'])
   await field
     .findAll('button')
     .find(b => b.text() === '全部禁用')!
@@ -441,153 +407,34 @@ it('extends an inherited content list from its visible entries and restores it w
   expect(saved(1).allow?.species).toEqual([])
   await field
     .findAll('button')
-    .find(b => b.text() === '恢复继承')!
+    .find(b => b.text() === '恢复默认')!
     .trigger('click')
   await form.trigger('submit')
   expect(saved(2).allow).toBeUndefined()
-  expect(list.props('modelValue')).toEqual(['cup:fox'])
+  expect(list.props('modelValue')).toBeUndefined()
 })
 
-it('shows the inherited enhancement mode and preserves stage restrictions when changing mode', async () => {
+it('shows the enhancement mode and preserves stage restrictions when changing mode', async () => {
   const draft = environment()
-  draft.document.rules = { schemaVersion: 2, include: ['cup:classic'] }
-  const rules = { schemaVersion: 2, mechanics: { enhancement: { mode: 'active', stages: ['cup:divine'] } } }
-  const ruleComposition = { rules, fields: [], ruleSets: [{ id: 'cup:classic', name: '联赛', rules }] }
-  const { page } = open({ environments: [draft], installations: [{ ...version(draft), ruleComposition }] })
+  draft.document.rules = { schemaVersion: 2, mechanics: { enhancement: { mode: 'active', stages: ['cup:divine'] } } }
+  const { page } = open({ environments: [draft] })
   await button(page, '编辑').trigger('click')
   await openTab(page, '对战机制')
   const group = page.get('[aria-label="神魔化规则"]')
-  expect(group.text()).toContain('继承（启用）')
-  expect(group.findAll('input[type=radio]')).toHaveLength(3)
+  expect(group.get<HTMLInputElement>('input[value="active"]').element.checked).toBe(true)
+  expect(group.findAll('input[type=radio]')).toHaveLength(2)
   await group.get('input[value="suppressed"]').setValue()
   expect(page.get('[aria-label="神魔化"]').text()).not.toContain('允许阶段 ID')
   const form = page.get('form.environment-editor')
   await form.trigger('submit')
   const saved = (index: number) => (page.emitted('save')![index]![0] as ManagedEnvironment['document']).rules
   expect(saved(0).mechanics?.enhancement).toEqual({ mode: 'suppressed', stages: ['cup:divine'] })
-  await group.get('input[value="inherit"]').setValue()
-  await form.trigger('submit')
-  expect(saved(1).mechanics?.enhancement).toBeUndefined()
+  expect(saved(0)).not.toHaveProperty('include')
 })
 
-it('shows one notice for an unavailable list preview and keeps untouched lists inherited', async () => {
+it('makes the prepared profile, table and learning rules directly editable', async () => {
   const draft = environment()
-  draft.document.rules = { schemaVersion: 2, include: ['cup:classic'] }
-  const { page } = open({ environments: [draft], installations: [] })
-  await button(page, '编辑').trigger('click')
-  await openTab(page, '内容限制')
-  expect(page.findAll('.rule-preview-issue')).toHaveLength(1)
-  const field = limitField(page, '精灵', '允许名单')
-  expect(field.get('input').attributes('placeholder')).toBe('输入 ID')
-  expect(page.get('.rule-preview-issue').text()).toContain('所选内容包中找不到规则集：cup:classic')
-  await page.get('form.environment-editor').trigger('submit')
-  expect((page.emitted('save')![0]![0] as ManagedEnvironment['document']).rules).toEqual(draft.document.rules)
-})
-
-it('shows resolved lists when a local mechanic settles a conflict between rule sets', async () => {
-  const draft = environment()
-  draft.document.rules = { schemaVersion: 2, include: ['cup:a', 'cup:b'], mechanics: { allowFaintSwitch: true } }
-  const ruleSets = [true, false].map((allowFaintSwitch, index) => ({
-    id: index ? 'cup:b' : 'cup:a',
-    name: '规则集',
-    rules: { schemaVersion: 2, mechanics: { allowFaintSwitch }, deny: { species: [index ? 'cup:fox' : 'cup:wolf'] } },
-  }))
-  const { page } = open({
-    environments: [draft],
-    installations: [{ ...version(draft), ruleComposition: { rules: draft.document.rules, fields: [], ruleSets } }],
-  })
-  await button(page, '编辑').trigger('click')
-  await openTab(page, '内容限制')
-  expect(limitField(page, '精灵', '禁止名单').getComponent({ name: 'EnvironmentIdList' }).props('modelValue')).toEqual([
-    'cup:fox',
-    'cup:wolf',
-  ])
-  expect(page.findAll('.rule-preview-issue')).toHaveLength(0)
-})
-
-it('keeps inherited lists visible for an archive-backed package when another dependency is added', async () => {
-  const draft = environment()
-  draft.document.packages = { '@test/ice': 'file:candidates/content-0.tgz' }
-  draft.document.rules = { schemaVersion: 2, include: ['ice:cup'] }
-  const rules = { schemaVersion: 2, deny: { species: ['ice:wolf'] } }
-  const installed = {
-    ...version(draft),
-    document: { ...draft.document, packages: { '@test/ice': '1.2.3' } },
-    members: [
-      {
-        name: '@test/ice',
-        version: '1.2.3',
-        namespace: 'ice',
-        projectId: 'ice',
-        direct: true,
-        dependencies: [],
-        requiredBy: [],
-      },
-    ],
-    contentCatalog: { species: [{ id: 'ice:wolf', name: '冰狼' }], skills: [], marks: [], stages: [] },
-    ruleComposition: { rules, fields: [], ruleSets: [{ id: 'ice:cup', name: '冰系联赛', rules }] },
-  }
-  const { page } = open({ environments: [draft], installations: [installed] })
-  await button(page, '编辑').trigger('click')
-  await openTab(page, '内容限制')
-  const list = limitField(page, '精灵', '禁止名单').getComponent({ name: 'EnvironmentIdList' })
-  expect(list.props('modelValue')).toEqual(['ice:wolf'])
-  await page.setProps({ pendingPackage: { id: 'fire', name: '@test/fire', version: '1.0.0' } })
-  expect(list.props('modelValue')).toEqual(['ice:wolf'])
-  expect(list.props('options')).toEqual([{ value: 'ice:wolf', label: '冰狼 · ice:wolf' }])
-  expect(page.emitted('save')).toBeUndefined()
-})
-
-it('resolves a new draft from installed materials and recomputes nested includes as package versions change', async () => {
-  const material = (version: string, species: string) => ({
-    id: version,
-    name: '@test/cup',
-    version,
-    contentIds: { species: [species], skills: [], marks: [] },
-    ruleCatalog: {
-      members: [
-        {
-          name: '@test/cup',
-          version,
-          namespace: 'cup',
-          projectId: 'cup',
-          direct: true,
-          dependencies: [],
-          requiredBy: [],
-        },
-      ],
-      ruleSets: [
-        { id: 'cup:classic', name: '联赛', rules: { schemaVersion: 2, include: ['cup:limits'] } },
-        { id: 'cup:limits', name: '禁用名单', rules: { schemaVersion: 2, deny: { species: [species] } } },
-      ],
-    },
-  })
-  const { page } = open({
-    installations: [],
-    availablePackages: [material('1.0.0', 'cup:wolf'), material('2.0.0', 'cup:fox')],
-  })
-  await button(page, '新建环境').trigger('click')
-  await page.setProps({ pendingPackage: { id: 'cup', name: '@test/cup', version: '^1.0.0' } })
-  await openTab(page, '基础规则')
-  const choice = page.findAllComponents({ name: 'ElFormItem' }).find(item => item.props('label') === '引用规则集')!
-  choice.getComponent(ElSelect).vm.$emit('update:modelValue', ['cup:classic'])
-  await openTab(page, '内容限制')
-  const list = limitField(page, '精灵', '禁止名单').getComponent({ name: 'EnvironmentIdList' })
-  expect(list.props('modelValue')).toEqual(['cup:wolf'])
-  expect(list.props('options')).toEqual([{ value: 'cup:wolf', label: 'cup:wolf' }])
-  await page.setProps({ pendingPackage: { id: 'cup2', name: '@test/cup', version: '2.0.0' } })
-  expect(list.props('modelValue')).toEqual(['cup:fox'])
-  expect(list.props('options')).toEqual([{ value: 'cup:fox', label: 'cup:fox' }])
-  await page.setProps({ pendingPackage: { id: 'unavailable', name: '@test/cup', version: '3.0.0' } })
-  expect(list.props('modelValue')).toBeUndefined()
-  expect(page.get('.rule-preview-issue').text()).toContain('所选内容包中找不到规则集：cup:classic')
-  expect(page.emitted('save')).toBeUndefined()
-})
-
-it('shows the prepared profile, table and learning rules and returns to them after clearing an override', async () => {
-  const draft = environment()
-  draft.document.rules = { schemaVersion: 2, include: ['cup:classic'] }
-  const inherited = {
+  draft.document.rules = {
     schemaVersion: 2,
     team: { minSize: 2, maxSize: 4 },
     mechanics: { secondGenerationNatures: 'all', inheritance: { eligible: 'species' } },
@@ -600,11 +447,6 @@ it('shows the prepared profile, table and learning rules and returns to them aft
     installations: [
       {
         ...version(draft),
-        ruleComposition: {
-          fields: [],
-          rules: inherited,
-          ruleSets: [{ id: 'cup:classic', name: '杯赛', rules: inherited }],
-        },
         skillParameters: {
           groups: [],
           members: [],
@@ -627,8 +469,8 @@ it('shows the prepared profile, table and learning rules and returns to them aft
   await openTab(page, '基础规则')
   const field = (label: string) =>
     page.findAllComponents({ name: 'ElFormItem' }).find(item => item.props('label') === label)!
-  expect(field('队伍最少数量').get('input').attributes('placeholder')).toBe('2')
-  expect(field('队伍最多数量').get('input').attributes('placeholder')).toBe('4')
+  expect(field('队伍最少数量').get<HTMLInputElement>('input').element.value).toBe('2')
+  expect(field('队伍最多数量').get<HTMLInputElement>('input').element.value).toBe('4')
   await openTab(page, '对战机制')
   const profile = field('数值方案').getComponent(ElSelect)
   const table = field('基础相克表').getComponent(ElSelect)
@@ -648,14 +490,11 @@ it('shows the prepared profile, table and learning rules and returns to them aft
   await select('数值方案', '')
   table.vm.$emit('change', '')
   await flushPromises()
-  expect(profile.props('modelValue')).toBe('cup:boost')
-  expect(table.props('modelValue')).toBe('cup:ice')
   expect(field('二代性格资格').getComponent(ElSelect).props('modelValue')).toBe('all')
   expect(field('遗传资格').getComponent(ElSelect).props('modelValue')).toBe('species')
-  expect(page.get('[aria-label="继承的技能调整"]').text()).toContain('cup:howl')
   await page.get('form.environment-editor').trigger('submit')
   const [saved] = page.emitted('save')![0]! as [ManagedEnvironment['document']]
-  expect(saved.rules.learnsetAdjustments).toBeUndefined()
+  expect(saved.rules.learnsetAdjustments).toEqual(draft.document.rules.learnsetAdjustments)
   expect(saved.rules.skillParameters?.profile).toBeUndefined()
   expect(saved.rules.matchups?.table).toBeUndefined()
 })
@@ -680,15 +519,14 @@ it('only enforces category slot limits when declared and saves the numbers displ
   await form.trigger('submit')
   const saved = (idx: number) => (page.emitted('save')![idx]![0] as ManagedEnvironment['document']).rules
   expect(saved(0).mechanics?.skillSlots).toEqual({ normalMax: 5, climaxMax: 0 })
-  await button(page, '恢复继承槽位').trigger('click')
+  await button(page, '恢复默认槽位').trigger('click')
   await form.trigger('submit')
   expect(saved(1).mechanics?.skillSlots).toBeUndefined()
 })
 
-it('preserves named collection references when editing an inherited constraint', async () => {
+it('preserves named collection references when editing a constraint', async () => {
   const draft = environment()
-  draft.document.rules = { schemaVersion: 2, include: ['cup:limits'] }
-  const inherited = {
+  draft.document.rules = {
     schemaVersion: 2,
     collections: [{ id: 'cup:ice', kind: 'species', ids: ['cup:wolf'] }],
     constraints: [
@@ -705,17 +543,12 @@ it('preserves named collection references when editing an inherited constraint',
     installations: [
       {
         ...version(draft),
-        ruleComposition: {
-          fields: [],
-          rules: { schemaVersion: 2 },
-          ruleSets: [{ id: 'cup:limits', name: '联赛', rules: inherited }],
-        },
       },
     ],
   })
   await button(page, '编辑').trigger('click')
   await openTab(page, '内容限制')
-  await button(page, '替换规则及豁免').trigger('click')
+  await button(page, 'cup:limit · 最多 1 只').trigger('click')
   const collection = page
     .findAllComponents({ name: 'ElFormItem' })
     .find(item => item.props('label') === '引用集合')!
@@ -724,8 +557,8 @@ it('preserves named collection references when editing an inherited constraint',
   await button(page, '应用组合规则').trigger('click')
   await page.get('form.environment-editor').trigger('submit')
   const [saved] = page.emitted('save')![0]! as [ManagedEnvironment['document']]
-  expect(saved.rules.constraintEdits?.replace?.[0]?.allOf).toEqual(inherited.constraints[0]!.allOf)
-  expect(saved.rules.collections).toBeUndefined()
+  expect(saved.rules.constraints?.[0]?.allOf).toEqual(draft.document.rules.constraints![0]!.allOf)
+  expect(saved.rules.collections).toEqual(draft.document.rules.collections)
 })
 
 it('checks draft references against the captured content and clears the issue as soon as it is fixed', async () => {
@@ -745,4 +578,28 @@ it('checks draft references against the captured content and clears the issue as
     .vm.$emit('update:modelValue', ['cup:wolf'])
   await flushPromises()
   expect(page.find('.rule-preview-issue').exists()).toBe(false)
+})
+
+it('saves battle clock and team selection as explicit environment controls', async () => {
+  const { page, draft } = open()
+  await button(page, '编辑').trigger('click')
+  await openTab(page, '对战机制')
+  await page.get('[aria-label="对战计时器"] input[value="true"]').setValue()
+  await page.get('input[aria-label="每回合时间限制"]').setValue('18')
+  await page.get('[aria-label="团队选择"] input[value="true"]').setValue()
+  await page.get('input[aria-label="最多出战数量"]').setValue('2')
+  await page.get('form.environment-editor').trigger('submit')
+  const saved = page.emitted('save')![0]![0] as ManagedEnvironment['document']
+  expect(saved.rules.schemaVersion).toBe(2)
+  expect(saved.rules.mechanics).toMatchObject({
+    timer: { enabled: true, turnTimeLimit: 18 },
+    teamSelection: { enabled: true, maxTeamSize: 2 },
+  })
+  expect(draft.document.rules.mechanics).toBeUndefined()
+  await page.get('[aria-label="对战计时器"] input[value="false"]').setValue()
+  await page.get('[aria-label="团队选择"] input[value="false"]').setValue()
+  await page.get('form.environment-editor').trigger('submit')
+  const reset = page.emitted('save')![1]![0] as ManagedEnvironment['document']
+  expect(reset.rules.mechanics?.timer?.enabled).toBe(false)
+  expect(reset.rules.mechanics?.teamSelection?.enabled).toBe(false)
 })

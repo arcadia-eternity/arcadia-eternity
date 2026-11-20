@@ -48,7 +48,7 @@ async function observeStaticOnly(context: BrowserContext, page: Page, baseURL: s
 async function configureSinglePetBattle(page: Page) {
   await expect(page.getByRole('button', { name: '开始本地对战', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: '团队选择测试', exact: true }).click()
-  await page.getByText('最大队伍大小:', { exact: true }).locator('..').locator('input').fill('1')
+  await page.getByRole('spinbutton', { name: '最多出战数量', exact: true }).fill('1')
 
   await page.getByPlaceholder('留空使用随机种子').fill('208')
 }
@@ -186,9 +186,18 @@ for (const blockedAccess of ['methods', 'object'] as const) {
   })
 }
 
-test('team selection ignores pending roster hover events and keeps the starter selectable', async ({ page }) => {
+test('environment team selection opens before battle and keeps the starter selectable', async ({ page }) => {
+  await useStaticRules(page, {
+    schemaVersion: 2,
+    mechanics: {
+      timer: { enabled: true, turnTimeLimit: 90, totalTimeLimit: 0 },
+      teamSelection: { enabled: true, maxTeamSize: 1, timeLimit: 0 },
+    },
+  })
   await page.goto(localPage)
-  await configureSinglePetBattle(page)
+  await expect(page.getByRole('button', { name: '开始本地对战', exact: true })).toBeEnabled()
+  await expect(page.getByText('启用计时器系统', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('启用团队选择', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
   const team = page.getByRole('heading', { name: '完整队伍', exact: true }).locator('..')
   await expect(team).toBeVisible()

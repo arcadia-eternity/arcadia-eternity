@@ -23,7 +23,6 @@ import EnvironmentBooleanField from './EnvironmentBooleanField.vue'
 import EnvironmentIdList from './EnvironmentIdList.vue'
 import { resolveDraftContent, rulePreviewIssue, type EditorPackage } from './environmentRuleCatalog'
 import { environmentReferences } from './environmentReferences'
-import { environmentName } from '@/i18n/environment'
 import './managementStyles'
 import {
   assertRuleContentReferences,
@@ -36,6 +35,7 @@ import EnvironmentContentLimits from './EnvironmentContentLimits.vue'
 import EnvironmentConstraintFields from './EnvironmentConstraintFields.vue'
 import EnvironmentSkillParameterFields from './EnvironmentSkillParameterFields.vue'
 import EnvironmentMatchupFields from './EnvironmentMatchupFields.vue'
+import EnvironmentBattleFields from './EnvironmentBattleFields.vue'
 import EnvironmentLearningFields from './EnvironmentLearningFields.vue'
 import { registerEnvironmentDraft, discardEnvironmentChanges } from '@/features/content/unsavedEnvironment'
 import {
@@ -198,32 +198,19 @@ const draftContent = computed(() => {
 })
 const matchingInstallation = computed(() => draftContent.value.installation)
 const previewCatalog = computed(() => draftContent.value.catalog)
-const ruleSets = computed(() => draftContent.value.ruleSets)
 function previewRules(rules: ManagedEnvironmentDocument['rules']) {
   try {
-    return { value: prepareEnvironmentRules(rules, ruleSets.value) }
+    return { value: prepareEnvironmentRules(rules) }
   } catch (error) {
     return { issue: rulePreviewIssue(error) }
   }
 }
 const previewComposition = computed(() => document.value && previewRules(document.value.rules))
-const inheritance = computed(() => {
-  const include = document.value?.rules.include
-  return include?.length ? previewRules({ schemaVersion: 2, include }) : undefined
-})
-const inheritedRules = computed(() => inheritance.value?.value?.rules)
-const inheritanceKnown = computed(() => !document.value?.rules.include?.length || !!inheritedRules.value)
-const inheritedMechanics = computed(() =>
-  inheritanceKnown.value ? resolveEnvironmentMechanics(inheritedRules.value) : undefined,
-)
 const effectiveMechanics = computed(
   () => previewComposition.value?.value && resolveEnvironmentMechanics(previewComposition.value.value.rules),
 )
 const resolvedRules = computed(() => previewComposition.value?.value?.rules)
 const effectiveTeam = computed(() => resolvedRules.value && resolveEnvironmentTeam(resolvedRules.value))
-const inheritedTeam = computed(() =>
-  inheritanceKnown.value ? resolveEnvironmentTeam(inheritedRules.value) : undefined,
-)
 const contentIndex = computed(() => {
   const catalog = previewCatalog.value?.contentCatalog
   return catalog && indexRuleContent({ ...catalog, enhancements: catalog.stages })
@@ -238,7 +225,7 @@ const ruleIssue = computed(() => {
     return rulePreviewIssue(error)
   }
 })
-function inheritMechanic(key: 'individualValues' | 'individualValueDefault' | 'allowFaintSwitch') {
+function resetMechanic(key: 'individualValues' | 'individualValueDefault') {
   if (!document.value?.rules.mechanics) return
   delete document.value.rules.mechanics[key]
   if (!Object.keys(document.value.rules.mechanics).length) delete document.value.rules.mechanics
@@ -289,11 +276,6 @@ const referenceOptions = computed(() =>
     previewCatalog.value,
   ),
 )
-function setRuleSets(include: string[]) {
-  if (!document.value) return
-  if (include.length) document.value.rules = { ...document.value.rules, schemaVersion: 2, include }
-  else delete document.value.rules.include
-}
 function setMechanics(change: NonNullable<ManagedEnvironmentDocument['rules']['mechanics']>) {
   if (!document.value) return
   document.value.rules = {
@@ -302,19 +284,17 @@ function setMechanics(change: NonNullable<ManagedEnvironmentDocument['rules']['m
     mechanics: { ...document.value.rules.mechanics, ...change },
   }
 }
-function inheritTeamField(key: 'minSize' | 'maxSize' | 'uniqueSpecies') {
+function resetTeamField(key: 'minSize' | 'maxSize' | 'uniqueSpecies') {
   if (!document.value?.rules.team) return
   delete document.value.rules.team[key]
   if (!Object.keys(document.value.rules.team).length) delete document.value.rules.team
 }
-function setUniqueSpecies(value?: boolean) {
-  if (!document.value) return
-  if (value === undefined) inheritTeamField('uniqueSpecies')
-  else document.value.rules.team = { ...document.value.rules.team, uniqueSpecies: value }
+function setUniqueSpecies(value: boolean) {
+  if (document.value) document.value.rules.team = { ...document.value.rules.team, uniqueSpecies: value }
 }
 function setTeamSize(key: 'minSize' | 'maxSize', value: number | null | undefined) {
   if (!document.value) return
-  if (value == null) inheritTeamField(key)
+  if (value == null) resetTeamField(key)
   else document.value.rules.team = { ...document.value.rules.team, [key]: value }
 }
 const clone = (value: ManagedEnvironmentDocument): ManagedEnvironmentDocument => JSON.parse(JSON.stringify(value))
@@ -340,7 +320,7 @@ async function edit(environment?: ManagedEnvironment, duplicate = false) {
         name: '',
         packages: {},
         sources: [basePackageName],
-        rules: { schemaVersion: 1 },
+        rules: { schemaVersion: 2, mechanics: { timer: { enabled: false }, teamSelection: { enabled: false } } },
         requires: {},
       }
   packageRows.value = Object.entries(document.value.packages).map(([name, version]) => ({
@@ -691,31 +671,6 @@ function save() {
               </ElFormItem>
             </ElTabPane>
             <ElTabPane lazy name="mechanics" label="基础规则">
-              <ElFormItem label="引用规则集">
-                <ElSelect
-                  v-if="ruleSets.length"
-                  placeholder="选择或输入规则集 ID"
-                  multiple
-                  filterable
-                  allow-create
-                  default-first-option
-                  :model-value="document.rules.include ?? []"
-                  @update:model-value="setRuleSets"
-                >
-                  <ElOption
-                    v-for="entry in ruleSets"
-                    :key="entry.id"
-                    :value="entry.id"
-                    :label="environmentName('ruleSets', entry.id, entry.name)"
-                  />
-                </ElSelect>
-                <EnvironmentIdList
-                  v-else
-                  :model-value="document.rules.include"
-                  placeholder="输入规则集 ID"
-                  @update:model-value="setRuleSets"
-                />
-              </ElFormItem>
               <div class="field-row mechanic-values">
                 <ElFormItem label="单项资质上限">
                   <ElInputNumber
@@ -729,7 +684,7 @@ function save() {
                     @update:model-value="
                       value =>
                         value == null
-                          ? inheritMechanic('individualValues')
+                          ? resetMechanic('individualValues')
                           : setMechanics({ individualValues: { max: value } })
                     "
                   />
@@ -737,8 +692,8 @@ function save() {
                     link
                     type="primary"
                     v-if="document.rules.mechanics?.individualValues"
-                    @click="inheritMechanic('individualValues')"
-                    >恢复继承</ElButton
+                    @click="resetMechanic('individualValues')"
+                    >恢复默认</ElButton
                   >
                 </ElFormItem>
                 <ElFormItem label="新精灵初始个体值">
@@ -755,7 +710,7 @@ function save() {
                     @update:model-value="
                       value =>
                         value == null
-                          ? inheritMechanic('individualValueDefault')
+                          ? resetMechanic('individualValueDefault')
                           : setMechanics({ individualValueDefault: value })
                     "
                   />
@@ -763,8 +718,8 @@ function save() {
                     link
                     type="primary"
                     v-if="document.rules.mechanics?.individualValueDefault !== undefined"
-                    @click="inheritMechanic('individualValueDefault')"
-                    >恢复继承</ElButton
+                    @click="resetMechanic('individualValueDefault')"
+                    >恢复默认</ElButton
                   >
                 </ElFormItem>
               </div>
@@ -795,39 +750,23 @@ function save() {
               <div class="field-row boolean-fields">
                 <EnvironmentBooleanField
                   label="击破奖励换宠"
-                  :model-value="document.rules.mechanics?.allowFaintSwitch"
-                  :inherited="inheritedMechanics?.allowFaintSwitch"
-                  @update:model-value="
-                    value =>
-                      value === undefined
-                        ? inheritMechanic('allowFaintSwitch')
-                        : setMechanics({ allowFaintSwitch: value })
-                  "
+                  :model-value="document.rules.mechanics?.allowFaintSwitch ?? true"
+                  @update:model-value="value => setMechanics({ allowFaintSwitch: value })"
                 />
                 <EnvironmentBooleanField
                   label="队伍内精灵不重复"
-                  :model-value="document.rules.team?.uniqueSpecies"
-                  :inherited="inheritedTeam?.uniqueSpecies"
+                  :model-value="document.rules.team?.uniqueSpecies ?? false"
                   @update:model-value="setUniqueSpecies"
                 />
               </div>
               <ElCard shadow="never" v-if="previewComposition?.value?.fields.length">
                 <template #header><h4>规则预览</h4></template>
                 <ElScrollbar max-height="18rem">
-                  <dl v-for="field in previewComposition.value.fields" :key="JSON.stringify(field.path)">
-                    <dt>{{ field.path.join(' / ') }} · {{ JSON.stringify(field.value) }}</dt>
-                    <dd>
-                      {{
-                        field.sources
-                          .map(
-                            id =>
-                              (id === '$environment' ? '环境声明' : id) +
-                              (field.effectiveSources.includes(id) ? '' : '（已覆盖）'),
-                          )
-                          .join('、')
-                      }}
-                    </dd>
-                  </dl>
+                  <ul>
+                    <li v-for="field in previewComposition.value.fields" :key="JSON.stringify(field.path)">
+                      {{ field.path.join(' / ') }} · {{ JSON.stringify(field.value) }}
+                    </li>
+                  </ul>
                 </ElScrollbar></ElCard
               >
             </ElTabPane>
@@ -838,39 +777,24 @@ function save() {
                   :options="referenceOptions"
                   :resolved="resolvedRules"
                 />
-                <EnvironmentConstraintFields
-                  v-model="document.rules"
-                  :options="referenceOptions"
-                  :inherited="inheritance?.value?.declarations.constraints"
-                  :effective="resolvedRules?.constraints"
-                  :collections="previewComposition?.value?.declarations.collections"
-                />
+                <EnvironmentConstraintFields v-model="document.rules" :options="referenceOptions" />
               </div>
             </ElTabPane>
             <ElTabPane lazy name="battle" label="对战机制">
               <div class="editor-sections">
+                <EnvironmentBattleFields v-model="document.rules" />
                 <EnvironmentLearningFields
                   :options="referenceOptions"
                   v-model="document.rules"
                   :resolved="resolvedRules"
-                  :inherited-enhancement="inheritedMechanics?.enhancement"
                 />
                 <EnvironmentSkillParameterFields
                   :skill-options="referenceOptions.skills"
-                  :has-includes="!!document.rules.include?.length"
                   v-model="document.rules"
                   :catalog="previewCatalog?.skillParameters"
                   :resolved="resolvedRules"
-                  :applied-known="
-                    !!matchingInstallation?.ruleComposition ||
-                    (!!matchingInstallation && !matchingInstallation.document.rules.include?.length)
-                  "
-                  :applied-policy="
-                    matchingInstallation?.ruleComposition?.rules.skillParameters ??
-                    (!matchingInstallation?.document.rules.include?.length
-                      ? matchingInstallation?.document.rules.skillParameters
-                      : undefined)
-                  "
+                  :applied-known="!!matchingInstallation"
+                  :applied-policy="matchingInstallation?.document.rules.skillParameters"
                 />
                 <EnvironmentMatchupFields
                   v-model="document.rules"

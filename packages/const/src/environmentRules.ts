@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { DEFAULT_TIMER_CONFIG } from './timer'
+import { resolveTeamSelectionConfig } from './teamSelection'
 import { skillSlotsSchema } from './skillSlots'
 import {
   declaredConstraintsSchema,
@@ -91,6 +93,30 @@ export const EnvironmentRulesSchema = z
           .strict()
           .optional(),
         allowFaintSwitch: z.boolean().optional(),
+        timer: z
+          .object({
+            enabled: z.boolean(),
+            turnTimeLimit: z.number().int().min(0).max(86400).optional(),
+            totalTimeLimit: z.number().int().min(0).max(86400).optional(),
+            animationPauseEnabled: z.boolean().optional(),
+            maxAnimationDuration: z.number().int().min(1).max(20000).optional(),
+          })
+          .strict()
+          .optional(),
+        teamSelection: z
+          .object({
+            enabled: z.boolean(),
+            mode: z.enum(['TEAM_SELECTION', 'FULL_TEAM', 'VIEW_ONLY']).optional(),
+            minTeamSize: z.number().int().min(1).max(6).optional(),
+            maxTeamSize: z.number().int().min(1).max(6).optional(),
+            allowStarterSelection: z.boolean().optional(),
+            showOpponentTeam: z.boolean().optional(),
+            teamInfoVisibility: z.enum(['HIDDEN', 'BASIC', 'FULL']).optional(),
+            timeLimit: z.number().int().min(0).max(86400).optional(),
+          })
+          .strict()
+          .refine(value => (value.minTeamSize ?? 1) <= (value.maxTeamSize ?? 6), '最少出战数量不能大于最多出战数量')
+          .optional(),
         inheritance: inheritanceSchema.optional(),
         enhancement: enhancementSchema.optional(),
         secondGenerationNatures: eligibilitySchema.optional(),
@@ -142,9 +168,23 @@ export const EnvironmentRulesSchema = z
   )
 export type EnvironmentRules = z.infer<typeof EnvironmentRulesSchema>
 
-export function resolveEnvironmentTeam(rules?: Pick<EnvironmentRules, 'team'>) {
+/** Only declared settings override the launcher's options. Each group inherits as a unit. */
+export function resolveEnvironmentBattleOptions(rules?: Pick<EnvironmentRules, 'mechanics'>) {
+  const { timer, teamSelection } = rules?.mechanics ?? {}
+  return {
+    ...(timer && { timerConfig: { ...DEFAULT_TIMER_CONFIG, ...timer } }),
+    ...(teamSelection && {
+      teamSelection: { enabled: teamSelection.enabled, config: resolveTeamSelectionConfig(teamSelection) },
+    }),
+  }
+}
+
+export function resolveEnvironmentTeam(rules?: Pick<EnvironmentRules, 'team' | 'mechanics'>) {
   const { minSize = 1, maxSize = 6, uniqueSpecies = false } = rules?.team ?? {}
-  return { minSize, maxSize, uniqueSpecies }
+  const selection = rules?.mechanics?.teamSelection
+  const selectionMin =
+    selection?.enabled && (selection.mode ?? 'TEAM_SELECTION') === 'TEAM_SELECTION' ? (selection.minTeamSize ?? 1) : 1
+  return { minSize: Math.max(minSize, selectionMin), maxSize, uniqueSpecies }
 }
 
 type EnhancementPolicy = z.infer<typeof enhancementSchema>
@@ -202,9 +242,21 @@ export function resolveEnvironmentMechanics(rules?: Pick<EnvironmentRules, 'mech
   }
 }
 
-export const EnvironmentRuleDeclarationSchema = EnvironmentRulesSchema.safeExtend({
+const declarationFields = {
   constraints: declaredConstraintsSchema.optional(),
   collections: ruleCollectionsSchema.optional(),
+}
+
+export const IndependentEnvironmentRulesSchema = EnvironmentRulesSchema.safeExtend(declarationFields).refine(
+  value => value.collections === undefined || value.schemaVersion === 2,
+  '具名集合需要规则版本 2',
+)
+
+export type IndependentEnvironmentRules = z.infer<typeof IndependentEnvironmentRulesSchema>
+
+/** A rule set supplied by a content package. */
+export const EnvironmentRuleDeclarationSchema = EnvironmentRulesSchema.safeExtend({
+  ...declarationFields,
   include: uniqueList(reference).max(128).optional(),
   constraintEdits: constraintEditsSchema.optional(),
 }).refine(

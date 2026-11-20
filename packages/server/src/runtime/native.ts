@@ -20,6 +20,7 @@ import {
   prepareEnvironmentRules,
   type validateEnvironmentRules,
 } from '@arcadia-eternity/content-sdk/environment-rules'
+import { resolveEnvironmentBattleOptions } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
 export interface ServerRuntime {
@@ -138,6 +139,7 @@ export async function createServerBattle(
     ...structuredClone(player),
     team: player.team.map(pet => ({ ...structuredClone(pet), id: nanoid() })),
   }))
+  const { timerConfig, teamSelection } = resolveEnvironmentBattleOptions(rules)
   const capturedOptions = {
     ...options,
     skillParameters: rules?.skillParameters,
@@ -145,12 +147,15 @@ export async function createServerBattle(
     individualValueMax: resolveEnvironmentMechanics(rules).individualValues.max,
     enhancementActive: resolveEnvironmentMechanics(rules).enhancement.mode === 'active',
     allowFaintSwitch: rules?.mechanics?.allowFaintSwitch ?? options?.allowFaintSwitch ?? true,
-    timerConfig: options?.timerConfig && { ...options.timerConfig },
+    timerConfig: timerConfig ?? (options?.timerConfig && { ...options.timerConfig }),
   }
   if (runtime.sandbox)
-    return workers.create({ environment: runtime.sandbox, players: teams, options: capturedOptions }, signal)
+    return workers.create(
+      { environment: runtime.sandbox, players: teams, options: capturedOptions, hostOptions: { teamSelection } },
+      signal,
+    )
   if (!('parsePlayers' in content)) throw new Error('Battle environment has no executable recipe')
   const native = await content.withSkillParameters(rules?.skillParameters)
   const [a, b] = native.parsePlayers(teams, capturedOptions)
-  return new LocalBattleSystem(native.createBattle(a, b, capturedOptions), native)
+  return new LocalBattleSystem(native.createBattle(a, b, capturedOptions), native, { teamSelection })
 }

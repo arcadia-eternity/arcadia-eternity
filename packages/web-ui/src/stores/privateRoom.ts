@@ -8,6 +8,7 @@ import { usePetStorageStore } from './petStorage'
 import {
   resolveEnvironmentMechanics,
   DEFAULT_TIMER_CONFIG,
+  resolveEnvironmentBattleOptions,
   BattleMessageType,
   type BattleState,
   type playerId,
@@ -1156,10 +1157,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               validatePersonalEnvironmentTeam(personalEnvironment.value, playerA.team)
               validatePersonalEnvironmentTeam(personalEnvironment.value, playerB.team)
             }
-            const timerConfig = { ...DEFAULT_TIMER_CONFIG, ...currentRoom.value!.config.timerConfig }
-            const mechanics = resolveEnvironmentMechanics(
-              currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules,
-            )
+            const rules = currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules
+            const mechanics = resolveEnvironmentMechanics(rules)
             return createP2PHostBattleSystem({
               localPlayerId,
               remotePlayerId: remotePlayer.playerId as playerId,
@@ -1174,24 +1173,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
               transport: peerTransport,
               battleConfig: {
                 environment,
-                skillParameters:
-                  JSON.parse(
-                    JSON.stringify(
-                      (currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules)
-                        ?.skillParameters ?? null,
-                    ),
-                  ) ?? undefined,
-                matchups: JSON.parse(
-                  JSON.stringify(
-                    (currentRoom.value!.personalEnvironment?.rules ?? currentRoom.value!.environment?.rules)
-                      ?.matchups ?? {},
-                  ),
-                ),
+                skillParameters: JSON.parse(JSON.stringify(rules?.skillParameters ?? null)) ?? undefined,
+                matchups: JSON.parse(JSON.stringify(rules?.matchups ?? {})),
                 individualValueMax: mechanics.individualValues.max,
                 enhancementActive: mechanics.enhancement.mode === 'active',
                 allowFaintSwitch: currentRoom.value!.config.allowFaintSwitch ?? true,
                 showHidden: currentRoom.value!.config.showHidden ?? false,
-                timerConfig,
+                timerConfig: { ...DEFAULT_TIMER_CONFIG, ...currentRoom.value!.config.timerConfig },
+                ...resolveEnvironmentBattleOptions(rules),
               },
             })
           })()
