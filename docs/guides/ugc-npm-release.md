@@ -72,6 +72,6 @@ npx arcadia-content workspace . release --execute
 
 需要正式分发时，进入「发布新版本」检查归档、创建版本标签，再同步标签。通过 App 启动发行工作流另需 Actions 写入权限。
 
-推送分支和版本标签后，从桌面启动 **Release content pack**。工作流须先存在于仓库默认分支。GitHub 会在所选标签上使用 Node 24、锁定的公开 SDK 和模板脚本构建，检查发行清单，独立安装，再用临时消费者目录中的发行内容运行机制测试。桌面发起的工作流还要求归档 SHA-512 与本机已验证文件一致。工作台显示 Actions 的状态和失败记录，发行成功后可复制对应版本的归档地址。私有仓库的下载地址需要 GitHub 授权；公开分享安装请使用公开 Release，也可从浏览器下载后导入本地文件。
+推送分支和版本标签后，从桌面启动 **Release content pack**。工作流须先存在于仓库默认分支。GitHub 会在所选标签上使用 Node 24、锁定的公开 SDK 和模板脚本构建，检查发行清单，独立安装，再用临时消费者目录中的发行内容运行机制测试。桌面发起的工作流还要求归档 SHA-512 与本机已验证文件一致。工作台显示 Actions 的状态和失败记录。公开仓库上传当前版本的发行归档后，发行页会自动显示安装链接。点击「复制安装链接」发给玩家，玩家在「安装内容包」选择「HTTPS 发行归档」并粘贴即可安装。使用私有仓库的作者可以把该版本的 .tgz 文件直接发给玩家导入。
 
 npm 发布为可选项。先选择「将仓库地址写入包声明」并提交，或把源项目的 `repository.url` 填为当前 GitHub 仓库的 HTTPS 地址，再为该包配置仓库、工作流 `release-pack.yml` 及允许直接发布的 Trusted Publisher。GitHub Release 和 npm 两个任务校验并使用同一个构建产物。npm 发布任务通过 OIDC 获取临时权限。[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)

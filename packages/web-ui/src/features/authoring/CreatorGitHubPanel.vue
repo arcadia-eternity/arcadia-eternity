@@ -32,7 +32,7 @@ interface Dashboard {
     head?: string
   }
   runs?: { id: number; name: string; status: string; conclusion?: string; url: string }[]
-  release?: { tag: string; draft: boolean; page: string; archive?: string; integrity?: string }
+  release?: { tag: string; draft: boolean; page: string; archive?: string; integrity?: string; visibility?: string }
 }
 const account = shallowRef<Account>(),
   dashboard = shallowRef<Dashboard>(),
@@ -48,6 +48,7 @@ const account = shallowRef<Account>(),
   ),
   createdRepo = ref(''),
   privateRepo = ref(true),
+  submittedTag = ref(''),
   publishNpm = ref(false)
 const error = ref(''),
   notice = ref(''),
@@ -180,8 +181,8 @@ async function dispatch() {
     jobId: props.pack?.jobId,
     publishNpm: publishNpm.value,
   })
-  if (result) {
-    notice.value = '已提交发行工作流'
+  if (result?.submitted) {
+    submittedTag.value = dashboard.value?.target?.tag ?? ''
     await refresh()
   }
 }
@@ -189,7 +190,7 @@ async function copyRelease(field: 'archive' | 'integrity') {
   const archive = dashboard.value?.release?.[field]
   if (archive) {
     await navigator.clipboard.writeText(archive)
-    notice.value = field === 'archive' ? '已复制发行归档地址' : '已复制归档校验值'
+    notice.value = field === 'archive' ? '已复制安装链接' : '已复制归档校验值'
   }
 }
 async function open(url: string) {
@@ -286,6 +287,19 @@ onBeforeUnmount(() => {
         刷新发行状态
       </button>
       <template v-if="dashboard?.target">
+        <section v-if="dashboard.release?.archive" class="published-release" aria-label="发行结果">
+          <strong role="status">{{ dashboard.release.tag }} 已发布</strong>
+          <div v-if="dashboard.release.visibility === 'public'" class="share-link">
+            <input
+              aria-label="安装链接"
+              :value="dashboard.release.archive"
+              readonly
+              @focus="($event.target as HTMLInputElement).select()"
+            />
+            <button @click="run(() => copyRelease('archive'))">复制安装链接</button>
+          </div>
+          <p v-else>仓库未公开。向玩家分享此版本时，请发送 .tgz 文件。</p>
+        </section>
         <p>{{ dashboard.target.repository }} · {{ dashboard.target.tag }}</p>
         <button
           v-if="!dashboard.target.packageRepositoryMatches"
@@ -301,11 +315,12 @@ onBeforeUnmount(() => {
             </button>
           </li>
         </ul>
-        <p v-if="!dashboard.release">GitHub 尚无此版本的 Release</p>
+        <p v-if="!dashboard.release" role="status">
+          {{ submittedTag === dashboard.target.tag ? '已提交发行工作流' : 'GitHub 尚无此版本的 Release' }}
+        </p>
         <button v-else @click="run(() => open(dashboard!.release!.page))">
           {{ dashboard.release.draft ? '查看发行草稿' : '查看 GitHub Release' }}
         </button>
-        <button v-if="dashboard.release?.archive" @click="run(() => copyRelease('archive'))">复制安装地址</button>
         <button v-if="dashboard.release?.integrity" @click="run(() => copyRelease('integrity'))">复制校验值</button>
         <label><input v-model="publishNpm" type="checkbox" />同时发布到 npm</label>
         <button
@@ -332,6 +347,22 @@ onBeforeUnmount(() => {
 .creator-github {
   display: grid;
   gap: 0.5rem;
+}
+.published-release {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border: 1px solid var(--author-accent);
+  border-radius: 6px;
+  background: var(--author-soft);
+}
+.share-link input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.share-link button {
+  background: var(--author-accent);
+  color: var(--author-on-accent);
 }
 .creator-github div,
 .new-repo {

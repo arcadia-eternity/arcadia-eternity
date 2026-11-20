@@ -8,12 +8,16 @@ test('device grant, selected repository binding, tag, release status and confirm
   const head = 'a'.repeat(40),
     repository = 'author/content',
     tag = 'v0.1.0',
-    filename = 'content-0.1.0.tgz'
+    filename = 'content-0.1.0.tgz',
+    downloadUrl = 'https://github.com/author/content/releases/download/v0.1.0/content-0.1.0.tgz'
   const target = { head, repository, tag, filename, integrity: 'sha512-test' }
   const requests = []
   let allowToken,
     authenticated = 200,
-    tagHead = head
+    tagHead = head,
+    visibility = 'public',
+    draft = false,
+    assetState = 'uploaded'
   const grantReady = new Promise(resolve => {
     allowToken = resolve
   })
@@ -69,13 +73,14 @@ test('device grant, selected repository binding, tag, release status and confirm
           },
         ],
       })
+    if (path === '/repos/' + repository) return json({ visibility })
     if (path.endsWith('/releases/tags/' + tag))
       return json({
         tag_name: tag,
-        draft: false,
+        draft,
         assets: [
           { name: 'unrelated.txt', state: 'uploaded' },
-          { name: filename, state: 'uploaded', digest: 'sha256:' + 'a'.repeat(64) },
+          { name: filename, state: assetState, browser_download_url: downloadUrl, digest: 'sha256:' + 'a'.repeat(64) },
         ],
       })
     if (path.endsWith('/git/ref/tags/' + tag)) return json({ object: { type: 'tag', sha: 'b'.repeat(40) } })
@@ -153,10 +158,15 @@ test('device grant, selected repository binding, tag, release status and confirm
   const dashboard = await action('dashboard')
   assert.equal(dashboard.runs[0].conclusion, 'failure')
   assert.equal(dashboard.release.integrity, 'sha256-' + Buffer.from('a'.repeat(64), 'hex').toString('base64'))
-  assert.equal(
-    dashboard.release.archive,
-    'https://github.com/author/content/releases/download/v0.1.0/content-0.1.0.tgz',
-  )
+  assert.equal(dashboard.release.archive, downloadUrl)
+  assert.equal(dashboard.release.visibility, 'public')
+  visibility = 'private'
+  assert.equal((await action('dashboard')).release.visibility, 'private')
+  draft = true
+  assert.equal((await action('dashboard')).release.archive, undefined)
+  draft = false
+  assetState = 'starter'
+  assert.equal((await action('dashboard')).release.archive, undefined)
   const credential = service.gitCredentials()
   assert.equal(await credential('https://github.com/Author/Content.git'), 'private-test-token')
   await assert.rejects(credential('https://github.com/other/content'), /授权/)

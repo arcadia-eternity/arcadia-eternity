@@ -64,3 +64,39 @@ it('offers a private personal repository for a fresh package and recovers a part
     wrapper.unmount()
   }
 })
+
+it('shows the install link automatically once the archive is public and copies the versioned URL', async () => {
+  vi.useFakeTimers()
+  const target = { tag: 'v1.2.0', repository: 'player/frost', packageRepositoryMatches: true, tagged: true }
+  const archive = 'https://github.com/player/frost/releases/download/v1.2.0/frost-1.2.0.tgz'
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal('navigator', { clipboard: { writeText } })
+  let release: { tag: string; archive: string; visibility: string } | undefined
+  vi.mocked(authorCall).mockImplementation(async input =>
+    input.operation === 'account' ? { login: 'player' } : { target, release },
+  )
+  const wrapper = mount(CreatorGitHubPanel, { props: { mode: 'release', project: 'pack' } })
+  try {
+    await flushPromises()
+    expect(wrapper.find('[aria-label="安装链接"]').exists()).toBe(false)
+    release = { tag: target.tag, archive, visibility: 'public' }
+    await vi.advanceTimersByTimeAsync(1500)
+    await flushPromises()
+    expect(wrapper.get('[aria-label="发行结果"]').text()).toContain('v1.2.0 已发布')
+    expect(wrapper.get('input[aria-label="安装链接"]').element).toHaveProperty('value', archive)
+    await wrapper.get('.share-link button').trigger('click')
+    await flushPromises()
+    expect(writeText).toHaveBeenCalledWith(archive)
+    expect(wrapper.text()).toContain('已复制安装链接')
+
+    release = { ...release, visibility: 'private' }
+    await vi.advanceTimersByTimeAsync(20000)
+    await flushPromises()
+    expect(wrapper.find('[aria-label="安装链接"]').exists()).toBe(false)
+    expect(wrapper.get('[aria-label="发行结果"]').text()).toContain('发送 .tgz 文件')
+  } finally {
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  }
+})

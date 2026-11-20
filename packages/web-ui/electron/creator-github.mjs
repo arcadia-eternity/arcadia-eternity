@@ -170,15 +170,8 @@ export class CreatorGitHub {
         if (error.status !== 404) throw error
       }
       const asset = release?.assets.find(asset => asset.name === target.filename && asset.state === 'uploaded')
-      const archive =
-        asset && !release.draft
-          ? 'https://github.com/' +
-            target.repository +
-            '/releases/download/' +
-            encodeURIComponent(target.tag) +
-            '/' +
-            encodeURIComponent(asset.name)
-          : undefined
+      const archive = release?.draft ? undefined : asset?.browser_download_url
+      const visibility = archive ? (await api.rest.repos.get(repo)).data.visibility : undefined
       return {
         runs: runs.data.workflow_runs
           .filter(run => run.path?.split('@')[0] === '.github/workflows/' + workflow || run.head_sha === target.head)
@@ -195,6 +188,7 @@ export class CreatorGitHub {
           draft: release.draft,
           page: 'https://github.com/' + target.repository + '/releases/tag/' + encodeURIComponent(target.tag),
           archive,
+          visibility,
           integrity:
             archive && /^sha256:[a-f0-9]{64}$/i.test(asset.digest)
               ? 'sha256-' + Buffer.from(asset.digest.slice(7), 'hex').toString('base64')
