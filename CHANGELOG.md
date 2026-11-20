@@ -1,5 +1,53 @@
 # Changelog
 
+## [4.7.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.6.0...arcadia-eternity-v4.7.0) (2026-11-20)
+
+
+### ✨ Features
+
+* **authoring:** add Git and release skills for content packs ([c05352f](https://github.com/arcadia-eternity/arcadia-eternity/commit/c05352f5db4c20f8fe90df986cef88815de6d2fd))
+* **authoring:** discover effect declarations for skill and mark references ([7c75a04](https://github.com/arcadia-eternity/arcadia-eternity/commit/7c75a042ae20047890cd7af9ffd5ccdf4ad6e20b))
+* **authoring:** make AI assistant setup the project landing page ([aa947d8](https://github.com/arcadia-eternity/arcadia-eternity/commit/aa947d8decb8fbdb9f01716a35cfc160d2f08de5))
+* **authoring:** separate Git sync and release workspaces with GitHub App support ([0e0289c](https://github.com/arcadia-eternity/arcadia-eternity/commit/0e0289cf6e78f68745defc8804d5006d4c7ae4a3))
+* **authoring:** show a shareable install link after release ([4d23c9f](https://github.com/arcadia-eternity/arcadia-eternity/commit/4d23c9fcd1082270bca304e64ed8febdd4417539))
+* **authoring:** suggest AI tasks and simplify the content pack name prompt ([1749ce4](https://github.com/arcadia-eternity/arcadia-eternity/commit/1749ce410011c7de03842fa104b763145a543aa9))
+* **content:** integrate creator Git workspaces and verified package releases ([0f8785b](https://github.com/arcadia-eternity/arcadia-eternity/commit/0f8785b1885513048f0acf49719ac5631d0bd0ac))
+* **desktop:** host all ready client environments in one click ([a5f53a9](https://github.com/arcadia-eternity/arcadia-eternity/commit/a5f53a9d16a15fad1e8232bd2ba4d6e9887cab74))
+* implement versioned battle environments and shared team members ([5613af8](https://github.com/arcadia-eternity/arcadia-eternity/commit/5613af8d4a94a93d23f5b3e0eee0a2da47e2d384))
+* **ugc:** configure package sources at startup and remove reference queries ([1fcdeee](https://github.com/arcadia-eternity/arcadia-eternity/commit/1fcdeee6a7fb43ceebba14557f0c90b671845ed1))
+* **ugc:** share environments and manage Arcadia compatibility ranges ([54fae2c](https://github.com/arcadia-eternity/arcadia-eternity/commit/54fae2c7d8a4e786793f844708d8aace39d26ddf))
+* **ugc:** support cross-pack references and require current builds ([693a821](https://github.com/arcadia-eternity/arcadia-eternity/commit/693a821787e29df71bb97a842cfb0e8a47b36699))
+* **ugc:** unify environment export and check missing dependencies on import ([a30fea1](https://github.com/arcadia-eternity/arcadia-eternity/commit/a30fea177ffe24b6aa6ab698abaa0bc9a9aa21cb))
+* **web:** improve form UX and environment editing ([b11a8ef](https://github.com/arcadia-eternity/arcadia-eternity/commit/b11a8efb6487057c8f7746ff65f0c566bdabbcea))
+
+
+### 🐛 Bug Fixes
+
+* align strict CLI battle fixture with the species learnset and drop unused type export ([33ba1c5](https://github.com/arcadia-eternity/arcadia-eternity/commit/33ba1c5af2072412e60c10c8eb2cb406fb92d4a9))
+* **authoring:** create and bind a repository on first GitHub sync ([14a8fad](https://github.com/arcadia-eternity/arcadia-eternity/commit/14a8fad9a2b9e27c541b7bbf57e62a8aa396e8b8))
+* **authoring:** migrate project registrations missing the published flag ([52563eb](https://github.com/arcadia-eternity/arcadia-eternity/commit/52563ebdfdf14b3bb3b23b30a2e2e5a170fa9b8a))
+* **authoring:** separate project switching, settings and external tools ([ec65821](https://github.com/arcadia-eternity/arcadia-eternity/commit/ec65821c89a7276ddd27b395692eb8fa5843a589))
+* **desktop:** connect after hosting and support LAN clients over HTTP ([eb74d7f](https://github.com/arcadia-eternity/arcadia-eternity/commit/eb74d7f53b8de20b35887b18c23fe968e78919c9))
+* **desktop:** share the read-only default environment with local servers ([6eef4da](https://github.com/arcadia-eternity/arcadia-eternity/commit/6eef4da10fbae5dd65c5e9dba64d0cee5ef5fb5e))
+* **environment:** align editor previews with effective battle rules ([ecc8d9f](https://github.com/arcadia-eternity/arcadia-eternity/commit/ecc8d9fca40d275701a4fd1be3d851a4c22899b2))
+* **environment:** preserve pet stages when enhancements are disabled ([887e611](https://github.com/arcadia-eternity/arcadia-eternity/commit/887e611f2142c7766d4a1d1f8b2ce044ce3fe10f))
+* **environment:** unify rule composition and team admission across hosts ([7bd44c2](https://github.com/arcadia-eternity/arcadia-eternity/commit/7bd44c294751500b21df4f63cf22a0344f73867f))
+* **matchmaking:** open hosted queues by default and show availability ([c3202e7](https://github.com/arcadia-eternity/arcadia-eternity/commit/c3202e7fa0c130d2d2c3ee7a6cc27aba6581dcc4))
+* **ugc:** complete environment handoff and allow added assets ([73f80ae](https://github.com/arcadia-eternity/arcadia-eternity/commit/73f80ae5f6465a76776b38611a9526da5992fb2f))
+* **web:** preserve shared team drafts and clarify environment feedback ([fd5e7df](https://github.com/arcadia-eternity/arcadia-eternity/commit/fd5e7df500cf4e7f24af26218bbca361abc7c83a))
+* **web:** preserve skill parameter group input handlers after formatting ([6f9f7a1](https://github.com/arcadia-eternity/arcadia-eternity/commit/6f9f7a1ff3758731ed0686c1ea8584dfa0cf5e7d))
+* **web:** streamline inherited moves and environment editing ([fe68f61](https://github.com/arcadia-eternity/arcadia-eternity/commit/fe68f6142b4ad95f3c4ce0ce99dddb4b40afecd8))
+* **web:** unify local and hosted environments on one page ([f4bbe39](https://github.com/arcadia-eternity/arcadia-eternity/commit/f4bbe3962fcf5db920788604f782d4b85e4c530a))
+
+
+### ♻️ Code Refactoring
+
+* **base:** separate environment rules from localized display data ([d8d9031](https://github.com/arcadia-eternity/arcadia-eternity/commit/d8d90310a939b9139e6f8b973f110febb54ffa7d))
+* **web:** give local packages and authoring a dedicated page ([3904184](https://github.com/arcadia-eternity/arcadia-eternity/commit/39041840194084d79def2970d3646519226d3a33))
+* **web:** group local packages and authoring on the environment page ([65665a6](https://github.com/arcadia-eternity/arcadia-eternity/commit/65665a62ef19d173ca584786b50028b234f40a37))
+* **web:** separate creation and environment navigation ([bcccbf7](https://github.com/arcadia-eternity/arcadia-eternity/commit/bcccbf750447a639c087f3a2e6e23a7a0b7feb97))
+* **web:** streamline team editing and environment switching ([93ef942](https://github.com/arcadia-eternity/arcadia-eternity/commit/93ef94279b5c3fe763338f7a7dcf3e461a13925e))
+
 ## [4.6.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.5.3...arcadia-eternity-v4.6.0) (2026-11-17)
 
 
