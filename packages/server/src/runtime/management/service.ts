@@ -50,6 +50,7 @@ export type ManagementWorkspace = Pick<
   ContentWorkspace,
   | 'workspaceId'
   | 'builtinEnvironmentIds'
+  | 'builtinEnvironmentAliases'
   | 'listDrafts'
   | 'saveDraft'
   | 'deleteDraft'
@@ -300,6 +301,7 @@ export class ManagementService {
   }
   private async builtinEnvironmentIds() {
     const ids = new Set(Object.values(this.options.workspace.builtinEnvironmentIds ?? {}))
+    for (const oldId of Object.keys(this.options.workspace.builtinEnvironmentAliases ?? {})) ids.add(oldId)
     if (this.options.builtinEnvironmentId) return ids.add(this.options.builtinEnvironmentId)
     const server = await this.options.storage.get<ManagedServer>('servers', this.options.serverId)
     const initialization = server?.value.initialization
@@ -345,6 +347,7 @@ export class ManagementService {
       })
     else if (existing.value.workspaceId !== this.options.workspace.workspaceId) fail('SERVER_WORKSPACE_MISMATCH', 409)
     await this.auth.ready()
+    await this.migrateBuiltinReferences()
     await this.publishNewBuiltinEnvironments()
     await this.loadClientEnvironments()
     await this.reconcile()
@@ -604,6 +607,44 @@ export class ManagementService {
       throw error
     }
   }
+  private async migrateBuiltinReferences() {
+    const aliases = this.options.workspace.builtinEnvironmentAliases
+    if (!aliases || !Object.keys(aliases).length) return
+    const canonical = (id: string) => (Object.hasOwn(aliases, id) ? aliases[id] : id)
+    const workspaceId = this.options.workspace.workspaceId
+    await this.options.storage.transaction(async tx => {
+      for (const row of await tx.list<Binding>('bindings')) {
+        if (row.value.workspaceId !== workspaceId) continue
+        const environmentId = canonical(row.value.environmentId)
+        if (environmentId !== row.value.environmentId)
+          await tx.replace('bindings', row.id, row.revision, { ...row.value, environmentId })
+      }
+      for (const row of await tx.list<ManagedServer>('servers')) {
+        if (row.value.workspaceId !== workspaceId) continue
+        const { initialization, initializedBuiltinEnvironmentIds } = row.value
+        const updateInitialization =
+          initialization?.kind === 'builtin' && canonical(initialization.environmentId) !== initialization.environmentId
+        if (!updateInitialization && !initializedBuiltinEnvironmentIds?.some(id => canonical(id) !== id)) continue
+        await tx.replace('servers', row.id, row.revision, {
+          ...row.value,
+          ...(updateInitialization && {
+            initialization: { ...initialization, environmentId: canonical(initialization.environmentId) },
+          }),
+          ...(initializedBuiltinEnvironmentIds && {
+            initializedBuiltinEnvironmentIds: [...new Set(initializedBuiltinEnvironmentIds.map(canonical))],
+          }),
+        })
+      }
+      for (const row of await tx.list<{ installationId: string; retentionId: string }>(
+        'retentions',
+        managementScopeKey(this.workspaceScope),
+      )) {
+        const installationId = canonical(row.value.installationId)
+        if (installationId !== row.value.installationId)
+          await tx.replace('retentions', row.id, row.revision, { ...row.value, installationId })
+      }
+    })
+  }
   /** Record first publication with the binding so removing or disabling it survives restart. */
   private async publishNewBuiltinEnvironments() {
     const ids = this.options.workspace.builtinEnvironmentIds
@@ -693,6 +734,9 @@ export class ManagementService {
         runtimeId: runtime.runtimeId,
         environmentId: binding.environmentId,
         environmentName: runtime.environmentName,
+        previousEnvironmentIds: Object.entries(this.options.workspace.builtinEnvironmentAliases ?? {})
+          .filter(([, id]) => id === binding.environmentId)
+          .map(([oldId]) => oldId),
         bindingId: row.id,
         executionPolicy: binding.executionPolicy,
         enabled: binding.enabled,

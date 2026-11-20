@@ -28,11 +28,19 @@ type Choice = {
   name: string
   revision: string
   preference: EnvironmentPreference
+  previousEnvironmentIds?: string[]
   server?: ServerEnvironmentDescriptor
 }
 const local = shallowRef<Choice[]>([])
 const published = shallowRef<Choice[]>([])
 const choices = computed(() => [...local.value, ...published.value])
+watch([choices, preference], ([available, saved]) => {
+  if (!saved || available.some(choice => key(choice.preference) === key(saved))) return
+  const migrated = available.find(
+    choice => choice.preference.source === saved.source && choice.previousEnvironmentIds?.includes(saved.environmentId),
+  )
+  if (migrated) storage.setEnvironmentPreference(storage.currentTeamIndex, migrated.preference)
+})
 const choiceKey = (choice: Choice) =>
   JSON.stringify([key(choice.preference), choice.revision, choice.server && client.serverUrl])
 const candidates = computed(() => {
@@ -87,6 +95,7 @@ watch(
           if (response.error) throw new Error(response.error.message)
           const snapshot = response.result as {
             workspaceId: string
+            builtinEnvironmentAliases?: Record<string, string>
             selectedEnvironmentId?: string
             installations: ManagedEnvironmentInstallation[]
           }
@@ -96,6 +105,9 @@ watch(
               ? [
                   {
                     name: item.document.name,
+                    previousEnvironmentIds: Object.entries(snapshot.builtinEnvironmentAliases ?? {})
+                      .filter(([, id]) => id === item.environmentId)
+                      .map(([oldId]) => oldId),
                     revision: JSON.stringify([item.draftRevision, item.contentRevision]),
                     preference: { source: 'desktop:' + snapshot.workspaceId, environmentId: item.environmentId },
                   },
@@ -126,6 +138,7 @@ watch(
           published.value = items.map(server => ({
             name: server.environmentName ?? (server.packages.map(pkg => pkg.name).join('、') || server.id.slice(0, 12)),
             revision: server.id,
+            previousEnvironmentIds: server.previousEnvironmentIds,
             preference: { source, environmentId: server.environmentId ?? server.id },
             server,
           }))

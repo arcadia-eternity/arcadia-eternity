@@ -30,6 +30,7 @@ export type EnvironmentAdmissionRules = ReturnType<typeof validateEnvironmentRul
 export interface EnvironmentPublication {
   runtimeId: string
   environmentId?: string
+  previousEnvironmentIds?: string[]
   environmentName?: string
   bindingId?: string
   installationId?: string
@@ -284,6 +285,9 @@ export class ServerEnvironmentRegistry {
       ...(publication?.environmentId && {
         environmentId: publication.environmentId,
         environmentName: publication.environmentName,
+        ...(publication.previousEnvironmentIds?.length && {
+          previousEnvironmentIds: publication.previousEnvironmentIds,
+        }),
       }),
       rules,
       ...(policy ? { executionPolicy: policy } : {}),

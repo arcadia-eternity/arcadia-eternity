@@ -356,7 +356,6 @@ export async function runServerCli(args: string[]): Promise<number> {
       const previous = (await storage.get<ManagedServer>('servers', serverId))?.value.initialization
       const adopted: Record<string, string> = {}
       if (previous?.kind === 'builtin') adopted[key] = previous.environmentId
-      else if (!(await ownedWorkspace.listDrafts()).some(draft => draft.document.id === key)) adopted[key] = key
       defaultBuiltinId = await synchronizeShippedEnvironments(
         ownedWorkspace,
         catalog,

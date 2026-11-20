@@ -231,17 +231,16 @@ test('browser content is read-only and desktop authoring and host routes stay cl
       json: {
         protocolVersion: 1,
         environments: [
-          {
-            protocolVersion: 1,
-            environmentId: 'builtin-server',
-            environmentName: '联机默认规则',
-            id: 'a'.repeat(64),
-            resourceRevision: 'b'.repeat(64),
-            runtime: { kind: 'native-v4', coreBuildId: 'core', registryBuildId: 'registry', contentRevision: 'remote' },
-            resources: [],
-            packages: [],
-          },
-        ],
+          { environmentId: 'builtin-server', environmentName: '联机默认规则', id: 'a'.repeat(64) },
+          { environmentId: 'training-120', environmentName: '联机 120', id: 'c'.repeat(64) },
+        ].map(environment => ({
+          ...environment,
+          protocolVersion: 1,
+          resourceRevision: 'b'.repeat(64),
+          runtime: { kind: 'native-v4', coreBuildId: 'core', registryBuildId: 'registry', contentRevision: 'remote' },
+          resources: [],
+          packages: [],
+        })),
       },
     }),
   )
@@ -258,6 +257,10 @@ test('browser content is read-only and desktop authoring and host routes stay cl
   await expect(directory.getByRole('button', { name: /默认环境/ })).toHaveCount(1)
   await expect(page.getByRole('group', { name: '环境来源' })).toHaveCount(0)
   await expect(page.getByRole('article', { name: '网页内置环境详情' })).toContainText('默认环境')
+  const training = directory.getByRole('button', { name: /120/ })
+  await expect(training).toHaveCount(1)
+  await training.click()
+  await expect(page.getByRole('article', { name: '网页内置环境详情' })).toContainText('120')
   await expect(page.getByRole('button', { name: '编辑', exact: true })).toHaveCount(0)
   for (const route of ['/creation', '/creation/edit', '/creation/development', '/settings/local-service']) {
     await page.goto(route)

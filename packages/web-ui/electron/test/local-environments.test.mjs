@@ -340,7 +340,7 @@ test('migrates the generated default to the shared installation, preserves edits
       { environmentId: doc.id, document: doc, projectDirectory: f.project, expectedRevision: null },
       f.validate,
     )
-  const { extended: extendedId } = await host.registerBuiltinEnvironments(['classic', 'extended'], { classic: id })
+  const { extended: extendedId } = await host.registerBuiltinEnvironments([id, 'extended'], {})
   await prepare(host, { ...builtin, id: extendedId, name: '120 资质 · 神魔化与二代' })
   await prepare(host, builtin)
   await prepare(personal, { ...builtin, id: old })
@@ -400,4 +400,38 @@ test('migrates the generated default to the shared installation, preserves edits
   const selectedLease = await api.acquireProject()
   assert.equal(selectedLease.environmentId, extendedId)
   await selectedLease.release()
+})
+
+test('restores the previous 120 selection and keeps a colliding personal draft editable', async t => {
+  const f = await fixture(t)
+  const oldId = 'builtin-' + randomUUID()
+  const id = 'training-120'
+  const host = await ContentWorkspace.open(join(f.root, 'managed'))
+  f.instances.push(host)
+  await host.registerBuiltinEnvironments([id], { [id]: oldId })
+  await host.prepareEnvironment(
+    { environmentId: id, document: { ...document, id }, projectDirectory: f.project, expectedRevision: null },
+    f.validate,
+  )
+  const initial = f.open()
+  const personal = await initial.ready()
+  await personal.saveDraft({ document: { ...document, id, name: '我的规则' }, expectedRevision: null })
+  await writeFile(
+    join(personal.root, 'local-selection.json'),
+    JSON.stringify({ environmentId: oldId, builtinAliases: [] }),
+  )
+  await initial.close()
+  const open = () => f.open({ openBuiltin: async () => ({ workspace: host, id }) })
+  const upgraded = open()
+  const snapshot = await upgraded.snapshot()
+  assert.equal(snapshot.selectedEnvironmentId, id)
+  const preserved = snapshot.environments.find(draft => draft.document.name === '我的规则')
+  assert.ok(preserved && !preserved.builtin)
+  const lease = await upgraded.acquireProject(oldId)
+  assert.equal(lease.environmentId, id)
+  await lease.release()
+  await upgraded.close()
+  const reopened = await open().snapshot()
+  assert.deepEqual(reopened.environments, snapshot.environments)
+  assert.equal(reopened.selectedEnvironmentId, id)
 })

@@ -6,7 +6,7 @@ import { isDeepStrictEqual } from 'node:util'
 const base = '@arcadia-eternity/data-pack-base'
 
 // The managed workspace owns the installation even when the server is stopped.
-// Earlier official hosts already have a durable binding; keep its environment ID.
+// Older hosts identify their previous installation through the local marker.
 export async function openBuiltinEnvironment({
   workspace,
   library,
@@ -23,26 +23,18 @@ export async function openBuiltinEnvironment({
   const marker = saved && JSON.parse(saved)
   const legacy = !saved && drafts.some(item => item.document.id === 'desktop-host') && (await legacyBuiltinId())
   const mapped = workspace.builtinEnvironmentIds?.[catalog.defaultEnvironment]
-  const id =
-    mapped ??
-    (saved
-      ? marker.id
-      : legacy ||
-        (drafts.some(item => item.document.id === catalog.defaultEnvironment)
-          ? 'builtin-' + randomUUID()
-          : catalog.defaultEnvironment))
-  if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(id)) throw new Error('INVALID_BUILTIN_ENVIRONMENT')
-  async function saveMarker(initialized) {
+  const previousId = mapped ?? marker?.id ?? legacy
+  const id = catalog.defaultEnvironment
+  async function saveMarker() {
     const temporary = file + '.' + randomUUID()
-    await writeFile(temporary, JSON.stringify({ id, initialized }), { flag: 'wx' })
+    await writeFile(temporary, JSON.stringify({ id, initialized: true }), { flag: 'wx' })
     await rename(temporary, file)
   }
-  if (!saved) await saveMarker(false)
-  const current = drafts.find(item => item.document.id === id)
+  const current = drafts.find(item => item.document.id === previousId)
   const lease = await library.acquireDefaultProject()
   try {
-    const document = { ...catalog.environments.find(doc => doc.id === catalog.defaultEnvironment), id }
-    const existing = current && (await workspace.listInstallations(id))[0]
+    const document = { ...catalog.environments.find(doc => doc.id === catalog.defaultEnvironment), id: previousId }
+    const existing = current && (await workspace.listInstallations(previousId))[0]
     if (!marker?.initialized && current && !isDeepStrictEqual(current.document, document)) {
       // Preserve edits made while earlier releases still allowed editing the official host.
       const previous =
@@ -68,7 +60,7 @@ export async function openBuiltinEnvironment({
     await synchronizeShippedEnvironments(
       workspace,
       catalog,
-      { [catalog.defaultEnvironment]: id },
+      previousId ? { [id]: previousId } : {},
       async (document, expectedRevision) => {
         const input = { environmentId: document.id, document, expectedRevision }
         if (
@@ -85,7 +77,7 @@ export async function openBuiltinEnvironment({
         }
       },
     )
-    if (!marker?.initialized) await saveMarker(true)
+    if (!marker?.initialized || marker.id !== id) await saveMarker()
     return { workspace, id }
   } finally {
     await lease.release()

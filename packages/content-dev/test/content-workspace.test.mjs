@@ -325,11 +325,12 @@ test('backup and clone preserve npm projects, not historical versions', async t 
   }
 })
 
-test('shipped definitions adopt 4.8 workspace and snapshot identities and accept new environment documents', async t => {
+test('shipped definitions migrate 4.8 workspace and snapshot identities and accept new environment documents', async t => {
   const { open, location, root, project } = await fixture(t)
   const initial = await open()
-  const snapshot = await initial.exportSnapshot()
   const legacyId = 'builtin-120-4a1f2470-8b31-4059-87f5-46fdf5d3c29e'
+  await initial.saveDraft({ document: { ...document, id: legacyId }, expectedRevision: null })
+  const snapshot = await initial.exportSnapshot()
   await initial.close()
   const metadataFile = join(location, 'workspace.json')
   const metadata = JSON.parse(await readFile(metadataFile, 'utf8'))
@@ -363,13 +364,27 @@ test('shipped definitions adopt 4.8 workspace and snapshot identities and accept
         await owner.prepareEnvironment({ environmentId: doc.id, expectedRevision: draft.revision }, prepare)
       })
     assert.equal(await synchronize(), 'classic')
-    assert.equal(owner.builtinEnvironmentIds['training-120'], legacyId)
-    assert.deepEqual(prepared, ['classic', legacyId, owner.builtinEnvironmentIds.another])
+    assert.equal(owner.builtinEnvironmentIds['training-120'], 'training-120')
+    assert.deepEqual(owner.builtinEnvironmentAliases, { [legacyId]: 'training-120' })
+    assert.deepEqual(prepared, ['classic', 'training-120', 'another'])
     await synchronize()
     assert.equal(prepared.length, 3)
+    assert.equal((await owner.listDrafts()).length, 3)
+    const archived = JSON.parse(await readFile(join(owner.root, 'migration-backups', legacyId, 'package.json'), 'utf8'))
+    assert.equal(archived.arcadiaEnvironment.id, legacyId)
+    assert.deepEqual((await owner.exportSnapshot()).builtinEnvironmentAliases, { [legacyId]: 'training-120' })
     assert.deepEqual((await owner.exportSnapshot()).builtinEnvironmentIds, owner.builtinEnvironmentIds)
   }
   await restored.close()
+})
+
+test('registering shipped IDs preserves a conflicting custom draft', async t => {
+  const { open } = await fixture(t)
+  const workspace = await open()
+  const custom = await workspace.saveDraft({ document, expectedRevision: null })
+  await assert.rejects(workspace.registerBuiltinEnvironments(['main'], {}), { code: 'BUILTIN_ENVIRONMENT_ID_CONFLICT' })
+  assert.deepEqual(await workspace.getDraft('main'), custom)
+  assert.deepEqual(workspace.builtinEnvironmentIds, {})
 })
 
 test('online backup stamp detects edits to installed files and is single use', async t => {

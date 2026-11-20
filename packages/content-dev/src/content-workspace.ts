@@ -159,6 +159,7 @@ export interface EnvironmentExport {
 }
 export interface WorkspaceSnapshot {
   format: 'arcadia.workspace-snapshot/2'
+  builtinEnvironmentAliases?: Readonly<Record<string, string>>
   builtinEnvironmentIds?: Readonly<Record<string, string>>
   workspaceId: string
   drafts: (EnvironmentDraft & { files?: { path: string; data: string }[] })[]
@@ -183,6 +184,7 @@ export interface ContentWorkspace {
   readonly root: string
   readonly workspaceId: string
   readonly bootId: string
+  readonly builtinEnvironmentAliases?: Readonly<Record<string, string>>
   readonly builtinEnvironmentIds?: Readonly<Record<string, string>>
   listDrafts(): Promise<EnvironmentDraft[]>
   getDraft(environmentId: string): Promise<EnvironmentDraft>
@@ -258,6 +260,13 @@ function readBuiltinEnvironmentIds(value: object): Record<string, string> {
   return 'builtin120EnvironmentId' in value && value.builtin120EnvironmentId !== undefined
     ? { 'training-120': checkId(value.builtin120EnvironmentId, new RegExp('^builtin-120-' + uuid.source.slice(1))) }
     : {}
+}
+function readBuiltinEnvironmentAliases(value: object): Record<string, string> {
+  if (!('builtinEnvironmentAliases' in value)) return {}
+  if (!isRecord(value.builtinEnvironmentAliases)) throw contentError('WORKSPACE_FORMAT_INVALID')
+  return Object.fromEntries(
+    Object.entries(value.builtinEnvironmentAliases).map(([oldId, id]) => [checkId(oldId, envId), checkId(id, envId)]),
+  )
 }
 async function regularDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true, mode: 0o700 })
@@ -349,6 +358,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
   readonly root: string
   readonly bootId = randomUUID()
   workspaceId!: string
+  builtinEnvironmentAliases: Readonly<Record<string, string>> = {}
   builtinEnvironmentIds: Readonly<Record<string, string>> = {}
   #queue: Promise<unknown> = Promise.resolve()
   #closed = false
@@ -387,6 +397,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       } else {
         workspace.workspaceId = randomUUID()
       }
+      workspace.builtinEnvironmentAliases = readBuiltinEnvironmentAliases(metadata ?? {})
       workspace.builtinEnvironmentIds = readBuiltinEnvironmentIds(metadata ?? {})
       if (!metadata || 'builtin120EnvironmentId' in metadata) await workspace.#saveMetadata()
       // Recover an interrupted directory replacement before exposing projects.
@@ -409,28 +420,55 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
   }
   registerBuiltinEnvironments(keys: string[], adopted: Record<string, string>) {
     return this.#exclusive(async () => {
-      const entries = keys.map(key => {
-        checkId(key, envId)
-        const previous = Object.hasOwn(this.builtinEnvironmentIds, key) ? this.builtinEnvironmentIds[key] : undefined
-        const legacy = Object.hasOwn(adopted, key) ? checkId(adopted[key], envId) : undefined
-        const id = previous ?? legacy ?? 'builtin-' + randomUUID()
-        return [key, id] as const
-      })
-      const ids = readBuiltinEnvironmentIds({ builtinEnvironmentIds: Object.fromEntries(entries) })
-      if (!isDeepStrictEqual(ids, this.builtinEnvironmentIds)) {
-        await this.#saveMetadata(ids)
+      const ids = readBuiltinEnvironmentIds({ builtinEnvironmentIds: Object.fromEntries(keys.map(key => [key, key])) })
+      const aliases = { ...this.builtinEnvironmentAliases }
+      const retiring = new Map<string, string>()
+      for (const key of keys) {
+        const previous = Object.hasOwn(this.builtinEnvironmentIds, key)
+          ? this.builtinEnvironmentIds[key]
+          : Object.hasOwn(adopted, key)
+            ? adopted[key]
+            : undefined
+        if (previous === key) continue
+        // An unregistered custom draft may already own the requested ID.
+        if (
+          await lstat(this.#directory(key)).catch(error => {
+            if (errorCode(error) !== 'ENOENT') throw error
+            return undefined
+          })
+        )
+          throw contentError('BUILTIN_ENVIRONMENT_ID_CONFLICT', key)
+        if (previous !== undefined) {
+          checkId(previous, envId)
+          if (Object.hasOwn(ids, previous)) throw contentError('BUILTIN_ENVIRONMENT_ID_CONFLICT', previous)
+          retiring.set(previous, key)
+        }
+      }
+      for (const [oldId, id] of retiring) {
+        // Preserve the previous installation intact. A restart can repeat this step before the metadata commits.
+        const archive = join(this.root, 'migration-backups')
+        await regularDirectory(archive)
+        await rename(this.#directory(oldId), join(archive, oldId)).catch(error => {
+          if (errorCode(error) !== 'ENOENT') throw error
+        })
+        aliases[oldId] = id
+      }
+      if (!isDeepStrictEqual(ids, this.builtinEnvironmentIds) || retiring.size) {
+        await this.#saveMetadata(ids, aliases)
         this.builtinEnvironmentIds = ids
+        this.builtinEnvironmentAliases = aliases
       }
       return ids
     }, true)
   }
-  async #saveMetadata(ids = this.builtinEnvironmentIds) {
+  async #saveMetadata(ids = this.builtinEnvironmentIds, aliases = this.builtinEnvironmentAliases) {
     await writeFileAtomic(
       join(this.root, 'workspace.json'),
       json({
         format: 'arcadia.content-workspace/2',
         workspaceId: this.workspaceId,
         builtinEnvironmentIds: ids,
+        ...(Object.keys(aliases).length && { builtinEnvironmentAliases: aliases }),
       }),
     )
   }
@@ -883,6 +921,9 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       format: 'arcadia.workspace-snapshot/2',
       workspaceId: this.workspaceId,
       builtinEnvironmentIds: this.builtinEnvironmentIds,
+      ...(Object.keys(this.builtinEnvironmentAliases).length && {
+        builtinEnvironmentAliases: this.builtinEnvironmentAliases,
+      }),
       drafts,
       installations,
     }
@@ -922,6 +963,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       )
         throw contentError('WORKSPACE_SNAPSHOT_INVALID')
       const builtinEnvironmentIds = readBuiltinEnvironmentIds(snapshot)
+      const builtinEnvironmentAliases = readBuiltinEnvironmentAliases(snapshot)
       if ((await this.#listDrafts()).length) throw contentError('WORKSPACE_NOT_EMPTY')
       const drafts = new Map(
         snapshot.drafts.map(draft => {
@@ -982,6 +1024,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
         if (json((await this.#draft(id)).document) !== json(document)) throw contentError('WORKSPACE_SNAPSHOT_INVALID')
       }
       this.workspaceId = mode === 'restore' ? checkId(snapshot.workspaceId, uuid) : this.workspaceId
+      this.builtinEnvironmentAliases = builtinEnvironmentAliases
       this.builtinEnvironmentIds = builtinEnvironmentIds
       await this.#saveMetadata()
       return { workspaceId: this.workspaceId, installationIds: Object.fromEntries([...ids].map(id => [id, id])) }
@@ -1271,14 +1314,13 @@ export async function synchronizeShippedEnvironments(
   adopted: Record<string, string>,
   prepare: (document: EnvironmentDocument, expectedRevision: string | null) => Promise<unknown>,
 ) {
-  const ids = await workspace.registerBuiltinEnvironments(
+  await workspace.registerBuiltinEnvironments(
     catalog.environments.map(doc => doc.id),
     adopted,
   )
   const drafts = await workspace.listDrafts()
-  for (const definition of catalog.environments) {
-    const id = ids[definition.id]
-    const document = { ...definition, id }
+  for (const document of catalog.environments) {
+    const id = document.id
     const current = drafts.find(item => item.document.id === id)
     if (current && isDeepStrictEqual(current.document, document)) {
       const [installed] = await workspace.listInstallations(id)
@@ -1286,5 +1328,5 @@ export async function synchronizeShippedEnvironments(
     }
     await prepare(document, current?.revision ?? null)
   }
-  return ids[catalog.defaultEnvironment]
+  return catalog.defaultEnvironment
 }

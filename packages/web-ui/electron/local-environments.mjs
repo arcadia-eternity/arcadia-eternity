@@ -51,11 +51,17 @@ export class LocalEnvironments {
           )
             throw fail('INVALID_LOCAL_SELECTION')
           this.#aliases = new Set(aliases)
-          if (this.#builtin && selection?.builtinAliases === undefined) {
+          // Older selections only recorded that the previous default had been checked for name conflicts.
+          const sharedAliases = this.#builtin?.workspace.builtinEnvironmentAliases ?? {}
+          const previousDefault =
+            Object.entries(sharedAliases).find(([, id]) => id === this.#builtin?.id)?.[0] ?? this.#builtin?.id
+          const checkedIds = selection?.checkedBuiltinIds ?? (selection?.builtinAliases ? [previousDefault] : [])
+          const newIds = this.#builtinIds.filter(id => !checkedIds.includes(id))
+          if (this.#builtin && (newIds.length || selection?.builtinAliases === undefined)) {
             const builtin = await this.#builtin.workspace.getInstallation(this.#builtin.id)
             const drafts = await workspace.listDrafts()
             for (const draft of drafts) {
-              if (draft.document.id === this.#builtin.id) {
+              if (newIds.includes(draft.document.id)) {
                 // The old personal and server workspaces allowed independently chosen IDs.
                 const copy = { ...draft.document, id: 'previous-local-' + draft.revision.slice(0, 20) }
                 const preserved = drafts.find(item => item.document.id === copy.id)
@@ -80,6 +86,7 @@ export class LocalEnvironments {
               }
               // Only fold the automatically generated, unmodified base environment.
               if (
+                selection?.builtinAliases !== undefined ||
                 !/^local-[a-f0-9-]{36}$/.test(draft.document.id) ||
                 !isDeepStrictEqual({ ...draft.document, id: builtin.environmentId }, builtin.document)
               )
@@ -95,12 +102,12 @@ export class LocalEnvironments {
           }
           if (selection) {
             if (typeof selection.environmentId !== 'string') throw fail('INVALID_LOCAL_SELECTION')
-            this.#selectedId = selection.environmentId
-            if (this.#builtin && (selection.builtinAliases === undefined || this.#aliases.has(this.#selectedId)))
-              await this.#saveSelection(
-                workspace,
-                this.#aliases.has(this.#selectedId) ? this.#builtin.id : this.#selectedId,
-              )
+            this.#selectedId = this.#source(workspace, selection.environmentId).id
+            if (
+              this.#builtin &&
+              (newIds.length || selection.builtinAliases === undefined || this.#selectedId !== selection.environmentId)
+            )
+              await this.#saveSelection(workspace, this.#selectedId)
           } else if (this.library?.acquireInitialEnvironment) {
             // Copy the last working legacy selection once. Never replace existing user environments.
             const lease = await this.library.acquireInitialEnvironment()
@@ -149,7 +156,10 @@ export class LocalEnvironments {
     try {
       await writeFile(
         temporary,
-        JSON.stringify({ environmentId, ...(this.#builtin && { builtinAliases: [...this.#aliases] }) }),
+        JSON.stringify({
+          environmentId,
+          ...(this.#builtin && { builtinAliases: [...this.#aliases], checkedBuiltinIds: this.#builtinIds }),
+        }),
         { flag: 'wx' },
       )
       await rename(temporary, file)
@@ -160,6 +170,8 @@ export class LocalEnvironments {
   }
   #source(workspace, id) {
     if (this.#aliases.has(id) && this.#builtin) return this.#builtin
+    const aliases = this.#builtin?.workspace.builtinEnvironmentAliases
+    if (aliases && Object.hasOwn(aliases, id)) return { workspace: this.#builtin.workspace, id: aliases[id] }
     return this.#builtinIds.includes(id) ? { workspace: this.#builtin.workspace, id } : { workspace, id }
   }
   async hostingWorkspace() {
@@ -184,6 +196,7 @@ export class LocalEnvironments {
     return {
       workspaceId: workspace.workspaceId,
       selectedEnvironmentId: this.#selectedId,
+      builtinEnvironmentAliases: this.#builtin?.workspace.builtinEnvironmentAliases,
       environments: [
         ...(await Promise.all(
           this.#builtinIds.map(async id => ({ ...(await this.#builtin.workspace.getDraft(id)), builtin: true })),

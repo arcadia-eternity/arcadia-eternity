@@ -61,6 +61,11 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   if (descriptor?.protocolVersion !== 1 || descriptor?.runtime?.kind !== 'native-v4')
     throw new Error('服务器环境协议不兼容')
   if (descriptor.environmentId !== undefined && !identifier(descriptor.environmentId)) invalid()
+  if (
+    descriptor.previousEnvironmentIds !== undefined &&
+    (!Array.isArray(descriptor.previousEnvironmentIds) || !descriptor.previousEnvironmentIds.every(identifier))
+  )
+    invalid()
   if (descriptor.environmentName !== undefined && !identifier(descriptor.environmentName)) invalid()
   if (descriptor.gameplayRevision !== undefined && !HASH.test(descriptor.gameplayRevision)) invalid()
   if (descriptor.rules !== undefined) validateEnvironmentRules(toRaw(descriptor.rules))
