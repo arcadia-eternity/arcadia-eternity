@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.8.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.7.1...arcadia-eternity-v4.8.0) (2026-11-20)
+
+
+### ✨ Features
+
+* **content:** add packages to local environments from package details ([cc3b5ba](https://github.com/arcadia-eternity/arcadia-eternity/commit/cc3b5ba084f342f04ae21337c81f4ced5e8721b6))
+* **content:** ship the 120 training environment ([bda6799](https://github.com/arcadia-eternity/arcadia-eternity/commit/bda6799c4d1b66da00c75e5b9b15e1f53466482e))
+
 ## [4.7.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.7.0...arcadia-eternity-v4.7.1) (2026-11-20)
 
 

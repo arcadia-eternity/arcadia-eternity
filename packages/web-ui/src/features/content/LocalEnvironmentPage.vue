@@ -20,6 +20,8 @@ import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
+import { installProjectBuild, localEnvironmentRequest as call } from './localEnvironmentPackages'
+import { authorCall, type SourceProject } from '@/features/authoring/types'
 import type { InstalledContentPackage } from '@/types/contentPackages'
 import { useGameDataStore } from '@/stores/gameData'
 import { isRemoteContentActive } from '@/i18n/serverContent'
@@ -36,6 +38,7 @@ const router = useRouter()
 const library = createLocalContentLibraryClient(window.arcadiaDesktop)
 const materials = ref<InstalledContentPackage[]>([])
 const candidate = ref<InstalledContentPackage>()
+const sourceProject = ref<SourceProject>()
 const pendingPackage = ref<InstalledContentPackage>()
 const packageEnvironmentId = ref('')
 async function refreshMaterials() {
@@ -61,6 +64,7 @@ async function importPackage() {
 function acceptPackage() {
   pendingPackage.value = undefined
   candidate.value = undefined
+  sourceProject.value = undefined
   packageEnvironmentId.value = ''
 }
 function useCandidate() {
@@ -122,15 +126,20 @@ const navigation = computed<EnvironmentNavigation>(() => {
     environment,
     current: environment.document.id === snapshot.value.selectedEnvironmentId,
   }))
-  const builtinId = personal.find(entry => entry.environment.builtin)?.environment.document.id
+  const builtinIds = new Set(
+    personal.filter(entry => entry.environment.builtin).map(entry => entry.environment.document.id),
+  )
   const managed = (host?.environments.value ?? [])
-    .filter(environment => !(environment.builtin && environment.document.id === builtinId))
+    .filter(environment => !(environment.builtin && builtinIds.has(environment.document.id)))
     .map(environment => ({ key: 'host/' + environment.document.id, environment, label: '本机服务器' }))
   const entries = [...personal, ...managed]
   return { entries, selected: entries.find(item => item.key === selectedKey.value)?.key ?? entries[0]?.key ?? '' }
 })
 const viewingHosted = computed(() => navigation.value.selected.startsWith('host/'))
 const editableEnvironments = computed(() => snapshot.value.environments.filter(item => !item.builtin))
+const targetEnvironment = computed(() =>
+  editableEnvironments.value.find(item => item.document.id === packageEnvironmentId.value),
+)
 const tasksOpen = ref(false)
 if (host)
   watch(host.tab, tab => {
@@ -192,13 +201,6 @@ const preparing = computed(() => snapshot.value.operations.some(job => ['queued'
 let disposed = false,
   timer: ReturnType<typeof setTimeout> | undefined
 let refreshSequence = 0
-async function call<T>(input: Record<string, unknown>): Promise<T> {
-  const api = window.arcadiaDesktop?.localEnvironment
-  if (!api) throw new Error('离线环境库需要桌面客户端')
-  const response = await api(input)
-  if (response.error) throw new Error(response.error.message)
-  return response.result as T
-}
 async function refresh() {
   const sequence = ++refreshSequence
   try {
@@ -230,13 +232,14 @@ async function refresh() {
     if (!disposed && sequence === refreshSequence) initialized.value = true
   }
 }
-async function run(input: Record<string, unknown>, message: string) {
+async function run(input: Record<string, unknown> | (() => Promise<unknown>), message: string) {
   if (busy.value) return false
   busy.value = true
   error.value = ''
   notice.value = ''
   try {
-    await call(input)
+    if (typeof input === 'function') await input()
+    else await call(input)
     if (!disposed) {
       notice.value = message
       await refresh()
@@ -247,6 +250,31 @@ async function run(input: Record<string, unknown>, message: string) {
     return false
   } finally {
     if (!disposed) busy.value = false
+  }
+}
+async function addCandidate() {
+  const target = targetEnvironment.value
+  if (!target || busy.value || preparing.value) return
+  const project = sourceProject.value
+  if (
+    (await run(async () => {
+      const pkg = project ? await installProjectBuild(project.id) : candidate.value
+      if (!pkg || disposed) return
+      await call({
+        action: 'add-package',
+        environmentId: target.document.id,
+        expectedRevision: target.revision,
+        name: pkg.name,
+        version: pkg.version,
+        allowDownload: allowDownload.value,
+      })
+    }, '')) &&
+    !disposed
+  ) {
+    if (project) await refreshMaterials()
+    acceptPackage()
+    selectedKey.value = 'local/' + target.document.id
+    tasksOpen.value = true
   }
 }
 async function save(document: ManagedEnvironmentDocument, expectedRevision: string | null, copyFrom?: string) {
@@ -313,16 +341,23 @@ onMounted(async () => {
   await poll()
   try {
     await refreshMaterials()
-    if (typeof route.query.packageId === 'string') {
-      candidate.value = materials.value.find(pkg => pkg.id === route.query.packageId)
-      if (!candidate.value) error.value = '构建产物不可用，请重新构建。'
+    const { packageId, projectId, ...query } = route.query
+    if (typeof packageId === 'string' || typeof projectId === 'string') {
+      if (typeof packageId === 'string') {
+        candidate.value = materials.value.find(pkg => pkg.id === packageId)
+        if (!candidate.value) error.value = '本地内容包不可用，请重新安装。'
+      } else {
+        sourceProject.value = (await authorCall<SourceProject[]>({ action: 'list' })).find(
+          row => row.id === projectId && !row.readOnly,
+        )
+        if (!sourceProject.value) error.value = '找不到可编辑的创作包。'
+      }
       packageEnvironmentId.value =
         editableEnvironments.value.find(item => item.document.id === snapshot.value.selectedEnvironmentId)?.document
           .id ??
         editableEnvironments.value[0]?.document.id ??
         ''
-      const { packageId: _packageId, ...query } = route.query
-      await router.replace({ query })
+      if (!disposed) await router.replace({ query })
     }
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '无法读取内容材料'
@@ -341,14 +376,15 @@ onBeforeUnmount(() => {
     <p v-if="host?.notice.value" role="status">{{ host.notice.value }}</p>
     <ElForm
       label-position="top"
-      v-if="candidate && !viewingHosted"
+      v-if="(candidate || sourceProject) && !viewingHosted"
       class="panel"
       aria-label="选择目标环境"
-      @submit.prevent="useCandidate"
+      @submit.prevent="addCandidate"
     >
-      <strong>{{ candidate.name }} {{ candidate.version }}</strong>
-      <ElFormItem label="目标环境"
-        ><ElSelect filterable v-model="packageEnvironmentId" aria-label="目标环境">
+      <strong>{{ candidate ? candidate.name + ' ' + candidate.version : sourceProject?.name }}</strong>
+      <p v-if="!editableEnvironments.length">请先新建环境，或复制默认环境。</p>
+      <ElFormItem v-else label="目标环境"
+        ><ElSelect filterable v-model="packageEnvironmentId" :disabled="busy" aria-label="目标环境">
           <ElOption
             v-for="environment in editableEnvironments"
             :key="environment.document.id"
@@ -356,8 +392,11 @@ onBeforeUnmount(() => {
             :label="environment.document.name"
           /> </ElSelect
       ></ElFormItem>
-      <ElButton native-type="submit" type="primary" :disabled="!packageEnvironmentId">编辑环境依赖</ElButton>
-      <ElButton @click="candidate = undefined">取消</ElButton>
+      <ElButton native-type="submit" type="primary" :loading="busy" :disabled="!targetEnvironment || busy || preparing">
+        {{ sourceProject ? '构建并加入环境' : '加入环境' }}
+      </ElButton>
+      <ElButton v-if="candidate" :disabled="!targetEnvironment || busy" @click="useCandidate">编辑环境依赖</ElButton>
+      <ElButton :disabled="busy" @click="acceptPackage">取消</ElButton>
     </ElForm>
     <ElSkeleton v-if="!initialized" :rows="8" animated aria-label="正在加载环境" />
     <ManagementEnvironments
@@ -567,7 +606,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   margin: 14px 0;
 }
-.panel button,
+.panel button:not(.el-button),
 .panel input,
 .panel select {
   font: inherit;
@@ -581,7 +620,6 @@ onBeforeUnmount(() => {
 }
 .panel button {
   margin: 6px;
-  background: var(--el-bg-color);
 }
 .error {
   color: #b42318;

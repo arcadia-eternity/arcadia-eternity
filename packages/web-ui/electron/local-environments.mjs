@@ -14,6 +14,7 @@ const safeInstallation = version => {
 export class LocalEnvironments {
   #opening
   #builtin
+  #builtinIds = []
   #aliases = new Set()
   #selectedId
   #jobs = new Map()
@@ -35,6 +36,9 @@ export class LocalEnvironments {
         try {
           await this.library?.synchronizeEnvironments?.(workspace, this.validate)
           this.#builtin = await this.openBuiltin?.()
+          this.#builtinIds = this.#builtin
+            ? [this.#builtin.id, this.#builtin.workspace.builtin120EnvironmentId].filter(Boolean)
+            : []
           const file = join(workspace.root, 'local-selection.json')
           const saved = await readFile(file, 'utf8').catch(error => {
             if (error.code !== 'ENOENT') throw error
@@ -155,7 +159,8 @@ export class LocalEnvironments {
     }
   }
   #source(workspace, id) {
-    return this.#builtin && (id === this.#builtin.id || this.#aliases.has(id)) ? this.#builtin : { workspace, id }
+    if (this.#aliases.has(id) && this.#builtin) return this.#builtin
+    return this.#builtinIds.includes(id) ? { workspace: this.#builtin.workspace, id } : { workspace, id }
   }
   async hostingWorkspace() {
     const workspace = await this.ready()
@@ -180,11 +185,13 @@ export class LocalEnvironments {
       workspaceId: workspace.workspaceId,
       selectedEnvironmentId: this.#selectedId,
       environments: [
-        ...(this.#builtin ? [{ ...(await this.#builtin.workspace.getDraft(this.#builtin.id)), builtin: true }] : []),
+        ...(await Promise.all(
+          this.#builtinIds.map(async id => ({ ...(await this.#builtin.workspace.getDraft(id)), builtin: true })),
+        )),
         ...(await workspace.listDrafts()).filter(d => this.#source(workspace, d.document.id).workspace === workspace),
       ],
       installations: [
-        ...(this.#builtin ? await this.#builtin.workspace.listInstallations(this.#builtin.id) : []),
+        ...(await Promise.all(this.#builtinIds.map(id => this.#builtin.workspace.listInstallations(id)))).flat(),
         ...(await workspace.listInstallations()).filter(
           item => this.#source(workspace, item.installationId).workspace === workspace,
         ),
@@ -247,8 +254,8 @@ export class LocalEnvironments {
       'use-member': input.targetId,
       import: input.environmentId || input.bundle?.document?.id,
     }[input.action]
-    if (target && this.#source(workspace, target) === this.#builtin)
-      throw fail('BUILTIN_ENVIRONMENT_READ_ONLY', '默认环境为只读')
+    if (target && this.#source(workspace, target).workspace !== workspace)
+      throw fail('BUILTIN_ENVIRONMENT_READ_ONLY', '内置环境为只读')
     switch (input.action) {
       case 'select': {
         return this.start('environment.select', async signal => {

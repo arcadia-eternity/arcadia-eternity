@@ -14,7 +14,8 @@ import { LocalBattleHost } from '../local-battle-host.mjs'
 import { LocalServerController } from '../local-server-controller.mjs'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
-import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
+import { openBuiltinEnvironment } from '../builtin-environment.mjs'
+import { ContentWorkspace, prepareBuiltin120Environment } from '../../../content-dev/src/content-workspace.ts'
 import { buildEffects } from '@arcadia-eternity/content-sdk/build'
 import { parseNpmPackOutput, withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
 import { locateDesktopSqliteBinary } from '../../../../scripts/desktop-sqlite-native.mjs'
@@ -246,7 +247,7 @@ test(
   },
   async () => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'arcadia-official-host-')))
-    let owner, browser
+    let owner, browser, builtin
     const host = new LocalBattleHost({
       executable: process.env.ARCADIA_DESKTOP_EXECUTABLE ?? process.execPath,
       cli: process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js'),
@@ -256,6 +257,7 @@ test(
       rendererOrigin: 'http://localhost:5173',
       stateDirectory: join(root, 'server'),
       workspaceRoot: join(root, 'library'),
+      builtinId: () => builtin?.id,
       attachWorkspace: (child, publish) => owner.attach(child, publish ? () => personal : undefined),
       startupTimeoutMs: 60000,
       shutdownTimeoutMs: 5000,
@@ -272,7 +274,25 @@ test(
     owner = new DesktopWorkspaceOwner({
       root: join(root, 'library'),
       library,
-      openWorkspace: ContentWorkspace.open,
+      openWorkspace: (root, options) => ContentWorkspace.open(root, { ...options, includeBuiltin120: true }),
+      builtinId: () => builtin?.id,
+      synchronize: async workspace => {
+        const runtimeRequire = createRequire(join(dirname(cli), 'package.json'))
+        builtin = await openBuiltinEnvironment({
+          workspace,
+          library,
+          validate: validateWorkspaceProject,
+          rules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
+          prepareExtended: directory =>
+            prepareBuiltin120Environment(
+              workspace,
+              directory,
+              runtimeRequire('@arcadia-eternity/data-pack-base/environment/test-120-rules.json'),
+              validateWorkspaceProject,
+            ),
+          legacyBuiltinId: async () => undefined,
+        })
+      },
     })
     const controller = new LocalServerController({ host, library: () => library })
     try {
@@ -318,6 +338,12 @@ test(
         assert.equal(published?.environmentName, name)
         assert.equal(published.rules.team.maxSize, maxSize)
       }
+      const extended = environments.find(item => item.environmentId === builtin.workspace.builtin120EnvironmentId)
+      assert.equal(extended.rules.mechanics.individualValues.max, 120)
+      assert.equal(extended.rules.mechanics.secondGenerationNatures, 'species')
+      assert.equal(extended.rules.mechanics.enhancement.stages.length, 16)
+      assert.ok(extended.matchmakingEnabled)
+      assert.ok(!extended.isDefault)
       const homepage = await fetch(launched.host.url)
       assert.equal(homepage.status, 200)
       assert.match(await homepage.text(), /<html/)
@@ -347,7 +373,7 @@ test(
       await page.getByTestId('create-private-room-button').click()
       await page.getByTestId('room-environment-select').click()
       await page.getByRole('option', { name: '双宠房', exact: true }).waitFor()
-      await page.getByRole('option', { name: '单宠房', exact: true }).click()
+      await page.getByRole('option', { name: extended.environmentName, exact: true }).click()
       await page.getByTestId('confirm-create-private-room-button').click()
       await page.waitForURL(/\/room\/[^/?#]+/)
       await page.goto(launched.host.url + '/servers')
@@ -363,17 +389,26 @@ test(
       const path = `/workspaces/${listed.body.servers[0].workspaceId}/environments`
       const drafts = await host.managementRequest({ method: 'GET', path })
       assert.equal(drafts.status, 200)
-      const draft = drafts.body.environments.find(item => item.document.id === 'desktop-host')
+      const draft = drafts.body.environments.find(item => item.document.id === builtin.id)
       assert.deepEqual(draft.requiredPackages, ['@arcadia-eternity/data-pack-base'])
       const disabled = await host.managementRequest({
         method: 'POST',
-        path: `${path}/desktop-host/packages/remove`,
+        path: `${path}/${builtin.id}/packages/remove`,
         body: { name: draft.requiredPackages[0], expectedRevision: draft.revision },
       })
       assert.equal(disabled.status, 409)
       const snapshot = await library.list()
       assert.equal(snapshot.activeIds, undefined)
       assert.ok(snapshot.packages.find(item => item.bundled))
+      const bindingsPath = `/servers/${launched.host.serverId}/bindings`
+      const { body } = await host.managementRequest({ method: 'GET', path: bindingsPath })
+      const binding = body.bindings.find(item => item.environmentId === extended.environmentId)
+      const removed = await host.managementRequest({
+        method: 'DELETE',
+        path: bindingsPath + '/' + binding.id,
+        headers: { 'if-match': String(binding.revision) },
+      })
+      assert.equal(removed.status, 200)
       await controller.request({ action: 'stop', force: true })
       await personal.deleteDraft({
         environmentId: 'duel',
@@ -383,6 +418,7 @@ test(
       assert.equal(resumed.host.status, 'running', JSON.stringify(resumed.error))
       assert.equal(resumed.host.serverId, launched.host.serverId)
       const refreshed = await (await fetch(resumed.host.url + '/api/v1/environments')).json()
+      assert.ok(!refreshed.environments.some(item => item.environmentId === extended.environmentId))
       assert.ok(refreshed.environments.some(item => item.environmentId === 'doubles'))
       assert.ok(!refreshed.environments.some(item => item.environmentId === 'duel'))
     } finally {

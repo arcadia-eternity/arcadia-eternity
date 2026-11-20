@@ -3,6 +3,7 @@ import { ElButton, ElSelectV2, ElDialog, ElInput, ElCheckbox, ElProgress, ElTabs
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { useRouter } from 'vue-router'
+import PackageEnvironmentTargets from './PackageEnvironmentTargets.vue'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import { authorCall, type AuthorJob, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
@@ -593,6 +594,14 @@ onBeforeUnmount(() => {
               >
                 浏览内容（只读）
               </button>
+            </template>
+            <PackageEnvironmentTargets
+              v-if="api?.localEnvironment && !readonly && !selected.error && (selected.local || selected.project)"
+              :key="selected.id"
+              :project="selected.project"
+              :installed="selected.local"
+            />
+            <template v-if="!selected.project">
               <ElTabs v-model="detailTab" aria-label="包详情">
                 <ElTabPane label="简介" name="overview"
                   ><p v-if="selected.description">{{ selected.description }}</p>

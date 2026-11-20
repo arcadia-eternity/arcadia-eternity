@@ -21,7 +21,7 @@
   "devDependencies": {
     "@types/node": "26.6.6",
     "typescript": "6.0.3",
-    "@arcadia-eternity/content-sdk": "4.7.1",
+    "@arcadia-eternity/content-sdk": "4.8.0",
     "fflate": "0.8.3"
   },
   "arcadia": {

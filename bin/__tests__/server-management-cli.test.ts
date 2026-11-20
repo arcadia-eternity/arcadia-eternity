@@ -130,7 +130,13 @@ async function administrator(origin: string, directory: string) {
   expect(response.status).toBe(200)
   const cookie = response.headers.get('set-cookie')!.split(';')[0]
   const { csrfToken } = (await response.json()) as { csrfToken: string }
-  return async <T>(path: string, method = 'GET', body?: unknown, revision?: number, status = 200): Promise<T> => {
+  return async <T>(
+    path: string,
+    method = 'GET',
+    body?: unknown,
+    revision?: number | string,
+    status = 200,
+  ): Promise<T> => {
     const result = await fetch(origin + '/api/management/v1' + path, {
       method,
       headers: {
@@ -209,10 +215,20 @@ it('bootstraps playable builtin content once and preserves administrator removal
       document: { id: string; packages: Record<string, string> }
       revision: string
       requiredPackages: string[]
+      builtin?: boolean
     }[]
   }>(draftsPath)
   const draft = drafts.find(item => item.document.id === binding.environmentId)!
   expect(draft.requiredPackages).toEqual([base])
+  const extended = drafts.find(item => item.builtin && item.document.id !== draft.document.id)!
+  expect(extended.document).toMatchObject({
+    name: '120 资质 · 神魔化与二代',
+    rules: {
+      include: ['base:classic'],
+      mechanics: { individualValues: { max: 120 }, enhancement: { mode: 'active' } },
+    },
+  })
+  await request(draftsPath + '/' + extended.document.id, 'DELETE', undefined, extended.revision, 409)
   const draftPath = `${draftsPath}/${draft.document.id}`
   await request(
     draftPath + '/packages/remove',
@@ -414,6 +430,17 @@ it('runs guest management with SQLite, one-use owner login, restart identity, an
   const originalRequest = await administrator(second.origin, directory)
   const originalServer = (await originalRequest<{ servers: Server[] }>('/servers')).servers[0]
   const originalBinding = (await originalRequest<{ bindings: Binding[] }>(`/servers/${identity}/bindings`)).bindings[0]
+  const getBuiltins = async (request: typeof originalRequest, workspaceId: string) => {
+    const { environments } = await request<{ environments: { builtin?: boolean; document: { id: string } }[] }>(
+      `/workspaces/${workspaceId}/environments`,
+    )
+    return environments
+      .filter(item => item.builtin)
+      .map(item => item.document.id)
+      .sort()
+  }
+  const originalBuiltinIds = await getBuiltins(originalRequest, originalServer.workspaceId)
+  expect(originalBuiltinIds).toHaveLength(2)
   await stop(second.child)
   const backup = join(root, 'backup.json')
   await command(['backup', 'create', '--data-dir', directory, '--file', backup])
@@ -430,6 +457,7 @@ it('runs guest management with SQLite, one-use owner login, restart identity, an
     const request = await administrator(running.origin, target)
     const server = (await request<{ servers: Server[] }>('/servers')).servers[0]
     const bindings = (await request<{ bindings: Binding[] }>(`/servers/${server.id}/bindings`)).bindings
+    expect(await getBuiltins(request, server.workspaceId)).toEqual(originalBuiltinIds)
     expect(server.id).toBe(result.serverId)
     expect(bindings).toHaveLength(1)
     expect(server.defaultBindingId).toBe(bindings[0].id)
@@ -537,7 +565,9 @@ it('synchronizes old base installations in existing custom environments on resta
   const after = await request<{
     environments: { document: { id: string; name: string; packages: Record<string, string> } }[]
   }>(path)
-  expect(after.environments).toHaveLength(2)
+  expect(after.environments.map(item => item.document.id).sort()).toEqual(
+    [...before.environments.map(item => item.document.id), 'custom'].sort(),
+  )
   expect(after.environments.find(item => item.document.id === 'custom')?.document.name).toBe('Keep this environment')
   for (const { document: env } of after.environments) expect(env.packages[base]).toBe(currentVersion)
   expect(await catalog(running.origin)).toHaveLength(1)

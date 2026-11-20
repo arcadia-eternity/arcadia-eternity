@@ -126,14 +126,15 @@ afterEach(() => {
 })
 
 describe('shared management console', () => {
-  it('lists the shared default once and keeps same-ID personal and server environments distinct', async () => {
+  it('lists each shared builtin once and keeps same-ID personal and server environments distinct', async () => {
     const builtin = { ...draft(), builtin: true, document: { ...draft().document, id: 'builtin', name: '默认环境' } }
+    const extended = { ...builtin, document: { ...builtin.document, id: 'extended', name: '120 资质 · 神魔化与二代' } }
     const personal = draft('个人')
     const managed = draft('开服')
     const request = vi.fn(async (input: ManagementIpcRequest) => ({
       status: 200,
       body: input.path.endsWith('/environments')
-        ? { environments: [builtin, managed], installations: [version()] }
+        ? { environments: [builtin, extended, managed], installations: [version()] }
         : response(input.path),
     }))
     vi.stubGlobal('arcadiaDesktop', {
@@ -141,7 +142,7 @@ describe('shared management console', () => {
         result: {
           workspaceId: 'personal',
           selectedEnvironmentId: 'builtin',
-          environments: [builtin, personal],
+          environments: [builtin, extended, personal],
           installations: [],
           operations: [],
         },
@@ -166,16 +167,71 @@ describe('shared management console', () => {
     const list = page.get('nav[aria-label="选择环境"]')
     expect(list.findAll('button').map(row => row.get('strong').text())).toEqual([
       '默认环境',
+      '120 资质 · 神魔化与二代',
       '好友环境 个人',
       '好友环境 开服',
     ])
     expect(page.find('[aria-label="服务器使用"]').exists()).toBe(true)
-    await list.findAll('button')[1]!.trigger('click')
-    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(false)
     await list.findAll('button')[2]!.trigger('click')
+    expect(page.find('[aria-label="服务器使用"]').exists()).toBe(false)
+    await list.findAll('button')[3]!.trigger('click')
     await flushPromises()
     expect(page.get('[aria-label="服务器使用"]').text()).toContain('好友环境 开服')
     expect(page.findAll('nav[aria-label="选择环境"]')).toHaveLength(1)
+  })
+  it.each(['packageId', 'projectId'])('adds the selected %s to an editable personal environment', async key => {
+    const builtin = { ...draft(), builtin: true, document: { ...draft().document, id: 'default' } }
+    const localEnvironment = vi.fn(async (input: { action: string }) => ({
+      result:
+        input.action === 'snapshot'
+          ? {
+              selectedEnvironmentId: 'default',
+              workspaceId: 'local',
+              environments: [builtin, draft()],
+              installations: [],
+              operations: [],
+            }
+          : { operationId: 'apply-1' },
+    }))
+    const author = vi.fn(async ({ action }: { action: string }) => {
+      if (action === 'list') return { result: [{ id: 'source', name: '寒霜' }] }
+      if (action === 'jobs') return { result: [] }
+      if (action === 'start') return { result: { kind: 'pack', jobId: 'pack', state: 'succeeded' } }
+      if (action === 'install-built-author-pack') return { result: { packageId: 'installed' } }
+      throw Error(action)
+    })
+    vi.stubGlobal('arcadiaDesktop', {
+      author,
+      localEnvironment,
+      contentPackageAction: vi.fn(),
+      listContentPackages: async () => ({ packages: [{ id: 'installed', name: '@test/ice', version: '2.0.0' }] }),
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/environments', component: LocalEnvironmentPage }],
+    })
+    await router.push({
+      path: '/environments',
+      query: { target: 'local', [key]: key === 'projectId' ? 'source' : 'installed' },
+    })
+    const page = mount(LocalEnvironmentPage, {
+      global: { plugins: [router, createPinia()], stubs: { EnvironmentWorkspace: true } },
+    })
+    pages.push(page)
+    await flushPromises()
+    await page.get('form[aria-label="选择目标环境"]').trigger('submit')
+    await flushPromises()
+    expect(localEnvironment).toHaveBeenCalledWith({
+      action: 'add-package',
+      environmentId: 'friends',
+      expectedRevision: 'draft-4',
+      name: '@test/ice',
+      version: '2.0.0',
+      allowDownload: false,
+    })
+    expect(author.mock.calls.map(([input]) => input.action)).toEqual(
+      key === 'projectId' ? ['list', 'jobs', 'start', 'install-built-author-pack'] : [],
+    )
   })
   it('updates usage for the selected environment without adding it twice', async () => {
     let used = false

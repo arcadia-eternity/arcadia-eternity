@@ -476,7 +476,7 @@ function save() {
                 <span>{{ member.version }} · {{ member.direct ? '直接添加' : '自动依赖' }}</span>
                 <small v-if="member.requiredBy.length">被依赖：{{ member.requiredBy.join('、') }}</small>
                 <small v-if="member.dependencies.length">需要：{{ member.dependencies.join('、') }}</small>
-                <small v-if="selectedEnvironment.requiredPackages?.includes(member.name)">默认环境必需</small>
+                <small v-if="selectedEnvironment.requiredPackages?.includes(member.name)">内置环境必需</small>
                 <ElButton
                   v-else-if="!selectedEnvironment.builtin"
                   :disabled="busy || !canEdit || !canPrepare"
