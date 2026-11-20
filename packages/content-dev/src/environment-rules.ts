@@ -110,7 +110,12 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
   if (petRecord.enhancement !== undefined) {
     if (
       !identifier(petRecord.enhancement) ||
-      !allowsEnhancementRecord(rules.mechanics?.enhancement, petRecord.species, petRecord.enhancement)
+      !allowsEnhancementRecord(
+        rules.mechanics?.enhancement,
+        petRecord.species,
+        petRecord.enhancement,
+        typeof petRecord.level === 'number' ? petRecord.level : undefined,
+      )
     )
       fail('ENVIRONMENT_TEAM_REJECTED')
   }

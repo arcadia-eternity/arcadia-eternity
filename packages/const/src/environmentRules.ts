@@ -21,6 +21,8 @@ export const eligibilitySchema = z.union([z.enum(['species', 'all', 'off']), ids
 export const enhancementSchema = z
   .object({
     mode: z.enum(['forbidden', 'suppressed', 'active']),
+    minLevel: z.number().int().min(1).max(100).optional(),
+    defaultBranches: ids.optional(),
     stages: ids.optional(),
     species: ids.optional(),
   })
@@ -152,10 +154,38 @@ export function resolveEnhancement(policy?: EnhancementPolicy) {
   return { ...policy, mode } as const
 }
 
-export function allowsEnhancementRecord(policy: EnhancementPolicy | undefined, species: string, stage: string) {
+export function allowsEnhancementRecord(
+  policy: EnhancementPolicy | undefined,
+  species: string,
+  stage: string,
+  level?: number,
+) {
   return (
     policy?.mode !== 'active' ||
-    ((!policy.species || policy.species.includes(species)) && (!policy.stages || policy.stages.includes(stage)))
+    ((policy.minLevel === undefined || (level !== undefined && level >= policy.minLevel)) &&
+      (!policy.species || policy.species.includes(species)) &&
+      (!policy.stages || policy.stages.includes(stage)))
+  )
+}
+
+export function supportsEnhancementBranch(
+  policy: EnhancementPolicy | undefined,
+  species: { enhancementBranches?: readonly string[] },
+  branch: string,
+) {
+  return (species.enhancementBranches ?? policy?.defaultBranches)?.includes(branch) ?? false
+}
+
+export function canUseEnhancementStage(
+  policy: EnhancementPolicy | undefined,
+  species: { id: string; enhancementBranches?: readonly string[] },
+  level: number,
+  stage: { id: string; branch: string },
+) {
+  return (
+    policy?.mode === 'active' &&
+    supportsEnhancementBranch(policy, species, stage.branch) &&
+    allowsEnhancementRecord(policy, species.id, stage.id, level)
   )
 }
 
