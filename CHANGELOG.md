@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.9.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.9.0...arcadia-eternity-v4.9.1) (2026-11-20)
+
+
+### 🐛 Bug Fixes
+
+* use shipped environment IDs across workspaces ([26ad5bd](https://github.com/arcadia-eternity/arcadia-eternity/commit/26ad5bd0d81ad89cae7582d2c9e56ff1360a95cb))
+
 ## [4.9.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.8.3...arcadia-eternity-v4.9.0) (2026-11-20)
 
 
