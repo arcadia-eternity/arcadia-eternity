@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
+import { ManagedProjects } from '@arcadia-eternity/content-sdk/managed-projects'
 import { readShippedEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
 import { readInstalledEnvironmentDocument } from '@arcadia-eternity/content-sdk/prepared-document'
 import { assertEnvironmentRequirements, prepareRulesForContent } from '@arcadia-eternity/content-sdk/environment-rules'
@@ -13,38 +15,124 @@ import {
   mapPresentationResources,
   PackMetadataLoader,
 } from '@arcadia-eternity/pack-loader/native'
-import { emptyNpmContentHost, prepareShippedEnvironment, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 
-/** Stage the selected package's prepared default environment for static delivery. */
+/** Export the distribution's environments and share identical installed materials between them. */
 export async function buildWebContent(
   root = fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
   projectDirectory,
 ) {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
   const manifestPath = join(root, pkg.arcadiaEternityPack ?? 'pack.json')
-  const { locales, pack, lockfile } = await new PackMetadataLoader().loadMetadata(manifestPath, {
+  const metadata = await new PackMetadataLoader().loadMetadata(manifestPath, {
     enforceLockfile: true,
     includeData: false,
   })
   const files = new Map()
   const media = new Map()
-  const prepared = projectDirectory
-    ? await prepareNpmProject(
-        projectDirectory,
-        emptyNpmContentHost,
-        { policy: { profile: 'self-hosted' } },
-        { effectPreparation: 'prebuilt-only' },
-      )
-    : await prepareShippedEnvironment(root)
+  const cleanup = []
+  async function dispose() {
+    while (cleanup.length) await cleanup.pop()()
+  }
   try {
+    let builtins = []
+    let defaultId
+    if (projectDirectory) {
+      builtins = await exportMaterial(projectDirectory, [], 'environment')
+      defaultId = builtins[0].id
+    } else {
+      const { environments, defaultEnvironment } = await readShippedEnvironments(
+        new URL('../../../bin/shipped-environments.json', import.meta.url),
+        { [pkg.name]: pkg.version },
+      )
+      const directory = await mkdtemp(join(tmpdir(), 'arcadia-web-environments-'))
+      cleanup.push(() => rm(directory, { recursive: true, force: true }))
+      const manager = new ManagedProjects(directory, { bundledPackageRoot: root })
+      cleanup.push(() => manager.close())
+      const groups = new Map()
+      for (const doc of environments) {
+        const key = JSON.stringify([doc.packages, doc.sources])
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(doc)
+      }
+      defaultId = defaultEnvironment
+      for (const docs of groups.values()) {
+        const primary = docs.find(doc => doc.id === defaultEnvironment) ?? docs[0]
+        const material = primary.id === defaultEnvironment ? 'environment' : 'environment/' + primary.id
+        const group = [primary, ...docs.filter(doc => doc !== primary)]
+        const entries = await manager.prepareProject(primary, {}, installed =>
+          exportMaterial(installed, group, material),
+        )
+        builtins.push(...entries)
+      }
+    }
+    const file = 'environment/catalog.json'
+    const catalog = JSON.parse(files.get(file))
+    files.set(file, JSON.stringify({ ...catalog, defaultEnvironment: defaultId, builtins }))
+    return { files, mediaTargets: Array.from(media, ([path, src]) => ({ src, dest: dirname(path) })), dispose }
+  } catch (error) {
+    await dispose()
+    throw error
+  }
+
+  async function exportMaterial(directory, definitions, material) {
+    const prepared = await prepareNpmProject(
+      directory,
+      emptyNpmContentHost,
+      { policy: { profile: 'self-hosted' } },
+      { effectPreparation: 'prebuilt-only' },
+    )
+    cleanup.push(prepared.dispose)
     const { data, sandbox } = prepared
+    const writeJson = (path, value) => files.set(path, JSON.stringify(value))
+    const content = buildDisplayCatalog(data, [], prepared.presentation, { includeRuleDetails: true })
+    const resources = stageEnvironmentMedia(content, prepared.presentation, media)
+    content.locales = buildDisplayLocales(prepared.presentation, {}, content)
+    if (!definitions.length) definitions = [await readInstalledEnvironmentDocument(directory, prepared.revision)]
+    const runtimeIdentity = {
+      kind: 'native-v4',
+      contentRevision: prepared.revision,
+      coreBuildId: prepared.build.coreBuildId,
+      registryBuildId: prepared.build.registryBuildId,
+    }
+    const packages = prepared.installation.packages.map(({ name, version }) => ({ name, version }))
+    const entries = []
+    for (const doc of definitions) {
+      assertEnvironmentRequirements(doc?.requires)
+      const { rules } = prepareRulesForContent(doc?.rules, sandbox.data)
+      const revision = await gameplayRevision(runtimeIdentity, sandbox.revision, rules)
+      entries.push({
+        id: doc?.id ?? 'default',
+        name: doc?.name ?? '网页默认环境',
+        material,
+        packages,
+        rules,
+        gameplayRevision: revision,
+      })
+    }
+    writeJson(material + '/catalog.json', {
+      rules: entries[0].rules,
+      content,
+      resources: resources.filter(resource => resource.tags?.length),
+      runtimeRevision: sandbox.revision,
+      runtimeIdentity,
+      gameplayRevision: entries[0].gameplayRevision,
+      effectMarkRelations: prepared.authoring?.effectMarkRelations ?? {},
+    })
+    writeJson(material + '/runtime.json', sandbox)
+    if (material === 'environment') writeDefaultPack(prepared, content, resources)
+    return entries
+  }
+  function writeDefaultPack(prepared, content, resources) {
+    const { locales, pack, lockfile } = metadata
+    const { data, sandbox } = prepared
+    const writeJson = (path, value) => files.set(path, JSON.stringify(value))
     const authoring = {
       build: prepared.build,
       templates: sandbox.data.behaviors ?? [],
       effectIds: prepared.authoring?.effectIds ?? [],
       effectMarkRelations: prepared.authoring?.effectMarkRelations ?? {},
     }
-    const writeJson = (path, value) => files.set(path, JSON.stringify(value))
     const manifest = {
       ...pack,
       content: 'dist/content.json',
@@ -71,9 +159,6 @@ export async function buildWebContent(
         writeJson(`${localesDir}/${locale}/${namespace}.json`, bundle)
       }
 
-    const content = buildDisplayCatalog(data, [], prepared.presentation, { includeRuleDetails: true })
-    const resources = stageEnvironmentMedia(content, prepared.presentation, media)
-    content.locales = buildDisplayLocales(prepared.presentation, {}, content)
     const webPresentation = {
       version: 2,
       bindings: prepared.presentation.find(pkg => !pkg.namespace)?.manifest.bindings ?? [],
@@ -82,50 +167,12 @@ export async function buildWebContent(
       defaultLocale: content.locales.defaultLocale,
     }
     writeJson(manifest.presentation, webPresentation)
-    let document
-    if (projectDirectory) {
-      document = await readInstalledEnvironmentDocument(projectDirectory, prepared.revision)
-    } else {
-      const catalog = await readShippedEnvironments(
-        new URL('../../../bin/shipped-environments.json', import.meta.url),
-        {
-          [pkg.name]: pkg.version,
-        },
-      )
-      document = catalog.environments.find(item => item.id === catalog.defaultEnvironment)
-    }
-    assertEnvironmentRequirements(document?.requires)
-    const { rules } = prepareRulesForContent(document?.rules, sandbox.data)
-    const runtimeIdentity = {
-      kind: 'native-v4',
-      contentRevision: prepared.revision,
-      coreBuildId: prepared.build.coreBuildId,
-      registryBuildId: prepared.build.registryBuildId,
-    }
-    writeJson('environment/catalog.json', {
-      rules,
-      content,
-      resources: resources.filter(resource => resource.tags?.length),
-      runtimeRevision: sandbox.revision,
-      runtimeIdentity,
-      gameplayRevision: await gameplayRevision(runtimeIdentity, sandbox.revision, rules),
-      effectMarkRelations: authoring.effectMarkRelations,
-    })
-    writeJson('environment/runtime.json', sandbox)
     writeJson('pack.json', manifest)
     const { packageKey } = lockfile.importers['.'].dependencies[pack.id]
     lockfile.packages[packageKey].resolution = {
       integrity: `sha512-${createHash('sha512').update(files.get('pack.json')).digest('base64')}`,
     }
     files.set('pack-lock.yaml', YAML.stringify(lockfile))
-    return {
-      files,
-      mediaTargets: Array.from(media, ([path, src]) => ({ src, dest: dirname(path) })),
-      dispose: prepared.dispose,
-    }
-  } catch (error) {
-    await prepared.dispose()
-    throw error
   }
 }
 

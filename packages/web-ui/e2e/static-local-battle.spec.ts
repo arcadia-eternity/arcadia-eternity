@@ -260,3 +260,37 @@ test('a smaller published slot limit keeps overflow equipped until the player re
   await expect(page.getByTestId('normal-skill-0')).toContainText('气力')
   await expect(page.getByText('必杀技能 2', { exact: true })).toBeVisible()
 })
+
+test('the web team editor selects shipped environments without a server and restores the team selection', async ({
+  context,
+  page,
+  baseURL,
+}) => {
+  const { errors, forbiddenRequests } = await observeStaticOnly(context, page, baseURL!)
+  await page.goto('./#/team-builder')
+  const picker = page
+    .locator('.el-select')
+    .filter({ has: page.getByRole('combobox', { name: '对战环境', exact: true }) })
+  const iv = page.getByRole('spinbutton', { name: '体力个体值' })
+  await page.locator('.team-member').first().click()
+  await expect(iv).toHaveAttribute('max', '31')
+  await picker.click()
+  await expect(page.getByRole('option', { name: '默认环境', exact: true })).toBeVisible()
+  await page.getByRole('option', { name: '120 资质 · 神魔化与二代', exact: true }).click()
+  await expect(iv).toHaveAttribute('max', '120')
+  await page.reload()
+  await page.locator('.team-member').first().click()
+  await expect(iv).toHaveAttribute('max', '120')
+  await picker.click()
+  await page.getByRole('option', { name: '默认环境', exact: true }).click()
+  await expect(iv).toHaveAttribute('max', '31')
+  await page.goto('./#/environments')
+  const builtins = page.getByRole('navigation', { name: '选择网页内置环境' })
+  await expect(builtins.getByRole('button')).toHaveCount(2)
+  await builtins.getByRole('button', { name: /120 资质/ }).click()
+  await expect(page.getByRole('article', { name: '网页内置环境详情' })).toContainText(
+    '@arcadia-eternity/data-pack-base',
+  )
+  expect(errors).toEqual([])
+  expect(forbiddenRequests.filter(url => /\/(?:api|socket\.io)\//.test(url))).toEqual([])
+})
