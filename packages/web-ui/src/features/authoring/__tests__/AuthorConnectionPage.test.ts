@@ -64,3 +64,29 @@ it('builds the prompt for the open project and respects read-only access', async
     page.unmount()
   }
 })
+
+it('offers copyable tasks for the selected project permissions', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+  vi.stubGlobal('arcadiaDesktop', {
+    author: vi.fn().mockResolvedValue({ result: { mcpServers: { arcadia: { command: 'node', args: [], env: {} } } } }),
+  })
+  const page = mount(AuthorConnectionPage, {
+    props: { project: { id: 'forest', name: '森林', directory: '/source/forest' }, readOnly: false, contextError: '' },
+  })
+  try {
+    const tasks = page.get('section[aria-labelledby="task-examples-title"]')
+    const edit = tasks.findAll('button').find(button => button.text().includes('精灵点子'))!
+    await edit.trigger('click')
+    expect(writeText).toHaveBeenCalledWith(edit.text())
+    expect(tasks.text()).not.toContain('运行项目的场景测试')
+    await page.get('input[type="checkbox"]').setValue(true)
+    expect(tasks.text()).toContain('运行项目的场景测试')
+    await page.setProps({ readOnly: true })
+    expect(tasks.text()).not.toContain('运行项目的场景测试')
+    expect(tasks.text()).not.toContain(edit.text())
+    expect(tasks.text()).toContain('能学的技能')
+  } finally {
+    page.unmount()
+  }
+})

@@ -133,7 +133,7 @@ onMounted(() => {
     >
       <ElForm label-position="top" @submit.prevent="create">
         <ElFormItem label="内容包名称">
-          <ElInput v-model="name" aria-label="内容包名称" maxlength="80" />
+          <ElInput v-model="name" aria-label="内容包名称" placeholder="给内容包起个名字" maxlength="80" />
         </ElFormItem>
         <ElFormItem label="Arcadia 兼容范围" :error="rangeError">
           <ElInput v-model="arcadiaRange" aria-label="Arcadia 兼容范围" maxlength="256" />

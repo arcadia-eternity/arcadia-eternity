@@ -88,11 +88,23 @@ watch(client, () => {
 const introduction = computed(
   () => `请帮我连接本机的 Arcadia Eternity 创作项目「${props.project.name}」，并确认你能访问的项目和权限。`,
 )
+const examples = computed(() => {
+  const explore = '挑一个技能，讲讲它的效果在什么时候触发。'
+  if (props.readOnly) return [explore, '列出这个包里的精灵和它们能学的技能。']
+  const tasks = [
+    '我有个精灵点子。先问问我想让它怎么战斗，再帮我把它做进这个内容包。',
+    explore,
+    '帮我做一个命中后降低对手速度的技能。',
+    '帮我看看这个内容包发布前还缺什么。',
+  ]
+  if (execute.value) tasks.push('运行项目的场景测试，告诉我哪些通过了、哪些需要修。')
+  return tasks
+})
 const prompt = computed(() => {
   if (!config.value) return ''
   return [
     introduction.value,
-    '先完成连接验证，之后等我说明要创作的内容。',
+    '完成连接验证后，根据这个包的内容和实际权限，举两个我可以接着问的例子，等我选择。',
     '项目目录为 ' + JSON.stringify(props.project.directory),
     props.readOnly
       ? '这是只读内容包。请在内容包目录之外的客户端本机设置中注册服务。'
@@ -169,6 +181,18 @@ async function copy(value: string, success: string) {
         <label v-if="manualCopy" class="copy-fallback"
           >请手动复制<textarea ref="copyField" readonly :value="manualCopy" rows="5"></textarea>
         </label>
+        <section class="task-examples" aria-labelledby="task-examples-title">
+          <h2 id="task-examples-title">连上后可以这样问</h2>
+          <button
+            v-for="example in examples"
+            :key="example"
+            type="button"
+            :aria-label="`复制示例：${example}`"
+            @click="copy(example, '已复制示例，可粘贴到 AI 对话中')"
+          >
+            {{ example }}<ClipboardDocumentIcon aria-hidden="true" />
+          </button>
+        </section>
       </div>
       <aside class="project-panel" aria-label="项目与权限">
         <h2><FolderIcon aria-hidden="true" />当前项目</h2>
@@ -258,6 +282,31 @@ h2 {
 .prompt-card,
 .project-panel {
   padding: clamp(18px, 2.4vw, 28px);
+}
+.task-examples {
+  display: grid;
+  gap: 6px;
+}
+.task-examples h2 {
+  margin: 4px 0;
+  font-size: 15px;
+}
+.task-examples button {
+  justify-content: space-between;
+  text-align: start;
+  color: var(--author-text);
+  background: var(--author-panel);
+  border: 1px solid var(--author-border);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.task-examples button:is(:hover, :focus-visible) {
+  color: var(--author-accent);
+  border-color: var(--author-accent);
+}
+.task-examples svg {
+  width: 16px;
+  color: var(--author-muted);
 }
 .instructions,
 .scope-note,

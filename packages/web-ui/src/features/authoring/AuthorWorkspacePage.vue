@@ -1363,7 +1363,7 @@ onBeforeUnmount(() => {
             <option v-for="row in projects" :key="row.id" :value="row.id">{{ row.name }}</option>
           </select></label
         ><button :disabled="busy || dirty" @click="attempt(chooseProjectFolder)">打开项目</button
-        ><label>新项目名称<ElInput v-model="name" placeholder="例如：寒霜故事" /></label
+        ><label>新项目名称<ElInput v-model="name" placeholder="给内容包起个名字" /></label
         ><label
           >新包兼容范围<ElInput v-model="arcadiaRange" aria-label="新包兼容范围" maxlength="256" /><span
             v-if="rangeError"
