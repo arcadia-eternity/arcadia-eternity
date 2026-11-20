@@ -237,3 +237,55 @@ it('installs into the library and shows task management without enabling', async
   expect(dialogs.get('[role=dialog][aria-label="下载与安装"]').isVisible()).toBe(true)
   expect(page.find('input[aria-label="启用 创作内容"]').exists()).toBe(false)
 })
+
+it('adds a local version in the package detail, reports a failed apply and retries with the latest revision', async () => {
+  bridge()
+  let attempt = 0
+  const localEnvironment = vi.fn(async (input: Record<string, unknown>) => {
+    if (input.action === 'add-package') return { result: { operationId: String(++attempt) } }
+    const member = { name: pkg.name, version: pkg.version, direct: true }
+    const environments = ['default', 'friends', 'practice'].map(id => ({
+      builtin: id === 'default',
+      document: { id, name: id },
+      revision: String(attempt),
+    }))
+    return {
+      result: {
+        environments,
+        selectedEnvironmentId: 'default',
+        installations: [
+          { status: 'ready', environmentId: 'practice', draftRevision: String(attempt), members: [member] },
+        ],
+        operations: attempt
+          ? [
+              {
+                id: String(attempt),
+                status: attempt === 1 ? 'failed' : 'succeeded',
+                error: { code: 'REVISION_CONFLICT' },
+              },
+            ]
+          : [],
+      },
+    }
+  })
+  window.arcadiaDesktop!.localEnvironment = localEnvironment
+  const page = open()
+  await flushPromises()
+  const targets = page.get('[aria-label="加入本地环境"]')
+  expect(targets.text()).not.toContain('default')
+  expect(targets.text()).toContain('practice 已加入')
+  await targets.get('li button').trigger('click')
+  await flushPromises()
+  expect(targets.get('[role="alert"]').text()).toContain('环境草稿已更改')
+  await targets.get('li button').trigger('click')
+  await flushPromises()
+  expect(localEnvironment).toHaveBeenCalledWith({
+    action: 'add-package',
+    environmentId: 'friends',
+    expectedRevision: '1',
+    name: pkg.name,
+    version: pkg.version,
+    allowDownload: false,
+  })
+  expect(targets.get('li').text()).toContain('已加入')
+})
