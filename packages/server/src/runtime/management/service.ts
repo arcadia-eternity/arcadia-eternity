@@ -748,16 +748,26 @@ export class ManagementService {
     }
     this.options.environments.setPublication(entries, defaultRuntimeId)
   }
-  /** Called by the desktop workspace owner after replacing (or restoring) its official presets. */
-  async refreshBuiltinBindings() {
+  /** Publish the host's prepared official presets together. Existing rooms keep their leases. */
+  async refreshBuiltinBindings(prepare?: () => Promise<void>) {
     return this.exclusive(async () => {
+      await prepare?.()
       const ids = new Set(Object.values(this.options.workspace.builtinEnvironmentIds ?? {}))
-      for (const row of await this.bindings()) {
-        if (!row.value.enabled || !ids.has(row.value.environmentId)) continue
-        const updated = await this.reloadBinding(row)
-        if (updated.value.condition !== 'available') throw new Error(updated.value.reason ?? 'ENVIRONMENT_UNAVAILABLE')
+      const previous = new Map(this.activeRuntimes)
+      try {
+        for (const row of await this.bindings()) {
+          if (!row.value.enabled || !ids.has(row.value.environmentId)) continue
+          const updated = await this.reloadBinding(row)
+          if (updated.value.condition !== 'available')
+            throw new Error(updated.value.reason ?? 'ENVIRONMENT_UNAVAILABLE')
+        }
+        await this.applyPublication()
+      } catch (error) {
+        // Keep the previously published instances alive until the workspace owner finishes rollback.
+        this.activeRuntimes.clear()
+        for (const [id, runtime] of previous) this.activeRuntimes.set(id, runtime)
+        throw error
       }
-      await this.applyPublication()
     })
   }
   async reconcile() {

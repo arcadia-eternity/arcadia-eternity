@@ -204,7 +204,8 @@ test(
   { timeout: 120000 },
   async t => {
     const { withOfficialUpdateArchive } = await import('@arcadia-eternity/content-sdk/managed-projects')
-    const { activateOfficialEnvironments, openBuiltinEnvironment } = await import('../builtin-environment.mjs')
+    const { activateOfficialEnvironments, createOfficialContentUpdater, openBuiltinEnvironment } =
+      await import('../builtin-environment.mjs')
     const { synchronizeShippedEnvironments, readOfficialEnvironments } =
       await import('@arcadia-eternity/content-sdk/management-workspace')
     const { createHash } = await import('node:crypto')
@@ -238,8 +239,13 @@ test(
     }
     const fetchFromHost = globalThis.fetch
     let damaged = true
+    let offline = true
+    let archiveRequests = 0
     t.mock.method(globalThis, 'fetch', async url => {
       assert.equal(String(url), candidate.url)
+      archiveRequests++
+      const duringDownload = await library.acquireDefaultProject()
+      await duringDownload.release()
       return new Response(damaged ? Buffer.from('partial download') : bytes)
     })
     let library, owner, defaultId
@@ -262,7 +268,11 @@ test(
       packageUpdates: {
         shippedRoot: bundled,
         clientVersion: '4.11.0',
-        find: async () => candidate,
+        find: async (pkg, version) => {
+          assert.equal(pkg, name)
+          if (offline) throw new Error('registry offline')
+          return version === candidate.version ? null : candidate
+        },
         withArchive: (update, signal, use) => withOfficialUpdateArchive(update, undefined, signal, use),
         validate: (directory, signal) =>
           validateWorkspaceProject({ directory, signal }, { effectPreparation: 'prebuilt-only' }),
@@ -319,8 +329,15 @@ test(
         validateWorkspaceProject,
       )
       const locked = await workspace.acquire(prior.installationId)
+      const update = createOfficialContentUpdater(library, () =>
+        activateOfficialEnvironments(library, synchronize, true),
+      )
       try {
-        await assert.rejects(library.updatePackage(previous.id, candidate.version), /SOURCE_INTEGRITY_MISMATCH/)
+        await assert.rejects(update(), /registry offline/)
+        assert.equal(archiveRequests, 0)
+        assert.deepEqual(await liveVersions(), [previous.version, previous.version])
+        offline = false
+        await assert.rejects(update(), /SOURCE_INTEGRITY_MISMATCH/)
         assert.equal((await library.list()).packages[0].id, previous.id)
         damaged = false
         const failedActivation = await library.updatePackage(previous.id, candidate.version)
@@ -341,8 +358,10 @@ test(
         )
         assert.equal((await workspace.getInstallation(envId)).document.packages[name], previous.version)
         assert.equal((await library.list()).packages[0].id, previous.id)
-        const updatedId = await library.updatePackage(previous.id, candidate.version)
-        await activateOfficialEnvironments(library, synchronize)
+        const [updatedId, manualId] = await Promise.all([update(), update({ expectedVersion: candidate.version })])
+        assert.equal(manualId, updatedId)
+        assert.equal(await update(), null)
+        assert.equal(archiveRequests, 3)
         assert.deepEqual(await liveVersions(), [candidate.version, candidate.version])
         await host.stop()
         const pinned = await workspace.getInstallation(personal.id)

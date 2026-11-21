@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const registry = 'https://registry.npmjs.org'
+const dependencySections = ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies']
 // Dependency order; only these packages are part of the author SDK release.
 const command = process.argv[2]
 const baseOnly = ['pack-base', 'publish-base'].includes(command)
@@ -72,6 +73,31 @@ async function packPreset(manifest, document) {
       copyFile(join(basePackage.directory, 'LICENSE'), join(stage, 'LICENSE')),
     ])
     run('npm', ['pack', '--ignore-scripts', '--offline', '--pack-destination', output], stage)
+  } finally {
+    await rm(stage, { recursive: true, force: true })
+  }
+}
+
+async function packBase(directory, filename) {
+  const stage = await mkdtemp(join(tmpdir(), 'arcadia-base-release-'))
+  try {
+    // pnpm resolves workspace/catalog specs, but can insert dependency keys in completion order.
+    run('pnpm', ['pack', '--pack-destination', stage], directory)
+    run('tar', ['-xzf', join(stage, filename)], stage)
+    const packed = join(stage, 'package')
+    const path = join(packed, 'package.json')
+    const manifest = JSON.parse(await readFile(path, 'utf8'))
+    for (const section of dependencySections) {
+      const deps = manifest[section]
+      if (deps)
+        manifest[section] = Object.fromEntries(
+          Object.keys(deps)
+            .sort()
+            .map(name => [name, deps[name]]),
+        )
+    }
+    await writeFile(path, JSON.stringify(manifest, null, 2) + '\n')
+    run('npm', ['pack', '--ignore-scripts', '--offline', '--pack-destination', output], packed)
   } finally {
     await rm(stage, { recursive: true, force: true })
   }
@@ -144,20 +170,21 @@ if (command === 'pack' || command === 'pack-base') {
     )
   }
   for (const { directory, manifest, presetId } of packages) {
+    const filename = archiveName(manifest.name)
     if (presetId)
       await packPreset(
         manifest,
         catalog.environments.find(doc => doc.id === presetId),
       )
+    else if (baseOnly) await packBase(directory, filename)
     else run('pnpm', ['pack', '--pack-destination', output], directory)
-    const filename = archiveName(manifest.name)
     const archive = join(output, filename)
     const files = run('tar', ['-tzf', archive], root, true).trim().split('\n')
     const packed = JSON.parse(run('tar', ['-xOzf', archive, 'package/package.json'], root, true))
     assert.ok(files.includes('package/LICENSE'), `${manifest.name}: license missing`)
     assert.equal(packed.name, manifest.name)
     assert.equal(packed.version, version)
-    for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies']) {
+    for (const section of dependencySections) {
       for (const [name, spec] of Object.entries(packed[section] ?? {})) {
         assert.ok(!/^(workspace:|catalog:|file:|link:)/.test(spec), `${name}: unresolved ${spec}`)
         if (name.startsWith('@arcadia-eternity/')) {

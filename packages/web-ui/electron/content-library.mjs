@@ -444,7 +444,13 @@ export class ContentLibrary {
   get pendingOfficialUpdateId() {
     return this.#state?.installed.find(item => item.bundled && item.activationPending)?.id
   }
-  async checkPackageUpdate(id) {
+  isOfficialPackage(id) {
+    return (
+      this.#state?.installed.some(item => item.bundled && item.id === id) ||
+      this.#state?.officialHistory?.some(item => item.id === id)
+    )
+  }
+  async checkPackageUpdate(id, signal = this.#controller.signal) {
     await this.#load()
     const entry = this.#entry(id)
     if (entry.name === officialPackage && !entry.bundled) throw new Error('请选择官方基础包')
@@ -455,18 +461,34 @@ export class ContentLibrary {
       .filter(item => item.name === entry.name && (entry.bundled ? item.bundled : item.source.kind === 'npm'))
       .map(item => item.version)
       .sort(semver.rcompare)[0]
-    return this.packageUpdates.find(entry.name, current, this.packageUpdates.clientVersion)
+    return this.packageUpdates.find(entry.name, current, this.packageUpdates.clientVersion, signal)
   }
   async updatePackage(id, version) {
+    if (typeof version !== 'string') throw new Error('请选择要更新的版本')
+    await this.#load()
+    if (this.isOfficialPackage(id)) return this.updateOfficialPackage({ expectedVersion: version })
     const candidate = await this.checkPackageUpdate(id)
     if (!candidate || candidate.version !== version) throw new Error('可用版本已变更，请重新检查更新')
-    if (this.#entry(id).activationPending) return id
-    if (candidate.name !== officialPackage) return this.installNpm(candidate.name + '@' + version)
-    if (!this.#entry(id).bundled) throw new Error('请选择官方基础包')
-    return this.#exclusive(async () => {
-      const old = this.#entry(id)
-      const signal = this.#controller.signal
-      return this.packageUpdates.withArchive(candidate, signal, async file => {
+    return this.installNpm(candidate.name + '@' + version)
+  }
+  async updateOfficialPackage({ expectedVersion, signal } = {}) {
+    await this.#load()
+    const old = this.#state.installed.find(item => item.bundled)
+    if (!old || old.name !== officialPackage) throw new Error('未找到官方基础包')
+    signal = signal ? AbortSignal.any([signal, this.#controller.signal]) : this.#controller.signal
+    signal.throwIfAborted()
+    if (old.version === expectedVersion) return old.id
+    const candidate = await this.checkPackageUpdate(old.id, signal)
+    if (expectedVersion !== undefined && candidate?.version !== expectedVersion)
+      throw new Error('可用版本已变更，请重新检查更新')
+    if (!candidate) return null
+    if (old.activationPending) return old.id
+    // Existing environments can still acquire read leases during the network download.
+    return this.packageUpdates.withArchive(candidate, signal, file =>
+      this.#exclusive(async () => {
+        signal.throwIfAborted()
+        if (old.id !== this.#state.installed.find(item => item.bundled)?.id)
+          throw new Error('基础包已变更，请重新检查更新')
         const staged = await this.#stageInstall({ kind: 'file', file, label: '官方 npm 发行包' }, true, signal, {
           ...this.#state,
           installed: this.#state.installed.filter(entry => entry.name !== officialPackage),
@@ -476,7 +498,7 @@ export class ContentLibrary {
           const entry = plan.entry
           if (
             entry.name !== officialPackage ||
-            entry.version !== version ||
+            entry.version !== candidate.version ||
             entry.engines?.arcadia !== candidate.range ||
             !semver.satisfies(this.packageUpdates.clientVersion, candidate.range)
           )
@@ -512,8 +534,8 @@ export class ContentLibrary {
         } finally {
           this.#plans.delete(staged.id)
         }
-      })
-    })
+      }),
+    )
   }
   async finishOfficialUpdate(id) {
     if (!id) return

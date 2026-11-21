@@ -7,6 +7,7 @@ export {
   officialPackage,
   findPackageUpdate,
   selectPackageUpdate,
+  startAutomaticContentUpdates,
   selectServerBase,
   installServerBaseUpdate,
 } from './package-updates.ts'
@@ -144,6 +145,9 @@ export class ManagedProjects {
       throw contentError('INSTALL_SOURCES_INVALID')
     this.#options = {
       ...options,
+      get bundledPackageRoot() {
+        return options.bundledPackageRoot
+      },
       registry: registryUrl(options.registry),
       sources: structuredClone(options.sources ?? {}),
       timeoutMs: limit(options.timeoutMs, DEFAULT_TIMEOUT, 3600_000),
@@ -284,6 +288,7 @@ export class ManagedProjects {
       beforeCommit?: () => Promise<void>
     },
     validate: StaticPreparer,
+    officialBaseRoot?: string,
   ): Promise<EnvironmentInstallation> {
     if (typeof validate !== 'function') return Promise.reject(contentError('STATIC_PREPARER_REQUIRED'))
     return this.#track(
@@ -298,6 +303,7 @@ export class ManagedProjects {
         },
         {
           ...input,
+          officialBaseRoot,
           projectDirectory: input.seedDirectory ?? join(workspace.root, 'environments', input.environmentId),
         },
         async (directory, signal, document) => {
@@ -423,6 +429,7 @@ export class ManagedProjects {
       signal?: AbortSignal
       onProgress?: PrepareEnvironmentInput['onProgress']
       projectDirectory?: string
+      officialBaseRoot?: string
       useSelectedBase?: boolean
     },
     consume: (directory: string, signal: AbortSignal, document: PrepareEnvironmentInput['document']) => Promise<T>,
@@ -457,7 +464,7 @@ export class ManagedProjects {
       const includesBase = Object.hasOwn(dependencies, baseName) || document.sources.includes(baseName)
       if (Object.hasOwn(dependencies, baseName) && document.sources.includes(baseName))
         throw contentError('INSTALL_DUPLICATE_PACKAGE')
-      let baseRoot = this.#options.bundledPackageRoot
+      let baseRoot = input.officialBaseRoot ?? this.#options.bundledPackageRoot
       if (includesBase && !baseRoot) throw contentError('BUNDLED_PACKAGE_UNAVAILABLE')
       if (includesBase) {
         let range = dependencies[baseName]
