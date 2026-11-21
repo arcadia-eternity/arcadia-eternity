@@ -205,7 +205,7 @@ test(
   async t => {
     const { withOfficialUpdateArchive } = await import('@arcadia-eternity/content-sdk/managed-projects')
     const { activateOfficialEnvironments, openBuiltinEnvironment } = await import('../builtin-environment.mjs')
-    const { synchronizeShippedEnvironments, readShippedEnvironments } =
+    const { synchronizeShippedEnvironments, readOfficialEnvironments } =
       await import('@arcadia-eternity/content-sdk/management-workspace')
     const { createHash } = await import('node:crypto')
     const root = await mkdtemp(join(tmpdir(), 'independent-base-'))
@@ -283,8 +283,10 @@ test(
     })
     const workspace = await owner.ready()
     const synchronize = async (validate = validateWorkspaceProject) => {
-      const version = (await library.list()).packages.find(item => item.bundled).version
-      const catalog = await readShippedEnvironments(resolve('bin/shipped-environments.json'), { [name]: version })
+      const catalog = await readOfficialEnvironments(
+        library.officialPackageRoot,
+        resolve('bin/shipped-environments.json'),
+      )
       await openBuiltinEnvironment({
         workspace,
         library,

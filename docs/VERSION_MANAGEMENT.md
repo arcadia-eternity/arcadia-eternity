@@ -22,6 +22,8 @@ Release Please 按改动路径维护两个发行 PR。两边都有改动时，�
 | 客户端       | 在桌面端提交 `fix(desktop): 修复退出时更新`                               | 创建 `arcadia-eternity-vX.Y.Z`，发布桌面安装包、差分清单、同版 SDK 和生产镜像                                   |
 | 官方基础包   | 在 `packs/base/` 提交 `fix(base): 修正技能威力` 或 `feat(base): 添加精灵` | 更新基础包版本和 changelog，创建 `data-pack-base-vX.Y.Z` 并发布 `@arcadia-eternity/data-pack-base@X.Y.Z` 到 npm |
 
+默认环境 `@arcadia-eternity/environment-default` 和 120 资质环境 `@arcadia-eternity/environment-training-120` 与基础包共用一个版本、发行 PR 和 `data-pack-base-vX.Y.Z` 标签。只改环境规则也走这条发行线。一个任务校验三份归档，按基础包、环境包的顺序发布。每个环境包的 npm 依赖精确指定同版基础包，`engines.arcadia` 来自该版基础包。首次发布需让三个包都授权仓库的 `publish-packages.yaml` 工作流。
+
 只改 `packs/base/**` 会进入基础包的发行 PR。GitHub 为该包保留发行草稿，玩家通过 npm 收到稳定版，GitHub 的公开桌面更新入口继续指向客户端。npm 发布失败可以在 “Publish UGC Packages” 中用同一标签重试。
 
 桌面和生产服务端构建从该次提交的版本清单选择基础包标签，将该标签的源码作为离线初始内容。首次独立发行之前使用最后一个联合发行标签 `arcadia-eternity-v4.11.1`。日常开发仍使用工作区源码。

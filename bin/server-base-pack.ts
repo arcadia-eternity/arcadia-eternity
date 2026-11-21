@@ -1,7 +1,7 @@
 import { Command, CommanderError } from 'commander'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { mkdir, readFile, stat } from 'node:fs/promises'
+import { mkdir, stat } from 'node:fs/promises'
 import {
   findPackageUpdate,
   installServerBaseUpdate,
@@ -9,7 +9,7 @@ import {
   selectServerBase,
 } from '@arcadia-eternity/content-sdk/managed-projects'
 import { catalogMaterialDigest, withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
-import { readShippedEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
+import { readOfficialEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
 import { validateWorkspaceProject } from '@arcadia-eternity/server'
 import host from '@arcadia-eternity/pack-loader/package.json' with { type: 'json' }
 
@@ -34,10 +34,7 @@ export async function serverOfficialMaterials(dataDirectory: string, selected: s
 }
 
 async function validateBase(directory: string) {
-  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
-  const catalog = await readShippedEnvironments(new URL('./shipped-environments.json', import.meta.url), {
-    [officialPackage]: manifest.version,
-  })
+  const catalog = await readOfficialEnvironments(directory, new URL('./shipped-environments.json', import.meta.url))
   await withShippedEnvironmentProject(directory, async project => {
     for (const draft of catalog.environments)
       await validateWorkspaceProject({ directory: project, draft }, { effectPreparation: 'prebuilt-only' })

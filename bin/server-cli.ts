@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
 import {
   ContentWorkspace,
-  readShippedEnvironments,
+  readOfficialEnvironments,
   synchronizeShippedEnvironments,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-sdk/managed-projects'
@@ -367,10 +367,10 @@ export async function runServerCli(args: string[]): Promise<number> {
         validateWorkspaceProject(input, {
           effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
         })
-      const base = JSON.parse(await readFile(join(bundledPackageRoot, 'package.json'), 'utf8'))
-      const catalog = await readShippedEnvironments(new URL('./shipped-environments.json', import.meta.url), {
-        [base.name]: base.version,
-      })
+      const catalog = await readOfficialEnvironments(
+        bundledPackageRoot,
+        new URL('./shipped-environments.json', import.meta.url),
+      )
       await ownedWorkspace.refreshBuiltinRules(catalog.environments)
       const key = catalog.defaultEnvironment
       const previous = (await storage.get<ManagedServer>('servers', serverId))?.value.initialization

@@ -13,6 +13,7 @@
     "presentation": "dist/presentation.json",
     "effectArtifact": "dist/arcadia-effects.json",
     "catalog": "dist/catalog.json",
+    "environments": "dist/environment/presets.json",
     "sdkApi": 2
   },
   "scripts": {

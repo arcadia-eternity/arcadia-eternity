@@ -325,14 +325,14 @@ function getContentLibrary() {
         const { validateWorkspaceProject } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
         )
-        const { readShippedEnvironments } = await import(
+        const { readOfficialEnvironments } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
         )
         const base = '@arcadia-eternity/data-pack-base'
-        const { version } = JSON.parse(
-          await fs.readFile(path.join(directory, 'node_modules', base, 'package.json'), 'utf8'),
+        const catalog = await readOfficialEnvironments(
+          path.join(directory, 'node_modules', base),
+          shippedEnvironmentsFile(),
         )
-        const catalog = await readShippedEnvironments(shippedEnvironmentsFile(), { [base]: version })
         for (const draft of catalog.environments)
           await validateWorkspaceProject({ directory, signal, draft }, { effectPreparation: 'prebuilt-only' })
       },
@@ -485,14 +485,10 @@ async function refreshDesktopEnvironments(workspace) {
     pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
   )
   const library = getContentLibrary()
-  const { synchronizeShippedEnvironments, readShippedEnvironments } = await import(
+  const { synchronizeShippedEnvironments, readOfficialEnvironments } = await import(
     pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
   )
-  const catalog = await readShippedEnvironments(shippedEnvironmentsFile(), {
-    '@arcadia-eternity/data-pack-base': JSON.parse(
-      await fs.readFile(path.join(activeBaseRoot(runtimeRequire), 'package.json'), 'utf8'),
-    ).version,
-  })
+  const catalog = await readOfficialEnvironments(activeBaseRoot(runtimeRequire), shippedEnvironmentsFile())
   await workspace.refreshBuiltinRules(catalog.environments)
   builtinEnvironment = await openBuiltinEnvironment({
     workspace,

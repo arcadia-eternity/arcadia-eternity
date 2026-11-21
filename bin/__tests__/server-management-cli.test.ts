@@ -720,6 +720,10 @@ it('stages an independent official release, serves it offline and rolls back wit
   manifest.version = version
   manifest.engines = { arcadia: '*' }
   await writeFile(join(source, 'package.json'), JSON.stringify(manifest))
+  const presetsFile = join(source, manifest.arcadia.environments)
+  const presets = JSON.parse(await readFile(presetsFile, 'utf8'))
+  presets.environments.find((doc: { id: string }) => doc.id === 'training-120').name = '120 联动发行测试'
+  await writeFile(presetsFile, JSON.stringify(presets))
   const effectsFile = join(source, manifest.arcadia.effectArtifact)
   const artifact = JSON.parse(await readFile(effectsFile, 'utf8'))
   artifact.source += '\n// independent official release\n'
@@ -768,6 +772,9 @@ it('stages an independent official release, serves it offline and rolls back wit
   let running = await start(data, ['--offline-content'])
   const environments = await catalog(running.origin)
   expect(environments.length).toBe(2)
+  expect(environments.find(item => item.environmentId === 'training-120')).toMatchObject({
+    environmentName: '120 联动发行测试',
+  })
   expect(environments.every(item => item.packages.some(pkg => pkg.name === name && pkg.version === version))).toBe(true)
   await stop(running.child)
   running = await start(data, ['--offline-content', '--base-pack-version', 'bundled'])

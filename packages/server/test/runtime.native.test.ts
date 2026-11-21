@@ -4,7 +4,13 @@ import type { BattleHost } from '@arcadia-eternity/battle/host'
 import { WorkerBattleSystem } from '@arcadia-eternity/battle/sandbox'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createServerBattle, getServerRuntimeIdentity, validateServerTeam } from '../src/runtime/native'
-import shipped from '../../../bin/shipped-environments.json'
+import { readOfficialEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
+import { fileURLToPath } from 'node:url'
+
+const shipped = await readOfficialEnvironments(
+  fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
+  new URL('../../../bin/shipped-environments.json', import.meta.url),
+)
 import input from '../../battle/test/fixtures/official-switch.input.json'
 
 const systems: BattleHost[] = []

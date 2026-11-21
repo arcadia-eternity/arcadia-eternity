@@ -1320,6 +1320,17 @@ async function changeEnvironmentPackage(
   return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
 }
 
+/** Resolve presets from the same selected base installation as the battle materials. */
+export async function readOfficialEnvironments(root: string, legacyCatalog: string | URL) {
+  const manifest = await readJson(join(root, 'package.json'))
+  if (manifest.name !== hostBaseName || typeof manifest.version !== 'string' || !semver.valid(manifest.version))
+    throw contentError('BUNDLED_PACKAGE_INVALID')
+  const file = isRecord(manifest.arcadia) ? manifest.arcadia.environments : undefined
+  if (file !== undefined && file !== 'dist/environment/presets.json')
+    throw contentError('SHIPPED_ENVIRONMENT_CATALOG_INVALID')
+  return readShippedEnvironments(file ? join(root, file) : legacyCatalog, { [hostBaseName]: manifest.version })
+}
+
 /** The host supplies this catalog from the application distribution. */
 export async function readShippedEnvironments(file: string | URL, bundledVersions: Record<string, string>) {
   const schema = z

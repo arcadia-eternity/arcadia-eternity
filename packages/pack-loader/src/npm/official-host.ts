@@ -101,6 +101,7 @@ async function catalogMaterials(root: string) {
     arcadia.presentation,
     arcadia.effectArtifact,
     arcadia.catalog,
+    ...(arcadia.environments !== undefined ? [arcadia.environments] : []),
     ...presentation.resources.filter(resource => resource.kind === 'file').map(resource => resource.source),
   ])
   const manifest = { name, version, arcadia, arcadiaEternityPack, ...(engines ? { engines } : {}) }

@@ -8,7 +8,7 @@ const version = manifest['packs/base']
 const bootstrapTag = 'arcadia-eternity-v4.11.1'
 if (version !== undefined && (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)))
   throw new Error('Invalid released base pack version')
-const tag = version ? 'data-pack-base-v' + version : bootstrapTag
+const tag = version && version !== '4.11.1' ? 'data-pack-base-v' + version : bootstrapTag
 const ref = 'refs/tags/' + tag
 const pkg = JSON.parse(execFileSync('git', ['show', ref + ':packs/base/package.json'], { encoding: 'utf8' }))
 if (pkg.name !== '@arcadia-eternity/data-pack-base' || pkg.version !== (version ?? '4.11.1'))
