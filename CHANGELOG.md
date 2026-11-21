@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.12.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.11.1...arcadia-eternity-v4.12.0) (2026-11-21)
+
+
+### ✨ Features
+
+* **base:** release official environment presets with their base pack ([03ffe1f](https://github.com/arcadia-eternity/arcadia-eternity/commit/03ffe1f7db8a6955048256342b1cf0daee927d3e))
+* **desktop:** use the web logo as the Electron app icon ([f35f2d0](https://github.com/arcadia-eternity/arcadia-eternity/commit/f35f2d0100ad7beed46ec0a68c8afbb7fb4c878c))
+* **updates:** release and update the official base pack independently ([6ee1c77](https://github.com/arcadia-eternity/arcadia-eternity/commit/6ee1c772703bb41bad71dd5f6de4878319a127ce))
+
+
+### 🐛 Bug Fixes
+
+* **base:** watch the environment catalog and build staged base releases ([283a48e](https://github.com/arcadia-eternity/arcadia-eternity/commit/283a48e002310a800fedb8751a5bfebd69d3887c))
+* **updates:** reproduce official archives and test client upgrades in CI ([a3508ee](https://github.com/arcadia-eternity/arcadia-eternity/commit/a3508ee454739bbc2aaddf59c57c34b4cdebfbb7))
+
 ## [4.11.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.11.0...arcadia-eternity-v4.11.1) (2026-11-21)
 
 
