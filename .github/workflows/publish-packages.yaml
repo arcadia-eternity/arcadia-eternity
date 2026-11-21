@@ -1,6 +1,8 @@
 name: Publish UGC Packages
 
 on:
+  repository_dispatch:
+    types: [base-pack-release]
   push:
     tags: ['data-pack-base-v*']
   workflow_call:
@@ -19,8 +21,8 @@ permissions:
   contents: read
 
 env:
-  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-  BASE_ONLY: ${{ startsWith(inputs.tag || github.ref_name, 'data-pack-base-v') }}
+  RELEASE_TAG: ${{ inputs.tag || github.event.client_payload.tag_name || github.ref_name }}
+  BASE_ONLY: ${{ github.event_name == 'repository_dispatch' || startsWith(inputs.tag || github.ref_name, 'data-pack-base-v') }}
 
 jobs:
   verify-archives:
@@ -75,7 +77,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     concurrency:
-      group: publish-ugc-packages-${{ startsWith(inputs.tag || github.ref_name, 'data-pack-base-v') }}
+      group: publish-ugc-packages-${{ github.event_name == 'repository_dispatch' || startsWith(inputs.tag || github.ref_name, 'data-pack-base-v') }}
       cancel-in-progress: false
     permissions:
       contents: read
