@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.12.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.12.0...data-pack-base-v4.12.1) (2026-11-21)
+
+
+### 🐛 Bug Fixes
+
+* **base:** watch the environment catalog and build staged base releases ([283a48e](https://github.com/arcadia-eternity/arcadia-eternity/commit/283a48e002310a800fedb8751a5bfebd69d3887c))
+
 ## [4.12.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.11.1...data-pack-base-v4.12.0) (2026-11-21)
 
 
