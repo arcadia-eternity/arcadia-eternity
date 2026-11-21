@@ -113,6 +113,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
       electron_config_cache: ${{ github.workspace }}/.artifacts/electron-cache
       ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.artifacts/electron-builder-cache
+      VITE_DESKTOP_RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
       EXPECTED_PLATFORM: ${{ matrix.platform }}
       EXPECTED_ARCH: ${{ matrix.arch }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}

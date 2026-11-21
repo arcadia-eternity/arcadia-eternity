@@ -1,164 +1,50 @@
 <template>
   <div class="download-page">
-    <!-- 页面头部 -->
     <div class="download-header">
-      <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold text-center mb-4">
-          {{ $t('download.title', '下载客户端') }}
-        </h1>
-        <!-- 版本信息 -->
-        <div class="text-center mb-8">
-          <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-            {{ $t('download.version', '版本') }} {{ version }}
-          </span>
-        </div>
+      <div class="container mx-auto px-4 py-8 text-center">
+        <h1 class="text-4xl font-bold mb-4">{{ $t('download.title', '下载客户端') }}</h1>
+        <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+          {{ $t('download.version', '版本') }} {{ version }}
+        </span>
       </div>
     </div>
 
-    <!-- 主要下载区域 -->
     <div class="container mx-auto px-4 pb-8">
-      <!-- 推荐下载 -->
-      <div class="recommended-download mb-12">
-        <h2 class="text-2xl font-semibold mb-6 text-center">
-          {{ $t('download.recommended', '推荐下载') }}
-        </h2>
-
-        <div class="max-w-md mx-auto">
-          <div class="bg-white rounded-lg shadow-lg p-6 border border-gray-300">
-            <!-- 检测到的平台信息 -->
-            <div class="text-center mb-4" v-if="platformInfo">
-              <div class="flex items-center justify-center mb-2">
-                <component :is="getPlatformIcon(platformInfo.platform)" class="w-8 h-8 mr-2" />
-                <span class="text-lg font-medium">
-                  {{ getPlatformDisplayName(platformInfo.platform, platformInfo.architecture) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- 下载按钮 -->
-            <button
-              @click="handleRecommendedDownload"
-              :disabled="isLoading || isMobile"
-              class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
-            >
-              <svg
-                v-if="isLoading"
-                class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              {{ isLoading ? $t('download.downloading', '下载中...') : $t('download.downloadNow', '立即下载') }}
-            </button>
-
-            <!-- 移动设备提示 -->
-            <div v-if="isMobile" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p class="text-sm text-yellow-800 text-center">
-                {{ $t('download.mobileNotice', '客户端暂不支持移动设备，请在桌面设备上下载') }}
-              </p>
-            </div>
-
-            <!-- 文件信息 -->
-            <div v-if="recommendedFileInfo" class="mt-4 text-sm text-gray-600 text-center">
-              <p>{{ recommendedFileInfo.name }}</p>
-              <p v-if="recommendedFileInfo.size">
-                {{ $t('download.fileSize', '文件大小') }}: {{ formatFileSize(recommendedFileInfo.size) }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 所有下载选项 -->
-      <div class="all-downloads">
-        <h2 class="text-2xl font-semibold mb-6 text-center">
-          {{ $t('download.allVersions', '所有版本') }}
-        </h2>
-
+      <label v-if="sources.length > 1" class="mb-6 flex items-center justify-center gap-2">
+        {{ $t('download.source', '下载源') }}
+        <select v-model="source">
+          <option v-for="item in sources" :key="item.base" :value="item.base">{{ item.name }}</option>
+        </select>
+      </label>
+      <section v-if="recommended" class="recommended-download mx-auto mb-12 max-w-md">
+        <h2 class="text-2xl font-semibold mb-6 text-center">{{ $t('download.recommended', '推荐下载') }}</h2>
+        <DownloadButton :href="recommended.url">
+          {{ platforms[recommended.platform].name }} · {{ downloadLabel(recommended) }}
+        </DownloadButton>
+      </section>
+      <p v-else-if="platform?.isMobile" class="mb-6 text-center">
+        {{ $t('download.mobileNotice', '客户端暂不支持移动设备，请在桌面设备上下载') }}
+      </p>
+      <section>
+        <h2 class="text-2xl font-semibold mb-6 text-center">{{ $t('download.selectPlatform', '选择安装包') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Windows -->
-          <div class="platform-card bg-white rounded-lg shadow-md p-6 border border-gray-300">
-            <div class="flex items-center mb-4">
-              <WindowsIcon class="w-8 h-8 mr-3 text-blue-600" />
-              <h3 class="text-xl font-semibold">Windows</h3>
-            </div>
-
+          <div
+            v-for="group in groups"
+            :key="group.name"
+            class="platform-card bg-white rounded-lg shadow-md p-6 border border-gray-300"
+          >
+            <h3 class="flex items-center mb-4 text-xl font-semibold">
+              <component :is="group.icon" class="w-8 h-8 mr-3" />{{ group.name }}
+            </h3>
             <div class="space-y-3">
-              <DownloadButton
-                platform="windows"
-                architecture="x64"
-                format="nsis"
-                :label="$t('download.windowsInstaller', 'Windows 安装包')"
-                :description="$t('download.windowsInstallerDesc', '推荐给大多数用户')"
-                @download="handleDownload"
-              />
-              <DownloadButton
-                platform="windows"
-                architecture="x64"
-                format="msi"
-                :label="$t('download.windowsMsi', 'Windows MSI')"
-                :description="$t('download.windowsMsiDesc', '')"
-                @download="handleDownload"
-              />
-            </div>
-          </div>
-
-          <!-- macOS -->
-          <div class="platform-card bg-white rounded-lg shadow-md p-6 border border-gray-300">
-            <div class="flex items-center mb-4">
-              <MacOSIcon class="w-8 h-8 mr-3 text-gray-700" />
-              <h3 class="text-xl font-semibold">macOS</h3>
-            </div>
-
-            <div class="space-y-3">
-              <DownloadButton
-                platform="macos"
-                architecture="aarch64"
-                format="app"
-                :label="$t('download.macosAppleSilicon', 'macOS (Apple Silicon)')"
-                :description="$t('download.macosAppleSiliconDesc', 'M系列 芯片')"
-                @download="handleDownload"
-              />
-              <DownloadButton
-                platform="macos"
-                architecture="x64"
-                format="app"
-                :label="$t('download.macosIntel', 'macOS (Intel)')"
-                :description="$t('download.macosIntelDesc', 'Intel 处理器')"
-                @download="handleDownload"
-              />
-            </div>
-          </div>
-
-          <!-- Linux (预留) -->
-          <div class="platform-card bg-white rounded-lg shadow-md p-6 opacity-50 border border-gray-300">
-            <div class="flex items-center mb-4">
-              <LinuxIcon class="w-8 h-8 mr-3 text-orange-600" />
-              <h3 class="text-xl font-semibold">Linux</h3>
-            </div>
-
-            <div class="text-center text-gray-500">
-              <p class="mb-2">{{ $t('download.comingSoon', '即将推出') }}</p>
-              <p class="text-sm">{{ $t('download.linuxNotice', 'Linux 版本正在开发中') }}</p>
+              <DownloadButton v-for="item in group.downloads" :key="item.url" :href="item.url">
+                {{ downloadLabel(item) }}
+              </DownloadButton>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+      <p class="mt-6 text-center"><a :href="releasesUrl" class="text-blue-700 underline">GitHub Releases</a></p>
 
       <!-- 功能对比 -->
       <div class="feature-comparison mt-12">
@@ -193,160 +79,44 @@
           </div>
         </div>
       </div>
-
-      <!-- 下载源状态 -->
-      <div v-if="availableSources.length > 1" class="download-sources mt-12">
-        <h2 class="text-2xl font-semibold mb-6 text-center">
-          {{ $t('download.downloadSources', '下载源状态') }}
-        </h2>
-
-        <div class="max-w-2xl mx-auto">
-          <div class="bg-white rounded-lg shadow-md p-6 border border-gray-300">
-            <div class="space-y-3">
-              <div
-                v-for="source in availableSources"
-                :key="source.id"
-                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div class="flex items-center">
-                  <div
-                    :class="[
-                      'w-3 h-3 rounded-full mr-3',
-                      sourceAvailability[source.id] ? 'bg-green-500' : 'bg-red-500',
-                    ]"
-                  ></div>
-                  <div>
-                    <p class="font-medium">{{ source.name }}</p>
-                    <p class="text-sm text-gray-600">{{ source.description }}</p>
-                  </div>
-                </div>
-                <span
-                  :class="[
-                    'px-2 py-1 rounded-full text-xs font-medium',
-                    sourceAvailability[source.id] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800',
-                  ]"
-                >
-                  {{
-                    sourceAvailability[source.id]
-                      ? $t('download.available', '可用')
-                      : $t('download.unavailable', '不可用')
-                  }}
-                </span>
-              </div>
-            </div>
-
-            <button
-              @click="refreshSourceAvailability"
-              class="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-            >
-              {{ $t('download.refreshSources', '刷新状态') }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 错误提示 -->
-      <div v-if="error" class="error-message mt-8">
-        <div class="max-w-2xl mx-auto">
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div class="flex">
-              <svg class="w-5 h-5 text-red-400 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div>
-                <h3 class="text-sm font-medium text-red-800">
-                  {{ $t('download.error', '下载出错') }}
-                </h3>
-                <p class="mt-1 text-sm text-red-700">{{ error }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { releasesUrl } from '@/config/downloadSources'
 import { useSmartDownload } from '@/composition/useSmartDownload'
-import { getPlatformDisplayName, getFormatInfo } from '@/utils/platformDetection'
+import type { DesktopDownload, Platform } from '@/types/download'
 import DownloadButton from '@/components/DownloadButton.vue'
 import FeatureRow from '@/components/FeatureRow.vue'
 import WindowsIcon from '@/components/icons/WindowsIcon.vue'
 import MacOSIcon from '@/components/icons/MacOSIcon.vue'
 import LinuxIcon from '@/components/icons/LinuxIcon.vue'
 
-const {
-  isLoading,
-  error,
-  platformInfo,
-  sourceAvailability,
-  version,
-  availableSources,
-  recommendedFormat,
-  isMobile,
-  smartDownload,
-  downloadSpecific,
-  refreshSourceAvailability,
-} = useSmartDownload()
+const { version, sources, source, downloads, recommended, platform } = useSmartDownload()
+const platforms = {
+  windows: { name: 'Windows', icon: WindowsIcon },
+  macos: { name: 'macOS', icon: MacOSIcon },
+  linux: { name: 'Linux', icon: LinuxIcon },
+} satisfies Record<Platform, unknown>
+const groups = computed(() =>
+  Object.entries(platforms).map(([id, group]) => ({
+    ...group,
+    downloads: downloads.value.filter(item => item.platform === id),
+  })),
+)
 
-// 推荐文件信息
-const recommendedFileInfo = computed(() => {
-  if (!recommendedFormat.value) return null
-  const formatInfo = getFormatInfo(recommendedFormat.value)
-  return {
-    ...formatInfo,
-    size: 0, // 暂时设为0，实际大小需要从构建过程中获取
-  }
-})
-
-// 获取平台图标
-const getPlatformIcon = (platform: string) => {
-  switch (platform) {
-    case 'windows':
-      return WindowsIcon
-    case 'macos':
-      return MacOSIcon
-    case 'linux':
-      return LinuxIcon
-    default:
-      return WindowsIcon
-  }
-}
-
-// 格式化文件大小
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-// 处理推荐下载
-const handleRecommendedDownload = async () => {
-  if (isMobile.value) return
-  await smartDownload()
-}
-
-// 处理特定平台下载
-const handleDownload = async (platform: string, architecture: string, format: string) => {
-  await downloadSpecific(platform, architecture, format)
+function downloadLabel(item: DesktopDownload) {
+  const chip =
+    item.platform === 'macos' ? (item.architecture === 'arm64' ? 'Apple Silicon' : 'Intel') : item.architecture
+  return `${chip} · ${item.format === 'AppImage' ? item.format : item.format.toUpperCase()}`
 }
 </script>
 
 <style scoped>
 .download-page {
   min-height: 100vh;
-}
-
-.download-header {
 }
 
 .container {
@@ -367,21 +137,6 @@ const handleDownload = async (platform: string, architecture: string, format: st
 .feature-comparison table {
   border-collapse: separate;
   border-spacing: 0;
-}
-
-.download-sources {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* 响应式设计 */

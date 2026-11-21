@@ -57,8 +57,6 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
       // 下载源配置
       'import.meta.env.VITE_DOWNLOAD_SOURCES': JSON.stringify(process.env.VITE_DOWNLOAD_SOURCES || 'github'),
       'import.meta.env.VITE_CDN_BASE_URL': JSON.stringify(process.env.VITE_CDN_BASE_URL || ''),
-      // 应用版本
-      'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '1.0.0'),
     },
     server: {
       watch: {
