@@ -1,76 +1,19 @@
-# 自动更新检查功能
+# 桌面更新
 
-## 概述
+「版本信息 → 检查客户端更新」查询 GitHub Releases。更新器优先使用差分下载，可在缺少旧安装包缓存时回退到完整安装包。Windows NSIS 和 macOS ZIP 的发行清单必须同时提供相应的 blockmap。Linux AppImage 使用内嵌 blockmap。生产客户端也会在启动后检查程序更新，用户确认下载后在正常退出时安装。当前 macOS ZIP 的构建配置未启用代码签名，macOS 用户需要手动替换应用。
 
-客户端模式支持在应用启动后自动检查更新。该功能只在 Electron 桌面版的生产环境启用，Web 版本不会触发。
+「内容包 → 已安装 → 包详情 → 检查数据包更新」单独查询 npm。官方基础包和通过 npm 安装的社区包支持检查。桌面端根据当前客户端版本、发行版本的 `engines.arcadia` 和 npm 的稳定版标签选择最新兼容版本。手动导入的文件或固定 Git 提交保留原有来源。社区包安装后在环境中选择新版本。
 
-## 功能特性
+官方基础包下载后校验 npm SHA-512 摘要、归档元数据和预构建的环境。更新会准备新的官方环境修订，已有租约继续读取旧内容。离线启动使用本机已安装的兼容版本。
 
-### 自动检查条件
+| 操作 | 官方预设下次新开的对战 | 已保存的自定义环境 |
+| --- | --- | --- |
+| 首次安装，离线启动 | 使用随程序提供的基础包 | 创建时保存实际安装的版本和材料 |
+| 只发新版数据包 | 用户检查、下载并成功应用后切换 | 保留原修订，可在编辑环境时主动迁移 |
+| 升级或回退程序 | 从随程序提供的包和本机已验证的官方版本中选择最高兼容版本 | 保留原有文件与锁。当前运行时无法加载时，需显式迁移或使用兼容程序 |
+| 随程序提供的包与已下载的包版本相同 | 运行材料摘要相同则复用。摘要冲突记录到日志并使用随程序提供的内容 | 继续使用创建该修订时锁定的材料 |
+| 下载、校验或应用更新失败 | 沿用上次成功的版本，重新点击更新可重试 | 保留原修订 |
 
-- 仅桌面端：通过 `window.arcadiaDesktop` 提供更新能力
-- 仅生产环境：开发环境自动跳过
-- 延迟启动：应用完成初始化后延迟 3 秒执行检查
+正在对战的房间持有原修订直到租约结束。官方预设切换期间保留旧材料。离线选择只读本机内容。
 
-### 用户体验
-
-1. 静默检查：不阻塞启动流程
-2. 更新提示：发现新版本时弹通知
-3. 用户确认：可选择立即更新或稍后更新
-4. 自动重启：下载安装后由桌面端执行重启
-
-## 技术实现
-
-### 核心函数
-
-```typescript
-// packages/web-ui/src/utils/version.ts
-export async function autoCheckForUpdates(): Promise<void>
-```
-
-### 调用位置
-
-```typescript
-// packages/web-ui/src/App.vue
-setTimeout(() => {
-  autoCheckForUpdates()
-}, 3000)
-```
-
-### 桌面端实现
-
-更新能力由 Electron 主进程提供：
-
-- `desktop:check-for-updates`
-- `desktop:download-and-install-update`
-
-前端通过 preload 暴露的 `window.arcadiaDesktop` 调用。
-
-## 测试
-
-### 开发环境
-
-1. 启动 Web UI：`pnpm --filter @arcadia-eternity/web-ui run dev`
-2. 启动桌面端壳：`pnpm --filter @arcadia-eternity/web-ui run dev:desktop`
-3. 检查控制台中自动检查日志
-
-### 生产构建
-
-1. 构建前端：`pnpm --filter @arcadia-eternity/web-ui run build-only`
-2. 构建桌面包：`pnpm --filter @arcadia-eternity/web-ui run build:desktop`
-
-## 日志输出
-
-正常：
-
-```
-正在自动检查更新...
-当前已是最新版本
-```
-
-有新版本：
-
-```
-正在自动检查更新...
-发现新版本: 1.4.0
-```
+开发环境通过 `pnpm --filter @arcadia-eternity/web-ui run dev:desktop` 启动桌面壳。验证程序更新需使用生产构建和已发布的更新清单。可通过 `node --test scripts/merge-desktop-release-manifests.test.mjs` 检查各平台的清单和差分文件要求。

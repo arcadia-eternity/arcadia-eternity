@@ -748,6 +748,18 @@ export class ManagementService {
     }
     this.options.environments.setPublication(entries, defaultRuntimeId)
   }
+  /** Called by the desktop workspace owner after replacing (or restoring) its official presets. */
+  async refreshBuiltinBindings() {
+    return this.exclusive(async () => {
+      const ids = new Set(Object.values(this.options.workspace.builtinEnvironmentIds ?? {}))
+      for (const row of await this.bindings()) {
+        if (!row.value.enabled || !ids.has(row.value.environmentId)) continue
+        const updated = await this.reloadBinding(row)
+        if (updated.value.condition !== 'available') throw new Error(updated.value.reason ?? 'ENVIRONMENT_UNAVAILABLE')
+      }
+      await this.applyPublication()
+    })
+  }
   async reconcile() {
     return this.exclusive(async () => {
       for (const row of await this.bindings()) await this.reloadBinding(row)

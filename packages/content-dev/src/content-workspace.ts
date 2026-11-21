@@ -11,7 +11,7 @@ import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from
 import { join, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
 import semver from 'semver'
-import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { catalogMaterialDigest, inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import {
   normalizeEnvironmentDocument,
   EnvironmentDocumentV2Schema,
@@ -1346,18 +1346,26 @@ export async function synchronizeShippedEnvironments(
   catalog: Awaited<ReturnType<typeof readShippedEnvironments>>,
   adopted: Record<string, string>,
   prepare: (document: EnvironmentDocument, expectedRevision: string | null) => Promise<unknown>,
+  officialBaseRoot?: string,
 ) {
   await workspace.registerBuiltinEnvironments(
     catalog.environments.map(doc => doc.id),
     adopted,
   )
+  const selectedDigest = officialBaseRoot && (await catalogMaterialDigest(officialBaseRoot))
   const drafts = await workspace.listDrafts()
   for (const document of catalog.environments) {
     const id = document.id
     const current = drafts.find(item => item.document.id === id)
     if (current && isDeepStrictEqual(current.document, document)) {
       const [installed] = await workspace.listInstallations(id)
-      if (installed?.status === 'ready' && installed.draftRevision === current.revision) continue
+      if (installed?.status === 'ready' && installed.draftRevision === current.revision) {
+        if (!selectedDigest || !Object.hasOwn(document.packages, hostBaseName)) continue
+        const digest = await catalogMaterialDigest(join(installed.directory, 'node_modules', hostBaseName)).catch(
+          () => null,
+        )
+        if (digest === selectedDigest) continue
+      }
     }
     await prepare(document, current?.revision ?? null)
   }

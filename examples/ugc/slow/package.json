@@ -28,5 +28,8 @@
     "sdkApi": 2,
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json"
+  },
+  "engines": {
+    "arcadia": "^4.11.0"
   }
 }

@@ -18,6 +18,8 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
       version: ${{ steps.release.outputs.version }}
+      base_created: ${{ steps.release.outputs['packs/base--release_created'] }}
+      base_tag: ${{ steps.release.outputs['packs/base--tag_name'] }}
     steps:
       - name: Run release-please
         uses: googleapis/release-please-action@v5.0.0
@@ -25,6 +27,16 @@ jobs:
         with:
           config-file: .github/release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  publish-base:
+    needs: release-please
+    if: needs.release-please.outputs.base_created == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-packages.yaml
+    with:
+      tag: ${{ needs.release-please.outputs.base_tag }}
 
   publish-npm:
     needs: release-please

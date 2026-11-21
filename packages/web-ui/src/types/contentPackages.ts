@@ -61,4 +61,5 @@ export type ContentPackageAction =
   | { action: 'install-remote'; source: RemotePackageSource }
   | { action: 'cancel-install' | 'retry-install'; operationId: string }
   | { action: 'clear-install-tasks' }
-  | { action: 'uninstall'; packageId: string }
+  | { action: 'check-update' | 'uninstall'; packageId: string }
+  | { action: 'apply-update'; packageId: string; version: string }

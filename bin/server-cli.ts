@@ -8,6 +8,8 @@ import {
   synchronizeShippedEnvironments,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-sdk/managed-projects'
+import { prepareShippedEnvironment } from '@arcadia-eternity/pack-loader/node'
+import { serverBase, serverOfficialMaterials, shippedBaseRoot, runServerBasePackCli } from './server-base-pack'
 import { readFile, stat } from 'node:fs/promises'
 import { openServerStorage, workspaceRetentions } from './server-persistence'
 import { createDesktopWorkspaceProxy } from './desktop-workspace-proxy'
@@ -36,6 +38,7 @@ function portNumber(value: string): number {
 }
 
 export async function runServerCli(args: string[]): Promise<number> {
+  if (args[0] === 'base-pack') return runServerBasePackCli(args.slice(1))
   if (args[0] === 'backup') {
     const { runServerBackupCli } = await import('./server-backup-cli')
     return runServerBackupCli(args.slice(1))
@@ -44,6 +47,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     const { runServerAdminCli } = await import('./server-admin-cli')
     return runServerAdminCli(args)
   }
+  let officialBase: Awaited<ReturnType<typeof prepareShippedEnvironment>> | undefined
   let storage: DurableStorage | undefined
   let workspace: ContentWorkspace | undefined
   let projects: ManagedProjects | undefined
@@ -51,12 +55,19 @@ export async function runServerCli(args: string[]): Promise<number> {
   let server: ReturnType<typeof createSingleProcessApp> | undefined
   const program = new Command('arcadia server')
     .description('Single-process battle server. Rooms and sessions expire when this process stops.')
+    .addHelpText('after', '\nOfficial base pack: arcadia server base-pack <check|update> [--data-dir <directory>]')
     .exitOverride()
     .option('-p, --port <number>', 'HTTP and Socket.IO port', portNumber, portNumber(process.env.PORT || '8102'))
     .option('--host <address>', 'Listen address', process.env.HOST || '0.0.0.0')
     .option('--server-id <id>', 'Stable identity (generated once when omitted)', process.env.SERVER_ID)
     .option('--data-dir <directory>', 'Persistent server data directory', process.env.ARCADIA_DATA_DIR)
     .option('--workspace-root <directory>', 'Content workspace root', process.env.ARCADIA_WORKSPACE_ROOT)
+    .option(
+      '--base-pack-version <version>',
+      'Official base version to use (installed version or bundled)',
+      process.env.ARCADIA_BASE_PACK_VERSION,
+    )
+    .addOption(new Option('--desktop-base-root <directory>').hideHelp())
     .option('--desktop-client-environments', 'Publish prepared environments from the desktop client library')
     .option('--desktop-project <directory>', 'Trusted desktop host initial content project')
     .option('--desktop-managed-network', 'Trusted desktop owner controls persistent listener settings')
@@ -114,6 +125,8 @@ export async function runServerCli(args: string[]): Promise<number> {
       workspaceRoot?: string
       desktopClientEnvironments?: boolean
       desktopProject?: string
+      basePackVersion?: string
+      desktopBaseRoot?: string
       desktopManagedNetwork?: boolean
       desktopOrigin?: string
       desktopLaunch?: string
@@ -170,7 +183,11 @@ export async function runServerCli(args: string[]): Promise<number> {
       throw new Error('Set ACCOUNT_MODE=g3 when configuring durable accounts')
     const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
     if (
-      (options.desktopProject || options.desktopManagedNetwork || options.desktopOrigin || options.desktopLaunch) &&
+      (options.desktopBaseRoot ||
+        options.desktopProject ||
+        options.desktopManagedNetwork ||
+        options.desktopOrigin ||
+        options.desktopLaunch) &&
       !desktopControl
     )
       throw new Error('Desktop options require the private desktop host')
@@ -303,9 +320,11 @@ export async function runServerCli(args: string[]): Promise<number> {
     const { persistentServerConfig } = await import('./server-config')
     const config = persistentServerConfig(options)
     const retentions = workspaceRetentions(storage, () => workspace!.workspaceId)
-    const bundledPackageRoot = dirname(
-      fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
-    )
+    const selected = desktopControl
+      ? { directory: options.desktopBaseRoot ?? shippedBaseRoot(), cached: !!options.desktopBaseRoot }
+      : await serverBase(config.dataDirectory, options.basePackVersion)
+    const bundledPackageRoot = selected.directory
+    if (selected.cached) officialBase = await prepareShippedEnvironment(bundledPackageRoot)
     const allowShareDownloads =
       !options.offlineContent && !!(options.allowThirdPartyContent || options.allowThirdPartyExecution)
     const desktopWorkspace = desktopControl
@@ -334,6 +353,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       }
       projects = new ManagedProjects(join(config.dataDirectory, 'projects'), {
         bundledPackageRoot,
+        resolveBaseVersion: async version => (await serverBase(config.dataDirectory, version)).directory,
         allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
         registry: options.npmRegistry,
         offline: options.offlineContent,
@@ -352,7 +372,6 @@ export async function runServerCli(args: string[]): Promise<number> {
         [base.name]: base.version,
       })
       await ownedWorkspace.refreshBuiltinRules(catalog.environments)
-      await projects.synchronizeBundledBase(workspace, validate)
       const key = catalog.defaultEnvironment
       const previous = (await storage.get<ManagedServer>('servers', serverId))?.value.initialization
       const adopted: Record<string, string> = {}
@@ -364,9 +383,10 @@ export async function runServerCli(args: string[]): Promise<number> {
         (document, expectedRevision) =>
           manager.prepareEnvironment(
             ownedWorkspace,
-            { environmentId: document.id, document, expectedRevision },
+            { environmentId: document.id, document, expectedRevision, useSelectedBase: true },
             validate,
           ),
+        bundledPackageRoot,
       )
     }
     const webRoot =
@@ -375,6 +395,10 @@ export async function runServerCli(args: string[]): Promise<number> {
         : resolve(options.webRoot ?? resolve(dirname(fileURLToPath(import.meta.url)), 'web'))
     if (options.publicOrigin && !corsOrigins.includes(options.publicOrigin)) corsOrigins.push(options.publicOrigin)
     server = createSingleProcessApp({
+      officialBase,
+      knowsOfficialMaterial:
+        desktopWorkspace?.knowsOfficialMaterial ??
+        (await serverOfficialMaterials(config.dataDirectory, bundledPackageRoot)),
       ...battleCapacity,
       webRoot,
       webAutoConnect: options.webAutoConnect === 'true',
@@ -449,12 +473,7 @@ export async function runServerCli(args: string[]): Promise<number> {
           name: '启动时批准的 npm 环境',
           matchmakingEnabled: true,
         })
-      let refreshed = false
-      await projects!.synchronizeProject(options.npmProject[0], async directory => {
-        refreshed = true
-        await initialize(directory)
-      })
-      if (!refreshed) await initialize(options.npmProject[0])
+      await initialize(options.npmProject[0])
     } else if (!desktopControl) {
       await initializeHostEnvironment({
         management: server.management!,
@@ -467,8 +486,11 @@ export async function runServerCli(args: string[]): Promise<number> {
     if (desktopLaunch) await saveDesktopLaunch(server.management!, desktopLaunch)
     await server.start()
     const detachDesktopControl = desktopControl
-      ? attachDesktopContentControl(server.environments, builtinId, request =>
-          server!.management!.localRequest(request),
+      ? attachDesktopContentControl(
+          server.environments,
+          builtinId,
+          request => server!.management!.localRequest(request),
+          () => server!.management!.refreshBuiltinBindings(),
         )
       : undefined
     const runningServer = server
@@ -489,6 +511,7 @@ export async function runServerCli(args: string[]): Promise<number> {
           await workspace?.close()
           await projects?.close()
           await storage?.close()
+          await officialBase?.dispose()
           process.removeListener('SIGINT', stop)
           process.removeListener('SIGTERM', stop)
         })
@@ -512,6 +535,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     return 0
   } catch (error) {
     await server?.stop()
+    await officialBase?.dispose()
     mailer?.close()
     await workspace?.close()
     await projects?.close()

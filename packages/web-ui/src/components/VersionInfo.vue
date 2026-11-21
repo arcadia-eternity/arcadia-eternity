@@ -58,7 +58,7 @@
             size="small"
             class="w-full"
           >
-            {{ checkingUpdates ? '检查中...' : '检查更新' }}
+            {{ checkingUpdates ? '检查中...' : '检查客户端更新' }}
           </el-button>
         </div>
       </div>

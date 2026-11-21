@@ -126,6 +126,8 @@ export async function mergeDesktopReleaseManifests({ input, output, version: req
       'desktop-build.json',
     ])
     const entries = await readdir(directory)
+    if (target.platform !== 'linux' && !entries.includes(required[0] + '.blockmap'))
+      fail('missing differential update blockmap for ' + required[0])
     if (entries.some(name => !allowed.has(name)) || required.some(name => !entries.includes(name)))
       fail(`unexpected or missing asset in ${targetKey(target)}`)
     for (const name of entries.filter(name => required.includes(name) || name.endsWith('.blockmap'))) {
@@ -145,6 +147,11 @@ export async function mergeDesktopReleaseManifests({ input, output, version: req
     const asset = assets.get(expectedUpdate)
     if (!entry || entry.url !== expectedUpdate || entry.sha512 !== asset.sha512 || entry.size !== asset.size)
       fail(`update manifest does not match its artifact: ${targetKey(target)}`)
+    if (
+      target.platform === 'linux' &&
+      (!Number.isSafeInteger(entry.blockMapSize) || entry.blockMapSize < 1 || entry.blockMapSize + 4 >= entry.size)
+    )
+      fail('missing or invalid embedded AppImage blockmap size')
     if (manifest.path !== entry.url || manifest.sha512 !== entry.sha512)
       fail('legacy update path/hash does not match the installer')
     if (typeof manifest.releaseDate !== 'string' || !Number.isFinite(Date.parse(manifest.releaseDate)))

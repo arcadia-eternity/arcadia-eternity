@@ -121,6 +121,7 @@ function verifyReady(url, serverId) {
  */
 export class LocalBattleHost {
   #state = { status: 'idle' }
+  #refreshAfterStart = false
   #child
   #closed
   #stopping
@@ -140,6 +141,7 @@ export class LocalBattleHost {
     workspaceRoot,
     attachWorkspace,
     builtinId,
+    officialBaseRoot,
     startupTimeoutMs = 60000,
     shutdownTimeoutMs = 5000,
   }) {
@@ -151,6 +153,7 @@ export class LocalBattleHost {
     this.packsDirectory = packsDirectory
     this.stateDirectory = stateDirectory
     this.workspaceRoot = workspaceRoot
+    this.officialBaseRoot = officialBaseRoot
     this.builtinId = builtinId
     this.attachWorkspace = attachWorkspace
     this.startupTimeoutMs = startupTimeoutMs
@@ -194,6 +197,10 @@ export class LocalBattleHost {
         if (error) finish(problem('HOST_UNAVAILABLE', '无法准备本机内容'))
       })
     })
+  }
+  async refreshBuiltinBindings() {
+    if (this.#state.status === 'starting') this.#refreshAfterStart = true
+    if (this.#state.status === 'running') await this.#request('refresh-builtins')
   }
   async prepareProject(directory) {
     const canonical = await realpath(directory)
@@ -248,6 +255,7 @@ export class LocalBattleHost {
     if (this.#child || ['starting', 'stopping', 'running'].includes(this.#state.status))
       throw problem('HOST_BUSY', '本机对战服务已经启动或正在启动')
     const generation = ++this.#generation
+    this.#refreshAfterStart = false
     this.#state = { status: 'starting' }
     let cache, spawnedChild
     try {
@@ -289,6 +297,7 @@ export class LocalBattleHost {
         ? (await loadLocalServerProfile(this.stateDirectory)).serverId
         : `arcadia-desktop-${randomUUID()}`
       const managedNetwork = !!(this.stateDirectory && this.workspaceRoot)
+      const officialRoot = this.officialBaseRoot?.()
       const child = spawn(
         this.executable,
         [
@@ -298,6 +307,7 @@ export class LocalBattleHost {
           ...(managedNetwork
             ? ['--desktop-managed-network', '--desktop-origin', this.rendererOrigin]
             : ['--host', '127.0.0.1', '--port', '0', '--cors-origin', this.rendererOrigin]),
+          ...(officialRoot ? ['--desktop-base-root', officialRoot] : []),
           ...(publishClientEnvironments ? ['--desktop-client-environments'] : []),
           ...(managedNetwork && localRecovery
             ? ['--host', '127.0.0.1', '--port', '0', '--cors-origin', this.rendererOrigin]
@@ -435,6 +445,7 @@ export class LocalBattleHost {
       }
       this.#projects.clear()
       this.#uncertainProjects.clear()
+      if (this.#refreshAfterStart) await this.refreshBuiltinBindings()
       const descriptor = await this.#request('describe')
       this.#projects.set(descriptor.id, new Set([projectDirectory]))
       if (this.stateDirectory) {

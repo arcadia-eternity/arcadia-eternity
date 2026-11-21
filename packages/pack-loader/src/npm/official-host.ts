@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { copyFile, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -11,7 +12,7 @@ import {
 import type { NpmContentHost } from './prepare'
 import { packageFile, type NpmProjectInspection } from './inspect'
 import { validatePrebuiltEffectModule } from './prebuilt-artifact'
-import { createDraft, fail } from '../works/model'
+import { createDraft, digestJson, fail } from '../works/model'
 import { parseWithErrors, PresentationManifestSchema } from '@arcadia-eternity/schema'
 import type { InstalledNpmPackage } from './inspect'
 import { npmInvocation } from './runner'
@@ -89,25 +90,48 @@ export function withShippedCatalogArchive<T>(
   })
 }
 
-/** Stage the already acquired package as an explicit, relocatable npm project. */
-export async function stageCatalogProject(directory: string, root: string) {
-  const source = await readPackageJson(root, 'package.json')
-  const { name, version, arcadia, arcadiaEternityPack } = source
+async function catalogMaterials(root: string) {
+  const { name, version, arcadia, arcadiaEternityPack, engines } = await readPackageJson(root, 'package.json')
   if (!/^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*$/.test(name) || !arcadia?.catalog)
     fail('NPM_METADATA', root, 'Expected a compiled catalog package with a valid npm name')
-  const location = `node_modules/${name}`
-  const target = packageFile(directory, 'catalog-project')
-  const installed = resolve(target, location)
   const presentation = parseWithErrors(PresentationManifestSchema, await readPackageJson(root, arcadia.presentation))
-  const paths = [
+  const paths = new Set<string>([
     arcadiaEternityPack,
     arcadia.content,
     arcadia.presentation,
     arcadia.effectArtifact,
     arcadia.catalog,
     ...presentation.resources.filter(resource => resource.kind === 'file').map(resource => resource.source),
-  ]
-  for (const path of new Set(paths)) {
+  ])
+  const manifest = { name, version, arcadia, arcadiaEternityPack, ...(engines ? { engines } : {}) }
+  return { manifest, paths: [...paths].sort() }
+}
+
+/** Identity of the files staged for play, independent of npm packaging and development metadata. */
+export async function catalogMaterialDigest(root: string) {
+  const { manifest, paths } = await catalogMaterials(root)
+  const files = []
+  for (const path of paths) {
+    const file = packageFile(root, path)
+    if (!(await lstat(file)).isFile()) fail('NPM_FILE', path, 'Expected an ordinary catalog material')
+    files.push([
+      path,
+      createHash('sha256')
+        .update(await readFile(file))
+        .digest('hex'),
+    ])
+  }
+  return digestJson({ manifest, files })
+}
+
+/** Stage the already acquired package as an explicit, relocatable npm project. */
+export async function stageCatalogProject(directory: string, root: string) {
+  const { manifest, paths } = await catalogMaterials(root)
+  const { name, version } = manifest
+  const location = `node_modules/${name}`
+  const target = packageFile(directory, 'catalog-project')
+  const installed = resolve(target, location)
+  for (const path of paths) {
     const input = packageFile(root, path)
     if (!(await lstat(input)).isFile()) fail('NPM_FILE', path, 'Expected an ordinary catalog material')
     const output = packageFile(installed, path)
@@ -121,7 +145,7 @@ export async function stageCatalogProject(directory: string, root: string) {
     dependencies: { [name]: version },
   }
   await Promise.all([
-    writeFile(resolve(installed, 'package.json'), JSON.stringify({ name, version, arcadia, arcadiaEternityPack })),
+    writeFile(resolve(installed, 'package.json'), JSON.stringify(manifest)),
     writeFile(resolve(target, 'package.json'), JSON.stringify(project)),
     writeFile(
       resolve(target, 'package-lock.json'),

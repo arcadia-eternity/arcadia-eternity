@@ -37,6 +37,7 @@
   "description": "A runnable Arcadia Eternity user-defined content pack: species, skills, marks and TypeScript effects.",
   "license": "MIT",
   "engines": {
-    "node": ">=24 <25"
+    "node": ">=24 <25",
+    "arcadia": "^4.11.0"
   }
 }

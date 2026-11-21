@@ -38,6 +38,7 @@ const desktopApi = {
   clearPetCache: () => ipcRenderer.invoke('desktop:clear-pet-cache'),
   getAppVersion: () => ipcRenderer.invoke('desktop:get-app-version'),
   checkForUpdates: () => ipcRenderer.invoke('desktop:check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('desktop:download-update'),
   downloadAndInstallUpdate: () => ipcRenderer.invoke('desktop:download-and-install-update'),
   relaunch: () => ipcRenderer.invoke('desktop:relaunch'),
   showItemInFolder: path => ipcRenderer.invoke('desktop:show-item-in-folder', { path }),

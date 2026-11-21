@@ -8,10 +8,17 @@ const require = createRequire(import.meta.url)
 const sdkRequire = createRequire(require.resolve('@arcadia-eternity/content-sdk'))
 const { valid, validRange } = sdkRequire('semver')
 
+export function requireClientRange(source) {
+  const range = source.engines?.arcadia
+  if (typeof range !== 'string' || !range.trim() || range.length > 256 || !validRange(range))
+    throw Error('发行内容包必须在 package.json 的 engines.arcadia 声明有效的客户端版本范围')
+}
+
 export function releasePayload(source, included, presentation) {
   if (!source.arcadia?.projectId || !source.arcadia.namespace || !source.arcadia.content || !valid(source.version))
     throw Error('发行包需要有效版本、projectId、namespace 和内容入口')
   if (typeof source.license !== 'string' || !source.license.trim()) throw Error('请先设置 package.json 的 license')
+  requireClientRange(source)
   const fields = [
     'name',
     'version',

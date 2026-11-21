@@ -22,7 +22,7 @@ import { CreatorGitHub, creatorAction } from './creator-github.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
-import { openBuiltinEnvironment } from './builtin-environment.mjs'
+import { activateOfficialEnvironments, openBuiltinEnvironment } from './builtin-environment.mjs'
 import { LocalEnvironments } from './local-environments.mjs'
 import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
@@ -56,6 +56,7 @@ const localBattleHost = new LocalBattleHost({
   stateDirectory: path.join(app.getPath('userData'), 'local-server'),
   workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
   builtinId: () => builtinEnvironment?.id,
+  officialBaseRoot: () => contentLibrary?.officialPackageRoot,
   attachWorkspace: (child, publish) =>
     getManagementWorkspaceOwner().attach(child, publish ? () => getLocalEnvironments().hostingWorkspace() : undefined),
   ...(app.isPackaged
@@ -285,10 +286,57 @@ function getAuthorWorkspaces() {
   })
   return authorWorkspaces
 }
+function activeBaseRoot(runtimeRequire) {
+  return (
+    contentLibrary?.officialPackageRoot ??
+    path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+  )
+}
 function getContentLibrary() {
+  if (contentLibrary) return contentLibrary
+  const runtimeRequire = app.isPackaged
+    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+    : require
   const root = path.join(app.getPath('userData'), 'content-packages')
   contentLibrary ??= new ContentLibrary({
     root,
+    packageUpdates: {
+      clientVersion: app.isPackaged ? app.getVersion() : require('../package.json').version,
+      find: async (...args) => {
+        const { findPackageUpdate } = await import(
+          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href
+        )
+        return findPackageUpdate(...args)
+      },
+      shippedRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+      catalogDigest: async root => {
+        const { catalogMaterialDigest } = await import(
+          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/pack-loader/node')).href
+        )
+        return catalogMaterialDigest(root)
+      },
+      withArchive: async (candidate, signal, use) => {
+        const { withOfficialUpdateArchive } = await import(
+          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href
+        )
+        return withOfficialUpdateArchive(candidate, localBattleHost.npmCliPath, signal, use)
+      },
+      validate: async (directory, signal) => {
+        const { validateWorkspaceProject } = await import(
+          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
+        )
+        const { readShippedEnvironments } = await import(
+          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+        )
+        const base = '@arcadia-eternity/data-pack-base'
+        const { version } = JSON.parse(
+          await fs.readFile(path.join(directory, 'node_modules', base, 'package.json'), 'utf8'),
+        )
+        const catalog = await readShippedEnvironments(shippedEnvironmentsFile(), { [base]: version })
+        for (const draft of catalog.environments)
+          await validateWorkspaceProject({ directory, signal, draft }, { effectPreparation: 'prebuilt-only' })
+      },
+    },
     sources: readDesktopContentSources(process.argv.slice(1), root),
     reviewInstall: async (pkg, signal) => {
       const ranges = Object.entries(pkg.dependencyRanges).map(([name, range]) => name + ' ' + range)
@@ -349,7 +397,9 @@ function getContentLibrary() {
       )
       return new ManagedProjects(root, {
         ...options,
-        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+        get bundledPackageRoot() {
+          return activeBaseRoot(runtimeRequire)
+        },
       })
     },
     run: (args, signal) =>
@@ -396,7 +446,9 @@ function getLocalEnvironments() {
       // Local play and hosting borrow read leases. Persistent server bindings belong to the management workspace.
       return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
         allowShareDownloads: true,
-        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+        get bundledPackageRoot() {
+          return activeBaseRoot(runtimeRequire)
+        },
         npmCache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
         retentions: { list: async () => [] },
       })
@@ -410,66 +462,79 @@ function getLocalEnvironments() {
   })
   return localEnvironments
 }
+function shippedEnvironmentsFile() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'arcadia-server/shipped-environments.json')
+    : path.resolve(projectRoot, '../../bin/shipped-environments.json')
+}
+let builtinSync = Promise.resolve()
+function synchronizeDesktopEnvironments(workspace, reportFailure = false) {
+  const current = builtinSync.then(async () => {
+    const library = getContentLibrary()
+    await library.resume()
+    await activateOfficialEnvironments(library, () => refreshDesktopEnvironments(workspace), reportFailure)
+  })
+  builtinSync = current.catch(() => {})
+  return current
+}
+async function refreshDesktopEnvironments(workspace) {
+  const runtimeRequire = app.isPackaged
+    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+    : require
+  const { validateWorkspaceProject } = await import(
+    pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
+  )
+  const library = getContentLibrary()
+  const { synchronizeShippedEnvironments, readShippedEnvironments } = await import(
+    pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+  )
+  const catalog = await readShippedEnvironments(shippedEnvironmentsFile(), {
+    '@arcadia-eternity/data-pack-base': JSON.parse(
+      await fs.readFile(path.join(activeBaseRoot(runtimeRequire), 'package.json'), 'utf8'),
+    ).version,
+  })
+  await workspace.refreshBuiltinRules(catalog.environments)
+  builtinEnvironment = await openBuiltinEnvironment({
+    workspace,
+    library,
+    validate: validateWorkspaceProject,
+    catalog,
+    synchronizeShippedEnvironments,
+    legacyBuiltinId: async () => {
+      const directory = path.join(app.getPath('userData'), 'local-server')
+      const profile = await fs.readFile(path.join(directory, 'server.json'), 'utf8').catch(error => {
+        if (error.code !== 'ENOENT') throw error
+      })
+      if (
+        !profile ||
+        !(await fs.stat(path.join(directory, 'server.sqlite')).catch(error => {
+          if (error.code !== 'ENOENT') throw error
+        }))
+      )
+        return undefined
+      const { openStorage } = await import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/database')).href)
+      const db = openStorage({ driver: 'sqlite', filename: path.join(directory, 'server.sqlite'), readonly: true })
+      try {
+        const row = await db.get('servers', JSON.parse(profile).serverId)
+        const init = row?.value.initialization
+        return row?.value.workspaceId === workspace.workspaceId &&
+          init?.kind === 'builtin' &&
+          init.environmentId === 'desktop-host'
+          ? init.environmentId
+          : undefined
+      } finally {
+        await db.close()
+      }
+    },
+  })
+  await localBattleHost.refreshBuiltinBindings()
+}
 function getManagementWorkspaceOwner() {
   managementWorkspaceOwner ??= new DesktopWorkspaceOwner({
     root: path.join(app.getPath('userData'), 'content-packages'),
     builtinId: () => builtinEnvironment?.id,
     library: getContentLibrary(),
-    synchronize: async workspace => {
-      const runtimeRequire = app.isPackaged
-        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-        : require
-      const { validateWorkspaceProject } = await import(
-        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
-      )
-      const library = getContentLibrary()
-      const { synchronizeShippedEnvironments, readShippedEnvironments } = await import(
-        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
-      )
-      const catalog = await readShippedEnvironments(
-        app.isPackaged
-          ? path.join(process.resourcesPath, 'arcadia-server/shipped-environments.json')
-          : path.resolve(projectRoot, '../../bin/shipped-environments.json'),
-        {
-          '@arcadia-eternity/data-pack-base': runtimeRequire('@arcadia-eternity/data-pack-base/package.json').version,
-        },
-      )
-      await workspace.refreshBuiltinRules(catalog.environments)
-      await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
-      builtinEnvironment = await openBuiltinEnvironment({
-        workspace,
-        library,
-        validate: validateWorkspaceProject,
-        catalog,
-        synchronizeShippedEnvironments,
-        legacyBuiltinId: async () => {
-          const directory = path.join(app.getPath('userData'), 'local-server')
-          const profile = await fs.readFile(path.join(directory, 'server.json'), 'utf8').catch(error => {
-            if (error.code !== 'ENOENT') throw error
-          })
-          if (
-            !profile ||
-            !(await fs.stat(path.join(directory, 'server.sqlite')).catch(error => {
-              if (error.code !== 'ENOENT') throw error
-            }))
-          )
-            return undefined
-          const { openStorage } = await import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/database')).href)
-          const db = openStorage({ driver: 'sqlite', filename: path.join(directory, 'server.sqlite'), readonly: true })
-          try {
-            const row = await db.get('servers', JSON.parse(profile).serverId)
-            const init = row?.value.initialization
-            return row?.value.workspaceId === workspace.workspaceId &&
-              init?.kind === 'builtin' &&
-              init.environmentId === 'desktop-host'
-              ? init.environmentId
-              : undefined
-          } finally {
-            await db.close()
-          }
-        },
-      })
-    },
+    synchronize: synchronizeDesktopEnvironments,
     openWorkspace: async (root, options) => {
       const runtimeRequire = app.isPackaged
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
@@ -480,7 +545,9 @@ function getManagementWorkspaceOwner() {
       return ContentWorkspace.open(root, {
         ...options,
         allowShareDownloads: true,
-        bundledPackageRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+        get bundledPackageRoot() {
+          return activeBaseRoot(runtimeRequire)
+        },
       })
     },
   })
@@ -883,7 +950,7 @@ async function checkForUpdates() {
 
   const result = await autoUpdater.checkForUpdates()
   const version = result?.updateInfo?.version
-  const hasUpdate = typeof version === 'string' && version.length > 0 && version !== app.getVersion()
+  const hasUpdate = result?.isUpdateAvailable === true && typeof version === 'string'
 
   return hasUpdate ? { hasUpdate: true, version } : { hasUpdate: false }
 }
@@ -1242,6 +1309,18 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
+    if (input.action === 'check-update') {
+      const candidate = await library.checkPackageUpdate(input.packageId)
+      return candidate?.version ?? null
+    }
+    if (input.action === 'apply-update') {
+      const entry = (await library.list()).packages.find(item => item.id === input.packageId)
+      const workspace = entry?.bundled && (await getManagementWorkspaceOwner().ready())
+      const updated = await library.updatePackage(input.packageId, input.version)
+      if (workspace && updated === library.pendingOfficialUpdateId)
+        await synchronizeDesktopEnvironments(workspace, true)
+      return updated
+    }
     if (input.action === 'install-remote') return library.installRemote(input.source)
     if (input.action === 'cancel-install') {
       library.cancelInstall(input.operationId)
@@ -1308,6 +1387,10 @@ function setupIpcHandlers() {
 
   handle('desktop:get-app-version', () => app.getVersion())
   handle('desktop:check-for-updates', async () => checkForUpdates())
+  handle('desktop:download-update', async () => {
+    if (!app.isPackaged) throw new Error('仅在打包版本支持自动更新')
+    await autoUpdater.downloadUpdate()
+  })
   handle('desktop:download-and-install-update', async () => downloadAndInstallUpdate())
 
   handle('desktop:show-item-in-folder', async (_event, input) => {
@@ -1427,6 +1510,7 @@ app
       app.on('browser-window-created', (_event, window) => window.setIcon(appIconPath))
     }
     if (!devServerUrl) registerClientProtocol(session.defaultSession, rendererDistDir)
+    autoUpdater.disableDifferentialDownload = false
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = true
 

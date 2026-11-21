@@ -23,6 +23,7 @@ async function fixture(t, { files = ['dist/content.json'] } = {}) {
   await mkdir(join(project, 'node_modules', 'artifact-helper'), { recursive: true })
   const manifest = {
     name: '@test/prebuilt-pack',
+    engines: { arcadia: '^4.0.0' },
     version: '1.0.0',
     type: 'module',
     files,
@@ -308,6 +309,12 @@ test('release mode prepares the staged archive and preserves the private author 
   await writeFile(join(project, 'LICENSE'), 'MIT\n')
   await writeFile(join(project, 'dist/effects.js.map'), 'author source')
   await writeFile(join(project, 'dist/test.config.json'), 'local configuration')
+  await writeFile(join(project, 'package.json'), JSON.stringify(source))
+  delete source.engines
+  await writeFile(join(project, 'package.json'), JSON.stringify(source))
+  await assert.rejects(packBuiltProject(project, { cache }), /engines.arcadia/)
+  await assert.rejects(packBuiltProject(project, { cache, release: true }), /engines.arcadia/)
+  source.engines = { arcadia: '^4.0.0' }
   await writeFile(join(project, 'package.json'), JSON.stringify(source))
   const packed = await packBuiltProject(project, { cache, release: true })
   assert.deepEqual(packed.files.map(file => file.path).sort(), [

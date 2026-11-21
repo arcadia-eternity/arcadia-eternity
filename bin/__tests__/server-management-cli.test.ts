@@ -1,7 +1,7 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { spawn, execFile, type ChildProcess } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
@@ -623,7 +623,7 @@ it('applies the bundled base from local files even when the registry is unreacha
   expect(await catalog(running.origin)).toHaveLength(2)
 }, 90_000)
 
-it('synchronizes old base installations in existing custom environments on restart without applying', async () => {
+it('repairs official installations on restart and preserves a custom base pin offline', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-cli-base-upgrade-'))
   directories.push(directory)
   let running = await start(directory, ['--npm-registry', 'https://127.0.0.1:1'])
@@ -640,7 +640,7 @@ it('synchronizes old base installations in existing custom environments on resta
     path + '/apply',
     'POST',
     {
-      document: { ...document, id: 'custom', name: 'Keep this environment', packages: { [base]: '0.0.1' } },
+      document: { ...document, id: 'custom', name: 'Keep this environment', packages: { [base]: currentVersion } },
       expectedRevision: null,
     },
     undefined,
@@ -672,11 +672,12 @@ it('synchronizes old base installations in existing custom environments on resta
     [...before.environments.map(item => item.document.id), 'custom'].sort(),
   )
   expect(after.environments.find(item => item.document.id === 'custom')?.document.name).toBe('Keep this environment')
-  for (const { document: env } of after.environments) expect(env.packages[base]).toBe(currentVersion)
+  for (const { document: env } of after.environments)
+    expect(env.packages[base]).toBe(env.id === 'custom' ? '0.0.1' : currentVersion)
   expect(await catalog(running.origin)).toHaveLength(2)
 }, 90_000)
 
-it('replaces an old base from an external startup project without changing that source', async () => {
+it('starts the exact base in an external npm project offline', async () => {
   const { cp } = await import('node:fs/promises')
   const { withShippedEnvironmentProject } = await import('@arcadia-eternity/pack-loader/node')
   const root = await mkdtemp(join(tmpdir(), 'arcadia-external-base-upgrade-'))
@@ -687,7 +688,6 @@ it('replaces an old base from an external startup project without changing that 
   const manifest = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
   const lock = JSON.parse(await readFile(join(project, 'package-lock.json'), 'utf8'))
   const pkg = JSON.parse(await readFile(join(project, 'node_modules', base, 'package.json'), 'utf8'))
-  const version = pkg.version
   manifest.dependencies[base] = '0.0.1'
   lock.packages[''].dependencies[base] = '0.0.1'
   lock.packages['node_modules/' + base].version = '0.0.1'
@@ -698,6 +698,93 @@ it('replaces an old base from an external startup project without changing that 
   const running = await start(join(root, 'server'), ['--npm-project', project, '--npm-registry', 'https://127.0.0.1:1'])
   expect(
     (await catalog(running.origin)).find(item => item.isDefault)!.packages.find(item => item.name === base)?.version,
-  ).toBe(version)
+  ).toBe('0.0.1')
   expect(JSON.parse(await readFile(join(project, 'package.json'), 'utf8')).dependencies[base]).toBe('0.0.1')
 }, 60_000)
+
+it('stages an independent official release, serves it offline and rolls back without changing the server image', async () => {
+  const { withShippedCatalogArchive, withShippedEnvironmentProject } =
+    await import('@arcadia-eternity/pack-loader/node')
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-server-pack-update-'))
+  directories.push(root)
+  const data = join(root, 'state')
+  const name = '@arcadia-eternity/data-pack-base'
+  const version = '90.0.0'
+  const url = 'https://registry.npmjs.org/' + name + '/-/data-pack-base-' + version + '.tgz'
+  const source = join(root, 'source')
+  await withShippedEnvironmentProject(resolve('packs/base'), project =>
+    cp(join(project, 'node_modules', name), source, { recursive: true }),
+  )
+  const manifest = JSON.parse(await readFile(join(source, 'package.json'), 'utf8'))
+  const shipped = manifest.version
+  manifest.version = version
+  manifest.engines = { arcadia: '*' }
+  await writeFile(join(source, 'package.json'), JSON.stringify(manifest))
+  const effectsFile = join(source, manifest.arcadia.effectArtifact)
+  const artifact = JSON.parse(await readFile(effectsFile, 'utf8'))
+  artifact.source += '\n// independent official release\n'
+  await writeFile(effectsFile, JSON.stringify(artifact))
+  const bytes = await withShippedCatalogArchive(source, undefined, file => readFile(file))
+  const archive = join(root, 'package.tgz')
+  await writeFile(archive, bytes)
+  const metadata = {
+    name,
+    'dist-tags': { latest: version },
+    versions: {
+      [version]: {
+        version,
+        engines: manifest.engines,
+        dist: { tarball: url, integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64') },
+      },
+    },
+  }
+  const preload = join(root, 'registry.mjs')
+  await writeFile(
+    preload,
+    `
+    import { readFile } from 'node:fs/promises'
+    globalThis.fetch = async url => {
+      if (String(url) === ${JSON.stringify(url)}) return new Response(await readFile(${JSON.stringify(archive)}))
+      if (String(url) === ${JSON.stringify('https://registry.npmjs.org/' + encodeURIComponent(name))}) return Response.json(${JSON.stringify(metadata)})
+      throw new Error('Unexpected request: ' + url)
+    }
+  `,
+  )
+  const update = (action: string) =>
+    execute(process.execPath, ['--import', preload, cli, 'server', 'base-pack', action, '--data-dir', data], { env })
+  expect(JSON.parse((await update('check')).stdout)).toMatchObject({
+    installedVersion: shipped,
+    availableVersion: version,
+  })
+  await writeFile(archive, 'incomplete')
+  await expect(update('update')).rejects.toThrow(/SOURCE_INTEGRITY_MISMATCH/)
+  await writeFile(archive, bytes)
+  expect(JSON.parse((await update('update')).stdout)).toMatchObject({ installedVersion: version })
+  expect(JSON.parse((await update('check')).stdout)).toMatchObject({
+    installedVersion: version,
+    availableVersion: null,
+  })
+
+  let running = await start(data, ['--offline-content'])
+  const environments = await catalog(running.origin)
+  expect(environments.length).toBe(2)
+  expect(environments.every(item => item.packages.some(pkg => pkg.name === name && pkg.version === version))).toBe(true)
+  await stop(running.child)
+  running = await start(data, ['--offline-content', '--base-pack-version', 'bundled'])
+  expect((await catalog(running.origin)).map(item => item.packages[0].version)).toEqual([shipped, shipped])
+  const { serverOfficialMaterials, shippedBaseRoot } = await import('../server-base-pack')
+  const { ServerEnvironmentRegistry } = await import('@arcadia-eternity/server')
+  const registry = new ServerEnvironmentRegistry(undefined, await serverOfficialMaterials(data, shippedBaseRoot()))
+  try {
+    await withShippedEnvironmentProject(source, async project => {
+      const approve = { policy: { profile: 'official' as const } }
+      expect((await registry.prepareNpm(project, approve)).packages[0]?.version).toBe(version)
+      const file = join(project, 'node_modules', name, manifest.arcadia.effectArtifact)
+      artifact.source += '\n// unrecognized same-version materials\n'
+      await writeFile(file, JSON.stringify(artifact))
+      await expect(registry.prepareNpm(project, approve)).rejects.toThrow('THIRD_PARTY_EXECUTION_FORBIDDEN')
+    })
+  } finally {
+    await registry.stop()
+  }
+}, 120_000)

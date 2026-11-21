@@ -5,6 +5,21 @@ import { isDeepStrictEqual } from 'node:util'
 
 const base = '@arcadia-eternity/data-pack-base'
 
+// A restart can resume a pending activation. Repair any official presets already switched
+// before reporting a manual update failure or serving an offline startup.
+export async function activateOfficialEnvironments(library, synchronize, reportFailure = false) {
+  const pending = library.pendingOfficialUpdateId
+  try {
+    await synchronize()
+    await library.finishOfficialUpdate(pending)
+  } catch (error) {
+    if (!(await library.rollbackOfficialUpdate(pending))) throw error
+    await synchronize()
+    if (reportFailure) throw error
+    console.warn('Restored previous official base after activation failed', error)
+  }
+}
+
 // The managed workspace owns the installation even when the server is stopped.
 // Older hosts identify their previous installation through the local marker.
 export async function openBuiltinEnvironment({
@@ -76,6 +91,7 @@ export async function openBuiltinEnvironment({
           await project.release()
         }
       },
+      join(lease.directory, 'node_modules', base),
     )
     if (!marker?.initialized || marker.id !== id) await saveMarker()
     return { workspace, id }

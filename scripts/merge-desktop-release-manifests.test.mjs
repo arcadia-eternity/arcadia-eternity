@@ -59,7 +59,14 @@ async function fixture(t, version = '4.1.0') {
     const installer = assets[0]
     const manifest = {
       version,
-      files: [{ url: installer.name, sha512: sha512(installer.content), size: installer.content.length }],
+      files: [
+        {
+          url: installer.name,
+          sha512: sha512(installer.content),
+          size: installer.content.length,
+          ...(target.platform === 'linux' && { blockMapSize: 8 }),
+        },
+      ],
       path: installer.name,
       sha512: sha512(installer.content),
       releaseDate: index === 1 ? '2026-11-05T10:05:00.000Z' : '2026-11-05T10:00:00.000Z',
@@ -364,6 +371,12 @@ test('unexpected files, missing required Windows ZIP, and linked assets are reje
     const f = await fixture(t)
     await writeFile(join(f.builds[0].directory, 'unverified.zip'), 'unverified')
     await rejectBeforeOutput(f, /unexpected or missing asset/)
+  })
+  await t.test('missing Windows differential blockmap', async t => {
+    const f = await fixture(t)
+    const target = f.builds[2]
+    await rm(join(target.directory, target.assets[0].name + '.blockmap'))
+    await rejectBeforeOutput(f, /missing differential update blockmap/)
   })
   await t.test('missing Windows ZIP', async t => {
     const f = await fixture(t)

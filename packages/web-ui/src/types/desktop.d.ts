@@ -74,6 +74,7 @@ export interface ArcadiaDesktopApi {
   clearPetCache: () => Promise<void>
   getAppVersion: () => Promise<string>
   checkForUpdates: () => Promise<DesktopUpdateCheckResult>
+  downloadUpdate?: () => Promise<void>
   downloadAndInstallUpdate: () => Promise<void>
   relaunch: () => Promise<void>
   showItemInFolder: (path: string) => Promise<void>

@@ -7,6 +7,7 @@ services:
     environment:
       NODE_ENV: production
       ARCADIA_DATA_DIR: /app/state
+      ARCADIA_BASE_PACK_VERSION: '${ARCADIA_BASE_PACK_VERSION:-}'
       STORAGE_DRIVER: '${STORAGE_DRIVER:-sqlite}'
       DATABASE_URL: '${DATABASE_URL:-}'
       ACCOUNT_MODE: '${ACCOUNT_MODE:-guest}'
