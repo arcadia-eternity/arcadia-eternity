@@ -12,6 +12,13 @@ import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import YAML from 'yaml'
 
+// Earlier base tags import this list from their Rolldown configuration when staged for a client build.
+export const environmentRuleExamples = ['base-rules', 'test-120-rules']
+export const presetDefinitionsUrl = new URL('../packs/base/environment/packages.json', import.meta.url)
+export async function readPresetDefinitions() {
+  return JSON.parse(await readFile(presetDefinitionsUrl, 'utf8'))
+}
+
 /** Host identity covers both the engine and the installed native content implementation. */
 export function identifyBaseEnvironmentArtifact(code, core) {
   if (core.formatVersion !== 1 || !/^[a-f0-9]{64}$/.test(core.coreBuildId))
@@ -31,11 +38,9 @@ export async function buildBaseEnvironmentArtifact() {
   await mkdir(resolve(dir, 'environment'), { recursive: true })
   const base = JSON.parse(await readFile(resolve(root, 'packs/base/package.json'), 'utf8'))
   // Release builds can still stage the final base tag from before presets shipped with it.
-  const definitions = base.arcadia.environments
-    ? JSON.parse(await readFile(resolve(root, 'packs/base/environment/packages.json'), 'utf8'))
-    : undefined
+  const definitions = base.arcadia.environments ? await readPresetDefinitions() : undefined
   const rules = new Map()
-  for (const name of new Set(definitions?.packages.map(pkg => pkg.rules) ?? ['base-rules', 'test-120-rules'])) {
+  for (const name of new Set(definitions?.packages.map(pkg => pkg.rules) ?? environmentRuleExamples)) {
     const source = await readFile(resolve(root, 'packs/base/environment', name + '.yaml'), 'utf8')
     rules.set(name, YAML.parse(source))
     await writeFile(resolve(dir, 'environment', name + '.json'), JSON.stringify(rules.get(name)) + '\n')
