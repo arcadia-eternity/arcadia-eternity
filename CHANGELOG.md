@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.11.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.11.0...arcadia-eternity-v4.11.1) (2026-11-21)
+
+
+### 🐛 Bug Fixes
+
+* **web:** match client downloads to desktop releases and device architecture ([f63b42a](https://github.com/arcadia-eternity/arcadia-eternity/commit/f63b42ad936538b2043a1868bd6b720678943ef0))
+
 ## [4.11.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.10.0...arcadia-eternity-v4.11.0) (2026-11-20)
 
 
