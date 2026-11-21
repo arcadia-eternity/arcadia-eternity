@@ -5,6 +5,43 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { catalogMaterialDigest, withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
 import { selectPackageUpdate, selectServerBase } from '@arcadia-eternity/content-sdk/managed-projects'
+import { startAutomaticContentUpdates } from '../builtin-environment.mjs'
+
+test('background content checks retry offline, avoid overlapping downloads and cancel on quit', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const attempts = []
+  const errors = []
+  const download = Promise.withResolvers()
+  const stop = startAutomaticContentUpdates(
+    async ({ signal }) => {
+      attempts.push(signal)
+      if (attempts.length === 1) throw new Error('offline')
+      if (attempts.length === 2) return download.promise
+      await new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }))
+    },
+    error => errors.push(error.message),
+  )
+  const tick = async ms => {
+    t.mock.timers.tick(ms)
+    await new Promise(resolve => setImmediate(resolve))
+  }
+  assert.equal(attempts.length, 0)
+  await tick(3000)
+  assert.deepEqual(errors, ['offline'])
+  await tick(15 * 60000 - 1)
+  assert.equal(attempts.length, 1)
+  await tick(1)
+  await tick(6 * 3600000)
+  assert.equal(attempts.length, 2)
+  download.resolve()
+  await tick(0)
+  await tick(6 * 3600000)
+  assert.equal(attempts.length, 3)
+  await stop()
+  assert.equal(attempts[2].aborted, true)
+  await tick(12 * 3600000)
+  assert.equal(attempts.length, 3)
+})
 
 test('selects the newest declared compatible stable release for each npm package', () => {
   const name = '@community/pets'

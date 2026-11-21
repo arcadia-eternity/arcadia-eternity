@@ -22,7 +22,12 @@ import { CreatorGitHub, creatorAction } from './creator-github.mjs'
 import { AuthorWorkspaces } from './author-workspaces.mjs'
 import { createLocalContentSessions } from './local-content-sessions.mjs'
 import { bindLocalContentOwner } from './local-content-owner.mjs'
-import { activateOfficialEnvironments, openBuiltinEnvironment } from './builtin-environment.mjs'
+import {
+  activateOfficialEnvironments,
+  createOfficialContentUpdater,
+  openBuiltinEnvironment,
+  startAutomaticContentUpdates,
+} from './builtin-environment.mjs'
 import { LocalEnvironments } from './local-environments.mjs'
 import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
@@ -468,6 +473,8 @@ function shippedEnvironmentsFile() {
     : path.resolve(projectRoot, '../../bin/shipped-environments.json')
 }
 let builtinSync = Promise.resolve()
+let updateOfficialContent
+let stopAutomaticContentUpdates
 function synchronizeDesktopEnvironments(workspace, reportFailure = false) {
   const current = builtinSync.then(async () => {
     const library = getContentLibrary()
@@ -1310,12 +1317,9 @@ function setupIpcHandlers() {
       return candidate?.version ?? null
     }
     if (input.action === 'apply-update') {
-      const entry = (await library.list()).packages.find(item => item.id === input.packageId)
-      const workspace = entry?.bundled && (await getManagementWorkspaceOwner().ready())
-      const updated = await library.updatePackage(input.packageId, input.version)
-      if (workspace && updated === library.pendingOfficialUpdateId)
-        await synchronizeDesktopEnvironments(workspace, true)
-      return updated
+      if (typeof input.version !== 'string') throw new Error('请选择要更新的版本')
+      if (library.isOfficialPackage(input.packageId)) return updateOfficialContent({ expectedVersion: input.version })
+      return library.updatePackage(input.packageId, input.version)
     }
     if (input.action === 'install-remote') return library.installRemote(input.source)
     if (input.action === 'cancel-install') {
@@ -1467,6 +1471,7 @@ app.on('before-quit', event => {
       stoppingForQuit = undefined
       return
     }
+    if (stopAutomaticContentUpdates) await stopForQuit([stopAutomaticContentUpdates], { timeoutMs: 3000 })
     await stopForQuit(
       [
         () => swfHost.dispose(),
@@ -1512,7 +1517,10 @@ app
 
     await ensureAppDataDirs()
     await getContentLibrary().resume()
-    await getManagementWorkspaceOwner().ready()
+    const workspace = await getManagementWorkspaceOwner().ready()
+    updateOfficialContent = createOfficialContentUpdater(getContentLibrary(), () =>
+      synchronizeDesktopEnvironments(workspace, true),
+    )
     await getLocalEnvironments().ready()
     await startLocalServer()
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
@@ -1530,6 +1538,10 @@ app
     setupIpcHandlers()
     swfHost.registerIpc(ipcMain)
     createMainWindow()
+    if (app.isPackaged)
+      stopAutomaticContentUpdates = startAutomaticContentUpdates(updateOfficialContent, error =>
+        console.warn('Automatic official content update failed', error),
+      )
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createMainWindow()

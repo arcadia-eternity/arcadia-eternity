@@ -67,11 +67,12 @@ export function selectPackageUpdate(
   return null
 }
 
-export async function findPackageUpdate(name: string, current: string, client: string) {
+export async function findPackageUpdate(name: string, current: string, client: string, signal?: AbortSignal) {
+  const timeout = AbortSignal.timeout(20000)
   const response = await fetch('https://registry.npmjs.org/' + encodeURIComponent(name), {
     headers: { Accept: 'application/vnd.npm.install-v1+json' },
     redirect: 'error',
-    signal: AbortSignal.timeout(20000),
+    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
   })
   if (!response.ok) throw new Error('无法检查 npm 包更新（HTTP ' + response.status + '）')
   // The full version history is needed to find a compatible release below latest.
