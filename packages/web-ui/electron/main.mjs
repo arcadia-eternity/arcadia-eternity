@@ -34,6 +34,7 @@ const { autoUpdater } = require('electron-updater')
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const appIconPath = path.join(__dirname, 'icon.png')
 const projectRoot = path.resolve(__dirname, '..')
 const rendererDistDir = path.join(projectRoot, 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
@@ -1420,6 +1421,11 @@ app.on('before-quit', event => {
 app
   .whenReady()
   .then(async () => {
+    if (process.platform === 'darwin') {
+      if (!app.isPackaged) app.dock.setIcon(appIconPath)
+    } else {
+      app.on('browser-window-created', (_event, window) => window.setIcon(appIconPath))
+    }
     if (!devServerUrl) registerClientProtocol(session.defaultSession, rendererDistDir)
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = true

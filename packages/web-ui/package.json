@@ -136,6 +136,7 @@
   "build": {
     "appId": "com.arcadia.eternity",
     "productName": "Arcadia Eternity",
+    "icon": "electron/icon.png",
     "npmRebuild": false,
     "asar": true,
     "files": [
