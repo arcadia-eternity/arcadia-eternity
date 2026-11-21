@@ -59,6 +59,30 @@ it('keeps the initial empty state hidden until projects finish loading', async (
   page.unmount()
 })
 
+it('can register the installed CLI before opening a project', async () => {
+  vi.stubEnv('PROD', true)
+  const author = vi.fn(async ({ action }: { action: string }) => ({
+    result:
+      action === 'list' ? [] : { commandPath: '/user/bin/arcadia-content', pathDirectory: '/user/bin', onPath: false },
+  }))
+  vi.stubGlobal('arcadiaDesktop', { author })
+  const page = mount(CreationPage)
+  try {
+    await flushPromises()
+    await page
+      .findAll('button')
+      .find(button => button.text() === '安装终端命令')!
+      .trigger('click')
+    await flushPromises()
+    expect(author).toHaveBeenCalledWith({ action: 'install-terminal-command' })
+    expect(page.text()).toContain('/user/bin/arcadia-content')
+    expect(page.text()).toContain('/user/bin 加入 PATH')
+  } finally {
+    page.unmount()
+    vi.unstubAllEnvs()
+  }
+})
+
 it('prefills the host compatibility range and submits the author’s override', async () => {
   const author = vi.fn(async (input: { action: string }) => ({
     result: input.action === 'list' ? [] : { id: 'new-pack' },

@@ -4,19 +4,9 @@ import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { siblingModulePath } from './module-path.ts'
 import { errorMessage } from './types.ts'
+import { commandHelp as help, commandsCli } from './command-discovery.ts'
 const require = createRequire(import.meta.url)
 const [command, ...args] = process.argv.slice(2)
-const help = `arcadia-content <command>
-  init <pack|environment> <directory> [--id <id>]  Create an author project
-  check     Check content sources or a standalone environment declaration
-  build     Compile TypeScript and assemble content/media/locales metadata
-  rename    Change package/project/namespace identities and local references
-  demo [--seed <seed>]  Run a battle with the project's saved teams
-  preview   Prepare a local candidate for the full battle client; stop with Ctrl+C
-  pack [--release]  Build a content pack or environment archive; --release verifies a content pack in a clean consumer
-  setup     Install the pinned development SDK and tool
-  workspace <directory> <operation> [--execute]  Structured author operations
-`
 function run(file: string, arguments_: string[]) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(file, arguments_, { stdio: 'inherit', cwd: process.cwd() })
@@ -46,6 +36,8 @@ async function build() {
 }
 try {
   if (!command || command === '--help' || command === '-h') console.log(help)
+  else if (command === 'commands') await commandsCli(args)
+  else if (command === 'desktop') await (await import('./desktop-cli.ts')).desktopCli(args)
   else if (command === 'init') await (await import('./init.ts')).initCommand(args)
   else if (command === 'workspace') {
     const { workspaceCli } = await import('./workspace-cli.ts')

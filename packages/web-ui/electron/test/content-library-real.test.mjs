@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,6 +12,8 @@ import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { ContentLibrary } from '../content-library.mjs'
 import { LocalEnvironments } from '../local-environments.mjs'
+import { playerLibraryRequest } from '../player-library-bridge.mjs'
+import { startTestPlayerLibraryBridge } from './fixtures/player-library-bridge.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 
@@ -306,7 +308,14 @@ test(
       return join(output, parseNpmPackOutput(packed.stdout)[0].filename)
     }
     const name = '@arcadia-example/slow'
-    await rename(await pack(join(repository, 'examples/ugc/slow'), candidates), join(candidates, 'slow.tgz'))
+    const fixture = join(root, 'slow')
+    await mkdir(fixture)
+    for (const file of ['package.json', 'content.json', 'src']) {
+      await cp(join(repository, 'examples/ugc/slow', file), join(fixture, file), { recursive: true })
+    }
+    const { buildEffects } = await import('@arcadia-eternity/content-sdk/build')
+    await buildEffects(fixture)
+    await rename(await pack(fixture, candidates), join(candidates, 'slow.tgz'))
     const declaration = {
       schemaVersion: 2,
       id: 'desktop-league',
@@ -371,12 +380,59 @@ test(
     assert.equal(installed.result.environmentId, declaration.id)
     const selected = await complete({ action: 'select', environmentId: declaration.id })
     assert.equal(selected.status, 'succeeded', JSON.stringify(selected.error))
+
+    const label = 'Isolated player'
+    const target = { label, library, environments: owner }
+    const directory = join(root, '.arcadia', 'player-libraries')
+    const { desktopCommand } = await import('../../../content-dev/src/desktop-cli.ts')
+    const options = { directory }
+    let bridge
+    try {
+      bridge = await startTestPlayerLibraryBridge({ ...target, profile: root, home: root })
+    } catch (error) {
+      if (error.code !== 'EPERM' || error.syscall !== 'listen') throw error
+      // Restricted runners can exercise the same CLI and owners without opening a socket.
+      t.diagnostic('loopback unavailable; using the owner dispatch directly')
+      const id = '1'.repeat(32)
+      await mkdir(directory, { recursive: true, mode: 0o700 })
+      await writeFile(
+        join(directory, id + '.json'),
+        JSON.stringify({
+          protocol: 'arcadia.player-library/v1',
+          id,
+          label,
+          pid: process.pid,
+          port: 1,
+          token: 'a'.repeat(64),
+        }),
+        { mode: 0o600, flag: 'wx' },
+      )
+      const dispatch = playerLibraryRequest({ ...target, id })
+      options.transport = async (_instance, request) => ({ status: 200, payload: { result: await dispatch(request) } })
+    }
+    const secondId = 'desktop-cli-league'
+    try {
+      const { instances } = await desktopCommand(['instances'], options)
+      assert.equal(instances.length, 1)
+      const targetArgs = ['--instance', instances[0].id]
+      const installedViaCli = await desktopCommand(
+        ['environments', 'install', archive, '--id', secondId, ...targetArgs],
+        options,
+      )
+      assert.deepEqual(installedViaCli, { kind: 'environment', id: secondId, name: declaration.name })
+      const listed = await desktopCommand(['environments', 'list', ...targetArgs], options)
+      assert.equal(listed.selectedEnvironmentId, declaration.id)
+      assert.ok(listed.environments.some(entry => entry.id === secondId && !entry.selected))
+    } finally {
+      await bridge?.close()
+    }
     await owner.close()
     await rm(recipe, { recursive: true })
     await rm(archive)
     owner = openOwner()
     const snapshot = await owner.snapshot()
     assert.equal(snapshot.selectedEnvironmentId, declaration.id)
+    assert.ok(snapshot.installations.some(entry => entry.environmentId === secondId && entry.status === 'ready'))
     assert.ok(snapshot.installations[0].contentCatalog.species.some(pet => pet.id === 'example-slow:pet'))
     const lease = await owner.acquireProject()
     try {

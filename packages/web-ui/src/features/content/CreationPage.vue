@@ -18,6 +18,8 @@ const busy = ref(false)
 const initialized = ref(false)
 const error = ref('')
 const canAuthor = !!window.arcadiaDesktop?.author
+const canInstallCli = canAuthor && import.meta.env.PROD
+const cliNotice = ref('')
 const editable = computed(() => projects.value.filter(project => !project.readOnly))
 async function run(action: () => Promise<void>) {
   if (busy.value) return
@@ -72,6 +74,19 @@ async function choose() {
     if (project) await open(project)
   })
 }
+async function installCli() {
+  cliNotice.value = ''
+  await run(async () => {
+    const { commandPath, pathDirectory, onPath } = await authorCall<{
+      commandPath: string
+      pathDirectory: string
+      onPath: boolean
+    }>({ action: 'install-terminal-command' })
+    cliNotice.value = onPath
+      ? `已安装到 ${commandPath}。在终端运行 arcadia-content --help。`
+      : `已安装到 ${commandPath}。如果终端找不到 arcadia-content，请将 ${pathDirectory} 加入 PATH。`
+  })
+}
 async function forget(project: SourceProject) {
   await run(async () => {
     await authorCall({ action: 'forget', id: project.id })
@@ -90,6 +105,7 @@ onMounted(() => {
   <section class="creation-page" aria-labelledby="creation-title" :aria-busy="busy">
     <h1 id="creation-title">内容包与创作</h1>
     <ElAlert v-if="error" :title="error" type="error" :closable="false" role="alert" />
+    <ElAlert v-if="cliNotice" :title="cliNotice" type="success" role="status" @close="cliNotice = ''" />
     <section v-if="canAuthor && githubOpen" class="github-clone" aria-label="从 GitHub 打开">
       <CreatorGitHubPanel mode="clone" @cloned="open" />
     </section>
@@ -104,6 +120,7 @@ onMounted(() => {
         <ElButton :disabled="busy" @click="choose">打开项目文件夹</ElButton>
         <ElButton :aria-expanded="githubOpen" @click="githubOpen = !githubOpen">从 GitHub 打开</ElButton>
         <ElButton :disabled="busy" @click="cloneProject">克隆源项目</ElButton>
+        <ElButton v-if="canInstallCli" :disabled="busy" @click="installCli">安装终端命令</ElButton>
         <ElButton v-if="cloning" @click="authorCall({ action: 'git-cancel', id: 'clone' })">取消克隆</ElButton>
       </template>
       <template #project-detail="{ project }">

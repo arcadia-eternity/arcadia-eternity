@@ -249,6 +249,13 @@ export class LocalEnvironments {
     this.#tail = job.promise.catch(() => {})
     return { operationId: job.id }
   }
+  async waitForOperation(id) {
+    const job = this.#jobs.get(id)
+    if (!job) throw fail('OPERATION_NOT_FOUND')
+    await job.promise
+    if (job.status !== 'succeeded') throw fail(job.error?.code ?? 'ENVIRONMENT_FAILED', job.error?.message)
+    return job.result
+  }
   async #apply(
     workspace,
     document,

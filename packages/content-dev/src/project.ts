@@ -2,12 +2,13 @@ import { cp, lstat, mkdir, mkdtemp, rm, readFile, realpath, readdir, symlink, wr
 import { tmpdir } from 'node:os'
 import { ManagedProjects } from './managed-projects.ts'
 import type { AuthorWorkspace } from './workspace.ts'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { WorkspaceError, normalizeArcadiaRange } from './workspace.ts'
 import { siblingModulePath } from './module-path.ts'
 import { errorCode } from './types.ts'
+import { persistentSdkPackages } from './appimage-sdk.ts'
 const require = createRequire(import.meta.url)
 const moduleRoot = fileURLToPath(new URL('../', import.meta.url))
 export function authorConnection(
@@ -75,7 +76,7 @@ export async function connectDevelopmentSdk(root: string) {
   await directory(['node_modules'])
   await directory(['node_modules', '@arcadia-eternity'])
   await directory(['node_modules', '.bin'])
-  const packages = {
+  const sources = {
     '@arcadia-eternity/battle': await packageRoot('@arcadia-eternity/battle', '@arcadia-eternity/battle/engine'),
     '@arcadia-eternity/pack-loader': await packageRoot(
       '@arcadia-eternity/pack-loader',
@@ -84,18 +85,29 @@ export async function connectDevelopmentSdk(root: string) {
     '@arcadia-eternity/content-sdk': moduleRoot,
     typescript: await packageRoot(['typescript', 'typescript-native-bridge'], 'typescript'),
   }
-  const linked = []
-  for (const [name, source] of Object.entries(packages)) {
-    const target = join(root, 'node_modules', name)
-    await directory(['node_modules', ...name.split('/').slice(0, -1)])
+  let connected: Promise<Record<string, string>> | undefined
+  const packages = () => (connected ??= persistentSdkPackages(sources))
+  async function missing(target: string) {
     try {
       await lstat(target)
-      continue
+      return false
     } catch (error) {
       if (errorCode(error) !== 'ENOENT') throw error
+      return true
     }
-    await symlink(source, target, process.platform === 'win32' ? 'junction' : 'dir')
-    linked.push(name)
+  }
+  const linked = []
+  for (const name of Object.keys(sources)) {
+    const target = join(root, 'node_modules', name)
+    await directory(['node_modules', ...name.split('/').slice(0, -1)])
+    if (!(await missing(target))) continue
+    const source = (await packages())[name]
+    try {
+      await symlink(source, target, process.platform === 'win32' ? 'junction' : 'dir')
+      linked.push(name)
+    } catch (error) {
+      if (errorCode(error) !== 'EEXIST') throw error
+    }
   }
   // npm scripts use the shared CLI, while the desktop invokes its absolute entry directly.
   const bin = join(root, 'node_modules/.bin')
@@ -104,13 +116,18 @@ export async function connectDevelopmentSdk(root: string) {
     ['arcadia-content', 'cli'],
     ['arcadia-content-mcp', 'mcp'],
   ]) {
-    const script = siblingModulePath(entry)
+    const target = join(bin, process.platform === 'win32' ? name + '.cmd' : name)
+    if (!(await missing(target))) continue
+    const script = join(
+      (await packages())['@arcadia-eternity/content-sdk'],
+      relative(moduleRoot, siblingModulePath(entry)),
+    )
     if (process.platform === 'win32')
-      await writeFile(join(bin, name + '.cmd'), `@echo off\r\nnode "${script}" %*\r\n`, { flag: 'wx' }).catch(e => {
+      await writeFile(target, `@echo off\r\nnode "${script}" %*\r\n`, { flag: 'wx' }).catch(e => {
         if (errorCode(e) !== 'EEXIST') throw e
       })
     else
-      await symlink(script, join(bin, name)).catch(e => {
+      await symlink(script, target).catch(e => {
         if (errorCode(e) !== 'EEXIST') throw e
       })
   }

@@ -13,6 +13,9 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const exactPackage = /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 // npm redacts UUIDs even in npm ls JSON paths; keep opaque handles out of directory names.
 const storageName = id => 'content-' + id.replaceAll('-', '')
+export function isExactPackageSpec(spec) {
+  return typeof spec === 'string' && spec.length <= 256 && exactPackage.test(spec)
+}
 const contentKinds = ['species', 'skills', 'marks']
 const packageName = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
 const sourceError = code => Object.assign(new Error(code), { code })
@@ -980,8 +983,7 @@ export class ContentLibrary {
   }
   async #stageNpm(spec, offline = false, signal = this.#controller.signal) {
     return this.#exclusive(async () => {
-      if (typeof spec !== 'string' || spec.length > 256 || !exactPackage.test(spec))
-        throw new Error('请输入 npm 包名和明确版本，例如 @author/pets@1.0.0')
+      if (!isExactPackageSpec(spec)) throw new Error('请输入 npm 包名和明确版本，例如 @author/pets@1.0.0')
       return this.#stageInstall({ kind: 'npm', spec, label: spec }, offline, signal)
     })
   }

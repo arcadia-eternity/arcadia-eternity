@@ -15,6 +15,7 @@ import { createSwfHost } from './swf-host.mjs'
 import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
+import { playerLibraryRoute, registerPlayerLibrary } from './player-library-bridge.mjs'
 import { ContentLibrary, readDesktopContentSources } from './content-library.mjs'
 import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
 import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
@@ -32,6 +33,8 @@ import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
 protectStandardStreams()
+
+let playerLibraryBridge
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')
@@ -853,6 +856,11 @@ async function handleLocalServerRequest(req, res) {
     return
   }
 
+  if (req.url === playerLibraryRoute) {
+    if (!playerLibraryBridge) return sendJson(res, 503, { error: { code: 'PLAYER_LIBRARY_CLOSED' } })
+    return playerLibraryBridge.handle(req, res)
+  }
+
   if (req.method === 'OPTIONS') {
     sendResponse(res, 204, Buffer.alloc(0))
     return
@@ -1108,6 +1116,12 @@ function setupIpcHandlers() {
   handle('desktop:author', async (event, input) => {
     try {
       if (!input || typeof input.action !== 'string') throw new Error('作者操作无效')
+      if (input.action === 'install-terminal-command') {
+        if (!app.isPackaged) throw new Error('请在已安装的桌面客户端中安装终端命令。')
+        const modulePath = path.join(process.resourcesPath, 'arcadia-server/bin/desktop-author-cli.mjs')
+        const { registerDesktopUserCommand } = await import(pathToFileURL(modulePath).href)
+        return { result: await registerDesktopUserCommand() }
+      }
       const manager = getAuthorWorkspaces()
       let result
       if (input.action === 'list') result = await manager.list()
@@ -1499,6 +1513,9 @@ app.on('before-quit', event => {
       stoppingForQuit = undefined
       return
     }
+    const playerLibrary = playerLibraryBridge
+    playerLibraryBridge = undefined
+    if (playerLibrary) await stopForQuit([() => playerLibrary.close()], { timeoutMs: 3000 })
     if (stopAutomaticContentUpdates) await stopForQuit([stopAutomaticContentUpdates], { timeoutMs: 3000 })
     await stopForQuit(
       [
@@ -1566,6 +1583,17 @@ app
     setupIpcHandlers()
     swfHost.registerIpc(ipcMain)
     createMainWindow()
+    try {
+      playerLibraryBridge = await registerPlayerLibrary({
+        port: localServerPort,
+        profile: app.getPath('userData'),
+        label: app.getName() + ' · ' + app.getPath('userData'),
+        library: getContentLibrary(),
+        environments: getLocalEnvironments(),
+      })
+    } catch (error) {
+      console.warn('Player library CLI connection unavailable:', error.code ?? error.message)
+    }
     if (app.isPackaged) {
       const { startAutomaticContentUpdates } = await loadPackageUpdates()
       stopAutomaticContentUpdates = startAutomaticContentUpdates(updateOfficialContent, error =>

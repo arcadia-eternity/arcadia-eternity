@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 import { verifyDesktopSqlite } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks } from './desktop-runtime-portability.mjs'
+import { writeDesktopCliLauncher } from './desktop-cli-launcher.mjs'
 
 const exec = promisify(execFile)
 let previewAccepted = false
@@ -15,19 +16,35 @@ let previewAccepted = false
 const architecture = value =>
   typeof value === 'string' ? value : ['ia32', 'x64', 'armv7l', 'arm64', 'universal'][value]
 
-/** Exercise the SDK, bundled npm and battle worker using the target app's embedded Node. */
-export async function verifyPackagedAuthoring(executable, runtime) {
+/** Exercise the installed shell command from a fresh author home with no system Node or npm on PATH. */
+export async function verifyPackagedAuthoring(launcher) {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-packaged-author-'))
-  const cli = join(runtime, 'node_modules/@arcadia-eternity/content-sdk/bin/arcadia-content.mjs')
+  const userBin = join(directory, 'command bin')
   const env = {
-    ...process.env,
-    ELECTRON_RUN_AS_NODE: '1',
-    ARCADIA_NPM_CLI: join(runtime, 'runtime/npm/bin/npm-cli.js'),
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => /^(systemroot|comspec|pathext|tmpdir|temp|tmp)$/i.test(key)),
+    ),
+    HOME: directory,
+    USERPROFILE: directory,
+    PATH: userBin,
     npm_config_cache: join(directory, 'npm-cache'),
     npm_config_offline: 'true',
   }
-  const run = async (cwd, args, input) => {
-    const command = exec(executable, [cli, ...args], { cwd, env, timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+  const run = async (entry, cwd, args, input) => {
+    const options = { cwd, env: { ...env }, timeout: 120000, maxBuffer: 8 * 1024 * 1024 }
+    if (process.platform === 'win32') {
+      // A .cmd entry needs the Windows command interpreter. Expand paths inside quotes so
+      // spaces and shell metacharacters in the install and temp directories survive.
+      const quoted = [entry, ...args].map((value, index) => {
+        const key = 'ARCADIA_SMOKE_ARG_' + index
+        options.env[key] = value
+        return '"%' + key + '%"'
+      })
+      entry = process.env.ComSpec ?? join(process.env.SystemRoot, 'System32/cmd.exe')
+      args = ['/d', '/v:off', '/s', '/c', '"' + quoted.join(' ') + '"']
+      options.windowsVerbatimArguments = true
+    }
+    const command = exec(entry, args, options)
     command.child.stdin.end(input && JSON.stringify(input))
     const { stdout } = await command
     return stdout
@@ -38,28 +55,41 @@ export async function verifyPackagedAuthoring(executable, runtime) {
     return JSON.parse(receipt[1])
   }
   try {
-    const pack = join(directory, 'smoke-pack')
-    await run(directory, ['init', 'pack', pack])
-    const built = result(await run(pack, ['pack']))
+    const alias = process.platform === 'win32' ? 'arcadia-content.cmd' : 'arcadia-content'
+    const registration = JSON.parse(await run(launcher, directory, ['--install-user-command', userBin]))
+    if (relative(join(userBin, alias), registration.commandPath) || !registration.onPath)
+      throw new Error('Packaged CLI did not register its shell command in the requested directory')
+    const { instances } = JSON.parse(await run(alias, directory, ['desktop', 'instances']))
+    if (!Array.isArray(instances) || instances.length)
+      throw new Error('Packaged CLI returned an unexpected player instance in a fresh home')
+    const pack = join(directory, 'starter pack')
+    await run(alias, directory, ['init', 'pack', pack, '--id', 'smoke-pack'])
+    const built = result(await run(alias, pack, ['pack']))
     if (!built?.integrity?.startsWith('sha512-'))
       throw new Error('Packaged author SDK did not build the starter archive')
     const environment = join(directory, 'smoke-environment')
-    await run(directory, ['init', 'environment', environment])
-    const recipe = result(await run(environment, ['pack']))
+    await run(alias, directory, ['init', 'environment', environment])
+    const recipe = result(await run(alias, environment, ['pack']))
     const file = 'environment.tgz'
     await cp(join(environment, recipe.filename), join(pack, file))
     const { result: installed } = JSON.parse(
-      await run(pack, ['workspace', pack, 'environment-install'], { source: { kind: 'archive', file }, offline: true }),
+      await run(alias, pack, ['workspace', '.', 'environment-install'], {
+        source: { kind: 'archive', file },
+        offline: true,
+      }),
     )
     if (installed?.id !== 'smoke-environment' || installed.integrity !== recipe.integrity)
       throw new Error('Packaged author SDK did not install the environment archive')
-    const demo = result(await run(installed.directory, ['demo', '--seed', 'packaged-author']))
+    const demo = result(await run(alias, installed.directory, ['demo', '--seed', 'packaged-author']))
     if (
       demo?.status !== 'completed' ||
       demo.seed !== 'packaged-author' ||
       demo.candidate?.environmentId !== 'smoke-environment'
     )
       throw new Error('Packaged author SDK did not complete the standalone environment battle')
+    console.log(
+      'Packaged CLI created both project kinds, installed the environment archive and completed the seeded battle.',
+    )
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -109,6 +139,7 @@ async function verifyPackagedRuntime(context) {
     platform === 'darwin'
       ? join(resources, '../MacOS', product)
       : join(context.appOutDir, platform === 'win32' ? `${product}.exe` : context.packager.executableName)
+  const launcher = await writeDesktopCliLauncher({ executable, runtime, platform })
   const runtimeRequire = createRequire(join(runtime, 'node_modules/@arcadia-eternity/database/package.json'))
   await verifyDesktopSqlite({
     executable,
@@ -118,7 +149,7 @@ async function verifyPackagedRuntime(context) {
     arch,
   })
   if (process.env.ARCADIA_DESKTOP_MANAGED_HOST_TEST === '1') {
-    await verifyPackagedAuthoring(executable, runtime)
+    await verifyPackagedAuthoring(launcher)
     const test = fileURLToPath(
       new URL('../packages/web-ui/electron/test/desktop-managed-host-real.test.mjs', import.meta.url),
     )

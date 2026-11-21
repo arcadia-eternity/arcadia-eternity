@@ -1,6 +1,10 @@
 # 创建与调试资料包和环境
 
-已安装作者 SDK 后，在新目录创建资料包用 `arcadia-content init pack frost-pack`。模板包含精灵、技能、减速印记、TypeScript 效果和场景测试。首个示例命中后减速两回合，重复命中刷新持续时间。
+在桌面客户端的“内容包与创作”页点击“安装终端命令”，即可用客户端自带的 `arcadia-content`。若终端找不到命令，使用页面返回的完整路径，或将其目录加入 `PATH`。独立安装的作者 SDK 提供相同的创作命令。运行 `arcadia-content commands --json` 可以查询这个版本支持的命令、工作区操作和调试参数。
+
+Linux AppImage 首次为项目连接 SDK 时，会把创作依赖保存在 `${XDG_DATA_HOME:-$HOME/.local/share}/arcadia-eternity/author-sdks`。同一 AppImage 的项目共用一份，关闭客户端后项目内的命令仍能找到依赖。
+
+在新目录创建资料包用 `arcadia-content init pack frost-pack`。模板包含精灵、技能、减速印记、TypeScript 效果和场景测试。首个示例命中后减速两回合，重复命中刷新持续时间。
 
 要用已有资料包编排赛制，可以直接创建独立环境。
 
@@ -14,6 +18,18 @@ arcadia-content workspace singles-cup preview --execute
 环境的 `package.json` 用 `dependencies` 选择资料包，用 `arcadiaEnvironment` 保存规则。模板提供 `blue` 和 `orange` 两支测试队。可用的同版基础包会在本机复用，缺少的注册表依赖首次运行时可能需要联网。静态检查通过后，用固定种子的演示验证实际组装的环境。试玩命令会持续运行，按 Ctrl+C 结束。
 
 通过 MCP 连接这个目录后，可用 `environment_list` 读取环境版本，`environment_save` 保存规则，`preview_start` 准备新候选，然后用 `team_validate` 逐队检查该版本的准入结果。命中禁用规则时，结果含 `valid: false`、诊断和环境修订。用 `battle_create` 指定两支合法队伍和种子即可开局。完整创作指南可从 `author_reference` 的 `authoring` 主题读取。
+
+## 安装到玩家的桌面客户端
+
+保持目标客户端打开。以下命令会列出可连接的实例、安装已打包的环境并核对玩家库。将 `INSTANCE_ID` 换成第一条命令返回的 `id`，将归档路径换成 `arcadia-content pack` 输出的文件名。只有一个实例在线时可以省略 `--instance`。
+
+```sh
+arcadia-content desktop instances
+arcadia-content desktop environments install ./singles-cup.tgz --instance INSTANCE_ID
+arcadia-content desktop environments list --instance INSTANCE_ID
+```
+
+资料包使用 `desktop packages install` 和 `desktop packages list`。安装源支持本地 `.tgz` 或精确 npm 版本，资料包也支持桌面端已有的 `.zip` 格式。默认使用离线物料，允许下载时加 `--allow-download`。客户端沿用已有的安装确认和效果执行授权。新环境安装后可在客户端环境列表中选择。
 
 ## 从独立模板开始
 
