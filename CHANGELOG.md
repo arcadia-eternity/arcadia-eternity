@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.14.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.13.0...arcadia-eternity-v4.14.0) (2026-11-21)
+
+
+### ✨ Features
+
+* **authoring:** create, install and debug content packs and environments ([f968edb](https://github.com/arcadia-eternity/arcadia-eternity/commit/f968edbe8b5c60d390fc3ee8852eaee970dcda60))
+
 ## [4.13.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.12.0...arcadia-eternity-v4.13.0) (2026-11-21)
 
 
