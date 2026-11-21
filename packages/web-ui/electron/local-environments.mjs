@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises'
+import { lstat, mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises'
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code })
 const safeInstallation = version => {
@@ -20,12 +20,13 @@ export class LocalEnvironments {
   #jobs = new Map()
   #closed = false
   #tail = Promise.resolve()
-  constructor({ openWorkspace, library, validate, addPackage, removePackage, baseRules, openBuiltin }) {
+  constructor({ openWorkspace, library, validate, acquireRecipe, addPackage, removePackage, baseRules, openBuiltin }) {
     this.openBuiltin = openBuiltin
     this.baseRules = baseRules
     this.openWorkspace = openWorkspace
     this.library = library
     this.validate = validate
+    this.acquireRecipe = acquireRecipe
     this.addPackage = addPackage
     this.removePackage = removePackage
   }
@@ -248,7 +249,50 @@ export class LocalEnvironments {
     this.#tail = job.promise.catch(() => {})
     return { operationId: job.id }
   }
-  async request(input) {
+  async #apply(
+    workspace,
+    document,
+    { expectedRevision, copyFrom, allowDownload },
+    signal,
+    onProgress,
+    recipeDirectory,
+  ) {
+    const environmentId = document.id
+    const current = await workspace.getDraft(environmentId).catch(error => {
+      if (error.code !== 'ENOENT') throw error
+      return undefined
+    })
+    if ((current?.revision ?? null) !== expectedRevision) throw fail('REVISION_CONFLICT')
+    const origin = this.#source(workspace, copyFrom)
+    const seed =
+      copyFrom && expectedRevision === null ? await origin.workspace.acquire(origin.id, 'copy-environment') : undefined
+    let lease
+    try {
+      lease = await this.library.prepareEnvironmentProject(document, {
+        projectDirectory: seed?.directory ?? recipeDirectory ?? join(workspace.root, 'environments', environmentId),
+        signal,
+        offline: allowDownload !== true,
+        onProgress,
+      })
+      return safeInstallation(
+        await workspace.prepareEnvironment(
+          {
+            environmentId,
+            document,
+            expectedRevision,
+            projectDirectory: lease.directory,
+            signal,
+            onProgress,
+          },
+          this.validate,
+        ),
+      )
+    } finally {
+      await lease?.release()
+      await seed?.release()
+    }
+  }
+  async request(input, { chooseRecipeArchive } = {}) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw fail('INVALID_REQUEST')
     if (
       Buffer.byteLength(JSON.stringify(input)) >
@@ -259,6 +303,7 @@ export class LocalEnvironments {
     const source = this.#source(workspace, input.environmentId ?? input.installationId)
     const target = {
       apply: input.document?.id,
+      'install-recipe': input.environmentId,
       'add-package': input.environmentId,
       'remove-package': input.environmentId,
       'delete-draft': input.environmentId,
@@ -283,6 +328,59 @@ export class LocalEnvironments {
       }
       case 'snapshot':
         return this.snapshot()
+      case 'install-recipe': {
+        if (
+          Object.keys(input).some(key => !['action', 'source', 'allowDownload', 'environmentId'].includes(key)) ||
+          (input.allowDownload !== undefined && typeof input.allowDownload !== 'boolean') ||
+          (input.environmentId !== undefined &&
+            (typeof input.environmentId !== 'string' ||
+              !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(input.environmentId) ||
+              input.environmentId === 'default'))
+        )
+          throw fail('INVALID_REQUEST', '环境安装参数无效')
+        let source = input.source
+        if (source?.kind === 'file' && Object.keys(source).length === 1) {
+          const file = await chooseRecipeArchive()
+          if (!file) return null
+          source = { kind: 'archive', file }
+        } else if (
+          source?.kind !== 'npm' ||
+          Object.keys(source).length !== 2 ||
+          typeof source.spec !== 'string' ||
+          !source.spec.length ||
+          source.spec.length > 256
+        )
+          throw fail('INVALID_REQUEST', '请选择本地 .tgz 或输入完整 npm 包名和版本')
+        return this.start('environment.install-recipe', async (signal, onProgress) => {
+          const staging = join(workspace.root, 'staging', 'recipe-' + randomUUID())
+          try {
+            onProgress({ stage: 'resolving' })
+            const acquired = await this.acquireRecipe(source, staging, {
+              signal,
+              offline: input.allowDownload !== true,
+            })
+            const document = { ...acquired.document, id: input.environmentId ?? acquired.document.id }
+            signal.throwIfAborted()
+            if (this.#source(workspace, document.id).workspace !== workspace)
+              throw fail('BUILTIN_ENVIRONMENT_READ_ONLY', '内置环境为只读，请指定新的环境标识')
+            // A partial installation can have materials even when its draft is missing.
+            const exists = await lstat(join(workspace.root, 'environments', document.id)).catch(error => {
+              if (error.code !== 'ENOENT') throw error
+            })
+            if (exists) throw fail('ENVIRONMENT_ALREADY_EXISTS', '环境标识已存在，请指定新的环境标识')
+            return await this.#apply(
+              workspace,
+              document,
+              { expectedRevision: null, allowDownload: input.allowDownload },
+              signal,
+              onProgress,
+              acquired.directory,
+            )
+          } finally {
+            await rm(staging, { recursive: true, force: true })
+          }
+        })
+      }
       case 'add-package':
       case 'remove-package': {
         const adding = input.action === 'add-package'
@@ -302,44 +400,9 @@ export class LocalEnvironments {
       }
       case 'apply': {
         const document = structuredClone(input.document)
-        const environmentId = document.id
-        return this.start('environment.apply', async (signal, onProgress) => {
-          const current = await workspace.getDraft(environmentId).catch(error => {
-            if (error.code !== 'ENOENT') throw error
-            return undefined
-          })
-          if ((current?.revision ?? null) !== input.expectedRevision) throw fail('REVISION_CONFLICT')
-          const origin = this.#source(workspace, input.copyFrom)
-          const seed =
-            input.copyFrom && input.expectedRevision === null
-              ? await origin.workspace.acquire(origin.id, 'copy-environment')
-              : undefined
-          let lease
-          try {
-            lease = await this.library.prepareEnvironmentProject(document, {
-              projectDirectory: seed?.directory ?? join(workspace.root, 'environments', environmentId),
-              signal,
-              offline: input.allowDownload !== true,
-              onProgress,
-            })
-            return safeInstallation(
-              await workspace.prepareEnvironment(
-                {
-                  environmentId,
-                  document,
-                  expectedRevision: input.expectedRevision,
-                  projectDirectory: lease.directory,
-                  signal,
-                  onProgress,
-                },
-                this.validate,
-              ),
-            )
-          } finally {
-            await lease?.release()
-            await seed?.release()
-          }
-        })
+        return this.start('environment.apply', (signal, onProgress) =>
+          this.#apply(workspace, document, input, signal, onProgress),
+        )
       }
       case 'delete-draft':
         if (input.environmentId === this.#selectedId) throw fail('ENVIRONMENT_IN_USE', '请先切换本地使用的环境')

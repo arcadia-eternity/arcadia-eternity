@@ -79,7 +79,7 @@ function checkDependencySpecs(manifest: UnknownRecord) {
     }
   }
 }
-function checkLock(lock: unknown, candidates = false): void {
+export function checkLock(lock: unknown, candidates = false): void {
   if (!isRecord(lock) || lock.lockfileVersion !== 3 || !isRecord(lock.packages))
     throw contentError('INSTALL_LOCK_INVALID')
   for (const [location, value] of Object.entries(lock.packages)) {
@@ -98,7 +98,7 @@ function checkLock(lock: unknown, candidates = false): void {
   }
 }
 /** No inherited npm configuration, loader hooks, or author script can alter install behavior. */
-function installationEnvironment(cache: string, configuration: string): Record<string, string> {
+export function installationEnvironment(cache: string, configuration: string): Record<string, string> {
   const result: Record<string, string> = {}
   for (const key of ['PATH', 'Path', 'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LANG'])
     if (process.env[key]) result[key] = process.env[key]

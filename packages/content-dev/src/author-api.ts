@@ -15,6 +15,9 @@ import { inspectAsset } from './asset-inspect.ts'
 import { callPreviewControl } from './preview-control.ts'
 import { isRecord, type UnknownRecord } from './types.ts'
 import { authorGit } from './author-git.ts'
+import { installAuthorDependencies } from './author-install.ts'
+import { installAuthorEnvironment } from './author-environment-install.ts'
+export { installAuthorDependencies, installAuthorEnvironment }
 export { authorGit, cloneAuthorRepository } from './author-git.ts'
 export { updateAuthorLock, createSourceProject, connectDevelopmentSdk, authorConnection } from './project.ts'
 export type DependencyReferenceCatalog = Awaited<ReturnType<typeof dependencyReferences>>
@@ -48,7 +51,12 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
         name: snapshot.name,
         project: snapshot.project,
         sourceRevision: await workspace.revision(),
-        capabilities: { ...snapshot.capabilities, codeExecution: !workspace.readOnly && jobs.execute },
+        capabilities: {
+          ...snapshot.capabilities,
+          codeExecution: !workspace.readOnly && jobs.execute,
+          dependencyInstall: !workspace.readOnly,
+          environmentInstall: !workspace.readOnly,
+        },
         diagnostics: snapshot.diagnostics,
       }
     },
@@ -58,7 +66,7 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
     async query(input: UnknownRecord = {}) {
       return queryContent(workspace, input)
     },
-    async call(operation: string, input: unknown = {}) {
+    async call(operation: string, input: unknown = {}, signal?: AbortSignal) {
       if (!isRecord(input)) throw new WorkspaceError('INPUT_INVALID', '操作参数需要对象')
       switch (operation) {
         case 'context':
@@ -118,13 +126,29 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
           return { items: await this.environments.list() }
         case 'environment-save':
           return this.environments.save(input as unknown as Parameters<DebugEnvironments['save']>[0])
+        case 'dependency-install': {
+          await workspace.assertWritable()
+          if (input.offline !== undefined && typeof input.offline !== 'boolean')
+            throw new WorkspaceError('INPUT_INVALID', 'offline 需要布尔值')
+          return installAuthorDependencies(workspace, {
+            expectedVersion: field(input, 'expectedVersion'),
+            offline: input.offline,
+            signal,
+          })
+        }
+        case 'environment-install':
+          await workspace.assertWritable()
+          return installAuthorEnvironment(workspace, input, signal)
+        case 'team-validate':
         case 'battle': {
-          if (workspace.readOnly || !jobs.execute)
+          if (operation === 'battle' && (workspace.readOnly || !jobs.execute))
             throw new WorkspaceError('EXECUTION_DISABLED', '自动化对局需要可执行的作者会话。')
           await jobs.refresh()
           const job = jobs.get(field(input, 'jobId'))
           if (job.kind !== 'preview' || job.state !== 'succeeded' || !job.result?.preview?.endpoint)
             throw new WorkspaceError('PREVIEW_NOT_ACTIVE', '此任务没有运行中的试玩候选。')
+          if (operation === 'team-validate')
+            return callPreviewControl(job.result.preview.endpoint, 'team-validate', { teamId: field(input, 'teamId') })
           const { jobId: _jobId, operation: action, ...args } = input
           if (typeof action !== 'string') throw new WorkspaceError('INPUT_INVALID', '需要战斗操作')
           return callPreviewControl(job.result.preview.endpoint, action, args)

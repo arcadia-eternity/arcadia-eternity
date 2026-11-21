@@ -13,7 +13,7 @@ import {
   resolveNpmInvocation,
   type NpmPackEntry,
 } from '@arcadia-eternity/pack-loader/node'
-import { AuthorWorkspace, type ManifestArcadia, type PackageManifest } from './workspace.ts'
+import { AuthorWorkspace, type PackageManifest } from './workspace.ts'
 import { ProjectTeams, playersFromTeams, type ProjectTeam } from './project-teams.ts'
 import { gameplayRevision } from '@arcadia-eternity/pack-loader/native'
 import { DebugEnvironments, normalizeEnvironmentDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
@@ -25,6 +25,9 @@ import {
 } from './environment-rules.ts'
 import { siblingModulePath } from './module-path.ts'
 import { errorCode } from './types.ts'
+import { packBuiltProject } from './pack-project.ts'
+import { findAuthorInstallation, stageInstalledDependencies } from './author-install.ts'
+import { stageEnvironmentDependencies } from './debug-environment-install.ts'
 
 const exec = promisify(execFile)
 
@@ -44,11 +47,13 @@ export interface BattleLike {
 }
 
 export interface ContentCandidate {
+  kind: 'pack' | 'environment'
+  members: Array<{ name: string; version: string }>
   packageName: string | undefined
   version: string | undefined
-  integrity: string
-  shasum: string
-  sdkApi: unknown
+  integrity?: string
+  shasum?: string
+  sdkApi?: unknown
   build: unknown
   environmentRevision: string
   environmentId: string
@@ -65,7 +70,7 @@ export interface PreparedBattleEnvironment {
   loadTeams(ids: string[]): ReturnType<typeof playersFromTeams>
   teams: ProjectTeam[]
   teamVersions: Record<string, string | null>
-  manifest: PackageManifest & { arcadia: ManifestArcadia }
+  manifest: PackageManifest
   files: string[]
   dispose(): Promise<void>
   track(battle: BattleLike): void
@@ -77,28 +82,55 @@ async function npm(args: string[], options: ExecFileOptions) {
   return exec(invocation.file, invocation.args, options)
 }
 
+async function packAuthorProject(root: string, directory: string, manifest: PackageManifest, cacheArgs: string[]) {
+  const archive = process.env.ARCADIA_TEST_RELEASE_ARCHIVE
+  if (archive && !/^[a-z0-9][a-z0-9._-]*\.tgz$/.test(archive)) throw new Error('Invalid release archive filename')
+  const result = await npm(
+    [
+      'pack',
+      ...(archive ? [join(root, archive)] : []),
+      '--json',
+      '--ignore-scripts',
+      '--pack-destination',
+      directory,
+      ...cacheArgs,
+    ],
+    { cwd: root },
+  )
+  const packed = requirePackedInfo(parseNpmPackOutput(String(result.stdout))[0])
+  if (archive && packed.integrity !== process.env.ARCADIA_TEST_RELEASE_INTEGRITY)
+    throw new Error('Release archive integrity changed before testing')
+  const files = packed.files.map(file => file.path)
+  assert.ok(manifest.arcadia?.content && files.includes(manifest.arcadia.content))
+  if (!archive && manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
+  assert.ok(
+    !files.some(file => /^(?:\.arcadia|\.github|node_modules|test|scripts|debug)\//.test(file)),
+    'the package must contain content, not a developer workspace',
+  )
+  return packed
+}
+
 /** Pack and install exactly what a consuming server receives. Approval is limited to this local demo. */
 export async function prepareBattleEnvironment(
   root: string = process.cwd(),
   {
-    offline = !process.env.ARCADIA_TEST_RELEASE_ARCHIVE,
+    offline,
     cache,
     environmentId = 'default',
     sources = {},
     lockRoot,
+    sourceRoot = lockRoot ?? root,
   }: {
     offline?: boolean
     cache?: string
     environmentId?: string
     sources?: Record<string, string | undefined>
     lockRoot?: string
+    sourceRoot?: string
   } = {},
 ): Promise<PreparedBattleEnvironment> {
   root = resolve(root)
   const temporary = await mkdtemp(join(tmpdir(), 'arcadia-pack-template-'))
-  const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as PackageManifest & {
-    arcadia: ManifestArcadia
-  }
   const cacheArgs = cache ? ['--cache', resolve(cache)] : []
   const battles = new Set<BattleLike>()
   const sourceRevisions: Record<string, string> = {}
@@ -114,17 +146,17 @@ export async function prepareBattleEnvironment(
   }
   try {
     workspace = await AuthorWorkspace.open(root, { watch: false })
-    const selected = (await new DebugEnvironments(workspace).list()).find(entry => entry.id === environmentId)
+    const manifest = JSON.parse((await workspace.read('package.json')).text) as PackageManifest
+    const standalone = workspace.projectKind === 'environment'
+    const definitions = await new DebugEnvironments(workspace).list()
+    const selected =
+      standalone && environmentId === 'default' ? definitions[0] : definitions.find(entry => entry.id === environmentId)
     if (!selected) throw new Error(`ENVIRONMENT_MISSING: ${environmentId}`)
+    environmentId = selected.id
     const { version: _version, ...selectedDocument } = selected
     const environmentDocument: EnvironmentDocumentV2 =
-      environmentId === 'default'
-        ? {
-            ...(selectedDocument as EnvironmentDocumentV2),
-            schemaVersion: 2,
-            rules: { schemaVersion: 1 },
-            requires: {},
-          }
+      selected.id === 'default'
+        ? { ...selectedDocument, schemaVersion: 2, rules: { schemaVersion: 1 }, requires: {} }
         : normalizeEnvironmentDocument(selectedDocument)
     assertEnvironmentRequirements(environmentDocument.requires)
     validateEnvironmentRuleDeclaration(environmentDocument.rules)
@@ -137,32 +169,10 @@ export async function prepareBattleEnvironment(
         if (errorCode(error) !== 'ENOENT') throw error
       }
     }
-    const archive = process.env.ARCADIA_TEST_RELEASE_ARCHIVE
-    if (archive && !/^[a-z0-9][a-z0-9._-]*\.tgz$/.test(archive)) throw new Error('Invalid release archive filename')
-    const result = await npm(
-      [
-        'pack',
-        ...(archive ? [join(root, archive)] : []),
-        '--json',
-        '--ignore-scripts',
-        '--pack-destination',
-        temporary,
-        ...cacheArgs,
-      ],
-      {
-        cwd: root,
-      },
-    )
-    const packed = requirePackedInfo(parseNpmPackOutput(String(result.stdout))[0])
-    if (archive && packed.integrity !== process.env.ARCADIA_TEST_RELEASE_INTEGRITY)
-      throw new Error('Release archive integrity changed before testing')
-    const files = packed.files.map(file => file.path)
-    assert.ok(files.includes(manifest.arcadia.content!))
-    if (!archive && manifest.arcadia.effects) assert.ok(files.includes(manifest.arcadia.effects as string))
-    assert.ok(
-      !files.some(file => /^(?:\.arcadia|\.github|node_modules|test|scripts|debug)\//.test(file)),
-      'the package must contain content, not a developer workspace',
-    )
+    const durable = await findAuthorInstallation(sourceRoot, manifest.dependencies, root)
+    if (durable) cacheArgs.splice(0, cacheArgs.length, '--cache', join(dirname(durable.directory), 'npm-cache'))
+    const packed = standalone ? undefined : await packAuthorProject(root, temporary, manifest, cacheArgs)
+    const files = packed?.files.map(file => file.path) ?? []
     const installation = join(temporary, 'server-project')
     await mkdir(join(installation, 'candidates'), { recursive: true })
     const dependencies: Record<string, string> = { ...selected.packages }
@@ -172,7 +182,46 @@ export async function prepareBattleEnvironment(
       await cp(join(directory, packedInfo.filename), join(installation, filename))
       dependencies[metadata.name] = `file:${filename}`
     }
-    await addCandidate(temporary, manifest as unknown as { name: string }, packed)
+    if (packed) {
+      if (!manifest.name) throw new Error('ENVIRONMENT_PACKAGE_NAME_MISSING')
+      await addCandidate(temporary, { name: manifest.name }, packed)
+    }
+    let candidateOverrides: Record<string, Record<string, string>> | undefined
+    let installLock = oldLock?.text
+    let installed: string | undefined
+    if (standalone && !selected.sources.length) {
+      installed = durable?.directory
+    }
+    if (standalone && !installed && !durable) {
+      const sourceLock = await workspace.read('package-lock.json').catch(error => {
+        if (errorCode(error) !== 'ENOENT') throw error
+        return undefined
+      })
+      installLock = sourceLock?.text ?? installLock
+      const staged = await stageEnvironmentDependencies({
+        materialRoot: root,
+        sourceRoot,
+        installation,
+        dependencies,
+        hasSources: selected.sources.length > 0,
+        lockText: installLock,
+        sourceLocked: !!sourceLock,
+      })
+      installed = staged.installed
+      installLock = staged.lockText
+    }
+    if (!installed && durable) {
+      const staged = await stageInstalledDependencies(
+        durable,
+        manifest.dependencies,
+        installation,
+        dependencies,
+        selected.sources,
+        installLock,
+      )
+      installLock = staged.lock
+      if (!standalone && manifest.name) candidateOverrides = { [manifest.name]: staged.localOverrides }
+    }
     for (const name of selected.sources) {
       const source = sources[name]
       if (typeof source !== 'string') throw new Error(`ENVIRONMENT_SOURCE_MISSING: ${name}，请设置本机源码映射`)
@@ -198,9 +247,11 @@ export async function prepareBattleEnvironment(
         if (metadata.name !== name) throw new Error(`ENVIRONMENT_SOURCE_IDENTITY: ${name}`)
         await exec(process.execPath, [siblingModulePath('cli'), 'build'], { cwd: captured })
         const info = requirePackedInfo(
-          parseNpmPackOutput(
-            String((await npm(['pack', '--json', '--ignore-scripts', ...cacheArgs], { cwd: captured })).stdout),
-          )[0],
+          standalone
+            ? await packBuiltProject(captured, { cache: cacheArgs[1] })
+            : parseNpmPackOutput(
+                String((await npm(['pack', '--json', '--ignore-scripts', ...cacheArgs], { cwd: captured })).stdout),
+              )[0],
         )
         if (info.files.some(file => /^(?:debug|test|scripts|node_modules|\.arcadia|\.github)\//.test(file.path)))
           throw new Error('ENVIRONMENT_PACKAGE_FILES')
@@ -209,42 +260,47 @@ export async function prepareBattleEnvironment(
         await sourceWorkspace.close()
       }
     }
-    if (oldLock) await writeFile(join(installation, 'package-lock.json'), oldLock.text)
-    await writeFile(
-      join(installation, 'package.json'),
-      JSON.stringify({
-        name: 'arcadia-template-demo-server',
-        version: '1.0.0',
-        private: true,
-        dependencies,
-      }),
-    )
-    await npm(
-      [
-        'install',
-        ...(offline ? ['--offline'] : []),
-        '--ignore-scripts',
-        '--omit=dev',
-        '--no-audit',
-        '--no-fund',
-        ...cacheArgs,
-      ],
-      { cwd: installation },
-    )
+    if (!installed) {
+      if (installLock) await writeFile(join(installation, 'package-lock.json'), installLock)
+      await writeFile(
+        join(installation, 'package.json'),
+        JSON.stringify({
+          name: 'arcadia-template-demo-server',
+          version: '1.0.0',
+          private: true,
+          dependencies,
+          ...(candidateOverrides && { overrides: candidateOverrides }),
+        }),
+      )
+      await npm(
+        [
+          'install',
+          ...((offline ?? (!standalone && !process.env.ARCADIA_TEST_RELEASE_ARCHIVE)) ? ['--offline'] : []),
+          '--ignore-scripts',
+          '--omit=dev',
+          '--no-audit',
+          '--no-fund',
+          ...cacheArgs,
+        ],
+        { cwd: installation },
+      )
+      await mkdir(join(installation, 'node_modules'), { recursive: true })
+      installed = installation
+    }
     environment = await prepareNpmProject(
-      installation,
+      installed,
       emptyNpmContentHost,
       {
         policy: { profile: 'local-development' },
       },
-      archive ? { effectPreparation: 'prebuilt-only' } : {},
+      process.env.ARCADIA_TEST_RELEASE_ARCHIVE || standalone ? { effectPreparation: 'prebuilt-only' } : {},
     )
-    if (environmentId === 'default')
+    if (!standalone && environmentId === 'default')
       environmentDocument.rules = defaultRuleDeclaration(environment.sandbox.data.ruleSets)
     const { rules: effectiveRules } = prepareRulesForContent(environmentDocument.rules, environment.sandbox.data)
     let environmentLock: { file: string; version: string } | undefined
     if (lockFile) {
-      const text = await readFile(join(installation, 'package-lock.json'), 'utf8')
+      const text = await readFile(join(installed, 'package-lock.json'), 'utf8')
       if (lockRoot) {
         lockWorkspace = await AuthorWorkspace.open(resolve(lockRoot), { watch: false })
         const saved = await lockWorkspace.write({ file: lockFile, expectedVersion: oldLock?.version ?? null, text })
@@ -256,11 +312,11 @@ export async function prepareBattleEnvironment(
       return playersFromTeams(teamLibrary, ids)
     }
     const candidate: ContentCandidate = {
+      kind: standalone ? 'environment' : 'pack',
+      members: environment.installation.members.map(({ name, version }) => ({ name, version })),
       packageName: manifest.name,
       version: manifest.version,
-      integrity: packed.integrity ?? '',
-      shasum: packed.shasum,
-      sdkApi: manifest.arcadia.sdkApi,
+      ...(packed && { integrity: packed.integrity ?? '', shasum: packed.shasum, sdkApi: manifest.arcadia?.sdkApi }),
       build: environment.build,
       environmentRevision: await gameplayRevision(
         {

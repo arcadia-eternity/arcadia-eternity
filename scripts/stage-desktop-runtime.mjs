@@ -144,6 +144,10 @@ async function materializeWorkspace(runtime) {
     await mkdir(target, { recursive: true })
     await cp(join(pkg.directory, 'package.json'), join(target, 'package.json'))
     await cp(join(pkg.directory, 'dist'), join(target, 'dist'), { recursive: true })
+    if (name === '@arcadia-eternity/content-sdk') {
+      for (const file of pkg.manifest.files.filter(file => file !== 'dist'))
+        await cp(join(pkg.directory, file), join(target, file), { recursive: true })
+    }
     if (pkg.manifest.arcadia?.catalog) {
       const manifest = pkg.manifest.arcadiaEternityPack
       await cp(join(pkg.directory, manifest), join(target, manifest))

@@ -14,6 +14,7 @@ import {
 import { readInstalledEnvironmentDocument } from '../src/prepared-document.ts'
 import { prepareBattleEnvironment } from '../src/environment.ts'
 import { prepareContentPack } from '../src/testing.ts'
+import { PreviewAutomation } from '../src/preview-control.ts'
 
 const pet = (species = 'sample:pet', values = {}) => ({ species, skills: ['sample:strike'], ...values })
 const rules = values => ({ schemaVersion: 1, ...values })
@@ -203,6 +204,22 @@ test('reference and worker author battles enforce the selected frozen environmen
   await assert.rejects(prepared.createBattleSession('rejected-worker', { players }), {
     code: 'ENVIRONMENT_TEAM_REJECTED',
   })
+  const saved = { id: 'blue', version: 'a'.repeat(64), team: players[0].team }
+  const control = new PreviewAutomation(prepared, { readTeams: async () => [saved] })
+  t.after(() => control.close())
+  const result = await control.call('team-validate', { teamId: saved.id })
+  assert.equal(result.valid, false)
+  assert.equal(result.teamVersion, saved.version)
+  assert.equal(result.environmentId, 'restricted')
+  assert.equal(result.environmentRevision, prepared.candidate.environmentRevision)
+  assert.equal(result.diagnostic.code, 'ENVIRONMENT_TEAM_REJECTED')
+  assert.match(result.diagnostic.message, /deny\.species.*sample:pet/)
+  saved.version = 'b'.repeat(64)
+  saved.team = []
+  const changed = await control.call('team-validate', { teamId: saved.id })
+  assert.equal(changed.teamVersion, saved.version)
+  assert.match(changed.diagnostic.message, /当前为 0 只/)
+  await assert.rejects(control.call('team-validate', { teamId: 'absent' }), { code: 'TEAM_MISSING' })
 })
 
 test('the legacy default author environment keeps working with an explicit empty rule policy', async t => {
@@ -230,7 +247,10 @@ test('scopes combinations, exceptions and member quotas to the selected environm
     code: 'ENVIRONMENT_TEAM_REJECTED',
   })
   const teamBan = { ...rule, scope: 'team' }
-  assert.throws(() => assertEnvironmentTeam(admitted([teamBan]), [pet, other]), { code: 'ENVIRONMENT_TEAM_REJECTED' })
+  assert.throws(() => assertEnvironmentTeam(admitted([teamBan]), [pet, other]), {
+    code: 'ENVIRONMENT_TEAM_REJECTED',
+    detail: /custom:ice/,
+  })
   const exception = { ...teamBan, exceptWhen: [{ kind: 'mark', ids: ['ward'] }] }
   assert.doesNotThrow(() => assertEnvironmentTeam(admitted([exception]), [pet, other]))
   const quota = { id: 'custom:quota', kind: 'memberLimit', max: 1, allOf: [{ kind: 'skill', ids: ['fire', 'water'] }] }
@@ -311,7 +331,14 @@ test('a plain npm project selects one direct environment package and rejects amb
       JSON.stringify({
         name,
         dependencies: { [base]: '4.12.0' },
-        arcadiaEnvironment: { schemaVersion: 2, id: name, name, sources: [], rules: { schemaVersion: 2 }, requires: {} },
+        arcadiaEnvironment: {
+          schemaVersion: 2,
+          id: name,
+          name,
+          sources: [],
+          rules: { schemaVersion: 2 },
+          requires: {},
+        },
       }),
     )
   }

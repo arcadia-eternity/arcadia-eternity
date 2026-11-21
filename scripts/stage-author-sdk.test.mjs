@@ -43,7 +43,11 @@ test(
         if (pkg.name === '@arcadia-eternity/content-sdk') {
           for (const path of [
             'bin/arcadia-content-mcp.mjs',
+            'release-payload.mjs',
+            'release-test-npm.mjs',
             'dist/author-api.js',
+            'dist/init.js',
+            'dist/debug-environment-install.js',
             'dist/mcp.js',
             'dist/template/src/effects/slow.effect.ts',
             'dist/template/skills/arcadia-content-authoring/SKILL.md',

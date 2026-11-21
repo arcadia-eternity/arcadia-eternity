@@ -36,6 +36,8 @@ const players = ref<PlayerSchemaType[]>([])
 const delegates = shallowRef<TeamEditorDelegate[]>([])
 
 const environments = ref<DebugEnvironment[]>([])
+// The pack authoring workspace always lists its built-in default. An independent recipe has one bound declaration.
+const canCreateDebugEnvironment = computed(() => environments.value.some(item => item.id === 'default'))
 const environmentId = ref('default')
 const preparedEnvironmentId = ref('default')
 const preparedEnvironmentInstallation = ref<string | null>(null)
@@ -453,7 +455,7 @@ onBeforeUnmount(() => {
             <ElOption v-for="item in environments" :key="item.id" :value="item.id" :label="item.name" />
           </ElSelect>
           <ElButton :disabled="busy || environmentId === 'default'" @click="editEnvironment()">管理环境</ElButton>
-          <ElButton :disabled="busy" @click="editEnvironment(true)">新建环境</ElButton>
+          <ElButton v-if="canCreateDebugEnvironment" :disabled="busy" @click="editEnvironment(true)">新建环境</ElButton>
           <ElButton :disabled="busy" :type="environmentReady ? 'default' : 'primary'" @click="prepareEnvironment"
             >准备所选环境</ElButton
           >

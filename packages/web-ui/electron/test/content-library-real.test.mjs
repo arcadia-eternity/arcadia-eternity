@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,6 +11,7 @@ import { parseNpmPackOutput } from '@arcadia-eternity/pack-loader/node'
 import { ContentWorkspace } from '../../../content-dev/src/content-workspace.ts'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { ContentLibrary } from '../content-library.mjs'
+import { LocalEnvironments } from '../local-environments.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 
@@ -268,5 +269,122 @@ test(
     await battle.cleanup()
     await sessions.release(first.token)
     await sessions.release(second.token)
+  },
+)
+
+test(
+  'a portable recipe applies offline through the desktop owner and remains selectable after restart',
+  { timeout: 120000, skip: process.env.ARCADIA_DESKTOP_REAL_HOST !== '1' },
+  async t => {
+    const { acquireAuthorEnvironment } = await import('@arcadia-eternity/content-sdk/management-workspace')
+    const { validateWorkspaceProject } = await import('@arcadia-eternity/server')
+    const root = await mkdtemp(join(tmpdir(), 'arcadia-desktop-recipe-'))
+    const recipe = join(root, 'recipe')
+    const candidates = join(recipe, 'candidates')
+    await mkdir(candidates, { recursive: true })
+    let owner, library
+    t.after(async () => {
+      await owner?.close()
+      await library?.close()
+      await rm(root, { recursive: true, force: true })
+    })
+    const pack = async (project, output) => {
+      const packed = await exec(
+        'npm',
+        [
+          'pack',
+          '--ignore-scripts',
+          '--json',
+          '--offline',
+          '--cache',
+          join(root, 'pack-cache'),
+          '--pack-destination',
+          output,
+        ],
+        { cwd: project },
+      )
+      return join(output, parseNpmPackOutput(packed.stdout)[0].filename)
+    }
+    const name = '@arcadia-example/slow'
+    await rename(await pack(join(repository, 'examples/ugc/slow'), candidates), join(candidates, 'slow.tgz'))
+    const declaration = {
+      schemaVersion: 2,
+      id: 'desktop-league',
+      name: '桌面联赛',
+      sources: [],
+      rules: { schemaVersion: 1 },
+      requires: {},
+    }
+    await writeFile(
+      join(recipe, 'package.json'),
+      JSON.stringify({
+        name: '@fixture/desktop-league',
+        version: '1.0.0',
+        dependencies: { [name]: 'file:candidates/slow.tgz' },
+        arcadiaEnvironment: declaration,
+        scripts: { postinstall: 'exit 1' },
+      }),
+    )
+    const archive = await pack(recipe, root)
+    const approvals = []
+    let allowEffects = false
+    const runtime = {
+      executable: process.execPath,
+      cli: join(repository, 'dist/cli.js'),
+      npmCacheDirectory: join(root, 'cli-cache'),
+    }
+    library = new ContentLibrary({
+      root: join(root, 'library'),
+      run: (args, signal) => runContentCommand(runtime, args, signal),
+      host: { status: () => ({ status: 'idle' }), retainedProjectDirectories: async () => [] },
+      authorizeEnvironment: (_document, effects) => {
+        approvals.push(effects.map(pkg => pkg.name))
+        return allowEffects
+      },
+    })
+    const openOwner = () =>
+      new LocalEnvironments({
+        openWorkspace: () => ContentWorkspace.open(join(root, 'personal')),
+        library: { prepareEnvironmentProject: library.prepareEnvironmentProject.bind(library) },
+        acquireRecipe: acquireAuthorEnvironment,
+        validate: validateWorkspaceProject,
+      })
+    owner = openOwner()
+    async function complete(input, hostOptions) {
+      const { operationId } = await owner.request(input, hostOptions)
+      for (;;) {
+        const job = (await owner.snapshot()).operations.find(job => job.id === operationId)
+        if (!['queued', 'running'].includes(job.status)) return job
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+    }
+    const blocked = await complete(
+      { action: 'install-recipe', source: { kind: 'file' } },
+      { chooseRecipeArchive: async () => archive },
+    )
+    assert.match(blocked.error?.message ?? '', /未授权/)
+    assert.equal((await owner.snapshot()).environments.length, 0)
+    allowEffects = true
+    const installed = await complete({ action: 'retry', operationId: blocked.id })
+    assert.equal(installed.status, 'succeeded', JSON.stringify(installed.error))
+    assert.deepEqual(approvals, [[name], [name]])
+    assert.equal(installed.result.environmentId, declaration.id)
+    const selected = await complete({ action: 'select', environmentId: declaration.id })
+    assert.equal(selected.status, 'succeeded', JSON.stringify(selected.error))
+    await owner.close()
+    await rm(recipe, { recursive: true })
+    await rm(archive)
+    owner = openOwner()
+    const snapshot = await owner.snapshot()
+    assert.equal(snapshot.selectedEnvironmentId, declaration.id)
+    assert.ok(snapshot.installations[0].contentCatalog.species.some(pet => pet.id === 'example-slow:pet'))
+    const lease = await owner.acquireProject()
+    try {
+      const member = JSON.parse(await readFile(join(lease.directory, 'node_modules', name, 'package.json'), 'utf8'))
+      assert.equal(member.name, name)
+      assert.equal(lease.document.name, declaration.name)
+    } finally {
+      await lease.release()
+    }
   },
 )

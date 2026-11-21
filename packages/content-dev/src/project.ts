@@ -116,6 +116,31 @@ export async function connectDevelopmentSdk(root: string) {
   }
   return { linked }
 }
+
+async function templateDirectory(): Promise<string> {
+  const bundled = fileURLToPath(new URL('./template/', import.meta.url))
+  try {
+    await lstat(bundled)
+    return bundled
+  } catch (error) {
+    if (errorCode(error) !== 'ENOENT') throw error
+    return fileURLToPath(new URL('../template/', import.meta.url))
+  }
+}
+
+export async function copyAuthorSkill(directory: string) {
+  const name = 'arcadia-content-authoring'
+  let source = join(await templateDirectory(), 'skills', name)
+  try {
+    await lstat(source)
+  } catch (error) {
+    if (errorCode(error) !== 'ENOENT') throw error
+    source = fileURLToPath(new URL('../../../docs/guides/ugc-authoring-agent/', import.meta.url))
+  }
+  await mkdir(join(directory, 'skills'), { recursive: true })
+  await cp(source, join(directory, 'skills', name), { recursive: true })
+}
+
 export async function createSourceProject(
   directory: string,
   identity: string,
@@ -124,12 +149,7 @@ export async function createSourceProject(
   if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(identity)) throw new WorkspaceError('PROJECT_INVALID', '项目 ID 无效')
   const range = normalizeArcadiaRange(arcadiaRange)
   await mkdir(directory) // No overwrite or merge with existing directories.
-  let template = fileURLToPath(new URL('./template/', import.meta.url))
-  try {
-    await lstat(template)
-  } catch {
-    template = fileURLToPath(new URL('../template/', import.meta.url))
-  }
+  const template = await templateDirectory()
   for (const entry of await readdir(template))
     await cp(
       join(template, entry),
@@ -158,6 +178,7 @@ export async function createSourceProject(
     }
   }
   await renameText(directory)
+  await copyAuthorSkill(directory)
   for (const script of ['release-payload.mjs', 'release-test-npm.mjs'])
     await cp(fileURLToPath(new URL('../' + script, import.meta.url)), join(directory, '.github/scripts', script))
   const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))

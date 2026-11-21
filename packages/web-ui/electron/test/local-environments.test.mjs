@@ -111,6 +111,60 @@ test('offline drafts survive reopening, reject stale writes and installations co
   await api.request({ action: 'delete-draft', environmentId: document.id, expectedRevision: current.revision })
   assert.equal((await api.snapshot()).environments.length, 0)
 })
+test('installs a recipe into a new persistent environment without replacing packages or existing material', async t => {
+  const f = await fixture(t)
+  const acquisitions = []
+  const api = f.open({
+    acquireRecipe: async (source, staging, { signal, offline }) => {
+      signal.throwIfAborted()
+      await mkdir(staging)
+      acquisitions.push({ source, offline, staging })
+      return { document, directory: staging }
+    },
+  })
+  const file = { action: 'install-recipe', source: { kind: 'file' } }
+  const selected = join(f.root, 'friends.tgz')
+  const chooser = { chooseRecipeArchive: async () => selected }
+  assert.equal(await api.request(file, { chooseRecipeArchive: async () => null }), null)
+  await assert.rejects(api.request({ ...file, source: { kind: 'file', file: selected } }, chooser), {
+    code: 'INVALID_REQUEST',
+  })
+  await assert.rejects(api.request({ ...file, environmentId: '../escape' }, chooser), { code: 'INVALID_REQUEST' })
+  const result = await complete(api, (await api.request(file, chooser)).operationId)
+  assert.equal(result.kind, 'environment.install-recipe')
+  assert.equal(result.status, 'succeeded', JSON.stringify(result.error))
+  assert.equal(result.result.environmentId, document.id)
+  assert.equal(result.result.installationId, document.id)
+  assert.deepEqual(acquisitions[0].source, { kind: 'archive', file: selected })
+  assert.equal(acquisitions[0].offline, true)
+  assert.equal(f.requests[0].options.offline, true)
+  assert.equal(f.requests[0].options.projectDirectory, acquisitions[0].staging)
+  assert.equal('directory' in result.result, false)
+  const personalMaterial = join(f.root, 'workspace/environments/friends/custom-note.txt')
+  await writeFile(personalMaterial, 'retain')
+  const duplicate = await complete(api, (await api.request(file, chooser)).operationId)
+  assert.equal(duplicate.error.code, 'ENVIRONMENT_ALREADY_EXISTS')
+  assert.equal(await readFile(personalMaterial, 'utf8'), 'retain')
+  assert.equal(f.requests.length, 1)
+  const npm = {
+    action: 'install-recipe',
+    source: { kind: 'npm', spec: '@fixture/environment@1.2.3' },
+    allowDownload: true,
+    environmentId: 'league',
+  }
+  const installed = await complete(api, (await api.request(npm)).operationId)
+  assert.equal(installed.status, 'succeeded', JSON.stringify(installed.error))
+  assert.deepEqual(acquisitions.at(-1).source, npm.source)
+  assert.equal(acquisitions.at(-1).offline, false)
+  assert.equal(f.requests.at(-1).options.offline, false)
+  assert.deepEqual(await readdir(join(f.root, 'workspace/staging')), [])
+  await api.close()
+  const restored = await f.open().snapshot()
+  assert.deepEqual(restored.installations.map(i => i.environmentId).sort(), ['friends', 'league'])
+  assert.deepEqual(restored.environments.find(d => d.document.id === 'friends').document, document)
+  assert.equal(restored.selectedEnvironmentId, undefined)
+})
+
 test('cancels preparation without publishing a version and keeps the saved draft', async t => {
   const f = await fixture(t)
   f.library.prepareEnvironmentProject = async (_document, { signal }) =>
@@ -349,7 +403,10 @@ test('migrates the generated default to the shared installation, preserves edits
   const select = await api.request({ action: 'select', environmentId: old })
   assert.equal((await complete(api, select.operationId)).status, 'succeeded')
   await api.close()
-  const shared = { openBuiltin: async () => ({ workspace: host, id }) }
+  const shared = {
+    openBuiltin: async () => ({ workspace: host, id }),
+    acquireRecipe: async () => ({ directory: f.project, document: builtin }),
+  }
   api = f.open(shared)
   const migrated = await api.snapshot()
   assert.equal(migrated.selectedEnvironmentId, id)
@@ -370,6 +427,7 @@ test('migrates the generated default to the shared installation, preserves edits
   for (const target of [id, old, extendedId]) {
     for (const request of [
       { action: 'apply', document: { ...builtin, id: target, name: '新名称' } },
+      { action: 'install-recipe', source: { kind: 'npm', spec: 'official@1.0.0' }, environmentId: target },
       { action: 'add-package', environmentId: target },
       { action: 'remove-package', environmentId: target },
       { action: 'delete-draft', environmentId: target },
@@ -380,6 +438,8 @@ test('migrates the generated default to the shared installation, preserves edits
       await assert.rejects(api.request(request), { code: 'BUILTIN_ENVIRONMENT_READ_ONLY' })
   }
   await assert.rejects(api.request({ action: 'import', bundle }), { code: 'BUILTIN_ENVIRONMENT_READ_ONLY' })
+  const sameIdRecipe = await api.request({ action: 'install-recipe', source: { kind: 'npm', spec: 'official@1.0.0' } })
+  assert.equal((await complete(api, sameIdRecipe.operationId)).error.code, 'BUILTIN_ENVIRONMENT_READ_ONLY')
   const copy = await api.request({
     action: 'apply',
     copyFrom: extendedId,

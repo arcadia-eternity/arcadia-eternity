@@ -1,20 +1,12 @@
 import { sha256Hex } from '@arcadia-eternity/const'
 import { readFile, realpath } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { normalizeEnvironmentDocument } from './debug-environments.ts'
+import { environmentManifestDocument, normalizeEnvironmentDocument } from './debug-environments.ts'
 import { contentError, readJson } from './workspace-materials.ts'
-import { errorCode, isRecord, type UnknownRecord } from './types.ts'
+import { errorCode, type UnknownRecord } from './types.ts'
 
 export function parseManifestDraft(text: string) {
-  const manifest = JSON.parse(text) as UnknownRecord
-  if (!isRecord(manifest.arcadiaEnvironment) || !isRecord(manifest.dependencies))
-    throw contentError('ENVIRONMENT_MANIFEST_INVALID')
-  const sources = manifest.arcadiaEnvironment.sources
-  if (!Array.isArray(sources)) throw contentError('ENVIRONMENT_MANIFEST_INVALID')
-  const document = normalizeEnvironmentDocument({
-    ...manifest.arcadiaEnvironment,
-    packages: Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !sources.includes(name))),
-  })
+  const document = environmentManifestDocument(JSON.parse(text))
   return { document, revision: sha256Hex(text) }
 }
 

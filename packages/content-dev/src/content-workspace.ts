@@ -1382,3 +1382,8 @@ export async function synchronizeShippedEnvironments(
   }
   return catalog.defaultEnvironment
 }
+export {
+  acquireAuthorEnvironment,
+  parseAuthorEnvironmentNpmSpec,
+  type AuthorEnvironmentSource,
+} from './author-environment-source.ts'

@@ -325,10 +325,13 @@ export async function previewCommand() {
     const preview = await startPreview(process.cwd(), {
       clientUrl: process.env.ARCADIA_PREVIEW_CLIENT_URL,
       signal: controller.signal,
-      environmentId: process.env.ARCADIA_DEBUG_ENVIRONMENT ?? 'default',
-      offline: !process.env.ARCADIA_DEBUG_ENVIRONMENT || process.env.ARCADIA_DEBUG_ENVIRONMENT === 'default',
+      environmentId: process.env.ARCADIA_DEBUG_ENVIRONMENT,
+      offline:
+        process.env.ARCADIA_DEBUG_ENVIRONMENT && process.env.ARCADIA_DEBUG_ENVIRONMENT !== 'default'
+          ? false
+          : undefined,
       lockRoot: process.env.ARCADIA_DEBUG_ROOT,
-      sources: process.env.ARCADIA_DEBUG_ROOT ? await readSourceMappings(process.env.ARCADIA_DEBUG_ROOT) : {},
+      sources: await readSourceMappings(process.env.ARCADIA_DEBUG_ROOT ?? process.cwd()),
     })
     const { endpoint, clientPath, candidate, environmentLock, sourceRevisions, url } = preview
     console.log(
@@ -344,7 +347,7 @@ export async function previewCommand() {
   }
 }
 
-async function readSourceMappings(root: string): Promise<Record<string, string | undefined>> {
+export async function readSourceMappings(root: string): Promise<Record<string, string | undefined>> {
   try {
     return JSON.parse(await readFile(join(root, '.arcadia/debug-sources.json'), 'utf8')) as Record<
       string,

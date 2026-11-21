@@ -56,7 +56,9 @@ export interface AuthorSnapshot {
   version?: string
   root: string
   name: string
-  project: { projectId: string; namespace: string; sdkApi?: number }
+  project:
+    | { kind?: 'pack'; projectId: string; namespace: string; sdkApi?: number; id?: never }
+    | { kind: 'environment'; id: string; projectId?: never; namespace?: never; sdkApi?: never }
   capabilities?: { sourceEditing: boolean; structuredSaving: boolean; localeEditing: boolean }
   records: SourceRecord[]
   effectCatalog?: AuthorEffectCatalog

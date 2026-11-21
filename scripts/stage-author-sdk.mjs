@@ -152,6 +152,12 @@ export async function stageAuthorSdk(output) {
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
       }
+      if (name === '@arcadia-eternity/content-sdk') {
+        for (const file of pkg.manifest.files.filter(file => file !== 'dist' && file !== 'bin' && file !== 'LICENSE')) {
+          await safeTree(join(pkg.directory, file))
+          await cp(join(pkg.directory, file), join(dir, file), { recursive: true })
+        }
+      }
       await writeFile(join(dir, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
       const result = await exec(
         'npm',

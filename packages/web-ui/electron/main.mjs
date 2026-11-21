@@ -233,7 +233,7 @@ async function openAuthorPreview(id, job) {
     height: 800,
     show: false,
     backgroundColor: '#09131f',
-    title: '内容包试玩',
+    title: '调试试玩',
     webPreferences: {
       session: isolated,
       preload: path.join(__dirname, 'preview-preload.cjs'),
@@ -431,6 +431,20 @@ function getLocalEnvironments() {
     },
     baseRules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
     library: getContentLibrary(),
+    acquireRecipe: async (source, destination, options) => {
+      const { acquireAuthorEnvironment, parseAuthorEnvironmentNpmSpec } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+      )
+      return acquireAuthorEnvironment(
+        source.kind === 'npm' ? parseAuthorEnvironmentNpmSpec(source.spec) : source,
+        destination,
+        {
+          ...options,
+          clientVersion: app.isPackaged ? app.getVersion() : require('../package.json').version,
+          cache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
+        },
+      )
+    },
     addPackage: async (workspace, input) => {
       const { addEnvironmentPackage } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
@@ -1004,9 +1018,21 @@ function setupIpcHandlers() {
     }
   })
   handle('desktop:local-server', (_event, input) => localServerController.request(input))
-  handle('desktop:local-environment', async (_event, input) => {
+  handle('desktop:local-environment', async (event, input) => {
     try {
-      return { result: await getLocalEnvironments().request(input) }
+      const result = await getLocalEnvironments().request(input, {
+        chooseRecipeArchive: async () => {
+          requireLocalBattleCaller(event)
+          const selected = await dialog.showOpenDialog(mainWindow, {
+            title: '安装环境包',
+            properties: ['openFile'],
+            filters: [{ name: '环境包', extensions: ['tgz'] }],
+          })
+          requireLocalBattleCaller(event)
+          return selected.canceled ? null : selected.filePaths[0]
+        },
+      })
+      return { result }
     } catch (error) {
       return { error: { code: error.code ?? 'ENVIRONMENT_FAILED', message: error.message ?? '环境操作失败' } }
     }
@@ -1034,7 +1060,7 @@ function setupIpcHandlers() {
         for (const candidate of authorPreviewWindows.values()) candidate.destroy()
         await manager.stopPreviews()
         await previewSession.clear()
-        await manager.previewEnvironment(id, input.environmentId)
+        if (session.workspace.projectKind !== 'environment') await manager.previewEnvironment(id, input.environmentId)
         const started = await session.jobs.start({ kind: 'preview', environmentId: input.environmentId })
         let job = started
         while (['queued', 'running'].includes(job.state)) {
@@ -1107,7 +1133,7 @@ function setupIpcHandlers() {
       else if (input.action === 'clone') result = await manager.clone(input.url)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
-          title: '打开内容包源项目',
+          title: '打开创作项目',
           properties: ['openDirectory'],
         })
         requireLocalBattleCaller(event)
@@ -1202,7 +1228,10 @@ function setupIpcHandlers() {
                       await previewSession.clear()
                       return session.jobs.start({
                         kind: 'preview',
-                        environmentId: await manager.previewEnvironment(input.id),
+                        environmentId:
+                          session.workspace.projectKind === 'environment'
+                            ? undefined
+                            : await manager.previewEnvironment(input.id),
                       })
                     })
                   : await session.jobs.start({ kind: input.kind })

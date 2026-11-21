@@ -285,6 +285,80 @@ describe('shared management console', () => {
       key === 'projectId' ? ['list', 'jobs', 'start', 'install-built-author-pack'] : [],
     )
   })
+  it.each(['npm', 'file'] as const)('installs an environment from %s without switching local play', async source => {
+    const existing = draft()
+    const incoming = { ...draft(), document: { ...draft().document, id: 'cup', name: '新赛制' } }
+    let installed = false
+    let canceledFile = source === 'file'
+    let fail = source === 'npm'
+    const localEnvironment = vi.fn(async (input: Record<string, unknown>) => {
+      if (input.action === 'install-recipe') {
+        if (canceledFile) return { result: null }
+        installed = !fail
+        return { result: { operationId: 'install-1' } }
+      }
+      if (input.action !== 'snapshot') throw new Error('Unexpected request ' + input.action)
+      return {
+        result: {
+          selectedEnvironmentId: 'friends',
+          workspaceId: 'personal',
+          environments: installed ? [existing, incoming] : [existing],
+          installations: [],
+          operations: [
+            {
+              id: 'install-1',
+              kind: 'environment.install-recipe',
+              ...(installed
+                ? { status: 'succeeded', result: { environmentId: 'cup', installationId: 'installed-cup' } }
+                : { status: 'failed', error: { code: 'ENVIRONMENT_MANIFEST_INVALID', message: '环境声明无效' } }),
+            },
+          ],
+        },
+      }
+    })
+    vi.stubGlobal('arcadiaDesktop', { localEnvironment })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/environments', component: LocalEnvironmentPage }],
+    })
+    await router.push('/environments')
+    const page = mount(LocalEnvironmentPage, {
+      global: { plugins: [router, createPinia()], stubs: { teleport: true } },
+    })
+    pages.push(page)
+    await flushPromises()
+    expect(button(page, '导入环境')).toBeDefined()
+    await button(page, '安装环境包').trigger('click')
+    await flushPromises()
+    const form = page.get('form[aria-label="安装环境包"]')
+    if (source === 'npm') {
+      expect(button(page, '安装').attributes('disabled')).toBeDefined()
+      await form.get('input[aria-label="npm 包名与版本"]').setValue(' @author/cup@1.0.0 ')
+      await form.get('input[type="checkbox"]').setValue(true)
+    } else {
+      await form.get('input[type="radio"][value="file"]').setValue(true)
+      await flushPromises()
+    }
+    await form.get('input[aria-label="新环境标识"]').setValue('cup')
+    await button(page, source === 'file' ? '选择归档并安装' : '安装').trigger('click')
+    await flushPromises()
+    expect(page.find('form[aria-label="安装环境包"]').exists()).toBe(true)
+    if (source === 'npm') expect(page.text()).toContain('环境声明无效')
+    expect(page.text()).not.toContain('环境包已安装。')
+    fail = false
+    canceledFile = false
+    await button(page, source === 'file' ? '选择归档并安装' : '安装').trigger('click')
+    await flushPromises()
+    expect(localEnvironment).toHaveBeenCalledWith({
+      action: 'install-recipe',
+      source: source === 'npm' ? { kind: 'npm', spec: '@author/cup@1.0.0' } : { kind: 'file' },
+      allowDownload: source === 'npm',
+      environmentId: 'cup',
+    })
+    expect(page.text()).toContain('环境包已安装。')
+    expect(page.emitted('select')?.at(-1)).toEqual(['local/cup'])
+    expect(localEnvironment.mock.calls.some(([input]) => input.action === 'select')).toBe(false)
+  })
   it('updates usage for the selected environment without adding it twice', async () => {
     let used = false
     const request = vi.fn(async (input: ManagementIpcRequest) => {

@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
+import { readFile } from 'node:fs/promises'
 import { siblingModulePath } from './module-path.ts'
 import { errorMessage } from './types.ts'
 const require = createRequire(import.meta.url)
 const [command, ...args] = process.argv.slice(2)
 const help = `arcadia-content <command>
-  check     Check TypeScript and JSON/YAML content
+  init <pack|environment> <directory> [--id <id>]  Create an author project
+  check     Check content sources or a standalone environment declaration
   build     Compile TypeScript and assemble content/media/locales metadata
   rename    Change package/project/namespace identities and local references
-  demo      Run the battle configured in arcadia.config.mjs
+  demo [--seed <seed>]  Run a battle with the project's saved teams
   preview   Prepare a local candidate for the full battle client; stop with Ctrl+C
-  pack [--release]  Build a content archive; --release verifies a distributable in a clean consumer
+  pack [--release]  Build a content pack or environment archive; --release verifies a content pack in a clean consumer
   setup     Install the pinned development SDK and tool
   workspace <directory> <operation> [--execute]  Structured author operations
 `
@@ -44,6 +46,7 @@ async function build() {
 }
 try {
   if (!command || command === '--help' || command === '-h') console.log(help)
+  else if (command === 'init') await (await import('./init.ts')).initCommand(args)
   else if (command === 'workspace') {
     const { workspaceCli } = await import('./workspace-cli.ts')
     await workspaceCli(args)
@@ -54,26 +57,59 @@ try {
   else {
     if (
       !['check', 'build', 'demo', 'preview', 'pack'].includes(command) ||
-      (args.length && !(command === 'pack' && args.length === 1 && args[0] === '--release'))
+      (args.length &&
+        !(command === 'pack' && args.length === 1 && args[0] === '--release') &&
+        !(
+          command === 'demo' &&
+          args.length === 2 &&
+          args[0] === '--seed' &&
+          args[1].length > 0 &&
+          args[1].length <= 200
+        ))
     )
       throw new Error(`Unknown command or option.\n${help}`)
-    if (command === 'check') {
+    if (command === 'demo') {
+      if (args.length) process.env.ARCADIA_DEBUG_SEED = args[1]
+      await import('./demo.ts')
+    } else if (command === 'preview') await (await import('./preview.ts')).previewCommand()
+    else if (command === 'pack') {
+      const standalone = await checkStandaloneEnvironment(command)
+      const release = args[0] === '--release'
+      if (standalone && release) throw new Error('Use pack to build an installable environment recipe.')
+      if (!standalone) await build()
+      const { packBuiltProject, packEnvironmentProject } = await import('./pack-project.ts')
+      const packed = standalone
+        ? await packEnvironmentProject(process.cwd())
+        : await packBuiltProject(process.cwd(), { release })
+      console.log(`Packed ${packed.filename}`)
+      console.log(
+        `ARCADIA_RESULT=${JSON.stringify({ ...(release ? { verifiedRelease: true } : {}), filename: packed.filename, integrity: packed.integrity, shasum: packed.shasum, files: packed.files.map(file => file.path) })}`,
+      )
+    } else if (await checkStandaloneEnvironment(command)) {
+      console.log('Environment declaration OK')
+    } else if (command === 'check') {
       await data(true)
       await types(true)
     } else if (command === 'build') await build()
-    else if (command === 'demo') await import('./demo.ts')
-    else if (command === 'preview') await (await import('./preview.ts')).previewCommand()
-    else {
-      await build()
-      const { packBuiltProject } = await import('./pack-project.ts')
-      const packed = await packBuiltProject(process.cwd(), { release: args[0] === '--release' })
-      console.log(`Packed ${packed.filename}`)
-      console.log(
-        `ARCADIA_RESULT=${JSON.stringify({ ...(args[0] === '--release' ? { verifiedRelease: true } : {}), filename: packed.filename, integrity: packed.integrity, shasum: packed.shasum, files: packed.files.map((file: { path: string }) => file.path) })}`,
-      )
-    }
   }
 } catch (error) {
   console.error(errorMessage(error))
   process.exitCode = 1
+}
+
+async function checkStandaloneEnvironment(operation: string) {
+  const text = await readFile('package.json', 'utf8')
+  const manifest = JSON.parse(text)
+  if (manifest.arcadia || !Object.hasOwn(manifest, 'arcadiaEnvironment')) return false
+  if (operation === 'pack') return true
+  if (operation !== 'check')
+    throw new Error(
+      'Standalone environment projects support check, demo, preview and pack. This build command requires a content pack.',
+    )
+  const { environmentManifestDocument } = await import('./debug-environments.ts')
+  const { assertEnvironmentRequirements, prepareEnvironmentRules } = await import('./environment-rules.ts')
+  const document = environmentManifestDocument(manifest)
+  assertEnvironmentRequirements(document.requires)
+  prepareEnvironmentRules(document.rules)
+  return true
 }

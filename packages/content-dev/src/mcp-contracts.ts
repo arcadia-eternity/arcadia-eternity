@@ -88,7 +88,7 @@ export const outputSchemas = {
         kind: z.string(),
         scope: z.enum(['project', 'dependencies']),
         readOnly: z.boolean(),
-        namespace: z.string(),
+        namespace: z.string().optional(),
         packageName: z.string().optional(),
         id: z.string().optional(),
         qualifiedId: z.string().optional(),
@@ -128,10 +128,33 @@ export const outputSchemas = {
     unit: z.literal('utf16'),
   }),
   'team-list': z.object({ items: z.array(team) }),
+  'team-validate': z.object({
+    teamId: identifier,
+    teamVersion: version,
+    environmentId: identifier,
+    environmentRevision: z.string(),
+    valid: z.boolean(),
+    diagnostic: z.object({ code: z.string(), message: z.string() }).optional(),
+  }),
   'team-save': team,
   'team-remove': z.object({ id: identifier, removed: z.literal(true) }),
   'environment-list': z.object({ items: z.array(environment) }),
   'environment-save': environment,
+  'dependency-install': z.object({
+    directory: z.string(),
+    manifestVersion: version,
+    installationDigest: z.string(),
+    packages: z.array(z.object({ name: z.string(), version: z.string() })),
+  }),
+  'environment-install': z
+    .object({
+      directory: z.string(),
+      id: identifier,
+      name: z.string(),
+      version: z.string(),
+      integrity: z.string(),
+    })
+    .passthrough(),
   reference: z.object({ topic: z.string(), title: z.string() }).passthrough(),
   'asset-inspect': z.object({ metadata: record }),
   battle: z

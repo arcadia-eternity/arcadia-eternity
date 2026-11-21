@@ -1,6 +1,19 @@
-# 创建并测试 TypeScript 内容包
+# 创建与调试资料包和环境
 
-这个入口创建一个标准 npm 包：包含精灵、技能、减速印记、TypeScript 效果、场景测试和供编码助手使用的 Agent Skill。首个示例命中后减速两回合，重复命中刷新持续时间而不叠加幅度；可以在此基础上修改内容。它不会安装、批准、发布或部署内容。
+已安装作者 SDK 后，在新目录创建资料包用 `arcadia-content init pack frost-pack`。模板包含精灵、技能、减速印记、TypeScript 效果和场景测试。首个示例命中后减速两回合，重复命中刷新持续时间。
+
+要用已有资料包编排赛制，可以直接创建独立环境。
+
+```sh
+arcadia-content init environment singles-cup
+arcadia-content workspace singles-cup check
+arcadia-content workspace singles-cup demo --execute --seed cup-baseline
+arcadia-content workspace singles-cup preview --execute
+```
+
+环境的 `package.json` 用 `dependencies` 选择资料包，用 `arcadiaEnvironment` 保存规则。模板提供 `blue` 和 `orange` 两支测试队。可用的同版基础包会在本机复用，缺少的注册表依赖首次运行时可能需要联网。静态检查通过后，用固定种子的演示验证实际组装的环境。试玩命令会持续运行，按 Ctrl+C 结束。
+
+通过 MCP 连接这个目录后，可用 `environment_list` 读取环境版本，`environment_save` 保存规则，`preview_start` 准备新候选，然后用 `team_validate` 逐队检查该版本的准入结果。命中禁用规则时，结果含 `valid: false`、诊断和环境修订。用 `battle_create` 指定两支合法队伍和种子即可开局。完整创作指南可从 `author_reference` 的 `authoring` 主题读取。
 
 ## 从独立模板开始
 

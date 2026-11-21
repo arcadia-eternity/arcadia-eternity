@@ -5,6 +5,7 @@ export {
   type EnvironmentRules,
 } from '@arcadia-eternity/const'
 import { WorkspaceError, type AuthorWorkspace } from './workspace.ts'
+import { isRecord } from './types.ts'
 import { z } from 'zod'
 const idPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const packagePattern = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
@@ -76,6 +77,23 @@ export function normalizeEnvironmentDocument(value: unknown): EnvironmentDocumen
   if (document.schemaVersion === 2) return document
   return { ...document, schemaVersion: 2, rules: { schemaVersion: 1 }, requires: {} }
 }
+
+export function environmentManifestDocument(manifest: unknown): EnvironmentDocumentV2 {
+  if (!isRecord(manifest) || !isRecord(manifest.arcadiaEnvironment) || !isRecord(manifest.dependencies))
+    throw new WorkspaceError(
+      'ENVIRONMENT_MANIFEST_INVALID',
+      '环境包需要 arcadiaEnvironment 声明和 dependencies',
+      'package.json',
+    )
+  const { sources } = manifest.arcadiaEnvironment
+  if (!Array.isArray(sources))
+    throw new WorkspaceError('ENVIRONMENT_MANIFEST_INVALID', '环境来源必须是一个数组', 'package.json')
+  return normalizeEnvironmentDocument({
+    ...manifest.arcadiaEnvironment,
+    packages: Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !sources.includes(name))),
+  })
+}
+
 export class DebugEnvironments {
   workspace: AuthorWorkspace
   constructor(workspace: AuthorWorkspace) {
@@ -86,6 +104,10 @@ export class DebugEnvironments {
     return `debug/environments/${id}.json`
   }
   async list(): Promise<ListedEnvironment[]> {
+    if (this.workspace.projectKind === 'environment') {
+      const source = await this.workspace.read('package.json')
+      return [{ ...environmentManifestDocument(JSON.parse(source.text)), version: source.version }]
+    }
     const environments: ListedEnvironment[] = [
       { schemaVersion: 1, id: 'default', name: '当前包与正式依赖', packages: {}, sources: [], version: null },
     ]
@@ -106,6 +128,29 @@ export class DebugEnvironments {
     expectedVersion: string | null
   }): Promise<ListedEnvironment> {
     const value = environmentDocument(document)
+    if (this.workspace.projectKind === 'environment') {
+      const source = await this.workspace.read('package.json')
+      const manifest = JSON.parse(source.text)
+      if (source.version !== expectedVersion)
+        throw new WorkspaceError('REVISION_CONFLICT', '环境包声明已改变，请重新读取', source.file)
+      if (environmentManifestDocument(manifest).id !== value.id) fail('环境标识与当前项目不一致')
+      const { packages, ...declaration } = normalizeEnvironmentDocument(value)
+      if (declaration.sources.some(name => Object.hasOwn(packages, name))) fail('同一包不能同时声明版本和本机来源')
+      const dependencies = {
+        ...packages,
+        ...Object.fromEntries(
+          declaration.sources
+            .filter(name => Object.hasOwn(manifest.dependencies, name))
+            .map(name => [name, manifest.dependencies[name]]),
+        ),
+      }
+      const result = await this.workspace.write({
+        file: source.file,
+        expectedVersion,
+        text: JSON.stringify({ ...manifest, dependencies, arcadiaEnvironment: declaration }, null, 2) + '\n',
+      })
+      return { ...declaration, packages, version: result.version }
+    }
     const result = await this.workspace.write({
       file: this.file(value.id),
       expectedVersion,

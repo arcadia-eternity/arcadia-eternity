@@ -474,3 +474,41 @@ it('does not silently rebase a name being typed when an MCP notification updates
     wrapper.unmount()
   }
 })
+
+it('edits the bound v2 declaration without creating a side environment or losing rules', async () => {
+  desktopLibrary()
+  const declaration: DebugEnvironment = {
+    schemaVersion: 2,
+    id: 'named-cli-preview',
+    name: '赛制',
+    packages: {},
+    sources: [],
+    rules: { schemaVersion: 1, team: { maxSize: 3 } },
+    requires: {},
+    version: 'prepared-config-hash',
+  }
+  const environment = vi.mocked(
+    window.arcadiaAuthorPreview!.environment as (action: 'list') => Promise<DebugEnvironment[]>,
+  )
+  environment.mockResolvedValue([declaration])
+  const wrapper = mount(AuthorPreviewPage)
+  try {
+    await flushPromises()
+    await wrapper.get('[aria-controls="environment-panel"]').trigger('click')
+    expect(wrapper.findAll('button').some(button => button.text() === '新建环境')).toBe(false)
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === '管理环境')!
+      .trigger('click')
+    await wrapper.get('.environment-form input').setValue('新赛制')
+    await wrapper.get('form.environment-form').trigger('submit')
+    await flushPromises()
+    const { version, ...document } = declaration
+    expect(environment).toHaveBeenCalledWith('save', {
+      expectedVersion: version,
+      document: { ...document, name: '新赛制' },
+    })
+  } finally {
+    wrapper.unmount()
+  }
+})

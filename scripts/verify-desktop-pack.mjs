@@ -2,6 +2,7 @@ import { createRequire } from 'node:module'
 import { execFile } from 'node:child_process'
 import { cp, lstat, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
+import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
@@ -13,6 +14,56 @@ let previewAccepted = false
 
 const architecture = value =>
   typeof value === 'string' ? value : ['ia32', 'x64', 'armv7l', 'arm64', 'universal'][value]
+
+/** Exercise the SDK, bundled npm and battle worker using the target app's embedded Node. */
+export async function verifyPackagedAuthoring(executable, runtime) {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-packaged-author-'))
+  const cli = join(runtime, 'node_modules/@arcadia-eternity/content-sdk/bin/arcadia-content.mjs')
+  const env = {
+    ...process.env,
+    ELECTRON_RUN_AS_NODE: '1',
+    ARCADIA_NPM_CLI: join(runtime, 'runtime/npm/bin/npm-cli.js'),
+    npm_config_cache: join(directory, 'npm-cache'),
+    npm_config_offline: 'true',
+  }
+  const run = async (cwd, args, input) => {
+    const command = exec(executable, [cli, ...args], { cwd, env, timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+    command.child.stdin.end(input && JSON.stringify(input))
+    const { stdout } = await command
+    return stdout
+  }
+  const result = stdout => {
+    const receipt = /^ARCADIA_RESULT=(.+)$/m.exec(stdout)
+    if (!receipt) throw new Error('Packaged author SDK returned no task receipt')
+    return JSON.parse(receipt[1])
+  }
+  try {
+    const pack = join(directory, 'smoke-pack')
+    await run(directory, ['init', 'pack', pack])
+    const built = result(await run(pack, ['pack']))
+    if (!built?.integrity?.startsWith('sha512-'))
+      throw new Error('Packaged author SDK did not build the starter archive')
+    const environment = join(directory, 'smoke-environment')
+    await run(directory, ['init', 'environment', environment])
+    const recipe = result(await run(environment, ['pack']))
+    const file = 'environment.tgz'
+    await cp(join(environment, recipe.filename), join(pack, file))
+    const { result: installed } = JSON.parse(
+      await run(pack, ['workspace', pack, 'environment-install'], { source: { kind: 'archive', file }, offline: true }),
+    )
+    if (installed?.id !== 'smoke-environment' || installed.integrity !== recipe.integrity)
+      throw new Error('Packaged author SDK did not install the environment archive')
+    const demo = result(await run(installed.directory, ['demo', '--seed', 'packaged-author']))
+    if (
+      demo?.status !== 'completed' ||
+      demo.seed !== 'packaged-author' ||
+      demo.candidate?.environmentId !== 'smoke-environment'
+    )
+      throw new Error('Packaged author SDK did not complete the standalone environment battle')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+}
 
 export async function verifyPackagedRuntimeFiles(runtime, { platform, arch, appOutDir }) {
   if (platform === 'win32') {
@@ -67,6 +118,7 @@ async function verifyPackagedRuntime(context) {
     arch,
   })
   if (process.env.ARCADIA_DESKTOP_MANAGED_HOST_TEST === '1') {
+    await verifyPackagedAuthoring(executable, runtime)
     const test = fileURLToPath(
       new URL('../packages/web-ui/electron/test/desktop-managed-host-real.test.mjs', import.meta.url),
     )

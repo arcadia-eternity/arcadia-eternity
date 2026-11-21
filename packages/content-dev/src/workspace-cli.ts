@@ -5,12 +5,17 @@ import { isRecord } from './types.ts'
 export async function workspaceCli(args: string[]) {
   const [directory, operation = 'describe', ...flags] = args
   let execute = false,
-    environmentId
+    environmentId,
+    seed
   for (let index = 0; index < flags.length; index++) {
     if (flags[index] === '--execute') execute = true
-    else if (flags[index] === '--environment' && operation === 'preview' && flags[index + 1])
+    else if (flags[index] === '--environment' && ['preview', 'demo'].includes(operation) && flags[index + 1])
       environmentId = flags[++index]
-    else throw new Error('Unknown workspace option; use --execute or preview --environment <id>')
+    else if (flags[index] === '--seed' && operation === 'demo' && flags[index + 1]) seed = flags[++index]
+    else
+      throw new Error(
+        'Unknown workspace option. Use --execute, preview/demo --environment <id>, or demo --seed <seed>.',
+      )
   }
   if (!directory)
     throw new Error(
@@ -23,7 +28,7 @@ export async function workspaceCli(args: string[]) {
   try {
     let result
     if (['check', 'test', 'demo', 'preview', 'pack', 'release'].includes(operation)) {
-      let job = await session.jobs.start({ kind: operation, ...(environmentId ? { environmentId } : {}) })
+      let job = await session.jobs.start({ kind: operation, environmentId, seed })
       while (['queued', 'running'].includes(job.state)) {
         await new Promise(resolve => setTimeout(resolve, 100))
         job = session.jobs.get(job.jobId)
