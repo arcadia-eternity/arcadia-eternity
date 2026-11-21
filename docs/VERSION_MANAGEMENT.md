@@ -26,7 +26,7 @@ Release Please 按改动路径维护两个发行 PR。两边都有改动时，�
 
 在 npm 为三个包分别授权仓库的 `publish-packages.yaml`，开启直接发布权限。release-please 创建数据标签后发送 `base-pack-release` 事件，由 “Publish UGC Packages” 独立运行。自动发行和手动按标签补发使用同一个 npm Trusted Publisher，发布日志都在这个工作流中。[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
 
-只改 `packs/base/**` 会进入基础包的发行 PR。GitHub 为该包保留发行草稿，玩家通过 npm 收到稳定版，GitHub 的公开桌面更新入口继续指向客户端。npm 发布失败可以在 “Publish UGC Packages” 中用同一标签重试。
+只改 `packs/base/**` 会进入基础包的发行 PR。GitHub 为该包保留发行草稿，玩家通过 npm 收到稳定版，GitHub 的公开桌面更新入口继续指向客户端。如果部分包已发布，优先在原 Actions run 中重跑失败任务。手动重试时，在 “Publish UGC Packages” 填相同标签和首轮归档所在的 `verified_run_id`。工作流校验来源仓库、发行工作流、标签提交和归档哈希，再补发缺失的包。
 
 桌面和生产服务端构建从该次提交的版本清单选择基础包标签，将该标签的源码作为离线初始内容。首次独立发行之前使用最后一个联合发行标签 `arcadia-eternity-v4.11.1`。日常开发仍使用工作区源码。
 
