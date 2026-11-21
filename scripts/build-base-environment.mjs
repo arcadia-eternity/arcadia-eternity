@@ -154,7 +154,8 @@ export async function buildBaseEnvironmentArtifact() {
         resolve(dir, 'pack-lock.yaml'),
         YAML.stringify({
           lockfileVersion: 1,
-          generatedAt: new Date().toISOString(),
+          // This is a compiled copy of the source lock. Keep rebuilds of a release byte-identical.
+          generatedAt: loaded.lockfile?.generatedAt ?? new Date(0).toISOString(),
           importers: {
             '.': {
               specifiers: {

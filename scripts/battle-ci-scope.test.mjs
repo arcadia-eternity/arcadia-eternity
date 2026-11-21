@@ -241,8 +241,24 @@ for (const path of [
   })
 }
 
-for (const path of ['scripts/stage-author-sdk.mjs', 'scripts/stage-author-sdk.test.mjs']) {
+for (const path of [
+  'scripts/stage-author-sdk.mjs',
+  'scripts/stage-author-sdk.test.mjs',
+  'scripts/release-author-sdk.mjs',
+  '.github/workflows/publish-packages.yaml',
+  '.github/workflows/release-please.yml',
+  '.github/release-please-config.json',
+  '.release-please-manifest.json',
+]) {
   test(`content developer tooling runs its CLI and staging checks: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, cli: true })
   })
 }
+
+test('desktop workspace changes exercise client upgrades with the built local server', () => {
+  assert.deepEqual(affectedBattleJobs(['packages/web-ui/electron/content-library.mjs'], packages), {
+    ...none,
+    server: true,
+    browser: true,
+  })
+})

@@ -37,7 +37,12 @@ const jobFiles = {
     /^scripts\/verify-behavior-uses\.mjs$/,
     /^scripts\/build-environment\.test\.mjs$/,
   ],
-  server: [/^bin\//, /^eslint\.config\.server\.js$/, /^scripts\/verify-native-pack\.mjs$/],
+  server: [
+    /^bin\//,
+    /^packages\/web-ui\/electron\//,
+    /^eslint\.config\.server\.js$/,
+    /^scripts\/verify-native-pack\.mjs$/,
+  ],
   browser: [
     /^resource\//,
     /^scripts\/prepare-static-assets(?:\.test)?\.mjs$/,
@@ -45,7 +50,15 @@ const jobFiles = {
     /^scripts\/desktop-license-reference\//,
   ],
   // The offline bundle includes the root entry and lazy legacy command module.
-  cli: [/^bin\//, /^rolldown\.config\.js$/, /^examples\/ugc\//, /^scripts\/stage-author-sdk(?:\.test)?\.mjs$/],
+  cli: [
+    /^bin\//,
+    /^rolldown\.config\.js$/,
+    /^examples\/ugc\//,
+    /^scripts\/(?:stage-author-sdk(?:\.test)?|release-author-sdk)\.mjs$/,
+    /^\.github\/workflows\/(?:publish-packages\.yaml|release-please\.yml)$/,
+    /^\.github\/release-please-config\.json$/,
+    /^\.release-please-manifest\.json$/,
+  ],
 }
 
 function git(args, cwd) {
