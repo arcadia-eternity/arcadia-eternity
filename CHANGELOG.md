@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.12.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.11.1...arcadia-eternity-v4.12.0) (2026-11-21)
+
+
+### ✨ Features
+
+* **desktop:** use the web logo as the Electron app icon ([f35f2d0](https://github.com/arcadia-eternity/arcadia-eternity/commit/f35f2d0100ad7beed46ec0a68c8afbb7fb4c878c))
+
 ## [4.11.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.11.0...arcadia-eternity-v4.11.1) (2026-11-21)
 
 
