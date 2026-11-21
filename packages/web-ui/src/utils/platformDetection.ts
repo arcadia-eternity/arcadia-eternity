@@ -1,276 +1,61 @@
 import { UAParser } from 'ua-parser-js'
-import type { Platform, Architecture, WindowsFormat, MacOSFormat, PlatformInfo } from '@/types/download'
+import { isAppleSilicon } from 'ua-parser-js/device-detection'
+import { isFrozenUA } from 'ua-parser-js/helpers'
+import type { Architecture, Platform } from '@/types/download'
 
-// Per official documentation, instantiate the parser once.
-const parser = new UAParser()
-// The getResult() method returns all parsed information, which we can reuse.
-const result = parser.getResult()
-
-/**
- * Detects the user's operating system platform using ua-parser-js.
- */
-function detectPlatform(): Platform {
-  const osName = result.os.name
-  if (typeof osName === 'string') {
-    const lowerOsName = osName.toLowerCase()
-    if (lowerOsName.includes('mac')) {
-      return 'macos'
-    }
-    if (lowerOsName.includes('windows')) {
-      return 'windows'
-    }
-    if (lowerOsName.includes('linux')) {
-      return 'linux'
-    }
-  }
-  // Fallback for undetected OS
-  return 'windows'
-}
-
-/**
- * Detects the user's processor architecture using ua-parser-js.
- */
-function detectArchitecture(): Architecture {
-  // The `cpu.architecture` property provides the architecture name.
-  const arch = result.cpu.architecture
-  switch (arch) {
-    // `arm64` is used for Apple Silicon (M1/M2 etc.) and other 64-bit ARM.
-    case 'arm64':
-    case 'arm': // Also map 32-bit ARM to our aarch64 build for simplicity.
-      return 'aarch64'
-
-    // `amd64` is for 64-bit Intel/AMD, `ia32` is for 32-bit Intel.
-    case 'amd64':
-    case 'ia32':
-      return 'x64'
-
-    // Default to x64 for any other architectures.
-    default:
-      return 'x64'
+interface BrowserInfo extends Pick<Navigator, 'userAgent' | 'maxTouchPoints'> {
+  userAgentData?: {
+    mobile?: boolean
+    platform?: string
+    getHighEntropyValues?(keys: string[]): Promise<{ architecture?: string; bitness?: string }>
   }
 }
 
-/**
- * 获取推荐的下载格式
- */
-function getRecommendedFormat(platform: Platform): WindowsFormat | MacOSFormat {
-  switch (platform) {
-    case 'windows':
-      // NSIS 安装包更常用，体积更小
-      return 'nsis'
-    case 'macos':
-      return 'app'
-    default:
-      return 'nsis'
+export async function getPlatformInfo(browser: BrowserInfo = navigator): Promise<{
+  platform?: Platform
+  architecture?: Architecture
+  isMobile: boolean
+}> {
+  const parsed = new UAParser(browser.userAgent).getResult()
+  const hints = browser.userAgentData
+  const os = hints?.platform || parsed.os.name
+  const mac = os === 'macOS' || os === 'Mac OS'
+  if (
+    hints?.mobile ||
+    parsed.device.type === 'mobile' ||
+    parsed.device.type === 'tablet' ||
+    ['Android', 'iOS', 'iPadOS', 'Windows Phone'].includes(os ?? '') ||
+    (mac && browser.maxTouchPoints > 1)
+  )
+    return { isMobile: true }
+
+  let platform: Platform | undefined
+  if (!parsed.device.type) {
+    if (os === 'Windows') platform = 'windows'
+    else if (mac) platform = 'macos'
+    else if (os === 'Linux' || /\bX11; (?:[^();]+; )?Linux\b/.test(browser.userAgent)) platform = 'linux'
   }
-}
+  if (!platform) return { isMobile: false }
 
-/**
- * 检测是否为移动设备
- */
-function isMobileDevice(): boolean {
-  const userAgent = navigator.userAgent.toLowerCase()
-  const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone', 'opera mini']
+  // Reduced Chromium user agents can report x64 on ARM machines.
+  const cpu = isFrozenUA(browser.userAgent) ? undefined : parsed.cpu.architecture
+  let architecture: Architecture | undefined
+  if (cpu === 'amd64' && !mac) architecture = 'x64'
+  if (cpu === 'arm64') architecture = 'arm64'
 
-  return mobileKeywords.some(keyword => userAgent.includes(keyword))
-}
-
-/**
- * 获取详细的平台信息
- */
-export function getPlatformInfo(): PlatformInfo {
-  const platform = detectPlatform()
-  const architecture = detectArchitecture()
-  const recommendedFormat = getRecommendedFormat(platform)
-  const userAgent = navigator.userAgent
-  const isMobile = isMobileDevice()
-
-  return {
-    platform,
-    architecture,
-    recommendedFormat,
-    userAgent,
-    isMobile,
-  }
-}
-
-/**
- * 获取平台的显示名称
- */
-export function getPlatformDisplayName(platform: Platform, architecture?: Architecture): string {
-  switch (platform) {
-    case 'windows':
-      return `Windows ${architecture === 'x64' ? '64-bit' : '32-bit'}`
-    case 'macos':
-      if (architecture === 'aarch64') {
-        return 'macOS (Apple Silicon)'
-      } else {
-        return 'macOS (Intel)'
+  try {
+    const chip = await hints?.getHighEntropyValues?.(['architecture', 'bitness'])
+    if (chip?.architecture) {
+      architecture = undefined
+      if (chip.bitness === '64') {
+        if (chip.architecture === 'x86') architecture = 'x64'
+        if (chip.architecture === 'arm') architecture = 'arm64'
       }
-    case 'linux':
-      return `Linux ${architecture === 'x64' ? '64-bit' : '32-bit'}`
-    default:
-      return 'Unknown Platform'
-  }
-}
-
-/**
- * 获取格式的显示名称和描述
- */
-export function getFormatInfo(format: WindowsFormat | MacOSFormat): {
-  name: string
-  description: string
-  extension: string
-} {
-  switch (format) {
-    case 'msi':
-      return {
-        name: 'MSI Installer',
-        description: 'Windows Installer package, suitable for enterprise deployment',
-        extension: '.msi',
-      }
-    case 'nsis':
-      return {
-        name: 'NSIS Installer',
-        description: 'Lightweight installer, recommended for most users',
-        extension: '.exe',
-      }
-    case 'dmg':
-      return {
-        name: 'DMG Image',
-        description: 'macOS disk image, drag to Applications folder to install',
-        extension: '.dmg',
-      }
-    case 'app':
-      return {
-        name: 'App Bundle',
-        description: 'macOS application bundle (tar.gz archive), extract and drag to Applications',
-        extension: '.app.tar.gz',
-      }
-    default:
-      return {
-        name: 'Unknown Format',
-        description: 'Unknown file format',
-        extension: '',
-      }
-  }
-}
-
-/**
- * 检测浏览器信息
- */
-function getBrowserInfo(): { name: string; version: string; engine: string } {
-  const userAgent = navigator.userAgent
-
-  // Chrome
-  if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
-    const match = userAgent.match(/Chrome\/(\d+)/)
-    return {
-      name: 'Chrome',
-      version: match ? match[1] : 'Unknown',
-      engine: 'Blink',
+      return { platform, architecture, isMobile: false }
     }
+  } catch {
+    // Browsers may withhold client hints. Keep only independent evidence.
   }
-
-  // Edge
-  if (userAgent.includes('Edg')) {
-    const match = userAgent.match(/Edg\/(\d+)/)
-    return {
-      name: 'Edge',
-      version: match ? match[1] : 'Unknown',
-      engine: 'Blink',
-    }
-  }
-
-  // Firefox
-  if (userAgent.includes('Firefox')) {
-    const match = userAgent.match(/Firefox\/(\d+)/)
-    return {
-      name: 'Firefox',
-      version: match ? match[1] : 'Unknown',
-      engine: 'Gecko',
-    }
-  }
-
-  // Safari
-  if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
-    const match = userAgent.match(/Version\/(\d+)/)
-    return {
-      name: 'Safari',
-      version: match ? match[1] : 'Unknown',
-      engine: 'WebKit',
-    }
-  }
-
-  return {
-    name: 'Unknown',
-    version: 'Unknown',
-    engine: 'Unknown',
-  }
-}
-
-/**
- * 检测网络环境（简单的地区检测）
- */
-export function detectRegion(): string {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const language = navigator.language
-
-  // 基于时区的简单地区检测
-  if (timezone.includes('Asia/Shanghai') || timezone.includes('Asia/Beijing')) {
-    return 'CN'
-  }
-
-  if (timezone.includes('Asia/')) {
-    return 'AS'
-  }
-
-  if (timezone.includes('Europe/')) {
-    return 'EU'
-  }
-
-  if (timezone.includes('America/')) {
-    return 'US'
-  }
-
-  // 基于语言的检测
-  if (language.startsWith('zh-CN')) {
-    return 'CN'
-  }
-
-  return 'global'
-}
-
-/**
- * 检测系统主题偏好
- */
-function getSystemTheme(): 'light' | 'dark' | 'auto' {
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark'
-  }
-  return 'light'
-}
-
-/**
- * 获取系统语言偏好
- */
-function getSystemLanguage(): string {
-  return navigator.language || navigator.languages?.[0] || 'en-US'
-}
-
-/**
- * 综合环境检测
- */
-export function getEnvironmentInfo() {
-  return {
-    platform: getPlatformInfo(),
-    browser: getBrowserInfo(),
-    region: detectRegion(),
-    theme: getSystemTheme(),
-    language: getSystemLanguage(),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    online: navigator.onLine,
-    cookieEnabled: navigator.cookieEnabled,
-    javaEnabled: navigator.javaEnabled?.() || false,
-  }
+  if (mac && !architecture && isAppleSilicon(parsed)) architecture = 'arm64'
+  return { platform, architecture, isMobile: false }
 }
