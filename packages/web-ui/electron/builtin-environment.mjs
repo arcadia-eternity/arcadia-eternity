@@ -21,35 +21,6 @@ export function createOfficialContentUpdater(library, synchronize) {
   }
 }
 
-export function startAutomaticContentUpdates(update, onError) {
-  const controller = new AbortController()
-  let running
-  let timer
-  function schedule(delay) {
-    timer = setTimeout(() => {
-      running = check()
-    }, delay)
-    timer.unref()
-  }
-  async function check() {
-    let delay = 6 * 60 * 60 * 1000
-    try {
-      await update({ signal: controller.signal })
-    } catch (error) {
-      if (controller.signal.aborted) return
-      onError(error)
-      delay = 15 * 60 * 1000
-    }
-    if (!controller.signal.aborted) schedule(delay)
-  }
-  schedule(3000)
-  return () => {
-    controller.abort()
-    clearTimeout(timer)
-    return running
-  }
-}
-
 // A restart can resume a pending activation. Repair any official presets already switched
 // before reporting a manual update failure or serving an offline startup.
 export async function activateOfficialEnvironments(library, synchronize, reportFailure = false) {

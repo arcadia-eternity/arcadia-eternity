@@ -53,15 +53,9 @@ Node 宿主可向 `createSingleProcessApp` 注入 `matchmakingPolicy: Matchmakin
 
 ## 独立更新官方基础包
 
-独立服务器首次启动使用内置的官方基础包。管理员可以下载新版到持久数据目录，沿用同一个服务器程序或镜像。使用 Compose 的例子如下。
+独立服先使用本机兼容版本接待玩家，随后在后台检查公共 npm。检查或更新成功后，每 6 小时再查一次；检查、下载、验证或应用失败时，15 分钟后重试。服务端核验归档的 SHA-512、包身份和官方预设后，热切换默认环境和 120 资质环境。进行中的房间继续使用原修订，新开的房间使用新修订。
 
-```sh
-docker compose exec arcadia-eternity node dist/cli.js server base-pack check
-docker compose exec arcadia-eternity node dist/cli.js server base-pack update
-docker compose restart arcadia-eternity
-```
-
-直接运行 Node 时，给 `server base-pack check` 和 `server base-pack update` 传入启动服务时使用的同一个 `--data-dir`，或设置 `ARCADIA_DATA_DIR`。检查和下载都显式访问公共 npm。更新命令按宿主版本筛选稳定发行，核验 SHA-512、包身份和官方环境，再将完整版本放入 `official-base/<版本>`。下载可以在服务运行时进行。等现有对局结束再重启，服务会离线选择最新的兼容本地版本，并重新准备官方环境。
+`--no-base-pack-auto-update` 或 `ARCADIA_BASE_PACK_AUTO_UPDATE=0` 关闭后台更新。`--offline-content`、固定基础包版本和桌面托管模式也会跳过独立服的后台检查。手动执行 `server base-pack check` 可查看可用版本，`server base-pack update` 可预下载到持久目录。两条命令均需使用服务的 `--data-dir` 或 `ARCADIA_DATA_DIR`。
 
 回滚时，在启动参数中指定 `--base-pack-version <已安装版本>`，或通过 `ARCADIA_BASE_PACK_VERSION=bundled` 使用安装包自带的版本。使用 Compose 调整环境变量后，执行 `docker compose up -d` 以应用新配置。数据盘会保留已安装的版本。桌面托管的本机服务器通过桌面内容库选择基础包。
 

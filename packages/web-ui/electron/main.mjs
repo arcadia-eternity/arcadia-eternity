@@ -26,7 +26,6 @@ import {
   activateOfficialEnvironments,
   createOfficialContentUpdater,
   openBuiltinEnvironment,
-  startAutomaticContentUpdates,
 } from './builtin-environment.mjs'
 import { LocalEnvironments } from './local-environments.mjs'
 import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
@@ -297,6 +296,12 @@ function activeBaseRoot(runtimeRequire) {
     path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
   )
 }
+function loadPackageUpdates() {
+  const runtimeRequire = app.isPackaged
+    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+    : require
+  return import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href)
+}
 function getContentLibrary() {
   if (contentLibrary) return contentLibrary
   const runtimeRequire = app.isPackaged
@@ -308,9 +313,7 @@ function getContentLibrary() {
     packageUpdates: {
       clientVersion: app.isPackaged ? app.getVersion() : require('../package.json').version,
       find: async (...args) => {
-        const { findPackageUpdate } = await import(
-          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href
-        )
+        const { findPackageUpdate } = await loadPackageUpdates()
         return findPackageUpdate(...args)
       },
       shippedRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
@@ -321,9 +324,7 @@ function getContentLibrary() {
         return catalogMaterialDigest(root)
       },
       withArchive: async (candidate, signal, use) => {
-        const { withOfficialUpdateArchive } = await import(
-          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href
-        )
+        const { withOfficialUpdateArchive } = await loadPackageUpdates()
         return withOfficialUpdateArchive(candidate, localBattleHost.npmCliPath, signal, use)
       },
       validate: async (directory, signal) => {
@@ -397,9 +398,7 @@ function getContentLibrary() {
       const runtimeRequire = app.isPackaged
         ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
         : require
-      const { ManagedProjects } = await import(
-        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/managed-projects')).href
-      )
+      const { ManagedProjects } = await loadPackageUpdates()
       return new ManagedProjects(root, {
         ...options,
         get bundledPackageRoot() {
@@ -1538,10 +1537,12 @@ app
     setupIpcHandlers()
     swfHost.registerIpc(ipcMain)
     createMainWindow()
-    if (app.isPackaged)
+    if (app.isPackaged) {
+      const { startAutomaticContentUpdates } = await loadPackageUpdates()
       stopAutomaticContentUpdates = startAutomaticContentUpdates(updateOfficialContent, error =>
         console.warn('Automatic official content update failed', error),
       )
+    }
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createMainWindow()

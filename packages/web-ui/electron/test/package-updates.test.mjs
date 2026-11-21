@@ -4,8 +4,11 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { catalogMaterialDigest, withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
-import { selectPackageUpdate, selectServerBase } from '@arcadia-eternity/content-sdk/managed-projects'
-import { startAutomaticContentUpdates } from '../builtin-environment.mjs'
+import {
+  selectPackageUpdate,
+  selectServerBase,
+  startAutomaticContentUpdates,
+} from '@arcadia-eternity/content-sdk/managed-projects'
 
 test('background content checks retry offline, avoid overlapping downloads and cancel on quit', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] })

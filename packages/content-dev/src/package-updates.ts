@@ -16,6 +16,38 @@ export interface PackageUpdate {
   integrity: string
 }
 
+export function startAutomaticContentUpdates(
+  update: (options: { signal: AbortSignal }) => Promise<unknown>,
+  onError: (error: unknown) => void,
+) {
+  const controller = new AbortController()
+  let running: Promise<void> | undefined
+  let timer: NodeJS.Timeout
+  function schedule(delay: number) {
+    timer = setTimeout(() => {
+      running = check()
+    }, delay)
+    timer.unref()
+  }
+  async function check() {
+    let delay = 6 * 60 * 60 * 1000
+    try {
+      await update({ signal: controller.signal })
+    } catch (error) {
+      if (controller.signal.aborted) return
+      onError(error)
+      delay = 15 * 60 * 1000
+    }
+    if (!controller.signal.aborted) schedule(delay)
+  }
+  schedule(3000)
+  return () => {
+    controller.abort()
+    clearTimeout(timer)
+    return running
+  }
+}
+
 export function selectPackageUpdate(
   metadata: unknown,
   name: string,
@@ -196,16 +228,22 @@ export async function installServerBaseUpdate(
   store: string,
   candidate: PackageUpdate,
   host: string,
-  validate: (directory: string) => Promise<void>,
+  validate: (directory: string, signal: AbortSignal) => Promise<void>,
+  options: { signal?: AbortSignal; beforeCommit?: (directory: string) => Promise<void> } = {},
 ) {
   if (!semver.satisfies(host, candidate.range)) throw new Error('INCOMPATIBLE_OFFICIAL_PACKAGE')
   await mkdir(store, { recursive: true, mode: 0o700 })
   const stage = await mkdtemp(join(store, '.install-'))
   try {
-    const directory = await acquireOfficial(candidate, join(stage, 'source'), AbortSignal.timeout(120000))
-    await validate(directory)
+    const timeout = AbortSignal.timeout(120000)
+    const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
+    const directory = await acquireOfficial(candidate, join(stage, 'source'), signal)
+    await validate(directory, signal)
     const digest = await catalogMaterialDigest(directory)
     await writeFile(join(directory, '.arcadia-material-digest'), digest)
+    signal.throwIfAborted()
+    await options.beforeCommit?.(directory)
+    options.signal?.throwIfAborted()
     try {
       await rename(directory, join(store, candidate.version))
     } catch (error) {

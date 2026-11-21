@@ -8,7 +8,7 @@ import { createRequire } from 'node:module'
 import { openStorage } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import type { ServerEnvironmentDescriptor, ServerSession } from '@arcadia-eternity/protocol'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 
 const execute = promisify(execFile)
 const cli = resolve('dist/cli.js')
@@ -42,6 +42,7 @@ const env: NodeJS.ProcessEnv = {
   HOME: process.env.HOME,
   SystemRoot: process.env.SystemRoot,
   ACCOUNT_MODE: 'guest',
+  ARCADIA_BASE_PACK_AUTO_UPDATE: '0',
   STORAGE_DRIVER: 'sqlite',
   DOTENV_CONFIG_PATH: '/dev/null',
 }
@@ -49,10 +50,11 @@ async function command(args: string[]) {
   const { stdout } = await execute(process.execPath, [cli, 'server', ...args], { env, timeout: 60_000 })
   return JSON.parse(stdout.trim())
 }
-async function start(directory: string, extra: string[] = []) {
+async function start(directory: string, extra: string[] = [], preload?: string) {
   const child = spawn(
     process.execPath,
     [
+      ...(preload ? ['--import', preload] : []),
       cli,
       'server',
       '--headless',
@@ -66,7 +68,10 @@ async function start(directory: string, extra: string[] = []) {
       adminOrigin,
       ...extra,
     ],
-    { env, stdio: ['ignore', 'pipe', 'pipe'] },
+    {
+      env: preload ? { ...env, ARCADIA_BASE_PACK_AUTO_UPDATE: '1' } : env,
+      stdio: preload ? ['ignore', 'pipe', 'pipe', 'ipc'] : ['ignore', 'pipe', 'pipe'],
+    },
   )
   children.add(child)
   return new Promise<{ child: ChildProcess; origin: string }>((resolve, reject) => {
@@ -702,12 +707,11 @@ it('starts the exact base in an external npm project offline', async () => {
   expect(JSON.parse(await readFile(join(project, 'package.json'), 'utf8')).dependencies[base]).toBe('0.0.1')
 }, 60_000)
 
-it('stages an independent official release, serves it offline and rolls back without changing the server image', async () => {
+async function officialReleaseFixture() {
   const { withShippedCatalogArchive, withShippedEnvironmentProject } =
     await import('@arcadia-eternity/pack-loader/node')
   const root = await mkdtemp(join(tmpdir(), 'arcadia-server-pack-update-'))
   directories.push(root)
-  const data = join(root, 'state')
   const name = '@arcadia-eternity/data-pack-base'
   const version = '90.0.0'
   const url = 'https://registry.npmjs.org/' + name + '/-/data-pack-base-' + version + '.tgz'
@@ -742,12 +746,55 @@ it('stages an independent official release, serves it offline and rolls back wit
       },
     },
   }
+  return { root, name, source, manifest, artifact, shipped, version, url, bytes, archive, metadata }
+}
+
+it('restores the previous official base when live activation fails and keeps the failed version out of startup selection', async () => {
+  const { root, shipped, version, url, bytes, metadata } = await officialReleaseFixture()
+  const { serverBase, shippedBaseRoot, updateRunningServerBase } = await import('../server-base-pack')
+  const data = join(root, 'state')
+  const registry = vi
+    .spyOn(globalThis, 'fetch')
+    .mockImplementation(async input =>
+      String(input) === url ? new Response(new Uint8Array(bytes)) : Response.json(metadata),
+    )
+  const activated: string[] = []
+  try {
+    await expect(
+      updateRunningServerBase(
+        data,
+        { directory: shippedBaseRoot(), version: shipped },
+        async directory => {
+          const pkg = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+          activated.push(pkg.version)
+          if (pkg.version === version) throw new Error('second binding unavailable')
+        },
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('second binding unavailable')
+    expect(activated).toEqual([version, shipped])
+    expect((await serverBase(data)).version).toBe(shipped)
+  } finally {
+    registry.mockRestore()
+  }
+}, 60000)
+
+it('hot-updates both official presets in the background, preserves a live room, and respects offline and pinned starts', async () => {
+  const { root, name, source, manifest, artifact, shipped, version, url, bytes, archive, metadata } =
+    await officialReleaseFixture()
+  const data = join(root, 'state')
   const preload = join(root, 'registry.mjs')
   await writeFile(
     preload,
     `
-    import { readFile } from 'node:fs/promises'
+    import { readFile, appendFile } from 'node:fs/promises'
+    import { once } from 'node:events'
     globalThis.fetch = async url => {
+      if (process.env.ARCADIA_BASE_PACK_AUTO_UPDATE === '1') {
+        const gate = String(url) === ${JSON.stringify(url)} ? once(process, 'message') : undefined
+        await appendFile(${JSON.stringify(join(root, 'requests'))}, String(url) + '\\n')
+        await gate
+      }
       if (String(url) === ${JSON.stringify(url)}) return new Response(await readFile(${JSON.stringify(archive)}))
       if (String(url) === ${JSON.stringify('https://registry.npmjs.org/' + encodeURIComponent(name))}) return Response.json(${JSON.stringify(metadata)})
       throw new Error('Unexpected request: ' + url)
@@ -762,14 +809,37 @@ it('stages an independent official release, serves it offline and rolls back wit
   })
   await writeFile(archive, 'incomplete')
   await expect(update('update')).rejects.toThrow(/SOURCE_INTEGRITY_MISMATCH/)
+  let running = await start(data, [], preload)
+  await vi.waitFor(
+    async () => {
+      expect((await readFile(join(root, 'requests'), 'utf8')).trim().split('\n')).toContain(url)
+    },
+    { timeout: 30000, interval: 100 },
+  )
+  const initial = await catalog(running.origin)
+  expect(initial.map(item => item.packages[0].version)).toEqual([shipped, shipped])
+  const socket = await guest(running.origin)
+  const room = await accepted<{ roomCode: string }>(socket, 'createPrivateRoom', { config: { battleMode: 'server' } })
   await writeFile(archive, bytes)
-  expect(JSON.parse((await update('update')).stdout)).toMatchObject({ installedVersion: version })
-  expect(JSON.parse((await update('check')).stdout)).toMatchObject({
+  running.child.send('complete-download')
+  await vi.waitFor(
+    async () => {
+      const published = await catalog(running.origin)
+      expect(published.map(item => item.packages[0].version)).toEqual([version, version])
+    },
+    { timeout: 40000, interval: 200 },
+  )
+  expect(await accepted(socket, 'getPrivateRoomInfo', { roomCode: room.roomCode })).toMatchObject({
+    environment: { id: initial.find(item => item.isDefault)!.id },
+  })
+  await accepted(socket, 'leavePrivateRoom')
+  await vi.waitFor(() => readFile(join(data, 'official-base', version, '.arcadia-material-digest')), { timeout: 10000 })
+  await stop(running.child)
+  expect(JSON.parse((await update('update')).stdout)).toMatchObject({
     installedVersion: version,
     availableVersion: null,
   })
-
-  let running = await start(data, ['--offline-content'])
+  running = await start(data, ['--offline-content'], preload)
   const environments = await catalog(running.origin)
   expect(environments.length).toBe(2)
   expect(environments.find(item => item.environmentId === 'training-120')).toMatchObject({
@@ -777,10 +847,13 @@ it('stages an independent official release, serves it offline and rolls back wit
   })
   expect(environments.every(item => item.packages.some(pkg => pkg.name === name && pkg.version === version))).toBe(true)
   await stop(running.child)
-  running = await start(data, ['--offline-content', '--base-pack-version', 'bundled'])
+  const requests = await readFile(join(root, 'requests'), 'utf8')
+  running = await start(data, ['--base-pack-version', 'bundled'], preload)
   expect((await catalog(running.origin)).map(item => item.packages[0].version)).toEqual([shipped, shipped])
+  expect(await readFile(join(root, 'requests'), 'utf8')).toBe(requests)
   const { serverOfficialMaterials, shippedBaseRoot } = await import('../server-base-pack')
   const { ServerEnvironmentRegistry } = await import('@arcadia-eternity/server')
+  const { withShippedEnvironmentProject } = await import('@arcadia-eternity/pack-loader/node')
   const registry = new ServerEnvironmentRegistry(undefined, await serverOfficialMaterials(data, shippedBaseRoot()))
   try {
     await withShippedEnvironmentProject(source, async project => {

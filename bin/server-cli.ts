@@ -7,9 +7,19 @@ import {
   readOfficialEnvironments,
   synchronizeShippedEnvironments,
 } from '@arcadia-eternity/content-sdk/management-workspace'
-import { ManagedProjects, type ManagedProjectsOptions } from '@arcadia-eternity/content-sdk/managed-projects'
+import {
+  ManagedProjects,
+  startAutomaticContentUpdates,
+  type ManagedProjectsOptions,
+} from '@arcadia-eternity/content-sdk/managed-projects'
 import { prepareShippedEnvironment } from '@arcadia-eternity/pack-loader/node'
-import { serverBase, serverOfficialMaterials, shippedBaseRoot, runServerBasePackCli } from './server-base-pack'
+import {
+  serverBase,
+  serverOfficialMaterials,
+  shippedBaseRoot,
+  runServerBasePackCli,
+  updateRunningServerBase,
+} from './server-base-pack'
 import { readFile, stat } from 'node:fs/promises'
 import { openServerStorage, workspaceRetentions } from './server-persistence'
 import { createDesktopWorkspaceProxy } from './desktop-workspace-proxy'
@@ -53,6 +63,7 @@ export async function runServerCli(args: string[]): Promise<number> {
   let projects: ManagedProjects | undefined
   let mailer: ReturnType<typeof nodemailer.createTransport> | undefined
   let server: ReturnType<typeof createSingleProcessApp> | undefined
+  let stopContentUpdates: ReturnType<typeof startAutomaticContentUpdates> | undefined
   const program = new Command('arcadia server')
     .description('Single-process battle server. Rooms and sessions expire when this process stops.')
     .addHelpText('after', '\nOfficial base pack: arcadia server base-pack <check|update> [--data-dir <directory>]')
@@ -66,6 +77,11 @@ export async function runServerCli(args: string[]): Promise<number> {
       '--base-pack-version <version>',
       'Official base version to use (installed version or bundled)',
       process.env.ARCADIA_BASE_PACK_VERSION,
+    )
+    .option(
+      '--no-base-pack-auto-update',
+      'Disable automatic official base and environment updates',
+      process.env.ARCADIA_BASE_PACK_AUTO_UPDATE !== '0',
     )
     .addOption(new Option('--desktop-base-root <directory>').hideHelp())
     .option('--desktop-client-environments', 'Publish prepared environments from the desktop client library')
@@ -126,6 +142,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       desktopClientEnvironments?: boolean
       desktopProject?: string
       basePackVersion?: string
+      basePackAutoUpdate: boolean
       desktopBaseRoot?: string
       desktopManagedNetwork?: boolean
       desktopOrigin?: string
@@ -321,9 +338,13 @@ export async function runServerCli(args: string[]): Promise<number> {
     const config = persistentServerConfig(options)
     const retentions = workspaceRetentions(storage, () => workspace!.workspaceId)
     const selected = desktopControl
-      ? { directory: options.desktopBaseRoot ?? shippedBaseRoot(), cached: !!options.desktopBaseRoot }
+      ? {
+          directory: options.desktopBaseRoot ?? shippedBaseRoot(),
+          cached: !!options.desktopBaseRoot,
+          version: undefined,
+        }
       : await serverBase(config.dataDirectory, options.basePackVersion)
-    const bundledPackageRoot = selected.directory
+    let bundledPackageRoot = selected.directory
     if (selected.cached) officialBase = await prepareShippedEnvironment(bundledPackageRoot)
     const allowShareDownloads =
       !options.offlineContent && !!(options.allowThirdPartyContent || options.allowThirdPartyExecution)
@@ -335,7 +356,9 @@ export async function runServerCli(args: string[]): Promise<number> {
       : await ContentWorkspace.open(config.workspaceRoot, {
           retentions,
           allowShareDownloads,
-          bundledPackageRoot,
+          get bundledPackageRoot() {
+            return bundledPackageRoot
+          },
           npmCache: join(config.dataDirectory, 'projects', 'npm-cache'),
         })
     workspace = desktopWorkspace ?? ownedWorkspace!
@@ -352,7 +375,9 @@ export async function runServerCli(args: string[]): Promise<number> {
         sources = value as ManagedProjectsOptions['sources']
       }
       projects = new ManagedProjects(join(config.dataDirectory, 'projects'), {
-        bundledPackageRoot,
+        get bundledPackageRoot() {
+          return bundledPackageRoot
+        },
         resolveBaseVersion: async version => (await serverBase(config.dataDirectory, version)).directory,
         allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
         registry: options.npmRegistry,
@@ -361,33 +386,38 @@ export async function runServerCli(args: string[]): Promise<number> {
         sources,
       })
     }
+    let synchronizeOfficial: ((directory: string, signal?: AbortSignal) => Promise<string>) | undefined
     if (ownedWorkspace && projects) {
       const manager = projects
       const validate = (input: Parameters<typeof validateWorkspaceProject>[0]) =>
         validateWorkspaceProject(input, {
           effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
         })
-      const catalog = await readOfficialEnvironments(
-        bundledPackageRoot,
-        new URL('./shipped-environments.json', import.meta.url),
-      )
-      await ownedWorkspace.refreshBuiltinRules(catalog.environments)
-      const key = catalog.defaultEnvironment
-      const previous = (await storage.get<ManagedServer>('servers', serverId))?.value.initialization
-      const adopted: Record<string, string> = {}
-      if (previous?.kind === 'builtin') adopted[key] = previous.environmentId
-      defaultBuiltinId = await synchronizeShippedEnvironments(
-        ownedWorkspace,
-        catalog,
-        adopted,
-        (document, expectedRevision) =>
-          manager.prepareEnvironment(
-            ownedWorkspace,
-            { environmentId: document.id, document, expectedRevision, useSelectedBase: true },
-            validate,
-          ),
-        bundledPackageRoot,
-      )
+      synchronizeOfficial = async (directory, signal) => {
+        const catalog = await readOfficialEnvironments(
+          directory,
+          new URL('./shipped-environments.json', import.meta.url),
+        )
+        await ownedWorkspace.refreshBuiltinRules(catalog.environments)
+        const key = catalog.defaultEnvironment
+        const previous = (await storage!.get<ManagedServer>('servers', serverId))?.value.initialization
+        const adopted: Record<string, string> = {}
+        if (previous?.kind === 'builtin') adopted[key] = previous.environmentId
+        return synchronizeShippedEnvironments(
+          ownedWorkspace,
+          catalog,
+          adopted,
+          (document, expectedRevision) =>
+            manager.prepareEnvironment(
+              ownedWorkspace,
+              { environmentId: document.id, document, expectedRevision, useSelectedBase: true, signal },
+              validate,
+              directory,
+            ),
+          directory,
+        )
+      }
+      defaultBuiltinId = await synchronizeOfficial(bundledPackageRoot)
     }
     const webRoot =
       options.headless || (desktopControl && (!options.desktopManagedNetwork || !options.webRoot))
@@ -494,14 +524,40 @@ export async function runServerCli(args: string[]): Promise<number> {
         )
       : undefined
     const runningServer = server
+    if (
+      selected.version &&
+      synchronizeOfficial &&
+      options.basePackAutoUpdate &&
+      !options.offlineContent &&
+      !options.basePackVersion
+    ) {
+      let active = { version: selected.version, directory: bundledPackageRoot }
+      const synchronize = synchronizeOfficial
+      stopContentUpdates = startAutomaticContentUpdates(
+        async ({ signal }) => {
+          active = await updateRunningServerBase(
+            config.dataDirectory,
+            active,
+            (directory, signal) =>
+              runningServer.management!.refreshBuiltinBindings(async () => {
+                await synchronize(directory, signal)
+                signal?.throwIfAborted()
+              }),
+            signal,
+          )
+          bundledPackageRoot = active.directory
+        },
+        error => console.warn('Automatic official content update failed:', error),
+      )
+    }
     let closing = false
     const stop = () => {
       if (closing) return
       closing = true
       detachDesktopControl?.()
       console.log('Stopping server; all rooms and sessions are being discarded.')
-      void runningServer
-        .stop()
+      void Promise.resolve(stopContentUpdates?.())
+        .then(() => runningServer.stop())
         .catch(error => {
           console.error(error instanceof Error ? error.message : error)
           process.exitCode = 1
@@ -534,6 +590,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     console.log('Rooms and sessions are held in memory. Restarting abandons all rooms.')
     return 0
   } catch (error) {
+    await stopContentUpdates?.()
     await server?.stop()
     await officialBase?.dispose()
     mailer?.close()

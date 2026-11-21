@@ -33,12 +33,39 @@ export async function serverOfficialMaterials(dataDirectory: string, selected: s
   }
 }
 
-async function validateBase(directory: string) {
+async function validateBase(directory: string, signal?: AbortSignal) {
   const catalog = await readOfficialEnvironments(directory, new URL('./shipped-environments.json', import.meta.url))
   await withShippedEnvironmentProject(directory, async project => {
     for (const draft of catalog.environments)
-      await validateWorkspaceProject({ directory: project, draft }, { effectPreparation: 'prebuilt-only' })
+      await validateWorkspaceProject({ directory: project, draft, signal }, { effectPreparation: 'prebuilt-only' })
   })
+}
+
+/** Only promote the staged directory to the offline startup cache after both presets are usable. */
+export async function updateRunningServerBase(
+  dataDirectory: string,
+  current: { directory: string; version: string },
+  activate: (directory: string, signal?: AbortSignal) => Promise<void>,
+  signal: AbortSignal,
+) {
+  const candidate = await findPackageUpdate(officialPackage, current.version, host.version, signal)
+  if (!candidate) return current
+  let activating = false
+  try {
+    await installServerBaseUpdate(store(dataDirectory), candidate, host.version, validateBase, {
+      signal,
+      beforeCommit: async directory => {
+        await serverOfficialMaterials(dataDirectory, directory)
+        activating = true
+        await activate(directory, signal)
+      },
+    })
+  } catch (error) {
+    if (activating) await activate(current.directory)
+    throw error
+  }
+  console.info('Activated official base and environments:', candidate.version)
+  return { version: candidate.version, directory: join(store(dataDirectory), candidate.version) }
 }
 
 export async function runServerBasePackCli(args: string[]) {
