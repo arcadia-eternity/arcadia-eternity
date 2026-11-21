@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.13.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.12.0...arcadia-eternity-v4.13.0) (2026-11-21)
+
+
+### ✨ Features
+
+* **desktop:** automatically update the official base and environments ([f635ae0](https://github.com/arcadia-eternity/arcadia-eternity/commit/f635ae090e0f64c730e95582d29d1237790f6717))
+* **server:** automatically update official environments without restarting ([c708a05](https://github.com/arcadia-eternity/arcadia-eternity/commit/c708a05e9b012f7bf065d9998ce23c0a865398ea))
+
+
+### 🐛 Bug Fixes
+
+* **desktop:** isolate the release icon tool from the ESM workspace ([e7dbd53](https://github.com/arcadia-eternity/arcadia-eternity/commit/e7dbd53d1ac005db35837d7d8cf7bf708d8c1b37))
+
 ## [4.12.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.11.1...arcadia-eternity-v4.12.0) (2026-11-21)
 
 
