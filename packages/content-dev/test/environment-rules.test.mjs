@@ -311,7 +311,7 @@ test('a plain npm project selects one direct environment package and rejects amb
       JSON.stringify({
         name,
         dependencies: { [base]: '4.12.0' },
-        arcadiaEnvironment: { schemaVersion: 2, id: name, name, sources: [], rules: { schemaVersion: 2 } },
+        arcadiaEnvironment: { schemaVersion: 2, id: name, name, sources: [], rules: { schemaVersion: 2 }, requires: {} },
       }),
     )
   }
