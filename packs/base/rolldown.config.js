@@ -2,7 +2,11 @@ import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { defineConfig } from 'rolldown'
 import { isExternalDependency } from '../../scripts/rollup-external.mjs'
 import { fileURLToPath } from 'node:url'
-import { buildBaseEnvironmentArtifact, environmentRuleExamples } from '../../scripts/build-base-environment.mjs'
+import {
+  buildBaseEnvironmentArtifact,
+  presetDefinitionsUrl,
+  readPresetDefinitions,
+} from '../../scripts/build-base-environment.mjs'
 
 export default defineConfig({
   input: { effects: 'effects.ts' },
@@ -14,7 +18,9 @@ export default defineConfig({
       name: 'base-content-watch-artifacts',
       async buildStart() {
         if (this.meta.watchMode) {
-          for (const name of environmentRuleExamples)
+          this.addWatchFile(fileURLToPath(presetDefinitionsUrl))
+          const definitions = await readPresetDefinitions()
+          for (const name of new Set(definitions.packages.map(pkg => pkg.rules)))
             this.addWatchFile(fileURLToPath(new URL(`./environment/${name}.yaml`, import.meta.url)))
           this.addWatchFile(
             fileURLToPath(new URL('../../packages/battle/dist/environment-build.json', import.meta.url)),

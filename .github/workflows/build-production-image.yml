@@ -30,6 +30,11 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event.client_payload.tag_name || github.sha }}
+          fetch-depth: 0
+
+      - name: Stage the released base pack for offline startup
+        if: hashFiles('scripts/stage-released-base.mjs') != ''
+        run: node scripts/stage-released-base.mjs
 
       - name: Get version
         id: version

@@ -1,5 +1,16 @@
 <script setup lang="ts">
-import { ElButton, ElSelectV2, ElDialog, ElInput, ElCheckbox, ElProgress, ElTabs, ElTabPane } from 'element-plus'
+import {
+  ElMessage,
+  ElMessageBox,
+  ElButton,
+  ElSelectV2,
+  ElDialog,
+  ElInput,
+  ElCheckbox,
+  ElProgress,
+  ElTabs,
+  ElTabPane,
+} from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { useRouter } from 'vue-router'
@@ -372,6 +383,29 @@ async function inspectFile() {
 async function inspectNpm() {
   await installSource(() => libraryClient!.installNpm({ spec: npmSpec.value.trim(), offline: offline.value }))
 }
+async function checkPackageUpdate() {
+  const pkg = selected.value?.local
+  if (!pkg || !libraryClient) return
+  await run(async () => {
+    const version = await libraryClient.action({ action: 'check-update', packageId: pkg.id })
+    if (!version) {
+      ElMessage.info('当前已安装最新兼容版本')
+      return
+    }
+    const confirmed = await ElMessageBox.confirm(`${pkg.name}  ${pkg.version} → ${version}`, '数据包更新', {
+      confirmButtonText: '安装更新',
+      cancelButtonText: '取消',
+    }).then(
+      () => true,
+      () => false,
+    )
+    if (!confirmed) return
+    const id = await libraryClient.action({ action: 'apply-update', packageId: pkg.id, version })
+    if (id) selectedId.value = id
+    await refresh()
+    ElMessage.success(pkg.bundled ? '官方环境已更新' : '新版本已安装，可在环境中选择')
+  })
+}
 async function uninstall() {
   const pkg = selected.value
   if (!local || !pkg?.local) return
@@ -645,13 +679,19 @@ onBeforeUnmount(() => {
                     <p>{{ selected.name }} {{ selected.version }}</p>
                     <p v-if="selected.namespace">命名空间：{{ selected.namespace }}</p>
                   </details>
+                  <div
+                    v-if="!readonly && (selected.local?.bundled || selected.local?.source.kind === 'npm')"
+                    class="detail-actions"
+                  >
+                    <button :disabled="busy || offline" @click="checkPackageUpdate">检查数据包更新</button>
+                  </div>
                   <div v-if="!readonly && selected.local && !selected.builtin" class="detail-actions">
                     <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
                     ><button :disabled="busy" @click="uninstall">卸载此版本</button>
                   </div>
                 </ElTabPane>
                 <ElTabPane label="依赖" name="dependencies"
-                  ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
+                  ><p v-if="selected.builtin">官方基础包支持独立更新。</p>
                   <template v-else-if="selected.graph"
                     ><p class="detail-subtitle">安装时的内容包及依赖</p>
                     <p v-for="(range, name) in selected.local?.dependencyRanges" :key="name">{{ name }}：{{ range }}</p>

@@ -116,14 +116,17 @@ async function handleUpdateInstallation(version: string): Promise<void> {
     throw new Error('当前环境不支持自动更新')
   }
 
-  await ElMessageBox.confirm(`发现新版本 ${version}，是否立即下载并安装？`, '更新提示', {
-    confirmButtonText: '立即更新',
+  const installation = api.downloadUpdate ? '下载后将在退出时安装。' : '下载后将立即重启安装。'
+  await ElMessageBox.confirm(`发现客户端新版本 ${version}，${installation}`, '更新提示', {
+    confirmButtonText: '下载更新',
     cancelButtonText: '稍后更新',
     type: 'info',
   })
 
   ElMessage.info('开始下载更新...')
-  await api.downloadAndInstallUpdate()
+  if (!api.downloadUpdate) return api.downloadAndInstallUpdate()
+  await api.downloadUpdate()
+  ElMessage.success('客户端更新已下载，退出时安装')
 }
 
 export async function checkForUpdates(
@@ -164,8 +167,8 @@ export async function checkForUpdates(
           onClick: async () => {
             try {
               await handleUpdateInstallation(update.version!)
-            } catch {
-              console.log('用户取消了自动更新')
+            } catch (error) {
+              if (error !== 'cancel' && error !== 'close') ElMessage.error('客户端下载失败，请稍后重试')
             }
           },
         })
@@ -174,8 +177,8 @@ export async function checkForUpdates(
 
         try {
           await handleUpdateInstallation(update.version)
-        } catch {
-          ElMessage.info('已取消更新')
+        } catch (error) {
+          if (error !== 'cancel' && error !== 'close') throw error
         }
       }
     } else {

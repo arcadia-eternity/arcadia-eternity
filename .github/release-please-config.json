@@ -1,17 +1,77 @@
 {
+  "bootstrap-sha": "abebb2ba6c9b239015b80a35a6c9499d315a9b67",
   "packages": {
     ".": {
       "release-type": "node",
+      "exclude-paths": ["packs/base", "packs/base/**"],
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "draft": false,
-      "prerelease": false
+      "prerelease": false,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "packages/web-ui/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/const/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/schema/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/protocol/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/interface/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/battle/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/pack-loader/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/content-dev/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/content-dev/template/package.json",
+          "jsonpath": "$.devDependencies['@arcadia-eternity/content-sdk']"
+        },
+        {
+          "type": "json",
+          "path": "examples/ugc/slow/package.json",
+          "jsonpath": "$.devDependencies[?(@property.startsWith('@arcadia-eternity/'))]"
+        }
+      ]
+    },
+    "packs/base": {
+      "release-type": "node",
+      "component": "data-pack-base",
+      "initial-version": "4.12.0",
+      "draft": true,
+      "force-tag-creation": true
     }
   },
   "skip-github-release": false,
   "skip-github-pull-request": false,
-  "group-pull-request-title-pattern": "chore: release ${version}",
-  "separate-pull-requests": false,
+  "separate-pull-requests": true,
   "include-v-in-tag": true,
   "changelog-sections": [
     {
@@ -68,63 +128,6 @@
       "type": "ci",
       "section": "👷 Continuous Integration",
       "hidden": true
-    }
-  ],
-  "extra-files": [
-    {
-      "type": "json",
-      "path": "packages/web-ui/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/const/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/schema/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/protocol/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/interface/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/battle/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/pack-loader/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/content-dev/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packs/base/package.json",
-      "jsonpath": "$.version"
-    },
-    {
-      "type": "json",
-      "path": "packages/content-dev/template/package.json",
-      "jsonpath": "$.devDependencies['@arcadia-eternity/content-sdk']"
-    },
-    {
-      "type": "json",
-      "path": "examples/ugc/slow/package.json",
-      "jsonpath": "$.devDependencies[?(@property.startsWith('@arcadia-eternity/'))]"
     }
   ]
 }

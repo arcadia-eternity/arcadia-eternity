@@ -34,7 +34,6 @@ export class LocalEnvironments {
     this.#opening ??= this.openWorkspace()
       .then(async workspace => {
         try {
-          await this.library?.synchronizeEnvironments?.(workspace, this.validate)
           this.#builtin = await this.openBuiltin?.()
           this.#builtinIds = this.#builtin
             ? [...new Set([this.#builtin.id, ...Object.values(this.#builtin.workspace.builtinEnvironmentIds ?? {})])]

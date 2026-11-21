@@ -39,13 +39,7 @@ export class DesktopWorkspaceOwner {
     this.openWorkspace = openWorkspace
     this.library = library
     this.timeoutMs = timeoutMs
-    this.synchronize =
-      synchronize ??
-      (async workspace => {
-        if (!library.synchronizeEnvironments) return
-        const { validateWorkspaceProject } = await import('@arcadia-eternity/server')
-        await library.synchronizeEnvironments(workspace, validateWorkspaceProject)
-      })
+    this.synchronize = synchronize
   }
   async ready() {
     this.#opening ??= (async () => {
@@ -57,7 +51,7 @@ export class DesktopWorkspaceOwner {
         },
       })
       try {
-        await this.synchronize(workspace)
+        await this.synchronize?.(workspace)
       } catch (error) {
         await workspace.close()
         throw error
@@ -125,6 +119,7 @@ export class DesktopWorkspaceOwner {
         return null
       }
       const workspace = await this.ready()
+      if (method === 'knowsOfficialMaterial') return this.library.knowsOfficialMaterial(...args)
       if (method === 'describe')
         return {
           workspaceId: workspace.workspaceId,

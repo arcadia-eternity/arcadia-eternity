@@ -338,7 +338,7 @@ test('a missing bundled base never falls back to the registry', async t => {
   assert.deepEqual(await workspace.listDrafts(), [])
 })
 
-test('startup synchronizes shipped base bytes and old declarations offline while preserving third-party installations', async t => {
+test('explicit migration synchronizes base bytes and old declarations offline while preserving third-party installations', async t => {
   const { cp } = await import('node:fs/promises')
   const { fileURLToPath } = await import('node:url')
   const root = await mkdtemp(join(tmpdir(), 'bundled-update-'))
@@ -371,7 +371,7 @@ test('startup synchronizes shipped base bytes and old declarations offline while
       {
         environmentId: id,
         expectedRevision: null,
-        document: { ...document, id, packages: { [base.name]: '0.0.1' }, sources: id === 'mixed' ? ['helper'] : [] },
+        document: { ...document, id, packages: { [base.name]: '1.0.0' }, sources: id === 'mixed' ? ['helper'] : [] },
       },
       validate,
     )

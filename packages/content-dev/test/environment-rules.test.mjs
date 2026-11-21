@@ -298,6 +298,34 @@ test('new-pet IV defaults are configured independently of the admission limit', 
   assertEnvironmentTeam(prepared.rules, [pet('sample:pet', { ivs: { hp: 120 } })])
 })
 
+test('a plain npm project selects one direct environment package and rejects ambiguous rules', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-npm-preset-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
+  const base = '@arcadia-eternity/data-pack-base'
+  const names = ['environment-default', 'environment-training-120']
+  for (const name of names) {
+    const root = join(directory, 'node_modules', name)
+    await mkdir(root, { recursive: true })
+    await writeFile(
+      join(root, 'package.json'),
+      JSON.stringify({
+        name,
+        dependencies: { [base]: '4.12.0' },
+        arcadiaEnvironment: { schemaVersion: 2, id: name, name, sources: [], rules: { schemaVersion: 2 }, requires: {} },
+      }),
+    )
+  }
+  const select = dependencies => writeFile(join(directory, 'package.json'), JSON.stringify({ dependencies }))
+  await select({})
+  assert.equal(await readInstalledEnvironmentDocument(directory), undefined)
+  await select({ [names[1]]: '^4.12.0' })
+  const selected = await readInstalledEnvironmentDocument(directory)
+  assert.equal(selected.id, names[1])
+  assert.deepEqual(selected.packages, { [base]: '4.12.0' })
+  await select(Object.fromEntries(names.map(name => [name, '^4.12.0'])))
+  await assert.rejects(readInstalledEnvironmentDocument(directory), { code: 'ENVIRONMENT_PRESET_AMBIGUOUS' })
+})
+
 test('offline consumers bind prepared declarations to the captured material and its references', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-applied-rules-'))
   try {

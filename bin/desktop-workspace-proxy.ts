@@ -52,6 +52,7 @@ const serializedError = (value: unknown) => {
 
 export interface DesktopWorkspaceProxy extends ContentWorkspace {
   builtinEnvironmentId?: string
+  knowsOfficialMaterial(digest: string): Promise<boolean>
   listClientEnvironmentIds(): Promise<string[]>
   acquireClientEnvironment: ContentWorkspace['acquire']
 }
@@ -300,6 +301,7 @@ export async function createDesktopWorkspaceProxy(
       listInstallations: id => request('listInstallations', id === undefined ? [] : [id]),
       getInstallation: id => request('getInstallation', [id]),
       acquire: (id, owner) => acquire('acquire', id, owner),
+      knowsOfficialMaterial: digest => request('knowsOfficialMaterial', [digest]),
       listClientEnvironmentIds: () => request('listClientEnvironmentIds'),
       acquireClientEnvironment: (id, owner) => acquire('acquireClientEnvironment', id, owner),
       retain: (id, retentionId) => request('retain', [id, retentionId]),

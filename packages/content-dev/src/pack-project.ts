@@ -13,7 +13,7 @@ import {
 } from '@arcadia-eternity/pack-loader/node'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
 import type { PackageManifest } from './workspace.ts'
-import { releasePayload, normalizeReleaseArchive } from '../release-payload.mjs'
+import { releasePayload, normalizeReleaseArchive, requireClientRange } from '../release-payload.mjs'
 import { ManagedProjects } from './managed-projects.ts'
 import { errorCode } from './types.ts'
 
@@ -125,6 +125,7 @@ export async function packBuiltProject(
   const root = await realpath(resolve(directory))
   const manifestText = await readFile(join(root, 'package.json'), 'utf8')
   const manifest = JSON.parse(manifestText) as PackageManifest & { name: string }
+  if (!release && manifest.arcadia) requireClientRange(manifest)
   const preview = parseNpmPackOutput(
     String((await npm(root, ['pack', '--dry-run', '--ignore-scripts', '--json'], cache)).stdout),
   )[0]

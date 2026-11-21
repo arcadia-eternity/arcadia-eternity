@@ -26,6 +26,9 @@ export interface G3AccountServices {
 }
 
 export interface SingleProcessAppOptions extends RoomOptions {
+  /** Trusted, immutable official catalog prepared by the host before startup. */
+  officialBase?: ConstructorParameters<typeof ServerEnvironmentRegistry>[0]
+  knowsOfficialMaterial?: ConstructorParameters<typeof ServerEnvironmentRegistry>[1]
   /** Explicit administrator-only source editing; this must never be enabled on a public listener. */
   development?: { directory: string; token: string }
   /** Internal IPC-authorized desktop host; never set on a public listener. */
@@ -168,7 +171,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     pingTimeout: 20_000,
     allowRequest: (req, callback) => callback(null, acceptsOrigin(req)),
   })
-  const environments = new ServerEnvironmentRegistry()
+  const environments = new ServerEnvironmentRegistry(options.officialBase, options.knowsOfficialMaterial)
   const rooms = new RoomRegistry(io, sessions, { ...options, ...battleCapacity }, environments)
   const management =
     options.management &&

@@ -11,7 +11,7 @@ import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from
 import { join, resolve } from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
 import semver from 'semver'
-import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { catalogMaterialDigest, inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 import {
   normalizeEnvironmentDocument,
   EnvironmentDocumentV2Schema,
@@ -1320,6 +1320,17 @@ async function changeEnvironmentPackage(
   return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
 }
 
+/** Resolve presets from the same selected base installation as the battle materials. */
+export async function readOfficialEnvironments(root: string, legacyCatalog: string | URL) {
+  const manifest = await readJson(join(root, 'package.json'))
+  if (manifest.name !== hostBaseName || typeof manifest.version !== 'string' || !semver.valid(manifest.version))
+    throw contentError('BUNDLED_PACKAGE_INVALID')
+  const file = isRecord(manifest.arcadia) ? manifest.arcadia.environments : undefined
+  if (file !== undefined && file !== 'dist/environment/presets.json')
+    throw contentError('SHIPPED_ENVIRONMENT_CATALOG_INVALID')
+  return readShippedEnvironments(file ? join(root, file) : legacyCatalog, { [hostBaseName]: manifest.version })
+}
+
 /** The host supplies this catalog from the application distribution. */
 export async function readShippedEnvironments(file: string | URL, bundledVersions: Record<string, string>) {
   const schema = z
@@ -1346,18 +1357,26 @@ export async function synchronizeShippedEnvironments(
   catalog: Awaited<ReturnType<typeof readShippedEnvironments>>,
   adopted: Record<string, string>,
   prepare: (document: EnvironmentDocument, expectedRevision: string | null) => Promise<unknown>,
+  officialBaseRoot?: string,
 ) {
   await workspace.registerBuiltinEnvironments(
     catalog.environments.map(doc => doc.id),
     adopted,
   )
+  const selectedDigest = officialBaseRoot && (await catalogMaterialDigest(officialBaseRoot))
   const drafts = await workspace.listDrafts()
   for (const document of catalog.environments) {
     const id = document.id
     const current = drafts.find(item => item.document.id === id)
     if (current && isDeepStrictEqual(current.document, document)) {
       const [installed] = await workspace.listInstallations(id)
-      if (installed?.status === 'ready' && installed.draftRevision === current.revision) continue
+      if (installed?.status === 'ready' && installed.draftRevision === current.revision) {
+        if (!selectedDigest || !Object.hasOwn(document.packages, hostBaseName)) continue
+        const digest = await catalogMaterialDigest(join(installed.directory, 'node_modules', hostBaseName)).catch(
+          () => null,
+        )
+        if (digest === selectedDigest) continue
+      }
     }
     await prepare(document, current?.revision ?? null)
   }

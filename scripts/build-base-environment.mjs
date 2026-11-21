@@ -12,7 +12,12 @@ import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import YAML from 'yaml'
 
+// Earlier base tags import this list from their Rolldown configuration when staged for a client build.
 export const environmentRuleExamples = ['base-rules', 'test-120-rules']
+export const presetDefinitionsUrl = new URL('../packs/base/environment/packages.json', import.meta.url)
+export async function readPresetDefinitions() {
+  return JSON.parse(await readFile(presetDefinitionsUrl, 'utf8'))
+}
 
 /** Host identity covers both the engine and the installed native content implementation. */
 export function identifyBaseEnvironmentArtifact(code, core) {
@@ -31,9 +36,29 @@ export async function buildBaseEnvironmentArtifact() {
   const sources = await readContentSources(resolve(root, 'packs/base'))
   const presentation = await buildPresentation(resolve(root, 'packs/base'), sources, { includeLocales: false })
   await mkdir(resolve(dir, 'environment'), { recursive: true })
-  for (const name of environmentRuleExamples) {
+  const base = JSON.parse(await readFile(resolve(root, 'packs/base/package.json'), 'utf8'))
+  // Release builds can still stage the final base tag from before presets shipped with it.
+  const definitions = base.arcadia.environments ? await readPresetDefinitions() : undefined
+  const rules = new Map()
+  for (const name of new Set(definitions?.packages.map(pkg => pkg.rules) ?? environmentRuleExamples)) {
     const source = await readFile(resolve(root, 'packs/base/environment', name + '.yaml'), 'utf8')
-    await writeFile(resolve(dir, 'environment', name + '.json'), JSON.stringify(YAML.parse(source)) + '\n')
+    rules.set(name, YAML.parse(source))
+    await writeFile(resolve(dir, 'environment', name + '.json'), JSON.stringify(rules.get(name)) + '\n')
+  }
+  if (definitions) {
+    const catalog = {
+      defaultEnvironment: definitions.defaultEnvironment,
+      environments: definitions.packages.map(({ id, title, rules: key }) => ({
+        schemaVersion: 2,
+        id,
+        name: title,
+        packages: { [base.name]: '*' },
+        sources: [],
+        rules: rules.get(key),
+        requires: {},
+      })),
+    }
+    await writeFile(resolve(root, 'packs/base', base.arcadia.environments), JSON.stringify(catalog) + '\n')
   }
   await writeFile(resolve(dir, 'presentation.json'), JSON.stringify(presentation, null, 2) + '\n')
   const core = JSON.parse(await readFile(resolve(root, 'packages/battle/dist/environment-build.json'), 'utf8'))
@@ -129,7 +154,8 @@ export async function buildBaseEnvironmentArtifact() {
         resolve(dir, 'pack-lock.yaml'),
         YAML.stringify({
           lockfileVersion: 1,
-          generatedAt: new Date().toISOString(),
+          // This is a compiled copy of the source lock. Keep rebuilds of a release byte-identical.
+          generatedAt: loaded.lockfile?.generatedAt ?? new Date(0).toISOString(),
           importers: {
             '.': {
               specifiers: {

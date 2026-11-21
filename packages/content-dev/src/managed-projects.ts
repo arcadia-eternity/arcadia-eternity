@@ -2,8 +2,16 @@ import { sha256Hex } from '@arcadia-eternity/const'
 import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import { withOfficialUpdateDirectory, type PackageUpdate } from './package-updates.ts'
+export {
+  officialPackage,
+  findPackageUpdate,
+  selectPackageUpdate,
+  selectServerBase,
+  installServerBaseUpdate,
+} from './package-updates.ts'
 import { isDeepStrictEqual, promisify } from 'node:util'
-import { valid, validRange } from 'semver'
+import { satisfies, valid, validRange } from 'semver'
 import {
   inspectNpmProject,
   resolveNpmInvocation,
@@ -24,6 +32,7 @@ import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
 export interface ManagedProjectsOptions {
   bundledPackageRoot?: string
+  resolveBaseVersion?: (version: string) => Promise<string | undefined>
   registry?: string
   offline?: boolean
   /** Host permission to acquire metadata/materials; never grants authority to execute them. */
@@ -268,6 +277,7 @@ export class ManagedProjects {
       onProgress?: PrepareEnvironmentInput['onProgress']
       environmentId: string
       seedDirectory?: string
+      useSelectedBase?: boolean
       expectedRevision: string | null
       document?: PrepareEnvironmentInput['document']
       signal?: AbortSignal
@@ -409,7 +419,12 @@ export class ManagedProjects {
   }
   async #prepare<T>(
     readDocument: () => Promise<unknown>,
-    input: { signal?: AbortSignal; onProgress?: PrepareEnvironmentInput['onProgress']; projectDirectory?: string },
+    input: {
+      signal?: AbortSignal
+      onProgress?: PrepareEnvironmentInput['onProgress']
+      projectDirectory?: string
+      useSelectedBase?: boolean
+    },
     consume: (directory: string, signal: AbortSignal, document: PrepareEnvironmentInput['document']) => Promise<T>,
   ): Promise<T> {
     if (this.#controller.signal.aborted) throw contentError('INSTALLER_CLOSED')
@@ -442,10 +457,37 @@ export class ManagedProjects {
       const includesBase = Object.hasOwn(dependencies, baseName) || document.sources.includes(baseName)
       if (Object.hasOwn(dependencies, baseName) && document.sources.includes(baseName))
         throw contentError('INSTALL_DUPLICATE_PACKAGE')
-      const baseRoot = this.#options.bundledPackageRoot
+      let baseRoot = this.#options.bundledPackageRoot
       if (includesBase && !baseRoot) throw contentError('BUNDLED_PACKAGE_UNAVAILABLE')
       if (includesBase) {
-        const baseManifest = JSON.parse(await readFile(join(baseRoot!, 'package.json'), 'utf8'))
+        let range = dependencies[baseName]
+        if (!input.useSelectedBase && input.projectDirectory && range) {
+          const seed = join(input.projectDirectory, 'node_modules', baseName)
+          const resolved = await realpath(seed).catch(error => {
+            if (errorCode(error) !== 'ENOENT') throw error
+          })
+          if (resolved) {
+            if (resolved !== join(await realpath(input.projectDirectory), 'node_modules', baseName))
+              throw contentError('MATERIAL_PATH_ESCAPE')
+            const pinned = JSON.parse(await readFile(join(seed, 'package.json'), 'utf8'))
+            if (range.startsWith('file:')) {
+              const lock = JSON.parse(await readFile(join(input.projectDirectory, 'package-lock.json'), 'utf8'))
+              const member = lock.packages?.['node_modules/' + baseName]
+              if (member?.resolved !== range || member.version !== pinned.version)
+                throw contentError('BASE_PACK_VERSION_UNAVAILABLE')
+              range = member.version
+            }
+            if (pinned.name === baseName && satisfies(pinned.version, range)) baseRoot = resolved
+          }
+        }
+        let baseManifest = JSON.parse(await readFile(join(baseRoot!, 'package.json'), 'utf8'))
+        if (range && !satisfies(baseManifest.version, range)) {
+          const cached = valid(range) && (await this.#options.resolveBaseVersion?.(range))
+          if (!cached) throw contentError('BASE_PACK_VERSION_UNAVAILABLE', '本机缺少环境所需的基础包 ' + range)
+          baseRoot = cached
+          baseManifest = JSON.parse(await readFile(join(cached, 'package.json'), 'utf8'))
+          if (!satisfies(baseManifest.version, range)) throw contentError('BASE_PACK_VERSION_UNAVAILABLE')
+        }
         if (baseManifest.name !== baseName) throw contentError('BUNDLED_PACKAGE_INVALID')
         dependencies[baseName] = baseManifest.version
         document.packages[baseName] = baseManifest.version
@@ -660,4 +702,15 @@ export class ManagedProjects {
     this.#controller.abort(contentError('INSTALLER_CLOSED'))
     await Promise.allSettled([...this.#pending])
   }
+}
+
+// Discard the npm development/runtime dependencies before passing the official catalog
+// to the same offline installer used for the application's bundled copy.
+export async function withOfficialUpdateArchive<T>(
+  candidate: PackageUpdate,
+  npmCli: string | undefined,
+  signal: AbortSignal,
+  use: (file: string) => Promise<T>,
+) {
+  return withOfficialUpdateDirectory(candidate, signal, directory => withShippedCatalogArchive(directory, npmCli, use))
 }

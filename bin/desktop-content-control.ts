@@ -5,6 +5,7 @@ export function attachDesktopContentControl(
   registry: ReturnType<typeof createSingleProcessApp>['environments'],
   builtinId: string,
   managementRequest?: (request: ManagementRequest) => Promise<ManagementResponse>,
+  refreshBuiltinBindings?: () => Promise<void>,
 ): () => void {
   let pending = Promise.resolve()
   let closed = false
@@ -29,6 +30,9 @@ export function attachDesktopContentControl(
             )
               throw new Error('INVALID_MANAGEMENT_REQUEST')
             value = await managementRequest(request)
+          } else if (input.action === 'refresh-builtins' && refreshBuiltinBindings) {
+            await refreshBuiltinBindings()
+            value = null
           } else if (input.action === 'retained') value = registry.retainedIds()
           else if (input.action === 'describe') value = registry.descriptor()
           else if (input.action === 'prepare') {

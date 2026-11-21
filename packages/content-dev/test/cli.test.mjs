@@ -85,6 +85,7 @@ test('pack checks the generated presentation entry and refuses missing npm media
     await writeFile(join(root, 'locales/zh-CN/species.yaml'), 'pet:\n  name: 精灵\n')
     const manifest = {
       name: '@test/media-pack',
+      engines: { arcadia: '^4.0.0' },
       version: '1.0.0',
       files: ['dist'],
       arcadia: { formatVersion: 1, projectId: 'media', namespace: 'media', content: 'dist/content.json' },

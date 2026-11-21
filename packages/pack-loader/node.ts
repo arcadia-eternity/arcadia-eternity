@@ -12,7 +12,12 @@ export {
   type NpmContentHost,
   type PreparedNpmEnvironment,
 } from './src/npm/prepare'
-export { stageCatalogProject, withShippedCatalogArchive, withShippedEnvironmentProject } from './src/npm/official-host'
+export {
+  catalogMaterialDigest,
+  stageCatalogProject,
+  withShippedCatalogArchive,
+  withShippedEnvironmentProject,
+} from './src/npm/official-host'
 export { compileEffectModule } from './src/npm/effect-artifact'
 export { sandboxEnvironmentFor } from './src/effect-environment'
 

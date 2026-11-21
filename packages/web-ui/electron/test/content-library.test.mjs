@@ -63,6 +63,9 @@ async function fixture(name) {
   }
   const manager = new ContentLibrary({
     root: join(directory, 'library'),
+    packageUpdates: {
+      catalogDigest: async directory => (await readFile(join(directory, 'package.json'))).toString('hex'),
+    },
     host,
     run,
   })

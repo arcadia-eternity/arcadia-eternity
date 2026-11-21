@@ -4,6 +4,7 @@ import { buildDisplayCatalog, buildDisplayLocales, gameplayIdentity } from '@arc
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
+  catalogMaterialDigest,
   emptyNpmContentHost,
   prepareNpmProject,
   readNpmAdmission,
@@ -63,6 +64,11 @@ const digest = (value: unknown) => sha256Hex(JSON.stringify(value))
 
 /** Local administrator API. Public HTTP/socket clients can only select prepared entries. */
 export class ServerEnvironmentRegistry {
+  constructor(
+    private readonly officialBase?: Readonly<PreparedNpmEnvironment>,
+    private readonly knowsOfficialMaterial?: (digest: string) => Promise<boolean>,
+  ) {}
+
   private readonly entries = new Map<string, PublishedEnvironment>()
   private readonly disposingIds = new Set<string>()
   private initializing?: Promise<void>
@@ -74,10 +80,10 @@ export class ServerEnvironmentRegistry {
   async ready(): Promise<void> {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
     this.initializing ??= (async () => {
-      const base = await loadServerBase()
+      const base = this.officialBase ?? (await loadServerBase())
       const runtime = createServerRuntime(base)
       const id = digest(runtime.identity)
-      // The shipped prepared environment is shared by registries in this process.
+      // The host owns the lifetime of its trusted base snapshot.
       this.publishPrepared(base, runtime, id, { bundled: true, thirdParty: false, dispose: async () => {} })
       this.defaultId ??= id
       this.builtinId = id
@@ -111,14 +117,13 @@ export class ServerEnvironmentRegistry {
     try {
       const thirdParty = prepared.installation.packages.some(pkg => pkg.manifest)
       let bundled = false
-      if (prepared.installation.packages.some(pkg => pkg.officialHost)) {
-        const shipped = await loadServerBase()
+      const installedBase = prepared.installation.packages.find(pkg => pkg.officialHost)
+      if (installedBase) {
+        const shipped = this.officialBase ?? (await loadServerBase())
         const catalog = prepared.sandbox.modules.find(module => module.role === 'catalog')
         // officialHost comes from package metadata, so a package name is not a trust
-        // boundary. Only the shipped official artifact may run under official policy.
+        // boundary. Compare it with the official artifact selected by this host.
         const sameCode = catalog && digest(catalog.artifact) === digest(shipped.sandbox.modules[0].artifact)
-        if (!sameCode && approval.policy.profile === 'official')
-          throw new EnvironmentError('THIRD_PARTY_EXECUTION_FORBIDDEN')
         bundled = Boolean(
           sameCode &&
           !thirdParty &&
@@ -126,6 +131,18 @@ export class ServerEnvironmentRegistry {
             kind => digest(prepared.data[kind]) === digest(shipped.data[kind]),
           ),
         )
+        let trustedCode = sameCode
+        if (!bundled && this.knowsOfficialMaterial && (!sameCode || !thirdParty)) {
+          const known = await this.knowsOfficialMaterial(
+            await catalogMaterialDigest(resolve(directory, installedBase.location)),
+          )
+          if (known) {
+            trustedCode = true
+            bundled = !thirdParty
+          }
+        }
+        if (!trustedCode && approval.policy.profile === 'official')
+          throw new EnvironmentError('THIRD_PARTY_EXECUTION_FORBIDDEN')
       }
       const runtime = createServerRuntime(prepared)
       // Local code edits do not change the metadata identity. Every preparation is

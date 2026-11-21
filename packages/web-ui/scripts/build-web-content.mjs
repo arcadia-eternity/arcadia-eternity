@@ -5,7 +5,7 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { ManagedProjects } from '@arcadia-eternity/content-sdk/managed-projects'
-import { readShippedEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
+import { readOfficialEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
 import { readInstalledEnvironmentDocument } from '@arcadia-eternity/content-sdk/prepared-document'
 import { assertEnvironmentRequirements, prepareRulesForContent } from '@arcadia-eternity/content-sdk/environment-rules'
 import {
@@ -41,9 +41,9 @@ export async function buildWebContent(
       builtins = await exportMaterial(projectDirectory, [], 'environment')
       defaultId = builtins[0].id
     } else {
-      const { environments, defaultEnvironment } = await readShippedEnvironments(
+      const { environments, defaultEnvironment } = await readOfficialEnvironments(
+        root,
         new URL('../../../bin/shipped-environments.json', import.meta.url),
-        { [pkg.name]: pkg.version },
       )
       const directory = await mkdtemp(join(tmpdir(), 'arcadia-web-environments-'))
       cleanup.push(() => rm(directory, { recursive: true, force: true }))

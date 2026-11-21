@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
-  "version": "4.11.1",
+  "version": "4.12.1",
   "license": "MIT",
   "type": "module",
   "description": "Arcadia Eternity base content and effects",
@@ -13,6 +13,7 @@
     "presentation": "dist/presentation.json",
     "effectArtifact": "dist/arcadia-effects.json",
     "catalog": "dist/catalog.json",
+    "environments": "dist/environment/presets.json",
     "sdkApi": 2
   },
   "scripts": {
@@ -67,5 +68,8 @@
   },
   "devDependencies": {
     "@arcadia-eternity/pack-loader": "workspace:*"
+  },
+  "engines": {
+    "arcadia": "^4.11.0"
   }
 }

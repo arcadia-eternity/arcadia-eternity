@@ -51,6 +51,22 @@ Node 宿主可向 `createSingleProcessApp` 注入 `matchmakingPolicy: Matchmakin
 
 持久评分还需要服务器范围内的账号身份、可信战斗结果与幂等结算，继续归 #233；旧 ELO 查询／榜单 HTTP 路由和数据库实现没有重新启用。这里保留接入边界，不宣称评分、排行榜或历史数据迁移已经完成。
 
+## 独立更新官方基础包
+
+独立服务器首次启动使用内置的官方基础包。管理员可以下载新版到持久数据目录，沿用同一个服务器程序或镜像。使用 Compose 的例子如下。
+
+```sh
+docker compose exec arcadia-eternity node dist/cli.js server base-pack check
+docker compose exec arcadia-eternity node dist/cli.js server base-pack update
+docker compose restart arcadia-eternity
+```
+
+直接运行 Node 时，给 `server base-pack check` 和 `server base-pack update` 传入启动服务时使用的同一个 `--data-dir`，或设置 `ARCADIA_DATA_DIR`。检查和下载都显式访问公共 npm。更新命令按宿主版本筛选稳定发行，核验 SHA-512、包身份和官方环境，再将完整版本放入 `official-base/<版本>`。下载可以在服务运行时进行。等现有对局结束再重启，服务会离线选择最新的兼容本地版本，并重新准备官方环境。
+
+回滚时，在启动参数中指定 `--base-pack-version <已安装版本>`，或通过 `ARCADIA_BASE_PACK_VERSION=bundled` 使用安装包自带的版本。使用 Compose 调整环境变量后，执行 `docker compose up -d` 以应用新配置。数据盘会保留已安装的版本。桌面托管的本机服务器通过桌面内容库选择基础包。
+
+服务端离线启动时按版本从高到低检查兼容的官方基础包。缓存与随程序提供的基础包同版本时，比较运行材料的 SHA-256 摘要，冲突会记录在日志中，官方预设采用随程序提供的材料。服务端只同步官方预设。已有自定义环境和显式传入的 `--npm-project` 沿用各自的安装和锁文件。
+
 ### 房间与进程
 
 - 一个进程拥有所有房间、游戏席位、对战和信令转发。停机、崩溃、升级后这些临时状态全部丢弃；G3 账号登录凭据独立保存到 SQL 存储。

@@ -1,3 +1,4 @@
+import semver from 'semver'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 import { lstatSync, readFileSync } from 'node:fs'
@@ -7,6 +8,7 @@ import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, r
 import { fileURLToPath } from 'node:url'
 import { basename, dirname, isAbsolute, join } from 'node:path'
 
+const officialPackage = '@arcadia-eternity/data-pack-base'
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const exactPackage = /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 // npm redacts UUIDs even in npm ls JSON paths; keep opaque handles out of directory names.
@@ -100,6 +102,9 @@ function validEntry(item) {
     )
   )
 }
+function pendingActivation(previous) {
+  return { activationPending: true, previousOfficialId: previous.previousOfficialId ?? previous.id }
+}
 async function readJson(file, limit = 8 * 1024 * 1024) {
   const stat = await lstat(file)
   if (!stat.isFile() || stat.size > limit) throw new Error('内容包记录无效')
@@ -170,12 +175,20 @@ export class ContentLibrary {
     run,
     host,
     withDefaultArchive,
+    packageUpdates,
     sources = {},
     createManagedProjects,
     copyMember,
     reviewInstall,
     authorizeEnvironment,
   }) {
+    this.packageUpdates = packageUpdates
+    this.catalogDigest =
+      packageUpdates?.catalogDigest ??
+      (async root => {
+        const { catalogMaterialDigest } = await import('@arcadia-eternity/pack-loader/node')
+        return catalogMaterialDigest(root)
+      })
     this.root = root
     this.reviewInstall = reviewInstall
     this.authorizeEnvironment = authorizeEnvironment
@@ -210,15 +223,16 @@ export class ContentLibrary {
       await mkdir(projects, { recursive: true })
       if ((await realpath(projects)) !== projects) throw new Error('内容包目录不能是外部链接')
       let state,
-        fresh = false
+        needsSave = false
       try {
         state = await readJson(join(this.root, 'library.json'))
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
-        fresh = true
+        needsSave = true
         state = { version: 3, revision: 0, installed: [] }
       }
       if (state.version === 2) {
+        needsSave = true
         if (
           !Array.isArray(state.installed) ||
           !Array.isArray(state.activeIds) ||
@@ -256,14 +270,17 @@ export class ContentLibrary {
         state.installed.length > 200 ||
         state.installed.some(item => !validEntry(item)) ||
         new Set(state.installed.map(item => item.id)).size !== state.installed.length ||
+        (state.officialHistory !== undefined &&
+          (!Array.isArray(state.officialHistory) ||
+            state.officialHistory.some(item => !item || !uuid.test(item.id) || !semver.valid(item.version)))) ||
         (state.legacySelection &&
           (!uuid.test(state.legacySelection.project) || !Array.isArray(state.legacySelection.packages)))
       )
         throw new Error('本机内容包记录格式不正确')
-      if (fresh && this.withDefaultArchive) await this.#initializeDefault(state)
-      else {
-        if (this.withDefaultArchive) await this.#synchronizeDefault(state)
-        if (!this.#state) await this.#save(state)
+      if (this.withDefaultArchive) await this.#synchronizeDefault(state)
+      if (!this.#state) {
+        if (needsSave) await this.#save(state)
+        else this.#state = state
       }
     })().catch(error => {
       this.#loading = undefined
@@ -271,27 +288,138 @@ export class ContentLibrary {
     })
     await this.#loading
   }
-  async #initializeDefault(state) {
+  async #digestEntry(entry) {
+    return this.catalogDigest(join(await this.#directory(entry.id), 'node_modules', officialPackage))
+  }
+  async #readOfficial(ref) {
+    const entry = await readJson(join(await this.#directory(ref.id), 'official-entry.json'))
+    if (
+      !validEntry(entry) ||
+      !entry.bundled ||
+      entry.name !== officialPackage ||
+      entry.id !== ref.id ||
+      entry.version !== ref.version
+    )
+      throw new Error('官方基础包历史记录无效')
+    return entry
+  }
+  async #rememberOfficial(state, entry, nextId) {
+    const history = (state.officialHistory ?? []).filter(ref => ref.id !== entry.id && ref.id !== nextId)
+    if (entry.activationPending) return history
+    const path = join(this.root, 'projects', storageName(entry.id))
+    const directory = await realpath(path).catch(error => {
+      if (error.code !== 'ENOENT') throw error
+    })
+    if (!directory) return history
+    if (directory !== path) throw new Error('安装目录已改变')
+    await writeFile(join(directory, 'official-entry.json'), JSON.stringify(entry))
+    return [...history, { id: entry.id, version: entry.version, materialDigest: entry.materialDigest }]
+  }
+  async #synchronizeDefault(state) {
+    const active = state.installed.find(entry => entry.bundled)
+    if (!active) return this.#installShipped(state)
+    const updates = this.packageUpdates
+    const shippedRoot = updates?.shippedRoot
+    if (!shippedRoot) return this.#installShipped(state, active)
+    const manifest = await readJson(join(shippedRoot, 'package.json'))
+    const shipped = manifest.version
+    const host = updates.clientVersion
+    const bundledCompatible =
+      manifest.engines?.arcadia === undefined || semver.satisfies(host, manifest.engines.arcadia)
+    const refs = [active, ...(state.officialHistory ?? [])]
+    // For equal versions, reuse the installed project only if its materials match the shipped copy.
+    if (bundledCompatible) refs.push({ version: shipped })
+    refs.sort((a, b) => semver.rcompare(a.version, b.version))
+    let shippedDigest, lastError
+    for (const ref of refs) {
+      if (!ref.id) {
+        try {
+          await this.#installShipped(state, active)
+          return
+        } catch (error) {
+          lastError = error
+          console.warn('Unable to activate shipped official base', shipped, error)
+          continue
+        }
+      }
+      let entry, digest
+      try {
+        entry = ref.id === active.id ? active : await this.#readOfficial(ref)
+        const equalShipped = bundledCompatible && entry.version === shipped
+        if (!equalShipped && !semver.satisfies(host, entry.engines?.arcadia)) continue
+        digest = await this.#digestEntry(entry)
+        if (entry.materialDigest && entry.materialDigest !== digest)
+          throw new Error('OFFICIAL_MATERIAL_DIGEST_MISMATCH')
+        if (equalShipped) {
+          shippedDigest ??= await this.catalogDigest(shippedRoot)
+          if (shippedDigest !== digest) {
+            console.warn('OFFICIAL_BASE_VERSION_CONFLICT', shipped, 'using bundled materials')
+            continue
+          }
+        }
+        if (entry.validatedHost !== host)
+          await updates.validate(await this.#directory(entry.id), this.#controller.signal)
+      } catch (error) {
+        lastError = error
+        console.warn('Skipping unusable cached official base', ref.version, error)
+        continue
+      }
+      if (entry.id !== active.id || entry.validatedHost !== host || !entry.materialDigest) {
+        const officialHistory =
+          entry.id === active.id ? state.officialHistory : await this.#rememberOfficial(state, active, entry.id)
+        const selected = {
+          ...entry,
+          materialDigest: digest,
+          validatedHost: host,
+          ...(entry.id !== active.id && pendingActivation(active)),
+        }
+        await this.#save({
+          ...state,
+          revision: state.revision + 1,
+          officialHistory,
+          installed: state.installed.map(item => (item.id === active.id ? selected : item)),
+        })
+      }
+      return
+    }
+    throw lastError ?? new Error('没有与当前 Arcadia 兼容的已安装基础包')
+  }
+  async #installShipped(state, active) {
     await this.withDefaultArchive(async file => {
+      const digest = bytesToHex(sha256(await readFile(file)))
+      if (active && !this.packageUpdates?.shippedRoot && !active.registryUpdate && state.bundledDigest === digest)
+        return
       const candidate = await this.#stageInstall(
         { kind: 'file', file, label: '随应用提供' },
         true,
         this.#controller.signal,
-        state,
+        { ...state, installed: state.installed.filter(entry => entry.name !== officialPackage) },
       )
       const plan = this.#plans.get(candidate.id)
       try {
-        if (plan.entry.name !== '@arcadia-eternity/data-pack-base' || plan.entry.projectId !== 'base')
+        if (plan.entry.name !== officialPackage || plan.entry.projectId !== 'base')
           throw new Error('默认包缺少基础内容声明')
         await this.run(
           ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
           this.#controller.signal,
         )
-        const entry = { ...plan.entry, bundled: true }
+        await this.packageUpdates?.validate?.(await this.#directory(plan.project), this.#controller.signal)
+        const entry = {
+          ...plan.entry,
+          bundled: true,
+          materialDigest: await this.#digestEntry(plan.entry),
+          validatedHost: this.packageUpdates?.clientVersion,
+          ...(active && this.packageUpdates?.shippedRoot && pendingActivation(active)),
+        }
+        const officialHistory = active ? await this.#rememberOfficial(state, active, entry.id) : state.officialHistory
         await this.#save({
           ...state,
-          bundledDigest: bytesToHex(sha256(await readFile(file))),
-          installed: [entry],
+          revision: active || state.installed.length ? state.revision + 1 : state.revision,
+          bundledDigest: digest,
+          officialHistory,
+          installed: active
+            ? state.installed.map(item => (item.id === active.id ? entry : item))
+            : [...state.installed, entry],
         })
       } catch (error) {
         await rm(await this.#directory(plan.project), { recursive: true, force: true })
@@ -301,91 +429,135 @@ export class ContentLibrary {
       }
     })
   }
-  async #synchronizeDefault(state) {
-    const oldBase = state.installed.find(entry => entry.bundled)
-    if (!oldBase) return
-    await this.withDefaultArchive(async file => {
-      const digest = bytesToHex(sha256(await readFile(file)))
-      if (state.bundledDigest === digest) return
-      const candidate = await this.#stageInstall(
-        { kind: 'file', file, label: '随应用提供' },
-        true,
-        this.#controller.signal,
-        { ...state, installed: state.installed.filter(entry => entry.id !== oldBase.id) },
-      )
-      const plan = this.#plans.get(candidate.id)
-      const created = [plan.project]
-      const replacements = new Map([[oldBase.id, { ...plan.entry, bundled: true }]])
-      const projects = new Map([[oldBase.id, plan.project]])
-      let installer
-      try {
-        installer = await this.#createManagedProjects(join(this.root, 'acquisition'), { offline: true })
-        await this.run(
-          ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
-          this.#controller.signal,
-        )
-        for (const id of new Set(
-          [...state.installed.map(entry => entry.id), state.legacySelection?.project].filter(Boolean),
-        )) {
-          if (id === oldBase.id) continue
-          await installer.synchronizeProject(await this.#directory(id), async directory => {
-            const next = randomUUID()
-            const target = join(this.root, 'projects', storageName(next))
-            await rename(directory, target)
-            created.push(next)
-            const inspection = checkedInspection(
-              await this.run(['content', 'npm', 'inspect', target, '--rule-sets'], this.#controller.signal),
-            )
-            if (state.legacySelection?.project === id)
-              await this.run(
-                ['content', 'npm', 'approve', target, '--profile', 'local-development'],
-                this.#controller.signal,
-              )
-            projects.set(id, next)
-            const entry = state.installed.find(entry => entry.id === id)
-            if (entry)
-              replacements.set(id, {
-                ...entry,
-                id: next,
-                graph: graphFor(inspection),
-                ruleCatalog: ruleCatalogFor(inspection),
-                contentIds: idsFor(inspection.packages),
-              })
-          })
-        }
-        const legacySelection = state.legacySelection
-          ? {
-              project: projects.get(state.legacySelection.project) ?? state.legacySelection.project,
-              packages: state.legacySelection.packages.map(entry =>
-                entry.name === plan.entry.name ? { name: entry.name, version: plan.entry.version } : entry,
-              ),
-            }
-          : undefined
-        await this.#save({
-          ...state,
-          revision: state.revision + 1,
-          bundledDigest: digest,
-          installed: state.installed.map(entry => replacements.get(entry.id) ?? entry),
-          ...(legacySelection ? { legacySelection } : {}),
+  async knowsOfficialMaterial(digest) {
+    await this.#load()
+    const active = this.#state.installed.find(entry => entry.bundled)
+    return (
+      /^[a-f0-9]{64}$/.test(digest) &&
+      [active, ...(this.#state.officialHistory ?? [])].some(entry => entry?.materialDigest === digest)
+    )
+  }
+  get officialPackageRoot() {
+    const entry = this.#state?.installed.find(item => item.bundled)
+    return entry && join(this.root, 'projects', storageName(entry.id), 'node_modules', officialPackage)
+  }
+  get pendingOfficialUpdateId() {
+    return this.#state?.installed.find(item => item.bundled && item.activationPending)?.id
+  }
+  async checkPackageUpdate(id) {
+    await this.#load()
+    const entry = this.#entry(id)
+    if (entry.name === officialPackage && !entry.bundled) throw new Error('请选择官方基础包')
+    if (!this.packageUpdates || (!entry.bundled && entry.source.kind !== 'npm'))
+      throw new Error('该来源不支持检查 npm 更新')
+    if (entry.activationPending) return { name: entry.name, version: entry.version }
+    const current = this.#state.installed
+      .filter(item => item.name === entry.name && (entry.bundled ? item.bundled : item.source.kind === 'npm'))
+      .map(item => item.version)
+      .sort(semver.rcompare)[0]
+    return this.packageUpdates.find(entry.name, current, this.packageUpdates.clientVersion)
+  }
+  async updatePackage(id, version) {
+    const candidate = await this.checkPackageUpdate(id)
+    if (!candidate || candidate.version !== version) throw new Error('可用版本已变更，请重新检查更新')
+    if (this.#entry(id).activationPending) return id
+    if (candidate.name !== officialPackage) return this.installNpm(candidate.name + '@' + version)
+    if (!this.#entry(id).bundled) throw new Error('请选择官方基础包')
+    return this.#exclusive(async () => {
+      const old = this.#entry(id)
+      const signal = this.#controller.signal
+      return this.packageUpdates.withArchive(candidate, signal, async file => {
+        const staged = await this.#stageInstall({ kind: 'file', file, label: '官方 npm 发行包' }, true, signal, {
+          ...this.#state,
+          installed: this.#state.installed.filter(entry => entry.name !== officialPackage),
         })
-      } catch (error) {
-        await Promise.all(
-          created.map(id => rm(join(this.root, 'projects', storageName(id)), { recursive: true, force: true })),
-        )
-        throw error
-      } finally {
-        this.#plans.delete(candidate.id)
-        await installer?.close()
-      }
+        const plan = this.#plans.get(staged.id)
+        try {
+          const entry = plan.entry
+          if (
+            entry.name !== officialPackage ||
+            entry.version !== version ||
+            entry.engines?.arcadia !== candidate.range ||
+            !semver.satisfies(this.packageUpdates.clientVersion, candidate.range)
+          )
+            throw new Error('基础包与客户端不兼容')
+          const directory = await this.#directory(plan.project)
+          await this.run(['content', 'npm', 'approve', directory, '--profile', 'local-development'], signal)
+          await this.packageUpdates.validate(directory, signal)
+          const materialDigest = await this.#digestEntry(entry)
+          const officialHistory = await this.#rememberOfficial(this.#state, old, entry.id)
+          signal.throwIfAborted()
+          await this.#update(state => ({
+            ...state,
+            revision: state.revision + 1,
+            officialHistory,
+            installed: state.installed.map(item =>
+              item.id === old.id
+                ? {
+                    ...entry,
+                    bundled: true,
+                    registryUpdate: true,
+                    ...pendingActivation(old),
+                    materialDigest,
+                    validatedHost: this.packageUpdates.clientVersion,
+                  }
+                : item,
+            ),
+          }))
+          this.#scheduleGc()
+          return entry.id
+        } catch (error) {
+          await rm(await this.#directory(plan.project), { recursive: true, force: true })
+          throw error
+        } finally {
+          this.#plans.delete(staged.id)
+        }
+      })
     })
   }
-  async synchronizeEnvironments(workspace, validate) {
-    const installer = await this.#createManagedProjects(join(this.root, 'acquisition'), { offline: true })
-    try {
-      await installer.synchronizeBundledBase(workspace, validate)
-    } finally {
-      await installer.close()
-    }
+  async finishOfficialUpdate(id) {
+    if (!id) return
+    return this.#exclusive(async () => {
+      if (id !== this.pendingOfficialUpdateId) return
+      await this.#update(state => ({
+        ...state,
+        revision: state.revision + 1,
+        installed: state.installed.map(item => {
+          if (item.id !== id) return item
+          const { activationPending: _pending, previousOfficialId: _previous, ...active } = item
+          return active
+        }),
+      }))
+    })
+  }
+  async rollbackOfficialUpdate(id) {
+    if (!id) return false
+    return this.#exclusive(async () => {
+      if (id !== this.pendingOfficialUpdateId) return false
+      const pending = this.#entry(id)
+      const ref = this.#state.officialHistory?.find(item => item.id === pending.previousOfficialId)
+      if (!ref) return false
+      const previous = await this.#readOfficial(ref)
+      const digest = await this.#digestEntry(previous)
+      if (previous.materialDigest && previous.materialDigest !== digest) return false
+      if (previous.engines?.arcadia) {
+        if (!semver.satisfies(this.packageUpdates.clientVersion, previous.engines.arcadia)) return false
+      } else if (
+        !this.packageUpdates.shippedRoot ||
+        digest !== (await this.catalogDigest(this.packageUpdates.shippedRoot))
+      )
+        return false
+      if (previous.validatedHost !== this.packageUpdates.clientVersion)
+        await this.packageUpdates.validate(await this.#directory(previous.id), this.#controller.signal)
+      await this.#update(state => ({
+        ...state,
+        revision: state.revision + 1,
+        officialHistory: state.officialHistory.filter(item => item.id !== ref.id),
+        installed: state.installed.map(item => (item.id === id ? previous : item)),
+      }))
+      this.#scheduleGc()
+      return true
+    })
   }
   #update(change) {
     const update = this.#writes.then(() => {
@@ -508,6 +680,7 @@ export class ContentLibrary {
     this.#gcTimer = undefined
     const protectedIds = new Set([
       ...this.#state.installed.map(entry => entry.id),
+      ...(this.#state.officialHistory ?? []).map(ref => ref.id),
       this.#state.legacySelection?.project,
       ...Array.from(this.#plans.values(), plan => plan.project),
       ...this.#leases.keys(),
@@ -1001,6 +1174,19 @@ export class ContentLibrary {
           if ((await realpath(acquisition)) !== acquisition) throw sourceError('INSTALL_ROOT_INVALID')
           const installer = await this.#createManagedProjects(acquisition, {
             sources: selectedSources,
+            resolveBaseVersion: async version => {
+              for (const ref of this.#state.officialHistory ?? []) {
+                if (ref.version !== version) continue
+                const entry = await this.#readOfficial(ref)
+                if (
+                  entry.engines?.arcadia &&
+                  !semver.satisfies(this.packageUpdates?.clientVersion, entry.engines.arcadia)
+                )
+                  continue
+                if (entry.materialDigest && entry.materialDigest !== (await this.#digestEntry(entry))) continue
+                return join(await this.#directory(entry.id), 'node_modules', officialPackage)
+              }
+            },
             offline,
             allowThirdPartyContent: true,
           })

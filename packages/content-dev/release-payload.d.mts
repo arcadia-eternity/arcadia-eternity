@@ -1,5 +1,6 @@
 import type { PresentationManifest } from '@arcadia-eternity/schema'
 import type { PackageManifest } from './src/workspace.ts'
+export function requireClientRange(source: PackageManifest): void
 export function releasePayload(
   source: PackageManifest,
   included: Iterable<string>,
