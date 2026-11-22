@@ -36,40 +36,31 @@ const version = baseOnly ? packages[0].manifest.version : sdkVersion
 // The base component owns the versions of all three npm archives.
 const basePackage = workspace.find(pkg => pkg.manifest.name === '@arcadia-eternity/data-pack-base')
 if (baseOnly) {
-  const { packages: definitions } = JSON.parse(
-    await readFile(join(basePackage.directory, 'environment/packages.json'), 'utf8'),
-  )
-  for (const { id, name, title } of definitions) {
-    assert.match(name, /^@arcadia-eternity\/environment-[a-z0-9-]+$/)
-    assert.ok(!packageNames.has(name), 'Duplicate environment package: ' + name)
-    packageNames.add(name)
-    const { publishConfig, engines, license, repository } = basePackage.manifest
+  for (const directory of ['environment-default', 'environment-training-120']) {
+    const path = 'packs/' + directory
+    const manifest = JSON.parse(await readFile(join(root, path, 'package.json'), 'utf8'))
+    assert.equal(manifest.name, '@arcadia-eternity/' + directory)
+    assert.deepEqual(manifest.dependencies, { [basePackage.manifest.name]: 'workspace:*' })
+    packageNames.add(manifest.name)
     packages.push({
-      presetId: id,
+      presetId: manifest.arcadiaEnvironment.id,
       manifest: {
-        name,
-        version,
-        description: title,
-        license,
-        repository,
-        publishConfig,
-        engines,
+        ...manifest,
+        description: manifest.arcadiaEnvironment.name,
+        repository: { ...basePackage.manifest.repository, directory: path },
+        publishConfig: basePackage.manifest.publishConfig,
+        engines: basePackage.manifest.engines,
         dependencies: { [basePackage.manifest.name]: version },
-        files: ['environment.json', 'LICENSE'],
-        exports: { './environment.json': './environment.json', './package.json': './package.json' },
       },
     })
   }
 }
 
-async function packPreset(manifest, document) {
-  const { packages: dependencies, ...arcadiaEnvironment } = document
-  assert.deepEqual(dependencies, manifest.dependencies)
+async function packPreset(manifest) {
   const stage = await mkdtemp(join(tmpdir(), 'arcadia-environment-release-'))
   try {
     await Promise.all([
-      writeFile(join(stage, 'package.json'), JSON.stringify({ ...manifest, arcadiaEnvironment }, null, 2) + '\n'),
-      writeFile(join(stage, 'environment.json'), JSON.stringify(document, null, 2) + '\n'),
+      writeFile(join(stage, 'package.json'), JSON.stringify(manifest, null, 2) + '\n'),
       copyFile(join(basePackage.directory, 'LICENSE'), join(stage, 'LICENSE')),
     ])
     run('npm', ['pack', '--ignore-scripts', '--offline', '--pack-destination', output], stage)
@@ -155,27 +146,22 @@ if (command === 'pack' || command === 'pack-base') {
   }
   await mkdir(output, { recursive: true })
   const records = []
-  let catalog
   if (baseOnly) {
-    const { readShippedEnvironments } = await import('@arcadia-eternity/content-sdk/management-workspace')
-    catalog = await readShippedEnvironments(join(basePackage.directory, basePackage.manifest.arcadia.environments), {
-      [basePackage.manifest.name]: version,
-    })
+    const { readOfficialEnvironments } = await import('@arcadia-eternity/content-sdk/management-workspace')
+    const catalog = await readOfficialEnvironments(basePackage.directory, createRequire(import.meta.url).resolve)
     assert.deepEqual(
-      catalog.environments.map(doc => doc.id).sort(),
+      catalog.environments,
       packages
         .filter(pkg => pkg.presetId)
-        .map(pkg => pkg.presetId)
-        .sort(),
+        .map(({ manifest }) => ({
+          ...manifest.arcadiaEnvironment,
+          packages: manifest.dependencies,
+        })),
     )
   }
   for (const { directory, manifest, presetId } of packages) {
     const filename = archiveName(manifest.name)
-    if (presetId)
-      await packPreset(
-        manifest,
-        catalog.environments.find(doc => doc.id === presetId),
-      )
+    if (presetId) await packPreset(manifest)
     else if (baseOnly) await packBase(directory, filename)
     else run('pnpm', ['pack', '--pack-destination', output], directory)
     const archive = join(output, filename)
@@ -205,17 +191,17 @@ if (command === 'pack' || command === 'pack-base') {
         if (packed.arcadia[field])
           assert.ok(files.includes(`package/${packed.arcadia[field]}`), `${packed.name}: missing ${field} artifact`)
     if (presetId) {
-      const document = JSON.parse(run('tar', ['-xOzf', archive, 'package/environment.json'], root, true))
-      assert.deepEqual(document, { ...packed.arcadiaEnvironment, packages: packed.dependencies })
-      assert.deepEqual(
-        document,
-        catalog.environments.find(doc => doc.id === presetId),
-      )
+      assert.deepEqual(packed.arcadiaEnvironment, manifest.arcadiaEnvironment)
+      assert.deepEqual(packed.dependencies, { [basePackage.manifest.name]: version })
       assert.deepEqual(packed.engines, basePackage.manifest.engines)
-      assert.deepEqual(files.sort(), ['package/LICENSE', 'package/environment.json', 'package/package.json'])
+      assert.deepEqual(files.sort(), ['package/LICENSE', 'package/package.json'])
     }
     if (manifest.name === '@arcadia-eternity/data-pack-base') {
-      assert.ok(files.includes('package/' + packed.arcadia.environments), 'base pack: missing environment presets')
+      assert.equal(packed.arcadia.environments, undefined)
+      assert.ok(
+        !files.some(file => /^package\/(?:dist\/)?environment\//.test(file)),
+        'base pack includes environment definitions',
+      )
       const semver = createRequire(join(root, 'packages/content-dev/package.json'))('semver')
       assert.ok(
         typeof packed.engines?.arcadia === 'string' &&

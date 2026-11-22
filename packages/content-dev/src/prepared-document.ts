@@ -1,12 +1,17 @@
 import { sha256Hex } from '@arcadia-eternity/const'
 import { readFile, realpath } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { environmentManifestDocument, normalizeEnvironmentDocument } from './debug-environments.ts'
+import {
+  environmentManifestDocument,
+  environmentProjectDocument,
+  normalizeEnvironmentDocument,
+} from './debug-environments.ts'
+export { environmentProjectDocument } from './debug-environments.ts'
 import { contentError, readJson } from './workspace-materials.ts'
 import { errorCode, type UnknownRecord } from './types.ts'
 
 export function parseManifestDraft(text: string) {
-  const document = environmentManifestDocument(JSON.parse(text))
+  const document = environmentProjectDocument(JSON.parse(text))
   return { document, revision: sha256Hex(text) }
 }
 
@@ -50,7 +55,7 @@ export async function readInstalledEnvironmentDocument(directory: string, conten
     if (!pkg.arcadiaEnvironment) continue
     if (pkg.name !== name) throw contentError('ENVIRONMENT_MANIFEST_INVALID')
     if (selected) throw contentError('ENVIRONMENT_PRESET_AMBIGUOUS', '项目依赖多个环境包，请显式选择环境声明。')
-    selected = parseManifestDraft(JSON.stringify(pkg)).document
+    selected = environmentManifestDocument(pkg)
   }
   return selected
 }

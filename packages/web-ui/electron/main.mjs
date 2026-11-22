@@ -311,6 +311,13 @@ function getContentLibrary() {
     ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
     : require
   const root = path.join(app.getPath('userData'), 'content-packages')
+  const shippedRoot = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+  const readCatalog = async (baseRoot, file) => {
+    const { readOfficialEnvironments } = await import(
+      pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+    )
+    return readOfficialEnvironments(baseRoot, runtimeRequire.resolve, file)
+  }
   contentLibrary ??= new ContentLibrary({
     root,
     packageUpdates: {
@@ -319,7 +326,8 @@ function getContentLibrary() {
         const { findPackageUpdate } = await loadPackageUpdates()
         return findPackageUpdate(...args)
       },
-      shippedRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+      shippedRoot,
+      shippedCatalog: () => readCatalog(shippedRoot),
       catalogDigest: async root => {
         const { catalogMaterialDigest } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/pack-loader/node')).href
@@ -334,13 +342,9 @@ function getContentLibrary() {
         const { validateWorkspaceProject } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
         )
-        const { readOfficialEnvironments } = await import(
-          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
-        )
-        const base = '@arcadia-eternity/data-pack-base'
-        const catalog = await readOfficialEnvironments(
-          path.join(directory, 'node_modules', base),
-          shippedEnvironmentsFile(),
+        const catalog = await readCatalog(
+          path.join(directory, 'node_modules', '@arcadia-eternity/data-pack-base'),
+          path.join(directory, 'official-environments.json'),
         )
         for (const draft of catalog.environments)
           await validateWorkspaceProject({ directory, signal, draft }, { effectPreparation: 'prebuilt-only' })
@@ -432,7 +436,7 @@ function getLocalEnvironments() {
       await getManagementWorkspaceOwner().ready()
       return builtinEnvironment
     },
-    baseRules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
+    baseRules: runtimeRequire('@arcadia-eternity/environment-default/package.json').arcadiaEnvironment.rules,
     library: getContentLibrary(),
     acquireRecipe: async (source, destination, options) => {
       const { acquireAuthorEnvironment, parseAuthorEnvironmentNpmSpec } = await import(
@@ -483,11 +487,7 @@ function getLocalEnvironments() {
   })
   return localEnvironments
 }
-function shippedEnvironmentsFile() {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, 'arcadia-server/shipped-environments.json')
-    : path.resolve(projectRoot, '../../bin/shipped-environments.json')
-}
+
 let builtinSync = Promise.resolve()
 let updateOfficialContent
 let stopAutomaticContentUpdates
@@ -511,7 +511,11 @@ async function refreshDesktopEnvironments(workspace) {
   const { synchronizeShippedEnvironments, readOfficialEnvironments } = await import(
     pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
   )
-  const catalog = await readOfficialEnvironments(activeBaseRoot(runtimeRequire), shippedEnvironmentsFile())
+  const catalog = await readOfficialEnvironments(
+    activeBaseRoot(runtimeRequire),
+    runtimeRequire.resolve,
+    library.officialEnvironmentCatalogFile,
+  )
   await workspace.refreshBuiltinRules(catalog.environments)
   builtinEnvironment = await openBuiltinEnvironment({
     workspace,

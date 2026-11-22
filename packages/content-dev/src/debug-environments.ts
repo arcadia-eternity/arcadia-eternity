@@ -5,6 +5,7 @@ export {
   type EnvironmentRules,
 } from '@arcadia-eternity/const'
 import { WorkspaceError, type AuthorWorkspace } from './workspace.ts'
+import { officialBasePackage, resolveOfficialWorkspaceManifest } from './official-environment-packages.ts'
 import { isRecord } from './types.ts'
 import { z } from 'zod'
 const idPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/
@@ -94,6 +95,10 @@ export function environmentManifestDocument(manifest: unknown): EnvironmentDocum
   })
 }
 
+export function environmentProjectDocument(manifest: unknown) {
+  return environmentManifestDocument(resolveOfficialWorkspaceManifest(manifest))
+}
+
 export class DebugEnvironments {
   workspace: AuthorWorkspace
   constructor(workspace: AuthorWorkspace) {
@@ -106,7 +111,7 @@ export class DebugEnvironments {
   async list(): Promise<ListedEnvironment[]> {
     if (this.workspace.projectKind === 'environment') {
       const source = await this.workspace.read('package.json')
-      return [{ ...environmentManifestDocument(JSON.parse(source.text)), version: source.version }]
+      return [{ ...environmentProjectDocument(JSON.parse(source.text)), version: source.version }]
     }
     const environments: ListedEnvironment[] = [
       { schemaVersion: 1, id: 'default', name: '当前包与正式依赖', packages: {}, sources: [], version: null },
@@ -133,7 +138,8 @@ export class DebugEnvironments {
       const manifest = JSON.parse(source.text)
       if (source.version !== expectedVersion)
         throw new WorkspaceError('REVISION_CONFLICT', '环境包声明已改变，请重新读取', source.file)
-      if (environmentManifestDocument(manifest).id !== value.id) fail('环境标识与当前项目不一致')
+      const previous = environmentProjectDocument(manifest)
+      if (previous.id !== value.id) fail('环境标识与当前项目不一致')
       const { packages, ...declaration } = normalizeEnvironmentDocument(value)
       if (declaration.sources.some(name => Object.hasOwn(packages, name))) fail('同一包不能同时声明版本和本机来源')
       const dependencies = {
@@ -144,6 +150,12 @@ export class DebugEnvironments {
             .map(name => [name, manifest.dependencies[name]]),
         ),
       }
+      if (
+        manifest.dependencies[officialBasePackage] === 'workspace:*' &&
+        dependencies[officialBasePackage] === previous.packages[officialBasePackage] &&
+        Object.hasOwn(packages, officialBasePackage)
+      )
+        dependencies[officialBasePackage] = 'workspace:*'
       const result = await this.workspace.write({
         file: source.file,
         expectedVersion,

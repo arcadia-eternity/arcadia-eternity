@@ -242,12 +242,38 @@ test(
     let offline = true
     let archiveRequests = 0
     t.mock.method(globalThis, 'fetch', async url => {
-      assert.equal(String(url), candidate.url)
+      if (String(url) !== candidate.url) {
+        for (const suffix of ['default', 'training-120']) {
+          const recipe = JSON.parse(await readFile(resolve('packs/environment-' + suffix, 'package.json'), 'utf8'))
+          if (
+            String(url) ===
+            'https://registry.npmjs.org/' + encodeURIComponent(recipe.name) + '/' + candidate.version
+          ) {
+            recipe.version = candidate.version
+            recipe.dependencies = { [name]: candidate.version }
+            recipe.arcadiaEnvironment.name += ' (updated)'
+            return Response.json(recipe)
+          }
+        }
+        assert.fail('unexpected registry URL: ' + url)
+      }
       archiveRequests++
       const duringDownload = await library.acquireDefaultProject()
       await duringDownload.release()
       return new Response(damaged ? Buffer.from('partial download') : bytes)
     })
+    const shippedRecipes = join(root, 'recipes')
+    await mkdir(shippedRecipes)
+    const resolveRecipe = specifier => join(shippedRecipes, specifier.split('/')[1] + '.json')
+    async function stageRecipes(version, updated = false) {
+      for (const suffix of ['default', 'training-120']) {
+        const recipe = JSON.parse(await readFile(resolve('packs/environment-' + suffix, 'package.json'), 'utf8'))
+        recipe.version = version
+        if (updated) recipe.arcadiaEnvironment.name += ' (updated)'
+        await writeFile(resolveRecipe(recipe.name + '/package.json'), JSON.stringify(recipe))
+      }
+    }
+    await stageRecipes(manifest.version)
     let library, owner, defaultId
     const host = new LocalBattleHost({
       executable: process.execPath,
@@ -267,6 +293,7 @@ test(
       withDefaultArchive: use => withShippedCatalogArchive(bundled, undefined, use),
       packageUpdates: {
         shippedRoot: bundled,
+        shippedCatalog: () => readOfficialEnvironments(bundled, resolveRecipe),
         clientVersion: '4.11.0',
         find: async (pkg, version) => {
           assert.equal(pkg, name)
@@ -295,7 +322,8 @@ test(
     const synchronize = async (validate = validateWorkspaceProject) => {
       const catalog = await readOfficialEnvironments(
         library.officialPackageRoot,
-        resolve('bin/shipped-environments.json'),
+        resolveRecipe,
+        library.officialEnvironmentCatalogFile,
       )
       await openBuiltinEnvironment({
         workspace,
@@ -367,6 +395,7 @@ test(
         const pinned = await workspace.getInstallation(personal.id)
         assert.equal(pinned.document.packages[name], previous.version)
         const current = await workspace.getInstallation(envId)
+        assert.equal(current.document.name, prior.document.name + ' (updated)')
         assert.notEqual(current.contentRevision, prior.contentRevision)
         for (const [item, version] of [
           [locked, previous.version],
@@ -377,6 +406,7 @@ test(
             version,
           )
         const restart = async (version, host, range) => {
+          await stageRecipes(version, version === candidate.version)
           manifest.version = version
           manifest.engines = { arcadia: range }
           await writeFile(join(bundled, 'package.json'), JSON.stringify(manifest))

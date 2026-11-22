@@ -724,10 +724,14 @@ async function officialReleaseFixture() {
   manifest.version = version
   manifest.engines = { arcadia: '*' }
   await writeFile(join(source, 'package.json'), JSON.stringify(manifest))
-  const presetsFile = join(source, manifest.arcadia.environments)
-  const presets = JSON.parse(await readFile(presetsFile, 'utf8'))
-  presets.environments.find((doc: { id: string }) => doc.id === 'training-120').name = '120 联动发行测试'
-  await writeFile(presetsFile, JSON.stringify(presets))
+  const recipes: Record<string, unknown> = {}
+  for (const suffix of ['default', 'training-120']) {
+    const recipe = JSON.parse(await readFile(resolve('packs/environment-' + suffix, 'package.json'), 'utf8'))
+    recipe.version = version
+    recipe.dependencies = { [name]: version }
+    if (suffix === 'training-120') recipe.arcadiaEnvironment.name = '120 联动发行测试'
+    recipes['https://registry.npmjs.org/' + encodeURIComponent(recipe.name) + '/' + version] = recipe
+  }
   const effectsFile = join(source, manifest.arcadia.effectArtifact)
   const artifact = JSON.parse(await readFile(effectsFile, 'utf8'))
   artifact.source += '\n// independent official release\n'
@@ -746,17 +750,57 @@ async function officialReleaseFixture() {
       },
     },
   }
-  return { root, name, source, manifest, artifact, shipped, version, url, bytes, archive, metadata }
+  return { root, name, source, manifest, artifact, shipped, version, url, bytes, archive, metadata, recipes }
 }
 
+it('requires both same-version environment manifests and restarts from the complete cached release offline', async () => {
+  const { root, name, version, url, bytes, metadata, recipes } = await officialReleaseFixture()
+  const { serverBase, serverOfficialEnvironments, shippedBaseRoot, updateRunningServerBase } =
+    await import('../server-base-pack')
+  const data = join(root, 'state')
+  const initial = await serverBase(data)
+  const signal = AbortSignal.timeout(60000)
+  const trainingUrl = Object.keys(recipes).find(url => url.includes('training-120'))!
+  let wrongVersion = true
+  const registry = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+    const request = String(input)
+    if (request === url) return new Response(new Uint8Array(bytes))
+    if (wrongVersion && request === trainingUrl)
+      return Response.json({ name: '@arcadia-eternity/environment-training-120', version: '1.0.0' })
+    return Response.json(recipes[request] ?? metadata)
+  })
+  const activate = vi.fn(async (directory: string) => {
+    await serverOfficialEnvironments(directory)
+  })
+  try {
+    await expect(updateRunningServerBase(data, initial, activate, signal)).rejects.toThrow(
+      'OFFICIAL_ENVIRONMENT_PACKAGE_MISMATCH',
+    )
+    expect(activate).not.toHaveBeenCalled()
+    expect((await serverBase(data)).directory).toBe(shippedBaseRoot())
+    wrongVersion = false
+    await updateRunningServerBase(data, initial, activate, signal)
+    registry.mockImplementation(async () => {
+      throw new Error('registry offline')
+    })
+    const selection = await serverBase(data)
+    expect(selection.version).toBe(version)
+    const { environments } = await serverOfficialEnvironments(selection.directory)
+    expect(environments.map(doc => doc.packages[name])).toEqual([version, version])
+    expect(environments.find(doc => doc.id === 'training-120')?.name).toBe('120 联动发行测试')
+  } finally {
+    registry.mockRestore()
+  }
+}, 60000)
+
 it('restores the previous official base when live activation fails and keeps the failed version out of startup selection', async () => {
-  const { root, shipped, version, url, bytes, metadata } = await officialReleaseFixture()
+  const { root, shipped, version, url, bytes, metadata, recipes } = await officialReleaseFixture()
   const { serverBase, shippedBaseRoot, updateRunningServerBase } = await import('../server-base-pack')
   const data = join(root, 'state')
   const registry = vi
     .spyOn(globalThis, 'fetch')
     .mockImplementation(async input =>
-      String(input) === url ? new Response(new Uint8Array(bytes)) : Response.json(metadata),
+      String(input) === url ? new Response(new Uint8Array(bytes)) : Response.json(recipes[String(input)] ?? metadata),
     )
   const activated: string[] = []
   try {
@@ -780,7 +824,7 @@ it('restores the previous official base when live activation fails and keeps the
 }, 60000)
 
 it('hot-updates both official presets in the background, preserves a live room, and respects offline and pinned starts', async () => {
-  const { root, name, source, manifest, artifact, shipped, version, url, bytes, archive, metadata } =
+  const { root, name, source, manifest, artifact, shipped, version, url, bytes, archive, metadata, recipes } =
     await officialReleaseFixture()
   const data = join(root, 'state')
   const preload = join(root, 'registry.mjs')
@@ -795,6 +839,8 @@ it('hot-updates both official presets in the background, preserves a live room, 
         await appendFile(${JSON.stringify(join(root, 'requests'))}, String(url) + '\\n')
         await gate
       }
+      const recipes = ${JSON.stringify(recipes)}
+      if (Object.hasOwn(recipes, String(url))) return Response.json(recipes[String(url)])
       if (String(url) === ${JSON.stringify(url)}) return new Response(await readFile(${JSON.stringify(archive)}))
       if (String(url) === ${JSON.stringify('https://registry.npmjs.org/' + encodeURIComponent(name))}) return Response.json(${JSON.stringify(metadata)})
       throw new Error('Unexpected request: ' + url)
@@ -833,7 +879,7 @@ it('hot-updates both official presets in the background, preserves a live room, 
     environment: { id: initial.find(item => item.isDefault)!.id },
   })
   await accepted(socket, 'leavePrivateRoom')
-  await vi.waitFor(() => readFile(join(data, 'official-base', version, '.arcadia-material-digest')), { timeout: 10000 })
+  await vi.waitFor(() => readFile(join(data, 'official-base', version, '.arcadia-release-digest')), { timeout: 10000 })
   await stop(running.child)
   expect(JSON.parse((await update('update')).stdout)).toMatchObject({
     installedVersion: version,

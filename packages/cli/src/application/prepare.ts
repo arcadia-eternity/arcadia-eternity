@@ -175,10 +175,10 @@ export async function prepareContent(
       const content = await toCliContent(await prepareShippedContent())
       const declaration = JSON.parse(
         await readFile(
-          fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+          fileURLToPath(import.meta.resolve('@arcadia-eternity/environment-default/package.json')),
           'utf8',
         ),
-      )
+      ).arcadiaEnvironment.rules
       return { ...content, rules: prepareRulesForContent(declaration, content.data).rules }
     }
     const loader = await createLoader()

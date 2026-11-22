@@ -53,7 +53,7 @@ Node 宿主可向 `createSingleProcessApp` 注入 `matchmakingPolicy: Matchmakin
 
 ## 独立更新官方基础包
 
-独立服先使用本机兼容版本接待玩家，随后在后台检查公共 npm。检查或更新成功后，每 6 小时再查一次；检查、下载、验证或应用失败时，15 分钟后重试。服务端核验归档的 SHA-512、包身份和官方预设后，热切换默认环境和 120 资质环境。进行中的房间继续使用原修订，新开的房间使用新修订。
+独立服先使用本机兼容版本接待玩家，随后在后台检查公共 npm。检查或更新成功后，每 6 小时再查一次；检查、下载、验证或应用失败时，15 分钟后重试。服务端校验基础包归档的 SHA-512，并从 npm 读取和验证两个同版官方环境包的声明后，热切换默认环境和 120 资质环境。进行中的房间继续使用原修订，新开的房间使用新修订。
 
 `--no-base-pack-auto-update` 或 `ARCADIA_BASE_PACK_AUTO_UPDATE=0` 关闭后台更新。`--offline-content`、固定基础包版本和桌面托管模式也会跳过独立服的后台检查。手动执行 `server base-pack check` 可查看可用版本，`server base-pack update` 可预下载到持久目录。两条命令均需使用服务的 `--data-dir` 或 `ARCADIA_DATA_DIR`。
 

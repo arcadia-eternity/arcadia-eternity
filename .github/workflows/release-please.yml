@@ -27,10 +27,10 @@ jobs:
           manifest-file: .release-please-manifest.json
 
       - name: Start the official data release
-        if: steps.release.outputs['packs/base--release_created'] == 'true'
+        if: steps.release.outputs['packs--release_created'] == 'true'
         uses: actions/github-script@v9.0.0
         env:
-          BASE_TAG: ${{ steps.release.outputs['packs/base--tag_name'] }}
+          BASE_TAG: ${{ steps.release.outputs['packs--tag_name'] }}
         with:
           script: |
             await github.rest.repos.createDispatchEvent({

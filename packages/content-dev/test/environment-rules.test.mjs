@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -11,6 +11,7 @@ import {
   resolveEnvironmentMechanics,
   validateEnvironmentRules,
 } from '../src/environment-rules.ts'
+import { environmentManifestDocument, environmentProjectDocument } from '../src/debug-environments.ts'
 import { readInstalledEnvironmentDocument } from '../src/prepared-document.ts'
 import { prepareBattleEnvironment } from '../src/environment.ts'
 import { prepareContentPack } from '../src/testing.ts'
@@ -19,6 +20,23 @@ import { PreviewAutomation } from '../src/preview-control.ts'
 const pet = (species = 'sample:pet', values = {}) => ({ species, skills: ['sample:strike'], ...values })
 const rules = values => ({ schemaVersion: 1, ...values })
 const rejected = run => assert.throws(run, { code: 'ENVIRONMENT_TEAM_REJECTED' })
+
+test('official source recipes resolve to the same rules and exact base dependency as their release manifests', async () => {
+  const base = '@arcadia-eternity/data-pack-base'
+  for (const [directory, id, max] of [
+    ['environment-default', 'builtin-server', 31],
+    ['environment-training-120', 'training-120', 120],
+  ]) {
+    const source = JSON.parse(await readFile(new URL(`../../../packs/${directory}/package.json`, import.meta.url)))
+    const document = environmentProjectDocument(source)
+    assert.equal(document.id, id)
+    assert.equal(document.rules.mechanics.individualValues.max, max)
+    assert.deepEqual(document.packages, { [base]: source.version })
+    assert.deepEqual(document, environmentManifestDocument({ ...source, dependencies: document.packages }))
+    assert.throws(() => environmentManifestDocument(source))
+    assert.throws(() => environmentProjectDocument({ ...source, name: 'community-environment' }))
+  }
+})
 
 test('supported rules are copied and unsupported policies fail before admission', () => {
   const input = rules({ tier: 'standard', team: { minSize: 2, maxSize: 4, uniqueSpecies: true } })

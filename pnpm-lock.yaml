@@ -117,6 +117,12 @@ importers:
       '@arcadia-eternity/database':
         specifier: workspace:^
         version: link:packages/database
+      '@arcadia-eternity/environment-default':
+        specifier: workspace:*
+        version: link:packs/environment-default
+      '@arcadia-eternity/environment-training-120':
+        specifier: workspace:*
+        version: link:packs/environment-training-120
       '@arcadia-eternity/local-profile':
         specifier: workspace:^
         version: link:packages/local-profile
@@ -269,6 +275,12 @@ importers:
       '@arcadia-eternity/data-pack-base':
         specifier: workspace:^
         version: link:../../packs/base
+      '@arcadia-eternity/environment-default':
+        specifier: workspace:*
+        version: link:../../packs/environment-default
+      '@arcadia-eternity/environment-training-120':
+        specifier: workspace:*
+        version: link:../../packs/environment-training-120
       '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:../interface
@@ -583,6 +595,12 @@ importers:
       '@arcadia-eternity/database':
         specifier: workspace:^
         version: link:../database
+      '@arcadia-eternity/environment-default':
+        specifier: workspace:*
+        version: link:../../packs/environment-default
+      '@arcadia-eternity/environment-training-120':
+        specifier: workspace:*
+        version: link:../../packs/environment-training-120
       '@arcadia-eternity/pack-loader':
         specifier: workspace:^
         version: link:../pack-loader
@@ -659,6 +677,12 @@ importers:
       '@arcadia-eternity/data-pack-base':
         specifier: workspace:^
         version: link:../../packs/base
+      '@arcadia-eternity/environment-default':
+        specifier: workspace:*
+        version: link:../../packs/environment-default
+      '@arcadia-eternity/environment-training-120':
+        specifier: workspace:*
+        version: link:../../packs/environment-training-120
       '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:../interface
@@ -904,6 +928,18 @@ importers:
       '@arcadia-eternity/pack-loader':
         specifier: workspace:*
         version: link:../../packages/pack-loader
+
+  packs/environment-default:
+    dependencies:
+      '@arcadia-eternity/data-pack-base':
+        specifier: workspace:*
+        version: link:../base
+
+  packs/environment-training-120:
+    dependencies:
+      '@arcadia-eternity/data-pack-base':
+        specifier: workspace:*
+        version: link:../base
 
 packages:
 

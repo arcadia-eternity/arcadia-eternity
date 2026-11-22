@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { x as extract } from 'tar'
+import { t as list, x as extract } from 'tar'
 import { resolvePnpmInvocation } from '../../../scripts/desktop-runtime-portability.mjs'
 
 const exec = promisify(execFile)
@@ -134,6 +134,10 @@ test(
       await readInstalledCard(call)
       return await job('package_build')
     })
+    const listing = []
+    await list({ file: join(cup, recipe.filename), onentry: entry => listing.push(entry.path) })
+    assert.ok(listing.includes('package/package.json'))
+    assert.ok(!listing.includes('package/environment.json'))
     const source = { kind: 'archive', file: 'candidates/cup.tgz' }
     const archive = join(consumer, source.file)
     await copyFile(join(cup, recipe.filename), archive)

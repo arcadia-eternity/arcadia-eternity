@@ -95,7 +95,9 @@
     "vue": "^3.5.45",
     "vue-router": "^5.4.0",
     "yaml": "catalog:",
-    "@arcadia-eternity/local-profile": "workspace:^"
+    "@arcadia-eternity/local-profile": "workspace:^",
+    "@arcadia-eternity/environment-default": "workspace:*",
+    "@arcadia-eternity/environment-training-120": "workspace:*"
   },
   "devDependencies": {
     "@electron/rebuild": "4.2.1",

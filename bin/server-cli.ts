@@ -2,11 +2,7 @@ import 'dotenv/config'
 import { Command, CommanderError, InvalidArgumentError, Option } from 'commander'
 import nodemailer from 'nodemailer'
 import { SQLAccountDirectory, type DurableStorage } from '@arcadia-eternity/database'
-import {
-  ContentWorkspace,
-  readOfficialEnvironments,
-  synchronizeShippedEnvironments,
-} from '@arcadia-eternity/content-sdk/management-workspace'
+import { ContentWorkspace, synchronizeShippedEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
 import {
   ManagedProjects,
   startAutomaticContentUpdates,
@@ -16,6 +12,7 @@ import { prepareShippedEnvironment } from '@arcadia-eternity/pack-loader/node'
 import {
   serverBase,
   serverOfficialMaterials,
+  serverOfficialEnvironments,
   shippedBaseRoot,
   runServerBasePackCli,
   updateRunningServerBase,
@@ -394,10 +391,7 @@ export async function runServerCli(args: string[]): Promise<number> {
           effectPreparation: options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
         })
       synchronizeOfficial = async (directory, signal) => {
-        const catalog = await readOfficialEnvironments(
-          directory,
-          new URL('./shipped-environments.json', import.meta.url),
-        )
+        const catalog = await serverOfficialEnvironments(directory)
         await ownedWorkspace.refreshBuiltinRules(catalog.environments)
         const key = catalog.defaultEnvironment
         const previous = (await storage!.get<ManagedServer>('servers', serverId))?.value.initialization

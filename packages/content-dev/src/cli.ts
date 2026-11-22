@@ -98,9 +98,9 @@ async function checkStandaloneEnvironment(operation: string) {
     throw new Error(
       'Standalone environment projects support check, demo, preview and pack. This build command requires a content pack.',
     )
-  const { environmentManifestDocument } = await import('./debug-environments.ts')
+  const { environmentProjectDocument } = await import('./debug-environments.ts')
   const { assertEnvironmentRequirements, prepareEnvironmentRules } = await import('./environment-rules.ts')
-  const document = environmentManifestDocument(manifest)
+  const document = environmentProjectDocument(manifest)
   assertEnvironmentRequirements(document.requires)
   prepareEnvironmentRules(document.rules)
   return true

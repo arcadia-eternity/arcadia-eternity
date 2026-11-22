@@ -37,8 +37,8 @@ export async function initializeHostEnvironment({
       effectPreparation: management.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
     })
   const baseRules = () =>
-    readFile(new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')), 'utf8').then(
-      raw => EnvironmentRuleDeclarationSchema.parse(JSON.parse(raw)),
+    readFile(new URL(import.meta.resolve('@arcadia-eternity/environment-default/package.json')), 'utf8').then(raw =>
+      EnvironmentRuleDeclarationSchema.parse(JSON.parse(raw).arcadiaEnvironment.rules),
     )
   const shipped = Object.values(workspace.builtinEnvironmentIds ?? {}).includes(environmentId)
   if (

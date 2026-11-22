@@ -2,6 +2,7 @@ import { sha256Hex } from '@arcadia-eternity/const'
 import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import type { OfficialEnvironmentCatalog } from './official-environments.ts'
 import { withOfficialUpdateDirectory, type PackageUpdate } from './package-updates.ts'
 export {
   officialPackage,
@@ -717,7 +718,9 @@ export async function withOfficialUpdateArchive<T>(
   candidate: PackageUpdate,
   npmCli: string | undefined,
   signal: AbortSignal,
-  use: (file: string) => Promise<T>,
+  use: (file: string, catalog: OfficialEnvironmentCatalog) => Promise<T>,
 ) {
-  return withOfficialUpdateDirectory(candidate, signal, directory => withShippedCatalogArchive(directory, npmCli, use))
+  return withOfficialUpdateDirectory(candidate, signal, (directory, catalog) =>
+    withShippedCatalogArchive(directory, npmCli, file => use(file, catalog)),
+  )
 }

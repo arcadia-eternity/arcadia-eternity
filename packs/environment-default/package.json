@@ -1,0 +1,30 @@
+{
+  "name": "@arcadia-eternity/environment-default",
+  "version": "4.12.1",
+  "license": "MIT",
+  "files": [
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@arcadia-eternity/data-pack-base": "workspace:*"
+  },
+  "arcadiaEnvironment": {
+    "schemaVersion": 2,
+    "id": "builtin-server",
+    "name": "默认环境",
+    "sources": [],
+    "rules": {
+      "schemaVersion": 2,
+      "mechanics": {
+        "individualValues": {
+          "max": 31
+        },
+        "inheritance": {
+          "eligible": "species"
+        },
+        "secondGenerationNatures": "species"
+      }
+    },
+    "requires": {}
+  }
+}

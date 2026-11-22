@@ -70,11 +70,8 @@ it('restores an expanded build from backup and replays it under the captured 120
   try {
     const loaded = await prepareContent('builtin:base', directory)
     const declaration = JSON.parse(
-      await readFile(
-        new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/test-120-rules.json')),
-        'utf8',
-      ),
-    )
+      await readFile(new URL(import.meta.resolve('@arcadia-eternity/environment-training-120/package.json')), 'utf8'),
+    ).arcadiaEnvironment.rules
     const { rules } = prepareEnvironmentRules(declaration, loaded.data.ruleSets)
     const ivs = { hp: 120, atk: 120, def: 120, spa: 120, spd: 120, spe: 120 }
     const pet = {

@@ -84,7 +84,9 @@
     "nodemailer": "^10.4.0",
     "pg": "^8.23.1",
     "yaml": "catalog:",
-    "@arcadia-eternity/local-profile": "workspace:^"
+    "@arcadia-eternity/local-profile": "workspace:^",
+    "@arcadia-eternity/environment-default": "workspace:*",
+    "@arcadia-eternity/environment-training-120": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

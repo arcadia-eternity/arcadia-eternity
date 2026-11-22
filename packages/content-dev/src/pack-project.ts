@@ -14,7 +14,7 @@ import {
 import type { PresentationManifest } from '@arcadia-eternity/schema'
 import { AuthorWorkspace, type PackageManifest } from './workspace.ts'
 import { ProjectTeams } from './project-teams.ts'
-import { environmentManifestDocument } from './debug-environments.ts'
+import { environmentProjectDocument } from './debug-environments.ts'
 import { assertEnvironmentRequirements, prepareEnvironmentRules } from './environment-rules.ts'
 import { releasePayload, normalizeReleaseArchive, requireClientRange } from '../release-payload.mjs'
 import { ManagedProjects } from './managed-projects.ts'
@@ -126,7 +126,7 @@ export async function packEnvironmentProject(directory: string) {
     await workspace.assertWritable()
     const manifestSource = await workspace.read('package.json')
     const manifest = JSON.parse(manifestSource.text) as PackageManifest
-    const document = environmentManifestDocument(manifest)
+    const document = environmentProjectDocument(manifest)
     assertEnvironmentRequirements(document.requires)
     prepareEnvironmentRules(document.rules)
     if (document.sources.length)
@@ -149,7 +149,6 @@ export async function packEnvironmentProject(directory: string) {
       await mkdir(dirname(target), { recursive: true })
       await copyFile(source.path, target)
     }
-    files.add('environment.json')
     const recipe = {
       name: manifest.name,
       version: manifest.version,
@@ -162,7 +161,6 @@ export async function packEnvironmentProject(directory: string) {
       arcadiaEnvironment,
     }
     await writeFile(join(payload, 'package.json'), JSON.stringify(recipe, null, 2) + '\n')
-    await writeFile(join(payload, 'environment.json'), JSON.stringify(document, null, 2) + '\n')
     const packed = parseNpmPackOutput(
       String(
         (

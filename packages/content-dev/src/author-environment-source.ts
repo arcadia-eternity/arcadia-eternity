@@ -7,7 +7,7 @@ import { Readable } from 'node:stream'
 import { isDeepStrictEqual } from 'node:util'
 import { satisfies, valid, validRange } from 'semver'
 import YAML from 'yaml'
-import { environmentManifestDocument, normalizeEnvironmentDocument } from './debug-environments.ts'
+import { environmentManifestDocument } from './debug-environments.ts'
 import { assertEnvironmentRequirements, validateEnvironmentRuleDeclaration } from './environment-rules.ts'
 import { matchesArchiveIntegrity, tarFiles } from './managed-sources.ts'
 import { teamDocument } from './project-teams.ts'
@@ -185,9 +185,6 @@ export async function acquireAuthorEnvironment(
   )
     throw contentError('ARCADIA_VERSION_INCOMPATIBLE')
   const retained = new Map<string, Buffer>()
-  const alternate = files.get('package/environment.json')
-  if (alternate && !isDeepStrictEqual(normalizeEnvironmentDocument(JSON.parse(alternate.toString())), document))
-    throw contentError('ENVIRONMENT_DOCUMENT_MISMATCH')
   for (const [dep, spec] of Object.entries(dependencies)) {
     if (candidate.test(spec)) retainCandidate(spec, files, retained)
     else if (!validRange(spec)) throw contentError('INSTALL_VERSION_INVALID', '无效的依赖版本范围 ' + dep)

@@ -20,7 +20,7 @@ import { openBuiltinEnvironment } from '../builtin-environment.mjs'
 import {
   ContentWorkspace,
   synchronizeShippedEnvironments,
-  readShippedEnvironments,
+  readOfficialEnvironments,
 } from '../../../content-dev/src/content-workspace.ts'
 import { buildEffects } from '@arcadia-eternity/content-sdk/build'
 import { parseNpmPackOutput, withShippedCatalogArchive } from '@arcadia-eternity/pack-loader/node'
@@ -297,9 +297,10 @@ test(
           workspace,
           library,
           validate: validateWorkspaceProject,
-          catalog: await readShippedEnvironments(join(dirname(cli), 'shipped-environments.json'), {
-            '@arcadia-eternity/data-pack-base': runtimeRequire('@arcadia-eternity/data-pack-base/package.json').version,
-          }),
+          catalog: await readOfficialEnvironments(
+            dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+            runtimeRequire.resolve,
+          ),
           synchronizeShippedEnvironments,
           legacyBuiltinId: async () => undefined,
         })

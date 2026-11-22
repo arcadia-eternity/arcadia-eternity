@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternity/battle/engine'
 import type { BattleHost } from '@arcadia-eternity/battle/host'
@@ -9,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 
 const shipped = await readOfficialEnvironments(
   fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
-  new URL('../../../bin/shipped-environments.json', import.meta.url),
+  createRequire(import.meta.url).resolve,
 )
 import input from '../../battle/test/fixtures/official-switch.input.json'
 
@@ -134,11 +135,8 @@ it('allows each new breeding family to inherit from the other under the official
   const { readFile } = await import('node:fs/promises')
   const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
   const declaration = JSON.parse(
-    await readFile(
-      new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
-      'utf8',
-    ),
-  )
+    await readFile(new URL(import.meta.resolve('@arcadia-eternity/environment-default/package.json')), 'utf8'),
+  ).arcadiaEnvironment.rules
   expect(declaration).toEqual(shipped.environments.find(env => env.id === shipped.defaultEnvironment)?.rules)
   const { rules } = prepareEnvironmentRules(declaration)
   const starter = fixture()[0].team[0]
@@ -160,11 +158,8 @@ it('applies the 120 test environment’s selected nature and stage to all six ba
   const { readFile } = await import('node:fs/promises')
   const { prepareEnvironmentRules } = await import('@arcadia-eternity/content-sdk/environment-rules')
   const declaration = JSON.parse(
-    await readFile(
-      new URL(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/test-120-rules.json')),
-      'utf8',
-    ),
-  )
+    await readFile(new URL(import.meta.resolve('@arcadia-eternity/environment-training-120/package.json')), 'utf8'),
+  ).arcadiaEnvironment.rules
   expect(declaration).toEqual(shipped.environments.find(env => env.id === 'training-120')?.rules)
   const { rules } = prepareEnvironmentRules(declaration)
   expect(rules.mechanics?.secondGenerationNatures).toBe('species')

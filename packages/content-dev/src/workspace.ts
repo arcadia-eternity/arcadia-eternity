@@ -16,7 +16,7 @@ import { yamlSharing, recordSharing, changedSharedField, sharingSignature } from
 import type { NodePath, SharedField } from './lib/yaml-sharing.ts'
 import { withSourceLock } from './source-lock.ts'
 import { readJson } from './workspace-materials.ts'
-import { environmentManifestDocument } from './debug-environments.ts'
+import { environmentProjectDocument } from './debug-environments.ts'
 import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.ts'
 
 import type { AuthorEffectCatalog } from './effect-declarations.ts'
@@ -564,7 +564,7 @@ export class AuthorWorkspace extends EventEmitter {
     if (environmentProject) {
       project.kind = 'environment'
       try {
-        const { id, name } = environmentManifestDocument(manifest)
+        const { id, name } = environmentProjectDocument(manifest)
         project.id = id
         project.name = name
       } catch (error) {

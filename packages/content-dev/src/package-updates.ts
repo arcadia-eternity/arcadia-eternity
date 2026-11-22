@@ -1,7 +1,9 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { catalogMaterialDigest } from '@arcadia-eternity/pack-loader/node'
+import { officialEnvironmentCatalog, type OfficialEnvironmentCatalog } from './official-environments.ts'
 import semver from 'semver'
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { acquireSource } from './managed-sources.ts'
 import { errorCode, isRecord } from './types.ts'
@@ -100,9 +102,15 @@ export function selectPackageUpdate(
 }
 
 export async function findPackageUpdate(name: string, current: string, client: string, signal?: AbortSignal) {
+  const url = 'https://registry.npmjs.org/' + encodeURIComponent(name)
+  const metadata = await registryJson(url, 'application/vnd.npm.install-v1+json', signal)
+  return selectPackageUpdate(metadata, name, current, client)
+}
+
+async function registryJson(url: string, accept: string, signal?: AbortSignal): Promise<unknown> {
   const timeout = AbortSignal.timeout(20000)
-  const response = await fetch('https://registry.npmjs.org/' + encodeURIComponent(name), {
-    headers: { Accept: 'application/vnd.npm.install-v1+json' },
+  const response = await fetch(url, {
+    headers: { Accept: accept },
     redirect: 'error',
     signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
   })
@@ -120,7 +128,7 @@ export async function findPackageUpdate(name: string, current: string, client: s
     if (size > limit) throw new Error('npm 版本清单过大')
     chunks.push(chunk)
   }
-  return selectPackageUpdate(JSON.parse(Buffer.concat(chunks).toString('utf8')), name, current, client)
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 
 async function acquireOfficial(candidate: PackageUpdate, destination: string, signal: AbortSignal) {
@@ -148,17 +156,25 @@ async function acquireOfficial(candidate: PackageUpdate, destination: string, si
     manifest.arcadia?.namespace !== 'base'
   )
     throw new Error('INVALID_OFFICIAL_PACKAGE')
-  return directory
+  const catalog = await officialEnvironmentCatalog(candidate.version, name =>
+    registryJson(
+      'https://registry.npmjs.org/' + encodeURIComponent(name) + '/' + candidate.version,
+      'application/json',
+      signal,
+    ),
+  )
+  return { directory, catalog }
 }
 
 export async function withOfficialUpdateDirectory<T>(
   candidate: PackageUpdate,
   signal: AbortSignal,
-  use: (directory: string) => Promise<T>,
+  use: (directory: string, catalog: OfficialEnvironmentCatalog) => Promise<T>,
 ) {
   const stage = await mkdtemp(join(tmpdir(), 'arcadia-official-update-'))
   try {
-    return await use(await acquireOfficial(candidate, join(stage, 'source'), signal))
+    const { directory, catalog } = await acquireOfficial(candidate, join(stage, 'source'), signal)
+    return await use(directory, catalog)
   } finally {
     await rm(stage, { recursive: true, force: true })
   }
@@ -187,7 +203,7 @@ export async function selectServerBase(
   })
   const candidates = entries
     .filter(entry => entry.isDirectory() && semver.valid(entry.name) === entry.name)
-    .map(entry => ({ directory: join(store, entry.name), version: entry.name, cached: true }))
+    .map(entry => ({ directory: join(store, entry.name, 'package'), version: entry.name, cached: true }))
   if (bundledCompatible) candidates.push(fallback)
   // Inspect cached ties first to detect an ambiguous release while retaining the shipped reference.
   candidates.sort((a, b) => semver.rcompare(a.version, b.version))
@@ -202,10 +218,10 @@ export async function selectServerBase(
           throw new Error('INVALID_OFFICIAL_PACKAGE')
         if (!manifest.engines?.arcadia?.trim() || !semver.satisfies(host, manifest.engines.arcadia)) continue
         const digest = await catalogMaterialDigest(directory)
-        const recorded = await readFile(join(directory, '.arcadia-material-digest'), 'utf8').catch(error => {
-          if (errorCode(error) !== 'ENOENT') throw error
-        })
-        if (recorded !== undefined && digest !== recorded) throw new Error('OFFICIAL_MATERIAL_DIGEST_MISMATCH')
+        const release = dirname(directory)
+        const catalog = await readFile(join(release, 'official-environments.json'), 'utf8')
+        const recorded = await readFile(join(release, '.arcadia-release-digest'), 'utf8')
+        if (sha256Hex(digest, '\0', catalog) !== recorded) throw new Error('OFFICIAL_MATERIAL_DIGEST_MISMATCH')
         if (version === bundled.version && bundledCompatible) {
           if (digest !== (await catalogMaterialDigest(shipped)))
             console.warn('OFFICIAL_BASE_VERSION_CONFLICT', version, 'using bundled materials')
@@ -237,19 +253,28 @@ export async function installServerBaseUpdate(
   try {
     const timeout = AbortSignal.timeout(120000)
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
-    const directory = await acquireOfficial(candidate, join(stage, 'source'), signal)
+    const release = join(stage, 'release')
+    const { directory, catalog } = await acquireOfficial(candidate, release, signal)
+    const catalogText = JSON.stringify(catalog)
+    await writeFile(join(release, 'official-environments.json'), catalogText)
     await validate(directory, signal)
-    const digest = await catalogMaterialDigest(directory)
-    await writeFile(join(directory, '.arcadia-material-digest'), digest)
+    const digest = sha256Hex(await catalogMaterialDigest(directory), '\0', catalogText)
+    await writeFile(join(release, '.arcadia-release-digest'), digest)
     signal.throwIfAborted()
     await options.beforeCommit?.(directory)
     options.signal?.throwIfAborted()
     try {
-      await rename(directory, join(store, candidate.version))
+      await rename(release, join(store, candidate.version))
     } catch (error) {
       // Concurrent installers can only publish a complete, verified directory at this version.
       if (!['EEXIST', 'ENOTEMPTY'].includes(errorCode(error) ?? '')) throw error
-      if ((await catalogMaterialDigest(join(store, candidate.version))) !== digest)
+      const installed = join(store, candidate.version)
+      const installedDigest = sha256Hex(
+        await catalogMaterialDigest(join(installed, 'package')),
+        '\0',
+        await readFile(join(installed, 'official-environments.json'), 'utf8'),
+      )
+      if (installedDigest !== digest)
         throw new Error('OFFICIAL_BASE_VERSION_CONFLICT: ' + candidate.version, { cause: error })
     }
   } finally {

@@ -1,3 +1,4 @@
+import { environmentProjectDocument } from '@arcadia-eternity/content-sdk/prepared-document'
 import type { Command } from 'commander'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -74,11 +75,12 @@ export function registerEnvironmentCommands(content: Command, context: CommandCo
   })
   command
     .command('apply')
-    .argument('<file>', 'Environment document JSON')
+    .argument('<file>', 'Environment document or environment package.json')
     .option('--revision <revision>', 'Expected environment revision; omit to create')
     .option('--wait', 'Wait for completion and write stage updates to stderr')
     .action(async (file: string, options: { revision?: string; wait?: boolean }) => {
-      const document = JSON.parse(await readFile(resolve(context.cwd, file), 'utf8'))
+      const input = JSON.parse(await readFile(resolve(context.cwd, file), 'utf8'))
+      const document = input?.arcadiaEnvironment ? environmentProjectDocument(input) : input
       let operation = (await request('POST', workspace() + '/environments/apply', {
         document,
         expectedRevision: options.revision ?? null,
