@@ -1,5 +1,6 @@
 import { readContentSources } from '../packages/content-dev/src/lib/content.ts'
-import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -14,18 +15,26 @@ export function assetPath(url) {
   return `${directory}${parsed.pathname}`
 }
 
-export async function collectOfficialAssetUrls(repositoryRoot = root) {
-  const sources = await readContentSources(path.join(repositoryRoot, 'packs/base'))
-  const urls = new Set(
-    sources
-      .filter(source => source.kind === 'resources')
-      .flatMap(source => source.records.map(row => row.source))
-      .filter(source => /^https?:/.test(source)),
-  )
-  return [...urls].sort()
+async function officialAssetHashes(repositoryRoot) {
+  const assets = new Map()
+  for (const source of await readContentSources(path.join(repositoryRoot, 'packs/base'))) {
+    if (source.kind !== 'resources') continue
+    for (const row of source.records) {
+      if (!/^https?:/.test(row.source)) continue
+      if (!/^[a-f0-9]{64}$/.test(row.sha256)) throw new Error(`Missing official asset hash: ${row.source}`)
+      if (assets.has(row.source) && assets.get(row.source) !== row.sha256)
+        throw new Error(`Conflicting official asset hashes: ${row.source}`)
+      assets.set(row.source, row.sha256)
+    }
+  }
+  return assets
 }
 
-export function verifyAsset(bytes, url) {
+export async function collectOfficialAssetUrls(repositoryRoot = root) {
+  return [...(await officialAssetHashes(repositoryRoot)).keys()].sort()
+}
+
+export function verifyAsset(bytes, url, sha256) {
   if (!bytes.length) throw new Error(`Empty official asset: ${url}`)
   const extension = path.extname(new URL(url).pathname)
   if (extension === '.png' && !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
@@ -41,6 +50,8 @@ export function verifyAsset(bytes, url) {
   ) {
     throw new Error(`Official asset is not MP3 audio: ${url}`)
   }
+  if (sha256 && createHash('sha256').update(bytes).digest('hex') !== sha256)
+    throw new Error(`Official asset hash mismatch: ${url}`)
   return { size: bytes.length }
 }
 
@@ -61,7 +72,8 @@ export async function prepareStaticAssets({
   output = path.join(repositoryRoot, 'packages/web-ui/dist/official-assets'),
   cache = path.join(repositoryRoot, 'packages/web-ui/.static-assets-cache'),
 } = {}) {
-  const urls = await collectOfficialAssetUrls(repositoryRoot)
+  const hashes = await officialAssetHashes(repositoryRoot)
+  const urls = [...hashes.keys()]
   const errors = []
   let cursor = 0
   let completed = 0
@@ -76,18 +88,17 @@ export async function prepareStaticAssets({
           let bytes
           try {
             bytes = await readFile(cachedPath)
-            verifyAsset(bytes, url)
+            verifyAsset(bytes, url, hashes.get(url))
           } catch {
             bytes = await download(url)
-            verifyAsset(bytes, url)
+            verifyAsset(bytes, url, hashes.get(url))
             await mkdir(path.dirname(cachedPath), { recursive: true })
             await writeFile(`${cachedPath}.tmp`, bytes)
             await rename(`${cachedPath}.tmp`, cachedPath)
           }
-          verifyAsset(bytes, url)
           const target = path.join(output, relative)
           await mkdir(path.dirname(target), { recursive: true })
-          await copyFile(cachedPath, target)
+          await writeFile(target, bytes)
           totalBytes += bytes.length
         } catch (error) {
           errors.push(`${url}: ${error.message}`)

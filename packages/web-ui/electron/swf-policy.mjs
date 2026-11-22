@@ -54,23 +54,25 @@ export function validBounds(x) {
     Math.round(x.width) * Math.round(x.height) <= 2097152
   )
 }
+export function validSwfRuntime(runtime) {
+  if (!runtime || typeof runtime !== 'object' || Array.isArray(runtime)) return false
+  let total = 0
+  const entries = Object.entries(runtime)
+  if (entries.length < 1 || entries.length > 8) return false
+  return entries.every(
+    ([name, bytes]) =>
+      /^[a-zA-Z0-9._-]+\.(js|wasm)$/.test(name) &&
+      bytes instanceof ArrayBuffer &&
+      bytes.byteLength > 0 &&
+      bytes.byteLength <= 32 * 1024 * 1024 &&
+      (total += bytes.byteLength) <= 64 * 1024 * 1024,
+  )
+}
 export function validCommand(x) {
   if (!validEnvelope(x)) return false
   if (x.type === 'load') {
     if (!validBytes(x.bytes?.container) || !validBytes(x.bytes?.movie)) return false
-    if (x.runtime === undefined) return true
-    if (!x.runtime || typeof x.runtime !== 'object' || Array.isArray(x.runtime)) return false
-    let total = 0
-    const entries = Object.entries(x.runtime)
-    if (entries.length < 1 || entries.length > 8) return false
-    return entries.every(
-      ([name, bytes]) =>
-        /^[a-zA-Z0-9._-]+\.(js|wasm)$/.test(name) &&
-        bytes instanceof ArrayBuffer &&
-        bytes.byteLength > 0 &&
-        bytes.byteLength <= 32 * 1024 * 1024 &&
-        (total += bytes.byteLength) <= 64 * 1024 * 1024,
-    )
+    return x.runtime === undefined || validSwfRuntime(x.runtime)
   }
   if (x.type === 'play') return STATES.includes(x.state)
   if (x.type === 'configure')

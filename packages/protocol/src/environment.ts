@@ -34,11 +34,12 @@ export interface ServerEnvironmentDescriptor {
   /** Identity of the captured gameplay materials and rules, independent of the publication binding. */
   gameplayRevision?: string
   rules?: EnvironmentRules
-  remoteResources?: { projectId: string; id: string; url: string; mime?: string }[]
+  remoteResources?: { projectId: string; id: string; url: string; mime?: string; sha256?: string; tags?: string[] }[]
   resources: {
     projectId: string
     id: string
     variant: string
+    tags?: string[]
     sha256: string
     bytes: number
     mime: string

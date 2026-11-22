@@ -112,9 +112,10 @@ export async function buildWebContent(
       })
     }
     writeJson(material + '/catalog.json', {
+      packages,
       rules: entries[0].rules,
       content,
-      resources: resources.filter(resource => resource.tags?.length),
+      resources,
       runtimeRevision: sandbox.revision,
       runtimeIdentity,
       gameplayRevision: entries[0].gameplayRevision,

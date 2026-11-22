@@ -90,6 +90,7 @@ export const PresentationResourceSchema = Type.Union([
       tags: Type.Optional(Type.Array(Type.String())),
       id: Type.String({ minLength: 1 }),
       source: Type.String({ pattern: '^https?://' }),
+      sha256: Type.Optional(Type.String({ pattern: '^[a-f0-9]{64}$' })),
       mime: Type.Optional(ResourceMimeSchema),
     },
     { additionalProperties: false },
@@ -100,6 +101,7 @@ export const ResourceDefinitionSchema = Type.Object(
   {
     id: Type.String({ pattern: '^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$' }),
     kind: Type.Union([Type.Literal('image'), Type.Literal('audio'), Type.Literal('swf')]),
+    sha256: Type.Optional(Type.String({ pattern: '^[a-f0-9]{64}$' })),
     source: Type.String({ minLength: 1 }),
     name: Type.Optional(Type.String()),
     tags: Type.Optional(Type.Array(Type.String())),

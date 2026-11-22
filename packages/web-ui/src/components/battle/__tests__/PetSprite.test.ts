@@ -22,9 +22,9 @@ vi.mock('@/services/swf/adapter', () => ({
     dispose: pending.dispose,
   })),
 }))
-vi.mock('@/services/resourceTransport', () => ({ readResourceBytes: vi.fn(async () => new Uint8Array([1, 2, 3])) }))
-vi.mock('@/services/petResourceCache', () => ({
-  petResourceCache: { getPetSwfUrl: vi.fn(async () => '/pet.swf'), getRemotePetUrl: vi.fn(() => '/remote.swf') },
+vi.mock('@/services/resourceTransport', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/services/resourceTransport')>()),
+  readResourceBytes: vi.fn(async () => new Uint8Array([1, 2, 3])),
 }))
 beforeEach(() => {
   setServerContentText(null)
@@ -40,7 +40,7 @@ afterEach(() => {
 })
 describe('isolated PetSprite readiness', () => {
   it('waits for bounded bytes and player readiness', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1 } })
+    const sprite = mount(PetSprite, { props: { swfUrl: '/pet.swf' } })
     await flushPromises()
     const ready = vi.fn()
     void sprite.vm.ready.then(ready)
@@ -54,7 +54,7 @@ describe('isolated PetSprite readiness', () => {
     expect(pending.dispose).toHaveBeenCalled()
   })
   it('defers recovered states until the battle task ends', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1, allowRecovery: false } })
+    const sprite = mount(PetSprite, { props: { swfUrl: '/pet.swf', allowRecovery: false } })
     await flushPromises()
     pending.resolve?.(['待机'])
     await flushPromises()
@@ -64,7 +64,7 @@ describe('isolated PetSprite readiness', () => {
     sprite.unmount()
   })
   it('ignores readiness from a disposed source', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1, swfUrl: '/first.swf' } })
+    const sprite = mount(PetSprite, { props: { swfUrl: '/first.swf' } })
     await flushPromises()
     const old = pending.resolve
     await sprite.setProps({ swfUrl: '/second.swf' })
@@ -80,7 +80,7 @@ describe('isolated PetSprite readiness', () => {
     sprite.unmount()
   })
   it('rejects a player failure', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1 } })
+    const sprite = mount(PetSprite, { props: { swfUrl: '/pet.swf' } })
     await flushPromises()
     const failed = expect(sprite.vm.ready).rejects.toThrow('broken SWF')
     pending.reject?.(new Error('broken SWF'))
@@ -88,7 +88,7 @@ describe('isolated PetSprite readiness', () => {
     sprite.unmount()
   })
   it('image mode requests no SWF player or bytes', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1, imageOnly: true } })
+    const sprite = mount(PetSprite, { props: { imageOnly: true } })
     await flushPromises()
     expect(createSwfPlayer).not.toHaveBeenCalled()
     expect(readResourceBytes).not.toHaveBeenCalled()
@@ -97,7 +97,7 @@ describe('isolated PetSprite readiness', () => {
     sprite.unmount()
   })
   it('clears recovered states after a live player failure', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1 } })
+    const sprite = mount(PetSprite, { props: { swfUrl: '/pet.swf' } })
     await flushPromises()
     pending.resolve?.(['待机'])
     await flushPromises()
@@ -112,8 +112,8 @@ describe('isolated PetSprite readiness', () => {
     sprite.unmount()
   })
 
-  it('uses server resource URL without desktop cache', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1, uncached: true } })
+  it('uses the declared movie URL', async () => {
+    const sprite = mount(PetSprite, { props: { swfUrl: '/remote.swf' } })
     await flushPromises()
     expect(readResourceBytes).toHaveBeenCalledWith(
       '/remote.swf',
@@ -125,7 +125,7 @@ describe('isolated PetSprite readiness', () => {
 
 it('never loads a same-number official movie or portrait for remote missing optional media', async () => {
   setServerContentText({ species: [], skills: [], marks: [] })
-  const sprite = mount(PetSprite, { props: { num: 1, uncached: true } })
+  const sprite = mount(PetSprite, { props: {} })
   await flushPromises()
   expect(createSwfPlayer).not.toHaveBeenCalled()
   expect(readResourceBytes).not.toHaveBeenCalled()

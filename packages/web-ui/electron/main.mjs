@@ -7,6 +7,7 @@ import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
+import { desktopMediaCache } from './media-cache.mjs'
 import { LocalBattleHost } from './local-battle-host.mjs'
 import { LocalServerController } from './local-server-controller.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
@@ -81,8 +82,6 @@ const localServerController = new LocalServerController({
   }),
   startProject: id => getContentProjects().start(id),
 })
-
-const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
 
 let personalProfile
 let personalProfileBusy = true
@@ -192,7 +191,6 @@ const managementHttpToken = randomUUID()
 let mainWindow = null
 let localServer = null
 let localServerPort = null
-let petsDir = null
 let contentProjects
 let contentLibrary
 let managementWorkspaceOwner
@@ -718,13 +716,6 @@ function detectContentType(filePath) {
   }
 }
 
-function hasTraversalSegment(value) {
-  const normalized = String(value ?? '')
-    .replace(/\\/g, '/')
-    .split('/')
-  return normalized.some(segment => segment === '..')
-}
-
 async function pathExists(target) {
   try {
     await fs.access(target)
@@ -759,59 +750,6 @@ async function sendFile(res, filePath) {
   })
 }
 
-async function ensureAppDataDirs() {
-  const userDataDir = app.getPath('userData')
-  petsDir = path.join(userDataDir, 'pets')
-
-  await fs.mkdir(petsDir, { recursive: true })
-}
-
-async function downloadFileToCache(url, filePath) {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`下载失败，HTTP状态码: ${response.status}`)
-  }
-
-  const bytes = Buffer.from(await response.arrayBuffer())
-  await fs.mkdir(path.dirname(filePath), { recursive: true })
-  await fs.writeFile(filePath, bytes)
-}
-
-async function downloadPetSwf(petNum, remoteUrl) {
-  if (!petsDir) throw new Error('pets directory unavailable')
-
-  const number = Number(petNum)
-  if (!Number.isSafeInteger(number) || number <= 0) {
-    throw new Error('petNum 非法')
-  }
-
-  const filePath = path.join(petsDir, `${number}.swf`)
-  if (await pathExists(filePath)) {
-    return filePath
-  }
-
-  if (remoteUrl !== `${PET_REMOTE_BASE}/${number}.swf`) throw new Error('Unsupported legacy pet resource URL')
-  await downloadFileToCache(remoteUrl, filePath)
-  return filePath
-}
-
-async function listCachedPets() {
-  if (!petsDir) return []
-
-  const entries = await fs.readdir(petsDir, { withFileTypes: true })
-  return entries
-    .filter(entry => entry.isFile() && entry.name.endsWith('.swf'))
-    .map(entry => Number.parseInt(entry.name.replace(/\.swf$/i, ''), 10))
-    .filter(value => Number.isFinite(value))
-}
-
-async function clearPetCache() {
-  if (!petsDir) return
-
-  await fs.rm(petsDir, { recursive: true, force: true })
-  await fs.mkdir(petsDir, { recursive: true })
-}
-
 function isPortAvailable(port) {
   return new Promise(resolve => {
     const server = net.createServer()
@@ -836,22 +774,6 @@ async function findAvailablePort(start = 8103, end = 8200) {
     }
   }
   return null
-}
-
-function resolvePetFilePath(fileName) {
-  if (!petsDir) return null
-  const rawName = String(fileName ?? '')
-  if (!rawName || rawName.includes('/') || rawName.includes('\\') || hasTraversalSegment(rawName)) {
-    return null
-  }
-
-  const candidate = path.join(petsDir, rawName)
-  const relative = path.relative(petsDir, candidate)
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    return null
-  }
-
-  return candidate
 }
 
 async function handleLocalServerRequest(req, res) {
@@ -894,38 +816,6 @@ async function handleLocalServerRequest(req, res) {
     const asset = localContentSessions?.assetFile(localAsset[1], localAsset[2])
     if (!asset) return sendJson(res, 404, { error: 'local content session expired' })
     await sendFile(res, asset.file)
-    return
-  }
-
-  if (pathname.startsWith('/cache/pets/')) {
-    const fileName = pathname.slice('/cache/pets/'.length)
-    const filePath = resolvePetFilePath(fileName)
-    if (!filePath) {
-      sendJson(res, 404, { error: 'not found' })
-      return
-    }
-
-    if (!(await pathExists(filePath))) {
-      const matched = fileName.match(/^(\d+)\.swf$/i)
-      if (matched) {
-        const petNum = Number(matched[1])
-        const remoteUrl = `${PET_REMOTE_BASE}/${petNum}.swf`
-
-        try {
-          await downloadFileToCache(remoteUrl, filePath)
-        } catch {
-          sendJson(res, 404, { error: 'not found' })
-          return
-        }
-      }
-    }
-
-    if (!(await pathExists(filePath))) {
-      sendJson(res, 404, { error: 'not found' })
-      return
-    }
-
-    await sendFile(res, filePath)
     return
   }
 
@@ -1425,15 +1315,17 @@ function setupIpcHandlers() {
 
   handle('desktop:get-local-server-port', () => localServerPort)
 
-  handle('desktop:download-pet-swf', async (_event, payload) => {
-    const petNum = payload?.petNum
-    const remoteUrl = payload?.remoteUrl || `${PET_REMOTE_BASE}/${petNum}.swf`
-    const filePath = await downloadPetSwf(petNum, remoteUrl)
-    return filePath
-  })
-
-  handle('desktop:list-cached-pets', async () => listCachedPets())
-  handle('desktop:clear-pet-cache', async () => clearPetCache())
+  const media = desktopMediaCache(app.getPath('userData'), (digest, limit) =>
+    getContentLibrary().installedMedia(digest, limit),
+  )
+  for (const operation of ['read', 'write', 'clear']) {
+    handle('desktop:media-' + operation, (_event, ...args) => media[operation](...args))
+    ipcMain.handle('remote-play:media-' + operation, (event, scope, ...args) => {
+      const { backendOrigin } = remotePlay.getBootConfig(event)
+      if (typeof scope !== 'string' || scope.length > 4096) throw new Error('环境缓存标识无效')
+      return media[operation](JSON.stringify(['remote', backendOrigin, scope]), ...args)
+    })
+  }
 
   handle('desktop:get-app-version', () => app.getVersion())
   handle('desktop:check-for-updates', async () => checkForUpdates())
@@ -1568,7 +1460,6 @@ app
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = true
 
-    await ensureAppDataDirs()
     await getContentLibrary().resume()
     const workspace = await getManagementWorkspaceOwner().ready()
     updateOfficialContent = createOfficialContentUpdater(getContentLibrary(), () =>

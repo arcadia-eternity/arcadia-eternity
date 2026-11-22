@@ -1,39 +1,28 @@
 <script setup lang="ts">
-import { isRemoteContentActive } from '@/i18n/serverContent'
 import unknownPet from '@/assets/images/unknown-pet.svg'
-import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { ActionState, type PetRendererEvent } from 'seer2-pet-animator'
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-import { asyncComputed } from '@vueuse/core'
 import { useUncachedResource } from '@/composition/useUncachedResource'
-import { petResourceCache } from '@/services/petResourceCache'
+import { readSwfContainer } from '@/services/swf/assets'
 import { createSwfPlayer } from '@/services/swf/adapter'
 import type { SwfPlayer } from '@/services/swf/protocol'
-import { readResourceBytes } from '@/services/resourceTransport'
-const containerUrl = new URL(
-  '../../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf',
-  import.meta.url,
-).href
+import { mediaEnvironment, readMediaBytes } from '@/services/environmentMedia'
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
 type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
 const props = withDefaults(
   defineProps<{
-    num: number
     swfUrl?: string
     imageUrl?: string
     fallbackImageUrl?: string
-    uncached?: boolean
     reverse?: boolean
     imageOnly?: boolean
     allowRecovery?: boolean
   }>(),
   {
-    num: 999,
     swfUrl: '',
     imageUrl: '',
     fallbackImageUrl: '',
-    uncached: false,
     reverse: false,
     imageOnly: false,
     allowRecovery: true,
@@ -48,30 +37,12 @@ const inited = ref(false)
 const imageFailed = ref(false)
 const availableState = ref<ActionState[]>([])
 const ready = ref<Promise<void>>(Promise.resolve())
-const originalSwfUrl = asyncComputed(
-  async () =>
-    props.imageOnly || props.imageUrl
-      ? ''
-      : props.swfUrl ||
-        (!isRemoteContentActive() && props.num
-          ? props.uncached
-            ? petResourceCache.getRemotePetUrl(props.num)
-            : petResourceCache.getPetSwfUrl(props.num)
-          : ''),
-  '',
-)
-const usesRemotePlaceholder = computed(() => isRemoteContentActive() && !props.swfUrl && !props.imageUrl)
-const portrait = computed(
-  () =>
-    props.imageUrl ||
-    props.fallbackImageUrl ||
-    (isRemoteContentActive()
-      ? unknownPet
-      : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`)),
-)
+const originalSwfUrl = computed(() => (props.imageOnly || props.imageUrl ? '' : props.swfUrl))
+const usesPlaceholder = computed(() => !props.swfUrl && !props.imageUrl)
+const portrait = computed(() => props.imageUrl || props.fallbackImageUrl || unknownPet)
 const { url: portraitUrl, error: portraitLoadError } = useUncachedResource(
   () => portrait.value,
-  () => props.uncached,
+  () => true,
 )
 const fallbackActive = ref(false)
 const portraitLoaded = ref(false)
@@ -80,7 +51,7 @@ let resolveReady: (() => void) | undefined
 let rejectReady: ((error: Error) => void) | undefined
 
 watch(
-  () => [props.num, props.swfUrl, props.imageUrl, props.imageOnly, props.fallbackImageUrl, isRemoteContentActive()],
+  () => [props.swfUrl, props.imageUrl, props.imageOnly, props.fallbackImageUrl, mediaEnvironment().scope],
   () => {
     generation++
     rejectReady?.(new Error('精灵资源已切换'))
@@ -101,7 +72,7 @@ watch(
 )
 
 watch(
-  () => [originalSwfUrl.value, petRenderRef.value, props.imageUrl, props.imageOnly] as const,
+  () => [originalSwfUrl.value, petRenderRef.value, props.imageUrl, props.imageOnly, mediaEnvironment().scope] as const,
   async ([url, element]) => {
     loadAbort?.abort()
     player?.dispose()
@@ -113,12 +84,10 @@ watch(
     const controller = new AbortController()
     loadAbort = controller
     try {
-      const [movie, containerResponse] = await Promise.all([
-        readResourceBytes(url, { signal: controller.signal, maxBytes: 16 * 1024 * 1024 }),
-        fetch(containerUrl, { signal: controller.signal, credentials: 'omit', cache: 'no-store', redirect: 'error' }),
+      const [movie, container] = await Promise.all([
+        readMediaBytes(url, { signal: controller.signal, maxBytes: 16 * 1024 * 1024 }),
+        readSwfContainer(controller.signal),
       ])
-      if (!containerResponse.ok) throw new Error('动画容器加载失败')
-      const container = await containerResponse.arrayBuffer()
       if (current !== generation || controller.signal.aborted) return
       const renderer = createSwfPlayer(element, event => {
         if (current !== generation) return
@@ -188,11 +157,11 @@ onUnmounted(() => {
 })
 const handleImageLoad = () => {
   portraitLoaded.value = true
-  if (props.imageOnly || props.imageUrl || fallbackActive.value || usesRemotePlaceholder.value) resolveReady?.()
+  if (props.imageOnly || props.imageUrl || fallbackActive.value || usesPlaceholder.value) resolveReady?.()
 }
 const handleImageError = () => {
   imageFailed.value = true
-  if (props.imageOnly || props.imageUrl || fallbackActive.value || usesRemotePlaceholder.value)
+  if (props.imageOnly || props.imageUrl || fallbackActive.value || usesPlaceholder.value)
     rejectReady?.(new Error('精灵图片加载失败'))
 }
 watch(portraitLoadError, error => {

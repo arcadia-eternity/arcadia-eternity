@@ -150,11 +150,6 @@ export const useResourceStore = defineStore('Resource', {
         return null
       }
     },
-    getPetSoundByNum: state => (num: number | string) => {
-      const key = String(num)
-      if (state.petSound.byId[key]) return state.petSound.byId[key]
-      return null
-    },
   },
 
   actions: {
@@ -285,13 +280,11 @@ export const useResourceStore = defineStore('Resource', {
           await this.initialize()
           return
         } catch (error) {
-          if (
-            !(
-              error instanceof DOMException &&
-              error.name === 'AbortError' &&
-              resourceScope(this).generation !== generation
-            )
-          )
+          if (!(
+            error instanceof DOMException &&
+            error.name === 'AbortError' &&
+            resourceScope(this).generation !== generation
+          ))
             throw error
         }
       }

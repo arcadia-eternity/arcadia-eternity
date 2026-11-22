@@ -23,6 +23,8 @@ import {
 } from '@arcadia-eternity/content-sdk/environment-rules'
 import { PlayerSchema, SpeciesSchema, parseWithErrors, type PetSchemaType } from '@arcadia-eternity/schema'
 import { validatePeerMaterials } from './peerEnvironment'
+import { sha256Hex } from '@arcadia-eternity/const'
+import { registerMediaEnvironment, type MediaResource } from './environmentMedia'
 import { readResourceBytes, registerOwnedResource, RESOURCE_MAX_BYTES } from './resourceTransport'
 import {
   validateEnvironmentContent,
@@ -57,6 +59,7 @@ export interface PersonalEnvironmentBundle {
   environment: SandboxEnvironment
   content: ServerEnvironmentContent
   assets?: PersonalEnvironmentAsset[]
+  media?: MediaResource[]
 }
 export interface PersonalEnvironmentCapture {
   rules?: PersonalRules
@@ -65,6 +68,7 @@ export interface PersonalEnvironmentCapture {
   runtime: NativeRuntimeIdentity
   packages: ServerEnvironmentDescriptor['packages']
   assets?: PersonalEnvironmentAsset[]
+  media?: MediaResource[]
 }
 export interface PreparedPersonalEnvironment {
   /** Original portable payload for explicit export; resolved Blob URLs appear only in content. */
@@ -241,8 +245,9 @@ function portableSnapshotRevision(
   content: ServerEnvironmentContent,
   environment: SandboxEnvironment,
   assets: PersonalEnvironmentAsset[] | undefined,
+  media?: MediaResource[],
 ) {
-  return digestJson({ content, data: environment.data, assets: normalizedAssets(assets) })
+  return digestJson({ content, data: environment.data, assets: normalizedAssets(assets), ...(media && { media }) })
 }
 function mapMedia(content: ServerEnvironmentContent, resolve: (value: unknown) => string): ServerEnvironmentContent {
   const result = structuredClone(content)
@@ -276,7 +281,7 @@ function portableMedia(value: unknown, assets: ReadonlyMap<string, unknown>): st
 async function validateBundle(value: unknown) {
   if (
     !record(value) ||
-    !exact(value, ['format', 'version', 'descriptor', 'rules', 'environment', 'content', 'assets']) ||
+    !exact(value, ['format', 'version', 'descriptor', 'rules', 'environment', 'content', 'assets', 'media']) ||
     value.format !== 'arcadia.personal-environment' ||
     value.version !== 1
   )
@@ -332,9 +337,30 @@ async function validateBundle(value: unknown) {
   )
     invalid()
   const assets = checkedAssets(value.assets)
+  if (value.media !== undefined) {
+    if (!Array.isArray(value.media) || value.media.length > 4096) invalid()
+    for (const row of value.media) {
+      if (
+        !record(row) ||
+        !exact(row, ['id', 'source', 'tags', 'sha256']) ||
+        typeof row.id !== 'string' ||
+        !row.id ||
+        row.id.length > 256 ||
+        (row.sha256 !== undefined && (typeof row.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(row.sha256))) ||
+        (row.tags !== undefined && (!Array.isArray(row.tags) || !row.tags.every(tag => typeof tag === 'string')))
+      )
+        invalid()
+      portableMedia(row.source, assets)
+    }
+  }
   if (
     descriptor.resourceRevision !==
-    (await portableSnapshotRevision(value.content, environment, value.assets as PersonalEnvironmentAsset[] | undefined))
+    (await portableSnapshotRevision(
+      value.content,
+      environment,
+      value.assets as PersonalEnvironmentAsset[] | undefined,
+      value.media as MediaResource[] | undefined,
+    ))
   )
     invalid()
   mapMedia(value.content, reference => portableMedia(reference, assets))
@@ -354,6 +380,7 @@ export async function createPersonalEnvironmentBundle(
     content: capture.content,
     runtime: capture.runtime,
     packages: capture.packages,
+    ...(capture.media && { media: capture.media }),
     ...(capture.assets !== undefined ? { assets: capture.assets } : {}),
   }) as PersonalEnvironmentCapture
   const rules = validateEnvironmentRules(inputRules ?? fixed.rules)
@@ -367,7 +394,7 @@ export async function createPersonalEnvironmentBundle(
     peerRevision: fixed.environment.revision,
     runtime: fixed.runtime,
     packages: fixed.packages,
-    resourceRevision: await portableSnapshotRevision(fixed.content, fixed.environment, portableAssets),
+    resourceRevision: await portableSnapshotRevision(fixed.content, fixed.environment, portableAssets, fixed.media),
     resources: [],
   }
   descriptor.id = await digestJson(descriptorIdentity(descriptor, rules))
@@ -378,6 +405,7 @@ export async function createPersonalEnvironmentBundle(
     rules,
     environment: fixed.environment,
     content: fixed.content,
+    ...(fixed.media && { media: fixed.media }),
     ...(fixed.assets ? { assets: portableAssets } : {}),
   }
   await validateBundle(bundle)
@@ -408,16 +436,18 @@ export async function parsePersonalEnvironmentBundle(
   })
   signal?.throwIfAborted()
   const resources = new Map<string, ReturnType<typeof registerOwnedResource>>()
+  let releaseSources: (() => void) | undefined
   let released = false
   const release = () => {
     if (released) return
     released = true
     signal?.removeEventListener('abort', release)
+    releaseSources?.()
     for (const resource of resources.values()) resource.release()
     resources.clear()
   }
   try {
-    const content = mapMedia(bundle.content, value => {
+    const resolveMedia = (value: unknown) => {
       const portable = portableMedia(value, assets)
       if (!portable.startsWith('arcadia-resource:')) return portable
       const id = portable.slice('arcadia-resource:'.length)
@@ -426,7 +456,12 @@ export async function parsePersonalEnvironmentBundle(
         resources.set(id, registerOwnedResource(new Blob([new Uint8Array(asset.bytes)], { type: asset.mime })))
       }
       return resources.get(id)!.url
-    })
+    }
+    const content = mapMedia(bundle.content, resolveMedia)
+    const media = (bundle.media ?? []).map(row => ({ ...row, source: resolveMedia(row.source) }))
+    for (const [id, resource] of resources)
+      media.push({ id, source: resource.url, kind: 'file', sha256: sha256Hex(assets.get(id)!.bytes) })
+    releaseSources = registerMediaEnvironment(content, 'personal/' + bundle.descriptor.resourceRevision, media, true)
     signal?.addEventListener('abort', release, { once: true })
     signal?.throwIfAborted()
     return {

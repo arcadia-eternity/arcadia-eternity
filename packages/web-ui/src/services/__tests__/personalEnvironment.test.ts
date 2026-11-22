@@ -673,3 +673,23 @@ it('preserves selected local environment rules when creating a personal share', 
   const bundle = await createPersonalEnvironmentBundle({ ...original, rules })
   expect(bundle.rules).toEqual(rules)
 })
+
+it('imports a scene file referenced only by its tag and verifies its declared digest', async () => {
+  const { mediaEnvironment, battleScene, readMediaBytes } = await import('../environmentMedia')
+  const { sha256Hex } = await import('@arcadia-eternity/const')
+  const bytes = new Uint8Array(Buffer.from(png, 'base64'))
+  const captureWithScene = {
+    ...(await capture()),
+    assets: [{ id: 'scene', mime: 'image/png', data: png }],
+    media: [{ id: 'grass', tags: ['background'], source: 'arcadia-resource:scene', sha256: sha256Hex(bytes) }],
+  }
+  const bundle = await createPersonalEnvironmentBundle(captureWithScene)
+  const prepared = await parsePersonalEnvironmentBundle(bundle)
+  const environment = mediaEnvironment(prepared.content)
+  const source = battleScene(environment, 'background', 'grass')!
+  expect(await readMediaBytes(source, { environment })).toEqual(bytes)
+  prepared.release()
+  await expect(readMediaBytes(source, { environment })).rejects.toThrow()
+  const tampered = { ...bundle, media: bundle.media!.map(r => ({ ...r, tags: ['music'] })) }
+  await expect(parsePersonalEnvironmentBundle(tampered)).rejects.toThrow()
+})

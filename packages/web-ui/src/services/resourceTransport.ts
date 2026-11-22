@@ -1,8 +1,16 @@
 /** Per-consumer transport. Limits apply to actual streamed bytes, never just HTTP headers. */
 export const RESOURCE_MAX_BYTES = 64 * 1024 * 1024
+export class ResourceSizeError extends Error {
+  constructor() {
+    super('资源超过大小限制')
+  }
+}
 export const METADATA_MAX_BYTES = 16 * 1024 * 1024
 
-const ownedResources = new Map<string, { blob: Blob; controller: AbortController }>()
+type OwnedResource = { blob: Blob; controller: AbortController }
+const ownedResources = new Map<string, OwnedResource>()
+
+export const hasOwnedResource = (url: string) => ownedResources.has(url)
 
 /** Only explicitly imported local bytes can enter this registry; it is not a network or package cache. */
 export function registerOwnedResource(blob: Blob): { url: string; release(): void } {
@@ -59,6 +67,21 @@ export async function readResourceBytes(
     !candidate.hash &&
     /^\/environment\/(catalog|runtime)\.json$/.test(candidate.pathname)
   const url = owned || bundled ? candidate : publicHttpUrl(value)
+  return readBytes(url, options, request, owned)
+}
+
+// This installed application asset is also available through Electron's local application protocol.
+export function readBundledSwfContainer(signal: AbortSignal) {
+  const url = new URL('../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf', import.meta.url)
+  return readBytes(url, { signal, maxBytes: 16 * 1024 * 1024 }, fetch)
+}
+
+async function readBytes(
+  url: URL,
+  options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number },
+  request: typeof fetch,
+  owned?: OwnedResource,
+) {
   const limit = options.maxBytes ?? RESOURCE_MAX_BYTES
   const timeout = options.timeoutMs ?? 20_000
   if (
@@ -107,7 +130,7 @@ export async function readResourceBytes(
       const { done, value: chunk } = await Promise.race([reader.read(), aborted])
       if (done) break
       size += chunk.byteLength
-      if (size > limit) throw new Error('资源超过大小限制')
+      if (size > limit) throw new ResourceSizeError()
       chunks.push(chunk)
     }
     const bytes = new Uint8Array(size)

@@ -1,5 +1,8 @@
+import { createTeamMediaPreloader } from '@/services/environmentMedia'
+import { useGameSettingStore } from './gameSetting'
+import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
-import { ref, shallowRef, computed, watch } from 'vue'
+import { ref, shallowRef, computed, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from './battleClient'
 import { useAuthStore } from './auth'
@@ -118,9 +121,16 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         currentRoom.value.personalEnvironment?.descriptor.id === personalEnvironment.value.reference.descriptor.id),
   )
   let catalogController: AbortController | undefined
+  const queueMedia = createTeamMediaPreloader('匹配队列')
+  const roomMedia = createTeamMediaPreloader('房间队伍')
+  const roomCatalog = shallowRef<{ id: string; content: ServerEnvironmentContent }>()
+  const settings = useGameSettingStore()
   let matchmakingController: AbortController | undefined
   const roomCreationControllers = new Set<AbortController>()
   const cancelEnvironmentRequests = () => {
+    queueMedia.stop()
+    roomMedia.stop()
+    roomCatalog.value = undefined
     clearEditorCatalog()
     preparedEnvironment?.controller.abort()
     catalogController?.abort()
@@ -161,6 +171,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     const room = currentRoom.value
     if (!room?.environment) return undefined
     return JSON.stringify([roomSeatKey.value, room.environment.id, room.environment.gameplayRevision])
+  })
+  watchEffect(() => {
+    const room = currentRoom.value
+    const catalog = roomCatalog.value
+    if (!catalog || room?.environment?.id !== catalog.id) return roomMedia.stop()
+    const team = [...selectedTeam.value, ...room.players.flatMap(player => player.team ?? [])]
+    roomMedia.update(catalog.content, team, settings)
+    queueMedia.stop()
   })
   const roomTeamDraft = ref<{ key: string; roomId: string; version: string; name: string; pets: PetSchemaType[] }>()
   let roomEditorRequest = 0
@@ -282,6 +300,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   }
 
   const cancelMatchmakingPreparation = () => {
+    queueMedia.stop()
     ++matchmakingEnvironmentGeneration
     matchmakingController?.abort()
   }
@@ -306,11 +325,17 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       assertServerScope(scope)
       if (generation !== matchmakingGeneration) throw new Error('匹配已取消')
       if (isSwitchingServer.value) throw new Error('正在切换服务器')
-      await battleClientStore.joinMatchmaking({
-        playerSchema: { id: battleClientStore.playerId, name: playerStore.player?.name ?? 'Player', team },
-        environmentId: prepared.descriptor.id,
-        environment: prepared.acceptance,
-      })
+      queueMedia.update(prepared.content, team, settings)
+      try {
+        await battleClientStore.joinMatchmaking({
+          playerSchema: { id: battleClientStore.playerId, name: playerStore.player?.name ?? 'Player', team },
+          environmentId: prepared.descriptor.id,
+          environment: prepared.acceptance,
+        })
+      } catch (cause) {
+        if (generation === matchmakingGeneration) queueMedia.stop()
+        throw cause
+      }
       assertServerScope(scope)
     })
 
@@ -332,6 +357,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         throw new Error('请先导入房主分享的环境，确认后再准备')
       preparedPeerEnvironment = personal.environment
       gameDataStore.applyServerEnvironment(personal.content, { rules: personal.reference.rules })
+      roomCatalog.value = { id: descriptor.id, content: personal.content }
       return { ...personal.acceptance, challengeGeneration: room.challengeGeneration }
     }
     const environmentKey = () => {
@@ -366,6 +392,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (!isCurrent()) throw new DOMException('Room recovery cancelled', 'AbortError')
     preparedPeerEnvironment = 'environment' in prepared ? prepared.environment : undefined
     gameDataStore.applyServerEnvironment(prepared.content, { rules: descriptor.rules })
+    roomCatalog.value = { id: descriptor.id, content: prepared.content }
     return prepared.acceptance
   }
 
@@ -396,6 +423,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (!isCurrent() || editorCatalog !== entry || roomEditorKey.value !== key)
       throw new DOMException('Room preview closed', 'AbortError')
     gameDataStore.applyServerEnvironment(catalog.content, { rules: room.environment.rules })
+    roomCatalog.value = { id: room.environment.id, content: catalog.content }
   }
 
   const createRoom = (
@@ -1895,6 +1923,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     createRoom,
     setPersonalEnvironment,
     refreshEnvironments,
+    stopQueueMedia: queueMedia.stop,
     joinMatchmaking,
     cancelMatchmaking,
     cancelMatchmakingPreparation,

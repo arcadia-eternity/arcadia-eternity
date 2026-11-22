@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import { readSwfContainer } from '@/services/swf/assets'
 import { createSwfPlayer } from '@/services/swf/adapter'
 import type { SwfPlayer } from '@/services/swf/protocol'
-import { readResourceBytes } from '@/services/resourceTransport'
 const props = defineProps<{ file: string; bytes: Uint8Array }>()
 const host = ref<HTMLElement>(),
   url = ref(''),
@@ -11,10 +11,7 @@ const host = ref<HTMLElement>(),
 let player: SwfPlayer | undefined,
   generation = 0,
   controller: AbortController | undefined
-const containerUrl = new URL(
-  '../../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf',
-  import.meta.url,
-).href
+
 function clear() {
   generation++
   controller?.abort()
@@ -34,16 +31,13 @@ watch(
     if (extension === 'swf' && host.value) {
       try {
         controller = new AbortController()
-        const container = await readResourceBytes(containerUrl, {
-          signal: controller.signal,
-          maxBytes: 16 * 1024 * 1024,
-        })
+        const container = await readSwfContainer(controller.signal)
         if (epoch !== generation) return
         player = createSwfPlayer(host.value, event => {
           if (event.type === 'error') error.value = event.message
         })
         states.value = await player.load({
-          container: container.slice().buffer as ArrayBuffer,
+          container,
           movie: new Uint8Array(props.bytes).buffer,
         })
         await player.setState('待机')

@@ -174,6 +174,7 @@ export class ServerEnvironmentRegistry {
       ...prepared.presentation.flatMap(pkg =>
         pkg.resources.map(asset => ({
           id: asset.id,
+          ...(asset.tags?.length && { tags: asset.tags }),
           variant: 'default',
           projectId: pkg.projectId,
           sha256: asset.sha256,
@@ -200,6 +201,8 @@ export class ServerEnvironmentRegistry {
             projectId: pkg.projectId,
             id: asset.id,
             url: asset.source,
+            ...(asset.sha256 && { sha256: asset.sha256 }),
+            ...(asset.tags?.length && { tags: asset.tags }),
             ...(asset.mime ? { mime: asset.mime } : {}),
           })),
       ),

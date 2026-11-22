@@ -18,6 +18,7 @@ import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadi
 import type { EnvironmentRules, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
+import { localMediaScope, setPackMedia } from '@/services/environmentMedia'
 import { acquireLocalContent } from '@/services/localContent'
 import { getDesktopApi } from '@/utils/env'
 import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
@@ -352,7 +353,7 @@ export const useGameDataStore = defineStore('gameData', {
               builtins?.find(doc => doc.id === defaultEnvironment)?.name ?? defaultEnvironment
             this.defaultGameplayRevision = gameplayRevision
             this.effectMarkRelations = effectMarkRelations ?? {}
-            if (content.locales) setServerContentText(content, false)
+            setServerContentText(content, false)
             this.loaded = this.gameDataLoaded = true
             this.error = null
             return
@@ -453,6 +454,13 @@ export const useGameDataStore = defineStore('gameData', {
       this.refreshNativeEffectReferences()
 
       this.validateDataIntegrity()
+
+      const media = result.presentation?.flatMap(manifest => manifest.resources) ?? []
+      setPackMedia(localMediaScope([packRef, result.pack?.version], undefined, media), media, {
+        species: Object.values(this.species.byId),
+        skills: Object.values(this.skills.byId),
+        marks: Object.values(this.marks.byId),
+      })
 
       console.log('Pack loaded', {
         packId: result.pack?.id,

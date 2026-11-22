@@ -1,5 +1,5 @@
 import { mount, flushPromises } from '@vue/test-utils'
-import { computed, defineComponent, h } from 'vue'
+import { defineComponent, h } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { setServerContentText } from '@/i18n/serverContent'
@@ -27,7 +27,10 @@ vi.mock('@/stores/gameData', () => ({
 vi.mock('@/stores/resource', () => ({
   useResourceStore: () => ({ getSkillSound: mocks.lookupSkill, getPetSoundByNum: mocks.lookupPet }),
 }))
-vi.mock('@/services/resourceTransport', () => ({ readResourceBytes: mocks.bytes }))
+vi.mock('@/services/resourceTransport', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/services/resourceTransport')>()),
+  readResourceBytes: mocks.bytes,
+}))
 vi.mock('howler', () => ({
   Howl: class {
     constructor(options: unknown) {
@@ -62,10 +65,7 @@ function consumer() {
   const wrapper = mount(
     defineComponent({
       setup() {
-        sound = useSound(
-          computed(() => ['skill_qili' as baseSkillId]),
-          computed(() => [1]),
-        )
+        sound = useSound()
         return () => h('div')
       },
     }),
@@ -83,7 +83,7 @@ it.each([
   mocks.getSpecies.mockReturnValue({ id: 'pet_xiuluosi', presentation: { cry: source } })
   mocks.bytes.mockRejectedValue(new Error('Stop after recording the requested URL'))
   const { wrapper, sound } = consumer()
-  sound.playPetSound(6, 'pet_xiuluosi')
+  sound.playPetSound('pet_xiuluosi')
   await flushPromises()
   wrapper.unmount()
   expect(mocks.bytes).toHaveBeenCalledWith(new URL(expected, document.baseURI).href, expect.any(Object))
@@ -93,7 +93,7 @@ it('keeps missing remote skill/cry/victory media silent without consulting same-
   setServerContentText({ species: [], skills: [], marks: [] })
   const { wrapper, sound } = consumer()
   sound.playSkillSound('skill_qili' as baseSkillId)
-  sound.playPetSound(1, 'pet_dilan')
+  sound.playPetSound('pet_dilan')
   sound.playVictorySound()
   await flushPromises()
   expect(mocks.bytes).not.toHaveBeenCalled()
@@ -103,17 +103,17 @@ it('keeps missing remote skill/cry/victory media silent without consulting same-
   wrapper.unmount()
 })
 
-it('uses declared local skill audio, retains numeric cry fallback and consumes remote audio references', async () => {
+it('uses declared local skill audio, ignores missing cry declarations and consumes remote audio references', async () => {
   setServerContentText({ species: [], skills: [], marks: [] }, false)
   mocks.serverFallback = false
   mocks.getSkill.mockReturnValue({ id: 'skill_qili', presentation: { sfx: 'https://local.test/declared.mp3' } })
   const local = consumer()
   local.sound.playSkillSound('skill_qili' as baseSkillId)
-  local.sound.playPetSound(1, 'pet_dilan')
+  local.sound.playPetSound('pet_dilan')
   expect(mocks.lookupSkill).not.toHaveBeenCalled()
-  expect(mocks.howler).toHaveBeenCalledWith(expect.objectContaining({ src: ['https://local.test/declared.mp3'] }))
-  expect(mocks.lookupPet).toHaveBeenCalledWith(1)
-  expect(mocks.howler).toHaveBeenCalled()
+  await flushPromises()
+  expect(mocks.bytes).toHaveBeenCalledWith('https://local.test/declared.mp3', expect.any(Object))
+  expect(mocks.lookupPet).not.toHaveBeenCalled()
   local.wrapper.unmount()
   vi.clearAllMocks()
   mocks.serverFallback = true

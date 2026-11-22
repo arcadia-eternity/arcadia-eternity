@@ -134,13 +134,18 @@ export async function buildPresentation(
         typeof kind !== 'string' ||
         !['image', 'audio', 'swf'].includes(kind) ||
         typeof location !== 'string' ||
-        Object.keys(record).some(key => !['id', 'source', 'kind', 'name', 'tags'].includes(key)) ||
+        Object.keys(record).some(key => !['id', 'source', 'kind', 'name', 'tags', 'sha256'].includes(key)) ||
         (record.name !== undefined && typeof record.name !== 'string') ||
         (record.tags !== undefined &&
           (!Array.isArray(record.tags) || record.tags.some((tag: unknown) => typeof tag !== 'string')))
       )
         throw new Error(`${relative(root, source.file)}: Invalid resource definition ${id}`)
       const url = remote(location) ? new URL(location) : undefined
+      if (
+        record.sha256 !== undefined &&
+        (!url || typeof record.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.sha256))
+      )
+        throw new Error(`Invalid HTTP resource SHA-256: ${id}`)
       if (url && (url.username || url.password)) throw new Error(`Resource URL must not contain credentials: ${id}`)
       const mime = mimeTypes[extname(url ? url.pathname : location).toLowerCase()]
       if (
@@ -153,7 +158,14 @@ export async function buildPresentation(
       )
         throw new Error(`Resource type does not match source: ${id}`)
       if (url) {
-        resources.push({ kind: 'http', id, source: location, mime, ...(record.tags ? { tags: record.tags } : {}) })
+        resources.push({
+          kind: 'http',
+          id,
+          source: location,
+          mime,
+          ...(typeof record.sha256 === 'string' && { sha256: record.sha256 }),
+          ...(record.tags ? { tags: record.tags } : {}),
+        })
         continue
       }
       if (!validAssetPath(location)) throw new Error(`Invalid resource path: ${id}`)

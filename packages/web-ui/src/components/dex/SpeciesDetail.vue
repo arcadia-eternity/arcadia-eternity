@@ -31,7 +31,6 @@
             <div class="flex-shrink-0">
               <ResourceImage
                 :src="resolveSpeciesPortraitUrl(species)"
-                :uncached="!!gameDataStore.serverFallback"
                 class="w-32 h-32 object-contain"
                 :alt="getSpeciesName()"
               />

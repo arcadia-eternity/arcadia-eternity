@@ -18,7 +18,6 @@ export function resolveSpeciesSpriteAsset(
   species: SpeciesSchemaType | undefined,
   _getPetSwf?: (id: string) => string | null,
 ): {
-  swfNum: number
   customSwfUrl?: string
   customImageUrl?: string
   fallbackImageUrl?: string
@@ -27,12 +26,16 @@ export function resolveSpeciesSpriteAsset(
   if (battle && typeof battle.source === 'string')
     return battle.renderer === 'seer2-swf'
       ? {
-          swfNum: 0,
           customSwfUrl: officialAssetUrl(battle.source),
-          fallbackImageUrl: typeof battle.fallback === 'string' ? officialAssetUrl(battle.fallback) : undefined,
+          fallbackImageUrl:
+            typeof battle.fallback === 'string'
+              ? officialAssetUrl(battle.fallback)
+              : typeof species?.presentation?.portrait === 'string'
+                ? officialAssetUrl(species.presentation.portrait)
+                : undefined,
         }
-      : { swfNum: 0, customImageUrl: officialAssetUrl(battle.source) }
-  return { swfNum: 0, customImageUrl: resolveSpeciesPortraitUrl(species) }
+      : { customImageUrl: officialAssetUrl(battle.source) }
+  return { customImageUrl: resolveSpeciesPortraitUrl(species) }
 }
 export function resolveSpeciesPortraitUrl(species: SpeciesSchemaType | undefined): string {
   return typeof species?.presentation?.portrait === 'string'

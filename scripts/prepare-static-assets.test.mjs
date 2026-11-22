@@ -34,5 +34,6 @@ test('invalid asset formats fail while changed valid media remains usable', () =
   const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3])
   const locked = verifyAsset(bytes, url)
   assert.deepEqual(verifyAsset(bytes, url), locked)
+  assert.throws(() => verifyAsset(bytes, url, '0'.repeat(64)), /hash mismatch/)
   assert.equal(verifyAsset(Buffer.concat([bytes, Buffer.from([4])]), url).size, bytes.length + 1)
 })

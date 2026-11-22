@@ -1,11 +1,12 @@
 import { computed, getCurrentInstance, onBeforeUnmount, shallowRef, watch } from 'vue'
-import { readResourceBytes } from '@/services/resourceTransport'
+import { mediaEnvironment, readMediaBytes } from '@/services/environmentMedia'
 import { imageResourceBlob } from '@/services/imageResource'
 import unknownPet from '@/assets/images/unknown-pet.svg'
 
-/** A mounted consumer owns its media bytes. No shared map, persistent store or prefetch. */
+/** Decoded bytes may be shared. Each mounted image owns its object URL until its DOM is removed. */
 export function useUncachedResource(source: () => string, enabled: () => boolean) {
   const url = shallowRef('')
+  const ready = shallowRef<Promise<void>>(Promise.resolve())
   const error = shallowRef<Error | null>(null)
   const owner = getCurrentInstance()
   let unmounting = false
@@ -30,8 +31,9 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
     observer.observe(element.ownerDocument!, { childList: true, subtree: true })
   }
   watch(
-    () => [source(), enabled()] as const,
+    () => [source(), enabled(), mediaEnvironment().scope] as const,
     ([value, active], _previous, cleanup) => {
+      ready.value = Promise.resolve()
       url.value = ''
       error.value = null
       // This exact bundled placeholder is application code, including on arcadia-client://app.
@@ -42,8 +44,8 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
         controller.abort()
         if (objectUrl) release(objectUrl)
       })
-      void (async () => {
-        const bytes = await readResourceBytes(value, { signal: controller.signal })
+      ready.value = (async () => {
+        const bytes = await readMediaBytes(value, { signal: controller.signal })
         const blob = imageResourceBlob(bytes)
         if (controller.signal.aborted) return
         objectUrl = URL.createObjectURL(blob)
@@ -54,5 +56,5 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
     },
     { immediate: true },
   )
-  return { url: computed(() => (enabled() && source() !== unknownPet ? url.value : source())), error }
+  return { ready, url: computed(() => (enabled() && source() !== unknownPet ? url.value : source())), error }
 }

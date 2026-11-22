@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Grid } from '@element-plus/icons-vue'
+import EnvironmentMediaCache from './EnvironmentMediaCache.vue'
 import EnvironmentLayout from './EnvironmentLayout.vue'
 import { ElIcon } from 'element-plus'
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
@@ -120,6 +121,7 @@ function selection(location: Location) {
         <ElIcon><Grid /></ElIcon>
         <h1>环境</h1>
       </div>
+      <EnvironmentMediaCache v-if="chosen" :key="selected" :selection="chosen" />
     </header>
     <div class="hub-body">
       <EnvironmentLayout class="hub-layout">

@@ -17,9 +17,10 @@
               <Menu />
             </el-icon>
           </button>
-          <div class="flex items-center gap-2">
+          <div class="relative flex items-center gap-2">
             <img src="@/assets/logo.png" alt="AE" class="h-7 w-7" />
             <span class="text-white text-lg font-bold" style="text-shadow: 0 0 8px #409eff">AE</span>
+            <MediaPreloadIndicator />
           </div>
         </div>
         <div class="compact-navigation-actions flex items-center gap-2">
@@ -50,7 +51,12 @@
       <div v-else class="flex justify-between items-center px-6 h-full">
         <div class="flex items-center gap-3">
           <img src="@/assets/logo.png" alt="Arcadia Eternity" class="h-10" />
-          <span class="text-white text-2xl font-bold" style="text-shadow: 0 0 8px #409eff">Arcadia Eternity</span>
+          <div class="relative">
+            <span class="block text-white text-2xl font-bold" style="text-shadow: 0 0 8px #409eff"
+              >Arcadia Eternity</span
+            >
+            <MediaPreloadIndicator />
+          </div>
         </div>
         <div class="desktop-navigation flex gap-2 items-center">
           <el-button
@@ -466,6 +472,9 @@ import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened, Search } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import { activeMediaCatalog, createEnvironmentMediaPreloader } from '@/services/environmentMedia'
+import { preloadSwfPlayer } from '@/services/swf/assets'
+import MediaPreloadIndicator from '@/components/MediaPreloadIndicator.vue'
 import { useConnectionSettingsStore } from '@/stores/connectionSettings'
 import { autoCheckForUpdates } from '@/utils/version'
 import { createAppBootstrap } from '@/app/bootstrap'
@@ -503,6 +512,35 @@ const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
 const privateRoomStore = usePrivateRoomStore()
+const enteredLobby = ref(false)
+const environmentPreload = createEnvironmentMediaPreloader()
+watch(
+  [() => router.currentRoute.value.name, activeMediaCatalog],
+  ([page, catalog]) => {
+    if (page === 'Lobby') enteredLobby.value = true
+    if (!enteredLobby.value) return
+    const team =
+      petStorage.teams.find(row => row.id === petStorage.lastMatchingConfig?.teamId) ??
+      petStorage.teams[petStorage.currentTeamIndex]
+    environmentPreload.update(catalog, team?.pets ?? [], gameSettingStore)
+  },
+  { immediate: true },
+)
+onUnmounted(environmentPreload.stop)
+watch(
+  () =>
+    enteredLobby.value &&
+    gameSettingStore.battleRenderer !== 'image' &&
+    !!activeMediaCatalog()?.species.some(row => row.presentation?.battle?.renderer === 'seer2-swf'),
+  (enabled, _, cleanup) => {
+    if (!enabled) return
+    const controller = new AbortController()
+    cleanup(() => controller.abort())
+    void preloadSwfPlayer(controller.signal)
+  },
+  { immediate: true },
+)
+
 watch(
   () =>
     !!privateRoomStore.currentRoom ||

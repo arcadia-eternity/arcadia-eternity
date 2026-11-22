@@ -157,6 +157,43 @@ function checkedInspection(value) {
   return value
 }
 
+// Installed projects are immutable. Index only file entries from their installed package manifests.
+async function indexInstalledMedia(directory) {
+  const files = new Map()
+  const lock = await readJson(join(directory, 'npm-shrinkwrap.json')).catch(error => {
+    if (error.code !== 'ENOENT') throw error
+    return readJson(join(directory, 'package-lock.json'))
+  })
+  const relativeFile = value =>
+    typeof value === 'string' &&
+    !isAbsolute(value) &&
+    !value.includes('\\') &&
+    value.split('/').every(part => part && !['.', '..', 'node_modules'].includes(part))
+  for (const location of Object.keys(lock.packages ?? {})) {
+    if (!/^(?:node_modules\/(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*\/?)+$/.test(location)) continue
+    const root = join(directory, location)
+    const file = join(root, 'package.json')
+    if (
+      (await realpath(file).catch(error => {
+        if (error.code !== 'ENOENT') throw error
+      })) !== file
+    )
+      continue
+    const pkg = await readJson(file)
+    if (!relativeFile(pkg.arcadia?.presentation)) continue
+    const manifestFile = join(root, pkg.arcadia.presentation)
+    if ((await realpath(manifestFile)) !== manifestFile) continue
+    const manifest = await readJson(manifestFile)
+    for (const row of manifest.resources ?? []) {
+      if (row.kind !== 'file' || !/^[a-f0-9]{64}$/.test(row.sha256) || !relativeFile(row.source)) continue
+      const candidates = files.get(row.sha256) ?? []
+      candidates.push(join(root, row.source))
+      files.set(row.sha256, candidates)
+    }
+  }
+  return files
+}
+
 /** Package-level local authority. No HTTP endpoints or renderer-supplied paths/commands. */
 export class ContentLibrary {
   #state
@@ -165,6 +202,7 @@ export class ContentLibrary {
   #idle
   #controller = new AbortController()
   #legacyRuleCatalogs = new Map()
+  #mediaIndexes = new Map()
   #inspectTail = Promise.resolve()
   #plans = new Map()
   #installJobs = new Map()
@@ -762,6 +800,32 @@ export class ContentLibrary {
       void this.collectGarbage().catch(() => {})
     }, 30000)
     this.#gcTimer.unref?.()
+  }
+  async installedMedia(hash, limit) {
+    if (!/^[a-f0-9]{64}$/.test(hash) || !Number.isSafeInteger(limit) || limit < 1 || limit > 64 * 1024 * 1024)
+      throw new Error('资源标识或大小无效')
+    await this.#load()
+    const installed = new Set(this.#state.installed.map(entry => entry.id))
+    for (const id of this.#mediaIndexes.keys()) if (!installed.has(id)) this.#mediaIndexes.delete(id)
+    for (const entry of this.#state.installed) {
+      let index = this.#mediaIndexes.get(entry.id)
+      if (!index) {
+        index = this.#directory(entry.id).then(indexInstalledMedia)
+        this.#mediaIndexes.set(entry.id, index)
+      }
+      try {
+        for (const file of (await index).get(hash) ?? []) {
+          if ((await realpath(file)) !== file) continue
+          const info = await lstat(file)
+          if (!info.isFile() || !info.size || info.size > limit) continue
+          const data = await readFile(file)
+          if (data.length <= limit && bytesToHex(sha256(data)) === hash) return data
+        }
+      } catch {
+        this.#mediaIndexes.delete(entry.id)
+      }
+    }
+    return null
   }
   async authorProject(id) {
     await this.#load()

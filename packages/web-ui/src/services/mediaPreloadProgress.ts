@@ -1,0 +1,55 @@
+import { computed, shallowReactive, shallowRef } from 'vue'
+
+type BatchState = 'active' | 'finished' | 'cancelled'
+export type MediaPreloadBatch = {
+  id: number
+  label: string
+  state: BatchState
+  total: number
+  completed: number
+  failed: number
+  startedAt: number
+  lastProgressAt: number
+  loading: Map<number, string>
+}
+
+let sequence = 0
+const active = shallowReactive(new Map<number, MediaPreloadBatch>())
+const recent = shallowRef<MediaPreloadBatch[]>([])
+export const isMediaPreloading = computed(() => active.size > 0)
+export const mediaPreloadBatches = computed(() => [...active.values(), ...recent.value])
+
+export function startMediaPreload(label: string, total: number) {
+  const startedAt = performance.now()
+  const batch = shallowReactive<MediaPreloadBatch>({
+    id: ++sequence,
+    label,
+    state: 'active',
+    total,
+    completed: 0,
+    failed: 0,
+    startedAt,
+    lastProgressAt: startedAt,
+    loading: shallowReactive(new Map()),
+  })
+  active.set(batch.id, batch)
+  return batch
+}
+
+export function finishMediaPreload(batch: MediaPreloadBatch, cancelled: boolean) {
+  if (!active.delete(batch.id)) return
+  batch.state = cancelled ? 'cancelled' : 'finished'
+  batch.loading.clear()
+  recent.value = [batch, ...recent.value.slice(0, 2)]
+}
+
+// Measure completed items per unit of wall time, including concurrent reads and cache writes.
+export function estimatePreloadSeconds(batch: MediaPreloadBatch, now: number): number | undefined {
+  const observed = batch.lastProgressAt - batch.startedAt
+  if (batch.state !== 'active' || batch.completed < 2 || observed < 1000 || batch.completed >= batch.total) return
+  const average = observed / batch.completed
+  const sinceProgress = Math.max(0, now - batch.lastProgressAt)
+  const remaining = average * (batch.total - batch.completed) - sinceProgress
+  if (remaining <= 0 || sinceProgress > Math.max(5000, 3 * average)) return
+  return Math.ceil(remaining / 1000)
+}

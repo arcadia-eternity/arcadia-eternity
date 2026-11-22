@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
     isSwitchingServer: false,
     refreshEnvironments: vi.fn(),
     prepareMatchmakingEnvironment: vi.fn(),
+    stopQueueMedia: vi.fn(),
     cancelMatchmaking: vi.fn(),
     cancelMatchmakingPreparation: vi.fn(),
     joinMatchmaking: vi.fn(),

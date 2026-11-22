@@ -1,5 +1,6 @@
 import { after, before, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -80,6 +81,41 @@ async function fixture(name) {
 async function install(f, id = 'water', version = '1.0.0', namespace = id) {
   return f.manager.installFile(await f.file(id, version, namespace), true)
 }
+it('finds verified package files by hash before an environment is opened', async () => {
+  const f = await fixture('media')
+  try {
+    const id = await install(f)
+    const { directory } = await f.manager.authorProject(id)
+    const project = resolve(directory, '../../..')
+    const pkg = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+    const bytes = Buffer.from('installed media')
+    const sha256 = createHash('sha256').update(bytes).digest('hex')
+    await writeFile(
+      join(project, 'package-lock.json'),
+      JSON.stringify({
+        packages: { 'node_modules/optional-missing': {}, ['node_modules/' + pkg.name]: {} },
+      }),
+    )
+    await writeFile(
+      join(directory, 'package.json'),
+      JSON.stringify({ ...pkg, arcadia: { presentation: 'presentation.json' } }),
+    )
+    await writeFile(
+      join(directory, 'presentation.json'),
+      JSON.stringify({
+        resources: [{ id: 'icon', kind: 'file', source: 'icon.png', sha256 }],
+      }),
+    )
+    await writeFile(join(directory, 'icon.png'), bytes)
+    assert.deepEqual(await f.manager.installedMedia(sha256, bytes.length), bytes)
+    assert.equal(await f.manager.installedMedia(sha256, bytes.length - 1), null)
+    await writeFile(join(directory, 'icon.png'), 'modified')
+    assert.equal(await f.manager.installedMedia(sha256, bytes.length), null)
+  } finally {
+    await f.manager.close()
+  }
+})
+
 it('installs without selecting content and preserves user sources on uninstall', async () => {
   const f = await fixture('installation')
   try {

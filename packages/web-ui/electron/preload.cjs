@@ -34,9 +34,10 @@ const desktopApi = {
   listContentProjects: () => ipcRenderer.invoke('desktop:list-content-projects'),
   addContentProject: () => ipcRenderer.invoke('desktop:add-content-project'),
   contentProjectAction: input => ipcRenderer.invoke('desktop:content-project-action', input),
-  downloadPetSwf: (petNum, remoteUrl) => ipcRenderer.invoke('desktop:download-pet-swf', { petNum, remoteUrl }),
-  listCachedPets: () => ipcRenderer.invoke('desktop:list-cached-pets'),
-  clearPetCache: () => ipcRenderer.invoke('desktop:clear-pet-cache'),
+  readMediaCache: (scope, url, limit, originalUrl) =>
+    ipcRenderer.invoke('desktop:media-read', scope, url, limit, originalUrl),
+  writeMediaCache: (scope, url, bytes) => ipcRenderer.invoke('desktop:media-write', scope, url, bytes),
+  clearMediaCache: scope => ipcRenderer.invoke('desktop:media-clear', scope),
   getAppVersion: () => ipcRenderer.invoke('desktop:get-app-version'),
   checkForUpdates: () => ipcRenderer.invoke('desktop:check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('desktop:download-update'),

@@ -114,7 +114,7 @@ test('all legacy desktop handlers register through the shared manager guard', as
   assert.match(source, /requireLocalBattleCaller\(event\)\s+return handler\(event, \.\.\.args\)/)
   const preload = await readFile(new URL('./remote-preload.cjs', import.meta.url), 'utf8')
   assert.ok(!preload.includes("'arcadiaDesktop'"))
-  assert.equal(preload.match(/ipcRenderer.invoke/g).length, 8)
+  assert.equal(preload.match(/ipcRenderer.invoke/g).length, 11)
   assert.ok(!preload.includes('invoke: ipcRenderer'))
 })
 

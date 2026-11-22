@@ -3,7 +3,15 @@ import { createFrameBroker, validFrameSize } from './swf-frame-broker.mjs'
 import { randomUUID } from 'node:crypto'
 import { readFile, readdir } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { PLAYER_URL, validInstance, validBounds, validCommand, validEvent, rateGate } from './swf-policy.mjs'
+import {
+  PLAYER_URL,
+  validInstance,
+  validBounds,
+  validCommand,
+  validSwfRuntime,
+  validEvent,
+  rateGate,
+} from './swf-policy.mjs'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'arcadia-swf', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -183,6 +191,29 @@ export function createSwfHost({
       ownerProcessId: owner.webContents.getOSProcessId(),
     }
   }
+  let installedRuntime
+  function getInstalledRuntime() {
+    installedRuntime ??= (async () => {
+      const names = (await readdir(runtimeDirectory)).filter(name =>
+        /^(ruffle\.js|core\.ruffle\.[a-f0-9]+\.js|[a-f0-9]+\.wasm)$/.test(name),
+      )
+      if (!names.includes('ruffle.js') || names.length > 8) throw new Error('Bundled Ruffle runtime unavailable')
+      const runtime = Object.fromEntries(
+        await Promise.all(
+          names.map(async name => {
+            const bytes = await readFile(new URL(name, pathToFileURL(runtimeDirectory + '/')))
+            return [name, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)]
+          }),
+        ),
+      )
+      if (!validSwfRuntime(runtime)) throw new Error('Bundled Ruffle runtime exceeds limits')
+      return runtime
+    })().catch(error => {
+      installedRuntime = undefined
+      throw error
+    })
+    return installedRuntime
+  }
   function registerIpc(ipcMain) {
     if (ipc) throw new Error('SWF IPC already registered')
     ipc = ipcMain
@@ -211,20 +242,7 @@ export function createSwfHost({
       if (command.type === 'load') {
         r.frames.reset(command.task)
         // Runtime code comes only from the installed distribution, never from the caller.
-        const names = (await readdir(runtimeDirectory)).filter(name =>
-          /^(ruffle\.js|core\.ruffle\.[a-f0-9]+\.js|[a-f0-9]+\.wasm)$/.test(name),
-        )
-        if (!names.includes('ruffle.js') || names.length > 8) throw new Error('Bundled Ruffle runtime unavailable')
-        const runtime = Object.fromEntries(
-          await Promise.all(
-            names.map(async name => {
-              const bytes = await readFile(new URL(name, pathToFileURL(runtimeDirectory + '/')))
-              return [name, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)]
-            }),
-          ),
-        )
-        command = { ...command, runtime }
-        if (!validCommand(command)) throw new Error('Bundled Ruffle runtime exceeds limits')
+        command = { ...command, runtime: await getInstalledRuntime() }
       }
       if (!r.dead && r.task === command.task && r.seq === command.seq)
         r.view.webContents.send('swf:player-command', command)
