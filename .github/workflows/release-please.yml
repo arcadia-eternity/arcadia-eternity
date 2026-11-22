@@ -35,8 +35,8 @@ jobs:
           NPM_TAG: ${{ inputs.npm_tag }}
           VERIFIED_RUN: ${{ inputs.verified_run_id }}
         run: |
-          [[ -z "$NPM_TAG" || "$NPM_TAG" =~ ^(data-pack-base|arcadia-eternity)-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ -z "$VERIFIED_RUN" || ( -n "$NPM_TAG" && "$VERIFIED_RUN" =~ ^[0-9]+$ ) ]]
+          [[ -z "$NPM_TAG" || "$NPM_TAG" =~ ^(data-pack-base|arcadia-eternity)-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          [[ -z "$VERIFIED_RUN" || ( -n "$NPM_TAG" && "$VERIFIED_RUN" =~ ^[0-9]+$ ) ]] || exit 1
       - name: Run release-please
         if: inputs.npm_tag == ''
         uses: googleapis/release-please-action@v5.0.0
@@ -45,7 +45,7 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  publish-base:
+  publish-content:
     needs: release-please
     if: needs.release-please.outputs.base_tag != ''
     permissions:
@@ -55,28 +55,9 @@ jobs:
     uses: ./.github/workflows/publish-packages.yaml
     with:
       tag: ${{ needs.release-please.outputs.base_tag }}
-      target: base
       verified_run_id: ${{ inputs.verified_run_id }}
 
-  dispatch-environments:
-    needs: [release-please, publish-base]
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Send the verified archives to the environment packages' trusted publisher
-        uses: actions/github-script@v9.0.0
-        env:
-          CONTENT_TAG: ${{ needs.release-please.outputs.base_tag }}
-          ARCHIVE_RUN: ${{ inputs.verified_run_id || github.run_id }}
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              ...context.repo, workflow_id: 'publish-packages.yaml', ref: 'main',
-              inputs: { tag: process.env.CONTENT_TAG, verified_run_id: process.env.ARCHIVE_RUN },
-            })
-
-  publish-npm:
+  publish-sdk:
     needs: release-please
     if: needs.release-please.outputs.sdk_tag != ''
     permissions:
@@ -86,7 +67,6 @@ jobs:
     uses: ./.github/workflows/publish-packages.yaml
     with:
       tag: ${{ needs.release-please.outputs.sdk_tag }}
-      target: sdk
       verified_run_id: ${{ inputs.verified_run_id }}
 
   # 当创建release时，自动合并到production分支

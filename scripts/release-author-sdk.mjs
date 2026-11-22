@@ -264,13 +264,9 @@ if (command === 'pack' || command === 'pack-base') {
   )
   const release = await readRelease()
   assert.equal(run('npm', ['config', 'get', 'tag'], root, true).trim(), release.tag)
-  const target = baseOnly ? (process.env.OFFICIAL_NPM_TARGET ?? 'all') : 'all'
-  assert.ok(['all', 'base', 'environments'].includes(target), 'Invalid official npm publish target')
-  // The base and the two recipes share verified bytes and use different npm trusted publishers.
+  // Inspect all existing versions before uploading anything. A retry can reuse the verified archives.
   const unpublished = []
   for (const pkg of release.packages) {
-    if (target === 'base' && pkg.name !== basePackage.manifest.name) continue
-    if (target === 'environments' && pkg.name === basePackage.manifest.name) continue
     const url = `${registry}/${encodeURIComponent(pkg.name)}/${version}`
     const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
     if (response.status === 404) {

@@ -6,20 +6,7 @@ on:
       tag:
         required: true
         type: string
-      target:
-        required: true
-        type: string
       verified_run_id:
-        type: string
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Official content release tag'
-        required: true
-        type: string
-      verified_run_id:
-        description: 'Run that verified the three official archives'
-        required: true
         type: string
 
 permissions:
@@ -27,7 +14,6 @@ permissions:
 
 env:
   RELEASE_TAG: ${{ inputs.tag }}
-  PUBLISH_TARGET: ${{ inputs.target || 'environments' }}
 
 jobs:
   release-source:
@@ -43,18 +29,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
           ARCHIVE_RUN: ${{ inputs.verified_run_id }}
         run: |
-          [[ -z "$ARCHIVE_RUN" || "$ARCHIVE_RUN" =~ ^[0-9]+$ ]]
-          case "$PUBLISH_TARGET" in
-            sdk)
-              [[ "$RELEASE_TAG" =~ ^arcadia-eternity-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-              gh release view "$RELEASE_TAG" --json isDraft,isPrerelease | jq -e '(.isDraft or .isPrerelease) | not'
-              ;;
-            base|environments)
-              [[ "$RELEASE_TAG" =~ ^data-pack-base-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-              [[ "$PUBLISH_TARGET" == base || -n "$ARCHIVE_RUN" ]]
-              ;;
-            *) exit 1 ;;
-          esac
+          [[ -z "$ARCHIVE_RUN" || "$ARCHIVE_RUN" =~ ^[0-9]+$ ]] || exit 1
+          [[ "$RELEASE_TAG" =~ ^(data-pack-base|arcadia-eternity)-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          if [[ "$RELEASE_TAG" == arcadia-eternity-v* ]]; then
+            gh release view "$RELEASE_TAG" --json isDraft,isPrerelease | jq -e '(.isDraft or .isPrerelease) | not'
+          fi
       - uses: actions/checkout@v7.0.1
         with:
           ref: refs/tags/${{ env.RELEASE_TAG }}
@@ -88,7 +67,7 @@ jobs:
           pnpm test:content-dev
           pnpm --filter @arcadia-eternity/pack-loader test:run
       - name: Pack and inspect the selected archives
-        run: node scripts/release-author-sdk.mjs "${{ env.PUBLISH_TARGET == 'sdk' && 'pack' || 'pack-base' }}"
+        run: node scripts/release-author-sdk.mjs "${{ startsWith(inputs.tag, 'data-pack-base-v') && 'pack-base' || 'pack' }}"
       - name: Record archive source
         run: git rev-parse HEAD > dist/ugc-release/source-commit
       - uses: actions/upload-artifact@v7.0.2
@@ -157,6 +136,4 @@ jobs:
           [[ -f "$source" ]] || source="$RUNNER_TEMP/archive-run-head"
           [[ "$(cat "$source")" == "$TAG_COMMIT" ]]
       - name: Publish verified archives with npm Trusted Publishing
-        env:
-          OFFICIAL_NPM_TARGET: ${{ env.PUBLISH_TARGET }}
-        run: node scripts/release-author-sdk.mjs "${{ env.PUBLISH_TARGET == 'sdk' && 'publish' || 'publish-base' }}"
+        run: node scripts/release-author-sdk.mjs "${{ startsWith(inputs.tag, 'data-pack-base-v') && 'publish-base' || 'publish' }}"

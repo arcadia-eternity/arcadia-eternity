@@ -8,7 +8,7 @@
 | [Release Please](../.github/workflows/release-please.yml)   | 基于 `main` 管理版本与发行，创建正式发行后触发 npm 发布及生产分支部署 |
 | [生产镜像](../.github/workflows/build-production-image.yml) | 构建和推送生产 Docker 镜像                                            |
 | [桌面发行](../.github/workflows/release.yaml)               | 构建 macOS、Windows、Linux 安装包和客户端差分更新清单                 |
-| [包发布](../.github/workflows/publish-packages.yaml)        | 按标签分别验证并发布创作 SDK 或官方基础包到 npm                       |
+| [包发布](../.github/workflows/publish-packages.yaml)        | 由 Release Please 调用，按标签向 npm 发布创作 SDK 或三个官方内容包    |
 | [开发镜像](../.github/workflows/build-docker.yaml)          | 开发 Docker 镜像构建                                                  |
 | [开发通知](../.github/workflows/deploy-development.yml)     | 镜像就绪通知与手动部署提示                                            |
 | [Fly.io 部署](../.github/workflows/deploy-flyio.yaml)       | Fly.io 镜像部署配置；运行方式见[单进程部署](guides/server-runtime.md) |
@@ -24,7 +24,7 @@ Release Please 按改动路径维护两个发行 PR。两边都有改动时，�
 
 默认环境 `@arcadia-eternity/environment-default` 和 120 资质环境 `@arcadia-eternity/environment-training-120` 与基础包共用一个版本、发行 PR 和 `data-pack-base-vX.Y.Z` 标签。只改环境规则也走这条发行线。一个任务校验三份归档，按基础包、环境包的顺序发布。每个环境包的 npm 依赖精确指定同版基础包，`engines.arcadia` 来自该版基础包。
 
-SDK 和基础包的 npm Trusted Publisher 使用 `release-please.yml`，两个环境包使用 `publish-packages.yaml`。Release Please 验证三个内容归档，先发布基础包，再将同一份归档交给环境包的工作流发布。客户端单独发版时使用清单里已发布的内容标签。[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
+创作 SDK、基础包和两个环境包在 npm 上都信任 `arcadia-eternity/arcadia-eternity` 的 `release-please.yml`。自动发布和手动重试均从这个工作流进入。客户端单独发版时使用清单里已发布的内容标签。[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
 
 只改 `packs/base/`、`packs/environment-default/` 或 `packs/environment-training-120/` 会进入基础包的发行 PR。GitHub 为该包保留发行草稿，玩家通过 npm 收到稳定版，GitHub 的公开桌面更新入口继续指向客户端。如果部分包已发布，优先在原 Actions run 中重跑失败任务。手动重试时，在 “Release Please” 的 `npm_tag` 填相同标签和首轮归档所在的 `verified_run_id`。工作流校验来源仓库、发行工作流、标签提交和归档哈希，再补发缺失的包。
 
