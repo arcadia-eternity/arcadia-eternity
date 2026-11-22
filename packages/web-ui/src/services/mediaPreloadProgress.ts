@@ -25,6 +25,7 @@ export function startMediaPreload(
   total: number,
   signal: AbortSignal,
   progress?: (completed: number, total: number, failed: number) => void,
+  onFailure?: (index: number) => void,
 ) {
   const startedAt = performance.now()
   const batch = shallowReactive<MediaPreloadBatch>({
@@ -61,7 +62,10 @@ export function startMediaPreload(
       try {
         if ((await load()) === 'cached' && !signal.aborted) batch.cached++
       } catch {
-        if (!signal.aborted) batch.failed++
+        if (!signal.aborted) {
+          batch.failed++
+          onFailure?.(index)
+        }
       }
       if (signal.aborted) return
       batch.loading.delete(index)

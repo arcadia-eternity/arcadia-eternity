@@ -1,5 +1,5 @@
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
-import { toRaw } from 'vue'
+import { shallowReactive, toRaw } from 'vue'
 import { officialAssetUrl } from '../utils/officialAssetUrl'
 
 export type MediaResource = {
@@ -18,7 +18,7 @@ export type MediaEnvironment = {
   battleUi?: Map<string, string>
   promote?: (url: string) => void
 }
-const environments = new WeakMap<object, MediaEnvironment>()
+const environments = shallowReactive(new WeakMap<object, MediaEnvironment>())
 const localFiles = new Map<string, Set<{ url: string }>>()
 let sequence = 0
 

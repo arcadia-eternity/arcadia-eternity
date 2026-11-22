@@ -277,8 +277,8 @@ export async function warmMedia(url: string, options: MediaReadOptions = {}, mis
     }
     await write.done
   } catch (error) {
-    // Automatic caching is best effort. An explicit save reports storage errors to the user.
-    if (options.requireSave) throw error
+    // Background sweeps retry failed writes. Playback can still use the downloaded bytes.
+    if (options.requireSave || options.background) throw error
   }
   options.signal?.throwIfAborted()
   return content

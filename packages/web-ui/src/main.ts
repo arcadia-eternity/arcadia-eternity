@@ -7,6 +7,7 @@ import Particles from '@tsparticles/vue3'
 import { loadFull } from 'tsparticles'
 
 import App from './App.vue'
+import { installMediaPreload } from './app/mediaPreload'
 import AuthorPreviewShell from './features/authoring/AuthorPreviewShell.vue'
 import router from './router'
 import { initI18n } from './i18n/i18n'
@@ -36,6 +37,7 @@ async function bootstrap() {
   pinia.use(createPersistedState({ storage: localDataStorage }))
 
   app.use(pinia)
+  app.use(installMediaPreload, pinia)
   app.use(router)
   app.use(I18NextVue, { i18next })
   app.use(Particles, {
