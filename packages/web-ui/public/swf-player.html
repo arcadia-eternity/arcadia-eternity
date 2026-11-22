@@ -175,13 +175,13 @@
                 '({110:' + JSON.stringify(urls[names[1]]) + ',993:' + JSON.stringify(urls[names[2]]) + '})[e]',
               )
               window.RufflePlayer = { config: { publicPath: '', polyfills: false } }
-              await new Promise((resolve, reject) => {
-                const s = document.createElement('script')
-                s.src = blob(js, 'text/javascript')
-                s.onload = resolve
-                s.onerror = reject
-                document.head.append(s)
-              })
+              // Ruffle probes currentScript.src for a directory. Blob URLs cannot resolve relative paths.
+              const entry = document.createElement('script')
+              entry.nonce = 'arcadia-fixed-player'
+              entry.textContent = js
+              document.head.append(entry)
+              entry.remove()
+              if (!window.RufflePlayer?.newest) throw Error('Bundled Ruffle failed to initialize')
             }
             if (disposed || task !== loadingTask) return
             const movie = blob(data.movie, 'application/x-shockwave-flash')

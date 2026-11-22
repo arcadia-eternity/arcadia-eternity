@@ -3,12 +3,12 @@ import type { AnimationGsapManager } from './animationGsapManager'
 import type { BattleStoreLike } from './animationTypes'
 
 const CHECK_INTERVAL_MS = 3000
-const MAX_STUCK_COUNT = 3
 const ANIMATION_TIMEOUT_RATIO = 3
 
 export class AnimationHealthMonitor {
   private checkTimer: ReturnType<typeof setInterval> | null = null
-  private stuckCount = 0
+  private emptyOnLastCheck = false
+  private fetchingActions = false
 
   constructor(
     private stateMachine: AnimationStateMachine,
@@ -87,57 +87,50 @@ export class AnimationHealthMonitor {
   }
 
   private async checkAvailableActions(): Promise<void> {
-    if (!this.stateMachine.canAcceptNewTask) return
-    if (this.store.isReplayMode) return
-    if (this.store.isBattleEnd) return
-    if (this.store.battleState?.status === 'Ended') return
-    if (
-      this.store.battleState?.currentPhase !== 'SELECTION_PHASE' &&
-      this.store.battleState?.currentPhase !== 'SWITCH_PHASE'
-    )
-      return
-    if (this.store.availableActions.length > 0) {
-      this.stuckCount = 0
+    const canRefresh = () =>
+      this.stateMachine.canAcceptNewTask &&
+      !this.store.isReplayMode &&
+      !this.store.isBattleEnd &&
+      !this.store.waitingForResponse &&
+      this.store.battleState?.status !== 'Ended' &&
+      (this.store.battleState?.currentPhase === 'SELECTION_PHASE' ||
+        this.store.battleState?.currentPhase === 'SWITCH_PHASE') &&
+      this.store.availableActions.length === 0
+    if (!canRefresh()) {
+      this.emptyOnLastCheck = false
       return
     }
-    if (this.store.waitingForResponse) return
-
-    this.stuckCount++
-    const elapsed = this.stuckCount * (CHECK_INTERVAL_MS / 1000)
-
-    if (this.stuckCount >= 2) {
-      console.warn(`[AnimationHealthMonitor] availableActions empty for ${elapsed}s → attempting recovery`)
-      try {
-        const sequenceId = this.store.lastProcessedSequenceId
-        const snapshot = this.store.battleState
-        const current = () =>
-          this.stateMachine.canAcceptNewTask &&
-          sequenceId === this.store.lastProcessedSequenceId &&
-          snapshot === this.store.battleState
-        const actions = await this.store.fetchAvailableSelection(current)
-        if (!current()) return
-        if (Array.isArray(actions)) {
-          this.store.availableActions = actions
-        }
-        if (actions.length > 0) {
-          this.stuckCount = 0
-          return
-        }
-      } catch {
-        console.warn('[AnimationHealthMonitor] recovery fetch failed')
-      }
+    if (this.fetchingActions) return
+    if (!this.emptyOnLastCheck) {
+      this.emptyOnLastCheck = true
+      return
     }
 
-    if (this.stuckCount >= MAX_STUCK_COUNT) {
-      console.error(`[AnimationHealthMonitor] availableActions stuck empty for ${elapsed}s → marking STUCK`)
-      this.stateMachine.markStuck('no-available-actions')
+    // An empty list is legitimate while the opponent chooses a replacement.
+    // Refresh it without preventing the queue from processing the next prompt.
+    this.emptyOnLastCheck = false
+    this.fetchingActions = true
+    const timer = this.checkTimer
+    const sequenceId = this.store.lastProcessedSequenceId
+    const snapshot = this.store.battleState
+    const current = () =>
+      timer !== null &&
+      timer === this.checkTimer &&
+      sequenceId === this.store.lastProcessedSequenceId &&
+      snapshot === this.store.battleState &&
+      canRefresh()
+    try {
+      const actions = await this.store.fetchAvailableSelection(current)
+      if (current() && actions.length) this.store.availableActions = actions
+    } finally {
+      if (timer === this.checkTimer) this.fetchingActions = false
     }
   }
 
   forceRecovery(): void {
     this.gsapManager.killAll()
     this.stateMachine.forceRecover()
-    this.stuckCount = 0
+    this.emptyOnLastCheck = false
   }
 
   stop(): void {
@@ -145,6 +138,7 @@ export class AnimationHealthMonitor {
       clearInterval(this.checkTimer)
       this.checkTimer = null
     }
-    this.stuckCount = 0
+    this.emptyOnLastCheck = false
+    this.fetchingActions = false
   }
 }

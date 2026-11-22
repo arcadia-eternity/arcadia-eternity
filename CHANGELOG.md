@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.15.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.1...arcadia-eternity-v4.15.2) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **battle:** keep browser battles responsive after delayed actions ([6240c34](https://github.com/arcadia-eternity/arcadia-eternity/commit/6240c3486ef9c407182f9dd8c1c9594c174d3cf5))
+* **web:** avoid Ruffle script URL warnings on battle entry ([2c03bb1](https://github.com/arcadia-eternity/arcadia-eternity/commit/2c03bb15b338f8fde5696af4cf548d0e8e7a86ef))
+
 ## [4.15.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.0...arcadia-eternity-v4.15.1) (2026-11-22)
 
 

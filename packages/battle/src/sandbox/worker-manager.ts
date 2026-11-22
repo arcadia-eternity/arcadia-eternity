@@ -17,6 +17,7 @@ export interface BattleWorkerPolicy {
   readonly maxQueuedBattles: number
   readonly queueTimeoutMs: number
   readonly initializeMs: number
+  /** Zero disables the wall-clock deadline for active calls and heartbeat replies. */
   readonly requestMs: number
   readonly cleanupMs: number
   readonly heartbeatMs: number
@@ -106,13 +107,15 @@ export class BattleWorkerManager {
       ...policy,
       maxIdleWorkers: policy.maxIdleWorkers ?? policy.maxBattles ?? defaultPolicy.maxBattles,
     }
-    const { reuseWorkers, vmGrouping, maxIdleWorkers, maxQueuedBattles, ...limits } = this.policy
+    const { reuseWorkers, vmGrouping, maxIdleWorkers, maxQueuedBattles, requestMs, ...limits } = this.policy
     if (
       !Number.isSafeInteger(maxIdleWorkers) ||
       maxIdleWorkers < 0 ||
       maxIdleWorkers > this.policy.maxBattles ||
       !Number.isSafeInteger(maxQueuedBattles) ||
       maxQueuedBattles < 0 ||
+      !Number.isSafeInteger(requestMs) ||
+      requestMs < 0 ||
       this.policy.queueTimeoutMs > 2_147_483_647
     )
       throw Error('Invalid Worker policy')

@@ -459,19 +459,9 @@ export class BattleClient {
 
   async getAvailableSelection(): Promise<PlayerSelectionSchemaType[]> {
     this.verifyBattleActive()
-
-    return new Promise((resolve, reject) => {
-      this.socket.emit('getAvailableSelection', response => {
-        if (response.status === 'SUCCESS') {
-          // 添加类型断言和空值检查
-          const data = response.data as PlayerSelectionSchemaType[] | undefined
-          resolve(data || [])
-        } else {
-          const error = this.parseError(response)
-          reject(error)
-        }
-      })
-    })
+    const result = await this.socket.timeout(this.options.actionTimeout).emitWithAck('getAvailableSelection')
+    if (result.status !== 'SUCCESS') throw this.parseError(result)
+    return result.data ?? []
   }
 
   async ready(): Promise<void> {

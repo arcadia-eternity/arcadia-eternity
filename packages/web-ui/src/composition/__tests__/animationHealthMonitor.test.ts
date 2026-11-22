@@ -156,7 +156,7 @@ describe('AnimationHealthMonitor', () => {
     expect(stateMachine.forceRecover).not.toHaveBeenCalled()
   })
 
-  it('increments stuckCount when availableActions empty and not waiting', async () => {
+  it('allows a decision prompt to arrive before refreshing empty actions', async () => {
     ;(stateMachine as any).state = AnimationState.IDLE
     store.availableActions = []
     store.waitingForResponse = false
@@ -167,7 +167,7 @@ describe('AnimationHealthMonitor', () => {
     expect(store.fetchAvailableSelection).not.toHaveBeenCalled()
   })
 
-  it('attempts fetchAvailableSelection when stuckCount >= 2', async () => {
+  it('refreshes actions after two consecutive empty checks', async () => {
     ;(stateMachine as any).state = AnimationState.IDLE
     store.availableActions = []
     store.waitingForResponse = false
@@ -179,18 +179,28 @@ describe('AnimationHealthMonitor', () => {
     expect(store.fetchAvailableSelection).toHaveBeenCalled()
   })
 
-  it('marks STUCK when stuckCount >= MAX_STUCK_COUNT (3)', async () => {
-    ;(stateMachine as any).state = AnimationState.IDLE
-    store.availableActions = []
-    store.waitingForResponse = false
-    ;(store.fetchAvailableSelection as ReturnType<typeof vi.fn>).mockResolvedValue([])
-
+  it('keeps accepting prompts throughout an opponent switch and recovers the next action', async () => {
+    store.battleState!.currentPhase = 'SWITCH_PHASE'
     monitor.start()
-    await vi.advanceTimersByTimeAsync(3000)
-    await vi.advanceTimersByTimeAsync(3000)
-    await vi.advanceTimersByTimeAsync(3000)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(stateMachine.markStuck).not.toHaveBeenCalled()
+    store.battleState!.currentPhase = 'SELECTION_PHASE'
+    const actions = [{ type: 'use-skill' }]
+    vi.mocked(store.fetchAvailableSelection).mockResolvedValue(actions)
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(store.availableActions).toEqual(actions)
+  })
 
-    expect(stateMachine.markStuck).toHaveBeenCalledWith('no-available-actions')
+  it('keeps only one slow refresh in flight and discards its response after stop', async () => {
+    const pending = Promise.withResolvers<unknown[]>()
+    vi.mocked(store.fetchAvailableSelection).mockReturnValue(pending.promise)
+    monitor.start()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(store.fetchAvailableSelection).toHaveBeenCalledOnce()
+    monitor.stop()
+    pending.resolve([{ type: 'use-skill' }])
+    await vi.advanceTimersByTimeAsync(0)
+    expect(store.availableActions).toEqual([])
   })
 
   it.each([AnimationState.PLAYING, AnimationState.PREPARING, AnimationState.PAUSED, AnimationState.RECOVERING])(
@@ -243,7 +253,7 @@ describe('AnimationHealthMonitor', () => {
     expect(store.fetchAvailableSelection).not.toHaveBeenCalled()
   })
 
-  it('resets stuckCount when actions become available again', async () => {
+  it('resets the refresh delay when actions become available again', async () => {
     ;(stateMachine as any).state = AnimationState.IDLE
     store.availableActions = []
     store.waitingForResponse = false

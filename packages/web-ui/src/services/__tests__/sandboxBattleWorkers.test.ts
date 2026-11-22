@@ -32,6 +32,7 @@ it('shares the configured browser pool and disposes it on page exit', async () =
     maxQueuedBattles: 4,
     queueTimeoutMs: 30_000,
     initializeMs: browserSandboxStartup.initializeMs,
+    requestMs: 0,
     reuseWorkers: true,
     vmGrouping: 'package',
   })

@@ -10,6 +10,17 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
+it('keeps a delayed local selection response after the page resumes', async () => {
+  const store = useBattleStore()
+  const pending = Promise.withResolvers<PlayerSelection[]>()
+  store.battleInterface = { getAvailableSelection: () => pending.promise } as unknown as IBattleSystem
+  const fetching = store.fetchAvailableSelection()
+  await vi.advanceTimersByTimeAsync(60_000)
+  const actions = [{ type: 'do-nothing', player: 'p' }] as PlayerSelection[]
+  pending.resolve(actions)
+  expect(await fetching).toEqual(actions)
+})
+
 it('cancelled TurnAction fetch cannot overwrite actions from a newer snapshot', async () => {
   const store = useBattleStore()
   store.playerId = 'p'
