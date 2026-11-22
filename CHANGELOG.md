@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.15.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.4...arcadia-eternity-v4.15.5) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **web:** let Ruffle finish cold startup on slow connections ([7f90c76](https://github.com/arcadia-eternity/arcadia-eternity/commit/7f90c7610a7ee1edf0ee6bb809a60dcb00879b73))
+
 ## [4.15.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.3...arcadia-eternity-v4.15.4) (2026-11-22)
 
 
