@@ -1,3 +1,4 @@
+import { inspectMedia } from '../shared/media-formats.mjs'
 export const PLAYER_URL = 'arcadia-swf://player/swf-player.html'
 const STATES = [
   '待机',
@@ -34,12 +35,13 @@ function validEnvelope(x) {
   )
 }
 function validBytes(x) {
-  if (!(x instanceof ArrayBuffer) || x.byteLength < 8 || x.byteLength > 16 * 1024 * 1024) return false
-  const a = new Uint8Array(x, 0, 8)
-  return (
-    ['FWS', 'CWS'].includes(String.fromCharCode(...a.slice(0, 3))) &&
-    new DataView(x).getUint32(4, true) <= 64 * 1024 * 1024
-  )
+  if (!(x instanceof ArrayBuffer)) return false
+  try {
+    inspectMedia('swf', new Uint8Array(x))
+    return true
+  } catch {
+    return false
+  }
 }
 export function validBounds(x) {
   return (
@@ -54,23 +56,25 @@ export function validBounds(x) {
     Math.round(x.width) * Math.round(x.height) <= 2097152
   )
 }
+export function validSwfRuntime(runtime) {
+  if (!runtime || typeof runtime !== 'object' || Array.isArray(runtime)) return false
+  let total = 0
+  const entries = Object.entries(runtime)
+  if (entries.length < 1 || entries.length > 8) return false
+  return entries.every(
+    ([name, bytes]) =>
+      /^[a-zA-Z0-9._-]+\.(js|wasm)$/.test(name) &&
+      bytes instanceof ArrayBuffer &&
+      bytes.byteLength > 0 &&
+      bytes.byteLength <= 32 * 1024 * 1024 &&
+      (total += bytes.byteLength) <= 64 * 1024 * 1024,
+  )
+}
 export function validCommand(x) {
   if (!validEnvelope(x)) return false
   if (x.type === 'load') {
     if (!validBytes(x.bytes?.container) || !validBytes(x.bytes?.movie)) return false
-    if (x.runtime === undefined) return true
-    if (!x.runtime || typeof x.runtime !== 'object' || Array.isArray(x.runtime)) return false
-    let total = 0
-    const entries = Object.entries(x.runtime)
-    if (entries.length < 1 || entries.length > 8) return false
-    return entries.every(
-      ([name, bytes]) =>
-        /^[a-zA-Z0-9._-]+\.(js|wasm)$/.test(name) &&
-        bytes instanceof ArrayBuffer &&
-        bytes.byteLength > 0 &&
-        bytes.byteLength <= 32 * 1024 * 1024 &&
-        (total += bytes.byteLength) <= 64 * 1024 * 1024,
-    )
+    return x.runtime === undefined || validSwfRuntime(x.runtime)
   }
   if (x.type === 'play') return STATES.includes(x.state)
   if (x.type === 'configure')

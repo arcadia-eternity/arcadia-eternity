@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.15.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.14.0...arcadia-eternity-v4.15.0) (2026-11-22)
+
+
+### ✨ Features
+
+* **media:** persist verified assets and preload only missing objects ([6876b52](https://github.com/arcadia-eternity/arcadia-eternity/commit/6876b52ebd5f3810f6d473d70d801a5d34843c4e))
+* **media:** preload environment assets and share battle resource reads ([c21d1a4](https://github.com/arcadia-eternity/arcadia-eternity/commit/c21d1a4b24ce372a004a2cdbfc6d1e750db8903c))
+* **media:** share validated asset reads across preload, playback, and previews ([caa9848](https://github.com/arcadia-eternity/arcadia-eternity/commit/caa984806b4f151d6c5d18e378a95ce91fda0892))
+
+
+### 🐛 Bug Fixes
+
+* **auth:** remember web account logins across tabs and deployments ([8ea1cf1](https://github.com/arcadia-eternity/arcadia-eternity/commit/8ea1cf18de4700288075dc35cc988dd790ee7ff6))
+* **media:** keep player dependencies out of environment preparation ([f95e7ef](https://github.com/arcadia-eternity/arcadia-eternity/commit/f95e7ef32187958a8b9d0b0901c1ace8094df734))
+* **release:** isolate client and content release manifests ([#318](https://github.com/arcadia-eternity/arcadia-eternity/issues/318)) ([590b968](https://github.com/arcadia-eternity/arcadia-eternity/commit/590b96808847b4add0f80ca7b20fee238670bb64))
+* **rooms:** select P2P environments and support spectating server hosts ([83a42a0](https://github.com/arcadia-eternity/arcadia-eternity/commit/83a42a04934b173398297a6fa7d87321ea8c03b0))
+
 ## [4.14.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.13.0...arcadia-eternity-v4.14.0) (2026-11-22)
 
 

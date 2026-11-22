@@ -9,6 +9,7 @@ import Components from 'unplugin-vue-components/vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
+import { createHash } from 'node:crypto'
 import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { buildWebContent } from './scripts/build-web-content.mjs'
@@ -36,7 +37,7 @@ function buildCommitHash(): string {
 export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const env = loadEnv(mode, process.cwd())
   const environmentProject = process.env.ARCADIA_WEB_ENVIRONMENT_PROJECT?.trim() || undefined
-  const { files: webContent, mediaTargets, dispose } = await buildWebContent(undefined, environmentProject)
+  const { files: webContent, mediaTargets, battleUi, dispose } = await buildWebContent(undefined, environmentProject)
   const backendOrigin = process.env.VITE_BACKEND_ORIGIN ?? env.VITE_BACKEND_ORIGIN ?? '/'
   const autoConnect = process.env.VITE_AUTO_CONNECT ?? env.VITE_AUTO_CONNECT ?? 'true'
   if (!['true', 'false'].includes(autoConnect)) throw new Error('VITE_AUTO_CONNECT must be true or false')
@@ -49,6 +50,12 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   return {
     base: process.env.VITE_STATIC_MODE === '1' ? './' : '/',
     define: {
+      __BASE_BATTLE_UI__: JSON.stringify(battleUi),
+      'import.meta.env.VITE_RUFFLE_ENTRY_SHA256': JSON.stringify(
+        createHash('sha256')
+          .update(readFileSync(new URL('./node_modules/@ruffle-rs/ruffle/ruffle.js', import.meta.url)))
+          .digest('hex'),
+      ),
       'import.meta.env.VITE_PREPARED_ENVIRONMENT': JSON.stringify('1'),
       'import.meta.env.VITE_MIRROR_OFFICIAL_MEDIA': JSON.stringify(environmentProject ? '0' : '1'),
       // 注入构建时间和commit hash

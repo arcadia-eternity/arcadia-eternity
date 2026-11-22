@@ -2,10 +2,6 @@ import { expect, test } from 'playwright/test'
 import { prepareLocalBattle } from './helpers/local-battle-fixture'
 import input from '../../battle/test/fixtures/official-switch.input.json' with { type: 'json' }
 
-test.beforeEach(async ({ page }) => {
-  await prepareLocalBattle(page)
-})
-
 async function runtimeFormat(page: import('playwright/test').Page) {
   return page.evaluate(async () => {
     const modulePath = '/src/stores/battle.ts'
@@ -16,6 +12,7 @@ async function runtimeFormat(page: import('playwright/test').Page) {
 }
 
 test('the local page uses the native runtime and can create its actual checkpoint', async ({ page }) => {
+  await prepareLocalBattle(page)
   const workerScript = page.waitForResponse(
     response => response.url().includes('sandbox-worker') && response.request().resourceType() === 'fetch',
   )
@@ -30,6 +27,7 @@ test('the local page uses the native runtime and can create its actual checkpoin
 })
 
 test('the local team-selection preset confirms teams and enters the native battle', async ({ page }) => {
+  await prepareLocalBattle(page)
   await page.goto('/local-battle')
   await page.getByRole('button', { name: '团队选择测试', exact: true }).click()
   await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
@@ -56,10 +54,16 @@ test('cold native startup tolerates delayed portraits without entering animation
   await page.waitForURL(/\/battle\?dev=true/)
   await expect(page.getByText('对战开始！', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /^气力 ·/ })).toBeEnabled()
+  const portraits = page.getByTestId('pet-static-fallback').getByRole('img', { name: '精灵静态形象' })
+  await expect(portraits).toHaveCount(2)
+  await expect
+    .poll(() => portraits.evaluateAll(images => images.every(image => (image as HTMLImageElement).naturalWidth > 0)))
+    .toBe(true)
   expect(healthErrors).toEqual([])
 })
 
 test('consecutive browser battles reuse one Worker and start with independent battle state', async ({ page }) => {
+  await prepareLocalBattle(page)
   test.setTimeout(60_000)
   // entry.ts imports main asynchronously: navigation can finish before app.use(pinia).
   // Hold that real bootstrap boundary so this also exercises a slow application startup.

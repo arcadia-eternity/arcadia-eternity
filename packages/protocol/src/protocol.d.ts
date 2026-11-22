@@ -189,7 +189,7 @@ export interface UpdatePrivateRoomConfigRequest {
     requiredAssetLock?: AssetLock;
 }
 export interface StartPrivateRoomBattleRequest {
-    hostTeam: PetSchemaType[];
+    hostTeam?: PetSchemaType[];
 }
 export interface PrivateRoomBattleHostInfo {
     playerId: string;

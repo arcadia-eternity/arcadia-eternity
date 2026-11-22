@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { join } from 'node:path'
 import { createLocalContentSessions } from '../local-content-sessions.mjs'
 import { createNpmFixture } from '../../../server/test/fixtures/npm'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
@@ -10,15 +12,19 @@ it('captures real npm display and resources, preserves prepared recipes across e
   const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })
   const workers = createNodeBattleWorkerManager()
   let releases = 0
+  const acquired: (string | undefined)[] = []
   const sessions = createLocalContentSessions({
     library: {
-      acquireProject: async () => ({
-        directory: fixture.directory,
-        document: { id: 'duel', name: '双宠对战', rules: { schemaVersion: 1, team: { maxSize: 2 } } },
-        release: async () => {
-          releases++
-        },
-      }),
+      acquireProject: async (id?: string) => {
+        acquired.push(id)
+        return {
+          directory: fixture.directory,
+          document: { id: 'duel', name: '双宠对战', rules: { schemaVersion: 1, team: { maxSize: 2 } } },
+          release: async () => {
+            releases++
+          },
+        }
+      },
     },
     load: async () => ({
       host: emptyNpmContentHost,
@@ -30,6 +36,22 @@ it('captures real npm display and resources, preserves prepared recipes across e
     assetUrl: (token: string, hash: string) => `http://localhost/local-content/${token}/${hash}`,
   })
   try {
+    const music = Buffer.from('ID3 tagged background music')
+    const musicHash = createHash('sha256').update(music).digest('hex')
+    const manifest = join(fixture.installedDirectory, 'dist/presentation.json')
+    const presentation = JSON.parse(await readFile(manifest, 'utf8'))
+    presentation.resources.push({
+      id: 'theme',
+      kind: 'file',
+      tags: ['music'],
+      source: 'assets/theme.mp3',
+      sha256: musicHash,
+      bytes: music.length,
+      mime: 'audio/mpeg',
+    })
+    presentation.resources.push({ ...presentation.resources.at(-1), id: 'victory', tags: ['battle-ui:ko'] })
+    await writeFile(join(fixture.installedDirectory, 'assets/theme.mp3'), music)
+    await writeFile(manifest, JSON.stringify(presentation))
     await sessions.prepareProject({ directory: fixture.directory })
     const first = await sessions.prepare()
     expect(first).toMatchObject({ environmentId: 'duel', environmentName: '双宠对战' })
@@ -56,7 +78,22 @@ it('captures real npm display and resources, preserves prepared recipes across e
     )
     expect(await readFile(sessions.assetFile(first.token, hash).file)).toEqual(fixture.asset)
     expect(sessions.assetFile('wrong-token', hash)).toBeUndefined()
-    const shared = await sessions.capturePersonalEnvironment()
+    const shared = await sessions.capturePersonalEnvironment(undefined, 'duel')
+    expect(acquired.at(-1)).toBe('duel')
+    expect(shared.media).toContainEqual({
+      id: 'example-slow:theme',
+      source: 'arcadia-resource:' + musicHash,
+      sha256: musicHash,
+      tags: ['music'],
+    })
+    expect(shared.media).toContainEqual({
+      id: 'example-slow:victory',
+      source: 'arcadia-resource:' + musicHash,
+      sha256: musicHash,
+      tags: ['battle-ui:ko'],
+    })
+    expect(shared.assets.filter((asset: { id: string }) => asset.id === musicHash)).toHaveLength(1)
+    expect(shared.assets).toContainEqual({ id: musicHash, mime: 'audio/mpeg', data: music.toString('base64') })
     expect(shared.rules).toEqual(first.rules)
     expect(shared.environment).toEqual(first.environment)
     expect(shared.runtime.contentRevision).toBe(shared.environment.revision.split('/effects:')[0])

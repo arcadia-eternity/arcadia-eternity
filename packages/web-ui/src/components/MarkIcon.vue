@@ -55,13 +55,7 @@ const iconStyle = computed(() => {
 </script>
 
 <template>
-  <ResourceImage
-    :src="imageUrl"
-    :uncached="!!gameDataStore.serverFallback || !!resolvedMark?.presentation?.icon"
-    alt=""
-    class="mark-icon"
-    :style="iconStyle"
-  />
+  <ResourceImage :src="imageUrl" alt="" class="mark-icon" :style="iconStyle" />
 </template>
 
 <style scoped>

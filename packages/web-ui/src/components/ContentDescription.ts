@@ -68,7 +68,6 @@ const ContentDescription = defineComponent({
                         ? [
                             h(ResourceImage, {
                               src: resolveMarkIconUrl(mark, resources.getMarkImage),
-                              uncached: !!mark.presentation?.icon,
                               class: 'inline-block h-[1em] w-[1em]',
                               alt: '',
                             }),

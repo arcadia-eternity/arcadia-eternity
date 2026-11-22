@@ -14,30 +14,36 @@ on:
         type: string
 
 permissions:
-  actions: read
   contents: write
   pull-requests: write
   issues: write
 
 jobs:
-  release-please:
+  validate-inputs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    outputs:
-      base_tag: ${{ steps.base.outputs.tag }}
-      base_run: ${{ steps.base.outputs.run }}
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Validate npm retry inputs
-        if: github.event_name == 'workflow_dispatch'
         env:
           NPM_TAG: ${{ inputs.npm_tag }}
           VERIFIED_RUN: ${{ inputs.verified_run_id }}
         run: |
-          [[ -z "$NPM_TAG" || "$NPM_TAG" =~ ^(data-pack-base|arcadia-eternity)-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ -z "$VERIFIED_RUN" || ( -n "$NPM_TAG" && "$VERIFIED_RUN" =~ ^[0-9]+$ ) ]]
+          [[ -z "$NPM_TAG" || "$NPM_TAG" =~ ^(data-pack-base|arcadia-eternity)-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          [[ -z "$VERIFIED_RUN" || ( -n "$NPM_TAG" && "$VERIFIED_RUN" =~ ^[0-9]+$ ) ]] || exit 1
+
+  release-client:
+    needs: validate-inputs
+    if: inputs.npm_tag == '' || startsWith(inputs.npm_tag, 'arcadia-eternity-v')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-please-client-${{ inputs.npm_tag || github.ref }}
+      cancel-in-progress: false
+    outputs:
+      sdk_tag: ${{ inputs.npm_tag || steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
       - name: Run release-please
         if: inputs.npm_tag == ''
         uses: googleapis/release-please-action@v5.0.0
@@ -46,75 +52,52 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - name: Select the official content release
-        id: base
-        if: steps.release.outputs['packs--release_created'] == 'true' || steps.release.outputs.release_created == 'true' || startsWith(inputs.npm_tag, 'data-pack-base-v')
-        uses: actions/github-script@v9.0.0
-        env:
-          NEW_TAG: ${{ steps.release.outputs['packs--tag_name'] }}
-          RETRY_TAG: ${{ inputs.npm_tag }}
-          VERIFIED_RUN: ${{ inputs.verified_run_id }}
+  release-content:
+    needs: validate-inputs
+    if: inputs.npm_tag == '' || startsWith(inputs.npm_tag, 'data-pack-base-v')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-please-content-${{ inputs.npm_tag || github.ref }}
+      cancel-in-progress: false
+    outputs:
+      base_tag: ${{ inputs.npm_tag || steps.release.outputs['packs--tag_name'] }}
+    steps:
+      - name: Run release-please
+        if: inputs.npm_tag == ''
+        uses: googleapis/release-please-action@v5.0.0
+        id: release
         with:
-          script: |
-            const { NEW_TAG, RETRY_TAG, VERIFIED_RUN } = process.env
-            let tag = RETRY_TAG || NEW_TAG
-            if (!tag) {
-              const { data } = await github.rest.repos.getContent({
-                ...context.repo, path: '.release-please-manifest.json', ref: context.sha,
-              })
-              const version = JSON.parse(Buffer.from(data.content, 'base64').toString()).packs
-              if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('Invalid official content version')
-              const packages = ['data-pack-base', 'environment-default', 'environment-training-120']
-              const published = await Promise.all(packages.map(async name => {
-                const res = await fetch('https://registry.npmjs.org/@arcadia-eternity%2F' + name + '/' + version)
-                if (res.status === 404) return false
-                if (!res.ok) throw new Error('npm returned HTTP ' + res.status + ' for ' + name)
-                return true
-              }))
-              if (published.every(Boolean)) return
-              tag = 'data-pack-base-v' + version
-            }
-            core.setOutput('tag', tag)
-            if (VERIFIED_RUN) {
-              core.setOutput('run', VERIFIED_RUN)
-            } else if (!NEW_TAG) {
-              const { data: commit } = await github.rest.repos.getCommit({ ...context.repo, ref: tag })
-              const { data } = await github.rest.actions.listArtifactsForRepo({
-                ...context.repo, name: 'ugc-npm-packages-' + tag, per_page: 100,
-              })
-              const archived = data.artifacts.find(a => !a.expired && a.workflow_run?.head_branch === 'main' &&
-                a.workflow_run.head_sha === commit.sha && a.workflow_run.head_repository_id === a.workflow_run.repository_id)
-              if (archived) core.setOutput('run', String(archived.workflow_run.id))
-            }
+          config-file: packs/release-please-config.json
+          manifest-file: packs/.release-please-manifest.json
 
-  publish-base:
-    needs: release-please
-    if: needs.release-please.outputs.base_tag != ''
+  publish-content:
+    needs: release-content
+    if: needs.release-content.outputs.base_tag != ''
     permissions:
       actions: read
       contents: read
       id-token: write
     uses: ./.github/workflows/publish-packages.yaml
     with:
-      tag: ${{ needs.release-please.outputs.base_tag }}
-      verified_run_id: ${{ needs.release-please.outputs.base_run }}
+      tag: ${{ needs.release-content.outputs.base_tag }}
+      verified_run_id: ${{ inputs.verified_run_id }}
 
-  publish-npm:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true' || startsWith(inputs.npm_tag, 'arcadia-eternity-v')
+  publish-sdk:
+    needs: release-client
+    if: needs.release-client.outputs.sdk_tag != ''
     permissions:
       actions: read
       contents: read
       id-token: write
     uses: ./.github/workflows/publish-packages.yaml
     with:
-      tag: ${{ inputs.npm_tag || needs.release-please.outputs.tag_name }}
+      tag: ${{ needs.release-client.outputs.sdk_tag }}
       verified_run_id: ${{ inputs.verified_run_id }}
 
   # 当创建release时，自动合并到production分支
   merge-to-production:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    needs: release-client
+    if: needs.release-client.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -142,7 +125,7 @@ jobs:
 
       - name: Merge the release tag to production
         env:
-          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+          RELEASE_TAG: ${{ needs.release-client.outputs.tag_name }}
         run: |
           git merge "refs/tags/$RELEASE_TAG" --no-ff -m "chore: merge $RELEASE_TAG to production"
           git diff --exit-code "refs/tags/$RELEASE_TAG" HEAD
@@ -160,13 +143,13 @@ jobs:
               repo: context.repo.repo,
               event_type: 'production-release',
               client_payload: {
-                version: '${{ needs.release-please.outputs.version }}',
-                tag_name: '${{ needs.release-please.outputs.tag_name }}'
+                version: '${{ needs.release-client.outputs.version }}',
+                tag_name: '${{ needs.release-client.outputs.tag_name }}'
               }
             });
             console.log('Triggered production workflows via repository dispatch');
 
       - name: Record the release dispatch
         env:
-          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+          RELEASE_TAG: ${{ needs.release-client.outputs.tag_name }}
         run: echo "Dispatched production build and desktop release for $RELEASE_TAG." >> "$GITHUB_STEP_SUMMARY"

@@ -17,9 +17,10 @@
               <Menu />
             </el-icon>
           </button>
-          <div class="flex items-center gap-2">
+          <div class="relative flex items-center gap-2">
             <img src="@/assets/logo.png" alt="AE" class="h-7 w-7" />
             <span class="text-white text-lg font-bold" style="text-shadow: 0 0 8px #409eff">AE</span>
+            <MediaPreloadIndicator />
           </div>
         </div>
         <div class="compact-navigation-actions flex items-center gap-2">
@@ -50,7 +51,12 @@
       <div v-else class="flex justify-between items-center px-6 h-full">
         <div class="flex items-center gap-3">
           <img src="@/assets/logo.png" alt="Arcadia Eternity" class="h-10" />
-          <span class="text-white text-2xl font-bold" style="text-shadow: 0 0 8px #409eff">Arcadia Eternity</span>
+          <div class="relative">
+            <span class="block text-white text-2xl font-bold" style="text-shadow: 0 0 8px #409eff"
+              >Arcadia Eternity</span
+            >
+            <MediaPreloadIndicator />
+          </div>
         </div>
         <div class="desktop-navigation flex gap-2 items-center">
           <el-button
@@ -466,6 +472,10 @@ import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened, Search } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import { activeMediaCatalog } from '@/services/mediaLoader'
+import { createMediaPreloader } from '@/services/environmentMedia'
+import { preloadSwfPlayer } from '@/services/swf/assets'
+import MediaPreloadIndicator from '@/components/MediaPreloadIndicator.vue'
 import { useConnectionSettingsStore } from '@/stores/connectionSettings'
 import { autoCheckForUpdates } from '@/utils/version'
 import { createAppBootstrap } from '@/app/bootstrap'
@@ -503,6 +513,58 @@ const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
 const privateRoomStore = usePrivateRoomStore()
+const enteredLobby = ref(false)
+const environmentPreload = createMediaPreloader('环境全量预载', 'environment')
+const lobbyTeamPreload = createMediaPreloader('大厅队伍')
+const lobbyTeam = computed(() => {
+  const team =
+    petStorage.teams.find(row => row.id === petStorage.lastMatchingConfig?.teamId) ??
+    petStorage.teams[petStorage.currentTeamIndex]
+  return (
+    team?.pets.map(({ species, skills, ability, emblem }) => ({ species, skills: [...skills], ability, emblem })) ?? []
+  )
+})
+const mediaSettings = computed(() => ({
+  battleRenderer: gameSettingStore.battleRenderer,
+  background: gameSettingStore.background,
+  battleMusic: gameSettingStore.battleMusic,
+}))
+watch(
+  [
+    () => router.currentRoute.value.name,
+    activeMediaCatalog,
+    lobbyTeam,
+    mediaSettings,
+    () => !!privateRoomStore.currentRoom,
+  ],
+  ([page, catalog, pets, settings, inRoom]) => {
+    if (page === 'Lobby') enteredLobby.value = true
+    if (!enteredLobby.value) return
+    const started = environmentPreload.update(catalog, pets, settings)
+    // The initial sweep includes the team. Only later changes or a return to the lobby need a team warmup.
+    if (!started && page === 'Lobby' && !inRoom) lobbyTeamPreload.update(catalog, pets, settings)
+    else lobbyTeamPreload.stop()
+  },
+  { immediate: true },
+)
+onUnmounted(() => {
+  environmentPreload.stop()
+  lobbyTeamPreload.stop()
+})
+watch(
+  () =>
+    enteredLobby.value &&
+    gameSettingStore.battleRenderer !== 'image' &&
+    !!activeMediaCatalog()?.species.some(row => row.presentation?.battle?.renderer === 'seer2-swf'),
+  (enabled, _, cleanup) => {
+    if (!enabled) return
+    const controller = new AbortController()
+    cleanup(() => controller.abort())
+    void preloadSwfPlayer(controller.signal)
+  },
+  { immediate: true },
+)
+
 watch(
   () =>
     !!privateRoomStore.currentRoom ||

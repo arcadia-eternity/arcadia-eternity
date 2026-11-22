@@ -1,8 +1,10 @@
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
+import { mediaEnvironment, loadMedia } from '@/services/mediaLoader'
+import { battleScene } from '@/services/environmentMedia'
 import { Howl } from 'howler'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
-import { computed, onMounted, onUnmounted, watch, ref } from 'vue' // Added ref
+import { computed, onMounted, watch, ref } from 'vue' // Added ref
 import { storeToRefs } from 'pinia'
 
 export function useMusic(autoPlay: boolean = true) {
@@ -11,6 +13,8 @@ export function useMusic(autoPlay: boolean = true) {
 
   const volume = computed(() => gameSettingStore.musicVolume / 100)
   const musicSrc = computed(() => {
+    const selected = battleScene(mediaEnvironment(), 'music', gameSettingStore.battleMusic)
+    if (selected) return selected
     if (gameSettingStore.battleMusic === 'random') {
       if (resourceStore.music.allIds.length === 0) {
         return officialAssetUrl('https://seer2-resource.yuuinih.com/music/battle/BGM_1002.mp3')
@@ -33,21 +37,6 @@ export function useMusic(autoPlay: boolean = true) {
   const howlerInstance = ref<Howl | null>(null)
   const isStarted = ref(false)
 
-  const createNewHowl = (src: string) => {
-    if (howlerInstance.value) {
-      howlerInstance.value.stop()
-      howlerInstance.value.unload()
-    }
-    const newHowl = new Howl({
-      src: [src],
-      loop: true,
-      volume: volume.value,
-      mute: selfMute.value,
-    })
-    howlerInstance.value = newHowl
-    return newHowl
-  }
-
   watch(volume, newVolume => {
     if (howlerInstance.value) {
       howlerInstance.value.volume(newVolume)
@@ -64,21 +53,32 @@ export function useMusic(autoPlay: boolean = true) {
   })
 
   watch(
-    musicSrc,
-    (newSrc, oldSrc) => {
-      if (newSrc !== oldSrc || !howlerInstance.value) {
-        let shouldPlayAfterCreation = false
-        if (howlerInstance.value) {
-          shouldPlayAfterCreation = howlerInstance.value.playing()
-        } else {
-          shouldPlayAfterCreation = autoPlay && !selfMute.value && isStarted.value
-        }
-
-        createNewHowl(newSrc)
-
-        if (shouldPlayAfterCreation && !selfMute.value) {
-          howlerInstance.value?.play()
-        }
+    () => [musicSrc.value, mediaEnvironment().scope] as const,
+    async ([source], _previous, cleanup) => {
+      const controller = new AbortController()
+      let url: string | undefined
+      let instance: Howl | undefined
+      cleanup(() => {
+        controller.abort()
+        instance?.unload()
+        howlerInstance.value = null
+        if (url) URL.revokeObjectURL(url)
+      })
+      try {
+        const blob = await loadMedia('audio', source, controller.signal)
+        if (controller.signal.aborted) return
+        url = URL.createObjectURL(blob)
+        instance = new Howl({
+          src: [url],
+          format: [blob.type === 'audio/ogg' ? 'ogg' : 'mp3'],
+          loop: true,
+          volume: volume.value,
+          mute: selfMute.value,
+        })
+        howlerInstance.value = instance
+        if (isStarted.value && !selfMute.value) instance.play()
+      } catch {
+        /* Optional music can be unavailable in this environment. */
       }
     },
     { immediate: true },
@@ -103,13 +103,6 @@ export function useMusic(autoPlay: boolean = true) {
   onMounted(() => {
     if (autoPlay) {
       startMusic()
-    }
-  })
-
-  onUnmounted(() => {
-    if (howlerInstance.value) {
-      howlerInstance.value.stop()
-      howlerInstance.value.unload()
     }
   })
 

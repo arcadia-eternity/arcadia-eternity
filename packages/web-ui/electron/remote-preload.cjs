@@ -4,6 +4,12 @@ contextBridge.exposeInMainWorld('arcadiaRemotePlay', {
   setTeamDraftPending: pending => ipcRenderer.send('team-draft:pending', pending),
   updateProfileDraft: input => ipcRenderer.invoke('remote-play:profile-draft', input),
   requestProfileSave: input => ipcRenderer.invoke('remote-play:save-profile', input),
+  hasMediaCache: (scope, url, limit, ownScope) => ipcRenderer.invoke('remote-play:media-has', scope, url, limit, ownScope),
+  readMediaCache: (scope, url, limit, originalUrl) =>
+    ipcRenderer.invoke('remote-play:media-read', scope, url, limit, originalUrl),
+  writeMediaCache: (scope, url, bytes) => ipcRenderer.invoke('remote-play:media-write', scope, url, bytes),
+  clearMediaCache: scope => ipcRenderer.invoke('remote-play:media-clear', scope),
+  mediaCacheUsage: scope => ipcRenderer.invoke('remote-play:media-usage', scope),
   getBootConfig: () => ipcRenderer.invoke('remote-play:get-boot-config'),
   close: () => ipcRenderer.invoke('remote-play:close'),
 })

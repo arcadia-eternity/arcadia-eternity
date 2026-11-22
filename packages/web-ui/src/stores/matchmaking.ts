@@ -86,6 +86,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
   }
 
   client.on('matchmakingError', (response: ErrorResponse) => {
+    rooms.stopQueueMedia()
     if (response.code !== 'MATCHMAKING_CANCELED') error.value = matchmakingErrorMessage(response.code)
   })
 

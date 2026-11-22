@@ -87,9 +87,9 @@ test('GitHub callback is scrubbed before delayed game assets load and uses an in
   })
 
   let releaseRuffle: (() => void) | undefined
-  let assetReferer: string | undefined
+  let assetReferer: string | null | undefined
   await page.route('**/ruffle/ruffle.js*', async (route: Route) => {
-    assetReferer = route.request().headers().referer
+    assetReferer = await route.request().headerValue('referer')
     await new Promise<void>(resolve => {
       releaseRuffle = resolve
     })
@@ -100,7 +100,7 @@ test('GitHub callback is scrubbed before delayed game assets load and uses an in
   await expect.poll(() => Boolean(releaseRuffle)).toBe(true)
   expect(page.url()).not.toContain('one-time-code')
   expect(page.url()).not.toContain('pending-state')
-  expect(assetReferer).not.toContain('one-time-code')
+  expect(assetReferer).toBeNull()
   releaseRuffle!()
   await expect(page.getByText('已绑定的登录方式')).toBeVisible()
   expect(completedProfiles).toHaveLength(1)

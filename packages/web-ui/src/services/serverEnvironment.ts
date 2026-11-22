@@ -1,3 +1,4 @@
+import { registerMediaEnvironment } from './mediaRegistry'
 import { METADATA_MAX_BYTES, publicHttpUrl, readResourceBytes } from './resourceTransport'
 import {
   validateEnvironmentContent,
@@ -73,7 +74,7 @@ export async function readServerEnvironmentContent(
   return content
 }
 
-/** Resolve the server-approved display catalog. Media is loaded by its mounted consumer, without prefetch or caching. */
+/** Resolve the server-approved display catalog. Optional media never gates queue admission. */
 export async function prepareServerEnvironment(
   server: string,
   descriptor: ServerEnvironmentDescriptor,
@@ -131,6 +132,7 @@ export async function prepareServerEnvironment(
       | ServerEnvironmentContent['marks'][number],
   ) => item.presentation && mapPresentationResources(item.presentation, ref => resourceUrl(item.id, ref)!)
   const displayContent: ServerEnvironmentContent = {
+    ...(content.skillParameters && { skillParameters: content.skillParameters }),
     ...(content.elements && { elements: content.elements }),
     ...(content.matchupTables && { matchupTables: content.matchupTables }),
     ...(content.enhancements && { enhancements: content.enhancements }),
@@ -149,6 +151,18 @@ export async function prepareServerEnvironment(
       presentation: presentation(item),
     })),
   }
+  const name = (r: { projectId: string; id: string }) => {
+    const ns = descriptor.packages.find(pkg => pkg.projectId === r.projectId)?.namespace
+    return ns && ns !== 'base' ? ns + ':' + r.id : r.id
+  }
+  registerMediaEnvironment(
+    displayContent,
+    JSON.stringify([base, descriptor.environmentId ?? descriptor.id, descriptor.resourceRevision]),
+    [
+      ...descriptor.resources.map(r => ({ ...r, id: name(r), source: base + r.url })),
+      ...(descriptor.remoteResources ?? []).map(r => ({ ...r, id: name(r), source: r.url })),
+    ],
+  )
   return {
     content: displayContent,
     readiness: { catalog: 'ready', compatibility: 'compatible', media: 'on-demand' },

@@ -106,6 +106,9 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
     projects.add(pkg.projectId)
     namespaces.add(pkg.namespace)
   }
+  for (const item of [...descriptor.resources, ...(descriptor.remoteResources ?? [])]) {
+    if (item?.tags !== undefined && (!Array.isArray(item.tags) || !item.tags.every(identifier))) invalid()
+  }
   const resources = new Set<string>()
   for (const item of descriptor.resources) {
     if (
@@ -129,6 +132,7 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   const remote = new Set<string>()
   for (const item of descriptor.remoteResources ?? []) {
     if (!item || !identifier(item.projectId) || !identifier(item.id) || typeof item.url !== 'string') invalid()
+    if (item.sha256 !== undefined && (typeof item.sha256 !== 'string' || !HASH.test(item.sha256))) invalid()
     const key = `${item.projectId}/${item.id}`
     if (remote.has(key)) invalid()
     remote.add(key)

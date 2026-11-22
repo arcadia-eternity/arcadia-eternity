@@ -1,3 +1,4 @@
+import { localMediaScope, registerMediaEnvironment } from './mediaLoader'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import { digestJson, gameplayRevision, mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
 import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
@@ -19,6 +20,7 @@ type BuiltinWebEnvironment = {
 }
 
 type PreparedCatalog = {
+  packages?: { name: string; version: string }[]
   defaultEnvironment?: string
   builtins?: BuiltinWebEnvironment[]
   rules?: EnvironmentRules
@@ -40,6 +42,7 @@ export function hasPreparedWebEnvironment(): boolean {
 }
 
 const webRoot = () => new URL(import.meta.env.BASE_URL, window.location.href)
+const mediaReleases = new Map<string, () => void>()
 const catalogs = new Map<string, { promise: Promise<PreparedCatalog>; ready: boolean }>()
 let runtime: SandboxEnvironment | undefined
 
@@ -115,6 +118,16 @@ function readMaterialCatalog(material: string, refresh = false): Promise<Prepare
         )
           throw new Error('网页内置环境清单无效')
       }
+      mediaReleases.get(material)?.()
+      mediaReleases.set(
+        material,
+        registerMediaEnvironment(
+          value.content,
+          localMediaScope([root.href, material, value.gameplayRevision], value.packages, value.resources),
+          value.resources,
+          true,
+        ),
+      )
       entry.ready = true
       return value
     }),

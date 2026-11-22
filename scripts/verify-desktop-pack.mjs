@@ -370,6 +370,7 @@ export function previewBuilderConfiguration({ webDist, runtime } = {}) {
           files: [
             { from: resolve(webDist), to: 'dist', filter: ['**/*', '!arcadia-server/**'] },
             'electron/**/*',
+            'shared/**/*.mjs',
             'package.json',
           ],
         }

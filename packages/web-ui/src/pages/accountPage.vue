@@ -86,40 +86,6 @@
                   创建新队伍
                 </el-button>
               </router-link>
-
-              <el-divider />
-
-              <el-button
-                type="info"
-                @click="startPrecache"
-                :loading="precaching"
-                class="w-full"
-                :disabled="!gameDataStore.loaded"
-              >
-                <el-icon class="mr-2"><Download /></el-icon>
-                预缓存精灵资源
-              </el-button>
-
-              <p class="text-xs text-gray-500">
-                {{
-                  isDesktop
-                    ? '预先下载所有精灵的动画资源到本地，提升对战体验'
-                    : '预先下载所有精灵的动画资源，提升对战体验'
-                }}
-                <span v-if="cacheStats.total > 0"> (已缓存: {{ cacheStats.cached }}/{{ cacheStats.total }}) </span>
-              </p>
-
-              <el-button
-                v-if="cacheStats.cached > 0"
-                type="warning"
-                size="small"
-                @click="resetCacheStatus"
-                class="w-full"
-                plain
-              >
-                <el-icon class="mr-2"><Refresh /></el-icon>
-                {{ isDesktop ? '清理缓存' : '重置状态' }}
-              </el-button>
             </div>
           </el-card>
         </div>
@@ -143,21 +109,22 @@
               <p v-else-if="authStore.isAuthenticated" class="text-sm text-gray-600">
                 当前使用游客会话，无需注册。服务器通过会话凭证授权房间席位，相同 UID 不会获得相同权限。
               </p>
-              <p v-else class="text-sm text-gray-600">
+              <p v-else-if="recoveryState === 'ready'" class="text-sm text-gray-600">
                 尚未建立有效服务器会话。您仍可使用本地档案；加入联机房间时会申请游客会话。
               </p>
+              <el-button v-if="recoveryState === 'failed'" @click="restoreAccount">重试连接</el-button>
               <p v-if="authStore.session" class="text-xs text-gray-500 break-all">
                 服务器：{{ authStore.session.serverId }}
               </p>
               <p class="text-sm text-gray-600">登录方式由所连接的服务器提供。账号数据不会自动跨服务器共享。</p>
               <el-alert title="房间只在服务器本次运行期间有效" type="info" :closable="false" show-icon>
-                网络短断后可凭有效会话重连。服务器重启后，原会话、房间和席位全部失效，需要重新加入。
+                服务器重启后，已登录的账号可以恢复，原房间和席位需要重新加入。
               </el-alert>
               <el-button v-if="authStore.isAccount" :loading="loggingOut" @click="logout"> 退出服务器账号 </el-button>
             </div>
           </el-card>
 
-          <el-card v-if="accountEnabled">
+          <el-card v-if="accountEnabled && recoveryState === 'ready'">
             <template #header>
               <span>{{ authStore.isAccount ? '添加登录或找回方式' : '登录或创建服务器账号' }}</span>
             </template>
@@ -257,26 +224,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { ref, nextTick, computed, onMounted, watch } from 'vue'
 import type { AccountIdentity, AccountIntent } from '@arcadia-eternity/protocol'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  User,
-  DocumentCopy,
-  Edit,
-  Check,
-  Setting,
-  Refresh,
-  FolderOpened,
-  Plus,
-  Download,
-} from '@element-plus/icons-vue'
+import { User, DocumentCopy, Edit, Check, Setting, FolderOpened, Plus } from '@element-plus/icons-vue'
 import { usePlayerStore } from '@/stores/player'
-import { useGameDataStore } from '@/stores/gameData'
 import { useAuthStore } from '@/stores/auth'
 import { takeBootOAuthCallback, SessionRequestError } from '@/services/serverSession'
-import { petResourceCache } from '@/services/petResourceCache'
 import { isDesktop } from '@/utils/env'
 
 const playerStore = usePlayerStore()
-const gameDataStore = useGameDataStore()
 const authStore = useAuthStore()
 const managementRouter = useRouter()
 const managementRoute = useRoute()
@@ -305,7 +259,10 @@ const emailEnabled = computed(() => accountEnabled.value && authStore.serverInfo
 const githubEnabled = computed(
   () => !isDesktop && accountEnabled.value && authStore.serverInfo?.accountProviders?.includes('github'),
 )
+const recoveryState = ref<'checking' | 'failed' | 'ready'>('checking')
 const sessionStatus = computed(() => {
+  if (recoveryState.value === 'checking') return '正在确认登录状态'
+  if (recoveryState.value === 'failed') return '暂时无法确认登录状态'
   if (!authStore.isAuthenticated) return '未连接服务器身份'
   return authStore.isAccount ? '服务器账号' : '游客会话'
 })
@@ -444,10 +401,6 @@ const editingName = ref(false)
 const newName = ref('')
 const nameInput = ref()
 
-// 预缓存相关
-const precaching = ref(false)
-const cacheStats = computed(() => petResourceCache.getStats())
-
 // 开始编辑名称
 const startEditName = async () => {
   newName.value = playerStore.name
@@ -504,74 +457,28 @@ const copyPlayerId = async () => {
   }
 }
 
-// 开始预缓存
-const startPrecache = async () => {
-  try {
-    precaching.value = true
-
-    // 获取所有宠物编号
-    const allSpecies = gameDataStore.speciesList
-    const petNums = allSpecies.map(species => species.num).filter(num => num && num > 0)
-
-    if (petNums.length === 0) {
-      ElMessage.warning('没有找到可缓存的精灵资源')
-      return
-    }
-
-    ElMessage.info(`开始预缓存 ${petNums.length} 个精灵资源...`)
-
-    // 开始预缓存
-    await petResourceCache.preloadAllPets(petNums, () => {
-      // 可以在这里更新进度，但目前我们只在完成时显示消息
-    })
-
-    ElMessage.success(`成功预缓存 ${petNums.length} 个精灵资源！`)
-  } catch (error: unknown) {
-    console.error('预缓存失败:', error)
-    ElMessage.error(`预缓存失败: ${(error as Error).message}`)
-  } finally {
-    precaching.value = false
-  }
-}
-
-// 重置缓存状态
-const resetCacheStatus = async () => {
-  try {
-    const confirmMessage = isDesktop
-      ? '确定要清理本地缓存吗？这将删除所有已下载的精灵资源文件，需要重新下载。'
-      : '确定要重置缓存状态记录吗？这只会清除我们的缓存状态记录，不会影响浏览器实际缓存的资源。'
-
-    const confirmTitle = isDesktop ? '确认清理缓存' : '确认重置状态'
-
-    await ElMessageBox.confirm(confirmMessage, confirmTitle, {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-
-    await petResourceCache.resetCache()
-
-    const successMessage = isDesktop ? '本地缓存已清理' : '缓存状态已重置'
-    ElMessage.success(successMessage)
-  } catch {
-    // 用户取消操作
-  }
-}
-
-// 组件挂载时初始化缓存统计
 onMounted(async () => {
-  petResourceCache.initStats()
   try {
     await ensureLocalProfile()
   } catch (error) {
     ElMessage.error(accountError(error))
   }
+  await restoreAccount()
+})
+
+async function restoreAccount() {
   // Opening the local profile must not contact the deployment's default server.
   // Explicit server selection or an established session enables account discovery.
-  if (isDesktop && !authStore.hasSelectedServer && !authStore.isAuthenticated) return
+  if (isDesktop && !authStore.hasSelectedServer && !authStore.isAuthenticated) {
+    recoveryState.value = 'ready'
+    return
+  }
+  recoveryState.value = 'checking'
   try {
     await authStore.refreshAccountContext()
+    recoveryState.value = 'ready'
   } catch (error) {
+    recoveryState.value = 'failed'
     ElMessage.error(accountError(error))
     return
   }
@@ -592,7 +499,7 @@ onMounted(async () => {
   } finally {
     accountBusy.value = false
   }
-})
+}
 </script>
 
 <style scoped>

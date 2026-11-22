@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.13.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.12.2...data-pack-base-v4.13.0) (2026-11-22)
+
+
+### ✨ Features
+
+* **base:** declare battle interface roles for pinned CDN assets ([14f4aca](https://github.com/arcadia-eternity/arcadia-eternity/commit/14f4acaafce3fc62418c4d0b7c7f339e8a4d3d67))
+* **media:** preload environment assets and share battle resource reads ([c21d1a4](https://github.com/arcadia-eternity/arcadia-eternity/commit/c21d1a4b24ce372a004a2cdbfc6d1e750db8903c))
+
 ## [4.12.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.12.1...data-pack-base-v4.12.2) (2026-11-22)
 
 

@@ -121,9 +121,9 @@ export class SessionRegistry {
   }
 
   /** Called only after account authority has been checked against the durable directory. */
-  issueVerifiedAccount(value: unknown, accountId: string): ServerSession {
+  issueVerifiedAccount(value: unknown, accountId: string, expiresBy?: number): ServerSession {
     if (!this.accountEnabled || !boundedString(accountId, 256)) throw new SessionError('ACCOUNT_AUTH_UNAVAILABLE', 503)
-    return this.issue(readProfile(value), { kind: 'account', accountId }, this.generation)
+    return this.issue(readProfile(value), { kind: 'account', accountId }, this.generation, expiresBy)
   }
 
   /** Only called after the durable account credential and account status were verified. */
@@ -136,7 +136,12 @@ export class SessionRegistry {
     return structuredClone(session)
   }
 
-  private issue(profile: LocalProfile, principal: ServerPrincipal, generation: number): ServerSession {
+  private issue(
+    profile: LocalProfile,
+    principal: ServerPrincipal,
+    generation: number,
+    expiresBy = Infinity,
+  ): ServerSession {
     if (this.closed || generation !== this.generation) throw new SessionError('SESSION_REGISTRY_RESET', 503)
     if (principal.kind === 'account' && this.blockedAccounts.has(principal.accountId))
       throw new SessionError('ACCOUNT_DEACTIVATED', 403)
@@ -149,7 +154,7 @@ export class SessionRegistry {
       token: randomBytes(32).toString('base64url'),
       principal,
       profile,
-      expiresAt: Date.now() + (principal.kind === 'account' ? this.accountTtlMs : this.ttlMs),
+      expiresAt: Math.min(expiresBy, Date.now() + (principal.kind === 'account' ? this.accountTtlMs : this.ttlMs)),
     }
     this.sessions.set(session.token, session)
     return structuredClone(session)

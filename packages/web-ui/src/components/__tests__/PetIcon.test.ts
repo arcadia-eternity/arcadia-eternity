@@ -39,7 +39,7 @@ it('uses a bundled placeholder rather than a same-number official icon for remot
       onerror?: () => void
     },
   )
-  const icon = mount(PetIcon, { props: { id: 1, species: { id: 'pet_dilan', num: 1 }, uncached: true } })
+  const icon = mount(PetIcon, { props: { id: 1, species: { id: 'pet_dilan', num: 1 } } })
   await flushPromises()
   expect(sources).toEqual([unknownPet])
   expect(fetcher).not.toHaveBeenCalled()

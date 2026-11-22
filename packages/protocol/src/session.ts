@@ -53,6 +53,8 @@ export interface ServerInfo {
   authModes: ('guest' | 'account')[]
   /** Present only when the durable account directory and its verification paths are configured. */
   accountProviders?: AccountProviderId[]
+  /** HTTPS origin that supports same-origin, HttpOnly browser account recovery. */
+  browserLoginOrigin?: string
   protocolVersion: 1
   runtime?: NativeRuntimeIdentity
 }

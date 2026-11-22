@@ -82,21 +82,16 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
       for (const pkg of prepared.presentation) {
         const filesById = new Map(pkg.resources.map(resource => [resource.id, resource]))
         for (const resource of pkg.manifest.resources) {
-          if (resource.kind === 'http') resources.set(`${pkg.namespace}:${resource.id}`, resource.source)
-          if (resource.tags?.length) {
-            const id = pkg.namespace ? `${pkg.namespace}:${resource.id}` : resource.id
-            let source = resource.source
-            if (resource.kind === 'file') {
-              const file = filesById.get(resource.id)
-              if (!file) throw new Error(`LOCAL_RESOURCE_MISSING: ${id}`)
-              source = assetUrl(token, resource.sha256)
-            }
-            resourceIndex.push({ ...resource, id, source })
+          const id = pkg.namespace ? `${pkg.namespace}:${resource.id}` : resource.id
+          let source = resource.source
+          if (resource.kind === 'file') {
+            const file = filesById.get(resource.id)
+            if (!file) throw new Error(`LOCAL_RESOURCE_MISSING: ${id}`)
+            files.set(resource.sha256, { file: file.file, mime: resource.mime })
+            source = assetUrl(token, resource.sha256)
           }
-        }
-        for (const resource of pkg.resources) {
-          files.set(resource.sha256, { file: resource.file, mime: resource.mime })
-          resources.set(`${pkg.namespace}:${resource.id}`, assetUrl(token, resource.sha256))
+          resources.set(`${pkg.namespace}:${resource.id}`, source)
+          resourceIndex.push({ ...resource, id, source })
         }
       }
       for (const release of prepared.releases)
@@ -162,6 +157,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         projectId,
         namespace,
       }))
+      result.packages = packages
       sessions.set(token, { files, prepared, lease, owner, environment: prepared.sandbox, runtimeIdentity, packages })
       // Acquiring a fixed old configuration must not change the library's current selection.
       if (activeDirectory === undefined) activeDirectory = lease.directory
@@ -182,15 +178,17 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
     await collect()
   }
   /** Explicit sharing copies only already captured package media, never arbitrary caller paths. */
-  async function capturePersonalEnvironment(owner) {
-    const captured = await prepare(owner)
+  async function capturePersonalEnvironment(owner, environmentId) {
+    const captured = await prepare(owner, { environmentId })
     try {
       const session = sessions.get(captured.token)
       if (!session || session.owner !== owner) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
       const content = structuredClone(captured.content)
       const known = new Map([...session.files.keys()].map(id => [assetUrl(captured.token, id), id]))
       const referenced = new Set()
+      const used = new Set()
       const resource = value => {
+        used.add(value)
         const id = known.get(value)
         if (!id) return value
         referenced.add(id)
@@ -205,6 +203,18 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
           if (p.battle)
             for (const key of ['source', 'fallback']) if (p.battle[key]) p.battle[key] = resource(p.battle[key])
         }
+      const media = captured.resources
+        .filter(
+          row =>
+            row.tags?.some(tag => tag === 'background' || tag === 'music' || tag.startsWith('battle-ui:')) ||
+            used.has(row.source),
+        )
+        .map(row => ({
+          id: row.id,
+          source: resource(row.source),
+          ...(row.sha256 && { sha256: row.sha256 }),
+          ...(row.tags && { tags: row.tags }),
+        }))
       const assets = []
       let bytes = 0
       for (const id of referenced) {
@@ -233,6 +243,7 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         runtime: session.runtimeIdentity,
         packages: session.packages,
         assets,
+        media,
       }
     } finally {
       await release(captured.token)

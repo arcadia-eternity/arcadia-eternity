@@ -1,4 +1,5 @@
-import { officialAssetUrl } from '@/utils/officialAssetUrl'
+import ResourceImage from '@/components/ResourceImage.vue'
+import { battleUiUrl } from '@/services/mediaLoader'
 import { computed, h, render, type Ref, type ComputedRef } from 'vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
@@ -243,27 +244,19 @@ export function useBattleAnimations(
   function showHealMessage(side: Side, value: number) {
     float(side, 'heal', h(HealDisplay, { value }))
   }
-  function showMissMessage(side: Side) {
+  function showBattleNotice(side: Side, kind: 'miss' | 'absorb', label: string) {
+    const src = battleUiUrl(kind)
     float(
       side,
-      'miss',
-      h('img', {
-        src: officialAssetUrl('https://seer2-resource.yuuinih.com/png/damage/miss.png'),
-        style: { height: '80px', width: 'auto' },
-        alt: '未命中',
-      }),
+      kind,
+      src ? h(ResourceImage, { src, alt: label, style: { height: '80px', width: 'auto' } }) : h('span', label),
     )
   }
+  function showMissMessage(side: Side) {
+    showBattleNotice(side, 'miss', '未命中')
+  }
   function showAbsorbMessage(side: Side) {
-    float(
-      side,
-      'absorb',
-      h('img', {
-        src: officialAssetUrl('https://seer2-resource.yuuinih.com/png/damage/absorb.png'),
-        style: { height: '80px', width: 'auto' },
-        alt: '吸收',
-      }),
-    )
+    showBattleNotice(side, 'absorb', '吸收')
   }
   function showUseSkillMessage(side: Side, skillId: string) {
     const host = hostFor(side, 'skill')

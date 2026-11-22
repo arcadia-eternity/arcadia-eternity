@@ -1,7 +1,7 @@
-import { readResourceBytes } from '../resourceTransport'
+import { validateSwfFile } from '../../../shared/media-formats.mjs'
+import { readSwfRuntime } from './assets'
 import playerDocument from '../../../public/swf-player.html?raw'
 import {
-  validateSwfBytes,
   validSwfFrame,
   validSwfFrameIdentity,
   type SwfFrame,
@@ -14,13 +14,6 @@ import {
   type SwfEventHandler,
   type SwfPlayer,
 } from './protocol'
-const runtimeFiles = [
-  'ruffle.js',
-  'core.ruffle.16d61072ac7fdc4d5013.js',
-  'core.ruffle.994eeef0a471a88cd0e3.js',
-  '878d548199cddef07035.wasm',
-  '172de42e6619eac8f371.wasm',
-]
 interface DesktopBridge {
   create(options: { instance: string }): Promise<unknown>
   send(command: SwfCommand): Promise<unknown>
@@ -30,22 +23,6 @@ interface DesktopBridge {
   dispose(options: { instance: string }): Promise<unknown>
   onEvent(callback: (value: unknown) => void): () => void
 }
-/** Runtime files are application code, never a content-provided URL or CDN fallback. */
-async function readRuntime(signal: AbortSignal): Promise<Record<string, ArrayBuffer>> {
-  const runtime: Record<string, ArrayBuffer> = {}
-  let size = 0
-  for (const name of runtimeFiles) {
-    const bytes = await readResourceBytes(new URL(`${import.meta.env.BASE_URL}ruffle/${name}`, location.href).href, {
-      signal,
-      maxBytes: 32 * 1024 * 1024,
-    })
-    size += bytes.byteLength
-    if (size > 64 * 1024 * 1024) throw new Error('Bundled runtime exceeds limit')
-    runtime[name] = bytes.slice().buffer as ArrayBuffer
-  }
-  return runtime
-}
-
 export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler): SwfPlayer {
   const instance = crypto.randomUUID()
   let task = 0,
@@ -233,7 +210,8 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
   return {
     async load(bytes: SwfBytes) {
       if (disposed) throw new Error('Playback disposed')
-      await validateSwfBytes(bytes)
+      await validateSwfFile(bytes.container)
+      await validateSwfFile(bytes.movie)
       reject?.(new Error('Playback replaced'))
       cleanup()
       task++
@@ -248,7 +226,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       })
       void ready.catch(() => {})
       try {
-        const runtime = desktop ? undefined : await readRuntime(loading.signal)
+        const runtime = desktop ? undefined : await readSwfRuntime(loading.signal)
         if (disposed || loadingTask !== task) throw new Error('Playback replaced')
         const load = { ...command({ type: 'load' }), bytes, runtime } as SwfCommand
         if (desktop) {

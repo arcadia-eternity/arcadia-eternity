@@ -62,7 +62,6 @@ const duration = computed(() => props.mark.duration ?? -1)
         >
           <ResourceImage
             :src="image"
-            :uncached="!!markData?.presentation?.icon"
             class="battle-mark__icon object-contain transition-opacity duration-200 ease-in-out pointer-events-none"
             :alt="name"
             :class="{ 'opacity-50': !mark.config.persistent && duration == 1 }"

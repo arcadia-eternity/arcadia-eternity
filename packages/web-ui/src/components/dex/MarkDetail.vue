@@ -33,7 +33,6 @@
             >
               <ResourceImage
                 v-if="markImageUrl"
-                :uncached="!!mark.presentation?.icon"
                 :src="markImageUrl"
                 :alt="getMarkName()"
                 class="w-full h-full object-contain"

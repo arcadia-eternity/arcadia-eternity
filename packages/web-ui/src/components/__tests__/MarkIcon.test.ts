@@ -11,7 +11,7 @@ afterEach(() => {
 })
 
 it.each(['status', 'ability', 'emblem'])(
-  'uses declared %s mark icons and reloads on remount without a cache',
+  'uses declared %s mark icons and reuses bytes across remounts and releases each object URL',
   async tag => {
     const source = `https://server.test/${tag}.png`
     useGameDataStore().applyServerEnvironment({
@@ -33,10 +33,10 @@ it.each(['status', 'ability', 'emblem'])(
       await flushPromises()
       expect(icon.get('img').attributes('src')).toBe('blob:mark')
       expect(icon.get('img').attributes('style')).toContain('width: 32px')
-      expect(request).toHaveBeenCalledTimes(count)
+      expect(request).toHaveBeenCalledOnce()
       expect(request).toHaveBeenLastCalledWith(
         source,
-        expect.objectContaining({ cache: 'no-store', credentials: 'omit' }),
+        expect.objectContaining({ cache: 'default', credentials: 'omit' }),
       )
       icon.unmount()
       expect(revoke).toHaveBeenCalledTimes(count)

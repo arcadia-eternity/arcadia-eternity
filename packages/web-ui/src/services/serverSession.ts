@@ -124,6 +124,7 @@ export class ServerSessionClient {
   info: ServerInfo | null = null
   session: ServerSession | null = null
   private pending: Promise<ServerSession> | null = null
+  private restoring?: { epoch: number; task: Promise<ServerSession | null> }
   private identityEpoch = 0
   private disposed = false
   private readonly aborter = new AbortController()
@@ -245,7 +246,25 @@ export class ServerSessionClient {
     return { info: this.info!, session }
   }
 
-  private async resumeIfPresent(epoch: number): Promise<ServerSession | null> {
+  private get browserLogin() {
+    return (
+      typeof location !== 'undefined' &&
+      location.protocol === 'https:' &&
+      this.info?.browserLoginOrigin === location.origin &&
+      new URL(this.baseUrl).origin === location.origin
+    )
+  }
+
+  private resumeIfPresent(epoch: number): Promise<ServerSession | null> {
+    if (this.restoring?.epoch === epoch) return this.restoring.task
+    const task = this.restore(epoch).finally(() => {
+      if (this.restoring?.task === task) this.restoring = undefined
+    })
+    this.restoring = { epoch, task }
+    return task
+  }
+
+  private async restore(epoch: number): Promise<ServerSession | null> {
     const assertCurrent = () => {
       if (epoch !== this.identityEpoch) throw new Error('会话操作已取消')
     }
@@ -265,6 +284,22 @@ export class ServerSessionClient {
     }
     if (this.session?.bootId !== info.bootId && this.session && this.session.principal.kind !== 'account') {
       this.invalidate('服务器已重启，原房间已失效，请重新创建或加入房间')
+    }
+    if (this.browserLogin && this.session?.principal.kind !== 'guest') {
+      const previous = this.session
+      const { session } = await this.call<{ session: ServerSession | null }>('/auth/browser-session', {
+        method: 'POST',
+        headers: previous ? { Authorization: `Bearer ${previous.token}` } : undefined,
+        body: '{}',
+      })
+      assertCurrent()
+      if (session === null) {
+        if (previous) this.invalidate('账号登录已过期，请重新登录')
+        return null
+      }
+      if (session?.principal?.kind !== 'account') throw new Error('服务器未返回账号会话')
+      if (previous && previous.seatId !== session.seatId) this.invalidate('账号已恢复，请重新加入房间')
+      return this.save(session)
     }
     if (this.session) {
       try {
@@ -382,7 +417,11 @@ export class ServerSessionClient {
     const result = await this.call<AccountIdentityListResponse | AccountSessionResponse>('/auth/email/complete', {
       method: 'POST',
       headers: intent === 'link' ? this.accountHeaders() : undefined,
-      body: JSON.stringify(intent === 'login' ? { challengeId, code, intent, profile } : { challengeId, code, intent }),
+      body: JSON.stringify(
+        intent === 'login'
+          ? { challengeId, code, intent, profile, ...(this.browserLogin && { rememberBrowser: true }) }
+          : { challengeId, code, intent },
+      ),
     })
     if (intent === 'link') return (result as AccountIdentityListResponse).identities
     return this.adoptAccountSession((result as AccountSessionResponse).session)
@@ -428,7 +467,9 @@ export class ServerSessionClient {
         method: 'POST',
         headers: intent === 'link' ? this.accountHeaders() : undefined,
         body: JSON.stringify(
-          intent === 'login' ? { state, code, browserSecret, intent, profile } : { state, code, browserSecret, intent },
+          intent === 'login'
+            ? { state, code, browserSecret, intent, profile, ...(this.browserLogin && { rememberBrowser: true }) }
+            : { state, code, browserSecret, intent },
         ),
       })
     } catch (error) {
@@ -473,6 +514,7 @@ export class ServerSessionClient {
     try {
       await this.call<void>('/session', {
         method: 'DELETE',
+        ...(this.browserLogin && { body: JSON.stringify({ forgetBrowser: true }) }),
         headers: { Authorization: `Bearer ${this.session.token}` },
       })
     } catch (error) {

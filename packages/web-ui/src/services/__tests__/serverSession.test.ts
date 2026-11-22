@@ -138,6 +138,40 @@ describe('server session identity boundaries', () => {
     expect(request.mock.calls.every(([, init]) => !(init?.headers as Record<string, string>).Authorization)).toBe(true)
   })
 
+  it('recovers a remembered web account in a fresh tab and retains it through a deployment interruption', async () => {
+    const origin = 'https://game.example'
+    vi.stubGlobal('location', new URL(origin))
+    try {
+      const browserInfo = { ...info, browserLoginOrigin: origin }
+      const account = makeSession('first', { principal: { kind: 'account', accountId: 'a1' } })
+      const request = requester()
+        .mockResolvedValueOnce(json(browserInfo))
+        .mockResolvedValueOnce(json({ session: account }))
+      const store = storage()
+      const client = new ServerSessionClient(origin + '/api/v1', store, request)
+      await Promise.all([client.ensure(profile), client.refresh()])
+      expect(request.mock.calls.map(([url]) => url)).toEqual([
+        origin + '/api/v1/server-info',
+        origin + '/api/v1/auth/browser-session',
+      ])
+      expect(request.mock.calls[1][1]?.headers).not.toHaveProperty('Authorization')
+      const rebooted = { ...browserInfo, bootId: 'second-boot' }
+      const newSeat = { ...account, bootId: rebooted.bootId, seatId: 'second' }
+      request.mockResolvedValueOnce(json(rebooted)).mockResolvedValueOnce(json({}, 503))
+      await expect(client.ensure(profile)).rejects.toThrow('503')
+      expect(client.session).toEqual(account)
+      request.mockResolvedValueOnce(json(rebooted)).mockResolvedValueOnce(json({ session: newSeat }))
+      const reloaded = new ServerSessionClient(origin + '/api/v1', store, request)
+      expect((await reloaded.ensure(profile)).seatId).toBe('second')
+      expect(request.mock.calls.at(-1)?.[1]?.headers).toMatchObject({ Authorization: 'Bearer ' + account.token })
+      request.mockResolvedValueOnce(new Response(null, { status: 204 }))
+      await reloaded.logout()
+      expect(JSON.parse(request.mock.calls.at(-1)?.[1]?.body as string)).toEqual({ forgetBrowser: true })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('invalidates rooms on boot change before acquiring an unrelated guest seat', async () => {
     const request = requester()
       .mockResolvedValueOnce(json(info))

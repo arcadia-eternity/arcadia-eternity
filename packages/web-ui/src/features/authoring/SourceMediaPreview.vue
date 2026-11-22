@@ -1,77 +1,53 @@
+<script lang="ts">
+import type { SwfBytes, SwfPlayer } from '@/services/swf/protocol'
+export type MediaPreview = { kind: 'swf'; bytes: SwfBytes } | { kind: 'image' | 'audio'; blob: Blob }
+</script>
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { createSwfPlayer } from '@/services/swf/adapter'
-import type { SwfPlayer } from '@/services/swf/protocol'
-import { readResourceBytes } from '@/services/resourceTransport'
-const props = defineProps<{ file: string; bytes: Uint8Array }>()
+const props = defineProps<{ file: string; media: MediaPreview }>()
 const host = ref<HTMLElement>(),
   url = ref(''),
   error = ref(''),
   states = ref<string[]>([])
-let player: SwfPlayer | undefined,
-  generation = 0,
-  controller: AbortController | undefined
-const containerUrl = new URL(
-  '../../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf',
-  import.meta.url,
-).href
-function clear() {
-  generation++
-  controller?.abort()
-  player?.dispose()
-  player = undefined
-  if (url.value) URL.revokeObjectURL(url.value)
-  url.value = ''
-  states.value = []
-}
+let player: SwfPlayer | undefined
 watch(
-  () => [props.file, props.bytes, host.value],
-  async () => {
-    clear()
+  [() => props.media, host],
+  async ([media, element], _, cleanup) => {
+    url.value = ''
     error.value = ''
-    const epoch = generation
-    const extension = props.file.split('.').at(-1)?.toLowerCase()
-    if (extension === 'swf' && host.value) {
-      try {
-        controller = new AbortController()
-        const container = await readResourceBytes(containerUrl, {
-          signal: controller.signal,
-          maxBytes: 16 * 1024 * 1024,
-        })
-        if (epoch !== generation) return
-        player = createSwfPlayer(host.value, event => {
-          if (event.type === 'error') error.value = event.message
-        })
-        states.value = await player.load({
-          container: container.slice().buffer as ArrayBuffer,
-          movie: new Uint8Array(props.bytes).buffer,
-        })
-        await player.setState('待机')
-      } catch (cause) {
-        if (epoch === generation) error.value = String(cause)
-      }
-    } else {
-      const mime = (
-        {
-          png: 'image/png',
-          jpg: 'image/jpeg',
-          jpeg: 'image/jpeg',
-          webp: 'image/webp',
-          mp3: 'audio/mpeg',
-          ogg: 'audio/ogg',
-        } as Record<string, string>
-      )[extension ?? '']
-      if (mime) url.value = URL.createObjectURL(new Blob([new Uint8Array(props.bytes)], { type: mime }))
+    states.value = []
+    if (media.kind !== 'swf') {
+      const address = URL.createObjectURL(media.blob)
+      url.value = address
+      cleanup(() => URL.revokeObjectURL(address))
+      return
+    }
+    if (!element) return
+    const current = createSwfPlayer(element, event => {
+      if (player === current && event.type === 'error') error.value = event.message
+    })
+    player = current
+    cleanup(() => {
+      player = undefined
+      current.dispose()
+    })
+    try {
+      const next = await current.load(media.bytes)
+      if (player !== current) return
+      states.value = next
+      await current.setState('待机')
+    } catch (cause) {
+      if (player === current) error.value = String(cause)
     }
   },
   { immediate: true, flush: 'post' },
 )
-onBeforeUnmount(clear)
 </script>
 <template>
   <div class="media-preview">
-    <div v-if="file.toLowerCase().endsWith('.swf')" ref="host" class="swf" />
-    <audio v-else-if="/\.(mp3|ogg)$/i.test(file) && url" :src="url" controls /><img
+    <div v-if="media.kind === 'swf'" ref="host" class="swf" />
+    <audio v-else-if="media.kind === 'audio' && url" :src="url" controls /><img
       v-else-if="url"
       :src="url"
       :alt="file"

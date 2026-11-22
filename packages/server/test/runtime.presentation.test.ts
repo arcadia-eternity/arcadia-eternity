@@ -15,6 +15,7 @@ it('publishes remote URLs without downloading and streams package files without 
       {
         projectId: 'example-slow',
         id: 'animation',
+        tags: ['test'],
         url: 'http://127.0.0.1:1/not-fetched.swf',
         mime: 'application/x-shockwave-flash',
       },

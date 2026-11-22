@@ -123,13 +123,7 @@ function handleClick() {
         class="flex-shrink-0 bg-slate-600/50 rounded-lg flex items-center justify-center overflow-hidden"
         :class="compact ? 'w-10 h-10' : 'w-12 h-12'"
       >
-        <ResourceImage
-          v-if="markImage"
-          :uncached="!!mark?.presentation?.icon"
-          :src="markImage"
-          :alt="markName"
-          class="w-full h-full object-contain"
-        />
+        <ResourceImage v-if="markImage" :src="markImage" :alt="markName" class="w-full h-full object-contain" />
         <ShieldCheckIcon v-else class="text-purple-400" :class="compact ? 'w-6 h-6' : 'w-8 h-8'" />
       </div>
 

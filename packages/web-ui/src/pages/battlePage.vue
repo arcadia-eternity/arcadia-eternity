@@ -23,7 +23,9 @@ import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { waitForAnimationOperation } from '@/composition/animationTask'
 import { planAnimationMessages } from '@/composition/animationMessageBatch'
 import { AnimationController, type AnimationTask } from '@/composition/animationController'
-import { petResourceCache } from '@/services/petResourceCache'
+import { activeMediaCatalog, mediaEnvironment } from '@/services/mediaLoader'
+import { battleScene, createMediaPreloader, resetBattleScene } from '@/services/environmentMedia'
+import { useMediaImage } from '@/composition/useMediaImage'
 import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
@@ -84,6 +86,7 @@ import {
   nextTick,
   onMounted,
   onUnmounted,
+  watchEffect,
   provide,
   ref,
   render,
@@ -407,7 +410,9 @@ const currentTurn = computed(() => store.battleState?.currentTurn ?? 0)
 const currentActiveSkillId = ref<string | null>(null)
 
 const backgroundChoice = Math.random()
-const background = computed(() => {
+const backgroundSource = computed(() => {
+  const selected = battleScene(mediaEnvironment(), 'background', gameSettingStore.background)
+  if (selected) return selected
   if (gameSettingStore.background === 'random') {
     return Object.values(resourceStore.background.byId)[
       Math.floor(backgroundChoice * resourceStore.background.allIds.length)
@@ -419,6 +424,7 @@ const background = computed(() => {
   )
 })
 
+const { url: background, ready: backgroundReady } = useMediaImage(() => backgroundSource.value ?? '')
 const {
   showMissMessage,
   showAbsorbMessage,
@@ -450,32 +456,37 @@ const rightActiveSpecies = computed(() => {
   return gameDataStore.getSpecies(activePet?.speciesID ?? '')
 })
 
-const leftPetSpriteAsset = computed(() => resolveSpeciesSpriteAsset(leftActiveSpecies.value, resourceStore.getPetSwf))
-const rightPetSpriteAsset = computed(() => resolveSpeciesSpriteAsset(rightActiveSpecies.value, resourceStore.getPetSwf))
-
-const leftPetSpeciesNum = computed(() => leftPetSpriteAsset.value.swfNum)
-const rightPetSpeciesNum = computed(() => rightPetSpriteAsset.value.swfNum)
-
-const allTeamMemberSpritesNum = computed<number[]>(() => {
-  const allMembers = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])]
-  return allMembers.map(pet => gameDataStore.getSpecies(pet.speciesID)?.num || 0)
-})
+const leftPetSpriteAsset = computed(() => resolveSpeciesSpriteAsset(leftActiveSpecies.value))
+const rightPetSpriteAsset = computed(() => resolveSpeciesSpriteAsset(rightActiveSpecies.value))
 
 // 侧栏精灵列表
 const leftPlayerPets = computed(() => currentPlayer.value?.team || [])
 const rightPlayerPets = computed(() => opponentPlayer.value?.team || [])
 
-const allSkillId = computed(() => {
-  if (!store.battleState?.players) return []
-  return store.battleState.players
-    .map(p => p.team)
-    .flat()
-    .filter(p => p !== undefined)
-    .map(p => p.skills ?? [])
-    .flat()
-    .map(s => s.baseId)
+const battleMedia = createMediaPreloader('当前对战')
+watchEffect(() => {
+  const players = [currentPlayer.value, opponentPlayer.value]
+  const pets = players.flatMap(player =>
+    (player?.team ?? [])
+      .filter(pet => !pet.isUnknown)
+      .map(pet => ({
+        species: pet.speciesID,
+        skills: pet.skills?.filter(skill => !skill.isUnknown).map(skill => skill.baseId),
+        marks: pet.marks?.map(mark => mark.baseId),
+      })),
+  )
+  battleMedia.update(
+    activeMediaCatalog(),
+    pets,
+    gameSettingStore,
+    globalMarks.value.map(mark => mark.baseId),
+  )
 })
-const { playSkillSound, playPetSound, playVictorySound } = useSound(allSkillId, allTeamMemberSpritesNum)
+onUnmounted(() => {
+  battleMedia.stop()
+  resetBattleScene()
+})
+const { playSkillSound, playPetSound, playVictorySound } = useSound()
 
 // 缓存技能的原始顺序，避免在技能变身时位置发生变化
 const skillOrderCache = ref<
@@ -828,6 +839,10 @@ const exitBattleBecauseServerClosed = async (reason: string) => {
 
 const battleResult = computed(() => {
   if (!store.isBattleEnd) return ''
+  if (isSpectatorMode.value && store.victor) {
+    const winner = store.battleState?.players.find(player => player.id === store.victor)
+    return winner ? `${winner.name} 获胜` : '对战结束'
+  }
   return store.victor === store.playerId ? '胜利！' : store.victor ? '失败...' : '平局'
 })
 
@@ -991,6 +1006,7 @@ const initializeBattleResources = async () => {
       label: '战斗场景',
       required: false,
       run: async () => {
+        await backgroundReady.value
         if (!background.value) throw new Error('没有可用的战斗场景')
         await new Promise<void>((resolve, reject) => {
           const image = new Image()
@@ -1053,8 +1069,6 @@ const initializeBattleResources = async () => {
   if (isFullyLoaded.value) {
     isReplayFullyLoaded.value = props.replayMode && store.replaySnapshots.length > 0
     startMusic()
-    // Reserve assets load after the first scene is usable.
-    void preloadPetSprites()
   }
 }
 
@@ -1311,9 +1325,8 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
 
     gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
     const newPetInfo = store.getPetById(toPetId)
-    const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
     if (newPetInfo) {
-      playPetSound(newPetSpeciesNum, newPetInfo?.speciesID)
+      playPetSound(newPetInfo.speciesID)
     }
     await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
     assertExecution(execution)
@@ -1850,30 +1863,6 @@ const animatesubscribe = animationQueue
   )
   .subscribe()
 
-const preloadPetSprites = async () => {
-  const imageMode = () => gameSettingStore.battleRenderer === 'image'
-  if (imageMode() || gameDataStore.serverFallback) return
-  const pets = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])].filter(
-    pet => !pet.isUnknown,
-  )
-  const assets = pets.map(pet =>
-    resolveSpeciesSpriteAsset(gameDataStore.getSpecies(pet.speciesID), resourceStore.getPetSwf),
-  )
-  const urls = [
-    ...new Set(
-      assets
-        .filter(asset => !asset.customImageUrl)
-        .map(asset => asset.customSwfUrl || (asset.swfNum ? petResourceCache.getRemotePetUrl(asset.swfNum) : ''))
-        .filter(Boolean),
-    ),
-  ]
-  // Limit requests so optional reserves do not compete with first-scene resources.
-  for (let index = 0; index < urls.length; index += 3) {
-    if (battleDisposed || imageMode()) return
-    await Promise.allSettled(urls.slice(index, index + 3).map(url => petResourceCache.preloadUrl(url)))
-  }
-}
-
 async function animatePetEntry(
   petSprite: InstanceType<typeof PetSprite> | null,
   initialX: number,
@@ -1895,12 +1884,12 @@ async function initialPetEntryAnimation() {
   const animationDuration = 1
   const entryTimeout = 5
   const animations = []
-  for (const [pet, speciesNum, initialX, side] of [
-    [leftPet, leftPetSpeciesNum.value, -battleViewWidth / 2 - 100, 'left'],
-    [rightPet, rightPetSpeciesNum.value, battleViewWidth / 2 + 100, 'right'],
+  for (const [pet, initialX, side] of [
+    [leftPet, -battleViewWidth / 2 - 100, 'left'],
+    [rightPet, battleViewWidth / 2 + 100, 'right'],
   ] as const) {
     if (pet && pet.$el) {
-      playPetSound(speciesNum, side === 'left' ? leftActiveSpecies.value?.id : rightActiveSpecies.value?.id)
+      playPetSound(side === 'left' ? leftActiveSpecies.value?.id : rightActiveSpecies.value?.id)
       if (pet.availableState.includes(ActionState.PRESENT)) {
         animations.push(
           new Promise<void>(resolve => {
@@ -2289,7 +2278,7 @@ watch(
       const victor = store.victor
       const leftPet = petSprites.value.left
       const rightPet = petSprites.value.right
-      const isVictor = store.victor === store.playerId
+      const isVictor = store.victor === currentPlayer.value?.id
 
       if (victor === null) {
         if (leftPet && leftPet.availableState.includes(ActionState.DEAD)) leftPet.setState(ActionState.DEAD)
@@ -2538,16 +2527,12 @@ watch(
               <div class="absolute inset-0 pointer-events-none">
                 <!-- 左侧精灵 - 绝对定位在画面左侧 -->
                 <PetSprite
-                  v-if="
-                    leftPetSpeciesNum !== 0 || !!leftPetSpriteAsset.customSwfUrl || !!leftPetSpriteAsset.customImageUrl
-                  "
+                  v-if="leftPetSpriteAsset.customSwfUrl || leftPetSpriteAsset.customImageUrl"
                   :key="`left-${resourceAttempt}`"
                   ref="leftPetRef"
-                  :num="leftPetSpeciesNum"
                   :image-only="battleRenderer === 'image'"
                   :allow-recovery="!animating"
                   :swf-url="leftPetSpriteAsset.customSwfUrl"
-                  :uncached="!!gameDataStore.serverFallback"
                   :image-url="leftPetSpriteAsset.customImageUrl"
                   :fallback-image-url="leftPetSpriteAsset.fallbackImageUrl"
                   class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -2557,18 +2542,12 @@ watch(
                 />
                 <!-- 右侧精灵 - 绝对定位在画面右侧 -->
                 <PetSprite
-                  v-if="
-                    rightPetSpeciesNum !== 0 ||
-                    !!rightPetSpriteAsset.customSwfUrl ||
-                    !!rightPetSpriteAsset.customImageUrl
-                  "
+                  v-if="rightPetSpriteAsset.customSwfUrl || rightPetSpriteAsset.customImageUrl"
                   :key="`right-${resourceAttempt}`"
                   ref="rightPetRef"
-                  :num="rightPetSpeciesNum"
                   :image-only="battleRenderer === 'image'"
                   :allow-recovery="!animating"
                   :swf-url="rightPetSpriteAsset.customSwfUrl"
-                  :uncached="!!gameDataStore.serverFallback"
                   :image-url="rightPetSpriteAsset.customImageUrl"
                   :fallback-image-url="rightPetSpriteAsset.fallbackImageUrl"
                   :reverse="true"

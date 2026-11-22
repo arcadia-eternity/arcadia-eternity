@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import type { Server, Socket } from 'socket.io'
 import {
   BattleMessageType,
+  DEFAULT_TIMER_CONFIG,
   resolveEnvironmentBattleOptions,
   type Events,
   type PlayerSelection,
@@ -246,7 +247,8 @@ export class RoomRegistry {
     room.launch?.abort(new RoomError(code))
   }
   private cancelPlayerLaunch(room: Room, seat: string) {
-    if (room.info.players.some(player => player.playerId === seat)) this.cancelLaunch(room)
+    if (seat === room.info.config.hostPlayerId || room.info.players.some(player => player.playerId === seat))
+      this.cancelLaunch(room)
   }
   get size() {
     return this.rooms.size
@@ -339,10 +341,8 @@ export class RoomRegistry {
     if (a.length !== b.length || !timingSafeEqual(a, b)) fail('INVALID_PASSWORD')
   }
   private checkExecutionPolicy(environment: RoomEnvironment, battleMode: 'server' | 'p2p') {
-    if (environment.executionPolicy) {
-      const allowedMode = environment.executionPolicy === 'peer' ? 'p2p' : 'server'
-      if (battleMode !== allowedMode) fail('ENVIRONMENT_EXECUTION_POLICY')
-    } else if (environment.isNpm && battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')
+    if (battleMode === 'server' && environment.executionPolicy === 'peer') fail('ENVIRONMENT_EXECUTION_POLICY')
+    if (battleMode === 'p2p' && !environment.descriptor.peerRevision) fail('ENVIRONMENT_REQUIRES_SERVER')
   }
   private invalidatePersonalPreparation(room: Room) {
     if (!room.info.personalEnvironment) return
@@ -362,8 +362,10 @@ export class RoomRegistry {
       ('legacyBuiltinAcceptance' in room.environment && room.environment.legacyBuiltinAcceptance) ||
       !rules ||
       (rules.schemaVersion === 1 && !rules.allow && !rules.deny && !rules.team)
-    if (legacyDefault && !room.environment.isNpm && raw === undefined && room.environment.executionPolicy !== 'peer')
-      return
+    const requiresPeerRevision =
+      room.environment.executionPolicy === 'peer' ||
+      (room.info?.config.battleMode === 'p2p' && room.environment.executionPolicy === 'server')
+    if (legacyDefault && !requiresPeerRevision && !room.environment.isNpm && raw === undefined) return
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('CLIENT_ENVIRONMENT_REQUIRED')
     const accepted = raw as Record<string, unknown>
     const descriptor = room.environment.descriptor
@@ -379,10 +381,7 @@ export class RoomRegistry {
       fail('CLIENT_GAMEPLAY_VERSION_MISMATCH')
     if (accepted.resourceRevision !== descriptor.resourceRevision || accepted.resourcesReady !== true)
       fail('CLIENT_RESOURCES_NOT_READY')
-    if (
-      room.environment.executionPolicy === 'peer' &&
-      (!descriptor.peerRevision || accepted.peerRevision !== descriptor.peerRevision)
-    )
+    if (requiresPeerRevision && (!descriptor.peerRevision || accepted.peerRevision !== descriptor.peerRevision))
       fail('CLIENT_PEER_ENVIRONMENT_MISMATCH')
   }
   private async validateTeam(room: Pick<Room, 'environment'>, team: unknown) {
@@ -412,14 +411,7 @@ export class RoomRegistry {
     if (typeof isPrivate !== 'boolean') fail('INVALID_CONFIG')
     for (const key of ['allowFaintSwitch', 'showHidden'])
       if (input[key] !== undefined && typeof input[key] !== 'boolean') fail('INVALID_CONFIG')
-    const timerConfig = {
-      enabled: true,
-      turnTimeLimit: 30,
-      totalTimeLimit: 1500,
-      animationPauseEnabled: true,
-      maxAnimationDuration: 20_000,
-      ...previous?.timerConfig,
-    } as TimerConfig
+    const timerConfig = { ...DEFAULT_TIMER_CONFIG, ...previous?.timerConfig }
     if (input.timerConfig !== undefined) {
       const timer = object(input.timerConfig)
       for (const [key, value] of Object.entries(timer)) {
@@ -538,6 +530,7 @@ export class RoomRegistry {
       if (room.info.matchmaking) fail('ROOM_NOT_FOUND')
       this.checkPassword(room, input.password)
       if (spectator) {
+        if (room.info.config.battleMode === 'p2p') fail('P2P_SPECTATE_UNSUPPORTED')
         if (room.info.spectators.length >= this.limits.maxSpectators) fail('SPECTATOR_LIMIT_REACHED')
       } else {
         this.waiting(room)
@@ -600,12 +593,13 @@ export class RoomRegistry {
     if (this.seats.get(seat) === room.info.config.roomCode) this.seats.delete(seat)
     room.info.players = room.info.players.filter(p => p.playerId !== seat)
     room.info.spectators = room.info.spectators.filter(p => p.playerId !== seat)
-    if (!room.info.players.length) {
+    const nextHost = room.info.players[0] ?? room.info.spectators[0]
+    if (!nextHost) {
       await this.close(room, 'NO_PLAYERS')
       return
     }
     if (room.info.config.hostPlayerId === seat) {
-      room.info.config.hostPlayerId = room.info.players[0].playerId
+      room.info.config.hostPlayerId = nextHost.playerId
       this.invalidatePersonalPreparation(room)
     }
     this.update(room)
@@ -670,8 +664,10 @@ export class RoomRegistry {
     let preparing = false
     try {
       const requested = object(input).hostTeam
-      if (requested !== undefined)
-        room.info.players.find(p => p.playerId === session.seatId)!.team = await this.validateTeam(room, requested)
+      if (requested !== undefined) {
+        this.player(room, session)
+        room.members.get(session.seatId)!.team = await this.validateTeam(room, requested)
+      }
       if (room.info.players.some(p => !p.team || (p.playerId !== session.seatId && !p.isReady)))
         fail('PLAYERS_NOT_READY')
       await this.disposeBattle(room)
@@ -892,7 +888,11 @@ export class RoomRegistry {
       try {
         // Queue entries own fixed leases. Publication updates affect new admissions, not this lane.
         const battleMode = first.environment!.executionPolicy === 'peer' ? 'p2p' : 'server'
-        const created = await this.create(first.session, { config: { battleMode } }, first.environment)
+        const created = await this.create(
+          first.session,
+          { config: { battleMode, timerConfig: { enabled: true } } },
+          first.environment,
+        )
         room = this.rooms.get(created.roomCode)!
         if (!pair.every(player => this.queued(player)) || this.seats.has(second.session.seatId))
           fail('MATCHMAKING_CANCELED')
@@ -1124,6 +1124,12 @@ export class RoomRegistry {
           : undefined
         if (config.isPrivate && !password) fail('INVALID_CONFIG')
         this.checkExecutionPolicy(room.environment, config.battleMode ?? 'server')
+        if (config.battleMode === 'p2p' && room.info.spectators.length)
+          fail(
+            room.info.spectators.some(p => p.playerId === session.seatId)
+              ? 'HOST_CANNOT_SPECTATE'
+              : 'P2P_SPECTATE_UNSUPPORTED',
+          )
         if (input.environmentId !== undefined && input.environmentId !== room.environment.descriptor.id)
           fail('ENVIRONMENT_FIXED')
         if (input.personalEnvironment !== undefined || config.allowFaintSwitch !== room.info.config.allowFaintSwitch)
@@ -1143,7 +1149,7 @@ export class RoomRegistry {
         this.waiting(room)
         const target = text(object(data).targetPlayerId)
         if (target === session.seatId) fail('CANNOT_TRANSFER_TO_SELF')
-        if (!room.info.players.some(p => p.playerId === target)) fail('TARGET_NOT_PLAYER')
+        if (!room.members.has(target)) fail('TARGET_NOT_PLAYER')
         room.info.config.hostPlayerId = target
         this.invalidatePersonalPreparation(room)
         this.emit(room, {
@@ -1182,7 +1188,8 @@ export class RoomRegistry {
       withRoom(room => {
         this.waiting(room)
         this.player(room, session)
-        if (room.info.config.hostPlayerId === session.seatId) fail('HOST_CANNOT_SPECTATE')
+        if (room.info.config.battleMode === 'p2p')
+          fail(room.info.config.hostPlayerId === session.seatId ? 'HOST_CANNOT_SPECTATE' : 'P2P_SPECTATE_UNSUPPORTED')
         if (room.info.spectators.length >= this.limits.maxSpectators) fail('SPECTATOR_LIMIT_REACHED')
         const member = room.members.get(session.seatId)!
         member.isReady = false
@@ -1467,7 +1474,7 @@ export class RoomRegistry {
           }
           for (const [seat, disconnectedAt] of room.disconnected) {
             if (now - disconnectedAt < this.limits.reconnectGraceMs) continue
-            if (room.info.status === 'started') {
+            if (room.info.status === 'started' && room.info.players.some(player => player.playerId === seat)) {
               if (room.info.config.battleMode === 'p2p') await this.close(room, 'PEER_DISCONNECTED')
             } else await this.remove(room, seat)
           }

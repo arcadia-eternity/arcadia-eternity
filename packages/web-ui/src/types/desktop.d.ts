@@ -41,6 +41,7 @@ export interface ArcadiaDesktopApi {
   openRemotePlay(input: { url: string; mode?: 'play' | 'management' }): Promise<unknown>
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
   prepareLocalContent?: (environmentId?: string) => Promise<{
+    packages?: { name: string; version: string }[]
     gameplayRevision?: string
     environmentId?: string
     environmentName?: string
@@ -51,12 +52,13 @@ export interface ArcadiaDesktopApi {
     resources: import('@arcadia-eternity/schema').PresentationManifest['resources']
   }>
   readLocalRuntime?: (token: string) => Promise<import('@arcadia-eternity/battle/sandbox').SandboxEnvironment>
-  capturePersonalEnvironment?: () => Promise<{
+  capturePersonalEnvironment?: (environmentId?: string) => Promise<{
     rules?: import('@arcadia-eternity/protocol').PersonalEnvironmentReference['rules']
     environment: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
     runtime: import('@arcadia-eternity/protocol').NativeRuntimeIdentity
     packages: import('@arcadia-eternity/protocol').ServerEnvironmentDescriptor['packages']
+    media?: import('@/services/mediaLoader').MediaResource[]
     assets: { id: string; mime: string; data: string }[]
   }>
   releaseLocalContent?: (token: string) => Promise<void>
@@ -71,9 +73,11 @@ export interface ArcadiaDesktopApi {
   installContentPackageFile?: (options?: { offline?: boolean }) => Promise<string | null>
   installNpmContentPackage?: (options: { spec: string; offline?: boolean }) => Promise<string>
   getLocalServerPort: () => Promise<number | null>
-  downloadPetSwf: (petNum: number, remoteUrl: string) => Promise<string>
-  listCachedPets: () => Promise<number[]>
-  clearPetCache: () => Promise<void>
+  hasMediaCache?: (scope: string, url: string, limit: number, ownScope: boolean) => Promise<boolean>
+  readMediaCache?: (scope: string, url: string, limit: number, originalUrl?: string) => Promise<Uint8Array | null>
+  writeMediaCache?: (scope: string, url: string, bytes: Uint8Array) => Promise<void>
+  clearMediaCache?: (scope: string) => Promise<void>
+  mediaCacheUsage?: (scope: string) => Promise<{ files: number; bytes: number }>
   getAppVersion: () => Promise<string>
   checkForUpdates: () => Promise<DesktopUpdateCheckResult>
   downloadUpdate?: () => Promise<void>
@@ -126,7 +130,7 @@ declare global {
       teams: import('@/components/team/library').ProjectTeamStorage
       returnToEditor(): void
     }
-    arcadiaRemotePlay?: {
+    arcadiaRemotePlay?: Pick<ArcadiaDesktopApi, 'hasMediaCache' | 'readMediaCache' | 'writeMediaCache' | 'clearMediaCache' | 'mediaCacheUsage'> & {
   setTeamDraftPending?(pending: boolean): void
       updateProfileDraft?: (data: import('@arcadia-eternity/local-profile').ProfileData) => Promise<void>
       requestProfileSave?: (input: { data: import('@arcadia-eternity/local-profile').ProfileData; expectedRevision: number | null }) => Promise<void>

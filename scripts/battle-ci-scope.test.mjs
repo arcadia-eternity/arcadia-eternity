@@ -249,6 +249,8 @@ for (const path of [
   '.github/workflows/release-please.yml',
   '.github/release-please-config.json',
   '.release-please-manifest.json',
+  'packs/release-please-config.json',
+  'packs/.release-please-manifest.json',
 ]) {
   test(`content developer tooling runs its CLI and staging checks: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, cli: true })

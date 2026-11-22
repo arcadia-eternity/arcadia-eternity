@@ -767,6 +767,9 @@ importers:
       jsondiffpatch:
         specifier: 'catalog:'
         version: 0.7.7
+      lru-cache:
+        specifier: 11.5.3
+        version: 11.5.3
       mitt:
         specifier: ^3.0.1
         version: 3.0.1

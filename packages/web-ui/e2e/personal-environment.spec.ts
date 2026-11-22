@@ -164,8 +164,6 @@ test('unpublished personal environment stays on two consenting clients through a
       await dialog.getByText(option, { exact: true }).click()
       await expect(dialog.getByRole('radio', { name: option, exact: true })).toBeChecked()
     }
-    const timer = dialog.getByRole('switch').first()
-    if ((await timer.getAttribute('aria-checked')) === 'true') await timer.click()
     await expect(host.getByTestId('confirm-create-private-room-button')).toBeDisabled()
     await dialog.getByLabel('私人环境文件', { exact: true }).setInputFiles(bundleFile)
     await expect(dialog.getByText('已接受此版本', { exact: true })).toBeVisible({ timeout: 30_000 })
@@ -179,6 +177,8 @@ test('unpublished personal environment stays on two consenting clients through a
     expect(create).toBeDefined()
     const payload = create!.payload as Record<string, unknown>
     expect(Object.keys(payload).sort()).toEqual(['config', 'expectedRuntime', 'personalEnvironment'])
+    expect(payload.config).toMatchObject({ battleMode: 'p2p', p2pTransport: 'relay' })
+    expect(payload.config).not.toHaveProperty('timerConfig')
     expect(payload.personalEnvironment).toEqual({
       kind: 'personal',
       protocolVersion: 1,

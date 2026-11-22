@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Blob as NodeBlob } from 'node:buffer'
 import { readResourceBytes, registerOwnedResource } from '../resourceTransport'
-import { imageResourceBlob } from '../imageResource'
+import { inspectMedia } from '../../../shared/media-formats.mjs'
 
 const OriginalURL = globalThis.URL
 const revokeObjectURL = vi.fn()
@@ -143,13 +143,13 @@ it('rejects credential-bearing/non-HTTP addresses and followed redirects', async
 
 it('checks image dimensions from bytes rather than MIME and rejects active formats', () => {
   const png = new Uint8Array(24)
-  png.set([137, 80, 78, 71])
+  png.set([137, 80, 78, 71, 13, 10, 26, 10])
   png.set([73, 72, 68, 82], 12)
   const view = new DataView(png.buffer)
   view.setUint32(16, 16)
   view.setUint32(20, 16)
-  expect(imageResourceBlob(png).type).toBe('image/png')
+  expect(inspectMedia('image', png)).toBe('image/png')
   view.setUint32(16, 100_000)
-  expect(() => imageResourceBlob(png)).toThrow('尺寸')
-  expect(() => imageResourceBlob(new TextEncoder().encode('<svg onload="alert(1)"/>'))).toThrow('格式')
+  expect(() => inspectMedia('image', png)).toThrow('尺寸')
+  expect(() => inspectMedia('image', new TextEncoder().encode('<svg onload="alert(1)"/>'))).toThrow('格式')
 })

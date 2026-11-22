@@ -114,7 +114,23 @@ test('all legacy desktop handlers register through the shared manager guard', as
   assert.match(source, /requireLocalBattleCaller\(event\)\s+return handler\(event, \.\.\.args\)/)
   const preload = await readFile(new URL('./remote-preload.cjs', import.meta.url), 'utf8')
   assert.ok(!preload.includes("'arcadiaDesktop'"))
-  assert.equal(preload.match(/ipcRenderer.invoke/g).length, 8)
+  const channels = [...preload.matchAll(/ipcRenderer\.invoke\('([^']+)'/g)].map(match => match[1])
+  assert.deepEqual(channels.sort(), [
+    'remote-play:close',
+    'remote-play:get-boot-config',
+    'remote-play:media-clear',
+    'remote-play:media-has',
+    'remote-play:media-read',
+    'remote-play:media-usage',
+    'remote-play:media-write',
+    'remote-play:profile-draft',
+    'remote-play:save-profile',
+    'swf:bounds',
+    'swf:create',
+    'swf:dispose',
+    'swf:send',
+  ])
+  assert.equal(preload.match(/ipcRenderer\.invoke/g).length, channels.length)
   assert.ok(!preload.includes('invoke: ipcRenderer'))
 })
 

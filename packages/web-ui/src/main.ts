@@ -13,17 +13,17 @@ import { initI18n } from './i18n/i18n'
 import i18next from 'i18next'
 import { useAuthStore } from './stores/auth'
 import { usePrivateRoomStore } from './stores/privateRoom'
-import { ensureRuffleRuntime } from './bootstrap/ruffle'
+import { prepareSwfEntry } from './services/swf/assets'
 import { isStaticMode } from './utils/env'
 import { localDataStorage } from './services/localStorage'
 import { initializeProfile } from './services/profile'
 
 async function bootstrap() {
-  const animationRuntime = ensureRuffleRuntime().catch(error => {
+  const animationRuntime = prepareSwfEntry().catch(error => {
     if (isStaticMode) {
       throw new Error('本地动画资源未完整加载，请重新联网后刷新重试。', { cause: error })
     }
-    console.warn('Ruffle runtime preload failed, fallback loader may be used:', error)
+    console.warn('Ruffle entry preload failed; playback will retry:', error)
   })
   // Editing teams and other web pages can mount while the optional animation runtime loads.
   if (isStaticMode) await animationRuntime

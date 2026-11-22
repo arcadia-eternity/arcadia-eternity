@@ -60,20 +60,14 @@
             · 击破奖励换宠{{ privateRoomStore.currentRoom.config.allowFaintSwitch === false ? '关闭' : '开启' }}
           </span>
           <el-tag type="info">房主: {{ getHostPlayerName() }}</el-tag>
-          <el-tag
-            v-if="privateRoomStore.currentRoom.environment?.packages.length"
-            type="info"
-            data-testid="room-environment"
-          >
-            内容：{{
-              privateRoomStore.currentRoom.environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
-            }}
+          <el-tag v-if="privateRoomStore.currentRoom.environment" type="info" data-testid="room-environment">
+            环境：{{ roomEnvironmentLabel(privateRoomStore.currentRoom.environment) }}
           </el-tag>
           <el-button type="primary" size="small" @click="copyRoomCode"> 复制房间码 </el-button>
           <el-button type="primary" size="small" @click="copyRoomLink"> 复制链接 </el-button>
           <!-- 房主配置按钮 -->
           <el-button
-            v-if="privateRoomStore.isHost && privateRoomStore.currentRoom?.status === 'waiting'"
+            v-if="privateRoomStore.isHost && roomWaiting"
             type="warning"
             size="small"
             @click="openRoomConfigDialog"
@@ -108,12 +102,12 @@
                   :isCurrentPlayer="player.playerId === battleClientStore.playerId"
                   :canTransferHost="
                     privateRoomStore.isHost &&
-                    privateRoomStore.currentRoom?.status === 'waiting' &&
+                    roomWaiting &&
                     player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId
                   "
                   :canKick="
                     privateRoomStore.isHost &&
-                    privateRoomStore.currentRoom?.status === 'waiting' &&
+                    roomWaiting &&
                     player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId &&
                     player.playerId !== battleClientStore.playerId
                   "
@@ -138,7 +132,7 @@
         </div>
 
         <!-- Spectators Section -->
-        <div class="spectators-column">
+        <div v-if="!privateRoomStore.isP2PBattle" class="spectators-column">
           <div class="spectators-section">
             <h3>观战者 ({{ privateRoomStore.spectators.length }})</h3>
 
@@ -148,7 +142,7 @@
                 <div
                   v-if="
                     privateRoomStore.isHost &&
-                    privateRoomStore.currentRoom?.status === 'waiting' &&
+                    roomWaiting &&
                     spectator.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId &&
                     spectator.playerId !== battleClientStore.playerId
                   "
@@ -204,10 +198,7 @@
       </div>
 
       <!-- 队伍选择区域 -->
-      <div
-        v-if="privateRoomStore.isPlayer && privateRoomStore.currentRoom?.status === 'waiting'"
-        class="team-selection-section"
-      >
+      <div v-if="privateRoomStore.isPlayer && roomWaiting" class="team-selection-section">
         <TeamSelector
           v-model="selectedTeam"
           :room-code="roomCode"
@@ -223,7 +214,7 @@
         <template v-if="privateRoomStore.isHost">
           <!-- 等待状态：可以开始战斗 -->
           <el-button
-            v-if="privateRoomStore.currentRoom?.status === 'waiting' && privateRoomStore.canStartBattle"
+            v-if="roomWaiting && privateRoomStore.canStartBattle"
             type="primary"
             data-testid="start-battle-button"
             :disabled="privateRoomStore.isLoading || (privateRoomStore.isPlayer && !isTeamValid)"
@@ -233,46 +224,24 @@
           </el-button>
 
           <!-- 等待状态：等待玩家准备或选择队伍 -->
-          <el-button v-else-if="privateRoomStore.currentRoom?.status === 'waiting'" type="primary" disabled>
+          <el-button v-else-if="roomWaiting" type="primary" disabled>
             {{ getStartBattleDisabledReason() }}
-          </el-button>
-
-          <!-- 战斗进行中状态 -->
-          <el-button v-else-if="privateRoomStore.currentRoom?.status === 'started'" type="info" disabled>
-            战斗进行中
           </el-button>
         </template>
 
         <!-- 观战/战斗中 状态 -->
         <el-button
-          v-if="
-            privateRoomStore.isBattleInProgress &&
-            privateRoomStore.isSpectator &&
-            privateRoomStore.currentRoom?.config.battleMode !== 'p2p'
-          "
+          v-if="privateRoomStore.isBattleInProgress && privateRoomStore.isSpectator && !privateRoomStore.isP2PBattle"
           type="success"
           @click="joinSpectate"
         >
           进入观战
         </el-button>
-        <el-button
-          v-else-if="
-            privateRoomStore.isBattleInProgress &&
-            privateRoomStore.isSpectator &&
-            privateRoomStore.currentRoom?.config.battleMode === 'p2p'
-          "
-          type="info"
-          disabled
-        >
-          P2P 观战暂未开放
-        </el-button>
         <el-button v-else-if="privateRoomStore.isBattleInProgress" type="info" disabled> 战斗进行中 </el-button>
 
         <!-- 玩家准备按钮 -->
         <el-button
-          v-if="
-            !privateRoomStore.isHost && privateRoomStore.isPlayer && privateRoomStore.currentRoom?.status === 'waiting'
-          "
+          v-if="!privateRoomStore.isHost && privateRoomStore.isPlayer && roomWaiting"
           :type="privateRoomStore.myReadyStatus ? 'success' : 'primary'"
           data-testid="toggle-ready-button"
           :disabled="privateRoomStore.isLoading || (!privateRoomStore.myReadyStatus && !isTeamValid)"
@@ -282,7 +251,7 @@
         </el-button>
 
         <!-- 角色转换按钮 -->
-        <template v-if="privateRoomStore.currentRoom?.status === 'waiting'">
+        <template v-if="roomWaiting && !privateRoomStore.isP2PBattle">
           <!-- 玩家转观战者 -->
           <el-button
             v-if="privateRoomStore.isPlayer"
@@ -313,12 +282,10 @@
     <el-dialog v-model="showRoomConfigDialog" title="房间设置" width="min(500px, 92vw)">
       <el-form :model="privateRoomStore.roomConfigForm" label-width="120px">
         <RoomBattleOptions
-          v-model="battleOptions"
-          :environment-timer="!!roomRules?.mechanics?.timer"
+          v-model="battleMode"
+          :peer-only="privateRoomStore.currentRoom?.environment?.executionPolicy === 'peer'"
           :server-only="
-            !!privateRoomStore.currentRoom?.environment &&
-            (privateRoomStore.currentRoom.environment.executionPolicy === 'server' ||
-              !privateRoomStore.currentRoom.environment.peerRevision)
+            privateRoomStore.spectators.length > 0 || !privateRoomStore.currentRoom?.environment?.peerRevision
           "
         />
 
@@ -330,13 +297,12 @@
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="battleOptions.battleMode === 'p2p'" label="P2P 传输">
+        <el-form-item v-if="battleMode === 'p2p'" label="P2P 传输">
           <el-radio-group v-model="privateRoomStore.roomConfigForm.p2pTransport">
             <el-radio value="auto">自动</el-radio>
             <el-radio value="webrtc">WebRTC</el-radio>
             <el-radio value="relay">Relay</el-radio>
           </el-radio-group>
-          <div class="form-help-text">自动模式优先建立直连；连接受限时使用服务器中继。</div>
         </el-form-item>
 
         <el-form-item v-if="privateRoomStore.roomConfigForm.isPrivate" label="房间密码">
@@ -374,7 +340,7 @@ import type { PetSchemaType } from '@arcadia-eternity/schema'
 import PlayerCard from '@/components/PlayerCard.vue'
 import TeamSelector from '@/components/TeamSelector.vue'
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
-import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
+import { roomEnvironmentLabel } from '@/services/serverEnvironmentPolicy'
 import type { UpdatePrivateRoomConfigRequest } from '@arcadia-eternity/protocol'
 
 const route = useRoute()
@@ -411,7 +377,10 @@ const isTeamValid = ref(false)
 const teamValidationErrors = ref<string[]>([])
 
 const showRoomConfigDialog = ref(false)
-const battleOptions = ref(createDefaultRoomBattleOptions())
+const battleMode = ref<'server' | 'p2p'>('server')
+const roomWaiting = computed(
+  () => privateRoomStore.currentRoom?.status === 'waiting' || privateRoomStore.currentRoom?.status === 'ready',
+)
 
 const getHostPlayerName = (): string => {
   if (!privateRoomStore.currentRoom) return ''
@@ -628,19 +597,9 @@ const confirmSwitchToPlayer = async () => {
 }
 
 // 房间配置相关方法
-const roomRules = computed(
-  () => privateRoomStore.currentRoom?.personalEnvironment?.rules ?? privateRoomStore.currentRoom?.environment?.rules,
-)
 const openRoomConfigDialog = () => {
-  // 初始化配置表单
   privateRoomStore.initializeRoomConfigForm()
-  const defaults = createDefaultRoomBattleOptions()
-  const config = privateRoomStore.currentRoom?.config
-  battleOptions.value = {
-    battleMode: config?.battleMode ?? defaults.battleMode,
-    timerConfig: { ...defaults.timerConfig, ...config?.timerConfig },
-    showHidden: config?.showHidden ?? defaults.showHidden,
-  }
+  battleMode.value = privateRoomStore.currentRoom?.config.battleMode ?? 'server'
   showRoomConfigDialog.value = true
 }
 
@@ -650,8 +609,7 @@ const saveRoomConfig = async () => {
       isPrivate: privateRoomStore.roomConfigForm.isPrivate,
       password: privateRoomStore.roomConfigForm.password,
       p2pTransport: privateRoomStore.roomConfigForm.p2pTransport,
-      ...battleOptions.value,
-      ...(roomRules.value?.mechanics?.timer && { timerConfig: undefined }),
+      battleMode: battleMode.value,
     }
 
     // 如果密码为空字符串，设置为undefined

@@ -117,6 +117,19 @@ describe('fixed peer environment acquisition', () => {
     )
   })
 
+  it('prepares published skills with the same parameter catalog used by the peer runtime', async () => {
+    const { descriptor, materials } = await fixture()
+    const groups = [{ id: 'power' }]
+    const captured = {
+      ...materials,
+      environment: { ...materials.environment, data: { ...materials.environment.data, parameterGroups: groups } },
+    }
+    const skillParameters = { groups, profiles: [], members: [] }
+    const request = transport(captured, { displayed: { ...content, skillParameters } })
+    const prepared = await preparePeerEnvironment(server, descriptor, request as typeof fetch)
+    expect(prepared.content.skillParameters).toEqual(skillParameters)
+  })
+
   it('keeps remote acquisition independent of desktop selection and never evaluates module source', async () => {
     const { descriptor, materials } = await fixture()
     const prepareLocalContent = vi.fn(() => {

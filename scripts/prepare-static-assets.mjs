@@ -1,5 +1,13 @@
+import { readResourceBytes } from '../packages/web-ui/src/services/resourceTransport.ts'
+import {
+  inspectMedia,
+  mediaKindForMime,
+  mediaMimeForFile,
+  mediaLimits,
+} from '../packages/web-ui/shared/media-formats.mjs'
 import { readContentSources } from '../packages/content-dev/src/lib/content.ts'
-import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -14,42 +22,40 @@ export function assetPath(url) {
   return `${directory}${parsed.pathname}`
 }
 
-export async function collectOfficialAssetUrls(repositoryRoot = root) {
-  const sources = await readContentSources(path.join(repositoryRoot, 'packs/base'))
-  const urls = new Set(
-    sources
-      .filter(source => source.kind === 'resources')
-      .flatMap(source => source.records.map(row => row.source))
-      .filter(source => /^https?:/.test(source)),
-  )
-  return [...urls].sort()
+async function officialAssetHashes(repositoryRoot) {
+  const assets = new Map()
+  for (const source of await readContentSources(path.join(repositoryRoot, 'packs/base'))) {
+    if (source.kind !== 'resources') continue
+    for (const row of source.records) {
+      if (!/^https?:/.test(row.source)) continue
+      if (!/^[a-f0-9]{64}$/.test(row.sha256)) throw new Error(`Missing official asset hash: ${row.source}`)
+      if (assets.has(row.source) && assets.get(row.source) !== row.sha256)
+        throw new Error(`Conflicting official asset hashes: ${row.source}`)
+      assets.set(row.source, row.sha256)
+    }
+  }
+  return assets
 }
 
-export function verifyAsset(bytes, url) {
+export async function collectOfficialAssetUrls(repositoryRoot = root) {
+  return [...(await officialAssetHashes(repositoryRoot)).keys()].sort()
+}
+
+export function verifyAsset(bytes, url, sha256) {
   if (!bytes.length) throw new Error(`Empty official asset: ${url}`)
-  const extension = path.extname(new URL(url).pathname)
-  if (extension === '.png' && !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
-    throw new Error(`Official asset is not a PNG: ${url}`)
-  }
-  if (extension === '.swf' && !['FWS', 'CWS', 'ZWS'].includes(bytes.subarray(0, 3).toString())) {
-    throw new Error(`Official asset is not an SWF: ${url}`)
-  }
-  if (
-    extension === '.mp3' &&
-    bytes.subarray(0, 3).toString() !== 'ID3' &&
-    !(bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
-  ) {
-    throw new Error(`Official asset is not MP3 audio: ${url}`)
-  }
+  const mime = mediaMimeForFile(new URL(url).pathname)
+  const kind = mediaKindForMime(mime)
+  if (kind && inspectMedia(kind, bytes) !== mime) throw new Error(`Official asset format mismatch: ${url}`)
+  if (sha256 && createHash('sha256').update(bytes).digest('hex') !== sha256)
+    throw new Error(`Official asset hash mismatch: ${url}`)
   return { size: bytes.length }
 }
 
 async function download(url) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`)
-      return Buffer.from(await response.arrayBuffer())
+      const kind = mediaKindForMime(mediaMimeForFile(url))
+      return Buffer.from(await readResourceBytes(url, { maxBytes: kind && mediaLimits[kind], timeoutMs: 30_000 }))
     } catch (error) {
       if (attempt === 2) throw error
     }
@@ -61,7 +67,8 @@ export async function prepareStaticAssets({
   output = path.join(repositoryRoot, 'packages/web-ui/dist/official-assets'),
   cache = path.join(repositoryRoot, 'packages/web-ui/.static-assets-cache'),
 } = {}) {
-  const urls = await collectOfficialAssetUrls(repositoryRoot)
+  const hashes = await officialAssetHashes(repositoryRoot)
+  const urls = [...hashes.keys()]
   const errors = []
   let cursor = 0
   let completed = 0
@@ -76,18 +83,17 @@ export async function prepareStaticAssets({
           let bytes
           try {
             bytes = await readFile(cachedPath)
-            verifyAsset(bytes, url)
+            verifyAsset(bytes, url, hashes.get(url))
           } catch {
             bytes = await download(url)
-            verifyAsset(bytes, url)
+            verifyAsset(bytes, url, hashes.get(url))
             await mkdir(path.dirname(cachedPath), { recursive: true })
             await writeFile(`${cachedPath}.tmp`, bytes)
             await rename(`${cachedPath}.tmp`, cachedPath)
           }
-          verifyAsset(bytes, url)
           const target = path.join(output, relative)
           await mkdir(path.dirname(target), { recursive: true })
-          await copyFile(cachedPath, target)
+          await writeFile(target, bytes)
           totalBytes += bytes.length
         } catch (error) {
           errors.push(`${url}: ${error.message}`)
