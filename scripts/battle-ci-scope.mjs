@@ -56,8 +56,8 @@ const jobFiles = {
     /^examples\/ugc\//,
     /^scripts\/(?:stage-author-sdk(?:\.test)?|release-author-sdk)\.mjs$/,
     /^\.github\/workflows\/(?:publish-packages\.yaml|release-please\.yml)$/,
-    /^\.github\/release-please-config\.json$/,
-    /^\.release-please-manifest\.json$/,
+    /^(?:\.github|packs)\/release-please-config\.json$/,
+    /^(?:packs\/)?\.release-please-manifest\.json$/,
   ],
 }
 
