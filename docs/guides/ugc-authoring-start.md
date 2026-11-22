@@ -1,6 +1,49 @@
-# 创建并测试 TypeScript 内容包
+# 创建与调试资料包和环境
 
-这个入口创建一个标准 npm 包：包含精灵、技能、减速印记、TypeScript 效果、场景测试和供编码助手使用的 Agent Skill。首个示例命中后减速两回合，重复命中刷新持续时间而不叠加幅度；可以在此基础上修改内容。它不会安装、批准、发布或部署内容。
+在桌面客户端的“内容包与创作”页打开“终端命令”，即可复制带完整路径的命令，粘贴到终端或发给能执行命令的 agent。`arcadia-content` 用于创建、调试和安装内容，`arcadia` 用于对战、验证回放和开服。下文用这两个短名称代表对应的启动命令，实际使用时保留复制出的路径和引号，把 `--help` 换成示例参数即可。例如，把创作命令末尾的 `--help` 换成 `init pack frost-pack`，就会在当前目录创建资料包。
+
+Linux AppImage 首次为项目连接 SDK 时，会把创作依赖保存在 `${XDG_DATA_HOME:-$HOME/.local/share}/arcadia-eternity/author-sdks`。同一 AppImage 的项目共用一份，关闭客户端后项目内的命令仍能找到依赖。
+
+在新目录创建资料包用 `arcadia-content init pack frost-pack`。模板包含精灵、技能、减速印记、TypeScript 效果和场景测试。首个示例命中后减速两回合，重复命中刷新持续时间。
+
+要用已有资料包编排赛制，可以直接创建独立环境。
+
+```sh
+arcadia-content init environment singles-cup
+arcadia-content workspace singles-cup check
+arcadia-content workspace singles-cup demo --execute --seed cup-baseline
+arcadia-content workspace singles-cup preview --execute
+```
+
+环境的 `package.json` 用 `dependencies` 选择资料包，用 `arcadiaEnvironment` 保存规则。模板提供 `blue` 和 `orange` 两支测试队。可用的同版基础包会在本机复用，缺少的注册表依赖首次运行时可能需要联网。静态检查通过后，用固定种子的演示验证实际组装的环境。试玩命令会持续运行，按 Ctrl+C 结束。
+
+通过 MCP 连接这个目录后，可用 `environment_list` 读取环境版本，`environment_save` 保存规则，`preview_start` 准备新候选，然后用 `team_validate` 逐队检查该版本的准入结果。命中禁用规则时，结果含 `valid: false`、诊断和环境修订。用 `battle_create` 指定两支合法队伍和种子即可开局。完整创作指南可从 `author_reference` 的 `authoring` 主题读取。
+
+## 安装到玩家的桌面客户端
+
+保持目标客户端打开。以下命令会列出可连接的实例、安装已打包的环境并核对玩家库。将 `INSTANCE_ID` 换成第一条命令返回的 `id`，将归档路径换成 `arcadia-content pack` 输出的文件名。只有一个实例在线时可以省略 `--instance`。
+
+```sh
+arcadia-content desktop instances
+arcadia-content desktop environments install ./singles-cup.tgz --instance INSTANCE_ID
+arcadia-content desktop environments list --instance INSTANCE_ID
+```
+
+资料包使用 `desktop packages install` 和 `desktop packages list`。安装源支持本地 `.tgz` 或精确 npm 版本，资料包也支持桌面端已有的 `.zip` 格式。默认使用离线物料，允许下载时加 `--allow-download`。客户端沿用已有的安装确认和效果执行授权。新环境安装后可在客户端环境列表中选择。
+
+## 用已安装的环境对战和开服
+
+保持客户端打开，把下面的 `ENV_ID` 换成环境列表返回的 ID，队伍路径换成自己的队伍文件，也可以直接使用创作模板生成的 `debug/teams/blue.yaml` 和 `debug/teams/orange.yaml`。模拟使用该环境已应用的内容和规则，并保留界面当前选中的环境。用同一个环境可以验证这场对战的回放。
+
+```sh
+arcadia battle simulate -1 blue.yaml -2 orange.yaml --environment ENV_ID --seed cup-1 --replay-out cup.json --json
+arcadia battle replay cup.json --environment ENV_ID --verify --json
+arcadia battle local -1 blue.yaml -2 orange.yaml --environment ENV_ID --ai player2
+```
+
+首次开客户端里的托管服，可以运行 `arcadia desktop server start --scope local --port 0`，让系统分配本地端口。此后运行 `arcadia desktop server start` 会沿用保存的设置。用 `status` 看状态、`restart` 重启、`stop` 停服。多个客户端同时运行时，用 `arcadia desktop instances` 查 ID，再给对战或托管服命令加 `--instance ID`。
+
+也可以关闭客户端，用默认内置内容跑 `arcadia battle simulate`，或用 `arcadia server --host 127.0.0.1 --port 8102 --data-dir ./league-server` 从终端独立开服。
 
 ## 从独立模板开始
 

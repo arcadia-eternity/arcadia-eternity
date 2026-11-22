@@ -15,6 +15,7 @@ import { createSwfHost } from './swf-host.mjs'
 import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
+import { playerLibraryRoute, registerPlayerLibrary } from './player-library-bridge.mjs'
 import { ContentLibrary, readDesktopContentSources } from './content-library.mjs'
 import { createAuthorPreviewSessions } from './author-preview-sessions.mjs'
 import { notifyAuthorPreviewChange } from './author-preview-events.mjs'
@@ -32,6 +33,8 @@ import { DesktopWorkspaceOwner } from './desktop-workspace-owner.mjs'
 import { protectStandardStreams } from './stdio.mjs'
 
 protectStandardStreams()
+
+let playerLibraryBridge
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')
@@ -233,7 +236,7 @@ async function openAuthorPreview(id, job) {
     height: 800,
     show: false,
     backgroundColor: '#09131f',
-    title: '内容包试玩',
+    title: '调试试玩',
     webPreferences: {
       session: isolated,
       preload: path.join(__dirname, 'preview-preload.cjs'),
@@ -308,6 +311,13 @@ function getContentLibrary() {
     ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
     : require
   const root = path.join(app.getPath('userData'), 'content-packages')
+  const shippedRoot = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
+  const readCatalog = async (baseRoot, file) => {
+    const { readOfficialEnvironments } = await import(
+      pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+    )
+    return readOfficialEnvironments(baseRoot, runtimeRequire.resolve, file)
+  }
   contentLibrary ??= new ContentLibrary({
     root,
     packageUpdates: {
@@ -316,7 +326,8 @@ function getContentLibrary() {
         const { findPackageUpdate } = await loadPackageUpdates()
         return findPackageUpdate(...args)
       },
-      shippedRoot: path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+      shippedRoot,
+      shippedCatalog: () => readCatalog(shippedRoot),
       catalogDigest: async root => {
         const { catalogMaterialDigest } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/pack-loader/node')).href
@@ -331,13 +342,9 @@ function getContentLibrary() {
         const { validateWorkspaceProject } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
         )
-        const { readOfficialEnvironments } = await import(
-          pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
-        )
-        const base = '@arcadia-eternity/data-pack-base'
-        const catalog = await readOfficialEnvironments(
-          path.join(directory, 'node_modules', base),
-          shippedEnvironmentsFile(),
+        const catalog = await readCatalog(
+          path.join(directory, 'node_modules', '@arcadia-eternity/data-pack-base'),
+          path.join(directory, 'official-environments.json'),
         )
         for (const draft of catalog.environments)
           await validateWorkspaceProject({ directory, signal, draft }, { effectPreparation: 'prebuilt-only' })
@@ -429,8 +436,22 @@ function getLocalEnvironments() {
       await getManagementWorkspaceOwner().ready()
       return builtinEnvironment
     },
-    baseRules: runtimeRequire('@arcadia-eternity/data-pack-base/environment/base-rules.json'),
+    baseRules: runtimeRequire('@arcadia-eternity/environment-default/package.json').arcadiaEnvironment.rules,
     library: getContentLibrary(),
+    acquireRecipe: async (source, destination, options) => {
+      const { acquireAuthorEnvironment, parseAuthorEnvironmentNpmSpec } = await import(
+        pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
+      )
+      return acquireAuthorEnvironment(
+        source.kind === 'npm' ? parseAuthorEnvironmentNpmSpec(source.spec) : source,
+        destination,
+        {
+          ...options,
+          clientVersion: app.isPackaged ? app.getVersion() : require('../package.json').version,
+          cache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
+        },
+      )
+    },
     addPackage: async (workspace, input) => {
       const { addEnvironmentPackage } = await import(
         pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
@@ -466,11 +487,7 @@ function getLocalEnvironments() {
   })
   return localEnvironments
 }
-function shippedEnvironmentsFile() {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, 'arcadia-server/shipped-environments.json')
-    : path.resolve(projectRoot, '../../bin/shipped-environments.json')
-}
+
 let builtinSync = Promise.resolve()
 let updateOfficialContent
 let stopAutomaticContentUpdates
@@ -494,7 +511,11 @@ async function refreshDesktopEnvironments(workspace) {
   const { synchronizeShippedEnvironments, readOfficialEnvironments } = await import(
     pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
   )
-  const catalog = await readOfficialEnvironments(activeBaseRoot(runtimeRequire), shippedEnvironmentsFile())
+  const catalog = await readOfficialEnvironments(
+    activeBaseRoot(runtimeRequire),
+    runtimeRequire.resolve,
+    library.officialEnvironmentCatalogFile,
+  )
   await workspace.refreshBuiltinRules(catalog.environments)
   builtinEnvironment = await openBuiltinEnvironment({
     workspace,
@@ -839,6 +860,11 @@ async function handleLocalServerRequest(req, res) {
     return
   }
 
+  if (req.url === playerLibraryRoute) {
+    if (!playerLibraryBridge) return sendJson(res, 503, { error: { code: 'PLAYER_LIBRARY_CLOSED' } })
+    return playerLibraryBridge.handle(req, res)
+  }
+
   if (req.method === 'OPTIONS') {
     sendResponse(res, 204, Buffer.alloc(0))
     return
@@ -1004,9 +1030,21 @@ function setupIpcHandlers() {
     }
   })
   handle('desktop:local-server', (_event, input) => localServerController.request(input))
-  handle('desktop:local-environment', async (_event, input) => {
+  handle('desktop:local-environment', async (event, input) => {
     try {
-      return { result: await getLocalEnvironments().request(input) }
+      const result = await getLocalEnvironments().request(input, {
+        chooseRecipeArchive: async () => {
+          requireLocalBattleCaller(event)
+          const selected = await dialog.showOpenDialog(mainWindow, {
+            title: '安装环境包',
+            properties: ['openFile'],
+            filters: [{ name: '环境包', extensions: ['tgz'] }],
+          })
+          requireLocalBattleCaller(event)
+          return selected.canceled ? null : selected.filePaths[0]
+        },
+      })
+      return { result }
     } catch (error) {
       return { error: { code: error.code ?? 'ENVIRONMENT_FAILED', message: error.message ?? '环境操作失败' } }
     }
@@ -1034,7 +1072,7 @@ function setupIpcHandlers() {
         for (const candidate of authorPreviewWindows.values()) candidate.destroy()
         await manager.stopPreviews()
         await previewSession.clear()
-        await manager.previewEnvironment(id, input.environmentId)
+        if (session.workspace.projectKind !== 'environment') await manager.previewEnvironment(id, input.environmentId)
         const started = await session.jobs.start({ kind: 'preview', environmentId: input.environmentId })
         let job = started
         while (['queued', 'running'].includes(job.state)) {
@@ -1082,6 +1120,12 @@ function setupIpcHandlers() {
   handle('desktop:author', async (event, input) => {
     try {
       if (!input || typeof input.action !== 'string') throw new Error('作者操作无效')
+      if (input.action === 'terminal-command-paths') {
+        if (!app.isPackaged) throw new Error('请在已安装的桌面客户端中查看终端命令。')
+        const modulePath = path.join(process.resourcesPath, 'arcadia-server/bin/desktop-author-cli.mjs')
+        const { getDesktopCommandPaths } = await import(pathToFileURL(modulePath).href)
+        return { result: await getDesktopCommandPaths(path.join(app.getPath('userData'), 'cli')) }
+      }
       const manager = getAuthorWorkspaces()
       let result
       if (input.action === 'list') result = await manager.list()
@@ -1107,7 +1151,7 @@ function setupIpcHandlers() {
       else if (input.action === 'clone') result = await manager.clone(input.url)
       else if (input.action === 'open') {
         const choice = await dialog.showOpenDialog(mainWindow, {
-          title: '打开内容包源项目',
+          title: '打开创作项目',
           properties: ['openDirectory'],
         })
         requireLocalBattleCaller(event)
@@ -1202,7 +1246,10 @@ function setupIpcHandlers() {
                       await previewSession.clear()
                       return session.jobs.start({
                         kind: 'preview',
-                        environmentId: await manager.previewEnvironment(input.id),
+                        environmentId:
+                          session.workspace.projectKind === 'environment'
+                            ? undefined
+                            : await manager.previewEnvironment(input.id),
                       })
                     })
                   : await session.jobs.start({ kind: input.kind })
@@ -1470,6 +1517,9 @@ app.on('before-quit', event => {
       stoppingForQuit = undefined
       return
     }
+    const playerLibrary = playerLibraryBridge
+    playerLibraryBridge = undefined
+    if (playerLibrary) await stopForQuit([() => playerLibrary.close()], { timeoutMs: 3000 })
     if (stopAutomaticContentUpdates) await stopForQuit([stopAutomaticContentUpdates], { timeoutMs: 3000 })
     await stopForQuit(
       [
@@ -1537,6 +1587,18 @@ app
     setupIpcHandlers()
     swfHost.registerIpc(ipcMain)
     createMainWindow()
+    try {
+      playerLibraryBridge = await registerPlayerLibrary({
+        port: localServerPort,
+        profile: app.getPath('userData'),
+        label: app.getName() + ' · ' + app.getPath('userData'),
+        serverController: localServerController,
+        library: getContentLibrary(),
+        environments: getLocalEnvironments(),
+      })
+    } catch (error) {
+      console.warn('Player library CLI connection unavailable:', error.code ?? error.message)
+    }
     if (app.isPackaged) {
       const { startAutomaticContentUpdates } = await loadPackageUpdates()
       stopAutomaticContentUpdates = startAutomaticContentUpdates(updateOfficialContent, error =>

@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { createHash } from 'node:crypto'
 import { catalogMaterialDigest, withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
 import {
   selectPackageUpdate,
@@ -93,36 +94,44 @@ test('server resolves shipped, cached and pinned versions against the same offli
     )
   }
   await put(shipped, '2.0.0', '*')
-  for (const [version, range] of [
-    ['2.0.0', '*'],
-    ['3.0.0', '^4'],
-    ['4.0.0', '^5'],
-  ]) {
-    const directory = join(store, version)
+  const cache = async (version, range) => {
+    const release = join(store, version)
+    const directory = join(release, 'package')
     await cp(shipped, directory, { recursive: true })
     await put(directory, version, range)
-    await writeFile(join(directory, '.arcadia-material-digest'), await catalogMaterialDigest(directory))
+    const catalog = '{}'
+    await writeFile(join(release, 'official-environments.json'), catalog)
+    await writeFile(
+      join(release, '.arcadia-release-digest'),
+      createHash('sha256')
+        .update(await catalogMaterialDigest(directory))
+        .update('\0')
+        .update(catalog)
+        .digest('hex'),
+    )
   }
+  await cache('2.0.0', '*')
+  await cache('3.0.0', '^4')
+  await cache('4.0.0', '^5')
   assert.equal((await selectServerBase(store, shipped, '4.11.0')).version, '3.0.0')
   assert.equal((await selectServerBase(store, shipped, '5.0.0')).version, '4.0.0')
   const selected = await selectServerBase(store, shipped, '4.11.0', undefined, async directory => {
     if (directory !== shipped) throw new Error('invalid preset')
   })
   assert.equal(selected.directory, shipped)
-  await cp(shipped, join(store, '1.0.0'), { recursive: true })
-  await put(join(store, '1.0.0'), '1.0.0', '*')
+  await cache('1.0.0', '*')
   const previous = await selectServerBase(store, shipped, '4.11.0', undefined, async directory => {
-    if (directory !== join(store, '1.0.0')) throw new Error('unusable preset')
+    if (directory !== join(store, '1.0.0', 'package')) throw new Error('unusable preset')
   })
   assert.equal(previous.version, '1.0.0')
   await assert.rejects(selectServerBase(store, shipped, '4.11.0', '4.0.0'), /No compatible/)
-  const same = join(store, '2.0.0')
+  const same = join(store, '2.0.0', 'package')
   assert.equal(await catalogMaterialDigest(same), await catalogMaterialDigest(shipped))
   assert.equal((await selectServerBase(store, shipped, '4.11.0', '2.0.0')).directory, shipped)
   const file = join(shipped, manifest.arcadia.effectArtifact)
   await writeFile(file, (await readFile(file, 'utf8')) + '\n')
   assert.notEqual(await catalogMaterialDigest(same), await catalogMaterialDigest(shipped))
   assert.equal((await selectServerBase(store, shipped, '4.11.0', '2.0.0')).directory, shipped)
-  await writeFile(join(store, '3.0.0', manifest.arcadia.catalog), 'damaged')
+  await writeFile(join(store, '3.0.0', 'package', manifest.arcadia.catalog), 'damaged')
   assert.equal((await selectServerBase(store, shipped, '4.11.0')).directory, shipped)
 })

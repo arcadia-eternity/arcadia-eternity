@@ -19,7 +19,9 @@
     "@arcadia-eternity/protocol": "workspace:^",
     "commander": "^15.1.0",
     "yaml": "catalog:",
-    "@arcadia-eternity/local-profile": "workspace:^"
+    "@arcadia-eternity/local-profile": "workspace:^",
+    "@arcadia-eternity/environment-default": "workspace:*",
+    "@arcadia-eternity/environment-training-120": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

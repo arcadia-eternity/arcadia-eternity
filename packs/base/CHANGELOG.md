@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.12.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.12.1...data-pack-base-v4.12.2) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **content:** ship official environments as standalone npm packages ([c117029](https://github.com/arcadia-eternity/arcadia-eternity/commit/c117029e7f69a7c3ebebb337eb253dedaed75946))
+
 ## [4.12.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.12.0...data-pack-base-v4.12.1) (2026-11-21)
 
 

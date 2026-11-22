@@ -2,7 +2,7 @@ import semver from 'semver'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 import { lstatSync, readFileSync } from 'node:fs'
-import { parseArgs } from 'node:util'
+import { isDeepStrictEqual, parseArgs } from 'node:util'
 import { randomUUID } from 'node:crypto'
 import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +12,11 @@ const officialPackage = '@arcadia-eternity/data-pack-base'
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const exactPackage = /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 // npm redacts UUIDs even in npm ls JSON paths; keep opaque handles out of directory names.
+const environmentDigest = catalog => bytesToHex(sha256(Buffer.from(JSON.stringify(catalog))))
 const storageName = id => 'content-' + id.replaceAll('-', '')
+export function isExactPackageSpec(spec) {
+  return typeof spec === 'string' && spec.length <= 256 && exactPackage.test(spec)
+}
 const contentKinds = ['species', 'skills', 'marks']
 const packageName = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
 const sourceError = code => Object.assign(new Error(code), { code })
@@ -330,7 +334,7 @@ export class ContentLibrary {
     // For equal versions, reuse the installed project only if its materials match the shipped copy.
     if (bundledCompatible) refs.push({ version: shipped })
     refs.sort((a, b) => semver.rcompare(a.version, b.version))
-    let shippedDigest, lastError
+    let shippedDigest, shippedCatalog, lastError
     for (const ref of refs) {
       if (!ref.id) {
         try {
@@ -350,15 +354,19 @@ export class ContentLibrary {
         digest = await this.#digestEntry(entry)
         if (entry.materialDigest && entry.materialDigest !== digest)
           throw new Error('OFFICIAL_MATERIAL_DIGEST_MISMATCH')
+        const project = await this.#directory(entry.id)
+        const catalog = await readJson(join(project, 'official-environments.json'))
+        if (environmentDigest(catalog) !== entry.environmentDigest)
+          throw new Error('OFFICIAL_ENVIRONMENT_DIGEST_MISMATCH')
         if (equalShipped) {
+          shippedCatalog ??= await updates.shippedCatalog()
           shippedDigest ??= await this.catalogDigest(shippedRoot)
-          if (shippedDigest !== digest) {
+          if (shippedDigest !== digest || !isDeepStrictEqual(catalog, shippedCatalog)) {
             console.warn('OFFICIAL_BASE_VERSION_CONFLICT', shipped, 'using bundled materials')
             continue
           }
         }
-        if (entry.validatedHost !== host)
-          await updates.validate(await this.#directory(entry.id), this.#controller.signal)
+        if (entry.validatedHost !== host) await updates.validate(project, this.#controller.signal)
       } catch (error) {
         lastError = error
         console.warn('Skipping unusable cached official base', ref.version, error)
@@ -403,11 +411,17 @@ export class ContentLibrary {
           ['content', 'npm', 'approve', await this.#directory(plan.project), '--profile', 'local-development'],
           this.#controller.signal,
         )
-        await this.packageUpdates?.validate?.(await this.#directory(plan.project), this.#controller.signal)
+        const directory = await this.#directory(plan.project)
+        const catalog = await this.packageUpdates?.shippedCatalog?.()
+        if (catalog) {
+          await writeFile(join(directory, 'official-environments.json'), JSON.stringify(catalog), { flag: 'wx' })
+        }
+        await this.packageUpdates?.validate?.(directory, this.#controller.signal)
         const entry = {
           ...plan.entry,
           bundled: true,
           materialDigest: await this.#digestEntry(plan.entry),
+          ...(catalog && { environmentDigest: environmentDigest(catalog) }),
           validatedHost: this.packageUpdates?.clientVersion,
           ...(active && this.packageUpdates?.shippedRoot && pendingActivation(active)),
         }
@@ -440,6 +454,10 @@ export class ContentLibrary {
   get officialPackageRoot() {
     const entry = this.#state?.installed.find(item => item.bundled)
     return entry && join(this.root, 'projects', storageName(entry.id), 'node_modules', officialPackage)
+  }
+  get officialEnvironmentCatalogFile() {
+    const entry = this.#state?.installed.find(item => item.bundled)
+    return entry && join(this.root, 'projects', storageName(entry.id), 'official-environments.json')
   }
   get pendingOfficialUpdateId() {
     return this.#state?.installed.find(item => item.bundled && item.activationPending)?.id
@@ -484,7 +502,7 @@ export class ContentLibrary {
     if (!candidate) return null
     if (old.activationPending) return old.id
     // Existing environments can still acquire read leases during the network download.
-    return this.packageUpdates.withArchive(candidate, signal, file =>
+    return this.packageUpdates.withArchive(candidate, signal, (file, catalog) =>
       this.#exclusive(async () => {
         signal.throwIfAborted()
         if (old.id !== this.#state.installed.find(item => item.bundled)?.id)
@@ -504,6 +522,7 @@ export class ContentLibrary {
           )
             throw new Error('基础包与客户端不兼容')
           const directory = await this.#directory(plan.project)
+          await writeFile(join(directory, 'official-environments.json'), JSON.stringify(catalog), { flag: 'wx' })
           await this.run(['content', 'npm', 'approve', directory, '--profile', 'local-development'], signal)
           await this.packageUpdates.validate(directory, signal)
           const materialDigest = await this.#digestEntry(entry)
@@ -521,6 +540,7 @@ export class ContentLibrary {
                     registryUpdate: true,
                     ...pendingActivation(old),
                     materialDigest,
+                    environmentDigest: environmentDigest(catalog),
                     validatedHost: this.packageUpdates.clientVersion,
                   }
                 : item,
@@ -562,6 +582,9 @@ export class ContentLibrary {
       const previous = await this.#readOfficial(ref)
       const digest = await this.#digestEntry(previous)
       if (previous.materialDigest && previous.materialDigest !== digest) return false
+      const directory = await this.#directory(previous.id)
+      const catalog = await readJson(join(directory, 'official-environments.json'))
+      if (environmentDigest(catalog) !== previous.environmentDigest) return false
       if (previous.engines?.arcadia) {
         if (!semver.satisfies(this.packageUpdates.clientVersion, previous.engines.arcadia)) return false
       } else if (
@@ -570,7 +593,7 @@ export class ContentLibrary {
       )
         return false
       if (previous.validatedHost !== this.packageUpdates.clientVersion)
-        await this.packageUpdates.validate(await this.#directory(previous.id), this.#controller.signal)
+        await this.packageUpdates.validate(directory, this.#controller.signal)
       await this.#update(state => ({
         ...state,
         revision: state.revision + 1,
@@ -980,8 +1003,7 @@ export class ContentLibrary {
   }
   async #stageNpm(spec, offline = false, signal = this.#controller.signal) {
     return this.#exclusive(async () => {
-      if (typeof spec !== 'string' || spec.length > 256 || !exactPackage.test(spec))
-        throw new Error('请输入 npm 包名和明确版本，例如 @author/pets@1.0.0')
+      if (!isExactPackageSpec(spec)) throw new Error('请输入 npm 包名和明确版本，例如 @author/pets@1.0.0')
       return this.#stageInstall({ kind: 'npm', spec, label: spec }, offline, signal)
     })
   }

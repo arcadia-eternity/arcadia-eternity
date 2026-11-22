@@ -163,6 +163,10 @@ jobs:
           pnpm exec vitest run bin/__tests__/server-*.test.ts --maxWorkers=1
       - name: Verify client upgrades, offline rollback and live official environment updates
         run: node --test packages/web-ui/electron/test/package-updates.test.mjs packages/web-ui/electron/test/bundled-update.test.mjs
+      - name: Verify offline player library installation and selection
+        env:
+          ARCADIA_DESKTOP_REAL_HOST: '1'
+        run: node --test --test-name-pattern='portable recipe' packages/web-ui/electron/test/content-library-real.test.mjs
 
   native-browser-entry:
     needs: changes

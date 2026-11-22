@@ -4,6 +4,7 @@ import {
   ElButton,
   ElForm,
   ElFormItem,
+  ElInput,
   ElDrawer,
   ElDialog,
   ElSkeleton,
@@ -11,12 +12,16 @@ import {
   ElOption,
   ElCheckbox,
   ElProgress,
+  ElRadioGroup,
+  ElRadioButton,
 } from 'element-plus'
 import type {
   EnvironmentExportPreview,
   EnvironmentExportSelection,
   EnvironmentImportProbe,
 } from '@arcadia-eternity/content-sdk/management-workspace'
+import 'element-plus/theme-chalk/el-radio-group.css'
+import 'element-plus/theme-chalk/el-radio-button.css'
 import { waitForEnvironmentApply } from './waitForEnvironmentApply'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -100,6 +105,7 @@ const jobNames: Record<string, string> = {
   'environment.apply': '保存并应用',
   'environment.select': '切换环境',
   'environment.import': '导入环境',
+  'environment.install-recipe': '安装环境包',
   'environment.save-member': '保存到本机包库',
   'environment.use-member': '用于其他环境',
 }
@@ -233,6 +239,50 @@ async function createOnServer(document: ManagedEnvironmentDocument) {
   }
 }
 const importing = ref(false)
+const recipeDialog = ref(false)
+const recipeSource = ref<'npm' | 'file'>('npm')
+const recipeSpec = ref('')
+const recipeEnvironmentId = ref('')
+const recipeDownload = ref(false)
+function openRecipeInstaller() {
+  error.value = ''
+  recipeSource.value = 'npm'
+  recipeSpec.value = ''
+  recipeEnvironmentId.value = ''
+  recipeDownload.value = allowDownload.value
+  recipeDialog.value = true
+}
+async function installRecipe() {
+  const spec = recipeSpec.value.trim()
+  if (busy.value || (recipeSource.value === 'npm' && !spec)) return
+  const environmentId = recipeEnvironmentId.value.trim()
+  if (environmentId && !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId)) {
+    error.value = '环境标识须以小写字母或数字开头，可包含短横线或下划线，最多 80 个字符。'
+    return
+  }
+  let installedId: string | undefined
+  const success = await run(async () => {
+    const task = await call<{ operationId: string } | null>({
+      action: 'install-recipe',
+      source: recipeSource.value === 'npm' ? { kind: 'npm', spec } : { kind: 'file' },
+      allowDownload: recipeDownload.value,
+      ...(environmentId && { environmentId }),
+    })
+    if (!task) return
+    const completed = await waitForEnvironmentApply(
+      async () => (await call<Snapshot>({ action: 'snapshot' })).operations.find(job => job.id === task.operationId),
+      () => !disposed,
+    )
+    if (disposed) return
+    installedId = completed?.result?.environmentId
+    if (!installedId) throw new Error('安装任务缺少环境标识，请刷新环境库。')
+  }, '')
+  if (success && installedId && !disposed) {
+    recipeDialog.value = false
+    notice.value = '环境包已安装。'
+    if (!drafts.open()) select('local/' + installedId)
+  }
+}
 function openImport() {
   importingToHost.value = false
   importing.value = true
@@ -549,6 +599,7 @@ onBeforeUnmount(() => {
       <template #toolbar>
         <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">内容包与创作</ElButton>
         <ElButton @click="tasksOpen = true">任务{{ activeTasks ? `（${activeTasks}）` : '' }}</ElButton>
+        <ElButton :disabled="busy || preparing" @click="openRecipeInstaller">安装环境包</ElButton>
         <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>
       </template>
       <template #settings><ElCheckbox v-model="allowDownload">允许下载缺失的第三方包</ElCheckbox></template>
@@ -572,6 +623,54 @@ onBeforeUnmount(() => {
         ><ElButton @click="transferMember = undefined">取消</ElButton>
         <ElButton type="primary" :disabled="busy || !targetId" @click="useMember">加入环境</ElButton></template
       >
+    </ElDialog>
+    <ElDialog
+      v-model="recipeDialog"
+      title="安装环境包"
+      width="min(480px, 94vw)"
+      :show-close="!busy"
+      :close-on-click-modal="!busy"
+      :close-on-press-escape="!busy"
+      append-to-body
+      destroy-on-close
+    >
+      <ElForm label-position="top" aria-label="安装环境包" @submit.prevent="installRecipe">
+        <ElAlert v-if="error" type="error" :title="error" role="alert" :closable="false" />
+        <ElFormItem label="来源">
+          <ElRadioGroup v-model="recipeSource" :disabled="busy" aria-label="环境包来源">
+            <ElRadioButton value="npm">npm 注册表</ElRadioButton>
+            <ElRadioButton value="file">本地归档 (.tgz)</ElRadioButton>
+          </ElRadioGroup>
+        </ElFormItem>
+        <ElFormItem v-if="recipeSource === 'npm'" label="npm 包名与版本">
+          <ElInput
+            v-model="recipeSpec"
+            placeholder="@author/singles-cup@1.0.0"
+            aria-label="npm 包名与版本"
+            :disabled="busy"
+          />
+        </ElFormItem>
+        <ElFormItem label="新环境标识（可选）">
+          <ElInput
+            v-model="recipeEnvironmentId"
+            aria-label="新环境标识"
+            placeholder="默认使用包内标识"
+            maxlength="80"
+            :disabled="busy"
+          />
+        </ElFormItem>
+        <ElCheckbox v-model="recipeDownload" :disabled="busy">允许联网下载环境包和缺失的依赖</ElCheckbox>
+      </ElForm>
+      <template #footer>
+        <ElButton :disabled="busy" @click="recipeDialog = false">取消</ElButton>
+        <ElButton
+          type="primary"
+          :loading="busy"
+          :disabled="busy || (recipeSource === 'npm' && !recipeSpec.trim())"
+          @click="installRecipe"
+          >{{ recipeSource === 'file' ? '选择归档并安装' : '安装' }}</ElButton
+        >
+      </template>
     </ElDialog>
     <EnvironmentImportDialog
       :target="importingToHost ? 'host' : 'local'"

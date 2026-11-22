@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -43,7 +44,7 @@ export async function buildWebContent(
     } else {
       const { environments, defaultEnvironment } = await readOfficialEnvironments(
         root,
-        new URL('../../../bin/shipped-environments.json', import.meta.url),
+        createRequire(import.meta.url).resolve,
       )
       const directory = await mkdtemp(join(tmpdir(), 'arcadia-web-environments-'))
       cleanup.push(() => rm(directory, { recursive: true, force: true }))

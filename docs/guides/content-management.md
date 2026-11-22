@@ -1,6 +1,6 @@
 # 创作与环境
 
-在桌面端对战大厅点“内容包与创作”，或从本机环境库顶部进入同一个独立页面，即可搜索和筛选创作包与本地已安装的包。`/environments` 在有管理权限的工作区编辑环境声明的依赖和配置。切到当前房间时，只读展示建房时锁定的版本。桌面端内置“默认环境”和“120 资质 · 神魔化与二代”，均可离线使用。后者开放六项 120 资质与 16 个神魔化阶段，二代性格和遗传技能按物种资格开放。桌面、网页静态构建和独立服务器从所选基础包加载同版环境定义。只有未携带环境定义的旧基础包才读取宿主随附的兼容目录。服务器首次发现随附环境时公开展示并开放匹配，网页玩家可直接选用。服主后续停用、取消公开或移除绑定的设置在重启后保留。开服后，从服务器页点“管理环境”会打开同一个本机环境列表。选中默认环境，即可在详情的“服务器使用”中切换“开放匹配”。要改规则或内容包，先复制环境，再编辑副本。完整接口见[统一环境与服务器管理](unified-management.md)。
+在桌面端对战大厅点“内容包与创作”，或从本机环境库顶部进入同一个独立页面，即可搜索和筛选创作包与本地已安装的包。`/environments` 在有管理权限的工作区编辑环境声明的依赖和配置。切到当前房间时，只读展示建房时锁定的版本。桌面端内置“默认环境”和“120 资质 · 神魔化与二代”，均可离线使用。后者开放六项 120 资质与 16 个神魔化阶段，二代性格和遗传技能按物种资格开放。桌面、网页静态构建和独立服务器随附两个官方环境包。在线更新会读取两个同版环境包的声明，校验后随基础包一起启用，重启可以离线使用。服务器首次发现随附环境时公开展示并开放匹配，网页玩家可直接选用。服主后续停用、取消公开或移除绑定的设置在重启后保留。开服后，从服务器页点“管理环境”会打开同一个本机环境列表。选中默认环境，即可在详情的“服务器使用”中切换“开放匹配”。要改规则或内容包，先复制环境，再编辑副本。完整接口见[统一环境与服务器管理](unified-management.md)。
 
 ## 内容包项目
 
@@ -64,9 +64,8 @@
 
 普通桌面组合的静态捕获、资源租约、并发准备与真实 Worker UGC 效果回归可单独运行：`pnpm --filter @arcadia-eternity/web-ui test:desktop-local-content`。库与宿主回收边界使用 `node --test packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-content-owner.test.mjs`。真实宿主回归需先构建 server 与 CLI，再运行 `ARCADIA_DESKTOP_REAL_HOST=1 node --test packages/web-ui/electron/test/content-library-real.test.mjs`。
 
-
 ## 从 npm 使用官方环境
 
 在空 npm 项目安装 `npm install --save-exact @arcadia-eternity/environment-training-120@X.Y.Z`，将 `X.Y.Z` 换成要使用的发行版本。默认环境对应 `@arcadia-eternity/environment-default`。npm 会安装精确匹配的基础包。通过 `arcadia server --npm-project .` 启动该项目时，会读取所选环境包的规则。
 
-每份归档都提供 `environment.json`，可以作为 `content environment apply` 的输入。要创建自定义副本，先复制文件并改用自己的环境 ID。运行中的官方环境继续通过基础包更新入口切换整套版本。
+环境包以 `package.json` 中的 `arcadiaEnvironment` 声明规则，以 `dependencies` 声明内容依赖。`content environment apply` 可直接读取这份 `package.json`。要创建自定义副本，先复制文件并改用自己的环境 ID。运行中的官方环境继续通过基础包更新入口切换整套版本。

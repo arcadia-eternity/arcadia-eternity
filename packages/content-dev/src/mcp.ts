@@ -32,6 +32,7 @@ const session = await openAuthorSession(directory, {
   published: options.has('--published'),
 })
 const server = new McpServer({ name: 'arcadia-content-authoring', version: '0.1.0' })
+const standaloneEnvironment = session.workspace.projectKind === 'environment'
 type ToolOperation = keyof typeof outputSchemas
 type ToolTransform = (input: Record<string, unknown>) => Record<string, unknown>
 function tool(
@@ -50,9 +51,9 @@ function tool(
       outputSchema: { result: outputSchemas[operation] },
       annotations: { readOnlyHint: readOnly, ...(readOnly ? { destructiveHint: false, idempotentHint: true } : {}) },
     },
-    async (input: Record<string, unknown>): Promise<CallToolResult> => {
+    async (input: Record<string, unknown>, extra): Promise<CallToolResult> => {
       try {
-        const value = await session.call(operation, transform(input))
+        const value = await session.call(operation, transform(input), extra.signal)
         let result = value
         let image: ContentBlock | undefined
         if (operation === 'asset-inspect' && isRecord(value)) {
@@ -166,7 +167,7 @@ if (!session.workspace.readOnly)
     },
     'write',
   )
-if (!session.workspace.readOnly)
+if (!session.workspace.readOnly && !standaloneEnvironment)
   tool(
     'content_apply',
     'Save reviewed records or name/description entries. create-record uses a new data file and expectedVersion:null; new locale files also use null. Query sources first. Keeps YAML sharing read-only, checks versions and groups edits per file. Inspect complete and every result; partial writes are not rolled back.',
@@ -193,19 +194,22 @@ if (!session.workspace.readOnly)
 for (const [name, kind] of [
   ['check_start', 'check'],
   ['test_start', 'test'],
+  ['demo_start', 'demo'],
   ['preview_start', 'preview'],
   ['package_build', 'pack'],
   ['release_check', 'release'],
 ]) {
   if (session.workspace.readOnly) continue
+  if (standaloneEnvironment && kind === 'release') continue
   if (kind !== 'check' && !options.has('--execute')) continue
   tool(
     name,
     kind === 'preview'
-      ? 'Build and install a captured npm candidate, then keep a local Node battle host ready for the full client. Poll job_get for preview.url or preview.clientPath. job_cancel stops it; new candidates do not replace existing battles.'
+      ? 'Prepare the bound environment or content pack, then start a local battle host for interactive and automated battles. Poll job_get for the candidate and preview endpoint.'
       : `Start ${kind}; poll job_get for actual output and stale-source state.`,
     {
-      ...(kind === 'preview'
+      ...(kind === 'demo' ? { seed: z.string().min(1).max(200).optional() } : {}),
+      ...(kind === 'preview' || kind === 'demo'
         ? {
             environmentId: z
               .string()
@@ -277,13 +281,39 @@ tool(
 )
 tool(
   'environment_list',
-  'Read saved named battle environments and versions. Reading or saving an environment does not select it in the desktop.',
+  'Read the bound environment declaration and its version, or the named debug environments of a content pack.',
   {},
   'environment-list',
   undefined,
   true,
 )
 if (!session.workspace.readOnly) {
+  tool(
+    'dependency_install',
+    'Install the bound project’s declared content dependencies into a persistent local npm installation. Read package.json first for its version. Installed content remains available after reconnecting.',
+    { expectedVersion: version, offline: z.boolean().optional() },
+    'dependency-install',
+  )
+  tool(
+    'environment_install',
+    'Install an environment from an exact npm version or an archive in the bound project. The returned directory can be opened as an independent author project by the client or by a new MCP session.',
+    {
+      source: z.discriminatedUnion('kind', [
+        z.object({ kind: z.literal('npm'), name: z.string().min(1).max(214), version: z.string().min(1).max(256) }),
+        z.object({ kind: z.literal('archive'), file: z.string().min(1).max(1000) }),
+      ]),
+      offline: z.boolean().optional(),
+    },
+    'environment-install',
+  )
+  tool(
+    'team_validate',
+    'Check one saved team against an active preview’s frozen environment rules. Returns the team version, environment revision and the first admission failure. Does not create or change a battle.',
+    { jobId: z.string(), teamId: identifier },
+    'team-validate',
+    undefined,
+    true,
+  )
   tool(
     'team_save',
     'Save a project team against its file version; null creates a new team. Does not overwrite desktop drafts, change selections or replace a running match. Conflicting user drafts remain available for reconciliation.',
@@ -304,7 +334,7 @@ if (!session.workspace.readOnly) {
   )
   tool(
     'environment_save',
-    'Save a named environment against its version; null creates it. Does not install dependencies or change the user’s selected environment. Prepare a new preview to use the changed configuration.',
+    'Save the standalone environment declaration against its manifest version. In a content pack, save a named debug environment (null creates one). Start a new preview to use changed rules.',
     {
       document: EnvironmentDocumentSchema,
       expectedVersion: version.nullable(),

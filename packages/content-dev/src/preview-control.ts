@@ -5,7 +5,7 @@ import { playersFromTeams, type ProjectTeam } from './project-teams.ts'
 import type { prepareContentPack } from './testing.ts'
 import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.ts'
 
-const operations = new Set(['create', 'read', 'events', 'action', 'reset', 'close'])
+const operations = new Set(['create', 'read', 'events', 'action', 'reset', 'close', 'team-validate'])
 const idPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/
 function fail(code: string, message: string): never {
   throw new WorkspaceError(code, message)
@@ -170,6 +170,27 @@ export class PreviewAutomation {
     }
   }
   async #call(operation: string, input: UnknownRecord): Promise<unknown> {
+    if (operation === 'team-validate') {
+      if (typeof input.teamId !== 'string' || !idPattern.test(input.teamId))
+        fail('TEAM_INVALID', '需要已保存的队伍标识')
+      const team = (await this.readTeams()).find(entry => entry.id === input.teamId)
+      if (!team) fail('TEAM_MISSING', `未找到已保存的队伍 ${input.teamId}`)
+      const { environmentId, environmentRevision } = this.prepared.candidate
+      const identity = { teamId: team.id, teamVersion: team.version, environmentId, environmentRevision }
+      try {
+        this.prepared.assertTeam(team.team)
+        return { ...identity, valid: true }
+      } catch (error) {
+        return {
+          ...identity,
+          valid: false,
+          diagnostic: {
+            code: errorCode(error) ?? 'TEAM_INVALID',
+            message: isRecord(error) && typeof error.detail === 'string' ? error.detail : errorMessage(error),
+          },
+        }
+      }
+    }
     if (operation === 'create') {
       if (this.#sessions.size >= 4) fail('BATTLE_SESSION_LIMIT', '请先关闭一个自动调试对局（最多四个）')
       const entry = await this.#create(input)

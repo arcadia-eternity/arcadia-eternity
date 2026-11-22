@@ -2,7 +2,7 @@ import { sha256Hex, sha256StreamHex } from '@arcadia-eternity/const'
 import { isContentLocaleField, contentLocaleCollection } from '@arcadia-eternity/schema'
 import { createReadStream } from 'node:fs'
 import { lstat, mkdir, readdir, readFile, realpath, unlink } from 'node:fs/promises'
-import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
 import YAML from 'yaml'
@@ -15,6 +15,8 @@ import { resourceReferences, bindingPresentation, validResourceId, validAssetPat
 import { yamlSharing, recordSharing, changedSharedField, sharingSignature } from './lib/yaml-sharing.ts'
 import type { NodePath, SharedField } from './lib/yaml-sharing.ts'
 import { withSourceLock } from './source-lock.ts'
+import { readJson } from './workspace-materials.ts'
+import { environmentProjectDocument } from './debug-environments.ts'
 import { errorCode, errorMessage, isRecord, type UnknownRecord } from './types.ts'
 
 import type { AuthorEffectCatalog } from './effect-declarations.ts'
@@ -224,6 +226,29 @@ const isBaseManifest = (manifest: PackageManifest) =>
   manifest.name === basePackageName || manifest.arcadia?.projectId === baseProjectId
 const isInstalledPackage = (root: string) => root.split(sep).includes('node_modules')
 
+// Author projects can declare local dependency archives under candidates/.
+// Those inputs participate in snapshots, unlike generated pack outputs.
+function ignoredArchive(file: string) {
+  return file.endsWith('.tgz') && !/^candidates\/[a-zA-Z0-9_.-]+\.tgz$/.test(file)
+}
+
+async function isManagedEnvironment(root: string): Promise<boolean> {
+  try {
+    await lstat(join(root, '.arcadia-prepared.json'))
+    return true
+  } catch (error) {
+    if (errorCode(error) !== 'ENOENT') throw error
+  }
+  const parent = dirname(root)
+  if (!['environments', 'staging', 'imports', 'migration-backups'].includes(basename(parent))) return false
+  try {
+    return (await readJson(join(dirname(parent), 'workspace.json'))).format === 'arcadia.content-workspace/2'
+  } catch (error) {
+    if (errorCode(error) === 'ENOENT') return false
+    throw error
+  }
+}
+
 export class WorkspaceError extends Error {
   code: string
   file?: string
@@ -319,6 +344,7 @@ function serializeForm(parsed: ParsedSource, next: unknown, file: string, origin
 /** Ordinary source files are authoritative. No project database or generated-output writes. */
 export class AuthorWorkspace extends EventEmitter {
   root: string
+  projectKind: 'pack' | 'environment' = 'pack'
   published = false
   readOnly = false
   baseProject?: ManifestArcadia & { projectId: string; namespace: string }
@@ -344,20 +370,26 @@ export class AuthorWorkspace extends EventEmitter {
       if (pack.id !== baseProjectId) fail('PROJECT_INVALID', '基础包身份不一致', 'pack.json')
       workspace.baseProject = { projectId: baseProjectId, namespace: baseProjectId }
     }
-    if (
+    if (!workspace.baseProject && !manifest.arcadia && object(manifest.arcadiaEnvironment)) {
+      workspace.projectKind = 'environment'
+      workspace.readOnly ||= await isManagedEnvironment(workspace.root)
+    } else if (
       !workspace.baseProject &&
       (!object(manifest.arcadia) ||
         typeof manifest.arcadia.projectId !== 'string' ||
         typeof manifest.arcadia.namespace !== 'string')
     )
-      fail('PROJECT_INVALID', '请选择包含 arcadia 身份的 npm 内容包源项目', 'package.json')
+      fail('PROJECT_INVALID', '请选择包含 arcadia 身份的资料包或 arcadiaEnvironment 环境包', 'package.json')
     if (watch) {
       workspace.#watcher = chokidar.watch(workspace.root, {
         ignoreInitial: true,
-        ignored: path =>
-          relative(workspace.root, path)
-            .split(sep)
-            .some(part => (ignored.has(part) && !(workspace.published && part === 'dist')) || part.endsWith('.tgz')),
+        ignored: path => {
+          const parts = relative(workspace.root, path).split(sep)
+          return (
+            parts.some(part => ignored.has(part) && !(workspace.published && part === 'dist')) ||
+            ignoredArchive(parts.join('/'))
+          )
+        },
         atomic: true,
         awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 },
         followSymlinks: false,
@@ -376,8 +408,12 @@ export class AuthorWorkspace extends EventEmitter {
     return workspace
   }
   async assertWritable(): Promise<void> {
-    if (this.readOnly || isBaseManifest(JSON.parse((await this.read('package.json')).text) as PackageManifest))
-      fail('WRITE_DISABLED', '此内容包为只读，请在自己的内容包中创作。')
+    if (
+      this.readOnly ||
+      isBaseManifest(JSON.parse((await this.read('package.json')).text) as PackageManifest) ||
+      (this.projectKind === 'environment' && (await isManagedEnvironment(this.root)))
+    )
+      fail('WRITE_DISABLED', '此项目为只读，请在自己的源项目中创作。')
   }
   async path(file: string, { create = false }: { create?: boolean } = {}): Promise<string> {
     if (this.#closed) fail('WORKSPACE_CLOSED', '工作区已关闭')
@@ -425,9 +461,8 @@ export class AuthorWorkspace extends EventEmitter {
       for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
         a.name.localeCompare(b.name),
       )) {
-        if ((ignored.has(entry.name) && !(this.published && entry.name === 'dist')) || entry.name.endsWith('.tgz'))
-          continue
         const file = prefix + entry.name
+        if ((ignored.has(entry.name) && !(this.published && entry.name === 'dist')) || ignoredArchive(file)) continue
         if (entry.isSymbolicLink()) {
           result.push({ file, error: '不支持符号链接' })
           continue
@@ -507,7 +542,8 @@ export class AuthorWorkspace extends EventEmitter {
   async snapshot(): Promise<WorkspaceSnapshot> {
     const source = await this.read('package.json')
     const manifest = JSON.parse(source.text) as PackageManifest
-    const project = this.baseProject ?? manifest.arcadia ?? {}
+    const project: ManifestArcadia = this.baseProject ?? manifest.arcadia ?? {}
+    const environmentProject = this.projectKind === 'environment'
     const readOnly = this.readOnly || isBaseManifest(manifest)
     const baseSources = new Map<string, string>()
     if (this.baseProject) {
@@ -525,7 +561,16 @@ export class AuthorWorkspace extends EventEmitter {
       ids = new Set<string>()
     const locales: Record<string, unknown> = {},
       localeSources: WorkspaceLocaleSource[] = []
-    if (this.published) {
+    if (environmentProject) {
+      project.kind = 'environment'
+      try {
+        const { id, name } = environmentProjectDocument(manifest)
+        project.id = id
+        project.name = name
+      } catch (error) {
+        diagnostics.push({ ...diagnostic(error), file: source.file })
+      }
+    } else if (this.published) {
       const arcadia = manifest.arcadia
       if (!arcadia) fail('PROJECT_INVALID', '安装包缺少内容入口', 'package.json')
       if (typeof arcadia.content !== 'string') fail('PROJECT_INVALID', '安装包缺少内容入口', 'package.json')
@@ -590,7 +635,7 @@ export class AuthorWorkspace extends EventEmitter {
           }
       }
     }
-    for (const entry of this.published ? [] : files) {
+    for (const entry of this.published || environmentProject ? [] : files) {
       if (entry.error) {
         diagnostics.push({ code: 'PATH_INVALID', severity: 'error', file: entry.file, message: entry.error })
         continue
@@ -754,11 +799,11 @@ export class AuthorWorkspace extends EventEmitter {
       diagnostics,
       capabilities: {
         sourceEditing: !readOnly,
-        structuredSaving: !readOnly,
-        localeEditing: !readOnly,
+        structuredSaving: !readOnly && !environmentProject,
+        localeEditing: !readOnly && !environmentProject,
         yamlSharing: 'read-only-fields',
         externalEditor: !readOnly,
-        kinds,
+        kinds: environmentProject ? [] : kinds,
         sdkApi: project.sdkApi,
       },
     }
@@ -917,6 +962,7 @@ export class AuthorWorkspace extends EventEmitter {
     { fromForm = false }: { fromForm?: boolean } = {},
   ): Promise<{ results: SaveResult[]; complete: boolean }> {
     await this.assertWritable()
+    if (this.projectKind === 'environment') fail('PROJECT_INVALID', '资料包内容编辑只适用于资料包项目')
     if (!Array.isArray(changes) || !changes.length || changes.length > 1000)
       fail('SOURCE_INVALID', '请选择 1–1000 项修改')
     const catalog = changes.some(change => ['locale', 'create-record'].includes(change?.kind))

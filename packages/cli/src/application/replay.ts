@@ -56,20 +56,39 @@ async function prepareRecordedContent({ works, data, packs, revision }: Replay['
     : loader.fromMetadata(data, { packs, revision })
 }
 
-export async function replay(value: unknown, signal: AbortSignal, npmEnvironment?: CliPreparedContent) {
+export async function replay(value: unknown, signal: AbortSignal, selected?: CliPreparedContent) {
   try {
     validate(value)
-    if (value.environment.npm && (!npmEnvironment || !isDeepStrictEqual(value.environment.npm, npmEnvironment.npm)))
+    if (!isDeepStrictEqual(value.environment.playerLibrary, selected?.playerLibrary))
+      throw new CliError(
+        'REPLAY_ENVIRONMENT',
+        'Select the recorded player-library environment and revision with --environment',
+        3,
+      )
+    if (
+      selected?.playerLibrary &&
+      (selected.revision !== value.environment.revision ||
+        !isDeepStrictEqual(selected.build, value.environment.build) ||
+        !isDeepStrictEqual(selected.packs, value.environment.packs) ||
+        !selected.rules ||
+        !isDeepStrictEqual(JSON.parse(JSON.stringify(selected.rules)), value.spec.rules))
+    )
+      throw new CliError(
+        'REPLAY_ENVIRONMENT',
+        'The installed environment content or rules differ from the recording',
+        3,
+      )
+    if (value.environment.npm && (!selected || !isDeepStrictEqual(value.environment.npm, selected.npm)))
       throw new CliError(
         'REPLAY_NPM',
         'Replay requires the original separately installed and approved npm environment',
         3,
       )
-    if (!value.environment.npm && npmEnvironment)
+    if (!value.environment.npm && selected)
       throw new CliError('REPLAY_NPM', 'This replay does not use an npm environment', 3)
-    const loaded = npmEnvironment ?? (await prepareRecordedContent(value.environment))
+    const loaded = selected ?? (await prepareRecordedContent(value.environment))
     if (
-      (value.environment.works || npmEnvironment) &&
+      (value.environment.works || selected) &&
       (!('data' in loaded) || !isDeepStrictEqual(loaded.data, value.environment.data))
     )
       throw new CliError('REPLAY_ENVIRONMENT', 'Replay compiled data mismatch', 3)

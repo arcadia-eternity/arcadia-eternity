@@ -12,7 +12,12 @@ import {
 import { ElCheckbox } from 'element-plus'
 import { authorCall, type SourceProject } from './types'
 
-const props = defineProps<{ project: SourceProject; readOnly: boolean; contextError: string }>()
+const props = defineProps<{
+  project: SourceProject
+  readOnly: boolean
+  contextError: string
+  environmentProject?: boolean
+}>()
 const execute = ref(false)
 type Connection = { mcpServers: { arcadia: { command: string; args: string[]; env: Record<string, string> } } }
 const connection = ref<Connection>()
@@ -89,6 +94,12 @@ const introduction = computed(
   () => `请帮我连接本机的 Arcadia Eternity 创作项目「${props.project.name}」，并确认你能访问的项目和权限。`,
 )
 const examples = computed(() => {
+  if (props.environmentProject) {
+    const tasks = ['列出这个环境依赖的资料包，解释它的队伍限制。']
+    if (!props.readOnly) tasks.push('把这个环境改成最多携带三只精灵。')
+    if (!props.readOnly && execute.value) tasks.push('用两支测试队和固定种子调试这个环境，告诉我采用了哪些规则。')
+    return tasks
+  }
   const explore = '挑一个技能，讲讲它的效果在什么时候触发。'
   if (props.readOnly) return [explore, '列出这个包里的精灵和它们能学的技能。']
   const tasks = [
@@ -104,7 +115,7 @@ const prompt = computed(() => {
   if (!config.value) return ''
   return [
     introduction.value,
-    '完成连接验证后，根据这个包的内容和实际权限，举两个我可以接着问的例子，等我选择。',
+    '完成连接验证后，根据这个项目的内容和实际权限，举两个我可以接着问的例子，等我选择。',
     '项目目录为 ' + JSON.stringify(props.project.directory),
     props.readOnly
       ? '这是只读内容包。请在内容包目录之外的客户端本机设置中注册服务。'
@@ -113,7 +124,10 @@ const prompt = computed(() => {
     config.value,
     '加载服务后，调用 workspace_describe 核对项目目录，并告诉我实际返回的项目名与读写权限。需要我信任项目、启用服务或重开会话时，请告诉我具体操作。',
     '如果创作工作台已打开，再调用 workspace_context 获取当前选中对象和草稿。',
-    ...(props.readOnly
+    ...(props.environmentProject
+      ? ['读取 author_reference 的 authoring 主题和 environment_list，核对当前环境声明，再按本次任务准备试玩。']
+      : []),
+    ...(props.readOnly || props.environmentProject
       ? []
       : [
           '之后若我要求提交或同步，读取 author_reference 的 git 主题。准备或发布版本时读取 release 主题。使用本机 Git，以及你已获授权的 gh 或 GitHub 连接。',
@@ -202,7 +216,9 @@ async function copy(value: string, success: string) {
         <h2><ShieldCheckIcon aria-hidden="true" />助手权限</h2>
         <p>{{ readOnly ? '只读访问' : '读写项目内容' }}</p>
         <p v-if="!readOnly" class="scope-note">可读取未保存的草稿</p>
-        <ElCheckbox v-if="!readOnly" v-model="execute">允许运行测试、演示对战和打包</ElCheckbox>
+        <ElCheckbox v-if="!readOnly" v-model="execute">{{
+          environmentProject ? '允许运行环境测试和试玩' : '允许运行测试、演示对战和打包'
+        }}</ElCheckbox>
         <p v-if="contextError" role="alert">草稿同步失败：{{ contextError }}</p>
       </aside>
     </div>

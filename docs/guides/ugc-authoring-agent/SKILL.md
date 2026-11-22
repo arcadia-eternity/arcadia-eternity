@@ -1,11 +1,24 @@
 ---
 name: arcadia-content-authoring
-description: Build or debug an Arcadia Eternity npm content pack with TypeScript effects and real-engine tests. Use when creating or modifying a content pack, its effects, or its local test and preview workflow.
+description: Create and debug Arcadia Eternity content packs and standalone battle environments. Use for CLI project initialization, rules and dependencies, team admission, fixed-seed battles, TypeScript effects and local previews.
 ---
 
 # Arcadia content authoring
 
-Work in the author's content project. Ask for the desired game behavior when its trigger, target or lifetime is ambiguous. Use the SDK and host version actually available to the project; `arcadia.sdkApi` is an API compatibility version, not an engine build identity.
+## Choose a project
+
+For new species, skills, marks or effects, run `arcadia-content init pack <directory>`. For a tournament format or a combination of existing packages, run `arcadia-content init environment <directory>`. Use a new or empty directory. When editing an existing project, inspect its `package.json` and run `arcadia-content workspace <directory> describe`. A content pack declares `arcadia`. A standalone environment declares `arcadiaEnvironment` and lists its content packages in npm `dependencies`.
+
+## Debug a standalone environment
+
+1. Read the environment with `environment_list` and its schema with `author_reference` topic `environment`. Keep the current ID and package selections when changing a rule. Pass the returned version as `expectedVersion` to `environment_save`. The rule declaration, capability requirements and package versions together determine what to test.
+2. Save test teams with `team_save` or edit `debug/teams/*.yaml`. Use species and skills from the declared packages. For a ban, prepare two legal teams and a third that violates just the proposed restriction.
+3. Start `arcadia-content workspace <directory> preview --execute` or connect `arcadia-content-mcp <directory> --execute` and call `preview_start`. The environment project itself supplies the rules and members. Poll `job_get` on MCP until the preview succeeds. Call `team_validate` with that preview’s `jobId` and each saved `teamId`. Check `valid` and record the diagnostic for the intended violation. Then use `battle_create` with the two legal team IDs and a fixed seed.
+4. Prepare a fresh preview after changing rules or dependencies. Record the tested environment ID, revision, teams, seed and observed result. Stop the preview with Ctrl+C or `job_cancel`. When an installable archive is requested, run `arcadia-content workspace <directory> pack --execute` or call `package_build`. In the desktop environment library, choose **安装环境包** to install the resulting .tgz or an exact npm version. Local play switches when the user chooses **本地使用**. See the [CLI and MCP workflows](references/tool-workflows.md) for event inspection and conflict handling.
+
+## Author a content pack
+
+Work in the author's content project. Ask for the desired game behavior when its trigger, target or lifetime is ambiguous. Use the SDK and host version available to the project. `arcadia.sdkApi` identifies the compatible SDK API.
 
 1. Read `package.json` and the actual source layout: `data/species`, `data/skills`, `data/marks`, `src`, `assets`, `locales`, `test` and `arcadia.config.mjs`. Some older projects still use a root `content.json`; follow their manifest rather than assuming it. Do not edit generated `dist` as source. If the host repository is available, consult `docs/guides/npm-content.md` and `docs/guides/effect-sdk.md`. Do not assume SDK packages have been published merely because a version is in a manifest.
 2. Declare behavior with `@effect` and `@on` in `src/effects/*.effect.ts`; for parameters or bindings use a decorated class with `static create(context)` returning `defineCodeEffect`. The SDK discovers files and builds `effectArtifact`. Use canonical prototypes from the current context. Keep `projectId`, namespace, use IDs and binding keys stable unless a breaking identity change is intended. Cross-package data references require npm dependencies.

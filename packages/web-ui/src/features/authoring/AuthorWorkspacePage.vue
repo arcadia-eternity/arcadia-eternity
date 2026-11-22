@@ -76,8 +76,13 @@ const projectViews = [
   { id: 'release', label: '发布新版本', icon: CloudArrowUpIcon },
   { id: 'settings', label: '项目设置', icon: Cog6ToothIcon },
 ] as const
+const environmentProject = computed(() => snapshot.value?.project.kind === 'environment')
 const visibleProjectViews = computed(() =>
-  projectViews.filter(view => !readOnly.value || view.id === 'editor' || view.id === 'ai' || view.id === 'settings'),
+  projectViews.filter(view => {
+    if (view.id === 'editor') return !environmentProject.value
+    if (view.id === 'release') return !environmentProject.value && !readOnly.value
+    return view.id !== 'git' || !readOnly.value
+  }),
 )
 const projectView = computed<ProjectView>(
   () => visibleProjectViews.value.find(view => view.id === route.query?.view)?.id ?? projectViews[0].id,
@@ -1322,21 +1327,29 @@ onBeforeUnmount(() => {
           <component :is="view.icon" aria-hidden="true" />{{ view.label }}
         </RouterLink>
       </nav>
-      <template v-if="projectView === 'editor' && !readOnly">
+      <template v-if="!readOnly && (projectView === 'editor' || environmentProject)">
         <p role="status">{{ previewStatus }}</p>
         <details ref="runActions" class="run-actions">
           <summary>更多操作</summary>
           <div class="run-actions-menu">
             <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('check'))">
-              检查内容与类型
+              {{ environmentProject ? '检查环境' : '检查内容与类型' }}
             </button>
-            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('test'))">
+            <button
+              v-if="!environmentProject || testFiles.length"
+              :disabled="busy || running || hasUnsavedChanges"
+              @click="attempt(() => start('test'))"
+            >
               运行场景测试
             </button>
             <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('demo'))">
               无界面演示对战
             </button>
-            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('release'))">
+            <button
+              v-if="!environmentProject"
+              :disabled="busy || running || hasUnsavedChanges"
+              @click="attempt(() => start('release'))"
+            >
               检查并生成发行包
             </button>
             <small>任务使用已保存的内容</small>
@@ -1350,7 +1363,7 @@ onBeforeUnmount(() => {
       </template>
     </div>
     <section v-if="!project" class="project-picker">
-      <h1>打开内容包源项目</h1>
+      <h1>打开创作项目</h1>
       <div class="tools">
         <label
           >项目<select
@@ -1406,12 +1419,14 @@ onBeforeUnmount(() => {
           </button>
         </div>
         <dl class="project-metadata">
-          <dt>项目 ID</dt>
-          <dd>{{ snapshot.project.projectId }}</dd>
-          <dt>命名空间</dt>
-          <dd>{{ snapshot.project.namespace }}</dd>
-          <dt>SDK API</dt>
-          <dd>{{ snapshot.project.sdkApi ?? '未声明' }}</dd>
+          <dt>{{ environmentProject ? '环境 ID' : '项目 ID' }}</dt>
+          <dd>{{ snapshot.project.id ?? snapshot.project.projectId }}</dd>
+          <template v-if="!environmentProject">
+            <dt>命名空间</dt>
+            <dd>{{ snapshot.project.namespace }}</dd>
+            <dt>SDK API</dt>
+            <dd>{{ snapshot.project.sdkApi ?? '未声明' }}</dd>
+          </template>
           <dt>项目文件夹</dt>
           <dd>{{ project.directory }}</dd>
         </dl>
@@ -1456,8 +1471,15 @@ onBeforeUnmount(() => {
         <button v-if="rangeDraft" type="button" :disabled="busy" @click="rangeDraft = undefined">取消修改</button>
       </form>
       <section class="settings-group">
-        <h3>内容包</h3>
+        <h3>{{ environmentProject ? '环境项目' : '内容包' }}</h3>
         <div class="tools">
+          <button
+            v-if="environmentProject && !readOnly"
+            :disabled="busy"
+            @click="attempt(() => external('package.json'))"
+          >
+            编辑环境声明
+          </button>
           <button :disabled="busy || hasUnsavedChanges" @click="attempt(() => action({ action: 'export' }))">
             {{ project.published ? '导出包目录' : '导出源项目' }}</button
           ><button
@@ -1465,9 +1487,9 @@ onBeforeUnmount(() => {
             :disabled="busy || running || hasUnsavedChanges"
             @click="attempt(() => start('pack'))"
           >
-            构建内容包</button
+            {{ environmentProject ? '构建环境包' : '构建内容包' }}</button
           ><button
-            v-if="!readOnly && latestPack"
+            v-if="!readOnly && !environmentProject && latestPack"
             :disabled="busy || running || hasUnsavedChanges"
             @click="useBuiltPack"
           >
@@ -1483,6 +1505,7 @@ onBeforeUnmount(() => {
       :project="project"
       :read-only="readOnly"
       :context-error="contextError"
+      :environment-project="environmentProject"
     />
     <AuthorGitWorkspace
       v-else-if="project && snapshot && (projectView === 'git' || projectView === 'release')"

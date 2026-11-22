@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { resolveEnvironmentBattleOptions } from '@arcadia-eternity/const'
 import { randomBytes } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { prepareBattleEnvironment } from './environment.ts'
@@ -9,7 +10,7 @@ import { playersFromTeams } from './project-teams.ts'
 import { prepareSandboxContent, type SandboxContent } from '@arcadia-eternity/battle/sandbox/effects'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 import type { Battle } from '@arcadia-eternity/battle/engine'
-import { isRecord } from './types.ts'
+import { errorCode, isRecord } from './types.ts'
 export { prepareBattleEnvironment } from './environment.ts'
 import { AttackTargetOpinion, BattleMessageType, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/engine'
 export {
@@ -25,12 +26,14 @@ type BattleListener = Parameters<Battle['registerListener']>[0]
 type BattleMessage = Parameters<BattleListener>[0]
 type PlayerSelection = Parameters<Battle['setSelection']>[0]
 
-/** Existing package scenarios use the default environment with declared dependencies only. */
-export async function prepareContentPack(
-  root: string = process.cwd(),
-  options: NonNullable<Parameters<typeof prepareBattleEnvironment>[1]> = {},
-) {
-  root = resolve(root)
+async function defaultTeamIds(root: string): Promise<string[]> {
+  const manifest = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8').catch(error => {
+      if (errorCode(error) !== 'ENOENT') throw error
+      return '{}'
+    }),
+  )
+  if (!manifest.arcadia && Object.hasOwn(manifest, 'arcadiaEnvironment')) return ['blue', 'orange']
   const { default: config }: { default: unknown } = await import(pathToFileURL(join(root, 'arcadia.config.mjs')).href)
   if (
     !isRecord(config) ||
@@ -40,7 +43,16 @@ export async function prepareContentPack(
     Object.keys(config).some(key => key !== 'teams')
   )
     throw new Error('arcadia.config.mjs must export exactly two project team IDs in teams')
-  const teams = (config as { teams: string[] }).teams
+  return config.teams as string[]
+}
+
+/** Prepare a captured author project with its selected environment and saved teams. */
+export async function prepareContentPack(
+  root: string = process.cwd(),
+  options: NonNullable<Parameters<typeof prepareBattleEnvironment>[1]> = {},
+) {
+  root = resolve(root)
+  const teams = await defaultTeamIds(root)
   const prepared = await prepareBattleEnvironment(root, options)
   const { environment } = prepared
   const environmentRules = validateEnvironmentRules(prepared.effectiveRules)
@@ -52,6 +64,17 @@ export async function prepareContentPack(
   function defaultPlayers() {
     return prepared.loadTeams(teams)
   }
+  function assertTeam(team: readonly unknown[]) {
+    assertPlayableTeam(
+      environmentRules,
+      team,
+      id => environment.content.getSpecies(id),
+      environment.content.getNature,
+      environment.content.getEnhancement,
+      environment.content.getSkill,
+      environment.content.getMark,
+    )
+  }
   function runtimePlayers(supplied?: readonly unknown[], runtimeIds = false) {
     const players = ((supplied ?? defaultPlayers()) as unknown as ReturnType<typeof playersFromTeams>).map(player => ({
       ...player,
@@ -61,17 +84,7 @@ export async function prepareContentPack(
         id: runtimeIds ? randomBytes(16).toString('base64url').slice(0, 21) : pet.id,
       })),
     }))
-    for (const player of players) {
-      assertPlayableTeam(
-        environmentRules,
-        player.team,
-        id => environment.content.getSpecies(id),
-        environment.content.getNature,
-        environment.content.getEnhancement,
-        environment.content.getSkill,
-        environment.content.getMark,
-      )
-    }
+    for (const player of players) assertTeam(player.team)
     return players
   }
   const referenceContent = new WeakMap<Battle, SandboxContent['content']>()
@@ -190,6 +203,7 @@ export async function prepareContentPack(
   }
   return {
     ...prepared,
+    assertTeam,
     createBattle,
     restoreBattle,
     contentFor,

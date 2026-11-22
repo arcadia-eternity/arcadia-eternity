@@ -38,6 +38,7 @@ test('team and environment references share validators used by saved project doc
   assert.throws(() => teamDocument({ ...validTeam, team: [{ id: '0'.repeat(21) }] }), { code: 'TEAM_INVALID' })
   const environment = await authorReference({ topic: 'environment' })
   assert.deepEqual(environment.schema, toJsonSchemaCompat(EnvironmentDocumentSchema))
+  assert.equal(environmentDocument(JSON.parse(environment.examples[0].text)).schemaVersion, 2)
   const validEnvironment = { schemaVersion: 1, id: 'interaction', name: ' 测试 ', packages: {}, sources: [] }
   assert.deepEqual(environmentDocument(validEnvironment), EnvironmentDocumentSchema.parse(validEnvironment))
   for (const change of [
@@ -60,6 +61,11 @@ test('description tags match the renderer and effects come from the shipped temp
   assert.equal(
     effects.examples[0].text,
     await readFile(new URL('../template/src/effects/slow.effect.ts', import.meta.url), 'utf8'),
+  )
+  const authoring = await authorReference({ topic: 'authoring' })
+  assert.equal(
+    authoring.instructions,
+    await readFile(new URL('../../../docs/guides/ugc-authoring-agent/SKILL.md', import.meta.url), 'utf8'),
   )
   for (const topic of referenceTopics) assert.ok(JSON.stringify(await authorReference({ topic })).length < 32 * 1024)
 })

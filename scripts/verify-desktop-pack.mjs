@@ -1,18 +1,187 @@
 import { createRequire } from 'node:module'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { cp, lstat, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
-import { promisify } from 'node:util'
+import { isDeepStrictEqual, promisify } from 'node:util'
+import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 import { verifyDesktopSqlite } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks } from './desktop-runtime-portability.mjs'
+import { writeDesktopCliLauncher } from './desktop-cli-launcher.mjs'
+import { bounded, shutdownDesktopProcess } from './desktop-acceptance-process.mjs'
 
 const exec = promisify(execFile)
 let previewAccepted = false
 
 const architecture = value =>
   typeof value === 'string' ? value : ['ia32', 'x64', 'armv7l', 'arm64', 'universal'][value]
+
+/** Start the independent CLI server on an OS-assigned port and exercise its paired website. */
+async function verifyPackagedServer(invocation) {
+  const { entry, args, options } = invocation
+  const child = spawn(entry, args, {
+    ...options,
+    detached: process.platform !== 'win32',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let output = '',
+    errors = '',
+    port
+  child.stderr.on('data', chunk => {
+    errors = (errors + chunk).slice(-8192)
+  })
+  try {
+    port = await bounded(
+      new Promise((resolve, reject) => {
+        child.once('error', reject)
+        child.once('exit', (code, signal) => reject(new Error(`Packaged server exited (${code ?? signal}): ${errors}`)))
+        child.stdout.on('data', chunk => {
+          output = (output + chunk).slice(-8192)
+          const match = /listening on port (\d+)\r?\n/.exec(output)
+          if (match) resolve(Number(match[1]))
+        })
+      }),
+      60000,
+      'Packaged server did not announce its listening port',
+    )
+    const url = 'http://127.0.0.1:' + port
+    const health = await fetch(url + '/health', { signal: AbortSignal.timeout(10000) })
+    if (!health.ok || (await health.json()).status !== 'ok')
+      throw new Error('Packaged server returned unhealthy status')
+    const site = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    if (!site.ok || !/<html[>\s]/i.test(await site.text()))
+      throw new Error('Packaged server did not serve its paired website')
+  } finally {
+    if (child.pid)
+      await shutdownDesktopProcess({
+        child,
+        ports: port ? [port] : [],
+        quit: () =>
+          process.platform === 'win32'
+            ? exec(join(process.env.SystemRoot, 'System32/taskkill.exe'), ['/PID', String(child.pid), '/T', '/F'])
+            : child.kill('SIGTERM'),
+      })
+  }
+}
+
+/** Invoke both bundled commands from a fresh home with no Node, npm or Arcadia commands on PATH. */
+export async function verifyPackagedAuthoring(launcher) {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-packaged-author-'))
+  let preserveDirectory = false
+  const authorCli = resolve(launcher)
+  const rootCli = join(dirname(authorCli), process.platform === 'win32' ? 'arcadia.cmd' : 'arcadia')
+  const env = {
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => /^(systemroot|comspec|pathext|tmpdir|temp|tmp)$/i.test(key)),
+    ),
+    HOME: directory,
+    USERPROFILE: directory,
+    PATH: process.platform === 'win32' ? join(process.env.SystemRoot, 'System32') : '',
+    npm_config_cache: join(directory, 'npm-cache'),
+    npm_config_offline: 'true',
+  }
+  const invocation = (entry, cwd, args) => {
+    const options = { cwd, env: { ...env } }
+    if (process.platform === 'win32') {
+      // A .cmd entry needs the Windows command interpreter. Expand paths inside quotes so
+      // spaces and shell metacharacters in the install and temp directories survive.
+      const quoted = [entry, ...args].map((value, index) => {
+        const key = 'ARCADIA_SMOKE_ARG_' + index
+        options.env[key] = value
+        return '"%' + key + '%"'
+      })
+      entry = join(process.env.SystemRoot, 'System32/cmd.exe')
+      args = ['/d', '/v:off', '/s', '/c', '"' + quoted.join(' ') + '"']
+      options.windowsVerbatimArguments = true
+    }
+    return { entry, args, options }
+  }
+  const run = async (commandName, cwd, values, input) => {
+    const { entry, args, options } = invocation(commandName, cwd, values)
+    const command = exec(entry, args, { ...options, timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+    command.child.stdin.end(input && JSON.stringify(input))
+    const { stdout } = await command
+    return stdout
+  }
+  const result = stdout => {
+    const receipt = /^ARCADIA_RESULT=(.+)$/m.exec(stdout)
+    if (!receipt) throw new Error('Packaged author SDK returned no task receipt')
+    return JSON.parse(receipt[1])
+  }
+  try {
+    const { instances } = JSON.parse(await run(authorCli, directory, ['desktop', 'instances']))
+    if (!Array.isArray(instances) || instances.length)
+      throw new Error('Packaged CLI returned an unexpected player instance in a fresh home')
+    const pack = join(directory, 'starter pack')
+    await run(authorCli, directory, ['init', 'pack', pack, '--id', 'smoke-pack'])
+    const built = result(await run(authorCli, pack, ['pack']))
+    if (!built?.integrity?.startsWith('sha512-'))
+      throw new Error('Packaged author SDK did not build the starter archive')
+    const environment = join(directory, 'smoke-environment')
+    await run(authorCli, directory, ['init', 'environment', environment])
+    const recipe = result(await run(authorCli, environment, ['pack']))
+    const file = 'environment.tgz'
+    await cp(join(environment, recipe.filename), join(pack, file))
+    const { result: installed } = JSON.parse(
+      await run(authorCli, pack, ['workspace', '.', 'environment-install'], {
+        source: { kind: 'archive', file },
+        offline: true,
+      }),
+    )
+    if (installed?.id !== 'smoke-environment' || installed.integrity !== recipe.integrity)
+      throw new Error('Packaged author SDK did not install the environment archive')
+    const demo = result(await run(authorCli, installed.directory, ['demo', '--seed', 'packaged-author']))
+    if (
+      demo?.status !== 'completed' ||
+      demo.seed !== 'packaged-author' ||
+      demo.candidate?.environmentId !== 'smoke-environment'
+    )
+      throw new Error('Packaged author SDK did not complete the standalone environment battle')
+    console.log(
+      'Packaged CLI created both project kinds, installed the environment archive and completed the seeded battle.',
+    )
+    const simulation = JSON.parse(
+      await run(rootCli, directory, [
+        'battle',
+        'simulate',
+        '--player1',
+        join(environment, 'debug/teams/blue.yaml'),
+        '--player2',
+        join(environment, 'debug/teams/orange.yaml'),
+        '--seed',
+        'packaged-battle',
+        '--replay-out',
+        'replay.json',
+        '--json',
+      ]),
+    )
+    const replay = JSON.parse(await run(rootCli, directory, ['battle', 'replay', 'replay.json', '--verify', '--json']))
+    if (
+      simulation.counts.completed !== 1 ||
+      !replay.verified ||
+      !isDeepStrictEqual(replay.result, simulation.results[0])
+    )
+      throw new Error('Packaged CLI could not reproduce the recorded battle in a new process')
+    const data = ['--data-dir', join(directory, 'server data')]
+    const empty = JSON.parse(await run(rootCli, directory, ['server', 'db', 'status', ...data]))
+    const migrated = JSON.parse(await run(rootCli, directory, ['server', 'db', 'migrate', ...data]))
+    if (empty.driver !== 'sqlite' || empty.status !== 'empty' || migrated.status !== 'ready')
+      throw new Error('Packaged CLI could not initialize standalone server storage')
+    await verifyPackagedServer(
+      invocation(rootCli, directory, ['server', ...data, '--host', '127.0.0.1', '--port', '0', '--offline-content']),
+    )
+    console.log('Packaged arcadia verified a saved replay and served the standalone website and health endpoint.')
+  } catch (error) {
+    if (error.preserveInstallerWorkspace) {
+      preserveDirectory = true
+      console.error('Preserving the possibly active server directory:', directory)
+    }
+    throw error
+  } finally {
+    if (!preserveDirectory) await rm(directory, { recursive: true, force: true })
+  }
+}
 
 export async function verifyPackagedRuntimeFiles(runtime, { platform, arch, appOutDir }) {
   if (platform === 'win32') {
@@ -58,6 +227,7 @@ async function verifyPackagedRuntime(context) {
     platform === 'darwin'
       ? join(resources, '../MacOS', product)
       : join(context.appOutDir, platform === 'win32' ? `${product}.exe` : context.packager.executableName)
+  const launcher = await writeDesktopCliLauncher({ executable, runtime, platform })
   const runtimeRequire = createRequire(join(runtime, 'node_modules/@arcadia-eternity/database/package.json'))
   await verifyDesktopSqlite({
     executable,
@@ -67,6 +237,7 @@ async function verifyPackagedRuntime(context) {
     arch,
   })
   if (process.env.ARCADIA_DESKTOP_MANAGED_HOST_TEST === '1') {
+    await verifyPackagedAuthoring(launcher)
     const test = fileURLToPath(
       new URL('../packages/web-ui/electron/test/desktop-managed-host-real.test.mjs', import.meta.url),
     )

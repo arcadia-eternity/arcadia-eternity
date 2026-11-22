@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
-  "version": "4.12.1",
+  "version": "4.12.2",
   "license": "MIT",
   "type": "module",
   "description": "Arcadia Eternity base content and effects",
@@ -13,7 +13,6 @@
     "presentation": "dist/presentation.json",
     "effectArtifact": "dist/arcadia-effects.json",
     "catalog": "dist/catalog.json",
-    "environments": "dist/environment/presets.json",
     "sdkApi": 2
   },
   "scripts": {
@@ -33,8 +32,6 @@
     "LICENSE"
   ],
   "exports": {
-    "./environment/test-120-rules.json": "./dist/environment/test-120-rules.json",
-    "./environment/base-rules.json": "./dist/environment/base-rules.json",
     "./metadata": {
       "types": "./dist/metadata.d.ts",
       "import": "./dist/metadata.mjs",

@@ -7,6 +7,7 @@ import { WorkspaceError } from './workspace.ts'
 import { errorCode } from './types.ts'
 
 export const referenceTopics = [
+  'authoring',
   'species',
   'skills',
   'marks',
@@ -41,6 +42,14 @@ async function template(file: string): Promise<string> {
 export async function authorReference({ topic }: { topic?: string } = {}) {
   if (!topic || !(referenceTopics as readonly string[]).includes(topic))
     throw new WorkspaceError('REFERENCE_UNKNOWN', '请选择有效的作者参考主题')
+  if (topic === 'authoring') {
+    const source = 'skills/arcadia-content-authoring/SKILL.md'
+    const instructions = await template(source).catch(error => {
+      if (errorCode(error) !== 'ENOENT') throw error
+      return readFile(new URL('../../../docs/guides/ugc-authoring-agent/SKILL.md', import.meta.url), 'utf8')
+    })
+    return { topic, title: 'Create and debug a pack or environment', source, instructions }
+  }
   if (topic === 'git' || topic === 'release') {
     const source = `skills/arcadia-content-${topic}/SKILL.md`
     return {
@@ -87,20 +96,29 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
   if (topic === 'environment') {
     return {
       topic,
-      title: 'Named project environment',
+      title: 'Standalone and named battle environments',
       source: '@arcadia-eternity/content-sdk/debug-environments',
       stage: 'source',
       schema: toJsonSchemaCompat(EnvironmentDocumentSchema),
       examples: [
         {
           language: 'json',
-          text: JSON.stringify({ schemaVersion: 1, id: 'interaction', name: '双包交互', packages: {}, sources: [] }),
+          text: JSON.stringify({
+            schemaVersion: 2,
+            id: 'singles-cup',
+            name: '单精灵杯',
+            packages: {},
+            sources: [],
+            rules: { schemaVersion: 1, team: { maxSize: 1 } },
+            requires: {},
+          }),
         },
       ],
       notes: [
         'default is built in and cannot be saved as a named environment. Names must be nonblank; source package names must be unique.',
-        'packages accepts registry version constraints, never file:/link:/workspace: or filesystem paths. sources lists package names already mapped locally; it does not contain paths.',
-        'Save with expectedVersion. Updating a named environment neither selects it in the page nor changes a running candidate; prepare a new preview explicitly.',
+        'In a standalone project, package.json holds arcadiaEnvironment and npm dependencies. environment_list returns the editable document and its version. Save it with environment_save using that version.',
+        'In a content pack, environment_save with expectedVersion:null creates a named debug environment. Select its ID in preview_start.',
+        'Use registry versions for shared packages. sources contains locally mapped package names. After a rules change, prepare a fresh preview. Pass its jobId and a saved teamId to team_validate. A false valid field includes the rule diagnostic.',
       ],
     }
   }

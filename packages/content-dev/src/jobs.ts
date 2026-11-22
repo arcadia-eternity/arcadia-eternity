@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { AuthorWorkspace, WorkspaceError, diagnostic } from './workspace.ts'
 import { JobJournal } from './job-journal.ts'
+import { DebugEnvironments } from './debug-environments.ts'
 import { siblingModulePath } from './module-path.ts'
 
 const cli = siblingModulePath('cli')
@@ -48,6 +49,7 @@ export interface Job {
   sourceRevision: string
   contentRevision: string
   environmentId: string
+  seed?: string
   preparationRevision: string
   state: string
   phase: string
@@ -86,7 +88,10 @@ function resultSummary(result: unknown) {
     'integrity',
     'shasum',
     'winner',
+    'status',
+    'actions',
     'turns',
+    'seed',
     'environmentRevision',
     'packageName',
   ])
@@ -151,7 +156,7 @@ export class AuthorJobs {
     this.execute = execute
     this.env = Object.fromEntries(
       Object.entries(env).filter(([key]) =>
-        /^(PATH|HOME|USERPROFILE|SystemRoot|WINDIR|TEMP|TMP|TMPDIR|LANG|LC_ALL|ARCADIA_NPM_CLI|ARCADIA_PREVIEW_CLIENT_URL|npm_config_cache)$/i.test(
+        /^(PATH|HOME|USERPROFILE|SystemRoot|WINDIR|TEMP|TMP|TMPDIR|LANG|LC_ALL|ARCADIA_NPM_CLI|ARCADIA_PREVIEW_CLIENT_URL|npm_config_cache|npm_config_offline)$/i.test(
           key,
         ),
       ),
@@ -217,17 +222,18 @@ export class AuthorJobs {
       return false
     }
   }
+  async #isStale(job: Job, revision: string, contentRevision: string) {
+    if (job.kind === 'preview')
+      return job.contentRevision !== contentRevision || !(await this.#dependenciesCurrent(job))
+    return job.sourceRevision !== revision || (job.kind === 'demo' && !(await this.#dependenciesCurrent(job)))
+  }
   async refresh() {
     await this.#checkpoint()
     if (!this.#journal) return
     const revision = await this.workspace.revision()
     const contentRevision = await this.workspace.revision({ contentOnly: true })
     for (const { job } of this.#jobs.values())
-      if (terminal.has(job.state))
-        job.stale ||=
-          job.kind === 'preview'
-            ? job.contentRevision !== contentRevision || !(await this.#dependenciesCurrent(job))
-            : job.sourceRevision !== revision
+      if (terminal.has(job.state)) job.stale ||= await this.#isStale(job, revision, contentRevision)
     await this.#refreshReceipts({ revision, contentRevision })
   }
   async #refreshReceipts(revisions?: { revision: string; contentRevision: string }): Promise<void> {
@@ -239,11 +245,7 @@ export class AuthorJobs {
       if (this.#jobs.get(receipt.job.jobId)?.controller) continue
       receipt.job.stale ||= this.#jobs.get(receipt.job.jobId)?.job.stale ?? false
       if (revisions)
-        receipt.job.stale ||=
-          receipt.job.kind === 'preview'
-            ? receipt.job.contentRevision !== revisions.contentRevision ||
-              !(await this.#dependenciesCurrent(receipt.job))
-            : receipt.job.sourceRevision !== revisions.revision
+        receipt.job.stale ||= await this.#isStale(receipt.job, revisions.revision, revisions.contentRevision)
       this.#jobs.set(receipt.job.jobId, { job: receipt.job, live: receipt.live })
     }
   }
@@ -251,15 +253,21 @@ export class AuthorJobs {
     kind,
     sourceRevision,
     environmentId = 'default',
+    seed,
   }: {
     kind: string
     sourceRevision?: string
     environmentId?: string
+    seed?: string
   }): Promise<Job> {
     if (this.workspace.assertWritable) await this.workspace.assertWritable()
     if (this.#closed) throw new WorkspaceError('WORKSPACE_CLOSED', '任务宿主已关闭')
     if (!['check', 'test', 'demo', 'preview', 'pack', 'release'].includes(kind))
       throw new WorkspaceError('TASK_INVALID', '不支持的作者任务')
+    const standalone = this.workspace.projectKind === 'environment'
+    if (standalone && kind === 'release') throw new WorkspaceError('TASK_INVALID', '此发行检查需要内容包源项目')
+    if (seed !== undefined && (kind !== 'demo' || typeof seed !== 'string' || !seed.length || seed.length > 200))
+      throw new WorkspaceError('TASK_INVALID', '演示对战的随机种子需要 1–200 个字符')
     if (kind !== 'check' && !this.execute) throw new WorkspaceError('EXECUTION_DISABLED', '此会话未启用项目代码执行')
     if (this.#active) throw new WorkspaceError('TASK_BUSY', '请等待或取消当前任务')
     if (kind === 'preview' && this.#previews.size >= 4)
@@ -275,6 +283,12 @@ export class AuthorJobs {
     })
     try {
       const revision = await this.workspace.revision()
+      if (standalone) {
+        const [environment] = await new DebugEnvironments(this.workspace).list()
+        if (environmentId !== 'default' && environmentId !== environment.id)
+          throw new WorkspaceError('ENVIRONMENT_MISSING', '此项目没有指定环境：' + environmentId)
+        environmentId = environment.id
+      }
       if (this.#closed) throw new WorkspaceError('WORKSPACE_CLOSED', '任务宿主已关闭')
       if (sourceRevision && sourceRevision !== revision)
         throw new WorkspaceError('REVISION_CONFLICT', '项目已改变，请重新读取')
@@ -284,6 +298,7 @@ export class AuthorJobs {
         sourceRevision: revision,
         contentRevision: await this.workspace.revision({ contentOnly: true }),
         environmentId,
+        ...(seed !== undefined && { seed }),
         preparationRevision: await this.workspace.revision({
           contentOnly: true,
           excludeFile:
@@ -461,11 +476,12 @@ export class AuthorJobs {
           await mkdir(dirname(target), { recursive: true })
           await cp(await this.workspace.path(entry.file), target)
         }
-        await symlink(
-          join(this.workspace.root, 'node_modules'),
-          join(capture, 'node_modules'),
-          process.platform === 'win32' ? 'junction' : 'dir',
-        )
+        if (this.workspace.projectKind !== 'environment')
+          await symlink(
+            join(this.workspace.root, 'node_modules'),
+            join(capture, 'node_modules'),
+            process.platform === 'win32' ? 'junction' : 'dir',
+          )
         if ((await this.workspace.revision({ contentOnly: true })) !== job.contentRevision)
           throw new WorkspaceError('PREVIEW_STALE', '复制候选期间源码已改变，请重试')
       }
@@ -477,7 +493,8 @@ export class AuthorJobs {
       } else if (job.kind === 'pack') await this.#process([cli, 'pack'], job, signal)
       else {
         if (job.kind === 'release') await this.#process([cli, 'pack', '--release'], job, signal)
-        else await this.#process([cli, 'build'], job, signal, false, capture)
+        else if (this.workspace.projectKind !== 'environment')
+          await this.#process([cli, 'build'], job, signal, false, capture)
         if (job.kind === 'demo' || job.kind === 'preview')
           await this.#process([cli, job.kind], job, signal, job.kind === 'preview', capture)
         else {
@@ -545,7 +562,8 @@ export class AuthorJobs {
           job.kind === 'preview'
             ? (await this.workspace.revision({ contentOnly: true })) !== job.contentRevision ||
               !(await this.#dependenciesCurrent(job))
-            : (await this.workspace.revision()) !== job.sourceRevision
+            : (await this.workspace.revision()) !== job.sourceRevision ||
+              (job.kind === 'demo' && !(await this.#dependenciesCurrent(job)))
         if (job.stale && job.kind === 'preview') {
           controller.abort()
           state = 'failed'
@@ -596,7 +614,10 @@ export class AuthorJobs {
                 ARCADIA_TEST_RELEASE_INTEGRITY: release.integrity,
               }
             : {}),
-          ...(preview ? { ARCADIA_DEBUG_ENVIRONMENT: job.environmentId, ARCADIA_DEBUG_ROOT: this.workspace.root } : {}),
+          ...(preview || job.kind === 'demo'
+            ? { ARCADIA_DEBUG_ENVIRONMENT: job.environmentId, ARCADIA_DEBUG_ROOT: this.workspace.root }
+            : {}),
+          ...(job.seed !== undefined && { ARCADIA_DEBUG_SEED: job.seed }),
         },
         stdio: ['ignore', 'pipe', 'pipe', ...(preview ? ['ipc'] : [])] as import('node:child_process').StdioOptions,
         windowsHide: true,

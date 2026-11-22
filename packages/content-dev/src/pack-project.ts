@@ -12,7 +12,10 @@ import {
   resolveNpmInvocation,
 } from '@arcadia-eternity/pack-loader/node'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
-import type { PackageManifest } from './workspace.ts'
+import { AuthorWorkspace, type PackageManifest } from './workspace.ts'
+import { ProjectTeams } from './project-teams.ts'
+import { environmentProjectDocument } from './debug-environments.ts'
+import { assertEnvironmentRequirements, prepareEnvironmentRules } from './environment-rules.ts'
 import { releasePayload, normalizeReleaseArchive, requireClientRange } from '../release-payload.mjs'
 import { ManagedProjects } from './managed-projects.ts'
 import { errorCode } from './types.ts'
@@ -112,6 +115,76 @@ async function verifyRelease(directory: string, archive: string, name: string) {
     )
   } finally {
     await installer.close()
+  }
+}
+
+// Environment archives carry the declarative recipe and its portable inputs.
+export async function packEnvironmentProject(directory: string) {
+  const workspace = await AuthorWorkspace.open(directory, { watch: false })
+  let temporary: string | undefined
+  try {
+    await workspace.assertWritable()
+    const manifestSource = await workspace.read('package.json')
+    const manifest = JSON.parse(manifestSource.text) as PackageManifest
+    const document = environmentProjectDocument(manifest)
+    assertEnvironmentRequirements(document.requires)
+    prepareEnvironmentRules(document.rules)
+    if (document.sources.length)
+      throw new Error('请先把本机源码依赖打包，改用已发布版本或 file:candidates/*.tgz 后再分发环境。')
+    const { packages: dependencies, ...arcadiaEnvironment } = document
+    const teamLibrary = new ProjectTeams(workspace)
+    const teams = await teamLibrary.list()
+    const files = new Set(teams.map(team => teamLibrary.file(team.id)))
+    for (const spec of Object.values(dependencies)) {
+      if (spec.startsWith('file:')) files.add(spec.slice(5))
+    }
+    temporary = await mkdtemp(join(await stagingRoot(workspace.root), 'environment-'))
+    const payload = join(temporary, 'package')
+    await mkdir(payload)
+    const captured = new Map<string, CapturedSource>()
+    for (const file of files) {
+      const source = await sourceFile(workspace.root, file)
+      captured.set(source.path, source)
+      const target = join(payload, file)
+      await mkdir(dirname(target), { recursive: true })
+      await copyFile(source.path, target)
+    }
+    const recipe = {
+      name: manifest.name,
+      version: manifest.version,
+      description: manifest.description,
+      license: manifest.license,
+      engines: manifest.engines,
+      private: manifest.private,
+      files: [...files],
+      dependencies,
+      arcadiaEnvironment,
+    }
+    await writeFile(join(payload, 'package.json'), JSON.stringify(recipe, null, 2) + '\n')
+    const packed = parseNpmPackOutput(
+      String(
+        (
+          await npm(
+            payload,
+            ['pack', '--offline', '--ignore-scripts', '--json', '--pack-destination', temporary],
+            process.env.npm_config_cache ?? join(temporary, 'cache'),
+          )
+        ).stdout,
+      ),
+    )[0]
+    if (!packed || !packed.shasum || basename(packagePath(packed.filename)) !== packed.filename)
+      fail('npm returned an invalid environment package receipt')
+    const actual = new Set(packed.files.map(file => file.path))
+    if (actual.size !== files.size + 1 || !actual.has('package.json') || [...files].some(file => !actual.has(file)))
+      fail('Environment archive does not match the declared files')
+    await verifyCapture(captured)
+    if ((await workspace.read('package.json')).version !== manifestSource.version)
+      fail('Environment manifest changed during packaging')
+    await rename(join(temporary, packed.filename), join(workspace.root, packed.filename))
+    return packed
+  } finally {
+    if (temporary) await rm(temporary, { recursive: true, force: true })
+    await workspace.close()
   }
 }
 

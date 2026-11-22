@@ -13,7 +13,12 @@
     ".": {
       "entry": ["scripts/*.{ts,mjs}", "examples/*.ts"],
       "project": ["bin/**/*.ts", "scripts/**/*.{ts,mjs}", "examples/**/*.ts", "*.{js,mjs,ts}"],
-      "ignoreDependencies": ["@typescript/native", "@arcadia-eternity/local-profile"],
+      // The host resolves the two official recipe manifests through the SDK.
+      "ignoreDependencies": [
+        "@typescript/native",
+        "@arcadia-eternity/local-profile",
+        "@arcadia-eternity/environment-training-120",
+      ],
     },
     "packages/web-ui": {
       "entry": [
@@ -31,7 +36,13 @@
       "vitest": {
         "config": [],
       },
-      "ignoreDependencies": ["@ruffle-rs/ruffle", "@electron/rebuild", "npm"],
+      "ignoreDependencies": [
+        "@ruffle-rs/ruffle",
+        "@electron/rebuild",
+        "npm",
+        "@arcadia-eternity/environment-default",
+        "@arcadia-eternity/environment-training-120",
+      ],
       "ignoreUnresolved": ["/src/services/swf/adapter.ts"],
       "vite": {
         "config": [],
@@ -76,6 +87,8 @@
         "config": [],
       },
     },
+    // Environment manifests declare content dependencies without importing code.
+    "packs/environment-*": { "ignoreDependencies": ["@arcadia-eternity/data-pack-base"] },
     "packs/base": {
       "entry": ["effects.ts", "src/effects/**/*.effect.ts"],
     },

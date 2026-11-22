@@ -59,6 +59,66 @@ it('keeps the initial empty state hidden until projects finish loading', async (
   page.unmount()
 })
 
+it.each([
+  {
+    shell: 'posix',
+    directory: "/Users/O'Brien $Tools & Co/bin/",
+    prefix: "'/Users/O'\\''Brien $Tools & Co/bin/",
+    suffix: '',
+  },
+  {
+    shell: 'powershell',
+    directory: "C:\\O'Brien $Tools & Co\\bin\\",
+    prefix: "& 'C:\\O''Brien $Tools & Co\\bin\\",
+    suffix: '.cmd',
+  },
+])(
+  'shows absolute paths and copies runnable $shell commands before opening a project',
+  async ({ shell, directory, prefix, suffix }) => {
+    vi.stubEnv('PROD', true)
+    const commandPaths = {
+      arcadia: directory + 'arcadia' + suffix,
+      'arcadia-content': directory + 'arcadia-content' + suffix,
+    }
+    const author = vi.fn(async ({ action }: { action: string }) => ({
+      result: action === 'list' ? [] : { commandPaths, shell },
+    }))
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    vi.stubGlobal('arcadiaDesktop', { author })
+    const page = mount(CreationPage, { global: { stubs: { teleport: true } } })
+    try {
+      await flushPromises()
+      await page
+        .findAll('button')
+        .find(button => button.text() === '终端命令')!
+        .trigger('click')
+      await flushPromises()
+      expect(author.mock.calls.map(([input]) => input.action)).toEqual(['list', 'terminal-command-paths'])
+      expect(page.findAll('.command-path').map(path => path.text())).toEqual(Object.values(commandPaths))
+      for (const name of ['arcadia', 'arcadia-content']) {
+        const expected = prefix + name + suffix + "' --help"
+        const field = page.get<HTMLInputElement>('input[name="' + name + '"]')
+        expect(field.element.value).toBe(expected)
+        expect(field.element.readOnly).toBe(true)
+        await page.get('button[aria-label="复制 ' + name + ' 命令"]').trigger('click')
+        expect(writeText).toHaveBeenLastCalledWith(expected)
+      }
+      writeText.mockRejectedValueOnce(new Error('clipboard denied'))
+      await page.get('button[aria-label="复制 arcadia 命令"]').trigger('click')
+      await flushPromises()
+      const fallback = page.get<HTMLInputElement>('input[name="arcadia"]').element
+      expect(fallback.selectionStart).toBe(0)
+      expect(fallback.selectionEnd).toBe(fallback.value.length)
+      expect(page.text()).toContain('请手动复制所选命令')
+      expect(page.text()).not.toContain('PATH')
+    } finally {
+      page.unmount()
+      vi.unstubAllEnvs()
+    }
+  },
+)
+
 it('prefills the host compatibility range and submits the author’s override', async () => {
   const author = vi.fn(async (input: { action: string }) => ({
     result: input.action === 'list' ? [] : { id: 'new-pack' },

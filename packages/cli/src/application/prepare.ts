@@ -4,12 +4,13 @@ import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 import { readFile, stat } from 'node:fs/promises'
 import {
   buildDisplayLocales,
+  gameplayRevision,
   parseArchive,
   limits,
   WorkError,
   type NativePackLoadResult,
 } from '@arcadia-eternity/pack-loader/native'
-import { resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
 import { ProfileRepository, expandTeam } from '@arcadia-eternity/local-profile'
 import { FileProfileStorage, profileDirectory } from '@arcadia-eternity/local-profile/node'
 import { NativePlayerSchema } from '@arcadia-eternity/battle/engine'
@@ -25,7 +26,7 @@ import {
 import { createContentIndex, type ContentCatalog, type ContentIndex } from '@arcadia-eternity/battle/engine'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
-import type { RunSpec } from './types'
+import type { PlayerLibraryEnvironment, RunSpec } from './types'
 
 function prepareShippedContent() {
   return prepareShippedEnvironment(
@@ -50,11 +51,13 @@ export async function createLoader() {
 export type CliPreparedContent = Pick<
   NativePackLoadResult<ContentIndex>,
   'build' | 'content' | 'data' | 'locales' | 'npm' | 'packs' | 'revision' | 'sandbox' | 'works'
-> & { rules?: EnvironmentRules }
+> & { rules?: EnvironmentRules; playerLibrary?: PlayerLibraryEnvironment }
 export interface ContentSelectionOptions {
   works?: string
   npmProject?: string
   approval?: string
+  environment?: string
+  instance?: string
 }
 
 async function toCliContent(prepared: Readonly<PreparedNpmEnvironment>, explicitlyInstalled = false) {
@@ -69,24 +72,99 @@ async function toCliContent(prepared: Readonly<PreparedNpmEnvironment>, explicit
     await prepared.dispose()
   }
 }
-export async function prepareContent(
-  packRef: string,
-  cwd: string,
-  { works: workFile, npmProject, approval: approvalFile }: ContentSelectionOptions = {},
+async function prepareInstalled(directory: string, approvalFile: string, prebuiltOnly = false) {
+  const approval = await readNpmAdmission(approvalFile)
+  const prepared = await prepareNpmProject(
+    directory,
+    emptyNpmContentHost,
+    approval,
+    prebuiltOnly ? { effectPreparation: 'prebuilt-only' } : {},
+  )
+  const content = await toCliContent(prepared, true)
+  const document = await readInstalledEnvironmentDocument(directory, content.revision)
+  assertEnvironmentRequirements(document?.requires)
+  const { rules } = prepareRulesForContent(document?.rules, content.data)
+  return { content: { ...content, rules }, environmentId: document?.id }
+}
+
+async function preparePlayerEnvironment(
+  environmentId: string,
+  instance?: string,
+  signal?: AbortSignal,
 ): Promise<CliPreparedContent> {
-  const ref = /^(builtin:|npm:)/.test(packRef) ? packRef : resolve(cwd, packRef)
+  const { connectDesktopInstance } = await import('@arcadia-eternity/content-sdk/desktop')
+  const connection = await connectDesktopInstance(instance, { signal })
+  const lease = await connection.request({ operation: 'battle-environment-acquire', environmentId })
+  const { leaseId } = lease
+  if (typeof leaseId !== 'string' || !leaseId)
+    throw new CliError('DESKTOP_RESPONSE_INVALID', 'Missing Desktop environment lease')
   try {
+    if (
+      typeof lease.directory !== 'string' ||
+      !isAbsolute(lease.directory) ||
+      typeof lease.environmentId !== 'string' ||
+      typeof lease.contentRevision !== 'string' ||
+      typeof lease.draftRevision !== 'string' ||
+      !lease.draftRevision
+    )
+      throw new CliError('DESKTOP_RESPONSE_INVALID', 'Invalid Desktop environment snapshot')
+    const installed = await prepareInstalled(lease.directory, resolve(lease.directory, 'arcadia-admission.json'), true)
+    if (installed.environmentId !== lease.environmentId || installed.content.revision !== lease.contentRevision)
+      throw new CliError(
+        'ENVIRONMENT_REVISION_MISMATCH',
+        'The prepared content does not match the acquired player-library environment',
+      )
+    const { build, revision, sandbox, rules } = installed.content
+    const gameplay = await gameplayRevision(
+      {
+        kind: 'native-v4',
+        contentRevision: revision,
+        coreBuildId: build.coreBuildId,
+        registryBuildId: build.registryBuildId,
+      },
+      sandbox.revision,
+      rules,
+    )
+    return {
+      ...installed.content,
+      playerLibrary: {
+        environmentId: lease.environmentId,
+        draftRevision: lease.draftRevision,
+        gameplayRevision: gameplay,
+      },
+    }
+  } finally {
+    // Both the Worker recipe and display locales are in memory after preparation.
+    await connection.request(
+      { operation: 'battle-environment-release', leaseId },
+      { signal: AbortSignal.timeout(10000) },
+    )
+  }
+}
+export async function prepareContent(
+  packRef: string | undefined,
+  cwd: string,
+  { works: workFile, npmProject, approval: approvalFile, environment, instance }: ContentSelectionOptions = {},
+  signal?: AbortSignal,
+): Promise<CliPreparedContent> {
+  if (instance !== undefined && !environment) throw new CliError('CONTENT_OPTIONS', '--instance requires --environment')
+  if (
+    environment !== undefined &&
+    (!environment || [packRef, workFile, npmProject, approvalFile].some(value => value !== undefined))
+  )
+    throw new CliError(
+      'CONTENT_OPTIONS',
+      '--environment requires an ID and cannot be combined with --pack-ref, --works, --npm-project or --approval',
+    )
+  const selected = packRef ?? 'builtin:workspace'
+  const ref = /^(builtin:|npm:)/.test(selected) ? selected : resolve(cwd, selected)
+  try {
+    if (environment !== undefined) return await preparePlayerEnvironment(environment, instance, signal)
     if (npmProject) {
       if (workFile) throw new CliError('CONTENT_OPTIONS', '--works and --npm-project cannot be combined')
       const directory = resolve(cwd, npmProject)
-      const approval = await readNpmAdmission(
-        approvalFile ? resolve(cwd, approvalFile) : resolve(directory, 'arcadia-admission.json'),
-      )
-      const content = await toCliContent(await prepareNpmProject(directory, emptyNpmContentHost, approval), true)
-      const document = await readInstalledEnvironmentDocument(directory, content.revision)
-      assertEnvironmentRequirements(document?.requires)
-      const { rules } = prepareRulesForContent(document?.rules, content.data)
-      return { ...content, rules }
+      const file = approvalFile ? resolve(cwd, approvalFile) : resolve(directory, 'arcadia-admission.json')
+      return (await prepareInstalled(directory, file)).content
     }
     if (approvalFile) throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
     if (
@@ -97,10 +175,10 @@ export async function prepareContent(
       const content = await toCliContent(await prepareShippedContent())
       const declaration = JSON.parse(
         await readFile(
-          fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/environment/base-rules.json')),
+          fileURLToPath(import.meta.resolve('@arcadia-eternity/environment-default/package.json')),
           'utf8',
         ),
-      )
+      ).arcadiaEnvironment.rules
       return { ...content, rules: prepareRulesForContent(declaration, content.data).rules }
     }
     const loader = await createLoader()
@@ -127,6 +205,11 @@ export async function prepareContent(
     }
   } catch (error) {
     if (error instanceof WorkError || error instanceof CliError) throw error
+    if (environment !== undefined) {
+      const code =
+        error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : 'CONTENT_INVALID'
+      throw new CliError(code, message(error), 2, environment)
+    }
     throw new CliError('CONTENT_INVALID', message(error), 2, ref)
   }
 }

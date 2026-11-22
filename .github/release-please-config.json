@@ -3,7 +3,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "exclude-paths": ["packs/base", "packs/base/**"],
+      "exclude-paths": ["packs", "packs/**"],
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "draft": false,
@@ -61,10 +61,15 @@
         }
       ]
     },
-    "packs/base": {
-      "release-type": "node",
+    "packs": {
+      "release-type": "simple",
+      "changelog-path": "base/CHANGELOG.md",
+      "extra-files": [
+        { "type": "json", "path": "base/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "environment-default/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "environment-training-120/package.json", "jsonpath": "$.version" }
+      ],
       "component": "data-pack-base",
-      "initial-version": "4.12.0",
       "draft": true,
       "force-tag-creation": true
     }

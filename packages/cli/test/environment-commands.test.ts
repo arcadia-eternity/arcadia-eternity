@@ -40,6 +40,7 @@ async function fixture() {
     },
   })
   return {
+    cwd,
     stdout,
     stderr,
     run: (args: string[]) =>
@@ -86,6 +87,20 @@ it('waits for a real operation and reports stages separately from the final JSON
   expect(f.stderr.join('')).toContain('installing')
   expect(JSON.parse(f.stdout[0]!)).toMatchObject({ status: 'succeeded', result: { installationId: 'fixed' } })
   expect(String(fetcher.mock.calls[1]![0])).toContain('/operations/job')
+})
+
+it('applies the recipe and dependencies directly from an environment package.json', async () => {
+  const f = await fixture()
+  const recipe = { schemaVersion: 2, id: 'cup', name: 'Cup', sources: [], rules: { schemaVersion: 1 }, requires: {} }
+  const dependencies = { '@author/cards': '1.2.3' }
+  await writeFile(
+    join(f.cwd, 'package.json'),
+    JSON.stringify({ name: 'sample', dependencies, arcadiaEnvironment: recipe }),
+  )
+  const fetcher = vi.fn().mockResolvedValue(Response.json({ id: 'apply' }))
+  vi.stubGlobal('fetch', fetcher)
+  await f.run(['apply', 'package.json'])
+  expect(JSON.parse(fetcher.mock.calls[0]![1].body).document).toEqual({ ...recipe, packages: dependencies })
 })
 
 it('adds a new version or a registered source', async () => {

@@ -14,7 +14,13 @@ export async function readDocument(path: string): Promise<unknown> {
 }
 export async function readTeam(path: string) {
   try {
-    return NativePlayerSchema.parse(await readDocument(path))
+    const value = await readDocument(path)
+    if (value && typeof value === 'object' && 'schemaVersion' in value && value.schemaVersion === 1) {
+      const { teamDocument } = await import('@arcadia-eternity/content-sdk/project-teams')
+      const { name, team } = teamDocument(value)
+      return NativePlayerSchema.parse({ name, team })
+    }
+    return NativePlayerSchema.parse(value)
   } catch (error) {
     throw new CliError('TEAM_INVALID', message(error), 2, path)
   }

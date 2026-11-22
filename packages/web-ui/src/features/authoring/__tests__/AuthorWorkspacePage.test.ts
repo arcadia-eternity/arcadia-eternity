@@ -32,12 +32,12 @@ afterEach(() => {
   delete window.arcadiaDesktop
 })
 
-async function openWorkspace(receipts: AuthorJob[] = [pack]) {
+async function openWorkspace(receipts: AuthorJob[] = [pack], identity = snapshot.project) {
   let finishInstall!: (value: { result?: unknown; error?: { code: string; message: string } }) => void
   const install = new Promise<{ result?: unknown; error?: { code: string; message: string } }>(resolve => {
     finishInstall = resolve
   })
-  const current = { ...snapshot, arcadiaRange: '^4.6.0' }
+  const current = { ...snapshot, project: identity, arcadiaRange: '^4.6.0' }
   const author = vi.fn(async (input: Record<string, unknown>) => {
     switch (input.action) {
       case 'list':
@@ -72,8 +72,15 @@ async function openWorkspace(receipts: AuthorJob[] = [pack]) {
   const wrapper = mount(RouterView, { global: { plugins: [createPinia(), router] } })
   await flushPromises()
   await wrapper.get('a[href$="view=settings"]').trigger('click')
-  await vi.waitFor(() => expect(wrapper.text()).toContain('用于环境'), { timeout: 2500 })
-  const button = wrapper.findAll('button').find(button => button.text().endsWith('用于环境'))!
+  const label = identity.kind === 'environment' ? '调试试玩' : '用于环境'
+  await vi.waitFor(
+    () =>
+      expect(wrapper.get('[aria-label="项目设置"]').text()).toContain(
+        identity.kind === 'environment' ? identity.id : label,
+      ),
+    { timeout: 2500 },
+  )
+  const button = wrapper.findAll('button').find(button => button.text().endsWith(label))!
   return { wrapper, router, button, author, finishInstall, current }
 }
 
@@ -162,6 +169,41 @@ it('edits the opened project range, preserves conflicting input and supports cle
     await submit.trigger('submit')
     await flushPromises()
     expect(current.arcadiaRange).toBe('')
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it('opens a standalone environment source with its own debug action and AI connection', async () => {
+  const { wrapper, button, author } = await openWorkspace([], { kind: 'environment', id: 'league' })
+  try {
+    expect(wrapper.get('.project-metadata').text()).toContain('league')
+    expect(wrapper.find('a[href$="view=editor"]').exists()).toBe(false)
+    expect(wrapper.find('a[href$="view=release"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('构建内容包')
+    await button.trigger('click')
+    await flushPromises()
+    expect(author).toHaveBeenCalledWith({ action: 'start', kind: 'preview', id: project.id })
+    await wrapper.get('a[href$="view=ai"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('列出这个环境依赖的资料包')
+    expect(author).toHaveBeenCalledWith({ action: 'connection', id: project.id, execute: false })
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it('builds a standalone environment archive without installing it as a content pack', async () => {
+  const { wrapper, author } = await openWorkspace([pack], { kind: 'environment', id: 'league' })
+  try {
+    expect(wrapper.text()).not.toContain('用于环境')
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === '构建环境包')!
+      .trigger('click')
+    await flushPromises()
+    expect(author).toHaveBeenCalledWith({ action: 'start', kind: 'pack', id: project.id })
+    expect(author).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'install-built-author-pack' }))
   } finally {
     wrapper.unmount()
   }

@@ -1,5 +1,29 @@
 # Author tool workflows
 
+## Start from a directory
+
+To create a content pack, run `arcadia-content init pack frost-pack`. To build a ruleset from existing packages, initialize an independent environment and exercise it directly:
+
+```sh
+arcadia-content init environment singles-cup
+arcadia-content workspace singles-cup describe
+arcadia-content workspace singles-cup check
+arcadia-content workspace singles-cup demo --execute --seed cup-baseline
+arcadia-content workspace singles-cup preview --execute
+```
+
+The static check validates the environment declaration, requirements and rules. The demo prepares the dependencies and runs the saved `blue` and `orange` teams. A matching local official base can be reused. Other registry packages may need a network connection on the first run. The preview stays open for the interactive client until Ctrl+C.
+
+For MCP, launch `arcadia-content-mcp singles-cup --execute` and use `workspace_describe` to inspect the session. `demo_start` accepts a seed. After `preview_start` succeeds, call `team_validate` with `{jobId, teamId}` to check one saved team against the frozen preview without opening a battle. The result identifies `teamId`, `teamVersion`, `environmentId` and `environmentRevision`. A rule rejection is a normal result with `valid: false` and a diagnostic code and message. For example, validate two otherwise legal teams on opposite sides of a size limit, then use `battle_create` with two admitted teams and a seed.
+
+The CLI accepts the same JSON on stdin while the preview from that project is running:
+
+```sh
+printf '%s' '{"jobId":"<preview-job-id>","teamId":"blue"}' | arcadia-content workspace singles-cup team-validate
+```
+
+## Edit a content pack
+
 Start with `arcadia-content workspace <directory> describe` or MCP `workspace_describe`. Use the returned SDK API, capabilities and source revision. Opening or inspecting a project does not import its effect code.
 
 The CLI emits JSON. `query`, `read`, `write` and `save` take JSON on stdin:
@@ -30,7 +54,7 @@ Build/check/test use the fixed author commands. A headless demo proves engine ex
 
 `content_query` searches localized names and accepts exact `id`, `contentKind`, `locale`, `namespace`, `packageName` and `scope: project | dependencies | all`. Default summaries omit the full record. Request `detail: full` before editing; use `nextOffset` to continue. Locale pages contain individual objects, not whole files. Declared installed dependencies are read without executing effects and return read-only provenance. Their file paths are relative to those packages, not valid bound-project edit targets. Missing or ambiguous dependencies are diagnostics, not permission to guess a target.
 
-Use `team_list`/`team_save`/`team_remove` and `environment_list`/`environment_save` for saved project data. Saves require `expectedVersion`; null creates a file. These operations never select a team/environment, overwrite local drafts, or mutate a running match. Desktop file-change notifications refresh clean views promptly without focus changes; dirty drafts retain their base and show external-change conflicts. Users explicitly reload or resolve drafts. Environment changes require preparing a new candidate before a new battle.
+Use `team_list`/`team_save`/`team_remove` for saved project teams. New teams and named debug environments inside a content pack use `expectedVersion: null`. For an existing environment, read `environment_list` and save the document with its returned version as `expectedVersion`. The standalone environment document represents the root npm manifest. A saved change takes effect in a fresh preview. Desktop file-change notifications refresh clean views promptly without focus changes; dirty drafts retain their base and show external-change conflicts.
 
 `author_reference` and `arcadia://authoring/<topic>` expose actual SDK schemas/examples. Schema and content topics include species, skills, marks, team, environment, descriptions and effects. For repository tasks, read the `git` skill through the same tool. For release preparation or publication, read `release`. Read schema stage notes: linked-runtime schema is not source syntax. `asset_inspect` takes a declared resource ID; `includeImage: true` returns local image bytes up to 2 MiB as standard MCP image content. Use an image filename extension: MIME types follow filenames, and unknown extensions remain metadata-only. The client handles decoding/display; this tool does not validate image integrity or report dimensions. Large images remain metadata-only; no automatic thumbnail is generated. HTTP assets are not downloaded; audio/SWF are metadata only.
 

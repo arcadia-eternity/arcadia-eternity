@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { Command, CommanderError } from 'commander'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,8 +34,16 @@ export async function serverOfficialMaterials(dataDirectory: string, selected: s
   }
 }
 
+export function serverOfficialEnvironments(directory: string) {
+  return readOfficialEnvironments(
+    directory,
+    createRequire(import.meta.url).resolve,
+    directory === shippedBaseRoot() ? undefined : join(dirname(directory), 'official-environments.json'),
+  )
+}
+
 async function validateBase(directory: string, signal?: AbortSignal) {
-  const catalog = await readOfficialEnvironments(directory, new URL('./shipped-environments.json', import.meta.url))
+  const catalog = await serverOfficialEnvironments(directory)
   await withShippedEnvironmentProject(directory, async project => {
     for (const draft of catalog.environments)
       await validateWorkspaceProject({ directory: project, draft, signal }, { effectPreparation: 'prebuilt-only' })
@@ -65,7 +74,7 @@ export async function updateRunningServerBase(
     throw error
   }
   console.info('Activated official base and environments:', candidate.version)
-  return { version: candidate.version, directory: join(store(dataDirectory), candidate.version) }
+  return { version: candidate.version, directory: join(store(dataDirectory), candidate.version, 'package') }
 }
 
 export async function runServerBasePackCli(args: string[]) {

@@ -40,7 +40,7 @@ const routes: RouteRecordRaw[] = [
     path: '/creation/preview',
     name: 'AuthorPreview',
     component: () => import('@/features/authoring/AuthorPreviewPage.vue'),
-    meta: { title: '内容包试玩' },
+    meta: { title: '调试试玩' },
   },
   {
     path: '/creation',

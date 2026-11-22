@@ -75,9 +75,19 @@ export function withShippedCatalogArchive<T>(
   return withShippedEnvironmentProject(root, async project => {
     const { dependencies } = await readPackageJson(project, 'package.json')
     const name = Object.keys(dependencies)[0]!
-    const npm = npmInvocation(['pack', '--json', '--ignore-scripts', '--offline', '--pack-destination', project], {
-      cli: npmCli,
-    })
+    const npm = npmInvocation(
+      [
+        'pack',
+        '--json',
+        '--ignore-scripts',
+        '--offline',
+        '--cache',
+        resolve(project, '.npm-cache'),
+        '--pack-destination',
+        project,
+      ],
+      { cli: npmCli },
+    )
     const { stdout } = await promisify(execFile)(npm.file, npm.args, {
       cwd: resolve(project, 'node_modules', name),
       env: process.versions.electron ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env,
@@ -101,7 +111,6 @@ async function catalogMaterials(root: string) {
     arcadia.presentation,
     arcadia.effectArtifact,
     arcadia.catalog,
-    ...(arcadia.environments !== undefined ? [arcadia.environments] : []),
     ...presentation.resources.filter(resource => resource.kind === 'file').map(resource => resource.source),
   ])
   const manifest = { name, version, arcadia, arcadiaEternityPack, ...(engines ? { engines } : {}) }

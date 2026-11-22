@@ -1,5 +1,21 @@
 # Changelog
 
+## [4.14.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.13.0...arcadia-eternity-v4.14.0) (2026-11-22)
+
+
+### ✨ Features
+
+* **authoring:** create, install and debug content packs and environments ([f968edb](https://github.com/arcadia-eternity/arcadia-eternity/commit/f968edbe8b5c60d390fc3ee8852eaee970dcda60))
+* **desktop:** expose battle and server commands through the bundled CLI ([ef5dd19](https://github.com/arcadia-eternity/arcadia-eternity/commit/ef5dd1954ecd93df82a6dcaf0e710986e160dc27))
+* **desktop:** expose the bundled author CLI and player library to terminal agents ([6fdfcc6](https://github.com/arcadia-eternity/arcadia-eternity/commit/6fdfcc6fe89d88c6a99f5e41c44df9c612d9dadb))
+
+
+### 🐛 Bug Fixes
+
+* **content:** ship official environments as standalone npm packages ([c117029](https://github.com/arcadia-eternity/arcadia-eternity/commit/c117029e7f69a7c3ebebb337eb253dedaed75946))
+* **desktop:** offer copyable bundled CLI commands without PATH setup ([6c37967](https://github.com/arcadia-eternity/arcadia-eternity/commit/6c37967744a962b10d1b856c8b7107bf0d9d50fe))
+* **web:** make the desktop preview bridge type visible to unused-code checks ([031b53e](https://github.com/arcadia-eternity/arcadia-eternity/commit/031b53ee758290d7fd0d2e955ab23d45cfaa1777))
+
 ## [4.13.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.12.0...arcadia-eternity-v4.13.0) (2026-11-21)
 
 

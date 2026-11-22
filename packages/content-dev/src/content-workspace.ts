@@ -5,6 +5,7 @@ import {
   readElementCatalog,
   type ElementCatalogInput,
 } from '@arcadia-eternity/const'
+import { bundledEnvironmentCatalog } from './official-environments.ts'
 import { randomUUID } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
@@ -1320,15 +1321,17 @@ async function changeEnvironmentPackage(
   return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
 }
 
-/** Resolve presets from the same selected base installation as the battle materials. */
-export async function readOfficialEnvironments(root: string, legacyCatalog: string | URL) {
+export async function readOfficialEnvironments(
+  root: string,
+  resolvePackage: (specifier: string) => string,
+  cachedCatalog?: string,
+) {
   const manifest = await readJson(join(root, 'package.json'))
   if (manifest.name !== hostBaseName || typeof manifest.version !== 'string' || !semver.valid(manifest.version))
     throw contentError('BUNDLED_PACKAGE_INVALID')
-  const file = isRecord(manifest.arcadia) ? manifest.arcadia.environments : undefined
-  if (file !== undefined && file !== 'dist/environment/presets.json')
-    throw contentError('SHIPPED_ENVIRONMENT_CATALOG_INVALID')
-  return readShippedEnvironments(file ? join(root, file) : legacyCatalog, { [hostBaseName]: manifest.version })
+  return cachedCatalog
+    ? readShippedEnvironments(cachedCatalog, { [hostBaseName]: manifest.version })
+    : bundledEnvironmentCatalog(manifest.version, resolvePackage)
 }
 
 /** The host supplies this catalog from the application distribution. */
@@ -1382,3 +1385,8 @@ export async function synchronizeShippedEnvironments(
   }
   return catalog.defaultEnvironment
 }
+export {
+  acquireAuthorEnvironment,
+  parseAuthorEnvironmentNpmSpec,
+  type AuthorEnvironmentSource,
+} from './author-environment-source.ts'

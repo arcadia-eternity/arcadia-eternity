@@ -80,14 +80,26 @@ export function assertEnvironmentRequirements(input?: unknown, host = currentHos
     })
 }
 
+function rejectTeam(detail: string): never {
+  const code = 'ENVIRONMENT_TEAM_REJECTED'
+  throw Object.assign(new Error(code), { code, detail })
+}
+
 /** Admission checks apply to normalized team definitions, before creating any battle. */
 export function assertEnvironmentTeam(input: unknown, team: unknown): void {
   const rules = validateEnvironmentRules(input)
   const { minSize, maxSize, uniqueSpecies } = resolveEnvironmentTeam(rules)
-  if (!Array.isArray(team) || team.length < minSize || team.length > maxSize) fail('ENVIRONMENT_TEAM_REJECTED')
+  if (!Array.isArray(team)) rejectTeam('队伍必须是精灵列表')
+  if (team.length < minSize || team.length > maxSize)
+    rejectTeam(`队伍需要 ${minSize}–${maxSize} 只精灵，当前为 ${team.length} 只`)
   for (const pet of team) assertEnvironmentMember(rules, pet)
-  if (teamConstraintIssues(rules.constraints, team, 'team').length) fail('ENVIRONMENT_TEAM_REJECTED')
-  if (uniqueSpecies && new Set(team.map(pet => pet.species)).size !== team.length) fail('ENVIRONMENT_TEAM_REJECTED')
+  const [issue] = teamConstraintIssues(rules.constraints, team, 'team')
+  if (issue) rejectTeam(issue.message)
+  if (uniqueSpecies) {
+    const species = team.map(pet => pet.species)
+    const duplicate = species.find((id, index) => species.indexOf(id) !== index)
+    if (duplicate) rejectTeam(`team.uniqueSpecies 禁止重复携带 ${duplicate}`)
+  }
 }
 
 export function assertPlayableTeam(
@@ -102,19 +114,19 @@ export function assertPlayableTeam(
 /** Check one build against prepared rules independently of team size and composition. */
 export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): void {
   const ivLimit = resolveEnvironmentMechanics(rules).individualValues.max
-  if (!record(pet)) fail('ENVIRONMENT_TEAM_REJECTED')
+  if (!record(pet)) rejectTeam('精灵配置应为对象')
   const petRecord = pet as UnknownRecord
   if (
     !identifier(petRecord.species) ||
     !Array.isArray(petRecord.skills) ||
     petRecord.skills.some(skill => !identifier(skill))
   )
-    fail('ENVIRONMENT_TEAM_REJECTED')
+    rejectTeam('精灵配置需要有效的物种和技能 ID')
   if ([petRecord.ability, petRecord.emblem].some(mark => mark !== undefined && mark !== '' && !identifier(mark)))
-    fail('ENVIRONMENT_TEAM_REJECTED')
+    rejectTeam(`${petRecord.species} 的特性或纹章 ID 无效`)
   if (petRecord.enhancement !== undefined) {
+    if (!identifier(petRecord.enhancement)) rejectTeam(`${petRecord.species} 的强化阶段 ID 无效`)
     if (
-      !identifier(petRecord.enhancement) ||
       !allowsEnhancementRecord(
         rules.mechanics?.enhancement,
         petRecord.species,
@@ -122,10 +134,10 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
         typeof petRecord.level === 'number' ? petRecord.level : undefined,
       )
     )
-      fail('ENVIRONMENT_TEAM_REJECTED')
+      rejectTeam(`${petRecord.species} 不能使用强化阶段 ${petRecord.enhancement}`)
   }
   const sourceLimits = petRecord.ivMax
-  if (sourceLimits !== undefined && !record(sourceLimits)) fail('ENVIRONMENT_TEAM_REJECTED')
+  if (sourceLimits !== undefined && !record(sourceLimits)) rejectTeam(`${petRecord.species} 的资质上限无效`)
   if (
     petRecord.ivs !== undefined &&
     (!record(petRecord.ivs) ||
@@ -143,22 +155,20 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
         )
       }))
   )
-    fail('ENVIRONMENT_TEAM_REJECTED')
-  if (
-    teamConstraintIssues(
-      rules.constraints,
-      [
-        {
-          species: petRecord.species,
-          skills: petRecord.skills as string[],
-          ability: petRecord.ability as string | undefined,
-          emblem: petRecord.emblem as string | undefined,
-        },
-      ],
-      'pet',
-    ).length
+    rejectTeam(`${petRecord.species} 的资质或资质上限不符合环境要求`)
+  const [issue] = teamConstraintIssues(
+    rules.constraints,
+    [
+      {
+        species: petRecord.species,
+        skills: petRecord.skills as string[],
+        ability: petRecord.ability as string | undefined,
+        emblem: petRecord.emblem as string | undefined,
+      },
+    ],
+    'pet',
   )
-    fail('ENVIRONMENT_TEAM_REJECTED')
+  if (issue) rejectTeam(`${petRecord.species}：${issue.message}`)
   const selected: Record<'species' | 'skills' | 'marks', unknown[]> = {
     species: [petRecord.species],
     skills: [
@@ -170,10 +180,11 @@ export function assertEnvironmentMember(rules: EnvironmentRules, pet: unknown): 
   for (const kind of ['species', 'skills', 'marks'] as const) {
     const allow = rules.allow?.[kind],
       deny = rules.deny?.[kind]
-    if (
-      selected[kind].some(id => !identifier(id) || (allow !== undefined && !allow.includes(id)) || deny?.includes(id))
-    )
-      fail('ENVIRONMENT_TEAM_REJECTED')
+    for (const id of selected[kind]) {
+      if (!identifier(id)) rejectTeam(`${petRecord.species} 的 ${kind} ID 无效`)
+      if (deny?.includes(id)) rejectTeam(`${petRecord.species}：deny.${kind} 禁止使用 ${id}`)
+      if (allow !== undefined && !allow.includes(id)) rejectTeam(`${petRecord.species}：allow.${kind} 未包含 ${id}`)
+    }
   }
 }
 

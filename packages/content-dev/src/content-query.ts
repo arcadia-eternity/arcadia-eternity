@@ -12,6 +12,7 @@ import {
   type WorkspaceRecord,
   type WorkspaceSnapshot,
 } from './workspace.ts'
+import { findAuthorInstallation } from './author-install.ts'
 import { recordSharing } from './lib/yaml-sharing.ts'
 import { errorCode, isRecord, type UnknownRecord } from './types.ts'
 
@@ -190,8 +191,10 @@ async function catalogs(
   const result: Catalog[] = scope === 'dependencies' ? [] : [own]
   const diagnostics: QueryDiagnostic[] = []
   if (scope === 'project') return { catalogs: result, diagnostics }
+  const installed = await findAuthorInstallation(workspace.root, manifest.dependencies)
+  const declared = isRecord(manifest.dependencies) ? manifest.dependencies : {}
   const queue: DependencyRequest[] = runtimeDependencies(manifest).map(([name, optional]) => ({
-    from: workspace.root,
+    from: installed && Object.hasOwn(declared, name) ? installed.directory : workspace.root,
     name,
     optional,
   }))

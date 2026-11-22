@@ -77,7 +77,7 @@ export class LocalServerController {
       ...(this.#error ? { error: this.#error } : {}),
     }
   }
-  async request(input) {
+  async request(input, { firstLaunchOnly = false } = {}) {
     if (
       !input ||
       typeof input !== 'object' ||
@@ -109,16 +109,21 @@ export class LocalServerController {
       if (input.action === 'stop' && input.force === true && this.#phase === 'draining') {
         this.#cancelRestart = true
         await this.host.stopHosting({ force: true })
-      } else if (input.action !== 'start' || this.#action !== 'start')
+      } else if (input.action !== 'start' || this.#action !== 'start' || firstLaunchOnly)
         throw fail('HOST_BUSY', '请等待当前服务器操作完成')
       await this.#operation
       return this.snapshot()
     }
+    const previousError = this.#error
     this.#error = undefined
     this.#action = input.action
     this.#cancelRestart = false
-    this.#operation = this.#run(input)
+    this.#operation = this.#run(input, firstLaunchOnly)
       .catch(error => {
+        if (error.code === 'SERVER_ALREADY_CONFIGURED') {
+          this.#error = previousError
+          throw error
+        }
         this.#error = { code: error.code ?? 'HOST_FAILED', message: error.message || '服务器操作失败' }
         this.#phase = 'failed'
       })
@@ -146,7 +151,7 @@ export class LocalServerController {
     }
     this.#phase = 'idle'
   }
-  async #run(input) {
+  async #run(input, firstLaunchOnly) {
     if (input.action === 'start-project') {
       if (!this.startProject) throw fail('UNSUPPORTED', '此宿主不支持项目启动')
       if (this.host.status().status === 'running') throw fail('HOST_RUNNING', '请先在服务器页停止当前托管')
@@ -167,14 +172,18 @@ export class LocalServerController {
       this.#phase = 'ready'
       return
     }
-    return this.#start(input.configuration)
+    return this.#start(input.configuration, firstLaunchOnly)
   }
-  async #start(configuration) {
-    if (this.host.status().status === 'running') {
+  async #start(configuration, firstLaunchOnly = false) {
+    const profile = await this.profile()
+    const running = this.host.status().status === 'running'
+    if (firstLaunchOnly && (running || profile.projectDirectory)) {
+      throw fail('SERVER_ALREADY_CONFIGURED', '服务器已有启动设置，请省略开服参数；可在服务器管理中修改已保存的设置')
+    }
+    if (running) {
       this.#phase = 'ready'
       return
     }
-    const profile = await this.profile()
     // Quick start can arrive before the renderer has read the saved profile.
     const config = !profile.projectDirectory && configuration ? launchConfiguration(configuration) : undefined
     if (!profile.projectDirectory && !config) throw fail('LAUNCH_REQUIRED', '请先设置服务器名称与连接范围')
