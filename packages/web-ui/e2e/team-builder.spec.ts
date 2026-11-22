@@ -289,9 +289,10 @@ test('keeps a shared move draft on warehouse visits and team switches until expl
 test('opens the offending field directly from a single IV violation', async ({ page }) => {
   await seedUnresolvedTeam(page, false, true, 120)
   await page.goto('/team-builder')
-  const issue = page.getByRole('button', { name: /荷依米 的体力资质 120 超过当前环境上限 31/ })
+  const validation = page.getByRole('alert').filter({ hasText: '队伍未通过基本检查' })
+  const issue = validation.getByRole('button', { name: /荷依米 的体力资质 120 超过当前环境上限 31/ })
   await expect(issue).toBeVisible()
-  await expect(page.getByRole('button', { name: /详情/ })).toHaveCount(0)
+  await expect(validation.getByRole('button', { name: /详情/ })).toHaveCount(0)
   await issue.click()
   const hp = page.getByRole('spinbutton', { name: '体力个体值' })
   await expect(hp).toBeFocused()
