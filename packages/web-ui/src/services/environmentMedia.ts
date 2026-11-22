@@ -11,6 +11,7 @@ import {
   type MediaEnvironment,
 } from './mediaLoader'
 import { startMediaPreload } from './mediaPreloadProgress'
+import { withPreloadBackoff } from './mediaPreloadRetry'
 
 type Asset = { url: string; kind?: MediaKind; limit?: number; label?: string }
 export type MediaPet = {
@@ -87,11 +88,13 @@ export async function preloadMedia(
     label = save ? '缓存环境资源' : '对战资源',
     background = false,
     teamUrls,
+    failedUrls,
   }: {
     save?: (completed: number, total: number, failed: number) => void
     label?: string
     background?: boolean
     teamUrls?: ReadonlySet<string>
+    failedUrls?: Set<string>
   } = {},
 ) {
   const unique = new Map<string, Asset>()
@@ -109,7 +112,7 @@ export async function preloadMedia(
   const items = [...unique.values()]
   save?.(0, items.length, 0)
   if (!items.length || signal.aborted) return 0
-  const batch = startMediaPreload(label, items.length, signal, save)
+  const batch = startMediaPreload(label, items.length, signal, save, index => failedUrls?.add(items[index]!.url))
   const waiting = background ? new Map(items.map((item, index) => [item.url, index])) : undefined
   const promoted = new Set<Promise<void>>()
   let next = 0
@@ -184,8 +187,25 @@ function teamMediaAssets(
   return [...scene, ...elements, ...presentationMedia(content, pets, settings.battleRenderer !== 'image', globalMarks)]
 }
 
+function preloadEnvironment(
+  assets: Asset[],
+  environment: MediaEnvironment,
+  signal: AbortSignal,
+  label: string,
+  teamUrls: ReadonlySet<string>,
+) {
+  let pending = assets
+  return withPreloadBackoff(signal, async () => {
+    const failedUrls = new Set<string>()
+    const failed = await preloadMedia(pending, environment, signal, { label, background: true, teamUrls, failedUrls })
+    if (failed) pending = pending.filter(asset => failedUrls.has(asset.url))
+    return failed
+  })
+}
+
 export function createMediaPreloader(label: string, scope: 'team' | 'environment' = 'team') {
-  let current: { environment: MediaEnvironment; key: string; controller: AbortController; done: Promise<number> } | undefined
+  let current:
+    { environment: MediaEnvironment; key: string; controller: AbortController; done: Promise<number> } | undefined
   function stop() {
     current?.controller.abort()
     current = undefined
@@ -213,19 +233,18 @@ export function createMediaPreloader(label: string, scope: 'team' | 'environment
       if (current?.environment === environment && current.key === key) return false
 
       const assets = teamMediaAssets(content, environment, pets, settings, globalMarks)
-      const planned = full ? [...assets, ...allEnvironmentAssets(content, environment)] : assets
       const previous = current
       const controller = new AbortController()
-      const done = preloadMedia(planned, environment, controller.signal, {
-        label,
-        background: full,
-        teamUrls: full ? new Set(assets.map(asset => asset.url)) : undefined,
-      })
-      const task = { environment, key, controller, done }
-      current = task
-      void done.then(failed => {
-        if (full && failed && current === task) current = undefined
-      })
+      const done = full
+        ? preloadEnvironment(
+            [...assets, ...allEnvironmentAssets(content, environment)],
+            environment,
+            controller.signal,
+            label,
+            new Set(assets.map(asset => asset.url)),
+          )
+        : preloadMedia(assets, environment, controller.signal, { label })
+      current = { environment, key, controller, done }
       // Join shared reads before releasing the previous selection's subscriptions.
       previous?.controller.abort()
       return true

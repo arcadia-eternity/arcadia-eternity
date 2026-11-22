@@ -474,7 +474,7 @@ import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import { activeMediaCatalog } from '@/services/mediaLoader'
 import { createMediaPreloader } from '@/services/environmentMedia'
-import { preloadSwfPlayer } from '@/services/swf/assets'
+import { preferredMediaTeam } from '@/app/mediaPreload'
 import MediaPreloadIndicator from '@/components/MediaPreloadIndicator.vue'
 import { useConnectionSettingsStore } from '@/stores/connectionSettings'
 import { autoCheckForUpdates } from '@/utils/version'
@@ -513,17 +513,8 @@ const gameSettingStore = useGameSettingStore()
 const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
 const privateRoomStore = usePrivateRoomStore()
-const enteredLobby = ref(false)
-const environmentPreload = createMediaPreloader('环境全量预载', 'environment')
 const lobbyTeamPreload = createMediaPreloader('大厅队伍')
-const lobbyTeam = computed(() => {
-  const team =
-    petStorage.teams.find(row => row.id === petStorage.lastMatchingConfig?.teamId) ??
-    petStorage.teams[petStorage.currentTeamIndex]
-  return (
-    team?.pets.map(({ species, skills, ability, emblem }) => ({ species, skills: [...skills], ability, emblem })) ?? []
-  )
-})
+const lobbyTeam = computed(() => preferredMediaTeam(petStorage))
 const mediaSettings = computed(() => ({
   battleRenderer: gameSettingStore.battleRenderer,
   background: gameSettingStore.background,
@@ -537,33 +528,14 @@ watch(
     mediaSettings,
     () => !!privateRoomStore.currentRoom,
   ],
-  ([page, catalog, pets, settings, inRoom]) => {
-    if (page === 'Lobby') enteredLobby.value = true
-    if (!enteredLobby.value) return
-    const started = environmentPreload.update(catalog, pets, settings)
-    // The initial sweep includes the team. Only later changes or a return to the lobby need a team warmup.
-    if (!started && page === 'Lobby' && !inRoom) lobbyTeamPreload.update(catalog, pets, settings)
+  ([page, catalog, pets, settings, inRoom], [, previousCatalog]) => {
+    // The application sweep already warms the preferred team on every environment change.
+    if (catalog === previousCatalog && page === 'Lobby' && !inRoom) lobbyTeamPreload.update(catalog, pets, settings)
     else lobbyTeamPreload.stop()
   },
   { immediate: true },
 )
-onUnmounted(() => {
-  environmentPreload.stop()
-  lobbyTeamPreload.stop()
-})
-watch(
-  () =>
-    enteredLobby.value &&
-    gameSettingStore.battleRenderer !== 'image' &&
-    !!activeMediaCatalog()?.species.some(row => row.presentation?.battle?.renderer === 'seer2-swf'),
-  (enabled, _, cleanup) => {
-    if (!enabled) return
-    const controller = new AbortController()
-    cleanup(() => controller.abort())
-    void preloadSwfPlayer(controller.signal)
-  },
-  { immediate: true },
-)
+onUnmounted(() => lobbyTeamPreload.stop())
 
 watch(
   () =>
