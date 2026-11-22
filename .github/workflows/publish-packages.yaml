@@ -1,19 +1,9 @@
 name: Publish UGC Packages
 
 on:
-  repository_dispatch:
-    types: [base-pack-release]
-  push:
-    tags: ['data-pack-base-v*']
   workflow_call:
     inputs:
       tag:
-        required: true
-        type: string
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Existing SDK or data-pack-base release tag'
         required: true
         type: string
       verified_run_id:
@@ -24,12 +14,12 @@ permissions:
   contents: read
 
 env:
-  RELEASE_TAG: ${{ inputs.tag || github.event.client_payload.tag_name || github.ref_name }}
-  BASE_ONLY: ${{ github.event_name == 'repository_dispatch' || startsWith(inputs.tag || github.ref_name, 'data-pack-base-v') }}
+  RELEASE_TAG: ${{ inputs.tag }}
+  BASE_ONLY: ${{ startsWith(inputs.tag, 'data-pack-base-v') }}
 
 jobs:
   release-source:
-    if: github.ref == 'refs/heads/main' || github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     outputs:
@@ -93,11 +83,11 @@ jobs:
     if: >-
       !cancelled() && needs.release-source.result == 'success' &&
       (needs.verify-archives.result == 'success' ||
-       (needs.verify-archives.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.verified_run_id != ''))
+       (needs.verify-archives.result == 'skipped' && inputs.verified_run_id != ''))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     concurrency:
-      group: publish-ugc-packages-${{ github.event_name == 'repository_dispatch' || startsWith(inputs.tag || github.ref_name, 'data-pack-base-v') }}
+      group: publish-ugc-packages-${{ startsWith(inputs.tag, 'data-pack-base-v') }}
       cancel-in-progress: false
     permissions:
       actions: read
