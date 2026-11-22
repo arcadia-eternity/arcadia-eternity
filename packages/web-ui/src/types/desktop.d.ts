@@ -1,3 +1,5 @@
+import type { DebugEnvironmentBridge } from '@/features/authoring/debugEnvironment'
+
 interface DesktopUpdateCheckResult {
   hasUpdate: boolean
   version?: string
@@ -120,7 +122,7 @@ declare global {
     arcadiaDesktop?: ArcadiaDesktopApi
     arcadiaAuthorPreview?: {
       onChanged?(listener: (change: { type: string; file?: string }) => void): () => void
-      environment: import('@/features/authoring/debugEnvironment').DebugEnvironmentBridge
+      environment: DebugEnvironmentBridge
       teams: import('@/components/team/library').ProjectTeamStorage
       returnToEditor(): void
     }
