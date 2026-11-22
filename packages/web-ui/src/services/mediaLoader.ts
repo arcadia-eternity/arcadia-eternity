@@ -39,9 +39,8 @@ function indexBattleUi(resources: MediaResource[]) {
   }
   return new Map([...battleUi, ...overrides])
 }
-export function battleUiUrl(role: string, allowDefault = true) {
+export function battleUiUrl(role: string, allowDefault = true, environment = mediaEnvironment()) {
   const tag = 'battle-ui:' + role
-  const environment = mediaEnvironment()
   environment.battleUi ??= indexBattleUi(environment.resources)
   const active = environment.battleUi.get(tag)
   const fallback = allowDefault && baseUi[tag]

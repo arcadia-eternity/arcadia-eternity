@@ -4,7 +4,7 @@ import { battleScene } from '@/services/environmentMedia'
 import { Howl } from 'howler'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
-import { computed, onMounted, watch, ref } from 'vue' // Added ref
+import { computed, onMounted, watch, ref, shallowRef } from 'vue'
 import { storeToRefs } from 'pinia'
 
 export function useMusic(autoPlay: boolean = true) {
@@ -34,7 +34,7 @@ export function useMusic(autoPlay: boolean = true) {
   const { mute, musicMute } = storeToRefs(gameSettingStore)
   const selfMute = computed(() => mute.value || musicMute.value)
 
-  const howlerInstance = ref<Howl | null>(null)
+  const howlerInstance = shallowRef<Howl | null>(null)
   const isStarted = ref(false)
 
   watch(volume, newVolume => {
@@ -52,37 +52,57 @@ export function useMusic(autoPlay: boolean = true) {
     }
   })
 
+  let ready: Promise<void>
   watch(
-    () => [musicSrc.value, mediaEnvironment().scope] as const,
-    async ([source], _previous, cleanup) => {
+    [musicSrc, () => mediaEnvironment().scope],
+    ([source], _previous, cleanup) => {
       const controller = new AbortController()
       let url: string | undefined
       let instance: Howl | undefined
+      let finishLoad: (() => void) | undefined
       cleanup(() => {
         controller.abort()
+        finishLoad?.()
         instance?.unload()
         howlerInstance.value = null
         if (url) URL.revokeObjectURL(url)
       })
-      try {
-        const blob = await loadMedia('audio', source, controller.signal)
-        if (controller.signal.aborted) return
-        url = URL.createObjectURL(blob)
-        instance = new Howl({
-          src: [url],
-          format: [blob.type === 'audio/ogg' ? 'ogg' : 'mp3'],
-          loop: true,
-          volume: volume.value,
-          mute: selfMute.value,
+      ready = loadMedia('audio', source, controller.signal).then(blob => {
+        controller.signal.throwIfAborted()
+        const sourceUrl = URL.createObjectURL(blob)
+        url = sourceUrl
+        return new Promise<void>((resolve, reject) => {
+          finishLoad = resolve
+          instance = new Howl({
+            src: [sourceUrl],
+            format: [blob.type === 'audio/ogg' ? 'ogg' : 'mp3'],
+            loop: true,
+            volume: volume.value,
+            mute: selfMute.value,
+            onload: () => resolve(),
+            onloaderror: (_id, cause) => reject(new Error(String(cause))),
+          })
+          howlerInstance.value = instance
+          if (isStarted.value && !selfMute.value) instance.play()
         })
-        howlerInstance.value = instance
-        if (isStarted.value && !selfMute.value) instance.play()
-      } catch {
-        /* Optional music can be unavailable in this environment. */
-      }
+      })
+      // Loading starts on mount, before battle preparation subscribes.
+      void ready.catch(() => {})
     },
     { immediate: true },
   )
+
+  async function whenMusicReady() {
+    let selected: Promise<void>
+    do {
+      selected = ready
+      try {
+        await selected
+      } catch (error) {
+        if (selected === ready) throw error
+      }
+    } while (selected !== ready)
+  }
 
   // 手动启动音乐的方法
   const startMusic = () => {
@@ -107,6 +127,7 @@ export function useMusic(autoPlay: boolean = true) {
   })
 
   return {
+    whenMusicReady,
     startMusic,
     stopMusic,
   }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import skillChrome from '@/assets/battle/skill-chrome.svg'
+import skillChrome from '@/assets/battle/skill-chrome.svg?inline'
 withDefaults(defineProps<{ accent?: 'cyan' | 'gold'; reverse?: boolean; variant?: 'panel' | 'skill' }>(), {
   accent: 'cyan',
   reverse: false,

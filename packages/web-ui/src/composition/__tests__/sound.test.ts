@@ -2,6 +2,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { registerMediaEnvironment } from '@/services/mediaLoader'
+import { useMusic } from '../music'
 import { setServerContentText } from '@/i18n/serverContent'
 import { useSound } from '../sound'
 import type { baseSkillId } from '@arcadia-eternity/const'
@@ -36,6 +38,7 @@ vi.mock('howler', () => ({
     constructor(options: unknown) {
       mocks.howler(options)
     }
+    playing = vi.fn(() => false)
     play = vi.fn()
     stop = vi.fn()
     unload = vi.fn()
@@ -94,6 +97,7 @@ it('keeps missing remote skill/cry/victory media silent without consulting same-
   const { wrapper, sound } = consumer()
   sound.playSkillSound('skill_qili' as baseSkillId)
   sound.playPetSound('pet_dilan')
+  await sound.prepareVictorySound()
   sound.playVictorySound()
   await flushPromises()
   expect(mocks.bytes).not.toHaveBeenCalled()
@@ -137,4 +141,73 @@ it('uses declared local skill audio, ignores missing cry declarations and consum
   expect(mocks.bytes).toHaveBeenCalledWith('https://server.test/declared.ogg', expect.any(Object))
   expect(mocks.howler).not.toHaveBeenCalled()
   remote.wrapper.unmount()
+})
+
+it('waits for the selected BGM to finish loading in Howler', async () => {
+  const catalog = { species: [], skills: [], marks: [] }
+  registerMediaEnvironment(catalog, 'music-test', [
+    { id: 'track', source: 'https://audio.test/track.ogg', tags: ['music'] },
+  ])
+  setServerContentText(catalog)
+  mocks.bytes.mockResolvedValue(new Uint8Array([79, 103, 103, 83]))
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:music-test')
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+  let music!: ReturnType<typeof useMusic>
+  const wrapper = mount(
+    defineComponent({
+      setup() {
+        music = useMusic(false)
+        return () => h('div')
+      },
+    }),
+  )
+  try {
+    const ready = vi.fn()
+    const pending = music.whenMusicReady().then(ready)
+    await flushPromises()
+    expect(mocks.howler).toHaveBeenCalledOnce()
+    expect(ready).not.toHaveBeenCalled()
+    mocks.howler.mock.calls[0]![0].onload()
+    await pending
+    expect(ready).toHaveBeenCalledOnce()
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it('prepares the declared KO sound before the first playback and reuses its blob', async () => {
+  const catalog = { species: [], skills: [], marks: [] }
+  const source = 'https://audio.test/ko.ogg'
+  registerMediaEnvironment(catalog, 'ko-test', [{ id: 'finish', source, tags: ['battle-ui:ko'] }])
+  setServerContentText(catalog)
+  const bytes = Promise.withResolvers<Uint8Array>()
+  mocks.bytes.mockReturnValue(bytes.promise)
+  const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:ko')
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+  const play = vi.fn(async () => {})
+  vi.stubGlobal(
+    'Audio',
+    class {
+      play = play
+      pause = vi.fn()
+      addEventListener = vi.fn()
+    },
+  )
+  const { sound, wrapper } = consumer()
+  try {
+    const ready = vi.fn()
+    const preparing = sound.prepareVictorySound().then(ready)
+    await flushPromises()
+    expect(mocks.bytes).toHaveBeenCalledWith(source, expect.any(Object))
+    expect(ready).not.toHaveBeenCalled()
+    bytes.resolve(new Uint8Array([79, 103, 103, 83]))
+    await preparing
+    expect(play).not.toHaveBeenCalled()
+    sound.playVictorySound()
+    expect(play).toHaveBeenCalledOnce()
+    expect(create).toHaveBeenCalledOnce()
+    expect(mocks.bytes).toHaveBeenCalledTimes(1)
+  } finally {
+    wrapper.unmount()
+  }
 })

@@ -1,5 +1,5 @@
 import { isRemoteContentActive } from '@/i18n/serverContent'
-import { battleUiUrl, loadMedia } from '@/services/mediaLoader'
+import { battleUiUrl, loadMedia, mediaEnvironment } from '@/services/mediaLoader'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { computed, onUnmounted, watch } from 'vue'
@@ -23,7 +23,7 @@ export function useSound() {
     }
   })
   const activeMedia = new Set<() => void>()
-  const playOnce = async (source: string) => {
+  const playOnce = async (source: string, prepared?: Blob) => {
     if (selfMute.value || !source) return
     const controller = new AbortController()
     let url: string | undefined
@@ -40,7 +40,7 @@ export function useSound() {
     }
     activeMedia.add(dispose)
     try {
-      const blob = await loadMedia('audio', source, controller.signal)
+      const blob = prepared ?? (await loadMedia('audio', source, controller.signal))
       if (controller.signal.aborted) return
       url = URL.createObjectURL(blob)
       audio = new Audio(url)
@@ -61,16 +61,35 @@ export function useSound() {
     const cry = speciesId && gameDataStore.getSpecies(speciesId)?.presentation?.cry
     if (typeof cry === 'string') void playOnce(officialAssetUrl(cry))
   }
+  const preload = new AbortController()
+  const victorySource = () => battleUiUrl('ko', !isRemoteContentActive())
+  let victory: { source: string; environment: ReturnType<typeof mediaEnvironment>; blob: Blob } | undefined
+  const prepareVictorySound = async () => {
+    const source = victorySource()
+    const environment = mediaEnvironment()
+    if (!source || (victory?.source === source && victory.environment === environment)) return
+    const blob = await loadMedia('audio', source, preload.signal)
+    preload.signal.throwIfAborted()
+    victory = { source, environment, blob }
+  }
+
   onUnmounted(() => {
+    preload.abort()
+    victory = undefined
     for (const dispose of [...activeMedia]) dispose()
   })
   const playVictorySound = () => {
-    void playOnce(battleUiUrl('ko', !isRemoteContentActive()))
+    const source = victorySource()
+    void playOnce(
+      source,
+      victory?.source === source && victory.environment === mediaEnvironment() ? victory.blob : undefined,
+    )
   }
 
   return {
     playSkillSound,
     playPetSound,
     playVictorySound,
+    prepareVictorySound,
   }
 }

@@ -279,7 +279,7 @@ const toggleFullscreen = toggleFullscreenWithOrientation
 // VueUse的useFullscreen会自动处理全屏状态变化，无需手动监听
 
 // 初始化音乐但不自动播放
-const { startMusic, stopMusic } = useMusic(false)
+const { startMusic, stopMusic, whenMusicReady } = useMusic(false)
 
 provide(logMessagesKey, store.log)
 const preferredMotion = usePreferredReducedMotion()
@@ -435,6 +435,7 @@ const {
   updateBackgroundAspectRatio,
   reset: resetBattleEffects,
   cleanup: cleanupBattleAnimations,
+  prepareFeedbackArtwork,
 } = useBattleAnimations(
   battleViewRef as Ref<HTMLElement | null>,
   store,
@@ -465,16 +466,20 @@ const rightPlayerPets = computed(() => opponentPlayer.value?.team || [])
 
 const battleMedia = createMediaPreloader('当前对战')
 watchEffect(() => {
-  const players = [currentPlayer.value, opponentPlayer.value]
-  const pets = players.flatMap(player =>
-    (player?.team ?? [])
-      .filter(pet => !pet.isUnknown)
-      .map(pet => ({
-        species: pet.speciesID,
-        skills: pet.skills?.filter(skill => !skill.isUnknown).map(skill => skill.baseId),
-        marks: pet.marks?.map(mark => mark.baseId),
-      })),
-  )
+  const visibleTeams = [
+    ...(currentPlayer.value?.team ?? []),
+    ...(opponentPlayer.value?.team ?? []),
+    ...(store.teamSelectionOpponent?.pets ?? []),
+  ]
+  const pets = visibleTeams.filter(pet => !pet.isUnknown).map(pet => {
+    const skills = pet.skills?.filter(skill => !skill.isUnknown) ?? []
+    return {
+      species: pet.speciesID,
+      elements: [pet.element, ...skills.map(skill => skill.element)],
+      skills: skills.map(skill => skill.baseId),
+      marks: pet.marks?.map(mark => mark.baseId),
+    }
+  })
   battleMedia.update(
     activeMediaCatalog(),
     pets,
@@ -486,7 +491,7 @@ onUnmounted(() => {
   battleMedia.stop()
   resetBattleScene()
 })
-const { playSkillSound, playPetSound, playVictorySound } = useSound()
+const { playSkillSound, playPetSound, playVictorySound, prepareVictorySound } = useSound()
 
 // 缓存技能的原始顺序，避免在技能变身时位置发生变化
 const skillOrderCache = ref<
@@ -947,9 +952,30 @@ async function checkPetSpritesReady(): Promise<void> {
   await Promise.all(sides.filter(side => side.sprite).map(side => side.sprite!.ready))
 }
 
+// An optional asset can fail while other assets in the group are still loading.
+async function waitForMediaGroup(loads: Promise<unknown>[]) {
+  const results = await Promise.allSettled(loads)
+  const failure = results.find(result => result.status === 'rejected')
+  if (failure) throw failure.reason
+}
+
+let awaitedTeamBatch: Promise<number> | undefined
+async function waitForTeamMedia() {
+  await nextTick()
+  if (battleMedia.ready === awaitedTeamBatch) return
+  let batch: Promise<number> | undefined
+  do {
+    batch = battleMedia.ready
+    awaitedTeamBatch = batch
+    const failed = await batch
+    if (batch === battleMedia.ready && failed) throw new Error('部分队伍资源不可用')
+  } while (batch !== battleMedia.ready)
+}
+
 const initializeBattleResources = async () => {
   // A direct battle-page load shares these downloads with application startup.
   const startupTimeoutMs = 60_000
+  awaitedTeamBatch = undefined
   resourceAttempt.value++
   await preparation.prepare([
     {
@@ -999,6 +1025,23 @@ const initializeBattleResources = async () => {
           }
           if (!store.battleState) throw new Error('没有可用的对局数据，请返回大厅')
         }
+      },
+    },
+    {
+      id: 'media',
+      label: '对战媒体',
+      required: false,
+      timeoutMs: startupTimeoutMs,
+      run: async () => {
+        await nextTick()
+        await waitForMediaGroup([
+          prepareFeedbackArtwork(),
+          koBannerRef.value?.decode() ?? Promise.resolve(),
+          climaxEffectRef.value?.whenReady() ?? Promise.resolve(),
+          whenMusicReady(),
+          prepareVictorySound(),
+          waitForTeamMedia(),
+        ])
       },
     },
     {
@@ -1062,7 +1105,12 @@ const initializeBattleResources = async () => {
               }
             },
           },
-          { id: 'scene-pets', label: '场上精灵', required: false, run: checkPetSpritesReady },
+          {
+            id: 'scene-pets',
+            label: '场上精灵',
+            required: false,
+            run: () => waitForMediaGroup([checkPetSpritesReady(), waitForTeamMedia()]),
+          },
         ]
       : []),
   ])

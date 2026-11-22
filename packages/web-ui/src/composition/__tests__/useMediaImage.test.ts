@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { registerMediaEnvironment } from '@/services/mediaLoader'
 import { setServerContentText } from '@/i18n/serverContent'
 import DamageDisplay from '@/components/battle/DamageDisplay.vue'
+import { createBattleFeedbackArtwork } from '@/services/battleFeedbackArtwork'
 import { useMediaImage } from '../useMediaImage'
 
 function png() {
@@ -99,29 +100,62 @@ it('keeps the loaded media valid while an ancestor leave transition retains its 
   }
 })
 
-it('uses one read for repeated damage digits and releases each rendered image', async () => {
+it('prepares all damage art before the first hit and reuses it across hits', async () => {
   const catalog = { species: [], skills: [], marks: [] }
-  registerMediaEnvironment(
-    catalog,
-    'custom-damage',
-    ['damage:normal', 'digit:minus', 'digit:2'].map(id => ({
-      id,
-      source: 'https://pack.test/art/' + id,
-      tags: ['battle-ui:' + id],
-    })),
-  )
+  const roles = [
+    ...Array.from('0123456789', digit => 'digit:' + digit),
+    'digit:minus',
+    'miss',
+    'absorb',
+    'damage:normal',
+    'damage:red',
+    'damage:blue',
+  ]
+  const resources = roles.map(id => ({
+    id,
+    source: 'https://pack.test/art/' + id,
+    tags: ['battle-ui:' + id],
+  }))
+  registerMediaEnvironment(catalog, 'custom-damage', resources)
   setServerContentText(catalog)
   const fetcher = vi.fn(async () => new Response(png()))
   vi.stubGlobal('fetch', fetcher)
+  const lastDecode = Promise.withResolvers<void>()
+  const allDecoding = Promise.withResolvers<void>()
+  let decoding = 0
+  vi.stubGlobal(
+    'Image',
+    class {
+      src = ''
+      decode() {
+        if (++decoding < roles.length) return Promise.resolve()
+        allDecoding.resolve()
+        return lastDecode.promise
+      }
+    },
+  )
   let sequence = 0
   vi.spyOn(URL, 'createObjectURL').mockImplementation(() => 'blob:damage-' + ++sequence)
   const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-  const display = mount(DamageDisplay, { props: { value: 22 } })
-  await flushPromises()
-  const images = display.findAll('img')
-  expect(images.map(image => image.attributes('alt'))).toEqual(['damage background', 'minus', 'digit 2', 'digit 2'])
-  expect(images.every(image => image.attributes('src')?.startsWith('blob:damage-'))).toBe(true)
-  expect(fetcher).toHaveBeenCalledTimes(3)
-  display.unmount()
-  expect(revoke).toHaveBeenCalledTimes(4)
+  const artwork = createBattleFeedbackArtwork()
+  const preparing = artwork.prepare()
+  await allDecoding.promise
+  expect(fetcher.mock.calls).toHaveLength(roles.length)
+  expect(artwork.images.size).toBe(0)
+  lastDecode.resolve()
+  await preparing
+
+  for (const type of ['normal', 'red', 'blue'] as const) {
+    const display = mount(DamageDisplay, { props: { value: 22, type, artwork: artwork.images } })
+    const images = display.findAll('img')
+    expect(images.map(image => image.attributes('src'))).toEqual(
+      ['damage:' + type, 'digit:minus', 'digit:2', 'digit:2'].map(role => artwork.images.get(role)!.src),
+    )
+    display.unmount()
+  }
+  expect(fetcher).toHaveBeenCalledTimes(roles.length)
+  expect(revoke).not.toHaveBeenCalled()
+  artwork.release()
+  expect(revoke).toHaveBeenCalledTimes(roles.length)
+  expect(artwork.images.size).toBe(0)
 })
