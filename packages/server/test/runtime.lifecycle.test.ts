@@ -70,9 +70,9 @@ async function rejectConnection(host: Host, auth: Record<string, unknown>) {
   expect(socket.connected).toBe(false)
 }
 
-function ack<T = unknown>(socket: Socket, name: string, data?: unknown): Promise<Ack<T>> {
+function ack<T = unknown>(socket: Socket, name: string, data?: unknown, timeoutMs = 3000): Promise<Ack<T>> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timed out acknowledging ${name}`)), 3000)
+    const timer = setTimeout(() => reject(new Error(`Timed out acknowledging ${name}`)), timeoutMs)
     const callback = (value: Ack<T>) => {
       clearTimeout(timer)
       resolve(value)
@@ -82,8 +82,8 @@ function ack<T = unknown>(socket: Socket, name: string, data?: unknown): Promise
   })
 }
 
-async function success<T = unknown>(socket: Socket, name: string, data?: unknown): Promise<T> {
-  const response = await ack<T>(socket, name, data)
+async function success<T = unknown>(socket: Socket, name: string, data?: unknown, timeoutMs?: number): Promise<T> {
+  const response = await ack<T>(socket, name, data, timeoutMs)
   expect(response.status, `${name}: ${JSON.stringify(response)}`).toBe('SUCCESS')
   if (response.status !== 'SUCCESS') throw new Error(response.code)
   return response.data
@@ -197,13 +197,14 @@ it('lets the host keep a spectator seat, start two ready players and watch their
   await success(b, 'togglePrivateRoomReady', { team: team(1) })
   expect(await current(owner)).toMatchObject({ config: { hostPlayerId: hostId }, status: 'ready' })
   expect(await ack(owner, 'startPrivateRoomBattle', { hostTeam: team() })).toMatchObject({ code: 'NOT_BATTLE_PLAYER' })
-  const battle = await success<{ battleRoomId: string }>(owner, 'startPrivateRoomBattle', {})
+  // This acknowledgement includes cold worker initialization and the first battle snapshot.
+  const battle = await success<{ battleRoomId: string }>(owner, 'startPrivateRoomBattle', {}, 20_000)
   await success(owner, 'joinSpectateBattle', { battleRoomId: battle.battleRoomId })
   await success(a, 'ready')
   await success(b, 'ready')
   expect(await success(owner, 'getState')).toMatchObject({ players: expect.any(Array) })
   expect(await ack(owner, 'getAvailableSelection')).toMatchObject({ code: 'NOT_BATTLE_PLAYER' })
-})
+}, 30_000)
 
 it('runs a published official environment in P2P when the clients accept its peer revision', async () => {
   const host = await boot()

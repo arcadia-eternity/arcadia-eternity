@@ -24,7 +24,7 @@ test('the encyclopedia loads one prepared catalog without Web Crypto on LAN HTTP
   expect(requests).toEqual(['/environment/catalog.json'])
 })
 
-test('a real npm environment renders media and reactive bilingual rich text without prefetch or cache reuse', async ({
+test('a real npm environment reuses verified image bytes and renders reactive bilingual rich text', async ({
   page,
   baseURL,
 }) => {
@@ -73,10 +73,13 @@ test('a real npm environment renders media and reactive bilingual rich text with
       ]) }).use(pinia).use(I18NextVue, { i18next }).mount('#app');
     </script></body></html>`,
     )
-    const mediaRequests: string[] = []
+    const icon = environment.resources.find(row => row.projectId === 'example-slow' && row.id === 'icon')
+    expect(icon).toBeDefined()
+    const iconUrl = new URL(icon!.url, serverUrl).href
+    let iconReads = 0
     const swfRequests: string[] = []
     page.on('request', request => {
-      if (request.url().includes('/assets/')) mediaRequests.push(request.url())
+      if (request.method() === 'GET' && request.url() === iconUrl) iconReads++
       if (request.url().includes('not-fetched.swf')) swfRequests.push(request.url())
     })
     await page.goto('/test-results/content-presentation.html')
@@ -119,11 +122,12 @@ test('a real npm environment renders media and reactive bilingual rich text with
     await expect(page.locator('#name')).toHaveText('Display pet')
     await expect(page.locator('#official-mark-description')).toHaveText('回合结束时受到12点伤害')
     await expect(page.locator('[data-format-error]')).toHaveCount(0)
-    const before = mediaRequests.length
+    expect(iconReads).toBe(1)
     await page.getByRole('button', { name: 'toggle icon' }).click()
     await expect(page.getByTestId('custom-icon')).toHaveCount(0)
     await page.getByRole('button', { name: 'toggle icon' }).click()
-    await expect.poll(() => mediaRequests.length).toBeGreaterThan(before)
+    await expect.poll(() => page.getByTestId('custom-icon').getAttribute('style')).toContain('blob:')
+    expect(iconReads).toBe(1)
     await page.getByRole('button', { name: 'leave', exact: true }).click()
     await expect(page.locator('#name')).toHaveText('unloaded')
     await expect(page.locator('#description')).toBeEmpty()
