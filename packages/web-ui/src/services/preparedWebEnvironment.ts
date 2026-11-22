@@ -164,11 +164,12 @@ export async function readBuiltinWebEnvironment(id: string, refresh = false) {
 export async function readPreparedWebRuntime(
   signal?: AbortSignal,
   material = 'environment',
+  capturedRevision?: string,
 ): Promise<SandboxEnvironment> {
   signal?.throwIfAborted()
-  const explicit = import.meta.env.VITE_RUNTIME_REF?.trim()
+  const explicit = capturedRevision === undefined && import.meta.env.VITE_RUNTIME_REF?.trim()
   if (!explicit && !hasPreparedWebEnvironment()) throw new Error('当前环境缺少本地对战运行材料')
-  const expected = explicit ? undefined : (await readMaterialCatalog(material)).runtimeRevision
+  const expected = explicit ? undefined : (capturedRevision ?? (await readMaterialCatalog(material)).runtimeRevision)
   signal?.throwIfAborted()
   if (runtime && expected === runtime.revision) return runtime
   const url = explicit || new URL(material + '/runtime.json', webRoot()).href

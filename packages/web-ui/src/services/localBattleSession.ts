@@ -6,8 +6,6 @@ import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { useBattleStore } from '@/stores/battle'
 import type { useGameDataStore } from '@/stores/gameData'
 import { createSandboxWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
-import { hasPreparedWebEnvironment, readPreparedWebCatalog } from './preparedWebEnvironment'
-import type { EnvironmentRules } from '@arcadia-eternity/protocol'
 import { acquireLocalContent } from './localContent'
 
 type SessionState = 'configuring' | 'starting' | 'routing' | 'active' | 'disposed'
@@ -21,6 +19,8 @@ interface Destination {
   navigate(): Promise<void | NavigationFailure>
 }
 type Prepared = Awaited<ReturnType<typeof createSandboxWebBattleSession>>
+type Content = NonNullable<Awaited<ReturnType<typeof acquireLocalContent>>>
+export type LocalBattleEnvironment = Pick<Content, 'gameplayRevision' | 'draftRevision' | 'rules'>
 interface Attempt {
   native: Prepared['system']
   system: IBattleSystem
@@ -38,26 +38,31 @@ export class LocalBattleSession {
   #attempt?: Attempt
   #battle?: BattleStore
   #disposing?: Promise<void>
-  #content?: Awaited<ReturnType<typeof acquireLocalContent>>
-  #rules?: EnvironmentRules
-  #contentReady?: Promise<void>
+  #content?: Content
+  #contentReady?: Promise<LocalBattleEnvironment | undefined>
   #restoreDisplay?: () => void
   constructor(private readonly create = createSandboxWebBattleSession) {}
   get state() {
     return this.#state
   }
   /** The configuration and its eventual battle share one successful selection. */
-  prepareContent(data: Destination['data']): Promise<void> {
+  prepareContent(data: Destination['data'], environmentId?: string): Promise<LocalBattleEnvironment | undefined> {
     this.#contentReady ??= (async () => {
-      const content = await acquireLocalContent()
+      const content = await acquireLocalContent(environmentId)
       if (this.state === 'disposed') {
         await content?.release()
         return
       }
-      this.#rules =
-        content?.rules ?? (!content && hasPreparedWebEnvironment() ? (await readPreparedWebCatalog()).rules : undefined)
+      if (!content) return
+      const { rules, effectMarkRelations, draftRevision, gameplayRevision } = content
+      try {
+        this.#restoreDisplay = data.useLocalBattleContent(content.content, rules, false, effectMarkRelations)
+      } catch (error) {
+        await content.release()
+        throw error
+      }
       this.#content = content
-      if (content) this.#restoreDisplay = data.useLocalBattleContent(content.content, content.rules)
+      return { rules, draftRevision, gameplayRevision }
     })().catch(error => {
       this.#contentReady = undefined
       throw error
@@ -91,28 +96,38 @@ export class LocalBattleSession {
       this.#preparing = (async () => {
         await this.prepareContent(target.data)
         launch.signal.throwIfAborted()
-        for (const player of [firstInput, secondInput])
-          assertPlayableTeam(
-            this.#rules,
-            player.team,
-            id => target.data.getSpecies(id),
-            target.data.getNature,
-            target.data.getEnhancement,
-            id => target.data.getSkill(id),
-            id => target.data.getMark(id),
-          )
-        const environment = await this.#content?.readRuntime()
+        const rules = this.#content?.rules
+        const { data } = target
+        for (const [player, label] of [
+          [firstInput, '玩家1'],
+          [secondInput, '玩家2'],
+        ] as const) {
+          try {
+            assertPlayableTeam(
+              rules,
+              player.team,
+              data.getSpecies,
+              data.getNature,
+              data.getEnhancement,
+              data.getSkill,
+              data.getMark,
+            )
+          } catch (error) {
+            throw new Error(`${label}队伍：${(error as Error).message}`, { cause: error })
+          }
+        }
+        const environment = await this.#content?.readRuntime(launch.signal)
         launch.signal.throwIfAborted()
-        const mechanics = resolveEnvironmentMechanics(this.#rules)
+        const mechanics = resolveEnvironmentMechanics(rules)
         const prepared = await this.create(
           firstInput,
           secondInput,
           target.data,
           {
             ...options,
-            ...resolveEnvironmentBattleOptions(this.#rules),
-            skillParameters: this.#rules?.skillParameters,
-            matchups: this.#rules?.matchups,
+            ...resolveEnvironmentBattleOptions(rules),
+            skillParameters: rules?.skillParameters,
+            matchups: rules?.matchups,
             individualValueMax: mechanics.individualValues.max,
             enhancementActive: mechanics.enhancement.mode === 'active',
             allowFaintSwitch: mechanics.allowFaintSwitch,

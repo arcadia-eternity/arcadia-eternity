@@ -1,22 +1,32 @@
 import { localMediaScope, registerMediaEnvironment } from './mediaLoader'
 import { getDesktopApi } from '@/utils/env'
 import { validateEnvironmentContent } from './serverContentValidation'
-import { hasPreparedWebEnvironment, readBuiltinWebEnvironment, readPreparedWebRuntime } from './preparedWebEnvironment'
+import {
+  hasPreparedWebEnvironment,
+  readBuiltinWebEnvironment,
+  readPreparedWebCatalog,
+  readPreparedWebRuntime,
+} from './preparedWebEnvironment'
 
 /** A captured local selection. Each consumer owns its own resource lifetime. */
 export async function acquireLocalContent(environmentId?: string, refresh = false) {
   const api = getDesktopApi()
   if (!api) {
-    if (!environmentId || !hasPreparedWebEnvironment()) return undefined
-    const catalog = await readBuiltinWebEnvironment(environmentId, refresh)
+    if (!hasPreparedWebEnvironment()) return undefined
+    const selected = environmentId ? await readBuiltinWebEnvironment(environmentId, refresh) : undefined
+    const catalog = selected ?? (await readPreparedWebCatalog(refresh))
+    const selectedId = environmentId ?? catalog.defaultEnvironment
     return {
-      environmentId,
-      environmentName: catalog.environmentName,
+      environmentId: selectedId,
+      environmentName: selected?.environmentName ?? catalog.builtins?.find(doc => doc.id === selectedId)?.name,
       gameplayRevision: catalog.gameplayRevision,
+      draftRevision: undefined,
       content: catalog.content,
       rules: catalog.rules,
+      effectMarkRelations: catalog.effectMarkRelations,
       resources: catalog.resources,
-      readRuntime: () => readPreparedWebRuntime(undefined, catalog.material),
+      readRuntime: (signal?: AbortSignal) =>
+        readPreparedWebRuntime(signal, selected?.material, catalog.runtimeRevision),
       release: async () => {},
     }
   }
@@ -43,8 +53,10 @@ export async function acquireLocalContent(environmentId?: string, refresh = fals
       environmentId: result.environmentId,
       environmentName: result.environmentName,
       gameplayRevision: result.gameplayRevision,
+      draftRevision: result.draftRevision,
       content: result.content,
       rules: result.rules,
+      effectMarkRelations: undefined,
       resources: result.resources ?? [],
       async readRuntime() {
         if (released) throw new Error('本地内容会话已释放')

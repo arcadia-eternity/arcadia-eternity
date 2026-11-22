@@ -2,31 +2,61 @@
   <div class="max-w-4xl w-full mx-auto p-6 min-h-[calc(100vh-60px)] flex flex-col justify-start gap-6">
     <h1 class="text-3xl font-bold text-center text-gray-800">本地对战</h1>
 
-    <!-- 战斗配置面板 -->
     <div class="bg-gray-50 rounded-lg p-6 shadow-lg border border-gray-200">
       <div class="mb-6 p-4 bg-white rounded-md border border-gray-200 flex flex-col gap-3">
-        <p v-if="contentNotice" class="text-sm text-amber-700">{{ contentNotice }}</p>
-        <TeamLibrarySelect :delegate="teamSelectors[0]!" label="玩家1队伍" />
-        <TeamLibrarySelect :delegate="teamSelectors[1]!" label="玩家2队伍（AI）" />
+        <div v-if="showEnvironmentPicker" class="flex flex-wrap items-center gap-3">
+          <label class="grid gap-1 flex-1 min-w-48">
+            对战环境
+            <el-select
+              v-model="selectedEnvironmentId"
+              aria-label="对战环境"
+              placeholder="选择对战环境"
+              :disabled="discovering || loadingPhase === 'battle'"
+              @change="prepareConfiguration()"
+            >
+              <el-option
+                v-for="choice in environmentChoices"
+                :key="choice.id"
+                :label="choice.name"
+                :value="choice.id"
+                :disabled="!choice.available"
+              />
+            </el-select>
+          </label>
+          <router-link to="/environments" class="text-blue-600 self-end py-1">查看环境</router-link>
+        </div>
+        <p v-if="environment?.gameplayRevision" class="text-sm text-gray-600" :title="environment.gameplayRevision">
+          {{ usingPreviousVersion ? '上次应用版本' : '环境版本' }} {{ environment.gameplayRevision.slice(0, 8) }}
+        </p>
+        <div v-if="configurationError" class="flex flex-wrap items-center gap-2">
+          <p role="alert" class="text-red-600">{{ configurationError }}</p>
+          <el-button link type="primary" @click="prepareConfiguration({ discover: true })">重试</el-button>
+        </div>
+        <TeamLibrarySelect :delegate="teamSelectors[0]!" label="玩家1队伍" :disabled="!teamsInitialized || launching" />
+        <TeamLibrarySelect
+          :delegate="teamSelectors[1]!"
+          label="玩家2队伍（AI）"
+          :disabled="!teamsInitialized || launching"
+        />
         <router-link to="/team-builder" class="text-blue-600">管理个人编队</router-link>
       </div>
 
       <BattleOptionsEditor
+        v-if="configurationReady"
         v-model:battle-config="battleConfig"
         v-model:timer-config="timerConfig"
-        :environment-timer="!!dataStore.rules?.mechanics?.timer"
-        :environment-selection="!!dataStore.rules?.mechanics?.teamSelection"
+        :environment-timer="environmentTimer"
+        :environment-selection="environmentSelection"
       />
 
-      <!-- 预设配置按钮 -->
       <div
-        v-if="!dataStore.rules?.mechanics?.timer || !dataStore.rules?.mechanics?.teamSelection"
+        v-if="configurationReady && (!environmentTimer || !environmentSelection)"
         class="flex flex-wrap gap-2 justify-center mt-6 pt-6 border-t border-gray-200"
       >
-        <el-button @click="loadPreset('default')">默认配置 </el-button>
-        <el-button @click="loadPreset('fast')">快速对战 </el-button>
-        <el-button @click="loadPreset('competitive')">竞技模式 </el-button>
-        <el-button @click="loadPreset('teamSelection')">团队选择测试 </el-button>
+        <el-button @click="loadPreset('default')">默认配置</el-button>
+        <el-button @click="loadPreset('fast')">快速对战</el-button>
+        <el-button @click="loadPreset('competitive')">竞技模式</el-button>
+        <el-button v-if="!environmentSelection" @click="loadPreset('teamSelection')">团队选择测试</el-button>
       </div>
     </div>
 
@@ -37,12 +67,12 @@
         size="large"
         :loading="loadingPhase !== null"
         @click="startLocalBattle"
-        :disabled="loadingPhase !== null || matchmaking?.blocksOtherBattles"
+        :disabled="loadingPhase !== null || !configurationReady || matchmaking?.blocksOtherBattles"
         >{{ startLabel }}</el-button
       >
 
       <!-- 错误提示 -->
-      <div v-if="errorMessage" class="mt-4 p-3 text-red-600 border border-red-400 rounded-md bg-red-50">
+      <div v-if="errorMessage" role="alert" class="mt-4 p-3 text-red-600 border border-red-400 rounded-md bg-red-50">
         {{ errorMessage }}
       </div>
     </div>
@@ -62,8 +92,11 @@ import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
 import { useMatchmakingStore } from '@/stores/matchmaking'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
+import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@arcadia-eternity/protocol'
 
-import { LocalBattleSession } from '@/services/localBattleSession'
+import { localEnvironmentRequest } from '@/features/content/localEnvironmentPackages'
+import { LocalBattleSession, type LocalBattleEnvironment } from '@/services/localBattleSession'
+import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
 import { preloadBattleWorker } from '@/services/sandboxBattleWorkers'
 import { getDesktopApi, isStaticMode } from '@/utils/env'
 
@@ -76,62 +109,69 @@ const dataStore = useGameDataStore()
 const matchmaking = isStaticMode ? null : useMatchmakingStore()
 const errorMessage = ref<string | null>(null)
 const loadingPhase = ref<'configuration' | 'battle' | null>('configuration')
+const launching = computed(() => loadingPhase.value === 'battle')
 const startLabel = computed(() => {
   if (matchmaking?.blocksOtherBattles) return '取消匹配后可开始本地对战'
   if (loadingPhase.value === 'configuration') return '正在准备本地内容…'
   if (loadingPhase.value === 'battle') return '正在启动对战引擎…'
   return '开始本地对战'
 })
-const contentNotice = ref('')
-
-const localSession = shallowRef(new LocalBattleSession())
-const battleTeams = computed(() => petStorage.teams)
+const desktop = getDesktopApi()
+const bundledWeb = hasPreparedWebEnvironment()
+const hasEnvironmentLibrary = !!desktop?.localEnvironment || bundledWeb
+interface EnvironmentChoice {
+  id: string
+  name: string
+  available: boolean
+  draftRevision?: string
+  appliedDraftRevision?: string
+}
+const environmentChoices = shallowRef<EnvironmentChoice[]>([])
+const selectedEnvironmentId = ref<string>()
+const configurationReady = ref(false)
+const configurationError = ref('')
+const discovering = ref(false)
+const showEnvironmentPicker = computed(
+  () => !!desktop?.localEnvironment || (bundledWeb && (discovering.value || environmentChoices.value.length > 0)),
+)
+const environment = shallowRef<LocalBattleEnvironment>()
+const environmentTimer = computed(() => !!environment.value?.rules?.mechanics?.timer)
+const environmentSelection = computed(() => !!environment.value?.rules?.mechanics?.teamSelection)
+const usingPreviousVersion = computed(() => {
+  const choice = environmentChoices.value.find(choice => choice.id === selectedEnvironmentId.value)
+  const capturedDraft = environment.value?.draftRevision
+  return !!capturedDraft && capturedDraft === choice?.appliedDraftRevision && capturedDraft !== choice.draftRevision
+})
+let defaultWebEnvironment: string | undefined
+const localSession = shallowRef<LocalBattleSession>()
 onBeforeUnmount(() => {
-  void localSession.value.releaseConfiguration().catch(error => console.warn('本地对战清理失败', error))
+  const session = localSession.value
+  localSession.value = undefined
+  void session?.releaseConfiguration().catch(error => console.warn('本地对战清理失败', error))
 })
 
-// 队伍选择
-const selectedPlayer1TeamIndex = ref(0)
-const selectedPlayer2TeamIndex = ref(0)
-
-// 可用队伍列表（过滤掉空队伍）
-const availableTeams = computed(() => {
-  return battleTeams.value.filter(team => team.pets.length > 0)
-})
-
+const teamsInitialized = ref(false)
+const selectedTeams = [ref(''), ref('')] as const
+const availableTeams = computed(() => petStorage.teams.filter(team => team.pets.length > 0))
 const teamChoices = computed(() =>
   availableTeams.value.map(team => ({
-    id: String(battleTeams.value.indexOf(team)),
+    id: team.id,
     name: team.name,
     size: team.pets.length,
   })),
 )
-const teamSelectors: TeamLibraryDelegate[] = [selectedPlayer1TeamIndex, selectedPlayer2TeamIndex].map(selected => ({
+const teamSelectors: TeamLibraryDelegate[] = selectedTeams.map(selected => ({
   entries: teamChoices,
-  selected: computed({
-    get: () => String(selected.value),
-    set: value => {
-      selected.value = Number(value)
-    },
-  }),
+  selected,
 }))
 
-// 初始化队伍选择的函数
 const initializeTeamSelection = () => {
-  // 设置玩家1为当前队伍
-  selectedPlayer1TeamIndex.value = petStorage.currentTeamIndex
-
-  // 设置玩家2为不同的队伍（如果有的话）
-  const validTeams = availableTeams.value
-  if (validTeams.length > 1) {
-    // 找到第一个不同于玩家1的队伍
-    const differentTeamIndex = battleTeams.value.findIndex(
-      (team, index) => index !== selectedPlayer1TeamIndex.value && team.pets.length > 0,
-    )
-    selectedPlayer2TeamIndex.value = differentTeamIndex >= 0 ? differentTeamIndex : 0
-  } else {
-    selectedPlayer2TeamIndex.value = selectedPlayer1TeamIndex.value
-  }
+  const currentId = petStorage.teams[petStorage.currentTeamIndex]?.id
+  const first = availableTeams.value.find(team => team.id === currentId) ?? availableTeams.value[0]
+  const second = availableTeams.value.find(team => team.id !== first?.id) ?? first
+  selectedTeams[0].value = first?.id ?? ''
+  selectedTeams[1].value = second?.id ?? ''
+  teamsInitialized.value = true
 }
 
 function parseQueryBoolean(value: unknown): boolean {
@@ -167,8 +207,6 @@ const presets = {
     timer: {
       ...DEFAULT_TIMER_CONFIG,
     },
-    enableTurnTimeLimit: !!DEFAULT_TIMER_CONFIG.turnTimeLimit,
-    enableTotalTimeLimit: !!DEFAULT_TIMER_CONFIG.totalTimeLimit,
   },
   fast: {
     battle: {
@@ -192,8 +230,6 @@ const presets = {
       totalTimeLimit: 300, // 5分钟总时间
       animationPauseEnabled: false, // 不暂停动画
     },
-    enableTurnTimeLimit: true,
-    enableTotalTimeLimit: true,
   },
   competitive: {
     battle: {
@@ -217,8 +253,6 @@ const presets = {
       totalTimeLimit: 900, // 15分钟总时间
       animationPauseEnabled: true,
     },
-    enableTurnTimeLimit: true,
-    enableTotalTimeLimit: true,
   },
   teamSelection: {
     battle: {
@@ -239,119 +273,139 @@ const presets = {
       ...DEFAULT_TIMER_CONFIG,
       enabled: false, // 团队选择测试模式不启用战斗计时器
     },
-    enableTurnTimeLimit: false,
-    enableTotalTimeLimit: false,
   },
 }
 
-// 加载预设配置
 const loadPreset = (presetName: keyof typeof presets) => {
-  const preset = presets[presetName]
-
-  // 更新战斗配置
-  Object.assign(battleConfig.value, preset.battle)
-
-  // 更新计时器配置
-  Object.assign(timerConfig.value, preset.timer)
-
-  // 更新时间限制启用状态
+  const {
+    battle: { teamSelection, ...options },
+    timer,
+  } = presets[presetName]
+  Object.assign(battleConfig.value, options)
+  if (!environmentSelection.value) battleConfig.value.teamSelection = { ...teamSelection }
+  if (!environmentTimer.value) Object.assign(timerConfig.value, timer)
 }
 
-async function initializeLocalBattle() {
+async function readEnvironmentChoices(refresh: boolean) {
+  if (desktop?.localEnvironment) {
+    const snapshot = await localEnvironmentRequest<{
+      selectedEnvironmentId?: string
+      environments: ManagedEnvironment[]
+      installations: ManagedEnvironmentInstallation[]
+    }>({ action: 'snapshot' })
+    const installations = new Map(
+      snapshot.installations.filter(item => item.status === 'ready').map(item => [item.environmentId, item]),
+    )
+    const choices = snapshot.environments.map(({ document, revision }) => {
+      const installed = installations.get(document.id)
+      return {
+        id: document.id,
+        name: installed?.document.name ?? `${document.name}（未准备）`,
+        available: !!installed,
+        draftRevision: revision,
+        appliedDraftRevision: installed?.draftRevision,
+      }
+    })
+    return { choices, defaultId: snapshot.selectedEnvironmentId ?? choices.find(choice => choice.available)?.id }
+  }
+  if (bundledWeb) {
+    const catalog = await readPreparedWebCatalog(refresh)
+    return {
+      choices: (catalog.builtins ?? []).map(({ id, name }) => ({ id, name, available: true })),
+      defaultId: catalog.defaultEnvironment,
+    }
+  }
+  return { choices: [], defaultId: undefined }
+}
+
+async function prepareConfiguration({ discover = false, autoStart = false } = {}) {
   const previous = localSession.value
   const session = new LocalBattleSession()
   localSession.value = session
   loadingPhase.value = 'configuration'
-  await previous.dispose().catch(error => console.warn('本地对战清理失败', error))
-  if (localSession.value !== session || session.state === 'disposed') return
+  configurationReady.value = false
+  configurationError.value = ''
+  discovering.value = discover
+  environment.value = undefined
   errorMessage.value = null
-  contentNotice.value = ''
   const isCurrent = () => localSession.value === session && session.state !== 'disposed'
-  dataStore.clearServerEnvironment()
-  // 初始化队伍选择
-  initializeTeamSelection()
 
-  const desktop = getDesktopApi()
+  if (!previous) dataStore.clearServerEnvironment()
+  void previous?.dispose().catch(error => console.warn('本地对战清理失败', error))
   if (!desktop) preloadBattleWorker()
   try {
-    if (desktop) {
-      await session.prepareContent(dataStore)
-    } else if (!dataStore.loaded && !dataStore.gameDataLoaded) {
-      await dataStore.initialize()
+    if (discover && hasEnvironmentLibrary) {
+      const selection = await readEnvironmentChoices(!!previous)
+      if (!isCurrent()) return
+      environmentChoices.value = selection.choices
+      selectedEnvironmentId.value ??= selection.defaultId
+      if (bundledWeb) defaultWebEnvironment = selection.defaultId
+      discovering.value = false
     }
+    const id = selectedEnvironmentId.value
+    const choice = environmentChoices.value.find(item => item.id === id)
+    if ((id && !choice?.available) || (desktop?.localEnvironment && !id)) {
+      throw new Error('所选环境尚未准备')
+    }
+
+    // Let bootstrap's default catalog finish before projecting a per-battle catalog.
+    if (desktop || bundledWeb) await dataStore.whenReady().catch(() => {})
+    else await dataStore.whenReady()
+    if (!isCurrent()) return
+    const captured = await session.prepareContent(
+      dataStore,
+      bundledWeb && id === defaultWebEnvironment ? undefined : id,
+    )
     if (!isCurrent()) return
     await playerStore.initializePlayer()
-    if (isCurrent()) dataStore.gameDataLoaded = true
+    if (!isCurrent()) return
+    environment.value = captured
+    configurationReady.value = true
   } catch (error) {
-    if (isCurrent()) errorMessage.value = `资源加载失败: ${(error as Error).message}`
+    if (isCurrent()) configurationError.value = (error as Error).message
   } finally {
-    if (isCurrent()) loadingPhase.value = null
+    if (isCurrent()) {
+      if (!teamsInitialized.value) initializeTeamSelection()
+      loadingPhase.value = null
+      discovering.value = false
+    }
   }
 
-  if (!isCurrent()) return
-  if (parseQueryBoolean(route.query.autoStart) && !errorMessage.value) {
+  if (isCurrent() && autoStart && configurationReady.value) {
     await startLocalBattle()
   }
 }
 
 const startLocalBattle = async () => {
-  // 防止重复点击
-  if (loadingPhase.value || matchmaking?.blocksOtherBattles) {
-    return
-  }
-
+  const session = localSession.value
+  if (!session || !configurationReady.value || loadingPhase.value || matchmaking?.blocksOtherBattles) return
   loadingPhase.value = 'battle'
   errorMessage.value = null
-  const session = localSession.value
 
   try {
-    // 验证游戏数据是否已加载
-    if (!dataStore.loaded && !dataStore.gameDataLoaded) {
-      throw new Error('游戏数据尚未加载完成，请稍后再试')
-    }
-
-    // 验证队伍选择
     if (availableTeams.value.length === 0) {
       throw new Error('没有可用的队伍，请先在队伍编辑器中创建队伍')
     }
 
-    const player1Team = battleTeams.value[selectedPlayer1TeamIndex.value]
-    const player2Team = battleTeams.value[selectedPlayer2TeamIndex.value]
-
-    if (!player1Team || player1Team.pets.length === 0) {
-      throw new Error('玩家1队伍为空或不存在，请选择有效的队伍')
+    function requireTeam(id: string, label: string) {
+      const team = availableTeams.value.find(item => item.id === id)
+      if (!team) throw new Error(`请选择${label}的队伍`)
+      for (const pet of team.pets) {
+        if (!pet.name || !pet.species) {
+          throw new Error(`${label}的精灵「${pet.name || '未命名'}」缺少名称或种族`)
+        }
+        if (!pet.skills?.length) throw new Error(`${label}的精灵「${pet.name}」未配置技能`)
+      }
+      return team
     }
 
-    if (!player2Team || player2Team.pets.length === 0) {
-      throw new Error('玩家2队伍为空或不存在，请选择有效的队伍')
-    }
-
-    // 验证玩家1队伍中的精灵数据
-    for (const pet of player1Team.pets) {
-      if (!pet.name || !pet.species) {
-        throw new Error(`玩家1精灵 "${pet.name || '未命名'}" 的数据不完整，请检查种族配置`)
-      }
-      if (!pet.skills || pet.skills.length === 0) {
-        throw new Error(`玩家1精灵 "${pet.name}" 没有配置技能，请至少配置一个技能`)
-      }
-    }
-
-    // 验证玩家2队伍中的精灵数据
-    for (const pet of player2Team.pets) {
-      if (!pet.name || !pet.species) {
-        throw new Error(`玩家2精灵 "${pet.name || '未命名'}" 的数据不完整，请检查种族配置`)
-      }
-      if (!pet.skills || pet.skills.length === 0) {
-        throw new Error(`玩家2精灵 "${pet.name}" 没有配置技能，请至少配置一个技能`)
-      }
-    }
-
-    const options = battleOptions(battleConfig.value, timerConfig.value)
+    const player1Team = requireTeam(selectedTeams[0].value, '玩家1')
+    const player2Team = requireTeam(selectedTeams[1].value, '玩家2')
 
     await session.start(
       { name: playerStore.name, team: player1Team.pets },
       { name: `${player2Team.name} (AI)`, team: player2Team.pets },
-      options,
+      battleOptions(battleConfig.value, timerConfig.value),
       { data: dataStore, battle: battleStore, navigate: () => router.push('/battle?dev=true') },
     )
   } catch (error) {
@@ -364,7 +418,8 @@ const startLocalBattle = async () => {
 watch(
   () => route.fullPath,
   () => {
-    if (route.name === 'LocalBattle') void initializeLocalBattle()
+    if (route.name === 'LocalBattle')
+      void prepareConfiguration({ discover: true, autoStart: parseQueryBoolean(route.query.autoStart) })
   },
   { immediate: true },
 )

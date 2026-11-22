@@ -1,4 +1,5 @@
 import { expect, test } from 'playwright/test'
+import { trainingStat } from '@arcadia-eternity/const'
 import { prepareLocalBattle } from './helpers/local-battle-fixture'
 import input from '../../battle/test/fixtures/official-switch.input.json' with { type: 'json' }
 
@@ -24,6 +25,43 @@ test('the local page uses the native runtime and can create its actual checkpoin
   await expect(page.getByText('对战开始！', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /^气力 ·/ })).toBeEnabled()
   expect(await runtimeFormat(page)).toBe('arcadia.battle.native.v4')
+})
+
+test('switching to the 120 environment preserves the selected team and applies its rules in battle', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+  await prepareLocalBattle(page)
+  await page.goto('/local-battle')
+  const version = page.getByText(/^环境版本 /)
+  const initialVersion = await version.textContent()
+  const team = page.getByText('默认队伍 · 3 只', { exact: true }).filter({ visible: true })
+  await expect(team).toHaveCount(2)
+
+  const picker = page.getByRole('combobox', { name: '对战环境', exact: true })
+  await page.locator('.el-select').filter({ has: picker }).click()
+  await page.getByRole('option', { name: /^120 资质/ }).click()
+  await expect(version).toBeVisible()
+  await expect(version).not.toHaveText(initialVersion!)
+  await expect(team).toHaveCount(2)
+  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+  await page.waitForURL(/\/battle\?dev=true/)
+
+  const { hp, baseHp, maxIv } = await page.evaluate(async () => {
+    const battlePath = '/src/stores/battle.ts'
+    const dataPath = '/src/stores/gameData.ts'
+    const [{ useBattleStore }, { useGameDataStore }] = await Promise.all([import(battlePath), import(dataPath)])
+    const state = await useBattleStore().battleInterface.getState(undefined, true)
+    const starter = state.players[0].team[0]
+    const data = useGameDataStore()
+    return {
+      hp: starter.maxHp,
+      baseHp: data.getSpecies(starter.speciesID).baseStats.hp,
+      maxIv: data.rules.mechanics.individualValues.max,
+    }
+  })
+  expect(maxIv).toBe(120)
+  expect(hp).toBe(trainingStat('hp', baseHp, 100, 120, 4, 1))
 })
 
 test('the local team-selection preset confirms teams and enters the native battle', async ({ page }) => {
