@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Blob as NodeBlob } from 'node:buffer'
-import { readResourceBytes, registerOwnedResource } from '../resourceTransport'
+import { readBundledRuffleFile, readResourceBytes, registerOwnedResource } from '../resourceTransport'
 import { inspectMedia } from '../../../shared/media-formats.mjs'
 
 const OriginalURL = globalThis.URL
@@ -152,4 +152,39 @@ it('checks image dimensions from bytes rather than MIME and rejects active forma
   view.setUint32(16, 100_000)
   expect(() => inspectMedia('image', png)).toThrow('尺寸')
   expect(() => inspectMedia('image', new TextEncoder().encode('<svg onload="alert(1)"/>'))).toThrow('格式')
+})
+
+it('allows a progressing Ruffle download beyond five minutes and cancels a stalled one', async () => {
+  vi.useFakeTimers()
+  try {
+    let stream!: ReadableStreamDefaultController<Uint8Array>
+    const cancel = vi.fn()
+    vi.stubGlobal('fetch', () =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              stream = controller
+            },
+            cancel,
+          }),
+        ),
+      ),
+    )
+    const signal = new AbortController().signal
+    const download = () => readBundledRuffleFile('172de42e6619eac8f371.wasm', signal, 'default')
+    const completed = download()
+    for (const byte of [1, 2, 3]) {
+      await vi.advanceTimersByTimeAsync(4 * 60_000)
+      stream.enqueue(Uint8Array.of(byte))
+    }
+    stream.close()
+    await expect(completed).resolves.toEqual(Uint8Array.of(1, 2, 3))
+    const stalled = expect(download()).rejects.toThrow('超时')
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 1)
+    await stalled
+    expect(cancel).toHaveBeenCalledOnce()
+  } finally {
+    vi.useRealTimers()
+  }
 })

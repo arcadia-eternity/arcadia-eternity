@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSwfPlayer } from '../adapter'
+import * as assets from '../assets'
 import type { SwfCommand, SwfFrame } from '../protocol'
 
 const data = new Uint8Array([70, 87, 83, 9, 8, 0, 0, 0]).buffer
@@ -276,4 +277,35 @@ describe('owned desktop canvas playback', () => {
     expect(h.element.children).toHaveLength(0)
     h.player.dispose()
   })
+})
+
+it('starts the browser initialization deadline after a slow runtime download', async () => {
+  vi.useFakeTimers()
+  let finishDownload!: (files: Record<string, ArrayBuffer>) => void
+  vi.spyOn(assets, 'readSwfRuntime').mockImplementation(
+    () =>
+      new Promise(resolve => {
+        finishDownload = resolve
+      }),
+  )
+  const events = vi.fn()
+  const element = document.createElement('div')
+  const player = createSwfPlayer(element, events)
+  try {
+    const load = player.load({ container: data, movie: data })
+    const timedOut = expect(load).rejects.toThrow('Animation loading timed out')
+    await vi.advanceTimersByTimeAsync(6 * 60_000)
+    expect(assets.readSwfRuntime).toHaveBeenCalledOnce()
+    expect(events).not.toHaveBeenCalled()
+    finishDownload({})
+    await vi.advanceTimersByTimeAsync(5 * 60_000 - 1)
+    expect(element.querySelector('iframe')).not.toBeNull()
+    expect(events).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1)
+    await timedOut
+    expect(element.querySelector('iframe')).toBeNull()
+  } finally {
+    player.dispose()
+    vi.useRealTimers()
+  }
 })

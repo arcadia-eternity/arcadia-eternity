@@ -78,14 +78,27 @@ export async function readResourceBytes(
 }
 
 // This installed application asset is also available through Electron's local application protocol.
+const playerReadOptions = { idleTimeoutMs: 5 * 60_000, cache: 'default' } as const
+
 export function readBundledSwfContainer(signal: AbortSignal) {
   const url = new URL('../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf', import.meta.url)
-  return readBytes(url, { signal, maxBytes: mediaLimits.swf }, fetch)
+  return readBytes(url, { ...playerReadOptions, signal, maxBytes: mediaLimits.swf }, fetch)
+}
+
+export function readBundledRuffleFile(name: string, signal: AbortSignal, cache: RequestCache) {
+  const url = new URL(`${import.meta.env.BASE_URL}ruffle/${name}`, location.href)
+  return readBytes(publicHttpUrl(url.href), { ...playerReadOptions, signal, cache, maxBytes: 32 * 1024 * 1024 }, fetch)
 }
 
 async function readBytes(
   url: URL,
-  options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number; cache?: RequestCache },
+  options: {
+    signal?: AbortSignal
+    maxBytes?: number
+    timeoutMs?: number
+    idleTimeoutMs?: number
+    cache?: RequestCache
+  },
   request: typeof fetch,
   owned?: OwnedResource,
 ) {
@@ -107,7 +120,14 @@ async function readBytes(
   owned?.controller.signal.addEventListener('abort', cancelOwned, { once: true })
   if (options.signal?.aborted) cancel()
   if (owned?.controller.signal.aborted) cancelOwned()
-  const timer = setTimeout(() => controller.abort(new Error('资源请求超时')), timeout)
+  const timeOut = () => controller.abort(new Error('资源请求超时'))
+  let timer = setTimeout(timeOut, options.idleTimeoutMs ?? timeout)
+  const receivedData = () => {
+    if (options.idleTimeoutMs) {
+      clearTimeout(timer)
+      timer = setTimeout(timeOut, options.idleTimeoutMs)
+    }
+  }
   let onAbort: (() => void) | undefined
   const aborted = new Promise<never>((_resolve, reject) => {
     onAbort = () => reject(controller.signal.reason ?? new Error('资源请求已取消'))
@@ -130,12 +150,15 @@ async function readBytes(
     ])
     if (!response.ok || response.redirected) throw new Error(`资源请求失败（${response.status}）`)
     if (!response.body) throw new Error('资源响应为空')
+    receivedData()
     reader = response.body.getReader()
     const chunks: Uint8Array[] = []
     let size = 0
     while (true) {
       const { done, value: chunk } = await Promise.race([reader.read(), aborted])
       if (done) break
+      if (!chunk.byteLength) continue
+      receivedData()
       size += chunk.byteLength
       if (size > limit) throw new ResourceSizeError()
       chunks.push(chunk)

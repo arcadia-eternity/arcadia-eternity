@@ -218,7 +218,7 @@ async function retry(prefer?: 'player' | 'player-data') {
     <p>
       {{ player.name }} <code>{{ player.id }}</code>
     </p>
-    <p role="status">{{ status }}</p>
+    <p role="status" aria-label="个人资料状态">{{ status }}</p>
     <p v-if="error || profileFailure" role="alert">{{ error || profileFailure }}</p>
     <div class="flex flex-wrap gap-3">
       <el-button

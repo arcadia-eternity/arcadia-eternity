@@ -1,4 +1,4 @@
-import { sha256Hex } from '@arcadia-eternity/const'
+import { installedRuffleBytes } from './runtimeFixture'
 import { afterEach, expect, it, vi } from 'vitest'
 
 afterEach(() => {
@@ -9,8 +9,9 @@ afterEach(() => {
 
 it('shares player files between lobby warmup and independent players and isolates container copies', async () => {
   const { preloadSwfPlayer, readSwfRuntime, readSwfContainer } = await import('../assets')
-  vi.stubEnv('VITE_RUFFLE_ENTRY_SHA256', sha256Hex(Uint8Array.of(5, 8)))
-  const fetcher = vi.fn(async () => new Response(Uint8Array.of(5, 8)))
+  const fetcher = vi.fn(
+    async (url: string) => new Response(url.includes('/ruffle/') ? installedRuffleBytes(url) : Uint8Array.of(5, 8)),
+  )
   vi.stubGlobal('fetch', fetcher)
   const first = new AbortController()
   const remaining = new AbortController().signal
@@ -34,19 +35,21 @@ it('shares player files between lobby warmup and independent players and isolate
 
 it('retries only the failed runtime file and reuses its successful siblings', async () => {
   const { readSwfRuntime } = await import('../assets')
-  vi.stubEnv('VITE_RUFFLE_ENTRY_SHA256', sha256Hex(new TextEncoder().encode('installed')))
   let fail = true
   const calls = new Map<string, number>()
-  vi.stubGlobal('fetch', (url: string) => {
+  vi.stubGlobal('fetch', (url: string, options: RequestInit) => {
     calls.set(url, (calls.get(url) ?? 0) + 1)
-    if (url.includes('core.ruffle.') && fail) {
-      fail = false
-      return Promise.resolve(new Response(null, { status: 503 }))
+    if (url.endsWith('878d548199cddef07035.wasm')) {
+      if (fail) {
+        fail = false
+        return Promise.resolve(new Response('<html>SPA fallback</html>'))
+      }
+      expect(options.cache).toBe('reload')
     }
-    return Promise.resolve(new Response('installed'))
+    return Promise.resolve(new Response(installedRuffleBytes(url)))
   })
   const signal = new AbortController().signal
-  await expect(readSwfRuntime(signal)).rejects.toThrow('503')
+  await expect(readSwfRuntime(signal)).rejects.toThrow('878d548199cddef07035.wasm')
   await readSwfRuntime(signal)
-  expect([...calls.values()]).toEqual([1, 2, 1, 1, 1])
+  expect([...calls.values()]).toEqual([1, 1, 1, 2, 1])
 })

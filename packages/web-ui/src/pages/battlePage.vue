@@ -975,6 +975,7 @@ async function waitForTeamMedia() {
 const initializeBattleResources = async () => {
   // A direct battle-page load shares these downloads with application startup.
   const startupTimeoutMs = 60_000
+  const petStartupTimeoutMs = 15 * 60_000
   awaitedTeamBatch = undefined
   resourceAttempt.value++
   await preparation.prepare([
@@ -1066,6 +1067,7 @@ const initializeBattleResources = async () => {
       id: 'pets',
       label: '首发精灵',
       required: false,
+      timeoutMs: petStartupTimeoutMs,
       run: checkPetSpritesReady,
     },
     ...(!props.replayMode
@@ -1074,6 +1076,8 @@ const initializeBattleResources = async () => {
             id: 'connection',
             label: '对战连接',
             required: true,
+            // The other client may still be preparing its starting sprites.
+            timeoutMs: petStartupTimeoutMs,
             run: async () => {
               if (!messageSubscription) {
                 await setupMessageSubscription()
@@ -1109,6 +1113,7 @@ const initializeBattleResources = async () => {
             id: 'scene-pets',
             label: '场上精灵',
             required: false,
+            timeoutMs: petStartupTimeoutMs,
             run: () => waitForMediaGroup([checkPetSpritesReady(), waitForTeamMedia()]),
           },
         ]

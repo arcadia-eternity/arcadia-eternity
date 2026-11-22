@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 declare const __BASE_BATTLE_UI__: import('./scripts/build-web-content.mjs').BaseBattleUi
+declare const __RUFFLE_RUNTIME_SHA256__: Readonly<Record<string, string>>
 
 interface ImportMetaEnv {
   readonly VITE_MAX_CONCURRENT_BATTLES?: string

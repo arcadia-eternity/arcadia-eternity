@@ -9,10 +9,10 @@ import Components from 'unplugin-vue-components/vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
-import { createHash } from 'node:crypto'
 import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { buildWebContent } from './scripts/build-web-content.mjs'
+import { ruffleRuntimeHashes } from './scripts/ruffle-runtime.ts'
 
 const configDir = import.meta.dirname
 
@@ -51,11 +51,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     base: process.env.VITE_STATIC_MODE === '1' ? './' : '/',
     define: {
       __BASE_BATTLE_UI__: JSON.stringify(battleUi),
-      'import.meta.env.VITE_RUFFLE_ENTRY_SHA256': JSON.stringify(
-        createHash('sha256')
-          .update(readFileSync(new URL('./node_modules/@ruffle-rs/ruffle/ruffle.js', import.meta.url)))
-          .digest('hex'),
-      ),
+      __RUFFLE_RUNTIME_SHA256__: JSON.stringify(ruffleRuntimeHashes()),
       'import.meta.env.VITE_PREPARED_ENVIRONMENT': JSON.stringify('1'),
       'import.meta.env.VITE_MIRROR_OFFICIAL_MEDIA': JSON.stringify(environmentProject ? '0' : '1'),
       // 注入构建时间和commit hash

@@ -222,12 +222,13 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       const ready = new Promise<string[]>((yes, no) => {
         resolve = yes
         reject = no
-        timer = setTimeout(() => fail('Animation loading timed out'), 12000)
       })
       void ready.catch(() => {})
       try {
         const runtime = desktop ? undefined : await readSwfRuntime(loading.signal)
         if (disposed || loadingTask !== task) throw new Error('Playback replaced')
+        // Network reads have their own idle timeout. Start the player clock once the runtime is available.
+        timer = setTimeout(() => fail('Animation loading timed out'), 5 * 60_000)
         const load = { ...command({ type: 'load' }), bytes, runtime } as SwfCommand
         if (desktop) {
           if (
