@@ -15,7 +15,7 @@
 
 ## 单独发布客户端或基础包
 
-Release Please 按改动路径维护两个发行 PR。两边都有改动时，可以分别合并。常规发版不用手改版本号或推送标签。
+Release Please 按改动路径维护两个发行 PR。客户端更新[根版本清单](../.release-please-manifest.json)，基础包和两个环境包更新[内容版本清单](../packs/.release-please-manifest.json)。两个 PR 可以按任意顺序合并。常规发版不用手改版本号或推送标签。
 
 | 要发布的内容 | 触发发行 PR 的例子                                                        | 合并对应发行 PR 后                                                                                              |
 | ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -32,6 +32,6 @@ Release Please 按改动路径维护两个发行 PR。两边都有改动时，�
 
 如果新内容需要宿主提供新能力，更新基础包的 `engines.arcadia`。正式版桌面客户端会在后台下载兼容的官方基础包并更新两个官方预设，玩家也可以在内容包详情手动检查。独立服也会自动检查并热更新官方预设，固定版本和回滚见[服务端运行指南](guides/server-runtime.md#独立更新官方基础包)。
 
-客户端版本配置见[发行配置](../.github/release-please-config.json)和[版本清单](../.release-please-manifest.json)。
+[客户端发行配置](../.github/release-please-config.json)和[官方内容发行配置](../packs/release-please-config.json)分别指定各自更新的包和 changelog。
 
 桌面当前使用 Electron。开发预览可使用网页包的 `build:desktop:preview`；正式发布入口要求完整 notices，详见[桌面宿主](guides/desktop-ugc-host.md)。本地开发物料和未签名预览分别记录验收结果。

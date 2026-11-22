@@ -19,24 +19,31 @@ permissions:
   issues: write
 
 jobs:
-  release-please:
+  validate-inputs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    outputs:
-      base_tag: ${{ (steps.release.outputs['packs--release_created'] == 'true' && steps.release.outputs['packs--tag_name']) || (startsWith(inputs.npm_tag, 'data-pack-base-v') && inputs.npm_tag) || '' }}
-      sdk_tag: ${{ (steps.release.outputs.release_created == 'true' && steps.release.outputs.tag_name) || (startsWith(inputs.npm_tag, 'arcadia-eternity-v') && inputs.npm_tag) || '' }}
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Validate npm retry inputs
-        if: github.event_name == 'workflow_dispatch'
         env:
           NPM_TAG: ${{ inputs.npm_tag }}
           VERIFIED_RUN: ${{ inputs.verified_run_id }}
         run: |
           [[ -z "$NPM_TAG" || "$NPM_TAG" =~ ^(data-pack-base|arcadia-eternity)-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
           [[ -z "$VERIFIED_RUN" || ( -n "$NPM_TAG" && "$VERIFIED_RUN" =~ ^[0-9]+$ ) ]] || exit 1
+
+  release-client:
+    needs: validate-inputs
+    if: inputs.npm_tag == '' || startsWith(inputs.npm_tag, 'arcadia-eternity-v')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-please-client-${{ inputs.npm_tag || github.ref }}
+      cancel-in-progress: false
+    outputs:
+      sdk_tag: ${{ inputs.npm_tag || steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
       - name: Run release-please
         if: inputs.npm_tag == ''
         uses: googleapis/release-please-action@v5.0.0
@@ -45,34 +52,52 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  release-content:
+    needs: validate-inputs
+    if: inputs.npm_tag == '' || startsWith(inputs.npm_tag, 'data-pack-base-v')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-please-content-${{ inputs.npm_tag || github.ref }}
+      cancel-in-progress: false
+    outputs:
+      base_tag: ${{ inputs.npm_tag || steps.release.outputs['packs--tag_name'] }}
+    steps:
+      - name: Run release-please
+        if: inputs.npm_tag == ''
+        uses: googleapis/release-please-action@v5.0.0
+        id: release
+        with:
+          config-file: packs/release-please-config.json
+          manifest-file: packs/.release-please-manifest.json
+
   publish-content:
-    needs: release-please
-    if: needs.release-please.outputs.base_tag != ''
+    needs: release-content
+    if: needs.release-content.outputs.base_tag != ''
     permissions:
       actions: read
       contents: read
       id-token: write
     uses: ./.github/workflows/publish-packages.yaml
     with:
-      tag: ${{ needs.release-please.outputs.base_tag }}
+      tag: ${{ needs.release-content.outputs.base_tag }}
       verified_run_id: ${{ inputs.verified_run_id }}
 
   publish-sdk:
-    needs: release-please
-    if: needs.release-please.outputs.sdk_tag != ''
+    needs: release-client
+    if: needs.release-client.outputs.sdk_tag != ''
     permissions:
       actions: read
       contents: read
       id-token: write
     uses: ./.github/workflows/publish-packages.yaml
     with:
-      tag: ${{ needs.release-please.outputs.sdk_tag }}
+      tag: ${{ needs.release-client.outputs.sdk_tag }}
       verified_run_id: ${{ inputs.verified_run_id }}
 
   # 当创建release时，自动合并到production分支
   merge-to-production:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    needs: release-client
+    if: needs.release-client.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -100,7 +125,7 @@ jobs:
 
       - name: Merge the release tag to production
         env:
-          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+          RELEASE_TAG: ${{ needs.release-client.outputs.tag_name }}
         run: |
           git merge "refs/tags/$RELEASE_TAG" --no-ff -m "chore: merge $RELEASE_TAG to production"
           git diff --exit-code "refs/tags/$RELEASE_TAG" HEAD
@@ -118,13 +143,13 @@ jobs:
               repo: context.repo.repo,
               event_type: 'production-release',
               client_payload: {
-                version: '${{ needs.release-please.outputs.version }}',
-                tag_name: '${{ needs.release-please.outputs.tag_name }}'
+                version: '${{ needs.release-client.outputs.version }}',
+                tag_name: '${{ needs.release-client.outputs.tag_name }}'
               }
             });
             console.log('Triggered production workflows via repository dispatch');
 
       - name: Record the release dispatch
         env:
-          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+          RELEASE_TAG: ${{ needs.release-client.outputs.tag_name }}
         run: echo "Dispatched production build and desktop release for $RELEASE_TAG." >> "$GITHUB_STEP_SUMMARY"
