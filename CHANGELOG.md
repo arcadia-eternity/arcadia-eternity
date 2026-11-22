@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.15.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.0...arcadia-eternity-v4.15.1) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **web:** wait for battle media before entering combat ([717d8ec](https://github.com/arcadia-eternity/arcadia-eternity/commit/717d8ec331d23e804f05e32251c31f8a121f95fb))
+
 ## [4.15.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.14.0...arcadia-eternity-v4.15.0) (2026-11-22)
 
 
