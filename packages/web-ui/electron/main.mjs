@@ -706,15 +706,6 @@ function detectContentType(filePath) {
   }
 }
 
-async function pathExists(target) {
-  try {
-    await fs.access(target)
-    return true
-  } catch {
-    return false
-  }
-}
-
 function sendResponse(res, statusCode, body, headers = {}) {
   res.writeHead(statusCode, {
     'Access-Control-Allow-Origin': '*',

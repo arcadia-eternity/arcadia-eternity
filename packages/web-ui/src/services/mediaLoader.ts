@@ -1,6 +1,5 @@
 import { sha256Hex } from '@arcadia-eternity/const'
-import { computed, shallowRef, toRaw } from 'vue'
-import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
+import { computed, shallowRef } from 'vue'
 import { getServerContentText } from '@/i18n/serverContent'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { hasOwnedResource, readResourceBytes, ResourceSizeError, RESOURCE_MAX_BYTES } from './resourceTransport'
@@ -8,23 +7,18 @@ import { SharedReads } from './sharedRead'
 import { inspectMedia, mediaLimits, type MediaKind } from '../../shared/media-formats.mjs'
 import { readSwfContainer } from './swf/assets'
 
+import {
+  localMediaFiles,
+  registeredMediaEnvironment,
+  registerMediaEnvironment,
+  type MediaCatalog,
+  type MediaEnvironment,
+  type MediaResource,
+} from './mediaRegistry'
+
 const MEMORY_LIMIT = 96 * 1024 * 1024
-export type MediaResource = {
-  id: string
-  source: string
-  tags?: string[]
-  sha256?: string
-  kind?: string
-  mime?: string
-}
-export type MediaCatalog = Pick<ServerEnvironmentContent, 'species' | 'skills' | 'marks'>
-export type MediaEnvironment = {
-  scope: string
-  resources: MediaResource[]
-  hashes: Map<string, string>
-  battleUi?: Map<string, string>
-  promote?: (url: string) => void
-}
+export type { MediaCatalog, MediaEnvironment, MediaResource } from './mediaRegistry'
+export { registerMediaEnvironment } from './mediaRegistry'
 // The package declares the roles and their defaults. Old catalogs can still resolve the same resource IDs.
 const baseUi = __BASE_BATTLE_UI__
 const baseRoles = new Map<string, string[]>()
@@ -32,52 +26,7 @@ for (const [role, { id }] of Object.entries(baseUi)) {
   baseRoles.set(id, [...(baseRoles.get(id) ?? []), role])
 }
 const baseHashes = computed(() => new Map(Object.values(baseUi).map(row => [officialAssetUrl(row.source), row.sha256])))
-export function battleUiUrl(role: string, allowDefault = true) {
-  const tag = 'battle-ui:' + role
-  const active = mediaEnvironment().battleUi?.get(tag)
-  const fallback = allowDefault && baseUi[tag]
-  return active ?? (fallback ? officialAssetUrl(fallback.source) : '')
-}
-const environments = new WeakMap<object, MediaEnvironment>()
-const localFiles = new Map<string, Set<{ url: string }>>()
-const fallback = shallowRef<MediaEnvironment>({ scope: 'client', resources: [], hashes: new Map() })
-const packCatalog = shallowRef<MediaCatalog | null>(null)
-let releaseFallback: (() => void) | undefined
-let sequence = 0
-
-export function registerMediaEnvironment(
-  content: MediaCatalog,
-  scope: string,
-  resources: MediaResource[] = [],
-  local = false,
-) {
-  const hashes = new Map<string, string>()
-  const leases: (() => void)[] = []
-  for (const resource of resources) {
-    if (!resource.sha256) continue
-    if (!/^[a-f0-9]{64}$/.test(resource.sha256)) throw new Error('资源哈希格式无效')
-    const url = officialAssetUrl(resource.source)
-    if (hashes.has(url) && hashes.get(url) !== resource.sha256) throw new Error('同一资源地址声明了不同的哈希')
-    hashes.set(url, resource.sha256)
-  }
-  const registered = new Set<string>()
-  if (local)
-    for (const resource of resources) {
-      if (!resource.sha256) continue
-      const url = officialAssetUrl(resource.source)
-      if (!registered.has(url) && (resource.kind === 'file' || url !== resource.source)) {
-        registered.add(url)
-        const digest = resource.sha256
-        const files = localFiles.get(digest) ?? new Set()
-        const entry = { url }
-        files.add(entry)
-        localFiles.set(digest, files)
-        leases.push(() => {
-          files.delete(entry)
-          if (!files.size) localFiles.delete(digest)
-        })
-      }
-    }
+function indexBattleUi(resources: MediaResource[]) {
   const battleUi = new Map<string, string>()
   const overrides = new Map<string, string>()
   for (const row of resources) {
@@ -87,11 +36,20 @@ export function registerMediaEnvironment(
     for (const tag of row.tags ?? [])
       if (tag.startsWith('battle-ui:') && !defaults.includes(tag)) overrides.set(tag, url)
   }
-  environments.set(toRaw(content), { scope, resources, hashes, battleUi: new Map([...battleUi, ...overrides]) })
-  return () => {
-    for (const release of leases) release()
-  }
+  return new Map([...battleUi, ...overrides])
 }
+export function battleUiUrl(role: string, allowDefault = true) {
+  const tag = 'battle-ui:' + role
+  const environment = mediaEnvironment()
+  environment.battleUi ??= indexBattleUi(environment.resources)
+  const active = environment.battleUi.get(tag)
+  const fallback = allowDefault && baseUi[tag]
+  return active ?? (fallback ? officialAssetUrl(fallback.source) : '')
+}
+const fallback = shallowRef<MediaEnvironment>({ scope: 'client', resources: [], hashes: new Map() })
+const packCatalog = shallowRef<MediaCatalog | null>(null)
+let releaseFallback: (() => void) | undefined
+
 export function localMediaScope(
   location: (string | undefined)[],
   packages: { name: string; version: string }[] | undefined,
@@ -105,17 +63,14 @@ export function setPackMedia(scope: string, resources: MediaResource[], catalog:
   const release = registerMediaEnvironment(catalog, scope, resources, true)
   releaseFallback?.()
   releaseFallback = release
-  fallback.value = environments.get(toRaw(catalog))!
+  fallback.value = registeredMediaEnvironment(catalog)
   packCatalog.value = catalog
 }
 
 export const activeMediaCatalog = () => getServerContentText() ?? packCatalog.value
 
 export function mediaEnvironment(content: MediaCatalog | null = getServerContentText()): MediaEnvironment {
-  if (!content) return fallback.value
-  const key = toRaw(content)
-  if (!environments.has(key)) registerMediaEnvironment(key, 'session/' + ++sequence)
-  return environments.get(key)!
+  return content ? registeredMediaEnvironment(content) : fallback.value
 }
 
 const desktopCache = () => globalThis.window?.arcadiaDesktop ?? globalThis.window?.arcadiaRemotePlay
@@ -236,7 +191,7 @@ async function acquireMediaBytes(
   const available = () =>
     blob
       ? hasOwnedResource(url)
-      : !localSession || (!!digest && [...(localFiles.get(digest) ?? [])].some(file => file.url === url))
+      : !localSession || (!!digest && [...localMediaFiles(digest)].some(file => file.url === url))
   const live = available()
   const assertLive = () => {
     if ((blob || (localSession && live)) && !available()) throw new Error('本地资源已释放')
@@ -266,7 +221,7 @@ async function acquireMediaBytes(
     if (!ephemeral) {
       if (canPersistMediaUrl(scope, url) || digest) bytes = await readStoredMedia(scope, url, digest, options, kind)
       if (digest && !bytes) {
-        const mirrors = new Set(Array.from(localFiles.get(digest) ?? [], entry => entry.url))
+        const mirrors = new Set(Array.from(localMediaFiles(digest), entry => entry.url))
         for (const local of mirrors) {
           if (local === url) continue
           readSignal.throwIfAborted()

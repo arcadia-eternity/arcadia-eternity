@@ -25,7 +25,7 @@ import {
 import { PlayerSchema, SpeciesSchema, parseWithErrors, type PetSchemaType } from '@arcadia-eternity/schema'
 import { validatePeerMaterials } from './peerEnvironment'
 import { sha256Hex } from '@arcadia-eternity/const'
-import { registerMediaEnvironment, type MediaResource } from './mediaLoader'
+import { registerMediaEnvironment, type MediaResource } from './mediaRegistry'
 import { readResourceBytes, registerOwnedResource, RESOURCE_MAX_BYTES } from './resourceTransport'
 import {
   validateEnvironmentContent,
