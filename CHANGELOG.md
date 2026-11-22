@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.15.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.3...arcadia-eternity-v4.15.4) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **web:** activate switched-in pet animations before entry ([b76352c](https://github.com/arcadia-eternity/arcadia-eternity/commit/b76352c7777ea32577bd8cb0a12af07a33ad78e7))
+
 ## [4.15.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.2...arcadia-eternity-v4.15.3) (2026-11-22)
 
 
