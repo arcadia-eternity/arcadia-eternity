@@ -18,7 +18,7 @@ import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadi
 import type { EnvironmentRules, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
-import { localMediaScope, setPackMedia } from '@/services/environmentMedia'
+import { localMediaScope, setPackMedia } from '@/services/mediaLoader'
 import { acquireLocalContent } from '@/services/localContent'
 import { getDesktopApi } from '@/utils/env'
 import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'

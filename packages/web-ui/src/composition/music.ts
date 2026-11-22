@@ -1,6 +1,6 @@
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
-import { mediaEnvironment, battleScene, MOVIE_LIMIT, readMediaBytes } from '@/services/environmentMedia'
-import { audioResourceBlob } from '@/services/audioResource'
+import { mediaEnvironment, loadMedia } from '@/services/mediaLoader'
+import { battleScene } from '@/services/environmentMedia'
 import { Howl } from 'howler'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
@@ -65,9 +65,8 @@ export function useMusic(autoPlay: boolean = true) {
         if (url) URL.revokeObjectURL(url)
       })
       try {
-        const bytes = await readMediaBytes(source, { signal: controller.signal, maxBytes: MOVIE_LIMIT })
+        const blob = await loadMedia('audio', source, controller.signal)
         if (controller.signal.aborted) return
-        const blob = audioResourceBlob(bytes)
         url = URL.createObjectURL(blob)
         instance = new Howl({
           src: [url],

@@ -1,3 +1,4 @@
+import { mediaMimeForFile } from '../shared/media-formats.mjs'
 import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } from 'electron'
 import { createRequire } from 'node:module'
 import { isDeepStrictEqual } from 'node:util'
@@ -700,19 +701,8 @@ function detectContentType(filePath) {
     case '.yaml':
     case '.yml':
       return 'application/yaml'
-    case '.png':
-      return 'image/png'
-    case '.jpg':
-    case '.jpeg':
-      return 'image/jpeg'
-    case '.webp':
-      return 'image/webp'
-    case '.mp3':
-      return 'audio/mpeg'
-    case '.swf':
-      return 'application/x-shockwave-flash'
     default:
-      return 'application/octet-stream'
+      return mediaMimeForFile(filePath) ?? 'application/octet-stream'
   }
 }
 

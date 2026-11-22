@@ -1,4 +1,4 @@
-import { localMediaScope, registerMediaEnvironment } from './environmentMedia'
+import { localMediaScope, registerMediaEnvironment } from './mediaLoader'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import { digestJson, gameplayRevision, mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
 import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'

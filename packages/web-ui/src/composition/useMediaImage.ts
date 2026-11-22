@@ -1,10 +1,12 @@
 import { computed, getCurrentInstance, onBeforeUnmount, shallowRef, watch } from 'vue'
-import { mediaEnvironment, readMediaBytes } from '@/services/environmentMedia'
-import { imageResourceBlob } from '@/services/imageResource'
+import { mediaEnvironment, loadMedia, mediaSourceKey, type DraftMediaSource } from '@/services/mediaLoader'
 import unknownPet from '@/assets/images/unknown-pet.svg'
 
 /** Decoded bytes may be shared. Each mounted image owns its object URL until its DOM is removed. */
-export function useUncachedResource(source: () => string, enabled: () => boolean) {
+export function useMediaImage(
+  source: () => string | DraftMediaSource | undefined,
+  enabled: () => boolean = () => true,
+) {
   const url = shallowRef('')
   const ready = shallowRef<Promise<void>>(Promise.resolve())
   const error = shallowRef<Error | null>(null)
@@ -31,13 +33,21 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
     observer.observe(element.ownerDocument!, { childList: true, subtree: true })
   }
   watch(
-    () => [source(), enabled(), mediaEnvironment().scope] as const,
-    ([value, active], _previous, cleanup) => {
+    [
+      () => {
+        const value = source()
+        return value && mediaSourceKey(value)
+      },
+      enabled,
+      () => (typeof source() === 'string' ? mediaEnvironment().scope : undefined),
+    ],
+    (_, _previous, cleanup) => {
+      const value = source()
       ready.value = Promise.resolve()
       url.value = ''
       error.value = null
       // This exact bundled placeholder is application code, including on arcadia-client://app.
-      if (!active || !value || value === unknownPet) return
+      if (!enabled() || !value || value === unknownPet) return
       const controller = new AbortController()
       let objectUrl: string | undefined
       cleanup(() => {
@@ -45,8 +55,7 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
         if (objectUrl) release(objectUrl)
       })
       ready.value = (async () => {
-        const bytes = await readMediaBytes(value, { signal: controller.signal })
-        const blob = imageResourceBlob(bytes)
+        const blob = await loadMedia('image', value, controller.signal)
         if (controller.signal.aborted) return
         objectUrl = URL.createObjectURL(blob)
         url.value = objectUrl
@@ -56,5 +65,5 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
     },
     { immediate: true },
   )
-  return { ready, url: computed(() => (enabled() && source() !== unknownPet ? url.value : source())), error }
+  return { ready, url: computed(() => (source() === unknownPet ? unknownPet : url.value)), error }
 }

@@ -49,6 +49,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
       bytes: music.length,
       mime: 'audio/mpeg',
     })
+    presentation.resources.push({ ...presentation.resources.at(-1), id: 'victory', tags: ['battle-ui:ko'] })
     await writeFile(join(fixture.installedDirectory, 'assets/theme.mp3'), music)
     await writeFile(manifest, JSON.stringify(presentation))
     await sessions.prepareProject({ directory: fixture.directory })
@@ -85,6 +86,13 @@ it('captures real npm display and resources, preserves prepared recipes across e
       sha256: musicHash,
       tags: ['music'],
     })
+    expect(shared.media).toContainEqual({
+      id: 'example-slow:victory',
+      source: 'arcadia-resource:' + musicHash,
+      sha256: musicHash,
+      tags: ['battle-ui:ko'],
+    })
+    expect(shared.assets.filter((asset: { id: string }) => asset.id === musicHash)).toHaveLength(1)
     expect(shared.assets).toContainEqual({ id: musicHash, mime: 'audio/mpeg', data: music.toString('base64') })
     expect(shared.rules).toEqual(first.rules)
     expect(shared.environment).toEqual(first.environment)

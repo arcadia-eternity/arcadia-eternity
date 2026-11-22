@@ -23,14 +23,9 @@ import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { waitForAnimationOperation } from '@/composition/animationTask'
 import { planAnimationMessages } from '@/composition/animationMessageBatch'
 import { AnimationController, type AnimationTask } from '@/composition/animationController'
-import {
-  activeMediaCatalog,
-  battleScene,
-  createTeamMediaPreloader,
-  mediaEnvironment,
-  resetBattleScene,
-} from '@/services/environmentMedia'
-import { useUncachedResource } from '@/composition/useUncachedResource'
+import { activeMediaCatalog, mediaEnvironment } from '@/services/mediaLoader'
+import { battleScene, createMediaPreloader, resetBattleScene } from '@/services/environmentMedia'
+import { useMediaImage } from '@/composition/useMediaImage'
 import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
@@ -429,10 +424,7 @@ const backgroundSource = computed(() => {
   )
 })
 
-const { url: background, ready: backgroundReady } = useUncachedResource(
-  () => backgroundSource.value ?? '',
-  () => true,
-)
+const { url: background, ready: backgroundReady } = useMediaImage(() => backgroundSource.value ?? '')
 const {
   showMissMessage,
   showAbsorbMessage,
@@ -471,7 +463,7 @@ const rightPetSpriteAsset = computed(() => resolveSpeciesSpriteAsset(rightActive
 const leftPlayerPets = computed(() => currentPlayer.value?.team || [])
 const rightPlayerPets = computed(() => opponentPlayer.value?.team || [])
 
-const battleMedia = createTeamMediaPreloader('当前对战')
+const battleMedia = createMediaPreloader('当前对战')
 watchEffect(() => {
   const players = [currentPlayer.value, opponentPlayer.value]
   const pets = players.flatMap(player =>

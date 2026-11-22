@@ -2,20 +2,18 @@
 import unknownPet from '@/assets/images/unknown-pet.svg'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { ref, computed, watch, onMounted } from 'vue'
-import { useUncachedResource } from '@/composition/useUncachedResource'
+import { useMediaImage } from '@/composition/useMediaImage'
 import type { SpeciesSchemaType } from '@arcadia-eternity/schema'
 
 const props = withDefaults(
   defineProps<{
     id?: number
     species?: Partial<SpeciesSchemaType>
-    uncached?: boolean
     reverse?: boolean
     isUnknown?: boolean
   }>(),
   {
     id: 999,
-    uncached: false,
     reverse: false,
     isUnknown: false,
   },
@@ -29,9 +27,9 @@ const petIconUrl = computed(() =>
     : unknownPet,
 )
 
-const { url: sourceUrl, error: sourceError } = useUncachedResource(
+const { url: sourceUrl, error: sourceError } = useMediaImage(
   () => petIconUrl.value,
-  () => !props.isUnknown && (props.uncached || typeof props.species?.presentation?.icon === 'string'),
+  () => !props.isUnknown,
 )
 const effectiveUrl = ref(sourceUrl.value)
 

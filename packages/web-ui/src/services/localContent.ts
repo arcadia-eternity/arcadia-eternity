@@ -1,4 +1,4 @@
-import { localMediaScope, registerMediaEnvironment } from './environmentMedia'
+import { localMediaScope, registerMediaEnvironment } from './mediaLoader'
 import { getDesktopApi } from '@/utils/env'
 import { validateEnvironmentContent } from './serverContentValidation'
 import { hasPreparedWebEnvironment, readBuiltinWebEnvironment, readPreparedWebRuntime } from './preparedWebEnvironment'

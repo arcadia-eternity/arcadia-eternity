@@ -1,3 +1,4 @@
+import { mediaMimeForFile } from '../shared/media-formats.mjs'
 import { protocol } from 'electron'
 import path from 'node:path'
 import { readFile, realpath } from 'node:fs/promises'
@@ -15,15 +16,10 @@ const mime = {
   '.json': 'application/json',
   '.wasm': 'application/wasm',
   '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.webp': 'image/webp',
   '.gif': 'image/gif',
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
-  '.mp3': 'audio/mpeg',
-  '.ogg': 'audio/ogg',
   '.wav': 'audio/wav',
 }
 
@@ -52,7 +48,7 @@ export function registerClientProtocol(targetSession, directory) {
       if (!inside(file)) return new Response(null, { status: 403 })
       return new Response(request.method === 'HEAD' ? null : await readFile(file), {
         headers: {
-          'content-type': mime[path.extname(file)] ?? 'application/octet-stream',
+          'content-type': mime[path.extname(file)] ?? mediaMimeForFile(file) ?? 'application/octet-stream',
           'cache-control': 'no-store',
         },
       })

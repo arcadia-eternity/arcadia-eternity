@@ -248,10 +248,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
-import { activeMediaCatalog, createTeamMediaPreloader } from '@/services/environmentMedia'
-import { usePetStorageStore } from '@/stores/petStorage'
-import { useGameSettingStore } from '@/stores/gameSetting'
+import { computed, ref } from 'vue'
 import PersonalEnvironmentPicker from '@/features/content/PersonalEnvironmentPicker.vue'
 import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { useRouter } from 'vue-router'
@@ -272,17 +269,6 @@ const router = useRouter()
 const battleClientStore = useBattleClientStore()
 const privateRoomStore = usePrivateRoomStore()
 const matchmaking = useMatchmakingStore()
-const storage = usePetStorageStore()
-const settings = useGameSettingStore()
-const lobbyMedia = createTeamMediaPreloader('大厅队伍')
-watchEffect(() => {
-  const content = activeMediaCatalog()
-  if (!content || privateRoomStore.currentRoom) return lobbyMedia.stop()
-  const lastTeam = storage.lastMatchingConfig?.teamId
-  const team = storage.teams.find(row => row.id === lastTeam) ?? storage.teams[storage.currentTeamIndex]
-  lobbyMedia.update(content, team?.pets ?? [], settings)
-})
-onBeforeUnmount(lobbyMedia.stop)
 const authStore = useAuthStore()
 const showCreateRoomDialog = ref(false)
 const joinRoomCode = ref('')

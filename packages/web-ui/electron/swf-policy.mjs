@@ -1,3 +1,4 @@
+import { inspectMedia } from '../shared/media-formats.mjs'
 export const PLAYER_URL = 'arcadia-swf://player/swf-player.html'
 const STATES = [
   '待机',
@@ -34,12 +35,13 @@ function validEnvelope(x) {
   )
 }
 function validBytes(x) {
-  if (!(x instanceof ArrayBuffer) || x.byteLength < 8 || x.byteLength > 16 * 1024 * 1024) return false
-  const a = new Uint8Array(x, 0, 8)
-  return (
-    ['FWS', 'CWS'].includes(String.fromCharCode(...a.slice(0, 3))) &&
-    new DataView(x).getUint32(4, true) <= 64 * 1024 * 1024
-  )
+  if (!(x instanceof ArrayBuffer)) return false
+  try {
+    inspectMedia('swf', new Uint8Array(x))
+    return true
+  } catch {
+    return false
+  }
 }
 export function validBounds(x) {
   return (

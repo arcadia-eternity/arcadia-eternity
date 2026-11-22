@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { createTeamMediaPreloader } from '@/services/environmentMedia'
+import { createMediaPreloader } from '@/services/environmentMedia'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { computed, onBeforeUnmount, ref, shallowRef, watch, watchEffect } from 'vue'
@@ -131,7 +131,7 @@ const valid = ref(false)
 const environmentReady = ref(false)
 let previewSpecies: typeof gameData.species | undefined
 const preview = shallowRef<ServerEnvironmentContent>()
-const previewMedia = createTeamMediaPreloader('匹配预览')
+const previewMedia = createMediaPreloader('匹配预览')
 const settings = useGameSettingStore()
 watchEffect(() => previewMedia.update(preview.value ?? null, (team.value?.pets ?? []) as PetSchemaType[], settings))
 let generation = 0

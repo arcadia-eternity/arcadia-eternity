@@ -472,7 +472,8 @@ import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened, Search } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
-import { activeMediaCatalog, createEnvironmentMediaPreloader } from '@/services/environmentMedia'
+import { activeMediaCatalog } from '@/services/mediaLoader'
+import { createMediaPreloader } from '@/services/environmentMedia'
 import { preloadSwfPlayer } from '@/services/swf/assets'
 import MediaPreloadIndicator from '@/components/MediaPreloadIndicator.vue'
 import { useConnectionSettingsStore } from '@/stores/connectionSettings'
@@ -513,20 +514,43 @@ const battleClientStore = useBattleClientStore()
 const battleStore = useBattleStore()
 const privateRoomStore = usePrivateRoomStore()
 const enteredLobby = ref(false)
-const environmentPreload = createEnvironmentMediaPreloader()
+const environmentPreload = createMediaPreloader('环境全量预载', 'environment')
+const lobbyTeamPreload = createMediaPreloader('大厅队伍')
+const lobbyTeam = computed(() => {
+  const team =
+    petStorage.teams.find(row => row.id === petStorage.lastMatchingConfig?.teamId) ??
+    petStorage.teams[petStorage.currentTeamIndex]
+  return (
+    team?.pets.map(({ species, skills, ability, emblem }) => ({ species, skills: [...skills], ability, emblem })) ?? []
+  )
+})
+const mediaSettings = computed(() => ({
+  battleRenderer: gameSettingStore.battleRenderer,
+  background: gameSettingStore.background,
+  battleMusic: gameSettingStore.battleMusic,
+}))
 watch(
-  [() => router.currentRoute.value.name, activeMediaCatalog],
-  ([page, catalog]) => {
+  [
+    () => router.currentRoute.value.name,
+    activeMediaCatalog,
+    lobbyTeam,
+    mediaSettings,
+    () => !!privateRoomStore.currentRoom,
+  ],
+  ([page, catalog, pets, settings, inRoom]) => {
     if (page === 'Lobby') enteredLobby.value = true
     if (!enteredLobby.value) return
-    const team =
-      petStorage.teams.find(row => row.id === petStorage.lastMatchingConfig?.teamId) ??
-      petStorage.teams[petStorage.currentTeamIndex]
-    environmentPreload.update(catalog, team?.pets ?? [], gameSettingStore)
+    const started = environmentPreload.update(catalog, pets, settings)
+    // The initial sweep includes the team. Only later changes or a return to the lobby need a team warmup.
+    if (!started && page === 'Lobby' && !inRoom) lobbyTeamPreload.update(catalog, pets, settings)
+    else lobbyTeamPreload.stop()
   },
   { immediate: true },
 )
-onUnmounted(environmentPreload.stop)
+onUnmounted(() => {
+  environmentPreload.stop()
+  lobbyTeamPreload.stop()
+})
 watch(
   () =>
     enteredLobby.value &&

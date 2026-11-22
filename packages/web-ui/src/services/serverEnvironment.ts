@@ -1,4 +1,4 @@
-import { registerMediaEnvironment } from './environmentMedia'
+import { registerMediaEnvironment } from './mediaLoader'
 import { METADATA_MAX_BYTES, publicHttpUrl, readResourceBytes } from './resourceTransport'
 import {
   validateEnvironmentContent,

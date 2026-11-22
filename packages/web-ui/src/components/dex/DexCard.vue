@@ -77,7 +77,6 @@
         >
           <ResourceImage
             v-if="markImageUrl"
-            :uncached="!!(item as MarkSchemaType).presentation?.icon"
             :src="markImageUrl"
             :alt="getItemName()"
             class="w-full h-full object-contain"

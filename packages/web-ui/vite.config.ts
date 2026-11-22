@@ -37,7 +37,7 @@ function buildCommitHash(): string {
 export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const env = loadEnv(mode, process.cwd())
   const environmentProject = process.env.ARCADIA_WEB_ENVIRONMENT_PROJECT?.trim() || undefined
-  const { files: webContent, mediaTargets, dispose } = await buildWebContent(undefined, environmentProject)
+  const { files: webContent, mediaTargets, battleUi, dispose } = await buildWebContent(undefined, environmentProject)
   const backendOrigin = process.env.VITE_BACKEND_ORIGIN ?? env.VITE_BACKEND_ORIGIN ?? '/'
   const autoConnect = process.env.VITE_AUTO_CONNECT ?? env.VITE_AUTO_CONNECT ?? 'true'
   if (!['true', 'false'].includes(autoConnect)) throw new Error('VITE_AUTO_CONNECT must be true or false')
@@ -50,6 +50,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   return {
     base: process.env.VITE_STATIC_MODE === '1' ? './' : '/',
     define: {
+      __BASE_BATTLE_UI__: JSON.stringify(battleUi),
       'import.meta.env.VITE_RUFFLE_ENTRY_SHA256': JSON.stringify(
         createHash('sha256')
           .update(readFileSync(new URL('./node_modules/@ruffle-rs/ruffle/ruffle.js', import.meta.url)))

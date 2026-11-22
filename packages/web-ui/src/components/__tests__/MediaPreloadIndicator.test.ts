@@ -1,7 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { afterEach, expect, it, vi } from 'vitest'
-import { mediaEnvironment, preloadMedia } from '@/services/environmentMedia'
+import { mediaEnvironment } from '@/services/mediaLoader'
+import { preloadMedia } from '@/services/environmentMedia'
 import MediaPreloadIndicator from '../MediaPreloadIndicator.vue'
 
 afterEach(() => {
@@ -56,7 +57,7 @@ it('opens live resource details, revises the estimate on a stall and keeps the f
     limit: 256,
   }))
   const controller = new AbortController()
-  const job = preloadMedia(assets, environment, controller.signal, undefined, '匹配队列')
+  const job = preloadMedia(assets, environment, controller.signal, { label: '匹配队列' })
   try {
     await vi.advanceTimersByTimeAsync(200)
     const trigger = indicator.get('button[aria-controls]')
@@ -111,8 +112,8 @@ it('reports concurrent batches independently and keeps cancelled work out of fai
   const controller = new AbortController()
   const other = new AbortController()
   const jobs = [
-    preloadMedia(assets, environment, controller.signal, undefined, '匹配预览'),
-    preloadMedia(assets, environment, other.signal, undefined, '房间队伍'),
+    preloadMedia(assets, environment, controller.signal, { label: '匹配预览' }),
+    preloadMedia(assets, environment, other.signal, { label: '房间队伍' }),
   ]
   try {
     await vi.advanceTimersByTimeAsync(200)

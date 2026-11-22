@@ -1,4 +1,4 @@
-import { createTeamMediaPreloader } from '@/services/environmentMedia'
+import { createMediaPreloader } from '@/services/environmentMedia'
 import { useGameSettingStore } from './gameSetting'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
@@ -121,8 +121,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         currentRoom.value.personalEnvironment?.descriptor.id === personalEnvironment.value.reference.descriptor.id),
   )
   let catalogController: AbortController | undefined
-  const queueMedia = createTeamMediaPreloader('匹配队列')
-  const roomMedia = createTeamMediaPreloader('房间队伍')
+  const queueMedia = createMediaPreloader('匹配队列')
+  const roomMedia = createMediaPreloader('房间队伍')
   const roomCatalog = shallowRef<{ id: string; content: ServerEnvironmentContent }>()
   const settings = useGameSettingStore()
   let matchmakingController: AbortController | undefined

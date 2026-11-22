@@ -1,5 +1,6 @@
 /** Per-consumer transport. Limits apply to actual streamed bytes, never just HTTP headers. */
-export const RESOURCE_MAX_BYTES = 64 * 1024 * 1024
+import { mediaLimits } from '../../shared/media-formats.mjs'
+export const RESOURCE_MAX_BYTES = mediaLimits.image
 export class ResourceSizeError extends Error {
   constructor() {
     super('资源超过大小限制')
@@ -73,7 +74,7 @@ export async function readResourceBytes(
 // This installed application asset is also available through Electron's local application protocol.
 export function readBundledSwfContainer(signal: AbortSignal) {
   const url = new URL('../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf', import.meta.url)
-  return readBytes(url, { signal, maxBytes: 16 * 1024 * 1024 }, fetch)
+  return readBytes(url, { signal, maxBytes: mediaLimits.swf }, fetch)
 }
 
 async function readBytes(

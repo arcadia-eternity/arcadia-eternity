@@ -4,13 +4,8 @@ import { ElButton, ElMessageBox } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { acquireLocalContent } from '@/services/localContent'
 import { listServerEnvironments, prepareServerEnvironment } from '@/services/serverEnvironment'
-import {
-  clearMediaCache,
-  environmentAssets,
-  mediaEnvironment,
-  preloadMedia,
-  declaredMediaAssets,
-} from '@/services/environmentMedia'
+import { clearMediaCache, mediaEnvironment } from '@/services/mediaLoader'
+import { allEnvironmentAssets, preloadMedia } from '@/services/environmentMedia'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleClientStore } from '@/stores/battleClient'
 
@@ -75,16 +70,13 @@ async function run(clear = false) {
       await clearMediaCache(env.scope)
       status.value = '缓存已清理'
     } else {
-      await preloadMedia(
-        [...environmentAssets(result.content), ...declaredMediaAssets(env.resources)],
-        env,
-        controller.signal,
-        (done, total, failed) => {
+      await preloadMedia(allEnvironmentAssets(result.content, env), env, controller.signal, {
+        save(done, total, failed) {
           status.value = total
             ? `已保存 ${done - failed}/${total}${failed ? `，失败 ${failed}` : ''}`
             : '没有需要缓存的资源'
         },
-      )
+      })
     }
   } catch (error) {
     if (!controller.signal.aborted) status.value = error instanceof Error ? error.message : '资源缓存失败'

@@ -64,7 +64,7 @@ test('a real npm environment renders media and reactive bilingual rich text with
         h(ContentDescription, { namespace: 'skill', contentId: 'skill_tahuochongzhuang', id: 'official-status-description' }),
         h(ContentDescription, { namespace: 'mark', contentId: 'mark_liuxie', context: { mark: { stack: stack.value } }, id: 'official-mark-description' }),
         show.value ? h(PetIcon, { species, id: species.num, style: 'width:64px;height:64px', 'data-testid': 'custom-icon' }) : null,
-        h(PetSprite, { num: 0, imageUrl: species.presentation.portrait, uncached: true }),
+        h(PetSprite, { imageUrl: species.presentation.portrait }),
         h('button', { onClick: () => stack.value = 12 }, 'change stack'),
         h('button', { onClick: () => i18next.changeLanguage('en') }, 'English'),
         h('button', { onClick: () => show.value = !show.value }, 'toggle icon'),

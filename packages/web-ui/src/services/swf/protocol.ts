@@ -1,5 +1,4 @@
 /** Cosmetic playback only. Never feed these events into the battle protocol. */
-const SWF_MAX_BYTES = 16 * 1024 * 1024
 export const SWF_STATES = [
   '待机',
   '物理攻击',
@@ -145,39 +144,4 @@ export function validSwfEvent(value: unknown): value is SwfEvent {
         value.duration >= 0 &&
         value.duration <= 60000))
   )
-}
-export function assertSwfBytes(bytes: SwfBytes): void {
-  for (const data of [bytes.container, bytes.movie]) {
-    if (!(data instanceof ArrayBuffer) || data.byteLength < 8 || data.byteLength > SWF_MAX_BYTES)
-      throw new Error('SWF file exceeds playback limits')
-    const header = new Uint8Array(data, 0, 8)
-    if (!['FWS', 'CWS'].includes(String.fromCharCode(...header.slice(0, 3)))) throw new Error('Unsupported SWF format')
-    if (new DataView(data).getUint32(4, true) > 64 * 1024 * 1024)
-      throw new Error('SWF expanded size exceeds playback limits')
-  }
-}
-/** Check received compressed bytes rather than trusting the SWF length header. */
-export async function validateSwfBytes(bytes: SwfBytes): Promise<void> {
-  assertSwfBytes(bytes)
-  for (const data of [bytes.container, bytes.movie]) {
-    const header = new Uint8Array(data, 0, 8)
-    const expected = new DataView(data).getUint32(4, true)
-    if (header[0] === 70) {
-      if (data.byteLength !== expected) throw new Error('SWF size mismatch')
-      continue
-    }
-    const reader = new Blob([data.slice(8)]).stream().pipeThrough(new DecompressionStream('deflate')).getReader()
-    let size = 8
-    try {
-      for (;;) {
-        const result = await reader.read()
-        if (result.done) break
-        size += result.value.byteLength
-        if (size > expected || size > 64 * 1024 * 1024) throw new Error('SWF expanded size exceeds playback limits')
-      }
-    } finally {
-      await reader.cancel()
-    }
-    if (size !== expected) throw new Error('SWF expanded size mismatch')
-  }
 }

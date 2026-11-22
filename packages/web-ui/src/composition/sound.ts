@@ -1,6 +1,5 @@
 import { isRemoteContentActive } from '@/i18n/serverContent'
-import { MOVIE_LIMIT, readMediaBytes } from '@/services/environmentMedia'
-import { audioResourceBlob } from '@/services/audioResource'
+import { battleUiUrl, loadMedia } from '@/services/mediaLoader'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { computed, onUnmounted, watch } from 'vue'
@@ -41,8 +40,7 @@ export function useSound() {
     }
     activeMedia.add(dispose)
     try {
-      const bytes = await readMediaBytes(source, { signal: controller.signal, maxBytes: MOVIE_LIMIT })
-      const blob = audioResourceBlob(bytes)
+      const blob = await loadMedia('audio', source, controller.signal)
       if (controller.signal.aborted) return
       url = URL.createObjectURL(blob)
       audio = new Audio(url)
@@ -67,8 +65,7 @@ export function useSound() {
     for (const dispose of [...activeMedia]) dispose()
   })
   const playVictorySound = () => {
-    if (!isRemoteContentActive())
-      void playOnce(officialAssetUrl('https://seer2-resource.yuuinih.com/sound/battle/ko.mp3'))
+    void playOnce(battleUiUrl('ko', !isRemoteContentActive()))
   }
 
   return {

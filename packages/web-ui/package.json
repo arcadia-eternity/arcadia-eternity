@@ -145,6 +145,7 @@
       "dist/**/*",
       "!dist/arcadia-server/**/*",
       "electron/**/*",
+      "shared/**/*.mjs",
       "package.json"
     ],
     "directories": {

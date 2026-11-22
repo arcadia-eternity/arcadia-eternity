@@ -1,7 +1,7 @@
+import { validateSwfFile } from '../../../shared/media-formats.mjs'
 import { readSwfRuntime } from './assets'
 import playerDocument from '../../../public/swf-player.html?raw'
 import {
-  validateSwfBytes,
   validSwfFrame,
   validSwfFrameIdentity,
   type SwfFrame,
@@ -210,7 +210,8 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
   return {
     async load(bytes: SwfBytes) {
       if (disposed) throw new Error('Playback disposed')
-      await validateSwfBytes(bytes)
+      await validateSwfFile(bytes.container)
+      await validateSwfFile(bytes.movie)
       reject?.(new Error('Playback replaced'))
       cleanup()
       task++

@@ -538,7 +538,6 @@
                         <div class="pet-tooltip-content">
                           <div class="flex items-center space-x-3 mb-2">
                             <PetIcon
-                              :uncached="!!gameDataStore.serverFallback"
                               :id="gameDataStore.getSpecies(pet.species)?.num"
                               :species="gameDataStore.getSpecies(pet.species)"
                               :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -610,7 +609,6 @@
                       >
                         <div class="flex flex-col items-center space-y-1">
                           <PetIcon
-                            :uncached="!!gameDataStore.serverFallback"
                             :id="gameDataStore.getSpecies(pet.species)?.num"
                             :species="gameDataStore.getSpecies(pet.species)"
                             :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -918,7 +916,6 @@
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
                         <PetIcon
-                          :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
                           :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -991,7 +988,6 @@
                   >
                     <div class="flex flex-col items-center space-y-1">
                       <PetIcon
-                        :uncached="!!gameDataStore.serverFallback"
                         :id="gameDataStore.getSpecies(pet.species)?.num"
                         :species="gameDataStore.getSpecies(pet.species)"
                         :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -1072,7 +1068,6 @@
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
                         <PetIcon
-                          :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
                           :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -1144,7 +1139,6 @@
                   >
                     <div class="flex flex-col items-center space-y-1">
                       <PetIcon
-                        :uncached="!!gameDataStore.serverFallback"
                         :id="gameDataStore.getSpecies(pet.species)?.num"
                         :species="gameDataStore.getSpecies(pet.species)"
                         :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -1436,7 +1430,6 @@
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
                         <PetIcon
-                          :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
                           :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -1508,7 +1501,6 @@
                   >
                     <div class="flex flex-col items-center space-y-1">
                       <PetIcon
-                        :uncached="!!gameDataStore.serverFallback"
                         :id="gameDataStore.getSpecies(pet.species)?.num"
                         :species="gameDataStore.getSpecies(pet.species)"
                         :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -1601,7 +1593,6 @@
       <div v-if="selectedPetForDetail" class="space-y-4">
         <div class="flex items-center space-x-4">
           <PetIcon
-            :uncached="!!gameDataStore.serverFallback"
             :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num"
             :species="gameDataStore.getSpecies(selectedPetForDetail.species)"
             :is-unknown="!gameDataStore.getSpecies(selectedPetForDetail.species)"

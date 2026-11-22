@@ -58,7 +58,7 @@ export interface ArcadiaDesktopApi {
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent
     runtime: import('@arcadia-eternity/protocol').NativeRuntimeIdentity
     packages: import('@arcadia-eternity/protocol').ServerEnvironmentDescriptor['packages']
-    media?: import('@/services/environmentMedia').MediaResource[]
+    media?: import('@/services/mediaLoader').MediaResource[]
     assets: { id: string; mime: string; data: string }[]
   }>
   releaseLocalContent?: (token: string) => Promise<void>

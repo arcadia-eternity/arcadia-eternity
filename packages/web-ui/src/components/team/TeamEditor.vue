@@ -134,7 +134,6 @@
                     <div class="flex items-center space-x-2">
                       <div class="flex-shrink-0">
                         <PetIcon
-                          :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
                           :is-unknown="!gameDataStore.getSpecies(pet.species)"
@@ -255,12 +254,7 @@
                     >
                       <template #default="{ item }">
                         <div class="flex items-center space-x-2">
-                          <PetIcon
-                            :uncached="!!gameDataStore.serverFallback"
-                            :id="item.num"
-                            :species="item"
-                            class="w-6 h-6 flex-shrink-0"
-                          />
+                          <PetIcon :id="item.num" :species="item" class="w-6 h-6 flex-shrink-0" />
                           <div class="flex-1 min-w-0">
                             <div
                               class="flex items-center space-x-1 text-xs font-medium text-(--el-text-color-primary) truncate"

@@ -2,7 +2,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-const maxBytes = 64 * 1024 * 1024
+import { mediaLimits } from '../shared/media-formats.mjs'
+
+const maxBytes = mediaLimits.image
 const hash = value => createHash('sha256').update(value).digest('hex')
 const digestAddress = /^https:\/\/arcadia-media\.invalid\/sha256\/([a-f0-9]{64})$/
 const legacyMovie = /^https:\/\/seer2-pet-resource\.yuuinih\.com\/public\/fight\/([1-9]\d*)\.swf$/
@@ -62,7 +64,7 @@ export function desktopMediaCache(userData, installedMedia = async () => null) {
     for (const entry of entries) {
       if (!entry.isFile() || !/^[1-9]\d*\.swf$/.test(entry.name)) continue
       const filename = path.join(legacyDirectory, entry.name)
-      const bytes = await readFile(filename, 16 * 1024 * 1024)
+      const bytes = await readFile(filename, mediaLimits.swf)
       if (bytes) movies.set(hash(bytes), filename)
     }
     return movies

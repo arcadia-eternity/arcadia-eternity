@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import { useUncachedResource } from '@/composition/useUncachedResource'
-const props = withDefaults(defineProps<{ src: string; uncached?: boolean }>(), { uncached: true })
+import { useMediaImage } from '@/composition/useMediaImage'
+const props = defineProps<{ src: string }>()
 const emit = defineEmits<{ error: [error: Error] }>()
-const { url, error } = useUncachedResource(
-  () => props.src,
-  () => props.uncached,
-)
+const { url, error } = useMediaImage(() => props.src)
 watch(error, value => {
   if (value) emit('error', value)
 })
 </script>
-<template><img v-if="url" :src="url" @error="emit('error', new Error('图片解码失败'))" /></template>
+<template><img v-if="src" :src="url || undefined" @error="emit('error', new Error('图片解码失败'))" /></template>

@@ -675,7 +675,8 @@ it('preserves selected local environment rules when creating a personal share', 
 })
 
 it('imports a scene file referenced only by its tag and verifies its declared digest', async () => {
-  const { mediaEnvironment, battleScene, readMediaBytes } = await import('../environmentMedia')
+  const { mediaEnvironment, readMediaBytes } = await import('../mediaLoader')
+  const { battleScene } = await import('../environmentMedia')
   const { sha256Hex } = await import('@arcadia-eternity/const')
   const bytes = new Uint8Array(Buffer.from(png, 'base64'))
   const captureWithScene = {

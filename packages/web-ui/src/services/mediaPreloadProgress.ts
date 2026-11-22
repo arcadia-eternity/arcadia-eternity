@@ -19,7 +19,12 @@ const recent = shallowRef<MediaPreloadBatch[]>([])
 export const isMediaPreloading = computed(() => active.size > 0)
 export const mediaPreloadBatches = computed(() => [...active.values(), ...recent.value])
 
-export function startMediaPreload(label: string, total: number) {
+export function startMediaPreload(
+  label: string,
+  total: number,
+  signal: AbortSignal,
+  progress?: (completed: number, total: number, failed: number) => void,
+) {
   const startedAt = performance.now()
   const batch = shallowReactive<MediaPreloadBatch>({
     id: ++sequence,
@@ -33,14 +38,36 @@ export function startMediaPreload(label: string, total: number) {
     loading: shallowReactive(new Map()),
   })
   active.set(batch.id, batch)
-  return batch
-}
-
-export function finishMediaPreload(batch: MediaPreloadBatch, cancelled: boolean) {
-  if (!active.delete(batch.id)) return
-  batch.state = cancelled ? 'cancelled' : 'finished'
-  batch.loading.clear()
-  recent.value = [batch, ...recent.value.slice(0, 2)]
+  function finish() {
+    signal.removeEventListener('abort', finish)
+    if (active.delete(batch.id)) {
+      batch.state = signal.aborted ? 'cancelled' : 'finished'
+      batch.loading.clear()
+      recent.value = [batch, ...recent.value.slice(0, 2)]
+    }
+  }
+  signal.addEventListener('abort', finish, { once: true })
+  if (signal.aborted) finish()
+  return {
+    finish,
+    get failed() {
+      return batch.failed
+    },
+    async run(index: number, name: string, load: () => Promise<unknown>) {
+      if (signal.aborted) return
+      batch.loading.set(index, name)
+      try {
+        await load()
+      } catch {
+        if (!signal.aborted) batch.failed++
+      }
+      if (signal.aborted) return
+      batch.loading.delete(index)
+      batch.completed++
+      batch.lastProgressAt = performance.now()
+      progress?.(batch.completed, total, batch.failed)
+    },
+  }
 }
 
 // Measure completed items per unit of wall time, including concurrent reads and cache writes.

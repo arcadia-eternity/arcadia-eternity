@@ -1,15 +1,18 @@
 import { Blob as NodeBlob } from 'node:buffer'
 import { afterEach, expect, it, vi } from 'vitest'
 import { sha256Hex } from '@arcadia-eternity/const'
+import { setServerContentText } from '@/i18n/serverContent'
 import { registerOwnedResource } from '../resourceTransport'
 import {
-  createEnvironmentMediaPreloader,
-  isMediaPreloading,
+  battleUiUrl,
+  loadMedia,
   mediaEnvironment,
   readMediaBytes,
   registerMediaEnvironment,
   type MediaResource,
-} from '../environmentMedia'
+} from '../mediaLoader'
+import { createMediaPreloader, preloadMedia } from '../environmentMedia'
+import { isMediaPreloading } from '../mediaPreloadProgress'
 
 const url = 'https://server.test/one.swf'
 const cdn = 'https://cdn.test/other.swf'
@@ -122,12 +125,13 @@ it('reopens persisted bytes by hash after a cold start, including an originally 
   const bytes = Uint8Array.of(81, 23, 31)
   const fetcher = vi.fn().mockResolvedValueOnce(new Response(bytes))
   vi.stubGlobal('fetch', fetcher)
-  const { preloadMedia } = await import('../environmentMedia')
   const progress = vi.fn()
-  await preloadMedia([{ url, limit: 100 }], env('saved', []).environment, new AbortController().signal, progress)
+  await preloadMedia([{ url, limit: 100 }], env('saved', []).environment, new AbortController().signal, {
+    save: progress,
+  })
   expect(progress).toHaveBeenLastCalledWith(1, 1, 0)
   vi.resetModules()
-  const cold = await import('../environmentMedia')
+  const cold = await import('../mediaLoader')
   const catalog = { species: [], skills: [], marks: [] }
   cold.registerMediaEnvironment(catalog, 'different server', [{ id: 'movie', source: cdn, sha256: sha256Hex(bytes) }])
   expect(await cold.readMediaBytes(cdn, { environment: cold.mediaEnvironment(catalog) })).toEqual(bytes)
@@ -224,7 +228,7 @@ it('warms all declared media once per environment and promotes a queued battle a
       }),
   )
   vi.stubGlobal('fetch', fetcher)
-  const app = createEnvironmentMediaPreloader()
+  const app = createMediaPreloader('环境全量预载', 'environment')
   const settings = { battleRenderer: 'image', background: 'random', battleMusic: 'random' }
   try {
     app.update(content, [], settings)
@@ -246,5 +250,65 @@ it('warms all declared media once per environment and promotes a queued battle a
     expect(fetcher).toHaveBeenCalledTimes(resources.length)
   } finally {
     app.stop()
+  }
+})
+
+it('validates during preload, retries corrected content and plays the warmed bytes without another fetch', async () => {
+  const address = 'https://cdn.test/extensionless-sound'
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(new Response('not audio'))
+    .mockResolvedValueOnce(new Response('OggS123'))
+  vi.stubGlobal('fetch', fetcher)
+  const signal = new AbortController().signal
+  const items = [{ url: address, kind: 'audio' as const }]
+  expect(await preloadMedia(items, mediaEnvironment(), signal)).toBe(1)
+  expect(await preloadMedia(items, mediaEnvironment(), signal)).toBe(0)
+  expect((await loadMedia('audio', address, signal)).type).toBe('audio/ogg')
+  expect(fetcher).toHaveBeenCalledTimes(2)
+  expect(await preloadMedia([...items, { url: address, kind: 'image' }], mediaEnvironment(), signal)).toBe(1)
+  expect(fetcher).toHaveBeenCalledTimes(2)
+})
+
+it('shares active draft reads, checks declared hashes and reads fresh bytes after an edit', async () => {
+  const bytes = Uint8Array.of(73, 68, 51)
+  const read = vi.fn(async () => bytes)
+  const source = { scope: 'draft', url: 'sounds/sample', revision: 1, sha256: sha256Hex(bytes), read }
+  const controller = new AbortController()
+  const signal = new AbortController().signal
+  const first = loadMedia('audio', source, controller.signal)
+  const second = loadMedia('audio', source, signal)
+  controller.abort()
+  await expect(first).rejects.toThrow()
+  expect((await second).type).toBe('audio/mpeg')
+  expect(read).toHaveBeenCalledOnce()
+  bytes.fill(0)
+  await expect(loadMedia('audio', source, signal)).rejects.toThrow('清单')
+  await expect(loadMedia('audio', { ...source, revision: 2, sha256: undefined }, signal)).rejects.toThrow('音频格式')
+  expect(read).toHaveBeenCalledTimes(3)
+})
+
+it('uses pinned base URLs by role, accepts old IDs and lets the active environment supply a replacement', async () => {
+  const catalog = { species: [], marks: [], skills: [] }
+  const role = 'element:Water'
+  const legacyId = 'builtin-6a1645184b15'
+  try {
+    registerMediaEnvironment(catalog, 'default-ui', [])
+    setServerContentText(catalog)
+    const baseUrl = 'https://seer2-resource.yuuinih.com/png/petElementIcon/3.png'
+    expect(battleUiUrl(role)).toBe(baseUrl)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('incorrect CDN bytes')),
+    )
+    await expect(readMediaBytes(baseUrl)).rejects.toThrow('清单')
+    const original = { id: legacyId, source: 'https://older-server.test/element-water' }
+    registerMediaEnvironment(catalog, 'legacy-ui', [original])
+    expect(battleUiUrl(role)).toBe(original.source)
+    const replacement = { id: 'mod:water', tags: ['battle-ui:element:Water'], source: 'https://mod.test/element-water' }
+    registerMediaEnvironment(catalog, 'custom-ui', [replacement, { ...original, tags: replacement.tags }])
+    expect(battleUiUrl(role)).toBe(replacement.source)
+  } finally {
+    setServerContentText(null)
   }
 })

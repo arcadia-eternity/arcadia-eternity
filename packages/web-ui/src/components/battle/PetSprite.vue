@@ -2,11 +2,10 @@
 import unknownPet from '@/assets/images/unknown-pet.svg'
 import { ActionState, type PetRendererEvent } from 'seer2-pet-animator'
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-import { useUncachedResource } from '@/composition/useUncachedResource'
-import { readSwfContainer } from '@/services/swf/assets'
+import { useMediaImage } from '@/composition/useMediaImage'
 import { createSwfPlayer } from '@/services/swf/adapter'
 import type { SwfPlayer } from '@/services/swf/protocol'
-import { mediaEnvironment, readMediaBytes } from '@/services/environmentMedia'
+import { mediaEnvironment, loadMedia } from '@/services/mediaLoader'
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
 type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
@@ -40,10 +39,7 @@ const ready = ref<Promise<void>>(Promise.resolve())
 const originalSwfUrl = computed(() => (props.imageOnly || props.imageUrl ? '' : props.swfUrl))
 const usesPlaceholder = computed(() => !props.swfUrl && !props.imageUrl)
 const portrait = computed(() => props.imageUrl || props.fallbackImageUrl || unknownPet)
-const { url: portraitUrl, error: portraitLoadError } = useUncachedResource(
-  () => portrait.value,
-  () => true,
-)
+const { url: portraitUrl, error: portraitLoadError } = useMediaImage(() => portrait.value)
 const fallbackActive = ref(false)
 const portraitLoaded = ref(false)
 let generation = 0
@@ -84,10 +80,7 @@ watch(
     const controller = new AbortController()
     loadAbort = controller
     try {
-      const [movie, container] = await Promise.all([
-        readMediaBytes(url, { signal: controller.signal, maxBytes: 16 * 1024 * 1024 }),
-        readSwfContainer(controller.signal),
-      ])
+      const bytes = await loadMedia('swf', url, controller.signal)
       if (current !== generation || controller.signal.aborted) return
       const renderer = createSwfPlayer(element, event => {
         if (current !== generation) return
@@ -109,7 +102,7 @@ watch(
           } as unknown as AnimationCompleteEventDetail)
       })
       player = renderer
-      const states = await renderer.load({ container, movie: movie.slice().buffer as ArrayBuffer })
+      const states = await renderer.load(bytes)
       if (current !== generation || player !== renderer) return
       renderer.configure({
         reverse: props.reverse,

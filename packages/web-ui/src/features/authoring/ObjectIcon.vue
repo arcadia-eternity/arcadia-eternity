@@ -1,50 +1,39 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
-import { authorCall } from './types'
-const props = defineProps<{ kind: string; source?: string; project?: string; revision?: number }>()
-const url = ref(''),
-  failed = ref(false)
-let generation = 0,
-  blob = ''
-function release() {
-  if (blob) URL.revokeObjectURL(blob)
-  blob = ''
-}
-watch(
-  () => [props.source, props.project, props.revision],
-  async () => {
-    const request = ++generation
-    release()
-    url.value = ''
-    failed.value = false
-    if (!props.source) return
-    if (/^https?:\/\//.test(props.source)) {
-      url.value = props.source
-      return
-    }
-    try {
-      const result = await authorCall<{ bytes: Uint8Array }>({ action: 'media', id: props.project, file: props.source })
-      if (request !== generation) return
-      const mime = /\.webp$/i.test(props.source)
-        ? 'image/webp'
-        : /\.jpe?g$/i.test(props.source)
-          ? 'image/jpeg'
-          : 'image/png'
-      blob = URL.createObjectURL(new Blob([new Uint8Array(result.bytes)], { type: mime }))
-      url.value = blob
-    } catch {
-      if (request === generation) failed.value = true
-    }
-  },
-  { immediate: true },
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import type { DraftMediaSource } from '@/services/mediaLoader'
+import { useMediaImage } from '@/composition/useMediaImage'
+const props = defineProps<{ kind: string; source?: DraftMediaSource }>()
+const failed = ref(false),
+  element = ref<HTMLElement>(),
+  visible = ref(false)
+let observer: IntersectionObserver | undefined
+onMounted(() => {
+  if (typeof IntersectionObserver === 'undefined') {
+    visible.value = true
+    return
+  }
+  observer = new IntersectionObserver(
+    entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        visible.value = true
+        observer?.disconnect()
+      }
+    },
+    { rootMargin: '200px' },
+  )
+  observer.observe(element.value!)
+})
+onBeforeUnmount(() => observer?.disconnect())
+const { url } = useMediaImage(
+  () => props.source,
+  () => visible.value,
 )
-onBeforeUnmount(() => {
-  generation++
-  release()
+watch(url, () => {
+  failed.value = false
 })
 </script>
 <template>
-  <span class="object-icon" aria-hidden="true">
+  <span ref="element" class="object-icon" aria-hidden="true">
     <img v-if="url && !failed" :src="url" alt="" loading="lazy" @error="failed = true" />
     <svg
       v-else

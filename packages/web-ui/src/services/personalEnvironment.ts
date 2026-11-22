@@ -1,3 +1,4 @@
+import { mediaKindForMime } from '../../shared/media-formats.mjs'
 import {
   readSkillParameterCatalog,
   resolveSkillParameters,
@@ -24,7 +25,7 @@ import {
 import { PlayerSchema, SpeciesSchema, parseWithErrors, type PetSchemaType } from '@arcadia-eternity/schema'
 import { validatePeerMaterials } from './peerEnvironment'
 import { sha256Hex } from '@arcadia-eternity/const'
-import { registerMediaEnvironment, type MediaResource } from './environmentMedia'
+import { registerMediaEnvironment, type MediaResource } from './mediaLoader'
 import { readResourceBytes, registerOwnedResource, RESOURCE_MAX_BYTES } from './resourceTransport'
 import {
   validateEnvironmentContent,
@@ -36,14 +37,6 @@ export const PERSONAL_ENVIRONMENT_MAX_BYTES = 128 * 1024 * 1024
 /** Network acquisition uses the shared bounded transport; larger bundles can be explicitly imported as files. */
 export const PERSONAL_ENVIRONMENT_DOWNLOAD_MAX_BYTES = RESOURCE_MAX_BYTES
 const REFERENCE_MAX_BYTES = 64 * 1024
-const allowedMime = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'audio/ogg',
-  'audio/mpeg',
-  'application/x-shockwave-flash',
-])
 type PersonalRules = NonNullable<PersonalEnvironmentReference['rules']>
 type PersonalSource = PersonalEnvironmentReference['source']
 interface PersonalEnvironmentAsset {
@@ -222,7 +215,7 @@ function checkedAssets(value: unknown): Map<string, { mime: string; bytes: Uint8
       !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,255}$/.test(asset.id) ||
       assets.has(asset.id) ||
       typeof asset.mime !== 'string' ||
-      !allowedMime.has(asset.mime) ||
+      !mediaKindForMime(asset.mime) ||
       typeof asset.data !== 'string' ||
       !asset.data ||
       asset.data.length > Math.ceil(RESOURCE_MAX_BYTES / 3) * 4 ||
@@ -459,8 +452,10 @@ export async function parsePersonalEnvironmentBundle(
     }
     const content = mapMedia(bundle.content, resolveMedia)
     const media = (bundle.media ?? []).map(row => ({ ...row, source: resolveMedia(row.source) }))
-    for (const [id, resource] of resources)
-      media.push({ id, source: resource.url, kind: 'file', sha256: sha256Hex(assets.get(id)!.bytes) })
+    for (const [id, resource] of resources) {
+      const asset = assets.get(id)!
+      media.push({ id, source: resource.url, kind: 'file', mime: asset.mime, sha256: sha256Hex(asset.bytes) })
+    }
     releaseSources = registerMediaEnvironment(content, 'personal/' + bundle.descriptor.resourceRevision, media, true)
     signal?.addEventListener('abort', release, { once: true })
     signal?.throwIfAborted()

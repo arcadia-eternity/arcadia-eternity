@@ -183,7 +183,7 @@ test('isolated renderer input is copied into a disposable application directory 
     const { default: complete } = await import(pathToFileURL(configuration).href)
     assert.equal(complete.extraResources.length, 2, 'complete config does not append inherited runtime copies')
     assert.equal(complete.extraResources[0].from, resolve(selectedRuntime))
-    assert.equal(complete.files.length, 3, 'complete config replaces the default renderer input')
+    assert.deepEqual(complete.files.slice(1), ['electron/**/*', 'shared/**/*.mjs', 'package.json'])
     assert.equal(complete.files[0].from, prepared.inputs.webDist)
     assert.equal(
       await readFile(join(prepared.inputs.webDist, 'index.html'), 'utf8'),

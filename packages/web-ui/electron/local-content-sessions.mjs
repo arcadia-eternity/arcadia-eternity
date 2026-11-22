@@ -204,7 +204,11 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
             for (const key of ['source', 'fallback']) if (p.battle[key]) p.battle[key] = resource(p.battle[key])
         }
       const media = captured.resources
-        .filter(row => row.tags?.some(tag => ['background', 'music'].includes(tag)) || used.has(row.source))
+        .filter(
+          row =>
+            row.tags?.some(tag => tag === 'background' || tag === 'music' || tag.startsWith('battle-ui:')) ||
+            used.has(row.source),
+        )
         .map(row => ({
           id: row.id,
           source: resource(row.source),

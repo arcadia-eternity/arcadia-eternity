@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { assetPath, collectOfficialAssetUrls, verifyAsset } from './prepare-static-assets.mjs'
 
-test('the static asset inventory includes manifest resources and renderer-only resources', async () => {
+test('the static mirror includes the base pack’s linked battle interface resources', async () => {
   const urls = await collectOfficialAssetUrls()
   assert.equal(new Set(urls).size, urls.length)
   for (const url of [
@@ -13,6 +13,7 @@ test('the static asset inventory includes manifest resources and renderer-only r
     'https://seer2-resource.yuuinih.com/sound/battle/ko.mp3',
     'https://seer2-resource.yuuinih.com/png/damage/miss.png',
     'https://seer2-resource.yuuinih.com/png/damageNumber/9.png',
+    'https://seer2-resource.yuuinih.com/png/petElementIcon/2.png',
   ])
     assert.ok(urls.includes(url), `${url} must be available without its CDN`)
   for (const url of urls) assert.ok(assetPath(url).startsWith('resource/') || assetPath(url).startsWith('pet/'))
@@ -29,9 +30,13 @@ test('only official origins can enter the mirrored build output', () => {
 
 test('invalid asset formats fail while changed valid media remains usable', () => {
   const url = 'https://seer2-resource.yuuinih.com/png/pet/3.png'
-  assert.throws(() => verifyAsset(Buffer.from('<html>not found</html>'), url), /not a PNG/)
+  assert.throws(() => verifyAsset(Buffer.from('<html>not found</html>'), url), /格式/)
   assert.throws(() => verifyAsset(Buffer.alloc(0), url), /Empty/)
-  const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3])
+  const bytes = Buffer.alloc(24)
+  bytes.set([137, 80, 78, 71, 13, 10, 26, 10])
+  bytes.write('IHDR', 12)
+  bytes.writeUInt32BE(1, 16)
+  bytes.writeUInt32BE(1, 20)
   const locked = verifyAsset(bytes, url)
   assert.deepEqual(verifyAsset(bytes, url), locked)
   assert.throws(() => verifyAsset(bytes, url, '0'.repeat(64)), /hash mismatch/)

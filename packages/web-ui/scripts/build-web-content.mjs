@@ -18,11 +18,26 @@ import {
 } from '@arcadia-eternity/pack-loader/native'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 
+const basePackageRoot = fileURLToPath(
+  new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')),
+)
+
+// Resolve interface defaults even when the active environment has no tagged resources.
+export async function readBaseBattleUi(root = basePackageRoot) {
+  const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+  if (!pkg.arcadia?.presentation) return {}
+  const manifest = JSON.parse(await readFile(join(root, pkg.arcadia.presentation), 'utf8'))
+  const roles = {}
+  for (const resource of manifest.resources) {
+    const tags = resource.tags?.filter(tag => tag.startsWith('battle-ui:')) ?? []
+    if (!tags.length || resource.kind !== 'http') continue
+    for (const tag of tags) roles[tag] = { id: resource.id, source: resource.source, sha256: resource.sha256 }
+  }
+  return roles
+}
+
 /** Export the distribution's environments and share identical installed materials between them. */
-export async function buildWebContent(
-  root = fileURLToPath(new URL('.', import.meta.resolve('@arcadia-eternity/data-pack-base/package.json'))),
-  projectDirectory,
-) {
+export async function buildWebContent(root = basePackageRoot, projectDirectory) {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
   const manifestPath = join(root, pkg.arcadiaEternityPack ?? 'pack.json')
   const metadata = await new PackMetadataLoader().loadMetadata(manifestPath, {
@@ -70,7 +85,13 @@ export async function buildWebContent(
     const file = 'environment/catalog.json'
     const catalog = JSON.parse(files.get(file))
     files.set(file, JSON.stringify({ ...catalog, defaultEnvironment: defaultId, builtins }))
-    return { files, mediaTargets: Array.from(media, ([path, src]) => ({ src, dest: dirname(path) })), dispose }
+    const battleUi = await readBaseBattleUi(root)
+    return {
+      battleUi,
+      files,
+      mediaTargets: Array.from(media, ([path, src]) => ({ src, dest: dirname(path) })),
+      dispose,
+    }
   } catch (error) {
     await dispose()
     throw error

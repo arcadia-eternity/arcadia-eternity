@@ -285,7 +285,6 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
             <!-- 图标容器 -->
             <div class="relative">
               <PetIcon
-                :uncached="!!gameDataStore.serverFallback"
                 :id="petIconId"
                 :species="speciesInfo ?? undefined"
                 :name="petDisplayName"

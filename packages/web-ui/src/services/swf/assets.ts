@@ -1,6 +1,6 @@
 import { sha256Hex } from '@arcadia-eternity/const'
 import { readBundledSwfContainer, readResourceBytes } from '../resourceTransport'
-import { startMediaPreload, finishMediaPreload } from '../mediaPreloadProgress'
+import { startMediaPreload } from '../mediaPreloadProgress'
 import { SharedReads } from '../sharedRead'
 
 const runtimeFiles = [
@@ -61,24 +61,13 @@ export async function readSwfRuntime(signal: AbortSignal) {
 export async function preloadSwfPlayer(signal: AbortSignal) {
   const files = ['container', ...(hasNativePlayer() ? [] : runtimeFiles)].filter(name => !ready.has(name))
   if (!files.length || signal.aborted) return
-  const batch = startMediaPreload('动画播放器', files.length)
-  const finish = () => finishMediaPreload(batch, signal.aborted)
-  signal.addEventListener('abort', finish, { once: true })
+  const batch = startMediaPreload('动画播放器', files.length, signal)
   try {
     for (const [index, name] of files.entries()) {
-      batch.loading.set(index, name === 'container' ? '动画容器' : name)
-      try {
-        await readPlayerFile(name, signal)
-      } catch {
-        if (!signal.aborted) batch.failed++
-      }
-      if (signal.aborted) return
-      batch.loading.delete(index)
-      batch.completed++
-      batch.lastProgressAt = performance.now()
+      if (signal.aborted) break
+      await batch.run(index, name === 'container' ? '动画容器' : name, () => readPlayerFile(name, signal))
     }
   } finally {
-    signal.removeEventListener('abort', finish)
-    finish()
+    batch.finish()
   }
 }

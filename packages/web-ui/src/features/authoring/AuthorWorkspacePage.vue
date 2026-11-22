@@ -22,7 +22,9 @@ import LocaleFields from './LocaleFields.vue'
 import ChangeReview from './ChangeReview.vue'
 import SourceMediaPreview from './SourceMediaPreview.vue'
 import { contentTypes, objectType, initialRecord, localeFor } from './objects'
-import { readResourceBytes } from '@/services/resourceTransport'
+import { loadMedia } from '@/services/mediaLoader'
+import type { MediaPreview } from './SourceMediaPreview.vue'
+import { projectMedia } from './projectMedia'
 import AuthorDescription, { descriptionProblem } from './AuthorDescription'
 import { useAuthorDraftStorage, useAuthorDrafts, isConflict, recordKey, reviewToken, type AuthorDraft } from './drafts'
 import { clone, object, sharedAt, sharedFieldsUnder } from './fields'
@@ -195,7 +197,7 @@ async function restoreView(view: ViewState) {
 }
 const selectedKind = ref('species')
 const selectedAssetId = ref('')
-const asset = ref<{ file: string; bytes: Uint8Array }>(),
+const asset = shallowRef<{ file: string; preview?: MediaPreview }>(),
   assetLoading = ref(false)
 const autoOpenPreview = ref('')
 const runPanelOpen = ref(false)
@@ -415,11 +417,14 @@ const impacts = computed(() =>
     pending.value.map(draft => [draft.key, catalogIndex.value.consumers(draft.kind, draft.id).map(label)]),
   ),
 )
-function iconSource(owner: SourceRecord) {
+function iconMedia(owner: SourceRecord) {
   const binding = catalogIndex.value.presentation(owner.kind, owner.record.id)
   const id = binding?.record.icon
   const resource = typeof id === 'string' ? catalogIndex.value.record('resources', id)?.record : undefined
-  return resource?.kind === 'image' && typeof resource.source === 'string' ? resource.source : undefined
+  if (resource && typeof resource.source === 'string') {
+    const media = projectMedia(project.value?.id, resource.source, resource, fileVersions.value.get(resource.source))
+    if (media.kind === 'image') return media.source
+  }
 }
 const resourceRows = computed(() => effectiveRecords.value.filter(row => row.kind === 'resources'))
 const assets = computed(() =>
@@ -1130,16 +1135,22 @@ async function readAsset(file: string, resourceId?: string) {
   mediaController?.abort()
   mediaController = new AbortController()
   assetLoading.value = true
-  asset.value = { file, bytes: new Uint8Array() }
+  asset.value = { file }
   try {
-    const data = /^https?:/.test(file)
-      ? {
-          file,
-          bytes: await readResourceBytes(file, { signal: mediaController.signal, maxBytes: 64 * 1024 * 1024 }),
-        }
-      : await action<{ file: string; bytes: Uint8Array }>({ action: 'media', file })
-    if (!disposed && request === mediaEpoch && project.value?.id === id)
-      asset.value = { file: data.file, bytes: new Uint8Array(data.bytes) }
+    const record = assetRecord.value?.record
+    const { kind, source } = projectMedia(
+      id,
+      file,
+      record?.source === file ? record : undefined,
+      fileVersions.value.get(file),
+    )
+    if (!kind) return
+    const signal = mediaController.signal
+    const preview: MediaPreview =
+      kind === 'swf'
+        ? { kind, bytes: await loadMedia(kind, source, signal) }
+        : { kind, blob: await loadMedia(kind, source, signal) }
+    if (!disposed && request === mediaEpoch && project.value?.id === id) asset.value = { file, preview }
   } catch (cause) {
     if (!disposed && request === mediaEpoch && project.value?.id === id) throw cause
   } finally {
@@ -1758,9 +1769,7 @@ onBeforeUnmount(() => {
                       ><ObjectIcon
                         v-if="row.kind === 'species' || row.kind === 'marks'"
                         :kind="row.kind"
-                        :source="iconSource(row)"
-                        :project="project?.id"
-                        :revision="fileVersions.get(iconSource(row) ?? '')"
+                        :source="iconMedia(row)"
                       /><strong>{{ label(row) }}</strong></span
                     ><span class="object-metadata"
                       ><small v-if="drafts[recordKey(row)]">有草稿</small>
@@ -1793,12 +1802,7 @@ onBeforeUnmount(() => {
             <header class="page-heading">
               <div>
                 <h1>
-                  <ObjectIcon
-                    v-if="selected.kind !== 'skills'"
-                    :kind="selected.kind"
-                    :source="iconSource(selected)"
-                    :project="project?.id"
-                  />
+                  <ObjectIcon v-if="selected.kind !== 'skills'" :kind="selected.kind" :source="iconMedia(selected)" />
                   {{ labels[`${selectedKind}:${selectedId}`] || currentRecord.name || selectedId
                   }}<span v-if="currentDraft" class="badge">草稿</span>
                 </h1>
@@ -1925,7 +1929,7 @@ onBeforeUnmount(() => {
             </div>
             <section v-if="asset" class="asset-detail">
               <p v-if="assetLoading" role="status">正在读取资源…</p>
-              <SourceMediaPreview v-if="asset.bytes.length" :file="asset.file.split('?')[0]!" :bytes="asset.bytes" />
+              <SourceMediaPreview v-if="asset.preview" :file="asset.file" :media="asset.preview" />
               <label v-if="assetRecord"
                 >素材位置
                 <ElInput

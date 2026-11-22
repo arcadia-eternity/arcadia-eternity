@@ -24,13 +24,13 @@ vi.mock('@/services/swf/adapter', () => ({
 }))
 vi.mock('@/services/resourceTransport', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services/resourceTransport')>()),
-  readResourceBytes: vi.fn(async () => new Uint8Array([1, 2, 3])),
+  readResourceBytes: vi.fn(async () => new Uint8Array([70, 87, 83, 9, 8, 0, 0, 0])),
 }))
 beforeEach(() => {
   setServerContentText(null)
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => new Response(new Uint8Array([1, 2, 3]))),
+    vi.fn(async () => new Response(new Uint8Array([70, 87, 83, 9, 8, 0, 0, 0]))),
   )
   vi.clearAllMocks()
 })
