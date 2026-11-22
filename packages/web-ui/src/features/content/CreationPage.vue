@@ -77,14 +77,14 @@ async function choose() {
 async function installCli() {
   cliNotice.value = ''
   await run(async () => {
-    const { commandPath, pathDirectory, onPath } = await authorCall<{
-      commandPath: string
+    const { commandPaths, pathDirectory, onPath } = await authorCall<{
+      commandPaths: { arcadia: string; 'arcadia-content': string }
       pathDirectory: string
       onPath: boolean
     }>({ action: 'install-terminal-command' })
     cliNotice.value = onPath
-      ? `已安装到 ${commandPath}。在终端运行 arcadia-content --help。`
-      : `已安装到 ${commandPath}。如果终端找不到 arcadia-content，请将 ${pathDirectory} 加入 PATH。`
+      ? '已安装 arcadia 和 arcadia-content。运行 arcadia --help 查看对战与开服命令，运行 arcadia-content --help 查看创作命令。'
+      : `已安装 ${commandPaths.arcadia} 和 ${commandPaths['arcadia-content']}。如果终端找不到命令，请将 ${pathDirectory} 加入 PATH。`
   })
 }
 async function forget(project: SourceProject) {

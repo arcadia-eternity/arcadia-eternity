@@ -1,6 +1,8 @@
 # Native CLI (#207)
 
-The offline CLI uses the existing native host and trusted content implementation. It needs Node 24, content files and the built CLI; no account, browser, database or running server is involved.
+In the desktop client's content creation page, choose **Install terminal commands** to register `arcadia` and `arcadia-content`. The app supplies the runtime for both commands. Use `arcadia --help` for battles and servers, and `arcadia-content commands --json` for authoring and installation. Built-in offline battles and standalone servers also run with the desktop window closed.
+
+To build and run the native CLI from a source checkout, use Node 24:
 
 ```sh
 pnpm --filter '@arcadia-eternity/cli^...' run build
@@ -15,6 +17,28 @@ node dist/cli.js battle local --player1 testteam.yaml --player2 testteam2.yaml -
 `local` and `validate` delegate to the corresponding new commands. Validation checks schemas, static references and effect bundling without starting a VM; actual module exports and factories are checked when each battle Worker initializes. Strict validation is always enabled; the old `--load-scripts` switch is rejected. `--pack-ref` selects a local manifest, `builtin:base`, `builtin:workspace` (default), or an installed `npm:` reference. Relative command paths use the caller's working directory; relative manifest paths use the manifest directory. Built-in discovery starts at the installed loader/CLI location; `ARCADIA_PACKS_DIR` can select an explicit pack directory. Each workspace entry and dependency retains its original lock validation; duplicate pack identities or duplicate definitions fail explicitly.
 
 For offline relocation, copy `dist/` and the selected `packs/` metadata (manifest, lock, data, locales and asset manifests) together. The command tests run that layout in a temporary directory without `node_modules`, source files or network access. The bundled offline commands contain no service runtime dependencies. The `online`, `server` and P2P commands load their service dependencies on demand.
+
+## Installed environments and desktop servers
+
+With the player open, list its environments and use an installed environment ID for a batch, an interactive battle, or a replay. The team arguments accept native player files and the author's generated `debug/teams/*.yaml` files. A battle reads the applied content and rules without changing the player's current selection. Replay verification checks the recorded environment identity and revision. When multiple players are open, add `--instance ID` to each command using an ID from `arcadia desktop instances`.
+
+```sh
+arcadia-content desktop environments list
+arcadia battle simulate -1 blue.yaml -2 orange.yaml --environment ENV_ID --seed balance --runs 100 --json
+arcadia battle local -1 blue.yaml -2 orange.yaml --environment ENV_ID --ai player2
+arcadia battle simulate -1 blue.yaml -2 orange.yaml --environment ENV_ID --seed final --replay-out final.json --json
+arcadia battle replay final.json --environment ENV_ID --verify --json
+```
+
+Use `arcadia desktop server` to manage the running player's server. A plain `start` reuses its saved settings. On first launch, supply the scope or another launch setting. The example requests a loopback server on an available port. Status and lifecycle commands return JSON. To run a separate foreground server from the terminal, choose its own port and data directory.
+
+```sh
+arcadia desktop server start --name League --scope local --port 0
+arcadia desktop server status
+arcadia desktop server restart
+arcadia desktop server stop
+arcadia server --host 127.0.0.1 --port 8102 --data-dir ./league-server
+```
 
 ## Results and limits
 

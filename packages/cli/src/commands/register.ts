@@ -8,6 +8,7 @@ import { registerNpmCommands } from './npm'
 import { registerProjectCommands } from './project'
 import { registerDevPreviewCommands } from './dev-preview'
 import { registerProfileCommands } from './profile'
+import { registerDesktopCommands } from './desktop-commands'
 
 function positive(value: string) {
   const n = Number(value)
@@ -15,13 +16,18 @@ function positive(value: string) {
     throw new InvalidArgumentError('Expected a positive safe integer')
   return n
 }
+function playerEnvironmentOptions(command: Command) {
+  return command
+    .option('--environment <id>', 'Use an installed player-library environment')
+    .option('--instance <id>', 'Select the running Desktop instance that owns the environment')
+}
 function battleOptions(command: Command, profile = false) {
   const c = profile
     ? command.option('-1, --player1 <path>', 'First team YAML/JSON')
     : command.requiredOption('-1, --player1 <path>', 'First team YAML/JSON')
-  return c
+  return playerEnvironmentOptions(c)
     .requiredOption('-2, --player2 <path>', 'Second team YAML/JSON')
-    .option('--pack-ref <ref>', 'Content manifest or built-in pack', 'builtin:workspace')
+    .option('--pack-ref <ref>', 'Content manifest or built-in pack (default: builtin:workspace)')
     .option('--works <path>', 'Selected immutable works from an .arcadia archive')
     .option('--npm-project <path>', 'Installed npm environment (code requires explicit approval)')
     .option('--approval <path>', 'Approval file; defaults to the npm project admission file')
@@ -40,6 +46,7 @@ function outputOptions(command: Command) {
 }
 export function registerCommands(program: Command, context: CommandContext) {
   registerProfileCommands(program, context)
+  registerDesktopCommands(program, context)
   let exitCode = 0
   async function emit(report: unknown, options: { out?: string; json?: boolean; format: string }, text: string) {
     if (options.out) await writeJson(resolve(context.cwd, options.out), report)
@@ -61,7 +68,7 @@ export function registerCommands(program: Command, context: CommandContext) {
         import('../application/prepare'),
         import('../application/simulate'),
       ])
-      const loaded = await prepareContent(options.packRef, context.cwd, options)
+      const loaded = await prepareContent(options.packRef, context.cwd, options, context.signal)
       const spec = { ...(await prepareRun(options, context.cwd, loaded.content)), rules: loaded.rules }
       const run = await simulate(loaded, spec, options.runs, {
         signal: context.signal,
@@ -71,7 +78,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       await emit(run.report, options, JSON.stringify(run.report.counts))
       exitCode = run.exitCode
     })
-  outputOptions(battle.command('replay').argument('<file>', 'Replay JSON'))
+  outputOptions(playerEnvironmentOptions(battle.command('replay').argument('<file>', 'Replay JSON')))
     .option('--verify', 'Verify recorded inputs and result (always enabled)')
     .option('--npm-project <path>', 'Original installed npm environment')
     .option('--approval <path>', 'Explicit npm approval file')
@@ -79,11 +86,15 @@ export function registerCommands(program: Command, context: CommandContext) {
       checkFormat(options)
       await reserveOutputs(options.out ? [resolve(context.cwd, options.out)] : [])
       const [{ readDocument }, { replay }] = await Promise.all([import('../io/files'), import('../application/replay')])
-      if (options.approval && !options.npmProject)
-        throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
-      const loaded = options.npmProject
-        ? await (await import('../application/prepare')).prepareContent('builtin:workspace', context.cwd, options)
-        : undefined
+      const loaded =
+        options.npmProject !== undefined ||
+        options.environment !== undefined ||
+        options.instance !== undefined ||
+        options.approval !== undefined
+          ? await (
+              await import('../application/prepare')
+            ).prepareContent(undefined, context.cwd, options, context.signal)
+          : undefined
       const result = await replay(await readDocument(resolve(context.cwd, file)), context.signal, loaded)
       await emit(result.report, options, result.report.verified ? 'Replay verified' : 'Replay cancelled')
       exitCode = result.exitCode
@@ -98,10 +109,12 @@ export function registerCommands(program: Command, context: CommandContext) {
     maxTurns: number
     maxActions: number
     teamSelection: boolean
-    packRef: string
+    packRef?: string
     works?: string
     npmProject?: string
     approval?: string
+    environment?: string
+    instance?: string
     ai?: string
     debug?: boolean
   }) {
@@ -112,7 +125,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       import('../application/run'),
       import('@arcadia-eternity/console'),
     ])
-    const loaded = await prepareContent(options.packRef, context.cwd, options)
+    const loaded = await prepareContent(options.packRef, context.cwd, options, context.signal)
     const spec = { ...(await prepareRun(options, context.cwd, loaded.content)), rules: loaded.rules }
     const run = await runBattle(loaded.content, spec, {
       signal: context.signal,

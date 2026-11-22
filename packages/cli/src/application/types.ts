@@ -11,6 +11,11 @@ export interface RunSpec {
   maxActions: number
   teamSelection: boolean
 }
+export interface PlayerLibraryEnvironment {
+  environmentId: string
+  draftRevision: string
+  gameplayRevision: string
+}
 export interface RecordedInput {
   turn: number
   phase: string
@@ -49,6 +54,7 @@ export interface Replay {
     data: NativePackLoadResult['data']
     works?: NativePackLoadResult['works']
     npm?: NativePackLoadResult['npm']
+    playerLibrary?: PlayerLibraryEnvironment
   }
   spec: RunSpec
   initial: BattleRuntimeSnapshot

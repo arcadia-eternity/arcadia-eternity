@@ -16,7 +16,12 @@
       "default": "./dist/index.js"
     },
     "./testing": "./dist/testing.js",
+    "./desktop": {
+      "types": "./dist/desktop-client.d.ts",
+      "default": "./dist/desktop-client.js"
+    },
     "./workspace": "./dist/author-api.js",
+    "./project-teams": "./dist/project-teams.js",
     "./prepared-document": {
       "types": "./dist/prepared-document.d.ts",
       "import": "./dist/prepared-document.js"

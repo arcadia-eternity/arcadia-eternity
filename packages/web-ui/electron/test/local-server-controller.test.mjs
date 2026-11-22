@@ -182,3 +182,64 @@ test('registered-project hosting shares the same lifecycle lock', async () => {
   assert.equal((await pending).phase, 'ready')
   assert.deepEqual(projects, ['registered-project'])
 })
+
+test('the authenticated player route delegates status, first launch, graceful restart and explicit force stop to the existing controller', async () => {
+  const { playerLibraryRequest } = await import('../player-library-bridge.mjs')
+  const { controller, calls } = fixture()
+  const dispatch = playerLibraryRequest({ serverController: controller })
+  const server = (action, options = {}) => dispatch({ operation: 'server', action, ...options })
+  assert.equal((await server('status')).host.status, 'idle')
+  assert.deepEqual(calls, [])
+  await assert.rejects(server('start'), { code: 'LAUNCH_REQUIRED' })
+  assert.equal((await server('status')).error.code, 'LAUNCH_REQUIRED')
+  for (const input of [
+    { action: 'recover' },
+    { action: 'start-project', projectId: 'any' },
+    { action: 'start', configuration: { ...configuration, directory: '/tmp/replacement' } },
+    { action: 'restart', force: true },
+  ]) {
+    await assert.rejects(dispatch({ operation: 'server', ...input }))
+  }
+  assert.deepEqual(calls, [])
+  const local = { ...configuration, scope: 'local', port: 0 }
+  assert.equal((await server('start', { configuration: local })).host.status, 'running')
+  assert.deepEqual(calls[1][2].launch, {
+    name: local.name,
+    host: '127.0.0.1',
+    port: 0,
+    publicOrigin: null,
+    officialContent: true,
+  })
+  await assert.rejects(server('start', { configuration }), { code: 'SERVER_ALREADY_CONFIGURED' })
+  assert.equal((await server('status')).phase, 'ready')
+  // The production host saves the initial project after the listener is ready.
+  controller.profile = async () => ({ projectDirectory: '/owned/saved' })
+  assert.equal((await server('restart')).host.status, 'running')
+  assert.ok(calls.some(entry => entry[0] === 'stop' && entry[1].force === false))
+  assert.deepEqual(calls.filter(entry => entry[0] === 'start').at(-1), [
+    'start',
+    '/owned/saved',
+    { publishClientEnvironments: true },
+  ])
+  assert.equal((await server('stop', { force: true })).host.status, 'idle')
+  assert.deepEqual(calls.at(-1), ['stop', { force: true }])
+  await assert.rejects(server('start', { configuration: local }), { code: 'SERVER_ALREADY_CONFIGURED' })
+})
+
+test('an explicit CLI first-launch configuration cannot coalesce into a pending start with different settings', async () => {
+  const { playerLibraryRequest } = await import('../player-library-bridge.mjs')
+  let finishPreparation
+  const wait = new Promise(resolve => {
+    finishPreparation = resolve
+  })
+  const { controller, calls } = fixture({ prepare: () => wait })
+  const dispatch = playerLibraryRequest({ serverController: controller })
+  const configuring = dispatch({ operation: 'server', action: 'start', configuration })
+  await assert.rejects(
+    dispatch({ operation: 'server', action: 'start', configuration: { ...configuration, scope: 'local' } }),
+    { code: 'HOST_BUSY' },
+  )
+  finishPreparation()
+  assert.equal((await configuring).host.status, 'running')
+  assert.equal(calls.filter(entry => entry[0] === 'start').length, 1)
+})

@@ -61,7 +61,7 @@ jobs:
       - name: Build content workspace dependencies
         run: pnpm --filter @arcadia-eternity/content-sdk... run build
       - name: Check desktop contracts without Electron or installers
-        run: node --test scripts/desktop-cli-launcher.test.mjs scripts/desktop-linkless-modules.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-environments.test.mjs packages/web-ui/electron/test/player-library-bridge.test.mjs
+        run: node --test scripts/desktop-cli-launcher.test.mjs scripts/desktop-linkless-modules.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-environments.test.mjs packages/web-ui/electron/test/player-library-bridge.test.mjs packages/web-ui/electron/test/player-battle-environment.test.mjs packages/web-ui/electron/test/local-server-controller.test.mjs
 
   # Full installed-app/replacement acceptance is explicitly requested, not
   # repeated for every UI edit. Release builds retain their packaged-host hooks.
@@ -160,7 +160,7 @@ jobs:
       - name: Verify staging and native persistence
         env:
           ARCADIA_DESKTOP_NATIVE_TEST: '1'
-        run: node --test scripts/desktop-cli-launcher.test.mjs scripts/stage-paired-website.test.mjs scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-linkless-modules.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs scripts/rollup-external.test.mjs scripts/desktop-pnpm-deploy.test.mjs scripts/pnpm-production-peers.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-environments.test.mjs packages/web-ui/electron/test/player-library-bridge.test.mjs | tee .artifacts/desktop/native-tests.log
+        run: node --test scripts/desktop-cli-launcher.test.mjs scripts/stage-paired-website.test.mjs scripts/stage-desktop-runtime.test.mjs scripts/desktop-runtime-portability.test.mjs scripts/desktop-linkless-modules.test.mjs scripts/desktop-sqlite-native.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/desktop-license-provenance.test.mjs scripts/rollup-external.test.mjs scripts/desktop-pnpm-deploy.test.mjs scripts/pnpm-production-peers.test.mjs scripts/desktop-installer-artifacts.test.mjs scripts/desktop-acceptance-process.test.mjs scripts/merge-desktop-release-manifests.test.mjs packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-environments.test.mjs packages/web-ui/electron/test/player-library-bridge.test.mjs packages/web-ui/electron/test/player-battle-environment.test.mjs packages/web-ui/electron/test/local-server-controller.test.mjs | tee .artifacts/desktop/native-tests.log
 
       - name: Install a portable recipe through the running player library
         if: runner.os == 'Linux'

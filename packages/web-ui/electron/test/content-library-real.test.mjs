@@ -423,6 +423,53 @@ test(
       const listed = await desktopCommand(['environments', 'list', ...targetArgs], options)
       assert.equal(listed.selectedEnvironmentId, declaration.id)
       assert.ok(listed.environments.some(entry => entry.id === secondId && !entry.selected))
+      if (bridge) {
+        const team = join(root, 'team.json')
+        await writeFile(
+          team,
+          JSON.stringify({
+            name: 'Trainer',
+            team: [
+              {
+                name: 'Slow',
+                species: 'example-slow:pet',
+                level: 100,
+                nature: 'Hardy',
+                evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+                ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+                skills: ['example-slow:strike'],
+              },
+            ],
+          }),
+        )
+        const battle = (...args) =>
+          exec(process.execPath, [runtime.cli, 'battle', ...args, ...targetArgs, '--json'], {
+            cwd: root,
+            env: { ...process.env, HOME: root, USERPROFILE: root },
+            timeout: 30000,
+          })
+        const replay = join(root, 'battle.replay.json')
+        const result = await battle(
+          'simulate',
+          '-1',
+          team,
+          '-2',
+          team,
+          '--environment',
+          secondId,
+          '--seed',
+          'league',
+          '--replay-out',
+          replay,
+        )
+        const report = JSON.parse(result.stdout)
+        assert.equal(report.counts.completed, 1)
+        assert.equal(report.playerLibrary.environmentId, secondId)
+        const verified = await battle('replay', replay, '--verify', '--environment', secondId)
+        assert.equal(JSON.parse(verified.stdout).verified, true)
+        await assert.rejects(battle('replay', replay, '--verify', '--environment', declaration.id), { code: 3 })
+        assert.equal((await owner.snapshot()).selectedEnvironmentId, declaration.id)
+      }
     } finally {
       await bridge?.close()
     }

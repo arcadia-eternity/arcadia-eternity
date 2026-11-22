@@ -76,10 +76,9 @@ test('discovers live private instances without publishing credentials and never 
     selectedEnvironmentId: 'training',
   })
   await assert.rejects(desktopCommand(['environments', 'list', '--instance', '0'.repeat(32)], options), /No matching/)
-  await assert.rejects(
-    desktopCommand(['packages', 'list', '--instance', '../escape'], options),
-    /arcadia-content desktop/,
-  )
+  await assert.rejects(desktopCommand(['packages', 'list', '--instance', '../escape'], options), {
+    code: 'DESKTOP_INSTANCE_INVALID',
+  })
 })
 
 test('routes archive and npm installations through the owner, honors offline defaults and reports cancellation', async t => {

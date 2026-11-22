@@ -12,6 +12,8 @@ import { validateWorkspaceProject } from '@arcadia-eternity/server'
 import { ContentLibrary } from '../content-library.mjs'
 import { LocalBattleHost } from '../local-battle-host.mjs'
 import { LocalServerController } from '../local-server-controller.mjs'
+import { startTestPlayerLibraryBridge } from './fixtures/player-library-bridge.mjs'
+import { connectDesktopInstance } from '@arcadia-eternity/content-sdk/desktop'
 import { DesktopWorkspaceOwner } from '../desktop-workspace-owner.mjs'
 import { runContentCommand } from '../content-projects.mjs'
 import { openBuiltinEnvironment } from '../builtin-environment.mjs'
@@ -46,7 +48,7 @@ test(
     const originalAddonDigest = createHash('sha256')
       .update(await readFile(sourceAddon))
       .digest('hex')
-    let owner
+    let owner, playerConnection
     const host = new LocalBattleHost({
       executable: process.env.ARCADIA_DESKTOP_EXECUTABLE ?? process.execPath,
       cli: process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js'),
@@ -201,14 +203,22 @@ test(
       )
       const anonymous = await fetch(`${first.url}/api/management/v1/servers`)
       assert.equal(anonymous.status, 401)
-      await request('POST', `/servers/${first.serverId}/drain`, { draining: true })
-      await host.stop()
+      playerConnection = await startTestPlayerLibraryBridge({
+        home: root,
+        profile: root,
+        label: 'Test player',
+        serverController: controller,
+      })
+      const connection = await connectDesktopInstance(undefined, { directory: join(root, '.arcadia/player-libraries') })
+      const command = action => connection.request({ operation: 'server', action })
+      assert.equal((await command('status')).host.serverId, first.serverId)
+      assert.equal((await command('stop')).host.status, 'idle')
       await library.collectGarbage()
       assert.ok(
         await readFile(join(version.directory, 'package.json')),
         'persisted server binding retains materials after stop',
       )
-      const resumed = await controller.request({ action: 'start' })
+      const resumed = await command('start')
       assert.equal(resumed.error, undefined)
       const second = host.status()
       assert.equal(second.serverId, first.serverId)
@@ -223,6 +233,7 @@ test(
       assert.equal(restored.condition, 'available')
       assert.equal((await workspace.listInstallations()).filter(item => item.status === 'ready').length, 2)
     } finally {
+      await playerConnection?.close()
       await host.stop()
       await owner.close()
       await personal.close()

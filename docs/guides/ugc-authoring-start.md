@@ -1,6 +1,6 @@
 # 创建与调试资料包和环境
 
-在桌面客户端的“内容包与创作”页点击“安装终端命令”，即可用客户端自带的 `arcadia-content`。若终端找不到命令，使用页面返回的完整路径，或将其目录加入 `PATH`。独立安装的作者 SDK 提供相同的创作命令。运行 `arcadia-content commands --json` 可以查询这个版本支持的命令、工作区操作和调试参数。
+在桌面客户端的“内容包与创作”页点击“安装终端命令”，会同时安装 `arcadia-content` 和 `arcadia`。用前者创建、调试和安装内容，用后者对战、验证回放和开服。两条命令都可以直接交给能运行终端的 agent。若终端找不到命令，使用页面返回的完整路径，或将其目录加入 `PATH`。独立安装的作者 SDK 也提供 `arcadia-content`。运行 `arcadia-content commands --json` 可查询创作命令，运行 `arcadia --help` 可查看客户端附带的完整 CLI。
 
 Linux AppImage 首次为项目连接 SDK 时，会把创作依赖保存在 `${XDG_DATA_HOME:-$HOME/.local/share}/arcadia-eternity/author-sdks`。同一 AppImage 的项目共用一份，关闭客户端后项目内的命令仍能找到依赖。
 
@@ -30,6 +30,20 @@ arcadia-content desktop environments list --instance INSTANCE_ID
 ```
 
 资料包使用 `desktop packages install` 和 `desktop packages list`。安装源支持本地 `.tgz` 或精确 npm 版本，资料包也支持桌面端已有的 `.zip` 格式。默认使用离线物料，允许下载时加 `--allow-download`。客户端沿用已有的安装确认和效果执行授权。新环境安装后可在客户端环境列表中选择。
+
+## 用已安装的环境对战和开服
+
+保持客户端打开，把下面的 `ENV_ID` 换成环境列表返回的 ID，队伍路径换成自己的队伍文件，也可以直接使用创作模板生成的 `debug/teams/blue.yaml` 和 `debug/teams/orange.yaml`。模拟使用该环境已应用的内容和规则，并保留界面当前选中的环境。用同一个环境可以验证这场对战的回放。
+
+```sh
+arcadia battle simulate -1 blue.yaml -2 orange.yaml --environment ENV_ID --seed cup-1 --replay-out cup.json --json
+arcadia battle replay cup.json --environment ENV_ID --verify --json
+arcadia battle local -1 blue.yaml -2 orange.yaml --environment ENV_ID --ai player2
+```
+
+首次开客户端里的托管服，可以运行 `arcadia desktop server start --scope local --port 0`，让系统分配本地端口。此后运行 `arcadia desktop server start` 会沿用保存的设置。用 `status` 看状态、`restart` 重启、`stop` 停服。多个客户端同时运行时，用 `arcadia desktop instances` 查 ID，再给对战或托管服命令加 `--instance ID`。
+
+也可以关闭客户端，用默认内置内容跑 `arcadia battle simulate`，或用 `arcadia server --host 127.0.0.1 --port 8102 --data-dir ./league-server` 从终端独立开服。
 
 ## 从独立模板开始
 

@@ -2,6 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
+import { PlayerBattleEnvironments } from './player-battle-environment.mjs'
 import { isExactPackageSpec } from './content-library.mjs'
 
 const protocol = 'arcadia.player-library/v1'
@@ -44,10 +45,32 @@ async function installSource(source, kind) {
 }
 
 /** Only the existing main-process library owners can satisfy these operations. */
-export function playerLibraryRequest({ id, label, library, environments }) {
+export function playerLibraryRequest({
+  id,
+  label,
+  library,
+  environments,
+  serverController,
+  battleEnvironments = new PlayerBattleEnvironments(environments),
+}) {
   return async input => {
     if (!record(input)) throw fail('INVALID_REQUEST')
     if (input.operation === 'describe' && exactFields(input, ['operation'])) return { id, label }
+    if (input.operation === 'server') {
+      const { operation, ...intent } = input
+      if (!['status', 'start', 'stop', 'restart'].includes(intent.action))
+        throw fail('INVALID_REQUEST', '不支持的服务器操作')
+      if (!serverController) throw fail('SERVER_CONTROL_UNAVAILABLE', '桌面服务器控制器尚未就绪')
+      const snapshot = await serverController.request(intent, { firstLaunchOnly: intent.configuration !== undefined })
+      if (intent.action !== 'status') {
+        if (snapshot.error) throw fail(snapshot.error.code, snapshot.error.message)
+        if (['start', 'restart'].includes(intent.action) && snapshot.host.status !== 'running')
+          throw fail(snapshot.host.code ?? 'HOST_STOPPED', snapshot.host.message ?? '服务器尚未运行，请查询服务器状态')
+      }
+      return snapshot
+    }
+    if (input.operation === 'battle-environment-acquire' || input.operation === 'battle-environment-release')
+      return battleEnvironments.request(input)
     if (input.operation === 'list' && exactFields(input, ['operation', 'kind'])) {
       if (input.kind === 'pack') {
         const { packages } = await library.list()
@@ -157,7 +180,15 @@ export function playerLibraryHttpHandler({ token, dispatch }) {
   }
 }
 
-export async function registerPlayerLibrary({ home = homedir(), profile, label, port, library, environments }) {
+export async function registerPlayerLibrary({
+  home = homedir(),
+  profile,
+  label,
+  port,
+  library,
+  environments,
+  serverController,
+}) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw fail('PLAYER_LIBRARY_PORT_INVALID')
   const parent = await restrictedDirectory(await realpath(home), '.arcadia', 0o022)
   const directory = await restrictedDirectory(parent, 'player-libraries', 0o077)
@@ -167,7 +198,8 @@ export async function registerPlayerLibrary({ home = homedir(), profile, label, 
     .slice(0, 32)
   const file = join(directory, id + '.json')
   const token = randomBytes(32).toString('hex')
-  const dispatch = playerLibraryRequest({ id, label, library, environments })
+  const battleEnvironments = new PlayerBattleEnvironments(environments)
+  const dispatch = playerLibraryRequest({ id, label, library, environments, serverController, battleEnvironments })
   let active = true
   const handle = playerLibraryHttpHandler({
     token,
@@ -188,11 +220,13 @@ export async function registerPlayerLibrary({ home = homedir(), profile, label, 
     handle,
     async close() {
       active = false
-      // An already-started replacement owns its own credential and descriptor.
       try {
+        // An already-started replacement owns its own credential and descriptor.
         if (JSON.parse(await readFile(file, 'utf8')).token === token) await rm(file)
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
+      } finally {
+        await battleEnvironments.close()
       }
     },
   }

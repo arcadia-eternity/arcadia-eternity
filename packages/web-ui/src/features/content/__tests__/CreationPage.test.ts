@@ -63,7 +63,13 @@ it('can register the installed CLI before opening a project', async () => {
   vi.stubEnv('PROD', true)
   const author = vi.fn(async ({ action }: { action: string }) => ({
     result:
-      action === 'list' ? [] : { commandPath: '/user/bin/arcadia-content', pathDirectory: '/user/bin', onPath: false },
+      action === 'list'
+        ? []
+        : {
+            commandPaths: { arcadia: '/user/bin/arcadia', 'arcadia-content': '/user/bin/arcadia-content' },
+            pathDirectory: '/user/bin',
+            onPath: false,
+          },
   }))
   vi.stubGlobal('arcadiaDesktop', { author })
   const page = mount(CreationPage)
@@ -75,6 +81,7 @@ it('can register the installed CLI before opening a project', async () => {
       .trigger('click')
     await flushPromises()
     expect(author).toHaveBeenCalledWith({ action: 'install-terminal-command' })
+    expect(page.text()).toContain('/user/bin/arcadia 和')
     expect(page.text()).toContain('/user/bin/arcadia-content')
     expect(page.text()).toContain('/user/bin 加入 PATH')
   } finally {

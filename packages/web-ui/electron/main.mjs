@@ -1588,6 +1588,7 @@ app
         port: localServerPort,
         profile: app.getPath('userData'),
         label: app.getName() + ' · ' + app.getPath('userData'),
+        serverController: localServerController,
         library: getContentLibrary(),
         environments: getLocalEnvironments(),
       })

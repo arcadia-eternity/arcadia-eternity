@@ -50,6 +50,12 @@ async function fixture(t) {
       "if(process.argv.includes('fail')) process.exitCode=23;",
     ].join('\n'),
   )
+  const rootScript = join(runtime, 'cli.js')
+  await writeFile(join(runtime, 'package.json'), JSON.stringify({ type: 'module' }))
+  await writeFile(
+    rootScript,
+    (await readFile(cli, 'utf8')).replace('args:process.argv.slice(2)', "kind:'root',args:process.argv.slice(2)"),
+  )
   const source = await writeDesktopCliLauncher({ runtime, executable: host, platform: process.platform })
   const moved = join(root, 'Installed location')
   await rename(app, moved)
@@ -78,6 +84,21 @@ test('relocated desktop command forwards stdin, arguments, cwd and exit status w
     npm: join(runtime, 'runtime/npm/bin/npm-cli.js'),
     node: '1',
   })
+  const rootResult = await run(
+    join(dirname(launcher), windows ? 'arcadia.cmd' : 'arcadia'),
+    args,
+    { cwd: root, env: { ...process.env, PATH: '' } },
+    'game input',
+  )
+  assert.equal(rootResult.code, 23, rootResult.errors)
+  assert.deepEqual(JSON.parse(rootResult.output), {
+    kind: 'root',
+    args,
+    cwd: root,
+    input: 'game input',
+    npm: join(runtime, 'runtime/npm/bin/npm-cli.js'),
+    node: '1',
+  })
 })
 
 test('explicit registration uses a user bin on PATH, is repeatable, and preserves unrelated commands', async t => {
@@ -100,16 +121,43 @@ test('explicit registration uses a user bin on PATH, is repeatable, and preserve
   assert.equal(first.code, 0, first.errors)
   const name = windows ? 'arcadia-content.cmd' : 'arcadia-content'
   const commandPath = join(pathDirectory, name)
-  assert.deepEqual(JSON.parse(first.output), { pathDirectory, commandPath, onPath: true })
+  const gamePath = join(pathDirectory, windows ? 'arcadia.cmd' : 'arcadia')
+  assert.deepEqual(JSON.parse(first.output), {
+    pathDirectory,
+    commandPath,
+    commandPaths: { arcadia: gamePath, 'arcadia-content': commandPath },
+    onPath: true,
+  })
+  const game = await run(gamePath, ['battle', 'verify'], options)
+  assert.equal(game.code, 0, game.errors)
+  assert.equal(JSON.parse(game.output).kind, 'root')
+  const fromRoot = await run(gamePath, ['--install-user-command'], options)
+  assert.equal(fromRoot.code, 0, fromRoot.errors)
+  assert.deepEqual(JSON.parse(fromRoot.output), JSON.parse(first.output))
   assert.equal((await register()).code, 0)
   const alias = await run(commandPath, ['check'], options)
   assert.equal(alias.code, 0, alias.errors)
   assert.deepEqual(JSON.parse(alias.output).args, ['check'])
+  await rm(gamePath)
   await writeFile(commandPath, 'personal command')
   const collision = await register()
   assert.equal(collision.code, 1)
   assert.match(collision.errors, /different terminal command/)
   assert.equal(await readFile(commandPath, 'utf8'), 'personal command')
+  await assert.rejects(readFile(gamePath), { code: 'ENOENT' })
+  await rm(commandPath)
+  await writeFile(gamePath, 'another game')
+  assert.equal((await register()).code, 1)
+  assert.equal(await readFile(gamePath, 'utf8'), 'another game')
+  await assert.rejects(readFile(commandPath), { code: 'ENOENT' })
+  if (windows) {
+    await rm(gamePath)
+    const executable = join(pathDirectory, 'arcadia.exe')
+    await writeFile(executable, 'prior Windows command')
+    assert.equal((await register()).code, 1)
+    assert.equal(await readFile(executable, 'utf8'), 'prior Windows command')
+    await assert.rejects(readFile(commandPath), { code: 'ENOENT' })
+  }
 })
 
 test('AppImage registration reopens the original image and resolves its new mount', { skip: windows }, async t => {
@@ -126,9 +174,16 @@ test('AppImage registration reopens the original image and resolves its new moun
   const env = { ...process.env, PATH: '', APPDIR: app, APPIMAGE: image }
   const install = await run(launcher, ['--install-user-command', homeBin], { cwd: root, env })
   assert.equal(install.code, 0, install.errors)
-  const { commandPath } = JSON.parse(install.output)
+  const { commandPath, commandPaths } = JSON.parse(install.output)
   assert.ok(!(await readFile(commandPath, 'utf8')).includes(app))
   await rename(app, remount)
+  const game = await run(commandPaths.arcadia, ['simulate', 'second launch'], {
+    cwd: root,
+    env: { ...process.env, PATH: '' },
+  })
+  assert.equal(game.code, 0, game.errors)
+  assert.equal(JSON.parse(game.output).kind, 'root')
+  assert.deepEqual(JSON.parse(game.output).args, ['simulate', 'second launch'])
   const cli = await run(commandPath, ['environment', 'second launch'], {
     cwd: root,
     env: { ...process.env, PATH: '' },

@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { cp, lstat, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
-import { promisify } from 'node:util'
+import { isDeepStrictEqual, promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -9,6 +9,7 @@ import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 import { verifyDesktopSqlite } from './desktop-sqlite-native.mjs'
 import { normalizeRuntimeLinks } from './desktop-runtime-portability.mjs'
 import { writeDesktopCliLauncher } from './desktop-cli-launcher.mjs'
+import { bounded, shutdownDesktopProcess } from './desktop-acceptance-process.mjs'
 
 const exec = promisify(execFile)
 let previewAccepted = false
@@ -16,9 +17,58 @@ let previewAccepted = false
 const architecture = value =>
   typeof value === 'string' ? value : ['ia32', 'x64', 'armv7l', 'arm64', 'universal'][value]
 
-/** Exercise the installed shell command from a fresh author home with no system Node or npm on PATH. */
+/** Start the independent CLI server on an OS-assigned port and exercise its paired website. */
+async function verifyPackagedServer(invocation) {
+  const { entry, args, options } = invocation
+  const child = spawn(entry, args, {
+    ...options,
+    detached: process.platform !== 'win32',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let output = '',
+    errors = '',
+    port
+  child.stderr.on('data', chunk => {
+    errors = (errors + chunk).slice(-8192)
+  })
+  try {
+    port = await bounded(
+      new Promise((resolve, reject) => {
+        child.once('error', reject)
+        child.once('exit', (code, signal) => reject(new Error(`Packaged server exited (${code ?? signal}): ${errors}`)))
+        child.stdout.on('data', chunk => {
+          output = (output + chunk).slice(-8192)
+          const match = /listening on port (\d+)\r?\n/.exec(output)
+          if (match) resolve(Number(match[1]))
+        })
+      }),
+      60000,
+      'Packaged server did not announce its listening port',
+    )
+    const url = 'http://127.0.0.1:' + port
+    const health = await fetch(url + '/health', { signal: AbortSignal.timeout(10000) })
+    if (!health.ok || (await health.json()).status !== 'ok')
+      throw new Error('Packaged server returned unhealthy status')
+    const site = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    if (!site.ok || !/<html[>\s]/i.test(await site.text()))
+      throw new Error('Packaged server did not serve its paired website')
+  } finally {
+    if (child.pid)
+      await shutdownDesktopProcess({
+        child,
+        ports: port ? [port] : [],
+        quit: () =>
+          process.platform === 'win32'
+            ? exec(join(process.env.SystemRoot, 'System32/taskkill.exe'), ['/PID', String(child.pid), '/T', '/F'])
+            : child.kill('SIGTERM'),
+      })
+  }
+}
+
+/** Exercise both registered shell commands from a fresh home with no system Node or npm on PATH. */
 export async function verifyPackagedAuthoring(launcher) {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-packaged-author-'))
+  let preserveDirectory = false
   const userBin = join(directory, 'command bin')
   const env = {
     ...Object.fromEntries(
@@ -30,8 +80,8 @@ export async function verifyPackagedAuthoring(launcher) {
     npm_config_cache: join(directory, 'npm-cache'),
     npm_config_offline: 'true',
   }
-  const run = async (entry, cwd, args, input) => {
-    const options = { cwd, env: { ...env }, timeout: 120000, maxBuffer: 8 * 1024 * 1024 }
+  const invocation = (entry, cwd, args) => {
+    const options = { cwd, env: { ...env } }
     if (process.platform === 'win32') {
       // A .cmd entry needs the Windows command interpreter. Expand paths inside quotes so
       // spaces and shell metacharacters in the install and temp directories survive.
@@ -44,7 +94,11 @@ export async function verifyPackagedAuthoring(launcher) {
       args = ['/d', '/v:off', '/s', '/c', '"' + quoted.join(' ') + '"']
       options.windowsVerbatimArguments = true
     }
-    const command = exec(entry, args, options)
+    return { entry, args, options }
+  }
+  const run = async (commandName, cwd, values, input) => {
+    const { entry, args, options } = invocation(commandName, cwd, values)
+    const command = exec(entry, args, { ...options, timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
     command.child.stdin.end(input && JSON.stringify(input))
     const { stdout } = await command
     return stdout
@@ -56,9 +110,14 @@ export async function verifyPackagedAuthoring(launcher) {
   }
   try {
     const alias = process.platform === 'win32' ? 'arcadia-content.cmd' : 'arcadia-content'
+    const rootCli = process.platform === 'win32' ? 'arcadia.cmd' : 'arcadia'
     const registration = JSON.parse(await run(launcher, directory, ['--install-user-command', userBin]))
-    if (relative(join(userBin, alias), registration.commandPath) || !registration.onPath)
-      throw new Error('Packaged CLI did not register its shell command in the requested directory')
+    if (
+      relative(join(userBin, alias), registration.commandPath) ||
+      relative(join(userBin, rootCli), registration.commandPaths.arcadia) ||
+      !registration.onPath
+    )
+      throw new Error('Packaged CLI did not register both shell commands in the requested directory')
     const { instances } = JSON.parse(await run(alias, directory, ['desktop', 'instances']))
     if (!Array.isArray(instances) || instances.length)
       throw new Error('Packaged CLI returned an unexpected player instance in a fresh home')
@@ -90,8 +149,45 @@ export async function verifyPackagedAuthoring(launcher) {
     console.log(
       'Packaged CLI created both project kinds, installed the environment archive and completed the seeded battle.',
     )
+    const simulation = JSON.parse(
+      await run(rootCli, directory, [
+        'battle',
+        'simulate',
+        '--player1',
+        join(environment, 'debug/teams/blue.yaml'),
+        '--player2',
+        join(environment, 'debug/teams/orange.yaml'),
+        '--seed',
+        'packaged-battle',
+        '--replay-out',
+        'replay.json',
+        '--json',
+      ]),
+    )
+    const replay = JSON.parse(await run(rootCli, directory, ['battle', 'replay', 'replay.json', '--verify', '--json']))
+    if (
+      simulation.counts.completed !== 1 ||
+      !replay.verified ||
+      !isDeepStrictEqual(replay.result, simulation.results[0])
+    )
+      throw new Error('Packaged CLI could not reproduce the recorded battle in a new process')
+    const data = ['--data-dir', join(directory, 'server data')]
+    const empty = JSON.parse(await run(rootCli, directory, ['server', 'db', 'status', ...data]))
+    const migrated = JSON.parse(await run(rootCli, directory, ['server', 'db', 'migrate', ...data]))
+    if (empty.driver !== 'sqlite' || empty.status !== 'empty' || migrated.status !== 'ready')
+      throw new Error('Packaged CLI could not initialize standalone server storage')
+    await verifyPackagedServer(
+      invocation(rootCli, directory, ['server', ...data, '--host', '127.0.0.1', '--port', '0', '--offline-content']),
+    )
+    console.log('Packaged arcadia verified a saved replay and served the standalone website and health endpoint.')
+  } catch (error) {
+    if (error.preserveInstallerWorkspace) {
+      preserveDirectory = true
+      console.error('Preserving the possibly active server directory:', directory)
+    }
+    throw error
   } finally {
-    await rm(directory, { recursive: true, force: true })
+    if (!preserveDirectory) await rm(directory, { recursive: true, force: true })
   }
 }
 

@@ -11,6 +11,8 @@ import {
   removeEnvironmentPackage,
 } from '../../../content-dev/src/content-workspace.ts'
 import { LocalEnvironments } from '../local-environments.mjs'
+import { PlayerBattleEnvironments } from '../player-battle-environment.mjs'
+import { readInstalledEnvironmentDocument } from '../../../content-dev/src/prepared-document.ts'
 
 const document = {
   schemaVersion: 2,
@@ -111,6 +113,33 @@ test('offline drafts survive reopening, reject stale writes and installations co
   await api.request({ action: 'delete-draft', environmentId: document.id, expectedRevision: current.revision })
   assert.equal((await api.snapshot()).environments.length, 0)
 })
+test('battle CLI snapshots retain the applied rules and release only their temporary npm materials', async t => {
+  const f = await fixture(t)
+  const api = f.open()
+  const workspace = await api.ready()
+  const applied = await api.waitForOperation(
+    (await api.request({ action: 'apply', document, expectedRevision: null })).operationId,
+  )
+  await workspace.saveDraft({ document: { ...document, name: 'New draft' }, expectedRevision: applied.draftRevision })
+  const grants = new PlayerBattleEnvironments(api)
+  try {
+    const lease = await grants.request({ operation: 'battle-environment-acquire', environmentId: document.id })
+    assert.equal(lease.draftRevision, applied.draftRevision)
+    assert.equal(lease.contentRevision, applied.contentRevision)
+    assert.deepEqual(await readInstalledEnvironmentDocument(lease.directory, lease.contentRevision), document)
+    assert.equal((await workspace.getDraft(document.id)).document.name, 'New draft')
+    const admission = JSON.parse(await readFile(join(lease.directory, 'arcadia-admission.json')))
+    assert.deepEqual(admission, { format: 'arcadia.npm-admission', version: 2, profile: 'local-development' })
+    const release = { operation: 'battle-environment-release', leaseId: lease.leaseId }
+    assert.deepEqual(await grants.request(release), { released: true })
+    assert.deepEqual(await grants.request(release), { released: true })
+    await assert.rejects(readdir(lease.directory), { code: 'ENOENT' })
+    assert.equal((await workspace.getInstallation(document.id)).status, 'ready')
+  } finally {
+    await grants.close()
+  }
+})
+
 test('installs a recipe into a new persistent environment without replacing packages or existing material', async t => {
   const f = await fixture(t)
   const acquisitions = []
