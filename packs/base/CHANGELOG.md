@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.13.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.13.0...data-pack-base-v4.13.1) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **release:** isolate client and content release manifests ([#318](https://github.com/arcadia-eternity/arcadia-eternity/issues/318)) ([590b968](https://github.com/arcadia-eternity/arcadia-eternity/commit/590b96808847b4add0f80ca7b20fee238670bb64))
+
 ## [4.13.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.12.2...data-pack-base-v4.13.0) (2026-11-22)
 
 
