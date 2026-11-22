@@ -126,7 +126,11 @@ test('two production clients play original SWFs through a real battle, refresh, 
     const requests: string[] = [],
       failures: string[] = []
     const mediaResponses: { url: string; status: number }[] = []
+    const playerUrlWarnings: string[] = []
     for (const page of pages) {
+      page.on('console', message => {
+        if (message.text().includes('Unable to get currentScript URL')) playerUrlWarnings.push(message.text())
+      })
       page.on('request', request => requests.push(request.url()))
       page.on('requestfailed', request => failures.push(`${request.url()}: ${request.failure()?.errorText}`))
       page.on('response', response => {
@@ -188,6 +192,7 @@ test('two production clients play original SWFs through a real battle, refresh, 
     await guest.reload()
     await expectOriginalPlayers(guest)
     const refreshed = await playback(guest)
+    expect(playerUrlWarnings).toEqual([])
     expect(
       refreshed
         .filter(event => event.type === 'ready')
