@@ -63,6 +63,36 @@ describe('isolated PetSprite readiness', () => {
     expect(sprite.vm.availableState).toEqual(['待机'])
     sprite.unmount()
   })
+  it('shows a ready switch-in before entry while the current task still locks recovery', async () => {
+    const sprite = mount(PetSprite, { props: { swfUrl: '/outgoing.swf' } })
+    await flushPromises()
+    pending.resolve?.(['待机'])
+    await sprite.vm.ready
+
+    await sprite.setProps({ allowRecovery: false, swfUrl: '/incoming.swf' })
+    await flushPromises()
+    pending.resolve?.(['待机'])
+    await sprite.vm.ready
+    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(true)
+
+    sprite.vm.activateLoadedSwf()
+    await sprite.vm.$nextTick()
+    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(false)
+    expect(sprite.get<HTMLDivElement>('.pet-render').element.style.opacity).toBe('1')
+    expect(sprite.vm.availableState).toEqual(['待机'])
+    sprite.unmount()
+  })
+  it('settles readiness when the fallback portrait fails before the movie', async () => {
+    const sprite = mount(PetSprite, { props: { swfUrl: '/broken.swf', fallbackImageUrl: unknownPet } })
+    await flushPromises()
+    await sprite.get('img').trigger('error')
+    const failed = expect(sprite.vm.ready).rejects.toThrow('精灵图片加载失败')
+    pending.reject?.(new Error('broken SWF'))
+    await failed
+    sprite.vm.activateLoadedSwf()
+    expect(sprite.vm.availableState).toEqual([])
+    sprite.unmount()
+  })
   it('ignores readiness from a disposed source', async () => {
     const sprite = mount(PetSprite, { props: { swfUrl: '/first.swf' } })
     await flushPromises()

@@ -2,10 +2,10 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { waitForAnimationOperation } from '../animationTask'
 
 afterEach(() => vi.useRealTimers())
-it('abort releases a never-returning operation and removes its deadline', async () => {
+it.each([1000, undefined])('abort releases a never-returning operation with deadline %s', async timeout => {
   vi.useFakeTimers()
   const abort = new AbortController()
-  const result = waitForAnimationOperation(new Promise(() => {}), abort.signal, 1000)
+  const result = waitForAnimationOperation(new Promise(() => {}), abort.signal, timeout)
   const check = expect(result).rejects.toMatchObject({ name: 'AbortError' })
   abort.abort()
   await check

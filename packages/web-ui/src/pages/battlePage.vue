@@ -1365,13 +1365,14 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
       return
     }
 
-    const newPetReadyPromise = newPetSprite.ready
-    if (newPetReadyPromise) {
-      await withDeadline(newPetReadyPromise, 7000).catch(() => {})
-      assertExecution(execution)
-    }
-
     gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
+    // The player and resource transport handle load failures. A cold download
+    // can outlast the tween without requiring an image-only entrance.
+    await waitForAnimationOperation(newPetSprite.ready, execution.signal).catch(() => {})
+    assertExecution(execution)
+    newPetSprite.activateLoadedSwf()
+    await nextTick()
+    assertExecution(execution)
     const newPetInfo = store.getPetById(toPetId)
     if (newPetInfo) {
       playPetSound(newPetInfo.speciesID)

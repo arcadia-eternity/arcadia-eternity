@@ -32,9 +32,9 @@ const petRenderRef = useTemplateRef<HTMLDivElement>('pet-render')
 let player: SwfPlayer | undefined
 let loadAbort: AbortController | undefined
 const loadedStates = ref<ActionState[]>([])
-const inited = ref(false)
 const imageFailed = ref(false)
 const availableState = ref<ActionState[]>([])
+const inited = computed(() => availableState.value.length > 0)
 const ready = ref<Promise<void>>(Promise.resolve())
 const originalSwfUrl = computed(() => (props.imageOnly || props.imageUrl ? '' : props.swfUrl))
 const usesPlaceholder = computed(() => !props.swfUrl && !props.imageUrl)
@@ -52,7 +52,6 @@ watch(
     generation++
     rejectReady?.(new Error('精灵资源已切换'))
     loadedStates.value = []
-    inited.value = false
     imageFailed.value = false
     fallbackActive.value = false
     portraitLoaded.value = false
@@ -86,7 +85,6 @@ watch(
         if (current !== generation) return
         if (event.type === 'error') {
           loadedStates.value = []
-          inited.value = false
           availableState.value = []
           fallbackActive.value = true
           return
@@ -115,7 +113,8 @@ watch(
       if (current !== generation || controller.signal.aborted) return
       if (props.fallbackImageUrl) {
         fallbackActive.value = true
-        if (portraitLoaded.value) finish?.()
+        if (imageFailed.value || portraitLoadError.value) fail?.(new Error('精灵图片加载失败'))
+        else if (portraitLoaded.value) finish?.()
       } else fail?.(error instanceof Error ? error : new Error('精灵动画加载失败'))
     }
   },
@@ -129,15 +128,15 @@ watch(
   },
 )
 
-// Publishing recovered states changes the renderer used by the next skill.
-// Keep that switch outside the currently running battle task.
+function activateLoadedSwf() {
+  availableState.value = loadedStates.value
+}
+// A skill keeps its chosen renderer. A switch can activate the incoming
+// sprite explicitly while it is still offscreen.
 watch(
-  () => [loadedStates.value, props.allowRecovery] as const,
-  ([states, allowed]) => {
-    if (allowed && states.length) {
-      availableState.value = states
-      inited.value = true
-    }
+  [loadedStates, () => props.allowRecovery],
+  ([, allowed]) => {
+    if (allowed) activateLoadedSwf()
   },
   { flush: 'sync' },
 )
@@ -164,7 +163,7 @@ const setState = async (state: ActionState) => {
   if (inited.value) await player?.setState(state)
 }
 const getState = async () => (inited.value ? player?.getState() : ActionState.IDLE)
-defineExpose({ setState, getState, availableState, ready })
+defineExpose({ setState, getState, availableState, ready, activateLoadedSwf })
 </script>
 <template>
   <div class="w-full h-full overflow-visible">
@@ -176,7 +175,7 @@ defineExpose({ setState, getState, availableState, ready })
     >
       <img
         v-if="!imageFailed && portraitUrl"
-        :key="`${portraitUrl}-${imageOnly}`"
+        :key="`${generation}-${portraitUrl}`"
         :src="portraitUrl"
         alt="精灵静态形象"
         @load="handleImageLoad"
