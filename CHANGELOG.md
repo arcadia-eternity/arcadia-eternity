@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.15.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.5...arcadia-eternity-v4.15.6) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **web:** honor the selected environment in local battles ([960ab0d](https://github.com/arcadia-eternity/arcadia-eternity/commit/960ab0d0bac5313b50c901cc1caad31ea3829f47))
+
 ## [4.15.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.4...arcadia-eternity-v4.15.5) (2026-11-22)
 
 

@@ -160,7 +160,12 @@ export const useGameDataStore = defineStore('gameData', {
 
   actions: {
     /** Local trial display lasts exactly as long as its battle, including failed launches. */
-    useLocalBattleContent(content: ServerEnvironmentContent, rules?: EnvironmentRules, remote = false): () => void {
+    useLocalBattleContent(
+      content: ServerEnvironmentContent,
+      rules?: EnvironmentRules,
+      remote = false,
+      effectMarkRelations?: EffectMarkRelations,
+    ): () => void {
       const previous = {
         rules: this.rules,
         skillParameterCatalog: this.skillParameterCatalog,
@@ -182,6 +187,7 @@ export const useGameDataStore = defineStore('gameData', {
       const previousText = getServerContentText()
       const previousRemote = isRemoteContentActive()
       this.applyServerEnvironment(content, { remote, rules })
+      if (effectMarkRelations) this.effectMarkRelations = effectMarkRelations
       const scope: LocalDisplayScope = {
         previous,
         previousText,

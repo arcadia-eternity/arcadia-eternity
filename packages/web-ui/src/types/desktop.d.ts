@@ -45,6 +45,7 @@ export interface ArcadiaDesktopApi {
     gameplayRevision?: string
     environmentId?: string
     environmentName?: string
+    draftRevision?: string
     token: string
     rules?: import('@arcadia-eternity/protocol').PersonalEnvironmentReference['rules']
     environment?: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment

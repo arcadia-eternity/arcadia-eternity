@@ -83,8 +83,19 @@ afterEach(async () => {
 it('pins desktop content from configuration through retries and battle cleanup', async () => {
   const content = fixtureCatalog
   const environment = { revision: 'fixed-local', data: emptyData, modules: [] }
+  const rules = {
+    schemaVersion: 2,
+    mechanics: { timer: { enabled: true, turnTimeLimit: 24 }, teamSelection: { enabled: false } },
+  }
   const releaseLocalContent = vi.fn(async () => {})
-  const prepareLocalContent = vi.fn(async () => ({ token: 'configuration', environment, content }))
+  const prepareLocalContent = vi.fn(async (_id?: string) => ({
+    token: 'configuration',
+    environment,
+    content,
+    rules,
+    draftRevision: 'applied-draft',
+    gameplayRevision: 'applied-gameplay',
+  }))
   vi.stubGlobal('window', { arcadiaDesktop: { prepareLocalContent, releaseLocalContent } })
   const native = prepared(),
     factory = vi.fn<typeof createSandboxWebBattleSession>(async () => native),
@@ -92,17 +103,32 @@ it('pins desktop content from configuration through retries and battle cleanup',
   const target = destination(),
     original = target.data.species
   target.data.applyServerEnvironment({ species: [], skills: [], marks: [] })
-  await value.prepareContent(target.data)
-  expect(prepareLocalContent).toHaveBeenCalledOnce()
+  await expect(value.prepareContent(target.data, 'training-120')).resolves.toMatchObject({
+    rules,
+    draftRevision: 'applied-draft',
+    gameplayRevision: 'applied-gameplay',
+  })
+  expect(prepareLocalContent).toHaveBeenCalledExactlyOnceWith('training-120')
   expect(target.data.species).not.toBe(original)
   // The library may change after configuration; this session keeps the captured recipe.
-  prepareLocalContent.mockResolvedValue({ token: 'later', environment: { ...environment, revision: 'later' }, content })
+  prepareLocalContent.mockResolvedValue({
+    token: 'later',
+    environment: { ...environment, revision: 'later' },
+    content,
+    rules,
+    draftRevision: 'other-draft',
+    gameplayRevision: 'other-gameplay',
+  })
   target.navigate.mockRejectedValueOnce(new Error('route failed'))
   await expect(value.start(player, player, {}, target)).rejects.toThrow('route failed')
   expect(releaseLocalContent).not.toHaveBeenCalled()
-  await value.start(player, player, {}, target)
+  await value.start(player, player, { timerConfig: { enabled: false }, teamSelection: { enabled: true } }, target)
   expect(factory.mock.calls[0]?.[3]?.environment).toEqual(environment)
   expect(factory.mock.calls[1]?.[3]?.environment).toEqual(environment)
+  expect(factory.mock.calls[1]?.[3]).toMatchObject({
+    timerConfig: { enabled: true, turnTimeLimit: 24 },
+    teamSelection: { enabled: false },
+  })
   expect(prepareLocalContent).toHaveBeenCalledOnce()
   expect(releaseLocalContent).not.toHaveBeenCalled()
   await target.battle.resetBattleWithoutSurrender()
