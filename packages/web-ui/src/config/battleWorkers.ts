@@ -28,6 +28,7 @@ export function parseBattleWorkerPolicy(env: BattleWorkerEnv): Partial<BattleWor
     maxQueuedBattles: integer('VITE_MAX_QUEUED_BATTLES', 4, 0),
     queueTimeoutMs,
     initializeMs: browserSandboxStartup.initializeMs,
+    requestMs: 0,
     reuseWorkers: true,
     vmGrouping: 'package',
   }

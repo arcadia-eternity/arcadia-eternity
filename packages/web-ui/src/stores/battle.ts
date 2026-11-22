@@ -503,14 +503,8 @@ export const useBattleStore = defineStore('battle', {
       const players = this.battleState?.players
       if (players?.length && !players.some(player => player.id === this.playerId)) return []
 
-      let timer: ReturnType<typeof setTimeout> | undefined
       try {
-        const res = await Promise.race([
-          this.battleInterface.getAvailableSelection(this.playerId as playerId),
-          new Promise<never>((_, reject) => {
-            timer = setTimeout(() => reject(new Error('getAvailableSelection timeout')), 10000)
-          }),
-        ])
+        const res = await this.battleInterface.getAvailableSelection(this.playerId as playerId)
         return (Array.isArray(res) ? res : []) as PlayerSelection[]
       } catch (error) {
         if (!isCurrent()) return [] as PlayerSelection[]
@@ -523,8 +517,6 @@ export const useBattleStore = defineStore('battle', {
         }
         console.warn('[battle] fetchAvailableSelection failed:', error)
         return [] as PlayerSelection[]
-      } finally {
-        clearTimeout(timer)
       }
     },
 

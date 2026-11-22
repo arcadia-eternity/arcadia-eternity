@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import nodeEndpoint from 'comlink/dist/esm/node-adapter.mjs'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { BattleWorkerManager, type BattleWorkerPolicy } from '../../sandbox'
 import type { SandboxBattleInput } from '../../src/sandbox/runtime'
 import fixture from '../fixtures/official-switch.input.json'
@@ -160,6 +160,29 @@ it('discards cancelled leases instead of returning them to the pool', async () =
   expect(workers[0].threadId).toBe(-1)
   await (await host.create(input())).cleanup()
   expect(workers).toHaveLength(2)
+})
+
+it('continues the same turn when the browser services heartbeat and skill replies late', async () => {
+  vi.useFakeTimers()
+  const { host } = manager({ requestMs: 0 })
+  try {
+    const battle = await host.create(input())
+    await battle.ready()
+    const { turn, selections } = await battle.waitForPendingDecision()
+    // Advance the host timers without letting it read replies from the real Worker.
+    vi.advanceTimersByTime(60_000)
+    expect(battle.status().state).toBe('active')
+    const submitted = battle.submitAction(selections[0].find(action => action.type === 'use-skill')!)
+    vi.advanceTimersByTime(60_000)
+    await submitted
+    await battle.submitAction(selections[1].find(action => action.type === 'use-skill')!)
+    const next = await battle.waitForPendingDecision()
+    expect(next.turn).toBe(turn + 1)
+    expect(next.selections[0]).toContainEqual(expect.objectContaining({ type: 'use-skill' }))
+  } finally {
+    await host.dispose()
+    vi.useRealTimers()
+  }
 })
 
 it('discards failed initialization and admits a fresh healthy worker', async () => {
