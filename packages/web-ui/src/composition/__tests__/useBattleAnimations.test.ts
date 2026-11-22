@@ -83,8 +83,7 @@ describe('floating effects canvas coordinates', () => {
       scale: expectedScale,
     })
     if (motion === 'reduced') expect(animation).toMatchObject({ x: 0, y: 0 })
-    expect(graphic?.querySelector('.battle-damage__background')).not.toBeNull()
-    expect(graphic?.querySelector('.battle-damage__digit')).not.toBeNull()
+    expect(graphic?.textContent).toContain('−123')
     effects.cleanup()
   })
   it.each([

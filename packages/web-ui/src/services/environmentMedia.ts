@@ -2,6 +2,7 @@ import type { ContentPresentation } from '@arcadia-eternity/schema'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { mediaKindForResource, type MediaKind } from '../../shared/media-formats.mjs'
 import {
+  battleUiUrl,
   mediaEnvironment,
   canPersistMedia,
   warmMedia,
@@ -14,6 +15,7 @@ import { startMediaPreload } from './mediaPreloadProgress'
 type Asset = { url: string; kind?: MediaKind; limit?: number; label?: string }
 export type MediaPet = {
   species: string
+  elements?: readonly string[]
   skills?: readonly string[]
   ability?: string
   emblem?: string
@@ -175,17 +177,24 @@ function teamMediaAssets(
         ]
       : []
   })
-  return [...scene, ...presentationMedia(content, pets, settings.battleRenderer !== 'image', globalMarks)]
+  const elements = [...new Set(pets.flatMap(pet => pet.elements ?? []))].flatMap(element => {
+    const url = battleUiUrl('element:' + element, true, env)
+    return url ? [{ url, kind: 'image' as const, label: element }] : []
+  })
+  return [...scene, ...elements, ...presentationMedia(content, pets, settings.battleRenderer !== 'image', globalMarks)]
 }
 
 export function createMediaPreloader(label: string, scope: 'team' | 'environment' = 'team') {
-  let current: { environment: MediaEnvironment; key: string; controller: AbortController } | undefined
+  let current: { environment: MediaEnvironment; key: string; controller: AbortController; done: Promise<number> } | undefined
   function stop() {
     current?.controller.abort()
     current = undefined
   }
   return {
     stop,
+    get ready() {
+      return current?.done
+    },
     update(
       content: MediaCatalog | null,
       pets: readonly MediaPet[],
@@ -206,13 +215,15 @@ export function createMediaPreloader(label: string, scope: 'team' | 'environment
       const assets = teamMediaAssets(content, environment, pets, settings, globalMarks)
       const planned = full ? [...assets, ...allEnvironmentAssets(content, environment)] : assets
       const previous = current
-      const task = { environment, key, controller: new AbortController() }
-      current = task
-      void preloadMedia(planned, environment, task.controller.signal, {
+      const controller = new AbortController()
+      const done = preloadMedia(planned, environment, controller.signal, {
         label,
         background: full,
         teamUrls: full ? new Set(assets.map(asset => asset.url)) : undefined,
-      }).then(failed => {
+      })
+      const task = { environment, key, controller, done }
+      current = task
+      void done.then(failed => {
         if (full && failed && current === task) current = undefined
       })
       // Join shared reads before releasing the previous selection's subscriptions.

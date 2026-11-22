@@ -371,6 +371,42 @@ it('warms all declared media once per environment and promotes a queued battle a
   }
 })
 
+it('waits for the current roster and shares its resolved element icons with the renderer', async () => {
+  const catalog = { species: [], skills: [], marks: [] }
+  const source = 'https://roster.test/twin-elements'
+  registerMediaEnvironment(catalog, 'roster', [
+    {
+      id: 'custom-icon',
+      source,
+      tags: ['battle-ui:element:Water', 'battle-ui:element:Ice'],
+    },
+  ])
+  const read = Promise.withResolvers<Response>()
+  const fetcher = vi.fn(() => read.promise)
+  vi.stubGlobal('fetch', fetcher)
+  const preloader = createMediaPreloader('当前对战')
+  const settings = { battleRenderer: 'image', background: 'random', battleMusic: 'random' }
+  try {
+    preloader.update(catalog, [{ species: 'pet', elements: ['Water', 'Ice'] }], settings)
+    const done = vi.fn()
+    const waiting = preloader.ready!.then(done)
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledOnce())
+    expect(done).not.toHaveBeenCalled()
+    const png = new Uint8Array(24)
+    png.set([137, 80, 78, 71, 13, 10, 26, 10])
+    png.set([73, 72, 68, 82], 12)
+    png[19] = png[23] = 1
+    read.resolve(new Response(png))
+    await waiting
+    expect(done).toHaveBeenCalledWith(0)
+    const environment = mediaEnvironment(catalog)
+    expect(await readMediaBytes(battleUiUrl('element:Ice', true, environment), { environment })).toEqual(png)
+    expect(fetcher).toHaveBeenCalledOnce()
+  } finally {
+    preloader.stop()
+  }
+})
+
 it('validates during preload, retries corrected content and plays the warmed bytes without another fetch', async () => {
   const address = 'https://cdn.test/extensionless-sound'
   const fetcher = vi

@@ -224,7 +224,7 @@
   grid-template-rows: 46px minmax(120px, auto);
   gap: 10px 14px;
   padding: 10px 18px 14px;
-  background: url('./battle/command-chrome.svg') center / 100% 100% no-repeat;
+  background: url('./battle/command-chrome.svg?inline') center / 100% 100% no-repeat;
   border-top: 0;
 }
 .battle-dock--log {

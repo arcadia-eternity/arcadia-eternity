@@ -9,6 +9,7 @@
       :style="getFrameStyle(frame)"
     >
       <img
+        ref="frameImages"
         :src="climaxEffectImages[frame.id]"
         :alt="`Frame ${frame.id}`"
         class="frame-image"
@@ -19,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, useTemplateRef } from 'vue'
 
 // 导入所有 climax_effect 图片
 import climaxEffect90 from '@/assets/images/climax_effect/90.png'
@@ -284,7 +285,11 @@ const playAnimation = async () => {
 }
 
 // 暴露给父组件的方法
+const frameImages = useTemplateRef<HTMLImageElement[]>('frameImages')
 defineExpose({
+  async whenReady() {
+    await Promise.all((frameImages.value ?? []).map(image => image.decode()))
+  },
   play: playAnimation,
   stop: () => {
     isPlaying.value = false

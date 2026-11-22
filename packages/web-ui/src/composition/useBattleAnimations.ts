@@ -1,5 +1,4 @@
-import ResourceImage from '@/components/ResourceImage.vue'
-import { battleUiUrl } from '@/services/mediaLoader'
+import { createBattleFeedbackArtwork } from '@/services/battleFeedbackArtwork'
 import { computed, h, render, type Ref, type ComputedRef } from 'vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
@@ -28,6 +27,7 @@ export function useBattleAnimations(
   cameraRef?: Ref<HTMLElement | null>,
 ) {
   const mode = computed(() => motion?.value ?? 'standard')
+  const feedbackArtwork = createBattleFeedbackArtwork()
   const hosts = new Map<HTMLElement, { side: Side; kind: string }>()
   const tweens = new Set<gsap.core.Tween | gsap.core.Timeline>()
   const hostTweens = new Map<HTMLElement, gsap.core.Timeline>()
@@ -237,7 +237,11 @@ export function useBattleAnimations(
     float(
       side,
       'damage',
-      h(DamageDisplay, { value, type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '' }),
+      h(DamageDisplay, {
+        value,
+        type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : 'normal',
+        artwork: feedbackArtwork.images,
+      }),
       crit,
     )
   }
@@ -245,11 +249,11 @@ export function useBattleAnimations(
     float(side, 'heal', h(HealDisplay, { value }))
   }
   function showBattleNotice(side: Side, kind: 'miss' | 'absorb', label: string) {
-    const src = battleUiUrl(kind)
+    const src = feedbackArtwork.images.get(kind)?.src
     float(
       side,
       kind,
-      src ? h(ResourceImage, { src, alt: label, style: { height: '80px', width: 'auto' } }) : h('span', label),
+      src ? h('img', { src, alt: label, style: { height: '80px', width: 'auto' } }) : h('span', label),
     )
   }
   function showMissMessage(side: Side) {
@@ -375,6 +379,10 @@ export function useBattleAnimations(
     moveBackgroundFocus,
     updateBackgroundAspectRatio,
     reset,
-    cleanup: reset,
+    prepareFeedbackArtwork: feedbackArtwork.prepare,
+    cleanup() {
+      reset()
+      feedbackArtwork.release()
+    },
   }
 }

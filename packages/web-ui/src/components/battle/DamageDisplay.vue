@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import ResourceImage from '@/components/ResourceImage.vue'
-import { battleUiUrl } from '@/services/mediaLoader'
 import { computed } from 'vue'
 
 // 定义属性
 interface Props {
   value: number
-  type?: string
+  artwork: ReadonlyMap<string, HTMLImageElement>
+  type?: 'normal' | 'blue' | 'red'
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: '',
+  type: 'normal',
 })
 
 // 属性验证
@@ -19,14 +18,13 @@ if (props.value <= 0) {
 }
 
 // 计算背景图片路径
-const backgroundImage = computed(() =>
-  battleUiUrl('damage:' + (props.type === 'blue' || props.type === 'red' ? props.type : 'normal')),
-)
+const backgroundImage = computed(() => props.artwork.get('damage:' + props.type)?.src)
+const minus = computed(() => props.artwork.get('digit:minus')?.src)
 
 // 将数字转换为数字数组
 const digits = computed(() =>
   Array.from(String(props.value), (digit, index) => ({
-    src: battleUiUrl('digit:' + digit),
+    src: props.artwork.get('digit:' + digit)?.src,
     alt: `digit ${digit}`,
     class: ['battle-damage__digit object-contain', { 'battle-damage__digit--following': index > 0 }],
   })),
@@ -53,11 +51,11 @@ const contentStyle = computed(() => {
 <template>
   <div class="battle-damage relative inline-block" :aria-label="`伤害 ${value}`">
     <!-- Pixel sizes are canvas coordinates; the battle shell supplies the only viewport scale. -->
-    <ResourceImage :src="backgroundImage" alt="damage background" class="battle-damage__background" />
+    <img v-if="backgroundImage" :src="backgroundImage" alt="damage background" class="battle-damage__background" />
 
     <!-- 外层容器 - 覆盖整个背景并居中内容 -->
     <div
-      v-if="digits.some(image => !image.src)"
+      v-if="!minus || digits.some(image => !image.src)"
       class="absolute inset-0 flex items-center justify-center text-6xl font-bold"
     >
       −{{ value }}
@@ -67,10 +65,10 @@ const contentStyle = computed(() => {
       <div :style="contentStyle" class="inline-block">
         <!-- 将所有内容置于单一容器内，使用行内显示模式确保尺寸由内容决定 -->
         <div class="flex items-center justify-center whitespace-nowrap">
-          <ResourceImage :src="battleUiUrl('digit:minus')" alt="minus" class="battle-damage__minus object-contain" />
+          <img :src="minus" alt="minus" class="battle-damage__minus object-contain" />
 
           <!-- Keep the original digit artwork. -->
-          <ResourceImage v-for="(image, index) in digits" :key="index" v-bind="image" />
+          <img v-for="(image, index) in digits" :key="index" v-bind="image" />
         </div>
       </div>
     </div>
