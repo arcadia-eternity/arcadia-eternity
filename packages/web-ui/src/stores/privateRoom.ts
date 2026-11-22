@@ -51,7 +51,7 @@ import { listServerEnvironments, prepareServerEnvironment } from '@/services/ser
 import { preparePeerEnvironment } from '@/services/peerEnvironment'
 import { validatePersonalEnvironmentTeam, type PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
-import { requireServerExecution } from '@/services/serverEnvironmentPolicy'
+import { allowsPeerExecution, requireServerExecution } from '@/services/serverEnvironmentPolicy'
 import { useServerStateStore } from '@/stores/serverState'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 
@@ -422,7 +422,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         if (environmentId && !descriptor) throw new Error('对战内容不可用，请重新选择')
         if (descriptor && config.battleMode !== 'p2p') requireServerExecution(descriptor)
         if (descriptor && config.battleMode === 'p2p') {
-          if (descriptor.executionPolicy !== 'peer') throw new Error('此服务器环境需要由服务器运行，请重新选择对战方式')
+          if (!allowsPeerExecution(descriptor)) throw new Error('此服务器环境需要由服务器运行，请重新选择对战方式')
           preparation = new AbortController()
           roomCreationControllers.add(preparation)
           await preparePeerEnvironment(battleClientStore.serverUrl, descriptor, fetch, preparation.signal)
@@ -657,10 +657,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       // 发送开始战斗请求
       const preparedFor = roomEditorKey.value
       const challengeGeneration = currentRoom.value?.challengeGeneration
-      // 如果房主是玩家，传递房主队伍；如果房主是观战者，传递空数组或undefined
-      const hostTeam = isPlayer.value ? selectedTeam.value : []
+      const hostTeam = isPlayer.value ? selectedTeam.value : undefined
       const acceptance = await roomEnvironment()
-      if (currentRoom.value?.personalEnvironment && personalEnvironment.value)
+      if (hostTeam && currentRoom.value?.personalEnvironment && personalEnvironment.value)
         validatePersonalEnvironmentTeam(personalEnvironment.value, hostTeam)
       if (currentRoom.value?.config.battleMode === 'p2p' && !preparedPeerEnvironment)
         throw new Error('P2P 对战环境尚未准备完成')
@@ -1272,14 +1271,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
         await teardownPeerTransport()
         if (!isCurrent()) return false
+        if (isSpectator.value) return false
         peerSession.value = preparePrivateRoomPeerSession(room, battleClientStore.playerId, battleStartInfo)
         await setupPeerTransport()
         if (!isCurrent()) return false
 
-        if (!isSpectator.value) {
-          await initializeP2PBattleRuntime(isCurrent, signal)
-          if (!isCurrent()) return false
-        }
+        await initializeP2PBattleRuntime(isCurrent, signal)
+        if (!isCurrent()) return false
 
         if (isSwitchingServer.value) return false
         await router.push({
@@ -1288,7 +1286,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
             privateRoom: 'true',
             roomCode: currentRoom.value?.config.roomCode,
             p2p: 'true',
-            ...(isSpectator.value && { spectate: 'true' }),
           },
         })
         return true
@@ -1383,7 +1380,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     recoveredState?: BattleState,
     shouldResume: () => boolean = () => true,
   ): Promise<void> => {
-    if (isSwitchingServer.value || !currentRoom.value) return
+    if (isSwitchingServer.value || !currentRoom.value || (battleStartInfo.battleMode === 'p2p' && isSpectator.value))
+      return
     const roomId = battleStartInfo.battleRoomId ?? currentRoom.value?.battleRoomId ?? ''
     if (battleStartInFlight?.roomId === roomId) {
       await battleStartInFlight.task

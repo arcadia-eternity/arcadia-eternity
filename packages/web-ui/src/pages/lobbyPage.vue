@@ -176,57 +176,54 @@
         <el-form-item label="房间密码">
           <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
         </el-form-item>
-        <RoomBattleOptions v-model="battleOptions" :environment-timer="!!roomRules?.mechanics?.timer" />
-        <el-form-item v-if="battleOptions.battleMode === 'p2p'" label="环境来源">
+        <RoomBattleOptions v-model="battleMode" />
+        <el-form-item v-if="battleMode === 'p2p'" label="环境来源">
           <el-radio-group v-model="personalEnvironmentSelected">
             <el-radio :value="false">服务器提供</el-radio>
             <el-radio :value="true">我的环境</el-radio>
           </el-radio-group>
         </el-form-item>
         <PersonalEnvironmentPicker
-          v-if="battleOptions.battleMode === 'p2p' && personalEnvironmentSelected"
+          v-if="usesPersonalEnvironment"
           :prepared="privateRoomStore.personalEnvironment"
           :disabled="switchingServer || privateRoomStore.isLoading"
           @prepared="acceptPersonalEnvironment"
+          @busy="preparingPersonalEnvironment = $event"
           @error="message => ElMessage.error(message)"
         />
-        <el-form-item v-else label="对战内容">
+        <el-form-item v-else label="对战环境">
           <div class="w-full">
             <el-select
               v-model="selectedEnvironmentId"
               :loading="environmentsLoading"
               class="w-full"
-              aria-label="选择对战内容"
+              aria-label="选择对战环境"
+              :placeholder="environmentsLoading ? '正在加载环境' : '暂无可用环境'"
               data-testid="room-environment-select"
             >
-              <el-option label="服务器默认内容" value="" />
+              <el-option v-if="useServerDefault" label="服务器默认环境" :value="serverDefault" />
               <el-option
-                v-for="environment in customEnvironments"
+                v-for="environment in availableEnvironments"
                 :key="environment.id"
-                :label="environmentLabel(environment)"
+                :label="roomEnvironmentLabel(environment) + (environment.isDefault ? '（服务器默认）' : '')"
                 :value="environment.id"
               />
             </el-select>
             <p v-if="environmentsError" class="text-xs text-amber-700 mt-2" role="status">
-              内容列表暂不可用，可以尝试使用服务器默认内容。
+              环境列表暂不可用。
               <el-button link type="primary" @click="loadEnvironments">重试</el-button>
             </p>
-            <p
-              v-if="hasPeerEnvironments && battleOptions.battleMode === 'server'"
-              class="text-xs text-gray-500 mt-2"
-              role="status"
-            >
+            <p v-if="hasPeerEnvironments && battleMode === 'server'" class="text-xs text-gray-500 mt-2" role="status">
               部分环境仅限房主运行。
             </p>
           </div>
         </el-form-item>
-        <el-form-item v-if="battleOptions.battleMode === 'p2p'" label="P2P 传输">
+        <el-form-item v-if="battleMode === 'p2p'" label="P2P 传输">
           <el-radio-group v-model="roomConfig.p2pTransport">
             <el-radio value="auto">自动</el-radio>
             <el-radio value="webrtc">WebRTC</el-radio>
             <el-radio value="relay">Relay</el-radio>
           </el-radio-group>
-          <div class="text-xs text-gray-500 mt-2">自动模式优先建立直连；连接受限时使用服务器中继。</div>
         </el-form-item>
       </el-form>
 
@@ -237,9 +234,10 @@
           data-testid="confirm-create-private-room-button"
           :disabled="
             switchingServer ||
-            (personalEnvironmentSelected && battleOptions.battleMode === 'p2p'
-              ? !privateRoomStore.personalEnvironment
-              : environmentsLoading)
+            privateRoomStore.isLoading ||
+            (usesPersonalEnvironment
+              ? preparingPersonalEnvironment || !privateRoomStore.personalEnvironment
+              : environmentsLoading || !selectedEnvironmentId)
           "
           @click="createRoom"
           >创建</el-button
@@ -250,7 +248,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import PersonalEnvironmentPicker from '@/features/content/PersonalEnvironmentPicker.vue'
 import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { useRouter } from 'vue-router'
@@ -264,9 +262,7 @@ import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
-import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
-import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
-import { allowsServerExecution } from '@/services/serverEnvironmentPolicy'
+import { allowsServerExecution, allowsPeerExecution, roomEnvironmentLabel } from '@/services/serverEnvironmentPolicy'
 
 const canAuthor = !!window.arcadiaDesktop?.author
 const router = useRouter()
@@ -277,8 +273,10 @@ const authStore = useAuthStore()
 const showCreateRoomDialog = ref(false)
 const joinRoomCode = ref('')
 const joinRoomPassword = ref('')
-const battleOptions = ref(createDefaultRoomBattleOptions())
+const battleMode = ref<'server' | 'p2p'>('server')
 const personalEnvironmentSelected = ref(false)
+const preparingPersonalEnvironment = ref(false)
+const usesPersonalEnvironment = computed(() => battleMode.value === 'p2p' && personalEnvironmentSelected.value)
 async function acceptPersonalEnvironment(value: PreparedPersonalEnvironment) {
   try {
     await privateRoomStore.setPersonalEnvironment(value)
@@ -297,58 +295,53 @@ async function startLocalServer() {
   await router.push('/servers')
 }
 const switchingServer = computed(() => privateRoomStore.isSwitchingServer)
-const selectedEnvironmentId = ref('')
-const roomRules = computed(() =>
-  battleOptions.value.battleMode === 'p2p' && personalEnvironmentSelected.value
-    ? privateRoomStore.personalEnvironment?.reference.rules
-    : (
-        privateRoomStore.environments.find(item => item.id === selectedEnvironmentId.value) ??
-        privateRoomStore.defaultEnvironment
-      )?.rules,
-)
+const serverDefault = 'server-default'
+const requestedEnvironmentId = ref<string>()
 const environmentsLoading = ref(false)
 const environmentsError = ref(false)
-const customEnvironments = computed(() =>
-  privateRoomStore.environments.filter(
-    environment =>
-      environment.id !== privateRoomStore.defaultEnvironment?.id &&
-      (battleOptions.value.battleMode === 'p2p'
-        ? environment.executionPolicy === 'peer' || (!environment.executionPolicy && !!environment.peerRevision)
-        : allowsServerExecution(environment)),
-  ),
+const availableEnvironments = computed(() =>
+  privateRoomStore.environments.filter(battleMode.value === 'p2p' ? allowsPeerExecution : allowsServerExecution),
+)
+const useServerDefault = computed(
+  () =>
+    battleMode.value === 'server' &&
+    !environmentsLoading.value &&
+    !privateRoomStore.environments.some(environment => environment.isDefault),
 )
 const hasPeerEnvironments = computed(() =>
   privateRoomStore.environments.some(environment => environment.executionPolicy === 'peer'),
 )
-watch(
-  () => battleOptions.value.battleMode,
-  () => {
-    if (!customEnvironments.value.some(environment => environment.id === selectedEnvironmentId.value))
-      selectedEnvironmentId.value = ''
+
+const selectedEnvironmentId = computed({
+  get() {
+    const available = availableEnvironments.value
+    if (available.some(environment => environment.id === requestedEnvironmentId.value))
+      return requestedEnvironmentId.value
+    return useServerDefault.value
+      ? serverDefault
+      : (available.find(environment => environment.isDefault) ?? available[0])?.id
   },
-)
+  set(id: string | undefined) {
+    requestedEnvironmentId.value = id
+  },
+})
 
-function environmentLabel(environment: ServerEnvironmentDescriptor): string {
-  return environment.environmentName || environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
-}
-
+let catalogRequest = 0
 async function loadEnvironments() {
+  const request = ++catalogRequest
   environmentsLoading.value = true
   environmentsError.value = false
   try {
     await privateRoomStore.refreshEnvironments()
-    if (!customEnvironments.value.some(environment => environment.id === selectedEnvironmentId.value))
-      selectedEnvironmentId.value = ''
   } catch {
-    selectedEnvironmentId.value = ''
-    environmentsError.value = true
+    if (request === catalogRequest) environmentsError.value = true
   } finally {
-    environmentsLoading.value = false
+    if (request === catalogRequest) environmentsLoading.value = false
   }
 }
 
 function openCreateRoomDialog() {
-  selectedEnvironmentId.value = ''
+  requestedEnvironmentId.value = undefined
   showCreateRoomDialog.value = true
   void loadEnvironments()
 }
@@ -364,18 +357,15 @@ const createRoom = async () => {
   try {
     const roomCode = await privateRoomStore.createRoom(
       {
-        ...battleOptions.value,
-        ...(roomRules.value?.mechanics?.timer && { timerConfig: undefined }),
+        battleMode: battleMode.value,
         isPrivate: !!roomConfig.value.password,
         password: roomConfig.value.password || undefined,
         p2pTransport: roomConfig.value.p2pTransport,
       },
-      personalEnvironmentSelected.value && battleOptions.value.battleMode === 'p2p'
+      usesPersonalEnvironment.value || selectedEnvironmentId.value === serverDefault
         ? undefined
-        : selectedEnvironmentId.value || undefined,
-      personalEnvironmentSelected.value && battleOptions.value.battleMode === 'p2p'
-        ? privateRoomStore.personalEnvironment?.reference
-        : undefined,
+        : selectedEnvironmentId.value,
+      usesPersonalEnvironment.value ? privateRoomStore.personalEnvironment?.reference : undefined,
     )
     showCreateRoomDialog.value = false
     roomConfig.value = { password: '', p2pTransport: 'auto' }
@@ -406,7 +396,8 @@ const joinAsSpectator = async () => {
     await privateRoomStore.joinAsSpectator(code, undefined, joinRoomPassword.value || undefined)
     router.push(`/room/${code}`)
   } catch (error) {
-    ElMessage.error('加入观战失败: ' + (error as Error).message)
+    const message = (error as Error).message
+    ElMessage.error(message === 'P2P_SPECTATE_UNSUPPORTED' ? 'P2P 房间不支持观战' : '加入观战失败: ' + message)
   }
 }
 </script>

@@ -51,7 +51,7 @@ export interface ArcadiaDesktopApi {
     resources: import('@arcadia-eternity/schema').PresentationManifest['resources']
   }>
   readLocalRuntime?: (token: string) => Promise<import('@arcadia-eternity/battle/sandbox').SandboxEnvironment>
-  capturePersonalEnvironment?: () => Promise<{
+  capturePersonalEnvironment?: (environmentId?: string) => Promise<{
     rules?: import('@arcadia-eternity/protocol').PersonalEnvironmentReference['rules']
     environment: import('@arcadia-eternity/battle/sandbox').SandboxEnvironment
     content: import('@arcadia-eternity/protocol').ServerEnvironmentContent

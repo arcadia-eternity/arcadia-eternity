@@ -454,7 +454,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   }
 
   const startRoomBattle = async (
-    hostTeam: PetSchemaType[],
+    hostTeam?: PetSchemaType[],
     environment?: ServerEnvironmentAcceptance,
   ): Promise<PrivateRoomBattleStartInfo> => {
     if (!_instance.value) {

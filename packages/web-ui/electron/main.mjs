@@ -1318,21 +1318,25 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return getContentLibrary().list()
   })
-  handle('desktop:prepare-local-content', (event, environmentId) => {
-    requireLocalBattleCaller(event)
+  function validateLocalEnvironmentId(environmentId) {
     if (
       environmentId !== undefined &&
       (typeof environmentId !== 'string' || !environmentId || environmentId.length > 256)
     )
       throw new Error('INVALID_ENVIRONMENT_ID')
+  }
+  handle('desktop:prepare-local-content', (event, environmentId) => {
+    requireLocalBattleCaller(event)
+    validateLocalEnvironmentId(environmentId)
     return getLocalContentSessions().prepare(localContentOwner.current(), { displayOnly: true, environmentId })
   })
   handle('desktop:read-local-runtime', (_event, token) => {
     return getLocalContentSessions().readRuntime(token, localContentOwner.current())
   })
-  handle('desktop:capture-personal-environment', event => {
+  handle('desktop:capture-personal-environment', (event, environmentId) => {
     requireLocalBattleCaller(event)
-    return getLocalContentSessions().capturePersonalEnvironment(localContentOwner.current())
+    validateLocalEnvironmentId(environmentId)
+    return getLocalContentSessions().capturePersonalEnvironment(localContentOwner.current(), environmentId)
   })
   handle('desktop:release-local-content', (event, token) => {
     requireLocalBattleCaller(event)

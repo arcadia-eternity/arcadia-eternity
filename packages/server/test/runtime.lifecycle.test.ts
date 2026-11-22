@@ -149,6 +149,9 @@ it('requires the private password for players and spectators and denies spectato
   }
   await success(player, 'joinPrivateRoom', { ...room, password: 'room-secret' })
   await success(spectator, 'joinPrivateRoomAsSpectator', { ...room, password: 'room-secret' })
+  expect(await ack(owner, 'updatePrivateRoomConfig', { battleMode: 'p2p' })).toMatchObject({
+    code: 'P2P_SPECTATE_UNSUPPORTED',
+  })
   expect(await ack(extra, 'joinPrivateRoom', { ...room, password: 'room-secret' })).toEqual({
     status: 'ERROR',
     code: 'ROOM_FULL',
@@ -171,6 +174,68 @@ it('requires the private password for players and spectators and denies spectato
   expect(view?.spectators).toHaveLength(1)
   expect(view?.config.password).toBeUndefined()
   expect(JSON.stringify(view)).not.toContain('room-secret')
+})
+
+it('lets the host keep a spectator seat, start two ready players and watch their server battle', async () => {
+  const host = await boot()
+  const [owner, a, b] = await Promise.all(['owner', 'a', 'b'].map(async id => connect(host, await session(host, id))))
+  const room = await createRoom(owner)
+  const config = (await current(owner))!.config
+  const hostId = config.hostPlayerId
+  expect(config.timerConfig?.enabled).toBe(false)
+  await success(owner, 'switchToSpectator')
+  await success(a, 'joinPrivateRoom', room)
+  await success(a, 'leavePrivateRoom')
+  expect((await current(owner))?.spectators[0].playerId).toBe(hostId)
+  expect(await ack(owner, 'updatePrivateRoomConfig', { battleMode: 'p2p' })).toMatchObject({
+    code: 'HOST_CANNOT_SPECTATE',
+  })
+  await success(a, 'joinPrivateRoom', room)
+  await success(b, 'joinPrivateRoom', room)
+  await success(a, 'togglePrivateRoomReady', { team: team(0) })
+  expect(await ack(owner, 'startPrivateRoomBattle', {})).toMatchObject({ code: 'PLAYERS_NOT_READY' })
+  await success(b, 'togglePrivateRoomReady', { team: team(1) })
+  expect(await current(owner)).toMatchObject({ config: { hostPlayerId: hostId }, status: 'ready' })
+  expect(await ack(owner, 'startPrivateRoomBattle', { hostTeam: team() })).toMatchObject({ code: 'NOT_BATTLE_PLAYER' })
+  const battle = await success<{ battleRoomId: string }>(owner, 'startPrivateRoomBattle', {})
+  await success(owner, 'joinSpectateBattle', { battleRoomId: battle.battleRoomId })
+  await success(a, 'ready')
+  await success(b, 'ready')
+  expect(await success(owner, 'getState')).toMatchObject({ players: expect.any(Array) })
+  expect(await ack(owner, 'getAvailableSelection')).toMatchObject({ code: 'NOT_BATTLE_PLAYER' })
+})
+
+it('runs a published official environment in P2P when the clients accept its peer revision', async () => {
+  const host = await boot()
+  const { app } = host
+  const id = app.environments.descriptor().id
+  app.environments.setPublication(
+    [{ runtimeId: id, enabled: true, public: true, matchmaking: true, executionPolicy: 'server' }],
+    id,
+  )
+  const [environment] = app.environments.list()
+  expect(environment.peerRevision).toBeTruthy()
+  const acceptance = {
+    environmentId: id,
+    protocolVersion: 1,
+    gameplayRevision: environment.gameplayRevision,
+    resourceRevision: environment.resourceRevision,
+    resourcesReady: true,
+    peerRevision: environment.peerRevision,
+  }
+  const [a, b] = await Promise.all(['a', 'b'].map(async name => connect(host, await session(host, name))))
+  const created = await success<{ roomCode: string }>(a, 'createPrivateRoom', {
+    environmentId: id,
+    config: { battleMode: 'p2p' },
+  })
+  expect(await ack(a, 'switchToSpectator')).toMatchObject({ code: 'HOST_CANNOT_SPECTATE' })
+  await success(b, 'joinPrivateRoom', created)
+  expect(
+    await ack(b, 'togglePrivateRoomReady', { team: team(1), environment: { ...acceptance, peerRevision: 'stale' } }),
+  ).toMatchObject({ code: 'CLIENT_PEER_ENVIRONMENT_MISMATCH' })
+  await success(b, 'togglePrivateRoomReady', { team: team(1), environment: acceptance })
+  await success(a, 'startPrivateRoomBattle', { hostTeam: team(0), environment: acceptance })
+  expect((await current(a))?.config.battleMode).toBe('p2p')
 })
 
 it('releases room capacity and all seat associations when a room expires', async () => {
@@ -293,15 +358,14 @@ it('limits P2P relay to the other player and lets only the host finish the battl
   )
   const room = await createRoom(owner, { battleMode: 'p2p', p2pTransport: 'relay', timerConfig: { enabled: false } })
   await success(peer, 'joinPrivateRoom', room)
-  await success(spectator, 'joinPrivateRoomAsSpectator', room)
+  expect(await ack(spectator, 'joinPrivateRoomAsSpectator', room)).toMatchObject({ code: 'P2P_SPECTATE_UNSUPPORTED' })
+  expect(await current(spectator)).toBeNull()
+  expect(await ack(peer, 'switchToSpectator')).toMatchObject({ code: 'P2P_SPECTATE_UNSUPPORTED' })
   await createRoom(foreign, { battleMode: 'p2p' })
   await success(owner, 'togglePrivateRoomReady', { team: team(0) })
   await success(peer, 'togglePrivateRoomReady', { team: team(1) })
   const started = await success<{ battleRoomId: string }>(owner, 'startPrivateRoomBattle', {})
-  expect(await ack(spectator, 'joinSpectateBattle', { battleRoomId: started.battleRoomId })).toEqual({
-    status: 'ERROR',
-    code: 'P2P_SPECTATE_UNSUPPORTED',
-  })
+  expect(await ack(spectator, 'joinPrivateRoomAsSpectator', room)).toMatchObject({ code: 'P2P_SPECTATE_UNSUPPORTED' })
   expect(await ack(peer, 'joinSpectateBattle', { battleRoomId: started.battleRoomId })).toEqual({
     status: 'ERROR',
     code: 'P2P_SPECTATE_UNSUPPORTED',
@@ -324,7 +388,7 @@ it('limits P2P relay to the other player and lets only the host finish the battl
   ).toEqual({ status: 'ERROR', code: 'SIGNAL_TARGET_NOT_FOUND' })
   expect(await ack(spectator, 'sendPrivateRoomPeerSignal', { targetPlayerId: peerSession.seatId, signal })).toEqual({
     status: 'ERROR',
-    code: 'NOT_BATTLE_PLAYER',
+    code: 'ROOM_NOT_FOUND',
   })
   expect(await ack(foreign, 'sendPrivateRoomPeerSignal', { targetPlayerId: peerSession.seatId, signal })).toEqual({
     status: 'ERROR',
@@ -349,7 +413,7 @@ it('limits P2P relay to the other player and lets only the host finish the battl
   })
   expect(await ack(spectator, 'finishPrivateRoomBattle', { winner: peerSession.seatId, reason: 'surrender' })).toEqual({
     status: 'ERROR',
-    code: 'NOT_HOST',
+    code: 'ROOM_NOT_FOUND',
   })
   expect(await ack(owner, 'finishPrivateRoomBattle', { winner: foreignSession.seatId, reason: 'surrender' })).toEqual({
     status: 'ERROR',

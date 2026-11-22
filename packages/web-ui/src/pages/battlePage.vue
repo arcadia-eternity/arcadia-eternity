@@ -828,6 +828,10 @@ const exitBattleBecauseServerClosed = async (reason: string) => {
 
 const battleResult = computed(() => {
   if (!store.isBattleEnd) return ''
+  if (isSpectatorMode.value && store.victor) {
+    const winner = store.battleState?.players.find(player => player.id === store.victor)
+    return winner ? `${winner.name} 获胜` : '对战结束'
+  }
   return store.victor === store.playerId ? '胜利！' : store.victor ? '失败...' : '平局'
 })
 
@@ -2289,7 +2293,7 @@ watch(
       const victor = store.victor
       const leftPet = petSprites.value.left
       const rightPet = petSprites.value.right
-      const isVictor = store.victor === store.playerId
+      const isVictor = store.victor === currentPlayer.value?.id
 
       if (victor === null) {
         if (leftPet && leftPet.availableState.includes(ActionState.DEAD)) leftPet.setState(ActionState.DEAD)

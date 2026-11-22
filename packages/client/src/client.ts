@@ -700,7 +700,7 @@ export class BattleClient {
   }
 
   async startPrivateRoomBattle(
-    hostTeam: PetSchemaType[],
+    hostTeam?: PetSchemaType[],
     environment?: ServerEnvironmentAcceptance,
   ): Promise<PrivateRoomBattleStartInfo> {
     this.verifyConnection()

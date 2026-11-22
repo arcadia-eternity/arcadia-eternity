@@ -117,35 +117,53 @@ it('rejects a peer-only published environment before sending a server-authority 
   expect(mocks.preparePeer).not.toHaveBeenCalled()
 })
 
-it('prepares exact peer materials before submitting a selected player-hosted room', async () => {
+it.each(['peer', 'server', undefined] as const)(
+  'prepares peer materials for a %s listing before creating a P2P room',
+  async executionPolicy => {
+    const store = usePrivateRoomStore()
+    const runtime = {
+      kind: 'native-v4' as const,
+      contentRevision: 'peer-r',
+      coreBuildId: 'peer-c',
+      registryBuildId: 'peer-g',
+    }
+    store.environments = [
+      environmentFixture({ id: 'peer-environment', executionPolicy, peerRevision: 'peer-materials', runtime }),
+    ] as typeof store.environments
+    let finish!: (value: unknown) => void
+    mocks.preparePeer.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          finish = resolve
+        }),
+    )
+    const creating = store.createRoom({ battleMode: 'p2p' }, 'peer-environment')
+    await vi.waitFor(() => expect(mocks.preparePeer).toHaveBeenCalledOnce())
+    expect(mocks.client.createPrivateRoom).not.toHaveBeenCalled()
+    finish({ environment: { revision: 'peer-materials' }, acceptance: {} })
+    await creating
+    expect(mocks.client.createPrivateRoom).toHaveBeenCalledWith({
+      config: { battleMode: 'p2p' },
+      environmentId: 'peer-environment',
+      expectedRuntime: runtime,
+    })
+    store.cleanup()
+  },
+)
+
+it('starts as a spectating host without sending a team', async () => {
   const store = usePrivateRoomStore()
-  const runtime = {
-    kind: 'native-v4' as const,
-    contentRevision: 'peer-r',
-    coreBuildId: 'peer-c',
-    registryBuildId: 'peer-g',
-  }
-  store.environments = [
-    environmentFixture({ id: 'peer-environment', executionPolicy: 'peer', runtime }),
-  ] as typeof store.environments
-  let finish!: (value: unknown) => void
-  mocks.preparePeer.mockImplementationOnce(
-    () =>
-      new Promise(resolve => {
-        finish = resolve
-      }),
-  )
-  const creating = store.createRoom({ battleMode: 'p2p' }, 'peer-environment')
-  await vi.waitFor(() => expect(mocks.preparePeer).toHaveBeenCalledOnce())
-  expect(mocks.client.createPrivateRoom).not.toHaveBeenCalled()
-  finish({ environment: { revision: 'peer-materials' }, acceptance: {} })
-  await creating
-  expect(mocks.client.createPrivateRoom).toHaveBeenCalledWith({
-    config: { battleMode: 'p2p' },
-    environmentId: 'peer-environment',
-    expectedRuntime: runtime,
+  store.currentRoom = roomFixture({
+    status: 'ready',
+    players: [
+      { playerId: 'a', isReady: true },
+      { playerId: 'b', isReady: true },
+    ],
   })
-  store.cleanup()
+  store.currentRoom.spectators.push({ ...store.currentRoom.players[0], playerId: 'host' })
+  expect(store.canStartBattle).toBe(true)
+  await store.startBattle()
+  expect(mocks.client.startRoomBattle).toHaveBeenCalledWith(undefined, undefined)
 })
 
 it('prepares peer execution materials for peer matchmaking instead of accepting display metadata alone', async () => {

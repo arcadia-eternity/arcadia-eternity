@@ -227,7 +227,7 @@ export interface UpdatePrivateRoomConfigRequest {
 
 export interface StartPrivateRoomBattleRequest {
   environment?: ServerEnvironmentAcceptance
-  hostTeam: PetSchemaType[]
+  hostTeam?: PetSchemaType[]
 }
 
 export interface PrivateRoomBattleHostInfo {

@@ -295,7 +295,7 @@ export class ServerEnvironmentRegistry {
         rules,
       ),
     )
-    const peerRevision = (entry.bundled || this.peerMaterialIds.has(descriptor.id)) && entry.runtime.sandbox?.revision
+    const peerRevision = (entry.bundled || policy === 'peer') && entry.runtime.sandbox?.revision
     return {
       ...descriptor,
       gameplayRevision,

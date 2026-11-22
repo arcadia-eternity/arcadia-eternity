@@ -230,6 +230,33 @@ describe('personal challenge environment picker', () => {
     expect(page.emitted('error')).toBeUndefined()
   })
 
+  it('captures the chosen installed environment without changing the desktop selection', async () => {
+    const capture = vi.fn().mockResolvedValue({})
+    const localEnvironment = vi.fn().mockResolvedValue({
+      result: {
+        installations: [
+          { status: 'ready', installationId: 'official', document: { name: '默认环境' } },
+          { status: 'ready', installationId: 'training', document: { name: '120 训练' } },
+          { status: 'unavailable', installationId: 'broken' },
+        ],
+      },
+    })
+    vi.stubGlobal('arcadiaDesktop', { capturePersonalEnvironment: capture, localEnvironment })
+    const page = open()
+    await flushPromises()
+    expect(capture).not.toHaveBeenCalled()
+    const menu = page.getComponent({ name: 'ElDropdown' })
+    expect(menu.findAllComponents({ name: 'ElDropdownItem' }).map(item => item.props('command'))).toEqual([
+      'official',
+      'training',
+    ])
+    menu.vm.$emit('command', 'training')
+    await flushPromises()
+    expect(capture).toHaveBeenCalledWith('training')
+    expect(localEnvironment.mock.calls).toEqual([[{ action: 'snapshot' }]])
+    expect(page.emitted('prepared')).toHaveLength(1)
+  })
+
   it('prepares a trusted desktop capture with the fixed room rules', async () => {
     const capture = { environment: { revision: 'capture' }, content: {}, runtime: {}, packages: [] }
     vi.stubGlobal('arcadiaDesktop', { capturePersonalEnvironment: vi.fn().mockResolvedValue(capture) })

@@ -22,7 +22,8 @@ const desktopApi = {
   listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),
   prepareLocalContent: environmentId => ipcRenderer.invoke('desktop:prepare-local-content', environmentId),
   readLocalRuntime: token => ipcRenderer.invoke('desktop:read-local-runtime', token),
-  capturePersonalEnvironment: () => ipcRenderer.invoke('desktop:capture-personal-environment'),
+  capturePersonalEnvironment: environmentId =>
+    ipcRenderer.invoke('desktop:capture-personal-environment', environmentId),
   releaseLocalContent: token => ipcRenderer.invoke('desktop:release-local-content', token),
   contentPackageAction: input => ipcRenderer.invoke('desktop:content-package-action', input),
   getLocalServerPort: () => ipcRenderer.invoke('desktop:get-local-server-port'),

@@ -500,6 +500,9 @@ export const useBattleStore = defineStore('battle', {
         return [] as PlayerSelection[]
       }
 
+      const players = this.battleState?.players
+      if (players?.length && !players.some(player => player.id === this.playerId)) return []
+
       let timer: ReturnType<typeof setTimeout> | undefined
       try {
         const res = await Promise.race([

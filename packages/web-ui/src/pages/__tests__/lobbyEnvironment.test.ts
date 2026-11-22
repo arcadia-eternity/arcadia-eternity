@@ -27,6 +27,9 @@ let privateRoom: {
     id: string
     packages: { name: string; version: string }[]
     executionPolicy?: 'server' | 'peer'
+    peerRevision?: string
+    isDefault?: boolean
+    environmentName?: string
   }>
   refreshEnvironments: typeof refreshEnvironments
   createRoom: typeof createRoom
@@ -124,12 +127,6 @@ const stubs = {
       '<input :value="modelValue" :disabled="disabled" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
   ElAlert: { template: '<div><slot /></div>' },
-  RoomBattleOptions: {
-    props: ['modelValue'],
-    emits: ['update:modelValue'],
-    template:
-      '<button data-testid="p2p" @click="$emit(\'update:modelValue\', { ...modelValue, battleMode: \'p2p\' })">P2P</button>',
-  },
   PersonalEnvironmentPicker: {
     props: ['prepared', 'disabled'],
     emits: ['prepared', 'error'],
@@ -163,7 +160,14 @@ beforeEach(() => {
   })
   refreshEnvironments.mockImplementation(async () => {
     privateRoom.environments = [
-      { id: 'official', packages: [] },
+      {
+        id: 'official',
+        packages: [],
+        environmentName: '标准环境',
+        isDefault: true,
+        executionPolicy: 'server',
+        peerRevision: 'official-material',
+      },
       { id: 'ugc', packages: [{ name: '@example/slow', version: '1.0.0' }] },
     ]
   })
@@ -177,11 +181,14 @@ it('loads the current server catalog and submits the selected content when creat
   await flushPromises()
   expect(refreshEnvironments).toHaveBeenCalledOnce()
   const select = page.get('[data-testid="room-environment-select"]')
+  expect((select.element as HTMLSelectElement).selectedOptions[0].textContent).toBe('标准环境（服务器默认）')
+  expect(page.text()).not.toContain('行动计时')
   expect(select.text()).toContain('@example/slow 1.0.0')
   await select.setValue('ugc')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
   await flushPromises()
   expect(createRoom).toHaveBeenCalledWith(expect.objectContaining({ battleMode: 'server' }), 'ugc', undefined)
+  expect(createRoom.mock.lastCall?.[0]).not.toHaveProperty('timerConfig')
   expect(push).toHaveBeenCalledWith('/room/ABC123')
 })
 
@@ -190,25 +197,93 @@ it('keeps the server default available when the catalog is unavailable and clear
   const page = mount(LobbyPage, { global: { stubs } })
   await page.get('[data-testid="create-private-room-button"]').trigger('click')
   await flushPromises()
-  expect(page.text()).toContain('内容列表暂不可用')
+  expect(page.text()).toContain('环境列表暂不可用')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
   await flushPromises()
   expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'server' }), undefined, undefined)
   await page.get('[data-testid="create-private-room-button"]').trigger('click')
   await flushPromises()
   await page.get('[data-testid="room-environment-select"]').setValue('ugc')
-  await page.get('[data-testid="p2p"]').trigger('click')
-  expect(page.get('[data-testid="room-environment-select"]').text()).toContain('服务器默认内容')
+  await page
+    .findAll('label')
+    .find(label => label.text() === '房主运行对战')!
+    .get('input')
+    .setValue(true)
+  expect(page.get('[data-testid="room-environment-select"]').text()).toBe('标准环境（服务器默认）')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
   await flushPromises()
-  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'p2p' }), undefined, undefined)
+  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'p2p' }), 'official', undefined)
+})
+
+it('selects the actual default when reopening with an unchanged catalog', async () => {
+  const { ElSelect, ElOption } = await vi.importActual<typeof import('element-plus')>('element-plus')
+  const page = mount(LobbyPage, { global: { stubs: { ...stubs, ElSelect, ElOption } } })
+  await page.get('[data-testid="create-private-room-button"]').trigger('click')
+  await flushPromises()
+  expect(page.get('[data-testid="room-environment-select"]').text()).toContain('标准环境（服务器默认）')
+  await page
+    .findAll('button')
+    .find(button => button.text() === '取消')!
+    .trigger('click')
+  refreshEnvironments.mockResolvedValueOnce(undefined)
+  await page.get('[data-testid="create-private-room-button"]').trigger('click')
+  await flushPromises()
+  expect(page.get('[data-testid="room-environment-select"]').text()).toContain('标准环境（服务器默认）')
+  await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
+  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'server' }), 'official', undefined)
+})
+
+it('keeps creation pending when reopening cancels the previous catalog request', async () => {
+  const first = Promise.withResolvers<void>()
+  const second = Promise.withResolvers<void>()
+  refreshEnvironments.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+  const page = mount(LobbyPage, { global: { stubs } })
+  const open = page.get('[data-testid="create-private-room-button"]')
+  await open.trigger('click')
+  await page
+    .findAll('button')
+    .find(button => button.text() === '取消')!
+    .trigger('click')
+  await open.trigger('click')
+  first.reject(new Error('aborted'))
+  await flushPromises()
+  const create = page.get('[data-testid="confirm-create-private-room-button"]')
+  expect(create.attributes('disabled')).toBeDefined()
+  expect(page.text()).not.toContain('环境列表暂不可用')
+  privateRoom.environments = [{ id: 'default', packages: [], isDefault: true }]
+  second.resolve()
+  await flushPromises()
+  await create.trigger('click')
+  expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'server' }), 'default', undefined)
+})
+
+it('disables P2P creation when no published environment offers peer materials', async () => {
+  refreshEnvironments.mockImplementationOnce(async () => {
+    privateRoom.environments = [{ id: 'server', isDefault: true, executionPolicy: 'server', packages: [] }]
+  })
+  const page = mount(LobbyPage, { global: { stubs } })
+  await page.get('[data-testid="create-private-room-button"]').trigger('click')
+  await flushPromises()
+  await page
+    .findAll('label')
+    .find(label => label.text() === '房主运行对战')!
+    .get('input')
+    .setValue(true)
+  expect(page.get('[data-testid="room-environment-select"]').findAll('option')).toHaveLength(0)
+  expect(page.get('[data-testid="confirm-create-private-room-button"]').attributes('disabled')).toBeDefined()
+  page.unmount()
 })
 
 it('offers a published peer-only environment only for player-hosted room creation', async () => {
   refreshEnvironments.mockImplementationOnce(async () => {
     privateRoom.environments = [
       { id: 'official', packages: [] },
-      { id: 'peer', packages: [{ name: '@example/peer', version: '2.0.0' }], executionPolicy: 'peer' },
+      {
+        id: 'peer',
+        packages: [{ name: '@example/peer', version: '2.0.0' }],
+        executionPolicy: 'peer',
+        peerRevision: 'peer-material',
+      },
     ]
   })
   const page = mount(LobbyPage, { global: { stubs } })
@@ -216,7 +291,11 @@ it('offers a published peer-only environment only for player-hosted room creatio
   await flushPromises()
   expect(page.get('[data-testid="room-environment-select"]').text()).not.toContain('@example/peer')
   expect(page.text()).toContain('部分环境仅限房主运行')
-  await page.get('[data-testid="p2p"]').trigger('click')
+  await page
+    .findAll('label')
+    .find(label => label.text() === '房主运行对战')!
+    .get('input')
+    .setValue(true)
   expect(page.get('[data-testid="room-environment-select"]').text()).toContain('@example/peer 2.0.0')
   await page.get('[data-testid="room-environment-select"]').setValue('peer')
   await page.get('[data-testid="confirm-create-private-room-button"]').trigger('click')
@@ -239,14 +318,23 @@ it.each(['pending', 'selected'] as const)(
     } else {
       refreshEnvironments.mockImplementationOnce(async () => {
         privateRoom.environments = [
-          { id: 'peer', packages: [{ name: '@server/peer', version: '2.0.0' }], executionPolicy: 'peer' },
+          {
+            id: 'peer',
+            packages: [{ name: '@server/peer', version: '2.0.0' }],
+            executionPolicy: 'peer',
+            peerRevision: 'peer-material',
+          },
         ]
       })
     }
     const page = mount(LobbyPage, { global: { stubs } })
     await page.get('[data-testid="create-private-room-button"]').trigger('click')
     await flushPromises()
-    await page.get('[data-testid="p2p"]').trigger('click')
+    await page
+      .findAll('label')
+      .find(label => label.text() === '房主运行对战')!
+      .get('input')
+      .setValue(true)
     if (catalogState === 'selected') await page.get('[data-testid="room-environment-select"]').setValue('peer')
     await page
       .findAll('label')

@@ -10,15 +10,19 @@ it('captures real npm display and resources, preserves prepared recipes across e
   const fixture = await createNpmFixture({ presentation: true, includeCatalog: true })
   const workers = createNodeBattleWorkerManager()
   let releases = 0
+  const acquired: (string | undefined)[] = []
   const sessions = createLocalContentSessions({
     library: {
-      acquireProject: async () => ({
-        directory: fixture.directory,
-        document: { id: 'duel', name: '双宠对战', rules: { schemaVersion: 1, team: { maxSize: 2 } } },
-        release: async () => {
-          releases++
-        },
-      }),
+      acquireProject: async (id?: string) => {
+        acquired.push(id)
+        return {
+          directory: fixture.directory,
+          document: { id: 'duel', name: '双宠对战', rules: { schemaVersion: 1, team: { maxSize: 2 } } },
+          release: async () => {
+            releases++
+          },
+        }
+      },
     },
     load: async () => ({
       host: emptyNpmContentHost,
@@ -56,7 +60,8 @@ it('captures real npm display and resources, preserves prepared recipes across e
     )
     expect(await readFile(sessions.assetFile(first.token, hash).file)).toEqual(fixture.asset)
     expect(sessions.assetFile('wrong-token', hash)).toBeUndefined()
-    const shared = await sessions.capturePersonalEnvironment()
+    const shared = await sessions.capturePersonalEnvironment(undefined, 'duel')
+    expect(acquired.at(-1)).toBe('duel')
     expect(shared.rules).toEqual(first.rules)
     expect(shared.environment).toEqual(first.environment)
     expect(shared.runtime.contentRevision).toBe(shared.environment.revision.split('/effects:')[0])

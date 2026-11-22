@@ -92,77 +92,18 @@ async function openFreshLobby(context: BrowserContext) {
 
 async function createPrivateRoom(page: Page) {
   await logStage(page, 'before-create-room')
-  let roomCode: string
-  try {
-    roomCode = await page.evaluate(async transport => {
-      const debug = (
-        window as typeof window & {
-          __APP_DEBUG__?: {
-            createPrivateRoom?: (config: {
-              ruleSetId?: string
-              isPrivate?: boolean
-              password?: string
-              battleMode?: 'server' | 'p2p'
-              p2pTransport?: 'auto' | 'webrtc' | 'relay'
-            }) => Promise<string>
-          }
-        }
-      ).__APP_DEBUG__
-
-      if (!debug?.createPrivateRoom) {
-        throw new Error('createPrivateRoom debug hook unavailable')
-      }
-
-      return await Promise.race([
-        debug.createPrivateRoom({
-          ruleSetId: 'casual_standard_ruleset',
-          isPrivate: false,
-          battleMode: 'p2p',
-          p2pTransport: transport,
-        }),
-        new Promise<string>((_, reject) => {
-          window.setTimeout(() => {
-            reject(
-              new Error(
-                JSON.stringify({
-                  type: 'createPrivateRoom-timeout',
-                  href: window.location.href,
-                  readyState: document.readyState,
-                  hasDebug: !!debug,
-                  hasCreatePrivateRoom: !!debug?.createPrivateRoom,
-                }),
-              ),
-            )
-          }, 5000)
-        }),
-      ])
-    }, requestedTransport)
-  } catch (error) {
-    const debugInfo = await page.evaluate(() => {
-      const win = window as typeof window & {
-        __APP_DEBUG__?: {
-          createPrivateRoom?: unknown
-          stores?: unknown
-        }
-      }
-      return {
-        href: window.location.href,
-        hasDebug: !!win.__APP_DEBUG__,
-        hasCreatePrivateRoom: !!win.__APP_DEBUG__?.createPrivateRoom,
-        createPrivateRoomType: typeof win.__APP_DEBUG__?.createPrivateRoom,
-        hasStores: !!win.__APP_DEBUG__?.stores,
-        bodyText: document.body?.textContent ?? '',
-      }
-    })
-    console.log('CREATE ROOM EVALUATE ERROR', error)
-    console.log('CREATE ROOM DEBUG INFO', JSON.stringify(debugInfo, null, 2))
-    throw error
-  }
-  await page.goto(`/room/${roomCode}`)
-  expect(roomCode).toBeTruthy()
-  await expect(page.getByRole('heading', { name: new RegExp(`房间 ${roomCode}`) })).toBeVisible()
+  await page.getByTestId('create-private-room-button').click()
+  const dialog = page.getByRole('dialog', { name: '创建私人房间' })
+  await dialog.getByRole('radio', { name: '房主运行对战' }).check()
+  const transportLabel = { auto: '自动', relay: 'Relay', webrtc: 'WebRTC' }[requestedTransport]
+  await dialog.getByRole('radio', { name: transportLabel, exact: true }).check()
+  await expect(dialog.getByTestId('room-environment-select')).toContainText('服务器默认')
+  await dialog.getByTestId('confirm-create-private-room-button').click()
+  await page.waitForURL(/\/room\/[^/?#]+$/)
+  const roomCode = new URL(page.url()).pathname.split('/').at(-1)!
+  await expect(page.getByRole('heading', { name: `房间 ${roomCode}`, exact: true })).toBeVisible()
   await logStage(page, `room-created:${roomCode}`)
-  return roomCode!
+  return roomCode
 }
 
 async function joinPrivateRoom(page: Page, roomCode: string) {

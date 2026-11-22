@@ -131,6 +131,7 @@ export async function prepareServerEnvironment(
       | ServerEnvironmentContent['marks'][number],
   ) => item.presentation && mapPresentationResources(item.presentation, ref => resourceUrl(item.id, ref)!)
   const displayContent: ServerEnvironmentContent = {
+    ...(content.skillParameters && { skillParameters: content.skillParameters }),
     ...(content.elements && { elements: content.elements }),
     ...(content.matchupTables && { matchupTables: content.matchupTables }),
     ...(content.enhancements && { enhancements: content.enhancements }),

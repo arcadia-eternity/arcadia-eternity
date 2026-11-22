@@ -8,3 +8,15 @@ export function allowsServerExecution(environment: Pick<ServerEnvironmentDescrip
 export function requireServerExecution(environment: Pick<ServerEnvironmentDescriptor, 'executionPolicy'>): void {
   if (!allowsServerExecution(environment)) throw new Error('此环境仅允许玩家主机运行，不能用于服务器对战')
 }
+
+export function allowsPeerExecution(environment: Pick<ServerEnvironmentDescriptor, 'peerRevision'>): boolean {
+  return !!environment.peerRevision
+}
+
+export function roomEnvironmentLabel(environment: ServerEnvironmentDescriptor): string {
+  return (
+    environment.environmentName ||
+    environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、') ||
+    '官方基础环境'
+  )
+}

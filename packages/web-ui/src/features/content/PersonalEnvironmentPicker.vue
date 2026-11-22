@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ElInput, ElButton, ElForm, ElFormItem } from 'element-plus'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import type { PersonalEnvironmentReference } from '@arcadia-eternity/protocol'
+import { ElInput, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElForm, ElFormItem } from 'element-plus'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { localEnvironmentRequest } from './localEnvironmentPackages'
+import type { ManagedEnvironmentInstallation, PersonalEnvironmentReference } from '@arcadia-eternity/protocol'
 import {
   createPersonalEnvironmentBundle,
   downloadPersonalEnvironment,
@@ -19,12 +20,17 @@ const props = defineProps<{
   prepared?: PreparedPersonalEnvironment
   disabled?: boolean
 }>()
-const emit = defineEmits<{ prepared: [value: PreparedPersonalEnvironment]; error: [message: string] }>()
+const emit = defineEmits<{
+  prepared: [value: PreparedPersonalEnvironment]
+  error: [message: string]
+  busy: [value: boolean]
+}>()
 const fileInput = ref<HTMLInputElement>()
 const url = ref('')
 const busy = ref(false)
 const error = ref('')
 const desktop = getDesktopApi()
+const localChoices = ref<{ id: string; name: string }[]>([])
 const captureLocal = desktop?.capturePersonalEnvironment?.bind(desktop)
 const accepted = computed(
   () => props.prepared && (!props.expected || props.prepared.reference.descriptor.id === props.expected.descriptor.id),
@@ -34,6 +40,22 @@ const revision = computed(() => shown.value?.descriptor.id)
 let pending: { controller: AbortController } | undefined
 let disposed = false
 const downloads = new Map<string, ReturnType<typeof setTimeout>>()
+
+onMounted(async () => {
+  if (!captureLocal || !desktop?.localEnvironment) return
+  try {
+    const snapshot = await localEnvironmentRequest<{ installations: ManagedEnvironmentInstallation[] }>({
+      action: 'snapshot',
+    })
+    if (!disposed)
+      localChoices.value = snapshot.installations.flatMap(item =>
+        item.status === 'ready' ? [{ id: item.installationId, name: item.document.name }] : [],
+      )
+  } catch (cause) {
+    if (!disposed) report(cause)
+  }
+})
+watch(busy, value => emit('busy', value), { flush: 'sync' })
 
 function report(cause: unknown) {
   const message = cause instanceof Error ? cause.message : '无法准备此环境，请检查文件或链接后重试。'
@@ -165,10 +187,10 @@ async function acceptExpected() {
     return downloadPersonalEnvironment(expected, signal)
   })
 }
-async function acceptLocal() {
+async function acceptLocal(environmentId?: string) {
   if (!captureLocal) return
   await prepare(async (signal, expected) => {
-    const capture = await captureLocal()
+    const capture = await captureLocal(environmentId)
     signal.throwIfAborted()
     const bundle = await createPersonalEnvironmentBundle(capture, expected?.rules, signal)
     return parsePersonalEnvironmentBundle(bundle, { kind: 'file', name: 'personal-environment.arcadia.json' }, signal)
@@ -242,7 +264,17 @@ onBeforeUnmount(() => {
         :disabled="disabled || busy"
         @change="importFile"
       />
-      <ElButton v-if="captureLocal" native-type="button" :disabled="disabled || busy" @click="acceptLocal">
+      <ElDropdown v-if="localChoices.length" trigger="click" :disabled="disabled || busy" @command="acceptLocal">
+        <ElButton native-type="button" :disabled="disabled || busy">选择并接受本机环境</ElButton>
+        <template #dropdown>
+          <ElDropdownMenu>
+            <ElDropdownItem v-for="choice in localChoices" :key="choice.id" :command="choice.id">{{
+              choice.name
+            }}</ElDropdownItem>
+          </ElDropdownMenu>
+        </template>
+      </ElDropdown>
+      <ElButton v-else-if="captureLocal" native-type="button" :disabled="disabled || busy" @click="acceptLocal()">
         使用并接受本机环境
       </ElButton>
       <ElButton

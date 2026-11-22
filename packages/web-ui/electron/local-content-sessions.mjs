@@ -182,8 +182,8 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
     await collect()
   }
   /** Explicit sharing copies only already captured package media, never arbitrary caller paths. */
-  async function capturePersonalEnvironment(owner) {
-    const captured = await prepare(owner)
+  async function capturePersonalEnvironment(owner, environmentId) {
+    const captured = await prepare(owner, { environmentId })
     try {
       const session = sessions.get(captured.token)
       if (!session || session.owner !== owner) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
