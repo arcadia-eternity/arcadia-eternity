@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.15.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.2...arcadia-eternity-v4.15.3) (2026-11-22)
+
+
+### 🐛 Bug Fixes
+
+* **web:** preload active environment media across the app lifecycle ([3873bb8](https://github.com/arcadia-eternity/arcadia-eternity/commit/3873bb88563c995590994d32c984fc1c4cf11e1c))
+
 ## [4.15.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.1...arcadia-eternity-v4.15.2) (2026-11-22)
 
 
