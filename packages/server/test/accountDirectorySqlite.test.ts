@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openStorage } from '@arcadia-eternity/database'
+import { AccountLoginSessions } from '../src/runtime/accounts/login-sessions'
+import { SessionRegistry } from '../src/runtime/session'
 import { SQLAccountDirectory } from '../src/runtime/accounts/directory'
 
 const email = (subject: string) => ({ providerId: 'email', issuer: 'mailto', subject, verifiedAt: 1_793_808_123_000 })
@@ -44,6 +46,44 @@ describe('SQLite account directory contract', () => {
     await storage.checkSchema()
     accounts = new SQLAccountDirectory(storage, 'stable-server')
     expect(await accounts.resolveOrCreate(identity)).toEqual(results[0])
+  })
+
+  it('restores independent browser seats after restarting, and revokes the remembered login at logout', async () => {
+    const { accountId } = await accounts.resolveOrCreate(github('12345'))
+    const registry = () => new SessionRegistry({ serverId: 'stable-server', accountEnabled: true })
+    const original = registry()
+    const session = original.issueVerifiedAccount({ id: 'local', name: 'Player' }, accountId)
+    const device = await new AccountLoginSessions(storage, original).remember(session, {})
+    expect(device!.expiresAt).toBeGreaterThan(session.expiresAt)
+    original.clear()
+    await storage.close()
+    storage = openStorage({ driver: 'sqlite', filename })
+    const logins = new AccountLoginSessions(storage, registry())
+    const sameTab = await logins.resume(session.token)
+    const newTab = await logins.restoreBrowser(device!.token)
+    expect(newTab?.principal).toEqual(session.principal)
+    expect(newTab!.token).not.toBe(sameTab!.token)
+    expect(newTab!.seatId).not.toBe(sameTab!.seatId)
+    expect(await logins.resume(device!.token)).toBeUndefined()
+    expect(await logins.restoreBrowser(session.token)).toBeUndefined()
+    await logins.revoke(newTab!.token, device!.token)
+    expect(await logins.resume(newTab!.token)).toBeUndefined()
+    expect(await logins.restoreBrowser(device!.token)).toBeUndefined()
+    expect(await logins.enrollExisting(sameTab!.token)).toBeUndefined()
+  })
+
+  it('migrates a legacy login once within its original expiry and checks account status on recovery', async () => {
+    const { accountId } = await accounts.resolveOrCreate(email('legacy@example.test'))
+    const registry = new SessionRegistry({ serverId: 'stable-server', accountEnabled: true })
+    const logins = new AccountLoginSessions(storage, registry)
+    const session = registry.issueVerifiedAccount({ id: 'old', name: 'Player' }, accountId)
+    await logins.remember(session)
+    const device = await logins.enrollExisting(session.token)
+    expect(device?.expiresAt).toBe(session.expiresAt)
+    expect(await logins.enrollExisting(session.token)).toBeUndefined()
+    expect((await logins.restoreBrowser(device!.token))?.expiresAt).toBeLessThanOrEqual(session.expiresAt)
+    await accounts.deactivate(accountId)
+    expect(await logins.restoreBrowser(device!.token)).toBeUndefined()
   })
 
   it('keeps the same external identity in different server account spaces', async () => {

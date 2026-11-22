@@ -151,4 +151,4 @@ G3 首版先完成**本服账号身份恢复**，不把本地 UID、宠物、队
 
 ### 账号会话跨重启（2026-11-08）
 
-参考 [Better Auth](https://better-auth.com/docs/concepts/session-management) 的默认 7 天会话及 [Django](https://docs.djangoproject.com/en/5.2/topics/http/sessions/) 的默认数据库会话：登录寿命独立于服务进程。这里使用现有 `sessions` 集合保存带 `player-account-login` 类型标记的账号凭据摘要，无需增加数据库表；不保存房间、席位或明文 token。固定期限内恢复不会延期，注销删除记录，停用账号后拒绝恢复，后续登录顺带清理已过期记录。沿用 Bearer 传输及按服务器隔离的标签页存储，不新增 cookie 或管理员权限。旧版内存凭据无法在重启后补回。
+参考 [Better Auth](https://better-auth.com/docs/concepts/session-management) 的默认 7 天会话及 [Django](https://docs.djangoproject.com/en/5.2/topics/http/sessions/) 的默认数据库会话：登录寿命独立于服务进程。这里使用现有 `sessions` 集合保存带 `player-account-login` 类型标记的账号凭据摘要，无需增加数据库表；不保存房间、席位或明文 token。固定期限内恢复不会延期，注销删除记录，停用账号后拒绝恢复，后续登录顺带清理已过期记录。房间席位使用 Bearer 与按服务器隔离的标签页存储。同源 HTTPS 网页还使用单独的 HttpOnly Cookie 恢复玩家账号，其他标签页恢复时获取各自的席位。旧版内存凭据无法在重启后补回。

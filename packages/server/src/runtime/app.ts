@@ -1,3 +1,4 @@
+import { sha256Hex } from '@arcadia-eternity/const'
 import { ManagementAuthError } from './management/auth'
 import { SQLAccountDirectory } from '@arcadia-eternity/database'
 import { AccountLoginSessions } from './accounts/login-sessions'
@@ -122,6 +123,26 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     options.accounts?.directory instanceof SQLAccountDirectory
       ? new AccountLoginSessions(options.accounts.directory.storage, sessions)
       : undefined
+  const browserLoginOrigin =
+    accountLogins && options.publicOrigin?.startsWith('https://') ? options.publicOrigin : undefined
+  const browserCookie = `__Host-arcadia-player-${sha256Hex(sessions.serverId, '|', browserLoginOrigin ?? '')}`
+  const browserRequest = (req: Request) => !!browserLoginOrigin && req.get('origin') === browserLoginOrigin
+  const readBrowserCookie = (req: Request) => {
+    const value = req.headers.cookie
+      ?.split(';')
+      .map(part => part.trim())
+      .find(part => part.startsWith(browserCookie + '='))
+      ?.slice(browserCookie.length + 1)
+    return value && /^[A-Za-z0-9_-]{43}$/.test(value) ? value : undefined
+  }
+  const setBrowserCookie = (res: Response, token: string, expiresAt: number) =>
+    res.cookie(browserCookie, token, {
+      secure: true,
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/',
+      expires: new Date(expiresAt),
+    })
   const app = express()
   app.disable('x-powered-by')
   app.disable('etag')
@@ -243,6 +264,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     await environments.ready()
     res.json({
       ...sessions.getServerInfo(),
+      ...(browserLoginOrigin && { browserLoginOrigin }),
       ...(options.accounts ? { accountProviders: ['email', 'github'] as const } : {}),
       runtime: environments.descriptor().runtime,
     })
@@ -327,7 +349,9 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   app.delete('/api/v1/session', async (req, res) => {
     const credential = token(req),
       session = sessions.authenticate(credential)
-    if (credential) await accountLogins?.revoke(credential)
+    const forgetBrowser = browserRequest(req) && req.body?.forgetBrowser === true
+    if (credential && (await accountLogins?.revoke(credential, forgetBrowser ? readBrowserCookie(req) : undefined)))
+      setBrowserCookie(res, '', 0)
     if (!session) {
       res.status(401).json({ code: 'INVALID_SESSION' })
       return
@@ -415,7 +439,12 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       }
       if (!issued) throw new SessionError('ACCOUNT_STORE_UNAVAILABLE', 503)
       try {
-        await accountLogins?.remember(issued)
+        const rememberBrowser = browserRequest(req) && object(req.body).rememberBrowser === true
+        const device = await accountLogins?.remember(
+          issued,
+          rememberBrowser ? { previous: readBrowserCookie(req) } : undefined,
+        )
+        if (device) setBrowserCookie(res, device.token, device.expiresAt)
       } catch (error) {
         sessions.revoke(issued.token)
         throw error
@@ -451,6 +480,31 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
           pendingAdmissions--
         }
       }
+    if (accountLogins && browserLoginOrigin) {
+      const recoverBrowserSeat = limited(async (req, res) => {
+        const session = await accountLogins.restoreBrowser(readBrowserCookie(req)!)
+        res.json({ session: session ?? null })
+      })
+      app.post('/api/v1/auth/browser-session', async (req, res, next) => {
+        if (!browserRequest(req) || !req.is('application/json')) throw new SessionError('INVALID_AUTH_ORIGIN', 403)
+        if (stopped) throw new SessionError('SERVER_STOPPED', 503)
+        const browser = readBrowserCookie(req)
+        const credential = token(req)
+        if (credential) {
+          const session = sessions.authenticate(credential) ?? (await accountLogins.resume(credential))
+          if (session?.principal.kind === 'account') {
+            if (!browser) {
+              const device = await accountLogins.enrollExisting(credential)
+              if (device) setBrowserCookie(res, device.token, device.expiresAt)
+            }
+            res.json({ session })
+            return
+          }
+        }
+        if (browser) return recoverBrowserSeat(req, res, next)
+        res.json({ session: null })
+      })
+    }
     app.post(
       '/api/v1/auth/email/challenges',
       limited(async (req, res) => {

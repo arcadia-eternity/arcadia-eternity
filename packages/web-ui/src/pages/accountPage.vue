@@ -143,21 +143,22 @@
               <p v-else-if="authStore.isAuthenticated" class="text-sm text-gray-600">
                 当前使用游客会话，无需注册。服务器通过会话凭证授权房间席位，相同 UID 不会获得相同权限。
               </p>
-              <p v-else class="text-sm text-gray-600">
+              <p v-else-if="recoveryState === 'ready'" class="text-sm text-gray-600">
                 尚未建立有效服务器会话。您仍可使用本地档案；加入联机房间时会申请游客会话。
               </p>
+              <el-button v-if="recoveryState === 'failed'" @click="restoreAccount">重试连接</el-button>
               <p v-if="authStore.session" class="text-xs text-gray-500 break-all">
                 服务器：{{ authStore.session.serverId }}
               </p>
               <p class="text-sm text-gray-600">登录方式由所连接的服务器提供。账号数据不会自动跨服务器共享。</p>
               <el-alert title="房间只在服务器本次运行期间有效" type="info" :closable="false" show-icon>
-                网络短断后可凭有效会话重连。服务器重启后，原会话、房间和席位全部失效，需要重新加入。
+                服务器重启后，已登录的账号可以恢复，原房间和席位需要重新加入。
               </el-alert>
               <el-button v-if="authStore.isAccount" :loading="loggingOut" @click="logout"> 退出服务器账号 </el-button>
             </div>
           </el-card>
 
-          <el-card v-if="accountEnabled">
+          <el-card v-if="accountEnabled && recoveryState === 'ready'">
             <template #header>
               <span>{{ authStore.isAccount ? '添加登录或找回方式' : '登录或创建服务器账号' }}</span>
             </template>
@@ -305,7 +306,10 @@ const emailEnabled = computed(() => accountEnabled.value && authStore.serverInfo
 const githubEnabled = computed(
   () => !isDesktop && accountEnabled.value && authStore.serverInfo?.accountProviders?.includes('github'),
 )
+const recoveryState = ref<'checking' | 'failed' | 'ready'>('checking')
 const sessionStatus = computed(() => {
+  if (recoveryState.value === 'checking') return '正在确认登录状态'
+  if (recoveryState.value === 'failed') return '暂时无法确认登录状态'
   if (!authStore.isAuthenticated) return '未连接服务器身份'
   return authStore.isAccount ? '服务器账号' : '游客会话'
 })
@@ -566,12 +570,22 @@ onMounted(async () => {
   } catch (error) {
     ElMessage.error(accountError(error))
   }
+  await restoreAccount()
+})
+
+async function restoreAccount() {
   // Opening the local profile must not contact the deployment's default server.
   // Explicit server selection or an established session enables account discovery.
-  if (isDesktop && !authStore.hasSelectedServer && !authStore.isAuthenticated) return
+  if (isDesktop && !authStore.hasSelectedServer && !authStore.isAuthenticated) {
+    recoveryState.value = 'ready'
+    return
+  }
+  recoveryState.value = 'checking'
   try {
     await authStore.refreshAccountContext()
+    recoveryState.value = 'ready'
   } catch (error) {
+    recoveryState.value = 'failed'
     ElMessage.error(accountError(error))
     return
   }
@@ -592,7 +606,7 @@ onMounted(async () => {
   } finally {
     accountBusy.value = false
   }
-})
+}
 </script>
 
 <style scoped>
