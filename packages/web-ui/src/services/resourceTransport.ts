@@ -52,7 +52,13 @@ export function publicHttpUrl(value: string): URL {
 
 export async function readResourceBytes(
   value: string,
-  options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number; bundledEnvironment?: boolean } = {},
+  options: {
+    signal?: AbortSignal
+    maxBytes?: number
+    timeoutMs?: number
+    bundledEnvironment?: boolean
+    cache?: RequestCache
+  } = {},
   request: typeof fetch = fetch,
 ): Promise<Uint8Array> {
   const owned = ownedResources.get(value)
@@ -79,7 +85,7 @@ export function readBundledSwfContainer(signal: AbortSignal) {
 
 async function readBytes(
   url: URL,
-  options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number },
+  options: { signal?: AbortSignal; maxBytes?: number; timeoutMs?: number; cache?: RequestCache },
   request: typeof fetch,
   owned?: OwnedResource,
 ) {
@@ -114,7 +120,7 @@ async function readBytes(
       owned
         ? Promise.resolve(new Response(owned.blob.stream()))
         : request.call(globalThis, url.toString(), {
-            cache: 'no-store',
+            cache: options.cache ?? 'no-store',
             credentials: 'omit',
             redirect: 'error',
             referrerPolicy: 'no-referrer',

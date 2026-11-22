@@ -1,4 +1,5 @@
 import { sha256Hex } from '@arcadia-eternity/const'
+import { LRUCache } from 'lru-cache'
 import { computed, shallowRef } from 'vue'
 import { getServerContentText } from '@/i18n/serverContent'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
@@ -74,34 +75,40 @@ export function mediaEnvironment(content: MediaCatalog | null = getServerContent
 }
 
 const desktopCache = () => globalThis.window?.arcadiaDesktop ?? globalThis.window?.arcadiaRemotePlay
-export const canPersistMediaUrl = (scope: string, url: string) =>
-  !scope.startsWith('session/') &&
-  /^https?:\/\//.test(url) &&
-  !/^https?:\/\/127\.0\.0\.1:\d+\/local-content\//.test(url)
+function canWriteMediaCache() {
+  try {
+    return !!(desktopCache()?.writeMediaCache || globalThis.caches)
+  } catch {
+    return false
+  }
+}
+const localContentUrl = /^https?:\/\/127\.0\.0\.1:\d+\/local-content\//
+const mediaDigest = (environment: MediaEnvironment, url: string) =>
+  environment.hashes.get(url) ?? baseHashes.value.get(url)
+export const canPersistMedia = (environment: MediaEnvironment, url: string, digest = mediaDigest(environment, url)) =>
+  !!digest || (!environment.scope.startsWith('session/') && /^https?:\/\//.test(url) && !localContentUrl.test(url))
 const cacheName = (scope: string) => 'arcadia-environment-media-v1/' + scope
-const memory = new Map<string, Uint8Array>()
-let used = 0
+const memory = new LRUCache<string, Uint8Array>({ maxSize: MEMORY_LIMIT, sizeCalculation: bytes => bytes.byteLength })
 // A URL without a declared hash is an alias only inside its environment revision.
-const aliases = new Map<string, string>()
+const aliases = new LRUCache<string, string>({ max: 8192 })
 function remember(bytes: Uint8Array, digest: string, alias?: string) {
-  if (alias) {
-    aliases.delete(alias)
-    aliases.set(alias, digest)
-    if (aliases.size > 8192) aliases.delete(aliases.keys().next().value!)
-  }
-  if (memory.has(digest)) return
-  memory.set(digest, bytes)
-  used += bytes.byteLength
-  while (used > MEMORY_LIMIT) {
-    const oldest = memory.keys().next().value!
-    used -= memory.get(oldest)!.byteLength
-    memory.delete(oldest)
-  }
+  if (alias) aliases.set(alias, digest)
+  if (!memory.has(digest)) memory.set(digest, bytes)
 }
 type MediaContent = { bytes: Uint8Array; hash: string }
 const pending = new SharedReads<MediaContent, { url: string; maxBytes: number }>()
 
-const digestUrl = (digest: string) => 'https://arcadia-media.invalid/sha256/' + digest
+const digestPrefix = 'https://arcadia-media.invalid/sha256/'
+const digestUrl = (digest: string) => digestPrefix + digest
+// Receipts follow the lifetime of the verified bytes, without keeping evicted media alive.
+let storedKeys = new WeakMap<Uint8Array, Set<string>>()
+const writes = new Map<string, { scope: string; done: Promise<void> }>()
+const clearing = new Map<string, Promise<void>>()
+function noteStored(bytes: Uint8Array, ...keys: string[]) {
+  const known = storedKeys.get(bytes) ?? new Set<string>()
+  for (const key of keys) known.add(key)
+  storedKeys.set(bytes, known)
+}
 function validBytes(bytes: Uint8Array | null, limit: number, digest?: string): bytes is Uint8Array {
   return !!bytes?.byteLength && bytes.byteLength <= limit && (!digest || sha256Hex(bytes) === digest)
 }
@@ -114,11 +121,26 @@ function inspectOwnedMedia(kind: MediaKind, bytes: Uint8Array) {
   inspected.set(bytes, { kind, mime })
   return mime
 }
-type SourceReadOptions = { signal: AbortSignal; maxBytes: number }
+type SourceReadOptions = { signal: AbortSignal; maxBytes: number; cache?: RequestCache }
 async function readVerifiedSource(url: string, options: SourceReadOptions, digest?: string) {
   const bytes = await readResourceBytes(url, options)
-  if (!validBytes(bytes, options.maxBytes, digest)) throw new Error('资源内容与清单不一致')
-  return bytes
+  if (validBytes(bytes, options.maxBytes, digest)) return bytes
+  // A pinned URL can have a still-fresh HTTP response from an older manifest.
+  if (digest && options.cache === 'default') {
+    options.signal.throwIfAborted()
+    return readVerifiedSource(url, { ...options, cache: 'reload' }, digest)
+  }
+  throw new Error('资源内容与清单不一致')
+}
+
+async function matchBrowserMedia(scope: string, url: string, digest?: string, ownScope = false) {
+  const scoped = { cacheName: cacheName(scope) }
+  if (digest) return { response: await caches.match(digestUrl(digest), ownScope ? scoped : {}), digest }
+  const response = await caches.match(url, scoped)
+  const hash = response?.headers.get('x-arcadia-sha256')
+  if (!hash) return { response }
+  if (!/^[a-f0-9]{64}$/.test(hash)) return {}
+  return { response: await caches.match(digestUrl(hash), ownScope ? scoped : {}), digest: hash }
 }
 
 async function readStoredMedia(
@@ -137,17 +159,16 @@ async function readStoredMedia(
     if (desktop?.readMediaCache) {
       bytes = await desktop.readMediaCache(scope, address, maxBytes, url)
     } else if (globalThis.caches) {
-      let cached = await caches.match(address, digest ? {} : { cacheName: cacheName(scope) })
-      const storedHash = cached?.headers.get('x-arcadia-sha256')
-      if (!digest && storedHash) {
-        if (!/^[a-f0-9]{64}$/.test(storedHash)) return
-        expected = storedHash
-        cached = await caches.match(digestUrl(storedHash))
-      }
-      if (cached) bytes = await readResourceBytes(url, options, async () => cached)
+      const cached = await matchBrowserMedia(scope, url, digest)
+      expected = cached.digest
+      const response = cached.response
+      if (response) bytes = await readResourceBytes(url, options, async () => response)
     }
     if (bytes && validBytes(bytes, maxBytes, expected)) {
       if (kind) inspectOwnedMedia(kind, bytes)
+      // Digest lookups can hit another environment or an installed desktop package.
+      if (digest) noteStored(bytes, address)
+      else noteStored(bytes, JSON.stringify([scope, url]))
       return bytes
     }
   } catch {
@@ -161,16 +182,107 @@ async function writeStoredMedia(scope: string, url: string, pinned: boolean, { b
   if (desktop?.writeMediaCache) await desktop.writeMediaCache(scope, address, bytes)
   else {
     const cache = await caches.open(cacheName(scope))
-    await cache.put(digestUrl(hash), new Response(bytes as Uint8Array<ArrayBuffer>))
+    await cache.put(
+      digestUrl(hash),
+      new Response(bytes as Uint8Array<ArrayBuffer>, { headers: { 'Content-Length': String(bytes.byteLength) } }),
+    )
     if (!pinned) await cache.put(url, new Response(null, { headers: { 'x-arcadia-sha256': hash } }))
   }
 }
 
 // A battle request can claim an item still waiting in its environment's background sweep.
-type MediaReadOptions = { environment?: MediaEnvironment; signal?: AbortSignal; maxBytes?: number; kind?: MediaKind }
+type MediaReadOptions = {
+  environment?: MediaEnvironment
+  signal?: AbortSignal
+  maxBytes?: number
+  kind?: MediaKind
+  background?: boolean
+  requireSave?: boolean
+}
+
+function mediaLimit(maxBytes = RESOURCE_MAX_BYTES, kind?: MediaKind) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > RESOURCE_MAX_BYTES)
+    throw new Error('资源大小限制无效')
+  return kind ? Math.min(maxBytes, mediaLimits[kind]) : maxBytes
+}
+
+function mediaLease(url: string, digest?: string) {
+  if (url.startsWith('blob:')) return () => hasOwnedResource(url)
+  if (localContentUrl.test(url)) return () => !!digest && [...localMediaFiles(digest)].some(file => file.url === url)
+}
+
+export async function ensureMediaCached(url: string, options: MediaReadOptions, warm = false) {
+  const environment = options.environment ?? mediaEnvironment()
+  const { scope } = environment
+  const digest = mediaDigest(environment, url)
+  const lease = mediaLease(url, digest)
+  const live = lease?.() ?? true
+  const limit = mediaLimit(options.maxBytes, options.kind)
+  options.signal?.throwIfAborted()
+  let present: boolean | undefined
+  if (options.requireSave && clearing.has(scope)) await clearing.get(scope)
+  if (canPersistMedia(environment, url, digest) && live) {
+    try {
+      const desktop = desktopCache()
+      if (desktop?.readMediaCache) {
+        present = await desktop.hasMediaCache?.(scope, digest ? digestUrl(digest) : url, limit, !!options.requireSave)
+      } else if (globalThis.caches) {
+        const { response } = await matchBrowserMedia(scope, url, digest, options.requireSave)
+        const size = Number(response?.headers.get('Content-Length'))
+        // Entries written before we recorded size metadata are verified through the normal reader.
+        present = !!response?.ok && size > 0 && size <= limit
+      }
+    } catch {
+      // Unavailable storage still permits a best-effort warmup.
+    }
+  }
+  options.signal?.throwIfAborted()
+  if (lease && live && !lease()) throw new Error('本地资源已释放')
+  if (present && !warm && !clearing.has(scope)) return 'cached' as const
+  await warmMedia(url, { ...options, environment }, present === false)
+}
 
 export async function readMediaBytes(url: string, options?: MediaReadOptions) {
-  return (await acquireMediaBytes(url, options)).bytes.slice()
+  return (await warmMedia(url, options)).bytes.slice()
+}
+
+export async function warmMedia(url: string, options: MediaReadOptions = {}, missingFromStore = false) {
+  const environment = options.environment ?? mediaEnvironment()
+  const content = await acquireMediaBytes(url, { ...options, environment }, !options.background)
+  const { scope } = environment
+  const declaredHash = mediaDigest(environment, url)
+  if (!canPersistMedia(environment, url, declaredHash)) return content
+  const pinned = !!declaredHash
+  const digest = digestUrl(content.hash)
+  const key = JSON.stringify([scope, pinned ? digest : url])
+  const reset = clearing.get(scope)
+  if (reset) {
+    if (!options.requireSave) return content
+    await reset
+  }
+  options.signal?.throwIfAborted()
+  const known = storedKeys.get(content.bytes)
+  if (!options.requireSave && !missingFromStore && (known?.has(key) || (pinned && known?.has(digest)))) return content
+  try {
+    if (!canWriteMediaCache()) {
+      if (options.requireSave) throw new Error('当前无法保存资源到本地')
+      return content
+    }
+    let write = writes.get(key)
+    if (!write) {
+      const done = writeStoredMedia(scope, url, pinned, content)
+        .then(() => noteStored(content.bytes, key, digest))
+        .finally(() => writes.delete(key))
+      write = { scope, done }
+      writes.set(key, write)
+    }
+    await write.done
+  } catch (error) {
+    // Automatic caching is best effort. An explicit save reports storage errors to the user.
+    if (options.requireSave) throw error
+  }
+  options.signal?.throwIfAborted()
+  return content
 }
 
 async function acquireMediaBytes(
@@ -179,22 +291,14 @@ async function acquireMediaBytes(
   foreground = true,
 ): Promise<MediaContent> {
   signal?.throwIfAborted()
-  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > RESOURCE_MAX_BYTES)
-    throw new Error('资源大小限制无效')
-  if (kind) maxBytes = Math.min(maxBytes, mediaLimits[kind])
+  maxBytes = mediaLimit(maxBytes, kind)
   const { scope } = environment
-  const digest = environment.hashes.get(url) ?? baseHashes.value.get(url)
+  const digest = mediaDigest(environment, url)
   const alias = JSON.stringify([scope, url])
-  const blob = url.startsWith('blob:')
-  const localSession = /^http:\/\/127\.0\.0\.1:\d+\/local-content\//.test(url)
-  const ephemeral = blob || localSession
-  const available = () =>
-    blob
-      ? hasOwnedResource(url)
-      : !localSession || (!!digest && [...localMediaFiles(digest)].some(file => file.url === url))
-  const live = available()
+  const lease = mediaLease(url, digest)
+  const live = lease?.() ?? true
   const assertLive = () => {
-    if ((blob || (localSession && live)) && !available()) throw new Error('本地资源已释放')
+    if (lease && (live || url.startsWith('blob:')) && !lease()) throw new Error('本地资源已释放')
   }
   assertLive()
   if (foreground) environment.promote?.(url)
@@ -204,8 +308,6 @@ async function acquireMediaBytes(
     if (hit.byteLength > maxBytes) throw new ResourceSizeError()
     try {
       if (kind) inspectOwnedMedia(kind, hit)
-      memory.delete(knownHash)
-      memory.set(knownHash, hit)
       return { bytes: hit, hash: knownHash }
     } catch (error) {
       if (digest) throw error
@@ -218,8 +320,8 @@ async function acquireMediaBytes(
     const options = { signal: readSignal, maxBytes }
     assertLive()
     let bytes: Uint8Array | undefined
-    if (!ephemeral) {
-      if (canPersistMediaUrl(scope, url) || digest) bytes = await readStoredMedia(scope, url, digest, options, kind)
+    if (!lease) {
+      if (canPersistMedia(environment, url, digest)) bytes = await readStoredMedia(scope, url, digest, options, kind)
       if (digest && !bytes) {
         const mirrors = new Set(Array.from(localMediaFiles(digest), entry => entry.url))
         for (const local of mirrors) {
@@ -235,7 +337,8 @@ async function acquireMediaBytes(
       }
     }
     readSignal.throwIfAborted()
-    bytes ??= await readVerifiedSource(url, options, digest)
+    const cache = lease ? 'no-store' : 'default'
+    bytes ??= await readVerifiedSource(url, { ...options, cache }, digest)
     readSignal.throwIfAborted()
     assertLive()
     return { bytes, hash: digest ?? sha256Hex(bytes) }
@@ -247,7 +350,7 @@ async function acquireMediaBytes(
     // A larger consumer can retry a capped stream. A second mirror can recover a broken first source.
     const retryLimit = error instanceof ResourceSizeError && maxBytes > flight.source.maxBytes
     const retryMirror = digest && flight.source.url !== url
-    if ((retryLimit || retryMirror) && !signal?.aborted && (!live || available()))
+    if ((retryLimit || retryMirror) && !signal?.aborted && (!live || !lease || lease()))
       return acquireMediaBytes(url, { environment, signal, maxBytes, kind }, foreground)
     throw error
   }
@@ -261,27 +364,37 @@ async function acquireMediaBytes(
 }
 
 export async function clearMediaCache(scope: string) {
-  const desktop = desktopCache()
-  if (desktop?.clearMediaCache) await desktop.clearMediaCache(scope)
-  else await caches.delete(cacheName(scope))
-  for (const key of aliases.keys()) if (JSON.parse(key)[0] === scope) aliases.delete(key)
+  const current = clearing.get(scope)
+  if (current) return current
+  const done = (async () => {
+    await Promise.allSettled([...writes.values()].filter(write => write.scope === scope).map(write => write.done))
+    const desktop = desktopCache()
+    if (desktop?.clearMediaCache) await desktop.clearMediaCache(scope)
+    else await globalThis.caches?.delete(cacheName(scope))
+    storedKeys = new WeakMap()
+    for (const key of aliases.keys()) if (JSON.parse(key)[0] === scope) aliases.delete(key)
+  })().finally(() => clearing.delete(scope))
+  clearing.set(scope, done)
+  return done
 }
 
-export async function warmMedia(
-  url: string,
-  options: MediaReadOptions & {
-    environment: MediaEnvironment
-    signal: AbortSignal
-    background?: boolean
-    save?: boolean
-  },
-) {
-  const content = await acquireMediaBytes(url, options, !options.background)
-  if (options.save) {
-    const { signal, environment } = options
-    signal.throwIfAborted()
-    await writeStoredMedia(environment.scope, url, environment.hashes.has(url), content)
+export async function mediaCacheUsage(scope: string): Promise<{ files: number; bytes: number }> {
+  const desktop = desktopCache()
+  if (desktop?.mediaCacheUsage) return desktop.mediaCacheUsage(scope)
+  if (desktop?.readMediaCache || !globalThis.caches) throw new Error('当前无法查询资源缓存')
+  const name = cacheName(scope)
+  const usage = { files: 0, bytes: 0 }
+  if (!(await caches.has(name))) return usage
+  const cache = await caches.open(name)
+  for (const request of await cache.keys()) {
+    if (!request.url.startsWith(digestPrefix)) continue
+    const response = await cache.match(request)
+    if (!response) continue
+    const length = response.headers.get('Content-Length')
+    usage.bytes += length === null ? (await response.blob()).size : Number(length)
+    usage.files++
   }
+  return usage
 }
 
 // Editor reads may share an in-flight request, but a completed read must never hide subsequent edits.
@@ -326,7 +439,7 @@ export async function loadMedia(kind: MediaKind, source: MediaSource, signal: Ab
   signal.throwIfAborted()
   const data =
     typeof source === 'string'
-      ? acquireMediaBytes(source, { kind, signal }).then(result => result.bytes)
+      ? warmMedia(source, { kind, signal }).then(result => result.bytes)
       : acquireDraftBytes(source, kind, signal)
   if (kind === 'swf') {
     const [bytes, container] = await Promise.all([data, readSwfContainer(signal)])

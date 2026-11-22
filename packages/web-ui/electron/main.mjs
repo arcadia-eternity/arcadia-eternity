@@ -1296,10 +1296,12 @@ function setupIpcHandlers() {
 
   handle('desktop:get-local-server-port', () => localServerPort)
 
-  const media = desktopMediaCache(app.getPath('userData'), (digest, limit) =>
-    getContentLibrary().installedMedia(digest, limit),
+  const media = desktopMediaCache(
+    app.getPath('userData'),
+    (digest, limit) => getContentLibrary().installedMedia(digest, limit),
+    (digest, limit) => getContentLibrary().hasInstalledMedia(digest, limit),
   )
-  for (const operation of ['read', 'write', 'clear']) {
+  for (const operation of ['has', 'read', 'write', 'clear', 'usage']) {
     handle('desktop:media-' + operation, (_event, ...args) => media[operation](...args))
     ipcMain.handle('remote-play:media-' + operation, (event, scope, ...args) => {
       const { backendOrigin } = remotePlay.getBootConfig(event)

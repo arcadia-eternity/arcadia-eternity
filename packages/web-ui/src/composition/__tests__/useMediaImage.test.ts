@@ -39,7 +39,7 @@ it('loads only a mounted consumer and releases its object URL on source change/u
   expect(wrapper.attributes('src')).toBe('blob:first')
   expect(fetcher).toHaveBeenCalledWith(
     'https://assets.test/a.png',
-    expect.objectContaining({ cache: 'no-store', credentials: 'omit' }),
+    expect.objectContaining({ cache: 'default', credentials: 'omit' }),
   )
   await wrapper.setProps({ src: 'https://assets.test/b.png' })
   await flushPromises()

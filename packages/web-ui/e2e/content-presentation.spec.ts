@@ -128,6 +128,11 @@ test('a real npm environment reuses verified image bytes and renders reactive bi
     await page.getByRole('button', { name: 'toggle icon' }).click()
     await expect.poll(() => page.getByTestId('custom-icon').getAttribute('style')).toContain('blob:')
     expect(iconReads).toBe(1)
+    // A fresh document has no in-memory media. Its saved content must survive an unreachable asset origin.
+    await page.route(iconUrl, route => route.abort())
+    await page.reload()
+    await expect.poll(() => page.getByTestId('custom-icon').getAttribute('style')).toContain('blob:')
+    expect(iconReads).toBe(1)
     await page.getByRole('button', { name: 'leave', exact: true }).click()
     await expect(page.locator('#name')).toHaveText('unloaded')
     await expect(page.locator('#description')).toBeEmpty()

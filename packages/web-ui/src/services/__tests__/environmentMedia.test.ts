@@ -49,6 +49,7 @@ it('rejects a wrong digest, retries, and isolates unhashed URLs by environment',
   const bytes = Uint8Array.of(3, 4, 5)
   const fetcher = vi
     .fn()
+    .mockResolvedValueOnce(new Response('stale'))
     .mockResolvedValueOnce(new Response('wrong'))
     .mockResolvedValueOnce(new Response(bytes))
     .mockResolvedValueOnce(new Response('a'))
@@ -60,7 +61,8 @@ it('rejects a wrong digest, retries, and isolates unhashed URLs by environment',
   const a = await readMediaBytes(url, env('revision-a', []))
   const b = await readMediaBytes(url, env('revision-b', []))
   expect(a).not.toEqual(b)
-  expect(fetcher).toHaveBeenCalledTimes(4)
+  expect(fetcher).toHaveBeenCalledTimes(5)
+  expect(fetcher.mock.calls.slice(0, 2).map(call => call[1].cache)).toEqual(['default', 'reload'])
 })
 
 it('shares concurrent requests by digest and retries a working mirror when the first fails integrity', async () => {
@@ -73,7 +75,7 @@ it('shares concurrent requests by digest and retries a working mirror when the f
   const results = await Promise.allSettled([readMediaBytes(url, first), readMediaBytes(cdn, second)])
   expect(results[0].status).toBe('rejected')
   expect(results[1]).toEqual({ status: 'fulfilled', value: bytes })
-  expect(request).toHaveBeenCalledTimes(2)
+  expect(request).toHaveBeenCalledTimes(3)
   const good = Uint8Array.of(5, 5, 5)
   request.mockImplementation(async () => new Response(good))
   const shared = env(
@@ -86,7 +88,7 @@ it('shares concurrent requests by digest and retries a working mirror when the f
   controller.abort()
   await expect(cancelled).rejects.toThrow()
   expect(await other).toEqual(good)
-  expect(request).toHaveBeenCalledTimes(3)
+  expect(request).toHaveBeenCalledTimes(4)
 })
 
 it('reuses previously unpinned bytes when a later package declares their hash', async () => {
@@ -100,14 +102,20 @@ it('reuses previously unpinned bytes when a later package declares their hash', 
   expect(fetcher).toHaveBeenCalledOnce()
 })
 
-it('reopens persisted bytes by hash after a cold start, including an originally unpinned URL', async () => {
+function mockBrowserCache() {
   const cachesByName = new Map<string, Map<string, Response>>()
+  const bodyRead = vi.fn()
+  const writes = vi.fn()
   const storage = {
+    has: async (name: string) => cachesByName.has(name),
     async open(name: string) {
       const items = cachesByName.get(name) ?? new Map<string, Response>()
       cachesByName.set(name, items)
       return {
+        keys: async () => [...items.keys()].map(key => new Request(key)),
+        match: async (request: Request) => items.get(request.url)?.clone(),
         put: async (key: string, value: Response) => {
+          writes(key)
           items.set(key, value.clone())
         },
       }
@@ -116,28 +124,138 @@ it('reopens persisted bytes by hash after a cold start, including an originally 
       for (const [name, items] of cachesByName)
         if (!options?.cacheName || name === options.cacheName) {
           const hit = items.get(key)
-          if (hit) return hit.clone()
+          if (hit) {
+            const response = hit.clone()
+            const body = response.body
+            Object.defineProperty(response, 'body', {
+              get: () => {
+                bodyRead(key)
+                return body
+              },
+            })
+            return response
+          }
         }
     },
     delete: (name: string) => cachesByName.delete(name),
   }
   vi.stubGlobal('caches', storage)
+  return { cachesByName, bodyRead, writes }
+}
+
+it('reopens persisted bytes by hash after a cold start, including an originally unpinned URL', async () => {
+  const { cachesByName } = mockBrowserCache()
   const bytes = Uint8Array.of(81, 23, 31)
   const fetcher = vi.fn().mockResolvedValueOnce(new Response(bytes))
   vi.stubGlobal('fetch', fetcher)
-  const progress = vi.fn()
-  await preloadMedia([{ url, limit: 100 }], env('saved', []).environment, new AbortController().signal, {
-    save: progress,
-  })
-  expect(progress).toHaveBeenLastCalledWith(1, 1, 0)
+  const environment = env('saved', []).environment
+  expect(await preloadMedia([{ url, limit: 100 }], environment, new AbortController().signal)).toBe(0)
   vi.resetModules()
   const cold = await import('../mediaLoader')
   const catalog = { species: [], skills: [], marks: [] }
   cold.registerMediaEnvironment(catalog, 'different server', [{ id: 'movie', source: cdn, sha256: sha256Hex(bytes) }])
   expect(await cold.readMediaBytes(cdn, { environment: cold.mediaEnvironment(catalog) })).toEqual(bytes)
   expect(fetcher).toHaveBeenCalledOnce()
+  expect(await cold.mediaCacheUsage('saved')).toEqual({ files: 1, bytes: bytes.length })
+  expect(await cold.mediaCacheUsage('different server')).toEqual({ files: 0, bytes: 0 })
   await cold.clearMediaCache('saved')
+  expect(await cold.mediaCacheUsage('saved')).toEqual({ files: 0, bytes: 0 })
   expect(cachesByName.size).toBe(0)
+})
+
+it('checks individual objects on cold sweeps, warms the team, and restores only an evicted alias target', async () => {
+  const { cachesByName, bodyRead, writes } = mockBrowserCache()
+  const items = ['team', 'pinned', 'mutable'].map(id => ({
+    id,
+    url: 'https://cdn.test/partial/' + id,
+    kind: 'audio' as const,
+  }))
+  const bytes = items.map(({ id }) => new TextEncoder().encode('OggS' + id))
+  const digestKeys = bytes.map(value => 'https://arcadia-media.invalid/sha256/' + sha256Hex(value))
+  const resources = items.map((asset, i) => ({
+    id: asset.id,
+    source: asset.url,
+    sha256: i < 2 ? sha256Hex(bytes[i]!) : undefined,
+  }))
+  const environment = env('partial', resources).environment
+  const signal = new AbortController().signal
+  const fetcher = vi.fn(async (address: string) => new Response(bytes[items.findIndex(item => item.url === address)]))
+  vi.stubGlobal('fetch', fetcher)
+  expect(await preloadMedia(items, environment, signal, { background: true })).toBe(0)
+  expect(fetcher).toHaveBeenCalledTimes(3)
+  fetcher.mockClear()
+  writes.mockClear()
+  bodyRead.mockClear()
+
+  vi.resetModules()
+  const cold = await import('../environmentMedia')
+  const { mediaPreloadBatches } = await import('../mediaPreloadProgress')
+  expect(
+    await cold.preloadMedia(items, environment, signal, { background: true, teamUrls: new Set([items[0]!.url]) }),
+  ).toBe(0)
+  expect(mediaPreloadBatches.value[0]?.cached).toBe(2)
+  expect(new Set(bodyRead.mock.calls.map(([key]) => key))).toEqual(new Set([digestKeys[0]]))
+  expect(writes).not.toHaveBeenCalled()
+  expect(fetcher).not.toHaveBeenCalled()
+
+  const cache = [...cachesByName.values()][0]!
+  cache.delete(digestKeys[2]!)
+  bodyRead.mockClear()
+  const save = vi.fn()
+  expect(await cold.preloadMedia(items, environment, signal, { save })).toBe(0)
+  expect(fetcher.mock.calls.map(([source]) => source)).toEqual([items[2]!.url])
+  expect(writes.mock.calls.map(([key]) => key)).toEqual([digestKeys[2], items[2]!.url])
+  expect(bodyRead).not.toHaveBeenCalled()
+  expect(save).toHaveBeenLastCalledWith(3, 3, 0)
+
+  cache.delete(digestKeys[2]!)
+  writes.mockClear()
+  expect(await cold.preloadMedia(items, environment, signal, { background: true })).toBe(0)
+  expect(writes.mock.calls.map(([key]) => key)).toEqual([digestKeys[2], items[2]!.url])
+  expect(fetcher).toHaveBeenCalledOnce()
+  expect(mediaPreloadBatches.value[0]?.cached).toBe(2)
+})
+
+it('shares automatic desktop writes across preloading and playback and reports explicit save errors', async () => {
+  const bytes = new TextEncoder().encode('OggSdesktop')
+  const source = 'https://cdn.test/desktop-sound'
+  const resources = [{ id: 'sound', source, sha256: sha256Hex(bytes) }]
+  const catalog = { species: [], skills: [], marks: [] }
+  registerMediaEnvironment(catalog, 'desktop', resources)
+  setServerContentText(catalog)
+  const writeMediaCache = vi.fn(async (_scope: string, _key: string, _bytes: Uint8Array) => {})
+  const readMediaCache = vi.fn(async () => null)
+  const hasMediaCache = vi.fn(async () => false)
+  const fetcher = vi.fn(async () => new Response(bytes))
+  vi.stubGlobal('arcadiaDesktop', { readMediaCache, writeMediaCache, hasMediaCache })
+  vi.stubGlobal('fetch', fetcher)
+  const items = [{ url: source, kind: 'audio' as const }]
+  const signal = new AbortController().signal
+  try {
+    const environment = mediaEnvironment(catalog)
+    await Promise.all([loadMedia('audio', source, signal), preloadMedia(items, environment, signal)])
+    expect(writeMediaCache).toHaveBeenCalledOnce()
+    const [scope, key, written] = writeMediaCache.mock.calls[0]!
+    expect(scope).toBe('desktop')
+    expect(key).toBe('https://arcadia-media.invalid/sha256/' + resources[0]!.sha256)
+    expect([...written]).toEqual([...bytes])
+    expect(fetcher).toHaveBeenCalledOnce()
+    hasMediaCache.mockResolvedValueOnce(true)
+    readMediaCache.mockClear()
+    expect(await preloadMedia(items, environment, signal, { background: true })).toBe(0)
+    expect(hasMediaCache).toHaveBeenCalledWith('desktop', key, 16 * 1024 * 1024, false)
+    expect(readMediaCache).not.toHaveBeenCalled()
+    expect(fetcher).toHaveBeenCalledOnce()
+    expect(writeMediaCache).toHaveBeenCalledOnce()
+    writeMediaCache.mockRejectedValue(new Error('quota'))
+    const other = [{ url: 'https://cdn.test/desktop-new', kind: 'audio' as const }]
+    expect(await preloadMedia(other, environment, signal)).toBe(0)
+    const save = vi.fn()
+    expect(await preloadMedia(other, environment, signal, { save })).toBe(1)
+    expect(save).toHaveBeenLastCalledWith(1, 1, 1)
+  } finally {
+    setServerContentText(null)
+  }
 })
 
 it('shares one imported Blob stream across a room, a mirror and consumers with different size limits', async () => {

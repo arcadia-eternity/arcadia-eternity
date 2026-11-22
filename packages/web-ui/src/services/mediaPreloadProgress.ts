@@ -8,6 +8,7 @@ export type MediaPreloadBatch = {
   total: number
   completed: number
   failed: number
+  cached: number
   startedAt: number
   lastProgressAt: number
   loading: Map<number, string>
@@ -33,6 +34,7 @@ export function startMediaPreload(
     total,
     completed: 0,
     failed: 0,
+    cached: 0,
     startedAt,
     lastProgressAt: startedAt,
     loading: shallowReactive(new Map()),
@@ -57,7 +59,7 @@ export function startMediaPreload(
       if (signal.aborted) return
       batch.loading.set(index, name)
       try {
-        await load()
+        if ((await load()) === 'cached' && !signal.aborted) batch.cached++
       } catch {
         if (!signal.aborted) batch.failed++
       }

@@ -801,7 +801,13 @@ export class ContentLibrary {
     }, 30000)
     this.#gcTimer.unref?.()
   }
-  async installedMedia(hash, limit) {
+  installedMedia(hash, limit) {
+    return this.#findInstalledMedia(hash, limit, false)
+  }
+  async hasInstalledMedia(hash, limit) {
+    return !!(await this.#findInstalledMedia(hash, limit, true))
+  }
+  async #findInstalledMedia(hash, limit, presenceOnly) {
     if (!/^[a-f0-9]{64}$/.test(hash) || !Number.isSafeInteger(limit) || limit < 1 || limit > 64 * 1024 * 1024)
       throw new Error('资源标识或大小无效')
     await this.#load()
@@ -818,6 +824,7 @@ export class ContentLibrary {
           if ((await realpath(file)) !== file) continue
           const info = await lstat(file)
           if (!info.isFile() || !info.size || info.size > limit) continue
+          if (presenceOnly) return true
           const data = await readFile(file)
           if (data.length <= limit && bytesToHex(sha256(data)) === hash) return data
         }

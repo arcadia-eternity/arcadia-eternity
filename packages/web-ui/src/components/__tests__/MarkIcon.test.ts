@@ -36,7 +36,7 @@ it.each(['status', 'ability', 'emblem'])(
       expect(request).toHaveBeenCalledOnce()
       expect(request).toHaveBeenLastCalledWith(
         source,
-        expect.objectContaining({ cache: 'no-store', credentials: 'omit' }),
+        expect.objectContaining({ cache: 'default', credentials: 'omit' }),
       )
       icon.unmount()
       expect(revoke).toHaveBeenCalledTimes(count)

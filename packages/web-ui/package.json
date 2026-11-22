@@ -80,6 +80,7 @@
     "i18next-vue": "^5.4.0",
     "intl-messageformat": "^12.1.5",
     "jsondiffpatch": "catalog:",
+    "lru-cache": "11.5.3",
     "mitt": "^3.0.1",
     "nanoid": "catalog:",
     "pinia": "^4.1.0",

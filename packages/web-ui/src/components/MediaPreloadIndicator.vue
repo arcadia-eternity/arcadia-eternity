@@ -123,6 +123,7 @@ onKeyStroke('Escape', event => {
           </div>
           <div class="flex flex-wrap items-baseline justify-between gap-x-2 text-xs text-slate-300">
             <span>{{ timing(batch) }}</span>
+            <span v-if="batch.cached">已缓存跳过 {{ batch.cached }} 项</span>
             <span v-if="batch.failed" class="text-amber-300">失败 {{ batch.failed }} 项</span>
           </div>
           <ul v-if="batch.loading.size" aria-label="正在处理的资源" class="space-y-0.5 pt-0.5 text-xs text-slate-400">

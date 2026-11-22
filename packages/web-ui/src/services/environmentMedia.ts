@@ -3,8 +3,9 @@ import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { mediaKindForResource, type MediaKind } from '../../shared/media-formats.mjs'
 import {
   mediaEnvironment,
-  canPersistMediaUrl,
+  canPersistMedia,
   warmMedia,
+  ensureMediaCached,
   type MediaCatalog,
   type MediaEnvironment,
 } from './mediaLoader'
@@ -83,17 +84,18 @@ export async function preloadMedia(
     save,
     label = save ? '缓存环境资源' : '对战资源',
     background = false,
+    teamUrls,
   }: {
     save?: (completed: number, total: number, failed: number) => void
     label?: string
     background?: boolean
+    teamUrls?: ReadonlySet<string>
   } = {},
 ) {
-  const { scope } = environment
   const unique = new Map<string, Asset>()
   const typeConflicts = new Set<string>()
   for (const item of assets) {
-    if (save && !environment.hashes.has(item.url) && !canPersistMediaUrl(scope, item.url)) continue
+    if (save && !canPersistMedia(environment, item.url)) continue
     const previous = unique.get(item.url)
     if (!previous) unique.set(item.url, { ...item })
     else {
@@ -109,18 +111,20 @@ export async function preloadMedia(
   const waiting = background ? new Map(items.map((item, index) => [item.url, index])) : undefined
   const promoted = new Set<Promise<void>>()
   let next = 0
-  function processItem(index: number) {
+  function processItem(index: number, urgent = false) {
     const { url, kind, limit, label } = items[index]!
     return batch.run(index, label ?? `资源 ${index + 1}`, () => {
       if (typeConflicts.has(url)) throw new Error('同一资源地址声明了不同的媒体类型')
-      return warmMedia(url, { environment, signal, kind, maxBytes: limit, background, save: !!save })
+      const options = { environment, signal, kind, maxBytes: limit, background, requireSave: !!save }
+      if (save || (background && !urgent)) return ensureMediaCached(url, options, teamUrls?.has(url))
+      return warmMedia(url, options)
     })
   }
   function promote(url: string) {
     const index = waiting?.get(url)
     if (index === undefined || signal.aborted) return
     waiting!.delete(url)
-    const task = processItem(index)
+    const task = processItem(index, true)
     promoted.add(task)
     void task.then(() => promoted.delete(task))
   }
@@ -204,7 +208,11 @@ export function createMediaPreloader(label: string, scope: 'team' | 'environment
       const previous = current
       const task = { environment, key, controller: new AbortController() }
       current = task
-      void preloadMedia(planned, environment, task.controller.signal, { label, background: full }).then(failed => {
+      void preloadMedia(planned, environment, task.controller.signal, {
+        label,
+        background: full,
+        teamUrls: full ? new Set(assets.map(asset => asset.url)) : undefined,
+      }).then(failed => {
         if (full && failed && current === task) current = undefined
       })
       // Join shared reads before releasing the previous selection's subscriptions.

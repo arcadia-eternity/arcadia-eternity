@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { ElButton, ElMessageBox } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
 import { acquireLocalContent } from '@/services/localContent'
 import { listServerEnvironments, prepareServerEnvironment } from '@/services/serverEnvironment'
-import { clearMediaCache, mediaEnvironment } from '@/services/mediaLoader'
+import { clearMediaCache, mediaCacheUsage, mediaEnvironment } from '@/services/mediaLoader'
+import { isMediaPreloading } from '@/services/mediaPreloadProgress'
 import { allEnvironmentAssets, preloadMedia } from '@/services/environmentMedia'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleClientStore } from '@/stores/battleClient'
@@ -12,7 +13,11 @@ import { useBattleClientStore } from '@/stores/battleClient'
 const props = defineProps<{ selection: { id: string; location: 'web' | 'local' | 'server' | 'room'; key: string } }>()
 const busy = ref(false)
 const status = ref('')
+const usage = ref<{ files: number; bytes: number }>()
+const usageUnavailable = ref(false)
+const selectedScope = ref<string>()
 let operation: AbortController | undefined
+let usageRequest = 0
 onBeforeUnmount(() => operation?.abort())
 
 async function capture(signal: AbortSignal) {
@@ -41,6 +46,45 @@ async function capture(signal: AbortSignal) {
   if (!descriptor || (room && descriptor.id !== key)) throw new Error('此环境尚未发布或已变更')
   return prepareServerEnvironment(server, descriptor, fetch, signal)
 }
+async function refreshUsage(signal: AbortSignal) {
+  const request = ++usageRequest
+  try {
+    if (!selectedScope.value) {
+      const result = await capture(signal)
+      try {
+        signal.throwIfAborted()
+        selectedScope.value = mediaEnvironment(result.content).scope
+      } finally {
+        if ('release' in result) await result.release()
+      }
+    }
+    const current = await mediaCacheUsage(selectedScope.value)
+    if (!signal.aborted && request === usageRequest) {
+      usage.value = current
+      usageUnavailable.value = false
+    }
+  } catch {
+    if (!signal.aborted && request === usageRequest) usageUnavailable.value = true
+  }
+}
+watch(
+  () => props.selection.key,
+  (_, __, onCleanup) => {
+    const controller = new AbortController()
+    const stop = watch(isMediaPreloading, active => {
+      if (!active && selectedScope.value) void refreshUsage(controller.signal)
+    })
+    onCleanup(() => {
+      controller.abort()
+      stop()
+    })
+    selectedScope.value = undefined
+    usage.value = undefined
+    usageUnavailable.value = false
+    void refreshUsage(controller.signal)
+  },
+  { immediate: true },
+)
 function cancel() {
   operation?.abort()
   status.value = '已取消'
@@ -54,7 +98,7 @@ async function run(clear = false) {
   try {
     if (
       clear &&
-      !(await ElMessageBox.confirm('清除此环境已保存的资源？', '清理缓存').then(
+      !(await ElMessageBox.confirm('清除此环境已保存的资源？下次使用时会重新缓存。', '清理缓存').then(
         () => true,
         () => false,
       ))
@@ -66,6 +110,7 @@ async function run(clear = false) {
     if ('release' in result) release = result.release
     controller.signal.throwIfAborted()
     const env = mediaEnvironment(result.content)
+    selectedScope.value = env.scope
     if (clear) {
       await clearMediaCache(env.scope)
       status.value = '缓存已清理'
@@ -81,6 +126,7 @@ async function run(clear = false) {
   } catch (error) {
     if (!controller.signal.aborted) status.value = error instanceof Error ? error.message : '资源缓存失败'
   } finally {
+    if (selectedScope.value && !controller.signal.aborted) await refreshUsage(controller.signal)
     await release?.()
     busy.value = false
   }
@@ -88,8 +134,13 @@ async function run(clear = false) {
 </script>
 <template>
   <div class="flex flex-wrap items-center gap-2">
+    <span v-if="usageUnavailable">缓存用量暂不可用</span>
+    <span v-else-if="usage"
+      >本环境已保存 {{ usage.files }} 个文件 ·
+      {{ (usage.bytes / 1048576).toLocaleString(undefined, { maximumFractionDigits: 2 }) }} MiB</span
+    >
     <span role="status">{{ status }}</span>
-    <ElButton :disabled="busy" @click="run()">缓存环境资源</ElButton>
+    <ElButton :disabled="busy" @click="run()">立即缓存全部资源</ElButton>
     <ElButton v-if="busy" @click="cancel">取消</ElButton>
     <ElButton v-else plain @click="run(true)">清理缓存</ElButton>
   </div>

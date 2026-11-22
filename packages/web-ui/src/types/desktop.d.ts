@@ -73,9 +73,11 @@ export interface ArcadiaDesktopApi {
   installContentPackageFile?: (options?: { offline?: boolean }) => Promise<string | null>
   installNpmContentPackage?: (options: { spec: string; offline?: boolean }) => Promise<string>
   getLocalServerPort: () => Promise<number | null>
+  hasMediaCache?: (scope: string, url: string, limit: number, ownScope: boolean) => Promise<boolean>
   readMediaCache?: (scope: string, url: string, limit: number, originalUrl?: string) => Promise<Uint8Array | null>
   writeMediaCache?: (scope: string, url: string, bytes: Uint8Array) => Promise<void>
   clearMediaCache?: (scope: string) => Promise<void>
+  mediaCacheUsage?: (scope: string) => Promise<{ files: number; bytes: number }>
   getAppVersion: () => Promise<string>
   checkForUpdates: () => Promise<DesktopUpdateCheckResult>
   downloadUpdate?: () => Promise<void>
@@ -128,7 +130,7 @@ declare global {
       teams: import('@/components/team/library').ProjectTeamStorage
       returnToEditor(): void
     }
-    arcadiaRemotePlay?: Pick<ArcadiaDesktopApi, 'readMediaCache' | 'writeMediaCache' | 'clearMediaCache'> & {
+    arcadiaRemotePlay?: Pick<ArcadiaDesktopApi, 'hasMediaCache' | 'readMediaCache' | 'writeMediaCache' | 'clearMediaCache' | 'mediaCacheUsage'> & {
   setTeamDraftPending?(pending: boolean): void
       updateProfileDraft?: (data: import('@arcadia-eternity/local-profile').ProfileData) => Promise<void>
       requestProfileSave?: (input: { data: import('@arcadia-eternity/local-profile').ProfileData; expectedRevision: number | null }) => Promise<void>

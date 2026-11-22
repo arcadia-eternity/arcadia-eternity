@@ -107,6 +107,8 @@ it('finds verified package files by hash before an environment is opened', async
       }),
     )
     await writeFile(join(directory, 'icon.png'), bytes)
+    assert.equal(await f.manager.hasInstalledMedia(sha256, bytes.length), true)
+    assert.equal(await f.manager.hasInstalledMedia(sha256, bytes.length - 1), false)
     assert.deepEqual(await f.manager.installedMedia(sha256, bytes.length), bytes)
     assert.equal(await f.manager.installedMedia(sha256, bytes.length - 1), null)
     await writeFile(join(directory, 'icon.png'), 'modified')
